@@ -53,12 +53,63 @@ DEFAULT_OUT = Path(__file__).parent.parent / "data" / "regulatory_training" / "t
 # ─── Instruct format ──────────────────────────────────────────────────────────
 # We use ChatML format for compatibility with Qwen2.5 and LLaMA-3-Instruct
 
+# v2: explicit citation requirement added — this was the primary cause of
+# citation_recall=0.0075 in v1. Model must see citations in the instruction.
 SYSTEM_PROMPT = (
     "You are a regulatory affairs scientist with expertise in ICH M4 CTD Module 2.6 "
     "nonclinical written summaries. You generate precise, formal regulatory prose for "
-    "IND applications following ICH/FDA/EMA guidelines. Your output is plain prose only — "
-    "no markdown formatting, no bullet points. 2-6 sentences per subsection."
+    "IND applications following ICH/FDA/EMA guidelines. "
+    "Your output is plain prose only — no markdown, no bullet points, no section numbers. "
+    "Write 300-500 words. "
+    "Cite applicable ICH guidelines by full identifier where relevant "
+    "(e.g. ICH S2(R1), ICH S7B, ICH M3(R2), EMA/CHMP/EWP/37498/2011, 21 CFR Part 312)."
 )
+
+# Per-section system prompts that make citations explicit for that section's guidelines
+_SECTION_SYSTEM_PROMPTS: dict[str, str] = {
+    "pbpk": (
+        "You are a regulatory pharmacokineticist preparing ICH M4 CTD §2.6.2 PBPK qualification "
+        "narratives. Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite EMA/CHMP/EWP/37498/2011 (the 67% within-2-fold criterion) and ICH M3(R2). "
+        "State explicitly whether the EMA criterion is met and what AFE/AAFE values were obtained."
+    ),
+    "tox_genotox": (
+        "You are a regulatory toxicologist preparing ICH M4 CTD §2.6.3.3 genotoxicity narratives. "
+        "Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite ICH S2(R1) for the standard battery (Ames test, chromosomal aberration, micronucleus). "
+        "State the Ames test result (positive/negative) and whether confirmatory in vivo testing was required."
+    ),
+    "tox_cardiac": (
+        "You are a regulatory safety pharmacologist preparing ICH M4 CTD §2.6.3.7 cardiac safety narratives. "
+        "Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite ICH S7B (hERG in vitro patch clamp) and ICH S7A (core battery). "
+        "Report the hERG IC50 value in µM and classify using Redfern et al. 2003 categories."
+    ),
+    "tox_overview": (
+        "You are a regulatory toxicologist preparing ICH M4 CTD §2.6.3 nonclinical toxicology overview narratives. "
+        "Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite ICH M3(R2) for the phase-appropriate nonclinical package and ICH S7A for safety pharmacology. "
+        "Summarise key toxicological findings and safety margins."
+    ),
+    "overview": (
+        "You are a regulatory affairs scientist preparing ICH M4 CTD §2.6.1 nonclinical pharmacology overview narratives. "
+        "Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite ICH M4S(R2) for the CTD structure and ICH M3(R2) for phase-gating requirements. "
+        "Describe the overall nonclinical study design rationale."
+    ),
+    "pk_overview": (
+        "You are a regulatory pharmacokineticist preparing ICH M4 CTD §2.6.2 pharmacokinetics overview narratives. "
+        "Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite ICH M3(R2) and EMA/CHMP/EWP/37498/2011 for PBPK qualification standards. "
+        "Describe ADME properties: absorption, distribution, metabolism, excretion."
+    ),
+    "admet": (
+        "You are a computational pharmacologist preparing ICH M4 CTD §2.6.1.3 ADMET screening narratives. "
+        "Write formal regulatory prose, 300-500 words, no markdown. "
+        "Cite ICH M4S(R2) and ICH S7B for in silico cardiac liability assessment. "
+        "Report pass/fail rates and flag compounds requiring wet-lab confirmation."
+    ),
+}
 
 def to_chatml(system: str, user: str, assistant: str) -> dict:
     """Format as ChatML for instruction fine-tuning."""
@@ -268,22 +319,103 @@ def _is_boilerplate(text: str) -> bool:
     return any(phrase in lower for phrase in _EMA_BOILERPLATE_PHRASES)
 
 
-def _extract_findings_summary(text: str, max_words: int = 80) -> str:
-    """Extract a concise findings summary from regulatory prose.
+def _extract_findings_summary(text: str, max_words: int = 100) -> str:
+    """Extract a concise findings summary from regulatory prose for the user prompt.
 
-    Skips the first ~100 words (used as context), then takes the next
-    paragraph as the summary shown to the model in the user prompt.
-    This makes USER and ASST genuinely different (not a verbatim copy).
+    v2 fix: take the first paragraph as the summary. The ASST is the full text
+    starting from word 0 (not word 60 as in v1). The user prompt says
+    'Write a complete section based on these findings' so the model is not
+    learning to continue a partial text — it learns to write a full section
+    that covers the described findings.
     """
-    words = text.split()
-    # Skip the context window (first 80 words) and take the next sentence/paragraph
-    # as the 'what should be written' description
-    if len(words) > 80:
-        skip = 60  # overlap context + prompt
-        summary_words = words[skip:skip + max_words]
-    else:
-        summary_words = words[:max_words]
-    return " ".join(summary_words)
+    # Take the first substantive paragraph (skip very short lines)
+    lines = text.replace("\n\n", "\n").split("\n")
+    paras = []
+    current: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped:
+            current.append(stripped)
+        elif current:
+            paras.append(" ".join(current))
+            current = []
+    if current:
+        paras.append(" ".join(current))
+
+    for para in paras:
+        words = para.split()
+        if len(words) >= 15:
+            return " ".join(words[:max_words])
+
+    return " ".join(text.split()[:max_words])
+
+
+# ─── Citation injection into target text ──────────────────────────────────────
+
+# Rule-based citation injection: add ICH citations inline when key terms appear
+# in the target text but no citation is already present. This teaches the model
+# to pair regulatory claims with their source guideline.
+_CITATION_RULES: list[tuple[str, str, str]] = [
+    # (keyword_pattern, citation_to_inject, section_types_or_None_for_all)
+    # PBPK
+    ("within.{0,10}2.fold",          "per EMA/CHMP/EWP/37498/2011",     "pbpk"),
+    ("67%",                           "per EMA/CHMP/EWP/37498/2011",     "pbpk"),
+    ("ema criterion",                 "(EMA/CHMP/EWP/37498/2011)",       "pbpk"),
+    # Genotoxicity
+    ("ames test",                     "per ICH S2(R1)",                   "tox_genotox"),
+    ("bacterial reverse mutation",    "per ICH S2(R1)",                   "tox_genotox"),
+    ("micronucleus",                  "per ICH S2(R1)",                   "tox_genotox"),
+    ("chromosomal aberration",        "per ICH S2(R1)",                   "tox_genotox"),
+    # Cardiac
+    ("herg",                          "per ICH S7B",                      "tox_cardiac"),
+    ("qt.{0,5}interval",             "per ICH S7B",                      "tox_cardiac"),
+    # Safety pharmacology
+    ("safety pharmacology",           "per ICH S7A",                      "tox_overview"),
+    ("functional observational",      "per ICH S7A",                      "tox_overview"),
+    # Phase gating
+    ("phase i",                       "consistent with ICH M3(R2)",       "overview"),
+    ("first.in.human",                "per ICH M3(R2)",                   "overview"),
+    # Carcinogenicity
+    ("carcinogenicit",                "per ICH S1A/S1B",                  "tox_overview"),
+    ("2.year.*(?:rat|study|bioassay)","per ICH S1B",                     "tox_overview"),
+    # Reproductive
+    ("embryo.fetal",                  "per ICH S5(R3)",                   "tox_overview"),
+    ("reproductive toxicolog",        "per ICH S5(R3)",                   "tox_overview"),
+]
+
+
+def _inject_citations(text: str, section_type: str) -> str:
+    """
+    Inject ICH citation strings into the target text adjacent to key terms.
+    Only injects if the citation is not already present.
+    Operates sentence-by-sentence: finds the first sentence matching a rule
+    and appends the citation at the end of that sentence.
+    """
+    import re as _re
+    lower = text.lower()
+
+    for pattern, citation, rule_section in _CITATION_RULES:
+        # Skip if rule is section-specific and doesn't match
+        if rule_section and section_type != rule_section:
+            continue
+        # Skip if citation already present
+        if citation.lower().replace("per ", "").split()[0].lower() in lower:
+            continue
+        # Find first matching position
+        m = _re.search(pattern, lower)
+        if not m:
+            continue
+        # Find the sentence end after the match
+        sentence_end = text.find(".", m.end())
+        if sentence_end == -1:
+            # No period found — append at end
+            text = text.rstrip() + f" {citation}."
+        else:
+            # Insert before the period
+            text = text[:sentence_end] + f" {citation}" + text[sentence_end:]
+            lower = text.lower()  # recompute for subsequent rules
+
+    return text
 
 
 def build_task1_pairs(raw_examples: list[dict]) -> list[dict]:
@@ -323,29 +455,42 @@ def build_task1_pairs(raw_examples: list[dict]) -> list[dict]:
         drug = ex.get("drug") or ex.get("medicine") or "investigational compound"
         region = _infer_region(source)
         ctd_section = _SECTION_CTD.get(section_type, "§2.6 (Nonclinical Overview)")
+        response_text = _inject_citations(response_text, section_type)
 
-        # Findings summary: skip first 60 words (becomes the ASST prefix),
-        # use next 80 words as the user-visible context summary
-        # This makes USER and ASST non-identical (model learns to extend, not copy)
-        findings = _extract_findings_summary(response_text, max_words=80)
+        # v2: full text as target (no sliding window skip — that caused short outputs)
+        # Re-split after citation injection so citations appear in the target.
+        target = " ".join(response_text.split()[:500])
 
-        # Target: full cleaned text capped at 600 words (within token budget)
-        target = " ".join(words[:600])
+        # Findings summary for user prompt context (first paragraph of the text)
+        findings = _extract_findings_summary(response_text, max_words=100)
 
-        # User prompt includes the findings summary as context
+        # Region-specific submission note
         region_note = {
             "EMA": " Submit to EMA. Cite EMA/CHMP/EWP/37498/2011 where relevant.",
             "FDA": " Submit to FDA under 21 CFR Part 312.",
-            "NMPA": " Submit to NMPA/CDE. Note any Chinese-specific requirements per Announcement No. 35 (2019).",
+            "NMPA": " Submit to NMPA/CDE. Include GLP facility declaration per Announcement No. 35 (2019).",
             "PMDA": " Submit to PMDA. Include ethnic bridging assessment per ICH E5.",
         }.get(region, "")
 
+        # v2: explicit citation instruction in user prompt per section type
+        citation_note = {
+            "pbpk":       " Cite EMA/CHMP/EWP/37498/2011 and state whether the 67% within-2-fold criterion is met.",
+            "tox_genotox": " Cite ICH S2(R1) and state the Ames test result.",
+            "tox_cardiac": " Cite ICH S7B and report hERG IC50 in µM.",
+            "tox_overview": " Cite ICH M3(R2) and ICH S7A.",
+            "pk_overview": " Cite ICH M3(R2) and EMA/CHMP/EWP/37498/2011.",
+            "overview":   " Cite ICH M4S(R2) and ICH M3(R2).",
+            "admet":      " Cite ICH M4S(R2) and ICH S7B for in silico cardiac screening.",
+        }.get(section_type, "")
+
         user_prompt = (
-            f"Write the {ctd_section} section for {drug}.{region_note}\n\n"
-            f"Nonclinical findings summary:\n{findings}"
+            f"Write the complete {ctd_section} section for {drug}.{region_note}{citation_note}\n\n"
+            f"Nonclinical findings:\n{findings}"
         )
 
-        pair = to_chatml(system=SYSTEM_PROMPT, user=user_prompt, assistant=target)
+        # Use section-specific system prompt if available, else generic
+        system = _SECTION_SYSTEM_PROMPTS.get(section_type, SYSTEM_PROMPT)
+        pair = to_chatml(system=system, user=user_prompt, assistant=target)
         pair["meta"] = {
             "task": "section_generation",
             "section_type": section_type,
@@ -647,10 +792,18 @@ def augment_pairs(pairs: list[dict], n: int, rng: random.Random) -> list[dict]:
         return pairs
 
     augmented = list(pairs)
+    # v2: all system prompt variants include citation requirement
+    _cite_suffix = (
+        " Cite applicable ICH guidelines by full identifier "
+        "(e.g. ICH S2(R1), ICH S7B, ICH M3(R2), EMA/CHMP/EWP/37498/2011)."
+    )
     system_variants = [
         SYSTEM_PROMPT,
-        "You are a senior regulatory affairs scientist with 15 years of IND submission experience. " + SYSTEM_PROMPT[SYSTEM_PROMPT.index("You generate"):],
-        "You are a computational pharmacologist preparing ICH M4 CTD Module 2.6 nonclinical summaries. " + SYSTEM_PROMPT[SYSTEM_PROMPT.index("Your output"):],
+        ("You are a senior regulatory affairs scientist with 15 years of IND submission experience "
+         "preparing ICH M4 CTD Module 2.6 nonclinical written summaries. "
+         "Write precise, formal regulatory prose — no markdown, no bullet points. 300-500 words." + _cite_suffix),
+        ("You are a computational pharmacologist preparing ICH M4 CTD Module 2.6 nonclinical summaries "
+         "for IND applications. Write plain regulatory prose only — no markdown, no section numbers." + _cite_suffix),
     ]
 
     for pair in pairs:

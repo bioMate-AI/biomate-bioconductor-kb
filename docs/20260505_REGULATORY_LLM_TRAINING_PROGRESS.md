@@ -261,6 +261,36 @@ Stage 3 — DPO alignment:
 
 ---
 
+## 4c. V1 Regulatory Audit Results (post-training evaluation)
+
+Ran `collect_dpo_training_data.py --audit-report` with v1 adapter on 50 test examples:
+
+```
+Overall: 27/50 pass (54%)
+Avg output length: 294w
+Avg MAJOR findings: 0.66
+
+By section type:
+  admet:       100% pass | 0.0 MAJOR | 290w avg   ← GOOD
+  tox_overview: 100% pass | 0.0 MAJOR | 299w avg   ← GOOD
+  overview:     86%  pass | 0.1 MAJOR | 288w avg   ← NEARLY THERE
+  tox_genotox:   0%  pass | 1.2 MAJOR | 288w avg   ← FAIL: missing ICH S2(R1) + Ames
+  pk_overview:   0%  pass | 1.7 MAJOR | 329w avg   ← FAIL: missing ICH M3(R2)
+  pbpk:          0%  pass | 2.0 MAJOR | 308w avg   ← FAIL: missing EMA/CHMP + 67% criterion
+```
+
+**Key insight:** The 54% failure is *entirely* the citation rules (CITE_001–003, CONTENT_001–003).
+The model produces correct-length regulatory prose — it just doesn't cite.
+This confirms the v2 dataset fix (`_inject_citations()`) directly targets the root cause.
+
+**v2 training started immediately after:**
+- Dataset rebuilt with citation injection → 19.7% of targets now contain ICH citations (from 0.75%)
+- 100% of prompts explicitly instruct citations
+- Median output length target: 280w (from 151w — sliding window removed)
+- Training: 3 epochs, ETA ~10 hours (batch 16 × 312 optimizer steps on GB10 PTX)
+
+---
+
 ## 5. Next Steps (priority order)
 
 ### Immediate — before A/B testing

@@ -304,10 +304,17 @@ def collect_audit_failures(
         prompt = f"<|im_start|>system\n{system_msg}<|im_end|>\n<|im_start|>user\n{user_msg}<|im_end|>\n"
 
         if is_rejected:
+            # Also audit the reference — only use it as "chosen" if it passes
+            ref_audit = score_narrative(reference, section_type, data)
+            if not ref_audit["passes"]:
+                # Reference also has MAJOR findings — this pair can't be a good DPO signal
+                log.debug("Reference has MAJOR findings for pair %d — skipping", i)
+                continue
+
             examples.append({
                 "prompt": prompt,
                 "rejected": generated,
-                "chosen": reference,  # reference is the training target (clean by construction)
+                "chosen": reference,
                 "meta": {
                     "source": "audit_failure",
                     "section_type": section_type,
@@ -315,6 +322,8 @@ def collect_audit_failures(
                     "audit_findings": audit["findings"],
                     "n_major": audit["MAJOR"],
                     "n_minor": audit["MINOR"],
+                    "ref_n_major": ref_audit["MAJOR"],
+                    "ref_n_minor": ref_audit["MINOR"],
                 },
             })
             n_rejected += 1
@@ -396,11 +405,16 @@ def collect_gemini_chosen(
     return dpo_pairs
 
 
-def audit_report(test_data_path: Path, adapter_path: Path, n_samples: int = 50) -> None:
+def audit_report(
+    test_data_path: Path,
+    adapter_path: Path,
+    n_samples: int = 50,
+    save_path: Optional[Path] = None,
+) -> dict:
     """Generate an audit report comparing local model vs reference on n test examples."""
     if not load_local_model(adapter_path):
         log.error("Cannot generate audit report without local model")
-        return
+        return {}
 
     with open(test_data_path) as f:
         pairs = [json.loads(l) for l in f if l.strip()
@@ -437,16 +451,37 @@ def audit_report(test_data_path: Path, adapter_path: Path, n_samples: int = 50) 
     # Summary
     total = len(results)
     n_pass = sum(1 for r in results if r["gen_passes"])
+    avg_len = sum(r["generated_words"] for r in results) / total if total else 0
+    avg_maj = sum(r["gen_major"] for r in results) / total if total else 0
+
     print(f"\n{'='*60}")
     print(f"Audit Report: {n_pass}/{total} generated outputs pass ({100*n_pass/total:.0f}%)")
-    print(f"Avg output length: {sum(r['generated_words'] for r in results)/total:.0f}w")
-    print(f"Avg MAJOR findings: {sum(r['gen_major'] for r in results)/total:.2f}")
+    print(f"Avg output length: {avg_len:.0f}w")
+    print(f"Avg MAJOR findings: {avg_maj:.2f}")
     print(f"\nBy section type:")
+    by_section_summary = {}
     for sec, rows in sorted(by_section.items()):
         pass_rate = sum(1 for r in rows if r["gen_passes"]) / len(rows)
-        avg_maj = sum(r["gen_major"] for r in rows) / len(rows)
-        avg_len = sum(r["generated_words"] for r in rows) / len(rows)
-        print(f"  {sec:20s}: {100*pass_rate:.0f}% pass | {avg_maj:.1f} MAJOR | {avg_len:.0f}w avg")
+        sec_avg_maj = sum(r["gen_major"] for r in rows) / len(rows)
+        sec_avg_len = sum(r["generated_words"] for r in rows) / len(rows)
+        print(f"  {sec:20s}: {100*pass_rate:.0f}% pass | {sec_avg_maj:.1f} MAJOR | {sec_avg_len:.0f}w avg")
+        by_section_summary[sec] = {"pass_rate": pass_rate, "avg_major": sec_avg_maj, "avg_len": sec_avg_len, "n": len(rows)}
+
+    report = {
+        "n_samples": total,
+        "n_pass": n_pass,
+        "pass_rate": n_pass / total if total else 0,
+        "avg_length_words": avg_len,
+        "avg_major_findings": avg_maj,
+        "by_section": by_section_summary,
+        "adapter": str(adapter_path),
+    }
+    if save_path:
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(save_path, "w") as f:
+            json.dump(report, f, indent=2)
+        log.info("Audit report saved → %s", save_path)
+    return report
 
 
 # ─── CLI ──────────────────────────────────────────────────────────────────────
@@ -468,10 +503,13 @@ def main() -> None:
     ap.add_argument("--output", type=Path,
                     default=Path("data/regulatory_training/dpo"))
     ap.add_argument("--max-samples", type=int, default=200)
+    ap.add_argument("--save-report", type=Path, default=None,
+                    help="Save audit report JSON to this path (e.g. data/regulatory_training/audit_v1.json)")
     args = ap.parse_args()
 
     if args.audit_report:
-        audit_report(args.test_data, args.adapter, n_samples=args.max_samples)
+        audit_report(args.test_data, args.adapter, n_samples=args.max_samples,
+                     save_path=args.save_report)
 
     if args.audit_failures:
         collect_audit_failures(args.test_data, args.adapter, args.output, args.max_samples)

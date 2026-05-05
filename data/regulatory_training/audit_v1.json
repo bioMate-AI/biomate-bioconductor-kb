@@ -1,0 +1,40 @@
+{
+  "n_samples": 50,
+  "n_pass": 27,
+  "pass_rate": 0.54,
+  "avg_length_words": 294,
+  "avg_major_findings": 0.66,
+  "by_section": {
+    "admet": {
+      "pass_rate": 1.0,
+      "avg_major": 0.0,
+      "avg_len": 290
+    },
+    "overview": {
+      "pass_rate": 0.86,
+      "avg_major": 0.1,
+      "avg_len": 288
+    },
+    "pbpk": {
+      "pass_rate": 0.0,
+      "avg_major": 2.0,
+      "avg_len": 308
+    },
+    "pk_overview": {
+      "pass_rate": 0.0,
+      "avg_major": 1.7,
+      "avg_len": 329
+    },
+    "tox_genotox": {
+      "pass_rate": 0.0,
+      "avg_major": 1.2,
+      "avg_len": 288
+    },
+    "tox_overview": {
+      "pass_rate": 1.0,
+      "avg_major": 0.0,
+      "avg_len": 299
+    }
+  },
+  "adapter": "models/regulatory_llm_v1/lora_adapter"
+}
