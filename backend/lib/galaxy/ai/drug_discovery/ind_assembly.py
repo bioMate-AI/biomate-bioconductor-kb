@@ -102,15 +102,72 @@ def get_compliance_gaps(region: str) -> list[dict]:
 # LLM narrative helper
 # ---------------------------------------------------------------------------
 
-_NARRATIVE_SYSTEM = """\
-You are a regulatory affairs scientist drafting language for an Investigational New Drug (IND) application \
-submitted to the FDA. Write in formal ICH/FDA regulatory document style: precise, passive-voice where appropriate, \
-evidence-referenced, and suitably hedged. No markdown — plain prose only. 2-4 sentences maximum per response."""
+# Region-specific system prompts — each includes the primary governing regulation so the
+# LLM styles prose appropriately for the target regulatory authority.
+_NARRATIVE_SYSTEM_BY_REGION = {
+    "FDA": (
+        "You are a regulatory affairs scientist drafting language for an Investigational New Drug (IND) "
+        "application submitted to the U.S. FDA under 21 CFR Part 312. Write in formal ICH/FDA regulatory "
+        "document style: precise, passive-voice where appropriate, evidence-referenced, and suitably hedged. "
+        "Cite ICH S7B(R1), S2(R1), M3(R2), and FDA PBPK Guidance (2018) where relevant. "
+        "No markdown — plain prose only. 2-4 sentences maximum per response."
+    ),
+    "EMA": (
+        "You are a regulatory affairs scientist drafting language for a Clinical Trial Authorisation (CTA) "
+        "submitted to the EMA under EudraLex Volume 10. Write in formal ICH/EMA regulatory document style. "
+        "Cite EMA/CHMP/EWP/37498/2011 (PBPK guideline), EMA DILI Reflection Paper "
+        "(EMEA/CHMP/HMPC/700003/2012), ICH S7B(R1), S2(R1), and M3(R2) where relevant. "
+        "The EMA requires ≥67% of PBPK predictions within 2-fold of observed for model qualification. "
+        "No markdown — plain prose only. 2-4 sentences maximum per response."
+    ),
+    "NMPA": (
+        "You are a regulatory affairs scientist drafting language for a Clinical Trial Application (CTA) "
+        "submitted to the NMPA/CDE under Announcement No. 35 (2019) and CDE Technical Guidelines. "
+        "Write in formal ICH/NMPA regulatory document style. Include GLP facility declarations where required. "
+        "For ethnic bridging, cite CYP2C19 and CYP2D6 polymorphism prevalence in the Chinese population "
+        "per ICH E5. No markdown — plain prose only. 2-4 sentences maximum per response."
+    ),
+    "PMDA": (
+        "You are a regulatory affairs scientist drafting language for a Clinical Trial Notification (CTN) "
+        "submitted to the PMDA under PFSB/ELD Notification 0601-1. Write in formal ICH/PMDA regulatory "
+        "document style. For ethnic sensitivity, cite ICH E5 and E7 and discuss CYP polymorphism "
+        "frequencies in the Japanese population where relevant. "
+        "No markdown — plain prose only. 2-4 sentences maximum per response."
+    ),
+}
+# Default (ALL regions) uses FDA framing
+_NARRATIVE_SYSTEM_BY_REGION["ALL"] = _NARRATIVE_SYSTEM_BY_REGION["FDA"]
+
+# CTD section → skills DB section code mapping
+_SECTION_TO_CTD = {
+    "overview":       "2.6.1",
+    "pbpk":           "2.6.2",
+    "admet":          "2.6.1",
+    "prioritization": "2.6.1",
+    "ad":             "2.6.1",
+    "pk_overview":    "2.6.2",
+    "pk_adme":        "2.6.2",
+    "tox_overview":   "2.6.3",
+    "tox_genotox":    "2.6.3",
+    "tox_cardiac":    "2.6.3",
+}
 
 
-def _llm_narrative(section_type: str, data: dict) -> str:
+def _llm_narrative(
+    section_type: str,
+    data: dict,
+    region: str = "FDA",
+    audit_constraint: str = "",
+) -> str:
     """
     Generate a 2-4 sentence regulatory narrative paragraph for a given IND section.
+
+    Enhancements over the original:
+    1. Region-specific system prompt (FDA/EMA/NMPA/PMDA)
+    2. RAG: injects 2-3 narrative patterns from regulatory_skills_db when available
+    3. OSP benchmark context for PBPK sections
+    4. audit_constraint: when set, adds a negative constraint (used by regeneration loop)
+
     Returns empty string on any failure (graceful degradation).
     """
     try:
@@ -201,9 +258,24 @@ def _llm_narrative(section_type: str, data: dict) -> str:
         if not user_prompt:
             return ""
 
+        # ── RAG: inject narrative patterns from regulatory_skills_db ─────────
+        rag_block = _build_rag_context(section_type, data, region)
+        if rag_block:
+            user_prompt = rag_block + "\n\n" + user_prompt
+
+        # ── Audit constraint: negative instruction when regenerating ─────────
+        if audit_constraint:
+            user_prompt += (
+                f"\n\nIMPORTANT — the previous draft failed a regulatory audit check: "
+                f"\"{audit_constraint}\". Ensure the revised paragraph explicitly addresses this."
+            )
+
+        # ── Region-specific system prompt ─────────────────────────────────────
+        system = _NARRATIVE_SYSTEM_BY_REGION.get(region, _NARRATIVE_SYSTEM_BY_REGION["FDA"])
+
         narrative = _gemini_flash(
             messages=[{"role": "user", "content": user_prompt}],
-            system=_NARRATIVE_SYSTEM,
+            system=system,
             max_tokens=2048,
             temperature=0.3,
         ).strip()
@@ -215,6 +287,62 @@ def _llm_narrative(section_type: str, data: dict) -> str:
     except Exception as exc:
         log.debug("[IND narrative] LLM call failed for section %s: %s", section_type, exc)
         return ""
+
+
+def _build_rag_context(section_type: str, data: dict, region: str) -> str:
+    """
+    Build a RAG context block to prepend to the narrative prompt.
+
+    Pulls:
+    1. Up to 3 narrative patterns from regulatory_skills_db matching the CTD section
+    2. OSP benchmark comparison for PBPK sections
+    """
+    lines = []
+
+    # ── Narrative patterns from skills DB ────────────────────────────────────
+    try:
+        from .regulatory_skills_db import RegulatorySkillsDB
+        db = RegulatorySkillsDB()
+        ctd = _SECTION_TO_CTD.get(section_type, "2.6")
+        patterns = db.get_narrative_patterns(ctd_section=ctd)
+        if patterns:
+            good = [p["text"] for p in patterns if p.get("text") and len(p["text"]) > 40][:3]
+            if good:
+                lines.append(
+                    "Examples of regulatory language from EMA-accepted PBPK qualification reports "
+                    "(use as style reference — do NOT copy verbatim):"
+                )
+                for ex in good:
+                    lines.append(f"  • {ex.strip()}")
+    except Exception:
+        pass  # skills DB optional — graceful degradation
+
+    # ── OSP benchmark comparison for PBPK sections ───────────────────────────
+    if section_type in ("pbpk", "pk_overview") and data.get("within_2fold_Cmax") is not None:
+        try:
+            from .regulatory_skills_db import RegulatorySkillsDB
+            db = RegulatorySkillsDB()
+            try:
+                w2f = float(str(data["within_2fold_Cmax"]).rstrip("%")) / 100 \
+                    if "%" in str(data.get("within_2fold_Cmax", "")) \
+                    else float(data["within_2fold_Cmax"])
+            except (ValueError, TypeError):
+                w2f = None
+            if w2f is not None:
+                verdict = db.compare_metrics(
+                    afe=data.get("AFE_Cmax"),
+                    aafe=data.get("AAFE_Cmax"),
+                    within_2fold=w2f,
+                )
+                if verdict.get("verdict") in ("PASS", "INFO"):
+                    lines.append(
+                        f"OSP benchmark context: {verdict.get('message', '')} "
+                        f"(Use this context to frame whether the model is well-qualified.)"
+                    )
+        except Exception:
+            pass
+
+    return "\n".join(lines) if lines else ""
 
 
 # ---------------------------------------------------------------------------
@@ -686,7 +814,8 @@ FDA/EMA Joint Guidance on Good AI Practice in Drug Development (January 2026).*{
             "molecule_name": ctx["molecule_name"],
             "target_name": ctx["target_name"],
             "indication": ctx["indication"],
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_block = f"\n\n{narrative}" if narrative else ""
 
         # GLP declaration — required by NMPA Announcement No. 35 (2019)
@@ -788,7 +917,8 @@ The GLP declaration above applies to any wet-lab validation studies cited herein
             "within_2fold_Cmax": _pct(m.get("within_2fold_Cmax")),
             "within_2fold_AUC": _pct(m.get("within_2fold_AUC")),
             "ema_criterion_met": ema_met,
-        })
+        },
+            region=ctx.get("region","FDA"))
 
         # Build per-compound table (top 15 by fold error)
         per_cpd = vr.get("per_compound", [])
@@ -891,7 +1021,8 @@ PK literature).
             "total_compounds": total,
             "passing_compounds": passing,
             "pass_rate": pass_rate,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_block = f"\n{narrative}\n" if narrative else ""
 
         return f"""\
@@ -934,7 +1065,8 @@ screening pipeline.
         narrative = _llm_narrative("prioritization", {
             "total_compounds": total,
             "top_score": top_score,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_block = f"\n{narrative}\n" if narrative else ""
 
         proposal_section = ""
@@ -978,7 +1110,7 @@ The Bayesian optimizer employs:
         if auto_p and auto_p.get("n_proposed"):
             ad_summary = f"\nThe most recent proposal ({auto_p['n_proposed']} compounds) included applicability domain status for all proposed structures."
 
-        narrative = _llm_narrative("ad", {})
+        narrative = _llm_narrative("ad", {}, region=ctx.get("region","FDA"))
         narrative_block = f"\n{narrative}\n" if narrative else ""
 
         return f"""\
@@ -1095,11 +1227,13 @@ Each signature is linked to its corresponding audit record via `audit_record_id`
         narrative_intro = _llm_narrative("pk_overview", {
             "molecule_name": ctx["molecule_name"],
             **pk_data,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_adme = _llm_narrative("pk_adme", {
             "molecule_name": ctx["molecule_name"],
             "n_compounds": n_compounds,
-        })
+        },
+            region=ctx.get("region","FDA"))
 
         intro_block = f"\n{narrative_intro}\n" if narrative_intro else ""
         adme_block = f"\n{narrative_adme}\n" if narrative_adme else ""
@@ -1512,19 +1646,22 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
             "herg_flagged": herg_flagged,
             "dili_flagged": dili_flagged,
             "ames_flagged": ames_flagged,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_genotox = _llm_narrative("tox_genotox", {
             "molecule_name": ctx["molecule_name"],
             "total_compounds": total,
             "ames_flagged": ames_flagged,
             "ames_result": lead_ames,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_cardiac = _llm_narrative("tox_cardiac", {
             "molecule_name": ctx["molecule_name"],
             "total_compounds": total,
             "herg_flagged": herg_flagged,
             "lead_herg_ic50": lead_herg,
-        })
+        },
+            region=ctx.get("region","FDA"))
 
         intro_block = f"\n{narrative_intro}\n" if narrative_intro else ""
         genotox_block = f"\n{narrative_genotox}\n" if narrative_genotox else ""
@@ -2420,7 +2557,8 @@ before IND filing per ICH M3(R2) Table 1 (Phase I single ascending dose).*"""
             "safety_margin": margin_str,
             "noael": noael_val,
             "noael_species": noael_species,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_genotox = _llm_narrative("tox_written_genotox", {
             "molecule_name": mol,
             "ames_result": lead_ames,
@@ -2428,14 +2566,16 @@ before IND filing per ICH M3(R2) Table 1 (Phase I single ascending dose).*"""
             "total_compounds": total,
             "rm_summary": rm_summary,
             "has_glp_data": has_wetlab,
-        })
+        },
+            region=ctx.get("region","FDA"))
         narrative_cardiac = _llm_narrative("tox_written_cardiac", {
             "molecule_name": mol,
             "lead_herg_ic50": lead_herg,
             "safety_margin": margin_str,
             "herg_flagged": herg_flagged,
             "total_compounds": total,
-        })
+        },
+            region=ctx.get("region","FDA"))
 
         intro = f"\n{narrative_summary}\n" if narrative_summary else ""
         genotox_prose = f"\n{narrative_genotox}\n" if narrative_genotox else ""
