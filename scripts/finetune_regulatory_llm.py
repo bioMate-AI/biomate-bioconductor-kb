@@ -464,6 +464,108 @@ def train_cpu_llamacpp(args) -> None:
         log.info("llama.cpp adapter saved → %s", adapter_path)
 
 
+# ─── DPO training ─────────────────────────────────────────────────────────────
+
+def train_dpo(args) -> None:
+    """
+    DPO (Direct Preference Optimization) fine-tuning on (prompt, chosen, rejected) pairs.
+
+    Reward signal: BioMate regulatory auditor — outputs with MAJOR findings are rejected,
+    auditor-clean outputs (Gemini or human-written) are chosen.
+
+    Requires DPO pairs collected via:
+      python scripts/collect_dpo_training_data.py --audit-failures --gemini-pairs
+    """
+    try:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+        from peft import LoraConfig, TaskType, get_peft_model, PeftModel
+        from trl import DPOConfig, DPOTrainer
+        from datasets import Dataset
+    except ImportError as exc:
+        log.error("DPO requires: pip install transformers peft bitsandbytes trl datasets")
+        raise
+
+    dpo_file = args.dpo_data
+    if not dpo_file or not Path(dpo_file).exists():
+        log.error("DPO data not found at %s — run collect_dpo_training_data.py first", dpo_file)
+        sys.exit(1)
+
+    with open(dpo_file) as f:
+        raw_pairs = [json.loads(l) for l in f if l.strip()]
+    log.info("DPO pairs loaded: %d", len(raw_pairs))
+    if len(raw_pairs) < 10:
+        log.error("Need ≥10 DPO pairs for meaningful training (got %d)", len(raw_pairs))
+        sys.exit(1)
+
+    model_id = MODEL_ALIASES.get(args.model, args.model)
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True, bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True,
+    ) if args.quantize and torch.cuda.is_available() else None
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.resume or model_id, trust_remote_code=True
+    )
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    # Load base + existing SFT adapter (if --resume provided)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id, quantization_config=bnb_config,
+        device_map="auto", torch_dtype=torch.bfloat16,
+    )
+    if args.resume and Path(args.resume).exists():
+        log.info("Loading SFT adapter from %s for DPO initialization", args.resume)
+        model = PeftModel.from_pretrained(model, args.resume)
+        model = model.merge_and_unload()  # merge SFT LoRA before DPO
+
+    # Add fresh LoRA for DPO
+    lora_config = LoraConfig(
+        task_type=TaskType.CAUSAL_LM,
+        r=args.lora_r, lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
+        target_modules=LORA_TARGET_MODULES, bias="none",
+    )
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
+
+    # DPO dataset format: {prompt, chosen, rejected}
+    dataset = Dataset.from_list(raw_pairs)
+    split = dataset.train_test_split(test_size=0.1, seed=42)
+
+    dpo_config = DPOConfig(
+        output_dir=str(args.output),
+        num_train_epochs=args.epochs,
+        per_device_train_batch_size=args.batch_size,
+        gradient_accumulation_steps=args.grad_accum,
+        learning_rate=args.lr * 0.1,  # DPO uses lower LR than SFT
+        bf16=torch.cuda.is_available(),
+        logging_steps=5,
+        save_steps=50,
+        report_to="none",
+        beta=0.1,           # DPO temperature — controls deviation from reference
+        max_prompt_length=1024,
+        max_length=2048,
+    )
+
+    trainer = DPOTrainer(
+        model=model,
+        args=dpo_config,
+        train_dataset=split["train"],
+        eval_dataset=split["test"],
+        processing_class=tokenizer,
+    )
+
+    log.info("Starting DPO training on %d pairs (β=%.2f)", len(raw_pairs), dpo_config.beta)
+    trainer.train()
+
+    adapter_path = args.output / "dpo_adapter"
+    model.save_pretrained(adapter_path)
+    tokenizer.save_pretrained(adapter_path)
+    log.info("DPO adapter saved → %s", adapter_path)
+
+
 # ─── NGC container setup instructions ─────────────────────────────────────────
 
 def print_ngc_setup() -> None:
@@ -546,6 +648,11 @@ def main() -> None:
                     help="Use llama.cpp CPU path instead of HuggingFace")
     ap.add_argument("--resume",         type=str, default=None, help="Resume from checkpoint path")
     ap.add_argument("--ngc-setup",      action="store_true", help="Print NGC container setup instructions")
+    # DPO arguments
+    ap.add_argument("--dpo",            action="store_true",
+                    help="Run DPO alignment instead of SFT (requires --dpo-data)")
+    ap.add_argument("--dpo-data",       type=Path, default=None,
+                    help="Path to DPO (prompt, chosen, rejected) JSONL pairs")
     args = ap.parse_args()
 
     if args.ngc_setup:
@@ -565,7 +672,10 @@ def main() -> None:
     log.info("Epochs: %d  LR: %.0e  LoRA r=%d α=%d", args.epochs, args.lr, args.lora_r, args.lora_alpha)
     log.info("Quant:  %s  CPU: %s", args.quantize, args.cpu)
 
-    if args.cpu:
+    if args.dpo:
+        log.info("Mode: DPO alignment  DPO data: %s", args.dpo_data)
+        train_dpo(args)
+    elif args.cpu:
         train_cpu_llamacpp(args)
     else:
         try:
