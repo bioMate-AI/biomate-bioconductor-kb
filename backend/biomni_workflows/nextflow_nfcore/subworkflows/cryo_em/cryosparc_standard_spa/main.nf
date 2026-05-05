@@ -792,7 +792,11 @@ process PATCH_MOTION_CORRECTION_BATCH {
                             _valid = _vals[np.isfinite(_vals) & (_vals > 0)]
                             if len(_valid) > 0:
                                 report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
+                                report["min_total_motion_A"] = round(float(np.nanmin(_valid)), 2)
+                                report["max_total_motion_A"] = round(float(np.nanmax(_valid)), 2)
                                 report["motion_field_used"] = f"{_field} (fallback)"
+                                # Export per-micrograph for histogram even in fallback path
+                                report["per_micrograph_motion_A"] = [round(float(v), 2) for v in _valid[:500]]
                                 break
                         except Exception:
                             pass
