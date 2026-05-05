@@ -185,6 +185,82 @@ Target is 300–600 words per section. The model averages 151 words — about ha
 
 ---
 
+## 4b. Post-Training Integration (completed after §4)
+
+### Local Model Wired into `_llm_narrative()`
+
+`ind_assembly.py` now routes: **local Qwen3-8B adapter → guardrails → Gemini fallback**
+
+```python
+# Routing logic in _llm_narrative():
+narrative = _call_local_regulatory_llm(section_type, system, user_prompt, max_new_tokens=600)
+source = "local"
+if not narrative or len(narrative.split()) < 30:
+    narrative = _gemini_flash(...)   # Gemini fallback
+    source = "gemini"
+narrative, warnings = _regulatory_guardrails(narrative, section_type, data, region)
+```
+
+The local model is lazy-loaded on first call. Path set via `REGULATORY_LLM_ADAPTER` env variable (default: `models/regulatory_llm_v1/lora_adapter`). If the adapter directory doesn't exist, falls back to Gemini silently.
+
+**76/76 gold standard still passing** after integration.
+
+### Guardrails Applied After Every Generation
+
+Four checks run on every narrative (local model or Gemini):
+
+| Guardrail | Trigger | Action |
+|-----------|---------|--------|
+| **Citation injector** | Required ICH/EMA citations absent | Appends `[Applicable guidelines: ...]` footnote |
+| **Length guard** | Output < 150 words | Logs `SHORT_OUTPUT` warning |
+| **Numeric faithfulness** | >3 numbers in output not in input data | Logs `NUMERIC_MISMATCH` warning |
+| **Header strip** | FDA label `§12/§13` headers present | Strips headers from output |
+
+Required citations per section:
+- `pbpk`/`pk_overview`: EMA/CHMP/EWP/37498/2011, ICH M3(R2)
+- `tox_genotox`: ICH S2(R1)
+- `tox_cardiac`: ICH S7B, ICH S7A
+- `overview`/`tox_overview`: ICH M4S(R2), ICH M3(R2)
+- `admet`: ICH M4S(R2), ICH S7B
+
+### DPO Pipeline Built
+
+Three-stage RL pipeline for iterative improvement:
+
+```
+Stage 1 — Collect failures:
+  python scripts/collect_dpo_training_data.py --audit-failures
+  → data/regulatory_training/dpo/rejected.jsonl
+
+Stage 2 — Generate clean alternatives:
+  python scripts/collect_dpo_training_data.py --gemini-pairs
+  → data/regulatory_training/dpo/dpo_pairs.jsonl
+
+Stage 3 — DPO alignment:
+  python scripts/finetune_regulatory_llm.py --dpo \
+    --dpo-data data/regulatory_training/dpo/dpo_pairs.jsonl \
+    --resume models/regulatory_llm_v1/lora_adapter
+  → models/regulatory_llm_v2_dpo/dpo_adapter/
+```
+
+**DPO Auditor rules** (10 rules in `collect_dpo_training_data.py`):
+
+| Rule ID | Severity | Check |
+|---------|---------|-------|
+| CITE_001 | MAJOR | PBPK must cite EMA/CHMP/EWP/37498/2011 |
+| CITE_002 | MAJOR | Genotoxicity must cite ICH S2(R1) |
+| CITE_003 | MAJOR | Cardiac must cite ICH S7B |
+| CITE_004 | MINOR | General must cite ICH M3(R2) |
+| STYLE_001 | MAJOR | No FDA label headers (§12/§13) |
+| STYLE_002 | MINOR | No bullet points/lists |
+| LEN_001 | MAJOR | Output ≥ 100 words |
+| LEN_002 | MINOR | Output ≥ 250 words (full section) |
+| CONTENT_001 | MAJOR | PBPK must state EMA 67% criterion |
+| CONTENT_002 | MAJOR | Genotoxicity must mention Ames test |
+| CONTENT_003 | MAJOR | Cardiac must report hERG IC50 |
+
+---
+
 ## 5. Next Steps (priority order)
 
 ### Immediate — before A/B testing
