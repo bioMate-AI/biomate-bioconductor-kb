@@ -310,7 +310,78 @@ Currently 0 examples from PMDA (Japan) or NMPA (China) native sources. The regio
 
 ---
 
-## 7. File Map
+## 7. Related Work and Citations
+
+### 7.1 Prior work on regulatory document generation
+
+**AutoIND** (Eser et al., arXiv:2509.09738, Sep 2025) is the only published work directly on IND Module 2.6 generation. They achieve 97% time reduction for §2.6.2/2.6.4/2.6.6 using a RAG + LLM pipeline on proprietary Takeda data. Quality score 69.6–77.9% on their internal rubric. **Their training data is not released** — the dataset gap AutoIND identifies is the same one we face.
+
+Key differences from BioMate's approach:
+- AutoIND uses RAG over proprietary IND history; we use SFT on public corpora
+- AutoIND generates tabulated summaries (§2.6.4–6); BioMate focuses on written summaries (§2.6.1–3)
+- AutoIND is not multi-region; BioMate targets FDA/EMA/NMPA/PMDA
+
+**PhT-LM** (arXiv, Nat Sci Rep Oct 2025) fine-tunes Qwen-1.8B with LoRA on 34,769 EN/ZH regulatory translation pairs. Outperforms GPT-3.5-turbo on NMPA-style regulatory document translation. The dataset (GitHub, public) covers NMPA/ICH/pharmaceutical textbook text, primarily focused on Chinese regulatory language rather than nonclinical summaries.
+
+No prior published work trains an LLM specifically on ICH M4 Module 2.6 nonclinical written summary generation from structured pharmacology data. BioMate is the first documented attempt.
+
+### 7.2 Training task design rationale vs prior work
+
+| Design decision | BioMate v1 | Literature precedent |
+|----------------|------------|---------------------|
+| Base model | Qwen3-8B | AutoIND: GPT-4; PhT-LM: Qwen-1.8B |
+| Fine-tuning method | QLoRA (4-bit NF4) | PhT-LM: full LoRA; AutoIND: no fine-tuning |
+| Task formulation | Findings summary → prose (continuation) | AutoIND: RAG retrieval + generation |
+| Multi-region | Yes (FDA/EMA/NMPA/PMDA) | PhT-LM: EN↔ZH only |
+| Evaluation | Regulatory auditor + 76/76 gold standard | AutoIND: internal quality rubric |
+
+### 7.3 Why we use EMA EPAR as primary training source
+
+EMA EPAR (European Public Assessment Report) nonclinical sections are uniquely valuable because:
+
+1. **ICH M4 structure:** EMA assessment reports follow exactly the ICH M4S(R2) Module 2.6 structure — the same structure the model must generate. This makes EPAR text a direct proxy for the target output.
+2. **Regulatory interpretation included:** Unlike raw study data, EPAR text synthesizes findings and provides regulatory framing ("the CHMP concluded that the nonclinical data package is adequate for the proposed indication").
+3. **CC BY 4.0 license** (since 2019): Unrestricted use for training.
+4. **EMA as ICH reference region:** EMA is one of the three ICH founding regions; their assessment style is the closest to the "canonical" ICH M4 CTD output.
+
+FDA NDA nonclinical review PDFs (★★★★★) are an even better source because they contain the FDA reviewer's own nonclinical narrative — structurally identical to what Module 2.6 requires. However, the URL pattern for NDA multidisciplinary reviews (`MultidisciplineR.pdf`) is inconsistent, and only ~9/20 sampled NDAs were successfully downloaded. Fixing this via the openFDA API is Priority 1.5 (see §6).
+
+### 7.4 Evaluation methodology rationale
+
+**Why ROUGE-L ≥ 0.30 (not higher)?**
+
+ROUGE-L measures lexical n-gram overlap with a reference text. For regulatory prose generation, ROUGE-L has fundamental limits:
+- Regulatory prose is highly paraphrasable: "no evidence of carcinogenic potential" = "no tumorigenic findings" = "the compound was not carcinogenic"
+- A model could score ROUGE-L = 0.15 while producing clinically excellent prose, or ROUGE-L = 0.45 while containing a factual error
+- We set 0.30 as a signal of stylistic alignment, not a proxy for correctness
+
+**Why the regulatory auditor is the primary functional metric?**
+
+BioMate's `regulatory_auditor.py` implements the same rule-based checks that the actual IND audit process applies: Does the PBPK section mention the EMA 67% criterion? Does the carcinogenicity section note ICH S1A/S1B? Does the hERG section cite Redfern thresholds? These are verifiable ground-truth requirements that ROUGE-L cannot capture.
+
+The MAJOR-findings-per-document metric is directly actionable: each MAJOR finding in the current Gemini baseline represents real risk for the client's IND submission. Reducing this rate is the primary business value of fine-tuning.
+
+**Why 12 curated QA pairs (not 400+)?**
+
+The original design used 400+ QA pairs derived from ICH guideline text, where the "answer" was the same guideline text repeated with "Per ICH_M4S_R2: " prepended. These circular examples teach the model nothing — 100% of the "answers" exactly matched the questions. 
+
+The 12 curated pairs are genuinely informative: each answer provides regulatory interpretation, specific thresholds, and cross-guideline reasoning that is not present in the question. A model that has memorized these 12 answers can correctly answer regulatory qualification questions at IND submission quality.
+
+The appropriate expansion path is to write more curated QA pairs (not to generate them from guideline text), targeting the regulatory knowledge gaps identified by BioMate's audit failures.
+
+### 7.5 Benchmarks used for evaluation comparison
+
+| Benchmark | What it tests | How BioMate uses it |
+|-----------|--------------|---------------------|
+| **FDARxBench** (arXiv:2603.19539, 17K QA) | FDA drug label regulatory reasoning | External generalization test for T2 regulatory QA capability |
+| **YakugakuQA** (arXiv:2505.16661, 3,021 QA) | Japanese pharmacist licensing | PMDA-region capability assessment |
+| **Sino-US-DrugQA** (medRxiv 2026, 11,871 QA) | US CFR 21 + NMPA bilingual | NMPA-region capability assessment |
+| **TDC ADMET Group** (tdcommons.ai, 22 datasets) | ADMET prediction quality | Training data quality validation (not model eval) |
+| **BioMate 76/76 gold standard** | Full IND pipeline correctness | Primary functional correctness test |
+
+---
+
+## 8. File Map
 
 | File | Purpose |
 |------|---------|
