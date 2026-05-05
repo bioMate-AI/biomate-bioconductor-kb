@@ -24,25 +24,42 @@ LICENSE_REGISTRY: Dict[str, Dict[str, Any]] = {
         "cost": "free (non-commercial)",
         # Strings to search for in .nf container directives
         "container_patterns": ["catgumag/alphafold3"],
-        # BioMate master credential env vars
+        # Policy: each user must register at alphafold.ebi.ac.uk and provide their own Docker credentials.
+        # BioMate does NOT hold master credentials for this tool.
+        "user_must_provide": True,
         "env_key_user": "ALPHAFOLD3_DOCKER_USER",
         "env_key_token": "ALPHAFOLD3_DOCKER_TOKEN",
         "open_alternatives": [
             {"id": "chai1",  "label": "Chai-1",  "note": "Open source (Apache 2.0), protein+ligand, no registration"},
-            {"id": "boltz2", "label": "Boltz-2", "note": "MIT license, NVIDIA NIM API or local GPU"},
+            {"id": "boltz2", "label": "Boltz-2", "note": "MIT weights, free NVIDIA developer account for API"},
         ],
+        "byol_instructions": (
+            "1. Register at https://alphafold.ebi.ac.uk/ (free non-commercial). "
+            "2. Approval takes ~1 day. "
+            "3. You will receive Docker pull credentials (username + access token). "
+            "4. Enter them in BioMate Settings → Credentials → AlphaFold3."
+        ),
     },
     "boltz2": {
         "display_name": "Boltz-2",
         "vendor": "MIT / Boehringer Ingelheim (open weights); NVIDIA NIM (API)",
-        "type": "api_key",              # credential shape: {api_key}
+        "type": "api_key",              # credential shape: {api_key} — OR use local weights mode (no key)
         "registration_url": "https://build.nvidia.com/boltz",
-        "approval_time": "instant (NVIDIA developer account)",
-        "cost": "free tier (1000 credits); ~$0.05–$0.10/call after",
+        "approval_time": "instant (free NVIDIA developer account)",
+        "cost": "free tier (1000 credits/month); ~$0.05–$0.10/call after",
         "container_patterns": ["boltz2", "boltz-2", "boltz_2"],
-        # BioMate master NVIDIA NIM key (optional — falls back to local weights mode)
+        # Policy: each user provides their own NVIDIA NIM key.
+        # If no key provided, BioMate falls back to local open-weight inference (slower, no API cost).
+        "user_must_provide": False,     # key is optional — local weights fallback available
         "env_key": "NVIDIA_NIM_API_KEY",
-        "open_alternatives": [],
+        "open_alternatives": [
+            {"id": "chai1", "label": "Chai-1", "note": "Apache 2.0, no registration, protein+ligand"},
+        ],
+        "byol_instructions": (
+            "Optional: create a free NVIDIA developer account at https://build.nvidia.com/boltz "
+            "to use the NIM API (faster, cloud GPU). "
+            "Without a key, BioMate runs Boltz-2 from open weights locally."
+        ),
     },
     "chai1": {
         "display_name": "Chai-1",
