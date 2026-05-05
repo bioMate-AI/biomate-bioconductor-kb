@@ -58,9 +58,9 @@ process STRUCTURAL_ALERT_SCAN {
 import json, re
 
 compound_name = "${params.compound_name}"
-smiles = """${smiles_val}"""
-mw = float("""${mw_val}""")
-logp = float("""${logp_val}""")
+smiles = '''${smiles_val}'''
+mw = float('''${mw_val}''')
+logp = float('''${logp_val}''')
 
 # ICH S5 / DEREK-class structural alert patterns (SMARTS-simplified for RDKit)
 # Based on: Schilter 2013 (SAR Repro Tox), Barber 2019 (DART DB), ECHA CLH criteria
@@ -99,7 +99,7 @@ STRUCTURAL_ALERTS = [
 
 # Mock SMARTS matching (no RDKit in this environment - use substructure heuristics)
 def mock_smarts_match(smiles_str, pattern_name, mw, logp):
-    """Heuristic alert matching based on compound properties and name patterns."""
+    '''Heuristic alert matching based on compound properties and name patterns.'''
     hits = []
     smi = smiles_str.lower()
     # Retinoic acid: polyene chain + carboxylic acid
@@ -150,13 +150,13 @@ with open("structural_alerts.json", "w") as f:
 
 # TSV
 with open("smarts_hits.tsv", "w") as f:
-    f.write("alert_name\tseverity\trationale\n")
+    f.write("alert_name\\tseverity\\trationale\\n")
     for a in result_alerts:
-        f.write(f"{a['alert_name']}\t{a['severity']}\t{a['rationale']}\n")
+        f.write("{}\\t{}\\t{}\\n".format(a['alert_name'], a['severity'], a['rationale']))
     if not result_alerts:
-        f.write("none\tNONE\tNo structural alerts detected\n")
+        f.write("none\\tNONE\\tNo structural alerts detected\\n")
 
-print(f"Structural alerts: {len(result_alerts)}, highest severity: {overall}")
+print("Structural alerts: {}, highest severity: {}".format(len(result_alerts), overall))
 PYEOF
     """
 }
@@ -285,7 +285,7 @@ out = {
 with open("dart_prediction.json", "w") as f:
     json.dump(out, f, indent=2)
 
-print(f"DART: fertility={feed_concern}, EFD={efd_concern}, MoS={margin_of_safety:.1f}x, FDA cat={fda_category}")
+print("DART: fertility={}, EFD={}, MoS={}x, FDA cat={}".format(feed_concern, efd_concern, round(margin_of_safety, 1), fda_category))
 PYEOF
     """
 }
@@ -358,7 +358,7 @@ report = {
 with open("ich_s5_safety_report.json", "w") as f:
     json.dump(report, f, indent=2)
 
-summary = f"""ICH S5(R3) Reproductive Toxicology Assessment
+summary = '''ICH S5(R3) Reproductive Toxicology Assessment
 ==============================================
 Compound: {report['compound']}
 Overall: {overall_color}
@@ -371,14 +371,14 @@ Placental transfer (estimated Kp): {dart['physicochemical']['kp_placenta_estimat
 FDA pregnancy category (legacy): {dart['dart_assessment']['fda_pregnancy_category_legacy']}
 
 Regulatory study timing:
-"""
+'''
 for phase, req in phase_req.items():
-    summary += f"  {phase}: {req}\n"
+    summary += "  {}: {}\\n".format(phase, req)
 
 if alerts["alerts"]:
-    summary += "\nStructural alerts found:\n"
+    summary += "\\nStructural alerts found:\\n"
     for a in alerts["alerts"]:
-        summary += f"  [{a['severity']}] {a['alert_name']}: {a['rationale']}\n"
+        summary += "  [{}] {}: {}\\n".format(a['severity'], a['alert_name'], a['rationale'])
 
 with open("ich_s5_summary.txt", "w") as f:
     f.write(summary)

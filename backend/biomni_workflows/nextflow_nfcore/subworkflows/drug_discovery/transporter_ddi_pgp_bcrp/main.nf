@@ -263,17 +263,17 @@ with open("transporter_r_values.json", "w") as f:
     json.dump(out, f, indent=2)
 
 with open("transporter_ddi_flags.tsv", "w") as f:
-    f.write("transporter\tIC50_uM\tI_uM\tR_value\tthreshold\tflag\taction\n")
+    f.write("transporter\\tIC50_uM\\tI_uM\\tR_value\\tthreshold\\tflag\\taction\\n")
     for name, r in results.items():
-        if r["status"] == "not_tested":
-            f.write(f"{name}\tnot_tested\t-\t-\t-\tFALSE\t-\n")
+        if r.get("status") == "not_tested":
+            f.write("{}\\tnot_tested\\t-\\t-\\t-\\tFALSE\\t-\\n".format(name))
         else:
             action = r.get("probe_substrate") or "-"
-            f.write(f"{name}\t{r['ic50_um']}\t{r['inhibitor_conc_um']}\t{r['r_value']}\t{r['r_threshold']}\t{r['flag']}\t{action}\n")
+            f.write("{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\n".format(name, r['ic50_um'], r['inhibitor_conc_um'], r['r_value'], r['r_threshold'], r['flag'], action))
 
-print(f"Transporter DDI complete: {len(flags)} flags requiring clinical study")
+print("Transporter DDI complete: {} flags requiring clinical study".format(len(flags)))
 for fl in flags:
-    print(f"  FLAGGED: {fl['transporter']} R={fl['R']} >= {fl['threshold']} → {fl['action']}")
+    print("  FLAGGED: {} R={} >= {} → {}".format(fl['transporter'], fl['R'], fl['threshold'], fl['action']))
 PYEOF
     """
 }
@@ -304,9 +304,9 @@ n_flagged = len(flags)
 if n_flagged == 0:
     overall = "GREEN - no transporter DDI risk above FDA threshold"
 elif n_flagged <= 2:
-    overall = f"YELLOW - {n_flagged} transporter(s) flagged; clinical DDI studies required"
+    overall = "YELLOW - {} transporter(s) flagged; clinical DDI studies required".format(n_flagged)
 else:
-    overall = f"RED - {n_flagged} transporters flagged; extensive clinical DDI package required"
+    overall = "RED - {} transporters flagged; extensive clinical DDI package required".format(n_flagged)
 
 report = {
     "compound": data["compound"],
@@ -322,7 +322,7 @@ report = {
 with open("transporter_ddi_report.json", "w") as f:
     json.dump(report, f, indent=2)
 
-summary = f"""Transporter DDI Assessment - {data['compound']}
+summary = '''Transporter DDI Assessment - {data['compound']}
 {'='*50}
 Overall: {overall}
 
@@ -333,18 +333,18 @@ Concentrations used:
   Iin,max: {data['concentrations']['iin_max_um']:.4f} µM
 
 Clinical Study Triggers:
-"""
+'''
 if flags:
     for fl in flags:
-        summary += f"  FLAGGED: {fl['transporter']} R={fl['R']} ≥ {fl['threshold']} → {fl['action']}\n"
+        summary += "  FLAGGED: {} R={} ≥ {} → {}\\n".format(fl['transporter'], fl['R'], fl['threshold'], fl['action'])
 else:
-    summary += "  None - all R-values below FDA thresholds\n"
+    summary += "  None - all R-values below FDA thresholds\\n"
 
 if data["substrate_assessment"]:
-    summary += "\nSubstrate Assessment:\n"
+    summary += "\\nSubstrate Assessment:\\n"
     for k, v in data["substrate_assessment"].items():
         substrate_flag = "SUBSTRATE" if v["is_substrate"] else "non-substrate"
-        summary += f"  {k}: ER={v['efflux_ratio']:.1f} → {substrate_flag}. {v['note']}\n"
+        summary += "  {}: ER={} → {}. {}\\n".format(k, round(v['efflux_ratio'], 1), substrate_flag, v['note'])
 
 with open("transporter_ddi_summary.txt", "w") as f:
     f.write(summary)
