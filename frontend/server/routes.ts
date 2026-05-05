@@ -7786,6 +7786,18 @@ ${paramLines || '(none recorded)'}`;
                   : 'running';
                 completedSteps = s.completed_jobs || 0;
                 totalSteps = Math.max(s.total_jobs || 4, 4);
+                // Also fetch Nextflow status if a nextflowRunId is available (CryoSPARC-via-Nextflow path).
+                // The CryoSPARC API reports high-level status; Nextflow has the per-step file listing.
+                const nfRunId = executionRun.execution?.nextflowRunId;
+                if (nfRunId) {
+                  try {
+                    const nfResp = await fetch(
+                      `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${nfRunId}`,
+                      { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
+                    );
+                    if (nfResp.ok) latestNfStatus = await nfResp.json();
+                  } catch { /* non-fatal */ }
+                }
               }
 
               const terminal = ['completed', 'failed'].includes(mappedStatus);
@@ -8214,7 +8226,8 @@ ${paramLines || '(none recorded)'}`;
       // Return lightweight status response
       const isNextflowRun =
         getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
-        run.execution?.executionEngine === 'nextflow';
+        run.execution?.executionEngine === 'nextflow' ||
+        !!run.execution?.nextflowRunId; // CryoSPARC-via-Nextflow: executionEngine='cryosparc' but nf run exists
       let nextflowStatus: any | undefined = undefined;
       let autofix: any | undefined = undefined;
       if (isNextflowRun && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
