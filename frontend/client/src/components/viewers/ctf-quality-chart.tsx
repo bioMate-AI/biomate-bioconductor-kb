@@ -63,7 +63,7 @@ export function CtfQualityChart({ data }: CtfQualityChartProps) {
     : []
 
   return (
-    <Card>
+    <Card data-testid="ctf-quality-chart">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Waves className="h-4 w-4" />

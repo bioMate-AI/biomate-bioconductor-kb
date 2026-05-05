@@ -50,7 +50,7 @@ export function MotionHistogramChart({ data }: MotionHistogramChartProps) {
   const REJECT_THRESHOLD = 30  // Å — conventional cutoff
 
   return (
-    <Card>
+    <Card data-testid="motion-histogram-chart">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Activity className="h-4 w-4" />
