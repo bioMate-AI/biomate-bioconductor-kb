@@ -61,12 +61,20 @@ log = logging.getLogger(__name__)
 # Local Regulatory LLM — Qwen3-8B + LoRA adapter
 # ---------------------------------------------------------------------------
 
-_LOCAL_LLM_ADAPTER = Path(__file__).parent.parent.parent.parent.parent.parent / \
-    "models/regulatory_llm_v1/lora_adapter"
-# Override via env: REGULATORY_LLM_ADAPTER=/path/to/lora_adapter
-_LOCAL_LLM_ADAPTER = Path(
-    os.environ.get("REGULATORY_LLM_ADAPTER", str(_LOCAL_LLM_ADAPTER))
-)
+def _resolve_adapter_path() -> Path:
+    """Pick the latest available LoRA adapter. Prefers v2 → v1 → env override."""
+    if "REGULATORY_LLM_ADAPTER" in os.environ:
+        return Path(os.environ["REGULATORY_LLM_ADAPTER"])
+    models_root = Path(__file__).parent.parent.parent.parent.parent.parent / "models"
+    # Prefer numerically higher versions
+    for name in ("regulatory_llm_v2/lora_adapter", "regulatory_llm_v1/lora_adapter"):
+        candidate = models_root / name
+        if candidate.exists():
+            return candidate
+    return models_root / "regulatory_llm_v1/lora_adapter"  # may not exist — falls back to Gemini
+
+
+_LOCAL_LLM_ADAPTER = _resolve_adapter_path()
 
 _local_llm_model = None       # lazy-loaded (PeftModel)
 _local_llm_tokenizer = None   # lazy-loaded

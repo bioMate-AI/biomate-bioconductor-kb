@@ -91,6 +91,7 @@ def CHEM_CONTAINER = _useAws ? _ECR : 'condaforge/miniforge3:latest'
 // Processes
 // ============================================================================
 
+// [Phase A] Compound Validation
 process SMILES_VALIDATION {
     /*
      * Validate and standardize the input SMILES.
@@ -192,6 +193,7 @@ PYEOF
     """
 }
 
+// [Phase B] CYP Inhibition Panel (IC50)
 process CYP_INHIBITION {
     /*
      * Predict CYP450 inhibition IC50 (uM) for all 5 major isoforms.
@@ -372,6 +374,7 @@ PYEOF
     """
 }
 
+// [Phase B] Hepatic Clearance (IVIVE)
 process HEPATIC_CLEARANCE {
     /*
      * Predict in vitro microsomal CLint and scale to in vivo hepatic clearance.
@@ -553,6 +556,7 @@ PYEOF
     """
 }
 
+// [Phase C] DDI Risk Assessment (FDA 2020)
 process DDI_RISK_ASSESSMENT {
     /*
      * Apply FDA 2020 DDI perpetrator guidance thresholds.
@@ -742,6 +746,7 @@ PYEOF
     """
 }
 
+// [Phase D] DDI Report
 process DDI_REPORT {
     /*
      * Generate comprehensive HTML + JSON report combining CYP panel,
