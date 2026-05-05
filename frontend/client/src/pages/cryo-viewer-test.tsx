@@ -52,70 +52,46 @@ export default function CryoViewerTest() {
   return (
     <div style={{ background: '#0f172a', minHeight: '100vh', padding: 24, color: '#e2e8f0' }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>
-        CryoEM Viewer Test — Run 89c7f6a1 (EMPIAR-10028, 2 micrographs, beta-galactosidase D2)
+        CryoEM Viewer — β-galactosidase D2 (EMPIAR-10028, 20 mics, 28,477 particles)
       </h1>
 
+      {/* Row 1: 2D class averages — R1 and R2 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
-        <section data-testid="motion-viewer">
+        <section data-testid="class-averages-r1">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            Motion Correction Report (J2, 20 micrographs)
+            2D Class Averages Round 1 — 128×128×20 montage
           </h2>
-          <JsonViewer
-            s3={`${S3}/02_motion_correction/batch_0000/motion_report_batch_0000.json`}
-            title="Motion"
+          <MrcViewer
+            s3={`${S3}/09_classify_2d_round1/pbatch_0003/cs_out_J9_020_class_averages.mrc`}
+            title="class_averages_r1 (20 classes)"
           />
         </section>
 
-        <section data-testid="ctf-viewer">
+        <section data-testid="class-averages-r2">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            CTF Estimation Report (J3, 20 micrographs)
+            2D Class Averages Round 2 — 128×128×20 montage (template-picked)
           </h2>
-          <JsonViewer
-            s3={`${S3}/03_ctf_estimation/batch_0000/ctf_report_batch_0000.json`}
-            title="CTF Quality"
-          />
-        </section>
-
-        <section data-testid="fsc-viewer">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            FSC Validation Curve (J20)
-          </h2>
-          <JsonViewer
-            s3={`${S3}/19_validation_fsc/fsc_validation.json`}
-            title="FSC Curve"
-          />
-        </section>
-
-        <section data-testid="class2d-report">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            2D Classification Report (J6, 24,879 particles, 50 classes)
-          </h2>
-          <JsonViewer
-            s3={`${S3}/09_classify_2d_round1/pbatch_0000/class2d_report_pbatch_0000.json`}
-            title="Class2D"
+          <MrcViewer
+            s3={`${S3}/14_classify_2d_round2/pbatch_0003/cs_out_J12_020_class_averages.mrc`}
+            title="class_averages_r2 (20 classes, pbatch_0003)"
           />
         </section>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        <section data-testid="class-averages-mrc">
+      {/* Row 2: Motion + CTF reports */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+        <section data-testid="motion-viewer">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            2D Class Averages (128×128×50 stack — montage viewer)
+            Motion Correction (J2) — mean beam-induced motion
           </h2>
-          <MrcViewer
-            s3={`${S3}/09_classify_2d_round1/pbatch_0003/cs_out_J9_020_class_averages.mrc`}
-            title="class_averages (20 classes, pbatch_0003)"
-          />
+          <JsonViewer s3={`${S3}/02_motion_correction/batch_0000/motion_report_batch_0000.json`} title="Motion" />
         </section>
 
-        <section data-testid="volume-sharpened-mrc">
+        <section data-testid="ctf-viewer">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            Sharpened 3D Map (192×192×192 — 3-axis slicer)
+            CTF Estimation (J3) — defocus & fit resolution
           </h2>
-          <MrcViewer
-            s3={`${S3}/09_classify_2d_round1/pbatch_0002/cs_out_J9_020_class_averages.mrc`}
-            title="class_averages (20 classes, pbatch_0002)"
-          />
+          <JsonViewer s3={`${S3}/03_ctf_estimation/batch_0000/ctf_report_batch_0000.json`} title="CTF Quality" />
         </section>
       </div>
     </div>

@@ -651,11 +651,34 @@ _CRYOSPARC_STEP_PARAMS: dict = {
 
 # Generic phase group assignment via keyword matching (for non-CryoSPARC workflows)
 _GENERIC_PHASE_RULES: list = [
-    (['IMPORT', 'DOWNLOAD', 'FETCH', 'FASTERQ', 'SRA'],           '1', 'Phase 1 — Input & Download'),
-    (['QC', 'FASTP', 'TRIM', 'FASTQC', 'MULTIQC'],                '2', 'Phase 2 — Quality Control'),
-    (['ALIGN', 'MAP', 'BWA', 'BOWTIE', 'STAR', 'HISAT', 'SORT'],  '3', 'Phase 3 — Alignment'),
-    (['GATK', 'VARIANT', 'CALL', 'GENOTYPE', 'FREEBAYES'],        '4', 'Phase 4 — Variant Calling'),
-    (['ANNOTATE', 'SNPEFF', 'VEP', 'FILTER', 'REPORT'],           '5', 'Phase 5 — Annotation & Report'),
+    # ── Genomics / sequencing ──────────────────────────────────────────────────
+    (['IMPORT', 'DOWNLOAD', 'FETCH', 'FASTERQ', 'SRA'],           'A', 'Phase A — Input & Download'),
+    (['QC', 'FASTP', 'TRIM', 'FASTQC', 'MULTIQC'],                'B', 'Phase B — Quality Control'),
+    (['ALIGN', 'MAP', 'BWA', 'BOWTIE', 'STAR', 'HISAT', 'SORT'],  'C', 'Phase C — Alignment'),
+    (['GATK', 'VARIANT', 'CALL', 'GENOTYPE', 'FREEBAYES'],        'D', 'Phase D — Variant Calling'),
+    (['ANNOTATE', 'SNPEFF', 'VEP', 'FILTER'],                     'E', 'Phase E — Annotation & Filtering'),
+    # ── Drug discovery / pharmacology — Input & Validation ────────────────────
+    (['VALIDATE', 'PREPARE', 'DATA_VALIDATION', 'PARSE_INPUT',
+      'LOAD_DATA', 'CHECK_INPUT', 'PREPARE_COMPOUND',
+      'INPUT_VALIDATION', 'VALIDATE_INPUT', 'VALIDATE_REGION'],   'A', 'Phase A — Input & Validation'),
+    # ── Drug discovery / pharmacology — Core Computation ──────────────────────
+    (['SIMULATE', 'PBPK_SIM', 'PKSIM', 'PK_SIM',
+      'NONMEM_RUN', 'NLMIXR2_RUN', 'SIMCYP',
+      'SURVIVAL_ANALYSIS', 'FCRN_PK', 'PBPK_PEDIATRIC',
+      'CALCULATE_R', 'STRUCTURAL_ALERT',
+      'ICH_S7A', 'ICH_S5', 'DART_IN_SILICO',
+      'CTL_GENERATE', 'NONMEM_CTL'],                              'B', 'Phase B — Core Computation'),
+    # ── Drug discovery / pharmacology — Analysis & QC ─────────────────────────
+    (['COVARIATE', 'BOOTSTRAP', 'VPC', 'NCA', 'FIT',
+      'COMPARE', 'RANK', 'EVALUATE', 'ASSESS',
+      'FETCH_REFERENCE', 'EVO2_SCORE', 'ALPHAGENOME',
+      'AGGREGATE_TRACKS', 'VARIANT_EFFECT'],                      'C', 'Phase C — Analysis & QC'),
+    # ── Drug discovery / pharmacology — Report & Export ───────────────────────
+    (['AGGREGATE', 'GENERATE_REPORT', 'GENERATE_TRANSPORTER',
+      'AGGREGATE_REPORT', 'AGGREGATE_SAFETY',
+      'COMPILE', 'EXPORT', 'SUMMARY', 'FINAL_REPORT'],            'D', 'Phase D — Report & Export'),
+    # ── Generic fallback — Report for anything named *REPORT* ─────────────────
+    (['REPORT'],                                                   'D', 'Phase D — Report'),
 ]
 
 
