@@ -1,5 +1,5 @@
 # Cross-Domain Routing Accuracy Benchmark
-# 147 annotated queries across 11 domains, 3 difficulty levels
+# 155 annotated queries across 11 domains, 3 difficulty levels
 #
 # Generated: 2026-04-07
 # Source: Official nf-co.re pipeline documentation (fetched live)
@@ -1463,3 +1463,78 @@
   disqualified: [nf-core/scrnaseq, cite_seq_preprocessing]
   confusable_with: single_cell
   notes: "Microwell + AbSeq = BD Rhapsody; CITE-seq uses droplets; scrnaseq doesn't handle AbSeq"
+
+# ── Bispecific Antibody + siRNA (dd_001–dd_008) ────────────────────────────────
+
+- id: dd_001
+  query: "Design a CD3xCD19 bispecific T-cell engager (BiTE) for B-cell leukemia"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: bispecific_antibody_design
+  acceptable_alts: [scfv_antibody_design]
+  disqualified: []
+  notes: "BiTE + CD3 + tumor antigen keyword → bispecific_antibody_design with format=bite"
+
+- id: dd_002
+  query: "Engineer a CrossMab bispecific antibody with arm exchange for HER2×HER3 dual blockade"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: bispecific_antibody_design
+  acceptable_alts: []
+  disqualified: [scfv_antibody_design]
+  notes: "CrossMab = Roche Fab arm exchange format; HER2×HER3 dual blockade → bispecific_antibody_design"
+
+- id: dd_003
+  query: "Predict off-target silencing of my siRNA targeting PCSK9 — check seed region matches"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: sirna_offtarget_analysis
+  acceptable_alts: []
+  disqualified: [lnp_formulation_optimization]
+  notes: "siRNA off-target + seed region → sirna_offtarget_analysis; LNP is delivery not specificity"
+
+- id: dd_004
+  query: "Recommend 2'-OMe chemical modifications to reduce siRNA immunogenicity and off-targets"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: sirna_offtarget_analysis
+  acceptable_alts: []
+  disqualified: []
+  notes: "2'-OMe + siRNA modification recommendation → sirna_offtarget_analysis"
+
+- id: dd_005
+  query: "Assess passenger strand loading risk for my siRNA — thermodynamic strand asymmetry"
+  difficulty: indirect
+  domain: drug_discovery
+  correct_workflow: sirna_offtarget_analysis
+  acceptable_alts: []
+  disqualified: []
+  notes: "Strand asymmetry ΔΔG + passenger strand loading = RISC selectivity → sirna_offtarget_analysis"
+
+- id: dd_006
+  query: "Design a knob-into-hole IgG bispecific for EGFR×cMET co-targeting in NSCLC"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: bispecific_antibody_design
+  acceptable_alts: []
+  disqualified: [scfv_antibody_design]
+  notes: "Knob-into-hole CH3 engineering + two tumor antigens → bispecific_antibody_design format=knob_hole"
+
+- id: dd_007
+  query: "My siRNA guide strand has a UGUGU motif — evaluate TLR immune stimulation risk"
+  difficulty: indirect
+  domain: drug_discovery
+  correct_workflow: sirna_offtarget_analysis
+  acceptable_alts: []
+  disqualified: []
+  notes: "TLR7/8 motif evaluation is part of sirna_offtarget_analysis immune stimulation module"
+
+- id: dd_008
+  query: "Design a nanobody-nanobody bispecific fusion targeting albumin for half-life extension"
+  difficulty: adversarial
+  domain: drug_discovery
+  correct_workflow: bispecific_antibody_design
+  acceptable_alts: []
+  disqualified: [scfv_antibody_design]
+  confusable_with: structural_biology
+  notes: "VHH-VHH fusion + albumin half-life extension → bispecific format=nanobody_fusion; not single scFv design"

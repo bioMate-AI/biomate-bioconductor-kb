@@ -1871,3 +1871,210 @@ cases:
       - method
     difficulty: hard
     notes: "aggressive removal → lower threshold 0.15; 12000 cells; method not specified → must_not_fill"
+
+# ── Bispecific Antibody + siRNA Params (pf_156–pf_175) ───────────────────────
+
+  - id: pf_156
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "Design a CD3×CD19 BiTE for B-cell ALL, generate 20 design candidates, include CD3 arm"
+    expected_params:
+      format: bite
+      n_designs: 20
+      cd3_arm: true
+      target_indication: oncology
+    must_not_fill:
+      - linker_type
+    difficulty: easy
+    notes: "BiTE explicit → format=bite; 20 designs; CD3 arm → cd3_arm=true; B-cell ALL = oncology"
+
+  - id: pf_157
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "CrossMab format bispecific for autoimmune disease — rigid linker, 15 designs, run immunogenicity screen"
+    expected_params:
+      format: crossmab
+      linker_type: rigid
+      n_designs: 15
+      target_indication: autoimmune
+      immunogenicity_screen: true
+    must_not_fill:
+      - cd3_arm
+    difficulty: medium
+    notes: "CrossMab → format=crossmab; rigid linker direct; autoimmune explicit; immuno screen=true"
+
+  - id: pf_158
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "Knob-into-hole IgG bispecific for EGFR×cMET in lung cancer, use G4S4 linker"
+    expected_params:
+      format: knob_hole
+      linker_type: g4s4
+      target_indication: oncology
+    must_not_fill:
+      - cd3_arm
+      - n_designs
+    difficulty: medium
+    notes: "KiH explicit → format=knob_hole; G4S4 linker direct; lung cancer = oncology"
+
+  - id: pf_159
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "VHH nanobody fusion bispecific, hematology indication, skip developability filter for now"
+    expected_params:
+      format: nanobody_fusion
+      target_indication: hematology
+      developability_filter: false
+    must_not_fill:
+      - linker_type
+    difficulty: medium
+    notes: "nanobody/VHH → format=nanobody_fusion; hematology direct; skip filter → developability_filter=false"
+
+  - id: pf_160
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "DART bispecific T-cell redirector format with charged positive linker, CD3 arm, 25 designs"
+    expected_params:
+      format: dart
+      linker_type: charged_pos
+      cd3_arm: true
+      n_designs: 25
+    must_not_fill:
+      - target_indication
+    difficulty: medium
+    notes: "DART format explicit; charged_pos linker explicit; CD3 arm; 25 designs"
+
+  - id: pf_161
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "Analyze off-targets for my siRNA targeting PCSK9 in liver tissue, check seed region"
+    expected_params:
+      target_gene: PCSK9
+      therapeutic_context: liver
+      target_species: human
+    must_not_fill:
+      - chemical_mods
+    difficulty: easy
+    notes: "PCSK9 direct → target_gene=PCSK9; liver → therapeutic_context=liver; human implied"
+
+  - id: pf_162
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "siRNA guide: 5'-GCAUCUGAGUUUGGCACUUAG-3', target TTR gene, apply ESC full modification chemistry"
+    expected_params:
+      guide_strand: GCAUCUGAGUUUGGCACUUAG
+      target_gene: TTR
+      chemical_mods: esi_full
+    must_not_fill:
+      - therapeutic_context
+    difficulty: medium
+    notes: "sequence direct → guide_strand; TTR direct; ESC full → chemical_mods=esi_full"
+
+  - id: pf_163
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "CNS delivery siRNA for alpha-synuclein, use dicer-substrate design, check 0 seed mismatches"
+    expected_params:
+      target_gene: SNCA
+      therapeutic_context: cns
+      sirna_design: dicer_substrate
+      seed_mismatch_tol: 0
+    must_not_fill:
+      - chemical_mods
+    difficulty: hard
+    notes: "alpha-synuclein → gene=SNCA; CNS delivery → therapeutic_context=cns; dicer-substrate explicit; strict seed match → seed_mismatch_tol=0"
+
+  - id: pf_164
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "Recommend 2'-O-methyl modifications at seed positions to reduce siRNA off-targeting"
+    expected_params:
+      chemical_mods: 2ome
+    must_not_fill:
+      - target_gene
+      - therapeutic_context
+    difficulty: easy
+    notes: "2'-O-methyl → chemical_mods=2ome; no gene or tissue specified → must_not_fill"
+
+  - id: pf_165
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "Report top 50 off-target genes, analyze passenger strand, mouse hepatocyte siRNA"
+    expected_params:
+      n_top_offtargets: 50
+      strand_bias_check: true
+      target_species: mouse
+      therapeutic_context: liver
+    must_not_fill:
+      - guide_strand
+    difficulty: medium
+    notes: "50 off-targets; passenger strand → strand_bias_check=true; mouse + hepatocyte → species=mouse + tissue=liver"
+
+  - id: pf_166
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "DVD-Ig format bispecific antibody, infectious disease indication, 12 designs, G4S3 linker"
+    expected_params:
+      format: dvd_ig
+      target_indication: infectious
+      n_designs: 12
+      linker_type: g4s3
+    must_not_fill:
+      - cd3_arm
+    difficulty: easy
+    notes: "DVD-Ig explicit; infectious disease explicit; 12 designs; G4S3 linker direct"
+
+  - id: pf_167
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "Phase 1 clinical siRNA for HBV, eye injection, phosphorothioate backbone"
+    expected_params:
+      therapeutic_context: eye
+      chemical_mods: ps
+    must_not_fill:
+      - target_gene
+      - n_top_offtargets
+    difficulty: hard
+    notes: "eye injection → therapeutic_context=eye; PS backbone explicit → chemical_mods=ps; HBV not a param (target_gene=HBV not in schema as enum)"
+
+  - id: pf_168
+    category: drug_discovery_params
+    workflow: bispecific_antibody_design
+    user_query: "Do NOT run immunogenicity screening, format is CrossMab, 30 designs for autoimmune"
+    expected_params:
+      format: crossmab
+      n_designs: 30
+      target_indication: autoimmune
+      immunogenicity_screen: false
+    must_not_fill:
+      - linker_type
+      - cd3_arm
+    difficulty: hard
+    notes: "negation: 'do NOT run' → immunogenicity_screen=false; CrossMab; 30 designs; autoimmune"
+
+  - id: pf_169
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "Asymmetric siRNA design for VEGFA in muscle, combined 2'-OMe + 2'-F modifications"
+    expected_params:
+      sirna_design: asymmetric
+      therapeutic_context: muscle
+      chemical_mods: 2ome_2f
+    must_not_fill:
+      - seed_mismatch_tol
+    difficulty: medium
+    notes: "asymmetric siRNA explicit; muscle tissue; combined mods → chemical_mods=2ome_2f"
+
+  - id: pf_170
+    category: drug_discovery_params
+    workflow: sirna_offtarget_analysis
+    user_query: "Human blood cancer siRNA, allow 1 seed mismatch, NHP cross-reactivity check"
+    expected_params:
+      therapeutic_context: blood
+      seed_mismatch_tol: 1
+      target_species: nhp
+    must_not_fill:
+      - guide_strand
+    difficulty: hard
+    notes: "blood cancer → therapeutic_context=blood; 1 seed mismatch; NHP species → target_species=nhp"
+    notes: "aggressive removal → lower threshold 0.15; 12000 cells; method not specified → must_not_fill"
