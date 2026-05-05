@@ -40,7 +40,7 @@ params.organ_impairment       = 'none'
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
 // ---------------------------------------------------------------------------
-// [Phase A] Phase A — Compound Parameter Validation
+// [Phase A] Compound Parameter Validation
 process VALIDATE_COMPOUND_PARAMS {
     tag 'validate'
     label 'process_low'
@@ -162,7 +162,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase B: Core Computation (PBPK Simulation)
 // ---------------------------------------------------------------------------
-// [Phase B] Phase B — PBPK Simulation
+// [Phase B] PBPK Simulation
 process PKSIM_SIMULATE {
     tag 'pksim'
     label 'process_medium'
@@ -515,7 +515,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase C: Analysis & QC (NCA)
 // ---------------------------------------------------------------------------
-// [Phase C] Phase C — NCA Analysis
+// [Phase C] NCA Analysis
 process NCA_ANALYSIS {
     tag 'nca'
     label 'process_low'
@@ -624,7 +624,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase D: Report & Export
 // ---------------------------------------------------------------------------
-// [Phase D] Phase D — PK Report
+// [Phase D] PK Report
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'

@@ -91,7 +91,7 @@ def MMPBSA_CONTAINER     = _useAws ? _ECR : 'simonbray/gmx_mmpbsa:1.6.3'
 // Processes
 // ============================================================================
 
-// [Phase A] Phase A — Ligand & System Preparation
+// [Phase A] Ligand & System Preparation
 process LIGAND_PREP {
     /*
      * Convert ligand to GAFF2 force-field parameters using AmberTools antechamber.
@@ -168,7 +168,7 @@ print('SMILES to SDF conversion done')
 }
 
 
-// [Phase A] Phase A — Ligand & System Preparation
+// [Phase A] Ligand & System Preparation
 process SYSTEM_SETUP {
     /*
      * tleap: build solvated protein-ligand complex topology.
@@ -276,7 +276,7 @@ POSRES_EOF
 }
 
 
-// [Phase B] Phase B — Energy Minimization
+// [Phase B] Energy Minimization
 process ENERGY_MINIMIZATION {
     /*
      * Steepest descent energy minimization using GROMACS.
@@ -412,7 +412,7 @@ POSRES_INSERT
 }
 
 
-// [Phase B] Phase B — NVT/NPT Equilibration
+// [Phase B] NVT/NPT Equilibration
 process NVT_EQUILIBRATION {
     /*
      * 100 ps NVT equilibration at target temperature.
@@ -518,7 +518,7 @@ MDP_EOF
 }
 
 
-// [Phase B] Phase B — NVT/NPT Equilibration
+// [Phase B] NVT/NPT Equilibration
 process NPT_EQUILIBRATION {
     /*
      * 100 ps NPT equilibration at target temperature + 1 bar pressure.
@@ -603,7 +603,7 @@ MDP_EOF
 }
 
 
-// [Phase C] Phase C — Production MD
+// [Phase C] Production MD
 process PRODUCTION_MD {
     /*
      * NPT production MD run (default 10 ns).
@@ -714,7 +714,7 @@ MDP_EOF
 }
 
 
-// [Phase D] Phase D — Trajectory Analysis
+// [Phase D] Trajectory Analysis
 process TRAJECTORY_ANALYSIS {
     /*
      * Structural analysis of production trajectory using GROMACS tools:
@@ -863,7 +863,7 @@ PYEOF
 }
 
 
-// [Phase D] Phase D — MM-GBSA Binding Free Energy
+// [Phase D] MM-GBSA Binding Free Energy
 process MM_GBSA {
     /*
      * gmx_MMPBSA: MM-GBSA binding free energy calculation.

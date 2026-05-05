@@ -83,7 +83,7 @@ def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
 // Processes
 // ============================================================================
 
-// [Phase A] Phase A — Ligand & System Preparation
+// [Phase A] Ligand & System Preparation
 process LIGAND_PREP {
     /*
      * Convert ligand to GAFF2 force-field parameters using AmberTools antechamber.
@@ -163,7 +163,7 @@ print('SMILES to SDF conversion done')
 
 // ----------------------------------------------------------------------------
 
-// [Phase A] Phase A — Ligand & System Preparation
+// [Phase A] Ligand & System Preparation
 process SYSTEM_SETUP {
     /*
      * Build protein-ligand complex with tleap.
@@ -213,7 +213,7 @@ TLEAPIN
 
 // ----------------------------------------------------------------------------
 
-// [Phase B] Phase B — Energy Minimization
+// [Phase B] Energy Minimization
 process ENERGY_MINIMIZATION {
     /*
      * Two-stage steepest descent minimization using sander (CPU):
@@ -286,7 +286,7 @@ MIN2EOF
 
 // ----------------------------------------------------------------------------
 
-// [Phase B] Phase B — NVT/NPT Equilibration
+// [Phase B] NVT/NPT Equilibration
 process EQUILIBRATION {
     /*
      * Two-stage GPU equilibration with pmemd.cuda:
@@ -368,7 +368,7 @@ NPTEOF
 
 // ----------------------------------------------------------------------------
 
-// [Phase C] Phase C — Production MD
+// [Phase C] Production MD
 process PRODUCTION_MD {
     /*
      * GPU production MD with pmemd.cuda.
@@ -425,7 +425,7 @@ MDEOF
 
 // ----------------------------------------------------------------------------
 
-// [Phase D] Phase D — Trajectory Analysis & MM-GBSA
+// [Phase D] Trajectory Analysis & MM-GBSA
 process TRAJECTORY_ANALYSIS {
     /*
      * Post-processing with cpptraj:
@@ -535,7 +535,7 @@ PYEOF
 
 // ----------------------------------------------------------------------------
 
-// [Phase D] Phase D — Trajectory Analysis & MM-GBSA
+// [Phase D] Trajectory Analysis & MM-GBSA
 process MM_GBSA {
     /*
      * MM-GBSA binding free energy with MMPBSA.py:

@@ -40,7 +40,7 @@ def SIMCYP_CONTAINER = System.getenv('SIMCYP_CONTAINER') ?:
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
 // ---------------------------------------------------------------------------
-// [Phase A] Phase A — Compound Validation & License Check
+// [Phase A] Compound Validation & License Check
 process VALIDATE_COMPOUND_PARAMS {
     tag 'validate'
     label 'process_low'
@@ -180,7 +180,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase B: Core Computation (Simcyp PBPK or Native Fallback)
 // ---------------------------------------------------------------------------
-// [Phase B] Phase B — PBPK Simulation
+// [Phase B] PBPK Simulation
 process SIMCYP_PBPK_SIMULATE {
     tag 'pbpk_sim'
     label 'process_medium'
@@ -551,7 +551,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase C: Analysis & QC (DDI + Population Variability)
 // ---------------------------------------------------------------------------
-// [Phase C] Phase C — DDI & Population Variability Analysis
+// [Phase C] DDI & Population Variability Analysis
 process EVALUATE_PBPK_RESULTS {
     tag 'evaluate'
     label 'process_low'
@@ -635,7 +635,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase D: Report & Export
 // ---------------------------------------------------------------------------
-// [Phase D] Phase D — Regulatory PBPK Report
+// [Phase D] Regulatory PBPK Report
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'

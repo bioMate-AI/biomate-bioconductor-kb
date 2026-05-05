@@ -33,7 +33,7 @@ params.indication          = 'oncology'
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
 // ---------------------------------------------------------------------------
-// [Phase A] Phase A — Trial Parameter Validation
+// [Phase A] Trial Parameter Validation
 process VALIDATE_TRIAL_PARAMS {
     tag 'validate'
     label 'process_low'
@@ -124,7 +124,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase B: Core Computation (KM + Sample Size)
 // ---------------------------------------------------------------------------
-// [Phase B] Phase B — KM Estimation & Sample Size
+// [Phase B] KM Estimation & Sample Size
 process SURVIVAL_ANALYSIS {
     tag 'km'
     label 'process_low'
@@ -258,7 +258,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase C: Analysis & QC (OBF Boundaries + Power Table)
 // ---------------------------------------------------------------------------
-// [Phase C] Phase C — Power & Alpha-Spending Boundaries
+// [Phase C] Power & Alpha-Spending Boundaries
 process EVALUATE_BOUNDARIES {
     tag 'boundaries'
     label 'process_low'
@@ -354,7 +354,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase D: Report & Export
 // ---------------------------------------------------------------------------
-// [Phase D] Phase D — Trial Design Report
+// [Phase D] Trial Design Report
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'

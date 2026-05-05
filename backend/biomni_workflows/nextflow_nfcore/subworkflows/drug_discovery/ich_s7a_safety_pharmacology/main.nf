@@ -25,7 +25,7 @@ params.indication        = 'oncology'
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
 // ---------------------------------------------------------------------------
-// [Phase A] Phase A — Safety Input Validation
+// [Phase A] Safety Input Validation
 process VALIDATE_SAFETY_INPUTS {
     tag 'validate'
     label 'process_low'
@@ -157,7 +157,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase B: Core Computation (Cardiovascular Assessment)
 // ---------------------------------------------------------------------------
-// [Phase B] Phase B — Cardiovascular Assessment
+// [Phase B] Cardiovascular Assessment (hERG / QTc)
 process ICH_S7A_ASSESS_CV {
     tag 'cv_assess'
     label 'process_low'
@@ -258,7 +258,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase C: Analysis & QC (CNS + Respiratory Assessment)
 // ---------------------------------------------------------------------------
-// [Phase C] Phase C — CNS & Respiratory Assessment
+// [Phase C] CNS & Respiratory Assessment
 process ICH_S7A_ASSESS_CNS_RESP {
     tag 'cns_resp'
     label 'process_low'
@@ -370,7 +370,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase D: Report & Export
 // ---------------------------------------------------------------------------
-// [Phase D] Phase D — ICH S7A Core Battery Report
+// [Phase D] ICH S7A Core Battery Report
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'
