@@ -211,40 +211,141 @@ def classify_section(text: str) -> str:
 
 # ─── Task 1: Section generation pairs ─────────────────────────────────────────
 
+# Map section types to CTD section numbers
+_SECTION_CTD = {
+    "overview":     "§2.6.1 (Nonclinical Overview: Pharmacology)",
+    "pbpk":         "§2.6.2 (PBPK Model Qualification)",
+    "pk_overview":  "§2.6.2 (Nonclinical Overview: Pharmacokinetics)",
+    "admet":        "§2.6.1.3 (ADMET Screening)",
+    "tox_overview": "§2.6.3 (Nonclinical Overview: Toxicology)",
+    "tox_genotox":  "§2.6.3.3 (Genotoxicity)",
+    "tox_cardiac":  "§2.6.3.7 (Cardiac Safety — hERG)",
+}
+
+
+def _strip_label_headers(text: str) -> str:
+    """Remove FDA/EMA drug label section number headers from regulatory prose.
+
+    openFDA labels serialize sections as a single string with no newlines between
+    the chapter header, subsection header, and prose:
+      '13 NONCLINICAL TOXICOLOGY 13.1 Carcinogenesis, Mutagenesis, ... Carcinogenesis A dose...'
+
+    We strip these header sequences at the start of the text.
+    """
+    # Pattern A: "N ALL-CAPS-TITLE M.X Subsection Title Words " at text start (no newlines)
+    # Matches e.g. "13 NONCLINICAL TOXICOLOGY 13.1 Carcinogenesis, Mutagenesis, Impairment of Fertility "
+    text = re.sub(
+        r"^\d+\s+[A-Z][A-Z, /&().-]{4,50}"          # "13 NONCLINICAL TOXICOLOGY"
+        r"(?:\s+\d+\.\d+(?:\.\d+)?"                  # optional "13.1"
+        r"\s+[A-Z][A-Za-z, /()&.-]{4,80})?"          # optional "Carcinogenesis, Mutagenesis..."
+        r"\s+",                                        # trailing space before prose
+        "", text
+    )
+
+    # Pattern B: lines-based — numbered header on its own line
+    text = re.sub(r"^\d+\s+[A-Z][A-Z/ ,&().-]+\n+", "", text, flags=re.M)
+    text = re.sub(r"^\d+\.\d+(?:\.\d+)?\s+[A-Z][^\n]{0,100}\n", "", text, flags=re.M)
+
+    # Pattern C: EMA section markers "2.5. Non-clinical aspects" or "2.5.1 Introduction\n"
+    text = re.sub(r"^2\.\d+(?:\.\d+)?\s*\.?\s*[A-Za-z][^\n]{0,80}\n", "", text, flags=re.M)
+
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+# Phrases that indicate EMA administrative / cover page content, not nonclinical data
+_EMA_BOILERPLATE_PHRASES = (
+    "european medicines agency", "assessment report", "emea/", "table of contents",
+    "committee for medicinal products", "chmp assessment", "doc.ref",
+    "westferry circus", "canary wharf", "© european medicines agency",
+    "reproduction is authorised", "background information on the procedure",
+    "submission of the dossier", "steps taken for the assessment",
+)
+
+def _is_boilerplate(text: str) -> bool:
+    """Return True if the text is administrative/cover-page content, not nonclinical findings."""
+    lower = text[:400].lower()
+    return any(phrase in lower for phrase in _EMA_BOILERPLATE_PHRASES)
+
+
+def _extract_findings_summary(text: str, max_words: int = 80) -> str:
+    """Extract a concise findings summary from regulatory prose.
+
+    Skips the first ~100 words (used as context), then takes the next
+    paragraph as the summary shown to the model in the user prompt.
+    This makes USER and ASST genuinely different (not a verbatim copy).
+    """
+    words = text.split()
+    # Skip the context window (first 80 words) and take the next sentence/paragraph
+    # as the 'what should be written' description
+    if len(words) > 80:
+        skip = 60  # overlap context + prompt
+        summary_words = words[skip:skip + max_words]
+    else:
+        summary_words = words[:max_words]
+    return " ".join(summary_words)
+
+
 def build_task1_pairs(raw_examples: list[dict]) -> list[dict]:
     """
-    Build Task 1 training pairs: structured ADMET/PBPK JSON → regulatory prose.
+    Build Task 1 training pairs: nonclinical findings description → regulatory prose.
 
-    Strategy: for each raw regulatory text example, extract numeric values and
-    construct a structured input JSON that matches what BioMate would produce.
-    The extracted text becomes the target output.
+    Strategy (v2): instead of reverse-engineering sparse JSON from prose,
+    use the first ~100 words of the regulatory text as the 'findings context'
+    in the user prompt, and the full cleaned text as the target response.
+    This gives the model meaningful input and teaches regulatory prose style.
+
+    We skip 'unknown' section types (ICH preamble/TOC) and sections < 60 words.
     """
     pairs = []
-    rng = random.Random(42)
 
     for ex in raw_examples:
+        source = ex.get("source", "unknown")
         response_text = ex.get("response", "")
-        if len(response_text.split()) < 30:
+
+        # Strip section headers before any processing
+        response_text = _strip_label_headers(response_text)
+        response_text = _clean_response(response_text)
+
+        # Filter: must have at least 120 words to be a useful training signal
+        words = response_text.split()
+        if len(words) < 120:
             continue
+
+        # Filter: EMA administrative / cover page boilerplate is not nonclinical content
+        if _is_boilerplate(response_text):
+            continue
+
+        section_type = classify_section(response_text)
+        if section_type == "unknown":
+            continue  # ICH preamble/TOC — useless training signal
 
         drug = ex.get("drug") or ex.get("medicine") or "investigational compound"
-        section_type = classify_section(response_text)
-        source = ex.get("source", "unknown")
         region = _infer_region(source)
+        ctd_section = _SECTION_CTD.get(section_type, "§2.6 (Nonclinical Overview)")
 
-        # Build structured input based on section type
-        structured_input = _build_structured_input(section_type, response_text, drug)
-        if not structured_input:
-            continue
+        # Findings summary: skip first 60 words (becomes the ASST prefix),
+        # use next 80 words as the user-visible context summary
+        # This makes USER and ASST non-identical (model learns to extend, not copy)
+        findings = _extract_findings_summary(response_text, max_words=80)
 
-        # Format as instruction
-        user_prompt = _build_section_prompt(section_type, structured_input, region)
+        # Target: full cleaned text capped at 600 words (within token budget)
+        target = " ".join(words[:600])
 
-        pair = to_chatml(
-            system=SYSTEM_PROMPT,
-            user=user_prompt,
-            assistant=_clean_response(response_text),
+        # User prompt includes the findings summary as context
+        region_note = {
+            "EMA": " Submit to EMA. Cite EMA/CHMP/EWP/37498/2011 where relevant.",
+            "FDA": " Submit to FDA under 21 CFR Part 312.",
+            "NMPA": " Submit to NMPA/CDE. Note any Chinese-specific requirements per Announcement No. 35 (2019).",
+            "PMDA": " Submit to PMDA. Include ethnic bridging assessment per ICH E5.",
+        }.get(region, "")
+
+        user_prompt = (
+            f"Write the {ctd_section} section for {drug}.{region_note}\n\n"
+            f"Nonclinical findings summary:\n{findings}"
         )
+
+        pair = to_chatml(system=SYSTEM_PROMPT, user=user_prompt, assistant=target)
         pair["meta"] = {
             "task": "section_generation",
             "section_type": section_type,
@@ -406,11 +507,13 @@ REGULATORY_QA = [
 def build_task2_pairs(raw_examples: list[dict]) -> list[dict]:
     """
     Build Task 2 training pairs: regulatory QA grounded in guidelines.
-    Combines curated QA pairs with QA extracted from guideline text.
+
+    Uses ONLY the 12 curated QA pairs — the ICH-derived QA pairs from the
+    previous approach were low quality (answer = echo of the question text).
+    Better to have 12 excellent examples than 400+ noise examples.
     """
     pairs = []
 
-    # 1. Curated QA pairs
     for question, answer in REGULATORY_QA:
         pair = to_chatml(
             system=SYSTEM_PROMPT,
@@ -420,31 +523,7 @@ def build_task2_pairs(raw_examples: list[dict]) -> list[dict]:
         pair["meta"] = {"task": "regulatory_qa", "source": "curated"}
         pairs.append(pair)
 
-    # 2. QA extracted from ICH guideline examples in raw corpus
-    for ex in raw_examples:
-        if ex.get("source") != "ICH_Guideline":
-            continue
-        guideline = ex.get("guideline", "ICH guideline")
-        context_text = ex.get("context", "")
-        response_text = ex.get("response", "")
-        if len(response_text.split()) < 30:
-            continue
-
-        # Convert the guideline excerpt into a QA pair
-        question = f"Explain the following requirement from {guideline} in the context of IND CTD Module 2.6 preparation."
-        pair = to_chatml(
-            system=SYSTEM_PROMPT,
-            user=question + f"\n\nGuideline text:\n{response_text[:400]}",
-            assistant=(
-                f"Per {guideline}: {_clean_response(response_text[:600])} "
-                f"This requirement applies specifically to the nonclinical written summaries "
-                f"in CTD Module 2.6 submitted as part of an IND application."
-            ),
-        )
-        pair["meta"] = {"task": "regulatory_qa", "source": "ich_guideline", "guideline": guideline}
-        pairs.append(pair)
-
-    log.info("[Task 2] Built %d regulatory QA pairs", len(pairs))
+    log.info("[Task 2] Built %d regulatory QA pairs (curated only)", len(pairs))
     return pairs
 
 # ─── Task 3: Region adaptation ────────────────────────────────────────────────
