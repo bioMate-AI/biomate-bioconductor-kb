@@ -243,12 +243,15 @@ def _guess_indication(text: str) -> str:
 # ─── Section type classifier ──────────────────────────────────────────────────
 
 SECTION_KEYWORDS = {
-    "pbpk":           ["pbpk", "within 2-fold", "ema criterion", "pharmacokinetic model", "aafe", "afe"],
+    # PBPK requires PBPK-specific language — "pharmacokinetic model" alone is too broad
+    "pbpk":           ["pbpk", "within 2-fold", "ema criterion", "physiologically based",
+                       "aafe", " afe ", "pharmacokinetic modelling and simulation"],
     "admet":          ["admet", "herg", "dili", "ames", "safety gate", "admet-ai", "screening"],
     "tox_overview":   ["toxicology overview", "nonclinical toxicology", "genotoxicity", "carcinogenicity"],
     "tox_cardiac":    ["cardiac safety", "herg channel", "qt interval", "s7b"],
     "tox_genotox":    ["genotoxicity", "ames test", "mutagenicity", "chromosomal", "s2(r1)"],
-    "pk_overview":    ["pharmacokinetics overview", "absorption", "distribution", "metabolism", "excretion", "clearance", "half-life"],
+    "pk_overview":    ["pharmacokinetics overview", "absorption", "distribution", "metabolism",
+                       "excretion", "clearance", "half-life", "bioavailability", "volume of distribution"],
     "overview":       ["computational methods", "bayesian", "admet screening", "pbpk simulation", "integrated platform"],
     "ad":             ["applicability domain", "hat-matrix", "tanimoto", "leverage"],
     "prioritization": ["bayesian optimization", "lead candidate", "compound ranking", "composite score"],
@@ -372,6 +375,11 @@ _CITATION_RULES: list[tuple[str, str, str]] = [
     # Safety pharmacology
     ("safety pharmacology",           "per ICH S7A",                      "tox_overview"),
     ("functional observational",      "per ICH S7A",                      "tox_overview"),
+    # PK overview — ICH M3(R2) for timing/extent of PK studies
+    ("clinical pharmacokinetics",     "per ICH M3(R2)",                  "pk_overview"),
+    ("systemic exposure",             "per ICH M3(R2)",                  "pk_overview"),
+    ("dose proportional",             "consistent with ICH M3(R2)",      "pk_overview"),
+    ("dose-proportional",             "consistent with ICH M3(R2)",      "pk_overview"),
     # Phase gating
     ("phase i",                       "consistent with ICH M3(R2)",       "overview"),
     ("first.in.human",                "per ICH M3(R2)",                   "overview"),

@@ -1,22 +1,22 @@
 {
-  "total_pairs": 2622,
-  "train": 2093,
-  "dev": 256,
-  "test": 273,
+  "total_pairs": 2613,
+  "train": 2085,
+  "dev": 258,
+  "test": 270,
   "sft_pairs": 1662,
   "by_task": {
     "section_generation": 1626,
-    "region_adaptation": 960,
+    "region_adaptation": 951,
     "regulatory_qa": 36
   },
   "by_section": {
+    "tox_overview": 216,
+    "overview": 267,
     "tox_genotox": 429,
-    "admet": 1050,
-    "tox_overview": 198,
-    "pbpk": 165,
-    "pk_overview": 528,
-    "overview": 216,
-    "unknown": 36
+    "pk_overview": 540,
+    "admet": 1113,
+    "unknown": 36,
+    "pbpk": 12
   },
   "raw_examples_input": 1971,
   "augmentation_factor": 3
