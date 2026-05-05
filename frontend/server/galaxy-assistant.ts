@@ -12,7 +12,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash, GEMINI_FLASH_MODEL } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { conversationStateManager } from './conversation-state';
@@ -1091,33 +1091,88 @@ export class GalaxyAssistant {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
     onResponseDelta?: (text: string) => void,
     maxTokens = 4096,
+    modelOverride?: string,
+    toolContext?: { tools: typeof BIOMATE_TOOLS; context: ChatContext; onToolEvent?: (e: AgentToolEvent) => void },
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
+    const geminiModelName = modelOverride
+      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-2.0-flash');
+
+    // Convert Anthropic tool definitions → Gemini FunctionDeclarations
+    const geminiTools = toolContext?.tools
+      ? [{
+          functionDeclarations: toolContext.tools.map(t => ({
+            name: t.name,
+            description: t.description,
+            parameters: {
+              type: 'OBJECT',
+              properties: Object.fromEntries(
+                Object.entries((t.input_schema as any).properties || {}).map(([k, v]: [string, any]) => [
+                  k,
+                  { type: (v.type as string).toUpperCase(), description: v.description || '', ...(v.enum ? { enum: v.enum } : {}) },
+                ])
+              ),
+              required: (t.input_schema as any).required || [],
+            },
+          })),
+        }]
+      : undefined;
+
     const model = this.gemini.getGenerativeModel({
-      model: this.modelConfig.responseModel,
+      model: geminiModelName,
       systemInstruction: systemPrompt,
       generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 },
+      ...(geminiTools ? { tools: geminiTools } : {}),
     });
+
     let rawResponse = '';
     if (messages.length === 0) return '';
-    if (messages.length === 1) {
-      const stream = await model.generateContentStream(messages[0].content);
-      for await (const chunk of stream.stream) {
-        const text = chunk.text();
-        if (text) { rawResponse += text; onResponseDelta?.(text); }
-      }
-      return rawResponse;
-    }
+
     const history = messages.slice(0, -1).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
     const chat = model.startChat({ history });
-    const stream = await chat.sendMessageStream(messages[messages.length - 1].content);
-    for await (const chunk of stream.stream) {
-      const text = chunk.text();
-      if (text) { rawResponse += text; onResponseDelta?.(text); }
+    const lastMessage = messages[messages.length - 1].content;
+
+    // Agentic loop: handle tool calls (up to 5 turns)
+    const MAX_TOOL_TURNS = 5;
+    let currentMessage: string | object = lastMessage;
+    for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+      const result = await chat.sendMessage(currentMessage as any);
+      const response = result.response;
+
+      // Collect text
+      const textParts = response.candidates?.[0]?.content?.parts?.filter((p: any) => p.text) || [];
+      for (const part of textParts) {
+        rawResponse += part.text;
+        onResponseDelta?.(part.text);
+      }
+
+      // Check for function calls
+      const fnCalls = response.candidates?.[0]?.content?.parts?.filter((p: any) => p.functionCall) || [];
+      if (fnCalls.length === 0 || !toolContext) break;  // No tools or no context — done
+
+      // Execute all function calls
+      const functionResults: object[] = [];
+      for (const part of fnCalls) {
+        const { name, args } = part.functionCall;
+        toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args });
+        let output: unknown = null;
+        let error: string | undefined;
+        try {
+          switch (name) {
+            case 'run_code':    output = await this._toolRunCode(args); break;
+            case 'read_file':   output = await this._toolReadFile(args, toolContext.context); break;
+            default:            output = { error: `Unknown tool: ${name}` };
+          }
+        } catch (e: any) { error = e.message; output = { error }; }
+        toolContext.onToolEvent?.({ type: 'tool_result', tool_use_id: name, name, output: JSON.stringify(output) });
+        functionResults.push({ functionResponse: { name, response: { output: JSON.stringify(output) } } });
+      }
+      currentMessage = functionResults;
     }
+
     return rawResponse;
   }
 
@@ -5148,8 +5203,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const isAuth = /unauthorized|invalid.?api.?key|authentication/i.test(errMsg);
 
       // Circuit breaker: when Anthropic credit is exhausted, fall back to Gemini.
+      // Gemini fallback supports tool calling (run_code, read_file) via function declarations.
       if (isBilling && this.gemini) {
-        console.warn('[GalaxyAssistant] Anthropic credit exhausted — falling back to Gemini');
+        console.warn('[GalaxyAssistant] Anthropic credit exhausted — falling back to Gemini with tool use');
         try {
           const allPrev = context.previousMessages || [];
           const plainMessages = [
@@ -5160,7 +5216,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             })),
             { role: 'user' as const, content: userPrompt },
           ];
-          const geminiResponse = await this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta);
+          // Pass tools so Gemini can call run_code and read_file
+          const geminiTools = (!isWorkflowTurn && onToolEvent) ? BIOMATE_TOOLS : undefined;
+          const geminiResponse = await this._generateWithGemini(
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-2.0-flash',
+            geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
+          );
           return { message: geminiResponse, truncated: false };
         } catch (geminiErr: any) {
           console.error('[GalaxyAssistant] Gemini fallback also failed:', geminiErr.message);

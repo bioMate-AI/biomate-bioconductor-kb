@@ -193,7 +193,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       currentRun.execution?.galaxyInvocationId ||
       currentRun.id
     )
-  }, [currentRun])
+    // Auto-open panel on run restore (e.g. after page refresh mid-run).
+    // Only fires when the panel is closed and the run is active/running.
+    const isActive = ['running', 'queued'].includes(currentRun.execution?.status ?? '');
+    if (isActive && !panelWorkflow && currentRun.workflowDefinition) {
+      setPanelWorkflow(currentRun.workflowDefinition)
+      setPanelOpen(true)
+    }
+  }, [currentRun?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (currentRun?.id) {
@@ -399,6 +406,29 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       setShowSessionEndPulse(true)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentChatSession?.id, postRunSurveyContext?.runId, showPostRunSurvey])
+
+  // Session-restore reconciliation: fires when the active chat session changes.
+  // If a message in the session has an invocationId for a run that is still running,
+  // re-load that run so the workflow panel and polling restart automatically.
+  // This covers browser refresh, server HMR reload, and reopening BioMate mid-run.
+  useEffect(() => {
+    if (!currentChatSession?.id || currentRun) return; // already have a run
+    const messages = currentChatSession.messages ?? [];
+    // Scan messages newest-first for one with an invocationId
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      const invId = msg.invocationId || msg.metadata?.invocationId;
+      if (!invId) continue;
+      // Don't re-load terminal runs (avoid polluting completed session restores)
+      const vStatus = msg.metadata?.workflowViewerStatus as string | undefined;
+      if (vStatus === 'completed' || vStatus === 'failed') continue;
+      console.log(`[ChatWithArtifacts] Session restore: loading run ${invId} from message ${msg.id}`);
+      loadRun(invId).catch(err =>
+        console.warn('[ChatWithArtifacts] Session restore loadRun failed:', err)
+      );
+      break;
+    }
+  }, [currentChatSession?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleWorkflowGenerated = (workflow: any, metadata?: any) => {
     console.log('ChatWithArtifacts: New workflow generated:', workflow);
