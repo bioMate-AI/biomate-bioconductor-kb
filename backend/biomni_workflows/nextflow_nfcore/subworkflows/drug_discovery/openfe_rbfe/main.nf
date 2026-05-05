@@ -88,6 +88,7 @@ def OPENFE_CONTAINER = _useAws ? _ECR : 'ghcr.io/openfreeenergy/openfe:0.15.0'
 // Processes
 // ============================================================================
 
+// [Phase A] Ligand & Protein Preparation
 process LIGAND_PREP {
     /*
      * Standardize both ligands with RDKit and generate 3D conformers (ETKDG).
@@ -145,6 +146,7 @@ PYEOF
     """
 }
 
+// [Phase A] Ligand & Protein Preparation
 process PROTEIN_PREP {
     /*
      * Prepare protein structure: add missing H, complete missing residues,
@@ -201,6 +203,7 @@ PYEOF
     """
 }
 
+// [Phase B] RBFE Network Setup
 process RBFE_SETUP {
     /*
      * Build the RBFE transformation between ligand A and ligand B.
@@ -315,6 +318,7 @@ PYEOF
     """
 }
 
+// [Phase C] Production RBFE Simulation
 process PRODUCTION_RBFE {
     /*
      * Run OpenFE SepTop RBFE alchemical free energy perturbation.
@@ -419,6 +423,7 @@ PYEOF
     """
 }
 
+// [Phase D] DDG Analysis & Report
 process ANALYSIS {
     /*
      * Estimate DDG using MBAR via Cinnabar.

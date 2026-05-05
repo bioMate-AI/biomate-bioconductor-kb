@@ -50,6 +50,7 @@ params.chemical_mods       = 'none'   // none | 2ome | 2f | ps | 2ome_2f | esi_f
 params.therapeutic_context = 'liver'  // liver | lung | cns | eye | muscle | blood
 params.strand_bias_check   = 'true'   // analyze passenger strand off-targets
 
+// [Phase B] siRNA Off-Target Analysis
 process SIRNA_OFFTARGET_ANALYSIS {
     tag "$meta.id"
     label 'process_low'

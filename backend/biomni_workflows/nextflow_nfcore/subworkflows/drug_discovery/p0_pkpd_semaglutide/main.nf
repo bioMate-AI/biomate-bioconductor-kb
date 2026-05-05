@@ -53,6 +53,7 @@ params.wt_loss_max_kg    = -3.0     // upper bound for weight loss at 30 weeks
 
 // ============================================================================
 
+// [Phase B] PKPD Simulation
 process P0_PKPD_SEMAGLUTIDE {
     tag "p0_pkpd_semaglutide"
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \

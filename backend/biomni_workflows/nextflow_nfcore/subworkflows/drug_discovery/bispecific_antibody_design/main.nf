@@ -45,6 +45,7 @@ params.cd3_arm               = 'false'  // true = arm B is anti-CD3ε (BiTE/DART
 params.developability_filter = 'true'   // apply developability cut-offs
 params.immunogenicity_screen = 'true'   // predict T-cell immunogenicity risk
 
+// [Phase B] Bispecific Antibody Design
 process BISPECIFIC_ANTIBODY_DESIGN {
     tag "$meta.id"
     label 'process_medium'
