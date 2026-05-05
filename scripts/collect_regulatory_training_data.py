@@ -517,8 +517,10 @@ ICH_GUIDELINES = {
     # S9: modified nonclinical package for oncology; S9 exemption table
     "ICH_S9":     "https://database.ich.org/sites/default/files/S9_Guideline.pdf",
 
-    # Note: S5(R3) reproductive tox, S6(R1) biologics, M7(R2) mutagenic impurities
-    # newer versions not available on database.ich.org — manual collection needed.
+    # Pre-downloaded manually (not on database.ich.org) — files placed in raw/ich/
+    "ICH_S5_R3":  "#pre-downloaded",   # S5(R3) 2020: reproductive/developmental tox
+    "ICH_S6_R1":  "#pre-downloaded",   # S6(R1) 2011: biologics/biotech products
+    "ICH_M7_R2":  "#pre-downloaded",   # M7(R2) 2023: mutagenic impurities
 
     # ── FDA-specific PBPK (§2.6.2 for FDA submissions) ─────────────────────
     # FDA PBPK guidance (2018): format, tables, sensitivity analysis FDA expects
@@ -539,10 +541,21 @@ def collect_ich_guidelines(out_dir: Path) -> list[dict]:
         "Accept": "application/pdf,*/*",
     }
 
+    # Build work list: ICH_GUIDELINES entries + any extra PDFs already in raw_dir
+    # This handles manually placed files whose names don't match dict keys.
+    work: dict[str, Path] = {}
+
+    # 1. Download / locate files listed in ICH_GUIDELINES
     for name, url in ICH_GUIDELINES.items():
-        if url.startswith("#"):
-            continue  # commented-out entry
         pdf_path = raw_dir / f"{name}.pdf"
+        if url.startswith("#pre-downloaded"):
+            if pdf_path.exists():
+                work[name] = pdf_path
+            else:
+                log.warning("[ICH] %s marked pre-downloaded but %s not found — skip", name, pdf_path.name)
+            continue
+        if url.startswith("#"):
+            continue
         if not pdf_path.exists():
             log.info("[ICH] Downloading %s…", name)
             try:
@@ -556,9 +569,42 @@ def collect_ich_guidelines(out_dir: Path) -> list[dict]:
             except Exception as exc:
                 log.warning("[ICH] Download failed for %s: %s", name, exc)
                 continue
-        else:
-            log.info("[ICH] Using cached %s", name)
+        work[name] = pdf_path
 
+    # 2. Scan raw_dir for any PDF not already covered (manually placed files).
+    #    Skip: concept papers, addenda, files already in work by path.
+    _skip_keywords = ("concept_paper", "addendum", "qa_and_as", "questions_answers",
+                      "training", "workshop", "background", "cover_note", "cover_letter")
+    _known_paths = {p.resolve() for p in work.values()}
+
+    for pdf_path in sorted(raw_dir.glob("*.pdf")):
+        if pdf_path.resolve() in _known_paths:
+            continue  # already in work under its canonical name
+        lower = pdf_path.stem.lower()
+        if any(kw in lower for kw in _skip_keywords):
+            log.debug("[ICH] Skipping non-guideline PDF: %s", pdf_path.name)
+            continue
+        # Derive key: normalise parens/spaces/trailing version numbers
+        stem = pdf_path.stem
+        key = re.sub(r"\(R(\d+)\)", r"_R\1", stem)   # (R2) → _R2
+        key = re.sub(r"[\(\)\s\-]+", "_", key)        # parens/spaces → _
+        key = re.sub(r"_+", "_", key).strip("_").upper()
+        # Remove long suffixes like _STEP4_2023_0216_0 to get clean key
+        key = re.sub(r"_STEP\d.*$", "", key)
+        key = re.sub(r"_\d{4}_\d+.*$", "", key)
+        key = re.sub(r"_\d+$", "", key)
+        if key in work:
+            continue  # deduplicated by normalised key
+        log.info("[ICH] Found extra PDF: %s → %s", pdf_path.name, key)
+        work[key] = pdf_path
+        _known_paths.add(pdf_path.resolve())
+
+    log.info("[ICH] Processing %d guideline PDFs", len(work))
+    for name, pdf_path in work.items():
+        log.debug("[ICH] %s ← %s", name, pdf_path.name)
+
+    n_processed = 0
+    for name, pdf_path in work.items():
         # Extract text
         try:
             import pdfplumber  # type: ignore
@@ -576,13 +622,12 @@ def collect_ich_guidelines(out_dir: Path) -> list[dict]:
         # Split into paragraphs — try double-newline first, fall back to single-newline blocks
         raw_paragraphs = text.split("\n\n")
         if len(raw_paragraphs) < 5:
-            # PDF extracted with single newlines between lines
             raw_paragraphs = [" ".join(text.split("\n")[i:i+8])
                               for i in range(0, len(text.split("\n")), 6)]
         paragraphs = [p.strip() for p in raw_paragraphs if len(p.strip()) > 100]
 
+        n_added = 0
         for para in paragraphs[:80]:  # Max 80 paragraphs per guideline
-            # Skip header/footer/TOC paragraphs
             if re.match(r"^[\d\s\.\-]+$", para) or len(para.split()) < 15:
                 continue
             examples.append({
@@ -594,10 +639,14 @@ def collect_ich_guidelines(out_dir: Path) -> list[dict]:
                 ),
                 "response": para,
             })
+            n_added += 1
+        if n_added:
+            log.info("[ICH] %s: %d sections", name, n_added)
+            n_processed += 1
 
     out_file = out_dir / "ich_guidelines_examples.jsonl"
     _write_jsonl(examples, out_file)
-    log.info("[ICH] Done. %d examples from %d guidelines", len(examples), len(ICH_GUIDELINES))
+    log.info("[ICH] Done. %d examples from %d guidelines", len(examples), n_processed)
     return examples
 
 
