@@ -72,6 +72,9 @@ class ChatHistoryService {
           workflowId: m.workflow_id || undefined,
           thinking_content: m.thinking_content || undefined,
           thinking_level: m.thinking_level || undefined,
+          // Preserve any metadata the backend returns (invocationId, workflow type, etc.)
+          ...(m.metadata ? { metadata: m.metadata } : {}),
+          ...(m.invocation_id ? { invocationId: m.invocation_id } : {}),
         })),
         workflows: (bs.workflows || []).map((w: any) => ({
           id: w.workflow_id,
