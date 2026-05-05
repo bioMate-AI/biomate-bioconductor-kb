@@ -1969,11 +1969,6 @@ Rules:
         intent.type = 'clinical_genomics';
       }
 
-      // Direct analysis override: explicit run_code signal in message → no Nextflow pipeline.
-      if (/use run_code to execute the analysis directly|do not launch a nextflow workflow|IMPORTANT: Use run_code/i.test(message)) {
-        log('Direct analysis override: forcing needsWorkflowGeneration=false (run_code direct execution)');
-        actions.needsWorkflowGeneration = false;
-      }
     }
 
     // Multi-turn data-provision override:
@@ -3287,7 +3282,6 @@ When the user pastes concrete data OR uploads files and asks BioMate to compute 
 - "Compute allometric scaling: CL_rat=0.5 L/h/kg at 250g → predicted human CL" → workflow_generation, needsWorkflowGeneration: false
 - "Parse this VCF snippet and count variants per chromosome" → workflow_generation, needsWorkflowGeneration: false
 - "Infer whether mt.sorted.bam is paired-end or single-end" → workflow_generation, needsWorkflowGeneration: false
-- Any message that says "IMPORTANT: Use run_code to execute the analysis directly" or "Do NOT launch a Nextflow workflow" → workflow_generation, needsWorkflowGeneration: false (these are direct execution requests with uploaded data)
 
 **Database lookups for structured biological facts — always research_question:**
 When the answer comes from a live biological database and no computation on user data is needed:
