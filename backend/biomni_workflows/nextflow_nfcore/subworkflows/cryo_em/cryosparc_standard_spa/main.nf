@@ -51,8 +51,8 @@ params.phase_plate = false                   // true = Volta Phase Plate (VPP) d
 params.motion_correction_dose_weighting = true
 
 // [CTF Estimation] Contrast transfer function estimation parameters
-params.ctf_fitting_resolution_min = 30.0     // Angstroms — lower bound of CTF fit range
-params.ctf_fitting_resolution_max = 5.0      // Angstroms — upper bound of CTF fit range
+params.ctf_fitting_resolution_min = 30.0     // Angstroms -- lower bound of CTF fit range
+params.ctf_fitting_resolution_max = 5.0      // Angstroms -- upper bound of CTF fit range
 
 // [Particle Picking] Automated particle detection and selection
 params.sample_type = 'unknown'               // 'membrane_protein' | 'virus' | 'ribosome' | 'small_protein' | 'unknown'
@@ -91,7 +91,7 @@ params.max_parallel_jobs = 20                // Nextflow queueSize cap
 //   cryosparcm worker connect --path <worker_path> --worker worker_N --lane worker_N
 //                             --sshstr ubuntu@localhost --gpus N --ssdpath /tmp/cryosparc_ssd
 // Benchmark: g6.12xlarge (4× NVIDIA L4), num_cs_workers=4 → 3.4× speedup,
-//   FSC 1.78 Å (Nyquist), $0.75 vs $6.29 single-GPU — docs/20260428_CRYOSPARC_MULTIMODE_BENCHMARK_RESULTS.md
+//   FSC 1.78 Å (Nyquist), $0.75 vs $6.29 single-GPU -- docs/20260428_CRYOSPARC_MULTIMODE_BENCHMARK_RESULTS.md
 params.num_cs_workers = 1                    // executor overrides to num_gpu (e.g. 4 for g6.12xlarge)
 // import_particles mode: skip motion/CTF/picking; start from pre-extracted particle stacks.
 // Set import_mode="particles", particle_star_file=<path>, particle_blob_path=<dir>.
@@ -174,7 +174,7 @@ def CS_HELPER = '''
     import json, os, sys, time, warnings
     from cryosparc.tools import CryoSPARC
 
-    # CryoSPARC v5 renamed many I/O group names — try all aliases on connect
+    # CryoSPARC v5 renamed many I/O group names -- try all aliases on connect
     _IO_ALIASES = {
         "micrographs":        ["exposures"],
         "micrographs_ctf":    ["exposures_ctf", "exposures"],
@@ -242,7 +242,7 @@ def CS_HELPER = '''
 
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
                         lane="default", timeout=14400, num_gpu=1):
-        # Create job WITHOUT params in body — CryoSPARC v5 returns 500 if params
+        # Create job WITHOUT params in body -- CryoSPARC v5 returns 500 if params
         # are passed to the create endpoint; set them individually via set_param().
         job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid, type=job_type)
         job_uid = job.uid
@@ -291,7 +291,7 @@ def CS_HELPER = '''
     def _get_lane_gpu_count(cs, lane="default"):
         '''Return max GPUs on any single worker in the lane.
         compute_num_gpus tells CryoSPARC how many GPUs to use on the worker
-        that runs the job — it must not exceed the per-worker GPU count.
+        that runs the job -- it must not exceed the per-worker GPU count.
         cryosparc-tools v5+ returns Pydantic SchedulerTarget objects, so
         we access .config.gpus (list) rather than dict .get().'''
         if lane in _gpu_count_cache:
@@ -324,14 +324,14 @@ def CS_HELPER = '''
             if per_worker:
                 count = max(per_worker) or 1
         except Exception as _e:
-            print(f"[CS] Warning: get_targets() failed ({_e}) — defaulting to 1 GPU", flush=True)
+            print(f"[CS] Warning: get_targets() failed ({_e}) -- defaulting to 1 GPU", flush=True)
         _gpu_count_cache[lane] = count
         print(f"[CS] Lane '{lane}' max GPU/worker = {count}", flush=True)
         return count
 
     def _lane_for_batch(batch_id: str, num_workers: int, base_lane: str = "default") -> str:
         '''Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
-        lane name.  When num_workers == 1 the base_lane is returned unchanged — identical to
+        lane name.  When num_workers == 1 the base_lane is returned unchanged -- identical to
         prior single-lane behaviour.  With num_workers > 1, lanes 'worker_0' .. 'worker_{N-1}'
         must be pre-registered by nextflow_executor.py via SSH before the workflow starts.'''
         if num_workers <= 1:
@@ -401,7 +401,7 @@ def CS_HELPER = '''
 '''
 
 // ============================================================================
-// Process Definitions — Phase 0: CryoSPARC project initialisation (runs once)
+// Process Definitions -- Phase 0: CryoSPARC project initialisation (runs once)
 // ============================================================================
 
 process INIT_CRYOSPARC_PROJECT {
@@ -444,7 +444,7 @@ process INIT_CRYOSPARC_PROJECT {
     if '*' in _movies_path:
         blob_paths = _movies_path          # already a glob
     elif '.' in _basename:
-        blob_paths = _movies_path          # has extension — single file or glob with ext
+        blob_paths = _movies_path          # has extension -- single file or glob with ext
     else:
         blob_paths = _movies_path + "/*.mrcs"  # bare directory → append default glob
     print(f"[CS] blob_paths={blob_paths}", flush=True)
@@ -491,7 +491,7 @@ process INIT_CRYOSPARC_PROJECT {
                 _per_batch_dirs = _jmod.loads(_batch_dirs_raw)
                 print(f"[CS] Per-batch movie dirs provided: {len(_per_batch_dirs)} batches", flush=True)
             except Exception as _je:
-                print(f"[CS] Warning: could not parse movie_batch_dirs ({_je}) — falling back to single batch", flush=True)
+                print(f"[CS] Warning: could not parse movie_batch_dirs ({_je}) -- falling back to single batch", flush=True)
 
         if _per_batch_dirs:
             # ── Multi-batch imports: one workspace + import_movies job per batch dir ──
@@ -589,15 +589,15 @@ process INIT_CRYOSPARC_PROJECT {
         if _num_workers > 1:
             print(f"[CS] Auto-detected {_num_workers} worker lanes: {sorted(_worker_lanes)}", flush=True)
         else:
-            print(f"[CS] No worker_N lanes found — running single-lane mode (lane='${params.cryosparc_lane}')", flush=True)
+            print(f"[CS] No worker_N lanes found -- running single-lane mode (lane='${params.cryosparc_lane}')", flush=True)
     else:
         _num_workers = _num_workers_param
         if _num_workers > 1:
-            # Verify lanes exist — do NOT register; executor handles that via SSH
+            # Verify lanes exist -- do NOT register; executor handles that via SSH
             _worker_lanes = _detect_worker_lanes(cs)
             _missing = [f"worker_{i}" for i in range(_num_workers) if f"worker_{i}" not in _worker_lanes]
             if _missing:
-                print(f"[CS] Warning: expected lanes {_missing} not in targets — jobs will fall back to 'default'", flush=True)
+                print(f"[CS] Warning: expected lanes {_missing} not in targets -- jobs will fall back to 'default'", flush=True)
             else:
                 print(f"[CS] Verified {_num_workers} worker lanes pre-registered", flush=True)
 
@@ -633,7 +633,7 @@ process INIT_CRYOSPARC_PROJECT {
 }
 
 // ============================================================================
-// Process Definitions — Batch-parallel processes (Phase A / B / C)
+// Process Definitions -- Batch-parallel processes (Phase A / B / C)
 // ============================================================================
 
 process SPLIT_INTO_BATCHES {
@@ -736,14 +736,14 @@ process PATCH_MOTION_CORRECTION_BATCH {
         # Extract QC metrics from CryoSPARC job output for QC gate + display
         try:
             import numpy as np
-            # CryoSPARC v5 Dataset objects may not support len() — use num_items attr or try/except
+            # CryoSPARC v5 Dataset objects may not support len() -- use num_items attr or try/except
             _n = 0
             try:
                 _n = len(micrographs_out) if micrographs_out is not None else 0
             except Exception:
                 _n = getattr(micrographs_out, 'num_items', 0) if micrographs_out is not None else 0
             if micrographs_out is not None and _n >= 0:
-                # CryoSPARC v5 Dataset objects don't have a .data attribute —
+                # CryoSPARC v5 Dataset objects don't have a .data attribute --
                 # access fields directly via dataset[field_name] and enumerate
                 # via dataset.fields() (v5) or dataset.dtype.names (numpy-backed)
                 _all_fields = []
@@ -759,7 +759,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
                 print(f"[QC] micrographs output fields: {_all_fields[:20]}", flush=True)
                 report["cs_output_fields"] = _all_fields[:30]
                 report["cs_output_count"]  = _n
-                # CryoSPARC v4/v5 field names for total motion (Å) — try slashed + unslashed variants
+                # CryoSPARC v4/v5 field names for total motion (Å) -- try slashed + unslashed variants
                 _motion_candidates = ("total_motion_A", "micrograph/total_motion_A",
                                       "patch_motion/total_motion_A", "motion_global_a",
                                       "motion_total_a", "drift_total_A", "global_shift_A",
@@ -884,7 +884,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
                     pass
                 print(f"[QC] CTF output fields: {_names[:20]}", flush=True)
                 report["cs_ctf_output_fields"] = _names[:30]
-                # CTF fit quality (resolution at which CTF fit is reliable — lower Å = better)
+                # CTF fit quality (resolution at which CTF fit is reliable -- lower Å = better)
                 for _f in ("ctf_info/fit_to_A_lp", "ctf/fit_to_A", "ctf_fit_to_A",
                            "fit_to_A", "ctf_info/fit_to_A", "ctf_fit_res_A"):
                     if _f in _names:
@@ -894,7 +894,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
                             _mean_fit = float(np.nanmean(_valid))
                             report["avg_ctf_fit_to_A"] = round(_mean_fit, 2)
                             report["min_ctf_fit_to_A"] = round(float(np.nanmin(_valid)), 2)
-                            # Derived quality score — always written when fit data available
+                            # Derived quality score -- always written when fit data available
                             report["avg_fit_quality"] = round(max(0.0, 1.0 - _mean_fit / 10.0), 3)
                             report["ctf_fit_field_used"] = _f
                             # Per-micrograph fit values for scatter chart (cap at 500)
@@ -1080,7 +1080,7 @@ process EXTRACT_PARTICLES_R1_BATCH {
                    "timestamp": datetime.now().isoformat(), "real_mode": True,
                    "num_particles": num_particles, "box_size_pix": box_size}
     else:
-        # Mock / fallback — preserve job_uid chain if available
+        # Mock / fallback -- preserve job_uid chain if available
         num_particles = inspected_data.get('num_items', 0)
         cs_data = {"cs_mode": "mock", "batch_id": batch_id,
                    "particles": [], "num_items": num_particles}
@@ -1126,7 +1126,7 @@ process SPLIT_PARTICLE_BATCHES {
     job_uid   = particles_data.get("job_uid", "MOCK")
     num_items = particles_data.get("num_items", len(particles))
 
-    # Real-mode: no inline particles list — synthesize index-only entries for batch sizing
+    # Real-mode: no inline particles list -- synthesize index-only entries for batch sizing
     if not particles and num_items > 0:
         particles = [{'particle_idx': i} for i in range(min(num_items, batch_size * 20))]
         num_items = max(num_items, len(particles))
@@ -1530,7 +1530,7 @@ process HOMO_REFINEMENT_BATCH {
             except Exception:
                 pass
         if _refine_slot is None:
-            _refine_slot = "volume"  # best guess — log if this is wrong
+            _refine_slot = "volume"  # best guess -- log if this is wrong
             print(f"[CS] Warning: could not discover output slot for homo_refine_new {job.uid}; assuming 'volume'", flush=True)
         num_particles = par_data.get("num_items", 0)
         # Download refined volume MRC for visualization in BioMate DensityMapViewer
@@ -1573,7 +1573,7 @@ process HOMO_REFINEMENT_BATCH {
 }
 
 // ============================================================================
-// Process Definitions — Single-instance merge/analysis processes
+// Process Definitions -- Single-instance merge/analysis processes
 // ============================================================================
 
 process MERGE_MICROGRAPHS {
@@ -1710,7 +1710,7 @@ process MERGE_CLASSES {
 }
 
 // ── import_particles mode: synthesise a merged_cs stub from cs_init.json ────
-// Used when import_mode="particles" — skips Phases A+B entirely and connects
+// Used when import_mode="particles" -- skips Phases A+B entirely and connects
 // the already-imported particles directly to the Phase C classification chain.
 process PARTICLES_AS_R1 {
     tag "particles_as_r1"
@@ -1955,7 +1955,7 @@ process JUNK_2D_DETECTOR {
         # so downstream processes can connect to CryoSPARC.
         num_input  = particles_data.get('num_items', 0)
         # Junk detection is implicitly handled by CryoSPARC's own quality
-        # metrics during 2D classification — no separate API call needed here.
+        # metrics during 2D classification -- no separate API call needed here.
         num_output = num_input
         report = {
             'step': '06_junk_2d_detector',
@@ -2571,7 +2571,7 @@ process VALIDATION_FSC {
                             fsc_data["fsc_0143_resolution"] = above_143[-1]["resolution_angstroms"]
                     print(f"[FSC] {len(curve)} points; 0.143 res={fsc_data.get('fsc_0143_resolution','?')}", flush=True)
             else:
-                print("[FSC] No usable output — fsc_curve empty", flush=True)
+                print("[FSC] No usable output -- fsc_curve empty", flush=True)
         except Exception as _fsc_err:
             print(f"[FSC] extraction error: {_fsc_err}", flush=True)
         report = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
@@ -2731,7 +2731,7 @@ process NON_UNIFORM_REFINEMENT {
             shutil.copy(downloaded_mrc, 'volume_nu_refined.mrc')
         else:
             # Write minimal valid MRC stub (1×1×1) so Nextflow output is satisfied
-            # NC/NR/NS must be 1,1,1 (not 0,0,0) — mode 2 = float32
+            # NC/NR/NS must be 1,1,1 (not 0,0,0) -- mode 2 = float32
             with open('volume_nu_refined.mrc', 'wb') as f:
                 hdr = [0] * 256
                 hdr[0], hdr[1], hdr[2] = 1, 1, 1   # NC, NR, NS
@@ -2746,7 +2746,7 @@ process NON_UNIFORM_REFINEMENT {
                   "cs_job_uid": job.uid, "num_particles": num_particles, "real_mode": True,
                   "viz_files": viz_files}
     else:
-        # Mock fallback — write synthetic MRC
+        # Mock fallback -- write synthetic MRC
         current_res   = volume_data.get('volume', {}).get('resolution_angstroms', 5.0)
         final_res     = round(current_res * random.uniform(0.8, 0.9), 2)
         num_particles = particles_data.get('num_items', len(particles_data.get('particles', [])))
@@ -2882,7 +2882,7 @@ process SHARPEN {
             params={},
             timeout=3600,
         )
-        # Download the sharpened volume MRC — this is the final deliverable
+        # Download the sharpened volume MRC -- this is the final deliverable
         viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
                                         mrc_prefix="cs_out_sharp_", png_prefix="cs_thumb_sharp_")
         downloaded_mrc = next((f for f in viz_files if f.endswith('.mrc')), None)
@@ -2938,7 +2938,7 @@ process SHARPEN {
 }
 
 // ============================================================================
-// Main Workflow — channel-based parallelism
+// Main Workflow -- channel-based parallelism
 // ============================================================================
 
 workflow CRYOSPARC_STANDARD_SPA {
@@ -2972,11 +2972,11 @@ workflow CRYOSPARC_STANDARD_SPA {
         .splitCsv(header: false)
         .map { row -> tuple(row[0], row[1], row[2], row[3]) }
 
-    // Parallel motion correction — one job per batch (truly parallel in multi-batch mode)
+    // Parallel motion correction -- one job per batch (truly parallel in multi-batch mode)
     PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
     motion_ch = PATCH_MOTION_CORRECTION_BATCH.out.micrographs_cs
 
-    // Parallel CTF estimation — one job per batch
+    // Parallel CTF estimation -- one job per batch
     PATCH_CTF_ESTIMATION_BATCH(motion_ch, init_json_ch)
     ctf_ch = PATCH_CTF_ESTIMATION_BATCH.out.ctf_cs
 
@@ -2988,7 +2988,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     denoised_ch = MICROGRAPH_DENOISER(merged_mics_ch.merged_cs)
 
-    // ── Phase B: Blob picking — parallel per CTF batch ───────────────────────
+    // ── Phase B: Blob picking -- parallel per CTF batch ───────────────────────
 
     BLOB_PICKER_BATCH(ctf_ch, init_json_ch)
     picked_ch    = BLOB_PICKER_BATCH.out.particles_cs
@@ -2999,7 +2999,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     filtered_ch  = JUNK_2D_DETECTOR(denoised_ch.denoised_cs, merged_picks.merged_cs)
     inspected_ch = INSPECT_PICKS(filtered_ch.filtered_cs)
 
-    // ── Phase B-cont: R1 particle extraction — parallel per CTF batch ────────
+    // ── Phase B-cont: R1 particle extraction -- parallel per CTF batch ────────
 
     // Broadcast the global inspected set; each batch job filters to its own mics
     EXTRACT_PARTICLES_R1_BATCH(ctf_ch, inspected_ch.inspected_cs)
@@ -3009,7 +3009,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } // end movies-only branch
 
-    // ── Phase C: 2D classification R1 — parallel particle sub-batches ────────
+    // ── Phase C: 2D classification R1 -- parallel particle sub-batches ────────
 
     particle_batches_ch = SPLIT_PARTICLE_BATCHES(merged_r1.merged_cs)
         .splitCsv(header: false)
@@ -3032,13 +3032,13 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } else {
 
-    // ── Template picker (single — needs global 2D class templates) ───────────
+    // ── Template picker (single -- needs global 2D class templates) ───────────
 
     TEMPLATE_PICKER(merged_classes_r1.merged_cs, merged_mics_ch.merged_cs, init_json_ch)
     INSPECT_PICKS_R2(TEMPLATE_PICKER.out.template_particles_cs)
     EXTRACT_PARTICLES_R2(INSPECT_PICKS_R2.out.inspected_cs, merged_mics_ch.merged_cs, init_json_ch)
 
-    // ── Phase C-R2: 2D classification R2 — parallel particle sub-batches ─────
+    // ── Phase C-R2: 2D classification R2 -- parallel particle sub-batches ─────
 
     particle_batches_r2_ch = SPLIT_PARTICLE_BATCHES_R2(EXTRACT_PARTICLES_R2.out.extracted_cs)
         .splitCsv(header: false)
@@ -3055,7 +3055,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } // end movies-only R2 branch
 
-    // ── Phase D: Ab-initio — K parallel model reconstructions ────────────────
+    // ── Phase D: Ab-initio -- K parallel model reconstructions ────────────────
 
     ab_initio_inputs = Channel.of(1..params.num_ab_initio_classes)
         .combine(all_selected_particles)
@@ -3066,7 +3066,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     all_volumes = volumes_ch.map { k, vol -> vol }.collect()
     merged_vols = MERGE_VOLUMES(all_volumes)
 
-    // ── Phase D-cont: Refinement — parallel per volume ────────────────────────
+    // ── Phase D-cont: Refinement -- parallel per volume ────────────────────────
     // Use individual AB_INITIO outputs directly so vol_data retains job_uid/output_slot.
     // MERGE_VOLUMES is kept for reporting only.
 
@@ -3083,13 +3083,13 @@ workflow CRYOSPARC_STANDARD_SPA {
         .collect()
         .map { files -> files[0] }  // first is fine; all go into VOLUME_TOOLS
 
-    // ── Phase E: Post-processing pipeline (serial — depends on best volume) ──
+    // ── Phase E: Post-processing pipeline (serial -- depends on best volume) ──
 
     VOLUME_TOOLS(best_refined_ch, init_json_ch)
 
     VALIDATION_FSC(VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
-    // CS v5 ctf_refine_local requires particles WITH alignments3D — must come from homo_refine output,
+    // CS v5 ctf_refine_local requires particles WITH alignments3D -- must come from homo_refine output,
     // not raw extracted particles. best_refined_ch holds the homo_refine cs_data (job_uid present).
     LOCAL_CTF_REFINEMENT(best_refined_ch, VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
@@ -3134,7 +3134,7 @@ workflow {
     def recommendations = get_sample_recommendations(params.sample_type)
     log.info """
     ====================================================================
-    CryoSPARC Standard SPA Workflow  (v2 — parallel channels)
+    CryoSPARC Standard SPA Workflow  (v2 -- parallel channels)
     ====================================================================
     Sample Type: ${params.sample_type}
     ${recommendations.notes}
@@ -3165,7 +3165,7 @@ workflow {
     ====================================================================
     """.stripIndent()
 
-    // Create input channel — pass movies path as string (supports S3 URLs and local paths)
+    // Create input channel -- pass movies path as string (supports S3 URLs and local paths)
     def movies_path_str = params.movies_path ?: "${baseDir}/test_data"
 
     ch_movies_dir = Channel.value(movies_path_str)
