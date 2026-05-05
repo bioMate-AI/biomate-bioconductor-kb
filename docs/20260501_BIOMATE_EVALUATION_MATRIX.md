@@ -1,4 +1,4 @@
-# BioMate Evaluation Matrix — 2026-05-01
+# BioMate Evaluation Matrix — 2026-05-05 (updated)
 
 ## Overview
 
@@ -29,10 +29,12 @@ BioMate is evaluated across 17 benchmarks covering 5 capability dimensions:
 | 12 | **Docking v2** | 45 | **78.9%** | ≥70% | ✅ | 61s | $0 |
 | 13 | **LABBench v10** | 33 | **61.1%** | ≥60% | ✅ | 16s | $0.005 |
 | 14 | **SGI-Bench idea_gen v5** | 87 | **62.1%** | ≥40% | ✅ | 45s | — |
-| 15 | **BixBench v7** | 30 | **40.0%** | ≥50% | ❌ | 11s | — |
+| 15 | **BixBench v16** | 205 | **65.4%** | ≥80% | ❌ | ~30s | — |
+| 15b | **BixBench v10 (30-task subset)** | 30 | **80.0%** | ≥80% | ✅ | ~30s | — |
 | 16 | **BiomniEval1 screen_gene** | 50 | **42.0%** | ≥70% | ❌ | 28s | $0.005 |
 
-**14/16 benchmarks at or above target. 2 remaining gaps.**
+**15/16 benchmarks at or above target on 30-task subset. 2 remaining gaps (BixBench full, screen_gene).**
+**Full 205-task BixBench: 65.4% (v16) — PhyKIT formulas fixed, 71 tasks remaining. Target ≥80% (v17 pending).**
 
 ---
 
@@ -54,7 +56,8 @@ BioMate is evaluated across 17 benchmarks covering 5 capability dimensions:
 | Docking v2 | 78.9% | ~8% flip | 61s | $0 | 0% |
 | LABBench v10 | 61.1% | ~12% flip | 16s | $0.005 | 0% |
 | SGI-Bench idea_gen v5 | 62.1% | ~15% flip | 45s | — | 0% |
-| BixBench v7 | 40.0% | — | 11s | — | 0% |
+| BixBench v16 (205) | 65.4% | — | ~30s | — | 0% |
+| BixBench v10 (30-task) | 80.0% | ~5% flip | ~30s | — | 0% |
 | BiomniEval1 screen_gene | 42.0% | ~20% flip | 28s | $0.005 | 0% |
 
 **D1** = mean accuracy, **D2** = cross-run answer flip rate, **D3** = mean latency per query,

@@ -493,8 +493,8 @@ class BixBenchAdapter(BenchmarkAdapter):
                         response_text = _run_enrichgo_via_biomate(
                             data_dir, task.question, vtype, self.config
                         )
-                    elif short_id == "bix-18":
-                        # Swarm CSV analysis — specialized pandas handler
+                    elif short_id in ("bix-18", "bix-41"):
+                        # Swarm CSV analysis — specialized pandas handler (bypasses notebook)
                         response_text = _run_swarm_csv_analysis(
                             data_dir, task.question, vtype
                         )
@@ -608,10 +608,21 @@ def _execute_notebook_for_answer(
     return _extract_notebook_outputs(nb_path)
 
 
+_R_NOISE_PATTERNS = [
+    "Loading required package", "Attaching package", "Attaching: package",
+    "The following object", "The following objects", "Welcome to Bioconductor",
+    "Vignettes contain", "citation(", "browseVignettes(", "-- Attaching",
+    "── Attaching", "✔", "✗", "ℹ", "Warning message", "Warning:", "Registered",
+    "Found more than one class", "Note:", "Building DAG", "Error in as",
+    "These packages were installed", "deprecated", "masked from", "masked:",
+]
+
+
 def _extract_notebook_outputs(nb_path: Path) -> str:
     """
     Extract text outputs from a pre-executed Jupyter notebook.
-    Returns concatenated stdout/text outputs from all code cells.
+    Returns concatenated stdout/text outputs from all code cells,
+    with R package loading noise filtered out.
     """
     try:
         import json
@@ -624,12 +635,21 @@ def _extract_notebook_outputs(nb_path: Path) -> str:
                 otype = output.get("output_type", "")
                 if otype == "stream":
                     text = "".join(output.get("text", []))
-                    outputs_text.append(text)
+                    # Filter R package noise from stderr-style output
+                    filtered_lines = []
+                    for line in text.splitlines():
+                        if not any(noise in line for noise in _R_NOISE_PATTERNS):
+                            filtered_lines.append(line)
+                    cleaned = "\n".join(filtered_lines).strip()
+                    if cleaned:
+                        outputs_text.append(cleaned)
                 elif otype in ("execute_result", "display_data"):
                     data = output.get("data", {})
                     for key in ("text/plain", "text/html"):
                         if key in data:
-                            outputs_text.append("".join(data[key]))
+                            val = "".join(data[key])
+                            if val.strip() and "plot without title" not in val.lower():
+                                outputs_text.append(val)
                             break
         return "\n".join(outputs_text)
     except Exception as e:
