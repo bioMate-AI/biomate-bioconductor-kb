@@ -91,7 +91,7 @@ Returns a structured summary regardless of file format (CSV, TSV, FASTA, VCF, BA
       properties: {
         galaxy_dataset_id: {
           type: 'string',
-          description: 'The galaxy_dataset_id from the [Uploaded datasets:] block',
+          description: 'The dataset ID from the [Uploaded datasets:] block — use galaxy_dataset_id if present, otherwise use dataset_id',
         },
         n_lines: { type: 'number', description: 'Number of rows/records to preview (default 20)' },
       },
@@ -5272,18 +5272,39 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     });
   }
 
-  /** read_file tool handler — streams first n_lines from Galaxy dataset directly. */
+  /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */
   private async _toolReadFile(input: any, _context: ChatContext): Promise<unknown> {
-    const { galaxy_dataset_id, n_lines = 20 } = input;
-    if (!galaxy_dataset_id) return { error: 'galaxy_dataset_id is required' };
+    // Accept either galaxy_dataset_id or dataset_id (when Galaxy is unavailable)
+    const { galaxy_dataset_id, dataset_id, n_lines = 20 } = input;
+    const fileId = galaxy_dataset_id || dataset_id;
+    if (!fileId) return { error: 'galaxy_dataset_id or dataset_id is required' };
+
+    // Check local upload registry first (works when Galaxy is unavailable)
+    try {
+      const { getUploadedFile } = await import('./routes');
+      const localFile = getUploadedFile(fileId);
+      if (localFile?.filePath) {
+        const nodeFs = await import('fs/promises');
+        const content = await nodeFs.readFile(localFile.filePath, 'utf8');
+        const allLines = content.split('\n');
+        const lines = allLines.slice(0, n_lines);
+        const firstLine = lines[0] ?? '';
+        const isTabular = firstLine.includes('\t') || firstLine.includes(',');
+        return {
+          lines, total_lines_preview: lines.length, has_more: allLines.length > n_lines,
+          format_hint: isTabular ? (firstLine.includes('\t') ? 'TSV' : 'CSV') : 'text',
+        };
+      }
+    } catch { /* fall through to Galaxy */ }
+
     try {
       // Fetch raw content from Galaxy backend directly (avoids fragile self-fetch)
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const r = await fetch(`${galaxyUrl}/api/datasets/${galaxy_dataset_id}/display`, {
+      const r = await fetch(`${galaxyUrl}/api/datasets/${fileId}/display`, {
         signal: AbortSignal.timeout(15000),
       });
       if (!r.ok) {
-        return { error: `Dataset ${galaxy_dataset_id} not accessible (HTTP ${r.status})` };
+        return { error: `Dataset ${fileId} not accessible (HTTP ${r.status})` };
       }
       // Read enough to get n_lines without loading the whole file
       const reader = r.body!.getReader();

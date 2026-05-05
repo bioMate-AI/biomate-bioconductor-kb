@@ -177,6 +177,30 @@ def _call_local_regulatory_llm(
         return ""
 
 
+def _quick_audit(text: str, section_type: str) -> list[str]:
+    """
+    Lightweight MAJOR-finding check: returns list of failing rule IDs.
+    Used to decide whether to fall back to Gemini after local model generation.
+    Only checks MAJOR rules that the local model commonly fails.
+    """
+    failures = []
+    lower = text.lower()
+
+    if section_type in ("pbpk", "pk_overview"):
+        if not ("EMA/CHMP/EWP/37498/2011" in text or "67%" in text or "within-2-fold" in lower or "criterion" in lower):
+            failures.append("CITE_001:PBPK_missing_EMA_guideline")
+    if section_type == "tox_genotox":
+        if "S2(R1)" not in text and "ICH S2" not in text:
+            failures.append("CITE_002:genotox_missing_S2R1")
+        if "ames" not in lower and "bacterial reverse" not in lower:
+            failures.append("CONTENT_002:genotox_missing_ames")
+    if section_type == "tox_cardiac":
+        if "S7B" not in text:
+            failures.append("CITE_003:cardiac_missing_S7B")
+
+    return failures
+
+
 def _regulatory_guardrails(
     text: str,
     section_type: str,
@@ -471,18 +495,28 @@ def _llm_narrative(
         )
         source = "local"
 
-        if not narrative or len(narrative.split()) < 30:
-            # Fallback to Gemini if local model unavailable or produced empty output
-            narrative = _gemini_flash(
+        # Check: empty output or too short → Gemini fallback
+        too_short = not narrative or len(narrative.split()) < 30
+        # Check: MAJOR audit findings → Gemini fallback for citation-critical sections
+        major_findings = _quick_audit(narrative, section_type) if narrative else []
+        needs_gemini = too_short or bool(major_findings)
+
+        if needs_gemini:
+            reason = "empty" if too_short else f"audit_fail:{','.join(major_findings)}"
+            log.debug("[IND narrative] local model fallback reason=%s — using Gemini", reason)
+            gemini_narrative = _gemini_flash(
                 messages=[{"role": "user", "content": user_prompt}],
                 system=system,
                 max_tokens=2048,
                 temperature=0.3,
             ).strip()
-            source = "gemini"
+            if gemini_narrative:
+                narrative = gemini_narrative
+                source = "gemini"
+            # else: keep local model output (Gemini also failed) + let guardrails handle
 
         log.debug("[IND narrative] %s/%s source=%s words=%d",
-                  section_type, region, source, len(narrative.split()))
+                  section_type, region, source, len(narrative.split()) if narrative else 0)
 
         # ── Guardrails ────────────────────────────────────────────────────────
         narrative, guard_warnings = _regulatory_guardrails(
