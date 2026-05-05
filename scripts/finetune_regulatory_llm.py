@@ -347,23 +347,67 @@ def train_gpu(args) -> None:
     test_data = load_split(args.data, "test", task_filter)
     if test_data:
         log.info("Evaluating on %d test examples…", len(test_data))
-        predictions, references = [], []
+        predictions, references, section_types = [], [], []
         model.eval()
         import torch
-        for ex in test_data[:50]:  # sample 50 for speed
+        # Sample up to 50 section_generation examples for the audit
+        eval_pool = [ex for ex in test_data if ex.get("meta", {}).get("task") == "section_generation"]
+        eval_pool = eval_pool[:50]
+        for ex in eval_pool:
             messages = ex.get("messages", [])
-            # Build prompt (system + user only, exclude assistant)
             prompt_msgs = [m for m in messages if m["role"] != "assistant"]
-            prompt = tokenizer.apply_chat_template(prompt_msgs, tokenize=False, add_generation_prompt=True)
+            try:
+                prompt = tokenizer.apply_chat_template(
+                    prompt_msgs, tokenize=False, add_generation_prompt=True,
+                    **({"enable_thinking": False} if "qwen3" in model_id.lower() else {}),
+                )
+            except TypeError:
+                prompt = tokenizer.apply_chat_template(prompt_msgs, tokenize=False, add_generation_prompt=True)
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
             with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=256, do_sample=False, temperature=1.0)
-            pred = tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                out = model.generate(
+                    **inputs, max_new_tokens=512,  # 512 tokens ≈ 380 words, enough for eval
+                    do_sample=True, temperature=0.3, top_p=0.9, repetition_penalty=1.1,
+                    pad_token_id=tokenizer.eos_token_id,
+                )
+            pred = tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
             ref = next((m["content"] for m in messages if m["role"] == "assistant"), "")
             predictions.append(pred)
             references.append(ref)
+            section_types.append(ex.get("meta", {}).get("section_type", "unknown"))
 
         metrics = compute_regulatory_metrics(predictions, references)
+
+        # Section-type-aware audit pass rate (uses same rules as collect_dpo_training_data.py)
+        import re as _re
+        def _section_passes(text: str, sec: str) -> bool:
+            lower = text.lower()
+            if sec in ("pbpk", "pk_overview"):
+                if not ("EMA/CHMP/EWP/37498/2011" in text or "67%" in text or "criterion" in lower or "within-2-fold" in lower):
+                    return False
+            if sec == "tox_genotox":
+                if "S2(R1)" not in text and "ICH S2" not in text:
+                    return False
+                if "ames" not in lower and "bacterial reverse" not in lower:
+                    return False
+            if sec == "tox_cardiac":
+                if "S7B" not in text:
+                    return False
+            return True
+
+        by_section_pass: dict[str, list[bool]] = {}
+        for pred, sec in zip(predictions, section_types):
+            passes = _section_passes(pred, sec)
+            by_section_pass.setdefault(sec, []).append(passes)
+
+        audit_summary = {
+            sec: {"pass_rate": round(sum(vs)/len(vs), 3), "n": len(vs)}
+            for sec, vs in by_section_pass.items()
+        }
+        overall_pass_rate = sum(v for vs in by_section_pass.values() for v in vs) / max(len(predictions), 1)
+        metrics["audit_pass_rate"] = round(overall_pass_rate, 3)
+        metrics["audit_by_section"] = audit_summary
+
         log.info("Test metrics: %s", json.dumps(metrics, indent=2))
         with open(args.output / "eval_metrics.json", "w") as f:
             json.dump(metrics, f, indent=2)
