@@ -47,6 +47,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -55,6 +56,193 @@ from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Local Regulatory LLM — Qwen3-8B + LoRA adapter
+# ---------------------------------------------------------------------------
+
+_LOCAL_LLM_ADAPTER = Path(__file__).parent.parent.parent.parent.parent.parent / \
+    "models/regulatory_llm_v1/lora_adapter"
+# Override via env: REGULATORY_LLM_ADAPTER=/path/to/lora_adapter
+_LOCAL_LLM_ADAPTER = Path(
+    os.environ.get("REGULATORY_LLM_ADAPTER", str(_LOCAL_LLM_ADAPTER))
+)
+
+_local_llm_model = None       # lazy-loaded (PeftModel)
+_local_llm_tokenizer = None   # lazy-loaded
+
+# Required ICH citations per section type — injected by guardrail if absent
+_REQUIRED_CITATIONS: dict[str, list[str]] = {
+    "overview":     ["ICH M4S(R2)", "ICH M3(R2)"],
+    "pbpk":         ["EMA/CHMP/EWP/37498/2011", "ICH M3(R2)"],
+    "pk_overview":  ["ICH M3(R2)", "EMA/CHMP/EWP/37498/2011"],
+    "admet":        ["ICH M4S(R2)", "ICH S7B"],
+    "tox_overview": ["ICH M3(R2)", "ICH S7A"],
+    "tox_genotox":  ["ICH S2(R1)"],
+    "tox_cardiac":  ["ICH S7B", "ICH S7A"],
+}
+
+def _load_local_llm() -> bool:
+    """Lazy-load the LoRA adapter. Returns True if successfully loaded."""
+    global _local_llm_model, _local_llm_tokenizer
+    if _local_llm_model is not None:
+        return True
+    if not _LOCAL_LLM_ADAPTER.exists():
+        log.debug("[local-llm] Adapter not found at %s — using Gemini", _LOCAL_LLM_ADAPTER)
+        return False
+    try:
+        import warnings, os as _os
+        warnings.filterwarnings("ignore", message=".*sm_121.*", category=UserWarning)
+        _os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from peft import PeftModel
+
+        base_id = "Qwen/Qwen3-8B"
+        log.info("[local-llm] Loading %s + adapter from %s", base_id, _LOCAL_LLM_ADAPTER)
+        tok = AutoTokenizer.from_pretrained(
+            str(_LOCAL_LLM_ADAPTER), trust_remote_code=True
+        )
+        if tok.pad_token is None:
+            tok.pad_token = tok.eos_token
+
+        base = AutoModelForCausalLM.from_pretrained(
+            base_id,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            trust_remote_code=True,
+        )
+        model = PeftModel.from_pretrained(base, str(_LOCAL_LLM_ADAPTER))
+        model.eval()
+
+        _local_llm_model = model
+        _local_llm_tokenizer = tok
+        log.info("[local-llm] Adapter loaded — local model active")
+        return True
+    except Exception as exc:
+        log.warning("[local-llm] Load failed: %s — falling back to Gemini", exc)
+        return False
+
+
+def _call_local_regulatory_llm(
+    section_type: str,
+    system: str,
+    user_prompt: str,
+    max_new_tokens: int = 512,
+    temperature: float = 0.3,
+) -> str:
+    """
+    Call the local Qwen3-8B LoRA adapter for regulatory narrative generation.
+    Returns empty string if unavailable (caller falls back to Gemini).
+
+    Qwen3 uses /no_think mode: direct prose without chain-of-thought.
+    """
+    if not _load_local_llm():
+        return ""
+    try:
+        import torch
+        tok = _local_llm_tokenizer
+        model = _local_llm_model
+
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user",   "content": f"/no_think\n{user_prompt}"},
+        ]
+        # Qwen3 apply_chat_template with enable_thinking=False
+        try:
+            text = tok.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True,
+                enable_thinking=False,
+            )
+        except TypeError:
+            text = tok.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True,
+            )
+
+        inputs = tok(text, return_tensors="pt").to(model.device)
+        with torch.no_grad():
+            out = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=temperature > 0,
+                temperature=temperature if temperature > 0 else 1.0,
+                top_p=0.9,
+                repetition_penalty=1.1,
+                pad_token_id=tok.eos_token_id,
+            )
+        generated = out[0][inputs.input_ids.shape[1]:]
+        return tok.decode(generated, skip_special_tokens=True).strip()
+    except Exception as exc:
+        log.warning("[local-llm] Inference failed: %s", exc)
+        return ""
+
+
+def _regulatory_guardrails(
+    text: str,
+    section_type: str,
+    data: dict,
+    region: str,
+) -> tuple[str, list[str]]:
+    """
+    Apply post-generation guardrails to a regulatory narrative.
+
+    Returns (corrected_text, list_of_warnings).
+
+    Guardrails applied:
+    1. Citation injector: if required ICH citations missing, append footnote
+    2. Length guard: flag outputs < 150 words
+    3. Numeric faithfulness: flag numbers in output not present in input data
+    4. Markdown strip: remove any residual markdown formatting
+    5. FDA label header strip: remove "13 NONCLINICAL TOXICOLOGY" etc.
+    """
+    warnings_out: list[str] = []
+    out = text
+
+    # 1. Strip markdown and FDA section headers
+    out = out.replace("**", "").replace("*", "")
+    out = re.sub(r"^#{1,6}\s+", "", out, flags=re.M)
+    out = re.sub(
+        r"^\d+\s+[A-Z][A-Z, /&().-]{4,50}"
+        r"(?:\s+\d+\.\d+(?:\.\d+)?\s+[A-Z][A-Za-z, /()&.-]{4,80})?\s+",
+        "", out,
+    )
+    out = out.strip()
+
+    # 2. Citation injector
+    required = _REQUIRED_CITATIONS.get(section_type, [])
+    missing = [c for c in required if c.lower() not in out.lower()]
+    if missing:
+        # Append as a regulatory footnote rather than silently skip
+        citation_str = "; ".join(missing)
+        out = out + f" [Applicable guidelines: {citation_str}.]"
+        warnings_out.append(f"CITATION_INJECTED: {citation_str}")
+
+    # 3. Length guard
+    word_count = len(out.split())
+    if word_count < 150:
+        warnings_out.append(f"SHORT_OUTPUT: {word_count} words (target ≥300)")
+
+    # 4. Numeric faithfulness — check that numbers in output appear in input
+    import re as _re
+    output_nums = set(_re.findall(r"\d+\.?\d*", out))
+    input_vals = set()
+    for v in data.values():
+        if isinstance(v, (int, float)):
+            input_vals.add(str(int(v)) if v == int(v) else str(round(v, 3)))
+        elif isinstance(v, str):
+            input_vals.update(_re.findall(r"\d+\.?\d*", v))
+    # Flag numbers in output that look like IC50s, AUCs, NOAELs (>0.001, numeric)
+    suspicious = {
+        n for n in output_nums
+        if float(n) > 0.001 and n not in input_vals and len(n) >= 3
+    }
+    if len(suspicious) > 3:
+        warnings_out.append(
+            f"NUMERIC_MISMATCH: {len(suspicious)} numbers in output not in input data"
+        )
+
+    return out, warnings_out
+
 
 # ---------------------------------------------------------------------------
 # Regulatory Knowledge DB
@@ -273,15 +461,36 @@ def _llm_narrative(
         # ── Region-specific system prompt ─────────────────────────────────────
         system = _NARRATIVE_SYSTEM_BY_REGION.get(region, _NARRATIVE_SYSTEM_BY_REGION["FDA"])
 
-        narrative = _gemini_flash(
-            messages=[{"role": "user", "content": user_prompt}],
+        # ── Model routing: local LoRA adapter → Gemini fallback ───────────────
+        narrative = _call_local_regulatory_llm(
+            section_type=section_type,
             system=system,
-            max_tokens=2048,
+            user_prompt=user_prompt,
+            max_new_tokens=600,
             temperature=0.3,
-        ).strip()
+        )
+        source = "local"
 
-        # Remove any accidental markdown formatting
-        narrative = narrative.replace("**", "").replace("*", "").replace("##", "").replace("#", "")
+        if not narrative or len(narrative.split()) < 30:
+            # Fallback to Gemini if local model unavailable or produced empty output
+            narrative = _gemini_flash(
+                messages=[{"role": "user", "content": user_prompt}],
+                system=system,
+                max_tokens=2048,
+                temperature=0.3,
+            ).strip()
+            source = "gemini"
+
+        log.debug("[IND narrative] %s/%s source=%s words=%d",
+                  section_type, region, source, len(narrative.split()))
+
+        # ── Guardrails ────────────────────────────────────────────────────────
+        narrative, guard_warnings = _regulatory_guardrails(
+            narrative, section_type, data, region
+        )
+        for w in guard_warnings:
+            log.debug("[IND guardrail] %s: %s", section_type, w)
+
         return narrative
 
     except Exception as exc:
