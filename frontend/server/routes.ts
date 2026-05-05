@@ -985,6 +985,8 @@ const upload = multer({
       '.ipynb', '.rds', '.rda', '.xlsx', '.xls',
       // Phylogenomics / alignment formats
       '.nwk', '.newick', '.treefile', '.tree', '.mafft', '.clipkit', '.iqtree', '.log',
+      // Generic compressed and model/distance files
+      '.gz', '.mldist', '.model', '.phy', '.phylip', '.aln',
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
