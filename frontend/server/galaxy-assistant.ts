@@ -1193,8 +1193,8 @@ export class GalaxyAssistant {
     const chat = model.startChat({ history });
     const lastMessage = messages[messages.length - 1].content;
 
-    // Agentic loop: handle tool calls (up to 10 turns, then force a final summary)
-    const MAX_TOOL_TURNS = 10;
+    // Agentic loop: handle tool calls (up to 12 turns, then force a final answer)
+    const MAX_TOOL_TURNS = 12;
     let currentMessage: string | object = lastMessage;
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
       const result = await chat.sendMessage(currentMessage as any);
