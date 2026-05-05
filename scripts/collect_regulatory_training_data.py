@@ -487,16 +487,42 @@ def _parse_spl_xml(root: ET.Element) -> list[dict]:
 
 ICH_GUIDELINES = {
     "ICH_M4S_R2": "https://database.ich.org/sites/default/files/M4S_R2_Guideline.pdf",
-    # S7B R1 (November 2024) — step 4
-    "ICH_S7B_R1": "https://database.ich.org/sites/default/files/ICH_S7B-R1_Step4_Guideline_2024_1101.pdf",
+    # S7B R1 (2024) — not yet on database.ich.org; S7B original (2005) used instead
+    # "ICH_S7B_R1": URL pending ICH database update
     "ICH_S2_R1":  "https://database.ich.org/sites/default/files/S2_R1_Guideline.pdf",
     "ICH_S7A":    "https://database.ich.org/sites/default/files/S7A_Guideline.pdf",
     "ICH_M3_R2":  "https://database.ich.org/sites/default/files/M3_R2__Guideline.pdf",
     "ICH_E5_R1":  "https://database.ich.org/sites/default/files/E5_R1__Guideline.pdf",
     "ICH_E7":     "https://database.ich.org/sites/default/files/E7_Guideline.pdf",
-    # M7 R2 (2023)
-    "ICH_M7_R2":  "https://database.ich.org/sites/default/files/ICH_M7-R2_Guideline_2023_0113.pdf",
+    # M7 R2 (2023) — not on database.ich.org; manual download needed
+    # "ICH_M7_R2": URL pending
     "EMA_PBPK":   "https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-reporting-physiologically-based-pharmacokinetic-pbpk-modelling-simulation_en.pdf",
+
+    # ── Carcinogenicity (§2.6.3.4) — missing in v1, major gap ───────────────
+    # S1A: when carcinogenicity studies are required (duration, indication criteria)
+    "ICH_S1A":    "https://database.ich.org/sites/default/files/S1A_Guideline.pdf",
+    # S1B: conduct of carcinogenicity studies (species, dose, 2-year vs 6-month)
+    "ICH_S1B":    "https://database.ich.org/sites/default/files/S1B_Guideline.pdf",
+    # S1C(R2): dose selection for carcinogenicity (MTD, systemic exposure multiples)
+    "ICH_S1C_R2": "https://database.ich.org/sites/default/files/S1C_R2__Guideline.pdf",
+
+    # ── Cardiac safety — S7B original (2005); R1 2024 not on database.ich.org
+    "ICH_S7B":    "https://database.ich.org/sites/default/files/S7B_Guideline.pdf",
+
+    # ── Immunotoxicity (§2.6.3.5) ─────────────────────────────────────────────
+    # S8: immunotoxicity studies; TDAR assay; when dedicated immunotox is required
+    "ICH_S8":     "https://database.ich.org/sites/default/files/S8_Guideline.pdf",
+
+    # ── Oncology INDs (§2.6 for anticancer drugs) ────────────────────────────
+    # S9: modified nonclinical package for oncology; S9 exemption table
+    "ICH_S9":     "https://database.ich.org/sites/default/files/S9_Guideline.pdf",
+
+    # Note: S5(R3) reproductive tox, S6(R1) biologics, M7(R2) mutagenic impurities
+    # newer versions not available on database.ich.org — manual collection needed.
+
+    # ── FDA-specific PBPK (§2.6.2 for FDA submissions) ─────────────────────
+    # FDA PBPK guidance (2018): format, tables, sensitivity analysis FDA expects
+    "FDA_PBPK_2018": "https://www.fda.gov/media/101469/download",
 }
 
 
@@ -507,13 +533,24 @@ def collect_ich_guidelines(out_dir: Path) -> list[dict]:
     raw_dir.mkdir(parents=True, exist_ok=True)
     examples = []
 
+    # Browser-like headers needed for FDA.gov bot detection
+    _dl_headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept": "application/pdf,*/*",
+    }
+
     for name, url in ICH_GUIDELINES.items():
+        if url.startswith("#"):
+            continue  # commented-out entry
         pdf_path = raw_dir / f"{name}.pdf"
         if not pdf_path.exists():
             log.info("[ICH] Downloading %s…", name)
             try:
-                r = requests.get(url, timeout=60)
+                r = requests.get(url, headers=_dl_headers, timeout=60, allow_redirects=True)
                 r.raise_for_status()
+                if b"%PDF" not in r.content[:10]:
+                    log.warning("[ICH] %s returned non-PDF (%dB)", name, len(r.content))
+                    continue
                 with open(pdf_path, "wb") as f:
                     f.write(r.content)
             except Exception as exc:
