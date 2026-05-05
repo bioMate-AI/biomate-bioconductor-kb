@@ -1,8 +1,7 @@
 # Core cryo-EM heterogeneity analysis
 cryodrgn>=3.3.2
 
-# PyTorch (already in base image, but pin for pip consistency)
-torch>=2.1.0
+# torch: installed via --index-url cu121 in Dockerfile; do NOT list here (would pull CPU build)
 numpy>=1.24.0
 scipy>=1.11.0
 pandas>=2.0.0

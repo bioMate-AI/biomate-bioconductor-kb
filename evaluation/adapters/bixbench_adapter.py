@@ -92,7 +92,8 @@ class BixBenchAdapter(BenchmarkAdapter):
     def prepare(self, client) -> None:
         self._judge = LLMJudge(
             model=self.config["llm_judge"]["model"],
-            api_key=self.config.get("llm_judge", {}).get("api_key")
+            api_key=self.config.get("llm_judge", {}).get("api_key"),
+            gemini_api_key=self.config.get("llm_judge", {}).get("gemini_api_key"),
         )
 
     # ------------------------------------------------------------------
@@ -397,38 +398,147 @@ class BixBenchAdapter(BenchmarkAdapter):
 
     def _biomate_exec_prompt(self, task: BenchmarkTask, uploads: List[Dict] = None) -> str:
         """
-        biomate_exec mode: upload capsule data files to BioMate as real Galaxy datasets,
-        then ask BioMate to analyze them — exactly like a real user would.
-        The [Uploaded datasets: ...] block tells BioMate which files are staged.
+        biomate_exec mode: upload capsule data files to BioMate then ask it to
+        analyze them using run_code. The [Uploaded datasets: ...] block tells
+        BioMate which files are available.
         """
         verifier_type = task.metadata.get("verifier_type", "str_verifier")
-        workflow_hint = task.metadata.get("workflow_hint", "")
+        question = task.question
 
-        answer_format = (
-            "Report ONLY the numerical result (e.g., '2.34'). No explanation needed."
-            if verifier_type == "range_verifier"
-            else "Report ONLY the exact answer string. No explanation needed."
-        )
+        # Answer format guidance
+        if verifier_type == "range_verifier":
+            answer_format = "Report ONLY the numerical result (e.g., '1.524'). No explanation."
+        else:
+            answer_format = "Report ONLY the exact answer value. No explanation."
 
-        # Build uploaded datasets block (natural BioMate file reference format)
+        # Build uploaded datasets block + file access hints
         datasets_block = ""
+        code_hints = []
         if uploads:
             parts = []
             for u in uploads:
                 name = u.get("name", "file")
                 did = u.get("dataset_id", "")
-                gid = u.get("galaxy_dataset_id") or ""
-                parts.append(f"{name}: dataset_id={did}, galaxy_dataset_id={gid}")
-            datasets_block = "\n[Uploaded datasets: " + "; ".join(parts) + "]\n"
+                gid = u.get("galaxy_dataset_id") or None
+                if gid:
+                    parts.append(f"{name}: dataset_id={did}, galaxy_dataset_id={gid}")
+                    code_hints.append(f"  # {name}: input_datasets=['{gid}'], path=$DATA_DIR/{gid}/{name}")
+                else:
+                    # Galaxy unavailable — use dataset_id only
+                    parts.append(f"{name}: dataset_id={did}")
+                    code_hints.append(f"  # {name}: input_datasets=['{did}'], path=$DATA_DIR/{did}/{name}")
 
-        workflow_hint_line = f"Analysis type hint: {workflow_hint}\n" if workflow_hint else ""
+            if parts:
+                datasets_block = "\n[Uploaded datasets: " + "; ".join(parts) + "]\n"
+            if code_hints:
+                datasets_block += "File access in run_code:\n" + "\n".join(code_hints) + "\n"
+
+        direct_exec_hint = (
+            "\n\nIMPORTANT: Use run_code to execute the analysis directly on the uploaded data. "
+            "Do NOT launch a Nextflow workflow. Compute the answer in code and print it.\n"
+        ) if uploads else ""
 
         return (
-            task.question
-            + f"\n\n{answer_format}\n"
-            + workflow_hint_line
+            question
+            + direct_exec_hint
+            + f"\n{answer_format}\n"
             + datasets_block
         )
+
+    # ------------------------------------------------------------------
+    # biomate_exec runner (uploads files, then sends question to BioMate)
+    # ------------------------------------------------------------------
+
+    def run_biomate_exec(self, client, max_tasks=None) -> List[Any]:
+        """
+        Run BixBench in biomate_exec mode:
+        1. Download capsule data (same as local_exec)
+        2. Upload key data files to BioMate
+        3. Send question with [Uploaded datasets: ...] block
+        4. Score BioMate's response with the same verifiers
+
+        This uses BioMate's actual run_code capability with R/Python, leveraging
+        all installed tools (DESeq2, clusterProfiler, PhyKIT, BWA, samtools, etc.).
+        """
+        from ..core.base_adapter import BenchmarkResult
+        import time
+
+        if self._judge is None:
+            try:
+                from ..core.llm_judge import LLMJudge
+                self._judge = LLMJudge(
+                    model=self.config.get("llm_judge", {}).get("model", "claude-haiku-4-5-20251001"),
+                    api_key=self.config.get("llm_judge", {}).get("api_key"),
+                    gemini_api_key=self.config.get("llm_judge", {}).get("gemini_api_key"),
+                )
+            except Exception as e:
+                logger.warning("LLMJudge init failed: %s", e)
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import threading
+
+        tasks = self.load_tasks()
+        if max_tasks:
+            tasks = tasks[:max_tasks]
+
+        concurrency = self.config.get("concurrency", {}).get("max_parallel_tasks", 4)
+        _thread_local = threading.local()
+
+        def _get_thread_client():
+            if not hasattr(_thread_local, "client"):
+                _thread_local.client = client.clone() if hasattr(client, "clone") else client
+            return _thread_local.client
+
+        def _run_one(task) -> BenchmarkResult:
+            t0 = time.time()
+            error = None
+            response_text = ""
+            response = None
+            tc = _get_thread_client()
+
+            try:
+                # Step 1: Ensure data is downloaded
+                data_dir = self._ensure_capsule_data(task)
+
+                # Step 2: Upload files to BioMate
+                uploads = []
+                if data_dir:
+                    uploads = self._upload_capsule_files(data_dir, tc)
+
+                # Step 3: Build prompt with uploaded datasets block
+                prompt = self._biomate_exec_prompt(task, uploads)
+
+                # Step 4: Ask BioMate
+                response = tc.ask(prompt)
+                response_text = response.text if response else ""
+
+            except Exception as e:
+                error = str(e)
+                logger.warning("biomate_exec task %s failed: %s", task.task_id, e)
+
+            score = self.score(task, response_text) if not error else 0.0
+            return BenchmarkResult(
+                task_id=task.task_id,
+                benchmark="bixbench",
+                score=score,
+                agent_response=response_text,
+                ground_truth=task.ground_truth,
+                latency_sec=time.time() - t0,
+                metadata=task.metadata,
+                error=error,
+                input_tokens=response.input_tokens if response else None,
+                output_tokens=response.output_tokens if response else None,
+                cost_usd=response.cost_usd if response else None,
+                model=response.model if response else None,
+            )
+
+        results = []
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            futures = {pool.submit(_run_one, t): t for t in tasks}
+            for future in as_completed(futures):
+                results.append(future.result())
+
+        return results
 
     # ------------------------------------------------------------------
     # local_exec runner
@@ -455,6 +565,7 @@ class BixBenchAdapter(BenchmarkAdapter):
                 self._judge = LLMJudge(
                     model=self.config.get("llm_judge", {}).get("model", "claude-haiku-4-5-20251001"),
                     api_key=self.config.get("llm_judge", {}).get("api_key"),
+                    gemini_api_key=self.config.get("llm_judge", {}).get("gemini_api_key"),
                 )
             except Exception as e:
                 logger.warning("LLMJudge init failed: %s", e)
@@ -656,6 +767,56 @@ def _extract_notebook_outputs(nb_path: Path) -> str:
         return f"[notebook parse error: {e}]"
 
 
+def _select_relevant_context(notebook_outputs: str, question: str, max_chars: int = 8000) -> str:
+    """
+    Select the most question-relevant sections from notebook output.
+    Strategy:
+      1. Split into ~500-char chunks.
+      2. Score each chunk by keyword overlap with the question.
+      3. Return top-scoring chunks + last chunk, up to max_chars.
+    This handles notebooks where the key result appears early (e.g. cell 24 of 56)
+    and later cells generate noisy optimization logs that dominate [-N:] slicing.
+    """
+    if len(notebook_outputs) <= max_chars:
+        return notebook_outputs
+
+    # Extract content words from question (length >= 4)
+    q_words = set(w.lower() for w in re.findall(r'\b[a-z]{4,}\b', question.lower()))
+
+    chunk_size = 500
+    chunks = []
+    for i in range(0, len(notebook_outputs), chunk_size):
+        chunk = notebook_outputs[i:i + chunk_size]
+        score = sum(1 for w in q_words if w in chunk.lower())
+        chunks.append((score, i, chunk))
+
+    # Always include: top-scored chunks + last 1500 chars
+    chunks.sort(key=lambda x: (-x[0], x[1]))  # highest score first, earlier position first
+
+    selected = []
+    total = 0
+    reserve = min(1500, max_chars // 4)  # reserve space for tail
+    budget = max_chars - reserve
+
+    # Add top-scoring chunks first
+    added_positions = set()
+    for score, pos, chunk in chunks:
+        if total >= budget:
+            break
+        if pos not in added_positions:
+            selected.append((pos, chunk))
+            added_positions.add(pos)
+            total += len(chunk)
+
+    # Add tail (last 1500 chars)
+    tail = notebook_outputs[-reserve:]
+    selected.append((len(notebook_outputs), tail))
+
+    # Sort by position and join
+    selected.sort(key=lambda x: x[0])
+    return "\n...\n".join(c for _, c in selected)
+
+
 def _answer_from_notebook_context(
     notebook_outputs: str,
     question: str,
@@ -669,8 +830,10 @@ def _answer_from_notebook_context(
     This is the core of BixBench exec-mode: the notebook already has all
     computed results; the LLM just needs to find and report the right value.
     """
-    # Trim notebook output to fit in context (keep last 6000 chars = most relevant results)
-    ctx = notebook_outputs[-6000:] if len(notebook_outputs) > 6000 else notebook_outputs
+    # Smart context selection: keyword-aware rather than just last-N-chars.
+    # Many notebooks have the answer in an early cell, with later cells generating
+    # only model training logs that drown out the actual results.
+    ctx = _select_relevant_context(notebook_outputs, question, max_chars=8000)
 
     if verifier_type == "range_verifier":
         answer_instruction = (
@@ -684,8 +847,11 @@ def _answer_from_notebook_context(
         )
     else:
         answer_instruction = (
-            "Find the EXACT string value in the analysis output that answers the question.\n"
-            "Report ONLY that exact value. No explanation."
+            "Based on the analysis output, find or compute the answer to the question.\n"
+            "If the question asks for a percentage and the output shows a count and total,\n"
+            "compute count/total*100 and format as '28%'.\n"
+            "If the question asks for a gene name, return the gene name (not a number).\n"
+            "Report ONLY the final answer value. No explanation."
         )
 
     prompt = (
@@ -1696,21 +1862,22 @@ def _run_swarm2_csv_analysis(swarm2_csv: Path, question: str) -> str:
         co = df[df['StrainNumber'] == '287_98']
 
         if "dunnett" in q_lower:
-            # Use scipy.stats.dunnett: compare each ratio group to Strain 1 control
-            control_area = s1['Area'].values.tolist()
-            control_circ = s1['Circularity'].values.tolist()
-            equivalent_both = 0  # not significantly different in both area AND circ
-            sig_both = 0  # significantly different in both
-            for ratio in sorted(co['Ratio'].unique()):
-                grp = co[co['Ratio'] == ratio]
-                res_area = _dunnett(grp['Area'].values, control=control_area)
-                res_circ = _dunnett(grp['Circularity'].values, control=control_circ)
-                if "equivalent" in q_lower or "statistically equivalent" in q_lower:
-                    if res_area.pvalue[0] > 0.05 and res_circ.pvalue[0] > 0.05:
-                        equivalent_both += 1
-                elif "significant" in q_lower and "different" in q_lower:
-                    if res_area.pvalue[0] < 0.05 and res_circ.pvalue[0] < 0.05:
-                        sig_both += 1
+            # Dunnett's test: run all groups SIMULTANEOUSLY for correct multiple-comparison adjustment
+            control_area = s1['Area'].values
+            control_circ = s1['Circularity'].values
+            ratios = sorted(co['Ratio'].unique())
+            area_groups = [co[co['Ratio'] == r]['Area'].values for r in ratios]
+            circ_groups = [co[co['Ratio'] == r]['Circularity'].values for r in ratios]
+            res_area = _dunnett(*area_groups, control=control_area)
+            res_circ = _dunnett(*circ_groups, control=control_circ)
+            equivalent_both = 0
+            sig_both = 0
+            for i in range(len(ratios)):
+                p_a, p_c = res_area.pvalue[i], res_circ.pvalue[i]
+                if p_a >= 0.05 and p_c >= 0.05:
+                    equivalent_both += 1
+                elif p_a < 0.05 and p_c < 0.05:
+                    sig_both += 1
             if "equivalent" in q_lower:
                 return str(equivalent_both)
             return str(sig_both)
@@ -2258,6 +2425,13 @@ def _generate_and_run_analysis(
             f"- For .treefile or newick tree files, pass directly to phykit commands\n"
             f"- Print ONLY the final answer value to stdout — no explanation, no headers\n"
             f"- Round numbers to match the expected precision (e.g., 2-4 decimal places)\n"
+            f"- If the question asks for a PERCENTAGE, compute (count/total)*100 and print as '28%' format\n"
+            f"- If the question asks for a GENE NAME or STRING answer, print the exact string (not a number)\n"
+            f"- IMPORTANT: Do NOT use Bio.Align.Applications.MafftCommandline (deprecated);\n"
+            f"  use subprocess.run(['mafft', '--auto', ...]) directly if MAFFT alignment is needed\n"
+            f"- For VCF files: use cyvcf2 or parse with gzip/re; for sample metadata, merge on sample ID\n"
+            f"- For Dunnett's test comparing multiple groups to control: run ALL groups SIMULTANEOUSLY\n"
+            f"  using scipy.stats.dunnett(*all_groups, control=control_group) for correct p-value adjustment\n"
             f"- Keep the code clean and syntactically correct\n\n"
             f"Respond with ONLY the Python code block. No explanation. "
             f"Start with ```python\n and end with\n```"
@@ -2341,57 +2515,63 @@ def _generate_and_run_analysis(
 # Verifiers
 # ------------------------------------------------------------------
 
+_NUM_RE = r"[-+]?\d*\.?\d+(?:[eE][+-]?\d+)?"
+
+
+def _extract_nums(text: str):
+    """Extract all floats from text, including scientific notation."""
+    results = []
+    for s in re.findall(_NUM_RE, text):
+        try:
+            results.append(float(s))
+        except ValueError:
+            pass
+    return results
+
+
 def _score_range_verifier(response: str, ground_truth: str) -> float:
     """
     BixBench range_verifier: ground truth is a range.
     Formats handled:
-      '10-50'       — dash-separated
-      '2.34-2.36'   — dash-separated floats
-      '(1.50,1.54)' — BixBench parenthesized tuple format
-    Extract a number from the response and check if it falls within the range.
-    Score: 1.0 if within range, 0.0 otherwise.
+      '10-50'                — dash-separated
+      '(1.50,1.54)'          — BixBench parenthesized tuple format
+      '(1.13e-10,1.13e-12)'  — scientific notation tuple
+      '(-0.064,-0.084)'      — negative range (lo/hi auto-sorted)
     """
-    # Parse BixBench tuple format: (lo,hi) or (lo, hi)
-    tuple_m = re.search(r"\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)", ground_truth)
+    # Parse BixBench tuple format: (lo,hi) or (lo, hi) — supports scientific notation
+    tuple_m = re.search(
+        r"\(\s*(" + _NUM_RE + r")\s*,\s*(" + _NUM_RE + r")\s*\)", ground_truth
+    )
     if tuple_m:
         try:
-            lo, hi = float(tuple_m.group(1)), float(tuple_m.group(2))
-            numbers = re.findall(r"-?\d+\.?\d*(?:[eE][+-]?\d+)?", response)
-            for num_str in numbers:
-                try:
-                    val = float(num_str)
-                    if lo <= val <= hi:
-                        return 1.0
-                except ValueError:
-                    continue
+            a, b = float(tuple_m.group(1)), float(tuple_m.group(2))
+            lo, hi = min(a, b), max(a, b)  # auto-sort so negative ranges work
+            for val in _extract_nums(response):
+                if lo <= val <= hi:
+                    return 1.0
             return 0.0
         except ValueError:
             pass
 
-    # Parse ground truth range
+    # Parse dash-separated range (not leading-minus of a negative number)
     m = re.search(r"([-\d.]+)\s*[-–]\s*([-\d.]+)", ground_truth)
     if not m:
-        # Single value — exact match within tolerance
+        # Single value — exact match within 5% tolerance
         try:
-            gt_val = float(re.sub(r"[^\d.\-]", "", ground_truth))
+            gt_val = float(re.sub(r"[^\d.\-eE+]", "", ground_truth))
         except ValueError:
             return 0.0
-        lo, hi = gt_val * 0.95, gt_val * 1.05
+        lo, hi = min(gt_val * 0.95, gt_val * 1.05), max(gt_val * 0.95, gt_val * 1.05)
     else:
         try:
-            lo, hi = float(m.group(1)), float(m.group(2))
+            a, b = float(m.group(1)), float(m.group(2))
+            lo, hi = min(a, b), max(a, b)
         except ValueError:
             return 0.0
 
-    # Extract all numbers from response and check if any is in range
-    numbers = re.findall(r"-?\d+\.?\d*(?:[eE][+-]?\d+)?", response)
-    for num_str in numbers:
-        try:
-            val = float(num_str)
-            if lo <= val <= hi:
-                return 1.0
-        except ValueError:
-            continue
+    for val in _extract_nums(response):
+        if lo <= val <= hi:
+            return 1.0
     return 0.0
 
 
@@ -2408,6 +2588,9 @@ def _score_str_verifier(response: str, ground_truth: str) -> float:
     gt_clean = re.sub(r"[^a-z0-9]", "", gt_norm)
     resp_clean = re.sub(r"[^a-z0-9]", "", resp_norm)
     if gt_clean and gt_clean in resp_clean:
+        return 1.0
+    # Bidirectional prefix match: response is a prefix abbreviation of GT (e.g. "CD14 Mono" → "CD14 Monocytes")
+    if resp_clean and len(resp_clean) >= 8 and gt_clean.startswith(resp_clean):
         return 1.0
     # Fuzzy numeric matching: handle rounding differences (e.g., 15.59% ≈ 15.6%, 9.922e-35 ≈ 9.92E-35)
     try:

@@ -167,8 +167,13 @@ def main():
         # Local exec: no BioMate client needed — runs notebooks directly
         print("Running local_exec (downloading capsule data + running notebooks)...")
         results = adapter.run_local_exec(max_tasks=args.max_tasks)
+    elif args.mode == "biomate_exec":
+        # BioMate exec: upload data files to BioMate, then run via BioMate's run_code
+        print("Running biomate_exec (uploading capsule data to BioMate + run_code analysis)...")
+        client = BioMateEvalClient.from_config(config)
+        results = adapter.run_biomate_exec(client, max_tasks=args.max_tasks)
     else:
-        # hf_mcq or biomate_exec: send to BioMate
+        # hf_mcq: send MCQ questions to BioMate
         client = BioMateEvalClient.from_config(config)
         results = adapter.run(client, max_tasks=args.max_tasks, skip=args.skip)
 

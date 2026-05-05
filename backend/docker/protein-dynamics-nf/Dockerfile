@@ -6,7 +6,7 @@ FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 LABEL maintainer="BioMate Team"
 LABEL description="Protein dynamics & conformational ensemble sampling for BioMate workflows"
-LABEL version="1.0.6"
+LABEL version="1.0.7"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -60,11 +60,21 @@ RUN pip install --no-cache-dir \
 # Install cryodrgn (for latent-space analysis utilities shared with cryo track)
 RUN pip install --no-cache-dir "cryodrgn>=3.0.0"
 
+# ── JAX with CUDA 12 support ──────────────────────────────────────────────────
+# Must install CUDA-enabled jaxlib BEFORE bioemu, otherwise pip installs CPU jaxlib.
+# Base image has CUDA 12.1 + cuDNN 8; use cuda12.cudnn89 wheel (compatible with cuDNN 8.x).
+RUN pip install --no-cache-dir \
+    "jax[cuda12_pip]==0.4.35" \
+    -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html \
+    && python -c "import jax; print('JAX', jax.__version__, 'devices:', jax.devices())"
+
 # ── Microsoft BioEmu 1.3.1 from PyPI ─────────────────────────────────────────
 # Pin tensorflow-cpu==2.12.0 (the version BioEmu 1.3.1 was tested with and JAX 0.4.35 XLA is compatible with).
 # Newer TF (>2.14) registers conflicting XLA protobuf descriptors causing SIGABRT when JAX is also loaded.
+# Note: tensorflow-cpu does NOT pull in CUDA jaxlib — GPU path is handled above.
 RUN pip install --no-cache-dir "tensorflow-cpu==2.12.0"
-RUN pip install --no-cache-dir "bioemu==1.3.1" \
+RUN pip install --no-cache-dir "bioemu==1.3.1" --no-deps \
+    && pip install --no-cache-dir "bioemu==1.3.1" \
     && python -c "import bioemu; print('BioEmu', bioemu.__version__, 'installed')"
 
 # Install PocketMiner from cloned source

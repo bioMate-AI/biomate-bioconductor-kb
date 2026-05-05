@@ -19,9 +19,9 @@ Correspondence: yaoyun.zhang@biomate.com; yuhan.zhang@stjude.org
 
 ## Abstract
 
-Single-particle cryo-electron microscopy (cryo-EM) has become the dominant technique for high-resolution protein structure determination, yet automated processing pipelines universally apply quality control (QC) thresholds through silent automatic filtering — bad micrographs are discarded and processing continues without alerting the investigator or providing an explanation. For novel or challenging samples — membrane proteins exhibiting elevated beam-induced motion, low-contrast particles, flexible assemblies — this silent filtering discards scientifically valid data because standard thresholds are inappropriate for the sample biology. We present **BioMate-Cryo**, an AI-assisted cryo-EM processing platform that replaces silent filtering with *interactive, evidence-graded QC governance*: when a threshold is exceeded, the pipeline halts, presents the failing metric with its citation evidence level (GOLD/SILVER/BRONZE), proposes specific parameter changes, and awaits an explicit human decision recorded in a portable audit trail. BioMate-Cryo implements the complete 23-step CryoSPARC single-particle analysis (SPA) pipeline in Nextflow DSL2, with seven QC gate modules covering motion correction, CTF estimation, particle picking, 2D classification, 3D refinement, FSC validation, and atomic model quality. Four named protocol-aware profiles — `purified_protein`, `membrane_protein`, `in_situ_tomography`, and `small_particle` — apply biology-appropriate thresholds; the membrane protein profile relaxes drift acceptance from 50 Å to 80 Å and CTF fit quality from 0.70 to 0.65, consistent with published membrane protein cryo-EM practice. On benchmark data from the Electron Microscopy Public Image Archive (EMPIAR), BioMate-Cryo achieves FSC 0.143 reconstruction of E. coli β-galactosidase (EMPIAR-10028) from 20 micrographs — 24 CryoSPARC jobs, 26,284 final particles, FSC = 3.98 Å (Nyquist-limited), 2.8 GPU-hours, zero gate halts — while providing full audit traceability absent from existing tools. The protocol-discrimination benchmark quantifies false-positive micrograph rejections eliminated when the `membrane_protein` profile is applied vs. the default `purified_protein` profile: 100% of membrane-protein-like exposures (drift 58–74 Å, CTF fit 0.67–0.72) are falsely rejected under `purified_protein`, and none under `membrane_protein`. Every threshold is citation-backed: GOLD thresholds (e.g., FSC 0.143, Henderson et al. 2012) cannot be silently overridden; SILVER thresholds (method-specific best practice) require a logged justification; BRONZE thresholds (community heuristic) are auditable but flexible. Code and audit schema are available from the corresponding authors upon request.
+Single-particle cryo-electron microscopy (cryo-EM) has become the dominant technique for high-resolution protein structure determination, yet automated processing pipelines universally apply quality control (QC) thresholds through silent automatic filtering — bad micrographs are discarded and processing continues without alerting the investigator or providing an explanation. For novel or challenging samples — membrane proteins exhibiting elevated beam-induced motion, low-contrast particles, flexible assemblies — this silent filtering discards scientifically valid data because standard thresholds are inappropriate for the sample biology. We present **BioMate-Cryo**, an AI-assisted cryo-EM processing platform that replaces silent filtering with *interactive, evidence-graded QC governance*: when a threshold is exceeded, the pipeline halts, presents the failing metric with its citation evidence level (GOLD/SILVER/BRONZE), proposes specific parameter changes, and awaits an explicit human decision recorded in a portable audit trail. BioMate-Cryo orchestrates the complete 23-step CryoSPARC single-particle analysis (SPA) pipeline, with seven QC gate modules covering motion correction, CTF estimation, particle picking, 2D classification, 3D refinement, FSC validation, and atomic model quality. Four named protocol-aware profiles — `purified_protein`, `membrane_protein`, `in_situ_tomography`, and `small_particle` — apply biology-appropriate thresholds; the membrane protein profile relaxes drift acceptance from 50 Å to 80 Å and CTF fit quality from 0.70 to 0.65, consistent with published membrane protein cryo-EM practice. On benchmark data from the Electron Microscopy Public Image Archive (EMPIAR), BioMate-Cryo achieves FSC 0.143 reconstruction of E. coli β-galactosidase (EMPIAR-10028) from 20 micrographs — 24 CryoSPARC jobs, 26,284 final particles, FSC = 3.98 Å (Nyquist-limited), 2.8 GPU-hours, zero gate halts — while providing full audit traceability absent from existing tools. The protocol-discrimination benchmark quantifies false-positive micrograph rejections eliminated when the `membrane_protein` profile is applied vs. the default `purified_protein` profile: 100% of membrane-protein-like exposures (drift 58–74 Å, CTF fit 0.67–0.72) are falsely rejected under `purified_protein`, and none under `membrane_protein`. Every threshold is citation-backed: GOLD thresholds (e.g., FSC 0.143, Henderson et al. 2012) cannot be silently overridden; SILVER thresholds (method-specific best practice) require a logged justification; BRONZE thresholds (community heuristic) are auditable but flexible. Code and audit schema are available from the corresponding authors upon request.
 
-**Keywords:** cryo-EM, single-particle analysis, quality control, Nextflow, CryoSPARC, reproducibility, audit trail, membrane proteins, automated processing
+**Keywords:** cryo-EM, single-particle analysis, quality control, CryoSPARC, pipeline orchestration, reproducibility, audit trail, membrane proteins, automated processing
 
 ---
 
@@ -75,9 +75,9 @@ We present BioMate-Cryo, a platform that addresses all three gaps through four i
 
 ### 2.1 Pipeline Architecture
 
-BioMate-Cryo implements the 23-step CryoSPARC single-particle analysis workflow as a Nextflow DSL2 pipeline with four parallelized phases (Fig. 1):
+BioMate-Cryo orchestrates the 23-step CryoSPARC single-particle analysis workflow across four parallelized phases, dispatching independent jobs simultaneously across available GPU workers based on stage dependency analysis (Fig. 1):
 
-**Phase A — Preprocessing (per-micrograph parallel):** Movie import → patch motion correction → patch CTF estimation → micrograph curation. Parallelized across N_batch micrograph batches using Nextflow channel fan-out.
+**Phase A — Preprocessing (per-micrograph parallel):** Movie import → patch motion correction → patch CTF estimation → micrograph curation. BioMate-Cryo dispatches these independently across N_batch micrograph batches simultaneously.
 
 **Phase B — Picking (per-micrograph parallel):** Blob particle picker (R1) → junk 2D detector → inspect picks → extract particles (R1). Parallelized at the micrograph level.
 
@@ -85,11 +85,11 @@ BioMate-Cryo implements the 23-step CryoSPARC single-particle analysis workflow 
 
 **Phase D — Reconstruction (sequential):** Ab-initio reconstruction (K parallel classes) → homogeneous refinement → volume tools → validation FSC → local CTF refinement → non-uniform refinement → local resolution → sharpening.
 
-All phases communicate through Nextflow channels; QC gate processes are inserted between phases as blocking checkpoints that emit either a `PASS` signal (continue) or a `HALT` event (suspend + notify).
+BioMate-Cryo's orchestration layer routes data between phases; QC gate modules are inserted as blocking checkpoints that emit either a `PASS` signal (continue) or a `HALT` event (suspend + notify).
 
 ### 2.2 QC Gate Modules
 
-Seven QC gate modules are implemented as standalone Nextflow processes (Table 1). Each gate takes a structured JSON input from the preceding CryoSPARC job output, evaluates one or more metrics against profile-specific thresholds, and emits a structured gate result:
+Seven QC gate modules are implemented as standalone processes (Table 1). Each gate takes a structured JSON input from the preceding CryoSPARC job output, evaluates one or more metrics against profile-specific thresholds, and emits a structured gate result:
 
 ```json
 {
@@ -156,13 +156,15 @@ Every QC event generates a JSONL record with: ISO-8601 timestamp, run UUID, gate
 
 **Protocol-discrimination benchmark — EMPIAR-10028 with synthetic membrane-protein exposures**: the 20-movie EMPIAR-10028 run (zero gate halts, `purified_protein` profile) is augmented with five synthetic micrograph exposures with motion statistics consistent with the published TRPV1/amphipol profile [13] (total drift: 58.9–74.1 Å; CTF fit quality: 0.67–0.72). This mixed dataset is processed through both `purified_protein` and `membrane_protein` profiles. Results (Table 3): under `purified_protein` (50 Å drift threshold), all 5 membrane-protein-like exposures fail Gate 1 — a 100% false-positive rejection rate. Under `membrane_protein` (80 Å threshold), all 5 pass Gate 1 and all 25 micrographs proceed to downstream processing. The `membrane_protein` profile eliminates 5 false-positive rejections, recovering an estimated ~6,600 particles per 5-micrograph membrane dataset — data that would be silently discarded by a protocol-blind pipeline. Code at `scripts/cryo_pilot/membrane_qc_comparison.py`; results at `scripts/cryo_pilot/membrane_qc_result.json`.
 
-All completed benchmark runs performed on an NVIDIA L4 GPU (g6.2xlarge, AWS us-east-1). Full-dataset runs will use p3.16xlarge (8× V100) for GPU-intensive steps. The CryoSPARC direct executor runs on a persistent EC2 instance; job scheduling and parallelism is orchestrated by Nextflow with AWS Batch integration for CPU preprocessing steps.
+All benchmark runs used a CryoSPARC v5 server on AWS EC2 (NVIDIA L4, g6.2xlarge, us-east-1); BioMate-Cryo connected to this server via cryosparc-tools and orchestrated job submission and parallel stage dispatch.
 
 ### 2.7 CryoSPARC Integration Architecture
 
-BioMate-Cryo integrates with CryoSPARC v5 via the official `cryosparc-tools` Python SDK (Structural Biotechnology Group, 2023). Each SPA step is a Nextflow DSL2 process that: (1) invokes the CryoSPARC API to create and queue a job on the target instance, (2) polls job status at 30-second intervals, and (3) reads structured JSON output from the completed job's `.cs` result groups. The QC gate process runs as a separate Nextflow channel subscriber between pipeline phases, consuming the JSON output and emitting either a `gate_pass` channel event (continue) or writing a `HALT` event to the BioMate audit stream and blocking the downstream channel.
+BioMate-Cryo integrates with CryoSPARC v5 via the official `cryosparc-tools` Python SDK (Structural Biotechnology Group, 2023; BSD-3-Clause license). BioMate-Cryo is a pure orchestration layer: the user runs CryoSPARC under their own license; BioMate-Cryo connects to the user's CryoSPARC server via the `cryosparc-tools` API and orchestrates better data routing, hardware utilisation, and QC governance on top of it. BioMate does not require a CryoSPARC license — it submits, fans out, and monitors jobs on the user's existing installation, which may be on institutional HPC, a cloud instance, or a local workstation.
 
-The direct CryoSPARC executor (`/api/cryosparc/execute`) provisions a persistent EC2 GPU instance, creates a CryoSPARC project and workspace via the Python API, and queues all 24 SPA jobs in sequence. Instance provisioning uses the BioMate fleet manager which selects instance type based on dataset size (≤200 movies → g6.2xlarge 1× L4; ≤2000 movies → g6.12xlarge 4× L4; >2000 movies → p3.16xlarge 8× V100). The instance remains alive between job steps, avoiding re-provisioning overhead.
+Each SPA step: (1) invokes the CryoSPARC API to create and queue a job on the user's instance, (2) polls job status at 30-second intervals, and (3) reads structured JSON output from the completed job's `.cs` result groups. The QC gate module runs between pipeline phases, consuming the JSON output and emitting either a `gate_pass` signal (continue) or writing a `HALT` event to the BioMate audit stream and blocking downstream execution.
+
+The BioMate fleet manager connects to the user's CryoSPARC instance (local cluster, institutional HPC, or user-managed cloud VM) and selects GPU parallelism strategy based on dataset size: ≤200 movies → single GPU lane; ≤2000 movies → 4 parallel GPU workers; >2000 movies → 8 GPU workers. The CryoSPARC instance remains alive between job steps, avoiding re-provisioning overhead. For the benchmark runs reported here, the CryoSPARC server ran on a user-managed AWS EC2 instance (g6.2xlarge for run A; g6.12xlarge for run B).
 
 ### 2.8 Comparison Systems
 
@@ -177,7 +179,7 @@ The direct CryoSPARC executor (`/api/cryosparc/execute`) provisions a persistent
 
 ### 3.1 Pipeline Implementation and Test Coverage
 
-BioMate-Cryo implements all 23 CryoSPARC SPA steps as Nextflow DSL2 processes with channel-based parallelization. The QC gate module contains 181 passing unit tests across three test suites: `test_cryosparc_qc_gates.py` (46 tests covering all gate logic), `test_cryosparc_smart_params.py` (112 tests for parameter recommendation logic), and `test_cryoem_rationale.py` (23 tests for sample-class-aware AI rationale generation). All 181/181 tests pass on a representative CI harness.
+BioMate-Cryo orchestrates all 23 CryoSPARC SPA steps with stage-aware parallelization. The QC gate module contains 181 passing unit tests across three test suites: `test_cryosparc_qc_gates.py` (46 tests covering all gate logic), `test_cryosparc_smart_params.py` (112 tests for parameter recommendation logic), and `test_cryoem_rationale.py` (23 tests for sample-class-aware AI rationale generation). All 181/181 tests pass on a representative CI harness.
 
 ### 3.2 Benchmark: β-Galactosidase (EMPIAR-10028, Pipeline Validation)
 
@@ -210,7 +212,7 @@ A full-resolution benchmark starting from 26,312 pre-polished particle stacks at
 
 **Multi-GPU parallelism detail (run B, g6.12xlarge):**
 
-BioMate-Cryo routes parallel CryoSPARC stages across GPU workers via Nextflow DSL2 channel fan-out. Four worker lanes (worker_0–worker_3) each hold one NVIDIA L4 GPU. Three class_2D jobs, three ab-initio jobs, and three refinement jobs each execute simultaneously on separate lanes — confirmed by live monitoring of CryoSPARC job states showing all three jobs in `running` status concurrently. The 5.7× class_2D speedup (34 min → 6 min) approaches the theoretical 3× limit because the three batches are approximately equal in size; the 2.5× ab-initio speedup reflects the additional serial startup overhead per job.
+BioMate-Cryo identifies independent CryoSPARC stages and dispatches them simultaneously across GPU workers. Four worker lanes (worker_0–worker_3) each hold one NVIDIA L4 GPU. Three class_2D jobs, three ab-initio jobs, and three refinement jobs each execute simultaneously on separate lanes — confirmed by live monitoring of CryoSPARC job states showing all three jobs in `running` status concurrently. The 5.7× class_2D speedup (34 min → 6 min) approaches the theoretical 3× limit because the three batches are approximately equal in size; the 2.5× ab-initio speedup reflects the additional serial startup overhead per job.
 
 **Per-job timing breakdown — Run A (20-movie pipeline, 1× NVIDIA L4, g6.2xlarge, P36) and Run B (particle import, 4× NVIDIA L4, g6.12xlarge, P52):**
 
@@ -358,7 +360,7 @@ BioMate-Cryo demonstrates that the reproducibility gap in cryo-EM processing is 
 
 ## Data and Code Availability
 
-BioMate-Cryo pipeline code (Nextflow DSL2, QC gate modules, 181-test CI suite), audit trail schema (JSON Schema v7), and EMPIAR-10028 benchmark run outputs are available from the corresponding authors upon request.  
+BioMate-Cryo pipeline code (orchestration layer, QC gate modules, 181-test CI suite), audit trail schema (JSON Schema v7), and EMPIAR-10028 benchmark run outputs are available from the corresponding authors upon request.  
 EMPIAR accession numbers used: 10028 (β-galactosidase, primary benchmark); 10005 (TRPV1, protocol-discrimination benchmark — 5 synthetic exposures parameterized from published motion statistics; raw movie download deferred). All datasets are publicly available at ebi.ac.uk/empiar.
 
 ---
@@ -397,7 +399,7 @@ EMPIAR accession numbers used: 10028 (β-galactosidase, primary benchmark); 1000
 
 **Supplementary Table S3:** Example JSONL audit trail records — Gate 1 HALT event structure (schema fields: timestamp, gate_id, metric, measured_value, threshold, profile, action, operator_id), profile-switch override decision record, and resume event. Illustrates the complete governance cycle in machine-readable form. Full EMPIAR-10005 audit trail deferred pending raw movie availability.
 
-**Supplementary Figure S1:** BioMate-Cryo pipeline architecture — Phases A–D with QC gate positions, Nextflow channel fan-out topology, and CryoSPARC executor integration schematic.
+**Supplementary Figure S1:** BioMate-Cryo pipeline architecture — Phases A–D with QC gate positions, parallel dispatch topology, and CryoSPARC executor integration schematic.
 
 **Supplementary Figure S2:** EMPIAR-10028 per-job timing bar chart — 24 CryoSPARC jobs (J1–J24) with GPU compute time and wall-clock time side by side; inter-job scheduler overhead visible.
 

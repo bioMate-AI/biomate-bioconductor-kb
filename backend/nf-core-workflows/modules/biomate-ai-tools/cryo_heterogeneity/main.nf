@@ -97,6 +97,10 @@ if s3_paths:
     open("USE_LOCAL_STAR", "w").close()
 PYEOF
 
+    # Fix MKL/OpenMP threading conflict (kills cryodrgn abinit on some AMIs)
+    export MKL_THREADING_LAYER=GNU
+    export OMP_NUM_THREADS=4
+
     STAR_FILE="\$NXF_PARTICLES"
     if [ -f USE_LOCAL_STAR ]; then
         STAR_FILE="particles_local.star"
@@ -116,13 +120,17 @@ PYEOF
             --log-interval 5
     else
         echo "Training ab initio (abinit mode — no poses required)"
+        export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
         cryodrgn abinit \\
             "\${STAR_FILE}" \\
             --ctf ctf_compat.pkl \\
             -n ${epochs} \\
             --zdim ${zdim} \\
             -o cryodrgn_output/ \\
-            --log-interval 5
+            --log-interval 5 \\
+            --num-workers 0 \\
+            --batch-size-hps 32 \\
+            --batch-size-sgd 256
     fi
 
     echo "Training complete. Epochs saved in cryodrgn_output/"

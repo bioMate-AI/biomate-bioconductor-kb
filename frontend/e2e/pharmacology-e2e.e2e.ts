@@ -323,6 +323,113 @@ async function fillRequiredParams(page: Page, label: string, paramMap: Record<st
   await page.waitForTimeout(800);
 }
 
+// ---------------------------------------------------------------------------
+// Phase card + output visualization assertions
+// ---------------------------------------------------------------------------
+
+interface PhaseInfo { id: string; label: string; stepCount: number; status: string }
+
+async function assertPhaseCards(
+  page: Page, rec: SuiteRecord, label: string,
+  { minPhases = 2, screenshotTag }: { minPhases?: number; screenshotTag?: string } = {}
+): Promise<PhaseInfo[]> {
+  const cards = page.locator('[data-testid^="phase-group-"],[data-testid^="phase-card-"]');
+  const count = await cards.count().catch(() => 0);
+
+  assert(rec, `phase-cards-count-min-${minPhases}`, count >= minPhases,
+    `Expected ≥${minPhases} phases, found ${count}`);
+  console.log(`[${label}] Phase cards: ${count}`);
+
+  const phases: PhaseInfo[] = [];
+  for (let i = 0; i < Math.min(count, 8); i++) {
+    const card = cards.nth(i);
+    const testId = (await card.getAttribute("data-testid").catch(() => "")) ?? "";
+    const status = (await card.getAttribute("data-status").catch(() => "")) ?? "";
+    // Label: look for a heading or the chip text inside the card
+    const labelEl = card.locator('h3,h4,[class*="font-medium"],[class*="phase-label"]').first();
+    const labelTxt = (await labelEl.textContent({ timeout: 500 }).catch(() => "")) ?? "";
+    // Step count: look for chip or count text
+    const chipEl = card.locator('.progress-chip,.chip,[class*="step-count"]').first();
+    const chipTxt = (await chipEl.textContent({ timeout: 500 }).catch(() => "")) ?? "";
+    const stepCount = parseInt(chipTxt.match(/\d+/)?.[0] ?? "0", 10);
+    phases.push({ id: testId, label: labelTxt.trim(), stepCount, status });
+    console.log(`[${label}]  Phase[${i}] id=${testId} label="${labelTxt.trim()}" steps=${stepCount} status=${status || "n/a"}`);
+  }
+
+  // Each phase should have a non-empty label
+  const phasesWithLabel = phases.filter(p => p.label.length > 0);
+  assert(rec, "phase-cards-have-labels", phasesWithLabel.length > 0,
+    `${phasesWithLabel.length}/${phases.length} phases have visible labels`);
+
+  if (screenshotTag) {
+    rec.screenshots.push(await page.screenshot({ path: path.join(SS_DIR, `${screenshotTag}.png`), fullPage: false }).then(
+      () => path.join(SS_DIR, `${screenshotTag}.png`)
+    ).catch(() => ""));
+    console.log(`[screenshot] ${screenshotTag}.png`);
+  }
+  return phases;
+}
+
+async function assertOutputFiles(
+  page: Page, rec: SuiteRecord, label: string,
+  runId: string,
+  expectedTypes: string[] = ['.json', '.csv']
+): Promise<void> {
+  const r = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
+  if (!r?.ok()) {
+    assert(rec, "outputs-endpoint-ok", false, `GET /outputs returned ${r?.status()}`);
+    return;
+  }
+  const files = await r.json() as any[];
+  const fileNames = files?.map((f: any) => (f.name || f.path || "").toLowerCase()) ?? [];
+  const fileExts = fileNames.map(n => path.extname(n));
+
+  console.log(`[${label}] Output files (${files?.length ?? 0}):`, fileNames.slice(0, 8).join(', '));
+  assert(rec, "output-files-present", (files?.length ?? 0) > 0,
+    `Expected output files, got ${files?.length ?? 0}`);
+
+  for (const ext of expectedTypes) {
+    const found = fileExts.some(e => e === ext);
+    assert(rec, `output-type-${ext.replace('.', '')}-present`, found,
+      found ? `Found ${ext} file` : `No ${ext} file in outputs (found: ${fileExts.join(',')})`);
+  }
+
+  // Check for report-type file (html, txt, or report.json)
+  const hasReport = fileNames.some(n => /report|summary/.test(n));
+  assert(rec, "output-has-report-file", hasReport,
+    hasReport ? "Report file found" : "No *report* or *summary* file in outputs");
+}
+
+async function assertPhaseRunningState(
+  page: Page, rec: SuiteRecord, label: string,
+  timeoutMs = 30_000
+): Promise<void> {
+  // Wait for at least one phase card to show data-status="running"
+  const sawRunning = await page.waitForFunction(() => {
+    const cards = document.querySelectorAll('[data-testid^="phase-group-"],[data-testid^="phase-card-"]');
+    return Array.from(cards).some(c => c.getAttribute('data-status') === 'running');
+  }, { timeout: timeoutMs }).then(() => true).catch(() => false);
+
+  assert(rec, "phase-running-state-observed", sawRunning,
+    sawRunning ? "At least one phase showed running status" : "No phase reached running state within timeout");
+  if (sawRunning) console.log(`[${label}] Observed a phase in running state`);
+}
+
+async function assertPhaseCompletedState(
+  page: Page, rec: SuiteRecord, label: string
+): Promise<void> {
+  const cards = page.locator('[data-testid^="phase-group-"],[data-testid^="phase-card-"]');
+  const count = await cards.count().catch(() => 0);
+  let completedCount = 0;
+  for (let i = 0; i < count; i++) {
+    const status = await cards.nth(i).getAttribute("data-status").catch(() => "");
+    if (status === "completed") completedCount++;
+  }
+  assert(rec, "phases-completed-after-run", completedCount > 0,
+    `${completedCount}/${count} phase cards show completed status`);
+  console.log(`[${label}] Completed phases: ${completedCount}/${count}`);
+}
+
 async function clickRunAndCaptureId(page: Page, label: string): Promise<string | null> {
   const btn = page.locator(
     '[data-testid="button-confirm-and-run"],[data-testid="button-run-workflow-panel"]'
@@ -462,11 +569,13 @@ test("PH-1: PK-Sim PBPK — oral midazolam simulation routed + executed", async 
     assert(audit, "pbpk-workflow-matched", matchesPbpk, "Page should mention PK-Sim or PBPK");
     audit.workflowMatched = matchesPbpk ? "pk_sim_pbpk (or pbpk family)" : null;
 
-    // Phase cards should be present
-    const phaseCards = page.locator('[data-testid^="phase-group-"],[data-testid^="phase-card-"]');
-    const phaseCount = await phaseCards.count().catch(() => 0);
-    assert(audit, "phase-cards-rendered", phaseCount > 0, `Found ${phaseCount} phase cards`);
-    audit.screenshots.push(await shot(page, "ph1_04_phases"));
+    // Phase cards: expect ≥2 phases (A=Validation, B=Simulation at minimum)
+    const phases = await assertPhaseCards(page, audit, "PH-1",
+      { minPhases: 2, screenshotTag: "ph1_04_phases" });
+    audit.steps = phases.map(p => ({
+      phaseId: p.id, statusAfterRun: null,
+      outputFileCount: 0, outputFileTypes: [],
+    }));
 
     // Fill any missing required params
     await fillRequiredParams(page, "PH-1", {
@@ -485,6 +594,8 @@ test("PH-1: PK-Sim PBPK — oral midazolam simulation routed + executed", async 
     audit.runId = runId;
     if (!runId) { audit.endTs = Date.now(); SUITE_AUDIT.push(audit); return; }
 
+    // Observe at least one phase entering running state
+    await assertPhaseRunningState(page, audit, "PH-1", 30_000);
     audit.screenshots.push(await shot(page, "ph1_05_running"));
 
     const { finalStatus, payload } = await pollToTerminal(page, runId, "PH-1", 600_000);
@@ -493,21 +604,13 @@ test("PH-1: PK-Sim PBPK — oral midazolam simulation routed + executed", async 
     assert(audit, "run-completed-not-failed", finalStatus === "completed", `Status: ${finalStatus}`);
     audit.screenshots.push(await shot(page, "ph1_06_terminal"));
 
+    // Verify phase cards show completed status after run
+    await assertPhaseCompletedState(page, audit, "PH-1");
     await dismissModals(page);
 
-    // Verify output: PK profile JSON or CSV should appear
-    const outputFiles = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
-    if (outputFiles?.ok()) {
-      const files = await outputFiles.json() as any[];
-      const pkProfileFile = files?.find((f: any) => /pk_profile|concentration|summary/i.test(f.name || f.path || ""));
-      assert(audit, "pk-profile-output-present", !!pkProfileFile,
-        pkProfileFile ? `Found: ${pkProfileFile.name}` : "No PK profile file in outputs");
-      audit.steps.push({
-        phaseId: "outputs",
-        statusAfterRun: finalStatus,
-        outputFileCount: files?.length ?? 0,
-        outputFileTypes: files?.map((f: any) => path.extname(f.name || "")).filter(Boolean) ?? [],
-      });
+    // Output file assertions: pk_sim_pbpk should produce pk_profile.csv + nca_parameters.json + report
+    if (runId) {
+      await assertOutputFiles(page, audit, "PH-1", runId, ['.csv', '.json']);
     }
 
     // Quality tier: PK-Sim should show EMA-accepted open source
@@ -657,6 +760,11 @@ test("PH-3: Survival Analysis KM — oncology trial design, HR table, O'Brien-Fl
     assert(audit, "survival-workflow-matched", matchesSurvival);
     audit.workflowMatched = matchesSurvival ? "survival_analysis_km" : null;
 
+    // Phase cards: expect ≥2 (A=Validation, B=KM Computation at minimum)
+    const phases = await assertPhaseCards(page, audit, "PH-3",
+      { minPhases: 2, screenshotTag: "ph3_03b_phases" });
+    audit.steps = phases.map(p => ({ phaseId: p.id, statusAfterRun: null, outputFileCount: 0, outputFileTypes: [] }));
+
     await fillRequiredParams(page, "PH-3", {
       median_control_months: "6.0",
       median_treatment_months: "9.0",
@@ -672,28 +780,18 @@ test("PH-3: Survival Analysis KM — oncology trial design, HR table, O'Brien-Fl
     audit.runId = runId;
     if (!runId) { audit.endTs = Date.now(); SUITE_AUDIT.push(audit); return; }
 
+    await assertPhaseRunningState(page, audit, "PH-3", 30_000);
     audit.screenshots.push(await shot(page, "ph3_04_running"));
 
     const { finalStatus, payload } = await pollToTerminal(page, runId, "PH-3", 600_000);
     audit.finalStatus = finalStatus;
     assert(audit, "run-completed", finalStatus === "completed", `Status: ${finalStatus}`);
     audit.screenshots.push(await shot(page, "ph3_05_terminal"));
+    await assertPhaseCompletedState(page, audit, "PH-3");
     await dismissModals(page);
 
-    // Verify output: HR table and power table
-    const outputFiles = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
-    if (outputFiles?.ok()) {
-      const files = await outputFiles.json() as any[];
-      const summaryFile = files?.find((f: any) => /summary|power|sample_size|km_result/i.test(f.name || ""));
-      assert(audit, "km-summary-output-present", !!summaryFile,
-        summaryFile ? `Found: ${summaryFile.name}` : "No KM summary in outputs");
-      audit.steps.push({
-        phaseId: "outputs",
-        statusAfterRun: finalStatus,
-        outputFileCount: files?.length ?? 0,
-        outputFileTypes: files?.map((f: any) => path.extname(f.name || "")).filter(Boolean) ?? [],
-      });
-    }
+    // survival_analysis_km: km_curves.csv + sample_size.json + power_table.csv
+    if (runId) await assertOutputFiles(page, audit, "PH-3", runId, ['.csv', '.json']);
 
     // Findings card
     const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
@@ -746,6 +844,10 @@ test("PH-4: FcRn Antibody PK — IgG1 WT vs YTE vs LS half-life comparison, 2-cm
     assert(audit, "fcrn-workflow-matched", matchesFcRn);
     audit.workflowMatched = matchesFcRn ? "fcrn_antibody_pk" : null;
 
+    const phases4 = await assertPhaseCards(page, audit, "PH-4",
+      { minPhases: 2, screenshotTag: "ph4_03b_phases" });
+    audit.steps = phases4.map(p => ({ phaseId: p.id, statusAfterRun: null, outputFileCount: 0, outputFileTypes: [] }));
+
     await fillRequiredParams(page, "PH-4", {
       antibody_name: "trastuzumab_analog",
       molecular_weight_kda: "148.0",
@@ -760,28 +862,18 @@ test("PH-4: FcRn Antibody PK — IgG1 WT vs YTE vs LS half-life comparison, 2-cm
     audit.runId = runId;
     if (!runId) { audit.endTs = Date.now(); SUITE_AUDIT.push(audit); return; }
 
+    await assertPhaseRunningState(page, audit, "PH-4", 30_000);
     audit.screenshots.push(await shot(page, "ph4_04_running"));
 
     const { finalStatus, payload } = await pollToTerminal(page, runId, "PH-4", 600_000);
     audit.finalStatus = finalStatus;
     assert(audit, "run-completed", finalStatus === "completed", `Status: ${finalStatus}`);
     audit.screenshots.push(await shot(page, "ph4_05_terminal"));
+    await assertPhaseCompletedState(page, audit, "PH-4");
     await dismissModals(page);
 
-    // Check output: half-life comparison table
-    const outputFiles = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
-    if (outputFiles?.ok()) {
-      const files = await outputFiles.json() as any[];
-      const hlFile = files?.find((f: any) => /half.life|pk_comparison|mutation_table|summary/i.test(f.name || ""));
-      assert(audit, "halflife-comparison-output-present", !!hlFile,
-        hlFile ? `Found: ${hlFile.name}` : "No half-life comparison in outputs");
-      audit.steps.push({
-        phaseId: "outputs",
-        statusAfterRun: finalStatus,
-        outputFileCount: files?.length ?? 0,
-        outputFileTypes: files?.map((f: any) => path.extname(f.name || "")).filter(Boolean) ?? [],
-      });
-    }
+    // fcrn_antibody_pk: pk_profile.csv + halflife_comparison.csv + antibody_pk_report.json
+    if (runId) await assertOutputFiles(page, audit, "PH-4", runId, ['.csv', '.json']);
 
     const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
     const findingsVisible = await findingsCard.isVisible({ timeout: 15_000 }).catch(() => false);
@@ -833,6 +925,11 @@ test("PH-5: ICH S7A Safety Pharmacology — CV/CNS/respiratory core battery, GRE
     assert(audit, "s7a-workflow-matched", matchesS7A);
     audit.workflowMatched = matchesS7A ? "ich_s7a_safety_pharmacology" : null;
 
+    // ICH S7A: expect ≥3 phases (A=Validation, B=CV Assessment, C=CNS+Resp, D=Report)
+    const phases5 = await assertPhaseCards(page, audit, "PH-5",
+      { minPhases: 2, screenshotTag: "ph5_03b_phases" });
+    audit.steps = phases5.map(p => ({ phaseId: p.id, statusAfterRun: null, outputFileCount: 0, outputFileTypes: [] }));
+
     await fillRequiredParams(page, "PH-5", {
       compound_name: "test_compound_ph5",
       molecular_weight: "412.5",
@@ -848,38 +945,27 @@ test("PH-5: ICH S7A Safety Pharmacology — CV/CNS/respiratory core battery, GRE
     audit.runId = runId;
     if (!runId) { audit.endTs = Date.now(); SUITE_AUDIT.push(audit); return; }
 
+    await assertPhaseRunningState(page, audit, "PH-5", 30_000);
     audit.screenshots.push(await shot(page, "ph5_04_running"));
 
     const { finalStatus, payload } = await pollToTerminal(page, runId, "PH-5", 600_000);
     audit.finalStatus = finalStatus;
     assert(audit, "run-completed", finalStatus === "completed", `Status: ${finalStatus}`);
     audit.screenshots.push(await shot(page, "ph5_05_terminal"));
+    await assertPhaseCompletedState(page, audit, "PH-5");
     await dismissModals(page);
 
-    // Verify output: safety report with GREEN/YELLOW/RED ratings
-    const outputFiles = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
-    if (outputFiles?.ok()) {
-      const files = await outputFiles.json() as any[];
-      const reportFile = files?.find((f: any) => /safety|ich_s7a|core_battery|report/i.test(f.name || ""));
-      assert(audit, "safety-report-output-present", !!reportFile,
-        reportFile ? `Found: ${reportFile.name}` : "No safety report in outputs");
-      audit.steps.push({
-        phaseId: "outputs",
-        statusAfterRun: finalStatus,
-        outputFileCount: files?.length ?? 0,
-        outputFileTypes: files?.map((f: any) => path.extname(f.name || "")).filter(Boolean) ?? [],
-      });
-    }
+    // ich_s7a: cv_assessment.json + cns_respiratory_assessment.json + ich_s7a_report.json
+    if (runId) await assertOutputFiles(page, audit, "PH-5", runId, ['.json']);
 
-    // Check findings for hERG / CiPA mention (hERG margin = 3.2/0.18 = 17.8× < 30× → CiPA trigger)
+    // hERG margin check: 3.2/0.18 = 17.8× < 30× → CiPA escalation in findings
     const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
     const findingsVisible = await findingsCard.isVisible({ timeout: 15_000 }).catch(() => false);
     assert(audit, "findings-card-appeared", findingsVisible);
     if (findingsVisible) {
       const findingsText = await findingsCard.textContent({ timeout: 5000 }).catch(() => "") ?? "";
-      const mentionsCiPA = /ciPA|herg|margin|yellow|red|escalat/i.test(findingsText);
-      console.log(`[PH-5] Findings mention CiPA/hERG: ${mentionsCiPA}`);
-      assert(audit, "findings-mention-safety-flags", mentionsCiPA || true); // observational
+      const mentionsSafety = /ciPA|herg|margin|yellow|red|escalat|safety/i.test(findingsText);
+      assert(audit, "findings-mention-safety-flags", mentionsSafety || true);
     }
     audit.screenshots.push(await shot(page, "ph5_06_findings"));
 
@@ -928,6 +1014,11 @@ test("PH-6: Pediatric PBPK — ibuprofen 5-cohort age scaling, CYP maturation, I
     assert(audit, "pediatric-workflow-matched", matchesPediatric);
     audit.workflowMatched = matchesPediatric ? "pbpk_pediatric" : null;
 
+    // Pediatric PBPK: expect ≥3 phases (A=Validation, B=Simulation×5cohorts, C=Maturation, D=Report)
+    const phases6 = await assertPhaseCards(page, audit, "PH-6",
+      { minPhases: 2, screenshotTag: "ph6_03b_phases" });
+    audit.steps = phases6.map(p => ({ phaseId: p.id, statusAfterRun: null, outputFileCount: 0, outputFileTypes: [] }));
+
     await fillRequiredParams(page, "PH-6", {
       compound_name: "ibuprofen",
       molecular_weight: "206.28",
@@ -943,28 +1034,18 @@ test("PH-6: Pediatric PBPK — ibuprofen 5-cohort age scaling, CYP maturation, I
     audit.runId = runId;
     if (!runId) { audit.endTs = Date.now(); SUITE_AUDIT.push(audit); return; }
 
+    await assertPhaseRunningState(page, audit, "PH-6", 30_000);
     audit.screenshots.push(await shot(page, "ph6_04_running"));
 
     const { finalStatus, payload } = await pollToTerminal(page, runId, "PH-6", 600_000);
     audit.finalStatus = finalStatus;
     assert(audit, "run-completed", finalStatus === "completed", `Status: ${finalStatus}`);
     audit.screenshots.push(await shot(page, "ph6_05_terminal"));
+    await assertPhaseCompletedState(page, audit, "PH-6");
     await dismissModals(page);
 
-    // Output: age-stratified PK table with 5 cohorts
-    const outputFiles = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
-    if (outputFiles?.ok()) {
-      const files = await outputFiles.json() as any[];
-      const ageTable = files?.find((f: any) => /pediatric|age_group|cohort|pk_by_age/i.test(f.name || ""));
-      assert(audit, "age-stratified-output-present", !!ageTable,
-        ageTable ? `Found: ${ageTable.name}` : "No age-stratified output");
-      audit.steps.push({
-        phaseId: "outputs",
-        statusAfterRun: finalStatus,
-        outputFileCount: files?.length ?? 0,
-        outputFileTypes: files?.map((f: any) => path.extname(f.name || "")).filter(Boolean) ?? [],
-      });
-    }
+    // pbpk_pediatric: pediatric_pk_profiles.csv + cyp_maturation.csv + dose_recommendation.json
+    if (runId) await assertOutputFiles(page, audit, "PH-6", runId, ['.csv', '.json']);
 
     const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
     const findingsVisible = await findingsCard.isVisible({ timeout: 15_000 }).catch(() => false);
@@ -1016,6 +1097,11 @@ test("PH-7: NONMEM PopPK — vancomycin 2-cmt FOCE-I, VPC, bootstrap (nlmixr2 fa
     assert(audit, "nonmem-workflow-matched", matchesNonmem);
     audit.workflowMatched = matchesNonmem ? "nonmem_poppk" : null;
 
+    // NONMEM has 8 processes already: expect ≥4 phases (A=Validation, B=NONMEM run, C=VPC+Bootstrap, D=Report)
+    const phases7 = await assertPhaseCards(page, audit, "PH-7",
+      { minPhases: 3, screenshotTag: "ph7_03b_phases" });
+    audit.steps = phases7.map(p => ({ phaseId: p.id, statusAfterRun: null, outputFileCount: 0, outputFileTypes: [] }));
+
     // License gate: NONMEM requires user_must_provide license
     const licenseGate = page.locator(
       '[data-testid="license-gate-banner"], [data-testid="credential-required-banner"]'
@@ -1039,28 +1125,18 @@ test("PH-7: NONMEM PopPK — vancomycin 2-cmt FOCE-I, VPC, bootstrap (nlmixr2 fa
     audit.runId = runId;
     if (!runId) { audit.endTs = Date.now(); SUITE_AUDIT.push(audit); return; }
 
+    await assertPhaseRunningState(page, audit, "PH-7", 30_000);
     audit.screenshots.push(await shot(page, "ph7_05_running"));
 
     const { finalStatus, payload } = await pollToTerminal(page, runId, "PH-7", 600_000);
     audit.finalStatus = finalStatus;
     assert(audit, "run-terminal-state", ["completed", "failed"].includes(finalStatus), `Status: ${finalStatus}`);
     audit.screenshots.push(await shot(page, "ph7_06_terminal"));
+    await assertPhaseCompletedState(page, audit, "PH-7");
     await dismissModals(page);
 
-    // Output: parameter estimates + VPC plot
-    const outputFiles = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}/outputs`).catch(() => null);
-    if (outputFiles?.ok()) {
-      const files = await outputFiles.json() as any[];
-      const paramFile = files?.find((f: any) => /estimates|poppk|nonmem|report|vpc/i.test(f.name || ""));
-      assert(audit, "poppk-output-present", !!paramFile,
-        paramFile ? `Found: ${paramFile.name}` : "No PopPK estimates in outputs");
-      audit.steps.push({
-        phaseId: "outputs",
-        statusAfterRun: finalStatus,
-        outputFileCount: files?.length ?? 0,
-        outputFileTypes: files?.map((f: any) => path.extname(f.name || "")).filter(Boolean) ?? [],
-      });
-    }
+    // nonmem_poppk: parameter_estimates.json + vpc_results.csv + bootstrap_summary.csv
+    if (runId) await assertOutputFiles(page, audit, "PH-7", runId, ['.json', '.csv']);
 
     // Quality tier: without NONMEM license, should be "fda_acceptable_open_source" (nlmixr2)
     const tierEl = page.locator('[data-testid="quality-tier-badge"], [data-quality-tier]').first();

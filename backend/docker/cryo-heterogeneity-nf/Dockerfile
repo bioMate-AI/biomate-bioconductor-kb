@@ -35,8 +35,17 @@ RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
     && rm -rf /tmp/fpocket
 
 # ── Python packages ───────────────────────────────────────────────────────────
+# Install torch CUDA version explicitly BEFORE requirements.txt to prevent
+# pip from overwriting the base image's CUDA-enabled torch with a CPU-only build.
+RUN pip install --no-cache-dir \
+    "torch==2.1.0" \
+    --index-url https://download.pytorch.org/whl/cu121
+
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Install remaining deps without reinstalling torch
+RUN pip install --no-cache-dir -r /tmp/requirements.txt --no-deps || \
+    pip install --no-cache-dir -r /tmp/requirements.txt \
+    && python -c "import torch; print('torch', torch.__version__, 'cuda:', torch.cuda.is_available())"
 
 ENV PATH="/opt/aws-cli/bin:${PATH}"
 

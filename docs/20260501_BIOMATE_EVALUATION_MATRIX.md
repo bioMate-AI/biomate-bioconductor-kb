@@ -29,12 +29,13 @@ BioMate is evaluated across 17 benchmarks covering 5 capability dimensions:
 | 12 | **Docking v2** | 45 | **78.9%** | ≥70% | ✅ | 61s | $0 |
 | 13 | **LABBench v10** | 33 | **61.1%** | ≥60% | ✅ | 16s | $0.005 |
 | 14 | **SGI-Bench idea_gen v5** | 87 | **62.1%** | ≥40% | ✅ | 45s | — |
-| 15 | **BixBench v16** | 205 | **65.4%** | ≥80% | ❌ | ~30s | — |
-| 15b | **BixBench v10 (30-task subset)** | 30 | **80.0%** | ≥80% | ✅ | ~30s | — |
+| 15 | **BixBench v20 (local_exec)** | 205 | **69.3%** | ≥80% | ❌ | ~4s | — |
+| 15b | **BixBench v14 (biomate_exec)** | 205 | **TBD** | ≥80% | — | ~8s | — |
+| 15c | **BixBench v10 (30-task subset)** | 30 | **80.0%** | ≥80% | ✅ | ~30s | — |
 | 16 | **BiomniEval1 screen_gene** | 50 | **42.0%** | ≥70% | ❌ | 28s | $0.005 |
 
 **15/16 benchmarks at or above target on 30-task subset. 2 remaining gaps (BixBench full, screen_gene).**
-**Full 205-task BixBench: 65.4% (v16) — PhyKIT formulas fixed, 71 tasks remaining. Target ≥80% (v17 pending).**
+**BixBench local_exec: v20=69.3% (not meaningful — bypasses BioMate). BixBench biomate_exec: v12=49.8% baseline, v14=TBD (upload bug fixed + R/DESeq2/BWA now installed + system prompt improvements).**
 
 ---
 

@@ -124,6 +124,59 @@ class BioMateEvalClient:
         )
 
     # ------------------------------------------------------------------
+    # File upload
+    # ------------------------------------------------------------------
+
+    def upload_file(self, file_path: str, description: str = "") -> Dict[str, Any]:
+        """
+        Upload a local file to BioMate via /api/datasets/upload.
+
+        Returns a dict with:
+          dataset_id       — local UUID assigned by BioMate
+          galaxy_dataset_id — Galaxy dataset ID (may be None if Galaxy unavailable)
+          name             — original filename
+
+        Raises requests.HTTPError on failure.
+        The uploaded file appears in the session so subsequent chat messages
+        can reference it via [Uploaded datasets: ...] notation.
+        """
+        import mimetypes
+        file_path_obj = __import__("pathlib").Path(file_path)
+        mime = mimetypes.guess_type(str(file_path_obj))[0] or "application/octet-stream"
+
+        upload_session = requests.Session()
+        e2e_token = os.environ.get("E2E_TEST_TOKEN", "biomate-e2e-bypass-token-dev-only")
+        upload_session.headers.update({
+            "Authorization": f"Bearer {self.token}",
+            "X-E2E-Test-Token": e2e_token,
+        })
+
+        with open(file_path, "rb") as fh:
+            resp = upload_session.post(
+                f"{self.base_url}/api/datasets/upload",
+                files={"file": (file_path_obj.name, fh, mime)},
+                data={"description": description} if description else {},
+                timeout=120,
+            )
+        resp.raise_for_status()
+        return resp.json()
+
+    def format_uploaded_datasets_block(self, uploads: List[Dict[str, Any]]) -> str:
+        """
+        Format an [Uploaded datasets: ...] block from a list of upload responses.
+        Each upload dict must have 'name', 'dataset_id', 'galaxy_dataset_id'.
+        This block is appended to a chat message so BioMate knows which files
+        are staged and can reference them in run_code calls.
+        """
+        parts = []
+        for u in uploads:
+            name = u.get("name", "file")
+            did = u.get("dataset_id", "")
+            gid = u.get("galaxy_dataset_id") or ""
+            parts.append(f"{name}: dataset_id={did}, galaxy_dataset_id={gid}")
+        return "[Uploaded datasets: " + "; ".join(parts) + "]"
+
+    # ------------------------------------------------------------------
     # Single-turn chat
     # ------------------------------------------------------------------
 

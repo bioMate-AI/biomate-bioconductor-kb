@@ -7,11 +7,13 @@ biomate:
     email: evaltest3@biomate.test
     password: Test123456!
 llm_judge:
-  model: claude-sonnet-4-6  # upgraded from Haiku for more reliable scoring on borderline answers
+  model: claude-haiku-4-5-20251001  # using Haiku for cost efficiency
   max_tokens: 50
   temperature: 0.0
   # Set ANTHROPIC_API_KEY env var, or put the key here:
   # api_key: sk-ant-api03-...
+  # Gemini fallback (used when Anthropic credit is exhausted)
+  gemini_api_key: AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI
 external_apis:
   biogrid_orcs_key: 5bec3884b8d8deddaab64c6743ed4cff
 paths:
