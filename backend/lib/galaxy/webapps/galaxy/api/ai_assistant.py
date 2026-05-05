@@ -682,6 +682,7 @@ _GENERIC_PHASE_RULES: list = [
 ]
 
 
+
 def _enrich_steps_with_phase_info(
     steps: dict,
     content: str,
@@ -692,6 +693,14 @@ def _enrich_steps_with_phase_info(
 
     # ── Parse per-process params.* references from the .nf file content ──
     process_param_refs: dict = {}
+    # ── Parse inline phase annotations: // [Phase X] Label before each process ──
+    # Convention: a comment line immediately before (or within) a process block
+    # in the form  // [Phase A] Phase A — Compound Validation
+    # assigns that process to the named phase group.
+    inline_phase_map: dict = {}   # process_name_upper -> (group, label)
+    _phase_comment_re = re.compile(
+        r'//\s*\[Phase\s+([A-Za-z0-9]+)\]\s*(.*)', re.IGNORECASE
+    )
     if content:
         proc_starts = list(re.finditer(r'^process\s+(\w+)\s*\{', content, re.MULTILINE))
         for i, m in enumerate(proc_starts):
@@ -700,9 +709,23 @@ def _enrich_steps_with_phase_info(
             end = proc_starts[i + 1].start() if i + 1 < len(proc_starts) else len(content)
             body = content[start:end]
             refs = list(dict.fromkeys(re.findall(r'params\.([a-zA-Z_]\w*)', body)))
-            # Remove internal/infra params
             refs = [r for r in refs if r not in _NF_SKIP_PARAMS]
             process_param_refs[proc_name] = refs
+
+            # Scan the 10 lines before this process for a [Phase X] comment
+            proc_line = content[:m.start()].count('\n')
+            file_lines = content.splitlines()
+            scan_start = max(0, proc_line - 10)
+            for line in reversed(file_lines[scan_start:proc_line]):
+                ph_m = _phase_comment_re.search(line)
+                if ph_m:
+                    pg = ph_m.group(1).strip().upper()
+                    pl = ph_m.group(2).strip() or f'Phase {pg}'
+                    inline_phase_map[proc_name] = (pg, pl)
+                    break
+                # Stop scanning if we hit another process definition or blank section
+                if re.match(r'^process\s+', line.strip()):
+                    break
 
     # ── Assign phase groups and per-step params ──
     for idx_str, step in steps.items():
@@ -710,12 +733,19 @@ def _enrich_steps_with_phase_info(
         tool_id = step.get('tool_id', '').upper()
 
         if is_cryosparc and idx in _CRYOSPARC_STEP_PHASES:
+            # CryoSPARC: keep existing hardcoded map (complex parallel structure)
             pg, pl = _CRYOSPARC_STEP_PHASES[idx]
             step['phase_group'] = pg
             step['phase_label'] = pl
             param_names = _CRYOSPARC_STEP_PARAMS.get(idx, [])
+        elif tool_id in inline_phase_map:
+            # File-based annotation takes priority over keyword matching
+            pg, pl = inline_phase_map[tool_id]
+            step['phase_group'] = pg
+            step['phase_label'] = pl
+            param_names = process_param_refs.get(tool_id, [])
         else:
-            # Generic keyword-based assignment
+            # Generic keyword-based assignment (fallback for unannotated workflows)
             pg, pl = '', ''
             for keywords, group, label in _GENERIC_PHASE_RULES:
                 if any(k in tool_id for k in keywords):
@@ -723,7 +753,6 @@ def _enrich_steps_with_phase_info(
                     break
             step['phase_group'] = pg
             step['phase_label'] = pl
-            # Use process body param refs for generic case
             param_names = process_param_refs.get(tool_id, [])
 
         # Populate parameters as {name: {default: None}} placeholder metadata

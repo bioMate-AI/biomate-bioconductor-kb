@@ -28,6 +28,7 @@ params.n_doses             = '1'
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
 // ---------------------------------------------------------------------------
+// [Phase A] Phase A — Antibody Parameter Validation
 process VALIDATE_ANTIBODY_PARAMS {
     tag 'validate'
     label 'process_low'
@@ -117,6 +118,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase B: Core Computation (FcRn PK Simulation)
 // ---------------------------------------------------------------------------
+// [Phase B] Phase B — FcRn PK Simulation
 process FCRN_PK_SIMULATION {
     tag 'fcrn_pk'
     label 'process_low'
@@ -278,6 +280,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase C: Analysis & QC (Mutation Comparison)
 // ---------------------------------------------------------------------------
+// [Phase C] Phase C — Fc Mutation Comparison
 process COMPARE_FC_MUTATIONS {
     tag 'mut_compare'
     label 'process_low'
@@ -380,6 +383,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase D: Report & Export
 // ---------------------------------------------------------------------------
+// [Phase D] Phase D — Antibody PK Report
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'

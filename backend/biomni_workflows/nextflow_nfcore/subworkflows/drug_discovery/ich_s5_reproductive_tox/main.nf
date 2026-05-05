@@ -41,6 +41,7 @@ params.ppnd_segment         = false         // run PPND (Segment III - usually P
 params.species_efd          = 'rat,rabbit'  // default dual-species EFD per ICH S5(R3)
 params.outdir               = 'results/ich_s5_reproductive_tox'
 
+// [Phase A] Phase A — Structural Alert Scan
 process STRUCTURAL_ALERT_SCAN {
     tag "${params.compound_name}"
     publishDir "${params.outdir}", mode: 'copy'
@@ -161,6 +162,7 @@ PYEOF
     """
 }
 
+// [Phase B] Phase B — DART In Silico Prediction
 process DART_IN_SILICO_PREDICTION {
     tag "${params.compound_name}"
     publishDir "${params.outdir}", mode: 'copy'
@@ -290,6 +292,7 @@ PYEOF
     """
 }
 
+// [Phase D] Phase D — ICH S5(R3) Safety Report
 process AGGREGATE_SAFETY_REPORT {
     tag "${params.compound_name}"
     publishDir "${params.outdir}", mode: 'copy'

@@ -28,6 +28,7 @@ params.indication               = 'infectious'
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
 // ---------------------------------------------------------------------------
+// [Phase A] Phase A — Compound Parameter Validation
 process VALIDATE_COMPOUND_PARAMS {
     tag 'validate'
     label 'process_low'
@@ -109,6 +110,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase B: Core Computation (Pediatric PBPK Simulation)
 // ---------------------------------------------------------------------------
+// [Phase B] Phase B — Pediatric PBPK Simulation (5 Cohorts)
 process PBPK_PEDIATRIC_SIMULATE {
     tag 'peds_sim'
     label 'process_medium'
@@ -335,6 +337,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase C: Analysis & QC (Maturation + Dose Recommendations)
 // ---------------------------------------------------------------------------
+// [Phase C] Phase C — CYP & GFR Maturation Analysis
 process EVALUATE_MATURATION {
     tag 'maturation'
     label 'process_low'
@@ -446,6 +449,7 @@ PYEOF
 // ---------------------------------------------------------------------------
 // Phase D: Report & Export
 // ---------------------------------------------------------------------------
+// [Phase D] Phase D — Dose Recommendation Report
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'

@@ -49,6 +49,7 @@ params.efflux_ratio_bcrp    = null          // from MDCK-BCRP cell line
 
 params.outdir               = 'results/transporter_ddi'
 
+// [Phase B] Phase B — Transporter R-Value Calculation
 process CALCULATE_R_VALUES {
     tag "${params.compound_name}"
     publishDir "${params.outdir}", mode: 'copy'
@@ -278,6 +279,7 @@ PYEOF
     """
 }
 
+// [Phase D] Phase D — Transporter DDI Report
 process GENERATE_TRANSPORTER_REPORT {
     tag "${params.compound_name}"
     publishDir "${params.outdir}", mode: 'copy'

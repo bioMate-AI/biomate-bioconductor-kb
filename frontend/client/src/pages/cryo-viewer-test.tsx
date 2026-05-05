@@ -78,6 +78,28 @@ export default function CryoViewerTest() {
         </section>
       </div>
 
+      {/* Row 1b: All 3 homogeneous refinement volumes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 32 }}>
+        <section data-testid="volume-3d-k1">
+          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
+            3D Map — Homo Refinement vol_1 (J22, D2)
+          </h2>
+          <MrcViewer s3={`${S3}/17_homogeneous_refinement/vol_1/cs_out_J22_003_volume_precision.mrc`} title="vol_1 (4.3 MB)" />
+        </section>
+        <section data-testid="volume-3d-k2">
+          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
+            3D Map — Homo Refinement vol_2 (J21, D2)
+          </h2>
+          <MrcViewer s3={`${S3}/17_homogeneous_refinement/vol_2/cs_out_J21_004_volume_precision.mrc`} title="vol_2 (4.3 MB)" />
+        </section>
+        <section data-testid="volume-3d-homo">
+          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
+            3D Map — Homo Refinement vol_3 (J20, D2, 28,477 ptcls)
+          </h2>
+          <MrcViewer s3={`${S3}/17_homogeneous_refinement/vol_3/cs_out_J20_003_volume_precision.mrc`} title="vol_3 (4.3 MB)" />
+        </section>
+      </div>
+
       {/* Row 2: Motion + CTF reports */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
         <section data-testid="motion-viewer">

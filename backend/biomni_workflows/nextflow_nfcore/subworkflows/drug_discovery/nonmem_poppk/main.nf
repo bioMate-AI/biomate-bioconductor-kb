@@ -98,6 +98,7 @@ def detectExecMode() {
 // Processes
 // ============================================================================
 
+// [Phase A] Phase A — Data Validation
 process DATA_VALIDATION {
     /*
      * Validate the NONMEM-format dataset.
@@ -219,6 +220,7 @@ PYEOF
 }
 
 
+// [Phase B] Phase B — Control File Generation
 process NONMEM_CTL_GENERATE {
     /*
      * Generate a NONMEM 7.x control file (.ctl) for the specified compartment
@@ -414,6 +416,7 @@ PYEOF
 }
 
 
+// [Phase B] Phase B — NONMEM Estimation (FOCE-I)
 process NONMEM_RUN {
     /*
      * Execute NONMEM via nmfe75 (or nmfe74) and parse run001.lst for:
@@ -625,6 +628,7 @@ PYEOF
 }
 
 
+// [Phase B] Phase B — nlmixr2 Fallback Estimation
 process NLMIXR2_RUN {
     /*
      * Fallback: generate and execute an nlmixr2 R script equivalent to
@@ -943,6 +947,7 @@ PYEOF
 }
 
 
+// [Phase C] Phase C — Covariate Search
 process COVARIATE_SEARCH {
     /*
      * Optional covariate model building using forward inclusion / backward
@@ -1017,6 +1022,7 @@ PYEOF
 }
 
 
+// [Phase C] Phase C — Bootstrapping
 process BOOTSTRAP {
     /*
      * Non-parametric bootstrap for uncertainty quantification.
@@ -1107,6 +1113,7 @@ PYEOF
 }
 
 
+// [Phase C] Phase C — Visual Predictive Check
 process VPC {
     /*
      * Visual Predictive Check (VPC) simulation.
@@ -1244,6 +1251,7 @@ PYEOF
 }
 
 
+// [Phase D] Phase D — Aggregate Report
 process AGGREGATE_REPORT {
     /*
      * Collect all outputs, produce the final deliverables:
