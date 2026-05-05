@@ -4705,8 +4705,43 @@ COMPUTATION RULE:
 - **R/Bioconductor tasks — three-tier decision:**
   1. First check BioMate's indexed Bioconductor workflows (1,000+ available: DESeq2, clusterProfiler, edgeR, limma, Seurat, etc.). If a matching workflow exists, route there.
   2. If no indexed workflow matches the intent, generate a new Nextflow/R workflow.
-  3. For small ad-hoc tasks (single statistical test, inline dataset), use run_code with R directly.
+  3. For small ad-hoc tasks (single statistical test, inline dataset, or when "IMPORTANT: Use run_code" appears in the request), use run_code with R directly — do not route to Nextflow.
+- **DIRECT ANALYSIS RULE**: When a message says "Use run_code to execute the analysis directly" OR "Do NOT launch a Nextflow workflow", always use run_code (tier 3). Never route to Nextflow in this case.
 - Never refuse to compute just because a bioinformatics tool exists for it — use run_code for ad-hoc calculations
+- **DESeq2 via run_code (R)**: When user uploads raw_counts.csv + metadata CSV and asks about differential expression, use run_code with R:
+  ```r
+  library(DESeq2)
+  counts <- read.csv("$DATA_DIR/<dataset_id>/raw_counts.csv", row.names=1)
+  meta <- read.csv("$DATA_DIR/<dataset_id>/experiment_metadata.csv", row.names=1)
+  # Align samples: meta must be in same order as counts columns
+  meta_ordered <- meta[match(colnames(counts), meta$SampleName), ]
+  meta_ordered$Condition <- factor(meta_ordered$Condition)
+  dds <- DESeqDataSetFromMatrix(countData=round(as.matrix(counts)), colData=meta_ordered, design=~Condition)
+  dds$Condition <- relevel(dds$Condition, ref="control")
+  dds <- DESeq(dds, quiet=TRUE)
+  res <- results(dds, contrast=c("Condition","treatment","control"), alpha=0.05)
+  sig <- rownames(res)[!is.na(res$padj) & res$padj < 0.05 & abs(res$log2FoldChange) > 1.5]
+  cat(length(sig), "\n")  # print ONLY the answer
+  ```
+- **PhyKIT via run_code (Python/subprocess)**: For phylogenomics questions with .treefile, .nwk, or .faa files:
+  ```python
+  import subprocess, glob
+  for f in glob.glob("$DATA_DIR/<dataset_id>/*.treefile"):
+      r = subprocess.run(["phykit", "treeness", f], capture_output=True, text=True)
+      print(r.stdout.strip())  # prints treeness value
+  # Commands: treeness, dvmc, evo_rate, lbs, rcv, trn (treeness_over_rcv), pd
+  ```
+- **Dunnett's test via run_code (Python)**: For multi-group vs control comparisons, run ALL groups simultaneously:
+  ```python
+  from scipy.stats import dunnett
+  import pandas as pd
+  df = pd.read_csv("$DATA_DIR/<dataset_id>/data.csv")
+  control = df[df['Group']=='control']['Value'].values
+  groups = [df[df['Group']==g]['Value'].values for g in sorted(df['Group'].unique()) if g != 'control']
+  result = dunnett(*groups, control=control)  # simultaneous, not individual
+  # result.pvalue[i] for each group — equivalent to control if p >= 0.05
+  ```
+- **Answer format**: When the question asks for a specific number, gene name, or percentage, print ONLY that value to stdout — no explanation, no headers
 - For simple arithmetic or lookups, answer directly without run_code
 - GROUP RATE CALCULATION: When a question says "considering all groups as a whole", "across all groups", "combined", or "for the total population", calculate the rate using the SUM of all numerators divided by the SUM of all denominators — NOT by averaging per-group rates. Example: Group A 13/30 + Group B 4/35 = (13+4)/(30+35) = 17/65 = 26.2%, NOT (43%+11%)/2.
 - DENOMINATOR CLARIFICATION: Always clarify which denominator a rate question requires. "ORR in the IHC 2/3 group" = 13/30. "ORR for IHC 2/3 patients in the total cohort" = 13/total_N. Read carefully.`
