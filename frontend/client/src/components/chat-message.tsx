@@ -568,6 +568,38 @@ export function ChatMessage({
               errorMessage={currentExecutionRun?.execution?.errorMessage}
             />
           )}
+
+          {/* IND Report handoff chip — shown after ADMET or PBPK workflows complete */}
+          {!isUser && (() => {
+            const wfName: string = (
+              message.metadata?.workflow?.name ||
+              message.metadata?.workflow?.display_name || ""
+            ).toLowerCase()
+            const isAdmetOrPbpk =
+              wfName.includes("predict_admet") ||
+              wfName.includes("admet_properties") ||
+              wfName.includes("pbpk_simulation") ||
+              wfName.includes("pbpk")
+            const isCompleted = currentExecutionRun?.execution?.status === "completed"
+            if (!isAdmetOrPbpk || !isCompleted) return null
+            const label = wfName.includes("pbpk")
+              ? "PBPK qualification complete"
+              : "ADMET screening complete"
+            const invId = effectiveInvocationId
+            return (
+              <a
+                href={`/ind-report?from_invocation=${invId}`}
+                className="mt-2 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/60 transition-colors w-fit"
+                data-testid="ind-report-handoff-chip"
+              >
+                <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                  <path d="M5 6h6M5 8.5h4M5 11h3"/>
+                </svg>
+                <span>{label} — <strong>Generate IND §2.6 report from these results →</strong></span>
+              </a>
+            )
+          })()}
         </div>
 
         {!isUser && (
