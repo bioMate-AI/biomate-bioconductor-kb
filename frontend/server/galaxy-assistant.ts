@@ -577,6 +577,53 @@ KEY PRINCIPLES:
   cell_biology: `Expert framing (cell biology): Flow cytometry gating order: FSC/SSC live gate → doublet exclusion (FSC-A vs FSC-H) → dead cell exclusion (viability dye) → lineage markers → target markers. FACS purity sort: re-analyze post-sort sample to confirm ≥95% purity before downstream assays. Cell cycle: EdU/BrdU incorporation + PI staining is quantitative for S-phase fraction; Hoechst DNA content alone cannot distinguish G1 from G2/M without BrdU. Motility: velocity (μm/min), directionality ratio, and MSD should all be reported.`,
 };
 
+// ============================================================================
+// Domain-gated routing rules (S7)
+// ============================================================================
+const DOMAIN_ROUTING_RULES: Record<string, string> = {
+  drug_discovery: `- "ADMET", "ADMET profiling", "ADMET screening", "toxicity screening", "DILI", "hERG toxicity", "BBB penetration", "blood-brain barrier", "drug-like properties", "lipophilicity", "bioavailability prediction", "predict ADMET", or "toxicity panel": use the predict_admet_properties workflow (6 ADMET endpoints: hERG cardiac, DILI hepato, Caco-2 permeability, BBB penetration, solubility, Ames mutagenicity — all computed from SMILES. Input: smiles_input as a SMILES string or newline-separated list. Outputs: admet_results.csv + risk_summary.json). Use immediately when a user provides SMILES and asks for ADMET or safety screening — do NOT ask for a file upload.
+- "PK-Sim", "PK Sim", "pksim", "Open Systems Pharmacology", "OSP Suite", "OSP PBPK", "Willmann PBPK", "EMA OSP", or "LGPL PBPK": use the pk_sim_pbpk workflow (PK-Sim open-source PBPK wrapper, EMA-accepted, free, no license required. Rodgers-Rowland + Schmitt tissue partitioning, Weibull oral dissolution, CYP ontogeny for pediatric. Inputs: compound physicochemical params + CLint + dose. Outputs: pk_profile.json + nca_summary.json + PK plots. quality_tier: ema_accepted_open_source.) NO PREREQ CHECK needed — all params have defaults.
+- "Simcyp", "Certara PBPK", "Certara DDI", "Simcyp DDI", "population PBPK", "Simcyp population simulator", "ADAM oral absorption model", "virtual population trial", "Simcyp pediatric", "Simcyp renal", "Simcyp perpetrator", "Simcyp victim", "AUC ratio CYP", or "Sim Cyp": use the simcyp_pbpk workflow (Simcyp Population-Based PBPK BYOL wrapper, regulatory submission grade. Requires SIMCYP_LICENSE_FILE or SIMCYP_LICENSE_SERVER in user credentials; falls back to BioMate native 8-compartment PBPK if no license. Supports DDI CYP3A4/2D6 AUC ratios, special populations, oral absorption ADAM model. Outputs: pk_profile.json + ddi_summary.json + regulatory_report.txt. quality_tier: regulatory_submission or ind_ready_screening fallback.)
+- "NONMEM", "nmfe75", "population pharmacokinetics NONMEM", "population PK FOCE", "FOCE-I", "FOCE estimation", "population PK modeling", "PopPK NONMEM", "ADVAN2", "ADVAN4", "ADVAN11", "nlmixr2", "nlmixr population", "SAEM population PK", "VPC visual predictive check", "bootstrap PK", "ETA shrinkage", "OFV", "NCA population", or "nonlinear mixed effects NONMEM": use the nonmem_poppk workflow (NONMEM FOCE-I population PK modeling BYOL; nlmixr2 open-source fallback. Generates NONMEM CTL file (ADVAN2/4/11 + FOCE-I), runs VPC + bootstrap, covariate search. Requires NONMEM_HOME + NONMEM_LICENSE_FILE in credentials; auto-falls back to nlmixr2. Inputs: pk_data_csv (ID/TIME/DV/AMT/CMT/EVID). Outputs: parameter_estimates.json + vpc_plot.png + bootstrap_summary.csv. quality_tier: fda_submission_grade or fda_acceptable_open_source fallback.)
+- "survival analysis", "Kaplan-Meier", "KM curve", "KM plot", "log-rank test", "hazard ratio", "clinical trial sample size", "oncology trial design", "survival endpoint", "time to event", "RMST", "O'Brien-Fleming", "alpha spending", "power calculation survival", "event-driven trial", "phase III oncology", or "survival function": use the survival_analysis_km workflow (Kaplan-Meier estimator + Schoenfeld sample size + RMST + O'Brien-Fleming alpha-spending. Inputs: median_control_months, median_treatment_months, alpha, power, accrual_months, follow_up_months. Outputs: km_curves.png + power_table.csv + sample_size_summary.json.) NO PREREQ CHECK needed — all params explicit.
+- "FcRn", "FcRn antibody", "FcRn half-life", "IgG half-life", "antibody half-life", "YTE mutation", "LS mutation", "PSA mutation", "GASD ALIE", "AAA mutation", "antibody PK engineering", "FcRn recycling", "IgG1 PK", "IgG4 PK", "bispecific antibody PK", "antibody 2-compartment PK", "monoclonal antibody PK", "mAb PK simulation", "allometric antibody", or "FcRn pH binding": use the fcrn_antibody_pk workflow (FcRn-mediated IgG PK with half-life engineering comparison — WT, YTE, LS, PSA, GASD-ALIE, AAA mutations. 2-compartment IV/SC PK + allometric species scaling. Inputs: antibody_name, molecular_weight_kda, dose_mg_kg, route, species, fc_mutation. Outputs: pk_profile.json + halflife_comparison_table.csv + allometric_scaling.json.) NO PREREQ CHECK needed — all params have defaults.
+- "ICH S5", "reproductive toxicity", "DART", "developmental toxicity", "teratogenicity", "embryo-fetal development", "EFD study", "FEED study", "PPND study", "fertility toxicity", "thalidomide structural alert", "placental transfer", "pregnancy category", "WOCBP toxicity", or "Segment II toxicology": use the ich_s5_reproductive_tox workflow (ICH S5(R3) 2020 DART assessment — structural alerts, placental transfer, margin of safety, regulatory study timing for FEED/EFD/PPND. Outputs: ich_s5_safety_report.json GREEN/YELLOW/RED.)
+- "transporter DDI", "P-gp inhibition", "BCRP inhibition", "OATP inhibition", "OCT inhibition", "OAT inhibition", "MATE inhibition", "efflux transporter", "uptake transporter", "ABC transporter DDI", "SLC transporter DDI", "R-value transporter", "Igut inhibition", "ABCB1 DDI", "ABCG2 DDI", "SLCO1B1 DDI", "digoxin DDI", "rosuvastatin DDI probe", or "metformin transporter": use the transporter_ddi_pgp_bcrp workflow (P-gp/BCRP/OATP1B1/1B3/OCT1/2/OAT1/3/MATE1/2 R-value calculation per FDA 2020. Flags clinical study triggers. Input: IC50 values + Cmax + dose. Output: transporter_r_values.json + ddi_flags.tsv.)
+- "ICH S7A", "safety pharmacology", "hERG safety", "hERG cardiac", "hERG QTc", "Fridericia QTc", "ICH S7B", "CiPA assay", "CiPA in vitro", "cardiovascular safety", "CNS safety", "respiratory safety", "Irwin test", "core battery safety", "safety pharmacology panel", "hERG margin", "cardiac liability", or "autonomic safety pharmacology": use the ich_s7a_safety_pharmacology workflow (ICH S7A core battery: cardiovascular hERG/QTc + CNS Irwin/BBB + respiratory RR/TV/SpO2. CiPA Tier 2 escalation triggered when hERG margin <30×. GREEN/YELLOW/RED per system. Inputs: compound_name, herg_ic50_um, free_cmax_um, cnp_noael_mg_kg, irwin_observation, respiratory_noael_mg_kg, species. Outputs: safety_report.json + overall_safety_color.txt.) NO PREREQ CHECK needed — all params explicit.
+- "pediatric PBPK", "pediatric pharmacokinetics", "pediatric dose", "paediatric PK", "paediatric dose", "neonatal PK", "neonatal pharmacokinetics", "infant PK", "CYP maturation", "ontogeny PBPK", "GFR maturation", "age-scaled PK", "pediatric dose prediction", "ICH E11", "ICH E11R1", "allometric scaling CYP", "developmental pharmacology", "child dose from adult", "neonate dose", or "toddler dose" (WITHOUT pregnancy): use the pbpk_pediatric workflow. NOTE: if the query also mentions pregnancy, trimester, gestational age, or maternal PK, use pbpk_pediatric_pregnancy instead (paediatric PBPK — 5 age cohorts: neonate/infant/toddler/child/adolescent. Allometric BW scaling, CYP3A4/2D6/2C19 maturation Hill functions, GFR maturation Rhodin 2009, albumin maturation. ICH E11(R1) compliance warnings. Inputs: compound physicochemical params + dose_mg_kg + route + age_groups. Outputs: pediatric_pk.csv + dose_recommendation.json + cyp_maturation_table.json.) NO PREREQ CHECK needed — all params have defaults.
+- "PBPK simulation", "physiologically-based pharmacokinetics", "physiologically-based PK", "8-compartment PK", "full PK profile", "predict human PK", "predict human pharmacokinetics", "mechanistic PK simulation", "organ-level PK", "whole-body PK", "PBPK model", "Cmax prediction", "AUC prediction", "Tmax prediction", "oral bioavailability simulation", or "first-pass metabolism PK": use the pbpk_simulation workflow (8-compartment physiologically-based pharmacokinetic model, Rodgers/Rowland method; outputs pk_profile.csv + nca_parameters.json). REQUIRED PREREQ CHECK: Before generating this workflow, verify the user has provided BOTH (1) a SMILES string (the compound structure) AND (2) intrinsic clearance CLint in µL/min/mg AND unbound plasma fraction fu_plasma. If ANY of these are missing, ask for them in your response — do NOT generate the workflow card yet. Example asks: "To run PBPK, I need your compound's SMILES structure — please provide it." or "To simulate full PK, I need CLint (µL/min/mg) and fu_plasma — what are these values for your compound?"
+- "IVIVE", "in vitro to in vivo", "hepatic clearance", "intrinsic clearance", "microsomal clearance", "CLint", "CLh", "well-stirred model", "parallel tube model", or "in vitro clearance scaling": use the ivive_hepatic_clearance workflow (well-stirred + parallel-tube models, converts CLint_microsomal → predicted human CLh. Input: compound_data_csv with compound_id/CLint_uL_per_min_mg/molecular_weight columns. Outputs: ivive_results.csv + clearance_summary.json).
+- "CYP inhibition", "CYP450 panel", "drug-drug interaction", "DDI prediction", "DDI risk", "metabolic clearance", "microsomal clearance", "CLint", "CLhep", "IVIVE clearance", "hepatic extraction", "CYP1A2", "CYP2C9", "CYP2C19", "CYP2D6", "CYP3A4", "FDA DDI guidance", "R1 R1gut", "perpetrator DDI", "half-life prediction", or "metabolic liability": suggest the cyp_ddi_panel workflow (5-isoform CYP inhibition IC50 + IVIVE hepatic clearance + FDA 2020 DDI risk flags. Input: SMILES string. Outputs: cyp_panel_summary.json + DDI radar chart + clearance funnel + HTML report.)
+- "ingest assay data", "composite ranking", "safety-potency ranking", "hERG + IC50 ranking", "BCR-ABL1 campaign ranking", "multi-assay compound ranking", or "rank compounds by potency and safety": use the assay_ingestion_and_ranking workflow (3-step pipeline: parse CSV → composite score → ranked report. Inputs: assay_csv with compound_id/assay_type/value columns. Outputs: ranked_compounds.csv + HTML report + JSON summary).
+- "CRO submission", "WuXi AppTec export", "compound export for CRO", "format compounds for outsourcing", "CRO outsourcing package", or "submit compounds to CRO": use the cro_submission_export workflow (3-step pipeline: validate hERG safety → format WuXi columns + RDKit MW/LogP → export CSV. Inputs: compound_csv with SMILES + assay data. Outputs: wuxiapptec_submission.csv + metadata JSON).`,
+
+  structural_biology: `- "generative drug design", "de novo design", "scaffold hopping", "lead generation", "molecule optimization", "REINVENT", or "fragment decoration": suggest the reinvent4_lead_design workflow (REINVENT4 AstraZeneca, RL-based SMILES generator, outputs ranked molecules + SDF + score trajectory)
+- "relative binding free energy", "RBFE", "FEP", "free energy perturbation", "alchemical FEP", "DDG", "delta delta G", "relative affinity", "compare two ligands binding", "which ligand binds better", "lead optimization FEP", or "OpenFE": suggest the openfe_rbfe workflow (OpenFE RBFE — alchemical SepTop protocol + OpenMM 8 GPU + Lomap2 atom mapping + MBAR estimator. Input: receptor PDB + ligand_a SDF (reference) + ligand_b SDF (query). Output: DDG ± SEM kcal/mol + overlap matrix + convergence plot + HTML. Free open-source alternative to Schrödinger FEP+.)
+- "Glide docking", "Schrödinger docking", "Schrodinger docking", "XP docking", "HTVS", "extra precision docking", "virtual screening Glide", or "FEP+ preparation": suggest the schrodinger_glide_docking workflow (Schrödinger Glide HTVS/SP/XP, 5-step pipeline: LigPrep → PrepWiz → Grid → Glide → ranked SDF. License: FlexNet, user must provide.)
+- "covalent docking", "covalent inhibitor", "warhead", "acrylamide docking", "irreversible inhibitor design", "MOE docking", or "targeted covalent drug": suggest the moe_covalent_docking workflow (MOE CovDock SVL, 5-step: LigPrep → QuickPrep → CovDock → GBVI/WSA dG → SDF report. Warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor. License: MOE FlexNet, user must provide.)
+- "build pharmacophore model", "pharmacophore from actives", "pharmacophore filtering", "screen compound library against pharmacophore", or "pharmacophore + library screen" (in any combination): use the SINGLE pharmacophore_filtering workflow — it builds the model from reference SMILES AND screens the library in one run. NEVER decompose this into two sequential steps; pass reference_smiles (known actives) and library_smiles as parameters to the single workflow.
+- "pocket detection", "binding pocket", "druggability", "fpocket", "P2Rank", "binding site detection", "binding site characterization", "find pockets", "detect pockets", "druggability score", or any request to identify binding pockets on a protein structure: use the pocket_detection_druggability workflow (fpocket — 3-step: fetch/validate PDB → run fpocket → rank pockets by druggability score + volume. Input: pdb_input = PDB ID (e.g. "1IEP") or path to local .pdb file. Outputs: pocket_summary.csv + druggability_scores.json + ranked HTML report). A PDB 4-letter code like "1IEP", "7RFS", "6LU7" IS a valid pdb_input — do not ask for a file upload when the user provides a PDB ID.
+- "MD simulation", "molecular dynamics", "AMBER", "pmemd", "protein stability in explicit solvent", or "post-docking MM-GBSA refinement": suggest the amber_pmemd_md workflow (AMBER pmemd.cuda GPU MD, 7-step pipeline: GAFF2 parametrization → tleap → EM → NVT/NPT equilibration → production MD → cpptraj RMSD/RMSF → MMPBSA.py ΔGbind. License: free academic since AMBER24.)
+- "GROMACS", "GROMACS MD", "GROMOS force field", or explicit mention of GROMACS: suggest the gromacs_protein_md workflow (GROMACS 2025 + gmx_MMPBSA, 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory)`,
+
+  genomics: `- "AlphaGenome", "Alpha Genome", "DeepMind genomics 2025", "Enformer successor", "genomic track prediction", "predict ATAC-seq from sequence", "predict gene expression from DNA", "predict chromatin from sequence", "in-silico mutagenesis regulatory", "ISM variant regulatory", "enhancer prediction from sequence", "1Mb DNA prediction", "TF binding prediction sequence", or "cell-type gene expression from DNA": use the alphagenome_track_prediction workflow (AlphaGenome DeepMind 2025; predicts 5000+ tracks: ATAC, ChIP, RNA-seq, splicing, histones, CTCF across 100+ cell types. Enformer fallback if no API key. Input: genomic_region (chrom:start-end) + optional variant_vcf. Output: track predictions TSV + variant effects JSON + HTML report.)
+- "Evo 2", "Evo-2", "Evo2", "Arc Institute DNA model", "DNA language model variant", "nucleotide language model", "whole genome language model", "genomic foundation model variant", "log likelihood ratio variant", "LLR variant", "non-coding variant score DNA model", "CRISPR guide scoring Evo", or "DNA sequence fitness": use the evo2_variant_effect workflow (Evo 2 Arc Institute 40B-param DNA LM; scores variants via log-likelihood ratio LLR=log P(alt)-log P(ref); negative LLR = deleterious. API: Together AI or local HF weights. Input: input_vcf + reference_genome. Output: scored TSV + ranked VCF + summary JSON.)`,
+};
+
+/**
+ * Build a workflow routing rules block containing only rules for the detected domains.
+ * Falls back to all rules combined when preferredDomains is empty.
+ */
+export function buildWorkflowRoutingBlock(preferredDomains: string[]): string {
+  if (!preferredDomains || preferredDomains.length === 0) {
+    return Object.values(DOMAIN_ROUTING_RULES).join('\n');
+  }
+  const matched = preferredDomains
+    .map(d => DOMAIN_ROUTING_RULES[d])
+    .filter((r): r is string => !!r);
+  return matched.length > 0 ? matched.join('\n') : Object.values(DOMAIN_ROUTING_RULES).join('\n');
+}
+
 /**
  * Build a domain specialist guidance block for injection into generateResponse() system prompts.
  * Returns empty string if no guidance exists for any of the given domains.
@@ -1146,15 +1193,17 @@ export class GalaxyAssistant {
     const chat = model.startChat({ history });
     const lastMessage = messages[messages.length - 1].content;
 
-    // Agentic loop: handle tool calls (up to 5 turns)
-    const MAX_TOOL_TURNS = 5;
+    // Agentic loop: handle tool calls (up to 10 turns, then force a final summary)
+    const MAX_TOOL_TURNS = 10;
     let currentMessage: string | object = lastMessage;
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
       const result = await chat.sendMessage(currentMessage as any);
       const response = result.response;
+      const allParts = response.candidates?.[0]?.content?.parts || [];
+      console.log(`[GeminiLoop] turn=${turn} parts=${allParts.length} keys=${allParts.map((p: any) => Object.keys(p).join(',')).join('|')}`);
 
-      // Collect text
-      const textParts = response.candidates?.[0]?.content?.parts?.filter((p: any) => p.text) || [];
+      // Collect text (skip thoughtSignature-only parts)
+      const textParts = allParts.filter((p: any) => p.text);
       for (const part of textParts) {
         const txt: string = part.text ?? '';
         rawResponse += txt;
@@ -1162,7 +1211,7 @@ export class GalaxyAssistant {
       }
 
       // Check for function calls
-      const fnCalls = response.candidates?.[0]?.content?.parts?.filter((p: any) => p.functionCall) || [];
+      const fnCalls = allParts.filter((p: any) => p.functionCall);
       if (fnCalls.length === 0 || !toolContext) break;  // No tools or no context — done
 
       // Execute all function calls
@@ -1171,6 +1220,7 @@ export class GalaxyAssistant {
         const fnCall = part.functionCall;
         if (!fnCall) continue;
         const { name, args } = fnCall as { name: string; args: any };
+        console.log(`[GeminiLoop] tool_call name=${name} args_keys=${Object.keys(args || {}).join(',')}`);
         toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args });
         let output: unknown = null;
         let error: string | undefined;
@@ -1181,10 +1231,31 @@ export class GalaxyAssistant {
             default:            output = { error: `Unknown tool: ${name}` };
           }
         } catch (e: any) { error = e.message; output = { error }; }
+        const outStr = JSON.stringify(output).slice(0, 200);
+        console.log(`[GeminiLoop] tool_result name=${name} output=${outStr}`);
         toolContext.onToolEvent?.({ type: 'tool_result', tool_use_id: name, name, output: JSON.stringify(output) });
         functionResults.push({ functionResponse: { name, response: { output: JSON.stringify(output) } } });
       }
       currentMessage = functionResults;
+    }
+
+    // If all tool turns used without generating text, force a final summary turn (no tools)
+    if (!rawResponse && toolContext) {
+      console.log('[GeminiLoop] All turns used without text — requesting final summary');
+      const summaryModel = this.gemini!.getGenerativeModel({
+        model: geminiModelName,
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+      });
+      try {
+        const summaryResult = await summaryModel.generateContent(
+          `Based on the code execution results above, provide the final answer concisely.`
+        );
+        const summaryText = summaryResult.response.text();
+        rawResponse = summaryText;
+        if (summaryText) onResponseDelta?.(summaryText);
+      } catch (e: any) {
+        console.warn('[GeminiLoop] Final summary failed:', e.message);
+      }
     }
 
     return rawResponse;
