@@ -174,7 +174,7 @@ def CS_HELPER = '''
     import json, os, sys, time, warnings
     from cryosparc.tools import CryoSPARC
 
-    # CryoSPARC v5 renamed many I/O group names — try all aliases on connect
+    # CryoSPARC v5 renamed many I/O group names -- try all aliases on connect
     _IO_ALIASES = {
         "micrographs":        ["exposures"],
         "micrographs_ctf":    ["exposures_ctf", "exposures"],
@@ -242,7 +242,7 @@ def CS_HELPER = '''
 
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
                         lane="default", timeout=14400, num_gpu=1):
-        # Create job WITHOUT params in body — CryoSPARC v5 returns 500 if params
+        # Create job WITHOUT params in body -- CryoSPARC v5 returns 500 if params
         # are passed to the create endpoint; set them individually via set_param().
         job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid, type=job_type)
         job_uid = job.uid
@@ -291,7 +291,7 @@ def CS_HELPER = '''
     def _get_lane_gpu_count(cs, lane="default"):
         '''Return max GPUs on any single worker in the lane.
         compute_num_gpus tells CryoSPARC how many GPUs to use on the worker
-        that runs the job — it must not exceed the per-worker GPU count.
+        that runs the job -- it must not exceed the per-worker GPU count.
         cryosparc-tools v5+ returns Pydantic SchedulerTarget objects, so
         we access .config.gpus (list) rather than dict .get().'''
         if lane in _gpu_count_cache:
@@ -324,14 +324,14 @@ def CS_HELPER = '''
             if per_worker:
                 count = max(per_worker) or 1
         except Exception as _e:
-            print(f"[CS] Warning: get_targets() failed ({_e}) — defaulting to 1 GPU", flush=True)
+            print(f"[CS] Warning: get_targets() failed ({_e}) -- defaulting to 1 GPU", flush=True)
         _gpu_count_cache[lane] = count
         print(f"[CS] Lane '{lane}' max GPU/worker = {count}", flush=True)
         return count
 
     def _lane_for_batch(batch_id: str, num_workers: int, base_lane: str = "default") -> str:
         '''Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
-        lane name.  When num_workers == 1 the base_lane is returned unchanged — identical to
+        lane name.  When num_workers == 1 the base_lane is returned unchanged -- identical to
         prior single-lane behaviour.  With num_workers > 1, lanes 'worker_0' .. 'worker_{N-1}'
         must be pre-registered by nextflow_executor.py via SSH before the workflow starts.'''
         if num_workers <= 1:
