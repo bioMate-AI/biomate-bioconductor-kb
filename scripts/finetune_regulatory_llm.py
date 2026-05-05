@@ -279,6 +279,7 @@ def train_gpu(args) -> None:
     eval_dataset  = Dataset.from_list([format_example(ex) for ex in dev_data]) if dev_data else None
 
     # Training arguments — TRL 1.x: max_seq_length moved from SFTConfig to SFTTrainer
+    do_eval = eval_dataset is not None
     training_args = SFTConfig(
         output_dir=str(args.output),
         num_train_epochs=args.epochs,
@@ -287,35 +288,45 @@ def train_gpu(args) -> None:
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
         lr_scheduler_type="cosine",
-        warmup_ratio=0.03,
+        warmup_steps=50,
         weight_decay=0.01,
         optim="paged_adamw_8bit" if bnb_config else "adamw_torch",
         fp16=False,
         bf16=torch.cuda.is_available(),
         logging_steps=10,
-        eval_steps=100 if eval_dataset else None,
+        eval_strategy="steps" if do_eval else "no",
+        eval_steps=100 if do_eval else None,
+        save_strategy="steps",
         save_steps=200,
         save_total_limit=3,
-        load_best_model_at_end=True if eval_dataset else False,
+        load_best_model_at_end=do_eval,
+        metric_for_best_model="eval_loss" if do_eval else None,
         report_to="none",  # no wandb
         dataset_text_field="text",
         packing=False,
     )
 
-    # TRL 1.x: pass max_seq_length to SFTTrainer directly (removed from SFTConfig)
+    # TRL 1.x API changes:
+    #   tokenizer       → processing_class
+    #   max_seq_length  → removed from SFTConfig, set on tokenizer instead
+    import inspect
+    sig = inspect.signature(SFTTrainer.__init__).parameters
+    tokenizer.model_max_length = args.max_seq_length  # always set truncation limit
+
     trainer_kwargs: dict = dict(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
     )
-    import inspect
-    if "max_seq_length" in inspect.signature(SFTTrainer.__init__).parameters:
+    # TRL < 1.0: tokenizer kwarg; TRL >= 1.0: processing_class kwarg
+    if "processing_class" in sig:
+        trainer_kwargs["processing_class"] = tokenizer
+    elif "tokenizer" in sig:
+        trainer_kwargs["tokenizer"] = tokenizer
+
+    if "max_seq_length" in sig:
         trainer_kwargs["max_seq_length"] = args.max_seq_length
-    else:
-        # TRL 1.3+: set via processing_class or truncate via tokenizer
-        tokenizer.model_max_length = args.max_seq_length
 
     trainer = SFTTrainer(**trainer_kwargs)
 
