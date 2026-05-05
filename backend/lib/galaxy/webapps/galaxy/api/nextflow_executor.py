@@ -3310,11 +3310,24 @@ def get_nextflow_status(
                     total_steps_fb = len(trace_lines)
                     completed_fb = sum(1 for l in trace_lines if "\tCOMPLETED\t" in l)
                     failed_fb = sum(1 for l in trace_lines if "\tFAILED\t" in l)
-                    # All tasks done (completed + failed = total) → workflow finished
-                    if total_steps_fb > 0 and (completed_fb + failed_fb) >= total_steps_fb:
+                    # Trace-file "all tasks done" is NOT sufficient on its own for AWS Batch:
+                    # the trace file only contains tasks that have already reported back — many
+                    # downstream tasks may not yet be written. Require the Nextflow log to also
+                    # show the "Execution complete" or failure marker before declaring done.
+                    nf_log_done = "Execution complete" in log_full_text
+                    nf_log_failed = (
+                        "Workflow execution failed" in log_full_text
+                        or "Pipeline failed" in log_full_text
+                        or "ERROR ~ " in log_full_text
+                    )
+                    if (nf_log_done or nf_log_failed) and total_steps_fb > 0 and (completed_fb + failed_fb) >= total_steps_fb:
                         trace_done = True
-                        trace_failed = failed_fb > 0
+                        trace_failed = failed_fb > 0 or nf_log_failed
                         completed_steps_fb = completed_fb
+                    elif (nf_log_done or nf_log_failed) and total_steps_fb == 0:
+                        # Nextflow finished but trace is empty (e.g., all tasks skipped/cached)
+                        trace_done = True
+                        trace_failed = nf_log_failed
                 except Exception:
                     pass
 
