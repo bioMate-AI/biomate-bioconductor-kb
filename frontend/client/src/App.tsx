@@ -369,14 +369,7 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
-      {/* Dev-only: CryoEM viewer test */}
-      <Route path="/dev/cryo-viewers">
-        <React.Suspense fallback={<div>Loading…</div>}>
-          {React.createElement(React.lazy(() => import('@/pages/cryo-viewer-test')))}
-        </React.Suspense>
-      </Route>
-
-      {/* Root: platform for authenticated users, redirect to /login for guests */}
+{/* Root: platform for authenticated users, redirect to /login for guests */}
       <Route path="/">
         <RootRoute
           sidebarCollapsed={sidebarCollapsed}
