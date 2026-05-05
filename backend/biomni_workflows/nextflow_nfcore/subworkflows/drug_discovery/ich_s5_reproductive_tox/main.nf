@@ -5,9 +5,9 @@
  * ICH S5(R3) Reproductive and Developmental Toxicology Assessment
  *
  * Covers:
- *   - Fertility and early embryonic development (FEED) — ICH S5 Segment I
- *   - Embryo-fetal development (EFD) — ICH S5 Segment II / EMA DART
- *   - Pre/postnatal development (PPND) — ICH S5 Segment III
+ *   - Fertility and early embryonic development (FEED) - ICH S5 Segment I
+ *   - Embryo-fetal development (EFD) - ICH S5 Segment II / EMA DART
+ *   - Pre/postnatal development (PPND) - ICH S5 Segment III
  *   - Preliminary developmental tox screening flags
  *
  * Scoring based on:
@@ -18,9 +18,9 @@
  *   - PBPK embryo-fetal transfer for Class A (ClogP < 0 or MW > 500 flags poor placental transfer)
  *
  * Output flags per ICH S5(R3):
- *   GREEN  — no structural alerts, no DART flags, NOAEL derived from in-silico model
- *   YELLOW — 1–2 structural alerts or mixed DART signals; recommend in vivo EFD study
- *   RED    — strong teratogenicity alert (thalidomide-like / retinoic acid / MTX structural class)
+ *   GREEN  - no structural alerts, no DART flags, NOAEL derived from in-silico model
+ *   YELLOW - 1-2 structural alerts or mixed DART signals; recommend in vivo EFD study
+ *   RED    - strong teratogenicity alert (thalidomide-like / retinoic acid / MTX structural class)
  *            or predicted NOAEL < 10× human Cmax (margin of safety concern)
  */
 
@@ -37,7 +37,7 @@ params.indication           = 'general'     // general | oncology | rare_disease
 params.wocbp_population     = true          // Women Of Child-Bearing Potential in target population
 params.fertility_segment    = true          // run FEED (Segment I) assessment
 params.efd_segment          = true          // run EFD (Segment II) assessment
-params.ppnd_segment         = false         // run PPND (Segment III — usually Phase III)
+params.ppnd_segment         = false         // run PPND (Segment III - usually Phase III)
 params.species_efd          = 'rat,rabbit'  // default dual-species EFD per ICH S5(R3)
 params.outdir               = 'results/ich_s5_reproductive_tox'
 
@@ -65,39 +65,39 @@ logp = float("""${logp_val}""")
 # ICH S5 / DEREK-class structural alert patterns (SMARTS-simplified for RDKit)
 # Based on: Schilter 2013 (SAR Repro Tox), Barber 2019 (DART DB), ECHA CLH criteria
 STRUCTURAL_ALERTS = [
-    # Teratogenicity — thalidomide-like glutarimide
+    # Teratogenicity - thalidomide-like glutarimide
     ("glutarimide_thalidomide_like", "N1C(=O)CCC1=O", "HIGH",
-     "Glutarimide ring — thalidomide structural class; strong teratogen"),
+     "Glutarimide ring - thalidomide structural class; strong teratogen"),
     # Retinoic acid / retinoid (RARA agonist)
     ("retinoid_carboxylic_acid", "C(/C=C/C=C/C(=O)O)", "HIGH",
-     "Retinoid-like polyene acid — potent teratogen (Accutane class)"),
+     "Retinoid-like polyene acid - potent teratogen (Accutane class)"),
     # Antimetabolites / folate antagonists
     ("folate_antagonist_pteridine", "c1cnc2ncncc2n1", "HIGH",
-     "Pteridine/diaminopyrimidine — folate antagonist (methotrexate class); teratogenic"),
-    # Alkylating agents — nitrogen mustard
+     "Pteridine/diaminopyrimidine - folate antagonist (methotrexate class); teratogenic"),
+    # Alkylating agents - nitrogen mustard
     ("nitrogen_mustard", "N(CCCl)CCCl", "HIGH",
-     "Nitrogen mustard — alkylating agent; strong mutagen/teratogen"),
+     "Nitrogen mustard - alkylating agent; strong mutagen/teratogen"),
     # Valproic acid structural class (histone deacetylase inhibitor)
     ("vpa_like_branched_acid", "CCCC(CCC)C(=O)O", "MEDIUM",
-     "VPA-like branched carboxylic acid — HDAC inhibitor; neural tube defect risk"),
+     "VPA-like branched carboxylic acid - HDAC inhibitor; neural tube defect risk"),
     # ACE inhibitor fetopathy (second/third trimester)
     ("ace_inhibitor_proline", "N1CCCC1C(=O)O", "MEDIUM",
-     "Proline-derived ACE inhibitor scaffold — fetopathy risk (T2/T3)"),
+     "Proline-derived ACE inhibitor scaffold - fetopathy risk (T2/T3)"),
     # DNA intercalator (anthracycline-like)
     ("anthracycline_quinone", "O=C1c2ccccc2C(=O)c3ccccc13", "HIGH",
-     "Anthracycline/anthraquinone — DNA intercalator; genotoxic teratogen"),
+     "Anthracycline/anthraquinone - DNA intercalator; genotoxic teratogen"),
     # Endocrine disruptor (BPA-like bisphenol)
     ("bisphenol_estrogen_like", "Oc1ccc(C(C)(C)c2ccc(O)cc2)cc1", "MEDIUM",
-     "Bisphenol-A structural class — estrogenic EDC; developmental concern"),
+     "Bisphenol-A structural class - estrogenic EDC; developmental concern"),
     # Phthalate ester (classic Segment II concern)
     ("phthalate_ester", "O=C(OCCCC)c1ccccc1C(=O)OCCCC", "MEDIUM",
-     "Phthalate diester — male reproductive toxin (antiandrogenic)"),
+     "Phthalate diester - male reproductive toxin (antiandrogenic)"),
     # Triazole fungicide / azole (CYP26 inhibitor → excess retinoic acid)
     ("triazole_azole", "c1cn[nH]n1", "LOW",
-     "Triazole scaffold — CYP26A1 inhibition can cause retinoic acid excess; context-dependent"),
+     "Triazole scaffold - CYP26A1 inhibition can cause retinoic acid excess; context-dependent"),
 ]
 
-# Mock SMARTS matching (no RDKit in this environment — use substructure heuristics)
+# Mock SMARTS matching (no RDKit in this environment - use substructure heuristics)
 def mock_smarts_match(smiles_str, pattern_name, mw, logp):
     """Heuristic alert matching based on compound properties and name patterns."""
     hits = []
@@ -186,27 +186,27 @@ indication = "${params.indication}"
 
 # DART model based on RepDose DB + ICH S5(R3) physicochemical triggers
 # Placental transfer: Kp_placenta estimated from logP and MW
-# (Syme 2004 model: good transfer if logP 0–3 and MW < 500)
+# (Syme 2004 model: good transfer if logP 0-3 and MW < 500)
 kp_placenta = 1.0
 if mw > 500:
     kp_placenta *= 0.3
 elif mw > 350:
     kp_placenta *= 0.7
 if logp < 0:
-    kp_placenta *= 0.4  # hydrophilic — poor passive transfer
+    kp_placenta *= 0.4  # hydrophilic - poor passive transfer
 elif logp > 4:
-    kp_placenta *= 0.6  # highly lipophilic — protein binding reduces free fraction
+    kp_placenta *= 0.6  # highly lipophilic - protein binding reduces free fraction
 
 # Convert Cmax ng/mL to µM
 cmax_um = (human_cmax_ng_ml / mw) * 1000 if mw > 0 else 0
 
-# ICH S5 NOAEL prediction — heuristic based on structural category
+# ICH S5 NOAEL prediction - heuristic based on structural category
 # (real model would use RepDose DB query or QSAR model)
-predicted_noael_mg_kg = 100.0  # default — moderate concern
+predicted_noael_mg_kg = 100.0  # default - moderate concern
 if logp > 3 and mw < 300:
-    predicted_noael_mg_kg = 30.0  # lipophilic small molecule — higher concern
+    predicted_noael_mg_kg = 30.0  # lipophilic small molecule - higher concern
 elif mw > 600:
-    predicted_noael_mg_kg = 300.0  # large molecule — lower systemic concern
+    predicted_noael_mg_kg = 300.0  # large molecule - lower systemic concern
 
 margin_of_safety = predicted_noael_mg_kg / float("${params.dose_mg_kg}")
 
@@ -217,7 +217,7 @@ if logp > 3 and mw < 400:
 if cmax_um > 10:
     feed_concern = "MEDIUM"
 
-# EFD assessment (Segment II) — embryo-fetal development
+# EFD assessment (Segment II) - embryo-fetal development
 efd_concern = "LOW"
 if kp_placenta > 0.5 and cmax_um > 1.0:
     efd_concern = "MEDIUM"

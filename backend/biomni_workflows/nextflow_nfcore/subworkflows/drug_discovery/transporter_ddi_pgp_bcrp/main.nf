@@ -31,7 +31,7 @@ params.cmax_total_ng_ml     = null          // total plasma Cmax at therapeutic 
 params.fu_p                 = 0.1           // unbound plasma fraction
 params.fa                   = 0.9           // fraction absorbed (for Iin max)
 
-// In vitro IC50 values (µM) — null = not tested
+// In vitro IC50 values (µM) - null = not tested
 params.pgp_ic50_um          = null          // P-gp inhibition IC50 (vesicle ATPase or substrate probe)
 params.bcrp_ic50_um         = null          // BCRP inhibition IC50
 params.oatp1b1_ic50_um      = null          // OATP1B1 inhibition IC50
@@ -302,11 +302,11 @@ n_tested = sum(1 for v in data["transporter_inhibition"].values() if v.get("stat
 n_flagged = len(flags)
 
 if n_flagged == 0:
-    overall = "GREEN — no transporter DDI risk above FDA threshold"
+    overall = "GREEN - no transporter DDI risk above FDA threshold"
 elif n_flagged <= 2:
-    overall = f"YELLOW — {n_flagged} transporter(s) flagged; clinical DDI studies required"
+    overall = f"YELLOW - {n_flagged} transporter(s) flagged; clinical DDI studies required"
 else:
-    overall = f"RED — {n_flagged} transporters flagged; extensive clinical DDI package required"
+    overall = f"RED - {n_flagged} transporters flagged; extensive clinical DDI package required"
 
 report = {
     "compound": data["compound"],
@@ -322,7 +322,7 @@ report = {
 with open("transporter_ddi_report.json", "w") as f:
     json.dump(report, f, indent=2)
 
-summary = f"""Transporter DDI Assessment — {data['compound']}
+summary = f"""Transporter DDI Assessment - {data['compound']}
 {'='*50}
 Overall: {overall}
 
@@ -338,7 +338,7 @@ if flags:
     for fl in flags:
         summary += f"  FLAGGED: {fl['transporter']} R={fl['R']} ≥ {fl['threshold']} → {fl['action']}\n"
 else:
-    summary += "  None — all R-values below FDA thresholds\n"
+    summary += "  None - all R-values below FDA thresholds\n"
 
 if data["substrate_assessment"]:
     summary += "\nSubstrate Assessment:\n"
