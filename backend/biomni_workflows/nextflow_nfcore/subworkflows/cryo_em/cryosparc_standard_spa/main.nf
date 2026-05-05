@@ -868,7 +868,16 @@ process PATCH_CTF_ESTIMATION_BATCH {
         # Extract QC metrics: defocus range and CTF fit quality
         try:
             import numpy as np
-            ctf_out = job.load_output("micrographs_ctf")
+            # CryoSPARC v4 uses "micrographs_ctf"; v5 uses "exposures" — try both
+            ctf_out = None
+            for _ctf_slot in ("exposures", "micrographs_ctf", "micrographs", "ctf_micrographs"):
+                try:
+                    ctf_out = job.load_output(_ctf_slot)
+                    if ctf_out is not None and len(ctf_out) > 0:
+                        print(f"[QC] CTF output loaded via slot: {_ctf_slot!r}", flush=True)
+                        break
+                except Exception:
+                    ctf_out = None
             if ctf_out is not None and len(ctf_out) > 0:
                 # CryoSPARC v5 Dataset: use ctf_out directly, enumerate fields via
                 # .fields() (v5 API) or .dtype.names (numpy-backed), NOT .data
