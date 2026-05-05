@@ -51,8 +51,8 @@ params.phase_plate = false                   // true = Volta Phase Plate (VPP) d
 params.motion_correction_dose_weighting = true
 
 // [CTF Estimation] Contrast transfer function estimation parameters
-params.ctf_fitting_resolution_min = 30.0     // Angstroms -- lower bound of CTF fit range
-params.ctf_fitting_resolution_max = 5.0      // Angstroms -- upper bound of CTF fit range
+params.ctf_fitting_resolution_min = 30.0     // Angstroms — lower bound of CTF fit range
+params.ctf_fitting_resolution_max = 5.0      // Angstroms — upper bound of CTF fit range
 
 // [Particle Picking] Automated particle detection and selection
 params.sample_type = 'unknown'               // 'membrane_protein' | 'virus' | 'ribosome' | 'small_protein' | 'unknown'
@@ -90,8 +90,8 @@ params.max_parallel_jobs = 20                // Nextflow queueSize cap
 // Workers pre-registered via SSH by nextflow_executor.py:
 //   cryosparcm worker connect --path <worker_path> --worker worker_N --lane worker_N
 //                             --sshstr ubuntu@localhost --gpus N --ssdpath /tmp/cryosparc_ssd
-// Benchmark: g6.12xlarge (4- NVIDIA L4), num_cs_workers=4 - 3.4- speedup,
-//   FSC 1.78 - (Nyquist), $0.75 vs $6.29 single-GPU -- docs/20260428_CRYOSPARC_MULTIMODE_BENCHMARK_RESULTS.md
+// Benchmark: g6.12xlarge (4× NVIDIA L4), num_cs_workers=4 → 3.4× speedup,
+//   FSC 1.78 Å (Nyquist), $0.75 vs $6.29 single-GPU — docs/20260428_CRYOSPARC_MULTIMODE_BENCHMARK_RESULTS.md
 params.num_cs_workers = 1                    // executor overrides to num_gpu (e.g. 4 for g6.12xlarge)
 // import_particles mode: skip motion/CTF/picking; start from pre-extracted particle stacks.
 // Set import_mode="particles", particle_star_file=<path>, particle_blob_path=<dir>.
@@ -100,7 +100,7 @@ params.particle_star_file   = ""             // STAR file path (local on CryoSPA
 params.particle_blob_path   = ""             // base dir for resolving STAR file .mrcs paths
 // Per-batch movie directories: JSON list of {batch_id, dir, num_movies} created by backend SSH.
 // Non-empty only when num_cs_workers>1 and import_mode="movies".
-// When set, INIT creates one workspace+import_movies job per batch - true parallel motion correction.
+// When set, INIT creates one workspace+import_movies job per batch → true parallel motion correction.
 params.movie_batch_dirs     = ""             // JSON string; empty = single-workspace fallback
 
 // ============================================================================
@@ -108,7 +108,7 @@ params.movie_batch_dirs     = ""             // JSON string; empty = single-work
 // ============================================================================
 
 def estimate_particle_diameter(mw_kda) {
-    // Empirical formula: diameter (-) - 6.8 - (MW in kDa)^(1/3)
+    // Empirical formula: diameter (Å) ≈ 6.8 × (MW in kDa)^(1/3)
     if (mw_kda == null) return null
     return (6.8 * Math.pow(mw_kda, 1.0/3.0)).round(1)
 }
@@ -118,7 +118,7 @@ def estimate_box_size(diameter_angstroms, pixel_size) {
     if (diameter_angstroms == null) return 256 // Default
     def min_box = diameter_angstroms * 1.8 / pixel_size
     def powers = [64, 96, 128, 192, 256, 320, 384, 440, 512, 640, 768, 896, 1024]
-    return powers.find { it >= min_box } -: 256
+    return powers.find { it >= min_box } ?: 256
 }
 
 def get_sample_recommendations(sample_type) {
@@ -160,7 +160,7 @@ def get_sample_recommendations(sample_type) {
             notes: 'Default conservative settings'
         ]
     ]
-    return recommendations[sample_type] -: recommendations['unknown']
+    return recommendations[sample_type] ?: recommendations['unknown']
 }
 
 // ECR image with cryosparc-tools + boto3 for all real-mode processes
@@ -169,12 +169,12 @@ def CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-n
 // Shared Python helper emitted inline into every process script.
 // Uses cryosparc-tools library (same as cryosparc_executor.py) for v5-compatible
 // job creation: create_job() with no params body, then set_param() individually,
-// then queue().  IO alias fallbacks handle v4-v5 renamed group names.
+// then queue().  IO alias fallbacks handle v4→v5 renamed group names.
 def CS_HELPER = '''
     import json, os, sys, time, warnings
     from cryosparc.tools import CryoSPARC
 
-    # CryoSPARC v5 renamed many I/O group names -- try all aliases on connect
+    # CryoSPARC v5 renamed many I/O group names — try all aliases on connect
     _IO_ALIASES = {
         "micrographs":        ["exposures"],
         "micrographs_ctf":    ["exposures_ctf", "exposures"],
@@ -188,7 +188,7 @@ def CS_HELPER = '''
     }
 
     def cs_connect(license, host, port, email, password=None):
-        '''Return authenticated CryoSPARC client using license key (cryosparc-tools v5).'''
+        """Return authenticated CryoSPARC client using license key (cryosparc-tools v5)."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             cs = CryoSPARC(license=license, host=host, base_port=int(port), email=email)
@@ -208,7 +208,7 @@ def CS_HELPER = '''
         return ws.uid
 
     def _connect_with_aliases(job, proj_uid, target_input, src_job_uid, src_output):
-        '''Try all v4/v5 IO name aliases until a connection succeeds.'''
+        """Try all v4/v5 IO name aliases until a connection succeeds."""
         inputs  = [target_input] + _IO_ALIASES.get(target_input, [])
         outputs = [src_output]   + _IO_ALIASES.get(src_output, [])
         for t_in in inputs:
@@ -225,8 +225,8 @@ def CS_HELPER = '''
     # CPU-only jobs (import, CTF, blob picker, extract, template picker, etc.)
     # do not accept compute_num_gpus and should not have it set.
     # CryoSPARC v5 job type names (confirmed from spec.py on the instance).
-    # Note several renames from v4: non_uniform_refinement_new - nonuniform_refine_new,
-    # local_ctf_refinement - ctf_refine_local, template_picker - template_picker_gpu, etc.
+    # Note several renames from v4: non_uniform_refinement_new → nonuniform_refine_new,
+    # local_ctf_refinement → ctf_refine_local, template_picker → template_picker_gpu, etc.
     _GPU_JOB_TYPES = frozenset({
         "class_2D", "class_2D_new",
         "homo_abinit", "gshr_abinit",
@@ -242,7 +242,7 @@ def CS_HELPER = '''
 
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
                         lane="default", timeout=14400, num_gpu=1):
-        # Create job WITHOUT params in body -- CryoSPARC v5 returns 500 if params
+        # Create job WITHOUT params in body — CryoSPARC v5 returns 500 if params
         # are passed to the create endpoint; set them individually via set_param().
         job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid, type=job_type)
         job_uid = job.uid
@@ -289,11 +289,11 @@ def CS_HELPER = '''
     _gpu_count_cache = {}
 
     def _get_lane_gpu_count(cs, lane="default"):
-        '''Return max GPUs on any single worker in the lane.
+        """Return max GPUs on any single worker in the lane.
         compute_num_gpus tells CryoSPARC how many GPUs to use on the worker
-        that runs the job -- it must not exceed the per-worker GPU count.
+        that runs the job — it must not exceed the per-worker GPU count.
         cryosparc-tools v5+ returns Pydantic SchedulerTarget objects, so
-        we access .config.gpus (list) rather than dict .get().'''
+        we access .config.gpus (list) rather than dict .get()."""
         if lane in _gpu_count_cache:
             return _gpu_count_cache[lane]
         count = 1  # safe default
@@ -324,16 +324,16 @@ def CS_HELPER = '''
             if per_worker:
                 count = max(per_worker) or 1
         except Exception as _e:
-            print(f"[CS] Warning: get_targets() failed ({_e}) -- defaulting to 1 GPU", flush=True)
+            print(f"[CS] Warning: get_targets() failed ({_e}) — defaulting to 1 GPU", flush=True)
         _gpu_count_cache[lane] = count
         print(f"[CS] Lane '{lane}' max GPU/worker = {count}", flush=True)
         return count
 
     def _lane_for_batch(batch_id: str, num_workers: int, base_lane: str = "default") -> str:
-        '''Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
-        lane name.  When num_workers == 1 the base_lane is returned unchanged -- identical to
+        """Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
+        lane name.  When num_workers == 1 the base_lane is returned unchanged — identical to
         prior single-lane behaviour.  With num_workers > 1, lanes 'worker_0' .. 'worker_{N-1}'
-        must be pre-registered by nextflow_executor.py via SSH before the workflow starts.'''
+        must be pre-registered by nextflow_executor.py via SSH before the workflow starts."""
         if num_workers <= 1:
             return base_lane
         # batch_id may be 'batch_0003' or a raw integer string '3'
@@ -344,8 +344,8 @@ def CS_HELPER = '''
         return f"worker_{idx % num_workers}"
 
     def cs_download_outputs(cs, proj_uid, job_uid, mrc_prefix="cs_out_", png_prefix="cs_thumb_"):
-        '''Download output MRC files and thumbnails from a completed CryoSPARC job.
-        Returns list of local filenames that were actually written.'''
+        """Download output MRC files and thumbnails from a completed CryoSPARC job.
+        Returns list of local filenames that were actually written."""
         downloaded = []
         try:
             all_files = cs.list_files(proj_uid, prefix=f"{job_uid}/", recursive=True)
@@ -381,7 +381,7 @@ def CS_HELPER = '''
             try:
                 cs.download_file(proj_uid, fpath, target=local)
                 downloaded.append(local)
-                print(f"[CS] Downloaded {fpath} - {local}", flush=True)
+                print(f"[CS] Downloaded {fpath} → {local}", flush=True)
             except Exception as e:
                 print(f"[CS] Warning: download_file({fpath}) failed: {e}", flush=True)
             if len(downloaded) >= 2:
@@ -393,7 +393,7 @@ def CS_HELPER = '''
             try:
                 cs.download_file(proj_uid, fpath, target=local)
                 downloaded.append(local)
-                print(f"[CS] Downloaded thumbnail {fpath} - {local}", flush=True)
+                print(f"[CS] Downloaded thumbnail {fpath} → {local}", flush=True)
             except Exception as e:
                 pass  # thumbnails are optional; skip silently
 
@@ -401,7 +401,7 @@ def CS_HELPER = '''
 '''
 
 // ============================================================================
-// Process Definitions -- Phase 0: CryoSPARC project initialisation (runs once)
+// Process Definitions — Phase 0: CryoSPARC project initialisation (runs once)
 // ============================================================================
 
 process INIT_CRYOSPARC_PROJECT {
@@ -444,15 +444,15 @@ process INIT_CRYOSPARC_PROJECT {
     if '*' in _movies_path:
         blob_paths = _movies_path          # already a glob
     elif '.' in _basename:
-        blob_paths = _movies_path          # has extension -- single file or glob with ext
+        blob_paths = _movies_path          # has extension — single file or glob with ext
     else:
-        blob_paths = _movies_path + "/*.mrcs"  # bare directory - append default glob
+        blob_paths = _movies_path + "/*.mrcs"  # bare directory → append default glob
     print(f"[CS] blob_paths={blob_paths}", flush=True)
 
     _import_mode = "${params.import_mode}"
 
     if _import_mode == "particles":
-        # -- import_particles: start from pre-extracted polished stacks ---------
+        # ── import_particles: start from pre-extracted polished stacks ─────────
         _star_file  = "${params.particle_star_file}"
         _blob_path  = "${params.particle_blob_path}"
         print(f"[CS] import_particles mode: star={_star_file}, blob_path={_blob_path}", flush=True)
@@ -479,7 +479,7 @@ process INIT_CRYOSPARC_PROJECT {
                 pass
         print(f"[CS] Imported {num_particles} particles (particle mode)", flush=True)
     else:
-        # -- import_movies: standard raw movie pipeline --------------------------
+        # ── import_movies: standard raw movie pipeline ──────────────────────────
         # Check if per-batch dirs were pre-created by the backend (num_cs_workers>1 case).
         # If so, create one workspace+import_movies job per batch; otherwise fall back to
         # a single workspace+import covering all movies.
@@ -491,10 +491,10 @@ process INIT_CRYOSPARC_PROJECT {
                 _per_batch_dirs = _jmod.loads(_batch_dirs_raw)
                 print(f"[CS] Per-batch movie dirs provided: {len(_per_batch_dirs)} batches", flush=True)
             except Exception as _je:
-                print(f"[CS] Warning: could not parse movie_batch_dirs ({_je}) -- falling back to single batch", flush=True)
+                print(f"[CS] Warning: could not parse movie_batch_dirs ({_je}) — falling back to single batch", flush=True)
 
         if _per_batch_dirs:
-            # -- Multi-batch imports: one workspace + import_movies job per batch dir --
+            # ── Multi-batch imports: one workspace + import_movies job per batch dir ──
             # This enables truly parallel motion correction: each batch's motion correction
             # job connects to ITS OWN import job, so CryoSPARC processes only that batch's
             # movies (not all movies, which was the old bug).
@@ -530,7 +530,7 @@ process INIT_CRYOSPARC_PROJECT {
             num_movies     = _total_movies
             num_particles  = 0
         else:
-            # -- Single-batch fallback: one workspace + one import_movies covering ALL movies --
+            # ── Single-batch fallback: one workspace + one import_movies covering ALL movies ──
             import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
                 connections={},
                 params={
@@ -558,7 +558,7 @@ process INIT_CRYOSPARC_PROJECT {
                     pass
             print(f"[CS] Imported {num_movies} movies (single-batch)", flush=True)
 
-    # -- Multi-lane worker detection (auto when num_cs_workers == 0) -------------
+    # ── Multi-lane worker detection (auto when num_cs_workers == 0) ─────────────
     # Workers are pre-registered by nextflow_executor.py via SSH BEFORE this
     # workflow starts:
     #   cryosparcm worker connect --worker worker_N --lane worker_N --gpus N
@@ -589,15 +589,15 @@ process INIT_CRYOSPARC_PROJECT {
         if _num_workers > 1:
             print(f"[CS] Auto-detected {_num_workers} worker lanes: {sorted(_worker_lanes)}", flush=True)
         else:
-            print(f"[CS] No worker_N lanes found -- running single-lane mode (lane='${params.cryosparc_lane}')", flush=True)
+            print(f"[CS] No worker_N lanes found — running single-lane mode (lane='${params.cryosparc_lane}')", flush=True)
     else:
         _num_workers = _num_workers_param
         if _num_workers > 1:
-            # Verify lanes exist -- do NOT register; executor handles that via SSH
+            # Verify lanes exist — do NOT register; executor handles that via SSH
             _worker_lanes = _detect_worker_lanes(cs)
             _missing = [f"worker_{i}" for i in range(_num_workers) if f"worker_{i}" not in _worker_lanes]
             if _missing:
-                print(f"[CS] Warning: expected lanes {_missing} not in targets -- jobs will fall back to 'default'", flush=True)
+                print(f"[CS] Warning: expected lanes {_missing} not in targets — jobs will fall back to 'default'", flush=True)
             else:
                 print(f"[CS] Verified {_num_workers} worker lanes pre-registered", flush=True)
 
@@ -633,7 +633,7 @@ process INIT_CRYOSPARC_PROJECT {
 }
 
 // ============================================================================
-// Process Definitions -- Batch-parallel processes (Phase A / B / C)
+// Process Definitions — Batch-parallel processes (Phase A / B / C)
 // ============================================================================
 
 process SPLIT_INTO_BATCHES {
@@ -672,7 +672,7 @@ process SPLIT_INTO_BATCHES {
         else:
             # Single-batch: emit one row using global workspace/import
             writer.writerow(["batch_0000", init["workspace_uid"], init["import_job_uid"], num_movies])
-            print(f"Single-batch manifest: {num_movies} movies - workspace={init['workspace_uid']}")
+            print(f"Single-batch manifest: {num_movies} movies → workspace={init['workspace_uid']}")
     """
 }
 
@@ -690,9 +690,9 @@ process PATCH_MOTION_CORRECTION_BATCH {
     path "motion_report_${batch_id}.json", emit: report
 
     script:
-    def mock = params.mock_mode - 'True' : 'False'
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
-    def dose_weight = params.motion_correction_dose_weighting - 'True' : 'False'
+    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
+    def dose_weight = params.motion_correction_dose_weighting ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -736,14 +736,14 @@ process PATCH_MOTION_CORRECTION_BATCH {
         # Extract QC metrics from CryoSPARC job output for QC gate + display
         try:
             import numpy as np
-            # CryoSPARC v5 Dataset objects may not support len() -- use num_items attr or try/except
+            # CryoSPARC v5 Dataset objects may not support len() — use num_items attr or try/except
             _n = 0
             try:
                 _n = len(micrographs_out) if micrographs_out is not None else 0
             except Exception:
                 _n = getattr(micrographs_out, 'num_items', 0) if micrographs_out is not None else 0
             if micrographs_out is not None and _n >= 0:
-                # CryoSPARC v5 Dataset objects don't have a .data attribute --
+                # CryoSPARC v5 Dataset objects don't have a .data attribute —
                 # access fields directly via dataset[field_name] and enumerate
                 # via dataset.fields() (v5) or dataset.dtype.names (numpy-backed)
                 _all_fields = []
@@ -759,7 +759,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
                 print(f"[QC] micrographs output fields: {_all_fields[:20]}", flush=True)
                 report["cs_output_fields"] = _all_fields[:30]
                 report["cs_output_count"]  = _n
-                # CryoSPARC v4/v5 field names for total motion (-) -- try slashed + unslashed variants
+                # CryoSPARC v4/v5 field names for total motion (Å) — try slashed + unslashed variants
                 _motion_candidates = ("total_motion_A", "micrograph/total_motion_A",
                                       "patch_motion/total_motion_A", "motion_global_a",
                                       "motion_total_a", "drift_total_A", "global_shift_A",
@@ -813,7 +813,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"motion_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [{batch_id}] Motion correction done ({num_mics} mics, real={use_real})")
+    print(f"✓ [{batch_id}] Motion correction done ({num_mics} mics, real={use_real})")
     """
 }
 
@@ -831,7 +831,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
     path "ctf_report_${batch_id}.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -884,7 +884,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
                     pass
                 print(f"[QC] CTF output fields: {_names[:20]}", flush=True)
                 report["cs_ctf_output_fields"] = _names[:30]
-                # CTF fit quality (resolution at which CTF fit is reliable -- lower - = better)
+                # CTF fit quality (resolution at which CTF fit is reliable — lower Å = better)
                 for _f in ("ctf_info/fit_to_A_lp", "ctf/fit_to_A", "ctf_fit_to_A",
                            "fit_to_A", "ctf_info/fit_to_A", "ctf_fit_res_A"):
                     if _f in _names:
@@ -894,7 +894,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
                             _mean_fit = float(np.nanmean(_valid))
                             report["avg_ctf_fit_to_A"] = round(_mean_fit, 2)
                             report["min_ctf_fit_to_A"] = round(float(np.nanmin(_valid)), 2)
-                            # Derived quality score -- always written when fit data available
+                            # Derived quality score — always written when fit data available
                             report["avg_fit_quality"] = round(max(0.0, 1.0 - _mean_fit / 10.0), 3)
                             report["ctf_fit_field_used"] = _f
                             # Per-micrograph fit values for scatter chart (cap at 500)
@@ -941,7 +941,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"ctf_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [{batch_id}] CTF done (real={use_real})")
+    print(f"✓ [{batch_id}] CTF done (real={use_real})")
     """
 }
 
@@ -959,8 +959,8 @@ process BLOB_PICKER_BATCH {
     path "picking_report_${batch_id}.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
-    def diameter = params.particle_diameter_angstroms -: estimate_particle_diameter(params.molecular_weight_kda) -: 150
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
+    def diameter = params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -1016,7 +1016,7 @@ process BLOB_PICKER_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"picking_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [{batch_id}] Blob picker done (real={use_real})")
+    print(f"✓ [{batch_id}] Blob picker done (real={use_real})")
     """
 }
 
@@ -1034,9 +1034,9 @@ process EXTRACT_PARTICLES_R1_BATCH {
     path "extract_report_${batch_id}.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
-    def box_size = params.particle_box_size -: estimate_box_size(
-        params.particle_diameter_angstroms -: estimate_particle_diameter(params.molecular_weight_kda) -: 150,
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
+    def box_size = params.particle_box_size ?: estimate_box_size(
+        params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
         params.pixel_size
     )
     """
@@ -1080,7 +1080,7 @@ process EXTRACT_PARTICLES_R1_BATCH {
                    "timestamp": datetime.now().isoformat(), "real_mode": True,
                    "num_particles": num_particles, "box_size_pix": box_size}
     else:
-        # Mock / fallback -- preserve job_uid chain if available
+        # Mock / fallback — preserve job_uid chain if available
         num_particles = inspected_data.get('num_items', 0)
         cs_data = {"cs_mode": "mock", "batch_id": batch_id,
                    "particles": [], "num_items": num_particles}
@@ -1094,7 +1094,7 @@ process EXTRACT_PARTICLES_R1_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f'extract_report_${batch_id}.json', 'w') as f:
         json.dump(report, f, indent=2)
-    print(f"- [{batch_id}] Extracted {num_particles} particles (box size: {box_size} px, real={use_real})")
+    print(f"✓ [{batch_id}] Extracted {num_particles} particles (box size: {box_size} px, real={use_real})")
     """
 }
 
@@ -1109,7 +1109,7 @@ process SPLIT_PARTICLE_BATCHES {
     path "particle_batch_manifest.csv", emit: manifest
 
     script:
-    def mock = params.mock_mode - 'True' : 'False'
+    def mock = params.mock_mode ? 'True' : 'False'
     def batch_size = params.particle_batch_size
     """
     #!/usr/bin/env python3
@@ -1126,7 +1126,7 @@ process SPLIT_PARTICLE_BATCHES {
     job_uid   = particles_data.get("job_uid", "MOCK")
     num_items = particles_data.get("num_items", len(particles))
 
-    # Real-mode: no inline particles list -- synthesize index-only entries for batch sizing
+    # Real-mode: no inline particles list — synthesize index-only entries for batch sizing
     if not particles and num_items > 0:
         particles = [{'particle_idx': i} for i in range(min(num_items, batch_size * 20))]
         num_items = max(num_items, len(particles))
@@ -1162,7 +1162,7 @@ process SPLIT_PARTICLE_BATCHES_R2 {
     path "particle_batch_manifest.csv", emit: manifest
 
     script:
-    def mock = params.mock_mode - 'True' : 'False'
+    def mock = params.mock_mode ? 'True' : 'False'
     def batch_size = params.particle_batch_size
     """
     #!/usr/bin/env python3
@@ -1214,7 +1214,7 @@ process CLASSIFY_2D_R1_BATCH {
     path "cs_thumb_*.png", optional: true, emit: thumbnails
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def recommendations = get_sample_recommendations(params.sample_type)
     def num_classes = recommendations.num_2d_classes
     """
@@ -1301,7 +1301,7 @@ process CLASSIFY_2D_R1_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"class2d_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [{batch_id}] 2D classify R1 done (real={use_real})")
+    print(f"✓ [{batch_id}] 2D classify R1 done (real={use_real})")
     """
 }
 
@@ -1321,7 +1321,7 @@ process CLASSIFY_2D_R2_BATCH {
     path "cs_thumb_*.png", optional: true, emit: thumbnails
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def recommendations = get_sample_recommendations(params.sample_type)
     def num_classes = recommendations.num_2d_classes
     """
@@ -1383,7 +1383,7 @@ process CLASSIFY_2D_R2_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"class2d_report_r2_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [{batch_id}] 2D classify R2 done (real={use_real})")
+    print(f"✓ [{batch_id}] 2D classify R2 done (real={use_real})")
     """
 }
 
@@ -1401,7 +1401,7 @@ process AB_INITIO_BATCH {
     path "ab_initio_report_k${k}.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -1468,7 +1468,7 @@ process AB_INITIO_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"ab_initio_report_k{k}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [Ab-initio model {k}] done (real={use_real})")
+    print(f"✓ [Ab-initio model {k}] done (real={use_real})")
     """
 }
 
@@ -1489,7 +1489,7 @@ process HOMO_REFINEMENT_BATCH {
     path "cs_out_*map*.mrc", optional: true, emit: map_mrc
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -1530,7 +1530,7 @@ process HOMO_REFINEMENT_BATCH {
             except Exception:
                 pass
         if _refine_slot is None:
-            _refine_slot = "volume"  # best guess -- log if this is wrong
+            _refine_slot = "volume"  # best guess — log if this is wrong
             print(f"[CS] Warning: could not discover output slot for homo_refine_new {job.uid}; assuming 'volume'", flush=True)
         num_particles = par_data.get("num_items", 0)
         # Download refined volume MRC for visualization in BioMate DensityMapViewer
@@ -1568,12 +1568,12 @@ process HOMO_REFINEMENT_BATCH {
         json.dump(cs_data, f, indent=2)
     with open(f"refinement_report_${vol_name}.json", "w") as f:
         json.dump(report, f, indent=2)
-    print(f"- [Refinement {vol_name}] done (real={use_real})")
+    print(f"✓ [Refinement {vol_name}] done (real={use_real})")
     """
 }
 
 // ============================================================================
-// Process Definitions -- Single-instance merge/analysis processes
+// Process Definitions — Single-instance merge/analysis processes
 // ============================================================================
 
 process MERGE_MICROGRAPHS {
@@ -1619,7 +1619,7 @@ process MERGE_MICROGRAPHS {
     with open('all_micrographs_ctf.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"- Merged {report_count} micrographs (real={is_real}, job_uid={last_job_uid}) from all batches")
+    print(f"✓ Merged {report_count} micrographs (real={is_real}, job_uid={last_job_uid}) from all batches")
     """
 }
 
@@ -1664,7 +1664,7 @@ process MERGE_PARTICLES {
     with open('all_particles.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"- Merged {len(all_particles)} particles (job_uid={last_job_uid}, num_items={last_num_items}) from all batches")
+    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}, num_items={last_num_items}) from all batches")
     """
 }
 
@@ -1705,12 +1705,12 @@ process MERGE_CLASSES {
     with open('all_classes.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"- Merged {len(all_classes)} classes (job_uid={last_job_uid}, num_items={last_num_items}) from all sub-batches")
+    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}, num_items={last_num_items}) from all sub-batches")
     """
 }
 
-// -- import_particles mode: synthesise a merged_cs stub from cs_init.json ----
-// Used when import_mode="particles" -- skips Phases A+B entirely and connects
+// ── import_particles mode: synthesise a merged_cs stub from cs_init.json ────
+// Used when import_mode="particles" — skips Phases A+B entirely and connects
 // the already-imported particles directly to the Phase C classification chain.
 process PARTICLES_AS_R1 {
     tag "particles_as_r1"
@@ -1796,7 +1796,7 @@ process MERGE_PARTICLES_R1 {
     with open('all_particles.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"- Merged R1: {len(cs_files)} batch files, job_uid={last_job_uid}, num_items={last_num_items}")
+    print(f"✓ Merged R1: {len(cs_files)} batch files, job_uid={last_job_uid}, num_items={last_num_items}")
     """
 }
 
@@ -1837,7 +1837,7 @@ process MERGE_CLASSES_R2 {
     with open('all_classes.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"- Merged {len(all_classes)} classes (job_uid={last_job_uid}, num_items={last_num_items}) from all sub-batches")
+    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}, num_items={last_num_items}) from all sub-batches")
     """
 }
 
@@ -1868,7 +1868,7 @@ process MERGE_VOLUMES {
     with open('volumes_ab_initio.cs', 'w') as f:
         json.dump({'volumes': volumes, 'best_volume': best_vol}, f, indent=2)
 
-    print(f"- Merged {len(volumes)} ab-initio volumes; best resolution: {best_vol['resolution_angstroms']} -")
+    print(f"✓ Merged {len(volumes)} ab-initio volumes; best resolution: {best_vol['resolution_angstroms']} Å")
     """
 }
 
@@ -1884,7 +1884,7 @@ process MICROGRAPH_DENOISER {
     path "denoise_report.json", emit: report
 
     script:
-    def mock = params.mock_mode - 'True' : 'False'
+    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -1922,7 +1922,7 @@ process MICROGRAPH_DENOISER {
     with open('denoise_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Denoised {num_mics} micrographs (real={is_real})")
+    print(f"✓ Denoised {num_mics} micrographs (real={is_real})")
     """
 }
 
@@ -1939,7 +1939,7 @@ process JUNK_2D_DETECTOR {
     path "junk_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -1955,7 +1955,7 @@ process JUNK_2D_DETECTOR {
         # so downstream processes can connect to CryoSPARC.
         num_input  = particles_data.get('num_items', 0)
         # Junk detection is implicitly handled by CryoSPARC's own quality
-        # metrics during 2D classification -- no separate API call needed here.
+        # metrics during 2D classification — no separate API call needed here.
         num_output = num_input
         report = {
             'step': '06_junk_2d_detector',
@@ -2000,7 +2000,7 @@ process JUNK_2D_DETECTOR {
         json.dump(out, f, indent=2)
     with open('junk_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-    print(f"- Junk detector: {report['num_input_particles']} in - {report['num_output_particles']} out (real={use_real})")
+    print(f"✓ Junk detector: {report['num_input_particles']} in → {report['num_output_particles']} out (real={use_real})")
     """
 }
 
@@ -2041,7 +2041,7 @@ process INSPECT_PICKS {
     with open('inspect_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Inspection complete: {report['num_particles']} particles (job_uid={particles_data.get('job_uid','none')})")
+    print(f"✓ Inspection complete: {report['num_particles']} particles (job_uid={particles_data.get('job_uid','none')})")
     """
 }
 
@@ -2058,7 +2058,7 @@ process SELECT_2D_R1 {
     path "selection_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -2123,7 +2123,7 @@ process SELECT_2D_R1 {
         json.dump(out, f, indent=2)
     with open('selection_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-    print(f"- Select 2D R1: {report['num_input_particles']} in - {report['num_selected_particles']} selected (real={use_real})")
+    print(f"✓ Select 2D R1: {report['num_input_particles']} in → {report['num_selected_particles']} selected (real={use_real})")
     """
 }
 
@@ -2142,7 +2142,7 @@ process TEMPLATE_PICKER {
     path "template_pick_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2167,7 +2167,7 @@ process TEMPLATE_PICKER {
                 "templates":   (class2d_job_uid, "class_averages"),
                 "micrographs": (ctf_job_uid,     "micrographs_ctf"),
             },
-            params={"diameter": ${params.particle_diameter_angstroms -: 150}},
+            params={"diameter": ${params.particle_diameter_angstroms ?: 150}},
             timeout=7200,
         )
         particles_out = job.load_output("particles")
@@ -2197,7 +2197,7 @@ process TEMPLATE_PICKER {
         json.dump(cs_data, f, indent=2)
     with open('template_pick_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-    print(f"- Template picking done (real={use_real})")
+    print(f"✓ Template picking done (real={use_real})")
     """
 }
 
@@ -2233,7 +2233,7 @@ process INSPECT_PICKS_R2 {
     with open('inspect_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Inspection complete: {report['num_particles']} particles")
+    print(f"✓ Inspection complete: {report['num_particles']} particles")
     """
 }
 
@@ -2252,9 +2252,9 @@ process EXTRACT_PARTICLES_R2 {
     path "extract_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
-    def box_size = params.particle_box_size -: estimate_box_size(
-        params.particle_diameter_angstroms -: estimate_particle_diameter(params.molecular_weight_kda) -: 150,
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
+    def box_size = params.particle_box_size ?: estimate_box_size(
+        params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
         params.pixel_size
     )
     """
@@ -2305,7 +2305,7 @@ process EXTRACT_PARTICLES_R2 {
         json.dump(cs_data, f, indent=2)
     with open('extract_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-    print(f"- Extracted {num_particles} particles round2 (box={box_size}px, real={use_real})")
+    print(f"✓ Extracted {num_particles} particles round2 (box={box_size}px, real={use_real})")
     """
 }
 
@@ -2322,7 +2322,7 @@ process SELECT_2D_R2 {
     path "selection_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -2374,7 +2374,7 @@ process SELECT_2D_R2 {
         json.dump(out, f, indent=2)
     with open('selection_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-    print(f"- Select 2D R2: {report['num_input_particles']} - {report['num_selected_particles']} (real={use_real})")
+    print(f"✓ Select 2D R2: {report['num_input_particles']} → {report['num_selected_particles']} (real={use_real})")
     """
 }
 
@@ -2393,7 +2393,7 @@ process VOLUME_TOOLS {
     path "cs_out_*volume*.mrc", optional: true, emit: volume_mrc
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2439,7 +2439,7 @@ process VOLUME_TOOLS {
     with open('volume_tools_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Volume filtering and masking complete (real={use_real})")
+    print(f"✓ Volume filtering and masking complete (real={use_real})")
     """
 }
 
@@ -2458,7 +2458,7 @@ process VALIDATION_FSC {
     path "validation_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2569,9 +2569,9 @@ process VALIDATION_FSC {
                         above_143 = [p for p in curve if p["fsc"] >= 0.143]
                         if above_143:
                             fsc_data["fsc_0143_resolution"] = above_143[-1]["resolution_angstroms"]
-                    print(f"[FSC] {len(curve)} points; 0.143 res={fsc_data.get('fsc_0143_resolution','-')}", flush=True)
+                    print(f"[FSC] {len(curve)} points; 0.143 res={fsc_data.get('fsc_0143_resolution','?')}", flush=True)
             else:
-                print("[FSC] No usable output -- fsc_curve empty", flush=True)
+                print("[FSC] No usable output — fsc_curve empty", flush=True)
         except Exception as _fsc_err:
             print(f"[FSC] extraction error: {_fsc_err}", flush=True)
         report = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
@@ -2601,7 +2601,7 @@ process VALIDATION_FSC {
     with open('validation_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- FSC validation complete (real={use_real})")
+    print(f"✓ FSC validation complete (real={use_real})")
     """
 }
 
@@ -2620,7 +2620,7 @@ process LOCAL_CTF_REFINEMENT {
     path "ctf_refinement_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2672,7 +2672,7 @@ process LOCAL_CTF_REFINEMENT {
     with open('ctf_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Local CTF refinement complete (real={use_real})")
+    print(f"✓ Local CTF refinement complete (real={use_real})")
     """
 }
 
@@ -2693,7 +2693,7 @@ process NON_UNIFORM_REFINEMENT {
     path "cs_out_*volume*.mrc", optional: true, emit: volume_vis_mrc
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2730,8 +2730,8 @@ process NON_UNIFORM_REFINEMENT {
         if downloaded_mrc:
             shutil.copy(downloaded_mrc, 'volume_nu_refined.mrc')
         else:
-            # Write minimal valid MRC stub (1-1-1) so Nextflow output is satisfied
-            # NC/NR/NS must be 1,1,1 (not 0,0,0) -- mode 2 = float32
+            # Write minimal valid MRC stub (1×1×1) so Nextflow output is satisfied
+            # NC/NR/NS must be 1,1,1 (not 0,0,0) — mode 2 = float32
             with open('volume_nu_refined.mrc', 'wb') as f:
                 hdr = [0] * 256
                 hdr[0], hdr[1], hdr[2] = 1, 1, 1   # NC, NR, NS
@@ -2746,7 +2746,7 @@ process NON_UNIFORM_REFINEMENT {
                   "cs_job_uid": job.uid, "num_particles": num_particles, "real_mode": True,
                   "viz_files": viz_files}
     else:
-        # Mock fallback -- write synthetic MRC
+        # Mock fallback — write synthetic MRC
         current_res   = volume_data.get('volume', {}).get('resolution_angstroms', 5.0)
         final_res     = round(current_res * random.uniform(0.8, 0.9), 2)
         num_particles = particles_data.get('num_items', len(particles_data.get('particles', [])))
@@ -2777,7 +2777,7 @@ process NON_UNIFORM_REFINEMENT {
     with open('nu_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Non-uniform refinement complete (real={use_real})")
+    print(f"✓ Non-uniform refinement complete (real={use_real})")
     """
 }
 
@@ -2797,7 +2797,7 @@ process LOCAL_RESOLUTION {
     path "local_resolution_report.json", emit: report
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2840,7 +2840,7 @@ process LOCAL_RESOLUTION {
     with open('local_resolution_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"- Local resolution complete (real={use_real})")
+    print(f"✓ Local resolution complete (real={use_real})")
     """
 }
 
@@ -2860,7 +2860,7 @@ process SHARPEN {
     path "workflow_summary.json", emit: summary
 
     script:
-    def real = (params.use_cryosparc && !params.mock_mode) - 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     ${CS_HELPER}
@@ -2882,7 +2882,7 @@ process SHARPEN {
             params={},
             timeout=3600,
         )
-        # Download the sharpened volume MRC -- this is the final deliverable
+        # Download the sharpened volume MRC — this is the final deliverable
         viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
                                         mrc_prefix="cs_out_sharp_", png_prefix="cs_thumb_sharp_")
         downloaded_mrc = next((f for f in viz_files if f.endswith('.mrc')), None)
@@ -2909,7 +2909,7 @@ process SHARPEN {
         'pixel_size_angstroms': ${params.pixel_size},
         'voltage_kv': ${params.voltage},
         'symmetry': '${params.symmetry}',
-        'mock_mode': ${params.mock_mode - 'True' : 'False'},
+        'mock_mode': ${params.mock_mode ? 'True' : 'False'},
         'real_mode': use_real,
         'parallelism': {
             'micrograph_batch_size': ${params.micrograph_batch_size},
@@ -2929,7 +2929,7 @@ process SHARPEN {
     with open('workflow_summary.json', 'w') as f:
         json.dump(summary, f, indent=2)
 
-    print(f"- Sharpening complete (real={use_real})")
+    print(f"✓ Sharpening complete (real={use_real})")
     print(f"")
     print(f"=" * 70)
     print(f"  CryoSPARC Standard SPA Workflow Complete!")
@@ -2938,7 +2938,7 @@ process SHARPEN {
 }
 
 // ============================================================================
-// Main Workflow -- channel-based parallelism
+// Main Workflow — channel-based parallelism
 // ============================================================================
 
 workflow CRYOSPARC_STANDARD_SPA {
@@ -2947,12 +2947,12 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     main:
 
-    // -- Phase 0: Initialise CryoSPARC project (once) ------------------------
+    // ── Phase 0: Initialise CryoSPARC project (once) ────────────────────────
 
     INIT_CRYOSPARC_PROJECT(movies_path)
     init_json_ch = INIT_CRYOSPARC_PROJECT.out.init_json
 
-    // -- Routing: particles mode skips Phases A+B entirely --------------------
+    // ── Routing: particles mode skips Phases A+B entirely ────────────────────
     // When import_mode="particles", INIT already ran import_particles; jump to
     // Phase C (2D classification) directly via the PARTICLES_AS_R1 stub process.
 
@@ -2962,7 +2962,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } else {
 
-    // -- Phase A: Per-batch preprocessing (motion + CTF) ---------------------
+    // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
     // Split into batches; CSV columns: batch_id, workspace_uid, import_job_uid, num_movies.
     // In single-batch mode (num_cs_workers==1): one row with the global workspace/import.
@@ -2972,11 +2972,11 @@ workflow CRYOSPARC_STANDARD_SPA {
         .splitCsv(header: false)
         .map { row -> tuple(row[0], row[1], row[2], row[3]) }
 
-    // Parallel motion correction -- one job per batch (truly parallel in multi-batch mode)
+    // Parallel motion correction — one job per batch (truly parallel in multi-batch mode)
     PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
     motion_ch = PATCH_MOTION_CORRECTION_BATCH.out.micrographs_cs
 
-    // Parallel CTF estimation -- one job per batch
+    // Parallel CTF estimation — one job per batch
     PATCH_CTF_ESTIMATION_BATCH(motion_ch, init_json_ch)
     ctf_ch = PATCH_CTF_ESTIMATION_BATCH.out.ctf_cs
 
@@ -2984,11 +2984,11 @@ workflow CRYOSPARC_STANDARD_SPA {
     all_ctf_cs_files = ctf_ch.map { batch_id, ctf_file -> ctf_file }.collect()
     merged_mics_ch   = MERGE_MICROGRAPHS(all_ctf_cs_files)
 
-    // -- Phase A-cont: Denoising (single, on merged micrographs) -------------
+    // ── Phase A-cont: Denoising (single, on merged micrographs) ─────────────
 
     denoised_ch = MICROGRAPH_DENOISER(merged_mics_ch.merged_cs)
 
-    // -- Phase B: Blob picking -- parallel per CTF batch -----------------------
+    // ── Phase B: Blob picking — parallel per CTF batch ───────────────────────
 
     BLOB_PICKER_BATCH(ctf_ch, init_json_ch)
     picked_ch    = BLOB_PICKER_BATCH.out.particles_cs
@@ -2999,7 +2999,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     filtered_ch  = JUNK_2D_DETECTOR(denoised_ch.denoised_cs, merged_picks.merged_cs)
     inspected_ch = INSPECT_PICKS(filtered_ch.filtered_cs)
 
-    // -- Phase B-cont: R1 particle extraction -- parallel per CTF batch --------
+    // ── Phase B-cont: R1 particle extraction — parallel per CTF batch ────────
 
     // Broadcast the global inspected set; each batch job filters to its own mics
     EXTRACT_PARTICLES_R1_BATCH(ctf_ch, inspected_ch.inspected_cs)
@@ -3009,7 +3009,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } // end movies-only branch
 
-    // -- Phase C: 2D classification R1 -- parallel particle sub-batches --------
+    // ── Phase C: 2D classification R1 — parallel particle sub-batches ────────
 
     particle_batches_ch = SPLIT_PARTICLE_BATCHES(merged_r1.merged_cs)
         .splitCsv(header: false)
@@ -3022,7 +3022,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     SELECT_2D_R1(merged_classes_r1.merged_cs, merged_r1.merged_cs)
 
-    // -- Routing: particles mode skips template picking + R2 classification ----
+    // ── Routing: particles mode skips template picking + R2 classification ────
     // Template picker needs micrographs; in particles mode we go straight to
     // ab-initio using the R1-selected particles.
 
@@ -3032,13 +3032,13 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } else {
 
-    // -- Template picker (single -- needs global 2D class templates) -----------
+    // ── Template picker (single — needs global 2D class templates) ───────────
 
     TEMPLATE_PICKER(merged_classes_r1.merged_cs, merged_mics_ch.merged_cs, init_json_ch)
     INSPECT_PICKS_R2(TEMPLATE_PICKER.out.template_particles_cs)
     EXTRACT_PARTICLES_R2(INSPECT_PICKS_R2.out.inspected_cs, merged_mics_ch.merged_cs, init_json_ch)
 
-    // -- Phase C-R2: 2D classification R2 -- parallel particle sub-batches -----
+    // ── Phase C-R2: 2D classification R2 — parallel particle sub-batches ─────
 
     particle_batches_r2_ch = SPLIT_PARTICLE_BATCHES_R2(EXTRACT_PARTICLES_R2.out.extracted_cs)
         .splitCsv(header: false)
@@ -3055,7 +3055,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     } // end movies-only R2 branch
 
-    // -- Phase D: Ab-initio -- K parallel model reconstructions ----------------
+    // ── Phase D: Ab-initio — K parallel model reconstructions ────────────────
 
     ab_initio_inputs = Channel.of(1..params.num_ab_initio_classes)
         .combine(all_selected_particles)
@@ -3066,7 +3066,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     all_volumes = volumes_ch.map { k, vol -> vol }.collect()
     merged_vols = MERGE_VOLUMES(all_volumes)
 
-    // -- Phase D-cont: Refinement -- parallel per volume ------------------------
+    // ── Phase D-cont: Refinement — parallel per volume ────────────────────────
     // Use individual AB_INITIO outputs directly so vol_data retains job_uid/output_slot.
     // MERGE_VOLUMES is kept for reporting only.
 
@@ -3083,13 +3083,13 @@ workflow CRYOSPARC_STANDARD_SPA {
         .collect()
         .map { files -> files[0] }  // first is fine; all go into VOLUME_TOOLS
 
-    // -- Phase E: Post-processing pipeline (serial -- depends on best volume) --
+    // ── Phase E: Post-processing pipeline (serial — depends on best volume) ──
 
     VOLUME_TOOLS(best_refined_ch, init_json_ch)
 
     VALIDATION_FSC(VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
-    // CS v5 ctf_refine_local requires particles WITH alignments3D -- must come from homo_refine output,
+    // CS v5 ctf_refine_local requires particles WITH alignments3D — must come from homo_refine output,
     // not raw extracted particles. best_refined_ch holds the homo_refine cs_data (job_uid present).
     LOCAL_CTF_REFINEMENT(best_refined_ch, VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
@@ -3114,12 +3114,12 @@ workflow {
     // Auto-calculate derived parameters
     if (params.particle_diameter_angstroms == null && params.molecular_weight_kda != null) {
         params.particle_diameter_angstroms = estimate_particle_diameter(params.molecular_weight_kda)
-        log.info "Estimated particle diameter: ${params.particle_diameter_angstroms} -"
+        log.info "Estimated particle diameter: ${params.particle_diameter_angstroms} Å"
     }
 
     if (params.particle_box_size == null) {
         params.particle_box_size = estimate_box_size(
-            params.particle_diameter_angstroms -: 150,
+            params.particle_diameter_angstroms ?: 150,
             params.pixel_size
         )
         log.info "Calculated box size: ${params.particle_box_size} px"
@@ -3134,19 +3134,19 @@ workflow {
     def recommendations = get_sample_recommendations(params.sample_type)
     log.info """
     ====================================================================
-    CryoSPARC Standard SPA Workflow  (v2 -- parallel channels)
+    CryoSPARC Standard SPA Workflow  (v2 — parallel channels)
     ====================================================================
     Sample Type: ${params.sample_type}
     ${recommendations.notes}
 
     Acquisition:
-      - Pixel size: ${params.pixel_size} -/px
+      - Pixel size: ${params.pixel_size} Å/px
       - Voltage: ${params.voltage} kV
       - Spherical aberration: ${params.spherical_aberration} mm
-      - Total dose: ${params.total_dose} e-/--
+      - Total dose: ${params.total_dose} e-/Å²
 
     Particle:
-      - Diameter: ${params.particle_diameter_angstroms -: 'auto'} -
+      - Diameter: ${params.particle_diameter_angstroms ?: 'auto'} Å
       - Box size: ${params.particle_box_size} px
       - Symmetry: ${params.symmetry}
 
@@ -3161,12 +3161,12 @@ workflow {
       - GPU workers: ${params.num_gpu_workers}
       - Max parallel jobs: ${params.max_parallel_jobs}
 
-    Mode: ${params.mock_mode - 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
+    Mode: ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
     ====================================================================
     """.stripIndent()
 
-    // Create input channel -- pass movies path as string (supports S3 URLs and local paths)
-    def movies_path_str = params.movies_path -: "${baseDir}/test_data"
+    // Create input channel — pass movies path as string (supports S3 URLs and local paths)
+    def movies_path_str = params.movies_path ?: "${baseDir}/test_data"
 
     ch_movies_dir = Channel.value(movies_path_str)
 
@@ -3182,8 +3182,8 @@ workflow {
         - Final map: ${summary.outputs.final_map}
         - Local resolution map: ${summary.outputs.local_resolution_map}
         - FSC validation: ${summary.outputs.fsc_validation}
-        - Micrograph batch size: ${summary.parallelism-.micrograph_batch_size}
-        - Particle batch size: ${summary.parallelism-.particle_batch_size}
+        - Micrograph batch size: ${summary.parallelism?.micrograph_batch_size}
+        - Particle batch size: ${summary.parallelism?.particle_batch_size}
 
         Results directory: ${params.outdir}
         """
@@ -3193,7 +3193,7 @@ workflow {
 workflow.onComplete {
     log.info """
     ==================== BioMate CryoSPARC SPA Complete ====================
-    Status    : ${workflow.success - 'SUCCESS' : 'FAILED'}
+    Status    : ${workflow.success ? 'SUCCESS' : 'FAILED'}
     Duration  : ${workflow.duration}
     CPU-hours : ${workflow.stats.computeTimeFmt}
     Batches   : ${params.micrograph_batch_size} micrographs/batch
