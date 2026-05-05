@@ -63,18 +63,25 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(), logging.FileHandler("finetune.log", mode="a")]
 )
 
-DEFAULT_MODEL  = "Qwen/Qwen2.5-7B-Instruct"
+DEFAULT_MODEL  = "Qwen/Qwen3-8B"
 DEFAULT_DATA   = Path("data/regulatory_training/tasks/splits")
 DEFAULT_OUTPUT = Path("models/regulatory_llm_v1")
 
 # ─── Model aliases ────────────────────────────────────────────────────────────
 
 MODEL_ALIASES = {
+    # Qwen3 (April 2025) — recommended, hybrid thinking/non-thinking mode
+    "qwen3-8b":              "Qwen/Qwen3-8B",
+    "qwen3-4b":              "Qwen/Qwen3-4B",
+    "qwen3-1.7b":            "Qwen/Qwen3-1.7B",
+    "qwen3-0.6b":            "Qwen/Qwen3-0.6B",
+    # Qwen2.5 (September 2024) — legacy
     "qwen2.5-7b-instruct":   "Qwen/Qwen2.5-7B-Instruct",
+    "qwen2.5-3b-instruct":   "Qwen/Qwen2.5-3B-Instruct",
     "qwen2.5-0.5b-instruct": "Qwen/Qwen2.5-0.5B-Instruct",
+    # Other
     "llama3-8b-instruct":    "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "biomistral-7b":         "BioMistral/BioMistral-7B",
-    "qwen2.5-3b-instruct":   "Qwen/Qwen2.5-3B-Instruct",
 }
 
 # ─── LoRA config ─────────────────────────────────────────────────────────────
@@ -153,11 +160,33 @@ def load_split(split_dir: Path, split: str, task_filter: Optional[list[str]] = N
     return examples
 
 
-def format_for_model(example: dict, tokenizer) -> str:
-    """Apply the model's chat template to format the ChatML example."""
-    messages = example.get("messages", [])
+def format_for_model(example: dict, tokenizer, model_id: str = "") -> str:
+    """Apply the model's chat template to format the ChatML example.
+
+    Qwen3 note: Qwen3 supports thinking and non-thinking modes. For regulatory
+    prose generation we always use non-thinking mode (/no_think), which produces
+    direct regulatory text without chain-of-thought reasoning overhead.
+    """
+    messages = list(example.get("messages", []))
+
+    # Qwen3: inject /no_think into the first user message so model skips CoT
+    is_qwen3 = "qwen3" in model_id.lower() or "Qwen3" in model_id
+    if is_qwen3:
+        for i, msg in enumerate(messages):
+            if msg.get("role") == "user":
+                # Prepend /no_think tag — Qwen3 respects this directive
+                messages[i] = dict(msg, content="/no_think\n" + msg["content"])
+                break
+
     if hasattr(tokenizer, "apply_chat_template"):
-        return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+        try:
+            return tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False,
+                # Qwen3 accepts enable_thinking kwarg; ignore if unsupported
+                **({"enable_thinking": False} if is_qwen3 else {}),
+            )
+        except TypeError:
+            return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
     # Fallback: manual ChatML
     parts = []
     for msg in messages:
@@ -242,14 +271,14 @@ def train_gpu(args) -> None:
         log.error("No training data found. Run build_training_pairs.py first.")
         sys.exit(1)
 
-    # Format with chat template
+    # Format with chat template — pass model_id for Qwen3 thinking-mode control
     def format_example(ex):
-        return {"text": format_for_model(ex, tokenizer)}
+        return {"text": format_for_model(ex, tokenizer, model_id=model_id)}
 
     train_dataset = Dataset.from_list([format_example(ex) for ex in train_data])
     eval_dataset  = Dataset.from_list([format_example(ex) for ex in dev_data]) if dev_data else None
 
-    # Training arguments
+    # Training arguments — TRL 1.x: max_seq_length moved from SFTConfig to SFTTrainer
     training_args = SFTConfig(
         output_dir=str(args.output),
         num_train_epochs=args.epochs,
@@ -269,18 +298,26 @@ def train_gpu(args) -> None:
         save_total_limit=3,
         load_best_model_at_end=True if eval_dataset else False,
         report_to="none",  # no wandb
-        max_seq_length=args.max_seq_length,
         dataset_text_field="text",
         packing=False,
     )
 
-    trainer = SFTTrainer(
+    # TRL 1.x: pass max_seq_length to SFTTrainer directly (removed from SFTConfig)
+    trainer_kwargs: dict = dict(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
     )
+    import inspect
+    if "max_seq_length" in inspect.signature(SFTTrainer.__init__).parameters:
+        trainer_kwargs["max_seq_length"] = args.max_seq_length
+    else:
+        # TRL 1.3+: set via processing_class or truncate via tokenizer
+        tokenizer.model_max_length = args.max_seq_length
+
+    trainer = SFTTrainer(**trainer_kwargs)
 
     log.info("Starting training — %d examples, %d epochs, LR=%.0e",
              len(train_data), args.epochs, args.lr)
@@ -450,19 +487,23 @@ Step 4: Verify GPU access
 Step 5: Run fine-tuning
 ────────────────────────
   python scripts/finetune_regulatory_llm.py \\
-    --model qwen2.5-7b-instruct \\
+    --model qwen3-8b \\
     --data data/regulatory_training/tasks/splits \\
     --output models/regulatory_llm_v1 \\
     --epochs 3 --lora-r 16
 
+Model options (recommended):
+  qwen3-8b    (default) Qwen3 8B, April 2025, hybrid thinking/non-thinking mode
+  qwen3-4b              Qwen3 4B, faster, still strong multilingual
+  qwen3-1.7b            Qwen3 1.7B, fastest, for quick iteration
+
 Estimated training time (GB10 GPU):
-  Task 1+2 SFT (841 pairs → 20K after EMA EPAR collection):  6-10 hours
-  DAPT (5B tokens):                                           12-24 hours
-  Total:                                                      ~1-2 days
+  Task 1+2 SFT (3,089 train pairs):  4-8 hours
+  DAPT (5B tokens):                  12-24 hours
 
 Memory requirement:
-  Qwen2.5-7B in 4-bit NF4 QLoRA:  ~18 GB GPU memory
-  GB10 total unified memory:       128 GB ✓ (ample headroom)
+  Qwen3-8B in 4-bit NF4 QLoRA:  ~18 GB GPU memory
+  GB10 total unified memory:     128 GB ✓ (ample headroom)
 """)
 
 
@@ -470,7 +511,7 @@ Memory requirement:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Fine-tune regulatory LLM with QLoRA")
-    ap.add_argument("--model",          default="qwen2.5-7b-instruct",
+    ap.add_argument("--model",          default="qwen3-8b",
                     help=f"Model name or HuggingFace ID. Aliases: {list(MODEL_ALIASES.keys())}")
     ap.add_argument("--data",           type=Path, default=DEFAULT_DATA)
     ap.add_argument("--output",         type=Path, default=DEFAULT_OUTPUT)
