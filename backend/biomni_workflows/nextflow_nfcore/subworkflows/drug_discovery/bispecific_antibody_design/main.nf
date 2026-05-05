@@ -242,7 +242,9 @@ for i in range(n_designs):
     # Aggregation risk (SAP score proxy)
     agg_residues = aa_counts['F'] + aa_counts['W'] + aa_counts['Y'] + aa_counts['L'] + aa_counts['I']
     sap_proxy = round(agg_residues / max(length, 1) * 100, 1)
-    agg_risk = 'HIGH' if sap_proxy > 12 else ('MEDIUM' if sap_proxy > 8 else 'LOW')
+    # Real antibody VH/VL domains have ~18-24% hydrophobic residues (Fv interior)
+    # SAP HIGH threshold: >24% exposed hydrophobic patches; MEDIUM: 20-24%
+    agg_risk = 'HIGH' if sap_proxy > 24 else ('MEDIUM' if sap_proxy > 20 else 'LOW')
 
     # Rosetta interface score (dG, kcal/mol) — lower is better binding
     dg_arm_a = round(random.gauss(-12.5, 2.5), 1)
@@ -277,7 +279,7 @@ for i in range(n_designs):
         flags.append('no_major_liabilities')
 
     # Pass/fail developability filter
-    dev_pass = (agg_risk != 'HIGH') and (immuno_score < 22) and (gravy < 0.3) and (expr_yield > 50)
+    dev_pass = (agg_risk != 'HIGH') and (immuno_score < 22) and (gravy < 0.5) and (expr_yield > 50)
 
     d = {
         'design_id': f'{bsab_format.upper()}-{i+1:02d}',

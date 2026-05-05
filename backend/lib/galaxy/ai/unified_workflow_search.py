@@ -264,6 +264,19 @@ class UnifiedWorkflowSearch:
             'doubletfinder': 4.5, 'doublet finder': 4.5, 'scrublet': 4.5,
             'doublet detection': 4.0, 'doublet removal': 4.0, 'doublets': 3.5,
             'multiplet': 3.5, 'cell multiplet': 4.0, 'pann score': 4.0,
+            # Bispecific antibody
+            'bispecific': 5.0, 'bsab': 5.0, 'bite': 4.5, 'bispecific t-cell engager': 5.0,
+            'crossmab': 5.0, 'dart bispecific': 5.0, 'dvd-ig': 4.5, 'dvd ig': 4.5,
+            'knob-into-hole': 4.5, 'knob into hole': 4.5, 'knob hole': 4.5,
+            'nanobody fusion': 4.5, 'vhh fusion': 4.5, 'dual antigen': 4.0,
+            'two targets': 3.5, 'dual blockade': 4.0, 'cd3 arm': 4.5,
+            'blinatumomab': 4.5, 'faricimab': 4.5, 'amivantamab': 4.5,
+            # siRNA off-target
+            'sirna': 5.0, 'si rna': 5.0, 'sirna off-target': 5.0, 'off-target silencing': 5.0,
+            'seed region': 4.5, 'risc': 4.0, 'rnai off-target': 5.0, 'passenger strand': 4.5,
+            "2'-ome": 4.0, "2'-o-methyl": 4.0, '2ome modification': 4.5,
+            'esc chemistry': 4.5, 'inclisiran': 4.5, 'givosiran': 4.5,
+            'tlr7 tlr8': 4.5, 'tlr immune stimulation': 4.5, 'sirna immunogenicity': 4.5,
 
             # Methylation
             'methylation': 3.0, 'bisulfite': 2.5, 'methylseq': 3.0,
