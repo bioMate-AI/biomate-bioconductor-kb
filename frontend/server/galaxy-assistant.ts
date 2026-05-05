@@ -5143,10 +5143,31 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (error) {
       console.error('[GalaxyAssistant] Response generation failed:', error);
-      // Surface billing / auth errors explicitly so users (and tests) see the real cause.
       const errMsg = error instanceof Error ? error.message : String(error);
       const isBilling = /credit balance|billing|payment|quota|rate.?limit|too many requests/i.test(errMsg);
       const isAuth = /unauthorized|invalid.?api.?key|authentication/i.test(errMsg);
+
+      // Circuit breaker: when Anthropic credit is exhausted, fall back to Gemini.
+      if (isBilling && this.gemini) {
+        console.warn('[GalaxyAssistant] Anthropic credit exhausted — falling back to Gemini');
+        try {
+          const allPrev = context.previousMessages || [];
+          const plainMessages = [
+            ...allPrev.slice(-6).map(m => ({
+              role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+              content: typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+            })),
+            { role: 'user' as const, content: userPrompt },
+          ];
+          const geminiResponse = await this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta);
+          return { message: geminiResponse, truncated: false };
+        } catch (geminiErr: any) {
+          console.error('[GalaxyAssistant] Gemini fallback also failed:', geminiErr.message);
+          return { message: 'Service temporarily unavailable. Please try again later.' };
+        }
+      }
+
       if (isBilling) {
         return { message: 'Service temporarily unavailable: API credit balance too low. Please contact support.' };
       }
