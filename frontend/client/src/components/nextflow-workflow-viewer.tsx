@@ -2010,6 +2010,11 @@ export function NextflowWorkflowViewer({
                       ))}
                     </div>
                   )}
+                  {qcGateSecondsLeft !== null && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-dim)' }} data-testid="qc-gate-countdown">
+                      Pipeline continues in {Math.floor(qcGateSecondsLeft / 60)}:{String(qcGateSecondsLeft % 60).padStart(2, '0')} unless you act
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                     {qcGateData.suggestions.length > 0 && (
                       <button className="btn sm" data-testid="qc-gate-apply" onClick={() => { void handleRetryWithSuggestions(); }} disabled={isApplyingSuggestions}>
