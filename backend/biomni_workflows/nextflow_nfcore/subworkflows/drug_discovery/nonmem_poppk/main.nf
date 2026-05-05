@@ -285,15 +285,15 @@ input_line = ' '.join(base_cols + extra_cols)
 
 # ---- $THETA initial estimates (log-scale, typical adult) ----------------
 THETA_INITS = {
-    'CL':  '(0.001, 5,  500)',    ; CL (L/h)
-    'V':   '(0.001, 50, 5000)',   ; V (L)
-    'V2':  '(0.001, 50, 5000)',   ; V2 central
-    'V3':  '(0.001, 100, 10000)', ; V3 peripheral
-    'V4':  '(0.001, 50, 5000)',   ; V4 deep peripheral
-    'Q':   '(0.001, 2,  200)',    ; Q inter-compartmental CL
-    'Q2':  '(0.001, 2,  200)',    ; Q2
-    'Q3':  '(0.001, 1,  100)',    ; Q3
-    'KA':  '(0.001, 1,  10)',     ; KA (1/h)
+    'CL':  '(0.001, 5,  500)',    # CL (L/h)
+    'V':   '(0.001, 50, 5000)',   # V (L)
+    'V2':  '(0.001, 50, 5000)',   # V2 central
+    'V3':  '(0.001, 100, 10000)', # V3 peripheral
+    'V4':  '(0.001, 50, 5000)',   # V4 deep peripheral
+    'Q':   '(0.001, 2,  200)',    # Q inter-compartmental CL
+    'Q2':  '(0.001, 2,  200)',    # Q2
+    'Q3':  '(0.001, 1,  100)',    # Q3
+    'KA':  '(0.001, 1,  10)',     # KA (1/h)
 }
 theta_lines = []
 for i, p in enumerate(pk_params, 1):
@@ -314,7 +314,17 @@ for i, p in enumerate(pk_params, 1):
     elif p == 'KA':
         ka_theta = i
         pk_block_lines.append(f'  TVKA = THETA({i})')
-        pk_block_lines.append(f'  KA   = TVKA * EXP(ETA({min(n_eta, len(pk_params))}))')
+        # Assign KA its own ETA only when n_eta exceeds the number of
+        # structural PK params that already consumed ETAs; otherwise fix KA
+        n_structural_with_eta = sum(
+            1 for pp in pk_params
+            if pp in ('CL', 'V', 'V2', 'V3', 'V4', 'Q', 'Q2', 'Q3')
+            and pk_params.index(pp) < n_eta
+        )
+        if n_structural_with_eta < n_eta:
+            pk_block_lines.append(f'  KA   = TVKA * EXP(ETA({n_structural_with_eta + 1}))')
+        else:
+            pk_block_lines.append(f'  KA   = TVKA  ; KA fixed (no spare ETA)')
     else:
         pk_block_lines.append(f'  {p} = THETA({i})')
 
@@ -327,7 +337,8 @@ if bsv_structure == 'block' and n_eta >= 2:
             vals[0] = '0.01'   # off-diagonal covariance initialised near zero
         omega_lines.append('  ' + ' '.join(vals))
 else:
-    omega_lines = [f'  $OMEGA DIAGONAL({n_eta})']
+    # NONMEM diagonal omega: one $OMEGA record per ETA (or list all on one record)
+    omega_lines = ['  $OMEGA']
     omega_lines += [f'  0.09  ; ETA({i+1})' for i in range(n_eta)]
 
 # ---- covariate search placeholder in $PK --------------------------------
