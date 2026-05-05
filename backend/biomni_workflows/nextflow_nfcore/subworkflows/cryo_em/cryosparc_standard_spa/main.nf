@@ -565,7 +565,7 @@ process INIT_CRYOSPARC_PROJECT {
     # This block DETECTS available worker lanes via the CryoSPARC API only.
     # It never calls cryosparcm from inside the Nextflow container.
     def _detect_worker_lanes(cs):
-        """Return set of 'worker_N' lane names visible to the CryoSPARC API."""
+        # Return set of 'worker_N' lane names visible to the CryoSPARC API.
         found = set()
         try:
             targets = cs.get_targets() if hasattr(cs, "get_targets") else []
