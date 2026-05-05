@@ -973,7 +973,7 @@ const upload = multer({
       '.bam', '.sam', '.cram',
       '.mzml', '.mzxml', '.mgf',
       '.csv', '.tsv', '.txt', '.tab',
-      '.fasta', '.fa', '.fna', '.fas',
+      '.fasta', '.fa', '.fna', '.fas', '.faa', '.fap',
       '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
       '.h5ad', '.h5', '.hdf5', '.loom',
       '.json', '.xml',
@@ -983,6 +983,8 @@ const upload = multer({
       '.zip', '.tar', '.tar.gz', '.tgz',
       // Notebook and R formats
       '.ipynb', '.rds', '.rda', '.xlsx', '.xls',
+      // Phylogenomics / alignment formats
+      '.nwk', '.newick', '.treefile', '.tree', '.mafft', '.clipkit', '.iqtree', '.log',
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
@@ -11639,6 +11641,12 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       const datasetRefs = await Promise.all(rawIds.map(async (ref) => {
         if (typeof ref === 'object' && ref !== null) return ref;
         const id = String(ref);
+        // Check local upload registry first
+        const localFile = getUploadedFile(id);
+        if (localFile) {
+          return { id, filename: localFile.name };
+        }
+        // Fall back to Galaxy metadata
         try {
           const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
           const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, {
@@ -11653,12 +11661,24 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         return { id, filename: id };
       }));
 
+      // downloadDataset: check local upload registry first, fall back to Galaxy
+      const downloadDatasetFn = async (id: string) => {
+        const localFile = getUploadedFile(id);
+        if (localFile) {
+          // Stream from local filesystem (uploaded without Galaxy)
+          const { createReadStream } = await import('fs');
+          return createReadStream(localFile.filePath) as any;
+        }
+        // Fall back to Galaxy
+        return galaxyAPIProxy.downloadDataset(id);
+      };
+
       const result = await runCode({
         language: language as 'python' | 'r' | 'bash',
         code,
         input_datasets: datasetRefs,
         timeout_seconds: typeof timeout_seconds === 'number' ? Math.min(timeout_seconds, 300) : 30,
-        downloadDataset: (id: string) => galaxyAPIProxy.downloadDataset(id),
+        downloadDataset: downloadDatasetFn,
       });
       res.json(result);
     } catch (err: any) {
