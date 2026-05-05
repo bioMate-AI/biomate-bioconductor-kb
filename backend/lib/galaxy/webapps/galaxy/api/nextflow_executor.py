@@ -1628,40 +1628,47 @@ def _list_s3_output_files(s3_uri: str) -> list:
 # CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
 # (matching _CRYOSPARC_STEP_PHASES in ai_assistant.py)
 _CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
-    "00_cs_init": 0, "00_batch_split": 0,
-    "02_motion_correction": 1,
-    "03b_merge_micrographs": 2,
-    "03_ctf_estimation": 3,
-    "04_denoiser": 5,
-    "05_blob_picker": 6,
-    "merge_particles": 6,
-    "06_junk_detector": 7,
-    "07_inspect_picks_round1": 8,
-    "08_extract_round1": 10,
-    "09_particle_batch_split": 10,
-    "merge_particles_r1": 10,
-    "09_classify_2d_round1": 11,
-    "merge_classes": 11, "merge_classes_r2": 14,
-    "10_select_2d_round1": 12,
-    "11_template_picker": 8,
-    "12_inspect_picks_round2": 9,
-    "13_extract_round2": 13,
-    "14_classify_2d_round2": 14,
-    "15_select_2d_round2": 14,
-    "16_ab_initio": 15, "16b_merge_volumes": 16,
-    # Phase D refinement — actual S3 dir names from pipeline
-    "17_homo_refinement": 16, "17_homogeneous_refinement": 16,
-    "18_volume_tools": 17,
-    # Phase E post-processing — actual S3 dir names from pipeline
-    "19_validation_fsc": 22, "22_fsc_validation": 22,
-    "20_local_ctf_refinement": 19, "19_local_ctf": 19,
-    "21_non_uniform_refinement": 18, "18_nu_refinement": 18,
-    "20_local_resolution": 20,
-    "23_sharpening": 21, "21_sharpen": 21,
+    # Phase A — Motion Correction & CTF (step IDs from workflow definition)
+    "00_cs_init": 0,                       # INIT_CRYOSPARC_PROJECT
+    "00_batch_split": 1,                   # SPLIT_INTO_BATCHES
+    "02_motion_correction": 2,             # PATCH_MOTION_CORRECTION_BATCH
+    "03_ctf_estimation": 3,               # PATCH_CTF_ESTIMATION_BATCH
+    "05_blob_picker": 4,                   # BLOB_PICKER_BATCH
+    "08_extract_round1": 5,               # EXTRACT_PARTICLES_R1_BATCH
+    # Phase B — 2D Classification
+    "09_particle_batch_split": 6,          # SPLIT_PARTICLE_BATCHES
+    "09_particle_batch_split_r2": 7,       # SPLIT_PARTICLE_BATCHES_R2
+    "09_classify_2d_round1": 8,           # CLASSIFY_2D_R1_BATCH
+    "14_classify_2d_round2": 9,           # CLASSIFY_2D_R2_BATCH
+    # Phase C — 3D Reconstruction
+    "16_ab_initio": 10,                    # AB_INITIO_BATCH
+    "17_homo_refinement": 11, "17_homogeneous_refinement": 11,  # HOMO_REFINEMENT_BATCH
+    "03b_merge_micrographs": 12,           # MERGE_MICROGRAPHS
+    "merge_particles": 13,                 # MERGE_PARTICLES
+    # Phase D — Post-processing
+    "merge_classes": 14,                   # MERGE_CLASSES
+    "merge_particles_r1": 16,             # MERGE_PARTICLES_R1
+    "merge_classes_r2": 17,               # MERGE_CLASSES_R2
+    "16b_merge_volumes": 18,              # MERGE_VOLUMES
+    # Phase E — QC & Analysis
+    "04_denoiser": 19,                    # MICROGRAPH_DENOISER
+    "06_junk_detector": 20,               # JUNK_2D_DETECTOR
+    "07_inspect_picks_round1": 21,        # INSPECT_PICKS
+    "10_select_2d_round1": 22,            # SELECT_2D_R1
+    "11_template_picker": 23,             # TEMPLATE_PICKER
+    "12_inspect_picks_round2": 24,        # INSPECT_PICKS_R2
+    "13_extract_round2": 25,              # EXTRACT_PARTICLES_R2
+    "15_select_2d_round2": 26,            # SELECT_2D_R2
+    "18_volume_tools": 27,               # VOLUME_TOOLS
+    "19_validation_fsc": 28, "22_fsc_validation": 28,  # VALIDATION_FSC
+    "20_local_ctf_refinement": 29, "19_local_ctf": 29,  # LOCAL_CTF_REFINEMENT
+    "21_non_uniform_refinement": 30, "18_nu_refinement": 30,  # NON_UNIFORM_REFINEMENT
+    "20_local_resolution": 31,            # LOCAL_RESOLUTION
+    "23_sharpening": 32, "21_sharpen": 32,  # SHARPEN
 }
 
-# File extensions to surface as step outputs; .cs are CryoSPARC binary datasets (skip)
-_CRYOSPARC_SKIP_EXT = {".cs"}
+# File extensions to exclude from step output surfacing (empty directory markers etc.)
+_CRYOSPARC_SKIP_EXT = {""}
 
 
 def _build_processes_from_s3_files(s3_files: List[Dict], outdir: str,
