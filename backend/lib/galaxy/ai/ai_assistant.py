@@ -2589,10 +2589,15 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 param_lines.append(f'- {name} ({ptype}){default_note}: {desc}')
 
         params_text = "\n".join(param_lines)
+        # Include the full query for file-path extraction; the [Uploaded datasets:] block
+        # may appear after the first 400 chars and contains S3 URIs needed for file params.
+        import re as _re_llm
+        _uploaded_block = _re_llm.search(r'\[Uploaded datasets:[^\]]*\]', user_intent)
+        _uploaded_suffix = f"\n{_uploaded_block.group(0)}" if _uploaded_block else ""
         user_msg = (
             f"Workflow: {workflow_name}\n\n"
             f"Available parameters:\n{params_text}\n\n"
-            f"User query: {user_intent[:400]}"
+            f"User query: {user_intent[:600]}{_uploaded_suffix}"
         )
 
         try:
@@ -2662,21 +2667,55 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             if matched_name and value:
                 suggestions.append({"name": matched_name, "value": value, "rationale": "Value provided explicitly in your query."})
 
-        # Rule: bare S3/GCS/NFS path in query → movies_path (CryoSPARC) or reads/input (genomics)
-        # Only applies when no movies_path/reads was already found via key=value.
+        # Rule: map S3/local file paths in query to the most appropriate file-type params.
+        # Covers all workflows, not just cryo-EM.
         _already_set = {s["name"] for s in suggestions}
-        _file_path_params = [n for n in all_param_names if n in ('movies_path', 'movie_dir', 'reads', 'reads1', 'input') and n not in _already_set]
-        if _file_path_params:
-            _path_m = _re.search(r'\b(s3://\S+|gs://\S+|/(?:data|nfs|mnt|home|scratch)\S+)', user_intent)
-            if _path_m:
-                _path = _path_m.group(1).rstrip('.,;)')
-                # Pick the most appropriate param — movies_path preferred for cryo paths
-                _target = _file_path_params[0]
-                for _fp in _file_path_params:
-                    if _fp == 'movies_path':
-                        _target = _fp
-                        break
-                suggestions.append({"name": _target, "value": _path, "rationale": "Path found in query."})
+        _path_re = _re.compile(r'\b(s3://\S+|gs://\S+|/(?:data|nfs|mnt|home|scratch)\S+)', _re.IGNORECASE)
+        _all_paths = [m.group(1).rstrip('.,;)') for m in _path_re.finditer(user_intent)]
+
+        # Extension → candidate parameter names (ordered by priority)
+        _EXT_TO_PARAMS: dict = {
+            '.mrc': ['movies_path', 'movie_dir'],
+            '.mrcs': ['movies_path', 'movie_dir'],
+            '.tif': ['movies_path', 'movie_dir'],
+            '.tiff': ['movies_path', 'movie_dir'],
+            '.eer': ['movies_path', 'movie_dir'],
+            '.fastq': ['reads', 'reads1', 'input'],
+            '.fastq.gz': ['reads', 'reads1', 'input'],
+            '.fq': ['reads', 'reads1', 'input'],
+            '.fq.gz': ['reads', 'reads1', 'input'],
+            '.bam': ['bam', 'input'],
+            '.vcf': ['vcf', 'input'],
+            '.vcf.gz': ['vcf', 'input'],
+            '.fasta': ['fasta', 'genome', 'input'],
+            '.fa': ['fasta', 'genome', 'input'],
+            '.gtf': ['gtf', 'annotation'],
+            '.gff': ['gtf', 'annotation', 'gff'],
+            '.txt': ['matrix', 'input'],       # featureCounts count matrix
+            '.tsv': ['matrix', 'input'],
+            '.csv': ['contrasts', 'samplesheet', 'input'],
+            '.xlsx': ['contrasts', 'samplesheet', 'input'],
+            '.xls': ['contrasts', 'samplesheet', 'input'],
+            '.sdf': ['ligand_sdf', 'input'],
+            '.pdb': ['receptor_pdb', 'input'],
+        }
+
+        for _path in _all_paths:
+            _path_lower = _path.lower()
+            # Find matching extension
+            _candidates: list = []
+            for _ext, _param_list in sorted(_EXT_TO_PARAMS.items(), key=lambda x: -len(x[0])):
+                if _path_lower.endswith(_ext):
+                    _candidates = _param_list
+                    break
+            if not _candidates:
+                _candidates = ['movies_path', 'movie_dir', 'reads', 'reads1', 'input']  # fallback
+
+            # Pick first candidate that exists in the workflow params and isn't already set
+            _target = next((p for p in _candidates if p in all_param_names and p not in _already_set), None)
+            if _target:
+                suggestions.append({"name": _target, "value": _path, "rationale": f"File path found in query (mapped by extension)."})
+                _already_set.add(_target)  # don't reuse same param for another file
 
         return suggestions
 
