@@ -2733,12 +2733,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Virtual history IDs prefixed with "run:" → list S3 output files for that run
       if (historyId.startsWith('run:')) {
         const runId = historyId.slice(4);
-        const run = await storage.getExecutionRun(runId).catch((e: any) => {
-          console.warn('[HistoryDatasets/run] getExecutionRun failed:', e?.message);
-          return null;
-        });
+        const run = await storage.getExecutionRun(runId).catch(() => null);
         const outputDir: string = (run as any)?.execution?.nextflowOutputDir || '';
-        console.log(`[HistoryDatasets/run] runId=${runId} outputDir=${outputDir || 'MISSING'}`);
         if (!outputDir) return res.json({ datasets: [] });
 
         // List S3 output files using AWS CLI
