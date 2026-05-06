@@ -2135,6 +2135,10 @@ Respond with a single JSON object — no other text:
         'design', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
         'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
         'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
+        # Differential abundance / DE analysis inputs
+        'matrix', 'contrasts', 'transcript_length_matrix',
+        # Generic data tables
+        'counts', 'count_matrix', 'sample_metadata', 'metadata',
     ])
 
     def _detect_param_type(self, name: str, default_val: str) -> str:
@@ -2144,13 +2148,7 @@ Respond with a single JSON object — no other text:
             return 'file'
         if default_val in ('true', 'false', 'True', 'False'):
             return 'boolean'
-        if default_val and (
-            default_val.startswith('/') or
-            default_val.startswith('s3://') or
-            default_val.startswith('gs://') or
-            '.' in default_val.split('/')[-1]
-        ):
-            return 'file'
+        # Check numeric before file — "2.0" / "0.05" are floats, not file paths
         try:
             int(default_val); return 'integer'
         except (ValueError, TypeError):
@@ -2159,6 +2157,13 @@ Respond with a single JSON object — no other text:
             float(default_val); return 'float'
         except (ValueError, TypeError):
             pass
+        if default_val and (
+            default_val.startswith('/') or
+            default_val.startswith('s3://') or
+            default_val.startswith('gs://') or
+            '.' in default_val.split('/')[-1]
+        ):
+            return 'file'
         return 'string'
 
     def _parse_nextflow_params(self, filename: str) -> dict:
@@ -2198,13 +2203,16 @@ Respond with a single JSON object — no other text:
             name = m.group(1)
             if name in seen_names:
                 continue  # first declaration wins (top-level params block)
-            # Strip inline comment (// ...) from value
-            raw = _re.sub(r'\s*//.*$', '', m.group(2)).strip()
+            # Separate inline comment from value — preserve comment as description
+            raw_with_comment = m.group(2).strip()
+            comment_m = _re.search(r'//\s*(.+)$', raw_with_comment)
+            inline_desc = comment_m.group(1).strip() if comment_m else ''
+            raw = _re.sub(r'\s*//.*$', '', raw_with_comment).strip()
             val_raw = raw
             if name in self._NEXTFLOW_INTERNAL_PARAMS:
                 continue
             label = name.replace("_", " ").title()
-            description = f"Workflow parameter: {label}"
+            description = inline_desc if inline_desc else f"Workflow parameter: {label}"
             # A param is truly required only if it's null AND not in the known-optional set.
             is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS)
             # null-default params get Python None (renders as empty in UI), not the string "null"

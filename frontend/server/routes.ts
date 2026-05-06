@@ -2709,7 +2709,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter((r: any) => r.execution?.status === 'completed' && r.execution?.nextflowOutputDir)
         .map((r: any) => ({
           id: `run:${r.id}`,
-          name: r.execution?.workflowName || r.name || `Run ${r.id.slice(0, 8)}`,
+          name: r.workflowName || r.execution?.workflowName
+            || (r.workflowDefinition as any)?.name || (r.workflowDefinition as any)?.workflow_name
+            || r.name || `Run ${r.id.slice(0, 8)}`,
           count: 0,
           size: 0,
           create_time: r.execution?.startedAt || r.createdAt || '',
