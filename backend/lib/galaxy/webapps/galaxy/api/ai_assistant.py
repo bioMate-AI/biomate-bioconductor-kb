@@ -2148,6 +2148,7 @@ class AIRequestModel(BaseModel):
     penalized_domains: Optional[List[str]] = Field(None, description="LLM-inferred domains to penalize in search ranking")
     key_terms: Optional[List[str]] = Field(None, description="LLM-extracted technical terms to boost FTS recall")
     credential_map: Optional[Dict[str, bool]] = Field(None, description="Per-tool credential availability (True=available, False=not). When provided, takes precedence over server-side vault lookup.")
+    inline_parameters: Optional[Dict[str, Any]] = Field(None, description="Inline parameters extracted from the user message (file paths, accessions, etc.) by the Node.js layer.")
 
 
 class AIResponseModel(BaseModel):
