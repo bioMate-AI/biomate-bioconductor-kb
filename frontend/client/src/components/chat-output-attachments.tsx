@@ -310,10 +310,11 @@ export function ChatOutputAttachments({
 interface OutputRendererProps {
   output: OutputDataset
   invocationId?: string
+  runId?: string
   onDownload?: (output: OutputDataset) => void
 }
 
-function OutputRenderer({ output, invocationId, onDownload }: OutputRendererProps) {
+function OutputRenderer({ output, invocationId, runId, onDownload }: OutputRendererProps) {
   switch (output.fileType) {
     case 'image':
       return <ImageOutput output={output} invocationId={invocationId} onDownload={onDownload} />

@@ -23,7 +23,7 @@ import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
-import { promises as fs, createReadStream } from "fs";
+import { promises as fs, createReadStream, existsSync, readdirSync } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
@@ -918,7 +918,23 @@ const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 const uploadedFileRegistry = new Map<string, { name: string; filePath: string; uploadedAt: number; s3Uri?: string }>();
 
 export function getUploadedFile(datasetId: string): { name: string; filePath: string; s3Uri?: string } | undefined {
-  return uploadedFileRegistry.get(datasetId);
+  const cached = uploadedFileRegistry.get(datasetId);
+  if (cached) return cached;
+  // Fallback: scan uploads directory after server restart (registry is in-memory only)
+  try {
+    const uploadsDir = path.join(process.cwd(), 'data', 'uploads', datasetId);
+    if (existsSync(uploadsDir)) {
+      const files = readdirSync(uploadsDir);
+      if (files.length > 0) {
+        const name = files[0];
+        const filePath = path.join(uploadsDir, name);
+        const entry = { name, filePath, uploadedAt: 0 };
+        uploadedFileRegistry.set(datasetId, entry);
+        return entry;
+      }
+    }
+  } catch { /* ignore */ }
+  return undefined;
 }
 
 /**

@@ -600,6 +600,47 @@ class UnifiedWorkflowSearch:
         Returns:
             List of WorkflowMatch objects sorted by relevance
         """
+        # ── Named-tool hard override ────────────────────────────────────────────
+        # When the query names a specific tool/workflow, bypass FTS scoring entirely
+        # and return that workflow directly with maximum confidence.
+        _NAMED_TOOL_OVERRIDES = [
+            (re.compile(r'\b(pk.?sim|pksim|open systems pharmacology|osp suite|osp pbpk)\b', re.I), 'pk_sim_pbpk'),
+            (re.compile(r'\bsimcyp\b', re.I), 'simcyp_pbpk'),
+            (re.compile(r'\b(nonmem|nmfe\d*|foce.?i\b)', re.I), 'nonmem_poppk'),
+            (re.compile(r'\b(kaplan.meier|km.curve|survival analysis km|survival.analysis)\b', re.I), 'survival_analysis_km'),
+            (re.compile(r'\b(fcrn|fc.?rn.antibody|neonatal fc receptor|antibody.half.life.engineer)\b', re.I), 'fcrn_antibody_pk'),
+            (re.compile(r'\b(ich.?s7a|s7a.safety|safety pharmacology core battery)\b', re.I), 'ich_s7a_safety_pharmacology'),
+            (re.compile(r'\b(ich.?s5|reproductive.tox|dart prediction|s5.safety)\b', re.I), 'ich_s5_reproductive_tox'),
+            (re.compile(r'\b(pediatric pbpk|paediatric pbpk|pediatric.dose.scal|pediatric.pk.sim|ich.?e11)\b', re.I), 'pbpk_pediatric'),
+            (re.compile(r'\b(transporter.ddi|pgp.bcrp|p-gp.bcrp|transporter.r.value)\b', re.I), 'transporter_ddi_pgp_bcrp'),
+        ]
+        for _pat, _wf_name in _NAMED_TOOL_OVERRIDES:
+            if _pat.search(query or ''):
+                _conn = self._get_connection()
+                try:
+                    _cur = _conn.cursor()
+                    _cur.execute(
+                        "SELECT w.id, w.name, w.description, w.domain, w.source, w.format,"
+                        " w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,"
+                        " 0.0 as fts_score, w.input_types, w.output_types"
+                        " FROM workflows w WHERE w.name=? LIMIT 1",
+                        (_wf_name,)
+                    )
+                    _row = _cur.fetchone()
+                    if _row:
+                        log.debug("[WorkflowSearch] Named-tool override: %s → %s", _pat.pattern, _wf_name)
+                        _m = self._create_match(_row, query, include_workflow_json)
+                        _m = WorkflowMatch(
+                            id=_m.id, name=_m.name, description=_m.description,
+                            domain=_m.domain, source=_m.source, format=_m.format,
+                            step_count=_m.step_count, tools=_m.tools, tags=_m.tags,
+                            filename=_m.filename, workflow_json=_m.workflow_json,
+                            score=999.0, match_type='named_tool_override',
+                        )
+                        return [_m]
+                finally:
+                    _conn.close()
+
         # ── Pass 0: LLM catalog browse ─────────────────────────────────────────
         # Ask the fast LLM to pick the most semantically relevant workflow IDs
         # from a broad FTS candidate set.  Returns [] when LLM is unavailable
