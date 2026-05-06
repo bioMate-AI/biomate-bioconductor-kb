@@ -920,15 +920,16 @@ const uploadedFileRegistry = new Map<string, { name: string; filePath: string; u
 export function getUploadedFile(datasetId: string): { name: string; filePath: string; s3Uri?: string } | undefined {
   const cached = uploadedFileRegistry.get(datasetId);
   if (cached) return cached;
-  // Fallback: scan uploads directory after server restart (registry is in-memory only)
+  // Fallback: scan uploads directory after server restart (registry is in-memory only).
+  // Files are stored flat as "<datasetId>.<ext>" (multer renames to UUID-based names).
   try {
-    const uploadsDir = path.join(process.cwd(), 'data', 'uploads', datasetId);
+    const uploadsDir = path.join(process.cwd(), 'data', 'uploads');
     if (existsSync(uploadsDir)) {
-      const files = readdirSync(uploadsDir);
-      if (files.length > 0) {
-        const name = files[0];
-        const filePath = path.join(uploadsDir, name);
-        const entry = { name, filePath, uploadedAt: 0 };
+      const allFiles = readdirSync(uploadsDir);
+      const match = allFiles.find(f => f.startsWith(datasetId));
+      if (match) {
+        const filePath = path.join(uploadsDir, match);
+        const entry = { name: match, filePath, uploadedAt: 0 };
         uploadedFileRegistry.set(datasetId, entry);
         return entry;
       }
