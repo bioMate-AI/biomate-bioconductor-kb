@@ -2748,7 +2748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const line of rawLs.split('\n')) {
           const m = line.match(/^\s*(\d{4}-\d{2}-\d{2}\s+[\d:]+)\s+([\d.]+\s+\w+)\s+(.+)$/);
           if (!m) continue;
-          const [, dateStr, sizeStr, key] = m;
+          const [, dateStr, , key] = m;
           const name = key.split('/').pop() || key;
           const ext = name.includes('.') ? name.split('.').pop()! : '';
           datasets.push({

@@ -215,7 +215,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{visualizations.length}</Badge>
           </div>
           {visualizations.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -229,7 +229,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{variants.length}</Badge>
           </div>
           {variants.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -243,7 +243,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{sequences.length}</Badge>
           </div>
           {sequences.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -257,7 +257,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{annotations.length}</Badge>
           </div>
           {annotations.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -271,7 +271,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{singleCell.length}</Badge>
           </div>
           {singleCell.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -285,7 +285,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{tables.length}</Badge>
           </div>
           {tables.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -299,7 +299,7 @@ export function ChatOutputAttachments({
             <Badge variant="secondary">{otherFiles.length}</Badge>
           </div>
           {otherFiles.map(output => (
-            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} runId={runId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}

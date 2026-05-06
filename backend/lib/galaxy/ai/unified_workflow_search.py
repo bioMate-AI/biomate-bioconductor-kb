@@ -635,7 +635,7 @@ class UnifiedWorkflowSearch:
                             domain=_m.domain, source=_m.source, format=_m.format,
                             step_count=_m.step_count, tools=_m.tools, tags=_m.tags,
                             filename=_m.filename, workflow_json=_m.workflow_json,
-                            score=999.0, match_type='named_tool_override',
+                            score=999.0, match_type='high_confidence',
                         )
                         return [_m]
                 finally:

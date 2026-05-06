@@ -3196,9 +3196,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # raw FASTQ — it is never correct when counts are already computed.
             import re as _re_routing
             _COUNT_MATRIX_PAT = _re_routing.compile(
-                r'\b(featureCounts?|count[s_-]matrix|raw[_-]?counts?|count[s_-]table'
-                r'|counts?\.(csv|tsv|txt)|gene[_-]counts?|expression[_-]matrix'
-                r'|htseq[_-]counts?|rsem\.genes?\.results?)\b',
+                r'\b(featureCounts?|counts?[_\-]?matrix|raw[_\-]?counts?|counts?[_\-]?table'
+                r'|counts?\.(csv|tsv|txt)|gene[_\-]counts?|expression[_\-]matrix'
+                r'|htseq[_\-]counts?|rsem\.genes?\.results?)\b',
                 _re_routing.IGNORECASE,
             )
             if _COUNT_MATRIX_PAT.search(user_intent):
