@@ -960,7 +960,7 @@ class UnifiedWorkflowSearch:
         ]
         candidates: List[str] = []
         for pat in _NAMED_TOOL_PATTERNS:
-            for m in re.finditer(pat, query):
+            for m in re.finditer(pat, query, re.IGNORECASE):
                 raw = m.group(1)
                 # Normalise: lowercase, remove non-alphanumeric (single token)
                 token = re.sub(r'[^a-z0-9]', '', raw.lower())

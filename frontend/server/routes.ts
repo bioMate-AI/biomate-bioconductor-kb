@@ -2732,8 +2732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Virtual history IDs prefixed with "run:" → list S3 output files for that run
       if (historyId.startsWith('run:')) {
         const runId = historyId.slice(4);
-        const run = await storage.getExecutionRun(runId).catch(() => null);
+        const run = await storage.getExecutionRun(runId).catch((e: any) => {
+          console.warn('[HistoryDatasets/run] getExecutionRun failed:', e?.message);
+          return null;
+        });
         const outputDir: string = (run as any)?.execution?.nextflowOutputDir || '';
+        console.log(`[HistoryDatasets/run] runId=${runId} outputDir=${outputDir || 'MISSING'}`);
         if (!outputDir) return res.json({ datasets: [] });
 
         // List S3 output files using AWS CLI
@@ -2744,7 +2748,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bucket = outputDir.replace(/^s3:\/\//, '').split('/')[0];
         const rawLs = await execP(
           `aws s3 ls "${s3Prefix}" --recursive 2>/dev/null || true`
-        ).then(({ stdout }) => stdout).catch(() => '');
+        ).then(({ stdout }) => {
+          console.log(`[HistoryDatasets/run] S3 ls returned ${stdout.split('\n').length} lines`);
+          return stdout;
+        }).catch((e: any) => {
+          console.warn('[HistoryDatasets/run] S3 ls failed:', e?.message);
+          return '';
+        });
         // aws s3 ls --recursive format: "YYYY-MM-DD HH:MM:SS   <bytes>  <key>"
         const datasets: any[] = [];
         for (const line of rawLs.split('\n')) {
