@@ -24,6 +24,8 @@ interface GalaxyHistory {
   size: number;
   create_time: string;
   update_time: string;
+  source?: 'galaxy' | 'run';
+  runId?: string;
 }
 
 interface GalaxyDataset {
@@ -33,6 +35,7 @@ interface GalaxyDataset {
   file_size: number;
   state: string;
   create_time: string;
+  s3_uri?: string;
 }
 
 interface GalaxyDatasetBrowserProps {
@@ -291,7 +294,7 @@ function HistoryTab({
                   variant="secondary"
                   className="h-7 text-xs shrink-0"
                   disabled={ds.state !== 'ok'}
-                  onClick={() => onSelect(ds.id, ds.name)}
+                  onClick={() => onSelect(ds.s3_uri || ds.id, ds.name)}
                 >
                   {ds.state === 'ok' ? 'Use' : ds.state}
                 </Button>

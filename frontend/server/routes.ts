@@ -2673,16 +2673,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/galaxy/histories", optionalAuth, async (req, res) => {
     try {
       const proxy = userProxy(req);
-      const histories = await proxy.getHistories();
-      const shaped = (histories || []).map((h: any) => ({
+      const galaxyHistories = await proxy.getHistories().catch(() => []);
+      const galaxyShaped = (galaxyHistories || []).map((h: any) => ({
         id: h.id,
         name: h.name,
         count: h.count ?? h.dataset_count ?? 0,
         size: h.size ?? h.total_size ?? 0,
         create_time: h.create_time ?? h.create_date ?? '',
         update_time: h.update_time ?? h.update_date ?? '',
+        source: 'galaxy' as const,
       }));
-      res.json({ histories: shaped });
+
+      // Also include completed BioMate execution runs as virtual histories so users
+      // can browse workflow output files through the same "BioMate history" tab.
+      const userId = (req as any).userId || (req as any).user?.id;
+      const execRuns = await storage.getExecutionRuns(userId, undefined, undefined, 20).catch(() => []);
+      const runHistories = execRuns
+        .filter((r: any) => r.execution?.status === 'completed' && r.execution?.nextflowOutputDir)
+        .map((r: any) => ({
+          id: `run:${r.id}`,
+          name: r.execution?.workflowName || r.name || `Run ${r.id.slice(0, 8)}`,
+          count: 0,
+          size: 0,
+          create_time: r.execution?.startedAt || r.createdAt || '',
+          update_time: r.execution?.completedAt || '',
+          source: 'run' as const,
+          runId: r.id,
+          outputDir: r.execution?.nextflowOutputDir,
+        }));
+
+      res.json({ histories: [...galaxyShaped, ...runHistories] });
     } catch (err: any) {
       console.error('[Histories] fetch failed:', err.message);
       res.json({ histories: [] });
@@ -2692,6 +2712,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/galaxy/histories/:historyId/datasets", optionalAuth, async (req, res) => {
     try {
       const { historyId } = req.params;
+
+      // Virtual history IDs prefixed with "run:" → list S3 output files for that run
+      if (historyId.startsWith('run:')) {
+        const runId = historyId.slice(4);
+        const run = await storage.getExecutionRun(runId).catch(() => null);
+        const outputDir: string = (run as any)?.execution?.nextflowOutputDir || '';
+        if (!outputDir) return res.json({ datasets: [] });
+
+        // List S3 output files using AWS CLI
+        const { promisify: _pfy } = await import('util');
+        const { exec: _exec } = await import('child_process');
+        const execP = _pfy(_exec);
+        const s3Prefix = outputDir.replace(/\/?$/, '/');
+        const rawLs = await execP(
+          `aws s3 ls "${s3Prefix}" --recursive --human-readable 2>/dev/null || true`
+        ).then(({ stdout }) => stdout).catch(() => '');
+        const datasets: any[] = [];
+        for (const line of rawLs.split('\n')) {
+          const m = line.match(/^\s*(\d{4}-\d{2}-\d{2}\s+[\d:]+)\s+([\d.]+\s+\w+)\s+(.+)$/);
+          if (!m) continue;
+          const [, dateStr, sizeStr, key] = m;
+          const name = key.split('/').pop() || key;
+          const ext = name.includes('.') ? name.split('.').pop()! : '';
+          datasets.push({
+            id: `s3:${key}`,
+            name,
+            extension: ext,
+            file_size: 0,
+            state: 'ok',
+            create_time: dateStr.trim(),
+            s3_uri: `s3://${outputDir.replace(/^s3:\/\//, '').split('/')[0]}/${key}`,
+          });
+        }
+        return res.json({ datasets });
+      }
+
       const proxy = userProxy(req);
       const datasets = await proxy.getHistoryDatasets(historyId);
       const shaped = (datasets || []).map((d: any) => ({
