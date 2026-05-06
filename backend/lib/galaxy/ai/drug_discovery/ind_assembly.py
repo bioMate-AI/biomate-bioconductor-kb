@@ -378,6 +378,7 @@ def _llm_narrative(
     data: dict,
     region: str = "FDA",
     audit_constraint: str = "",
+    user_prompt_override: str = "",
 ) -> str:
     """
     Generate a 2-4 sentence regulatory narrative paragraph for a given IND section.
@@ -474,9 +475,13 @@ def _llm_narrative(
             ),
         }
 
-        user_prompt = prompts.get(section_type, "")
-        if not user_prompt:
-            return ""
+        # user_prompt_override lets callers supply a fully-formed prompt (e.g. §2.4)
+        if user_prompt_override:
+            user_prompt = user_prompt_override
+        else:
+            user_prompt = prompts.get(section_type, "")
+            if not user_prompt:
+                return ""
 
         # ── RAG: inject narrative patterns from regulatory_skills_db ─────────
         rag_block = _build_rag_context(section_type, data, region)
@@ -491,7 +496,11 @@ def _llm_narrative(
             )
 
         # ── Region-specific system prompt ─────────────────────────────────────
+        # For §2.4 we need a longer generation target — adjust system prompt accordingly
         system = _NARRATIVE_SYSTEM_BY_REGION.get(region, _NARRATIVE_SYSTEM_BY_REGION["FDA"])
+        if section_type == "nonclinical_overview":
+            system = system.replace("2-4 sentences maximum per response.",
+                                    "600–1,000 words for this section.")
 
         # ── Model routing: local LoRA adapter → Gemini fallback ───────────────
         narrative = _call_local_regulatory_llm(
@@ -715,7 +724,8 @@ class INDSectionAssembler:
             ethnic_bridging_note=ethnic_bridging_note,
         )
 
-        title = self._title_page(ctx)
+        title          = self._title_page(ctx)
+        s_24_overview  = self._section_24_nonclinical_overview(ctx)   # NEW: §2.4
         s_overview     = self._section_overview(ctx)
         s_pbpk         = self._section_pbpk(ctx)
         s_admet        = self._section_admet(ctx)
@@ -730,10 +740,11 @@ class INDSectionAssembler:
         s_tox_written  = self._section_tox_written(ctx)
 
         sections = [
+            "2.4",
             "2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6",
             "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6", "2.6.7",
         ]
-        parts = [title, s_overview, s_pbpk, s_admet, s_priority, s_ad, s_audit,
+        parts = [title, s_24_overview, s_overview, s_pbpk, s_admet, s_priority, s_ad, s_audit,
                  s_pk_overview, s_tox_overview, s_pharm_tab, s_pk_tab, s_tox_tab,
                  s_tox_written]
         markdown_body = "\n\n".join(p for p in parts if p)
@@ -1144,7 +1155,7 @@ in accordance with ICH M4S(R2) §2.4 guidance.*
 **Target submission:** {submission_type}
 **Regulatory guidelines:** {m4s} · {pbpk_ref} · {s7b} · {s2r1}{glp_line}
 
-**Sections included:** §2.6.1 Nonclinical Overview: Pharmacology · §2.6.2 Nonclinical Overview: Pharmacokinetics · §2.6.3 Nonclinical Overview: Toxicology
+**Sections included:** §2.4 Nonclinical Overview · §2.6.1 Nonclinical Written Summary: Pharmacology · §2.6.2 Nonclinical Written Summary: Pharmacokinetics · §2.6.3 Nonclinical Written Summary: Toxicology
 
 ---
 
