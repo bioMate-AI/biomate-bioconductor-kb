@@ -1003,6 +1003,104 @@ class INDSectionAssembler:
     # Section builders
     # ------------------------------------------------------------------
 
+    def _section_24_nonclinical_overview(self, ctx: dict) -> str:
+        """
+        ICH M4 CTD §2.4 — Nonclinical Overview.
+
+        A 600–1,200 word integrated narrative that gives the reviewer a
+        high-level picture of the entire nonclinical programme BEFORE the
+        detailed §2.6 written summaries. Required in every IND/CTA.
+
+        ICH M4S(R2) §2.4 guidance:
+        - Primary pharmacodynamics (mechanism, potency, selectivity)
+        - Safety pharmacology summary (cardiac, CNS, respiratory)
+        - PK profile (route, Cmax, AUC, t½, major metabolites)
+        - Toxicology findings and NOAEL (or in silico equivalent)
+        - Basis for the proposed starting dose and patient population
+        """
+        region = ctx.get("region", "FDA")
+        drug = ctx["molecule_name"]
+        target = ctx["target_name"]
+        indication = ctx["indication"]
+
+        # Summarise key numbers for the LLM to cite
+        pk = ctx.get("pk_summary") or {}
+        safety = ctx.get("safety_profile") or {}
+        compounds = ctx.get("compounds") or []
+        n_screened = len(compounds)
+        lead = compounds[0] if compounds else {}
+
+        # Build structured data block for the LLM
+        data = {
+            "drug": drug, "target": target, "indication": indication,
+            "n_screened": n_screened,
+            "lead_compound": lead.get("compound_id", "lead candidate"),
+            "herg_ic50": lead.get("herg_ic50_uM") or safety.get("herg_ic50_uM"),
+            "dili_risk": lead.get("dili_risk") or safety.get("dili_risk"),
+            "ames_result": lead.get("ames_result") or safety.get("ames_result"),
+            "cmax_predicted": pk.get("cmax_ngml") or pk.get("Cmax_ngmL"),
+            "auc_predicted": pk.get("auc_ngh_ml") or pk.get("AUC_nghmL"),
+            "t_half_h": pk.get("t_half_h") or pk.get("t_half"),
+            "fu_plasma": pk.get("fu_plasma") or pk.get("fraction_unbound"),
+            "pbpk_ema_criterion": pk.get("within_2fold_Cmax"),
+        }
+
+        user_prompt = (
+            f"Write §2.4 Nonclinical Overview for {drug}, a {target} inhibitor/modulator "
+            f"for {indication}.\n\n"
+            f"Nonclinical data summary:\n"
+            f"- {n_screened} compounds screened computationally; lead: {data['lead_compound']}\n"
+            f"- hERG IC50: {data['herg_ic50'] or 'not determined'} µM\n"
+            f"- DILI risk: {data['dili_risk'] or 'not assessed'}\n"
+            f"- Ames/genotoxicity: {data['ames_result'] or 'not assessed'}\n"
+            f"- Predicted Cmax: {data['cmax_predicted'] or 'not modelled'} ng/mL\n"
+            f"- Predicted AUC: {data['auc_predicted'] or 'not modelled'} ng·h/mL\n"
+            f"- Predicted t½: {data['t_half_h'] or 'not modelled'} h\n"
+            f"- PBPK EMA criterion (within-2-fold): {data['pbpk_ema_criterion'] or 'not assessed'}\n\n"
+            f"Write 600–1,000 words covering: (1) mechanism and primary pharmacology, "
+            f"(2) safety pharmacology (cardiac/CNS/respiratory), (3) ADMET/PK summary, "
+            f"(4) key toxicology findings and safety margins, (5) basis for proposed "
+            f"starting dose. Cite ICH M3(R2), S7A, S7B, S2(R1). "
+            f"State clearly which data are computational predictions and which are measured."
+        )
+
+        narrative = _llm_narrative("nonclinical_overview", data, region=region,
+                                   user_prompt_override=user_prompt)
+
+        # Region-specific regulatory framing
+        submission_note = {
+            "FDA": "submitted to the U.S. FDA under 21 CFR Part 312",
+            "EMA": "submitted to the EMA under EudraLex Volume 10 (CTA)",
+            "NMPA": "submitted to NMPA/CDE under Announcement No. 35 (2019)",
+            "PMDA": "submitted to PMDA under ICH E5(R1) with ethnic bridging",
+            "ALL": "for multi-regional submission (FDA/EMA/NMPA/PMDA)",
+        }.get(region, "for regulatory submission")
+
+        computational_caveat = (
+            "\n\n*Note: The pharmacological and toxicological data presented in this overview "
+            "are derived from validated computational models (BioMate ADMET v2, PBPK v1.0, "
+            "Bayesian lead optimisation). Wet-laboratory confirmation studies are required "
+            "per ICH M3(R2) prior to first-in-human dosing. In vitro genotoxicity (Ames, "
+            "chromosomal aberration per ICH S2(R1)) and hERG patch clamp (per ICH S7B(R1)) "
+            "are mandated before clinical initiation.*"
+        )
+
+        narrative_text = narrative if narrative else (
+            f"{drug} is an investigational {target} modulator being developed for {indication}. "
+            f"A computational nonclinical programme has been conducted in accordance with ICH M3(R2) "
+            f"to characterise the pharmacology, pharmacokinetics, and safety profile of the compound "
+            f"prior to first-in-human studies. The data presented in §2.6.1–§2.6.3 support the "
+            f"proposed Phase I clinical trial design."
+        )
+
+        return f"""\
+## 2.4 Nonclinical Overview
+
+*This overview summarises the nonclinical programme {submission_note} and is prepared
+in accordance with ICH M4S(R2) §2.4 guidance.*
+
+{narrative_text}{computational_caveat}"""
+
     def _title_page(self, ctx: dict) -> str:
         region = ctx.get("region", "ALL")
         glp_line = ""

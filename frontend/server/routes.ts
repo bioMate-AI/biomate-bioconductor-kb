@@ -2741,16 +2741,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!outputDir) return res.json({ datasets: [] });
 
         // List S3 output files using AWS CLI
+        // Use Nextflow-specific credentials (AWS_NF_*) — these have S3 access.
+        // The primary AWS_ACCESS_KEY_ID is for Galaxy/ECS and may lack S3 permissions.
         const { promisify: _pfy } = await import('util');
         const { exec: _exec } = await import('child_process');
         const execP = _pfy(_exec);
         const s3Prefix = outputDir.replace(/\/?$/, '/');
         const bucket = outputDir.replace(/^s3:\/\//, '').split('/')[0];
+        const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '';
+        const _nfSecret = process.env.AWS_NF_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '';
+        const _s3Env = {
+          ...process.env,
+          ...((_nfKey && _nfSecret) ? { AWS_ACCESS_KEY_ID: _nfKey, AWS_SECRET_ACCESS_KEY: _nfSecret } : {}),
+        };
         const rawLs = await execP(
-          `aws s3 ls "${s3Prefix}" --recursive`
+          `aws s3 ls "${s3Prefix}" --recursive`,
+          { env: _s3Env }
         ).then(({ stdout }) => stdout).catch((e: any) => {
-          console.warn('[HistoryDatasets/run] S3 ls error code=%s stderr=%s msg=%s',
-            e?.code, JSON.stringify(e?.stderr?.slice?.(0, 200)), e?.message?.slice?.(0, 100));
+          console.warn('[HistoryDatasets/run] S3 ls error code=%s stderr=%s',
+            e?.code, e?.stderr?.slice?.(0, 120));
           return (e?.stdout as string) || '';
         });
         // aws s3 ls --recursive format: "YYYY-MM-DD HH:MM:SS   <bytes>  <key>"
