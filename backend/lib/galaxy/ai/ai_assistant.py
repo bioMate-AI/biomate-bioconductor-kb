@@ -2265,10 +2265,34 @@ Respond with a single JSON object — no other text:
         and optionally: options (select), minimum, maximum, pattern.
         """
         import json as _json
+        from pathlib import Path as _Path
         nf_path = self._find_nf_file(filename)
         if not nf_path:
             return None
+
+        # Primary location: schema next to the .nf stub (e.g. biomni_workflows/nfcore/X/)
         schema_path = nf_path.parent / 'nextflow_schema.json'
+
+        # Fallback: authoritative nf-core schema in nf-core-workflows/<workflow_name>/
+        # (e.g. nf-core-workflows/differentialabundance/nextflow_schema.json).
+        # This provides correct types, descriptions, and required/optional status that
+        # the bare .nf stub file cannot supply.
+        if not schema_path.exists():
+            backend_root = nf_path
+            for ancestor in nf_path.parents:
+                if (ancestor / 'nf-core-workflows').is_dir():
+                    backend_root = ancestor
+                    break
+            # Derive workflow name from stub path: nfcore/<name>/main.nf → <name>
+            parts = nf_path.parts
+            for i, part in enumerate(parts):
+                if part == 'nfcore' and i + 1 < len(parts):
+                    wf_name = parts[i + 1]
+                    candidate = backend_root / 'nf-core-workflows' / wf_name / 'nextflow_schema.json'
+                    if candidate.exists():
+                        schema_path = candidate
+                    break
+
         if not schema_path.exists():
             return None
         try:
@@ -2579,10 +2603,18 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # Include file params only when the query contains an explicit path-like token
         # (S3, GCS, local path, or filename) so the LLM can extract it accurately.
         import re as _re2
-        _query_has_path = bool(_re2.search(r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf)', user_intent))
+        _query_has_path = bool(_re2.search(r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf|csv|tsv|xlsx)', user_intent))
         inferable = [p for p in all_params if p.get("type") not in ("file",) or _query_has_path]
         if not inferable:
             return []
+
+        # Cap the catalogue: prioritise file params + required-with-no-default + first N optional.
+        # Large nf-core schemas (100+ params) degrade LLM inference — the signal is in the top ~30.
+        _MAX_PARAMS = 30
+        if len(inferable) > _MAX_PARAMS:
+            _file_and_req = [p for p in inferable if p.get("type") == "file" or not p.get("default")]
+            _rest = [p for p in inferable if p not in _file_and_req]
+            inferable = (_file_and_req + _rest)[:_MAX_PARAMS]
 
         param_lines = []
         for p in inferable:
