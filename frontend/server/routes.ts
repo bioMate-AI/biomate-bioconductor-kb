@@ -2572,6 +2572,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add credits via one-time Stripe Checkout top-up
+  app.post("/api/payments/add-credits", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        // Dev mode: return null URL so billing.tsx shows toast instead of redirecting
+        return res.json({ url: null });
+      }
+
+      const { amountCents, returnUrl } = req.body;
+
+      if (!amountCents || typeof amountCents !== 'number' || amountCents < 100) {
+        return res.status(400).json({ error: 'amountCents must be a number >= 100' });
+      }
+
+      const session = await stripeService.createCreditTopupSession(
+        req.user!.id,
+        amountCents,
+        returnUrl,
+      );
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('[Payments] Add-credits error:', error);
+      res.status(500).json({
+        error: 'Failed to create credit top-up session',
+        message: error.message,
+      });
+    }
+  });
+
+  // Start a trial subscription via Stripe Checkout
+  app.post("/api/payments/start-trial", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        return res.status(503).json({
+          error: 'Payment system not configured',
+          message: 'Stripe is not set up. Contact support.',
+        });
+      }
+
+      // Accept either a direct priceId or a tier+interval pair
+      let { priceId, tier, interval, returnUrl } = req.body;
+
+      if (!priceId && tier) {
+        const tiers = stripeService.getPricingTiers() as Record<string, { monthly?: string; yearly?: string }>;
+        const tierPrices = tiers[tier];
+        if (!tierPrices) {
+          return res.status(400).json({ error: `Unknown tier: ${tier}` });
+        }
+        priceId = interval === 'yearly' ? tierPrices.yearly : tierPrices.monthly;
+      }
+
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID or tier+interval required' });
+      }
+
+      const session = await stripeService.createTrialCheckoutSession(
+        req.user!.id,
+        priceId,
+        returnUrl,
+      );
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('[Payments] Start-trial error:', error);
+      res.status(500).json({
+        error: 'Failed to create trial checkout session',
+        message: error.message,
+      });
+    }
+  });
+
   // ============================================================================
   // Galaxy Tool Search API
   // ============================================================================
