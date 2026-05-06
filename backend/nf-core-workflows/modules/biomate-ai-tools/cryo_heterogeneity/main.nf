@@ -130,7 +130,7 @@ PYEOF
             --log-interval 5 \\
             --num-workers 0 \\
             --batch-size-hps 32 \\
-            --batch-size-sgd 256
+            --batch-size-sgd 128
     fi
 
     echo "Training complete. Epochs saved in cryodrgn_output/"
