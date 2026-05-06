@@ -8934,6 +8934,7 @@ Rules:
     try {
       const filePath = req.query.path as string;
       const fileName = req.query.name as string || '';
+      console.log(`[step-file] runId=${req.params.id} path=${filePath?.slice(0,100)} name=${fileName}`);
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
 
