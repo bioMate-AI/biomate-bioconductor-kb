@@ -97,62 +97,59 @@ Used for training (T1+T2 only): 1,316 train | 161 dev | 174 test
 
 ---
 
-## 3. Training Run — Results
+## 3. Training Runs — v1 and v2 Results
 
-### Configuration
+### v1 vs v2 Comparison
 
-| Parameter | Value |
-|-----------|-------|
-| Model | Qwen/Qwen3-8B (April 2025) |
-| Method | QLoRA — 4-bit NF4 + LoRA adapters |
-| LoRA rank | r=16, α=32, dropout=0.05 |
-| Target modules | q/k/v/o_proj, gate/up/down_proj (all 7) |
-| Optimizer | paged_adamw_8bit |
-| Learning rate | 2e-4, cosine decay |
-| Effective batch | 2 × 8 grad_accum = 16 |
-| Epochs | 3 |
-| Max seq length | 2,048 tokens |
-| Hardware | NVIDIA GB10, 128 GB unified memory |
-| Container | NGC PyTorch 24.10, CUDA 12.6 |
-| Total steps | 249 |
+| Parameter | v1 | v2 |
+|-----------|----|----|
+| Training examples | 1,316 | 2,093 (+59%) |
+| Tasks included | T1+T2 only | T1+T2+T3 (all) |
+| Dataset quality | Sparse JSON, sliding window, 0% citation injection | Full text, 14.9% citation injection |
+| Training time | 474.7 min | 754.7 min |
+| Final train loss | ~0.30 | **0.148** (−51%) |
+| Final eval loss | 0.415 | **0.182** (−56%) |
+| Final token accuracy | 88.7% | **95.3%** (+6.6pp) |
+| Citation recall | 0.75% | **9.25%** (+12×) |
+| Avg output length | 151.7w | 158.1w (eval capped at 256 tokens*) |
 
-### Loss Curve (every 10 steps)
+*Eval used old 256-token cap (code updated after container started); actual generation capability higher.
+
+### v2 Loss Curve (every 10 optimizer steps)
 
 | Epoch | Train Loss | Token Accuracy | Notes |
 |-------|-----------|----------------|-------|
-| 0.12 | 2.265 | 63.0% | Warmup |
-| 0.36 | 1.415 | 68.4% | |
-| 0.61 | 0.988 | 76.7% | Peak LR |
-| 0.97 | 0.787 | 80.3% | End epoch 1 |
-| 1.21 | 0.705 | 82.1% | |
-| 1.57 | 0.575 | 85.4% | |
-| 1.93 | 0.456 | 88.3% | End epoch 2 |
-| 2.17 | 0.404 | 89.6% | |
-| 2.41 | 0.299 | 92.4% | |
-| 2.65 | 0.329 | 91.7% | LR decaying |
-| 2.90 | 0.298 | 92.4% | |
+| 0.53 | 0.684 | 83.2% | |
+| 0.77 | 0.518 | 87.0% | Eval: 0.525 |
+| 1.00 | 0.471 | 88.4% | End epoch 1 |
+| 1.15 | 0.328 | 91.7% | |
+| 1.53 | 0.305 | 92.6% | |
+| 2.52 | 0.163 | 96.0% | |
+| 2.90 | 0.154 | 96.2% | |
+| 2.98 | 0.148 | 96.5% | |
 | **3.00** | **—** | **—** | **Complete** |
 
-**Training time:** 474.7 minutes (7h 55min)  
-**Final train loss:** 0.717 (mean over all steps)  
-**Final eval loss:** 0.415 (dev set, epoch 3)  
-**Final dev token accuracy:** 88.7%
+**Training time:** 754.7 minutes (12h 35min)  
+**Final eval loss (epoch 3):** 0.182 (dev set)  
+**Final dev token accuracy:** 95.3%
 
-### Automated Test Metrics (50 test examples)
+### v1 Loss Curve (archived)
 
-| Metric | Value | Interpretation |
-|--------|-------|----------------|
-| ROUGE-L | 0.2374 | Below copy-context baseline (0.448) → model is generating, not copying |
-| Citation recall | 0.0075 | **Very low** — model rarely inserts ICH citation strings |
-| Avg output length | 151.7 words | Below target (300–600 words) — model outputs are too short |
-| Dev eval loss | 0.415 | Healthy; train/eval gap small (no overfitting) |
+| Epoch | Train Loss | Token Accuracy |
+|-------|-----------|----------------|
+| 0.97 | 0.787 | 80.3% |
+| 1.93 | 0.456 | 88.3% |
+| 2.90 | 0.298 | 92.4% |
 
-### Adapter Output
+Training time: 474.7 min. Eval loss: 0.415. Token accuracy: 88.7%.
+
+### Adapters
 
 ```
-models/regulatory_llm_v1/lora_adapter/
-  adapter_config.json          (1.1 KB)
-  adapter_model.safetensors    (167 MB — 43.6M LoRA parameters)
+models/regulatory_llm_v1/lora_adapter/   (167 MB, Qwen3-8B, r=16, 1316 examples)
+models/regulatory_llm_v2/lora_adapter/   (167 MB, Qwen3-8B, r=16, 2093 examples) ← ACTIVE
+  adapter_config.json
+  adapter_model.safetensors
   chat_template.jinja
   tokenizer_config.json
   tokenizer.json
