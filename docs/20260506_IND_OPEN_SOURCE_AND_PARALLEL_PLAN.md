@@ -8,14 +8,76 @@
 
 ---
 
-## Gap 1 — PDF Ingestion of GLP Study Reports
+## Gap 1 — PDF Ingestion of GLP Study Reports (Realistic Assessment)
+
+### Why this is harder than it looks
+
+Tested on real EMA EPAR PDFs (Otezla/apremilast, Pluvicto, Zegalogue). Findings:
+
+- **Text extraction works fine** via PyMuPDF/pdfplumber. The regulatory prose is clean ASCII.
+- **Table extraction is unreliable.** CRO study tables use merged cells, multi-line rows,
+  abbreviated headers, and no standardised column ordering. pdfplumber extracts partial rows
+  with empty cells. A NOAEL row extracted as:
+  ```
+  'NOEL for female fertility, maternal &\ndevelopmental NOAEL was 10\nmg/kg/day; AUC24h of 29,215\nng.h/mL'
+  ```
+  This requires heavy post-processing to extract `NOAEL = 10 mg/kg/day`.
+- **No standard schema.** Charles River, Covance, Eurofins, and Covance all use different
+  table layouts. A model trained on one CRO's format will fail on another's.
+- **The LLM extraction step is not straightforward.** Asking Qwen3-8B (or Gemini) to extract
+  structured fields from a messy 5-column regulatory table with merged cells and wrapped text
+  requires careful prompt engineering and validation. Hallucination risk is real — a wrong NOAEL
+  unit (mg/kg vs mg/kg/day) or species (rat vs dog) invalidates the entire section.
+
+**This is a 3–6 month engineering effort, not 2 weeks.** The plan below reflects that.
+
+
+
+### Realistic build plan for PDF ingestion
+
+**Phase 1 — Text-only extraction (2 weeks, do now)**
+
+For the prose sections of a CRO study report (the "Discussion," "Conclusion," and "Summary" pages), PyMuPDF text extraction is reliable. We can build:
+
+```
+Upload PDF → PyMuPDF text extraction → 
+  LLM (Gemini, higher capacity than local) extracts:
+    - Study type (Ames, micronucleus, hERG patch clamp, 28-day rat, etc.)
+    - Species
+    - Route of administration
+    - Key conclusion (positive/negative/equivocal)
+    - NOAEL (from the "Conclusion" sentence, not the table)
+    - Study ID and GLP statement (regex)
+  → Store in campaign DB
+  → Populate §2.6.3.x placeholder
+```
+
+This avoids the table parsing problem entirely by extracting from the study conclusion paragraph. Every GLP study report has a "Results and Conclusion" section in plain prose — that's where the NOAEL and interpretation live in narrative form.
+
+**Phase 2 — Table extraction with validation (2–3 months)**
+
+Build a CRO-specific table extractor for the top 3 CROs (Charles River, Covance, Eurofins). This requires:
+1. Collecting real GLP study report PDFs (requires CRO partnerships or anonymized sponsor donations)
+2. Manual annotation of 50–100 study tables (NOAEL, dose groups, findings)
+3. Train a small extraction model (or few-shot LLM with validated examples)
+4. Validation layer: cross-check extracted NOAEL against narrative conclusion
+
+**Phase 3 — LLM fine-tuning (3–6 months)**
+
+Fine-tune a model specifically on (CRO study table → structured JSON) pairs. This is a separate training pipeline from the §2.6 prose model. Requires the annotated dataset from Phase 2.
+
+**Key constraint:** We cannot build this without real GLP study PDFs. These are proprietary. Acquiring them requires:
+- A sponsor willing to share anonymised reports
+- Or a CRO partnership (Charles River, Covance) who provides sample reports
+
+Without real training data, the extraction model will be prompt-engineered against EMA EPARs (which have summary tables) — a weaker but available proxy.
 
 ### What we have already
 
-- **PyMuPDF** (v1.27.2, installed) — fast PDF text and layout extraction
-- **pdfplumber** (v0.11.9, installed) — table extraction from PDFs, already used in the EPAR collector
+- **PyMuPDF** (v1.27.2, installed) — reliable text extraction from regulatory PDFs
+- **pdfplumber** (v0.11.9, installed) — table extraction, works on simple tables
 
-These two together can handle most CRO study reports. We do not need to install Docling or Unstructured for the MVP.
+These are sufficient for Phase 1 (prose extraction). Phase 2 needs additional work.
 
 ### Open source tools
 
