@@ -2513,7 +2513,7 @@ Respond with a single JSON object — no other text:
 Your job: given a workflow name, parameter list, and user query, extract parameter values the user explicitly provided or that can be unambiguously inferred.
 
 EXTRACTION RULES (apply in order):
-1. PATHS AND URLS — highest priority. If the query contains s3://, gs://, or a filesystem path (/data/..., /nfs/...) AND the parameter list has a file-type param (movies_path, reads, input, etc.), extract the path verbatim as that parameter's value. Never fabricate a path.
+1. PATHS AND URLS — highest priority. If the query contains s3://, gs://, or a filesystem path AND the parameter list has a file-type param, match each path to the most appropriate parameter using the parameter name AND description. For example: a file named "featureCounts.txt" or with "matrix" in the name → param named "matrix" (if available); a metadata/samplesheet file (.xlsx, .csv with sample info) → param named "input", "samplesheet", or "contrasts"; a .fastq/.bam file → "reads" or "input"; a .mrc/.tif file → "movies_path". Match by filename semantics, not just extension. Never fabricate a path.
 2. NUMERIC SCALARS — extract values like "pixel_size=0.885", "voltage=300 kV" (strip units), "1.96 Å/px" → 1.96.
 3. IDENTIFIERS — PDB codes (4 chars), SMILES strings, gene symbols, accession numbers — copy exactly.
 4. ENUM SELECTION — map user language to an allowed enum value: "XP docking" → "XP", "de novo" → "de_novo".
@@ -2542,6 +2542,10 @@ Query: "analyze KRAS G12C mutation in lung cancer patients, PDB 6OIM"
 Query: "RNA-seq on human samples, 150bp paired-end reads, stranded dUTP"
 → [{"name":"read_length","value":150,"rationale":"explicit read length"},
    {"name":"strandedness","value":"reverse","rationale":"dUTP protocol = reverse strand"}]
+
+Query (differentialabundance): "Run DE analysis. [Uploaded datasets: featureCounts.txt: s3_uri=s3://bucket/featureCounts.txt; coldata.xlsx: s3_uri=s3://bucket/coldata.xlsx]"
+→ [{"name":"matrix","value":"s3://bucket/featureCounts.txt","rationale":"featureCounts.txt is a count matrix → matrix param"},
+   {"name":"input","value":"s3://bucket/coldata.xlsx","rationale":"coldata.xlsx is sample metadata → input samplesheet"}]
 
 Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 voltage=300 symmetry=D2"
 → [{"name":"movies_path","value":"s3://biomate-cryo-data/empiar-10028/Micrographs","rationale":"S3 path in query"},
@@ -2673,31 +2677,34 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _path_re = _re.compile(r'\b(s3://\S+|gs://\S+|/(?:data|nfs|mnt|home|scratch)\S+)', _re.IGNORECASE)
         _all_paths = [m.group(1).rstrip('.,;)]') for m in _path_re.finditer(user_intent)]
 
-        # Extension → candidate parameter names (ordered by priority)
+        # Extension → candidate parameter names for UNAMBIGUOUS cases only.
+        # Ambiguous extensions (.txt, .csv, .xlsx, .tsv) are left to LLM inference,
+        # which sees both the workflow name and parameter descriptions.
         _EXT_TO_PARAMS: dict = {
             '.mrc': ['movies_path', 'movie_dir'],
             '.mrcs': ['movies_path', 'movie_dir'],
             '.tif': ['movies_path', 'movie_dir'],
             '.tiff': ['movies_path', 'movie_dir'],
             '.eer': ['movies_path', 'movie_dir'],
+            '.dm4': ['movies_path', 'movie_dir'],
             '.fastq': ['reads', 'reads1', 'input'],
             '.fastq.gz': ['reads', 'reads1', 'input'],
             '.fq': ['reads', 'reads1', 'input'],
             '.fq.gz': ['reads', 'reads1', 'input'],
             '.bam': ['bam', 'input'],
+            '.cram': ['bam', 'cram', 'input'],
             '.vcf': ['vcf', 'input'],
             '.vcf.gz': ['vcf', 'input'],
             '.fasta': ['fasta', 'genome', 'input'],
             '.fa': ['fasta', 'genome', 'input'],
+            '.fa.gz': ['fasta', 'genome', 'input'],
             '.gtf': ['gtf', 'annotation'],
             '.gff': ['gtf', 'annotation', 'gff'],
-            '.txt': ['matrix', 'input'],       # featureCounts count matrix
-            '.tsv': ['matrix', 'input'],
-            '.csv': ['contrasts', 'samplesheet', 'input'],
-            '.xlsx': ['contrasts', 'samplesheet', 'input'],
-            '.xls': ['contrasts', 'samplesheet', 'input'],
+            '.gff3': ['gff', 'annotation'],
             '.sdf': ['ligand_sdf', 'input'],
             '.pdb': ['receptor_pdb', 'input'],
+            '.nwk': ['tree', 'input'],
+            '.newick': ['tree', 'input'],
         }
 
         for _path in _all_paths:
