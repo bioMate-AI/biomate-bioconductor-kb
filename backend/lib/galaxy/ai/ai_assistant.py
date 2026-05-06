@@ -2543,9 +2543,12 @@ Query: "RNA-seq on human samples, 150bp paired-end reads, stranded dUTP"
 → [{"name":"read_length","value":150,"rationale":"explicit read length"},
    {"name":"strandedness","value":"reverse","rationale":"dUTP protocol = reverse strand"}]
 
-Query (differentialabundance): "Run DE analysis. [Uploaded datasets: featureCounts.txt: s3_uri=s3://bucket/featureCounts.txt; coldata.xlsx: s3_uri=s3://bucket/coldata.xlsx]"
-→ [{"name":"matrix","value":"s3://bucket/featureCounts.txt","rationale":"featureCounts.txt is a count matrix → matrix param"},
-   {"name":"input","value":"s3://bucket/coldata.xlsx","rationale":"coldata.xlsx is sample metadata → input samplesheet"}]
+Query (differentialabundance): "Run DE analysis. [Uploaded datasets: featureCounts.txt: s3_uri=s3://biomate-nextflow-work/uploads/abc/featureCounts.txt; coldata.xlsx: s3_uri=s3://biomate-nextflow-work/uploads/abc/coldata.xlsx]"
+NOTE: These S3 URIs are from BioMate's own storage (biomate-nextflow-work), so credentials are already handled.
+→ [{"name":"matrix","value":"s3://biomate-nextflow-work/uploads/abc/featureCounts.txt","rationale":"featureCounts.txt is a count matrix file → matrix param"},
+   {"name":"input","value":"s3://biomate-nextflow-work/uploads/abc/coldata.xlsx","rationale":"coldata.xlsx is sample metadata → input samplesheet"}]
+
+CREDENTIAL RULE: Only use S3 URIs from [Uploaded datasets:] blocks (managed by BioMate). If a user provides an external S3 path (e.g., s3://their-bucket/...) that was NOT in an [Uploaded datasets:] block, do NOT use it as a parameter — instead ask: "To access s3://their-bucket/..., I need AWS credentials. Please provide them via Settings → Credentials, or share the bucket publicly."
 
 Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 voltage=300 symmetry=D2"
 → [{"name":"movies_path","value":"s3://biomate-cryo-data/empiar-10028/Micrographs","rationale":"S3 path in query"},
@@ -2593,15 +2596,42 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 param_lines.append(f'- {name} ({ptype}){default_note}: {desc}')
 
         params_text = "\n".join(param_lines)
-        # Include the full query for file-path extraction; the [Uploaded datasets:] block
-        # may appear after the first 400 chars and contains S3 URIs needed for file params.
+        # Include the full [Uploaded datasets:] block (may appear after first 600 chars)
         import re as _re_llm
         _uploaded_block = _re_llm.search(r'\[Uploaded datasets:[^\]]*\]', user_intent)
         _uploaded_suffix = f"\n{_uploaded_block.group(0)}" if _uploaded_block else ""
+
+        # Sniff S3 file content to help LLM understand what each file contains.
+        # Reading the first few lines is more reliable than guessing from filename.
+        _file_snippets: list = []
+        if _uploaded_block:
+            _s3_uris = _re_llm.findall(r's3_uri=(s3://[^\s;,\]]+)', _uploaded_block.group(0))
+            for _uri in _s3_uris[:4]:  # cap at 4 files
+                _uri = _uri.rstrip('.,;)]')
+                _fname = _uri.rsplit('/', 1)[-1]
+                _ext = _fname.rsplit('.', 1)[-1].lower() if '.' in _fname else ''
+                if _ext in ('txt', 'tsv', 'csv', 'fasta', 'fa', 'gff', 'gtf', 'vcf', 'bed'):
+                    try:
+                        import subprocess as _sp
+                        _head = _sp.run(
+                            ['aws', 's3', 'cp', _uri, '-'],
+                            capture_output=True, timeout=10,
+                        )
+                        if _head.returncode == 0:
+                            _lines = _head.stdout.decode('utf-8', errors='replace').split('\n')[:3]
+                            _snippet = '\n'.join(l[:120] for l in _lines if l.strip())
+                            if _snippet:
+                                _file_snippets.append(f"File '{_fname}' first lines:\n{_snippet}")
+                    except Exception:
+                        pass  # non-blocking; LLM will use filename heuristic as fallback
+
+        _file_context = ("\n\nFile previews:\n" + "\n---\n".join(_file_snippets)) if _file_snippets else ""
+
         user_msg = (
             f"Workflow: {workflow_name}\n\n"
             f"Available parameters:\n{params_text}\n\n"
             f"User query: {user_intent[:600]}{_uploaded_suffix}"
+            f"{_file_context}"
         )
 
         try:
@@ -2609,7 +2639,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             text = _gemini_flash(
                 messages=[{"role": "user", "content": user_msg}],
                 system=self._PARAM_SUGGEST_SYSTEM,
-                max_tokens=512,
+                max_tokens=1024,  # S3 URIs can be long; 512 causes truncation
             ).strip()
             # Extract JSON array from response
             start = text.find("[")
