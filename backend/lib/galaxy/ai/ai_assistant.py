@@ -2094,13 +2094,6 @@ Respond with a single JSON object — no other text:
         'intervals',                  # optional — targeted sequencing intervals
         'pon',                        # optional — Panel of Normals for somatic callers
         'germline_resource',          # optional — gnomAD for mutect2
-        # Transcriptomics / differentialabundance
-        'transcript_length_matrix',   # optional — only for TPM normalisation
-        'contrasts',                  # optional — BioMate can auto-generate from metadata
-        'gtf',                        # optional — enriches gene annotations
-        'genome',                     # optional — for annotation only
-        # Common optional metadata
-        'email', 'multiqc_title',
     })
 
     def _find_nf_file(self, filename: str) -> Optional[Any]:
@@ -2142,10 +2135,6 @@ Respond with a single JSON object — no other text:
         'design', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
         'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
         'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
-        # Differential abundance / DE analysis inputs
-        'matrix', 'contrasts', 'transcript_length_matrix',
-        # Generic data tables
-        'counts', 'count_matrix', 'sample_metadata', 'metadata',
     ])
 
     def _detect_param_type(self, name: str, default_val: str) -> str:
@@ -2220,10 +2209,8 @@ Respond with a single JSON object — no other text:
                 continue
             label = name.replace("_", " ").title()
             description = inline_desc if inline_desc else f"Workflow parameter: {label}"
-            # A param is truly required only if it's null AND not in the known-optional set
-            # AND the inline comment doesn't say "(optional)".
-            _comment_optional = bool(_re.search(r'\boptional\b', inline_desc, _re.IGNORECASE))
-            is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS) and not _comment_optional
+            # A param is truly required only if it's null AND not in the known-optional set.
+            is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS)
             # null-default params get Python None (renders as empty in UI), not the string "null"
             default_str = None if (is_required or val_raw == "null") else val_raw.strip("'\"")
             param_type = self._detect_param_type(name, default_str or "")
