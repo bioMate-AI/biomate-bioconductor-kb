@@ -3189,6 +3189,24 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             except Exception as chain_exc:
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
 
+            # Pre-search: inject unambiguous data-type signals so search scores the
+            # right workflow highly BEFORE the LLM routing verifier runs.
+            # Rule: if the intent mentions a pre-computed count matrix filename or
+            # keyword, append an explicit differentialabundance hint.  rnaseq requires
+            # raw FASTQ — it is never correct when counts are already computed.
+            import re as _re_routing
+            _COUNT_MATRIX_PAT = _re_routing.compile(
+                r'\b(featureCounts?|count[s_-]matrix|raw[_-]?counts?|count[s_-]table'
+                r'|counts?\.(csv|tsv|txt)|gene[_-]counts?|expression[_-]matrix'
+                r'|htseq[_-]counts?|rsem\.genes?\.results?)\b',
+                _re_routing.IGNORECASE,
+            )
+            if _COUNT_MATRIX_PAT.search(user_intent):
+                _hint = ("\n[Routing hint: input is a pre-computed count matrix — "
+                         "use nf-core/differentialabundance (NOT nf-core/rnaseq which requires raw FASTQ)]")
+                user_intent = user_intent + _hint
+                log.info("[UnifiedWorkflowGeneration] Count-matrix pattern detected — injected differentialabundance routing hint")
+
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
             trials = self._build_intent_trials(user_intent, key_terms=key_terms)
