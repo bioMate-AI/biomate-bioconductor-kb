@@ -2760,11 +2760,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Mirror to S3 so Nextflow workflows on AWS Batch can access the file
+      // This runs concurrently — response is not blocked by S3 upload
+      const s3Uri = await _uploadFileToS3(file.path, datasetId, file.originalname).catch(() => undefined);
+
       // Register in in-memory registry so run_code can find files without Galaxy/Redis
       uploadedFileRegistry.set(datasetId, {
         name: file.originalname,
         filePath: file.path,
         uploadedAt: Date.now(),
+        s3Uri,
       });
       // Also register by galaxy_dataset_id for cross-lookup
       if (galaxyDatasetId) {
@@ -2772,6 +2777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: file.originalname,
           filePath: file.path,
           uploadedAt: Date.now(),
+          s3Uri,
         });
       }
 
@@ -2791,7 +2797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Return dataset information with both local and Galaxy IDs
+      // Return dataset information with local, Galaxy, and S3 IDs
       res.json({
         dataset_id: datasetId,
         galaxy_dataset_id: galaxyDatasetId,
@@ -2801,6 +2807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         file_size: file.size,
         file_type: file.mimetype,
         file_path: file.path,
+        s3_uri: s3Uri,
         uploaded_at: new Date().toISOString(),
       });
     } catch (error: any) {
