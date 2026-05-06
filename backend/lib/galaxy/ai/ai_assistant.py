@@ -2097,7 +2097,14 @@ Respond with a single JSON object — no other text:
     })
 
     def _find_nf_file(self, filename: str) -> Optional[Any]:
-        """Resolve DB-stored filename to absolute .nf path using same walk-up as executor."""
+        """Resolve DB-stored filename to absolute .nf path.
+
+        Search order:
+        1. biomni_workflows/ stubs — fast path for custom/BioMate-specific workflows.
+        2. nf-core-workflows/ — full nf-core pipelines with nextflow_schema.json.
+           Preferred when the stub lacks a schema (gives authoritative param metadata).
+        3. Bare backend-relative path.
+        """
         from pathlib import Path as _Path
         this_file = _Path(__file__).resolve()
         backend_root = this_file.parent
@@ -2105,16 +2112,32 @@ Respond with a single JSON object — no other text:
             if (ancestor / "biomni_workflows").is_dir():
                 backend_root = ancestor
                 break
+
+        # Normalize nfcore/<name>/... → <name>/... for nf-core-workflows lookup
+        _nfcore_suffix = None
+        if filename.startswith("nfcore/"):
+            _nfcore_suffix = filename[len("nfcore/"):]  # e.g. "differentialabundance/main.nf"
+
         candidates = [
             backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" / filename,
             backend_root / "biomni_workflows" / "nextflow_nfcore" / filename,
             backend_root / "biomni_workflows" / "subworkflows" / filename,
             backend_root / "biomni_workflows" / filename,
-            backend_root / filename,
         ]
-        for c in candidates:
-            if c.exists():
-                return c
+        # Add nf-core-workflows/ candidates when it looks like an nf-core workflow
+        if _nfcore_suffix:
+            candidates += [
+                backend_root / "nf-core-workflows" / _nfcore_suffix,
+                backend_root / "nf-core-workflows" / _nfcore_suffix / "main.nf",
+            ]
+        candidates.append(backend_root / filename)
+
+        # Prefer the candidate whose parent directory contains nextflow_schema.json
+        # (authoritative nf-core metadata) over a stub that only has a bare .nf file.
+        with_schema = [c for c in candidates if c.exists() and (c.parent / "nextflow_schema.json").exists()]
+        without_schema = [c for c in candidates if c.exists() and c not in with_schema]
+        for c in (with_schema + without_schema):
+            return c
         return None
 
     # Groups in nextflow_schema.json that are infrastructure / admin — skip them
@@ -2269,30 +2292,7 @@ Respond with a single JSON object — no other text:
         nf_path = self._find_nf_file(filename)
         if not nf_path:
             return None
-
-        # Primary location: schema next to the .nf stub (e.g. biomni_workflows/nfcore/X/)
         schema_path = nf_path.parent / 'nextflow_schema.json'
-
-        # Fallback: authoritative nf-core schema in nf-core-workflows/<workflow_name>/
-        # (e.g. nf-core-workflows/differentialabundance/nextflow_schema.json).
-        # This provides correct types, descriptions, and required/optional status that
-        # the bare .nf stub file cannot supply.
-        if not schema_path.exists():
-            backend_root = nf_path
-            for ancestor in nf_path.parents:
-                if (ancestor / 'nf-core-workflows').is_dir():
-                    backend_root = ancestor
-                    break
-            # Derive workflow name from stub path: nfcore/<name>/main.nf → <name>
-            parts = nf_path.parts
-            for i, part in enumerate(parts):
-                if part == 'nfcore' and i + 1 < len(parts):
-                    wf_name = parts[i + 1]
-                    candidate = backend_root / 'nf-core-workflows' / wf_name / 'nextflow_schema.json'
-                    if candidate.exists():
-                        schema_path = candidate
-                    break
-
         if not schema_path.exists():
             return None
         try:
