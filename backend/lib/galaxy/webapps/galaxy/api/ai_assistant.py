@@ -2751,6 +2751,19 @@ def generate_workflow_unified(
             except Exception as _cred_err:
                 log.debug("[generate_workflow] credential_map build failed (non-fatal): %s", _cred_err)
 
+        # Augment effective_intent with inline_parameters values so the backend's
+        # rule-based and LLM-based param extraction can see the file paths.
+        # These come from extractInlineDataWithLLM (Node.js layer) and contain S3 URIs
+        # from [Uploaded datasets:] blocks. We append them as plain text so the
+        # extraction regexes and LLM can map them to workflow params.
+        if request.inline_parameters:
+            _inline_vals = " ".join(
+                str(v) for v in request.inline_parameters.values()
+                if v and isinstance(v, str) and v.strip()
+            )
+            if _inline_vals and _inline_vals not in effective_intent:
+                effective_intent = f"{effective_intent}\n[File paths: {_inline_vals}]"
+
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
         if use_langgraph:
             result = ai_assistant.run_via_pipeline(

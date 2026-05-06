@@ -2543,12 +2543,11 @@ Query: "RNA-seq on human samples, 150bp paired-end reads, stranded dUTP"
 → [{"name":"read_length","value":150,"rationale":"explicit read length"},
    {"name":"strandedness","value":"reverse","rationale":"dUTP protocol = reverse strand"}]
 
-Query (differentialabundance): "Run DE analysis. [Uploaded datasets: featureCounts.txt: s3_uri=s3://biomate-nextflow-work/uploads/abc/featureCounts.txt; coldata.xlsx: s3_uri=s3://biomate-nextflow-work/uploads/abc/coldata.xlsx]"
-NOTE: These S3 URIs are from BioMate's own storage (biomate-nextflow-work), so credentials are already handled.
-→ [{"name":"matrix","value":"s3://biomate-nextflow-work/uploads/abc/featureCounts.txt","rationale":"featureCounts.txt is a count matrix file → matrix param"},
-   {"name":"input","value":"s3://biomate-nextflow-work/uploads/abc/coldata.xlsx","rationale":"coldata.xlsx is sample metadata → input samplesheet"}]
+Query (differentialabundance): "Run DE analysis. [Uploaded datasets: featureCounts.txt: s3_uri=s3://storage/uploads/abc/featureCounts.txt; coldata.xlsx: s3_uri=s3://storage/uploads/abc/coldata.xlsx]"
+→ [{"name":"matrix","value":"s3://storage/uploads/abc/featureCounts.txt","rationale":"featureCounts.txt is a count matrix file → matrix param"},
+   {"name":"input","value":"s3://storage/uploads/abc/coldata.xlsx","rationale":"coldata.xlsx is sample metadata → input samplesheet"}]
 
-CREDENTIAL RULE: Only use S3 URIs from [Uploaded datasets:] blocks (managed by BioMate). If a user provides an external S3 path (e.g., s3://their-bucket/...) that was NOT in an [Uploaded datasets:] block, do NOT use it as a parameter — instead ask: "To access s3://their-bucket/..., I need AWS credentials. Please provide them via Settings → Credentials, or share the bucket publicly."
+FILE ACCESS RULE: Only use S3 URIs that appear inside an [Uploaded datasets:] block — these were provided by BioMate's upload system and are already accessible. If a user mentions an S3 path NOT in [Uploaded datasets:], do NOT assume it is accessible; instead respond: "To use files from an external location, please first upload them via the file upload button, or provide access credentials."
 
 Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 voltage=300 symmetry=D2"
 → [{"name":"movies_path","value":"s3://biomate-cryo-data/empiar-10028/Micrographs","rationale":"S3 path in query"},
