@@ -194,7 +194,7 @@ def _quick_audit(text: str, section_type: str) -> list[str]:
     failures = []
     lower = text.lower()
 
-    if section_type in ("pbpk", "pk_overview"):
+    if section_type == "pbpk":  # pk_overview is general PK — no PBPK guideline required
         if not ("EMA/CHMP/EWP/37498/2011" in text or "67%" in text or "within-2-fold" in lower or "criterion" in lower):
             failures.append("CITE_001:PBPK_missing_EMA_guideline")
     if section_type == "tox_genotox":

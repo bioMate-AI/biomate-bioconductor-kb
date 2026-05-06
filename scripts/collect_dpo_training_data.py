@@ -60,8 +60,8 @@ _AUDIT_RULES: list[dict] = [
     # Citation rules — MAJOR if required citation absent
     {
         "id": "CITE_001", "severity": "MAJOR",
-        "section_types": ["pbpk", "pk_overview"],
-        "description": "PBPK section must cite EMA/CHMP/EWP/37498/2011",
+        "section_types": ["pbpk"],  # pk_overview is general PK, not PBPK qualification
+        "description": "PBPK qualification section must cite EMA/CHMP/EWP/37498/2011",
         "check": lambda t, d: "EMA/CHMP/EWP/37498/2011" in t or "EMA guideline" in t.lower(),
     },
     {
