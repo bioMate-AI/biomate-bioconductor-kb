@@ -2781,7 +2781,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     _candidates = _param_list
                     break
             if not _candidates:
-                _candidates = ['movies_path', 'movie_dir', 'reads', 'reads1', 'input']  # fallback
+                continue  # unrecognized extension — let LLM inference handle it
 
             # Pick first candidate that exists in the workflow params and isn't already set
             _target = next((p for p in _candidates if p in all_param_names and p not in _already_set), None)
