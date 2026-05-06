@@ -142,3 +142,4 @@ reference/clawdbot/
 # BioDSA repository (external dependency)
 reference/BioDSA/
 .r_lib_cache/
+models/
