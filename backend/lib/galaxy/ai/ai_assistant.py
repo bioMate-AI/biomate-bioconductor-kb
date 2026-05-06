@@ -2671,7 +2671,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # Covers all workflows, not just cryo-EM.
         _already_set = {s["name"] for s in suggestions}
         _path_re = _re.compile(r'\b(s3://\S+|gs://\S+|/(?:data|nfs|mnt|home|scratch)\S+)', _re.IGNORECASE)
-        _all_paths = [m.group(1).rstrip('.,;)') for m in _path_re.finditer(user_intent)]
+        _all_paths = [m.group(1).rstrip('.,;)[') for m in _path_re.finditer(user_intent)]
 
         # Extension → candidate parameter names (ordered by priority)
         _EXT_TO_PARAMS: dict = {
