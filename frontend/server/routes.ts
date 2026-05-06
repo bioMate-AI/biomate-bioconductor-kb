@@ -2741,24 +2741,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { exec: _exec } = await import('child_process');
         const execP = _pfy(_exec);
         const s3Prefix = outputDir.replace(/\/?$/, '/');
+        const bucket = outputDir.replace(/^s3:\/\//, '').split('/')[0];
         const rawLs = await execP(
-          `aws s3 ls "${s3Prefix}" --recursive --human-readable 2>/dev/null || true`
+          `aws s3 ls "${s3Prefix}" --recursive 2>/dev/null || true`
         ).then(({ stdout }) => stdout).catch(() => '');
+        // aws s3 ls --recursive format: "YYYY-MM-DD HH:MM:SS   <bytes>  <key>"
         const datasets: any[] = [];
         for (const line of rawLs.split('\n')) {
-          const m = line.match(/^\s*(\d{4}-\d{2}-\d{2}\s+[\d:]+)\s+([\d.]+\s+\w+)\s+(.+)$/);
+          const m = line.match(/^\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+(\d+)\s+(.+)$/);
           if (!m) continue;
-          const [, dateStr, , key] = m;
+          const [, dateStr, sizeBytes, key] = m;
+          if (key.endsWith('/')) continue; // skip directory markers
           const name = key.split('/').pop() || key;
           const ext = name.includes('.') ? name.split('.').pop()! : '';
           datasets.push({
             id: `s3:${key}`,
             name,
             extension: ext,
-            file_size: 0,
+            file_size: parseInt(sizeBytes, 10),
             state: 'ok',
             create_time: dateStr.trim(),
-            s3_uri: `s3://${outputDir.replace(/^s3:\/\//, '').split('/')[0]}/${key}`,
+            s3_uri: `s3://${bucket}/${key}`,
           });
         }
         return res.json({ datasets });
@@ -9006,7 +9009,6 @@ Rules:
     try {
       const filePath = req.query.path as string;
       const fileName = req.query.name as string || '';
-      console.log(`[step-file] runId=${req.params.id} path=${filePath?.slice(0,100)} name=${fileName}`);
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
 

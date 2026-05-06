@@ -1000,16 +1000,20 @@ class UnifiedWorkflowSearch:
         for pat in _NAMED_TOOL_PATTERNS:
             for m in re.finditer(pat, query):
                 raw = m.group(1)
-                # Normalise: lowercase, remove non-alphanumeric
+                # Normalise: lowercase, remove non-alphanumeric (single token)
                 token = re.sub(r'[^a-z0-9]', '', raw.lower())
+                # Phrase form: lowercase, replace hyphens/underscores/dots with spaces
+                # e.g. "PK-Sim" → 'pk sim' (wrapped in "" for FTS5 phrase search)
+                phrase = re.sub(r'[-_\.]', ' ', raw.lower()).strip()
                 if token and len(token) > 2 and token not in _SEARCH_STOPWORDS:
-                    candidates.append(token)
+                    candidates.append((token, phrase))
 
         # Deduplicate preserving order
         seen: set = set()
-        unique_candidates = [c for c in candidates if not (c in seen or seen.add(c))]  # type: ignore[func-returns-value]
+        unique_candidates = [c for c in candidates if not (c[0] in seen or seen.add(c[0]))]  # type: ignore[func-returns-value]
 
-        for token in unique_candidates:
+        for token, phrase in unique_candidates:
+            # Try 1: single normalised token (e.g. "boltz", "cryosparc")
             try:
                 cursor.execute(
                     "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
@@ -1017,9 +1021,25 @@ class UnifiedWorkflowSearch:
                 )
                 row = cursor.fetchone()
                 if row and row[0] > 0:
-                    return token  # First candidate that exists in the index wins
+                    return token  # Single-token hit — done
             except Exception:
-                continue  # Silently skip on FTS syntax errors
+                pass
+
+            # Try 2: phrase search for hyphenated names like "PK-Sim" → '"pk sim"'
+            # FTS5 splits on hyphens, so "PK-Sim" is indexed as tokens "pk" and "sim".
+            # A phrase query '"pk sim"' requires both tokens adjacent → precise match.
+            if phrase and phrase != token and len(phrase) > len(token):
+                phrase_fts = f'"{phrase}"'
+                try:
+                    cursor.execute(
+                        "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
+                        (phrase_fts,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0] > 0:
+                        return phrase_fts  # Phrase hit (e.g. '"pk sim"')
+                except Exception:
+                    pass  # Silently skip on FTS syntax errors
         return None
 
     # ------------------------------------------------------------------
