@@ -334,11 +334,20 @@ function HistoryTab({
           onClick={() => openHistory(h)}
         >
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{h.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium truncate">{h.name}</p>
+              {h.source === 'run' && (
+                <Badge variant="outline" className="text-xs h-4 px-1 shrink-0 border-blue-300 text-blue-600">
+                  Run outputs
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-3 mt-0.5">
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Database className="h-3 w-3" />{h.count} datasets
-              </span>
+              {h.source !== 'run' && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Database className="h-3 w-3" />{h.count} datasets
+                </span>
+              )}
               {h.size > 0 && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <HardDrive className="h-3 w-3" />{formatBytes(h.size)}
