@@ -912,14 +912,36 @@ const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 
 /**
  * In-memory registry of uploaded files keyed by dataset_id.
- * Used by run_code as a local fallback when Galaxy upload is unavailable
- * (e.g. Redis session missing, Galaxy not connected).
- * Entries expire after UPLOAD_TTL_MS to match the file cleanup cycle.
+ * Used by run_code as a local fallback when Galaxy upload is unavailable.
+ * s3Uri is set when the file was also uploaded to S3 for Nextflow access.
  */
-const uploadedFileRegistry = new Map<string, { name: string; filePath: string; uploadedAt: number }>();
+const uploadedFileRegistry = new Map<string, { name: string; filePath: string; uploadedAt: number; s3Uri?: string }>();
 
-export function getUploadedFile(datasetId: string): { name: string; filePath: string } | undefined {
+export function getUploadedFile(datasetId: string): { name: string; filePath: string; s3Uri?: string } | undefined {
   return uploadedFileRegistry.get(datasetId);
+}
+
+/**
+ * Upload a local file to S3 for Nextflow workflow access.
+ * Fire-and-forget: errors are logged but do not block the response.
+ */
+async function _uploadFileToS3(localPath: string, datasetId: string, fileName: string): Promise<string | undefined> {
+  const s3Bucket = process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
+  const s3Key = `uploads/${datasetId}/${fileName}`;
+  const s3Uri = `s3://${s3Bucket}/${s3Key}`;
+  try {
+    const { execFile } = await import('node:child_process');
+    await new Promise<void>((resolve, reject) => {
+      execFile('aws', ['s3', 'cp', localPath, s3Uri, '--quiet'], { timeout: 120_000 }, (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+    console.log(`[FileUpload] Mirrored to S3: ${s3Uri}`);
+    return s3Uri;
+  } catch (err: any) {
+    console.warn(`[FileUpload] S3 mirror failed (Nextflow workflows may not access this file): ${err.message}`);
+    return undefined;
+  }
 }
 
 // Clean up temp uploads older than UPLOAD_TTL_HOURS to prevent unbounded disk growth.
