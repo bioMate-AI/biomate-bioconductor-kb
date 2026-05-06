@@ -2747,13 +2747,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const s3Prefix = outputDir.replace(/\/?$/, '/');
         const bucket = outputDir.replace(/^s3:\/\//, '').split('/')[0];
         const rawLs = await execP(
-          `aws s3 ls "${s3Prefix}" --recursive 2>/dev/null || true`
-        ).then(({ stdout }) => {
-          console.log(`[HistoryDatasets/run] S3 ls returned ${stdout.split('\n').length} lines`);
-          return stdout;
-        }).catch((e: any) => {
-          console.warn('[HistoryDatasets/run] S3 ls failed:', e?.message);
-          return '';
+          `aws s3 ls "${s3Prefix}" --recursive`
+        ).then(({ stdout }) => stdout).catch((e: any) => {
+          console.warn('[HistoryDatasets/run] S3 ls error code=%s stderr=%s msg=%s',
+            e?.code, JSON.stringify(e?.stderr?.slice?.(0, 200)), e?.message?.slice?.(0, 100));
+          return (e?.stdout as string) || '';
         });
         // aws s3 ls --recursive format: "YYYY-MM-DD HH:MM:SS   <bytes>  <key>"
         const datasets: any[] = [];
