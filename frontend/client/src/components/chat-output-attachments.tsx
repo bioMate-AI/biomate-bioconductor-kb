@@ -341,9 +341,15 @@ function OutputRenderer({ output, invocationId, runId, onDownload }: OutputRende
     case 'structure':
       // PDB / mmCIF / CIF — 3Dmol.js interactive 3D viewer
       return <StructureViewer output={output} />
-    case 'density_map':
-      // MRC / MAP — orthogonal 2D slice viewer with contrast control
-      return <DensityMapViewer src={`/api/outputs/${output.id}/download`} name={output.name} size={output.size ?? undefined} />
+    case 'density_map': {
+      // MRC / MAP — orthogonal 2D slice viewer with contrast control.
+      // For S3-backed Nextflow outputs, proxy through step-file (works without auth).
+      const s3Uri = (output as any).metadata?.s3Uri as string | undefined;
+      const mrcSrc = s3Uri && runId
+        ? `/api/workflows/runs/${encodeURIComponent(runId)}/step-file?path=${encodeURIComponent(s3Uri)}&name=${encodeURIComponent(output.name)}`
+        : `/api/outputs/${output.id}/download`;
+      return <DensityMapViewer src={mrcSrc} name={output.name} size={output.size ?? undefined} />;
+    }
     case 'singlecell':
       return <FileOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     default:
