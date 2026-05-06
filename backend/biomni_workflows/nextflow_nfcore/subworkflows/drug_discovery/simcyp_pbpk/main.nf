@@ -34,8 +34,12 @@ params.fa_fg               = '0.9'
 params.simcyp_version      = 'v23'
 params.fallback_mode       = 'auto'
 
+// Use SIMCYP_CONTAINER env var (set only on licensed installs).
+// Falls back to biomni-tools:x86 so the Python fallback path can run on Batch.
 def SIMCYP_CONTAINER = System.getenv('SIMCYP_CONTAINER') ?:
-    '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/simcyp-v23:latest'
+    (System.getenv('NEXTFLOW_USE_AWS') == 'true'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86'
+        : 'biomate/biomni-tools:latest')
 
 // ---------------------------------------------------------------------------
 // Phase A: Input & Validation
