@@ -596,7 +596,7 @@ lst_text = open('run001.lst').read()
 
 # ---- OFV ---------------------------------------------------------------
 ofv = None
-for m in re.finditer(r'#OBJV:\s*([-\d.]+)', lst_text):
+for m in re.finditer(r'#OBJV:\\s*([-\\d.]+)', lst_text):
     ofv = float(m.group(1))   # last match = final estimation
 
 # ---- Minimisation status -----------------------------------------------
@@ -623,15 +623,15 @@ sigma_se   = parse_param_block(lst_text, r'STANDARD ERROR OF ESTIMATE.*?\\nSIGMA
 
 # ---- ETA shrinkage -----------------------------------------------------
 shrinkage_pct = []
-for m in re.finditer(r'ETASHRINK\(%):\s*([\d. ]+)', lst_text):
+for m in re.finditer(r'ETASHRINK\\(%):\\s*([\\d. ]+)', lst_text):
     shrinkage_pct = [float(x) for x in m.group(1).split()]
 
 # ---- Subject/observation count from lst --------------------------------
 n_subjects = 0
 n_obs      = 0
-m = re.search(r'NO\. OF INDIVIDUALS:\s*(\d+)', lst_text)
+m = re.search(r'NO\\. OF INDIVIDUALS:\\s*(\\d+)', lst_text)
 if m: n_subjects = int(m.group(1))
-m = re.search(r'NO\. OF OBS RECS:\s*(\d+)', lst_text)
+m = re.search(r'NO\\. OF OBS RECS:\\s*(\\d+)', lst_text)
 if m: n_obs = int(m.group(1))
 
 # ---- AIC / BIC ---------------------------------------------------------
