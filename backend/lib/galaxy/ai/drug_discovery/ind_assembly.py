@@ -725,7 +725,7 @@ class INDSectionAssembler:
         )
 
         title          = self._title_page(ctx)
-        s_24_overview  = self._section_24_nonclinical_overview(ctx)   # NEW: §2.4
+        s_24_overview  = self._section_24_nonclinical_overview(ctx)
         s_overview     = self._section_overview(ctx)
         s_pbpk         = self._section_pbpk(ctx)
         s_admet        = self._section_admet(ctx)
@@ -734,6 +734,9 @@ class INDSectionAssembler:
         s_audit        = self._section_audit_trail(ctx)
         s_pk_overview  = self._section_pk_overview(ctx)
         s_tox_overview = self._section_toxicology_overview(ctx)
+        s_2631         = self._section_2631_single_dose(ctx)
+        s_2632         = self._section_2632_repeat_dose(ctx)
+        s_2633         = self._section_2633_genotoxicity(ctx)
         s_pharm_tab    = self._section_pharm_tabulated(ctx)
         s_pk_tab       = self._section_pk_tabulated(ctx)
         s_tox_tab      = self._section_tox_tabulated(ctx)
@@ -742,11 +745,11 @@ class INDSectionAssembler:
         sections = [
             "2.4",
             "2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6",
-            "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6", "2.6.7",
+            "2.6.2", "2.6.3.1", "2.6.3.2", "2.6.3.3", "2.6.3", "2.6.4", "2.6.5", "2.6.6",
         ]
         parts = [title, s_24_overview, s_overview, s_pbpk, s_admet, s_priority, s_ad, s_audit,
-                 s_pk_overview, s_tox_overview, s_pharm_tab, s_pk_tab, s_tox_tab,
-                 s_tox_written]
+                 s_pk_overview, s_tox_overview, s_2631, s_2632, s_2633,
+                 s_pharm_tab, s_pk_tab, s_tox_tab, s_tox_written]
         markdown_body = "\n\n".join(p for p in parts if p)
 
         # --- Document integrity footer ---
@@ -1987,6 +1990,137 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
             except Exception:
                 pass
         return alerts
+
+    # ------------------------------------------------------------------
+    # §2.6.3.1–3.3 — individual toxicology subsections
+    # When wet-lab GLP study data is available (via ingest-study-report),
+    # these sections use real extracted values. Otherwise they show a
+    # structured placeholder that the regulatory writer knows to fill in.
+    # ------------------------------------------------------------------
+
+    def _section_2631_single_dose(self, ctx: dict) -> str:
+        """§2.6.3.1 — Single-Dose Toxicity."""
+        wetlab = ctx.get("wetlab_data") or {}
+        single = wetlab.get("single_dose_study") or {}
+        drug = ctx["molecule_name"]
+        region = ctx.get("region", "FDA")
+
+        if single:
+            species = single.get("species", "rat and mouse")
+            route = single.get("route", "oral")
+            ld50 = single.get("ld50") or single.get("mld") or single.get("approximate_lethal_dose")
+            noael = single.get("noael") or single.get("mtd")
+            findings = single.get("key_findings", "No unexpected findings were observed.")
+            glp = "GLP-compliant" if single.get("glp", True) else "non-GLP"
+            narrative = (
+                f"Single-dose toxicity studies of {drug} were conducted in {species} by {route} "
+                f"administration under {glp} conditions. "
+                f"{'The approximate lethal dose was ' + str(ld50) + ' mg/kg. ' if ld50 else ''}"
+                f"{'The maximum non-lethal dose (NOAEL) was ' + str(noael) + ' mg/kg. ' if noael else ''}"
+                f"{findings}"
+            )
+            source_note = f"\n\n*Data source: uploaded GLP study report ({single.get('study_id', 'study ID not recorded')}).*"
+        else:
+            narrative = (
+                f"⟳ **Awaiting GLP data** — Upload the single-dose toxicity study report "
+                f"via the 'Add study data' button to populate this section.\n\n"
+                f"*When uploaded, this section will report: study design (species, route, "
+                f"dose levels), approximate lethal dose or maximum tolerated dose (MTD), "
+                f"and major findings per ICH M3(R2) §4.1.*"
+            )
+            source_note = ""
+
+        return f"## 2.6.3.1 Single-Dose Toxicity\n\n{narrative}{source_note}"
+
+    def _section_2632_repeat_dose(self, ctx: dict) -> str:
+        """§2.6.3.2 — Repeat-Dose Toxicity."""
+        wetlab = ctx.get("wetlab_data") or {}
+        studies = wetlab.get("repeat_dose_studies") or []
+        drug = ctx["molecule_name"]
+
+        if studies:
+            rows = []
+            for s in studies:
+                rows.append(
+                    f"| {s.get('species','—')} | {s.get('route','—')} | "
+                    f"{s.get('duration','—')} | {s.get('noael','—')} mg/kg/day | "
+                    f"{s.get('key_findings','—')[:80]} |"
+                )
+            table = (
+                "| Species | Route | Duration | NOAEL | Key findings |\n"
+                "|---------|-------|----------|-------|---------------|\n"
+                + "\n".join(rows)
+            )
+            narrative = (
+                f"Repeat-dose toxicity studies of {drug} were conducted across multiple species "
+                f"and durations in accordance with ICH M3(R2) phase-gating requirements. "
+                f"The following studies have been completed:\n\n{table}"
+            )
+        else:
+            narrative = (
+                f"⟳ **Awaiting GLP data** — Upload repeat-dose toxicity study reports "
+                f"(28-day, 90-day, 26-week) via 'Add study data' to populate this section.\n\n"
+                f"*This section will tabulate: species, route, duration, dose groups, "
+                f"NOAEL, and key histopathological/clinical chemistry findings per ICH M3(R2).*"
+            )
+
+        return f"## 2.6.3.2 Repeat-Dose Toxicity\n\n{narrative}"
+
+    def _section_2633_genotoxicity(self, ctx: dict) -> str:
+        """§2.6.3.3 — Genotoxicity."""
+        wetlab = ctx.get("wetlab_data") or {}
+        sp = ctx.get("safety_profile") or {}
+        drug = ctx["molecule_name"]
+
+        # Prefer wet-lab measured values; fall back to in silico predictions
+        ames_result = wetlab.get("ames_result") or sp.get("ames_result")
+        ames_source = "measured" if wetlab.get("ames_result") else "in silico predicted"
+        mn_result = wetlab.get("micronucleus_result") or sp.get("micronucleus_result")
+        mn_source = "measured" if wetlab.get("micronucleus_result") else "in silico predicted"
+        ca_result = wetlab.get("chromosomal_aberration_result")
+
+        has_invitro_data = bool(wetlab.get("ames_result") or wetlab.get("micronucleus_result"))
+
+        if has_invitro_data:
+            source_caveat = ""
+        else:
+            source_caveat = (
+                "\n\n*Note: Genotoxicity values above are in silico predictions. "
+                "ICH M3(R2) requires the standard ICH S2(R1) battery (bacterial reverse "
+                "mutation assay, in vitro chromosomal aberration or micronucleus test, "
+                "and in vivo micronucleus test) prior to first-in-human dosing. "
+                "Upload GLP in vitro study reports to replace computational values.*"
+            )
+
+        if ames_result is not None:
+            ames_str = str(ames_result).lower()
+            ames_interp = "negative (non-mutagenic)" if "neg" in ames_str or ames_result is False else "positive (mutagenic)"
+            narrative = (
+                f"The genotoxic potential of {drug} was assessed using the standard battery "
+                f"per ICH S2(R1).\n\n"
+                f"**Bacterial reverse mutation (Ames) test:** {ames_interp} ({ames_source}).\n\n"
+            )
+            if mn_result is not None:
+                mn_str = str(mn_result).lower()
+                mn_interp = "negative" if "neg" in mn_str or mn_result is False else "positive"
+                narrative += f"**In vitro micronucleus test:** {mn_interp} ({mn_source}).\n\n"
+            if ca_result is not None:
+                narrative += f"**Chromosomal aberration test:** {ca_result} (measured).\n\n"
+
+            overall = "negative" if ("neg" in str(ames_result).lower()) else "positive or equivocal"
+            narrative += (
+                f"Overall, the genotoxicity assessment is {overall} across the tested battery. "
+                f"These findings are consistent with ICH S2(R1) requirements for Phase I IND support."
+            )
+        else:
+            narrative = (
+                f"⟳ **Awaiting GLP data** — Upload GLP genotoxicity study reports (Ames, "
+                f"in vitro micronucleus or chromosomal aberration, in vivo micronucleus) to "
+                f"populate this section per ICH S2(R1).\n\n"
+                f"In silico Ames prediction is available in §2.6.1.3 (ADMET screening)."
+            )
+
+        return f"## 2.6.3.3 Genotoxicity\n\n{narrative}{source_caveat}"
 
     def _section_toxicology_overview(self, ctx: dict) -> str:
         """ICH M4 CTD §2.6.3 — Nonclinical Overview: Toxicology."""

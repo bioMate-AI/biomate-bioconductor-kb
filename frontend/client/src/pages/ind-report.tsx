@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { DrugDiscoveryEsigModal } from "@/components/drug-discovery-esig-modal"
 import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
+import { RegulatoryDocumentEditor } from "@/components/regulatory-document-editor"
 import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 
@@ -1123,6 +1124,7 @@ function DocumentPanel({
   doc,
   onSign,
   onDownload,
+  onEdit,
   showAudit,
   onToggleAudit,
 }: {
@@ -1130,35 +1132,12 @@ function DocumentPanel({
   doc: IndDocument | null
   onSign: () => void
   onDownload: (format: "md" | "docx") => void
+  onEdit: (text: string) => void
   showAudit: boolean
   onToggleAudit: () => void
 }) {
-  const [activeSection, setActiveSection] = useState("2.6.1")
   const [selectedRegion, setSelectedRegion] = useState<Region | "All">("All")
   const [showVersions, setShowVersions] = useState(false)
-  const docScrollRef = useRef<HTMLDivElement>(null)
-
-  // Split markdown into sections
-  const getSectionText = (sectionId: string): string => {
-    if (!doc?.markdown_content) return ""
-    const marker = `## ${sectionId}` + (sectionId.includes(".") ? "" : "")
-    const lines = doc.markdown_content.split("\n")
-    let inSection = false
-    const sectionLines: string[] = []
-    for (const line of lines) {
-      if (line.startsWith("## ") && line.includes(sectionId.replace("2.6.", ""))) { inSection = true; continue }
-      if (inSection && line.startsWith("## ")) break
-      if (inSection) sectionLines.push(line)
-    }
-    if (sectionLines.length === 0) {
-      // Fallback: return a slice of the full content based on section position
-      const idx = SECTION_TABS.indexOf(sectionId)
-      if (idx < 0) return doc.markdown_content.slice(0, 2000)
-      const chunkSize = Math.floor(doc.markdown_content.length / SECTION_TABS.length)
-      return doc.markdown_content.slice(idx * chunkSize, (idx + 1) * chunkSize)
-    }
-    return sectionLines.join("\n")
-  }
 
   const majorFindings = doc?.audit_findings.filter(f => f.severity === "MAJOR") ?? []
   const minorFindings = doc?.audit_findings.filter(f => f.severity === "MINOR") ?? []
@@ -1203,29 +1182,9 @@ function DocumentPanel({
         )}
       </div>
 
-      {/* Section tabs */}
+      {/* Coverage dots — shown when doc is present */}
       {doc && (
-        <div className="flex items-center gap-0.5 px-3 pt-2 pb-1 overflow-x-auto border-b border-border">
-          {SECTION_TABS.map(s => (
-            <button
-              key={s}
-              onClick={() => setActiveSection(s)}
-              className={cn(
-                "shrink-0 px-2 py-0.5 text-[10px] font-mono rounded transition-colors",
-                activeSection === s
-                  ? "bg-[var(--bm-accent)] text-white"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              §{s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Coverage dots */}
-      {doc && (
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/20 border-b border-border/50 overflow-x-auto">
+        <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/20 border-b border-border/50 overflow-x-auto shrink-0">
           {SECTION_TABS.map(s => {
             const meta = SECTION_META[s]
             return (
@@ -1241,11 +1200,11 @@ function DocumentPanel({
         </div>
       )}
 
-      {/* Document content */}
-      <div ref={docScrollRef} className="flex-1 overflow-y-auto px-5 py-4">
+      {/* Document content — TipTap editor or empty/skeleton states */}
+      <div className="flex-1 min-h-0 overflow-hidden">
         {!project ? (
           // Empty state
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-12">
+          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-12 px-5">
             <FileText className="h-10 w-10 text-muted-foreground/30" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Your IND document will appear here</p>
@@ -1253,7 +1212,7 @@ function DocumentPanel({
             </div>
             {/* Skeleton sections */}
             <div className="w-full max-w-xs space-y-2 mt-4">
-              {Object.entries(SECTION_META).filter(([k]) => !k.includes(".")).map(([id, meta]) => (
+              {Object.entries(SECTION_META).filter(([k]) => !k.includes(".")).map(([id]) => (
                 <div key={id} className="flex items-center gap-2 text-[11px] text-muted-foreground/40">
                   <span className="font-mono w-10 shrink-0">§{id}</span>
                   <div className="h-1 flex-1 rounded-full bg-muted/40" />
@@ -1263,7 +1222,7 @@ function DocumentPanel({
           </div>
         ) : !doc ? (
           // Project selected, no document yet
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-12">
+          <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-12 px-5">
             <FileText className="h-8 w-8 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">Complete the pipeline steps to generate the IND document</p>
             {/* Skeleton lines for loading feel */}
@@ -1284,23 +1243,14 @@ function DocumentPanel({
             </div>
           </div>
         ) : (
-          // Full document
-          <div className="space-y-4 max-w-prose mx-auto">
-            {/* Section heading */}
-            <div className="pb-1 border-b border-border">
-              <h2 className="text-sm font-semibold">§{activeSection} — {SECTION_META[activeSection]?.title}</h2>
-              {SECTION_META[activeSection]?.coverage === "partial" && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  {SECTION_META[activeSection]?.note}
-                </p>
-              )}
-            </div>
-            <MarkdownSection
-              text={getSectionText(activeSection) || doc.markdown_preview || ""}
-              auditFindings={doc.audit_findings}
-            />
-          </div>
+          // TipTap editor — replaces static MarkdownSection viewer
+          <RegulatoryDocumentEditor
+            content={doc.markdown_content || doc.markdown_preview || ""}
+            isLocked={!!doc.is_frozen}
+            onEdit={onEdit}
+            molecule={project.moleculeName}
+            generatedAt={doc.generated_at ?? ""}
+          />
         )}
       </div>
 
@@ -2012,6 +1962,7 @@ export default function IndReportPage() {
             doc={doc}
             onSign={() => setEsigOpen(true)}
             onDownload={handleDownload}
+            onEdit={(text) => setDoc(prev => prev ? { ...prev, markdown_content: text } : null)}
             showAudit={auditOpen}
             onToggleAudit={() => setAuditOpen(v => !v)}
           />
