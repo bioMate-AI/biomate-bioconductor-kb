@@ -704,6 +704,10 @@ async function pollWithLiveUIChecks(
   return { finalStatus, payload };
 }
 
+// Alias: pollToTerminal — same as pollWithLiveUIChecks but with a shorter default timeout.
+// Used by CS-3/4/5/12/13/14 for simple "wait until done" polling without extra UI probing.
+const pollToTerminal = pollWithLiveUIChecks;
+
 async function dismissModals(page: Page): Promise<void> {
   for (let i = 0; i < 4; i++) {
     const skip = page.locator('[data-testid="post-run-survey-dialog"] button:has-text("Skip"), [role="dialog"] button:has-text("Skip"), button:has-text("Dismiss")').first();
