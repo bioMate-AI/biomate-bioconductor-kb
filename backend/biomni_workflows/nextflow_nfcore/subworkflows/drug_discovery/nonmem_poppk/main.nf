@@ -454,16 +454,17 @@ for i, p in enumerate(pk_params, 1):
         pk_block_lines.append(f'  {p} = THETA({i})')
 
 # ---- $OMEGA block -------------------------------------------------------
+dollar = '$'
 if bsv_structure == 'block' and n_eta >= 2:
-    omega_lines = [f'  $OMEGA BLOCK({n_eta})']
+    omega_lines = [f'  {dollar}OMEGA BLOCK({n_eta})']
     for row in range(n_eta):
         vals = ['0.09'] * (row + 1)
         if row > 0:
             vals[0] = '0.01'   # off-diagonal covariance initialised near zero
         omega_lines.append('  ' + ' '.join(vals))
 else:
-    # NONMEM diagonal omega: one $OMEGA record per ETA (or list all on one record)
-    omega_lines = ['  $OMEGA']
+    # NONMEM diagonal omega: one OMEGA record per ETA (or list all on one record)
+    omega_lines = [f'  {dollar}OMEGA']
     omega_lines += [f'  0.09  ; ETA({i+1})' for i in range(n_eta)]
 
 # ---- covariate search placeholder in $PK --------------------------------
@@ -481,37 +482,37 @@ ctl = f''';---------------------------------------------------------------------
 ; ADVAN  : {advan} {trans}
 ;----------------------------------------------------------------------
 
-\\$PROBLEM  BioMate PopPK {model_type}
+{dollar}PROBLEM  BioMate PopPK {model_type}
 
-\\$DATA  {pk_data}
+{dollar}DATA  {pk_data}
   IGNORE=@
 
-\\$INPUT  {input_line}
+{dollar}INPUT  {input_line}
 
-\\$SUBROUTINES  {advan} {trans}
+{dollar}SUBROUTINES  {advan} {trans}
 
-\\$PK
+{dollar}PK
 {chr(10).join(pk_block_lines)}
 {cov_comment}
-  S1 = V          ; scaling — adjust if V units differ from DV units
+  S1 = V          ; scaling -- adjust if V units differ from DV units
 
-\\$ERROR
+{dollar}ERROR
   IPRED = F
   W     = SQRT(THETA({len(pk_params) + 1})**2 + (THETA({len(pk_params) + 2}) * IPRED)**2)
   IRES  = DV - IPRED
   IWRES = IRES / W
   Y     = IPRED + W * EPS(1)
 
-\\$THETA
+{dollar}THETA
 {chr(10).join(theta_lines)}
   (0, 0.1, 10)   ; THETA({len(pk_params) + 1}) additive residual SD
   (0, 0.2, 2)    ; THETA({len(pk_params) + 2}) proportional residual fraction
 
 {chr(10).join(omega_lines)}
 
-\\$SIGMA  1 FIX   ; proportional error model; actual scale in THETA
+{dollar}SIGMA  1 FIX   ; proportional error model; actual scale in THETA
 
-\\$ESTIMATION
+{dollar}ESTIMATION
   {est_string}
   MAXEVAL=9999
   SIGDIG=4
@@ -519,12 +520,12 @@ ctl = f''';---------------------------------------------------------------------
   MSFO=run001.msf
   NOTHETABOUNDTEST=1
 
-\\$COVARIANCE  UNCONDITIONAL PRINT=E
+{dollar}COVARIANCE  UNCONDITIONAL PRINT=E
 
-\\$TABLE  ID TIME IPRED IWRES IRES ETA(1) ETA(2) NOAPPEND NOPRINT
+{dollar}TABLE  ID TIME IPRED IWRES IRES ETA(1) ETA(2) NOAPPEND NOPRINT
   FILE=sdtab001
 
-\\$TABLE  ID {" ".join(covariate_cols) if covariate_cols else "CMT"}
+{dollar}TABLE  ID {" ".join(covariate_cols) if covariate_cols else "CMT"}
   FIRSTONLY NOAPPEND NOPRINT FILE=patab001
 '''
 
