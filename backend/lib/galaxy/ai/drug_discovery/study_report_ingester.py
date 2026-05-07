@@ -21,7 +21,6 @@ Extracted fields per study:
 """
 from __future__ import annotations
 
-import io
 import logging
 import re
 from pathlib import Path
@@ -53,8 +52,9 @@ _SPECIES_PATTERN = re.compile(
     re.I,
 )
 _ROUTE_PATTERN = re.compile(
+    # Abbreviations like i.v./s.c./i.m. end with '.' — no trailing \b (non-word boundary)
     r"\b(oral(?:ly)?|gavage|intravenous(?:ly)?|i\.v\.|subcutaneous(?:ly)?|"
-    r"s\.c\.|inhalation|dermal|topical|intramuscular|i\.m\.)\b",
+    r"s\.c\.|inhalation|dermal|topical|intramuscular|i\.m\.)",
     re.I,
 )
 _NOAEL_PATTERN = re.compile(
@@ -65,6 +65,17 @@ _NOAEL_PATTERN = re.compile(
 _LOAEL_PATTERN = re.compile(
     r"(?:LOAEL|lowest.?observed.?adverse.?effect.?level)[^.]{0,150}"
     r"(\d[\d,]*(?:\.\d+)?)\s*(mg/kg(?:/day)?|µg/kg|g/kg)",
+    re.I,
+)
+_LD50_PATTERN = re.compile(
+    r"(?:LD50|LD-50|lethal dose[^.]{0,30}50|approximate lethal dose|"
+    r"MTD|maximum tolerated dose|MLD|minimum lethal dose)[^.]{0,100}"
+    r"(\d[\d,]*(?:\.\d+)?)\s*(mg/kg(?:/day)?|µg/kg|g/kg|mg/m[²2])",
+    re.I,
+)
+_MICRONUCLEUS_RESULT_PATTERN = re.compile(
+    r"(?:micronucleus|MN)[^.]{0,200}(negative|positive|no.?increase|"
+    r"significant.?increase|clastogenic|genotoxic)",
     re.I,
 )
 _HERG_PATTERN = re.compile(
@@ -192,7 +203,34 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
         ames_m = _AMES_RESULT_PATTERN.search(conclusion_text) or _AMES_RESULT_PATTERN.search(full_text)
         if ames_m:
             verdict = ames_m.group(1).lower()
-            ames_result = "positive" in verdict or "mutagenic" in verdict and "non" not in verdict
+            ames_result = ("positive" in verdict) or ("mutagenic" in verdict and "non" not in verdict)
+
+    # Micronucleus result (separate from Ames — different biology)
+    micronucleus_result = None
+    if study_type == "micronucleus":
+        mn_m = _MICRONUCLEUS_RESULT_PATTERN.search(conclusion_text) or _MICRONUCLEUS_RESULT_PATTERN.search(full_text)
+        if mn_m:
+            verdict = mn_m.group(1).lower()
+            micronucleus_result = "negative" if ("negative" in verdict or "no" in verdict) else "positive"
+        else:
+            # Fallback: infer from key_findings keywords
+            kf = conclusion_text.lower()
+            if "no clastogenic" in kf or "not genotoxic" in kf or "negative" in kf:
+                micronucleus_result = "negative"
+            elif "clastogenic" in kf or "genotoxic" in kf or "positive" in kf:
+                micronucleus_result = "positive"
+
+    # LD50 / MTD for single-dose studies
+    ld50, ld50_unit = None, None
+    if study_type == "single_dose":
+        ld50_m = _LD50_PATTERN.search(conclusion_text) or _LD50_PATTERN.search(full_text)
+        if ld50_m:
+            raw_ld = ld50_m.group(1).replace(",", "")
+            try:
+                ld50 = float(raw_ld)
+            except ValueError:
+                pass
+            ld50_unit = ld50_m.group(2)
 
     # GLP compliance
     glp = bool(_GLP_PATTERN.search(full_text[:3000]))
@@ -214,9 +252,12 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
         "route": route,
         "noael": noael,
         "noael_unit": noael_unit,
+        "ld50": ld50,
+        "ld50_unit": ld50_unit,
         "duration": duration,
         "key_findings": key_findings,
         "ames_result": ames_result,
+        "micronucleus_result": micronucleus_result,
         "herg_ic50_um": herg_ic50_um,
         "glp": glp,
         "study_id": study_id,
@@ -283,7 +324,8 @@ def merge_study_into_wetlab(
         merged["ames_result"] = extracted.get("ames_result")
 
     elif st == "micronucleus":
-        merged["micronucleus_result"] = "positive" if extracted.get("ames_result") else "negative"
+        if extracted.get("micronucleus_result") is not None:
+            merged["micronucleus_result"] = extracted["micronucleus_result"]
 
     elif st == "herg":
         if extracted.get("herg_ic50_um") is not None:

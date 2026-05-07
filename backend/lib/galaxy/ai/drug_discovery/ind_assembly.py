@@ -67,7 +67,7 @@ def _resolve_adapter_path() -> Path:
         return Path(os.environ["REGULATORY_LLM_ADAPTER"])
     models_root = Path(__file__).parent.parent.parent.parent.parent.parent / "models"
     # Prefer numerically higher versions
-    for name in ("regulatory_llm_v2/lora_adapter", "regulatory_llm_v1/lora_adapter"):
+    for name in ("regulatory_llm_v3/lora_adapter", "regulatory_llm_v2/lora_adapter", "regulatory_llm_v1/lora_adapter"):
         candidate = models_root / name
         if candidate.exists():
             return candidate
@@ -696,6 +696,10 @@ class INDSectionAssembler:
         if pk_summary is None:
             pk_summary = self._load_stored_pk_summary(campaign_id, warnings)
 
+        # wetlab_data: use provided value or load from campaign_wetlab table (populated by ingest-study-report)
+        if wetlab_data is None:
+            wetlab_data = self._load_stored_wetlab_data(campaign_id, warnings)
+
         # Wet-lab data overrides: merge measured values into pk_summary and safety_profile
         # Measured values always take precedence over computational predictions.
         if wetlab_data:
@@ -923,6 +927,20 @@ class INDSectionAssembler:
             with sqlite3.connect(self._db_path) as conn:
                 cur = conn.execute(
                     "SELECT pk_json FROM campaign_pk_predictions WHERE campaign_id = ?",
+                    (campaign_id,)
+                )
+                row = cur.fetchone()
+                return json.loads(row[0]) if row else None
+        except Exception:
+            return None
+
+    def _load_stored_wetlab_data(self, campaign_id: str, warnings: list) -> Optional[dict]:
+        """Read wetlab_data stored by the ingest-study-report endpoint."""
+        try:
+            import sqlite3, json
+            with sqlite3.connect(self._db_path) as conn:
+                cur = conn.execute(
+                    "SELECT wetlab_data FROM campaign_wetlab WHERE campaign_id = ?",
                     (campaign_id,)
                 )
                 row = cur.fetchone()
@@ -2008,15 +2026,17 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
         if single:
             species = single.get("species", "rat and mouse")
             route = single.get("route", "oral")
-            ld50 = single.get("ld50") or single.get("mld") or single.get("approximate_lethal_dose")
-            noael = single.get("noael") or single.get("mtd")
+            ld50 = single.get("ld50")
+            ld50_unit = single.get("ld50_unit", "mg/kg")
+            noael = single.get("noael")
+            noael_unit = single.get("noael_unit", "mg/kg")
             findings = single.get("key_findings", "No unexpected findings were observed.")
             glp = "GLP-compliant" if single.get("glp", True) else "non-GLP"
             narrative = (
                 f"Single-dose toxicity studies of {drug} were conducted in {species} by {route} "
                 f"administration under {glp} conditions. "
-                f"{'The approximate lethal dose was ' + str(ld50) + ' mg/kg. ' if ld50 else ''}"
-                f"{'The maximum non-lethal dose (NOAEL) was ' + str(noael) + ' mg/kg. ' if noael else ''}"
+                f"{'The approximate lethal dose (LD50) was ' + str(ld50) + ' ' + ld50_unit + '. ' if ld50 else ''}"
+                f"{'The NOAEL was ' + str(noael) + ' ' + noael_unit + '. ' if noael else ''}"
                 f"{findings}"
             )
             source_note = f"\n\n*Data source: uploaded GLP study report ({single.get('study_id', 'study ID not recorded')}).*"

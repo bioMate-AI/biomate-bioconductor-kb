@@ -315,6 +315,9 @@ class StudyReportIngestResponse(BaseModel):
     route: Optional[str]
     noael: Optional[float]
     noael_unit: Optional[str]
+    ld50: Optional[float] = None
+    ld50_unit: Optional[str] = None
+    micronucleus_result: Optional[str] = None
     duration: Optional[str]
     key_findings: str
     ames_result: Optional[bool]
@@ -411,6 +414,9 @@ async def ingest_study_report(
         route=extracted.get("route"),
         noael=extracted.get("noael"),
         noael_unit=extracted.get("noael_unit"),
+        ld50=extracted.get("ld50"),
+        ld50_unit=extracted.get("ld50_unit"),
+        micronucleus_result=extracted.get("micronucleus_result"),
         duration=extracted.get("duration"),
         key_findings=extracted.get("key_findings", "")[:400],
         ames_result=extracted.get("ames_result"),
