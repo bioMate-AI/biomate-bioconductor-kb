@@ -151,7 +151,7 @@ SIGMA    = 0.10  # proportional residual error
 SAMPLE_TIMES = [0.5, 1.0, 2.0, 4.0, 6.0, 8.0, 12.0]
 
 def two_cmt_iv(t, dose, CL, V1, Q, V2):
-    """Closed-form 2-cmt IV bolus solution."""
+    # Closed-form 2-cmt IV bolus solution.
     k10 = CL / V1
     k12 = Q / V1
     k21 = Q / V2
