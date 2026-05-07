@@ -41,7 +41,7 @@ process CHAI1_PREDICT {
 
     output:
     path("chai_output/"), emit: results_dir
-    path("chai_output/*.cif", glob: true), emit: structures, optional: true
+    path("chai_output/*.cif"), emit: structures, optional: true
     path("chai_output/scores.json"), emit: scores, optional: true
 
     script:

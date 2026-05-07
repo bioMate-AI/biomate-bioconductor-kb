@@ -45,12 +45,11 @@ process PREPARE_INPUT {
     path("boltz_input.*"), emit: input_file
 
     script:
+    def use_yaml = yaml_input.name != 'NO_FILE'
+    def src = use_yaml ? yaml_input : fasta
+    def dst = use_yaml ? 'boltz_input.yaml' : 'boltz_input.fasta'
     """
-    if [ "${yaml_input}" != "NO_FILE" ] && [ -f "${yaml_input}" ]; then
-        cp "${yaml_input}" boltz_input.yaml
-    else
-        cp "${fasta}" boltz_input.fasta
-    fi
+    cp ${src} ${dst}
     """
 }
 
@@ -68,8 +67,8 @@ process BOLTZ_PREDICT {
 
     output:
     path("boltz_results/"), emit: results_dir
-    path("boltz_results/**/*.${params.output_format}", glob: true), emit: structures, optional: true
-    path("boltz_results/**/confidence_*.json", glob: true), emit: confidence, optional: true
+    path("boltz_results/**/*.${params.output_format}"), emit: structures, optional: true
+    path("boltz_results/**/confidence_*.json"), emit: confidence, optional: true
 
     script:
     def msa_flag = params.use_msa_server ? '--use-msa-server' : ''
