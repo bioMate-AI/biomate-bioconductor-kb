@@ -641,6 +641,7 @@ process GENERATE_FINAL_REPORT {
     output:
     path "pk_summary_report.json", emit: summary_json
     path "pk_results.html",        emit: html_report
+    path "pk_profile_plot.png",    emit: pk_plot
     path "versions.yml",           emit: versions
 
     script:
@@ -737,6 +738,68 @@ with open('pk_results.html', 'w') as f:
 with open('versions.yml', 'w') as f:
     f.write('pk_sim_pbpk:\\n  python: "3.10"\\n  numpy: ">=1.24"\\n  scipy: ">=1.10"\\n  pk_sim: "11.3"\\n')
 
+# ── PK profile plot ───────────────────────────────────────────────────────────
+import csv, os
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+
+    rows_csv = []
+    pk_csv = '${raw_json}'.replace('pk_simulation_raw.json', 'pk_profile.csv')
+    # pk_profile.csv is in the work dir — find it
+    for candidate in ('pk_profile.csv', pk_csv):
+        if os.path.exists(candidate):
+            with open(candidate) as fc:
+                reader = csv.DictReader(fc)
+                rows_csv = [(float(r['time_h']), float(r['Cblood_ng_mL'])) for r in reader
+                            if r.get('time_h') and r.get('Cblood_ng_mL')]
+            break
+
+    if rows_csv:
+        times = [r[0] for r in rows_csv]
+        concs = [r[1] for r in rows_csv]
+        cmax  = max(concs)
+        tmax  = times[concs.index(cmax)]
+
+        fig = plt.figure(figsize=(10, 5))
+        fig.patch.set_facecolor('#0f172a')
+        ax = fig.add_subplot(111)
+        ax.set_facecolor('#1e293b')
+        ax.plot(times, concs, color='#38bdf8', lw=2, label='Blood concentration')
+        ax.fill_between(times, concs, alpha=0.15, color='#38bdf8')
+        ax.axhline(cmax, color='#fbbf24', ls='--', lw=1, alpha=0.8,
+                   label=f'Cmax = {cmax:.1f} ng/mL @ {tmax:.1f}h')
+        ax.set_xlabel('Time (h)', color='#e2e8f0', fontsize=11)
+        ax.set_ylabel('Blood concentration (ng/mL)', color='#e2e8f0', fontsize=11)
+        ax.tick_params(colors='#e2e8f0', labelsize=9)
+        for spine in ax.spines.values(): spine.set_color('#334155')
+        ax.grid(True, color='#334155', linewidth=0.5, alpha=0.7)
+        cmpd = vp.get('compound_name', 'compound')
+        dose = vp.get('dose_mg_kg', '?')
+        route = vp.get('route', 'oral')
+        ax.set_title(f'{cmpd} — PBPK Blood Concentration-Time Profile ({dose} mg/kg {route})',
+                     color='#e2e8f0', fontsize=12, fontweight='bold', pad=10)
+        leg = ax.legend(fontsize=9, facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0')
+        # QC annotation: flag if Tmax is at end of simulation
+        if tmax >= times[-1] * 0.8:
+            ax.annotate('⚠ No terminal decline — check CL params',
+                        xy=(tmax, cmax), xytext=(times[-1]*0.4, cmax*0.7),
+                        color='#f87171', fontsize=9,
+                        arrowprops=dict(arrowstyle='->', color='#f87171'))
+        plt.tight_layout()
+        plt.savefig('pk_profile_plot.png', dpi=150, bbox_inches='tight',
+                    facecolor='#0f172a')
+        plt.close()
+        print('PK plot saved.')
+    else:
+        # No CSV — write blank placeholder so output block is satisfied
+        open('pk_profile_plot.png', 'wb').close()
+except Exception as e:
+    print(f'Plot failed (non-fatal): {e}')
+    open('pk_profile_plot.png', 'wb').close()
+
 print('Report generated.')
 PYEOF
     """
@@ -767,6 +830,7 @@ workflow PK_SIM_PBPK_WORKFLOW {
     pk_profile   = PKSIM_SIMULATE.out.pk_profile
     nca_params   = NCA_ANALYSIS.out.nca_params
     html_report  = GENERATE_FINAL_REPORT.out.html_report
+    pk_plot      = GENERATE_FINAL_REPORT.out.pk_plot
 }
 
 // ---------------------------------------------------------------------------

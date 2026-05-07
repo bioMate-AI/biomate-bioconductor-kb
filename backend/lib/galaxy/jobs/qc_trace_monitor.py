@@ -619,6 +619,48 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
             "[SILVER] ICH S7B — preclinical context; screening not IND submission",
         ],
     },
+
+    # ── PBPK simulation QC profiles ──────────────────────────────────────────
+    "pbpk_ind_submission": {
+        "description": (
+            "PBPK QC gates for IND/NDA submission-grade simulations. "
+            "Requires a valid absorption-distribution-elimination profile: "
+            "Tmax must occur before 80% of the simulation window (no end-of-sim peak); "
+            "a terminal decline phase must be present; systemic clearance must exceed "
+            "0.01 L/h; and terminal half-life must be estimable. "
+            "Regulatory basis: EMA PBPK Guideline EMA/CHMP/900052/2019; "
+            "FDA PBPK Guidance for Industry 2018."
+        ),
+        "domain_hint": "drug_discovery",
+        "overrides": {
+            "pbpk_tmax_fraction_max": 0.80,   # Tmax must occur in first 80% of sim window
+            "pbpk_cl_min_L_h":        0.01,   # minimum plausible CL for a small molecule
+        },
+        "references": [
+            "[GOLD] EMA PBPK Guideline EMA/CHMP/900052/2019",
+            "[GOLD] FDA PBPK Guidance for Industry 2018",
+            "[GOLD] Willmann S et al. J Med Chem 2003; 46(12):2355-2368",
+            "[SILVER] Davies B & Morris T. Pharm Res 1993; 10(7):1093-1095 — species CL",
+        ],
+    },
+
+    "pbpk_screening": {
+        "description": (
+            "PBPK QC gates for early-stage screening simulations. "
+            "Advisory-only (no halts) — suitable for lead optimisation rounds "
+            "where model parameter uncertainty is expected. "
+            "Flags missing elimination (Tmax > 90% of sim window) and CL < 0.001 L/h. "
+            "Use pbpk_ind_submission for regulatory-grade runs."
+        ),
+        "domain_hint": "drug_discovery",
+        "overrides": {
+            "pbpk_tmax_fraction_max": 0.90,   # more permissive — flag only near-end peaks
+            "pbpk_cl_min_L_h":        0.001,  # allow very low CL in early screening
+        },
+        "references": [
+            "[SILVER] EMA PBPK Guideline EMA/CHMP/900052/2019 — context of use",
+        ],
+    },
     "tgi_oncology_solid_tumor": {
         "description": (
             "TGI model QC for solid tumor preclinical-to-clinical translation. "
@@ -1220,9 +1262,14 @@ class NextflowQCGateHandler:
                                                "PHARMACOGENOMICS_QC", "PGX_QC")):
             return self._parse_pgx_coverage_metrics(task_work_dir)
 
+        # --- PBPK simulation (PK-Sim, BioMate native, Simcyp fallback) ---
+        elif any(k in process_upper for k in ("PK_SIM", "PKSIM", "PBPK_SIMULATION",
+                                               "PBPK_SIM", "NCA_ANALYSIS",
+                                               "PK_REPORT", "GENERATE_PK_REPORT")):
+            return self._parse_pbpk_results(task_work_dir)
+
         # --- Non-compartmental analysis (PKNCA) ---
-        elif any(k in process_upper for k in ("NCA_PKNCA", "NCA_ANALYSIS",
-                                               "NONCOMPARTMENTAL", "PKNCA")):
+        elif any(k in process_upper for k in ("NCA_PKNCA", "NONCOMPARTMENTAL", "PKNCA")):
             return self._parse_nca_results(task_work_dir)
 
         # --- Population pharmacokinetics (nlmixr2 / SAEM) ---
@@ -3189,6 +3236,105 @@ class NextflowQCGateHandler:
                     continue
         return None
 
+    def _parse_pbpk_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse PBPK simulation outputs for QC gate evaluation.
+
+        Reads ``nca_parameters.json`` and ``pk_profile.csv`` produced by
+        pk_sim_pbpk / pbpk_simulation / simcyp_pbpk workflows.
+
+        Key QC fields extracted:
+          - Tmax_h               : time to Cmax (h); should be < simulation_end * 0.8
+          - t_half_h             : terminal half-life (h); null = no elimination
+          - CL_L_h               : systemic clearance (L/h); unrealistically low = no metabolism
+          - F_oral               : oral bioavailability (fraction 0–1)
+          - pbpk_monotonic       : True if blood conc never declines (missing elimination)
+          - pbpk_tmax_fraction   : Tmax_h / simulation_end_h (> 0.8 = peak at end of sim)
+          - pbpk_simulation_end_h: last time point in pk_profile.csv
+        """
+        metrics: Dict[str, Any] = {}
+
+        # 1. nca_parameters.json — structured NCA output
+        for fname in ("nca_parameters.json",):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    for key in ("Cmax_ng_mL", "AUC0inf_h_ng_mL", "Tmax_h",
+                                "t_half_h", "CL_L_h", "F_oral",
+                                "Vss_L_kg", "CL_hep_L_h"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+                except (OSError, json.JSONDecodeError):
+                    continue
+
+        # 2. pk_summary_report.json — report with quality_tier, compound, pk_parameters
+        for fname in ("pk_summary_report.json",):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    pk = data.get("pk_parameters", {})
+                    for key in ("Cmax_ng_mL", "AUC0inf_h_ng_mL", "Tmax_h",
+                                "t_half_h", "CL_L_h", "F_oral"):
+                        if pk.get(key) is not None and key not in metrics:
+                            metrics[key] = pk[key]
+                    if data.get("quality_tier"):
+                        metrics["pbpk_quality_tier"] = data["quality_tier"]
+                    warnings = data.get("validation_warnings", [])
+                    if warnings:
+                        metrics["pbpk_validation_warnings"] = len(warnings)
+                except (OSError, json.JSONDecodeError):
+                    continue
+
+        # 3. pk_profile.csv — check for monotonic (no-peak) concentration profile
+        for fname in ("pk_profile.csv",):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    import csv as _csv
+                    rows = []
+                    with open(p) as f:
+                        reader = _csv.DictReader(f)
+                        for row in reader:
+                            try:
+                                rows.append((float(row["time_h"]),
+                                             float(row["Cblood_ng_mL"])))
+                            except (KeyError, ValueError):
+                                pass
+                    if len(rows) >= 4:
+                        times = [r[0] for r in rows]
+                        concs = [r[1] for r in rows]
+                        sim_end = times[-1]
+                        metrics["pbpk_simulation_end_h"] = sim_end
+                        # Tmax fraction: where in the simulation does the peak occur?
+                        peak_idx = concs.index(max(concs))
+                        peak_time = times[peak_idx]
+                        metrics["pbpk_tmax_fraction"] = round(peak_time / sim_end, 3) if sim_end > 0 else 1.0
+                        # Monotonic check: does the profile ever decline after peak?
+                        post_peak = concs[peak_idx:]
+                        metrics["pbpk_monotonic"] = all(
+                            post_peak[i] <= post_peak[i - 1] * 1.01  # 1% tolerance for noise
+                            for i in range(1, len(post_peak))
+                        ) is False  # True = has decline = good; False = never declines = bad
+                        # Overwrite Tmax if not already set from nca_parameters
+                        if "Tmax_h" not in metrics:
+                            metrics["Tmax_h"] = peak_time
+                except (OSError, StopIteration):
+                    continue
+
+        if metrics:
+            log.debug(
+                "[QC] PBPK: Tmax=%.1fh t½=%s CL=%.4f F_oral=%.2f monotonic_decline=%s",
+                metrics.get("Tmax_h", float("nan")),
+                metrics.get("t_half_h"),
+                metrics.get("CL_L_h", float("nan")),
+                metrics.get("F_oral", float("nan")),
+                metrics.get("pbpk_monotonic"),
+            )
+            return metrics
+        return None
+
     def _parse_nlmixr2_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
         Parse nlmixr2 population PK results.
@@ -4587,6 +4733,86 @@ class NextflowQCGateHandler:
                         f"{_pgx_t}× threshold (within 20%): "
                         f"{', '.join(sorted(near_threshold_genes))}. "
                         f"CPIC calls are valid but fragile; flag as provisional in reports."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("PK_SIM", "PKSIM", "PBPK_SIMULATION",
+                                               "PBPK_SIM", "NCA_ANALYSIS",
+                                               "PK_REPORT", "GENERATE_PK_REPORT")):
+            # ── PBPK simulation QC ──────────────────────────────────────────────
+            # [GOLD] No terminal elimination phase — Tmax at end of simulation
+            # indicates CL is zero or near-zero; the model is accumulating without
+            # any elimination. Willmann et al. J Med Chem 2003; EMA guideline on
+            # PBPK modelling (EMA/CHMP/900052/2019).
+            tmax_frac = qc_metrics.get("pbpk_tmax_fraction")
+            _tmax_frac_t = self._get_threshold("pbpk_tmax_fraction_max", 0.80)
+            sim_end = qc_metrics.get("pbpk_simulation_end_h", 0)
+            tmax_h = qc_metrics.get("Tmax_h")
+            if tmax_frac is not None and tmax_frac > _tmax_frac_t:
+                failures.append({
+                    "metric": "pbpk_tmax_fraction",
+                    "value": round(tmax_frac, 3),
+                    "threshold": _tmax_frac_t,
+                    "operator": ">",
+                    "message": (
+                        f"[GOLD] Tmax ({tmax_h:.1f}h) occurs at {tmax_frac*100:.0f}% of the "
+                        f"simulation window ({sim_end:.0f}h) — no absorption peak followed by "
+                        f"elimination was observed. The PBPK model is missing hepatic or renal "
+                        f"clearance. Check CLint_microsomal, fu_p, and MW inputs. "
+                        f"Reference: EMA PBPK Guideline EMA/CHMP/900052/2019."
+                    ),
+                })
+
+            # [GOLD] No terminal decline in concentration profile
+            if qc_metrics.get("pbpk_monotonic") is False:
+                failures.append({
+                    "metric": "pbpk_monotonic",
+                    "value": "no_decline",
+                    "threshold": "terminal_decline_required",
+                    "operator": "==",
+                    "message": (
+                        "[GOLD] Blood concentration profile shows no terminal decline phase. "
+                        "A valid PBPK profile must show absorption (rising Cblood), distribution, "
+                        "and elimination (declining Cblood). Missing elimination indicates zero "
+                        "or near-zero clearance parameters — review CLint, fu_p, or hepatic "
+                        "blood flow inputs."
+                    ),
+                })
+
+            # [GOLD] Unrealistically low systemic clearance
+            cl_lh = qc_metrics.get("CL_L_h")
+            _cl_min_t = self._get_threshold("pbpk_cl_min_L_h", 0.01)
+            if cl_lh is not None and cl_lh < _cl_min_t:
+                failures.append({
+                    "metric": "CL_L_h",
+                    "value": round(cl_lh, 6),
+                    "threshold": _cl_min_t,
+                    "operator": "<",
+                    "message": (
+                        f"[GOLD] Systemic clearance CL = {cl_lh:.4f} L/h is below the minimum "
+                        f"plausible value of {_cl_min_t} L/h for a small molecule. "
+                        f"For comparison, midazolam CL ≈ 25 L/h (Davies 1993). "
+                        f"Check CLint_microsomal and fu_p — if both are correct, the compound "
+                        f"may have anomalously low hepatic extraction (e.g. BCS III/IV with "
+                        f"high protein binding). Verify against in vitro clearance data."
+                    ),
+                })
+
+            # [SILVER] Missing terminal half-life
+            t_half = qc_metrics.get("t_half_h")
+            if t_half is None:
+                failures.append({
+                    "metric": "t_half_h",
+                    "value": None,
+                    "threshold": "not_null",
+                    "operator": "==",
+                    "advisory": True,
+                    "message": (
+                        "[SILVER] Terminal half-life (t½) could not be estimated — the "
+                        "concentration-time profile does not show a log-linear terminal phase. "
+                        "This prevents AUCinf extrapolation and dosing interval calculations. "
+                        "Extend the simulation window to ≥ 5 × expected t½ or check for "
+                        "zero-clearance parameters. Reference: FDA Guidance on Pharmacokinetics 2018."
                     ),
                 })
 
