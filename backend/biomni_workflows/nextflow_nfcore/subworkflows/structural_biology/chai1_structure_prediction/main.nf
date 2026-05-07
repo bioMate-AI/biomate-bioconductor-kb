@@ -27,7 +27,7 @@ params.publish_dir_mode          = 'copy'
 
 def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
 
-// ── Chai-1 structure prediction ───────────────────────────────────────────────
+// -- Chai-1 structure prediction -----------------------------------------------
 
 process CHAI1_PREDICT {
     tag "chai1"
@@ -55,7 +55,7 @@ process CHAI1_PREDICT {
     """
 }
 
-// ── Summarise ─────────────────────────────────────────────────────────────────
+// -- Summarise -----------------------------------------------------------------
 
 process SUMMARISE_RESULTS {
     tag "summary"

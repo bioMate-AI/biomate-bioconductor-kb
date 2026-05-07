@@ -30,7 +30,7 @@ params.publish_dir_mode = 'copy'
 
 def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:latest'
 
-// ── Prepare input ────────────────────────────────────────────────────────────
+// -- Prepare input ------------------------------------------------------------
 
 process PREPARE_INPUT {
     tag "prepare"
@@ -54,7 +54,7 @@ process PREPARE_INPUT {
     """
 }
 
-// ── Run Boltz-2 prediction ────────────────────────────────────────────────────
+// -- Run Boltz-2 prediction ----------------------------------------------------
 
 process BOLTZ_PREDICT {
     tag "boltz2"
@@ -85,7 +85,7 @@ process BOLTZ_PREDICT {
     """
 }
 
-// ── Summarise results ────────────────────────────────────────────────────────
+// -- Summarise results --------------------------------------------------------
 
 process SUMMARISE_RESULTS {
     tag "summary"
@@ -128,7 +128,7 @@ EOF
     """
 }
 
-// ── Workflow ────────────────────────────────────────────────────────────────
+// -- Workflow ----------------------------------------------------------------
 
 workflow {
     fasta_ch = params.input_fasta
