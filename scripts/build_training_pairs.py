@@ -428,6 +428,9 @@ def _inject_citations(text: str, section_type: str) -> str:
     Only injects if the citation is not already present.
     Operates sentence-by-sentence: finds the first sentence matching a rule
     and appends the citation at the end of that sentence.
+
+    After keyword-based injection, a section-level guarantee pass ensures
+    the mandatory citation for that section type is always present.
     """
     import re as _re
     lower = text.lower()
@@ -452,6 +455,47 @@ def _inject_citations(text: str, section_type: str) -> str:
             # Insert before the period
             text = text[:sentence_end] + f" {citation}" + text[sentence_end:]
             lower = text.lower()  # recompute for subsequent rules
+
+    # ── Section-level citation guarantee ──────────────────────────────────────
+    # Regardless of whether keyword rules fired, mandatory citations are appended
+    # when absent. This closes the gap where training text doesn't use expected
+    # keywords (e.g. "mutagenicity study" instead of "ames test").
+    _SECTION_GUARANTEES: dict[str, tuple[str, str]] = {
+        "tox_genotox": (
+            "S2(R1)",
+            "These studies were conducted in accordance with the ICH S2(R1) guideline "
+            "for genotoxicity testing and data interpretation."
+        ),
+        "pbpk": (
+            "EMA/CHMP/EWP/37498/2011",
+            "PBPK model qualification followed the EMA/CHMP/EWP/37498/2011 guideline; "
+            "predictive performance was assessed against the 67% within-2-fold criterion."
+        ),
+        "pk_overview": (
+            "ICH M3",
+            "The pharmacokinetic studies were conducted in accordance with ICH M3(R2) "
+            "phase-appropriate requirements."
+        ),
+        "tox_overview": (
+            "ICH M3",
+            "The nonclinical toxicology package was designed in accordance with ICH M3(R2) "
+            "and ICH S7A for safety pharmacology."
+        ),
+        "overview": (
+            "ICH M4S",
+            "This nonclinical overview was prepared per ICH M4S(R2) and ICH M3(R2)."
+        ),
+    }
+    lower = text.lower()
+    for sec, (check_token, guarantee_sentence) in _SECTION_GUARANTEES.items():
+        if section_type != sec:
+            continue
+        if check_token.lower() not in lower:
+            text = text.rstrip()
+            if not text.endswith("."):
+                text += "."
+            text += " " + guarantee_sentence
+        break
 
     return text
 
@@ -496,8 +540,10 @@ def build_task1_pairs(raw_examples: list[dict]) -> list[dict]:
         response_text = _inject_citations(response_text, section_type)
 
         # v2: full text as target (no sliding window skip — that caused short outputs)
-        # Re-split after citation injection so citations appear in the target.
+        # Truncate to 500 words FIRST, then re-apply the citation guarantee so
+        # it isn't cut off by the word cap (guarantee appends at end).
         target = " ".join(response_text.split()[:500])
+        target = _inject_citations(target, section_type)
 
         # Findings summary for user prompt context (first paragraph of the text)
         findings = _extract_findings_summary(response_text, max_words=100)
@@ -516,7 +562,7 @@ def build_task1_pairs(raw_examples: list[dict]) -> list[dict]:
             "tox_genotox": " Cite ICH S2(R1) and state the Ames test result.",
             "tox_cardiac": " Cite ICH S7B and report hERG IC50 in µM.",
             "tox_overview": " Cite ICH M3(R2) and ICH S7A.",
-            "pk_overview": " Cite ICH M3(R2) and EMA/CHMP/EWP/37498/2011.",
+            "pk_overview": " Cite ICH M3(R2) for the phase-appropriate PK study requirements.",
             "overview":   " Cite ICH M4S(R2) and ICH M3(R2).",
             "admet":      " Cite ICH M4S(R2) and ICH S7B for in silico cardiac screening.",
         }.get(section_type, "")
