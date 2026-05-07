@@ -9814,11 +9814,14 @@ Rules:
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKey2 && _nfSec2 ? { credentials: { accessKeyId: _nfKey2, secretAccessKey: _nfSec2 } } : {}),
               });
-              for (const out of outputs.slice(0, 30)) {
-                // Support both s3_uri (Batch runs) and file_path (local runs)
+              const readableOutputs = outputs.slice(0, 30).filter(out => {
                 const filePath: string = out.s3_uri || out.file_path || out.path || '';
                 const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
-                if (!fileName || !TEXT_EXTS.test(fileName)) continue;
+                return fileName && TEXT_EXTS.test(fileName);
+              }).slice(0, 6);
+              const readResults = await Promise.all(readableOutputs.map(async (out) => {
+                const filePath: string = out.s3_uri || out.file_path || out.path || '';
+                const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
                 try {
                   let content = '';
                   if (filePath.startsWith('s3://')) {
@@ -9833,10 +9836,10 @@ Rules:
                     const raw = await fsImport.readFile(filePath, 'utf8');
                     content = raw.slice(0, 8000);
                   }
-                  if (content.trim()) outputSamples.push({ name: fileName, content });
-                } catch { /* skip unreadable files */ }
-                if (outputSamples.length >= 6) break;
-              }
+                  return content.trim() ? { name: fileName, content } : null;
+                } catch { return null; }
+              }));
+              outputSamples.push(...readResults.filter((r): r is { name: string; content: string } => r !== null));
             }
           } catch { /* outputs fetch failed — proceed without file content */ }
 
