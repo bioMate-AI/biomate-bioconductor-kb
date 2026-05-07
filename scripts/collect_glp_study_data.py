@@ -65,7 +65,7 @@ def _head_size(url: str) -> int:
 # Source 1: FDA Pharmacology/Toxicology Reviews
 # ---------------------------------------------------------------------------
 
-def discover_fda_pharmar_urls(max_apps: int = 500, prefer_recent: bool = True) -> list[dict]:
+def discover_fda_pharmar_urls(max_apps: int = 500, prefer_recent: bool = True, year_min: int = 2018) -> list[dict]:
     """
     Query Drugs@FDA API to get NDA application numbers, then construct PharmR PDF URLs.
     Returns list of {app_num, toc_url, pharmar_url, year}.
@@ -78,11 +78,13 @@ def discover_fda_pharmar_urls(max_apps: int = 500, prefer_recent: bool = True) -
     pharmar_urls = []
     skip = 0
     batch = 100
+    # Use date range search to get recent applications efficiently.
+    # year_min governs which PharmR docs to keep — search slightly wider.
+    search_from = max(year_min - 1, 2010)
+    date_filter = f"submissions.submission_status_date:[{search_from}0101+TO+20251231]"
 
     while len(pharmar_urls) < max_apps:
-        # Sort by submission date descending to get recent approvals first
-        sort_clause = "&sort=submissions.submission_status_date:desc" if prefer_recent else ""
-        url = f"{_FDA_API}?search=submissions.submission_type:NDA&limit={batch}&skip={skip}{sort_clause}"
+        url = f"{_FDA_API}?search={date_filter}&limit={batch}&skip={skip}"
         try:
             data = json.loads(_fetch(url, timeout=15))
         except Exception as e:
@@ -200,9 +202,10 @@ def collect_fda_pharmar(out_dir: Path, max_docs: int = 200, year_min: int = 2018
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     # Discover URLs
-    candidates = discover_fda_pharmar_urls(max_apps=max_docs * 3, prefer_recent=True)
+    candidates = discover_fda_pharmar_urls(max_apps=max_docs * 3, prefer_recent=True, year_min=year_min)
     # Filter to year_min to get documents reflecting current guidelines
-    candidates = [c for c in candidates if int(c.get("year", "0") or "0") >= year_min]
+    candidates = [c for c in candidates
+                  if (c.get("year") or "0").isdigit() and int(c["year"]) >= year_min]
     log.info("After year filter (>=%d): %d candidates", year_min, len(candidates))
 
     records_all = []
