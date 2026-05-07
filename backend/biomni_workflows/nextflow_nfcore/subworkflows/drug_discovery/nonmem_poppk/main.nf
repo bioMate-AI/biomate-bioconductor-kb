@@ -454,7 +454,7 @@ for i, p in enumerate(pk_params, 1):
         pk_block_lines.append(f'  {p} = THETA({i})')
 
 # ---- $OMEGA block -------------------------------------------------------
-dollar = '$'
+dollar = chr(36)
 if bsv_structure == 'block' and n_eta >= 2:
     omega_lines = [f'  {dollar}OMEGA BLOCK({n_eta})']
     for row in range(n_eta):
@@ -579,7 +579,7 @@ process NONMEM_RUN {
         echo "ERROR: NONMEM_LICENSE_FILE is not set." >&2; exit 1
     fi
 
-    NM_VERSION="${params.nonmem_version}"
+    NM_VERSION=${params.nonmem_version}
     if [[ "\$NM_VERSION" == "nm75" ]]; then
         NMFE="\${NONMEM_HOME}/run/nmfe75"
     else
