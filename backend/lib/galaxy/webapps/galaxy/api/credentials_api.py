@@ -192,6 +192,13 @@ def get_license_requirements(
         if not reg:
             continue
         _, source = get_effective_credential(trans, tool_id)
+        # has_fallback = True means the workflow handles missing credentials internally
+        # (e.g. simcyp_pbpk falls back to native PBPK; nonmem_poppk falls back to nlmixr2).
+        # When has_fallback is True, the UI shows an advisory but does NOT block execution.
+        has_fallback = bool(reg.get("open_alternatives")) and not reg.get("user_must_provide", True)
+        # Simcyp and NONMEM have built-in fallback scripts — override user_must_provide logic
+        if tool_id in ("simcyp", "nonmem") and reg.get("open_alternatives"):
+            has_fallback = True
         requirements.append({
             "tool_id": tool_id,
             "display_name": reg["display_name"],
@@ -201,6 +208,7 @@ def get_license_requirements(
             "approval_time": reg.get("approval_time", ""),
             "cost": reg.get("cost", ""),
             "source": source,
+            "has_fallback": has_fallback,
             "open_alternatives": reg.get("open_alternatives", []),
         })
     return {"requirements": requirements}

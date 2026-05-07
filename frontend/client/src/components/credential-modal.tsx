@@ -14,6 +14,7 @@ export interface LicenseRequirement {
   approval_time: string;
   cost: string;
   source: 'user' | 'biomate' | 'none';
+  has_fallback?: boolean;
   open_alternatives: { id: string; label: string; note: string }[];
 }
 
