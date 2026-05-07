@@ -83,7 +83,7 @@ _local_llm_tokenizer = None   # lazy-loaded
 _REQUIRED_CITATIONS: dict[str, list[str]] = {
     "overview":     ["ICH M4S(R2)", "ICH M3(R2)"],
     "pbpk":         ["EMA/CHMP/EWP/37498/2011", "ICH M3(R2)"],
-    "pk_overview":  ["ICH M3(R2)", "EMA/CHMP/EWP/37498/2011"],
+    "pk_overview":  ["ICH M3(R2)"],
     "admet":        ["ICH M4S(R2)", "ICH S7B"],
     "tox_overview": ["ICH M3(R2)", "ICH S7A"],
     "tox_genotox":  ["ICH S2(R1)"],
