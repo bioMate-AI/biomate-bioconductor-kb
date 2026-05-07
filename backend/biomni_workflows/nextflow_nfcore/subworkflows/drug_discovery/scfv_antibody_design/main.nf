@@ -69,7 +69,7 @@ process STRUCTURE_PREDICTION {
 
     output:
     path("predicted_structures/"), emit: structures_dir
-    path("predicted_structures/*.pdb", glob: true), emit: pdbs, optional: true
+    path("predicted_structures/*.pdb"), emit: pdbs, optional: true
 
     script:
     """
