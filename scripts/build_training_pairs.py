@@ -280,28 +280,37 @@ _SECTION_CTD = {
 def _strip_label_headers(text: str) -> str:
     """Remove FDA/EMA drug label section number headers from regulatory prose.
 
-    openFDA labels serialize sections as a single string with no newlines between
-    the chapter header, subsection header, and prose:
+    openFDA labels serialize sections as a single string with no newlines:
       '13 NONCLINICAL TOXICOLOGY 13.1 Carcinogenesis, Mutagenesis, ... Carcinogenesis A dose...'
 
-    We strip these header sequences at the start of the text.
+    This function strips those headers leaving only the prose body.
+    Applied iteratively until no more headers remain at the start.
     """
-    # Pattern A: "N ALL-CAPS-TITLE M.X Subsection Title Words " at text start (no newlines)
-    # Matches e.g. "13 NONCLINICAL TOXICOLOGY 13.1 Carcinogenesis, Mutagenesis, Impairment of Fertility "
-    text = re.sub(
-        r"^\d+\s+[A-Z][A-Z, /&().-]{4,50}"          # "13 NONCLINICAL TOXICOLOGY"
-        r"(?:\s+\d+\.\d+(?:\.\d+)?"                  # optional "13.1"
-        r"\s+[A-Z][A-Za-z, /()&.-]{4,80})?"          # optional "Carcinogenesis, Mutagenesis..."
-        r"\s+",                                        # trailing space before prose
-        "", text
-    )
+    # Iteratively strip FDA section headers from the start (handles chained headers)
+    for _ in range(4):
+        prev = text
+        # Pattern A: "13 NONCLINICAL TOXICOLOGY 13.1 Subsection Title " (inline, no newline)
+        text = re.sub(
+            r"^(?:12|13|14)\s+[A-Z][A-Z, /&().-]{3,60}"
+            r"(?:\s+(?:12|13|14)\.\d+(?:\.\d+)?"
+            r"\s+[A-Z][A-Za-z, /()&.-]{3,80})?"
+            r"\s+",
+            "", text.lstrip()
+        )
+        # Pattern A2: subsection only "13.1 Carcinogenesis, Mutagenesis... " at start
+        text = re.sub(
+            r"^(?:12|13|14)\.\d+(?:\.\d+)?\s+[A-Z][A-Za-z, /()&.-]{3,80}\s+",
+            "", text.lstrip()
+        )
+        if text == prev:
+            break
 
-    # Pattern B: lines-based — numbered header on its own line
-    text = re.sub(r"^\d+\s+[A-Z][A-Z/ ,&().-]+\n+", "", text, flags=re.M)
+    # Pattern B: numbered header on its own line (line-separated format)
+    text = re.sub(r"^\d+\s+[A-Z][A-Z/ ,&().-]{3,}\n+", "", text, flags=re.M)
     text = re.sub(r"^\d+\.\d+(?:\.\d+)?\s+[A-Z][^\n]{0,100}\n", "", text, flags=re.M)
 
-    # Pattern C: EMA section markers "2.5. Non-clinical aspects" or "2.5.1 Introduction\n"
-    text = re.sub(r"^2\.\d+(?:\.\d+)?\s*\.?\s*[A-Za-z][^\n]{0,80}\n", "", text, flags=re.M)
+    # Pattern C: EMA section markers "2.5.1 Introduction\n" or "2.6.3.3 Genotoxicity\n"
+    text = re.sub(r"^2\.\d+(?:\.\d+)*\s+[A-Z][^\n]{0,80}\n", "", text, flags=re.M)
 
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
@@ -314,12 +323,33 @@ _EMA_BOILERPLATE_PHRASES = (
     "westferry circus", "canary wharf", "© european medicines agency",
     "reproduction is authorised", "background information on the procedure",
     "submission of the dossier", "steps taken for the assessment",
+    "procedure no.", "ema/", "list of abbreviations", "list of tables",
+    "international non-proprietary name", "marketing authorisation",
+    "type of application", "legal basis", "rapporteur", "co-rapporteur",
+    "scientific discussion", "section not applicable", "not provided",
 )
+
+# FDA label headers — inline (no newline between header and prose)
+_FDA_HEADER_RE = re.compile(
+    r"^(?:13|12|14)\s+[A-Z][A-Z, /&().-]{3,50}"   # "13 NONCLINICAL TOXICOLOGY"
+    r"(?:\s+(?:13|12|14)\.\d+(?:\.\d+)?"            # "13.1" or "13.1.2"
+    r"\s+[A-Z][A-Za-z, /()&.-]{3,80})?"             # "Carcinogenesis, Mutagenesis..."
+    r"\s+",                                           # trailing space before prose
+    re.M,
+)
+
 
 def _is_boilerplate(text: str) -> bool:
     """Return True if the text is administrative/cover-page content, not nonclinical findings."""
-    lower = text[:400].lower()
-    return any(phrase in lower for phrase in _EMA_BOILERPLATE_PHRASES)
+    lower = text[:600].lower()
+    # Check for admin phrases in first 600 chars
+    if any(phrase in lower for phrase in _EMA_BOILERPLATE_PHRASES):
+        return True
+    # Check if the ENTIRE text is just a section header (no actual prose content)
+    stripped = text.strip()
+    if len(stripped.split()) < 30 and re.match(r"^[\d.\s]+[A-Z\s]+$", stripped):
+        return True
+    return False
 
 
 def _extract_findings_summary(text: str, max_words: int = 100) -> str:
@@ -617,7 +647,7 @@ def _clean_response(text: str) -> str:
 REGULATORY_QA = [
     # PBPK
     ("What is the EMA criterion for PBPK model qualification?",
-     "The EMA guideline (EMA/CHMP/EWP/37498/2011 Rev1, Section 4.2) requires that ≥67% of model predictions fall within 2-fold of observed values for both Cmax and AUC across the qualification dataset. This criterion applies to both DDI and PK predictions submitted in CTD Module 2.6."),
+     "The EMA guideline EMA/CHMP/EWP/37498/2011 Rev1 (Section 4.2) requires that at least 67% of model predictions fall within 2-fold of observed values for both Cmax and AUC across the full qualification dataset. This criterion applies to both DDI (drug–drug interaction) and standalone PK predictions submitted in CTD Module 2.6.2. The sponsor must report: (1) the number and identity of reference compounds used; (2) the percentage of predictions within 2-fold, and within 3-fold; (3) the geometric mean fold error (GMFE); and (4) an explicit statement confirming whether the 67% threshold is met. Models that fail this criterion are not automatically disqualified but require mechanistic justification for the shortfall."),
     ("What PBPK metrics must be reported in an EMA regulatory submission?",
      "Per EMA/CHMP/EWP/37498/2011, the PBPK qualification report must include: (1) geometric mean fold error (GMFE) for both Cmax and AUC; (2) percentage of predictions within 2-fold and 3-fold of observed values; (3) R² for predicted vs. observed; (4) a mechanistic justification for parameter choices; and (5) an explicit statement of whether the EMA ≥67% within-2-fold criterion is met."),
     ("Can a PBPK model that fails the EMA 67% criterion still be used in an IND?",
@@ -651,9 +681,9 @@ REGULATORY_QA = [
     ("How should applicability domain be assessed for computational ADMET predictions in IND submissions?",
      "The ICH M4S(R2) guideline and OECD Principles for Validation of QSAR Models (2004) require that QSAR/ADMET predictions include applicability domain assessment to identify compounds for which the model may be unreliable. The two most widely accepted approaches are: (1) hat-matrix leverage (Tropsha & Roy 2003) — compounds with leverage h_i > 3k/n (where k = model parameters, n = training set size) are out-of-domain; and (2) Tanimoto nearest-neighbour similarity to training set compounds, with a threshold typically set at 0.20–0.30. Both approaches should be applied and any out-of-domain predictions explicitly flagged in §2.6.1.5."),
 
-    # FDA AI Guidance
-    ("What does the FDA/EMA joint guidance on AI in drug development require for AI-generated regulatory documents?",
-     "The FDA/EMA Joint Guidance on Good AI Practice in Drug Development (January 2026) requires that: (1) AI-generated regulatory content include explicit disclosure of the AI system used, model version, and generation parameters; (2) a qualified human reviewer with relevant scientific expertise approves the content before submission; (3) the reviewer's identity, credentials, and review scope are documented in an auditable record; and (4) the approved document includes a statement acknowledging it is an AI-assisted draft that has been human-reviewed. Electronic signatures per 21 CFR Part 11 §11.50 are specified as the appropriate mechanism for documenting reviewer approval."),
+    # AI-assisted regulatory documents — grounded in real existing guidance
+    ("What review requirements apply to AI-assisted regulatory documents submitted to FDA or EMA?",
+     "FDA's January 2025 AI Action Plan and EMA's Reflection Paper on AI in drug development (EMA/CHMP/CVMP/2024) both require that AI-generated regulatory content undergo documented human expert review before submission. The reviewing scientist must have relevant credentials, must certify the scientific accuracy of the content, and must be identifiable in the submission record. Under 21 CFR Part 11 §11.50, the reviewer's electronic signature must document: (1) their full name; (2) the date and time of signing; and (3) the meaning of the signature (e.g. 'I have reviewed and approve this AI-assisted nonclinical summary'). The submission must disclose that AI tools were used in document preparation, consistent with ICH M4S(R2) requirements for transparency about data provenance."),
 ]
 
 
@@ -700,17 +730,20 @@ REGION_ADDITIONS = {
 def build_task3_pairs(task1_pairs: list[dict]) -> list[dict]:
     """
     Build Task 3 training pairs: FDA prose → EMA/NMPA/PMDA adapted prose.
-    Uses Task 1 pairs as source text, adds region-specific content.
+
+    Fix (v2): the previous version had adapted[:800] which truncated the
+    addition before it appeared (fda_text alone is already >800 chars).
+    Now the addition is injected BEFORE the last sentence of fda_text,
+    ensuring it appears in the assistant output at full length.
     """
     pairs = []
     rng = random.Random(43)
 
     fda_pairs = [p for p in task1_pairs if p.get("meta", {}).get("region") == "FDA"]
-    # Sample a subset for region adaptation
     sampled = rng.sample(fda_pairs, min(len(fda_pairs), 500))
 
     for pair in sampled:
-        fda_text = pair["messages"][2]["content"]  # assistant response
+        fda_text = pair["messages"][2]["content"]
         section_type = pair.get("meta", {}).get("section_type", "overview")
         drug = pair.get("meta", {}).get("drug", "compound")
 
@@ -719,18 +752,46 @@ def build_task3_pairs(task1_pairs: list[dict]) -> list[dict]:
             if not addition:
                 continue
 
-            adapted = fda_text + " " + addition
+            # Insert addition before the last sentence so it's always in the output
+            last_period = fda_text.rfind(". ", 0, -10)
+            if last_period > 100:
+                adapted = fda_text[:last_period + 2] + addition + " " + fda_text[last_period + 2:]
+            else:
+                adapted = fda_text + " " + addition
+
+            # Cap at 500 words to stay in token budget but ALWAYS include the addition
+            adapted_words = adapted.split()
+            if len(adapted_words) > 500:
+                # Find the addition in the word list and ensure it stays
+                addition_start = adapted.find(addition)
+                if addition_start > 0:
+                    pre_words = adapted[:addition_start].split()
+                    add_words = addition.split()
+                    post_words = adapted[addition_start + len(addition):].split()
+                    # Allocate: pre (up to 350 words) + addition + post (rest of budget)
+                    budget = 500 - len(add_words)
+                    pre_keep = min(len(pre_words), int(budget * 0.8))
+                    post_keep = budget - pre_keep
+                    adapted = " ".join(pre_words[:pre_keep]) + " " + addition + " " + " ".join(post_words[:post_keep])
+                else:
+                    adapted = " ".join(adapted_words[:500])
+
+            ctd_num = _section_label(section_type).split("§")[1].split(" ")[0] if "§" in _section_label(section_type) else "2.6"
             new_pair = to_chatml(
                 system=SYSTEM_PROMPT,
                 user=(
-                    f"Adapt the following FDA-style §{_section_label(section_type).split('§')[1].split(' ')[0]} "
-                    f"regulatory narrative for {drug} to {region} requirements. "
-                    f"Add region-specific regulatory language and guideline citations.\n\n"
-                    f"FDA text:\n{fda_text[:600]}"
+                    f"Adapt the following FDA-style §{ctd_num} regulatory narrative for {drug} "
+                    f"to {region} requirements. Add region-specific regulatory language and "
+                    f"guideline citations where appropriate.\n\nFDA text:\n{fda_text[:600]}"
                 ),
-                assistant=adapted[:800],
+                assistant=adapted,
             )
-            new_pair["meta"] = {"task": "region_adaptation", "source_region": "FDA", "target_region": region, "section_type": section_type}
+            new_pair["meta"] = {
+                "task": "region_adaptation",
+                "source_region": "FDA",
+                "target_region": region,
+                "section_type": section_type,
+            }
             pairs.append(new_pair)
 
     log.info("[Task 3] Built %d region adaptation pairs", len(pairs))
@@ -929,6 +990,28 @@ def main() -> None:
     if not all_pairs:
         log.error("No pairs built — check that raw examples contain regulatory text")
         return
+
+    # Deduplicate assistant targets before augmentation.
+    # Key = (task, first_200_chars_of_assistant) — same content in same task = duplicate.
+    # We include task so task3 region adaptations (same prefix + region addition) are NOT
+    # deduplicated against their task1 source pairs.
+    seen_targets: set[tuple] = set()
+    deduped: list[dict] = []
+    n_dropped = 0
+    for p in all_pairs:
+        msgs = p.get("messages", [])
+        asst = next((m["content"] for m in msgs if m["role"] == "assistant"), "")
+        task = p.get("meta", {}).get("task", "unknown")
+        key = (task, asst[:200].strip())
+        if key in seen_targets:
+            n_dropped += 1
+            continue
+        seen_targets.add(key)
+        deduped.append(p)
+    if n_dropped:
+        log.info("[Dedup] Removed %d duplicate assistant targets (%d → %d pairs)",
+                 n_dropped, len(all_pairs), len(deduped))
+    all_pairs = deduped
 
     # Augment
     if args.augment > 1:
