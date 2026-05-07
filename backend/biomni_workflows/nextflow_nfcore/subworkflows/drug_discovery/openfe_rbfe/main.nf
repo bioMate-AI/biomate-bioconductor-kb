@@ -570,7 +570,7 @@ with open('ddg_summary.json', 'w') as f:
 # -- HTML report --
 html_sign = '+' if ddg_kcal > 0 else ''
 html_color = '#c0392b' if ddg_kcal > 0 else '#27ae60'
-html = f"""<!DOCTYPE html>
+html = f'''<!DOCTYPE html>
 <html><head><title>OpenFE RBFE Report</title>
 <style>
   body {{ font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }}
@@ -600,7 +600,7 @@ html = f"""<!DOCTYPE html>
 <img src="overlap_matrix.png" style="max-width:500px;">
 <h3>Convergence</h3>
 <img src="ddg_convergence.png" style="max-width:650px;">
-</body></html>"""
+</body></html>'''
 with open('rbfe_analysis_report.html', 'w') as f:
     f.write(html)
 

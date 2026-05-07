@@ -403,12 +403,12 @@ METHOD_MAP = {
 }
 est_string = METHOD_MAP.get(est_method, 'METHOD=1 INTERACTION')
 
-# ---- $INPUT columns -----------------------------------------------------
+# ---- \$INPUT columns -----------------------------------------------------
 base_cols = ['ID', 'TIME', 'DV', 'AMT', 'MDV', 'EVID', 'CMT']
 extra_cols = covariate_cols[:8]   # NONMEM supports up to ~20 but keep it sane
 input_line = ' '.join(base_cols + extra_cols)
 
-# ---- $THETA initial estimates (log-scale, typical adult) ----------------
+# ---- \$THETA initial estimates (log-scale, typical adult) ----------------
 THETA_INITS = {
     'CL':  '(0.001, 5,  500)',    # CL (L/h)
     'V':   '(0.001, 50, 5000)',   # V (L)
@@ -425,7 +425,7 @@ for i, p in enumerate(pk_params, 1):
     init = THETA_INITS.get(p, '(0.001, 1, 1000)')
     theta_lines.append(f'  {init}  ; THETA({i}) = {p}')
 
-# ---- $PK block ----------------------------------------------------------
+# ---- \$PK block ----------------------------------------------------------
 pk_block_lines = []
 for i, p in enumerate(pk_params, 1):
     if p in ('CL', 'V', 'V2', 'V3', 'V4', 'Q', 'Q2', 'Q3'):
@@ -453,7 +453,7 @@ for i, p in enumerate(pk_params, 1):
     else:
         pk_block_lines.append(f'  {p} = THETA({i})')
 
-# ---- $OMEGA block -------------------------------------------------------
+# ---- \$OMEGA block -------------------------------------------------------
 dollar = chr(36)
 if bsv_structure == 'block' and n_eta >= 2:
     omega_lines = [f'  {dollar}OMEGA BLOCK({n_eta})']
@@ -467,7 +467,7 @@ else:
     omega_lines = [f'  {dollar}OMEGA']
     omega_lines += [f'  0.09  ; ETA({i+1})' for i in range(n_eta)]
 
-# ---- covariate search placeholder in $PK --------------------------------
+# ---- covariate search placeholder in \$PK --------------------------------
 cov_comment = ''
 if covariate_cols and '${params.covariate_model}' != 'none':
     cov_comment = ('\\n  ; Covariates available for search: ' +

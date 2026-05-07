@@ -460,7 +460,7 @@ for r in dose_rows:
 rec_doses_str = ', '.join(f'{d:.0f} mg' for d in recommended_doses) if recommended_doses \
     else f'{primary_dose:.0f} mg (provisional)'
 
-narrative = f"""================================================================================
+narrative = f'''================================================================================
 {compound.upper()} -- PHASE II -> PHASE III DOSE JUSTIFICATION BRIEF
 FDA Exposure-Response Guidance (2023) -- CDER/CBER Format
 ================================================================================
@@ -693,7 +693,7 @@ REFERENCES
 ================================================================================
 END OF DOSE JUSTIFICATION BRIEF
 ================================================================================
-"""
+'''
 
 # ---------------------------------------------------------------------------
 # Write outputs
