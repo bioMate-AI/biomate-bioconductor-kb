@@ -1,0 +1,97 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-05-05T04:39:36.294Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-10",
+      "runId": "0fd35b3a-c3d3-4ae0-9da9-23d0c4081c72",
+      "startTs": 1777955830255,
+      "endTs": 1777955976200,
+      "finalStatus": "completed",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "execute-engine-is-cryosparc",
+          "passed": false,
+          "note": "Expected executionEngine=cryosparc, got: nextflow"
+        },
+        {
+          "name": "run-reached-terminal",
+          "passed": true
+        },
+        {
+          "name": "run-completed-not-failed",
+          "passed": true,
+          "note": "Expected 'completed', got 'completed'"
+        },
+        {
+          "name": "phase-cards-present",
+          "passed": true,
+          "note": "Only 6 phase groups"
+        },
+        {
+          "name": "phase-cards-all-completed",
+          "passed": true,
+          "note": "Only 6/6 phase cards completed"
+        },
+        {
+          "name": "outputs-present",
+          "passed": false,
+          "note": "No output files found"
+        },
+        {
+          "name": "has-cryosparc-output-files",
+          "passed": false,
+          "note": "Expected .star or .mrc files, got: "
+        },
+        {
+          "name": "findings-card-visible",
+          "passed": true
+        },
+        {
+          "name": "findings-card-has-text",
+          "passed": true,
+          "note": "Findings text too short: \"Findings SummaryCryoSPARC Standard Single-Particle Analysis completed. Output files are not yet read\""
+        },
+        {
+          "name": "methods-report-download-200",
+          "passed": false,
+          "note": "Methods report returned 401"
+        },
+        {
+          "name": "run-metrics-strip-visible",
+          "passed": true
+        },
+        {
+          "name": "wall-time-metric-visible",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_02_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_03_terminal.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_04_phases_completed.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_05_outputs.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_06_findings.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_07_metrics.png"
+      ]
+    }
+  ]
+}
