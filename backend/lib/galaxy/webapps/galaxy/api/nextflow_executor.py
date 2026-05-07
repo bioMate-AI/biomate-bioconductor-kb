@@ -4903,14 +4903,19 @@ def execute_cryosparc(
     cs_exec.CRYOSPARC_INSTANCE_TYPE = _selected_instance_type
 
     # ── Step 1c: provision the CryoSPARC GPU instance ────────────────────────
-    log.info("[CryoSPARC] Provisioning %s GPU instance for direct execution...", _selected_instance_type)
-    try:
-        instance_ip = cs_exec.start_instance(wait=True)
-        cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
-        log.info("[CryoSPARC] Instance ready at %s", cs_exec.CRYOSPARC_HOST)
-    except Exception as exc:
-        raise HTTPException(status_code=503,
-                            detail=f"Failed to provision CryoSPARC GPU instance: {exc}")
+    # When CRYOSPARC_SKIP_PROVISION=1, the server is already running at CRYOSPARC_HOST
+    # and no EC2 provisioning is needed (e.g. dev/staging with a permanent CryoSPARC host).
+    if os.environ.get("CRYOSPARC_SKIP_PROVISION", "").strip() in ("1", "true", "yes"):
+        log.info("[CryoSPARC] CRYOSPARC_SKIP_PROVISION=1 — using existing host %s", cs_exec.CRYOSPARC_HOST)
+    else:
+        log.info("[CryoSPARC] Provisioning %s GPU instance for direct execution...", _selected_instance_type)
+        try:
+            instance_ip = cs_exec.start_instance(wait=True)
+            cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
+            log.info("[CryoSPARC] Instance ready at %s", cs_exec.CRYOSPARC_HOST)
+        except Exception as exc:
+            raise HTTPException(status_code=503,
+                                detail=f"Failed to provision CryoSPARC GPU instance: {exc}")
 
     # ── Step 2: resolve movies_path — stage from S3 if needed ────────────────
     movies_path_raw = (params.get("movie_dir") or params.get("movies_path") or
