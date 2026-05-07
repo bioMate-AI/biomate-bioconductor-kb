@@ -240,7 +240,7 @@ export function RegulatoryDocumentEditor({
   useEffect(() => {
     if (!editor || !content) return
     const newHtml = buildInitialHtml(content)
-    editor.commands.setContent(newHtml, false)
+    editor.commands.setContent(newHtml, { emitUpdate: false })
     setHumanEditedCount(0)
 
     // Initial AI span count

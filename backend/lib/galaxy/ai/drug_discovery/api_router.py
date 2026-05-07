@@ -307,6 +307,121 @@ class IngestAssayResponse(BaseModel):
     newly_passed: list[str]
 
 
+class StudyReportIngestResponse(BaseModel):
+    campaign_id: str
+    filename: str
+    study_type: str
+    species: Optional[str]
+    route: Optional[str]
+    noael: Optional[float]
+    noael_unit: Optional[str]
+    duration: Optional[str]
+    key_findings: str
+    ames_result: Optional[bool]
+    herg_ic50_um: Optional[float]
+    glp: bool
+    study_id: Optional[str]
+    sections_to_regenerate: list[str]
+    warning: Optional[str] = None
+
+
+@router.post("/{campaign_id}/ingest-study-report", response_model=StudyReportIngestResponse)
+async def ingest_study_report(
+    campaign_id: str,
+    file: UploadFile = File(..., description="GLP study report PDF"),
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Upload a GLP nonclinical study report PDF.
+
+    Extracts structured study parameters (NOAEL, species, route, study type,
+    key findings) from the PDF conclusion section using PyMuPDF + regex.
+    Stores extracted data in the campaign DB wetlab_data field.
+    Returns the extracted parameters and which §2.6.3.x sections will regenerate.
+
+    Supported study types: Ames, micronucleus, chromosomal aberration, hERG,
+    single-dose, 28-day/90-day/26-week repeat-dose, carcinogenicity, reproductive tox.
+
+    After upload, call POST /{campaign_id}/ind-assembly to regenerate the document
+    with the new wet-lab data replacing computational placeholders.
+    """
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+    contents = await file.read()
+    if len(contents) < 1024:
+        raise HTTPException(status_code=400, detail="File too small — likely not a valid PDF")
+
+    try:
+        from .study_report_ingester import extract_from_pdf, merge_study_into_wetlab
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"Study report ingester unavailable: {e}")
+
+    # Extract structured fields from the PDF
+    extracted = extract_from_pdf(contents)
+    if "error" in extracted:
+        raise HTTPException(status_code=422, detail=extracted["error"])
+
+    # Merge into campaign wetlab_data
+    db_path = _campaign_db(campaign_id)
+    try:
+        import sqlite3, json as _json
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS campaign_wetlab (
+                    campaign_id TEXT PRIMARY KEY,
+                    wetlab_data TEXT NOT NULL DEFAULT '{}'
+                )
+            """)
+            row = conn.execute(
+                "SELECT wetlab_data FROM campaign_wetlab WHERE campaign_id = ?",
+                (campaign_id,)
+            ).fetchone()
+            existing = _json.loads(row[0]) if row else {}
+            merged = merge_study_into_wetlab(existing, extracted)
+            conn.execute(
+                "INSERT OR REPLACE INTO campaign_wetlab (campaign_id, wetlab_data) VALUES (?, ?)",
+                (campaign_id, _json.dumps(merged))
+            )
+        log.info("[ingest-study-report] %s: stored %s study data", campaign_id, extracted.get("study_type"))
+    except Exception as e:
+        log.warning("[ingest-study-report] DB write failed: %s", e)
+
+    # Determine which IND sections will regenerate
+    st = extracted.get("study_type", "")
+    section_map = {
+        "ames": ["2.6.3.3"], "micronucleus": ["2.6.3.3"],
+        "chromosomal_aberration": ["2.6.3.3"], "herg": ["2.6.3"],
+        "single_dose": ["2.6.3.1"], "repeat_dose_28d": ["2.6.3.2"],
+        "repeat_dose_90d": ["2.6.3.2"], "repeat_dose_26w": ["2.6.3.2"],
+        "carcinogenicity": ["2.6.3.4"], "reproductive": ["2.6.3.5"],
+        "pharmacokinetics": ["2.6.2"],
+    }
+    sections_to_regen = section_map.get(st, ["2.6.3"])
+
+    warning = None
+    if not extracted.get("noael") and st not in ("ames", "micronucleus", "chromosomal_aberration", "herg"):
+        warning = "NOAEL could not be extracted automatically. Please verify the study conclusion section."
+
+    return StudyReportIngestResponse(
+        campaign_id=campaign_id,
+        filename=file.filename,
+        study_type=extracted.get("study_type", "unknown"),
+        species=extracted.get("species"),
+        route=extracted.get("route"),
+        noael=extracted.get("noael"),
+        noael_unit=extracted.get("noael_unit"),
+        duration=extracted.get("duration"),
+        key_findings=extracted.get("key_findings", "")[:400],
+        ames_result=extracted.get("ames_result"),
+        herg_ic50_um=extracted.get("herg_ic50_um"),
+        glp=extracted.get("glp", False),
+        study_id=extracted.get("study_id"),
+        sections_to_regenerate=sections_to_regen,
+        warning=warning,
+    )
+
+
 @router.post("/{campaign_id}/ingest-assay", response_model=IngestAssayResponse)
 async def ingest_assay(
     campaign_id: str,
