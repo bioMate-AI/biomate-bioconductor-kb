@@ -612,7 +612,7 @@ minimisation_ok = ('MINIMIZATION SUCCESSFUL' in lst_text)
 # NONMEM prints THETA in two blocks: FINAL PARAMETER ESTIMATE and
 # STANDARD ERROR OF ESTIMATE
 def parse_param_block(text, label, n_max=30):
-    """Extract numeric values following the given section label."""
+    # Extract numeric values following the given section label.
     pattern = label + r'\\s*\\n((?:\\s*[-\\d.E+]+\\s*\\n?)+)'
     m = re.search(pattern, text)
     if not m:
