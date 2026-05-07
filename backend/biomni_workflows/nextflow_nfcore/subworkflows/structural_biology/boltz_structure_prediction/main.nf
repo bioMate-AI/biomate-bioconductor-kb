@@ -28,7 +28,7 @@ params.output_format   = 'mmcif'
 params.outdir          = 'results'
 params.publish_dir_mode = 'copy'
 
-ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:latest'
+def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:latest'
 
 // ── Prepare input ────────────────────────────────────────────────────────────
 

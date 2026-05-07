@@ -25,7 +25,7 @@ params.seed                      = 42
 params.outdir                    = 'results'
 params.publish_dir_mode          = 'copy'
 
-ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
+def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
 
 // ── Chai-1 structure prediction ───────────────────────────────────────────────
 
