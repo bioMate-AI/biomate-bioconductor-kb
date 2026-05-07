@@ -45,15 +45,13 @@ process PREPARE_INPUT {
     path("boltz_input.*"), emit: input_file
 
     script:
-    if (yaml_input && yaml_input.name != 'NO_FILE') {
-        """
-        cp ${yaml_input} boltz_input.yaml
-        """
-    } else {
-        """
-        cp ${fasta} boltz_input.fasta
-        """
-    }
+    """
+    if [ "${yaml_input}" != "NO_FILE" ] && [ -f "${yaml_input}" ]; then
+        cp "${yaml_input}" boltz_input.yaml
+    else
+        cp "${fasta}" boltz_input.fasta
+    fi
+    """
 }
 
 // ── Run Boltz-2 prediction ────────────────────────────────────────────────────
