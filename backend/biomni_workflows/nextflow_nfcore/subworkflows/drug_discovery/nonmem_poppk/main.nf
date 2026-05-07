@@ -560,6 +560,7 @@ process NONMEM_RUN {
     path "poppk_report.txt",      emit: report
 
     script:
+    def nmVer = params.nonmem_version ?: 'nm75'
     """
     set -euo pipefail
 
@@ -571,7 +572,7 @@ process NONMEM_RUN {
         echo "ERROR: NONMEM_LICENSE_FILE is not set." >&2; exit 1
     fi
 
-    NM_VERSION=${params.nonmem_version} ; :
+    NM_VERSION=${nmVer}
     if [[ "\$NM_VERSION" == "nm75" ]]; then
         NMFE="\${NONMEM_HOME}/run/nmfe75"
     else
