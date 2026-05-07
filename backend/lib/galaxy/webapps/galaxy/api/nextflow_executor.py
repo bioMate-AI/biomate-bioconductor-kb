@@ -1107,6 +1107,11 @@ def _generate_executor_config(
                 "    withLabel: 'process_gpu' {",
                 f"        queue = '{gpu_queue}'",
                 "        accelerator = 1",
+                # Ensure GPU processes get adequate resources — 8 vCPU / 32 GB is the
+                # standard GPU node allocation. These override any global defaults that
+                # might otherwise default to 1 vCPU / 1 GB on EC2 Batch environments.
+                "        cpus = 8",
+                "        memory = '32.GB'",
                 "    }",
                 "}",
             ]
