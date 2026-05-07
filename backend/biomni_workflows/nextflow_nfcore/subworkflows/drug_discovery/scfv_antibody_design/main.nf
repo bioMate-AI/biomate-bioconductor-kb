@@ -62,9 +62,6 @@ process STRUCTURE_PREDICTION {
     label 'process_gpu'
     publishDir "${params.outdir}/structures", mode: params.publish_dir_mode
 
-    when:
-    params.predict_structure
-
     container ECR
 
     input:
