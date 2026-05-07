@@ -1961,6 +1961,21 @@ Rules:
       }
     }
 
+    // CryoSPARC / Cryo-EM SPA intent override:
+    // "run CryoSPARC", "single-particle analysis", "process micrograph movies", "SPA on EMPIAR"
+    // are unambiguously workflow execution requests. The intent classifier often returns
+    // tool_search because the cryo-EM domain terms (mrc, mrcs, micrograph) aren't in the
+    // generic _hasBioMethodTerms guard. Force workflow_generation here.
+    if (!actions.needsWorkflowGeneration) {
+      const _isCryoEmWorkflowQuery = /\b(cryosparc|cryo.?em\s+(spa|standard|pipeline)|single.?particle\s+analysis|process.*micrograph|micrograph\s+movies?|import.?movies?|patch.?motion|ctf.?estimation|cryo.?spa|empiar|particle\s+picking|blob\s+picking|2d\s+classif|ab.?initio\s+recon|homogeneous\s+refin|run\s+cryo)\b/i.test(message)
+        && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept)\b/i.test(message);
+      if (_isCryoEmWorkflowQuery) {
+        log('CryoEM SPA override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
     // HPO + ENSG candidate gene override:
     // Messages containing HPO phenotype codes (HP:XXXXXXX) AND ENSG gene IDs are patient gene
     // detection tasks — they query ClinVar/OMIM/Monarch to find the causal gene from a candidate
