@@ -43,7 +43,14 @@ params.outdir               = './results/nonmem_poppk'
 params.publish_dir_mode     = 'copy'
 
 // Inputs
-params.pk_data_csv          = null    // NONMEM-format CSV: ID,TIME,DV,AMT,MDV,EVID,CMT[,covariates]
+params.pk_data_csv          = ''      // NONMEM-format CSV: ID,TIME,DV,AMT,MDV,EVID,CMT[,covariates]; leave empty to generate synthetic data from n_id/compound_name
+// Synthetic data generation (used when pk_data_csv is null)
+params.compound_name        = 'compound'
+params.n_id                 = 100     // number of simulated subjects
+params.n_obs                = 700     // approx total observations
+params.dose_mg              = 1000    // mg single dose (or steady-state trough)
+params.covariate_WT         = false   // include body weight as covariate
+params.covariate_CRCL       = false   // include creatinine clearance as covariate
 
 // Model specification
 params.model_type           = 'one_cmt_oral'   // one_cmt_oral | one_cmt_iv | two_cmt_oral | two_cmt_iv | three_cmt_iv
@@ -99,6 +106,120 @@ def detectExecMode() {
 // ============================================================================
 // Processes
 // ============================================================================
+
+// [Phase A] Synthetic PK Data Generation
+// Used when no real pk_data_csv is provided. Simulates a 2-compartment IV
+// dataset (default: vancomycin-like parameters) using published population means
+// (Matzke 1984 population estimates) and log-normal IIV.
+// Ref: Matzke GR et al. Antimicrob Agents Chemother 1984; 25(4):433-437.
+process GENERATE_SYNTHETIC_DATA {
+    tag 'synthetic_data'
+    label 'process_low'
+    publishDir "${params.outdir}", mode: 'copy'
+
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+
+    output:
+    path "pk_data_synthetic.csv", emit: pk_data
+    path "synthetic_data_metadata.json", emit: metadata
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json, csv, math, os, random
+
+random.seed(42)
+compound    = '${params.compound_name}'
+n_id        = int('${params.n_id}')
+dose_mg     = float('${params.dose_mg}')
+model_type  = '${params.model_type}'
+incl_wt     = str('${params.covariate_WT}').lower() in ('true', '1', 'yes')
+incl_crcl   = str('${params.covariate_CRCL}').lower() in ('true', '1', 'yes')
+
+# Vancomycin 2-cmt IV population means (Matzke 1984; Thomson 2009 AAC 53(9):3974)
+# CL = 0.065 * CRCL (mL/min/kg), V1 = 0.45 L/kg, Q = 0.8 L/h, V2 = 1.0 L/kg
+POP_CL   = 3.9   # L/h  (typical adult 70 kg, CrCL 100 mL/min)
+POP_V1   = 31.5  # L
+POP_Q    = 0.8   # L/h
+POP_V2   = 70.0  # L
+IIV_CL   = 0.35  # CV ~35% (omega on log scale: sqrt(0.35^2))
+IIV_V1   = 0.25
+SIGMA    = 0.10  # proportional residual error
+
+# Sampling times: predose + 0.5h post (Cmax), 1, 2, 4, 8h — typical TDM schedule
+# ~7 obs per subject on average
+SAMPLE_TIMES = [0.5, 1.0, 2.0, 4.0, 6.0, 8.0, 12.0]
+
+def two_cmt_iv(t, dose, CL, V1, Q, V2):
+    """Closed-form 2-cmt IV bolus solution."""
+    k10 = CL / V1
+    k12 = Q / V1
+    k21 = Q / V2
+    s  = k10 + k12 + k21
+    sq = math.sqrt(max(s * s - 4 * k10 * k21, 0))
+    lam1 = (s + sq) / 2
+    lam2 = (s - sq) / 2
+    if abs(lam1 - lam2) < 1e-9:
+        return (dose / V1) * math.exp(-lam1 * t)
+    A = (dose / V1) * (lam1 - k21) / (lam1 - lam2)
+    B = (dose / V1) * (k21 - lam2) / (lam1 - lam2)
+    return A * math.exp(-lam1 * t) + B * math.exp(-lam2 * t)
+
+rows = []
+for sid in range(1, n_id + 1):
+    wt   = random.gauss(75, 15)          # kg
+    crcl = max(20, random.gauss(100, 30)) # mL/min
+    # IIV: log-normal
+    cl_i = POP_CL * (crcl / 100) * math.exp(random.gauss(0, IIV_CL))
+    v1_i = POP_V1 * math.exp(random.gauss(0, IIV_V1))
+
+    # Dose event at t=0
+    rows.append({
+        'ID': sid, 'TIME': 0.0, 'DV': '.', 'AMT': dose_mg * 1000,  # mcg
+        'MDV': 1, 'EVID': 1, 'CMT': 1,
+        'WT': round(wt, 1), 'CRCL': round(crcl, 1),
+    })
+    for t in SAMPLE_TIMES:
+        conc_true = two_cmt_iv(t, dose_mg * 1000, cl_i, v1_i, POP_Q, POP_V2)
+        conc_obs  = max(0.01, conc_true * math.exp(random.gauss(0, SIGMA)))
+        rows.append({
+            'ID': sid, 'TIME': round(t, 2), 'DV': round(conc_obs, 3), 'AMT': 0,
+            'MDV': 0, 'EVID': 0, 'CMT': 2,
+            'WT': round(wt, 1), 'CRCL': round(crcl, 1),
+        })
+
+cols = ['ID', 'TIME', 'DV', 'AMT', 'MDV', 'EVID', 'CMT']
+if incl_wt:   cols.append('WT')
+if incl_crcl: cols.append('CRCL')
+
+with open('pk_data_synthetic.csv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=cols, extrasaction='ignore')
+    w.writeheader()
+    w.writerows(rows)
+
+n_obs = sum(1 for r in rows if r['MDV'] == 0)
+meta = {
+    'compound':        compound,
+    'model_type':      model_type,
+    'n_subjects':      n_id,
+    'n_observations':  n_obs,
+    'dose_mg':         dose_mg,
+    'pop_params': {'CL_Lh': POP_CL, 'V1_L': POP_V1, 'Q_Lh': POP_Q, 'V2_L': POP_V2},
+    'iiv': {'omega_CL': IIV_CL, 'omega_V1': IIV_V1},
+    'residual_error':  SIGMA,
+    'references': [
+        'Matzke GR et al. Antimicrob Agents Chemother 1984; 25(4):433',
+        'Thomson AH et al. AAC 2009; 53(9):3974',
+    ],
+    'note': 'Synthetic dataset generated for simulation/benchmarking. Not real patient data.',
+}
+with open('synthetic_data_metadata.json', 'w') as f:
+    json.dump(meta, f, indent=2)
+
+print(f'Generated {n_id} subjects, {n_obs} observations for {compound} 2-cmt IV model.')
+PYEOF
+    """
+}
 
 // [Phase A] Data Validation
 process DATA_VALIDATION {
@@ -1494,10 +1615,6 @@ workflow NONMEM_POPPK_WORKFLOW {
 workflow {
 
     // Parameter validation
-    if (!params.pk_data_csv) {
-        error "ERROR: --pk_data_csv is required. Provide a NONMEM-format dataset (ID,TIME,DV,AMT,MDV,EVID,CMT)."
-    }
-
     def valid_models = ['one_cmt_oral', 'one_cmt_iv', 'two_cmt_oral', 'two_cmt_iv', 'three_cmt_iv']
     if (!valid_models.contains(params.model_type)) {
         error "ERROR: --model_type '${params.model_type}' is not valid. Choose from: ${valid_models.join(', ')}"
@@ -1521,8 +1638,14 @@ workflow {
         error "ERROR: --vpc_n_sim must be at least 100."
     }
 
-    // Emit the input file as a channel
-    pk_data_ch = Channel.fromPath(params.pk_data_csv, checkIfExists: true)
+    // Route input: real data file OR generate synthetic dataset from n_id/n_obs params
+    if (params.pk_data_csv && params.pk_data_csv != 'null') {
+        pk_data_ch = Channel.fromPath(params.pk_data_csv, checkIfExists: true)
+    } else {
+        log.warn "pk_data_csv not provided — generating synthetic ${params.compound_name} dataset (n_id=${params.n_id}, model=${params.model_type}). Results are for demonstration only."
+        GENERATE_SYNTHETIC_DATA()
+        pk_data_ch = GENERATE_SYNTHETIC_DATA.out.pk_data
+    }
 
     // Invoke the named workflow
     NONMEM_POPPK_WORKFLOW(pk_data_ch)
