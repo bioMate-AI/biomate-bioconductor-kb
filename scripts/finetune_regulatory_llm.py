@@ -382,7 +382,7 @@ def train_gpu(args) -> None:
         import re as _re
         def _section_passes(text: str, sec: str) -> bool:
             lower = text.lower()
-            if sec in ("pbpk", "pk_overview"):
+            if sec == "pbpk":  # pk_overview is general PK — EMA PBPK guideline not required
                 if not ("EMA/CHMP/EWP/37498/2011" in text or "67%" in text or "criterion" in lower or "within-2-fold" in lower):
                     return False
             if sec == "tox_genotox":
