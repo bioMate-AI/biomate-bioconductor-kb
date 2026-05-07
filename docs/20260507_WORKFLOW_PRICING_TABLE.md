@@ -318,6 +318,49 @@ GPU run (profile: gpu_batch) submitted 2026-05-07 — await measurement.
 
 ---
 
+---
+
+## Validation Coverage Summary
+
+### CPU Workflows Validated on Real AWS Batch ✅
+
+| Workflow | Steps | Container time | Wall time | Cost | Confidence |
+|---|---|---|---|---|---|
+| predict_admet_properties | 1 | 16.8s | ~2 min | $0.001 | ✅ High |
+| clinical_trial_simulation | 1 | 11.9s | ~4 min | $0.001 | ✅ High |
+| pk_sim_pbpk | 4 | 54s | ~8 min | $0.003 | ✅ High |
+| pbpk_pediatric | 4 | 75s | ~4 min | $0.004 | ✅ High |
+| ich_s7a_safety_pharmacology | 4 | 74s | ~4 min | $0.003 | ✅ High |
+| fcrn_antibody_pk | 4 | 55s | ~4 min | $0.001 | ✅ High |
+| survival_analysis_km | 4 | 55s | ~4 min | $0.001 | ✅ High |
+| gromacs CPU prep | 5 | 700s | ~20 min | $0.120 | ✅ 3 replications |
+
+**Key finding from CPU validation:** All 4-step pharmacology workflows take 55-75s container time + ~4 min Batch overhead = $0.001-0.004 compute. With 2.5× markup, all hit the $0.10 minimum price floor.
+
+### GPU Workflows — Infrastructure Issues Found
+
+**CRITICAL:** `galaxy-cloud-compute-gpu-industrial` uses default ECS AMI without NVIDIA Docker runtime. CUDA-dependent workflows (GROMACS, AMBER, scFv, Boltz, Chai1, DrugCLIP) fail with "0 detected GPUs". PyTorch workflows silently run on CPU.
+
+| Workflow | Attempted | Result | Notes |
+|---|---|---|---|
+| gromacs PRODUCTION_MD | ✅ Submitted to GPU queue | ❌ GPU not found | ECS AMI issue |
+| chai1_structure_prediction | ✅ Submitted to GPU queue | ❌ Container issue | Container may be missing |
+| scfv_antibody_design | ✅ Submitted to GPU queue | ❌ Binary missing | ProteinMPNN path wrong |
+| drugclip_virtual_screening | ✅ Submitted to GPU queue | ❌ Binary missing | DrugCLIP path wrong |
+| reinvent4_lead_design | ✅ CPU Batch run | ⚠️ Stub code only | Real REINVENT4 not in container |
+| aizynthfinder | ✅ CPU Batch run | ❌ Models missing | AiZynthFinder models not in container |
+| amber_pmemd_md | ✅ CPU Batch run | ❌ AMBER binary missing | `/opt/amber24/amber.sh` not found |
+
+### Container Issues Found (Action Required)
+
+1. **`biomate/ambertools-gromacs-nf:latest`**: Missing `/opt/amber24/amber.sh`. Need to rebuild with AMBER24 installed.
+2. **`biomate/ai-tools/drugclip:latest`**: Missing `/opt/drugclip/screen.py`. Need to rebuild with DrugCLIP installed.
+3. **`biomate/ai-tools/scfv-pmpnn:latest`**: Missing ProteinMPNN at expected path.
+4. **`biomate/biomni-drug-discovery-nf:x86`**: REINVENT4 replaced with RDKit stub; AiZynthFinder missing model files.
+5. **`galaxy-cloud-compute-gpu-industrial`**: Must use ECS-optimized GPU AMI for CUDA access.
+
+---
+
 ## Summary: Price Distribution (Balanced tier)
 
 | Price band | Count | Example workflows |
