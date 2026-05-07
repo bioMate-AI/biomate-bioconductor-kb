@@ -3403,6 +3403,39 @@ def get_nextflow_status(
                     "duration_s": _fb_duration_s,
                 }
 
+            # S3 completion heuristic: if ≥3 output files exist and the run has been going
+            # for >5 min without a Nextflow "Execution complete" log, treat as completed.
+            # This handles the race where Nextflow exits cleanly but its log line is read
+            # before the final write, leaving the executor stuck in "running" indefinitely.
+            if _s3_outdir and _fb_started_at:
+                import subprocess as _sp_h
+                _h_ls = _sp_h.run(
+                    ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                _h_files = []
+                for _hl in _h_ls.stdout.splitlines():
+                    _hp = _hl.split()
+                    if len(_hp) >= 4:
+                        _hf = _hp[3].split("/")[-1]
+                        _he = _hf.rsplit(".", 1)[-1].lower() if "." in _hf else ""
+                        if _he in {"json", "csv", "html", "png", "pdf"}:
+                            _h_files.append({"s3_uri": f"s3://{_s3_outdir.split('s3://')[1].split('/')[0]}/{_hp[3]}", "filename": _hf, "size": int(_hp[2]) if _hp[2].isdigit() else 0})
+                _h_elapsed = time.time() - _fb_started_at
+                if len(_h_files) >= 3 and _h_elapsed > 300:
+                    log.info("[Nextflow] S3 completion heuristic: %d files, %.0fs elapsed — marking completed", len(_h_files), _h_elapsed)
+                    _fb_procs_h = _build_processes_from_s3_files(_h_files, _s3_outdir, "")
+                    return {
+                        "run_id": run_id, "invocation_id": run_id,
+                        "status": "completed", "returncode": 0,
+                        "outdir": _s3_outdir, "work_dir": str(log_dir / "work"),
+                        "log_tail": log_tail_fallback, "is_batch": True,
+                        "s3_output_files": _h_files, "completedSteps": len(_h_files),
+                        "totalSteps": len(_h_files), "progressPercent": 100,
+                        "processes": _fb_procs_h, "started_at": _fb_started_at,
+                        "completed_at": time.time(), "duration_s": int(_h_elapsed),
+                    }
+
             # Still running — list intermediate S3 outputs so the UI can show them
             _running_s3_files: list = []
             if _s3_outdir:
@@ -3499,9 +3532,22 @@ def get_nextflow_status(
         end = completed_at if completed_at else now
         duration_s = int(end - started_at)
 
+    # S3 completion heuristic for Batch runs stuck in "running":
+    # EventBridge sometimes fails to update status after Nextflow exits.
+    # If ≥3 JSON/CSV output files exist AND >5 min elapsed → treat as completed.
+    _info_status = info.get("status", "running")
+    if _info_status == "running" and s3_files and started_at:
+        _s3_data_files = [f for f in s3_files
+                          if str(f.get("filename", "")).rsplit(".", 1)[-1].lower() in {"json", "csv", "html", "png", "pdf"}]
+        _elapsed = now - started_at
+        if len(_s3_data_files) >= 3 and _elapsed > 300:
+            log.info("[Nextflow] S3 completion heuristic (normal path): %d files, %.0fs → completed", len(_s3_data_files), _elapsed)
+            _info_status = "completed"
+            completed_at = completed_at or now
+
     # Build QC report from S3 JSON report files when run is terminal
     qc_report: Optional[Dict] = None
-    if info.get("status") in ("succeeded", "completed") and s3_files and outdir:
+    if _info_status in ("succeeded", "completed") and s3_files and outdir:
         try:
             qc_report = _build_qc_report_from_s3_files(s3_files, outdir)
         except Exception:
@@ -3510,7 +3556,7 @@ def get_nextflow_status(
     return {
         "run_id": run_id,
         "invocation_id": info["invocation_id"],
-        "status": info["status"],
+        "status": _info_status,
         "returncode": info["returncode"],
         "outdir": outdir,
         "work_dir": work_dir,
