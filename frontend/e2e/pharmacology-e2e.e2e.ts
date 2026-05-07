@@ -404,33 +404,16 @@ async function assertOutputFiles(
   expectedTypes: string[] = ['.json', '.csv'],
   prefetchedPayload?: Record<string, unknown> | null
 ): Promise<void> {
-  // If a pre-fetched status payload is available (e.g. from poll heuristic), use its S3 files
-  // directly — avoids a race where the status API returns stale data after we break out early.
-  const prefetchedS3 = (prefetchedPayload?.nextflowStatus as any)?.s3_output_files as any[] | undefined;
-  if (prefetchedS3 && prefetchedS3.length > 0) {
-    const fileNames = prefetchedS3.map((f: any) => (f.filename || f.s3_uri?.split('/').pop() || '').toLowerCase());
-    const fileExts = fileNames.map((n: string) => path.extname(n));
-    console.log(`[${label}] Output files (${prefetchedS3.length}) from prefetch:`, fileNames.slice(0, 8).join(', '));
-    assert(rec, "output-files-present", prefetchedS3.length > 0, `${prefetchedS3.length} files from S3`);
-    for (const ext of expectedTypes) {
-      const found = fileExts.some((e: string) => e === ext);
-      assert(rec, `output-type-${ext.replace('.', '')}-present`, found,
-        found ? `Found ${ext} file` : `No ${ext} file (found: ${fileExts.join(',')})`);
-    }
-    const hasReport = fileNames.some((n: string) => /report|summary/.test(n));
-    assert(rec, "output-has-report-file", hasReport,
-      hasReport ? "Report file found" : "No report/summary file");
-    return;
-  }
-
-  // Use authenticated browser fetch. Falls back to s3_output_files from status when
-  // /outputs endpoint is unavailable (run still showing "running" despite all jobs done).
+  // Always call the authoritative /output_files endpoint for complete file list.
+  // The prefetchedPayload captured files at heuristic-break time and may be missing
+  // late-appearing files like *_summary_report.json — use it only as last-resort fallback.
   let files = await page.evaluate(async ({ base, id }: { base: string; id: string }) => {
     try {
-      const r = await fetch(`${base}/api/workflows/runs/${id}/outputs`, { credentials: 'include' });
+      const r = await fetch(`${base}/api/workflows/runs/${id}/output_files`, { credentials: 'include' });
       if (r.ok) {
-        const data = await r.json().catch(() => []);
-        if (Array.isArray(data) && data.length > 0) return data;
+        const data = await r.json().catch(() => ({}));
+        const files = data?.output_files || data?.outputs || (Array.isArray(data) ? data : []);
+        if (files.length > 0) return files;
       }
     } catch { /* fall through */ }
     // Fallback: read s3_output_files from the status response
@@ -444,6 +427,15 @@ async function assertOutputFiles(
     } catch { /* ignore */ }
     return [];
   }, { base: BASE_URL, id: runId }).catch(() => []) as any[];
+
+  // If API returned nothing, fall back to prefetch
+  if ((!files || files.length === 0) && prefetchedPayload) {
+    const s3 = (prefetchedPayload?.nextflowStatus as any)?.s3_output_files as any[] | undefined;
+    if (s3 && s3.length > 0) {
+      files = s3.map((f: any) => ({ name: f.filename || f.s3_uri?.split('/').pop() || '', path: f.s3_uri }));
+    }
+  }
+
   const fileNames = files?.map((f: any) => (f.name || f.path || f.filename || "").toLowerCase()) ?? [];
   const fileExts = fileNames.map(n => path.extname(n));
 
@@ -607,20 +599,9 @@ async function pollWithLiveUIChecks(
         if (statusResult.status === 'error') { finalStatus = "error"; break; }
         const s = statusResult.status;
         if (terminal.has(s)) { finalStatus = s; break; }
-        // Heuristic: if all expected S3 output files appeared AND status has been running
-        // for >2 min, treat as completed (handles executor "stuck in running" race)
-        if (s === 'running' && statusResult.files >= 5 && i > 24) {
-          console.log(`[${label}] poll ${i}: all ${statusResult.files} output files present — treating as completed`);
-          finalStatus = "completed";
-          // Store S3 files in payload so assertOutputFiles can use them without a second status call
-          payload = {
-            status: 'completed',
-            nextflowStatus: { s3_output_files: statusResult.s3Files, processes: [] },
-          } as Record<string, unknown>;
-          // Wait 15s for UI to reflect completion before breaking
-          await page.waitForTimeout(15_000);
-          break;
-        }
+        // Do NOT use file-count heuristic — it fires before the final report phase completes,
+        // missing Phase D outputs (pk_summary_report.json, pk_results.html).
+        // Always wait for status === 'completed' from the API.
         if (i % 6 === 0) console.log(`[${label}] poll ${i}: ${s} | procs=${statusResult.procs} files=${statusResult.files}`);
       }
     } catch { /* retry */ }
@@ -628,74 +609,87 @@ async function pollWithLiveUIChecks(
     // === Live UI check every 30 s ===
     if (i % 6 === 0) {
       try {
-        // Phase card status snapshot
+        const slug = label.toLowerCase().replace(/[\s#]/g, '-');
+
+        // Phase card status snapshot — screenshot on every transition
         const phaseCards = await page.locator('[data-testid^="phase-group-"]').all();
         for (const card of phaseCards) {
           const tid = (await card.getAttribute('data-testid').catch(() => '')) ?? '';
           const status = (await card.getAttribute('data-status').catch(() => '')) ?? '';
           const prev = phaseStatuses[tid];
           if (status && status !== prev) {
-            console.log(`[${label}] UI ${tid}: ${prev ?? 'unknown'} → ${status}`);
+            console.log(`[${label}] TRANSITION ${tid}: ${prev ?? 'unknown'} → ${status}`);
             phaseStatuses[tid] = status;
+            // Screenshot every phase transition
+            const ssFile = path.join(SS_DIR, `${slug}_${tid}_${status}.png`);
+            await page.screenshot({ path: ssFile, fullPage: false }).catch(() => {});
+            console.log(`[screenshot] ${ssFile}`);
           }
-          // File preview chips
+          // Log file preview chips as they appear
           const previewBtns = await card.locator('[data-testid^="phase-card-preview-btn-"]').all();
           if (previewBtns.length > 0) {
             const names = await Promise.all(previewBtns.map(b =>
               b.getAttribute('data-testid').then(t => t?.replace('phase-card-preview-btn-', '') ?? '').catch(() => '')
             ));
-            console.log(`[${label}] UI ${tid} status=${status} files=[${names.join(',')}]`);
+            console.log(`[${label}] OUTPUTS ${tid} status=${status} files=[${names.join(',')}]`);
           }
         }
 
-        // Screenshot every 2 min (every 24 polls at 5s)
-        if (i % 24 === 0 && i > 0) {
-          await page.screenshot({ path: path.join(SS_DIR, `${label.toLowerCase().replace(/[\s#]/g,'-')}_live_${String(i).padStart(3,'0')}.png`), fullPage: false }).catch(() => {});
+        // Fallback periodic screenshot every 60s (12 polls × 5s) in case no transitions
+        if (i % 12 === 0 && i > 0) {
+          await page.screenshot({ path: path.join(SS_DIR, `${slug}_live_${String(i).padStart(3, '0')}.png`), fullPage: false }).catch(() => {});
         }
 
-        // === Verify S3 outputs when phase completes ===
+        // === Screenshot + verify S3 outputs on each phase completion ===
         const completedCards = await page.locator('[data-testid^="phase-group-"][data-status="completed"]').all();
         for (const card of completedCards) {
           const tid = (await card.getAttribute('data-testid').catch(() => '')) ?? '';
           if (!checked.has(`outputs-${tid}`) && tid) {
             checked.add(`outputs-${tid}`);
+            // Screenshot the completed phase with its output files visible
+            await page.screenshot({ path: path.join(SS_DIR, `${slug}_${tid}_outputs.png`), fullPage: false }).catch(() => {});
+            console.log(`[screenshot] ${slug}_${tid}_outputs.png`);
             const files = await page.evaluate(async ({ base, id }: { base: string; id: string }) => {
               try {
-                const r = await fetch(`${base}/api/workflows/runs/${id}/outputs`, { credentials: 'include' });
-                return r.ok ? (await r.json().catch(() => [])) : [];
-              } catch { return []; }
+                const r = await fetch(`${base}/api/workflows/runs/${id}/output_files`, { credentials: 'include' });
+                if (r.ok) { const d = await r.json(); return d?.output_files || d?.outputs || []; }
+              } catch { /* ignore */ }
+              return [];
             }, { base: BASE_URL, id: runId }).catch(() => []) as any[];
             const count = (files as any[])?.length ?? 0;
-            console.log(`[${label}] DATA: ${tid} completed → ${count} output files in API`);
+            console.log(`[${label}] DATA: ${tid} completed → ${count} output files`);
             assert(audit, `${tid}-outputs-accessible`, count >= 0,
               count > 0 ? `${count} files` : `no files yet — may appear after run`);
           }
         }
 
-        // === Click first visible JSON/CSV preview button for content check ===
-        if (!checked.has('first-output-preview')) {
-          const previewBtn = page.locator(
-            '[data-testid^="phase-card-preview-btn-"][data-testid$=".json"],' +
-            '[data-testid^="phase-card-preview-btn-"][data-testid$=".csv"],' +
-            '[data-testid^="phase-card-preview-btn-"][data-testid$=".html"]'
-          ).first();
-          if (await previewBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-            const fname = (await previewBtn.getAttribute('data-testid') ?? '').replace('phase-card-preview-btn-', '');
-            checked.add('first-output-preview');
-            console.log(`[${label}] MILESTONE: output preview visible (${fname}) — clicking`);
-            await previewBtn.click().catch(() => {});
-            await page.waitForTimeout(3000);
-            // Check that SOME content appears in preview panel
-            const previewPanel = page.locator('[data-testid="file-preview-panel"], [data-testid="step-output-viewer"], [class*="preview"]').first();
-            const previewVisible = await previewPanel.isVisible({ timeout: 5000 }).catch(() => false);
-            const previewText = await previewPanel.textContent({ timeout: 2000 }).catch(() => '') ?? '';
-            const hasData = previewVisible && previewText.trim().length > 10;
-            console.log(`[${label}] Preview panel visible=${previewVisible} textLen=${previewText.length}`);
-            assert(audit, 'output-preview-renders', previewVisible || true,
-              previewVisible ? `Preview rendered for ${fname}` : `No preview panel for ${fname} (observational)`);
-            await page.screenshot({ path: path.join(SS_DIR, `${label.toLowerCase().replace(/[\s#]/g,'-')}_output_preview.png`), fullPage: false }).catch(() => {});
-            await page.keyboard.press('Escape').catch(() => {});
-          }
+        // === Click EVERY new output preview button for visualization screenshots ===
+        const allPreviewBtns = await page.locator(
+          '[data-testid^="phase-card-preview-btn-"][data-testid$=".json"],' +
+          '[data-testid^="phase-card-preview-btn-"][data-testid$=".csv"],' +
+          '[data-testid^="phase-card-preview-btn-"][data-testid$=".html"],' +
+          '[data-testid^="phase-card-preview-btn-"][data-testid$=".png"]'
+        ).all();
+        for (const previewBtn of allPreviewBtns) {
+          const tid = (await previewBtn.getAttribute('data-testid') ?? '').replace('phase-card-preview-btn-', '');
+          if (checked.has(`preview-${tid}`)) continue;
+          const visible = await previewBtn.isVisible({ timeout: 300 }).catch(() => false);
+          if (!visible) continue;
+          checked.add(`preview-${tid}`);
+          console.log(`[${label}] PREVIEW: opening ${tid}`);
+          await previewBtn.click().catch(() => {});
+          await page.waitForTimeout(2000);
+          const previewPanel = page.locator('[data-testid="file-preview-panel"], [data-testid="step-output-viewer"], [class*="OutputViewer"], [class*="preview-panel"]').first();
+          const previewVisible = await previewPanel.isVisible({ timeout: 5000 }).catch(() => false);
+          const previewText = await previewPanel.textContent({ timeout: 2000 }).catch(() => '') ?? '';
+          console.log(`[${label}] PREVIEW panel visible=${previewVisible} textLen=${previewText.trim().length}`);
+          const ssFile = path.join(SS_DIR, `${slug}_preview_${tid.replace(/[^a-zA-Z0-9._-]/g, '_')}.png`);
+          await page.screenshot({ path: ssFile, fullPage: false }).catch(() => {});
+          console.log(`[screenshot] ${ssFile}`);
+          assert(audit, `output-preview-${tid}`, previewVisible,
+            previewVisible ? `Preview rendered for ${tid}` : `No preview panel for ${tid}`);
+          await page.keyboard.press('Escape').catch(() => {});
+          await page.waitForTimeout(500);
         }
 
       } catch { /* non-fatal — continue polling */ }
@@ -704,6 +698,14 @@ async function pollWithLiveUIChecks(
     i++;
   }
   console.log(`[${label}] → ${finalStatus}`);
+  // Proactively trigger findings analysis so background Claude call starts now,
+  // not when FindingsCard first renders (which could be 20-30s later).
+  if (finalStatus === 'completed' || finalStatus === 'failed') {
+    await page.evaluate(async ({ base, id }: { base: string; id: string }) => {
+      fetch(`${base}/api/workflows/runs/${id}/findings`, { credentials: 'include' }).catch(() => {});
+    }, { base: BASE_URL, id: runId }).catch(() => {});
+    console.log(`[${label}] findings analysis triggered early`);
+  }
   return { finalStatus, payload };
 }
 
@@ -823,10 +825,11 @@ test("PH-1: PK-Sim PBPK — oral midazolam simulation routed + executed", async 
     console.log(`[PH-1] Quality tier: ${audit.qualityTier || "(not shown)"}`);
     assert(audit, "quality-tier-present-or-ok", true); // observational
 
-    // Findings card should appear after completion
-    const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
-    const findingsVisible = await findingsCard.isVisible({ timeout: 30_000 }).catch(() => false);
-    assert(audit, "findings-card-appeared", findingsVisible, "AI findings panel should appear after run");
+    const findingsCard1 = page.locator('[data-testid="findings-card"]').first();
+    const findingsVisible1 = await findingsCard1.isVisible({ timeout: 180_000 }).catch(() => false);
+    console.log(`[PH-1] findings-card visible: ${findingsVisible1}`);
+    assert(audit, "findings-card-appeared", findingsVisible1,
+      findingsVisible1 ? "FindingsCard rendered" : "No findings returned by /findings API within 180s");
     audit.screenshots.push(await shot(page, "ph1_07_findings"));
 
   } catch (err: any) {
@@ -996,10 +999,11 @@ test("PH-3: Survival Analysis KM — oncology trial design, HR table, O'Brien-Fl
     // survival_analysis_km: km_curves.csv + sample_size.json + power_table.csv
     if (runId) await assertOutputFiles(page, audit, "PH-3", runId, ['.csv', '.json'], payload);
 
-    // Findings card
-    const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
-    const findingsVisible = await findingsCard.isVisible({ timeout: 30_000 }).catch(() => false);
-    assert(audit, "findings-card-appeared", findingsVisible);
+    const findingsCard3 = page.locator('[data-testid="findings-card"]').first();
+    const findingsVisible3 = await findingsCard3.isVisible({ timeout: 180_000 }).catch(() => false);
+    console.log(`[PH-3] findings-card visible: ${findingsVisible3}`);
+    assert(audit, "findings-card-appeared", findingsVisible3,
+      findingsVisible3 ? "FindingsCard rendered" : "No findings returned by /findings API within 180s");
     audit.screenshots.push(await shot(page, "ph3_06_findings"));
 
   } catch (err: any) {
@@ -1078,9 +1082,11 @@ test("PH-4: FcRn Antibody PK — IgG1 WT vs YTE vs LS half-life comparison, 2-cm
     // fcrn_antibody_pk: pk_profile.csv + halflife_comparison.csv + antibody_pk_report.json
     if (runId) await assertOutputFiles(page, audit, "PH-4", runId, ['.csv', '.json'], payload);
 
-    const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
-    const findingsVisible = await findingsCard.isVisible({ timeout: 30_000 }).catch(() => false);
-    assert(audit, "findings-card-appeared", findingsVisible);
+    const findingsCard4 = page.locator('[data-testid="findings-card"]').first();
+    const findingsVisible4 = await findingsCard4.isVisible({ timeout: 180_000 }).catch(() => false);
+    console.log(`[PH-4] findings-card visible: ${findingsVisible4}`);
+    assert(audit, "findings-card-appeared", findingsVisible4,
+      findingsVisible4 ? "FindingsCard rendered" : "No findings returned by /findings API within 180s");
     audit.screenshots.push(await shot(page, "ph4_06_findings"));
 
   } catch (err: any) {
@@ -1161,14 +1167,17 @@ test("PH-5: ICH S7A Safety Pharmacology — CV/CNS/respiratory core battery, GRE
     // ich_s7a: cv_assessment.json + cns_respiratory_assessment.json + ich_s7a_report.json
     if (runId) await assertOutputFiles(page, audit, "PH-5", runId, ['.json'], payload);
 
-    // hERG margin check: 3.2/0.18 = 17.8× < 30× → CiPA escalation in findings
-    const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
-    const findingsVisible = await findingsCard.isVisible({ timeout: 30_000 }).catch(() => false);
-    assert(audit, "findings-card-appeared", findingsVisible);
-    if (findingsVisible) {
-      const findingsText = await findingsCard.textContent({ timeout: 5000 }).catch(() => "") ?? "";
+    // hERG margin: 3.2/0.18 = 17.8× < 30× → CiPA escalation should appear in findings
+    const findingsCard5 = page.locator('[data-testid="findings-card"]').first();
+    const findingsVisible5 = await findingsCard5.isVisible({ timeout: 180_000 }).catch(() => false);
+    console.log(`[PH-5] findings-card visible: ${findingsVisible5}`);
+    assert(audit, "findings-card-appeared", findingsVisible5,
+      findingsVisible5 ? "FindingsCard rendered" : "No findings returned by /findings API within 180s");
+    if (findingsVisible5) {
+      const findingsText = await findingsCard5.textContent({ timeout: 5000 }).catch(() => "") ?? "";
       const mentionsSafety = /ciPA|herg|margin|yellow|red|escalat|safety/i.test(findingsText);
-      assert(audit, "findings-mention-safety-flags", mentionsSafety || true);
+      assert(audit, "findings-mention-safety-flags", mentionsSafety,
+        mentionsSafety ? "Safety flags mentioned in findings" : "No safety keywords in findings text");
     }
     audit.screenshots.push(await shot(page, "ph5_06_findings"));
 
@@ -1250,9 +1259,11 @@ test("PH-6: Pediatric PBPK — ibuprofen 5-cohort age scaling, CYP maturation, I
     // pbpk_pediatric: pediatric_pk_profiles.csv + cyp_maturation.csv + dose_recommendation.json
     if (runId) await assertOutputFiles(page, audit, "PH-6", runId, ['.csv', '.json'], payload);
 
-    const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
-    const findingsVisible = await findingsCard.isVisible({ timeout: 30_000 }).catch(() => false);
-    assert(audit, "findings-card-appeared", findingsVisible);
+    const findingsCard6 = page.locator('[data-testid="findings-card"]').first();
+    const findingsVisible6 = await findingsCard6.isVisible({ timeout: 180_000 }).catch(() => false);
+    console.log(`[PH-6] findings-card visible: ${findingsVisible6}`);
+    assert(audit, "findings-card-appeared", findingsVisible6,
+      findingsVisible6 ? "FindingsCard rendered" : "No findings returned by /findings API within 180s");
     audit.screenshots.push(await shot(page, "ph6_06_findings"));
 
   } catch (err: any) {
@@ -1348,9 +1359,11 @@ test("PH-7: NONMEM PopPK — vancomycin 2-cmt FOCE-I, VPC, bootstrap (nlmixr2 fa
     console.log(`[PH-7] Quality tier: ${audit.qualityTier}`);
     assert(audit, "quality-tier-present", true); // observational
 
-    const findingsCard = page.locator('[data-testid="findings-card"], [data-testid="ai-analysis-panel"]').first();
-    const findingsVisible = await findingsCard.isVisible({ timeout: 30_000 }).catch(() => false);
-    assert(audit, "findings-card-appeared", findingsVisible);
+    const findingsCard7 = page.locator('[data-testid="findings-card"]').first();
+    const findingsVisible7 = await findingsCard7.isVisible({ timeout: 180_000 }).catch(() => false);
+    console.log(`[PH-7] findings-card visible: ${findingsVisible7}`);
+    assert(audit, "findings-card-appeared", findingsVisible7,
+      findingsVisible7 ? "FindingsCard rendered" : "No findings returned by /findings API within 180s");
     audit.screenshots.push(await shot(page, "ph7_07_findings"));
 
   } catch (err: any) {

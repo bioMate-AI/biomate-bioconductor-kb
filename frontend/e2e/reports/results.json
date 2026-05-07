@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -40,7 +42,9 @@
         "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/home/yzhang/biomate/frontend/e2e",
@@ -54,7 +58,9 @@
         "outputDir": "/home/yzhang/biomate/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "demo",
         "name": "demo",
         "testDir": "/home/yzhang/biomate/frontend/e2e",
@@ -75,389 +81,81 @@
   },
   "suites": [
     {
-      "title": "ux-workflow-panel-comprehensive.e2e.ts",
-      "file": "ux-workflow-panel-comprehensive.e2e.ts",
+      "title": "pharmacology-e2e.e2e.ts",
+      "file": "pharmacology-e2e.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "WP-1: workflow panel chrome — Tutorial button + Close button present",
+          "title": "PH-3: Survival Analysis KM — oncology trial design, HR table, O'Brien-Fleming boundaries",
           "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 2700000,
+              "timeout": 900000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 425936,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "[screenshot] /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/ph3_01_ready.png\n"
+                    },
+                    {
+                      "text": "[sendChat] page URL before: http://localhost:5000/\n"
+                    },
+                    {
+                      "text": "[sendChat] pressing Enter, text length=346\n"
+                    },
+                    {
+                      "text": "[sendChat] page URL 2s after send: http://localhost:5000/\n"
+                    },
+                    {
+                      "text": "[sendChat] URL after wait: http://localhost:5000/\n"
+                    },
+                    {
+                      "text": "[sendChat] response text length: 1690\n"
+                    },
+                    {
+                      "text": "[screenshot] /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/ph3_02_response.png\n"
+                    },
+                    {
+                      "text": "[screenshot] /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/ph3_03_card.png\n"
+                    },
+                    {
+                      "text": "[Audit] 0/2 → /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/audit_2026-05-07T04-02-07-731Z.json\n"
+                    }
+                  ],
+                  "stderr": [
+                    {
+                      "text": "[ASSERT FAIL] workflow-card-appeared\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-05-07T03:55:01.721Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/yzhang/biomate/frontend/e2e/test-results/pharmacology-e2e.e2e.ts-PH-3c006--O-Brien-Fleming-boundaries-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "92ec557910e95791d505-cc4025ff98ed4df4c936",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 120,
-          "column": 1
-        },
-        {
-          "title": "WP-2: wf-panel layout — panel-head, panel-body, panel-foot all present with data-tour",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-8c3b8d170c01d4880914",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 140,
-          "column": 1
-        },
-        {
-          "title": "WP-3: panel-head — status badge, workflow name, cancel/restart buttons present",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-447f1cb430c775936aca",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 185,
-          "column": 1
-        },
-        {
-          "title": "WP-4: phase-list present; at least one phase-group rendered",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-a732540357b31e267f03",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 206,
-          "column": 1
-        },
-        {
-          "title": "WP-5: run-footer — Confirm & Run button enabled and visible",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-d820e886ec3afb566ee1",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 225,
-          "column": 1
-        },
-        {
-          "title": "WP-6: tutorial tour — 9 steps, dot progress, Next/Back/Skip, localStorage flag",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-0b204aaebfe509202e51",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 244,
-          "column": 1
-        },
-        {
-          "title": "WP-7: tutorial tour — Skip button dismisses tour immediately",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-5de0447dbaa90e3dd7a0",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 320,
-          "column": 1
-        },
-        {
-          "title": "WP-8: tutorial tour — ArrowRight advances, Escape exits",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-aadb6f7e5b303dcfbb76",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 346,
-          "column": 1
-        },
-        {
-          "title": "WP-9: tutorial tour — Back button returns to previous step",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-e96adc1b80a3c4cd2675",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 372,
-          "column": 1
-        },
-        {
-          "title": "WP-10: alert CSS classes — .alert.err renders prereq checklist when prereqs fail",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-c43cf7adad52d767c8ca",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 401,
-          "column": 1
-        },
-        {
-          "title": "WP-11: QC settings section renders inside panel-body",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-a10df7d729d511fead25",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 431,
-          "column": 1
-        },
-        {
-          "title": "WP-12: watcher-bar has data-tour=\"watcher\" and pause/resume links",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-5fc54a42f67d097a5ad9",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 446,
-          "column": 1
-        },
-        {
-          "title": "WP-13: post-run — metrics-strip, results-links, findings-card visible after completion",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-1b914455e9a0c3f4e0ef",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 485,
-          "column": 1
-        },
-        {
-          "title": "WP-14: workflow-panel-close button hides the panel",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-1886e1788391ef5d8599",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 578,
-          "column": 1
-        },
-        {
-          "title": "WP-15: autofix-active-banner renders as .alert.info when visible",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-1add71762ff9b4bf3bc3",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 597,
-          "column": 1
-        },
-        {
-          "title": "WP-16: log strip is collapsible and .log-pre is present when expanded",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-22f66c1740f89fcd6631",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 631,
-          "column": 1
-        },
-        {
-          "title": "WP-18: real-time status tracking — phase cards update data-status during run",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-e4eafcc04817ebc22fff",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 660,
-          "column": 1
-        },
-        {
-          "title": "WP-19: step-level status transitions and output file view after step completion",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-c3fd656911e049673c9e",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 756,
-          "column": 1
-        },
-        {
-          "title": "WP-17: data-tour=\"chat-handoff\" anchor renders when panel is open with workflow message",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 2700000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "92ec557910e95791d505-2d49e1f3f2fd1842d34c",
-          "file": "ux-workflow-panel-comprehensive.e2e.ts",
-          "line": 853,
+          "id": "279d1ceb198b26a70539-df74694389f4b383a753",
+          "file": "pharmacology-e2e.e2e.ts",
+          "line": 935,
           "column": 1
         }
       ]
@@ -465,10 +163,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-04-28T16:02:28.824Z",
-    "duration": 84.92999999999995,
-    "expected": 0,
-    "skipped": 19,
+    "startTime": "2026-05-07T03:55:00.995Z",
+    "duration": 426780.626,
+    "expected": 1,
+    "skipped": 0,
     "unexpected": 0,
     "flaky": 0
   }
