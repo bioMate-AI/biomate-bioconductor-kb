@@ -71,7 +71,7 @@ _MULTI_TASK_CACHE_MAX = 128
 
 # Fastest/cheapest model per provider for lightweight classification calls.
 _FAST_CLASSIFICATION_MODELS: dict = {
-    'anthropic': 'claude-haiku-3-5',  # fallback only — Gemini Flash preferred
+    'anthropic': 'claude-haiku-4-5',  # fallback only — Gemini Flash preferred
     'gemini': 'gemini-3-flash-preview',
     'google': 'gemini-3-flash-preview',
     'openai': 'gpt-3.5-turbo',

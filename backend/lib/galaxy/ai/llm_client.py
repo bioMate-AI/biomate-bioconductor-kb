@@ -574,7 +574,7 @@ class LLMClient:
 CLAUDE_MODELS = [
     "claude-sonnet-4-5",             # Claude 4.5 Sonnet - Best balance
     "claude-opus-4-5",               # Claude 4.5 Opus - Most capable
-    "claude-haiku-3-5",              # Claude 3.5 Haiku - Fast & efficient
+    "claude-haiku-4-5",              # Claude 4.5 Haiku - Fast & efficient
 ]
 
 # Google Gemini models

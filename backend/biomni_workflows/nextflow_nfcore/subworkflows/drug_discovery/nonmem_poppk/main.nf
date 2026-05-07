@@ -937,21 +937,21 @@ fit <- nlmixr2(pk_model, dat, est = fit_method, control = control_args)
 # -----------------------------------------------------------------------
 # Extract parameters
 # -----------------------------------------------------------------------
-theta_names <- rownames(fit\\$fixef)
-theta_est   <- as.numeric(fit\\$fixef)
-theta_se    <- tryCatch(sqrt(diag(fit\\$covFixed)), error = function(e) rep(NA, length(theta_est)))
+theta_names <- rownames(fit\$fixef)
+theta_est   <- as.numeric(fit\$fixef)
+theta_se    <- tryCatch(sqrt(diag(fit\$covFixed)), error = function(e) rep(NA, length(theta_est)))
 
-omega_mat   <- fit\\$omega
+omega_mat   <- fit\$omega
 omega_diag  <- diag(omega_mat)
 
-ofv  <- fit\\$objf
+ofv  <- fit\$objf
 aic  <- AIC(fit)
 bic  <- BIC(fit)
-n_s  <- length(unique(dat\\$ID))
-n_o  <- sum(dat\\$EVID == 0 & dat\\$MDV == 0)
+n_s  <- length(unique(dat\$ID))
+n_o  <- sum(dat\$EVID == 0 & dat\$MDV == 0)
 
 # ETA shrinkage
-shrink_vals <- tryCatch(fit\\$etaShrink, error = function(e) rep(NA, length(omega_diag)))
+shrink_vals <- tryCatch(fit\$etaShrink, error = function(e) rep(NA, length(omega_diag)))
 
 # -----------------------------------------------------------------------
 # Write poppk_results.json
@@ -966,7 +966,7 @@ results <- list(
   bic               = round(bic, 3),
   theta_estimates   = round(theta_est, 4),
   omega_estimates   = round(as.numeric(omega_diag), 4),
-  sigma_estimates   = tryCatch(round(fit\\$sigma\\$estimate, 4), error = function(e) list()),
+  sigma_estimates   = tryCatch(round(fit\$sigma\$estimate, 4), error = function(e) list()),
   theta_se          = round(as.numeric(theta_se), 4),
   shrinkage_pct     = round(as.numeric(shrink_vals) * 100, 1),
   n_subjects        = n_s,
@@ -1005,11 +1005,11 @@ write.csv(rbind(param_df, omega_df), 'parameter_table.csv', row.names = FALSE)
 # Write eta_distribution.csv
 # -----------------------------------------------------------------------
 eta_df <- tryCatch({{
-  e <- as.data.frame(fit\\$eta)
-  e\\$ID <- rownames(e)
+  e <- as.data.frame(fit\$eta)
+  e\$ID <- rownames(e)
   e[, c('ID', setdiff(names(e), 'ID'))]
 }}, error = function(err) {{
-  data.frame(ID = unique(dat\\$ID), ETA_1 = NA, ETA_2 = NA)
+  data.frame(ID = unique(dat\$ID), ETA_1 = NA, ETA_2 = NA)
 }})
 write.csv(eta_df, 'eta_distribution.csv', row.names = FALSE)
 
