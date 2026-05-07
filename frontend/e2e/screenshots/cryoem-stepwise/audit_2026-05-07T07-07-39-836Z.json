@@ -1,0 +1,64 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-05-07T07:07:39.837Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-3",
+      "runId": "39c9271f-9463-4fdc-9fb0-098337f6c4c0",
+      "startTs": 1778137522580,
+      "endTs": 1778137659713,
+      "finalStatus": "failed",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [
+        {
+          "phaseId": "all",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        }
+      ],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "cancel-btn-visible-during-run",
+          "passed": false
+        },
+        {
+          "name": "run-reached-terminal-state",
+          "passed": true
+        },
+        {
+          "name": "phase-card-statuses-updated-after-run",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_02_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_03_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_04_failed.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_05_file_lists.png"
+      ]
+    }
+  ]
+}

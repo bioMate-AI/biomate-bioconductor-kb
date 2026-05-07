@@ -1,0 +1,36 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-05-07T14:37:06.665Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-3",
+      "runId": null,
+      "startTs": 1778164484710,
+      "endTs": 1778164626518,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_02_running.png"
+      ]
+    }
+  ]
+}

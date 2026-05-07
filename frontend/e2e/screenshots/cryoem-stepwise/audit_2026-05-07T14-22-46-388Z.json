@@ -1,0 +1,124 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-05-07T14:22:46.388Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-3",
+      "runId": "f8956027-fca8-49a5-a003-e155892d4aed",
+      "startTs": 1778163629213,
+      "endTs": 1778163766274,
+      "finalStatus": "failed",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [
+        {
+          "phaseId": "A",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "B",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "C",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "D",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "E",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "other",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": "pending",
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        }
+      ],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "cancel-btn-visible-during-run",
+          "passed": false
+        },
+        {
+          "name": "run-reached-terminal-state",
+          "passed": true
+        },
+        {
+          "name": "phase-card-statuses-updated-after-run",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_02_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_03_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_04_failed.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_05_file_lists.png"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-05-07T06:20:56.834Z",
+  "passed": 1,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-14",
+      "runId": "013ee360-4790-44ed-9d75-c8798ebf146a",
+      "startTs": 1778134730555,
+      "endTs": 1778134856669,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "error": "pollToTerminal is not defined"
+    }
+  ]
+}
