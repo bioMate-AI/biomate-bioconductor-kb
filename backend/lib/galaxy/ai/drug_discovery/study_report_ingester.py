@@ -68,8 +68,8 @@ _LOAEL_PATTERN = re.compile(
     re.I,
 )
 _LD50_PATTERN = re.compile(
-    r"(?:LD50|LD-50|lethal dose[^.]{0,30}50|approximate lethal dose|"
-    r"MTD|maximum tolerated dose|MLD|minimum lethal dose)[^.]{0,100}"
+    r"(?:LD50|LD-50|lethal dose[^.]{0,30}?50|approximate lethal dose|"
+    r"MTD|maximum tolerated dose|MLD|minimum lethal dose)[^.]{0,100}?"
     r"(\d[\d,]*(?:\.\d+)?)\s*(mg/kg(?:/day)?|µg/kg|g/kg|mg/m[²2])",
     re.I,
 )
