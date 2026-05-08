@@ -387,3 +387,21 @@ workflow POCKET_DETECTION_DRUGGABILITY {
 
 workflow {
     log_workflow_header()
+
+    if (!params.pdb_input) {
+        error "params.pdb_input is required — local path, s3:// URI, or 4-letter PDB ID (RCSB fetch)"
+    }
+
+    def raw = params.pdb_input.toString().trim()
+    // PDB ID (4 chars, case-insensitive) → RCSB HTTPS; else local / s3:// path.
+    // Nextflow/Groovy: avoid PCRE lookaheads in ==~ (DSL parser rejects some patterns).
+    def ru = raw.toUpperCase()
+    if (ru ==~ /^[0-9][A-Z0-9]{3}$/) {
+        def pdb_uri = "https://files.rcsb.org/download/${ru}.pdb"
+        ch_structures = Channel.of([[id: ru], file(pdb_uri)])
+    } else {
+        ch_structures = Channel.of([[id: 'structure'], file(raw)])
+    }
+
+    POCKET_DETECTION_DRUGGABILITY(ch_structures)
+}
