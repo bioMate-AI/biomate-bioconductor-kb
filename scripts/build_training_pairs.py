@@ -247,9 +247,13 @@ SECTION_KEYWORDS = {
     "pbpk":           ["pbpk", "within 2-fold", "ema criterion", "physiologically based",
                        "aafe", " afe ", "pharmacokinetic modelling and simulation"],
     "admet":          ["admet", "herg", "dili", "ames", "safety gate", "admet-ai", "screening"],
-    "tox_overview":   ["toxicology overview", "nonclinical toxicology", "genotoxicity", "carcinogenicity"],
+    "tox_overview":   ["toxicology overview", "nonclinical toxicology", "genotoxicity",
+                       "carcinogenicity study", "carcinogenic potential", "tumorigenic", "reproductive toxicol",
+                       "embryofetal", "2-year carcinogenicity", "104-week", "repeat-dose toxicol"],
     "tox_cardiac":    ["cardiac safety", "herg channel", "qt interval", "s7b"],
-    "tox_genotox":    ["genotoxicity", "ames test", "mutagenicity", "chromosomal", "s2(r1)"],
+    "tox_genotox":    ["genotoxicity", "ames test", "mutagenicity", "mutagenic activity",
+                       "chromosomal aberration", "s2(r1)", "bacterial reverse mutation",
+                       "micronucleus", "clastogenic", "in vitro genotox"],
     "pk_overview":    ["pharmacokinetics overview", "absorption", "distribution", "metabolism",
                        "excretion", "clearance", "half-life", "bioavailability", "volume of distribution"],
     "overview":       ["computational methods", "bayesian", "admet screening", "pbpk simulation", "integrated platform"],
@@ -257,11 +261,37 @@ SECTION_KEYWORDS = {
     "prioritization": ["bayesian optimization", "lead candidate", "compound ranking", "composite score"],
 }
 
+# Phrases that, when present near the start of a text, indicate it is a
+# carcinogenicity section rather than a pure genotoxicity section.
+# These headings appear in FDA label section 13.1 and EMA study summaries.
+_CARCINOGENICITY_HEADING_RE = re.compile(
+    r"\b(?:carcinogen(?:esis|icity|ic)|2[\-\s]year.*(?:rat|mouse)|"
+    r"104[\-\s]week|chronic.*(?:rat|mouse)|tumorigenicit)",
+    re.I,
+)
+
 def classify_section(text: str) -> str:
     text_lower = text.lower()
     scores = {stype: sum(1 for kw in kws if kw in text_lower) for stype, kws in SECTION_KEYWORDS.items()}
     best = max(scores, key=scores.get)
-    return best if scores[best] > 0 else "overview"
+    if scores[best] == 0:
+        return "overview"
+
+    # Disambiguation: if the top score is tox_genotox but the text is dominated by
+    # carcinogenicity content (common with FDA label "13.1 Carcinogenesis, Mutagenesis"
+    # headings), reclassify as tox_overview so the guarantee adds the right citations.
+    if best == "tox_genotox":
+        # Check first 300 chars for carcinogenicity heading
+        head = text[:300]
+        carcino_hits = len(_CARCINOGENICITY_HEADING_RE.findall(head))
+        genotox_hits = sum(1 for kw in ["ames test", "bacterial reverse mutation",
+                                         "micronucleus", "chromosomal aberration",
+                                         "s2(r1)", "ichs2", "genotox"]
+                           if kw in text_lower[:300])
+        if carcino_hits > 0 and genotox_hits == 0:
+            return "tox_overview"
+
+    return best
 
 # ─── Task 1: Section generation pairs ─────────────────────────────────────────
 
@@ -762,13 +792,21 @@ REGION_ADDITIONS = {
         "pbpk": "The PBPK model qualification meets the EMA criterion (EMA/CHMP/EWP/37498/2011) of ≥67% predictions within 2-fold of observed for both Cmax and AUC.",
         "tox_cardiac": "hERG liability was assessed per ICH S7B(R1) Step 4 (November 2024), which formally endorses in silico hERG screening for pre-IND prioritization.",
         "admet": "DILI risk assessment follows EMA DILI Reflection Paper (EMEA/CHMP/HMPC/700003/2012) Tier 1 screening criteria.",
+        "tox_genotox": "Genotoxicity studies were conducted per ICH S2(R1) as adopted by EMA/CHMP/126642/2011. The standard battery is considered sufficient to support first-in-human dosing per EMA CHMP guidance.",
+        "tox_overview": "The nonclinical toxicology package was designed per the EMA guideline on non-clinical documentation for mixed marketing applications (EMA/CHMP/SWP/799345/2016) and ICH M3(R2) phase-gating requirements.",
+        "pk_overview": "Pharmacokinetic studies were conducted in compliance with EMA Guideline on Pharmacokinetics (EMA/CPMP/EWP/QWP/1401/98) and ICH M3(R2).",
+        "overview": "This nonclinical overview was prepared per ICH M4S(R2) and the EMA guideline on the non-clinical safety studies required before first administration of new pharmaceuticals to humans.",
     },
     "NMPA": {
         "overview": "All nonclinical studies were conducted or will be conducted at GLP-accredited facilities in compliance with NMPA Announcement No. 35 (2019).",
         "pk_overview": "Ethnic sensitivity analysis per ICH E5 indicates CYP2C19 polymorphism frequencies in the Chinese population (poor metabolizer prevalence 14–21%) may result in higher exposure in this subgroup; bridging PK studies in Chinese subjects are planned.",
+        "tox_genotox": "Genotoxicity studies were conducted per ICH S2(R1) as adopted by NMPA. Bacterial reverse mutation and chromosomal aberration assays were performed at NMPA-certified GLP facilities per Announcement No. 35 (2019).",
+        "tox_overview": "The nonclinical safety package satisfies NMPA Technical Guidelines for Nonclinical Safety Evaluation (2018) phase-appropriate requirements. GLP compliance for all pivotal studies was verified per NMPA Announcement No. 35 (2019).",
     },
     "PMDA": {
         "pk_overview": "Ethnic bridging assessment per ICH E5 and PMDA Notification 0601-1 evaluated CYP2C19 and CYP2D6 polymorphism frequencies in the Japanese population. The predicted exposure differences fall within the acceptable range and do not require separate Japanese clinical pharmacology studies at this stage.",
+        "tox_genotox": "Genotoxicity studies satisfy PMDA requirements per ICH S2(R1) and PMDA Notification 0924-1. The standard battery (Ames test, chromosomal aberration, in vivo micronucleus) is accepted for IND support in Japan without additional studies.",
+        "tox_overview": "The nonclinical safety package was designed per PMDA Guidance on Nonclinical Safety Studies and ICH M3(R2) phase-gating requirements applicable to Japanese IND submissions.",
     },
 }
 
