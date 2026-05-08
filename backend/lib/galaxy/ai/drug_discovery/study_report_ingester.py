@@ -156,6 +156,22 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
     if len(full_text) < 100:
         return {"error": "PDF appears to be scanned/image-only — text extraction not possible"}
 
+    # Detect multi-study review documents (FDA PharmR / NDA review) — these require
+    # different handling; the single-study ingester will produce unreliable results.
+    _MULTI_STUDY_MARKERS = re.compile(
+        r"\b(?:pharmacology review|integrated summary of safety|"
+        r"nda\s+\d{6}|nonclinical overview|clinical pharmacology review|"
+        r"reviewer:\s+[A-Z][a-z]+\s+[A-Z]|office of\s+(?:new|generic) drugs)\b",
+        re.I,
+    )
+    multi_study_hits = len(_MULTI_STUDY_MARKERS.findall(full_text[:3000]))
+    if multi_study_hits >= 2:
+        return {"error": (
+            "This appears to be an FDA review document or integrated safety summary, "
+            "not a single GLP study report. Upload individual GLP study reports "
+            "(Ames test, repeat-dose, single-dose, etc.) for structured extraction."
+        )}
+
     # Classification from full text
     study_type = _classify_study_type(full_text)
 
@@ -176,10 +192,13 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
     if noael_m:
         raw = noael_m.group(1).replace(",", "")
         try:
-            noael = float(raw)
+            val = float(raw)
+            # Sanity check: NOAEL must be a positive, plausible dose (>0.001 mg/kg)
+            if val > 0.001:
+                noael = val
         except ValueError:
             pass
-        noael_unit = noael_m.group(2)
+        noael_unit = noael_m.group(2) if noael is not None else None
 
     # Duration
     duration = None
