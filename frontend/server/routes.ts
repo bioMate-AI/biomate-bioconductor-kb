@@ -7833,25 +7833,8 @@ ${paramLines || '(none recorded)'}`;
       if (request.workflowDefinition.workflow_type === 'cryosparc' && hasCryoSPARCInstance) {
         console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc (instance configured)');
 
-        // Require user's own CryoSPARC license key — fetched via userProxy so auth is consistent
-        // with how credentials are stored (no Galaxy API key required for BioMate-only users).
-        let userLicenseKey: string | null = null;
         try {
-          const credResp = await userProxy(req).client.get('/api/users/credentials/cryosparc/value');
-          userLicenseKey = credResp.data?.data?.license_key || null;
-        } catch (_credErr: any) {
-          console.warn('[CryoSPARC Direct] credential fetch failed:', _credErr?.response?.status, _credErr?.message);
-        }
-
-        if (!userLicenseKey) {
-          return res.status(402).json({
-            error: 'cryosparc_license_required',
-            message: 'A CryoSPARC license key is required. Add yours at Settings → Credentials → CryoSPARC.',
-          });
-        }
-
-        try {
-          // Build CryoSPARC params — also extract movies_path/pixel_size/num_movies from
+          // Build CryoSPARC params first — extract movies_path/pixel_size/num_movies from
           // the raw user message so S3-staged data flows through even when workflow schema
           // doesn't define a movies_path parameter.
           const csParams: Record<string, any> = { ...(request.workflowDefinition.parameters || {}) };
@@ -7863,7 +7846,6 @@ ${paramLines || '(none recorded)'}`;
               console.log('[CryoSPARC Direct] Extracted movies_path from userContext:', csParams.movies_path);
             }
           }
-          // Also extract pixel_size and num_movies if not already set
           if (!csParams.pixel_size) {
             const m = userCtx.match(/pixel_size\s*=\s*([\d.]+)/);
             if (m) csParams.pixel_size = parseFloat(m[1]);
@@ -7871,6 +7853,29 @@ ${paramLines || '(none recorded)'}`;
           if (!csParams.num_movies) {
             const m = userCtx.match(/num_movies\s*=\s*(\d+)/);
             if (m) csParams.num_movies = parseInt(m[1], 10);
+          }
+
+          // Resolve CryoSPARC license key — priority:
+          //   1. Credential store (user-specific, stored via Settings → Credentials)
+          //   2. License key in workflow params (user typed it in chat: cryosparc_license=<key>)
+          //   3. CRYOSPARC_LICENSE env var (dev/E2E fallback)
+          let userLicenseKey: string | null = null;
+          try {
+            const credResp = await userProxy(req).client.get('/api/users/credentials/cryosparc/value');
+            userLicenseKey = credResp.data?.data?.license_key || null;
+          } catch (_credErr: any) {
+            console.warn('[CryoSPARC Direct] credential store unavailable:', _credErr?.response?.status || _credErr?.message);
+          }
+          if (!userLicenseKey) {
+            userLicenseKey = (csParams.cryosparc_license as string) || process.env.CRYOSPARC_LICENSE || null;
+          }
+          delete csParams.cryosparc_license; // don't pass license key as a pipeline param
+
+          if (!userLicenseKey) {
+            return res.status(402).json({
+              error: 'cryosparc_license_required',
+              message: 'A CryoSPARC license key is required. Add yours at Settings → Credentials → CryoSPARC.',
+            });
           }
 
           const cryosparcResponse = await fetch(

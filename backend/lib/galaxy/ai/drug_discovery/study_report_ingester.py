@@ -58,12 +58,12 @@ _ROUTE_PATTERN = re.compile(
     re.I,
 )
 _NOAEL_PATTERN = re.compile(
-    r"(?:NOAEL|no.?observed.?adverse.?effect.?level)[^.]{0,150}"
+    r"(?:NOAEL|no.?observed.?adverse.?effect.?level)[^.]{0,150}?"
     r"(\d[\d,]*(?:\.\d+)?)\s*(mg/kg(?:/day)?|µg/kg|g/kg|mg/m[²2]|mmol/kg)",
     re.I,
 )
 _LOAEL_PATTERN = re.compile(
-    r"(?:LOAEL|lowest.?observed.?adverse.?effect.?level)[^.]{0,150}"
+    r"(?:LOAEL|lowest.?observed.?adverse.?effect.?level)[^.]{0,150}?"
     r"(\d[\d,]*(?:\.\d+)?)\s*(mg/kg(?:/day)?|µg/kg|g/kg)",
     re.I,
 )
