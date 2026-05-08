@@ -7786,11 +7786,10 @@ ${paramLines || '(none recorded)'}`;
       const engineSuffix = executionEngine === 'nextflow' ? ' [Nextflow]' : '';
       const historyName = `${historyPrefix}${engineSuffix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
 
-      // Create Galaxy history — skip for Nextflow (uses its own tracking; Galaxy history is metadata only)
-      if (executionEngine !== 'nextflow') {
-        galaxyHistoryId = await userProxy(req).createHistory(historyName);
+      // Create Galaxy history — skip for Nextflow and CryoSPARC (both use their own tracking)
+      if (executionEngine !== 'nextflow' && executionEngine !== 'cryosparc') {
+        galaxyHistoryId = await userProxy(req).createHistory(historyName).catch(() => `nf-${executionRun.id}`);
       } else {
-        // For Nextflow, generate a placeholder history ID so downstream code has something to log
         galaxyHistoryId = `nf-${executionRun.id}`;
       }
 
@@ -7833,18 +7832,14 @@ ${paramLines || '(none recorded)'}`;
       if (request.workflowDefinition.workflow_type === 'cryosparc' && hasCryoSPARCInstance) {
         console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc (instance configured)');
 
-        // Require user's own CryoSPARC license key — fetched from the existing credential store
-        const _rawKey7268 = (req.user as any)?.galaxyApiKey as string | undefined;
-        const userGalaxyKey = _rawKey7268 ? decryptField(_rawKey7268) : '';
-        const credResp = await fetch(
-          `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/users/credentials/cryosparc/value`,
-          { headers: { 'X-API-Key': userGalaxyKey } }
-        ).catch(() => null);
-
+        // Require user's own CryoSPARC license key — fetched via userProxy so auth is consistent
+        // with how credentials are stored (no Galaxy API key required for BioMate-only users).
         let userLicenseKey: string | null = null;
-        if (credResp?.ok) {
-          const credData = await credResp.json().catch(() => null);
-          userLicenseKey = credData?.data?.license_key || null;
+        try {
+          const credResp = await userProxy(req).client.get('/api/users/credentials/cryosparc/value');
+          userLicenseKey = credResp.data?.data?.license_key || null;
+        } catch (_credErr: any) {
+          console.warn('[CryoSPARC Direct] credential fetch failed:', _credErr?.response?.status, _credErr?.message);
         }
 
         if (!userLicenseKey) {
