@@ -29,7 +29,12 @@ import threading
 from datetime import datetime, timezone
 from typing import Optional
 
-import redis
+try:
+    import redis
+    _REDIS_AVAILABLE = True
+except ImportError:
+    redis = None  # type: ignore[assignment]
+    _REDIS_AVAILABLE = False
 
 from .cost_calculator import CostCalculator
 
@@ -53,6 +58,8 @@ class RealtimeCostService:
     """
 
     def __init__(self, redis_url: str = REDIS_URL):
+        if not _REDIS_AVAILABLE:
+            raise RuntimeError("redis package not installed; install it with pip install redis")
         self._r = redis.from_url(
             redis_url,
             decode_responses=True,
