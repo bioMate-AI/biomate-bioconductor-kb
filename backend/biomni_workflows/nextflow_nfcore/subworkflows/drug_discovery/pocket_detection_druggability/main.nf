@@ -393,7 +393,7 @@ workflow {
     }
 
     def raw = params.pdb_input.toString().trim()
-    // PDB ID (4 chars, case-insensitive) → RCSB HTTPS; else local / s3:// path.
+    // PDB ID (4 chars) → RCSB .pdb HTTPS. Many newer entries are mmCIF-only (404 on .pdb) — use s3:// or local PDB from cif_to_pdb.
     // Nextflow/Groovy: avoid PCRE lookaheads in ==~ (DSL parser rejects some patterns).
     def ru = raw.toUpperCase()
     if (ru ==~ /^[0-9][A-Z0-9]{3}$/) {
