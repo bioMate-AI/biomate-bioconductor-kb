@@ -5533,7 +5533,7 @@ ${paramLines || '(none recorded)'}`;
   app.get("/api/workflows/license-requirements", optionalAuth, async (req, res) => {
     try {
       const proxy = userProxy(req);
-      const response = await proxy.client.get('/api/workflows/license-requirements', { params: req.query });
+      const response = await proxy.client.get('/api/nextflow/license-requirements', { params: req.query });
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7786,10 +7786,11 @@ ${paramLines || '(none recorded)'}`;
       const engineSuffix = executionEngine === 'nextflow' ? ' [Nextflow]' : '';
       const historyName = `${historyPrefix}${engineSuffix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
 
-      // Create Galaxy history — skip for Nextflow and CryoSPARC (both use their own tracking)
-      if (executionEngine !== 'nextflow' && executionEngine !== 'cryosparc') {
+      // Create Galaxy history — skip for Nextflow (uses its own tracking; Galaxy history is metadata only)
+      if (executionEngine !== 'nextflow') {
         galaxyHistoryId = await userProxy(req).createHistory(historyName).catch(() => `nf-${executionRun.id}`);
       } else {
+        // For Nextflow, generate a placeholder history ID so downstream code has something to log
         galaxyHistoryId = `nf-${executionRun.id}`;
       }
 

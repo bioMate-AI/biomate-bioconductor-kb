@@ -174,7 +174,7 @@ class StoreCredentialRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get(
-    "/api/workflows/license-requirements",
+    "/api/nextflow/license-requirements",
     summary="List license requirements for a workflow",
 )
 def get_license_requirements(
