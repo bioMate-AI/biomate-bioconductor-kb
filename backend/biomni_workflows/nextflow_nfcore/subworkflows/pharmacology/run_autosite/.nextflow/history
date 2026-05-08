@@ -1,0 +1,1 @@
+2026-05-08 02:45:19	2.1s	loquacious_hodgkin	ERR	dddbf3efe8adf2ebd77f7e649ddbf0c1	70d02c9a-2316-4312-b5ff-cb542cbd52ca	nextflow run . -profile docker --pdb_file /home/yzhang/biomate/research/anti-virus/runs/20260507_autosite_prep/9P3I.pdb --output_dir ./autosite_work --outdir /home/yzhang/biomate/research/anti-virus/runs/20260507_autosite_nf -resume

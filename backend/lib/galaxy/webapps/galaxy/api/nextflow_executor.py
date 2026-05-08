@@ -743,6 +743,7 @@ def _is_path_param(key: str, value: Any) -> bool:
     _NON_PATH_KEYS = frozenset({
         "publish_dir_mode", "save_merged_fastq", "publish_dir",
         "outdir_mode", "output_mode", "copy_mode", "dir_mode",
+        "output_dir",  # Nextflow task-relative scratch dir; not validated on API server disk
         "sample_id", "sample_name", "genome_build", "genome_name",
         # CryoSPARC remote paths — exist on EC2 instance, not local disk
         "cryosparc_project_dir", "cryosparc_host", "cryosparc_email",

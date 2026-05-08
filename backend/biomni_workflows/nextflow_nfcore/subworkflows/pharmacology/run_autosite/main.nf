@@ -37,6 +37,12 @@ process RUN_AUTOSITE {
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: './autosite_results'}"
     export PARAM_SPACING="${params.spacing?.toString()?.replace('"', '\\"') ?: '1.0'}"
 
+    # AWS Batch / S3 inputs: embedded Python only checks os.path.exists — stage s3:// to a local path first.
+    if [[ -n "\$PARAM_PDB_FILE" && "\$PARAM_PDB_FILE" != "null" && "\$PARAM_PDB_FILE" == s3://* ]]; then
+      aws s3 cp "\$PARAM_PDB_FILE" ./staged_receptor.pdb
+      export PARAM_PDB_FILE="\$(pwd)/staged_receptor.pdb"
+    fi
+
     python3 << 'PYEOF'
 import os
 import json
