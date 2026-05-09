@@ -249,6 +249,22 @@ def _regulatory_guardrails(
         out = out + f" [Applicable guidelines: {citation_str}.]"
         warnings_out.append(f"CITATION_INJECTED: {citation_str}")
 
+    # 2b. Citation grounding check (retrieval-based)
+    # Verify that cited guidelines actually cover the adjacent claim.
+    # Only runs if rank_bm25 + PyMuPDF are available; silently skips otherwise.
+    try:
+        from .ich_corpus import get_ich_corpus
+        corpus = get_ich_corpus()
+        results = corpus.verify_all_citations(out, section_type)
+        for r in results:
+            if not r.grounded and r.method != "unavailable":
+                warnings_out.append(
+                    f"CITATION_UNGROUNDED: '{r.citation}' — claim not supported "
+                    f"by guideline text (score={r.score:.2f})"
+                )
+    except Exception:
+        pass  # Never block generation on corpus check failure
+
     # 3. Length guard
     word_count = len(out.split())
     if word_count < 150:
