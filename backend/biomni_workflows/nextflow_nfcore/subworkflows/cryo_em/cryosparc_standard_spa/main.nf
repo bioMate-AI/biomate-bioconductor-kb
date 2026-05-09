@@ -103,66 +103,6 @@ params.particle_blob_path   = ""             // base dir for resolving STAR file
 // When set, INIT creates one workspace+import_movies job per batch → true parallel motion correction.
 params.movie_batch_dirs     = ""             // JSON string; empty = single-workspace fallback
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-def estimate_particle_diameter(mw_kda) {
-    // Empirical formula: diameter (Å) ≈ 6.8 × (MW in kDa)^(1/3)
-    if (mw_kda == null) return null
-    return (6.8 * Math.pow(mw_kda, 1.0/3.0)).round(1)
-}
-
-def estimate_box_size(diameter_angstroms, pixel_size) {
-    // Box should be 1.5-2x particle diameter, rounded to nearest power of 2
-    if (diameter_angstroms == null) return 256 // Default
-    def min_box = diameter_angstroms * 1.8 / pixel_size
-    def powers = [64, 96, 128, 192, 256, 320, 384, 440, 512, 640, 768, 896, 1024]
-    return powers.find { it >= min_box } ?: 256
-}
-
-def get_sample_recommendations(sample_type) {
-    // Context-aware parameter recommendations based on sample type
-    def recommendations = [
-        membrane_protein: [
-            num_2d_classes: 100,
-            class_similarity_threshold: 0.3,
-            ab_initio_iterations: 100,
-            refinement_mask_threshold: 0.5,
-            notes: 'Membrane proteins have detergent micelle, need more classes'
-        ],
-        virus: [
-            num_2d_classes: 50,
-            class_similarity_threshold: 0.2,
-            ab_initio_iterations: 50,
-            refinement_mask_threshold: 0.4,
-            notes: 'Virus particles are symmetric and homogeneous'
-        ],
-        ribosome: [
-            num_2d_classes: 200,
-            class_similarity_threshold: 0.4,
-            ab_initio_iterations: 150,
-            refinement_mask_threshold: 0.35,
-            notes: 'Ribosomes show conformational heterogeneity'
-        ],
-        small_protein: [
-            num_2d_classes: 100,
-            class_similarity_threshold: 0.25,
-            ab_initio_iterations: 100,
-            refinement_mask_threshold: 0.45,
-            notes: 'Small proteins may have lower SNR, need more averaging'
-        ],
-        unknown: [
-            num_2d_classes: 100,
-            class_similarity_threshold: 0.3,
-            ab_initio_iterations: 100,
-            refinement_mask_threshold: 0.4,
-            notes: 'Default conservative settings'
-        ]
-    ]
-    return recommendations[sample_type] ?: recommendations['unknown']
-}
-
 // ECR image with cryosparc-tools + boto3 for all real-mode processes
 CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
 
@@ -399,6 +339,66 @@ CS_HELPER = '''
 
         return downloaded
 '''
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+def estimate_particle_diameter(mw_kda) {
+    // Empirical formula: diameter (Å) ≈ 6.8 × (MW in kDa)^(1/3)
+    if (mw_kda == null) return null
+    return (6.8 * Math.pow(mw_kda, 1.0/3.0)).round(1)
+}
+
+def estimate_box_size(diameter_angstroms, pixel_size) {
+    // Box should be 1.5-2x particle diameter, rounded to nearest power of 2
+    if (diameter_angstroms == null) return 256 // Default
+    def min_box = diameter_angstroms * 1.8 / pixel_size
+    def powers = [64, 96, 128, 192, 256, 320, 384, 440, 512, 640, 768, 896, 1024]
+    return powers.find { it >= min_box } ?: 256
+}
+
+def get_sample_recommendations(sample_type) {
+    // Context-aware parameter recommendations based on sample type
+    def recommendations = [
+        membrane_protein: [
+            num_2d_classes: 100,
+            class_similarity_threshold: 0.3,
+            ab_initio_iterations: 100,
+            refinement_mask_threshold: 0.5,
+            notes: 'Membrane proteins have detergent micelle, need more classes'
+        ],
+        virus: [
+            num_2d_classes: 50,
+            class_similarity_threshold: 0.2,
+            ab_initio_iterations: 50,
+            refinement_mask_threshold: 0.4,
+            notes: 'Virus particles are symmetric and homogeneous'
+        ],
+        ribosome: [
+            num_2d_classes: 200,
+            class_similarity_threshold: 0.4,
+            ab_initio_iterations: 150,
+            refinement_mask_threshold: 0.35,
+            notes: 'Ribosomes show conformational heterogeneity'
+        ],
+        small_protein: [
+            num_2d_classes: 100,
+            class_similarity_threshold: 0.25,
+            ab_initio_iterations: 100,
+            refinement_mask_threshold: 0.45,
+            notes: 'Small proteins may have lower SNR, need more averaging'
+        ],
+        unknown: [
+            num_2d_classes: 100,
+            class_similarity_threshold: 0.3,
+            ab_initio_iterations: 100,
+            refinement_mask_threshold: 0.4,
+            notes: 'Default conservative settings'
+        ]
+    ]
+    return recommendations[sample_type] ?: recommendations['unknown']
+}
 
 // ============================================================================
 // Process Definitions — Phase 0: CryoSPARC project initialisation (runs once)
