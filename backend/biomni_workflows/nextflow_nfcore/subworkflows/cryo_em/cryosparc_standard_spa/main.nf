@@ -164,13 +164,13 @@ def get_sample_recommendations(sample_type) {
 }
 
 // ECR image with cryosparc-tools + boto3 for all real-mode processes
-def CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
+CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
 
 // Shared Python helper emitted inline into every process script.
 // Uses cryosparc-tools library (same as cryosparc_executor.py) for v5-compatible
 // job creation: create_job() with no params body, then set_param() individually,
 // then queue().  IO alias fallbacks handle v4→v5 renamed group names.
-def CS_HELPER = '''
+CS_HELPER = '''
     import json, os, sys, time, warnings
     from cryosparc.tools import CryoSPARC
 
