@@ -3202,14 +3202,3 @@ workflow {
         """
     }
 }
-
-workflow.onComplete {
-    log.info """
-    ==================== BioMate CryoSPARC SPA Complete ====================
-    Status    : ${workflow.success ? 'SUCCESS' : 'FAILED'}
-    Duration  : ${workflow.duration}
-    CPU-hours : ${workflow.stats.computeTimeFmt}
-    Batches   : ${params.micrograph_batch_size} micrographs/batch
-    ========================================================================
-    """.stripIndent()
-}
