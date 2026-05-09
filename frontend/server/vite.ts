@@ -35,6 +35,13 @@ export async function setupVite(app: Express, server: any) {
       watch: {
         usePolling: true,
         interval: 300000,
+        ignored: [
+          "**/dist/**",
+          "**/e2e/test-results/**",
+          "**/e2e/screenshots/**",
+          "**/e2e/reports/**",
+          "**/playwright-report/**",
+        ],
       },
     },
     appType: "custom",
