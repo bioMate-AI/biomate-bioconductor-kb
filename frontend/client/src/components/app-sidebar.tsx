@@ -39,6 +39,7 @@ import {
   AlertCircle,
   Loader2,
   FlaskConical,
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -392,6 +393,9 @@ export function AppSidebar({
         </button>
         <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>IND Report</span>
+        </button>
+        <button className="side-link" data-testid="button-capabilities" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/capabilities')}>
+          <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Capabilities</span>
         </button>
       </div>
 

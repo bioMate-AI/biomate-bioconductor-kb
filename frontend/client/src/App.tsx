@@ -43,6 +43,7 @@ import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
+import CapabilitiesPage from "@/pages/capabilities";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
@@ -367,6 +368,12 @@ function Router({
         <AuthenticatedPageLayout>
           <IndReportPage />
         </AuthenticatedPageLayout>
+      </Route>
+
+      <Route path="/capabilities">
+        <PublicPageLayout>
+          <CapabilitiesPage />
+        </PublicPageLayout>
       </Route>
 
 {/* Root: platform for authenticated users, redirect to /login for guests */}

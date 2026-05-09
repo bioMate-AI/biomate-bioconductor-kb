@@ -9669,6 +9669,40 @@ Rules:
         };
       }
 
+      // ── Proactive follow-up suggestions for analyze endpoint ─────────────────
+      const _analyzeProactive: string[] = [];
+      const _analyzeText = [
+        String(analysis.summary || ''),
+        ...((analysis.key_findings as any[] || []).map((f: any) => `${f.finding || ''} ${f.significance || ''}`)),
+      ].join(' ');
+
+      const _isAdmetAnalyze = /admet|predict.*admet|admet.*properties/i.test(workflowName);
+      const _isRarediseaseAnalyze = /raredisease|longraredisease|rare.*disease/i.test(workflowName);
+
+      if (_isAdmetAnalyze) {
+        if (/herg|cardiotox|ic50.*<.*1\s*µm|cardiac.*liab/i.test(_analyzeText)) {
+          _analyzeProactive.push('Your compound has a hERG liability. I can run REINVENT4 in scaffold decoration mode with a hERG penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
+        } else if (/dili.*high|dili.*flag|dili.*risk|dili.*positive|hepatotox.*high/i.test(_analyzeText)) {
+          _analyzeProactive.push('Your compound has a DILI liability. I can run REINVENT4 in scaffold decoration mode with a DILI penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
+        } else if (/ames.*positive|ames.*flag|mutagen/i.test(_analyzeText)) {
+          _analyzeProactive.push('Your compound has an Ames mutagenicity liability. I can run REINVENT4 in scaffold decoration mode with an Ames penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
+        }
+      }
+
+      if (_isRarediseaseAnalyze && /variant|gene.*affect|pathogen|vus|causal|candidate/i.test(_analyzeText)) {
+        const _geneMatches = _analyzeText.match(/\b([A-Z][A-Z0-9]{1,9})\b/g) || [];
+        const _stopW = new Set(['FOUND','HIGH','LOW','PASS','FAIL','NULL','TRUE','FALSE','NONE','WITH','FROM','THAT','HAVE','BEEN','WERE','WILL','THEY','THIS','ALSO','DATA','FILE','PATH','STEP','NEXT','LAST','EACH','CALL','GENE','SNPS','INDEL']);
+        const _genes = [...new Set(_geneMatches.filter(g => !_stopW.has(g)))].slice(0, 5);
+        const _geneList = _genes.length > 0 ? _genes.join(', ') : 'the identified gene(s)';
+        _analyzeProactive.push(`I found variants in ${_geneList}. Would you like me to query TxGNN to identify approved drugs that may be repurposable for this condition? TxGNN covers 17,000 disease phenotypes and can surface existing approved drugs that target the affected pathways.`);
+      }
+
+      if (_analyzeProactive.length > 0) {
+        const _existingSteps: string[] = Array.isArray(analysis.next_steps) ? (analysis.next_steps as string[]) : [];
+        analysis.next_steps = [..._analyzeProactive, ..._existingSteps];
+      }
+      // ── End proactive follow-up suggestions ──────────────────────────────────
+
       res.json({
         success: true,
         analysis,
@@ -9968,6 +10002,72 @@ Respond ONLY with valid JSON (no markdown wrapper):
             }
             // Remove fabricated citations if the model included them despite instruction
             delete parsed.citations;
+
+            // ── Proactive follow-up suggestions ────────────────────────────────
+            // Inject domain-specific next-step offers based on workflow type and findings.
+            const proactiveSuggestions: string[] = [];
+
+            const wfNameLower = workflowName.toLowerCase();
+            const isAdmetWorkflow = /admet|predict.*admet|admet.*properties/i.test(workflowName);
+            const isRarediseaseWorkflow = /raredisease|longraredisease|rare.*disease/i.test(workflowName);
+
+            if (isAdmetWorkflow) {
+              // Check for hERG, DILI, or Ames flags in key_results or summary
+              const allText = [
+                parsed.summary || '',
+                ...(Array.isArray(parsed.key_results)
+                  ? parsed.key_results.map((kr: any) => `${kr.metric || ''} ${kr.value || ''} ${kr.interpretation || ''}`)
+                  : []),
+              ].join(' ').toLowerCase();
+
+              const hasHerg = /herg|cardiotox|ic50.*<.*1\s*µm|cardiac.*liab/i.test(allText);
+              const hasDili = /dili.*high|dili.*flag|dili.*risk|dili.*positive|hepatotox.*high|liver.*toxic.*high/i.test(allText);
+              const hasAmes = /ames.*positive|ames.*flag|mutagen/i.test(allText);
+
+              if (hasHerg) {
+                proactiveSuggestions.push(
+                  'Your compound has a hERG liability. I can run REINVENT4 in scaffold decoration mode with a hERG penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?'
+                );
+              } else if (hasDili) {
+                proactiveSuggestions.push(
+                  'Your compound has a DILI liability. I can run REINVENT4 in scaffold decoration mode with a DILI penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?'
+                );
+              } else if (hasAmes) {
+                proactiveSuggestions.push(
+                  'Your compound has an Ames mutagenicity liability. I can run REINVENT4 in scaffold decoration mode with an Ames penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?'
+                );
+              }
+            }
+
+            if (isRarediseaseWorkflow) {
+              // Check for affected genes in key_results or summary
+              const allText = [
+                parsed.summary || '',
+                ...(Array.isArray(parsed.key_results)
+                  ? parsed.key_results.map((kr: any) => `${kr.metric || ''} ${kr.value || ''} ${kr.interpretation || ''}`)
+                  : []),
+              ].join(' ');
+
+              // Extract gene symbols (e.g. BRCA1, TP53, TTN — uppercase 2-10 char words)
+              const geneMatches = allText.match(/\b([A-Z][A-Z0-9]{1,9})\b/g) || [];
+              // Filter plausible gene symbols (exclude common non-gene words)
+              const stopWords = new Set(['FOUND', 'HIGH', 'LOW', 'PASS', 'FAIL', 'NULL', 'TRUE', 'FALSE', 'NONE', 'WITH', 'FROM', 'INTO', 'THAT', 'HAVE', 'BEEN', 'WERE', 'WILL', 'THEY', 'THIS', 'ALSO', 'DATA', 'FILE', 'PATH', 'STEP', 'NEXT', 'LAST', 'EACH', 'CALL', 'GENE', 'SNPS', 'INDEL', 'HOMO', 'HETE', 'CODING', 'SPLICE']);
+              const genes = [...new Set(geneMatches.filter(g => !stopWords.has(g)))].slice(0, 5);
+
+              const hasVariants = /variant|gene.*affect|pathogen|vus|causal|candidate/i.test(allText);
+              if (hasVariants) {
+                const geneList = genes.length > 0 ? genes.join(', ') : 'the identified gene(s)';
+                proactiveSuggestions.push(
+                  `I found variants in ${geneList}. Would you like me to query TxGNN to identify approved drugs that may be repurposable for this condition? TxGNN covers 17,000 disease phenotypes and can surface existing approved drugs that target the affected pathways.`
+                );
+              }
+            }
+
+            if (proactiveSuggestions.length > 0) {
+              const existingSteps: string[] = Array.isArray(parsed.next_steps) ? parsed.next_steps : [];
+              parsed.next_steps = [...proactiveSuggestions, ...existingSteps];
+            }
+            // ── End proactive follow-up suggestions ─────────────────────────────
 
             _findingsCache.set(runId, parsed);
           } catch {
