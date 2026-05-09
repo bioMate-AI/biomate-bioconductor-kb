@@ -104,13 +104,13 @@ params.particle_blob_path   = ""             // base dir for resolving STAR file
 params.movie_batch_dirs     = ""             // JSON string; empty = single-workspace fallback
 
 // ECR image with cryosparc-tools + boto3 for all real-mode processes
-CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
+params.cs_image = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
 
 // Shared Python helper emitted inline into every process script.
 // Uses cryosparc-tools library (same as cryosparc_executor.py) for v5-compatible
 // job creation: create_job() with no params body, then set_param() individually,
 // then queue().  IO alias fallbacks handle v4→v5 renamed group names.
-CS_HELPER = '''
+params.cs_helper = '''
     import json, os, sys, time, warnings
     from cryosparc.tools import CryoSPARC
 
@@ -407,7 +407,7 @@ def get_sample_recommendations(sample_type) {
 process INIT_CRYOSPARC_PROJECT {
     tag "cs_init"
     publishDir "${params.outdir}/00_cs_init", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     val movies_path
@@ -419,7 +419,7 @@ process INIT_CRYOSPARC_PROJECT {
     if (params.use_cryosparc && !params.mock_mode)
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, time
 
     cs = cs_connect(
@@ -639,7 +639,7 @@ process INIT_CRYOSPARC_PROJECT {
 process SPLIT_INTO_BATCHES {
     tag "split_batches"
     publishDir "${params.outdir}/00_batch_split", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path cs_init_json      // from INIT_CRYOSPARC_PROJECT
@@ -679,7 +679,7 @@ process SPLIT_INTO_BATCHES {
 process PATCH_MOTION_CORRECTION_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/02_motion_correction/${batch_id}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(batch_id), val(batch_ws_uid), val(batch_import_uid), val(batch_num_movies)
@@ -695,7 +695,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
     def dose_weight = params.motion_correction_dose_weighting ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
     from pathlib import Path
@@ -824,7 +824,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
 process PATCH_CTF_ESTIMATION_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/03_ctf_estimation/${batch_id}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(batch_id), path(micrographs_cs)
@@ -838,7 +838,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -961,7 +961,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
 process BLOB_PICKER_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/05_blob_picker/${batch_id}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(batch_id), path(ctf_cs)
@@ -976,7 +976,7 @@ process BLOB_PICKER_BATCH {
     def diameter = params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -1036,7 +1036,7 @@ process BLOB_PICKER_BATCH {
 process EXTRACT_PARTICLES_R1_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/08_extract_round1/${batch_id}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(batch_id), path(ctf_cs)
@@ -1054,7 +1054,7 @@ process EXTRACT_PARTICLES_R1_BATCH {
     )
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json
     from datetime import datetime
 
@@ -1214,7 +1214,7 @@ process SPLIT_PARTICLE_BATCHES_R2 {
 process CLASSIFY_2D_R1_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/09_classify_2d_round1/${batch_id}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(batch_id), val(src_job_uid), val(src_num_items)
@@ -1232,7 +1232,7 @@ process CLASSIFY_2D_R1_BATCH {
     def num_classes = recommendations.num_2d_classes
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -1321,7 +1321,7 @@ process CLASSIFY_2D_R1_BATCH {
 process CLASSIFY_2D_R2_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/14_classify_2d_round2/${batch_id}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(batch_id), val(src_job_uid), val(src_num_items)
@@ -1339,7 +1339,7 @@ process CLASSIFY_2D_R2_BATCH {
     def num_classes = recommendations.num_2d_classes
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -1403,7 +1403,7 @@ process CLASSIFY_2D_R2_BATCH {
 process AB_INITIO_BATCH {
     tag "ab_initio_k${k}"
     publishDir "${params.outdir}/16_ab_initio/model_${k}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(k), path(particles_cs)
@@ -1417,7 +1417,7 @@ process AB_INITIO_BATCH {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -1488,7 +1488,7 @@ process AB_INITIO_BATCH {
 process HOMO_REFINEMENT_BATCH {
     tag "refine_${vol_name}"
     publishDir "${params.outdir}/17_homogeneous_refinement/${vol_name}", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     tuple val(vol_name), path(volume_cs)
@@ -1505,7 +1505,7 @@ process HOMO_REFINEMENT_BATCH {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -1728,7 +1728,7 @@ process MERGE_CLASSES {
 process PARTICLES_AS_R1 {
     tag "particles_as_r1"
     publishDir "${params.outdir}/01_import_particles", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path cs_init_json
@@ -2143,7 +2143,7 @@ process SELECT_2D_R1 {
 process TEMPLATE_PICKER {
     tag "template_pick"
     publishDir "${params.outdir}/11_template_picker", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path classes_cs
@@ -2158,7 +2158,7 @@ process TEMPLATE_PICKER {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -2253,7 +2253,7 @@ process INSPECT_PICKS_R2 {
 process EXTRACT_PARTICLES_R2 {
     tag "extract_r2"
     publishDir "${params.outdir}/13_extract_round2", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path inspected_r2_cs
@@ -2272,7 +2272,7 @@ process EXTRACT_PARTICLES_R2 {
     )
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json
     from datetime import datetime
 
@@ -2394,7 +2394,7 @@ process SELECT_2D_R2 {
 process VOLUME_TOOLS {
     tag "vol_tools"
     publishDir "${params.outdir}/18_volume_tools", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path refined_cs
@@ -2409,7 +2409,7 @@ process VOLUME_TOOLS {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json
     from datetime import datetime
 
@@ -2460,7 +2460,7 @@ process VALIDATION_FSC {
     tag "val_fsc"
     publishDir "${params.outdir}/19_validation_fsc", mode: 'copy'
     errorStrategy 'ignore'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path processed_cs
@@ -2474,7 +2474,7 @@ process VALIDATION_FSC {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json
     from datetime import datetime
 
@@ -2621,7 +2621,7 @@ process VALIDATION_FSC {
 process LOCAL_CTF_REFINEMENT {
     tag "ctf_refine"
     publishDir "${params.outdir}/20_local_ctf_refinement", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path particles_cs
@@ -2636,7 +2636,7 @@ process LOCAL_CTF_REFINEMENT {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random
     from datetime import datetime
 
@@ -2692,7 +2692,7 @@ process LOCAL_CTF_REFINEMENT {
 process NON_UNIFORM_REFINEMENT {
     tag "nu_refine"
     publishDir "${params.outdir}/21_non_uniform_refinement", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path refined_particles_cs
@@ -2709,7 +2709,7 @@ process NON_UNIFORM_REFINEMENT {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random, struct, shutil
     from datetime import datetime
 
@@ -2798,7 +2798,7 @@ process LOCAL_RESOLUTION {
     tag "local_res"
     publishDir "${params.outdir}/22_local_resolution", mode: 'copy'
     errorStrategy 'ignore'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path final_volume
@@ -2813,7 +2813,7 @@ process LOCAL_RESOLUTION {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, random, shutil
     from datetime import datetime
 
@@ -2860,7 +2860,7 @@ process LOCAL_RESOLUTION {
 process SHARPEN {
     tag "sharpen"
     publishDir "${params.outdir}/23_sharpening", mode: 'copy'
-    container CS_IMAGE
+    container params.cs_image
 
     input:
     path final_volume
@@ -2876,7 +2876,7 @@ process SHARPEN {
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    ${CS_HELPER}
+    ${params.cs_helper}
     import json, shutil
     from datetime import datetime
 
