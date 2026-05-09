@@ -4708,6 +4708,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       console.log('[GalaxyAssistant] Generated parameters:', response.generated_parameters?.length || 0);
       const _respWfGa = (response as any).workflow_ga || {};
       console.log('[GalaxyAssistant] Optional params (autofilled):', JSON.stringify((_respWfGa.optional_params || (response as any).optional_params || []).filter((p: any) => p.autoFilled).map((p: any) => ({name: p.name, value: p.value}))));
+      console.log('[GalaxyAssistant] Required params:', JSON.stringify((_respWfGa.required_params || (response as any).required_params || []).map((p: any) => ({name: p.name, value: p.value, required: p.required, autoFilled: p.autoFilled}))));
       console.log('[GalaxyAssistant] Message:', response.message);
       console.log('[GalaxyAssistant] ========================================');
     } else {
