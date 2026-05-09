@@ -31,7 +31,16 @@ export function getSecurityConfig(): SecurityConfig {
 
   const defaultOrigins = isProd
     ? ['https://biomate.ai']
-    : ['http://localhost:5173', 'http://localhost:5000', 'http://localhost:3000', 'http://localhost:3001'];
+    : [
+        'http://localhost:5173',
+        'http://localhost:5000',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5000',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+      ];
 
   // Allow env vars to override prod defaults (for HTTP-terminated dev/staging servers)
   const forceHTTPS = process.env.FORCE_HTTPS === '0' ? false : isProd;
@@ -71,9 +80,13 @@ export function configureSecurityHeaders(app: Express) {
     ? [
         'wss://localhost:*',
         'ws://localhost:*',
+        'wss://127.0.0.1:*',
+        'ws://127.0.0.1:*',
         // Allow direct client-to-backend calls used by chat history sync in dev/test.
         'http://localhost:*',
         'https://localhost:*',
+        'http://127.0.0.1:*',
+        'https://127.0.0.1:*',
         ...(process.env.GALAXY_URL ? [process.env.GALAXY_URL] : []),
         ...(process.env.VITE_BACKEND_URL ? [process.env.VITE_BACKEND_URL] : []),
       ]
