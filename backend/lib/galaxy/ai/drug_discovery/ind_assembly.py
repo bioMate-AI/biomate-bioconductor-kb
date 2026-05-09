@@ -67,7 +67,7 @@ def _resolve_adapter_path() -> Path:
         return Path(os.environ["REGULATORY_LLM_ADAPTER"])
     models_root = Path(__file__).parent.parent.parent.parent.parent.parent / "models"
     # Prefer numerically higher versions
-    for name in ("regulatory_llm_v3/lora_adapter", "regulatory_llm_v2/lora_adapter", "regulatory_llm_v1/lora_adapter"):
+    for name in ("regulatory_llm_v4/lora_adapter", "regulatory_llm_v3/lora_adapter", "regulatory_llm_v2/lora_adapter", "regulatory_llm_v1/lora_adapter"):
         candidate = models_root / name
         if candidate.exists():
             return candidate
