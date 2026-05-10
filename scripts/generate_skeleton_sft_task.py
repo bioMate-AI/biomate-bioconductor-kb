@@ -72,12 +72,28 @@ SYSTEM_PROMPT = (
 )
 
 
+def clean_source(text: str) -> str:
+    """Strip FDA-label section headers like '13.2 Animal Toxicology and/or Pharmacology'."""
+    import re
+    text = re.sub(r"\b\d+\.\d+\s+[A-Z][A-Za-z/\s]{5,60}\b(?=[\sA-Z])", " ", text)
+    return text
+
+
 def split_into_sentences(text: str) -> list[str]:
     """Crude sentence split — good enough for routing prose into subsections."""
     import re
-    # Keep abbreviations like "e.g." intact-ish
+    text = clean_source(text)
     sents = re.split(r"(?<=[.!?])\s+(?=[A-Z])", text.strip())
     return [s.strip() for s in sents if s.strip()]
+
+
+def is_well_formed(sent: str) -> bool:
+    """Reject sentence fragments — must start uppercase and have a verb-like word."""
+    if not sent or not sent[0].isupper():
+        return False
+    if len(sent.split()) < 4:
+        return False
+    return True
 
 
 def route_sentence(sentence: str, kw_map: dict[str, list[str]]) -> str | None:
@@ -90,30 +106,52 @@ def route_sentence(sentence: str, kw_map: dict[str, list[str]]) -> str | None:
     return best
 
 
-def build_skeleton(prose: str, section_id: str) -> str:
+def build_brief_summary(drug: str, section_id: str) -> str:
+    label = {
+        "2.6.6": "toxicology",
+        "2.6.4": "pharmacokinetic",
+        "2.6.2": "pharmacology",
+    }[section_id]
+    return (
+        f"This {label} written summary integrates the nonclinical findings supporting "
+        f"the proposed first-in-human use of {drug}, organized per ICH M4S(R2)."
+    )
+
+
+def build_skeleton(prose: str, section_id: str, drug: str) -> str:
     required = REQUIRED_SUBSECTIONS[section_id]
     kw_map = SUBSECTION_KEYWORDS.get(section_id, {})
 
     buckets: dict[str, list[str]] = {h: [] for h in required}
-    sents = split_into_sentences(prose)
+    sents = [s for s in split_into_sentences(prose) if is_well_formed(s)]
 
     if not sents:
         return ""
 
-    # First sentence → Brief Summary
-    buckets["brief summary"].append(sents[0])
+    # Generate clean Brief Summary; do NOT consume source sentence here.
+    buckets["brief summary"].append(build_brief_summary(drug, section_id))
 
-    for sent in sents[1:]:
+    routed: set[int] = set()
+    for i, sent in enumerate(sents):
         sub = route_sentence(sent, kw_map)
-        if sub is None:
+        if sub is not None:
+            buckets[sub].append(sent)
+            routed.add(i)
+
+    # Second pass: try routing leftovers with relaxed match (any keyword overlap)
+    for i, sent in enumerate(sents):
+        if i in routed:
             continue
-        buckets[sub].append(sent)
+        sub = route_sentence(sent, kw_map)
+        if sub is not None:
+            buckets[sub].append(sent)
+            routed.add(i)
 
     # Anything still unrouted goes into Discussion
     discussion_key = next((h for h in required if h.startswith("discussion")), None)
     if discussion_key:
-        leftover = [s for s in sents[1:] if route_sentence(s, kw_map) is None]
-        buckets[discussion_key].extend(leftover[:3])  # cap to keep section tight
+        leftover = [sents[i] for i in range(len(sents)) if i not in routed]
+        buckets[discussion_key].extend(leftover[:3])
 
     parts = []
     for h in required:
@@ -170,7 +208,8 @@ def main():
                 skipped += 1
                 continue
 
-            skeleton = build_skeleton(prose, sec)
+            drug = row.get("meta", {}).get("drug", "the investigational compound")
+            skeleton = build_skeleton(prose, sec, drug)
             if not skeleton:
                 skipped += 1
                 continue
@@ -180,11 +219,16 @@ def main():
                 skipped += 1
                 continue
 
-            user_prompt = user_of(row)
+            section_label = {
+                "2.6.6": "Toxicology Written Summary",
+                "2.6.4": "Pharmacokinetics Written Summary",
+                "2.6.2": "Pharmacology Written Summary",
+            }[sec]
             new_user = (
-                f"{user_prompt}\n\nReorganize the above source data into the ICH M4S(R2) "
-                f"§{sec} subsection structure. Use the required subsection headings in "
-                f"order. Mark any subsection without source data as [NO DATA AVAILABLE]."
+                f"Reorganize the following nonclinical source data for {drug} into ICH M4S(R2) "
+                f"§{sec} ({section_label}) format. Use the required subsection headings in the "
+                f"prescribed order. Mark any subsection without source data as "
+                f"[NO DATA AVAILABLE].\n\nSource data:\n{prose}"
             )
 
             example = {

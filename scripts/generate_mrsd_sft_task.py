@@ -26,11 +26,14 @@ SPECIES_FOR_NOAEL = ["mouse", "rat", "dog", "monkey", "rabbit", "minipig"]
 NOAEL_VALUES = [0.5, 1, 2, 5, 10, 25, 50, 100, 200, 300, 500, 1000, 1500, 2000]
 SAFETY_FACTORS = [10.0, 10.0, 10.0, 10.0, 50.0, 100.0]  # 10× is default; biologic/oncology vary
 
+# Excludes oncology — ICH S9 specifies STD10/HNSTD path, not NOAEL/MRSD.
 INDICATIONS = [
-    "advanced solid tumors", "rheumatoid arthritis", "type 2 diabetes",
-    "atopic dermatitis", "chronic hepatitis B", "Alzheimer's disease",
+    "rheumatoid arthritis", "type 2 diabetes", "atopic dermatitis",
+    "chronic hepatitis B", "Alzheimer's disease",
     "moderate-to-severe ulcerative colitis", "primary hyperoxaluria",
     "chronic obstructive pulmonary disease", "schizophrenia",
+    "major depressive disorder", "psoriasis",
+    "iron-deficiency anemia", "essential hypertension",
 ]
 
 STUDY_DESIGNS = [
@@ -48,51 +51,83 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_user_prompt(species: str, noael: float, study: str, indication: str) -> str:
+def pick_most_sensitive(rng: random.Random) -> list[tuple[str, float]]:
+    """Generate 2-3 species NOAELs, return sorted by HED (most sensitive first)."""
+    n_species = rng.choice([2, 3])
+    species_pool = rng.sample(SPECIES_FOR_NOAEL, n_species)
+    out = []
+    for sp in species_pool:
+        noael = rng.choice(NOAEL_VALUES)
+        out.append((sp, float(noael)))
+    # Most sensitive = lowest HED = lowest (NOAEL / divisor)
+    out.sort(key=lambda x: x[1] / BSA_DIVISOR[x[0]])
+    return out
+
+
+def build_user_prompt(species_noaels: list[tuple[str, float]], study: str, indication: str) -> str:
+    species_list = ", ".join(f"{sp} {n} mg/kg/day" for sp, n in species_noaels)
     return (
-        f"In a {study} for an investigational therapeutic targeting {indication}, "
-        f"the most sensitive species was the {species}, with a NOAEL of {noael} mg/kg/day. "
-        f"Compute the Human Equivalent Dose and propose the Maximum Recommended Starting Dose "
-        f"for first-in-human Phase I dosing in healthy adult volunteers. "
-        f"Cite ICH M3(R2) and FDA 2005 MRSD guidance."
+        f"In a {study} for an investigational small-molecule therapeutic targeting "
+        f"{indication}, NOAELs were established as follows: {species_list}. "
+        f"Identify the most sensitive species, compute the Human Equivalent Dose, "
+        f"and propose the Maximum Recommended Starting Dose for first-in-human Phase I "
+        f"dosing in healthy adult volunteers. Cite ICH M3(R2) and FDA 2005 MRSD guidance."
     )
 
 
-def build_assistant(species: str, noael: float, safety_factor: float) -> str:
+# Three prose variants (chosen randomly per example) to break template memorization.
+ASSISTANT_VARIANTS = [
+    # Variant A — explanatory
+    "Selection of the most sensitive species is based on the lowest derived HED. Among "
+    "the species evaluated, the {species} (NOAEL {noael} mg/kg/day) yielded the lowest HED "
+    "of {hed:.2f} mg/kg using the FDA 2005 body-surface-area conversion factor of {divisor}. "
+    "{sf_rationale} Applying a safety factor of {sf_str}, an MRSD of {mrsd:.3f} mg/kg is "
+    "recommended for the first-in-human single-ascending-dose study, consistent with "
+    "ICH M3(R2) phase-appropriate nonclinical support.",
+    # Variant B — methodological
+    "Per FDA 2005 guidance on Estimating the Maximum Safe Starting Dose, HED was derived "
+    "for each tested species by dividing the NOAEL by the body-surface-area conversion "
+    "factor. The {species} was identified as the most sensitive species with a NOAEL of "
+    "{noael} mg/kg/day, yielding an HED of {hed:.2f} mg/kg (BSA factor {divisor}). "
+    "{sf_rationale} The MRSD of {mrsd:.3f} mg/kg, calculated using a safety factor of "
+    "{sf_str}, is proposed in accordance with ICH M3(R2).",
+    # Variant C — concise
+    "The {species} was the most sensitive species (NOAEL {noael} mg/kg/day). The HED of "
+    "{hed:.2f} mg/kg was calculated using the BSA conversion factor of {divisor} per FDA "
+    "2005 guidance. {sf_rationale} An MRSD of {mrsd:.3f} mg/kg is proposed using a safety "
+    "factor of {sf_str}, supporting Phase I per ICH M3(R2).",
+]
+
+
+def build_assistant(species: str, noael: float, safety_factor: float, rng: random.Random) -> str:
     divisor = BSA_DIVISOR[species]
     hed = noael / divisor
     mrsd = hed / safety_factor
 
     sf_rationale = (
-        "A 10× default safety factor is applied per FDA 2005 guidance to account "
-        "for interspecies and intraspecies variability."
+        "The default 10-fold safety factor accounts for interspecies and intraspecies variability."
         if safety_factor == 10.0
-        else f"A safety factor of {int(safety_factor)} is applied due to elevated "
-             "clinical risk (steep dose-response, novel mechanism, or limited reversibility)."
+        else f"A safety factor of {int(safety_factor)} is applied due to elevated clinical "
+             "risk: steep dose-response slope, limited reversibility, or novel target mechanism."
     )
+    sf_str = str(int(safety_factor)) if safety_factor.is_integer() else str(safety_factor)
 
-    return (
-        f"In the most sensitive species, the {species}, the NOAEL of {noael} mg/kg/day "
-        f"establishes the basis for human starting-dose derivation per ICH M3(R2) and "
-        f"FDA 2005 guidance on Estimating the Maximum Safe Starting Dose. "
-        f"Applying the body-surface-area conversion factor for the {species} ({divisor}), "
-        f"the HED of {hed:.2f} mg/kg is calculated. "
-        f"{sf_rationale} "
-        f"With a safety factor of {int(safety_factor) if safety_factor.is_integer() else safety_factor}, "
-        f"the MRSD of {mrsd:.3f} mg/kg is recommended for the proposed first-in-human "
-        f"single-ascending-dose study."
+    template = rng.choice(ASSISTANT_VARIANTS)
+    return template.format(
+        species=species, noael=noael, hed=hed, divisor=divisor,
+        mrsd=mrsd, sf_rationale=sf_rationale, sf_str=sf_str,
     )
 
 
 def make_example(rng: random.Random) -> dict:
-    species = rng.choice(SPECIES_FOR_NOAEL)
-    noael = rng.choice(NOAEL_VALUES)
+    species_noaels = pick_most_sensitive(rng)
+    species, noael = species_noaels[0]  # most sensitive
     safety_factor = rng.choice(SAFETY_FACTORS)
     study = rng.choice(STUDY_DESIGNS)
     indication = rng.choice(INDICATIONS)
 
-    user = build_user_prompt(species, noael, study, indication)
-    assistant = build_assistant(species, noael, safety_factor)
+    user = build_user_prompt(species_noaels, study, indication)
+    assistant = build_assistant(species, noael, safety_factor, rng)
 
     return {
         "messages": [
