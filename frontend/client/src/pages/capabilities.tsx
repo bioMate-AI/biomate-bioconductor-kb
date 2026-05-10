@@ -35,6 +35,24 @@ const jobClusters = [
     workflows: ["Predict ADMET", "REINVENT4", "OpenFE RBFE"],
   },
   {
+    title: "Antibody-Drug Conjugate Design",
+    description:
+      "End-to-end ADC design across all 7 approved payload classes (MMAE, MMAF, DM1, DM4, SN-38, PBD, calicheamicin). Linker chemistry selection, DAR optimization, ADC-specific ADMET with bystander killing radius and off-target toxicity flags, plus two-analyte PK modeling.",
+    workflows: ["adc_design", "antibody_developability", "scfv_antibody_design"],
+  },
+  {
+    title: "Targeted Protein Degradation",
+    description:
+      "PROTAC and molecular glue design from target protein to optimized degrader. E3 ligase selection across CRBN, VHL, MDM2, IAP, DCAF15. POI warhead lookup for 25 named targets. Linker variants, beyond-Rule-of-Five ADMET, and ternary complex cooperativity scoring.",
+    workflows: ["protac_design", "Predict ADMET Properties (AI)"],
+  },
+  {
+    title: "Cell Therapy Construct Design",
+    description:
+      "CAR-T construct assembly from antigen target to complete protein sequence. 20-target scFv library covering CD19, BCMA, HER2, GD2, EGFR, MSLN, and more. Auto costimulatory domain selection (4-1BB or CD28), packaging size validation, and tonic signaling risk assessment.",
+    workflows: ["cart_construct_design", "scfv_antibody_design", "bispecific_antibody_design"],
+  },
+  {
     title: "Cryo-EM Structure Solution",
     description:
       "Process raw movie stacks end-to-end: motion correction, CTF estimation, particle picking, 2-D / 3-D classification, and high-resolution reconstruction with density enhancement.",
@@ -43,8 +61,8 @@ const jobClusters = [
   {
     title: "Rare Disease Translational Analysis",
     description:
-      "Starting from whole-genome sequencing data, call variants with clinical-grade pipelines, identify candidate disease genes, and query approved drugs for repurposing opportunities.",
-    workflows: ["nf-core/raredisease", "patient_gene", "TxGNN repurposing"],
+      "Starting from whole-genome sequencing data, call variants with clinical-grade pipelines, identify candidate disease genes, query approved drugs for repurposing, and select the right AAV serotype for in vivo gene therapy delivery.",
+    workflows: ["nf-core/raredisease", "patient_gene", "TxGNN repurposing", "aav_serotype_selection"],
   },
   {
     title: "Single-Cell Drug Mechanism",
@@ -59,9 +77,11 @@ const jobClusters = [
   {
     title: "RNA Therapeutic Design",
     description:
-      "Design siRNA candidates against any target transcript, screen off-target activity across the transcriptome, and optimise LNP formulation parameters for in-vivo delivery.",
+      "Design siRNA, ASO gapmer, and full mRNA therapeutic constructs against any target transcript. Includes codon optimization, UTR design, stability scoring, off-target screening, and LNP formulation tuned to delivery tissue.",
     workflows: [
-      "siRNA Design",
+      "mrna_therapeutic_design",
+      "sirna_design_full",
+      "aso_gapmer_design",
       "sirna_offtarget_analysis",
       "lnp_formulation_optimization",
     ],
@@ -117,6 +137,30 @@ const comparisonRows = [
     commercial: "CryoSPARC license",
     price: "~$8K/year",
   },
+  {
+    capability: "ADC design (payload + linker + PK)",
+    biomate: "adc_design",
+    commercial: "No equivalent (CRO engagement)",
+    price: "~$200K+/project",
+  },
+  {
+    capability: "PROTAC degrader design",
+    biomate: "protac_design",
+    commercial: "No equivalent (custom CRO + medchem)",
+    price: "~$500K+/project",
+  },
+  {
+    capability: "mRNA therapeutic design",
+    biomate: "mrna_therapeutic_design",
+    commercial: "Specialized CRO (Moderna/BioNTech outsource)",
+    price: "~$150K+/project",
+  },
+  {
+    capability: "CAR-T construct design",
+    biomate: "cart_construct_design",
+    commercial: "Internal cell therapy team",
+    price: "~$300K+/year (FTE)",
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -136,10 +180,11 @@ export default function CapabilitiesPage() {
             What can BioMate do for you?
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            BioMate connects 2,400+ bioinformatics workflows under a single
+            BioMate covers every major therapeutic modality in active
+            clinical development — small molecule, antibody, ADC, mRNA, siRNA,
+            ASO, CRISPR, CAR-T, PROTAC, and AAV gene therapy — in a single
             AI assistant. Below are the high-value use cases researchers run
-            most often, and how BioMate compares to the commercial software it
-            replaces.
+            most often, and how BioMate compares to commercial software.
           </p>
           <Button
             className="mt-4"
@@ -221,7 +266,7 @@ export default function CapabilitiesPage() {
           </div>
 
           <p className="mt-5 text-sm font-semibold">
-            Estimated stack replacement value: $353K+/year
+            Estimated stack replacement value: $1.5M+/year (software + modality-specific CRO work)
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Prices are public list prices as of 2025. Actual enterprise discounts vary.
