@@ -1,33 +1,5 @@
 #!/usr/bin/env nextflow
-/*
- * pharmacology/docking_autodock_vina
- * Real AutoDock Vina molecular docking pipeline.
- *
- * Steps:
- *   1. Prepare receptor: strip water/heteroatoms, add H, write PDBQT
- *      (uses meeko MoleculePreparation or openbabel fallback)
- *   2. Prepare ligand(s): convert SMILES -> 3D SDF -> PDBQT via meeko
- *   3. Run AutoDock Vina for each ligand
- *   4. Parse best binding affinity (kcal/mol) + RMSD from top pose
- *   5. If reference_ligand_pdbqt provided: compute RMSD vs crystal pose
- *      (validation mode for P0-C: should be <= 2.0 A for success)
- *   6. Write ranked results JSON + human-readable report
- *
- * Required in container: vina, meeko, rdkit, openbabel-wheel
- * Container: biomate/biomni-tools:latest  (or ECR :x86 on AWS Batch)
- *
- * Parameters:
- *   smiles_list         JSON array of SMILES strings to dock
- *   receptor_pdb_file   Path to receptor PDB (or PDB ID for auto-download)
- *   box_center          JSON [x, y, z] coordinates of search box center
- *   box_size            JSON [sx, sy, sz] dimensions of search box (Angstrom)
- *   ncpu                Number of CPUs for Vina (default: 4)
- *   exhaustiveness      Vina exhaustiveness (default: 8)
- *   n_poses             Number of binding poses to return (default: 9)
- *   reference_ligand_smiles  SMILES of reference/crystal ligand for RMSD check
- *
- * nf-core style module
- */
+// Docking AutoDock Vina - see docs/20260510_DOCKING_RECEPTOR_TRIM_AND_CONTAINER_PLAN.md
 
 nextflow.enable.dsl = 2
 
@@ -47,9 +19,11 @@ process DOCKING_AUTODOCK_VINA {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
+    // local (ARM dev): biomni-drug-discovery-nf layers on biomni-structure-to-drug
+    // aws batch (AMD64): structure-based DD image (Vina, meeko, obabel, fpocket)
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' \
+        : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     val(meta)
@@ -108,6 +82,14 @@ def auto_convert(val):
 # ── Read parameters ─────────────────────────────────────────────────────────
 smiles_list   = auto_convert(os.environ.get('PARAM_SMILES_LIST', '["c1ccccc1"]'))
 receptor_pdb  = os.environ.get('PARAM_RECEPTOR_PDB', '').strip()
+# Stage non-local receptor paths (e.g. s3 on AWS Batch) before trim/obabel.
+if receptor_pdb and not os.path.isfile(receptor_pdb):
+    import subprocess
+    _staged = os.path.join(os.getcwd(), 'receptor_staged.pdb')
+    _cp = subprocess.run(['aws', 's3', 'cp', receptor_pdb, _staged], capture_output=True, text=True)
+    if _cp.returncode == 0:
+        receptor_pdb = _staged
+        os.environ['PARAM_RECEPTOR_PDB'] = _staged
 box_center    = auto_convert(os.environ.get('PARAM_BOX_CENTER', '[0,0,0]'))
 box_size      = auto_convert(os.environ.get('PARAM_BOX_SIZE', '[20,20,20]'))
 ncpu          = int(auto_convert(os.environ.get('PARAM_NCPU', '4')) or 4)
@@ -167,8 +149,57 @@ def receptor_pdb_to_pdbqt(pdb_path, pdbqt_path):
         ['obabel', pdb_path, '-O', pdbqt_path, '-xr'],
         capture_output=True, text=True
     )
+    detail = ((r.stderr or '') + (r.stdout or '')).strip()
     if r.returncode != 0 or not os.path.exists(pdbqt_path):
-        raise RuntimeError(f'obabel receptor prep failed: {r.stderr}')
+        raise RuntimeError(
+            'obabel receptor prep failed (exit ' + str(r.returncode) + '): ' + detail
+        )
+    sz = os.path.getsize(pdbqt_path)
+    # OpenBabel can exit 0 but emit an empty file on some PDB inputs; Vina then
+    # returns meaningless ~0 kcal/mol scores for every ligand.
+    if sz < 64:
+        raise RuntimeError(
+            f'obabel wrote trivial receptor PDBQT ({sz} bytes): {detail}'
+        )
+
+# ── Helper: trim PDB to Vina search region ──────────────────────────────────
+# Whole-virus or deposited assemblies often exceed ~10k ATOM records; Open Babel
+# may exit 0 but emit an empty PDBQT. Keeping atoms inside the docking box (+pad)
+# matches what Vina evaluates with compute_vina_maps and stays within tool limits.
+def trim_pdb_to_search_box(pdb_path, out_path, cx, cy, cz, sx, sy, sz, pad=8.0):
+    hx = sx / 2.0 + pad
+    hy = sy / 2.0 + pad
+    hz = sz / 2.0 + pad
+    xmin, xmax = cx - hx, cx + hx
+    ymin, ymax = cy - hy, cy + hy
+    zmin, zmax = cz - hz, cz + hz
+    kept = []
+    with open(pdb_path) as fh:
+        for line in fh:
+            if line.startswith(('ATOM', 'HETATM')):
+                try:
+                    x = float(line[30:38])
+                    y = float(line[38:46])
+                    z = float(line[46:54])
+                except ValueError:
+                    continue
+                if xmin <= x <= xmax and ymin <= y <= ymax and zmin <= z <= zmax:
+                    kept.append(line)
+    if len(kept) < 50:
+        raise RuntimeError(
+            f'only {len(kept)} atoms inside padded box — check box_center/box_size'
+        )
+    with open(out_path, 'w') as out:
+        # No brace-format here; Groovy parses the outer Nextflow script string.
+        pad_s = str(round(float(pad), 1))
+        # Use + NL for newlines; a literal backslash-n inside quotes breaks when templated by Nextflow.
+        out.write(
+            'REMARK BioMate: receptor trimmed to Vina box + ' + pad_s + ' A pad' + NL
+        )
+        for ln in kept:
+            out.write(ln)
+        out.write('END' + NL)
+    return len(kept)
 
 # ── Helper: download PDB by ID ───────────────────────────────────────────────
 def fetch_pdb(pdb_id, out_path):
@@ -218,6 +249,9 @@ def rmsd_pdbqt_files(f1, f2):
 try:
     from vina import Vina
 
+    cx0, cy0, cz0 = float(box_center[0]), float(box_center[1]), float(box_center[2])
+    sx0, sy0, sz0 = float(box_size[0]), float(box_size[1]), float(box_size[2])
+
     # ── Resolve receptor ────────────────────────────────────────────────────
     tmpdir = tempfile.mkdtemp(prefix='vina_')
 
@@ -242,10 +276,25 @@ try:
     else:
         rec_pdb = receptor_pdb
 
+    rec_for_prep = rec_pdb
+    if receptor_pdb and os.path.isfile(rec_pdb):
+        trim_out = os.path.join(tmpdir, 'receptor_trimmed.pdb')
+        try:
+            n_kept = trim_pdb_to_search_box(
+                rec_pdb, trim_out, cx0, cy0, cz0, sx0, sy0, sz0
+            )
+            rec_for_prep = trim_out
+            log.append(
+                f'  Receptor PDB trimmed to search box (+ 8 A pad): '
+                f'{n_kept} ATOM/HETATM records (large assemblies -> tractable PDBQT)'
+            )
+        except Exception as exc:
+            log.append(f'  Receptor box-trim skipped: {exc}')
+
     log.append(f'Step 1: Preparing receptor {os.path.basename(rec_pdb)}')
     rec_pdbqt = os.path.join(tmpdir, 'receptor.pdbqt')
     try:
-        receptor_pdb_to_pdbqt(rec_pdb, rec_pdbqt)
+        receptor_pdb_to_pdbqt(rec_for_prep, rec_pdbqt)
         log.append(f'  Receptor PDBQT written ({os.path.getsize(rec_pdbqt)} bytes)')
     except Exception as e:
         log.append(f'  Receptor prep warning: {e}  -- continuing with PDB as PDBQT')
@@ -261,9 +310,8 @@ try:
         sdf_to_pdbqt(ref_sdf, ref_pdbqt)
         log.append(f'  Reference PDBQT written')
 
-    # ── Parse box ───────────────────────────────────────────────────────────
-    cx, cy, cz = box_center[0], box_center[1], box_center[2]
-    sx, sy, sz = box_size[0],   box_size[1],   box_size[2]
+    cx, cy, cz = cx0, cy0, cz0
+    sx, sy, sz = sx0, sy0, sz0
 
     log.append(f'Step 2: Box center=({cx},{cy},{cz}) size=({sx},{sy},{sz})')
     log.append(f'        Exhaustiveness={exhaustiveness}, CPUs={ncpu}, poses={n_poses}')
