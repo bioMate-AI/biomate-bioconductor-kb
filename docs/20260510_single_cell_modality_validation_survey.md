@@ -173,7 +173,72 @@ The biggest risk is **Cartography Biosciences** or a similar startup productizin
 
 ---
 
-## Part 6: Go / No-Go
+## Part 6: The RNA-vs-Protein Reframe (added 2026-05-10)
+
+After initial survey, the most consequential critique is: **scRNA-seq expression is not the same as surface protein expression.** Translation efficiency varies. Protein half-life varies. Post-translational modifications matter. Surface accessibility for a CAR-T binder is not predicted by RNA abundance alone.
+
+This critique is correct. It changes what we should claim.
+
+### What we do NOT claim
+- Not a replacement for IHC, flow cytometry, or proteomics validation
+- Not a clinical decision tool
+- Not a guarantee that any modality will work
+- Not the only signal that should inform a go/no-go
+
+### What we DO claim — three concrete contributions
+
+**(1) Triage scale that IHC cannot match.**
+- IHC validation panel: ~$5-25K per target × 6-12 weeks for 20+ tissues
+- A pharma team realistically validates 5-10 targets per quarter
+- Atlas query: seconds, ~$0, free public data
+- Contribution: triage 50→5 candidates, spend the $25K IHC budget on what passed screening
+
+**(2) Cell-type resolution that bulk IHC structurally lacks.**
+- IHC averages across all cell types in a slide
+- A target at 2% in a rare critical cell type (cardiac Purkinje, hematopoietic stem cells, certain neurons) shows as "low" IHC signal
+- HER2 CAR-T death (Morgan 2010) — pre-trial bulk IHC interpreted as safe; modern single-cell atlas data shows HER2 in specific cardiac epithelial subpopulations the bulk IHC averaged out
+- Matching this resolution at protein level requires scProteomics or flow cytometry across 26 tissues × N targets = ~$500K-1M per panel
+
+**(3) Integration into modality design workflows.**
+- Single-cell data is freely available (CELLxGENE, Tabula Sapiens)
+- The chain `target → atlas query → modality-specific scoring → input to ADC payload / CAR-T architecture / bispecific dose ceiling / PROTAC tissue warning` does not exist anywhere
+- Cartography sells target IP. CELLxGENE is visualization. No one connects single-cell expression to modality design decisions automatically
+- The moat is the workflow chain. Only BioMate has both the single-cell coverage (Seurat / scDownstream / CITE-seq / multiome) and the modality design coverage (ADC / PROTAC / CAR-T / bispecific / ASO / mRNA)
+
+### Quantified value
+
+| Stage | Without BioMate | With BioMate | Saving |
+|---|---|---|---|
+| Triage 50 candidates | $250K-1M IHC + 6 mo | atlas query + $0 + hours | ~$1M, ~6 mo |
+| Modality assignment per target | Internal committee, 4-8 wk | scored across all modalities at once | ~2 wk/target |
+| Avoiding HER2-class CAR-T failure | $50-100M per failed IND | atlas red-flag at design stage | $50M+ per avoidance |
+
+### The sharpened pitch
+
+**Wrong:** "Pick the optimal modality from single-cell data" — overclaims; invites scientific challenge
+
+**Right:** "Triage 50 target × 7 modality combinations to the 5 worth wet-lab validation. Catch CAR-T and ADC normal-tissue toxicity risks at the design stage, before $50M is spent on IND-enabling work. RNA-level signal only — confirm with IHC before clinical development."
+
+### Significance — what this unlocks
+
+Same shape as PCR vs Sanger for screening, or virtual screening vs HTS for compound triage: the cheap-imperfect method doesn't replace the expensive-perfect one, it **changes which questions are economical to ask**.
+
+Today: pharma teams ask "is the expression profile safe?" for 1-5 targets per program, in week 8-12.
+With BioMate: ask it for 50 targets in week 1, then spend IHC budget on the 5 that survive.
+
+The contribution is making target triage at modality resolution economical, when today it isn't.
+
+### Updated success criterion
+
+The MVP success target is:
+- **Not** "predict which CAR-T will succeed clinically" — too strong
+- **But:** "on 10 historical CAR-T programs, correctly identify the 5 that had documented on-target/off-tumor toxicity via cell-type expression red flags in publicly available atlas data"
+
+This is verifiable, honest, and demonstrative. If the MVP recovers HER2/CEA/ROR1 red flags that the original programs missed, the case study writes itself.
+
+---
+
+## Part 7: Go / No-Go
 
 **Verdict: GO**
 
