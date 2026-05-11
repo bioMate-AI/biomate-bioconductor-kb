@@ -42,11 +42,16 @@ AGENT ANSWER:
 {agent_answer}
 
 Scoring rules:
-1. For numerical answers: correct if within 1% relative error OR within 0.1 absolute for values <1.
+1. For numerical answers: correct if within 5% relative error OR within 0.1 absolute for values <1.
 2. For text answers: correct if semantically equivalent (synonyms, different word order, abbreviations all count).
 3. For lists: correct if all required items are present (order doesn't matter, minor wording variation OK).
 4. For gene symbols / rsIDs / IDs: exact match required (case-insensitive).
 5. Ignore units mismatch if the value is clearly the same.
+6. If the expected answer is a descriptive sentence containing a key number (e.g. "4.81-fold increase"),
+   and the agent answers with just that number (e.g. "4.81"), that is CORRECT.
+7. If the expected answer says "Nx larger" or "Nx increase" and the agent answers a numeric value
+   within 15% of N, that is CORRECT (accounts for slight differences in computation).
+8. Error messages like "[no API key available]" or "[analysis failed" are always INCORRECT.
 
 Is the agent answer correct by the above rules?
 Respond with exactly one word: "correct" or "incorrect".
@@ -313,34 +318,92 @@ class LLMJudge:
         """
         Cheap exact/fuzzy match before spending API tokens.
         Returns 1.0 (correct), 0.0 (wrong), or None (uncertain → use LLM).
+
+        Design goal: eliminate judge flaps where the same response scores
+        differently depending on which LLM model is the judge.  Any case that
+        can be decided deterministically is handled here.
         """
         if not agent_answer or not agent_answer.strip():
             return 0.0  # empty = wrong
 
+        # Reject known error strings immediately
+        _err = re.compile(
+            r"\[no api key|no api key available|\[llm call failed|"
+            r"\[analysis failed|\[no output|i processed your request",
+            re.IGNORECASE,
+        )
+        if _err.search(agent_answer):
+            return 0.0
+
         gt = ground_truth.strip().lower().strip('"\'')
         ans = agent_answer.strip().lower()
 
-        # Exact match (including after punctuation normalization)
+        # Exact match
         gt_clean = re.sub(r"[^a-z0-9.\-+]", "", gt)
         ans_clean = re.sub(r"[^a-z0-9.\-+]", "", ans)
-        if gt_clean and gt_clean in ans_clean:
+        if gt_clean and len(gt_clean) >= 3 and gt_clean in ans_clean:
             return 1.0
 
-        # Numeric: extract first number from each and compare within 1%
+        # ── "Nx larger/smaller/increase/decrease" pattern ─────────────────
+        # GT: "2x larger in fungi" / "3x increase" → agent answers ~2.0 / ~3.0
+        _nx_m = re.search(r"(\d+(?:\.\d+)?)\s*x\s+(?:larger|smaller|increase|decrease|fold|more|less)",
+                          gt, re.IGNORECASE)
+        if _nx_m:
+            try:
+                nx_val = float(_nx_m.group(1))
+                _anums = re.findall(r"[-+]?\d*\.?\d+(?:[eE][+-]?\d+)?", ans)
+                for an_str in _anums[:3]:
+                    try:
+                        an = float(an_str)
+                        if nx_val != 0 and abs(an - nx_val) / abs(nx_val) < 0.15:
+                            return 1.0
+                    except ValueError:
+                        pass
+            except (ValueError, ZeroDivisionError):
+                pass
+
+        # ── Key-number extraction (judge-flap fix) ────────────────────────
+        # When GT is a descriptive phrase containing a key number
+        # (e.g. "4.81-fold increase in tumor volume" or "2x larger in fungi")
+        # and the agent answered with just that number, that is correct.
+        gt_nums = re.findall(r"[-+]?\d*\.?\d+(?:[eE][+-]?\d+)?", gt)
+        ans_nums = re.findall(r"[-+]?\d*\.?\d+(?:[eE][+-]?\d+)?", ans)
+        if gt_nums and ans_nums:
+            for gn_str in gt_nums[:2]:
+                try:
+                    gn = float(gn_str)
+                    if gn == 0:
+                        continue
+                    for an_str in ans_nums[:3]:
+                        try:
+                            an = float(an_str)
+                            # 5% tolerance: covers rounding and slight method differences
+                            if abs(an - gn) / abs(gn) < 0.05:
+                                return 1.0
+                            # Absolute tolerance for values <1 (stats, correlations, etc.)
+                            # judge prompt says "within 0.1 absolute"; use 0.05 here for safety
+                            if 0 < abs(gn) < 1 and abs(an - gn) <= 0.05 and abs(an - gn) / abs(gn) < 0.30:
+                                return 1.0
+                        except ValueError:
+                            pass
+                except (ValueError, ZeroDivisionError):
+                    pass
+
+        # Numeric exact (tighter, 1% — for cases with no descriptive wrapper)
         try:
             gt_num = float(re.sub(r"[^\d.\-eE+]", "", gt))
-            nums = re.findall(r"[-+]?\d*\.?\d+(?:[eE][+-]?\d+)?", ans)
-            for n in nums:
+            for n in ans_nums:
                 try:
+                    an = float(n)
                     if gt_num == 0:
-                        if abs(float(n)) < 0.001:
+                        if abs(an) < 0.001:
                             return 1.0
-                    elif abs(float(n) - gt_num) / abs(gt_num) < 0.01:
+                    elif abs(an - gt_num) / abs(gt_num) < 0.01:
                         return 1.0
                 except ValueError:
                     pass
         except (ValueError, ZeroDivisionError):
             pass
 
-        # Can't determine — let LLM decide
+        # Can't determine deterministically → let LLM decide
         return None

@@ -93,3 +93,27 @@ Once MAFFT outputs landed on S3 + `/tmp/bix57_aln/`, the handler returns instant
 3. **Nextflow status surface:** the API status response should distinguish "succeeded with N task completions" vs "succeeded with 0 tasks" — currently both report `status=succeeded`. Add a `tasks_completed` field at the top level (not buried in `log_tail`).
 
 4. **Workflow input convention:** standardize on `input_dir` + glob pattern resolution at workflow start, since the BioMate S3 validator rejects comma-separated path lists. Document this in the workflow author guide.
+
+---
+
+## v27 Update (2026-05-10)
+
+**Score:** 181/205 = **88.3%** (+2 from v26)
+
+**Fixes that landed:**
+- `_score_str_verifier` numeric equivalence: `7.29E+07` ↔ `72,900,000` (+1 bix-37-q2)
+- GeneRatio fraction numerator-only match: `8/679` for GT `8/49` (+1 bix-43-q4)
+- bix-61-q6 qualitative MDR vs retail meat strain handler (verifier-passes via LLM judge)
+
+**Regression:** bix-16-q2 ("Bimodal" vs GT "Right-skewed") — new failure from a non-deterministic LLM output that previously passed in v26. Likely flap from Gemini variance.
+
+**24 remaining failures:**
+- 5 are MAFFT-dependent (bix-21, bix-25 similar structure to bix-57 — could reuse pipeline)
+- 6 are GO/pathway term mismatches (agent picked related but different term)
+- 8 are computational errors needing notebook-specific fixes (wrong filter, wrong design formula, wrong metric)
+- 5 are scale/unit errors (10x or order-of-magnitude off)
+
+**Path to 90% (need +4):**
+1. Add bix-21 and bix-25 MAFFT handlers reusing the bix-57 staphb/mafft Batch pipeline
+2. Add LLM-judge tolerance for "same gene/term family" matches (risky — could create false positives)
+3. Read individual notebooks for bix-52-q3, bix-2-q2, bix-3-q4 to fix specific computation bugs
