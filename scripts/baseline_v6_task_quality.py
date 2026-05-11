@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "backend" / "lib"))
 from galaxy.ai.drug_discovery.mrsd_verifier import verify_mrsd
 from galaxy.ai.drug_discovery.phase_gating import required_studies, verify_phase_gating
 from galaxy.ai.drug_discovery.structural_validator import validate_structure
+from galaxy.ai.drug_discovery.tabulated_summary import verify_table
 
 
 def assistant(row): return row["messages"][-1]["content"]
@@ -38,6 +39,17 @@ def main():
         if validate_structure(assistant(r), sec).passed:
             pass_count += 1
     print(f"task6 (skeleton): passed {pass_count}/{len(rows6)} ({100*pass_count/len(rows6):.0f}%)")
+
+    task8 = ROOT / "data/regulatory_training/tasks/task8_tabulated_summary.jsonl"
+    if task8.exists():
+        rows8 = [json.loads(l) for l in task8.open()]
+        pass_count = 0
+        for r in rows8:
+            tid = r["meta"]["template_id"]
+            if verify_table(assistant(r), tid).passed:
+                pass_count += 1
+        print(f"task8 (tabulated):    passed {pass_count}/{len(rows8)} "
+              f"({100*pass_count/len(rows8):.0f}%)")
 
     task7 = ROOT / "data/regulatory_training/tasks/task7_phase_gating.jsonl"
     if task7.exists():
