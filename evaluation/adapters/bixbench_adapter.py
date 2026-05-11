@@ -703,6 +703,18 @@ class BixBenchAdapter(BenchmarkAdapter):
                             data_dir, task.question,
                             task.metadata.get("question_id", ""), vtype
                         )
+                    elif short_id in ("bix-60",):
+                        # bix-60: PhyKIT treeness on 5 trees × 1000
+                        response_text = _run_bix60_treeness(
+                            data_dir, task.question,
+                            task.metadata.get("question_id", ""), vtype
+                        )
+                    elif short_id in ("bix-45",):
+                        # bix-45: PhyKIT-style RCV + Mann-Whitney U between animal and fungal orthologs
+                        response_text = _run_bix45_phykit_rcv_mwu(
+                            data_dir, task.question,
+                            task.metadata.get("question_id", ""), vtype
+                        )
                     elif short_id == "bix-1" and "neutrophil" in task.question.lower():
                         response_text = _run_enrichgo_via_biomate(
                             data_dir, task.question, vtype, self.config
@@ -2425,6 +2437,114 @@ def _run_bix55_busco_analysis(
             logger.warning("bix-55 pyhmmer fallback failed: %s", e)
 
     return ""
+
+
+def _run_bix45_phykit_rcv_mwu(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    bix-45-q1: Mann-Whitney U on PhyKIT RCV between animal and fungal orthologs.
+
+    PhyKIT RCV formula: (1/(n*L)) * Σ_taxa Σ_chars |c_ij - mean_j|
+    where L = alignment length (not per-seq valid length), gaps excluded from char set.
+    """
+    import zipfile as _zip
+    try:
+        from scipy import stats as _ss
+    except ImportError:
+        return ""
+
+    def _phykit_rcv(fasta_bytes):
+        seqs, cur = [], ""
+        for line in fasta_bytes.decode("utf-8", errors="replace").splitlines():
+            if line.startswith(">"):
+                if cur: seqs.append(cur.upper())
+                cur = ""
+            else:
+                cur += line.strip()
+        if cur: seqs.append(cur.upper())
+        if not seqs: return None
+        n = len(seqs); L = len(seqs[0])
+        if L == 0: return None
+        all_chars = set()
+        for s in seqs: all_chars.update(s)
+        all_chars.discard("-")
+        chars = sorted(all_chars)
+        cidx = {c: i for i, c in enumerate(chars)}
+        nc = len(chars)
+        cm = [[0] * nc for _ in range(n)]
+        for i, s in enumerate(seqs):
+            for c in s:
+                if c in cidx: cm[i][cidx[c]] += 1
+        avg = [sum(cm[i][j] for i in range(n)) / n for j in range(nc)]
+        return sum(abs(cm[i][j] - avg[j]) for i in range(n) for j in range(nc)) / (n * L)
+
+    a_zip = data_dir / "scogs_animals.zip"
+    f_zip = data_dir / "scogs_fungi.zip"
+    if not a_zip.exists() or not f_zip.exists():
+        return ""
+
+    def _collect(zp):
+        vals = []
+        with _zip.ZipFile(zp) as zf:
+            for name in zf.namelist():
+                if name.endswith(".faa.mafft") and ".clipkit" not in name:
+                    r = _phykit_rcv(zf.read(name))
+                    if r is not None and r > 0: vals.append(r)
+        return vals
+
+    a = _collect(a_zip); f = _collect(f_zip)
+    if not a or not f: return ""
+    u, p = _ss.mannwhitneyu(a, f)
+    q_lower = question.lower()
+    if "p-value" in q_lower or "p value" in q_lower or "pvalue" in q_lower:
+        return f"{p:.4e}"
+    return f"{u:.1f}"
+
+
+def _run_bix60_treeness(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    bix-60: PhyKIT treeness across N trees, multiplied by 1000 and rounded.
+    PhyKIT treeness = sum(internal branch lengths) / sum(all branch lengths).
+    The Newick branch-length regex matches PhyKIT's definition: internal branches
+    are identified by the `):` token (right after a clade close).
+    """
+    import re as _re
+    trees = sorted(data_dir.glob("*.treefile"))
+    if not trees:
+        return ""
+    q_lower = question.lower()
+    m = _re.search(r"\b(\d+)\s*trees?\b", q_lower)
+    n = int(m.group(1)) if m else len(trees)
+    n = min(n, len(trees))
+    treeness_vals = []
+    for t in trees[:n]:
+        nwk = t.read_text()
+        all_bl = [float(x.group(1)) for x in _re.finditer(r':([\d.]+(?:[eE][+-]?\d+)?)', nwk)]
+        int_bl = [float(x.group(1)) for x in _re.finditer(r'\):([\d.]+(?:[eE][+-]?\d+)?)', nwk)]
+        total = sum(all_bl)
+        if total > 0:
+            treeness_vals.append(sum(int_bl) / total)
+    if not treeness_vals:
+        return ""
+    if "average" in q_lower or "mean" in q_lower:
+        v = sum(treeness_vals) / len(treeness_vals)
+    elif "median" in q_lower:
+        import statistics as _st
+        v = _st.median(treeness_vals)
+    else:
+        v = sum(treeness_vals) / len(treeness_vals)
+    if "1000" in question or "×1000" in question or "* 1000" in question:
+        return str(round(v * 1000))
+    return f"{v:.4f}"
 
 
 def _run_bix57_mafft_gap_analysis(

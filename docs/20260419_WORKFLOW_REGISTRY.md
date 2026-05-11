@@ -196,7 +196,7 @@
 | 10770 | Calculate Physicochemical Properties | `nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
 | 10771 | Check Drug Combination Safety | `nextflow_nfcore/subworkflows/pharmacology/check_drug_combination_safety/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
 | 10772 | Check Fda Drug Recalls | `nextflow_nfcore/subworkflows/pharmacology/check_fda_drug_recalls/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
-| 10773 | Docking Autodock Vina | `nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
+| 10773 | Docking Autodock Vina | `nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` | drug_discovery | `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86` (local: `biomate/biomni-drug-discovery-nf:latest`) |
 | 10774 | Estimate Alpha Particle Radiotherapy Dosimetry | `nextflow_nfcore/subworkflows/pharmacology/estimate_alpha_particle_radiotherapy_dosimetry/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
 | 10775 | Find Alternative Drugs Ddinter | `nextflow_nfcore/subworkflows/pharmacology/find_alternative_drugs_ddinter/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
 | 10776 | Get Fda Drug Label Info | `nextflow_nfcore/subworkflows/pharmacology/get_fda_drug_label_info/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
@@ -223,7 +223,7 @@
 | 12819 | P0 Mrna Validation | `nextflow_nfcore/subworkflows/drug_discovery/p0_mrna_validation/main.nf` | drug_discovery | `—` |
 | 12822 | Admet Pred | `nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf` | drug_discovery | `biomate/biomni-tools:latest` |
 | 12823 | Apply Vcog Grade | `nextflow_nfcore/subworkflows/drug_discovery/apply_vcog_grade/main.nf` | drug_discovery | `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:latest` |
-| 12824 | Docking Autodock Vina | `nextflow_nfcore/subworkflows/drug_discovery/docking_autodock_vina/main.nf` | drug_discovery | `—` |
+| 12824 | Docking Autodock Vina | `nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` | drug_discovery | `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86` (local: `biomate/biomni-drug-discovery-nf:latest`) |
 | 12825 | Ivive Hepatic Clearance | `nextflow_nfcore/subworkflows/drug_discovery/ivive_hepatic_clearance/main.nf` | drug_discovery | `—` |
 | 12826 | Predict Admet Properties | `nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf` | drug_discovery | `—` |
 | 12827 | P0 Pharmacophore Validation | `nextflow_nfcore/subworkflows/drug_discovery/p0_pharmacophore_validation/main.nf` | drug_discovery | `—` |
