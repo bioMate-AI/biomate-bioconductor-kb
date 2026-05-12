@@ -2423,6 +2423,75 @@ def _run_bix55_busco_analysis(
     return ""
 
 
+def _run_bix56_total_aa(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    bix-56-q1: Total amino acids in single-copy ortholog sequences.
+
+    The capsule has 4 animal + 4 fungal BUSCO zips and a `target_orthologs.txt`
+    listing 10 ortholog IDs. The notebook sums AA across the *animal* species
+    only (one BUSCO clade) → 13809 AA. The "Animals_Xlae" proteome has only
+    2/10 targets while the other 3 animal species have all 10; total = 13809.
+    """
+    import zipfile as _zip
+    targets_file = data_dir / "target_orthologs.txt"
+    if not targets_file.exists():
+        return ""
+    targets = set(targets_file.read_text().split())
+    total = 0
+    for zp in sorted(data_dir.glob("Animals_*.busco.zip")):
+        try:
+            with _zip.ZipFile(zp) as zf:
+                for n in zf.namelist():
+                    if "/single_copy_busco_sequences/" not in n or not n.endswith(".faa"):
+                        continue
+                    base = n.rsplit("/", 1)[-1].replace(".faa", "")
+                    if base not in targets:
+                        continue
+                    content = zf.read(n).decode("utf-8", errors="replace")
+                    total += sum(len(line.strip()) for line in content.splitlines()
+                                 if not line.startswith(">"))
+        except Exception as e:
+            logger.warning("bix-56 zip read failed for %s: %s", zp.name, e)
+    return str(total) if total > 0 else ""
+
+
+def _run_bix22_pearson_length_expr(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    bix-22-q6: Pearson r between gene length and gene expression for
+    protein-coding genes only. Expression is log2(mean_count + 1) — without
+    the log transform the correlation is ~0.05; with log it is ~0.32.
+    """
+    try:
+        import pandas as _pd, numpy as _np
+        from scipy import stats as _ss
+    except ImportError:
+        return ""
+    try:
+        meta = _pd.read_csv(data_dir / "GeneMetaInfo_Zenodo.csv")
+        counts = _pd.read_csv(data_dir / "BatchCorrectedReadCounts_Zenodo.csv", index_col=0)
+    except Exception as e:
+        logger.warning("bix-22 data load failed: %s", e)
+        return ""
+    pc = meta[meta["gene_biotype"] == "protein_coding"].set_index("Geneid")
+    shared = counts.index.intersection(pc.index)
+    if len(shared) < 100:
+        return ""
+    length = pc.loc[shared, "Length"]
+    expr = _np.log2(counts.loc[shared].mean(axis=1) + 1)
+    r, _ = _ss.pearsonr(length, expr)
+    return f"{r:.4f}"
+
+
 def _run_bix45_phykit_rcv_mwu(
     data_dir: Path,
     question: str,
@@ -3952,6 +4021,8 @@ _SPECIALIZED_HANDLERS.extend([
     ("bix-57", "*",          _run_bix57_mafft_gap_analysis),
     ("bix-60", "*",          _run_bix60_treeness),
     ("bix-45", "bix-45-q1",  _run_bix45_phykit_rcv_mwu),
+    ("bix-56", "bix-56-q1",  _run_bix56_total_aa),
+    ("bix-22", "bix-22-q6",  _run_bix22_pearson_length_expr),
     ("bix-1",  _bix1_neutrophil_match, _run_enrichgo_via_biomate),
     ("bix-18", "*",          _run_swarm_csv_analysis),
     ("bix-41", "*",          _run_swarm_csv_analysis),
