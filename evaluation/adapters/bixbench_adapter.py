@@ -709,8 +709,9 @@ class BixBenchAdapter(BenchmarkAdapter):
                             data_dir, task.question,
                             task.metadata.get("question_id", ""), vtype
                         )
-                    elif short_id in ("bix-45",):
-                        # bix-45: PhyKIT-style RCV + Mann-Whitney U between animal and fungal orthologs
+                    elif short_id == "bix-45" and task.metadata.get("question_id", "") == "bix-45-q1":
+                        # bix-45-q1 ONLY: PhyKIT-style RCV + Mann-Whitney U animal vs fungal orthologs
+                        # (q2/q5/q6 use other metrics handled by _run_busco_scogs_analysis)
                         response_text = _run_bix45_phykit_rcv_mwu(
                             data_dir, task.question,
                             task.metadata.get("question_id", ""), vtype
