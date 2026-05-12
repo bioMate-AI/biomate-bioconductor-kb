@@ -664,74 +664,18 @@ class BixBenchAdapter(BenchmarkAdapter):
                     short_id = task.metadata.get("short_id", "")
                     vtype = task.metadata.get("verifier_type", "str_verifier")
 
-                    # ── Route R/Bioconductor capsules through BioMate AWS Batch ──────────
-                    # bix-13: DESeq2 differential expression (5 questions)
-                    # bix-1: enrichGO GO enrichment analysis
-                    # All R-based analysis routes through BioMate's workflow system.
-                    if short_id in ("bix-52",):
-                        # bix-52: Bird CpG methylation density analysis (Python-native)
-                        response_text = _run_bix52_cpg_analysis(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id in ("bix-26",):
-                        # bix-26: P. aeruginosa KEGG pathway enrichment (Python-native)
-                        response_text = _run_bix26_kegg_analysis(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id in ("bix-13",):
-                        response_text = _run_bix13_deseq2_analysis(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id in ("bix-55",):
-                        # bix-55: BUSCO single-copy ortholog count across 4 proteomes
-                        response_text = _run_bix55_busco_analysis(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id in ("bix-61",):
-                        # bix-61: NGS pipeline (BWA + samtools + GATK)
-                        response_text = _run_bix61_ngs_pipeline(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id in ("bix-57",):
-                        # bix-57: MAFFT alignment gap percentage (median across 10 FAA files)
-                        response_text = _run_bix57_mafft_gap_analysis(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id in ("bix-60",):
-                        # bix-60: PhyKIT treeness on 5 trees × 1000
-                        response_text = _run_bix60_treeness(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id == "bix-45" and task.metadata.get("question_id", "") == "bix-45-q1":
-                        # bix-45-q1 ONLY: PhyKIT-style RCV + Mann-Whitney U animal vs fungal orthologs
-                        # (q2/q5/q6 use other metrics handled by _run_busco_scogs_analysis)
-                        response_text = _run_bix45_phykit_rcv_mwu(
-                            data_dir, task.question,
-                            task.metadata.get("question_id", ""), vtype
-                        )
-                    elif short_id == "bix-1" and "neutrophil" in task.question.lower():
-                        response_text = _run_enrichgo_via_biomate(
-                            data_dir, task.question, vtype, self.config
-                        )
-                    elif short_id in ("bix-18", "bix-41"):
-                        # Swarm CSV analysis — specialized pandas handler (bypasses notebook)
-                        response_text = _run_swarm_csv_analysis(
-                            data_dir, task.question, vtype
-                        )
-                        if not response_text:
-                            # Fallback to LLM code generation
-                            response_text = _generate_and_run_analysis(
-                                data_dir, task.question, task.ground_truth,
-                                vtype, self.config,
-                            )
-                    else:
+                    # ── Specialized handler dispatch ─────────────────────────────────────
+                    # Handlers register by (short_id, question_id_predicate). Predicates
+                    # are matched against the task's question_id; first match wins. A
+                    # handler that returns an empty string falls through to the generic
+                    # notebook/code path below. This avoids the v28 regression where a
+                    # short_id-scoped handler clobbered sibling questions it couldn't answer.
+                    qid = task.metadata.get("question_id", "")
+                    response_text = _dispatch_specialized_handler(
+                        short_id, qid, task, data_dir, vtype, self.config,
+                    )
+
+                    if not response_text:
                         nb_path = _find_notebook(notebook_dir)
                         notebook_ctx = _extract_notebook_outputs(nb_path) if nb_path else ""
 
@@ -1206,6 +1150,45 @@ def _run_notebook_code(
             os.unlink(tmp_path)
         except Exception:
             pass
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Specialized handler registry
+# ───────────────────────────────────────────────────────────────────────────
+# Each entry maps (short_id, question_id_matcher) → handler. Matchers are:
+#   - "*"                : any question_id for that short_id
+#   - exact qid string   : exact match (e.g., "bix-45-q1")
+#   - callable(qid)→bool : custom predicate
+# First match wins. Handlers return "" to indicate "not my question, fall through".
+# Handler signature: (data_dir: Path, question: str, qid: str, verifier_type: str) -> str
+
+_SPECIALIZED_HANDLERS: list = []   # populated after handler defs
+
+def _dispatch_specialized_handler(short_id, qid, task, data_dir, vtype, config) -> str:
+    """Dispatch to registered specialized handler if any matches. Returns "" if none."""
+    q = task.question
+    for sid, matcher, handler in _SPECIALIZED_HANDLERS:
+        if sid != short_id:
+            continue
+        matched = (
+            matcher == "*"
+            or (isinstance(matcher, str) and matcher == qid)
+            or (callable(matcher) and matcher(qid, q))
+        )
+        if matched:
+            try:
+                import inspect as _ins
+                params = list(_ins.signature(handler).parameters.keys())
+                pool = {
+                    "data_dir": data_dir, "question": q, "verifier_type": vtype,
+                    "question_id": qid, "config": config,
+                }
+                kwargs = {k: pool[k] for k in params if k in pool}
+                return handler(**kwargs) or ""
+            except Exception as e:
+                logger.warning("handler %s failed for %s: %s", handler.__name__, qid, e)
+                return ""
+    return ""
 
 
 def _run_busco_scogs_analysis(data_dir: Path, question: str, verifier_type: str, config: dict) -> str:
@@ -3911,3 +3894,34 @@ def _summarize_data_dir(data_dir: Path) -> str:
         if f.is_file():
             lines.append(f"  {f.name} ({f.stat().st_size // 1024} KB)")
     return "\n".join(lines[:20])
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Specialized handler registry (populated at module load)
+# ───────────────────────────────────────────────────────────────────────────
+# Format: (short_id, matcher, handler)
+#   matcher "*"        → any question for this capsule
+#   matcher "bix-X-qN" → exact question_id
+#   matcher callable   → predicate(qid, question_text) -> bool
+#
+# Adding a new handler:
+#   1. Implement the function with signature (data_dir, question, qid, vtype) -> str
+#   2. Append a tuple here. Order matters: more specific matchers first.
+#   3. Return "" from the handler to signal "fall through to next/generic".
+
+def _bix1_neutrophil_match(qid, q):
+    return "neutrophil" in q.lower()
+
+_SPECIALIZED_HANDLERS.extend([
+    ("bix-52", "*",          _run_bix52_cpg_analysis),
+    ("bix-26", "*",          _run_bix26_kegg_analysis),
+    ("bix-13", "*",          _run_bix13_deseq2_analysis),
+    ("bix-55", "*",          _run_bix55_busco_analysis),
+    ("bix-61", "*",          _run_bix61_ngs_pipeline),
+    ("bix-57", "*",          _run_bix57_mafft_gap_analysis),
+    ("bix-60", "*",          _run_bix60_treeness),
+    ("bix-45", "bix-45-q1",  _run_bix45_phykit_rcv_mwu),
+    ("bix-1",  _bix1_neutrophil_match, _run_enrichgo_via_biomate),
+    ("bix-18", "*",          _run_swarm_csv_analysis),
+    ("bix-41", "*",          _run_swarm_csv_analysis),
+])
