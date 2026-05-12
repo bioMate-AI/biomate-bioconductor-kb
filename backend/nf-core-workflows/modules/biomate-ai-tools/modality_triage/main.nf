@@ -258,10 +258,43 @@ def score_small_molecule():
         'precedent': '—',
     }
 
+def score_mab():
+    """
+    Standard monoclonal antibody — blocks the target without T-cell engagement.
+    Different from bispecific TCE: no cytokine release, no on-target/off-tumor
+    cytotoxicity. Expression in normal tissue means pharmacological target
+    engagement (intended mechanism), not toxicity.
+    Examples: marstacimab (TFPI), axatilimab (CSF1R), zolbetuximab (CLDN18.2).
+    """
+    # mAb tolerance is broad: even strongly expressed targets are fine as long as
+    # the pharmacological blockade is the intended mechanism (e.g., CSF1R blockade
+    # on macrophages IS the cGVHD treatment mechanism).
+    if max_high > 3.0:
+        return {
+            'verdict':   'CAUTION',
+            'risk_tier': 'MEDIUM',
+            'reason':    f"Very high expression in critical tissue(s): {high_hits[:3]}. "
+                         f"Verify pharmacological blockade is intended (not toxicity).",
+            'mitigation':'Standard mAb design. Confirm target engagement on normal tissue '
+                         'is the therapeutic mechanism, not the off-target risk.',
+            'precedent': '—',
+        }
+    return {
+        'verdict':   'VIABLE',
+        'risk_tier': 'LOW',
+        'reason':    f"mAb format tolerates broad expression: target blockade is the mechanism. "
+                     f"Expression pattern (max HIGH {max_high:.2f}, MOD {max_mod:.2f}) is acceptable.",
+        'mitigation':'Standard mAb scaffold (IgG1/IgG4 depending on effector function needs). '
+                     'Confirm with mechanism-of-action assay.',
+        'precedent': 'Marstacimab (TFPI mAb, Hympavzi 2024), axatilimab (CSF1R mAb, Niktimvo 2024), '
+                     'zolbetuximab (CLDN18.2 mAb, Vyloy 2024).',
+    }
+
 MODALITY_SCORERS = {
     'car-t':           score_cart,
     'adc':             score_adc,
     'bispecific':      score_bispecific_tce,
+    'mab':             score_mab,
     'protac':          score_protac,
     'sirna':           score_sirna_aso,
     'aso':             score_sirna_aso,

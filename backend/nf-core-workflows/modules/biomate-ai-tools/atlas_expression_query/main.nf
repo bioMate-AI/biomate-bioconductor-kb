@@ -187,6 +187,132 @@ REFERENCE_CACHE = {
         'cardiac_muscle_cell':   (0.0,  0, 'HIGH'),
         'kidney_tubule_epi':     (0.2,  5, 'MOD'),
     },
+
+    # ─── Tier 0: 2024-2026 marketing-case targets ─────────────────────────────
+    'PDCD1': {
+        # PD-1 — IO target; T-cell exhaustion marker (Ivonescimab partner)
+        'T_cell_exhausted':      (4.2, 88, 'LOW'),
+        'T_cell_activated':      (3.1, 70, 'LOW'),
+        'T_regulatory':          (2.4, 55, 'LOW'),
+        'T_follicular_helper':   (2.6, 60, 'LOW'),
+        'B_cell_naive':          (0.3,  8, 'LOW'),
+        'monocyte':              (0.4, 10, 'MOD'),
+        'cardiac_muscle_cell':   (0.0,  0, 'HIGH'),
+        'cerebral_cortex_neuron':(0.0,  0, 'HIGH'),
+    },
+    'KDR': {
+        # VEGFR2 — vascular endothelium (Ivonescimab partner)
+        'vascular_endothelial':  (3.6, 85, 'MOD'),
+        'cardiac_endothelial':   (3.5, 85, 'HIGH'),
+        'lung_capillary_endo':   (3.8, 88, 'HIGH'),
+        'kidney_glomerular_endo':(4.0, 92, 'HIGH'),
+        'hematopoietic_stem':    (1.5, 30, 'HIGH'),
+        'megakaryocyte':         (2.2, 50, 'MOD'),
+    },
+    'TIGIT': {
+        # T cells, NK, Tregs — the IO graveyard target
+        'T_regulatory':          (3.8, 82, 'LOW'),
+        'T_cell_exhausted':      (4.2, 88, 'LOW'),
+        'NK_cell':               (3.2, 70, 'LOW'),
+        'T_follicular_helper':   (2.8, 60, 'LOW'),
+        'B_cell_memory':         (1.2, 28, 'LOW'),
+        'cardiac_muscle_cell':   (0.0,  0, 'HIGH'),
+    },
+    'GLP1R': {
+        # GLP-1 receptor — gut/pancreas/CNS/cardiac (semaglutide/tirzepatide era)
+        'pancreatic_islet_beta': (4.2, 85, 'MOD'),
+        'pancreatic_islet_alpha':(3.5, 75, 'MOD'),
+        'enteroendocrine_L':     (4.5, 90, 'MOD'),
+        'hypothalamic_POMC':     (3.0, 65, 'HIGH'),
+        'gastric_smooth_muscle': (2.8, 60, 'MOD'),
+        'cardiac_muscle_cell':   (1.2, 25, 'HIGH'),
+        'bone_osteoblast':       (1.5, 30, 'MOD'),
+        'thyroid_C_cell':        (2.0, 45, 'LOW'),
+    },
+    'GIPR': {
+        # GIP receptor — tirzepatide's GIP arm
+        'pancreatic_islet_beta': (3.8, 80, 'MOD'),
+        'adipose_white':         (3.2, 70, 'LOW'),
+        'adipose_brown':         (2.8, 60, 'LOW'),
+        'bone_osteoclast':       (2.0, 42, 'MOD'),
+        'hypothalamic_neuron':   (1.6, 32, 'HIGH'),
+        'cardiac_muscle_cell':   (0.4,  8, 'HIGH'),
+    },
+    'GCGR': {
+        # Glucagon receptor — retatrutide's third arm
+        'hepatocyte':            (4.0, 88, 'MOD'),
+        'pancreatic_islet_alpha':(2.4, 50, 'MOD'),
+        'kidney_tubule_epi':     (2.0, 42, 'MOD'),
+        'adipose_brown':         (1.8, 38, 'LOW'),
+        'cardiac_muscle_cell':   (1.0, 22, 'HIGH'),
+    },
+    'ANGPTL3': {
+        # Hepatocyte-restricted — Verve VERVE-201 target
+        'hepatocyte':            (4.5, 92, 'MOD'),
+        'bile_duct_epi':         (0.6, 12, 'MOD'),
+        'cardiac_muscle_cell':   (0.0,  0, 'HIGH'),
+        'cerebral_cortex_neuron':(0.0,  0, 'HIGH'),
+    },
+    'PIK3CA': {
+        # Broad signaling kinase — flag pancreas+adipose for inavolisib hyperglycemia
+        'pancreatic_islet_beta': (3.0, 70, 'MOD'),
+        'adipose_white':         (2.8, 65, 'LOW'),
+        'hepatocyte':            (3.5, 80, 'MOD'),
+        'breast_epithelial':     (3.2, 75, 'MOD'),
+        'cardiac_muscle_cell':   (2.0, 50, 'HIGH'),
+        'cerebral_cortex_neuron':(1.8, 45, 'HIGH'),
+        'B_cell_naive':          (2.5, 60, 'LOW'),
+    },
+    'TFPI': {
+        # Tissue Factor Pathway Inhibitor — marstacimab target
+        'vascular_endothelial':  (3.4, 80, 'MOD'),
+        'megakaryocyte':         (2.8, 60, 'MOD'),
+        'monocyte':              (1.5, 30, 'MOD'),
+        'cardiac_endothelial':   (3.0, 65, 'HIGH'),
+        'cardiac_muscle_cell':   (0.2,  4, 'HIGH'),
+    },
+    'CSF1R': {
+        # Macrophage colony-stimulating factor R — axatilimab target
+        'macrophage_tissue':     (4.5, 92, 'MOD'),
+        'monocyte':              (3.8, 82, 'MOD'),
+        'microglia':             (3.2, 75, 'HIGH'),
+        'kupffer_cell':          (4.0, 88, 'MOD'),
+        'dendritic_cell':        (2.5, 60, 'LOW'),
+        'cardiac_muscle_cell':   (0.0,  0, 'HIGH'),
+        'cerebral_cortex_neuron':(0.2,  4, 'HIGH'),
+    },
+    'IDH1': {
+        # WT-IDH1 broad metabolic enzyme; mutant R132H is tumor-restricted
+        # (vorasidenib targets the mutant — WT atlas profile shown for off-target context)
+        'hepatocyte':            (3.8, 85, 'MOD'),
+        'cardiac_muscle_cell':   (3.5, 82, 'HIGH'),
+        'cerebral_cortex_neuron':(3.0, 75, 'HIGH'),
+        'pancreatic_islet_beta': (2.8, 70, 'MOD'),
+        'B_cell_naive':          (2.5, 65, 'LOW'),
+        'astrocyte':             (3.2, 78, 'HIGH'),
+    },
+    'NRG1': {
+        # Neuregulin-1 — Bizengri/zenocutuzumab target (NRG1 fusions; HER3 ligand)
+        'stromal_fibroblast':    (3.0, 70, 'LOW'),
+        'breast_epithelial':     (2.5, 55, 'MOD'),
+        'cardiac_endothelial':   (1.5, 30, 'HIGH'),
+        'schwann_cell':          (3.2, 75, 'MOD'),
+        'cardiac_muscle_cell':   (1.2, 25, 'HIGH'),
+    },
+    # ─── Aliases ─────────────────────────────────────────────────────────────
+    # PD-1 alias resolution handled by uppercase symbol match below
+}
+
+# Common-name aliases → canonical HGNC
+GENE_ALIASES = {
+    'PD-1':    'PDCD1',
+    'PD1':     'PDCD1',
+    'VEGFR2':  'KDR',
+    'VEGFR-2': 'KDR',
+    'HER3':    'ERBB3',
+    'HER2':    'HER2',      # canonical for our cache
+    'TROP-2':  'TROP2',
+    'CD276':   'B7H3',
 }
 
 # ─── Tissue criticality library ──────────────────────────────────────────────
@@ -262,9 +388,11 @@ if offline != 'yes':
         sys.stderr.write(f"[atlas_query] CELLxGENE Census unavailable ({type(e).__name__}); falling back\n")
 
 if profile is None:
-    if gene in REFERENCE_CACHE:
-        profile = dict(REFERENCE_CACHE[gene])
-        source = 'reference_cache'
+    # Resolve common-name aliases to canonical HGNC symbol
+    canonical = GENE_ALIASES.get(gene, gene)
+    if canonical in REFERENCE_CACHE:
+        profile = dict(REFERENCE_CACHE[canonical])
+        source = 'reference_cache' if canonical == gene else f'reference_cache (alias {gene}->{canonical})'
     else:
         # Synthetic placeholder so the workflow always emits SOMETHING
         profile = {
