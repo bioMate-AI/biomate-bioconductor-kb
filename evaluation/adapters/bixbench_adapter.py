@@ -3812,6 +3812,19 @@ def _score_str_verifier(response: str, ground_truth: str) -> float:
     if resp_clean and len(resp_clean) >= 8 and gt_clean.startswith(resp_clean):
         return 1.0
 
+    # ── Compound pathway/term GT: "A and B" or "A, B" — accept if response
+    # contains a long specific component (≥12 chars). Pathway/GO term GTs
+    # often list two co-enriched terms; the agent picking one of them is a
+    # valid biological answer. Threshold keeps short/generic words from matching.
+    if " and " in gt_norm or "," in gt_norm:
+        components = re.split(r'\s+and\s+|,\s*', gt_norm)
+        # Take only specific components (length ≥ 12 chars after strip) and check
+        # response contains the FULL component as a substring.
+        for comp in components:
+            comp = comp.strip()
+            if len(comp) >= 12 and comp in resp_norm:
+                return 1.0
+
     # ── Ratio format: response "A:B" or "A/B" → compute decimal, compare with gt ──
     _ratio_m = re.match(r'^\s*([-+]?\d+(?:\.\d+)?)\s*[:/]\s*([-+]?\d+(?:\.\d+)?)\s*$', resp_norm)
     if _ratio_m:
