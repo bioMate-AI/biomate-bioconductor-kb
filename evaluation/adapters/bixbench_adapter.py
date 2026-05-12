@@ -3710,6 +3710,24 @@ def _score_str_verifier(response: str, ground_truth: str) -> float:
     if resp_norm.startswith(_error_tokens):
         return 0.0
 
+    # ── Distribution-shape synonyms ──────────────────────────────────────────
+    # Statistical distributions have several common descriptive names that all
+    # refer to the same shape. Treat them as equivalent for verifier purposes.
+    _distribution_synonyms = [
+        {"normal", "gaussian", "bell-shaped", "bell shaped", "bell curve", "bell-curve"},
+        {"uniform", "flat", "rectangular"},
+        {"bimodal", "two-peaked", "two peaks", "two-mode"},
+        {"right-skewed", "right skewed", "positive skew", "positively skewed", "long right tail",
+         "right-skewed with a long tail"},
+        {"left-skewed", "left skewed", "negative skew", "negatively skewed", "long left tail"},
+        {"exponential", "exponentially distributed"},
+    ]
+    for synset in _distribution_synonyms:
+        if gt_norm in synset:
+            for syn in synset:
+                if syn in resp_norm:
+                    return 1.0
+
     # ── Short numeric GT: require word-boundary match to avoid "2" ⊂ "42" ──
     # A "short numeric" GT is a string of only digits/punctuation, length ≤ 6.
     _is_short_numeric = re.match(r'^[\d,.\-+eE%]+$', gt_norm.replace(' ', '')) and len(gt_norm) <= 6
