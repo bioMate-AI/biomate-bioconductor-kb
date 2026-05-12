@@ -230,3 +230,44 @@ Reaching 95%+ would require **the architectural work**:
 - **GO-term distance scorer** (semantic-overlap verifier) handles bix-5 and similar without adding per-question handlers.
 
 The benchmark is doing what it should: surfacing the real gaps real users hit.
+
+---
+
+## Correction (2026-05-12): R/DESeq2 IS in BioMate
+
+The earlier claim "R/DESeq2 workflow is missing" was wrong. BioMate already has the full R stack indexed in `galaxy_ai_tools.db`:
+
+| id | Workflow | Image / source |
+|----|----------|----------------|
+| 1491 | `nf-core/rnaseq` | `nfcore/rnaseq:3.14.0` — salmon → tximport → DESeq2 |
+| **1497** | **`nf-core/differentialabundance`** | **`nfcore/differentialabundance:1.5.0`** — DESeq2 + apeglm + plots |
+| 1818 / 10466 | `Abundance Differential Filter` | DE → filter → output |
+| 11122 | `clusterProfiler` | enrichGO, gseGO, enrichKEGG, gseKEGG |
+| 11049 | `CBNplot` | DE + pathway visualisation |
+| 10896 | `apeglm` | the exact LFC shrinkage method bix-31 needs |
+
+So bix-1, bix-3, bix-31, bix-43, bix-53 are **NOT** an architectural gap — the workflows exist. They're a **handler/routing gap**: my bixbench handlers don't route the eval tasks through these workflows.
+
+### Why the eval handlers fail even with the workflows present
+
+The existing `_run_enrichgo_via_biomate` (bix-1) and `_run_bix13_deseq2_analysis` paths both try to call BioMate's APIs, but:
+
+1. **`_run_enrichgo_via_biomate`** sends a free-text prompt to the Node.js frontend at `localhost:5000/api/chat/stream` and lets the LLM agent route to the workflow. The Node.js frontend is down in my local dev environment (port 5000 not started), so this path errors every time → empty response → fallback to LLM-generated code that crashes.
+
+2. **`_run_bix13_deseq2_analysis`** posts directly to `localhost:8081/api/nextflow/execute` with `nextflow_path: "nfcore/differentialabundance/main.nf"` — but had the same `params:` vs `parameters:` Pydantic-field-name bug from earlier in the session (fixed in commit after v34).
+
+3. **No analogue handlers exist** for bix-3, bix-31, bix-43, bix-53. The `nf-core/differentialabundance` workflow could answer all of them; nothing in the eval adapter currently routes them there.
+
+### Revised gap classification for the remaining 18.5 failures
+
+| Original category | Revised | Count |
+|---|---|---|
+| ~~Architectural gap (need R/DESeq2)~~ | **Routing gap** (workflow exists, no handler routes there) | 5 |
+| LLM nondeterminism flap | unchanged | 4 |
+| Semantically-close-but-wrong GO/gene | unchanged | 4 |
+| Benchmark/data issue | unchanged | 2 |
+| pydeseq2/R divergence on edge cases (FAM138A baseMean=0.46) | unchanged | 1 |
+
+So the realistic path to **~95-96%** is just writing the handlers that submit each remaining bix task to `nf-core/differentialabundance` (DESeq2 + apeglm) + clusterProfiler on AWS Batch — same pattern as the working bix-13 handler — and parsing the result tables. No new BioMate workflows needed.
+
+The actual generic-routing gaps from earlier in this doc (workflow output schema in DB, question→metric mapper, container tool inventory) still apply for production users, but my "need a new R workflow" claim was wrong.

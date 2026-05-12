@@ -3445,7 +3445,10 @@ def _run_deseq2_via_biomate(
             f"{biomate_galaxy_url}/api/nextflow/execute",
             json={
                 "nextflow_path": "nfcore/differentialabundance/main.nf",
-                "params": {
+                # Field name MUST be `parameters` not `params` — the Pydantic schema
+                # silently drops unknown keys, causing the workflow to run with an
+                # empty params dict (Channel.fromPath returns null/).
+                "parameters": {
                     "input": f"s3://biomate-nextflow-work/{capsule_prefix}/samplesheet.csv",
                     "matrix": f"s3://biomate-nextflow-work/{capsule_prefix}/counts_filtered.csv",
                     "contrasts": f"s3://biomate-nextflow-work/{capsule_prefix}/contrasts.csv",
