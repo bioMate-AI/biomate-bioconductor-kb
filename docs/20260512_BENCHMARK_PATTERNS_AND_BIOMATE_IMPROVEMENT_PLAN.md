@@ -203,3 +203,34 @@ If P0 + P1 + P2 all ship over Q3:
 - Median benchmark score crosses 90%
 - Score variance across runs drops to <2pp (handler-deterministic, not LLM-stochastic)
 - "Add new workflow" becomes a single PR (workflow + schema + index row) instead of "implement handler in every eval adapter"
+
+---
+
+## Empirical finding: biomni_eval1 fails fast when port 5000 is down
+
+Attempted to run `biomni_eval1 patient_gene_detection` to validate Pattern 1
+proposals. The runner immediately errored:
+
+```
+requests.exceptions.ConnectionError: HTTPConnectionPool(
+    host='localhost', port=5000): Max retries exceeded with url: /api/auth/login
+```
+
+The biomni_eval1 runner routes through the Node.js frontend on port 5000
+(via `/api/chat/stream` for LLM-driven workflow selection) rather than
+directly to Galaxy's `/api/nextflow/execute` on port 8081. When port 5000
+isn't running, every task fails with no fallback.
+
+This is itself a finding:
+
+**Additional Pattern 5: tight coupling to the chat-stream layer.**
+The benchmarks that score well (admet, boin, pbpk, license_gating, ...) all
+have adapters that submit workflows directly. The benchmarks that score
+poorly (biomni_eval1, sgi_bench reasoning, compbiobench) all route through
+chat-stream and depend on the LLM agent for workflow selection. The agent
+adds nondeterminism (Pattern 4) and the dependency adds availability risk.
+
+**Fix:** Each benchmark adapter should have a deterministic primary path
+(direct workflow submission) and treat the chat-stream agent path as a
+fallback. Same architectural principle as Pattern 4 but at the inter-process
+boundary, not just the routing decision.
