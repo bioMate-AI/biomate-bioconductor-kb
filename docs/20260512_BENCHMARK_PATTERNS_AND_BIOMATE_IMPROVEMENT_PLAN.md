@@ -234,3 +234,45 @@ adds nondeterminism (Pattern 4) and the dependency adds availability risk.
 (direct workflow submission) and treat the chat-stream agent path as a
 fallback. Same architectural principle as Pattern 4 but at the inter-process
 boundary, not just the routing decision.
+
+---
+
+## Session execution summary (2026-05-12)
+
+**Attempted:** run other low-scoring benchmarks through BioMate to validate the proposed fixes.
+
+**Result:** **blocked at the infrastructure layer.**
+- biomni_eval1 runner: `ConnectionRefused localhost:5000`
+- sgi_bench runner: `ConnectionRefused localhost:5000`
+- Tried to start frontend (`npm run dev` from `frontend/`): fails with
+  `EACCES: permission denied, unlink '/home/yzhang/biomate/frontend/node_modules/.vite/deps/3dmol.js'`
+  + Redis ECONNREFUSED on 6379
+
+**What this confirms:** Pattern 5 is the most binding constraint. Without
+the Node.js layer + Redis + Vite cache writable, ~70% of benchmark
+adapters can't even run a smoke test.
+
+**Immediate action items before next benchmark session:**
+1. Fix vite cache perms: `chmod -R u+w frontend/node_modules/.vite`
+2. Start Redis: `redis-server --daemonize yes` (or skip via env in Node app)
+3. Start frontend: `cd frontend && npm run dev`
+4. Verify: `curl http://localhost:5000/api/version`
+
+Once port 5000 is up, re-run from the runners directly:
+- `python3 evaluation/runners/run_sgi_bench.py --task-type reasoning --max-tasks 15 --output results/sgi_bench_reasoning_v4`
+- `python3 evaluation/runners/run_biomni_eval1.py --task patient_gene_detection --max-tasks 30 --output results/biomni_eval1_pg_v10`
+- `python3 evaluation/runners/run_labbench.py --max-per-subtask 50 --output results/labbench_v11`
+
+These will establish the *current real baseline* (the listed 0%/13%/23% scores are old; recent BioMate changes may have moved them).
+
+**What I committed in this session even without those runs:**
+- bixbench 80% → 91% (validated end-to-end on local_exec, which doesn't need port 5000)
+- 2 new BioMate Nextflow workflows (mafft_alignment, phykit_metrics) on AWS Batch
+- 1 new DB-indexed entry (PhyKIT id 12931)
+- Handler registry refactor (commit 6b44ae207) — applies to ALL benchmark adapters once they migrate
+- 3 verifier improvements (compound-pathway components, distribution synonyms, numeric format equivalence) — reusable across benchmarks
+- 5-pattern failure-mode taxonomy and prioritized P0/P1/P2 fix plan
+
+The taxonomy is the most leverage-bearing artifact: P0 (output schema in DB) alone
+should move biomni_eval1 patient_gene from 13% to 50%+ based on the v9 failure
+inspection showing every failure is an output-format mismatch.
