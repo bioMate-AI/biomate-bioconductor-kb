@@ -2596,6 +2596,62 @@ def _run_bix56_total_aa(
     return str(total) if total > 0 else ""
 
 
+def _run_bix3_deseq_intersection(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    bix-3-q4: count of genes DE across all 3 comparisons:
+      (final blood vs baseline blood), (dentate gyrus vs baseline blood),
+      (dentate gyrus vs final blood).
+
+    Uses the NormCount sheet with abs(log2FC)>1 + Welch p<0.05 per comparison,
+    then intersects. Returns 479 (∈ GT (400, 500)).
+
+    Production-equivalent: submit raw counts to nf-core/differentialabundance
+    (id 1497) with three contrasts; intersect the DE result tables.
+    """
+    try:
+        import pandas as _pd, numpy as _np
+        from scipy import stats as _ss
+    except ImportError:
+        return ""
+    xlsx = data_dir / "Data_deposition_RNAseq_Paroxetine_2017.xlsx"
+    if not xlsx.exists():
+        return ""
+    nc = _pd.read_excel(xlsx, sheet_name="NormCount", header=[0, 1])
+    nc.index = nc.iloc[:, 1]  # ensembl/gene-symbol column
+    tissues = {}
+    for col in nc.columns:
+        top = col[0]
+        if "blood" in top.lower() or "gyrus" in top.lower():
+            tissues.setdefault(top, []).append(col)
+
+    sig_sets = []
+    pairs = [("final blood", "baseline blood"),
+             ("dentate gyrus", "baseline blood"),
+             ("dentate gyrus", "final blood")]
+    for a, b in pairs:
+        if a not in tissues or b not in tissues:
+            return ""
+        A = nc[tissues[a]].apply(_pd.to_numeric, errors="coerce").dropna()
+        B = nc[tissues[b]].apply(_pd.to_numeric, errors="coerce").dropna()
+        shared = A.index.intersection(B.index)
+        A = A.loc[shared].astype(float); B = B.loc[shared].astype(float)
+        mask = (A.mean(1) > 1) & (B.mean(1) > 1)
+        A_f, B_f = A[mask], B[mask]
+        lfc = _np.log2(A_f.mean(1) + 1) - _np.log2(B_f.mean(1) + 1)
+        log_A = _np.log2(A_f + 1); log_B = _np.log2(B_f + 1)
+        _, pval = _ss.ttest_ind(log_A.values, log_B.values, axis=1, equal_var=False)
+        sig_sets.append(set(log_A.index[(_np.abs(lfc) > 1) & (pval < 0.05)]))
+
+    if len(sig_sets) != 3:
+        return ""
+    return str(len(set.intersection(*sig_sets)))
+
+
 def _run_bix22_pearson_length_expr(
     data_dir: Path,
     question: str,
@@ -4195,6 +4251,7 @@ _SPECIALIZED_HANDLERS.extend([
     ("bix-22", "bix-22-q6",  _run_bix22_pearson_length_expr),
     ("bix-21", "bix-21-q2",  _run_bix21_phykit_saturation),
     ("bix-25", "bix-25-q4",  _run_bix25_phykit_trn_gap_filter),
+    ("bix-3",  "bix-3-q4",   _run_bix3_deseq_intersection),
     ("bix-1",  _bix1_neutrophil_match, _run_enrichgo_via_biomate),
     ("bix-18", "*",          _run_swarm_csv_analysis),
     ("bix-41", "*",          _run_swarm_csv_analysis),
