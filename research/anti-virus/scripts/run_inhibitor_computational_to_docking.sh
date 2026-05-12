@@ -13,16 +13,21 @@ cd "$ROOT"
 : "${PDB_S3:=s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb}"
 : "${REFERENCE_ACTIVES_S3:=s3://biomate-nextflow-work/inputs/andv_campaign/pipeline_demo_20260509/reference_actives.smi}"
 : "${COMPOUND_LIBRARY_S3:=s3://biomate-nextflow-work/inputs/andv_campaign/pipeline_demo_20260509/compound_library.smi}"
-: "${SMILES_JSON:=[\"CCO\",\"CC(=O)O\",\"CC(=O)Oc1ccccc1C(=O)O\"]}"
+# Optional SMILES_JSON: only needed if pharmacophore is skipped or produces no hits.
+# When unset, ADMET/Vina use 02_pharmacophore/filtered_compounds.smi automatically.
 : "${STEP_TIMEOUT:=7200}"
 
-exec python3 research/anti-virus/scripts/run_andv_inhibitor_pipeline_nextflow.py \
-  --api-url "${BIOMATE_API_URL}" \
-  --pdb-input "${PDB_S3}" \
-  --through-step 4 \
-  --reference-actives-s3 "${REFERENCE_ACTIVES_S3}" \
-  --compound-library-s3 "${COMPOUND_LIBRARY_S3}" \
-  --smiles-json "${SMILES_JSON}" \
-  --use-top-pocket-box \
-  --step-timeout "${STEP_TIMEOUT}" \
-  "$@"
+ARGS=(
+  python3 research/anti-virus/scripts/run_andv_inhibitor_pipeline_nextflow.py
+  --api-url "${BIOMATE_API_URL}"
+  --pdb-input "${PDB_S3}"
+  --through-step 4
+  --reference-actives-s3 "${REFERENCE_ACTIVES_S3}"
+  --compound-library-s3 "${COMPOUND_LIBRARY_S3}"
+  --use-top-pocket-box
+  --step-timeout "${STEP_TIMEOUT}"
+)
+if [[ -n "${SMILES_JSON:-}" ]]; then
+  ARGS+=(--smiles-json "${SMILES_JSON}")
+fi
+exec "${ARGS[@]}" "$@"
