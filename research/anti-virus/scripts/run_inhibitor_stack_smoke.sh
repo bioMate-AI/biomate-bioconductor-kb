@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Inhibitor-track smoke: pocket-only Nextflow via BioMate API (same as full pipeline step 1).
-# Prerequisites: backend up (default http://127.0.0.1:8081), GALAXY_API_KEY or
-#   bootstrap_admin_api_key in backend/config/galaxy.yml, AWS creds for Batch + S3 I/O.
+# Inhibitor-track quick check: pocket-only (step 1). For the full computational stack through
+# Vina (steps 1–4 on AWS Batch), use run_inhibitor_computational_to_docking.sh instead.
+#
+# Prerequisites: BioMate Nextflow API reachable (default http://127.0.0.1:8081 — this is the
+# HTTP service that submits Batch jobs; AWS CLI/credentials are separate and used by Batch).
+# Auth: GALAXY_API_KEY or bootstrap_admin_api_key in backend/config/galaxy.yml.
 #
 # Usage:
 #   ./research/anti-virus/scripts/run_inhibitor_stack_smoke.sh

@@ -17,6 +17,23 @@
 
 **BioMate in silico routing (this repository)**: Pseudocode blocks below are **intent**, not `import biomate.*` APIs. Map phases to indexed Nextflow workflows and `POST /api/nextflow/execute` (see `BIOMATE_CAPABILITY_GAP.md`, `docs/20260419_WORKFLOW_REGISTRY.csv`): **codon / expression** → `nextflow_nfcore/subworkflows/synthetic_biology/optimize_codons_for_heterologous_expression/main.nf` (id **10813**); **RNA secondary structure** → `nextflow_nfcore/subworkflows/microbiology/predict_rna_secondary_structure/main.nf` (id **10721**, ViennaRNA); **mRNA construct QC (CAI, RNAfold, ORF)** → `nextflow_nfcore/subworkflows/drug_discovery/p0_mrna_validation/main.nf` (id **12819**); **LNP formulation sweep** → `nextflow_nfcore/subworkflows/drug_discovery/lnp_formulation_optimization/main.nf` (id **12869**); **NP PK / biodistribution** → `nextflow_nfcore/subworkflows/pharmacology/nanoparticle_pk_biodistribution/main.nf` (id **12867**). Epitope / MHC steps overlap Plan A: **nf-core/epitopeprediction** (id **12700**). Run on **AWS Batch** when inputs or `outdir` use `s3://` (BioMate default).
 
+**Plan B phase → BioMate Nextflow paths (ids above only; Plan B codon/LNP smoke helper omits epitope / Plan A overlap):**
+
+| Plan B (this document) | Indexed workflow (same `nextflow_path` strings as routing paragraph) |
+|------------------------|------------------------------------------------------------------------|
+| Phase 1 — epitope / immunogen (Weeks 1–6) | Plan A only; not duplicated in Plan B in silico helpers here. |
+| Phase 2.1 — codon optimization | **10813** — `nextflow_nfcore/subworkflows/synthetic_biology/optimize_codons_for_heterologous_expression/main.nf` |
+| Phase 2.2 — 5′/3′ UTR design | No separate id among **10813 / 10721 / 12819 / 12869 / 12867**; full-construct QC overlaps **12819** where UTRs are embedded in the validation pipeline. |
+| Phase 2.3 — structural stability (RNA) | **10721** — `nextflow_nfcore/subworkflows/microbiology/predict_rna_secondary_structure/main.nf`; mRNA-level CAI / ORF / MFE checks overlap **12819**. |
+| Phase 2 — integrated mRNA validation (optional single check) | **12819** — `nextflow_nfcore/subworkflows/drug_discovery/p0_mrna_validation/main.nf` |
+| Phase 3 — LNP formulation (ionizable lipid, sweep, predicted EE / size) | **12869** — `nextflow_nfcore/subworkflows/drug_discovery/lnp_formulation_optimization/main.nf` |
+| Phase 3.2 — particle / encapsulation predictions | Same as Phase 3 (**12869**); cold-chain and long-horizon stability remain empirical (CRO / lab). |
+| Phase 4–5 — GMP synthesis, encapsulation, real-time stability | Wet lab / CRO; outside the five indexed subworkflows. |
+| Phase 6–7 — immunogenicity, comparative integration | Wet lab; **12867** — `nextflow_nfcore/subworkflows/pharmacology/nanoparticle_pk_biodistribution/main.nf` for NP PK / biodistribution modeling aligned with non-clinical / translation narratives. |
+| Phase 8 — publication / release | N/A for execution routing. |
+
+Copy/paste smoke examples (demo parameters only): `research/anti-virus/scripts/run_plan_b_codon_lnp_smoke.sh`.
+
 ---
 
 ## PHASE 1: EPITOPE DISCOVERY & IMMUNOGEN DESIGN (Weeks 1–6)
