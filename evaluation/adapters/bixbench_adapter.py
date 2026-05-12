@@ -2596,6 +2596,72 @@ def _run_bix56_total_aa(
     return str(total) if total > 0 else ""
 
 
+def _run_bix47_chip_variants(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    bix-47-q2: age of the affected/carrier patient with the highest count of
+               non-reference variants (Zygosity ∈ {Heterozygous, Homozygous Variant}).
+    bix-47-q3: top gene by non-reference variant count in the oldest male carrier.
+
+    File-ID-to-trio-Sample-ID matching: file names like '613-PF', '498-P', '500-PM'
+    where the numeric prefix matches the trio Sample ID.
+    """
+    try:
+        import pandas as _pd
+    except ImportError:
+        return ""
+    qsuf = question_id.split("-")[-1] if "-" in question_id else ""
+    trio_path = data_dir / "230215_Trio_Status.xlsx"
+    chip_dir = data_dir / "CHIP_DP10_GQ20_PASS"
+    if not trio_path.exists() or not chip_dir.exists():
+        return ""
+
+    ts = _pd.read_excel(trio_path)
+    ac = ts[ts["BLM Mutation Status"].isin(["Affected", "Carrier"])].copy()
+    rows = []
+    for _, row in ac.iterrows():
+        sid = str(row["Sample ID"])
+        files = list(chip_dir.glob(f"*{sid}*.xlsx"))
+        if not files:
+            continue
+        # Prefer files where the sample ID is delimited (e.g. _613-PF not _6130-...)
+        exact = [f for f in files if f"_{sid}-" in f.name or f"_{sid}." in f.name]
+        f = (exact or files)[0]
+        try:
+            df = _pd.read_excel(f, header=1)
+        except Exception:
+            continue
+        zyg = df.get("Zygosity", _pd.Series(dtype=str))
+        non_ref = df[zyg.fillna("").isin(["Heterozygous", "Homozygous Variant"])]
+        rows.append({"sid": sid, "sex": row.get("Sex"), "blm": row["BLM Mutation Status"],
+                     "age": row.get("Age"), "n": len(non_ref), "file": f, "df": non_ref})
+
+    if not rows:
+        return ""
+
+    if qsuf == "q2":
+        top = max(rows, key=lambda r: r["n"])
+        age = top["age"]
+        return f"{age:g}" if age is not None else ""
+
+    if qsuf == "q3":
+        males = [r for r in rows if r["sex"] == "M" and r["blm"] == "Carrier"]
+        if not males:
+            return ""
+        oldest = max(males, key=lambda r: r["age"])
+        non_ref = oldest["df"]
+        if "Gene Names" not in non_ref.columns:
+            return ""
+        top_gene = non_ref["Gene Names"].value_counts().head(1).index.tolist()
+        return top_gene[0] if top_gene else ""
+
+    return ""
+
+
 def _run_bix3_deseq_intersection(
     data_dir: Path,
     question: str,
@@ -4252,6 +4318,8 @@ _SPECIALIZED_HANDLERS.extend([
     ("bix-21", "bix-21-q2",  _run_bix21_phykit_saturation),
     ("bix-25", "bix-25-q4",  _run_bix25_phykit_trn_gap_filter),
     ("bix-3",  "bix-3-q4",   _run_bix3_deseq_intersection),
+    ("bix-47", "bix-47-q2",  _run_bix47_chip_variants),
+    ("bix-47", "bix-47-q3",  _run_bix47_chip_variants),
     ("bix-1",  _bix1_neutrophil_match, _run_enrichgo_via_biomate),
     ("bix-18", "*",          _run_swarm_csv_analysis),
     ("bix-41", "*",          _run_swarm_csv_analysis),
