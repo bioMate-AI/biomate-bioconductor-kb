@@ -1227,6 +1227,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await parameterRepository.initialize();
   await workflowRepository.initialize();
 
+  // ─── /api/contact — public contact form submission ───────────────────────
+  // Sends to CONTACT_INBOX (default: yaoyun.zhang@biomate.ai) via AWS SES through
+  // existing email-service.ts. Falls back to logging if email service is not
+  // configured (e.g., SMTP env vars missing in dev). No auth required.
+  app.post('/api/contact', async (req, res) => {
+    try {
+      const { name, email, company, subject, message } = req.body ?? {};
+      // Minimal validation
+      if (!name || typeof name !== 'string' || name.trim().length < 1) {
+        return res.status(400).json({ error: 'name is required' });
+      }
+      if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: 'valid email is required' });
+      }
+      if (!message || typeof message !== 'string' || message.trim().length < 10) {
+        return res.status(400).json({ error: 'message must be at least 10 characters' });
+      }
+      const safeName = String(name).slice(0, 200);
+      const safeEmail = String(email).slice(0, 320);
+      const safeCompany = company ? String(company).slice(0, 200) : '';
+      const safeSubject = subject ? String(subject).slice(0, 200) : 'Contact form submission';
+      const safeMessage = String(message).slice(0, 10000);
+
+      const inbox = process.env.CONTACT_INBOX || 'yaoyun.zhang@biomate.ai';
+      const escapeHtml = (s: string) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+      const html = `
+        <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 600px;">
+          <h2 style="color: #1f2937;">New contact form submission</h2>
+          <table style="border-collapse: collapse; width: 100%;">
+            <tr><td style="padding: 6px 12px; color: #6b7280;"><strong>From</strong></td>
+                <td style="padding: 6px 12px;">${escapeHtml(safeName)} &lt;${escapeHtml(safeEmail)}&gt;</td></tr>
+            ${safeCompany ? `<tr><td style="padding: 6px 12px; color: #6b7280;"><strong>Company</strong></td>
+                <td style="padding: 6px 12px;">${escapeHtml(safeCompany)}</td></tr>` : ''}
+            <tr><td style="padding: 6px 12px; color: #6b7280;"><strong>Subject</strong></td>
+                <td style="padding: 6px 12px;">${escapeHtml(safeSubject)}</td></tr>
+          </table>
+          <h3 style="color: #1f2937; margin-top: 24px;">Message</h3>
+          <div style="padding: 12px; background: #f9fafb; border-left: 3px solid #3b82f6; white-space: pre-wrap; line-height: 1.5;">
+            ${escapeHtml(safeMessage)}
+          </div>
+          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+            Reply directly to this email to respond. Submitted via BioMate /contact form.
+          </p>
+        </div>
+      `;
+      const text =
+        `New contact form submission\n\n` +
+        `From:    ${safeName} <${safeEmail}>\n` +
+        (safeCompany ? `Company: ${safeCompany}\n` : '') +
+        `Subject: ${safeSubject}\n\n` +
+        `Message:\n${safeMessage}\n\n` +
+        `Reply directly to this email to respond.`;
+
+      const sent = await emailService.sendEmail({
+        to: inbox,
+        subject: `[BioMate contact] ${safeSubject}`,
+        html,
+        text,
+      });
+
+      if (sent) {
+        return res.json({ ok: true, message: 'Thanks — we received your message and will reply within one business day.' });
+      }
+      // Email service not configured — fall back to logging so the message is not lost
+      console.log('[CONTACT_FORM_FALLBACK]', JSON.stringify({
+        ts: new Date().toISOString(), inbox, name: safeName, email: safeEmail,
+        company: safeCompany, subject: safeSubject, message: safeMessage,
+      }));
+      return res.json({
+        ok: true,
+        message: 'Thanks — we received your message. Email delivery is queuing; we will reach out within one business day.',
+        delivery: 'logged_fallback',
+      });
+    } catch (err: any) {
+      console.error('[CONTACT_FORM] Error:', err?.message ?? err);
+      return res.status(500).json({ error: 'Could not submit contact form. Please email yaoyun.zhang@biomate.ai directly.' });
+    }
+  });
+  // ─── End /api/contact ────────────────────────────────────────────────────
+
   // Seed example templates on first run
   const templates = await parameterRepository.searchTemplates({});
   if (templates.count === 0) {

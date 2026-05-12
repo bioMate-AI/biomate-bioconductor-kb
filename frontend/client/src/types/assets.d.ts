@@ -54,3 +54,14 @@ declare module '*.gif' {
   const content: string;
   export default content;
 }
+
+// Vite ?raw imports — load file contents as a string at build time
+declare module '*?raw' {
+  const content: string;
+  export default content;
+}
+
+declare module '*.md' {
+  const content: string;
+  export default content;
+}
