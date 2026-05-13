@@ -46,6 +46,47 @@ router = Router(tags=["nextflow"])
 _runs: Dict[str, Dict[str, Any]] = {}
 _runs_lock = threading.Lock()
 
+
+def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, Any]] = None) -> None:
+    """
+    Emit a workflow-progress chat line to the frontend's SSE inject endpoint.
+
+    Delegates friendly-text generation to workflow_chat_narrator (the single
+    source of truth for chat-progress copy). Safe to call from any thread —
+    network failures and missing FRONTEND_URL are swallowed.
+    """
+    try:
+        from galaxy.ai.workflow_ops.workflow_chat_narrator import emit as _narrator_emit
+    except Exception:
+        return
+
+    import os as _os
+    import json as _json
+    import urllib.request as _urllib
+
+    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
+    inject_url = f"{frontend_url}/internal/sse-inject"
+
+    def _post_sse(event_type: str, data: Dict[str, Any]) -> None:
+        try:
+            req = _urllib.Request(
+                inject_url,
+                data=_json.dumps({
+                    "invocation_id": invocation_id,
+                    "event_type": event_type,
+                    "data": data,
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with _urllib.urlopen(req, timeout=5):
+                pass
+        except Exception as exc:
+            log.debug("[narrate_chat] SSE inject failed for %s: %s", event_type, exc)
+
+    # narrator.emit() handles friendly-text rendering + engineer-channel logging
+    # AND fires the SSE callback we provide.
+    _narrator_emit(invocation_id, kind, technical, sse_callback=_post_sse)
+
 # QC handler registry: invocation_id → NextflowQCGateHandler
 # Populated by _start_qc_monitor so the export endpoint can retrieve live state.
 _qc_handlers: Dict[str, Any] = {}
@@ -2047,6 +2088,16 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _runs[run_id]["status"] = final_status
                 _runs[run_id]["returncode"] = returncode
                 _runs[run_id]["completed_at"] = _completed_at_now
+            _inv_id = _runs.get(run_id, {}).get("invocation_id")
+
+        # Friendly chat-progress: emit the right line for the terminal state.
+        if _inv_id:
+            if final_status == "completed" or returncode == 0:
+                _narrate_chat(_inv_id, "workflow.completed", {"run_id": run_id, "returncode": returncode})
+            elif final_status == "failed":
+                _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "returncode": returncode, "reason": f"exit {returncode}"})
+            elif final_status == "interrupted":
+                _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "reason": "workflow was interrupted"})
 
         # Write timing.json immediately — before any follow-on work that could fail.
         _write_timing(run_id, {
@@ -2956,6 +3007,12 @@ def execute_nextflow(
             )
 
     initial_status = "fetching_accessions" if accession_params else "running"
+
+    # Friendly chat-progress: tell the user we got their workflow.
+    # Skip if no invocation_id (some legacy paths don't have one) — narrator
+    # needs an inv ID to route the SSE event to the right chat session.
+    if invocation_id:
+        _narrate_chat(invocation_id, "workflow.submitted", {"run_id": run_id, "workflow": str(nf_path)})
 
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.

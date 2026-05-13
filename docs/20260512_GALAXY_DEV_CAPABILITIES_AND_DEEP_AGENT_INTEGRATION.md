@@ -103,6 +103,49 @@ The user's phrasing was "frontend intervene, backend intervene":
 
 ---
 
+## Workflow-wide friendly chat-progress (broader scope, 2026-05-13)
+
+The chat-progress pattern is not unique to deep diagnose — every workflow milestone should also produce a short friendly chat line so the user always knows what's happening. Same two-channel split as deep-agent.
+
+### Canonical event taxonomy
+
+| Event kind | Trigger (in `nextflow_executor.py`) | Friendly line |
+|---|---|---|
+| `workflow.submitted` | After `_runs[run_id]` is created | "Got it — starting your workflow now." |
+| `workflow.uploading_inputs` | Before S3 upload of inputs | "Uploading inputs to S3…" |
+| `workflow.queued` | When AWS Batch accepts the job | "Your workflow is in the AWS Batch queue." |
+| `workflow.running` | `_set_status(..., 'running')` | "Workflow is running." |
+| `workflow.phase_started` | Phase card status → running | "Step N/M: <phase name>…" |
+| `workflow.phase_completed` | Phase card status → completed | "<phase> done." |
+| `workflow.qc_gate_warning` | Existing `qc_gate_warning` event | "QC flagged <metric> = <val> (threshold <th>)." |
+| `workflow.qc_gate_blocked` | Existing `qc_gate_result` w/ blocked=true | "QC blocked — adjusting parameters." |
+| `workflow.autoloop_started` | Auto-loop remediation kicks off | "Trying again with <param>=<value>." |
+| `workflow.completed` | `_set_status(..., 'completed')` | "Workflow finished. N/M steps succeeded." |
+| `workflow.failed` | `_set_status(..., 'failed')` | "Workflow stopped. Looking into why…" |
+| `deepagent.*` | DeepAnalysisAgent progress callback | (existing — see commit `ba9d1cc5f`) |
+
+### Architecture — reuse what exists
+
+- **No new pub/sub.** Use the existing `/internal/sse-inject` HTTP callback path (routes.ts:4033) and the in-process `_sse_callback` hook (nextflow_executor.py:1504) that already delivers QC gate events.
+- **Backend module** `workflow_chat_narrator.py` is the only new file. Single function `emit(invocation_id, kind, technical=None)` → looks up the friendly template, fills it from `technical`, calls `_sse_callback("chat_progress", {kind, friendly_message, invocation_id, ts})`, logs `[WORKFLOW][inv=%s][%s] %s`.
+- **Wire-in points in `nextflow_executor.py`**: 5–7 call sites in `_set_status`, phase transitions, QC gate handlers, completion paths.
+- **Frontend** — `chat-message.tsx` gets a render branch for `metadata.type === 'workflow_progress'` (subtle, small, italic, 🔹 icon). A small `useWorkflowProgressNarrator` hook in `chat-with-artifacts.tsx` subscribes to the active invocation's SSE and appends incoming `chat_progress` events as chat messages.
+
+### Why this beats "each component prints its own progress"
+
+- **Single template registry** — change "Uploading inputs to S3" → "Sending your files to AWS" in one place; every workflow inherits the new copy.
+- **Translatable** — friendly text is one column in a table, so a future i18n pass is one PR.
+- **Engineer-debuggable** — every chat line has a matching `[WORKFLOW]` log line with the technical payload that produced it. When the chat line is wrong, the engineer can see what data fed it.
+
+### Implementation phases
+
+1. **Backend narrator module** + canonical event registry (a Python dict of `kind → template`).
+2. **Wire** into `_set_status` + 2–3 other transition points in `nextflow_executor.py`.
+3. **Frontend hook + render** — `chat-with-artifacts.tsx` subscribes, `chat-message.tsx` renders.
+4. **Test fully** — unit tests on the narrator (template rendering, edge cases), integration test that simulates a full workflow lifecycle and asserts the chat receives the expected ordered set of friendly lines.
+
+---
+
 ## TL;DR
 
 The colleague's Galaxy `dev` branch has been pushing significant AutoFix and infra work since the last integration. The **good news**: the core Deep Agent framework (`agent.py`, `toolkit_v2.py`, `iterative_debugger.py`, `autofix3_orchestrator.py`) is **already byte-identical** between the two repos — likely from the earlier integration round. What's missing in BioMate is a layer of **new fixer plugins** that hook into that framework, plus a few helpers and one API endpoint. Estimated integration effort: **~2 days of focused work, not weeks.**
