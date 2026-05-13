@@ -606,3 +606,126 @@ def get_autofix3_status() -> Dict[str, Any]:
         "active_sessions": active_count,
         "total_invocations_tracked": total_invocations,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Deep Diagnose — full DeepAnalysisAgent reasoning loop on a failed invocation
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Distinct from /error-summary (Gemini Flash, ~1-2s, one-shot pattern match):
+# this endpoint runs the multi-round Claude tool-use loop. The agent can read
+# nextflow.config, samplesheet, schema files, grep logs, and produces a
+# higher-confidence diagnosis at the cost of 8-15s and ~$0.008 per call.
+#
+# Intended frontend usage: render the fast /error-summary immediately when a
+# run fails, then offer a "Get a deeper diagnosis" button that fires this.
+
+
+@router.post(
+    "/api/workflows/{invocation_id}/deep_diagnose",
+    summary="Run DeepAnalysisAgent on a failed invocation for an investigative diagnosis",
+)
+def deep_diagnose_workflow_failure(invocation_id: str) -> Dict[str, Any]:
+    """
+    Full Deep Agent diagnosis of a failed Nextflow invocation.
+
+    Returns a structured diagnosis: error_category, root_cause / likely_cause,
+    suggested_fix, confidence, and (when the LLM decides to investigate)
+    investigation_steps showing which files/commands the agent inspected.
+
+    Latency: ~8-15s. Cost: ~$0.008/call (Claude Sonnet). Use sparingly.
+    """
+    _FALLBACK = {
+        "available": False,
+        "error_category": "UNKNOWN",
+        "root_cause": "Deep diagnose unavailable.",
+        "suggested_fix": "Use the quick error summary or inspect logs manually.",
+        "confidence": 0.0,
+        "investigation_steps": [],
+    }
+
+    workflow_dir = _resolve_workflow_dir(invocation_id)
+    if workflow_dir is None or not workflow_dir.exists():
+        return {**_FALLBACK, "root_cause": f"Could not resolve workflow directory for {invocation_id}."}
+
+    # Gather log content (.nextflow.log, nextflow.out, nextflow.err — first hit wins)
+    log_text = ""
+    for candidate in [
+        workflow_dir / ".nextflow.log",
+        workflow_dir / "nextflow.out",
+        workflow_dir / "nextflow.err",
+    ]:
+        try:
+            if candidate.exists():
+                lines = candidate.read_text(errors="replace").splitlines()
+                if lines:
+                    log_text = "\n".join(lines[-400:])
+                    break
+        except Exception as exc:
+            log.debug("deep_diagnose: could not read %s: %s", candidate, exc)
+
+    if not log_text.strip():
+        return {**_FALLBACK, "root_cause": "No log content available for analysis."}
+
+    # Extract exit code from log if present (best effort). Nextflow emits at least
+    # two shapes: "exit: 127" (trace-style) and "Command exit status:\n  127"
+    # (process-failure block). Try both.
+    exit_code: Optional[int] = None
+    import re as _re
+    for pat in (r"\bexit:\s*(\d+)", r"exit\s+status[:\s]+(\d+)", r"error exit status\s*\((\d+)\)"):
+        m = _re.search(pat, log_text)
+        if m:
+            try:
+                exit_code = int(m.group(1))
+                break
+            except ValueError:
+                continue
+
+    # Extract failed task name (best effort)
+    task_name = "unknown_task"
+    m = _re.search(r"Error executing process[ \t>]+['\"]([^'\"]+)['\"]", log_text)
+    if m:
+        task_name = m.group(1)
+
+    try:
+        from galaxy.ai.workflow_ops.autofix.agent import DeepAnalysisAgent
+        from galaxy.ai.workflow_ops.autofix.toolkit_v2 import EnhancedToolKit
+        from galaxy.ai.workflow_ops.llm_client import UnifiedLLMClient
+
+        # Toolkit needs an app_config and context object; stub them since the
+        # tools that need them (S3, workflow_params) are not strictly required
+        # here — file/grep/bash tools work with just the workflow_dir.
+        class _Stub:
+            def __getattr__(self, _name): return None
+
+        llm = UnifiedLLMClient()
+        toolkit = EnhancedToolKit(_Stub(), _Stub(), workflow_dir)
+        agent = DeepAnalysisAgent(llm_client=llm, toolkit=toolkit, max_rounds=3)
+
+        diagnosis = agent.analyze(
+            task_name=task_name,
+            error_logs=log_text,
+            exit_code=exit_code,
+            context={"workflow_dir": str(workflow_dir), "invocation_id": invocation_id},
+        )
+
+        # Normalize the response so the UI always sees a consistent shape
+        result: Dict[str, Any] = {
+            "available": True,
+            "error_category": str(diagnosis.get("error_category", "UNKNOWN")),
+            "root_cause": diagnosis.get("root_cause") or diagnosis.get("likely_cause") or "",
+            "suggested_fix": diagnosis.get("suggested_fix") or diagnosis.get("recommendation") or "",
+            "confidence": float(diagnosis.get("confidence", 0.0)),
+            "investigation_steps": diagnosis.get("investigation_steps", []),
+            "task_name": task_name,
+            "exit_code": exit_code,
+        }
+        # Pass through anything else the agent included (e.g. prevention_strategy)
+        for k in ("prevention_strategy", "why_missed", "suggested_params", "fixable"):
+            if k in diagnosis:
+                result[k] = diagnosis[k]
+        return result
+
+    except Exception as exc:
+        log.exception("deep_diagnose: agent failed for invocation=%s", invocation_id)
+        return {**_FALLBACK, "root_cause": f"Deep diagnose failed: {exc}"}
