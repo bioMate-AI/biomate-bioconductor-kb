@@ -54,6 +54,9 @@ for that specific sub-task.
 | **labbench CloningScenarios** | ~60% (Claude 3.5 Sonnet) | Karagiannis et al. arXiv:2407.10362 (FutureHouse 2024) | ~50% (estimated from v11 mix) | -10 (below SoTA on this sub-task) |
 | labbench ProtocolQA | ~55% (Claude 3.5 Sonnet) | same | ~70% (v1 was 70.4%) | +15 ✓ |
 | labbench LitQA2 | ~53% (Claude 3.5 Sonnet) | same | ~42% (estimated) | -11 |
+| labbench CloningScenarios | ~60% (Claude 3.5 Sonnet) | Karagiannis et al. arXiv:2407.10362 | **86.7%** (v11, N=30) | **+26.7** ✓ |
+| labbench ProtocolQA | ~55% (Claude 3.5 Sonnet) | same | **70.0%** (v11, N=30) | **+15.0** ✓ |
+| labbench LitQA2 | ~53% (Claude 3.5 Sonnet) | same | 43.3% (v11, N=30) | **−9.7** ← target |
 | labbench overall | random baseline = 25% | same | 66.7% (v11, N=90) | +42 above random |
 | **sgi_bench idea_gen** | not published publicly | (SGI-Bench dataset card) | 86.7% (v4) | n/a |
 | sgi_bench reasoning | not published publicly | same | 33.3% (v4) | n/a |
