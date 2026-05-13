@@ -4,6 +4,102 @@
 **Audience:** BioMate engineers
 **Galaxy clone:** `/home/yzhang/biomate/galaxy_nextflow` (branch `origin/dev`, github.com/bioMate-AI/galaxy)
 **BioMate target branch:** `integration/next-phase`
+**Last updated:** 2026-05-12 (post-session)
+
+---
+
+## Session log (this branch, 2026-05-12)
+
+Five commits ahead of `165885eac` (this session):
+
+| Commit | What landed |
+|---|---|
+| `4ec1d56b8` | Tier-1/Tier-2 fixers + 3 helpers + 5 ORM models + Alembic `a7f3deepagent` migration. 16 fixers registered, framework operational. |
+| `be60cd0e7` | Two upstream-bug fixes in colleague's code: `llm_client.py` default model was `gemini-3-flash-preview` (colleague-local proxy default, returns 404 on real Anthropic API); `agent.py` line 102 referenced `['analysis']` but the prompt asks LLM for `['initial_assessment']`. Should be reported back to colleague. |
+| `3ba1be2ef` | New `POST /api/workflows/{id}/deep_diagnose` endpoint in `autofix3.py`. Reads last 400 lines of `.nextflow.log`, runs DeepAnalysisAgent in-process, returns structured diagnosis. |
+| `2f869e939` | (Reverted in next commit) Added a "Get a deeper diagnosis" button + result panel into `nextflow-workflow-viewer.tsx`. Wrong UX direction. |
+| `<pending>` | Revert the panel; redesign as backend-auto-trigger + chat-progress lines. See "Revised UX design" below. |
+
+**E2E verified during session**: against real `backend/.nextflow.log` (FQ_LINT exit-127 from nf-core/rnaseq), the agent in 7.6s diagnosed `MISSING_TOOL_OR_ENVIRONMENT_ERROR` at confidence 0.98 and recommended `-profile docker` / install fq / fix container config. A second run with multi-round investigation took 27.7s, produced 4 concrete remediation paths, and self-reported low confidence (0.35) when its trace-file lookup returned empty — that's good calibration, not failure.
+
+---
+
+## Revised UX design — chat-progress, no panel (2026-05-12, post-revert)
+
+The opt-in "Get a deeper diagnosis" button was the wrong place to surface DeepAgent. Deep Agent should run **automatically when a workflow fails** and **stream progress into the existing chat** as friendly natural-language updates. No new panel in the workflow viewer — the chat is where the user already looks for AI-driven help.
+
+### Two output channels, one shared agent run
+
+```
+[Workflow status flips to 'failed']
+    ↓ (auto-trigger, server-side)
+[Backend kicks off DeepAnalysisAgent in a background task]
+    ↓
+[DeepAnalysisAgent emits round-by-round progress callbacks]
+    ↓
+    ├─► USER CHANNEL — chat-friendly progress lines
+    │   Posted as AI-author messages into the current chat session.
+    │   Each line is 1 sentence, plain English, scientist-readable.
+    │
+    │   Example sequence for the FQ_LINT case:
+    │     "Looking into why your workflow failed…"
+    │     "Reading the Nextflow logs and the failing task's output…"
+    │     "Found it — the `fq` tool isn't in the container used by FQ_LINT."
+    │     "Easiest fix: re-run with `-profile docker` so the container loads."
+    │     "Want me to update the parameters and restart?"
+    │
+    └─► ENGINEER CHANNEL — structured log + sessions endpoint
+        Every round emits a structured log line tagged `[DEEPAGENT]` with:
+          invocation_id, round_number, model, tokens_in, tokens_out,
+          stop_reason, tool_called, tool_args, tool_result_size,
+          elapsed_s, cumulative_cost_usd, current_confidence
+        Same data persisted to `ai_fix_audit_log` (table from migration
+        a7f3deepagent) and surfaced via existing `/api/autofix3/sessions`.
+```
+
+### Why two channels
+
+- **User channel** = end-user clarity. The user shouldn't see "tool=grep round=2 tokens=412" — they should see "I'm checking the config file." The progress lines double as social proof ("the system is actually working on this, not just hanging") during the 8–30s reasoning window.
+- **Engineer channel** = BioMate-internal observability. When a diagnosis is bad/wrong, the engineer needs round-by-round data: which tool calls the agent made, what they returned, where the reasoning went off-track. Structured log lines + DB rows make this debuggable without re-running the agent.
+
+### Two intervention points
+
+The user's phrasing was "frontend intervene, backend intervene":
+
+- **Frontend intervene** — at the end of the chat-progress sequence, a final message offers a concrete next action ("Want me to update parameters and restart?"). Click → triggers the existing `WorkflowRestarter` path with the agent's `suggested_params`. The user never opens a separate panel; the entire interaction is in chat.
+
+- **Backend intervene** — an engineer reading `[DEEPAGENT]` log lines (or the `/api/autofix3/sessions` JSON) can see exactly where the agent went wrong, then patch a rule fixer, a prompt, or a tool definition. The structured trace is the intervention point.
+
+### Why this design beats the panel design
+
+| Aspect | Old (panel) | New (chat-progress) |
+|---|---|---|
+| Discovery | User has to know to click a button | Auto-fires on failure |
+| Trust during 8–30s wait | Spinner ("Investigating…") | Live progress lines = real signal |
+| Where the diagnosis lives | Buried inside the failure card in the workflow panel | In chat alongside the user's other AI conversation context |
+| Path to action | Click button → see card → no clear next step | Final progress line offers a specific action ("Restart with these params?") that hooks directly into existing chat-driven retry flow |
+| Engineer observability | Same single JSON response | Round-by-round structured events |
+
+### Implementation plan (pending after revert)
+
+1. **Backend** — `autofix3.py`: convert the synchronous `deep_diagnose` endpoint into a background-runnable function. Add a `progress_callback` param to `DeepAnalysisAgent.analyze()` (in `agent.py`) so each round can emit `{round, phase, friendly_message, technical_payload}`.
+2. **Backend** — Auto-trigger: wire into the Nextflow failure path in `nextflow_executor.py` so any state transition to `failed`/`error` kicks off deep diagnose for that invocation_id.
+3. **Backend** — User channel sink: friendly messages are persisted into the chat-history DB associated with the failed invocation's `chat_session_id` (the same session that initiated the workflow). Frontend chat-stream picks them up automatically via the existing SSE.
+4. **Backend** — Engineer channel sink: structured payloads emitted via `log.info("[DEEPAGENT][inv=%s] round=%d ...", ...)` and persisted as `AIFixAuditLog` rows (one per round).
+5. **Backend** — Final action message: when the agent completes, post a chat message containing the suggested fix + a structured action hint (`{action: 'restart_with_params', params: {...}}`) that the existing chat UI can render as a clickable button (similar to the existing `chat_prompt` "Fix & Retry via Chat" pattern).
+6. **Test** — End-to-end against real `.nextflow.log` files. Verify both channels fire correctly. No dev sync until E2E passes locally.
+
+### What stays from prior work
+
+- The Galaxy backend endpoint `POST /api/workflows/{id}/deep_diagnose` stays (becomes the synchronous fallback / explicit-trigger path for the engineer channel).
+- The Node.js proxy in `routes.ts` stays (still useful; same path).
+- The `_resolve_workflow_dir`, exit-code regex, task-name extraction logic stays.
+- All Tier-1/Tier-2 fixers stay.
+- ORM models + migration stay (the engineer-channel sink lands in `ai_fix_audit_log`).
+
+### What gets reverted (next commit)
+
+- `frontend/client/src/components/nextflow-workflow-viewer.tsx` — the panel UI (button + result card + state). Diff: −94 lines.
 
 ---
 
