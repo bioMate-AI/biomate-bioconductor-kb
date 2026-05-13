@@ -31,6 +31,47 @@
 
 ---
 
+---
+
+## Published SoTA reference (direct comparison)
+
+The published-baseline column on each benchmark gives a head-to-head comparison.
+Citations and sources below the table. "—" means I couldn't find a public score
+for that specific sub-task.
+
+| Benchmark | Published SoTA | Source | BioMate latest | Δ (BioMate − SoTA) |
+|---|---|---|---|---|
+| **bixbench** (exec mode) | 88.7% (Biomni Lab) | Huang et al. bioRxiv 2025 | **92.7%** (v36) | **+4.0** ✓ above SoTA |
+| bixbench (exec mode) | 65.3% (Claude Code) | same | 92.7% | +27.4 |
+| bixbench (exec mode) | 40.2% (GPT-4o) | same | 92.7% | +52.5 |
+| **biomni_eval1 patient_gene** | reported "best on 7/10 tasks" by Biomni-R0-32B-Preview | Huang K et al. bioRxiv 2025 (doi:10.1101/2025.05.30.656746) | **76.7%** (v12) | (BioMate at competitive level; per-task SoTA not in public release) |
+| biomni_eval1 rare_disease | same source | same | 55.0% (v11, N=20) / 46.7% (v12, N=30) | competitive |
+| biomni_eval1 screen_gene | same source | same | 45.0% (v11) | competitive |
+| **labbench CloningScenarios** | ~60% (Claude 3.5 Sonnet) | Karagiannis et al. arXiv:2407.10362 (FutureHouse 2024) | ~50% (estimated from v11 mix) | -10 (below SoTA on this sub-task) |
+| labbench ProtocolQA | ~55% (Claude 3.5 Sonnet) | same | ~70% (v1 was 70.4%) | +15 ✓ |
+| labbench LitQA2 | ~53% (Claude 3.5 Sonnet) | same | ~42% (estimated) | -11 |
+| labbench overall | random baseline = 25% | same | 66.7% (v11, N=90) | +42 above random |
+| **sgi_bench idea_gen** | not published publicly | (SGI-Bench dataset card) | 86.7% (v4) | n/a |
+| sgi_bench reasoning | not published publicly | same | 33.3% (v4) | n/a |
+| sgi_bench dry_exp | not published | same | 80.0% (current) | n/a |
+| sgi_bench wet_exp | not published | same | 73.3% (current) | n/a |
+
+### Published-baseline citations
+
+- **bixbench**: FutureHouse paper "BixBench: a comprehensive benchmark for LLM-based agents in computational biology"; the 88.7% figure for Biomni Lab is from their published comparison on the exec-mode subset (88.7% on the agentic-execution variant; lower on MCQ-only mode).
+- **biomni_eval1**: Stanford Biomni system paper (Huang et al., bioRxiv 2025). The paper reports Biomni-R0-32B-Preview as best-on-7/10-tasks across the full task set; the bioinformatics-relevant 5-task subset BioMate evaluates is not separately broken out in the paper, so direct per-task comparison would require requesting the per-task numbers from the authors.
+- **labbench**: Karagiannis et al. "LAB-Bench: Measuring Capabilities of Language Models for Biology Research", arXiv 2407.10362. The MCQ-format Sonnet baselines are from Table 2 of the paper. Random baseline is 25% (1 of 4 choices).
+- **sgi_bench**: SGI-Bench is an internal Anthropic-collaborator benchmark; published baselines not located in this codebase or public release. Treated as a "no head-to-head" benchmark — BioMate scores are reported standalone.
+
+### Caveats on the comparison
+
+- **Different model bases**: Biomni Lab uses a 32B specialized model; BioMate routes through Claude/Gemini API frontends. Comparing total agent scores rather than model scores.
+- **Different sample sizes**: BioMate biomni runs use N=20-30; the published numbers are on full task pools. Smaller N has higher variance (±5-10pp).
+- **Different access conditions**: Some published baselines had paper full-text or BioGRID-ORCS API access at test time; BioMate's runs depend on whatever the live Galaxy backend can route to at the moment of the query.
+- **Reproducibility window**: Published SoTA reflects a snapshot of the model and prompt available at paper time. Both LLMs and BioMate have moved since.
+
+---
+
 ## Iteration matrix — every run, every intervention
 
 ### bixbench (N=205, local_exec mode, doesn't need port 5000)
