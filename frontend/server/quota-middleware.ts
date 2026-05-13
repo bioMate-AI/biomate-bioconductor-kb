@@ -14,12 +14,21 @@ import type { Request, Response, NextFunction } from 'express';
 
 const GALAXY_URL = process.env.GALAXY_URL ?? 'http://localhost:8081';
 
+// E2E bypass: same token the request-level rate limiter uses. Only active when
+// E2E_TEST_TOKEN env var is set (dev-only by convention).
+const _E2E_TOKEN = process.env.E2E_TEST_TOKEN;
+function isE2EBypass(req: Request): boolean {
+  if (!_E2E_TOKEN) return false;
+  return req.headers['x-e2e-test-token'] === _E2E_TOKEN;
+}
+
 // Tight IP-based fallback for callers without a billing account
 const unauthLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => isE2EBypass(req),
   handler: (_req: Request, res: Response) => {
     res.status(429).json({
       success: false,
