@@ -2336,6 +2336,27 @@ class BiomniEval1Adapter(BenchmarkAdapter):
         resp = client.ask(prompt)
         response_text = resp.text
 
+        # Generic retry for transient backend errors. These show up as short
+        # canned messages ("I encountered an error processing your request.
+        # Please try again."). Observed in biomni_eval1_pg_v11 on 6/30 tasks —
+        # retrying typically succeeds. Up to 2 retries with fresh conversation.
+        _TRANSIENT_ERROR_PATTERNS = [
+            "i encountered an error processing your request",
+            "an error occurred while processing",
+            "please try again",
+        ]
+        _is_transient = (
+            len(response_text or "") < 200
+            and any(p in (response_text or "").lower() for p in _TRANSIENT_ERROR_PATTERNS)
+        )
+        if _is_transient:
+            for _attempt in range(2):
+                retry_resp = client.ask(prompt)
+                rt = retry_resp.text
+                if rt and not any(p in rt.lower() for p in _TRANSIENT_ERROR_PATTERNS):
+                    response_text = rt
+                    break
+
         # Retry for screen_gene when model refuses to answer or routes to workflow
         _REFUSAL_PATTERNS = [
             "I don't have access to a provided",
