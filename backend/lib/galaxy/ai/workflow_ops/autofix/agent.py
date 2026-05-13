@@ -97,9 +97,15 @@ class DeepAnalysisAgent:
         )
 
         if not round_1_result['needs_investigation']:
-            # 简单错误，不需要工具调用，直接返回
+            # 简单错误，不需要工具调用，直接返回。
+            # Prompt asks LLM for 'initial_assessment'; the fallback path wraps
+            # it under 'analysis'. Accept both so either path produces a result.
             log.info(f"✅ Simple error detected, no investigation needed")
-            return round_1_result['analysis']
+            return (
+                round_1_result.get('analysis')
+                or round_1_result.get('initial_assessment')
+                or round_1_result
+            )
 
         # Round 2-N: 工具调用 + 深度分析
         investigation_results = self._investigate_with_tools(

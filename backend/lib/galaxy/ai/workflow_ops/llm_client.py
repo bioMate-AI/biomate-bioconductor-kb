@@ -84,7 +84,7 @@ class AnthropicProvider(LLMProvider):
     def call(
         self,
         messages: List[Dict[str, str]],
-        model: str = 'gemini-3-flash-preview',
+        model: str = 'claude-sonnet-4-6',
         temperature: float = 0.0,
         max_tokens: int = 4000,
         **kwargs
@@ -396,7 +396,7 @@ class UnifiedLLMClient:
     def call(
         self,
         messages: List[Dict[str, str]],
-        model: str = 'gemini-3-flash-preview',
+        model: str = 'claude-sonnet-4-6',
         temperature: float = 0.0,
         max_tokens: int = 4000,
         provider: Optional[str] = None,
