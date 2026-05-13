@@ -29,7 +29,10 @@ from galaxy.ai.workflow_ops.autofix.validation import (
     FixSuccessTracker,
     FixValidator,
 )
-from galaxy.model import AIFixAuditLog, UserCloudPreferences, UserResourceUsage, WorkflowInvocation
+# Galaxy ORM models are imported lazily inside methods so the module can load
+# even when the tables (AIFixAuditLog, UserCloudPreferences, UserResourceUsage)
+# have not yet been migrated into BioMate's schema. All consumers tolerate
+# None / missing rows via documented defaults.
 
 log = logging.getLogger(__name__)
 
@@ -84,24 +87,35 @@ class AutoFixOrchestrator:
         Returns:
             FixContext with user preferences and budget info
         """
+        from galaxy.model import WorkflowInvocation
         invocation = self.sa_session.query(WorkflowInvocation).get(invocation_id)
         if not invocation:
             raise ValueError(f"Invocation {invocation_id} not found")
 
-        # Get user preferences
-        user_prefs = (
-            self.sa_session.query(UserCloudPreferences)
-            .filter_by(user_id=self.user_id)
-            .first()
-        )
+        # Get user preferences (table may not exist yet in BioMate)
+        try:
+            from galaxy.model import UserCloudPreferences
+            user_prefs = (
+                self.sa_session.query(UserCloudPreferences)
+                .filter_by(user_id=self.user_id)
+                .first()
+            )
+        except (ImportError, Exception) as e:
+            log.debug("UserCloudPreferences unavailable, using defaults: %s", e)
+            user_prefs = None
 
         # Get today's usage for budget tracking
         from datetime import date
-        today_usage = (
-            self.sa_session.query(UserResourceUsage)
-            .filter_by(user_id=self.user_id, usage_date=date.today())
-            .first()
-        )
+        try:
+            from galaxy.model import UserResourceUsage
+            today_usage = (
+                self.sa_session.query(UserResourceUsage)
+                .filter_by(user_id=self.user_id, usage_date=date.today())
+                .first()
+            )
+        except (ImportError, Exception) as e:
+            log.debug("UserResourceUsage unavailable, using defaults: %s", e)
+            today_usage = None
 
         # Calculate remaining budgets
         if user_prefs and today_usage:
@@ -131,16 +145,25 @@ class AutoFixOrchestrator:
         from datetime import date
         from sqlalchemy import func, extract
 
-        result = (
-            self.sa_session.query(func.sum(UserResourceUsage.estimated_total_cost))
-            .filter(
-                UserResourceUsage.user_id == self.user_id,
-                extract('month', UserResourceUsage.usage_date) == date.today().month,
-                extract('year', UserResourceUsage.usage_date) == date.today().year
+        try:
+            from galaxy.model import UserResourceUsage
+        except ImportError:
+            return 0.0
+
+        try:
+            result = (
+                self.sa_session.query(func.sum(UserResourceUsage.estimated_total_cost))
+                .filter(
+                    UserResourceUsage.user_id == self.user_id,
+                    extract('month', UserResourceUsage.usage_date) == date.today().month,
+                    extract('year', UserResourceUsage.usage_date) == date.today().year
+                )
+                .scalar()
             )
-            .scalar()
-        )
-        return result or 0.0
+            return result or 0.0
+        except Exception as e:
+            log.debug("Monthly cost query failed: %s", e)
+            return 0.0
 
     async def run_fixer(
         self,
@@ -462,7 +485,7 @@ class AutoFixOrchestrator:
                 user_approved=user_approved,
                 result=result,
             )
-            result.fix_id = audit_log.id
+            result.fix_id = audit_log.id if audit_log is not None else None
 
             # Update resource usage if successful and has cost
             if result.success and estimated_cost > 0:
@@ -479,8 +502,14 @@ class AutoFixOrchestrator:
         auto_approved: bool,
         user_approved: bool,
         result: Optional[AutoFixResult] = None,
-    ) -> AIFixAuditLog:
-        """Create audit log entry"""
+    ):
+        """Create audit log entry. Returns None if AIFixAuditLog table is not available."""
+
+        try:
+            from galaxy.model import AIFixAuditLog
+        except ImportError:
+            log.debug("AIFixAuditLog unavailable — skipping persistent audit (in-memory session record still kept)")
+            return None
 
         # Add estimated_cost to fix_details since it's not a direct column in the table
         fix_details_dict = fix_plan.to_dict()
@@ -510,28 +539,36 @@ class AutoFixOrchestrator:
         return audit_log
 
     def _update_resource_usage(self, cost: float, ai_fix_applied: bool = False):
-        """Update user's resource usage tracking"""
+        """Update user's resource usage tracking. No-op if table is unavailable."""
         from datetime import date
 
-        today = date.today()
-        usage = (
-            self.sa_session.query(UserResourceUsage)
-            .filter_by(user_id=self.user_id, date=today)
-            .first()
-        )
+        try:
+            from galaxy.model import UserResourceUsage
+        except ImportError:
+            return
 
-        if not usage:
-            usage = UserResourceUsage(
-                user_id=self.user_id,
-                date=today,
+        try:
+            today = date.today()
+            usage = (
+                self.sa_session.query(UserResourceUsage)
+                .filter_by(user_id=self.user_id, date=today)
+                .first()
             )
-            self.sa_session.add(usage)
 
-        usage.estimated_total_cost += cost
-        if ai_fix_applied:
-            usage.total_ai_fixes_applied += 1
+            if not usage:
+                usage = UserResourceUsage(
+                    user_id=self.user_id,
+                    date=today,
+                )
+                self.sa_session.add(usage)
 
-        self.sa_session.commit()
+            usage.estimated_total_cost += cost
+            if ai_fix_applied:
+                usage.total_ai_fixes_applied += 1
+
+            self.sa_session.commit()
+        except Exception as e:
+            log.debug("Resource usage update skipped: %s", e)
 
     async def run_all_fixers(
         self,

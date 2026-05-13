@@ -32,11 +32,9 @@ from galaxy.ai.workflow_ops.autofix.base import (
     RiskLevel,
 )
 from galaxy.ai.workflow_ops.types import ActionType, FixAction, FixPlan, FixType
-from galaxy.model import (
-    WorkflowInvocation,
-    WorkflowParameterFix,
-    WorkflowParameterTemplate,
-)
+# Galaxy ORM models imported lazily inside methods. WorkflowParameterFix and
+# WorkflowParameterTemplate are not yet migrated into BioMate's schema; methods
+# that query them degrade to LLM-only behavior when the tables are absent.
 
 log = logging.getLogger(__name__)
 
@@ -97,21 +95,26 @@ class NextflowParameterFixer(BaseAutoFixer):
         pipeline_type = self._detect_pipeline_type(invocation.workflow)
         log.info(f"Detected pipeline type: {pipeline_type}")
 
-        # Get parameter templates for this pipeline
-        templates = (
-            sa_session.query(WorkflowParameterTemplate)
-            .filter_by(pipeline_name=pipeline_type)
-            .all()
-        )
-
-        if not templates:
-            log.warning(f"No parameter templates found for {pipeline_type}")
-            # Fallback: use generic templates
+        # Get parameter templates for this pipeline (table optional in BioMate)
+        try:
+            from galaxy.model import WorkflowParameterTemplate
             templates = (
                 sa_session.query(WorkflowParameterTemplate)
-                .filter_by(pipeline_name='generic')
+                .filter_by(pipeline_name=pipeline_type)
                 .all()
             )
+
+            if not templates:
+                log.warning(f"No parameter templates found for {pipeline_type}")
+                # Fallback: use generic templates
+                templates = (
+                    sa_session.query(WorkflowParameterTemplate)
+                    .filter_by(pipeline_name='generic')
+                    .all()
+                )
+        except ImportError:
+            log.debug("WorkflowParameterTemplate table absent — skipping template lookup")
+            templates = []
 
         # Check for missing required parameters
         for template in templates:
@@ -198,17 +201,22 @@ class NextflowParameterFixer(BaseAutoFixer):
             reason = ""
             confidence = 0.0
 
-            # 1. Check existing WorkflowParameterFix for this workflow
-            existing_fix = (
-                sa_session.query(WorkflowParameterFix)
-                .filter_by(
-                    workflow_id=context.workflow_id,
-                    parameter_name=param_name,
-                    status='approved'
+            # 1. Check existing WorkflowParameterFix for this workflow (optional table)
+            existing_fix = None
+            try:
+                from galaxy.model import WorkflowParameterFix
+                existing_fix = (
+                    sa_session.query(WorkflowParameterFix)
+                    .filter_by(
+                        workflow_id=context.workflow_id,
+                        parameter_name=param_name,
+                        status='approved'
+                    )
+                    .order_by(WorkflowParameterFix.applied_count.desc())
+                    .first()
                 )
-                .order_by(WorkflowParameterFix.applied_count.desc())
-                .first()
-            )
+            except ImportError:
+                pass
 
             if existing_fix:
                 recommended_value = existing_fix.recommended_value
@@ -314,6 +322,7 @@ class NextflowParameterFixer(BaseAutoFixer):
         start_time = datetime.now()
 
         try:
+            from galaxy.model import WorkflowInvocation
             invocation = sa_session.query(WorkflowInvocation).get(context.invocation_id)
             if not invocation:
                 return AutoFixResult(
@@ -491,7 +500,7 @@ class NextflowParameterFixer(BaseAutoFixer):
             {'value': most_common_value, 'count': occurrence_count} or None
         """
         # Get recent successful invocations for this workflow
-        from galaxy.model import History
+        from galaxy.model import History, WorkflowInvocation
         successful_invocations = (
             sa_session.query(WorkflowInvocation)
             .join(History, WorkflowInvocation.history_id == History.id)

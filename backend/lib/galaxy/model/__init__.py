@@ -23,6 +23,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass
 from datetime import (
+    date,
     datetime,
     timedelta,
 )
@@ -69,11 +70,13 @@ from sqlalchemy import (
     Column,
     column,
     ColumnElement,
+    Date,
     DateTime,
     delete,
     desc,
     event,
     false,
+    Float,
     ForeignKey,
     func,
     Index,
@@ -12427,6 +12430,192 @@ User.current_galaxy_session = relationship(
     primaryjoin=and_(partitioned_session.user_id == User.id, session_partition.c.index < 2),
     uselist=False,
     viewonly=True,
+)
+
+
+# ===========================================================================
+# AutoFix / Deep Agent ORM models
+# Ported from galaxy/dev (Hybrid Strategy, 2026-05-09). These tables back the
+# autofix v1/v3 framework: per-user budgets, daily resource usage, audit log,
+# and persistent learning store for parameter fixes.
+# ===========================================================================
+
+
+class UserCloudPreferences(Base, RepresentById):
+    """User cloud resource preferences for AWS configuration, quotas, and budgets."""
+    __tablename__ = "user_cloud_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("galaxy_user.id"), unique=True, nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=now, nullable=False)
+    update_time: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now, nullable=False)
+
+    # AWS Configuration
+    aws_region: Mapped[str] = mapped_column(String(64), default="us-east-1", nullable=False)
+    aws_s3_bucket: Mapped[Optional[str]] = mapped_column(String(255))
+    aws_batch_queue: Mapped[Optional[str]] = mapped_column(String(255))
+    aws_access_key_id: Mapped[Optional[str]] = mapped_column(String(128))
+    aws_secret_access_key: Mapped[Optional[str]] = mapped_column(String(256))
+
+    # Resource Limits
+    max_memory_gb: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
+    max_cpus: Mapped[int] = mapped_column(Integer, default=16, nullable=False)
+    max_disk_gb: Mapped[int] = mapped_column(Integer, default=500, nullable=False)
+    max_concurrent_jobs: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
+    max_job_runtime_hours: Mapped[int] = mapped_column(Integer, default=48, nullable=False)
+
+    # Budget Control
+    daily_budget_usd: Mapped[float] = mapped_column(Float, default=50.0, nullable=False)
+    monthly_budget_usd: Mapped[float] = mapped_column(Float, default=1000.0, nullable=False)
+    enable_budget_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    budget_alert_threshold: Mapped[float] = mapped_column(Float, default=0.8, nullable=False)
+
+    # AI Preferences
+    ai_auto_fix_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    ai_auto_fix_mode: Mapped[str] = mapped_column(String(32), default="safe", nullable=False)
+    ai_max_fix_attempts: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
+    ai_require_approval_for_risky_fixes: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Cost-based approval threshold (USD). Below this cost, low-risk fixes auto-approve.
+    ai_require_approval_for_cost: Mapped[float] = mapped_column(Float, default=10.0, nullable=False)
+
+    user: Mapped["User"] = relationship("User")
+
+
+class UserResourceUsage(Base, RepresentById):
+    """Daily resource usage tracking for budgeting and reporting."""
+    __tablename__ = "user_resource_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("galaxy_user.id"), nullable=False)
+    usage_date: Mapped[date] = mapped_column(Date, nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=now, nullable=False)
+    update_time: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now, nullable=False)
+
+    # Resource Usage Stats
+    total_memory_gb_hours: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_cpu_hours: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_disk_gb_hours: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_tasks_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    successful_tasks_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    failed_tasks_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Cost Estimation
+    estimated_compute_cost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    estimated_storage_cost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    estimated_transfer_cost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    estimated_total_cost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    # Count of autofix actions applied today (used by audit/UI)
+    total_ai_fixes_applied: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # AI Usage
+    ai_api_calls_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    ai_total_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    ai_estimated_cost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    user: Mapped["User"] = relationship("User")
+
+
+class AIFixAuditLog(Base, RepresentById):
+    """Audit trail for all AI fix operations."""
+    __tablename__ = "ai_fix_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("galaxy_user.id"), nullable=False)
+    invocation_id: Mapped[int] = mapped_column(Integer, ForeignKey("workflow_invocation.id"), nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=now, nullable=False)
+
+    fix_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    fix_details: Mapped[dict] = mapped_column(JSON, nullable=False)
+    fix_reason: Mapped[Optional[str]] = mapped_column(Text)
+
+    risk_level: Mapped[str] = mapped_column(String(32), nullable=False)
+    auto_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    user_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    approval_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    execution_start_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    execution_end_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    # Whether the fix was actually applied to the live workflow
+    applied: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    success: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    # Compatibility column written by orchestrator (execution_time, duration_seconds)
+    execution_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    duration_seconds: Mapped[Optional[float]] = mapped_column(Float)
+
+    resources_before: Mapped[Optional[dict]] = mapped_column(JSON)
+    resources_after: Mapped[Optional[dict]] = mapped_column(JSON)
+
+    llm_model: Mapped[Optional[str]] = mapped_column(String(64))
+    llm_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    llm_cost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    user: Mapped["User"] = relationship()
+    invocation: Mapped["WorkflowInvocation"] = relationship()
+
+
+class WorkflowParameterFix(Base, RepresentById):
+    """Persistent record of approved parameter fixes — feeds the learning loop."""
+    __tablename__ = "workflow_parameter_fix"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    workflow_id: Mapped[int] = mapped_column(Integer, ForeignKey("workflow.id"), nullable=False, index=True)
+    source_invocation_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("workflow_invocation.id"), nullable=True)
+
+    parameter_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    fix_type: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    current_value: Mapped[Optional[str]] = mapped_column(Text)
+    recommended_value: Mapped[str] = mapped_column(Text, nullable=False)
+
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    ai_analysis: Mapped[Optional[dict]] = mapped_column(JSON)
+
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default='pending')
+    risk_level: Mapped[str] = mapped_column(String(32), nullable=False)
+    auto_apply: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    applied_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_applied: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=now, nullable=False)
+    update_time: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now, nullable=False)
+
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("galaxy_user.id"), nullable=False)
+
+    workflow: Mapped["Workflow"] = relationship()
+    user: Mapped["User"] = relationship()
+
+
+class WorkflowParameterTemplate(Base, RepresentById):
+    """Parameter templates / defaults / validation rules per pipeline type."""
+    __tablename__ = "workflow_parameter_template"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    pipeline_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    pipeline_version: Mapped[Optional[str]] = mapped_column(String(32))
+
+    parameter_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    parameter_type: Mapped[str] = mapped_column(String(64))
+    default_value: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+
+    validation_rules: Mapped[Optional[dict]] = mapped_column(JSON)
+    common_errors: Mapped[Optional[list]] = mapped_column(JSON)
+    aws_defaults: Mapped[Optional[dict]] = mapped_column(JSON)
+
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=now, nullable=False)
+    update_time: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now, nullable=False)
+
+
+User.cloud_preferences = relationship(
+    "UserCloudPreferences", uselist=False, foreign_keys="[UserCloudPreferences.user_id]", overlaps="user"
+)
+User.resource_usage = relationship(
+    "UserResourceUsage", foreign_keys="[UserResourceUsage.user_id]", overlaps="user"
 )
 
 
