@@ -14,7 +14,8 @@ AutoFix 2.0 - Deep Analysis Agent
 import logging
 import json
 import re
-from typing import Any, Dict, List, Optional
+import time
+from typing import Any, Callable, Dict, List, Optional
 from pathlib import Path
 
 from .toolkit import ToolKit
@@ -22,6 +23,18 @@ from .toolkit_v2 import EnhancedToolKit
 from .tool_parameter_recommender import ToolParameterRecommender
 
 log = logging.getLogger(__name__)
+
+
+# ProgressCallback contract — see _emit() below.
+# Each event is a dict with:
+#   - phase: str — one of {'start', 'round_1_done', 'tool_call_start',
+#       'tool_call_done', 'final_start', 'done', 'error'}
+#   - round: int — 0 for start, 1+ thereafter
+#   - friendly_message: str — 1-sentence user-facing English
+#   - technical: dict — engineer-channel payload (tool name, tokens,
+#       timings, partial results); never displayed to end users
+#   - elapsed_s: float — seconds since agent.analyze() began
+ProgressCallback = Callable[[Dict[str, Any]], None]
 
 
 class DeepAnalysisAgent:
@@ -36,7 +49,14 @@ class DeepAnalysisAgent:
     - 智能参数推荐（基于 7000+ Galaxy 工具数据库）
     """
 
-    def __init__(self, llm_client, toolkit, max_rounds: int = 5, db_path: Optional[str] = None):
+    def __init__(
+        self,
+        llm_client,
+        toolkit,
+        max_rounds: int = 5,
+        db_path: Optional[str] = None,
+        progress_callback: Optional[ProgressCallback] = None,
+    ):
         self.llm_client = llm_client
         self.toolkit = toolkit  # Can be ToolKit or EnhancedToolKit
         self.max_rounds = max_rounds
@@ -56,6 +76,29 @@ class DeepAnalysisAgent:
             except Exception as e:
                 log.warning(f"⚠️ Failed to initialize ToolParameterRecommender: {e}")
                 self.parameter_recommender = None
+
+        # Optional progress callback. When set, agent emits structured events
+        # at key points (start, round-1 done, each tool call, final). Caller
+        # routes them to user-channel chat lines + engineer-channel logs.
+        self._progress_callback = progress_callback
+        self._analysis_start_t: float = 0.0
+
+    def _emit(self, phase: str, round_n: int, friendly: str, technical: Optional[Dict[str, Any]] = None) -> None:
+        """Emit a progress event to the optional callback. Never raises."""
+        if self._progress_callback is None:
+            return
+        try:
+            event = {
+                "phase": phase,
+                "round": round_n,
+                "friendly_message": friendly,
+                "technical": technical or {},
+                "elapsed_s": round(time.time() - self._analysis_start_t, 2) if self._analysis_start_t else 0.0,
+            }
+            self._progress_callback(event)
+        except Exception as exc:
+            # Progress reporting must never break the analysis itself.
+            log.debug("DeepAnalysisAgent: progress callback raised: %s", exc)
 
     def analyze(
         self,
@@ -87,9 +130,17 @@ class DeepAnalysisAgent:
             }
         """
         log.info(f"🤖 Starting deep analysis for task: {task_name}")
+        self._analysis_start_t = time.time()
 
         # 清空对话历史
         self.conversation_history = []
+
+        self._emit(
+            phase="start",
+            round_n=0,
+            friendly="Looking into why your workflow failed…",
+            technical={"task_name": task_name, "exit_code": exit_code, "log_size": len(error_logs or "")},
+        )
 
         # Round 1: 初步分析 + 决定需要什么工具
         round_1_result = self._round_1_initial_analysis(
@@ -101,11 +152,29 @@ class DeepAnalysisAgent:
             # Prompt asks LLM for 'initial_assessment'; the fallback path wraps
             # it under 'analysis'. Accept both so either path produces a result.
             log.info(f"✅ Simple error detected, no investigation needed")
-            return (
+            simple = (
                 round_1_result.get('analysis')
                 or round_1_result.get('initial_assessment')
                 or round_1_result
             )
+            self._emit(
+                phase="done",
+                round_n=1,
+                friendly=self._friendly_done_summary(simple),
+                technical={"shortcircuit": True, "result_keys": list(simple.keys()) if isinstance(simple, dict) else None},
+            )
+            return simple
+
+        self._emit(
+            phase="round_1_done",
+            round_n=1,
+            friendly="Reading the logs and the failing task's output…",
+            technical={
+                "needs_investigation": True,
+                "planned_tool_calls": len(round_1_result.get('tool_calls', [])),
+                "initial_category": (round_1_result.get('initial_assessment') or {}).get('error_category'),
+            },
+        )
 
         # Round 2-N: 工具调用 + 深度分析
         investigation_results = self._investigate_with_tools(
@@ -113,6 +182,13 @@ class DeepAnalysisAgent:
         )
 
         # Final Round: 综合分析 + 生成修复方案
+        self._emit(
+            phase="final_start",
+            round_n=self.max_rounds,
+            friendly="Putting the pieces together to suggest a fix…",
+            technical={"tools_run": len(investigation_results.get('tool_executions', []))},
+        )
+
         final_result = self._final_analysis_and_fix(
             task_name,
             error_logs,
@@ -122,7 +198,89 @@ class DeepAnalysisAgent:
 
         log.info(f"✅ Deep analysis completed: fixable={final_result.get('fixable', False)}, confidence={final_result.get('confidence', 0):.2f}")
 
+        self._emit(
+            phase="done",
+            round_n=self.max_rounds,
+            friendly=self._friendly_done_summary(final_result),
+            technical={
+                "fixable": final_result.get('fixable'),
+                "confidence": final_result.get('confidence'),
+                "error_category": final_result.get('error_category'),
+            },
+        )
+
         return final_result
+
+    @staticmethod
+    def _friendly_done_summary(result: Dict[str, Any]) -> str:
+        """Render a 1-sentence chat-friendly summary of a diagnosis result."""
+        if not isinstance(result, dict):
+            return "Done — diagnosis complete."
+        fix = result.get('suggested_fix') or result.get('recommendation')
+        cause = result.get('root_cause') or result.get('likely_cause')
+        if fix:
+            head = str(fix).split('. ')[0].strip().rstrip('.')
+            return f"Suggested fix: {head}."
+        if cause:
+            head = str(cause).split('. ')[0].strip().rstrip('.')
+            return f"Most likely cause: {head}."
+        return "Done — diagnosis complete."
+
+    @staticmethod
+    def _friendly_tool_call(tool_name: str, args: Dict[str, Any], reason: str) -> str:
+        """Render a chat-friendly description of what the agent is about to do."""
+        # Map technical tool names to user-friendly verbs
+        verbs = {
+            "read_file": ("Reading", lambda a: a.get('file_path', 'a file')),
+            "edit_file": ("Editing", lambda a: a.get('file_path', 'a file')),
+            "write_file": ("Creating", lambda a: a.get('file_path', 'a file')),
+            "grep": ("Searching for", lambda a: f"`{a.get('pattern', 'a pattern')}` in the workflow"),
+            "glob": ("Looking for", lambda a: f"files matching `{a.get('pattern', 'a pattern')}`"),
+            "bash": ("Running", lambda a: f"`{a.get('command', 'a command')[:50]}`"),
+            "download_s3_file": ("Downloading", lambda a: f"{a.get('s3_path', 'a file from S3').rsplit('/', 1)[-1]}"),
+            "inspect_trace": ("Reading", lambda _a: "the workflow trace"),
+            "get_workflow_params": ("Checking", lambda _a: "the workflow parameters"),
+        }
+        if tool_name in verbs:
+            verb, fmt = verbs[tool_name]
+            try:
+                target = fmt(args)
+            except Exception:
+                target = "details"
+            return f"{verb} {target}…"
+        # Fallback: pass the reason as-is if the LLM provided one in human-readable form
+        if reason and len(reason) < 90 and reason.lower() not in ("no reason provided", ""):
+            return reason.rstrip('.') + "…"
+        return f"Running an investigation step ({tool_name})…"
+
+    @staticmethod
+    def _friendly_tool_done(tool_name: str, result: Dict[str, Any]) -> str:
+        """1-sentence chat-friendly summary of what a tool returned."""
+        if not result.get('success', False):
+            err = result.get('error') or result.get('message') or 'no output'
+            return f"That step couldn't complete ({str(err)[:80]})."
+        if tool_name == "read_file":
+            lines = result.get('lines') or result.get('line_count') or 0
+            return f"Got the file ({lines} lines)." if lines else "Got the file contents."
+        if tool_name == "grep":
+            hits = result.get('matches') or result.get('count')
+            if isinstance(hits, list):
+                return f"Found {len(hits)} match(es)."
+            if isinstance(hits, int):
+                return f"Found {hits} match(es)."
+            return "Search complete."
+        if tool_name == "glob":
+            files = result.get('files') or []
+            return f"Found {len(files)} file(s) matching." if files else "No files matched."
+        if tool_name == "bash":
+            return "Command finished."
+        if tool_name == "download_s3_file":
+            return "Downloaded — checking contents."
+        if tool_name == "inspect_trace":
+            return "Read the trace."
+        if tool_name == "get_workflow_params":
+            return "Got the parameters."
+        return "Step complete."
 
     def _round_1_initial_analysis(
         self,
@@ -287,8 +445,28 @@ class DeepAnalysisAgent:
 
             log.info(f"  Tool {i+1}/{len(tool_calls)}: {tool_name}({tool_args}) - {reason}")
 
+            self._emit(
+                phase="tool_call_start",
+                round_n=2 + i,
+                friendly=self._friendly_tool_call(tool_name, tool_args, reason),
+                technical={"tool": tool_name, "args": tool_args, "reason": reason, "index": i, "of": len(tool_calls)},
+            )
+            tool_start_t = time.time()
+
             # 执行工具
             result = self.toolkit.execute_tool(tool_name, **tool_args)
+
+            self._emit(
+                phase="tool_call_done",
+                round_n=2 + i,
+                friendly=self._friendly_tool_done(tool_name, result),
+                technical={
+                    "tool": tool_name,
+                    "success": result.get('success', False),
+                    "tool_elapsed_s": round(time.time() - tool_start_t, 2),
+                    "result_size_b": len(str(result.get('preview') or result.get('output') or '')),
+                },
+            )
 
             investigation_results['tool_executions'].append({
                 'tool': tool_name,
