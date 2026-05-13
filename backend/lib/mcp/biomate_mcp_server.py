@@ -44,8 +44,12 @@ import requests
 BIOMATE_API_URL = os.environ.get("BIOMATE_API_URL", "http://localhost:5000")
 BIOMATE_API_KEY = os.environ.get("BIOMATE_API_KEY", "")
 SERVER_NAME = "biomate"
-SERVER_VERSION = "1.0.0"
+SERVER_VERSION = "2.0.0"
 PROTOCOL_VERSION = "2024-11-05"
+
+# Thread-safe stdout — progress notifications are emitted from worker threads
+# while the main loop continues reading stdin.
+_send_lock = threading.Lock()
 
 logging.basicConfig(
     stream=sys.stderr,
@@ -55,240 +59,20 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Tool definitions (MCP schema)
+# Tool definitions — sourced from the canonical manifest
 # ──────────────────────────────────────────────────────────────────────────────
+# Single source of truth lives in backend/lib/mcp/tools_manifest.py. All other
+# surfaces (Open Claw, Slack, WeChat, ChatGPT GPT, Claude Skill catalog) are
+# generated from the same module. See docs/20260513_CONNECTOR_ARCHITECTURE_V2.md.
 
-# Keep in sync with:
-#   frontend/server/routes.ts  OPEN_CLAW_TOOLS
-#   backend/lib/integrations/slack_bot.py
-#   backend/lib/integrations/wechat_bot.py
-# Doc: docs/20260412_BIOMATE_TOOLS_CAPABILITY_MAP.md
-TOOLS: List[Dict[str, Any]] = [
-    {
-        "name": "search_workflow",
-        "description": (
-            "Search the BioMate scientific workflow catalog using a natural language query. "
-            "Returns a ranked list of matching workflows with descriptions, required inputs, "
-            "and estimated compute time. Use this before run_workflow to find the right workflow ID."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Natural language description of what you want to do. "
-                                   "Examples: 'run ADMET screening on these SMILES', "
-                                   "'variant calling from FASTQ files', 'protein structure prediction'",
-                },
-                "limit": {
-                    "type": "integer",
-                    "description": "Maximum number of results to return (default: 5, max: 20)",
-                    "default": 5,
-                },
-            },
-            "required": ["query"],
-        },
-    },
-    {
-        "name": "run_workflow",
-        "description": (
-            "Execute a BioMate scientific workflow on AWS Batch. "
-            "Returns a run_id you can poll with get_run_status. "
-            "Use search_workflow first to find the workflow_id and required parameters."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "string",
-                    "description": "Workflow identifier from search_workflow results (e.g. 'assay_ingestion_and_ranking')",
-                },
-                "params": {
-                    "type": "object",
-                    "description": "Workflow parameters as key-value pairs. "
-                                   "Required params vary by workflow — check search_workflow output.",
-                    "additionalProperties": True,
-                },
-                "session_message": {
-                    "type": "string",
-                    "description": "Optional: natural language message describing what you want. "
-                                   "BioMate AI will auto-fill parameters from this if params are incomplete.",
-                },
-            },
-            "required": ["workflow_id"],
-        },
-    },
-    {
-        "name": "get_run_status",
-        "description": (
-            "Poll the status of a BioMate workflow run. "
-            "Returns status (pending | running | completed | failed), "
-            "step progress (N/total), elapsed time, and any error message."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "run_id": {
-                    "type": "string",
-                    "description": "Run ID returned by run_workflow",
-                },
-            },
-            "required": ["run_id"],
-        },
-    },
-    {
-        "name": "get_run_results",
-        "description": (
-            "Retrieve output files and summary data from a completed BioMate run. "
-            "Returns a list of output files with download URLs, file types, and sizes. "
-            "Only call this after get_run_status returns status='completed'."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "run_id": {
-                    "type": "string",
-                    "description": "Run ID of a completed run",
-                },
-            },
-            "required": ["run_id"],
-        },
-    },
-    {
-        "name": "query_database",
-        "description": (
-            "Query a biological/chemical database by accession, name, or structured query. "
-            "Returns structured data cards: protein info (UniProt), structure (PDB/AlphaFold), "
-            "gene info (NCBI Gene), variants (dbSNP/ClinVar), pathways (KEGG), "
-            "compounds (ChEBI/PubChem), phenotypes (HPO), interactions (STRING)."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "database": {
-                    "type": "string",
-                    "enum": [
-                        "uniprot", "pdb", "alphafold", "ncbi_gene",
-                        "dbsnp", "clinvar", "gnomad",
-                        "kegg", "reactome",
-                        "chebi", "pubchem",
-                        "hpo", "omim",
-                        "string",
-                    ],
-                    "description": "Target database to query",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Accession number, gene symbol, compound name, or search query. "
-                                   "Examples: 'P04637' (UniProt), 'BRCA1' (gene), 'ibuprofen' (compound), "
-                                   "'1TUP' (PDB), 'rs7412' (dbSNP)",
-                },
-            },
-            "required": ["database", "query"],
-        },
-    },
-    {
-        "name": "analyze_file",
-        "description": (
-            "Run lightweight data analysis on an uploaded file. "
-            "Returns format-specific QC metrics: "
-            "FASTQ (read count, quality distribution, adapter contamination), "
-            "CSV/TSV (row count, column names, data preview, missing value counts), "
-            "VCF (variant count, chromosome distribution, FILTER pass rate), "
-            "FASTA (sequence count, length distribution, GC content)."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "s3_key": {
-                    "type": "string",
-                    "description": "S3 key of the file to analyze (s3://bucket/path/to/file)",
-                },
-                "inline_data": {
-                    "type": "string",
-                    "description": "Small file content passed inline (max 50KB). Use s3_key for larger files.",
-                },
-                "file_type": {
-                    "type": "string",
-                    "enum": ["fastq", "csv", "tsv", "vcf", "fasta", "bam", "auto"],
-                    "description": "File type hint (default: auto-detect from extension or content)",
-                    "default": "auto",
-                },
-            },
-        },
-    },
-    {
-        "name": "cancel_run",
-        "description": (
-            "Cancel a running or queued BioMate workflow job on AWS Batch. "
-            "Use when the user wants to stop a run, or before launching a corrected replacement."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "run_id": {"type": "string", "description": "Run ID to cancel"},
-            },
-            "required": ["run_id"],
-        },
-    },
-    {
-        "name": "list_runs",
-        "description": (
-            "List the user's recent BioMate workflow runs with status and timestamps. "
-            "Useful for checking what jobs are currently running or recently completed."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "limit": {"type": "integer", "description": "Max runs to return (default 10)", "default": 10},
-                "status": {
-                    "type": "string",
-                    "enum": ["all", "running", "completed", "failed", "pending"],
-                    "description": "Filter by status (default: all)",
-                    "default": "all",
-                },
-            },
-        },
-    },
-    {
-        "name": "analyze_results",
-        "description": (
-            "Ask BioMate's AI to interpret and summarize outputs from a completed run. "
-            "Returns a natural language analysis: key findings, quality metrics, "
-            "scientific interpretation, and recommended next steps."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "run_id": {"type": "string", "description": "Run ID of a completed run"},
-                "question": {
-                    "type": "string",
-                    "description": "Optional specific question, e.g. 'which compounds passed ADMET filters?'",
-                },
-            },
-            "required": ["run_id"],
-        },
-    },
-    {
-        "name": "explain_error",
-        "description": (
-            "Ask BioMate's AI to diagnose why a failed workflow run failed. "
-            "Returns the likely root cause (genome mismatch, missing input, resource OOM, etc.) "
-            "and the specific fix to apply."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "run_id": {"type": "string", "description": "Run ID of a failed run to diagnose"},
-                "error_log": {
-                    "type": "string",
-                    "description": "Optional: paste the error log directly if run_id lookup is unavailable",
-                },
-            },
-            "required": ["run_id"],
-        },
-    },
-]
+from backend.lib.mcp.tools_manifest import (
+    to_mcp as _manifest_to_mcp,
+    get_tool as _manifest_get_tool,
+)
+
+TOOLS: List[Dict[str, Any]] = _manifest_to_mcp()
+
+# Schema definitions live exclusively in backend/lib/mcp/tools_manifest.py.
 
 # ──────────────────────────────────────────────────────────────────────────────
 # HTTP client to BioMate API
@@ -423,68 +207,400 @@ class BioMateClient:
         except Exception as exc:
             return {"error": str(exc), "run_id": run_id}
 
+    # ── Tier 2/3 (v2 manifest) ────────────────────────────────────────────────
+
+    def get_workflow_spec(self, workflow_id: str) -> Dict[str, Any]:
+        try:
+            r = self.session.get(
+                self._url("/api/workflows/spec"),
+                params={"workflow_id": workflow_id},
+                timeout=15,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "workflow_id": workflow_id}
+
+    def get_run(self, run_id: str, include_findings: bool = True) -> Dict[str, Any]:
+        try:
+            r = self.session.get(
+                self._url(f"/api/nextflow/runs/{run_id}"),
+                params={"include_findings": "true" if include_findings else "false"},
+                timeout=15,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "run_id": run_id}
+
+    def preview_file(self, s3_key: str, run_id: Optional[str] = None, max_rows: int = 100) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {"s3_key": s3_key, "max_rows": max_rows}
+        if run_id:
+            payload["run_id"] = run_id
+        try:
+            r = self.session.post(self._url("/api/files/preview"), json=payload, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "s3_key": s3_key}
+
+    def export_report(self, run_id: str, fmt: str = "pdf", sections: Optional[List[str]] = None) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {"format": fmt}
+        if sections:
+            payload["sections"] = sections
+        try:
+            r = self.session.post(
+                self._url(f"/api/workflows/runs/{run_id}/report"),
+                json=payload,
+                timeout=120,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "run_id": run_id}
+
+    def recall_memory(self, query: str, scope: str = "all", limit: int = 5) -> Dict[str, Any]:
+        try:
+            r = self.session.post(
+                self._url("/api/memory/relevant"),
+                json={"query": query, "scope": scope, "limit": limit},
+                timeout=20,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    def upload_signed_url(self, filename: str, size_bytes: Optional[int], content_type: Optional[str]) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {"filename": filename}
+        if size_bytes is not None:
+            payload["size_bytes"] = size_bytes
+        if content_type:
+            payload["content_type"] = content_type
+        try:
+            r = self.session.post(self._url("/api/uploads/signed_url"), json=payload, timeout=15)
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "filename": filename}
+
+    def open_claw_stream(self, goal: str, inputs: Optional[Dict[str, Any]], experiment_id: Optional[str]):
+        """Generator yielding SSE events from /api/open-claw/stream.
+
+        Each yielded dict has shape: {event: <name>, data: <parsed json or str>}.
+        The bridge in SessionRunner converts these into MCP progress notifications.
+        """
+        messages = [{"role": "user", "content": goal}]
+        payload: Dict[str, Any] = {"messages": messages}
+        if inputs:
+            payload["inputs"] = inputs
+        if experiment_id:
+            payload["experiment_id"] = experiment_id
+
+        headers = dict(self.session.headers)
+        headers["Accept"] = "text/event-stream"
+
+        with self.session.post(
+            self._url("/api/open-claw/stream"),
+            json=payload,
+            headers=headers,
+            stream=True,
+            timeout=(30, 600),  # 10-min idle limit
+        ) as resp:
+            resp.raise_for_status()
+            current_event = "message"
+            for raw_line in resp.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                if raw_line.startswith(":"):
+                    continue  # SSE comment / keep-alive
+                if raw_line.startswith("event:"):
+                    current_event = raw_line[6:].strip()
+                    continue
+                if raw_line.startswith("data:"):
+                    data_str = raw_line[5:].strip()
+                    try:
+                        data = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        data = data_str
+                    yield {"event": current_event, "data": data}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Streaming bridge — BioMate SSE → MCP notifications/progress
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Event shape contract (see docs/20260513_CONNECTOR_ARCHITECTURE_V2.md):
+#   {kind, summary_md, view_url, thumbnail_png_b64?, delta}
+# We normalize whatever the Open Claw stream emits into this shape so every
+# downstream surface (Claude Code, Codex poll, Slack relay) shares one schema.
+
+_PROGRESS_KINDS = {
+    "phase_started", "phase_completed",
+    "step_started", "step_completed", "step_failed",
+    "qc_gate", "auto_loop_remediation",
+    "finding", "report_ready",
+    "text_delta", "done",
+}
+
+
+def _normalize_sse_event(evt: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Map an Open Claw SSE event into the canonical progress payload."""
+    name = evt.get("event") or ""
+    data = evt.get("data") or {}
+    if not isinstance(data, dict):
+        data = {"raw": data}
+
+    # Open Claw emits a heterogeneous mix: tool_use, tool_result, text_delta,
+    # workflow_phase, workflow_step, qc_gate, finding. Map each to a kind.
+    if name in ("text_delta", "delta"):
+        return {
+            "kind": "text_delta",
+            "summary_md": data.get("text") or data.get("delta") or "",
+            "delta": data,
+        }
+    if name in ("workflow_phase", "phase"):
+        status = data.get("status", "running")
+        return {
+            "kind": f"phase_{status}" if status in ("started", "completed", "failed") else "phase_started",
+            "summary_md": f"**Phase:** {data.get('name', '?')} — {status}",
+            "view_url": data.get("view_url"),
+            "delta": data,
+        }
+    if name in ("workflow_step", "step"):
+        status = data.get("status", "running")
+        kind = "step_completed" if status == "completed" else ("step_failed" if status == "failed" else "step_started")
+        return {
+            "kind": kind,
+            "summary_md": f"- {data.get('name', '?')} ({status})",
+            "view_url": data.get("view_url"),
+            "delta": data,
+        }
+    if name == "qc_gate":
+        verdict = data.get("verdict", "unknown")
+        return {
+            "kind": "qc_gate",
+            "summary_md": f"**QC gate:** {data.get('metric','?')} = {data.get('value','?')} → {verdict}",
+            "view_url": data.get("view_url"),
+            "thumbnail_png_b64": data.get("thumbnail_png_b64"),
+            "delta": data,
+        }
+    if name == "auto_loop":
+        return {
+            "kind": "auto_loop_remediation",
+            "summary_md": (
+                f"**Auto-loop fix:** {data.get('param','?')}: "
+                f"`{data.get('was')}` → `{data.get('now')}`"
+            ),
+            "delta": data,
+        }
+    if name == "finding":
+        return {
+            "kind": "finding",
+            "summary_md": data.get("summary_md") or f"**Finding:** {data.get('title','(untitled)')}",
+            "view_url": data.get("view_url"),
+            "thumbnail_png_b64": data.get("thumbnail_png_b64"),
+            "delta": data,
+        }
+    if name in ("done", "complete", "end"):
+        return {
+            "kind": "done",
+            "summary_md": data.get("summary_md") or "**Done.**",
+            "view_url": data.get("view_url"),
+            "delta": data,
+        }
+    # Tool calls and unknown events are ignored — they're internal to Open Claw.
+    return None
+
+
+class SessionRunner(threading.Thread):
+    """Runs biomate_session (or run_workflow stream=true) on a worker thread.
+
+    Reads SSE from Open Claw, emits MCP notifications/progress for each event,
+    and finally sends the tools/call response itself. The main loop continues
+    handling other requests in the meantime.
+    """
+
+    def __init__(
+        self,
+        client: "BioMateClient",
+        req_id: Any,
+        tool_name: str,
+        tool_args: Dict[str, Any],
+        progress_token: Optional[Any],
+    ):
+        super().__init__(daemon=True)
+        self.client = client
+        self.req_id = req_id
+        self.tool_name = tool_name
+        self.tool_args = tool_args
+        self.progress_token = progress_token
+        self._final_run_id: Optional[str] = None
+        self._final_view_url: Optional[str] = None
+        self._final_summary_md: List[str] = []
+
+    def _emit_progress(self, payload: Dict[str, Any], n: int, total: Optional[int] = None) -> None:
+        if self.progress_token is None:
+            return  # Client didn't ask for progress notifications
+        params: Dict[str, Any] = {
+            "progressToken": self.progress_token,
+            "progress": n,
+            "message": payload.get("summary_md", ""),
+            "_meta": {
+                "kind": payload.get("kind"),
+                "view_url": payload.get("view_url"),
+                "thumbnail_png_b64": payload.get("thumbnail_png_b64"),
+                "delta": payload.get("delta"),
+            },
+        }
+        if total is not None:
+            params["total"] = total
+        send({"jsonrpc": "2.0", "method": "notifications/progress", "params": params})
+
+    def run(self) -> None:
+        try:
+            n = 0
+            for evt in self.client.open_claw_stream(
+                goal=self.tool_args.get("goal") or self.tool_args.get("session_message") or "",
+                inputs=self.tool_args.get("inputs"),
+                experiment_id=self.tool_args.get("experiment_id"),
+            ):
+                payload = _normalize_sse_event(evt)
+                if payload is None:
+                    continue
+                n += 1
+                self._emit_progress(payload, n)
+                if payload.get("delta", {}).get("run_id"):
+                    self._final_run_id = payload["delta"]["run_id"]
+                if payload.get("view_url"):
+                    self._final_view_url = payload["view_url"]
+                if payload.get("kind") == "text_delta":
+                    self._final_summary_md.append(payload.get("summary_md", ""))
+                if payload.get("kind") == "done":
+                    break
+
+            final_text = "".join(self._final_summary_md).strip() or "Session complete."
+            result_payload: Dict[str, Any] = {
+                "summary_md": final_text,
+                "run_id": self._final_run_id,
+                "view_url": self._final_view_url,
+            }
+            send(make_response(self.req_id, {
+                "content": [{"type": "text", "text": json.dumps(result_payload, indent=2)}],
+                "isError": False,
+            }))
+        except Exception as exc:
+            log.exception(f"SessionRunner error for {self.tool_name}")
+            send(make_error(self.req_id, -32603, "Streaming tool error", str(exc)))
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Tool dispatcher
 # ──────────────────────────────────────────────────────────────────────────────
 
 def dispatch_tool(client: BioMateClient, tool_name: str, args: Dict[str, Any]) -> Any:
-    """Execute a tool call and return JSON-serializable result."""
-    if tool_name == "search_workflow":
-        return client.search_workflow(
-            query=args["query"],
-            limit=int(args.get("limit", 5)),
-        )
+    """Execute a non-streaming tool call. Returns JSON-serializable result.
 
-    elif tool_name == "run_workflow":
+    Streaming tools (biomate_session, run_workflow with stream=true) are
+    dispatched via SessionRunner from handle_request — they do not flow
+    through this function.
+    """
+    if tool_name == "search_workflow":
+        return client.search_workflow(query=args["query"], limit=int(args.get("limit", 5)))
+
+    if tool_name == "get_workflow_spec":
+        return client.get_workflow_spec(workflow_id=args["workflow_id"])
+
+    if tool_name == "run_workflow":
         return client.run_workflow(
             workflow_id=args["workflow_id"],
             params=args.get("params", {}),
             session_message=args.get("session_message"),
         )
 
-    elif tool_name == "get_run_status":
-        return client.get_run_status(run_id=args["run_id"])
-
-    elif tool_name == "get_run_results":
-        return client.get_run_results(run_id=args["run_id"])
-
-    elif tool_name == "query_database":
-        return client.query_database(
-            database=args["database"],
-            query=args["query"],
+    if tool_name == "get_run":
+        return client.get_run(
+            run_id=args["run_id"],
+            include_findings=bool(args.get("include_findings", True)),
         )
 
-    elif tool_name == "analyze_file":
+    if tool_name == "cancel_run":
+        return client.cancel_run(run_id=args["run_id"])
+
+    if tool_name == "list_runs":
+        return client.list_runs(
+            limit=int(args.get("limit", 10)),
+            status=args.get("status", "all"),
+        )
+
+    if tool_name == "preview_file":
+        return client.preview_file(
+            s3_key=args["s3_key"],
+            run_id=args.get("run_id"),
+            max_rows=int(args.get("max_rows", 100)),
+        )
+
+    if tool_name == "export_report":
+        return client.export_report(
+            run_id=args["run_id"],
+            fmt=args.get("format", "pdf"),
+            sections=args.get("sections"),
+        )
+
+    if tool_name == "analyze_results":
+        return client.analyze_results(
+            run_id=args["run_id"],
+            question=args.get("question", "Summarize the key findings and scientific interpretation."),
+        )
+
+    if tool_name == "explain_error":
+        return client.explain_error(
+            run_id=args["run_id"],
+            error_log=args.get("error_log", ""),
+        )
+
+    if tool_name == "query_database":
+        return client.query_database(database=args["database"], query=args["query"])
+
+    if tool_name == "recall_memory":
+        return client.recall_memory(
+            query=args["query"],
+            scope=args.get("scope", "all"),
+            limit=int(args.get("limit", 5)),
+        )
+
+    if tool_name == "upload_file":
+        return client.upload_signed_url(
+            filename=args["filename"],
+            size_bytes=args.get("size_bytes"),
+            content_type=args.get("content_type"),
+        )
+
+    # ── Legacy aliases (deprecated; remove after Phase 2 rollout) ─────────────
+    if tool_name == "get_run_status":
+        return client.get_run_status(run_id=args["run_id"])
+    if tool_name == "get_run_results":
+        return client.get_run_results(run_id=args["run_id"])
+    if tool_name == "analyze_file":
         return client.analyze_file(
             s3_key=args.get("s3_key"),
             inline_data=args.get("inline_data"),
             file_type=args.get("file_type", "auto"),
         )
 
-    elif tool_name == "cancel_run":
-        return client.cancel_run(run_id=args["run_id"])
+    raise ValueError(f"Unknown tool: {tool_name}")
 
-    elif tool_name == "list_runs":
-        return client.list_runs(
-            limit=int(args.get("limit", 10)),
-            status=args.get("status", "all"),
-        )
 
-    elif tool_name == "analyze_results":
-        return client.analyze_results(
-            run_id=args["run_id"],
-            question=args.get("question", "Summarize the key findings and scientific interpretation."),
-        )
+# Tools that emit notifications/progress instead of a single sync result.
+_STREAMING_TOOLS = {"biomate_session", "run_workflow"}
 
-    elif tool_name == "explain_error":
-        return client.explain_error(
-            run_id=args["run_id"],
-            error_log=args.get("error_log", ""),
-        )
 
-    else:
-        raise ValueError(f"Unknown tool: {tool_name}")
+def is_streaming_call(tool_name: str, tool_args: Dict[str, Any]) -> bool:
+    if tool_name == "biomate_session":
+        return bool(tool_args.get("stream", True))
+    if tool_name == "run_workflow":
+        return bool(tool_args.get("stream", False))
+    return False
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -501,9 +617,11 @@ def make_error(req_id: Any, code: int, message: str, data: Any = None) -> Dict[s
     return {"jsonrpc": "2.0", "id": req_id, "error": error}
 
 def send(obj: Dict[str, Any]) -> None:
+    """Thread-safe stdout write — SessionRunner threads emit notifications via this."""
     line = json.dumps(obj, separators=(",", ":"))
-    sys.stdout.write(line + "\n")
-    sys.stdout.flush()
+    with _send_lock:
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
 
 def handle_request(client: BioMateClient, msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Handle one JSON-RPC message. Returns response or None for notifications."""
@@ -537,6 +655,16 @@ def handle_request(client: BioMateClient, msg: Dict[str, Any]) -> Optional[Dict[
     if method == "tools/call":
         tool_name = params.get("name", "")
         tool_args = params.get("arguments", {}) or {}
+        meta = params.get("_meta", {}) or {}
+        progress_token = meta.get("progressToken")
+
+        # Streaming tools: spawn a worker that emits notifications/progress and
+        # sends the final tools/call response itself. Main loop returns None.
+        if is_streaming_call(tool_name, tool_args):
+            runner = SessionRunner(client, req_id, tool_name, tool_args, progress_token)
+            runner.start()
+            return None
+
         try:
             result = dispatch_tool(client, tool_name, tool_args)
             content_text = json.dumps(result, indent=2, default=str)
