@@ -339,6 +339,7 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
         backend_root / "nf-core-workflows",
+        backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools",
         backend_root / "nf-core-modules",
         backend_root / "nf-core-modules" / "subworkflows" / "nf-core",
     ])
@@ -967,7 +968,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
     # Optional: verify the specific object exists (for input file paths).
     # Skip for directory-style prefixes (key ends with '/') or bucket-only URLs.
     # Also skip head_object for glob patterns — use list_objects_v2 instead.
-    _is_glob_key = any(c in key for c in ("*", "?", "[", "]", "{", "}"))
+    _is_glob_key = any(c in key for c in ("*", "?", "[", "]"))
     if check_object and key and not key.endswith("/") and not _is_glob_key:
         try:
             s3.head_object(Bucket=bucket, Key=key)
@@ -1059,8 +1060,7 @@ def _generate_executor_config(
             f"        BIOMATE_USER_ID: '{user_id}',",
             f"        BIOMATE_RUN_ID: '{run_id}',",
         ]
-        # beforeScript parts — only credential injection; no CLI symlink needed
-        # since AWS CLI is baked into all task containers via FROM biomate-nextflow-base.
+        # beforeScript parts — credential injection only.
         before_script_parts: list[str] = []
 
         # Docker Hub auth (AlphaFold3 or any docker_auth tool)
@@ -1095,6 +1095,17 @@ def _generate_executor_config(
         ]
         if before_script_str:
             lines.append(f"    beforeScript = '{before_script_str}'")
+        # Host-mounted AWS CLI (aws.batch.cliPath) must resolve zlib before Nextflow's
+        # S3 staging runs. process.environment and beforeScript are applied too late;
+        # ECS `docker run -e` via containerOptions is not.
+        _ld_aws_host = (
+            "/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:"
+            "/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:"
+            "/lib64:/usr/lib64:/usr/lib:/lib:"
+            "/opt/conda/lib:/opt/conda/x86_64-conda-linux-gnu/lib:"
+            "/usr/local/lib"
+        )
+        lines.append(f"    containerOptions = '-e LD_LIBRARY_PATH={_ld_aws_host}'")
         lines.append("}")
         # Per-label GPU queue routing: processes labeled 'process_gpu' go to the GPU queue.
         # Avoids a single monolithic queue for all workflows.
