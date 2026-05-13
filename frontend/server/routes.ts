@@ -3965,6 +3965,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deep diagnose for failed workflows — runs DeepAnalysisAgent multi-round tool-use loop.
+  // Slower (~8-30s) and more expensive (~$0.008) than /error-summary; surfaced as an
+  // opt-in "Get a deeper diagnosis" button on the failure card.
+  app.post("/api/workflows/:invocationId/deep_diagnose", async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const resp = await fetch(
+        `${galaxyUrl}/api/workflows/${encodeURIComponent(req.params.invocationId)}/deep_diagnose`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(60000),  // 60s — multi-round agent + LLM
+        }
+      );
+      if (resp.ok) {
+        return res.json(await resp.json());
+      }
+      return res.status(resp.status).json({ available: false, root_cause: `Backend returned ${resp.status}` });
+    } catch (err: any) {
+      return res.json({ available: false, root_cause: `Deep diagnose request failed: ${String(err?.message ?? err)}` });
+    }
+  });
+
   // SSE endpoint for LangGraph pipeline task-status events.
   // The Python backend publishes to Redis channel biomate:pipeline:{id};
   // this endpoint relays those events to the browser.

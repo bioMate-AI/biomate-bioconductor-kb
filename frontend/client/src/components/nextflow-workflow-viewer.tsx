@@ -882,6 +882,19 @@ export function NextflowWorkflowViewer({
   const [errorExplaining, setErrorExplaining] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
 
+  // Deep diagnose: opt-in second-tier Claude-based investigation (~8-30s, ~$0.008/call)
+  const [deepDiagnosis, setDeepDiagnosis] = useState<{
+    available: boolean;
+    error_category?: string;
+    root_cause?: string;
+    suggested_fix?: string;
+    confidence?: number;
+    investigation_steps?: string[];
+    suggested_params?: Record<string, any>;
+    fixable?: boolean;
+  } | null>(null);
+  const [deepDiagnosing, setDeepDiagnosing] = useState(false);
+
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
   const [skippedPhaseIds, setSkippedPhaseIds] = useState<Set<string>>(new Set());
@@ -2425,6 +2438,87 @@ export function NextflowWorkflowViewer({
                   <div style={{ fontSize: 10, opacity: 0.55 }}>
                     {errorExplanation.error_type}{errorExplanation.llm_used ? ' · AI-analyzed' : ' · pattern-matched'}
                   </div>
+
+                  {/* Deep diagnose — opt-in deeper Claude tool-use investigation */}
+                  {(invocationId || runId) && !deepDiagnosis && (
+                    <button
+                      className="btn sm"
+                      style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                      disabled={deepDiagnosing}
+                      onClick={async () => {
+                        const id = invocationId || runId;
+                        if (!id) return;
+                        setDeepDiagnosing(true);
+                        try {
+                          const r = await fetch(`/api/workflows/${encodeURIComponent(id)}/deep_diagnose`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: AbortSignal.timeout(60000),
+                          });
+                          const data = await r.json();
+                          setDeepDiagnosis(data);
+                        } catch (err: any) {
+                          setDeepDiagnosis({
+                            available: false,
+                            root_cause: `Deep diagnose failed: ${String(err?.message ?? err)}`,
+                          });
+                        } finally {
+                          setDeepDiagnosing(false);
+                        }
+                      }}
+                      data-testid="button-deep-diagnose"
+                    >
+                      {deepDiagnosing ? 'Investigating… (8–30s)' : 'Get a deeper diagnosis'}
+                    </button>
+                  )}
+
+                  {deepDiagnosis && deepDiagnosis.available && (
+                    <div
+                      data-testid="deep-diagnosis-card"
+                      style={{
+                        marginTop: 6,
+                        padding: 8,
+                        borderRadius: 6,
+                        background: 'var(--bg-soft, rgba(0,0,0,0.04))',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 11, opacity: 0.75 }}>
+                        Deep diagnosis · {deepDiagnosis.error_category}
+                        {typeof deepDiagnosis.confidence === 'number' && (
+                          <span style={{ marginLeft: 8, opacity: 0.7 }}>
+                            confidence {(deepDiagnosis.confidence * 100).toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                      {deepDiagnosis.root_cause && (
+                        <div><span style={{ fontWeight: 600 }}>Root cause: </span>{deepDiagnosis.root_cause}</div>
+                      )}
+                      {deepDiagnosis.suggested_fix && (
+                        <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{deepDiagnosis.suggested_fix}</div>
+                      )}
+                      {Array.isArray(deepDiagnosis.investigation_steps) && deepDiagnosis.investigation_steps.length > 0 && (
+                        <details style={{ marginTop: 4 }}>
+                          <summary style={{ cursor: 'pointer', fontSize: 11, opacity: 0.7 }}>
+                            Investigation steps ({deepDiagnosis.investigation_steps.length})
+                          </summary>
+                          <ol style={{ margin: '4px 0 0 18px', padding: 0, fontSize: 11, opacity: 0.85 }}>
+                            {deepDiagnosis.investigation_steps.map((s, i) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      )}
+                    </div>
+                  )}
+                  {deepDiagnosis && !deepDiagnosis.available && (
+                    <div style={{ marginTop: 6, fontSize: 11, opacity: 0.7 }}>
+                      Deep diagnose unavailable: {deepDiagnosis.root_cause}
+                    </div>
+                  )}
                 </div>
               ) : errorExplaining ? (
                 <span>Analyzing error log…</span>
