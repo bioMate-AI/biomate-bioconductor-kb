@@ -321,7 +321,7 @@ elif is_amino_acid(raw_input):
 else:
     input_type = 'nucleotide_orf'
     aa_seq = None
-    cds_dna = raw_input.upper().replace('U', 'T').replace(' ', '').replace('\n', '')
+    cds_dna = raw_input.upper().replace('U', 'T').replace(' ', '').replace('\\n', '')
     cds_dna = re.sub(r'[^ACGT]', '', cds_dna)
     seq_name = 'input_orf'
 
@@ -552,17 +552,17 @@ design_report = {
 
 # ─── Write outputs ────────────────────────────────────────────────────────────
 def fasta_wrap(seq, width=80):
-    return '\n'.join(seq[i:i+width] for i in range(0, len(seq), width))
+    return '\\n'.join(seq[i:i+width] for i in range(0, len(seq), width))
 
 # optimized_sequence.fasta — full mRNA (RNA)
 with open('optimized_sequence.fasta', 'w') as f:
-    f.write(f'>{seq_name}_optimized_mRNA tissue={tissue} length={len(full_rna)}nt CAI={cai_score}\n')
-    f.write(fasta_wrap(full_rna) + '\n')
+    f.write(f'>{seq_name}_optimized_mRNA tissue={tissue} length={len(full_rna)}nt CAI={cai_score}\\n')
+    f.write(fasta_wrap(full_rna) + '\\n')
 
 # ivt_template.fasta — DNA template for T7 IVT
 with open('ivt_template.fasta', 'w') as f:
-    f.write(f'>{seq_name}_IVT_template T7_promoter+coding_DNA length={len(ivt_dna_template)}nt\n')
-    f.write(fasta_wrap(ivt_dna_template) + '\n')
+    f.write(f'>{seq_name}_IVT_template T7_promoter+coding_DNA length={len(ivt_dna_template)}nt\\n')
+    f.write(fasta_wrap(ivt_dna_template) + '\\n')
 
 with open('stability_metrics.json', 'w') as f:
     json.dump(stability_metrics, f, indent=2)

@@ -405,9 +405,9 @@ lines += [
 ] + [f"  • {d}" for d in report['disclaimers']]
 
 with open('glp1_bakeoff.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('glp1_modality_bakeoff: 1.0')" > versions.yml

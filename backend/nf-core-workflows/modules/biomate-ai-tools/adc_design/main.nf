@@ -860,7 +860,7 @@ lines += [
 for ref in full_report["references"]:
     lines.append(f"  · {ref}")
 
-summary_text = "\n".join(lines) + "\n"
+summary_text = "\\n".join(lines) + "\\n"
 with open("adc_summary.txt", "w") as f:
     f.write(summary_text)
 

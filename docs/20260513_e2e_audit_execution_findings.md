@@ -122,3 +122,80 @@ curl -s -X POST http://localhost:8081/api/nextflow/execute \
 # Save run_id, then poll status:
 curl -s "http://localhost:8081/api/nextflow/status/<run_id>"
 ```
+
+---
+
+## Resolution (2026-05-13)
+
+**Both blocking issues from earlier audit are FIXED. End-to-end execution validated.**
+
+### Fix 1: Nextflow config not auto-discovered (Issue 2B-2)
+
+Applied **Option B** — copied `nextflow.config` into each of the 13 workflow directories. Nextflow auto-discovers config in the script's own directory, so the `aws` profile now resolves on dispatch.
+
+### Fix 2: Groovy GString interpretation of `\n` inside Python heredoc
+
+A SECOND issue surfaced after Fix 1: the Nextflow command launched but the Python script died with `SyntaxError: unterminated string literal (detected at line 318)`.
+
+Root cause: Nextflow's process `script:` block wraps the entire shell script (including embedded `python3 << 'PYEOF'` heredocs) in a Groovy GString. Groovy interprets `\n` as a literal newline character **before** the shell ever sees it, so any single-line Python string containing `\n` gets split across two lines, breaking the string literal.
+
+Affected: all 13 biomate-ai-tools workflows (most use `\n` in `sys.stderr.write(...)`, `print('\n'.join(...))`, `f.write(f"... \n")` patterns).
+
+**Fix applied**: Mass-replaced `\n` → `\\n` inside every Python heredoc block across all 13 `.nf` files. After Groovy interpretation, the shell sees `\n` literally, which Python correctly parses as a newline character.
+
+### Validation: atlas_expression_query for HER2
+
+End-to-end execution test:
+
+```
+nextflow_path:    atlas_expression_query/main.nf
+parameters:       {target_gene: HER2, tissues: all, census_offline: yes}
+executor:         awsbatch (auto-routed via NEXTFLOW_USE_AWS)
+
+Run ID:           1ea9c7b9-ea64-4ea4-8ee7-afeaf4b40715
+Status:           succeeded
+Return code:      0
+Duration:         4m 30s
+Container image:  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
+
+S3 outputs (5 files at s3://biomate-nextflow-work/nextflow/outputs/e2e-audit/f58b4fa4/):
+  atlas_expression.csv         (418  bytes)
+  atlas_expression.json        (2722 bytes)
+  atlas_query_report.txt       (2649 bytes)
+  tissue_criticality.json      (1403 bytes)
+  versions.yml                 (28   bytes)
+
+Content validation:
+  HER2 cardiac_endothelial expression: 1.8 (HIGH tier, risk 5.40)
+  → Matches the smoke-test baseline used to recover Morgan 2010 fatality signal.
+  → Atlas query result is biologically correct.
+```
+
+### Status now
+
+| Stage | Result |
+|---|---|
+| Routing (Galaxy BM25) | 6/6 ✓ |
+| Routing (Chat-stream SSE + LLM) | 6/6 ✓ |
+| LLM inline parameter extraction | 6/6 ✓ |
+| Workflow dispatch (path resolution) | 13/13 ✓ |
+| Workflow execution on AWS Batch | 1/13 validated ✓ (atlas_expression_query) |
+| S3 output file generation | ✓ verified for atlas |
+| Biological content correctness | ✓ HER2 profile matches smoke-test |
+
+**The remaining 12 workflows likely work** since the same `\\n` fix was applied uniformly, but each should be smoke-tested through the production runtime before being claimed as "demo-ready". Recommended order based on demo value:
+
+1. `bispecific_format_triage` for PD-1×VEGF (Ivonescimab story)
+2. `in_vivo_cart_codesign` for CD19+anti-CD8 LNP (Capstan story)
+3. `in_vivo_base_edit_design` for PCSK9 (VERVE-102 story)
+4. `glp1_modality_bakeoff` for MASH (GLP-1 race story)
+5. `modality_triage` for BCMA
+6. Remaining 7 ADC/PROTAC/etc. as bandwidth allows
+
+Each execution takes ~4-5 minutes on AWS Batch. Run them sequentially overnight or in parallel.
+
+## Code shipped in this resolution
+
+- 13 × `backend/nf-core-workflows/modules/biomate-ai-tools/<name>/nextflow.config` — copied from parent (config auto-discovery fix)
+- 13 × `backend/nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf` — `\n` → `\\n` in Python heredoc blocks (Groovy GString escaping)
+- 13 × DB `workflow_json` column re-synced to match disk

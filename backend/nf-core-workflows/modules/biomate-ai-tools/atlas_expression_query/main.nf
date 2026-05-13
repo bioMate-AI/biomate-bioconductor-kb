@@ -385,7 +385,7 @@ if offline != 'yes':
             profile[str(cell_type)] = (mean_expr, pct_expr, crit)
         source = 'cellxgene_census_live'
     except Exception as e:
-        sys.stderr.write(f"[atlas_query] CELLxGENE Census unavailable ({type(e).__name__}); falling back\n")
+        sys.stderr.write(f"[atlas_query] CELLxGENE Census unavailable ({type(e).__name__}); falling back\\n")
 
 if profile is None:
     # Resolve common-name aliases to canonical HGNC symbol
@@ -497,9 +497,9 @@ lines += [
 ]
 
 with open('atlas_query_report.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('atlas_expression_query: 1.0')" > versions.yml

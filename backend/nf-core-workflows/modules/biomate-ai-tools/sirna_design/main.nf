@@ -384,9 +384,9 @@ for ref in summary['references']:
     lines.append(f'  · {ref}')
 
 with open('design_report.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('sirna_design_full: 1.0')" > versions.yml

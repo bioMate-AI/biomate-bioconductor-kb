@@ -419,23 +419,23 @@ lines += [
 ] + [f"  · {r}" for r in triage_report['references']]
 
 with open('modality_triage.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
 # IHC follow-up file (separate, sales-friendly)
 with open('ihc_followup_panel.txt', 'w') as f:
-    f.write(f"IHC Follow-Up Panel for {gene}\n")
-    f.write("=" * 60 + "\n\n")
+    f.write(f"IHC Follow-Up Panel for {gene}\\n")
+    f.write("=" * 60 + "\\n\\n")
     if not ihc_tissues:
-        f.write("No tissues show measurable RNA expression — no IHC panel required.\n")
+        f.write("No tissues show measurable RNA expression — no IHC panel required.\\n")
     else:
-        f.write("Tissues to validate by IHC before committing to clinical development:\n\n")
+        f.write("Tissues to validate by IHC before committing to clinical development:\\n\\n")
         for h in ihc_tissues:
-            f.write(f"  Tissue:        {h['cell_type']}\n")
-            f.write(f"  Mean RNA:      {h['mean_expression']:.2f}  (criticality: {h['criticality']})\n")
-            f.write(f"  Strategy:      {h['antibody_strategy']}\n\n")
-    f.write("\nReference: Human Protein Atlas (proteinatlas.org) for validated antibody clones.\n")
+            f.write(f"  Tissue:        {h['cell_type']}\\n")
+            f.write(f"  Mean RNA:      {h['mean_expression']:.2f}  (criticality: {h['criticality']})\\n")
+            f.write(f"  Strategy:      {h['antibody_strategy']}\\n\\n")
+    f.write("\\nReference: Human Protein Atlas (proteinatlas.org) for validated antibody clones.\\n")
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('modality_triage: 1.0')" > versions.yml

@@ -16,7 +16,7 @@ process BIOEMU_SAMPLE {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.6'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.8'
 
     input:
     tuple val(meta), path(pdb_or_fasta)
@@ -68,8 +68,11 @@ if ext in (".pdb", ".ent"):
                   'GLU':'E','GLY':'G','HIS':'H','ILE':'I','LEU':'L','LYS':'K',
                   'MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
                   'TYR':'Y','VAL':'V','MSE':'M','SEC':'U'}
-        protein = u.select_atoms("protein")
-        residues = protein.residues
+        # Select chain A only — avoids extracting all chains for oligomers/tetramers
+        chain_a = u.select_atoms("protein and chainID A")
+        if len(chain_a) == 0:
+            chain_a = u.select_atoms("protein")  # fallback if no chainID set
+        residues = chain_a.residues
         seq = ''.join(aa3to1.get(r.resname.strip(), 'X') for r in residues)
         fasta_file = f"{prefix}.fasta"
         with open(fasta_file, "w") as f:
@@ -83,11 +86,13 @@ if ext in (".pdb", ".ent"):
 try:
     from bioemu.sample import main as bioemu_main
     # batch_size_100: BioEmu computes batch_size = int(batch_size_100 * (100/n_res)^2)
-    # For sequences >316 aa this rounds to 0 → ValueError. Set batch_size_100
-    # large enough so batch_size >= 1 for any sequence up to 700 aa.
+    # Target batch_size ≈ 8 for good GPU utilisation regardless of sequence length.
+    # Derivation: batch_size_100 = target * (n_res/100)^2
+    # e.g. 580 aa → batch_size_100=271 → batch_size=int(271*(100/580)^2)=8
+    #      413 aa → batch_size_100=137 → batch_size=int(137*(100/413)^2)=8
     n_res_est = len(open(fasta_file).read().splitlines()[1] if len(open(fasta_file).read().splitlines()) > 1 else '')
     import math
-    batch_size_100 = max(20, math.ceil((n_res_est / 100) ** 2) + 1)
+    batch_size_100 = max(100, 8 * math.ceil((n_res_est / 100) ** 2))
     print(f"[BIOEMU_SAMPLE] BioEmu 1.3.1 loaded — sampling {n_samples} conformers", flush=True)
     print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file} ({n_res_est} aa), batch_size_100={batch_size_100}", flush=True)
     # Pull checkpoint from S3 — AWS CLI mounted from host at /opt/aws-cli-container/bin/aws
@@ -101,6 +106,34 @@ try:
         ], check=True)
     print("[BIOEMU_SAMPLE] Checkpoint loaded from S3", flush=True)
 
+    # Pre-warm HuggingFace cache (AF2/OpenFold weights, ~3.5 GB) from S3
+    # so every run doesn't re-download from HuggingFace.
+    hf_cache = os.path.abspath("hf_cache")
+    os.makedirs(hf_cache, exist_ok=True)
+    os.environ["HF_HOME"] = hf_cache
+    s3_hf = "s3://biomate-nextflow-work/models/bioemu-hf-cache"
+    aws_cli = "/opt/aws-cli-container/bin/aws"
+    sync_r = subprocess.run(
+        [aws_cli, "s3", "sync", "--region", "us-west-2", s3_hf, hf_cache, "--quiet"],
+        capture_output=True
+    )
+    hub_dir = os.path.join(hf_cache, "hub")
+    if os.path.isdir(hub_dir) and any(os.scandir(hub_dir)):
+        print(f"[BIOEMU_SAMPLE] HF weights pre-loaded from S3 ({hf_cache})", flush=True)
+    else:
+        print("[BIOEMU_SAMPLE] HF weights not in S3 — will download from HuggingFace (first run)", flush=True)
+
+    # Diversity controls — defaults give noise=0.0 (deterministic) + filter_samples=True,
+    # which produces ~1A pairwise-RMSD ensembles useless for state discovery.
+    # Switch to stochastic_dpm denoiser (noise=0.5) + disable filter for raw distribution.
+    denoiser_cfg = {
+        "_target_": "bioemu.shortcuts.dpm_solver",
+        "_partial_": True,
+        "eps_t": 0.001,
+        "max_t": 0.99,
+        "N": 100,
+        "noise": 0.5,
+    }
     bioemu_main(
         sequence=fasta_file,
         num_samples=n_samples,
@@ -108,8 +141,19 @@ try:
         batch_size_100=batch_size_100,
         ckpt_path="bioemu_ckpt/checkpoint.ckpt",
         model_config_path="bioemu_ckpt/config.yaml",
-        msa_host_url="https://api.colabfold.com",  # API instead of local 3.5 GB AF2 weights
+        msa_host_url="https://api.colabfold.com",
+        denoiser_type="dpm",
+        denoiser_config=denoiser_cfg,
+        filter_samples=False,
     )
+
+    # Sync HF cache back to S3 so future runs skip the download
+    print("[BIOEMU_SAMPLE] Syncing HF weights to S3 cache...", flush=True)
+    subprocess.run(
+        [aws_cli, "s3", "sync", "--region", "us-west-2", hf_cache, s3_hf, "--quiet"],
+        check=False
+    )
+    print("[BIOEMU_SAMPLE] HF weights cached to S3", flush=True)
     # BioEmu writes .xtc + topology .pdb — convert to individual PDBs
     import glob as g
     traj_files = g.glob("bioemu_output/*.xtc")
@@ -210,7 +254,7 @@ process POCKET_MINER {
     tag "$meta.id"
     label 'process_medium'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.6'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.8'
 
     input:
     tuple val(meta), path(ensemble_tgz)
@@ -378,7 +422,7 @@ process CONFORMATIONAL_SUMMARY {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.6'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.8'
 
     input:
     tuple val(meta), path(ensemble_tgz)

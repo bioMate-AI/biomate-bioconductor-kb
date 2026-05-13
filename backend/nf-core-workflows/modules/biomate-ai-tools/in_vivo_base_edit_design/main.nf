@@ -288,29 +288,29 @@ with open('base_edit_design.json', 'w') as f:
 
 # Editor choice text
 with open('editor_choice.txt', 'w') as f:
-    f.write(f"Editor Class Recommendation — {gene} / {goal}\n")
-    f.write("=" * 60 + "\n\n")
-    f.write(f"Recommended editor: {rule['editor'].upper()}\n\n")
-    f.write(f"Mechanism: {rule['mechanism']}\n\n")
-    f.write(f"PAM strategy: {rule['pam']}\n\n")
-    f.write(f"Expected efficiency: {rule['efficiency']}\n\n")
-    f.write(f"Clinical precedent: {rule['precedent']}\n")
+    f.write(f"Editor Class Recommendation — {gene} / {goal}\\n")
+    f.write("=" * 60 + "\\n\\n")
+    f.write(f"Recommended editor: {rule['editor'].upper()}\\n\\n")
+    f.write(f"Mechanism: {rule['mechanism']}\\n\\n")
+    f.write(f"PAM strategy: {rule['pam']}\\n\\n")
+    f.write(f"Expected efficiency: {rule['efficiency']}\\n\\n")
+    f.write(f"Clinical precedent: {rule['precedent']}\\n")
 
 # Delivery plan
 with open('delivery_plan.txt', 'w') as f:
-    f.write(f"Delivery Plan — {gene} / target tissue: {atlas['primary_tissue']}\n")
-    f.write("=" * 60 + "\n\n")
-    f.write(f"Recommended vehicle: {delivery_choice['recommended']}\n\n")
-    f.write(f"Chemistry: {delivery_choice.get('lnp_chemistry', '—')}\n")
-    f.write(f"Route: {delivery_choice.get('route', '—')}\n\n")
-    f.write(f"CMC consideration: {delivery_choice.get('cmc_flag', '—')}\n\n")
-    f.write(f"Clinical precedent: {delivery_choice.get('precedent', '—')}\n")
+    f.write(f"Delivery Plan — {gene} / target tissue: {atlas['primary_tissue']}\\n")
+    f.write("=" * 60 + "\\n\\n")
+    f.write(f"Recommended vehicle: {delivery_choice['recommended']}\\n\\n")
+    f.write(f"Chemistry: {delivery_choice.get('lnp_chemistry', '—')}\\n")
+    f.write(f"Route: {delivery_choice.get('route', '—')}\\n\\n")
+    f.write(f"CMC consideration: {delivery_choice.get('cmc_flag', '—')}\\n\\n")
+    f.write(f"Clinical precedent: {delivery_choice.get('precedent', '—')}\\n")
 
 # IND checklist
 with open('ind_readiness_checklist.txt', 'w') as f:
-    f.write(f"IND-Readiness Checklist — {gene} in vivo base editing\n")
-    f.write("=" * 60 + "\n\n")
-    f.write('\n'.join(ind_checklist) + '\n')
+    f.write(f"IND-Readiness Checklist — {gene} in vivo base editing\\n")
+    f.write("=" * 60 + "\\n\\n")
+    f.write('\\n'.join(ind_checklist) + '\\n')
 
 # Human-readable report
 lines = [
@@ -347,9 +347,9 @@ lines = [
 ] + [f"  • {d}" for d in design['disclaimers']]
 
 with open('base_edit_design.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('in_vivo_base_edit_design: 1.0')" > versions.yml

@@ -462,9 +462,9 @@ for r in ranked:
     )
 
 with open('delivery_summary.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('aav_serotype_selection: 1.0')" > versions.yml

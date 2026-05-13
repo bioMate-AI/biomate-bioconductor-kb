@@ -507,9 +507,9 @@ lines += [
 ]
 
 with open('delivery_recommendation.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     cat << 'EOF' > versions.yml

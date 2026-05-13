@@ -670,10 +670,10 @@ for ref in report['references']:
     lines.append(f'  · {ref}')
 
 with open('protac_summary.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
-print('\nPROTAC design complete. Outputs: protac_design_report.json, protac_summary.txt, e3_ligase_ranking.csv, linker_options.csv')
+print('\\n'.join(lines))
+print('\\nPROTAC design complete. Outputs: protac_design_report.json, protac_summary.txt, e3_ligase_ranking.csv, linker_options.csv')
 PYEOF
 
     python3 -c "print('protac_design: 1.0')" > versions.yml

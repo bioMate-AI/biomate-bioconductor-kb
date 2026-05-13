@@ -510,10 +510,10 @@ fasta_header = (
     f'scFv={scfv_info["scfv_name"]} hinge_TM={hinge_tm_choice} '
     f'len={aa_count}AA mw={mw_kda}kDa'
 )
-fasta_body = '\n'.join(full_sequence[i:i+60] for i in range(0, len(full_sequence), 60))
+fasta_body = '\\n'.join(full_sequence[i:i+60] for i in range(0, len(full_sequence), 60))
 
 with open('cart_sequence.fasta', 'w') as f:
-    f.write(fasta_header + '\n' + fasta_body + '\n')
+    f.write(fasta_header + '\\n' + fasta_body + '\\n')
 
 # Domain-level FASTA (individual records)
 domain_records = [
@@ -525,10 +525,10 @@ domain_records = [
     ('intracellular', f'{car_generation}gen intracellular ({resolved_costim}+CD3z)', intracellular),
 ]
 with open('cart_sequence.fasta', 'a') as f:
-    f.write('\n')
+    f.write('\\n')
     for domain_id, domain_desc, domain_seq in domain_records:
-        f.write(f'>{target_antigen}_CAR_{domain_id}|{domain_desc}\n')
-        f.write('\n'.join(domain_seq[i:i+60] for i in range(0, len(domain_seq), 60)) + '\n')
+        f.write(f'>{target_antigen}_CAR_{domain_id}|{domain_desc}\\n')
+        f.write('\\n'.join(domain_seq[i:i+60] for i in range(0, len(domain_seq), 60)) + '\\n')
 
 # ─── Human-readable report ───────────────────────────────────────────────────
 lines = [
@@ -587,9 +587,9 @@ lines += [
 ]
 
 with open('construct_summary.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     cat << 'EOF' > versions.yml

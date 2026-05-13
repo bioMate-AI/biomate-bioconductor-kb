@@ -8,7 +8,7 @@ process AF3_PREDICT {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/af3-nf:v1.0.0'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/af3-nf:v1.0.1'
 
     input:
     tuple val(meta), path(fold_input_json)
@@ -44,6 +44,9 @@ process AF3_PREDICT {
     fi
 
     # ── Run AF3 inference ──────────────────────────────────────────────────────
+    # XLA flag required for Volta-class GPUs (V100, sm_70) — AF3 uses Triton
+    # kernels that need custom-kernel-fusion-rewriter disabled on compute cap 7.x.
+    export XLA_FLAGS="\${XLA_FLAGS:-} --xla_disable_hlo_passes=custom-kernel-fusion-rewriter"
     mkdir -p af3_output
     python3 /opt/alphafold3/run_alphafold.py \\
         --json_path="${fold_input_json}" \\

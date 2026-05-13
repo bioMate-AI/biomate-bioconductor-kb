@@ -302,12 +302,12 @@ with open('in_vivo_cart_design.json', 'w') as f:
 # CAR construct FASTA
 with open('cart_construct.fasta', 'w') as f:
     if full_car:
-        f.write(f">CAR_{car_target}_{costim_choice}_invivo\n")
+        f.write(f">CAR_{car_target}_{costim_choice}_invivo\\n")
         # 60-char wrap
         for i in range(0, len(full_car), 60):
-            f.write(full_car[i:i+60] + '\n')
+            f.write(full_car[i:i+60] + '\\n')
     else:
-        f.write(f">CAR_{car_target}_designREQUIRED\n# Novel target — scFv design needed via scfv_antibody_design workflow\n")
+        f.write(f">CAR_{car_target}_designREQUIRED\\n# Novel target — scFv design needed via scfv_antibody_design workflow\\n")
 
 with open('fratricide_check.json', 'w') as f:
     json.dump(design['fratricide_check'], f, indent=2)
@@ -359,9 +359,9 @@ lines += [
 ] + [f"  • {d}" for d in design['disclaimers']]
 
 with open('design_report.txt', 'w') as f:
-    f.write('\n'.join(lines) + '\n')
+    f.write('\\n'.join(lines) + '\\n')
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('in_vivo_cart_codesign: 1.0')" > versions.yml
