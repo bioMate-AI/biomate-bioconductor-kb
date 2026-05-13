@@ -43,7 +43,11 @@ for that specific sub-task.
 |---|---|---|---|---|
 | **bixbench** (exec mode) | 88.7% (Biomni Lab) | Huang et al. bioRxiv 2025 | **92.7%** (v36) | **+4.0** ✓ above SoTA |
 | bixbench (exec mode) | 65.3% (Claude Code) | same | 92.7% | +27.4 |
-| bixbench (exec mode) | 40.2% (GPT-4o) | same | 92.7% | +52.5 |
+| bixbench MCQ w/o refusal | 36.1% (GPT-4o, N=205) | bixbench v1.5 zero_shot_baselines.json | 92.7% | **+56.6** ✓ |
+| bixbench MCQ w/o refusal | 33.8% (Claude 3.5 Sonnet, N=205) | same | 92.7% | **+58.9** ✓ |
+| bixbench open-ended | 2.93% (GPT-4o, N=205) | same | 92.7% | **+89.8** ✓ (different mode) |
+| bixbench open-ended | 2.93% (Claude 3.5 Sonnet, N=205) | same | 92.7% | **+89.8** ✓ |
+| bixbench (exec mode) | 40.2% (GPT-4o, N=296 v1) | run_bixbench.py header | 92.7% | +52.5 |
 | **biomni_eval1 patient_gene** | reported "best on 7/10 tasks" by Biomni-R0-32B-Preview | Huang K et al. bioRxiv 2025 (doi:10.1101/2025.05.30.656746) | **76.7%** (v12) | (BioMate at competitive level; per-task SoTA not in public release) |
 | biomni_eval1 rare_disease | same source | same | 55.0% (v11, N=20) / 46.7% (v12, N=30) | competitive |
 | biomni_eval1 screen_gene | same source | same | 45.0% (v11) | competitive |
