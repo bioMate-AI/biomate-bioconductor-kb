@@ -224,7 +224,7 @@ class BioMateClient:
     def get_run(self, run_id: str, include_findings: bool = True) -> Dict[str, Any]:
         try:
             r = self.session.get(
-                self._url(f"/api/nextflow/runs/{run_id}"),
+                self._url(f"/api/workflows/runs/{run_id}"),
                 params={"include_findings": "true" if include_findings else "false"},
                 timeout=15,
             )
@@ -250,7 +250,7 @@ class BioMateClient:
             payload["sections"] = sections
         try:
             r = self.session.post(
-                self._url(f"/api/workflows/runs/{run_id}/report"),
+                self._url(f"/api/workflows/runs/{run_id}/findings/report"),
                 json=payload,
                 timeout=120,
             )

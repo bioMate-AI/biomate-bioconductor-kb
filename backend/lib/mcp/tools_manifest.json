@@ -1160,7 +1160,7 @@
     {
       "name": "get_run",
       "method": "GET",
-      "path": "/api/nextflow/runs/{run_id}",
+      "path": "/api/workflows/runs/{run_id}",
       "streaming": false
     },
     {
@@ -1184,7 +1184,7 @@
     {
       "name": "export_report",
       "method": "POST",
-      "path": "/api/workflows/runs/{run_id}/report",
+      "path": "/api/workflows/runs/{run_id}/findings/report",
       "streaming": false
     },
     {

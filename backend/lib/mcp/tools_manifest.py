@@ -204,7 +204,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             },
             "required": ["run_id"],
         },
-        backend_path="/api/nextflow/runs/{run_id}",
+        backend_path="/api/workflows/runs/{run_id}",
         backend_method="GET",
     ),
     ToolSchema(
@@ -281,7 +281,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             },
             "required": ["run_id"],
         },
-        backend_path="/api/workflows/runs/{run_id}/report",
+        backend_path="/api/workflows/runs/{run_id}/findings/report",
     ),
     ToolSchema(
         name="analyze_results",
@@ -438,6 +438,112 @@ def to_openai() -> List[Dict[str, Any]]:
     ]
 
 
+def to_openapi() -> Dict[str, Any]:
+    """OpenAPI 3.1 spec consumed by ChatGPT GPT Actions and any HTTP client.
+
+    Each tool is exposed as `POST /tools/{tool_name}` with the input_schema
+    as the JSON request body. Responses share a common envelope. Auth is
+    OAuth 2.0 with the same /oauth/authorize and /oauth/token endpoints used
+    by the MCP and Skill credential flows.
+
+    Note: ChatGPT GPT Actions cap operations at ~30 per spec — we ship 14 so
+    we are well under the limit.
+    """
+    paths: Dict[str, Any] = {}
+    for t in TOOL_SCHEMAS:
+        op_id = t.name
+        paths[f"/tools/{t.name}"] = {
+            "post": {
+                "operationId": op_id,
+                "summary": t.description.split(".")[0].strip() + ".",
+                "description": t.description,
+                "x-streaming": t.streaming,
+                "requestBody": {
+                    "required": bool(t.input_schema.get("required")),
+                    "content": {"application/json": {"schema": t.input_schema}},
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tool result",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ToolResult"}}},
+                    },
+                    "401": {"description": "Unauthorized — reauthorize via /oauth/authorize"},
+                    "402": {"description": "Quota or billing gate triggered — see billing.biomate.ai"},
+                    "429": {"description": "Rate limited — retry after the Retry-After header"},
+                    "500": {"description": "Internal error"},
+                },
+                "security": [{"BiomateOAuth": ["runs:read", "runs:write", "workflows:search"]}],
+            }
+        }
+
+    return {
+        "openapi": "3.1.0",
+        "info": {
+            "title": "BioMate Connector API",
+            "description": (
+                "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's "
+                "AWS Batch infrastructure. Search 2,455 indexed workflows, execute on real "
+                "compute, stream live progress, and retrieve structured findings + reports. "
+                "Schema is generated from backend/lib/mcp/tools_manifest.py."
+            ),
+            "version": "2.0.0",
+            "contact": {"name": "BioMate Support", "email": "support@biomate.ai", "url": "https://biomate.ai/support"},
+            "x-privacy-policy": "https://biomate.ai/legal/privacy",
+            "x-terms-of-service": "https://biomate.ai/legal/terms",
+        },
+        "servers": [{"url": "https://api.biomate.ai", "description": "Production"}],
+        "paths": paths,
+        "components": {
+            "schemas": {
+                "ToolResult": {
+                    "type": "object",
+                    "description": (
+                        "Common envelope returned by every tool. `content[].text` carries the "
+                        "structured JSON result (typed per tool). For streaming tools, the host "
+                        "should also subscribe to /events/{run_id} for live progress."
+                    ),
+                    "properties": {
+                        "content": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {"type": "string", "enum": ["text", "image"]},
+                                    "text": {"type": "string"},
+                                },
+                                "required": ["type"],
+                            },
+                        },
+                        "isError": {"type": "boolean"},
+                        "run_id": {"type": "string"},
+                        "view_url": {"type": "string", "format": "uri"},
+                    },
+                    "required": ["content", "isError"],
+                },
+            },
+            "securitySchemes": {
+                "BiomateOAuth": {
+                    "type": "oauth2",
+                    "flows": {
+                        "authorizationCode": {
+                            "authorizationUrl": "https://biomate.ai/oauth/authorize",
+                            "tokenUrl": "https://biomate.ai/oauth/token",
+                            "scopes": {
+                                "runs:read": "Read run status and outputs",
+                                "runs:write": "Launch and cancel runs",
+                                "workflows:search": "Search the workflow catalog",
+                                "memory:read": "Read prior experiment context",
+                                "memory:write": "Record findings and procedures",
+                                "billing:read": "Read usage and quota",
+                            },
+                        }
+                    },
+                },
+            },
+        },
+    }
+
+
 def to_skill_catalog() -> str:
     """Markdown catalog for the Claude Skill bundle's references/."""
     by_tier: Dict[str, List[ToolSchema]] = {"agentic": [], "workflow": [], "analysis": []}
@@ -487,6 +593,11 @@ def build_manifest_json(output_path: Optional[Path] = None) -> Path:
         ],
     }
     output_path.write_text(json.dumps(payload, indent=2) + "\n")
+
+    # Also write the standalone OpenAPI spec consumed by ChatGPT GPT Actions.
+    openapi_path = output_path.parent.parent.parent.parent / "connectors" / "chatgpt" / "openapi.json"
+    openapi_path.parent.mkdir(parents=True, exist_ok=True)
+    openapi_path.write_text(json.dumps(to_openapi(), indent=2) + "\n")
     return output_path
 
 

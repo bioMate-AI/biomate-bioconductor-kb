@@ -61,6 +61,8 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import * as mfaService from "./mfa-service";
+import toolsManifest from "../../backend/lib/mcp/tools_manifest.json";
+import { registerConnectorAdapters } from "./connector-adapters";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -628,165 +630,17 @@ const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
 // "Open Claw" = power-user mode where BioMate tools are visible as function calls.
 // Named after the OpenClaw conversation-state pattern (see conversation-state.ts:8).
 // Tool calls are executed server-side and results streamed back as SSE events.
-// Open Claw tool definitions — keep in sync with:
-//   backend/lib/mcp/biomate_mcp_server.py  (TOOLS list)
-//   backend/lib/integrations/slack_bot.py  (_open_claw_query)
-//   backend/lib/integrations/wechat_bot.py (_open_claw_query)
-// Doc: docs/20260412_BIOMATE_TOOLS_CAPABILITY_MAP.md
-const OPEN_CLAW_TOOLS = [
-  // ── Discovery ──────────────────────────────────────────────────────────────
-  {
-    name: "search_workflow",
-    description:
-      "Search the BioMate scientific workflow catalog by natural language. " +
-      "Returns ranked workflow cards with descriptions, required parameters, " +
-      "and estimated AWS Batch compute time. Always call this first to find the workflow_id.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        query: { type: "string", description: "Natural language description of the analysis, e.g. 'ADMET screening for small molecules', 'RNA-seq differential expression'" },
-        limit: { type: "integer", description: "Max results (default 5, max 20)" },
-      },
-      required: ["query"],
-    },
-  },
-  // ── Execution ──────────────────────────────────────────────────────────────
-  {
-    name: "run_workflow",
-    description:
-      "Execute a BioMate scientific workflow on AWS Batch. " +
-      "Returns a run_id to monitor with get_run_status. " +
-      "Use search_workflow first to find the workflow_id and required parameters.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        workflow_id: { type: "string", description: "Workflow ID from search_workflow (e.g. 'assay_ingestion_and_ranking')" },
-        params: { type: "object", description: "Workflow parameters as key-value pairs. Required params vary by workflow.", additionalProperties: true },
-        message: { type: "string", description: "Optional natural language context — BioMate AI auto-fills missing params from this" },
-      },
-      required: ["workflow_id"],
-    },
-  },
-  {
-    name: "get_run_status",
-    description:
-      "Poll the status of a BioMate workflow run. " +
-      "Returns status (pending|running|completed|failed), step progress, elapsed time, and error message if any.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        run_id: { type: "string", description: "Run ID returned by run_workflow" },
-      },
-      required: ["run_id"],
-    },
-  },
-  {
-    name: "get_run_results",
-    description:
-      "Retrieve output files and summary data from a completed run. " +
-      "Returns a list of output files with download URLs, file types, and sizes. " +
-      "Only call after get_run_status returns status='completed'.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        run_id: { type: "string", description: "Run ID of a completed run" },
-      },
-      required: ["run_id"],
-    },
-  },
-  {
-    name: "cancel_run",
-    description:
-      "Cancel a running or queued BioMate workflow job on AWS Batch. " +
-      "Use when the user wants to stop a run, or before launching a corrected replacement run.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        run_id: { type: "string", description: "Run ID to cancel" },
-      },
-      required: ["run_id"],
-    },
-  },
-  {
-    name: "list_runs",
-    description:
-      "List the user's recent BioMate workflow runs with status and timestamps. " +
-      "Useful for checking what jobs are currently running or recently completed.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        limit: { type: "integer", description: "Max runs to return (default 10)" },
-        status: { type: "string", enum: ["all", "running", "completed", "failed", "pending"], description: "Filter by status (default: all)" },
-      },
-    },
-  },
-  // ── Analysis & Diagnosis ──────────────────────────────────────────────────
-  {
-    name: "analyze_results",
-    description:
-      "Ask BioMate's AI to interpret and summarize the outputs from a completed run. " +
-      "Returns a natural language analysis: key findings, quality metrics, scientific interpretation, and recommended next steps.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        run_id: { type: "string", description: "Run ID of a completed run to analyze" },
-        question: { type: "string", description: "Optional specific question about the results, e.g. 'which compounds passed ADMET filters?'" },
-      },
-      required: ["run_id"],
-    },
-  },
-  {
-    name: "explain_error",
-    description:
-      "Ask BioMate's AI to diagnose why a failed workflow run failed. " +
-      "Returns the likely root cause (genome mismatch, missing input, resource OOM, etc.) and the specific fix to apply.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        run_id: { type: "string", description: "Run ID of a failed run to diagnose" },
-        error_log: { type: "string", description: "Optional: paste the error log directly if run_id lookup is unavailable" },
-      },
-      required: ["run_id"],
-    },
-  },
-  {
-    name: "analyze_file",
-    description:
-      "Run lightweight QC analysis on a data file. " +
-      "Returns format-specific metrics: FASTQ (read count, quality, adapters), " +
-      "VCF (variant count, FILTER pass rate), CSV/TSV (rows, columns, missing values), " +
-      "FASTA (sequence count, length distribution, GC content).",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        s3_key: { type: "string", description: "S3 path to the file (s3://bucket/path/file)" },
-        inline_data: { type: "string", description: "Small file content pasted inline (max 50 KB). Use s3_key for larger files." },
-        file_type: { type: "string", enum: ["fastq", "csv", "tsv", "vcf", "fasta", "bam", "auto"], description: "File type hint (default: auto-detect)" },
-      },
-    },
-  },
-  // ── Databases ─────────────────────────────────────────────────────────────
-  {
-    name: "query_database",
-    description:
-      "Query a biological or chemical database by accession, gene symbol, compound name, or search query. " +
-      "Databases: uniprot (protein), pdb/alphafold (structure), ncbi_gene (gene), " +
-      "dbsnp/clinvar/gnomad (variants), kegg/reactome (pathways), " +
-      "chebi/pubchem (compounds), hpo/omim (phenotypes/disease), string (interactions).",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        database: {
-          type: "string",
-          enum: ["uniprot","pdb","alphafold","ncbi_gene","dbsnp","clinvar","gnomad","kegg","reactome","chebi","pubchem","hpo","omim","string"],
-          description: "Target database",
-        },
-        query: { type: "string", description: "Accession (P04637, 1TUP), gene symbol (BRCA1), compound name (ibuprofen), or rsID (rs7412)" },
-      },
-      required: ["database", "query"],
-    },
-  },
-];
+//
+// The tool schema lives in backend/lib/mcp/tools_manifest.py (Python is the
+// canonical source) and is exported to backend/lib/mcp/tools_manifest.json by
+// `python -m backend.lib.mcp.tools_manifest`. Slack/WeChat proxy through
+// /api/open-claw/stream and inherit this list automatically. Drift is enforced
+// by backend/tests/test_tools_manifest.py::test_committed_manifest_json_in_sync.
+const OPEN_CLAW_TOOLS = (toolsManifest as any).anthropic as Array<{
+  name: string;
+  description: string;
+  input_schema: any;
+}>;
 
 /**
  * Execute a tool call from the Open Claw agentic loop.
@@ -1226,6 +1080,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize repositories
   await parameterRepository.initialize();
   await workflowRepository.initialize();
+
+  // v2 connector adapters (backend/lib/mcp/tools_manifest.py — Tier 2/3 tools).
+  // Mounts /api/workflows/spec, /api/files/preview, /api/uploads/signed_url.
+  registerConnectorAdapters(app, optionalAuth);
 
   // ─── /api/contact — public contact form submission ───────────────────────
   // Sends to CONTACT_INBOX (default: yaoyun.zhang@biomate.ai) via AWS SES through

@@ -74,6 +74,41 @@ def test_openai_export_wraps_in_function_type():
         assert "parameters" in tool["function"]
 
 
+def test_openapi_export_has_path_per_tool():
+    spec = tm.to_openapi()
+    assert spec["openapi"].startswith("3.1")
+    assert len(spec["paths"]) == len(tm.TOOL_SCHEMAS)
+    for t in tm.TOOL_SCHEMAS:
+        path = f"/tools/{t.name}"
+        assert path in spec["paths"]
+        op = spec["paths"][path]["post"]
+        assert op["operationId"] == t.name
+        assert op["x-streaming"] == t.streaming
+        body = op["requestBody"]["content"]["application/json"]["schema"]
+        assert body == t.input_schema
+
+
+def test_openapi_uses_oauth_with_required_scopes():
+    spec = tm.to_openapi()
+    auth = spec["components"]["securitySchemes"]["BiomateOAuth"]
+    assert auth["type"] == "oauth2"
+    scopes = auth["flows"]["authorizationCode"]["scopes"]
+    for required in ("runs:read", "runs:write", "workflows:search"):
+        assert required in scopes
+
+
+def test_committed_openapi_in_sync():
+    """Drift test for the ChatGPT GPT Actions OpenAPI spec."""
+    committed = Path("connectors/chatgpt/openapi.json")
+    if not committed.exists():
+        pytest.skip("Committed OpenAPI not present yet")
+    current = json.loads(committed.read_text())
+    assert current == tm.to_openapi(), (
+        "connectors/chatgpt/openapi.json is out of sync with tools_manifest.py. "
+        "Regenerate: `python -m backend.lib.mcp.tools_manifest`"
+    )
+
+
 def test_manifest_json_round_trips(tmp_path):
     out = tm.build_manifest_json(tmp_path / "m.json")
     payload = json.loads(out.read_text())
