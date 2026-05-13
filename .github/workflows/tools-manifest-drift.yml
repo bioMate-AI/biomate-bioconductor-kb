@@ -35,7 +35,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install runtime deps
-        run: pip install --quiet requests pytest
+        run: pip install --quiet requests pytest jsonschema openapi-spec-validator anthropic openai
 
       - name: Regenerate manifest from source
         run: |
@@ -55,3 +55,8 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: pytest backend/tests/test_tools_manifest.py -q
+
+      - name: Run connector sandbox tests (OpenAPI 3.1, MCP e2e, SDK shapes)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest backend/tests/test_connector_sandbox.py -q
