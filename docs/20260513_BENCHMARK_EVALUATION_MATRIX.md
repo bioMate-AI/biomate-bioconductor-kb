@@ -41,7 +41,12 @@ for that specific sub-task.
 
 | Benchmark | Published SoTA | Source | BioMate latest | Δ (BioMate − SoTA) |
 |---|---|---|---|---|
-| **bixbench** (exec mode) | 88.7% (Biomni Lab) | Huang et al. bioRxiv 2025 | **92.7%** (v36) | **+4.0** ✓ above SoTA |
+| **bixbench pass@1** | **75.1% (GPT-Rosalind, OpenAI, Apr 2026)** | openai.com/index/introducing-gpt-rosalind | **92.7%** (v36) | **+17.6** ✓ above OpenAI SoTA |
+| bixbench pass@1 | 73.2% (GPT-5.4, OpenAI) | aidailypost.com / openai blog | 92.7% | +19.5 ✓ |
+| bixbench pass@1 | 72.8% (GPT-5, OpenAI) | same | 92.7% | +19.9 ✓ |
+| bixbench pass@1 | 69.8% (Grok 4.2, xAI) | same | 92.7% | +22.9 ✓ |
+| bixbench pass@1 | 55.0% (Gemini 3.1 Pro, Google) | same | 92.7% | +37.7 ✓ |
+| **bixbench** (exec mode) | 88.7% (Biomni Lab, Stanford) | Huang et al. bioRxiv 2025 | **92.7%** (v36) | **+4.0** ✓ above prev SoTA |
 | bixbench (exec mode) | 65.3% (Claude Code) | same | 92.7% | +27.4 |
 | bixbench MCQ w/o refusal | 36.1% (GPT-4o, N=205) | bixbench v1.5 zero_shot_baselines.json | 92.7% | **+56.6** ✓ |
 | bixbench MCQ w/o refusal | 33.8% (Claude 3.5 Sonnet, N=205) | same | 92.7% | **+58.9** ✓ |
