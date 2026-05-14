@@ -23,8 +23,10 @@ OUTPUT_DIR="e2e/demo-videos-3min"
 SCREENSHOT_DIR="e2e/screenshots"
 mkdir -p "$OUTPUT_DIR"
 
-# How many seconds to keep around each anchor screenshot
-KEEP_SECONDS_PER_ANCHOR=14
+# How many seconds to keep around each anchor screenshot.
+# 11 screenshots × 18s ≈ 200s minus overlap → ~3:00 final cut.
+# Override per-demo via KEEP_SECONDS_PER_ANCHOR env var if needed.
+KEEP_SECONDS_PER_ANCHOR="${KEEP_SECONDS_PER_ANCHOR:-22}"
 
 ARG_DEMOS=("$@")
 if [[ ${#ARG_DEMOS[@]} -eq 0 ]]; then
