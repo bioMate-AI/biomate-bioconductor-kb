@@ -229,6 +229,37 @@ const RUN_BTN =
   '[data-testid="pipeline-confirm-run"],' +
   '[data-testid="button-prereq-recovery"]';
 
+/**
+ * Click Run button and return immediately after the execute POST fires.
+ * Does NOT wait for AWS Batch completion. Use this when the demo only needs
+ * to show the "submitted, in flight" state — not the full ~3min cloud wait.
+ *
+ * Returns the run_id from the execute response (or null if not captured).
+ */
+export async function clickRunOnly(page: Page): Promise<string | null> {
+  let runId: string | null = null;
+  const handler = async (resp: import('@playwright/test').Response) => {
+    const url = resp.url();
+    if (!url.includes('/api/workflows/execute') && !url.includes('/api/nextflow/execute')) return;
+    try {
+      const p = await resp.json();
+      runId = p?.runId || p?.run_id || p?.execution?.run?.id ||
+              p?.execution?.runId || p?.galaxyInvocationId || runId;
+    } catch { /* ignore */ }
+  };
+  page.on('response', handler);
+
+  const btn = page.locator(RUN_BTN).first();
+  await btn.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => null);
+  if (await btn.isVisible().catch(() => false)) {
+    await btn.click({ trial: false }).catch(() => null);
+  }
+  // Wait briefly for the POST to fly, then return
+  await page.waitForTimeout(3000);
+  page.off('response', handler);
+  return runId;
+}
+
 const THINKING = [
   "[data-testid='chat-response-pending']",
   "[data-testid='chat-analysis-status']",
