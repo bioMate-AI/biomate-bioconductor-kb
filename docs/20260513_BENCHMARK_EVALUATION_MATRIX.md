@@ -142,6 +142,8 @@ for that specific sub-task.
 | v11 | 40.0% | 30 | -5.0 flap | larger N |
 | v12 | 43.3% | 30 | +3.3 | wire `lookup_crispr_screen_context` into task_prompt (BioGRID ORCS + PubMed) | L1 | 9aea188fb |
 | v13 | 40.0% | 30 | -3.3 flap | (no code change since v12; stability check) | — | — |
+| v14 | 30.0% | 30 | -13.3 REGRESSION | extend perturbation regex (4 new patterns; 24/50→30/50 tasks parsed) | L1 (wrong) | 6e8f7eabb |
+| **v15** | **46.7%** | 30 | **+16.7 from v14, +6.7 from v11** | gate confident 'FIRST=answer' on screen-condition match | L1 fix | fd19fad2a |
 
 ### sgi_bench idea_gen
 
@@ -275,7 +277,7 @@ summary than any single run:
 |---|---|---|---|---|---|---|
 | **biomni patient_gene** | v16=63.3, v17=70.0, v18=60.0 | **64.4%** | 60.0% | 70.0% | 13.3% | **+51.1pp** |
 | **biomni rare_disease** | v12=46.7, v13=53.3, v14=46.7 | **48.9%** | 46.7% | 53.3% | 13.3% | **+35.6pp** |
-| **biomni screen_gene** | v11=40.0, v12=43.3, v13=40.0 | **41.1%** | 40.0% | 43.3% | 23.3% | **+17.8pp** |
+| **biomni screen_gene** | v11=40, v12=43.3, v13=40, v15=46.7 | **42.5%** | 40.0% | 46.7% | 23.3% | **+19.2pp** |
 
 **Flap envelope on N=30 biomni runs: ±5-10pp** between runs at the same
 code level. Single-run deltas <5pp can be flap; deltas ≥10pp on N=30
