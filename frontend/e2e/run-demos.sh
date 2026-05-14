@@ -21,12 +21,14 @@ DEMOS=()
 for arg in "$@"; do
   if [[ "$arg" == "--no-video" ]]; then
     NO_VIDEO=true
-  elif [[ "$arg" =~ ^[0-9]+$ ]]; then
+  elif [[ "$arg" =~ ^[A-Za-z]*[0-9]+$ ]]; then
+    # Accept digit-only (01, 02, …) and prefixed (T01, T02, …) demo IDs
     DEMOS+=("$arg")
   fi
 done
 
 # Default: run demos 1, 2, 4, 5, 6, 11 (skip 3 — requires real CryoSPARC + S3 data)
+# Tier-0 modality demos (T01-T05) opt-in via:  ./run-demos.sh T01 T02 T03 T04 T05
 if [[ ${#DEMOS[@]} -eq 0 ]]; then
   DEMOS=(01 02 04 05 06 11)
 fi
