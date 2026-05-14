@@ -2555,6 +2555,30 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                             "[Gene-Phenotype Overlap Scores — ranked best match first]\n"
                             + "\n".join(score_lines)
                         )
+                # OMIM disease-level enrichment: for each candidate, list the OMIM
+                # diseases it causes AND how many of the patient's HPO terms appear
+                # in that disease's phenotype set. The "right answer" in this
+                # benchmark (per Alsentzer 2025 / SHEPHERD) is the gene whose
+                # KNOWN DISEASE matches the patient — not just the gene with the
+                # highest gene-level HPO overlap. Wire in the same lookup_omim_for_gene
+                # path the rare_disease_diagnosis task uses.
+                omim_parts: list[str] = []
+                for ensg, sym in ensg_resolved.items():
+                    if sym and sym != ensg:
+                        omim_line = lookup_omim_for_gene(
+                            sym, patient_hpo_terms=patient_hpo_ids if patient_hpo_ids else None
+                        )
+                        if omim_line:
+                            omim_parts.append(omim_line)
+                if omim_parts:
+                    parts.append(
+                        "[OMIM Disease-Gene Associations with Patient-HPO Overlap]\n"
+                        "(For each candidate gene, the diseases it causes and how "
+                        "many of the patient's HPO terms appear in that disease's "
+                        "phenotype set. Strong disease-level overlap is a STRONGER "
+                        "signal than gene-level HPO overlap alone.)\n"
+                        + "\n".join(omim_parts)
+                    )
             if parts:
                 context_parts.append("[Resolved identifiers]\n" + "\n".join(parts))
 
