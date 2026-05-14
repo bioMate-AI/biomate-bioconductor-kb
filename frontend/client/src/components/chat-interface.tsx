@@ -659,6 +659,41 @@ export function ChatInterface({
     }
   }
 
+  // Workflow-progress chat lines from the backend narrator. Bubbled up from
+  // NextflowWorkflowViewer's SSE listener; we append each one as a short
+  // italic message (chat-message.tsx renders metadata.type='workflow_progress'
+  // with a 🔹 icon, smaller font, no full card). De-dupe by (invocationId, kind, ts).
+  const handleWorkflowProgress = useCallback((event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => {
+    if (!chatSession?.id) return
+    const session = chatHistoryService.getSession(chatSession.id)
+    if (!session) return
+    // De-dupe: skip if the most-recent progress msg for this invocation has same kind+ts.
+    const last = [...session.messages].reverse().find(
+      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
+    )
+    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) {
+      return
+    }
+    const progressMsg: Message = {
+      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      role: 'assistant',
+      content: event.friendly_message,
+      timestamp: new Date(),
+      invocationId: event.invocationId,
+      metadata: {
+        type: 'workflow_progress',
+        kind: event.kind,
+        ts: event.ts,
+        technical: event.technical,
+      } as any,
+    }
+    const updatedMessages = [...session.messages, progressMsg]
+    const updatedSession = chatHistoryService.updateSession(session.id, { messages: updatedMessages })
+    if (updatedSession && onChatUpdated) {
+      onChatUpdated(updatedSession)
+    }
+  }, [chatSession?.id, onChatUpdated])
+
   // Galaxy Chat API integration with full hybrid intelligence
   // Uses /api/chat which provides: intent analysis, tool search, dataset RAG, workflow generation
   const chatMutation = useMutation({
@@ -1757,6 +1792,7 @@ export function ChatInterface({
                 onResumeWorkflow={onResumeWorkflow}
                 onParameterChange={onParameterChange}
                 onSuggestionClick={handleSuggestionClick}
+                onWorkflowProgress={handleWorkflowProgress}
                 isWorkflowRunning={isWorkflowRunning}
                 workflowProgress={workflowProgress}
                 currentExecutionRun={currentExecutionRun}

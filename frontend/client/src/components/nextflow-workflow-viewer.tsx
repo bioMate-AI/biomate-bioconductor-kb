@@ -45,6 +45,13 @@ interface NextflowWorkflowViewerProps {
   nextflowStatus?: any;
   dataVerification?: any;
   onAdjustViaChat?: (message: string) => void;
+  /**
+   * Workflow-progress chat lines (delivered via the SSE `chat_progress` event).
+   * Backend narrator emits these on lifecycle transitions; the host component
+   * appends them as short italic messages to the current chat session.
+   * See backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py
+   */
+  onWorkflowProgress?: (event: { kind: string; friendly_message: string; ts?: number; technical?: any }) => void;
   executionEngine?: string;
   /** Execution metrics from status API (includes perStepLlmCost). */
   executionMetrics?: {
@@ -815,6 +822,7 @@ export function NextflowWorkflowViewer({
   nextflowStatus,
   executionEngine,
   onAdjustViaChat,
+  onWorkflowProgress,
   executionMetrics,
 }: NextflowWorkflowViewerProps) {
   const { toast } = useToast();
@@ -1605,6 +1613,28 @@ export function NextflowWorkflowViewer({
     setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
 
     const es = new EventSource(`/api/workflows/${invocationId}/events`);
+
+    // Workflow-progress chat lines from the backend narrator (workflow.submitted,
+    // workflow.phase_started, workflow.completed, workflow.failed, etc.). The
+    // host component appends each one to the current chat session as a short
+    // italic message.
+    es.addEventListener("chat_progress", (event: MessageEvent) => {
+      if (!onWorkflowProgress) return;
+      try {
+        const data = JSON.parse(event.data as string);
+        // Payload shape: { kind, invocation_id, friendly_message, ts, technical }
+        if (data && data.friendly_message && data.kind) {
+          onWorkflowProgress({
+            kind: String(data.kind),
+            friendly_message: String(data.friendly_message),
+            ts: typeof data.ts === 'number' ? data.ts : undefined,
+            technical: data.technical,
+          });
+        }
+      } catch (err) {
+        console.warn("[ChatProgress] Failed to parse chat_progress event:", err);
+      }
+    });
 
     es.addEventListener("qc_gate_triggered", (event: MessageEvent) => {
       try {

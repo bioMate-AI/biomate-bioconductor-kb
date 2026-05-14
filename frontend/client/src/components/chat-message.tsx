@@ -82,6 +82,8 @@ interface ChatMessageProps {
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   onSuggestionClick?: (suggestion: string, message: Message) => void
   onAdjustViaChat?: (message?: string) => void
+  /** Bubbled up from NextflowWorkflowViewer when the backend narrator emits a chat_progress SSE event. */
+  onWorkflowProgress?: (event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
@@ -107,6 +109,7 @@ export function ChatMessage({
   onParameterChange,
   onSuggestionClick = () => {},
   onAdjustViaChat,
+  onWorkflowProgress,
   isWorkflowRunning = false,
   workflowProgress = 0,
   currentExecutionRun,
@@ -118,6 +121,11 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
+  // Workflow-progress messages: short, italic, friendly chat lines emitted by
+  // the backend narrator (see backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py)
+  // and delivered via the workflow SSE stream. Rendered as a single line, not
+  // a full assistant card.
+  const isProgressMessage = !isUser && message.metadata?.type === "workflow_progress"
   const { toast } = useToast()
   const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
   const effectiveInvocationId =
@@ -173,6 +181,35 @@ export function ChatMessage({
   const timeLabel = message.timestamp
     ? new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : null;
+
+  // Early return for workflow-progress messages: render as a compact italic
+  // status line, not the full assistant card. Keeps the chat from filling up
+  // with N expanded cards when N progress events fire in a row.
+  if (isProgressMessage) {
+    const kind = (message.metadata as any)?.kind as string | undefined
+    return (
+      <div
+        className={cn("msg progress px-4 py-1")}
+        id={`chat-message-anchor-${message.id}`}
+        data-testid={`chat-message-${message.id}`}
+        data-role="assistant"
+        data-message-type="workflow_progress"
+        data-progress-kind={kind ?? "unknown"}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 12, fontStyle: 'italic',
+          color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+          opacity: 0.85,
+        }}
+      >
+        <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
+        <span>{message.content}</span>
+        {timeLabel && (
+          <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -473,6 +510,11 @@ export function ChatMessage({
                     errorMessage={currentExecutionRun?.execution?.errorMessage}
                     progress={workflowProgress}
                     onAdjustViaChat={onAdjustViaChat}
+                    onWorkflowProgress={
+                      onWorkflowProgress
+                        ? (ev) => onWorkflowProgress({ ...ev, invocationId })
+                        : undefined
+                    }
                     onExecute={(params) => {
                       const userParams = Object.fromEntries(
                         Object.entries(params || {}).filter(([k]) => !k.startsWith('__'))
