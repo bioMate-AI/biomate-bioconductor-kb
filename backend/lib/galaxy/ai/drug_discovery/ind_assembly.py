@@ -62,12 +62,19 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 def _resolve_adapter_path() -> Path:
-    """Pick the latest available LoRA adapter. Prefers v2 → v1 → env override."""
+    """Pick the latest available LoRA adapter. Prefers v7 → v6 → v4 → v3 → v2 → v1 → env override."""
     if "REGULATORY_LLM_ADAPTER" in os.environ:
         return Path(os.environ["REGULATORY_LLM_ADAPTER"])
     models_root = Path(__file__).parent.parent.parent.parent.parent.parent / "models"
     # Prefer numerically higher versions
-    for name in ("regulatory_llm_v4/lora_adapter", "regulatory_llm_v3/lora_adapter", "regulatory_llm_v2/lora_adapter", "regulatory_llm_v1/lora_adapter"):
+    for name in (
+        "regulatory_llm_v7/lora_adapter",
+        "regulatory_llm_v6/lora_adapter",
+        "regulatory_llm_v4/lora_adapter",
+        "regulatory_llm_v3/lora_adapter",
+        "regulatory_llm_v2/lora_adapter",
+        "regulatory_llm_v1/lora_adapter",
+    ):
         candidate = models_root / name
         if candidate.exists():
             return candidate
