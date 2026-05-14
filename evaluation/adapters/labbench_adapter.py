@@ -1740,9 +1740,13 @@ def _fetch_pubmed_context(question: str, choices: Dict[str, str], timeout: int =
     """
     Fetch PubMed context for a LitQA2 question.
 
-    Extracts key terms from the question, searches PubMed, and returns
-    a brief abstract excerpt if relevant papers are found.
-    Only called when use_pubmed=True (adds ~5-8s latency per question).
+    Extracts key terms from question + answer choices, searches PubMed,
+    returns abstracts to ground the answer in real lit.
+
+    v17 expansion: include CHOICES in the search (specific drug/gene names
+    in choices are the strongest discriminators); fetch 5 abstracts instead
+    of 2; allow up to 3500 chars total.
+    Only called when use_pubmed=True (adds ~8-12s latency per question).
     """
     cache_key = question[:120]
     if cache_key in _LITQA2_PUBMED_CACHE:
@@ -1758,17 +1762,32 @@ def _fetch_pubmed_context(question: str, choices: Dict[str, str], timeout: int =
                  "have","had","not","no","can","could","would","should","will","its",
                  "their","they","it","on","than","into","about","after","study","shown",
                  "found","show","associated","between","percent","percentage"}
-        words = re.findall(r'\b[a-zA-Z]{3,}\b', question)
-        query_terms = [w for w in words if w.lower() not in _STOP][:6]
-        if not query_terms:
+        q_words = re.findall(r'\b[a-zA-Z]{3,}\b', question)
+        q_terms = [w for w in q_words if w.lower() not in _STOP][:8]
+
+        # Pull specific entity tokens (drug names, gene symbols, multi-word phrases)
+        # from the answer choices — these are typically the strongest discriminators
+        # for the literature search. Tokens that are >=4 chars with at least one
+        # uppercase letter are likely entities (gene symbols, drug names, proteins).
+        choice_entities = []
+        for choice_text in choices.values():
+            # Multi-word capitalized phrases (proteins, diseases)
+            choice_entities += re.findall(r"\b[A-Z][A-Za-z0-9-]{3,}\b", choice_text)
+        # Dedup, keep top 6
+        seen = set()
+        choice_entities = [e for e in choice_entities
+                           if not (e in seen or seen.add(e))][:6]
+
+        all_terms = q_terms + choice_entities
+        if not all_terms:
             return ""
 
-        query = " ".join(query_terms)
+        query = " ".join(all_terms)
 
         # Search PubMed
         search_r = requests.get(
             "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-            params={"db": "pubmed", "term": query, "retmax": 3,
+            params={"db": "pubmed", "term": query, "retmax": 5,
                     "retmode": "json", "sort": "relevance"},
             timeout=(timeout, timeout),
         )
@@ -1778,15 +1797,15 @@ def _fetch_pubmed_context(question: str, choices: Dict[str, str], timeout: int =
             _LITQA2_PUBMED_CACHE[cache_key] = ""
             return ""
 
-        # Fetch abstracts
+        # Fetch up to 5 abstracts
         fetch_r = requests.get(
             "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
-            params={"db": "pubmed", "id": ",".join(ids[:2]),
+            params={"db": "pubmed", "id": ",".join(ids[:5]),
                     "rettype": "abstract", "retmode": "text"},
             timeout=(timeout, timeout),
         )
         fetch_r.raise_for_status()
-        abstract = fetch_r.text[:1200]  # truncate
+        abstract = fetch_r.text[:3500]  # was 1200; expand to 3500
 
         if not abstract.strip():
             _LITQA2_PUBMED_CACHE[cache_key] = ""

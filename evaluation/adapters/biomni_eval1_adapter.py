@@ -2508,6 +2508,20 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                 if gene_ctx:
                     context_parts.append(gene_ctx)
 
+        # --- CRISPR screen context (screen_gene_retrieval) ---
+        # Wire in the previously-orphaned lookup_crispr_screen_context: it queries
+        # BioGRID ORCS (the source DB for this benchmark) + PubMed for the specific
+        # screen paper. Without it, the agent had only training-data recall and
+        # picked "famous" genes (SLFN11 etc.) instead of the actual MaGeCK-ranked
+        # top hit. Same wire-in pattern as patient_gene's OMIM enrichment.
+        if task_name == "screen_gene_retrieval":
+            try:
+                crispr_ctx = lookup_crispr_screen_context(question, timeout=10)
+                if crispr_ctx:
+                    context_parts.append(crispr_ctx)
+            except Exception as exc:
+                logger.debug("screen_gene context lookup failed: %s", exc)
+
         # --- Resolved gene symbols + HPO overlap scoring for patient_gene_detection ---
         if task_name == "patient_gene_detection":
             ensg_resolved = task.metadata.get("ensg_resolved", {})
