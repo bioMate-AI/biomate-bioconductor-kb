@@ -87,14 +87,23 @@ deploy_frontend() {
       /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -3
     echo "[frontend] Restarting container..."
     sleep 1
+    # Mount patched index.js if it exists (baked-in code may be stale; volume mount survives restarts)
+    VOLUME_MOUNT=""
+    [ -f /opt/biomate/dist_index.js ] && VOLUME_MOUNT="-v /opt/biomate/dist_index.js:/app/dist/index.js"
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
       -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
       --restart unless-stopped \
+      $VOLUME_MOUNT \
       biomate-dev-frontend:latest
     sleep 5
     # Restore logo (not baked into image — uploaded separately)
     docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
+    # Restore server bundle (compiled locally, more up-to-date than what was in the image)
+    if [ -f /opt/biomate/dist_index.js ]; then
+      docker cp /opt/biomate/dist_index.js biomate-dev-frontend:/app/dist/index.js
+      echo "[frontend] Patched dist/index.js restored"
+    fi
     docker ps --format "  {{.Names}}: {{.Status}}" | grep biomate-dev-frontend
   '
   log "[frontend] Done"
@@ -149,6 +158,16 @@ deploy_backend_python() {
 
     # Also sync the biomni_workflows .nf files
     echo "[backend] Done Python sync"
+
+    # Bootstrap runtime deps that the image was built without.
+    # IMPORTANT: gunicorn runs with /usr/local/bin/python3.9 (system Python),
+    # not /app/.venv. Installing to the venv silently fails to expose them.
+    docker exec biomate-galaxy-dev /usr/local/bin/python3.9 -c "import boto3, redis, psycopg2" 2>/dev/null \
+      || docker exec biomate-galaxy-dev /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
+
+    # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
+    docker exec biomate-galaxy-dev test -x /usr/local/bin/nextflow 2>/dev/null \
+      || docker exec biomate-galaxy-dev bash -c "curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
   '
   log "[backend] Python files synced"
 }
@@ -227,7 +246,8 @@ deploy_databases() {
       aws s3 cp s3://biomate-nextflow-work/dev-sync/universe.sqlite \
         /tmp/universe_sync.sqlite --no-progress
       docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite
-      docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/universe.sqlite
+      docker exec -u root biomate-galaxy-dev chown -R galaxy:galaxy /app/database/
+      docker exec -u root biomate-galaxy-dev chmod 775 /app/database/
       docker start biomate-galaxy-dev
       sleep 5
       echo "[db] universe.sqlite replaced"

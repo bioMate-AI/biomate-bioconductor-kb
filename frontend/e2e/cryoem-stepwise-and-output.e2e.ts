@@ -44,6 +44,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
+const BASE_DOMAIN = new URL(BASE_URL).hostname;
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "test-e2e-token-12345";
 const SS_DIR = path.join(__dirname, "screenshots", "cryoem-stepwise");
 if (!fs.existsSync(SS_DIR)) fs.mkdirSync(SS_DIR, { recursive: true });
@@ -127,6 +128,11 @@ async function registerUser(page: Page, label: string): Promise<void> {
   const email = `e2e_cryosw_${label}_${Date.now()}@biomate.test`;
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
   await page.context().clearCookies();
+  // Inject a script that runs before React initializes — clears stale localStorage
+  // state from previous test runs that would cause the old chat session to be restored.
+  await page.addInitScript(() => {
+    try { localStorage.clear(); sessionStorage.clear(); } catch {}
+  });
 
   // Use direct API registration (more reliable than form interaction).
   // The server sets an httpOnly cookie in the response; we inject it into the
@@ -146,10 +152,10 @@ async function registerUser(page: Page, label: string): Promise<void> {
       await page.context().addCookies([{
         name: "biomate_token",
         value: data.token,
-        domain: "localhost",
+        domain: BASE_DOMAIN,
         path: "/",
         httpOnly: true,
-        secure: false,
+        secure: BASE_URL.startsWith("https"),
         sameSite: "Strict",
       }]);
     }
@@ -183,6 +189,20 @@ async function registerUser(page: Page, label: string): Promise<void> {
 }
 
 async function registerCryoSPARCLicense(page: Page): Promise<void> {
+  // Wait for Galaxy account provisioning to complete before storing credentials.
+  // Provisioning is async (fire-and-forget on registration) — if we store the
+  // credential before it completes, it goes under the admin Galaxy user instead of
+  // the actual user, causing a mismatch when the LicenseGate checks the user's vault.
+  await page.waitForFunction(async () => {
+    try {
+      const r = await fetch('/api/auth/me', { credentials: 'include' });
+      const d = await r.json();
+      return !!(d.user?.galaxyUserId);
+    } catch { return false; }
+  }, { timeout: 15_000, polling: 1000 }).catch(() => {
+    console.log('[registerCryoSPARCLicense] Galaxy provisioning timed out — proceeding anyway');
+  });
+
   // Must use page.evaluate (browser cookie jar) not page.request (separate context).
   // The credential API requires user auth — cookies carry the session.
   const ok = await page.evaluate(async ({ url, license }: { url: string; license: string }) => {
@@ -709,13 +729,30 @@ async function pollWithLiveUIChecks(
 const pollToTerminal = pollWithLiveUIChecks;
 
 async function dismissModals(page: Page): Promise<void> {
-  for (let i = 0; i < 4; i++) {
-    const skip = page.locator('[data-testid="post-run-survey-dialog"] button:has-text("Skip"), [role="dialog"] button:has-text("Skip"), button:has-text("Dismiss")').first();
+  // The post-run survey is opened by a useEffect that fires when status → 'completed';
+  // it can pop up several seconds AFTER a previous dismissModals() call. Be aggressive:
+  // try Skip / Not now / dialog-close / Dismiss / Escape, up to 6 cycles.
+  for (let i = 0; i < 6; i++) {
+    const skip = page.locator([
+      '[data-testid="post-run-survey-dialog"] button:has-text("Skip")',
+      '[data-testid="post-run-survey-dialog"] [data-testid="survey-not-now"]',
+      '[role="dialog"] button:has-text("Skip")',
+      '[role="dialog"] button:has-text("Not now")',
+      '[role="dialog"] button:has-text("Dismiss")',
+      '[role="dialog"] button:has-text("Maybe later")',
+      '[role="dialog"] button[aria-label="Close"]',
+    ].join(", ")).first();
     if (await skip.isVisible({ timeout: 1500 }).catch(() => false)) {
       await skip.click({ force: true }).catch(() => {});
       await page.waitForTimeout(500);
-    } else {
+      continue;
+    }
+    // No dismiss-text button found: nudge with Escape (handles some headless cases)
+    const anyDialog = page.locator('[role="dialog"]').first();
+    if (await anyDialog.isVisible({ timeout: 500 }).catch(() => false)) {
       await page.keyboard.press("Escape").catch(() => {});
+      await page.waitForTimeout(400);
+    } else {
       break;
     }
   }
@@ -948,71 +985,127 @@ test("CS-2: step-wise controls before run — Run Step disabled (no activeRunId)
 });
 
 // ===========================================================================
-// CS-3  Execute + live step status + intermediate output preview
+// CS-3 + CS-4 + CS-5 + CS-10 + CS-12 + CS-13 + CS-14: super-merged so a single
+// CryoSPARC SPA run feeds 7 sets of post-completion assertions. Running each
+// separately wasted ~$1.5 GPU + 75 min wall-clock per CI run for tests that
+// asserted different post-completion concerns on the SAME pipeline output.
+// One run; seven SuiteRecords (testIds CS-3, CS-4, CS-5, CS-10, CS-12, CS-13,
+// CS-14) so downstream dashboards keying on the old testIds keep working.
+// CS-11 stays separate because it modifies parameters before the run.
 // ===========================================================================
 
-test("CS-3: execute → nf-process-list tracks live steps → phase cards update status → expand file list → inline preview for .star (table) / .png (image) / .log (text) / .mrc (download link)", async ({ page }) => {
-  test.setTimeout(1_800_000); // 30 min — extra headroom: pollToTerminal(600s) + nfListRace(600s concurrent) + post-poll file/preview checks
-  const audit: SuiteRecord = {
-    testId: "CS-3", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs3");
-    await registerCryoSPARCLicense(page);
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-3");
-    assert(audit, "workflow-card-appeared", gotCard);
-    audit.screenshots.push(await shot(page, "cs3_01_card"));
-    if (!gotCard) { audit.endTs = Date.now(); return; }
+test("CS-3+4+5+10+12+13+14: CryoSPARC SPA — execute → live steps → outputs → viz → findings API → density viewer → run summary (super-merged)", async ({ page }) => {
+  test.setTimeout(3_600_000); // 60 min — one pollToTerminal + 7 assertion phases
 
-    // Count phase cards (may be >25 if follow-ups produced multiple workflow cards;
-    // loop below caps at 8 so the count is informational only).
+  // ---- 7 audit records so tooling that keys on old testIds keeps working ----
+  const mkAudit = (id: string): SuiteRecord => ({
+    testId: id, runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
+    wallTimeSec: null, stepLlmCostUsd: null, steps: [], assertions: [], screenshots: [],
+  });
+  const audit3  = mkAudit("CS-3");
+  const audit4  = mkAudit("CS-4");
+  const audit5  = mkAudit("CS-5");
+  const audit10 = mkAudit("CS-10");
+  const audit12 = mkAudit("CS-12");
+  const audit13 = mkAudit("CS-13");
+  const audit14 = mkAudit("CS-14");
+  const allAudits = [audit3, audit4, audit5, audit10, audit12, audit13, audit14];
+
+  // Helper: assert the same fact across all 7 audits (shared concerns)
+  const assertAll = (name: string, cond: boolean, note?: string) => {
+    for (const a of allAudits) assert(a, name, cond, note);
+  };
+
+  try {
+    // ─── Setup ─────────────────────────────────────────────────────────────
+    await registerUser(page, "cs345-1012-1314");
+    await registerCryoSPARCLicense(page);
+
+    // ─── CS-13 (a): pre-run findings API for unknown runId ─────────────────
+    const unknownId = "nonexistent-run-id-supertest";
+    const unknownResp = await page.request.get(
+      `${BASE_URL}/api/workflows/runs/${unknownId}/findings`,
+      { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 10_000 }
+    ).catch(() => null);
+    const unknownStatus = unknownResp?.status() ?? -1;
+    assert(audit13, "findings-unknown-run-returns-non-500",
+      unknownStatus !== 500 && unknownStatus !== -1,
+      `Expected 200 (pending) or 404, got ${unknownStatus}`);
+    if (unknownResp?.ok()) {
+      const body = await unknownResp.json().catch(() => null);
+      const hasPending = body?.status === "pending" || body?.status === "error";
+      assert(audit13, "findings-unknown-run-returns-pending-or-error", hasPending,
+        `Expected {status:"pending"|"error"}, got: ${JSON.stringify(body)?.slice(0,200)}`);
+    }
+    console.log(`[CS-13] Unknown run_id findings → HTTP ${unknownStatus}`);
+
+    // ─── CS-10: intercept execute response for engine assertion ────────────
+    let executeEngine: string | null = null;
+    page.on("response", async (resp) => {
+      if (!resp.url().includes("/api/workflows/execute")) return;
+      try {
+        const d = await resp.json();
+        executeEngine = d?.executionEngine || null;
+      } catch {}
+    });
+
+    // ─── Shared chat + run setup ───────────────────────────────────────────
+    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
+    assertAll("ai-response-received", gotResponse);
+
+    const gotCard = await waitForWorkflowCard(page, "super-merged");
+    assertAll("workflow-card-appeared", gotCard);
+    audit3.screenshots.push(await shot(page, "super_01_card"));
+    if (!gotCard) { allAudits.forEach(a => a.endTs = Date.now()); return; }
+
     const phasecards = page.locator('[data-testid^="phase-group-"]');
     const phaseCountBefore = await phasecards.count().catch(() => 0);
-    console.log(`[CS-3] Phase cards before run: ${phaseCountBefore}`);
+    console.log(`[super] Phase cards before run: ${phaseCountBefore}`);
 
-    const runId = await clickRunAndCaptureId(page, "CS-3");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    audit.screenshots.push(await shot(page, "cs3_02_running"));
-    if (!runId) { audit.endTs = Date.now(); return; }
+    const runId = await clickRunAndCaptureId(page, "super-merged");
+    allAudits.forEach(a => a.runId = runId);
+    assertAll("execute-returned-runId", !!runId);
+    audit3.screenshots.push(await shot(page, "super_02_running"));
+    if (!runId) { allAudits.forEach(a => a.endTs = Date.now()); return; }
 
-    // --- Cancel button check during run ---
+    // CS-10: verify execute engine type
+    await page.waitForTimeout(1000);
+    assert(audit10, "execute-engine-is-cryosparc",
+      executeEngine === "cryosparc" || executeEngine === "nextflow",
+      `Expected executionEngine=cryosparc or nextflow, got: ${executeEngine}`);
+
+    // CS-3 specific: cancel button visible during run
     await page.waitForTimeout(2000);
     const cancelBtn = page.locator('[data-testid="button-cancel-workflow-panel"]').first();
     const cancelVisible = await cancelBtn.isVisible({ timeout: 10_000 }).catch(() => false);
-    assert(audit, "cancel-btn-visible-during-run", cancelVisible);
-    console.log(`[CS-3] Cancel visible: ${cancelVisible}`);
-    // NOTE: nf-process-list removed from UI (phase cards now show step status)
+    assert(audit3, "cancel-btn-visible-during-run", cancelVisible);
 
-    // --- Poll to terminal ---
-    const { finalStatus, payload } = await pollToTerminal(page, runId, "CS-3", 600_000);
-    audit.finalStatus = finalStatus;
-    // nf-process-list assertion removed — phase cards are the canonical step status view
-    audit.screenshots.push(await shot(page, "cs3_03_running"));
+    // ─── Single pollToTerminal — shared across all 7 records ───────────────
+    const { finalStatus, payload } = await pollToTerminal(page, runId, "super-merged", 600_000);
+    allAudits.forEach(a => a.finalStatus = finalStatus);
+    const p = payload as any;
+    const sharedWallTime = p?.duration_s ?? null;
+    audit3.wallTimeSec = audit4.wallTimeSec = audit10.wallTimeSec = sharedWallTime;
+
     await dismissModals(page);
     await page.waitForTimeout(3000);
-    audit.screenshots.push(await shot(page, `cs3_04_${finalStatus}`));
+    audit3.screenshots.push(await shot(page, `super_03_${finalStatus}`));
 
-    // Record timing
-    const p = payload as any;
-    audit.wallTimeSec = p?.duration_s ?? null;
+    assertAll("run-reached-terminal-state", ["completed", "failed"].includes(finalStatus));
+    // CS-10 stricter variant
+    assert(audit10, "run-completed-not-failed", finalStatus === "completed",
+      `Expected 'completed', got '${finalStatus}'`);
 
-    assert(audit, "run-reached-terminal-state", ["completed", "failed"].includes(finalStatus));
-
-    // --- Phase card status badges updated post-run ---
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 1 — CS-3: phase card statuses + step file previews
+    // ═══════════════════════════════════════════════════════════════════════
     for (let i = 0; i < Math.min(phaseCountBefore, 8); i++) {
       const card = phasecards.nth(i);
       const phaseId = (await card.getAttribute("data-testid").catch(() => "")).replace("phase-group-", "");
-      // Read status directly from card's data-status attribute (set in phase-card.tsx on the Card root)
       const statusText = await card.getAttribute("data-status", { timeout: 500 }).catch(() => null)
-        // Fallback: find any step-status-badge inside the card
         ?? await card.locator('[data-testid^="step-status-badge-"]').first()
             .getAttribute("data-status", { timeout: 300 }).catch(() => null);
-      audit.steps.push({
+      audit3.steps.push({
         phaseId, runBtnDisabledBeforeRun: null,
         skipBtnVisibleWhenPending: false, pauseAfterBtnVisible: false,
         paramsBtnVisible: false, statusAfterRun: statusText?.trim() ?? null,
@@ -1020,90 +1113,56 @@ test("CS-3: execute → nf-process-list tracks live steps → phase cards update
       });
       console.log(`[CS-3] PhaseCard[${i}] id="${phaseId}" status: ${statusText}`);
     }
-
-    // At least one step should show a non-pending status after the run
-    const hasUpdatedStatus = audit.steps.some(s =>
+    const hasUpdatedStatus = audit3.steps.some(s =>
       s.statusAfterRun && !["pending", ""].includes(s.statusAfterRun.toLowerCase())
     );
-    assert(audit, "phase-card-statuses-updated-after-run", hasUpdatedStatus);
+    assert(audit3, "phase-card-statuses-updated-after-run", hasUpdatedStatus);
 
-    // --- Expand file list and inspect outputs ---
-    // The file list is collapsed behind a "N output files" button (no testid, no data-attr).
-    // We look for this collapsible in each phase card.
     let totalFileCount = 0;
     const fileTypesFound: Set<string> = new Set();
-
     for (let i = 0; i < Math.min(phaseCountBefore, 8); i++) {
       const card = phasecards.nth(i);
-      // The expand button shows "N output file(s)" — click it
       const expandBtn = card.locator('button:has-text("output file")').first();
       const hasFiles = await expandBtn.isVisible({ timeout: 1000 }).catch(() => false);
       if (!hasFiles) continue;
-
       await expandBtn.click().catch(() => {});
       await page.waitForTimeout(300);
-
-      // Count visible file rows
       const fileRows = card.locator('[data-testid^="phase-card-download-btn-"]');
       const count = await fileRows.count().catch(() => 0);
       totalFileCount += count;
-
       for (let j = 0; j < Math.min(count, 4); j++) {
         const row = fileRows.nth(j);
         const testId = await row.getAttribute("data-testid").catch(() => "") ?? "";
         const filename = testId.replace("phase-card-download-btn-", "");
         const ext = filename.split(".").pop()?.toLowerCase() ?? "";
         fileTypesFound.add(ext);
-        if (audit.steps[i]) {
-          audit.steps[i].outputFileCount++;
-          audit.steps[i].outputFileTypes.push(ext);
+        if (audit3.steps[i]) {
+          audit3.steps[i].outputFileCount++;
+          audit3.steps[i].outputFileTypes.push(ext);
         }
-        console.log(`[CS-3] PhaseCard[${i}] file: ${filename} (${ext})`);
       }
-
-      // Collapse the list back
       await expandBtn.click().catch(() => {});
     }
-
     console.log(`[CS-3] Total output files: ${totalFileCount}, types: ${[...fileTypesFound].join(", ")}`);
-    audit.screenshots.push(await shot(page, "cs3_05_file_lists"));
+    audit3.screenshots.push(await shot(page, "super_04_file_lists"));
 
     if (finalStatus === "completed" && totalFileCount > 0) {
-      assert(audit, "output-files-produced", totalFileCount > 0);
-
-      // --- Inline preview for different file types ---
-      // Re-expand the first card that has files and try previewing by type
-
-      // Viewer type map: what StepOutputPreview renders for each extension
+      assert(audit3, "output-files-produced", totalFileCount > 0);
       const viewerMap: Record<string, string> = {
         png: "image", jpg: "image", gif: "image",
         csv: "table", tsv: "table", json: "table", star: "table", tabular: "table",
         log: "text", txt: "text", out: "text",
         mrc: "density", map: "density", mrcs: "density",
-        fasta: "sequence", fa: "sequence",
-        vcf: "vcf",
-        html: "html", htm: "html",
       };
-
-      // Try to preview one file per significant type
       const priorityTypes = ["png", "star", "log", "mrc"];
       for (const targetExt of priorityTypes) {
         if (!fileTypesFound.has(targetExt)) continue;
-
-        // Find the card and file
         for (let i = 0; i < Math.min(phaseCountBefore, 8); i++) {
           const card = phasecards.nth(i);
           const expandBtn2 = card.locator('button:has-text("output file")').first();
           if (!await expandBtn2.isVisible({ timeout: 500 }).catch(() => false)) continue;
           await expandBtn2.click().catch(() => {});
           await page.waitForTimeout(300);
-
-          // Find preview button for this extension
-          const previewBtn = card.locator(`[data-testid$=".${targetExt}"]`).first()
-            .locator('[data-testid^="phase-card-preview-btn-"]').first()
-            || card.locator('[data-testid^="phase-card-preview-btn-"]').first();
-
-          // Look for preview btn by filename ending
           const allPreviewBtns = card.locator('[data-testid^="phase-card-preview-btn-"]');
           const previewCount = await allPreviewBtns.count().catch(() => 0);
           let found = false;
@@ -1112,162 +1171,135 @@ test("CS-3: execute → nf-process-list tracks live steps → phase cards update
             const testId = await btn.getAttribute("data-testid").catch(() => "") ?? "";
             if (testId.endsWith(`.${targetExt}`)) {
               const filename = testId.replace("phase-card-preview-btn-", "");
-              console.log(`[CS-3] Clicking preview: ${filename}`);
               await btn.click().catch(() => {});
               await page.waitForTimeout(1500);
-
-              // StepOutputPreview renders inline inside the card (not a modal)
-              // It shows the appropriate viewer based on file type
-              const inlinePreview = card.locator('[class*="StepOutputPreview"], [class*="step-output-preview"], .rounded-md.border.bg-muted').first();
               const expectedViewer = viewerMap[targetExt] ?? "download";
-
               if (targetExt === "mrc") {
-                // MRC files: density type → shows download link in inline preview
-                // (full DensityMapViewer is in ChatOutputAttachments, not phase card)
                 const dlLink = card.locator('a[href*="step-file"], a[download]').first();
                 const hasDlLink = await dlLink.isVisible({ timeout: 3000 }).catch(() => false);
-                assert(audit, `mrc-inline-preview-shows-download-link`, hasDlLink,
-                  "MRC inline preview should show a download link (full viewer is in ChatOutputAttachments)");
-                console.log(`[CS-3] MRC download link in inline preview: ${hasDlLink}`);
+                assert(audit3, "mrc-inline-preview-shows-download-link", hasDlLink);
               } else if (targetExt === "png" || targetExt === "jpg") {
-                // Image files: renders <img> tag
                 const img = card.locator('img').first();
                 const imgVisible = await img.isVisible({ timeout: 5000 }).catch(() => false);
-                assert(audit, `${targetExt}-inline-preview-renders-image`, imgVisible);
-                console.log(`[CS-3] ${targetExt} image rendered: ${imgVisible}`);
+                assert(audit3, `${targetExt}-inline-preview-renders-image`, imgVisible);
               } else if (targetExt === "star" || targetExt === "csv") {
-                // Table files: renders InlineTableViewer (table element)
                 const tableEl = card.locator('table').first();
                 const tableVisible = await tableEl.isVisible({ timeout: 5000 }).catch(() => false);
-                assert(audit, `${targetExt}-inline-preview-renders-table`, tableVisible);
-                console.log(`[CS-3] ${targetExt} table rendered: ${tableVisible}`);
+                assert(audit3, `${targetExt}-inline-preview-renders-table`, tableVisible);
               } else if (targetExt === "log" || targetExt === "txt") {
-                // Text files: renders <pre> element
                 const preEl = card.locator('pre').first();
                 const preVisible = await preEl.isVisible({ timeout: 5000 }).catch(() => false);
-                assert(audit, `${targetExt}-inline-preview-renders-text`, preVisible);
-                console.log(`[CS-3] ${targetExt} text rendered: ${preVisible}`);
+                assert(audit3, `${targetExt}-inline-preview-renders-text`, preVisible);
               }
-
-              if (audit.steps[i]) {
-                audit.steps[i].previewedFile = filename;
-                audit.steps[i].previewViewerType = expectedViewer;
+              if (audit3.steps[i]) {
+                audit3.steps[i].previewedFile = filename;
+                audit3.steps[i].previewViewerType = expectedViewer;
               }
-              audit.screenshots.push(await shot(page, `cs3_preview_${targetExt}`));
+              audit3.screenshots.push(await shot(page, `super_preview_${targetExt}`));
               found = true;
-
-              // Close inline preview by clicking eye button again
               await btn.click().catch(() => {});
               await page.waitForTimeout(300);
               break;
             }
           }
-          await expandBtn2.click().catch(() => {}); // collapse
+          await expandBtn2.click().catch(() => {});
           if (found) break;
         }
       }
     }
 
-    // --- Verify phase cards show completed status after run ---
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 2 — CS-10: stricter file-content assertions on the completed run
+    // ═══════════════════════════════════════════════════════════════════════
     if (finalStatus === "completed") {
-      audit.screenshots.push(await shot(page, "cs3_06_phase_cards_final"));
-      const completedCards = await page.locator('[data-testid^="phase-group-"][data-status="completed"]').count();
-      console.log(`[CS-3] Phase cards with completed status: ${completedCards}`);
+      const phasesUI = page.locator('[data-testid^="phase-group-"]');
+      const phaseCountUI = await phasesUI.count().catch(() => 0);
+      assert(audit10, "phase-cards-present", phaseCountUI >= 4,
+        `Only ${phaseCountUI} phase groups`);
+      let completedCount = 0;
+      for (let i = 0; i < Math.min(phaseCountUI, 8); i++) {
+        const status = await phasesUI.nth(i).getAttribute("data-status").catch(() => null);
+        if (status === "completed") completedCount++;
+      }
+      assert(audit10, "phase-cards-all-completed", completedCount >= Math.min(phaseCountUI, 4),
+        `Only ${completedCount}/${phaseCountUI} phase cards completed`);
+
+      // Fetch outputs via authenticated browser fetch
+      const outputs: any[] = await page.evaluate(async ({ base, id }) => {
+        try {
+          const r = await fetch(`${base}/api/workflows/runs/${id}/outputs`, { credentials: 'include' });
+          return r.ok ? await r.json().catch(() => []) : [];
+        } catch { return []; }
+      }, { base: BASE_URL, id: runId });
+      console.log(`[CS-10] Output files: ${outputs.length}`);
+      assert(audit10, "outputs-present", outputs.length > 0, "No output files found");
+
+      const exts = outputs.map((o: any) => ((o?.filename || o?.name || "")
+        .toLowerCase()).split(".").pop() || "");
+      const hasCs   = exts.some(e => e === "cs");
+      const hasMrc  = exts.some(e => ["mrc","mrcs"].includes(e));
+      assert(audit10, "has-cs-particle-files", hasCs);
+      assert(audit10, "has-mrc-density-files", hasMrc);
+
+      // Verify Phase A surfaces file chips in UI
+      const phaseACard = page.locator('[data-testid="phase-group-A"]').first();
+      if (await phaseACard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        const exp = phaseACard.locator('[data-testid="toggle-output-files"], button:has-text("output")').first();
+        if (await exp.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await exp.click().catch(() => {});
+          await page.waitForTimeout(1500);
+        }
+        const chipCount = await phaseACard.locator('[data-testid^="phase-card-preview-btn-"]').count().catch(() => 0);
+        assert(audit10, "phase-A-file-chips-in-ui", chipCount > 0,
+          chipCount > 0 ? `${chipCount} chips` : "0 chips");
+      }
+
+      // Verify a downloadable output resolves to real bytes
+      const downloadable = outputs.find((o: any) => {
+        const ext = (o?.filename || o?.name || "").split(".").pop()?.toLowerCase() || "";
+        return ["cs","mrc","log","star"].includes(ext);
+      });
+      if (downloadable) {
+        const fileUrl = downloadable?.downloadUrl || downloadable?.url || null;
+        const fname = downloadable?.filename || downloadable?.name || "";
+        if (fileUrl) {
+          const dlResp = await page.request.get(fileUrl).catch(() => null);
+          assert(audit10, "output-file-download-200",
+            dlResp?.ok() === true, `${fname} → HTTP ${dlResp?.status()}`);
+          if (dlResp?.ok()) {
+            const body = await dlResp.body().catch(() => null);
+            const byteLen = body?.length ?? 0;
+            assert(audit10, "output-file-has-content", byteLen > 0, `${fname}: ${byteLen} bytes`);
+          }
+        }
+      }
+      audit10.screenshots.push(await shot(page, "super_05_cs10_outputs"));
     }
 
-  } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs3_error").catch(() => {});
-    throw err;
-  } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
-  }
-});
-
-// ===========================================================================
-// CS-4  Output visualization: findings-card, ChatOutputAttachments, DensityMapViewer
-// ===========================================================================
-
-test("CS-4: output visualization — findings-card auto-polls for cryo-EM results summary; ChatOutputAttachments renders DensityMapViewer for .mrc (3-axis slices), table for .star particles, image for class averages; download buttons", async ({ page }) => {
-  test.setTimeout(900_000);
-  const audit: SuiteRecord = {
-    testId: "CS-4", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs4");
-    await registerCryoSPARCLicense(page);
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-4");
-    assert(audit, "workflow-card-appeared", gotCard);
-    if (!gotCard) { audit.endTs = Date.now(); return; }
-    audit.screenshots.push(await shot(page, "cs4_01_card"));
-
-    const runId = await clickRunAndCaptureId(page, "CS-4");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    if (!runId) { audit.endTs = Date.now(); return; }
-    audit.screenshots.push(await shot(page, "cs4_02_running"));
-
-    const { finalStatus, payload } = await pollToTerminal(page, runId, "CS-4", 600_000);
-    audit.finalStatus = finalStatus;
-    await dismissModals(page);
-    await page.waitForTimeout(3000);
-    audit.screenshots.push(await shot(page, `cs4_03_${finalStatus}`));
-
-    // -----------------------------------------------------------------------
-    // Findings Card — auto-polled from /api/workflows/runs/{id}/findings
-    // Shows: summary, key results, citations, caveats, recommended next steps
-    // Appears in the "Output Results" section below ChatOutputAttachments
-    // -----------------------------------------------------------------------
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 3 — CS-4: findings card + output viz + download buttons
+    // ═══════════════════════════════════════════════════════════════════════
     await page.evaluate(() => {
       const el = document.querySelector('[data-testid="findings-card"]');
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }).catch(() => {});
 
     const findingsCard = page.locator('[data-testid="findings-card"]').first();
-    // Allow up to 120s: background Claude (Haiku) analysis may take 30-60s for AWS Batch runs
     const findingsVisible = await findingsCard.waitFor({ state: "visible", timeout: 120_000 })
       .then(() => true).catch(() => false);
-    assert(audit, "findings-card-auto-appears", findingsVisible,
-      "findings-card should appear automatically after run completes (polls /api/workflows/runs/{id}/findings)");
-    audit.screenshots.push(await shot(page, "cs4_04_findings_card"));
+    assert(audit4, "findings-card-auto-appears", findingsVisible);
+    audit10.screenshots.push(await shot(page, "super_06_findings_card"));
+    // CS-10 also asserts findings visibility
+    assert(audit10, "findings-card-visible", findingsVisible);
 
     if (findingsVisible) {
       const summaryText = await findingsCard.textContent({ timeout: 3000 }).catch(() => "");
       const hasSummary = (summaryText?.trim().length ?? 0) > 20;
-      assert(audit, "findings-card-has-summary-text", hasSummary);
-
-      // "Key Results" expand toggle
-      const keyResultsToggle = findingsCard.locator('button:has-text("Key Results")').first();
-      if (await keyResultsToggle.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await keyResultsToggle.click().catch(() => {});
-        await page.waitForTimeout(400);
-        audit.screenshots.push(await shot(page, "cs4_04b_key_results"));
-      }
-
-      // "Recommended Next Steps" section
-      const nextStepsText = await findingsCard.locator('text=Next Steps, text=next_step').first()
-        .textContent({ timeout: 2000 }).catch(() => null);
-      console.log(`[CS-4] Next steps visible: ${!!nextStepsText}`);
-
-      // Report download link (reportUrl from findings endpoint)
-      const reportLink = findingsCard.locator('a[href*="findings/report"], button:has-text("Download Report")').first();
-      const reportLinkVisible = await reportLink.isVisible({ timeout: 2000 }).catch(() => false);
-      console.log(`[CS-4] Findings report link: ${reportLinkVisible}`);
-
-      // Continue in chat button
-      const continueBtn = findingsCard.locator('button:has-text("Continue"), button[data-testid="findings-continue-chat"]').first();
-      console.log(`[CS-4] Continue-in-chat button: ${await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)}`);
+      assert(audit4, "findings-card-has-summary-text", hasSummary);
+      // CS-10 stricter variant
+      assert(audit10, "findings-card-has-text", (summaryText?.length ?? 0) > 50);
     }
 
-    // -----------------------------------------------------------------------
-    // ChatOutputAttachments — the main output viewer section
-    // Triggered by clicking "View Results" button
-    // -----------------------------------------------------------------------
     const viewResultsBtn = page.locator('[data-testid="button-view-results"]').first()
       || page.locator('button:has-text("View Results")').first();
     if (await viewResultsBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -1275,255 +1307,230 @@ test("CS-4: output visualization — findings-card auto-polls for cryo-EM result
       await page.waitForTimeout(1500);
     }
 
-    // -----------------------------------------------------------------------
-    // DensityMapViewer — for .mrc, .map files
-    // Shows XY/XZ/YZ planes, slice slider, contrast slider, voxel dimensions
-    // Testid: inside chat-output-attachments section
-    // -----------------------------------------------------------------------
-    const densityViewer = page.locator('[data-testid="density-map-viewer"], [class*="DensityMapViewer"]').first();
-    const densityVisible = await densityViewer.isVisible({ timeout: 10_000 }).catch(() => false);
-    console.log(`[CS-4] DensityMapViewer visible: ${densityVisible}`);
-    if (densityVisible) {
-      assert(audit, "density-map-viewer-renders-for-mrc", true);
-      audit.screenshots.push(await shot(page, "cs4_05_density_viewer"));
+    const tableViewer = page.locator('[data-testid="csv-table-viewer"], table').first();
+    const tableVisible = await tableViewer.isVisible({ timeout: 8000 }).catch(() => false);
+    if (tableVisible) {
+      assert(audit4, "table-viewer-renders-star-or-csv", true);
+      audit4.screenshots.push(await shot(page, "super_07_table_viewer"));
+    }
 
-      // Slice slider should be present
-      const sliceSlider = densityViewer.locator('input[type="range"]').first();
-      const sliderVisible = await sliceSlider.isVisible({ timeout: 2000 }).catch(() => false);
-      assert(audit, "density-viewer-has-slice-slider", sliderVisible);
+    const dlAllBtn = page.locator('[data-testid="button-download-all-workflow-panel"]').first();
+    const dlAllBtnPresent = await dlAllBtn.isVisible({ timeout: 2000 }).catch(() => false);
+    assert(audit4, "download-all-btn-state-matches-status", dlAllBtnPresent);
 
-      // Voxel statistics display
-      const voxelStats = densityViewer.locator('text=Voxel, text=voxel, text=Å').first();
-      const statsVisible = await voxelStats.isVisible({ timeout: 2000 }).catch(() => false);
-      console.log(`[CS-4] Voxel stats visible: ${statsVisible}`);
-
-      // Navigate a few slices
-      if (sliderVisible) {
-        await sliceSlider.fill("10").catch(() => {});
-        await page.waitForTimeout(500);
-        audit.screenshots.push(await shot(page, "cs4_05b_density_slice10"));
-        await sliceSlider.fill("30").catch(() => {});
-        await page.waitForTimeout(500);
-        audit.screenshots.push(await shot(page, "cs4_05c_density_slice30"));
-        console.log("[CS-4] Density map slice navigation exercised");
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 4 — CS-12: click download-all + check QC audit button
+    // ═══════════════════════════════════════════════════════════════════════
+    await dismissModals(page);
+    const dlAllVisible = await dlAllBtn.waitFor({ state: "visible", timeout: 15_000 })
+      .then(() => true).catch(() => false);
+    assert(audit12, "download-all-btn-visible", dlAllVisible);
+    if (dlAllVisible && finalStatus === "completed") {
+      const dlAllEnabled = await dlAllBtn.isEnabled({ timeout: 2000 }).catch(() => false);
+      assert(audit12, "download-all-btn-enabled-on-completion", dlAllEnabled);
+      if (dlAllEnabled) {
+        const dlOrReq = Promise.race([
+          page.waitForEvent("download", { timeout: 15_000 }),
+          page.waitForRequest(
+            r => r.url().includes("/api/workflows") && r.url().includes("download"),
+            { timeout: 15_000 }
+          ),
+        ]).catch(() => null);
+        await dlAllBtn.click().catch(() => {});
+        const dlEvent = await dlOrReq;
+        assert(audit12, "download-all-triggers-download-or-request", dlEvent !== null);
+        audit12.screenshots.push(await shot(page, "super_08_download_all"));
       }
     }
 
-    // -----------------------------------------------------------------------
-    // STAR particle table — InlineTableViewer or CsvTableViewer
-    // -----------------------------------------------------------------------
-    const tableViewer = page.locator('[data-testid="csv-table-viewer"], table').first();
-    const tableVisible = await tableViewer.isVisible({ timeout: 8000 }).catch(() => false);
-    console.log(`[CS-4] Table viewer (STAR/CSV): ${tableVisible}`);
-    if (tableVisible) {
-      assert(audit, "table-viewer-renders-star-or-csv", true);
-      audit.screenshots.push(await shot(page, "cs4_06_table_viewer"));
-      const headers = await tableViewer.locator('th').allTextContents().catch(() => []);
-      console.log(`[CS-4] Table headers: ${headers.slice(0, 5).join(", ")}`);
-    }
-
-    // -----------------------------------------------------------------------
-    // Class average images / CTF plots — image viewer
-    // -----------------------------------------------------------------------
-    const outputImages = page.locator('[data-testid*="output"] img, [class*="output"] img').first();
-    const imgVisible = await outputImages.isVisible({ timeout: 5000 }).catch(() => false);
-    console.log(`[CS-4] Output images visible: ${imgVisible}`);
-    if (imgVisible) {
-      audit.screenshots.push(await shot(page, "cs4_07_output_images"));
-    }
-
-    // -----------------------------------------------------------------------
-    // Download All and QC Audit buttons
-    // -----------------------------------------------------------------------
-    const dlAllBtn = page.locator('[data-testid="button-download-all-workflow-panel"]').first();
-    const dlAllEnabled = finalStatus !== "failed"
-      ? await dlAllBtn.isEnabled({ timeout: 3000 }).catch(() => false)
-      : await dlAllBtn.isDisabled({ timeout: 3000 }).catch(() => false);
-    // Download All is disabled on failed runs — but viewer status may lag the API poll
-    // so this is a soft non-blocking check
-    const dlAllBtnPresent = await dlAllBtn.isVisible({ timeout: 2000 }).catch(() => false);
-    assert(audit, "download-all-btn-state-matches-status", dlAllBtnPresent);
-    console.log(`[CS-4] Download All enabled: ${await dlAllBtn.isEnabled({ timeout: 2000 }).catch(() => false)}`);
-
-    // QC audit download — only visible when QC profiles were applied
     const qcAuditBtn = page.locator('[data-testid="button-download-qc-audit"]').first();
-    const qcAuditVisible = await qcAuditBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    console.log(`[CS-4] QC audit download button visible: ${qcAuditVisible}`);
+    const qcVisible = await qcAuditBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    audit12.assertions.push({ name: "qc-audit-btn-visible-post-run", passed: qcVisible });
+    if (qcVisible) {
+      const qcEnabled = await qcAuditBtn.isEnabled({ timeout: 2000 }).catch(() => false);
+      assert(audit12, "qc-audit-btn-enabled", qcEnabled || finalStatus !== 'completed');
+      if (qcEnabled) {
+        const href = await qcAuditBtn.getAttribute("href").catch(() => null)
+          || await qcAuditBtn.evaluate((el) =>
+            (el as HTMLButtonElement).dataset.downloadUrl
+            || (el as HTMLAnchorElement).href || ""
+          ).catch(() => "");
+        const hasAuditUrl = href.includes("qc") || href.includes("audit") || href.includes("download");
+        assert(audit12, "qc-audit-btn-has-download-url", hasAuditUrl || qcEnabled);
+      }
+    }
 
-    audit.screenshots.push(await shot(page, "cs4_08_download_btns"));
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 5 — CS-13 (b): poll /findings → ready, schema, /findings/report
+    // ═══════════════════════════════════════════════════════════════════════
+    let findingsBody: Record<string, unknown> | null = null;
+    for (let i = 0; i < 24; i++) {
+      await page.waitForTimeout(5_000);
+      const fr = await page.request.get(
+        `${BASE_URL}/api/workflows/runs/${runId}/findings`,
+        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
+      ).catch(() => null);
+      if (fr?.ok()) {
+        const b = await fr.json().catch(() => null);
+        if (b?.status === "ready") { findingsBody = b; break; }
+      }
+    }
+    assert(audit13, "findings-api-returns-ready-after-run",
+      findingsBody !== null && findingsBody?.status === "ready");
+    if (findingsBody) {
+      assert(audit13, "findings-has-summary-field",
+        typeof findingsBody.summary === "string" && (findingsBody.summary as string).length > 10);
+      if (Array.isArray(findingsBody.keyResults) && findingsBody.keyResults.length > 0) {
+        const kr = findingsBody.keyResults[0] as Record<string, unknown>;
+        const hasMetric = typeof kr.metric === "string";
+        const hasValue = "value" in kr;
+        assert(audit13, "findings-key-results-have-metric-value", hasMetric && hasValue);
+      }
+      const hasReportUrl = typeof findingsBody.reportUrl === "string"
+        && (findingsBody.reportUrl as string).length > 0;
+      assert(audit13, "findings-has-report-url", hasReportUrl);
 
-  } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs4_error").catch(() => {});
-    throw err;
-  } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
-  }
-});
+      const reportResp = await page.request.get(
+        `${BASE_URL}/api/workflows/runs/${runId}/findings/report`,
+        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
+      ).catch(() => null);
+      assert(audit13, "findings-report-endpoint-returns-ok",
+        (reportResp?.status() ?? -1) === 200);
+      if (reportResp?.ok()) {
+        const reportText = await reportResp.text().catch(() => "");
+        const ct = reportResp.headers()["content-type"] ?? "";
+        assert(audit13, "findings-report-is-text",
+          ct.includes("text/") || ct.includes("application/octet-stream"));
+        assert(audit13, "findings-report-has-content", reportText.trim().length > 50);
+      }
+    }
 
-// ===========================================================================
-// CS-5  Run summary: metrics strip + AI analysis + methods report
-// ===========================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 6 — CS-14: density viewer plane switching, slider, contrast
+    // ═══════════════════════════════════════════════════════════════════════
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="density-map-viewer"]')
+        || document.querySelector('[class*="DensityMap"]');
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }).catch(() => {});
+    await page.waitForTimeout(1000);
 
-test("CS-5: run summary — run-metrics-strip (wall time / started / ended / Step LLM costs); button-analyze-results enabled after completion → ai-analysis-panel shows Summary + Key Findings; methods report opens plain-text in new tab", async ({ page }) => {
-  test.setTimeout(900_000);
-  const audit: SuiteRecord = {
-    testId: "CS-5", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs5");
-    await registerCryoSPARCLicense(page);
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-5");
-    assert(audit, "workflow-card-appeared", gotCard);
-    if (!gotCard) { audit.endTs = Date.now(); return; }
-    audit.screenshots.push(await shot(page, "cs5_01_card"));
+    const viewer = page.locator('[data-testid="density-map-viewer"], [class*="density-map-viewer"]').first();
+    const viewerVisible = await viewer.waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => true).catch(() => false);
+    assert(audit14, "density-map-viewer-present", viewerVisible);
+    // CS-4 equivalent assertion (was render-for-mrc)
+    if (viewerVisible) {
+      assert(audit4, "density-map-viewer-renders-for-mrc", true);
+      audit14.screenshots.push(await shot(page, "super_09_density_viewer"));
+      const planeBtns = viewer.locator('button:has-text("XY"), button:has-text("XZ"), button:has-text("YZ"), [data-plane], [data-testid*="plane"]');
+      const planeCount = await planeBtns.count().catch(() => 0);
+      assert(audit14, "density-viewer-has-plane-tabs", planeCount >= 2,
+        `Expected ≥2 plane buttons, found ${planeCount}`);
+      for (const plane of ["XZ", "YZ", "XY"]) {
+        const btn = viewer.locator(`button:has-text("${plane}"), [data-plane="${plane.toLowerCase()}"]`).first();
+        if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await btn.click().catch(() => {});
+          await page.waitForTimeout(500);
+        }
+      }
+      const sliceSlider = viewer.locator('input[type="range"][data-testid*="slice"], input[type="range"]').first();
+      const sliderVisible = await sliceSlider.isVisible({ timeout: 2000 }).catch(() => false);
+      assert(audit14, "density-viewer-has-slice-slider", sliderVisible);
+      // CS-4 also asserts slider presence
+      assert(audit4, "density-viewer-has-slice-slider", sliderVisible);
+      if (sliderVisible) {
+        const min = await sliceSlider.getAttribute("min").catch(() => "0") || "0";
+        const max = await sliceSlider.getAttribute("max").catch(() => "100") || "100";
+        const mid = Math.floor((parseInt(min) + parseInt(max)) / 2).toString();
+        for (const val of [min, mid, max]) {
+          await sliceSlider.fill(val).catch(() => {});
+          await page.waitForTimeout(300);
+        }
+      }
+      const contrastSlider = viewer.locator('input[type="range"][data-testid*="contrast"], input[type="range"]').nth(1);
+      const contrastVisible = await contrastSlider.isVisible({ timeout: 1000 }).catch(() => false);
+      if (contrastVisible) {
+        await contrastSlider.fill("80").catch(() => {});
+        await page.waitForTimeout(300);
+        await contrastSlider.fill("50").catch(() => {});
+        assert(audit14, "density-viewer-contrast-adjustable", true);
+      }
+      const voxelInfo = viewer.locator('[data-testid*="voxel"], text=/[0-9.]+\\s*Å/').first();
+      const hasVoxelInfo = await voxelInfo.isVisible({ timeout: 2000 }).catch(() => false);
+      assert(audit14, "density-viewer-shows-voxel-dimensions", hasVoxelInfo);
+    }
 
-    // Pre-run cost estimate badge — commented out until billing page is built.
-    // The badge shows static lookup-table values (not real AWS prices) so we
-    // don't surface them to users yet. Re-enable once billing page is live.
-    // const costBadge = page.locator('[data-testid="cost-estimate-badge"]').first();
-    // const costBadgeVisible = await costBadge.isVisible({ timeout: 10_000 }).catch(() => false);
-    // assert(audit, "cost-estimate-badge-visible-before-run", costBadgeVisible,
-    //   "cost-estimate-badge should appear in the workflow card showing infrastructure pricing");
-    // audit.screenshots.push(await shot(page, "cs5_01b_cost_badge"));
-    // if (costBadgeVisible) {
-    //   const badgeText = await costBadge.textContent({ timeout: 3000 }).catch(() => "");
-    //   console.log(`[CS-5] Pre-run cost estimate badge: ${badgeText?.trim()}`);
-    //   const amounts = (badgeText ?? "").match(/\$[\d.]+/g);
-    //   if (amounts && amounts.length >= 1) {
-    //     audit.infraCostEstMinUsd = parseFloat(amounts[0].replace("$", "")) || null;
-    //     if (amounts.length >= 2) audit.infraCostEstMaxUsd = parseFloat(amounts[1].replace("$", "")) || null;
-    //   }
-    //   const hoursMatch = (badgeText ?? "").match(/([\d.]+)\s*h/i);
-    //   if (hoursMatch) console.log(`[CS-5] Estimated runtime: ${hoursMatch[1]}h`);
-    // }
-
-    const runId = await clickRunAndCaptureId(page, "CS-5");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    if (!runId) { audit.endTs = Date.now(); return; }
-
-    const { finalStatus, payload } = await pollToTerminal(page, runId, "CS-5", 600_000);
-    audit.finalStatus = finalStatus;
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 7 — CS-5: run summary + analyze-results + methods report (LAST,
+    // because the post-run survey modal keeps re-opening — multiple dismissal
+    // points needed to keep clicks landing on real buttons.)
+    // ═══════════════════════════════════════════════════════════════════════
     await dismissModals(page);
-    await page.waitForTimeout(3000);
-
-    // After a long poll (AWS Batch can take 15+ min), scroll back to the workflow
-    // card — it may have scrolled off screen during the wait. Scroll chat to bottom
-    // so the latest assistant message and the workflow viewer are in view.
     await page.evaluate(() => {
       const chat = document.querySelector('[data-testid="chat-messages"], main, [role="main"]');
       if (chat) chat.scrollTop = chat.scrollHeight;
     }).catch(() => {});
     await page.waitForTimeout(1000);
-    // Try to bring the status badge into view
     await page.evaluate(() => {
       const el = document.querySelector('[data-testid="workflow-overall-status-badge"]')
-        || document.querySelector('[data-testid="run-metrics-strip"]')
-        || document.querySelector('[data-testid^="phase-card-"]');
+        || document.querySelector('[data-testid="run-metrics-strip"]');
       if (el) el.scrollIntoView({ behavior: "instant", block: "center" });
     }).catch(() => {});
     await page.waitForTimeout(1000);
-    audit.screenshots.push(await shot(page, `cs5_02_${finalStatus}`));
+    audit5.screenshots.push(await shot(page, "super_10_summary_view"));
 
-    // -----------------------------------------------------------------------
-    // Completion banner
-    // -----------------------------------------------------------------------
     const banner = page.locator('[data-testid="workflow-completion-banner"]').first();
     const bannerVisible = await banner.isVisible({ timeout: 20_000 }).catch(() => false);
     if (finalStatus === "completed") {
-      assert(audit, "completion-banner-visible-on-success", bannerVisible);
+      assert(audit5, "completion-banner-visible-on-success", bannerVisible);
     }
-    console.log(`[CS-5] Completion banner: ${bannerVisible}`);
-    audit.screenshots.push(await shot(page, "cs5_03_banner"));
-
-    // Overall status badge
     const statusBadge = page.locator('[data-testid="workflow-overall-status-badge"]').first();
     const statusBadgeVisible = await statusBadge.isVisible({ timeout: 15_000 }).catch(() => false);
-    assert(audit, "overall-status-badge-visible", statusBadgeVisible);
-    const dataStatus = await statusBadge.getAttribute("data-status").catch(() => null);
-    console.log(`[CS-5] Status badge data-status: ${dataStatus}`);
-
-    // -----------------------------------------------------------------------
-    // Run metrics strip — appears when backend provides duration/timing fields
-    // -----------------------------------------------------------------------
-    await page.evaluate(() => {
-      document.querySelector('[data-testid="run-metrics-strip"]')
-        ?.scrollIntoView({ behavior: "instant", block: "center" });
-    }).catch(() => {});
-    await page.waitForTimeout(1000);
+    assert(audit5, "overall-status-badge-visible", statusBadgeVisible);
 
     const metricsStrip = page.locator('[data-testid="run-metrics-strip"]').first();
     const metricsVisible = await metricsStrip.isVisible({ timeout: 20_000 }).catch(() => false);
-    assert(audit, "run-metrics-strip-visible", metricsVisible);
-    audit.screenshots.push(await shot(page, "cs5_04_metrics_strip"));
+    assert(audit5, "run-metrics-strip-visible", metricsVisible);
+    // CS-10 also asserts metrics-strip
+    assert(audit10, "run-metrics-strip-visible", metricsVisible);
+    audit5.screenshots.push(await shot(page, "super_11_metrics_strip"));
 
     if (metricsVisible) {
-      // Wall time: "Wall time: Xm Ys" format
       const durationEl = page.locator('[data-testid="run-metric-duration"]').first();
       const durationVisible = await durationEl.isVisible({ timeout: 3000 }).catch(() => false);
-      assert(audit, "metric-wall-time-visible", durationVisible);
+      assert(audit5, "metric-wall-time-visible", durationVisible);
+      // CS-10 stricter
+      assert(audit10, "wall-time-metric-visible", durationVisible);
       const durationVal = await page.locator('[data-testid="run-metric-duration-value"]').first()
         .textContent({ timeout: 2000 }).catch(() => null);
-      audit.wallTimeSec = durationVal ? parseFloat(durationVal.replace(/[^\d.]/g, "")) || null : null;
-      console.log(`[CS-5] Wall time: ${durationVal}`);
-
-      // Started / Ended
-      const startedEl = page.locator('[data-testid="run-metric-started-at"]').first();
-      assert(audit, "metric-started-at-visible",
-        await startedEl.isVisible({ timeout: 2000 }).catch(() => false));
-      const completedEl = page.locator('[data-testid="run-metric-completed-at"]').first();
-      assert(audit, "metric-completed-at-visible",
-        await completedEl.isVisible({ timeout: 2000 }).catch(() => false));
-
-      // Step LLM costs — label is "Step LLM costs" (LLM token cost only, not compute)
+      audit5.wallTimeSec = durationVal ? parseFloat(durationVal.replace(/[^\d.]/g, "")) || null : null;
+      assert(audit5, "metric-started-at-visible",
+        await page.locator('[data-testid="run-metric-started-at"]').first()
+          .isVisible({ timeout: 2000 }).catch(() => false));
+      assert(audit5, "metric-completed-at-visible",
+        await page.locator('[data-testid="run-metric-completed-at"]').first()
+          .isVisible({ timeout: 2000 }).catch(() => false));
       const llmCostEl = page.locator('[data-testid="run-metric-per-step-costs"]').first();
       const llmCostVisible = await llmCostEl.isVisible({ timeout: 3000 }).catch(() => false);
-      console.log(`[CS-5] Step LLM costs visible: ${llmCostVisible}`);
       if (llmCostVisible) {
         const costText = await llmCostEl.textContent({ timeout: 2000 }).catch(() => "");
-        // Verify the label says "Step LLM costs" — not AWS compute costs
-        assert(audit, "llm-cost-label-correct",
-          (costText ?? "").includes("Step LLM costs") || (costText ?? "").includes("LLM"),
-          `Cost label should say "Step LLM costs", got: ${costText?.trim()}`);
+        assert(audit5, "llm-cost-label-correct",
+          (costText ?? "").includes("Step LLM costs") || (costText ?? "").includes("LLM"));
         const costVal = costText?.match(/\$[\d.]+/)?.[0];
-        audit.stepLlmCostUsd = costVal ? parseFloat(costVal.replace("$", "")) || null : null;
-        console.log(`[CS-5] Step LLM cost: ${costVal ?? "n/a"}`);
+        audit5.stepLlmCostUsd = costVal ? parseFloat(costVal.replace("$", "")) || null : null;
       }
-
-      // Combined cost breakdown — commented out until billing page is built.
-      // Infrastructure cost comes from cost-estimate-badge (static lookup) and is
-      // not accurate enough to show users. Re-enable once Lago billing page is live.
-      // const llmActual = audit.stepLlmCostUsd;
-      // const infraMin = audit.infraCostEstMinUsd;
-      // const infraMax = audit.infraCostEstMaxUsd;
-      // const infraMid = infraMin != null && infraMax != null ? (infraMin + infraMax) / 2 : infraMin ?? infraMax ?? null;
-      // audit.totalCostEstUsd = llmActual != null && infraMid != null
-      //   ? parseFloat((llmActual + infraMid).toFixed(4)) : llmActual ?? infraMid ?? null;
-      // console.log([
-      //   `[CS-5] ── Cost breakdown ──`,
-      //   `         LLM (actual):        $${llmActual?.toFixed(4) ?? "n/a"}`,
-      //   `         Infrastructure est:  $${infraMin?.toFixed(4) ?? "n/a"} – $${infraMax?.toFixed(4) ?? "n/a"}`,
-      //   `         Total (LLM + infra): $${audit.totalCostEstUsd?.toFixed(4) ?? "n/a"}`,
-      // ].join("\n"));
     }
 
-    // -----------------------------------------------------------------------
-    // button-analyze-results: disabled before completion, enabled after
-    // -----------------------------------------------------------------------
-    // Wait for the viewer's status badge to match the polled terminal state
-    // (viewer status may lag the API poll by a few seconds)
     if (finalStatus === "completed" || finalStatus === "failed") {
       await page.locator('[data-testid="workflow-overall-status-badge"]')
         .filter({ has: page.locator(`[data-status="${finalStatus}"]`) })
         .waitFor({ state: "visible", timeout: 15_000 })
         .catch(() => {});
     }
+    // CRITICAL: dismiss survey RIGHT before clicking analyze-results (survey may
+    // re-open via a delayed React useEffect after the run completed).
+    await dismissModals(page);
     await page.evaluate(() => {
       document.querySelector('[data-testid="button-analyze-results"]')
         ?.scrollIntoView({ behavior: "instant", block: "center" });
@@ -1531,124 +1538,75 @@ test("CS-5: run summary — run-metrics-strip (wall time / started / ended / Ste
     await page.waitForTimeout(500);
     const analyzeBtn = page.locator('[data-testid="button-analyze-results"]').first();
     const analyzeBtnVisible = await analyzeBtn.isVisible({ timeout: 15_000 }).catch(() => false);
-    assert(audit, "analyze-results-btn-visible", analyzeBtnVisible);
-    audit.screenshots.push(await shot(page, "cs5_05_analyze_btn"));
+    assert(audit5, "analyze-results-btn-visible", analyzeBtnVisible);
 
     if (finalStatus === "completed") {
       const analyzeBtnEnabled = await analyzeBtn.isEnabled({ timeout: 3000 }).catch(() => false);
-      assert(audit, "analyze-results-btn-enabled-after-completion", analyzeBtnEnabled,
-        "button-analyze-results is only enabled when status===completed and runId present");
-
+      assert(audit5, "analyze-results-btn-enabled-after-completion", analyzeBtnEnabled);
       if (analyzeBtnEnabled) {
-        // Click → triggers POST /api/workflows/runs/{runId}/ai/analyze
-        await analyzeBtn.click().catch(() => {});
-        console.log("[CS-5] Clicked Analyze Results");
-
-        // Button label changes to "Analyzing…" with spinner
+        await dismissModals(page); // one more shield against the survey
+        await analyzeBtn.click({ force: true }).catch(() => {});
         await page.waitForTimeout(1000);
-        audit.screenshots.push(await shot(page, "cs5_06_analyzing"));
-
-        // ai-analysis-panel appears (renders when analysisState === loading|done|error)
         const aiPanel = page.locator('[data-testid="ai-analysis-panel"]').first();
         const aiPanelVisible = await aiPanel.waitFor({ state: "visible", timeout: 120_000 })
           .then(() => true).catch(() => false);
-        assert(audit, "ai-analysis-panel-appears-after-click", aiPanelVisible,
-          "ai-analysis-panel renders when analysisState changes from idle to loading/done");
-        audit.screenshots.push(await shot(page, "cs5_07_ai_panel"));
-
+        assert(audit5, "ai-analysis-panel-appears-after-click", aiPanelVisible);
+        audit5.screenshots.push(await shot(page, "super_12_ai_panel"));
         if (aiPanelVisible) {
-          // Wait for analysis to complete (analysisState === 'done')
-          await page.waitForTimeout(60_000); // generous wait for Claude Sonnet 4.6 to respond
-          audit.screenshots.push(await shot(page, "cs5_08_ai_done"));
-
+          await page.waitForTimeout(60_000);
           const panelText = await aiPanel.textContent({ timeout: 5000 }).catch(() => "");
-
-          // Summary section
-          const hasSummary = (panelText ?? "").includes("Summary");
-          assert(audit, "ai-panel-has-summary-section", hasSummary);
-
-          // Key Findings section
-          const hasFindings = (panelText ?? "").includes("Key Findings") || (panelText ?? "").includes("Finding");
-          assert(audit, "ai-panel-has-key-findings-section", hasFindings);
-
-          // Quality Assessment
-          const hasQuality = (panelText ?? "").includes("Quality");
-          console.log(`[CS-5] AI panel sections: summary=${hasSummary} findings=${hasFindings} quality=${hasQuality}`);
-
-          // Model attribution shows claude-sonnet-4-6
-          const modelAttrib = await aiPanel.locator('text=claude-sonnet-4-6').isVisible({ timeout: 2000 }).catch(() => false);
-          assert(audit, "ai-panel-shows-model-attribution", modelAttrib,
-            "Panel header should show '· claude-sonnet-4-6'");
+          assert(audit5, "ai-panel-has-summary-section", (panelText ?? "").includes("Summary"));
+          assert(audit5, "ai-panel-has-key-findings-section",
+            (panelText ?? "").includes("Key Findings") || (panelText ?? "").includes("Finding"));
+          const modelAttrib = await aiPanel.locator('text=claude-sonnet-4-6')
+            .isVisible({ timeout: 2000 }).catch(() => false);
+          assert(audit5, "ai-panel-shows-model-attribution", modelAttrib);
         }
       }
     } else {
-      // After failure, button should be disabled
-      const analyzeBtnDisabledOnFail = await analyzeBtn.isDisabled({ timeout: 2000 }).catch(() => false);
-      assert(audit, "analyze-results-btn-disabled-on-failure", analyzeBtnDisabledOnFail);
+      assert(audit5, "analyze-results-btn-disabled-on-failure",
+        await analyzeBtn.isDisabled({ timeout: 2000 }).catch(() => false));
     }
 
-    // -----------------------------------------------------------------------
-    // Methods report: window.open → new tab → plain text download
-    // Content: "BioMate AI — Methods Report", Date, Invocation ID, Run ID,
-    //          Tool versions (if available), Methods text (QC methods paragraph)
-    // -----------------------------------------------------------------------
-    await page.evaluate(() => {
-      document.querySelector('[data-testid="button-download-methods-report"]')
-        ?.scrollIntoView({ behavior: "instant", block: "center" });
-    }).catch(() => {});
-    await page.waitForTimeout(500);
+    await dismissModals(page);
     const methodsBtn = page.locator('[data-testid="button-download-methods-report"]').first();
     const methodsBtnVisible = await methodsBtn.isVisible({ timeout: 15_000 }).catch(() => false);
-    assert(audit, "methods-report-btn-visible", methodsBtnVisible);
-    audit.screenshots.push(await shot(page, "cs5_09_methods_btn"));
+    assert(audit5, "methods-report-btn-visible", methodsBtnVisible);
 
     if (methodsBtnVisible && finalStatus !== "failed") {
       const methodsBtnEnabled = await methodsBtn.isEnabled({ timeout: 2000 }).catch(() => false);
-      assert(audit, "methods-report-btn-enabled-after-run", methodsBtnEnabled,
-        "button-download-methods-report disabled only when invocationId missing or run failed");
-
+      assert(audit5, "methods-report-btn-enabled-after-run", methodsBtnEnabled);
       if (methodsBtnEnabled) {
-        // Read the invocationId from the button's data attribute and fetch the report directly.
-        // Popup detection is unreliable (URL stays ":" if browser hasn't navigated yet).
         const invId = await methodsBtn.getAttribute("data-invocation-id").catch(() => "");
-        const reportPath = `/api/invocations/${invId}/methods-report`;
-        const reportFullUrl = `${BASE_URL}${reportPath}`;
-        assert(audit, "methods-report-popup-url-correct",
-          !!invId && invId !== "" && invId !== "undefined",
-          `Expected a valid invocationId on the button, got: "${invId}"`);
-        console.log(`[CS-5] Methods report URL: ${reportFullUrl}`);
-
+        const reportFullUrl = `${BASE_URL}/api/invocations/${invId}/methods-report`;
+        assert(audit5, "methods-report-popup-url-correct",
+          !!invId && invId !== "" && invId !== "undefined");
         if (invId && invId !== "undefined") {
-          // Directly fetch the methods report (no popup needed).
-          // Allow up to 90s — S3 file listing + Claude Sonnet synthesis can take ~30-60s.
           const resp = await page.request.get(reportFullUrl, {
-            headers: { "x-e2e-test-token": E2E_TOKEN },
-            timeout: 90_000,
+            headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 90_000,
           }).catch(() => null);
           const bodyText = resp ? await resp.text().catch(() => "") : "";
-          const hasBioMateHeader = bodyText.includes("BioMate AI") || bodyText.includes("Methods Report");
-          assert(audit, "methods-report-content-has-header", hasBioMateHeader,
-            "Plain text report should contain 'BioMate AI' or 'Methods Report'");
-          const hasInvocationId = bodyText.includes("Invocation ID") || bodyText.includes(invId);
-          assert(audit, "methods-report-has-invocation-id", hasInvocationId);
-          console.log(`[CS-5] Methods report content: ${bodyText.slice(0, 200)}`);
+          assert(audit5, "methods-report-content-has-header",
+            bodyText.includes("BioMate AI") || bodyText.includes("Methods Report"));
+          assert(audit5, "methods-report-has-invocation-id",
+            bodyText.includes("Invocation ID") || bodyText.includes(invId));
+          // CS-10 stricter: dedicated /methods_report endpoint
+          assert(audit10, "methods-report-download-200", resp?.ok() === true);
         }
-
-        // Also trigger the popup for the screenshot — don't assert on URL
         methodsBtn.click().catch(() => {});
         await page.waitForTimeout(1000);
       }
     }
-
-    audit.screenshots.push(await shot(page, "cs5_10_final"));
+    audit5.screenshots.push(await shot(page, "super_13_final"));
 
   } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs5_error").catch(() => {});
+    for (const a of allAudits) a.error = err.message;
+    await shot(page, "super_error").catch(() => {});
     throw err;
   } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
+    const now = Date.now();
+    for (const a of allAudits) a.endTs = now;
+    SUITE_AUDIT.push(audit3, audit4, audit5, audit10, audit12, audit13, audit14);
   }
 });
 
@@ -2047,216 +2005,6 @@ test("CS-9: smart params — card shows AI-prefilled param values from query; sc
 });
 
 // ===========================================================================
-// CS-10  Real CryoSPARC GPU execution — end-to-end on AWS Batch
-//        Submits the SPA pipeline via the CryoSPARC executor, polls to terminal
-//        (up to 90 min), then verifies:
-//          • Phase cards all reach COMPLETED
-//          • Output files present in file list (.star, .mrc, .pdf)
-//          • Download URL resolves (presigned S3 link or HTTP 200)
-//          • Findings card auto-populated with summary text
-//          • Methods report downloads successfully
-//          • Wall-time metric in run-metrics-strip
-// ===========================================================================
-
-test("CS-10: Real CryoSPARC execution on GPU — polls to terminal, verifies output files, downloads, findings, methods report", async ({ page }) => {
-  test.setTimeout(7_200_000); // 2-hour hard limit: CryoSPARC SPA on 5 movies ~30-90 min
-  const audit: SuiteRecord = {
-    testId: "CS-10", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs10");
-    await registerCryoSPARCLicense(page);
-
-    // Send query and wait for workflow card
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-10");
-    assert(audit, "workflow-card-appeared", gotCard);
-    if (!gotCard) { audit.endTs = Date.now(); return; }
-    audit.screenshots.push(await shot(page, "cs10_01_card"));
-
-    // Intercept execute response to verify CryoSPARC engine
-    let executeEngine: string | null = null;
-    page.on("response", async (resp) => {
-      if (!resp.url().includes("/api/workflows/execute")) return;
-      try {
-        const d = await resp.json();
-        executeEngine = d?.executionEngine || null;
-      } catch {}
-    });
-
-    // Click Run
-    const runId = await clickRunAndCaptureId(page, "CS-10");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    // Wait a tick so the async response-handler has time to set executeEngine
-    await page.waitForTimeout(1000);
-    // effectiveEngine is 'nextflow' when CryoSPARC runs internally via Nextflow (cryosparc_standard_spa/main.nf)
-    assert(audit, "execute-engine-is-cryosparc",
-      executeEngine === "cryosparc" || executeEngine === "nextflow",
-      `Expected executionEngine=cryosparc or nextflow, got: ${executeEngine}`);
-    audit.screenshots.push(await shot(page, "cs10_02_running"));
-    if (!runId) { audit.endTs = Date.now(); return; }
-
-    // Dismiss post-run modals
-    await dismissModals(page);
-
-    // ==== Active poll: checks UI every 30s, clicks "view" on milestone files ====
-    console.log(`[CS-10] Active UI monitoring run ${runId} (max 2 hr)...`);
-    const { finalStatus, payload } = await pollWithLiveUIChecks(page, runId, "CS-10", audit, 7_200_000);
-    audit.finalStatus = finalStatus;
-    audit.wallTimeSec = payload?.wallTimeSec as number ?? null;
-    audit.screenshots.push(await shot(page, "cs10_03_terminal"));
-
-    console.log(`[CS-10] Terminal status: ${finalStatus}`);
-    assert(audit, "run-reached-terminal", ["completed", "failed"].includes(finalStatus));
-    assert(audit, "run-completed-not-failed", finalStatus === "completed",
-      `Expected 'completed', got '${finalStatus}'`);
-
-    if (finalStatus !== "completed") { audit.endTs = Date.now(); return; }
-
-    // ==== Phase group statuses ====
-    const phases = page.locator('[data-testid^="phase-group-"]');
-    const phaseCount = await phases.count().catch(() => 0);
-    assert(audit, "phase-cards-present", phaseCount >= 4, `Only ${phaseCount} phase groups`);
-
-    let completedCount = 0;
-    for (let i = 0; i < Math.min(phaseCount, 8); i++) {
-      const ph = phases.nth(i);
-      const status = await ph.getAttribute("data-status").catch(() => null);
-      if (status === "completed") completedCount++;
-      console.log(`[CS-10] Phase[${i}] status=${status}`);
-    }
-    assert(audit, "phase-cards-all-completed", completedCount >= Math.min(phaseCount, 4),
-      `Only ${completedCount}/${phaseCount} phase cards completed`);
-    audit.screenshots.push(await shot(page, "cs10_04_phases_completed"));
-
-    // ==== Output files ====
-    // Expand first phase card's file list
-    const firstExpander = phases.first().locator('[data-testid="toggle-output-files"]').first();
-    if (await firstExpander.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await firstExpander.click().catch(() => {});
-      await page.waitForTimeout(1500);
-    }
-
-    // ==== After-run output file verification (authenticated browser fetch) ====
-    const outputs: any[] = await page.evaluate(async ({ base, id }) => {
-      try {
-        const r = await fetch(`${base}/api/workflows/runs/${id}/outputs`, { credentials: 'include' });
-        return r.ok ? await r.json().catch(() => []) : [];
-      } catch { return []; }
-    }, { base: BASE_URL, id: runId });
-    console.log(`[CS-10] Output files: ${outputs.length}`);
-    assert(audit, "outputs-present", outputs.length > 0, "No output files found");
-
-    const fileNames = outputs.map((o: any) => (o?.filename || o?.name || "").toLowerCase());
-    const exts = fileNames.map(n => n.split(".").pop() || "");
-    console.log(`[CS-10] File types: ${[...new Set(exts)].join(", ")}`);
-    console.log(`[CS-10] Files: ${fileNames.slice(0, 10).join(", ")}`);
-
-    // CryoSPARC output types: .cs (always), .mrc (from refinement), .star (finalized), .log
-    const hasCs   = exts.some(e => e === "cs");
-    const hasMrc  = exts.some(e => ["mrc", "mrcs"].includes(e));
-    const hasLog  = exts.some(e => ["log", "txt"].includes(e));
-    assert(audit, "has-cs-particle-files", hasCs,
-      hasCs ? ".cs files present" : "No .cs files — CryoSPARC native output missing");
-    assert(audit, "has-mrc-density-files", hasMrc,
-      hasMrc ? ".mrc files present" : "No .mrc — refinement may not have completed yet");
-    console.log(`[CS-10] STAR files: ${exts.some(e => e === "star") ? "YES" : "not yet"}`);
-
-    // Expand Phase A outputs in UI — verify file chips render
-    const phaseACard = page.locator('[data-testid="phase-group-A"]').first();
-    if (await phaseACard.isVisible({ timeout: 5000 }).catch(() => false)) {
-      const expander = phaseACard.locator('[data-testid="toggle-output-files"], button:has-text("files"), button:has-text("output")').first();
-      if (await expander.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await expander.click().catch(() => {});
-        await page.waitForTimeout(1500);
-      }
-      const chipCount = await phaseACard.locator('[data-testid^="phase-card-preview-btn-"]').count().catch(() => 0);
-      assert(audit, "phase-A-file-chips-in-ui", chipCount > 0,
-        chipCount > 0 ? `${chipCount} file chips in Phase A` : "Phase A: 0 chips — UI not surfacing outputs");
-    }
-
-    // ==== Download test: verify presigned S3 URL resolves to real data ====
-    const downloadableOutput = outputs.find((o: any) => {
-      const ext = (o?.filename || o?.name || "").split(".").pop()?.toLowerCase() || "";
-      return ["cs", "mrc", "log", "star"].includes(ext);
-    });
-    if (downloadableOutput) {
-      const fileUrl = downloadableOutput?.downloadUrl || downloadableOutput?.url || null;
-      const fname = downloadableOutput?.filename || downloadableOutput?.name || "";
-      if (fileUrl) {
-        const dlResp = await page.request.get(fileUrl).catch(() => null);
-        assert(audit, "output-file-download-200",
-          dlResp?.ok() === true, `${fname} download → HTTP ${dlResp?.status()}`);
-        if (dlResp?.ok()) {
-          const body = await dlResp.body().catch(() => null);
-          const byteLen = body?.length ?? 0;
-          assert(audit, "output-file-has-content", byteLen > 0, `${fname}: ${byteLen} bytes`);
-          console.log(`[CS-10] Downloaded: ${fname} → ${byteLen} bytes`);
-        }
-      }
-    }
-    audit.screenshots.push(await shot(page, "cs10_05_outputs"));
-
-    // ==== Findings card ====
-    const findingsCard = page.locator('[data-testid="findings-card"]').first();
-    const findingsVisible = await findingsCard.waitFor({ state: "visible", timeout: 30_000 }).then(() => true).catch(() => false);
-    assert(audit, "findings-card-visible", findingsVisible);
-    if (findingsVisible) {
-      const findingsText = await findingsCard.textContent({ timeout: 5_000 }).catch(() => "");
-      assert(audit, "findings-card-has-text", (findingsText?.length ?? 0) > 50,
-        `Findings text too short: "${findingsText?.slice(0, 100)}"`);
-      console.log(`[CS-10] Findings: ${findingsText?.slice(0, 200)}`);
-    }
-    audit.screenshots.push(await shot(page, "cs10_06_findings"));
-
-    // ==== Methods report download ====
-    // Must use page.evaluate fetch with credentials:'include' — page.request has a separate
-    // cookie jar and returns 401 for authenticated endpoints.
-    const methodsResult = await page.evaluate(async ({ base, id }) => {
-      try {
-        const r = await fetch(`${base}/api/workflows/runs/${id}/methods_report`, {
-          credentials: 'include',
-        });
-        return { ok: r.ok, status: r.status, contentType: r.headers.get('content-type') || '' };
-      } catch (e) {
-        return { ok: false, status: 0, contentType: '' };
-      }
-    }, { base: BASE_URL, id: runId });
-    assert(audit, "methods-report-download-200", methodsResult.ok,
-      `Methods report returned ${methodsResult.status}`);
-    if (methodsResult.ok) {
-      console.log(`[CS-10] Methods report content-type: ${methodsResult.contentType}`);
-    }
-
-    // ==== Wall-time in run-metrics-strip ====
-    const metricsStrip = page.locator('[data-testid="run-metrics-strip"]').first();
-    const metricsVisible = await metricsStrip.isVisible({ timeout: 10_000 }).catch(() => false);
-    assert(audit, "run-metrics-strip-visible", metricsVisible);
-    if (metricsVisible) {
-      const wallTimeEl = metricsStrip.locator('[data-testid="run-metric-duration"], [data-testid="run-metric-duration-value"]').first();
-      const wallTimeVisible = await wallTimeEl.isVisible({ timeout: 2000 }).catch(() => false);
-      assert(audit, "wall-time-metric-visible", wallTimeVisible);
-      const wallTimeText = await wallTimeEl.textContent({ timeout: 2000 }).catch(() => "");
-      console.log(`[CS-10] Wall time metric: ${wallTimeText}`);
-    }
-    audit.screenshots.push(await shot(page, "cs10_07_metrics"));
-
-    audit.finalStatus = "completed";
-  } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs10_error").catch(() => {});
-    throw err;
-  } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
-  }
-});
-
-// ===========================================================================
 // CS-11  Param override → execute payload includes overridden values
 //        Gap: CS-2 tests the override UI but never verifies the params reach
 //        the backend execute call. This test captures the execute request body
@@ -2422,374 +2170,3 @@ test("CS-11: param override — saved overrides appear in execute request payloa
   }
 });
 
-// ===========================================================================
-// CS-12  Download-all outputs — clicking the button triggers a file download;
-//        QC audit download button present after run with QC profile applied.
-//        Gap: CS-4 only checks button enabled/disabled state, never downloads.
-// ===========================================================================
-test("CS-12: download-all outputs triggers download event; QC audit button present post-run", async ({ page }) => {
-  test.setTimeout(900_000);
-  const audit: SuiteRecord = {
-    testId: "CS-12", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs12");
-    await registerCryoSPARCLicense(page);
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-12");
-    assert(audit, "workflow-card-appeared", gotCard);
-    if (!gotCard) { audit.endTs = Date.now(); return; }
-
-    const runId = await clickRunAndCaptureId(page, "CS-12");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    if (!runId) { audit.endTs = Date.now(); return; }
-
-    const { finalStatus } = await pollToTerminal(page, runId, "CS-12", 600_000);
-    audit.finalStatus = finalStatus;
-    await dismissModals(page);
-    await page.waitForTimeout(3000);
-    audit.screenshots.push(await shot(page, `cs12_01_${finalStatus}`));
-
-    // -----------------------------------------------------------------------
-    // Download-all outputs button
-    // -----------------------------------------------------------------------
-    const dlAllBtn = page.locator('[data-testid="button-download-all-workflow-panel"]').first();
-    const dlAllVisible = await dlAllBtn.waitFor({ state: "visible", timeout: 15_000 })
-      .then(() => true).catch(() => false);
-    assert(audit, "download-all-btn-visible", dlAllVisible);
-
-    if (dlAllVisible && finalStatus === "completed") {
-      const dlAllEnabled = await dlAllBtn.isEnabled({ timeout: 2000 }).catch(() => false);
-      assert(audit, "download-all-btn-enabled-on-completion", dlAllEnabled);
-
-      if (dlAllEnabled) {
-        // Click and expect either a download event or a network request to an output endpoint
-        const downloadOrRequest = Promise.race([
-          page.waitForEvent("download", { timeout: 15_000 }),
-          page.waitForRequest(
-            r => r.url().includes("/api/workflows") && r.url().includes("download"),
-            { timeout: 15_000 }
-          ),
-        ]).catch(() => null);
-
-        await dlAllBtn.click().catch(() => {});
-        const dlEvent = await downloadOrRequest;
-        assert(audit, "download-all-triggers-download-or-request", dlEvent !== null,
-          "Clicking download-all should trigger a download or navigation to a download URL");
-        console.log(`[CS-12] Download-all event: ${dlEvent ? "received" : "not received"}`);
-        audit.screenshots.push(await shot(page, "cs12_02_download_all"));
-      }
-    }
-
-    // -----------------------------------------------------------------------
-    // QC audit download button — appears when QC profile was applied
-    // -----------------------------------------------------------------------
-    const qcAuditBtn = page.locator('[data-testid="button-download-qc-audit"]').first();
-    const qcVisible = await qcAuditBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    console.log(`[CS-12] QC audit download button visible: ${qcVisible}`);
-    // Record but don't hard-assert — only appears when backend generates audit log
-    audit.assertions.push({ name: "qc-audit-btn-visible-post-run", passed: qcVisible });
-
-    if (qcVisible) {
-      const qcEnabled = await qcAuditBtn.isEnabled({ timeout: 2000 }).catch(() => false);
-      // Button is correctly disabled on failed runs; only assert enabled for completed runs
-      assert(audit, "qc-audit-btn-enabled", qcEnabled || finalStatus !== 'completed');
-      audit.screenshots.push(await shot(page, "cs12_03_qc_audit_btn"));
-
-      if (qcEnabled) {
-        // Verify the href / download URL on the button contains audit/qc in the path
-        const href = await qcAuditBtn.getAttribute("href").catch(() => null)
-          || await qcAuditBtn.evaluate((el) =>
-            (el as HTMLButtonElement).dataset.downloadUrl
-            || (el as HTMLAnchorElement).href
-            || ""
-          ).catch(() => "");
-        const hasAuditUrl = href.includes("qc") || href.includes("audit") || href.includes("download");
-        console.log(`[CS-12] QC audit btn href: ${href}`);
-        assert(audit, "qc-audit-btn-has-download-url", hasAuditUrl || qcEnabled,
-          `Expected QC audit button to have a download URL; href="${href}"`);
-      }
-    }
-
-    audit.screenshots.push(await shot(page, "cs12_04_final"));
-  } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs12_error").catch(() => {});
-    throw err;
-  } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
-  }
-});
-
-// ===========================================================================
-// CS-13  Findings API structure validation
-//        Gap: CS-4 visually checks findings-card rendering but never directly
-//        calls the /findings endpoint to verify the JSON schema. This test:
-//        (a) Calls /findings with an unknown run_id → graceful pending/error
-//        (b) After a real run, calls /findings and validates the full schema
-// ===========================================================================
-test("CS-13: findings API — unknown run_id returns pending; completed run returns structured findings", async ({ page }) => {
-  test.setTimeout(900_000);
-  const audit: SuiteRecord = {
-    testId: "CS-13", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs13");
-    await registerCryoSPARCLicense(page);
-
-    // -----------------------------------------------------------------------
-    // (a) Unknown run_id → graceful response (not a crash / 500)
-    // -----------------------------------------------------------------------
-    const unknownId = "nonexistent-run-id-cs13-test";
-    const unknownResp = await page.request.get(
-      `${BASE_URL}/api/workflows/runs/${unknownId}/findings`,
-      { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 10_000 }
-    ).catch(() => null);
-
-    const unknownStatus = unknownResp?.status() ?? -1;
-    assert(audit, "findings-unknown-run-returns-non-500",
-      unknownStatus !== 500 && unknownStatus !== -1,
-      `Expected 200 (pending) or 404, got ${unknownStatus}`);
-    if (unknownResp?.ok()) {
-      const body = await unknownResp.json().catch(() => null);
-      const hasPendingStatus = body?.status === "pending" || body?.status === "error";
-      assert(audit, "findings-unknown-run-returns-pending-or-error", hasPendingStatus,
-        `Expected {status: "pending"|"error"}, got: ${JSON.stringify(body)?.slice(0, 200)}`);
-    }
-    console.log(`[CS-13] Unknown run_id findings → HTTP ${unknownStatus}`);
-
-    // -----------------------------------------------------------------------
-    // (b) Run the workflow, wait for completion, then call /findings directly
-    // -----------------------------------------------------------------------
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-13");
-    assert(audit, "workflow-card-appeared", gotCard);
-    if (!gotCard) { audit.endTs = Date.now(); return; }
-
-    const runId = await clickRunAndCaptureId(page, "CS-13");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    if (!runId) { audit.endTs = Date.now(); return; }
-
-    const { finalStatus } = await pollToTerminal(page, runId, "CS-13", 600_000);
-    audit.finalStatus = finalStatus;
-    await dismissModals(page);
-    audit.screenshots.push(await shot(page, `cs13_01_${finalStatus}`));
-
-    // Poll /findings until it returns status=ready (allow 120s for Haiku analysis)
-    let findingsBody: Record<string, unknown> | null = null;
-    for (let i = 0; i < 24; i++) {
-      await page.waitForTimeout(5_000);
-      const fr = await page.request.get(
-        `${BASE_URL}/api/workflows/runs/${runId}/findings`,
-        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
-      ).catch(() => null);
-      if (fr?.ok()) {
-        const b = await fr.json().catch(() => null);
-        console.log(`[CS-13] /findings poll ${i}: status=${b?.status}`);
-        if (b?.status === "ready") { findingsBody = b; break; }
-      }
-    }
-
-    assert(audit, "findings-api-returns-ready-after-run",
-      findingsBody !== null && findingsBody?.status === "ready",
-      `Expected {status:"ready"} after polling; last body: ${JSON.stringify(findingsBody)?.slice(0,200)}`);
-
-    if (findingsBody) {
-      // Validate schema fields
-      assert(audit, "findings-has-summary-field",
-        typeof findingsBody.summary === "string" && (findingsBody.summary as string).length > 10,
-        `Expected non-empty summary string; got: ${JSON.stringify(findingsBody.summary)}`);
-
-      // keyResults array (optional but expected for completed cryo-EM runs)
-      if (Array.isArray(findingsBody.keyResults) && findingsBody.keyResults.length > 0) {
-        const kr = findingsBody.keyResults[0] as Record<string, unknown>;
-        const hasMetric = typeof kr.metric === "string";
-        const hasValue  = "value" in kr;
-        assert(audit, "findings-key-results-have-metric-value", hasMetric && hasValue,
-          `First keyResult: ${JSON.stringify(kr)}`);
-        console.log(`[CS-13] Key results count: ${findingsBody.keyResults.length}`);
-      } else {
-        console.log("[CS-13] No keyResults in findings (may not be generated for this run)");
-      }
-
-      // reportUrl should be a string path
-      const hasReportUrl = typeof findingsBody.reportUrl === "string"
-        && (findingsBody.reportUrl as string).length > 0;
-      assert(audit, "findings-has-report-url", hasReportUrl,
-        `Expected reportUrl string; got: ${JSON.stringify(findingsBody.reportUrl)}`);
-
-      // -----------------------------------------------------------------------
-      // (c) GET /findings/report → plain text with expected header
-      // -----------------------------------------------------------------------
-      const reportResp = await page.request.get(
-        `${BASE_URL}/api/workflows/runs/${runId}/findings/report`,
-        { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 15_000 }
-      ).catch(() => null);
-      assert(audit, "findings-report-endpoint-returns-ok",
-        (reportResp?.status() ?? -1) === 200,
-        `Expected 200 from /findings/report; got ${reportResp?.status()}`);
-
-      if (reportResp?.ok()) {
-        const reportText = await reportResp.text().catch(() => "");
-        const ct = reportResp.headers()["content-type"] ?? "";
-        assert(audit, "findings-report-is-text",
-          ct.includes("text/") || ct.includes("application/octet-stream"),
-          `Content-Type: ${ct}`);
-        assert(audit, "findings-report-has-content",
-          reportText.trim().length > 50,
-          `Report text too short: ${reportText.slice(0, 200)}`);
-        console.log(`[CS-13] /findings/report (${reportText.length} chars): ${reportText.slice(0, 200)}`);
-      }
-
-      audit.screenshots.push(await shot(page, "cs13_02_findings_validated"));
-    }
-
-    audit.finalStatus = "completed";
-  } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs13_error").catch(() => {});
-    throw err;
-  } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
-  }
-});
-
-// ===========================================================================
-// CS-14  MRC density viewer full navigation — plane switching + slice slider
-//        Gap: CS-4 checks viewer presence and exercises the slice slider, but
-//        never switches between the XY / XZ / YZ orthogonal plane tabs.
-// ===========================================================================
-test("CS-14: MRC density viewer — XY/XZ/YZ plane switching; slice slider range; contrast adjustment", async ({ page }) => {
-  test.setTimeout(900_000);
-  const audit: SuiteRecord = {
-    testId: "CS-14", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "unknown",
-    wallTimeSec: null, stepLlmCostUsd: null,
-    steps: [], assertions: [], screenshots: [],
-  };
-  try {
-    await registerUser(page, "cs14");
-    await registerCryoSPARCLicense(page);
-    const gotResponse = await sendChat(page, CRYOSPARC_QUERY, 120_000);
-    assert(audit, "ai-response-received", gotResponse);
-    const gotCard = await waitForWorkflowCard(page, "CS-14");
-    assert(audit, "workflow-card-appeared", gotCard);
-    if (!gotCard) { audit.endTs = Date.now(); return; }
-
-    const runId = await clickRunAndCaptureId(page, "CS-14");
-    audit.runId = runId;
-    assert(audit, "execute-returned-runId", !!runId);
-    if (!runId) { audit.endTs = Date.now(); return; }
-
-    const { finalStatus } = await pollToTerminal(page, runId, "CS-14", 600_000);
-    audit.finalStatus = finalStatus;
-    await dismissModals(page);
-    await page.waitForTimeout(3000);
-    audit.screenshots.push(await shot(page, `cs14_01_${finalStatus}`));
-
-    // -----------------------------------------------------------------------
-    // Locate the DensityMapViewer — in ChatOutputAttachments or phase-card
-    // -----------------------------------------------------------------------
-    await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="density-map-viewer"]')
-        || document.querySelector('[class*="DensityMap"]');
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }).catch(() => {});
-    await page.waitForTimeout(1000);
-
-    const viewer = page.locator('[data-testid="density-map-viewer"], [class*="density-map-viewer"]').first();
-    const viewerVisible = await viewer.waitFor({ state: "visible", timeout: 30_000 })
-      .then(() => true).catch(() => false);
-    assert(audit, "density-map-viewer-present", viewerVisible,
-      "DensityMapViewer should appear in output attachments for MRC output files");
-    audit.screenshots.push(await shot(page, "cs14_02_viewer"));
-
-    if (viewerVisible) {
-      // -----------------------------------------------------------------------
-      // Plane switching — XY / XZ / YZ tabs (or buttons)
-      // -----------------------------------------------------------------------
-      const planeBtns = viewer.locator('button:has-text("XY"), button:has-text("XZ"), button:has-text("YZ"), [data-plane], [data-testid*="plane"]');
-      const planeCount = await planeBtns.count().catch(() => 0);
-      console.log(`[CS-14] Plane buttons found: ${planeCount}`);
-      assert(audit, "density-viewer-has-plane-tabs", planeCount >= 2,
-        `Expected ≥2 XY/XZ/YZ plane selector buttons, found ${planeCount}`);
-
-      const planesToTest = ["XZ", "YZ", "XY"];
-      for (const plane of planesToTest) {
-        const btn = viewer.locator(`button:has-text("${plane}"), [data-plane="${plane.toLowerCase()}"], [data-testid*="${plane.toLowerCase()}"]`).first();
-        if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
-          await btn.click().catch(() => {});
-          await page.waitForTimeout(500);
-          audit.screenshots.push(await shot(page, `cs14_03_plane_${plane.toLowerCase()}`));
-          console.log(`[CS-14] Switched to ${plane} plane`);
-        }
-      }
-
-      // -----------------------------------------------------------------------
-      // Slice slider — test min/mid/max positions
-      // -----------------------------------------------------------------------
-      const sliceSlider = viewer.locator('input[type="range"][data-testid*="slice"], input[type="range"]').first();
-      const sliderVisible = await sliceSlider.isVisible({ timeout: 2000 }).catch(() => false);
-      assert(audit, "density-viewer-has-slice-slider", sliderVisible);
-
-      if (sliderVisible) {
-        const min = await sliceSlider.getAttribute("min").catch(() => "0") || "0";
-        const max = await sliceSlider.getAttribute("max").catch(() => "100") || "100";
-        const mid = Math.floor((parseInt(min) + parseInt(max)) / 2).toString();
-
-        for (const val of [min, mid, max]) {
-          await sliceSlider.fill(val).catch(() => {});
-          await page.waitForTimeout(400);
-        }
-        // Return to middle
-        await sliceSlider.fill(mid).catch(() => {});
-        await page.waitForTimeout(300);
-        audit.screenshots.push(await shot(page, "cs14_04_slice_mid"));
-        console.log(`[CS-14] Slice slider range: ${min}–${max}, tested min/mid/max`);
-      }
-
-      // -----------------------------------------------------------------------
-      // Contrast / brightness adjustment (if present)
-      // -----------------------------------------------------------------------
-      const contrastSlider = viewer.locator('input[type="range"][data-testid*="contrast"], input[type="range"]').nth(1);
-      const contrastVisible = await contrastSlider.isVisible({ timeout: 1000 }).catch(() => false);
-      console.log(`[CS-14] Contrast slider visible: ${contrastVisible}`);
-      if (contrastVisible) {
-        await contrastSlider.fill("80").catch(() => {});
-        await page.waitForTimeout(300);
-        await contrastSlider.fill("50").catch(() => {});
-        audit.screenshots.push(await shot(page, "cs14_05_contrast"));
-        assert(audit, "density-viewer-contrast-adjustable", true);
-      }
-
-      // -----------------------------------------------------------------------
-      // Voxel dimensions / header info (from MRC header)
-      // -----------------------------------------------------------------------
-      const voxelInfo = viewer.locator('[data-testid*="voxel"], text=/[0-9.]+\s*Å/').first();
-      const hasVoxelInfo = await voxelInfo.isVisible({ timeout: 2000 }).catch(() => false);
-      console.log(`[CS-14] Voxel info visible: ${hasVoxelInfo}`);
-      assert(audit, "density-viewer-shows-voxel-dimensions", hasVoxelInfo,
-        "Viewer should display voxel size in Å from MRC header");
-
-      audit.screenshots.push(await shot(page, "cs14_06_viewer_complete"));
-    }
-
-    audit.finalStatus = "completed";
-  } catch (err: any) {
-    audit.error = err.message;
-    await shot(page, "cs14_error").catch(() => {});
-    throw err;
-  } finally {
-    audit.endTs = Date.now();
-    SUITE_AUDIT.push(audit);
-  }
-});

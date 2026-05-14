@@ -382,16 +382,27 @@ def start_instance(wait: bool = True) -> str:
         elif state in ("stopped", "pending", "stopping"):
             log.info("[CryoSPARC] Starting instance %s ...", effective_id)
             ec2.start_instances(InstanceIds=[effective_id])
+        elif state in ("unknown", "terminated", "shutting-down"):
+            # The cached/discovered instance ID is no longer usable. Clear it
+            # and fall through to the launch branch so we don't loop forever
+            # trying to wait on a dead instance (see CryoSPARC bug 2026-05-13).
+            log.warning("[CryoSPARC] Cached instance %s state=%s — clearing and relaunching",
+                        effective_id, state)
+            _active_instance_id = ""
+            effective_id = ""
         else:
             log.warning("[CryoSPARC] Unexpected instance state: %s", state)
 
+    if effective_id:
         if wait:
             _wait_for_instance_running(ec2, effective_id)
 
         _ensure_iam_profile(ec2, effective_id)
 
         resp = ec2.describe_instances(InstanceIds=[effective_id])
-        ip = resp["Reservations"][0]["Instances"][0].get("PublicIpAddress", "")
+        reservations = resp.get("Reservations", [])
+        instances = reservations[0].get("Instances", []) if reservations else []
+        ip = instances[0].get("PublicIpAddress", "") if instances else ""
         if ip:
             CRYOSPARC_HOST = ip
         return ip
@@ -440,10 +451,41 @@ echo "[biomate] CryoSPARC ready with {num_gpus} GPU(s): {gpu_ids}"
         new_id = resp["Instances"][0]["InstanceId"]
         log.info("[CryoSPARC] New instance: %s", new_id)
         _active_instance_id = new_id
+        # Self-terminating CloudWatch alarm — fires regardless of Galaxy state.
+        # The previous Python daemon-thread approach failed because Galaxy restarts
+        # killed the sleep, leaving instances orphaned (e.g. i-0a2698b6bd30a98b2 ran 12 days idle).
+        # AWS evaluates the alarm and terminates autonomously, so backend liveness is irrelevant.
+        try:
+            import boto3  # type: ignore
+            cw = boto3.client("cloudwatch", region_name=CRYOSPARC_INSTANCE_REGION)
+            region = CRYOSPARC_INSTANCE_REGION
+            cw.put_metric_alarm(
+                AlarmName=f"cryosparc-idle-terminate-{new_id}",
+                AlarmDescription=(
+                    "Auto-terminate idle CryoSPARC instance: "
+                    "<5% CPU for 60 min (12 datapoints x 5 min)"
+                ),
+                MetricName="CPUUtilization",
+                Namespace="AWS/EC2",
+                Statistic="Average",
+                Period=300,                  # 5-min datapoints
+                EvaluationPeriods=12,        # 12 datapoints = 60 min window
+                DatapointsToAlarm=12,        # all must be < threshold
+                Threshold=5.0,
+                ComparisonOperator="LessThanThreshold",
+                TreatMissingData="missing",  # don't terminate during boot when CW data is missing
+                Dimensions=[{"Name": "InstanceId", "Value": new_id}],
+                AlarmActions=[f"arn:aws:automate:{region}:ec2:terminate"],
+            )
+            log.info("[CryoSPARC] Idle-terminate alarm armed for %s (60 min < 5%% CPU)", new_id)
+        except Exception as exc:
+            log.warning("[CryoSPARC] Failed to set idle-terminate alarm for %s: %s", new_id, exc)
         if wait:
             _wait_for_instance_running(ec2, new_id)
         resp2 = ec2.describe_instances(InstanceIds=[new_id])
-        ip = resp2["Reservations"][0]["Instances"][0].get("PublicIpAddress", "")
+        reservations = resp2.get("Reservations", [])
+        instances = reservations[0].get("Instances", []) if reservations else []
+        ip = instances[0].get("PublicIpAddress", "") if instances else ""
         return ip
 
     raise RuntimeError("No CRYOSPARC_INSTANCE_ID or CRYOSPARC_AMI_ID set")
@@ -471,6 +513,14 @@ def stop_instance() -> None:
         ec2 = _ec2_client()
         ec2.terminate_instances(InstanceIds=[instance_id])
         log.info("[CryoSPARC] Instance %s terminated (EBS auto-deleted)", instance_id)
+        # Best-effort cleanup of the self-terminate alarm — alarm is harmless if left,
+        # but accumulating thousands of orphan alarms hits CloudWatch limits.
+        try:
+            import boto3  # type: ignore
+            cw = boto3.client("cloudwatch", region_name=CRYOSPARC_INSTANCE_REGION)
+            cw.delete_alarms(AlarmNames=[f"cryosparc-idle-terminate-{instance_id}"])
+        except Exception:
+            pass
         _active_instance_id = ""
     except Exception as exc:
         log.warning("[CryoSPARC] Failed to terminate instance: %s", exc)
@@ -480,9 +530,28 @@ def _wait_for_instance_running(ec2, instance_id: str, timeout: int = 600) -> Non
     """Wait until EC2 instance enters 'running' state."""
     log.info("[CryoSPARC] Waiting for instance %s to reach running state...", instance_id)
     deadline = time.time() + timeout
+    # AWS eventual consistency: just-launched instances may not appear in describe
+    # for a few seconds. But if it's been gone for >EMPTY_LOOKUP_GIVE_UP_SECONDS,
+    # the instance never existed or was already terminated — fail loudly instead
+    # of looping until `timeout` (was previously infinite for terminated instances
+    # whose ID lingered in module-level `_active_instance_id`).
+    EMPTY_LOOKUP_GIVE_UP_SECONDS = 60
+    empty_lookup_until = time.time() + EMPTY_LOOKUP_GIVE_UP_SECONDS
     while time.time() < deadline:
         resp = ec2.describe_instances(InstanceIds=[instance_id])
-        state = resp["Reservations"][0]["Instances"][0]["State"]["Name"]
+        reservations = resp.get("Reservations", [])
+        instances = reservations[0].get("Instances", []) if reservations else []
+        if not instances:
+            if time.time() > empty_lookup_until:
+                raise RuntimeError(
+                    f"Instance {instance_id} not visible in describe_instances after "
+                    f"{EMPTY_LOOKUP_GIVE_UP_SECONDS}s — it was likely terminated. "
+                    f"Caller should clear cached instance id and relaunch."
+                )
+            log.info("[CryoSPARC] Instance %s not yet visible in describe_instances; waiting...", instance_id)
+            time.sleep(5)
+            continue
+        state = instances[0]["State"]["Name"]
         log.info("[CryoSPARC] Instance state: %s", state)
         if state == "running":
             log.info("[CryoSPARC] Instance is running — proceeding to CryoSPARC readiness check")

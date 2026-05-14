@@ -347,13 +347,14 @@ params.cs_helper = '''
 def estimate_particle_diameter(mw_kda) {
     // Empirical formula: diameter (Å) ≈ 6.8 × (MW in kDa)^(1/3)
     if (mw_kda == null) return null
-    return (6.8 * Math.pow(mw_kda, 1.0/3.0)).round(1)
+    // Nextflow 26.04+ doesn't auto-coerce String params to Number; cast explicitly.
+    return (6.8 * Math.pow(mw_kda as Double, 1.0/3.0)).round(1)
 }
 
 def estimate_box_size(diameter_angstroms, pixel_size) {
     // Box should be 1.5-2x particle diameter, rounded to nearest power of 2
     if (diameter_angstroms == null) return 256 // Default
-    def min_box = diameter_angstroms * 1.8 / pixel_size
+    def min_box = (diameter_angstroms as Double) * 1.8 / (pixel_size as Double)
     def powers = [64, 96, 128, 192, 256, 320, 384, 440, 512, 640, 768, 896, 1024]
     return powers.find { it >= min_box } ?: 256
 }
@@ -677,8 +678,8 @@ process SPLIT_INTO_BATCHES {
 }
 
 process PATCH_MOTION_CORRECTION_BATCH {
-    tag "${batch_id}"
-    publishDir "${params.outdir}/02_motion_correction/${batch_id}", mode: 'copy'
+    tag { batch_id }
+    publishDir { "${params.outdir}/02_motion_correction/${batch_id}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -822,8 +823,8 @@ process PATCH_MOTION_CORRECTION_BATCH {
 }
 
 process PATCH_CTF_ESTIMATION_BATCH {
-    tag "${batch_id}"
-    publishDir "${params.outdir}/03_ctf_estimation/${batch_id}", mode: 'copy'
+    tag { batch_id }
+    publishDir { "${params.outdir}/03_ctf_estimation/${batch_id}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -959,8 +960,8 @@ process PATCH_CTF_ESTIMATION_BATCH {
 }
 
 process BLOB_PICKER_BATCH {
-    tag "${batch_id}"
-    publishDir "${params.outdir}/05_blob_picker/${batch_id}", mode: 'copy'
+    tag { batch_id }
+    publishDir { "${params.outdir}/05_blob_picker/${batch_id}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -1034,8 +1035,8 @@ process BLOB_PICKER_BATCH {
 }
 
 process EXTRACT_PARTICLES_R1_BATCH {
-    tag "${batch_id}"
-    publishDir "${params.outdir}/08_extract_round1/${batch_id}", mode: 'copy'
+    tag { batch_id }
+    publishDir { "${params.outdir}/08_extract_round1/${batch_id}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -1212,8 +1213,8 @@ process SPLIT_PARTICLE_BATCHES_R2 {
 }
 
 process CLASSIFY_2D_R1_BATCH {
-    tag "${batch_id}"
-    publishDir "${params.outdir}/09_classify_2d_round1/${batch_id}", mode: 'copy'
+    tag { batch_id }
+    publishDir { "${params.outdir}/09_classify_2d_round1/${batch_id}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -1319,8 +1320,8 @@ process CLASSIFY_2D_R1_BATCH {
 }
 
 process CLASSIFY_2D_R2_BATCH {
-    tag "${batch_id}"
-    publishDir "${params.outdir}/14_classify_2d_round2/${batch_id}", mode: 'copy'
+    tag { batch_id }
+    publishDir { "${params.outdir}/14_classify_2d_round2/${batch_id}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -1401,8 +1402,8 @@ process CLASSIFY_2D_R2_BATCH {
 }
 
 process AB_INITIO_BATCH {
-    tag "ab_initio_k${k}"
-    publishDir "${params.outdir}/16_ab_initio/model_${k}", mode: 'copy'
+    tag { "ab_initio_k${k}" }
+    publishDir { "${params.outdir}/16_ab_initio/model_${k}" }, mode: 'copy'
     container params.cs_image
 
     input:
@@ -1486,8 +1487,8 @@ process AB_INITIO_BATCH {
 }
 
 process HOMO_REFINEMENT_BATCH {
-    tag "refine_${vol_name}"
-    publishDir "${params.outdir}/17_homogeneous_refinement/${vol_name}", mode: 'copy'
+    tag { "refine_${vol_name}" }
+    publishDir { "${params.outdir}/17_homogeneous_refinement/${vol_name}" }, mode: 'copy'
     container params.cs_image
 
     input:

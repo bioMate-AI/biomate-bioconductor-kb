@@ -1,5 +1,22 @@
 # BioMate Project Instructions
 
+## Engineering Discipline: Resolve Root Causes — Never Workaround
+
+**This is the highest-priority rule in this file. It overrides all convenience shortcuts.**
+
+When a test or system fails, always identify and fix the real root cause. Workarounds that make a test pass while leaving the underlying system broken are strictly forbidden — they accumulate technical debt, mask real problems, and will cause harder-to-diagnose failures later.
+
+**Specifically:**
+- If a feature fails because a user lacks a Galaxy account → fix the provisioning flow, don't skip Galaxy account operations
+- If an API route conflicts with an existing framework route → fix the route path, don't add special-case logic in the caller
+- If a dependency is missing → install it and fix the import guard, don't disable the feature
+- If a credential store fails for a user type → fix the credential architecture, don't hard-code fallback keys
+- Passing a test by bypassing the system it tests is worthless and actively harmful
+
+**When facing a choice between a quick workaround and a proper fix**, always take the proper fix, even if it takes longer. If the proper fix is not achievable in the current session, document it clearly and do nothing rather than shipping the workaround.
+
+---
+
 ## Development Process
 
 **Every task follows this iterative loop — no exceptions:**
