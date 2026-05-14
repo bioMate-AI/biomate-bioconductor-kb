@@ -9180,6 +9180,48 @@ Rules:
         outputFiles = scanDir(outdir);
       }
 
+      // S3 listing fallback for cloud runs whose Galaxy executor never registered
+      // s3_output_files in nextflowStatus (e.g. older runs, or runs where the
+      // post-completion callback dropped). Without this, completed cloud pipelines
+      // appear to have zero outputs in the UI even though files exist in S3.
+      if (outputFiles.length === 0 && outdir && String(outdir).startsWith('s3://')) {
+        try {
+          const m = String(outdir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/);
+          if (m) {
+            const [, bucket, prefix] = m;
+            const AWS = await import('@aws-sdk/client-s3');
+            const s3 = new AWS.S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+            const listed: any[] = [];
+            let continuationToken: string | undefined = undefined;
+            do {
+              const lr: any = await s3.send(new AWS.ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: `${prefix}/`,
+                ContinuationToken: continuationToken,
+                MaxKeys: 1000,
+              }));
+              for (const obj of (lr.Contents || [])) {
+                if (!obj.Key || obj.Key.endsWith('/')) continue;
+                const name = obj.Key.split('/').pop() || obj.Key;
+                const ext = (name.includes('.') ? name.split('.').pop() : '').toLowerCase();
+                listed.push({
+                  name, filename: name, extension: ext,
+                  size: obj.Size || 0,
+                  s3_uri: `s3://${bucket}/${obj.Key}`,
+                  // downloadUrl: presigned URL would go here; for now expose s3_uri
+                  // and let /api/workflows/runs/:id/step-file?path=s3://... serve it
+                });
+              }
+              continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+            } while (continuationToken);
+            outputFiles = listed;
+            console.log(`[output_files] S3 listing fallback: found ${listed.length} files under ${outdir}`);
+          }
+        } catch (e: any) {
+          console.warn(`[output_files] S3 list fallback failed: ${e?.message || e}`);
+        }
+      }
+
       if (!outdir || !String(outdir).startsWith('s3://')) {
         outdir = `s3://${s3Bucket}/nextflow/outputs/${runId}`;
       }
@@ -9196,6 +9238,22 @@ Rules:
     } catch (error: any) {
       console.error('[output_files] Error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Alias: same data as /output_files but returns the bare array (matches what
+  // tool-callers and the CryoEM E2E tests expect — they iterate the response
+  // as `outputs.map(o => o.filename)`).
+  app.get("/api/workflows/runs/:id/outputs", async (req, res) => {
+    try {
+      const r = await fetch(
+        `http://localhost:${process.env.PORT || 5000}/api/workflows/runs/${req.params.id}/output_files`,
+        { headers: { Authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' } as any }
+      );
+      const data: any = await r.json().catch(() => ({}));
+      res.status(r.status).json(data.output_files || []);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
