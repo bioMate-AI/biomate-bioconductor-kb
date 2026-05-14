@@ -2590,19 +2590,33 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                     # Sort by IDF-weighted score descending
                     gene_scores.sort(key=lambda x: x[2], reverse=True)
                     n_patient = len(patient_hpo_ids)
-                    score_lines = []
-                    for ensg, sym, weighted, raw in gene_scores:
-                        if raw > 0:
-                            score_lines.append(
-                                f"  {ensg} ({sym}): HPO match={raw}/{n_patient} terms,"
-                                f" specificity-weighted={weighted:.2f}"
-                            )
-                        else:
-                            score_lines.append(f"  {ensg} ({sym}): HPO overlap=0/{n_patient}")
-                    if score_lines:
+                    # Only list candidates WITH positive overlap. Listing the
+                    # zero-overlap candidates as 'HPO overlap=0/N' caused the
+                    # LLM to text-pattern-match 'all are 0/N' and ignore the
+                    # positively-scored candidates at the top (verified on task
+                    # 217 across v17/v21/v22 — ARL6IP1 13.19 was at top but
+                    # agent said "all 0/17"). Move 0-overlap to a separate
+                    # 'no HPO data' note so the agent can't conflate the lists.
+                    positive = [(e, s, w, r) for e, s, w, r in gene_scores if r > 0]
+                    zero_genes = [(e, s) for e, s, w, r in gene_scores if r == 0]
+                    if positive:
+                        lines = [
+                            f"  {ensg} ({sym}): HPO match={raw}/{n_patient} terms,"
+                            f" specificity-weighted={weighted:.2f}"
+                            for ensg, sym, weighted, raw in positive
+                        ]
                         parts.append(
                             "[Gene-Phenotype Overlap Scores — ranked best match first]\n"
-                            + "\n".join(score_lines)
+                            "(Only candidates with K>0 patient-HPO overlap shown. "
+                            "Select the FIRST entry; it is the highest-scoring match. "
+                            "Other candidates have no HPO data — see [No HPO Data].)\n"
+                            + "\n".join(lines)
+                        )
+                    if zero_genes:
+                        parts.append(
+                            "[No HPO Data — candidates with no overlap (database "
+                            "gap; do NOT pick from this list unless ranking is empty)]\n"
+                            + ", ".join(f"{e} ({s})" for e, s in zero_genes)
                         )
                 # OMIM disease-level enrichment: for each candidate, list the OMIM
                 # diseases it causes AND how many of the patient's HPO terms appear
