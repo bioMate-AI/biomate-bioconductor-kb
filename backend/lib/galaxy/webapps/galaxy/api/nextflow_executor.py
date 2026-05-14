@@ -1578,9 +1578,19 @@ def _start_qc_monitor(
         import time as _time
         trace_file = trace_path if trace_path is not None else (work_dir / "workflow-trace.txt")
         seen_tasks: set = set()
+        # Phase-progress tracking (separate from QC's task tracking):
+        #   seen_phase_started   — process_names that already fired workflow.phase_started
+        #   seen_phase_terminal  — process_names that already fired workflow.phase_completed/failed
+        # Aggregating by process_name avoids spamming chat when one process spawns N parallel tasks.
+        seen_phase_started: set = set()
+        seen_phase_terminal: set = set()
         idle_seconds = 0
         max_idle = 1800 if is_batch else 120  # 30 min for Batch cold-start; 2 min local
         hard_cap = 12 * 3600  # 12-hour hard stop
+
+        def _short_phase_name(full: str) -> str:
+            # "NFCORE_RNASEQ:RNASEQ:FASTQ_QC_TRIM_FILTER:STAR_ALIGN" → "STAR_ALIGN"
+            return full.rsplit(":", 1)[-1] if ":" in full else full
 
         deadline = _time.monotonic() + hard_cap
 
@@ -1598,6 +1608,10 @@ def _start_qc_monitor(
                 continue
 
             new_task_found = False
+            # Per-iteration aggregation: process_name → list of task statuses.
+            # Used after the per-task loop to decide phase_completed/failed.
+            process_status_map: Dict[str, List[str]] = {}
+
             for line in lines[1:]:  # skip header
                 if not line.strip():
                     continue
@@ -1608,6 +1622,22 @@ def _start_qc_monitor(
                 process_hash = parts[1].strip()
                 process_name = parts[3].strip()
                 task_status = parts[4].strip()
+
+                # Aggregate for phase-completion decision below.
+                process_status_map.setdefault(process_name, []).append(task_status)
+
+                # Fire workflow.phase_started exactly once per process_name on its
+                # first appearance in the trace, regardless of task_status.
+                if process_name and process_name not in seen_phase_started:
+                    seen_phase_started.add(process_name)
+                    try:
+                        _narrate_chat(
+                            invocation_id,
+                            "workflow.phase_started",
+                            {"phase_name": _short_phase_name(process_name)},
+                        )
+                    except Exception as exc:
+                        log.debug("[QC Monitor] phase_started emit failed for %s: %s", process_name, exc)
 
                 task_key = f"{task_id}:{task_status}"
                 if task_key not in seen_tasks and task_status in ("COMPLETED", "FAILED"):
@@ -1622,6 +1652,35 @@ def _start_qc_monitor(
                         )
                     except Exception as exc:
                         log.warning(f"[QC Monitor] Error handling {process_name}: {exc}")
+
+            # Fire workflow.phase_completed or phase_failed for each process_name
+            # whose ALL observed tasks are now in a terminal state, and which has
+            # not already had a terminal phase event emitted.
+            _TERMINAL = ("COMPLETED", "FAILED", "ABORTED")
+            for pname, statuses in process_status_map.items():
+                if pname in seen_phase_terminal:
+                    continue
+                if not statuses or any(s not in _TERMINAL for s in statuses):
+                    continue
+                seen_phase_terminal.add(pname)
+                short_name = _short_phase_name(pname)
+                try:
+                    if any(s == "FAILED" for s in statuses):
+                        _narrate_chat(
+                            invocation_id,
+                            "workflow.phase_failed",
+                            {"phase_name": short_name, "reason": f"{statuses.count('FAILED')} task(s) failed"},
+                        )
+                    else:
+                        n_ok = statuses.count("COMPLETED")
+                        detail = f"{n_ok} task(s)" if len(statuses) > 1 else None
+                        _narrate_chat(
+                            invocation_id,
+                            "workflow.phase_completed",
+                            {"phase_name": short_name, "detail": detail} if detail else {"phase_name": short_name},
+                        )
+                except Exception as exc:
+                    log.debug("[QC Monitor] phase_terminal emit failed for %s: %s", pname, exc)
 
             if new_task_found:
                 idle_seconds = 0
