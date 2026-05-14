@@ -1281,13 +1281,24 @@ def _parse_screen_gene_question(question: str) -> tuple:
     perturbation = ""
     pert_patterns = [
         # "resistance to the Vaccinia virus Western Reserve strain over"
-        r'resistance to (?:the\s+)?([A-Za-z][A-Za-z0-9\s\-]{2,50}?)(?:\s+over\s|\s+at\s|\s+\(|,\s+by)',
+        r'resistance to (?:the\s+)?([A-Za-z][A-Za-z0-9\s\-]{2,50}?)(?:\s+over\s|\s+at\s|\s+\(|,\s+by|\s+in\s+[A-Z])',
+        # "impact of X exposure" / "impact of X on" — alternative framing
+        r'impact of\s+([A-Za-z][A-Za-z0-9\s\-]{2,40}?)(?:\s+exposure|\s+on\b|\s+in\s+|\s+over\s)',
         # "cells to SARS-CoV-2 Sdel at a dosage" / "cells to X at a dosage of N"
         r'cells?\s+to\s+([A-Za-z][A-Za-z0-9\-\.\s\/]{2,50}?)(?:\s+at\s+a\s+dosage)',
         # "effects of 800 nM UM171 on" or "effects of selinexor on" or "effects of SHP099 at"
         r'effects of (?:[\d\.]+\s*[\w\u03bc\u00b5]+\s+)?([A-Za-z][A-Za-z0-9\-]{2,30})(?:\s+on\b|\s+at\s)',
+        # "effects of X (something) at" \u2014 variant with parenthetical descriptor (SARS-CoV-2 isolate ...)
+        r'effects of\s+([A-Za-z][A-Za-z0-9\-]{2,30})\s+\([^)]+\)\s+(?:at\s|on\s)',
         # "exposure to AZD5576" or "exposed to AZD5576"
         r'expos(?:ure|ed)\s+to\s+([A-Za-z][A-Za-z0-9\-\s]{2,40}?)(?:\s+over|\s+at|\s+\(|\s+for|,|\s+in)',
+        # "exposure of CELLS to PERTURBATION" (e.g. "exposure of HeLa cells to Salmonella...")
+        # — adapted for tasks where the framing is "exposure OF X TO Y" rather than "exposure to Y"
+        r'expos(?:ure|ed)\s+of\s+\S+\s+(?:cells\s+)?to\s+([A-Za-z][A-Za-z0-9\-\s]{2,60}?)(?:\s+influences|\s+over|\s+at|\s+for|\s+in\s+|\.|,)',
+        # "infection with X" (viral/bacterial screens) — e.g. "infection with SARS-CoV-2"
+        r'infect(?:ion|ed)\s+with\s+([A-Za-z][A-Za-z0-9\-\s]{2,60}?)(?:\s+in|\s+over|\s+at|\s+for|\.|,)',
+        # "challenged/treated with X" (alternative framing)
+        r'(?:challenged|treated|stimulated)\s+with\s+([A-Za-z][A-Za-z0-9\-\s]{2,60}?)(?:\s+in|\s+over|\s+at|\s+for|\.|,)',
         # drug-like suffix last resort: -nib, -mab, -vir, -xor, -mib, -ide, -sir
         r'\b([A-Za-z]{2,6}[0-9]{0,6}(?:nib|mab|vir|cin|xor|mib|lib|zib|sir|ide|inib))\b',
     ]
