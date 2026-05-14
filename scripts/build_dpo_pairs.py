@@ -204,6 +204,7 @@ def build_synthetic_pairs(rng: random.Random, out_path: Path):
 def build_rejection_sample_pairs(
     rng: random.Random, adapter_path: Path, out_path: Path, n_samples: int = 4,
     task_filter: str | None = None, max_pairs: int = 0,
+    source_split: str = "dev",
 ):
     import re
     import torch
@@ -229,10 +230,15 @@ def build_rejection_sample_pairs(
     model = PeftModel.from_pretrained(base, str(adapter_path))
     model.eval()
 
-    train_path = ROOT / "data/regulatory_training/tasks/splits_v6/train.jsonl"
+    # Default: sample from dev split (unseen by v6 during training, so v6 fails
+    # at its actual eval rate ~30% on phase_gating → contrastive pairs are
+    # findable). Sampling from train.jsonl yields near-zero pairs because v6
+    # memorized those prompts.
+    src_path = ROOT / f"data/regulatory_training/tasks/splits_v6/{source_split}.jsonl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    rows = [json.loads(l) for l in train_path.open()]
+    rows = [json.loads(l) for l in src_path.open()]
+    print(f"Drawing from {src_path} ({len(rows)} examples)")
     if task_filter:
         rows = [r for r in rows if r["meta"].get("task") == task_filter]
         print(f"Filtered to task={task_filter}: {len(rows)} prompts")
@@ -304,6 +310,9 @@ def main():
                     help="filter rejection sampling to one task (e.g. phase_gating)")
     ap.add_argument("--max-pairs", type=int, default=0, help="0 = no cap")
     ap.add_argument("--n-samples", type=int, default=4)
+    ap.add_argument("--source-split", type=str, default="dev",
+                    choices=["train", "dev", "test"],
+                    help="which splits_v6 file to draw prompts from (default: dev)")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -318,7 +327,8 @@ def main():
         build_rejection_sample_pairs(rng, args.adapter, args.out,
                                       n_samples=args.n_samples,
                                       task_filter=args.task,
-                                      max_pairs=args.max_pairs)
+                                      max_pairs=args.max_pairs,
+                                      source_split=args.source_split)
 
 
 if __name__ == "__main__":
