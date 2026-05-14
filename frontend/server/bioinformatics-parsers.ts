@@ -556,7 +556,7 @@ export function parseGTF(content: string, limit = 1000): AnnotationData {
 // File type classification with bioinformatics support
 export function classifyFileType(
   extension: string
-): 'image' | 'table' | 'text' | 'binary' | 'interactive' | 'sequence' | 'alignment' | 'variants' | 'annotation' | 'singlecell' {
+): 'image' | 'table' | 'text' | 'binary' | 'interactive' | 'sequence' | 'alignment' | 'variants' | 'annotation' | 'singlecell' | 'density_map' | 'structure' {
   const ext = extension.toLowerCase().replace('.', '')
 
   // Bioinformatics-specific formats
@@ -565,6 +565,10 @@ export function classifyFileType(
   const variantExts = ['vcf']
   const annotationExts = ['bed', 'gff', 'gff3', 'gtf']
   const singleCellExts = ['h5ad', 'loom', 'h5']
+  // Cryo-EM volumetric data — opened by DensityMapViewer (orthogonal 2D slices)
+  const densityMapExts = ['mrc', 'mrcs', 'map', 'ccp4']
+  // 3D macromolecular structures — opened by StructureViewer (3Dmol.js)
+  const structureExts = ['pdb', 'cif', 'mmcif', 'ent']
 
   // Standard formats
   const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'tiff', 'bmp']
@@ -577,6 +581,8 @@ export function classifyFileType(
   if (variantExts.includes(ext)) return 'variants'
   if (annotationExts.includes(ext)) return 'annotation'
   if (singleCellExts.includes(ext)) return 'singlecell'
+  if (densityMapExts.includes(ext)) return 'density_map'
+  if (structureExts.includes(ext)) return 'structure'
   if (imageExts.includes(ext)) return 'image'
   if (interactiveExts.includes(ext)) return 'interactive'
   if (tableExts.includes(ext)) return 'table'
