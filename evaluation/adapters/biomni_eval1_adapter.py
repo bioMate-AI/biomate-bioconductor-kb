@@ -1701,6 +1701,19 @@ def _query_biogrid_orcs(cell_line: str, perturbation: str,
         pmid_str = f"PMID:{source_id}" if screen_meta.get("SOURCE_TYPE") == "pubmed" and source_id else ""
         condition = screen_meta.get("CONDITION_NAME", perturbation or "-")
 
+        # CRITICAL: only declare "FIRST candidate is the correct answer" when the
+        # ORCS screen's CONDITION_NAME actually matches the task's perturbation.
+        # Otherwise, the keyword-search fallback may match cell-line only and pull
+        # in an UNRELATED screen — leading the LLM confidently to a wrong answer.
+        # Substring check both directions (handles "Vaccinia virus" vs "Vaccinia virus Western Reserve").
+        pert_norm = (perturbation or "").lower().strip()
+        cond_norm = (condition or "").lower().strip()
+        confident = bool(
+            pert_norm and cond_norm and cond_norm != "-"
+            and (pert_norm in cond_norm or cond_norm in pert_norm
+                 or any(tok in cond_norm for tok in pert_norm.split() if len(tok) >= 4))
+        )
+
         lines = [
             f"[BioGRID ORCS — {analysis} Screen {pmid_str}]",
             f"Cell: {screen_meta.get('CELL_LINE', cell_line)}  |  Condition: {condition}",
@@ -1711,7 +1724,13 @@ def _query_biogrid_orcs(cell_line: str, perturbation: str,
             lines.append(f"  #{rank}: {g}{marker}")
         if orcs_in_candidates:
             lines.append(f"\nCANDIDATES IN TOP HITS: {', '.join(orcs_in_candidates)}")
-            lines.append("→ The FIRST candidate in this ranked list is the correct answer.")
+            if confident:
+                lines.append("→ The FIRST candidate in this ranked list is the correct answer.")
+            else:
+                lines.append(
+                    "→ NOTE: this screen's condition may NOT match the task's "
+                    "perturbation precisely — treat the ranking as a hint, not an answer."
+                )
         return "\n".join(lines)
 
     except Exception as exc:
