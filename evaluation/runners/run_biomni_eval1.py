@@ -10,6 +10,8 @@ Usage:
 """
 
 import argparse
+import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -17,6 +19,26 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Reproducibility: seed all stdlib + numpy + torch RNGs at module load so any
+# tool downstream that uses a non-seeded RNG is bound to a fixed seed.
+# Also set PYTHONHASHSEED so dict/set iteration order is stable across Python
+# processes (otherwise Python uses a random hash seed per interpreter start).
+_EVAL_SEED = int(os.environ.get("BIOMATE_EVAL_SEED", "42"))
+os.environ.setdefault("PYTHONHASHSEED", str(_EVAL_SEED))
+random.seed(_EVAL_SEED)
+try:
+    import numpy as _np
+    _np.random.seed(_EVAL_SEED)
+except ImportError:
+    pass
+try:
+    import torch as _torch
+    _torch.manual_seed(_EVAL_SEED)
+    if _torch.cuda.is_available():
+        _torch.cuda.manual_seed_all(_EVAL_SEED)
+except ImportError:
+    pass
 
 from evaluation.core import BioMateEvalClient, ResultsStore
 from evaluation.adapters import BiomniEval1Adapter

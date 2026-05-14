@@ -187,7 +187,7 @@ class LLMUniversalFixer(BaseAutoFixer):
             response = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
                 model="claude-sonnet-4-20250514",
-                temperature=0.2,  # 低温度确保稳定输出
+                temperature=0,  # 低温度确保稳定输出
                 max_tokens=6000  # 足够长以支持复杂场景
             )
 

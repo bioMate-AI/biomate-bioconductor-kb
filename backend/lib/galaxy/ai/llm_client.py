@@ -272,7 +272,11 @@ class LLMClient:
                 {"role": "system", "content": "You are a helpful bioinformatics assistant."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens_key: kwargs.get('max_tokens', 1000)
+            max_tokens_key: kwargs.get('max_tokens', 1000),
+            # OpenAI supports a `seed` parameter for reproducible completions.
+            # Anthropic and Gemini don't; for those, temperature=0 is the only
+            # determinism lever. Set a fixed seed for OpenAI calls.
+            "seed": int(kwargs.get('seed', 42)),
         }
 
         # GPT-5 only supports temperature=1 (default), older models support 0-2

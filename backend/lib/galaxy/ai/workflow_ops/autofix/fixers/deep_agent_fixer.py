@@ -302,7 +302,7 @@ class DeepAgentFixer(BaseAutoFixer):
                 error_log=error_log,
                 stack_trace=stack_trace,
                 container_features=container_features,
-                temperature=0.3,
+                temperature=0,
                 max_tokens=2000
             )
 

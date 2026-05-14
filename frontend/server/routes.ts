@@ -9035,7 +9035,7 @@ Rules:
         }],
         system: ERROR_ANALYSIS_SYSTEM_PROMPT,
         maxTokens: 1024,
-        temperature: 0.1,
+        temperature: 0,
       });
       const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const result = JSON.parse(cleaned);
@@ -9062,7 +9062,7 @@ Rules:
         messages: [{ role: 'user', content: `Query: ${text}` }],
         system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
         maxTokens: 1024,
-        temperature: 0.3,
+        temperature: 0,
       });
       const title = raw.trim().replace(/^["']|["']$/g, '').slice(0, 60) || text.split(/\s+/).slice(0, 6).join(' ');
       return res.json({ title });

@@ -397,7 +397,7 @@ class RegulatoryAuditor:
                     messages=[{"role": "user", "content": prompt}],
                     system=_JUDGE_SYSTEM,
                     max_tokens=1024,
-                    temperature=0.1,
+                    temperature=0,
                 )
                 text = resp.strip()
                 if "```" in text:

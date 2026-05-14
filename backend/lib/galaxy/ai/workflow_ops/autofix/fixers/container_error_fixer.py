@@ -690,7 +690,7 @@ class ContainerErrorFixer(BaseAutoFixer):
             response = llm_client.call(
                 messages=[{'role': 'user', 'content': prompt}],  # 🔑 正确的格式
                 provider='anthropic',  # 使用 Claude
-                temperature=0.1,  # 低温度保证稳定性
+                temperature=0,  # 低温度保证稳定性
                 max_tokens=1000
             )
 

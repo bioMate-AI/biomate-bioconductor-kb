@@ -186,7 +186,7 @@ class LLMFirstFixer(BaseAutoFixer):
             response = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
                 model="claude-sonnet-4-20250514",  # 使用最新的Claude Sonnet 4模型
-                temperature=0.2,  # 低温度确保稳定输出
+                temperature=0,  # 低温度确保稳定输出
                 max_tokens=4000
             )
 
@@ -1027,7 +1027,7 @@ class LLMFirstFixer(BaseAutoFixer):
             refined_response = await self.llm_client.generate(
                 prompt=refinement_prompt,
                 max_tokens=500,
-                temperature=0.1  # 低温度以获得更确定的结果
+                temperature=0  # 低温度以获得更确定的结果
             )
 
             # 解析refinement结果
@@ -1429,7 +1429,7 @@ class LLMFirstFixer(BaseAutoFixer):
             response = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=2000,
-                temperature=0.2,  # 较低的温度，保证输出稳定
+                temperature=0,  # 较低的温度，保证输出稳定
             )
 
             # 解析 LLM 响应

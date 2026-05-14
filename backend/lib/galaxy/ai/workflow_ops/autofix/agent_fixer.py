@@ -183,7 +183,7 @@ Start by listing the workflow directory to see what files are available.
                 response = self.llm_client.call(
                     messages=self.conversation_history,
                     model="claude-sonnet-4-20250514",
-                    temperature=0.2,
+                    temperature=0,
                     max_tokens=4000,
                     tools=tool_definitions  # 🔥 关键：传递工具定义
                 )
@@ -404,7 +404,7 @@ Provide ONLY the JSON array, no additional text."""
             response = self.llm_client.call(
                 messages=self.conversation_history,
                 model="claude-sonnet-4-20250514",
-                temperature=0.2,
+                temperature=0,
                 max_tokens=2000
             )
 
