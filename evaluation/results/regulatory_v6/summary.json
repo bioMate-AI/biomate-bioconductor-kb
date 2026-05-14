@@ -1,0 +1,27 @@
+{
+  "skeleton_completion": {
+    "n": 96,
+    "passed": 94,
+    "pass_rate": 97.91666666666667
+  },
+  "mrsd_computation": {
+    "n": 50,
+    "passed": 46,
+    "pass_rate": 92.0
+  },
+  "adversity_language": {
+    "n": 30,
+    "passed": 30,
+    "pass_rate": 100.0
+  },
+  "tabulated_summary": {
+    "n": 30,
+    "passed": 25,
+    "pass_rate": 83.33333333333333
+  },
+  "phase_gating": {
+    "n": 30,
+    "passed": 21,
+    "pass_rate": 70.0
+  }
+}
