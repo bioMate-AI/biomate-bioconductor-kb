@@ -5545,6 +5545,34 @@ class NextflowQCGateHandler:
         except Exception as e:
             log.error(f"[QC Gate] Failed to emit SSE event: {e}")
 
+        # Friendly chat-progress line. A non-advisory failure means the gate
+        # blocks the workflow and the user (or auto-loop) needs to adjust
+        # parameters; otherwise it's an advisory warning.
+        try:
+            from galaxy.ai.workflow_ops.workflow_chat_narrator import emit as _narrator_emit
+            blocking = [f for f in failures if not f.get("advisory", False)]
+            primary = (blocking[0] if blocking else (failures[0] if failures else {}))
+            metric = primary.get("metric") or "metric"
+            value = primary.get("value")
+            threshold = primary.get("threshold")
+            kind = "workflow.qc_gate_blocked" if blocking else "workflow.qc_gate_warning"
+            _narrator_emit(
+                self.invocation_id,
+                kind,
+                technical={
+                    "metric": metric,
+                    "value": value,
+                    "threshold": threshold,
+                    "process_name": process_name,
+                    "n_failures": len(failures),
+                    "n_blocking": len(blocking),
+                    "n_suggestions": len(suggestions),
+                },
+                sse_callback=self.sse_callback,
+            )
+        except Exception as e:
+            log.debug("[QC Gate] narrator emit failed: %s", e)
+
     def _check_qc_warnings(
         self,
         process_name: str,
@@ -5717,3 +5745,23 @@ class NextflowQCGateHandler:
             log.info(f"[QC Gate] Near-threshold warning emitted for {process_name}")
         except Exception as e:
             log.error(f"[QC Gate] Failed to emit warning event: {e}")
+
+        # Friendly chat-progress line: near-threshold advisory (no action needed).
+        try:
+            from galaxy.ai.workflow_ops.workflow_chat_narrator import emit as _narrator_emit
+            primary = warnings[0] if warnings else {}
+            _narrator_emit(
+                self.invocation_id,
+                "workflow.qc_gate_warning",
+                technical={
+                    "metric": primary.get("metric") or "metric",
+                    "value": primary.get("value"),
+                    "threshold": primary.get("threshold"),
+                    "process_name": process_name,
+                    "n_warnings": len(warnings),
+                    "advisory_only": True,
+                },
+                sse_callback=self.sse_callback,
+            )
+        except Exception as e:
+            log.debug("[QC Gate] narrator emit (warning) failed: %s", e)

@@ -3331,6 +3331,15 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
             {"executor": "awsbatch"} if prev.get("is_batch") else None
         ),
     )
+
+    # Friendly chat-progress: a -resume with new params is the auto-loop /
+    # manual retry kicking in. Emit on the ORIGINAL invocation_id so the line
+    # lands in the same chat session that originated the run.
+    _prev_inv = prev.get("invocation_id")
+    if _prev_inv and body.parameters:
+        _changes = {k: v for k, v in (body.parameters or {}).items() if not str(k).startswith("__")}
+        _narrate_chat(_prev_inv, "workflow.autoloop_started", {"changes": _changes, "resumed_from": run_id})
+
     return execute_nextflow(resume_request)
 
 
