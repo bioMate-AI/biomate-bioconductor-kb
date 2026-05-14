@@ -1,5 +1,27 @@
 # CryoEM Dev E2E Handover — 2026-05-09 (updated 2026-05-12)
 
+## Presigner + describe-instances Exception Fix (v4) — Verified (2026-05-14, 21:26 UTC)
+
+Pushed `15a91ae8a`. Two changes:
+1. `cryosparc_executor.py` `_wait_for_instance_running`: wrap `describe_instances` in try/except. AWS eventual consistency can raise `InvalidInstanceID.NotFound` (not just empty Reservations) for 5–20s after `run_instances`. Previously caused 503 within 3s of execute — confirmed in v3 run (`710af6ea` never ran a Nextflow pipeline). Now correctly waits.
+2. `routes.ts` `/output_files`: presign `downloadUrl` (1 hr TTL) for each S3-listed object so browser viewers and downstream agents can fetch S3 directly.
+
+**v4 score: 69/73 (95%) — unchanged from v3.** Same 4 failures persist. Pipeline ran cleanly this time: runId `c250f967-36eb-4f2b-8302-c30ee04c5752`, wallTime 3725s (62 min), 23/23 Nextflow steps.
+
+**Why presigner alone didn't move the score:**
+- `DensityMapViewer` at `chat-output-attachments.tsx:347-351` consumes `output.metadata.s3Uri` from a **different** outputs source (the React component is wired to `/api/invocations/:id/outputs`, not `/api/workflows/runs/:id/output_files`). My presigner is on the wrong endpoint for this consumer.
+- `findings agent` (Galaxy backend Haiku call) reads output files via its own S3 access path; same disconnect.
+- `phase-A-file-chips-in-ui` uses a per-step files endpoint, not run-level outputs.
+- `ai-panel-has-summary-section` is a too-strict literal string match on LLM-generated text.
+
+**Net of session work:** outputs-endpoint S3 fallback (the original cascade root) is fixed at the run-level endpoint. The remaining 4 failures each need a targeted fix at their own code path:
+- (a) wire `chat-output-attachments` `density_map` case to read `downloadUrl` from `/output_files` (or replicate the S3-list+presign logic in `/api/invocations/:id/outputs`)
+- (b) findings agent: S3 read via boto3 inside Galaxy backend
+- (c) phase cards: per-step file enumeration
+- (d) test assertion: relax `Summary` → case-insensitive `summary|summarized` regex
+
+The super-merge structure means a single GPU run continues to expose ALL of these decoupled failures together — exactly as designed.
+
 ## Outputs-Endpoint Fix — Verified (2026-05-14, 04:54 UTC)
 
 Re-ran super-test after fix. Score: **66/73 → 69/73 (95%)**.
