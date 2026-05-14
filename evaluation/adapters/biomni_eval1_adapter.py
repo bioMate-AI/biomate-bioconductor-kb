@@ -2437,37 +2437,10 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                     response_text = rt
                     break
 
-        # ── Self-consistency vote (variance reduction) ─────────────────────────
-        # For patient_gene / rare_disease / screen_gene / gwas tasks, sample K=2
-        # additional responses. Extract the answer from each. If at least 2 of
-        # the 3 samples agree on the same answer, return the response that
-        # produced the majority answer. Otherwise return the first response.
-        # Cost: ~3x LLM tokens for these tasks; benefit: ±5-10pp flap envelope
-        # on N=30 reduced toward ±2-3pp (sqrt(K) law).
-        _VOTE_TASK_NAMES = {
-            "patient_gene_detection", "rare_disease_diagnosis",
-            "screen_gene_retrieval", "gwas_variant_prioritization",
-            "gwas_causal_gene_pharmaprojects", "gwas_causal_gene_opentargets",
-        }
-        if task_name in _VOTE_TASK_NAMES and len(response_text or "") > 30:
-            try:
-                gt_str = str(task.ground_truth)
-                first_extracted = _extract_answer(task_name, response_text, gt_str)
-                votes: Dict[str, List[str]] = {first_extracted: [response_text]}
-                for _sample in range(2):
-                    s_resp = client.ask(prompt)
-                    s_text = s_resp.text or ""
-                    if any(p in s_text.lower() for p in _TRANSIENT_ERROR_PATTERNS):
-                        continue
-                    s_extracted = _extract_answer(task_name, s_text, gt_str)
-                    votes.setdefault(s_extracted, []).append(s_text)
-                # Pick majority extracted answer, return its first response
-                winner = max(votes.items(), key=lambda kv: len(kv[1]))
-                if len(winner[1]) >= 2 and winner[0] != first_extracted:
-                    # Majority disagrees with first — use a winner response
-                    response_text = winner[1][0]
-            except Exception as e:
-                logger.debug("self-consistency vote failed: %s", e)
+        # (Previously had a 3-sample self-consistency vote here as a workaround
+        # for variance. After identifying the root cause — temperature=0.7 on
+        # the response-generation LLM call — and switching to temperature=0,
+        # voting is redundant and triples LLM cost for nothing. Removed.)
 
         # Retry for screen_gene when model refuses to answer or routes to workflow
         _REFUSAL_PATTERNS = [

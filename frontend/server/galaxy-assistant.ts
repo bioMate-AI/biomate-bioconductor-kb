@@ -1197,7 +1197,9 @@ export class GalaxyAssistant {
     const model = this.gemini.getGenerativeModel({
       model: geminiModelName,
       systemInstruction: systemPrompt,
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 },
+      // temperature=0 for determinism (BioMate is a scientific tool; see
+      // sister Anthropic call where the same change was applied).
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0 },
       ...(geminiTools ? { tools: geminiTools as any } : {}),
     });
 
@@ -1266,7 +1268,7 @@ export class GalaxyAssistant {
         const noToolModel = this.gemini!.getGenerativeModel({
           model: geminiModelName,
           systemInstruction: 'Based on the code execution results, provide the final answer concisely. Print only the answer value, no explanation.',
-          generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
+          generationConfig: { maxOutputTokens: 512, temperature: 0 },
         });
         const summaryHistory = await chat.getHistory();
         const summaryChatObj = noToolModel.startChat({ history: summaryHistory });
@@ -1303,7 +1305,9 @@ export class GalaxyAssistant {
         ...messages.map(m => ({ role: m.role, content: m.content })),
       ],
       stream: true,
-      options: { num_predict: maxTokens, temperature: 0.7, num_ctx: 32768, keep_alive: '60m' },
+      // temperature=0 for determinism — Ollama local-LLM path used for
+      // self-hosted models; same reasoning as Anthropic/Gemini paths.
+      options: { num_predict: maxTokens, temperature: 0, num_ctx: 32768, keep_alive: '60m' },
     });
     const ollamaTimeout = 480_000; // 480s — covers gemma4:31b worst case
     const abortCtrl = new AbortController();
@@ -5137,7 +5141,16 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           budget_tokens: this.modelConfig.thinkingBudget
         };
       } else {
-        apiOptions.temperature = 0.7;
+        // BioMate is a scientific tool — users ask factual biomedical
+        // questions with correct answers. Sampling at high temperature
+        // hurts accuracy (introduces variance away from the right answer)
+        // and reproducibility (re-running the same query yields different
+        // text), and the "conversational variety" benefit doesn't apply to
+        // describing deterministic computational results. Set 0 always.
+        // Was 0.7 (legacy from chat-UI convention) — observed to add
+        // ±5-10pp run-to-run flap on N=30 biomni evals, the dominant
+        // variance source after retries fixed transient errors.
+        apiOptions.temperature = 0;
       }
 
       // ── Agent loop: tool use + streaming ─────────────────────────────────────
