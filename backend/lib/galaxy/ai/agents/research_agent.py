@@ -2386,12 +2386,15 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
         if not self.llm_client:
             raise ValueError("LLM client not available")
 
-        # generate() is synchronous; generate_async() is the awaitable version
+        # temperature=0 for determinism — research_agent serves biomni clinical
+        # genomics tasks (patient_gene, rare_disease, screen_gene). Reproducibility
+        # of scientific Q&A matters; "conversational variety" doesn't justify
+        # the run-to-run flap.
         if hasattr(self.llm_client, 'generate_async'):
             response = await self.llm_client.generate_async(
                 prompt=prompt,
                 max_tokens=2000,
-                temperature=0.7
+                temperature=0
             )
         else:
             # Fallback: call sync version in thread executor to avoid blocking
@@ -2399,7 +2402,7 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.llm_client.generate(prompt, max_tokens=2000, temperature=0.7)
+                lambda: self.llm_client.generate(prompt, max_tokens=2000, temperature=0)
             )
 
         return response
