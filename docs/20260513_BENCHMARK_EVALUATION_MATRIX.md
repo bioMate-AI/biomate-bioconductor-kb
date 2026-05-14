@@ -105,6 +105,7 @@ for that specific sub-task.
 | v35 | 91.7% | +0.7 | bix-3 DESeq2 intersection handler | H | d89f63855 |
 | **v36** | **92.7%** | **+1.0** | bix-47 patient age + top gene handlers | H | 165885eac |
 | v37 | 89.8% | -2.9 flap | (no code change since v36) | — | — |
+| v38 | 90.7% | +0.9 | (no code change; LLM flap envelope) | — | — |
 
 ### biomni_eval1 patient_gene (LLM-routed, needs port 5000)
 
@@ -114,6 +115,7 @@ for that specific sub-task.
 | v10 | 55.0% | 20 | +41.7 | frontend port 5000 restarted; reran current code | I | (no code) |
 | v11 | 53.3% | 30 | -1.7 flap | larger N | — | — |
 | **v12** | **76.7%** | 30 | **+23.4** | transient-error retry (≤2x) in `ask_task` | I | ee0880fdd |
+| v13 | 66.7% | 30 | -10.0 flap | (no code change since v12) — flap envelope | — | — |
 
 ### biomni_eval1 rare_disease
 
@@ -123,6 +125,7 @@ for that specific sub-task.
 | v10 | 25.0% | 20 | +11.7 | restart frontend; rerun | I | — |
 | **v11** | **55.0%** | 20 | **+30.0** | OMIM-mismatch escape hatch (names match ≥0.92) | L3 | d89c78ff7 |
 | v12 | 46.7% | 30 | +21.7 | same change, larger N (slight flap) | — | — |
+| v13 | 53.3% | 30 | +6.6 | (no code change; rerun on N=30, verifier change holds) | — | — |
 
 ### biomni_eval1 screen_gene
 
