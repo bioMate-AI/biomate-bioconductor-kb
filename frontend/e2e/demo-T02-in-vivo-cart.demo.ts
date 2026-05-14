@@ -1,19 +1,15 @@
 /**
- * Demo T02 — In Vivo CAR-T Co-Design (Capstan / fratricide story)
+ * Demo T02 — In Vivo CAR-T Co-Design (Capstan / Kelonia / Umoja story)
  *
- * Scientific story: Capstan ($165M), Umoja ($122M), Kelonia ($115M) raised $400M+
- * to skip ex vivo CAR-T manufacturing ($400-500K/patient → $5-50K). The design
- * problem is multi-modality: LNP tropism × CAR target × fratricide. Only BioMate
- * chains all three in one query.
- *
- * Target runtime: 3 minutes.
+ * Strategy: live-record full duration (~5-6 min); EDIT to ~3:00 in post.
+ * Mid-execution tips narrate the AWS Batch run; post-production trims gaps.
  */
 
 import { test } from '@playwright/test';
 import {
   setupDemoUser,
   sendAndWait,
-  clickRunAndWait,
+  clickRunOnly,
   waitForNoActiveRuns,
   shot,
   pause,
@@ -25,82 +21,86 @@ const EMAIL = 'demo_invivo_cart@biomate.test';
 
 const QUERY = `Design an in vivo CAR-T for CD19 using an anti-CD8 LNP for B-cell lymphoma. Check fratricide risk between the CAR target and the LNP delivery vehicle, and emit the full CAR construct sequence.`;
 
-test('Demo T02 — In vivo CAR-T: CD19 + anti-CD8 LNP (Capstan pattern)', async ({ page }) => {
+test('Demo T02 — In vivo CAR-T: CD19 + anti-CD8 LNP', async ({ page }) => {
   test.setTimeout(900_000);
 
+  // Beat 1: Intro
   await setupDemoUser(page, EMAIL, 'DemoPass123!', 'Cell Therapy');
-  await pause(page, 1500);
+  await pause(page, 1000);
   await shot(page, DEMO, '00_start');
 
   await tip(
     page,
-    'Capstan, Umoja, and Kelonia raised $400M+ to skip ex vivo CAR-T manufacturing. The hard part is multi-modality co-design.',
-    7000
-  );
-  await pause(page, 4500);
-  await shot(page, DEMO, '01_intro_tip');
-
-  await tip(
-    page,
-    'LNP tropism × CAR target × fratricide. Get any one wrong and the program dies. Watch all three resolve in one query.',
+    'Capstan, Umoja, Kelonia raised $400M+ to skip ex vivo CAR-T manufacturing. The hard part is multi-modality co-design: LNP × target × fratricide.',
     6500
   );
-  await pause(page, 4500);
+  await pause(page, 5000);
+  await shot(page, DEMO, '01_intro');
 
-  // ── Type query, AI routes ──────────────────────────────────────────────────
+  // Beat 2: Query + routing
   await sendAndWait(page, QUERY, 180_000);
   await shot(page, DEMO, '02_workflow_ready');
 
+  // Beat 3: Panel review
   await tip(
     page,
-    'BioMate extracted CAR target, LNP, and indication. Routed to in_vivo_cart_codesign at confidence 144.',
+    'BioMate extracted CAR target, LNP, and indication; routed to in_vivo_cart_codesign at confidence 144.',
+    4500
+  );
+  await pause(page, 4500);
+  await shot(page, DEMO, '03_panel_review');
+
+  await tip(
+    page,
+    'Four phases queued: atlas safety → LNP tropism → fratricide check → CAR construct assembly.',
+    4500
+  );
+  await pause(page, 4000);
+  await shot(page, DEMO, '04_phases_queued');
+
+  // Beat 4: Click Run
+  await tip(page, 'Submitting to AWS Batch.', 3000);
+  await pause(page, 1500);
+  const runId = await clickRunOnly(page);
+  console.log('[DemoT02] Submitted. runId:', runId);
+  await pause(page, 2000);
+  await shot(page, DEMO, '05_submitted');
+
+  // Beat 5: Narrate execution
+  await tip(
+    page,
+    'Phase 1 launched: atlas check on CD19. B-cell restricted, no critical tissue hits — VIABLE.',
     5500
   );
-  await pause(page, 4500);
-  await shot(page, DEMO, '03_extracted_params');
-
-  // ── Review parameters ──────────────────────────────────────────────────────
-  await tip(
-    page,
-    'Phase 1: atlas safety on CD19 (B-cell restricted, clean). Phase 2: LNP tropism. Phase 3: fratricide check. Phase 4: CAR construct.',
-    7000
-  );
-  await pause(page, 5000);
-  await shot(page, DEMO, '04_phases');
-
-  // ── Execute ────────────────────────────────────────────────────────────────
-  await tip(page, 'Submitting to AWS Batch — the full multi-modality chain runs in 4 minutes.', 4500);
-  await pause(page, 2000);
-  const runId = await clickRunAndWait(page, 600_000);
-  console.log('[DemoT02] Run complete. runId:', runId);
-  await shot(page, DEMO, '05_run_complete');
-
-  await waitForNoActiveRuns(page, 600_000);
-  await pause(page, 5000);
-
-  // ── Show outputs ───────────────────────────────────────────────────────────
-  await tip(
-    page,
-    'Fratricide check: anti-CD8 LNP transfects T cells; CD19 is on B cells; no overlap → GO.',
-    6500
-  );
-  await pause(page, 4500);
-  await shot(page, DEMO, '06_fratricide_check');
+  await pause(page, 30_000);
+  await shot(page, DEMO, '06_phase_running');
 
   await tip(
     page,
-    'CAR construct emitted as FASTA: FMC63 scFv + CD8α hinge + CD28 costim + CD3ζ — Kymriah pattern, 1485 AA.',
-    7000
+    'Phase 3 is the trap. LNP anti-CD5 transfects T cells. CD19 is on B cells. No overlap → no fratricide.',
+    6000
   );
-  await pause(page, 5000);
-  await shot(page, DEMO, '07_cart_construct');
+  await pause(page, 35_000);
+  await shot(page, DEMO, '07_fratricide_check');
 
-  // ── Closing ────────────────────────────────────────────────────────────────
   await tip(
     page,
-    'Switch the CAR target to CD7 and the same workflow correctly fires a fratricide warning — automatically.',
-    7000
+    'CAR construct emitted as FASTA — FMC63 + CD8α + CD28 + CD3ζ. Kymriah architecture, 1485 AA.',
+    5500
+  );
+  await pause(page, 25_000);
+  await shot(page, DEMO, '08_construct_emitted');
+
+  await waitForNoActiveRuns(page, 240_000);
+  await pause(page, 4000);
+  await shot(page, DEMO, '09_complete');
+
+  // Beat 6: Closing
+  await tip(
+    page,
+    'Switch CAR target to CD7 and the same workflow fires a fratricide warning automatically.',
+    5500
   );
   await pause(page, 5000);
-  await shot(page, DEMO, '08_closing');
+  await shot(page, DEMO, '10_closing');
 });

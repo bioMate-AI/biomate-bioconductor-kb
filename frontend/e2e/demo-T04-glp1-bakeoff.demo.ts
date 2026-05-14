@@ -1,19 +1,14 @@
 /**
  * Demo T04 — GLP-1 Modality Bake-Off (Tirzepatide / Retatrutide story)
  *
- * Scientific story: Trillion-dollar drug class. Every pharma is asking "what's the
- * next GLP-1?" The answer is now indication-aware: tirzepatide for obesity, retatrutide
- * for MASH (GCGR adds hepatic fat oxidation), orforglipron for cost. BioMate's
- * framework triages all candidates across GLP1R / GIPR / GCGR in 30 seconds.
- *
- * Target runtime: 3 minutes.
+ * Strategy: live-record full duration; EDIT to ~3:00 in post.
  */
 
 import { test } from '@playwright/test';
 import {
   setupDemoUser,
   sendAndWait,
-  clickRunAndWait,
+  clickRunOnly,
   waitForNoActiveRuns,
   shot,
   pause,
@@ -28,79 +23,83 @@ const QUERY = `What is the best GLP-1 modality for MASH? Compare semaglutide-cla
 test('Demo T04 — GLP-1 modality bake-off for MASH', async ({ page }) => {
   test.setTimeout(900_000);
 
+  // Beat 1: Intro
   await setupDemoUser(page, EMAIL, 'DemoPass123!', 'Metabolic Disease');
-  await pause(page, 1500);
+  await pause(page, 1000);
   await shot(page, DEMO, '00_start');
 
   await tip(
     page,
-    'GLP-1 is the trillion-dollar drug story of the decade. SELECT, SURMOUNT, SYNERGY-NASH — all in the last 18 months.',
-    7000
-  );
-  await pause(page, 4500);
-  await shot(page, DEMO, '01_intro_tip');
-
-  await tip(
-    page,
-    'Every pharma asks "what\'s the next GLP-1?" The answer depends on indication. Watch BioMate triage across GLP1R / GIPR / GCGR.',
-    7000
+    'GLP-1 is the trillion-dollar drug class of the decade. Every pharma is asking "what\'s the next GLP-1?" The answer is indication-aware.',
+    6500
   );
   await pause(page, 5000);
+  await shot(page, DEMO, '01_intro');
 
-  // ── Type query ─────────────────────────────────────────────────────────────
+  // Beat 2: Query + routing
   await sendAndWait(page, QUERY, 180_000);
   await shot(page, DEMO, '02_workflow_ready');
 
+  // Beat 3: Panel review
   await tip(
     page,
-    'Routed to glp1_modality_bakeoff at confidence 130. Extracted disease=MASH and 4 candidate modalities.',
-    5500
+    'BioMate extracted disease=MASH and the four candidate modalities; routed to glp1_modality_bakeoff at confidence 130.',
+    4500
   );
   await pause(page, 4500);
-  await shot(page, DEMO, '03_extracted_params');
+  await shot(page, DEMO, '03_panel_review');
 
-  // ── Review parameters ──────────────────────────────────────────────────────
   await tip(
     page,
-    'Each receptor has its own atlas profile. GLP1R: gut + pancreas + brain. GIPR: adipose + β-cell. GCGR: hepatocyte.',
-    7000
+    'Workflow scores six modalities across three receptors — GLP1R, GIPR, GCGR — weighted by indication.',
+    4500
   );
-  await pause(page, 5000);
-  await shot(page, DEMO, '04_receptors');
+  await pause(page, 4000);
+  await shot(page, DEMO, '04_phases_queued');
 
-  // ── Execute ────────────────────────────────────────────────────────────────
-  await tip(page, 'Submitting to AWS Batch.', 3500);
+  // Beat 4: Click Run
+  await tip(page, 'Submitting to AWS Batch.', 3000);
   await pause(page, 1500);
-  const runId = await clickRunAndWait(page, 600_000);
-  console.log('[DemoT04] Run complete. runId:', runId);
-  await shot(page, DEMO, '05_run_complete');
+  const runId = await clickRunOnly(page);
+  console.log('[DemoT04] Submitted. runId:', runId);
+  await pause(page, 2000);
+  await shot(page, DEMO, '05_submitted');
 
-  await waitForNoActiveRuns(page, 600_000);
-  await pause(page, 5000);
-
-  // ── Show outputs ───────────────────────────────────────────────────────────
+  // Beat 5: Narrate execution
   await tip(
     page,
-    'For MASH: triple GLP1R+GIPR+GCGR wins (retatrutide-class). GCGR adds hepatic fat oxidation — exactly the SYNERGY-NASH mechanism.',
-    7500
+    'Pulling atlas expression for all three GLP-1 family receptors. GCGR is hepatocyte-dominant — that matters for MASH.',
+    6000
   );
-  await pause(page, 5500);
-  await shot(page, DEMO, '06_top_recommendation');
+  await pause(page, 30_000);
+  await shot(page, DEMO, '06_atlas_pull');
 
   await tip(
     page,
-    'Switch indication to T2D and the same workflow downgrades triple agonist — GCGR causes hyperglycemia, anti-mechanism for diabetes.',
-    7500
+    'For MASH, GCGR adds hepatic fat oxidation — therapeutic. For T2D, it would be a liability — hyperglycemia.',
+    6000
   );
-  await pause(page, 5000);
-  await shot(page, DEMO, '07_indication_awareness');
+  await pause(page, 35_000);
+  await shot(page, DEMO, '07_scoring');
 
-  // ── Closing ────────────────────────────────────────────────────────────────
+  await tip(
+    page,
+    'Top recommendation: retatrutide-class triple agonist. Receptor pattern GLP1R + GIPR + GCGR.',
+    5500
+  );
+  await pause(page, 25_000);
+  await shot(page, DEMO, '08_top_modality');
+
+  await waitForNoActiveRuns(page, 240_000);
+  await pause(page, 4000);
+  await shot(page, DEMO, '09_complete');
+
+  // Beat 6: Closing
   await tip(
     page,
     'Tirzepatide for obesity. Retatrutide for MASH. Orforglipron for cost. All in one bake-off.',
-    7000
+    5500
   );
   await pause(page, 5000);
-  await shot(page, DEMO, '08_closing');
+  await shot(page, DEMO, '10_closing');
 });
