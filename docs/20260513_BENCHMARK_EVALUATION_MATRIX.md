@@ -116,6 +116,9 @@ for that specific sub-task.
 | v11 | 53.3% | 30 | -1.7 flap | larger N | — | — |
 | **v12** | **76.7%** | 30 | **+23.4** | transient-error retry (≤2x) in `ask_task` | I | ee0880fdd |
 | v13 | 66.7% | 30 | -10.0 flap | (no code change since v12) — flap envelope | — | — |
+| v14 | 63.3% | 30 | -3.4 | strengthen prompt to forbid 'all 0/N' hallucination | L3 | c2aa71967 |
+| v15 | 23.3% | 30 | -40.0 REGRESSION | deterministic HPO-top-pick short-circuit | H (wrong) | 01f197d2e |
+| v16 | 63.3% | 30 | back to v14 level | revert deterministic shortcut; keep prompt change | — | f0680c2a2 |
 
 ### biomni_eval1 rare_disease
 
