@@ -202,34 +202,59 @@ def build_synthetic_pairs(rng: random.Random, out_path: Path):
 
 
 def build_rejection_sample_pairs(
-    rng: random.Random, adapter_path: Path, out_path: Path, n_samples: int = 8,
+    rng: random.Random, adapter_path: Path, out_path: Path, n_samples: int = 4,
+    task_filter: str | None = None, max_pairs: int = 0,
 ):
+    import re
     import torch
     from peft import PeftModel
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
     print(f"Loading v6 adapter from {adapter_path}...")
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-8B")
+    # 4-bit NF4 quantization (matches training + eval scripts). Without this,
+    # device_map="auto" silently offloads params to CPU on GB10, making
+    # generation 10-100x slower.
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    )
     base = AutoModelForCausalLM.from_pretrained(
-        "Qwen/Qwen3-8B", torch_dtype=torch.bfloat16, device_map="auto",
+        "Qwen/Qwen3-8B",
+        quantization_config=bnb_config,
+        device_map={"": 0},
     )
     model = PeftModel.from_pretrained(base, str(adapter_path))
     model.eval()
 
     train_path = ROOT / "data/regulatory_training/tasks/splits_v6/train.jsonl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    rows = [json.loads(l) for l in train_path.open()]
+    if task_filter:
+        rows = [r for r in rows if r["meta"].get("task") == task_filter]
+        print(f"Filtered to task={task_filter}: {len(rows)} prompts")
+    rng.shuffle(rows)  # randomize so we don't bias toward first N
+
     written = 0
     with out_path.open("w") as f:
-        for line in train_path.open():
-            row = json.loads(line)
+        for i, row in enumerate(rows):
             task = row["meta"].get("task")
             if task not in TASK_MUTATORS:
                 continue
 
             prompt_msgs = row["messages"][:2]
-            text = tokenizer.apply_chat_template(
-                prompt_msgs, tokenize=False, add_generation_prompt=True,
-            )
+            try:
+                text = tokenizer.apply_chat_template(
+                    prompt_msgs, tokenize=False, add_generation_prompt=True,
+                    enable_thinking=False,
+                )
+            except TypeError:
+                text = tokenizer.apply_chat_template(
+                    prompt_msgs, tokenize=False, add_generation_prompt=True,
+                )
             inputs = tokenizer(text, return_tensors="pt").to(model.device)
 
             passing, failing = [], []
@@ -243,16 +268,15 @@ def build_rejection_sample_pairs(
                     gen = tokenizer.decode(
                         out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True,
                     )
+                    gen = re.sub(r"<think>.*?</think>\s*", "", gen, flags=re.S | re.I).strip()
                     if verify_pair(task, gen, "DUMMY_FAIL_X", row["meta"]):
-                        # gen passes; use as chosen candidate
                         passing.append(gen)
                     else:
                         failing.append(gen)
 
             if not passing or not failing:
                 continue
-            chosen = passing[0]
-            rejected = failing[0]
+            chosen, rejected = passing[0], failing[0]
             if verify_pair(task, chosen, rejected, row["meta"]):
                 f.write(json.dumps({
                     "prompt": row["messages"][1]["content"],
@@ -260,9 +284,13 @@ def build_rejection_sample_pairs(
                     "rejected": rejected,
                     "meta": {"task": task, **row["meta"]},
                 }) + "\n")
+                f.flush()
                 written += 1
-                if written % 25 == 0:
-                    print(f"  [{written} pairs]")
+                if written % 5 == 0:
+                    print(f"  [{written} pairs · processed {i+1}/{len(rows)} prompts]")
+                if max_pairs > 0 and written >= max_pairs:
+                    print(f"Reached max_pairs={max_pairs}; stopping")
+                    break
     print(f"Rejection-sampled DPO pairs: {written}")
 
 
@@ -272,6 +300,10 @@ def main():
     ap.add_argument("--adapter", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--seed", type=int, default=20260511)
+    ap.add_argument("--task", type=str, default=None,
+                    help="filter rejection sampling to one task (e.g. phase_gating)")
+    ap.add_argument("--max-pairs", type=int, default=0, help="0 = no cap")
+    ap.add_argument("--n-samples", type=int, default=4)
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -283,7 +315,10 @@ def main():
     else:
         if args.adapter is None:
             sys.exit("--adapter required for rejection-sample mode")
-        build_rejection_sample_pairs(rng, args.adapter, args.out)
+        build_rejection_sample_pairs(rng, args.adapter, args.out,
+                                      n_samples=args.n_samples,
+                                      task_filter=args.task,
+                                      max_pairs=args.max_pairs)
 
 
 if __name__ == "__main__":

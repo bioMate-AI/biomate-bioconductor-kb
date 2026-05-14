@@ -103,16 +103,24 @@ CHECKERS = {
 
 
 def load_adapter(adapter_path: Path):
-    """Load v6 model + tokenizer with the LoRA adapter."""
+    """Load v6 model + tokenizer with the LoRA adapter (4-bit NF4)."""
     import torch
     from peft import PeftModel
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
     base_id = "Qwen/Qwen3-8B"
     print(f"Loading base model {base_id}...")
     tokenizer = AutoTokenizer.from_pretrained(base_id)
+    # 4-bit NF4 matches training; bf16 + device_map="auto" silently offloads
+    # to CPU on GB10 and makes generation crawl.
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    )
     model = AutoModelForCausalLM.from_pretrained(
-        base_id, torch_dtype=torch.bfloat16, device_map="auto",
+        base_id, quantization_config=bnb_config, device_map={"": 0},
     )
     print(f"Attaching LoRA adapter from {adapter_path}...")
     model = PeftModel.from_pretrained(model, str(adapter_path))
@@ -121,11 +129,34 @@ def load_adapter(adapter_path: Path):
 
 
 def generate(model, tokenizer, messages: list[dict], max_new_tokens: int = 1024) -> str:
+    """
+    Qwen3 generation with thinking disabled.
+
+    Without enable_thinking=False, Qwen3 emits <think>...</think> blocks that
+    waste tokens and break checker pattern matching. The training pipeline uses
+    enable_thinking=False (see _call_local_regulatory_llm in ind_assembly.py),
+    so the eval pipeline must match.
+    """
+    import re
     import torch
-    text = tokenizer.apply_chat_template(
-        messages[:-1],  # exclude the gold assistant turn
-        tokenize=False, add_generation_prompt=True,
-    )
+    # Strip the gold assistant turn — we want the model to generate it.
+    prompt_msgs = messages[:-1]
+    try:
+        text = tokenizer.apply_chat_template(
+            prompt_msgs, tokenize=False, add_generation_prompt=True,
+            enable_thinking=False,
+        )
+    except TypeError:
+        # Older transformers: prepend /no_think to user message to disable thinking
+        prompt_msgs = list(prompt_msgs)
+        for i, m in enumerate(prompt_msgs):
+            if m["role"] == "user":
+                prompt_msgs[i] = {"role": "user", "content": f"/no_think\n{m['content']}"}
+                break
+        text = tokenizer.apply_chat_template(
+            prompt_msgs, tokenize=False, add_generation_prompt=True,
+        )
+
     inputs = tokenizer(text, return_tensors="pt").to(model.device)
     with torch.no_grad():
         out = model.generate(
@@ -136,6 +167,9 @@ def generate(model, tokenizer, messages: list[dict], max_new_tokens: int = 1024)
             pad_token_id=tokenizer.eos_token_id,
         )
     gen = tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+    # Defensive: even with enable_thinking=False, some Qwen3 builds still emit
+    # a leading <think>...</think>. Strip it.
+    gen = re.sub(r"<think>.*?</think>\s*", "", gen, flags=re.S | re.I).strip()
     return gen
 
 
