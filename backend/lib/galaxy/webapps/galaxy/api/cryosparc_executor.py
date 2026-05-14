@@ -538,7 +538,21 @@ def _wait_for_instance_running(ec2, instance_id: str, timeout: int = 600) -> Non
     EMPTY_LOOKUP_GIVE_UP_SECONDS = 60
     empty_lookup_until = time.time() + EMPTY_LOOKUP_GIVE_UP_SECONDS
     while time.time() < deadline:
-        resp = ec2.describe_instances(InstanceIds=[instance_id])
+        try:
+            resp = ec2.describe_instances(InstanceIds=[instance_id])
+        except Exception as exc:
+            # Just-launched instances commonly raise InvalidInstanceID.NotFound for
+            # 5–20s due to AWS eventual consistency. Treat the same as empty result:
+            # poll-and-wait up to EMPTY_LOOKUP_GIVE_UP_SECONDS before giving up.
+            msg = str(exc)
+            if time.time() > empty_lookup_until:
+                raise RuntimeError(
+                    f"Instance {instance_id} not visible in describe_instances after "
+                    f"{EMPTY_LOOKUP_GIVE_UP_SECONDS}s ({msg})"
+                ) from exc
+            log.info("[CryoSPARC] describe_instances(%s) failed (%s); retrying...", instance_id, msg[:80])
+            time.sleep(5)
+            continue
         reservations = resp.get("Reservations", [])
         instances = reservations[0].get("Instances", []) if reservations else []
         if not instances:

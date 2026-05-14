@@ -9184,12 +9184,16 @@ Rules:
       // s3_output_files in nextflowStatus (e.g. older runs, or runs where the
       // post-completion callback dropped). Without this, completed cloud pipelines
       // appear to have zero outputs in the UI even though files exist in S3.
+      // Each returned entry also includes a presigned `downloadUrl` (1 hour TTL)
+      // so the browser/density-viewer/findings-agent can fetch S3 directly without
+      // hitting the EC2 endpoint as a proxy.
       if (outputFiles.length === 0 && outdir && String(outdir).startsWith('s3://')) {
         try {
           const m = String(outdir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/);
           if (m) {
             const [, bucket, prefix] = m;
             const AWS = await import('@aws-sdk/client-s3');
+            const presigner = await import('@aws-sdk/s3-request-presigner');
             const s3 = new AWS.S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
             const listed: any[] = [];
             let continuationToken: string | undefined = undefined;
@@ -9208,14 +9212,28 @@ Rules:
                   name, filename: name, extension: ext,
                   size: obj.Size || 0,
                   s3_uri: `s3://${bucket}/${obj.Key}`,
-                  // downloadUrl: presigned URL would go here; for now expose s3_uri
-                  // and let /api/workflows/runs/:id/step-file?path=s3://... serve it
+                  s3_bucket: bucket,
+                  s3_key: obj.Key,
                 });
               }
               continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
             } while (continuationToken);
+
+            // Presign each file's downloadUrl (1 hour TTL) in parallel
+            const PRESIGN_TTL = 3600;
+            await Promise.all(listed.map(async (f: any) => {
+              try {
+                f.downloadUrl = await presigner.getSignedUrl(
+                  s3,
+                  new AWS.GetObjectCommand({ Bucket: f.s3_bucket, Key: f.s3_key }),
+                  { expiresIn: PRESIGN_TTL }
+                );
+              } catch (e: any) {
+                console.warn(`[output_files] presign failed for ${f.s3_key}: ${e?.message}`);
+              }
+            }));
             outputFiles = listed;
-            console.log(`[output_files] S3 listing fallback: found ${listed.length} files under ${outdir}`);
+            console.log(`[output_files] S3 listing fallback: found ${listed.length} files under ${outdir} (presigned for ${PRESIGN_TTL}s)`);
           }
         } catch (e: any) {
           console.warn(`[output_files] S3 list fallback failed: ${e?.message || e}`);
