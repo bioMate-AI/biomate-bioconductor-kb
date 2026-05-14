@@ -269,7 +269,7 @@ PAYLOAD_LIBRARY = [
 ]
 
 def score_payload(p, antigen, indication, expr_lvl, bystander_req):
-    """Composite payload score (0-100)."""
+    '''Composite payload score (0-100).'''
     score = 0
 
     # Indication match (0-5, weight 30)
@@ -416,7 +416,7 @@ CONJUGATION_SITES = {
 }
 
 def design_linker(payload, expr_level, dar_nominal):
-    """Select optimal linker and conjugation site for payload."""
+    '''Select optimal linker and conjugation site for payload.'''
     linker_name = payload["linker_default"]
     linker_info = LINKER_OPTIONS.get(linker_name, LINKER_OPTIONS["val-cit cleavable"])
 
@@ -460,13 +460,13 @@ def design_linker(payload, expr_level, dar_nominal):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def optimize_dar(payload, linker_design):
-    """
+    '''
     DAR scoring per Hamblett et al. 2004:
       DAR < 2:  insufficient potency
       DAR 2-4:  optimal PK, minimal aggregation (preferred)
       DAR > 4:  increased aggregation, faster clearance
       DAR 8 (SN-38 class): acceptable only for stable hydrophilic linkers
-    """
+    '''
     dar = payload["dar_nominal"]
     clogp = payload["clogp_proxy"]
 
@@ -553,7 +553,7 @@ PAYLOAD_PK_PARAMS = {
 }
 
 def compute_adc_pk(payload, dar):
-    """
+    '''
     Two-analyte ADC PK model:
       Analyte 1: Intact ADC — IgG-like disposition + DAR-dependent clearance
       Analyte 2: Free payload — rapid small-molecule disposition
@@ -562,7 +562,7 @@ def compute_adc_pk(payload, dar):
       - Intact ADC t½ = base_IgG_t_half × exp(-k_DAR × (DAR - 2))
         where k_DAR ~ 0.1/unit DAR (Hamblett 2004)
       - Free payload: first-order release + elimination
-    """
+    '''
     pk = PAYLOAD_PK_PARAMS.get(payload["class"], PAYLOAD_PK_PARAMS["auristatin"])
 
     # Intact ADC parameters
@@ -624,7 +624,7 @@ def compute_adc_pk(payload, dar):
     }
 
 def compute_admet(payload, linker_design):
-    """ADC-specific ADMET flags."""
+    '''ADC-specific ADMET flags.'''
     off_tox = payload["off_target_tox"]
 
     # Plasma stability: based on linker type

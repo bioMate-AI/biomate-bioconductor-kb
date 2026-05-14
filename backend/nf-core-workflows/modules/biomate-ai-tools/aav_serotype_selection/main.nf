@@ -256,7 +256,7 @@ INDICATION_HINTS = {
 
 # ─── Step 1: Map tissue → ranked serotypes ────────────────────────────────────
 def score_serotype(name, data, tissue, route, payload_kb):
-    """Compute composite ranking score for a serotype."""
+    '''Compute composite ranking score for a serotype.'''
     # Base tropism score (0-5)
     tropism = data['tropism'].get(tissue, 0)
 

@@ -102,7 +102,7 @@ max_gc      = float(os.environ.get('PARAM_MAXGC', '52'))
 
 # ─── Parse sequence ───────────────────────────────────────────────────────────
 def parse_sequence(s):
-    """Accept FASTA file path, FASTA string, raw RNA, or raw DNA."""
+    '''Accept FASTA file path, FASTA string, raw RNA, or raw DNA.'''
     s = s.strip()
     if not s or s == 'null':
         # Demo sequence: human BCL2 mRNA coding region (NM_000633) ~53% GC
@@ -150,7 +150,7 @@ NN_DG = {
 }
 
 def calc_dg5(seq, n=4):
-    """ΔG of first n+1 nt (nearest-neighbour sum, approximation)."""
+    '''ΔG of first n+1 nt (nearest-neighbour sum, approximation).'''
     total = 0.0
     for i in range(min(n, len(seq) - 1)):
         total += NN_DG.get(seq[i] + seq[i+1], -2.0)
@@ -165,7 +165,7 @@ def gc_pct(seq):
     return round(100.0 * gc / max(len(seq), 1), 1)
 
 def tm_approx(seq):
-    """Wallace rule Tm (RNA, 100 mM NaCl); returns °C."""
+    '''Wallace rule Tm (RNA, 100 mM NaCl); returns °C.'''
     gc = seq.count('G') + seq.count('C')
     au = seq.count('A') + seq.count('U')
     return round(2 * au + 4 * gc, 1)
@@ -173,10 +173,10 @@ def tm_approx(seq):
 # ─── Scoring functions ───────────────────────────────────────────────────────
 
 def uitei_score(sense21):
-    """
+    '''
     Ui-Tei 2004 criteria — 4 binary features; higher = better.
     Sense strand positions are 1-indexed.
-    """
+    '''
     score = 0
     # (a) A or U at position 1 (sense) — weak 5' end of antisense strand
     if sense21[0] in 'AU':
@@ -196,9 +196,9 @@ def uitei_score(sense21):
     return score
 
 def reynolds_score(sense21):
-    """
+    '''
     Reynolds 2004 criteria — 8 binary features; higher = better.
-    """
+    '''
     score = 0
     gc = gc_pct(sense21)
     antisense = reverse_complement(sense21)
@@ -230,10 +230,10 @@ def reynolds_score(sense21):
     return score
 
 def thermo_asymmetry_bonus(sense21):
-    """
+    '''
     Returns 1 if 5'-ΔG antisense < 5'-ΔG sense (Schwarz/Khvorova 2003),
     i.e., antisense 5' end is thermodynamically less stable → preferred RISC loading.
-    """
+    '''
     antisense = reverse_complement(sense21)
     dg_sense     = calc_dg5(sense21)
     dg_antisense = calc_dg5(antisense)

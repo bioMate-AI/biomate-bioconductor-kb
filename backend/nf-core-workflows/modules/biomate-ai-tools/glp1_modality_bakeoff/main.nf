@@ -90,10 +90,10 @@ RECEPTOR_PROFILES = {
 
 # ─── Side-effect prediction per agonism pattern ──────────────────────────────
 def predict_side_effects(profile_set):
-    """
+    '''
     profile_set: set of receptor names that are agonized
     Returns dict of side effects with severity (LOW/MED/HIGH).
-    """
+    '''
     se = {}
     if 'GLP1R' in profile_set:
         se['nausea_gastroparesis'] = 'HIGH'      # GI L-cell + gastric smooth muscle
@@ -119,7 +119,7 @@ MODALITIES = [
         'delivery_class': 'subcutaneous_weekly',
         'dose_titration': 'Required (start 0.25mg, titrate to 2.4mg)',
         'adherence': 'Weekly SC injection — moderate adherence; injection burden',
-        'cost_class': 'High ($800-1300/mo retail; insurance-gated)',
+        'cost_class': 'High (\$800-1300/mo retail; insurance-gated)',
         'cv_outcomes_data': 'SELECT trial 2023 (MACE -20%)',
         'manufacturing_complexity': 'MEDIUM (solid-phase peptide synthesis at scale)',
     },
@@ -130,7 +130,7 @@ MODALITIES = [
         'delivery_class': 'subcutaneous_weekly',
         'dose_titration': 'Required (start 2.5mg, titrate to 15mg)',
         'adherence': 'Weekly SC; better GI tolerance than sema (GIPR mitigation)',
-        'cost_class': 'High (~$1000/mo retail; access expanding)',
+        'cost_class': 'High (~\$1000/mo retail; access expanding)',
         'cv_outcomes_data': 'SURPASS-4 2022 (favorable); SURMOUNT-OSA 2024 (sleep apnea +60%)',
         'manufacturing_complexity': 'MEDIUM (dual peptide design; tirzepatide is single molecule)',
     },
@@ -141,7 +141,7 @@ MODALITIES = [
         'delivery_class': 'subcutaneous_weekly',
         'dose_titration': 'Required',
         'adherence': 'Weekly SC',
-        'cost_class': 'Premium (not yet approved; expected $1500+/mo)',
+        'cost_class': 'Premium (not yet approved; expected \$1500+/mo)',
         'cv_outcomes_data': 'Phase 3 readout 2025-2026',
         'manufacturing_complexity': 'MEDIUM-HIGH (triple agonist; tighter pharmacology)',
     },
@@ -174,7 +174,7 @@ MODALITIES = [
         'delivery_class': 'aav_iv_or_im',
         'dose_titration': 'One-shot; cannot reverse',
         'adherence': 'One-time treatment',
-        'cost_class': 'High one-shot (gene therapy $2-3M historically)',
+        'cost_class': 'High one-shot (gene therapy \$2-3M historically)',
         'cv_outcomes_data': 'Decades of follow-up required',
         'manufacturing_complexity': 'HIGH (AAV manufacturing scale)',
     },

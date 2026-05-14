@@ -304,7 +304,7 @@ E3_LINKER_ATTACHMENT = {
 e3_attach = E3_LINKER_ATTACHMENT.get(top_e3_name, {'anchor': 'warhead exit vector', 'preferred_linker_start': 'amine'})
 
 def estimate_mw_contribution(linker_atoms):
-    """Rough MW estimate: PEG ≈ 44 Da/EO unit; alkyl ≈ 14 Da/CH2; mixed ~30 Da/unit."""
+    '''Rough MW estimate: PEG ≈ 44 Da/EO unit; alkyl ≈ 14 Da/CH2; mixed ~30 Da/unit.'''
     return linker_atoms * 16  # conservative average
 
 def bro5_flags(total_mw, hbd, logp_est, tpsa_est):

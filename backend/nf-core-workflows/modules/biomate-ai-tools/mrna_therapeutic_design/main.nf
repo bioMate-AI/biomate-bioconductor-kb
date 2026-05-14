@@ -173,11 +173,11 @@ def _max_freq_for_aa(aa):
     return HUMAN_CODON_FREQ.get(codon, 1.0)
 
 def back_translate(aa_seq):
-    """Convert AA to DNA using highest-CAI human codons."""
+    '''Convert AA to DNA using highest-CAI human codons.'''
     return ''.join(HUMAN_CODON_TABLE.get(aa.upper(), 'NNN') for aa in aa_seq)
 
 def compute_cai(dna_seq):
-    """Compute Codon Adaptation Index (Sharp & Li 1987) against human table."""
+    '''Compute Codon Adaptation Index (Sharp & Li 1987) against human table.'''
     codons = [dna_seq[i:i+3] for i in range(0, len(dna_seq)-2, 3)
               if len(dna_seq[i:i+3]) == 3]
     if not codons:
@@ -206,7 +206,7 @@ def count_cpg(seq):
     return seq.upper().count('CG')
 
 def find_gc_runs(seq, length=10):
-    """Find runs of >= `length` nt that are all G/C (>70%) or all A/T (<30%)."""
+    '''Find runs of >= `length` nt that are all G/C (>70%) or all A/T (<30%).'''
     issues = []
     for i in range(len(seq) - length + 1):
         window = seq[i:i+length].upper()
@@ -217,12 +217,12 @@ def find_gc_runs(seq, length=10):
     return issues
 
 def scan_uorfs(utr_seq):
-    """Find AUG codons in 5'-UTR (RNA sequence)."""
+    '''Find AUG codons in 5'-UTR (RNA sequence).'''
     utr_rna = utr_seq.upper().replace('T', 'U')
     return [m.start() + 1 for m in re.finditer('AUG', utr_rna)]
 
 def scan_internal_stops(cds_rna):
-    """Check for premature stop codons within CDS (excluding final stop)."""
+    '''Check for premature stop codons within CDS (excluding final stop).'''
     stops = []
     for i in range(0, len(cds_rna) - 5, 3):
         codon = cds_rna[i:i+3].upper().replace('U', 'T')
@@ -231,11 +231,11 @@ def scan_internal_stops(cds_rna):
     return stops
 
 def cap_occlusion_mfe(seq_rna, n=50):
-    """
+    '''
     Approximate MFE of first n nt using nearest-neighbour simplified model.
     Real MFE requires RNAfold; this is a heuristic penalty score.
     Returns kcal/mol (negative = more structured).
-    """
+    '''
     s = seq_rna[:n].upper().replace('T', 'U')
     # Count G-C and A-U pairs in a simplified stem estimate
     gc_pairs = sum(1 for i in range(len(s)//2)
@@ -248,11 +248,11 @@ def cap_occlusion_mfe(seq_rna, n=50):
     return round(mfe_approx, 2)
 
 def count_are_motifs(utr_seq):
-    """Count AUUUA pentamers in 3'-UTR (Shaw & Kamen 1986)."""
+    '''Count AUUUA pentamers in 3'-UTR (Shaw & Kamen 1986).'''
     return utr_seq.upper().replace('T', 'U').count('AUUUA')
 
 def halflife_tier(are_count, utr3_len, polya_len):
-    """Predict half-life tier based on destabilizing features."""
+    '''Predict half-life tier based on destabilizing features.'''
     score = 0
     if are_count == 0:
         score += 3

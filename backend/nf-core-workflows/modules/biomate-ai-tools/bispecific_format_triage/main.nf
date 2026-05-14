@@ -179,7 +179,7 @@ FORMATS = {
 
 # ─── Composite weighting based on mechanism + indication ─────────────────────
 def composite_score(fmt_props, mech, ind):
-    """Weighted sum based on what the biology needs."""
+    '''Weighted sum based on what the biology needs.'''
     if mech == 'cis_engagement':
         # Need spatial proximity → favor full IgG, half-life
         w = {'cis_engagement': 4, 'half_life': 3, 'affinity_asymmetry': 2,

@@ -403,7 +403,7 @@ hydrophobic_residues = set('VILMFYW')
 charged_residues     = set('DERKH')
 
 def sliding_hydrophobicity(seq, w=8):
-    """Fraction of hydrophobic residues in most hydrophobic window."""
+    '''Fraction of hydrophobic residues in most hydrophobic window.'''
     if len(seq) < w:
         return 0.0
     scores = [sum(1 for aa in seq[i:i+w] if aa in hydrophobic_residues) / w

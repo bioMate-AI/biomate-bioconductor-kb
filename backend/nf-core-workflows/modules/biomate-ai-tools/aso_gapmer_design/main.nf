@@ -196,11 +196,11 @@ NN_TM_HYBRID = {
 }
 
 def tm_nearest_neighbor(dna_seq, mods_count=0, mod_type='MOE'):
-    """
+    '''
     Approximate Tm for DNA:RNA hybrid using nearest-neighbor.
     Corrects for chemical modifications.
     Assumes 250 nM ASO, 150 mM NaCl, 37°C assay.
-    """
+    '''
     dh = sum(NN_TM_HYBRID.get(dna_seq[i:i+2].upper(), -7.5)
              for i in range(len(dna_seq) - 1))
     # Approximate entropy contribution (simplified)
@@ -229,7 +229,7 @@ def reverse_complement_dna(seq):
     return ''.join(comp.get(b, 'N') for b in reversed(seq))
 
 def has_palindrome(seq, min_len=4):
-    """Check if sequence contains a palindrome of length >= min_len."""
+    '''Check if sequence contains a palindrome of length >= min_len.'''
     seq = seq.upper().replace('U', 'T')
     for i in range(len(seq) - min_len + 1):
         for length in range(min_len, len(seq) - i + 1, 2):
@@ -243,11 +243,11 @@ def count_cpg(seq):
     return seq.count('CG')
 
 def has_gquad(seq):
-    """GGGG run = G-quadruplex potential → hepatotoxicity risk."""
+    '''GGGG run = G-quadruplex potential → hepatotoxicity risk.'''
     return bool(re.search(r'G{4,}', seq.upper()))
 
 def has_long_gc_run(seq, run_len=6):
-    """Highly structured region proxy: runs of ≥6 consecutive G/C."""
+    '''Highly structured region proxy: runs of ≥6 consecutive G/C.'''
     return bool(re.search(r'[GC]{' + str(run_len) + r',}', seq.upper().replace('U', 'T')))
 
 # ─── Wing modification count per chemistry ────────────────────────────────────

@@ -259,13 +259,13 @@ def score_small_molecule():
     }
 
 def score_mab():
-    """
+    '''
     Standard monoclonal antibody — blocks the target without T-cell engagement.
     Different from bispecific TCE: no cytokine release, no on-target/off-tumor
     cytotoxicity. Expression in normal tissue means pharmacological target
     engagement (intended mechanism), not toxicity.
     Examples: marstacimab (TFPI), axatilimab (CSF1R), zolbetuximab (CLDN18.2).
-    """
+    '''
     # mAb tolerance is broad: even strongly expressed targets are fine as long as
     # the pharmacological blockade is the intended mechanism (e.g., CSF1R blockade
     # on macrophages IS the cGVHD treatment mechanism).
