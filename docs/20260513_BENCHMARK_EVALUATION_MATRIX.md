@@ -130,6 +130,7 @@ for that specific sub-task.
 | **v11** | **55.0%** | 20 | **+30.0** | OMIM-mismatch escape hatch (names match ≥0.92) | L3 | d89c78ff7 |
 | v12 | 46.7% | 30 | +21.7 | same change, larger N (slight flap) | — | — |
 | v13 | 53.3% | 30 | +6.6 | (no code change; rerun on N=30, verifier change holds) | — | — |
+| v14 | 46.7% | 30 | -6.6 flap | (no code change; flap envelope) | — | — |
 
 ### biomni_eval1 screen_gene
 
@@ -138,6 +139,7 @@ for that specific sub-task.
 | cached | 23.3% | 30 | — | (old baseline) |
 | v10 | 45.0% | 20 | +21.7 | restart frontend |
 | v11 | 40.0% | 30 | -5.0 flap | larger N |
+| v12 | 43.3% | 30 | +3.3 | wire `lookup_crispr_screen_context` into task_prompt (BioGRID ORCS + PubMed) | L1 | 9aea188fb |
 
 ### sgi_bench idea_gen
 
@@ -243,3 +245,18 @@ the next bottleneck. These require either:
   (Lever 2, multi-day backend work)
 
 None are ship-and-measure in a single turn.
+
+
+### labbench LitQA2 isolated runs (separate from full labbench)
+
+| Run | Score | N | Δ | Intervention | Lever | Commit |
+|---|---|---|---|---|---|---|
+| v11 (full labbench) | 43.3% | 30 | — | (baseline; 6-term PubMed query, 2 abstracts, 1200 chars) | — | — |
+| v12 | **36.7%** | 30 | **-6.6 REGRESSION** | Expanded PubMed: choice-entity tokens, 5 abstracts, 3500 chars | L1 (wrong tuning) | 9aea188fb |
+| (reverted) | back to v11 baseline | — | — | revert v12 changes | — | a915ff674 |
+
+**Learning:** for literature grounding, more context ≠ better. The
+expanded PubMed retrieval pulled in irrelevant abstracts that diluted
+the signal from the specific paper LitQA2 questions reference.
+Future LitQA2 improvement: title-specific search (extract paper title
+from question if present) instead of broad-term search.
