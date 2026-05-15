@@ -1967,34 +1967,18 @@ _FORMAT_INSTRUCTIONS: Dict[str, str] = {
     "patient_gene_detection": (
         "\n\n---\n"
         "## TASK\n"
-        "Identify ONE causal gene from the candidate list for the patient described.\n"
+        "Return the causal gene as JSON.\n"
         "\n"
-        "## DECISION TREE — follow in strict order\n"
+        "## INSTRUCTION (single rule)\n"
+        "If the prompt above contains a line starting with 'THE ANSWER IS THE #1 GENE\n"
+        "BELOW:' followed by an ENSG, return THAT ENSG. That is the answer.\n"
         "\n"
-        "### Step 1: Read the [Gene-Phenotype Overlap Scores] block above.\n"
-        "If that block exists → the FIRST gene in it is the answer. STOP. Return it.\n"
-        "(The block is constructed so every entry has K>0 HPO match. The first entry\n"
-        "has the highest IDF-weighted specificity. That gene wins. Do not second-guess.)\n"
-        "\n"
-        "### Step 2: Only if NO [Gene-Phenotype Overlap Scores] block appears\n"
-        "(i.e., no candidate has ANY HPO overlap — rare, true database gap):\n"
-        "  → Inspect the [OMIM Disease-Gene Associations] block.\n"
-        "  → Pick the candidate whose top-ranked OMIM disease has the highest\n"
-        "    'specificity-weighted score'. That's the answer.\n"
-        "\n"
-        "### Step 3: Only if BOTH blocks are missing or empty (genuinely no data):\n"
-        "  → Apply clinical genetics knowledge to pick from the candidate list.\n"
-        "  → Prefer candidate with strongest phenotype-gene literature support.\n"
-        "\n"
-        "## FORBIDDEN BEHAVIORS\n"
-        " - Do NOT say 'all candidates scored 0' if the [Gene-Phenotype Overlap\n"
-        "   Scores] block contains any entries. By construction every entry has K>0.\n"
-        " - Do NOT skip to Step 3 when Step 1 has data.\n"
-        " - Do NOT call tools, request files, or suggest workflows.\n"
-        " - Do NOT add narrative explanation in the response.\n"
+        "If no such line is present (rare — only when no candidate has any\n"
+        "patient-HPO overlap), apply clinical genetics knowledge to pick the\n"
+        "best-matching candidate from the candidate list.\n"
         "\n"
         "## OUTPUT FORMAT\n"
-        "Single line, valid JSON, nothing else:\n"
+        "Single line, valid JSON, no narrative, no preamble:\n"
         '{\"causal_gene\": [\"<ENSG_from_candidate_list>\"]}'
     ),
 }
@@ -2622,23 +2606,21 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                     positive = [(e, s, w, r) for e, s, w, r in gene_scores if r > 0]
                     zero_genes = [(e, s) for e, s, w, r in gene_scores if r == 0]
                     if positive:
-                        lines = [
-                            f"  {ensg} ({sym}): HPO match={raw}/{n_patient} terms,"
-                            f" specificity-weighted={weighted:.2f}"
-                            for ensg, sym, weighted, raw in positive
+                        # Inline ranking format — Claude was hallucinating that a
+                        # named block didn't exist even when verifiably present.
+                        # Putting the ranking directly into the instructions, prefixed
+                        # with the answer hint, removes the named-block-parsing
+                        # ambiguity.
+                        top_ensg, top_sym, top_w, top_k = positive[0]
+                        rank_lines = [
+                            f"  {i+1}. {ensg} ({sym}): K={raw}/{n_patient}, spec_weighted={weighted:.2f}"
+                            for i, (ensg, sym, weighted, raw) in enumerate(positive)
                         ]
-                        # When we have positive HPO matches, suppress the zero-overlap
-                        # list entirely — the model has shown it conflates the two
-                        # lists and hallucinates "all are 0/N" even when shown ranked
-                        # positive matches. The zero list is useless for the answer
-                        # (we already told the model not to pick from it) so simply
-                        # omit it to remove the textual cue.
                         parts.append(
-                            "[Gene-Phenotype Overlap Scores]\n"
-                            "(All entries ranked by IDF-weighted specificity. "
-                            "Each entry has K>0 patient-HPO overlap by construction. "
-                            "The FIRST entry is the answer.)\n"
-                            + "\n".join(lines)
+                            "PRE-COMPUTED RANKING (do not recompute; use directly):\n"
+                            f"  THE ANSWER IS THE #1 GENE BELOW: {top_ensg} ({top_sym})\n"
+                            "Ranked by IDF-weighted patient-HPO specificity (higher = better):\n"
+                            + "\n".join(rank_lines)
                         )
                     elif zero_genes:
                         # Only show the zero list if no positive matches exist; then
