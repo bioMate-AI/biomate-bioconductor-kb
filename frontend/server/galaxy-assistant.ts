@@ -4915,32 +4915,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     const isResearchIntent = !!researchResponse
       || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
       || !isWorkflowTurn;
-
-    // Benchmark/eval-harness queries (prefixed 'KNOWLEDGE QUESTION') need a
-    // terse rule-following system prompt rather than the default research-
-    // oriented one. The default prompt's 'lead with answer, cite papers,
-    // use clinical reasoning' bias systematically overrides explicit user-
-    // prompt directives — observed across v22-v27 patient_gene runs where
-    // the agent denied a clearly-present prompt block in order to apply
-    // its clinical-reasoning fallback. For these queries, give the model
-    // ONE rule: follow the user prompt literally.
-    const isBenchmarkQuery = userPrompt.startsWith('KNOWLEDGE QUESTION');
-    const systemPrompt = isBenchmarkQuery
-      ? `You are BioMate's benchmark-eval assistant.
-
-RULES (in priority order, ABSOLUTE):
-1. Read the user prompt carefully. Identify any directive of the form
-   'THE ANSWER IS ...' or 'return the FIRST ...' or 'use [BLOCK_NAME] block'.
-2. If such a directive exists, FOLLOW IT LITERALLY. The pre-computed
-   answer is correct. Do NOT override with clinical/training knowledge.
-3. Return ONLY the format the user prompt requests (JSON, single letter,
-   single gene symbol, single rsID, single OMIM ID, etc.).
-4. Do NOT add narrative explanation, citations, or 'Reasoning:' preamble.
-5. Do NOT call tools. Do NOT request files. Do NOT generate workflows.
-
-You are graded on literal compliance with the user prompt, not on
-showing your reasoning or providing context.`
-      : isResearchIntent
+    const systemPrompt = isResearchIntent
       ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 Your role:
