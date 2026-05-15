@@ -7042,7 +7042,13 @@ ${paramLines || '(none recorded)'}`;
                   if (m) {
                     const [, bucket, prefix] = m;
                     const AWS = await import('@aws-sdk/client-s3');
-                    const s3 = new AWS.S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+                    const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+                    const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+                    const s3 = new AWS.S3Client({
+                      region: 'us-east-1',
+                      followRegionRedirects: true,
+                      ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+                    });
                     const listed: string[] = [];
                     let continuationToken: string | undefined = undefined;
                     do {
