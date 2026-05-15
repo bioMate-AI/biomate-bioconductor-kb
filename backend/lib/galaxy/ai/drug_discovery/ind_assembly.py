@@ -42,6 +42,7 @@ References:
   ICH S7A/S7B — Safety Pharmacology Studies for Human Pharmaceuticals
   ICH S2(R1) — Genotoxicity Testing and Data Interpretation
 """
+from __future__ import annotations
 
 import hashlib
 import json
