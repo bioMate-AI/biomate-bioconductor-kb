@@ -17,6 +17,25 @@ When a test or system fails, always identify and fix the real root cause. Workar
 
 ---
 
+## Review Code Before Testing — No Speculative Deploys
+
+**Expensive tests (GPU E2E, AWS Batch runs, multi-minute pipelines) cost real money and wall-clock time. Never deploy + run them to "see if it works." Review the patch first.**
+
+Before deploying a change and re-running an expensive test, you MUST:
+
+1. **Read your own diff end-to-end.** Don't trust your memory of what you wrote.
+2. **Trace every gating condition.** For each `if (...)`, ask: under what state does this fire? Under what state does it silently skip? Does the test state satisfy that condition?
+3. **Trace the data flow.** What populates the fields your branch depends on? Are they populated for THIS test scenario (fresh run vs. orphan runId, MemStorage vs. DB, live SSE vs. mock)?
+4. **Identify silent skips.** A condition that returns empty / no-op when state is missing is worse than a hard error — it produces a fake "0 results" that looks like a code bug.
+5. **Predict the outcome.** Write down what you expect the smoke test to return. If you can't predict it, you haven't reviewed enough.
+6. **Only then** deploy and test.
+
+**Why:** A 35-minute GPU run + container restart cycle costs ~$1.50 and ~45 minutes. Three of those wasted on speculative deploys = 2+ hours and ~$5 that a 2-minute code review would have saved. The pattern "deploy → test → discover obvious gating bug → fix → redeploy" is forbidden.
+
+**How to apply:** Before any `docker restart` / `sync_to_dev.sh` / fresh E2E launch that depends on a code change, write a one-paragraph review note: what the change does, what conditions it requires, and what the smoke test should return given current state. If the smoke test will fail for reasons unrelated to the bug being fixed (e.g., MemStorage wiped, state lost), DO NOT run it — fix the test setup first or run against a fresh state intentionally.
+
+---
+
 ## Development Process
 
 **Every task follows this iterative loop — no exceptions:**
