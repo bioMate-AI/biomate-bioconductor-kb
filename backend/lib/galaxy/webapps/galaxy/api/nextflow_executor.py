@@ -1835,9 +1835,15 @@ def _build_processes_from_s3_files(s3_files: List[Dict], outdir: str,
                 step_id = str(int(step_dir.split("_")[0]) - 1)
             except (ValueError, IndexError):
                 step_id = step_dir
+        # Index by multiple keys so viewer's nfProcessByName lookup hits regardless
+        # of whether phase.id is the numeric index ("2"), the raw dir ("02_motion_correction"),
+        # or the unprefixed snake_case ("motion_correction").
+        unprefixed = step_dir.split("_", 1)[1] if "_" in step_dir and step_dir.split("_", 1)[0].isdigit() else step_dir
         processes.append({
             "id": step_id,
-            "name": step_dir.replace("_", " "),
+            "name": step_dir,
+            "process": unprefixed,
+            "step_dir": step_dir,
             "status": "completed",
             "task_files": uris,
         })
@@ -3748,14 +3754,28 @@ def get_nextflow_status(
     # If the trace is empty/sparse (e.g. CryoSPARC-via-Nextflow where Batch jobs exit
     # after submitting CryoSPARC jobs), build entirely from S3 directory structure.
     trace_processes = progress.get("processes", [])
-    if trace_processes:
+    # For cryo_em: trace process names (e.g. PATCH_MOTION_CORRECTION_BATCH) don't
+    # match output directory names (e.g. 02_motion_correction). The S3-dir builder
+    # uses _CRYOSPARC_S3_DIR_TO_STEP for correct mapping, so prefer it when files exist.
+    if workflow_domain == "cryo_em" and s3_files and outdir:
+        processes = _build_processes_from_s3_files(s3_files, outdir, workflow_domain)
+    elif trace_processes:
         for proc in trace_processes:
             proc_name = proc["name"].split(":")[-1]
-            proc["outputs"] = [
+            matched_files = [
                 f for f in s3_files
                 if f"/{proc_name}/" in f.get("s3_uri", "") or
                    f"/{proc_name.lower()}/" in f.get("s3_uri", "")
             ]
+            proc["outputs"] = matched_files
+            # Viewer's nfProcessByName lookup reads `task_files` (array of s3 URIs)
+            # and indexes by lowercase name/process/id — emit the short snake_cased
+            # form so phase.id like "import_movies" matches.
+            proc["task_files"] = [m.get("s3_uri", "") for m in matched_files if m.get("s3_uri")]
+            short = proc_name.lower()
+            proc["process"] = short
+            if not proc.get("id"):
+                proc["id"] = short
         processes = trace_processes
     elif s3_files and outdir:
         processes = _build_processes_from_s3_files(s3_files, outdir, workflow_domain)
