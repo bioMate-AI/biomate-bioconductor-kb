@@ -14,6 +14,7 @@ export type UxEventName =
   | 'workflow.background_action_selected'
   | 'workflow.prereq_recovery_requested'
   | 'workflow.low_confidence_override_clicked'
+  | 'workflow.low_confidence_auto_proceeded'
   | 'workflow.status_changed'
   | 'workflow.error_shown'
   | 'workflow.confusion_signal'
