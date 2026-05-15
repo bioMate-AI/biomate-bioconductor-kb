@@ -9606,7 +9606,23 @@ Rules:
         userId: req.user?.id,
       });
 
-      // Update status
+      // REAL pause: terminate the local Nextflow subprocess so it stops
+      // submitting new tasks. The work-dir + cache survive, so /resume can
+      // pick up via -resume. Best-effort — failures are logged but don't
+      // block the frontend status update.
+      const nextflowRunId =
+        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        await fetch(`${galaxyUrl}/api/nextflow/pause/${encodeURIComponent(nextflowRunId)}`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(15_000),
+        });
+      } catch (gxyErr) {
+        console.warn('[ExecutionRun] Galaxy pause-call failed (continuing):', gxyErr);
+      }
+
+      // Update frontend-side status
       const updated = await storage.updateExecutionRun(req.params.id, {
         execution: {
           ...run.execution,

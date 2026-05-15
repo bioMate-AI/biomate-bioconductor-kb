@@ -369,6 +369,35 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN"):
             tox_report["per_compound_admet_ai"] = per_compound_admet
             tox_report["estimation_method"]     = "admet_ai_chemprop"
 
+            # Phase-1 per_compound rows still carry RDKit heuristic DILI; ADMET-AI
+            # overwrites the aggregate `toxicity` block above — sync each compound so
+            # dashboards and auditors do not see "high" in `toxicity` vs "low" in
+            # `per_compound` for the same SMILES when Chemprop DILI_prob is high.
+            def _dili_bucket_from_prob(dp):
+                dp = float(dp)
+                if dp >= 0.65:
+                    return "high", round(dp, 3)
+                if dp >= 0.40:
+                    return "medium", round(dp, 3)
+                return "low", round(dp, 3)
+
+            for pc in tox_report.get("per_compound") or []:
+                smi = pc.get("smiles")
+                if not smi:
+                    continue
+                match = next(
+                    (x for x in per_compound_admet if x.get("smiles") == smi),
+                    None,
+                )
+                if not match or match.get("DILI_prob") is None:
+                    continue
+                dr, dpr = _dili_bucket_from_prob(match["DILI_prob"])
+                pc["dili_risk"] = dr
+                pc["dili_probability"] = dpr
+                pc["dili_source"] = "admet_ai"
+
+            tox_report["toxicity"]["dili_aggregation"] = "worst_compound_in_panel"
+
     except ImportError:
         research_log = (
             "ADMET-AI not available — using RDKit structural safety estimates (Phase 1 only).\\n"

@@ -1,0 +1,4 @@
+    "PHARMACOPHORE_FILTERING:PHARMACOPHORE_SCREEN":
+        rdkit: "2023.09.4"
+        python: "3.10.0"
+    END_VERSIONS

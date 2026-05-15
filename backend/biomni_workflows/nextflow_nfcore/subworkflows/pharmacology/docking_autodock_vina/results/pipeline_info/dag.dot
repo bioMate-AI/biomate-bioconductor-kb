@@ -1,0 +1,27 @@
+digraph "dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v1 [label="DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA"];
+v0 -> v1 [label="ch_input"];
+
+v1 [label="DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA"];
+v4 [shape=point];
+v1 -> v4 [label="results"];
+
+v1 [label="DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA"];
+v5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v1 -> v5 [label="output"];
+
+v1 [label="DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA"];
+v3 [shape=point];
+v1 -> v3;
+
+v1 [label="DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA"];
+v2 [shape=point];
+v1 -> v2 [label="versions"];
+
+v5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v6 [shape=point];
+v5 -> v6;
+
+}

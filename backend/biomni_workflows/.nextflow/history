@@ -1,0 +1,1 @@
+2026-05-09 22:59:33	2.1s	happy_cajal	OK	b6d17f7f8db7f11c07a594e145083ec4	dc21c06d-11ce-47c5-9a38-566b5580a99f	nextflow run nextflow_nfcore/subworkflows/drug_discovery/pharmacophore_filtering/main.nf -stub -params-file /tmp/nf-paramscK6T.json

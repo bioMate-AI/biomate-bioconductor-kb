@@ -3343,6 +3343,105 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
     return execute_nextflow(resume_request)
 
 
+def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
+    """
+    Actually terminate the local Nextflow subprocess for a run_id.
+
+    soft=False → cancel: SIGTERM, then SIGKILL after 5s; mark status=cancelled.
+    soft=True  → pause:  same termination, but mark status=paused so a later
+                          /api/nextflow/resume can pick up where -resume
+                          left off (Nextflow's task cache survives).
+
+    Returns a payload dict with the resolved state. Always emits a chat-progress
+    line on the invocation_id so the user sees the action in chat.
+    """
+    with _runs_lock:
+        info = _runs.get(run_id)
+        if not info:
+            return {"run_id": run_id, "ok": False, "reason": "Run not found in registry."}
+        invocation_id = info.get("invocation_id")
+        proc: Optional[subprocess.Popen] = info.get("process")
+
+    if proc is None:
+        # No subprocess handle (e.g., run was registered in a different gunicorn
+        # worker). The local cancel can't reach it; report so caller can fall
+        # back to AWS Batch cancel or simply mark status.
+        with _runs_lock:
+            if run_id in _runs:
+                _runs[run_id]["status"] = "paused" if soft else "cancelled"
+        if invocation_id:
+            _narrate_chat(
+                invocation_id,
+                "workflow.paused" if soft else "workflow.cancelled",
+                {"reason": "no local process handle (may still complete on Batch)"},
+            )
+        return {
+            "run_id": run_id, "ok": True,
+            "status": "paused" if soft else "cancelled",
+            "note": "marked-without-terminate (no local subprocess)",
+        }
+
+    rc = proc.poll()
+    if rc is not None:
+        # Process already exited — nothing to terminate.
+        return {"run_id": run_id, "ok": True, "status": info.get("status"), "note": "already-exited"}
+
+    import signal as _signal
+    try:
+        proc.terminate()  # SIGTERM
+        try:
+            proc.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            proc.kill()    # SIGKILL
+            proc.wait(timeout=2.0)
+    except Exception as exc:
+        log.warning("[Nextflow run %s] terminate failed: %s", run_id, exc)
+
+    with _runs_lock:
+        if run_id in _runs:
+            _runs[run_id]["status"] = "paused" if soft else "cancelled"
+            _runs[run_id]["completed_at"] = time.time()
+
+    if invocation_id:
+        _narrate_chat(
+            invocation_id,
+            "workflow.paused" if soft else "workflow.cancelled",
+            {"reason": "by user" if not soft else None},
+        )
+
+    return {
+        "run_id": run_id, "ok": True,
+        "status": "paused" if soft else "cancelled",
+        "terminated_pid": proc.pid,
+    }
+
+
+@router.post("/api/nextflow/cancel/{run_id}", summary="Cancel a running Nextflow run (terminates local subprocess)")
+def cancel_nextflow_run(run_id: str) -> Dict[str, Any]:
+    """Terminate the Nextflow subprocess for a run_id and mark status=cancelled.
+
+    Multi-worker note: if the run was registered in a different gunicorn worker
+    this worker's _runs dict won't have the process handle. We mark status
+    anyway so the frontend gets a terminal signal, and the workflow naturally
+    completes (Nextflow can't be told to stop from outside its own process).
+    """
+    return _terminate_run_process(run_id, soft=False)
+
+
+@router.post("/api/nextflow/pause/{run_id}", summary="Pause a running Nextflow run (terminates with -resume cache intact)")
+def pause_nextflow_run(run_id: str) -> Dict[str, Any]:
+    """Soft-cancel a Nextflow run, keeping the work-dir intact so the user
+    can later POST /api/nextflow/resume/{run_id} to pick up via -resume.
+
+    Nextflow has no native pause-mid-run. This is the honest semantic: we kill
+    the local Nextflow process so it stops submitting new tasks; already-running
+    tasks (e.g. AWS Batch jobs in-flight) will complete on their own and cache
+    in the work dir. A subsequent resume reuses the cache and re-launches only
+    what's missing.
+    """
+    return _terminate_run_process(run_id, soft=True)
+
+
 @router.get("/api/nextflow/status/{run_id}", summary="Get Nextflow run status")
 def get_nextflow_status(
     run_id: str,

@@ -495,12 +495,25 @@ workflow PHARMACOPHORE_FILTERING {
 }
 
 // ============================================================================
-// Standalone Entry Point (nextflow run main.nf)
+// Standalone entry point (nextflow run main.nf)
 // ============================================================================
-
+//
+// Invoke the composed workflow with CLI params.reference_actives and
+// params.compound_library (local paths or s3:// URIs staged by Nextflow).
+//
 workflow {
-    log_workflow_header()
+    main:
+        log_workflow_header()
 
-    // ------------------------------------------------------------------
-    // Reference actives: 3 aspirin-like SMILES (written inline)
-    // ------------------------------------------------------------------
+        if (!params.reference_actives) {
+            error "Parameter `reference_actives` is required (SMILES file path)"
+        }
+        if (!params.compound_library) {
+            error "Parameter `compound_library` is required (SMILES/SDF library path)"
+        }
+
+        ch_reference = Channel.fromPath(params.reference_actives, checkIfExists: false)
+        ch_library = Channel.fromPath(params.compound_library, checkIfExists: false)
+
+        PHARMACOPHORE_FILTERING(ch_reference, ch_library)
+}

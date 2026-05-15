@@ -113,6 +113,22 @@ def _failed_msg(t: Dict[str, Any]) -> str:
     return "Workflow stopped. Looking into why…"
 
 
+def _cancelled_msg(t: Dict[str, Any]) -> str:
+    reason = t.get("reason")
+    if reason:
+        return f"Workflow cancelled — {reason}."
+    return "Workflow cancelled by you."
+
+
+def _paused_msg(t: Dict[str, Any]) -> str:
+    return "Workflow paused. Tap Resume when you're ready to continue."
+
+
+def _auto_proceeded_msg(t: Dict[str, Any]) -> str:
+    decision = t.get("decision") or "continued"
+    return f"No response — {decision} automatically."
+
+
 # kind → (callable or static string)
 _TEMPLATES: Dict[str, Any] = {
     "workflow.submitted": "Got it — starting your workflow now.",
@@ -127,6 +143,12 @@ _TEMPLATES: Dict[str, Any] = {
     "workflow.autoloop_started": _autoloop_started,
     "workflow.completed": _completed_summary,
     "workflow.failed": _failed_msg,
+    # User-control events
+    "workflow.cancelled": _cancelled_msg,
+    "workflow.paused": _paused_msg,
+    "workflow.resumed": "Resuming your workflow.",
+    # Auto-proceeded after user didn't react in time
+    "workflow.auto_proceeded": _auto_proceeded_msg,
     # deepagent.* events are emitted by DeepAnalysisAgent via its own
     # progress_callback; they flow through emit() too for consistency.
     "deepagent.start": "Looking into why your workflow failed…",

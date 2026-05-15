@@ -1,1 +1,32 @@
 2026-04-10 03:07:28	25.3s	insane_visvesvaraya	ERR	8018158f81c11de2e790fd0e2a6e92f8	a216a096-fe61-4921-bfaa-c015205e77ab	nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/9f4ba5c0-0234-491f-ab10-7054a2961327/e6f2b7a0-97d9-41a6-9141-02ee5fe797df' --smiles_list '["CC(=O)Nc1ccc(O)cc1"]' --receptor_pdb_file mock_receptor.pdb --box_center '[0.0, 0.0, 0.0]' --box_size '[20.0, 20.0, 20.0]' --ncpu 4 --exhaustiveness 16 --n_poses 1 --reference_ligand_smiles 'Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c' --randomSeed 42 --outdir 's3://biomate-nextflow-work/nextflow/outputs/9f4ba5c0-0234-491f-ab10-7054a2961327/f8fb1d01' -with-trace /tmp/nextflow_runs/e6f2b7a0-97d9-41a6-9141-02ee5fe797df/workflow-trace.txt -c /tmp/nextflow_runs/e6f2b7a0-97d9-41a6-9141-02ee5fe797df/biomate_executor_override.config
+2026-05-10 16:40:45	-	infallible_fourier	-	85aa6d7157e1de91f3189ae14d340a4d	ae4e6e08-5374-4325-900d-5af5bc227b96	nextflow run main.nf -preview
+2026-05-10 16:41:13	-	gigantic_mendel	-	8d835ee34c3d26a308af616d49a88f5e	b25909cf-7807-4d03-b243-88b6c112a601	nextflow run main.nf -preview
+2026-05-10 16:41:32	-	irreverent_agnesi	-	253b3347b462f06acb84126494c41fb2	56855c7f-2f47-43a6-993a-b706fbc7b704	nextflow run main.nf -preview
+2026-05-10 16:41:50	-	dreamy_tuckerman	-	0d94c297c92fd4717bd20dee90497bb5	9cf82f4a-3939-4993-b894-8731835a20ef	nextflow run main.nf -preview
+2026-05-10 16:42:05	-	intergalactic_stallman	-	f0dc138263dafaa04efd947896da2490	856ab9bc-7b66-40a3-ad49-ea02b844d0e1	nextflow run main.nf -preview
+2026-05-10 16:42:20	-	confident_monod	-	f0dc138263dafaa04efd947896da2490	c635b8fd-079b-42d3-9614-97138aa26b21	nextflow run main.nf -preview -c /tmp/nf-empty.config
+2026-05-10 16:42:29	-	distracted_thompson	-	8120389e261a4a4243e07b25f1cd1f49	83417e9b-5b0b-406f-b31e-839030c3fff7	nextflow run main.nf -preview
+2026-05-10 16:44:18	1.4s	jolly_fermat	OK	87767f1c04bdc8b049d5edb6ef5a8064	96045add-1fdb-4c8a-a883-8b34a12b5afe	nextflow run main.nf -preview
+2026-05-10 16:44:27	1.8s	agitated_laplace	OK	87767f1c04bdc8b049d5edb6ef5a8064	1198c99f-d1f3-4027-934b-b1566e9e98e9	nextflow run main.nf -preview
+2026-05-10 16:44:42	1.5s	stoic_watson	OK	87767f1c04bdc8b049d5edb6ef5a8064	278f6dd8-8a63-4974-b1de-618f09be90de	nextflow run main.nf -preview
+2026-05-10 16:50:11	-	kickass_archimedes	-	498394093deb90b58a88ca5d42e83304	9e876384-3fb0-4951-a6e3-9e336b9b2526	nextflow run main.nf -preview
+2026-05-10 16:50:36	-	determined_rutherford	-	da98109fa90aa270546133c143adb3f1	b3a76ce5-cdef-45cb-9414-8204cf2cc5ba	nextflow run main.nf -preview
+2026-05-10 16:50:53	-	suspicious_hopper	-	168c8e5bf10c40f4e45e4aee444bc3c8	dbb24e70-85fd-4a35-b643-6d5ddc8b249b	nextflow run main.nf -preview
+2026-05-10 16:51:06	-	soggy_avogadro	-	36a4d42eb0561bbc1eb9dc7d45b35d75	2d04695b-93f0-4b2c-a19c-cc73150131c6	nextflow run main.nf -preview
+2026-05-10 16:51:14	-	exotic_pasteur	-	102778a891b6cc70427621d3794a49c9	6d646335-5e25-4ab2-96b7-af735245d213	nextflow run main.nf -preview
+2026-05-10 16:51:36	-	extravagant_newton	-	f6ee8ca13013ba4fc486800f29cf94cd	0424863a-54e6-4dc0-bed4-fea821bc47a8	nextflow run main.nf -preview
+2026-05-10 16:51:52	-	jolly_mcclintock	-	85f4bdf2610f0d85c08aa87b057e27bb	999aaa71-2019-411c-9542-ab8f737efc0e	nextflow run main.nf -preview
+2026-05-10 16:52:10	-	kickass_einstein	-	040162b7e5bd5303692c307d38928c6c	00f9cc08-c5ff-4b5a-8624-dbad60313758	nextflow run main.nf -preview
+2026-05-10 16:52:41	-	kickass_snyder	-	d70b7c41517f67e31bb77fd3db986644	30e1c81e-c275-4af3-8620-b94e40f232f9	nextflow run main.nf -preview
+2026-05-10 16:53:02	961ms	sharp_wegener	OK	87767f1c04bdc8b049d5edb6ef5a8064	f574dbbe-0338-4dd7-81be-9187e3b76697	nextflow run main.nf -preview
+2026-05-10 16:58:19	-	soggy_jepsen	-	ac0539b4d984801af09077ca6d3a1416	9d0c6276-2c36-4f42-a3c0-98d54365e34b	nextflow run main.nf -preview
+2026-05-10 16:58:43	988ms	voluminous_jennings	OK	87767f1c04bdc8b049d5edb6ef5a8064	dcea7cac-b6a9-4fcf-a33c-74c38aa98374	nextflow run main.nf -preview
+2026-05-10 16:58:56	-	deadly_allen	-	b6622a24dbb8f2d8034d15975d640cc4	7c285f35-9915-45c3-880e-7c33abbf96a7	nextflow run main.nf -preview
+2026-05-10 16:59:16	-	loving_stone	-	7a3a4654143c0b842c38f94ef98d1b04	b73f85d8-85a4-47f6-b308-602cf6a14c11	nextflow run main.nf -preview
+2026-05-11 15:26:00	-	hopeful_dijkstra	-	7a3a4654143c0b842c38f94ef98d1b04	59698f14-9d8c-484f-a24e-b11073858d5d	nextflow run main.nf -preview
+2026-05-11 15:26:26	1s	furious_gates	OK	87767f1c04bdc8b049d5edb6ef5a8064	fadb0d21-e79f-414f-b15a-b2918bdd2a6c	nextflow run /tmp/main_orig.nf -preview
+2026-05-11 15:26:33	-	special_panini	-	002c4b02ada84fc3f3604cd48df15e13	870d8137-cb02-429e-837e-a22d44b20b99	nextflow run main.nf -preview
+2026-05-11 15:26:43	-	silly_descartes	-	33dccf4c35a8cb0d9c6fb1d3afa1aae0	fbfaaf65-337d-45f6-acbd-5f32fcc2bf75	nextflow run main.nf -preview
+2026-05-11 15:28:43	-	peaceful_yonath	-	0063a47304f124b9a32bcc7fda9b393c	2d93b3f9-4834-4d4e-a294-edd8cfb61c0e	nextflow run main.nf -preview
+2026-05-11 15:28:50	1.1s	maniac_lalande	OK	11d22471bd134b2513127102e8b14b37	69de5f96-f9e9-456a-b043-d4b5a1e5a330	nextflow run main.nf -preview
+2026-05-11 15:34:54	1.8s	cheeky_swanson	OK	6a3e32e12a5b3ded053f6a37d7dd0a5b	bbfb80e7-7145-4d83-8c9a-79f51f3c4cd1	nextflow run main.nf -preview
