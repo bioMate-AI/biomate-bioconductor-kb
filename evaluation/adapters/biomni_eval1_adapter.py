@@ -1088,25 +1088,38 @@ def lookup_omim_for_gene(gene_symbol: str, timeout: int = 6,
         disease_entries.sort(key=lambda e: e.get("overlap", 0.0), reverse=True)
 
     # ── Step 4: Format disease list ──────────────────────────────────────────
+    # When patient HPO terms are provided, only emit diseases with K>0 HPO overlap.
+    # Reason: when 6/8 diseases per candidate scored "0/N", the prompt accumulated
+    # 20+ "0/N" patterns total. The LLM text-pattern-matched "all 0/N" and reported
+    # the database as empty, ignoring the candidates with positive matches above.
+    # Hiding zero-match diseases (or all diseases for a gene with no overlap)
+    # eliminates the textual noise so the agent reads the ranked positives at the top.
     if disease_entries:
-        disease_lines = []
-        for entry in disease_entries[:8]:
-            # Prefer HPO canonical name (matches GT exactly)
-            dname = entry.get("hpo_name") or entry.get("name", "")
-            line = f"  - {dname} (OMIM:{entry['omim_id']})"
-            overlap = entry.get("overlap")
-            if overlap is not None and patient_hpo_terms:
-                raw = entry.get("raw_overlap", "?")
-                n_patient = len(patient_hpo_terms)
-                n_disease = entry.get("disease_hpo_count", "?")
-                line += (f" [HPO match: {raw}/{n_patient} terms,"
-                         f" specificity-weighted score={overlap:.2f},"
-                         f" disease has {n_disease} HPO terms]")
-            disease_lines.append(line)
-        result_parts.append(
-            "Associated OMIM diseases (ranked by patient phenotype match):\n"
-            + "\n".join(disease_lines)
-        )
+        if patient_hpo_terms:
+            positive_entries = [e for e in disease_entries if e.get("raw_overlap", 0) > 0]
+            entries_to_show = positive_entries[:5]
+        else:
+            entries_to_show = disease_entries[:8]
+        if entries_to_show:
+            disease_lines = []
+            for entry in entries_to_show:
+                dname = entry.get("hpo_name") or entry.get("name", "")
+                line = f"  - {dname} (OMIM:{entry['omim_id']})"
+                overlap = entry.get("overlap")
+                if overlap is not None and patient_hpo_terms:
+                    raw = entry.get("raw_overlap", "?")
+                    n_patient = len(patient_hpo_terms)
+                    n_disease = entry.get("disease_hpo_count", "?")
+                    line += (f" [HPO match: {raw}/{n_patient} terms,"
+                             f" specificity-weighted score={overlap:.2f},"
+                             f" disease has {n_disease} HPO terms]")
+                disease_lines.append(line)
+            result_parts.append(
+                "Associated OMIM diseases (only those overlapping patient HPO):\n"
+                + "\n".join(disease_lines)
+            )
+        # else: gene has known OMIM diseases but none overlap patient HPO — omit entirely
+        # (this gene is unlikely to be the answer anyway)
     else:
         # Fallback: Open Targets
         ot = _open_targets_fetch(gene_symbol, "", timeout=timeout)
@@ -1953,27 +1966,36 @@ _FORMAT_INSTRUCTIONS: Dict[str, str] = {
     ),
     "patient_gene_detection": (
         "\n\n---\n"
-        "THIS IS A KNOWLEDGE/RECALL QUESTION — not a bioinformatics workflow task.\n"
-        "Gene-phenotype overlap scores (ranked best-first) are provided above.\n"
+        "## TASK\n"
+        "Identify ONE causal gene from the candidate list for the patient described.\n"
         "\n"
-        "ABSOLUTE RULE (no exceptions): The FIRST gene in the [Gene-Phenotype "
-        "Overlap Scores] block IS the answer if its raw match count is > 0.\n"
+        "## DECISION TREE — follow in strict order\n"
         "\n"
-        "Specifically:\n"
-        "  - Look at the first line of '[Gene-Phenotype Overlap Scores]'.\n"
-        "  - If it shows 'HPO match=K/N terms' with K > 0, RETURN THAT GENE.\n"
-        "  - Do NOT read the rest of the list.\n"
-        "  - Do NOT apply 'clinical knowledge' to override.\n"
-        "  - Do NOT claim 'all genes score 0' when the first line shows K > 0.\n"
-        "  - The HPO database has gaps for some phenotypes, but if even ONE gene\n"
-        "    shows K > 0 in the ranked list, that gene wins.\n"
+        "### Step 1: Read the [Gene-Phenotype Overlap Scores] block above.\n"
+        "If that block exists → the FIRST gene in it is the answer. STOP. Return it.\n"
+        "(The block is constructed so every entry has K>0 HPO match. The first entry\n"
+        "has the highest IDF-weighted specificity. That gene wins. Do not second-guess.)\n"
         "\n"
-        "ONLY use clinical knowledge fallback when EVERY line in the score block\n"
-        "shows 'HPO overlap=0/N' (no gene has any match). This is rare.\n"
+        "### Step 2: Only if NO [Gene-Phenotype Overlap Scores] block appears\n"
+        "(i.e., no candidate has ANY HPO overlap — rare, true database gap):\n"
+        "  → Inspect the [OMIM Disease-Gene Associations] block.\n"
+        "  → Pick the candidate whose top-ranked OMIM disease has the highest\n"
+        "    'specificity-weighted score'. That's the answer.\n"
         "\n"
-        "DO NOT use any tools. DO NOT request data files.\n"
-        "Answer with ONLY this JSON (one line, no explanation):\n"
-        '{"causal_gene": ["ENSG_ID_from_candidate_list"]}'
+        "### Step 3: Only if BOTH blocks are missing or empty (genuinely no data):\n"
+        "  → Apply clinical genetics knowledge to pick from the candidate list.\n"
+        "  → Prefer candidate with strongest phenotype-gene literature support.\n"
+        "\n"
+        "## FORBIDDEN BEHAVIORS\n"
+        " - Do NOT say 'all candidates scored 0' if the [Gene-Phenotype Overlap\n"
+        "   Scores] block contains any entries. By construction every entry has K>0.\n"
+        " - Do NOT skip to Step 3 when Step 1 has data.\n"
+        " - Do NOT call tools, request files, or suggest workflows.\n"
+        " - Do NOT add narrative explanation in the response.\n"
+        "\n"
+        "## OUTPUT FORMAT\n"
+        "Single line, valid JSON, nothing else:\n"
+        '{\"causal_gene\": [\"<ENSG_from_candidate_list>\"]}'
     ),
 }
 
