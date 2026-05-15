@@ -129,6 +129,7 @@ for that specific sub-task.
 | v25 | 60.0% | 30 | +3.3 | filter zero-overlap OMIM diseases + decision-tree prompt | L1 | e24556b9d |
 | v26 | 50.0% | 30 | -10 | unify block label to exact prompt reference | (failed) | dff5271a4 |
 | v27 | 50.0% | 30 | flat | inline 'THE ANSWER IS' directive (no named block) | (failed) | f464af7f4 |
+| v28 | 40.0% | 30 | -10 REGRESSION | terse 'literal compliance' system prompt for KNOWLEDGE QUESTION queries | architectural (failed, reverted) | d445bd0d1 (reverted in cd33522b9) |
 
 ### biomni_eval1 rare_disease
 
