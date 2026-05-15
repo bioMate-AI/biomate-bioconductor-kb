@@ -2634,10 +2634,10 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                         # (we already told the model not to pick from it) so simply
                         # omit it to remove the textual cue.
                         parts.append(
-                            "[Gene-Phenotype Overlap Scores — RANKED, all with K>0 overlap]\n"
-                            "ABSOLUTE RULE: return the FIRST gene in this block. "
-                            "Do NOT claim 'all candidates scored 0' — every entry "
-                            "here has K>0 by construction.\n"
+                            "[Gene-Phenotype Overlap Scores]\n"
+                            "(All entries ranked by IDF-weighted specificity. "
+                            "Each entry has K>0 patient-HPO overlap by construction. "
+                            "The FIRST entry is the answer.)\n"
                             + "\n".join(lines)
                         )
                     elif zero_genes:
