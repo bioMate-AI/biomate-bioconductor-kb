@@ -140,6 +140,90 @@ Required materials when pilot starts:
 
 ---
 
+## Customer feedback loop (added 2026-05-14)
+
+Spec lives in `docs/20260504_IND_PRODUCT_UI_REQUIREMENTS.md` Appendix B. This section
+captures the engineering work that the customer-product UI will trigger — Claude Design
+will build the surfaces; the backend wiring below has to land in parallel for the loop
+to close.
+
+### Endpoints to implement
+
+| Method | Path | Body / behavior |
+|---|---|---|
+| POST | `/api/ind-report/projects/:id/edit` | `{paragraph_id, original, edited, section_type, structured_input}`. Writes one row to `data/regulatory_training/dpo/customer_pairs.jsonl`. PII-strip (drug name, study ID) before write for free-tier; pass through for paid-tier with `org_id`. |
+| POST | `/api/ind-report/audit/:finding_id/dismiss` | `{reason: not_applicable\|already_addressed\|acceptable_risk\|disagree, free_text?}`. Writes to `data/regulatory_training/checker_feedback.jsonl` with full finding context. |
+| POST | `/api/ind-report/citations/suggest` | `{guideline_id, rationale, document_only: bool}`. If `document_only=false`, append to `data/regulatory_training/citation_extensions.jsonl`. |
+| POST | `/api/ind-report/sections/:section_id/regenerate` | Accept new `instruction` param. Append to section system prompt for this call only. If no follow-up edit within 60s, write tuple to `data/regulatory_training/prompt_tuning_signals.jsonl`. |
+| GET | `/api/regulatory/feedback/queue` | Internal — paginated review queue for regulatory science team. Auth: BioMate staff only. |
+| GET | `/api/regulatory/active_adapter` | Returns `{adapter_name, version, customized_for?: org_id}` for the active-model badge. Reads from `_resolve_adapter_path()` with org-id header support. |
+
+### File schemas (one JSONL per row)
+
+```jsonc
+// customer_pairs.jsonl
+{"prompt": str, "chosen": str, "rejected": str,
+ "meta": {"section_type", "paragraph_id", "org_id?", "created_at"}}
+
+// checker_feedback.jsonl
+{"finding_id", "rule_id", "section_type", "dismissed_reason",
+ "free_text?", "document_state_hash", "org_id?", "created_at"}
+
+// citation_extensions.jsonl
+{"guideline_id", "rationale", "org_id?", "approved": false, "created_at"}
+
+// prompt_tuning_signals.jsonl
+{"section_type", "instruction", "before", "after",
+ "follow_up_edit": false, "org_id?", "created_at"}
+```
+
+### Wiring to existing v6/v7 stack
+
+1. **`build_dpo_pairs.py` gains `--mode customer-edits`** — reads `customer_pairs.jsonl`,
+   runs each pair through the relevant checker, only keeps pairs where chosen-passes
+   and rejected-fails (same gate as synthetic/rejection-sample modes). Output merges
+   into the next-version DPO pool.
+
+2. **Checker modules read `regulatory_science_overrides.yaml`** at load — this is where
+   regulatory-science-team-approved dismissal patterns become rule refinements (e.g.
+   "topical route exempt from hERG"). YAML schema:
+   ```yaml
+   phase_gating:
+     - rule: "hERG required"
+       exempt_when: { route: ["topical", "ophthalmic"] }
+       added_by: "reg-science-2026-Q3"
+   ```
+   Each checker (`phase_gating.py`, `mrsd_verifier.py`, etc.) reads this at module
+   import and modifies its rule set accordingly.
+
+3. **`ich_corpus.py` reads `data/regulatory_training/citation_extensions/`** at startup
+   (one PDF per approved extension), rebuilds BM25 index incrementally. Existing
+   `_GUIDELINE_FILES` dict merges with discovered extensions.
+
+4. **Per-customer adapter resolution** — `_resolve_adapter_path()` accepts an `org_id`
+   kwarg (default None); if set, looks for `models/regulatory_llm_v{N}_{org_id}/lora_adapter/`
+   before falling back to the public `_v{N}`. The Galaxy backend's request handler
+   reads `X-BioMate-Org-Id` header and threads it through.
+
+5. **Weekly retrain cron** (lives in `scripts/cron/weekly_v7_retrain.sh`):
+   - Merge `synthetic_pairs.jsonl` + `customer_pairs.jsonl` (checker-validated)
+   - Run `build_v6_sft_mix.py` with new pairs to produce `splits_v8/`
+   - Launch `train_v7.sh` with the new mix (or v6.1 if SFT-only refresh)
+   - Auto-promote on eval lift; alert reg-science team on regression
+
+### Implementation priority (after Claude Design's first UI build)
+
+1. POST endpoints (1-4 above) — without these the UI captures nothing
+2. JSONL schemas + file plumbing
+3. `_resolve_adapter_path()` org-id support + active-adapter endpoint
+4. `regulatory_science_overrides.yaml` loader in each checker
+5. `build_dpo_pairs.py --mode customer-edits`
+6. Weekly cron + retrain auto-promotion
+
+Items 1-3 unblock the first paying customer. Items 4-6 unlock the per-customer moat.
+
+---
+
 ## Deferred / nice-to-have
 
 These are documented but not staged for execution:
