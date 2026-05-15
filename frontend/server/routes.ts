@@ -9661,6 +9661,31 @@ Rules:
         userId: req.user?.id,
       });
 
+      // REAL resume: invoke Nextflow with -resume so cached tasks are skipped
+      // and only the remaining work re-runs. Returns a new run_id which we
+      // store as the active nextflowRunId on the execution record.
+      const nextflowRunId =
+        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
+      let newNextflowRunId: string | undefined;
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const resp = await fetch(
+          `${galaxyUrl}/api/nextflow/resume/${encodeURIComponent(nextflowRunId)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+            signal: AbortSignal.timeout(30_000),
+          }
+        );
+        if (resp.ok) {
+          const d: any = await resp.json();
+          newNextflowRunId = d.run_id;
+        }
+      } catch (gxyErr) {
+        console.warn('[ExecutionRun] Galaxy resume-call failed (continuing):', gxyErr);
+      }
+
       // Update status
       const updated = await storage.updateExecutionRun(req.params.id, {
         execution: {
@@ -9668,6 +9693,10 @@ Rules:
           status: 'running',
           pausedAt: undefined,
           pauseReason: undefined,
+          ...(newNextflowRunId ? {
+            nextflowRunId: newNextflowRunId,
+            galaxyInvocationId: newNextflowRunId,
+          } : {}),
         }
       });
 
@@ -9698,14 +9727,19 @@ Rules:
         userId: req.user?.id,
       });
 
-      // Cancel in Galaxy if we have an invocation ID
-      if (run.execution.galaxyInvocationId) {
-        try {
-          // Galaxy doesn't have a direct cancel API, but we can delete the invocation
-          // For now, just update our record
-        } catch (galaxyError) {
-          console.error('[ExecutionRun] Failed to cancel in Galaxy:', galaxyError);
-        }
+      // REAL cancel: terminate the Nextflow subprocess on the backend.
+      // Best-effort — if Galaxy is unreachable we still mark the frontend
+      // record as cancelled so the user sees a terminal state.
+      const nextflowRunId =
+        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        await fetch(`${galaxyUrl}/api/nextflow/cancel/${encodeURIComponent(nextflowRunId)}`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(15_000),
+        });
+      } catch (gxyErr) {
+        console.warn('[ExecutionRun] Galaxy cancel-call failed (continuing):', gxyErr);
       }
 
       // Update status
