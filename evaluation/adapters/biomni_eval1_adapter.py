@@ -2605,17 +2605,25 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                             f" specificity-weighted={weighted:.2f}"
                             for ensg, sym, weighted, raw in positive
                         ]
+                        # When we have positive HPO matches, suppress the zero-overlap
+                        # list entirely — the model has shown it conflates the two
+                        # lists and hallucinates "all are 0/N" even when shown ranked
+                        # positive matches. The zero list is useless for the answer
+                        # (we already told the model not to pick from it) so simply
+                        # omit it to remove the textual cue.
                         parts.append(
-                            "[Gene-Phenotype Overlap Scores — ranked best match first]\n"
-                            "(Only candidates with K>0 patient-HPO overlap shown. "
-                            "Select the FIRST entry; it is the highest-scoring match. "
-                            "Other candidates have no HPO data — see [No HPO Data].)\n"
+                            "[Gene-Phenotype Overlap Scores — RANKED, all with K>0 overlap]\n"
+                            "ABSOLUTE RULE: return the FIRST gene in this block. "
+                            "Do NOT claim 'all candidates scored 0' — every entry "
+                            "here has K>0 by construction.\n"
                             + "\n".join(lines)
                         )
-                    if zero_genes:
+                    elif zero_genes:
+                        # Only show the zero list if no positive matches exist; then
+                        # the model legitimately needs to fall back on clinical knowledge.
                         parts.append(
-                            "[No HPO Data — candidates with no overlap (database "
-                            "gap; do NOT pick from this list unless ranking is empty)]\n"
+                            "[No HPO Data — all candidates have no overlap (true "
+                            "database gap, use clinical knowledge)]\n"
                             + ", ".join(f"{e} ({s})" for e, s in zero_genes)
                         )
                 # OMIM disease-level enrichment: for each candidate, list the OMIM
