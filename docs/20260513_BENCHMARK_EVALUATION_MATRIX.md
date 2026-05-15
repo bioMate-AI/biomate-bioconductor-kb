@@ -120,7 +120,15 @@ for that specific sub-task.
 | v15 | 23.3% | 30 | -40.0 REGRESSION | deterministic HPO-top-pick short-circuit | H (wrong) | 01f197d2e |
 | v16 | 63.3% | 30 | back to v14 level | revert deterministic shortcut; keep prompt change | — | f0680c2a2 |
 | **v17** | **70.0%** | 30 | **+6.7** | **OMIM disease-level context wired into patient_gene prompt** (was only in rare_disease) | **L1 (tool grounding)** | 3409e5ddf |
-| v18 | 60.0% | 30 | -10.0 flap | (no code change since v17; stability check) | — | — |
+| v18 | 60.0% | 30 | -10.0 flap | (no code change since v17; stability check, with temp=0.7) | — | — |
+| v19 | 63.3% | 30 | self-consistency vote ⇒ reverted | 3-sample voting workaround for variance | I | 84df7d16d (reverted) |
+| v20 | 70.0% | 30 | +6.7 | frontend chat temp=0.7→0 (partial) | I | 8e6ea3814 |
+| **v21=v22** | **63.3%** | 30 | identical scores | full determinism: chat+research_agent temp=0, seeds, PYTHONHASHSEED | I | 0adf65706, 998c58ff3 |
+| v23 | 65.5% | 30 | +2.2 | split HPO block into ranked + zero-data | L3 | 0a57d834f |
+| v24 | 56.7% | 30 | -8.8 | suppress zero-data block — TOO aggressive | (failed) | 1e6a0a39d |
+| v25 | 60.0% | 30 | +3.3 | filter zero-overlap OMIM diseases + decision-tree prompt | L1 | e24556b9d |
+| v26 | 50.0% | 30 | -10 | unify block label to exact prompt reference | (failed) | dff5271a4 |
+| v27 | 50.0% | 30 | flat | inline 'THE ANSWER IS' directive (no named block) | (failed) | f464af7f4 |
 
 ### biomni_eval1 rare_disease
 
