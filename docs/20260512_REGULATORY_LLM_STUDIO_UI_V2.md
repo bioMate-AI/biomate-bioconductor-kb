@@ -379,3 +379,108 @@ The pipeline reference doc is `docs/20260512_REGULATORY_LLM_V6_V7_PIPELINE.md` �
 2. **Checker pass-rate visualization** — bar chart vs heatmap vs sparkline trend over versions? Suggest sparkline so v4→v6→v7 progression is visible at a glance.
 3. **Live training metrics** — Stream via SSE (matches BioMate workflow panel pattern in `chat-with-artifacts.tsx`) or polling? Suggest SSE for parity with the rest of the app.
 4. **Generator authoring modal** — defer to a code-first workflow (just docstring the new generator script, surface in UI after the file lands)? May be simpler than a full author-in-UI flow.
+
+---
+
+# Appendix A — Update for 2026-05-14 (post-v6 training)
+
+Since this doc was written, three concrete changes shifted what the UI needs to render:
+
+## A1. Eval numbers are real, not pending
+
+The Evaluate v2 tab can use actual numbers in its first mockup — replace the "pending" placeholders. v6 results on the test split (236 examples):
+
+| Checker | v4 baseline | v6 actual | Target | Status |
+|---|---|---|---|---|
+| adversity_language (B4) | n/a | **100.0%** (30/30) | ≥80% | ✓ +20pp |
+| skeleton_completion (A) | 0% | **97.9%** (94/96) | ≥80% | ✓ +98pp |
+| mrsd_computation (C1) | 0% | **92.0%** (46/50) | ≥70% | ✓ +92pp |
+| tabulated_summary (A2) | n/a | **83.3%** (25/30) | ≥70% | ✓ |
+| phase_gating (C2) | n/a | **70.0%** (21/30) | ≥80% | ⚠ -10pp |
+
+These should be the bar-height values in the v6 column of the per-checker chart. Color coding stays as in the original spec (green ≥80%, amber 50-79%, red <50%).
+
+The phase_gating drill-down should highlight the failure-mode cluster surfaced in the eval:
+- 4/9 failures forgot **hERG (ICH S7B)**
+- 5/9 failures forgot specific repeat-dose duration or carcinogenicity
+
+This is exactly the kind of insight Drill-down was designed to surface — make sure the failure-mode clustering is visible at first glance (e.g., a small donut chart or grouped bar showing "which study was missed").
+
+## A2. v7 column is deferred, not pending
+
+The Evaluate v2 layout shows three columns: v4 / v6 / v7. v7 training was attempted but is **deferred** due to hardware constraints (DPO per-step time on sm_121 is impractical with the current TRL+PyTorch versions in the NGC container).
+
+Two display options for the v7 column:
+- **Option A:** drop the v7 column entirely until training works on better hardware. Cleanest but loses the visual hint that DPO is the next product step.
+- **Option B (recommended):** keep the v7 column with a "Deferred — see notes" badge instead of "Pending bars". Add a one-line tooltip explaining the hardware constraint.
+
+## A3. Fine-Tune pipeline view: v6 is now the terminal stage
+
+The horizontal pipeline diagram in the original spec showed:
+
+```
+Base → v6 SFT → DPO pairs → v7 DPO
+```
+
+Update to reflect actual state:
+
+```
+Base → v6 SFT (✓ active) → DPO pairs (✓ 2,659 staged) → v7 DPO (deferred)
+```
+
+The v6 SFT card should show a green check + "Active in production" badge. The DPO pairs card should show the pair-count summary. The v7 DPO card should be visually subdued (dashed border, gray fill) with the deferred reason.
+
+The "Active in production" state is new — it means the UI needs a way to see *which* adapter is currently being served. Add a small status pill in the page header:
+
+```
+Active adapter: regulatory_llm_v6 ✓
+```
+
+When v7 (or v8 etc.) eventually trains and promotes, this pill updates.
+
+## A4. New tab content for v8 — Real-data scrapers
+
+The Task Generators tab spec described 5 *synthetic* generators. v8 will add a **real-data** track via three scrapers (TGA AusPAR, Health Canada SBD, NMPA CDE). Add a second sub-tab under the Dataset tab (or a new "Real-data Scrapers" tab) with the same row-per-source layout:
+
+```
+Real-data Scrapers                                             [+ New Source]
+
+┌────────────────────────────────────────────────────────────────────────┐
+│ Source                Region    Docs    Status      Last Run            │
+├────────────────────────────────────────────────────────────────────────┤
+│ ○ TGA AusPAR          AU        0       Network-gated   never           │
+│ ○ Health Canada SBD   CA        0       Network-gated   never           │
+│ ○ NMPA CDE Review     CN        0       Network-gated   never           │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+Each scraper has a "Run" button (disabled when network unreachable). Behind each row, the diff with the synthetic Task Generators is that real-data records can fail extraction quietly — surface a "skipped: section heading not found" counter prominently.
+
+The China (NMPA) scraper is particularly important for product positioning. Add a language-stratification micro-chart inside the NMPA detail panel (zh-CN / bilingual / en breakdown).
+
+## A5. China-readiness display element
+
+NMPA is a growing market. When v8 ships, the active-adapter pill should optionally show region-coverage:
+
+```
+Active adapter: regulatory_llm_v8 ✓   Regions: FDA · EMA · NMPA
+```
+
+A user clicking the regions chip can see per-region eval pass rates side-by-side. This is a v8 concern, not v6 — but worth designing into the data model now so the pill component doesn't need a redesign later.
+
+## A6. What is NOT changed from v1 spec
+
+To save Claude Design re-reading the whole doc:
+
+- **Side nav layout** — unchanged (Dataset / Task Generators / Training Pairs / DPO Pairs / Fine-Tune / Evaluate / Deploy)
+- **Color tokens** — unchanged
+- **Build priority order** — unchanged (Evaluate v2 first, Task Generators second, etc.)
+- **API endpoint wiring map** — unchanged; add one new endpoint `GET /api/regulatory/active_adapter` returning the currently-served adapter version
+
+---
+
+## Open design questions added by this update
+
+5. **Active adapter pill placement** — top-right of header, or inline with the Fine-Tune pipeline view, or both?
+6. **Deferred-stage visual treatment** — dashed border + gray fill (suggested above) sufficient, or do we need a more prominent "blocked / future work" indicator?
+7. **Failure-mode clustering chart** for checker drill-downs — donut, grouped bar, or simple count list with study names? Phase_gating is the canonical case (hERG missed 4/9 times) — design it once and reuse for other checkers.
