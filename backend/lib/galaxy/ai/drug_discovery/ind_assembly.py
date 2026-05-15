@@ -61,24 +61,42 @@ log = logging.getLogger(__name__)
 # Local Regulatory LLM — Qwen3-8B + LoRA adapter
 # ---------------------------------------------------------------------------
 
-def _resolve_adapter_path() -> Path:
-    """Pick the latest available LoRA adapter. Prefers v7 → v6 → v4 → v3 → v2 → v1 → env override."""
+def _resolve_adapter_path(org_id: str | None = None) -> Path:
+    """
+    Pick the latest available LoRA adapter for this caller.
+
+    Resolution order:
+      1. REGULATORY_LLM_ADAPTER env override
+      2. Per-org customized adapter when org_id is provided
+         (regulatory_llm_v{N}_{org_id}/lora_adapter), highest N first
+      3. Public version: v7 → v6 → v4 → v3 → v2 → v1
+
+    Per-org adapters are produced by per-customer fine-tuning on accumulated
+    edit pairs — see Appendix B of docs/20260504_IND_PRODUCT_UI_REQUIREMENTS.md.
+    """
     if "REGULATORY_LLM_ADAPTER" in os.environ:
         return Path(os.environ["REGULATORY_LLM_ADAPTER"])
     models_root = Path(__file__).parent.parent.parent.parent.parent.parent / "models"
-    # Prefer numerically higher versions
-    for name in (
-        "regulatory_llm_v7/lora_adapter",
-        "regulatory_llm_v6/lora_adapter",
-        "regulatory_llm_v4/lora_adapter",
-        "regulatory_llm_v3/lora_adapter",
-        "regulatory_llm_v2/lora_adapter",
-        "regulatory_llm_v1/lora_adapter",
-    ):
-        candidate = models_root / name
+
+    public_versions = ("v7", "v6", "v4", "v3", "v2", "v1")
+
+    # 1. Per-org customized adapter — check newest version first
+    if org_id:
+        # Sanitize: alnum + underscore + hyphen only, max 32 chars
+        safe_org = "".join(c for c in org_id if c.isalnum() or c in "-_")[:32]
+        if safe_org:
+            for v in public_versions:
+                candidate = models_root / f"regulatory_llm_{v}_{safe_org}" / "lora_adapter"
+                if candidate.exists():
+                    return candidate
+
+    # 2. Public adapter — newest available
+    for v in public_versions:
+        candidate = models_root / f"regulatory_llm_{v}" / "lora_adapter"
         if candidate.exists():
             return candidate
-    return models_root / "regulatory_llm_v1/lora_adapter"  # may not exist — falls back to Gemini
+
+    return models_root / "regulatory_llm_v1" / "lora_adapter"  # may not exist — Gemini fallback
 
 
 _LOCAL_LLM_ADAPTER = _resolve_adapter_path()

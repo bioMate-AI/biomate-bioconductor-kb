@@ -900,8 +900,14 @@ export function NextflowWorkflowViewer({
   const [showQcInline, setShowQcInline] = useState(false);
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
   const [qcGateSecondsLeft, setQcGateSecondsLeft] = useState<number | null>(null);
+  // Low-confidence "Confirm anyway" auto-proceed countdown
+  const [lowConfSecondsLeft, setLowConfSecondsLeft] = useState<number | null>(null);
+  const lowConfTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const qcGateTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const QC_GATE_TIMEOUT_S = 60; // 1 minute
+  // Don't block the user on decisions. After this many seconds with no input
+  // the system auto-proceeds with the safest default and tells the user in chat.
+  const QC_GATE_TIMEOUT_S = 10;
+  const LOW_CONF_TIMEOUT_S = 10;
   const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
     gateResults: null,
     remediations: [],
