@@ -7026,6 +7026,52 @@ ${paramLines || '(none recorded)'}`;
               }
             }
 
+            // Final fallback: direct S3 ListObjectsV2 on the outdir prefix when
+            // Galaxy's /api/nextflow/runs/{nfRunId}/output_files (above) found
+            // nothing. Required when the Galaxy executor's post-completion
+            // callback didn't register s3_output_files in nextflowStatus AND
+            // Galaxy itself has no record of the run's output files. This is
+            // the same logic /api/workflows/runs/:id/output_files uses.
+            if (nextflowStatus?.outdir && String(nextflowStatus.outdir).startsWith('s3://')) {
+              const hasS3FileArtifact = artifacts.some(a =>
+                a.startsWith('s3://') && !a.endsWith('/') && a.split('/').pop()?.includes('.')
+              );
+              if (!hasS3FileArtifact) {
+                try {
+                  const m = String(nextflowStatus.outdir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/);
+                  if (m) {
+                    const [, bucket, prefix] = m;
+                    const AWS = await import('@aws-sdk/client-s3');
+                    const s3 = new AWS.S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+                    const listed: string[] = [];
+                    let continuationToken: string | undefined = undefined;
+                    do {
+                      const lr: any = await s3.send(new AWS.ListObjectsV2Command({
+                        Bucket: bucket,
+                        Prefix: `${prefix}/`,
+                        ContinuationToken: continuationToken,
+                        MaxKeys: 1000,
+                      }));
+                      for (const obj of (lr.Contents || [])) {
+                        if (!obj.Key || obj.Key.endsWith('/')) continue;
+                        listed.push(`s3://${bucket}/${obj.Key}`);
+                      }
+                      continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+                    } while (continuationToken);
+                    if (listed.length > 0) {
+                      // Drop the bare-directory artifact entries, replace with real file URIs
+                      const nonS3 = artifacts.filter(a => !a.startsWith('s3://'));
+                      artifacts.length = 0;
+                      artifacts.push(...nonS3, ...listed);
+                      console.log(`[Outputs] Direct S3 list fallback: ${listed.length} files under ${nextflowStatus.outdir}`);
+                    }
+                  }
+                } catch (e: any) {
+                  console.warn('[Outputs] Direct S3 list fallback failed:', e?.message || e);
+                }
+              }
+            }
+
             const nfIsTerminal = ['succeeded', 'completed', 'failed', 'error'].includes(
               String(nextflowStatus?.status || '').toLowerCase()
             );
