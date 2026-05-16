@@ -72,13 +72,18 @@ COPY --chown=galaxy:galaxy . .
 # out of the image. Once Secrets Manager lands (P2.3), the container will
 # fetch secrets at boot via IAM role and the host-mounted file goes away.
 RUN cp config/galaxy.yml.template config/galaxy.yml \
-    && mkdir -p database logs config/plugins \
+    && mkdir -p database logs config/plugins /app/.nextflow \
     && chmod +x /app/start_biomate.sh /app/run.sh \
     # Galaxy's default 'files' log handler writes to /app/galaxy.log; the file
     # must exist and be writable by the galaxy user BEFORE Galaxy starts,
     # otherwise dictConfig raises "Unable to configure handler 'files'".
     && touch /app/galaxy.log \
-    && chown galaxy:galaxy /app/galaxy.log
+    # /app itself was created by WORKDIR before useradd and is root-owned;
+    # COPY --chown only affects copied content, not the parent dir. Without
+    # this, Nextflow's mkdir ~/.nextflow fails with EACCES when running as
+    # the galaxy user.
+    && chown galaxy:galaxy /app /app/galaxy.log /app/.nextflow \
+    && chown -R galaxy:galaxy /app/database /app/logs /app/config/plugins
 
 ENV PYTHONUNBUFFERED=1
 ENV GALAXY_CONFIG_FILE=/app/config/galaxy.yml
