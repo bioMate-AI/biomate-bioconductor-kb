@@ -1,6 +1,7 @@
-# Frontend Dockerfile (app-only, ~30s rebuild)
-# Biotools (R, Bioconductor, Python sci, CLI tools) are in biomate-biotools:1 —
-# rebuild that image only when biotools deps change (`docker build -f Dockerfile.biotools`).
+# Frontend Dockerfile — slim app image (~30s rebuild).
+# Code execution (`run_code` tool) is delegated to ephemeral biomate-biotools:1
+# sandbox containers spawned via the host docker socket — biotools no longer
+# live inside this image.
 FROM node:18-bookworm-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,9 +17,13 @@ COPY . .
 RUN npm run build
 
 # ─── Production stage ─────────────────────────────────────────────────────────
-# Pre-built biotools base. Build once with:
-#   docker build -t biomate-biotools:1 -f Dockerfile.biotools .
-FROM biomate-biotools:1
+FROM node:18-bookworm-slim
+
+# Docker CLI only — the daemon stays on the host. Socket mount required at run
+# time: `-v /var/run/docker.sock:/var/run/docker.sock`.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    docker.io ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

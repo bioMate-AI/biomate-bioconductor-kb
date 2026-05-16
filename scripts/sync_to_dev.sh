@@ -105,10 +105,17 @@ deploy_frontend() {
     # Mount patched index.js if it exists (baked-in code may be stale; volume mount survives restarts)
     VOLUME_MOUNT=""
     [ -f /opt/biomate/dist_index.js ] && VOLUME_MOUNT="-v /opt/biomate/dist_index.js:/app/dist/index.js"
+    # /var/run/docker.sock + /tmp/biomate_code mount: run_code tool spawns
+    # ephemeral biomate-biotools:1 sandboxes via host docker; the sandbox
+    # bind-mounts /tmp/biomate_code/<session> which must resolve to the same
+    # path inside the frontend container so paths match host-side.
+    mkdir -p /tmp/biomate_code
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
       -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
       --restart unless-stopped \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v /tmp/biomate_code:/tmp/biomate_code \
       $VOLUME_MOUNT \
       biomate-dev-frontend:latest
     sleep 5

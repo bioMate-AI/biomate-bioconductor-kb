@@ -149,68 +149,88 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     let interpreter: string;
     let args: string[];
 
+    // Inside the sandbox container the host baseDir is bind-mounted at /work.
+    // All script env vars must reference container paths, not host paths.
+    const containerData = '/work/input';
+    const containerOutput = '/work/output';
+    let scriptName: string;
+
     if (req.language === 'python') {
       const preamble = [
-        `import os, sys`,
-        `os.environ['DATA_DIR'] = ${JSON.stringify(dataDir)}`,
-        `os.environ['OUTPUT_DIR'] = ${JSON.stringify(outputDir)}`,
-        `sys.path.insert(0, '/usr/local/lib/python3/dist-packages')`,
-        `os.chdir(${JSON.stringify(outputDir)})`,
+        `import os`,
+        `os.environ['DATA_DIR'] = ${JSON.stringify(containerData)}`,
+        `os.environ['OUTPUT_DIR'] = ${JSON.stringify(containerOutput)}`,
+        `os.chdir(${JSON.stringify(containerOutput)})`,
       ].join('\n');
-      scriptPath = path.join(baseDir, 'script.py');
+      scriptName = 'script.py';
+      scriptPath = path.join(baseDir, scriptName);
       await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'python3';
-      args = [scriptPath];
+      args = [`/work/${scriptName}`];
     } else if (req.language === 'r') {
       const preamble = [
-        `Sys.setenv(DATA_DIR = ${JSON.stringify(dataDir)})`,
-        `Sys.setenv(OUTPUT_DIR = ${JSON.stringify(outputDir)})`,
-        `setwd(${JSON.stringify(outputDir)})`,
+        `Sys.setenv(DATA_DIR = ${JSON.stringify(containerData)})`,
+        `Sys.setenv(OUTPUT_DIR = ${JSON.stringify(containerOutput)})`,
+        `setwd(${JSON.stringify(containerOutput)})`,
       ].join('\n');
       const rStagedComment = stagedFiles.length > 0
         ? '# Staged input files:\n' + stagedFiles.map(
-            f => `#   ${f.id}/${f.filename}  ->  ${path.join(f.dir, f.filename)}`
+            f => `#   ${f.id}/${f.filename}  ->  ${path.posix.join(containerData, f.id, f.filename)}`
           ).join('\n') + '\n'
         : '';
-      scriptPath = path.join(baseDir, 'script.R');
+      scriptName = 'script.R';
+      scriptPath = path.join(baseDir, scriptName);
       await fs.writeFile(scriptPath, `${preamble}\n\n${rStagedComment}${req.code}`);
       interpreter = 'Rscript';
-      args = [scriptPath];
+      args = [`/work/${scriptName}`];
     } else {
       // bash
       const preamble = [
-        `export DATA_DIR=${JSON.stringify(dataDir)}`,
-        `export OUTPUT_DIR=${JSON.stringify(outputDir)}`,
-        `cd ${JSON.stringify(outputDir)}`,
+        `export DATA_DIR=${JSON.stringify(containerData)}`,
+        `export OUTPUT_DIR=${JSON.stringify(containerOutput)}`,
+        `cd ${JSON.stringify(containerOutput)}`,
       ].join('\n');
-      scriptPath = path.join(baseDir, 'script.sh');
+      scriptName = 'script.sh';
+      scriptPath = path.join(baseDir, scriptName);
       await fs.writeFile(scriptPath, `#!/bin/bash\n${preamble}\n\n${req.code}`);
       interpreter = 'bash';
-      args = [scriptPath];
+      args = [`/work/${scriptName}`];
     }
 
-    // Execute
+    // Execute inside an ephemeral biomate-biotools container.
+    // baseDir is bind-mounted at /work so input/, output/ and the script are visible.
+    // --network=none isolates the sandbox; --memory/--cpus cap resource usage.
+    // --user matches host UID so output files are owned by the frontend node user.
+    const uid = (process.getuid?.() ?? 1000);
+    const gid = (process.getgid?.() ?? 1000);
+    const sandboxImage = process.env.RUN_CODE_IMAGE || 'biomate-biotools:1';
+    const dockerArgs = [
+      'run', '--rm',
+      '--network=none',
+      '--memory=2g', '--cpus=2',
+      '--user', `${uid}:${gid}`,
+      '-v', `${baseDir}:/work`,
+      '-w', '/work/output',
+      '-e', `DATA_DIR=${containerData}`,
+      '-e', `OUTPUT_DIR=${containerOutput}`,
+      '-e', 'HOME=/tmp',
+      sandboxImage,
+      interpreter,
+      ...args,
+    ];
+
     const result = await new Promise<{ stdout: string; stderr: string; exitCode: number }>(
       (resolve) => {
         let stdout = '';
         let stderr = '';
-        const child = spawn(interpreter, args, {
-          timeout: timeoutMs,
-          env: {
-            ...process.env,
-            DATA_DIR: dataDir,
-            OUTPUT_DIR: outputDir,
-            HOME: '/tmp',
-            PATH: '/usr/local/bin:/usr/bin:/bin',
-          },
-        });
+        const child = spawn('docker', dockerArgs, { timeout: timeoutMs });
         child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
         child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
         child.on('close', (code: number | null) => {
           resolve({ stdout: stdout.slice(0, 8000), stderr: stderr.slice(0, 4000), exitCode: code ?? 1 });
         });
         child.on('error', (err: Error) => {
-          resolve({ stdout, stderr: stderr + `\n[Process error: ${err.message}]`, exitCode: 1 });
+          resolve({ stdout, stderr: stderr + `\n[docker run error: ${err.message}]`, exitCode: 1 });
         });
       }
     );
