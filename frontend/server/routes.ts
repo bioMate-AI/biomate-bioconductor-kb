@@ -4462,12 +4462,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const extractedR2Count = extractR2?.data?.num_particles ?? 0;
           const class2dCount     = class2dR1?.data?.num_particles ?? 0;
           // For selection: use class2D count (particles that entered classification) if selection shows 0
-          const selR1Count = (selectR1?.num_selected_particles > 0)
-            ? selectR1.num_selected_particles
+          const selR1Count = ((selectR1?.num_selected_particles ?? 0) > 0)
+            ? selectR1!.num_selected_particles
             : (class2dCount > 0 ? class2dCount : 'not captured');
           // For NU refinement: use R2 extraction count if refinement report shows 0
-          const nuCount = (nuRpt?.data?.num_particles > 0)
-            ? nuRpt.data.num_particles
+          const nuCount = ((nuRpt?.data?.num_particles ?? 0) > 0)
+            ? nuRpt!.data.num_particles
             : (extractedR2Count > 0 ? extractedR2Count : 'not captured');
 
           extractedMetrics = {
@@ -10053,8 +10053,8 @@ Rules:
 
           if (structured) {
             return res.json({
-              status: 'ready',
               ...structured,
+              status: 'ready',
               runId,
               reportUrl,
             });
@@ -10087,7 +10087,7 @@ Rules:
             if (dataResp.ok) {
               const structured = await dataResp.json();
               const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-              return res.json({ ...structured, runId, reportUrl });
+              return res.json({ ...structured, status: 'ready', runId, reportUrl });
             }
           }
         } catch { /* S3 not available — fall through to trigger analysis */ }
@@ -10099,7 +10099,8 @@ Rules:
         if (cached._generating) {
           return res.json({ status: 'pending', message: 'Analysis in progress…' });
         }
-        return res.json({ ...cached, runId });
+        const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+        return res.json({ ...cached, status: 'ready', reportUrl, runId });
       }
 
       // 4. Mark as generating so concurrent polls don't double-fire
