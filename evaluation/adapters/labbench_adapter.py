@@ -1751,43 +1751,15 @@ def _fetch_pubmed_context(question: str, choices: Dict[str, str], timeout: int =
     try:
         import requests
 
-        # v13 strategy: high-specificity entities ONLY. v12 (8 question terms +
-        # 6 choice tokens / 5 abstracts) regressed -6.6pp because PubMed returned
-        # tangentially-related papers. Tighter beats broader: extract the few
-        # rare/specific tokens (capitalized multi-word phrases, drug names, gene
-        # symbols, distinctive terms like "Borgs"/"VISTA") that uniquely
-        # identify the paper.
-
-        # Multi-word capitalized phrases (proper nouns, named complexes)
-        multiword = re.findall(r'\b[A-Z][a-zA-Z0-9-]+(?:\s+[A-Z][a-zA-Z0-9-]+)+\b', question)
-        # Single capitalized rare tokens (genes, proteins, distinctive names)
-        single_caps = re.findall(r'(?<=[a-z]\s)([A-Z][a-zA-Z0-9-]{3,})\b', question)
-        # Drug/gene-suffix tokens (-mab, -nib, -inib, etc.)
-        drug_genes = re.findall(r'\b([A-Za-z]{4,}(?:mab|nib|inib|cin|tide|ide|ase|ine))\b', question)
-        # From choices: distinctive capitalized tokens (answer entities)
-        choice_terms = []
-        for choice_text in choices.values():
-            choice_terms += re.findall(r'\b[A-Z][a-zA-Z0-9-]{4,}\b', choice_text)
-
-        seen = set()
-        quoted_terms = []  # PubMed treats quoted strings as exact phrases
-        for t in multiword:
-            if t.lower() not in seen:
-                seen.add(t.lower()); quoted_terms.append(f'"{t}"')
-        bare_terms = []
-        _SKIP = {"following","question","study","cells","mice","analysis"}
-        for t in single_caps + drug_genes + choice_terms:
-            if t.lower() not in seen and t.lower() not in _SKIP:
-                seen.add(t.lower()); bare_terms.append(t)
-
-        # Cap at 5 terms total — tight beats broad
-        query_terms = (quoted_terms + bare_terms)[:5]
-        if not query_terms:
-            # Fallback for questions with no distinctive entities
-            _STOP = {"the","a","an","is","are","was","were","what","which","how","when",
-                     "where","who","why","does","do","did","in","of","and","or","for","to","with"}
-            words = re.findall(r'\b[a-zA-Z]{4,}\b', question)
-            query_terms = [w for w in words if w.lower() not in _STOP][:5]
+        # Build search query from question (remove common stop words)
+        _STOP = {"the","a","an","is","are","was","were","what","which","how","when",
+                 "where","who","why","does","do","did","in","of","and","or","for",
+                 "to","with","that","this","from","by","as","at","be","been","has",
+                 "have","had","not","no","can","could","would","should","will","its",
+                 "their","they","it","on","than","into","about","after","study","shown",
+                 "found","show","associated","between","percent","percentage"}
+        words = re.findall(r'\b[a-zA-Z]{3,}\b', question)
+        query_terms = [w for w in words if w.lower() not in _STOP][:6]
         if not query_terms:
             return ""
 
