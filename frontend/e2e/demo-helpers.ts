@@ -234,13 +234,18 @@ const RUN_BTN =
  * Does NOT wait for AWS Batch completion. Use this when the demo only needs
  * to show the "submitted, in flight" state — not the full ~3min cloud wait.
  *
- * Returns the run_id from the execute response (or null if not captured).
+ * Throws if no /api/nextflow/execute POST is observed within 8s of the click —
+ * that signals the Run button was disabled (missing required params) or the
+ * frontend swallowed the click. Silent dispatch failures used to make demos
+ * "pass" with runId=null and no underlying workflow run.
  */
-export async function clickRunOnly(page: Page): Promise<string | null> {
+export async function clickRunOnly(page: Page): Promise<string> {
   let runId: string | null = null;
+  let executeFired = false;
   const handler = async (resp: import('@playwright/test').Response) => {
     const url = resp.url();
     if (!url.includes('/api/workflows/execute') && !url.includes('/api/nextflow/execute')) return;
+    executeFired = true;
     try {
       const p = await resp.json();
       runId = p?.runId || p?.run_id || p?.execution?.run?.id ||
@@ -250,13 +255,26 @@ export async function clickRunOnly(page: Page): Promise<string | null> {
   page.on('response', handler);
 
   const btn = page.locator(RUN_BTN).first();
-  await btn.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => null);
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click({ trial: false }).catch(() => null);
+  const visible = await btn.waitFor({ state: 'visible', timeout: 30_000 }).then(() => true).catch(() => false);
+  if (!visible) {
+    page.off('response', handler);
+    throw new Error('[clickRunOnly] Run button never became visible — workflow panel may not have loaded');
   }
-  // Wait briefly for the POST to fly, then return
-  await page.waitForTimeout(3000);
+  const disabled = await btn.evaluate((el: HTMLButtonElement) => el.disabled).catch(() => false);
+  if (disabled) {
+    page.off('response', handler);
+    throw new Error('[clickRunOnly] Run button is DISABLED — likely missing required workflow parameters (form not populated by LLM inline-params remapping)');
+  }
+  await btn.click({ trial: false });
+  await page.waitForTimeout(5000); // give POST time to fly
   page.off('response', handler);
+
+  if (!executeFired) {
+    throw new Error('[clickRunOnly] No /api/nextflow/execute POST observed within 5s of clicking Run — silent dispatch failure');
+  }
+  if (!runId) {
+    throw new Error('[clickRunOnly] Execute POST fired but returned no run_id — backend rejected the dispatch');
+  }
   return runId;
 }
 

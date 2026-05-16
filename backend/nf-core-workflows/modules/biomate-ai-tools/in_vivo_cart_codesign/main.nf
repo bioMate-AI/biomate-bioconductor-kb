@@ -66,7 +66,10 @@ process IN_VIVO_CART_CODESIGN {
     python3 << 'PYEOF'
 import os, json
 
-car_target = os.environ.get('PARAM_TARGET', '').strip().upper() or 'CD19'
+car_target = os.environ.get('PARAM_TARGET', '').strip()
+if not car_target or car_target.lower() == 'null':
+    car_target = 'CD19'
+car_target = car_target.upper()
 indication = os.environ.get('PARAM_INDICATION', 'undefined').strip().lower()
 deliv_cell = os.environ.get('PARAM_CELL', 'T_cell').strip()
 lnp_pref   = os.environ.get('PARAM_LNP', 'auto').strip()        # case-sensitive (anti_CD5 ≠ anti_cd5)

@@ -64,7 +64,10 @@ process IN_VIVO_BASE_EDIT_DESIGN {
     python3 << 'PYEOF'
 import os, json
 
-gene       = os.environ.get('PARAM_GENE', '').strip().upper() or 'PCSK9'
+gene       = os.environ.get('PARAM_GENE', '').strip()
+if not gene or gene.lower() == 'null':
+    gene = 'PCSK9'
+gene = gene.upper()
 goal       = os.environ.get('PARAM_GOAL', 'loss_of_function').strip().lower()
 indication = os.environ.get('PARAM_INDICATION', 'undefined').strip().lower()
 delivery   = os.environ.get('PARAM_DELIVERY', 'auto').strip().lower()

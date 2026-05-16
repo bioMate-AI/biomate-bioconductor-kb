@@ -72,7 +72,10 @@ process MODALITY_TRIAGE {
 import os, json, csv, sys
 
 atlas_path = os.environ.get('PARAM_ATLAS', '').strip()
-gene       = os.environ.get('PARAM_GENE', '').strip().upper() or 'unknown'
+gene       = os.environ.get('PARAM_GENE', '').strip()
+if not gene or gene.lower() == 'null':
+    gene = 'unknown'
+gene = gene.upper()
 indication = os.environ.get('PARAM_INDICATION', 'oncology').strip().lower()
 modalities = os.environ.get('PARAM_MODALITIES', 'all').strip().lower()
 

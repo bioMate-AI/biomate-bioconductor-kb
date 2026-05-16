@@ -62,8 +62,14 @@ process BISPECIFIC_FORMAT_TRIAGE {
     python3 << 'PYEOF'
 import os, json, csv
 
-target_a   = os.environ.get('PARAM_A', '').strip().upper() or 'PDCD1'
-target_b   = os.environ.get('PARAM_B', '').strip().upper() or 'KDR'
+target_a   = os.environ.get('PARAM_A', '').strip()
+if not target_a or target_a.lower() == 'null':
+    target_a = 'PDCD1'
+target_a = target_a.upper()
+target_b   = os.environ.get('PARAM_B', '').strip()
+if not target_b or target_b.lower() == 'null':
+    target_b = 'KDR'
+target_b = target_b.upper()
 indication = os.environ.get('PARAM_INDICATION', 'oncology').strip().lower()
 mechanism  = os.environ.get('PARAM_MECHANISM', 'auto').strip().lower()
 
