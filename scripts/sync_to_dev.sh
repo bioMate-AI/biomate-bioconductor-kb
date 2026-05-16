@@ -116,9 +116,11 @@ deploy_frontend() {
     fi
     echo "[frontend] Restarting container..."
     sleep 1
-    # Mount patched index.js if it exists (baked-in code may be stale; volume mount survives restarts)
-    VOLUME_MOUNT=""
-    [ -f /opt/biomate/dist_index.js ] && VOLUME_MOUNT="-v /opt/biomate/dist_index.js:/app/dist/index.js"
+    # Note: removed the /opt/biomate/dist_index.js volume mount + post-start docker cp.
+    # That was a workaround from when image rebuilds were flaky and would override the
+    # freshly-built bundle with a stale host file. Now that Dockerfile.biotools is split
+    # and the app image rebuilds reliably, we use only the baked-in dist/.
+    #
     # /var/run/docker.sock + /tmp/biomate_code mount: run_code tool spawns
     # ephemeral biomate-biotools:1 sandboxes via host docker; the sandbox
     # bind-mounts /tmp/biomate_code/<session> which must resolve to the same
@@ -130,16 +132,10 @@ deploy_frontend() {
       --restart unless-stopped \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v /tmp/biomate_code:/tmp/biomate_code \
-      $VOLUME_MOUNT \
       biomate-dev-frontend:latest
     sleep 5
     # Restore logo (not baked into image — uploaded separately)
     docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
-    # Restore server bundle (compiled locally, more up-to-date than what was in the image)
-    if [ -f /opt/biomate/dist_index.js ]; then
-      docker cp /opt/biomate/dist_index.js biomate-dev-frontend:/app/dist/index.js
-      echo "[frontend] Patched dist/index.js restored"
-    fi
     docker ps --format "  {{.Names}}: {{.Status}}" | grep biomate-dev-frontend
   '
   log "[frontend] Done"
