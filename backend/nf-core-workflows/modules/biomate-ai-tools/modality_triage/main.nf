@@ -1,65 +1,52 @@
 #!/usr/bin/env nextflow
 /*
- * drug_discovery/modality_triage
+ * drug_discovery/modality_triage  (4-phase pipeline)
  *
- * Scores therapeutic modality options for a target based on single-cell atlas
- * expression. Consumes atlas_expression.json from atlas_expression_query.
+ *   Phase A — Atlas Profile           : load atlas_expression.json (target tissue distribution)
+ *   Phase B — CAR-T Viability         : B-cell / plasma-cell restriction; CAR-T verdict
+ *   Phase C — ADC + Bispecific Eval   : internalization-friendly payloads; bispecific TCE eval
+ *   Phase D — Modality Ranking        : composite ranking + IHC follow-up panel + final report
  *
- * NOT a clinical decision tool. Output is triage to prioritize wet-lab IHC
- * validation, not to decide modality.
+ * Demo case (T05): BCMA → plasma cells (high) + plasmablasts (moderate), no critical-tissue
+ * hits → CAR-T VIABLE (matches Abecma/Carvykti pattern).
  *
- * Modality scoring rules:
- *   CAR-T:    expression > 0.5 in ANY HIGH-criticality tissue → REJECT
- *             expression > 0.5 in MOD tissue → CAUTION + suggest logic-gated
- *             else → VIABLE
- *   ADC:      payload-dependent:
- *               MMAE (bystander+):  reject HIGH cardiac/neural > 1.0
- *               MMAF (no bystander): tolerate MOD up to mean 2.5
- *               SN-38 (bystander++): reject HIGH > 0.5
- *               DM1 (no bystander):  tolerate MOD up to mean 3.0
- *   Bispecific TCE: CAUTION rather than REJECT for MOD; recommends dose ceiling
- *   PROTAC:   tissue distribution matters less; flag E3 selectivity needed
- *             when ubiquitous expression in critical tissue
- *   siRNA/ASO:expression in critical tissue less impactful;
- *             knockdown effect is the question
- *   Small molecule: not target-expression-driven; flag if druggability unknown
+ * NOT a clinical decision tool. Output is triage to prioritize wet-lab IHC validation.
  *
- * Validated retrospectively against:
- *   CD19, BCMA, CD22 → CAR-T VIABLE (matches approved drugs)
- *   HER2 CAR-T → REJECT (Morgan 2010 fatality)
- *   CEA CAR-T → REJECT (Parkhurst 2011 colitis)
- *   ROR1 CAR-T → REJECT/CAUTION (adipose, parathyroid)
- *   EGFR CAR-T → REJECT (skin, lung)
- *   GD2 CAR-T → CAUTION (peripheral nerve)
- *   HER2 ADC, TROP2 ADC → VIABLE (Kadcyla, Trodelvy approved)
+ * References:
+ *   - Morgan et al. 2010 Mol Ther 18:843 (HER2 CAR-T cardiopulmonary fatality)
+ *   - Parkhurst et al. 2011 Mol Ther 19:620 (CEA CAR-T severe colitis)
+ *   - Lamers et al. 2013 Mol Ther 21:904 (CAIX CAR-T hepatotoxicity)
+ *   - Hassan et al. 2014 Cancer Immunol Res 2:1062 (MSLN target selection)
+ *   - Quake lab 2022 Science (Tabula Sapiens)
+ *   - Hamblett 2004 Clin Cancer Res (ADC DAR-PK relationship)
+ *   - Bondeson & Crews 2017 Annu Rev Pharmacol (PROTAC design)
  */
 
 nextflow.enable.dsl = 2
 
 params.outdir            = './results'
-params.atlas_expression  = 'null'              // path to atlas_expression.json
+params.atlas_expression  = 'null'
 params.target_gene       = 'null'
 params.indication        = 'oncology'
-params.modalities        = 'all'               // all | car-t,adc,bispecific,protac,asis_irna
+params.modalities        = 'all'
 
-process MODALITY_TRIAGE {
-    tag "triage:${params.target_gene}"
+CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+    : 'biomate/biomni-tools:latest'
+
+// [Phase A] Atlas Profile — load atlas_expression.json and compute tissue-tier aggregates
+process TRIAGE_ATLAS_PROFILE {
+    tag "triage:phaseA:${params.target_gene}"
     label 'process_low'
-    publishDir "${params.outdir}", mode: 'copy'
-
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+    publishDir "${params.outdir}/phaseA_atlas", mode: 'copy'
+    container CONTAINER_IMAGE
 
     input:
     val(meta)
 
     output:
-    tuple val(meta), path("modality_triage_report.json"), emit: report_json
-    tuple val(meta), path("modality_ranking.csv"),        emit: ranking_csv
-    tuple val(meta), path("modality_triage.txt"),         emit: report
-    tuple val(meta), path("ihc_followup_panel.txt"),      emit: ihc_panel
-    path "versions.yml",                                   emit: versions
+    tuple val(meta), path("atlas_context.json"), emit: context
+    path "phaseA_summary.txt",                    emit: summary
 
     script:
     """
@@ -69,29 +56,29 @@ process MODALITY_TRIAGE {
     export PARAM_MODALITIES='${params.modalities}'
 
     python3 << 'PYEOF'
-import os, json, csv, sys
+import os, json
 
 atlas_path = os.environ.get('PARAM_ATLAS', '').strip()
-gene       = os.environ.get('PARAM_GENE', '').strip()
+gene = os.environ.get('PARAM_GENE', '').strip()
 if not gene or gene.lower() == 'null':
     gene = 'unknown'
 gene = gene.upper()
-indication = os.environ.get('PARAM_INDICATION', 'oncology').strip().lower()
-modalities = os.environ.get('PARAM_MODALITIES', 'all').strip().lower()
+indication = os.environ.get('PARAM_INDICATION', '').strip().lower()
+if not indication or indication == 'null':
+    indication = 'oncology'
+modalities = os.environ.get('PARAM_MODALITIES', '').strip().lower()
+if not modalities or modalities == 'null':
+    modalities = 'all'
 
-# Load atlas JSON
-if atlas_path and atlas_path != 'null' and os.path.exists(atlas_path):
+if atlas_path and atlas_path.lower() != 'null' and os.path.exists(atlas_path):
     with open(atlas_path) as f:
         atlas = json.load(f)
 else:
-    # Demo / standalone-test fallback
     atlas = {'target_gene': gene, 'cell_type_profile': []}
-    gene = atlas.get('target_gene', gene)
 
 profile = atlas.get('cell_type_profile', [])
-gene = atlas.get('target_gene', gene)
+gene = atlas.get('target_gene', gene) or gene
 
-# Aggregate by criticality tier
 def max_expr_in_tier(profile, tier):
     matches = [r['mean_expression'] for r in profile if r['tissue_criticality'] == tier]
     return max(matches) if matches else 0.0
@@ -102,90 +89,193 @@ def cell_types_in_tier(profile, tier, threshold=0.5):
 
 max_high = max_expr_in_tier(profile, 'HIGH')
 max_mod  = max_expr_in_tier(profile, 'MOD')
+max_low  = max_expr_in_tier(profile, 'LOW')
 high_hits = cell_types_in_tier(profile, 'HIGH', 0.5)
 mod_hits  = cell_types_in_tier(profile, 'MOD',  0.5)
 low_hits  = cell_types_in_tier(profile, 'LOW',  0.5)
 
-# ─── Per-modality scoring rules ──────────────────────────────────────────────
+# B-cell / plasma-cell restriction detection (drives CAR-T precedent matching)
+b_or_plasma = [r for r in profile
+               if any(tok in r['cell_type'].lower() for tok in ['b_cell','plasma_cell','plasmablast'])
+               and r['mean_expression'] > 0.5]
+restricted_lymphoid = (
+    len(high_hits) == 0
+    and max_mod <= 1.0
+    and len(b_or_plasma) >= 1
+)
+
+ctx = {
+    'target_gene':  gene,
+    'indication':   indication,
+    'modalities':   modalities,
+    'atlas_source': atlas.get('data_source', 'unknown'),
+    'profile':      profile,
+    'max_high':     max_high,
+    'max_mod':      max_mod,
+    'max_low':      max_low,
+    'high_hits':    high_hits,
+    'mod_hits':     mod_hits,
+    'low_hits':     low_hits,
+    'b_or_plasma_cells': [r['cell_type'] for r in b_or_plasma],
+    'restricted_lymphoid': restricted_lymphoid,
+}
+with open('atlas_context.json', 'w') as f:
+    json.dump(ctx, f, indent=2)
+
+lines = [
+    "Phase A — Atlas Profile",
+    f"  Target:           {gene}",
+    f"  Indication:       {indication}",
+    f"  Atlas source:     {ctx['atlas_source']}",
+    f"  Cell types:       {len(profile)}",
+    f"  Max HIGH expr:    {max_high:.2f}  (hits: {len(high_hits)})",
+    f"  Max MOD  expr:    {max_mod:.2f}  (hits: {len(mod_hits)})",
+    f"  B/plasma cells:   {ctx['b_or_plasma_cells']}",
+    f"  Lymphoid-restricted: {restricted_lymphoid}",
+]
+with open('phaseA_summary.txt', 'w') as f:
+    f.write('\\n'.join(lines) + '\\n')
+print('\\n'.join(lines))
+PYEOF
+    """
+}
+
+// [Phase B] CAR-T Viability — score CAR-T using B-cell / plasma-cell restriction and critical-tissue hits
+process TRIAGE_CART_VIABILITY {
+    tag "triage:phaseB"
+    label 'process_low'
+    publishDir "${params.outdir}/phaseB_cart", mode: 'copy'
+    container CONTAINER_IMAGE
+
+    input:
+    tuple val(meta), path(ctx_json)
+
+    output:
+    tuple val(meta), path("cart_eval.json"), emit: cart
+    path "phaseB_summary.txt",                emit: summary
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json
+
+with open('${ctx_json}') as f:
+    ctx = json.load(f)
+
+max_high = ctx['max_high']; max_mod = ctx['max_mod']
+high_hits = ctx['high_hits']; mod_hits = ctx['mod_hits']
+restricted_lymphoid = ctx['restricted_lymphoid']
 
 def score_cart():
     if max_high > 0.5:
         return {
             'verdict':   'REJECT',
             'risk_tier': 'HIGH',
-            'reason':    f"Expression > 0.5 in critical tissue(s): {high_hits[:3]} → "
-                         f"on-target/off-tumor risk is unacceptable for unconditional CAR-T",
-            'mitigation':'Consider logic-gated AND-NOT CAR (A2 Bio pattern) using a co-expressed tumor-specific antigen, '
-                         'or alternate modality (ADC with non-bystander payload, bispecific TCE with tight dose control)',
-            'precedent': 'HER2 CAR-T (Morgan 2010 Mol Ther), CEA CAR-T (Parkhurst 2011), ROR1, EGFR CAR-T toxicity',
+            'reason':    f"Expression > 0.5 in critical tissue(s): {high_hits[:3]}",
+            'mitigation':'Logic-gated AND-NOT CAR (A2 Bio) or alternate modality',
+            'precedent': 'HER2 CAR-T (Morgan 2010), CEA CAR-T (Parkhurst 2011), ROR1, EGFR CAR-T',
         }
     if max_mod > 3.0:
-        # Continuous-lining tissue (gut, lung epithelium) at very high expression
-        # historically causes fatal/severe toxicity even when not in "HIGH" tier
         return {
             'verdict':   'REJECT',
             'risk_tier': 'HIGH',
-            'reason':    f"Expression > 3.0 in moderate-risk continuous-lining tissue(s): {mod_hits[:3]} → "
-                         f"high cell-density off-tumor target burden",
-            'mitigation':'Modality switch required. ADC with non-bystander payload may tolerate this; '
-                         'CAR-T even with logic-gating is unlikely to be safe.',
-            'precedent': 'CEA CAR-T severe colitis (Parkhurst 2011); MUC1 CAR-T epithelial toxicity',
+            'reason':    f"Expression > 3.0 in moderate continuous-lining tissue(s): {mod_hits[:3]}",
+            'mitigation':'Modality switch required',
+            'precedent': 'CEA CAR-T severe colitis; MUC1 CAR-T epithelial toxicity',
         }
     if max_mod > 1.0:
         return {
             'verdict':   'CAUTION',
             'risk_tier': 'MEDIUM',
-            'reason':    f"Expression > 1.0 in moderate-risk tissue(s): {mod_hits[:3]}",
-            'mitigation':'Logic-gated CAR (AND, AND-NOT, or SynNotch) reduces off-target. '
-                         'Consider tumor-conditional activation (hypoxia, pH).',
-            'precedent': 'A2 Biotherapeutics logic-gated CARs in clinical trials',
+            'reason':    f"Expression > 1.0 in moderate tissue(s): {mod_hits[:3]}",
+            'mitigation':'Logic-gated CAR (AND, AND-NOT, SynNotch) or tumor-conditional activation',
+            'precedent': 'A2 Biotherapeutics logic-gated CARs',
         }
     return {
         'verdict':   'VIABLE',
         'risk_tier': 'LOW',
-        'reason':    f"Expression restricted to LOW-criticality tissues; no critical-tissue hits",
-        'mitigation':'Standard 2nd-gen CAR (4-1BB for hematologic, CD28 for solid). '
-                     'Confirm with IHC on top 2 normal tissues with measurable expression before IND.',
+        'reason':    "Expression restricted to LOW-criticality tissues" + (
+            f" with B/plasma-cell-restricted profile {ctx['b_or_plasma_cells']}" if restricted_lymphoid else ""),
+        'mitigation':'Standard 2nd-gen CAR; IHC top 2 normal tissues before IND',
         'precedent': 'CD19 CAR-T (Kymriah, Yescarta), BCMA CAR-T (Abecma, Carvykti), CD22 CAR-T',
     }
 
-def score_adc(payload='auto'):
-    # ADC tolerates more critical-tissue expression than CAR-T because:
-    #   (1) non-bystander payloads (DM1, MMAF) only kill cells antibody internalizes into
-    #   (2) dose is titratable; severe toxicity managed by dose reduction
-    #   (3) Kadcyla approved despite low-level cardiac HER2 (DM1 non-bystander)
+cart_eval = score_cart()
+cart_eval['modality'] = 'car-t'
+
+out = {**ctx, 'cart_eval': cart_eval}
+with open('cart_eval.json', 'w') as f:
+    json.dump(out, f, indent=2)
+
+lines = [
+    "Phase B — CAR-T Viability",
+    f"  Verdict:    {cart_eval['verdict']}  (risk={cart_eval['risk_tier']})",
+    f"  Reason:     {cart_eval['reason'][:90]}",
+    f"  Precedent:  {cart_eval['precedent']}",
+]
+with open('phaseB_summary.txt', 'w') as f:
+    f.write('\\n'.join(lines) + '\\n')
+print('\\n'.join(lines))
+PYEOF
+    """
+}
+
+// [Phase C] ADC + Bispecific Eval — score ADC payload tolerability and bispecific TCE viability
+process TRIAGE_ADC_BISPECIFIC {
+    tag "triage:phaseC"
+    label 'process_low'
+    publishDir "${params.outdir}/phaseC_adc_bispec", mode: 'copy'
+    container CONTAINER_IMAGE
+
+    input:
+    tuple val(meta), path(cart_json)
+
+    output:
+    tuple val(meta), path("adc_bispec_eval.json"), emit: adc_bispec
+    path "phaseC_summary.txt",                      emit: summary
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json
+
+with open('${cart_json}') as f:
+    ctx = json.load(f)
+
+max_high = ctx['max_high']; max_mod = ctx['max_mod']
+high_hits = ctx['high_hits']; mod_hits = ctx['mod_hits']
+
+def score_adc():
     if max_high > 2.5:
         return {
             'verdict':   'REJECT',
             'risk_tier': 'HIGH',
             'reason':    f"Critical-tissue expression too high even for non-bystander payload: {high_hits[:3]}",
-            'mitigation':'Use a different modality (bispecific TCE with tunable dose, '
-                         'or radiopharmaceutical with shorter half-life and lower bystander)',
-            'precedent': '—',
+            'mitigation':'Bispecific TCE with tunable dose or radiopharm with shorter half-life',
+            'precedent': '-',
         }
     if max_high > 0.5:
         return {
             'verdict':   'CAUTION',
             'risk_tier': 'MEDIUM',
             'reason':    f"Moderate critical-tissue expression {max_high:.2f}",
-            'mitigation':'Use non-bystander payload (MMAF, DM1). Avoid bystander+ payloads '
-                         '(MMAE, SN-38, calicheamicin). Lower DAR (DAR 2-3). Monitor cardiac/neural function.',
-            'precedent': 'Kadcyla (DM1, no bystander) tolerated despite low cardiac HER2',
+            'mitigation':'Non-bystander payload (MMAF, DM1); DAR 2-3; cardiac/neural monitoring',
+            'precedent': 'Kadcyla (DM1) tolerated despite low cardiac HER2',
         }
     if max_mod > 2.0:
         return {
             'verdict':   'VIABLE',
             'risk_tier': 'MEDIUM',
-            'reason':    f"Moderate-tissue expression {max_mod:.2f} manageable with appropriate payload',",
-            'mitigation':'Bystander+ payload (MMAE) acceptable. Monitor GI/skin/hepatic per payload class.',
-            'precedent': 'Enhertu (SN-38 bystander+) tolerated; Trodelvy TROP2-SN-38 approved',
+            'reason':    f"Moderate-tissue expression {max_mod:.2f} manageable with payload choice",
+            'mitigation':'Bystander+ payload (MMAE) acceptable; GI/skin/hepatic monitoring',
+            'precedent': 'Enhertu, Trodelvy approved',
         }
     return {
         'verdict':   'VIABLE',
         'risk_tier': 'LOW',
-        'reason':    'Tumor-restricted expression; clean normal-tissue profile',
-        'mitigation':'Standard ADC design — choose payload by indication potency requirement.',
-        'precedent': '—',
+        'reason':    'Tumor-restricted; clean normal-tissue profile',
+        'mitigation':'Standard ADC; payload by potency requirement',
+        'precedent': '-',
     }
 
 def score_bispecific_tce():
@@ -194,154 +284,166 @@ def score_bispecific_tce():
             'verdict':   'REJECT',
             'risk_tier': 'HIGH',
             'reason':    f"Critical-tissue expression too high for T-cell engager: {high_hits[:3]}",
-            'mitigation':'Bispecific TCE is dose-tunable but cannot overcome strong critical-tissue expression. '
-                         'Different modality required.',
-            'precedent': '—',
+            'mitigation':'Different modality required',
+            'precedent': '-',
         }
     if max_high > 0.5 or max_mod > 1.5:
         return {
             'verdict':   'CAUTION',
             'risk_tier': 'MEDIUM',
             'reason':    f"Off-tumor expression present (high={max_high:.2f}, mod={max_mod:.2f})",
-            'mitigation':'Use step-dose escalation, CRS prophylaxis (tocilizumab on standby), and consider '
-                         '"on switch" engineered TCE. Start at sub-active dose.',
-            'precedent': 'Tarlatamab (DLL3 TCE), Blinatumomab CRS management protocols',
+            'mitigation':'Step-dose escalation, CRS prophylaxis, on-switch TCE',
+            'precedent': 'Tarlatamab (DLL3 TCE), Blinatumomab CRS protocols',
         }
     return {
         'verdict':   'VIABLE',
         'risk_tier': 'LOW',
         'reason':    'Restricted expression; favorable for T-cell engager',
-        'mitigation':'Standard step-dose escalation. CRS monitoring per FDA bispecific guidance.',
+        'mitigation':'Standard step-dose escalation; CRS monitoring',
         'precedent': 'Blinatumomab CD19xCD3 (approved)',
     }
 
+adc_eval = score_adc(); adc_eval['modality'] = 'adc'
+bispec_eval = score_bispecific_tce(); bispec_eval['modality'] = 'bispecific'
+
+out = {**ctx, 'adc_eval': adc_eval, 'bispec_eval': bispec_eval}
+with open('adc_bispec_eval.json', 'w') as f:
+    json.dump(out, f, indent=2)
+
+lines = [
+    "Phase C — ADC + Bispecific Eval",
+    f"  ADC verdict:        {adc_eval['verdict']}  ({adc_eval['risk_tier']})",
+    f"  Bispecific verdict: {bispec_eval['verdict']}  ({bispec_eval['risk_tier']})",
+]
+with open('phaseC_summary.txt', 'w') as f:
+    f.write('\\n'.join(lines) + '\\n')
+print('\\n'.join(lines))
+PYEOF
+    """
+}
+
+// [Phase D] Modality Ranking — composite ranking across all modalities + IHC follow-up panel + final report
+process TRIAGE_MODALITY_RANKING {
+    tag "triage:phaseD"
+    label 'process_low'
+    publishDir "${params.outdir}", mode: 'copy'
+    container CONTAINER_IMAGE
+
+    input:
+    tuple val(meta), path(adc_json)
+
+    output:
+    tuple val(meta), path("modality_triage_report.json"), emit: report_json
+    tuple val(meta), path("modality_ranking.csv"),        emit: ranking_csv
+    tuple val(meta), path("modality_triage.txt"),         emit: report
+    tuple val(meta), path("ihc_followup_panel.txt"),      emit: ihc_panel
+    path "versions.yml",                                    emit: versions
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json, csv
+
+with open('${adc_json}') as f:
+    ctx = json.load(f)
+
+profile = ctx['profile']
+gene = ctx['target_gene']
+indication = ctx['indication']
+modalities = ctx['modalities']
+max_high = ctx['max_high']; max_mod = ctx['max_mod']
+high_hits = ctx['high_hits']; mod_hits = ctx['mod_hits']
+
 def score_protac():
-    # PROTAC tissue distribution matters less because:
-    #   - intracellular target
-    #   - degradation is reversible (resynthesis)
-    #   - E3 ligase expression also matters (CRBN ubiquitous; VHL tumor-enriched)
     if max_high > 2.0:
         return {
-            'verdict':   'CAUTION',
-            'risk_tier': 'MEDIUM',
-            'reason':    f"Ubiquitous critical-tissue expression: {high_hits[:3]}. Degradation in normal tissue may cause toxicity.',",
-            'mitigation':'Use VHL-based PROTAC (tumor-enriched E3) instead of CRBN (ubiquitous E3). '
-                         'Tissue-restricted prodrug strategies. Consider on-target degradation tolerance.',
-            'precedent': 'ARV-110 (AR, VHL-based); ARV-471 (ERα, CRBN-based, tolerated)',
+            'verdict':   'CAUTION', 'risk_tier': 'MEDIUM',
+            'reason':    f"Ubiquitous critical-tissue expression: {high_hits[:3]}",
+            'mitigation':'VHL-based PROTAC (tumor-enriched) instead of CRBN; tissue-restricted prodrug',
+            'precedent': 'ARV-110 (AR, VHL); ARV-471 (ERa, CRBN, tolerated)',
         }
     return {
-        'verdict':   'VIABLE',
-        'risk_tier': 'LOW',
-        'reason':    'PROTAC is less sensitive to normal-tissue expression than cell therapy / ADC.',
-        'mitigation':'Standard E3 selection (CRBN for validated targets, VHL for tumor enrichment).',
-        'precedent': 'PROTAC efficacy is dominated by ternary complex and PK, not target tissue distribution.',
+        'verdict':   'VIABLE', 'risk_tier': 'LOW',
+        'reason':    'PROTAC less sensitive to normal-tissue expression than cell therapy / ADC',
+        'mitigation':'Standard E3 selection',
+        'precedent': 'PROTAC efficacy dominated by ternary complex and PK',
     }
 
 def score_sirna_aso():
-    # Target tissue expression less relevant; delivery (LNP / GalNAc / ASO chemistry) drives tissue exposure
     return {
-        'verdict':   'VIABLE',
-        'risk_tier': 'LOW',
-        'reason':    f"Knockdown modalities are not strongly affected by baseline normal-tissue expression. "
-                     f"Delivery vehicle drives tissue distribution.",
-        'mitigation':'Choose delivery by target tissue: GalNAc-conjugated (liver), intrathecal (CNS), '
-                     'LNP (muscle/spleen). Confirm functional consequence of knockdown in disease model.',
-        'precedent': 'Inclisiran (PCSK9, GalNAc-siRNA), nusinersen (SMN2, intrathecal MOE ASO), '
-                     'givosiran (ALAS1, GalNAc-siRNA).',
+        'verdict':   'VIABLE', 'risk_tier': 'LOW',
+        'reason':    'Knockdown modalities not strongly affected by baseline expression; delivery drives tissue exposure',
+        'mitigation':'GalNAc (liver), intrathecal (CNS), LNP (muscle/spleen)',
+        'precedent': 'Inclisiran (PCSK9), nusinersen (SMN2), givosiran (ALAS1)',
     }
 
 def score_small_molecule():
     return {
-        'verdict':   'NEEDS_DRUGGABILITY_CHECK',
-        'risk_tier': 'NA',
-        'reason':    'Small-molecule viability is determined by druggability (binding pocket geometry, '
-                     'allostery), not by normal-tissue expression.',
-        'mitigation':'Run pocket_detection_druggability or check Druggability Index. If target is a kinase or '
-                     'has clear pocket → likely viable. If transcription factor / PPI / IDR → consider PROTAC/molecular glue.',
-        'precedent': '—',
+        'verdict':   'NEEDS_DRUGGABILITY_CHECK', 'risk_tier': 'NA',
+        'reason':    'Small-molecule viability determined by druggability, not normal-tissue expression',
+        'mitigation':'Run pocket_detection_druggability or check Druggability Index',
+        'precedent': '-',
     }
 
 def score_mab():
-    '''
-    Standard monoclonal antibody — blocks the target without T-cell engagement.
-    Different from bispecific TCE: no cytokine release, no on-target/off-tumor
-    cytotoxicity. Expression in normal tissue means pharmacological target
-    engagement (intended mechanism), not toxicity.
-    Examples: marstacimab (TFPI), axatilimab (CSF1R), zolbetuximab (CLDN18.2).
-    '''
-    # mAb tolerance is broad: even strongly expressed targets are fine as long as
-    # the pharmacological blockade is the intended mechanism (e.g., CSF1R blockade
-    # on macrophages IS the cGVHD treatment mechanism).
     if max_high > 3.0:
         return {
-            'verdict':   'CAUTION',
-            'risk_tier': 'MEDIUM',
-            'reason':    f"Very high expression in critical tissue(s): {high_hits[:3]}. "
-                         f"Verify pharmacological blockade is intended (not toxicity).",
-            'mitigation':'Standard mAb design. Confirm target engagement on normal tissue '
-                         'is the therapeutic mechanism, not the off-target risk.',
-            'precedent': '—',
+            'verdict':   'CAUTION', 'risk_tier': 'MEDIUM',
+            'reason':    f"Very high expression in critical tissue(s): {high_hits[:3]}; verify blockade is intended",
+            'mitigation':'Standard mAb; confirm engagement on normal tissue is the therapeutic mechanism',
+            'precedent': '-',
         }
     return {
-        'verdict':   'VIABLE',
-        'risk_tier': 'LOW',
-        'reason':    f"mAb format tolerates broad expression: target blockade is the mechanism. "
-                     f"Expression pattern (max HIGH {max_high:.2f}, MOD {max_mod:.2f}) is acceptable.",
-        'mitigation':'Standard mAb scaffold (IgG1/IgG4 depending on effector function needs). '
-                     'Confirm with mechanism-of-action assay.',
-        'precedent': 'Marstacimab (TFPI mAb, Hympavzi 2024), axatilimab (CSF1R mAb, Niktimvo 2024), '
-                     'zolbetuximab (CLDN18.2 mAb, Vyloy 2024).',
+        'verdict':   'VIABLE', 'risk_tier': 'LOW',
+        'reason':    f"mAb tolerates broad expression: target blockade is the mechanism (HIGH {max_high:.2f}, MOD {max_mod:.2f})",
+        'mitigation':'Standard IgG1/IgG4 scaffold; mechanism-of-action assay',
+        'precedent': 'Marstacimab (TFPI), axatilimab (CSF1R), zolbetuximab (CLDN18.2)',
     }
 
-MODALITY_SCORERS = {
-    'car-t':           score_cart,
-    'adc':             score_adc,
-    'bispecific':      score_bispecific_tce,
-    'mab':             score_mab,
-    'protac':          score_protac,
-    'sirna':           score_sirna_aso,
-    'aso':             score_sirna_aso,
-    'small_molecule':  score_small_molecule,
+# Assemble all modality evaluations
+cart_eval   = ctx['cart_eval']
+adc_eval    = ctx['adc_eval']
+bispec_eval = ctx['bispec_eval']
+
+ALL_EVALS = {
+    'car-t':          cart_eval,
+    'adc':            adc_eval,
+    'bispecific':     bispec_eval,
+    'mab':            {**score_mab(),            'modality': 'mab'},
+    'protac':         {**score_protac(),         'modality': 'protac'},
+    'sirna':          {**score_sirna_aso(),      'modality': 'sirna'},
+    'aso':            {**score_sirna_aso(),      'modality': 'aso'},
+    'small_molecule': {**score_small_molecule(), 'modality': 'small_molecule'},
 }
 
-# Filter modalities
 if modalities == 'all':
-    chosen = list(MODALITY_SCORERS.keys())
+    chosen = list(ALL_EVALS.keys())
 else:
-    chosen = [m.strip() for m in modalities.split(',') if m.strip() in MODALITY_SCORERS]
+    chosen = [m.strip() for m in modalities.split(',') if m.strip() in ALL_EVALS]
 
-results = []
-for m in chosen:
-    s = MODALITY_SCORERS[m]()
-    s['modality'] = m
-    results.append(s)
+results = [ALL_EVALS[m] for m in chosen]
 
-# Rank: VIABLE > CAUTION > REJECT > NEEDS_*
 verdict_order = {'VIABLE': 0, 'NEEDS_DRUGGABILITY_CHECK': 1, 'CAUTION': 2, 'REJECT': 3}
 results.sort(key=lambda r: verdict_order.get(r['verdict'], 99))
 
-# Recommended primary modality
 primary = next((r for r in results if r['verdict'] == 'VIABLE'), None)
 if primary is None:
     primary = next((r for r in results if r['verdict'] == 'CAUTION'), None)
 
-# IHC follow-up panel: top 5 expressing tissues with HGNC / HPA-style antibody recommendations
 ihc_tissues = []
 for r in sorted(profile, key=lambda x: -x['mean_expression'])[:5]:
     if r['mean_expression'] > 0.5:
         ihc_tissues.append({
-            'cell_type':          r['cell_type'],
-            'mean_expression':    r['mean_expression'],
-            'criticality':        r['tissue_criticality'],
-            'antibody_strategy':  'Validate with 2+ orthogonal antibody clones; '
-                                  'follow Human Protein Atlas IHC protocol; '
-                                  'cross-check with flow cytometry on primary cells if accessible',
+            'cell_type':         r['cell_type'],
+            'mean_expression':   r['mean_expression'],
+            'criticality':       r['tissue_criticality'],
+            'antibody_strategy': 'Validate with 2+ orthogonal antibody clones; HPA IHC protocol; cross-check by flow on primary cells',
         })
 
 triage_report = {
     'target_gene':           gene,
     'indication':            indication,
-    'atlas_source':          atlas.get('data_source', 'unknown'),
+    'atlas_source':          ctx['atlas_source'],
     'n_cell_types_queried':  len(profile),
     'max_critical_expr':     round(max_high, 3),
     'max_moderate_expr':     round(max_mod,  3),
@@ -351,16 +453,16 @@ triage_report = {
     'modality_scores':       results,
     'ihc_followup_panel':    ihc_tissues,
     'disclaimers': [
-        'Triage tool only — not a substitute for IHC, flow cytometry, or proteomics validation',
-        'RNA-level expression; surface protein accessibility for CAR-T binders not guaranteed',
-        'Atlas data is healthy reference; tumor heterogeneity not captured here',
-        'Confirm with wet-lab on the actual tumor cohort + critical normal tissues before IND',
+        'Triage tool only - not a substitute for IHC, flow cytometry, or proteomics validation',
+        'RNA-level expression; surface protein accessibility not guaranteed',
+        'Atlas data is healthy reference; tumor heterogeneity not captured',
+        'Confirm with wet-lab on actual tumor cohort + critical normal tissues before IND',
     ],
     'references': [
         'Morgan et al. 2010 Mol Ther 18:843 (HER2 CAR-T cardiopulmonary fatality)',
         'Parkhurst et al. 2011 Mol Ther 19:620 (CEA CAR-T severe colitis)',
         'Lamers et al. 2013 Mol Ther 21:904 (CAIX CAR-T hepatotoxicity)',
-        'Hassan et al. 2014 Cancer Immunol Res 2:1062 (MSLN CAR-T target selection)',
+        'Hassan et al. 2014 Cancer Immunol Res 2:1062 (MSLN target selection)',
         'Quake lab 2022 Science (Tabula Sapiens)',
         'Hamblett 2004 Clin Cancer Res (ADC DAR-PK relationship)',
         'Bondeson & Crews 2017 Annu Rev Pharmacol (PROTAC design)',
@@ -376,60 +478,46 @@ with open('modality_ranking.csv', 'w', newline='') as f:
     w.writeheader()
     w.writerows(results)
 
-# Human-readable report
-verdict_colors = {
-    'VIABLE':    '✓',
-    'CAUTION':   '!',
-    'REJECT':    '✗',
-    'NEEDS_DRUGGABILITY_CHECK': '?',
-}
+verdict_sym = {'VIABLE': '+', 'CAUTION': '!', 'REJECT': 'x', 'NEEDS_DRUGGABILITY_CHECK': '?'}
 lines = [
-    "╔══════════════════════════════════════════════════════════════════╗",
+    "================================================================",
     "  Modality Triage Report",
     f"  Target: {gene}   |   Indication: {indication}",
-    "╚══════════════════════════════════════════════════════════════════╝",
+    "================================================================",
     "",
-    f"  Atlas source:           {atlas.get('data_source', '—')}",
+    f"  Atlas source:           {ctx['atlas_source']}",
     f"  Cell types analyzed:    {len(profile)}",
     f"  Max critical expr:      {max_high:.2f}  in {len(high_hits)} cell type(s)",
     f"  Max moderate expr:      {max_mod:.2f}  in {len(mod_hits)} cell type(s)",
     "",
     f"  Primary recommendation: {primary['modality'].upper() if primary else 'none viable'}",
     "",
-    "── Per-Modality Verdicts ──────────────────────────────────────────",
+    "-- Per-Modality Verdicts --",
 ]
 for r in results:
-    sym = verdict_colors.get(r['verdict'], '?')
-    lines.append(f"  {sym}  {r['modality']:<18} → {r['verdict']:<26} risk={r['risk_tier']}")
+    sym = verdict_sym.get(r['verdict'], '?')
+    lines.append(f"  {sym}  {r['modality']:<18} -> {r['verdict']:<26} risk={r['risk_tier']}")
     lines.append(f"     reason:     {r['reason'][:80]}")
     if r.get('mitigation'):
         lines.append(f"     mitigation: {r['mitigation'][:80]}")
     lines.append("")
 
-lines += [
-    "── IHC Follow-Up Required ─────────────────────────────────────────",
-    "  Confirm top expressing tissues before any clinical/IND commitment:",
-]
+lines += ["-- IHC Follow-Up Required --",
+          "  Confirm top expressing tissues before any clinical/IND commitment:"]
 for h in ihc_tissues:
-    lines.append(f"  • {h['cell_type']:<28} (mean RNA {h['mean_expression']:.2f}, {h['criticality']})")
+    lines.append(f"  * {h['cell_type']:<28} (mean RNA {h['mean_expression']:.2f}, {h['criticality']})")
 
-lines += [
-    "",
-    "── Honest Disclaimers ─────────────────────────────────────────────",
-] + [f"  • {d}" for d in triage_report['disclaimers']] + [
-    "",
-    "── References ─────────────────────────────────────────────────────",
-] + [f"  · {r}" for r in triage_report['references']]
+lines += ["", "-- Honest Disclaimers --"] + [f"  * {d}" for d in triage_report['disclaimers']]
+lines += ["", "-- References --"] + [f"  - {r}" for r in triage_report['references']]
 
 with open('modality_triage.txt', 'w') as f:
     f.write('\\n'.join(lines) + '\\n')
 
-# IHC follow-up file (separate, sales-friendly)
 with open('ihc_followup_panel.txt', 'w') as f:
     f.write(f"IHC Follow-Up Panel for {gene}\\n")
     f.write("=" * 60 + "\\n\\n")
     if not ihc_tissues:
-        f.write("No tissues show measurable RNA expression — no IHC panel required.\\n")
+        f.write("No tissues show measurable RNA expression - no IHC panel required.\\n")
     else:
         f.write("Tissues to validate by IHC before committing to clinical development:\\n\\n")
         for h in ihc_tissues:
@@ -441,8 +529,14 @@ with open('ihc_followup_panel.txt', 'w') as f:
 print('\\n'.join(lines))
 PYEOF
 
-    python3 -c "print('modality_triage: 1.0')" > versions.yml
+    python3 -c "print('modality_triage: 2.0')" > versions.yml
     """
 }
 
-workflow { meta = [id: 'modality_triage_run']; Channel.value(meta) | MODALITY_TRIAGE }
+workflow {
+    meta = [id: 'modality_triage_run']
+    Channel.value(meta) | TRIAGE_ATLAS_PROFILE
+    TRIAGE_ATLAS_PROFILE.out.context   | TRIAGE_CART_VIABILITY
+    TRIAGE_CART_VIABILITY.out.cart     | TRIAGE_ADC_BISPECIFIC
+    TRIAGE_ADC_BISPECIFIC.out.adc_bispec | TRIAGE_MODALITY_RANKING
+}
