@@ -1,12 +1,21 @@
 #!/bin/bash
-# sync_to_dev.sh — Watches for local commits and syncs ALL layers to dev-public.biomate.ai:
+# sync_to_dev.sh — MANUAL one-shot sync of ALL layers to dev-public.biomate.ai:
 #   1. Frontend (React/Express) — Docker rebuild + restart
 #   2. Backend Python files    — docker cp into running Galaxy container + restart
 #   3. Galaxy databases        — galaxy_ai_tools.db (workflow search), universe.sqlite
 #   4. Nextflow workflow files — .nf files in biomni_workflows/
 #
-# Usage: bash scripts/sync_to_dev.sh [--once]
-# --once: run a single sync cycle then exit (useful for CI)
+# Usage: bash scripts/sync_to_dev.sh
+#
+# As of 2026-05-15 this script is MANUAL-ONLY.
+#   - The 10-minute auto-poll loop has been removed (caused orphan-process conflicts).
+#   - The auto-commit-before-sync behavior has been removed (bypassed code review).
+# Commit your work yourself, then run this script manually. It performs ONE sync
+# pass and exits.
+#
+# This script is the supported fallback until the GitHub Actions CD pipeline is
+# proven (see docs/20260514_CICD_REBUILD_PLAN.md). DO NOT re-introduce the polling
+# loop or auto-commit — those are tracked as past-incident hard requirements.
 #
 # Prerequisites: AWS CLI configured with ec2-instance-connect permissions
 
@@ -18,11 +27,16 @@ EC2_USER="ubuntu"
 EC2_HOST="52.42.49.175"
 KEY_FILE="/tmp/biomate_ec2_key_sync"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CHECK_INTERVAL=600  # 10 minutes
-RUN_ONCE="${1:-}"
 
-LAST_DEPLOYED_COMMIT=""
-LAST_DB_SYNC=""
+# Guard against accidentally running multiple syncs at once (per Lessons L7).
+LOCK_FILE="/tmp/biomate_sync_to_dev.lock"
+if [[ -e "$LOCK_FILE" ]] && kill -0 "$(cat "$LOCK_FILE" 2>/dev/null)" 2>/dev/null; then
+  echo "ERROR: another sync_to_dev.sh is already running (pid $(cat "$LOCK_FILE"))." >&2
+  echo "If you are sure no real sync is in progress: rm $LOCK_FILE" >&2
+  exit 1
+fi
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"' EXIT
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
@@ -402,79 +416,37 @@ do_sync() {
 
 log "BioMate dev sync starting (repo: $REPO_ROOT)"
 log "Layers: frontend + backend Python + workflows + databases"
-log "Interval: ${CHECK_INTERVAL}s | Target: https://dev-public.biomate.ai"
+log "Mode: manual one-shot | Target: https://dev-public.biomate.ai"
+# --- Pre-flight checks -----------------------------------------------------
+# Refuse to run if there are uncommitted source changes. Caller must commit
+# or stash first. Auto-commit-before-sync was removed (bypassed code review).
+DIRTY_SOURCE=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | \
+  grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/)" || true)
+if [[ -n "$DIRTY_SOURCE" ]]; then
+  dirty_count=$(echo "$DIRTY_SOURCE" | wc -l)
+  log "ERROR: ${dirty_count} uncommitted source file(s) in working tree:"
+  echo "$DIRTY_SOURCE" | sed 's/^/  /' >&2
+  log "Commit or stash them, then re-run. Auto-commit has been removed."
+  exit 2
+fi
 
-# First run: sync everything regardless
-FORCE_FULL=true
+CURRENT_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo "")
+if [[ -z "$CURRENT_COMMIT" ]]; then
+  log "ERROR: not a git repo"
+  exit 1
+fi
 
-while true; do
-  # Auto-commit any uncommitted source changes before syncing — never lose work.
-  DIRTY_SOURCE=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | \
-    grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/)" || true)
-  if [[ -n "$DIRTY_SOURCE" ]]; then
-    dirty_count=$(echo "$DIRTY_SOURCE" | wc -l)
-    log "Auto-committing ${dirty_count} uncommitted source file(s) before sync..."
-    git -C "$REPO_ROOT" add \
-      frontend/client/ frontend/server/ frontend/shared/ \
-      backend/lib/ backend/biomni_workflows/ 2>/dev/null || true
-    git -C "$REPO_ROOT" commit -m "auto-commit: pre-sync snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)
+# --- One-shot sync ---------------------------------------------------------
+# Sync all tracked layers in one pass and exit. No polling, no retries.
+CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/\nwebpage_design/')"
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>" 2>/dev/null && \
-      log "Auto-commit created" || log "Auto-commit skipped (nothing to commit)"
-  fi
-
-  CURRENT_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo "")
-
-  if [[ -z "$CURRENT_COMMIT" ]]; then
-    log "ERROR: not a git repo"
-    sleep "$CHECK_INTERVAL"
-    continue
-  fi
-
-  if $FORCE_FULL || [[ "$CURRENT_COMMIT" != "$LAST_DEPLOYED_COMMIT" ]]; then
-    if $FORCE_FULL; then
-      CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/\nwebpage_design/')"
-      FORCE_FULL=false
-    else
-      CHANGED=$(git -C "$REPO_ROOT" diff --name-only \
-        "$LAST_DEPLOYED_COMMIT" "$CURRENT_COMMIT" 2>/dev/null || echo "frontend/ backend/")
-      log "Changes since last deploy: $(echo "$CHANGED" | wc -l) files"
-    fi
-
-    if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
-      LAST_DEPLOYED_COMMIT="$CURRENT_COMMIT"
-      log "Running post-sync E2E tests..."
-      bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
-        >> /tmp/biomate_sync.log 2>&1 &
-    else
-      log "Sync failed — will retry next cycle"
-    fi
-  else
-    # Check if DB changed even without a new commit
-    local_db_mtime=$(stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
-    if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
-      log "DB changed outside git — syncing..."
-      deploy_databases
-      LAST_DB_SYNC="$local_db_mtime"
-    fi
-
-    # Also sync uncommitted edits (dirty working tree) so live testing sees latest code
-    DIRTY=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | grep -E "^(frontend/|backend/lib/|backend/biomni_workflows/|webpage_design/)" || true)
-    if [[ -n "$DIRTY" ]]; then
-      dirty_count=$(echo "$DIRTY" | wc -l)
-      log "Dirty working tree: ${dirty_count} file(s) — syncing uncommitted edits..."
-      if do_sync "$CURRENT_COMMIT-dirty" "$DIRTY"; then
-        log "Running post-sync E2E tests (dirty)..."
-        bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "${CURRENT_COMMIT}-dirty" \
-          >> /tmp/biomate_sync.log 2>&1 &
-      else
-        log "Dirty sync failed — will retry next cycle"
-      fi
-    else
-      log "No changes (${CURRENT_COMMIT:0:8}) — sleeping ${CHECK_INTERVAL}s"
-    fi
-  fi
-
-  [[ "$RUN_ONCE" == "--once" ]] && exit 0
-  sleep "$CHECK_INTERVAL"
-done
+if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
+  log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
+  log "Launching post-sync E2E tests in background..."
+  bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
+    >> /tmp/biomate_sync.log 2>&1 &
+  exit 0
+else
+  log "ERROR: sync failed — see output above"
+  exit 1
+fi
