@@ -3349,6 +3349,39 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
     return execute_nextflow(resume_request)
 
 
+def _find_nextflow_pids_for_run(run_id: str) -> List[int]:
+    """Find Nextflow java PIDs that have this run_id in their command line.
+    Survives the multi-worker gunicorn case where the subprocess is owned by
+    a different worker than the one handling the cancel/pause request."""
+    import shutil, subprocess as _subprocess
+    pgrep = shutil.which("pgrep")
+    if not pgrep:
+        return []
+    try:
+        out = _subprocess.run([pgrep, "-f", run_id], capture_output=True, text=True, timeout=5)
+        pids = [int(p) for p in out.stdout.split() if p.strip().isdigit()]
+        nf_pids: List[int] = []
+        import re as _re
+        # Tight match: only Java processes running a `nextflow*.jar` AND
+        # carrying the run_id in their command line. Filters out incidental
+        # processes that happen to mention "nextflow" or the run_id in env.
+        nf_jar_re = _re.compile(r"nextflow[\-\w\.]*\.jar")
+        for pid in pids:
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as fh:
+                    cmdline = fh.read().decode("utf-8", errors="replace")
+                # Replace NULs from /proc/.../cmdline for regex matching.
+                cmdline_str = cmdline.replace("\x00", " ")
+                if nf_jar_re.search(cmdline_str) and run_id in cmdline_str:
+                    nf_pids.append(pid)
+            except OSError:
+                continue
+        return nf_pids
+    except Exception as exc:
+        log.debug("pgrep lookup for run_id=%s failed: %s", run_id, exc)
+        return []
+
+
 def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
     """
     Actually terminate the local Nextflow subprocess for a run_id.
@@ -3358,50 +3391,61 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
                           /api/nextflow/resume can pick up where -resume
                           left off (Nextflow's task cache survives).
 
-    Returns a payload dict with the resolved state. Always emits a chat-progress
-    line on the invocation_id so the user sees the action in chat.
+    Multi-worker safe: if the run's process handle is not in this worker's
+    _runs dict, falls back to a system-level pgrep of the run_id in the Java
+    process command line, then os.kill.
     """
+    invocation_id: Optional[str] = None
+    proc: Optional[subprocess.Popen] = None
+    info: Optional[Dict[str, Any]] = None
+
     with _runs_lock:
         info = _runs.get(run_id)
-        if not info:
-            return {"run_id": run_id, "ok": False, "reason": "Run not found in registry."}
-        invocation_id = info.get("invocation_id")
-        proc: Optional[subprocess.Popen] = info.get("process")
+        if info:
+            invocation_id = info.get("invocation_id")
+            proc = info.get("process")
 
-    if proc is None:
-        # No subprocess handle (e.g., run was registered in a different gunicorn
-        # worker). The local cancel can't reach it; report so caller can fall
-        # back to AWS Batch cancel or simply mark status.
-        with _runs_lock:
-            if run_id in _runs:
-                _runs[run_id]["status"] = "paused" if soft else "cancelled"
-        if invocation_id:
-            _narrate_chat(
-                invocation_id,
-                "workflow.paused" if soft else "workflow.cancelled",
-                {"reason": "no local process handle (may still complete on Batch)"},
-            )
-        return {
-            "run_id": run_id, "ok": True,
-            "status": "paused" if soft else "cancelled",
-            "note": "marked-without-terminate (no local subprocess)",
-        }
+    pids_terminated: List[int] = []
+    note: str
 
-    rc = proc.poll()
-    if rc is not None:
-        # Process already exited — nothing to terminate.
-        return {"run_id": run_id, "ok": True, "status": info.get("status"), "note": "already-exited"}
-
-    import signal as _signal
-    try:
-        proc.terminate()  # SIGTERM
+    if proc is not None:
+        rc = proc.poll()
+        if rc is not None:
+            return {"run_id": run_id, "ok": True, "status": info.get("status") if info else None, "note": "already-exited"}
         try:
-            proc.wait(timeout=5.0)
-        except subprocess.TimeoutExpired:
-            proc.kill()    # SIGKILL
-            proc.wait(timeout=2.0)
-    except Exception as exc:
-        log.warning("[Nextflow run %s] terminate failed: %s", run_id, exc)
+            proc.terminate()
+            try:
+                proc.wait(timeout=5.0)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=2.0)
+            pids_terminated.append(proc.pid)
+            note = "by-handle"
+        except Exception as exc:
+            log.warning("[Nextflow run %s] proc.terminate failed: %s", run_id, exc)
+            note = "handle-error"
+    else:
+        # Multi-worker fallback: find the Nextflow Java PID by run_id match.
+        import os as _os
+        import signal as _signal
+        pids = _find_nextflow_pids_for_run(run_id)
+        for pid in pids:
+            try:
+                _os.kill(pid, _signal.SIGTERM)
+                pids_terminated.append(pid)
+            except OSError as exc:
+                log.debug("SIGTERM to pid=%s failed: %s", pid, exc)
+        if pids_terminated:
+            time.sleep(5.0)
+            for pid in list(pids_terminated):
+                try:
+                    _os.kill(pid, 0)
+                    _os.kill(pid, _signal.SIGKILL)
+                except OSError:
+                    pass
+            note = "by-pgrep"
+        else:
+            note = "no-process-found"
 
     with _runs_lock:
         if run_id in _runs:
@@ -3412,13 +3456,14 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
         _narrate_chat(
             invocation_id,
             "workflow.paused" if soft else "workflow.cancelled",
-            {"reason": "by user" if not soft else None},
+            {"reason": "by user", "terminated_pids": pids_terminated},
         )
 
     return {
         "run_id": run_id, "ok": True,
         "status": "paused" if soft else "cancelled",
-        "terminated_pid": proc.pid,
+        "terminated_pids": pids_terminated,
+        "note": note,
     }
 
 

@@ -1429,6 +1429,20 @@ export function NextflowWorkflowViewer({
   }, [renderedParameters, groupedPhases]);
 
   const [showResults, setShowResults] = useState(status === 'completed');
+  // Auto-reveal results when a run transitions to completed. useState initializer
+  // only runs once on mount; if the panel mounted while status was pending/running,
+  // the user would have to click "View results" to see the output panel (including
+  // DensityMapViewer for .mrc files). Auto-open on completion.
+  const showResultsUserToggled = React.useRef(false);
+  const handleToggleShowResults = React.useCallback((next: boolean | ((prev: boolean) => boolean)) => {
+    showResultsUserToggled.current = true;
+    setShowResults(next);
+  }, []);
+  React.useEffect(() => {
+    if (status === 'completed' && !showResultsUserToggled.current) {
+      setShowResults(true);
+    }
+  }, [status]);
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
 
   // ── AI Result Analysis state ───────────────────────────────────────────────
@@ -1481,6 +1495,64 @@ export function NextflowWorkflowViewer({
   const isAutofixActive =
     autofix?.active === true ||
     ["analyzing", "fixing", "restarting"].includes(autofix?.state || "");
+
+  // Low-confidence "Confirm anyway" — auto-fires the same payload the button
+  // sends, so an inattentive user never stalls a workflow. Cancellable by
+  // clicking "Fix now", manually confirming, or the panel un-mounting.
+  const fireLowConfidenceConfirm = React.useCallback((source: 'user' | 'timeout') => {
+    if (lowConfTimerRef.current) { clearInterval(lowConfTimerRef.current); lowConfTimerRef.current = null; }
+    setLowConfSecondsLeft(null);
+    if (status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked) {
+      return;
+    }
+    emitUxEvent(
+      source === 'user' ? 'workflow.low_confidence_override_clicked' : 'workflow.low_confidence_auto_proceeded',
+      { workflowId, invocationId, runId },
+    );
+    onExecute?.({
+      ...params,
+      __executionOverrides: { allowLowConfidence: true, overrideReason: executionBlockedReason, autoProceeded: source === 'timeout' },
+    });
+    if (source === 'timeout') {
+      toast({
+        title: 'Auto-proceeded',
+        description: 'No response in 10s — confirmed and started the workflow.',
+        duration: 6000,
+      });
+      onWorkflowProgress?.({
+        kind: 'workflow.auto_proceeded',
+        friendly_message: "No response — confirmed and started the workflow.",
+        ts: Date.now() / 1000,
+        technical: { decision: 'confirmed low-confidence run', source: 'low_conf_timeout' },
+      });
+    }
+  }, [
+    status, isPrereqBlocked, prereqChecklist?.overrideAllowed, isAutofixActive, isLicenseBlocked,
+    workflowId, invocationId, runId, params, executionBlockedReason, onExecute, toast, onWorkflowProgress,
+  ]);
+
+  // Start the low-conf countdown whenever the blocking reason becomes visible.
+  React.useEffect(() => {
+    if (!executionBlockedReason) {
+      if (lowConfTimerRef.current) { clearInterval(lowConfTimerRef.current); lowConfTimerRef.current = null; }
+      setLowConfSecondsLeft(null);
+      return;
+    }
+    if (status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked) {
+      return;
+    }
+    setLowConfSecondsLeft(LOW_CONF_TIMEOUT_S);
+    lowConfTimerRef.current = setInterval(() => {
+      setLowConfSecondsLeft(prev => {
+        if (prev === null || prev <= 1) {
+          fireLowConfidenceConfirm('timeout');
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (lowConfTimerRef.current) { clearInterval(lowConfTimerRef.current); lowConfTimerRef.current = null; } };
+  }, [executionBlockedReason, status, isPrereqBlocked, prereqChecklist?.overrideAllowed, isAutofixActive, isLicenseBlocked, fireLowConfidenceConfirm, LOW_CONF_TIMEOUT_S]);
 
   useEffect(() => {
     if (status === 'completed') {
@@ -2316,7 +2388,7 @@ export function NextflowWorkflowViewer({
                 <div className="results-links">
                   <button
                     className="linkish"
-                    onClick={() => setShowResults((prev) => !prev)}
+                    onClick={() => handleToggleShowResults((prev) => !prev)}
                     disabled={!invocationId || status === 'failed'}
                     data-testid="button-view-results-link"
                   >

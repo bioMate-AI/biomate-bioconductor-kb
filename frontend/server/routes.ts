@@ -10053,6 +10053,7 @@ Rules:
 
           if (structured) {
             return res.json({
+              status: 'ready',
               ...structured,
               runId,
               reportUrl,
