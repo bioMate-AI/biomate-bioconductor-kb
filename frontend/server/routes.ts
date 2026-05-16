@@ -10399,12 +10399,56 @@ Respond ONLY with valid JSON (no markdown wrapper):
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const reportPath = `/tmp/nextflow_runs/${nextflowRunId}/output/findings_report.md`;
       const { readFile } = await import('fs/promises');
-      const md = await readFile(reportPath, 'utf8');
-      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
-      res.send(md);
-    } catch {
-      res.status(404).json({ error: "Findings report not yet available" });
+      try {
+        const md = await readFile(reportPath, 'utf8');
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
+        return res.send(md);
+      } catch { /* disk file missing — fall through to in-memory render */ }
+
+      // AWS Batch runs don't write findings_report.md locally. Render markdown from
+      // cached structured findings (populated by background Claude analysis).
+      const cached = _findingsCache.get(runId);
+      if (cached && !cached._generating) {
+        const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
+        const lines: string[] = [
+          `# Findings Report — ${workflowName}`,
+          ``,
+          `**Run ID:** ${runId}`,
+          ``,
+          `## Summary`,
+          ``,
+          String(cached.summary || `${workflowName} completed.`),
+          ``,
+        ];
+        if (Array.isArray(cached.key_results) && cached.key_results.length > 0) {
+          lines.push(`## Key Results`, ``);
+          for (const kr of cached.key_results) {
+            const metric = kr.metric || '';
+            const value = kr.value !== undefined ? String(kr.value) : '';
+            const interp = kr.interpretation || '';
+            lines.push(`- **${metric}**: ${value}${interp ? ` — ${interp}` : ''}`);
+          }
+          lines.push(``);
+        }
+        if (Array.isArray(cached.next_steps) && cached.next_steps.length > 0) {
+          lines.push(`## Next Steps`, ``);
+          for (const s of cached.next_steps) lines.push(`- ${s}`);
+          lines.push(``);
+        }
+        if (Array.isArray(cached.caveats) && cached.caveats.length > 0) {
+          lines.push(`## Caveats`, ``);
+          for (const c of cached.caveats) lines.push(`- ${c}`);
+          lines.push(``);
+        }
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
+        return res.send(lines.join('\n'));
+      }
+
+      return res.status(404).json({ error: "Findings report not yet available" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

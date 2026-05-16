@@ -52,10 +52,15 @@ export function ChatOutputAttachments({
     isDownloadAll?: boolean
   } | null>(null)
 
+  // Outputs are keyed under the frontend executionRunId (passed as `runId` prop). The
+  // `invocationId` prop is the galaxyInvocationId for Nextflow runs which often differs
+  // — querying it returns []. Prefer runId; fall back to invocationId for legacy Galaxy
+  // tool runs that pre-date the Nextflow path.
+  const outputsKey = runId || invocationId
   const { data: outputs = [], isLoading, refetch } = useQuery<OutputDataset[]>({
-    queryKey: ['outputs', invocationId],
+    queryKey: ['outputs', outputsKey],
     queryFn: async () => {
-      const response = await fetch(`/api/invocations/${invocationId}/outputs`)
+      const response = await fetch(`/api/invocations/${outputsKey}/outputs`)
       if (!response.ok) throw new Error('Failed to fetch outputs')
       return response.json()
     },
@@ -79,7 +84,7 @@ export function ChatOutputAttachments({
     let cancelled = false
     ;(async () => {
       try {
-        await fetch(`/api/invocations/${invocationId}/fetch-outputs`, { method: 'POST' })
+        await fetch(`/api/invocations/${outputsKey}/fetch-outputs`, { method: 'POST' })
       } catch {
         // best-effort fallback only
       }
