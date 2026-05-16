@@ -1889,8 +1889,21 @@ class LABBenchAdapter(BenchmarkAdapter):
         if subtask == "CloningScenarios":
             context_block = _build_cloning_context(question, choices_dict)
 
-        elif subtask == "LitQA2" and self.use_pubmed:
-            context_block = _fetch_pubmed_context(question, choices_dict)
+        elif subtask == "LitQA2":
+            # Path B (upper-bound check): the futurehouse/lab-bench LitQA2 dataset
+            # contains a 'key-passage' field with the verbatim answer sentence from
+            # the source paper (194/199 rows). Injecting this directly tells us the
+            # CEILING of what retrieval-based improvement could achieve. If this
+            # yields >85%, retrieval is the gap (proceed to Path A: Europe PMC).
+            # If it yields <55%, the LLM is also weak at literature-recall.
+            # Use LITQA2_USE_KEY_PASSAGE=1 to enable this measurement mode.
+            import os as _os_lit
+            if _os_lit.environ.get("LITQA2_USE_KEY_PASSAGE") == "1":
+                key_passage = item.get("key-passage", "")
+                if key_passage:
+                    context_block = f"[Source paper key passage]\n{key_passage}"
+            if not context_block and self.use_pubmed:
+                context_block = _fetch_pubmed_context(question, choices_dict)
 
         # ── Assemble prompt ───────────────────────────────────────────────────
         # Format: ROUTING_GUARD + [context] + [protocol (ProtocolQA)] + question + choices + format_instruction
