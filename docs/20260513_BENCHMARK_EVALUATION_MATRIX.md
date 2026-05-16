@@ -327,3 +327,22 @@ because the handler-driven floor dominates over the LLM-routed remainder.
 | Gemini 3.1 Pro (Google) | 55.0% | -37.7 |
 | GPT-4o (OpenAI, original v1.5 BixBench paper) | 36.1% | -56.6 |
 | Claude 3.5 Sonnet (original v1.5 BixBench paper) | 33.8% | -58.9 |
+
+
+### labbench LitQA2 v13: tight-entity query attempt
+
+| Run | Score | Δ | Intervention | Lever | Commit |
+|---|---|---|---|---|---|
+| v11 | 43.3% | — | (baseline 6 generic question words) | — | — |
+| v12 | 36.7% | -6.6 | 8 question + 6 choice tokens, 5 abstracts (TOO BROAD) | L1 (failed) | 9aea188fb (reverted) |
+| v13 | **16.7%** | **-26.6 vs v11** | Tight entity-only quoted multi-word + 5 entities (TOO NARROW) | L1 (failed) | 065051713 (reverted) |
+
+**Lesson recorded:** LitQA2 PubMed retrieval is a Goldilocks problem.
+v12's too-broad query returned tangential papers; v13's too-tight 5-entity
+AND-query returned 0 results, leaving the agent with no context — worse
+than no PubMed at all. The original v11 6-generic-words seems to be near
+the optimal point for this corpus and verifier. **The 10pp gap to Sonnet
+SoTA is not narrowable through query-engineering alone.** A real win would
+need either (a) full-text retrieval for the specific paper the question
+cites (which the questions don't always reveal), or (b) a better embedding-
+based retriever instead of PubMed esearch keyword matching.
