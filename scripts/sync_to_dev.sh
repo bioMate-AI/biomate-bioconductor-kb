@@ -81,10 +81,25 @@ deploy_frontend() {
     docker builder prune -f > /dev/null 2>&1 || true
     docker stop biomate-dev-frontend 2>/dev/null || true
     docker rm -f biomate-dev-frontend 2>/dev/null || true
-    echo "[frontend] Building image..."
-    docker build -t biomate-dev-frontend:latest \
-      -f /opt/biomate/frontend_sync/frontend/Dockerfile \
-      /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -3
+    # Ensure biotools base exists (built once, rarely rebuilt).
+    if ! docker image inspect biomate-biotools:1 >/dev/null 2>&1; then
+      echo "[frontend] Biotools base missing — building (this is slow, runs once)..."
+      docker build -t biomate-biotools:1 \
+        -f /opt/biomate/frontend_sync/frontend/Dockerfile.biotools \
+        /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
+    fi
+    echo "[frontend] Building app image..."
+    if ! docker build -t biomate-dev-frontend:latest \
+        -f /opt/biomate/frontend_sync/frontend/Dockerfile \
+        /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5; then
+      echo "[frontend] ERROR: app image build failed — keeping previous container running"
+      docker run -d --name biomate-dev-frontend --network biomate-dev-net \
+        -p 3000:3000 --env-file /opt/biomate/.env \
+        -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+        --restart unless-stopped \
+        biomate-dev-frontend:latest 2>/dev/null || true
+      exit 1
+    fi
     echo "[frontend] Restarting container..."
     sleep 1
     # Mount patched index.js if it exists (baked-in code may be stale; volume mount survives restarts)

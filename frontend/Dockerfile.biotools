@@ -1,0 +1,33 @@
+# Biotools base image — Python + R + Bioconductor + bioinformatics CLI tools.
+# Built rarely; tag as biomate-biotools:1 and bump when biotools deps change.
+# Main Dockerfile uses `FROM biomate-biotools:1` so app rebuilds skip this layer.
+FROM node:18-bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev \
+    r-base r-base-dev \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libhdf5-dev \
+    libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
+    libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+    mafft samtools bcftools bwa iqtree bedtools tabix \
+    libhts-dev zlib1g-dev libbz2-dev liblzma-dev \
+    curl wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir numpy scipy pandas matplotlib seaborn scikit-learn statsmodels networkx openpyxl xlrd google-generativeai anthropic
+RUN pip3 install --no-cache-dir biopython || true
+RUN pip3 install --no-cache-dir pysam cyvcf2 || true
+RUN pip3 install --no-cache-dir phykit clipkit || true
+
+RUN Rscript -e " \
+    options(repos = c(CRAN='https://cloud.r-project.org'), Ncpus=4); \
+    install.packages(c('BiocManager','tidyverse','ggplot2','dplyr','readr', \
+                       'tibble','stringr','purrr','forcats','lubridate', \
+                       'rpy2', 'jsonlite','data.table','Matrix')); \
+    BiocManager::install(c('DESeq2','edgeR','limma','clusterProfiler', \
+                           'org.Hs.eg.db','org.Mm.eg.db','enrichplot', \
+                           'pathview','GSVA','fgsea','ReactomePA', \
+                           'GenomicRanges','IRanges','SummarizedExperiment', \
+                           'AnnotationDbi','biomaRt'), \
+                         ask=FALSE, update=FALSE); \
+"
