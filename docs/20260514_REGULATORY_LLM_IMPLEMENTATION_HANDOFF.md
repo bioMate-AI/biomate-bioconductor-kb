@@ -211,16 +211,28 @@ to close.
    - Launch `train_v7.sh` with the new mix (or v6.1 if SFT-only refresh)
    - Auto-promote on eval lift; alert reg-science team on regression
 
-### Implementation priority (after Claude Design's first UI build)
+### Implementation status (updated 2026-05-15)
 
-1. POST endpoints (1-4 above) — without these the UI captures nothing
-2. JSONL schemas + file plumbing
-3. `_resolve_adapter_path()` org-id support + active-adapter endpoint
-4. `regulatory_science_overrides.yaml` loader in each checker
-5. `build_dpo_pairs.py --mode customer-edits`
-6. Weekly cron + retrain auto-promotion
+| # | Item | Status | Location |
+|---|---|---|---|
+| 1 | POST endpoints (edit, dismiss, suggest, regenerate) | ✅ done | `feedback_router.py` |
+| 2 | JSONL schemas + file plumbing | ✅ done | `feedback_io.py` |
+| 3 | `_resolve_adapter_path()` org-id + active-adapter GET | ✅ done | `ind_assembly.py`, `feedback_router.py` |
+| 4 | `regulatory_science_overrides.yaml` loader | ✅ done | `checker_overrides.py`, wired in `phase_gating.py` |
+| 5 | `build_dpo_pairs.py --mode customer-edits` | ✅ done | `scripts/build_dpo_pairs.py` |
+| 6 | Weekly cron + retrain auto-promotion | ✅ done | `scripts/cron/weekly_v7_retrain.sh` |
 
-Items 1-3 unblock the first paying customer. Items 4-6 unlock the per-customer moat.
+All 6 items complete. Claude Design can now build the UI surfaces without backend blockers.
+
+**Verified end-to-end:**
+- Routes registered: POST /api/ind-report/{projects/edit, audit/dismiss, citations/suggest, sections/regenerate}; GET /api/regulatory/{feedback/queue, active_adapter}
+- Adapter resolver: public v6 default; org-id fallback; malicious chars sanitized
+- PII strip: study IDs → "the study", drug-suffix names → "the investigational compound"; opt-out for paid tier
+- Override loader: `route=topical` exempts hERG via YAML — `phase_gating` no longer requires it
+- Customer-edits DPO mode: NOAEL-bearing edits routed to mrsd_computation, contrastive gate works
+- Weekly cron: detects current production version, builds merged pool, trains v{N+1}, evaluates, auto-promotes only if no checker regresses, quarantines on regression
+
+**Next non-backend item:** Claude Design UI build (6 inline surfaces per Appendix B of `docs/20260504_IND_PRODUCT_UI_REQUIREMENTS.md`).
 
 ---
 

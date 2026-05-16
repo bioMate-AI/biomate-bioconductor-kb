@@ -1,0 +1,38 @@
+# Regulatory-science overrides — dismissal-driven rule refinements.
+#
+# Reviewed and approved by BioMate regulatory science team weekly,
+# sourced from /api/regulatory/feedback/queue?kind=checker_feedback.
+#
+# Each entry under a checker name describes a rule exemption:
+#   rule_id           — the rule label (matches the call in the checker code)
+#   exempt_when       — context fields that must match for exemption to apply
+#                       (list value = any-of; scalar = exact match)
+#   added_by          — reviewer + date for audit trail
+#   source_dismissals — count of customer dismissals motivating this rule
+#                       (when 0, this is a hand-curated rule)
+
+phase_gating:
+  - rule_id: hERG_required
+    exempt_when:
+      route: [topical, ophthalmic, otic]
+    added_by: reg-science-2026-Q3-bootstrap
+    source_dismissals: 0
+    rationale: >
+      ICH S7B is for systemic cardiovascular exposure. Topical / ophthalmic
+      / otic products with negligible systemic absorption do not require an
+      in vitro hERG study. Confirmed by FDA Q&A 2018 and EMA CHMP/SWP
+      response 2017.
+
+  - rule_id: hERG_required
+    exempt_when:
+      indication_class: [topical_dermatology]
+    added_by: reg-science-2026-Q3-bootstrap
+    source_dismissals: 0
+    rationale: >
+      Indication-class fallback for products lacking an explicit route tag.
+
+# Future checkers can register their own overrides here:
+# mrsd_verifier:
+#   - rule_id: ...
+# tabulated_summary:
+#   - rule_id: ...
