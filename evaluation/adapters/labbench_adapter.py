@@ -1890,18 +1890,37 @@ class LABBenchAdapter(BenchmarkAdapter):
             context_block = _build_cloning_context(question, choices_dict)
 
         elif subtask == "LitQA2":
-            # Path B (upper-bound check): the futurehouse/lab-bench LitQA2 dataset
-            # contains a 'key-passage' field with the verbatim answer sentence from
-            # the source paper (194/199 rows). Injecting this directly tells us the
-            # CEILING of what retrieval-based improvement could achieve. If this
-            # yields >85%, retrieval is the gap (proceed to Path A: Europe PMC).
-            # If it yields <55%, the LLM is also weak at literature-recall.
-            # Use LITQA2_USE_KEY_PASSAGE=1 to enable this measurement mode.
+            # Path B (upper-bound check, only under LITQA2_USE_KEY_PASSAGE=1):
+            # inject the dataset's `key-passage` field (verbatim answer text).
+            # 100% ceiling. Used to confirm retrieval is the gap; not a real fix.
             import os as _os_lit
             if _os_lit.environ.get("LITQA2_USE_KEY_PASSAGE") == "1":
                 key_passage = item.get("key-passage", "")
                 if key_passage:
                     context_block = f"[Source paper key passage]\n{key_passage}"
+            # Path A (real retrieval): use the dataset's `sources` (DOI URLs)
+            # to fetch full-text from Europe PMC / NCBI and select the
+            # answer-bearing paragraph. Replaces v11's PubMed keyword search.
+            if not context_block:
+                sources = item.get("sources") or []
+                if sources:
+                    try:
+                        from evaluation.retrievers.europe_pmc_fulltext import fetch_relevant_passage
+                        passage = fetch_relevant_passage(
+                            question=question,
+                            sources=sources,
+                            choices=list(choices_dict.values()),
+                            max_chars=2000,
+                            timeout=20,
+                        )
+                        if passage:
+                            context_block = f"[Source paper passage]\n{passage}"
+                    except Exception as exc:
+                        import logging
+                        logging.getLogger(__name__).debug(
+                            "EuropePMC retrieval failed for %s: %s", item_id, exc
+                        )
+            # Fallback to old PubMed keyword search if Path A didn't yield anything
             if not context_block and self.use_pubmed:
                 context_block = _fetch_pubmed_context(question, choices_dict)
 
