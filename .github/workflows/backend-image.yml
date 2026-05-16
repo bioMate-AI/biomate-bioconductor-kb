@@ -136,13 +136,17 @@ jobs:
 
       - name: Lint — no /home/ literals baked into image (L4)
         run: |
-          # Filesystems baked into the image must not contain host-developer
-          # paths. We grep the running container's /app tree for "/home/"
-          # appearing in source/config files.
-          if docker run --rm --entrypoint sh \
+          # Scan FIRST-PARTY app code only. Vendored deps (site-packages,
+          # node_modules) legitimately contain upstream-packager paths.
+          HITS=$(docker run --rm --entrypoint sh \
               ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-              -c 'grep -rIE "/home/[a-z]+/" /app --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" 2>/dev/null | grep -v "^Binary" | head -5'; then
-            echo "::error::Image contains /home/<user>/ literals — refusing to push. See L4 in CI/CD plan."
+              -c 'grep -rIE "/home/[a-z]+/" /app \
+                    --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" \
+                    --exclude-dir=site-packages --exclude-dir=.venv --exclude-dir=node_modules \
+                    2>/dev/null | grep -v "^Binary" | head -5' || true)
+          if [[ -n "$HITS" ]]; then
+            echo "::error::Image contains /home/<user>/ literals in first-party code — refusing to push. See L4 in CI/CD plan."
+            echo "$HITS"
             exit 1
           fi
           echo "OK"

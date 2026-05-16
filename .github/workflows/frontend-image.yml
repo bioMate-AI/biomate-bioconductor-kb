@@ -111,11 +111,19 @@ jobs:
 
       - name: Lint — no /home/ literals baked into image (L4)
         run: |
-          # Best-effort scan over app code in the built image.
-          if docker run --rm --entrypoint sh \
+          # Scan FIRST-PARTY app code only. Vendored deps (node_modules) and
+          # generated source maps legitimately contain build-host paths from
+          # upstream packagers (e.g. /home/nate/, /home/playwright/) and are
+          # not the "developer machine path leak" L4 cares about.
+          HITS=$(docker run --rm --entrypoint sh \
               ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-              -c 'grep -rIE "/home/[a-z]+/" /app --include="*.js" --include="*.ts" --include="*.tsx" --include="*.json" --include="*.yml" 2>/dev/null | grep -v "^Binary" | head -5'; then
-            echo "::error::Image contains /home/<user>/ literals — refusing to push."
+              -c 'grep -rIE "/home/[a-z]+/" /app \
+                    --include="*.js" --include="*.ts" --include="*.tsx" --include="*.json" --include="*.yml" \
+                    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.cache \
+                    2>/dev/null | grep -v "^Binary" | head -5' || true)
+          if [[ -n "$HITS" ]]; then
+            echo "::error::Image contains /home/<user>/ literals in first-party code — refusing to push."
+            echo "$HITS"
             exit 1
           fi
           echo "OK"
