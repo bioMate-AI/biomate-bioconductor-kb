@@ -346,3 +346,41 @@ SoTA is not narrowable through query-engineering alone.** A real win would
 need either (a) full-text retrieval for the specific paper the question
 cites (which the questions don't always reveal), or (b) a better embedding-
 based retriever instead of PubMed esearch keyword matching.
+
+
+---
+
+## Clarification: LLM variance ≠ failure
+
+Earlier sections conflated these two phenomena. Separating them:
+
+**Variance (run-to-run flap)**
+Same code, same prompt, different runs → different scores.
+Sources: temperature>0 sampling, GPU FP order, transient errors.
+*Fixed this session*: temperature=0 everywhere + transient-error retry. v21=v22=63.3% identical.
+
+**Stable failure (model picks wrong every run)**
+Same code, same prompt → wrong answer every time. NOT variance.
+Cause: the LLM has a stronger prior for the wrong answer than for the right one.
+For patient_gene task 217: model consistently picks FKTN (famous Fukuyama disease) over GT
+ARL6IP1 (obscure) across v22-v27 with 6 different prompt formulations. Temperature was
+not the problem; the model's weight on "phenotype cluster X → famous disease gene" is
+stronger than its compliance with the user-prompt directive.
+
+**Why temperature=0 doesn't help stable-wrong cases:**
+At T=0, the LLM picks argmax. If argmax is the wrong answer, lowering temperature only
+locks in the wrong answer reproducibly. Variance only matters in the narrow window where
+two answers are near-tied in the model's distribution.
+
+**Therefore the 5 patient_gene hallucinators are not solvable by:**
+- Better prompts (tried 6 formulations)
+- Lower temperature (already 0)
+- Self-consistency voting (within-model variance is small; doesn't fix prior bias)
+
+**They ARE solvable by (in increasing cost):**
+1. Tool-augmented retrieval: inject authoritative source text (e.g., the OMIM page for the
+   GT gene), making override prior require denying explicit evidence not just instructions
+2. Multi-model ensemble: Claude + Gemini + GPT-5 vote; different priors cancel out
+3. Fine-tuning: train a model on benchmark-distribution Q&A pairs to align prior with GT
+
+Each of these is a real engineering project (1-5 days), not a prompt edit.
