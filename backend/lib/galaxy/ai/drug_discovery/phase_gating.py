@@ -54,8 +54,26 @@ def required_studies(
     phase: Phase,
     trial_duration_days: int,
     population: Population,
+    *,
+    route: str | None = None,
+    indication_class: str | None = None,
 ) -> PhaseGatingRequirements:
-    """Compute required nonclinical study list per ICH M3(R2)."""
+    """
+    Compute required nonclinical study list per ICH M3(R2).
+
+    Optional `route` and `indication_class` keys activate
+    regulatory-science overrides (see checker_overrides.py). E.g. a
+    topical-route study is exempt from hERG per dismissal-driven rule
+    refinement.
+    """
+    from .checker_overrides import is_exempt
+    context = {
+        "phase": phase,
+        "trial_duration_days": trial_duration_days,
+        "population": population,
+        "route": route,
+        "indication_class": indication_class,
+    }
     out: list[StudyRequirement] = []
 
     # Repeat-dose tox duration from Table 1
@@ -113,12 +131,13 @@ def required_studies(
         rationale="core safety pharmacology battery for first-in-human",
     ))
 
-    # hERG / QT
-    out.append(StudyRequirement(
-        name="in vitro hERG channel assay",
-        citation="ICH S7B",
-        rationale="cardiac repolarization risk assessment for first-in-human",
-    ))
+    # hERG / QT — exemption available for topical / ophthalmic via overrides
+    if not is_exempt("phase_gating", "hERG_required", context):
+        out.append(StudyRequirement(
+            name="in vitro hERG channel assay",
+            citation="ICH S7B",
+            rationale="cardiac repolarization risk assessment for first-in-human",
+        ))
 
     # DART — staged per population
     if population == "wocbp":
