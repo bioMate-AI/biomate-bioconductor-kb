@@ -52,17 +52,30 @@ export function ChatOutputAttachments({
     isDownloadAll?: boolean
   } | null>(null)
 
-  // Outputs are keyed under the frontend executionRunId (passed as `runId` prop). The
-  // `invocationId` prop is the galaxyInvocationId for Nextflow runs which often differs
-  // — querying it returns []. Prefer runId; fall back to invocationId for legacy Galaxy
-  // tool runs that pre-date the Nextflow path.
-  const outputsKey = runId || invocationId
+  // Outputs may be keyed under either the frontend executionRunId (runId) or the
+  // Galaxy invocation id (invocationId). For Nextflow runs these often differ.
+  // Fetch both in parallel and union — whichever resolves wins. Eliminates the
+  // long-running CS-14 flake where one id returned 0 and the other 258.
   const { data: outputs = [], isLoading, refetch } = useQuery<OutputDataset[]>({
-    queryKey: ['outputs', outputsKey],
+    queryKey: ['outputs', runId, invocationId],
     queryFn: async () => {
-      const response = await fetch(`/api/invocations/${outputsKey}/outputs`)
-      if (!response.ok) throw new Error('Failed to fetch outputs')
-      return response.json()
+      const ids = [runId, invocationId].filter((x): x is string => !!x && typeof x === 'string')
+      if (ids.length === 0) return []
+      const responses = await Promise.all(
+        ids.map(id => fetch(`/api/invocations/${id}/outputs`).then(r => r.ok ? r.json() : []).catch(() => []))
+      )
+      const seen = new Set<string>()
+      const merged: OutputDataset[] = []
+      for (const list of responses) {
+        if (!Array.isArray(list)) continue
+        for (const o of list) {
+          const key = o?.id || (o as any)?.metadata?.s3Uri || o?.name
+          if (!key || seen.has(key)) continue
+          seen.add(key)
+          merged.push(o)
+        }
+      }
+      return merged
     },
     refetchInterval: (query) => {
       const data = (query.state.data as OutputDataset[] | undefined) || []
@@ -71,6 +84,7 @@ export function ChatOutputAttachments({
       return false
     },
   })
+  const outputsKey = runId || invocationId
 
   useEffect(() => {
     if (outputs.length > 0) {
