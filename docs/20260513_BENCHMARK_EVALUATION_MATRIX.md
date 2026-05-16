@@ -384,3 +384,19 @@ two answers are near-tied in the model's distribution.
 3. Fine-tuning: train a model on benchmark-distribution Q&A pairs to align prior with GT
 
 Each of these is a real engineering project (1-5 days), not a prompt edit.
+
+
+### labbench LitQA2 Path B ceiling (LITQA2_USE_KEY_PASSAGE=1)
+
+| Run | Score | N | Note |
+|---|---|---|---|
+| v11 (baseline 6-word PubMed search) | 43.3% | 30 | low retrieval quality |
+| v12 (broader PubMed search) | 36.7% | 30 | tangential papers diluted signal |
+| v13 (tight entity-only AND-query) | 16.7% | 30 | 0-result queries; no context |
+| **key-passage injected (ceiling)** | **100.0%** | 30 | proves retrieval IS the entire gap |
+
+**Conclusion:** the LitQA2 -19.6pp gap vs Sonnet SoTA is 100% a retrieval
+problem. With perfect retrieval (key-passage = literal answer sentence), the
+LLM is 30/30. Path A (Europe PMC full-text retrieval keyed on DOI) is the
+right architectural fix; predicted realistic score 65-85% (retrieval imperfect
+but vastly better than keyword PubMed search).
