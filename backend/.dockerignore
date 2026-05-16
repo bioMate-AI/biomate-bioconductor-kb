@@ -72,6 +72,13 @@ biomni_workflows/nextflow_nfcore/
 .nextflow/
 .nextflow.log*
 
+# Nextflow work directories — runtime artifacts that contain absolute paths
+# from the launching machine (L4: /home/yzhang/... leaks via workflow_summary
+# _mqc.yaml files). 432MB / 1705 files of tracked-but-shouldn't-be artifacts
+# as of 2026-05-16. TODO: git rm + add to .gitignore in a follow-up.
+work/
+work/**
+
 # Virtual environments
 .venv*/
 venv*/
