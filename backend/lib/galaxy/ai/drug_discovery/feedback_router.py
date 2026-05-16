@@ -9,16 +9,13 @@ Mounts 6 endpoints under /api/ind-report and /api/regulatory:
   GET  /api/regulatory/feedback/queue
   GET  /api/regulatory/active_adapter
 
-All four customer-facing POST endpoints capture data to the appropriate
-JSONL via feedback_io. The regenerate endpoint also threads the customer's
-optional `instruction` through to the underlying LLM call (currently a stub
-hook — the IND generation route in api_router.py invokes _llm_narrative
-which can read this in a follow-up patch).
+Customer-facing POST endpoints require a Bearer JWT (verified via the
+AuthService in webapps/galaxy/api/auth.py) and are rate-limited per IP.
+The internal endpoints fail closed when BIOMATE_INTERNAL_KEY is unset.
+The active-adapter endpoint gates org-id routing by billing-tier
+entitlement (paid_orgs.json).
 
-Auth: customer endpoints accept an optional X-BioMate-Org-Id header for
-paid-tier isolation. Internal endpoints (feedback/queue) require a
-BIOMATE_INTERNAL_KEY env match — a deliberately lightweight stand-in until
-real auth lands.
+See feedback_auth.py for the dependency implementations.
 """
 from __future__ import annotations
 
@@ -27,9 +24,14 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from .feedback_auth import (
+    is_org_entitled_to_adapter,
+    require_authenticated_user,
+    require_internal_key,
+)
 from .feedback_io import (
     read_feedback_queue,
     record_audit_dismissal,
@@ -72,10 +74,12 @@ class CitationSuggestion(BaseModel):
 
 class RegenerateRequest(BaseModel):
     instruction: Optional[str] = None
+    before: Optional[str] = None
+    after: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
-# Customer-facing endpoints
+# Customer-facing endpoints — auth + rate-limited
 # ---------------------------------------------------------------------------
 
 @router.post("/api/ind-report/projects/{project_id}/edit")
@@ -83,6 +87,7 @@ async def capture_edit(
     project_id: str,
     body: EditCapture,
     x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+    user: dict = Depends(require_authenticated_user),
 ):
     """
     Capture a paragraph edit as a DPO pair candidate.
@@ -100,8 +105,8 @@ async def capture_edit(
         paragraph_id=body.paragraph_id,
         org_id=x_biomate_org_id,
     )
-    log.info("[feedback] edit captured project=%s pid=%s row=%s",
-             project_id, body.paragraph_id, row_id)
+    log.info("[feedback] edit captured project=%s pid=%s row=%s user=%s",
+             project_id, body.paragraph_id, row_id, user.get("user_id"))
     return {"recorded": True, "id": row_id}
 
 
@@ -110,6 +115,7 @@ async def capture_dismissal(
     finding_id: str,
     body: DismissalCapture,
     x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+    user: dict = Depends(require_authenticated_user),
 ):
     """Capture an audit-finding dismissal with reason → checker rule refinement queue."""
     row_id = record_audit_dismissal(
@@ -121,8 +127,8 @@ async def capture_dismissal(
         document_state_hash=body.document_state_hash,
         org_id=x_biomate_org_id,
     )
-    log.info("[feedback] dismissal captured finding=%s reason=%s row=%s",
-             finding_id, body.reason, row_id)
+    log.info("[feedback] dismissal captured finding=%s reason=%s row=%s user=%s",
+             finding_id, body.reason, row_id, user.get("user_id"))
     return {"recorded": True, "id": row_id}
 
 
@@ -130,6 +136,7 @@ async def capture_dismissal(
 async def suggest_citation(
     body: CitationSuggestion,
     x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+    user: dict = Depends(require_authenticated_user),
 ):
     """
     Customer-suggested missing citation. If document_only=True, the suggestion
@@ -144,8 +151,8 @@ async def suggest_citation(
         document_only=body.document_only,
         org_id=x_biomate_org_id,
     )
-    log.info("[feedback] citation suggested guideline=%s document_only=%s row=%s",
-             body.guideline_id, body.document_only, row_id)
+    log.info("[feedback] citation suggested guideline=%s document_only=%s row=%s user=%s",
+             body.guideline_id, body.document_only, row_id, user.get("user_id"))
     return {"recorded": True, "id": row_id, "queued_for_review": not body.document_only}
 
 
@@ -154,57 +161,34 @@ async def regenerate_section(
     section_id: str,
     body: RegenerateRequest,
     x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+    user: dict = Depends(require_authenticated_user),
 ):
     """
-    Regenerate a section. If `instruction` is provided, append it to the section's
-    system prompt for this call only. Also records the (instruction, before, after)
-    tuple for the prompt-tuning signal queue if the customer doesn't follow up with
-    a manual edit within 60s — that follow-up check happens client-side and arrives
-    as a separate /edit POST.
+    Records a regenerate-with-instruction request as a prompt-tuning signal.
+    If `before` and `after` are provided in the same POST (single-shot mode),
+    the record is complete. Otherwise the row is marked pending and the
+    client may PATCH `before`/`after` later (not yet implemented).
 
-    Actual regeneration is delegated to the existing IND pipeline; this endpoint
-    primarily captures the customer intent. The pipeline reads `instruction` from
-    the section context.
+    Note: actual section regeneration is delegated to the existing IND
+    pipeline endpoints in api_router.py; this route captures the prompt-
+    tuning intent only.
     """
-    # The IND pipeline's regeneration logic lives in api_router.py (ind-assembly
-    # endpoints). This route simply records the intent + instruction context.
-    # The frontend should also call the actual regeneration endpoint with the
-    # instruction in the section context.
-    if body.instruction and len(body.instruction.strip()) > 0:
-        # Pre-record with empty after — caller fills in after generation
-        # via a follow-up PATCH (or accepts the empty after for now).
-        from .feedback_io import append_jsonl, PROMPT_TUNING
-        row_id = append_jsonl(PROMPT_TUNING, {
-            "section_type": section_id,
-            "instruction": body.instruction,
-            "before": "",   # filled by client after they confirm
-            "after": "",
-            "follow_up_edit": None,  # set later
-            "org_id": x_biomate_org_id,
-            "pending_completion": True,
-        })
-        return {
-            "recorded": True, "id": row_id,
-            "next": "POST /api/ind-report/sections/{section_id}/regenerate/complete with before+after",
-        }
-    return {"recorded": False, "reason": "no instruction provided"}
+    if not body.instruction or not body.instruction.strip():
+        return {"recorded": False, "reason": "no instruction provided"}
+    row_id = record_prompt_tuning_signal(
+        section_type=section_id,
+        instruction=body.instruction,
+        before=body.before or "",
+        after=body.after or "",
+        follow_up_edit=False,
+        org_id=x_biomate_org_id,
+    )
+    return {"recorded": True, "id": row_id}
 
 
 # ---------------------------------------------------------------------------
-# Internal endpoints
+# Internal endpoints — fail closed
 # ---------------------------------------------------------------------------
-
-def _check_internal_auth(authorization: Optional[str]) -> None:
-    expected = os.environ.get("BIOMATE_INTERNAL_KEY", "")
-    if not expected:
-        # Dev mode — allow when no key configured
-        return
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "internal endpoint requires Bearer token")
-    token = authorization.removeprefix("Bearer ").strip()
-    if token != expected:
-        raise HTTPException(403, "invalid internal token")
-
 
 @router.get("/api/regulatory/feedback/queue")
 async def feedback_queue(
@@ -212,10 +196,10 @@ async def feedback_queue(
                       regex="^(customer_pairs|checker_feedback|citation_extensions|prompt_tuning)$"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    authorization: Optional[str] = Header(None),
+    _: None = Depends(require_internal_key),
 ):
-    """Internal — paginated review queue for regulatory science team."""
-    _check_internal_auth(authorization)
+    """Internal — paginated review queue. Fails closed when
+    BIOMATE_INTERNAL_KEY is not set."""
     return {"kind": kind, "items": read_feedback_queue(kind=kind, limit=limit, offset=offset)}
 
 
@@ -225,16 +209,18 @@ async def active_adapter(
 ):
     """
     Returns the LoRA adapter currently serving for this caller.
-    Per-org adapters take precedence when X-BioMate-Org-Id is set and the
-    org-specific adapter exists on disk.
+    Per-org adapters take precedence when X-BioMate-Org-Id is set AND the
+    org is on the paid-orgs entitlement list AND the org-specific adapter
+    exists on disk. Unentitled org_ids silently fall back to the public adapter.
     """
-    path = _resolve_adapter_path(org_id=x_biomate_org_id)
-    # Parse version + customization status from the path
-    name = path.parent.name  # e.g. regulatory_llm_v6  or  regulatory_llm_v6_acme
-    is_customized = bool(x_biomate_org_id) and x_biomate_org_id in name
+    effective_org = x_biomate_org_id if is_org_entitled_to_adapter(x_biomate_org_id) else None
+    path = _resolve_adapter_path(org_id=effective_org)
+    name = path.parent.name
+    is_customized = bool(effective_org) and effective_org in name
     return {
         "adapter_name": name,
         "adapter_path": str(path),
         "exists": path.exists(),
-        "customized_for": x_biomate_org_id if is_customized else None,
+        "customized_for": effective_org if is_customized else None,
+        "entitled": bool(effective_org),
     }

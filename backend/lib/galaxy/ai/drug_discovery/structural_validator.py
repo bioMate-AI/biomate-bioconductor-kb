@@ -50,6 +50,16 @@ _INVITRO_RE = re.compile(r"\bin\s*vitro\b", re.IGNORECASE)
 _INVIVO_RE = re.compile(r"\bin\s*vivo\b", re.IGNORECASE)
 
 
+# Tokens that signal the mandatory BioMate draft disclaimer is present.
+# The full disclaimer text may be customized but must contain these tokens
+# so customers cannot inadvertently strip the draft framing.
+_DISCLAIMER_REQUIRED_TOKENS = (
+    "BioMate-generated draft",
+    "MUST NOT be submitted",
+    "21 CFR Part 11",
+)
+
+
 @dataclass
 class StructuralResult:
     section_id: str
@@ -57,12 +67,14 @@ class StructuralResult:
     out_of_order: list[tuple[str, str]]   # (heading_a, heading_b) — a should come before b
     invitro_invivo_violation: bool
     found_headings: list[str]
+    disclaimer_present: bool = True
 
     @property
     def passed(self) -> bool:
         return (not self.missing
                 and not self.out_of_order
-                and not self.invitro_invivo_violation)
+                and not self.invitro_invivo_violation
+                and self.disclaimer_present)
 
 
 def _find_heading_positions(text: str, heading: str) -> int:
@@ -72,10 +84,21 @@ def _find_heading_positions(text: str, heading: str) -> int:
     return m.start() if m else -1
 
 
-def validate_structure(text: str, section_id: str) -> StructuralResult:
+def validate_structure(
+    text: str, section_id: str, *, require_disclaimer: bool = True,
+) -> StructuralResult:
     required = REQUIRED_SUBSECTIONS.get(section_id)
     if required is None:
         raise ValueError(f"No required-subsection list for section {section_id}")
+
+    # Disclaimer enforcement — text must contain the required disclaimer tokens.
+    # Customers may move/edit the disclaimer paragraph but cannot remove its
+    # required tokens without making a conscious choice (which is the design
+    # intent — they own the document but the framing must stay).
+    disclaimer_present = (
+        not require_disclaimer
+        or all(tok in text for tok in _DISCLAIMER_REQUIRED_TOKENS)
+    )
 
     positions: list[tuple[str, int]] = []
     missing: list[str] = []
@@ -109,6 +132,7 @@ def validate_structure(text: str, section_id: str) -> StructuralResult:
         out_of_order=out_of_order,
         invitro_invivo_violation=invitro_invivo_violation,
         found_headings=[h for h, _ in positions],
+        disclaimer_present=disclaimer_present,
     )
 
 

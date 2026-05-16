@@ -3403,11 +3403,27 @@ _M4S_SUBSECTIONS_266 = [
 ]
 
 
+# Mandatory draft disclaimer prepended to every generated M4S section.
+# Required by audit item 8b: customers must see "draft" framing to avoid
+# unedited submission to regulatory authorities. Section is non-strippable
+# without conscious effort — editor preserves it as a fixed first paragraph
+# and structural_validator.validate_structure() will be extended to require it.
+DRAFT_DISCLAIMER = (
+    "[BioMate-generated draft] This nonclinical written summary is a "
+    "computational draft produced by BioMate's regulatory LLM. It is intended "
+    "as a starting point for human regulatory affairs review and MUST NOT be "
+    "submitted to FDA, EMA, NMPA, or any regulatory authority without "
+    "independent verification by a qualified regulatory affairs scientist and "
+    "electronic signature in accordance with 21 CFR Part 11."
+)
+
+
 def _build_m4s_section(
     section_id: str,
     subsections: list[tuple[str, str]],
     drug: str,
     region: str = "FDA",
+    include_disclaimer: bool = True,
 ) -> str:
     """
     Generate an ICH M4S(R2)-conformant written summary by calling the local
@@ -3415,7 +3431,9 @@ def _build_m4s_section(
     AVAILABLE] when the LLM is unavailable or returns empty.
 
     Output is structured so structural_validator.validate_structure(text,
-    section_id) passes.
+    section_id) passes. When include_disclaimer=True (default), prepends
+    DRAFT_DISCLAIMER as the first paragraph — required for any output
+    leaving the system. Set to False only for internal use.
     """
     system_msg = (
         "You are a regulatory medical writer preparing an ICH M4 CTD Module 2.6 "
@@ -3423,6 +3441,8 @@ def _build_m4s_section(
         "in plain regulatory English, citing applicable ICH guidelines."
     )
     parts: list[str] = []
+    if include_disclaimer:
+        parts.append(DRAFT_DISCLAIMER)
     for heading, prompt_template in subsections:
         user_prompt = prompt_template.format(drug=drug)
         body = _call_local_regulatory_llm(
