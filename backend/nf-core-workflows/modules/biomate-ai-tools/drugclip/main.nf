@@ -2,6 +2,7 @@
 // 10 million times faster than traditional docking
 // Can also use FREE API at drugclip.com
 
+// [Phase A] Local Virtual Screening
 process DRUGCLIP {
     tag "$meta.id"
     label 'process_medium'
@@ -39,6 +40,7 @@ process DRUGCLIP {
 }
 
 // API-based screening (uses pre-computed database)
+// [Phase B] API Database Screening
 process DRUGCLIP_API {
     tag "$meta.id"
     label 'process_low'

@@ -1,6 +1,7 @@
 // scFv-pMPNN - AI-powered antibody sequence design
 // Uses ProteinMPNN for sequence design, optionally AF2 for structure validation
 
+// [Phase A] Antibody Sequence Design
 process SCFV_DESIGN {
     tag "$meta.id"
     label 'process_gpu'
@@ -40,6 +41,7 @@ process SCFV_DESIGN {
     """
 }
 
+// [Phase B] Structure Prediction and Confidence
 process SCFV_PREDICT {
     tag "$meta.id"
     label 'process_gpu'

@@ -2,6 +2,7 @@
 // Uses LLM (Gemini) to plan synthesis routes for drug molecules
 // Requires: GEMINI_API_KEY environment variable
 
+// [Phase A] Single Molecule Retrosynthesis
 process SYNCRAFT {
     tag "$meta.id"
     label 'process_low'
@@ -39,6 +40,7 @@ process SYNCRAFT {
 }
 
 // Batch processing for multiple molecules
+// [Phase B] Batch Retrosynthesis Planning
 process SYNCRAFT_BATCH {
     tag "$meta.id"
     label 'process_low'

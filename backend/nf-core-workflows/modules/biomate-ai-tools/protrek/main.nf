@@ -2,6 +2,7 @@
 // 100x faster than Foldseek, can search by text description
 // FREE API available at search-protrek.com
 
+// [Phase A] Trimodal Protein Search
 process PROTREK_SEARCH {
     tag "$meta.id"
     label 'process_medium'
@@ -46,6 +47,7 @@ with open('${prefix}_top_hits.tsv', 'w') as f:
 }
 
 // Embedding generation for custom databases
+// [Phase B] Custom Database Embedding
 process PROTREK_EMBED {
     tag "$meta.id"
     label 'process_gpu'

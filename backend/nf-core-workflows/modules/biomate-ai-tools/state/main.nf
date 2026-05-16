@@ -1,6 +1,7 @@
 // STATE - Virtual cell model for perturbation response prediction
 // Predicts cellular responses to gene knockdown, drug treatment, CRISPR
 
+// [Phase A] Perturbation Response Simulation
 process STATE_PERTURB {
     tag "$meta.id"
     label 'process_gpu'
@@ -35,6 +36,7 @@ process STATE_PERTURB {
     """
 }
 
+// [Phase B] Cell Embedding Transform
 process STATE_EMBED {
     tag "$meta.id"
     label 'process_gpu'

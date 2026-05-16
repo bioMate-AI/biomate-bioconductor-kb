@@ -7,6 +7,7 @@ nextflow.enable.dsl=2
 // -----------------------------------------------------------------------------
 // PROCESS 1: Train cryoDRGN VAE on particle stack
 // -----------------------------------------------------------------------------
+// [Phase A] cryoDRGN VAE Training
 process CRYODRGN_TRAIN {
     tag "$meta.id"
     label 'process_gpu'
@@ -146,6 +147,7 @@ PYEOF
 // -----------------------------------------------------------------------------
 // PROCESS 2: Analyze latent space — UMAP + k-means → representative volumes
 // -----------------------------------------------------------------------------
+// [Phase B] Latent Space Analysis and Volume Reconstruction
 process CRYODRGN_ANALYZE {
     tag "$meta.id"
     label 'process_medium'
@@ -236,6 +238,7 @@ print('    scikit_learn: ' + sklearn.__version__)
 // -----------------------------------------------------------------------------
 // PROCESS 3: Scan conformational ensemble for druggable pockets
 // -----------------------------------------------------------------------------
+// [Phase C] Druggable Pocket Scanning
 process POCKET_SCAN_ENSEMBLE {
     tag "$meta.id"
     label 'process_medium'
@@ -433,6 +436,7 @@ print('    numpy: ' + numpy.__version__)
 // -----------------------------------------------------------------------------
 // PROCESS 4: Generate heterogeneity summary report
 // -----------------------------------------------------------------------------
+// [Phase D] Heterogeneity Summary Report
 process HETEROGENEITY_REPORT {
     tag "$meta.id"
     label 'process_low'

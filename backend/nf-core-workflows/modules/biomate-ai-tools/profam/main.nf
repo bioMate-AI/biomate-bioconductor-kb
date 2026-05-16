@@ -1,6 +1,7 @@
 // ProFam - Protein family language model for fitness prediction
 // Score variants or generate new sequences
 
+// [Phase A] Variant Fitness Scoring
 process PROFAM_SCORE {
     tag "$meta.id"
     label 'process_gpu'
@@ -38,6 +39,7 @@ process PROFAM_SCORE {
     """
 }
 
+// [Phase B] Novel Sequence Generation
 process PROFAM_GENERATE {
     tag "$meta.id"
     label 'process_gpu'

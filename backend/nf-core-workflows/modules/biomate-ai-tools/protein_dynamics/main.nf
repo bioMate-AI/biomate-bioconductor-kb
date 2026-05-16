@@ -12,6 +12,7 @@ nextflow.enable.dsl=2
 // -----------------------------------------------------------------------------
 // BIOEMU_SAMPLE
 // -----------------------------------------------------------------------------
+// [Phase A] Conformational Ensemble Sampling
 process BIOEMU_SAMPLE {
     tag "$meta.id"
     label 'process_gpu'
@@ -250,6 +251,7 @@ print('    python: ' + sys.version.split()[0])
 // -----------------------------------------------------------------------------
 // POCKET_MINER
 // -----------------------------------------------------------------------------
+// [Phase B] Cryptic Pocket Detection
 process POCKET_MINER {
     tag "$meta.id"
     label 'process_medium'
@@ -418,6 +420,7 @@ print('    python: ' + sys.version.split()[0])
 // -----------------------------------------------------------------------------
 // CONFORMATIONAL_SUMMARY
 // -----------------------------------------------------------------------------
+// [Phase C] Conformational Summary and UMAP
 process CONFORMATIONAL_SUMMARY {
     tag "$meta.id"
     label 'process_low'
