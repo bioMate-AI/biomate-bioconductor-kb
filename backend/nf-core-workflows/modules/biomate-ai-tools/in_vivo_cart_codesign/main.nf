@@ -1,24 +1,16 @@
 #!/usr/bin/env nextflow
 /*
- * drug_discovery/in_vivo_cart_codesign
+ * drug_discovery/in_vivo_cart_codesign  (4-phase pipeline)
  *
- * Multi-modality co-design workflow for in vivo CAR-T therapies.
- * The headline demo: chains atlas safety + LNP tropism + CAR architecture
- * + fratricide analysis in one query. No single-modality competitor has
- * all four components.
+ *   Phase A — Atlas Safety Check        : CAR target expression profile; critical-tissue scan
+ *   Phase B — LNP Tropism Selection     : anti-CD5/CD8/CD3 LNP options; transfection compatibility
+ *   Phase C — Fratricide Check          : CAR target vs T-cell-restricted LNP — no overlap = safe
+ *   Phase D — CAR Construct Assembly    : final FASTA (scFv + CD8α + CD28/4-1BB + CD3ζ); Kymriah arch if CD19
  *
  * Marketing context:
- *   - Capstan Therapeutics CPTX-2309 (anti-CD8-targeted LNP, CD19 CAR mRNA)
- *   - Umoja Biopharma (in vivo CAR-T platform)
- *   - Kelonia Therapeutics (LNP CAR delivery)
+ *   - Capstan Therapeutics CPTX-2309 (anti-CD8 LNP, CD19 CAR mRNA)
+ *   - Umoja Biopharma; Kelonia Therapeutics
  *   Eliminates ex vivo manufacturing ($400-500K/patient → potentially $5-50K)
- *
- * Algorithm:
- *   1. Atlas CAR target safety check (atlas-driven; mirrors modality_triage CAR-T scorer)
- *   2. LNP tropism analysis (which cells get transfected)
- *   3. Fratricide check (LNP-target cell type vs CAR-target cell type)
- *   4. CAR construct architecture recommendation
- *   5. Integrated design output
  *
  * References:
  *   - Rurik et al. 2022 Science (in vivo CAR-T for cardiac fibrosis)
@@ -36,24 +28,23 @@ params.delivery_cell  = 'T_cell'        // T_cell | NK_cell | macrophage
 params.lnp_targeting  = 'auto'           // spleen_C12-200 | anti_CD8 | anti_CD5 | anti_CD3 | untargeted_MC3 | auto
 params.persistence    = 'transient'      // transient | persistent
 
-process IN_VIVO_CART_CODESIGN {
-    tag "in_vivo_cart:${params.car_target}"
-    label 'process_low'
-    publishDir "${params.outdir}", mode: 'copy'
+CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+    : 'biomate/biomni-tools:latest'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+// [Phase A] Atlas Safety Check — CAR target expression profile across critical tissues
+process INVIVO_CART_ATLAS_SAFETY {
+    tag "invivo_cart:phaseA:${params.car_target}"
+    label 'process_low'
+    publishDir "${params.outdir}/phaseA_atlas_safety", mode: 'copy'
+    container CONTAINER_IMAGE
 
     input:
     val(meta)
 
     output:
-    tuple val(meta), path("in_vivo_cart_design.json"), emit: design_json
-    tuple val(meta), path("cart_construct.fasta"),     emit: cart_fasta
-    tuple val(meta), path("fratricide_check.json"),    emit: fratricide_json
-    tuple val(meta), path("design_report.txt"),        emit: report
-    path "versions.yml",                                emit: versions
+    tuple val(meta), path("atlas_safety.json"), emit: atlas
+    path "phaseA_summary.txt",                   emit: summary
 
     script:
     """
@@ -70,15 +61,25 @@ car_target = os.environ.get('PARAM_TARGET', '').strip()
 if not car_target or car_target.lower() == 'null':
     car_target = 'CD19'
 car_target = car_target.upper()
-indication = os.environ.get('PARAM_INDICATION', 'undefined').strip().lower()
-deliv_cell = os.environ.get('PARAM_CELL', 'T_cell').strip()
-lnp_pref   = os.environ.get('PARAM_LNP', 'auto').strip()        # case-sensitive (anti_CD5 ≠ anti_cd5)
-if lnp_pref.lower() in ('auto', '', 'null'):
-    lnp_pref = 'auto'
-persist    = os.environ.get('PARAM_PERSIST', 'transient').strip().lower()
 
-# ─── PHASE 1: Atlas CAR target safety (slim cache mirror) ────────────────────
-# Cell types where CAR target is expressed (mean expression in cell type, tier)
+indication = os.environ.get('PARAM_INDICATION', '').strip()
+if not indication or indication.lower() == 'null':
+    indication = 'undefined'
+indication = indication.lower()
+
+deliv_cell = os.environ.get('PARAM_CELL', '').strip()
+if not deliv_cell or deliv_cell.lower() == 'null':
+    deliv_cell = 'T_cell'
+
+lnp_pref = os.environ.get('PARAM_LNP', '').strip()
+if not lnp_pref or lnp_pref.lower() in ('auto', 'null'):
+    lnp_pref = 'auto'
+
+persist = os.environ.get('PARAM_PERSIST', '').strip()
+if not persist or persist.lower() == 'null':
+    persist = 'transient'
+persist = persist.lower()
+
 ATLAS = {
     'CD19':  [('B_cell_naive', 4.2, 'LOW'), ('B_cell_memory', 4.5, 'LOW'),
               ('plasmablast', 2.1, 'LOW')],
@@ -88,7 +89,7 @@ ATLAS = {
     'CD7':   [('T_cell_naive', 4.8, 'LOW'), ('T_cell_memory', 4.5, 'LOW'),
               ('NK_cell', 4.0, 'LOW')],
     'CD5':   [('T_cell_naive', 4.6, 'LOW'), ('T_cell_memory', 4.4, 'LOW'),
-              ('B_cell_naive', 1.0, 'LOW')],   # B1 subset
+              ('B_cell_naive', 1.0, 'LOW')],
     'CD33':  [('myeloid_progenitor', 4.6, 'HIGH'), ('monocyte', 4.2, 'MOD'),
               ('hematopoietic_stem', 3.2, 'HIGH')],
     'MSLN':  [('mesothelial_pleural', 3.5, 'MOD'),
@@ -100,7 +101,6 @@ ATLAS = {
 }
 car_atlas = ATLAS.get(car_target, [('unknown', 0.0, 'LOW')])
 
-# Score CAR target (same logic as modality_triage CAR-T rule)
 max_high = max([m for ct, m, t in car_atlas if t == 'HIGH'], default=0.0)
 max_mod  = max([m for ct, m, t in car_atlas if t == 'MOD'],  default=0.0)
 high_hits= [ct for ct, m, t in car_atlas if t == 'HIGH' and m > 0.5]
@@ -119,7 +119,61 @@ else:
     car_verdict = 'VIABLE'
     car_rationale = "CAR target safely restricted to LOW-criticality cell types"
 
-# ─── PHASE 2: LNP tropism analysis ───────────────────────────────────────────
+out = {
+    'car_target':   car_target,
+    'indication':   indication,
+    'delivery_cell':deliv_cell,
+    'lnp_pref':     lnp_pref,
+    'persistence':  persist,
+    'atlas':        [[ct, m, t] for ct, m, t in car_atlas],
+    'atlas_check': {
+        'verdict':   car_verdict,
+        'rationale': car_rationale,
+        'high_tissue_hits': high_hits,
+        'mod_tissue_hits':  mod_hits,
+    },
+}
+with open('atlas_safety.json','w') as f:
+    json.dump(out, f, indent=2)
+
+lines = [
+    "Phase A — Atlas Safety Check",
+    f"  CAR target: {car_target}   Indication: {indication}",
+    f"  Verdict:    {car_verdict}",
+    f"  Rationale:  {car_rationale}",
+]
+with open('phaseA_summary.txt','w') as f:
+    f.write('\\n'.join(lines) + '\\n')
+print('\\n'.join(lines))
+PYEOF
+    """
+}
+
+// [Phase B] LNP Tropism Selection — pick anti-CD5/CD8/CD3/etc; characterize transfected cell set
+process INVIVO_CART_LNP_TROPISM {
+    tag "invivo_cart:phaseB"
+    label 'process_low'
+    publishDir "${params.outdir}/phaseB_lnp_tropism", mode: 'copy'
+    container CONTAINER_IMAGE
+
+    input:
+    tuple val(meta), path(atlas_json)
+
+    output:
+    tuple val(meta), path("lnp_tropism.json"), emit: lnp
+    path "phaseB_summary.txt",                  emit: summary
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json
+
+with open('${atlas_json}') as f:
+    ctx = json.load(f)
+
+deliv_cell = ctx['delivery_cell']
+lnp_pref   = ctx['lnp_pref']
+
 LNP_LIBRARY = {
     'MC3':            {'tropism': 'hepatocyte',       'in_vivo_cart_use': 'NOT_USEFUL',
                        'notes': 'Onpattro standard; hepatocyte-dominant via ApoE-LDLR; not T-cell-selective'},
@@ -139,14 +193,13 @@ LNP_LIBRARY = {
                        'notes': 'Same as MC3'},
 }
 
-# Auto-select LNP based on delivery cell
 if lnp_pref == 'auto':
     if deliv_cell == 'T_cell':
-        lnp_choice = 'anti_CD8'   # Capstan default
+        lnp_choice = 'anti_CD8'
     elif deliv_cell == 'NK_cell':
-        lnp_choice = 'anti_CD7'   # NK + T (limited NK-selective LNPs in development)
+        lnp_choice = 'anti_CD7'
     elif deliv_cell == 'macrophage':
-        lnp_choice = 'untargeted_MC3'   # macrophage uptake from broad LNP
+        lnp_choice = 'untargeted_MC3'
     else:
         lnp_choice = 'C12-200'
 else:
@@ -154,7 +207,6 @@ else:
 
 lnp_info = LNP_LIBRARY.get(lnp_choice, LNP_LIBRARY['anti_CD8'])
 
-# Build the set of cell types the LNP will transfect
 LNP_TROPISM_CELLS = {
     'MC3':            ['hepatocyte'],
     'SM-102':         ['muscle_cell', 'lymph_node_DC', 'T_cell_lymph'],
@@ -167,32 +219,74 @@ LNP_TROPISM_CELLS = {
 }
 lnp_target_cells = LNP_TROPISM_CELLS.get(lnp_choice, [])
 
-# ─── PHASE 3: Fratricide check ───────────────────────────────────────────────
-# If LNP transfects a cell type that also EXPRESSES the CAR target → those cells become CAR-T
-# AND get killed by other CAR-T → fratricide
+out = {**ctx, 'lnp_choice': {
+    'lnp':              lnp_choice,
+    'tropism':          lnp_info['tropism'],
+    'in_vivo_cart_use': lnp_info['in_vivo_cart_use'],
+    'notes':            lnp_info['notes'],
+    'target_cells':     lnp_target_cells,
+}}
+with open('lnp_tropism.json','w') as f:
+    json.dump(out, f, indent=2)
+
+lines = [
+    "Phase B — LNP Tropism Selection",
+    f"  LNP:               {lnp_choice}",
+    f"  Tropism:           {lnp_info['tropism']}",
+    f"  In vivo CAR-T use: {lnp_info['in_vivo_cart_use']}",
+    f"  Target cells:      {lnp_target_cells}",
+]
+with open('phaseB_summary.txt','w') as f:
+    f.write('\\n'.join(lines) + '\\n')
+print('\\n'.join(lines))
+PYEOF
+    """
+}
+
+// [Phase C] Fratricide Check — CAR target vs LNP-transfected cell set; flag self-kill risk
+process INVIVO_CART_FRATRICIDE_CHECK {
+    tag "invivo_cart:phaseC"
+    label 'process_low'
+    publishDir "${params.outdir}/phaseC_fratricide", mode: 'copy'
+    container CONTAINER_IMAGE
+
+    input:
+    tuple val(meta), path(lnp_json)
+
+    output:
+    tuple val(meta), path("fratricide_check.json"), emit: frat
+    path "phaseC_summary.txt",                       emit: summary
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json
+
+with open('${lnp_json}') as f:
+    ctx = json.load(f)
+
+car_target       = ctx['car_target']
+lnp_choice       = ctx['lnp_choice']['lnp']
+lnp_target_cells = ctx['lnp_choice']['target_cells']
+car_atlas        = ctx['atlas']  # list of [ct, m, tier]
+
 def is_T_cell(cell_type):
     return 'T_cell' in cell_type or cell_type.startswith('T_cell')
 
-def is_B_cell(cell_type):
-    return 'B_cell' in cell_type or cell_type == 'plasma_cell' or cell_type == 'plasmablast'
-
-# Map: does the LNP target T cells?
 lnp_hits_t = any(is_T_cell(c) for c in lnp_target_cells)
-# Direct overlap check: is CAR target expressed in any cell type the LNP transfects?
 car_expressing_cells = {ct for ct, m, tier in car_atlas if m > 0.5}
 fratricide_cells = car_expressing_cells & set(lnp_target_cells)
 
-# Special case: T-cell-targeted LNP + T-cell-expressed CAR target = fratricide
 if lnp_hits_t and car_target in ('CD7', 'CD5', 'CD3'):
     fratricide = True
     frat_reason = (f"LNP {lnp_choice} transfects T cells. CAR target {car_target} "
                    f"is expressed on T cells. The newly-generated CAR-T cells will kill "
                    f"each other AND the LNP-target T-cell population.")
+    alt_lnp = 'anti_CD8' if car_target != 'CD8' else 'C12-200'
     mitigation = (f"Engineer CAR-T to be {car_target}-KO before transduction (electroporation "
                   f"of CRISPR for ex vivo, or co-delivery of guide RNA for in vivo). "
                   f"Capstan/Allogene pattern: B2M-KO + {car_target}-KO. Alternatively, "
-                  f"switch LNP to {('anti_CD8' if car_target != 'CD8' else 'C12-200')} "
-                  f"or change CAR target to a non-T-cell antigen.")
+                  f"switch LNP to {alt_lnp} or change CAR target to a non-T-cell antigen.")
 elif fratricide_cells:
     fratricide = True
     frat_reason = (f"LNP {lnp_choice} transfects cells expressing CAR target {car_target}: "
@@ -204,10 +298,66 @@ else:
                    f"{car_target} not expressed in those cells. No fratricide.")
     mitigation = None
 
-# ─── PHASE 4: CAR construct architecture ─────────────────────────────────────
-# In vivo CAR-T persistence considerations
+frat_block = {
+    'fratricide_risk': fratricide,
+    'rationale':       frat_reason,
+    'mitigation':      mitigation,
+}
+out = {**ctx, 'fratricide_check': frat_block}
+with open('fratricide_check.json','w') as f:
+    json.dump(out, f, indent=2)
+
+lines = [
+    "Phase C — Fratricide Check",
+    f"  Risk:       {'YES' if fratricide else 'NO'}",
+    f"  Rationale:  {frat_reason}",
+]
+if mitigation:
+    lines.append(f"  Mitigation: {mitigation}")
+with open('phaseC_summary.txt','w') as f:
+    f.write('\\n'.join(lines) + '\\n')
+print('\\n'.join(lines))
+PYEOF
+    """
+}
+
+// [Phase D] CAR Construct Assembly — scFv + CD8α + CD28/4-1BB + CD3ζ FASTA; final report
+process INVIVO_CART_CONSTRUCT_ASSEMBLY {
+    tag "invivo_cart:phaseD"
+    label 'process_low'
+    publishDir "${params.outdir}", mode: 'copy'
+    container CONTAINER_IMAGE
+
+    input:
+    tuple val(meta), path(frat_json)
+
+    output:
+    tuple val(meta), path("in_vivo_cart_design.json"), emit: design_json
+    tuple val(meta), path("cart_construct.fasta"),     emit: cart_fasta
+    tuple val(meta), path("fratricide_check.json"),    emit: fratricide_json
+    tuple val(meta), path("design_report.txt"),        emit: report
+    path "versions.yml",                                emit: versions
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json
+
+with open('${frat_json}') as f:
+    ctx = json.load(f)
+
+car_target   = ctx['car_target']
+indication   = ctx['indication']
+deliv_cell   = ctx['delivery_cell']
+persist      = ctx['persistence']
+atlas_check  = ctx['atlas_check']
+lnp_block    = ctx['lnp_choice']
+frat_block   = ctx['fratricide_check']
+car_verdict  = atlas_check['verdict']
+fratricide   = frat_block['fratricide_risk']
+
 if persist == 'transient':
-    costim_choice = 'CD28'   # faster, shorter persistence — matches transient mRNA
+    costim_choice = 'CD28'
     costim_rationale = ('Transient mRNA-encoded CAR. CD28 costimulatory chosen for '
                         'faster effector response. 4-1BB would push memory phenotype '
                         '(less useful for transient).')
@@ -220,7 +370,6 @@ if car_verdict == 'CAUTION':
     logic_gate_recommendation = ('Logic-gated CAR recommended (AND-NOT or SynNotch) — '
                                  'use a co-expressed tumor-specific antigen as the gate.')
 
-# scFv source (from cart_construct_design library)
 SCFV_LIBRARY = {
     'CD19': 'FMC63', 'BCMA': 'bb2121', 'CD22': 'm971', 'CD7': 'TH69',
     'CD5':  'H65',   'CD33': 'gemtuzumab-derived', 'MSLN': 'SS1', 'CD20': '2F2',
@@ -228,17 +377,14 @@ SCFV_LIBRARY = {
 }
 scfv = SCFV_LIBRARY.get(car_target, 'novel_scFv_design_required')
 
-# Full domain assembly
 GMCSFR_SIGNAL = "MLLLVTSLLLCELPHPAFLLIP"
-G4S3_LINKER   = "GGGGSGGGGSGGGGS"
 CD8A_HINGE_TM = "TTTPAPRPPTPAPTIASQPLSLRPEACRPAAGGAVHTRGLDFACDIYIWAPLAGTCGVLLLSLVITLYC"
 CD28_INTRA    = "RSKRSRLLHSDYMNMTPRRPGPTRKHYQPYAPPRDFAAYRS"
-TNFRSF9_INTRA = "KRGRKKLLYIFKQGRDQALSFLSQTPKNFLNLRPRDQFRHSQAFLERNLKQLSGN"   # 4-1BB intracellular
+TNFRSF9_INTRA = "KRGRKKLLYIFKQGRDQALSFLSQTPKNFLNLRPRDQFRHSQAFLERNLKQLSGN"
 CD3Z          = ("RVKFSRSAEPPASVQFHIPDREKTLAQETSQGSETMFPENLPNAFESQGPLHESPREATPQQLELPG"
                  "GDVDFCLKTEAQIPSIQLVNMFHFLAQERPTINIQIESSEDPEHEFEIIRSGNLQGAPNPAAPDQLQ"
                  "GLAPKEETQRK")
 
-# Placeholder scFv sequences (not the real ones — clinical sequences are IP-protected)
 SCFV_SEQS = {
     'FMC63': 'DIQMTQTTSSLSASLGDRVTISCRASQDISKYLNWYQQKPDGTVKLLIYHTSRLHSGVPSRFSGSGSGTDYSLTISNLEQEDIATYFCQQGNTLPYTFGGGTKLEITGGGGSGGGGSGGGGSEVKLQESGPGLVAPSQSLSVTCTVSGVSLPDYGVSWIRQPPRKGLEWLGVIWGSETTYYNSALKSRLTIIKDNSKSQVFLKMNSLQTDDTAIYYCAKHYYYGGSYAMDYWGQGTSVTVSS',
     'bb2121': 'QVQLVQSGAEVKKPGSSVKVSCKASGYTFTDYSINWVRQAPGQGLEWMGWINTETREPAYAYDFRGRFVFSLDTSVSTAYLQISSLKAEDTAVYYCALDYSYAMDYWGQGTLVTVSSGGGGSGGGGSGGGGSEIVLTQSPATLSLSPGERATLSCRASQSVSSYLAWYQQKPGQAPRLLIYDASNRATGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQRSNWPPLTFGGGTKVEIK',
@@ -249,30 +395,14 @@ costim_seq = CD28_INTRA if costim_choice == 'CD28' else TNFRSF9_INTRA
 
 full_car = (GMCSFR_SIGNAL + scfv_seq + CD8A_HINGE_TM + costim_seq + CD3Z) if scfv_seq != 'SCFV_PLACEHOLDER_DESIGN_REQUIRED' else None
 
-# ─── PHASE 5: Output ─────────────────────────────────────────────────────────
 design = {
     'car_target':            car_target,
     'indication':            indication,
     'delivery_cell':         deliv_cell,
     'persistence':           persist,
-    'atlas_check': {
-        'verdict':           car_verdict,
-        'rationale':         car_rationale,
-        'high_tissue_hits':  high_hits,
-        'mod_tissue_hits':   mod_hits,
-    },
-    'lnp_choice': {
-        'lnp':               lnp_choice,
-        'tropism':           lnp_info['tropism'],
-        'in_vivo_cart_use':  lnp_info['in_vivo_cart_use'],
-        'notes':             lnp_info['notes'],
-        'target_cells':      lnp_target_cells,
-    },
-    'fratricide_check': {
-        'fratricide_risk':   fratricide,
-        'rationale':         frat_reason,
-        'mitigation':        mitigation,
-    },
+    'atlas_check':           atlas_check,
+    'lnp_choice':            lnp_block,
+    'fratricide_check':      frat_block,
     'car_construct': {
         'scfv':              scfv,
         'hinge_tm':          'CD8α',
@@ -302,46 +432,43 @@ design = {
 with open('in_vivo_cart_design.json', 'w') as f:
     json.dump(design, f, indent=2)
 
-# CAR construct FASTA
 with open('cart_construct.fasta', 'w') as f:
     if full_car:
         f.write(f">CAR_{car_target}_{costim_choice}_invivo\\n")
-        # 60-char wrap
         for i in range(0, len(full_car), 60):
             f.write(full_car[i:i+60] + '\\n')
     else:
         f.write(f">CAR_{car_target}_designREQUIRED\\n# Novel target — scFv design needed via scfv_antibody_design workflow\\n")
 
 with open('fratricide_check.json', 'w') as f:
-    json.dump(design['fratricide_check'], f, indent=2)
+    json.dump(frat_block, f, indent=2)
 
-# Human-readable
 lines = [
-    "╔══════════════════════════════════════════════════════════════════╗",
+    "═══════════════════════════════════════════════════════════════════",
     "  In Vivo CAR-T Co-Design Report",
     f"  Target: {car_target}   |   Indication: {indication}",
     f"  Delivery cell: {deliv_cell}   |   Persistence: {persist}",
-    "╚══════════════════════════════════════════════════════════════════╝",
+    "═══════════════════════════════════════════════════════════════════",
     "",
-    f"── PHASE 1: Atlas Safety Check ────────────────────────────────────",
-    f"  Verdict:   {car_verdict}",
-    f"  Rationale: {car_rationale}",
+    "-- Phase A: Atlas Safety Check --",
+    f"  Verdict:   {atlas_check['verdict']}",
+    f"  Rationale: {atlas_check['rationale']}",
     "",
-    f"── PHASE 2: LNP Tropism ───────────────────────────────────────────",
-    f"  LNP:               {lnp_choice}",
-    f"  Tropism:           {lnp_info['tropism']}",
-    f"  In vivo CAR-T use: {lnp_info['in_vivo_cart_use']}",
-    f"  Notes:             {lnp_info['notes']}",
+    "-- Phase B: LNP Tropism --",
+    f"  LNP:               {lnp_block['lnp']}",
+    f"  Tropism:           {lnp_block['tropism']}",
+    f"  In vivo CAR-T use: {lnp_block['in_vivo_cart_use']}",
+    f"  Notes:             {lnp_block['notes']}",
     "",
-    f"── PHASE 3: Fratricide Check ──────────────────────────────────────",
-    f"  Risk:        {'YES' if fratricide else 'NO'}",
-    f"  Rationale:   {frat_reason}",
+    "-- Phase C: Fratricide Check --",
+    f"  Risk:      {'YES' if fratricide else 'NO'}",
+    f"  Rationale: {frat_block['rationale']}",
 ]
-if mitigation:
-    lines.append(f"  Mitigation:  {mitigation}")
+if frat_block.get('mitigation'):
+    lines.append(f"  Mitigation: {frat_block['mitigation']}")
 lines += [
     "",
-    f"── PHASE 4: CAR Construct ─────────────────────────────────────────",
+    "-- Phase D: CAR Construct --",
     f"  scFv:              {scfv}",
     f"  Hinge/TM:          CD8α",
     f"  Costimulatory:     {costim_choice}",
@@ -353,22 +480,27 @@ if full_car:
     lines.append(f"  Total length:      {len(full_car)} AA")
 lines += [
     "",
-    f"── Overall Verdict: {design['overall_verdict']} ─────────────────────────",
+    f"-- Overall Verdict: {design['overall_verdict']} --",
     "",
-    "── Clinical Precedents ────────────────────────────────────────────",
-] + [f"  • {p}" for p in design['precedents']] + [
+    "-- Clinical Precedents --",
+] + [f"  * {p}" for p in design['precedents']] + [
     "",
-    "── Disclaimers ────────────────────────────────────────────────────",
-] + [f"  • {d}" for d in design['disclaimers']]
+    "-- Disclaimers --",
+] + [f"  * {d}" for d in design['disclaimers']]
 
 with open('design_report.txt', 'w') as f:
     f.write('\\n'.join(lines) + '\\n')
-
 print('\\n'.join(lines))
 PYEOF
 
-    python3 -c "print('in_vivo_cart_codesign: 1.0')" > versions.yml
+    python3 -c "print('in_vivo_cart_codesign: 2.0')" > versions.yml
     """
 }
 
-workflow { meta = [id: 'invivo_cart_run']; Channel.value(meta) | IN_VIVO_CART_CODESIGN }
+workflow {
+    meta = [id: 'invivo_cart_run']
+    Channel.value(meta) | INVIVO_CART_ATLAS_SAFETY
+    INVIVO_CART_ATLAS_SAFETY.out.atlas       | INVIVO_CART_LNP_TROPISM
+    INVIVO_CART_LNP_TROPISM.out.lnp          | INVIVO_CART_FRATRICIDE_CHECK
+    INVIVO_CART_FRATRICIDE_CHECK.out.frat    | INVIVO_CART_CONSTRUCT_ASSEMBLY
+}
