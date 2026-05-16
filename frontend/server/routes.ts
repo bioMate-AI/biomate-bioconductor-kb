@@ -8381,12 +8381,14 @@ ${paramLines || '(none recorded)'}`;
         };
       }
 
+      // executionEngine is narrowed to 'galaxy' | 'cryosparc' here — the
+      // Nextflow-direct path above returns before reaching this point, so the
+      // previous `scheduler: 'nextflow'` spread was dead code.
       const invocationResult = await userProxy(req).invokeWorkflow(
         galaxyWorkflow.id,
         galaxyInputs,
         {
           history_id: galaxyHistoryId,
-          ...(executionEngine === 'nextflow' ? { scheduler: 'nextflow' } : {})
         }
       );
 
@@ -9337,10 +9339,12 @@ Rules:
 
       // For S3 paths, bucket validation is the security boundary — run lookup is optional.
       // For local paths, we still require a valid run to restrict filesystem access.
+      // `run` is hoisted so the local-path block below can use its
+      // nextflowStatus.work_dir / outdir for the allowed-roots check.
       const isS3Path = filePath.startsWith('s3://');
-      if (!isS3Path) {
-        const run = await storage.getExecutionRun(req.params.id);
-        if (!run) return res.status(404).json({ error: 'Run not found' });
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!isS3Path && !run) {
+        return res.status(404).json({ error: 'Run not found' });
       }
 
       // Infer Content-Type (shared for both S3 and local paths)
@@ -9408,7 +9412,7 @@ Rules:
       }
 
       // Only allow paths within known run directories (work_dir or outdir)
-      const nfStatus = run.execution?.nextflowStatus as any;
+      const nfStatus = run?.execution?.nextflowStatus as any;
       const allowedRoots = [
         nfStatus?.work_dir,
         nfStatus?.outdir,

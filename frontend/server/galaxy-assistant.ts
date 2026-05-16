@@ -632,6 +632,122 @@ const DOMAIN_ROUTING_RULES: Record<string, string> = {
  * Build a workflow routing rules block containing only rules for the detected domains.
  * Falls back to all rules combined when preferredDomains is empty.
  */
+/**
+ * LLM-extracted-key → workflow-required-param-key alias map.
+ *
+ * The chat-stream LLM extracts inline parameters from a user's natural-language
+ * query using "human-friendly" key names (e.g. `target`, `gene`, `disease`).
+ * But each workflow's `required_params` annotation uses workflow-specific keys
+ * (e.g. `car_target`, `target_gene`, `indication`). Without remapping, the
+ * workflow panel form fields stay empty and Run dispatches with `params.X='null'`
+ * defaults.
+ *
+ * This table maps LLM keys → workflow keys per workflow.
+ * Value `'__drop__'` deletes the key (no slot in the workflow).
+ *
+ * Keep `key.toLowerCase()` lookups so we tolerate `target_1`, `targetA`, etc.
+ */
+const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
+  bispecific_format_triage: {
+    target_1: 'target_a', targetA: 'target_a', first_target: 'target_a',
+    target_2: 'target_b', targetB: 'target_b', second_target: 'target_b',
+    disease: 'indication',
+  },
+  in_vivo_cart_codesign: {
+    target: 'car_target', antigen: 'car_target', car: 'car_target',
+    car_target: 'car_target',
+    delivery_vehicle: 'lnp_targeting', lnp: 'lnp_targeting',
+    cell: 'delivery_cell',
+    disease: 'indication',
+  },
+  in_vivo_base_edit_design: {
+    gene: 'target_gene', target: 'target_gene', target_protein: 'target_gene',
+    goal: 'edit_goal', edit: 'edit_goal',
+    editor: 'editor_preference',
+    disease: 'indication',
+    reference_therapeutic: '__drop__', reference: '__drop__',
+  },
+  atlas_expression_query: {
+    gene: 'target_gene', target: 'target_gene',
+    organism: '__drop__', resolution: '__drop__',
+  },
+  modality_triage: {
+    gene: 'target_gene', target: 'target_gene',
+    disease: 'indication',
+  },
+  glp1_modality_bakeoff: {
+    disease: 'indication', condition: 'indication',
+    modalities: '__drop__',
+    receptors_to_compare: 'receptors',
+  },
+  adc_design: {
+    antigen: 'target_antigen', target: 'target_antigen',
+    disease: 'indication',
+    expression: 'antigen_expression_level',
+  },
+  protac_design: {
+    target: 'target_protein', protein: 'target_protein',
+    e3: 'e3_preference', e3_ligase: 'e3_preference',
+    disease: 'indication',
+  },
+  mrna_therapeutic_design: {
+    protein: 'protein_sequence', sequence: 'protein_sequence', aa_sequence: 'protein_sequence',
+    tissue: 'target_tissue',
+    class: 'protein_class',
+  },
+  aav_serotype_selection: {
+    tissue: 'target_tissue',
+    payload: 'payload_size_kb', payload_size: 'payload_size_kb',
+    route: 'route_of_administration',
+    disease: 'indication',
+  },
+  cart_construct_design: {
+    target: 'target_antigen', antigen: 'target_antigen',
+    disease: 'indication',
+    generation: 'car_generation',
+    costim: 'costimulatory_domain',
+  },
+  aso_gapmer_design: {
+    target: 'target_mrna', gene: 'target_mrna', mrna: 'target_mrna',
+    tissue: 'target_tissue',
+  },
+  sirna_design_full: {
+    target: 'mrna_sequence', gene: 'mrna_sequence', sequence: 'mrna_sequence',
+    region: 'target_region',
+  },
+};
+
+/**
+ * Remap an LLM-extracted inlineParameters dict to the workflow's expected
+ * required_params keys. Unknown keys pass through (forwards-compat for new
+ * workflows). Keys mapped to '__drop__' are removed.
+ */
+export function remapInlineParametersForWorkflow(
+  workflowName: string | undefined | null,
+  raw: Record<string, string> | undefined | null,
+): Record<string, string> {
+  if (!raw || !workflowName) return raw || {};
+  const aliases = WORKFLOW_PARAM_ALIASES[workflowName];
+  if (!aliases) return raw;
+  const out: Record<string, string> = {};
+  let changed = false;
+  for (const [k, v] of Object.entries(raw)) {
+    const target = aliases[k] ?? aliases[k.toLowerCase()];
+    if (target === '__drop__') { changed = true; continue; }
+    const finalKey = target ?? k;
+    if (finalKey !== k) changed = true;
+    out[finalKey] = v;
+  }
+  if (changed) {
+    console.log(
+      '[InlineParam Remap]', workflowName,
+      'raw:', Object.keys(raw),
+      '→ mapped:', Object.keys(out),
+    );
+  }
+  return out;
+}
+
 export function buildWorkflowRoutingBlock(preferredDomains: string[]): string {
   if (!preferredDomains || preferredDomains.length === 0) {
     return Object.values(DOMAIN_ROUTING_RULES).join('\n');
@@ -2298,11 +2414,21 @@ Rules:
       finalMessage += '\n\n→ Open your [CRO Compliance workspace](/drug-discovery-cro) to manage campaigns, view the audit chain, and generate IND packages.';
     }
 
+    // Remap LLM-extracted keys → workflow-required keys so the workflow panel
+    // form actually populates. Without this, the form stays empty and Run
+    // dispatches with `params.X='null'` defaults (see audit doc).
+    const _workflowNameForRemap =
+      generatedWorkflow?.workflow_ga?.name || generatedWorkflow?.workflow_name;
+    const _remappedInlineParams = remapInlineParametersForWorkflow(
+      _workflowNameForRemap,
+      intent.inlineParameters,
+    );
+
     const finalResult: GalaxyAssistantResponse = {
       message: finalMessage,
       intentType: intent.type,
       intentConfidence: intent.confidence,
-      inlineParameters: Object.keys(intent.inlineParameters).length > 0 ? intent.inlineParameters : undefined,
+      inlineParameters: Object.keys(_remappedInlineParams).length > 0 ? _remappedInlineParams : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
@@ -2974,11 +3100,25 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       supersedes: f.supersedes,
     }));
 
+    // Same remap as single-intent path — see comment near line 2310.
+    // Derive the workflow name from the generated workflow on workflowResult
+    // (in scope here). The earlier reference to `decomposition.intents[0]?.workflow_name`
+    // doesn't compile because `DecomposedIntent` has no `workflow_name`, and
+    // `stepResults` belongs to a different function scope (processSubIntent).
+    const _multiGeneratedWorkflow = (workflowResult as any)?.generatedWorkflow;
+    const _multiWorkflowName: string | undefined =
+      _multiGeneratedWorkflow?.workflow_ga?.name ||
+      _multiGeneratedWorkflow?.workflow_name;
+    const _multiRemappedInlineParams = remapInlineParametersForWorkflow(
+      _multiWorkflowName,
+      primaryIntent.inlineParameters,
+    );
+
     const multiIntentResult: GalaxyAssistantResponse = {
       message: response.message,
       intentType: primaryIntent.type,
       intentConfidence: primaryIntent.confidence,
-      inlineParameters: Object.keys(primaryIntent.inlineParameters).length > 0 ? primaryIntent.inlineParameters : undefined,
+      inlineParameters: Object.keys(_multiRemappedInlineParams).length > 0 ? _multiRemappedInlineParams : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent ?? undefined,
       thinking_level: response.thinking?.thinkingLevel ?? undefined,
