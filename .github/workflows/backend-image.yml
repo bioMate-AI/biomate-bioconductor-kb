@@ -19,7 +19,9 @@ name: Build & push backend image
 
 on:
   push:
-    branches: [main]
+    # integration/next-phase is the active dev branch; main is the future
+    # production branch. Both build images on push.
+    branches: [main, integration/next-phase]
     tags: ['release-*']
     paths:
       - 'backend/**'
@@ -62,6 +64,16 @@ jobs:
           SHA="${GITHUB_SHA::12}"
           echo "sha_tag=sha-${SHA}" >> "$GITHUB_OUTPUT"
           echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          # Branch-scoped moving tag: keep `main` and dev branches apart so
+          # deploys can pull deliberately ("give me current main" vs "give
+          # me current next-phase"). Slash-safe via tr.
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            BRANCH_TAG="$(echo "$BRANCH" | tr '/' '-')-latest"
+            echo "branch_tag=${BRANCH_TAG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch_tag=" >> "$GITHUB_OUTPUT"
+          fi
           # Release tag only if this run was triggered by a release-* tag push
           if [[ "$GITHUB_REF" == refs/tags/release-* ]]; then
             echo "release_tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
@@ -90,7 +102,6 @@ jobs:
           load: true
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:main-latest
           build-args: |
             GIT_SHA=${{ github.sha }}
             BUILD_DATE=${{ steps.tags.outputs.build_date }}
@@ -136,10 +147,17 @@ jobs:
           fi
           echo "OK"
 
-      - name: Push image with sha + main-latest tags
+      - name: Push sha tag
         run: |
           docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:main-latest
+
+      - name: Tag + push branch-scoped moving tag (e.g. main-latest, integration-next-phase-latest)
+        if: steps.tags.outputs.branch_tag != ''
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.branch_tag }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.branch_tag }}
 
       - name: Tag + push release tag (if present)
         if: steps.tags.outputs.release_tag != ''
@@ -154,7 +172,7 @@ jobs:
           {
             echo "## Backend image build"
             echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
-            echo "- main-latest: pushed"
+            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`"
             [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`"
             echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
