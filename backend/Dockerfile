@@ -62,13 +62,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code with correct ownership in one shot.
 COPY --chown=galaxy:galaxy . .
 
-# Use container-specific Galaxy config (avoids the local-dev galaxy.yml which has
-# `/home/yzhang/...` hardcoded paths and PYTHONPATH overrides that break inside
-# the container). galaxy.yml.docker uses container-relative paths and the
-# `galaxy_user: galaxy` setting Gravity requires when running as non-root.
-RUN mv config/galaxy.yml.docker config/galaxy.yml \
+# Container Galaxy config from the secret-free template (checked into git).
+# Template uses ${ANTHROPIC_API_KEY} / ${OPENAI_API_KEY} placeholders that
+# Galaxy interpolates from the container environment at startup. Secrets
+# are NEVER baked into the image (L9).
+#
+# Note: in dev today, config/galaxy.yml.docker on the host has real secrets and
+# is mounted in via the deploy. That file is gitignored on purpose and stays
+# out of the image. Once Secrets Manager lands (P2.3), the container will
+# fetch secrets at boot via IAM role and the host-mounted file goes away.
+RUN cp config/galaxy.yml.template config/galaxy.yml \
     && mkdir -p database logs config/plugins \
-    && chmod +x /app/start_biomate.sh /app/run.sh 2>/dev/null || true \
+    && chmod +x /app/start_biomate.sh /app/run.sh \
     # Galaxy's default 'files' log handler writes to /app/galaxy.log; the file
     # must exist and be writable by the galaxy user BEFORE Galaxy starts,
     # otherwise dictConfig raises "Unable to configure handler 'files'".
@@ -78,6 +83,11 @@ RUN mv config/galaxy.yml.docker config/galaxy.yml \
 ENV PYTHONUNBUFFERED=1
 ENV GALAXY_CONFIG_FILE=/app/config/galaxy.yml
 ENV GALAXY_SKIP_NODE=1
+# Docker doesn't auto-set HOME from /etc/passwd when USER is specified —
+# Nextflow then tries to mkdir /.nextflow (HOME=/) and fails. Set HOME
+# explicitly to galaxy's home (per useradd above).
+ENV HOME=/app
+ENV NXF_HOME=/app/.nextflow
 
 # Bake build provenance into the image so a running container can be traced
 # back to its source commit + build time (past incident L1 — stale `latest`
