@@ -10,6 +10,14 @@
 #   docker build -t biomate-galaxy-backend:latest -f backend/Dockerfile backend/
 FROM python:3.9-slim
 
+# Build-arg-driven version pins. Bump these in PRs only; never let the image
+# upgrade Nextflow transitively (past incident: NF 26.04 broke 16+ workflow
+# directives in cryosparc_standard_spa due to DSL2 strictness — L5 in
+# docs/20260514_CICD_REBUILD_PLAN.md §6.3).
+ARG NF_VERSION=24.10.5
+ARG GIT_SHA=unknown
+ARG BUILD_DATE=unknown
+
 WORKDIR /app
 
 # System deps:
@@ -17,17 +25,28 @@ WORKDIR /app
 #   - openjdk-17-jre-headless              → required by Nextflow (cryosparc_executor)
 #   - procps                                → ps/kill used by Gravity supervisord
 #   - ca-certificates                       → boto3 / nextflow HTTPS
+#   - unzip                                 → AWS CLI v2 installer
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ git libpq-dev sqlite3 curl \
+    gcc g++ git libpq-dev sqlite3 curl unzip \
     default-jre-headless \
     procps ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Nextflow binary at a stable path. Install before Python deps so the
-# pip layer can be rebuilt without re-downloading Nextflow.
-RUN curl -fsSL https://get.nextflow.io | bash \
-    && mv nextflow /usr/local/bin/nextflow \
-    && chmod +x /usr/local/bin/nextflow
+# Nextflow binary at a stable path. Pinned to ${NF_VERSION}. Install before
+# Python deps so the pip layer can be rebuilt without re-downloading Nextflow.
+RUN curl -fsSL "https://github.com/nextflow-io/nextflow/releases/download/v${NF_VERSION}/nextflow" \
+        -o /usr/local/bin/nextflow \
+    && chmod +x /usr/local/bin/nextflow \
+    && /usr/local/bin/nextflow -version
+
+# AWS CLI v2 in /opt/aws-cli (self-contained — past incident: a symlink to
+# /usr/bin/aws broke when Nextflow bind-mounted /opt/aws-cli into Batch task
+# containers, causing exit 127 on ALL Batch jobs — L18).
+RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
+    && unzip -q /tmp/awscliv2.zip -d /tmp \
+    && /tmp/aws/install -i /opt/aws-cli -b /opt/aws-cli/bin \
+    && rm -rf /tmp/aws /tmp/awscliv2.zip \
+    && /opt/aws-cli/bin/aws --version
 
 # Galaxy refuses to start as root unless galaxy_user is set. Create the user
 # BEFORE copying app code so we can chown-during-COPY (single layer, no
@@ -59,6 +78,14 @@ RUN mv config/galaxy.yml.docker config/galaxy.yml \
 ENV PYTHONUNBUFFERED=1
 ENV GALAXY_CONFIG_FILE=/app/config/galaxy.yml
 ENV GALAXY_SKIP_NODE=1
+
+# Bake build provenance into the image so a running container can be traced
+# back to its source commit + build time (past incident L1 — stale `latest`
+# tag masked 5-week image drift).
+RUN echo "git_sha=${GIT_SHA}"      >  /image-build-info \
+    && echo "build_date=${BUILD_DATE}" >> /image-build-info \
+    && echo "nf_version=${NF_VERSION}" >> /image-build-info \
+    && cat /image-build-info
 
 USER galaxy
 

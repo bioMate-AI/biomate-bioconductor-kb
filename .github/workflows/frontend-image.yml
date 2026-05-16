@@ -1,0 +1,136 @@
+name: Build & push frontend image
+
+# Builds the frontend (Node/Express + React) container on every push to `main`
+# (and on manual dispatch). Pushes to ECR with the same tag scheme as backend:
+#   - sha-<commit>
+#   - main-latest
+#   - release-x.y.z (when triggered by a release-* tag push)
+#
+# This workflow only BUILDS and PUSHES — deploys happen in P3.1.
+#
+# Past-incident guardrails: see backend-image.yml for the full list; the
+# frontend image has fewer Python-specific concerns but still gets L1 (build
+# info), L4 (no /home/ literals), and L22 (.dockerignore present).
+
+on:
+  push:
+    branches: [main]
+    tags: ['release-*']
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-image.yml'
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: frontend-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ECR_REPO: biomate/dev-frontend
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pre-flight — .dockerignore present (L22)
+        run: |
+          test -f frontend/.dockerignore || { echo "::error::frontend/.dockerignore missing"; exit 1; }
+          grep -qE 'node_modules' frontend/.dockerignore || { echo "::error::node_modules not excluded"; exit 1; }
+
+      - name: Setup Node + typecheck (frontend)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install + typecheck
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run check
+
+      - name: Compute build tags
+        id: tags
+        run: |
+          SHA="${GITHUB_SHA::12}"
+          echo "sha_tag=sha-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/release-* ]]; then
+            echo "release_tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:main-latest
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ steps.tags.outputs.build_date }}
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache,mode=max
+
+      - name: Lint — no /home/ literals baked into image (L4)
+        run: |
+          # Best-effort scan over app code in the built image.
+          if docker run --rm --entrypoint sh \
+              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+              -c 'grep -rIE "/home/[a-z]+/" /app --include="*.js" --include="*.ts" --include="*.tsx" --include="*.json" --include="*.yml" 2>/dev/null | grep -v "^Binary" | head -5'; then
+            echo "::error::Image contains /home/<user>/ literals — refusing to push."
+            exit 1
+          fi
+          echo "OK"
+
+      - name: Push image
+        run: |
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:main-latest
+
+      - name: Tag + push release tag (if present)
+        if: steps.tags.outputs.release_tag != ''
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
+
+      - name: Summary
+        run: |
+          {
+            echo "## Frontend image build"
+            echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
+            echo "- main-latest: pushed"
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`"
+            echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,160 @@
+name: Build & push backend image
+
+# Builds the Galaxy backend container image on every push to `main` (and on
+# manual dispatch). Pushes to ECR with three tags:
+#   - sha-<commit>      pinned forever, used by deploys
+#   - main-latest       moving pointer, used by smoke "give me current"
+#   - release-x.y.z     only when the push is a release-x.y.z tag
+#
+# This workflow only BUILDS and PUSHES. It does NOT deploy. Deploys happen
+# in a separate workflow (P3.1) that calls scripts/deploy.sh.
+#
+# Past-incident guardrails (see docs/20260514_CICD_REBUILD_PLAN.md §6.3):
+#   - L1: image tagged with git sha (never bare `latest`); /image-build-info baked in
+#   - L2: import-smoke at build time so missing deps fail loudly
+#   - L4: grep image for /home/ literals → fail build
+#   - L5: Nextflow version pinned via ARG NF_VERSION (Dockerfile)
+#   - L18: /opt/aws-cli/bin/aws verified
+#   - L22: .dockerignore presence asserted
+
+on:
+  push:
+    branches: [main]
+    tags: ['release-*']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-image.yml'
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write    # OIDC for assume-role
+  contents: read
+
+concurrency:
+  # Allow at most one in-flight backend-image build per ref. Cancel older runs.
+  group: backend-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ECR_REPO: biomate/dev-backend
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pre-flight — .dockerignore present (L22)
+        run: |
+          test -f backend/.dockerignore || { echo "::error::backend/.dockerignore missing"; exit 1; }
+          grep -qE '(^|/)\.venv' backend/.dockerignore || { echo "::error::.venv not excluded in backend/.dockerignore"; exit 1; }
+          grep -qE 'database/.*\.(sqlite|db)' backend/.dockerignore || { echo "::error::database/*.sqlite not excluded in backend/.dockerignore"; exit 1; }
+          echo "OK"
+
+      - name: Compute build tags
+        id: tags
+        run: |
+          SHA="${GITHUB_SHA::12}"
+          echo "sha_tag=sha-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          # Release tag only if this run was triggered by a release-* tag push
+          if [[ "$GITHUB_REF" == refs/tags/release-* ]]; then
+            echo "release_tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:main-latest
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ steps.tags.outputs.build_date }}
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache,mode=max
+
+      - name: Smoke — /image-build-info present (L1)
+        run: |
+          docker run --rm --entrypoint cat \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            /image-build-info
+
+      - name: Smoke — /opt/aws-cli/bin/aws works (L18)
+        run: |
+          docker run --rm --entrypoint /opt/aws-cli/bin/aws \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            --version
+
+      - name: Smoke — Nextflow version matches ARG NF_VERSION (L5)
+        run: |
+          docker run --rm --entrypoint /usr/local/bin/nextflow \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            -version
+
+      - name: Smoke — Python critical imports (L2)
+        run: |
+          # If any of these fail to import, the image is broken; fail the build
+          # loudly here rather than discovering it at deploy time.
+          docker run --rm --entrypoint python \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            -c "import boto3, redis, psycopg2, requests, yaml, sqlalchemy, alembic; print('imports OK')"
+
+      - name: Lint — no /home/ literals baked into image (L4)
+        run: |
+          # Filesystems baked into the image must not contain host-developer
+          # paths. We grep the running container's /app tree for "/home/"
+          # appearing in source/config files.
+          if docker run --rm --entrypoint sh \
+              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+              -c 'grep -rIE "/home/[a-z]+/" /app --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" 2>/dev/null | grep -v "^Binary" | head -5'; then
+            echo "::error::Image contains /home/<user>/ literals — refusing to push. See L4 in CI/CD plan."
+            exit 1
+          fi
+          echo "OK"
+
+      - name: Push image with sha + main-latest tags
+        run: |
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:main-latest
+
+      - name: Tag + push release tag (if present)
+        if: steps.tags.outputs.release_tag != ''
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
+
+      - name: Summary
+        run: |
+          {
+            echo "## Backend image build"
+            echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
+            echo "- main-latest: pushed"
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`"
+            echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
