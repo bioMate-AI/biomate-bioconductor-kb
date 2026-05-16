@@ -1428,20 +1428,20 @@ export function NextflowWorkflowViewer({
     return map;
   }, [renderedParameters, groupedPhases]);
 
-  const [showResults, setShowResults] = useState(status === 'completed');
-  // Auto-reveal results when a run transitions to completed. useState initializer
-  // only runs once on mount; if the panel mounted while status was pending/running,
-  // the user would have to click "View results" to see the output panel (including
-  // DensityMapViewer for .mrc files). Auto-open on completion.
-  const showResultsUserToggled = React.useRef(false);
+  // Derived state: results auto-open on completion; user can override either way.
+  // Previously this was useState + useEffect — multiple agents added competing
+  // setShowResults(true) hooks, neither of which was reliably firing in production
+  // (suspected React batching / mount-timing interaction). Derive cleanly from
+  // status to eliminate the race.
+  const [showResultsOverride, setShowResultsOverride] = useState<boolean | null>(null);
+  const showResults = showResultsOverride !== null
+    ? showResultsOverride
+    : status === 'completed';
   const handleToggleShowResults = React.useCallback((next: boolean | ((prev: boolean) => boolean)) => {
-    showResultsUserToggled.current = true;
-    setShowResults(next);
-  }, []);
-  React.useEffect(() => {
-    if (status === 'completed' && !showResultsUserToggled.current) {
-      setShowResults(true);
-    }
+    setShowResultsOverride(prev => {
+      const current = prev !== null ? prev : (status === 'completed');
+      return typeof next === 'function' ? next(current) : next;
+    });
   }, [status]);
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
 
@@ -1554,10 +1554,8 @@ export function NextflowWorkflowViewer({
     return () => { if (lowConfTimerRef.current) { clearInterval(lowConfTimerRef.current); lowConfTimerRef.current = null; } };
   }, [executionBlockedReason, status, isPrereqBlocked, prereqChecklist?.overrideAllowed, isAutofixActive, isLicenseBlocked, fireLowConfidenceConfirm, LOW_CONF_TIMEOUT_S]);
 
+  // showResults is now derived from `status` — no setShowResults needed on completion.
   useEffect(() => {
-    if (status === 'completed') {
-      setShowResults(true);
-    }
     if (status === 'failed') {
       setLogsOpen(true);
     }
