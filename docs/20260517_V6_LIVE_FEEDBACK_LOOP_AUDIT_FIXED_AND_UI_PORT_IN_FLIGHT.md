@@ -1,4 +1,4 @@
-# Regulatory LLM + IND Product — Session Summary (May 9 – May 17)
+# v6 Live, Feedback Loop Wired, Audit Fixed, UI Port In Flight (May 9–17)
 
 **Date:** 2026-05-17
 **Branch:** `integration/next-phase`
@@ -93,7 +93,7 @@
 | `docs/20260516_DATA_HANDLING_POLICY.md` | GDPR/HIPAA posture + tier handling + retention |
 | `docs/20260512_REGULATORY_LLM_STUDIO_UI_V2.md` | Internal LLM studio UI design |
 | `docs/20260504_IND_PRODUCT_UI_REQUIREMENTS.md` | Customer product UI design (+ Appendix B feedback loop) |
-| `docs/20260517_SESSION_SUMMARY.md` | This doc |
+| `docs/20260517_V6_LIVE_FEEDBACK_LOOP_AUDIT_FIXED_AND_UI_PORT_IN_FLIGHT.md` | This doc |
 
 ---
 
