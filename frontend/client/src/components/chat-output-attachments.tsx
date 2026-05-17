@@ -52,28 +52,64 @@ export function ChatOutputAttachments({
     isDownloadAll?: boolean
   } | null>(null)
 
-  // Outputs may be keyed under either the frontend executionRunId (runId) or the
-  // Galaxy invocation id (invocationId). For Nextflow runs these often differ.
-  // Fetch both in parallel and union — whichever resolves wins. Eliminates the
-  // long-running CS-14 flake where one id returned 0 and the other 258.
+  // Outputs come from two endpoints with different code paths:
+  //   /api/workflows/runs/:id/outputs        — workflow-level, proxies to
+  //                                            /output_files with S3 listing +
+  //                                            presigned URLs (the working one)
+  //   /api/invocations/:id/outputs           — invocation-level, used to return []
+  // Try the workflow endpoint first (works for Nextflow/AWS Batch runs), fall back
+  // to invocation endpoint for legacy Galaxy-tool runs.
   const { data: outputs = [], isLoading, refetch } = useQuery<OutputDataset[]>({
     queryKey: ['outputs', runId, invocationId],
     queryFn: async () => {
-      const ids = [runId, invocationId].filter((x): x is string => !!x && typeof x === 'string')
-      if (ids.length === 0) return []
-      const responses = await Promise.all(
-        ids.map(id => fetch(`/api/invocations/${id}/outputs`).then(r => r.ok ? r.json() : []).catch(() => []))
-      )
+      const tryIds = [runId, invocationId].filter((x): x is string => !!x && typeof x === 'string')
+      if (tryIds.length === 0) return []
       const seen = new Set<string>()
       const merged: OutputDataset[] = []
-      for (const list of responses) {
-        if (!Array.isArray(list)) continue
-        for (const o of list) {
-          const key = o?.id || (o as any)?.metadata?.s3Uri || o?.name
-          if (!key || seen.has(key)) continue
-          seen.add(key)
-          merged.push(o)
+      for (const id of tryIds) {
+        // Workflow-level endpoint returns the canonical list with presigned URLs;
+        // the response shape may be `{ output_files: [...] }` or a bare array.
+        const wfPaths = [
+          `/api/workflows/runs/${id}/outputs`,
+          `/api/invocations/${id}/outputs`,
+        ]
+        for (const url of wfPaths) {
+          try {
+            const r = await fetch(url)
+            if (!r.ok) continue
+            const body = await r.json().catch(() => null)
+            const list: any[] = Array.isArray(body)
+              ? body
+              : (Array.isArray(body?.output_files) ? body.output_files : (Array.isArray(body?.outputs) ? body.outputs : []))
+            for (const o of list) {
+              const key = o?.id || o?.metadata?.s3Uri || o?.s3_uri || o?.name || o?.filename
+              if (!key || seen.has(key)) continue
+              seen.add(key)
+              // Normalize backend variants (output_files uses filename/s3_uri) into
+              // the OutputDataset shape the component expects.
+              const ext = String(o.extension || (o.filename || o.name || '').split('.').pop() || '').toLowerCase().replace(/^\./, '')
+              const densityExts = new Set(['mrc', 'mrcs', 'map', 'ccp4'])
+              const structureExts = new Set(['pdb', 'cif', 'mmcif', 'ent'])
+              const fileType = o.fileType
+                || (densityExts.has(ext) ? 'density_map'
+                  : structureExts.has(ext) ? 'structure'
+                  : 'binary')
+              merged.push({
+                ...o,
+                id: o.id || `${id}:${key}`,
+                name: o.name || o.filename || o.file_name || key,
+                extension: ext,
+                size: o.size ?? 0,
+                fileType,
+                metadata: o.metadata || { s3Uri: o.s3_uri },
+                isVisualizable: o.isVisualizable ?? true,
+                previewAvailable: o.previewAvailable ?? false,
+              } as OutputDataset)
+            }
+            if (merged.length > 0) break // found via this endpoint, no need to try the other
+          } catch { /* try next */ }
         }
+        if (merged.length > 0) break
       }
       return merged
     },
