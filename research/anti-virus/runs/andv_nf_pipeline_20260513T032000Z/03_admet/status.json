@@ -1,0 +1,113 @@
+{
+  "run_id": "da163d67-9796-4338-8837-ec6fa75860c4",
+  "invocation_id": "da163d67-9796-4338-8837-ec6fa75860c4",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b",
+  "work_dir": "/tmp/nextflow_runs/da163d67-9796-4338-8837-ec6fa75860c4/work",
+  "log_tail": [
+    "[56/c4b294] PRE\u2026ICT_ADMET_PROPERTIES (run) | 0 of 1",
+    "executor >  awsbatch (1)",
+    "[56/c4b294] PRE\u2026ICT_ADMET_PROPERTIES (run) | 0 of 1",
+    "executor >  awsbatch (1)",
+    "[56/c4b294] PRE\u2026ICT_ADMET_PROPERTIES (run) | 0 of 1",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/da163d67-9796-4338-8837-ec6fa75860c4/56/c4b2943bd6d44268c33af5863d2bf5/predict_admet_properties_output.txt]",
+    "executor >  awsbatch (1)",
+    "[56/c4b294] PRE\u2026ICT_ADMET_PROPERTIES (run) | 0 of 1 \u2714",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/da163d67-9796-4338-8837-ec6fa75860c4/56/c4b2943bd6d44268c33af5863d2bf5/predict_admet_properties_output.txt]",
+    "executor >  awsbatch (1)",
+    "[56/c4b294] PRE\u2026ICT_ADMET_PROPERTIES (run) | 1 of 1 \u2714",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/da163d67-9796-4338-8837-ec6fa75860c4/56/c4b2943bd6d44268c33af5863d2bf5/predict_admet_properties_output.txt]",
+    "executor >  awsbatch (1)",
+    "[56/c4b294] PRE\u2026ICT_ADMET_PROPERTIES (run) | 1 of 1 \u2714",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/da163d67-9796-4338-8837-ec6fa75860c4/56/c4b2943bd6d44268c33af5863d2bf5/predict_admet_properties_output.txt]",
+    "Completed at: 13-May-2026 03:28:25",
+    "Duration    : 1m 31s",
+    "CPU hours   : (a few seconds)",
+    "Succeeded   : 1",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/dag.dot",
+      "filename": "dag.dot",
+      "size": 961
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2961507
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 251985
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/pk_summary.json",
+      "filename": "pk_summary.json",
+      "size": 1625
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/predict_admet_properties_output.txt",
+      "filename": "predict_admet_properties_output.txt",
+      "size": 1468
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/predict_admet_properties_results.json",
+      "filename": "predict_admet_properties_results.json",
+      "size": 1518
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/toxicity_report.json",
+      "filename": "toxicity_report.json",
+      "size": 3187
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/versions.yml",
+      "filename": "versions.yml",
+      "size": 159
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "pipeline_info",
+      "name": "pipeline info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/dag.dot",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/pipeline_info/timeline.html"
+      ]
+    },
+    {
+      "id": "run",
+      "name": "run",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/pk_summary.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/predict_admet_properties_output.txt",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/predict_admet_properties_results.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/toxicity_report.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/b1c2008b/run/versions.yml"
+      ]
+    }
+  ],
+  "started_at": 1778642805.923488,
+  "completed_at": 1778642909.797514,
+  "duration_s": 103
+}

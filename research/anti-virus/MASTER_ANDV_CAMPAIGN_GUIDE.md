@@ -7,7 +7,7 @@
 **Expected Deliverables**: 16 novel inhibitors + 3 vaccine candidates + 2 pre-prints + regulatory-ready CMC package  
 **Strategic Impact**: Proof-of-concept for BioMate's orchestration platform across small molecules, biologics, and immunology  
 
-**Repository alignment**: Implementation markdown uses **semantic pseudocode** (intent shaped like Python; often Claude-authored). It does **not** promise literal `biomate.*` imports. Capabilities map to **workflow-orchestrated** drug-development stages in **`docs/20260417_DRUG_DEVELOPMENT_COVERAGE_ANALYSIS.md`** (~79% platform coverage at last update). Concrete entry points and notation rules are in **`BIOMATE_CAPABILITY_GAP.md`**. Public PDB/EMDB IDs for Guo structures: **`GUO_ET_AL_CELL2026_READING_NOTES.md`**.
+**Repository alignment**: Implementation markdown uses **semantic pseudocode** (intent shaped like Python; often Claude-authored). It does **not** promise literal `biomate.*` imports. Capabilities map to **workflow-orchestrated** drug-development stages in **`docs/20260417_DRUG_DEVELOPMENT_COVERAGE_ANALYSIS.md`** (~79% platform coverage at last update). Concrete entry points and notation rules are in **`BIOMATE_CAPABILITY_GAP.md`**. Public PDB/EMDB IDs for Guo structures: **`GUO_ET_AL_CELL2026_READING_NOTES.md`**. **Engineering lessons from real ANDV runs** (polling, Batch profiles, ligand chain-of-custody, MD scale): **`research/anti-virus/docs/ANDV_CAMPAIGN_LESSONS_LEARNED.md`**. **Plan A in silico publication checklist:** **`research/anti-virus/docs/PLAN_A_VACCINE_INSILICO_PUBLICATION_CHECKLIST.md`**.
 
 ---
 

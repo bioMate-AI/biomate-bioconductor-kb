@@ -1,0 +1,47 @@
+{
+  "run_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z",
+  "figures": {
+    "GA_inhibitor": {
+      "kind": "conceptual_schematic",
+      "data_source": "pipeline narrative"
+    },
+    "FigB1_pocket_druggability": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_pockets.json"
+    },
+    "FigB2_pipeline_funnel": {
+      "kind": "conceptual_schematic_with_data_labels",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/02_pharmacophore/summary.json",
+      "note": "Funnel box widths are visual only; n labels from JSON when available"
+    },
+    "FigB3_docking_scores": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina/docking_autodock_vina_results.json"
+    },
+    "FigB4_generative_score_history": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/score_history.json"
+    },
+    "FigB5_docked_ligands_2d": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina/docking_autodock_vina_results.json"
+    }
+  },
+  "inputs": {
+    "pockets": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_pockets.json",
+    "pharmacophore_summary": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/02_pharmacophore/summary.json",
+    "docking": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina/docking_autodock_vina_results.json",
+    "score_history": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/score_history.json"
+  },
+  "n_docked": 3,
+  "funnel": {
+    "n_library_screened": 6,
+    "n_passed_filter": 3,
+    "n_ligands_docked": 3,
+    "used_pharmacophore_summary": true
+  },
+  "score_history_tool": "rdkit_brics_generation",
+  "rdkit_available": true,
+  "fig_b5_docked_ligands_2d_written": true,
+  "fig_b5_skip_reason": null
+}

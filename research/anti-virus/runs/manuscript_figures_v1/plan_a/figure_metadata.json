@@ -1,0 +1,39 @@
+{
+  "tsv": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/predictions/PLAN_A_SMOKE_GP.tsv",
+  "n_rows": 810,
+  "multiqc_binding_affinity_distribution": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/multiqc/multiqc_data/multiqc_binding_affinity_distribution.txt",
+  "multiqc_binder_length_distribution": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/multiqc/multiqc_data/multiqc_binder_length_distribution.txt",
+  "n_negative_binders": 810,
+  "figures": {
+    "GA_plan_a": {
+      "kind": "conceptual_schematic",
+      "data_source": "TSV row count + binder column"
+    },
+    "FigA1_workflow": {
+      "kind": "conceptual_schematic",
+      "data_source": "pipeline narrative"
+    },
+    "FigA2_BA_by_allele": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/predictions/PLAN_A_SMOKE_GP.tsv"
+    },
+    "FigA3_metrics_by_peptide_length": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/predictions/PLAN_A_SMOKE_GP.tsv"
+    },
+    "FigA4_multiqc_summary": {
+      "kind": "data_plot",
+      "data_source": [
+        "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/multiqc/multiqc_data/multiqc_binding_affinity_distribution.txt",
+        "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/multiqc/multiqc_data/multiqc_binder_length_distribution.txt"
+      ]
+    },
+    "FigA5_sequence_profile": {
+      "kind": "data_plot",
+      "data_source": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/predictions/PLAN_A_SMOKE_GP.tsv"
+    }
+  },
+  "multiqc_binding_affinity_total_counts": 810,
+  "multiqc_binder_length_n_columns": 5,
+  "fig_a5_positions": 12
+}

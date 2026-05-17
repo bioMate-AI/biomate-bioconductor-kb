@@ -1,0 +1,4 @@
+{
+  "smiles_list": "[\"CC(=O)Oc1ccccc1C(=O)O\", \"Oc1ccccc1\", \"CC(=O)Nc1ccc(O)cc1\"]",
+  "ADMET_model_type": "MPNN"
+}

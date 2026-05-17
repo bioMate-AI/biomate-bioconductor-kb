@@ -1,0 +1,122 @@
+{
+  "run_id": "cb1b4fdd-8f30-4564-8e67-020721ad223a",
+  "invocation_id": "cb1b4fdd-8f30-4564-8e67-020721ad223a",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd",
+  "work_dir": "/tmp/nextflow_runs/cb1b4fdd-8f30-4564-8e67-020721ad223a/work",
+  "log_tail": [
+    "Downloading plugin nf-amazon@3.4.1",
+    "Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` [silly_hoover] DSL2 - revision: 6a3e32e12a",
+    "[-        ] DOC\u2026FLOW:DOCKING_AUTODOCK_VINA -",
+    "[-        ] DOC\u2026FLOW:DOCKING_AUTODOCK_VINA | 0 of 1",
+    "executor >  awsbatch (1)",
+    "[0a/115f10] DOC\u2026OCKING_AUTODOCK_VINA (run) | 0 of 1",
+    "executor >  awsbatch (1)",
+    "[0a/115f10] DOC\u2026OCKING_AUTODOCK_VINA (run) | 0 of 1",
+    "executor >  awsbatch (1)",
+    "[0a/115f10] DOC\u2026OCKING_AUTODOCK_VINA (run) | 0 of 1 \u2714",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/cb1b4fdd-8f30-4564-8e67-020721ad223a/0a/115f10d5e63888df44fa95e84b06ef/docking_autodock_vina_output.txt]",
+    "executor >  awsbatch (1)",
+    "[0a/115f10] DOC\u2026OCKING_AUTODOCK_VINA (run) | 1 of 1 \u2714",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/cb1b4fdd-8f30-4564-8e67-020721ad223a/0a/115f10d5e63888df44fa95e84b06ef/docking_autodock_vina_output.txt]",
+    "executor >  awsbatch (1)",
+    "[0a/115f10] DOC\u2026OCKING_AUTODOCK_VINA (run) | 1 of 1 \u2714",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/cb1b4fdd-8f30-4564-8e67-020721ad223a/0a/115f10d5e63888df44fa95e84b06ef/docking_autodock_vina_output.txt]",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/dag.dot",
+      "filename": "dag.dot",
+      "size": 782
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2951443
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 251977
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_autodock_vina_output.txt",
+      "filename": "docking_autodock_vina_output.txt",
+      "size": 933
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_autodock_vina_results.json",
+      "filename": "docking_autodock_vina_results.json",
+      "size": 1986
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/pose_000.pdbqt",
+      "filename": "pose_000.pdbqt",
+      "size": 14670
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/pose_001.pdbqt",
+      "filename": "pose_001.pdbqt",
+      "size": 9045
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/pose_002.pdbqt",
+      "filename": "pose_002.pdbqt",
+      "size": 13257
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/versions.yml",
+      "filename": "versions.yml",
+      "size": 165
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "pipeline_info",
+      "name": "pipeline info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/dag.dot",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/pipeline_info/timeline.html"
+      ]
+    },
+    {
+      "id": "run",
+      "name": "run",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_autodock_vina_output.txt",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_autodock_vina_results.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/pose_000.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/pose_001.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/docking_poses/pose_002.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/c0378dbd/run/versions.yml"
+      ]
+    }
+  ],
+  "started_at": 1778642928.2723675,
+  "completed_at": 1778642989.5114355,
+  "duration_s": 61
+}

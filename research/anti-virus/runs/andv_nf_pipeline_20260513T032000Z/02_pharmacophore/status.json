@@ -1,0 +1,161 @@
+{
+  "run_id": "22982db3-de8e-4241-89d4-f1e24f26a414",
+  "invocation_id": "22982db3-de8e-4241-89d4-f1e24f26a414",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8",
+  "work_dir": "/tmp/nextflow_runs/22982db3-de8e-4241-89d4-f1e24f26a414/work",
+  "log_tail": [
+    "executor >  awsbatch (3)",
+    "[af/ae5a27] PHA\u2026RATE (pharmacophore_model) | 1 of 1 \u2714",
+    "[1d/709087] PHA\u2026RE_SCREEN (library_screen) | 1 of 1 \u2714",
+    "[84/6c1331] PHA\u2026ORT (pharmacophore_report) | 0 of 1",
+    "executor >  awsbatch (3)",
+    "[af/ae5a27] PHA\u2026RATE (pharmacophore_model) | 1 of 1 \u2714",
+    "[1d/709087] PHA\u2026RE_SCREEN (library_screen) | 1 of 1 \u2714",
+    "[84/6c1331] PHA\u2026ORT (pharmacophore_report) | 0 of 1 \u2714",
+    "executor >  awsbatch (3)",
+    "[af/ae5a27] PHA\u2026RATE (pharmacophore_model) | 1 of 1 \u2714",
+    "[1d/709087] PHA\u2026RE_SCREEN (library_screen) | 1 of 1 \u2714",
+    "[84/6c1331] PHA\u2026ORT (pharmacophore_report) | 1 of 1 \u2714",
+    "executor >  awsbatch (3)",
+    "[af/ae5a27] PHA\u2026RATE (pharmacophore_model) | 1 of 1 \u2714",
+    "[1d/709087] PHA\u2026RE_SCREEN (library_screen) | 1 of 1 \u2714",
+    "[84/6c1331] PHA\u2026ORT (pharmacophore_report) | 1 of 1 \u2714",
+    "Completed at: 13-May-2026 03:26:13",
+    "Duration    : 1m 51s",
+    "CPU hours   : (a few seconds)",
+    "Succeeded   : 3"
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/01_pharmacophore_model/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/01_pharmacophore_model/pharmacophore_model.json",
+      "filename": "pharmacophore_model.json",
+      "size": 1586
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/01_pharmacophore_model/versions.yml",
+      "filename": "versions.yml",
+      "size": 120
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/match_report.tsv",
+      "filename": "match_report.tsv",
+      "size": 383
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/screened_scores.json",
+      "filename": "screened_scores.json",
+      "size": 1493
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/versions.yml",
+      "filename": "versions.yml",
+      "size": 144
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/filtered_compounds.smi",
+      "filename": "filtered_compounds.smi",
+      "size": 81
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/match_report.tsv",
+      "filename": "match_report.tsv",
+      "size": 383
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/pharmacophore_model.json",
+      "filename": "pharmacophore_model.json",
+      "size": 1586
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/summary.json",
+      "filename": "summary.json",
+      "size": 392
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/versions.yml",
+      "filename": "versions.yml",
+      "size": 93
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2950841
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 252677
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 3,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "0",
+      "name": "01 pharmacophore model",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/01_pharmacophore_model/pharmacophore_model.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/01_pharmacophore_model/versions.yml"
+      ]
+    },
+    {
+      "id": "1",
+      "name": "02 screening",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/match_report.tsv",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/screened_scores.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/02_screening/versions.yml"
+      ]
+    },
+    {
+      "id": "2",
+      "name": "03 report",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/filtered_compounds.smi",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/match_report.tsv",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/pharmacophore_model.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/summary.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/03_report/versions.yml"
+      ]
+    },
+    {
+      "id": "pipeline_info",
+      "name": "pipeline info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d0acebe8/pipeline_info/timeline.html"
+      ]
+    }
+  ],
+  "started_at": 1778642655.570671,
+  "completed_at": 1778642776.6618526,
+  "duration_s": 121
+}

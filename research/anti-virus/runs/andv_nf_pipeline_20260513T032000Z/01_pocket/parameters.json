@@ -1,0 +1,5 @@
+{
+  "pdb_input": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
+  "min_druggability": 0.35,
+  "min_volume": 200.0
+}

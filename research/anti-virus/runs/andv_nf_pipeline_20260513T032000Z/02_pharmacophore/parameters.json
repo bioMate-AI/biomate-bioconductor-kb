@@ -1,0 +1,5 @@
+{
+  "reference_actives": "s3://biomate-nextflow-work/inputs/andv_campaign/pipeline_demo_20260509/reference_actives.smi",
+  "compound_library": "s3://biomate-nextflow-work/inputs/andv_campaign/pipeline_demo_20260509/compound_library.smi",
+  "min_features": 3
+}

@@ -1,0 +1,74 @@
+{
+  "pharmacophore_model": "pharmacophore_model.json",
+  "library": "compound_library.smi",
+  "n_screened": 6,
+  "n_passed": 3,
+  "min_features": 3,
+  "results": [
+    {
+      "compound_id": "CPND0001",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "features_matched": 5,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "NegIonizable",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "CPND0002",
+      "smiles": "Oc1ccccc1",
+      "features_matched": 3,
+      "feature_types": [
+        "Donor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "CPND0003",
+      "smiles": "CCO",
+      "features_matched": 1,
+      "feature_types": [
+        "Donor"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND0004",
+      "smiles": "CCN(CC)CC",
+      "features_matched": 1,
+      "feature_types": [
+        "Acceptor"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND0005",
+      "smiles": "c1ccc2ccccc2c1",
+      "features_matched": 2,
+      "feature_types": [
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND0006",
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    }
+  ],
+  "timestamp": "2026-05-13T03:25:09.354257Z"
+}

@@ -1,0 +1,9 @@
+{
+  "plan_a_table1": "/home/yzhang/biomate/research/anti-virus/runs/manuscript_figures_v1/tables/PLAN_A_TABLE1.md",
+  "plan_a_table1_rows": 6,
+  "plan_a_source": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/predictions/PLAN_A_SMOKE_GP.tsv",
+  "inhibitor_table1": "/home/yzhang/biomate/research/anti-virus/runs/manuscript_figures_v1/tables/INHIBITOR_TABLE1.md",
+  "inhibitor_table1_rows": 3,
+  "inhibitor_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina/docking_autodock_vina_results.json",
+  "policy": "All cells are copied from archived artifacts; no synthetic or placeholder values."
+}

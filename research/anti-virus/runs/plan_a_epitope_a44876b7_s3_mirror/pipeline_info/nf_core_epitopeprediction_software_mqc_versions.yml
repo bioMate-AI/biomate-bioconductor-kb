@@ -1,0 +1,18 @@
+FASTA2PEPTIDES:
+  python: 3.13.1
+  biopython: 1.85
+MERGE_PREDICTIONS:
+  argparse: 1.1
+  pandas: 2.1.0
+  mhcgnomes: 1.8.6
+MHCNUGGETS:
+  argparse: 1.1
+  pandas: 1.1.5
+mhcnuggets: 2.4.0
+SPLIT_PEPTIDES:
+  python: 3.11.10
+SUMMARIZE_RESULTS:
+  python: 3.11.5
+Workflow:
+    nf-core/epitopeprediction: v3.1.0
+    Nextflow: 25.10.0

@@ -1,0 +1,31 @@
+digraph "dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v1 [label="PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES"];
+v0 -> v1 [label="ch_input"];
+
+v1 [label="PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES"];
+v5 [shape=point];
+v1 -> v5 [label="results"];
+
+v1 [label="PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES"];
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v1 -> v6 [label="output"];
+
+v1 [label="PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES"];
+v4 [shape=point];
+v1 -> v4 [label="toxicity_report"];
+
+v1 [label="PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES"];
+v3 [shape=point];
+v1 -> v3 [label="pk_summary"];
+
+v1 [label="PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES"];
+v2 [shape=point];
+v1 -> v2 [label="versions"];
+
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v7 [shape=point];
+v6 -> v7;
+
+}

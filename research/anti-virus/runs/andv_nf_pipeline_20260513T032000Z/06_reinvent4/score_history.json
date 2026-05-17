@@ -1,0 +1,14 @@
+{
+  "n_steps_total": 80,
+  "batch_size": 128,
+  "final_mean_score": 0.5476,
+  "final_top_score": 0.5476,
+  "history": [
+    {
+      "epoch": 1,
+      "mean_score": 0.5476,
+      "top_score": 0.5476
+    }
+  ],
+  "tool": "rdkit_brics_generation"
+}

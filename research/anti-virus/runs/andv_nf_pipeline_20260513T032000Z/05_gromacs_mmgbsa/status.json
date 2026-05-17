@@ -1,0 +1,61 @@
+{
+  "run_id": "26db0cbc-cd74-44c9-8870-fb79da72bce6",
+  "invocation_id": "26db0cbc-cd74-44c9-8870-fb79da72bce6",
+  "status": "running",
+  "returncode": null,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91",
+  "work_dir": "/tmp/nextflow_runs/26db0cbc-cd74-44c9-8870-fb79da72bce6/work",
+  "log_tail": [
+    "[-        ] TRAJECTORY_ANALYSIS       -",
+    "[-        ] MM_GBSA                   -",
+    "executor >  awsbatch (2)",
+    "[fa/2234b9] LIGAND_PREP (ligand_prep)   | 1 of 1 \u2714",
+    "[b5/1ba91f] SYSTEM_SETUP (system_setup) | 0 of 1",
+    "[-        ] ENERGY_MINIMIZATION         -",
+    "[-        ] NVT_EQUILIBRATION           -",
+    "[-        ] NPT_EQUILIBRATION           -",
+    "[-        ] PRODUCTION_MD               -",
+    "[-        ] TRAJECTORY_ANALYSIS         -",
+    "[-        ] MM_GBSA                     -",
+    "executor >  awsbatch (2)",
+    "[fa/2234b9] LIGAND_PREP (ligand_prep)   | 1 of 1 \u2714",
+    "[b5/1ba91f] SYSTEM_SETUP (system_setup) | 0 of 1",
+    "[-        ] ENERGY_MINIMIZATION         -",
+    "[-        ] NVT_EQUILIBRATION           -",
+    "[-        ] NPT_EQUILIBRATION           -",
+    "[-        ] PRODUCTION_MD               -",
+    "[-        ] TRAJECTORY_ANALYSIS         -",
+    "[-        ] MM_GBSA                     -"
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand.frcmod",
+      "filename": "ligand.frcmod",
+      "size": 610
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand_gaff2.mol2",
+      "filename": "ligand_gaff2.mol2",
+      "size": 2402
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 4,
+  "progressPercent": 0,
+  "processes": [
+    {
+      "id": "prep",
+      "name": "prep",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand.frcmod",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand_gaff2.mol2"
+      ]
+    }
+  ],
+  "started_at": 1778727626.3407388,
+  "completed_at": null,
+  "duration_s": 43198,
+  "_timeout": true
+}

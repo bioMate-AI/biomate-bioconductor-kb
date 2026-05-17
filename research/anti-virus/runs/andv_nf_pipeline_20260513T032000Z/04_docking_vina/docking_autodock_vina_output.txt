@@ -1,0 +1,29 @@
+BioMate: AutoDock Vina Molecular Docking
+============================================================
+
+  Receptor PDB trimmed to search box (+ 8 A pad): 1327 ATOM/HETATM records (large assemblies -> tractable PDBQT)
+Step 1: Preparing receptor receptor_staged.pdb
+  Receptor PDBQT written (125648 bytes)
+Step 2: Box center=(173.607,208.847,174.042) size=(20.27508093773169,20.27508093773169,20.27508093773169)
+        Exhaustiveness=8, CPUs=4, poses=9
+
+Step 3.1: Docking CC(=O)Oc1ccccc1C(=O)O
+  Ligand 3D conformation generated
+  Ligand PDBQT prepared
+  Best binding affinity: -4.917 kcal/mol
+  Done.
+
+Step 3.2: Docking Oc1ccccc1
+  Ligand 3D conformation generated
+  Ligand PDBQT prepared
+  Best binding affinity: -3.646 kcal/mol
+  Done.
+
+Step 3.3: Docking CC(=O)Nc1ccc(O)cc1
+  Ligand 3D conformation generated
+  Ligand PDBQT prepared
+  Best binding affinity: -4.644 kcal/mol
+  Done.
+
+Best affinity: -4.917 kcal/mol
+Ligands docked: 3

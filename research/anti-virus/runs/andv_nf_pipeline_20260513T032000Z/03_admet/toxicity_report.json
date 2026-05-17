@@ -1,0 +1,112 @@
+{
+  "compounds_assessed": 3,
+  "model_type": "MPNN",
+  "estimation_method": "admet_ai_chemprop",
+  "toxicity": {
+    "herg_ic50_uM": 93.84,
+    "dili_risk": "high",
+    "dili_probability": 0.675,
+    "ames_positive": false,
+    "ames_probability": 0.1,
+    "ames_structural_alerts": [],
+    "ames_method": "kazius_structural_alerts",
+    "hERG_probability": 0.096,
+    "clintox_probability": 0.11,
+    "ppbr_pct_admet_ai": 63.3,
+    "dili_aggregation": "worst_compound_in_panel"
+  },
+  "per_compound": [
+    {
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "logP": 1.31,
+      "mw": 180.2,
+      "herg_ic50_uM": 52.725,
+      "dili_risk": "high",
+      "dili_probability": 0.675,
+      "dili_source": "admet_ai"
+    },
+    {
+      "smiles": "Oc1ccccc1",
+      "logP": 1.39,
+      "mw": 94.1,
+      "herg_ic50_uM": 46.157,
+      "dili_risk": "low",
+      "dili_probability": 0.172,
+      "dili_source": "admet_ai"
+    },
+    {
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "logP": 1.35,
+      "mw": 151.2,
+      "herg_ic50_uM": 49.36,
+      "dili_risk": "medium",
+      "dili_probability": 0.58,
+      "dili_source": "admet_ai"
+    }
+  ],
+  "per_compound_admet_ai": [
+    {
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "hERG_prob": 0.0208,
+      "DILI_prob": 0.6746,
+      "ppbr_pct": 63.2974,
+      "caco2_logPapp": -4.564,
+      "hia_prob": 0.9598,
+      "bbb_prob": 0.6582,
+      "oral_bioavailability_prob": 0.881,
+      "pgp_inhibitor_prob": 0.0046,
+      "cyp2c19_inhibitor_prob": 0.0171,
+      "cyp2d6_inhibitor_prob": 0.0071,
+      "cyp3a4_substrate_prob": 0.136,
+      "cyp2c9_inhibitor_prob": 0.0147,
+      "cyp1a2_inhibitor_prob": 0.0148,
+      "aqueous_solubility_log": -1.6243,
+      "lipophilicity_logD": -0.9874,
+      "hepatocyte_clearance_uLminmg": 28.4968,
+      "ld50_log_mol_kg": 2.0691,
+      "clintox_prob": 0.1095
+    },
+    {
+      "smiles": "Oc1ccccc1",
+      "hERG_prob": 0.0478,
+      "DILI_prob": 0.1721,
+      "ppbr_pct": 45.1323,
+      "caco2_logPapp": -4.1979,
+      "hia_prob": 1.0,
+      "bbb_prob": 0.8335,
+      "oral_bioavailability_prob": 0.8832,
+      "pgp_inhibitor_prob": 0.0049,
+      "cyp2c19_inhibitor_prob": 0.082,
+      "cyp2d6_inhibitor_prob": 0.0396,
+      "cyp3a4_substrate_prob": 0.1619,
+      "cyp2c9_inhibitor_prob": 0.0195,
+      "cyp1a2_inhibitor_prob": 0.2845,
+      "aqueous_solubility_log": -0.4943,
+      "lipophilicity_logD": 1.4403,
+      "hepatocyte_clearance_uLminmg": 93.4706,
+      "ld50_log_mol_kg": 2.1949,
+      "clintox_prob": 0.0257
+    },
+    {
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "hERG_prob": 0.0963,
+      "DILI_prob": 0.5796,
+      "ppbr_pct": 43.478,
+      "caco2_logPapp": -4.5233,
+      "hia_prob": 0.9984,
+      "bbb_prob": 0.6474,
+      "oral_bioavailability_prob": 0.8606,
+      "pgp_inhibitor_prob": 0.0161,
+      "cyp2c19_inhibitor_prob": 0.1083,
+      "cyp2d6_inhibitor_prob": 0.0347,
+      "cyp3a4_substrate_prob": 0.2634,
+      "cyp2c9_inhibitor_prob": 0.0422,
+      "cyp1a2_inhibitor_prob": 0.3679,
+      "aqueous_solubility_log": -1.0217,
+      "lipophilicity_logD": 0.7781,
+      "hepatocyte_clearance_uLminmg": 67.1976,
+      "ld50_log_mol_kg": 1.8227,
+      "clintox_prob": 0.0852
+    }
+  ]
+}

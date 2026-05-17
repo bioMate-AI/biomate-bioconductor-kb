@@ -1,0 +1,7 @@
+compound_id	smiles	features_matched	feature_types_matched	pass
+CPND0001	CC(=O)Oc1ccccc1C(=O)O	5	Donor,Acceptor,Aromatic,NegIonizable,Hydrophobe	PASS
+CPND0002	Oc1ccccc1	3	Donor,Aromatic,Hydrophobe	PASS
+CPND0003	CCO	1	Donor	FAIL
+CPND0004	CCN(CC)CC	1	Acceptor	FAIL
+CPND0005	c1ccc2ccccc2c1	2	Aromatic,Hydrophobe	FAIL
+CPND0006	CC(=O)Nc1ccc(O)cc1	4	Donor,Acceptor,Aromatic,Hydrophobe	PASS

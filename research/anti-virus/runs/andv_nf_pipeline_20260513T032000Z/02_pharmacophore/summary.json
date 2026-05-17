@@ -1,0 +1,13 @@
+{
+  "pipeline": "pharmacophore_filtering",
+  "min_features": 3,
+  "n_reference_actives": 2,
+  "n_model_features": 7,
+  "n_library_screened": 6,
+  "n_passed_filter": 3,
+  "pass_rate_pct": 50.0,
+  "filtered_smiles_file": "filtered_compounds.smi",
+  "match_report_file": "match_report.tsv",
+  "pharmacophore_model_file": "pharmacophore_model.json",
+  "timestamp": "2026-05-13T03:25:49.678692Z"
+}

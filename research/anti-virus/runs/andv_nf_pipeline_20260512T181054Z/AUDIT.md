@@ -17,11 +17,20 @@
 
 ---
 
+## Related manuscript and reference run
+
+The **chained** archived run **`andv_nf_pipeline_20260513T032000Z`** is the one used for figures and quantitative **Results** in **`research/anti-virus/docs/MANUSCRIPT_ANDV_INHIBITOR_v1_0.md`**. Manuscript figures are produced by **`research/anti-virus/scripts/generate_manuscript_inhibitor_figures.py`**, with PNG/PDF exports under **`research/anti-virus/runs/manuscript_figures_v1/inhibitor/`**.
+
+This **`AUDIT.md`** file documents **`andv_nf_pipeline_20260512T181054Z`** only—specifically ligand-handoff limitations for that run—and should not be read as the chain-of-custody record for the inhibitor v1.0 manuscript.
+
+---
+
 ## Run identification
 
 | Item | Value |
 |------|--------|
-| Preferred / latest run | `andv_nf_pipeline_20260512T181054Z` (present; newer than `andv_nf_pipeline_20260509T223205Z` / `...222413Z`) |
+| **Run audited in this document** | `andv_nf_pipeline_20260512T181054Z` (ligand-handoff limitations above). |
+| **Manuscript / figures reference run** | `andv_nf_pipeline_20260513T032000Z` (chained ADMET + docking inputs; see section above). |
 | `pipeline_manifest.json` `created_at` | `2026-05-12T18:10:54.137145+00:00` |
 | `user_id` | `andv-inhibitor-full-20260512` |
 | Input structure | `s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb` |
@@ -193,7 +202,7 @@ Step 2: Box center=(173.607,208.847,174.042) size=(20.27508093773169,20.27508093
 
 1. **If the scientific claim is “ADMET and Vina operated on pharmacophore-filtered ANDV hits”:** this run **does not support that claim** — **blocking** until orchestration passes **`02_pharmacophore/filtered_compounds.smi`** (or equivalent channel file) into steps 3–4 **or** the manifest explicitly records an intentional fixed `smiles_list` demo path.
 
-2. **If `toxicity_report.json` is consumed by reporting or gates:** reconcile **top-level `toxicity` vs `per_compound` DILI** for aspirin — **blocking** for automated risk labeling until the schema/aggregation rule is fixed or documented.
+2. **`toxicity` vs `per_compound` DILI (historical):** in **`predict_admet_properties`** the aggregate `toxicity` block was updated from ADMET-AI **Chemprop `DILI_prob`** while `per_compound[*]` still showed Phase‑1 RDKit heuristics. **Remediation (code):** after `per_compound_admet_ai` is written, each `per_compound` row whose SMILES appears in the ADMET-AI panel now gets `dili_risk` / `dili_probability` from the **same thresholds** as the aggregate (`>= 0.65` → high, `>= 0.40` → medium, else low), plus `dili_source: "admet_ai"` and `toxicity.dili_aggregation: "worst_compound_in_panel"`. **`03_admet/toxicity_report.json` in this folder** was reconciled to that rule on **2026-05-09** using the existing `per_compound_admet_ai` block (no new Chemprop inference). **Full local Nextflow re-run:** `biomate/biomni-admet:latest` is **not** published on Docker Hub; build it from `backend/docker/biomni-admet/Dockerfile` (see file header: `BASE_IMAGE=biomate-nextflow-base:local` after building `aws_infrastructure/configs/Dockerfile.nextflow-base` from `python:3.11-slim`). AWS Batch runs use `NEXTFLOW_USE_AWS=true` and the ECR `biomni-admet:x86` image instead.
 
 ---
 
@@ -218,4 +227,4 @@ Only the third structure overlaps between the pharmacophore pass list and the AD
 
 matching the pharmacophore file. Docking results include all three ligands with non-degenerate affinities.
 
-Follow-up **#1** above is **resolved** for future runs. **#2** (toxicity aggregation) remains a separate workflow/schema concern.
+Follow-up **#1** above is **resolved** for future runs. **#2** is **resolved in workflow code** for `pharmacology/predict_admet_properties`, and **`181054Z/03_admet/toxicity_report.json`** was **reconciled in-repo** (2026-05-09) to match that merge using the run’s stored ADMET-AI probabilities.

@@ -31,8 +31,21 @@ Steps (see manifest `steps[].key`):
   2 pharmacophore   — Requires --reference-actives-s3 and --compound-library-s3.
   3 admet           — Uses pharmacophore hits when available; else --smiles-json or demo default.
   4 docking_vina    — AutoDock Vina; uses top-pocket box from step 1 manifest when --use-top-pocket-box.
-  5 gromacs_mmgbsa  — Optional MD + MM-GBSA (heavy); pass --ligand-s3 for ligand structure.
+  5 gromacs_mmgbsa  — Optional MD + MM-GBSA (heavy); pass --ligand-s3 (S3 URI to .sdf/.mol2 **or**
+                    a SMILES string — GROMACS workflow auto-converts SMILES in-container).
   6 reinvent4       — Generative optimization; pass --seed-smiles.
+
+Resume after an earlier manifest (skip re-running completed steps):
+
+  python3 ... --append-to-run research/anti-virus/runs/andv_nf_pipeline_YYYYMMDD... \\
+    --through-step 6 --ligand-s3 '...' --seed-smiles '...'
+
+Run **REINVENT4 only** (e.g. when GROMACS failed and you want generative follow-up without MD):
+
+  python3 ... --append-to-run .../andv_nf_pipeline_... \\
+    --through-step 6 --append-only-keys reinvent4 \\
+    --pdb-input s3://.../9P3I.pdb \\
+    --seed-smiles 'CC(=O)Oc1ccccc1C(=O)O'
 
 Environment: GALAXY_API_KEY or bootstrap_admin_api_key in backend/config/galaxy.yml.
 AWS CLI configured for s3 cp when downloading artifacts.
@@ -94,6 +107,36 @@ def request_json(
         return json.loads(resp.read().decode("utf-8"))
 
 
+def request_json_retry(
+    api_url: str,
+    api_key: str,
+    method: str,
+    path: str,
+    payload: dict[str, Any] | None = None,
+    timeout: int = 180,
+    *,
+    max_retries: int = 8,
+    retry_sleep_sec: float = 15.0,
+) -> Any:
+    """Same as request_json but retries on transient 5xx (long MD polls can hit flaky Galaxy)."""
+    for attempt in range(max_retries):
+        try:
+            return request_json(api_url, api_key, method, path, payload, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if e.code in (500, 502, 503, 504) and attempt < max_retries - 1:
+                log(f"  request_json: HTTP {e.code} on {path} (attempt {attempt + 1}/{max_retries}), retrying in {retry_sleep_sec}s…")
+                time.sleep(retry_sleep_sec)
+                continue
+            raise
+        except urllib.error.URLError as e:
+            if attempt < max_retries - 1:
+                log(f"  request_json: URLError {e} (attempt {attempt + 1}/{max_retries}), retrying…")
+                time.sleep(retry_sleep_sec)
+                continue
+            raise
+    raise RuntimeError("request_json_retry: exhausted retries")
+
+
 def post_execute(
     api_url: str,
     api_key: str,
@@ -124,7 +167,7 @@ def poll_status(
     deadline = time.time() + timeout_sec
     last: dict[str, Any] = {}
     while time.time() < deadline:
-        last = request_json(api_url, api_key, "GET", f"/api/nextflow/status/{run_id}", timeout=120)
+        last = request_json_retry(api_url, api_key, "GET", f"/api/nextflow/status/{run_id}", timeout=120)
         st = last.get("status", "")
         log(f"  poll: status={st!r} progress={last.get('progressPercent')} tasks={last.get('completedTasks')}/{last.get('totalTasks')}")
         if st in terminal:
@@ -158,7 +201,7 @@ def download_useful_files(files: list[Any], dest_dir: Path) -> list[str]:
 
 def fetch_output_files(api_url: str, api_key: str, run_id: str) -> list[Any]:
     try:
-        payload = request_json(api_url, api_key, "GET", f"/api/nextflow/runs/{run_id}/output_files", timeout=120)
+        payload = request_json_retry(api_url, api_key, "GET", f"/api/nextflow/runs/{run_id}/output_files", timeout=120)
         if isinstance(payload, dict):
             return payload.get("files") or []
         return list(payload) if payload else []
@@ -391,13 +434,26 @@ def main() -> None:
     ap.add_argument("--box-size-json", default="", help='Override box edges: "[sx,sy,sz]"')
     ap.add_argument("--vina-ncpu", default="4")
     ap.add_argument("--vina-exhaustiveness", default="8")
-    ap.add_argument("--ligand-s3", default="", help="Step 5: ligand structure on S3 (SDF/MOL2)")
+    ap.add_argument("--ligand-s3", default="", help="Step 5: S3 .sdf/.mol2 URI, or SMILES string (GROMACS NF converts SMILES)")
     ap.add_argument("--gromacs-n-steps", type=int, default=5000000, help="MD steps (default ~10 ns at 2 fs)")
     ap.add_argument("--seed-smiles", default="", help="Step 6: REINVENT4 seed SMILES")
     ap.add_argument("--reinvent-mode", default="scaffold_decoration")
     ap.add_argument("--reinvent-n-steps", type=int, default=200)
     ap.add_argument("--reinvent-scoring", default="qed_sa", choices=["qed_sa", "docking_gnina", "custom_toml"])
     ap.add_argument("--skip-downloads", action="store_true", help="Do not aws s3 cp outputs after each step")
+    ap.add_argument(
+        "--append-to-run",
+        default="",
+        help="Path (relative to repo root) to an existing run dir with pipeline_manifest.json; "
+        "only new steps through --through-step (or --append-only-keys) are executed.",
+    )
+    ap.add_argument(
+        "--append-only-keys",
+        default="",
+        help="With --append-to-run only: run just these PIPELINE step keys (comma-separated), "
+        "e.g. reinvent4 — skips gromacs_mmgbsa when MD is not needed or has failed. "
+        "Steps are appended in the order listed; directories use canonical indices (e.g. 06_reinvent4).",
+    )
     args = ap.parse_args()
 
     if args.through_step >= 2 and (not args.reference_actives_s3 or not args.compound_library_s3):
@@ -409,24 +465,65 @@ def main() -> None:
         )
 
     api_key = load_api_key()
-    run_root = ROOT / "research/anti-virus/runs" / f"andv_nf_pipeline_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    run_root.mkdir(parents=True, exist_ok=True)
 
-    manifest: dict[str, Any] = {
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "api_url": args.api_url,
-        "user_id": args.user_id,
-        "pdb_input": args.pdb_input,
-        "through_step": args.through_step,
-        "steps": [],
-    }
+    append_dir = (ROOT / args.append_to_run).resolve() if args.append_to_run.strip() else None
+    append_only = [x.strip() for x in args.append_only_keys.split(",") if x.strip()]
+    if append_only and not append_dir:
+        raise SystemExit("--append-only-keys requires --append-to-run")
 
-    steps_to_run = PIPELINE[: args.through_step]
+    if append_dir:
+        mf_path = append_dir / "pipeline_manifest.json"
+        if not mf_path.is_file():
+            raise SystemExit(f"--append-to-run: missing {mf_path}")
+        manifest = json.loads(mf_path.read_text(encoding="utf-8"))
+        run_root = append_dir
+        # Stale manifest["error"] from a prior append misleads reviewers; each append is a fresh attempt.
+        manifest.pop("error", None)
+        done = len(manifest.get("steps") or [])
+        present_keys = {e.get("key") for e in manifest.get("steps") or []}
 
-    for idx, spec in enumerate(steps_to_run, start=1):
+        if append_only:
+            unknown = set(append_only) - {s.key for s in PIPELINE}
+            if unknown:
+                raise SystemExit(f"--append-only-keys: unknown {unknown}")
+            steps_to_run = []
+            for k in append_only:
+                if k in present_keys:
+                    log(f"Skip {k}: already in manifest")
+                    continue
+                steps_to_run.append(next(s for s in PIPELINE if s.key == k))
+            if not steps_to_run:
+                log("Nothing to do: all requested keys already in manifest.")
+                raise SystemExit(0)
+            manifest["through_step"] = max(int(manifest.get("through_step") or 0), int(args.through_step))
+            manifest["resumed_at"] = datetime.now(timezone.utc).isoformat()
+            log(f"Appending selected keys to {run_root}: {[s.key for s in steps_to_run]}")
+        elif args.through_step <= done:
+            log(f"Nothing to do: manifest already has {done} steps, --through-step is {args.through_step}")
+            raise SystemExit(0)
+        else:
+            steps_to_run = PIPELINE[done : args.through_step]
+            manifest["through_step"] = args.through_step
+            manifest["resumed_at"] = datetime.now(timezone.utc).isoformat()
+            log(f"Appending to {run_root} (existing steps={done}, will run {len(steps_to_run)} more)")
+    else:
+        run_root = ROOT / "research/anti-virus/runs" / f"andv_nf_pipeline_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+        run_root.mkdir(parents=True, exist_ok=True)
+        manifest = {
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "api_url": args.api_url,
+            "user_id": args.user_id,
+            "pdb_input": args.pdb_input,
+            "through_step": args.through_step,
+            "steps": [],
+        }
+        steps_to_run = PIPELINE[: args.through_step]
+
+    for spec in steps_to_run:
+        idx = PIPELINE.index(spec) + 1
         log("")
         log("=" * 72)
-        log(f"STEP {idx}/{len(steps_to_run)}: {spec.key} — {spec.title}")
+        log(f"STEP {idx}/{len(PIPELINE)}: {spec.key} — {spec.title}")
         log("=" * 72)
         step_dir = run_root / f"{idx:02d}_{spec.key}"
         step_dir.mkdir(parents=True, exist_ok=True)

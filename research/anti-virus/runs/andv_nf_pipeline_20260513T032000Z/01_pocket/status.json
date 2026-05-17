@@ -1,0 +1,118 @@
+{
+  "run_id": "550c7001-4e47-44ff-bf04-53e323a9452c",
+  "invocation_id": "550c7001-4e47-44ff-bf04-53e323a9452c",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70",
+  "work_dir": "/tmp/nextflow_runs/550c7001-4e47-44ff-bf04-53e323a9452c/work",
+  "log_tail": [
+    "[-        ] POC\u2026ILITY:DRUGGABILITY_QC_GATE | 0 of 1",
+    "executor >  awsbatch (2)",
+    "[8a/8b8a4a] POC\u2026CKET_DETECTION (structure) | 1 of 1 \u2714",
+    "[42/854ec1] POC\u2026BILITY_QC_GATE (structure) | 0 of 1",
+    "executor >  awsbatch (2)",
+    "[8a/8b8a4a] POC\u2026CKET_DETECTION (structure) | 1 of 1 \u2714",
+    "[42/854ec1] POC\u2026BILITY_QC_GATE (structure) | 0 of 1",
+    "executor >  awsbatch (2)",
+    "[8a/8b8a4a] POC\u2026CKET_DETECTION (structure) | 1 of 1 \u2714",
+    "[42/854ec1] POC\u2026BILITY_QC_GATE (structure) | 0 of 1 \u2714",
+    "executor >  awsbatch (2)",
+    "[8a/8b8a4a] POC\u2026CKET_DETECTION (structure) | 1 of 1 \u2714",
+    "[42/854ec1] POC\u2026BILITY_QC_GATE (structure) | 1 of 1 \u2714",
+    "executor >  awsbatch (2)",
+    "[8a/8b8a4a] POC\u2026CKET_DETECTION (structure) | 1 of 1 \u2714",
+    "[42/854ec1] POC\u2026BILITY_QC_GATE (structure) | 1 of 1 \u2714",
+    "Completed at: 13-May-2026 03:23:40",
+    "Duration    : 3m 31s",
+    "CPU hours   : (a few seconds)",
+    "Succeeded   : 2"
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2944585
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 252332
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/structure_druggability_report.tsv",
+      "filename": "structure_druggability_report.tsv",
+      "size": 583
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/structure_pockets.json",
+      "filename": "structure_pockets.json",
+      "size": 2477
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/structure_top_pocket.pdb",
+      "filename": "structure_top_pocket.pdb",
+      "size": 189
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/versions.yml",
+      "filename": "versions.yml",
+      "size": 126
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/02_qc_gate/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/02_qc_gate/structure_qc_result.json",
+      "filename": "structure_qc_result.json",
+      "size": 320
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/02_qc_gate/versions.yml",
+      "filename": "versions.yml",
+      "size": 193
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 2,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "pipeline_info",
+      "name": "pipeline info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/pipeline_info/timeline.html"
+      ]
+    },
+    {
+      "id": "structure",
+      "name": "structure",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/structure_druggability_report.tsv",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/structure_pockets.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/structure_top_pocket.pdb",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/01_fpocket/versions.yml",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/02_qc_gate/structure_qc_result.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/14feae70/structure/02_qc_gate/versions.yml"
+      ]
+    }
+  ],
+  "started_at": 1778642402.5099657,
+  "completed_at": 1778642623.1021955,
+  "duration_s": 220
+}

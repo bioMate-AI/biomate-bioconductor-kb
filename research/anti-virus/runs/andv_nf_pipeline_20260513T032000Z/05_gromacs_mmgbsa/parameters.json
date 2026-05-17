@@ -1,0 +1,6 @@
+{
+  "receptor": "s3://biomate-nextflow-work/inputs/andv_campaign/20260514/9P3I_top_pocket_only.pdb",
+  "ligand": "CC(=O)Oc1ccccc1C(=O)O",
+  "use_aws": true,
+  "n_steps": 25000
+}

@@ -1,0 +1,29 @@
+Total CO2e footprint measures of this workflow run (including cached tasks):
+  CO2e emissions: 137.75 mg
+  Energy consumption: 286.99 mWh
+  CO2e emissions (market): -
+
+Which equals:
+  - 7.87E-4 km travelled by car
+  - It takes one tree 6min 35.22s to sequester the equivalent amount of CO2 from the atmosphere
+  - 2.76E-4 % of a flight from Paris to London
+
+The calculation of these values is based on the carbon footprint computation method developed in the Green Algorithms project:
+  Lannelongue, L., Grealey, J., Inouye, M., Green Algorithms: Quantifying the Carbon Footprint of Computation.
+  Adv. Sci. 2021, 2100707. https://doi.org/10.1002/advs.202100707
+
+nf-co2footprint plugin version: 1.0.0
+
+nf-co2footprint options:
+  ci: 480.0
+  ciMarket: null
+  ignoreCpuModel: false
+  location: null
+  machineType: cloud
+  powerdrawCpuDefault: null
+  powerdrawMem: 0.3725
+  pue: 1.15
+  customCpuTdpFile: null
+  reportFile: s3://biomate-nextflow-work/nextflow/outputs/plan_a_epitope_continue/20260514T030919Z//pipeline_info/co2footprint_report_2026-05-14_03-09-23.html
+  summaryFile: s3://biomate-nextflow-work/nextflow/outputs/plan_a_epitope_continue/20260514T030919Z//pipeline_info/co2footprint_summary_2026-05-14_03-09-23.txt
+  traceFile: s3://biomate-nextflow-work/nextflow/outputs/plan_a_epitope_continue/20260514T030919Z//pipeline_info/co2footprint_trace_2026-05-14_03-09-23.txt

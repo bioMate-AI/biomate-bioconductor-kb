@@ -2,6 +2,8 @@
 
 This document audits **what was changed in git**, **what was executed on AWS Batch / locally**, and **known gaps** so a reviewer can trace evidence without re-running jobs.
 
+**Superseding / consolidated engineering notes (2026-05+):** `research/anti-virus/docs/ANDV_CAMPAIGN_LESSONS_LEARNED.md`
+
 ---
 
 ## 1. Git history (relevant commits, `integration/next-phase`)

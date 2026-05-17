@@ -1,0 +1,47 @@
+{
+  "status": "predicted",
+  "estimation_method": "admet_ai_ppbr + lombardo2002_vd + bcs_logp_clr",
+  "disclaimer": "These values are computational predictions for hypothesis generation only. fu_plasma by Lobell & Sivarajah 2003 J Med Chem (RMSE~0.15 log units on training set); cl_renal_fraction by BCS/logP heuristic (directional only); vd_lkg by Lombardo 2002 (RMSE~0.48 log-units). All values require experimental confirmation before use in regulatory PBPK submissions.",
+  "references": [
+    "Lobell M, Sivarajah V. J Med Chem 2003;46(20):4296-4303",
+    "Lombardo F et al. J Med Chem 2002;45(13):2867-2876",
+    "Benet LZ et al. Pharm Res 2011;28:1774-1791 (BCS classification)"
+  ],
+  "fu_plasma": 0.367,
+  "cl_renal_fraction": 0.4,
+  "cl_hepatic_fraction": 0.55,
+  "vd_lkg": 4.934,
+  "logP": 1.392,
+  "mw_Da": 94.1,
+  "per_compound": [
+    {
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "logP": 1.31,
+      "mw_Da": 180.2,
+      "fu_plasma_predicted": 0.6837,
+      "cl_renal_fraction_estimated": 0.4,
+      "vd_lkg_estimated": 4.137,
+      "descriptor_source": "rdkit"
+    },
+    {
+      "smiles": "Oc1ccccc1",
+      "logP": 1.392,
+      "mw_Da": 94.1,
+      "fu_plasma_predicted": 0.6449,
+      "cl_renal_fraction_estimated": 0.4,
+      "vd_lkg_estimated": 4.934,
+      "descriptor_source": "rdkit"
+    },
+    {
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "logP": 1.351,
+      "mw_Da": 151.2,
+      "fu_plasma_predicted": 0.6648,
+      "cl_renal_fraction_estimated": 0.4,
+      "vd_lkg_estimated": 4.449,
+      "descriptor_source": "rdkit"
+    }
+  ],
+  "fu_source": "admet_ai_chemprop_ppbr",
+  "ppbr_pct": 63.3
+}

@@ -1,0 +1,2 @@
+Sample	Binders	Non-binders	Unsupported	Binders (%)	Non-binders (%)
+PLAN_A_SMOKE_GP_mhcnuggets	0	810	0	0.00	100.00

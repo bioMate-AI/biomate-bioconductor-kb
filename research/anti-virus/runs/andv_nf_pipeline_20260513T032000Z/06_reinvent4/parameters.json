@@ -1,0 +1,6 @@
+{
+  "seed_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "mode": "scaffold_decoration",
+  "n_steps": 80,
+  "scoring_function": "qed_sa"
+}
