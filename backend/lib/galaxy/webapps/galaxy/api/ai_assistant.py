@@ -513,6 +513,14 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
             raw = str(nf_filename)
             nfcore_root = backend_root / "biomni_workflows" / "nextflow_nfcore"
             nfcore_modules_root = backend_root / "nf-core-modules"
+            biomate_tools_root = backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools"
+            # biomate-ai-tools custom workflows live at:
+            #   backend/nf-core-workflows/modules/biomate-ai-tools/<slug>/main.nf
+            _bt_first = nf_filename.split('/')[0] if '/' in nf_filename else nf_filename
+            candidates += [
+                biomate_tools_root / nf_filename,
+                biomate_tools_root / _bt_first / "main.nf",
+            ]
             if raw.startswith("nextflow_nfcore/"):
                 rest = raw.split("nextflow_nfcore/", 1)[1].strip("/")
                 candidates += [
