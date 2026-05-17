@@ -14,7 +14,7 @@ You asked for documentation of the session. This is the single entry point. Each
 
 1. **`20260516_AUDIT_BENCHMARK_VS_PRODUCTION_GAP.md`** — honest audit of where every commit landed (eval-only vs production). Read this first; it changes how to interpret the score numbers.
 2. **`20260513_BENCHMARK_EVALUATION_MATRIX.md`** — single source of truth for every run, every intervention, every score. Includes per-benchmark iteration tables, multi-run means, published-SoTA comparisons (GPT-Rosalind, Biomni Lab, GPT-5, Claude 3.5 Sonnet, etc.).
-3. **`20260515_FINAL_SESSION_STATE.md`** — pre-audit consolidation (durable wins, failed reverts, methodology lessons). Read alongside #1; #1 reframes some of #3's claims.
+3. **`20260515_BENCHMARK_92PCT_PEAK_SCOREBOARD_AND_HANDOFF.md`** — pre-audit consolidation (durable wins, failed reverts, methodology lessons). Read alongside #1; #1 reframes some of #3's claims.
 4. **`20260515_ARCHITECTURAL_DEBTS_DEEP_DIVE.md`** — concrete per-debt evidence, file-by-file fix plans, ROI ranking. Path A from this doc was implemented today.
 5. **`20260513_BIOMNI_PATIENT_GENE_RESEARCH_AND_FIXES.md`** — research-driven deep dive into the patient_gene task; uses SHEPHERD/Alsentzer paper as the canonical reference.
 6. **`20260509_BIXBENCH_BIX57_MAFFT_AND_LESSONS.md`** — the original "stop chasing your tail, read the logs" debugging lesson from week 1.
@@ -175,11 +175,11 @@ docs/
 ├── 20260512_UNIFIED_BENCHMARK_ERROR_ANALYSIS.md
 ├── 20260513_BENCHMARK_EVALUATION_MATRIX.md           ← single source of truth
 ├── 20260513_BIOMNI_PATIENT_GENE_RESEARCH_AND_FIXES.md
-├── 20260513_SESSION_FINAL_STATE.md
+├── 20260513_BIXBENCH_88PCT_SESSION_PROGRESS_AND_FAILURES.md
 ├── 20260515_ARCHITECTURAL_DEBTS_DEEP_DIVE.md         ← per-debt fix plans
-├── 20260515_FINAL_SESSION_STATE.md                   ← (pre-audit final)
+├── 20260515_BENCHMARK_92PCT_PEAK_SCOREBOARD_AND_HANDOFF.md                   ← (pre-audit final)
 ├── 20260516_AUDIT_BENCHMARK_VS_PRODUCTION_GAP.md     ← honest audit (read first)
-└── 20260517_SESSION_COVER_DOC.md                     ← this file
+└── 20260517_BENCHMARK_SESSION_INDEX_AND_HANDOFF.md                     ← this file
 
 evaluation/
 ├── adapters/
