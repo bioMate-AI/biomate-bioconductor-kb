@@ -22,11 +22,11 @@ process BOLTZ_ENSEMBLE {
     mkdir -p boltz_out ensemble_pdbs
 
     # Boltz predict — generates predictions/model_0.cif by default
-    # Use --num_diffusion_samples for multiple conformers
+    # Use --diffusion_samples for multiple conformers
     boltz predict \\
         ${fasta} \\
         --out_dir boltz_out/ \\
-        --num_diffusion_samples 50 \\
+        --diffusion_samples 50 \\
         --num_workers ${task.cpus} \\
         --no_msa 2>&1 || \\
     boltz predict \\
