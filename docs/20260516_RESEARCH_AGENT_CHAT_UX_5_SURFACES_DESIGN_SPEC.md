@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-16
 **Audience:** Claude Design (Anthropic design tool) + human reviewers
-**Engineering companion doc:** `docs/20260515_RESEARCH_AGENT_UX_REQUIREMENTS.md`
+**Engineering companion doc:** `docs/20260515_RESEARCH_AGENT_CHAT_UX_ENGINEERING_AUDIT_AND_PLAN.md`
 **Status:** Draft — pending design review
 
 ---
@@ -690,5 +690,5 @@ This is the gate before any code lands. Please review:
 - "What NOT to do" list
 
 After approval, the engineering doc
-`docs/20260515_RESEARCH_AGENT_UX_REQUIREMENTS.md` has the implementation
+`docs/20260515_RESEARCH_AGENT_CHAT_UX_ENGINEERING_AUDIT_AND_PLAN.md` has the implementation
 plan, rollout order, and feature-flag conventions.
