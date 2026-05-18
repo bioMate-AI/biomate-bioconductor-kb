@@ -1,9 +1,0 @@
-{
-  "step": "18_volume_tools",
-  "timestamp": "2026-03-09T20:36:23.955393",
-  "operations": [
-    "lowpass_filter",
-    "auto_mask"
-  ],
-  "resolution_angstroms": 15.04
-}

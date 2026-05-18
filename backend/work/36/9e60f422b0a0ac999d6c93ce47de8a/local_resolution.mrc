@@ -1,1 +1,0 @@
-/home/yzhang/biomate/backend/work/47/22143d3556156738fbef9cb12dc2f8/local_resolution.mrc

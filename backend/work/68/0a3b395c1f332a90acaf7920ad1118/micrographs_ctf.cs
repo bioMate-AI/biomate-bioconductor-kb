@@ -1,1 +1,0 @@
-/home/yzhang/biomate/backend/work/d0/1cfd0abf6ee672393687c6bdd0f78d/micrographs_ctf.cs

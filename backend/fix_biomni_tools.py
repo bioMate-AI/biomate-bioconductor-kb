@@ -8,7 +8,11 @@ import re
 import glob
 from pathlib import Path
 
-TOOLS_DIR = "/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni"
+_HERE = Path(__file__).resolve().parent
+TOOLS_DIR = os.environ.get(
+    "BIOMNI_TOOLS_DIR",
+    str(_HERE / "biomni_workflows" / "galaxy" / "tools" / "biomni"),
+)
 
 def extract_inline_python(xml_content):
     """Extract inline Python code from XML command section."""
