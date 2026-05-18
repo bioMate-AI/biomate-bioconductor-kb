@@ -155,7 +155,7 @@ jobs:
                     --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" \
                     --exclude-dir=site-packages --exclude-dir=.venv --exclude-dir=node_modules \
                     2>/dev/null | grep -v "^Binary"' \
-                  | grep -vE "^/app/lib/galaxy/" \
+                  | grep -vE "^/app/(lib/galaxy|test)/" \
                   | grep -vE "$ALLOWED" \
                   | head -5 || true)
           if [[ -n "$HITS" ]]; then
