@@ -15,6 +15,8 @@ import {
   type IndProjectFull, type AdmetData, type PbpkData, type LeadsData,
   type IndDoc, type IndAudit,
 } from "../components/IndSteps";
+import { IndDocPanel, type DocPanelDoc, type Region } from "../components/IndDocPanel";
+import { IndSignOverlay, IndAuditOverlay, type AuditFindingWithMeta } from "../components/IndOverlays";
 
 // Demo seed — replace with GET /api/ind-report/projects when backend route exists.
 // For now this page renders the shell so the styling can be visually verified.
@@ -157,9 +159,70 @@ const DEMO_AUDIT: IndAudit = {
   ],
 };
 
+// Doc-panel-shaped demo data. bodyByPid replaces the prototype's
+// window.IND_SECTION_BODY global.
+const DEMO_DOC_FOR_PANEL: DocPanelDoc = {
+  ...DEMO_DOC,
+  version: 2,
+  shaPrefix: DEMO_DOC.shaPrefix ?? "9f2c4a",
+  sections: [
+    { id: "2.6.1", title: "§2.6.1 Overview", coverage: "full" },
+    { id: "2.6.2", title: "§2.6.2 Pharmacology", coverage: "full" },
+    { id: "2.6.3", title: "§2.6.3 Pharmacology tabulated", coverage: "full" },
+    { id: "2.6.4", title: "§2.6.4 PK written", coverage: "full" },
+    { id: "2.6.5", title: "§2.6.5 PK tabulated", coverage: "partial", note: "1 missing column" },
+    { id: "2.6.6", title: "§2.6.6 Toxicology written", coverage: "full" },
+  ],
+  bodyByPid: {
+    "p-2.6.1": "[BioMate-generated draft] This nonclinical overview integrates the ADMET, PBPK, and lead-selection findings supporting BM-0042 for Phase I in NSCLC.",
+    "p-2.6.2": "BM-0042 inhibits EGFR L858R with IC50 of 4.2 nM in biochemical assays. In vivo efficacy was demonstrated in HCC827 xenograft at 30 mg/kg/day PO.",
+    "p-2.6.3": "Tabulated pharmacology results across 12 compounds, 41 endpoints.",
+    "p-2.6.4": "Following oral administration in rat, BM-0042 showed Tmax 1.5h, Cmax 412 ng/mL, AUC₀₋₂₄ 3,840 ng·h/mL, t½ 8.2h, F 64%. PBPK qualification against 30-drug reference set met EMA Cmax within-2-fold criterion (73.3% vs ≥67% threshold).",
+    "p-2.6.5": "Tabulated PK parameters across species and routes.",
+    "p-2.6.6": "In the 28-day repeat-dose study, the NOAEL of 100 mg/kg/day was identified in Sprague-Dawley rats. No test-article-related findings were observed at the NOAEL dose level per ICH M3(R2).",
+  },
+};
+
+// Wraps IndDocPanel — manages region + version-popover state locally so
+// IndReportPage stays thin. Sign / Audit lift to the page (they're full-
+// screen overlays, not panel-internal).
+function DocPanelHost({
+  activeProject, onSign, onAudit,
+}: {
+  activeProject: IndProjectSummary | null;
+  onSign: () => void;
+  onAudit: () => void;
+}) {
+  const [region, setRegion] = useState<Region | "ALL">("FDA");
+  const [showVersions, setShowVersions] = useState(false);
+
+  if (!activeProject) {
+    return <aside className="ind-doc-panel" />;
+  }
+  return (
+    <IndDocPanel
+      doc={DEMO_DOC_FOR_PANEL}
+      audit={DEMO_AUDIT}
+      region={region}
+      onRegionChange={setRegion}
+      onSign={onSign}
+      onAudit={onAudit}
+      onVersionsClick={() => setShowVersions((v) => !v)}
+      showVersions={showVersions}
+      onVersionsClose={() => setShowVersions(false)}
+      onDownload={(fmt) => alert(`Download .${fmt} (stub)`)}
+      onChatHandoff={() => alert("Chat handoff (stub)")}
+      projectId={activeProject.id}
+      orgId={null}
+    />
+  );
+}
+
 export function IndReportPage() {
   const [activeId, setActiveId] = useState<string | null>(DEMO_PROJECTS[0].id);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSign, setShowSign] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
   const activeProject = DEMO_PROJECTS.find((p) => p.id === activeId) ?? null;
 
   // Tag body so global styles in ind-report.css that target body.ind-app apply.
@@ -182,12 +245,35 @@ export function IndReportPage() {
 
       <PipelineCenter activeProject={activeProject} />
 
-      {/* Right — document viewer. Filled in by IndDocPanel in a follow-up slice. */}
-      <aside className="ind-doc-panel">
-        <div style={{ padding: 24, color: "var(--ind-text-muted)", fontSize: 13 }}>
-          Document viewer goes here. (IndDocPanel — porting in progress.)
-        </div>
-      </aside>
+      <DocPanelHost
+        activeProject={activeProject}
+        onSign={() => setShowSign(true)}
+        onAudit={() => setShowAudit(true)}
+      />
+
+      {showSign && (
+        <IndSignOverlay
+          doc={{ ...DEMO_DOC_FOR_PANEL }}
+          onCancel={() => setShowSign(false)}
+          onSigned={() => setShowSign(false)}
+        />
+      )}
+      {showAudit && (
+        <IndAuditOverlay
+          audit={{
+            findings: DEMO_AUDIT.findings as AuditFindingWithMeta[],
+            chainRecords: 142,
+            lastVerified: "2026-05-16 14:22",
+          }}
+          onClose={() => setShowAudit(false)}
+          onJumpTo={(section) => {
+            const id = section.replace("§", "").split(".").slice(0, 3).join(".");
+            const el = document.querySelector(`[data-section="${id}"]`);
+            if (el) el.scrollIntoView({ block: "start" });
+            setShowAudit(false);
+          }}
+        />
+      )}
 
       {showSettings && (
         <div

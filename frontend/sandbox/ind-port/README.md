@@ -55,8 +55,8 @@ mechanical port errors immediately.
 | LeftNav | `ind/LeftNav.jsx` | `components/IndLeftNav.tsx` | ✅ ported, type-clean |
 | Steps 1–5 | `ind/Steps.jsx` | `components/IndSteps.tsx` | ✅ ported, type-clean |
 | Page shell | `BioMate IND Report.html` IndApp | `pages/IndReportPage.tsx` | ✅ wired against demo data |
-| DocPanel + DocSection + CitePopover + RegenerateModal + VersionHistory | `ind/DocPanel.jsx` | `components/IndDocPanel.tsx` | ❌ not started |
-| Sign + Audit + Empty overlays | `ind/Overlays.jsx` | `components/IndOverlays.tsx` | ❌ not started |
+| DocPanel + DocSection + CitePopover + RegenerateModal + VersionHistory | `ind/DocPanel.jsx` | `components/IndDocPanel.tsx` | ✅ ported, wired to feedback API |
+| Sign + Audit + Empty overlays | `ind/Overlays.jsx` | `components/IndOverlays.tsx` | ✅ ported, dismissal wired to feedback API |
 | Tour | `ind/IndTour.jsx` | optional | ❌ not started |
 
 CroIcon → lucide-react mapping is in the handoff doc. Used so far in
@@ -72,11 +72,15 @@ the port: `Plus, Check, TriangleAlert, Upload, Eye, Download, Signature`.
 - [x] Steps 1–5 ported
 - [x] Sandbox page wires components against demo data
 - [x] `tsc --noEmit -p sandbox/ind-port/tsconfig.json` exits 0
-- [ ] DocPanel ported (5 sub-components)
-- [ ] `contentEditable` replaced with TipTap in DocSection
-- [ ] All 4 feedback surfaces (edit hint, dismiss picker, cite [+], regenerate dropdown) wired to `lib/ind-report-api.ts`
-- [ ] Overlays (Sign + Audit + Empty) ported
-- [ ] Full port runs end-to-end against the live backend
+- [x] DocPanel ported (5 sub-components — DocSection + CitePopover + RegenerateModal + VersionHistory)
+- [x] All 4 feedback surfaces wired to `lib/ind-report-api.ts`:
+  - B2 paragraph edit (`onBlur` → `captureEdit`)
+  - B3 audit dismissal picker (`captureDismissal` with reason mapping)
+  - B4 `+` citation suggest popover (`suggestCitation`, both buttons)
+  - B5 regenerate-with-instruction modal (`regenerateSection` with instruction)
+- [x] Overlays (Sign + Audit + Empty) ported
+- [ ] `contentEditable` replaced with TipTap in DocSection (mechanical follow-up; current contentEditable preserves prototype behavior + already wires through to `captureEdit`)
+- [ ] Full port runs end-to-end against the live backend (needs dev server)
 - [ ] User visually compares the running port to mode-A prototype, signs off on parity
 - [ ] Production integration: copy sandbox files into `frontend/client/src/`, rewrite imports to `@/`-aliases, replace the legacy `ind-report.tsx`
 
