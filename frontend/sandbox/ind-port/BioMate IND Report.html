@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BioMate IND Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="cro/tokens-cro.css">
+  <link rel="stylesheet" href="cro/tour.css">
+  <link rel="stylesheet" href="ind/styles-ind.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="ind/data-ind.js"></script>
+</head>
+<body class="ind-app">
+  <div id="root"></div>
+
+  <script type="text/babel" src="cro/CroIcon.jsx"></script>
+  <script type="text/babel" src="cro/primitives.jsx"></script>
+  <script type="text/babel" src="cro/Tour.jsx"></script>
+  <script type="text/babel" src="ind/LeftNav.jsx"></script>
+  <script type="text/babel" src="ind/Steps.jsx"></script>
+  <script type="text/babel" src="ind/DocPanel.jsx"></script>
+  <script type="text/babel" src="ind/Overlays.jsx"></script>
+  <script type="text/babel" src="ind/IndTour.jsx"></script>
+
+  <script type="text/babel">
+    const DEFAULT_KNOBS = /*EDITMODE-BEGIN*/{
+      "stage": "main",
+      "activeProjectId": "p-bm0042",
+      "step2State": "complete",
+      "docSigned": false,
+      "showSign": false,
+      "auditOpen": false,
+      "showVersions": false,
+      "region": "FDA",
+      "showActiveAdapter": false,
+      "showOnboarding": false,
+      "importedFromChat": false,
+      "pbpkFail": false,
+      "showSettings": false,
+      "contributeEdits": true
+    }/*EDITMODE-END*/;
+
+    const STORAGE_KEY = 'biomate_ind_v1';
+
+    function IndApp() {
+      const [knobs, setKnobsRaw] = React.useState(() => {
+        try {
+          const s = localStorage.getItem(STORAGE_KEY);
+          return s ? { ...DEFAULT_KNOBS, ...JSON.parse(s) } : DEFAULT_KNOBS;
+        } catch { return DEFAULT_KNOBS; }
+      });
+      const setKnobs = (next) => {
+        const merged = typeof next === 'function' ? next(knobs) : next;
+        setKnobsRaw(merged);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+      };
+
+      const [expanded, setExpanded] = React.useState({});
+      const toggleExpanded = (key) => setExpanded(e => ({ ...e, [key]: !e[key] }));
+
+      const activeProject = window.IND_PROJECTS.find(p => p.id === knobs.activeProjectId) || window.IND_PROJECTS[0];
+      const doc = { ...window.IND_DOCUMENT, signed: knobs.docSigned, signedBy: knobs.docSigned ? 'Dr. Jane Smith' : null };
+      const audit = window.IND_AUDIT;
+
+      // Tour
+      const tour = window.useIndTour(knobs, setKnobs);
+
+      // Tweaks integration
+      const [tweaksEnabled, setTweaksEnabled] = React.useState(false);
+      React.useEffect(() => {
+        const onMessage = (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === '__activate_edit_mode') setTweaksEnabled(true);
+          if (e.data.type === '__deactivate_edit_mode') setTweaksEnabled(false);
+        };
+        window.addEventListener('message', onMessage);
+        try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch {}
+        return () => window.removeEventListener('message', onMessage);
+      }, []);
+
+      // Wire audit-open events from doc panel paragraph chips
+      React.useEffect(() => {
+        const onOpenAudit = () => setKnobs({ ...knobs, auditOpen: true });
+        window.addEventListener('ind-open-audit', onOpenAudit);
+        return () => window.removeEventListener('ind-open-audit', onOpenAudit);
+      }, [knobs]);
+
+      const jumpToSection = (sec) => {
+        // sec like "§2.6.2" or "§2.6.1.5"
+        const id = sec.replace('§', '').split('.').slice(0, 3).join('.');
+        const el = document.querySelector(`[data-section="${id}"]`);
+        if (el) el.scrollIntoView({ block: 'start' });
+        setKnobs({ ...knobs, auditOpen: false });
+      };
+
+      if (knobs.showOnboarding) {
+        return (
+          <div className="ind-shell">
+            <IndLeftNav
+              projects={[]}
+              activeId={null}
+              onSelect={() => {}}
+              onNew={() => setKnobs({ ...knobs, showOnboarding: false })}
+            />
+            <IndEmptyState
+              onStart={() => setKnobs({ ...knobs, showOnboarding: false })}
+              onPickReference={() => setKnobs({ ...knobs, showOnboarding: false })}
+            />
+          </div>
+        );
+      }
+
+      return (
+        <div className="ind-shell" data-screen-label="IND Report · Main">
+          <IndLeftNav
+            projects={window.IND_PROJECTS}
+            activeId={knobs.activeProjectId}
+            onSelect={(id) => setKnobs({ ...knobs, activeProjectId: id })}
+            onNew={() => setKnobs({ ...knobs, showOnboarding: true })}
+            onSettings={() => setKnobs({ ...knobs, showSettings: true })}
+          />
+
+          <header className="ind-topbar">
+            <div className="ind-crumb">
+              <span>IND Report</span>
+              <span className="sep">/</span>
+              <b>{activeProject.molecule}</b>
+              <span className="sep">/</span>
+              <span style={{color: 'var(--ind-text)'}}>§2.6 nonclinical</span>
+            </div>
+            <div className="ind-top-actions">
+              {knobs.showActiveAdapter && (
+                <span className="adapter-badge" title="Customer-specific model">
+                  Active model: BioMate v6 — Customized for Acme
+                </span>
+              )}
+              <span className="r-chip fda">FDA</span>
+              <span className="r-chip ema">EMA</span>
+              <span className="r-chip nmpa">NMPA</span>
+              <span className="r-chip pmda">PMDA</span>
+              <button className="tut-btn" onClick={tour.start} title="Replay the tutorial">
+                <span style={{fontSize: 10}}>▶</span> Tutorial
+              </button>
+              <div className="user">
+                <div className="user-avatar">JS</div>
+                <span>jane@acme.com</span>
+              </div>
+            </div>
+          </header>
+
+          <main className="ind-center">
+            <div className="ind-center-head">
+              <div>
+                <div className="ind-h1">
+                  {activeProject.molecule} · {activeProject.target}
+                </div>
+                <div className="ind-h1-sub">
+                  {activeProject.indication} · {activeProject.sponsor} · {activeProject.regions.join(' · ')}
+                </div>
+              </div>
+              <div style={{display: 'flex', gap: 6, alignItems: 'center'}}>
+                <button className="ind-btn sm" onClick={() => setKnobs({ ...knobs, auditOpen: !knobs.auditOpen })}>
+                  <CroIcon name="shield" size={12}/> Audit
+                </button>
+              </div>
+            </div>
+
+            <Step1ProjectSetup
+              project={activeProject}
+              onEdit={() => {}}
+              expanded={expanded.s1}
+              onToggle={() => toggleExpanded('s1')}
+            />
+            <Step2Admet
+              data={window.IND_ADMET}
+              expanded={expanded.s2 !== false}
+              onToggle={() => toggleExpanded('s2')}
+              running={knobs.step2State === 'running'}
+              progress={80}
+              importedFromChat={knobs.importedFromChat}
+            />
+            <Step3Pbpk
+              data={window.IND_PBPK}
+              expanded={expanded.s3}
+              onToggle={() => toggleExpanded('s3')}
+              failOverride={knobs.pbpkFail}
+            />
+            <Step4Leads
+              data={window.IND_LEADS}
+              expanded={expanded.s4}
+              onToggle={() => toggleExpanded('s4')}
+            />
+            <Step5Document
+              doc={doc} audit={audit}
+              onSign={() => setKnobs({ ...knobs, showSign: true })}
+              onAudit={() => setKnobs({ ...knobs, auditOpen: true })}
+              onViewDoc={() => {
+                const el = document.querySelector('.ind-doc-body');
+                if (el) el.scrollIntoView({ block: 'start' });
+              }}
+              onDownload={() => {}}
+              onRegenerate={() => {}}
+              expanded={true}
+              onToggle={() => toggleExpanded('s5')}
+            />
+          </main>
+
+          <IndDocPanel
+            doc={doc}
+            audit={audit}
+            region={knobs.region}
+            onRegionChange={(r) => setKnobs({ ...knobs, region: r })}
+            onSign={() => setKnobs({ ...knobs, showSign: true })}
+            onAudit={() => setKnobs({ ...knobs, auditOpen: true })}
+            onVersionsClick={() => setKnobs({ ...knobs, showVersions: !knobs.showVersions })}
+            showVersions={knobs.showVersions}
+            onVersionsClose={() => setKnobs({ ...knobs, showVersions: false })}
+            onDownload={(fmt) => {}}
+            onChatHandoff={() => {}}
+          />
+
+          {knobs.auditOpen && (
+            <AuditPortalContainer>
+              <IndAuditOverlay
+                audit={audit}
+                onClose={() => setKnobs({ ...knobs, auditOpen: false })}
+                onJumpTo={jumpToSection}
+              />
+            </AuditPortalContainer>
+          )}
+
+          {knobs.showSign && (
+            <IndSignOverlay
+              doc={doc}
+              onCancel={() => setKnobs({ ...knobs, showSign: false })}
+              onSigned={() => {
+                setKnobs({ ...knobs, docSigned: true });
+                // keep overlay open in success state until user closes
+              }}
+            />
+          )}
+
+          <button className="ind-doc-fab" aria-label="View Document">
+            <CroIcon name="file" size={14}/> View Document
+          </button>
+
+          {tweaksEnabled && <IndTweaks knobs={knobs} setKnobs={setKnobs}/>}
+          {knobs.showSettings && (
+            <IndSettingsOverlay
+              knobs={knobs}
+              setKnobs={setKnobs}
+              onClose={() => setKnobs({ ...knobs, showSettings: false })}
+            />
+          )}
+          {tour.node}
+        </div>
+      );
+    }
+
+    // Audit overlay needs to render *inside* the doc panel for the slide-in animation
+    // to feel right. We use a tiny portal: append to the doc panel as a positioned child.
+    const AuditPortalContainer = ({ children }) => {
+      const ref = React.useRef(null);
+      const [mounted, setMounted] = React.useState(false);
+      React.useEffect(() => {
+        const target = document.querySelector('.ind-doc-panel');
+        if (target) {
+          // Make it relative for absolute child positioning
+          target.style.position = 'relative';
+          ref.current = target;
+          setMounted(true);
+        }
+      }, []);
+      if (!mounted || !ref.current) return null;
+      return ReactDOM.createPortal(children, ref.current);
+    };
+
+    // Lightweight Tweaks panel
+    const IndTweaks = ({ knobs, setKnobs }) => (
+      <div style={{
+        position: 'fixed', bottom: 18, right: 18, zIndex: 60,
+        width: 240, background: 'white', border: '1px solid var(--ind-border-strong)',
+        borderRadius: 10, padding: '12px 14px', boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+        fontSize: 12,
+      }}>
+        <div style={{fontWeight: 700, marginBottom: 10}}>Tweaks</div>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.step2State === 'running'}
+            onChange={(e) => setKnobs({ ...knobs, step2State: e.target.checked ? 'running' : 'complete' })}/>
+          Step 2 running (vs. complete)
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.docSigned}
+            onChange={(e) => setKnobs({ ...knobs, docSigned: e.target.checked })}/>
+          Document signed
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.showActiveAdapter}
+            onChange={(e) => setKnobs({ ...knobs, showActiveAdapter: e.target.checked })}/>
+          Show "Active model" adapter badge
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.showOnboarding}
+            onChange={(e) => setKnobs({ ...knobs, showOnboarding: e.target.checked })}/>
+          Show empty / onboarding state
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.auditOpen}
+            onChange={(e) => setKnobs({ ...knobs, auditOpen: e.target.checked })}/>
+          Audit overlay open
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.importedFromChat}
+            onChange={(e) => setKnobs({ ...knobs, importedFromChat: e.target.checked })}/>
+          Step 2 imported from chat
+        </label>
+        <label style={{display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0'}}>
+          <input type="checkbox" checked={knobs.pbpkFail}
+            onChange={(e) => setKnobs({ ...knobs, pbpkFail: e.target.checked })}/>
+          Step 3 PBPK fail
+        </label>
+      </div>
+    );
+
+    // Settings overlay (B6 + B7)
+    const IndSettingsOverlay = ({ knobs, setKnobs, onClose }) => (
+      <div className="modal-backdrop" onClick={onClose} style={{zIndex: 150}}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}
+          style={{background: 'white', borderRadius: 12, padding: 20, width: 480, maxWidth: '90vw'}}
+          data-tour="ind-settings">
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14}}>
+            <h3 style={{fontSize: 16, fontWeight: 700, fontFamily: 'Crimson Text, serif'}}>Project Settings</h3>
+            <button className="ind-btn sm" onClick={onClose}>
+              <CroIcon name="x" size={12}/>
+            </button>
+          </div>
+
+          <div style={{fontSize: 11, color: 'var(--ind-text-muted)', fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 8}}>
+            Privacy &amp; model improvement
+          </div>
+          <label style={{display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px',
+            background: 'var(--ind-bg-sub)', borderRadius: 8, fontSize: 13, cursor: 'pointer'}}>
+            <input type="checkbox" checked={knobs.contributeEdits}
+              onChange={(e) => setKnobs({...knobs, contributeEdits: e.target.checked})}
+              style={{marginTop: 3}}/>
+            <span>
+              <b>Contribute edits to model improvement</b>
+              <div style={{fontSize: 11.5, color: 'var(--ind-text-muted)', marginTop: 4, lineHeight: 1.5}}>
+                When on, paragraph edits in the document viewer become anonymized training pairs
+                for the BioMate regulatory model. Drug names, study IDs and other PII are stripped.
+                <br/><br/>
+                <span style={{color: 'var(--ind-text-dim)'}}>
+                  Default <b>ON</b> for free tier · default <b>OFF</b> for paid tier.
+                </span>
+              </div>
+            </span>
+          </label>
+
+          <div style={{fontSize: 11, color: 'var(--ind-text-muted)', fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: 0.06, margin: '16px 0 8px'}}>
+            Active model
+          </div>
+          <div style={{padding: '10px 12px', background: 'var(--ind-bg-sub)', borderRadius: 8, fontSize: 13}}>
+            {knobs.showActiveAdapter ? (
+              <>
+                <span className="adapter-badge">BioMate v6 — Customized for Acme</span>
+                <div style={{fontSize: 11.5, color: 'var(--ind-text-muted)', marginTop: 8, lineHeight: 1.5}}>
+                  Your organization has accumulated ≥200 high-quality edits across ≥3 projects.
+                  A LoRA adapter on top of BioMate v6 is trained on your accumulated pairs and used
+                  exclusively for your account.
+                </div>
+              </>
+            ) : (
+              <>
+                <b>BioMate v6 (shared)</b>
+                <div style={{fontSize: 11.5, color: 'var(--ind-text-muted)', marginTop: 4, lineHeight: 1.5}}>
+                  Once your organization has ≥200 high-quality edits across ≥3 projects, we'll offer
+                  a customer-specific adapter trained on your own pairs.
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<IndApp/>);
+  </script>
+</body>
+</html>
