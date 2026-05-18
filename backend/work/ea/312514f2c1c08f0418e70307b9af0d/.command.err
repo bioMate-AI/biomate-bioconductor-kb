@@ -1,2 +1,0 @@
-fasta_gtf_filter - 2026-03-24 17:37:40,994 INFO: Extracted chromosome sequence names from genome.fasta
-fasta_gtf_filter - 2026-03-24 17:37:40,996 INFO: Extracted 599 matching sequences from genes_with_empty_tid.gtf into genes_with_empty_tid.filtered.gtf

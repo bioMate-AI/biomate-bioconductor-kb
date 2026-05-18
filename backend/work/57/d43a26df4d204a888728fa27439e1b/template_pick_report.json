@@ -1,8 +1,0 @@
-{
-  "step": "11_template_picker",
-  "timestamp": "2026-03-09T20:36:23.501300",
-  "num_new_particles": 6889,
-  "num_micrographs": 20,
-  "avg_new_particles_per_micrograph": 344.4,
-  "num_templates_used": 2378
-}

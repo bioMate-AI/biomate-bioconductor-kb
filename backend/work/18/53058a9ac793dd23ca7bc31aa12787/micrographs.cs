@@ -1,1 +1,0 @@
-/home/yzhang/biomate/backend/work/ae/98b525d3460307103d294850ac4cbc/micrographs.cs

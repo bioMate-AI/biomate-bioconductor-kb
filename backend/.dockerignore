@@ -73,11 +73,20 @@ biomni_workflows/nextflow_nfcore/
 .nextflow.log*
 
 # Nextflow work directories — runtime artifacts that contain absolute paths
-# from the launching machine (L4: /home/yzhang/... leaks via workflow_summary
-# _mqc.yaml files). 432MB / 1705 files of tracked-but-shouldn't-be artifacts
-# as of 2026-05-16. TODO: git rm + add to .gitignore in a follow-up.
+# from the launching machine. As of 2026-05-18 also removed from git tracking
+# via `git rm -r --cached backend/work/` + `backend/.gitignore` entry.
 work/
 work/**
+
+# Biomni function analysis docs — reference-only JSON/MD with legitimate
+# container-path strings (e.g. /home/appuser/input in DiffDock docstrings)
+# that the L4 lint can't tell apart from dev-path leaks. Not needed in image.
+BIOMNI_FUNCTIONS_ANALYSIS_*.json
+BIOMNI_FUNCTIONS_ANALYSIS_*.md
+
+# Dev-only one-off scripts — not part of the running app
+fix_biomni_tools.py
+test_dd_modules.py
 
 # Virtual environments
 .venv*/

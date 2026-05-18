@@ -1,1 +1,0 @@
-/home/yzhang/biomate/backend/work/c8/15d5398d839793daedb05a5f5e1233/particles_extracted_r2.cs

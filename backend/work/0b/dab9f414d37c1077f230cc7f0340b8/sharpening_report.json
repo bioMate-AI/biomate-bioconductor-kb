@@ -1,7 +1,0 @@
-{
-  "step": "23_sharpening",
-  "timestamp": "2026-03-09T18:38:00.878761",
-  "b_factor_applied": -90.0,
-  "lowpass_filter": "2.5",
-  "final_output": "volume_sharpened.mrc"
-}

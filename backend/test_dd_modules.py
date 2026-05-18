@@ -1,5 +1,5 @@
 import sys, os, tempfile, csv
-sys.path.insert(0, '/home/yzhang/biomate/backend')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Test 1: AssayCSVValidator
 from lib.galaxy.ai.drug_discovery.assay_schema import AssayCSVValidator

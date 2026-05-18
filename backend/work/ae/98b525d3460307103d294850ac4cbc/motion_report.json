@@ -1,9 +1,0 @@
-{
-  "step": "02_patch_motion_correction",
-  "timestamp": "2026-03-09T20:36:22.892233",
-  "num_micrographs": 20,
-  "avg_total_motion_angstroms": 26.09,
-  "dose_weighting_enabled": true,
-  "low_memory_mode": false,
-  "mock_mode": true
-}

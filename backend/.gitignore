@@ -21,6 +21,12 @@ lib/galaxy/web/framework/static/scripts
 lib/galaxy/web/framework/static/style
 lib/galaxy/web/framework/meta.json
 
+# Nextflow runtime artifacts — large transient files with absolute host paths.
+# `backend/.dockerignore` already excludes these from image builds; this stops
+# them from being tracked at all. See docs/20260516_CICD_PHASE1_*.md Task #17.
+work/
+work/**
+
 # Misc. data, config, cache files
 /database/
 
