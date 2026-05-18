@@ -9248,7 +9248,17 @@ Rules:
             const [, bucket, prefix] = m;
             const AWS = await import('@aws-sdk/client-s3');
             const presigner = await import('@aws-sdk/s3-request-presigner');
-            const s3 = new AWS.S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+            // biomate-nextflow-work lives in us-east-1; AWS_REGION on this host
+            // is us-west-2 which causes "must be addressed using the specified
+            // endpoint" redirect errors. Use the NF-specific creds + us-east-1
+            // (same pattern as /api/invocations/:id/outputs at line ~7045).
+            const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+            const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+            const s3 = new AWS.S3Client({
+              region: 'us-east-1',
+              followRegionRedirects: true,
+              ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+            });
             const listed: any[] = [];
             let continuationToken: string | undefined = undefined;
             do {
