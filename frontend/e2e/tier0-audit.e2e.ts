@@ -576,7 +576,8 @@ async function auditDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
         const sawRunning = await waitForFirstRunningPhase(page, 120_000);
         record(a, "first-phase-transitions-running", sawRunning);
 
-        const sawCompleted = await waitForAnyCompletedPhase(page, 900_000);
+        // Bug D from 20260518 audit: AWS Batch cold-start can exceed 900s; raise to 25 min.
+        const sawCompleted = await waitForAnyCompletedPhase(page, 1_500_000);
         record(a, "any-phase-reaches-completed", sawCompleted);
         a.screenshots.push(await shot(page, spec.id, "03_after_running"));
 
@@ -632,9 +633,10 @@ async function auditDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
         }
 
         // ── #7  methods-report endpoint ─────────────────────────────────────
+        // Methods report generation calls Claude Sonnet + scans S3, can take 60s+
         const reportResp = await page.request.get(
           `${BASE_URL}/api/invocations/${runId}/methods-report`,
-          { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 30_000 }
+          { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 120_000 }
         ).catch(() => null);
         const reportStatus = reportResp?.status() ?? -1;
         record(a, "methods-report-returns-200",
@@ -716,7 +718,7 @@ test.describe("Tier 0 demo audit", () => {
   for (const spec of DEMOS) {
     test(`${spec.id}: ${spec.workflow} — chat-stream + form prefill + phases + outputs`,
       async ({ page }) => {
-        test.setTimeout(1_800_000); // 30 min per demo
+        test.setTimeout(2_100_000); // 35 min per demo — accommodates Bug D cold-start + report gen
         const a = await auditDemo(page, spec);
         // The test passes if no assertions failed AND no exception was caught.
         const failed = a.assertions.filter(x => !x.passed);
