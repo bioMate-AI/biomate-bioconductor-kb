@@ -29,7 +29,7 @@ export const TIER_TO_BILLING_PLAN: Record<string, string> = {
 export const TIER_QUOTA_USD: Record<string, number | null> = {
   trial:        5.00,
   academic:     5.00,
-  professional: 50.00,
+  professional: 25.00,
   enterprise:   500.00,
   admin:        null,
 };
