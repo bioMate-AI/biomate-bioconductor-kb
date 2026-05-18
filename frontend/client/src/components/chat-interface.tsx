@@ -797,6 +797,15 @@ export function ChatInterface({
               }
             } else if (eventName === 'workflow_ready') {
               setWorkflowGeneratingPhase('workflow')
+              // workflow_ready IS the payload-carrying event for workflow-generation flows
+              // (no separate `event: final` fires after it). Capture as finalPayload so
+              // onSuccess receives data.metadata.inlineParameters → form prefill works.
+              // Per docs/20260518_tier0_audit_T01_results.md (Bug A+C root cause).
+              if (toolBlocksMap.size > 0) {
+                finalPayload = { ...payload, toolBlocks: Array.from(toolBlocksMap.values()) }
+              } else {
+                finalPayload = payload
+              }
             } else if (eventName === 'error') {
               const errMsg = payload.message || 'Streaming chat failed'
               const isRateLimit = /rate.?limit|too many|overload|429|busy/i.test(errMsg)
