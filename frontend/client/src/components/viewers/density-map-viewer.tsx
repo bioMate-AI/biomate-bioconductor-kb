@@ -56,9 +56,15 @@ function parseMrcHeader(buf: ArrayBuffer): MrcHeader {
   const ny = view.getInt32(4, true)
   const nz = view.getInt32(8, true)
   const mode = view.getInt32(12, true)
-  const xlen = view.getFloat32(96, true)
-  const ylen = view.getFloat32(100, true)
-  const zlen = view.getFloat32(104, true)
+  // MRC2014 spec: cell dimensions xlen/ylen/zlen at offsets 40/44/48 (words 11-13).
+  // Offsets 96-107 are the `extra` region (origin coords for some writers, zero for others),
+  // which previously produced 0 → "N/A" for every CryoSPARC MRC even though the real
+  // cell dimensions were present in the standard slot. Confirmed against
+  // s3://biomate-nextflow-work/.../volume_nu_refined.mrc: dims 128³, cella=(226.56, 226.56, 90)
+  // → voxel size 1.77 Å (was rendering as N/A).
+  const xlen = view.getFloat32(40, true)
+  const ylen = view.getFloat32(44, true)
+  const zlen = view.getFloat32(48, true)
   // spacegroup: 0 = 2D images/stack, 1 = single 3D map, >1 = crystallographic
   const spacegroup = view.getInt32(88, true)
   const nsymbt = view.getInt32(196, true)
