@@ -1,7 +1,8 @@
 """
 LLM Client for Galaxy AI Assistant
 
-Supports multiple LLM providers: OpenAI, Anthropic Claude, and local models.
+Supports multiple LLM providers: OpenAI, Anthropic Claude, Gemini, and local models.
+With automatic cascading fallback for reliability.
 """
 
 import json
@@ -11,6 +12,10 @@ import uuid
 import httpx
 from typing import Dict, Any, Optional
 from .config import AIConfig
+from .llm_client_fallback_implementation import (
+    FallbackChainManager,
+    generate_with_fallback
+)
 
 log = logging.getLogger(__name__)
 
@@ -102,6 +107,9 @@ class LLMClient:
         self.user_id: str = ""
         self.session_id: str = str(uuid.uuid4())
 
+        # Initialize cascading fallback manager
+        self.fallback_manager = FallbackChainManager()
+
         # Initialize provider-specific settings
         self._setup_provider()
         
@@ -164,76 +172,18 @@ class LLMClient:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
     
     async def generate_async(self, prompt: str, **kwargs) -> str:
-        """Generate response asynchronously with automatic fallback to Claude."""
-        # Inject billing context from instance unless caller already provided them
-        kwargs.setdefault("user_id",    self.user_id)
-        kwargs.setdefault("session_id", self.session_id)
+        """
+        Generate response asynchronously with automatic cascading fallback.
 
-        primary_error = None
-
-        try:
-            if self.provider == 'openai':
-                return await self._generate_openai(prompt, **kwargs)
-            elif self.provider == 'anthropic':
-                return await self._generate_anthropic(prompt, **kwargs)
-            elif self.provider in ['gemini', 'google']:
-                return await self._generate_gemini(prompt, **kwargs)
-            elif self.provider in ['deepseek']:
-                # DeepSeek uses OpenAI-compatible API
-                return await self._generate_openai_compatible(prompt, **kwargs)
-            elif self.provider == 'ollama':
-                return await self._generate_ollama(prompt, **kwargs)
-            elif self.provider == 'zhipu':
-                return await self._generate_zhipu(prompt, **kwargs)
-            elif self.provider == 'local':
-                return await self._generate_local(prompt, **kwargs)
-            else:
-                raise ValueError(f"Unsupported provider: {self.provider}")
-
-        except Exception as e:
-            primary_error = e
-            log.error(f"Primary LLM ({self.provider}) generation failed: {e}")
-
-            # Automatic fallback to Claude 3.5 Sonnet if primary provider fails
-            if self.provider != 'anthropic':
-                log.warning(f"Attempting fallback to Claude 3.5 Sonnet...")
-                try:
-                    # Get Anthropic API key from environment if available
-                    import os
-                    fallback_api_key = os.environ.get('ANTHROPIC_API_KEY')
-
-                    if fallback_api_key:
-                        # Temporarily switch to Anthropic
-                        original_provider = self.provider
-                        original_model = self.model
-                        original_api_key = self.api_key
-                        original_api_base = self.api_base
-                        original_headers = self.headers
-
-                        self.provider = 'anthropic'
-                        self.model = 'claude-sonnet-4-5'
-                        self.api_key = fallback_api_key
-                        self._setup_provider()  # Re-setup with Anthropic config
-
-                        try:
-                            result = await self._generate_anthropic(prompt, **kwargs)
-                            log.info("✅ Fallback to Claude 3.5 Sonnet succeeded!")
-                            return result
-                        finally:
-                            # Restore original config
-                            self.provider = original_provider
-                            self.model = original_model
-                            self.api_key = original_api_key
-                            self.api_base = original_api_base
-                            self.headers = original_headers
-                    else:
-                        log.warning("ANTHROPIC_API_KEY not found in environment, cannot fallback")
-
-                except Exception as fallback_error:
-                    log.error(f"Fallback to Claude also failed: {fallback_error}")
-
-            # Re-raise the original error if fallback also failed
-            raise primary_error
+        Priority order: Gemini 3.1 Pro → Gemini Flash → Claude → OpenAI → Local Qwen3
+        Each provider gets 2 retry attempts before moving to next.
+        """
+        return await generate_with_fallback(
+            llm_client=self,
+            prompt=prompt,
+            fallback_manager=self.fallback_manager,
+            **kwargs
+        )
     
     def generate(self, prompt: str, **kwargs) -> str:
         """Synchronous wrapper for generate_async.

@@ -1,0 +1,159 @@
+# BioMate LLM Provider Configuration
+#
+# This file defines the priority order and configuration for all LLM providers
+# used in the BioMate system. Providers are tried in order until one succeeds.
+#
+# Last updated: 2026-05-17
+
+# Primary Provider Configuration
+primary:
+  provider: gemini
+  model: gemini-3.1-pro-preview  # Latest Gemini 3.1 Pro (preview)
+  description: "Primary LLM - Google Gemini 3.1 Pro Preview (best quality)"
+  api_key_env: GOOGLE_API_KEY
+  max_tokens: 8192
+  temperature: 0.7
+  retry_attempts: 2
+  timeout_seconds: 120
+
+# Fallback Chain (in priority order)
+fallbacks:
+  # Fallback 1: Gemini Flash (fast, reliable)
+  - provider: gemini
+    model: gemini-3.0-flash-preview  # Gemini 3 Flash (preview)
+    description: "Fallback 1 - Google Gemini 3.0 Flash Preview (fast, efficient)"
+    api_key_env: GOOGLE_API_KEY
+    max_tokens: 8192
+    temperature: 0.7
+    retry_attempts: 2
+    timeout_seconds: 60
+
+  # Fallback 2: Claude (high quality, reliable)
+  - provider: anthropic
+    model: claude-sonnet-4-5
+    description: "Fallback 2 - Anthropic Claude Sonnet 4.5 (high quality)"
+    api_key_env: ANTHROPIC_API_KEY
+    max_tokens: 8192
+    temperature: 0.7
+    retry_attempts: 2
+    timeout_seconds: 120
+
+  # Fallback 3: OpenAI GPT-4 (widely available)
+  - provider: openai
+    model: gpt-4o
+    description: "Fallback 3 - OpenAI GPT-4o (widely available)"
+    api_key_env: OPENAI_API_KEY
+    max_tokens: 8192
+    temperature: 0.7
+    retry_attempts: 2
+    timeout_seconds: 120
+
+  # Fallback 4: Local Ollama (always works if running)
+  - provider: ollama
+    model: qwen3:32b
+    description: "Fallback 4 - Local Ollama Qwen3 32B (offline fallback, ARM-optimized)"
+    api_key_env: null  # No API key needed
+    base_url: http://localhost:11434
+    max_tokens: 8192
+    temperature: 0.7
+    retry_attempts: 2
+    timeout_seconds: 180
+    notes: "Runs on ARM supercomputer with 128GB RAM, uses FP16 precision"
+
+# Model-specific configurations
+model_configs:
+  # Gemini 3.1 Pro Preview
+  gemini-3.1-pro-preview:
+    context_window: 2097152  # 2M tokens
+    cost_per_1m_input: 1.25
+    cost_per_1m_output: 5.00
+    supports_streaming: true
+    supports_function_calling: true
+    rate_limit_rpm: 60  # requests per minute
+    rate_limit_tpm: 4000000  # tokens per minute
+
+  # Gemini 3.0 Flash Preview
+  gemini-3.0-flash-preview:
+    context_window: 1048576  # 1M tokens
+    cost_per_1m_input: 0.075
+    cost_per_1m_output: 0.30
+    supports_streaming: true
+    supports_function_calling: true
+    rate_limit_rpm: 300
+    rate_limit_tpm: 4000000
+
+  # Claude Sonnet 4.5
+  claude-sonnet-4-5:
+    context_window: 200000
+    cost_per_1m_input: 3.00
+    cost_per_1m_output: 15.00
+    supports_streaming: true
+    supports_function_calling: true
+    rate_limit_rpm: 50
+    rate_limit_tpm: 100000
+
+  # GPT-4o
+  gpt-4o:
+    context_window: 128000
+    cost_per_1m_input: 5.00
+    cost_per_1m_output: 15.00
+    supports_streaming: true
+    supports_function_calling: true
+    rate_limit_rpm: 500
+    rate_limit_tpm: 150000
+
+  # Local Ollama (free)
+  qwen3:32b:
+    context_window: 32768
+    cost_per_1m_input: 0.0
+    cost_per_1m_output: 0.0
+    supports_streaming: true
+    supports_function_calling: true  # Qwen3 supports tool calling
+    rate_limit_rpm: null  # No rate limits (local)
+    rate_limit_tpm: null
+    hardware: "ARM supercomputer, 128GB RAM, FP16"
+
+# Retry Configuration
+retry:
+  exponential_backoff:
+    base: 2  # 2^n seconds
+    min_wait: 2  # minimum 2 seconds
+    max_wait: 60  # maximum 60 seconds
+
+  retryable_errors:
+    - 429  # Rate limit
+    - 500  # Internal server error
+    - 502  # Bad gateway
+    - 503  # Service unavailable
+    - 504  # Gateway timeout
+    - timeout
+    - connection_error
+
+# Circuit Breaker Configuration
+circuit_breaker:
+  enabled: true
+  failure_threshold: 5  # Open circuit after 5 consecutive failures
+  recovery_timeout: 300  # Wait 5 minutes before trying again
+  half_open_max_calls: 3  # Allow 3 test calls in half-open state
+
+# Monitoring and Logging
+monitoring:
+  log_all_requests: true
+  log_level: INFO
+  track_costs: true
+  track_latency: true
+  alert_on_all_providers_down: true
+
+# Required Environment Variables
+required_env_vars:
+  - GOOGLE_API_KEY       # For Gemini (primary + fallback 1)
+  - ANTHROPIC_API_KEY    # For Claude (fallback 2)
+  - OPENAI_API_KEY       # For OpenAI (fallback 3)
+  # OLLAMA_BASE_URL is optional, defaults to http://localhost:11434
+
+# Notes:
+# - Gemini 3.1 Pro Preview and 3.0 Flash Preview both use the same GOOGLE_API_KEY
+# - Providers are tried in order: Gemini Pro → Gemini Flash → Claude → OpenAI → Ollama
+# - Each provider gets 2 retry attempts before moving to next
+# - Total possible attempts: 2 × 5 providers = 10 attempts before final failure
+# - Expected success rate: >99% (only fails if all 5 providers completely down)
