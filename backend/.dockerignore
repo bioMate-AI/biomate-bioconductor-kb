@@ -55,8 +55,17 @@ temp/
 .DS_Store
 Thumbs.db
 
-# Test files
+# Test files — top-level AND any nested `tests/` directory. The previous
+# pattern only matched backend/tests/, leaving nested ones (e.g.
+# biomni_workflows/galaxy/tests/) in the image with dev paths intact.
 tests/
+**/tests/
+
+# Research / experimental code — not part of the production runtime.
+# Contains absolute dev paths (e.g. /home/yzhang/biomate/...) by design;
+# would otherwise trip the L4 lint and bloat the image.
+experiments/
+**/experiments/
 
 # Large workflow libraries not needed in container (indexed separately)
 biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/
@@ -87,6 +96,17 @@ BIOMNI_FUNCTIONS_ANALYSIS_*.md
 # Dev-only one-off scripts — not part of the running app
 fix_biomni_tools.py
 test_dd_modules.py
+
+# Vendored nf-core workflows include upstream GitHub Actions configs with
+# /home/ubuntu/ paths (legit CI runner paths). The workflow modules themselves
+# are needed at runtime; the .github/ subdirs are not.
+nf-core-workflows/*/.github/
+nf-core-modules/.github/
+
+# Tests inside experiments/ — production-code modules (e.g. autoloop_bridge.py)
+# stay in the image; tests do not.
+experiments/*/tests/
+experiments/tests/
 
 # Virtual environments
 .venv*/
