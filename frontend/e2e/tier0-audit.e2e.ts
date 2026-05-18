@@ -431,6 +431,20 @@ async function waitForWorkflowCard(page: Page, timeoutMs = 180_000): Promise<boo
  * Used by Assertion #2 to confirm LLM values landed in the form before Run.
  */
 async function readFormValues(page: Page): Promise<Record<string, string>> {
+  // The viewer collapses inline-parameter inputs under "Advanced settings" —
+  // expand it (button-toggle-advanced-settings) before reading values so the
+  // <Input> elements are actually in the DOM. Per docs/20260518_tier0_audit_T01_results.md.
+  const toggle = page.locator('[data-testid="button-toggle-advanced-settings"]').first();
+  if (await toggle.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Only click if strip isn't already open (className contains "open")
+    const isOpen = await toggle.evaluate(
+      (el: Element) => (el as HTMLElement).className.includes('open')
+    ).catch(() => false);
+    if (!isOpen) {
+      await toggle.click().catch(() => {});
+      await page.waitForTimeout(400);
+    }
+  }
   return page.evaluate(() => {
     const out: Record<string, string> = {};
     const inputs = document.querySelectorAll(
