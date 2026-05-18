@@ -54,12 +54,11 @@ database/tmp/
 start_backend.sh
 docker/
 
-# Admin / maintenance scripts under backend/scripts/ — DB extraction, workflow
-# index rebuilds, audits. Not imported by Galaxy at runtime; meant to be run
-# from a developer shell. Contain /home/yzhang/ defaults in argparse and
-# would otherwise trip the L4 lint. Run them via `docker exec` against a
-# mounted host repo if needed.
-scripts/
+# DO NOT exclude scripts/ wholesale — Galaxy's run.sh sources
+# scripts/common_startup_functions.sh at boot. Earlier broad exclusion
+# (commit 27999805f) broke container startup. Admin-tool /home/yzhang/
+# defaults in scripts/*.py were instead fixed in-place via bulk sed
+# (commit 2026-05-18). The L4 lint guards against regression.
 
 # Logs
 logs/*.log

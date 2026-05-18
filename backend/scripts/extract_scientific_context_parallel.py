@@ -170,7 +170,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Parallel scientific context extraction')
-    parser.add_argument('--db', default='/home/yzhang/biomate/backend/database/galaxy_ai_tools.db')
+    parser.add_argument('--db', default='/opt/biomate/backend/database/galaxy_ai_tools.db')
     parser.add_argument('--batch-size', type=int, default=50, help='Tools per batch')
     parser.add_argument('--parallel-batches', type=int, default=1, help='Number of parallel batches')
     parser.add_argument('--workers-per-batch', type=int, default=10, help='Concurrent API calls per batch')
