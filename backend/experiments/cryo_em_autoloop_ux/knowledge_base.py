@@ -33,7 +33,7 @@ class KnowledgeEntry:
     """
     One piece of knowledge supporting a parameter tuning decision.
 
-    source_file : Path relative to /home/yzhang/biomate/ of the BioMate
+    source_file : Path relative to the repo root of the BioMate
                   skill document that contains this claim.
     source_text : Exact text copied from that file (no paraphrasing).
     paper_ref   : Short citation of the underlying publication.

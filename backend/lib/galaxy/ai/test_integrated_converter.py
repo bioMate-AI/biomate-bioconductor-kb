@@ -39,8 +39,10 @@ def test_galaxy_to_nextflow_conversion():
     print("=" * 80)
     print()
 
+    # Derive paths from this file's location so the test works in any checkout.
+    backend_root = Path(__file__).resolve().parents[3]
     # 1. Load Galaxy workflow
-    galaxy_workflow_path = Path("/home/yzhang/biomate/backend/galaxy_workflows_reformatted/quantify_pseudo_alignment.ga")
+    galaxy_workflow_path = backend_root / "galaxy_workflows_reformatted" / "quantify_pseudo_alignment.ga"
 
     if not galaxy_workflow_path.exists():
         print(f"❌ Galaxy workflow not found: {galaxy_workflow_path}")
@@ -65,8 +67,8 @@ def test_galaxy_to_nextflow_conversion():
     print("🔄 Converting BUWF → Nextflow with multi-source dependencies...")
 
     # Initialize converter with paths for enrichment
-    nfcore_base = Path("/home/yzhang/biomate/backend/nf-core-workflows")
-    galaxy_tools = Path("/home/yzhang/biomate/backend/database/shed_tools")
+    nfcore_base = backend_root / "nf-core-workflows"
+    galaxy_tools = backend_root / "database" / "shed_tools"
 
     nextflow_converter = UnifiedToNextflowConverter(
         nfcore_base_dir=nfcore_base if nfcore_base.exists() else None,
