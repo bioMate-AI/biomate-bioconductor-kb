@@ -3,7 +3,7 @@ E2E Playwright tests for the CryoEM Auto-Loop standalone UI (http://localhost:77
 
 These tests run against the standalone server.py — NOT BioMate.
 Start the server before running:
-    cd /home/yzhang/biomate/backend/experiments
+    cd <repo_root>/backend/experiments
     python -m cryo_em_autoloop_ux.server
 
 Run:
