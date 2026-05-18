@@ -197,32 +197,33 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       args = [`/work/${scriptName}`];
     }
 
-    // Execute inside an ephemeral biomate-biotools container.
-    // baseDir is bind-mounted at /work so input/, output/ and the script are visible.
-    // --network=none isolates the sandbox; --memory/--cpus cap resource usage.
-    // --user matches host UID so output files are owned by the frontend node user.
+    // Sandbox backend selection:
+    //   - RUN_CODE_BACKEND_URL set → POST script+baseDir to a sidecar HTTP service
+    //     (production: no docker socket in the frontend container)
+    //   - else → spawn ephemeral `docker run` against the host socket (dev only)
+    const sidecarUrl = process.env.RUN_CODE_BACKEND_URL;
     const uid = (process.getuid?.() ?? 1000);
     const gid = (process.getgid?.() ?? 1000);
     const sandboxImage = process.env.RUN_CODE_IMAGE || 'biomate-biotools:1';
-    const dockerArgs = [
-      'run', '--rm',
-      '--network=none',
-      '--memory=2g', '--cpus=2',
-      '--user', `${uid}:${gid}`,
-      '-v', `${baseDir}:/work`,
-      '-w', '/work/output',
-      '-e', `DATA_DIR=${containerData}`,
-      '-e', `OUTPUT_DIR=${containerOutput}`,
-      '-e', 'HOME=/tmp',
-      sandboxImage,
-      interpreter,
-      ...args,
-    ];
 
-    const result = await new Promise<{ stdout: string; stderr: string; exitCode: number }>(
+    const runViaDocker = () => new Promise<{ stdout: string; stderr: string; exitCode: number }>(
       (resolve) => {
         let stdout = '';
         let stderr = '';
+        const dockerArgs = [
+          'run', '--rm',
+          '--network=none',
+          '--memory=2g', '--cpus=2',
+          '--user', `${uid}:${gid}`,
+          '-v', `${baseDir}:/work`,
+          '-w', '/work/output',
+          '-e', `DATA_DIR=${containerData}`,
+          '-e', `OUTPUT_DIR=${containerOutput}`,
+          '-e', 'HOME=/tmp',
+          sandboxImage,
+          interpreter,
+          ...args,
+        ];
         const child = spawn('docker', dockerArgs, { timeout: timeoutMs });
         child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
         child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
@@ -234,6 +235,53 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         });
       }
     );
+
+    const runViaSidecar = async (url: string) => {
+      // Sidecar contract: POST <url>/run with JSON body
+      // { baseDir, interpreter, scriptPath: <container path>, image, timeoutSeconds,
+      //   env: { DATA_DIR, OUTPUT_DIR, HOME }, network: 'none', memory: '2g', cpus: 2,
+      //   user: 'uid:gid' }
+      // Returns { stdout, stderr, exitCode }
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), timeoutMs + 5_000);
+      try {
+        const resp = await fetch(`${url.replace(/\/$/, '')}/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.RUN_CODE_BACKEND_TOKEN ? { 'Authorization': `Bearer ${process.env.RUN_CODE_BACKEND_TOKEN}` } : {}),
+          },
+          body: JSON.stringify({
+            baseDir,
+            interpreter,
+            scriptPath: args[0],
+            image: sandboxImage,
+            timeoutSeconds: Math.floor(timeoutMs / 1000),
+            network: 'none',
+            memory: '2g',
+            cpus: 2,
+            user: `${uid}:${gid}`,
+            env: { DATA_DIR: containerData, OUTPUT_DIR: containerOutput, HOME: '/tmp' },
+          }),
+          signal: controller.signal,
+        });
+        if (!resp.ok) {
+          return { stdout: '', stderr: `[sidecar error: HTTP ${resp.status}]`, exitCode: 1 };
+        }
+        const body: any = await resp.json();
+        return {
+          stdout: String(body.stdout ?? '').slice(0, 8000),
+          stderr: String(body.stderr ?? '').slice(0, 4000),
+          exitCode: Number(body.exitCode ?? 1),
+        };
+      } catch (err: any) {
+        return { stdout: '', stderr: `[sidecar fetch error: ${err?.message || err}]`, exitCode: 1 };
+      } finally {
+        clearTimeout(t);
+      }
+    };
+
+    const result = sidecarUrl ? await runViaSidecar(sidecarUrl) : await runViaDocker();
 
     const output_files = await scanOutputDir(outputDir);
     const duration_ms = Date.now() - start;
