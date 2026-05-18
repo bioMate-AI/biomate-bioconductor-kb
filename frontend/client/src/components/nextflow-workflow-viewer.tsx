@@ -2547,11 +2547,11 @@ export function NextflowWorkflowViewer({
             </div>
           )}
 
-          {invocationId && showResults && (
+          {(invocationId || runId) && showResults && (
             <div style={{ padding: '8px 0 0' }}>
               <div style={{ padding: '0 18px 6px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>Output Results</div>
               <ChatOutputAttachments
-                invocationId={invocationId}
+                invocationId={invocationId || runId || ''}
                 sessionId={sessionId}
                 runId={runId}
                 executionStatus={status}
