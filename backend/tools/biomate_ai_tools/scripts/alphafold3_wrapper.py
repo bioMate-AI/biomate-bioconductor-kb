@@ -4,7 +4,7 @@
 AlphaFold 3 predicts structures of biomolecular complexes.
 Officially supports only A100/H100 - GB10 compatibility needs testing.
 
-Local repo: /home/yzhang/biomate/tools_repos/alphafold3
+Local repo: /opt/biomate/tools_repos/alphafold3
 """
 import argparse
 import json
@@ -13,8 +13,8 @@ import subprocess
 import sys
 
 # AlphaFold 3 installation directory
-AF3_DIR = os.environ.get("ALPHAFOLD3_DIR", "/home/yzhang/biomate/tools_repos/alphafold3")
-AF3_DATA = os.environ.get("ALPHAFOLD3_DATA", "/home/yzhang/biomate/data/alphafold3")
+AF3_DIR = os.environ.get("ALPHAFOLD3_DIR", "/opt/biomate/tools_repos/alphafold3")
+AF3_DATA = os.environ.get("ALPHAFOLD3_DATA", "/opt/biomate/data/alphafold3")
 
 def run_prediction(args):
     """Run AlphaFold 3 structure prediction locally."""

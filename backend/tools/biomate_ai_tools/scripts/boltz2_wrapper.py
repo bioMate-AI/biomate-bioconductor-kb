@@ -4,7 +4,7 @@
 Boltz-2 is a biomolecular foundation model for structure prediction.
 Requires: 48+ GB GPU VRAM (GB10 with 120GB unified memory is sufficient)
 
-Local repo: /home/yzhang/biomate/tools_repos/boltz
+Local repo: /opt/biomate/tools_repos/boltz
 """
 import argparse
 import os
@@ -13,7 +13,7 @@ import sys
 import yaml
 
 # Boltz installation directory
-BOLTZ_DIR = os.environ.get("BOLTZ_DIR", "/home/yzhang/biomate/tools_repos/boltz")
+BOLTZ_DIR = os.environ.get("BOLTZ_DIR", "/opt/biomate/tools_repos/boltz")
 
 def run_prediction(args):
     """Run Boltz-2 structure prediction locally."""

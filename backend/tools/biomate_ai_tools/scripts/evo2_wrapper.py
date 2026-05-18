@@ -4,7 +4,7 @@
 Evo 2 is a 40B parameter DNA foundation model trained on 9 trillion nucleotides.
 WARNING: Low accuracy reported on Blackwell hardware (GB10) - use 7B model instead!
 
-Local repo: /home/yzhang/biomate/tools_repos/evo2
+Local repo: /opt/biomate/tools_repos/evo2
 """
 import argparse
 import os
@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 # Evo 2 installation directory
-EVO2_DIR = os.environ.get("EVO2_DIR", "/home/yzhang/biomate/tools_repos/evo2")
+EVO2_DIR = os.environ.get("EVO2_DIR", "/opt/biomate/tools_repos/evo2")
 
 def run_generation(args):
     """Run Evo 2 DNA generation."""

@@ -47,7 +47,7 @@ MODELS = {
 # Base model directory
 DEFAULT_MODEL_DIR = os.environ.get(
     "BIOMATE_MODELS_DIR",
-    "/home/yzhang/biomate/models"
+    "/opt/biomate/models"
 )
 
 

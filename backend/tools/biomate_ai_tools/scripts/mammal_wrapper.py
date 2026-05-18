@@ -12,7 +12,7 @@ import os
 import sys
 
 # MAMMAL model directory
-MODEL_DIR = os.environ.get("MAMMAL_MODEL_DIR", "/home/yzhang/biomate/models/mammal")
+MODEL_DIR = os.environ.get("MAMMAL_MODEL_DIR", "/opt/biomate/models/mammal")
 
 def read_fasta(filepath):
     """Read sequences from FASTA file."""

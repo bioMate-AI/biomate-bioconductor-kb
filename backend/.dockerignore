@@ -42,6 +42,17 @@ htmlcov/
 # Database (keep structure, not data)
 database/*.sqlite
 database/*.db
+# Local-dev runtime artifacts under database/ that contain absolute dev paths
+# (supervisord configs, compiled Mako templates, tmp reports). Galaxy/Gravity
+# regenerates these at container startup; they must not be baked into the image.
+database/cache/
+database/gravity/
+database/tmp/
+
+# Dev-machine helper scripts (run on host before container start) — contain
+# host-absolute paths and aren't part of the running app.
+start_backend.sh
+docker/
 
 # Logs
 logs/*.log
@@ -60,6 +71,10 @@ Thumbs.db
 # biomni_workflows/galaxy/tests/) in the image with dev paths intact.
 tests/
 **/tests/
+# Belt-and-suspenders explicit paths for nested tests dirs that ** glob may
+# miss depending on BuildKit version.
+biomni_workflows/galaxy/tests/
+biomni_workflows/**/tests/
 
 # Research / experimental code — not part of the production runtime.
 # Contains absolute dev paths (e.g. /home/yzhang/biomate/...) by design;

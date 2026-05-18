@@ -4,7 +4,7 @@
 DrugCLIP is a contrastive learning framework for ultra-fast virtual screening.
 10 million times faster than traditional docking methods.
 
-Local repo: /home/yzhang/biomate/tools_repos/DrugCLIP
+Local repo: /opt/biomate/tools_repos/DrugCLIP
 """
 import argparse
 import os
@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 # DrugCLIP installation directory
-DRUGCLIP_DIR = os.environ.get("DRUGCLIP_DIR", "/home/yzhang/biomate/tools_repos/DrugCLIP")
+DRUGCLIP_DIR = os.environ.get("DRUGCLIP_DIR", "/opt/biomate/tools_repos/DrugCLIP")
 
 def run_screening(args):
     """Run DrugCLIP virtual screening."""

@@ -14,7 +14,7 @@ import os
 import sys
 
 # OmniGenome model directory
-MODEL_DIR = os.environ.get("OMNIGENOME_MODEL_DIR", "/home/yzhang/biomate/models/omnigenome")
+MODEL_DIR = os.environ.get("OMNIGENOME_MODEL_DIR", "/opt/biomate/models/omnigenome")
 
 def read_fasta(filepath):
     """Read sequences from FASTA file."""
