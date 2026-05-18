@@ -68,6 +68,36 @@ ec2_scp() {
 # Layer 1: Frontend (full Docker rebuild)
 # ---------------------------------------------------------------------------
 
+apply_postgres_migrations() {
+  # Apply any new frontend/migrations/*.sql to biomate-dev-postgres.
+  # Idempotent (each migration uses IF NOT EXISTS / IF EXISTS).
+  # Runs BEFORE frontend deploy so schema is ready when the new bundle starts.
+  log "[pg] Applying frontend/migrations/*.sql to biomate-dev-postgres..."
+  local migrations_dir="$REPO_ROOT/frontend/migrations"
+  if [[ ! -d "$migrations_dir" ]]; then
+    log "[pg] No migrations dir at $migrations_dir — skipping"
+    return 0
+  fi
+  local tar_file=/tmp/biomate_pg_migrations.tar.gz
+  tar -czf "$tar_file" -C "$REPO_ROOT" frontend/migrations 2>/dev/null
+  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/pg_migrations.tar.gz"
+  ec2_ssh '
+    set -e
+    rm -rf /tmp/pg_migrations && mkdir -p /tmp/pg_migrations
+    tar -xzf /tmp/pg_migrations.tar.gz -C /tmp/pg_migrations
+    docker cp /tmp/pg_migrations/frontend/migrations biomate-dev-postgres:/tmp/migrations
+    docker exec biomate-dev-postgres bash -c "
+      set -e
+      cd /tmp/migrations
+      for f in \$(ls *.sql | sort); do
+        echo \"[pg] applying \$f\"
+        psql -U biomate -d biomate -v ON_ERROR_STOP=1 -f \$f >/dev/null
+      done
+    " 2>&1 | tail -20
+  '
+  log "[pg] Migrations applied"
+}
+
 deploy_frontend() {
   log "[frontend] Building archive..."
   local tar_file="/tmp/biomate_frontend_sync.tar.gz"
@@ -400,6 +430,9 @@ do_sync() {
   # Only restart Galaxy when backend Python changes — .nf files don't require Galaxy restart
   $do_backend && restart_galaxy
   $do_db        && deploy_databases
+  # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
+  # storage layer never hits a missing column on the new schema.
+  $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
   $do_marketing && deploy_marketing
 
