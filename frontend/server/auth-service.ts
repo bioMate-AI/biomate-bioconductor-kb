@@ -120,12 +120,12 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
 
     // Calculate trial end date — invite code overrides take precedence.
-    // Defaults (14 days / professional) for public trial users.
+    // Defaults (14 days / premium) for public trial users.
     // Invite codes can override for extended trials or different tiers.
     const now = new Date();
     const trialDays = resolvedCode?.trialDays ?? 14;
     const trialEndsAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
-    const subscriptionTier = resolvedCode?.subscriptionTier ?? 'professional';
+    const subscriptionTier = resolvedCode?.subscriptionTier ?? 'premium';
 
     // Run user creation + invite code recording in a single transaction to prevent
     // TOCTOU races: re-check usedCount inside the transaction before committing.
