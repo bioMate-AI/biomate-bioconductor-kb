@@ -49,7 +49,7 @@ Three reasons we don't copy into `frontend/client/src/` yet:
 3. Add a feature flag (`BIOMATE_RESEARCH_AGENT_<SURFACE>=1`) so the new
    path is opt-in until proven.
 4. Re-run the Playwright suite + the 5 use-case tutorial scenarios
-   listed in `02_TUTORIAL_USE_CASE_COVERAGE.md`.
+   listed in `docs/03_USE_CASE_BEHAVIOR_SPECS.md`.
 5. Sync to dev EC2; verify the specific surface against the live data
    stream.
 
