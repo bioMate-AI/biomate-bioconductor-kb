@@ -115,7 +115,7 @@ jobs:
           # Standard container service-user paths (appuser, ubuntu, runner, etc.)
           # used as deliberate docker mount targets or in vendored configs
           # are explicitly allowed.
-          ALLOWED='/home/(appuser|ubuntu|runner|nate|playwright|sbx_user|jovyan)/'
+          ALLOWED='/home/(appuser|ubuntu|runner|nate|playwright|sbx_user|jovyan|john|documentation)/'
           HITS=$(docker run --rm --entrypoint sh \
               ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
               -c 'grep -rIE "/home/[a-z]+/" /app \

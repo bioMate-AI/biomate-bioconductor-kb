@@ -141,13 +141,21 @@ jobs:
           # service-user paths used as deliberate docker mount targets — e.g.
           # /home/appuser/input in DiffDock invocations, /home/ubuntu/* in
           # vendored CI configs — are explicitly allowed.
-          ALLOWED='/home/(appuser|ubuntu|runner|nate|playwright|sbx_user|jovyan)/'
+          # Allowlist: container service users (deliberate docker mount targets) +
+          # docstring/comment example users from vendored upstream Galaxy code
+          # (john in brew_exts.py example PATHs, documentation in onedata URL).
+          # Real developer paths look like /home/yzhang/, /home/<personal-name>/
+          # which won't collide with this allowlist.
+          ALLOWED='/home/(appuser|ubuntu|runner|nate|playwright|sbx_user|jovyan|john|documentation)/'
+          # Skip the vendored upstream Galaxy framework path explicitly (it's
+          # third-party content under /app/lib/galaxy/ that we don't control).
           HITS=$(docker run --rm --entrypoint sh \
               ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
               -c 'grep -rIE "/home/[a-z]+/" /app \
                     --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" \
                     --exclude-dir=site-packages --exclude-dir=.venv --exclude-dir=node_modules \
                     2>/dev/null | grep -v "^Binary"' \
+                  | grep -vE "^/app/lib/galaxy/" \
                   | grep -vE "$ALLOWED" \
                   | head -5 || true)
           if [[ -n "$HITS" ]]; then
