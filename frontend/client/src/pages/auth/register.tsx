@@ -275,10 +275,10 @@ export default function RegisterPage() {
                 <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold">Start your 7-day free trial</CardTitle>
+            <CardTitle className="text-2xl font-bold">Start your 14-day Premium trial</CardTitle>
             <CardDescription>
-              Add a payment method to activate your trial.<br />
-              You won't be charged until the trial ends.
+              Get full Premium access with included credits.<br />
+              No payment required during trial.
             </CardDescription>
           </CardHeader>
 
@@ -286,9 +286,10 @@ export default function RegisterPage() {
             {/* Trial benefits */}
             <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
               {[
-                "Full access to all AI workflows",
-                "Up to $5 compute credits included",
-                "Cancel anytime before trial ends",
+                "Full Premium features for 14 days",
+                "Generous compute credits included",
+                "Priority compute resources",
+                "No payment required during trial",
               ].map((benefit) => (
                 <div key={benefit} className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-green-500 shrink-0" />
@@ -300,12 +301,12 @@ export default function RegisterPage() {
             {/* Plan + price summary */}
             <div className="rounded-lg border p-4 flex items-center justify-between">
               <div>
-                <p className="font-medium">Academic Plan</p>
+                <p className="font-medium">Premium Plan</p>
                 <p className="text-sm text-muted-foreground">$29 / month after trial</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-lg">$0</p>
-                <p className="text-xs text-muted-foreground">for 7 days</p>
+                <p className="text-xs text-muted-foreground">for 14 days</p>
               </div>
             </div>
 
@@ -345,7 +346,7 @@ export default function RegisterPage() {
             Create an account
           </CardTitle>
           <CardDescription className="text-center">
-            Start your 7-day free trial of BioMate
+            Get 14 days of Premium access with included credits
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -120,10 +120,10 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
 
     // Calculate trial end date — invite code overrides take precedence.
-    // Defaults (30 days / professional) are tuned for invited beta users;
-    // when REQUIRE_INVITE_CODE=false and no code is supplied these still apply.
+    // Defaults (14 days / professional) for public trial users.
+    // Invite codes can override for extended trials or different tiers.
     const now = new Date();
-    const trialDays = resolvedCode?.trialDays ?? 30;
+    const trialDays = resolvedCode?.trialDays ?? 14;
     const trialEndsAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
     const subscriptionTier = resolvedCode?.subscriptionTier ?? 'professional';
 
