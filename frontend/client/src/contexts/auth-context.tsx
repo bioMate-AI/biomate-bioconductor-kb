@@ -33,7 +33,7 @@ function mapResponseToUser(data: any): User {
     email: data.user.email,
     name: data.user.fullName,
     role: data.subscription?.subscriptionTier === 'enterprise' ? 'enterprise' :
-          data.subscription?.subscriptionTier === 'professional' ? 'pro' :
+          data.subscription?.subscriptionTier === 'premium' ? 'pro' :
           data.subscription?.subscriptionTier === 'team' ? 'team' : 'free',
     subscription: data.subscription ? {
       plan: data.subscription.subscriptionTier || 'Free',

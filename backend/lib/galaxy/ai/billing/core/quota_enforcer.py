@@ -31,8 +31,8 @@ calculator = CostCalculator()
 # does not declare a fixed amount_cents value.
 DEFAULT_PLAN_LIMITS: dict[str, float] = {
     "free":       5.00,
-    "base":      50.00,    # $7/week ≈ $30/month; give $50 buffer
-    "basic":     50.00,
+    "base":      25.00,    # 14-day trial budget
+    "basic":     25.00,    # 14-day trial budget (was $50 — reduced 2026-05-18)
     "pro":      500.00,
     "test":     float("inf"),  # test plan: no quota, unlimited usage tracking
     "enterprise": float("inf"),  # custom limits set per customer in Lago
