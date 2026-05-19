@@ -62,14 +62,37 @@ business/marketing/blog_posts/
 
 ## Pending
 
-- Apply two-version + draw.io treatment to posts 1, 8, 9 (currently
-  long-form only). Waiting on user sign-off on post 5 first.
-- Confirm `biomate.ai/try` is the correct CTA URL.
+- Confirm `biomate.ai/try` is the correct CTA URL. If different, sed
+  across all 8 markdown files in `business/marketing/blog_posts/`.
 - Render `figures/*.drawio.xml` to PNG/SVG at the sizes in
   `figures/README.md` before publishing.
 - Decide host for the long-form essays (Substack vs. on-domain blog).
+- User to review readability of posts 1/8/9 substack versions and the
+  short LinkedIn versions of all four posts.
 
-## Commit
+## Session 2 — 2026-05-19
 
-`27eef3f87` on `integration/next-phase`, pushed to
-`origin/integration/next-phase` on 2026-05-18.
+Applied the two-version + draw.io treatment to posts 1, 8, 9:
+
+- Renamed `post_{1,8,9}_*.md` → `post_{1,8,9}_substack.md`.
+- Added figure callouts + trial link to each substack.
+- Lightly restructured post 1's opening paragraph into a bullet list
+  for scannability (the eight-specialty walk-through).
+- Created LinkedIn feed posts (~2,500 chars each) for posts 1, 8, 9.
+- Created three new draw.io figures:
+  - `post_1_fragmentation_map.drawio.xml` — 8 specialty silos with the
+    human-handoff wall and BioMate orchestration layer underneath.
+  - `post_8_rag_stack.drawio.xml` — 4-layer evidence-grounded
+    architecture from user query through curated sources to grounded
+    response.
+  - `post_9_options_matrix.drawio.xml` — 4 LLM build options as a
+    cost/control gradient with "default" (option 1) and "exception"
+    (option 3 = regulatory LLM) callouts.
+- Updated `figures/README.md` with all five current figures.
+
+## Commits
+
+- `27eef3f87` (2026-05-18) — initial 4 posts + post 5 two versions + 2
+  figures
+- `45b6a38e2` (2026-05-18) — this session doc
+- Session 2 (2026-05-19) — pending commit at end of this session

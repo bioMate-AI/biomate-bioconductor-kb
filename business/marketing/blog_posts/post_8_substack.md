@@ -63,6 +63,9 @@ These are *curated, versioned, citeable* sources only. Open-web retrieval is off
 
 **4. Outlier detection and self-consistency checks.** When retrieval returns multiple sources with conflicting numbers, the system flags the conflict rather than silently picking one. A [recent approach using peer-context outlier detection](https://arxiv.org/pdf/2604.01461) achieved up to 98% precision in catching scientific hallucinations by comparing extracted claims against validated peer information across the retrieved corpus. This is the layer that catches subtle failures the user wouldn't notice — like a reported binding affinity that doesn't match what three other papers report for the same compound under the same conditions, or a dose-response curve fit that one source publishes with a slope that's an outlier across the literature.
 
+> 📊 **Figure 1 — The four-layer evidence-grounded stack.** Source: `figures/post_8_rag_stack.drawio.xml`
+> Open in [diagrams.net](https://app.diagrams.net), export PNG at 1200×800.
+
 ## The architecture in one paragraph
 
 User query → intent classification → query expansion with synonym resolution against curated ontologies (ChEBI for compounds, MeSH for biomedical concepts, MedDRA for adverse events, MONDO for diseases) → domain routing to the appropriate knowledge sources → hybrid retrieval across curated KBs with metadata filters → reranking by domain-tuned cross-encoder → grounded generation with mandatory inline citations → outlier and self-consistency checks → response with citation-linked claims and an explicit "not in knowledge base" marker on any unsupported assertion.
@@ -100,6 +103,8 @@ Vanilla LLMs fail silently. They produce fluent, confident, often-wrong answers 
 Evidence-grounded systems with curated sources, mandatory citations, and outlier detection don't eliminate hallucination — but they make it observable, traceable, and progressively reducible. That's the difference between a tool you can deploy in a regulated environment and one you can't.
 
 This is what we mean when we say BioMate's moat is the intelligence layer, not the underlying model. Anyone can call GPT-5 or Claude or Llama. What's hard is the curation, the metadata-aware retrieval, the citation discipline, and the outlier detection that turns a generic model into something a DMPK lead, a CMC director, or a clinical pharmacology consultant can actually rely on.
+
+> 🧪 **Try it.** BioMate is in open trial — bring a question that needs to be grounded in FDA guidance, PubMed, or UniProt and see the citation-linked output: [**biomate.ai/try**](https://biomate.ai/try)
 
 ---
 

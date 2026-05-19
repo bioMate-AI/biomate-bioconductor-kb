@@ -4,11 +4,25 @@
 
 ---
 
-Pick any modern biotech program and trace it end-to-end. A target hypothesis comes out of a single-cell RNA-seq experiment in a discovery lab. The validation cascade goes through a structural biology group running cryo-EM and AlphaFold. Hit identification runs through a chemistry team using docking and generative models. ADMET screening sits with a DMPK group on a different floor. Pharmacokinetic modeling lives in a clinical pharmacology team that may not even be in the same building. Phase 1 dose escalation runs through a biostatistics consultancy. Regulatory writing happens at a CRO. Manufacturing scale-up is a fourth vendor.
+Pick any modern biotech program and trace it end-to-end:
 
-Eight specialties. Eight software stacks. Eight file formats. Eight queues of people waiting for the one person who knows how to run each pipeline.
+- Target hypothesis → discovery lab running single-cell RNA-seq
+- Validation → structural biology group running cryo-EM + AlphaFold
+- Hit identification → chemistry team with docking + generative models
+- ADMET screening → DMPK group on a different floor
+- Pharmacokinetics → clinical pharmacology team in a different building
+- Phase 1 dose escalation → biostatistics consultancy
+- Regulatory writing → CRO
+- Manufacturing scale-up → fourth vendor
 
-This isn't because the science is fragmented. Biology is one system. It's because the *tools* are fragmented — forty years of specialized software, each excellent at one thing, almost none of it designed to compose with the rest. The integration layer is human, and the humans are expensive, slow, and disappearing into industry the moment they get good at it.
+**Eight specialties. Eight software stacks. Eight file formats. Eight queues of people waiting for the one person who knows how to run each pipeline.**
+
+This isn't because the science is fragmented. Biology is one system.
+
+It's because the *tools* are fragmented — forty years of specialized software, each excellent at one thing, almost none of it designed to compose with the rest. The integration layer is human, and the humans are expensive, slow, and disappearing into industry the moment they get good at it.
+
+> 📊 **Figure 1 — The fragmentation map.** Source: `figures/post_1_fragmentation_map.drawio.xml`
+> Open in [diagrams.net](https://app.diagrams.net), export PNG at 1200×700.
 
 The estimates vary, but the consensus is consistent: **the majority of life science professionals lack the coding and pipeline skills to operate the tools their work depends on.** Forty years of biotech software development has produced an astonishing substrate — Galaxy's 8,000+ analyses, Bioconductor's 2,000+ packages, the full nf-core catalog (sarek, rnaseq, atacseq, chipseq, differentialabundance, proteomicslfq, raredisease, scrnaseq, scdownstream, and a hundred more), AutoDock, CryoSPARC, RELION, Nextflow, the entire Python and R scientific stacks — and the people who need them most can't use them without a translator.
 
@@ -78,6 +92,8 @@ Since this is the first post, it's worth being concrete about scope. There's a l
 - **We're not yet a wet-lab automation layer.** Robotics integration is on the roadmap; today the integration is at the data and analysis layer, not the bench.
 
 That's the actual scope, today. The newsletter will be specific about where we extend and where we don't.
+
+> 🧪 **Try it.** BioMate is in open trial — bring an RNA-seq batch, an ADMET hit series, a cryo-EM dataset, or a PBPK study and watch the orchestration layer work end-to-end: [**biomate.ai/try**](https://biomate.ai/try)
 
 ## Who this is for
 

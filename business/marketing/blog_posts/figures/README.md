@@ -29,7 +29,10 @@ For BioMate marketing we standardize on **draw.io XML** because it's plain text 
 
 ## Current figures
 
-| File                              | Used in              | Purpose                            |
-|-----------------------------------|----------------------|------------------------------------|
-| `post_5_triangle.drawio.xml`      | Substack + LinkedIn  | Prediction → Simulation → Validation closed loop |
-| `post_5_benefits_stack.drawio.xml`| Substack             | Single program → Portfolio → Business outcomes |
+| File                                | Used in              | Purpose                            |
+|-------------------------------------|----------------------|------------------------------------|
+| `post_1_fragmentation_map.drawio.xml`| Substack + LinkedIn  | 8 specialty silos → BioMate orchestration layer |
+| `post_5_triangle.drawio.xml`        | Substack + LinkedIn  | Prediction → Simulation → Validation closed loop |
+| `post_5_benefits_stack.drawio.xml`  | Substack             | Single program → Portfolio → Business outcomes |
+| `post_8_rag_stack.drawio.xml`       | Substack + LinkedIn  | Four-layer evidence-grounded RAG architecture |
+| `post_9_options_matrix.drawio.xml`  | Substack + LinkedIn  | 4 LLM build options + where BioMate sits (default + exception) |

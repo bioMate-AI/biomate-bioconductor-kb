@@ -41,6 +41,9 @@ Money matters, especially at seed/Series-A stage. Approximate compute costs as o
 
 For a young company, option 4 is off the table. Option 3 is on the edge of affordable but represents a large bet that the resulting capability differential is worth the time and capital. Options 1 and 2 are the realistic candidates for most workloads.
 
+> 📊 **Figure 1 — The four options matrix, and where BioMate sits.** Source: `figures/post_9_options_matrix.drawio.xml`
+> Open in [diagrams.net](https://app.diagrams.net), export PNG at 1200×800.
+
 ## Where we currently land — and where we made the exception
 
 For BioMate's general orchestration, my working bet is **prompt + RAG on a frontier model as the workhorse, with selective fine-tuning for narrow high-value tasks, and one continued-pre-training project for a specific high-value domain.** Here's the reasoning:
@@ -107,6 +110,8 @@ To compress all of this into something actionable: **build the scaffolding first
 The exception, when you make it, should be principled. For us, that's regulatory writing — a domain where continued pre-training pays for itself through output quality, on-prem deployability, and unit economics. For other teams, it might be a different workload. But the default should be scaffolding; the from-scratch foundation model is the right bet for a small number of teams with very different problem shapes than ours.
 
 This may be wrong, and I'm open to being convinced otherwise. Reply to this post or email me — I read everything.
+
+> 🧪 **Try the orchestration layer.** BioMate is in open trial — bring a workflow and see what frontier + scaffolding can do without a custom foundation model: [**biomate.ai/try**](https://biomate.ai/try)
 
 ---
 
