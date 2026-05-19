@@ -92,15 +92,31 @@
   }
 
   // ── Event factory ──
+  // Returns a plain object that recomputes friendly_message on read,
+  // so spread call sites that attach `technical` after the spread still
+  // get a properly-filled string. Explicit overrides (e.g.
+  // `{ ...e('kind'), friendly_message: 'custom' }`) win because the
+  // spread sets friendly_message to its current value (an accessor read)
+  // and the override then replaces it as a plain data property.
   function makeEvent(kind, invocation_id, technical) {
-    return {
+    const ev = {
       kind,
       invocation_id,
-      friendly_message: renderFriendly(kind, technical),
       speaker: deriveSpeaker(kind),
       ts: Date.now() / 1000,
       technical: technical || {},
     };
+    // Non-enumerable getter so spread `{...e('K'), technical:{…}}` does NOT
+    // copy a stale friendly_message. The mock emitter computes the final
+    // string at send time using the post-spread technical block. Explicit
+    // overrides (`{ ...e('K'), friendly_message: 'custom' }`) become own
+    // enumerable properties and win at emit time.
+    Object.defineProperty(ev, 'friendly_message', {
+      enumerable: false,
+      configurable: true,
+      get() { return renderFriendly(this.kind, this.technical); },
+    });
+    return ev;
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -445,6 +461,12 @@
         const [delayMs, event] = tape[i++];
         timer = setTimeout(() => {
           if (closed) return;
+          // Materialize friendly_message from the (now-final) technical block.
+          // Skip internal __* events and respect explicit overrides.
+          if (event && event.kind && event.kind[0] !== '_'
+              && !Object.prototype.hasOwnProperty.call(event, 'friendly_message')) {
+            event.friendly_message = renderFriendly(event.kind, event.technical || {});
+          }
           try { onEvent(event); } catch (e) { console.warn('[mock-sse] onEvent threw:', e); }
           next();
         }, Math.max(0, delayMs / speed));
