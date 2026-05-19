@@ -52,66 +52,30 @@ export function ChatOutputAttachments({
     isDownloadAll?: boolean
   } | null>(null)
 
-  // Outputs come from two endpoints with different code paths:
-  //   /api/workflows/runs/:id/outputs        — workflow-level, proxies to
-  //                                            /output_files with S3 listing +
-  //                                            presigned URLs (the working one)
-  //   /api/invocations/:id/outputs           — invocation-level, used to return []
-  // Try the workflow endpoint first (works for Nextflow/AWS Batch runs), fall back
-  // to invocation endpoint for legacy Galaxy-tool runs.
+  // PR 2 of outputs-consolidation (see
+  // docs/20260518_OUTPUTS_SERVICE_CONSOLIDATION_SPEC.md):
+  // Single canonical endpoint. The service handles all id flavors (runId,
+  // galaxyInvocationId, nextflowRunId), all S3 details (region, creds,
+  // presigning), and returns CanonicalOutput[] already in the shape this
+  // component expects. The old 50-line dual-fetch + normalization block
+  // was the consolidation target.
+  const outputsKey = runId || invocationId
   const { data: outputs = [], isLoading, refetch } = useQuery<OutputDataset[]>({
-    queryKey: ['outputs', runId, invocationId],
+    queryKey: ['outputs', outputsKey],
     queryFn: async () => {
-      const tryIds = [runId, invocationId].filter((x): x is string => !!x && typeof x === 'string')
-      if (tryIds.length === 0) return []
-      const seen = new Set<string>()
-      const merged: OutputDataset[] = []
-      for (const id of tryIds) {
-        // Workflow-level endpoint returns the canonical list with presigned URLs;
-        // the response shape may be `{ output_files: [...] }` or a bare array.
-        const wfPaths = [
-          `/api/workflows/runs/${id}/outputs`,
-          `/api/invocations/${id}/outputs`,
-        ]
-        for (const url of wfPaths) {
-          try {
-            const r = await fetch(url)
-            if (!r.ok) continue
-            const body = await r.json().catch(() => null)
-            const list: any[] = Array.isArray(body)
-              ? body
-              : (Array.isArray(body?.output_files) ? body.output_files : (Array.isArray(body?.outputs) ? body.outputs : []))
-            for (const o of list) {
-              const key = o?.id || o?.metadata?.s3Uri || o?.s3_uri || o?.name || o?.filename
-              if (!key || seen.has(key)) continue
-              seen.add(key)
-              // Normalize backend variants (output_files uses filename/s3_uri) into
-              // the OutputDataset shape the component expects.
-              const ext = String(o.extension || (o.filename || o.name || '').split('.').pop() || '').toLowerCase().replace(/^\./, '')
-              const densityExts = new Set(['mrc', 'mrcs', 'map', 'ccp4'])
-              const structureExts = new Set(['pdb', 'cif', 'mmcif', 'ent'])
-              const fileType = o.fileType
-                || (densityExts.has(ext) ? 'density_map'
-                  : structureExts.has(ext) ? 'structure'
-                  : 'binary')
-              merged.push({
-                ...o,
-                id: o.id || `${id}:${key}`,
-                name: o.name || o.filename || o.file_name || key,
-                extension: ext,
-                size: o.size ?? 0,
-                fileType,
-                metadata: o.metadata || { s3Uri: o.s3_uri },
-                isVisualizable: o.isVisualizable ?? true,
-                previewAvailable: o.previewAvailable ?? false,
-              } as OutputDataset)
-            }
-            if (merged.length > 0) break // found via this endpoint, no need to try the other
-          } catch { /* try next */ }
-        }
-        if (merged.length > 0) break
+      if (!outputsKey) return []
+      try {
+        const r = await fetch(`/api/runs/${encodeURIComponent(outputsKey)}/outputs`)
+        if (!r.ok) return []
+        const body = await r.json().catch(() => null)
+        const list: any[] = Array.isArray(body?.outputs) ? body.outputs : []
+        // CanonicalOutput is already shaped like OutputDataset (id, name,
+        // extension, size, fileType, metadata.s3Uri, …). One cast, no
+        // per-field translation, no dedup needed.
+        return list as OutputDataset[]
+      } catch {
+        return []
       }
-      return merged
     },
     refetchInterval: (query) => {
       const data = (query.state.data as OutputDataset[] | undefined) || []
@@ -120,7 +84,6 @@ export function ChatOutputAttachments({
       return false
     },
   })
-  const outputsKey = runId || invocationId
 
   useEffect(() => {
     if (outputs.length > 0) {
@@ -398,11 +361,14 @@ function OutputRenderer({ output, invocationId, runId, onDownload }: OutputRende
       return <StructureViewer output={output} />
     case 'density_map': {
       // MRC / MAP — orthogonal 2D slice viewer with contrast control.
-      // For S3-backed Nextflow outputs, proxy through step-file (works without auth).
+      // Prefer the canonical presigned downloadUrl (set by RunsOutputsService).
+      // Fall back to step-file proxy for legacy outputs that lack it.
+      const directUrl = (output as any).downloadUrl as string | undefined;
       const s3Uri = (output as any).metadata?.s3Uri as string | undefined;
-      const mrcSrc = s3Uri && runId
-        ? `/api/workflows/runs/${encodeURIComponent(runId)}/step-file?path=${encodeURIComponent(s3Uri)}&name=${encodeURIComponent(output.name)}`
-        : `/api/outputs/${output.id}/download`;
+      const mrcSrc = directUrl
+        || (s3Uri && runId
+          ? `/api/workflows/runs/${encodeURIComponent(runId)}/step-file?path=${encodeURIComponent(s3Uri)}&name=${encodeURIComponent(output.name)}`
+          : `/api/outputs/${output.id}/download`);
       return <DensityMapViewer src={mrcSrc} name={output.name} size={output.size ?? undefined} />;
     }
     case 'singlecell':
