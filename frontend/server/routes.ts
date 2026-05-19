@@ -4943,18 +4943,35 @@ ${paramLines || '(none recorded)'}`;
         credentialMap: credentialMap || undefined,
       };
 
+      // Preflight: if the user pasted a SMILES, hit PubChem live and inject
+      // the canonical compound info before the LLM sees the message. Closes
+      // the "BioMate: I don't have outbound internet" disclaimer behaviour.
+      // See frontend/server/services/smiles-prefetch.ts.
+      let promptedMessage = safeMessage;
+      try {
+        const { prefetchSmiles, renderPrefetchContext } = await import("./services/smiles-prefetch");
+        const hits = await prefetchSmiles(safeMessage);
+        if (hits.length > 0) {
+          const ctxBlock = renderPrefetchContext(hits);
+          promptedMessage = `${ctxBlock}\n\n${safeMessage}`;
+          console.log(`[chat-stream] PubChem prefetched ${hits.length} SMILES hit(s) before LLM call`);
+        }
+      } catch (e: any) {
+        console.warn(`[chat-stream] SMILES prefetch error (non-fatal): ${e?.message || e}`);
+      }
+
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
       // injects prior experience hints, and records interactions for future learning.
       const _streamStartTime = Date.now();
       const assistantResponse = memoryIntegration
         ? await memoryIntegration.processWithMemory(
-            safeMessage,
+            promptedMessage,
             enrichedContext as unknown as MemoryEnhancedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event)
           )
         : await galaxyAssistant.processMessage(
-            safeMessage,
+            promptedMessage,
             enrichedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event)
