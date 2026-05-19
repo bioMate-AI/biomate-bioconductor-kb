@@ -1,0 +1,717 @@
+{
+  "suiteId": "research_agent_v2_sandbox",
+  "generatedAt": "2026-05-19T19:59:12.165Z",
+  "passed": 25,
+  "total": 25,
+  "runs": [
+    {
+      "testId": "RA-1",
+      "startTs": 1779220458616,
+      "endTs": 1779220461479,
+      "assertions": [
+        {
+          "name": "SseAdapter present",
+          "passed": true
+        },
+        {
+          "name": "mock factory exposed",
+          "passed": true
+        },
+        {
+          "name": "real factory exposed",
+          "passed": true
+        },
+        {
+          "name": "tape keys include all 4",
+          "passed": true,
+          "note": "[\"drugscreen\",\"cryoem\",\"rnaseq\",\"variant\"]"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-1__loaded.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-2",
+      "startTs": 1779220461731,
+      "endTs": 1779220466225,
+      "assertions": [
+        {
+          "name": "thread title visible without ?live",
+          "passed": true
+        },
+        {
+          "name": "no SSE pill in tape mode",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-2__tape-mode.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-3",
+      "startTs": 1779220466409,
+      "endTs": 1779220470939,
+      "assertions": [
+        {
+          "name": "page renders despite bad scenario",
+          "passed": true
+        },
+        {
+          "name": "fell back to a valid scenario (some chat content)",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-3__bad-scenario.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-4",
+      "startTs": 1779220471130,
+      "endTs": 1779220473693,
+      "assertions": [
+        {
+          "name": "qc gate → qc",
+          "passed": true
+        },
+        {
+          "name": "autoloop → loop",
+          "passed": true
+        },
+        {
+          "name": "workflow.* → wf",
+          "passed": true
+        },
+        {
+          "name": "deepagent → agent",
+          "passed": true
+        },
+        {
+          "name": "plan → plan",
+          "passed": true
+        },
+        {
+          "name": "findings → find",
+          "passed": true
+        },
+        {
+          "name": "unknown → wf",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-5",
+      "startTs": 1779220473935,
+      "endTs": 1779220476330,
+      "assertions": [
+        {
+          "name": "phase_started filled",
+          "passed": true
+        },
+        {
+          "name": "phase_completed filled",
+          "passed": true
+        },
+        {
+          "name": "qc_warning filled",
+          "passed": true
+        },
+        {
+          "name": "qc_blocked filled",
+          "passed": true
+        },
+        {
+          "name": "autoloop filled",
+          "passed": true
+        },
+        {
+          "name": "completed filled",
+          "passed": true
+        },
+        {
+          "name": "submitted templated",
+          "passed": true
+        },
+        {
+          "name": "pilot started templated",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-6",
+      "startTs": 1779220476569,
+      "endTs": 1779220478945,
+      "assertions": [
+        {
+          "name": "friendly_message is a getter",
+          "passed": true
+        },
+        {
+          "name": "friendly_message is non-enumerable",
+          "passed": true
+        },
+        {
+          "name": "spread does NOT copy friendly_message",
+          "passed": true
+        },
+        {
+          "name": "no stale 'Step step…' carried",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-7",
+      "startTs": 1779220479196,
+      "endTs": 1779220483116,
+      "assertions": [
+        {
+          "name": "first status is 'connecting'",
+          "passed": true,
+          "note": "[{\"s\":\"connecting\",\"d\":\"/api/workflows/inv-bogus-7/events\"},{\"s\":\"error\",\"d\":{\"readyState\":2,\"urlAttempted\":\"/api/workflows/inv-bogus-7/events\"}},{\"s\":\"closed\"}]"
+        },
+        {
+          "name": "connecting carries URL",
+          "passed": true
+        },
+        {
+          "name": "error status follows since no backend",
+          "passed": true,
+          "note": "[{\"s\":\"connecting\",\"d\":\"/api/workflows/inv-bogus-7/events\"},{\"s\":\"error\",\"d\":{\"readyState\":2,\"urlAttempted\":\"/api/workflows/inv-bogus-7/events\"}},{\"s\":\"closed\"}]"
+        },
+        {
+          "name": "stream.url exposes endpoint",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-8",
+      "scenario": "drugscreen",
+      "startTs": 1779220483339,
+      "endTs": 1779220494184,
+      "assertions": [
+        {
+          "name": "5 plan items",
+          "passed": true,
+          "note": "total=5"
+        },
+        {
+          "name": "5 done at completion",
+          "passed": true,
+          "note": "done=5"
+        },
+        {
+          "name": "plan item contains: Ingest compounds",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: ADMET prediction",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: hERG gate",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: Ames + DILI gates",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: Composite ranking",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-8__drugscreen-plan-done.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-8",
+      "scenario": "cryosparc",
+      "startTs": 1779220494399,
+      "endTs": 1779220505402,
+      "assertions": [
+        {
+          "name": "5 plan items",
+          "passed": true,
+          "note": "total=5"
+        },
+        {
+          "name": "5 done at completion",
+          "passed": true,
+          "note": "done=5"
+        },
+        {
+          "name": "plan item contains: Motion Correction",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: Particle Picking",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: 2D Classification",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: 3D Reconstruction",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: Validation",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-8__cryosparc-plan-done.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-8",
+      "scenario": "rnaseq",
+      "startTs": 1779220505604,
+      "endTs": 1779220516078,
+      "assertions": [
+        {
+          "name": "5 plan items",
+          "passed": true,
+          "note": "total=5"
+        },
+        {
+          "name": "5 done at completion",
+          "passed": true,
+          "note": "done=5"
+        },
+        {
+          "name": "plan item contains: FastQC + trimming",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: STAR alignment",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: Salmon quantification",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: DESeq2",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: GO + pathway enrichment",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-8__rnaseq-plan-done.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-8",
+      "scenario": "variant",
+      "startTs": 1779220516288,
+      "endTs": 1779220526710,
+      "assertions": [
+        {
+          "name": "5 plan items",
+          "passed": true,
+          "note": "total=5"
+        },
+        {
+          "name": "5 done at completion",
+          "passed": true,
+          "note": "done=5"
+        },
+        {
+          "name": "plan item contains: Reference indexing",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: BWA-MEM2 alignment",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: BQSR recalibration",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: HaplotypeCaller",
+          "passed": true
+        },
+        {
+          "name": "plan item contains: VQSR + annotation",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-8__variant-plan-done.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-9",
+      "startTs": 1779220526876,
+      "endTs": 1779220535393,
+      "assertions": [
+        {
+          "name": "saw at least one mid-run 'running' item",
+          "passed": true
+        },
+        {
+          "name": "saw at least one partial-complete state",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-10",
+      "startTs": 1779220535588,
+      "endTs": 1779220547220,
+      "assertions": [
+        {
+          "name": "advisory warn surfaced",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-11",
+      "startTs": 1779220547423,
+      "endTs": 1779220557850,
+      "assertions": [
+        {
+          "name": "WF pill present",
+          "passed": true,
+          "note": "WF|AGENT|WF|QC|QC|QC|LOOP|WF|WF|WF|LOOP|WF|WF"
+        },
+        {
+          "name": "QC pill present",
+          "passed": true,
+          "note": "WF|AGENT|WF|QC|QC|QC|LOOP|WF|WF|WF|LOOP|WF|WF"
+        },
+        {
+          "name": "AGENT pill present",
+          "passed": true,
+          "note": "WF|AGENT|WF|QC|QC|QC|LOOP|WF|WF|WF|LOOP|WF|WF"
+        },
+        {
+          "name": "LOOP pill present",
+          "passed": true,
+          "note": "WF|AGENT|WF|QC|QC|QC|LOOP|WF|WF|WF|LOOP|WF|WF"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-11__speaker-pills.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-12",
+      "startTs": 1779220558055,
+      "endTs": 1779220575676,
+      "assertions": [
+        {
+          "name": "no 'Step step…' fallback",
+          "passed": true
+        },
+        {
+          "name": "no 'QC flagged metric.' fallback",
+          "passed": true
+        },
+        {
+          "name": "templated step text appears",
+          "passed": true
+        },
+        {
+          "name": "templated QC mapping_rate text",
+          "passed": true
+        },
+        {
+          "name": "templated completion text",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-12__templated-messages.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-13",
+      "startTs": 1779220575888,
+      "endTs": 1779220586434,
+      "assertions": [
+        {
+          "name": "collapse marker visible",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-13__collapse-marker.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-14",
+      "startTs": 1779220586632,
+      "endTs": 1779220626200,
+      "assertions": [
+        {
+          "name": "drugscreen: completion text filled",
+          "passed": true
+        },
+        {
+          "name": "cryosparc: completion text filled",
+          "passed": true
+        },
+        {
+          "name": "rnaseq: completion text filled",
+          "passed": true
+        },
+        {
+          "name": "variant: completion text filled",
+          "passed": true
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-15",
+      "startTs": 1779220626383,
+      "endTs": 1779220631479,
+      "assertions": [
+        {
+          "name": "pilot card title",
+          "passed": true
+        },
+        {
+          "name": "10000 sample size shown",
+          "passed": true
+        },
+        {
+          "name": "500 pilot subset shown",
+          "passed": true
+        },
+        {
+          "name": "fraction or '5%'",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-15__pilot-prompt.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-16",
+      "startTs": 1779220631654,
+      "endTs": 1779220639275,
+      "assertions": [
+        {
+          "name": "fail result shown",
+          "passed": true
+        },
+        {
+          "name": "hERG QC row",
+          "passed": true
+        },
+        {
+          "name": "Ames QC row",
+          "passed": true
+        },
+        {
+          "name": "DILI QC row (pass)",
+          "passed": true
+        },
+        {
+          "name": "suggestion contains logp_max",
+          "passed": true
+        },
+        {
+          "name": "suggestion contains mw_max_da",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-16__pilot-promotion.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-17",
+      "startTs": 1779220639484,
+      "endTs": 1779220651913,
+      "assertions": [
+        {
+          "name": "Run A / Run B headers",
+          "passed": true
+        },
+        {
+          "name": "hERG fail-rate row",
+          "passed": true
+        },
+        {
+          "name": "Ames fail-rate row",
+          "passed": true
+        },
+        {
+          "name": "Candidate count row",
+          "passed": true
+        },
+        {
+          "name": "Runtime row",
+          "passed": true
+        },
+        {
+          "name": "autoloop tag visible",
+          "passed": true
+        },
+        {
+          "name": "logp_max old→new (5.5→4.5)",
+          "passed": true
+        },
+        {
+          "name": "mw_max_da old→new (600→480)",
+          "passed": true
+        },
+        {
+          "name": "p-value 0.008 shown",
+          "passed": true
+        },
+        {
+          "name": "Recommendation text present",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-17__comparison-card.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-18",
+      "startTs": 1779220652107,
+      "endTs": 1779220700674,
+      "assertions": [
+        {
+          "name": "drugscreen: findings title",
+          "passed": true
+        },
+        {
+          "name": "cryosparc: findings title",
+          "passed": true
+        },
+        {
+          "name": "rnaseq: findings title",
+          "passed": true
+        },
+        {
+          "name": "variant: findings title",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-18__drugscreen-findings.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-18__cryosparc-findings.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-18__rnaseq-findings.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-18__variant-findings.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-19",
+      "startTs": 1779220700869,
+      "endTs": 1779220704995,
+      "assertions": [
+        {
+          "name": "SSE pill visible",
+          "passed": true,
+          "note": "SSE: error"
+        },
+        {
+          "name": "SSE pill shows error",
+          "passed": true,
+          "note": "SSE: error"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-19__real-no-inv.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-20",
+      "startTs": 1779220705187,
+      "endTs": 1779220710147,
+      "assertions": [
+        {
+          "name": "SSE pill visible",
+          "passed": true,
+          "note": "SSE: error"
+        },
+        {
+          "name": "ends in error state",
+          "passed": true,
+          "note": "SSE: error"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/research_agent_v2/RA-20__real-bogus-inv.png"
+      ],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-21",
+      "startTs": 1779220710306,
+      "endTs": 1779220715651,
+      "assertions": [
+        {
+          "name": "no SSE pill in mock mode",
+          "passed": true,
+          "note": "unexpected: null"
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    },
+    {
+      "testId": "RA-22",
+      "startTs": 1779220715858,
+      "endTs": 1779220751998,
+      "assertions": [
+        {
+          "name": "no JS errors across 4 scenarios",
+          "passed": true,
+          "note": ""
+        }
+      ],
+      "screenshots": [],
+      "jsErrors": []
+    }
+  ]
+}
