@@ -42,7 +42,7 @@ def fmt_ts(ms):
     ms_rem = ms % 1000
     return f"{h:02d}:{m:02d}:{s:02d},{ms_rem:03d}"
 
-def wrap_chinese(text, max_chars_per_line=28):
+def wrap_chinese(text, max_chars_per_line=32):
     """Hard-wrap by character count (Chinese chars are ~1 unit wide)."""
     lines = []
     cur = ""

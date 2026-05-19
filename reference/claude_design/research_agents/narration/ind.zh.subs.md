@@ -2,167 +2,167 @@
 
 ## Step 1 — 欢迎,屏幕中央
 
-IND §2.6 档案流水线
-实时文档,21 CFR Part 1
+BioMate IND Report 涵盖 IN
+5 步流水线、实时文档及 21 CFR Part
 
 ---
 
 ## Step 2 — 项目列表
 
-新药项目独立,圆点示状态
-签章/进行中/阻塞,切换保留内容
+每个新药项目独立存在,切换项目内容自动保留
+左侧圆点: 绿已签章, 蓝进行中, 琥珀色被 g
 
 ---
 
 ## Step 3 — 新建项目
 
-启动IND两种方式
-BioMate chat自动填充St
+两种方式启动 IND: New Project 
+在 chat 运行 ADMET 工作流后, 会自
 
 ---
 
 ## Step 4 — Step 1 · 项目设置
 
-项目头部: 分子、靶点、适应症
-NMPA GLP, PMDA 种族桥
+定义项目头部: 分子、靶点、适应症、申办方
+法规机构决定文档段落; NMPA 追加 GLP,
 
 ---
 
 ## Step 5 — 多区域一次性申报
 
-FDA、EMA、NMPA、PMDA,
+FDA、EMA、NMPA、PMDA 任意组合勾选
+单一数据源产出四份机构版本,面板内嵌专属段落
 
 ---
 
 ## Step 6 — Step 2 · ADMET 筛选
 
-BioMate云运行ADMET工作流
-41项, 结果入档§2.6.1.3/
+启动 BioMate *predict_adme
+预测 hERG、DILI、Ames 等, 结果录
 
 ---
 
 ## Step 7 — 逐化合物分诊
 
-ADMET table 化合物视图,
-表头引用 guideline, 配色
+点击 View ADMET table 查看化合
+表头悬停显示 guideline 引用和风险; 
 
 ---
 
 ## Step 8 — 引入湿实验数据
 
-预测 Partial, Full 需
-BioMate 抽取实测值, 重叠值
+计算预测 Partial 覆盖,升级 Full 
+BioMate 自动抽取实测值,重叠条目实测值优
 
 ---
 
 ## Step 9 — Step 3 · PBPK 资格认证
 
-EMA PBPK 指南认证模型, 3
-Cmax/AUC 误差≤2倍, 67
+依据 EMA PBPK 指南认证模型
+Cmax/AUC 在 >67% 参考集内误差不超
 
 ---
 
 ## Step 10 — 关键门户徽章
 
-PBPK未通过,IND装配受阻
-调整参数后,当前页重试
+PBPK 未通过即阻塞下游 IND
+*Re-run with new params*
 
 ---
 
 ## Step 11 — Step 4 · 主候选筛选
 
-高斯过程模型+EHVI
-对候选排序,5维打分
+对候选集合排序,基于Morgan指纹
+用GP+EHVI函数,在hERG、DILI、Am
 
 ---
 
 ## Step 12 — 读懂排序
 
-圆点编码效价: 四实心为强活性
-OOD 越适用域 §2.6.1.5 
+实心点编码效价, 四格实心为强活性
+OOD 越域; §2.6.1.5 标 limit
 
 ---
 
 ## Step 13 — Step 5 · IND 文档
 
-Step 5 自动生成档案
-完成 §2.6.1.1 到 §2.6
+Step 5 自动装配整份档案
+Step 1 到 4 完成后,右侧面板实时填充文
 
 ---
 
 ## Step 14 — 章节覆盖度
 
-§2.6.5/§2.6.6 需GLP
-覆盖度: 实心Full, 半圆Par
+实心Full, 半圆Partial, 空心未生成
+§2.6.5和§2.6.6需GLP数据方可升Fu
 
 ---
 
 ## Step 15 — 实时文档查看器
 
-文档面板常驻右侧
-流水线完成,自动填充免操作
+文档面板常驻右侧,流水线完成章节即时填充,无需刷
 
 ---
 
 ## Step 16 — 任意章节跳转
 
-顶部 Tab 直达章节
-圆点示覆盖度,易寻缺口
+顶部 tab 条直达任意章节
+圆点示章节覆盖,绿 Full,琥珀 Partia
 
 ---
 
 ## Step 17 — 区域专属视图
 
-配置 NMPA (GLP)、PMDA
-合并视图,递交各机构
+切换渲染区域, NMPA 视图追加 GLP 声明
+PMDA 追加种族桥接假设表, *所有区域合并*
 
 ---
 
 ## Step 18 — 编辑任意段落
 
-每段可编辑,修改即生成训练样本
-BioMate 模型靠客户专业知识进
+每段可编辑,修改后出现 *edited — sa
+您的修改形成训练样本,沉淀客户专业知识
 
 ---
 
 ## Step 19 — 推荐引用
 
-点击+图标推荐未收录指南
-NMPA/CDE指南,审核入语料
+点击 + 图标推荐未收录 guideline
+NMPA/CDE 技术指南尤其有用，审核后入库
 
 ---
 
 ## Step 20 — 法规审计
 
-§2.6 audit横条显示合规性
-0 critical 0 major
+§2.6 audit 横条检视 complian
+Critical 阻止签章; Major 琥珀警
 
 ---
 
 ## Step 21 — 每条 finding 都附建议
 
-Audit finding 示原因修
-Dismiss 理由反哺 check
+打开 audit 抽屉,finding 显示原因
+点击 *Dismiss* 填写理由,理由自动反哺
 
 ---
 
 ## Step 22 — 签章并冻结
 
-签章冻结文档, 依据 21 CFR 
-凭证、TOTP、meaning-of
+依据 21 CFR Part 11 §11.20
+凭证、TOTP 验证码和声明永久写入文档
 
 ---
 
 ## Step 23 — 版本不可变
 
-SHA-256 冻结版本可追溯
-v3 替代 v2, 历史版本重现
+已签章版本以 SHA-256 冻结
+v3 取代 v2, v2 签章记录永久保留审计链
 
 ---
 
 ## Step 24 — 收束,屏幕中央
 
-IND Report 演示
-5 步流水线 实时文档 TOTP 签
+IND Report 端到端演示, 具 5 步流
+audit 抽屉、签章冻结; 建议试 *Sign
 
 ---

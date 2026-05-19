@@ -42,6 +42,8 @@ def main():
     ap.add_argument('--timestamps',  required=True)
     ap.add_argument('--out',         required=True)
     ap.add_argument('--srt',         default=None)
+    ap.add_argument('--title',       default=None,
+                    help='Use-case title shown at top of every frame')
     args = ap.parse_args()
 
     ts = json.loads(pathlib.Path(args.timestamps).read_text())
@@ -90,22 +92,44 @@ def main():
             '-ss', f'{t0_s:.3f}', '-i', args.raw_video,
             '-i', str(aligned_wav),
         ]
-        # Persistent "biomate.ai" watermark at bottom-right
-        watermark = ("drawtext=text='biomate.ai':fontfile=/usr/share/fonts/opentype/noto/"
-                     "NotoSansCJK-Regular.ttc:fontcolor=white@0.85:fontsize=22:"
-                     "box=1:boxcolor=black@0.35:boxborderw=6:x=w-tw-24:y=h-th-24")
-        vf = watermark
+        # ffmpeg drawtext has a bug where the last character of `text=` is
+        # clipped from the rendered glyph (Pango advance-width calc). Workaround:
+        # write the text to a sidecar file padded with trailing spaces and use textfile=.
+        wm_text_path = pathlib.Path(td) / 'wm.txt'
+        wm_text_path.write_text('biomate.ai · contact@biomate.ai   ')
+        FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+        FONT_CJK = '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'
+
+        watermark = (
+            f"drawtext=textfile={wm_text_path}:fontfile={FONT}:"
+            f"fontcolor=yellow:fontsize=22:box=1:boxcolor=black@0.45:"
+            f"boxborderw=8:x=w-tw-24:y=h-th-24"
+        )
+
+        title_overlay = ""
+        if args.title:
+            title_path = pathlib.Path(td) / 'title.txt'
+            title_path.write_text(args.title + '   ')  # trailing-space workaround
+            title_overlay = (
+                f"drawtext=textfile={title_path}:fontfile={FONT_CJK}:"
+                f"fontcolor=white:fontsize=28:box=1:boxcolor=black@0.55:"
+                f"boxborderw=10:x=(w-tw)/2:y=22,"
+            )
+
+        vf = title_overlay + watermark
         if args.srt:
             esc = args.srt.replace(':', '\\:')
             vf = (f"subtitles='{esc}':force_style='FontName=Noto Sans CJK SC,"
                   f"FontSize=14,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,"
-                  f"BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=50',"
+                  f"BorderStyle=3,Outline=1,Shadow=0,Alignment=2,"
+                  f"MarginV=60,MarginL=120,MarginR=120',"
                   f"{watermark}")
         cmd += ['-vf', vf]
         cmd += [
             '-map', '0:v:0', '-map', '1:a:0',
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
             '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '2',
+            '-movflags', '+faststart',   # moov atom at front — required by browsers/QuickTime/etc.
             '-shortest',
             args.out,
         ]

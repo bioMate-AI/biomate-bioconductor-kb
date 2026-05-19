@@ -26,6 +26,19 @@ LANG_MODE="${3:-en}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 # Map demo IDs → narration .md (EN audio path) and ZH narration (for subs)
+# Per-demo use-case title shown at the top of every frame.
+declare -A TITLES=(
+  [ra-cryo]="Cryo-EM Single-Particle Analysis"
+  [ra-afterrun]="Run Report — Outputs, Methods, Citations, QC Audit"
+  [ra-drugscreen]="Drug Screen · Auto-Loop & Run-vs-Run Comparison"
+  [ind]="Expert · AI Collaboration · IND §2.6 Document"
+  [website-quickstart-v2]="BioMate Quick Start · From Signup to First Analysis"
+  [website-quickstart]="BioMate Quick Start · From Signup to First Analysis"
+  [cryosparc-main]="Cryo-EM Single-Particle Analysis"
+  [outputs-findings]="Run Report — Outputs, Methods, Citations, QC Audit"
+  [outputs-findings-report]="Run Report — Outputs, Methods, Citations, QC Audit"
+)
+
 declare -A NARRATION_EN=(
   [website-quickstart]="reference/claude_design/biomate/website-quickstart-narration.md"
   [cryosparc-main]="reference/claude_design/biomate/cryosparc-narration.md"
@@ -122,7 +135,8 @@ if [[ ! -s "$RAW_VIDEO" ]] || [[ ! -s "$TIMESTAMPS_PATH" ]]; then
   if [[ "$DEMO" == "website-quickstart-v2" ]]; then
     python3 "$REPO_ROOT/scripts/recording/record-website-v2.py" \
       --timing "$AUDIO_DIR/timing.json" \
-      --out "$RAW_VIDEO"
+      --out "$RAW_VIDEO" \
+      --timestamps-out "$TIMESTAMPS_PATH"
   else
     python3 "$REPO_ROOT/scripts/recording/playwright-record.py" \
       --demo "$DEMO" \
@@ -154,6 +168,10 @@ if [[ -s "$TIMESTAMPS_PATH" ]]; then
   if [[ -n "$SRT_PATH" ]]; then
     EXTRA_ARGS+=(--srt "$SRT_PATH")
   fi
+  TITLE="${TITLES[$DEMO]:-}"
+  if [[ -n "$TITLE" ]]; then
+    EXTRA_ARGS+=(--title "$TITLE")
+  fi
   python3 "$REPO_ROOT/scripts/recording/merge-audio-aligned.py" \
     --raw-video "$RAW_VIDEO" \
     --audio-dir "$AUDIO_DIR" \
@@ -162,11 +180,12 @@ if [[ -s "$TIMESTAMPS_PATH" ]]; then
     "${EXTRA_ARGS[@]}"
 else
   log "WARN: no step_timestamps.json; falling back to legacy concat merge"
-  WATERMARK="drawtext=text='biomate.ai':fontfile=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc:fontcolor=white@0.85:fontsize=22:box=1:boxcolor=black@0.35:boxborderw=6:x=w-tw-24:y=h-th-24"
+  FONTFILE="/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+  WATERMARK="drawtext=text='biomate.ai \\u00B7 contact@biomate.ai':fontfile=${FONTFILE}:fontcolor=yellow:fontsize=22:box=1:boxcolor=black@0.45:boxborderw=8:x=w-tw-24:y=h-th-24"
   if [[ -n "$SRT_PATH" ]]; then
     SRT_ESCAPED=$(echo "$SRT_PATH" | sed "s/:/\\\\:/g")
     ffmpeg -y -i "$RAW_VIDEO" -i "$AUDIO_DIR/full-narration.wav" \
-      -vf "subtitles='${SRT_ESCAPED}':force_style='FontName=Noto Sans CJK SC,FontSize=14,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=50',${WATERMARK}" \
+      -vf "subtitles='${SRT_ESCAPED}':force_style='FontName=Noto Sans CJK SC,FontSize=14,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=60,MarginL=120,MarginR=120',${WATERMARK}" \
       -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 192k -ar 48000 -ac 2 -shortest "$OUTPUT"
   else
     ffmpeg -y -i "$RAW_VIDEO" -i "$AUDIO_DIR/full-narration.wav" \

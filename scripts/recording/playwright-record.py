@@ -144,7 +144,10 @@ def click_next(page):
     try:
         btn = page.locator('.tour-callout .btn.primary').first
         btn.wait_for(state='visible', timeout=5000)
-        btn.click()
+        # force=True skips the stability check — cryo tour's cartoon SVG ring
+        # animation makes the callout "unstable" forever in Playwright's eyes,
+        # making each click hang for ~30s and inflating the video length.
+        btn.click(force=True, timeout=2000)
         return True
     except Exception:
         page.keyboard.press('ArrowRight')
