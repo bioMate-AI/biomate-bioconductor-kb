@@ -1,0 +1,107 @@
+name: Deploy to environment
+
+# Wraps scripts/deploy.sh in a GHA workflow. P3.1 starting shape: only
+# `test` env is wired (matches the env scaffolding from P1.3 + P2.1+P2.2).
+# Stage and prod paths land when P2.4 / P4.1 provision those envs and Galaxy
+# fork's alembic multi-head issue (task #19) is fixed.
+#
+# Triggers:
+#   - workflow_run from successful image builds (auto-deploy current branch tag)
+#   - workflow_dispatch with explicit env + tag (manual deploy / rollback)
+#
+# Behavior:
+#   - Resolves a deploy tag (sha-* preferred; falls back to <branch>-latest).
+#   - Calls scripts/deploy.sh which uses SSM Run Command to target the
+#     env's EC2 (tag-based), pulls the image, force-recreates compose,
+#     external healthcheck, auto-rollback to previous tag on failure.
+#   - Concurrency group per env so two deploys can't race.
+#
+# Past-incident guardrails enforced (in scripts/deploy.sh itself):
+#   - L3  (no docker prune -af)
+#   - L7  (pkill orphan sync_to_dev.sh)
+#   - L13 (boto3 adaptive retries via AWS CLI v2 default)
+#   - L17 (auto-rollback to previous tag)
+#   - L20 (SSM not SSH)
+#   - L21 (HTTP healthcheck gate)
+
+on:
+  workflow_run:
+    workflows: ["Build & push backend image", "Build & push frontend image"]
+    types: [completed]
+    branches: [main, integration/next-phase]
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [test]
+      tag:
+        description: 'ECR image tag to deploy (sha-*, release-*, or <branch>-latest)'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.env || 'test' }}
+  cancel-in-progress: false   # don't cancel an in-flight deploy mid-rollback
+
+env:
+  AWS_REGION: us-west-2
+  DEPLOY_ROLE: arn:aws:iam::399683337364:role/GitHubActionsDeploy
+
+jobs:
+  deploy-test:
+    # workflow_run is workflow-level; check conclusion + branch inside the job.
+    # workflow_dispatch sets event_name=workflow_dispatch.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: test
+      url: http://stage-public.biomate.ai
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve target tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            # workflow_run trigger: use the upstream build's head sha-prefixed tag
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            TAG="sha-${SHA:0:12}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Deploying tag: $TAG"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sanity — assumed role identity
+        run: aws sts get-caller-identity --query 'Arn' --output text
+
+      - name: Run deploy.sh
+        run: |
+          chmod +x scripts/deploy.sh
+          bash scripts/deploy.sh test "${{ steps.tag.outputs.tag }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Deploy → test"
+            echo "- tag: \`${{ steps.tag.outputs.tag }}\`"
+            echo "- url: http://stage-public.biomate.ai"
+            echo "- conclusion: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

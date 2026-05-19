@@ -224,8 +224,23 @@ for i in $(seq 1 18); do  # 18*5s = 90s budget
   sleep 5
 done
 if ! $HEALTH_OK; then
-  log "external healthcheck failed — rolling back"
-  notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "external healthcheck failed"
+  log "external healthcheck failed"
+  # Auto-rollback if a previously healthy tag is recorded. last_deployed_tag
+  # is only written AFTER a healthy boot (step 5), so it's a safe target.
+  PREV_CMD=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" \
+    --document-name AWS-RunShellScript \
+    --parameters 'commands=["cat /opt/biomate/last_deployed_tag 2>/dev/null || true"]' \
+    --query 'Command.CommandId' --output text)
+  sleep 4
+  PREV_TAG=$(aws ssm get-command-invocation --region "$AWS_REGION" \
+    --command-id "$PREV_CMD" --instance-id "$INSTANCE_ID" \
+    --query 'StandardOutputContent' --output text 2>/dev/null | tr -d '[:space:]')
+  if [[ -n "$PREV_TAG" && "$PREV_TAG" != "NONE" && "$PREV_TAG" != "$DEPLOY_TAG" ]]; then
+    log "rolling back to previously healthy tag: $PREV_TAG"
+    notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "external healthcheck failed; rolling back to $PREV_TAG"
+    exec "$0" "$ENV_NAME" "$PREV_TAG"
+  fi
+  notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "external healthcheck failed; no prior healthy tag to roll back to"
   exit 1
 fi
 
