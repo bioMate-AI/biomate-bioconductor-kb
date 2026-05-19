@@ -123,8 +123,19 @@ deploy_frontend() {
     # Prune dangling images + build cache to prevent disk-full build failures
     docker image prune -f > /dev/null 2>&1 || true
     docker builder prune -f > /dev/null 2>&1 || true
-    docker stop biomate-dev-frontend 2>/dev/null || true
-    docker rm -f biomate-dev-frontend 2>/dev/null || true
+
+    # ── Atomic swap pattern (no downtime) ────────────────────────────────
+    # OLD pattern (caused dev-public outages 2026-05-18):
+    #   docker stop && docker rm OLD → build new → docker run new
+    #   ↳ Multi-minute 502 window while building. If build fails, the
+    #     `keeping previous container running` branch did NOT restore
+    #     reliably because the original image tag was overwritten.
+    #
+    # NEW pattern: build to a `:next` tag, only swap containers AFTER
+    # the build succeeds. Failure path leaves the running container
+    # untouched. Old container only goes down for the ~2 seconds of
+    # the actual docker run, not the multi-minute build.
+
     # Ensure biotools base exists (built once, rarely rebuilt).
     if ! docker image inspect biomate-biotools:1 >/dev/null 2>&1; then
       echo "[frontend] Biotools base missing — building (this is slow, runs once)..."
@@ -132,25 +143,20 @@ deploy_frontend() {
         -f /opt/biomate/frontend_sync/frontend/Dockerfile.biotools \
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
     fi
-    echo "[frontend] Building app image..."
-    if ! docker build -t biomate-dev-frontend:latest \
+
+    echo "[frontend] Building app image (old container still serving)..."
+    if ! docker build -t biomate-dev-frontend:next \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile \
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5; then
-      echo "[frontend] ERROR: app image build failed — keeping previous container running"
-      docker run -d --name biomate-dev-frontend --network biomate-dev-net \
-        -p 3000:3000 --env-file /opt/biomate/.env \
-        -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
-        --restart unless-stopped \
-        biomate-dev-frontend:latest 2>/dev/null || true
+      echo "[frontend] ERROR: app image build failed — old container still up, no swap"
       exit 1
     fi
-    echo "[frontend] Restarting container..."
-    sleep 1
-    # Note: removed the /opt/biomate/dist_index.js volume mount + post-start docker cp.
-    # That was a workaround from when image rebuilds were flaky and would override the
-    # freshly-built bundle with a stale host file. Now that Dockerfile.biotools is split
-    # and the app image rebuilds reliably, we use only the baked-in dist/.
-    #
+
+    # Promote :next → :latest; safe even if no previous :latest exists.
+    docker tag biomate-dev-frontend:next biomate-dev-frontend:latest
+
+    echo "[frontend] Swapping containers..."
+    docker rm -f biomate-dev-frontend 2>/dev/null || true
     # /var/run/docker.sock + /tmp/biomate_code mount: run_code tool spawns
     # ephemeral biomate-biotools:1 sandboxes via host docker; the sandbox
     # bind-mounts /tmp/biomate_code/<session> which must resolve to the same
