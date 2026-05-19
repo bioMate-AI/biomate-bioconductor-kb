@@ -93,7 +93,7 @@ Since this is the first post, it's worth being concrete about scope. There's a l
 
 That's the actual scope, today. The newsletter will be specific about where we extend and where we don't.
 
-> 🧪 **Try it.** BioMate is in open trial — bring an RNA-seq batch, an ADMET hit series, a cryo-EM dataset, or a PBPK study and watch the orchestration layer work end-to-end: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try it.** BioMate is in open trial — bring an RNA-seq batch, an ADMET hit series, a cryo-EM dataset, or a PBPK study and watch the orchestration layer work end-to-end: [**biomate.ai**](https://biomate.ai)
 
 ## Who this is for
 

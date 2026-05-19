@@ -96,7 +96,7 @@ The architecture has to take it seriously, and "the LLM will figure it out" is n
 
 ---
 
-> 🧪 **Try parameter extraction.** Open trial — describe a workflow in narrative prose ("simulate this PDB for 100 ns with explicit solvent in water at 310 K") and watch the parameter strip fill in. Edit anything that's wrong; the correction feeds back into the rule layer: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try parameter extraction.** Open trial — describe a workflow in narrative prose ("simulate this PDB for 100 ns with explicit solvent in water at 310 K") and watch the parameter strip fill in. Edit anything that's wrong; the correction feeds back into the rule layer: [**biomate.ai**](https://biomate.ai)
 
 ---
 

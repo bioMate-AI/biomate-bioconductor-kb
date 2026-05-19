@@ -156,7 +156,7 @@ This is what we mean when we say BioMate is an orchestration + intelligence laye
 
 **What's structurally missing is the connective tissue** that turns prediction into simulation, simulation into decision, decision into outcome, and the whole loop into compounded learning across programs.
 
-> 🧪 **Try the loop yourself.** BioMate is now in open trial — bring an ADMET hit series, an RNA-seq batch, or a PBPK study and see what the closed loop looks like end-to-end: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try the loop yourself.** BioMate is now in open trial — bring an ADMET hit series, an RNA-seq batch, or a PBPK study and see what the closed loop looks like end-to-end: [**biomate.ai**](https://biomate.ai)
 
 ---
 
@@ -186,7 +186,7 @@ The lesson isn't *computational drug development doesn't work*. Merrimack got a 
 
 **The lesson is that the infrastructure to learn from your own predictions is as important as the predictions themselves.**
 
-That's the gap we're building toward. If you're working on a program that's about to make a high-stakes call on a model output, [come run it through BioMate](https://biomate.ai/try) — and let us know what we got wrong.
+That's the gap we're building toward. If you're working on a program that's about to make a high-stakes call on a model output, [come run it through BioMate](https://biomate.ai) — and let us know what we got wrong.
 
 ---
 

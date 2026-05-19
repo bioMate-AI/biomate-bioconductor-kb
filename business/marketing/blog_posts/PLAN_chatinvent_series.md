@@ -42,7 +42,7 @@ and cites the benchmark evidence that the architecture works.
 Same founder voice (Yaoyun Wang). Each post leads with the
 AstraZeneca/ChatInvent reference as third-party validation, then shows
 what BioMate actually does, then cites benchmarks. Trial link
-`biomate.ai/try` woven into each.
+`biomate.ai` woven into each.
 
 ## Numbering
 

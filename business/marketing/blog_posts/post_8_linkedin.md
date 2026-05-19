@@ -42,7 +42,7 @@ This is not hypothetical engineering. It's the difference between an AI tool you
 
 Open trial — bring a regulatory or DMPK question and see the citation-linked output:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with the architecture diagram): [Substack link]
 

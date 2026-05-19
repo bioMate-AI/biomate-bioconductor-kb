@@ -41,7 +41,7 @@ The orchestration layer — the agent running the workflows — is the one place
 
 We're in open trial. Bring an ADMET hit series, an RNA-seq batch, or a PBPK study and run the closed loop end-to-end:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with diagrams): [link to Substack post]
 

@@ -56,7 +56,7 @@ That's the difference between an agent that handles 2,455 workflows by thinking 
 
 Open trial — bring a multi-turn program and watch the context-management work:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with stack diagram + the five-post series): [Substack link]
 

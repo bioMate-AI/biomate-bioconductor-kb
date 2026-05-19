@@ -79,7 +79,7 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="footer" value="biomate.ai/try" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+        <mxCell id="footer" value="biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
           <mxGeometry x="500" y="570" width="380" height="30" as="geometry" />
         </mxCell>
 

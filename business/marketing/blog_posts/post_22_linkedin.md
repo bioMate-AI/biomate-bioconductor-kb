@@ -60,7 +60,7 @@ The ChatInvent five are a good starting list.
 
 Open trial — bring your own workflow and your own benchmark, we'll run it against ours honestly:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with the eval matrix diagram): [Substack link]
 

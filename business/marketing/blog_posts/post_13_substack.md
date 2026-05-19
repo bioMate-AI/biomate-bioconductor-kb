@@ -98,7 +98,7 @@ When BioMate doesn't know, it says so. That's a feature, not a regression.
 
 ---
 
-> 🧪 **Try grounded tool selection.** Open trial — ask for a workflow that's clearly out of catalog and watch the agent refuse cleanly instead of inventing one: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try grounded tool selection.** Open trial — ask for a workflow that's clearly out of catalog and watch the agent refuse cleanly instead of inventing one: [**biomate.ai**](https://biomate.ai)
 
 ---
 

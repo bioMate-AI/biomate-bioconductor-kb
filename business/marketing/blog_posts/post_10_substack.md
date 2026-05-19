@@ -80,7 +80,7 @@ ADMET and docking are validated heavily on the **CLI manifest** path; extending 
 
 The orchestration layer—workflow search, parameter prefill, Batch execution, QC interpretation—is what BioMate ships. You can stress it on your own receptor and libraries:
 
-👉 **https://biomate.ai/try**
+👉 **https://biomate.ai**
 
 ## What’s next in this series
 

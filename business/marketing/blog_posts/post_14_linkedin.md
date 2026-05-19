@@ -60,7 +60,7 @@ The LLM is asked to do language. Rules are asked to do arithmetic. Schema is the
 
 Open trial — describe a study in narrative prose and watch the parameter strip fill in:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with extraction-pipeline diagram + benchmark detail): [Substack link]
 

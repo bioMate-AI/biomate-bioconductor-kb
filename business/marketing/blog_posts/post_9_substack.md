@@ -111,7 +111,7 @@ The exception, when you make it, should be principled. For us, that's regulatory
 
 This may be wrong, and I'm open to being convinced otherwise. Reply to this post or email me — I read everything.
 
-> 🧪 **Try the orchestration layer.** BioMate is in open trial — bring a workflow and see what frontier + scaffolding can do without a custom foundation model: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try the orchestration layer.** BioMate is in open trial — bring a workflow and see what frontier + scaffolding can do without a custom foundation model: [**biomate.ai**](https://biomate.ai)
 
 ---
 

@@ -33,7 +33,7 @@ UI E2E today: pocket + pharmacophore through chat → card → Run (INH-1…INH-
 
 Try the orchestration layer on your structures:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (two-agent sequence + audit honesty): [Substack link]
 

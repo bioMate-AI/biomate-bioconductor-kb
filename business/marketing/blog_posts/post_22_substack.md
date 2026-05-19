@@ -162,7 +162,7 @@ We've built our matrix and we're publishing the dimensions and the methods. The 
 
 ---
 
-> 🧪 **Bring your own workflow and your own eval.** BioMate is in open trial. We will run it against any benchmark you care about and tell you honestly where it scores: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Bring your own workflow and your own eval.** BioMate is in open trial. We will run it against any benchmark you care about and tell you honestly where it scores: [**biomate.ai**](https://biomate.ai)
 
 ---
 

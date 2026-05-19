@@ -107,7 +107,7 @@ The compounding productivity gain isn't from one model getting better. It's from
 
 ---
 
-> 🧪 **Try the closed loop.** Open trial — bring an ADMET hit series with known hERG liabilities, or an NCA-PK study with sampling gaps, and watch the auto-loop propose, get approved, and converge: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try the closed loop.** Open trial — bring an ADMET hit series with known hERG liabilities, or an NCA-PK study with sampling gaps, and watch the auto-loop propose, get approved, and converge: [**biomate.ai**](https://biomate.ai)
 
 ---
 

@@ -41,7 +41,7 @@ What we DON'T: build foundation models for structure or generative chemistry (we
 
 Open trial — bring a workflow that spans two of those silos and see what happens:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay: [Substack link]
 

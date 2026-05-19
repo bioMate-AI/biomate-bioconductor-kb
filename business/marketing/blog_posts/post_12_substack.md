@@ -99,7 +99,7 @@ It holds the active task, the immediate retrieved candidates, the distilled memo
 
 ---
 
-> 🧪 **Try the orchestration layer.** BioMate is in open trial. Bring a workflow that spans two or three specialties and watch the context-management work end-to-end: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try the orchestration layer.** BioMate is in open trial. Bring a workflow that spans two or three specialties and watch the context-management work end-to-end: [**biomate.ai**](https://biomate.ai)
 
 ---
 

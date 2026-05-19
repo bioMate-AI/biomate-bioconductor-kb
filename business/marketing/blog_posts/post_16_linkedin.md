@@ -63,7 +63,7 @@ The value in agentic AI for pharma is NOT in the model. It's in the system stabi
 
 Open trial — bring a multi-week program, see memory + registry + governance compound across sessions:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with the 4-layer stack diagram): [Substack link]
 

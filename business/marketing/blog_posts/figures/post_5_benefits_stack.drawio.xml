@@ -76,7 +76,7 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="footer" value="Try the closed loop on a real program → biomate.ai/try" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+        <mxCell id="footer" value="Try the closed loop on a real program → biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
           <mxGeometry x="200" y="610" width="800" height="30" as="geometry" />
         </mxCell>
 

@@ -104,7 +104,7 @@ Evidence-grounded systems with curated sources, mandatory citations, and outlier
 
 This is what we mean when we say BioMate's moat is the intelligence layer, not the underlying model. Anyone can call GPT-5 or Claude or Llama. What's hard is the curation, the metadata-aware retrieval, the citation discipline, and the outlier detection that turns a generic model into something a DMPK lead, a CMC director, or a clinical pharmacology consultant can actually rely on.
 
-> 🧪 **Try it.** BioMate is in open trial — bring a question that needs to be grounded in FDA guidance, PubMed, or UniProt and see the citation-linked output: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try it.** BioMate is in open trial — bring a question that needs to be grounded in FDA guidance, PubMed, or UniProt and see the citation-linked output: [**biomate.ai**](https://biomate.ai)
 
 ---
 

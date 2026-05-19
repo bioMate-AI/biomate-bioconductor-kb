@@ -117,7 +117,7 @@ If you've read all five, I'd love to hear what we got wrong. Reply or DM — I r
 
 ---
 
-> 🧪 **Try the stability stack.** Open trial — bring a multi-week program and see the memory, registry, and governance layers compound across sessions: [**biomate.ai/try**](https://biomate.ai/try)
+> 🧪 **Try the stability stack.** Open trial — bring a multi-week program and see the memory, registry, and governance layers compound across sessions: [**biomate.ai**](https://biomate.ai)
 
 ---
 

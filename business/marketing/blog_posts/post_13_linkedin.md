@@ -51,7 +51,7 @@ That's a different design target.
 
 Open trial — ask BioMate for a workflow that's clearly outside catalog. Watch it refuse cleanly instead of inventing one:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with grounding diagram + benchmark detail): [Substack link]
 

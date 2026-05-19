@@ -44,7 +44,7 @@ For everything else: frontier + grounded RAG + good evaluation wins.
 
 Open trial — try the scaffolding without any custom foundation model in the loop:
 
-👉 biomate.ai/try
+👉 biomate.ai
 
 Full essay (with the options matrix): [Substack link]
 
