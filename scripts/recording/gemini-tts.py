@@ -18,7 +18,7 @@ import re, wave, struct, pathlib, argparse, os, json, time
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI')
 TTS_MODEL      = 'gemini-2.5-flash-preview-tts'
 SAMPLE_RATE    = 24000
-SILENCE_MS     = 800   # pause between steps in the concatenated track
+SILENCE_MS     = int(os.environ.get('SILENCE_MS', '300'))   # pause between steps in the concatenated track
 
 # Voices: Aoede (neutral/clear), Charon (warm), Fenrir (energetic),
 #         Kore (soft), Orbit (confident), Puck (lively), Zephyr (bright)
@@ -32,7 +32,7 @@ def parse_narration(path: str) -> list[dict]:
     steps = []
     for block in blocks:
         # Match: ## Step N — Title\n\nBody text
-        m = re.match(r'##\s+Step\s+(\d+)\s+[—-]\s+(.+?)\n+(.+)', block.strip(), re.DOTALL)
+        m = re.search(r'##\s+Step\s+(\d+)\s+[—-]\s+(.+?)\n+(.+)', block.strip(), re.DOTALL)
         if m:
             body = m.group(3).strip()
             # Strip any markdown bold/italic for clean TTS
