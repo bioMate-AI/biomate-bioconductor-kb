@@ -24,6 +24,10 @@
 <script src="src/data.js?v=6"></script>
 <script src="src/research-data.js?v=7"></script>
 
+<!-- SSE adapter — provides mock + real BioMate stream factories on window.SseAdapter.
+     Loaded BEFORE ResearchApp so the ?live=mock|real path can find it. -->
+<script src="src/sse-adapter.js?v=2"></script>
+
 </head>
 <body>
 <div id="root"></div>
@@ -44,7 +48,7 @@
 <script type="text/babel" src="src/ChatStream.jsx?v=4"></script>
 <script type="text/babel" src="src/ChatCards.jsx?v=4"></script>
 <script type="text/babel" src="src/ResearchTweaks.jsx?v=2"></script>
-<script type="text/babel" src="src/ResearchApp.jsx?v=13"></script>
+<script type="text/babel" src="src/ResearchApp.jsx?v=15"></script>
 
 <script type="text/babel">
 ReactDOM.createRoot(document.getElementById('root')).render(<ResearchApp/>);

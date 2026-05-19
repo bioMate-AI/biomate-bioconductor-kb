@@ -65,14 +65,55 @@ const V1_SCENARIO_MAP = {
 // ───────────────────────────────────────────────────────────────
 // App
 // ───────────────────────────────────────────────────────────────
+// ── BioMate event → engine vocabulary translator ─────────────────
+// URL ?live=mock|real swaps the tape walker for a real-shape SSE stream.
+// The stream emits BioMate's chat_progress event shape; this function maps
+// each event to one (or more) of the engine's internal event kinds so
+// applyEvent() can dispatch without modification.
+function translateBiomateEvent(ev) {
+  // Internal "__" kinds emitted by the mock stream pass through unchanged —
+  // they ARE the engine's own vocabulary.
+  if (ev.kind === '__planUpdate')     return [{ kind: 'planUpdate', id: ev.id, status: ev.status }];
+  if (ev.kind === '__planFail')       return [{ kind: 'planFail', id: ev.id, reason: ev.reason }];
+  if (ev.kind === '__showCard')       return [{ kind: 'showCard', card: ev.card, data: ev.data }];
+  if (ev.kind === '__await')          return [{ kind: 'await', label: ev.label }];
+  if (ev.kind === '__startCountdown') return [{ kind: 'startCountdown', label: ev.label, seconds: ev.seconds }];
+
+  // Real BioMate event vocabulary:
+  if (ev.kind === 'plan.shown') {
+    // The mock encodes the initial item list under technical.items; real
+    // backend will too once /api/research/plan is wired.
+    const items = (ev.technical && ev.technical.items) || [];
+    return [{ kind: 'planShow', items, editing: false }];
+  }
+  // Default: every chat_progress event yields a chat line with derived speaker.
+  return [{
+    kind: 'chatLine',
+    s: ev.speaker || 'wf',
+    m: ev.friendly_message,
+    rationaleId: ev.technical && ev.technical.rationale_id,
+  }];
+}
+
 function ResearchApp() {
   // Load persisted tweaks
   const saved = (() => { try { return JSON.parse(localStorage.getItem('biomate-research-tweaks') || 'null'); } catch { return null; } })();
   const init = { ...TWEAK_DEFAULTS, ...(saved || {}) };
 
+  // URL-driven live mode — when set, the tape walker is bypassed and events
+  // come from window.SseAdapter (createMockBiomateStream or connectRealBiomateStream).
+  const liveQ = (() => { try { return new URLSearchParams(window.location.search); } catch { return null; } })();
+  const liveMode    = liveQ ? liveQ.get('live')    : null;     // 'mock' | 'real' | null
+  const liveInvId   = liveQ ? liveQ.get('inv')     : null;
+  const urlScenario = liveQ ? liveQ.get('scenario'): null;     // overrides init.scenarioId in live mode
+
   // Tweak / config state
-  const [scenarioId, setScenarioId]       = useState(init.scenarioId);
-  const [speed, setSpeed]                 = useState(init.speed);
+  const [scenarioId, setScenarioId]       = useState((urlScenario && window.RESEARCH_SCENARIOS && window.RESEARCH_SCENARIOS[urlScenario]) ? urlScenario : init.scenarioId);
+  const [speed, setSpeed]                 = useState(() => {
+    const u = liveQ && liveQ.get('speed');
+    const v = u ? parseFloat(u) : NaN;
+    return (Number.isFinite(v) && v > 0) ? v : init.speed;
+  });
   const [theme, setTheme]                 = useState(init.theme);
   const [density, setDensity]             = useState(init.density);
   const [panelWidth, setPanelWidth]       = useState(init.panelWidth);
@@ -232,14 +273,19 @@ function ResearchApp() {
   // ── Engine: process one event ─────────────────────────────────
   const applyEvent = useCallback((ev) => {
     switch (ev.kind) {
-      case 'planShow':
+      case 'planShow': {
+        // Live mode passes items on the event; tape mode reads from scenario.initialPlan.
+        const items = (ev.items && ev.items.length)
+          ? ev.items.map(it => ({ ...it }))
+          : (scenario && scenario.initialPlan) ? scenario.initialPlan.map(it => ({ ...it })) : [];
         setPlanShown(true);
-        setPlanItems(scenario.initialPlan.map(it => ({ ...it })));
+        setPlanItems(items);
         if (ev.editing && planEditDefault) {
           setPlanEditing(true);
           startCountdown('plan_auto_lock', countdownSeconds);
         }
         break;
+      }
       case 'planUpdate':
         setPlanItems(items => items.map(it =>
           it.id === ev.id ? { ...it, status: ev.status, meta: ev.meta || it.meta } : it
@@ -357,13 +403,63 @@ function ResearchApp() {
     }, delay);
   }, [scenario]);
 
-  // Kick off the engine on scenario change
+  // Kick off the engine on scenario change. Skip when ?live=mock|real is set
+  // — in that case events arrive via the SSE-adapter effect below, not the
+  // static tape.
   useEffect(() => {
+    if (liveMode) return;  // tape walker disabled in live mode
     if (stepTimer.current) { clearTimeout(stepTimer.current); stepTimer.current = null; }
     // Slight delay so initial render finishes
     const t = setTimeout(() => { runStep(); }, 200);
     return () => { clearTimeout(t); if (stepTimer.current) clearTimeout(stepTimer.current); };
-  }, [scenarioId, runStep]);
+  }, [scenarioId, runStep, liveMode]);
+
+  // ── Live mode: SSE adapter (mock or real BioMate stream) ─────────
+  // When URL has ?live=mock or ?live=real, subscribe to window.SseAdapter
+  // and feed translated events into applyEvent. The tape walker above is
+  // disabled. This is the production wiring path: the same `applyEvent`
+  // that handles tape events also handles SSE-derived events; the only
+  // difference is the source.
+  useEffect(() => {
+    if (!liveMode) return;
+    if (!window.SseAdapter) {
+      console.warn('[ResearchApp] live mode requested but window.SseAdapter not loaded');
+      return;
+    }
+
+    let stream;
+    try {
+      if (liveMode === 'real') {
+        if (!liveInvId) {
+          console.warn('[ResearchApp] ?live=real requires ?inv=<invocation_id>');
+          return;
+        }
+        stream = window.SseAdapter.connectRealBiomateStream(liveInvId);
+      } else {
+        // 'mock' or anything else → mock stream using current scenarioId.
+        // Drug screen uses 'drugscreen', cryo uses 'cryoem' — same tapes as
+        // the live harness in live.html.
+        const tapeId = scenarioId === 'cryosparc' ? 'cryoem' : scenarioId;
+        if (!window.SseAdapter.TAPES[tapeId]) {
+          console.warn('[ResearchApp] no mock tape for scenarioId=' + scenarioId);
+          return;
+        }
+        stream = window.SseAdapter.createMockBiomateStream(tapeId);
+      }
+    } catch (e) {
+      console.warn('[ResearchApp] live mode setup failed:', e);
+      return;
+    }
+
+    const handle = stream.start(function (ev) {
+      const internalEvents = translateBiomateEvent(ev);
+      for (const ie of internalEvents) {
+        applyEventRef.current(ie);
+      }
+    }, { speed: speedRef.current || 1.0 });
+
+    return function cleanup() { handle.close(); };
+  }, [liveMode, liveInvId, scenarioId]);
 
   // ── Countdowns ────────────────────────────────────────────────
   const startCountdown = useCallback((label, seconds) => {
