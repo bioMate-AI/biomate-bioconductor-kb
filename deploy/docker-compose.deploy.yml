@@ -25,6 +25,13 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - GALAXY_CONFIG_FILE=/app/config/galaxy.yml
+      # P2.2: Postgres connection string fetched from Secrets Manager by
+      # deploy.sh and written into /opt/biomate/.env. Must use the OVERRIDE_
+      # prefix — Galaxy's GALAXY_CONFIG_<key> only sets a value when the key
+      # is absent from galaxy.yml, and galaxy.yml.template ships with
+      # database_connection: sqlite://… already populated.
+      # See lib/galaxy/util/properties.py:116-124.
+      - GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=${GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     restart: unless-stopped

@@ -52,13 +52,16 @@ FRONTEND_IMAGE="${ECR_REGISTRY}/biomate/dev-frontend:${DEPLOY_TAG}"
 # `RevisionNotFoundError` on subsequent starts. P2.2 (RDS Postgres + proper
 # Alembic flow) replaces this in stage/prod.
 WIPE_GALAXY_DB=0
+RDS_SECRET_NAME=""    # if set, deploy fetches this from Secrets Manager and
+                      # writes GALAXY_CONFIG_DATABASE_CONNECTION to /opt/biomate/.env
 case "$ENV_NAME" in
   test)
     INSTANCE_TAG_FILTER="Name=tag:Name,Values=biomate-deploy-test"
     PUBLIC_URL="http://stage-public.biomate.ai"
     BACKEND_HEALTH="${PUBLIC_URL}:8081/api/version"
     FRONTEND_HEALTH="${PUBLIC_URL}/api/health"
-    WIPE_GALAXY_DB=1
+    WIPE_GALAXY_DB=0             # P2.2: SQLite wipe no longer needed — Postgres handles it
+    RDS_SECRET_NAME="test/biomate/rds-galaxy"
     ;;
   *)
     echo "ERROR: unknown env '$ENV_NAME' (supported: test)" >&2; exit 2 ;;
@@ -136,12 +139,34 @@ log "[2/5] Staging compose file + ECR login on target …"
 # Send the compose file inline via SSM so it's reproducible (the GHA workflow
 # can drop a newer one with the same mechanism; no SCP required).
 COMPOSE_B64=$(base64 -w0 < "$(dirname "$0")/../deploy/docker-compose.deploy.yml")
+RDS_SECRET_BLOCK=""
+if [[ -n "$RDS_SECRET_NAME" ]]; then
+  RDS_SECRET_BLOCK="
+# P2.2: fetch Galaxy DB connection URL from Secrets Manager and write into
+# /opt/biomate/.env. Galaxy reads GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION
+# as the database_connection override (the OVERRIDE_ prefix is required to
+# beat galaxy.yml.template's pre-populated sqlite default — see
+# lib/galaxy/util/properties.py:116-124).
+# EC2 instance-profile creds gate the read (BioMateEc2DeployRole has
+# secretsmanager:GetSecretValue for THIS arn only).
+DB_URL=\$(aws secretsmanager get-secret-value --region $AWS_REGION \
+  --secret-id $RDS_SECRET_NAME --query SecretString --output text \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"url\"])')
+# Drop any prior DATABASE_CONNECTION line (old name or new), then append fresh.
+grep -vE '^GALAXY_CONFIG(_OVERRIDE)?_DATABASE_CONNECTION=' /opt/biomate/.env 2>/dev/null > /opt/biomate/.env.new || true
+echo \"GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=\$DB_URL\" >> /opt/biomate/.env.new
+mv /opt/biomate/.env.new /opt/biomate/.env
+chown ubuntu:ubuntu /opt/biomate/.env
+echo \"OVERRIDE_DATABASE_CONNECTION sourced from $RDS_SECRET_NAME\"
+"
+fi
 ssm_run "
 mkdir -p /opt/biomate
 echo '$COMPOSE_B64' | base64 -d > /opt/biomate/docker-compose.deploy.yml
 chown ubuntu:ubuntu /opt/biomate/docker-compose.deploy.yml
-# Touch .env so docker compose doesn't warn; secrets injection lands in P2.3.
+# Touch .env so docker compose doesn't warn (it gets rewritten below if RDS_SECRET_NAME is set).
 touch /opt/biomate/.env
+$RDS_SECRET_BLOCK
 aws ecr get-login-password --region $AWS_REGION \
   | docker login --username AWS --password-stdin $ECR_REGISTRY
 " stage || { notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "stage"; exit 1; }
@@ -156,28 +181,21 @@ echo '$DEPLOY_TAG' > /opt/biomate/last_deployed_tag.new
 
 # -------- 4. Pull + up + healthcheck --------
 log "[4/5] docker compose pull + up + container healthchecks …"
-WIPE_BLOCK=""
-if [[ "$WIPE_GALAXY_DB" == "1" ]]; then
-  WIPE_BLOCK="
-# Test env only: stop galaxy container + wipe SQLite state so Galaxy stamps
-# its alembic revision from empty. WIPE_GALAXY_DB is gated by env (never 1
-# for stage/prod).
-docker stop biomate-galaxy-deploy 2>/dev/null || true
-docker rm -f biomate-galaxy-deploy 2>/dev/null || true
-docker volume rm -f biomate-galaxy-deploy-db 2>/dev/null || true
-docker exec biomate-galaxy-deploy rm -f /app/database/*.sqlite* 2>/dev/null || true
-echo \"wiped /app/database/*.sqlite* (test env)\"
-"
-fi
 if ! ssm_run "
 cd /opt/biomate
 export BACKEND_IMAGE='$BACKEND_IMAGE'
 export FRONTEND_IMAGE='$FRONTEND_IMAGE'
-$WIPE_BLOCK
 echo \"Pulling \$BACKEND_IMAGE …\"
 docker compose -f docker-compose.deploy.yml pull
-echo \"Bringing services up …\"
-docker compose -f docker-compose.deploy.yml up -d --wait --wait-timeout 240
+# Force fresh container creation: idempotent 'up' won't re-create when the
+# image digest + env are unchanged from the running container, which would
+# silently ignore .env updates (e.g. a rotated DB secret). --force-recreate
+# guarantees the new env is applied. Also \`down --volumes\` first to drop
+# any stale container + any local SQLite state left by a previous failed
+# boot in the container's writable layer.
+docker compose -f docker-compose.deploy.yml down --remove-orphans --volumes 2>/dev/null || true
+echo \"Bringing services up (forced fresh) …\"
+docker compose -f docker-compose.deploy.yml up -d --wait --wait-timeout 240 --force-recreate
 docker compose -f docker-compose.deploy.yml ps
 " upwait; then
   log "compose up failed — attempting rollback"
