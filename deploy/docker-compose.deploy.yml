@@ -1,0 +1,67 @@
+# BioMate deploy-managed compose file.
+#
+# Pulled to /opt/biomate/docker-compose.deploy.yml on each target host by
+# scripts/deploy.sh. Uses ECR `image:` refs (NOT `build:`) so deploys never
+# rebuild — they just pull the tag baked by the GHA image-build workflow.
+#
+# Two env vars must be set when running `docker compose up`:
+#   BACKEND_IMAGE    e.g. 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sha-27999805f8e3
+#   FRONTEND_IMAGE   e.g. 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-frontend:sha-b8980d6a1a4d
+#
+# Container names use a `-deploy` suffix so they cannot collide with the
+# sync_to_dev.sh-managed dev containers during the migration window (P4.3
+# retires the sync containers once deploy.sh has proven itself).
+#
+# Secrets (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) come from /opt/biomate/.env
+# on the host today. P2.3 will replace this with AWS Secrets Manager.
+
+services:
+  galaxy-backend-deploy:
+    image: ${BACKEND_IMAGE}
+    container_name: biomate-galaxy-deploy
+    pull_policy: always
+    ports:
+      - "8081:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GALAXY_CONFIG_FILE=/app/config/galaxy.yml
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks: [biomate-deploy-net]
+
+  frontend-deploy:
+    image: ${FRONTEND_IMAGE}
+    container_name: biomate-frontend-deploy
+    pull_policy: always
+    ports:
+      - "80:3000"
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GALAXY_API_URL=http://galaxy-backend-deploy:8080
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    depends_on:
+      galaxy-backend-deploy:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks: [biomate-deploy-net]
+
+networks:
+  biomate-deploy-net:
+    name: biomate-deploy-net
+    driver: bridge
