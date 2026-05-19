@@ -40,8 +40,7 @@ Separate LLM-judge pass with task-specific rules grades the output. Hallucinated
 ✓ HallucinationDetector on screen_gene + gwas_causal: 0% hallucination (actual fabrication, distinct from overconfidence)
 ✓ Routing v5: 84% exact match on 120 cases
 ✓ IR Hit@5 = 0.967 — correct workflow in top 5 candidates 97% of the time
-✓ BiomniEval1 patient_gene: 84% (BioMate v9), competitive with Biomni-R0-32B on its own benchmark
-✓ Variant calling: 0.567 → 0.824 (+0.206) via 4 structural retrieval fixes
+✓ Variant calling routing: 0.567 → 0.824 (+0.206) via 4 structural retrieval fixes
 
 The hardest cultural shift: in production pharma agents, you reward "being right when you speak and silent when you don't."
 

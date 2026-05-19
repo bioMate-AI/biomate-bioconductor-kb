@@ -47,8 +47,6 @@ High-stakes decisions: agent proposes, user approves. Approval logged with times
 ✓ Designed against LongMemEval + LoCoMo — comparable to public memory literature, not a custom-flattering eval
 ✓ Session 8 episode + correction injection live in production, 4/4 E2E passing
 ✓ Cross-domain auto-loop convergence: 96.4% within 3 iterations
-✓ BixBench (closed-loop bioinformatics): 80% vs Biomni Lab 52.2% vs Claude Code 39.5% vs GPT-4o 17%
-✓ BiomniEval1 patient_gene: 84% (BioMate v9) — competitive with Biomni's specialized 32B model on Biomni's own benchmark
 
 Why the four pillars belong together:
 

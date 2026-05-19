@@ -75,6 +75,23 @@ business/marketing/blog_posts/
     └── post_16_memory_governance.drawio.xml
 ```
 
+## Session update — opinion piece + trim + bench correction
+
+- **Post 22 added** — opinion piece on evaluation metrics. Argues
+  product-level evaluation (matrix across hallucination, routing,
+  schema, memory, stability, traceability) beats single-number public
+  benchmarks; explicitly maps BioMate's evaluation matrix to the
+  ChatInvent problems. Substack + LinkedIn + draw.io figure
+  (`post_22_eval_matrix.drawio.xml`).
+- **BixBench numbers removed** from posts 13, 15, 16 LinkedIn versions
+  per user note that the BioMate BixBench result is not finalized /
+  accurate yet.
+- **Post 15 LinkedIn trimmed** — removed granular per-auto-loop bullet
+  list; kept only the high-level architecture summary + cross-domain
+  convergence number.
+- Post-22-specific @-tags woven into Substack (named credit) and
+  LinkedIn (@-tags) per the established discoverability pattern.
+
 ## Pending
 
 - User to verify the three @-handles map to the correct LinkedIn

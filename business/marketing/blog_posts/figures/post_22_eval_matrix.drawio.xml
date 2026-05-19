@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="eval-matrix" id="em1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Product-level evaluation matrix — one eval per ChatInvent failure mode" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Public benchmarks column header -->
+        <mxCell id="ph1" value="&lt;b&gt;Public benchmarks measure this&lt;/b&gt;" style="text;html=1;align=center;fontSize=13;fontStyle=1;fontColor=#b91c1c;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="380" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="pub" value="One question → one answer → one score&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;BixBench • BiomniEval1 • SGI-Bench • MMLU-Med&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#b91c1c;fontColor=#7f1d1d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="380" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ChatInvent problems column header -->
+        <mxCell id="ph2" value="&lt;b&gt;ChatInvent named these production failures&lt;/b&gt;" style="text;html=1;align=center;fontSize=13;fontStyle=1;fontColor=#b45309;" vertex="1" parent="1">
+          <mxGeometry x="490" y="80" width="380" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- BioMate evals column header -->
+        <mxCell id="ph3" value="&lt;b&gt;BioMate evaluation matrix&lt;/b&gt;" style="text;html=1;align=center;fontSize=13;fontStyle=1;fontColor=#15803d;" vertex="1" parent="1">
+          <mxGeometry x="920" y="80" width="420" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Rows -->
+        <!-- Row 1: Context explosion -->
+        <mxCell id="r1p" value="Context explosion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="490" y="230" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r1b" value="&lt;b&gt;Routing v5 + IR baseline&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;84% exact (120 cases) • P@1 0.742 • Hit@5 0.967&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="920" y="230" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2: Tool hallucination -->
+        <mxCell id="r2p" value="Tool hallucination" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="490" y="310" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r2b" value="&lt;b&gt;Independent LLM judge&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;screen_gene + gwas_causal: 0% fabrication&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="920" y="310" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 3: Schema mismatch -->
+        <mxCell id="r3p" value="Schema mismatch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="490" y="390" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r3b" value="&lt;b&gt;param_prefill (115 cases) + prereq gate&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;PBPK 71.7% → 98.5% (+26.8pp) from rule layer&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="920" y="390" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 4: Workflow instability -->
+        <mxCell id="r4p" value="Workflow instability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="490" y="470" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4b" value="&lt;b&gt;Auto-loop convergence (cross-domain)&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;96.4% within 3 user-approved iterations&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="920" y="470" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 5: Memory corruption -->
+        <mxCell id="r5p" value="Memory corruption" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="490" y="550" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r5b" value="&lt;b&gt;Memory benchmark (LongMemEval / LoCoMo aligned)&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;20/20 (100% weighted) • +45% vs GPT-4o no-injection&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="920" y="550" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row 6: Pillars (HITL + traceability + governance) -->
+        <mxCell id="r6p" value="HITL + traceability + governance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="490" y="630" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r6b" value="&lt;b&gt;Prediction registry + audit-log completeness&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Coverage + reconciliation latency (capability test, not single number)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="920" y="630" width="420" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Public benchmarks miss callout (left column) -->
+        <mxCell id="miss" value="&lt;b style=&quot;color:#b91c1c&quot;&gt;Public benchmarks miss all six rows&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;String-match graders can't see fabrication, schema drift, instability, or audit gaps&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef2f2;strokeColor=#b91c1c;fontColor=#7f1d1d;strokeWidth=1;arcSize=15;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="380" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Cite -->
+        <mxCell id="cite" value="Reference: He J, Lai H, Saigiridharan L, Ghiandoni GM, Jenei K, Gokalp U, Nukovic A, Engkvist O, Janet JP, Genheden S. &amp;ldquo;Democratising real-world drug discovery through agentic AI.&amp;rdquo; Drug Discovery Today 2026. doi: 10.1016/j.drudis.2026.104605" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="80" y="730" width="1240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cta" value="biomate.ai/try" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="790" width="200" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -41,6 +41,7 @@ For BioMate marketing we standardize on **draw.io XML** because it's plain text 
 | `post_14_param_extraction.drawio.xml` | Substack + LinkedIn | Rule-first / LLM-fallback / schema-guardrail 3-stage pipeline |
 | `post_15_auto_loop.drawio.xml`      | Substack + LinkedIn  | Auto-loop QC remediation cycle with HITL approval |
 | `post_16_memory_governance.drawio.xml` | Substack + LinkedIn | Episode + correction memory + prediction registry + governance |
+| `post_22_eval_matrix.drawio.xml`    | Substack + LinkedIn  | Public benchmarks vs ChatInvent problems vs BioMate eval matrix (opinion piece) |
 | *(TBD)* `post_10_inhibitor_two_agent.drawio.xml` | Substack + LinkedIn | ANDV inhibitor: pocket → pharmacophore → ADMET → Vina + Agent A/B split |
 | *(TBD)* `post_11_plan_a_epitope.drawio.xml` | Substack + LinkedIn | Plan A: samplesheet → epitopeprediction → MHCnuggets; NOT mhcquant routing |
 
