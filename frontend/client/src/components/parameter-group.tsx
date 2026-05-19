@@ -170,6 +170,14 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
 }
 
 export function ParameterGroup({ id, title, description, parameters, onChange, onBrowseDataset, className, defaultOpen }: ParameterGroupProps) {
+  // Controlled accordion: Radix's defaultValue is honored only at mount.
+  // When inline_parameters arrives asynchronously via SSE, defaultOpen flips
+  // from false→true after mount, but Radix ignores the prop change. We track
+  // the open state in React so prop updates actually re-open the accordion.
+  const [accordionValue, setAccordionValue] = React.useState<string>(defaultOpen ? id : '');
+  React.useEffect(() => {
+    if (defaultOpen) setAccordionValue(id);
+  }, [defaultOpen, id]);
   const renderParameterInput = (param: Parameter) => {
     const hasKnowledge = !!(param.rationale || param.citation);
     const LabelWithKnowledge = () => (
@@ -328,7 +336,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
   };
 
   return (
-    <Accordion type="single" collapsible defaultValue={defaultOpen ? id : undefined} className={cn("w-full border rounded-lg bg-card text-card-foreground shadow-sm", className)}>
+    <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className={cn("w-full border rounded-lg bg-card text-card-foreground shadow-sm", className)}>
       <AccordionItem value={id} className="border-b-0">
         <AccordionTrigger className="px-4 py-3 hover:bg-accent/50 transition-colors">
           <div className="flex flex-col items-start text-left">
