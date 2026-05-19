@@ -9167,6 +9167,35 @@ Rules:
     }
   });
 
+  // ── Canonical outputs endpoint (PR 1 of outputs-consolidation) ───────────
+  // Single source of truth: resolves any id (runId / galaxyInvocationId /
+  // nextflowRunId), lists S3 once with the right region+creds, returns the
+  // normalized shape with presigned downloadUrl on every item.
+  // See docs/20260518_OUTPUTS_SERVICE_CONSOLIDATION_SPEC.md
+  app.get("/api/runs/:anyId/outputs", async (req, res) => {
+    try {
+      const { runsOutputsService } = await import("./services/runs-outputs-service");
+      const items = await runsOutputsService.list(req.params.anyId);
+      res.json({ outputs: items, count: items.length });
+    } catch (e: any) {
+      console.error("[runs-outputs] error:", e);
+      res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
+  // Resolution helper — exposes the canonical meta for debugging / future UI.
+  app.get("/api/runs/:anyId/meta", async (req, res) => {
+    try {
+      const { runsOutputsService } = await import("./services/runs-outputs-service");
+      const meta = await runsOutputsService.resolve(req.params.anyId);
+      if (!meta) return res.status(404).json({ error: "Run not found" });
+      res.json(meta);
+    } catch (e: any) {
+      console.error("[runs-outputs] meta error:", e);
+      res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
   // Output files for a run
   app.get("/api/workflows/runs/:id/output_files", async (req, res) => {
     try {
