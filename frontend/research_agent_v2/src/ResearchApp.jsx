@@ -149,6 +149,7 @@ function ResearchApp() {
   const scenario = window.RESEARCH_SCENARIOS[scenarioId];
   const [head, setHead] = useState(0);
   const [chatEvents, setChatEvents] = useState([]);  // [{kind:'line'|'card', ...}]
+  const [liveStatus, setLiveStatus] = useState(null); // { status, detail, eventCount, lastKind } when live mode is on
   const [planItems, setPlanItems] = useState([]);    // current rendered plan
   const [planShown, setPlanShown] = useState(false);
   const [planEditing, setPlanEditing] = useState(false);
@@ -448,9 +449,17 @@ function ResearchApp() {
       if (liveMode === 'real') {
         if (!liveInvId) {
           console.warn('[ResearchApp] ?live=real requires ?inv=<invocation_id>');
+          setLiveStatus({ status: 'error', detail: 'missing ?inv=<invocation_id>' });
           return;
         }
-        stream = window.SseAdapter.connectRealBiomateStream(liveInvId);
+        stream = window.SseAdapter.connectRealBiomateStream(liveInvId, {
+          onStatus: (status, detail) => setLiveStatus(prev => ({
+            status,
+            detail,
+            eventCount: (status === 'event' && detail && typeof detail.count === 'number') ? detail.count : (prev && prev.eventCount) || 0,
+            lastKind:   (status === 'event' && detail && detail.kind) ? detail.kind : (prev && prev.lastKind) || null,
+          })),
+        });
       } else {
         // 'mock' or anything else → mock stream using current scenarioId.
         // Drug screen uses 'drugscreen', cryo uses 'cryoem' — same tapes as
@@ -705,6 +714,29 @@ function ResearchApp() {
             <div className="title">
               New thread <span className="domain">· {scenario.domain}</span>
             </div>
+            {liveMode === 'real' && liveStatus && (
+              <span
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  border: '1px solid var(--bm-border, #e5e5e5)',
+                  background: liveStatus.status === 'error'
+                    ? 'oklch(0.97 0.04 25)'
+                    : liveStatus.status === 'open' || liveStatus.status === 'event'
+                      ? 'oklch(0.96 0.04 150)' : '#f5f5f5',
+                  color: liveStatus.status === 'error'
+                    ? 'oklch(0.50 0.18 25)'
+                    : (liveStatus.status === 'open' || liveStatus.status === 'event')
+                      ? 'oklch(0.45 0.13 150)' : '#666',
+                }}
+                title={typeof liveStatus.detail === 'string' ? liveStatus.detail : JSON.stringify(liveStatus.detail || {})}
+              >
+                SSE: {liveStatus.status}
+                {liveStatus.eventCount ? ` · ${liveStatus.eventCount} events` : ''}
+                {liveStatus.lastKind ? ` · ${liveStatus.lastKind}` : ''}
+              </span>
+            )}
           </div>
           <div className="actions">
             <button className="tut-btn" onClick={tour.start} title="Replay the tutorial">

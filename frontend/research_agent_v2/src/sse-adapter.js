@@ -479,27 +479,40 @@
   }
 
   // ── Real stream: opens an EventSource against BioMate's chat_progress SSE ──
+  // Optional onStatus(status, detail?) callback surfaces connection state so
+  // the host can render an indicator. Status values: 'connecting' | 'open'
+  // | 'event' | 'error' | 'closed'.
   function connectRealBiomateStream(invocationId, opts) {
     opts = opts || {};
     const url = (opts.baseUrl || '') + '/api/workflows/' + encodeURIComponent(invocationId) + '/events';
+    const onStatus = typeof opts.onStatus === 'function' ? opts.onStatus : function(){};
 
     function start(onEvent) {
+      onStatus('connecting', url);
       const es = new EventSource(url, { withCredentials: true });
+      let eventCount = 0;
+      es.addEventListener('open', function () { onStatus('open'); });
       es.addEventListener('chat_progress', function (msg) {
         try {
           const data = JSON.parse(msg.data);
+          eventCount += 1;
+          onStatus('event', { count: eventCount, kind: data && data.kind });
           onEvent(data);
         } catch (e) {
           console.warn('[real-sse] bad payload:', e);
+          onStatus('error', 'bad payload: ' + e.message);
         }
       });
-      es.addEventListener('error', function (e) {
-        console.warn('[real-sse] error event', e);
+      es.addEventListener('error', function () {
+        // EventSource fires `error` on both transient disconnects (it then
+        // auto-reconnects) and terminal failures (readyState===CLOSED).
+        onStatus('error', { readyState: es.readyState, urlAttempted: url });
+        console.warn('[real-sse] error event; readyState=' + es.readyState);
       });
-      return { close: () => es.close() };
+      return { close: () => { onStatus('closed'); es.close(); } };
     }
 
-    return { start, invocationId };
+    return { start, invocationId, url };
   }
 
   // ── Expose globally for inline-Babel script tags ──
