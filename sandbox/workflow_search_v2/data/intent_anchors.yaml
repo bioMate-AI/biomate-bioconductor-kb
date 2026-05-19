@@ -73,7 +73,6 @@ single_cell_rnaseq:
     - atac
     - cite-seq
     - antibody capture
-    - doublet
     - chromium
     - tcr
     - t cell receptor
@@ -81,6 +80,8 @@ single_cell_rnaseq:
     - b cell receptor
     - clonotype
     - immune repertoire
+    # NOTE: removed "doublet" — scrnaseq DOES do droplet/doublet QC,
+    # over-tightening prevented sc_007 from flipping correctly
 
 differential_abundance:
   canonical: nf-core/differentialabundance
@@ -402,3 +403,158 @@ nanoseq:
     - promethion
   pipeline_intent_required: false
   disqualified_if_present: [pacbio, hifi]
+
+# ───────────────────────── Long-tail additions ────────────────────────
+bam_stringtie:
+  canonical: nf-core/bam_stringtie_merge
+  trigger_terms:
+    - stringtie
+    - stringtie merge
+    - bam stringtie
+    - transcript assembly
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+hic:
+  canonical: nf-core/hic
+  trigger_terms:
+    - hi-c
+    - hic sequencing
+    - chromosome conformation
+    - topologically associating domains
+    - tads
+    - 3d genome
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+scrna_doublet_qc:
+  canonical: scrna_doublet_qc
+  trigger_terms:
+    - scrnaseq doublet
+    - doublet detection
+    - inflated cell counts
+    - scrublet
+    - doubletfinder
+  pipeline_intent_required: false
+  disqualified_if_present: [bd rhapsody, parse]
+
+cite_seq:
+  canonical: cite_seq_preprocessing
+  trigger_terms:
+    - cite-seq
+    - antibody capture
+    - protein expression single-cell
+    - feature barcoding
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+bd_rhapsody:
+  canonical: bd_rhapsody_scrna
+  trigger_terms:
+    - bd rhapsody
+    - rhapsody scrnaseq
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+parse_split_seq:
+  canonical: parse_split_seq_scrna
+  trigger_terms:
+    - parse biosciences
+    - split-seq
+    - splitseq
+    - sub-sampling barcoding
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+methylarray:
+  canonical: nf-core/methylarray
+  trigger_terms:
+    - methylation array
+    - illumina methylation array
+    - epic array
+    - 450k array
+  pipeline_intent_required: false
+  disqualified_if_present: [bisulfite, methylseq]
+
+proteinfold:
+  canonical: nf-core/proteinfold
+  trigger_terms:
+    - alphafold2 only
+    - esmfold
+    - colabfold
+    - protein structure prediction pipeline
+    - proteinfold
+  pipeline_intent_required: false
+  disqualified_if_present: [docking, ligand, virtual screening]
+
+structure_docking:
+  canonical: Structure Prediction Docking
+  trigger_terms:
+    - structure prediction and docking
+    - predict structure then dock
+    - alphafold and docking
+    - boltz
+    - virtual screening with structure
+  pipeline_intent_required: false
+  disqualified_if_present: [md simulation, mm-gbsa, free energy]
+
+gromacs_md:
+  canonical: GROMACS Protein-Ligand MD + MM-GBSA
+  trigger_terms:
+    - gromacs
+    - molecular dynamics simulation
+    - md simulation
+    - mm-gbsa
+    - binding free energy
+    - md trajectory
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+reinvent4:
+  canonical: REINVENT4 Generative Lead Design
+  trigger_terms:
+    - reinvent
+    - generative molecule design
+    - de novo drug design
+    - lead optimization generative
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+cipa:
+  canonical: cipa_cardiac_safety_ode
+  trigger_terms:
+    - cipa
+    - herg cardiac safety
+    - torsadogenic risk
+    - cardiac safety ode
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+ode_signaling:
+  canonical: ode_signaling_simulation
+  trigger_terms:
+    - ode signaling
+    - signaling network simulation
+    - hill functions kinetics
+  pipeline_intent_required: false
+  disqualified_if_present: [cipa, cardiac]
+
+bispecific_antibody:
+  canonical: bispecific_antibody_design
+  trigger_terms:
+    - bispecific antibody
+    - bispecific design
+    - tandem scfv
+    - dual-targeting antibody
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+sirna_offtarget:
+  canonical: sirna_offtarget_analysis
+  trigger_terms:
+    - sirna off-target
+    - sirna offtarget
+    - off-target sirna
+    - sirna specificity
+  pipeline_intent_required: false
+  disqualified_if_present: []

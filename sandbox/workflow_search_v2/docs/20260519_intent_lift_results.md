@@ -3,7 +3,7 @@
 **Date:** 2026-05-19
 **Source:** `evaluation/datasets/cross_domain_routing/queries.yaml`
 **Library:** `sandbox/workflow_search_v2/library/workflow_intent.py`
-**Anchors:** `sandbox/workflow_search_v2/data/intent_anchors.yaml` (24 entries)
+**Anchors:** `sandbox/workflow_search_v2/data/intent_anchors.yaml` (39 entries)
 **BGE:** DISABLED (local — same as baseline run)
 
 ## Headline
@@ -11,8 +11,8 @@
 | Method | Top-1 HIT | % |
 |---|---|---|
 | BASELINE (`UnifiedWorkflowSearch.search` raw) | 108 / 155 | **69.7%** |
-| **TREATMENT (+`prioritize_workflow_by_intent`)** | 116 / 155 | **74.8%** |
-| Delta | +8 | **+5.2pp** |
+| **TREATMENT (+`prioritize_workflow_by_intent`)** | 118 / 155 | **76.1%** |
+| Delta | +10 | **+6.5pp** |
 
 ## By domain
 
@@ -24,15 +24,17 @@
 | immunology | 6 | 6 | 6 | +0 |
 | metagenomics | 13 | 8 | 9 | +1 |
 | proteomics | 13 | 12 | 12 | +0 |
-| rna_seq | 15 | 8 | 9 | +1 |
-| single_cell | 25 | 20 | 20 | +0 |
+| rna_seq | 15 | 8 | 10 | +2 |
+| single_cell | 25 | 20 | 21 | +1 |
 | transcriptomics | 11 | 8 | 9 | +1 |
 | variant_calling | 17 | 11 | 15 | +4 |
 | virtual_cell | 15 | 9 | 9 | +0 |
 
-## Flips to correct (8)
+## Flips to correct (10)
 
+- **rna_006** `Run a StringTie transcript assembly on my aligned RNA-seq BAM files` → was `Bam Stringtie Merge`, now `nf-core/bam_stringtie_merge`
 - **rna_010** `I already have a count matrix from rnaseq. Now I want to find differen` → was `nf-core/rnaseq`, now `nf-core/differentialabundance`
+- **sc_007** `Quality control of single-cell sequencing: filter empty droplets and d` → was `scds`, now `nf-core/scrnaseq`
 - **var_001** `Call germline SNPs and indels from whole genome sequencing of a health` → was `nf-core/rnavar`, now `nf-core/sarek`
 - **var_010** `Calculate tumor mutational burden (TMB) from WES of a melanoma sample` → was `CaMutQC`, now `nf-core/sarek`
 - **var_011** `Annotate germline variants with ClinVar and gnomAD allele frequencies ` → was `nf-core/variantcatalogue`, now `nf-core/sarek`
@@ -45,15 +47,13 @@
 
 **None.** The intent prioritizer never demoted a correct top-1 to wrong.
 
-## Still failing (39)
+## Still failing (37)
 
 - **rna_001** `Run standard RNA-seq analysis on my paired-end FASTQ files from a mous` — expected `nf-core/rnaseq`, got `nf-core/cutandrun`
 - **rna_004** `Remove ribosomal RNA contamination and trim adapters before aligning m` — expected `nf-core/rnaseq`, got `nf-core/fastq_trim_fastp_fastqc`
-- **rna_006** `Run a StringTie transcript assembly on my aligned RNA-seq BAM files` — expected `nf-core/bam_stringtie_merge`, got `Bam Stringtie Merge`
 - **rna_007** `Generate BigWig coverage tracks from my RNA-seq experiment for genome ` — expected `nf-core/rnaseq`, got `CoverageView`
 - **rna_012** `Strandedness is unknown for my RNA-seq libraries — auto-detect it and ` — expected `nf-core/rnaseq`, got `BUSseq`
 - **rna_013** `Identify genes upregulated in lung tissue from COVID-19 patients versu` — expected `nf-core/rnaseq`, got `oncomix`
-- **sc_007** `Quality control of single-cell sequencing: filter empty droplets and d` — expected `nf-core/scrnaseq`, got `scds`
 - **sc_012** `Find cell types in a single-cell experiment from inflamed colon tissue` — expected `nf-core/scrnaseq`, got `LRcell`
 - **var_008** `Rank and prioritize variants by pathogenicity score for a patient with` — expected `nf-core/raredisease`, got `ASSIGN`
 - **var_015** `Align reads from a Sentieon-licensed server for fast germline variant ` — expected `nf-core/sarek`, got `Qtlizer`
@@ -67,5 +67,7 @@
 - **tx_007** `Small RNA sequencing to profile miRNA expression in serum samples` — expected `nf-core/smrnaseq`, got `miQC`
 - **gen_004** `Hi-C sequencing to map chromatin contacts and identify topologically a` — expected `nf-core/hic`, got `UMI4Cats`
 - **dd_001** `Predict the 3D structure of my kinase using AlphaFold2 and then dock a` — expected `Structure Prediction Docking`, got `nf-core/proteinfold`
+- **dd_002** `Virtual screening of 500 compounds against my GPCR homology model usin` — expected `Structure Prediction Docking`, got `Schrodinger Glide Docking`
+- **dd_005** `RMSD and RMSF backbone flexibility analysis from a molecular dynamics ` — expected `GROMACS Protein-Ligand MD + MM-GBSA`, got `AMBER pmemd GPU Molecular Dynamics`
 
-…19 more cases.
+…17 more cases.
