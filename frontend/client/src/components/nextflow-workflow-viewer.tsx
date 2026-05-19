@@ -249,6 +249,10 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
       value,
       defaultValue: fromWorkflow[key],
       required: false,
+      // Mark inline-param entries as autoFilled so the viewer's
+      // "default-open when autoFilled present" logic triggers and so the
+      // input rows show the LLM-prefill visual badge.
+      autoFilled: Object.prototype.hasOwnProperty.call(fromInline, key),
     }));
 }
 
@@ -1566,6 +1570,16 @@ export function NextflowWorkflowViewer({
     if (hasUnfilledRequired) setGlobalParamsOpen(true);
   }, [hasUnfilledRequired]);
 
+  // Auto-expand when the LLM extracted inline params for the user — they should
+  // see what was prefilled before clicking Run (and so the form is actually in
+  // the DOM for E2E assertions to read).
+  useEffect(() => {
+    const inline = (workflowDefinition as any)?.inline_parameters;
+    if (inline && typeof inline === 'object' && Object.keys(inline).length > 0) {
+      setGlobalParamsOpen(true);
+    }
+  }, [workflowDefinition]);
+
   // D4: Auto-fetch error explanation when workflow fails
   useEffect(() => {
     if (status === 'failed' && !errorExplanation && !errorExplaining) {
@@ -2001,7 +2015,13 @@ export function NextflowWorkflowViewer({
           : "Use View Results to check generated outputs as they arrive.";
 
   return (
-    <div className="wf-panel" data-testid="workflow-artifact-panel">
+    <div
+      className="wf-panel"
+      data-testid="workflow-artifact-panel"
+      data-debug-inline-params={JSON.stringify(workflowDefinition?.inline_parameters || null)}
+      data-debug-rendered-param-count={renderedParameters.length}
+      data-debug-rendered-param-ids={renderedParameters.map((p: any) => p.id).join(',')}
+    >
       <DownloadOutcomePrompt
         open={downloadAllPromptOpen}
         onOpenChange={setDownloadAllPromptOpen}
@@ -2339,7 +2359,8 @@ export function NextflowWorkflowViewer({
                           parameters={globalParams.sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))}
                           onChange={handleParamChange}
                           onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
-                          defaultOpen={requiredUnfilled.length > 0}
+                          // Default-open when there are required unfilled OR any LLM-prefilled (autoFilled) params
+                          defaultOpen={requiredUnfilled.length > 0 || globalParams.some(p => (p as any).autoFilled)}
                         />
                       </div>
                     </div>
