@@ -55,7 +55,14 @@ def main() -> int:
         except Exception:
             continue
         baseline_top1 = raw[0].name if raw else None
-        treated = prioritize_workflow_by_intent(query, raw, anchors=anchors)
+        # Compare two modes:
+        #   reorder-only: existing prioritize (promote canonical if present)
+        #   inject:       same, plus inject canonical if absent and intent confident
+        import os as _os
+        treated = prioritize_workflow_by_intent(
+            query, raw, anchors=anchors,
+            inject_canonical=(_os.environ.get("BIOMATE_INTENT_INJECT") == "1"),
+        )
         treated_top1 = treated[0].name if treated else None
 
         b_hit = (baseline_top1 == correct)

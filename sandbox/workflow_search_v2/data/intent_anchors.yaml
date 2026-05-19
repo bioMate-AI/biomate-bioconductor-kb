@@ -47,7 +47,12 @@ bulk_rnaseq:
     - fusion gene
     - fusion transcripts
     - spatial transcriptomics
-    - count matrix  # if user already has counts, → differentialabundance
+    - count matrix       # if user already has counts, → differentialabundance
+    - counts table       # same
+    - count table
+    - have a counts
+    - pathway enrich     # downstream of DE → differentialabundance
+    - pathways are enriched
 
 single_cell_rnaseq:
   canonical: nf-core/scrnaseq

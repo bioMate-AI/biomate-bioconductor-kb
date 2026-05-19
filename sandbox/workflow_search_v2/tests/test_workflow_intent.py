@@ -143,6 +143,40 @@ def test_does_not_mutate_input():
     assert cands[0].name == "nf-core/cutandrun"  # original unchanged
 
 
+def test_inject_canonical_when_absent():
+    """When intent fires confidently but canonical isn't in candidates and
+    inject_canonical=True, the canonical is added at position 0."""
+    cands = [_Cand("nf-core/cutandrun"), _Cand("scry"), _Cand("ALDEx2")]
+    out = prioritize_workflow_by_intent(
+        "Run standard RNA-seq analysis on my paired-end FASTQ from mouse",
+        cands, inject_canonical=True,
+    )
+    assert out[0].name == "nf-core/rnaseq"
+    # Original candidates still present, in original order
+    assert [c.name for c in out[1:]] == ["nf-core/cutandrun", "scry", "ALDEx2"]
+
+
+def test_inject_default_off_does_not_add():
+    """Default (inject_canonical=False) leaves candidates alone when canonical
+    is absent — backwards-compatible with the reorder-only behavior."""
+    cands = [_Cand("nf-core/cutandrun"), _Cand("scry")]
+    out = prioritize_workflow_by_intent(
+        "Run standard RNA-seq analysis on FASTQ",
+        cands,
+    )
+    assert [c.name for c in out] == ["nf-core/cutandrun", "scry"]
+
+
+def test_inject_requires_confidence():
+    """inject_canonical only fires when the intent matched ≥2 trigger terms.
+    A single weak match doesn't justify adding a workflow that wasn't in the
+    FTS results."""
+    cands = [_Cand("foo")]
+    # Only "stringtie" matches bam_stringtie (single trigger) — should NOT inject
+    out = prioritize_workflow_by_intent("stringtie", cands, inject_canonical=True)
+    assert [c.name for c in out] == ["foo"]
+
+
 def test_dict_style_candidates_work():
     """Library accepts plain dicts as well as dataclass-like objects."""
     cands = [{"name": "nf-core/cutandrun"}, {"name": "nf-core/rnaseq"}]

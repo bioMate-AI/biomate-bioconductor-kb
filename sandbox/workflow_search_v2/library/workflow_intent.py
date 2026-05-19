@@ -105,8 +105,29 @@ def _candidate_name(cand: Any) -> str:
     return str(getattr(cand, "name", "") or "")
 
 
+def _make_synthetic_candidate(template: Any, workflow_name: str) -> Any:
+    """Build a candidate object of the same kind as those in the input list,
+    with the given workflow name. Used by inject_canonical=True. Falls back
+    to a tiny duck-typed shim if the template's class can't be instantiated."""
+    import copy
+    try:
+        new = copy.copy(template)
+        if hasattr(new, "__dict__"):
+            new.__dict__["name"] = workflow_name
+            return new
+    except Exception:
+        pass
+    # Last resort: tiny object with `.name`
+    class _Synth:
+        pass
+    s = _Synth()
+    s.name = workflow_name
+    return s
+
+
 def prioritize_workflow_by_intent(query: str, candidates: List[Any],
                                     anchors: Optional[List[Dict[str, Any]]] = None,
+                                    inject_canonical: bool = False,
                                     ) -> List[Any]:
     """Promote the canonical workflow matching the query's intent to position 1.
 
@@ -150,7 +171,17 @@ def prioritize_workflow_by_intent(query: str, candidates: List[Any],
         if _candidate_name(c).lower() == canonical_lc:
             canonical_idx = i
             break
-    if canonical_idx is None or canonical_idx == 0:
+    if canonical_idx is None:
+        if not inject_canonical or not candidates:
+            return list(candidates)
+        # Confident intent fired but canonical isn't in candidates — inject it
+        # at the head. Trigger density must be ≥ 2 to gate confidence.
+        if matched[0][1] < 2:
+            return list(candidates)
+        injected = _make_synthetic_candidate(candidates[0], canonical)
+        out = [injected] + list(candidates)
+        return out
+    if canonical_idx == 0:
         return list(candidates)
 
     out = list(candidates)
