@@ -11,9 +11,10 @@
  * Class names preserved verbatim from prototype.
  * CroIcon → lucide-react per the handoff mapping.
  *
- * NOTE: contentEditable retained from the prototype as the editing primitive.
- * The handoff doc calls for replacing it with TipTap — that swap happens in
- * a follow-up slice (it's mechanical once the data flow here is verified).
+ * Editing primitive: TipTap (single-paragraph schema via Document + Paragraph
+ * + Text + History extensions) — see EditableParagraph.tsx. Swaps in cleanly
+ * for the prototype's contentEditable because the data flow (onBlur → diff →
+ * captureEdit) is preserved.
  *
  * NOT WIRED INTO PRODUCTION. Lives in frontend/sandbox/ind-port/.
  */
@@ -23,6 +24,7 @@ import {
   captureEdit, suggestCitation, regenerateSection,
 } from "../lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
+import { EditableParagraph } from "./EditableParagraph";
 
 // ── data shapes ────────────────────────────────────────────────
 export type Region = "FDA" | "EMA" | "NMPA" | "PMDA";
@@ -302,14 +304,12 @@ function DocSection({
                 §{sub.id} {sub.title}
               </h4>
               {body ? (
-                <p
-                  data-pid={pid}
-                  data-edited={editedParas[pid] || undefined}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => onParaBlur(pid, body, e.currentTarget.innerText)}
+                <EditableParagraph
+                  pid={pid}
+                  body={body}
+                  edited={editedParas[pid]}
+                  onSettled={onParaBlur}
                 >
-                  {body}
                   {subFinding && (
                     <span
                       className="finding-chip"
@@ -329,7 +329,7 @@ function DocSection({
                   >
                     +
                   </span>
-                </p>
+                </EditableParagraph>
               ) : (
                 <div className="skel">
                   ┄ ┄ ┄ §{sub.id} {sub.wait || "— ready"} ┄ ┄ ┄
@@ -342,17 +342,13 @@ function DocSection({
           );
         })
       ) : (
-        <p
-          data-pid={`p-${section.id}`}
-          data-edited={editedParas[`p-${section.id}`] || undefined}
-          contentEditable
-          suppressContentEditableWarning
-          onBlur={(e) => {
-            const original = bodyOf(doc, `p-${section.id}`);
-            onParaBlur(`p-${section.id}`, original, e.currentTarget.innerText);
-          }}
+        <EditableParagraph
+          pid={`p-${section.id}`}
+          body={bodyOf(doc, `p-${section.id}`)}
+          edited={editedParas[`p-${section.id}`]}
+          onSettled={onParaBlur}
         >
-          {bodyOf(doc, `p-${section.id}`)}{" "}
+          {" "}
           <span
             className="cite-add"
             title="Suggest a citation"
@@ -368,7 +364,7 @@ function DocSection({
               ⚠ partial
             </span>
           )}
-        </p>
+        </EditableParagraph>
       )}
       {section.note && (
         <div

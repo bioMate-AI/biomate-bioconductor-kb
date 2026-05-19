@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 
 export default defineConfig({
   testDir: __dirname,
-  testMatch: /(smoke|screenshot)\.test\.ts$/,
+  testMatch: /(smoke|screenshot|tiptap)\.test\.ts$/,
   outputDir: __dirname + "/.test-output",
   reporter: [["list"]],
   use: {
