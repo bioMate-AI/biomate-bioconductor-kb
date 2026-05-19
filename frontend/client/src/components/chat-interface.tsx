@@ -948,6 +948,10 @@ export function ChatInterface({
           recommendedTools: data.metadata?.recommendedTools || [],
           recommendedDatasets: data.metadata?.recommendedDatasets || [],
           workflowSuggestion: data.metadata?.workflowSuggestion,
+          // Store LLM-extracted inline params at message metadata level too —
+          // chat-with-artifacts panel auto-open merges this into workflow.inline_parameters
+          // as a fallback in case workflowData mutation gets serialized away (Bug A+C).
+          inlineParameters: data.metadata?.inlineParameters,
           sources: data.metadata?.sources || {},
           memoryUsed: data.metadata?.memoryUsed || false,
           domainGuard: data.metadata?.domainGuard,

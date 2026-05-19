@@ -855,7 +855,25 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const wf = msgs.find(m => m.id === lastWorkflowMsgId)
     if (wf?.metadata?.workflow) {
       setPanelWorkflowMessageId(lastWorkflowMsgId)
-      setPanelWorkflow(wf.metadata.workflow)
+      // Belt-and-suspenders: merge LLM-extracted inline params from message.metadata.inlineParameters
+      // (set by chat-stream final event) into the workflow object so the viewer's form prefills.
+      // Per docs/20260518_tier0_audit_T01_results.md (Bug A+C).
+      const meta = wf.metadata as any
+      const inlineFromMeta =
+        meta?.inlineParameters ??
+        meta?.inline_parameters ??
+        meta?.workflowSuggestion?.inlineParameters ??
+        null
+      const wfWithInline = inlineFromMeta && typeof inlineFromMeta === 'object' && Object.keys(inlineFromMeta).length > 0
+        ? {
+            ...wf.metadata.workflow,
+            inline_parameters: {
+              ...((wf.metadata.workflow as any)?.inline_parameters || {}),
+              ...inlineFromMeta,
+            },
+          }
+        : wf.metadata.workflow
+      setPanelWorkflow(wfWithInline)
       setPanelOpen(true)
       onWorkflowPanelOpenChange?.(true)
     }
