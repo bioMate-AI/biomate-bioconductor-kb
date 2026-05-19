@@ -301,6 +301,129 @@
       ];
     },
 
+    // ──────────────────────────────────────────────────────────────────
+    // BULK RNA-SEQ — nf-core/rnaseq happy path; 5 phases, no QC trip.
+    //   submit → plan → fastqc → STAR → quant → DE → enrichment → findings
+    // ──────────────────────────────────────────────────────────────────
+    rnaseq: function (inv) {
+      const e = (k, t) => makeEvent(k, inv, t);
+      return [
+        [200,   { ...e('workflow.submitted'),  technical: { workflow: 'nf-core/rnaseq', dataset: '12 samples · GRCh38' } }],
+        [800,   { ...e('plan.shown'),          technical: { items: [
+          { id: 'qc',      title: 'FastQC + trimming',         status: 'pending', est_s: 180 },
+          { id: 'align',   title: 'STAR alignment',            status: 'pending', est_s: 1200 },
+          { id: 'quant',   title: 'Salmon quantification',     status: 'pending', est_s: 420 },
+          { id: 'de',      title: 'DESeq2 differential expr',  status: 'pending', est_s: 120 },
+          { id: 'enrich',  title: 'GO + pathway enrichment',   status: 'pending', est_s: 60 },
+        ] } }],
+
+        [400,   { ...e('workflow.running') }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'FastQC + trimming', n: 1, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'qc', status: 'running' }],
+        [1200,  { ...e('workflow.phase_completed'), technical: { phase_name: 'FastQC + trimming', detail: '12 samples · mean Q33' } }],
+        [200,   { kind: '__planUpdate', id: 'qc', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'STAR alignment', n: 2, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'align', status: 'running' }],
+        [2000,  { ...e('workflow.phase_completed'), technical: { phase_name: 'STAR alignment', detail: 'uniquely mapped 91.4%' } }],
+        [200,   { kind: '__planUpdate', id: 'align', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'Salmon quantification', n: 3, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'quant', status: 'running' }],
+        [1500,  { ...e('workflow.phase_completed'), technical: { phase_name: 'Salmon quantification', detail: '60,498 transcripts quantified' } }],
+        [200,   { kind: '__planUpdate', id: 'quant', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'DESeq2 differential expr', n: 4, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'de', status: 'running' }],
+        [1500,  { ...e('workflow.phase_completed'), technical: { phase_name: 'DESeq2', detail: '1,847 DEGs at padj<0.05' } }],
+        [200,   { kind: '__planUpdate', id: 'de', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'GO + pathway enrichment', n: 5, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'enrich', status: 'running' }],
+        [1200,  { ...e('workflow.phase_completed'), technical: { phase_name: 'Enrichment', detail: '23 pathways at FDR<0.05' } }],
+        [200,   { kind: '__planUpdate', id: 'enrich', status: 'done' }],
+
+        [400,   { ...e('workflow.completed'),       technical: { steps_succeeded: 5, steps_total: 5 } }],
+        [400,   { kind: '__showCard', card: 'findings', data: {
+          title: '1,847 DEGs · 23 enriched pathways',
+          runtime: '34m 18s',
+          samples: 12,
+          rows: [
+            ['Differentially expressed genes (padj<0.05)', '1,847'],
+            ['Upregulated / downregulated',                '982 / 865'],
+            ['Top GO term',                                'inflammatory response (FDR 1.2e-12)'],
+            ['Top KEGG pathway',                           'TNF signaling (FDR 4.8e-09)'],
+            ['Mean unique alignment rate',                 '91.4%'],
+          ],
+        } }],
+      ];
+    },
+
+    // ──────────────────────────────────────────────────────────────────
+    // VARIANT CALLING — nf-core/sarek; 5 phases with one QC warning
+    // (low mapping rate flagged advisory, not blocking).
+    // ──────────────────────────────────────────────────────────────────
+    variant: function (inv) {
+      const e = (k, t) => makeEvent(k, inv, t);
+      return [
+        [200,   { ...e('workflow.submitted'),  technical: { workflow: 'nf-core/sarek', dataset: 'SRR123456 · GRCh38' } }],
+        [800,   { ...e('plan.shown'),          technical: { items: [
+          { id: 'prep',    title: 'Reference indexing',        status: 'pending', est_s: 240 },
+          { id: 'align',   title: 'BWA-MEM2 alignment',        status: 'pending', est_s: 1800 },
+          { id: 'recal',   title: 'BQSR recalibration',        status: 'pending', est_s: 600 },
+          { id: 'call',    title: 'HaplotypeCaller',           status: 'pending', est_s: 1200 },
+          { id: 'vqsr',    title: 'VQSR + annotation',         status: 'pending', est_s: 360 },
+        ] } }],
+
+        [400,   { ...e('workflow.running') }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'Reference indexing', n: 1, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'prep', status: 'running' }],
+        [1200,  { ...e('workflow.phase_completed'), technical: { phase_name: 'Reference indexing', detail: 'GRCh38 .fai + .bwt2 cached' } }],
+        [200,   { kind: '__planUpdate', id: 'prep', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'BWA-MEM2 alignment', n: 2, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'align', status: 'running' }],
+
+        // Advisory QC warning (not blocking)
+        [1200,  { ...e('workflow.qc_gate_warning'), technical: { metric: 'mapping_rate', value: 0.948, threshold: 0.95, severity: 'advisory' } }],
+        [200,   { kind: '__planUpdate', id: 'align', status: 'warn' }],
+        [800,   { ...e('workflow.phase_completed'), technical: { phase_name: 'BWA-MEM2 alignment', detail: '94.8% mapped (advisory)' } }],
+        [200,   { kind: '__planUpdate', id: 'align', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'BQSR recalibration', n: 3, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'recal', status: 'running' }],
+        [1500,  { ...e('workflow.phase_completed'), technical: { phase_name: 'BQSR', detail: 'recal table applied' } }],
+        [200,   { kind: '__planUpdate', id: 'recal', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'HaplotypeCaller', n: 4, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'call', status: 'running' }],
+        [2000,  { ...e('workflow.phase_completed'), technical: { phase_name: 'HaplotypeCaller', detail: '4.21M raw variants' } }],
+        [200,   { kind: '__planUpdate', id: 'call', status: 'done' }],
+
+        [400,   { ...e('workflow.phase_started'),   technical: { phase_name: 'VQSR + annotation', n: 5, of: 5 } }],
+        [200,   { kind: '__planUpdate', id: 'vqsr', status: 'running' }],
+        [1500,  { ...e('workflow.phase_completed'), technical: { phase_name: 'VQSR', detail: '3.84M PASS · ts/tv 2.04' } }],
+        [200,   { kind: '__planUpdate', id: 'vqsr', status: 'done' }],
+
+        [400,   { ...e('workflow.completed'),       technical: { steps_succeeded: 5, steps_total: 5 } }],
+        [400,   { kind: '__showCard', card: 'findings', data: {
+          title: '3.84M PASS variants · ts/tv 2.04',
+          runtime: '1h 12m',
+          samples: 1,
+          rows: [
+            ['Raw variants called',           '4,213,902'],
+            ['VQSR PASS',                     '3,841,267'],
+            ['Transition/transversion ratio', '2.04 (expected ~2.0–2.1)'],
+            ['Mean coverage',                 '37×'],
+            ['Mapping rate',                  '94.8% (advisory: below 95%)'],
+            ['Annotated (VEP)',               'yes · gnomAD AF + ClinVar'],
+          ],
+        } }],
+      ];
+    },
+
   };
 
   // ── Mock stream: walks a tape with setTimeout, calls onEvent for each ──
