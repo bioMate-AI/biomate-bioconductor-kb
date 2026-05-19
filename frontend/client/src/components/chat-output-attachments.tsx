@@ -78,9 +78,27 @@ export function ChatOutputAttachments({
       }
     },
     refetchInterval: (query) => {
+      // CRITICAL: do NOT stop polling once data.length > 0. The pipeline
+      // registers files PROGRESSIVELY (cs_init.json appears in seconds,
+      // the other 257 trickle in over 30+ minutes). Stopping early left
+      // React stuck with just 1 file forever — the CS-14 root cause
+      // before this fix.
+      //
+      // Poll while running OR until 30s after terminal. The endpoint is
+      // cheap (S3 list + presign) and the worst case is one extra fetch
+      // per 3s for the post-completion window.
       const data = (query.state.data as OutputDataset[] | undefined) || []
-      if (data.length > 0) return false
-      if (executionStatus === 'running' || executionStatus === 'completed') return 3000
+      const lastFetched = query.state.dataUpdatedAt || 0
+      const secondsSinceFetch = (Date.now() - lastFetched) / 1000
+      if (executionStatus === 'running') return 3000
+      if (executionStatus === 'completed') {
+        // After completion keep polling until count has been stable for ~30s.
+        // Approximated: poll for 60s after the latest fetch. Once polling
+        // wakes us up that long after the last update, stop.
+        if (data.length === 0) return 3000
+        if (secondsSinceFetch < 60) return 3000
+        return false
+      }
       return false
     },
   })

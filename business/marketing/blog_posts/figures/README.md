@@ -36,6 +36,11 @@ For BioMate marketing we standardize on **draw.io XML** because it's plain text 
 | `post_5_benefits_stack.drawio.xml`  | Substack             | Single program → Portfolio → Business outcomes |
 | `post_8_rag_stack.drawio.xml`       | Substack + LinkedIn  | Four-layer evidence-grounded RAG architecture |
 | `post_9_options_matrix.drawio.xml`  | Substack + LinkedIn  | 4 LLM build options + where BioMate sits (default + exception) |
+| `post_12_context_stack.drawio.xml`  | Substack + LinkedIn  | Context-management 4-layer stack (vs ChatInvent context-explosion) |
+| `post_13_tool_grounding.drawio.xml` | Substack + LinkedIn  | Registry-bounded tool selection vs free-text hallucination |
+| `post_14_param_extraction.drawio.xml` | Substack + LinkedIn | Rule-first / LLM-fallback / schema-guardrail 3-stage pipeline |
+| `post_15_auto_loop.drawio.xml`      | Substack + LinkedIn  | Auto-loop QC remediation cycle with HITL approval |
+| `post_16_memory_governance.drawio.xml` | Substack + LinkedIn | Episode + correction memory + prediction registry + governance |
 | *(TBD)* `post_10_inhibitor_two_agent.drawio.xml` | Substack + LinkedIn | ANDV inhibitor: pocket → pharmacophore → ADMET → Vina + Agent A/B split |
 | *(TBD)* `post_11_plan_a_epitope.drawio.xml` | Substack + LinkedIn | Plan A: samplesheet → epitopeprediction → MHCnuggets; NOT mhcquant routing |
 

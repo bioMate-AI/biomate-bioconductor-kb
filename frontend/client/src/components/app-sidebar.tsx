@@ -362,7 +362,25 @@ export function AppSidebar({
             fontSize: 13, fontWeight: 700, letterSpacing: '-0.03em', flexShrink: 0,
           }}>B</div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14.5, letterSpacing: '-0.01em', lineHeight: 1.2, color: 'var(--bm-text)' }}>biomate</div>
+            <div style={{ fontWeight: 600, fontSize: 14.5, letterSpacing: '-0.01em', lineHeight: 1.2, color: 'var(--bm-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              biomate
+              <span
+                title="Early-access beta — features may change"
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  background: 'oklch(0.78 0.15 65)',
+                  color: '#fff',
+                  lineHeight: 1.3,
+                }}
+              >
+                BETA
+              </span>
+            </div>
             <div style={{ fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))', marginTop: 1 }}>workflow console</div>
           </div>
         </div>
