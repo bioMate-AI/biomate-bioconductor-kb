@@ -1,0 +1,60 @@
+# Canonical wrapper for each tool family.
+#
+# Companion to tool_family_aliases.yaml. When a search returns multiple
+# wrappers in the same canonical family, the wrapper listed here is bumped
+# to position 1 of that family group. Used by
+# backend/lib/galaxy/ai/retrievers/family_dedup.rerank_to_canonical().
+#
+# Format:
+#   <family_id>: <wrapper_tool_id>
+#
+# Rules of thumb for picking canonical:
+#   - For single-tool families (bwa, fastqc, DESeq2): the main Galaxy
+#     wrapper from iuc/devteam owner.
+#   - For toolkit suites (samtools, picard, GATK4, bedtools, EMBOSS): the
+#     most commonly-asked sub-function (e.g. samtools_sort over samtools_faidx).
+#   - For nf-core-only families: nfcore/<tool>/<main-function>.
+#
+# Adding a new entry takes ~1 minute: pick the wrapper_tool_id from the
+# galaxy_ai_tools.db tools table.
+
+# ─── Single-tool families ──────────────────────────────────────────────
+bwa: toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_mem/0.7.19
+bwa_mem: toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_mem/0.7.19
+bwa_mem2: toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem2/bwa_mem2/2.3+galaxy0
+bowtie2: toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.4+galaxy0
+hisat2: toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.2.1+galaxy1
+fastqc: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
+multiqc: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.27+galaxy3
+fastp: toolshed.g2.bx.psu.edu/repos/iuc/fastp/fastp/1.0.1+galaxy3
+trimmomatic: toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2
+cutadapt: toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.1+galaxy0
+deseq2: toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0
+edger: toolshed.g2.bx.psu.edu/repos/iuc/edger/edger/3.36.0+galaxy5
+featurecounts: toolshed.g2.bx.psu.edu/repos/iuc/featurecounts/featurecounts/2.1.1+galaxy0
+salmon: nfcore/salmon/quant
+spades: toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.2.0+galaxy0
+flye: toolshed.g2.bx.psu.edu/repos/bgruening/flye/flye/2.9.6+galaxy0
+kraken2: toolshed.g2.bx.psu.edu/repos/iuc/kraken2/kraken2/2.1.3+galaxy2
+metaphlan: toolshed.g2.bx.psu.edu/repos/iuc/metaphlan/metaphlan/4.1.1+galaxy4
+diamond: toolshed.g2.bx.psu.edu/repos/bgruening/diamond/diamond/2.1.13+galaxy0
+snpeff: toolshed.g2.bx.psu.edu/repos/pcingola/snpeff/snpeff/1.0
+macs2: toolshed.g2.bx.psu.edu/repos/modencode-dcc/macs2/macs2/2.0.10.2
+bismark: nfcore/bismark/align
+trinity: toolshed.g2.bx.psu.edu/repos/iuc/trinity/trinity/2.15.1+galaxy1
+
+# ─── Toolkit suites — canonical = most-asked sub-function ─────────────
+# Samtools: `sort` is the most common entry point in pipelines
+samtools: toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.8
+# Picard: MarkDuplicates is the canonical "what does Picard do" answer
+picard: toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0
+# BCFtools: view is the most-asked, mpileup also very common
+bcftools: toolshed.g2.bx.psu.edu/repos/iuc/bcftools/bcftools_view/0.1.19.0
+# Bedtools: intersectbed is the canonical "interval ops" entry
+bedtools: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_intersect_intervals/2.31.1+galaxy0
+# GATK4: HaplotypeCaller is the canonical variant-calling entry
+gatk4: nfcore/gatk4/haplotypecaller
+# EMBOSS: needle pairwise align is the most-recognized
+emboss: toolshed.g2.bx.psu.edu/repos/iuc/emboss_needle/emboss_needle/6.6.0+galaxy0
+# STAR aligner: align is canonical
+star: nfcore/star/align
