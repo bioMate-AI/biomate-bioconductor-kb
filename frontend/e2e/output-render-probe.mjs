@@ -82,31 +82,15 @@ async function runBrowserProbe() {
   }));
   log("initial-page", initial);
 
-  // 2d. Drive the UI: find the chat input, type a prompt, click send.
-  //     Wait for the workflow viewer to mount, then capture DOM.
-  const composerSelectors = [
-    'textarea[placeholder*="workflow" i]',
-    'textarea[placeholder*="ask" i]',
-    'input[placeholder*="workflow" i]',
-    '[data-testid*="chat-input"]',
-    '[data-testid*="composer"]',
-    'textarea',
-  ];
-  let composer = null;
-  for (const sel of composerSelectors) {
-    const loc = page.locator(sel).first();
-    if (await loc.isVisible({ timeout: 1000 }).catch(() => false)) { composer = loc; log("composer", sel); break; }
-  }
-  if (composer) {
-    await composer.fill("Run CryoSPARC SPA on s3://biomate-cryo-data/empiar/EMPIAR-10025");
-    // Find send button
-    const send = page.locator('button[type="submit"], [data-testid*="send"], button:has-text("Send")').first();
-    await send.click({ timeout: 5000 }).catch(() => {});
-    // Wait for workflow card to appear, then check viewer panel
-    await page.waitForTimeout(20_000);
-  } else {
-    log("composer", "NOT FOUND — page may require login first");
-  }
+  // 2d. Use the debug-only standalone harness route to mount
+  //     ChatOutputAttachments directly with our runId — bypasses the
+  //     entire chat-session render path so we see the component in
+  //     isolation. If the bug is in chat-session state propagation,
+  //     viewer renders here; if the bug is in ChatOutputAttachments
+  //     itself, viewer also doesn't render here.
+  await page.goto(`${BASE}/debug/outputs/${RID}`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(8_000); // give React Query + image fetch time
+  log("debug-page-nav", page.url());
 
   const after = await page.evaluate(() => ({
     hasChatOutput: !!document.querySelector('[data-testid="chat-output-attachments"]'),
