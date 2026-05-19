@@ -419,9 +419,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const msg = messages[i];
       const invId = msg.invocationId || msg.metadata?.invocationId;
       if (!invId) continue;
-      // Don't re-load terminal runs (avoid polluting completed session restores)
-      const vStatus = msg.metadata?.workflowViewerStatus as string | undefined;
-      if (vStatus === 'completed' || vStatus === 'failed') continue;
+      // Load the run regardless of terminal status. The previous skip-on-terminal
+      // logic left currentRun=null after App remount for completed runs, which
+      // broke the workflow viewer's `(invocationId || runId) && showResults`
+      // gate (props derived from currentRun → both undefined → no output panel).
+      // loadRun() is safe for terminal runs: it only starts SSE/polling when
+      // status === 'running' (see useUnifiedExecution.ts:621,628). Loading a
+      // completed run just sets currentRun to the final state.
+      // See docs/20260519_CS14_DEFINITIVE_FINDING.md.
       console.log(`[ChatWithArtifacts] Session restore: loading run ${invId} from message ${msg.id}`);
       loadRun(invId).catch(err =>
         console.warn('[ChatWithArtifacts] Session restore loadRun failed:', err)
