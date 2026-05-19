@@ -70,6 +70,22 @@ const V1_SCENARIO_MAP = {
 // The stream emits BioMate's chat_progress event shape; this function maps
 // each event to one (or more) of the engine's internal event kinds so
 // applyEvent() can dispatch without modification.
+//
+// Speaker pill derivation: backend payload from workflow_chat_narrator.emit()
+// does NOT include `speaker` (only kind, invocation_id, friendly_message, ts,
+// technical). Mirror the backend's prefix-based speaker mapping so real-mode
+// chat lines get the right pill color without requiring a backend change.
+function deriveSpeakerFallback(kind) {
+  if (!kind || typeof kind !== 'string') return 'wf';
+  if (kind.startsWith('workflow.qc_'))      return 'qc';
+  if (kind.startsWith('workflow.autoloop')) return 'loop';
+  if (kind.startsWith('workflow.'))         return 'wf';
+  if (kind.startsWith('deepagent.'))        return 'agent';
+  if (kind.startsWith('plan.'))             return 'plan';
+  if (kind.startsWith('findings.'))         return 'find';
+  return 'wf';
+}
+
 function translateBiomateEvent(ev) {
   // Internal "__" kinds emitted by the mock stream pass through unchanged —
   // they ARE the engine's own vocabulary.
@@ -89,7 +105,7 @@ function translateBiomateEvent(ev) {
   // Default: every chat_progress event yields a chat line with derived speaker.
   return [{
     kind: 'chatLine',
-    s: ev.speaker || 'wf',
+    s: ev.speaker || deriveSpeakerFallback(ev.kind),
     m: ev.friendly_message,
     rationaleId: ev.technical && ev.technical.rationale_id,
   }];
