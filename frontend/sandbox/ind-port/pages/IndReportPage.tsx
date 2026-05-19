@@ -17,7 +17,10 @@ import {
   type IndDoc, type IndAudit,
 } from "../components/IndSteps";
 import { IndDocPanel, type DocPanelDoc, type Region } from "../components/IndDocPanel";
-import { IndSignOverlay, IndAuditOverlay, type AuditFindingWithMeta } from "../components/IndOverlays";
+import {
+  IndSignOverlay, IndAuditOverlay, IndEmptyState,
+  type AuditFindingWithMeta, type ReferenceCompound,
+} from "../components/IndOverlays";
 
 // Demo seed — replace with GET /api/ind-report/projects when backend route exists.
 // For now this page renders the shell so the styling can be visually verified.
@@ -261,7 +264,19 @@ function DocPanelHost({
   );
 }
 
+// Reference compounds for the EmptyState onboarding card.
+const DEMO_REFERENCE_COMPOUNDS: ReferenceCompound[] = [
+  { id: "ref-pembro", name: "Pembrolizumab", tag: "mAb", desc: "PD-1 inhibitor — biologics path" },
+  { id: "ref-osim",   name: "Osimertinib",   tag: "small mol", desc: "EGFR T790M — oncology M3(R2)" },
+  { id: "ref-sema",   name: "Semaglutide",   tag: "peptide", desc: "GLP-1 agonist — PK-heavy" },
+];
+
 export function IndReportPage() {
+  // Allow ?onboarding=1 in the URL to force the EmptyState (for QA/screenshots).
+  const initialOnboarding =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("onboarding") === "1";
+  const [showOnboarding, setShowOnboarding] = useState(initialOnboarding);
   const [activeId, setActiveId] = useState<string | null>(DEMO_PROJECTS[0].id);
   const [showSettings, setShowSettings] = useState(false);
   const [showSign, setShowSign] = useState(false);
@@ -273,6 +288,25 @@ export function IndReportPage() {
     document.body.classList.add("ind-app");
     return () => document.body.classList.remove("ind-app");
   }, []);
+
+  // Onboarding mode — show EmptyState in place of the main pipeline.
+  if (showOnboarding) {
+    return (
+      <div className="ind-shell">
+        <IndLeftNav
+          projects={[]}
+          activeId={null}
+          onSelect={() => {}}
+          onNew={() => setShowOnboarding(false)}
+        />
+        <IndEmptyState
+          onStart={() => setShowOnboarding(false)}
+          onPickReference={() => setShowOnboarding(false)}
+          referenceCompounds={DEMO_REFERENCE_COMPOUNDS}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="ind-shell">
@@ -293,6 +327,16 @@ export function IndReportPage() {
         onSign={() => setShowSign(true)}
         onAudit={() => setShowAudit(true)}
       />
+
+      {/* Floating action button — CSS makes this display:flex only at
+          viewport ≤1024px (where .ind-doc-panel is hidden). Opens the
+          panel as a modal. Stub click for now. */}
+      <button
+        className="ind-doc-fab"
+        onClick={() => alert("Open document panel (narrow viewport stub)")}
+      >
+        📄 View document
+      </button>
 
       <DocPanelHost
         activeProject={activeProject}

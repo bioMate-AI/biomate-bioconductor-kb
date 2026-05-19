@@ -47,3 +47,23 @@ test("snapshot with each step expanded", async ({ page }) => {
   }
   await page.screenshot({ path: join(OUT, "all-steps-expanded.png"), fullPage: true });
 });
+
+test("snapshot onboarding (empty state)", async ({ page }) => {
+  await page.goto("/?onboarding=1");
+  await page.waitForSelector(".ind-empty");
+  await page.screenshot({ path: join(OUT, "onboarding.png") });
+});
+
+test("snapshot narrow viewport (1024×768)", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/");
+  await page.waitForSelector(".ind-shell");
+  await page.screenshot({ path: join(OUT, "narrow-1024.png") });
+});
+
+test("snapshot Audit overlay open", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".ind-center-head button.ind-btn.sm").first().click();
+  await page.waitForSelector(".ind-audit-overlay");
+  await page.screenshot({ path: join(OUT, "audit-overlay.png") });
+});
