@@ -25,13 +25,15 @@ test("snapshot main view", async ({ page }) => {
 
 test("snapshot with Sign overlay open", async ({ page }) => {
   await page.goto("/");
-  await page.waitForSelector(".ind-step-actions .ind-btn.primary");
-  const sign = page.locator(".ind-step-actions .ind-btn.primary").first();
-  if (await sign.count() > 0) {
-    await sign.click();
-    await page.waitForSelector(".sign-overlay");
-    await page.screenshot({ path: join(OUT, "sign-overlay.png") });
-  }
+  // Demo audit has a MAJOR finding → Sign button gets .warn class, not .primary.
+  // Match on either by combining selectors.
+  const sign = page
+    .locator(".ind-step-actions .ind-btn.primary, .ind-step-actions .ind-btn.warn")
+    .first();
+  await sign.waitFor({ state: "visible", timeout: 5000 });
+  await sign.click();
+  await page.waitForSelector(".sign-overlay");
+  await page.screenshot({ path: join(OUT, "sign-overlay.png") });
 });
 
 test("snapshot with each step expanded", async ({ page }) => {

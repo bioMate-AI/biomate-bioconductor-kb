@@ -7,6 +7,7 @@
  * verbatim from prototype.
  */
 import { useEffect, useState } from "react";
+import { Shield } from "lucide-react";
 // Sandbox-relative imports — rewritten to @/-aliases at production integration time.
 import "../styles/ind-report.css";
 import { IndLeftNav, type IndProjectSummary } from "../components/IndLeftNav";
@@ -50,9 +51,46 @@ const DEMO_PROJECTS: IndProjectSummary[] = [
   },
 ];
 
+// Top bar — breadcrumb + region chips + tutorial + user avatar.
+// Lives in the .ind-shell grid at row 1, columns 2/-1 (see styles-ind.css).
+function TopBar({ activeProject }: { activeProject: IndProjectSummary | null }) {
+  if (!activeProject) return null;
+  return (
+    <header className="ind-topbar">
+      <div className="ind-crumb">
+        <span>IND Report</span>
+        <span className="sep">/</span>
+        <b>{activeProject.molecule}</b>
+        <span className="sep">/</span>
+        <span style={{ color: "var(--ind-text)" }}>§2.6 nonclinical</span>
+      </div>
+      <div className="ind-top-actions">
+        {activeProject.regions.map((r) => (
+          <span key={r} className={`r-chip ${r.toLowerCase()}`}>
+            {r}
+          </span>
+        ))}
+        <button className="tut-btn" title="Replay the tutorial">
+          <span style={{ fontSize: 10 }}>▶</span> Tutorial
+        </button>
+        <div className="user">
+          <div className="user-avatar">JS</div>
+          <span>jane@acme.com</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 // Pipeline center — wires the 5 step components against demo data.
 // Replace demo data with API calls when integrated to production.
-function PipelineCenter({ activeProject }: { activeProject: IndProjectSummary | null }) {
+function PipelineCenter({
+  activeProject, onSign, onAudit,
+}: {
+  activeProject: IndProjectSummary | null;
+  onSign: () => void;
+  onAudit: () => void;
+}) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (k: string) => setExpanded((e) => ({ ...e, [k]: !e[k] }));
 
@@ -84,6 +122,11 @@ function PipelineCenter({ activeProject }: { activeProject: IndProjectSummary | 
             {activeProject.indication} · {project.sponsor} · {activeProject.regions.join(" · ")}
           </div>
         </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button className="ind-btn sm" onClick={onAudit}>
+            <Shield size={12} /> Audit
+          </button>
+        </div>
       </div>
       <Step1ProjectSetup project={project} onEdit={() => {}} expanded={expanded.s1} onToggle={() => toggle("s1")} />
       <Step2Admet data={DEMO_ADMET} expanded={expanded.s2} onToggle={() => toggle("s2")} />
@@ -93,8 +136,8 @@ function PipelineCenter({ activeProject }: { activeProject: IndProjectSummary | 
         doc={DEMO_DOC}
         audit={DEMO_AUDIT}
         regions={activeProject.regions}
-        onSign={() => {}}
-        onAudit={() => {}}
+        onSign={onSign}
+        onAudit={onAudit}
         onViewDoc={() => {}}
         onDownload={() => {}}
         onRegenerate={() => {}}
@@ -243,7 +286,13 @@ export function IndReportPage() {
         onSettings={() => setShowSettings(true)}
       />
 
-      <PipelineCenter activeProject={activeProject} />
+      <TopBar activeProject={activeProject} />
+
+      <PipelineCenter
+        activeProject={activeProject}
+        onSign={() => setShowSign(true)}
+        onAudit={() => setShowAudit(true)}
+      />
 
       <DocPanelHost
         activeProject={activeProject}
