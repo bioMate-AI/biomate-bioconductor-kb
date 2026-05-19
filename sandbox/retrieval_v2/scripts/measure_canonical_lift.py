@@ -42,6 +42,7 @@ def raw_fts_search(query: str, limit: int = 10) -> list[dict]:
 
 
 CASES = [
+    # Phase 1.5 — original 12
     ("samtools",  "Samtools sort"),     # canonical wrapper's display name
     ("bwa",       "Map with BWA-MEM"),
     ("picard",    "MarkDuplicates"),
@@ -54,6 +55,35 @@ CASES = [
     ("bcftools",  "bcftools view"),
     ("bedtools",  "bedtools Intersect intervals"),
     ("gatk4",     "Gatk4 Haplotypecaller"),
+    # Phase 1.5 expansion — additional 28
+    ("seqkit",    "seqkit"),
+    ("seqtk",     "seqtk_comp"),
+    ("agat",      "AGAT"),
+    ("augustus",  "Augustus"),
+    ("maker",     "Maker"),
+    ("prokka",    "Prokka"),
+    ("bakta",     "Bakta"),
+    ("mash",      "MASH"),
+    ("mafft",     "MAFFT"),
+    ("muscle",    "MUSCLE"),
+    ("tabix",     "tabix"),
+    ("bgzip",     "bgzip"),
+    ("busco",     "Busco"),
+    ("meme",      "MEME"),
+    ("sortmerna", "sortmerna"),
+    ("rgi",       "Rgi"),
+    ("amrfinder", "amrfinder"),
+    ("plink",     "plink"),
+    ("circos",    "Circos"),
+    ("minimap2",  "Map with minimap2"),
+    ("bowtie",    "Map with Bowtie"),
+    ("blast",     "blastn"),
+    ("vsearch",   "VSearch"),
+    ("rseqc",     "Rseqc"),
+    ("homer",     "homer_annotatePeaks"),
+    ("orthofinder", "Orthofinder"),
+    ("trinity",   "Trinity"),
+    ("snpeff",    "SnpEff"),
 ]
 
 

@@ -58,3 +58,37 @@ gatk4: nfcore/gatk4/haplotypecaller
 emboss: toolshed.g2.bx.psu.edu/repos/iuc/emboss_needle/emboss_needle/6.6.0+galaxy0
 # STAR aligner: align is canonical
 star: nfcore/star/align
+
+# ─── Phase 1.5 expansion: 30 → 60 families ─────────────────────────────
+# Single-tool families with a clear canonical wrapper
+seqkit: toolshed.g2.bx.psu.edu/repos/shenwei356/seqkit/seqkit/2.11.0
+seqtk: toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_comp/1.5+galaxy0
+agat: toolshed.g2.bx.psu.edu/repos/bgruening/agat/agat/1.4.0+galaxy1
+augustus: toolshed.g2.bx.psu.edu/repos/bgruening/augustus/augustus/3.5.0+galaxy0
+maker: toolshed.g2.bx.psu.edu/repos/iuc/maker/maker/2.31.11+galaxy2
+prokka: toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1
+bakta: toolshed.g2.bx.psu.edu/repos/iuc/data_manager_bakta/bakta/1.9.3+galaxy1
+mash: toolshed.g2.bx.psu.edu/repos/brinkmanlab/mash/mash/2.1
+mafft: toolshed.g2.bx.psu.edu/repos/rnateam/mafft/mafft/7.526+galaxy2
+muscle: toolshed.g2.bx.psu.edu/repos/crs4/muscle/muscle/0.0.11
+tabix: toolshed.g2.bx.psu.edu/repos/nilesh/tabix/tabix/0.0.1
+bgzip: toolshed.g2.bx.psu.edu/repos/nilesh/tabix/bgzip/0.0.1
+busco: toolshed.g2.bx.psu.edu/repos/iuc/busco/busco/5.8.0+galaxy2
+meme: toolshed.g2.bx.psu.edu/repos/xuebing/meme/meme/1.0.0
+sortmerna: toolshed.g2.bx.psu.edu/repos/nf-core/sortmerna/sortmerna
+rgi: toolshed.g2.bx.psu.edu/repos/card/rgi/rgi/5.2.1
+amrfinder: toolshed.g2.bx.psu.edu/repos/thanhlv/amrfinderplus/amrfinder/3.1.1b+galaxy1
+plink: toolshed.g2.bx.psu.edu/repos/iuc/plink/plink/1.90b6.21+galaxy1
+circos: toolshed.g2.bx.psu.edu/repos/iuc/circos/circos/0.69.8+galaxy12
+minimap2: toolshed.g2.bx.psu.edu/repos/iuc/minimap2/map_with_minimap2/2.28+galaxy2
+bowtie: toolshed.g2.bx.psu.edu/repos/devteam/bowtie_wrappers/map_with_bowtie_for_illumina/1.2.0
+phyloseq: bioconductor/phyloseq
+ncbi_blast_plus: toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blast_blastn/2.16.0+galaxy0
+vsearch: toolshed.g2.bx.psu.edu/repos/iuc/vsearch/vsearch_alignment/2.8.3.0
+rseqc: toolshed.g2.bx.psu.edu/repos/nilesh/rseqc/rseqc/5.0.3+galaxy0
+homer: toolshed.g2.bx.psu.edu/repos/kevyin/homer/homer_annotatepeaks/0.0.5
+orthofinder: nfcore/orthofinder
+# Toolkit suites — pick most-asked sub-op
+vienna_rna: toolshed.g2.bx.psu.edu/repos/rnateam/vienna_rna/rna2dfold/2.1.6.0
+gatk2: toolshed.g2.bx.psu.edu/repos/iuc/gatk2/variant_annotator/2.8.0
+velvet: toolshed.g2.bx.psu.edu/repos/devteam/velvet/velvetg/1.2.10.3
