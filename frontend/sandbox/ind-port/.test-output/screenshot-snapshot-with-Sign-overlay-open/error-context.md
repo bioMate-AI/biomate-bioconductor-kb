@@ -1,0 +1,240 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: B
+      - generic [ref=e7]: BioMate IND Report
+    - button "New Project" [ref=e8] [cursor=pointer]:
+      - img [ref=e9]
+      - text: New Project
+    - generic [ref=e10]:
+      - button "BM-0042 · EGFR L858R NSCLC FDA EMA NMPA PMDA Step 3 / 5 — PBPK running" [ref=e11] [cursor=pointer]:
+        - generic [ref=e13]:
+          - generic [ref=e14]: BM-0042 · EGFR L858R
+          - text: NSCLC
+          - generic [ref=e15]:
+            - generic [ref=e16]: FDA
+            - generic [ref=e17]: EMA
+            - generic [ref=e18]: NMPA
+            - generic [ref=e19]: PMDA
+          - text: Step 3 / 5 — PBPK running
+      - button "BM-0038 · KRAS G12C CRC FDA EMA Signed · v3 · 2026-05-09" [ref=e20] [cursor=pointer]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: BM-0038 · KRAS G12C
+          - text: CRC
+          - generic [ref=e24]:
+            - generic [ref=e25]: FDA
+            - generic [ref=e26]: EMA
+          - text: Signed · v3 · 2026-05-09
+      - button "BM-0029 · PD-L1 TNBC FDA NMPA Audit blocked — 1 CRITICAL" [ref=e27] [cursor=pointer]:
+        - generic [ref=e29]:
+          - generic [ref=e30]: BM-0029 · PD-L1
+          - text: TNBC
+          - generic [ref=e31]:
+            - generic [ref=e32]: FDA
+            - generic [ref=e33]: NMPA
+          - text: Audit blocked — 1 CRITICAL
+    - generic [ref=e34]:
+      - link "Settings" [ref=e35] [cursor=pointer]:
+        - /url: "#"
+      - link "Billing" [ref=e36] [cursor=pointer]:
+        - /url: "#"
+      - link "Help" [ref=e37] [cursor=pointer]:
+        - /url: "#"
+  - main [ref=e38]:
+    - generic [ref=e40]:
+      - generic [ref=e41]: BM-0042 · EGFR L858R
+      - generic [ref=e42]: NSCLC · Acme Therapeutics, Inc. · FDA · EMA · NMPA · PMDA
+    - generic [ref=e44] [cursor=pointer]:
+      - generic [ref=e45]: ①
+      - generic [ref=e46]: Project Setup
+      - generic [ref=e47]:
+        - img [ref=e48]
+        - text: Complete
+      - generic [ref=e50]: ▾
+    - generic [ref=e52] [cursor=pointer]:
+      - generic [ref=e53]: ②
+      - generic [ref=e54]: ADMET Screening
+      - generic [ref=e55]:
+        - img [ref=e56]
+        - text: 8/12 pass
+      - generic [ref=e58]: ▾
+    - generic [ref=e60] [cursor=pointer]:
+      - generic [ref=e61]: ③
+      - generic [ref=e62]: PBPK Qualification
+      - generic [ref=e63]:
+        - img [ref=e64]
+        - generic [ref=e66]: EMA ✓
+        - generic [ref=e67]: FDA ✓
+      - generic [ref=e68]: ▾
+    - generic [ref=e70] [cursor=pointer]:
+      - generic [ref=e71]: ④
+      - generic [ref=e72]: Lead Selection
+      - generic [ref=e73]:
+        - img [ref=e74]
+        - img [ref=e76]
+        - text: "Top: BM-0042"
+      - generic [ref=e78]: ▾
+    - generic [ref=e79]:
+      - generic [ref=e80] [cursor=pointer]:
+        - generic [ref=e81]: ⑤
+        - generic [ref=e82]: IND Document
+        - generic [ref=e83]:
+          - img [ref=e84]
+          - img [ref=e86]
+          - text: Ready to sign
+        - generic [ref=e88]: ▴
+      - generic [ref=e89]:
+        - generic [ref=e90]: "Sections generated: §2.6.1.1–§2.6.1.6 · §2.6.2 · §2.6.3 · §2.6.4 · §2.6.5 · §2.6.6"
+        - generic [ref=e91]:
+          - generic [ref=e92]: "Regulatory audit:"
+          - generic [ref=e93]: 0 CRITICAL
+          - generic [ref=e95]: 1 MAJOR
+          - generic [ref=e97]: 1 MINOR
+          - generic [ref=e98]: 1 INFO
+          - button "View →" [ref=e99] [cursor=pointer]
+        - generic [ref=e100]:
+          - text: "Regions:"
+          - generic [ref=e101]: FDA ✓
+          - generic [ref=e102]: EMA ✓
+          - generic [ref=e103]: NMPA ✓
+          - generic [ref=e104]: PMDA ✓
+        - generic [ref=e105]: "Generated: 2026-05-15T18:42Z · 48,732 characters · DOCX ready"
+        - generic [ref=e106]:
+          - generic [ref=e107]: v2
+          - generic [ref=e108]: Current
+          - generic [ref=e109]: · v1 signed 2026-05-01 by Dr. Jane Smith
+          - button "View versions →" [ref=e110] [cursor=pointer]
+        - generic [ref=e111]:
+          - generic [ref=e112]: Document completeness
+          - generic [ref=e113]:
+            - generic [ref=e114]: 2.6.1
+            - generic [ref=e115]: Overview
+            - generic [ref=e116]: ● Full
+          - generic [ref=e117]:
+            - generic [ref=e118]: 2.6.2
+            - generic [ref=e119]: Pharmacology
+            - generic [ref=e120]: ● Full
+          - generic [ref=e121]:
+            - generic [ref=e122]: 2.6.3
+            - generic [ref=e123]: Pharmacology tabulated
+            - generic [ref=e124]: ● Full
+          - generic [ref=e125]:
+            - generic [ref=e126]: 2.6.4
+            - generic [ref=e127]: PK written
+            - generic [ref=e128]: ● Full
+          - generic [ref=e129]:
+            - generic [ref=e130]: 2.6.5
+            - generic [ref=e131]:
+              - text: PK tabulated
+              - generic [ref=e132]: · ⚠ 1 missing column
+            - generic [ref=e133]: ● Partial
+          - generic [ref=e134]:
+            - generic [ref=e135]: 2.6.6
+            - generic [ref=e136]: Toxicology written
+            - generic [ref=e137]: ● Full
+        - generic [ref=e138]:
+          - img [ref=e139]
+          - generic [ref=e141]:
+            - generic [ref=e142]: 1 MAJOR finding before signing
+            - generic [ref=e143]: "§2.6.1.2: PBPK interpretation lacks AFE direction comment"
+          - button "View →" [ref=e144] [cursor=pointer]
+          - button "Regenerate →" [ref=e145] [cursor=pointer]
+        - generic [ref=e146]:
+          - button "View Document" [ref=e147] [cursor=pointer]:
+            - img [ref=e148]
+            - text: View Document
+          - button "Download DOCX" [ref=e151] [cursor=pointer]:
+            - img [ref=e152]
+            - text: Download DOCX
+          - button "Sign with findings →" [ref=e155] [cursor=pointer]:
+            - img [ref=e156]
+            - text: Sign with findings →
+  - complementary [ref=e158]:
+    - generic [ref=e159]:
+      - generic [ref=e160]:
+        - text: CTD Module 2.6 — Nonclinical Written Summaries
+        - generic [ref=e161] [cursor=pointer]: v2
+      - generic [ref=e162]: BM-0042 · Acme Therapeutics · NSCLC
+      - generic [ref=e163]:
+        - generic [ref=e164]: Not yet signed
+        - generic [ref=e165]: ·
+        - generic [ref=e166]: FDA · EMA · NMPA · PMDA
+        - generic [ref=e167]: ·
+        - generic [ref=e168]: 2026-05-15T18:42Z
+      - generic [ref=e169]:
+        - generic [ref=e170]: "Region:"
+        - combobox [ref=e171]:
+          - option "FDA" [selected]
+          - option "EMA"
+          - option "NMPA"
+          - option "PMDA"
+          - option "All regions (combined)"
+    - navigation [ref=e172]:
+      - button "§2.6.1" [ref=e173] [cursor=pointer]: §2.6.1
+      - button "§2.6.2" [ref=e175] [cursor=pointer]: §2.6.2
+      - button "§2.6.3" [ref=e177] [cursor=pointer]: §2.6.3
+      - button "§2.6.4" [ref=e179] [cursor=pointer]: §2.6.4
+      - button "§2.6.5" [ref=e181] [cursor=pointer]: §2.6.5
+      - button "§2.6.6" [ref=e183] [cursor=pointer]: §2.6.6
+    - generic [ref=e185]:
+      - article [ref=e186]:
+        - heading "§2.6.1 Overview" [level=3] [ref=e187]
+        - paragraph [ref=e188]:
+          - text: "[BioMate-generated draft] This nonclinical overview integrates the ADMET, PBPK, and lead-selection findings supporting BM-0042 for Phase I in NSCLC."
+          - generic "Suggest a citation" [ref=e189] [cursor=pointer]: +
+      - article [ref=e190]:
+        - heading "§2.6.2 Pharmacology" [level=3] [ref=e191]
+        - paragraph [ref=e192]:
+          - text: BM-0042 inhibits EGFR L858R with IC50 of 4.2 nM in biochemical assays. In vivo efficacy was demonstrated in HCC827 xenograft at 30 mg/kg/day PO.
+          - generic "Suggest a citation" [ref=e193] [cursor=pointer]: +
+      - article [ref=e194]:
+        - heading "§2.6.3 Pharmacology tabulated" [level=3] [ref=e195]
+        - paragraph [ref=e196]:
+          - text: Tabulated pharmacology results across 12 compounds, 41 endpoints.
+          - generic "Suggest a citation" [ref=e197] [cursor=pointer]: +
+      - article [ref=e198]:
+        - heading "§2.6.4 PK written" [level=3] [ref=e199]
+        - paragraph [ref=e200]:
+          - text: Following oral administration in rat, BM-0042 showed Tmax 1.5h, Cmax 412 ng/mL, AUC₀₋₂₄ 3,840 ng·h/mL, t½ 8.2h, F 64%. PBPK qualification against 30-drug reference set met EMA Cmax within-2-fold criterion (73.3% vs ≥67% threshold).
+          - generic "Suggest a citation" [ref=e201] [cursor=pointer]: +
+      - article [ref=e202]:
+        - heading "§2.6.5 PK tabulated" [level=3] [ref=e203]
+        - paragraph [ref=e204]:
+          - text: Tabulated PK parameters across species and routes.
+          - generic "Suggest a citation" [ref=e205] [cursor=pointer]: +
+          - generic [ref=e206] [cursor=pointer]: ⚠ partial
+        - generic [ref=e207]: ⚠ 1 missing column
+      - article [ref=e208]:
+        - heading "§2.6.6 Toxicology written" [level=3] [ref=e209]
+        - paragraph [ref=e210]:
+          - text: In the 28-day repeat-dose study, the NOAEL of 100 mg/kg/day was identified in Sprague-Dawley rats. No test-article-related findings were observed at the NOAEL dose level per ICH M3(R2).
+          - generic "Suggest a citation" [ref=e211] [cursor=pointer]: +
+      - generic [ref=e212]:
+        - text: 💬 Discuss in chat → Have a question about a specific result?
+        - button "Open the campaign in BioMate chat" [ref=e213] [cursor=pointer]
+        - text: — campaign context is pre-loaded so you can ask things like "Why is BM-0042 flagged for DILI?"
+    - generic [ref=e214]:
+      - generic [ref=e215]:
+        - generic [ref=e216]: "SHA-256: 9f2c4a…"
+        - generic [ref=e217]: ·
+        - generic [ref=e218]: Generated by BioMate v1.0 · 2026-05-15T18:42Z
+        - generic [ref=e219]: ·
+        - generic [ref=e220]: Requires human review
+      - generic [ref=e221]:
+        - generic [ref=e222]: "[Not yet signed]"
+        - button "View audit" [ref=e223] [cursor=pointer]:
+          - img [ref=e224]
+          - text: View audit
+        - button ".md" [ref=e226] [cursor=pointer]:
+          - img [ref=e227]
+          - text: .md
+        - button ".docx" [ref=e230] [cursor=pointer]:
+          - img [ref=e231]
+          - text: .docx
+        - button "Sign" [ref=e234] [cursor=pointer]:
+          - img [ref=e235]
+          - text: Sign
+```
