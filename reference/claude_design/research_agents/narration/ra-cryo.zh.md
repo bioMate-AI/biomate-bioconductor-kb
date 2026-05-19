@@ -26,7 +26,7 @@ CryoSPARC SPA 分为 5 个阶段: A. 运动校正与 CTF 估计; B. 颗粒挑选
 
 ## Step 5 — Phase A 内部
 
-当前活动阶段会自动展开,显示每一步的实时状态。 Phase A 运行 *MotionCor2* 做帧对齐,*CTFFIND4* 做散焦估计。 任意阶段都可以随时点开查看,不会打断运行。
+当前阶段实时显示每个步骤的状态。你可以随时查看其他阶段,不会打扰运行。
 
 ---
 
@@ -38,7 +38,7 @@ CryoSPARC SPA 分为 5 个阶段: A. 运动校正与 CTF 估计; B. 颗粒挑选
 
 ## Step 7 — Phase A 已启动
 
-任务已启动。状态徽章变为 *running*,进度条开始推进。 Phase A 的运动校正已在 Batch GPU 上执行。 小规模数据集通常耗时 3–6 分钟。
+状态徽章已变为 running,进度条移动。Phase A 在云端 GPU 上进行运动校正。
 
 ---
 
@@ -74,25 +74,25 @@ Auto-loop 默认关闭,halt card 等待你决策。 BioMate 建议将散焦范�
 
 ## Step 13 — Phase B · 颗粒挑选
 
-Phase B。*Topaz* —— 神经网络颗粒拾取器 —— 扫描每张显微图寻找颗粒。 输出是每张显微图的坐标文件,作为二维分类的输入颗粒。
+Phase B 在每张显微图上挑选颗粒,并为下一阶段输出坐标文件。
 
 ---
 
 ## Step 14 — Phase C · 二维分类
 
-Phase C。颗粒被分入二维类。 垃圾类 —— 冰、碳膜边缘、聚集体 —— 被剔除。 只有定义清晰的视角进入三维。
+Phase C 进行二维分类并剔除杂质,仅保留清晰视角进入三维。
 
 ---
 
 ## Step 15 — Phase D · 三维重构
 
-Phase D。清洗后的颗粒进入 ab-initio 初步重构,随后做 homogeneous refinement。 输出是未锐化的三维密度图,以及用于分辨率估计的 half-map 对。 half-map 刻意分离 —— 这是 gold-standard FSC 的基础。
+Phase D 重构三维密度图,并保留 half-map 对用于分辨率评估。
 
 ---
 
 ## Step 16 — Phase E · 锐化与验证
 
-Phase E。B-factor 锐化、用 half-map 估计 FSC 分辨率、局部分辨率分布图。 B-factor 数值直接从 manifest 读取 —— 绝不推断。 结果即可用于发表、可直接提交至 EMDB 的密度图。
+Phase E 对密度图进行锐化与分辨率验证,输出可发表的结果。
 
 ---
 
@@ -116,6 +116,6 @@ Phase E。B-factor 锐化、用 half-map 估计 FSC 分辨率、局部分辨率�
 
 ## Step 20 — 收束,屏幕中央
 
-这就是一次完整的 cryo-EM 运行 —— 从原始视频帧到锐化的三维密度图,19 个步骤。 真实运行需要 30–90 分钟;本教程为方便演示,加速了云端时间。
+这就是一次完整的 cryo-EM 运行 —— 从原始视频帧到锐化的三维密度图,19 个步骤。 真实运行需要 30–;本教程为方便演示,加速了云端时间。
 
 ---

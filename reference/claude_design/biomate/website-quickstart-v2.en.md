@@ -44,7 +44,7 @@ Click Start free at the top right. It routes to the platform's registration page
 
 ## Step 8 — Register
 
-Registration is thirty seconds. Name, institution, role, email. No credit card required for the trial. Your account is provisioned immediately.
+Registration is quick. Name, institution, role, email. No credit card required for the trial. Your account is provisioned immediately.
 
 ---
 

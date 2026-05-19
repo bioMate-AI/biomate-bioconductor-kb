@@ -2,120 +2,114 @@
 
 ## Step 1 — Welcome, centered
 
-Perform a complete cryo-EM single-particle analysis. BioMate manages CryoSPARC parameters, so you can easily follow along.
+We'll perform a complete cryo-EM single-particle analysis using CryoSPARC. This workflow processes raw data to achieve a final reconstruction.
 
 ---
 
 ## Step 2 — Two views, one run, plan checklist
 
-BioMate has two run views. Left chat tracks progress. Right workflow panel details phases, steps, parameters, outputs. Both stay in sync.
+BioMate presents two synchronized run views. The left chat narrates checklist progress. The right workflow shows phases, steps, and outputs.
 
 ---
 
 ## Step 3 — Run header
 
-Run header displays workflow name, status badge, and live progress bar. Status is idle: loaded but not started.
+The run header shows workflow name, status badge, and progress bar. Status is idle: workflow loaded, not started.
 
 ---
 
 ## Step 4 — Five phases, twenty-three steps
 
-CryoSPARC SPA has five phases. Phase A: Motion correction, CTF. B: Particle picking. C: 2D classification. D: 3D reconstruction. E: Sharpening, validation.
+CryoSPARC SPA uses five phases. Phase A: motion correction, CTF. B: particle picking. C: 2D classification. D: 3D reconstruction. E: sharpening, validation.
 
 ---
 
 ## Step 5 — Inside Phase A
 
-Active phase shows live step status. Phase A runs MotionCor2 for frame alignment. CTFFIND4 estimates defocus. View any phase anytime without disturbing run.
+The active phase displays live status for every step. View other phases without disturbing the run.
 
 ---
 
 ## Step 6 — One primary action, Confirm & Run
 
-BioMate pre-filled parameters from your chat message. The Confirm and run workflow button submits the job to the cloud.
+Parameters pre-filled by BioMate from your chat message. The Confirm and run workflow button submits the job to the cloud.
 
 ---
 
 ## Step 7 — Phase A is running
 
-Status: running; progress moving. Phase A motion correction on Batch GPUs. Small datasets take three to six minutes.
-
----
-
-## Step 8 — Live progress per step
-
-Each step displays live status: queued, running, completed, failed. MotionCor2 completion updates the count. Chat and main view sync via SSE stream.
+Status badge shows running. Phase A motion correction is in progress on cloud GPUs.
 
 ---
 
 ## Step 9 — CTF gate tripped
 
-During CTF estimation, low CTF fit resolution halts the process. This indicates a narrow defocus search range. A fix is offered.
+CTF estimation shows low CTF fit resolution, likely from a narrow defocus search range. QC gates halt processing, then suggest a fix.
 
 ---
 
 ## Step 10 — Halt card, accept or edit
 
-Auto-loop is off. BioMate suggests zero-point-five to four micrometers defocus range. Accept, edit, or dismiss. Auto-loop enables three retries.
+BioMate suggests a 0.5 to 4 micrometer defocus range. With auto-loop off, accept, edit, or dismiss. Enabling auto-loop automates fix and rerun three times.
 
 ---
 
 ## Step 11 — Gate cleared, Phase A done
 
-Suggestion accepted. Phase A reruns CTF with new range, gate passes, completes. Phase B auto-starts. Actions log to QC audit.
+Phase A completes its CTF rerun. Phase B identifies particles. All accepts, edits, and retries log to the QC audit report.
 
 ---
 
 ## Step 12 — Step outputs land inline
 
-Completed steps display file chips. Outputs appear: name, type, view, download. No need to await the entire run.
+Completed steps display outputs directly on their row. These include name, type icon, view, and download options.
 
 ---
 
 ## Step 13 — Phase B, particle picking
 
-Topaz scans every micrograph for particles. Each yields one coordinate file. These become input for two-dimensional classification.
+Phase B picks particles from micrographs, outputting coordinate files for the next stage.
 
 ---
 
 ## Step 14 — Phase C, 2D classification
 
-Particles sort into 2D classes. Drop junk like ice, carbon edges, aggregates. Well-defined views advance to 3D.
+Phase C sorts particles into two-dimensional classes, ensuring only high-quality views advance.
 
 ---
 
 ## Step 15 — Phase D, 3D reconstruction
 
-Phase D. Particles undergo ab-initio reconstruction, then homogeneous refinement. Output: 3D density map and half-map pair for gold-standard FSC resolution estimation.
+Phase D reconstructs the three-dimensional density, keeping the half-map pair for resolution.
 
 ---
 
 ## Step 16 — Phase E, sharpening and validation
 
-Phase E: B-factor sharpening, FSC from half-maps, and local resolution. B-factor reads from the manifest. Result: EMDB-ready map.
+Phase E sharpens the map and validates the overall resolution rigorously. This critical process generates the final, publication-ready density map.
 
 ---
 
 ## Step 17 — All 23 steps complete
 
-Twenty-three steps completed. Status: completed. Reconstruction converged at 3.1 Å by GSFSC 0.143.
+All twenty-three steps are now complete, with status updated to *completed*. The reconstruction converged at 3.1 Å resolution by GSFSC 0.143, a high-quality outcome.
 
 ---
 
 ## Step 18 — Outputs downloadable
 
-The primary footer button is now *Run again*. Locate *View Results*, *Download All*, and Findings above.
+The footer button is now *Run again*. Scroll up to access *View Results*, *Download All*, and auto-generated Findings.
 
 ---
 
 ## Step 19 — After-run section unlocked
 
-Each completed run adds a new *After run* block. It holds all outputs, findings, methods, citations, and QC logs.
+Every completed run creates an *After run* block. It organizes Outputs, Findings, Methods, and Parameters. Plus, Software, Citations, and the QC audit log.
 
 ---
 
 ## Step 20 — Wrap-up, centered
 
-Raw movies sharpened to a 3D map in nineteen steps. Real runs take thirty to ninety minutes.
+A complete cryo-EM run. Raw movies yield a sharpened 3D map across nineteen steps.
 
 ---

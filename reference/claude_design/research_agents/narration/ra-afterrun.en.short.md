@@ -2,78 +2,78 @@
 
 ## Step 1 — Intro, centered
 
-The *After run* block, found at the panel's bottom, contains seven tabs. These tabs detail the entirety of BioMate's final produced results. Content for each tab switches automatically.
+The run is complete. Find the *After run* block at the panel's bottom. It has seven tabs. These tabs cover all BioMate produced content. Content automatically switches between them.
 
 ---
 
 ## Step 2 — After run header + Download report
 
-Completed runs show an After Run section. The Download Report link creates a structured DOCX, Markdown, or LaTeX file. It is manuscript-ready in one click.
+Every completed run provides an After run section. The Download report link bundles all tabs into one structured document. Choose DOCX, Markdown, or LaTeX. It's manuscript-ready with a single click.
 
 ---
 
 ## Step 3 — Seven tabs overview
 
-Seven tabs organize the data. These are Findings, Outputs, Methods, Parameters, Software, Citations, QC audit. Order is narrative, raw artifacts, methods, reproducibility, audit.
+Seven tabs cover the story. Findings, Outputs, Methods, Parameters, Software, Citations, QC audit. Their order matches a natural read: narrative, artifacts, methods, and audit.
 
 ---
 
 ## Step 4 — Findings tab
 
-The Findings tab opens with 3.21 Å resolution, its headline metric. It presents bullets and a numeric table. All numbers originate from the run manifest, not generated. BioMate tags uncited findings as author judgment.
+The Findings tab opens with 3.21 Å resolution. It includes two or three bullets plus a numeric table. Numbers are from the run manifest, not generated. BioMate tags uncited findings as author judgment.
 
 ---
 
 ## Step 5 — Outputs tab
 
-The Outputs tab displays files, grouped by phase and step. View opens an inline preview of each. Download grabs a single output file. Download all bundles all outputs as a ZIP.
+The Outputs tab lists files, grouped by phase and step. View opens an inline preview; download grabs the single file. A *Download all* button bundles everything into a ZIP.
 
 ---
 
 ## Step 6 — Outputs land on the step too
 
-Output files are available per-step. Select any completed step row. Output chips appear inline the moment that step finishes. Download files directly, without waiting for the full report.
+Access files without waiting for the full report. Look at any completed step row in the panel. Output chips appear inline for finished steps. Same view, same download, just per-step.
 
 ---
 
 ## Step 7 — aligned_sums inline preview
 
-Opening one shows Aligned sums, MotionCor2's micrograph stack, in a preview. Tables, plots, and 3D maps are rendered appropriately. BioMate selects the correct viewer for each file type.
+Aligned sums, MotionCor2's micrograph stack, opens in a preview modal. Tables display in a sortable grid. Plots are plotted. 3D maps appear in a viewer.
 
 ---
 
 ## Step 8 — Methods tab
 
-The Methods tab provides IMRaD prose for manuscripts. It details tool names, versions, and exact parameters. Peers can easily replicate the run. Italics flag inferred values versus manifest data.
+The Methods tab provides IMRaD prose. You can drop it into your manuscript. It includes tool names, versions, and parameters. This allows peers to replicate your run. Italics denote inferred versus manifest values.
 
 ---
 
 ## Step 9 — Parameters tab
 
-The Parameters tab shows every phase, step, parameter, and value. Defaults are flagged. User overrides and auto-loop adjustments are distinct. Reviewers require this file.
+The Parameters tab. Every run parameter is listed: phase, step, parameter, value. Defaults are flagged from user overrides and auto-loop adjustments. Reviewers want this as a supplementary file.
 
 ---
 
 ## Step 10 — Software tab
 
-The Software tab details all tools and exact versions used. Orchestrator, runtime, scientific packages are listed. With Parameters, it forms the reproducibility baseline. Match these for identical outputs.
+The Software tab lists every tool and its exact version. This includes orchestrator, container runtime, and scientific packages. With Parameters, it forms the reproducibility baseline. Matching them ensures identical outputs.
 
 ---
 
 ## Step 11 — Citations tab
 
-The Citations tab provides pre-formatted references for all cited tools and methods. PMIDs are clickable links to their PubMed entries. Citations and Methods export pre-bundled within the Download report export.
+The Citations tab provides a pre-formatted reference list for tools and methods. PMIDs are click-through to PubMed. Citations and Methods bundle in the Download report export.
 
 ---
 
 ## Step 12 — QC audit tab
 
-The QC audit tab logs every gate's timestamp, threshold, value, result, action. Chain-of-custody includes operator e-signature. It is 21 CFR Part 11 compliant for regulators.
+The QC audit tab details compliance. It logs every triggered QC gate: threshold, observed value, result, and action. Chain-of-custody and operator e-signature are included. This is 21 CFR Part 11 compliant.
 
 ---
 
 ## Step 13 — Wrap-up, centered
 
-The After-run report uses tabs from one run manifest. A 'Download report' link exports all seven tabs. Formats include DOCX, Markdown, and LaTeX. Share the run URL for read-only collaborator access.
+This is the After-run report. A single download link packages all seven tabs into a structured document. Options include DOCX, Markdown, LaTeX. Share the run URL; collaborators get a read-only view.
 
 ---

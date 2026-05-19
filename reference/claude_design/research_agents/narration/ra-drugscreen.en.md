@@ -2,7 +2,7 @@
 
 ## Step 1 — Intro, centered
 
-Drug screens often need a pilot, fail QC, and recover via auto-loop. We'll watch the whole sequence inline — and meet the one scenario that surfaces the Run-vs-Run comparison card by default. About a minute and a half. The tour drives every decision for you.
+Drug screens often need a pilot, fail QC, and recover via auto-loop. We'll watch the whole sequence inline — and meet the one scenario that surfaces the Run-vs-Run comparison card by default. The tour drives every decision for you.
 
 ---
 
@@ -54,9 +54,9 @@ Two pilots done. The comparison card lays them side by side. Metrics table with 
 
 ---
 
-## Step 10 — Ten-second auto-pick
+## Step 10 — Auto-pick
 
-When confidence is high — p less than zero-point-zero-one here — the recommended button shows a ten-second countdown. Hover any button to pause it; click to commit. An auto-fire emits a *No response — using Run B automatically* line so nothing happens silently. Medium or low confidence: no auto-fire. The card sits until the user picks.
+When confidence is high — p less than zero-point-zero-one here — the recommended button shows a short countdown. Hover any button to pause it; click to commit. An auto-fire emits a *No response — using Run B automatically* line so nothing happens silently. Medium or low confidence: no auto-fire. The card sits until the user picks.
 
 ---
 

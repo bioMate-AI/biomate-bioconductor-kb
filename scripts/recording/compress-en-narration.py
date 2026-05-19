@@ -22,11 +22,12 @@ PROMPT_TMPL = """You are an EN tutorial-narration compressor. Rewrite the step b
 
 Hard rules:
 1. Preserve technical terms verbatim: CryoSPARC, MotionCor2, CTFFIND4, Topaz, AWS Batch, hERG, DILI, Ames, PPBR, Caco-2, BBB, CYPs, P-gp, PBPK, ADMET, GP, EHVI, Morgan fingerprints, DOCX, FDA, EMA, NMPA, PMDA, §2.6.1, 21 CFR Part 11, EMPIAR-10025, GSFSC, TOTP, SHA-256, Cmax, AUC.
-2. Keep concrete numbers (3.21 Å, 41 endpoints, 5 phases, 23 steps, etc.).
+2. Keep concrete COUNTS (3.21 Å resolution, 41 endpoints, 5 phases, 23 steps).
 3. Drop scenario framing / pep-talk language. No "let me show you", "welcome", "we'll walk through".
-4. Each sentence ≤ 12 words; total ≤ {hard_cap_words} words.
-5. Plain prose. No markdown, no quotes, no parentheticals about scrolling. One paragraph.
-6. Output ONLY the new narration body. No preamble, no quotes, no labels.
+4. **Remove every time-related estimate, duration, or countdown reference.** Do NOT mention seconds, minutes, hours, "thirty seconds", "two minutes", "a ten-second countdown", "30s pilot", "About a minute and a half", "in 30s", etc. Costs and durations are estimates; the user has asked to strip them entirely. Drop sentences that exist only to state a duration.
+5. **For cryo Phase B / Phase C / Phase D / Phase E beats (the four reconstruction phases), describe each phase in ONE high-level sentence about what the phase accomplishes — do NOT enumerate the tools or steps inside the phase (don't list Topaz, ab-initio, FSC, B-factor sharpening, etc.).**
+6. Each sentence ≤ 14 words; total ≤ {hard_cap_words} words. Output a polished paragraph that reads naturally.
+7. Output ONLY the new narration body. No preamble, no quotes, no labels.
 
 Original:
 {body}

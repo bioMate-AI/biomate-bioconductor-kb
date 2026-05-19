@@ -2,78 +2,78 @@
 
 ## Step 1 — Intro, centered
 
-Drug screens often require a pilot, fail QC, then recover via auto-loop. A specific scenario surfaces the Run-vs-Run comparison card by default.
+Drug screens often require preliminary steps, fail QC, and auto-recover. One scenario surfaces the Run-vs-Run comparison card by default.
 
 ---
 
 ## Step 2 — Plan checklist, five sub-tasks
 
-BioMate decomposes the request into five sub-tasks. Ingest, ADMET prediction, hERG gate, Ames gate, and Ranking. Each proceeds.
+BioMate orchestrates multi-stage assessments for drug candidates. It first decomposes each request into five distinct sub-tasks. These include Ingest, ADMET prediction, hERG gate, Ames gate, and Ranking.
 
 ---
 
 ## Step 3 — Pilot prompt
 
-For ten thousand compounds, DeepAgent suggests a five-percent pilot. The card shows sampling fraction, strategy, and full-run cost. Make your decision directly in chat.
+10,000 compounds represent significant workload. DeepAgent suggests a five-percent pilot. The card consolidates sampling fraction, strategy, and full-run cost. Decisions are made in chat.
 
 ---
 
 ## Step 4 — Pilot running
 
-Pilot run processing 500 of 10,000 compounds. Plan items tick to checkmark. This validates QC gates before the full run.
+The pilot is running on 500 of 10,000 compounds. Plan items tick from circle to dot, indicating engine advance. This small pilot validates QC gates before committing the full run.
 
 ---
 
 ## Step 5 — QC failure mid-pilot
 
-hERG and Ames trip. Plan items show amber warnings. The pipeline continues; next surface holds decision. QC gates evaluate per phase. Trips trigger auto-loop proposed fixes.
+hERG and Ames trip. Plan items turn amber. Pipeline continues; next surface holds the decision. QC gates evaluate per phase. A trip means the auto-loop will propose fixes.
 
 ---
 
 ## Step 6 — QC speaker pills
 
-Two amber QC pills for hERG and Ames appear in chat. Their color matches warn pills, stable across plan, chat, Tweaks.
+Two QC pill lines for hERG and Ames appear in chat. Amber pills match warn pills on the plan. Colors are stable across plan, chat, and Tweaks panel.
 
 ---
 
 ## Step 7 — Pilot stopped · QC gates triggered
 
-The pilot card explains failure, showing the auto-loop's suggested fix. New `logp_max` and `mw_max` values are offered. One-click Apply fixes and re-pilot applies them. Users always see changes; no silent retry occurs.
+The pilot card explains failures, suggesting new `logp_max` and `mw_max` values. Apply fixes with one click via `Apply fixes and re-pilot`. Users always review changes; no silent retries.
 
 ---
 
 ## Step 8 — Auto-loop · LOOP speaker
 
-LOOP (purple pill) takes over. LOOP logs auto-loop decisions, keeping audit trail clear. QC re-evaluates; both gates pass second run.
+The fix is applied. The LOOP speaker takes over. All lines under LOOP are auto-loop decisions, maintaining a clear audit trail. QC re-evaluates. Both gates pass on the second run.
 
 ---
 
 ## Step 9 — Run-vs-Run comparison card
 
-Comparison card shows two pilots, side-by-side metrics, delta column. Parameter diffs are origin-tagged. Trophy badge displays recommendation, confidence, p-value. QC outcomes are red (Run A), green (Run B). Quick decisions.
+Two pilots complete. The comparison card displays metrics with delta, and parameter diffs by origin. A trophy badge shows recommendation, confidence, p-value. QC outcomes are color-coded for instant decision.
 
 ---
 
-## Step 10 — Ten-second auto-pick
+## Step 10 — Auto-pick
 
-High confidence (p < 0.01) starts a 10-second countdown. Hover pauses; click commits. An auto-fire confirms automatic selection. Otherwise, the user must pick.
+For high confidence (p < 0.01), the recommended option is automatically selected. Manual selection overrides this default. If confidence is medium or low, you must pick an option.
 
 ---
 
 ## Step 11 — Full run on Run B params
 
-Decision committed. Ten thousand compounds now run using auto-loop's tuned parameters. Plan items fast-track; the pilot proved gates.
+Decision committed. The full screen now processes ten thousand compounds, applying the auto-loop's tuned parameters. Plan items advance; the pilot already proved the gates.
 
 ---
 
 ## Step 12 — Findings card · 47 candidates
 
-The completion summary lands inline. Forty-seven BBB-penetrant candidates passed QC. See runtime, QC pass-rate, and full Report link. Hover anchors for tool choice rationale.
+The completion summary appears inline. Forty-seven BBB-penetrant candidates after all QC gates. View QC pass-rate and a link to the full Report. Find tool choice rationale on earlier step lines.
 
 ---
 
 ## Step 13 — Wrap-up, centered
 
-Pilot, fail, auto-loop, compare, full, findings ran. Generated three decision cards, one comparison card, plus a clean audit trail.
+The end-to-end auto-loop finished. You observed pilot, fail, auto-loop, compare, full, and findings. This included three decision cards, one comparison card, and a clean audit trail.
 
 ---

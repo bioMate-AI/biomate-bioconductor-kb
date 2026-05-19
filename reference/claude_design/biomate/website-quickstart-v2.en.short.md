@@ -2,84 +2,84 @@
 
 ## Step 1 — Home
 
-This is biomate.ai. BioMate is a computational biology assistant. It supports your team across the entire arc of biomedical science. Its scope spans target ranking to clinical-trial planning.
+BioMate.ai is your computational biology assistant. It supports teams across the entire arc of biomedical science. From early target ranking to final clinical-trial planning.
 
 ---
 
 ## Step 2 — Services dropdown
 
-The Services menu features three product lines. These include Drug Discovery, Genomics and Multi-Omics, and Structural Biology. Each line offers dozens of validated, peer-reviewed pipelines.
+The Services menu organizes capabilities into three product lines. These are Drug Discovery, Genomics and Multi-Omics, and Structural Biology. Each contains many validated, peer-reviewed pipelines.
 
 ---
 
 ## Step 3 — Services page
 
-This shows the full Target-to-IND path, end to end. Each box is a real BioMate workflow on the cloud. These are not slide-deck capabilities.
+The Services page presents the complete Target-to-IND path. Each box is a real BioMate cloud workflow, not a mere slide-deck capability.
 
 ---
 
 ## Step 4 — Pricing
 
-The Starter plan is free. Premium costs twenty-nine dollars a month for individuals. Team costs seventy-nine dollars a month. Enterprise pricing is custom. No credit card needed.
+Our pricing structure offers clear tiers. Starter is free. Premium is twenty-nine dollars a month for individual researchers. Team is seventy-nine dollars monthly. Enterprise plans are custom.
 
 ---
 
 ## Step 5 — Newsroom
 
-The Newsroom contains scientific articles and company news. This supports the platform. Content includes peer-reviewed validation, regulatory positioning, and case studies.
+The Newsroom features scientific articles and company news. These resources provide crucial peer-reviewed validation. They also cover regulatory positioning insights and practical case studies for the platform.
 
 ---
 
 ## Step 6 — About — How it works
 
-The process follows three steps. Describe your experiment in plain English. BioMate picks a validated pipeline. The cloud runs it. Results are quality-graded and audit-ready.
+The lifecycle has three steps. Describe your experiment in plain English. BioMate picks a validated pipeline and runs it on the cloud. Results are quality-graded and audit-ready.
 
 ---
 
 ## Step 7 — Start free
 
-Click Start free at the top right. This action routes you directly to the platform's registration page. The specific URL is dev-public.biomate.ai.
+Click Start free at the top right. This opens the registration page on dev-public.biomate.ai.
 
 ---
 
 ## Step 8 — Register
 
-Registration takes approximately thirty seconds to complete. You will provide your name, institution, role, and email. Your trial account provisions immediately. You will gain instant system access.
+Provide your name, institution, role, and email. A credit card is not required for the trial. Your account is then provisioned.
 
 ---
 
 ## Step 9 — Log in
 
-Upon registration, new users land on the Log in page. Existing users access this page directly. A single click quickly grants entry to the platform.
+After registering, new users will arrive at the Log in screen. Existing users can come directly to this point. With one click, you gain full access to the platform.
 
 ---
 
 ## Step 10 — Platform landing
 
-The platform presents a clean, two-column layout. The chat panel resides on the left side. The workflow panel occupies the right. Chat functionality is immediately available.
+The platform opens to a clean two-column layout. Chat is on the left, the workflow panel on the right. Chat functionality is immediately available.
 
 ---
 
 ## Step 11 — First prompt
 
-Explain your experiment in plain English. BioMate understands all relevant domain vocabulary. For example, provide: 'Run ADMET profiling on this compound'. Also include its SMILES string.
+Describe your experiment in plain English. For example, 'Run ADMET profiling on this compound' plus a SMILES string. BioMate understands domain vocabulary.
 
 ---
 
 ## Step 12 — Workflow card
 
-Chat displays a workflow card: pipeline name, domain, description. Clicking it opens the Workflow Panel on the right. Parameters pre-fill from your message.
+A workflow card appears in chat: name, domain, description. Clicking it opens the Workflow Panel. Parameters pre-fill from your message.
 
 ---
 
 ## Step 13 — Confirm and run
 
-Click Confirm and run to submit the job. the cloud receives it via GPU or CPU profile. The status badge runs, live updates stream back.
+Click Confirm and run. The job submits to the cloud via your chosen compute profile. Status shows running; live updates stream through the panel.
 
 ---
 
 ## Step 14 — Results
 
-Completed runs show output files: figures, tables, reports, JSON. Download what you need. Audit trail details: parameters, versions, citations. These are one click away.
+All output files — figures, tables, reports, structured JSON — populate the panel for download. A complete audit trail (parameters, versions, citations) is one click away.
 
 ---

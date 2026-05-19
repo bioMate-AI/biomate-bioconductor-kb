@@ -2,9 +2,7 @@
 
 ## Step 1 — Welcome, centered
 
-Welcome to the BioMate IND Report. We'll walk through the five-step pipeline that builds an IND-quality §2.6 nonclinical dossier, the live document panel on the right, and the twenty-one C-F-R Part eleven sign-and-freeze at the end. About two minutes.
-
----
+Welcome to the BioMate IND Report. We'll walk through the five-step pipeline that builds an IND-quality §2.6 nonclinical dossier, the live document panel on the right, and the twenty-one C-F-R Part eleven sign-and-freeze at the end. ---
 
 ## Step 2 — Project list
 

@@ -2,98 +2,98 @@
 
 ## Step 1 — Home
 
-BioMate.ai
-计算生物学助手,支持生物医学全流程
+BioMate.ai 计算生物助手
+生物医学全程覆盖
 
 ---
 
 ## Step 2 — Services dropdown
 
-服务含三产品线
-数十种验证管线
+服务菜单分三产品线：药物发现
+基因组学与多组学、结构生物学
 
 ---
 
 ## Step 3 — Services page
 
-完整的 Target-to-IND 
-真实 BioMate 云端流程
+服务页: 完整Target-to-I
+皆为BioMate云工作流
 
 ---
 
 ## Step 4 — Pricing
 
-免费版,$29/月,$79/月
-企业定制,无需信用卡
+入门免费 个人$29/月
+团队$79/月 企业版定制
 
 ---
 
 ## Step 5 — Newsroom
 
-新闻室内容: 科研与公司新闻
-涵盖评议、法规、案例
+新闻室: 科学文章、公司新闻
+提供同行验证、监管洞察、平台案例
 
 ---
 
 ## Step 6 — About — How it works
 
-描述实验,BioMate选管线
-云端运行,结果分级可审计
+实验描述, BioMate 选定流程
+云端运行, 结果分级审计就绪
 
 ---
 
 ## Step 7 — Start free
 
-点击右上角"免费试用"
-跳转 dev-public 注册页
+点击“Start free”
+进入 BioMate 注册页
 
 ---
 
 ## Step 8 — Register
 
-注册30秒,填姓名单位职务邮箱
-试用账户即开即用
+填写个人信息
+试用无需信用卡,账户完成配置
 
 ---
 
 ## Step 9 — Log in
 
 新老用户登录
-一键入平台
+一键即享平台
 
 ---
 
 ## Step 10 — Platform landing
 
-简洁两列布局
-左聊右工作流,聊天即用
+平台双栏布局
+左聊天右工作流，聊天功能可用
 
 ---
 
 ## Step 11 — First prompt
 
-BioMate支持自然语言描述实验
-如ADMET分析, 附SMILES
+SMILES描述ADMET实验
+BioMate 理解领域词汇
 
 ---
 
 ## Step 12 — Workflow card
 
-点击工作流卡片 打开面板
-参数由消息预填
+工作流卡片现于聊天
+点击打开面板,参数自消息预填
 
 ---
 
 ## Step 13 — Confirm and run
 
-提交作业, the cloud 经 
-状态实时更新
+确认运行,作业提交至云
+状态运行中,实时更新
 
 ---
 
 ## Step 14 — Results
 
-运行输出文件、审计追踪
-一键下载查看
+所有输出文件可下载
+完整审计追踪一键获取
 
 ---

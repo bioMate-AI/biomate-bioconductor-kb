@@ -220,9 +220,7 @@ const SCEN_DRUGSCREEN = {
     { t: 300,  kind: 'showCard', card: 'comparison', data: {
         runA: { label: 'Run A', sub: 'original params' },
         runB: { label: 'Run B', sub: 'after auto-loop fix' },
-        metrics: [
-          { name: 'Runtime',     a: '12m 04s', b: '9m 18s',  delta: '−23%', dir: 'up' },
-          { name: 'Peak memory', a: '31 GB',   b: '29 GB',   delta: '−6%',  dir: 'up' },
+        metrics: [          { name: 'Peak memory', a: '31 GB',   b: '29 GB',   delta: '−6%',  dir: 'up' },
           { name: 'hERG',        a: '0.62',    b: '0.38',    delta: '−0.24',dir: 'up',  aQc: 'fail', bQc: 'pass' },
           { name: 'Ames',        a: 'positive',b: 'negative',delta: 'fixed',dir: 'up',  aQc: 'fail', bQc: 'pass' },
           { name: 'logP (mean)', a: '4.1',     b: '3.2',     delta: '−0.9', dir: 'neu' },

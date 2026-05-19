@@ -27,7 +27,7 @@ Voiceover scripts for the three primary tutorials in the Research Agent UI demo.
 "Parameters were pre-filled by BioMate from your chat message. When you're ready, the *Confirm and run workflow* button submits the job to AWS Batch. The footer always shows one primary button — never a wall of choices."
 
 **[Step 7 — Phase A is running]** *(scrolls back to header)*
-"We're off. The status badge has flipped to *running* and the progress bar is moving. Phase A motion correction is in progress on Batch GPUs. A small dataset typically takes three to six minutes."
+"We're off. The status badge has flipped to *running* and the progress bar is moving. Phase A motion correction is in progress on Batch GPUs. "
 
 **[Step 8 — Live progress per step]**
 "Inside Phase A, each step shows a live status chip — queued, running, completed, or failed. As MotionCor2 finishes a movie, the count ticks up. The chat side reads the same SSE stream, so both views stay in sync."
@@ -66,7 +66,7 @@ Voiceover scripts for the three primary tutorials in the Research Agent UI demo.
 "Every completed run drops a fresh *After run* block at the bottom of the panel. Outputs, Findings, Methods, Parameters, Software, Citations, and the QC audit log — all in one place. There's a dedicated tutorial just for this section."
 
 **[Step 20 — Wrap-up, centered]**
-"That's a full cryo-EM run — raw movies to a sharpened 3D map in nineteen steps. Real runs take thirty to ninety minutes; this tutorial fast-forwarded the cloud time so you could see every milestone."
+"That's a full cryo-EM run — raw movies to a sharpened 3D map in nineteen steps. "
 
 ---
 
@@ -120,7 +120,7 @@ Voiceover scripts for the three primary tutorials in the Research Agent UI demo.
 > **Scenario context.** A 10,000-compound library is being screened for blood-brain-barrier penetrants. We follow a pilot that fails QC, BioMate's auto-loop with adjusted parameters, the Run-vs-Run comparison, and the full screen on the winning parameters. Fully automated — about 90 seconds end-to-end.
 
 **[Step 1 — Intro, centered]**
-"Drug screens often need a pilot, fail QC, and recover via auto-loop. We'll watch the whole sequence inline — and meet the one scenario that surfaces the Run-vs-Run comparison card by default. About a minute and a half. The tour drives every decision for you."
+"Drug screens often need a pilot, fail QC, and recover via auto-loop. We'll watch the whole sequence inline — and meet the one scenario that surfaces the Run-vs-Run comparison card by default. The tour drives every decision for you."
 
 **[Step 2 — Plan checklist, five sub-tasks]**
 "BioMate decomposes the request into five sub-tasks. Ingest. ADMET prediction. hERG gate. Ames gate. Ranking. Each ticks in place. Watch the hERG and Ames rows — they'll trip mid-pilot."
@@ -146,8 +146,8 @@ Voiceover scripts for the three primary tutorials in the Research Agent UI demo.
 **[Step 9 — Run-vs-Run comparison card]**
 "Two pilots done. The comparison card lays them side by side. Metrics table with a delta column. Parameter diffs tagged by origin — auto-loop versus user. A trophy badge with the recommendation, confidence, and p-value. QC outcomes are colored red on Run A, green on Run B, so the decision reads at a glance."
 
-**[Step 10 — Ten-second auto-pick]**
-"When confidence is high — p less than zero-point-zero-one here — the recommended button shows a ten-second countdown. Hover any button to pause it; click to commit. An auto-fire emits a *No response — using Run B automatically* line so nothing happens silently. Medium or low confidence: no auto-fire. The card sits until the user picks."
+**[Step 10 — Auto-pick]**
+"When confidence is high — p less than zero-point-zero-one here — the recommended button shows a short countdown. Hover any button to pause it; click to commit. An auto-fire emits a *No response — using Run B automatically* line so nothing happens silently. Medium or low confidence: no auto-fire. The card sits until the user picks."
 
 **[Step 11 — Full run on Run B params]**
 "Decision committed. The full screen now runs on ten thousand compounds using the auto-loop's tuned parameters. Plan items tick again — faster this time, since the pilot already proved the gates."
@@ -165,7 +165,7 @@ Voiceover scripts for the three primary tutorials in the Research Agent UI demo.
 > **Scenario context.** A regulatory scientist opens an in-progress IND program (BM-0042 · CB1 inverse agonist · obesity). We walk the full 5-step pipeline, the live document panel, paragraph feedback, the audit overlay, and the 21 CFR Part 11 sign-and-freeze. About two minutes end-to-end.
 
 **[Step 1 — Welcome, centered]**
-"Welcome to the BioMate IND Report. We'll walk through the five-step pipeline that builds an IND-quality §2.6 nonclinical dossier, the live document panel on the right, and the twenty-one C-F-R Part eleven sign-and-freeze at the end. About two minutes."
+"Welcome to the BioMate IND Report. We'll walk through the five-step pipeline that builds an IND-quality §2.6 nonclinical dossier, the live document panel on the right, and the twenty-one C-F-R Part eleven sign-and-freeze at the end. "
 
 **[Step 2 — Project list]**
 "Each program is its own project. The coloured dot on the left of each row is the status — green means signed, blue means in progress, amber means blocked on a gate. Click any project to switch — your work is preserved per project."

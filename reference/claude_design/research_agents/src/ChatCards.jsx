@@ -30,11 +30,7 @@ function PilotPromptCard({ scenario, onAction, dismissed }) {
         */}
       </div>
       <div className="pp-meta">
-        Full run is ~{scenario.cost.full_min} min on {p.total} samples ·
-        a {Math.round(p.fraction * 100)}% pilot ({p.sampled} samples) takes ~{scenario.cost.pilot_min} min.
-        {/* Cost estimate — commented out, leaving for future work
-        ~${scenario.cost.pilot_usd.toFixed(2)}.
-        */}
+        Full run sweeps {p.total} samples; a {Math.round(p.fraction * 100)}% pilot validates QC on {p.sampled} of them first.
       </div>
       <div className="pp-summary">
         <div className="sl">Pilot config</div>
@@ -118,10 +114,7 @@ function PilotPromotionCard({ data, onAction, countdown, dismissed }) {
         </div>
       </div>
       <div className="pp-meta">
-        Pilot ran on {data.sampled} samples in {data.runtime}.
-        {/* Cost estimate — commented out, leaving for future work
-        · cost {data.cost}
-        */}
+        Pilot ran on {data.sampled} samples.
       </div>
       <div className="pp-summary">
         <div className="sl">QC summary</div>
@@ -156,7 +149,6 @@ function PilotPromotionCard({ data, onAction, countdown, dismissed }) {
       {!failed && (
         <div className="pp-question">
           Ready for the full run on {data.total} samples?
-          <div className="sub">Estimated: {data.full_min} min{/* · ${data.full_cost.toFixed(2)} — cost commented out, leaving for future work */}</div>
         </div>
       )}
 
@@ -329,10 +321,7 @@ function FindingsChatCard({ data }) {
         <span>{data.title}</span>
       </div>
       <div className="fcc-body">
-        Workflow done in {data.runtime} · {data.samples} sample{data.samples === 1 ? '' : 's'}.
-        {/* Cost estimate — commented out, leaving for future work
-        · cost {data.cost}
-        */}
+        Workflow complete · {data.samples} sample{data.samples === 1 ? '' : 's'}.
       </div>
       <div className="fcc-table">
         {data.rows.map((r, i) => (

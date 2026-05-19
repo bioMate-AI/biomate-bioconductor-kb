@@ -26,7 +26,7 @@ CryoSPARC SPA is grouped into five phases. Motion correction and CTF in Phase A.
 
 ## Step 5 — Inside Phase A
 
-Inside the active phase you get the live status of every step. Phase A runs *MotionCor2* for frame alignment and *CTFFIND4* for defocus estimation. You can peek inside any other phase any time without disturbing the run.
+Inside the active phase you see live status for every step. You can peek into any other phase without disturbing the run.
 
 ---
 
@@ -38,13 +38,7 @@ Parameters were pre-filled by BioMate from your chat message. When you're ready,
 
 ## Step 7 — Phase A is running
 
-We're off. The status badge has flipped to *running* and the progress bar is moving. Phase A motion correction is in progress on Batch GPUs. A small dataset typically takes three to six minutes.
-
----
-
-## Step 8 — Live progress per step
-
-Inside Phase A, each step shows a live status chip — queued, running, completed, or failed. As MotionCor2 finishes a movie, the count ticks up. The chat side reads the same SSE stream, so both views stay in sync.
+The status badge has flipped to running and the progress bar is moving. Phase A motion correction is in progress on cloud GPUs.
 
 ---
 
@@ -74,25 +68,25 @@ Notice the small file chips on each completed step row? As soon as a step finish
 
 ## Step 13 — Phase B, particle picking
 
-Phase B. *Topaz* — a neural-network picker — scans every micrograph for particles. The output is one coordinate file per micrograph; these become the input particles for two-dimensional classification.
+Phase B picks particles from every micrograph and emits coordinate files for the next stage.
 
 ---
 
 ## Step 14 — Phase C, 2D classification
 
-Phase C. Particles are sorted into two-dimensional classes. Junk classes — ice, carbon edges, aggregates — are dropped. Only well-defined views advance to 3D.
+Phase C sorts particles into two-dimensional classes and drops the junk so only well-defined views advance.
 
 ---
 
 ## Step 15 — Phase D, 3D reconstruction
 
-Phase D. Cleaned particles go into ab-initio reconstruction, followed by homogeneous refinement. The output is an unsharpened 3D density map plus a half-map pair for resolution estimation. The half-maps are kept separate on purpose — they're the basis for the gold-standard FSC.
+Phase D reconstructs the three-dimensional density and keeps the half-map pair for resolution estimation.
 
 ---
 
 ## Step 16 — Phase E, sharpening and validation
 
-Phase E. B-factor sharpening, FSC resolution from the half-maps, and local resolution mapping. The B-factor value is read straight from the manifest — never inferred. The result is the publication-ready map you can deposit at EMDB.
+Phase E sharpens the map and validates resolution, producing the publication-ready density.
 
 ---
 
@@ -116,6 +110,4 @@ Every completed run drops a fresh *After run* block at the bottom of the panel. 
 
 ## Step 20 — Wrap-up, centered
 
-That's a full cryo-EM run — raw movies to a sharpened 3D map in nineteen steps. Real runs take thirty to ninety minutes; this tutorial fast-forwarded the cloud time so you could see every milestone.
-
----
+That's a full cryo-EM run — raw movies to a sharpened 3D map in nineteen steps. ---
