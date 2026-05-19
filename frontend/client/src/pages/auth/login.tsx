@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useLocation } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 const V2 = {
@@ -33,6 +33,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,13 +96,29 @@ export default function LoginPage() {
                   Forgot password?
                 </a>
               </div>
-              <input
-                type="password" required placeholder="••••••••"
-                value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading}
-                style={inputStyle}
-                onFocus={e => e.target.style.borderColor = V2.borderFoc}
-                onBlur={e => e.target.style.borderColor = V2.border}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required placeholder="••••••••"
+                  value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading}
+                  style={{ ...inputStyle, paddingRight: 38 }}
+                  onFocus={e => e.target.style.borderColor = V2.borderFoc}
+                  onBlur={e => e.target.style.borderColor = V2.border}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
+                    color: V2.muted, display: 'flex', alignItems: 'center'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
