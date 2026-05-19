@@ -36,3 +36,6 @@ For BioMate marketing we standardize on **draw.io XML** because it's plain text 
 | `post_5_benefits_stack.drawio.xml`  | Substack             | Single program → Portfolio → Business outcomes |
 | `post_8_rag_stack.drawio.xml`       | Substack + LinkedIn  | Four-layer evidence-grounded RAG architecture |
 | `post_9_options_matrix.drawio.xml`  | Substack + LinkedIn  | 4 LLM build options + where BioMate sits (default + exception) |
+| *(TBD)* `post_10_inhibitor_two_agent.drawio.xml` | Substack + LinkedIn | ANDV inhibitor: pocket → pharmacophore → ADMET → Vina + Agent A/B split |
+| *(TBD)* `post_11_plan_a_epitope.drawio.xml` | Substack + LinkedIn | Plan A: samplesheet → epitopeprediction → MHCnuggets; NOT mhcquant routing |
+
