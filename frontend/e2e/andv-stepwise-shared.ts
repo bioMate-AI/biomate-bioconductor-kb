@@ -203,6 +203,9 @@ const PARAM_LABEL_PATTERNS: Record<string, RegExp> = {
   reference_actives: /^reference\s*actives/i,
   compound_library: /^compound\s*library/i,
   pdb_input: /^pdb/i,
+  target_sequence: /^target\s*sequence/i,
+  host_codon_usage: /^host\s*codon/i,
+  rna_sequence: /^rna\s*sequence/i,
 };
 
 async function openClosedAccordions(page: Page): Promise<void> {

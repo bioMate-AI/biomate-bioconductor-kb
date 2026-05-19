@@ -79,13 +79,23 @@ Show the workflow card so I can Run from the panel.
 
 ---
 
-## Automated UI tests (planned)
+## Automated UI tests (Playwright)
 
 | File | Test IDs | Status |
 |------|----------|--------|
-| `frontend/e2e/plan-b-codon-stepwise.e2e.ts` | PB-1 … PB-5 | **Not yet added** |
+| `frontend/e2e/plan-b-codon-stepwise.e2e.ts` | PB-1 … PB-5 | **Added** — run against live stack |
 
-Mirror `frontend/e2e/plan-a-epitope-stepwise.e2e.ts` and shared `andv-stepwise-shared.ts`.
+```bash
+cd frontend
+PATH=/usr/bin:/bin:$PATH unset PLAYWRIGHT_BROWSERS_PATH
+export PW_OUTPUT_DIR=/tmp/pw-plan-b-$$
+export BIOMATE_URL=http://localhost:5000
+export E2E_TEST_TOKEN=biomate-e2e-bypass-token-dev-only
+npx playwright test e2e/plan-b-codon-stepwise.e2e.ts --project chromium
+```
+
+Screenshots: `frontend/e2e/screenshots/plan-b-codon/`
+Audit: `plan-b-suite-audit.json`
 
 ---
 

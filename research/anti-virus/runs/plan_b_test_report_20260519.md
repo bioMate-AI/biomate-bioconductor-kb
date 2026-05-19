@@ -15,7 +15,7 @@
 | Workflow `main.nf` on disk (10813, 10721, 12819, 12869, 12867) | **Pass** |
 | `generate_workflow` + Plan B codon query (`request_text`) | **Pass** — routes to `optimize_codons_for_heterologous_expression` |
 | `POST /api/nextflow/execute` (10813, local/docker) | **Partial** — accepts job; terminal COMPLETED not confirmed in session |
-| Playwright Plan B E2E | **Not started** — no `plan-b-*-stepwise.e2e.ts` yet |
+| Playwright Plan B E2E | **Added** — `frontend/e2e/plan-b-codon-stepwise.e2e.ts` (PB-1 … PB-5); run and refresh audit JSON |
 
 ---
 
