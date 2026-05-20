@@ -1017,3 +1017,26 @@ body.ind-app {
   .ind-shell     { grid-template-columns: 220px minmax(0, 1fr) !important; }
   .ind-center    { grid-column: 2 / -1 !important; }
 }
+
+/* TipTap paragraph: make the editor content flow inline so the finding-chip
+ * and cite-add icon appear at the end of the paragraph text (like the
+ * prototype's contentEditable <p>). Without this, the editor is block-level
+ * and the chip pushes to a new line below the paragraph.
+ */
+/* TipTap renders <div class="ProseMirror tiptap-paragraph"> wrapped by an
+ * EditorContent <div>. Flatten the layout so the editor's <p> flows inline
+ * with chip + cite-add siblings (matching prototype's contentEditable <p>). */
+.ind-doc-paragraph {
+  display: block;
+  line-height: 1.55;
+}
+.ind-doc-paragraph > div:first-child { display: inline; }
+.ind-doc-paragraph .ProseMirror,
+.ind-doc-paragraph .tiptap-paragraph { display: inline; outline: none; }
+.ind-doc-paragraph .ProseMirror > p { display: inline; margin: 0; }
+.ind-doc-paragraph .finding-chip,
+.ind-doc-paragraph .cite-add {
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: baseline;
+}

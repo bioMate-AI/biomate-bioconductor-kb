@@ -105,6 +105,12 @@ async function asserts(
 async function shot(page: Page, testId: string, name: string, audit: IndSuiteRecord) {
   const file = `${testId}-${name}.png`;
   const out = path.join(SS_DIR, file);
+  // Wait for CSS animations to settle (audit overlay slidein is 180ms).
+  // Without this, screenshots can capture mid-animation when opacity is
+  // still transitioning, even though Playwright's toBeVisible already
+  // passed (which only checks the element is in the layout, not its
+  // final visual state).
+  await page.waitForTimeout(250);
   await page.screenshot({ path: out });
   audit.screenshots.push(file);
 }
@@ -558,12 +564,30 @@ test("IND-15: DocPanel inline audit chips — ⚠ MAJOR on §2.6.1.2 paragraph",
   try {
     await page.goto("/");
     await page.waitForSelector(".ind-doc-panel");
+    // Scroll to §2.6.1.2 paragraph + screenshot that paragraph specifically
+    // so the chip is visible in the captured PNG (default viewport crops it).
+    const chip = page.locator(".finding-chip").first();
+    await chip.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(250);
     await shot(page, "IND-15", "01_inline_chips", audit);
+    // Capture the parent .ind-doc-paragraph that contains BOTH the editor
+    // and the inline chip + cite-add siblings.
+    const paraContainer = page.locator(".ind-doc-paragraph", { has: page.locator(".finding-chip") }).first();
+    if (await paraContainer.count() > 0) {
+      const box = await paraContainer.boundingBox();
+      if (box) {
+        await page.screenshot({
+          path: path.join(SS_DIR, "IND-15-02_chip_closeup.png"),
+          clip: { x: box.x - 4, y: box.y - 4, width: box.width + 8, height: box.height + 12 },
+        });
+        audit.screenshots.push("IND-15-02_chip_closeup.png");
+      }
+    }
     await asserts(audit, "finding-chip rendered next to §2.6.1.2 paragraph",
-      async () => await expect(page.locator(".finding-chip").first()).toBeVisible());
+      async () => await expect(chip).toBeVisible());
     await asserts(audit, "finding-chip text contains MAJOR or MINOR",
       async () => {
-        const text = await page.locator(".finding-chip").first().textContent();
+        const text = await chip.textContent();
         expect(text).toMatch(/MAJOR|MINOR/);
       });
     finalize(audit, "passed");
