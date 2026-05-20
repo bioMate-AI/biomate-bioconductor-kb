@@ -100,3 +100,24 @@ bixbench_status:
     - bixbench score
     - notebook benchmark
   disqualified_if_present: []
+
+# ─── Closes A/B misses q13, q14 (sandbox/intent_retrieval_v3/data/memory_eval_set.yaml) ──
+admet_autoloop_architecture:
+  canonical: project_drug_dev_gaps.md
+  trigger_terms:
+    - admet auto-loop
+    - admet autoloop
+    - admet pipeline architecture
+    - drug-dev gaps
+    - drug discovery gaps
+  disqualified_if_present: [memory architecture, cryoem]
+
+unified_workflow_search_hybrid:
+  canonical: project_session5_benchmarking.md
+  trigger_terms:
+    - unified workflow search
+    - hybrid retrieval
+    - bge dense retrieval
+    - workflow search bge
+    - hybrid search workflow
+  disqualified_if_present: []
