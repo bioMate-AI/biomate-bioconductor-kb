@@ -96,14 +96,27 @@ ssm_run() {
   local payload="set -e; echo '$b64' | base64 -d | bash"
   local params_file; params_file=$(mktemp)
   printf '{"commands":[%s]}' "$(printf '%s' "$payload" | jq -Rs .)" > "$params_file"
-  local cmd_id
+  # Capture stderr separately so we can fail loudly when SendCommand is
+  # denied (otherwise an empty cmd_id would leave us polling forever — that's
+  # exactly what happened on the first GHA run: AccessDenied on SendCommand
+  # caused ssm_run to spin until the 20-min GHA job-timeout fired).
+  local cmd_id err_file
+  err_file=$(mktemp)
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" \
     --instance-ids "$INSTANCE_ID" \
     --document-name AWS-RunShellScript \
     --comment "deploy.sh:$label" \
     --parameters file://"$params_file" \
-    --query 'Command.CommandId' --output text)
+    --query 'Command.CommandId' --output text 2>"$err_file")
+  local send_rc=$?
   rm -f "$params_file"
+  if [[ $send_rc -ne 0 || -z "$cmd_id" || "$cmd_id" == "None" ]]; then
+    echo "ERROR: ssm send-command failed for label=$label (rc=$send_rc)" >&2
+    cat "$err_file" >&2
+    rm -f "$err_file"
+    return 1
+  fi
+  rm -f "$err_file"
   # Poll until terminal. SSM minimum poll interval ~2s.
   local status
   until status=$(aws ssm get-command-invocation --region "$AWS_REGION" \

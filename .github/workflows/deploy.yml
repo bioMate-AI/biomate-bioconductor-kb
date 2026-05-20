@@ -61,7 +61,13 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 10 min is plenty for the deploy: pre-flight + ECR pull (~3 min for a
+    # full image refresh) + healthcheck (90s) + tag commit + notify. Any
+    # ssm_run that hangs past this caps the GHA spend rather than burning
+    # 20 minutes (which is what the first GHA run did when SendCommand was
+    # AccessDenied and the polling loop spun forever — that's now also
+    # fixed in deploy.sh:ssm_run by aborting on empty cmd_id).
+    timeout-minutes: 10
     environment:
       name: test
       url: http://stage-public.biomate.ai
