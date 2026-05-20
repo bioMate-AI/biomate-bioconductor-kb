@@ -4426,6 +4426,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isDocking  = /docking|dock|autodock|vina|binding/i.test(wfLower);
         const isDrugDisc = /drug.?disc|admet|pbpk|clinical.?trial|ind.?prep|ddi|cyp/i.test(wfLower);
 
+        // CryoSPARC version — extract from run metadata; do NOT hardcode.
+        // (D-AR-1) Previously hardcoded as "v5.0.2"; regulatory submissions
+        // require the true software version. Falls back to a clear sentinel
+        // when no version is available so the report doesn't make a false
+        // claim.
+        const cryoSparcVersion: string = (() => {
+          const wfDef: any = (run as any)?.workflowDefinition || {};
+          const exec: any  = (run as any)?.execution || {};
+          const meta: any  = (run as any)?.metadata || {};
+          const fromAny = (...candidates: any[]): string | null => {
+            for (const c of candidates) {
+              if (typeof c === 'string' && c.trim().length > 0) return c.trim();
+              if (typeof c === 'number') return `v${c}`;
+            }
+            return null;
+          };
+          const v = fromAny(
+            wfDef.cryosparc_version,
+            wfDef.software_versions?.cryosparc,
+            exec.cryosparc_version,
+            exec.softwareVersions?.cryosparc,
+            meta.cryosparc_version,
+            process.env.CRYOSPARC_VERSION,
+          );
+          if (!v) return 'version not recorded';
+          return v.startsWith('v') ? v : `v${v}`;
+        })();
+
         // Parse all JSON output files
         const _parse = (name: string): Record<string, any> => {
           const sample = textOutputSamples.find(s => s.name === name);
@@ -4512,14 +4540,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             compounds_assessed:    String(toxRpt?.compounds_assessed      ?? perCpd.length         ?? 'MISSING'),
             model_type:            String(toxRpt?.model_type               ?? admetRes?.result?.model ?? 'MPNN'),
             estimation_method:     String(toxRpt?.estimation_method        ?? 'rdkit_descriptors'),
-            herg_ic50_min_uM:      String(Math.min(...perCpd.map((c:any) => c.herg_ic50_uM ?? Infinity)).toFixed(3) ?? 'MISSING'),
+            // Guard: Math.min over an empty array returns Infinity; emit a
+            // clear "no compounds" sentinel so the LLM doesn't treat Infinity
+            // as a numeric IC50 value. (D-AR-2)
+            herg_ic50_min_uM:      perCpd.length === 0
+              ? 'no compounds assessed'
+              : (() => {
+                  const vals = perCpd.map((c:any) => Number(c.herg_ic50_uM)).filter((v:number) => Number.isFinite(v));
+                  return vals.length === 0 ? 'no hERG values reported' : Math.min(...vals).toFixed(3);
+                })(),
             dili_risk_max:         String(perCpd.find((c:any) => c.dili_risk === 'high')?.dili_risk ?? toxRpt?.toxicity?.dili_risk ?? 'MISSING'),
             dili_probability_max:  String(toxRpt?.toxicity?.dili_probability ?? 'MISSING'),
             ames_positive:         String(toxRpt?.toxicity?.ames_positive    ?? 'MISSING'),
             ames_probability:      String(toxRpt?.toxicity?.ames_probability ?? 'MISSING'),
             smiles_input:          String(Array.isArray(params?.smiles_list) ? params.smiles_list.join('; ') : (params?.smiles_list ?? params?.smiles ?? 'MISSING')),
-            logP_range:            String(perCpd.length > 0 ? `${Math.min(...perCpd.map((c:any) => c.logP ?? 99)).toFixed(2)} – ${Math.max(...perCpd.map((c:any) => c.logP ?? -99)).toFixed(2)}` : 'MISSING'),
-            mw_range:              String(perCpd.length > 0 ? `${Math.min(...perCpd.map((c:any) => c.mw ?? 9999)).toFixed(1)} – ${Math.max(...perCpd.map((c:any) => c.mw ?? 0)).toFixed(1)} Da` : 'MISSING'),
+            // Defensive ranges — filter to finite values before Math.min/max
+            // so missing fields don't poison the reported range. (D-AR-2)
+            logP_range: (() => {
+              const vals = perCpd.map((c:any) => Number(c.logP)).filter((v:number) => Number.isFinite(v));
+              return vals.length === 0 ? 'MISSING' : `${Math.min(...vals).toFixed(2)} – ${Math.max(...vals).toFixed(2)}`;
+            })(),
+            mw_range: (() => {
+              const vals = perCpd.map((c:any) => Number(c.mw)).filter((v:number) => Number.isFinite(v));
+              return vals.length === 0 ? 'MISSING' : `${Math.min(...vals).toFixed(1)} – ${Math.max(...vals).toFixed(1)} Da`;
+            })(),
           };
         } else if (isRNAseq) {
           const qcRpt  = _parse('multiqc_report.json') || _parse('qc_summary.json');
@@ -4637,7 +4681,7 @@ PIPELINE CONTEXT:
 Workflow: ${workflowName}
 Wall time: ${wallTimeStr}
 Steps completed: ${extractedMetrics.steps_completed}
-Platform: AWS Batch, CryoSPARC v5.0.2, Nextflow DSL2
+Platform: AWS Batch, CryoSPARC ${cryoSparcVersion}, Nextflow DSL2
 Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
 Output path: ${extractedMetrics.s3_output_path}
 
@@ -4762,7 +4806,7 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         const compactMeta = `WORKFLOW: ${workflowName}
 WALL TIME: ${wallTimeStr}
 STEPS COMPLETED: ${extractedMetrics.steps_completed ?? 'N/A'}
-AWS BATCH | CryoSPARC v5.0.2 | Nextflow DSL2
+AWS BATCH | CryoSPARC ${cryoSparcVersion} | Nextflow DSL2
 
 EXTRACTED METRICS:
 ${metricsBlock}
@@ -8575,10 +8619,56 @@ ${paramLines || '(none recorded)'}`;
   // Get a specific execution run by ID
   app.get("/api/workflows/runs/:id", async (req, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
+      let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
+
+      // Reconcile Nextflow terminal state on read. The /status endpoint already
+      // does this; we mirror it here so any caller (page reload, external poll,
+      // sync script) gets fresh state without having to know which endpoint to hit.
+      const isNextflowRun =
+        getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
+        run.execution?.executionEngine === 'nextflow' ||
+        !!run.execution?.nextflowRunId ||
+        (run.execution?.executionEngine === 'cryosparc' && !!run.execution?.galaxyInvocationId);
+      const isAlreadyTerminal = ['completed', 'failed', 'cancelled'].includes(run.execution.status);
+      if (isNextflowRun && !isAlreadyTerminal && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
+        try {
+          const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
+          const nextflowStatus = nextflowRunId ? await galaxyAPIProxy.getNextflowStatus(nextflowRunId) : undefined;
+          const nfState = String((nextflowStatus as any)?.status || '').toLowerCase();
+          if (nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') {
+            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
+            const terminalMessage = nfState === 'failed'
+              ? ((nextflowStatus as any)?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+              : undefined;
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: mappedStatus,
+                errorMessage: terminalMessage,
+                completedAt: new Date(),
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
+            const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
+            if (nfInvocationId) {
+              galaxyPoller.emit('workflow_completed', {
+                invocation_id: nfInvocationId,
+                state: nfState === 'succeeded' ? 'ok' : 'failed',
+              });
+            }
+          } else if (run.execution.status === 'running' && nextflowStatus) {
+            run = await storage.updateExecutionRun(run.id, {
+              execution: { ...run.execution, nextflowStatus: nextflowStatus },
+            }) || run;
+          }
+        } catch (statusError: any) {
+          console.warn('[ExecutionRun] Galaxy reconcile failed (non-fatal):', statusError?.message || statusError);
+        }
+      }
+
       res.json(run);
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run:", error);
