@@ -65,18 +65,21 @@ def load_intent_map(yaml_path: str) -> List[Dict[str, Any]]:
 
     out: List[Dict[str, Any]] = []
     for intent_id, entry in raw.items():
-        if not entry or not entry.get("canonical"):
+        if not entry:
+            continue
+        # Some adapters (e.g. chat_session) have no `canonical` — they fire
+        # a decision rather than promote a resource. Make canonical optional.
+        if not entry.get("trigger_terms"):
             continue
         normalized = {
             "intent_id": intent_id,
-            "canonical": str(entry["canonical"]).strip(),
+            "canonical": str(entry["canonical"]).strip() if entry.get("canonical") else None,
             "trigger_terms": [str(t).lower().strip()
                               for t in (entry.get("trigger_terms") or []) if t],
             "disqualified_if_present": [str(t).lower().strip()
                                           for t in (entry.get("disqualified_if_present") or []) if t],
             "pipeline_intent_required": bool(entry.get("pipeline_intent_required", False)),
         }
-        # Preserve any extra fields the adapter may need (e.g. "domain", "workflow_mode")
         for k, v in entry.items():
             if k not in normalized and k not in ("trigger_terms", "disqualified_if_present",
                                                   "pipeline_intent_required", "canonical"):
