@@ -1,0 +1,132 @@
+# Entity canonical resolution — alias-to-canonical map.
+#
+# Different format from intent maps: each entry resolves a biological entity
+# (gene / disease / drug / pathway) from common natural-language forms to
+# its canonical identifier in the appropriate reference database.
+#
+# Used by adapters/entity.py to extract entities from a free-text query
+# and return canonical IDs for downstream OMIM / PubMed / ChEMBL queries.
+#
+# Schema:
+#   canonical_id:                 the authoritative ID (HGNC symbol, OMIM:NNNNNN, ChEMBL:...)
+#   entity_type:                  gene | disease | drug | pathway
+#   aliases:                      list of natural-language variants
+#   disqualified_if_present:      optional — terms that prevent the match
+#                                 (e.g. "BRCA1 protein" should match BRCA1 only when
+#                                 the query is about the gene, not a different context)
+#   metadata:                     optional free-form (display_name, omim_id, etc.)
+
+# ─── Cancer genes (HGNC symbols + common variants) ─────────────────────
+BRCA1:
+  entity_type: gene
+  aliases: [brca1, brca-1, brca 1, brca_1, "rnf53", "rnf 53"]
+  metadata:
+    display_name: BRCA1 DNA repair associated
+    omim_id: "113705"
+    primary_disease: Breast-Ovarian Cancer
+
+BRCA2:
+  entity_type: gene
+  aliases: [brca2, brca-2, brca 2, "fancd1"]
+  metadata:
+    display_name: BRCA2 DNA repair associated
+    omim_id: "600185"
+
+TP53:
+  entity_type: gene
+  aliases: [tp53, "p53", "p-53", "p_53", "li-fraumeni gene"]
+  disqualified_if_present: [tp53 inhibitor]   # drug context handled separately
+  metadata:
+    display_name: tumor protein p53
+    omim_id: "191170"
+
+KRAS:
+  entity_type: gene
+  aliases: [kras, k-ras, k ras]
+  metadata:
+    display_name: KRAS proto-oncogene
+    omim_id: "190070"
+
+EGFR:
+  entity_type: gene
+  aliases: [egfr, erbb1, her1, "egf receptor", "egf-receptor"]
+  metadata:
+    display_name: epidermal growth factor receptor
+    omim_id: "131550"
+
+BRAF:
+  entity_type: gene
+  aliases: [braf, b-raf, brak1]
+  metadata:
+    display_name: B-Raf proto-oncogene
+    omim_id: "164757"
+
+# ─── Rare disease / pediatric genes ────────────────────────────────────
+ARL6IP1:
+  entity_type: gene
+  aliases: [arl6ip1, "arl6 ip1", "arl-6 ip1"]
+  metadata:
+    display_name: ADP ribosylation factor like GTPase 6 interacting protein 1
+    omim_id: "607669"
+    primary_disease: Spastic Paraplegia 61 (SPG61)
+
+SPAST:
+  entity_type: gene
+  aliases: [spast, "spg4 gene", spg4]
+  metadata:
+    display_name: spastin
+    omim_id: "604277"
+
+CFTR:
+  entity_type: gene
+  aliases: [cftr, "cystic fibrosis gene", "cf gene"]
+  metadata:
+    display_name: CF transmembrane conductance regulator
+    omim_id: "602421"
+    primary_disease: Cystic Fibrosis
+
+# ─── Diseases (OMIM canonical) ────────────────────────────────────────
+breast_cancer:
+  entity_type: disease
+  aliases: ["breast cancer", "breast carcinoma", "mammary carcinoma", "breast tumour", "breast tumor"]
+  metadata:
+    omim_id: "114480"
+    name: Breast Cancer
+
+cystic_fibrosis:
+  entity_type: disease
+  aliases: ["cystic fibrosis", "cf disease", "mucoviscidosis"]
+  metadata:
+    omim_id: "219700"
+
+spastic_paraplegia_61:
+  entity_type: disease
+  aliases: ["spg61", "spastic paraplegia 61", "spastic paraplegia type 61", "autosomal recessive spastic paraplegia 61"]
+  metadata:
+    omim_id: "615685"
+
+# ─── Drugs (ChEMBL canonical IDs where available) ──────────────────────
+imatinib:
+  entity_type: drug
+  aliases: [imatinib, gleevec, glivec, "sti-571", sti571, "imatinib mesylate"]
+  metadata:
+    chembl_id: CHEMBL941
+    primary_target: BCR-ABL
+
+trastuzumab:
+  entity_type: drug
+  aliases: [trastuzumab, herceptin, "herceptin trastuzumab"]
+  metadata:
+    chembl_id: CHEMBL1201585
+    primary_target: HER2
+
+# ─── Cell types / lines ────────────────────────────────────────────────
+hela:
+  entity_type: cell_line
+  aliases: [hela, "hela cells", "hela-s3", "hela cell line"]
+  metadata: {species: human, tissue: cervix}
+
+k562:
+  entity_type: cell_line
+  aliases: [k562, "k-562", "k562 cells", "k562 leukemia"]
+  metadata: {species: human, tissue: blood, cancer_type: cml}
