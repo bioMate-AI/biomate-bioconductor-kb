@@ -19,7 +19,7 @@ params.min_length = 9
 process FIND_ORFS_IN_FRAME {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'

@@ -32,7 +32,7 @@ params.disease_association_score = '0.8'
 process TARGET_TRACTABILITY_SCORER {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 

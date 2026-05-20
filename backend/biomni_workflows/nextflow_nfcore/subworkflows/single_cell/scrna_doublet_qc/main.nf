@@ -42,7 +42,7 @@ params.doublet_threshold  = '0.25'       // pANN/score threshold
 process SCRNA_DOUBLET_QC {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \

@@ -34,7 +34,7 @@ params.local_series_matrix = null
 process GEO_FETCH {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/geo_fetch", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/geo_fetch" }, mode: 'copy'
 
     container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
 
@@ -122,7 +122,7 @@ REOF
 process GEO_COUNT_MATRIX {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/count_matrix", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/count_matrix" }, mode: 'copy'
 
     container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
 
@@ -210,7 +210,7 @@ REOF
 process GEO_CLINICAL_METADATA {
     tag "${meta.id}"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}/clinical_metadata", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/clinical_metadata" }, mode: 'copy'
 
     container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
 

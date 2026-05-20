@@ -18,7 +18,7 @@ params.host_codon_usage = '{"TTT": 0.58, "TTC": 0.42, "TTA": 0.14, "TTG": 0.13, 
 process OPTIMIZE_CODONS_FOR_HETEROLOGOUS_EXPRESSION {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'

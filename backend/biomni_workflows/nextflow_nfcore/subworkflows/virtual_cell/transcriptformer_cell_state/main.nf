@@ -52,7 +52,7 @@ params.lincs_crossval  = 'false'         // cross-validate drug response via LIN
 process TRANSCRIPTFORMER_CELL_STATE {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \

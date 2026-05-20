@@ -39,7 +39,7 @@ params.rmsd_threshold   = '2.0'
 process P0_DOCKING_VALIDATION {
     tag "$meta.id"
     label 'process_high'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \

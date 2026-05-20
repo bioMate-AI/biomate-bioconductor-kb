@@ -34,7 +34,7 @@ params.fu_gut          = '1.0'
 process PBPK_PEDIATRIC_PREGNANCY {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 

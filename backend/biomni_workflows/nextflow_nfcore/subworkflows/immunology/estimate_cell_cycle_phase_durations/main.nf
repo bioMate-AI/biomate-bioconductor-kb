@@ -18,7 +18,7 @@ params.initial_estimates = '{"g1_duration": 10.0, "s_duration": 8.0, "g2m_durati
 process ESTIMATE_CELL_CYCLE_PHASE_DURATIONS {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'

@@ -61,7 +61,7 @@ def log_workflow_header() {
 process SCAFFOLD_INPUT_VALIDATION {
     tag "${meta.id}"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}/01_validation", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/01_validation" }, mode: params.publish_dir_mode
 
     // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
@@ -191,7 +191,7 @@ PYEOF
 process RECAP_FRAGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/02_recap", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/02_recap" }, mode: params.publish_dir_mode
 
     // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
@@ -335,7 +335,7 @@ PYEOF
 process MMP_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/03_mmp", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/03_mmp" }, mode: params.publish_dir_mode
 
     // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
@@ -463,7 +463,7 @@ PYEOF
 process SCAFFOLD_HOPPING_CANDIDATES {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/04_candidates", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/04_candidates" }, mode: params.publish_dir_mode
 
     // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86

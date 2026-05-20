@@ -33,7 +33,7 @@ params.velocity_mode   = 'dynamical'   // stochastic | deterministic | dynamical
 process MONOCLE3_TRAJECTORY {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/monocle3", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/monocle3" }, mode: 'copy'
 
     // Bioconductor monocle3 container (R 4.4); falls back to docker tag
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -157,7 +157,7 @@ process MONOCLE3_TRAJECTORY {
 process SCVELO_DYNAMICS {
     tag "${meta.id}"
     label 'process_high'
-    publishDir "${params.outdir}/${meta.id}/scvelo", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/scvelo" }, mode: 'copy'
 
     // biomate/biomni-tools has Python, scanpy, and scvelo installed
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
