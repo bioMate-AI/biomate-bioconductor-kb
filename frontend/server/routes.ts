@@ -8294,8 +8294,12 @@ ${paramLines || '(none recorded)'}`;
           // Stage any local file params to S3 before submitting to AWS Batch.
           // Local paths (e.g. /frontend/data/uploads/...) are inaccessible from
           // Batch containers — this uploads them and replaces params with s3:// URIs.
+          const rawParams = { ...(request.workflowDefinition.parameters || {}) };
+          // profile/executor are Nextflow CLI options — must not be sent as pipeline params.
+          delete rawParams.profile;
+          delete rawParams.executor;
           const stagedParams = await stageLocalFilesForBatch(
-            request.workflowDefinition.parameters || {},
+            rawParams,
             req.user ? String(req.user.id) : 'anonymous'
           );
 
@@ -8309,10 +8313,9 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // Use 'aws' profile when NEXTFLOW_USE_AWS=true (all workflows run on AWS Batch).
-              // Fall back to the caller's requested profile, then 'standard' (local) as last resort.
+              // Batch runs use the docker profile (ECR images); 'aws' is not a valid nf-core profile.
               profile: request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'docker' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig

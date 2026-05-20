@@ -3352,6 +3352,20 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     match_type == "medium_confidence"              # always verify borderline
                     or _top2_gap < 8.0                            # close race even at high_confidence
                 )
+                # User named an nf-core slug explicitly and search ranked it #1 — trust search.
+                _explicit_slug = self.workflow_search._extract_explicit_pipeline_slug(user_intent)
+                if _explicit_slug:
+                    _top_slug = self.workflow_search._normalise_pipeline_slug(
+                        search_results[0].name.split("/")[-1]
+                    )
+                    if _top_slug == _explicit_slug:
+                        _needs_verify = False
+                        log.info(
+                            "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
+                            "explicit slug %r matches top hit %s",
+                            _explicit_slug,
+                            search_results[0].name,
+                        )
                 if _needs_verify:
                     _routing_audit = self._llm_verify_routing(
                         user_intent, search_results, match_type

@@ -2710,7 +2710,13 @@ def execute_nextflow(
 
     # Pre-flight: check if this pipeline can run on this host with these settings.
     params = dict(request.parameters or {})
+    # `profile` and `executor` are Nextflow CLI / compute options — not pipeline params.
+    # Passing them as --profile in the param loop breaks nf-core (duplicate -profile vs --profile).
+    _param_profile = params.pop("profile", None)
+    _param_executor = params.pop("executor", None)
     compute = dict(request.compute_config or {})
+    if _param_executor and not compute.get("executor"):
+        compute["executor"] = str(_param_executor)
 
     # Default to AWS Batch when NEXTFLOW_USE_AWS=true and no explicit executor is set.
     # This is the platform default: all workflows run on Batch unless explicitly overridden.
@@ -2876,7 +2882,7 @@ def execute_nextflow(
         )
 
     # Profile — explicit request value wins; fall back to BIOMATE_NF_PROFILE env var.
-    profile = request.profile or _default_nf_profile()
+    profile = request.profile or _param_profile or _default_nf_profile()
     cmd += ["-profile", profile]
 
     # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
