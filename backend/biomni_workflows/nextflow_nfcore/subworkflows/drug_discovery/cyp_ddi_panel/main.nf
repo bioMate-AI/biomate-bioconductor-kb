@@ -622,13 +622,13 @@ KDEG = {'CYP1A2':0.00018,'CYP2C8':0.00040,'CYP2C9':0.00018,
         'CYP2C19':0.00023,'CYP2D6':0.00025,'CYP3A4':0.00023}
 
 def compute_r2(isoform, ic50_uM, dose_mg, dose_route, fu_p):
-    """
+    '''
     FDA static R2 for TDI.
     R2 = 1 / (1 + kinact * [I]gu / (kdeg * (KI + [I]gu)))
-    If no structural alert → R2 = 1.0 (no TDI).
-    If structural alert: estimate kinact = 0.04 /min, KI ≈ 10 * IC50 (µM).
-    Threshold: R2 ≤ 0.79 → INVESTIGATE; R2 ≤ 0.71 → CLINICAL_STUDY.
-    """
+    If no structural alert -> R2 = 1.0 (no TDI).
+    If structural alert: estimate kinact = 0.04 /min, KI ~ 10 * IC50 (uM).
+    Threshold: R2 <= 0.79 -> INVESTIGATE; R2 <= 0.71 -> CLINICAL_STUDY.
+    '''
     if isoform not in tdi_isoforms:
         return 1.0, 'NOT_EXPECTED', False
     kdeg = KDEG.get(isoform, 0.00023)
