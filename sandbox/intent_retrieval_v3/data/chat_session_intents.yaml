@@ -20,11 +20,16 @@
 # ─── Resume signals ──────────────────────────────────────────────────────
 continue_previous:
   trigger_terms:
+    # NOTE: "continue" alone is too broad — collides with biological text
+    # ("cells continue to divide"). Use multi-word forms instead.
     - keep going
-    - continue
-    - continuing
+    - continue working on
+    - continue with
+    - continue the
+    - continuing where
     - pick up where
-    - resume
+    - resume the
+    - resume my
     - go back to
     - where we left off
     - what's the status
