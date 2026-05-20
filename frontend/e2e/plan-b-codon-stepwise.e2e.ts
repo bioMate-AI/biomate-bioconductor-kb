@@ -58,7 +58,7 @@ const PLAN_B_QUERY = [
   "Step 1: optimize codons for heterologous expression before RNA structure and LNP formulation.",
   "",
   "Use workflow optimize_codons_for_heterologous_expression (registry id 10813).",
-  "NOT epitopeprediction or mhcquant for this step.",
+  "This step is codon optimization only — not epitope prediction or immunopeptidomics.",
   "",
   `target_sequence = ${PLAN_B_TARGET_SEQUENCE}`,
   `outdir = ${planBOutdirS3()}`,
@@ -230,7 +230,10 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
         .first()
         .textContent({ timeout: 5000 })
         .catch(() => "")) ?? "";
-    if (/epitopeprediction|mhcquant/i.test(panelTitle) && !/codon|optimize/i.test(panelTitle)) {
+    if (
+      /epitopeprediction|mhcquant/i.test(panelTitle) &&
+      !/codon|optimize|heterologous/i.test(panelTitle)
+    ) {
       record("PB-4", {
         runId: null,
         startTs,

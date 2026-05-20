@@ -50,6 +50,47 @@ export async function shot(page: Page, dir: string, name: string): Promise<strin
   return file;
 }
 
+export interface ChainedManifestStep {
+  key: string;
+  title: string;
+  runId: string | null;
+  status: string;
+  panelTitle?: string;
+  notes?: string[];
+}
+
+export interface ChainedPipelineManifest {
+  created_at: string;
+  source: "biomate_ui_e2e";
+  steps: ChainedManifestStep[];
+}
+
+export function writeChainedManifest(
+  manifestPath: string,
+  steps: ChainedManifestStep[]
+): void {
+  const payload: ChainedPipelineManifest = {
+    created_at: new Date().toISOString(),
+    source: "biomate_ui_e2e",
+    steps,
+  };
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify(payload, null, 2));
+  console.log(`[audit] wrote chained manifest ${manifestPath} (${steps.length} steps)`);
+}
+
+export async function getWorkflowPanelTitle(page: Page): Promise<string> {
+  return (
+    (await page
+      .locator(
+        '[data-testid="workflow-artifact-panel"] .panel-name, [data-testid="workflow-right-panel"] .panel-name'
+      )
+      .first()
+      .textContent({ timeout: 5000 })
+      .catch(() => "")) ?? ""
+  ).trim();
+}
+
 export function writeSuiteAudit(auditPath: string, records: StepwiseSuiteRecord[]): void {
   fs.writeFileSync(auditPath, JSON.stringify(records, null, 2));
   console.log(`[audit] wrote ${auditPath} (${records.length} records)`);

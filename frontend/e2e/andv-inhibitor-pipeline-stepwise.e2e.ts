@@ -61,8 +61,8 @@ const POCKET_QUERY = [
 const PHARM_QUERY = [
   "ANDV inhibitor program — step 2 pharmacophore screening.",
   "",
-  `reference_actives_s3 = ${DEMO_ACTIVES_S3}`,
-  `compound_library_s3 = ${DEMO_LIBRARY_S3}`,
+  `reference_actives = ${DEMO_ACTIVES_S3}`,
+  `compound_library = ${DEMO_LIBRARY_S3}`,
   "",
   "Show the pharmacophore filtering workflow card with these S3 paths prefilled so I can Run.",
 ].join(" ");
@@ -175,7 +175,7 @@ test.describe.serial("ANDV inhibitor pipeline — stepwise UI", () => {
     await sendMessageAndWaitForResponse(page, PHARM_QUERY, 180_000);
 
     const cardOk = await waitForWorkflowCard(page, "INH-3", [
-      "Generate pharmacophore filtering workflow with reference_actives_s3 and compound_library_s3.",
+      "Generate pharmacophore filtering workflow with reference_actives and compound_library.",
       "Use the demo S3 library paths I provided.",
     ]);
 

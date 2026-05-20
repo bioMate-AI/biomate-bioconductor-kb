@@ -1,0 +1,19 @@
+[
+  {
+    "testId": "INH-4",
+    "runId": null,
+    "startTs": 1779139197253,
+    "endTs": 1779139679386,
+    "finalStatus": "skipped",
+    "assertions": [
+      {
+        "name": "workflow_card",
+        "passed": false
+      }
+    ],
+    "screenshots": [],
+    "notes": [
+      "No workflow card — intent routing may need pharmacophore keywords"
+    ]
+  }
+]

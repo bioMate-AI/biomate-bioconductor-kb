@@ -107,8 +107,23 @@ class LLMClient:
         self.user_id: str = ""
         self.session_id: str = str(uuid.uuid4())
 
-        # Initialize cascading fallback manager
-        self.fallback_manager = FallbackChainManager()
+        # Initialize cascading fallback manager.
+        # The default config_path baked into FallbackChainManager is the
+        # original maintainer's macOS home (/Users/kky/…); on every other
+        # host the yaml fails to load and the chain silently falls back to
+        # hardcoded defaults — which omit Gemini when only GEMINI_API_KEY
+        # (not GOOGLE_API_KEY) is set and stall for ~60s before reaching a
+        # working provider. Resolve the yaml relative to this file so the
+        # repo-checked-in providers config is actually used.
+        _here = os.path.dirname(os.path.abspath(__file__))
+        _cfg = os.path.normpath(
+            os.path.join(_here, "..", "..", "..", "..", "config", "llm_providers.yml")
+        )
+        _cfg = os.environ.get("BIOMATE_LLM_PROVIDERS_YML", _cfg)
+        if os.path.exists(_cfg):
+            self.fallback_manager = FallbackChainManager(config_path=_cfg)
+        else:
+            self.fallback_manager = FallbackChainManager()
 
         # Initialize provider-specific settings
         self._setup_provider()

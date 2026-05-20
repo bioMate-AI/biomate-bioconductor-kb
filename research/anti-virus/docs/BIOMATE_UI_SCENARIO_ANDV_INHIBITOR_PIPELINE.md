@@ -120,6 +120,7 @@ Same checklist as `research/anti-virus/BIOMATE_UI_SCENARIO_ANDV_POCKETS.md`, rep
 |------|--------|
 | `frontend/e2e/andv-pocket-druggability-ui.e2e.ts` | Single-test pocket smoke |
 | `frontend/e2e/andv-inhibitor-pipeline-stepwise.e2e.ts` | INH-1 … INH-4 stepwise + audit JSON |
+| `frontend/e2e/andv-inhibitor-chained-manifest.e2e.ts` | INH-C1 … INH-C4 UI chained manifest (`inhibitor-chained-manifest.json`) |
 
 ```bash
 cd frontend
