@@ -7,6 +7,7 @@ With automatic cascading fallback for reliability.
 
 import json
 import logging
+import os
 import time
 import uuid
 import httpx
@@ -571,7 +572,7 @@ DEEPSEEK_MODELS = [
 # Ollama local models
 OLLAMA_MODELS = [
     "gemma4:31b",                    # Gemma 4 31B - Primary local model (BioMate default)
-    "qwen3:32b",                     # Qwen3 32B - Strong reasoning, /think mode
+    "qwen3:8b",                     # Qwen3 32B - Strong reasoning, /think mode
     "qwen3:30b-a3b",                 # Qwen3 30B MoE - Fast (61 tok/s), good MCQ
     "qwen3:14b",                     # Qwen3 14B - Good balance
     "qwen3:8b",                      # Qwen3 8B - Fast
@@ -659,7 +660,7 @@ def get_all_providers() -> Dict[str, Dict[str, Any]]:
         'ollama': {
             'name': 'Ollama (Local)',
             'models': OLLAMA_MODELS,
-            'recommended': 'qwen3:32b',
+            'recommended': 'qwen3:8b',
             'api_key_required': False,
             'local': True,
             'description': 'Local models via Ollama - qwen3, llama3, mistral'
