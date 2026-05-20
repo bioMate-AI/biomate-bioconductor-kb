@@ -85,6 +85,28 @@ function TopBar({ activeProject }: { activeProject: IndProjectSummary | null }) 
   );
 }
 
+// URL-query knobs for QA / stakeholder demo. Documented as test fixtures,
+// not production behavior. Used by IND-9/10/12 E2E tests.
+function readKnobs(): {
+  step2State: "complete" | "running";
+  step2Progress: number;
+  importedFromChat: boolean;
+  pbpkFail: boolean;
+  auditHasCritical: boolean;
+} {
+  if (typeof window === "undefined") {
+    return { step2State: "complete", step2Progress: 100, importedFromChat: false, pbpkFail: false, auditHasCritical: false };
+  }
+  const q = new URLSearchParams(window.location.search);
+  return {
+    step2State: q.get("state") === "running" ? "running" : "complete",
+    step2Progress: parseInt(q.get("progress") ?? "55", 10),
+    importedFromChat: q.get("imported") === "1",
+    pbpkFail: q.get("state") === "pbpk-fail" || q.get("pbpk") === "fail",
+    auditHasCritical: q.get("audit") === "critical",
+  };
+}
+
 // Pipeline center — wires the 5 step components against demo data.
 // Replace demo data with API calls when integrated to production.
 function PipelineCenter({
@@ -96,6 +118,7 @@ function PipelineCenter({
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (k: string) => setExpanded((e) => ({ ...e, [k]: !e[k] }));
+  const knobs = readKnobs();
 
   if (!activeProject) {
     return (
@@ -132,12 +155,24 @@ function PipelineCenter({
         </div>
       </div>
       <Step1ProjectSetup project={project} onEdit={() => {}} expanded={expanded.s1} onToggle={() => toggle("s1")} />
-      <Step2Admet data={DEMO_ADMET} expanded={expanded.s2} onToggle={() => toggle("s2")} />
-      <Step3Pbpk data={DEMO_PBPK} expanded={expanded.s3} onToggle={() => toggle("s3")} />
+      <Step2Admet
+        data={DEMO_ADMET}
+        expanded={expanded.s2}
+        onToggle={() => toggle("s2")}
+        running={knobs.step2State === "running"}
+        progress={knobs.step2Progress}
+        importedFromChat={knobs.importedFromChat}
+      />
+      <Step3Pbpk
+        data={DEMO_PBPK}
+        expanded={expanded.s3}
+        onToggle={() => toggle("s3")}
+        failOverride={knobs.pbpkFail}
+      />
       <Step4Leads data={DEMO_LEADS} expanded={expanded.s4} onToggle={() => toggle("s4")} />
       <Step5Document
         doc={DEMO_DOC}
-        audit={DEMO_AUDIT}
+        audit={knobs.auditHasCritical ? DEMO_AUDIT_CRITICAL : DEMO_AUDIT}
         regions={activeProject.regions}
         onSign={onSign}
         onAudit={onAudit}
@@ -205,27 +240,63 @@ const DEMO_AUDIT: IndAudit = {
   ],
 };
 
-// Doc-panel-shaped demo data. bodyByPid replaces the prototype's
-// window.IND_SECTION_BODY global.
+// Activated by ?audit=critical for IND-24 (CRITICAL blocks signing).
+const DEMO_AUDIT_CRITICAL: IndAudit = {
+  findings: [
+    { severity: "CRITICAL", section: "§2.6.6.3", desc: "Genotoxicity Ames result missing in §2.6.6.3 — sponsor must address before submission" },
+    ...DEMO_AUDIT.findings,
+  ],
+};
+
+// Doc-panel-shaped demo data. Sections now carry `subs` so the prototype's
+// inline-audit-chip code path activates: audit findings with section like
+// "§2.6.1.2" match a sub's full id and render a ⚠ MAJOR/MINOR chip in line.
+// bodyByPid replaces the prototype's window.IND_SECTION_BODY global, keyed
+// by the sub id (or the section id when no subs).
 const DEMO_DOC_FOR_PANEL: DocPanelDoc = {
   ...DEMO_DOC,
   version: 2,
   shaPrefix: DEMO_DOC.shaPrefix ?? "9f2c4a",
   sections: [
-    { id: "2.6.1", title: "§2.6.1 Overview", coverage: "full" },
-    { id: "2.6.2", title: "§2.6.2 Pharmacology", coverage: "full" },
+    {
+      id: "2.6.1", title: "§2.6.1 Overview", coverage: "full",
+      subs: [
+        { id: "2.6.1.1", title: "Brief summary" },
+        { id: "2.6.1.2", title: "Primary pharmacodynamics" },
+        { id: "2.6.1.3", title: "Safety pharmacology" },
+      ],
+    },
+    {
+      id: "2.6.2", title: "§2.6.2 Pharmacology", coverage: "full",
+      subs: [
+        { id: "2.6.2.1", title: "Brief summary" },
+        { id: "2.6.2.2", title: "Primary pharmacodynamics" },
+      ],
+    },
     { id: "2.6.3", title: "§2.6.3 Pharmacology tabulated", coverage: "full" },
     { id: "2.6.4", title: "§2.6.4 PK written", coverage: "full" },
     { id: "2.6.5", title: "§2.6.5 PK tabulated", coverage: "partial", note: "1 missing column" },
-    { id: "2.6.6", title: "§2.6.6 Toxicology written", coverage: "full" },
+    {
+      id: "2.6.6", title: "§2.6.6 Toxicology written", coverage: "full",
+      subs: [
+        { id: "2.6.6.1", title: "Brief summary" },
+        { id: "2.6.6.2", title: "Single-dose toxicity" },
+        { id: "2.6.6.3", title: "Repeat-dose toxicity" },
+      ],
+    },
   ],
   bodyByPid: {
-    "p-2.6.1": "[BioMate-generated draft] This nonclinical overview integrates the ADMET, PBPK, and lead-selection findings supporting BM-0042 for Phase I in NSCLC.",
-    "p-2.6.2": "BM-0042 inhibits EGFR L858R with IC50 of 4.2 nM in biochemical assays. In vivo efficacy was demonstrated in HCC827 xenograft at 30 mg/kg/day PO.",
-    "p-2.6.3": "Tabulated pharmacology results across 12 compounds, 41 endpoints.",
-    "p-2.6.4": "Following oral administration in rat, BM-0042 showed Tmax 1.5h, Cmax 412 ng/mL, AUC₀₋₂₄ 3,840 ng·h/mL, t½ 8.2h, F 64%. PBPK qualification against 30-drug reference set met EMA Cmax within-2-fold criterion (73.3% vs ≥67% threshold).",
-    "p-2.6.5": "Tabulated PK parameters across species and routes.",
-    "p-2.6.6": "In the 28-day repeat-dose study, the NOAEL of 100 mg/kg/day was identified in Sprague-Dawley rats. No test-article-related findings were observed at the NOAEL dose level per ICH M3(R2).",
+    "p-2.6.1.1": "This nonclinical overview integrates the ADMET, PBPK, and lead-selection findings supporting BM-0042 for Phase I in NSCLC. [BioMate-generated draft — MUST NOT be submitted without human regulatory affairs review and 21 CFR Part 11 electronic signature.]",
+    "p-2.6.1.2": "BM-0042 demonstrates EGFR L858R inhibitory activity with IC50 of 4.2 nM in biochemical assay (n=3, CV<15%). The PBPK Cmax-within-2-fold result of 73.3% exceeds the EMA criterion of ≥67% per CHMP/EWP/37498/2011.",
+    "p-2.6.1.3": "Safety pharmacology assessment per ICH S7B identified hERG IC50 of 31 µM in HEK293 cell line assay, yielding a 75-fold margin over anticipated Cmax (412 ng/mL ≈ 0.41 µM).",
+    "p-2.6.2.1": "Mechanism of action: BM-0042 is a selective, reversible inhibitor of EGFR L858R + T790M with >100-fold selectivity over wild-type EGFR. Off-target panel (Eurofins Cerep, 68 receptors) clean at 1 µM.",
+    "p-2.6.2.2": "In vivo efficacy demonstrated in HCC827 xenograft model at 30 mg/kg/day PO; tumor regression 78% (95% CI 68-87%) at day 21. Plasma exposure linear up to 100 mg/kg.",
+    "p-2.6.3": "Tabulated pharmacology results across 12 compounds, 41 endpoints — see §2.6.3 attached table.",
+    "p-2.6.4": "Following oral administration in Sprague-Dawley rat (n=4/sex), BM-0042 showed Tmax 1.5h, Cmax 412 ng/mL, AUC₀₋₂₄ 3,840 ng·h/mL, t½ 8.2h, F 64%. PBPK qualification against 30-drug reference set (EMA/CHMP/EWP/37498/2011) met Cmax within-2-fold criterion of ≥67% (observed 73.3%) and AUC criterion (observed 100%).",
+    "p-2.6.5": "Tabulated PK parameters across species (rat, dog, monkey) and routes (PO, IV) — see §2.6.5 attached table.",
+    "p-2.6.6.1": "Toxicology brief: NOAEL identified at 100 mg/kg/day in 28-day GLP rat study (RTX-101). Safety margin ≥10× over anticipated human Cmax.",
+    "p-2.6.6.2": "Single-dose toxicity (rat, oral, RTX-100): no mortality at 2000 mg/kg. MTD not reached. Reversible body-weight effects at ≥1000 mg/kg.",
+    "p-2.6.6.3": "Repeat-dose toxicity (28-day, rat + dog, RTX-101/102): NOAEL 100 mg/kg/day in rat, 30 mg/kg/day in dog. No test-article-related findings at NOAEL per ICH M3(R2). Mild hepatic enzyme elevation at the high dose was reversible after 14-day recovery.",
   },
 };
 
@@ -241,6 +312,7 @@ function DocPanelHost({
 }) {
   const [region, setRegion] = useState<Region | "ALL">("FDA");
   const [showVersions, setShowVersions] = useState(false);
+  const knobs = readKnobs();
 
   if (!activeProject) {
     return <aside className="ind-doc-panel" />;
@@ -248,7 +320,7 @@ function DocPanelHost({
   return (
     <IndDocPanel
       doc={DEMO_DOC_FOR_PANEL}
-      audit={DEMO_AUDIT}
+      audit={knobs.auditHasCritical ? DEMO_AUDIT_CRITICAL : DEMO_AUDIT}
       region={region}
       onRegionChange={setRegion}
       onSign={onSign}
@@ -348,7 +420,10 @@ export function IndReportPage() {
         <IndSignOverlay
           doc={{ ...DEMO_DOC_FOR_PANEL }}
           onCancel={() => setShowSign(false)}
-          onSigned={() => setShowSign(false)}
+          /* Don't dismiss the overlay on signed — the success card with
+             Download DOCX / Audit Trail buttons must stay until the user
+             clicks Close. */
+          onSigned={() => {}}
         />
       )}
       {showAudit && (
