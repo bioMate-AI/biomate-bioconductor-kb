@@ -8638,25 +8638,41 @@ ${paramLines || '(none recorded)'}`;
           const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
           const nextflowStatus = nextflowRunId ? await galaxyAPIProxy.getNextflowStatus(nextflowRunId) : undefined;
           const nfState = String((nextflowStatus as any)?.status || '').toLowerCase();
-          if (nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') {
-            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
-            const terminalMessage = nfState === 'failed'
-              ? ((nextflowStatus as any)?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+          // Deny-list approach (vs enumerating terminal states): anything that
+          // is NOT explicitly an in-progress state is treated as terminal.
+          // Galaxy backend can emit many status names (succeeded, completed,
+          // failed, error, interrupted, cancelled, paused, unknown, fail, …) —
+          // a forgotten terminal status leaves the run stuck at "running"
+          // forever, which is worse than a slightly-too-aggressive promotion.
+          const IN_PROGRESS_STATES = new Set([
+            '', 'running', 'queued', 'pending', 'submitted',
+            'starting', 'fetching_accessions', 'alive', 'ready', 'in_progress',
+          ]);
+          const isTerminalNfState = nfState && !IN_PROGRESS_STATES.has(nfState);
+          if (isTerminalNfState) {
+            const isSuccessNfState = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
+            const isPausedNfState  = nfState === 'paused';
+            // Map to the BioMate ExecutionRunStatus vocabulary. Paused keeps
+            // the run record open; everything else is a hard terminal state.
+            const mappedNfForBioMate = isSuccessNfState ? 'succeeded' : isPausedNfState ? 'paused' : 'failed';
+            const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
+            const terminalMessage = !isSuccessNfState && !isPausedNfState
+              ? ((nextflowStatus as any)?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
               : undefined;
             run = await storage.updateExecutionRun(run.id, {
               execution: {
                 ...run.execution,
                 status: mappedStatus,
                 errorMessage: terminalMessage,
-                completedAt: new Date(),
+                completedAt: isPausedNfState ? undefined : new Date(),
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
             const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
-            if (nfInvocationId) {
+            if (nfInvocationId && !isPausedNfState) {
               galaxyPoller.emit('workflow_completed', {
                 invocation_id: nfInvocationId,
-                state: nfState === 'succeeded' ? 'ok' : 'failed',
+                state: isSuccessNfState ? 'ok' : 'failed',
               });
             }
           } else if (run.execution.status === 'running' && nextflowStatus) {
@@ -8700,12 +8716,22 @@ ${paramLines || '(none recorded)'}`;
           }
 
           // Promote Nextflow terminal state into execution run state.
+          // Deny-list (see /api/workflows/runs/:id reconcile for rationale):
+          // any state not explicitly in-progress is treated as terminal.
           const nfState = String(nextflowStatus?.status || '').toLowerCase();
           const isAlreadyTerminal = ['completed', 'failed', 'cancelled'].includes(run.execution.status);
-          if ((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) {
-            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
-            const terminalMessage = nfState === 'failed'
-              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+          const IN_PROGRESS_STATES_STATUS = new Set([
+            '', 'running', 'queued', 'pending', 'submitted',
+            'starting', 'fetching_accessions', 'alive', 'ready', 'in_progress',
+          ]);
+          const isTerminalNfState = nfState && !IN_PROGRESS_STATES_STATUS.has(nfState);
+          if (isTerminalNfState && !isAlreadyTerminal) {
+            const isSuccessNfState = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
+            const isPausedNfState  = nfState === 'paused';
+            const mappedNfForBioMate = isSuccessNfState ? 'succeeded' : isPausedNfState ? 'paused' : 'failed';
+            const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
+            const terminalMessage = !isSuccessNfState && !isPausedNfState
+              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
               : undefined;
 
             run = await storage.updateExecutionRun(run.id, {
@@ -8713,7 +8739,7 @@ ${paramLines || '(none recorded)'}`;
                 ...run.execution,
                 status: mappedStatus,
                 errorMessage: terminalMessage,
-                completedAt: new Date(),
+                completedAt: isPausedNfState ? undefined : new Date(),
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
@@ -8721,10 +8747,10 @@ ${paramLines || '(none recorded)'}`;
             // D2: Emit workflow_completed so the notification service fires for Nextflow runs.
             // Galaxy poller doesn't poll Nextflow direct runs; we emit manually on terminal state.
             const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
-            if (nfInvocationId) {
+            if (nfInvocationId && !isPausedNfState) {
               galaxyPoller.emit('workflow_completed', {
                 invocation_id: nfInvocationId,
-                state: nfState === 'succeeded' ? 'ok' : 'failed',
+                state: isSuccessNfState ? 'ok' : 'failed',
               });
             }
           } else if (run.execution.status === 'running') {
@@ -9856,6 +9882,24 @@ Rules:
         }
       });
 
+      // Narrate the resume so the chat thread surfaces it (workflow.resumed).
+      // Template exists in workflow_chat_narrator.py but had no caller before.
+      // Best-effort — failure here must not block the resume response.
+      try {
+        const narrateInv = newNextflowRunId || nextflowRunId;
+        if (narrateInv) {
+          sseManager.injectRawEvent(String(narrateInv), 'chat_progress', {
+            kind: 'workflow.resumed',
+            invocation_id: String(narrateInv),
+            friendly_message: 'Resuming your workflow.',
+            ts: Date.now() / 1000,
+            technical: {},
+          });
+        }
+      } catch (narrErr) {
+        console.warn('[ExecutionRun] Resume narrate failed (continuing):', narrErr);
+      }
+
       res.json(updated);
     } catch (error: any) {
       console.error("[ExecutionRun] Error resuming run:", error);
@@ -10085,14 +10129,26 @@ Rules:
       });
 
       const rawText = (completion.content[0] as any)?.text || '';
-      // Strip markdown fences if present
-      const jsonStr = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+      // Strip markdown fences if present. (D-AR-5)
+      // Trim first, then drop optional ```json prefix and ``` suffix that
+      // may carry surrounding whitespace/newlines. Falls back to extracting
+      // the first {…} block as a second chance before giving up.
+      const jsonStr = rawText.trim()
+        .replace(/^```json\s*\n?/i, '')
+        .replace(/^```\s*\n?/, '')
+        .replace(/\n?\s*```\s*$/, '')
+        .trim();
 
-      let analysis: Record<string, unknown>;
+      let analysis: Record<string, unknown> | null = null;
       try {
         analysis = JSON.parse(jsonStr);
       } catch {
-        // Return raw text as summary if JSON parse fails
+        const blockMatch = rawText.match(/\{[\s\S]*\}/);
+        if (blockMatch) {
+          try { analysis = JSON.parse(blockMatch[0]); } catch { /* fall through */ }
+        }
+      }
+      if (!analysis) {
         analysis = {
           summary: rawText.slice(0, 500),
           key_findings: [],
@@ -10113,12 +10169,28 @@ Rules:
       const _isAdmetAnalyze = /admet|predict.*admet|admet.*properties/i.test(workflowName);
       const _isRarediseaseAnalyze = /raredisease|longraredisease|rare.*disease/i.test(workflowName);
 
+      // Suggestions trigger on liability phrases, but only if they're not
+      // negated ("no hERG liability", "Ames-clean", "DILI risk NOT detected").
+      // Sentence-level negation check looks at the ~80-char window around
+      // the regex hit. (D-AR-6)
+      const _hasPositiveHit = (re: RegExp): boolean => {
+        for (const match of _analyzeText.matchAll(new RegExp(re, 'gi'))) {
+          const i = match.index ?? 0;
+          const window = _analyzeText.slice(Math.max(0, i - 40), i + (match[0]?.length ?? 0) + 40);
+          if (/\b(no|not|n['’]t|without|negative|absent|cleared?|clean|safe|below threshold|under threshold|good profile)\b/i.test(window)) {
+            continue; // negated mention — skip
+          }
+          return true;
+        }
+        return false;
+      };
+
       if (_isAdmetAnalyze) {
-        if (/herg|cardiotox|ic50.*<.*1\s*µm|cardiac.*liab/i.test(_analyzeText)) {
+        if (_hasPositiveHit(/herg|cardiotox|ic50\s*<\s*1\s*µm|cardiac.*liab/i)) {
           _analyzeProactive.push('Your compound has a hERG liability. I can run REINVENT4 in scaffold decoration mode with a hERG penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
-        } else if (/dili.*high|dili.*flag|dili.*risk|dili.*positive|hepatotox.*high/i.test(_analyzeText)) {
+        } else if (_hasPositiveHit(/dili.*high|dili.*flag|dili.*risk|dili.*positive|hepatotox.*high/i)) {
           _analyzeProactive.push('Your compound has a DILI liability. I can run REINVENT4 in scaffold decoration mode with a DILI penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
-        } else if (/ames.*positive|ames.*flag|mutagen/i.test(_analyzeText)) {
+        } else if (_hasPositiveHit(/ames.*positive|ames.*flag|mutagen/i)) {
           _analyzeProactive.push('Your compound has an Ames mutagenicity liability. I can run REINVENT4 in scaffold decoration mode with an Ames penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
         }
       }
