@@ -251,7 +251,7 @@ margins = {
 # 5-phase AP for output visualization: phase 0 (upstroke), 1 (early repol),
 # 2 (plateau), 3 (rapid repol), 4 (resting)
 def generate_ap_trace(APD90, bcl, n_points=200):
-    """Simplified piecewise AP shape for visualization."""
+    '''Simplified piecewise AP shape for visualization.'''
     t = []
     v = []
     # Phase boundaries (ms)

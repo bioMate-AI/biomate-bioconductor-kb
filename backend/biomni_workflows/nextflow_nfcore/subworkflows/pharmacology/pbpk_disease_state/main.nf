@@ -119,7 +119,7 @@ _DEFAULT_VD  = 0.50
 _DEFAULT_LOGP = 2.00
 
 def _param_or_admet(env_key, default, admet_key, admet_default=None):
-    """Return env param if non-default, else ADMET prediction, else default."""
+    '''Return env param if non-default, else ADMET prediction, else default.'''
     env_val = ac(os.environ.get(env_key), None)
     if env_val is not None and abs(env_val - default) > 1e-6:
         return env_val   # user explicitly set a non-default value

@@ -239,7 +239,7 @@ for step in range(n_steps):
 # Run same ODE at steady-state (t→∞) for a range of drug concentrations
 # to compute EC50 for the terminal node inhibition
 def steady_state_terminal(conc, n_nodes, k_on, k_off, target_idx, hill_n, ic50):
-    """Analytical steady-state of linear chain with drug inhibition at target_idx."""
+    '''Analytical steady-state of linear chain with drug inhibition at target_idx.'''
     fb_c = fblock(ic50, conc, hill_n)
     X = [0.0] * n_nodes
     X[0] = k_on[0] * stim_factor / (k_on[0] * stim_factor + k_off[0])

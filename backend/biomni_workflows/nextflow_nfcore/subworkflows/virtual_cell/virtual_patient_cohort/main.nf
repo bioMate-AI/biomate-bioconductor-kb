@@ -145,7 +145,7 @@ age_mean     = pf(os.environ.get('PARAM_AGE_MEAN'),  55.0)
 
 # ─── Statistical helpers ─────────────────────────────────────────────────────
 def log_normal_sample(mu, cv):
-    """Sample from log-normal distribution with mean mu and CV."""
+    '''Sample from log-normal distribution with mean mu and CV.'''
     sigma2 = math.log(1 + cv**2)
     sigma  = math.sqrt(sigma2)
     mu_ln  = math.log(mu) - sigma2 / 2
@@ -164,11 +164,11 @@ def clamp(v, lo, hi): return max(lo, min(hi, v))
 
 # ─── PK simulation (1-compartment oral, steady state) ───────────────────────
 def pk_ss(dose_mg, F, CL, Vd, ka_h, tau_h=24.0):
-    """
+    '''
     Steady-state PK for 1-cmt oral model with dosing interval tau.
     Cmax_ss = F * dose / Vd * ka/(ka-ke) * (e^{-ke*t_max} - e^{-ka*t_max}) / (1 - e^{-ke*tau})
     Returns Cmax_ss (mg/L), Cmin_ss, AUC_ss (mg*h/L), t_half (h)
-    """
+    '''
     ke = CL / Vd
     if ka <= ke:
         ka_use = ke * 1.5  # avoid singularity
@@ -196,10 +196,10 @@ def pk_ss(dose_mg, F, CL, Vd, ka_h, tau_h=24.0):
 
 # ─── Covariate functions ──────────────────────────────────────────────────────
 def cl_covariate_factor(bwt, age, sex, crcl, cp_score, renal_frac, hepatic_frac):
-    """
+    '''
     CL adjustment factors from body weight, age, sex, renal, hepatic function.
     Allometric: CL_adj = CL_typ * (BWt/70)^0.75
-    """
+    '''
     # Allometric
     allo = (bwt / 70.0) ** 0.75
 

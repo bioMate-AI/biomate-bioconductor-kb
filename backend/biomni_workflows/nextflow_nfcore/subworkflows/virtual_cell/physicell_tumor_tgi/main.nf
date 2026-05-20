@@ -120,7 +120,7 @@ auc_eff  = auc_total * penet_factor * 24  # convert to mg*day/L
 
 # ─── Drug effect function (Hill) ─────────────────────────────────────────────
 def drug_effect(conc, ec50, hill):
-    """Fractional kill at concentration conc (Hill equation, 0-1)."""
+    '''Fractional kill at concentration conc (Hill equation, 0-1).'''
     if conc <= 0 or ec50 <= 0: return 0.0
     return conc**hill / (ec50**hill + conc**hill)
 
