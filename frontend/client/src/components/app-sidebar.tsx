@@ -350,44 +350,55 @@ export function AppSidebar({
       padding: '14px 10px',
       gap: 0,
     }}>
-      {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px 10px', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: 7,
-            background: 'var(--bm-text, hsl(var(--foreground)))',
-            color: 'var(--bm-bg-elev, white)',
-            display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--bm-font-mono, monospace)',
-            fontSize: 13, fontWeight: 700, letterSpacing: '-0.03em', flexShrink: 0,
-          }}>B</div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14.5, letterSpacing: '-0.01em', lineHeight: 1.2, color: 'var(--bm-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              biomate
-              <span
-                title="Early-access beta — features may change"
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  background: 'oklch(0.78 0.15 65)',
-                  color: '#fff',
-                  lineHeight: 1.3,
-                }}
-              >
-                BETA
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))', marginTop: 1 }}>workflow console</div>
-          </div>
-        </div>
+      {/* Brand — full-width logo header (matches Research Agent UI design).
+          Negates the sidebar's 14/10px padding so the image touches both
+          column edges. Beta chip overlays the top-right; collapse button overlays
+          the top-right corner. */}
+      <div
+        style={{
+          position: 'relative',
+          display: 'block',
+          padding: 0,
+          margin: '-14px -10px 12px',
+          borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
+          background: 'var(--bm-bg-elev, white)',
+          width: 'auto',
+        }}
+      >
+        <img
+          src="/biomate-logo.png"
+          alt="BioMate"
+          style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
+        />
+        <span
+          title="Early-access beta — features may change"
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 30,
+            fontSize: 9.5,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            padding: '1px 5px',
+            borderRadius: 3,
+            background: 'oklch(0.78 0.15 65)',
+            color: '#fff',
+            lineHeight: 1.3,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+          }}
+        >
+          BETA
+        </span>
         <button
           onClick={onToggleSidebar}
           data-testid="button-sidebar-toggle"
-          style={{ background: 'transparent', border: 'none', padding: 4, borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)' }}
+          style={{
+            position: 'absolute', top: 4, right: 4,
+            background: 'rgba(255,255,255,0.85)', border: 'none', padding: 4,
+            borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)',
+            backdropFilter: 'blur(4px)',
+          }}
           title="Collapse sidebar"
         >
           <PanelLeft className="h-4 w-4" />
