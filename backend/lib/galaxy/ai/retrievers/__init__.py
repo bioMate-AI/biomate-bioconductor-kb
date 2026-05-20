@@ -22,3 +22,17 @@ __all__ = [
     "rerank_to_canonical",
     "prioritize_query_family",
 ]
+
+# Wired wrappers (opt-in via env flags). Imported lazily because they pull in
+# galaxy.* and sandbox.* modules that may not always be on path at import time.
+def get_wired_recommender():
+    """Lazy import — avoids hard dependency on galaxy.* at package import."""
+    from .wired_recommender import WiredToolParameterRecommender
+    return WiredToolParameterRecommender
+
+
+def get_wired_workflow_search():
+    """Lazy import — avoids hard dependency on galaxy.* at package import."""
+    from .wired_workflow_search import WiredWorkflowSearch
+    return WiredWorkflowSearch
+
