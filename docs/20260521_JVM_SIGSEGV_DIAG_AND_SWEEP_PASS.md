@@ -222,6 +222,57 @@ RunsOutputsService) for the following reasons:
   on the canonical endpoint; no user-visible regression from this
   deprecation.
 
+## numpy 2.x vs RDKit ABI fix — base image rebuild
+
+The `cyp_ddi_panel` runtime failure (`AttributeError: _ARRAY_API not
+found` followed by `module 'rdkit.Chem.MolStandardize.rdMolStandardize'
+has no attribute 'Standardizer'`) was traced to a single line in
+`aws_infrastructure/configs/Dockerfile.nextflow-base`:
+
+```
+RUN pip install --no-cache-dir \
+    gget \
+    numpy \      # ← no upper bound → pip resolves to numpy 2.x
+    scipy \
+    pandas \
+    biopython \
+    rdkit        # ← pre-built wheel was compiled against numpy 1.x ABI
+```
+
+When RDKit's C extensions later ask numpy for `_ARRAY_API` (a numpy 1.x
+symbol), it isn't there in 2.x → import fails, and downstream modules
+that depend on it (`rdMolStandardize`) silently lose their attributes.
+Affects every workflow `FROM biomate-nextflow-base` (≈12 images, 741
+workflows).
+
+**Fix:** pinned `numpy<2` in the base Dockerfile. Cascade-rebuild
+script committed: `backend/docker/rebuild-base-and-cascade.sh`.
+Topology (depth-first):
+
+```
+biomate-nextflow-base                 (level 0, root)
+├── biomni-tools                      (level 1)
+│   └── biomni-pharma                 (level 2)
+├── biomni-admet                      (level 1, BASE_IMAGE param)
+├── biomni-structure-to-drug          (level 1)
+├── genomics-germline                 (level 1)
+├── openfe-rbfe                       (level 1)
+└── sra-tools                         (level 1)
+```
+
+Once pushed to ECR, the next Batch worker pull picks up the fixed
+images automatically — no Nextflow workflow file edits needed; the
+container is referenced by `FROM` chain.
+
+**Operator runbook to ship the fix:**
+1. `cd /home/yzhang/biomate`
+2. `./backend/docker/rebuild-base-and-cascade.sh --dry-run`  (verify plan)
+3. `./backend/docker/rebuild-base-and-cascade.sh`  (build + push, ~45–60 min)
+4. Fire `cyp_ddi_panel` on dev → should no longer hit the `_ARRAY_API`
+   AttributeError.
+5. Fire 3-use-case sweep → should pass without regressions in the
+   ADMET / Allometric / AutoDock cohort.
+
 ## Still-open issues (carrying over from yesterday)
 
 1. `biomni-tools:x86` container has incompatible numpy + rdkit
