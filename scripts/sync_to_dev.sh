@@ -233,6 +233,9 @@ deploy_workflows() {
     docker exec biomate-galaxy-dev mkdir -p /app/biomni_workflows && \
       docker cp /tmp/workflows_extract/backend/biomni_workflows/. \
         biomate-galaxy-dev:/app/biomni_workflows/ 2>/dev/null
+    # Clean up Nextflow cache files that might have old versions
+    docker exec biomate-galaxy-dev find /app/biomni_workflows -name '.nextflow*' -exec rm -rf {} + 2>/dev/null || true
+    docker exec biomate-galaxy-dev find /app/biomni_workflows -type d -name 'work' -exec rm -rf {} + 2>/dev/null || true
     echo "[workflows] Done"
   '
   log "[workflows] Done"
