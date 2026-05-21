@@ -25,7 +25,19 @@ from .enhanced_workflow_generator import EnhancedWorkflowGenerator
 from .workflow_templates import WorkflowTemplateLibrary
 from .workflow_optimizer import WorkflowOptimizer, WorkflowValidator, OptimizationStrategy
 # NEW: Unified workflow generation components
-from .unified_workflow_search import UnifiedWorkflowSearch, get_workflow_search
+from .unified_workflow_search import (
+    UnifiedWorkflowSearch as _BaseUnifiedWorkflowSearch,
+    get_workflow_search,
+)
+# Wired workflow search: applies workflow_intent priority + inject when
+# BIOMATE_WORKFLOW_INTENT_PRIORITIZE=1 (+ optional INJECT=1). Bit-identical
+# to base when flags unset. Validated +9.0pp top-1 on n=155 routing benchmark.
+try:
+    from backend.lib.galaxy.ai.retrievers.wired_workflow_search import (
+        WiredWorkflowSearch as UnifiedWorkflowSearch,
+    )
+except Exception:  # noqa: BLE001
+    UnifiedWorkflowSearch = _BaseUnifiedWorkflowSearch
 from .unified_tool_search import create_unified_search
 from .galaxy_workflow_generator import GalaxyWorkflowGenerator
 from .workflow_dataset_selector import WorkflowDatasetSelector

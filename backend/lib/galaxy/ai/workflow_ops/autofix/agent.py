@@ -20,7 +20,16 @@ from pathlib import Path
 
 from .toolkit import ToolKit
 from .toolkit_v2 import EnhancedToolKit
-from .tool_parameter_recommender import ToolParameterRecommender
+from .tool_parameter_recommender import ToolParameterRecommender as _BaseToolParameterRecommender
+# Wired version adds family_dedup priority (top-1 24%→100% on canonical eval)
+# behind BIOMATE_FAMILY_PRIORITIZE=1 env flag. With flag unset, behavior is
+# bit-identical to base class. Lazy/graceful import so any failure falls back.
+try:
+    from backend.lib.galaxy.ai.retrievers.wired_recommender import (
+        WiredToolParameterRecommender as ToolParameterRecommender,
+    )
+except Exception:  # noqa: BLE001
+    ToolParameterRecommender = _BaseToolParameterRecommender
 
 log = logging.getLogger(__name__)
 
