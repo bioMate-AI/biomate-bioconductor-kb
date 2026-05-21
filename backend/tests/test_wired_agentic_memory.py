@@ -186,3 +186,74 @@ def test_limit_honored(service):
 
     out = service.recall_for_query("user1", "proj1", "BRCA1", limit=5)
     assert len(out["relevant_episodes"]) <= 5
+
+
+# ─── Procedure widening via canonical entities ──────────────────────
+
+def test_flag_on_widens_procedure_recall_via_canonical_entities(service):
+    """find_matching_procedures called once per extracted canonical entity."""
+    os.environ["BIOMATE_MEMORY_QUERY_ENRICH"] = "1"
+    service.users.load_user_context.return_value = {}
+    service.episodes.get_similar_episodes.return_value = []
+    # Baseline reliable procedures
+    service.procedures.get_reliable_procedures.return_value = [
+        {"id": 100, "trigger_pattern": "default high-success"},
+    ]
+    # Per-entity find_matching_procedures
+    service.procedures.find_matching_procedures.side_effect = lambda **kw: {
+        "BRCA1":         [{"id": 200, "trigger_pattern": "BRCA1 variant calling"}],
+        "breast_cancer": [{"id": 201, "trigger_pattern": "breast cancer biomarker"}],
+    }.get(kw.get("trigger", ""), [])
+
+    out = service.recall_for_query(
+        "user1", "proj1", "BRCA1 mutations in breast cancer"
+    )
+    proc_ids = {p["id"] for p in out["applicable_procedures"]}
+    # Baseline procedure (100) + per-entity procedures (200, 201)
+    assert 100 in proc_ids
+    assert 200 in proc_ids
+    assert 201 in proc_ids
+    # find_matching_procedures called once per canonical entity
+    called_triggers = {
+        c.kwargs.get("trigger")
+        for c in service.procedures.find_matching_procedures.call_args_list
+    }
+    assert "BRCA1" in called_triggers
+    assert "breast_cancer" in called_triggers
+
+
+def test_procedure_dedup_across_baseline_and_entity_searches(service):
+    """Procedure appearing in baseline AND entity search → returned once."""
+    os.environ["BIOMATE_MEMORY_QUERY_ENRICH"] = "1"
+    service.users.load_user_context.return_value = {}
+    service.episodes.get_similar_episodes.return_value = []
+    same_proc = {"id": 42, "trigger_pattern": "x"}
+    service.procedures.get_reliable_procedures.return_value = [same_proc]
+    service.procedures.find_matching_procedures.return_value = [same_proc]
+
+    out = service.recall_for_query("user1", "proj1", "BRCA1 query")
+    proc_ids = [p["id"] for p in out["applicable_procedures"]]
+    assert proc_ids.count(42) == 1  # deduped
+
+
+def test_flag_off_uses_only_baseline_procedures(service):
+    """Without flag, find_matching_procedures is NEVER called."""
+    service.users.load_user_context.return_value = {}
+    service.episodes.get_similar_episodes.return_value = []
+    service.procedures.get_reliable_procedures.return_value = [{"id": 1}]
+
+    service.recall_for_query("user1", "proj1", "BRCA1 query")
+    service.procedures.find_matching_procedures.assert_not_called()
+
+
+def test_procedure_search_failure_does_not_break_recall(service):
+    """If find_matching_procedures raises, baseline procs still surface."""
+    os.environ["BIOMATE_MEMORY_QUERY_ENRICH"] = "1"
+    service.users.load_user_context.return_value = {}
+    service.episodes.get_similar_episodes.return_value = []
+    baseline = [{"id": 7}]
+    service.procedures.get_reliable_procedures.return_value = baseline
+    service.procedures.find_matching_procedures.side_effect = RuntimeError("boom")
+
+    out = service.recall_for_query("user1", "proj1", "BRCA1 query")
+    assert out["applicable_procedures"] == baseline

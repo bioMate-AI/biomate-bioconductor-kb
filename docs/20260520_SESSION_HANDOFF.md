@@ -1,11 +1,15 @@
 # Session Handoff — Intent-Retrieval Framework + 6 Adapters
 
-**Branch:** `integration/next-phase` (tip: commit `6f273de86`, pushed)
+**Branch:** `integration/next-phase`
 **Dates:** 2026-05-18 → 2026-05-20
-**Commits this session:** 19
-**Tests passing:** 175
+**Commits this session:** 22+
+**Tests passing:** 179
 **Production-file modifications persisted:** 0
 **Syncs to dev:** 0
+
+**Late-session additions (after first handoff):**
+- Entity YAML bulk-expanded 17 → 192 entries via mygene.info (sandbox/output/, not yet promoted)
+- `WiredAgenticMemoryService.recall_for_query` extended: procedure recall now also widens via canonical entities (+4 tests, 9→13 total)
 
 ---
 
