@@ -224,6 +224,9 @@ deploy_workflows() {
     set -e
     mkdir -p /tmp/workflows_extract
     tar -xzf /tmp/workflows_sync.tar.gz -C /tmp/workflows_extract 2>/dev/null
+    # Force-remove ADMET_pred to ensure fresh copy (fixes cache issue where file content wasnt updating)
+    docker exec biomate-galaxy-dev rm -rf /app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred 2>/dev/null || true
+    docker exec biomate-galaxy-dev rm -rf /app/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred 2>/dev/null || true
     # Copy workflows into Galaxy container
     docker cp /tmp/workflows_extract/backend/biomni_workflows \
       biomate-galaxy-dev:/app/biomni_workflows 2>/dev/null || \
