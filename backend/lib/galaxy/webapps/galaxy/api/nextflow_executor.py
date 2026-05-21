@@ -3019,6 +3019,23 @@ def execute_nextflow(
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
 
+    # JVM crash mitigation: the AWS SDK CRT (Common Runtime) native library
+    # races on extraction when multiple Nextflow heads start in parallel and
+    # crashes in ld-linux during PublishDir threads. Observed 2026-05-20 with
+    # OpenJDK 21.0.11 on Debian trixie: SIGSEGV at ld-linux-x86-64.so.2+0x2475a,
+    # native frame software.amazon.awssdk.crt.CRT.extractAndLoadLibrary, when
+    # 4 Nextflow heads ran concurrently. Give each head its own CRT extraction
+    # directory and raise thread stack so the native loader has room to dlopen.
+    nxf_crt_cache = log_dir / ".aws-crt-cache"
+    nxf_crt_cache.mkdir(parents=True, exist_ok=True)
+    existing_nxf_opts = env.get("NXF_OPTS", "")
+    crt_opts = (
+        f"-Daws.crt.lib.dir={nxf_crt_cache} "
+        f"-Daws.crt.disable.crt.in.client=true "
+        f"-Xss2m"
+    )
+    env["NXF_OPTS"] = f"{existing_nxf_opts} {crt_opts}".strip()
+
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
     billing_user_id = _uid_for_path  # same sanitised value used in S3 path construction
@@ -3084,6 +3101,16 @@ def execute_nextflow(
     # needs an inv ID to route the SSE event to the right chat session.
     if invocation_id:
         _narrate_chat(invocation_id, "workflow.submitted", {"run_id": run_id, "workflow": str(nf_path)})
+        # P1.4 — Fire follow-up events that fill the silent gap between
+        # submitted and the first phase_started. The narrator templates
+        # for these existed but had no callers, so the chat looked dead
+        # for the 30s-2min staging window.
+        if accession_params:
+            # SRA / GEO accessions are about to be prefetched.
+            _narrate_chat(invocation_id, "workflow.uploading_inputs", {})
+        if strategy.get("mode") == "awsbatch":
+            # AWS Batch: jobs sit in the queue before any container starts.
+            _narrate_chat(invocation_id, "workflow.queued", {})
 
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.
