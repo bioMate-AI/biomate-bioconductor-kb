@@ -99,8 +99,10 @@ ERROR ~ No such variable: meta
  -- Check script '/app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf' at line: 27
 ```
 
-### Fix (⚠️ NOT YET DEPLOYED)
-**File:** `backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf`
+### Fix (✅ DEPLOYED - Commit 2c406b143)
+**Files:**
+- `backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf`
+- `backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/` (converted from symlink)
 
 Changed process definition from:
 ```groovy
@@ -155,7 +157,9 @@ workflow {
 
 **This matches the pattern used by other working nfcore workflows** (see `proteome_selectivity_profiling`, `allometric_scaling`).
 
-**Status:** Fix committed locally (d17a24019) but workflow files weren't synced in the last deployment.
+**Status:** Fixed and deployed (commit 2c406b143)
+
+**Additional Issue Found:** The `drug_discovery/ADMET_pred` was a broken symlink pointing to an absolute path (`/home/yzhang/biomate/...`). This symlink broke when synced to the Docker container. Fixed by replacing the symlink with a real directory copy.
 
 ---
 

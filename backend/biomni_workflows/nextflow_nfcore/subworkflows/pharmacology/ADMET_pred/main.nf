@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 /*
- * pharmacology/ADMET_pred
+ * pharmacology/ADMET_pred (fixed 2026-05-21)
  *
  * ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening.
  *
