@@ -22,18 +22,17 @@ services:
     pull_policy: always
     ports:
       - "8081:8080"
+    # env_file: every KEY=VAL in /opt/biomate/.env is injected into the
+    # container env. deploy.sh writes Secrets-Manager-sourced values there
+    # (DB URL, BILLING_INTERNAL_KEY, LAGO_*, REDIS_URL, JAVA_BILLING_*).
+    # Without this, those vars are only available for compose variable
+    # substitution, not as container env — so Galaxy crashes at billing
+    # module import (BILLING_INTERNAL_KEY required).
+    env_file:
+      - /opt/biomate/.env
     environment:
       - PYTHONUNBUFFERED=1
       - GALAXY_CONFIG_FILE=/app/config/galaxy.yml
-      # P2.2: Postgres connection string fetched from Secrets Manager by
-      # deploy.sh and written into /opt/biomate/.env. Must use the OVERRIDE_
-      # prefix — Galaxy's GALAXY_CONFIG_<key> only sets a value when the key
-      # is absent from galaxy.yml, and galaxy.yml.template ships with
-      # database_connection: sqlite://… already populated.
-      # See lib/galaxy/util/properties.py:116-124.
-      - GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=${GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
@@ -50,12 +49,12 @@ services:
     ports:
       - "80:3000"
       - "3000:3000"
+    env_file:
+      - /opt/biomate/.env
     environment:
       - NODE_ENV=production
       - PORT=3000
       - GALAXY_API_URL=http://galaxy-backend-deploy:8080
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     depends_on:
       galaxy-backend-deploy:
         condition: service_healthy

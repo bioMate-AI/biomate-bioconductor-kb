@@ -67,6 +67,11 @@ case "$ENV_NAME" in
     # this on the SQLite path; the Postgres equivalent is to drop schema public.
     WIPE_GALAXY_DB=1
     RDS_SECRET_NAME="test/biomate/rds-galaxy"
+    # Consolidated KEY=VAL JSON secret. Galaxy's billing module + several other
+    # subsystems require these env vars at import time; absent them, gunicorn
+    # workers crash before binding the port. Future additions (JWT, Stripe,
+    # etc.) go into this same secret without code change.
+    ENV_SECRET_NAME="test/biomate/galaxy-env"
     ;;
   *)
     echo "ERROR: unknown env '$ENV_NAME' (supported: test)" >&2; exit 2 ;;
@@ -184,6 +189,30 @@ chown ubuntu:ubuntu /opt/biomate/.env
 echo \"OVERRIDE_DATABASE_CONNECTION sourced from $RDS_SECRET_NAME\"
 "
 fi
+ENV_SECRET_BLOCK=""
+if [[ -n "${ENV_SECRET_NAME:-}" ]]; then
+  # Fetch the KEY=VAL JSON secret and append each pair to .env. Existing keys
+  # with the same name are dropped first (idempotent). One Secrets Manager
+  # fetch covers all env-var secrets; adding more is a `aws secretsmanager
+  # update-secret` away, no deploy.sh change needed.
+  ENV_SECRET_BLOCK="
+ENV_JSON=\$(aws secretsmanager get-secret-value --region $AWS_REGION \
+  --secret-id $ENV_SECRET_NAME --query SecretString --output text)
+KEYS=\$(echo \"\$ENV_JSON\" | python3 -c 'import sys,json; print(\"\\n\".join(json.load(sys.stdin).keys()))')
+# Drop any prior copies of these keys from .env
+TMP_ENV=/opt/biomate/.env.next
+cp /opt/biomate/.env \$TMP_ENV
+for k in \$KEYS; do
+  grep -vE \"^\$k=\" \$TMP_ENV > \$TMP_ENV.f && mv \$TMP_ENV.f \$TMP_ENV
+done
+# Append fresh values
+echo \"\$ENV_JSON\" | python3 -c 'import sys,json
+for k,v in json.load(sys.stdin).items(): print(f\"{k}={v}\")' >> \$TMP_ENV
+mv \$TMP_ENV /opt/biomate/.env
+chown ubuntu:ubuntu /opt/biomate/.env
+echo \"galaxy env vars sourced from $ENV_SECRET_NAME (\$(echo \$KEYS | wc -w) keys)\"
+"
+fi
 ssm_run "
 mkdir -p /opt/biomate
 echo '$COMPOSE_B64' | base64 -d > /opt/biomate/docker-compose.deploy.yml
@@ -191,6 +220,7 @@ chown ubuntu:ubuntu /opt/biomate/docker-compose.deploy.yml
 # Touch .env so docker compose doesn't warn (it gets rewritten below if RDS_SECRET_NAME is set).
 touch /opt/biomate/.env
 $RDS_SECRET_BLOCK
+$ENV_SECRET_BLOCK
 aws ecr get-login-password --region $AWS_REGION \
   | docker login --username AWS --password-stdin $ECR_REGISTRY
 " stage || { notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "stage"; exit 1; }
