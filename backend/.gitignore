@@ -82,6 +82,8 @@ config/*
 !config/llm_providers.yml
 !config/tool_family_aliases.yaml
 !config/tool_family_canonical.yaml
+!config/workflow_intent_anchors.yaml
+!config/entity_canonicals.yaml
 config/plugins/interactive_environments/**/*.ini
 config/plugins/**/.cache
 config/plugins/**/.parcel-cache
