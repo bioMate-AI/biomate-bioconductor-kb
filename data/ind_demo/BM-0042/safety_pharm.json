@@ -1,0 +1,23 @@
+{
+  "cv_telemetry_dog": {
+    "n": 4,
+    "doses_mg_kg": [5, 15, 50],
+    "noael_mg_kg": 15,
+    "findings": "high dose only: transient ↑ heart rate (+18%) 2-4h post-dose, no QT prolongation (QTc within historical control)",
+    "ich_s7b_compliant": true,
+    "herg_followup": "patch-clamp confirmed cellular hERG IC50 = 18.4 µM, 23-fold over Cmax,unbound at MRSD"
+  },
+  "cns_irwin_rat": {
+    "n": 6,
+    "doses_mg_kg": [15, 50, 150],
+    "noael_mg_kg": 50,
+    "findings": "150 mg/kg only: decreased locomotor activity 1-3h post-dose"
+  },
+  "respiratory_plethysmography_rat": {
+    "n": 6,
+    "doses_mg_kg": [15, 50, 150],
+    "noael_mg_kg": 150,
+    "findings": "no effect on respiratory rate, tidal volume, or minute volume at any dose"
+  },
+  "overall_safety_pharm_conclusion": "No adverse cardiovascular, CNS, or respiratory effects at clinically relevant exposures. hERG margin (cellular IC50 / unbound Cmax at MRSD) ≥ 20× supports cardiac safety."
+}

@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "evaluated": 12,
+    "pass_all_filters": 8,
+    "flagged": 3,
+    "dropped": 1
+  },
+  "filters_applied": {
+    "herg_ic50_uM_min": 10,
+    "dili_max": "clear",
+    "ames_max": "clear",
+    "ro5_required": true
+  },
+  "compounds": [
+    { "id": "BM-0042-001", "lead": true,  "hergIC50": 18.4, "hergRisk": "clear",  "dili": "clear", "ames": "clear", "logP": 3.1, "mw": 449.5, "ro5": true },
+    { "id": "BM-0042-002", "lead": false, "hergIC50": 12.1, "hergRisk": "clear",  "dili": "clear", "ames": "clear", "logP": 3.4, "mw": 463.5, "ro5": true },
+    { "id": "BM-0042-003", "lead": false, "hergIC50": 22.8, "hergRisk": "clear",  "dili": "clear", "ames": "clear", "logP": 2.8, "mw": 479.5, "ro5": true },
+    { "id": "BM-0042-004", "lead": false, "hergIC50": 15.6, "hergRisk": "clear",  "dili": "clear", "ames": "clear", "logP": 3.3, "mw": 463.5, "ro5": true },
+    { "id": "BM-0042-005", "lead": false, "hergIC50": 4.2,  "hergRisk": "border", "dili": "clear", "ames": "clear", "logP": 3.6, "mw": 460.5, "ro5": true },
+    { "id": "BM-0042-006", "lead": false, "hergIC50": 2.8,  "hergRisk": "border", "dili": "clear", "ames": "clear", "logP": 4.1, "mw": 453.3, "ro5": true },
+    { "id": "BM-0042-007", "lead": false, "hergIC50": 0.9,  "hergRisk": "flag",   "dili": "flag",  "ames": "clear", "logP": 3.0, "mw": 467.5, "ro5": true },
+    { "id": "BM-0042-008", "lead": false, "hergIC50": 0.6,  "hergRisk": "flag",   "dili": "flag",  "ames": "clear", "logP": 3.4, "mw": 466.6, "ro5": true },
+    { "id": "BM-0042-009", "lead": false, "hergIC50": 16.2, "hergRisk": "clear",  "dili": "clear", "ames": "flag",  "logP": 2.7, "mw": 490.5, "ro5": false, "ro5Fail": "Ames+ (azide moiety)" },
+    { "id": "BM-0042-010", "lead": false, "hergIC50": 19.1, "hergRisk": "clear",  "dili": "clear", "ames": "flag",  "logP": 3.8, "mw": 440.5, "ro5": true },
+    { "id": "BM-0042-011", "lead": false, "hergIC50": 21.4, "hergRisk": "clear",  "dili": "clear", "ames": "clear", "logP": 2.9, "mw": 451.5, "ro5": true },
+    { "id": "BM-0042-012", "lead": false, "hergIC50": 11.8, "hergRisk": "clear",  "dili": "clear", "ames": "clear", "logP": 3.7, "mw": 517.5, "ro5": false, "ro5Fail": "MW > 500" }
+  ],
+  "auto_loop_iterations": 2,
+  "auto_loop_notes": [
+    "Iteration 1: 4 compounds failed hERG/DILI/Ames gates; auto-loop excluded BM-0042-007/008/009/010 from lead pool.",
+    "Iteration 2: Ro5 filter removed BM-0042-012 (MW>500). Remaining 7 candidates re-ranked by potency × selectivity."
+  ]
+}

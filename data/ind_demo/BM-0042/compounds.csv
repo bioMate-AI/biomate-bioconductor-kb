@@ -1,0 +1,13 @@
+compound_id,is_lead,smiles,mw,logp,herg_ic50_uM,herg_call,cyp3a4_inhibition_pct_at_10uM,microsomal_clint_human_uL_min_mg,microsomal_clint_rat_uL_min_mg,caco2_papp_e6_cm_s,plasma_protein_binding_pct,dili_call,ames_call,ro5_pass,notes
+BM-0042-001,true,CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)C=CN(C)C,449.5,3.1,18.4,clear,28,12.4,18.7,9.2,98.1,clear,clear,true,lead candidate
+BM-0042-002,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)C=CN(CC)C,463.5,3.4,12.1,clear,22,14.2,21.3,8.8,98.4,clear,clear,true,backup-1
+BM-0042-003,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)C=CN(CCO)C,479.5,2.8,22.8,clear,31,11.0,16.4,10.1,97.8,clear,clear,true,backup-2
+BM-0042-004,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)C=CCN(C)C,463.5,3.3,15.6,clear,35,13.8,20.1,9.0,98.2,clear,clear,true,backup-3
+BM-0042-005,false,COc1cc2ncnc(Oc3ccc(NC(=O)C=CN(C)C)cc3)c2cc1OC,460.5,3.6,4.2,border,42,8.9,12.7,7.4,98.9,clear,clear,true,hERG borderline
+BM-0042-006,false,Clc1cc2ncnc(Oc3ccc(NC(=O)C=CN(C)C)cc3)c2cc1Cl,453.3,4.1,2.8,border,48,6.2,9.4,6.9,99.1,clear,clear,true,hERG borderline
+BM-0042-007,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]cc(F)c23)cc1NC(=O)C=CN(C)C,467.5,3.0,0.9,flag,62,18.4,28.9,10.8,98.0,flag,clear,true,hERG hit + DILI alert
+BM-0042-008,false,CC(=O)Nc1ccc(Oc2ncnc3sccc23)cc1NC(=O)C=CN(C)C,466.6,3.4,0.6,flag,71,22.1,33.4,8.4,97.9,flag,clear,true,thiophene → hERG
+BM-0042-009,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]cc(N=N=N)c23)cc1NC(=O)C=CN(C)C,490.5,2.7,16.2,clear,29,15.8,24.0,9.8,97.6,clear,flag,false,Ames+; azide
+BM-0042-010,false,O=C(Nc1ccc(Oc2ncnc3[nH]ccc23)cc1Nc1ccccc1)C=CN(C)C,440.5,3.8,19.1,clear,33,10.7,15.9,9.4,98.5,clear,flag,true,Ames+; aniline
+BM-0042-011,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)CCN(C)C,451.5,2.9,21.4,clear,26,17.6,26.2,9.6,97.7,clear,clear,true,reduced Michael acceptor
+BM-0042-012,false,CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)C=CN(C)CC(F)(F)F,517.5,3.7,11.8,clear,40,9.2,13.5,8.1,98.7,clear,clear,false,Ro5 fail (MW>500)

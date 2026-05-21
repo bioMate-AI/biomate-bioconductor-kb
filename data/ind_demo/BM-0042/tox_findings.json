@@ -1,0 +1,44 @@
+{
+  "study_id": "T-28R-0042",
+  "species": "rat",
+  "strain": "Sprague-Dawley",
+  "duration_days": 28,
+  "route": "oral gavage",
+  "doses_mg_kg_day": [0, 5, 15, 50],
+  "noael_mg_kg_day": 15,
+  "mtd_mg_kg_day": 50,
+  "stopped_early": false,
+  "mortality": { "vehicle": 0, "low": 0, "mid": 0, "high": 1, "high_cause": "moribund euthanasia day 23, marked hepatocellular necrosis" },
+  "body_weight_change_pct": { "vehicle": "+12.4", "low": "+11.8", "mid": "+9.1", "high": "-3.2" },
+  "clinical_signs": ["high dose: salivation, soft stool, decreased activity (days 18+)"],
+  "target_organs": [
+    {
+      "organ": "liver",
+      "finding": "hepatocellular hypertrophy (mild, mid+high), single-cell necrosis (high only)",
+      "noael_relevant": true,
+      "regulatory_significance": "drove NOAEL designation at 15 mg/kg/day"
+    },
+    {
+      "organ": "kidney",
+      "finding": "tubular regeneration (minimal, high dose only, 3/10 M)",
+      "noael_relevant": false,
+      "regulatory_significance": "monitor in repeat-dose 90-day study"
+    }
+  ],
+  "hematology_changes": "high dose only: ALT 2.4× elevated, AST 1.8× elevated, mild ↓ RBC (-8%)",
+  "tk_summary": {
+    "auc_0_24_ng_h_ml": { "low": 1240, "mid": 4180, "high": 14200 },
+    "cmax_ng_ml": { "low": 312, "mid": 1095, "high": 3540 },
+    "dose_proportionality": "less than dose-proportional above mid dose (saturation suspected)"
+  },
+  "mrsd_calculation": {
+    "noael_mg_kg_day": 15,
+    "species_factor_rat": 6.2,
+    "hed_mg_kg": 2.42,
+    "safety_factor": 10,
+    "mrsd_mg_kg": 0.242,
+    "mrsd_60kg_human_mg": 14.5,
+    "rounded_phase1_starting_dose_mg": 10,
+    "calculation_basis": "FDA 2005 guidance (Estimating the Maximum Safe Starting Dose)"
+  }
+}

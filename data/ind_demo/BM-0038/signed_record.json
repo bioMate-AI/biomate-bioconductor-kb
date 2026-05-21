@@ -1,0 +1,24 @@
+{
+  "id": "p-bm0038",
+  "molecule": "BM-0038",
+  "compound_class": "small molecule, KRAS G12C covalent inhibitor",
+  "target": "KRAS G12C",
+  "indication": "Colorectal cancer (CRC), 3rd-line, KRAS G12C+",
+  "sponsor": "Acme Therapeutics",
+  "regions": ["FDA", "EMA"],
+  "signed_at": "2026-05-09T17:42:31Z",
+  "signed_by": "jane.smith@acme.com",
+  "signature_id": "sig_8f3a4b21c9e7d65f",
+  "totp_validated": true,
+  "document_sha256": "9c4f8a2b6e3d1f5a7c8b9e0a1d2f3c4b5a6e7f8d9a0b1c2d3e4f5a6b7c8d9e0f",
+  "adapter_versions_used": {
+    "§2.6.1": "regulatory_llm_v6",
+    "§2.6.2": "regulatory_llm_v6",
+    "§2.6.3": "regulatory_llm_v6",
+    "§2.6.5": "regulatory_llm_v6"
+  },
+  "document_state": "locked, read-only",
+  "version_label": "v3",
+  "audit_trail_pdf_available": true,
+  "audit_chain_entries": 247
+}
