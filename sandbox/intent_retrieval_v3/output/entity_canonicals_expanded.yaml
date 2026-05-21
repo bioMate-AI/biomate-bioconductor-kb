@@ -1,0 +1,2575 @@
+# Auto-generated entity_canonicals.yaml from mygene.info bulk-import.
+# Source: sandbox/intent_retrieval_v3/scripts/expand_entity_yaml.py
+# Seeds: 190; succeeded: 186; failed: 4
+# Date: 2026-05-20
+# Review before merging into backend/config/entity_canonicals.yaml.
+
+ABCB1:
+  entity_type: gene
+  aliases:
+    - abc20
+    - abcb1
+    - cd243
+    - clcs
+    - enpat
+    - gp170
+    - mdr1
+    - p-170
+    - p-gp
+    - pgy1
+  metadata:
+    display_name: "ATP binding cassette subfamily B member 1"
+    omim_id: "171050"
+
+ABCD1:
+  entity_type: gene
+  aliases:
+    - abc42
+    - abcd1
+    - ald
+    - aldp
+    - amn
+  metadata:
+    display_name: "ATP binding cassette subfamily D member 1"
+    omim_id: "300371"
+
+ABCG2:
+  entity_type: gene
+  aliases:
+    - abc15
+    - abcg2
+    - abcp
+    - bcrp
+    - bmdp
+    - cd338
+    - cdw338
+    - cdw388
+    - est157481
+    - gout1
+    - mrx
+    - mxr
+    - mxr-1
+    - mxr1
+    - uaqtl1
+  metadata:
+    display_name: "ATP binding cassette subfamily G member 2 (JR blood group)"
+    omim_id: "603756"
+
+ABL1:
+  entity_type: gene
+  aliases:
+    - abl
+    - abl1
+    - bcr-abl
+    - bcr/abl
+    - c-abl
+    - c-abl1
+    - chdskm
+    - jtk7
+    - p150
+    - v-abl
+  metadata:
+    display_name: "ABL proto-oncogene 1, non-receptor tyrosine kinase"
+    omim_id: "189980"
+
+ABO:
+  entity_type: gene
+  aliases:
+    - a3galnt
+    - a3galt1
+    - abo
+    - gta
+    - gtb
+    - nagat
+  metadata:
+    display_name: "ABO, alpha 1-3-N-acetylgalactosaminyltransferase and alpha 1-3-galactosyltransferase"
+    omim_id: "110300"
+
+AKT1:
+  entity_type: gene
+  aliases:
+    - akt
+    - akt1
+    - pkb
+    - pkb-alpha
+    - prkba
+    - rac
+    - rac-alpha
+  metadata:
+    display_name: "AKT serine/threonine kinase 1"
+    omim_id: "164730"
+
+AKT2:
+  entity_type: gene
+  aliases:
+    - akt2
+    - hihghh
+    - pkbb
+    - pkbbeta
+    - prkbb
+    - rac-beta
+  metadata:
+    display_name: "AKT serine/threonine kinase 2"
+    omim_id: "164731"
+
+ALK:
+  entity_type: gene
+  aliases:
+    - alk
+    - alk1
+    - cd246
+    - nblst3
+  metadata:
+    display_name: "ALK receptor tyrosine kinase"
+    omim_id: "105590"
+
+APC:
+  entity_type: gene
+  aliases:
+    - apc
+    - btps2
+    - desmd
+    - dp2
+    - dp2.5
+    - dp3
+    - ppp1r46
+  metadata:
+    display_name: "APC regulator of Wnt signaling pathway"
+    omim_id: "611731"
+
+APOE:
+  entity_type: gene
+  aliases:
+    - ad2
+    - apo-e
+    - apoe
+    - apoe4
+    - ldlcq5
+    - lpg
+  metadata:
+    display_name: "apolipoprotein E"
+    omim_id: "107741"
+
+APP:
+  entity_type: gene
+  aliases:
+    - aaa
+    - abeta
+    - abpp
+    - ad1
+    - alpha-sapp
+    - app
+    - appi
+    - ctfgamma
+    - cvap
+    - pn-ii
+    - pn2
+    - prea4
+  metadata:
+    display_name: "amyloid beta precursor protein"
+    omim_id: "104760"
+
+AR:
+  entity_type: gene
+  aliases:
+    - ais
+    - ar8
+    - dhtr
+    - humara
+    - hysp1
+    - nr3c4
+    - sbma
+    - smax1
+    - tfm
+  metadata:
+    display_name: "androgen receptor"
+    omim_id: "313700"
+
+ARID1A:
+  entity_type: gene
+  aliases:
+    - arid1a
+    - b120
+    - baf250
+    - baf250a
+    - bm029
+    - c1orf4
+    - css2
+    - eld
+    - held
+    - hosa1
+    - mrd14
+    - osa1
+    - p270
+    - smarcf1
+  metadata:
+    display_name: "AT-rich interaction domain 1A"
+    omim_id: "603024"
+
+ARID2:
+  entity_type: gene
+  aliases:
+    - arid2
+    - baf200
+    - css6
+    - p200
+    - smarcf3
+    - zipzap
+  metadata:
+    display_name: "AT-rich interaction domain 2"
+    omim_id: "609539"
+
+ARL6IP1:
+  entity_type: gene
+  aliases:
+    - aip1
+    - arl6ip
+    - arl6ip1
+    - armer
+    - spg61
+  metadata:
+    display_name: "ARL6 interacting reticulophagy regulator 1"
+    omim_id: "607669"
+
+ATM:
+  entity_type: gene
+  aliases:
+    - at1
+    - ata
+    - atc
+    - atd
+    - atdc
+    - ate
+    - atm
+    - tel1
+    - telo1
+  metadata:
+    display_name: "ATM serine/threonine kinase"
+    omim_id: "607585"
+
+ATP7B:
+  entity_type: gene
+  aliases:
+    - atp7b
+    - pwd
+    - wc1
+    - wnd
+  metadata:
+    display_name: "ATPase copper transporting beta"
+    omim_id: "606882"
+
+AURKA:
+  entity_type: gene
+  aliases:
+    - aik
+    - ark1
+    - aura
+    - aurka
+    - btak
+    - ppp1r47
+    - stk15
+    - stk6
+    - stk7
+  metadata:
+    display_name: "aurora kinase A"
+    omim_id: "603072"
+
+AXL:
+  entity_type: gene
+  aliases:
+    - ark
+    - axl
+    - axl3
+    - jtk11
+    - tyro7
+    - ufo
+  metadata:
+    display_name: "AXL receptor tyrosine kinase"
+    omim_id: "109135"
+
+BCL2:
+  entity_type: gene
+  aliases:
+    - bcl-2
+    - bcl2
+    - ppp1r50
+  metadata:
+    display_name: "BCL2 apoptosis regulator"
+    omim_id: "151430"
+
+BCR:
+  entity_type: gene
+  aliases:
+    - all
+    - bcr
+    - bcr1
+    - cml
+    - d22s11
+    - d22s662
+    - phl
+  metadata:
+    display_name: "BCR activator of RhoGEF and GTPase"
+    omim_id: "151410"
+
+BLM:
+  entity_type: gene
+  aliases:
+    - blm
+    - mgrisce1
+    - recq2
+    - recql2
+    - recql3
+  metadata:
+    display_name: "BLM RecQ like helicase"
+    omim_id: "604610"
+
+BRAF:
+  entity_type: gene
+  aliases:
+    - b-raf
+    - b-raf1
+    - braf
+    - braf-1
+    - braf1
+    - ns7
+    - rafb1
+  metadata:
+    display_name: "B-Raf proto-oncogene, serine/threonine kinase"
+    omim_id: "164757"
+
+BRCA1:
+  entity_type: gene
+  aliases:
+    - brca1
+    - brcai
+    - brcc1
+    - brovca1
+    - fancs
+    - iris
+    - pnca4
+    - ppp1r53
+    - pscp
+    - rnf53
+  metadata:
+    display_name: "BRCA1 DNA repair associated"
+    omim_id: "113705"
+
+BRCA2:
+  entity_type: gene
+  aliases:
+    - brca2
+    - brcc2
+    - brovca2
+    - facd
+    - fad
+    - fad1
+    - fancd
+    - fancd1
+    - glm3
+    - pnca2
+    - xrcc11
+  metadata:
+    display_name: "BRCA2 DNA repair associated"
+    omim_id: "600185"
+
+C9orf72:
+  entity_type: gene
+  aliases:
+    - alsftd
+    - c9orf72
+    - dennd9
+    - dennl72
+    - ftdals
+    - ftdals1
+  metadata:
+    display_name: "C9orf72-SMCR8 complex subunit"
+    omim_id: "614260"
+
+CD19:
+  entity_type: gene
+  aliases:
+    - cd19
+    - cvid3
+  metadata:
+    display_name: "CD19 molecule"
+    omim_id: "107265"
+
+CD22:
+  entity_type: gene
+  aliases:
+    - cd22
+    - siglec-2
+    - siglec2
+  metadata:
+    display_name: "CD22 molecule"
+    omim_id: "107266"
+
+CD274:
+  entity_type: gene
+  aliases:
+    - admio5
+    - b7-h
+    - b7h1
+    - cd274
+    - hpd-l1
+    - pd-l1
+    - pdcd1l1
+    - pdcd1lg1
+    - pdl1
+  metadata:
+    display_name: "CD274 molecule"
+    omim_id: "605402"
+
+CD4:
+  entity_type: gene
+  aliases:
+    - cd4
+    - cd4mut
+    - imd79
+    - leu-3
+    - okt4d
+  metadata:
+    display_name: "CD4 molecule"
+    omim_id: "186940"
+
+CD8A:
+  entity_type: gene
+  aliases:
+    - cd8
+    - cd8a
+    - cd8alpha
+    - imd116
+    - leu2
+    - p32
+  metadata:
+    display_name: "CD8 subunit alpha"
+    omim_id: "186910"
+
+CDK4:
+  entity_type: gene
+  aliases:
+    - cdk4
+    - cmm3
+    - mcph31
+    - psk-j3
+  metadata:
+    display_name: "cyclin dependent kinase 4"
+    omim_id: "123829"
+
+CDK6:
+  entity_type: gene
+  aliases:
+    - cdk6
+    - mcph12
+    - plstire
+  metadata:
+    display_name: "cyclin dependent kinase 6"
+    omim_id: "603368"
+
+CDK9:
+  entity_type: gene
+  aliases:
+    - c-2k
+    - cdc2l4
+    - cdk9
+    - ctk1
+    - pitalre
+    - tak
+  metadata:
+    display_name: "cyclin dependent kinase 9"
+    omim_id: "603251"
+
+CDKN2A:
+  entity_type: gene
+  aliases:
+    - arf
+    - cai2
+    - cdk4i
+    - cdkn2
+    - cdkn2a
+    - cmm2
+    - ink4
+    - ink4a
+    - mlm
+    - mts-1
+    - mts1
+    - p14
+    - p14arf
+    - p16
+    - p16-ink4a
+    - p16ink4
+    - p16ink4a
+    - p19
+    - p19arf
+    - tp16
+  metadata:
+    display_name: "cyclin dependent kinase inhibitor 2A"
+    omim_id: "600160"
+
+CFTR:
+  entity_type: gene
+  aliases:
+    - abc35
+    - abcc7
+    - cftr
+    - cftr/mrp
+    - dj760c5.1
+    - mrp7
+    - tnr-cftr
+  metadata:
+    display_name: "CF transmembrane conductance regulator"
+    omim_id: "602421"
+
+CHEK2:
+  entity_type: gene
+  aliases:
+    - cds1
+    - chek2
+    - chk2
+    - hcds1
+    - hucds1
+    - lfs2
+    - pp1425
+    - rad53
+    - tpds4
+  metadata:
+    display_name: "checkpoint kinase 2"
+    omim_id: "604373"
+
+CREBBP:
+  entity_type: gene
+  aliases:
+    - cbp
+    - crebbp
+    - kat3a
+    - mkhk1
+    - rsts
+    - rsts1
+  metadata:
+    display_name: "CREB binding lysine acetyltransferase"
+    omim_id: "600140"
+
+CTLA4:
+  entity_type: gene
+  aliases:
+    - alps5
+    - cd152
+    - celiac3
+    - ctla-4
+    - ctla4
+    - grd4
+    - gse
+    - iddm12
+  metadata:
+    display_name: "cytotoxic T-lymphocyte associated protein 4"
+    omim_id: "123890"
+
+CTNNB1:
+  entity_type: gene
+  aliases:
+    - armadillo
+    - ctnnb
+    - ctnnb1
+    - evr7
+    - mrd19
+    - nedsdv
+  metadata:
+    display_name: "catenin beta 1"
+    omim_id: "116806"
+
+CYP1A2:
+  entity_type: gene
+  aliases:
+    - cp12
+    - cyp1a2
+    - cypia2
+    - p3-450
+    - p450(pa)
+  metadata:
+    display_name: "cytochrome P450 family 1 subfamily A member 2"
+    omim_id: "124060"
+
+CYP2B6:
+  entity_type: gene
+  aliases:
+    - cpb6
+    - cyp2b
+    - cyp2b6
+    - cyp2b7
+    - cypiib6
+    - efvm
+    - iib1
+    - p450
+  metadata:
+    display_name: "cytochrome P450 family 2 subfamily B member 6"
+    omim_id: "123930"
+
+CYP2C19:
+  entity_type: gene
+  aliases:
+    - cpcj
+    - cyp2c
+    - cyp2c19
+    - cypiic17
+    - cypiic19
+    - p450c2c
+    - p450iic19
+  metadata:
+    display_name: "cytochrome P450 family 2 subfamily C member 19"
+    omim_id: "124020"
+
+CYP2C9:
+  entity_type: gene
+  aliases:
+    - cpc9
+    - cyp2c
+    - cyp2c10
+    - cyp2c9
+    - cypiic9
+    - p450-2c9
+    - p450iic9
+  metadata:
+    display_name: "cytochrome P450 family 2 subfamily C member 9"
+    omim_id: "601130"
+
+CYP2D6:
+  entity_type: gene
+  aliases:
+    - cpd6
+    - cyp2d
+    - cyp2d6
+    - cyp2d7ap
+    - cyp2d7bp
+    - cyp2d7p2
+    - cyp2d8p2
+    - cyp2dl1
+    - cypiid6
+    - p450-db1
+    - p450c2d
+    - p450db1
+  metadata:
+    display_name: "cytochrome P450 family 2 subfamily D member 6 (gene/pseudogene)"
+    omim_id: "124030"
+
+CYP2E1:
+  entity_type: gene
+  aliases:
+    - cpe1
+    - cyp2e
+    - cyp2e1
+    - p450-j
+    - p450c2e
+  metadata:
+    display_name: "cytochrome P450 family 2 subfamily E member 1"
+    omim_id: "124040"
+
+CYP3A4:
+  entity_type: gene
+  aliases:
+    - cp33
+    - cp34
+    - cyp3a
+    - cyp3a3
+    - cyp3a4
+    - cypiiia3
+    - cypiiia4
+    - hlp
+    - nf-25
+    - p450c3
+    - p450pcn1
+    - vddr3
+  metadata:
+    display_name: "cytochrome P450 family 3 subfamily A member 4"
+    omim_id: "124010"
+
+CYP3A5:
+  entity_type: gene
+  aliases:
+    - cp35
+    - cyp3a5
+    - cypiiia5
+    - p450pcn3
+    - pcn3
+  metadata:
+    display_name: "cytochrome P450 family 3 subfamily A member 5"
+    omim_id: "605325"
+
+DMD:
+  entity_type: gene
+  aliases:
+    - bmd
+    - cmd3b
+    - dmd
+    - dxs142
+    - dxs164
+    - dxs206
+    - dxs230
+    - dxs239
+    - dxs268
+    - dxs269
+    - dxs270
+    - dxs272
+    - mrx85
+  metadata:
+    display_name: "dystrophin"
+    omim_id: "300377"
+
+DNMT3A:
+  entity_type: gene
+  aliases:
+    - dnmt3a
+    - dnmt3a2
+    - hesjas
+    - m.hsaiiia
+    - tbrs
+  metadata:
+    display_name: "DNA methyltransferase 3 alpha"
+    omim_id: "602769"
+
+DPYD:
+  entity_type: gene
+  aliases:
+    - dhp
+    - dhpdhase
+    - dpd
+    - dpyd
+    - dypd
+  metadata:
+    display_name: "dihydropyrimidine dehydrogenase"
+    omim_id: "612779"
+
+EGFR:
+  entity_type: gene
+  aliases:
+    - egfr
+    - erbb
+    - erbb1
+    - errp
+    - her1
+    - mena
+    - nisbd2
+    - nncis
+    - pig61
+  metadata:
+    display_name: "epidermal growth factor receptor"
+    omim_id: "131550"
+
+EP300:
+  entity_type: gene
+  aliases:
+    - ep300
+    - kat3b
+    - mkhk2
+    - p300
+    - rsts2
+  metadata:
+    display_name: "EP300 lysine acetyltransferase"
+    omim_id: "602700"
+
+ERBB2:
+  entity_type: gene
+  aliases:
+    - c-erb-2
+    - c-erb2
+    - cd340
+    - erbb2
+    - her-2
+    - her-2/neu
+    - her2
+    - mln 19
+    - mln-19
+    - neu
+    - ngl
+    - p185(erbb2)
+    - tkr1
+    - vscn2
+  metadata:
+    display_name: "erb-b2 receptor tyrosine kinase 2"
+    omim_id: "164870"
+
+ERBB3:
+  entity_type: gene
+  aliases:
+    - c-erbb-3
+    - c-erbb3
+    - erbb-3
+    - erbb3
+    - erbb3-s
+    - ferlk
+    - her3
+    - lccs2
+    - mda-bf-1
+    - p180-erbb3
+    - p45-serbb3
+    - p85-serbb3
+    - vscn1
+  metadata:
+    display_name: "erb-b2 receptor tyrosine kinase 3"
+    omim_id: "190151"
+
+ERBB4:
+  entity_type: gene
+  aliases:
+    - als19
+    - erbb4
+    - her4
+    - p180erbb4
+  metadata:
+    display_name: "erb-b2 receptor tyrosine kinase 4"
+    omim_id: "600543"
+
+ERCC2:
+  entity_type: gene
+  aliases:
+    - cofs2
+    - cxpd
+    - em9
+    - ercc2
+    - tfiih
+    - ttd
+    - ttd1
+    - xpd
+  metadata:
+    display_name: "ERCC excision repair 2, TFIIH core complex helicase subunit"
+    omim_id: "126340"
+
+ERCC3:
+  entity_type: gene
+  aliases:
+    - btf2
+    - ercc3
+    - gtf2h
+    - rad25
+    - ssl2
+    - tfiih
+    - ttd2
+    - xpb
+  metadata:
+    display_name: "ERCC excision repair 3, TFIIH core complex helicase subunit"
+    omim_id: "133510"
+
+ESR1:
+  entity_type: gene
+  aliases:
+    - era
+    - esr
+    - esr1
+    - esra
+    - estrr
+    - nr3a1
+  metadata:
+    display_name: "estrogen receptor 1"
+    omim_id: "133430"
+
+F2:
+  entity_type: gene
+  aliases:
+    - rprgl2
+    - thph1
+  metadata:
+    display_name: "coagulation factor II, thrombin"
+    omim_id: "176930"
+
+F5:
+  entity_type: gene
+  aliases:
+    - fvl
+    - pccf
+    - rprgl1
+    - thph2
+  metadata:
+    display_name: "coagulation factor V"
+    omim_id: "612309"
+
+F8:
+  entity_type: gene
+  aliases:
+    - ahf
+    - dxs1253e
+    - f8b
+    - f8c
+    - fviii
+    - hema
+    - thph13
+  metadata:
+    display_name: "coagulation factor VIII"
+    omim_id: "300841"
+
+F9:
+  entity_type: gene
+  aliases:
+    - f9 p22
+    - fix
+    - hemb
+    - p19
+    - ptc
+    - thph8
+  metadata:
+    display_name: "coagulation factor IX"
+    omim_id: "300746"
+
+FANCA:
+  entity_type: gene
+  aliases:
+    - fa-h
+    - fa1
+    - faa
+    - faca
+    - fah
+    - fanca
+    - fanch
+  metadata:
+    display_name: "FA complementation group A"
+    omim_id: "607139"
+
+FANCD2:
+  entity_type: gene
+  aliases:
+    - fa-d2
+    - fa4
+    - facd
+    - fad
+    - fad2
+    - fancd
+    - fancd2
+  metadata:
+    display_name: "FA complementation group D2"
+    omim_id: "613984"
+
+FBXW7:
+  entity_type: gene
+  aliases:
+    - ago
+    - cdc4
+    - dedhil
+    - fbw6
+    - fbw7
+    - fbx30
+    - fbxw6
+    - fbxw7
+    - hago
+    - hcdc4
+    - sel-10
+    - sel10
+  metadata:
+    display_name: "F-box and WD repeat domain containing 7"
+    omim_id: "606278"
+
+FGA:
+  entity_type: gene
+  aliases:
+    - amyld2
+    - fga
+    - fib2
+  metadata:
+    display_name: "fibrinogen alpha chain"
+    omim_id: "134820"
+
+FGB:
+  entity_type: gene
+  aliases:
+    - fgb
+    - hel-s-78p
+  metadata:
+    display_name: "fibrinogen beta chain"
+    omim_id: "134830"
+
+FGFR1:
+  entity_type: gene
+  aliases:
+    - bfgf-r-1
+    - bfgfr
+    - cd331
+    - cek
+    - eccl
+    - fgfbr
+    - fgfr-1
+    - fgfr1
+    - flg
+    - flt-2
+    - flt2
+    - hbgfr
+    - hh2
+    - hrtfds
+    - kal2
+    - n-sam
+    - ogd
+  metadata:
+    display_name: "fibroblast growth factor receptor 1"
+    omim_id: "136350"
+
+FGFR2:
+  entity_type: gene
+  aliases:
+    - bbds
+    - bek
+    - bfr-1
+    - cd332
+    - cek3
+    - cfd1
+    - ect1
+    - fgfr2
+    - jws
+    - k-sam
+    - kgfr
+    - tk14
+    - tk25
+  metadata:
+    display_name: "fibroblast growth factor receptor 2"
+    omim_id: "176943"
+
+FGFR3:
+  entity_type: gene
+  aliases:
+    - ach
+    - cd333
+    - cek2
+    - fgfr3
+    - hsfgfr3ex
+    - jtk4
+  metadata:
+    display_name: "fibroblast growth factor receptor 3"
+    omim_id: "134934"
+
+FGFR4:
+  entity_type: gene
+  aliases:
+    - cd334
+    - fgfr4
+    - jtk2
+    - tkf
+  metadata:
+    display_name: "fibroblast growth factor receptor 4"
+    omim_id: "134935"
+
+FGG:
+  entity_type: gene
+  aliases:
+    - fgg
+  metadata:
+    display_name: "fibrinogen gamma chain"
+    omim_id: "134850"
+
+FOXP3:
+  entity_type: gene
+  aliases:
+    - aiid
+    - dieter
+    - foxp3
+    - ipex
+    - jm2
+    - pidx
+    - xpid
+  metadata:
+    display_name: "forkhead box P3"
+    omim_id: "300292"
+
+FXN:
+  entity_type: gene
+  aliases:
+    - cyay
+    - farr
+    - frda
+    - fxn
+    - x25
+  metadata:
+    display_name: "frataxin"
+    omim_id: "606829"
+
+G6PD:
+  entity_type: gene
+  aliases:
+    - cnsha1
+    - g6pd
+    - g6pd1
+  metadata:
+    display_name: "glucose-6-phosphate dehydrogenase"
+    omim_id: "305900"
+
+GNAS:
+  entity_type: gene
+  aliases:
+    - aho
+    - aimah1
+    - c20orf45
+    - gnas
+    - gnas1
+    - gpsa
+    - gsa
+    - gsp
+    - nesp
+    - pita3
+    - poh
+    - scg6
+    - sgvi
+  metadata:
+    display_name: "GNAS complex locus"
+    omim_id: "139320"
+
+GRN:
+  entity_type: gene
+  aliases:
+    - cln11
+    - ftd2
+    - gep
+    - gp88
+    - grn
+    - pcdgf
+    - pepi
+    - pgrn
+  metadata:
+    display_name: "granulin precursor"
+    omim_id: "138945"
+
+HBA1:
+  entity_type: gene
+  aliases:
+    - ecyt7
+    - hba-t3
+    - hba1
+    - hbh
+    - methba
+  metadata:
+    display_name: "hemoglobin subunit alpha 1"
+    omim_id: "141800"
+
+HBA2:
+  entity_type: gene
+  aliases:
+    - ecyt7
+    - hba-t2
+    - hba2
+    - hbh
+  metadata:
+    display_name: "hemoglobin subunit alpha 2"
+    omim_id: "141850"
+
+HBB:
+  entity_type: gene
+  aliases:
+    - beta-globin
+    - cd113t-c
+    - ecyt6
+    - hbb
+  metadata:
+    display_name: "hemoglobin subunit beta"
+    omim_id: "141900"
+
+HEXA:
+  entity_type: gene
+  aliases:
+    - hexa
+    - tsd
+  metadata:
+    display_name: "hexosaminidase subunit alpha"
+    omim_id: "606869"
+
+HEXB:
+  entity_type: gene
+  aliases:
+    - enc-1as
+    - hel-248
+    - hel-s-111
+    - hexb
+  metadata:
+    display_name: "hexosaminidase subunit beta"
+    omim_id: "606873"
+
+HRAS:
+  entity_type: gene
+  aliases:
+    - c-bas/has
+    - c-h-ras
+    - c-ha-ras1
+    - ctlo
+    - h-rasidx
+    - hamsv
+    - hras
+    - hras1
+    - p21ras
+    - rash1
+  metadata:
+    display_name: "HRas proto-oncogene, GTPase"
+    omim_id: "190020"
+
+HTT:
+  entity_type: gene
+  aliases:
+    - htt
+    - it15
+    - lomars
+  metadata:
+    display_name: "huntingtin"
+    omim_id: "613004"
+
+IDH1:
+  entity_type: gene
+  aliases:
+    - hel-216
+    - hel-s-26
+    - idcd
+    - idh
+    - idh1
+    - idp
+    - idpc
+    - picd
+  metadata:
+    display_name: "isocitrate dehydrogenase (NADP(+)) 1"
+    omim_id: "147700"
+
+IDH2:
+  entity_type: gene
+  aliases:
+    - d2hga2
+    - icd-m
+    - idh
+    - idh-2
+    - idh2
+    - idhm
+    - idp
+    - idpm
+    - mnadp-idh
+  metadata:
+    display_name: "isocitrate dehydrogenase (NADP(+)) 2"
+    omim_id: "147650"
+
+IFNB1:
+  entity_type: gene
+  aliases:
+    - ifb
+    - iff
+    - ifn-beta
+    - ifnb
+    - ifnb1
+  metadata:
+    display_name: "interferon beta 1"
+    omim_id: "147640"
+
+IFNG:
+  entity_type: gene
+  aliases:
+    - ifg
+    - ifi
+    - ifng
+    - imd69
+  metadata:
+    display_name: "interferon gamma"
+    omim_id: "147570"
+
+IGF1:
+  entity_type: gene
+  aliases:
+    - igf
+    - igf-i
+    - igf1
+    - igfi
+    - mgf
+  metadata:
+    display_name: "insulin like growth factor 1"
+    omim_id: "147440"
+
+IGF1R:
+  entity_type: gene
+  aliases:
+    - cd221
+    - igf1r
+    - igfir
+    - igfr
+    - jtk13
+  metadata:
+    display_name: "insulin like growth factor 1 receptor"
+    omim_id: "147370"
+
+IGF2:
+  entity_type: gene
+  aliases:
+    - c11orf43
+    - grdf
+    - igf-ii
+    - igf2
+    - pp9974
+    - srs3
+  metadata:
+    display_name: "insulin like growth factor 2"
+    omim_id: "147470"
+
+IL10:
+  entity_type: gene
+  aliases:
+    - csif
+    - gvhds
+    - il-10
+    - il10
+    - il10a
+    - tgif
+  metadata:
+    display_name: "interleukin 10"
+    omim_id: "124092"
+
+IL17A:
+  entity_type: gene
+  aliases:
+    - ctla-8
+    - ctla8
+    - il-17
+    - il-17a
+    - il17
+    - il17a
+    - ila17
+  metadata:
+    display_name: "interleukin 17A"
+    omim_id: "603149"
+
+IL1B:
+  entity_type: gene
+  aliases:
+    - il-1
+    - il1-beta
+    - il1b
+    - il1beta
+    - il1f2
+  metadata:
+    display_name: "interleukin 1 beta"
+    omim_id: "147720"
+
+IL23A:
+  entity_type: gene
+  aliases:
+    - il-23
+    - il-23a
+    - il23a
+    - il23p19
+    - p19
+    - sgrf
+  metadata:
+    display_name: "interleukin 23 subunit alpha"
+    omim_id: "605580"
+
+IL6:
+  entity_type: gene
+  aliases:
+    - bsf-2
+    - bsf2
+    - cdf
+    - hgf
+    - hsf
+    - ifn-beta-2
+    - ifnb2
+    - il-6
+    - il6
+  metadata:
+    display_name: "interleukin 6"
+    omim_id: "147620"
+
+INS:
+  entity_type: gene
+  aliases:
+    - iddm
+    - iddm1
+    - iddm2
+    - ilpr
+    - ins
+    - irdn
+    - mody10
+    - pndm4
+  metadata:
+    display_name: "insulin"
+    omim_id: "176730"
+
+INSR:
+  entity_type: gene
+  aliases:
+    - cd220
+    - hhf5
+    - insr
+  metadata:
+    display_name: "insulin receptor"
+    omim_id: "147670"
+
+JAK1:
+  entity_type: gene
+  aliases:
+    - aiide
+    - jak1
+    - jak1a
+    - jak1b
+    - jtk3
+  metadata:
+    display_name: "Janus kinase 1"
+    omim_id: "147795"
+
+JAK2:
+  entity_type: gene
+  aliases:
+    - jak2
+    - jtk10
+  metadata:
+    display_name: "Janus kinase 2"
+    omim_id: "147796"
+
+JAK3:
+  entity_type: gene
+  aliases:
+    - jak-3
+    - jak3
+    - jak3_human
+    - jakl
+    - l-jak
+    - ljak
+  metadata:
+    display_name: "Janus kinase 3"
+    omim_id: "600173"
+
+KIT:
+  entity_type: gene
+  aliases:
+    - c-kit
+    - cd117
+    - kit
+    - mastc
+    - pbt
+    - scfr
+  metadata:
+    display_name: "KIT proto-oncogene, receptor tyrosine kinase"
+    omim_id: "164920"
+
+KMT2D:
+  entity_type: gene
+  aliases:
+    - aad10
+    - alr
+    - bcahh
+    - cagl114
+    - kabuk1
+    - kms
+    - kmt2d
+    - mll2
+    - mll4
+    - tnrc21
+  metadata:
+    display_name: "lysine methyltransferase 2D"
+    omim_id: "602113"
+
+KRAS:
+  entity_type: gene
+  aliases:
+    - "'c-k-ras"
+    - c-k-ras
+    - c-ki-ras
+    - c-ki-ras2
+    - cfc2
+    - k-ras
+    - k-ras 2
+    - k-ras2a
+    - k-ras2b
+    - k-ras4a
+    - k-ras4b
+    - ki-ras
+    - kras
+    - kras1
+    - kras2
+    - ns3
+    - oes
+    - rald
+    - rald2
+    - rask2
+  metadata:
+    display_name: "KRAS proto-oncogene, GTPase"
+    omim_id: "190070"
+
+LAG3:
+  entity_type: gene
+  aliases:
+    - cd223
+    - lag3
+  metadata:
+    display_name: "lymphocyte activating 3"
+    omim_id: "153337"
+
+LEP:
+  entity_type: gene
+  aliases:
+    - lep
+    - lepd
+    - obs
+  metadata:
+    display_name: "leptin"
+    omim_id: "164160"
+
+LEPR:
+  entity_type: gene
+  aliases:
+    - cd295
+    - hub219
+    - lep-r
+    - lepr
+    - leprd
+    - ob-r
+    - obr
+  metadata:
+    display_name: "leptin receptor"
+    omim_id: "601007"
+
+LRRK2:
+  entity_type: gene
+  aliases:
+    - aura17
+    - dardarin
+    - lrrk2
+    - park8
+    - ripk7
+    - roco2
+  metadata:
+    display_name: "leucine rich repeat kinase 2"
+    omim_id: "609007"
+
+MAPK1:
+  entity_type: gene
+  aliases:
+    - erk
+    - erk-2
+    - erk2
+    - ert1
+    - mapk1
+    - mapk2
+    - ns13
+    - p38
+    - p40
+    - p41
+    - p41mapk
+    - p42-mapk
+    - p42mapk
+    - prkm1
+    - prkm2
+  metadata:
+    display_name: "mitogen-activated protein kinase 1"
+    omim_id: "176948"
+
+MAPK3:
+  entity_type: gene
+  aliases:
+    - erk-1
+    - erk1
+    - ert2
+    - hs44kdap
+    - humker1a
+    - mapk3
+    - p44-erk1
+    - p44-mapk
+    - p44erk1
+    - p44mapk
+    - prkm3
+  metadata:
+    display_name: "mitogen-activated protein kinase 3"
+    omim_id: "601795"
+
+MAPT:
+  entity_type: gene
+  aliases:
+    - ddpac
+    - ftd1
+    - ftdp-17
+    - mapt
+    - maptl
+    - mstd
+    - mtbt1
+    - mtbt2
+    - ppnd
+    - ppp1r103
+    - tau
+    - tau-40
+    - tau-phf6
+  metadata:
+    display_name: "microtubule associated protein tau"
+    omim_id: "157140"
+
+MCL1:
+  entity_type: gene
+  aliases:
+    - bcl2-l-3
+    - bcl2l3
+    - eat
+    - mcl-1
+    - mcl1
+    - mcl1-es
+    - mcl1/eat
+    - mcl1l
+    - mcl1s
+  metadata:
+    display_name: "MCL1 apoptosis regulator, BCL2 family member"
+    omim_id: "159552"
+
+MECP2:
+  entity_type: gene
+  aliases:
+    - autsx3
+    - mecp2
+    - mrx16
+    - mrx79
+    - mrxs13
+    - mrxsl
+    - ppmx
+    - rts
+    - rtt
+  metadata:
+    display_name: "methyl-CpG binding protein 2"
+    omim_id: "300005"
+
+MERTK:
+  entity_type: gene
+  aliases:
+    - c-eyk
+    - c-mer
+    - mer
+    - mertk
+    - rp38
+    - tyro12
+  metadata:
+    display_name: "MER proto-oncogene, tyrosine kinase"
+    omim_id: "604705"
+
+MET:
+  entity_type: gene
+  aliases:
+    - auts9
+    - c-met
+    - da11
+    - dfnb97
+    - hgfr
+    - met
+    - rccp2
+  metadata:
+    display_name: "MET proto-oncogene, receptor tyrosine kinase"
+    omim_id: "164860"
+
+MLH1:
+  entity_type: gene
+  aliases:
+    - coca2
+    - fcc2
+    - hmlh1
+    - hnpcc
+    - hnpcc2
+    - lynch2
+    - mlh-1
+    - mlh1
+    - mmrcs1
+  metadata:
+    display_name: "mutL homolog 1"
+    omim_id: "120436"
+
+MSH2:
+  entity_type: gene
+  aliases:
+    - coca1
+    - fcc1
+    - hmsh2
+    - hnpcc
+    - hnpcc1
+    - lcfs2
+    - lynch1
+    - mmrcs2
+    - msh-2
+    - msh2
+  metadata:
+    display_name: "mutS homolog 2"
+    omim_id: "609309"
+
+MSH6:
+  entity_type: gene
+  aliases:
+    - gtbp
+    - gtmbp
+    - hnpcc5
+    - hsap
+    - lynch5
+    - mmrcs3
+    - msh-6
+    - msh6
+    - p160
+  metadata:
+    display_name: "mutS homolog 6"
+    omim_id: "600678"
+
+MTOR:
+  entity_type: gene
+  aliases:
+    - frap
+    - frap1
+    - frap2
+    - mtor
+    - raft1
+    - rapt1
+    - sks
+  metadata:
+    display_name: "mechanistic target of rapamycin kinase"
+    omim_id: "601231"
+
+MTOR:
+  entity_type: gene
+  aliases:
+    - frap
+    - frap1
+    - frap2
+    - mtor
+    - raft1
+    - rapt1
+    - sks
+  metadata:
+    display_name: "mechanistic target of rapamycin kinase"
+    omim_id: "601231"
+
+MYC:
+  entity_type: gene
+  aliases:
+    - bhlhe39
+    - c-myc
+    - mrtl
+    - myc
+    - mycc
+  metadata:
+    display_name: "MYC proto-oncogene, bHLH transcription factor"
+    omim_id: "190080"
+
+MYCN:
+  entity_type: gene
+  aliases:
+    - bhlhe37
+    - fglds1
+    - moded
+    - mpapa
+    - mycn
+    - mycnsorf
+    - mycnspep
+    - n-myc
+    - nmyc
+    - oded
+  metadata:
+    display_name: "MYCN proto-oncogene, bHLH transcription factor"
+    omim_id: "164840"
+
+NAT2:
+  entity_type: gene
+  aliases:
+    - aac2
+    - nat-2
+    - nat2
+    - pnat
+  metadata:
+    display_name: "N-acetyltransferase 2"
+    omim_id: "612182"
+
+NF1:
+  entity_type: gene
+  aliases:
+    - nf1
+    - nfns
+    - vrnf
+    - wss
+  metadata:
+    display_name: "neurofibromin 1"
+    omim_id: "613113"
+
+NF2:
+  entity_type: gene
+  aliases:
+    - acn
+    - banf
+    - merlin-1
+    - nf2
+    - sch
+    - swnv
+  metadata:
+    display_name: "NF2, moesin-ezrin-radixin like (MERLIN) tumor suppressor"
+    omim_id: "607379"
+
+NFKB1:
+  entity_type: gene
+  aliases:
+    - cvid12
+    - ebp-1
+    - kbf1
+    - nf-kappa-b1
+    - nf-kappab
+    - nf-kappabeta
+    - nf-kb
+    - nf-kb1
+    - nfkappab
+    - nfkb-p105
+    - nfkb-p50
+    - nfkb1
+  metadata:
+    display_name: "nuclear factor kappa B subunit 1"
+    omim_id: "164011"
+
+NRAS:
+  entity_type: gene
+  aliases:
+    - alps4
+    - cmns
+    - n-ras
+    - ncms
+    - nras
+    - nras1
+    - ns6
+    - rald1
+  metadata:
+    display_name: "NRAS proto-oncogene, GTPase"
+    omim_id: "164790"
+
+PAH:
+  entity_type: gene
+  aliases:
+    - pah
+    - pku
+    - pku1
+  metadata:
+    display_name: "phenylalanine hydroxylase"
+    omim_id: "612349"
+
+PALB2:
+  entity_type: gene
+  aliases:
+    - brovca5
+    - fancn
+    - palb2
+    - pnca3
+  metadata:
+    display_name: "partner and localizer of BRCA2"
+    omim_id: "610355"
+
+PARP1:
+  entity_type: gene
+  aliases:
+    - adprt
+    - adprt 1
+    - adprt1
+    - artd1
+    - padprt-1
+    - parp
+    - parp-1
+    - parp1
+    - pars
+    - poly-parp
+    - ppol
+  metadata:
+    display_name: "poly(ADP-ribose) polymerase 1"
+    omim_id: "173870"
+
+PDCD1:
+  entity_type: gene
+  aliases:
+    - admio4
+    - aimtbs
+    - cd279
+    - hpd-1
+    - hpd-l
+    - hsle1
+    - pd-1
+    - pd1
+    - pdcd1
+    - sleb2
+  metadata:
+    display_name: "programmed cell death 1"
+    omim_id: "600244"
+
+PDGFRA:
+  entity_type: gene
+  aliases:
+    - cd140a
+    - pdgfr-2
+    - pdgfr2
+    - pdgfra
+  metadata:
+    display_name: "platelet derived growth factor receptor alpha"
+    omim_id: "173490"
+
+PDGFRB:
+  entity_type: gene
+  aliases:
+    - cd140b
+    - ibgc4
+    - imf1
+    - jtk12
+    - kogs
+    - opdkd
+    - pdgfr
+    - pdgfr-1
+    - pdgfr1
+    - pdgfrb
+    - pentt
+  metadata:
+    display_name: "platelet derived growth factor receptor beta"
+    omim_id: "173410"
+
+PGR:
+  entity_type: gene
+  aliases:
+    - nr3c3
+    - pgr
+  metadata:
+    display_name: "progesterone receptor"
+    omim_id: "607311"
+
+PIK3CA:
+  entity_type: gene
+  aliases:
+    - ccm4
+    - clapo
+    - clove
+    - cws5
+    - hmh
+    - mcap
+    - mcm
+    - mcmtc
+    - p110-alpha
+    - pi3k
+    - pi3k-alpha
+    - pik3ca
+  metadata:
+    display_name: "phosphatidylinositol-4,5-bisphosphate 3-kinase catalytic subunit alpha"
+    omim_id: "171834"
+
+PINK1:
+  entity_type: gene
+  aliases:
+    - brpk
+    - park6
+    - pink1
+  metadata:
+    display_name: "PTEN induced kinase 1"
+    omim_id: "608309"
+
+PLK1:
+  entity_type: gene
+  aliases:
+    - plk
+    - plk1
+    - stpk13
+  metadata:
+    display_name: "polo like kinase 1"
+    omim_id: "602098"
+
+PMS2:
+  entity_type: gene
+  aliases:
+    - hnpcc4
+    - lynch4
+    - mlh4
+    - mmrcs4
+    - pms-2
+    - pms2
+    - pmsl2
+  metadata:
+    display_name: "PMS1 homolog 2, mismatch repair system component"
+    omim_id: "600259"
+
+PRKN:
+  entity_type: gene
+  aliases:
+    - ar-jp
+    - lprs2
+    - park2
+    - pdj
+    - prkn
+  metadata:
+    display_name: "parkin RBR E3 ubiquitin protein ligase"
+    omim_id: "602544"
+
+PSEN1:
+  entity_type: gene
+  aliases:
+    - acninv3
+    - ad3
+    - cmd1u
+    - fad
+    - ps-1
+    - ps1
+    - psen1
+    - psnl1
+    - s182
+  metadata:
+    display_name: "presenilin 1"
+    omim_id: "104311"
+
+PSEN2:
+  entity_type: gene
+  aliases:
+    - ad3l
+    - ad4
+    - cmd1v
+    - ps2
+    - psen2
+    - stm2
+  metadata:
+    display_name: "presenilin 2"
+    omim_id: "600759"
+
+PTEN:
+  entity_type: gene
+  aliases:
+    - 10q23del
+    - bzs
+    - cws1
+    - dec
+    - glm2
+    - mham
+    - mmac1
+    - pten
+    - pten1
+    - ptenbeta
+    - ptengama
+    - tep1
+  metadata:
+    display_name: "phosphatase and tensin homolog"
+    omim_id: "601728"
+
+RB1:
+  entity_type: gene
+  aliases:
+    - osrc
+    - p105-rb
+    - p110-rb1
+    - pp110
+    - ppp1r130
+    - prb
+    - rb1
+  metadata:
+    display_name: "RB transcriptional corepressor 1"
+    omim_id: "614041"
+
+RECQL4:
+  entity_type: gene
+  aliases:
+    - recq4
+    - recql4
+  metadata:
+    display_name: "RecQ like helicase 4"
+    omim_id: "603780"
+
+RELA:
+  entity_type: gene
+  aliases:
+    - aif3bl3
+    - cmcu
+    - nfkb3
+    - p65
+    - rela
+  metadata:
+    display_name: "RELA proto-oncogene, NF-kB subunit"
+    omim_id: "164014"
+
+RET:
+  entity_type: gene
+  aliases:
+    - cdhf12
+    - cdhr16
+    - hscr1
+    - men2a
+    - men2b
+    - mtc1
+    - ptc
+    - ret
+    - ret-ele1
+  metadata:
+    display_name: "ret proto-oncogene"
+    omim_id: "164761"
+
+ROCK1:
+  entity_type: gene
+  aliases:
+    - p160rock
+    - rock-i
+    - rock1
+  metadata:
+    display_name: "Rho associated coiled-coil containing protein kinase 1"
+    omim_id: "601702"
+
+ROS1:
+  entity_type: gene
+  aliases:
+    - c-ros-1
+    - mcf3
+    - ros
+    - ros1
+  metadata:
+    display_name: "ROS proto-oncogene 1, receptor tyrosine kinase"
+    omim_id: "165020"
+
+RPS17:
+  entity_type: gene
+  aliases:
+    - dba4
+    - es17
+    - rps17
+    - rps17l
+    - rps17l1
+    - rps17l2
+    - s17
+  metadata:
+    display_name: "ribosomal protein S17"
+    omim_id: "180472"
+
+RPS19:
+  entity_type: gene
+  aliases:
+    - dba
+    - dba1
+    - es19
+    - loh19cr1
+    - rps19
+    - s19
+  metadata:
+    display_name: "ribosomal protein S19"
+    omim_id: "603474"
+
+SCN1A:
+  entity_type: gene
+  aliases:
+    - dee6
+    - dee6a
+    - dee6b
+    - drvt
+    - eiee6
+    - feb3
+    - feb3a
+    - fhm3
+    - gefsp2
+    - hbsci
+    - nac1
+    - nav1.1
+    - scn1
+    - scn1a
+    - smei
+  metadata:
+    display_name: "sodium voltage-gated channel alpha subunit 1"
+    omim_id: "182389"
+
+SCN2A:
+  entity_type: gene
+  aliases:
+    - bfic3
+    - bfis3
+    - bfnis
+    - dee11
+    - ea9
+    - eiee11
+    - hba
+    - hbsci
+    - hbscii
+    - na(v)1.2
+    - nac2
+    - nav1.2
+    - scn2a
+    - scn2a1
+    - scn2a2
+  metadata:
+    display_name: "sodium voltage-gated channel alpha subunit 2"
+    omim_id: "182390"
+
+SETD5:
+  entity_type: gene
+  aliases:
+    - mrd23
+    - setd5
+    - setd5a
+  metadata:
+    display_name: "SET domain containing 5"
+    omim_id: "615743"
+
+SHANK3:
+  entity_type: gene
+  aliases:
+    - del22q13.3
+    - prosap2
+    - psap2
+    - sczd15
+    - shank3
+    - spank-2
+  metadata:
+    display_name: "SH3 and multiple ankyrin repeat domains 3"
+    omim_id: "606230"
+
+SLCO1B1:
+  entity_type: gene
+  aliases:
+    - hblrr
+    - lst-1
+    - oatp-c
+    - oatp1b1
+    - oatp2
+    - oatpc
+    - slc21a6
+    - slco1b1
+  metadata:
+    display_name: "solute carrier organic anion transporter family member 1B1"
+    omim_id: "604843"
+
+SMAD4:
+  entity_type: gene
+  aliases:
+    - dpc4
+    - jip
+    - madh4
+    - myhrs
+    - smad4
+  metadata:
+    display_name: "SMAD family member 4"
+    omim_id: "600993"
+
+SMN1:
+  entity_type: gene
+  aliases:
+    - bcd541
+    - gemin1
+    - sma
+    - sma1
+    - sma2
+    - sma3
+    - sma4
+    - sma@
+    - smn
+    - smn1
+    - smnt
+    - t-bcd541
+    - tdrd16a
+  metadata:
+    display_name: "survival of motor neuron 1, telomeric"
+    omim_id: "600354"
+
+SMN2:
+  entity_type: gene
+  aliases:
+    - bcd541
+    - c-bcd541
+    - gemin1
+    - smn2
+    - smnc
+    - tdrd16b
+  metadata:
+    display_name: "survival of motor neuron 2, centromeric"
+    omim_id: "601627"
+
+SNCA:
+  entity_type: gene
+  aliases:
+    - nacp
+    - park1
+    - park4
+    - pd1
+    - snca
+  metadata:
+    display_name: "synuclein alpha"
+    omim_id: "163890"
+
+SOD1:
+  entity_type: gene
+  aliases:
+    - als
+    - als1
+    - hel-s-44
+    - homodimer
+    - hsod1
+    - ipoa
+    - sod
+    - sod1
+    - stahp
+  metadata:
+    display_name: "superoxide dismutase 1"
+    omim_id: "147450"
+
+SPAST:
+  entity_type: gene
+  aliases:
+    - adpsp
+    - fsp2
+    - spast
+    - spg4
+  metadata:
+    display_name: "spastin"
+    omim_id: "604277"
+
+STAT3:
+  entity_type: gene
+  aliases:
+    - admio
+    - admio1
+    - aprf
+    - hies
+    - stat3
+  metadata:
+    display_name: "signal transducer and activator of transcription 3"
+    omim_id: "102582"
+
+STAT5A:
+  entity_type: gene
+  aliases:
+    - mgf
+    - stat5
+    - stat5a
+  metadata:
+    display_name: "signal transducer and activator of transcription 5A"
+    omim_id: "601511"
+
+STK11:
+  entity_type: gene
+  aliases:
+    - hlkb1
+    - lkb1
+    - pjs
+    - stk11
+  metadata:
+    display_name: "serine/threonine kinase 11"
+    omim_id: "602216"
+
+TARDBP:
+  entity_type: gene
+  aliases:
+    - als10
+    - tardbp
+    - tdp-43
+  metadata:
+    display_name: "TAR DNA binding protein"
+    omim_id: "605078"
+
+TET2:
+  entity_type: gene
+  aliases:
+    - imd75
+    - kiaa1546
+    - mds
+    - tet2
+  metadata:
+    display_name: "tet methylcytosine dioxygenase 2"
+    omim_id: "612839"
+
+TG:
+  entity_type: gene
+  aliases:
+    - aitd3
+    - tgn
+  metadata:
+    display_name: "thyroglobulin"
+    omim_id: "188450"
+
+TGFB1:
+  entity_type: gene
+  aliases:
+    - caend1
+    - ced
+    - dpd1
+    - ibdimde
+    - lap
+    - tgf-beta1
+    - tgfb
+    - tgfb1
+    - tgfbeta
+  metadata:
+    display_name: "transforming growth factor beta 1"
+    omim_id: "190180"
+
+TGFB2:
+  entity_type: gene
+  aliases:
+    - caend2
+    - g-tsf
+    - lds4
+    - tgf-beta2
+    - tgfb2
+  metadata:
+    display_name: "transforming growth factor beta 2"
+    omim_id: "190220"
+
+TIGIT:
+  entity_type: gene
+  aliases:
+    - tigit
+    - vsig9
+    - vstm3
+    - wucam
+  metadata:
+    display_name: "T cell immunoreceptor with Ig and ITIM domains"
+    omim_id: "612859"
+
+TNF:
+  entity_type: gene
+  aliases:
+    - dif
+    - imd127
+    - tnf
+    - tnf-alpha
+    - tnfa
+    - tnfsf2
+    - tnlg1f
+  metadata:
+    display_name: "tumor necrosis factor"
+    omim_id: "191160"
+
+TP53:
+  entity_type: gene
+  aliases:
+    - bcc7
+    - bmfs5
+    - lfs1
+    - p53
+    - tp53
+    - trp53
+  metadata:
+    display_name: "tumor protein p53"
+    omim_id: "191170"
+
+TPMT:
+  entity_type: gene
+  aliases:
+    - tpmt
+    - tpmtd
+  metadata:
+    display_name: "thiopurine S-methyltransferase"
+    omim_id: "187680"
+
+TREM2:
+  entity_type: gene
+  aliases:
+    - ad17
+    - plosl2
+    - trem-2
+    - trem2
+    - trem2a
+    - trem2b
+    - trem2c
+  metadata:
+    display_name: "triggering receptor expressed on myeloid cells 2"
+    omim_id: "605086"
+
+TSHR:
+  entity_type: gene
+  aliases:
+    - chng1
+    - htshr-i
+    - lgr3
+    - tshr
+  metadata:
+    display_name: "thyroid stimulating hormone receptor"
+    omim_id: "603372"
+
+UBE3A:
+  entity_type: gene
+  aliases:
+    - ancr
+    - e6-ap
+    - epve6ap
+    - hpve6a
+    - pix1
+    - ube3a
+  metadata:
+    display_name: "ubiquitin protein ligase E3A"
+    omim_id: "601623"
+
+UGT1A1:
+  entity_type: gene
+  aliases:
+    - biliqtl1
+    - gnt1
+    - hug-br1
+    - udpgt
+    - udpgt 1-1
+    - ugt1
+    - ugt1a
+    - ugt1a1
+  metadata:
+    display_name: "UDP glucuronosyltransferase family 1 member A1"
+    omim_id: "191740"
+
+UGT2B7:
+  entity_type: gene
+  aliases:
+    - udpgt 2b7
+    - udpgt 2b9
+    - udpgt2b7
+    - udpgth-2
+    - udpgth2
+    - ugt2b7
+    - ugt2b9
+  metadata:
+    display_name: "UDP glucuronosyltransferase family 2 member B7"
+    omim_id: "600068"
+
+VEGFA:
+  entity_type: gene
+  aliases:
+    - l-vegf
+    - mvcd1
+    - vegf
+    - vegfa
+    - vpf
+  metadata:
+    display_name: "vascular endothelial growth factor A"
+    omim_id: "192240"
+
+VHL:
+  entity_type: gene
+  aliases:
+    - hrca1
+    - pvhl
+    - rca1
+    - vhl
+    - vhl1
+  metadata:
+    display_name: "von Hippel-Lindau tumor suppressor"
+    omim_id: "608537"
+
+VWF:
+  entity_type: gene
+  aliases:
+    - f8vwf
+    - vwd
+    - vwf
+  metadata:
+    display_name: "von Willebrand factor"
+    omim_id: "613160"
+
+WRN:
+  entity_type: gene
+  aliases:
+    - recq3
+    - recql2
+    - recql3
+    - wrn
+  metadata:
+    display_name: "WRN RecQ like helicase"
+    omim_id: "604611"
+
+XPA:
+  entity_type: gene
+  aliases:
+    - xp1
+    - xpa
+    - xpac
+  metadata:
+    display_name: "XPA, DNA damage recognition and repair factor"
+    omim_id: "611153"
+
+XPC:
+  entity_type: gene
+  aliases:
+    - p125
+    - rad4
+    - xp3
+    - xpc
+    - xpcc
+  metadata:
+    display_name: "XPC complex subunit, DNA damage recognition and repair factor"
+    omim_id: "613208"
+
+XPO1:
+  entity_type: gene
+  aliases:
+    - crm-1
+    - crm1
+    - emb
+    - exp1
+    - xpo1
+  metadata:
+    display_name: "exportin 1"
+    omim_id: "602559"
+
