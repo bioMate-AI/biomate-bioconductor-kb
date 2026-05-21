@@ -109,7 +109,7 @@ class WiredAgenticMemoryService(AgenticMemoryService):
 
         # Step 3: extract canonical entities and tool families from the query
         try:
-            from backend.lib.galaxy.ai.retrievers.family_dedup import canonical_family_key  # noqa
+            from galaxy.ai.retrievers.family_dedup import canonical_family_key  # noqa
             # Entity extraction (genes, diseases, drugs)
             from sandbox.intent_retrieval_v3.adapters.entity import (
                 extract_canonical_entities,

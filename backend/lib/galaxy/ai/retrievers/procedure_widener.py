@@ -9,7 +9,7 @@ sessions and reverts collisions).
 
 Usage:
 
-    from backend.lib.galaxy.ai.retrievers.procedure_widener import (
+    from galaxy.ai.retrievers.procedure_widener import (
         widen_procedures_by_entities,
     )
 

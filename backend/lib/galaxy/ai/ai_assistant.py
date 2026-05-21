@@ -33,7 +33,7 @@ from .unified_workflow_search import (
 # BIOMATE_WORKFLOW_INTENT_PRIORITIZE=1 (+ optional INJECT=1). Bit-identical
 # to base when flags unset. Validated +9.0pp top-1 on n=155 routing benchmark.
 try:
-    from backend.lib.galaxy.ai.retrievers.wired_workflow_search import (
+    from galaxy.ai.retrievers.wired_workflow_search import (
         WiredWorkflowSearch as UnifiedWorkflowSearch,
     )
 except Exception:  # noqa: BLE001

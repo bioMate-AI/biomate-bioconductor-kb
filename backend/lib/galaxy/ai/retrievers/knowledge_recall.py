@@ -16,7 +16,7 @@ Same composable-helper pattern as `procedure_widener.py`:
 
 API:
 
-    from backend.lib.galaxy.ai.retrievers.knowledge_recall import (
+    from galaxy.ai.retrievers.knowledge_recall import (
         recall_project_knowledge,
     )
 

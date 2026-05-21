@@ -8,7 +8,7 @@ instead of the base class. Existing call sites of
 `ToolParameterRecommender` stay bit-identical — no protected-file edits.
 
 Usage:
-    from backend.lib.galaxy.ai.retrievers.wired_recommender import (
+    from galaxy.ai.retrievers.wired_recommender import (
         WiredToolParameterRecommender,
     )
     rec = WiredToolParameterRecommender(db_path=...)
@@ -56,7 +56,7 @@ class WiredToolParameterRecommender(ToolParameterRecommender):
         if not raw:
             return raw
         try:
-            from backend.lib.galaxy.ai.retrievers import prioritize_query_family
+            from galaxy.ai.retrievers import prioritize_query_family
             as_dicts = [
                 {"tool_id": t.tool_id, "name": t.name, "_idx": i}
                 for i, t in enumerate(raw)

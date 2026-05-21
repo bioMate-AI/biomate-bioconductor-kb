@@ -12,7 +12,7 @@ Existing call sites of `UnifiedWorkflowSearch` stay bit-identical — no
 edits to protected files.
 
 Usage:
-    from backend.lib.galaxy.ai.retrievers.wired_workflow_search import (
+    from galaxy.ai.retrievers.wired_workflow_search import (
         WiredWorkflowSearch,
     )
     search = WiredWorkflowSearch()  # same constructor as UnifiedWorkflowSearch

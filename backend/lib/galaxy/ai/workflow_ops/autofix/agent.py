@@ -25,7 +25,7 @@ from .tool_parameter_recommender import ToolParameterRecommender as _BaseToolPar
 # behind BIOMATE_FAMILY_PRIORITIZE=1 env flag. With flag unset, behavior is
 # bit-identical to base class. Lazy/graceful import so any failure falls back.
 try:
-    from backend.lib.galaxy.ai.retrievers.wired_recommender import (
+    from galaxy.ai.retrievers.wired_recommender import (
         WiredToolParameterRecommender as ToolParameterRecommender,
     )
 except Exception:  # noqa: BLE001
