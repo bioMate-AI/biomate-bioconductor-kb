@@ -139,10 +139,16 @@ ssm_run() {
 # -------- 1. Pre-flight --------
 log "[1/5] Pre-flight checks (disk, docker, orphan sync_to_dev.sh) …"
 ssm_run '
+set -e
 echo "uname=$(uname -r)"
 echo "docker=$(docker --version 2>&1 || echo MISSING)"
 echo "compose=$(docker compose version 2>&1 || echo MISSING)"
-df -h / | awk "NR==2 {print \"disk_used=\"\$5} NR==2 {used=substr(\$5,1,length(\$5)-1)+0; if(used>80){print \"DISK_FULL\"; exit 1}}"
+USED=$(df / | awk "NR==2 {sub(/%/,\"\",\$5); print \$5+0}")
+echo "disk_used=${USED}%"
+if [ "$USED" -gt 80 ]; then
+  echo "DISK_FULL ($USED% > 80%) — aborting deploy"
+  exit 1
+fi
 # L7: kill any sync_to_dev.sh on the target (parallel-container era only)
 pkill -f sync_to_dev.sh 2>/dev/null && echo "killed orphan sync_to_dev.sh" || echo "no orphan sync_to_dev.sh"
 ' preflight || { notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "pre-flight"; exit 1; }

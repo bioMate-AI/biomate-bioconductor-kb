@@ -97,7 +97,35 @@ jobs:
       - name: Sanity — assumed role identity
         run: aws sts get-caller-identity --query 'Arn' --output text
 
+      # On workflow_run triggers, the upstream image build was path-filtered:
+      # a backend-only commit produces ONLY a backend image at sha-XXX, and
+      # vice versa. If we tried to `compose pull` at that SHA, the missing
+      # image would fail the deploy through no fault of the pipeline. Verify
+      # both images exist before proceeding — if not, exit success (the
+      # sibling image build, when it lands at this or a later SHA, will
+      # re-trigger this workflow with a coherent tag).
+      - name: Verify both images exist at tag
+        if: github.event_name == 'workflow_run'
+        id: verify
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          MISSING=0
+          for repo in biomate/dev-backend biomate/dev-frontend; do
+            if ! aws ecr describe-images --repository-name "$repo" \
+                  --image-ids imageTag="$TAG" \
+                  --region "$AWS_REGION" >/dev/null 2>&1; then
+              echo "::notice::image $repo:$TAG not yet in ECR — skipping (will re-fire when sibling build completes)"
+              MISSING=1
+            else
+              echo "found: $repo:$TAG"
+            fi
+          done
+          if [[ "$MISSING" == "1" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run deploy.sh
+        if: steps.verify.outputs.skip != 'true'
         run: |
           chmod +x scripts/deploy.sh
           bash scripts/deploy.sh test "${{ steps.tag.outputs.tag }}"
