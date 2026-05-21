@@ -60,7 +60,12 @@ case "$ENV_NAME" in
     PUBLIC_URL="http://stage-public.biomate.ai"
     BACKEND_HEALTH="${PUBLIC_URL}:8081/api/version"
     FRONTEND_HEALTH="${PUBLIC_URL}/api/health"
-    WIPE_GALAXY_DB=0             # P2.2: SQLite wipe no longer needed — Postgres handles it
+    # test env is ephemeral: drop+recreate the Galaxy schema on every deploy.
+    # Galaxy's migration code refuses to boot against a non-empty DB that has
+    # no alembic_version table (NoVersionTableError) — which is exactly what a
+    # previous half-failed boot leaves behind. The SQLite wipe used to handle
+    # this on the SQLite path; the Postgres equivalent is to drop schema public.
+    WIPE_GALAXY_DB=1
     RDS_SECRET_NAME="test/biomate/rds-galaxy"
     ;;
   *)
@@ -197,6 +202,28 @@ PREV=\$(cat /opt/biomate/last_deployed_tag 2>/dev/null || echo NONE)
 echo \"previous_tag=\$PREV\"
 echo '$DEPLOY_TAG' > /opt/biomate/last_deployed_tag.new
 " record || true
+
+# -------- 3b. (test-env only) Wipe Galaxy Postgres schema --------
+# Galaxy expects either:
+#   - an empty DB                              → bootstraps tables + stamps alembic
+#   - a populated DB with alembic_version      → runs upgrade
+#   - a populated DB WITHOUT alembic_version   → hard error (NoVersionTableError)
+# The third state is what a previous half-failed boot leaves behind, and it
+# bricks every subsequent deploy. For the ephemeral test env we recover by
+# dropping `schema public` so Galaxy is back in the empty-DB state. Postgres
+# client runs via the official image (EC2 host doesn't need psql installed).
+if [[ "$WIPE_GALAXY_DB" == "1" && -n "$RDS_SECRET_NAME" ]]; then
+  log "[3b/5] Wiping Galaxy schema (WIPE_GALAXY_DB=1 on $ENV_NAME) …"
+  ssm_run "
+DB_URL=\$(aws secretsmanager get-secret-value --region $AWS_REGION \
+  --secret-id $RDS_SECRET_NAME --query SecretString --output text \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"url\"])')
+# Convert sqlalchemy-style postgresql+psycopg2:// to plain postgresql:// for psql
+PSQL_URL=\$(echo \"\$DB_URL\" | sed -E 's|^postgresql\+psycopg2://|postgresql://|')
+docker run --rm postgres:15-alpine psql \"\$PSQL_URL\" \
+  -c 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' 2>&1
+" wipe || { notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "schema wipe"; exit 1; }
+fi
 
 # -------- 4. Pull + up + healthcheck --------
 log "[4/5] docker compose pull + up + container healthchecks …"
