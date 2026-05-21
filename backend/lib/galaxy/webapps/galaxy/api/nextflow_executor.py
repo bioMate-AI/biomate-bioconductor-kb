@@ -379,6 +379,8 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
+        backend_root / "biomni_workflows" / "nextflow",  # legacy generated workflows
+        backend_root / "biomni_workflows" / "nextflow" / "subworkflows",
         backend_root / "nf-core-workflows",
         backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools",
         backend_root / "nf-core-modules",
@@ -408,6 +410,14 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
       - nfcore/subworkflows/<name>
       - biomni_nf/<domain>/<name>.nf
     """
+    # Strip legacy 'backend/' prefix if present (old DB entries may have it)
+    if raw_path.startswith("backend/"):
+        raw_path = raw_path.split("backend/", 1)[1]
+
+    # Strip 'biomni_workflows/' prefix if present (normalize to relative path)
+    if raw_path.startswith("biomni_workflows/"):
+        raw_path = raw_path.split("biomni_workflows/", 1)[1]
+
     provided = Path(raw_path)
     if provided.is_absolute() and provided.exists():
         return provided
@@ -439,6 +449,15 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         # AI sometimes returns paths prefixed with nextflow_nfcore/ — strip it and
         # search both with and without an intermediate subworkflows/ component.
         rest = raw_path.split("nextflow_nfcore/", 1)[1].strip("/")
+        logical_candidates.extend([
+            Path(rest),
+            Path(rest) / "main.nf",
+            Path("subworkflows") / rest,
+            Path("subworkflows") / rest / "main.nf",
+        ])
+    elif raw_path.startswith("nextflow/"):
+        # Legacy nextflow/ directory (biomni_workflows/nextflow/subworkflows/)
+        rest = raw_path.split("nextflow/", 1)[1].strip("/")
         logical_candidates.extend([
             Path(rest),
             Path(rest) / "main.nf",
