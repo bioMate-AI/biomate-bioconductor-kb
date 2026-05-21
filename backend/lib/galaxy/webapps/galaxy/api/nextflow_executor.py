@@ -1175,6 +1175,14 @@ def _generate_executor_config(
             "    client {",
             "        maxConnections = 20",
             "        uploadChunkSize = 104857600",   # 100 MB chunks
+            # JVM SIGSEGV mitigation (2026-05-21): disable AWS SDK CRT (Common
+            # Runtime) S3 path so the bundled CRT JAR's <clinit> never tries
+            # to extract + dlopen its native .so. Falls back to the Apache
+            # HTTP client which uses pure-Java networking. The CRT path
+            # races on chained dlopen under OpenJDK 21.0.11 + Debian trixie
+            # glibc 2.41 and SIGSEGVs inside ld-linux on the PublishDir
+            # thread (~3 of 4 parallel runs observed on 2026-05-20).
+            "        s3.useCrtClient = false",
             "    }",
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
