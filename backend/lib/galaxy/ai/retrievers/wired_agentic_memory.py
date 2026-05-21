@@ -111,7 +111,7 @@ class WiredAgenticMemoryService(AgenticMemoryService):
         try:
             from galaxy.ai.retrievers.family_dedup import canonical_family_key  # noqa
             # Entity extraction (genes, diseases, drugs)
-            from sandbox.intent_retrieval_v3.adapters.entity import (
+            from galaxy.ai.retrievers.entity import (
                 extract_canonical_entities,
             )
             entities = extract_canonical_entities(query)

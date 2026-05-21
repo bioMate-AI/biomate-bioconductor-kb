@@ -12713,6 +12713,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   app.post("/api/ind-report/citations/suggest", express.json(), indProxy);
   app.post("/api/ind-report/sections/:sectionId/regenerate", express.json(), indProxy);
   app.get("/api/regulatory/active_adapter", indProxy);
+  // Project registry
+  app.get("/api/ind-report/projects", indProxy);
+  app.get("/api/ind-report/projects/:projectId", indProxy);
+  app.post("/api/ind-report/projects", express.json(), indProxy);
 
   const httpServer = createServer(app);
 

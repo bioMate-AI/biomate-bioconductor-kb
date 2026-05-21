@@ -50,7 +50,7 @@ class WiredWorkflowSearch(UnifiedWorkflowSearch):
         try:
             # Library still lives in sandbox; import path reflects that.
             # When the library is promoted to backend/lib, update this import.
-            from sandbox.workflow_search_v2.library.workflow_intent import (
+            from galaxy.ai.retrievers.workflow_intent import (
                 prioritize_workflow_by_intent,
             )
             inject = os.environ.get("BIOMATE_WORKFLOW_INTENT_INJECT") == "1"

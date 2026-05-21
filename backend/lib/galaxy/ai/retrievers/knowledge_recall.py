@@ -167,7 +167,7 @@ def recall_project_knowledge(
 
     # Entity extraction (defensive)
     try:
-        from sandbox.intent_retrieval_v3.adapters.entity import (
+        from galaxy.ai.retrievers.entity import (
             extract_canonical_entities,
         )
         entities = extract_canonical_entities(query)

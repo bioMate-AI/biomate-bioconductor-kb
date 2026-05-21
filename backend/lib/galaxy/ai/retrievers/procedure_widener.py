@@ -83,7 +83,7 @@ def widen_procedures_by_entities(
     # Extract canonical entities — defensive: never let the entity adapter
     # crash the recall pipeline.
     try:
-        from sandbox.intent_retrieval_v3.adapters.entity import (
+        from galaxy.ai.retrievers.entity import (
             extract_canonical_entities,
         )
         entities = extract_canonical_entities(query)
