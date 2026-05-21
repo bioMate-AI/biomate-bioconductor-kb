@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 /*
- * pharmacology/ADMET_pred
+ * pharmacology/ADMET_pred (fixed 2026-05-21)
  *
  * ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening.
  *
@@ -20,6 +20,9 @@ params.outdir = './results'
 // Default: terfenadine — a known hERG inhibitor (withdrawn from market) used to
 // demonstrate cardiotoxicity risk detection.
 params.smiles = 'OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC'
+
+// FORCE CACHE CLEAR 2026-05-21-v2 - Added dummy parameter to invalidate Nextflow cache
+params.biomate_version = '2026-05-21-meta-fix'
 
 process ADMET_PRED {
     tag "$meta.id"

@@ -21,6 +21,9 @@ params.outdir = './results'
 // demonstrate cardiotoxicity risk detection.
 params.smiles = 'OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC'
 
+// FORCE CACHE CLEAR 2026-05-21-v2 - Added dummy parameter to invalidate Nextflow cache
+params.biomate_version = '2026-05-21-meta-fix'
+
 process ADMET_PRED {
     tag "$meta.id"
     label 'process_medium'
