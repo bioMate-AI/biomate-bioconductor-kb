@@ -30,7 +30,7 @@ process ADMET_PRED {
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
-    val(meta)  // Meta information for this run
+    val(meta)
 
     output:
     tuple val(meta), path("ADMET_pred_results.json"), emit: results
@@ -390,9 +390,8 @@ workflow ADMET_PRED_WORKFLOW {
 // Entry workflow for standalone execution
 workflow {
     // Create channel with meta map
-    ch_input = Channel.of([id: 'run'])
-
-    ADMET_PRED_WORKFLOW(ch_input)
+    meta = [id: 'admet_run', single_end: false]
+    Channel.value(meta) | ADMET_PRED_WORKFLOW
 
     ADMET_PRED_WORKFLOW.out.output.view { "Output: $it" }
 }
