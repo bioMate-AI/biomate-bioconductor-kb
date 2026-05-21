@@ -260,12 +260,42 @@ deploy_workflows() {
     set -e
     mkdir -p /tmp/workflows_extract
     tar -xzf /tmp/workflows_sync.tar.gz -C /tmp/workflows_extract 2>/dev/null
-    # Copy workflows into Galaxy container
-    docker cp /tmp/workflows_extract/backend/biomni_workflows \
-      biomate-galaxy-dev:/app/biomni_workflows 2>/dev/null || \
-    docker exec biomate-galaxy-dev mkdir -p /app/biomni_workflows && \
-      docker cp /tmp/workflows_extract/backend/biomni_workflows/. \
-        biomate-galaxy-dev:/app/biomni_workflows/ 2>/dev/null
+    # Copy workflows into Galaxy container via in-container untar so symlinks
+    # in the archive can replace pre-existing directories (the host docker cp
+    # cannot overwrite a directory with a non-directory and silently leaves
+    # stale content — caused the 2026-05-21 ADMET_pred regression where the
+    # symlink drug_discovery/ADMET_pred → pharmacology/ADMET_pred could not
+    # supersede an old standalone directory on dev).
+    docker cp /tmp/workflows_sync.tar.gz biomate-galaxy-dev:/tmp/workflows_sync.tar.gz
+    docker exec biomate-galaxy-dev bash -c "
+      set -e
+      cd /tmp && mkdir -p workflows_extract_in
+      tar -xzf workflows_sync.tar.gz -C workflows_extract_in
+      # Per-file replacement (handles symlink-vs-dir conflicts that defeat cp -r).
+      # Walk the source, remove the dest entry whatever its type, then move new in.
+      cd workflows_extract_in/backend/biomni_workflows
+      find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
+        rel=\${rel#./}
+        dest=/app/biomni_workflows/\$rel
+        mkdir -p \"\$(dirname \"\$dest\")\"
+        rm -rf \"\$dest\" 2>/dev/null
+        cp -P \"\$rel\" \"\$dest\"
+      done
+    " 2>&1 | tail -3
+
+    # Workflow-script cache invalidation: Nextflow caches compiled .nf
+    # scripts by content hash, but stale per-run dirs can keep old plugin
+    # state. We DO NOT delete entire ~/.nextflow (plugins are 100MB+ and
+    # re-downloading on every sync would be slow); we clear only the
+    # script-compile cache + tmp.
+    docker exec biomate-galaxy-dev bash -c "
+      rm -rf /home/galaxy/.nextflow/cache /home/galaxy/.nextflow/tmp 2>/dev/null
+      rm -rf /root/.nextflow/cache /root/.nextflow/tmp 2>/dev/null
+      # Also wipe completed/orphaned per-run dirs older than 1 hour so the
+      # fallback status path will not latch onto a stale timing.json.
+      find /tmp/nextflow_runs -maxdepth 1 -mindepth 1 -type d -mmin +60 -exec rm -rf {} + 2>/dev/null
+      echo \"  ✓ nextflow caches cleared\"
+    " 2>&1 | tail -3
     echo "[workflows] Done"
   '
   log "[workflows] Done"
@@ -330,8 +360,37 @@ deploy_databases() {
 # ---------------------------------------------------------------------------
 
 restart_galaxy() {
-  log "[galaxy] Reloading Galaxy gunicorn workers (HUP)..."
+  log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
+    # Stale cache cleanup — addresses the class of "undetected issues" where
+    # a code/workflow change ships but the runtime keeps serving the old
+    # behaviour because:
+    #   - .pyc bytecode under __pycache__/ wins over fresh .py
+    #   - module-level singletons (e.g. _ai_assistant_instance) survive HUP
+    #     when the master process is reused
+    #   - Nextflow caches compiled workflow scripts in ~/.nextflow and the
+    #     per-run directories under /tmp/nextflow_runs/<run_id>/.nextflow
+    #   - Galaxy AI tool DB query caches inside the worker process
+    # Cleaning these BEFORE the HUP guarantees the new code/workflow is what
+    # serves the next request.
+    echo "[galaxy] Clearing Python bytecode cache (__pycache__ under /app/lib/galaxy/ai)..."
+    docker exec biomate-galaxy-dev bash -c "
+      find /app/lib/galaxy/ai /app/lib/galaxy/webapps/galaxy/api -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null
+      find /app/lib/galaxy/ai /app/lib/galaxy/webapps/galaxy/api -name \"*.pyc\" -delete 2>/dev/null
+      echo \"  ✓ pycache cleared\"
+    " 2>&1 | tail -3
+
+    echo "[galaxy] Clearing Nextflow workflow-script cache (preserves plugins)..."
+    docker exec biomate-galaxy-dev bash -c "
+      # Clear the cache directories Nextflow uses to memoise compiled workflow
+      # bytecode + workflow trace state. /tmp/nextflow_runs/* is per-run and
+      # safe to keep; the global ~/.nextflow/cache is what stores cross-run
+      # script-compile artifacts that pin to stale .nf file hashes.
+      rm -rf /home/galaxy/.nextflow/cache /home/galaxy/.nextflow/tmp 2>/dev/null
+      rm -rf /root/.nextflow/cache /root/.nextflow/tmp 2>/dev/null
+      echo \"  ✓ nextflow caches cleared\"
+    " 2>&1 | tail -3
+
     # Prefer HUP (graceful reload, no 30-min cold start) over docker restart.
     # Use "docker kill -s HUP" from the host — the container has no kill binary.
     GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
@@ -433,8 +492,13 @@ do_sync() {
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
-  # Only restart Galaxy when backend Python changes — .nf files don't require Galaxy restart
-  $do_backend && restart_galaxy
+  # HUP Galaxy when either backend Python OR workflow .nf files change.
+  # Workflows used to skip the HUP on the theory that Nextflow reads .nf
+  # from disk per-run, but Galaxy's in-process workflow_search keeps a
+  # parsed step cache + tool DB cache that stays pinned to old file
+  # contents until the worker process recycles. Skipping HUP caused the
+  # 2026-05-21 class of "fix shipped but old behaviour persists" issues.
+  ($do_backend || $do_workflows) && restart_galaxy
   $do_db        && deploy_databases
   # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
   # storage layer never hits a missing column on the new schema.
