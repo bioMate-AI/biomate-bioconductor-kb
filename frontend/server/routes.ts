@@ -8668,13 +8668,19 @@ ${paramLines || '(none recorded)'}`;
           ]);
           const isTerminalNfState = nfState && !IN_PROGRESS_STATES.has(nfState);
           if (isTerminalNfState) {
-            const isSuccessNfState = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
-            const isPausedNfState  = nfState === 'paused';
-            // Map to the BioMate ExecutionRunStatus vocabulary. Paused keeps
-            // the run record open; everything else is a hard terminal state.
-            const mappedNfForBioMate = isSuccessNfState ? 'succeeded' : isPausedNfState ? 'paused' : 'failed';
+            const isSuccessNfState   = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
+            const isPausedNfState    = nfState === 'paused';
+            const isCancelledNfState = nfState === 'cancelled' || nfState === 'aborted' || nfState === 'stopped';
+            // Map to the BioMate ExecutionRunStatus vocabulary. Preserve the
+            // cancel/pause/success/fail distinctions — collapsing cancelled
+            // into failed loses user intent and breaks downstream filters.
+            const mappedNfForBioMate =
+              isSuccessNfState   ? 'succeeded' :
+              isPausedNfState    ? 'paused'    :
+              isCancelledNfState ? 'cancelled' :
+              'failed';
             const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
-            const terminalMessage = !isSuccessNfState && !isPausedNfState
+            const terminalMessage = !isSuccessNfState && !isPausedNfState && !isCancelledNfState
               ? ((nextflowStatus as any)?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
               : undefined;
             run = await storage.updateExecutionRun(run.id, {
@@ -8690,7 +8696,7 @@ ${paramLines || '(none recorded)'}`;
             if (nfInvocationId && !isPausedNfState) {
               galaxyPoller.emit('workflow_completed', {
                 invocation_id: nfInvocationId,
-                state: isSuccessNfState ? 'ok' : 'failed',
+                state: isSuccessNfState ? 'ok' : isCancelledNfState ? 'cancelled' : 'failed',
               });
             }
           } else if (run.execution.status === 'running' && nextflowStatus) {
@@ -8744,11 +8750,16 @@ ${paramLines || '(none recorded)'}`;
           ]);
           const isTerminalNfState = nfState && !IN_PROGRESS_STATES_STATUS.has(nfState);
           if (isTerminalNfState && !isAlreadyTerminal) {
-            const isSuccessNfState = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
-            const isPausedNfState  = nfState === 'paused';
-            const mappedNfForBioMate = isSuccessNfState ? 'succeeded' : isPausedNfState ? 'paused' : 'failed';
+            const isSuccessNfState   = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
+            const isPausedNfState    = nfState === 'paused';
+            const isCancelledNfState = nfState === 'cancelled' || nfState === 'aborted' || nfState === 'stopped';
+            const mappedNfForBioMate =
+              isSuccessNfState   ? 'succeeded' :
+              isPausedNfState    ? 'paused'    :
+              isCancelledNfState ? 'cancelled' :
+              'failed';
             const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
-            const terminalMessage = !isSuccessNfState && !isPausedNfState
+            const terminalMessage = !isSuccessNfState && !isPausedNfState && !isCancelledNfState
               ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
               : undefined;
 
@@ -8768,7 +8779,7 @@ ${paramLines || '(none recorded)'}`;
             if (nfInvocationId && !isPausedNfState) {
               galaxyPoller.emit('workflow_completed', {
                 invocation_id: nfInvocationId,
-                state: isSuccessNfState ? 'ok' : 'failed',
+                state: isSuccessNfState ? 'ok' : isCancelledNfState ? 'cancelled' : 'failed',
               });
             }
           } else if (run.execution.status === 'running') {
