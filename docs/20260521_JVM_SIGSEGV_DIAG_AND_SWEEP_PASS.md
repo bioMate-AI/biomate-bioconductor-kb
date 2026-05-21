@@ -195,6 +195,33 @@ symptom.
 
 ---
 
+## Deprecation: `nextflowStatus.s3_output_files`
+
+Per the 2026-05-21 sweep-#3 finding ("outs=0 on succeeded runs with real
+outputs"), the in-process `nextflowStatus.s3_output_files` field is now
+**deprecated** in favour of `GET /api/runs/:id/outputs` (canonical
+RunsOutputsService) for the following reasons:
+
+- The field is an in-memory snapshot inside the Galaxy worker; it goes
+  empty whenever the worker restarts mid-run.
+- The race window between "Nextflow exits + Galaxy lists S3 + BioMate
+  polls" routinely loses, leaving the field stale.
+- `/api/runs/:id/outputs` lists S3 directly on every call and returns
+  richer metadata (`fileType`, presigned download URLs, step mapping).
+
+**Migration policy (deprecate-by-documentation, no behaviour change):**
+- The field continues to be written by Galaxy and read by old consumers
+  so nothing breaks today.
+- Deprecation comments added at the canonical write site
+  (`nextflow_executor.py` post-run S3 enumeration) and at all five Node.js
+  consumer sites (`routes.ts` legacy `/output_files`, frontend
+  `nextflow-workflow-viewer.tsx` artifact-summary triage helper).
+- New code must call `/api/runs/:id/outputs`. Old code can stay until
+  someone touches it, at which point migration is mandatory.
+- The user-facing artifact panel (`ChatOutputAttachments`) is already
+  on the canonical endpoint; no user-visible regression from this
+  deprecation.
+
 ## Still-open issues (carrying over from yesterday)
 
 1. `biomni-tools:x86` container has incompatible numpy + rdkit

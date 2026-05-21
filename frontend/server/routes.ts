@@ -9379,7 +9379,14 @@ Rules:
       const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
       const nfStatus = run.execution?.nextflowStatus as any;
 
-      // Try S3 output files first (cloud runs), then local disk scan (dev runs)
+      // DEPRECATED 2026-05-21: this endpoint reads from
+      //   nextflowStatus.s3_output_files
+      // which is an in-process Galaxy field that goes empty whenever the
+      // Galaxy worker restarts mid-run. The canonical replacement is
+      //   GET /api/runs/:id/outputs
+      // (RunsOutputsService) which lists S3 directly and returns richer
+      // metadata. New code should call /api/runs/:id/outputs; this
+      // /output_files endpoint is kept for backward compatibility only.
       let outputFiles = (nfStatus?.s3_output_files || nfStatus?.output_files || []) as any[];
       let outdir = nfStatus?.outdir as string | undefined;
 
@@ -12666,6 +12673,46 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       return res.status(500).json({ error: err.message || 'Resolve failed' });
     }
   });
+
+  // -------------------------------------------------------------------------
+  // IND Report — feedback + adapter passthrough to Galaxy
+  //
+  // Same-origin fetches from the IND Report client (lib/ind-report-api.ts)
+  // need to reach the Galaxy backend on :8081. The handler forwards them
+  // verbatim, preserving Authorization, X-BioMate-Org-Id, and the JSON body.
+  // -------------------------------------------------------------------------
+  const indProxy = async (req: any, res: any) => {
+    const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+    const target = `${galaxyUrl}${req.originalUrl}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (req.headers.authorization) headers["Authorization"] = req.headers.authorization as string;
+    const orgId = req.headers["x-biomate-org-id"];
+    if (orgId) headers["X-BioMate-Org-Id"] = orgId as string;
+    try {
+      const upstream = await fetch(target, {
+        method: req.method,
+        headers,
+        body: req.method === "GET" ? undefined : JSON.stringify(req.body ?? {}),
+      });
+      const ct = upstream.headers.get("content-type") || "";
+      res.status(upstream.status);
+      if (ct.includes("application/json")) {
+        res.json(await upstream.json());
+      } else {
+        res.send(await upstream.text());
+      }
+    } catch (err: any) {
+      res.status(502).json({ error: "ind-proxy upstream failed", detail: err?.message });
+    }
+  };
+
+  app.post("/api/ind-report/projects/:projectId/edit", express.json(), indProxy);
+  app.post("/api/ind-report/audit/:findingId/dismiss", express.json(), indProxy);
+  app.post("/api/ind-report/citations/suggest", express.json(), indProxy);
+  app.post("/api/ind-report/sections/:sectionId/regenerate", express.json(), indProxy);
+  app.get("/api/regulatory/active_adapter", indProxy);
 
   const httpServer = createServer(app);
 

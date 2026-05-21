@@ -2182,6 +2182,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         with _runs_lock:
             if run_id in _runs:
                 # On success, enumerate S3 output files so the frontend can list/download them.
+                #
+                # DEPRECATED 2026-05-21: `s3_output_files` is being phased out. New
+                # consumers should call BioMate's `/api/runs/:id/outputs` (the
+                # canonical RunsOutputsService) which lists S3 directly and returns
+                # richer file metadata (fileType, presigned download URLs, step
+                # mapping). This in-memory field stays empty whenever the gunicorn
+                # worker restarts mid-run, which is the root cause of the
+                # 2026-05-21 "outs=0 on succeeded runs" cosmetic issue. We keep
+                # writing it for backward compatibility with older clients that
+                # still read it (frontend artifact-summary triage path, billing
+                # event consumers) — but the field's stability is not guaranteed.
                 if returncode == 0:
                     outdir = _runs[run_id].get("outdir", "")
                     if str(outdir).startswith("s3://"):

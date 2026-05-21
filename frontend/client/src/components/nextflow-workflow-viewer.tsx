@@ -1973,7 +1973,12 @@ export function NextflowWorkflowViewer({
     pushArtifact(nextflowStatus?.results);
     pushArtifact(nextflowStatus?.output_files);
     pushArtifact(nextflowStatus?.outdir);
-    // S3 output files: push the s3_uri of each file as an artifact path
+    // DEPRECATED 2026-05-21: nextflowStatus.s3_output_files is empty whenever
+    // the Galaxy worker restarts mid-run. The user-facing artifact list is
+    // already correctly populated by ChatOutputAttachments via
+    // /api/runs/:id/outputs (canonical). This artifact-summary triage helper
+    // keeps reading the legacy field as a best-effort fallback only — when
+    // it's empty here, the real outputs are still visible in the panel below.
     if (Array.isArray(nextflowStatus?.s3_output_files)) {
       for (const f of nextflowStatus.s3_output_files) {
         if (f?.s3_uri) artifacts.push(f.s3_uri);
