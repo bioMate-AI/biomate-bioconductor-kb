@@ -8641,6 +8641,21 @@ ${paramLines || '(none recorded)'}`;
           const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
           const nextflowStatus = nextflowRunId ? await galaxyAPIProxy.getNextflowStatus(nextflowRunId) : undefined;
           const nfState = String((nextflowStatus as any)?.status || '').toLowerCase();
+          // Backfill progress.totalSteps when Nextflow knows the count but
+          // the original run record had `workflowDefinition.steps = {}` (the
+          // generate_workflow response returns empty steps for lazy-fetched
+          // workflows). Without this, the panel renders "0 steps" even
+          // though tasks executed.
+          const nfTotalTasks = Number((nextflowStatus as any)?.totalTasks ?? 0);
+          if (nfTotalTasks > 0 && (run.progress?.totalSteps ?? 0) === 0) {
+            run = await storage.updateExecutionRun(run.id, {
+              progress: {
+                ...run.progress,
+                totalSteps: nfTotalTasks,
+                completedSteps: Number((nextflowStatus as any)?.completedTasks ?? run.progress?.completedSteps ?? 0),
+              },
+            }) || run;
+          }
           // Deny-list approach (vs enumerating terminal states): anything that
           // is NOT explicitly an in-progress state is treated as terminal.
           // Galaxy backend can emit many status names (succeeded, completed,
