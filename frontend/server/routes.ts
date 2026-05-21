@@ -8336,7 +8336,12 @@ ${paramLines || '(none recorded)'}`;
 
         } catch (error) {
           console.error('[Nextflow Direct] Execution error:', error);
-          const rawErrorMsg = error instanceof Error ? error.message : String(error);
+          const rawErrorMsg = error instanceof Error
+            ? `${error.message}${
+                (error as any).cause
+                  ? ` (cause: ${(error as any).cause?.code || (error as any).cause?.message})`
+                  : ''}`
+            : String(error);
 
           if (executionRun) {
             await storage.updateExecutionRun(executionRun.id, {

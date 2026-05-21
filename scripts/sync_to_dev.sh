@@ -260,6 +260,7 @@ deploy_databases() {
         biomate-galaxy-dev:/app/database/galaxy_ai_tools.db
       docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       docker start biomate-galaxy-dev
+      docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
       sleep 5
       echo "[db] galaxy_ai_tools.db replaced"
     '
@@ -281,6 +282,7 @@ deploy_databases() {
       docker exec -u root biomate-galaxy-dev chown -R galaxy:galaxy /app/database/
       docker exec -u root biomate-galaxy-dev chmod 775 /app/database/
       docker start biomate-galaxy-dev
+      docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
       sleep 5
       echo "[db] universe.sqlite replaced"
     ' || log "[db] universe.sqlite sync failed"
