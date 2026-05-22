@@ -18,7 +18,7 @@ params.enzyme_name = 'BsaI'
 params.is_circular = 'true'
 
 process DESIGN_GOLDEN_GATE_OLIGOS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

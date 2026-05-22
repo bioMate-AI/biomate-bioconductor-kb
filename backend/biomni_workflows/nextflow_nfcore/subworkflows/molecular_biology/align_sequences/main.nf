@@ -15,7 +15,7 @@ params.long_seq = 'ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAA
 params.short_seqs = '["ATGGATTTATCTGCT", "GTCTCCACAAAGTGT", "CTTTTGGTTATAT"]'
 
 process ALIGN_SEQUENCES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

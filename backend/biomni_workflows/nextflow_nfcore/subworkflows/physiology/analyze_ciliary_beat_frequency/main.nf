@@ -18,7 +18,7 @@ params.max_freq = '30'
 params.output_dir = './'
 
 process ANALYZE_CILIARY_BEAT_FREQUENCY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

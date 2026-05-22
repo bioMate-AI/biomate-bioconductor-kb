@@ -18,7 +18,7 @@ params.gpu_device = '0'
 params.use_gpu = 'True'
 
 process RUN_DIFFDOCK_WITH_SMILES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -15,7 +15,7 @@ params.identifier = 'pUC19'
 params.is_addgene = 'false'
 
 process GET_PLASMID_SEQUENCE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

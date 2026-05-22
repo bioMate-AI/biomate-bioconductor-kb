@@ -20,7 +20,7 @@ params.simulation_time = '100'
 params.time_points = '1000'
 
 process SIMULATE_PROTEIN_SIGNALING_NETWORK {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

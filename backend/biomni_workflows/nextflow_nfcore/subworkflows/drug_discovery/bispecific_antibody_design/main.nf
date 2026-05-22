@@ -47,7 +47,7 @@ params.immunogenicity_screen = 'true'   // predict T-cell immunogenicity risk
 
 // [Phase B] Bispecific Antibody Design
 process BISPECIFIC_ANTIBODY_DESIGN {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.bias = '[0.1, 0.2]'
 params.activation = 'relu'
 
 process FORWARD {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

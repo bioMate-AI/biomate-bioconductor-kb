@@ -16,7 +16,7 @@ params.output_dir = './results'
 params.case_name = 'BRAT'
 
 process PREPARE_INPUT_FOR_NNUNET {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

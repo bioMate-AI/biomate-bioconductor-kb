@@ -18,7 +18,7 @@ params.output_prefix = 'protease_kinetics'
 params.output_dir = './'
 
 process ANALYZE_PROTEASE_KINETICS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

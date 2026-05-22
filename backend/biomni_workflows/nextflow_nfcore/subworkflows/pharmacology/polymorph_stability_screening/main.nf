@@ -47,7 +47,7 @@ params.intended_route = 'oral'
 params.excipients     = ''
 
 process POLYMORPH_STABILITY_SCREENING {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

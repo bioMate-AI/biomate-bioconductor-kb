@@ -14,7 +14,7 @@ params.outdir = './results'
 params.url = 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.pdf'
 
 process EXTRACT_PDF_CONTENT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

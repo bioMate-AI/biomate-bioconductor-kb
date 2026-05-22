@@ -17,7 +17,7 @@ params.death_rate = '0.05'
 params.time_points = '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]'
 
 process SIMULATE_CELL_POPULATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

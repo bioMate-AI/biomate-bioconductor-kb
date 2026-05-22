@@ -29,7 +29,7 @@ params.n_sigma_threshold   = '3'
 params.min_z_prime         = '0.5'
 
 process HTS_PLATE_QC_HIT_CALLING {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

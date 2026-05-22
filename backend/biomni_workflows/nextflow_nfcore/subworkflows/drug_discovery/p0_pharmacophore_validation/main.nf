@@ -29,7 +29,7 @@ params.auc_threshold  = '0.75'
 params.pdb_id         = '7KI0'
 
 process P0_PHARMACOPHORE_VALIDATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

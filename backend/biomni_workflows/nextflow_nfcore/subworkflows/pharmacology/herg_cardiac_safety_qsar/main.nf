@@ -24,7 +24,7 @@ params.dose_mg               = '100'
 params.dose_route            = 'oral'
 
 process HERG_CARDIAC_SAFETY_QSAR {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

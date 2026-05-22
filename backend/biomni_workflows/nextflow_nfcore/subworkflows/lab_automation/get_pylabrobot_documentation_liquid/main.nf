@@ -13,7 +13,7 @@ params.outdir = './results'
 // No value parameters
 
 process GET_PYLABROBOT_DOCUMENTATION_LIQUID {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

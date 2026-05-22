@@ -16,7 +16,7 @@ params.output_dir = './output'
 params.min_cell_size = '50'
 
 process SEGMENT_AND_ANALYZE_MICROBIAL_CELLS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

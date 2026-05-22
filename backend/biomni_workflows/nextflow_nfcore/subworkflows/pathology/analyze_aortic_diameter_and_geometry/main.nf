@@ -14,7 +14,7 @@ params.image_path = null
 params.output_dir = './output'
 
 process ANALYZE_AORTIC_DIAMETER_AND_GEOMETRY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

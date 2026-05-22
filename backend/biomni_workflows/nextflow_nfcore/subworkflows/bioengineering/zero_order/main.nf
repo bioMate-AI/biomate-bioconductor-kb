@@ -15,7 +15,7 @@ params.t = '5.0'
 params.k0 = '10.0'
 
 process ZERO_ORDER {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -15,7 +15,7 @@ params.rna_sequence = 'GGGCUAUAGCUCAGCUGGGAGAGCGCUUGCAUGGCAUGCAAGAGGUCAGCGGUUCGA
 params.output_prefix = 'rna_structure'
 
 process PREDICT_RNA_SECONDARY_STRUCTURE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

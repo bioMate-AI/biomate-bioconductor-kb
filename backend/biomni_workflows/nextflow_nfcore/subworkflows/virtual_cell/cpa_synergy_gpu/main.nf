@@ -42,7 +42,7 @@ params.device          = 'auto'
 params.synergy_model   = 'zip'
 
 process CPA_SYNERGY_GPU {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_gpu'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

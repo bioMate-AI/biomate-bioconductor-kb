@@ -16,7 +16,7 @@ params.storage_conditions = '[{"temperature": 25, "humidity": 60, "description":
 params.time_points = '[0, 30, 60, 90, 180, 365]'
 
 process ANALYZE_ACCELERATED_STABILITY_OF_PHARMACEUTICAL_FORMULATIONS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

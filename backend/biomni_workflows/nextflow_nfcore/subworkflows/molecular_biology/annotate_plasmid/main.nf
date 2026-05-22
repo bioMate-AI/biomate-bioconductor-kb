@@ -15,7 +15,7 @@ params.sequence = 'ATGACCATGATTACGCCAAGCTTGCATGCCTGCAGGTCGACTCTAGAGGATCCCCGGGTAC
 params.is_circular = 'true'
 
 process ANNOTATE_PLASMID {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

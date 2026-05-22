@@ -23,7 +23,7 @@ params.min_tm = 55.0
 params.max_tm = 65.0
 
 process DESIGN_VERIFICATION_PRIMERS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

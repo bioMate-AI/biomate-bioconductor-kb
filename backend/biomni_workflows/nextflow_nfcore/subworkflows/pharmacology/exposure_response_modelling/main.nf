@@ -32,7 +32,7 @@ params.exposure_metric      = 'AUC_ug_L_h'
 params.efficacy_endpoint    = 'tumor_shrinkage_pct'
 
 process EXPOSURE_RESPONSE_MODELLING {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

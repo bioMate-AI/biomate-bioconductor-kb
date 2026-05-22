@@ -17,7 +17,7 @@ params.label_key = null
 params.data_dir = null
 
 process CREATE_SCVI_EMBEDDINGS_SCRNA {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

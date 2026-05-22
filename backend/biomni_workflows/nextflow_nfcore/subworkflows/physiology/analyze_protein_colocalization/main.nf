@@ -17,7 +17,7 @@ params.output_dir = './output'
 params.threshold_method = 'otsu'
 
 process ANALYZE_PROTEIN_COLOCALIZATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

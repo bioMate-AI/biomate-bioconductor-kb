@@ -15,7 +15,7 @@ params.model_folder = null
 params.folds = '[0, 1, 2, 3, 4]'
 
 process CHECK_MODEL_FILES_EXIST {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

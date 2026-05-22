@@ -16,7 +16,7 @@ params.target_genomic_loci = 'ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGC
 params.cell_tissue_type = 'HEK293'
 
 process PERFORM_CRISPR_CAS9_GENOME_EDITING {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

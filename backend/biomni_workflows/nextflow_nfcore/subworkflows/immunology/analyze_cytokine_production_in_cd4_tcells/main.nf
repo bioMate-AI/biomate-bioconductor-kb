@@ -15,7 +15,7 @@ params.fcs_files_dict = '{"unstimulated": "/home/yzhang/biomate/backend/lib/gala
 params.output_dir = './results'
 
 process ANALYZE_CYTOKINE_PRODUCTION_IN_CD4_TCELLS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -18,7 +18,7 @@ params.background_list = null
 params.plot = 'false'
 
 process GENE_SET_ENRICHMENT_ANALYSIS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

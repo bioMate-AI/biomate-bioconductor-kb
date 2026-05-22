@@ -17,7 +17,7 @@ params.output_prefix = null
 params.snpeff_database = 'GRCh38.105'
 
 process DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

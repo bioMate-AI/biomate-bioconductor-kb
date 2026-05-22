@@ -14,7 +14,7 @@ params.query = null
 params.max_results = null
 
 process ADVANCED_WEB_SEARCH_CLAUDE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

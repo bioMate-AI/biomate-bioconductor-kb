@@ -17,7 +17,7 @@ params.objective_reaction = null
 params.output_file = 'fba_results.csv'
 
 process PERFORM_FLUX_BALANCE_ANALYSIS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

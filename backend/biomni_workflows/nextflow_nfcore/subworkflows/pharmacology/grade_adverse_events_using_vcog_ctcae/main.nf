@@ -13,7 +13,7 @@ params.outdir = './results'
 params.clinical_data_file = null  // Required: path to CSV with columns: subject_id, time_point, symptom, severity, measurement
 
 process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

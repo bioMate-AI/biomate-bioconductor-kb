@@ -74,7 +74,7 @@ params.bioavailability_pct  = '100'
 params.n_mc_sim             = '2000'
 
 process PHASE2_DOSE_JUSTIFICATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

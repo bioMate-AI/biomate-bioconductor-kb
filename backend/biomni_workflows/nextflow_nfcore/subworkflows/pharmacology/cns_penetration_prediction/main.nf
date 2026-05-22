@@ -24,7 +24,7 @@ params.fu_plasma   = 'null'
 params.predict_efflux_ratio = 'true'
 
 process CNS_PENETRATION_PREDICTION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

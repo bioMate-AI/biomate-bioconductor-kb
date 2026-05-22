@@ -15,7 +15,7 @@ params.output_dir = './results'
 params.threshold_method = 'otsu'
 
 process ANALYZE_CELL_MORPHOLOGY_AND_CYTOSKELETON {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

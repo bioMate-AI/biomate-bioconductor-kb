@@ -17,7 +17,7 @@ params.protein_concentration = null
 params.ligand_concentration = null
 
 process ANALYZE_ITC_BINDING_THERMODYNAMICS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

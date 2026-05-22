@@ -18,7 +18,7 @@ params.macs_antibody = 'CD11b'
 params.digestion_time_min = '45'
 
 process ISOLATE_PURIFY_IMMUNE_CELLS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

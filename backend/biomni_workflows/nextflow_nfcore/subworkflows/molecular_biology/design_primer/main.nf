@@ -21,7 +21,7 @@ params.max_tm = 65.0
 params.search_window = 100
 
 process DESIGN_PRIMER {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

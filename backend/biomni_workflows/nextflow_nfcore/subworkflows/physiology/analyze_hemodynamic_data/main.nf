@@ -16,7 +16,7 @@ params.sampling_rate = '50'
 params.output_file = 'hemodynamic_results.csv'
 
 process ANALYZE_HEMODYNAMIC_DATA {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

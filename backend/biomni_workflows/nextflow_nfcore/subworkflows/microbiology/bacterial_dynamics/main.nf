@@ -17,7 +17,7 @@ params.k = '10000.0'
 params.d = '0.1'
 
 process BACTERIAL_DYNAMICS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

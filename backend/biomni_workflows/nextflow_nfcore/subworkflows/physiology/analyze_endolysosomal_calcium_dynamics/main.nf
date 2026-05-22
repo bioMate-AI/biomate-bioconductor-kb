@@ -19,7 +19,7 @@ params.treatment_name = 'GPN'
 params.output_file = 'calcium_analysis_results.txt'
 
 process ANALYZE_ENDOLYSOSOMAL_CALCIUM_DYNAMICS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

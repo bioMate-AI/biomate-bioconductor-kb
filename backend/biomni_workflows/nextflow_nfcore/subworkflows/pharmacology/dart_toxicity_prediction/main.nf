@@ -23,7 +23,7 @@ params.indication_population   = 'all'    // all | women_cbp | pediatric
 params.run_placental_transfer  = 'true'
 
 process DART_TOXICITY_PREDICTION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

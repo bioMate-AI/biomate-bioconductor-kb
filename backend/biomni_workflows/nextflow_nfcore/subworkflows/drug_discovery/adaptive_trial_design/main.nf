@@ -33,7 +33,7 @@ params.rar_exponent             = '0.5'
 params.futility_boundary        = '0.10'
 
 process ADAPTIVE_TRIAL_DESIGN {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

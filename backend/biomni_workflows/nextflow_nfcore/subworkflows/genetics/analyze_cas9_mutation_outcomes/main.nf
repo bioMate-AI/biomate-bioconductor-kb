@@ -17,7 +17,7 @@ params.cell_line_info = '{"TP53_site1": "HEK293T", "TP53_site2": "HEK293T"}'
 params.output_prefix = 'cas9_mutation_analysis'
 
 process ANALYZE_CAS9_MUTATION_OUTCOMES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

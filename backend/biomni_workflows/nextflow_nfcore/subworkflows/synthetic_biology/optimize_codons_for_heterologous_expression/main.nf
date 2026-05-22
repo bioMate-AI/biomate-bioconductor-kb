@@ -16,7 +16,7 @@ params.target_sequence = 'ATGAGTAAAGGAGAAGAACTTTTCACTGGAGTTGTCCCAATTCTTGTTGAATTA
 params.host_codon_usage = '{"TTT": 0.58, "TTC": 0.42, "TTA": 0.14, "TTG": 0.13, "CTT": 0.12, "CTC": 0.10, "CTA": 0.04, "CTG": 0.47, "ATT": 0.49, "ATC": 0.39, "ATA": 0.11, "ATG": 1.00, "GTT": 0.28, "GTC": 0.20, "GTA": 0.17, "GTG": 0.35}'
 
 process OPTIMIZE_CODONS_FOR_HETEROLOGOUS_EXPRESSION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

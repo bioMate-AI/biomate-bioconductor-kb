@@ -16,7 +16,7 @@ params.a = '100.0'
 params.k = '0.1'
 
 process EXP_DECAY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

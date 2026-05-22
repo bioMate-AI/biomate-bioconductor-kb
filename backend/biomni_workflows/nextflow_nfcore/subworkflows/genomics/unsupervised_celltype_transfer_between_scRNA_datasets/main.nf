@@ -30,7 +30,7 @@ params.output_folder = './tmp/'
 params.n_samples_per_label = 10
 
 process UNSUPERVISED_CELLTYPE_TRANSFER_BETWEEN_SCRNA_DATASETS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

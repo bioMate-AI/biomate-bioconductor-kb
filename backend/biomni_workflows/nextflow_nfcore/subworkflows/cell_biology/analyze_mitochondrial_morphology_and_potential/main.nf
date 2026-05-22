@@ -16,7 +16,7 @@ params.potential_image_path = 'demo'
 params.output_dir = './output'
 
 process ANALYZE_MITOCHONDRIAL_MORPHOLOGY_AND_POTENTIAL {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

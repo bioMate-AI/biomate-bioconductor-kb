@@ -16,7 +16,7 @@ params.rates = '[0.1, 0.2, 0.15]'
 params.stoichiometry = null
 
 process ODE_SYSTEM {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

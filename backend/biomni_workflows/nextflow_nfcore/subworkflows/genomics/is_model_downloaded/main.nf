@@ -15,7 +15,7 @@ params.checkpoint_path = '/models/demo_model'
 params.model_type = 'generic'
 
 process IS_MODEL_DOWNLOADED {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

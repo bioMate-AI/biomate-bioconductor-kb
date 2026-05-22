@@ -16,7 +16,7 @@ params.normalization_method = 'cell_count'
 params.normalization_data = null
 
 process ANALYZE_ATP_LUMINESCENCE_ASSAY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

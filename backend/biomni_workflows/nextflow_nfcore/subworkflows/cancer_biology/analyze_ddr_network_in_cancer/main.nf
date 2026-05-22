@@ -17,7 +17,7 @@ params.mutation_data_path = null
 params.output_dir = './results'
 
 process ANALYZE_DDR_NETWORK_IN_CANCER {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

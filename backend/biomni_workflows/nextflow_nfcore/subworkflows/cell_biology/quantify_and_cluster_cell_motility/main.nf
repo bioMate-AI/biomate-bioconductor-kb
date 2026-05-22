@@ -16,7 +16,7 @@ params.output_dir = './results'
 params.num_clusters = '3'
 
 process QUANTIFY_AND_CLUSTER_CELL_MOTILITY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

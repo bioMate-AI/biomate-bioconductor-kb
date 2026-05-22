@@ -21,7 +21,7 @@ params.hidden_dim = '32'
 params.credible_threshold = '0.95'
 
 process BAYESIAN_FINEMAPPING_WITH_DEEP_VI {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.chromosome = 'chr8'
 params.k = 10
 
 process GET_GENES_NEAR_CCRE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

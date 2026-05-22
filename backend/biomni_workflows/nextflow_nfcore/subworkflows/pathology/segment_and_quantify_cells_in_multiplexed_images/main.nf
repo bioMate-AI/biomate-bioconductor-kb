@@ -16,7 +16,7 @@ params.nuclear_channel_index = '0'
 params.output_dir = './output'
 
 process SEGMENT_AND_QUANTIFY_CELLS_IN_MULTIPLEXED_IMAGES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

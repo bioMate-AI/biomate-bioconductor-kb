@@ -17,7 +17,7 @@ params.culture_duration_days = '21'
 params.measurement_intervals = '7'
 
 process RUN_3D_CHONDROGENIC_AGGREGATE_ASSAY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

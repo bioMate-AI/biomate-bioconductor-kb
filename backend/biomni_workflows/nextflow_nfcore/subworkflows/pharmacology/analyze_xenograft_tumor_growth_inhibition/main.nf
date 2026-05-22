@@ -18,7 +18,7 @@ params.subject_column = 'Mouse_ID'
 params.output_dir = './results'
 
 process ANALYZE_XENOGRAFT_TUMOR_GROWTH_INHIBITION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

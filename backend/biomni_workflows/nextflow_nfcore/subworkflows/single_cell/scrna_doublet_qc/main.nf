@@ -40,7 +40,7 @@ params.n_neighbors        = '20'
 params.doublet_threshold  = '0.25'       // pANN/score threshold
 
 process SCRNA_DOUBLET_QC {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

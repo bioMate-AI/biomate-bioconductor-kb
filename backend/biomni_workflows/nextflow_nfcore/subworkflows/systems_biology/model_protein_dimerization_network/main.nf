@@ -16,7 +16,7 @@ params.dimerization_affinities = '{"ProteinA-ProteinB": 1.5, "ProteinB-ProteinC"
 params.network_topology = '[["ProteinA", "ProteinB"], ["ProteinB", "ProteinC"], ["ProteinA", "ProteinA"]]'
 
 process MODEL_PROTEIN_DIMERIZATION_NETWORK {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

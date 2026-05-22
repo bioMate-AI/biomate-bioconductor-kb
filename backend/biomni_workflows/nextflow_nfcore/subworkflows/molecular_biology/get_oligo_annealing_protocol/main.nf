@@ -13,7 +13,7 @@ params.outdir = './results'
 // No value parameters
 
 process GET_OLIGO_ANNEALING_PROTOCOL {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

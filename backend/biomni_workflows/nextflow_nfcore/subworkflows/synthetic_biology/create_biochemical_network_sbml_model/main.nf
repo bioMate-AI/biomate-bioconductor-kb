@@ -16,7 +16,7 @@ params.kinetic_parameters = '{"binding": {"law_type": "mass_action", "parameters
 params.output_file = 'biochemical_model.xml'
 
 process CREATE_BIOCHEMICAL_NETWORK_SBML_MODEL {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

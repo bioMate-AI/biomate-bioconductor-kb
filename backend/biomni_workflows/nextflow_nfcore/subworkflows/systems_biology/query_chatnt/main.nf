@@ -16,7 +16,7 @@ params.sequence = 'ATGCGATCGATCGATCGTAGCTAGCTAGCTGATCGATCG'
 params.device = '-1'
 
 process QUERY_CHATNT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

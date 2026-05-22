@@ -18,7 +18,7 @@ params.spots_per_dilution = '3'
 params.output_file = 'cfu_enumeration_results.csv'
 
 process ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

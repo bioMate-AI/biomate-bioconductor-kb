@@ -16,7 +16,7 @@ params.min_st_fraction = 0.4
 params.disallow_proline_next = null
 
 process PREDICT_O_GLYCOSYLATION_HOTSPOTS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

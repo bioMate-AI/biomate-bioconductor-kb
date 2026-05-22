@@ -27,7 +27,7 @@ params.drug_list   = 'null'   // comma-separated drug names to filter; null = al
 params.guidelines  = 'CPIC'   // CPIC | DPWG | both
 
 process PHARMACOGENOMICS_PGX_REPORT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

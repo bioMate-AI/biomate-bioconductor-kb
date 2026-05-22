@@ -15,7 +15,7 @@ params.vmax = null
 params.km = null
 
 process MICHAELIS_MENTEN {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

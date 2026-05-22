@@ -42,7 +42,7 @@ params.include_fda_only    = 'false'
 params.input_type          = 'rnaseq'  // rnaseq | mageck | custom
 
 process TRANSCRIPTOMIC_MOA_LINCS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

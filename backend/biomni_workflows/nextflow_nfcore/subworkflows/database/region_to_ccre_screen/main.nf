@@ -17,7 +17,7 @@ params.coord_end = '7590868'
 params.assembly = 'GRCh38'
 
 process REGION_TO_CCRE_SCREEN {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

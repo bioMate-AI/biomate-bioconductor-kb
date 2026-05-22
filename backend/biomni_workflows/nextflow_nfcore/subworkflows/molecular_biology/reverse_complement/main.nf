@@ -14,7 +14,7 @@ params.outdir = './results'
 params.seq = 'ATGGATTTATCTGCTCTTCGCGTTG'
 
 process REVERSE_COMPLEMENT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

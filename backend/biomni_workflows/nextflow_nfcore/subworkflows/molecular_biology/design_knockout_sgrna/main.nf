@@ -17,7 +17,7 @@ params.species = 'human'
 params.num_guides = 3
 
 process DESIGN_KNOCKOUT_SGRNA {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

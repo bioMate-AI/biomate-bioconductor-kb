@@ -19,7 +19,7 @@ params.output_dir = 'nmf_results'
 params.random_state = '42'
 
 process PERFORM_GENE_EXPRESSION_NMF_ANALYSIS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

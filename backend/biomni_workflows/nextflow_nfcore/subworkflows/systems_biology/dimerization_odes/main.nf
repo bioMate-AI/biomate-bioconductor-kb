@@ -18,7 +18,7 @@ params.koff = '0.01'
 params.t = null  // optional time point (ignored for instantaneous rate computation)
 
 process DIMERIZATION_ODES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

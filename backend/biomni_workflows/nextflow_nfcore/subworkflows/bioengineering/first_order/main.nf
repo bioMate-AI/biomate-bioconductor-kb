@@ -17,7 +17,7 @@ params.k = null   // alias for k1
 params.q0 = '100.0'
 
 process FIRST_ORDER {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.therapeutic_class = 'analgesic'
 params.data_lake_path = null
 
 process FIND_ALTERNATIVE_DRUGS_DDINTER {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

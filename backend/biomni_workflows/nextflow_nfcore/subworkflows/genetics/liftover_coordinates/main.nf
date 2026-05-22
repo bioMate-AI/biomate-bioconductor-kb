@@ -18,7 +18,7 @@ params.output_format = 'hg38'
 params.data_path = '/data'
 
 process LIFTOVER_COORDINATES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

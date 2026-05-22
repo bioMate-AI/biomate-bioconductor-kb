@@ -18,7 +18,7 @@ params.acrophase = '16.0'
 params.period = '24.0'
 
 process COSINOR_MODEL {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

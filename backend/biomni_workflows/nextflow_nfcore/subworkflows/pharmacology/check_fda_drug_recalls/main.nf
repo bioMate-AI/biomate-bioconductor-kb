@@ -15,7 +15,7 @@ params.classification = null
 params.date_range = null
 
 process CHECK_FDA_DRUG_RECALLS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

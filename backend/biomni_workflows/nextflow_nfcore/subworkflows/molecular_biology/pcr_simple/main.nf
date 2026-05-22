@@ -19,7 +19,7 @@ params.reverse_primer = 'TTACTTGTACAGCTCGTCCATGCC'
 params.circular = 'false'
 
 process PCR_SIMPLE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

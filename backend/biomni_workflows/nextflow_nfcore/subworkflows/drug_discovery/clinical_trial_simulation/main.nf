@@ -41,7 +41,7 @@ params.simulation_hours = '168'   // 1 week
 params.primary_endpoint_threshold = '0.3'  // response rate threshold for Phase II success
 
 process CLINICAL_TRIAL_SIMULATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

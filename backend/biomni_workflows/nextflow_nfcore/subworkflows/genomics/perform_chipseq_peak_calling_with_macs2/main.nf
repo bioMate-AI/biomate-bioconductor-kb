@@ -17,7 +17,7 @@ params.genome_size = 'hs'
 params.q_value = '0.05'
 
 process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

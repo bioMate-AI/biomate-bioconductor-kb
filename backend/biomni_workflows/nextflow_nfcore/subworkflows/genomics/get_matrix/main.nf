@@ -18,7 +18,7 @@ params.layer = null
 params.output_format = 'dense'
 
 process GET_MATRIX {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

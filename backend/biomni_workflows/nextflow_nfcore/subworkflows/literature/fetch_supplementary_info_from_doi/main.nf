@@ -14,7 +14,7 @@ params.doi = null
 params.output_dir = 'supplementary_info'
 
 process FETCH_SUPPLEMENTARY_INFO_FROM_DOI {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

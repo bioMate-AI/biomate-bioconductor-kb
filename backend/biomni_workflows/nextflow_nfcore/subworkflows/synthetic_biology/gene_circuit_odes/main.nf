@@ -19,7 +19,7 @@ params.hill_coef = '2.0'
 params.k_half = '1.0'
 
 process GENE_CIRCUIT_ODES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -20,7 +20,7 @@ params.simulation_time = '100'
 params.time_points = '500'
 
 process SIMULATE_METABOLIC_NETWORK_PERTURBATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

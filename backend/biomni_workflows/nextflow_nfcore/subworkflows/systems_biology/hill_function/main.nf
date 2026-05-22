@@ -16,7 +16,7 @@ params.n = '2.0'
 params.ec50 = '0.5'
 
 process HILL_FUNCTION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -19,7 +19,7 @@ params.time_points = '1000'
 params.method = 'LSODA'
 
 process SIMULATE_WHOLE_CELL_ODE_MODEL {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -14,7 +14,7 @@ params.image_path = null
 params.output_dir = './output'
 
 process ANALYZE_THROMBUS_HISTOLOGY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

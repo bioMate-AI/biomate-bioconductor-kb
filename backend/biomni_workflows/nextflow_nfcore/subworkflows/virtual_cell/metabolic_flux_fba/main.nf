@@ -50,7 +50,7 @@ params.glutamine_mM         = '2.0'          // Glutamine concentration (mM)
 params.oxygen_saturation    = '0.21'         // O2 fraction (0.21 = normoxia)
 
 process METABOLIC_FLUX_FBA {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

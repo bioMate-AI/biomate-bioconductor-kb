@@ -14,7 +14,7 @@ params.outdir = './results'
 params.image_path = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
 
 process VERIFY_NIFTI_INPUT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

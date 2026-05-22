@@ -47,7 +47,7 @@ params.link_peaks_to_genes   = 'true'      // compute peak-gene correlations
 params.tf_activity           = 'true'      // chromVAR TF motif analysis
 
 process MULTIOME_RNA_ATAC {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

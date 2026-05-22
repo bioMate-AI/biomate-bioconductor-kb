@@ -15,7 +15,7 @@ params.seq1 = 'ATCGATCGATCG'
 params.seq2 = 'ATCGTTCGTTCG'
 
 process HAMMING_DISTANCE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

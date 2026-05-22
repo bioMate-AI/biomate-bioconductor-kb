@@ -17,7 +17,7 @@ params.pvalue_threshold = '0.05'
 params.output_file = 'significant_cpg_sites.csv'
 
 process PERFORM_MWAS_CYP2C19_METABOLIZER_STATUS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

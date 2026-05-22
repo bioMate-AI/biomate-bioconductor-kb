@@ -16,7 +16,7 @@ params.yield_coefficient = '0.35'
 params.inhibition_constant = '5.0'
 
 process METHANE_YIELD_MODEL {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

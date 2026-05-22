@@ -52,7 +52,7 @@ params.dose_ratio_a   = '1.0'           // fractional dose of A (1.0=full Cmax)
 params.dose_ratio_b   = '1.0'           // fractional dose of B (1.0=full Cmax)
 
 process CPA_DRUG_COMBINATION_SYNERGY {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

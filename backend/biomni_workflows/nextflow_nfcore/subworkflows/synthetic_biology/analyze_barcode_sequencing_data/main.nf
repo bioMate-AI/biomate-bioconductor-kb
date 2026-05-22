@@ -19,7 +19,7 @@ params.min_count = '2'
 params.output_dir = './results'
 
 process ANALYZE_BARCODE_SEQUENCING_DATA {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

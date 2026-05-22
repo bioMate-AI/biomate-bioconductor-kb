@@ -41,7 +41,7 @@ params.batch_size       = '32'
 params.device           = 'auto'
 
 process TRANSCRIPTFORMER_GPU {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_gpu'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

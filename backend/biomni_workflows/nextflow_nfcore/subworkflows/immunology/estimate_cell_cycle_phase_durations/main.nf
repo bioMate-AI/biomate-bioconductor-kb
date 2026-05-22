@@ -16,7 +16,7 @@ params.flow_cytometry_data = '{"time_points": [0, 4, 8, 12, 24, 36, 48], "edu_po
 params.initial_estimates = '{"g1_duration": 10.0, "s_duration": 8.0, "g2m_duration": 4.0, "death_rate": 0.01}'
 
 process ESTIMATE_CELL_CYCLE_PHASE_DURATIONS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

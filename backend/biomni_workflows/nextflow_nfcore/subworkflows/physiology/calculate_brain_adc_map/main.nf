@@ -17,7 +17,7 @@ params.output_path = 'adc_map.nii.gz'
 params.mask_file_path = null
 
 process CALCULATE_BRAIN_ADC_MAP {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

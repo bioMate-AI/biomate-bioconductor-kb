@@ -22,7 +22,7 @@ params.log2_amp_threshold = '1.0'
 params.log2_del_threshold = null
 
 process ANALYZE_COPY_NUMBER_PURITY_PLOIDY_AND_FOCAL_EVENTS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

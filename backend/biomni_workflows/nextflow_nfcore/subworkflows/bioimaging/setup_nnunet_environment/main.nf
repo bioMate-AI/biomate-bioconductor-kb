@@ -16,7 +16,7 @@ params.raw_data_base = null
 params.preprocessed = null
 
 process SETUP_NNUNET_ENVIRONMENT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

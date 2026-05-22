@@ -17,7 +17,7 @@ params.severity_value = '8.5'
 params.species = 'canine'
 
 process APPLY_VCOG_GRADE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

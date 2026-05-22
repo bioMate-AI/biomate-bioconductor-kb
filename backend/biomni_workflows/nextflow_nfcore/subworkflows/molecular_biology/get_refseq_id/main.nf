@@ -16,7 +16,7 @@ params.organism = 'Homo sapiens'
 params.email = 'test@example.com'
 
 process GET_REFSEQ_ID {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

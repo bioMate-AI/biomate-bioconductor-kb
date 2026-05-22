@@ -47,7 +47,7 @@ params.stimulus_conc_nM   = '10'          // stimulus concentration (nM)
 params.ec50_scan           = 'true'       // compute functional EC50 curve
 
 process ODE_SIGNALING_SIMULATION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

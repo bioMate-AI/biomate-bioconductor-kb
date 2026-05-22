@@ -18,7 +18,7 @@ params.antibody_info = '{"primary": {"name": "anti-p53 rabbit polyclonal", "dilu
 params.output_dir = './results'
 
 process ANALYZE_WESTERN_BLOT {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

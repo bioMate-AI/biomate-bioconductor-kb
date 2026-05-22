@@ -45,7 +45,7 @@ params.lincs_crossval     = 'true'          // cross-validate via LINCS API
 params.epistasis_model    = 'bliss'         // bliss | multiplicative | min (for 2-gene combos)
 
 process GEARS_PERTURBATION_PREDICTION {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

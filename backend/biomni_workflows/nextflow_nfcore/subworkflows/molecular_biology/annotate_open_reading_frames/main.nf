@@ -17,7 +17,7 @@ params.search_reverse = 'False'
 params.filter_subsets = 'False'
 
 process ANNOTATE_OPEN_READING_FRAMES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

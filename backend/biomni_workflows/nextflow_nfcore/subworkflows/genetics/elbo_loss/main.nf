@@ -16,7 +16,7 @@ params.kl_divergence = '0.1'
 params.beta = '1.0'
 
 process ELBO_LOSS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

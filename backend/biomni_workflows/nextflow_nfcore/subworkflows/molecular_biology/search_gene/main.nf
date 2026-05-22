@@ -16,7 +16,7 @@ params.pattern = 'ATG'
 params.case_sensitive = 'false'
 
 process SEARCH_GENE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

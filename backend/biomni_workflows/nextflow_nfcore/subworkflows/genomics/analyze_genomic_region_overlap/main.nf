@@ -14,7 +14,7 @@ params.region_sets = null
 params.output_prefix = 'overlap_analysis'
 
 process ANALYZE_GENOMIC_REGION_OVERLAP {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

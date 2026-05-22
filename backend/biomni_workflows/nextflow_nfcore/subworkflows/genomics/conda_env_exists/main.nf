@@ -13,7 +13,7 @@ params.outdir = './results'
 params.env_name = null
 
 process CONDA_ENV_EXISTS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

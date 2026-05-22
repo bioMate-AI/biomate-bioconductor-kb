@@ -17,7 +17,7 @@ params.sample_id = 'sample001'
 params.output_directory = './results'
 
 process ANALYZE_FATTY_ACID_COMPOSITION_BY_GC {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

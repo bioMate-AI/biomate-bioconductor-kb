@@ -58,7 +58,7 @@ params.tumor_penetration    = '0.7'           // tumor penetration factor (0-1; 
 params.pk_summary_json      = 'null'          // optional: path to PBPK pk_summary.json
 
 process PHYSICELL_TUMOR_TGI {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -44,7 +44,7 @@ params.heart_rate_bpm    = '60'        // Pacing cycle length (60 bpm default)
 params.n_beats           = '50'        // AP beats to simulate (steady-state)
 
 process CIPA_CARDIAC_SAFETY_ODE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -16,7 +16,7 @@ params.amino_acid_sequence = 'MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLS
 params.affinity_model_type = 'MPNN-CNN'
 
 process PREDICT_BINDING_AFFINITY_PROTEIN_1D_SEQUENCE {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

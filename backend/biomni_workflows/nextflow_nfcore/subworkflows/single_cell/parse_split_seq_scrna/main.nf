@@ -29,7 +29,7 @@ params.min_umis        = '100'
 params.min_genes       = '50'
 
 process PARSE_SPLIT_SEQ_SCRNA {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

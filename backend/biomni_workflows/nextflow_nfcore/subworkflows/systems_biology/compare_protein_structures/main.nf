@@ -17,7 +17,7 @@ params.chain_id2 = 'A'
 params.output_prefix = 'protein_comparison'
 
 process COMPARE_PROTEIN_STRUCTURES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

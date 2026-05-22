@@ -17,7 +17,7 @@ params.cosmic_db_path = null
 params.clinvar_db_path = null
 
 process DETECT_AND_CHARACTERIZE_STRUCTURAL_VARIATIONS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

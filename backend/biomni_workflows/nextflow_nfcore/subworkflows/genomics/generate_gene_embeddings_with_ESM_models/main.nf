@@ -18,7 +18,7 @@ params.batch_size = 1
 params.max_sequence_length = 1024
 
 process GENERATE_GENE_EMBEDDINGS_WITH_ESM_MODELS {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

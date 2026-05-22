@@ -16,7 +16,7 @@ params.moving_image = "${projectDir}/../../../test_data/mock_moving_image.nii.gz
 params.number_of_control_points = 4
 
 process CREATE_DEFORMABLE_TRANSFORM {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

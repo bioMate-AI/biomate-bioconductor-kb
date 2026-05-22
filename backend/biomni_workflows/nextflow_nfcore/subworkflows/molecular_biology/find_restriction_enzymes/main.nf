@@ -15,7 +15,7 @@ params.sequence = 'ATGAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTTGG
 params.is_circular = 'false'
 
 process FIND_RESTRICTION_ENZYMES {
-    tag { meta.id }
+    tag "$meta.id"
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
