@@ -21,7 +21,17 @@ params.project_code         = 'BIOMATE-BCR-ABL1-2026'
 params.outdir               = './results'
 params.publish_dir_mode     = 'copy'
 
-// Banner removed 2026-05-21 — Nextflow 26.04 DSL2 forbids statements at script scope
+// -- banner -------------------------------------------------------------------
+log.info '''
+============================================================
+  BioMate -- CRO Submission Export
+============================================================
+  CRO target     : ''' + params.cro_target + '''
+  Top-N          : ''' + params.top_n + '''
+  hERG threshold : ''' + params.herg_safe_threshold + ''' uM
+  Project code   : ''' + params.project_code + '''
+============================================================
+'''
 
 // =============================================================================
 // PROCESS 1: VALIDATE_COMPOUNDS

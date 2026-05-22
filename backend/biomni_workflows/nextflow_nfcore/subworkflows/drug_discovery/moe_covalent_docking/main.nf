@@ -64,7 +64,7 @@ params.n_cpus               = 8
 
 // MOE requires a valid license; LM_LICENSE_FILE injected at runtime from
 // user credential store (e.g. "27001@hostname").
-params.MOE_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/moe2024:latest'
+def MOE_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/moe2024:latest'
 
 // ============================================================================
 // Processes
@@ -85,7 +85,7 @@ process LIGAND_PREP {
      *   michael_acceptor  generalised alpha,beta-unsaturated carbonyl
      */
     tag "ligand_prep"
-    container params.MOE_CONTAINER
+    container MOE_CONTAINER
     publishDir "${params.outdir}/01_ligand_prep", mode: params.publish_dir_mode
 
     input:
@@ -155,7 +155,7 @@ process RECEPTOR_PREP {
      * in the thiol/amine/hydroxyl (nucleophilic) form -- QuickPrep handles this.
      */
     tag "receptor_prep"
-    container params.MOE_CONTAINER
+    container MOE_CONTAINER
     publishDir "${params.outdir}/02_receptor_prep", mode: params.publish_dir_mode
 
     input:
@@ -209,7 +209,7 @@ process COVALENT_DOCK {
      *         covdock.log        -- CovDock SVL run log
      */
     tag "covalent_dock"
-    container params.MOE_CONTAINER
+    container MOE_CONTAINER
     cpus params.n_cpus
     publishDir "${params.outdir}/03_covalent_dock", mode: params.publish_dir_mode
 
@@ -261,7 +261,7 @@ process POSE_ANALYSIS {
      *         pose_analysis.log -- run log
      */
     tag "pose_analysis"
-    container params.MOE_CONTAINER
+    container MOE_CONTAINER
     publishDir "${params.outdir}/04_pose_analysis", mode: params.publish_dir_mode
 
     input:
@@ -314,7 +314,7 @@ process REPORT {
      * Output: top_poses.sdf, docking_summary.json, docking_report.html
      */
     tag "report"
-    container params.MOE_CONTAINER
+    container MOE_CONTAINER
     publishDir "${params.outdir}/05_report", mode: params.publish_dir_mode
 
     input:

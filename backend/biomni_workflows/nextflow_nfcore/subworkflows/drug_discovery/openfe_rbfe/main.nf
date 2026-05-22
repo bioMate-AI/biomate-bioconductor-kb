@@ -79,10 +79,10 @@ params.use_aws              = false
 // Containers
 // ============================================================================
 
-params._useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
+def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
 // OpenFE unified container: openfe + openff-toolkit + openmmforcefields + cinnabar + lomap2
-params._ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/openfe-rbfe:1.0'
-params.OPENFE_CONTAINER = params._useAws ? params._ECR : 'ghcr.io/openfreeenergy/openfe:0.15.0'
+def _ECR        = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/openfe-rbfe:1.0'
+def OPENFE_CONTAINER = _useAws ? _ECR : 'ghcr.io/openfreeenergy/openfe:0.15.0'
 
 // ============================================================================
 // Processes
@@ -95,7 +95,7 @@ process LIGAND_PREP {
      * Assigns partial charges via OpenFF Sage 2.2 (AM1-BCC-ELF10).
      */
     tag "ligand_prep"
-    container params.OPENFE_CONTAINER
+    container OPENFE_CONTAINER
     publishDir "${params.outdir}/prep", mode: params.publish_dir_mode
 
     input:
@@ -153,7 +153,7 @@ process PROTEIN_PREP {
      * solvate in TIP3P water box with NaCl ions.
      */
     tag "protein_prep"
-    container params.OPENFE_CONTAINER
+    container OPENFE_CONTAINER
     publishDir "${params.outdir}/prep", mode: params.publish_dir_mode
 
     input:
@@ -210,7 +210,7 @@ process RBFE_SETUP {
      * Uses Lomap2 MCS atom mapping and OpenFE SepTop/RBFE protocol definition.
      */
     tag "rbfe_setup"
-    container params.OPENFE_CONTAINER
+    container OPENFE_CONTAINER
     publishDir "${params.outdir}/setup", mode: params.publish_dir_mode
 
     input:
@@ -325,7 +325,7 @@ process PRODUCTION_RBFE {
      * GPU-accelerated via OpenMM 8 with HREX across lambda windows.
      */
     tag "production_rbfe"
-    container params.OPENFE_CONTAINER
+    container OPENFE_CONTAINER
     publishDir "${params.outdir}/rbfe", mode: params.publish_dir_mode
 
     cpus   { params.n_cpus }
@@ -431,7 +431,7 @@ process ANALYSIS {
      * and a human-readable HTML summary.
      */
     tag "analysis"
-    container params.OPENFE_CONTAINER
+    container OPENFE_CONTAINER
     publishDir "${params.outdir}/analysis", mode: params.publish_dir_mode
 
     input:

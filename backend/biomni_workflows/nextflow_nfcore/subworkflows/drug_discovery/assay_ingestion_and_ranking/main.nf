@@ -22,7 +22,18 @@ params.top_n              = 10
 params.outdir             = './results'
 params.publish_dir_mode   = 'copy'
 
-// Banner removed 2026-05-21 — Nextflow 26.04 DSL2 forbids statements at script scope
+// -- banner -------------------------------------------------------------------
+log.info '''
+============================================================
+  BioMate -- Assay Ingestion & Composite Ranking
+============================================================
+  Potency assay  : ''' + params.potency_assay + '''
+  Safety assay   : ''' + params.safety_assay + '''
+  Weights        : potency=''' + params.potency_weight + ''' safety=''' + params.safety_weight + '''
+  hERG threshold : ''' + params.herg_safe_threshold + ''' uM
+  Top-N          : ''' + params.top_n + '''
+============================================================
+'''
 
 // =============================================================================
 // PROCESS 1: PARSE_ASSAY_DATA
