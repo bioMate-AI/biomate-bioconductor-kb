@@ -264,6 +264,42 @@ To bump the pin (after testing locally), edit:
 
 ---
 
+## Open known-bug: `nextflow.script.dsl.ProcessDslV1` finalize error
+
+Affects IVIVE, POCKET, PHARMA (3 of 4 failing pilot tests). Symptom:
+```
+ERROR ~ Unexpected error while finalizing task '...'
+ - cause: No such property: meta for class: nextflow.script.dsl.ProcessDslV1
+```
+
+**What I tried:** converted `tag "$meta.id"` (string interp) → `tag { meta.id }`
+(closure) across all 288 affected workflows in commit `b95aa249`. The
+mass-fix shipped; IVIVE re-tested with the new tag form: **same error**.
+
+**Investigation:** the failing and the working (ADMET, S5, S6) workflows
+have structurally identical `tuple val(meta), path(...)` output blocks,
+`val(meta)` input declarations, and `Channel.of([id: 'run'])` entry
+workflows. The differentiator hasn't been found in 2 hours of grep-diff.
+
+**Hypotheses to investigate next session:**
+1. Eval-order race: maybe ADMET's longer wall-time (Chemprop inference)
+   gives Nextflow time to bind `meta` before finalize runs, while IVIVE's
+   faster Python finishes before binding completes.
+2. `task.ext.prefix ?: "${meta.id}"` line in IVIVE — `task.ext` may not
+   be pre-populated, causing the elvis fallback to evaluate `meta.id`
+   in a context where `meta` isn't yet bound.
+3. The `View { "Output: $it" }` line in IVIVE's entry workflow (ADMET
+   doesn't have it) — `$it` interpolation may corrupt the closure scope.
+4. The `nextflow.script.dsl.ProcessDslV1` class is unexpected for a
+   `dsl = 2` script. Maybe Nextflow 25.10 routes some legacy patterns
+   through V1 internally; the failing workflows happen to trigger that
+   routing.
+
+The mass-fix to `tag` was net-positive (matches the cryosparc style
+that works at scale), but it isn't sufficient. The IVIVE-class bug
+needs deeper Nextflow-internals investigation than today's session has
+time for.
+
 ## Still-open issues (carrying forward)
 
 1. `biomni-tools:x86` (now rebuilt with numpy<2) container — need to
