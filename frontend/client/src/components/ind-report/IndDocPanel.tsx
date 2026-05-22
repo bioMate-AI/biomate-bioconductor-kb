@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Download, Eye, Shield, Signature, X } from "lucide-react";
 import {
-  captureEdit, suggestCitation, regenerateSection,
+  captureEdit, suggestCitation, regenerateSection, streamGenerate,
 } from "@/lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
 import { EditableParagraph } from "./EditableParagraph";
@@ -475,6 +475,17 @@ function CitePopover({
 }
 
 // ── RegenerateModal (B5) ──────────────────────────────────────
+//
+// Submits BOTH:
+//   1. The prompt-tuning signal (regenerateSection POST → JSONL capture)
+//   2. The actual LLM generation via SSE (streamGenerate)
+//
+// While the stream runs the modal stays open and shows:
+//   - a phase banner ("Loading regulatory adapter…" → "Drafting…" → "Validating…")
+//   - the partial text accumulating in real time
+//
+// The customer sees structured progress instead of 30-80s of silence; on error
+// the modal reports the fallback path (Gemini) was triggered.
 function RegenerateModal({
   section, instruction, setInstruction, orgId, onClose,
 }: {
@@ -484,58 +495,138 @@ function RegenerateModal({
   orgId: string | null;
   onClose: () => void;
 }) {
+  const [streaming, setStreaming] = useState(false);
+  const [phaseMsg, setPhaseMsg] = useState<string>("");
+  const [draftText, setDraftText] = useState<string>("");
+  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [done, setDone] = useState(false);
+
   const submit = async () => {
+    setStreaming(true);
+    setPhaseMsg("Starting…");
+    setDraftText("");
+    setErrorMsg("");
+    setDone(false);
+    // Fire-and-forget the prompt-tuning signal capture
     if (instruction.trim()) {
-      try {
-        await regenerateSection(section, { instruction }, orgId);
-      } catch (err) {
-        console.warn("[ind] regenerateSection failed:", err);
-      }
+      regenerateSection(section, { instruction }, orgId).catch((err) =>
+        console.warn("[ind] regenerateSection signal failed:", err),
+      );
     }
-    onClose();
+    try {
+      await streamGenerate(
+        {
+          section_type: section,
+          user_prompt: instruction.trim() || undefined,
+          orgId,
+        },
+        (e) => {
+          if (e.kind === "phase") {
+            setPhaseMsg(e.message ?? e.phase);
+            if (e.phase === "error") setErrorMsg(e.reason ?? "generation failed");
+            if (e.phase === "complete") setDone(true);
+          } else {
+            setDraftText((d) => d + e.text);
+          }
+        },
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? "stream failed");
+    } finally {
+      setStreaming(false);
+    }
   };
 
+  const idle = !streaming && !done && !errorMsg;
+
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 50 }}>
+    <div className="modal-backdrop" onClick={streaming ? undefined : onClose} style={{ zIndex: 50 }}>
       <div
         className="modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "white", borderRadius: 10, padding: 18, maxWidth: 440, width: "90%" }}
+        style={{ background: "white", borderRadius: 10, padding: 18, maxWidth: 520, width: "92%" }}
         data-tour="ind-regenerate-modal"
       >
         <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
           Regenerate §{section}
         </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
-            <input type="radio" name="regen" defaultChecked={!instruction} />
-            Regenerate as is
-          </label>
-          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }}>
-            <input type="radio" name="regen" defaultChecked={!!instruction} />
-            <span style={{ flex: 1 }}>
-              Regenerate with instruction:
-              <textarea
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-                placeholder="e.g. Use more conservative language about the Ames equivocal finding"
-                rows={3}
+        {idle && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+              <input type="radio" name="regen" defaultChecked={!instruction} />
+              Regenerate as is
+            </label>
+            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }}>
+              <input type="radio" name="regen" defaultChecked={!!instruction} />
+              <span style={{ flex: 1 }}>
+                Regenerate with instruction:
+                <textarea
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  placeholder="e.g. Use more conservative language about the Ames equivocal finding"
+                  rows={3}
+                  style={{
+                    width: "100%", marginTop: 4, padding: 8,
+                    border: "1px solid var(--ind-border-strong)", borderRadius: 6,
+                    fontFamily: "inherit", fontSize: 12.5,
+                  }}
+                />
+              </span>
+            </label>
+          </div>
+        )}
+
+        {!idle && (
+          <div
+            data-testid="regen-stream-area"
+            style={{
+              marginTop: 4, padding: 12, borderRadius: 8,
+              background: errorMsg ? "#fef2f2" : "#f0fdf4",
+              borderLeft: `3px solid ${errorMsg ? "#ef4444" : "#10b981"}`,
+              minHeight: 80,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+              {streaming && (
+                <span style={{
+                  display: "inline-block", width: 12, height: 12,
+                  border: "2px solid currentColor", borderRightColor: "transparent",
+                  borderRadius: "50%", animation: "spin 0.8s linear infinite",
+                }} />
+              )}
+              <span data-testid="regen-phase-msg">{phaseMsg}</span>
+            </div>
+            {draftText && (
+              <div
+                data-testid="regen-draft-text"
                 style={{
-                  width: "100%", marginTop: 4, padding: 8,
-                  border: "1px solid var(--ind-border-strong)", borderRadius: 6,
-                  fontFamily: "inherit", fontSize: 12.5,
+                  fontSize: 12.5, lineHeight: 1.55,
+                  whiteSpace: "pre-wrap",
+                  color: "var(--ind-text, #111)",
                 }}
-              />
-            </span>
-          </label>
-        </div>
+              >
+                {draftText}
+                {streaming && <span style={{ opacity: 0.5 }}>▌</span>}
+              </div>
+            )}
+            {errorMsg && (
+              <div style={{ fontSize: 12, color: "#ef4444", marginTop: 6 }}>
+                {errorMsg} — production would fall back to Gemini Flash.
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
-          <button className="ind-btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="ind-btn primary" onClick={submit}>
-            ↻ Regenerate
-          </button>
+          {idle && (
+            <>
+              <button className="ind-btn" onClick={onClose}>Cancel</button>
+              <button className="ind-btn primary" onClick={submit}>↻ Regenerate</button>
+            </>
+          )}
+          {(done || errorMsg) && (
+            <button className="ind-btn primary" onClick={onClose}>Close</button>
+          )}
         </div>
       </div>
     </div>
