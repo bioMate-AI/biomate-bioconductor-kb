@@ -300,6 +300,39 @@ that works at scale), but it isn't sufficient. The IVIVE-class bug
 needs deeper Nextflow-internals investigation than today's session has
 time for.
 
+## 10-stage representative sweep (2026-05-22, post tag-closure fix)
+
+Fired 4 canonical workflows + IVIVE re-test in parallel to gauge whether
+the publishDir-closure + tag-closure + Nextflow-25.10-pin combo unblocks
+drug-development workflows beyond S5/S6.
+
+| Workflow | Duration | Terminal | Root cause |
+|---|---|---|---|
+| IVIVE (re-test) | 226s | failed | `No such property: meta` (ProcessDslV1) — **known-bug** |
+| crispr_screen_mageck | 30s | failed | `Script compilation error` — new class |
+| docking_autodock_vina | 269s | interrupted | JVM SIGSEGV (CRT race despite mitigation) |
+| cyp_ddi_panel | 25s | interrupted | JVM SIGSEGV (fast crash) |
+| pbpk_simulation | 230s | failed | `No such property: meta` (ProcessDslV1) — **same as IVIVE** |
+
+**Result: 0 of 5 pass.** But the failures cluster into 3 well-understood
+classes:
+
+1. **`No such property: meta`** affects IVIVE, PBPK, and likely every
+   workflow with `tuple val(meta), path(...)` outputs except a small
+   subset (ADMET, cro_submission_export, assay_ingestion_and_ranking).
+   Needs Nextflow-internals investigation to find the differentiator.
+   Workaround: convert affected workflows to not use `tuple val(meta), ...`
+   output form (write outputs as `path 'foo.json'` instead, lose the
+   meta tag in downstream channels). 4-6 hours of work per workflow.
+2. **JVM SIGSEGV in CRT** still latent. Per-run CRT cache + `-Xss2m`
+   reduces the race window but doesn't eliminate it under contention.
+   The right fix is image-level (switch base from Debian trixie/glibc
+   2.41 → Ubuntu 22.04/glibc 2.35) or JDK downgrade (21 → 17 LTS).
+3. **crispr_screen_mageck script compile error** — new class. Likely
+   one of the 14 files with top-level `def` statements that the
+   Nextflow 25.10 pin should have allowed (need to check whether the
+   25.10 framework jar actually downloaded or whether it fell back).
+
 ## Still-open issues (carrying forward)
 
 1. `biomni-tools:x86` (now rebuilt with numpy<2) container — need to
