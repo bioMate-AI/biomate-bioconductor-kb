@@ -28,14 +28,14 @@ params.output_format   = 'mmcif'
 params.outdir          = 'results'
 params.publish_dir_mode = 'copy'
 
-def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:latest'
+params.ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:latest'
 
 // -- Prepare input ------------------------------------------------------------
 
 process PREPARE_INPUT {
     tag "prepare"
     label 'process_low'
-    container ECR
+    container params.ECR
 
     input:
     path(fasta)
@@ -60,7 +60,7 @@ process BOLTZ_PREDICT {
     label 'process_gpu'
     publishDir "${params.outdir}/structures", mode: params.publish_dir_mode
 
-    container ECR
+    container params.ECR
 
     input:
     path(input_file)
@@ -91,7 +91,7 @@ process SUMMARISE_RESULTS {
     label 'process_low'
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
-    container ECR
+    container params.ECR
 
     input:
     path(results_dir)

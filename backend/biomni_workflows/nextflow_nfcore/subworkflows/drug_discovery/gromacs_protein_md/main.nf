@@ -78,14 +78,14 @@ params.use_aws              = false
 
 // On AWS Batch use single ECR image containing all tools (avoids Docker Hub auth issues)
 // Also honour the legacy NEXTFLOW_USE_AWS env var for backwards compatibility.
-def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
-def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
+params._useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
+params._ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
 // AmberTools 23: antechamber, tleap, parmchk2, pdb4amber, ParmEd, acpype
-def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
+params.AMBERTOOLS_CONTAINER = params._useAws ? params._ECR : 'ambermd/ambertools:23'
 // GROMACS 2025: gmx grompp, gmx mdrun, gmx rms, gmx rmsf, gmx genrestr, gmx editconf, etc.
-def GROMACS_CONTAINER    = _useAws ? _ECR : 'gromacs/gromacs:2025.1'
+params.GROMACS_CONTAINER = params._useAws ? params._ECR : 'gromacs/gromacs:2025.1'
 // gmx_MMPBSA: gmx_MMPBSA Python API + AmberTools + GROMACS
-def MMPBSA_CONTAINER     = _useAws ? _ECR : 'simonbray/gmx_mmpbsa:1.6.3'
+params.MMPBSA_CONTAINER = params._useAws ? params._ECR : 'simonbray/gmx_mmpbsa:1.6.3'
 
 // ============================================================================
 // Processes
@@ -100,7 +100,7 @@ process LIGAND_PREP {
      *         ligand.frcmod      -- missing GAFF2 force-field terms
      */
     tag "ligand_prep"
-    container AMBERTOOLS_CONTAINER
+    container params.AMBERTOOLS_CONTAINER
     publishDir "${params.outdir}/prep", mode: params.publish_dir_mode
 
     input:
@@ -176,7 +176,7 @@ process SYSTEM_SETUP {
      * Also generates position restraint ITP file via gmx genrestr.
      */
     tag "system_setup"
-    container AMBERTOOLS_CONTAINER
+    container params.AMBERTOOLS_CONTAINER
     publishDir "${params.outdir}/prep", mode: params.publish_dir_mode
 
     input:
@@ -283,7 +283,7 @@ process ENERGY_MINIMIZATION {
      * Minimizes forces to below 1000 kJ/mol/nm.
      */
     tag "em"
-    container GROMACS_CONTAINER
+    container params.GROMACS_CONTAINER
     publishDir "${params.outdir}/em", mode: params.publish_dir_mode
 
     input:
@@ -419,7 +419,7 @@ process NVT_EQUILIBRATION {
      * Velocity-rescaling thermostat; protein+ligand position restrained.
      */
     tag "nvt"
-    container GROMACS_CONTAINER
+    container params.GROMACS_CONTAINER
     publishDir "${params.outdir}/nvt", mode: params.publish_dir_mode
 
     input:
@@ -525,7 +525,7 @@ process NPT_EQUILIBRATION {
      * Parrinello-Rahman barostat; protein+ligand position restrained.
      */
     tag "npt"
-    container GROMACS_CONTAINER
+    container params.GROMACS_CONTAINER
     publishDir "${params.outdir}/npt", mode: params.publish_dir_mode
 
     input:
@@ -610,7 +610,7 @@ process PRODUCTION_MD {
      * Unrestrained protein + ligand. GPU-accelerated when params.gpu = true.
      */
     tag "production_md"
-    container GROMACS_CONTAINER
+    container params.GROMACS_CONTAINER
     publishDir "${params.outdir}/md", mode: params.publish_dir_mode
 
     input:
@@ -723,7 +723,7 @@ process TRAJECTORY_ANALYSIS {
      * - matplotlib RMSD/RMSF plots
      */
     tag "analysis"
-    container GROMACS_CONTAINER
+    container params.GROMACS_CONTAINER
     publishDir "${params.outdir}/analysis", mode: params.publish_dir_mode
 
     input:
@@ -870,7 +870,7 @@ process MM_GBSA {
      * Uses GB model (igb=2) + per-residue energy decomposition.
      */
     tag "mm_gbsa"
-    container MMPBSA_CONTAINER
+    container params.MMPBSA_CONTAINER
     publishDir "${params.outdir}/mmgbsa", mode: params.publish_dir_mode
 
     input:
