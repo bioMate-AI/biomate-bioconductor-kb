@@ -15,7 +15,7 @@ params.t = '4.0'
 params.kh = '5.0'
 
 process HIGUCHI {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

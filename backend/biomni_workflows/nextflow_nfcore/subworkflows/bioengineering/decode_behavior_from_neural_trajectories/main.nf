@@ -17,7 +17,7 @@ params.n_components = '10'
 params.output_dir = './'
 
 process DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

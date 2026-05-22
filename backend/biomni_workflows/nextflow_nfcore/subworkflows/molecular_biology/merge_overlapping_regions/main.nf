@@ -14,7 +14,7 @@ params.outdir = './results'
 params.regions = '[[0, 50], [40, 100], [200, 250], [240, 300]]'
 
 process MERGE_OVERLAPPING_REGIONS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

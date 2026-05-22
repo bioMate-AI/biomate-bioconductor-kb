@@ -14,7 +14,7 @@ params.outdir = './results'
 params.smiles_string = 'CC(=O)OC1=CC=CC=C1C(=O)O'
 
 process CALCULATE_PHYSICOCHEMICAL_PROPERTIES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -22,7 +22,7 @@ params.smiles_list = '["CC(=O)OC1=CC=CC=C1C(=O)O", "OC(CCCN1CCC(CC1)C(O)(c1ccccc
 params.ADMET_model_type = 'MPNN'
 
 process PREDICT_ADMET_PROPERTIES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -24,7 +24,7 @@ params.projected_Cmax_nM  = 'null'
 params.alert_severity_threshold = '1'   // 1=HIGH only, 2=HIGH+MEDIUM, 3=all
 
 process REPEATED_DOSE_TOX_PREDICTION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

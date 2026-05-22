@@ -24,7 +24,7 @@ params.gradient_convergence_tolerance = 1e-06
 params.number_of_control_points = 4
 
 process QUICK_DEFORMABLE_REGISTRATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

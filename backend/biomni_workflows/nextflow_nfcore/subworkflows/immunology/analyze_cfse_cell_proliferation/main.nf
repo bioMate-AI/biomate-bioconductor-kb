@@ -17,7 +17,7 @@ params.cfse_channel = 'FL1-A'
 params.lymphocyte_gate = '[50000, 250000, 10000, 150000]'
 
 process ANALYZE_CFSE_CELL_PROLIFERATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

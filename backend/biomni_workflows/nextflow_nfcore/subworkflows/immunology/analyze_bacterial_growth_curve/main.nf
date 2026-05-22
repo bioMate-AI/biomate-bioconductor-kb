@@ -17,7 +17,7 @@ params.strain_name = 'Test_Strain_001'
 params.output_dir = '.'
 
 process ANALYZE_BACTERIAL_GROWTH_CURVE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

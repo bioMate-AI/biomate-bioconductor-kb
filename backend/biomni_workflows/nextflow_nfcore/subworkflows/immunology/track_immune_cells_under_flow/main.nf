@@ -18,7 +18,7 @@ params.time_interval_sec = '1.0'
 params.flow_direction = 'right'
 
 process TRACK_IMMUNE_CELLS_UNDER_FLOW {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

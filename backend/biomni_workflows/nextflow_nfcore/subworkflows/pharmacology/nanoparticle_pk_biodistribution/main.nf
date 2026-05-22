@@ -28,7 +28,7 @@ params.zeta_potential_mV       = '-10'
 params.simulation_hours        = '72'
 
 process NANOPARTICLE_PK_BIODISTRIBUTION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

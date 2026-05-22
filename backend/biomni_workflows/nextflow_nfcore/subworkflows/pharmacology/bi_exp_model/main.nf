@@ -18,7 +18,7 @@ params.B = '50.0'
 params.beta = '0.05'
 
 process BI_EXP_MODEL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

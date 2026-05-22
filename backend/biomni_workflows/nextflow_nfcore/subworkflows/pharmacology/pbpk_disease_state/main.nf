@@ -46,7 +46,7 @@ params.primary_indication     = 'not specified'
 params.admet_json             = ''
 
 process PBPK_DISEASE_STATE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

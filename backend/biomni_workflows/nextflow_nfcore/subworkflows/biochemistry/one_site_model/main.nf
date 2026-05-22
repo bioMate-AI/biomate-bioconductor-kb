@@ -16,7 +16,7 @@ params.dH = null
 params.n = null
 
 process ONE_SITE_MODEL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

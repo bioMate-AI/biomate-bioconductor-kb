@@ -16,7 +16,7 @@ params.enzymes = '["EcoRI", "BamHI", "HindIII"]'
 params.is_circular = 'false'
 
 process FIND_RESTRICTION_SITES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

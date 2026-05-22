@@ -17,7 +17,7 @@ params.radiation_parameters = '{"radionuclide": "Ac-225", "half_life_hours": 240
 params.output_file = 'dosimetry_results.csv'
 
 process ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

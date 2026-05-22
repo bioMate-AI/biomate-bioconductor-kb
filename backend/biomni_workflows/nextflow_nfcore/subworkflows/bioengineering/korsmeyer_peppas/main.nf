@@ -16,7 +16,7 @@ params.k = '1.0'
 params.n = '0.5'
 
 process KORSMEYER_PEPPAS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

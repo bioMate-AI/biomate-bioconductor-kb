@@ -16,7 +16,7 @@ params.data_dir = null
 params.custom_args = null
 
 process MAP_TO_IMA_INTERPRET_SCRNA {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.DATA_ROOT = null  // Set to UCE data root directory at runtime
 params.custom_args = null
 
 process GET_UCE_EMBEDDINGS_SCRNA {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

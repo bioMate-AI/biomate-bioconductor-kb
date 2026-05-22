@@ -28,7 +28,7 @@ params.occupancy_threshold_pct = '80'
 params.simulation_hours = '48'
 
 process TARGET_ENGAGEMENT_KINETICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

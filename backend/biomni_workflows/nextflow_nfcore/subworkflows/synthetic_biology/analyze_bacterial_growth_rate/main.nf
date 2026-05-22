@@ -17,7 +17,7 @@ params.strain_name = 'E_coli_K12'
 params.output_dir = './'
 
 process ANALYZE_BACTERIAL_GROWTH_RATE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

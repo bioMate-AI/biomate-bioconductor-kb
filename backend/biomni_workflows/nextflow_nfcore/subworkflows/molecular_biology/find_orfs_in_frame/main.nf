@@ -17,7 +17,7 @@ params.frame = 1
 params.min_length = 9
 
 process FIND_ORFS_IN_FRAME {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

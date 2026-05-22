@@ -16,7 +16,7 @@ params.physiological_data = '[36.5, 36.3, 36.1, 36.0, 36.2, 36.5, 36.8, 37.1, 37
 params.period = '24.0'
 
 process PERFORM_COSINOR_ANALYSIS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

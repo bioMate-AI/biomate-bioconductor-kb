@@ -34,7 +34,7 @@ params.cai_threshold = '0.90'
 params.mfe_threshold = '-150.0'
 
 process P0_MRNA_VALIDATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

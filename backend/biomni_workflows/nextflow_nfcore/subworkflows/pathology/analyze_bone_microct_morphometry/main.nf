@@ -15,7 +15,7 @@ params.output_dir = './results'
 params.threshold_value = null
 
 process ANALYZE_BONE_MICROCT_MORPHOMETRY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

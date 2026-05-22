@@ -24,7 +24,7 @@ params.IC50_threshold_nM = '100'
 params.reference_smiles  = 'null'
 
 process PROTEOME_SELECTIVITY_PROFILING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

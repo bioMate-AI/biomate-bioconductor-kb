@@ -65,7 +65,7 @@ if (!params.patient_data_csv) {
 }
 
 process EXPOSURE_RESPONSE_MODELING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

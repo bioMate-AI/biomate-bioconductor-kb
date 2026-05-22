@@ -18,7 +18,7 @@ params.compensation_matrix = null
 params.output_dir = './results'
 
 process ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

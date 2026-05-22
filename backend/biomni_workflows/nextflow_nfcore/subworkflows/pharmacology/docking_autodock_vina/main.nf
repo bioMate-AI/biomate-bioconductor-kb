@@ -15,7 +15,7 @@ params.n_poses                  = '9'
 params.reference_ligand_smiles  = ''
 
 process DOCKING_AUTODOCK_VINA {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

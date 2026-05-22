@@ -19,7 +19,7 @@ params.q_value = '0.05'
 params.name_prefix = 'atac'
 
 process ANALYZE_ATAC_SEQ_DIFFERENTIAL_ACCESSIBILITY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

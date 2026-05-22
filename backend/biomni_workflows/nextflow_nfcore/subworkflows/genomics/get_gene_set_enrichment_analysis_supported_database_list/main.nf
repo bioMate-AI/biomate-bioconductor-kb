@@ -13,7 +13,7 @@ params.outdir = './results'
 // No value parameters
 
 process GET_GENE_SET_ENRICHMENT_ANALYSIS_SUPPORTED_DATABASE_LIST {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

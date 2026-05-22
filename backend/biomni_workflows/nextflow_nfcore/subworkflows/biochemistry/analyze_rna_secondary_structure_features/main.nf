@@ -14,7 +14,7 @@ params.dot_bracket_structure = null
 params.sequence = null
 
 process ANALYZE_RNA_SECONDARY_STRUCTURE_FEATURES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

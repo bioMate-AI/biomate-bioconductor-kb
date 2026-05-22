@@ -14,7 +14,7 @@ params.outdir = './results'
 params.fcs_file_path = "${projectDir}/../../../../lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs"
 
 process ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

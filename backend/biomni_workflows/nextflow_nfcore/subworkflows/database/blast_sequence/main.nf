@@ -16,7 +16,7 @@ params.database = 'nt'
 params.program = 'blastn'
 
 process BLAST_SEQUENCE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

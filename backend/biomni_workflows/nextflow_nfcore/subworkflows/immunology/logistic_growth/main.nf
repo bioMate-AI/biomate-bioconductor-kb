@@ -16,7 +16,7 @@ params.r = '0.1'
 params.k = '1000.0'
 
 process LOGISTIC_GROWTH {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

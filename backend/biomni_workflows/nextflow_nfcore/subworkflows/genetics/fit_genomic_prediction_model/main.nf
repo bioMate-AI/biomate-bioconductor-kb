@@ -18,7 +18,7 @@ params.model_type = 'additive'
 params.output_file = 'genomic_prediction_results.csv'
 
 process FIT_GENOMIC_PREDICTION_MODEL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -15,7 +15,7 @@ params.k = '0.1'
 params.concentrations = '[1.0, 2.0]'
 
 process MASS_ACTION_KINETICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

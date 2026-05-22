@@ -16,7 +16,7 @@ params.max_tokens = '100'
 params.method = 'truncate'
 
 process REDUCE_TOKENS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -14,7 +14,7 @@ params.gene_name = null
 params.K = 10
 
 process GET_RNA_SEQ_ARCHS4 {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

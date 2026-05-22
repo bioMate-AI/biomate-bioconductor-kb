@@ -37,7 +37,7 @@ params.n_poses          = '20'
 params.rmsd_threshold   = '2.0'
 
 process P0_DOCKING_VALIDATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_high'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

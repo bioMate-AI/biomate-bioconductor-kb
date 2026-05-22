@@ -52,7 +52,7 @@ params.strand_bias_check   = 'true'   // analyze passenger strand off-targets
 
 // [Phase B] siRNA Off-Target Analysis
 process SIRNA_OFFTARGET_ANALYSIS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

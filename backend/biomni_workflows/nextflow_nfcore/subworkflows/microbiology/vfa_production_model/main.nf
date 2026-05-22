@@ -16,7 +16,7 @@ params.max_rate = '5.0'
 params.ks = '2.0'
 
 process VFA_PRODUCTION_MODEL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

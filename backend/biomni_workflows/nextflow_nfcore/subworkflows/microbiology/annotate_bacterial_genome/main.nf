@@ -19,7 +19,7 @@ params.strain = 'K12'
 params.prefix = 'ecoli_test'
 
 process ANNOTATE_BACTERIAL_GENOME {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

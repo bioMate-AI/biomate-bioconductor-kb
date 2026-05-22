@@ -15,7 +15,7 @@ params.data_lake_path = null  // Required: path to data lake containing txgnn_na
 params.k = '5'
 
 process RETRIEVE_TOPK_REPURPOSING_DRUGS_FROM_DISEASE_TXGNN {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

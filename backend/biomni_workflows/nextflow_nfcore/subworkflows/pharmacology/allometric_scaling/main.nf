@@ -22,7 +22,7 @@ params.dose_route       = 'oral'
 params.toxicokinetic_NOEL_mg_kg = 'null'
 
 process ALLOMETRIC_SCALING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.diameter = '30.0'
 params.save_dir = 'segmentation_results'
 
 process SEGMENT_CELLS_WITH_DEEP_LEARNING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -16,7 +16,7 @@ params.data = '[1.0, 2.0, 3.0]'
 params.model_type = 'sum_squared'
 
 process OBJECTIVE_FUNCTION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

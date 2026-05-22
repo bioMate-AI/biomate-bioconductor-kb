@@ -16,7 +16,7 @@ params.protein_name = 'CD68'
 params.output_dir = './ihc_results/'
 
 process ANALYZE_IMMUNOHISTOCHEMISTRY_IMAGE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

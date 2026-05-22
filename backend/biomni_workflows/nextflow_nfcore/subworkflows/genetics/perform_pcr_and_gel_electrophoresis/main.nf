@@ -22,7 +22,7 @@ params.gel_percentage = '2.0'
 params.output_prefix = 'pcr_result'
 
 process PERFORM_PCR_AND_GEL_ELECTROPHORESIS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

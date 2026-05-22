@@ -19,7 +19,7 @@ params.insert_lengths = '[500]'
 params.is_library_prep = 'false'
 
 process GET_GOLDEN_GATE_ASSEMBLY_PROTOCOL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

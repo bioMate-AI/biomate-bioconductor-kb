@@ -31,7 +31,7 @@ params.remove_duplicate_genes = null
 params.oom_dataloader = null
 
 process GENERATE_TRANSCRIPTFORMER_EMBEDDINGS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

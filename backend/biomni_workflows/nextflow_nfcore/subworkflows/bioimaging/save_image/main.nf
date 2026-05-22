@@ -15,7 +15,7 @@ params.image = null
 params.output_path = 'saved_demo_image.nii.gz'
 
 process SAVE_IMAGE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

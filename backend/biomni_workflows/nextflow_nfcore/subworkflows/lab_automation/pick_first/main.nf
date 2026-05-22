@@ -14,7 +14,7 @@ params.outdir = './results'
 params.keywords = '["pipette", "dispense", "aspirate", "tip_rack", "plate"]'
 
 process PICK_FIRST {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

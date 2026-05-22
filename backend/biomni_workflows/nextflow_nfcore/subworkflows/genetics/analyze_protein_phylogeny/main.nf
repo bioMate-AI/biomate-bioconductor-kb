@@ -28,7 +28,7 @@ params.alignment_method = 'clustalw'
 params.tree_method = 'iqtree'
 
 process ANALYZE_PROTEIN_PHYLOGENY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

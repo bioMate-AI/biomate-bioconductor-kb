@@ -13,7 +13,7 @@ params.outdir = './results'
 // No value parameters
 
 process TARGET {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

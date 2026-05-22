@@ -19,7 +19,7 @@ params.sample_metadata = '{"sample1": {"group": "EBV_positive", "collection_date
 params.output_dir = './'
 
 process ANALYZE_EBV_ANTIBODY_TITERS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

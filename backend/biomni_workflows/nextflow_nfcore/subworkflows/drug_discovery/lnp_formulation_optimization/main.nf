@@ -26,7 +26,7 @@ params.target_tissue           = 'liver'  // liver | lung | spleen | muscle | CN
 params.run_ratio_sweep         = 'true'
 
 process LNP_FORMULATION_OPTIMIZATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

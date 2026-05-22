@@ -20,7 +20,7 @@ params.num_simulations = '100'
 params.time_points = '100'
 
 process SIMULATE_MICROBIAL_POPULATION_DYNAMICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

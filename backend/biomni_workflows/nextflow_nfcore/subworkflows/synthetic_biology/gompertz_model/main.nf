@@ -17,7 +17,7 @@ params.b = '2.0'
 params.c = '0.5'
 
 process GOMPERTZ_MODEL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

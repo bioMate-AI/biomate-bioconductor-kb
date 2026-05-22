@@ -18,7 +18,7 @@ params.total_drug_loaded = '100.0'
 params.output_dir = './'
 
 process ANALYZE_IN_VITRO_DRUG_RELEASE_KINETICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

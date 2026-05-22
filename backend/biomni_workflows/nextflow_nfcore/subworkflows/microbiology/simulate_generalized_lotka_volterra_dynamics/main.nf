@@ -19,7 +19,7 @@ params.time_points = '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25,
 params.output_file = 'glv_simulation_results.csv'
 
 process SIMULATE_GENERALIZED_LOTKA_VOLTERRA_DYNAMICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -15,7 +15,7 @@ params.gene_index = null
 params.h5ad_file = "${projectDir}/../../../../lib/galaxy/datatypes/test/pbmc3k_tiny.h5ad"
 
 process CHECK_ENSEMBL_PATTERNS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

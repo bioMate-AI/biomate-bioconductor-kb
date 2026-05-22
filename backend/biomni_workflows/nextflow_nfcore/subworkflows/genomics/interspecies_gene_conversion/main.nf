@@ -16,7 +16,7 @@ params.source_species = 'human'
 params.target_species = 'mouse'
 
 process INTERSPECIES_GENE_CONVERSION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

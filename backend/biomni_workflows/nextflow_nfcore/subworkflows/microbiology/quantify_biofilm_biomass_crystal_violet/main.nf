@@ -17,7 +17,7 @@ params.control_index = '0'
 params.save_path = null
 
 process QUANTIFY_BIOFILM_BIOMASS_CRYSTAL_VIOLET {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

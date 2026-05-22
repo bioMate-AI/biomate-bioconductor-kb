@@ -23,7 +23,7 @@ params.outdir       = './results'
 params.smiles_list  = '["Nc1ccc([N+](=O)[O-])cc1"]'
 
 process GENOTOXICITY_AMES_PREDICTION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

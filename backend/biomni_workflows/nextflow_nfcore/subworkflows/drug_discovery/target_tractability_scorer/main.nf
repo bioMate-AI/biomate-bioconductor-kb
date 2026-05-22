@@ -30,7 +30,7 @@ params.has_endogenous_ligand   = 'false'
 params.disease_association_score = '0.8'
 
 process TARGET_TRACTABILITY_SCORER {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

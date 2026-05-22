@@ -16,7 +16,7 @@ params.growth_rates = '[0.1, 0.1]'
 params.interaction_matrix = '[[-0.01, -0.005], [-0.005, -0.01]]'
 
 process GLV_EQUATIONS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

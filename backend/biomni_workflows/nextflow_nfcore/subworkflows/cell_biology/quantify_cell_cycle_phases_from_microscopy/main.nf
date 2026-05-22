@@ -15,7 +15,7 @@ params.image_paths = '[]'
 params.output_dir = './results'
 
 process QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

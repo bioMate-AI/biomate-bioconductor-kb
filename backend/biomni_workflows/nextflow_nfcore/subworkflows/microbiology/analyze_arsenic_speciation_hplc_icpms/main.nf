@@ -16,7 +16,7 @@ params.sample_name = 'Environmental_Water_Sample'
 params.calibration_data = null
 
 process ANALYZE_ARSENIC_SPECIATION_HPLC_ICPMS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

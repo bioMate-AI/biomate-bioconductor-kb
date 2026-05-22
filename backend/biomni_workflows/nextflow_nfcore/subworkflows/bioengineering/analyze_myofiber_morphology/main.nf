@@ -18,7 +18,7 @@ params.threshold_method = 'otsu'
 params.output_dir = './'
 
 process ANALYZE_MYOFIBER_MORPHOLOGY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

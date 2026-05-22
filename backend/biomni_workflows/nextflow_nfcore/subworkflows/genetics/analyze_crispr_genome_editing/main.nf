@@ -17,7 +17,7 @@ params.guide_rna = 'GTGTCCCATCTGTCTGGAGT'
 params.repair_template = null
 
 process ANALYZE_CRISPR_GENOME_EDITING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

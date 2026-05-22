@@ -17,7 +17,7 @@ params.gef_rate = '0.1'
 params.gap_rate = '0.5'
 
 process RAS_ODE_SYSTEM {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

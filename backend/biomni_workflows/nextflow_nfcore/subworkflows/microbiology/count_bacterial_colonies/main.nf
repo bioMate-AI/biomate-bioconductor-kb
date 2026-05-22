@@ -17,7 +17,7 @@ params.plate_area_cm2 = '65.0'
 params.output_dir = './output'
 
 process COUNT_BACTERIAL_COLONIES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

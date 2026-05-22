@@ -19,7 +19,7 @@ params.number_of_iterations = 100
 params.gradient_convergence_tolerance = 1e-06
 
 process SETUP_REGISTRATION_METHOD {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -20,7 +20,7 @@ params.threshold_max = 200000
 params.output_file = 'sorted_cells.csv'
 
 process PERFORM_FACS_CELL_SORTING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

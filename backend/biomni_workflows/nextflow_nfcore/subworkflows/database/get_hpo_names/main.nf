@@ -15,7 +15,7 @@ params.hpo_terms = '["HP:0001250", "HP:0001252", "HP:0000707"]'
 params.data_lake_path = '/data/hpo'
 
 process GET_HPO_NAMES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

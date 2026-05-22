@@ -34,7 +34,7 @@ params.target_indication = 'oncology'
 params.dose_mg_kg        = '10'
 
 process ANTIBODY_DEVELOPABILITY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

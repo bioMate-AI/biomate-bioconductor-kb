@@ -17,7 +17,7 @@ params.regions = '[[0, 100], [200, 300]]'
 params.covered_regions = null  // alias for regions
 
 process IS_REGION_FULLY_COVERED {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

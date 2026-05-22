@@ -15,7 +15,7 @@ params.comparison_period = '["2020-01-01", "2023-12-31"]'
 params.signal_threshold = 2.0
 
 process ANALYZE_FDA_SAFETY_SIGNALS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.denoise = true
 params.normalize = true
 
 process PREPROCESS_IMAGE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

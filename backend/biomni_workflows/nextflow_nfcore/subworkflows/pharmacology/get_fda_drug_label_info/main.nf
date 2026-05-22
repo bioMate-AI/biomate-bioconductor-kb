@@ -15,7 +15,7 @@ params.drug_name = 'aspirin'
 params.sections = '["indications_and_usage", "contraindications", "warnings"]'
 
 process GET_FDA_DRUG_LABEL_INFO {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

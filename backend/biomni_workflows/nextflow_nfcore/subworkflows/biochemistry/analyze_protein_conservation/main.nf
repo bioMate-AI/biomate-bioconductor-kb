@@ -15,7 +15,7 @@ params.protein_sequences = '["MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLS
 params.output_dir = './'
 
 process ANALYZE_PROTEIN_CONSERVATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

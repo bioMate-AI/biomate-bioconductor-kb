@@ -23,7 +23,7 @@ params.Cmax_uM       = '1.0'
 params.transporters  = 'all'  // all | OATP1B1,Pgp,BCRP,...
 
 process TRANSPORTER_DDI_PREDICTION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -15,7 +15,7 @@ params.chrom = 'chr17'
 params.x = null  // alias for chrom
 
 process NORM_CHR {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

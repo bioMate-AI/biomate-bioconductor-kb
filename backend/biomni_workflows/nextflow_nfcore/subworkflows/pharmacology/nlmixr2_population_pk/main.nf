@@ -57,7 +57,7 @@ if (!params.pk_data_csv) {
 }
 
 process NLMIXR2_POPULATION_PK {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_high'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -54,7 +54,7 @@ params.phase3_power       = '0.80'
 params.phase3_alpha       = '0.025'
 
 process BIOMARKER_PATIENT_ENRICHMENT {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

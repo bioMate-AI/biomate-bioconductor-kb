@@ -16,7 +16,7 @@ params.output_dir = './autosite_results'
 params.spacing = '1.0'
 
 process RUN_AUTOSITE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.system_name = 'Logistic Map'
 params.output_dir = './'
 
 process ANALYZE_BIFURCATION_DIAGRAM {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

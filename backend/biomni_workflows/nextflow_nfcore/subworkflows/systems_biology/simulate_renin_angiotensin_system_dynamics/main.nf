@@ -20,7 +20,7 @@ params.simulation_time = '48'
 params.time_points = '100'
 
 process SIMULATE_RENIN_ANGIOTENSIN_SYSTEM_DYNAMICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -29,7 +29,7 @@ params.fed_fasted               = 'both'
 params.formulation_type        = 'free_base'
 
 process ORAL_ABSORPTION_BCS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

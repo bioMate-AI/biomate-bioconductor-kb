@@ -29,7 +29,7 @@ params.max_cycles      = '2'         // number of metabolic cycles (1-3)
 params.min_confidence  = '0.5'       // minimum reaction confidence to include
 
 process METABOLITE_PREDICTION_BIOTRANSFORMER {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

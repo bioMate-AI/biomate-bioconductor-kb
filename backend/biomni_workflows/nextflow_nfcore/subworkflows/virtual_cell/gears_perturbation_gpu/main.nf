@@ -40,7 +40,7 @@ params.epistasis_model    = 'bliss'
 params.device             = 'auto'          // auto | cuda | cpu
 
 process GEARS_PERTURBATION_GPU {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_gpu'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

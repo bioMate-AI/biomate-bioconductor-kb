@@ -20,7 +20,7 @@ params.pH_donor            = '6.8'
 params.include_Pgp         = 'true'
 
 process MEMBRANE_PERMEABILITY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

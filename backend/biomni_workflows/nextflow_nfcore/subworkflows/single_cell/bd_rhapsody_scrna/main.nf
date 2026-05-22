@@ -40,7 +40,7 @@ params.max_mito_pct      = '20'
 params.abseq             = 'false'       // AbSeq protein co-detection
 
 process BD_RHAPSODY_SCRNA {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

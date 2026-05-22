@@ -19,7 +19,7 @@ params.target_output = 'methane_yield'
 params.optimization_method = 'rsm'
 
 process OPTIMIZE_ANAEROBIC_DIGESTION_PROCESS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -16,7 +16,7 @@ params.detailed_analysis = 'True'
 params.data_lake_path = './schema_db'
 
 process ANALYZE_INTERACTION_MECHANISMS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

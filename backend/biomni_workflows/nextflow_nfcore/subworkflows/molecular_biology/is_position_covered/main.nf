@@ -16,7 +16,7 @@ params.pos = null  // alias for position
 params.regions = '[[0, 100], [200, 300]]'
 
 process IS_POSITION_COVERED {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

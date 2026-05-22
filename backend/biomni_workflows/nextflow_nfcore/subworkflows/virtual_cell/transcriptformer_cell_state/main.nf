@@ -50,7 +50,7 @@ params.top_k_types     = '5'             // top cell type candidates to return
 params.lincs_crossval  = 'false'         // cross-validate drug response via LINCS
 
 process TRANSCRIPTFORMER_CELL_STATE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

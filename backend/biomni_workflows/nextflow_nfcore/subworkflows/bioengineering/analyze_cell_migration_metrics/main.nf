@@ -18,7 +18,7 @@ params.min_track_length = '10'
 params.output_dir = './'
 
 process ANALYZE_CELL_MIGRATION_METRICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

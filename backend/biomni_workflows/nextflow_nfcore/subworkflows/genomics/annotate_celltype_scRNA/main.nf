@@ -20,7 +20,7 @@ params.llm = 'claude-sonnet-4-5'
 params.composition = null
 
 process ANNOTATE_CELLTYPE_SCRNA {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

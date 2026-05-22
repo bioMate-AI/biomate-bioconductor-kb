@@ -22,7 +22,7 @@ params.fragments = '[{"name": "GFP_insert", "fwd_oligo": "AAATATGGTGAGCAAGGGCGAG
 params.is_circular = 'true'
 
 process GOLDEN_GATE_ASSEMBLY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

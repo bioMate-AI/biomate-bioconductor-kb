@@ -16,7 +16,7 @@ params.output_dir = './output'
 params.stain_type = 'H&E'
 
 process ANALYZE_CNS_LESION_HISTOLOGY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

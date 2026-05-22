@@ -17,7 +17,7 @@ params.include_management = 'True'
 params.data_lake_path = './schema_db'
 
 process CHECK_DRUG_COMBINATION_SAFETY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

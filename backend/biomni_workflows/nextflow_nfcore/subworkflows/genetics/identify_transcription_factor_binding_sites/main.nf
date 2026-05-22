@@ -17,7 +17,7 @@ params.threshold = '0.7'
 params.output_file = 'tf_binding_sites.txt'
 
 process IDENTIFY_TRANSCRIPTION_FACTOR_BINDING_SITES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

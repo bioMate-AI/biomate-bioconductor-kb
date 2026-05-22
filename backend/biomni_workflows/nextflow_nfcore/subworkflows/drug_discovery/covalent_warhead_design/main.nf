@@ -22,7 +22,7 @@ params.run_gsh      = 'true'
 params.run_kinome_selectivity = 'false'
 
 process COVALENT_WARHEAD_DESIGN {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

@@ -17,7 +17,7 @@ params.output_dir = './output'
 params.demo_mode = true
 
 process ANALYZE_CHROMATIN_INTERACTIONS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

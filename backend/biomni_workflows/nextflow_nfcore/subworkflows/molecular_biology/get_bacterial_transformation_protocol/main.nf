@@ -15,7 +15,7 @@ params.antibiotic = 'ampicillin'
 params.is_repetitive = 'false'
 
 process GET_BACTERIAL_TRANSFORMATION_PROTOCOL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

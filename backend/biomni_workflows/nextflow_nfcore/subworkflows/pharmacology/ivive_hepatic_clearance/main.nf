@@ -38,7 +38,7 @@ params.scaling_model = 'well_stirred'
 params.smiles        = ''
 
 process IVIVE_HEPATIC_CLEARANCE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

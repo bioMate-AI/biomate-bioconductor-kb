@@ -19,7 +19,7 @@ params.num_motifs = null
 params.threads = null
 
 process FIND_ENRICHED_MOTIFS_WITH_HOMER {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

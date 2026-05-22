@@ -18,7 +18,7 @@ params.min_plaque_size = '50'
 params.manual_threshold = '127'
 
 process QUANTIFY_AMYLOID_BETA_PLAQUES {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

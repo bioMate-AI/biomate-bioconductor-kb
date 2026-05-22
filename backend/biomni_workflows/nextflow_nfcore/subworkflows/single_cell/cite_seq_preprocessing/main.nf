@@ -46,7 +46,7 @@ params.wnn_integration      = 'true'      // run WNN multimodal integration
 params.protocol             = 'cite_seq'  // cite_seq | totalseq_a | totalseq_b | totalseq_c
 
 process CITE_SEQ_PREPROCESSING {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

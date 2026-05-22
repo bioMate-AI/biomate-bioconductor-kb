@@ -18,7 +18,7 @@ params.time_points = null
 params.output_dir = './'
 
 process ANALYZE_ENZYME_KINETICS_ASSAY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

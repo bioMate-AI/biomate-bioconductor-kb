@@ -15,7 +15,7 @@ params.image_stack_path = null
 params.output_dir = './'
 
 process ANALYZE_CALCIUM_IMAGING_DATA {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

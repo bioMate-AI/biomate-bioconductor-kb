@@ -17,7 +17,7 @@ params.time_span = '[0, 48]'
 params.time_points = '100'
 
 process SIMULATE_THYROID_HORMONE_PHARMACOKINETICS {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

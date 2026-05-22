@@ -50,7 +50,7 @@ params.save_test_report = 'false'
 params.test_report_dir = './test_reports'
 
 process TEST_PYLABROBOT_SCRIPT {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

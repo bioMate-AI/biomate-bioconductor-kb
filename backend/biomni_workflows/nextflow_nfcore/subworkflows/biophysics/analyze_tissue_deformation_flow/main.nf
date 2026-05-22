@@ -16,7 +16,7 @@ params.output_dir = 'results'
 params.pixel_scale = '1.0'
 
 process ANALYZE_TISSUE_DEFORMATION_FLOW {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

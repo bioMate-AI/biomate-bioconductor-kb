@@ -22,7 +22,7 @@ params.random_seed = null
 params.output_file = 'simulated_sequences.vcf'
 
 process SIMULATE_DEMOGRAPHIC_HISTORY {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

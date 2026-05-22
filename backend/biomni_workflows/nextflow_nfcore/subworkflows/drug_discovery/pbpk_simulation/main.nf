@@ -39,7 +39,7 @@ params.dose_route     = 'oral'
 params.simulation_hours = '96'
 
 process PBPK_SIMULATION {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

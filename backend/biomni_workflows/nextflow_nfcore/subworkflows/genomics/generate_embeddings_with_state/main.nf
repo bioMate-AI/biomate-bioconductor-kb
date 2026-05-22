@@ -21,7 +21,7 @@ params.protein_embeddings = null
 params.batch_size = '500'
 
 process GENERATE_EMBEDDINGS_WITH_STATE {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

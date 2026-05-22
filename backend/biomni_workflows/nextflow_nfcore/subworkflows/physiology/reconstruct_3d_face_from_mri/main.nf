@@ -17,7 +17,7 @@ params.subject_id = 'subject001'
 params.threshold_value = '300'
 
 process RECONSTRUCT_3D_FACE_FROM_MRI {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

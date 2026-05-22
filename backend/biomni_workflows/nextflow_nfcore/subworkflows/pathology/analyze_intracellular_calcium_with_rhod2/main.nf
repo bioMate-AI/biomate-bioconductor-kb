@@ -17,7 +17,7 @@ params.sample_image_path = 'mock_sample.png'
 params.output_dir = './output'
 
 process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2 {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

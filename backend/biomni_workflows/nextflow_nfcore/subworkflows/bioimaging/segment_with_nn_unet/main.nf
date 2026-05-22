@@ -24,7 +24,7 @@ params.auto_prepare_input = null
 params.results_folder = null
 
 process SEGMENT_WITH_NN_UNET {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

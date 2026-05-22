@@ -16,7 +16,7 @@ params.moving_image = "${projectDir}/../../../test_data/mock_moving_image.nii.gz
 params.initial_transform = null
 
 process CREATE_RIGID_TRANSFORM {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

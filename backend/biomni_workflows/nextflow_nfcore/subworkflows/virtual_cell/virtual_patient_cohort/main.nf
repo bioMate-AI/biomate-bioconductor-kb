@@ -64,7 +64,7 @@ params.covariate_bwt_sd   = '15'           // SD body weight (kg)
 params.covariate_age_mean = '55'           // mean age (years)
 
 process VIRTUAL_PATIENT_COHORT {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 

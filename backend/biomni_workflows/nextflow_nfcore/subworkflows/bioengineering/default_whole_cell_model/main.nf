@@ -16,7 +16,7 @@ params.y = null
 params.params = null
 
 process DEFAULT_WHOLE_CELL_MODEL {
-    tag "$meta.id"
+    tag { meta.id }
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
