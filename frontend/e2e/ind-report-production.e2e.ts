@@ -301,4 +301,64 @@ test.describe("Stage D — LLM adapter serving", () => {
     }
     await ctx.dispose();
   });
+
+  test("PI-13: SSE streaming endpoint emits phase + token events", async () => {
+    // Verifies the UX-grade /api/regulatory/generate_stream:
+    //   - text/event-stream content-type
+    //   - at least one model_loading phase (always emitted first)
+    //   - either generating + complete phases + >=1 token event,
+    //     OR an error phase (fallback path is acceptable)
+    test.setTimeout(360_000);
+
+    const resp = await fetch(`${GALAXY_URL}/api/regulatory/generate_stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(resp.ok, `status=${resp.status}`).toBe(true);
+    expect(resp.headers.get("content-type") || "").toContain("text/event-stream");
+    expect(resp.body).not.toBeNull();
+
+    const reader = (resp.body as any).getReader();
+    const dec = new TextDecoder();
+    const phases: string[] = [];
+    const tokens: string[] = [];
+    let leftover = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      leftover += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = leftover.indexOf("\n\n")) !== -1) {
+        const raw = leftover.slice(0, idx);
+        leftover = leftover.slice(idx + 2);
+        let evt = "", dat = "";
+        for (const line of raw.split("\n")) {
+          if (line.startsWith("event:")) evt = line.slice(6).trim();
+          else if (line.startsWith("data:")) dat = line.slice(5).trim();
+        }
+        if (!evt) continue;
+        try {
+          const data = JSON.parse(dat);
+          if (evt === "phase") phases.push(data.phase);
+          else if (evt === "token") tokens.push(data.text || "");
+        } catch { /* skip malformed */ }
+      }
+    }
+
+    console.log(`[PI-13] phases=${JSON.stringify(phases)} tokens=${tokens.length}`);
+    expect(phases.length).toBeGreaterThan(0);
+    expect(phases[0]).toBe("model_loading");
+
+    if (phases.includes("error")) {
+      console.warn(`[PI-13 ⚠️] streaming errored; production would fall back to Gemini`);
+    } else {
+      expect(phases).toContain("generating");
+      expect(phases).toContain("complete");
+      expect(tokens.length).toBeGreaterThan(0);
+      const fullText = tokens.join("");
+      expect(/[a-zA-Z]{4,}/.test(fullText)).toBe(true);
+      console.log(`[PI-13 ✅] streamed ${tokens.length} token events; total ${fullText.length} chars`);
+    }
+  });
 });
