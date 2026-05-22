@@ -317,28 +317,37 @@ deploy_workflows() {
 # ---------------------------------------------------------------------------
 
 deploy_databases() {
-  log "[db] Syncing Galaxy databases via S3..."
-  local S3_PREFIX="s3://biomate-nextflow-work/dev-sync"
+  log "[db] Syncing Galaxy databases..."
 
-  # galaxy_ai_tools.db — 259MB, upload local→S3, EC2 pulls from S3
+  # galaxy_ai_tools.db — 270MB, sync via direct scp (NOT S3).
+  #
+  # WHY scp instead of S3 (2026-05-22):
+  # The dev EC2 host has stale ~/.aws/credentials (Oct 2025) whose access
+  # key has been deleted upstream. The `aws s3 cp` on the host returns
+  # InvalidAccessKeyId and the previous code silently used a stale
+  # `/tmp/galaxy_ai_tools_sync.db` from a prior run — leaving dev on a
+  # stale workflow DB indefinitely. Same failure mode that hit
+  # universe.sqlite. Direct scp avoids it. ~15-30 sec at LAN speed.
+  #
+  # Fixing the EC2 creds (move ~/.aws/credentials aside, let the
+  # BioMateEc2DeployProfile instance role take over) would restore the
+  # S3 path, but that's a separate hardening pass.
   local local_db="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
   local local_db_mtime=$(stat -c %Y "$local_db" 2>/dev/null || echo 0)
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
-    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — uploading to S3..."
-    aws s3 cp "$local_db" "${S3_PREFIX}/galaxy_ai_tools.db" --no-progress
-    log "[db] S3 upload done — EC2 pulling..."
-
+    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
+    ec2_scp "$local_db" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_tools_sync.db" \
+      || { log "[db] scp failed — aborting galaxy_ai_tools.db sync"; return 1; }
     ec2_ssh '
       docker stop biomate-galaxy-dev 2>/dev/null || true
-      aws s3 cp s3://biomate-nextflow-work/dev-sync/galaxy_ai_tools.db \
-        /tmp/galaxy_ai_tools_sync.db --no-progress
       docker cp /tmp/galaxy_ai_tools_sync.db \
         biomate-galaxy-dev:/app/database/galaxy_ai_tools.db
       docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       docker start biomate-galaxy-dev
       sleep 5
-      echo "[db] galaxy_ai_tools.db replaced"
+      echo "[db] galaxy_ai_tools.db replaced (md5: $(docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db | cut -d" " -f1))"
+      rm -f /tmp/galaxy_ai_tools_sync.db
     '
     LAST_DB_SYNC="$local_db_mtime"
   else
