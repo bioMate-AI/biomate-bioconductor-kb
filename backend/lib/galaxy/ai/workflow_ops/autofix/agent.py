@@ -22,13 +22,19 @@ from .toolkit import ToolKit
 from .toolkit_v2 import EnhancedToolKit
 from .tool_parameter_recommender import ToolParameterRecommender as _BaseToolParameterRecommender
 # Wired version adds family_dedup priority (top-1 24%→100% on canonical eval)
-# behind BIOMATE_FAMILY_PRIORITIZE=1 env flag. With flag unset, behavior is
-# bit-identical to base class. Lazy/graceful import so any failure falls back.
+# behind BIOMATE_FAMILY_PRIORITIZE=1. With flag unset, behavior is bit-identical
+# to base. IMPORTANT: log on import failure — silent fallback masks deployment
+# bugs (see docs/20260521_DEPLOYMENT_MISTAKES_LESSONS.md).
 try:
     from galaxy.ai.retrievers.wired_recommender import (
         WiredToolParameterRecommender as ToolParameterRecommender,
     )
-except Exception:  # noqa: BLE001
+except Exception as _wire_exc:  # noqa: BLE001
+    import logging as _wire_log
+    _wire_log.getLogger(__name__).warning(
+        "WiredToolParameterRecommender unavailable, falling back to base "
+        "(BIOMATE_FAMILY_PRIORITIZE will have no effect): %s", _wire_exc,
+    )
     ToolParameterRecommender = _BaseToolParameterRecommender
 
 log = logging.getLogger(__name__)

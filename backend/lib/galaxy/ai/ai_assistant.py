@@ -36,7 +36,13 @@ try:
     from galaxy.ai.retrievers.wired_workflow_search import (
         WiredWorkflowSearch as UnifiedWorkflowSearch,
     )
-except Exception:  # noqa: BLE001
+except Exception as _wire_exc:  # noqa: BLE001
+    import logging as _wire_log
+    _wire_log.getLogger(__name__).warning(
+        "WiredWorkflowSearch unavailable, falling back to base "
+        "UnifiedWorkflowSearch (BIOMATE_WORKFLOW_INTENT_* flags will have "
+        "no effect): %s", _wire_exc,
+    )
     UnifiedWorkflowSearch = _BaseUnifiedWorkflowSearch
 from .unified_tool_search import create_unified_search
 from .galaxy_workflow_generator import GalaxyWorkflowGenerator
