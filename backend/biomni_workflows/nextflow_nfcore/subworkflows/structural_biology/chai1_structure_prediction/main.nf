@@ -25,7 +25,7 @@ params.seed                      = 42
 params.outdir                    = 'results'
 params.publish_dir_mode          = 'copy'
 
-params.ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
+def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
 
 // -- Chai-1 structure prediction -----------------------------------------------
 
@@ -34,7 +34,7 @@ process CHAI1_PREDICT {
     label 'process_gpu'
     publishDir "${params.outdir}/structures", mode: params.publish_dir_mode
 
-    container params.ECR
+    container ECR
 
     input:
     path(fasta)
@@ -62,7 +62,7 @@ process SUMMARISE_RESULTS {
     label 'process_low'
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
-    container params.ECR
+    container ECR
 
     input:
     path(results_dir)

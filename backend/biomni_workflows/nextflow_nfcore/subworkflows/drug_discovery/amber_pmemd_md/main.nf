@@ -74,10 +74,10 @@ params.use_aws              = false
 // ============================================================================
 
 // On AWS Batch use the unified ECR image (AmberTools 23 + GROMACS 2024 via conda-forge)
-params._useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
-params._ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
-params.AMBER_CONTAINER = params._useAws ? params._ECR : '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
-params.AMBERTOOLS_CONTAINER = params._useAws ? params._ECR : 'ambermd/ambertools:23'
+def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
+def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
+def AMBER_CONTAINER      = _useAws ? _ECR : '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
+def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
 
 // ============================================================================
 // Processes
@@ -92,7 +92,7 @@ process LIGAND_PREP {
      *         ligand.frcmod      -- missing GAFF2 force-field terms
      */
     tag "ligand_prep"
-    container params.AMBERTOOLS_CONTAINER
+    container AMBERTOOLS_CONTAINER
     publishDir "${params.outdir}/01_ligand_prep", mode: params.publish_dir_mode
 
     input:
@@ -171,7 +171,7 @@ process SYSTEM_SETUP {
      * Saves AMBER topology (prmtop) and coordinates (inpcrd).
      */
     tag "system_setup"
-    container params.AMBERTOOLS_CONTAINER
+    container AMBERTOOLS_CONTAINER
     publishDir "${params.outdir}/02_system_setup", mode: params.publish_dir_mode
 
     input:
@@ -221,7 +221,7 @@ process ENERGY_MINIMIZATION {
      *   Stage 2: 2500 steps -- all-atom, no restraints
      */
     tag "energy_minimization"
-    container params.AMBER_CONTAINER
+    container AMBER_CONTAINER
     publishDir "${params.outdir}/03_minimization", mode: params.publish_dir_mode
 
     cpus params.n_cpus
@@ -294,7 +294,7 @@ process EQUILIBRATION {
      *   Stage 2: 100 ps NPT -- 1 atm Berendsen barostat, backbone restrained
      */
     tag "equilibration"
-    container params.AMBER_CONTAINER
+    container AMBER_CONTAINER
     publishDir "${params.outdir}/04_equilibration", mode: params.publish_dir_mode
 
     cpus params.n_cpus
@@ -376,7 +376,7 @@ process PRODUCTION_MD {
      * Trajectory saved in NetCDF format every 10 ps (ntwx=5000 at dt=0.002 ps).
      */
     tag "production_md"
-    container params.AMBER_CONTAINER
+    container AMBER_CONTAINER
     publishDir "${params.outdir}/05_production", mode: params.publish_dir_mode
 
     cpus params.n_cpus
@@ -436,7 +436,7 @@ process TRAJECTORY_ANALYSIS {
      * Python generates matplotlib RMSD+RMSF plots, rmsf CSV, analysis_summary.json
      */
     tag "trajectory_analysis"
-    container params.AMBERTOOLS_CONTAINER
+    container AMBERTOOLS_CONTAINER
     publishDir "${params.outdir}/06_analysis", mode: params.publish_dir_mode
 
     input:
@@ -545,7 +545,7 @@ process MM_GBSA {
      * Outputs: mmgbsa_results.csv, binding_summary.json
      */
     tag "mm_gbsa"
-    container params.AMBERTOOLS_CONTAINER
+    container AMBERTOOLS_CONTAINER
     publishDir "${params.outdir}/07_mmgbsa", mode: params.publish_dir_mode
 
     input:

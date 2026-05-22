@@ -58,11 +58,11 @@ params.output_format        = 'tsv'        // hdf5 | bigwig | tsv
 params.n_tracks_report      = 20           // top N tracks in HTML report
 
 // ── Containers ────────────────────────────────────────────────────────────────
-params.ALPHAGENOME_CONTAINER = 'biomate/alphagenome-tools:1.0.0'
-params.PYTHON_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/python-bio:3.11'
+def ALPHAGENOME_CONTAINER = 'biomate/alphagenome-tools:1.0.0'
+def PYTHON_CONTAINER      = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/python-bio:3.11'
 
 // ── Reference FASTA sources (UCSC DAS API; fallback to mock) ─────────────────
-params.UCSC_DB = ['GRCh38': 'hg38', 'GRCh37': 'hg19', 'mm10': 'mm10']
+def UCSC_DB = ['GRCh38': 'hg38', 'GRCh37': 'hg19', 'mm10': 'mm10']
 
 // ── Channels ──────────────────────────────────────────────────────────────────
 ch_region = Channel.value(params.genomic_region)
@@ -73,7 +73,7 @@ ch_vcf    = params.variant_vcf
 // ── Process 1: VALIDATE_REGION ────────────────────────────────────────────────
 process VALIDATE_REGION {
     tag "validate"
-    container params.PYTHON_CONTAINER
+    container PYTHON_CONTAINER
     publishDir "${params.outdir}/00_validated", mode: 'copy'
 
     input:
@@ -183,7 +183,7 @@ PYEOF
 // ── Process 2: FETCH_SEQUENCE ─────────────────────────────────────────────────
 process FETCH_SEQUENCE {
     tag "fetch_seq"
-    container params.PYTHON_CONTAINER
+    container PYTHON_CONTAINER
     publishDir "${params.outdir}/01_sequence", mode: 'copy'
     memory '4 GB'
     time   '1 h'
@@ -283,7 +283,7 @@ PYEOF
 // ── Process 3: ALPHAGENOME_PREDICT ───────────────────────────────────────────
 process ALPHAGENOME_PREDICT {
     tag "predict"
-    container params.ALPHAGENOME_CONTAINER
+    container ALPHAGENOME_CONTAINER
     publishDir "${params.outdir}/02_predictions", mode: 'copy'
     memory '32 GB'
     time   '6 h'
@@ -621,7 +621,7 @@ PYEOF
 // ── Process 4: VARIANT_EFFECT_SCORE (ISM) ────────────────────────────────────
 process VARIANT_EFFECT_SCORE {
     tag "ism"
-    container params.ALPHAGENOME_CONTAINER
+    container ALPHAGENOME_CONTAINER
     publishDir "${params.outdir}/03_variant_effects", mode: 'copy'
     memory '16 GB'
     time   '4 h'
@@ -754,7 +754,7 @@ PYEOF
 // ── Process 5: AGGREGATE_TRACKS ──────────────────────────────────────────────
 process AGGREGATE_TRACKS {
     tag "aggregate"
-    container params.PYTHON_CONTAINER
+    container PYTHON_CONTAINER
     publishDir "${params.outdir}/04_aggregated", mode: 'copy'
 
     input:
@@ -881,7 +881,7 @@ PYEOF
 // ── Process 6: GENERATE_REPORT ────────────────────────────────────────────────
 process GENERATE_REPORT {
     tag "report"
-    container params.PYTHON_CONTAINER
+    container PYTHON_CONTAINER
     publishDir "${params.outdir}", mode: 'copy'
 
     input:

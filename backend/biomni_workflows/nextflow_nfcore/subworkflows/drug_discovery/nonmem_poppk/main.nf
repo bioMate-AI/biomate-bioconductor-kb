@@ -67,15 +67,15 @@ params.fallback_mode        = 'auto'            // auto | nonmem_only | nlmixr2_
 // Containers
 // ============================================================================
 
-// NONMEM container: set params.NONMEM_CONTAINER env var for licensed installs.
+// NONMEM container: set NONMEM_CONTAINER env var for licensed installs.
 // Falls back to biomni-tools:x86 — the nlmixr2 Python fallback runs there.
-params._aws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
-params.NONMEM_CONTAINER = System.getenv('NONMEM_CONTAINER') ?:
-    (params._aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest')
+def _aws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
+def NONMEM_CONTAINER   = System.getenv('NONMEM_CONTAINER') ?:
+    (_aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest')
 
 // nlmixr2 fallback container — also use biomni-tools (has Python + scipy)
-params.NLMIXR2_CONTAINER = System.getenv('NLMIXR2_CONTAINER') ?:
-    (params._aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest')
+def NLMIXR2_CONTAINER  = System.getenv('NLMIXR2_CONTAINER') ?:
+    (_aws ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest')
 
 // ============================================================================
 // Helper: detect execution mode at pipeline start
@@ -230,7 +230,7 @@ process DATA_VALIDATION {
      *         DV missing (MDV=1) on dosing records, at least 2 subjects.
      */
     tag "data_validation"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}/validation", mode: params.publish_dir_mode
 
     input:
@@ -357,7 +357,7 @@ process NONMEM_CTL_GENERATE {
      *   three_cmt_iv   -- 3-CMT IV bolus (ADVAN11 TRANS4): CL, V2, Q2, V3, Q3, V4
      */
     tag "ctl_gen_${params.model_type}"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}/nonmem", mode: params.publish_dir_mode
 
     input:
@@ -542,7 +542,7 @@ process NONMEM_RUN {
      *   - Minimisation status
      */
     tag "nonmem_${params.nonmem_version}"
-    container params.NONMEM_CONTAINER
+    container NONMEM_CONTAINER
     publishDir "${params.outdir}/nonmem", mode: params.publish_dir_mode
 
     input:
@@ -759,7 +759,7 @@ process NLMIXR2_RUN {
      *   Wang W et al. (2022) nlmixr2 — CRAN package documentation
      */
     tag "nlmixr2_${params.model_type}"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}/nlmixr2", mode: params.publish_dir_mode
 
     input:
@@ -1074,7 +1074,7 @@ process COVARIATE_SEARCH {
      * downstream collection channels remain consistent.
      */
     tag "covariate_${params.covariate_model}"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}/covariate", mode: params.publish_dir_mode
 
     input:
@@ -1153,7 +1153,7 @@ process BOOTSTRAP {
      * AWS Batch spot fleet parallelism via Nextflow -process.executor=awsbatch.
      */
     tag "bootstrap_n${params.n_bootstrap}"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}/bootstrap", mode: params.publish_dir_mode
 
     input:
@@ -1241,7 +1241,7 @@ process VPC {
      * Outputs: vpc_summary.csv (per time-bin percentiles), vpc_plot_data.json
      */
     tag "vpc_nsim${params.vpc_n_sim}"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}/vpc", mode: params.publish_dir_mode
 
     input:
@@ -1379,7 +1379,7 @@ process AGGREGATE_REPORT {
      *   versions.yml            -- software versions
      */
     tag "aggregate_report"
-    container params.NLMIXR2_CONTAINER
+    container NLMIXR2_CONTAINER
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
     input:
