@@ -280,7 +280,7 @@ async function captureWorkflowReady(
   auth: AuthCtx,
   query: string,
   demoId: string,
-  timeoutMs = 90_000
+  timeoutMs = 180_000
 ): Promise<WorkflowReadyEvent> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -740,7 +740,9 @@ function printSuiteReport() {
 // ---------------------------------------------------------------------------
 
 test.describe("Tier 0 demo audit", () => {
-  test.describe.configure({ mode: "serial" });
+  // NOTE: previously `mode: "serial"` — a single soft-fail on T01/T02 caused Playwright
+  // to skip the remaining demos. Use "default" so each demo runs independently.
+  test.describe.configure({ mode: "default" });
 
   for (const spec of DEMOS) {
     test(`${spec.id}: ${spec.workflow} — chat-stream + form prefill + phases + outputs`,

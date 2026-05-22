@@ -8313,9 +8313,14 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // Batch runs use the docker profile (ECR images); 'aws' is not a valid nf-core profile.
+              // Profile selection on Batch:
+              //   - nf-core pipelines (path starts with nextflow_nfcore/) define a `docker` profile
+              //   - biomate-ai-tools workflows define an `aws` profile (no `docker` profile)
+              // Picking the wrong one yields "Unknown configuration profile: 'X'" and a 5-second fail.
               profile: request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'docker' : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true'
+                  ? (String(request.workflowDefinition.nextflow_path || '').startsWith('nextflow_nfcore/') ? 'docker' : 'aws')
+                  : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
