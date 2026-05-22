@@ -82,11 +82,11 @@ params.gpu                  = false      // true = GPU-accelerated RL (much fast
 
 // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
 // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-def _useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
-def _ECR_DD = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86'
-def _LOCAL  = 'biomate/biomni-drug-discovery-nf:latest'
-def REINVENT4_CONTAINER = _useAws ? _ECR_DD : _LOCAL
-def RDKIT_CONTAINER     = _useAws ? _ECR_DD : _LOCAL
+params._useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
+params._ECR_DD = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86'
+params._LOCAL = 'biomate/biomni-drug-discovery-nf:latest'
+params.REINVENT4_CONTAINER = params._useAws ? params._ECR_DD : params._LOCAL
+params.RDKIT_CONTAINER = params._useAws ? params._ECR_DD : params._LOCAL
 
 // ============================================================================
 // Processes
@@ -100,7 +100,7 @@ process VALIDATE_INPUT {
      * Output: validated_input.json
      */
     tag "validate"
-    container RDKIT_CONTAINER
+    container params.RDKIT_CONTAINER
     publishDir "${params.outdir}/input", mode: params.publish_dir_mode
 
     output:
@@ -171,7 +171,7 @@ process REINVENT_DESIGN {
      *   score_history.json    — epoch → mean/top score
      */
     tag "reinvent4_rl"
-    container REINVENT4_CONTAINER
+    container params.REINVENT4_CONTAINER
     publishDir "${params.outdir}/rl", mode: params.publish_dir_mode
 
     input:
@@ -329,7 +329,7 @@ process FILTER_RANK {
      * Output: top_compounds.csv, top_compounds.sdf
      */
     tag "filter_rank"
-    container RDKIT_CONTAINER
+    container params.RDKIT_CONTAINER
     publishDir "${params.outdir}/filtered", mode: params.publish_dir_mode
 
     input:
@@ -483,7 +483,7 @@ process REPORT {
      * - design_summary.json
      */
     tag "report"
-    container RDKIT_CONTAINER
+    container params.RDKIT_CONTAINER
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
     input:

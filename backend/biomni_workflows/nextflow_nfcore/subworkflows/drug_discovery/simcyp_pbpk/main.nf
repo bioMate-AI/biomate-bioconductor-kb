@@ -34,9 +34,9 @@ params.fa_fg               = '0.9'
 params.simcyp_version      = 'v23'
 params.fallback_mode       = 'auto'
 
-// Use SIMCYP_CONTAINER env var (set only on licensed installs).
+// Use params.SIMCYP_CONTAINER env var (set only on licensed installs).
 // Falls back to biomni-tools:x86 so the Python fallback path can run on Batch.
-def SIMCYP_CONTAINER = System.getenv('SIMCYP_CONTAINER') ?:
+params.SIMCYP_CONTAINER = System.getenv('SIMCYP_CONTAINER') ?:
     (System.getenv('NEXTFLOW_USE_AWS') == 'true'
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86'
         : 'biomate/biomni-tools:latest')
@@ -50,7 +50,7 @@ process VALIDATE_COMPOUND_PARAMS {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container SIMCYP_CONTAINER
+    container params.SIMCYP_CONTAINER
 
     output:
     path "validated_params.json", emit: validated_params
@@ -190,7 +190,7 @@ process SIMCYP_PBPK_SIMULATE {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container SIMCYP_CONTAINER
+    container params.SIMCYP_CONTAINER
 
     input:
     path validated_params
@@ -561,7 +561,7 @@ process EVALUATE_PBPK_RESULTS {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container SIMCYP_CONTAINER
+    container params.SIMCYP_CONTAINER
 
     input:
     path validated_params
@@ -645,7 +645,7 @@ process GENERATE_FINAL_REPORT {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container SIMCYP_CONTAINER
+    container params.SIMCYP_CONTAINER
 
     input:
     path validated_params

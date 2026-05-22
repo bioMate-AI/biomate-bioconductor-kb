@@ -40,8 +40,8 @@ params.pam_sequence      = 'NGG'        // PAM sequence for sgRNA trimming
 params.sgrna_len         = 20           // Expected sgRNA length after trimming
 
 // ── Containers ───────────────────────────────────────────────────────────────
-def MAGECK_CONTAINER  = 'quay.io/biocontainers/mageck:0.5.9.5--py39h6935b12_1'
-def PYTHON_CONTAINER  = 'quay.io/biocontainers/python:3.11'
+params.MAGECK_CONTAINER = 'quay.io/biocontainers/mageck:0.5.9.5--py39h6935b12_1'
+params.PYTHON_CONTAINER = 'quay.io/biocontainers/python:3.11'
 
 // ── Helper: parse sample sheet ────────────────────────────────────────────────
 def parseSampleSheet(csv_path) {
@@ -69,7 +69,7 @@ ch_ctrl_sgrna = params.control_sgrna
 // ── Process: MAGeCK count ─────────────────────────────────────────────────────
 process MAGECK_COUNT {
     tag "${meta.sample}"
-    container MAGECK_CONTAINER
+    container params.MAGECK_CONTAINER
     publishDir "${params.outdir}/mageck_count", mode: 'copy'
 
     input:
@@ -165,7 +165,7 @@ PYEOF
 // ── Process: MAGeCK test ──────────────────────────────────────────────────────
 process MAGECK_TEST {
     tag "RRA gene test"
-    container MAGECK_CONTAINER
+    container params.MAGECK_CONTAINER
     publishDir "${params.outdir}/mageck_test", mode: 'copy'
 
     input:
@@ -243,7 +243,7 @@ PYEOF
 // ── Process: Pathway enrichment on MAGeCK hits ───────────────────────────────
 process PATHWAY_ENRICHMENT {
     tag "GSEA on screen hits"
-    container PYTHON_CONTAINER
+    container params.PYTHON_CONTAINER
     publishDir "${params.outdir}/pathway_enrichment", mode: 'copy'
 
     input:

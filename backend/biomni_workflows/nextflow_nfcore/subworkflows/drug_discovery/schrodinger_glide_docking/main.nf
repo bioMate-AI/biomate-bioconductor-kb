@@ -65,7 +65,7 @@ params.n_cpus               = 8
 // User must build this image with Schrodinger Suite installed.
 // Schrodinger does not provide a public Docker image.
 // Build: install Suite 2024 -> docker commit -> push to ECR
-def SCHRODINGER_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/schrodinger2024:latest'
+params.SCHRODINGER_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/schrodinger2024:latest'
 
 // ============================================================================
 // Processes
@@ -77,7 +77,7 @@ process LIGPREP {
      * and stereoisomers. Generates 3D geometries optimized with OPLS4.
      */
     tag "ligprep"
-    container SCHRODINGER_CONTAINER
+    container params.SCHRODINGER_CONTAINER
     publishDir "${params.outdir}/ligprep", mode: params.publish_dir_mode
 
     input:
@@ -121,7 +121,7 @@ process RECEPTOR_PREP {
      * restrained OPLS4 minimization.
      */
     tag "receptor_prep"
-    container SCHRODINGER_CONTAINER
+    container params.SCHRODINGER_CONTAINER
     publishDir "${params.outdir}/receptor", mode: params.publish_dir_mode
 
     input:
@@ -158,7 +158,7 @@ process GRID_GENERATION {
      * Box center from: explicit [x,y,z] OR centroid of ref_ligand OR protein center.
      */
     tag "grid_gen"
-    container SCHRODINGER_CONTAINER
+    container params.SCHRODINGER_CONTAINER
     publishDir "${params.outdir}/grid", mode: params.publish_dir_mode
 
     input:
@@ -213,7 +213,7 @@ process GLIDE_DOCKING {
      *   XP   -- extra precision (most accurate, slowest; for lead optimization)
      */
     tag "glide_${params.docking_precision}"
-    container SCHRODINGER_CONTAINER
+    container params.SCHRODINGER_CONTAINER
     publishDir "${params.outdir}/docking", mode: params.publish_dir_mode
 
     input:
@@ -281,7 +281,7 @@ process REPORT {
      * Export top-N poses to SDF, generate docking_summary.json and HTML report.
      */
     tag "report"
-    container SCHRODINGER_CONTAINER
+    container params.SCHRODINGER_CONTAINER
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
     input:

@@ -53,12 +53,12 @@ params.output_format      = 'tsv'      // tsv | vcf | json
 params.score_type         = 'log_likelihood_ratio'  // log_likelihood_ratio | marginal
 
 // ── Containers ────────────────────────────────────────────────────────────────
-def EVO2_CONTAINER = 'biomate/evo2-tools:1.0.0'
+params.EVO2_CONTAINER = 'biomate/evo2-tools:1.0.0'
 // Fallback: Python 3.11 slim + pyfaidx + requests for lightweight steps
-def PYTHON_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/python-bio:3.11'
+params.PYTHON_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/python-bio:3.11'
 
 // ── Reference FASTA URLs (used when reference is not pre-staged) ──────────────
-def REFERENCE_URLS = [
+params.REFERENCE_URLS = [
     'GRCh38': 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz',
     'GRCh37': 'https://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz',
 ]
@@ -69,7 +69,7 @@ ch_variants = Channel.fromPath(params.input_vcf, checkIfExists: true)
 // ── Process 1: VALIDATE_INPUT ─────────────────────────────────────────────────
 process VALIDATE_INPUT {
     tag "validate"
-    container PYTHON_CONTAINER
+    container params.PYTHON_CONTAINER
     publishDir "${params.outdir}/00_validated", mode: 'copy'
 
     input:
@@ -162,7 +162,7 @@ PYEOF
 // ── Process 2: FETCH_REFERENCE ────────────────────────────────────────────────
 process FETCH_REFERENCE {
     tag "fetch_context"
-    container PYTHON_CONTAINER
+    container params.PYTHON_CONTAINER
     publishDir "${params.outdir}/01_contexts", mode: 'copy'
     memory '4 GB'
     time   '1 h'
@@ -285,7 +285,7 @@ PYEOF
 // ── Process 3: EVO2_SCORE_VARIANTS ────────────────────────────────────────────
 process EVO2_SCORE_VARIANTS {
     tag "evo2_score"
-    container EVO2_CONTAINER
+    container params.EVO2_CONTAINER
     publishDir "${params.outdir}/02_scores", mode: 'copy'
     memory '8 GB'
     time   '4 h'
@@ -498,7 +498,7 @@ PYEOF
 // ── Process 4: RANK_VARIANTS ─────────────────────────────────────────────────
 process RANK_VARIANTS {
     tag "rank"
-    container PYTHON_CONTAINER
+    container params.PYTHON_CONTAINER
     publishDir "${params.outdir}/03_ranked", mode: 'copy'
 
     input:
@@ -603,7 +603,7 @@ PYEOF
 // ── Process 5: GENERATE_REPORT ────────────────────────────────────────────────
 process GENERATE_REPORT {
     tag "report"
-    container PYTHON_CONTAINER
+    container params.PYTHON_CONTAINER
     publishDir "${params.outdir}", mode: 'copy'
 
     input:
