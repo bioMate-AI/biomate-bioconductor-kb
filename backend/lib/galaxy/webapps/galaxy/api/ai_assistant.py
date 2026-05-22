@@ -87,9 +87,19 @@ _ai_assistant_instance = None
 
 
 # ── Lightweight Nextflow workflow search (NO LLM required) ──────────────────
+# Wired version applies workflow_intent priority+inject when env flags are set.
+# Falls back bit-identically to the base singleton when flags off OR when the
+# wrapper fails to import (e.g. retrievers package missing in older deploys).
 try:
     from galaxy.ai.unified_workflow_search import get_workflow_search as _get_workflow_search
     _workflow_search = _get_workflow_search()
+    try:
+        from galaxy.ai.retrievers.wired_workflow_search import WiredWorkflowSearch
+        # Reuse the singleton's data, just upgrade the .search method
+        _workflow_search.__class__ = WiredWorkflowSearch
+        logging.info("UnifiedWorkflowSearch upgraded to WiredWorkflowSearch")
+    except Exception as _we:
+        logging.warning(f"WiredWorkflowSearch upgrade skipped: {_we}")
     WORKFLOW_SEARCH_AVAILABLE = True
 except Exception as _e:
     logging.warning(f"UnifiedWorkflowSearch not available: {_e}")
