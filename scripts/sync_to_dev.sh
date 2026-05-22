@@ -335,6 +335,13 @@ deploy_databases() {
   fi
 
   # universe.sqlite — 3.4MB, same pattern
+  # IMPORTANT 2026-05-21: after copying the local DB onto dev, we must run
+  # `manage_db.sh upgrade` to bring its alembic_version to the head expected
+  # by the deployed code. Otherwise the freshly-copied DB carries the local
+  # repo's alembic state (which may be older than the code's expected head,
+  # e.g. before the 204367c6a604 gxy merge), and Galaxy refuses to boot with
+  # OutdatedDatabaseError — observed repeatedly today (2026-05-21) as every
+  # sync clobbered the manual upgrade.
   local universe_db="$REPO_ROOT/backend/database/universe.sqlite"
   if [[ -f "$universe_db" && $(stat -c %s "$universe_db") -gt 0 ]]; then
     log "[db] universe.sqlite — uploading to S3..."
@@ -347,8 +354,20 @@ deploy_databases() {
       docker exec -u root biomate-galaxy-dev chown -R galaxy:galaxy /app/database/
       docker exec -u root biomate-galaxy-dev chmod 775 /app/database/
       docker start biomate-galaxy-dev
-      sleep 5
-      echo "[db] universe.sqlite replaced"
+      # Wait for Galaxy to come up so manage_db.sh has Python env ready
+      sleep 8
+      echo "[db] Running alembic upgrade to bring universe.sqlite to the code-expected head..."
+      docker exec biomate-galaxy-dev bash -c "cd /app && ./manage_db.sh upgrade 2>&1" | tail -10 || \
+        echo "[db] alembic upgrade failed — Galaxy may still be unhealthy"
+      # Defensive: if a stranded merge-parent row is left in alembic_version
+      # (e.g. a7f3deepagent + the new merge target both present), remove the
+      # stranded parent so future upgrades do not error with "overlaps".
+      docker exec biomate-galaxy-dev bash -c "
+        sqlite3 /app/database/universe.sqlite \\
+          \"DELETE FROM alembic_version WHERE version_num = '\''a7f3deepagent'\'';\" 2>/dev/null || true
+      "
+      docker restart biomate-galaxy-dev 2>/dev/null
+      echo "[db] universe.sqlite replaced + alembic upgraded"
     ' || log "[db] universe.sqlite sync failed"
   fi
 
