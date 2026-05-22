@@ -234,8 +234,19 @@ deploy_backend_python() {
       || docker exec biomate-galaxy-dev /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
 
     # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
-    docker exec biomate-galaxy-dev test -x /usr/local/bin/nextflow 2>/dev/null \
-      || docker exec biomate-galaxy-dev bash -c "curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+    # Nextflow VERSION PIN (2026-05-21): 25.10.0 is the latest pre-26 LTS.
+    # Nextflow 26.04+ became stricter about DSL2 (e.g. rejects top-level
+    # `def` statements with "Statements cannot be mixed with script
+    # declarations", and is pickier about Groovy heredoc parsing). 21 of
+    # our workflows had to be rewritten today to satisfy 26.04. Rather
+    # than chase every future breaking change, pin to 25.10 LTS which
+    # accepts the older syntax cleanly. Bump deliberately, not by curl.
+    EXPECTED_NF_VER="25.10.0"
+    INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    if [[ "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
+      echo "[galaxy] Nextflow version mismatch (installed=$INSTALLED_NF_VER, want=$EXPECTED_NF_VER) — reinstalling pinned version"
+      docker exec biomate-galaxy-dev bash -c "NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+    fi
   '
   log "[backend] Python files synced"
 }
@@ -334,41 +345,39 @@ deploy_databases() {
     log "[db] galaxy_ai_tools.db unchanged — skipping"
   fi
 
-  # universe.sqlite — 3.4MB, same pattern
-  # IMPORTANT 2026-05-21: after copying the local DB onto dev, we must run
-  # `manage_db.sh upgrade` to bring its alembic_version to the head expected
-  # by the deployed code. Otherwise the freshly-copied DB carries the local
-  # repo's alembic state (which may be older than the code's expected head,
-  # e.g. before the 204367c6a604 gxy merge), and Galaxy refuses to boot with
-  # OutdatedDatabaseError — observed repeatedly today (2026-05-21) as every
-  # sync clobbered the manual upgrade.
+  # universe.sqlite — 3.4MB, sync via direct scp (NOT S3).
+  #
+  # WHY scp instead of S3 (2026-05-21):
+  # The dev EC2 host lacks S3 read credentials for biomate-nextflow-work
+  # (HeadObject returns 403 Forbidden). The previous S3-path code silently
+  # ran `aws s3 cp` on the host, failed, and continued using a STALE
+  # `/tmp/universe_sync.sqlite` from a prior run — clobbering manual
+  # migration fixes on every sync. Direct scp from the workstation avoids
+  # that failure mode entirely. The file is small (3.4 MB ≈ 2 sec scp).
+  #
+  # Local DB must be at the same alembic head as the deployed code. If
+  # the upgrade below fails with "Multiple head revisions are present",
+  # update LATEST_GXY_HEAD to the new merge-revision filename in
+  # backend/lib/galaxy/model/migrations/alembic/versions_gxy/.
   local universe_db="$REPO_ROOT/backend/database/universe.sqlite"
+  local LATEST_GXY_HEAD="204367c6a604"  # merge_gxy_heads_autofix_sample_sheets
   if [[ -f "$universe_db" && $(stat -c %s "$universe_db") -gt 0 ]]; then
-    log "[db] universe.sqlite — uploading to S3..."
-    aws s3 cp "$universe_db" "${S3_PREFIX}/universe.sqlite" --no-progress
-    ec2_ssh '
-      docker stop biomate-galaxy-dev 2>/dev/null || true
-      aws s3 cp s3://biomate-nextflow-work/dev-sync/universe.sqlite \
-        /tmp/universe_sync.sqlite --no-progress
-      docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite
-      docker exec -u root biomate-galaxy-dev chown -R galaxy:galaxy /app/database/
-      docker exec -u root biomate-galaxy-dev chmod 775 /app/database/
-      docker start biomate-galaxy-dev
-      # Wait for Galaxy to come up so manage_db.sh has Python env ready
-      sleep 8
-      echo "[db] Running alembic upgrade to bring universe.sqlite to the code-expected head..."
-      docker exec biomate-galaxy-dev bash -c "cd /app && ./manage_db.sh upgrade 2>&1" | tail -10 || \
-        echo "[db] alembic upgrade failed — Galaxy may still be unhealthy"
-      # Defensive: if a stranded merge-parent row is left in alembic_version
-      # (e.g. a7f3deepagent + the new merge target both present), remove the
-      # stranded parent so future upgrades do not error with "overlaps".
-      docker exec biomate-galaxy-dev bash -c "
-        sqlite3 /app/database/universe.sqlite \\
-          \"DELETE FROM alembic_version WHERE version_num = '\''a7f3deepagent'\'';\" 2>/dev/null || true
-      "
-      docker restart biomate-galaxy-dev 2>/dev/null
-      echo "[db] universe.sqlite replaced + alembic upgraded"
-    ' || log "[db] universe.sqlite sync failed"
+    log "[db] universe.sqlite — scp to EC2 (bypass S3)..."
+    ec2_scp "$universe_db" "${EC2_USER}@${EC2_HOST}:/tmp/universe_sync.sqlite" \
+      || { log "[db] scp failed — aborting universe.sqlite sync"; return 1; }
+    # docker cp works on a RUNNING container — no need to stop. chown must
+    # happen while the container runs (docker exec fails on a stopped one).
+    # The restart at the end forces Galaxy workers to re-open the new DB
+    # file (the open file handle from the pre-cp workers is now stale).
+    ec2_ssh "
+      docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite \
+        && docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/universe.sqlite \
+        && echo '[db] file replaced — running alembic upgrade ${LATEST_GXY_HEAD}...' \
+        && (docker exec biomate-galaxy-dev bash -c 'cd /app && ./manage_db.sh upgrade ${LATEST_GXY_HEAD} 2>&1' | tail -5 \
+            || echo '[db] alembic upgrade returned non-zero — Galaxy may be unhealthy after restart') \
+        && docker restart biomate-galaxy-dev >/dev/null \
+        && echo '[db] universe.sqlite replaced + upgraded to ${LATEST_GXY_HEAD}'
+    " || log "[db] universe.sqlite sync failed"
   fi
 
   log "[db] Done"
