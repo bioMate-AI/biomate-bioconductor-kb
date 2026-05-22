@@ -21,6 +21,10 @@ export async function runPKCEFlow(
   const state = Math.random().toString(36).slice(2);
 
   const codePromise = catchCallback(port, state);
+  // Mark the rejection as handled — the awaiter below will still receive it.
+  // Without this, Node's unhandled-rejection detector fires when the callback
+  // server rejects before `await codePromise` has attached a handler.
+  codePromise.catch(() => undefined);
 
   const authUrl = new URL(`${authBaseUrl}/oauth/authorize`);
   authUrl.searchParams.set('response_type', 'code');

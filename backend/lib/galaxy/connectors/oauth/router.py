@@ -19,13 +19,27 @@ from .scopes import SCOPES
 from .server import AuthorizeError, AuthorizeRequest, OAuthServer
 from .store import OAuthStore
 
-_store = OAuthStore()
-_server = OAuthServer(_store)
+# Lazy-init: importing this module shouldn't fail if BIOMATE_OAUTH_DB defaults
+# to a path the importer can't write. Tests override via dependency_overrides;
+# production wires the store explicitly via set_server() at startup.
+_server: Optional[OAuthServer] = None
+
+
+def set_server(server: OAuthServer) -> None:
+    """Production startup hook — call once during Galaxy ASGI app boot."""
+    global _server
+    _server = server
+
 
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 
 def get_server() -> OAuthServer:
+    global _server
+    if _server is None:
+        # Default for dev: spin up a real OAuthStore. May raise if the DB path
+        # is unwritable — that's the production warning to call set_server().
+        _server = OAuthServer(OAuthStore())
     return _server
 
 
