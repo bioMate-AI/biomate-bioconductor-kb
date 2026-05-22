@@ -333,6 +333,73 @@ classes:
    Nextflow 25.10 pin should have allowed (need to check whether the
    25.10 framework jar actually downloaded or whether it fell back).
 
+## 2026-05-22: Static-analysis-first pattern hunting
+
+User feedback: "I can not afford such massive issues for release. monitor
+more intensively and fix errors more efficiently."
+
+**Old approach** (cost ~$200, 2.5 h): fire all 209 drug-dev workflows on
+Batch, observe failures, fix one at a time.
+
+**New approach** (cost ~$5, 10 min): fire a 5-workflow smoke sample,
+read the failure-class distribution, find the dominant class, fix it
+in code instead of in every workflow.
+
+### What the 5-workflow smoke exposed
+
+Sample of 5 from drug_discovery domain (4 actually fired, 1 `fire-failed`):
+
+| Workflow | error_class | Outcome |
+|---|---|---|
+| nonmem_poppk | profile-name | failed 42s |
+| transporter_ddi_pgp_bcrp | profile-name | failed 38s |
+| bispecific_antibody_design | profile-name | failed 39s |
+| pk_sim_pbpk | profile-name | failed 22s |
+| p0_pkpd_semaglutide | jvm-crash | interrupted 81s |
+| gromacs_protein_md | fire-failed | EXEC_ERR |
+
+**4 of 5 = `profile-name`.** The actual error: `Unknown configuration
+profile: 'docker'`. Tracking down the source pointed at one line in
+`frontend/server/routes.ts:8322`:
+
+```typescript
+profile: request.executionConfig?.nextflow_profile ||
+  (process.env.NEXTFLOW_USE_AWS === 'true'
+    ? (String(request.workflowDefinition.nextflow_path || '').startsWith('nextflow_nfcore/') ? 'docker' : 'aws')
+    : 'standard'),
+```
+
+The condition hardcoded `docker` profile for any workflow whose path
+starts with `nextflow_nfcore/`. Empirically only a tiny minority of
+those workflows declare a `docker` profile in their `nextflow.config`;
+the vast majority declare `standard` + `aws`. So every drug-dev
+workflow under `nextflow_nfcore/` was being asked to run with a
+non-existent profile and dying in ~30 s.
+
+### One-line fix (`d6363b921`)
+
+Dropped the special-case for `nextflow_nfcore/`. On Batch, always use
+`-profile aws`. Off-Batch (local dev), keep `standard`.
+
+```typescript
+profile: request.executionConfig?.nextflow_profile ||
+  (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
+```
+
+This single change likely unblocks ~100+ drug-dev workflows that all
+share the same failure mode. Verified on nonmem_poppk — past the 30 s
+"Unknown profile docker" window where every previous run died at 22-42s.
+
+### Lessons
+
+1. A 5-run sample reliably exposes the dominant failure class without
+   running the whole sweep.
+2. Code bugs that affect many workflows show up as a clustered
+   `error_class` count — that's the signal to fix in code instead of
+   workflow-by-workflow.
+3. CSV output with `error_class` column is what makes this triage
+   pattern work. Scripts/sweep_drug_dev_workflows.sh captures it.
+
 ## Still-open issues (carrying forward)
 
 1. `biomni-tools:x86` (now rebuilt with numpy<2) container — need to
