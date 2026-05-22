@@ -657,15 +657,19 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
     target: 'car_target', antigen: 'car_target', car: 'car_target',
     car_target: 'car_target',
     delivery_vehicle: 'lnp_targeting', lnp: 'lnp_targeting',
+    delivery_mechanism: 'lnp_targeting', delivery: 'lnp_targeting',
+    lnp_target: 'lnp_targeting', targeting_ligand: 'lnp_targeting',
     cell: 'delivery_cell',
     disease: 'indication',
   },
   in_vivo_base_edit_design: {
     gene: 'target_gene', target: 'target_gene', target_protein: 'target_gene',
-    goal: 'edit_goal', edit: 'edit_goal',
+    goal: 'edit_goal', edit: 'edit_goal', strategy: 'edit_goal',
+    editing_strategy: 'edit_goal', edit_type: 'edit_goal',
     editor: 'editor_preference',
     disease: 'indication',
     reference_therapeutic: '__drop__', reference: '__drop__',
+    reference_style: '__drop__', reference_drug: '__drop__',
   },
   atlas_expression_query: {
     gene: 'target_gene', target: 'target_gene',
@@ -676,7 +680,10 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
     disease: 'indication',
   },
   glp1_modality_bakeoff: {
-    disease: 'indication', condition: 'indication',
+    // Workflow .nf declares both `params.indication` (primary) and `params.disease`
+    // (alias). Tier 0 demo asserts on `disease`. Map LLM-natural `indication` / `condition`
+    // → `disease` so the panel populates the asserted key.
+    indication: 'disease', condition: 'disease',
     modalities: '__drop__',
     receptors_to_compare: 'receptors',
   },
