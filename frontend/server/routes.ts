@@ -12723,6 +12723,47 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   app.get("/api/ind-report/projects/:projectId", indProxy);
   app.post("/api/ind-report/projects", express.json(), indProxy);
 
+  // SSE-friendly proxy for the LLM streaming endpoint. The standard indProxy
+  // buffers the full upstream response, which would defeat the purpose of
+  // text/event-stream. This variant pipes the upstream body straight to the
+  // client so phase + token events flow in real time.
+  const indStreamProxy = async (req: any, res: any) => {
+    const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+    const target = `${galaxyUrl}${req.originalUrl}`;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (req.headers.authorization) headers["Authorization"] = req.headers.authorization as string;
+    const orgId = req.headers["x-biomate-org-id"];
+    if (orgId) headers["X-BioMate-Org-Id"] = orgId as string;
+    try {
+      const upstream = await fetch(target, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(req.body ?? {}),
+      });
+      res.status(upstream.status);
+      res.setHeader("Content-Type", upstream.headers.get("content-type") || "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("X-Accel-Buffering", "no");
+      (res as any).flushHeaders?.();
+      if (!upstream.body) { res.end(); return; }
+      const reader = (upstream.body as any).getReader();
+      req.on("close", () => { try { reader.cancel(); } catch {} });
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        res.write(Buffer.from(value));
+        (res as any).flush?.();
+      }
+      res.end();
+    } catch (err: any) {
+      if (!res.headersSent) res.status(502).json({ error: "stream-proxy upstream failed", detail: err?.message });
+      else res.end();
+    }
+  };
+
+  app.post("/api/regulatory/generate_stream", express.json(), indStreamProxy);
+  app.post("/api/regulatory/generate_smoke", express.json(), indProxy);
+
   const httpServer = createServer(app);
 
   return httpServer;
