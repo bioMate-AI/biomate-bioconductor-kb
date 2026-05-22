@@ -8313,14 +8313,16 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // Profile selection on Batch:
-              //   - nf-core pipelines (path starts with nextflow_nfcore/) define a `docker` profile
-              //   - biomate-ai-tools workflows define an `aws` profile (no `docker` profile)
-              // Picking the wrong one yields "Unknown configuration profile: 'X'" and a 5-second fail.
+              // Profile selection on Batch (2026-05-22 fix):
+              // Empirically only a tiny minority of nextflow_nfcore/ workflows define a `docker`
+              // profile; the vast majority declare `standard` + `aws` (matching our biomate-ai-tools
+              // pattern). The old special-case `path starts with nextflow_nfcore/ → docker` therefore
+              // generated `Unknown configuration profile: 'docker'` for hundreds of workflows
+              // (caught in 2026-05-22 sweep: 4 of 5 drug-dev failures were this single bug).
+              // Just use `aws` on Batch always — workflows that need docker locally still get it
+              // because NEXTFLOW_USE_AWS is false off-Batch.
               profile: request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true'
-                  ? (String(request.workflowDefinition.nextflow_path || '').startsWith('nextflow_nfcore/') ? 'docker' : 'aws')
-                  : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
