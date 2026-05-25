@@ -299,11 +299,13 @@ function Router({
       <Route path="/mfa-challenge" component={MfaChallengePage} />
 
       {/* Public pages */}
+      {/* Pricing page — temporarily disabled until payment flow is fully tested
       <Route path="/pricing">
         <PublicPageLayout>
           <PricingPage />
         </PublicPageLayout>
       </Route>
+      */}
       <Route path="/blog">
         <PublicPageLayout>
           <BlogPage />
@@ -330,12 +332,13 @@ function Router({
         </PublicPageLayout>
       </Route>
 
-      {/* Checkout page */}
+      {/* Checkout page — temporarily disabled until payment flow is fully tested
       <Route path="/checkout/:plan">
         <PublicPageLayout>
           <CheckoutPage />
         </PublicPageLayout>
       </Route>
+      */}
 
 {/* NextflowDemoPage removed */}
 

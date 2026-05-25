@@ -42,7 +42,10 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-3">
+              <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+            </div>
+            <div className="flex justify-center mb-2">
               <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3">
                 <CheckCircle2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
@@ -98,8 +101,11 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-3">
+            <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+          </div>
+          <CardTitle className="text-2xl font-bold">
             Reset your password
           </CardTitle>
           <CardDescription className="text-center">

@@ -59,8 +59,11 @@ export default function MfaChallengePage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
+          <div className="flex justify-center mb-1">
+            <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+          </div>
           <div className="flex justify-center">
-            <Shield className="h-10 w-10 text-primary" />
+            <Shield className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-semibold">Two-factor authentication</h1>
           <p className="text-sm text-muted-foreground">
