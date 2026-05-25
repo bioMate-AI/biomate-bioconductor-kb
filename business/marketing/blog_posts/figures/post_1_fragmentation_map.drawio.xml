@@ -1,0 +1,89 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="fragmentation-map" id="frag1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="One drug program. Eight specialties. Eight silos." style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 8 silo boxes across top -->
+        <mxCell id="s1" value="&lt;b&gt;Discovery&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;scRNA-seq, GWAS&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#b91c1c;fontColor=#7f1d1d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;Structural&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;cryo-EM, AlphaFold&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#c2410c;fontColor=#7c2d12;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="220" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;Chemistry&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;docking, gen-chem&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="380" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;ADMET / DMPK&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;hERG, CYP, Caco-2&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="540" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="&lt;b&gt;PK / PBPK&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;clinical pharm&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cffafe;strokeColor=#0e7490;fontColor=#164e63;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" value="&lt;b&gt;Clinical / Stats&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;BOIN, dose esc&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="860" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" value="&lt;b&gt;Regulatory&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;IND §2.6.1, CTD&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s8" value="&lt;b&gt;Manufacturing&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;CMC, scale-up&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fae8ff;strokeColor=#a21caf;fontColor=#701a75;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="100" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- The wall of human handoffs -->
+        <mxCell id="wall" value="HUMAN HANDOFFS — file conversions, parameter context lost, knowledge in 1 person's head, weeks of waiting" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fef2f2;strokeColor=#dc2626;fontColor=#7f1d1d;strokeWidth=2;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="1260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- BioMate layer -->
+        <mxCell id="bm" value="&lt;b style=&quot;font-size:18px&quot;&gt;BioMate Orchestration Layer&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:13px&quot;&gt;Routes intent → validated workflow → execution → QC loop → output&lt;br/&gt;Knowledge grounded in PubMed, UniProt, ChEMBL, FDA guidance, nf-core docs&lt;br/&gt;Prediction registry + validation reconciliation across all eight specialties&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#f1f5f9;strokeWidth=3;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="1260" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows from silos through BioMate -->
+        <mxCell id="ar1" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s1" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar2" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s2" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar3" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s3" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar4" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s4" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar5" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s5" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar6" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s6" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar7" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s7" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar8" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#475569;" edge="1" parent="1" source="s8" target="bm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Output layer -->
+        <mxCell id="out" value="&lt;b&gt;One program, one workspace, one audit trail&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="400" y="480" width="580" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aro" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#15803d;" edge="1" parent="1" source="bm" target="out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="footer" value="biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="570" width="380" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

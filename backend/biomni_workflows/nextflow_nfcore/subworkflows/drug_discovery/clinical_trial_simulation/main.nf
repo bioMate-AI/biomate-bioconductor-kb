@@ -43,7 +43,7 @@ params.primary_endpoint_threshold = '0.3'  // response rate threshold for Phase 
 process CLINICAL_TRIAL_SIMULATION {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 

@@ -36,7 +36,7 @@ params.checksig            = false
 process BIOC_DECONRNASEQ {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/deconvolution", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/deconvolution" }, mode: 'copy'
 
     conda "bioconductor-deconrnaseq"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -153,7 +153,7 @@ process BIOC_DECONRNASEQ {
 process IMMUNEDECONV_SUMMARY {
     tag "${meta.id}"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}/summary", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/summary" }, mode: 'copy'
 
     conda "bioconductor-deconrnaseq"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?

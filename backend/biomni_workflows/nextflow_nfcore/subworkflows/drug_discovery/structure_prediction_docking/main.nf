@@ -74,7 +74,7 @@ def log_workflow_header() {
 process ALPHAFOLD3_STRUCTURE_PREDICTION {
     tag "${meta.id}"
     label 'process_gpu_high'
-    publishDir "${params.outdir}/${meta.id}/01_alphafold3", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/01_alphafold3" }, mode: params.publish_dir_mode
 
     container 'docker.io/catgumag/alphafold3:latest'
 
@@ -236,7 +236,7 @@ PYEOF
 process DIFFDOCK_BLIND_DOCKING {
     tag "${meta.id}"
     label 'process_gpu_medium'
-    publishDir "${params.outdir}/${meta.id}/02_diffdock", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/02_diffdock" }, mode: params.publish_dir_mode
 
     container 'docker.io/simonelenz/diffdock:latest'
 
@@ -315,7 +315,7 @@ PYEOF
 process AUTODOCK_VINA_DOCKING {
     tag "${meta.id}"
     label 'process_high'
-    publishDir "${params.outdir}/${meta.id}/03_autodock_vina", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/03_autodock_vina" }, mode: params.publish_dir_mode
 
     container 'docker.io/cford38/autodockvina:latest'
 

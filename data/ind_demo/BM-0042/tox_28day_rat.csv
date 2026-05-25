@@ -1,0 +1,5 @@
+study_id,species,strain,duration_days,route,n_per_sex_per_group,dose_group,dose_mg_kg_day,glp_status,sponsor_study_id
+T-28R-0042,rat,Sprague-Dawley,28,oral gavage,10,vehicle,0,GLP,ACME-TOX-2026-014
+T-28R-0042,rat,Sprague-Dawley,28,oral gavage,10,low,5,GLP,ACME-TOX-2026-014
+T-28R-0042,rat,Sprague-Dawley,28,oral gavage,10,mid,15,GLP,ACME-TOX-2026-014
+T-28R-0042,rat,Sprague-Dawley,28,oral gavage,10,high,50,GLP,ACME-TOX-2026-014

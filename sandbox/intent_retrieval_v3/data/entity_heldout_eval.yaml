@@ -1,0 +1,182 @@
+# Held-out eval for entity adapter — 30 cases.
+#
+# For an EXTRACTION adapter, "held-out safety" means:
+#   1. Queries mentioning entities NOT in the YAML should return [] (no false fires)
+#   2. Queries with biological substrings that COULD be confused with known
+#      entities (e.g., "TPM3" vs "TP53") should not falsely match
+#   3. Queries with genuine known entities should still extract them correctly
+#      even in unfamiliar contexts
+#
+# Each case includes:
+#   query
+#   expected_canonicals: list of canonical_ids that SHOULD be extracted
+#                        (empty list means "no entity in the query")
+#   why: rationale for the expected output
+#
+# The honest tests are categories 1+2 (zero false fires); category 3 verifies
+# the adapter still works on its YAML coverage.
+
+# ─── Group 1: queries with NO entities the adapter knows ────────────────
+# Adapter should return [] for all of these
+- id: h01
+  query: "tell me about the cellular respiration pathway"
+  expected_canonicals: []
+  why: no specific gene/disease/drug from YAML
+
+- id: h02
+  query: "what does ribosomal RNA do in protein synthesis"
+  expected_canonicals: []
+  why: no entities in YAML
+
+- id: h03
+  query: "design a CRISPR knockout strategy for a gene"
+  expected_canonicals: []
+  why: generic CRISPR query, no specific entities
+
+- id: h04
+  query: "compare nanopore vs illumina sequencing throughput"
+  expected_canonicals: []
+  why: technology query, no entities
+
+- id: h05
+  query: "what is the half-life of a typical mRNA"
+  expected_canonicals: []
+  why: generic mechanism question
+
+# ─── Group 2: false-positive traps (similar names, substring overlap) ──
+# Adapter must NOT return a wrong entity due to substring collision
+- id: h06
+  query: "TPM3 expression in muscle tissue"
+  expected_canonicals: []
+  why: TPM3 is a real gene but NOT in YAML; must not fire TP53 by substring
+
+- id: h07
+  query: "KRAS-like genes in the RAS family"
+  expected_canonicals: [KRAS]
+  why: KRAS is in YAML; RAS family alone should not fire anything new
+
+- id: h08
+  query: "TP53BP1 binding partner studies"
+  expected_canonicals: []
+  why: TP53BP1 is a different gene; substring TP53 must not falsely match
+  notes: this catches alias-too-broad bugs
+
+- id: h09
+  query: "EGFR-T790M secondary mutation in lung cancer"
+  expected_canonicals: [EGFR]
+  why: EGFR fires; T790M is mutation suffix, not a separate entity
+
+- id: h10
+  query: "BRCA-associated breast tumors with somatic variants"
+  expected_canonicals: [breast_cancer]
+  why: BRCA alone without 1/2 should not fire BRCA1 or BRCA2 (their aliases require the digit)
+  notes: tests boundary handling
+
+# ─── Group 3: known entities in unfamiliar contexts ────────────────────
+# Verifies the adapter still extracts on its coverage even in odd phrasing
+- id: h11
+  query: "patient has CFTR ΔF508 homozygous variant"
+  expected_canonicals: [CFTR]
+  why: CFTR in genotype context
+
+- id: h12
+  query: "is there evidence that imatinib (a TKI) crosses BBB"
+  expected_canonicals: [imatinib]
+  why: imatinib with parenthetical context
+
+- id: h13
+  query: "running BRCA2 functional assay on K562 cells"
+  expected_canonicals: [BRCA2, k562]
+  why: gene + cell line in same query
+
+- id: h14
+  query: "compare HeLa-S3 to K-562 in transcriptomic response"
+  expected_canonicals: [hela, k562]
+  why: hyphenated cell line aliases
+
+- id: h15
+  query: "is Gleevec equivalent to Glivec for European patients"
+  expected_canonicals: [imatinib]
+  why: two different brand aliases for the same drug; one canonical result expected (dedup)
+
+# ─── Group 4: entity-type filtering tests ──────────────────────────────
+- id: h16
+  query: "BRCA1 mutations cause breast cancer treated with trastuzumab"
+  expected_canonicals: [BRCA1, breast_cancer, trastuzumab]
+  why: gene + disease + drug all in one query
+  notes: tests multi-type extraction
+
+# ─── Group 5: queries that might over-match if word-boundary breaks ────
+- id: h17
+  query: "what about EGF-receptor signaling cascades"
+  expected_canonicals: [EGFR]
+  why: egf receptor / egf-receptor alias should fire EGFR
+
+- id: h18
+  query: "designed an siRNA targeting the RAS protein"
+  expected_canonicals: []
+  why: RAS alone is not in YAML; KRAS requires the K prefix
+
+- id: h19
+  query: "the p-53 tumor suppressor activates apoptosis"
+  expected_canonicals: [TP53]
+  why: p-53 alias should fire TP53
+
+- id: h20
+  query: "BRAF inhibitor vemurafenib in melanoma"
+  expected_canonicals: [BRAF]
+  why: BRAF in YAML; vemurafenib not in YAML — only BRAF extracted
+
+# ─── Group 6: very short / edge-case queries ──────────────────────────
+- id: h21
+  query: "BRCA1"
+  expected_canonicals: [BRCA1]
+  why: single-word query, should still extract
+
+- id: h22
+  query: ""
+  expected_canonicals: []
+  why: empty query
+
+- id: h23
+  query: "?"
+  expected_canonicals: []
+  why: punctuation only
+
+- id: h24
+  query: "the BRCA1 BRCA1 BRCA1 BRCA1"
+  expected_canonicals: [BRCA1]
+  why: dedup test — same entity mentioned many times
+
+# ─── Group 7: case-sensitivity / mixed case ─────────────────────────
+- id: h25
+  query: "brca1 mutations in BRCA1 carriers"
+  expected_canonicals: [BRCA1]
+  why: matched_alias case insensitivity + dedup
+
+- id: h26
+  query: "tp53 vs TP53 vs P53 - same gene"
+  expected_canonicals: [TP53]
+  why: multiple case variants → single canonical
+
+# ─── Group 8: protein vs gene context (currently no distinction) ──────
+- id: h27
+  query: "the BRCA1 protein localizes to DNA damage sites"
+  expected_canonicals: [BRCA1]
+  why: BRCA1 fires regardless of protein context; YAML disqualified_if_present is empty
+
+- id: h28
+  query: "TP53 protein turnover via MDM2"
+  expected_canonicals: [TP53]
+  why: TP53 fires; TP53 inhibitor disqualifier doesnt fire here
+
+# ─── Group 9: cell-line variants ─────────────────────────────────────
+- id: h29
+  query: "HeLa cells transfected with BRCA1 cDNA"
+  expected_canonicals: [hela, BRCA1]
+  why: HeLa + BRCA1
+
+- id: h30
+  query: "K562 leukemia cell line response to Gleevec"
+  expected_canonicals: [k562, imatinib]
+  why: cell line + drug

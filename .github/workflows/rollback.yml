@@ -1,0 +1,93 @@
+name: Rollback
+
+# Convenience wrapper around deploy.yml for the canonical rollback flow:
+# "redeploy a known-good prior tag to an env."
+#
+# Why a separate workflow when deploy.yml already accepts a tag input?
+#   - Different mental model: rollback is a recovery action, not a forward
+#     deploy. Having it labeled "Rollback" in the Actions UI makes incident
+#     timelines obvious and lets us add rollback-specific guardrails later
+#     (e.g. confirm the tag was previously healthy before redeploying).
+#   - Audit trail: SNS notification subject reads "rollback" instead of
+#     "deploy", which helps on-call route attention correctly.
+#
+# Mechanism is the same: scripts/deploy.sh re-execs itself with the prior
+# tag on any healthcheck failure (auto-rollback), and this workflow does the
+# same thing manually for cases where we want to revert a green deploy that
+# turned out wrong (e.g. functional regression caught after rollout).
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [test]
+      tag:
+        description: 'Prior ECR tag to redeploy (sha-* or release-x.y.z). Find recent tags via `aws ecr describe-images --repository-name biomate/dev-backend`'
+        required: true
+        type: string
+      reason:
+        description: 'Short reason (goes into SNS subject line for audit)'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  # Rollback must serialize with any in-flight deploy to the same env.
+  # cancel-in-progress: false — never cancel a rollback mid-stream.
+  group: deploy-${{ inputs.env }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-west-2
+  DEPLOY_ROLE: arn:aws:iam::399683337364:role/GitHubActionsDeploy
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ inputs.env }}
+      url: http://stage-public.biomate.ai
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Confirm assumed role
+        run: aws sts get-caller-identity --query 'Arn' --output text
+
+      - name: Announce rollback (audit trail)
+        run: |
+          aws sns publish --region ${{ env.AWS_REGION }} \
+            --topic-arn arn:aws:sns:${{ env.AWS_REGION }}:399683337364:biomate-deploy-events \
+            --subject "[rollback] ${{ inputs.env }} → ${{ inputs.tag }}" \
+            --message "Operator: ${{ github.actor }}
+          Reason: ${{ inputs.reason }}
+          Run:    ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Run deploy.sh with rollback tag
+        run: |
+          chmod +x scripts/deploy.sh
+          bash scripts/deploy.sh "${{ inputs.env }}" "${{ inputs.tag }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Rollback → ${{ inputs.env }}"
+            echo "- redeploy tag: \`${{ inputs.tag }}\`"
+            echo "- reason: ${{ inputs.reason }}"
+            echo "- operator: ${{ github.actor }}"
+            echo "- conclusion: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

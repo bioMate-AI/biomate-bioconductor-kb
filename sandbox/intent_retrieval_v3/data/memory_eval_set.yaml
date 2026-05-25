@@ -1,0 +1,92 @@
+# Memory-recall eval set — 20 queries with expected canonical memory file.
+#
+# Each query is the kind of natural-language question a user might ask in
+# the next conversation about prior work. The expected file is the memory
+# file that should rank #1 in the candidate list shown to the LLM.
+#
+# Coverage: distributed across the categories the user actually has memory
+# for (recent session, regulatory work, BixBench, cryo, billing, etc.).
+#
+# Score rules:
+#   top1_hit  = expected file is at rank 1
+#   top3_hit  = expected file in top-3
+
+- id: q01
+  query: "what's the latest status of the regulatory LLM v6 v7 training?"
+  expected: project_regulatory_llm_v6.md
+
+- id: q02
+  query: "remind me of the BixBench v21 results"
+  expected: project_bixbench_v21.md
+
+- id: q03
+  query: "summarize the biomate-cryo benchmark preprint work"
+  expected: project_biomate_cryo_benchmark.md
+
+- id: q04
+  query: "show me the workflow pricing table for drug development"
+  expected: project_workflow_pricing_table.md
+
+- id: q05
+  query: "tell me about the memory architecture gaps and recall design"
+  expected: project_memory_architecture_gaps.md
+
+- id: q06
+  query: "what's our policy on AlphaFold3 routing through biomate?"
+  expected: feedback_af3_policy.md
+
+- id: q07
+  query: "remind me about gemini model selection guidance"
+  expected: feedback_gemini_model_selection.md
+
+- id: q08
+  query: "what was decided about cryosparc auth and licensing?"
+  expected: feedback_cryosparc_auth.md
+
+- id: q09
+  query: "tell me the e2e auth pattern with bypass token"
+  expected: feedback_e2e_auth_pattern.md
+
+- id: q10
+  query: "what discipline rules do we have for e2e tests?"
+  expected: feedback_test_writing_discipline.md
+
+- id: q11
+  query: "summarize the biomni eval1 v17 v20 results"
+  expected: project_biomni_eval1_v17.md
+
+- id: q12
+  query: "what's the CRO production integration status?"
+  expected: project_cro_production_integration.md
+
+- id: q13
+  query: "show me the ADMET auto-loop architecture"
+  expected: project_drug_dev_gaps.md   # closest match — has admet autoloop section
+
+- id: q14
+  query: "tell me about the unified workflow search hybrid retrieval"
+  expected: project_session5_benchmarking.md  # routing optimization context
+
+- id: q15
+  query: "what's the gpu infrastructure issue we identified?"
+  expected: project_gpu_infrastructure_issue.md
+
+- id: q16
+  query: "remind me about hallucination vs error rate distinction"
+  expected: feedback_hallucination_vs_error.md
+
+- id: q17
+  query: "show the BixBench v10 80 percent breakthrough"
+  expected: project_bixbench_v10.md
+
+- id: q18
+  query: "what's the cryoEM auto-loop architecture decisions?"
+  expected: project_cryoem_autoloop.md
+
+- id: q19
+  query: "what was the citation metric feedback?"
+  expected: feedback_citation_metric.md
+
+- id: q20
+  query: "tell me about pharmacology workflow phase annotations"
+  expected: project_pharmacology_workflows_may5.md

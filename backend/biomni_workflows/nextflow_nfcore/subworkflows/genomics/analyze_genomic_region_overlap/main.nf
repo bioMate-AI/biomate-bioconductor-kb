@@ -16,7 +16,7 @@ params.output_prefix = 'overlap_analysis'
 process ANALYZE_GENOMIC_REGION_OVERLAP {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'

@@ -8,9 +8,9 @@ This script enhances tool metadata by extracting:
 - Workflow metadata: Complete pipeline documentation and use cases
 
 Sources:
-- /home/yzhang/biomate/backend/nf-core-modules/modules/nf-core/*/meta.yml (755 modules)
-- /home/yzhang/biomate/backend/nf-core-modules/subworkflows/nf-core/*/meta.yml (93 subworkflows)
-- /home/yzhang/biomate/backend/nf-core-workflows/*/README.md (7+ workflows)
+- /opt/biomate/backend/nf-core-modules/modules/nf-core/*/meta.yml (755 modules)
+- /opt/biomate/backend/nf-core-modules/subworkflows/nf-core/*/meta.yml (93 subworkflows)
+- /opt/biomate/backend/nf-core-workflows/*/README.md (7+ workflows)
 """
 
 import os
@@ -23,9 +23,9 @@ from collections import defaultdict
 
 
 # Paths
-NF_CORE_MODULES = Path("/home/yzhang/biomate/backend/nf-core-modules/modules/nf-core")
-NF_CORE_SUBWORKFLOWS = Path("/home/yzhang/biomate/backend/nf-core-modules/subworkflows/nf-core")
-NF_CORE_WORKFLOWS = Path("/home/yzhang/biomate/backend/nf-core-workflows")
+NF_CORE_MODULES = Path("/opt/biomate/backend/nf-core-modules/modules/nf-core")
+NF_CORE_SUBWORKFLOWS = Path("/opt/biomate/backend/nf-core-modules/subworkflows/nf-core")
+NF_CORE_WORKFLOWS = Path("/opt/biomate/backend/nf-core-workflows")
 
 
 def extract_module_metadata(module_path: Path) -> Optional[Dict]:

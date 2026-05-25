@@ -28,7 +28,7 @@ params.run_ratio_sweep         = 'true'
 process LNP_FORMULATION_OPTIMIZATION {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 

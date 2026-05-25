@@ -15,7 +15,7 @@ params.clinical_data_file = null  // Required: path to CSV with columns: subject
 process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'

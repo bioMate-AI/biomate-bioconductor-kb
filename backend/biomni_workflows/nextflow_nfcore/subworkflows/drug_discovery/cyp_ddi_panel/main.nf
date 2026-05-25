@@ -82,10 +82,13 @@ params.use_aws              = false
 // Containers
 // ============================================================================
 
-def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
-def _ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86'
+// Nextflow 26.04+ rejects free-standing `def` at script scope alongside
+// `params.X = …` declarations. Promote container selection to params so it
+// stays available to all process `container` directives below.
+params._useAws        = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
+params._ECR           = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86'
 // Unified container with RDKit + scikit-learn + matplotlib + transformers
-def CHEM_CONTAINER = _useAws ? _ECR : 'condaforge/miniforge3:latest'
+params.CHEM_CONTAINER = params._useAws ? params._ECR : 'condaforge/miniforge3:latest'
 
 // ============================================================================
 // Processes
@@ -98,7 +101,7 @@ process SMILES_VALIDATION {
      * Compute molecular descriptors: MW, cLogP, TPSA, HBD/HBA, RotBonds.
      */
     tag "smiles_validation"
-    container CHEM_CONTAINER
+    container params.CHEM_CONTAINER
     publishDir "${params.outdir}/validation", mode: params.publish_dir_mode
 
     output:
@@ -201,7 +204,7 @@ process CYP_INHIBITION {
      * Classifies: non-inhibitor / weak (1-10 uM) / moderate (0.1-1 uM) / strong (<0.1 uM).
      */
     tag "cyp_inhibition"
-    container CHEM_CONTAINER
+    container params.CHEM_CONTAINER
     publishDir "${params.outdir}/cyp", mode: params.publish_dir_mode
 
     input:
@@ -382,7 +385,7 @@ process HEPATIC_CLEARANCE {
      * Outputs: CLint (mL/min/mg), CLhep (mL/min/kg), extraction ratio, t1/2 (h).
      */
     tag "hepatic_clearance"
-    container CHEM_CONTAINER
+    container params.CHEM_CONTAINER
     publishDir "${params.outdir}/clearance", mode: params.publish_dir_mode
 
     input:
@@ -564,7 +567,7 @@ process DDI_RISK_ASSESSMENT {
      * Outputs risk flags: NOT_EXPECTED / INVESTIGATE / CLINICAL_STUDY_RECOMMENDED.
      */
     tag "ddi_risk_assessment"
-    container CHEM_CONTAINER
+    container params.CHEM_CONTAINER
     publishDir "${params.outdir}/ddi_risk", mode: params.publish_dir_mode
 
     input:
@@ -622,13 +625,13 @@ KDEG = {'CYP1A2':0.00018,'CYP2C8':0.00040,'CYP2C9':0.00018,
         'CYP2C19':0.00023,'CYP2D6':0.00025,'CYP3A4':0.00023}
 
 def compute_r2(isoform, ic50_uM, dose_mg, dose_route, fu_p):
-    """
+    '''
     FDA static R2 for TDI.
     R2 = 1 / (1 + kinact * [I]gu / (kdeg * (KI + [I]gu)))
-    If no structural alert → R2 = 1.0 (no TDI).
-    If structural alert: estimate kinact = 0.04 /min, KI ≈ 10 * IC50 (µM).
-    Threshold: R2 ≤ 0.79 → INVESTIGATE; R2 ≤ 0.71 → CLINICAL_STUDY.
-    """
+    If no structural alert -> R2 = 1.0 (no TDI).
+    If structural alert: estimate kinact = 0.04 /min, KI ~ 10 * IC50 (uM).
+    Threshold: R2 <= 0.79 -> INVESTIGATE; R2 <= 0.71 -> CLINICAL_STUDY.
+    '''
     if isoform not in tdi_isoforms:
         return 1.0, 'NOT_EXPECTED', False
     kdeg = KDEG.get(isoform, 0.00023)
@@ -753,7 +756,7 @@ process DDI_REPORT {
      * clearance, and DDI risk assessment.
      */
     tag "ddi_report"
-    container CHEM_CONTAINER
+    container params.CHEM_CONTAINER
     publishDir "${params.outdir}", mode: params.publish_dir_mode
 
     input:

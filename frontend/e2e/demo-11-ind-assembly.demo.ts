@@ -57,6 +57,18 @@ async function apiCall(
 test('Demo 11 — IND §2.6.1 Assembly with AI Regulatory Prose', async ({ page }) => {
   test.setTimeout(300_000); // 5-min ceiling
 
+  // ─── Opening narration — explain the demo BEFORE jumping into UI ────────────
+  // (Per user feedback: IND videos used to start with UI specifics, no context.
+  // Lead with a plain-English overview of what the demo will accomplish.)
+  await page.goto(BASE_URL);
+  await page.waitForLoadState('domcontentloaded');
+  await tip(
+    page,
+    'Watch BioMate generate the FDA IND §2.6.1 Nonclinical Overview — the CTD section pharma writes by hand. From a PBPK + ADMET campaign, the AI produces regulatory-grade prose for all six sub-sections in under two minutes.',
+    7_000
+  );
+  await pause(page, 7_000);
+
   // ─── 0. Auth + ensure campaign exists + navigate to CRO page ────────────────
   console.log('[Demo11] Step 0: Login + ensure campaign + CRO page');
   await setupDemoUser(page, EMAIL, 'DemoPass123!', 'Drug Discovery');

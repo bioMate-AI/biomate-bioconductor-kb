@@ -22,7 +22,7 @@ params.time_points = '1000'
 process SIMULATE_PROTEIN_SIGNALING_NETWORK {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'

@@ -1,0 +1,29 @@
+{
+  "id": "p-bm0029",
+  "molecule": "BM-0029",
+  "compound_class": "anti-PD-L1 × anti-LAG-3 bispecific antibody",
+  "target": "PD-L1 × LAG-3",
+  "indication": "Triple-negative breast cancer (TNBC), 2nd-line",
+  "sponsor": "Acme Therapeutics",
+  "regions": ["FDA", "NMPA"],
+  "audit_status": "blocked",
+  "findings": [
+    {
+      "id": "f_cv_signal_missing",
+      "severity": "CRITICAL",
+      "rule_id": "SAFETY_PHARM_CV_PRESENT",
+      "section": "§2.6.5",
+      "message": "Safety pharmacology cardiovascular endpoints are absent from the dossier. ICH S7A requires CV assessment for all biologics intended for systemic administration.",
+      "recommendation": "Upload the CV telemetry monkey study report (Acme protocol SP-2026-019) and re-run the audit. The remediation_plan.md in this directory shows the auto-loop's proposed mitigation if the study is not yet complete."
+    },
+    {
+      "id": "f_immunogen_minor",
+      "severity": "MINOR",
+      "rule_id": "IMMUNOGEN_CARRYOVER",
+      "section": "§2.6.5",
+      "message": "Immunogenicity assessment cites only single-dose data; multi-dose ADA development should be addressed.",
+      "recommendation": "Add a paragraph referencing the planned 13-week toxicology study ADA endpoint."
+    }
+  ],
+  "auto_loop_proposed_action": "Halt signature workflow; gate on CV data upload before re-audit."
+}

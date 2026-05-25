@@ -30,7 +30,7 @@ import { eq, desc } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { inviteCodes } from '../shared/schema';
 
-const VALID_TIERS = ['academic', 'premium', 'enterprise', 'admin'] as const;
+const VALID_TIERS = ['academic', 'professional', 'enterprise', 'admin'] as const;
 type Tier = typeof VALID_TIERS[number];
 
 function generateCode(prefix: string): string {
@@ -99,7 +99,7 @@ async function main() {
   // Create codes — defaults tuned for invited beta users
   const prefix = args['prefix'] ?? 'BETA';
   const count = parseInt(args['count'] ?? '1', 10);
-  const tier = (args['tier'] ?? 'premium') as Tier;
+  const tier = (args['tier'] ?? 'professional') as Tier;
   const trialDays = parseInt(args['trial-days'] ?? '30', 10);
   const quotaOverrideUsd = args['quota'] ?? '25.00';
   const maxUses = parseInt(args['max-uses'] ?? '1', 10);

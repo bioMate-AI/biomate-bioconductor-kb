@@ -1,0 +1,6 @@
+# Vite build cache and test-runner artifacts — regenerated locally, not committed.
+.vite-cache/
+.test-output/
+node_modules/
+
+# Keep .snapshots/ committed — those are the visual sign-off artifacts.

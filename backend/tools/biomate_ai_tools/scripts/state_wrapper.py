@@ -13,11 +13,11 @@ import subprocess
 import sys
 
 # Model paths (downloaded from HuggingFace)
-MODEL_DIR = os.environ.get("STATE_MODEL_DIR", "/home/yzhang/biomate/models/state")
+MODEL_DIR = os.environ.get("STATE_MODEL_DIR", "/opt/biomate/models/state")
 CHECKPOINT = os.environ.get("STATE_CHECKPOINT", "se600m_epoch16.ckpt")
 
 # Virtual environment state CLI (prefer venv if available)
-VENV_STATE = "/home/yzhang/biomate/backend/tools/biomate_ai_tools/.venv/bin/state"
+VENV_STATE = "/opt/biomate/backend/tools/biomate_ai_tools/.venv/bin/state"
 STATE_CLI = VENV_STATE if os.path.exists(VENV_STATE) else "state"
 
 

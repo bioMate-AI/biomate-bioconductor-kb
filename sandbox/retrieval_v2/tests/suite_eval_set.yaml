@@ -1,0 +1,164 @@
+# Hand-curated suite-level routing eval set.
+#
+# 30 queries → expected suite_id(s). Each query is the kind a biologist would
+# type when picking a TOOL (not a full pipeline). Queries cover the
+# top-10 BioMate domains plus a few adversarial cases.
+#
+# Scoring rules (run via run_suite_eval.py):
+#   top1_hit   = any expected suite_id appears at rank 1
+#   top3_hit   = any expected suite_id appears in top-3
+#   top10_hit  = any expected suite_id appears in top-10
+#   candidates = number of suites returned (lower is better at fixed accuracy)
+#
+# `expected` is a list — any one match counts. Use this for cases with
+# legitimate alternatives (e.g. STAR or HISAT2 both valid for RNA-seq align).
+
+- id: q01
+  query: "Differential expression analysis of RNA-seq count data with DESeq2"
+  expected: [deseq2]
+  domain: rna_seq
+
+- id: q02
+  query: "edgeR differential expression for read count matrix"
+  expected: [edger]
+  domain: rna_seq
+
+- id: q03
+  query: "Align RNA-seq reads with a splice-aware aligner"
+  expected: [rna_star, star, hisat2, tophat]
+  domain: rna_seq
+
+- id: q04
+  query: "Salmon transcript quantification from FASTQ"
+  expected: [salmon]
+  domain: rna_seq
+
+- id: q05
+  query: "FeatureCounts read summarization to gene counts"
+  expected: [featurecounts]
+  domain: rna_seq
+
+- id: q06
+  query: "Map short reads to a reference genome with BWA-MEM"
+  expected: [bwa, bwa_mem2, bwa_mem]
+  domain: alignment
+
+- id: q07
+  query: "Bowtie2 short read alignment"
+  expected: [bowtie2]
+  domain: alignment
+
+- id: q08
+  query: "Sort and index a BAM file with samtools"
+  expected: [samtools]
+  domain: bam_sam
+
+- id: q09
+  query: "Mark PCR duplicates with Picard MarkDuplicates"
+  expected: [picard]
+  domain: bam_sam
+
+- id: q10
+  query: "Add read groups to BAM with Picard"
+  expected: [picard]
+  domain: bam_sam
+
+- id: q11
+  query: "GATK4 HaplotypeCaller germline variant calling"
+  expected: [gatk4]
+  domain: variants
+
+- id: q12
+  query: "Call structural variants from long reads with sniffles or pbsv"
+  expected: [sniffles, pbsv]
+  domain: variants
+
+- id: q13
+  query: "BCFtools view and filter VCF"
+  expected: [bcftools]
+  domain: variants
+
+- id: q14
+  query: "VEP variant effect predictor annotation"
+  expected: [vep, ensembl_vep]
+  domain: variants
+
+- id: q15
+  query: "FastQC quality control for raw FASTQ"
+  expected: [fastqc]
+  domain: qc
+
+- id: q16
+  query: "MultiQC summary report aggregation"
+  expected: [multiqc]
+  domain: qc
+
+- id: q17
+  query: "Trim adapter sequences with fastp"
+  expected: [fastp]
+  domain: qc
+
+- id: q18
+  query: "Trim Illumina adapters with Trimmomatic"
+  expected: [trimmomatic]
+  domain: qc
+
+- id: q19
+  query: "Cutadapt adapter trimming"
+  expected: [cutadapt]
+  domain: qc
+
+- id: q20
+  query: "Kraken2 metagenomic taxonomic classification"
+  expected: [kraken2]
+  domain: metagenomics
+
+- id: q21
+  query: "MetaPhlAn taxonomic profiling for metagenomes"
+  expected: [metaphlan]
+  domain: metagenomics
+
+- id: q22
+  query: "SPAdes de novo genome assembly"
+  expected: [spades]
+  domain: assembly
+
+- id: q23
+  query: "Flye long-read genome assembly with Nanopore reads"
+  expected: [flye]
+  domain: assembly
+
+- id: q24
+  query: "Bismark bisulfite alignment for methylation"
+  expected: [bismark]
+  domain: methylation
+
+- id: q25
+  query: "MACS2 ChIP-seq peak calling"
+  expected: [macs2, macs]
+  domain: chipseq
+
+- id: q26
+  query: "Bedtools intersect genomic intervals"
+  expected: [bedtools]
+  domain: intervals
+
+- id: q27
+  query: "snpEff variant annotation"
+  expected: [snpeff]
+  domain: variants
+
+- id: q28
+  query: "EMBOSS sequence analysis utilities"
+  expected: [emboss]
+  domain: sequence
+
+- id: q29
+  query: "DIAMOND fast protein homology search"
+  expected: [diamond]
+  domain: sequence
+
+- id: q30
+  query: "AlphaFold protein structure prediction"
+  expected: [alphafold, alphafold2, alphafold3]
+  domain: structure

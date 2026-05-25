@@ -1,0 +1,565 @@
+# Workflow Intent Anchors — Phase 1 (Lever 1 build)
+#
+# Curated query-intent → canonical workflow mappings. Used by
+# sandbox/workflow_search_v2/library/workflow_intent.py:
+#   prioritize_workflow_by_intent(query, candidates)
+#
+# Each entry:
+#   canonical:                  workflow name to boost (must match what
+#                               UnifiedWorkflowSearch returns)
+#   trigger_terms:              substrings/keywords that indicate this intent
+#                               (case-insensitive; multi-word phrases allowed)
+#   pipeline_intent_required:   if true, also requires PIPELINE_VERBS in query
+#   disqualified_if_present:    if any of these tokens appear, intent does NOT fire
+#                               (use to prevent false matches: e.g. "single-cell" in
+#                               an rnaseq query means scrnaseq instead)
+#
+# Coverage target: top 22 workflows by frequency in the 155-case benchmark
+# (≥ 3 cases each). Covers ~84% of the dataset.
+
+# ───────────────────────── RNA-seq family ──────────────────────────────
+bulk_rnaseq:
+  canonical: nf-core/rnaseq
+  trigger_terms:
+    - rna-seq
+    - rnaseq
+    - bulk rna
+    - transcriptome quantification
+    - fastq to counts
+    - gene expression analysis
+    - paired-end fastq
+    - star align rna
+    - rsem
+    - salmon quant
+  pipeline_intent_required: false  # rnaseq queries often skip pipeline verbs
+  disqualified_if_present:
+    - single-cell
+    - single cell
+    - 10x
+    - cellranger
+    - small rna
+    - smrnaseq
+    - micrornas
+    - mirna
+    - non-coding
+    - long non-coding
+    - lncrna
+    - fusion gene
+    - fusion transcripts
+    - spatial transcriptomics
+    - count matrix       # if user already has counts, → differentialabundance
+    - counts table       # same
+    - count table
+    - have a counts
+    - pathway enrich     # downstream of DE → differentialabundance
+    - pathways are enriched
+
+single_cell_rnaseq:
+  canonical: nf-core/scrnaseq
+  trigger_terms:
+    - single-cell rna
+    - single cell rna
+    - scrnaseq
+    - scrna-seq
+    - cell ranger
+    - cellranger
+    - starsolo
+    - empty droplets
+    - cell type identification
+    - cluster cells
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - bd rhapsody
+    - parse biosciences
+    - split-seq
+    - spatial
+    - merfish
+    - multiome
+    - atac
+    - cite-seq
+    - antibody capture
+    - chromium
+    - tcr
+    - t cell receptor
+    - bcr
+    - b cell receptor
+    - clonotype
+    - immune repertoire
+    # NOTE: removed "doublet" — scrnaseq DOES do droplet/doublet QC,
+    # over-tightening prevented sc_007 from flipping correctly
+
+differential_abundance:
+  canonical: nf-core/differentialabundance
+  trigger_terms:
+    - already have count matrix
+    - have a count matrix
+    - count matrix
+    - differential expression
+    - differential abundance
+    - differentially expressed
+    - deseq2 analysis
+    - edger analysis
+    - downstream differential
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - from fastq
+    - align reads
+    - single-cell
+    - 10x
+    - proteomics
+    - metabolomics
+
+small_rna:
+  canonical: nf-core/smrnaseq
+  trigger_terms:
+    - small rna
+    - smrnaseq
+    - mirna
+    - micrornas
+    - microRNA
+  pipeline_intent_required: false
+  disqualified_if_present: ["bulk rna-seq genes"]
+
+long_noncoding:
+  canonical: nf-core/lncpipe
+  trigger_terms:
+    - lncrna
+    - long non-coding
+    - lncpipe
+    - long noncoding rna
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+rna_fusion:
+  canonical: nf-core/rnafusion
+  trigger_terms:
+    - fusion gene
+    - fusion transcripts
+    - rnafusion
+    - star-fusion
+    - arriba
+    - fusioncatcher
+    - gene fusion
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+spatial_transcriptomics:
+  canonical: nf-core/spatialvi
+  trigger_terms:
+    - 10x visium
+    - visium
+    - spatialvi
+    - spatially-resolved transcriptomics
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - merfish
+    - subcellular
+    - rna molecule detection
+    - imaging-based
+    - in situ rna imaging
+
+# ───────────────────────── Variant calling family ──────────────────────
+variant_calling_germline:
+  canonical: nf-core/sarek
+  trigger_terms:
+    - variant calling
+    - germline variants
+    - germline snps
+    - gatk haplotypecaller
+    - wgs variants
+    - wgs variant calling
+    - wes variant calling
+    - germline mutations
+    - somatic mutations
+    - tumor vs normal
+    - mutect2
+    - tumor mutational burden
+    - tmb
+    - umi consensus
+    - sarek
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - rare disease
+    - trio
+    - mendelian
+    - pediatric proband
+    - rnaseq variants
+    - rna variants
+    - structural variants only
+
+rare_disease:
+  canonical: nf-core/raredisease
+  trigger_terms:
+    - rare disease
+    - trio analysis
+    - mendelian
+    - pediatric proband
+    - scout
+    - genmod
+    - clinical genomics
+    - rare variants prioritize
+    - variant prioritization
+    - prioritize variants by pathogenicity
+  pipeline_intent_required: false
+  disqualified_if_present: ["somatic", "tumor"]
+
+# ───────────────────────── Epigenomics ─────────────────────────────────
+chip_seq:
+  canonical: nf-core/chipseq
+  trigger_terms:
+    - chip-seq
+    - chipseq
+    - chip seq
+    - chromatin immunoprecipitation
+    - peak calling histone
+    - peak calling transcription factor
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - atac
+    - cut&run
+    - cut and run
+    - cut-and-run
+    - cut&tag
+    - cut and tag
+    - tipseq
+
+atac_seq:
+  canonical: nf-core/atacseq
+  trigger_terms:
+    - atac-seq
+    - atacseq
+    - atac seq
+    - chromatin accessibility
+    - open chromatin
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - chip-seq
+    - cut&run
+    - multiome
+    - joint profiling
+    - atac and rna
+    - single-cell atac
+
+multiome:
+  canonical: multiome_rna_atac
+  trigger_terms:
+    - multiome
+    - single-cell atac and rna
+    - atac and rna joint
+    - joint profiling rna atac
+    - 10x multiome
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+merfish:
+  canonical: merfish_spatial_analysis
+  trigger_terms:
+    - merfish
+    - subcellular rna
+    - rna molecule detection
+    - imaging-based spatial
+    - in situ rna imaging
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+cut_and_run:
+  canonical: nf-core/cutandrun
+  trigger_terms:
+    - cut&run
+    - cut and run
+    - cut-and-run
+    - cut&tag
+    - cut and tag
+    - cutandrun
+    - tipseq
+    - cutruntools
+  pipeline_intent_required: false
+  disqualified_if_present: [chip-seq, atac]
+
+methyl_seq:
+  canonical: nf-core/methylseq
+  trigger_terms:
+    - bisulfite
+    - methylation sequencing
+    - methylseq
+    - wgbs
+    - rrbs
+    - bismark
+    - dna methylation seq
+  pipeline_intent_required: false
+  disqualified_if_present: [methylarray, illumina methylation array]
+
+# ───────────────────────── Metagenomics ────────────────────────────────
+taxprofiler:
+  canonical: nf-core/taxprofiler
+  trigger_terms:
+    - taxonomic profiling
+    - taxprofiler
+    - kraken2 profile
+    - metaphlan profile
+    - mOTUs
+    - metagenomic profiling
+  pipeline_intent_required: false
+  disqualified_if_present: [assembly metagenomic, mag binning, 16s, its amplicon]
+
+mag_assembly:
+  canonical: nf-core/mag
+  trigger_terms:
+    - metagenome assembly
+    - metagenome binning
+    - megahit assembly
+    - metabat
+    - gtdb-tk
+    - genome bins
+    - mag pipeline
+  pipeline_intent_required: false
+  disqualified_if_present: [16s, amplicon, taxprofiler, taxonomic profiling]
+
+ampliseq:
+  canonical: nf-core/ampliseq
+  trigger_terms:
+    - 16s
+    - 16S rRNA
+    - its sequencing
+    - amplicon sequencing
+    - dada2
+    - qiime2 pipeline
+    - co1 metabarcoding
+    - amplicon
+  pipeline_intent_required: false
+  disqualified_if_present: [mag, metagenome assembly, shotgun metagenomics]
+
+# ───────────────────────── Proteomics ──────────────────────────────────
+proteomics_lfq:
+  canonical: nf-core/proteomicslfq
+  trigger_terms:
+    - label-free quantification
+    - lfq proteomics
+    - dda proteomics
+    - openms
+    - msstats
+    - label free quantification
+  pipeline_intent_required: false
+  disqualified_if_present: [dia, data-independent, mhc, hla]
+
+proteomics_dia:
+  canonical: nf-core/diaproteomics
+  trigger_terms:
+    - dia proteomics
+    - data-independent acquisition
+    - dia-nn
+    - diann
+    - data independent
+  pipeline_intent_required: false
+  disqualified_if_present: [lfq, label-free, mhc]
+
+mhc_quant:
+  canonical: nf-core/mhcquant
+  trigger_terms:
+    - mhc quantification
+    - hla quantification
+    - immunopeptidomics
+    - mhcquant
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - neoantigen
+    - epitope prediction
+    - predict mhc binding
+
+epitope_prediction:
+  canonical: nf-core/epitopeprediction
+  trigger_terms:
+    - epitope prediction
+    - predict mhc binding
+    - predicting mhc binding
+    - epitopeprediction
+    - peptide-mhc binding
+    - neoantigens from tumor mutations
+    - identify neoantigens from variants
+  pipeline_intent_required: false
+  disqualified_if_present:
+    - quantify
+    - quantification
+    - hla-presented peptides
+    - immunopeptidomics
+
+# ───────────────────────── Other ───────────────────────────────────────
+airrflow:
+  canonical: nf-core/airrflow
+  trigger_terms:
+    - bcr sequencing
+    - tcr sequencing
+    - immune repertoire
+    - bcr/tcr
+    - airr-seq
+    - airrflow
+    - adaptive immune
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+nanoseq:
+  canonical: nf-core/nanoseq
+  trigger_terms:
+    - oxford nanopore
+    - nanopore sequencing
+    - nanoseq
+    - long-read nanopore
+    - minion
+    - promethion
+  pipeline_intent_required: false
+  disqualified_if_present: [pacbio, hifi]
+
+# ───────────────────────── Long-tail additions ────────────────────────
+bam_stringtie:
+  canonical: nf-core/bam_stringtie_merge
+  trigger_terms:
+    - stringtie
+    - stringtie merge
+    - bam stringtie
+    - transcript assembly
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+hic:
+  canonical: nf-core/hic
+  trigger_terms:
+    - hi-c
+    - hic sequencing
+    - chromosome conformation
+    - topologically associating domains
+    - tads
+    - 3d genome
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+scrna_doublet_qc:
+  canonical: scrna_doublet_qc
+  trigger_terms:
+    - scrnaseq doublet
+    - doublet detection
+    - inflated cell counts
+    - scrublet
+    - doubletfinder
+  pipeline_intent_required: false
+  disqualified_if_present: [bd rhapsody, parse]
+
+cite_seq:
+  canonical: cite_seq_preprocessing
+  trigger_terms:
+    - cite-seq
+    - antibody capture
+    - protein expression single-cell
+    - feature barcoding
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+bd_rhapsody:
+  canonical: bd_rhapsody_scrna
+  trigger_terms:
+    - bd rhapsody
+    - rhapsody scrnaseq
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+parse_split_seq:
+  canonical: parse_split_seq_scrna
+  trigger_terms:
+    - parse biosciences
+    - split-seq
+    - splitseq
+    - sub-sampling barcoding
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+methylarray:
+  canonical: nf-core/methylarray
+  trigger_terms:
+    - methylation array
+    - illumina methylation array
+    - epic array
+    - 450k array
+  pipeline_intent_required: false
+  disqualified_if_present: [bisulfite, methylseq]
+
+proteinfold:
+  canonical: nf-core/proteinfold
+  trigger_terms:
+    - alphafold2 only
+    - esmfold
+    - colabfold
+    - protein structure prediction pipeline
+    - proteinfold
+  pipeline_intent_required: false
+  disqualified_if_present: [docking, ligand, virtual screening]
+
+structure_docking:
+  canonical: Structure Prediction Docking
+  trigger_terms:
+    - structure prediction and docking
+    - predict structure then dock
+    - alphafold and docking
+    - boltz
+    - virtual screening with structure
+  pipeline_intent_required: false
+  disqualified_if_present: [md simulation, mm-gbsa, free energy]
+
+gromacs_md:
+  canonical: GROMACS Protein-Ligand MD + MM-GBSA
+  trigger_terms:
+    - gromacs
+    - molecular dynamics simulation
+    - md simulation
+    - mm-gbsa
+    - binding free energy
+    - md trajectory
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+reinvent4:
+  canonical: REINVENT4 Generative Lead Design
+  trigger_terms:
+    - reinvent
+    - generative molecule design
+    - de novo drug design
+    - lead optimization generative
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+cipa:
+  canonical: cipa_cardiac_safety_ode
+  trigger_terms:
+    - cipa
+    - herg cardiac safety
+    - torsadogenic risk
+    - cardiac safety ode
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+ode_signaling:
+  canonical: ode_signaling_simulation
+  trigger_terms:
+    - ode signaling
+    - signaling network simulation
+    - hill functions kinetics
+  pipeline_intent_required: false
+  disqualified_if_present: [cipa, cardiac]
+
+bispecific_antibody:
+  canonical: bispecific_antibody_design
+  trigger_terms:
+    - bispecific antibody
+    - bispecific design
+    - tandem scfv
+    - dual-targeting antibody
+  pipeline_intent_required: false
+  disqualified_if_present: []
+
+sirna_offtarget:
+  canonical: sirna_offtarget_analysis
+  trigger_terms:
+    - sirna off-target
+    - sirna offtarget
+    - off-target sirna
+    - sirna specificity
+  pipeline_intent_required: false
+  disqualified_if_present: []

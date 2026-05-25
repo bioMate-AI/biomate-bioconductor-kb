@@ -1,0 +1,50 @@
+[
+  {
+    "scenario": "drugscreen",
+    "label": "Drug screen (ADMET + autoloop + comparison)",
+    "jsErrors": 0,
+    "planItems": 5,
+    "hasCompare": true,
+    "expectedCompare": true,
+    "compareOk": true,
+    "findingsOk": true,
+    "pass": true,
+    "jsErrorList": []
+  },
+  {
+    "scenario": "cryosparc",
+    "label": "Cryo-EM SPA (5 phases + CTF gate)",
+    "jsErrors": 0,
+    "planItems": 5,
+    "hasCompare": false,
+    "expectedCompare": false,
+    "compareOk": true,
+    "findingsOk": true,
+    "pass": true,
+    "jsErrorList": []
+  },
+  {
+    "scenario": "rnaseq",
+    "label": "Bulk RNA-seq (nf-core/rnaseq)",
+    "jsErrors": 0,
+    "planItems": 5,
+    "hasCompare": false,
+    "expectedCompare": false,
+    "compareOk": true,
+    "findingsOk": true,
+    "pass": true,
+    "jsErrorList": []
+  },
+  {
+    "scenario": "variant",
+    "label": "Variant calling (nf-core/sarek)",
+    "jsErrors": 0,
+    "planItems": 5,
+    "hasCompare": false,
+    "expectedCompare": false,
+    "compareOk": true,
+    "findingsOk": true,
+    "pass": true,
+    "jsErrorList": []
+  }
+]

@@ -1,0 +1,10 @@
+# Terraform local state + plan files (canonical state is in S3)
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+# Allow .terraform.lock.hcl actually — it pins provider versions across operators
+!.terraform.lock.hcl

@@ -19,7 +19,7 @@ params.amplitude_uv = '[0.0, 0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35, 0.48, 0.6
 process ANALYZE_ABR_WAVEFORM_P1_METRICS {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'

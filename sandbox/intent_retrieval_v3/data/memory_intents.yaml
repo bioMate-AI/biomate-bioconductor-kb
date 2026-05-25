@@ -1,0 +1,123 @@
+# Memory recall intent anchors.
+#
+# Maps common user intents about session memory to specific memory-file
+# canonical IDs (filenames relative to the auto-memory directory).
+#
+# Used by sandbox/intent_retrieval_v3/adapters/memory.py — when the user
+# asks a question that obviously refers to known memory topics, the
+# adapter promotes/injects the relevant memory file at the head of the
+# candidate list so the LLM sees it first.
+#
+# Schema is the same as workflow_intent_anchors.yaml:
+#   canonical: <file basename in the memory dir>
+#   trigger_terms: [keywords / phrases that fire this intent]
+#   disqualified_if_present: [terms that suppress this intent]
+#
+# Curation rule: only add an entry when the memory file is a "go-to" answer
+# for the intent. If the LLM should consult multiple files, leave the user's
+# fuzzy-search to do that work — the adapter is for unambiguous lookups.
+
+# ─── Recent session output (this session) ────────────────────────────
+current_retrieval_work:
+  canonical: 20260519_SESSION_REVIEW_AND_DB_RETRIEVAL_GENERALIZATION.md
+  trigger_terms:
+    - what did we just build
+    - this session's work
+    - retrieval work summary
+    - what we shipped today
+    - session review
+    - intent retrieval framework
+  disqualified_if_present: []
+
+workflow_intent_lift_results:
+  canonical: 20260519_WORKFLOW_INTENT_INJECTION_MODE.md
+  trigger_terms:
+    - workflow intent results
+    - workflow lift numbers
+    - injection mode results
+    - prioritize_workflow_by_intent results
+    - workflow search ab numbers
+  disqualified_if_present: []
+
+family_dedup_results:
+  canonical: 20260518_PHASE1_AB_RESULTS_AND_DECISION.md
+  trigger_terms:
+    - family dedup results
+    - wrapper canonical results
+    - tool family results
+    - dedup lift numbers
+  disqualified_if_present: [workflow]
+
+# ─── BioMate-Cryo benchmark (per MEMORY.md highest-priority entry) ──
+biomate_cryo_status:
+  canonical: project_biomate_cryo_benchmark.md
+  trigger_terms:
+    - cryo benchmark status
+    - biomate-cryo
+    - protocol discrimination benchmark
+    - cryoensemble preprint
+  disqualified_if_present: []
+
+# ─── Regulatory LLM v6/v7 (per MEMORY.md) ──────────────────────────
+regulatory_llm_v6:
+  canonical: project_regulatory_llm_v6.md
+  trigger_terms:
+    - regulatory llm v6
+    - regulatory llm v7
+    - regulatory training
+    - sft dpo checker
+    - regulatory checker
+  disqualified_if_present: []
+
+# ─── Workflow pricing table ────────────────────────────────────────
+workflow_pricing:
+  canonical: project_workflow_pricing_table.md
+  trigger_terms:
+    - workflow pricing
+    - pricing table
+    - drug-dev pricing
+    - gpu pricing infrastructure
+    - cost per workflow
+  disqualified_if_present: []
+
+# ─── Memory benchmark + injection ─────────────────────────────────
+memory_benchmark:
+  canonical: project_session8_memory_injection.md
+  trigger_terms:
+    - memory benchmark
+    - memory injection
+    - lab episode memory
+    - episode memory block
+  disqualified_if_present: []
+
+# ─── BixBench latest status (v21) ─────────────────────────────────
+bixbench_status:
+  canonical: project_bixbench_v21.md
+  trigger_terms:
+    - bixbench status
+    - bixbench results
+    - bixbench v21
+    - bixbench score
+    - notebook benchmark
+  disqualified_if_present: []
+
+# ─── Closes A/B misses q13, q14 (sandbox/intent_retrieval_v3/data/memory_eval_set.yaml) ──
+admet_autoloop_architecture:
+  canonical: project_drug_dev_gaps.md
+  trigger_terms:
+    - admet auto-loop
+    - admet autoloop
+    - admet pipeline architecture
+    - drug-dev gaps
+    - drug discovery gaps
+  disqualified_if_present: [memory architecture, cryoem]
+
+unified_workflow_search_hybrid:
+  canonical: project_session5_benchmarking.md
+  trigger_terms:
+    - unified workflow search
+    - hybrid retrieval
+    - bge dense retrieval
+    - workflow search bge
+    - hybrid search workflow
+  disqualified_if_present: []

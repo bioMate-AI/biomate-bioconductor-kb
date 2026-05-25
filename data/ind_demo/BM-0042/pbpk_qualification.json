@@ -1,0 +1,45 @@
+{
+  "status": "pass",
+  "model": "PK-Sim 11.2 + MoBi (PBPK whole-body, human)",
+  "refSet": 18,
+  "refSource": "Edginton 2008 + OSP curated set",
+  "metrics": {
+    "cmaxWithin2": 89,
+    "aucWithin2": 83,
+    "emaThreshold": 80
+  },
+  "lead": {
+    "id": "BM-0042-001",
+    "fu": 0.019,
+    "vd": 1.6,
+    "t12": 14.2,
+    "bioavail": 71,
+    "clint_human_uL_min_mg": 12.4
+  },
+  "ospRange": "75-95% within 2-fold (EMA-accepted PBPK platforms, OSP curated)",
+  "perDrug": [
+    { "name": "midazolam",   "fold": 1.32, "pass": true },
+    { "name": "alprazolam",  "fold": 1.18, "pass": true },
+    { "name": "diazepam",    "fold": 1.61, "pass": true },
+    { "name": "triazolam",   "fold": 1.41, "pass": true },
+    { "name": "caffeine",    "fold": 1.22, "pass": true },
+    { "name": "theophylline","fold": 1.55, "pass": true },
+    { "name": "metoprolol",  "fold": 1.74, "pass": true },
+    { "name": "propranolol", "fold": 1.93, "pass": true },
+    { "name": "warfarin",    "fold": 2.41, "pass": false },
+    { "name": "diltiazem",   "fold": 1.66, "pass": true },
+    { "name": "verapamil",   "fold": 1.88, "pass": true },
+    { "name": "nifedipine",  "fold": 2.18, "pass": false },
+    { "name": "atorvastatin","fold": 1.97, "pass": true },
+    { "name": "simvastatin", "fold": 1.79, "pass": true },
+    { "name": "imatinib",    "fold": 1.44, "pass": true },
+    { "name": "erlotinib",   "fold": 1.51, "pass": true },
+    { "name": "gefitinib",   "fold": 1.39, "pass": true },
+    { "name": "osimertinib", "fold": 1.25, "pass": true }
+  ],
+  "regulatory_acceptance": ["FDA", "EMA"],
+  "model_limitations": [
+    "Hepatic CYP3A4 contribution estimated from in vitro recombinant data; clinical DDI study (with itraconazole) pending.",
+    "Pediatric scaling not included in this submission; deferred to post-IND pediatric study plan."
+  ]
+}

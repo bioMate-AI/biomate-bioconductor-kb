@@ -18,7 +18,7 @@ import os
 import sys
 
 # Cambrian-1 model directory
-MODEL_DIR = os.environ.get("CAMBRIAN_MODEL_DIR", "/home/yzhang/biomate/models/cambrian1")
+MODEL_DIR = os.environ.get("CAMBRIAN_MODEL_DIR", "/opt/biomate/models/cambrian1")
 
 def encode_image(image_path):
     """Encode image to base64."""

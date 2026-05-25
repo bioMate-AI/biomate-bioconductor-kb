@@ -87,9 +87,19 @@ _ai_assistant_instance = None
 
 
 # ── Lightweight Nextflow workflow search (NO LLM required) ──────────────────
+# Wired version applies workflow_intent priority+inject when env flags are set.
+# Falls back bit-identically to the base singleton when flags off OR when the
+# wrapper fails to import (e.g. retrievers package missing in older deploys).
 try:
     from galaxy.ai.unified_workflow_search import get_workflow_search as _get_workflow_search
     _workflow_search = _get_workflow_search()
+    try:
+        from galaxy.ai.retrievers.wired_workflow_search import WiredWorkflowSearch
+        # Reuse the singleton's data, just upgrade the .search method
+        _workflow_search.__class__ = WiredWorkflowSearch
+        logging.info("UnifiedWorkflowSearch upgraded to WiredWorkflowSearch")
+    except Exception as _we:
+        logging.warning(f"WiredWorkflowSearch upgrade skipped: {_we}")
     WORKFLOW_SEARCH_AVAILABLE = True
 except Exception as _e:
     logging.warning(f"UnifiedWorkflowSearch not available: {_e}")
@@ -798,6 +808,10 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
             backend_root / "biomni_workflows" / nf_filename,
             backend_root / "biomni_workflows" / "nextflow_nfcore" / nf_filename,
             backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" / nf_filename,
+            # biomate-ai-tools workflows (tier 0 demos: bispecific_format_triage etc.)
+            # live alongside biomni_workflows but under a different root. Without this
+            # candidate the panel renders no required/optional/default metadata for them.
+            backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools" / nf_filename,
         ]
         # Also try domain aliases (pharmacology ↔ drug_discovery) for each candidate
         _alias_map = {"drug_discovery": "pharmacology", "pharmacology": "drug_discovery"}
@@ -895,12 +909,53 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
                     # Strip parenthetical suffixes like "(skips genome alignment)"
                     allowed_values = [o.split("(")[0].strip() for o in raw_opts]
 
+            # Recognise structured annotations in trailing comments:
+            #   // type: number | min: 0.25 | max: 15        → range-bounded numeric input
+            #   // type: string | enum: a,b,c                → enum dropdown
+            #   // type: file                                → file picker
+            # Each token is "key: value", separated by `|`. Unknown tokens are ignored,
+            # so workflow authors can mix prose with annotations.
+            ann_min: Any = None
+            ann_max: Any = None
+            ann_type_override: Optional[str] = None
+            ann_enum: List[str] = []
+            if comment and "|" in comment:
+                for tok in comment.split("|"):
+                    tok = tok.strip()
+                    if ":" not in tok:
+                        continue
+                    k, v = tok.split(":", 1)
+                    k = k.strip().lower()
+                    v = v.strip()
+                    if k == "min":
+                        try: ann_min = float(v) if "." in v else int(v)
+                        except ValueError: pass
+                    elif k == "max":
+                        try: ann_max = float(v) if "." in v else int(v)
+                        except ValueError: pass
+                    elif k == "type":
+                        if v.lower() in ("int", "integer"): ann_type_override = "integer"
+                        elif v.lower() in ("float", "number", "numeric"): ann_type_override = "float"
+                        elif v.lower() in ("string", "text"): ann_type_override = "string"
+                        elif v.lower() in ("bool", "boolean"): ann_type_override = "boolean"
+                        elif v.lower() == "file": ann_type_override = "file"
+                    elif k == "enum":
+                        ann_enum = [s.strip() for s in v.split(",") if s.strip()]
+            if ann_type_override:
+                ptype = ann_type_override
+            if ann_enum and not allowed_values:
+                allowed_values = ann_enum
+
             parameters[name] = val
             meta: Dict[str, Any] = {"type": ptype, "label": label, "level": level}
             if allowed_values:
                 meta["allowed_values"] = allowed_values
             if current_group:
                 meta["group"] = current_group
+            if ann_min is not None:
+                meta["minimum"] = ann_min
+            if ann_max is not None:
+                meta["maximum"] = ann_max
             parameter_metadata[name] = meta
 
     except Exception as exc:
@@ -1974,9 +2029,17 @@ def search_nextflow_workflow(
                 "label": _pmeta.get("label", _pname.replace("_", " ").title()),
                 "description": _pmeta.get("label", _pname.replace("_", " ").title()),
                 "default": _wf_parameters.get(_pname),
+                "type": _pmeta.get("type", "string"),
             }
             if _pmeta.get("group"):
                 _entry["group"] = _pmeta["group"]
+            # Enum / range hints — surfaced to the viewer's typed inputs.
+            if _pmeta.get("allowed_values"):
+                _entry["options"] = _pmeta["allowed_values"]
+            if _pmeta.get("minimum") is not None:
+                _entry["minimum"] = _pmeta["minimum"]
+            if _pmeta.get("maximum") is not None:
+                _entry["maximum"] = _pmeta["maximum"]
             if _pmeta.get("level") == "required":
                 _req_params.append(_entry)
             else:

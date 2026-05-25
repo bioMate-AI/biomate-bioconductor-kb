@@ -1,0 +1,65 @@
+# Held-out eval for chat_session adapter — 30 queries.
+#
+# Tests the adapter on queries the YAML intents weren't explicitly designed
+# for. For a DECISION adapter, "held-out safety" means:
+#   1. Neutral biological/scientific queries should NOT fire NEW or RESUME
+#      based on surface tokens (no false fires).
+#   2. Decisions should be driven by SESSION METADATA when no intent fires.
+#   3. Disqualifiers should hold even when a trigger substring appears.
+#
+# Each case includes:
+#   query
+#   session_meta: {id, status, age_minutes} or null
+#   expected_decision: one of "resume" | "new" | "uncertain"
+#   why: rationale for the expected decision
+
+# ─── Group 1: neutral scientific queries + recent terminal session ─────
+# Expected: "resume" via default rule (not via intent firing)
+- {id: h01, query: "explain how alphafold works", session_meta: {id: s1, status: completed, age_minutes: 5}, expected_decision: resume, why: neutral query, recent terminal session, default rule}
+- {id: h02, query: "what's the half-life of imatinib", session_meta: {id: s2, status: completed, age_minutes: 10}, expected_decision: resume, why: domain question, recent terminal session}
+- {id: h03, query: "calculate the docking score for compound X", session_meta: {id: s3, status: failed, age_minutes: 15}, expected_decision: resume, why: neutral request, recent failed session ok to resume}
+- {id: h04, query: "I need help with my GWAS analysis", session_meta: {id: s4, status: completed, age_minutes: 20}, expected_decision: resume, why: contains "my" but not "my last" or "my previous" - should not over-trigger}
+
+# ─── Group 2: neutral queries with NO session or stale session ────────
+# Expected: "uncertain" (no default rule fires, no intent fires)
+- {id: h05, query: "explain ribosome biogenesis", session_meta: null, expected_decision: uncertain, why: no session, no intent}
+- {id: h06, query: "what's the difference between kinase and phosphatase", session_meta: {id: s5, status: completed, age_minutes: 120}, expected_decision: uncertain, why: stale session (>30min), neutral query}
+- {id: h07, query: "design a primer for BRCA1", session_meta: {id: s6, status: running, age_minutes: 5}, expected_decision: uncertain, why: running session, no explicit resume intent - require user signal}
+- {id: h08, query: "show me a protocol for western blot", session_meta: null, expected_decision: uncertain, why: show me is part of show me the results trigger but multi-word so should not fire}
+
+# ─── Group 3: queries with possible trigger-substring traps ───────────
+# Each is designed to expose false positive risks
+- {id: h09, query: "the cells continue to divide rapidly", session_meta: {id: s7, status: completed, age_minutes: 100}, expected_decision: uncertain, why: continue is part of biological description, not user intent; stale session}
+- {id: h10, query: "this is a new patient sample, not from before", session_meta: {id: s8, status: completed, age_minutes: 10}, expected_decision: resume, why: multi-word new triggers do not fire on new patient sample; default rule applies (recent terminal session)}
+- {id: h11, query: "reset the alignment parameters and rerun", session_meta: {id: s9, status: completed, age_minutes: 8}, expected_decision: new, why: reset is a NEW trigger and is being used in user-intent sense}
+- {id: h12, query: "clear up this confusion about FPKM units", session_meta: {id: s10, status: completed, age_minutes: 5}, expected_decision: resume, why: clear up is not a trigger; no intent fires; default rule (recent terminal) applies}
+- {id: h13, query: "the gene shows fresh expression signal", session_meta: {id: s11, status: completed, age_minutes: 5}, expected_decision: resume, why: fresh alone is not a trigger (start fresh is); falls through to default rule}
+
+# ─── Group 4: explicit pivot / new but with stale session ─────────────
+- {id: h14, query: "let's switch to a different problem entirely", session_meta: {id: s12, status: completed, age_minutes: 200}, expected_decision: new, why: explicit new-intent trigger even with stale session}
+- {id: h15, query: "start a new project on TP53 mutations", session_meta: null, expected_decision: new, why: clear new-intent, no session to consider}
+- {id: h16, query: "moving on, what about RNA-seq?", session_meta: {id: s13, status: completed, age_minutes: 5}, expected_decision: new, why: topic_pivot trigger fires, no disqualifier present}
+
+# ─── Group 5: explicit resume but with no/stale session ────────────────
+- {id: h17, query: "what's the status of my run", session_meta: null, expected_decision: uncertain, why: explicit resume intent but no session metadata; library should not fabricate}
+- {id: h18, query: "pick up where we left off", session_meta: {id: s14, status: completed, age_minutes: 200}, expected_decision: resume, why: explicit resume intent overrides stale-session default for uncertain}
+
+# ─── Group 6: mixed signals — both resume + new mentioned ─────────────
+- {id: h19, query: "let me resume but also reset some parameters", session_meta: {id: s15, status: completed, age_minutes: 5}, expected_decision: new, why: reset is NEW trigger; NEW always wins per design}
+- {id: h20, query: "continue working on this but with a fresh data file", session_meta: {id: s16, status: completed, age_minutes: 5}, expected_decision: resume, why: fresh data file is descriptive use of fresh, not start fresh; continue_previous fires; session is recent}
+
+# ─── Group 7: biological-term collision with triggers ─────────────────
+- {id: h21, query: "what's the kinase status of EGFR mutation L858R", session_meta: {id: s17, status: completed, age_minutes: 5}, expected_decision: resume, why: status alone is not a trigger (whats the status is the multi-word form); falls through to default}
+- {id: h22, query: "tell me about TCR repertoire in tumor samples", session_meta: {id: s18, status: completed, age_minutes: 8}, expected_decision: resume, why: TCR is biological abbreviation, not an intent trigger; default rule}
+- {id: h23, query: "compare my results to the literature", session_meta: {id: s19, status: completed, age_minutes: 8}, expected_decision: resume, why: my results is not a trigger (my last results / my previous would be); falls through to default}
+
+# ─── Group 8: very short queries ──────────────────────────────────────
+- {id: h24, query: "hi", session_meta: {id: s20, status: completed, age_minutes: 5}, expected_decision: resume, why: empty intent, recent terminal session, default rule}
+- {id: h25, query: "?", session_meta: null, expected_decision: uncertain, why: no intent, no session}
+- {id: h26, query: "thanks", session_meta: null, expected_decision: uncertain, why: nothing actionable, no session}
+
+# ─── Group 9: technical/system queries that might collide ─────────────
+- {id: h27, query: "show me the log file of yesterday's run", session_meta: {id: s21, status: completed, age_minutes: 800}, expected_decision: uncertain, why: yesterdays run is reference but stale session; library shouldnt fabricate recency}
+- {id: h28, query: "the report from earlier today is missing", session_meta: {id: s22, status: completed, age_minutes: 10}, expected_decision: resume, why: the report from is a resume trigger; recent terminal session}
+- {id: h29, query: "where is the rnaseq i kicked off?", session_meta: {id: s23, status: running, age_minutes: 15}, expected_decision: resume, why: the rnaseq i kicked off is a resume trigger; running session ok to resume per explicit intent}
+- {id: h30, query: "rerun the entire pipeline from scratch", session_meta: {id: s24, status: completed, age_minutes: 5}, expected_decision: resume, why: rerun and from scratch are not triggers; no intent fires; default rule (recent terminal) applies}

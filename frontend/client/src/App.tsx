@@ -43,6 +43,8 @@ import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
+import DebugOutputs from "@/pages/DebugOutputs";
+import DebugViewerChain from "@/pages/DebugViewerChain";
 import CapabilitiesPage from "@/pages/capabilities";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -287,6 +289,10 @@ function Router({
       {/* Auth pages */}
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+
+      {/* Debug-only harness — see frontend/client/src/pages/DebugOutputs.tsx */}
+      <Route path="/debug/outputs/:runId" component={DebugOutputs} />
+      <Route path="/debug/viewer/:runId" component={DebugViewerChain} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />

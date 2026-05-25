@@ -57,6 +57,19 @@ async function apiCall(
 test('Demo 6 — CRO Compliance: Campaign → Validation → Audit → IND → eSig', async ({ page }) => {
   test.setTimeout(600_000); // 10-min ceiling
 
+  // ─── Opening narration — explain the demo BEFORE jumping into UI ────────────
+  // Lead with a plain-English overview of what the demo will accomplish so
+  // viewers have context before any UI activity (per user feedback that the
+  // IND/CRO videos were jumping straight into UI specifics).
+  await page.goto(BASE_URL);
+  await page.waitForLoadState('domcontentloaded');
+  await tip(
+    page,
+    'Watch BioMate run an end-to-end CRO compliance workflow: create a regulatory campaign, validate ADMET + PBPK results, capture an audit trail, generate the IND submission package, and apply a 21 CFR Part 11 electronic signature.',
+    7_500
+  );
+  await pause(page, 7_500);
+
   // ─── 0. Login then go directly to CRO page ───────────────────────────────
   // setupDemoUser authenticates in-browser (no chat platform detour needed).
   // We navigate to /drug-discovery-cro immediately after auth so the entire

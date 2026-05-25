@@ -51,6 +51,11 @@ What users should see — matches `data-testid` hooks in `frontend/client/src/co
 
 ---
 
+## Full inhibitor pipeline (steps 2–4)
+
+Chained scenario and two-agent flow: `research/anti-virus/docs/BIOMATE_UI_SCENARIO_ANDV_INHIBITOR_PIPELINE.md`  
+Stepwise E2E suite: `frontend/e2e/andv-inhibitor-pipeline-stepwise.e2e.ts`
+
 ## Automated UI test (Playwright)
 
 Implementation: `frontend/e2e/andv-pocket-druggability-ui.e2e.ts`

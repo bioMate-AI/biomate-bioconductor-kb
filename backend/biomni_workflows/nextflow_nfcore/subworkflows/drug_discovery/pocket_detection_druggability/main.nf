@@ -60,7 +60,7 @@ def log_workflow_header() {
 process FPOCKET_POCKET_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/01_fpocket", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/01_fpocket" }, mode: params.publish_dir_mode
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
@@ -252,7 +252,7 @@ PYEOF
 process DRUGGABILITY_QC_GATE {
     tag "${meta.id}"
     label 'process_single'
-    publishDir "${params.outdir}/${meta.id}/02_qc_gate", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}/02_qc_gate" }, mode: params.publish_dir_mode
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86

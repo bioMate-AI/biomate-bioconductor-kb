@@ -46,7 +46,7 @@ params.n_beats           = '50'        // AP beats to simulate (steady-state)
 process CIPA_CARDIAC_SAFETY_ODE {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
@@ -251,7 +251,7 @@ margins = {
 # 5-phase AP for output visualization: phase 0 (upstroke), 1 (early repol),
 # 2 (plateau), 3 (rapid repol), 4 (resting)
 def generate_ap_trace(APD90, bcl, n_points=200):
-    """Simplified piecewise AP shape for visualization."""
+    '''Simplified piecewise AP shape for visualization.'''
     t = []
     v = []
     # Phase boundaries (ms)

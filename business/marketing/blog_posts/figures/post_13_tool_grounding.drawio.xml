@@ -1,0 +1,50 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="tool-grounding" id="tg1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Tool hallucination → 0% via registry-bounded selection" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="naive" value="&lt;b&gt;Naive agent&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;LLM generates tool name as free text&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;color:#b91c1c;font-size:11px&quot;&gt;✗ Invents nf-core/rnaseq_v2_special_edition&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#b91c1c;fontColor=#7f1d1d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="biomate" value="&lt;b style=&quot;color:#f1f5f9&quot;&gt;BioMate agent&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#cbd5e1&quot;&gt;Selects from retrieved registry candidates only&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#f1f5f9;strokeWidth=3;arcSize=15;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="100" width="700" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="reg" value="&lt;b&gt;Workflow Registry&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;galaxy_ai_tools.db • 2,455 entries • 34 domains • versioned&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="230" width="700" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" value="&lt;b&gt;Layer 1 — Registry is source of truth&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Agent picks from retrieved candidates only • no free-text tool generation&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="320" width="700" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="&lt;b&gt;Layer 2 — Disambiguation gate&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Fires only when ≥2 candidates ≥6.0 AND gap &lt; 3.0 → user picks via card&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="400" width="700" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="&lt;b&gt;Layer 3 — Citation discipline&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Every claim followed by source token • unsupported claims marked &amp;ldquo;not verified&amp;rdquo;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7e22ce;fontColor=#581c87;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="480" width="700" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="&lt;b&gt;Layer 4 — Independent hallucination judge&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Separate LLM pass with task-specific rules • flags + reformulates&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cffafe;strokeColor=#0e7490;fontColor=#164e63;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="560" width="700" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="result" value="&lt;b&gt;Grounded routing decision&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Workflow ID • version • params • citations&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="500" y="660" width="700" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bench" value="✓ 0% hallucination on screen_gene + gwas_causal (HallucinationDetector judge)&lt;br/&gt;✓ Routing v5 = 84% exact, IR Hit@5 = 0.967&lt;br/&gt;✓ Variant_calling: 0.567 → 0.824 via 4 structural retrieval fixes" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#15803d;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="380" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cta" value="biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="730" width="380" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

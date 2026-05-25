@@ -4,15 +4,15 @@
 Chai-1 is a multi-modal foundation model for molecular structure prediction.
 Requires: 40-80 GB GPU VRAM (GB10 with 120GB unified memory is sufficient)
 
-Local repo: /home/yzhang/biomate/tools_repos/chai-lab
+Set CHAI_DIR env var to the chai-lab repo path on the host.
 """
 import argparse
 import os
 import subprocess
 import sys
 
-# Chai-lab installation directory
-CHAI_DIR = os.environ.get("CHAI_DIR", "/home/yzhang/biomate/tools_repos/chai-lab")
+# Chai-lab installation directory — must be set per environment, no dev-path default.
+CHAI_DIR = os.environ.get("CHAI_DIR", "/opt/biomate/tools_repos/chai-lab")
 
 def run_prediction(args):
     """Run Chai-1 structure prediction locally."""

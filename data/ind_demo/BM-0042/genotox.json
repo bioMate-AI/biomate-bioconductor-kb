@@ -1,0 +1,6 @@
+{
+  "ames_5_strain": { "result": "negative", "strains": ["TA98","TA100","TA1535","TA1537","TA102"], "with_and_without_s9": true, "compliant_with": "OECD 471" },
+  "in_vitro_micronucleus_tk6": { "result": "negative", "doses_uM": [10, 30, 100], "compliant_with": "OECD 487" },
+  "in_vivo_comet_rat": { "result": "negative", "doses_mg_kg": [50, 150, 300], "tissues": ["liver","duodenum"], "compliant_with": "OECD 489" },
+  "overall_conclusion": "BM-0042 is non-genotoxic across the standard ICH S2(R1) battery."
+}

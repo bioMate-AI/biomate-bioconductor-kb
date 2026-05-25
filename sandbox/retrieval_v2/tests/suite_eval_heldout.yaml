@@ -1,0 +1,44 @@
+# Held-out suite eval — 30 queries about tool families NOT covered by
+# tool_family_aliases.yaml or tool_family_canonical.yaml.
+#
+# Purpose: validate that family_dedup is SAFE on uncurated queries.
+# When the YAML has no entry for a family, prioritize_query_family() should:
+#   1. Return input unchanged (no reranking)
+#   2. NOT introduce false positives (no wrong promotions)
+#
+# Treatment == baseline on every case here = library passes the held-out
+# safety check.
+#
+# Coverage: high-traffic families from galaxy_ai_tools.db sandbox cluster
+# analysis that have ≥ 5 wrappers but no canonical map entry.
+
+- {id: h01, query: "Run QIIME taxonomic analysis on 16S samples",        family_keyword: qiime}
+- {id: h02, query: "EMBOSS gembassy sequence analysis utilities",         family_keyword: gembassy}
+- {id: h03, query: "BALL computational chemistry molecular modeling",     family_keyword: ball}
+- {id: h04, query: "Java genomics toolkit for genome interval ops",       family_keyword: java_genomics_toolkit}
+- {id: h05, query: "MET4J metabolic network analysis pipeline",           family_keyword: met4j}
+- {id: h06, query: "S-Mart metabolomics toolkit conversion tools",        family_keyword: s_mart}
+- {id: h07, query: "genome diversity analysis admixture pipeline",        family_keyword: genome_diversity}
+- {id: h08, query: "FROGS metagenomics amplicon clustering",              family_keyword: frogs}
+- {id: h09, query: "Sharplab interval analysis genometric correlation",   family_keyword: sharplab_interval_analysis}
+- {id: h10, query: "molecule datatypes CML to SDF conversion",            family_keyword: molecule_datatypes}
+- {id: h11, query: "QIIME1.3 align_seqs alpha diversity",                 family_keyword: qiime1_3}
+- {id: h12, query: "SAPP systems biology EMBL to RDF",                    family_keyword: sapp}
+- {id: h13, query: "FROGS 3.1 affiliation OTU",                           family_keyword: frogs_3_1}
+- {id: h14, query: "pyCRAC pyBarcodeFilter NGS analysis",                 family_keyword: pycrac}
+- {id: h15, query: "GAP glycan tools KEGG cross-reference",               family_keyword: gap_all_glycan_tools}
+- {id: h16, query: "Sentieon BWA index variant calling",                  family_keyword: sentieon}
+- {id: h17, query: "SECIM metabolomics compound identification",          family_keyword: secimtools}
+- {id: h18, query: "FROGS 2.0 abundance normalisation",                   family_keyword: frogs_2_0}
+- {id: h19, query: "BayesASE allele-specific expression Bayesian",        family_keyword: bayesase}
+- {id: h20, query: "text processing concatenate datasets advanced cut",   family_keyword: text_processing}
+- {id: h21, query: "scaffremodler scaffold reorganization assembly",      family_keyword: scaffremodler}
+- {id: h22, query: "biobb computational chemistry molecular dynamics",    family_keyword: biobb}
+- {id: h23, query: "re utils fasta manipulation regex",                   family_keyword: re_utils}
+- {id: h24, query: "GATK tools variant annotator legacy",                 family_keyword: gatktools}
+- {id: h25, query: "OGHMA GWAS analysis",                                  family_keyword: oghma}
+- {id: h26, query: "filter tools graphics processing",                    family_keyword: filter_tools}
+- {id: h27, query: "RTG investigator assembly inspection",                family_keyword: rtg_investigator}
+- {id: h28, query: "ontology toolkit ontology manipulation",              family_keyword: onto-toolkit}
+- {id: h29, query: "PRIMS metabolomics 2 normalization",                  family_keyword: prims_metabolomics2}
+- {id: h30, query: "Parabricks GPU-accelerated BAM bqsr",                 family_keyword: parabricks}

@@ -9,9 +9,9 @@ echo "Biomate AI Tools - Environment Setup"
 echo "=============================================="
 
 # Base directories
-export BIOMATE_TOOLS_DIR="/home/yzhang/biomate/backend/tools/biomate_ai_tools"
-export BIOMATE_REPOS_DIR="/home/yzhang/biomate/tools_repos"
-export BIOMATE_MODELS_DIR="/home/yzhang/biomate/models"
+export BIOMATE_TOOLS_DIR="/opt/biomate/backend/tools/biomate_ai_tools"
+export BIOMATE_REPOS_DIR="/opt/biomate/tools_repos"
+export BIOMATE_MODELS_DIR="/opt/biomate/models"
 
 # Tool-specific directories
 export SYNCRAFT_DIR="${BIOMATE_REPOS_DIR}/syncraft"

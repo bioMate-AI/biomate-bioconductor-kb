@@ -280,7 +280,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Extract scientific context for all Galaxy tools')
-    parser.add_argument('--db', default='/home/yzhang/biomate/backend/database/galaxy_ai_tools.db')
+    parser.add_argument('--db', default='/opt/biomate/backend/database/galaxy_ai_tools.db')
     parser.add_argument('--batch-size', type=int, default=100, help='Process in batches')
     parser.add_argument('--start-offset', type=int, default=0, help='Resume from offset')
     parser.add_argument('--model', default='claude-haiku-4-5')  # Upgraded to Haiku 4.5

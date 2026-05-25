@@ -6,7 +6,7 @@ Run in dry-run mode first: python workflow_desc_audit.py --dry-run
 import sqlite3, sys, textwrap, argparse
 from pathlib import Path
 
-DB_PATH = Path("/home/yzhang/biomate/backend/database/galaxy_ai_tools.db")
+DB_PATH = Path("/opt/biomate/backend/database/galaxy_ai_tools.db")
 
 # (name_pattern, new_description_suffix_or_full, mode)
 # mode = "prepend" | "append" | "replace"

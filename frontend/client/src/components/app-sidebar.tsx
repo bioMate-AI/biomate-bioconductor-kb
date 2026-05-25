@@ -350,26 +350,55 @@ export function AppSidebar({
       padding: '14px 10px',
       gap: 0,
     }}>
-      {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px 10px', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: 7,
-            background: 'var(--bm-text, hsl(var(--foreground)))',
-            color: 'var(--bm-bg-elev, white)',
-            display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--bm-font-mono, monospace)',
-            fontSize: 13, fontWeight: 700, letterSpacing: '-0.03em', flexShrink: 0,
-          }}>B</div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14.5, letterSpacing: '-0.01em', lineHeight: 1.2, color: 'var(--bm-text)' }}>biomate</div>
-            <div style={{ fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))', marginTop: 1 }}>workflow console</div>
-          </div>
-        </div>
+      {/* Brand — full-width logo header (matches Research Agent UI design).
+          Negates the sidebar's 14/10px padding so the image touches both
+          column edges. Beta chip overlays the top-right; collapse button overlays
+          the top-right corner. */}
+      <div
+        style={{
+          position: 'relative',
+          display: 'block',
+          padding: 0,
+          margin: '-14px -10px 12px',
+          borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
+          background: 'var(--bm-bg-elev, white)',
+          width: 'auto',
+        }}
+      >
+        <img
+          src="/biomate-logo.png"
+          alt="BioMate"
+          style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
+        />
+        <span
+          title="Early-access beta — features may change"
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 30,
+            fontSize: 9.5,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            padding: '1px 5px',
+            borderRadius: 3,
+            background: 'oklch(0.78 0.15 65)',
+            color: '#fff',
+            lineHeight: 1.3,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+          }}
+        >
+          BETA
+        </span>
         <button
           onClick={onToggleSidebar}
           data-testid="button-sidebar-toggle"
-          style={{ background: 'transparent', border: 'none', padding: 4, borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)' }}
+          style={{
+            position: 'absolute', top: 4, right: 4,
+            background: 'rgba(255,255,255,0.85)', border: 'none', padding: 4,
+            borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)',
+            backdropFilter: 'blur(4px)',
+          }}
           title="Collapse sidebar"
         >
           <PanelLeft className="h-4 w-4" />
@@ -382,24 +411,32 @@ export function AppSidebar({
         <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>New Chat</span>
         </button>
+        {/* Beta: hide nav items whose pages aren't implemented yet. Re-enable
+            (uncomment) once each route lands a real implementation.
+            Currently disabled: Workflows, Runs, Capabilities, Research notes.
+            Kept visible: New Chat, CRO Library, IND Report.
+
         <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowStarredDialog(true)}>
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>
         </button>
         <button className="side-link" data-testid="button-runs-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/dashboard')}>
           <Activity className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Runs</span>
         </button>
+        */}
         <button className="side-link" data-testid="button-cro-compliance" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/drug-discovery-cro')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>CRO Library</span>
         </button>
         <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>IND Report</span>
         </button>
+        {/*
         <button className="side-link" data-testid="button-capabilities" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/capabilities')}>
           <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Capabilities</span>
         </button>
         <button className="side-link" data-testid="button-blog" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/blog')}>
           <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Research notes</span>
         </button>
+        */}
       </div>
 
       {/* Chat history — scrollable, takes remaining space */}
@@ -468,7 +505,10 @@ export function AppSidebar({
           </div>
         )}
 
-        {/* Quick actions (compact) */}
+        {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,
+            Billing, Settings dialogs aren't wired up to backend yet.
+            Re-enable once each action lands a real implementation.
+
         <div style={{ marginTop: 16, borderTop: '1px solid var(--bm-border)', paddingTop: 10 }}>
           <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Actions</div>
           <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowStarredDialog(true)} data-testid="button-starred-workflows">
@@ -484,6 +524,7 @@ export function AppSidebar({
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Settings</span>
           </button>
         </div>
+        */}
       </div>
 
       {/* Billing summary */}

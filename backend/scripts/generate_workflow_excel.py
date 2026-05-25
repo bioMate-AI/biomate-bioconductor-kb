@@ -409,9 +409,9 @@ def create_excel(output_path, db_path):
 
 
 if __name__ == "__main__":
-    db_path = "/home/yzhang/biomate/backend/galaxy_ai_tools.db"
+    db_path = "/opt/biomate/backend/galaxy_ai_tools.db"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    output_path = f"/home/yzhang/biomate/backend/{timestamp}_COMPREHENSIVE_WORKFLOW_INVENTORY.xlsx"
+    output_path = f"/opt/biomate/backend/{timestamp}_COMPREHENSIVE_WORKFLOW_INVENTORY.xlsx"
 
     total = create_excel(output_path, db_path)
     print(f"Total entries: {total}")

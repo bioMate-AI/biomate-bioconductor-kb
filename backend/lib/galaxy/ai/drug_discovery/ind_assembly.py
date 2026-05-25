@@ -158,19 +158,98 @@ def _load_local_llm() -> bool:
         return False
 
 
+def _resolve_adapter_name(org_id: str | None = None) -> str:
+    """
+    Return the vLLM `--lora-modules` key for the active adapter. Same
+    resolution order as _resolve_adapter_path but returns the model name
+    string vLLM expects, not a filesystem path.
+    """
+    if "REGULATORY_LLM_ADAPTER_NAME" in os.environ:
+        return os.environ["REGULATORY_LLM_ADAPTER_NAME"]
+    if org_id:
+        safe_org = "".join(c for c in org_id if c.isalnum() or c in "-_")[:32]
+        if safe_org:
+            try:
+                from .feedback_auth import is_org_entitled_to_adapter
+                if is_org_entitled_to_adapter(safe_org):
+                    return _resolve_adapter_path(org_id=safe_org).parent.name
+            except Exception:
+                pass
+    return _resolve_adapter_path(org_id=None).parent.name
+
+
+def _call_vllm_regulatory_llm(
+    system: str, user_prompt: str,
+    max_new_tokens: int = 512, temperature: float = 0.3,
+    org_id: str | None = None,
+) -> str:
+    """
+    Call vLLM via its OpenAI-compatible HTTP endpoint. Active when
+    VLLM_BASE_URL env var is set. See
+    docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md.
+    """
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    base_url = os.environ.get("VLLM_BASE_URL", "").rstrip("/")
+    if not base_url:
+        return ""
+
+    adapter_name = _resolve_adapter_name(org_id=org_id)
+    payload = {
+        "model": adapter_name,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": f"/no_think\n{user_prompt}"},
+        ],
+        "max_tokens": max_new_tokens,
+        "temperature": temperature,
+        "top_p": 0.9,
+        "chat_template_kwargs": {"enable_thinking": False},
+        "repetition_penalty": 1.1,
+    }
+    req = urllib.request.Request(
+        f"{base_url}/v1/chat/completions",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {os.environ.get('VLLM_API_KEY', 'EMPTY')}",
+        },
+        method="POST",
+    )
+    timeout_s = int(os.environ.get("VLLM_TIMEOUT_S", "60"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+            body = _json.loads(resp.read().decode("utf-8"))
+            return body["choices"][0]["message"]["content"].strip()
+    except Exception as exc:
+        log.warning("[vllm] %s call failed: %s", adapter_name, exc)
+        return ""
+
+
 def _call_local_regulatory_llm(
     section_type: str,
     system: str,
     user_prompt: str,
     max_new_tokens: int = 512,
     temperature: float = 0.3,
+    org_id: str | None = None,
 ) -> str:
     """
     Call the local Qwen3-8B LoRA adapter for regulatory narrative generation.
     Returns empty string if unavailable (caller falls back to Gemini).
 
     Qwen3 uses /no_think mode: direct prose without chain-of-thought.
+
+    Backend selection: vLLM HTTP server when VLLM_BASE_URL is set
+    (Phase 1+ deployment per docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md);
+    otherwise the Phase-0 direct HF transformers path below.
     """
+    if os.environ.get("VLLM_BASE_URL"):
+        return _call_vllm_regulatory_llm(
+            system, user_prompt, max_new_tokens, temperature, org_id=org_id,
+        )
     if not _load_local_llm():
         return ""
     try:

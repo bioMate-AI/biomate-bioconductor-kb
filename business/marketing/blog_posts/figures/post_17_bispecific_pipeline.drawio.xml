@@ -1,0 +1,48 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="bispecific-pipeline" id="bp1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Bispecific Format Triage — PD-1 × VEGF → CrossMab (Ivonescimab)" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="&lt;b&gt;User query&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;&quot;Design a PD-1 × VEGF bispecific in CrossMab format for NSCLC&quot;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#475569;fontColor=#0f172a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="800" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phaseA" value="&lt;b&gt;Phase A — Mechanism Inference&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;50-pair precedent cache → Ivonescimab (CrossMab, cis-engagement) found&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="180" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phaseB" value="&lt;b&gt;Phase B — Format Scoring Matrix&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;5 formats × 6 axes • BiTE / CrossMab / KiH / DVD-Ig / Nanobody&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="270" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phaseC" value="&lt;b&gt;Phase C — Composite Ranking&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;cis weights: {cis_eng:4, half_life:3, asym:2, mfg:2, ada:1, trans:0} → CrossMab #1 (100, 67%)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="360" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phaseD" value="&lt;b&gt;Phase D — Report Synthesis&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;bispecific_format_report.json + format_ranking.csv + Ivonescimab precedent citation&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce7f3;strokeColor=#9d174d;fontColor=#831843;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="450" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="result" value="&lt;b&gt;Recommendation: CrossMab&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Matches Ivonescimab (Akeso/Summit, HARMONi-2 Phase III NSCLC Oct 2024)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#047857;fontColor=#064e3b;strokeWidth=3;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="200" y="560" width="800" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="benchmark" value="&lt;b&gt;Validation: 5/5 known bispecifics recovered&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;PD-1×VEGF→CrossMab • CD3×CD19→BiTE • CD3×BCMA→KiH • HER2×HER3→CrossMab • EGFR×MET→KiH&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#c2410c;fontColor=#7c2d12;fontStyle=1;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="650" width="1000" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;strokeColor=#64748b;strokeWidth=2;" edge="1" parent="1" source="user" target="phaseA"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;strokeColor=#64748b;strokeWidth=2;" edge="1" parent="1" source="phaseA" target="phaseB"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;strokeColor=#64748b;strokeWidth=2;" edge="1" parent="1" source="phaseB" target="phaseC"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;strokeColor=#64748b;strokeWidth=2;" edge="1" parent="1" source="phaseC" target="phaseD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;rounded=0;strokeColor=#047857;strokeWidth=3;" edge="1" parent="1" source="phaseD" target="result"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

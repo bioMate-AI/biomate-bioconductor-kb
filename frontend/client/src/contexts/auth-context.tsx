@@ -33,7 +33,7 @@ function mapResponseToUser(data: any): User {
     email: data.user.email,
     name: data.user.fullName,
     role: data.subscription?.subscriptionTier === 'enterprise' ? 'enterprise' :
-          data.subscription?.subscriptionTier === 'premium' ? 'pro' :
+          data.subscription?.subscriptionTier === 'professional' ? 'pro' :
           data.subscription?.subscriptionTier === 'team' ? 'team' : 'free',
     subscription: data.subscription ? {
       plan: data.subscription.subscriptionTier || 'Free',
@@ -95,7 +95,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!response.ok) {
       if (data.error === 'TRIAL_EXPIRED') {
-        throw new Error('Your trial has expired. Please subscribe to continue.')
+        // Direct the user to the pricing page so they have a way to subscribe.
+        // Auto-navigate after a moment in case the toast/error message gets dismissed.
+        setTimeout(() => {
+          if (window.location.pathname !== '/pricing') {
+            window.location.href = '/pricing?from=trial-expired'
+          }
+        }, 1500)
+        throw new Error('Your trial has expired. Redirecting to pricing… or click here: /pricing')
       }
       throw new Error(data.error || 'Login failed')
     }

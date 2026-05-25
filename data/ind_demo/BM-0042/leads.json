@@ -1,0 +1,17 @@
+{
+  "method": "BioMate auto-loop: ADMET filters → potency × selectivity ranking → AD-aware shortlist",
+  "evaluated": 12,
+  "rounds": 2,
+  "inDomain": 8,
+  "outOfDomain": 1,
+  "ranking": [
+    { "rank": 1, "id": "BM-0042-001", "score": 0.91, "herg": "clear",  "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+    { "rank": 2, "id": "BM-0042-002", "score": 0.87, "herg": "clear",  "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+    { "rank": 3, "id": "BM-0042-011", "score": 0.82, "herg": "clear",  "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" },
+    { "rank": 4, "id": "BM-0042-003", "score": 0.79, "herg": "clear",  "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" },
+    { "rank": 5, "id": "BM-0042-004", "score": 0.75, "herg": "clear",  "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" },
+    { "rank": 6, "id": "BM-0042-005", "score": 0.61, "herg": "border", "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+    { "rank": 7, "id": "BM-0042-006", "score": 0.54, "herg": "border", "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+    { "rank": 8, "id": "BM-0042-012", "score": 0.41, "herg": "clear",  "dili": "clear", "ames": "clear", "potency": 2, "ad": "out_of_domain" }
+  ]
+}

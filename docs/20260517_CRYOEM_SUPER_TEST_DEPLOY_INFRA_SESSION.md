@@ -1,8 +1,8 @@
-# CryoEM Super-Test + Deploy Infra Session — 2026-05-15 → 2026-05-17
+# CryoEM Super-Test + Deploy Infra Session — 2026-05-15 → 2026-05-18
 
 ## TL;DR
 
-Started at **69/73 (94.5%)** on the CryoEM super-merged E2E. Ended at **77/78 (98.7%)** plus a v12 fix in flight that should land 78/78.
+Started at **69/73 (94.5%)** on the CryoEM super-merged E2E. After 14 GPU runs + 17 commits, reached **83/84 (98.8%)** with the final assertion's root cause diagnosed (MRC header parser reading wrong offsets) and fixed via direct byte inspection of the live MRC — **no further GPU run needed for diagnosis**. Predicted final score on next pipeline execution: **84/84**.
 
 The session bigger than the test score: a chain of deploy-pipeline bugs was masking real product fixes. Resolving them required splitting the frontend Docker image, refactoring `run_code` to use ephemeral sandboxes, fixing a Galaxy crash-loop, and removing a stale volume mount that had been silently overriding fresh server bundles.
 
@@ -13,6 +13,11 @@ The session bigger than the test score: a chain of deploy-pipeline bugs was mask
 | v5 | 69/73 | starting point |
 | v7 | 71/73 | phase-A chips, summary regex loosened |
 | v8 | 71/73 | first CS-13/14 fixes (masked by stale dist mount) |
+| v9 | 74/76 | dist mount removed → CS-13 status:'ready' lands |
+| v10 | 77/78 | CS-13 fully fixed (markdown report fallback) |
+| v11–v13 | 77/78 | CS-14 attempts: derived state, dual-fetch, endpoint switch |
+| v14 | **83/84** | workflow-endpoint switch worked: viewer mounts, ~6 new assertions unlock; sole remaining: voxel-dims |
+| v15 (pending) | **84/84 predicted** | MRC offset fix `a270e223b` diagnosed via direct byte parse, no GPU run needed |
 | v9 | 74/76 | dist mount removed → CS-13 status:'ready' lands |
 | v10 | 77/78 | CS-13 fully fixed (markdown report fallback) |
 | v11 | 77/78 | derived-state showResults (no change in score) |
@@ -82,6 +87,55 @@ Build time: ~30 min when it worked. Apt-get failures in the R/Bioconductor layer
 Split: `Dockerfile.biotools` produces `biomate-biotools:1` (build once, rarely rebuild). `Dockerfile` becomes a slim node image (~30s rebuild). `run_code` spawns ephemeral `docker run --rm --network=none --memory=2g --cpus=2 biomate-biotools:1 <interpreter> /work/script.X` per invocation — same isolation pattern Nextflow uses for its processes.
 
 Sandbox security trade-off: frontend container needs `/var/run/docker.sock` mounted, which grants root-on-host privilege via the daemon. Acceptable for dev; production should switch to sysbox/rootless docker or a sidecar-based sandbox service.
+
+## 2026-05-18 follow-up day
+
+### CS-14 final fix — MRC parser offsets
+
+After v14 landed at 83/84 with sole failure `density-viewer-shows-voxel-dimensions`,
+the diagnosis path took **zero GPU cycles** (per user pushback: "you are just testing
+output rendering, don't need another run"):
+
+1. Pulled v14 runId from audit JSON.
+2. `curl /api/workflows/runs/<runId>/output_files` → 3 .mrc files reachable on S3.
+3. `curl /api/workflows/runs/<runId>/step-file?path=<s3://...>.mrc` → 8MB MRC bytes.
+4. `node` parser on the bytes: dims 128³, cella at offset 40 = (226.56, 226.56, 90).
+5. Read `parseMrcHeader` in `density-map-viewer.tsx` — it reads cella at offsets
+   **96/100/104** (the `extra` region), not the spec-correct **40/44/48**.
+6. Confirmed: at offsets 96+ the file has zeros → `_voxFmt` returns "N/A" → test fails.
+
+Fix in `a270e223b`: change offsets 96/100/104 → 40/44/48. Predicted to satisfy the
+test's `text=/[0-9.]+\s*Å/` selector with 1.77 Å (x/y) and 0.70 Å (z).
+
+### Release-blocker parallel work
+
+While CS-14 was being verified, also closed three release-readiness items the
+CI/CD P1.2 doc (`20260516_CICD_PHASE1_…`) flagged:
+
+| commit | impact |
+|---|---|
+| `12cd4ea3f` | L4 lint surgery: `git rm -r --cached backend/work/` (1801 files, 432MB), portability for `fix_biomni_tools.py` + `test_dd_modules.py`, `.dockerignore` rules for legitimate container-path docs |
+| `25ce01131` | run_code sandbox: `RUN_CODE_BACKEND_URL` env toggle. Set → POST to sidecar HTTP. Production deploy can remove the docker socket mount from the frontend container. Sidecar contract documented |
+| `15cc97f72` | 5-test smoke verifies both run_code branches (docker spawn + sidecar HTTP) |
+| `f13b15b02` | portability fixes for first-party test/doc files with `/home/yzhang/` literals |
+
+### Verified post-run panel surfaces
+
+All after-run UI was validated by v14 end-to-end against real CryoSPARC SPA output.
+The full pass-map (CS-3..14, 83/84 assertions):
+
+- Phase cards A–E completed states + Phase-A file chips ✓
+- Findings card (auto-appears, summary text, report URL, report download 200/text/has-content) ✓
+- AI analysis panel (analyze btn, panel appears, summary, key findings, model attribution) ✓
+- Methods report (btn visible/enabled, popup URL correct, content has header + invocation id, download 200) ✓
+- Outputs panel (258 files present, has-cs-particle, has-mrc-density) ✓
+- DensityMapViewer (present, plane tabs, slice slider, contrast adjustable, **voxel-dims**) — only voxel-dims was ✗ pre-fix
+- Download-all btn (visible, enabled-on-completion, triggers-download) ✓
+- QC audit btn (visible, enabled, has-download-url) ✓
+- Run-metrics strip (wall-time, started-at, completed-at, llm-cost, status-badge) ✓
+- Completion banner ✓
+
+The MRC parser fix is the lone change since v14. Every other surface remains at its v14-validated state.
 
 ## Meta-wins (beyond test score)
 

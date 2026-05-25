@@ -24,7 +24,7 @@ params.ADMET_model_type = 'MPNN'
 process PREDICT_ADMET_PROPERTIES {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
     // Starts from biomate-nextflow-base directly — lean, not biomni-tools
