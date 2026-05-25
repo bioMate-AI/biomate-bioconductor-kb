@@ -65,6 +65,14 @@ export default function RegisterPage() {
       toast({ variant: "destructive", title: "Password requirements not met", description: "Please ensure your password meets all requirements." })
       return
     }
+    if (!formData.organization.trim()) {
+      toast({ variant: "destructive", title: "Institution required", description: "Please enter your institution or organization." })
+      return
+    }
+    if (!formData.role) {
+      toast({ variant: "destructive", title: "Role required", description: "Please select your role." })
+      return
+    }
 
     setIsLoading(true)
     try {
@@ -147,40 +155,40 @@ export default function RegisterPage() {
   const handleStartTrial = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/auth/start-trial', {
+      const res = await fetch('/api/payments/start-trial', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
         },
         credentials: 'include',
-        body: JSON.stringify({ returnUrl: `${window.location.origin}/dashboard` }),
+        body: JSON.stringify({ tier: 'professional', interval: 'monthly', returnUrl: `${window.location.origin}/` }),
       })
 
-      // If endpoint doesn't exist or Stripe not configured, go straight to next page or dashboard
+      // If endpoint doesn't exist or Stripe not configured, go straight to next page or app
       if (!res.ok) {
         if (nextUrl) { window.location.href = nextUrl; return; }
-        setLocation('/dashboard')
+        window.location.href = '/'
         return
       }
 
       const data = await res.json()
       if (data.devMode || !data.url) {
         if (nextUrl) { window.location.href = nextUrl; return; }
-        setLocation('/dashboard')
+        window.location.href = '/'
         return
       }
       // Redirect to Stripe Checkout to collect payment method
       window.location.href = data.url
     } catch {
       // No Stripe / network error — proceed anyway
-      setLocation('/dashboard')
+      window.location.href = '/'
     }
   }
 
   const handleSkipForNow = () => {
     localStorage.setItem('biomate_onboarding_done', '1')
-    setLocation('/')
+    window.location.href = '/'
   }
 
   // ── OAuth helpers ──────────────────────────────────────────────────────────
@@ -211,8 +219,11 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
         <Card className="w-full max-w-md text-center">
-          <CardHeader className="space-y-1">
-            <div className="flex justify-center mb-4">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-3">
+              <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+            </div>
+            <div className="flex justify-center mb-2">
               <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3">
                 <Mail className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
@@ -254,6 +265,9 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
         <div className="w-full max-w-2xl">
+          <div className="flex justify-center mb-4">
+            <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+          </div>
           <DomainProfileSelector
             onSave={handleSaveDomainProfile}
             onSkip={handleSkipDomainProfile}
@@ -271,14 +285,11 @@ export default function RegisterPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-2">
-              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
+              <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
             </div>
             <CardTitle className="text-2xl font-bold">Start your 14-day Premium trial</CardTitle>
             <CardDescription>
-              Get full Premium access with included credits.<br />
-              No payment required during trial.
+              Get full Premium access with included credits.
             </CardDescription>
           </CardHeader>
 
@@ -289,7 +300,6 @@ export default function RegisterPage() {
                 "Full Premium features for 14 days",
                 "Generous compute credits included",
                 "Priority compute resources",
-                "No payment required during trial",
               ].map((benefit) => (
                 <div key={benefit} className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-green-500 shrink-0" />
@@ -302,7 +312,7 @@ export default function RegisterPage() {
             <div className="rounded-lg border p-4 flex items-center justify-between">
               <div>
                 <p className="font-medium">Premium Plan</p>
-                <p className="text-sm text-muted-foreground">$29 / month after trial</p>
+                <p className="text-sm text-muted-foreground">$49 / month after trial</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-lg">$0</p>
@@ -341,11 +351,14 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-2">
+            <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+          </div>
+          <CardTitle className="text-2xl font-bold">
             Create an account
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription>
             Get 14 days of Premium access with included credits
           </CardDescription>
         </CardHeader>
@@ -381,7 +394,6 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="organization">
                 Institution or Organization
-                <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
               </Label>
               <Input
                 id="organization"
@@ -397,7 +409,6 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="role">
                 Your Role
-                <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
               </Label>
               <select
                 id="role"

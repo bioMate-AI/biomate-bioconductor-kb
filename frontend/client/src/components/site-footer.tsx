@@ -6,7 +6,7 @@ export function SiteFooter() {
 
   const footerLinks = {
     product: [
-      { name: "Pricing", href: "/pricing" },
+      // { name: "Pricing", href: "/pricing" }, // disabled until payment flow is fully tested
       { name: "Security", href: "/privacy" }
     ],
     company: [
@@ -137,7 +137,7 @@ export function SiteFooter() {
 
         {/* Bottom Footer */}
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
-          <p>© 2025 BioMate Inc. All rights reserved.</p>
+          <p>© 2026 BioMate Inc. All rights reserved.</p>
           <p className="mt-2 md:mt-0">
             Made with ❤️ for researchers worldwide
           </p>

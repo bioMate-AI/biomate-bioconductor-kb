@@ -44,7 +44,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
   const navigation = {
     main: [
       { name: "About", href: "/about" },
-      { name: "Pricing", href: "/pricing" },
+      // { name: "Pricing", href: "/pricing" }, // disabled until payment flow is fully tested
       { name: "Blog", href: "/blog" },
     ],
     authenticated: [
@@ -65,7 +65,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
           {/* Logo */}
           <div className="flex items-center">
             <button
-              onClick={() => handleNavigation(isAuthenticated ? '/' : '/pricing')}
+              onClick={() => handleNavigation(isAuthenticated ? '/' : '/register')}
               className="flex items-center space-x-2"
             >
               <img src="/logo.png" alt="BioMate AI" className="h-12 w-auto" />

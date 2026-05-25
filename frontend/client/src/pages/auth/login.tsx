@@ -65,11 +65,10 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <a href="https://biomate.ai" style={{ textDecoration: 'none' }}>
-            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: V2.navy, letterSpacing: '-0.02em' }}>BioMate</span>
-            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: V2.accent, marginLeft: 2 }}>AI</span>
+          <a href="https://biomate.ai" style={{ textDecoration: 'none', display: 'inline-block' }}>
+            <img src="/biomate-logo.png" alt="BioMate" style={{ height: 40, width: 'auto' }} />
           </a>
-          <p style={{ marginTop: 6, color: V2.muted, fontSize: '0.9rem' }}>Sign in to your account</p>
+          <p style={{ marginTop: 10, color: V2.muted, fontSize: '0.9rem' }}>Sign in to your account</p>
         </div>
 
         {/* Card */}

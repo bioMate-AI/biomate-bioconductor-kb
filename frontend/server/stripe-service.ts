@@ -9,12 +9,11 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const APP_URL = process.env.APP_URL || 'https://dev-public.biomate.ai';
 
 // Subscription tier price IDs (set these in Stripe dashboard)
-// Free tier has no price ID — it uses the 7-day trial flow only
 const PRICE_IDS = {
-  premium_monthly: process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
-  premium_yearly: process.env.STRIPE_PRICE_PREMIUM_YEARLY,
-  team_monthly: process.env.STRIPE_PRICE_TEAM_MONTHLY,
-  team_yearly: process.env.STRIPE_PRICE_TEAM_YEARLY,
+  academic_monthly: process.env.STRIPE_PRICE_ACADEMIC_MONTHLY,
+  academic_yearly: process.env.STRIPE_PRICE_ACADEMIC_YEARLY,
+  professional_monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY,
+  professional_yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY,
   enterprise_monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY,
   enterprise_yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
 };
@@ -95,7 +94,7 @@ export class StripeService {
           quantity: 1,
         },
       ],
-      success_url: successUrl || `${APP_URL}/dashboard?payment=success`,
+      success_url: successUrl || `${APP_URL}/?payment=success`,
       cancel_url: cancelUrl || `${APP_URL}/pricing?payment=canceled`,
       metadata: {
         userId: user.id,
@@ -126,7 +125,7 @@ export class StripeService {
 
     const session = await this.stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: returnUrl || `${APP_URL}/dashboard`,
+      return_url: returnUrl || `${APP_URL}/`,
     });
 
     console.log(`[Stripe] Portal session created for user ${userId}`);
@@ -196,10 +195,10 @@ export class StripeService {
 
     // Determine tier from price ID
     const priceId = subscription.items.data[0]?.price.id;
-    let tier = 'premium';
+    let tier = 'academic';
 
-    if (priceId === PRICE_IDS.team_monthly || priceId === PRICE_IDS.team_yearly) {
-      tier = 'team';
+    if (priceId === PRICE_IDS.professional_monthly || priceId === PRICE_IDS.professional_yearly) {
+      tier = 'professional';
     } else if (priceId === PRICE_IDS.enterprise_monthly || priceId === PRICE_IDS.enterprise_yearly) {
       tier = 'enterprise';
     }
@@ -393,14 +392,14 @@ export class StripeService {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 7,
+        trial_period_days: 14,
         metadata: { userId },
       },
       // Collect payment method but don't charge during trial
       payment_method_collection: 'always',
       success_url: returnUrl
         ? `${returnUrl}?trial=started`
-        : `${APP_URL}/dashboard?trial=started`,
+        : `${APP_URL}/?trial=started`,
       cancel_url: returnUrl ?? `${APP_URL}/register?trial=canceled`,
       metadata: { userId, trial_start: 'true' },
     });
@@ -515,13 +514,13 @@ export class StripeService {
    */
   getPricingTiers() {
     return {
-      premium: {
-        monthly: PRICE_IDS.premium_monthly,
-        yearly: PRICE_IDS.premium_yearly,
+      academic: {
+        monthly: PRICE_IDS.academic_monthly,
+        yearly: PRICE_IDS.academic_yearly,
       },
-      team: {
-        monthly: PRICE_IDS.team_monthly,
-        yearly: PRICE_IDS.team_yearly,
+      professional: {
+        monthly: PRICE_IDS.professional_monthly,
+        yearly: PRICE_IDS.professional_yearly,
       },
       enterprise: {
         monthly: PRICE_IDS.enterprise_monthly,

@@ -14,10 +14,23 @@ const PLANS: Record<string, {
   perUser?: boolean
   features: string[]
 }> = {
-  premium: {
+  professional: {
     name: "Premium",
+    priceMonthly: 49,
+    priceYearly: 44,
+    features: [
+      "2,000+ validated workflows",
+      "32 QC profiles",
+      "Auto-loop quality assurance",
+      "AI findings and audit reports",
+      "Priority compute resources",
+      "Email support",
+    ],
+  },
+  academic: {
+    name: "Academic",
     priceMonthly: 29,
-    priceYearly: 23,
+    priceYearly: 26,
     features: [
       "2,000+ validated workflows",
       "32 QC profiles",
@@ -29,7 +42,7 @@ const PLANS: Record<string, {
   team: {
     name: "Team",
     priceMonthly: 79,
-    priceYearly: 63,
+    priceYearly: 71,
     perUser: true,
     features: [
       "Everything in Premium",
@@ -50,7 +63,7 @@ export default function CheckoutPage() {
   const [yearly, setYearly] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
 
-  const planKey = (params?.plan || 'premium').toLowerCase()
+  const planKey = (params?.plan || 'professional').toLowerCase()
   const plan = PLANS[planKey] || PLANS.premium
   const price = yearly ? plan.priceYearly : plan.priceMonthly
   const interval = yearly ? 'yearly' : 'monthly'
@@ -87,12 +100,15 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-background flex items-center justify-center py-12">
         <Card className="max-w-md w-full mx-4">
           <CardContent className="text-center pt-8 pb-8">
+            <div className="flex justify-center mb-4">
+              <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+            </div>
             <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 flex items-center justify-center mx-auto mb-4">
               <Check className="h-7 w-7 text-blue-600 dark:text-blue-400" />
             </div>
             <h2 className="text-2xl font-bold mb-2">You're all set!</h2>
             <p className="text-muted-foreground mb-6">Your subscription is active. Head to the platform to get started.</p>
-            <Button className="w-full" size="lg" onClick={() => setLocation('/dashboard')}>
+            <Button className="w-full" size="lg" onClick={() => setLocation('/')}>
               Go to BioMate
             </Button>
           </CardContent>
@@ -122,7 +138,7 @@ export default function CheckoutPage() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        setLocation('/dashboard')
+        setLocation('/')
       }
     } catch (err: any) {
       setError(err.message || 'Could not start checkout. Please try again or contact support.')
@@ -134,6 +150,9 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-background py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+          </div>
           <h1 className="text-3xl font-bold mb-2">Upgrade to {plan.name}</h1>
           <p className="text-muted-foreground">Secure checkout powered by Stripe — we never see your card details.</p>
         </div>

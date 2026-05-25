@@ -40,7 +40,10 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
       <Card className="w-full max-w-md text-center">
-        <CardHeader className="space-y-1">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-3">
+            <img src="/biomate-logo.png" alt="BioMate" className="h-10 w-auto" />
+          </div>
           <div className="flex justify-center mb-4">
             {status === "verifying" && (
               <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3">

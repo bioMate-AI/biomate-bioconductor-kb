@@ -96,14 +96,19 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header">
             <h1>Welcome to BioMate!</h1>
           </div>
@@ -111,7 +116,7 @@ class EmailService {
             <h2>Hi ${userName},</h2>
             <p>Thank you for registering with BioMate. Please verify your email address to activate your account.</p>
             <p>
-              <a href="${verificationUrl}" class="button">Verify Email Address</a>
+              <a href="${verificationUrl}" class="button" style="display:inline-block;padding:12px 30px;background-color:#4F46E5;color:white;text-decoration:none;border-radius:5px;margin:20px 0;font-family:Arial,sans-serif;font-size:14px;font-weight:600;">Verify Email Address</a>
             </p>
             <p>Or copy and paste this link into your browser:</p>
             <p style="word-break: break-all; color: #4F46E5;">${verificationUrl}</p>
@@ -119,7 +124,7 @@ class EmailService {
             <p>If you didn't create this account, you can safely ignore this email.</p>
           </div>
           <div class="footer">
-            <p>© 2025 BioMate. All rights reserved.</p>
+            <p>© 2026 BioMate. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -139,7 +144,7 @@ class EmailService {
 
       If you didn't create this account, you can safely ignore this email.
 
-      © 2025 BioMate. All rights reserved.
+      © 2026 BioMate. All rights reserved.
     `;
 
     return this.sendEmail({
@@ -160,15 +165,20 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
           .warning { background-color: #FEF3C7; padding: 15px; border-left: 4px solid #F59E0B; margin: 15px 0; }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header">
             <h1>Password Reset Request</h1>
           </div>
@@ -176,7 +186,7 @@ class EmailService {
             <h2>Hi ${userName},</h2>
             <p>We received a request to reset your BioMate account password.</p>
             <p>
-              <a href="${resetUrl}" class="button">Reset Password</a>
+              <a href="${resetUrl}" class="button" style="display:inline-block;padding:12px 30px;background-color:#DC2626;color:white;text-decoration:none;border-radius:5px;margin:20px 0;font-family:Arial,sans-serif;font-size:14px;font-weight:600;">Reset Password</a>
             </p>
             <p>Or copy and paste this link into your browser:</p>
             <p style="word-break: break-all; color: #DC2626;">${resetUrl}</p>
@@ -186,7 +196,7 @@ class EmailService {
             </div>
           </div>
           <div class="footer">
-            <p>© 2025 BioMate. All rights reserved.</p>
+            <p>© 2026 BioMate. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -206,7 +216,7 @@ class EmailService {
 
       ⚠️ Security Notice: If you didn't request a password reset, please ignore this email and your password will remain unchanged. Your account is still secure.
 
-      © 2025 BioMate. All rights reserved.
+      © 2026 BioMate. All rights reserved.
     `;
 
     return this.sendEmail({
@@ -225,9 +235,11 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #10B981; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: #10B981; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #10B981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #10B981; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
           .feature { margin: 15px 0; padding-left: 25px; position: relative; }
           .feature:before { content: "✓"; position: absolute; left: 0; color: #10B981; font-weight: bold; }
@@ -235,25 +247,28 @@ class EmailService {
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header">
             <h1>Welcome to BioMate!</h1>
           </div>
           <div class="content">
             <h2>Hi ${userName},</h2>
             <p>Your email has been verified successfully! You now have full access to BioMate.</p>
-            <h3>Your 7-Day Trial Includes:</h3>
+            <h3>Your 14-Day Trial Includes:</h3>
             <div class="feature">AI-powered workflow generation</div>
             <div class="feature">Access to 1000+ bioinformatics tools</div>
             <div class="feature">Cloud data storage and processing</div>
             <div class="feature">Workflow execution and monitoring</div>
             <div class="feature">Result visualization and export</div>
             <p>
-              <a href="${this.appUrl}/dashboard" class="button">Get Started</a>
+              <a href="${this.appUrl}/" class="button" style="display:inline-block;padding:12px 30px;background-color:#10B981;color:white;text-decoration:none;border-radius:5px;margin:20px 0;font-family:Arial,sans-serif;font-size:14px;font-weight:600;">Get Started</a>
             </p>
             <p>Need help? Check out our <a href="${this.appUrl}/docs">documentation</a> or contact support at support@biomate.dev</p>
           </div>
           <div class="footer">
-            <p>© 2025 BioMate. All rights reserved.</p>
+            <p>© 2026 BioMate. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -267,18 +282,18 @@ class EmailService {
 
       Your email has been verified successfully! You now have full access to BioMate.
 
-      Your 7-Day Trial Includes:
+      Your 14-Day Trial Includes:
       ✓ AI-powered workflow generation
       ✓ Access to 1000+ bioinformatics tools
       ✓ Cloud data storage and processing
       ✓ Workflow execution and monitoring
       ✓ Result visualization and export
 
-      Get started: ${this.appUrl}/dashboard
+      Get started: ${this.appUrl}/
 
       Need help? Check out our documentation at ${this.appUrl}/docs or contact support at support@biomate.dev
 
-      © 2025 BioMate. All rights reserved.
+      © 2026 BioMate. All rights reserved.
     `;
 
     return this.sendEmail({
@@ -318,9 +333,11 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #10B981; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: #10B981; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #10B981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #10B981; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
           .stats { background-color: #E5E7EB; padding: 15px; border-radius: 5px; margin: 15px 0; }
           .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
@@ -328,6 +345,9 @@ class EmailService {
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header">
             <h1>✓ Workflow Complete!</h1>
           </div>
@@ -348,7 +368,7 @@ class EmailService {
             <p style="word-break: break-all; color: #10B981;">${resultUrl}</p>
           </div>
           <div class="footer">
-            <p>© 2025 BioMate. All rights reserved.</p>
+            <p>© 2026 BioMate. All rights reserved.</p>
             <p><a href="${this.appUrl}/settings/notifications">Manage notification preferences</a></p>
           </div>
         </div>
@@ -369,7 +389,7 @@ class EmailService {
 
       View Results: ${resultUrl}
 
-      © 2025 BioMate. All rights reserved.
+      © 2026 BioMate. All rights reserved.
     `;
 
     return this.sendEmail({
@@ -397,15 +417,20 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
           .error-box { background-color: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin: 15px 0; font-family: monospace; font-size: 12px; overflow-x: auto; }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header">
             <h1>⚠️ Workflow Error</h1>
           </div>
@@ -429,7 +454,7 @@ class EmailService {
             <p>Need help? Contact support at support@biomate.dev</p>
           </div>
           <div class="footer">
-            <p>© 2025 BioMate. All rights reserved.</p>
+            <p>© 2026 BioMate. All rights reserved.</p>
             <p><a href="${this.appUrl}/settings/notifications">Manage notification preferences</a></p>
           </div>
         </div>
@@ -454,7 +479,7 @@ class EmailService {
 
       Need help? Contact support at support@biomate.dev
 
-      © 2025 BioMate. All rights reserved.
+      © 2026 BioMate. All rights reserved.
     `;
 
     return this.sendEmail({
@@ -480,15 +505,20 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
           .warning { background-color: #FEF3C7; padding: 15px; border-left: 4px solid #F59E0B; margin: 15px 0; }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header"><h1>Payment Failed</h1></div>
           <div class="content">
             <h2>Hi ${userName},</h2>
@@ -534,9 +564,11 @@ class EmailService {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: ${color}; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .logo-bar { background-color: #ffffff; padding: 16px 20px; text-align: center; border-radius: 5px 5px 0 0; border: 1px solid #e5e7eb; border-bottom: none; }
+          .logo-bar img { height: 36px; width: auto; }
+          .header { background-color: ${color}; color: white; padding: 20px; text-align: center; }
           .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: ${color}; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; padding: 12px 30px; background-color: ${color}; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; }
           .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
           .meter { background: #E5E7EB; border-radius: 999px; height: 12px; margin: 10px 0; }
           .fill { background: ${color}; border-radius: 999px; height: 12px; width: ${Math.min(pct, 100)}%; }
@@ -544,6 +576,9 @@ class EmailService {
       </head>
       <body>
         <div class="container">
+          <div class="logo-bar">
+            <img src="${this.appUrl}/biomate-logo.png" alt="BioMate" />
+          </div>
           <div class="header">
             <h1>${exceeded ? 'Quota Exhausted' : `${pct}% Quota Used`}</h1>
           </div>

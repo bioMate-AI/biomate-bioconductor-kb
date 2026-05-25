@@ -33,7 +33,7 @@ export default function PricingPage() {
     {
       name: "Premium",
       description: "For individual researchers",
-      price: { monthly: 29, annual: 26 },
+      price: { monthly: 49, annual: 44 },
       credits: "$45",
       features: [
         { name: "$45 in monthly credits", included: true },
