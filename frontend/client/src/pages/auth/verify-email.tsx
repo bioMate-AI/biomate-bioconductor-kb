@@ -72,8 +72,8 @@ export default function VerifyEmailPage() {
 
         <CardContent className="space-y-3">
           {status === "success" && (
-            <Button className="w-full" onClick={() => setLocation("/login")}>
-              Go to Login
+            <Button className="w-full" onClick={() => setLocation("/")}>
+              Go to Platform
             </Button>
           )}
           {status === "error" && (

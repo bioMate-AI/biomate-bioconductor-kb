@@ -41,7 +41,7 @@ export default function LoginPage() {
     setIsLoading(true); setError(null)
     try {
       await login(email, password, rememberMe)
-      setLocation('/')
+      // auth-context.login() already calls setLocation('/') on success
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.")
     } finally {

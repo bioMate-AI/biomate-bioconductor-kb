@@ -36,6 +36,7 @@
   --font-ui:   'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', Consolas, monospace;
 
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -747,6 +748,24 @@
 .tour-btn.primary:hover { opacity: .88; }
 .tour-btn.ghost { border-color: transparent; background: transparent; }
 .tour-btn.ghost:hover { background: var(--tour-surface); }
+
+/* ── Panel drag-resize handle ──────────────────────────────── */
+/* Sits on the LEFT edge of the panel (panel is on the right side of the
+   screen — dragging left widens it). The .wf-panel container must have
+   position:relative (already set above via the parent flex container). */
+.panel-resizer {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 5px;
+  cursor: ew-resize;
+  z-index: 5;
+  background: transparent;
+  transition: background .15s;
+}
+.panel-resizer:hover {
+  background: var(--accent);
+  opacity: 0.35;
+}
 
 /* ── Tutorial launcher button in top nav ───────────────────── */
 .tut-btn {

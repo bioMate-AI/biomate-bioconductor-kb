@@ -59,6 +59,12 @@ interface NextflowWorkflowViewerProps {
     perStepLlmCost?: Record<string, number | null>;
     [key: string]: any;
   };
+  /**
+   * Called during drag with the new panel width in px.
+   * When provided the component renders a drag handle on its left edge.
+   * The parent should apply the width to the panel container.
+   */
+  onResize?: (width: number) => void;
 }
 
 type ViewerParameter = {
@@ -828,6 +834,7 @@ export function NextflowWorkflowViewer({
   onAdjustViaChat,
   onWorkflowProgress,
   executionMetrics,
+  onResize,
 }: NextflowWorkflowViewerProps) {
   const { toast } = useToast();
   const [params, setParams] = useState<Record<string, any>>(
@@ -837,6 +844,10 @@ export function NextflowWorkflowViewer({
   // Stored as a ref (not state) so the useEffect sees the live value without needing
   // it in the dependency array, and without triggering extra re-renders.
   const userOverriddenParams = useRef<Set<string>>(new Set());
+  // Drag-to-resize refs — used by the panel-resizer drag handle
+  const resizingRef = useRef(false);
+  const resizeStartXRef = useRef(0);
+  const resizeStartWRef = useRef(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
   // Global parameters collapsible — collapsed by default (phases shown first per design spec)
@@ -2027,6 +2038,36 @@ export function NextflowWorkflowViewer({
       data-debug-rendered-param-count={renderedParameters.length}
       data-debug-rendered-param-ids={renderedParameters.map((p: any) => p.id).join(',')}
     >
+      {/* Drag handle on the left edge — lets users resize the panel width.
+          Rendered only when the parent supplies an onResize callback. */}
+      {onResize && (
+        <div
+          className="panel-resizer"
+          title="Drag to resize"
+          onMouseDown={(e: React.MouseEvent) => {
+            e.preventDefault();
+            resizingRef.current = true;
+            resizeStartXRef.current = e.clientX;
+            const panelEl = (e.currentTarget as HTMLElement).parentElement;
+            resizeStartWRef.current = panelEl ? panelEl.getBoundingClientRect().width : 530;
+            document.body.style.cursor = 'ew-resize';
+            const onMove = (ev: MouseEvent) => {
+              if (!resizingRef.current) return;
+              const dx = resizeStartXRef.current - ev.clientX; // dragging left grows width
+              const next = Math.max(320, Math.min(900, resizeStartWRef.current + dx));
+              onResize(Math.round(next));
+            };
+            const onUp = () => {
+              resizingRef.current = false;
+              document.body.style.cursor = '';
+              window.removeEventListener('mousemove', onMove);
+              window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+          }}
+        />
+      )}
       <DownloadOutcomePrompt
         open={downloadAllPromptOpen}
         onOpenChange={setDownloadAllPromptOpen}
