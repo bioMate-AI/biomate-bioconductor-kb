@@ -67,6 +67,29 @@ import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d1
 import type { ExecutionRun, Message } from '@shared/schema'
 export type { Message }
 
+// ── Speaker pill helpers ───────────────────────────────────────
+// Maps metadata.kind → speaker key, mirroring deriveSpeakerFallback
+// in research_agent_v2/src/ChatStream.jsx.
+const SPEAKER_LABELS: Record<string, string> = {
+  plan:  'PLAN',
+  wf:    'WF',
+  qc:    'QC',
+  loop:  'LOOP',
+  agent: 'AGENT',
+  find:  'FIND',
+}
+
+function deriveSpeaker(kind: string | undefined): string {
+  if (!kind) return 'wf'
+  if (kind.startsWith('workflow.qc_'))      return 'qc'
+  if (kind.startsWith('workflow.autoloop')) return 'loop'
+  if (kind.startsWith('workflow.'))         return 'wf'
+  if (kind.startsWith('deepagent.'))        return 'agent'
+  if (kind.startsWith('plan.'))             return 'plan'
+  if (kind.startsWith('findings.'))         return 'find'
+  return 'wf'
+}
+
 interface ChatMessageProps {
   message: Message
   sessionId?: string
@@ -187,6 +210,8 @@ export function ChatMessage({
   // with N expanded cards when N progress events fire in a row.
   if (isProgressMessage) {
     const kind = (message.metadata as any)?.kind as string | undefined
+    const speaker = deriveSpeaker(kind)
+    const pillLabel = SPEAKER_LABELS[speaker] ?? 'WF'
     return (
       <div
         className={cn("msg progress px-4 py-1")}
@@ -203,6 +228,7 @@ export function ChatMessage({
         }}
       >
         <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
+        <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
         <span>{message.content}</span>
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>

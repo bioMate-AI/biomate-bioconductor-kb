@@ -32,6 +32,14 @@
   --bm-err:           oklch(0.58  0.18  25);
   --bm-err-soft:      oklch(0.96  0.05  25);
 
+  /* Speaker palette — workflow progress pills (Surface 2) */
+  --bm-plan:   oklch(0.55 0.15 145);   /* green */
+  --bm-wf:     oklch(0.50 0.18 240);   /* blue */
+  --bm-qc:     oklch(0.58 0.16  65);   /* amber */
+  --bm-loop:   oklch(0.52 0.17 295);   /* purple */
+  --bm-agent:  oklch(0.52 0.14 195);   /* teal */
+  --bm-find:   oklch(0.56 0.17  35);   /* orange */
+
   /* Radii */
   --bm-r-xs: 4px;
   --bm-r-sm: 6px;
@@ -70,6 +78,12 @@
   --bm-err-soft:      oklch(0.18  0.04  25);
   --bm-warn:          oklch(0.72  0.12  75);
   --bm-warn-soft:     oklch(0.18  0.04  75);
+  --bm-plan:   oklch(0.72 0.14 145);
+  --bm-wf:     oklch(0.68 0.16 240);
+  --bm-qc:     oklch(0.78 0.14  65);
+  --bm-loop:   oklch(0.72 0.17 295);
+  --bm-agent:  oklch(0.72 0.12 195);
+  --bm-find:   oklch(0.75 0.16  35);
 }
 
 /* ── App shell ─────────────────────────────────────────────── */
@@ -460,3 +474,27 @@ code, pre, .font-mono {
 .bm-alert.info { border-color: var(--bm-accent); background: var(--bm-accent-soft); color: var(--bm-accent-ink); }
 .bm-alert .bm-alert-body { flex: 1; }
 .bm-alert .bm-alert-act  { margin-top: 6px; display: flex; gap: 8px; }
+
+/* ── Speaker pills on workflow_progress chat lines ────────────── */
+.speaker-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  color: #fff;
+  opacity: 0.9;
+  font-style: normal;
+}
+.speaker-pill[data-speaker="plan"]  { background: var(--bm-plan); }
+.speaker-pill[data-speaker="wf"]    { background: var(--bm-wf); }
+.speaker-pill[data-speaker="qc"]    { background: var(--bm-qc); }
+.speaker-pill[data-speaker="loop"]  { background: var(--bm-loop); }
+.speaker-pill[data-speaker="agent"] { background: var(--bm-agent); }
+.speaker-pill[data-speaker="find"]  { background: var(--bm-find); }

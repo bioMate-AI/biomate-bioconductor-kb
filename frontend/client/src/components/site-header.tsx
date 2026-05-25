@@ -44,7 +44,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
   const navigation = {
     main: [
       { name: "About", href: "/about" },
-      // { name: "Pricing", href: "/pricing" }, // disabled until payment flow is fully tested
+      { name: "Pricing", href: "/pricing" },
       { name: "Blog", href: "/blog" },
     ],
     authenticated: [

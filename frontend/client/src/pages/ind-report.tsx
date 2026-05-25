@@ -73,13 +73,17 @@ function TopBar({ activeProject }: { activeProject: IndProjectSummary | null }) 
             {r}
           </span>
         ))}
+        {/* Tutorial button — removed (stub, no tour wired)
         <button className="tut-btn" title="Replay the tutorial">
           <span style={{ fontSize: 10 }}>▶</span> Tutorial
         </button>
+        */}
+        {/* User avatar — removed (hardcoded jane@acme.com, replace with real auth user when wired)
         <div className="user">
           <div className="user-avatar">JS</div>
           <span>jane@acme.com</span>
         </div>
+        */}
       </div>
     </header>
   );
