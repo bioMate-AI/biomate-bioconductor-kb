@@ -400,11 +400,11 @@ def main():
 
     parser = argparse.ArgumentParser(description='LLM-powered nf-core workflow knowledge extraction')
     parser.add_argument('--workflows', help='Workflows directory',
-                       default='/home/yzhang/biomate/backend/nf-core-workflows')
+                       default='/opt/biomate/backend/nf-core-workflows')
     parser.add_argument('--subworkflows', help='Subworkflows directory',
-                       default='/home/yzhang/biomate/backend/nf-core-modules/subworkflows/nf-core')
+                       default='/opt/biomate/backend/nf-core-modules/subworkflows/nf-core')
     parser.add_argument('--output', help='Output JSON file',
-                       default='/home/yzhang/biomate/backend/nfcore_workflow_knowledge.json')
+                       default='/opt/biomate/backend/nfcore_workflow_knowledge.json')
     parser.add_argument('--limit-workflows', type=int, help='Limit workflows to process')
     parser.add_argument('--limit-subworkflows', type=int, help='Limit subworkflows to process')
 
@@ -466,7 +466,7 @@ def main():
         print()
 
         # Read existing nfcore index to get subworkflow metadata
-        index_file = Path('/home/yzhang/biomate/backend/nfcore_index.json')
+        index_file = Path('/opt/biomate/backend/nfcore_index.json')
         if index_file.exists():
             with open(index_file) as f:
                 nfcore_index = json.load(f)

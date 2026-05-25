@@ -44,7 +44,7 @@ params.synergy_model   = 'zip'
 process CPA_SYNERGY_GPU {
     tag "$meta.id"
     label 'process_gpu'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/virtual-cell-gpu:1.0' \

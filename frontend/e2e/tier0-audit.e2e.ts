@@ -280,7 +280,7 @@ async function captureWorkflowReady(
   auth: AuthCtx,
   query: string,
   demoId: string,
-  timeoutMs = 90_000
+  timeoutMs = 180_000
 ): Promise<WorkflowReadyEvent> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -308,13 +308,15 @@ async function captureWorkflowReady(
         const reader = r.body.getReader();
         const decoder = new TextDecoder();
         let raw = "";
+        // Read until we see `event: done` (server emits it last) OR `event: final`
+        // followed by enough data lines. The `final` event carries the full payload
+        // with metadata.inlineParameters — the minimal `workflow_ready` event does NOT.
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           raw += decoder.decode(value, { stream: true });
-          if (raw.includes("workflow_ready")) {
-            // Give the producer ~1.5 s to flush the full data: block + done event.
-            await new Promise(res => setTimeout(res, 1500));
+          if (raw.includes("\nevent: done") || raw.includes("\r\nevent: done")) {
+            await new Promise(res => setTimeout(res, 100));
             try { await reader.cancel(); } catch {}
             break;
           }
@@ -339,44 +341,55 @@ async function captureWorkflowReady(
     console.warn(`[${demoId}] chat-stream fetch error: ${result.error}`);
   }
 
-  // Parse SSE: find `event: workflow_ready` followed by `data: {…}`
+  // Parse SSE: find `event: final` (carries the full payload with
+  // metadata.inlineParameters) — `event: workflow_ready` is a minimal signal
+  // and intentionally omits the payload (per routes.ts:5146-5160).
   let inlineParameters: Record<string, unknown> | null = null;
   let workflowName: string | null = null;
   let confidence: number | null = null;
 
   const lines = raw.split(/\r?\n/);
+  // Scan ALL events, preferring `final` over `workflow_ready`. Walk events in
+  // order; the latest match wins for inlineParameters specifically (final overrides ready).
   for (let i = 0; i < lines.length; i++) {
-    if (/^event:\s*workflow_ready\s*$/.test(lines[i])) {
-      // Collect contiguous data: lines
-      const dataChunks: string[] = [];
-      for (let j = i + 1; j < lines.length; j++) {
-        const m = /^data:\s?(.*)$/.exec(lines[j]);
-        if (m) { dataChunks.push(m[1]); continue; }
-        if (lines[j].trim() === "" && dataChunks.length) break;
-        if (/^event:/.test(lines[j])) break;
-      }
-      if (dataChunks.length) {
-        try {
-          const obj = JSON.parse(dataChunks.join("\n"));
-          inlineParameters =
-            obj?.metadata?.inlineParameters ??
-            obj?.inlineParameters ??
-            obj?.metadata?.inline_parameters ??
-            null;
-          workflowName =
-            obj?.metadata?.workflowName ??
-            obj?.workflowName ??
-            obj?.metadata?.workflow_name ??
-            null;
-          confidence =
-            obj?.metadata?.confidence ??
-            obj?.confidence ??
-            null;
-        } catch (e) {
-          console.warn(`[${demoId}] workflow_ready JSON parse failed`);
-        }
-      }
-      break;
+    const eventMatch = /^event:\s*(\w+)\s*$/.exec(lines[i]);
+    if (!eventMatch) continue;
+    const eventName = eventMatch[1];
+    if (eventName !== "final" && eventName !== "workflow_ready") continue;
+
+    // Collect contiguous data: lines
+    const dataChunks: string[] = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      const m = /^data:\s?(.*)$/.exec(lines[j]);
+      if (m) { dataChunks.push(m[1]); continue; }
+      if (lines[j].trim() === "" && dataChunks.length) break;
+      if (/^event:/.test(lines[j])) break;
+    }
+    if (!dataChunks.length) continue;
+    try {
+      const obj = JSON.parse(dataChunks.join("\n"));
+      const ip =
+        obj?.metadata?.inlineParameters ??
+        obj?.inlineParameters ??
+        obj?.metadata?.inline_parameters ??
+        null;
+      if (ip) inlineParameters = ip;
+      const wn =
+        obj?.metadata?.workflowName ??
+        obj?.workflowName ??
+        obj?.metadata?.workflow_name ??
+        obj?.workflow?.workflow_ga?.name ??
+        obj?.workflow_name ??
+        null;
+      if (wn) workflowName = wn;
+      const c =
+        obj?.metadata?.confidence ??
+        obj?.confidence ??
+        obj?.workflow?.confidence ??
+        null;
+      if (c != null) confidence = c;
+    } catch (e) {
+      console.warn(`[${demoId}] ${eventName} JSON parse failed`);
     }
   }
 
@@ -431,6 +444,20 @@ async function waitForWorkflowCard(page: Page, timeoutMs = 180_000): Promise<boo
  * Used by Assertion #2 to confirm LLM values landed in the form before Run.
  */
 async function readFormValues(page: Page): Promise<Record<string, string>> {
+  // The viewer collapses inline-parameter inputs under "Advanced settings" —
+  // expand it (button-toggle-advanced-settings) before reading values so the
+  // <Input> elements are actually in the DOM. Per docs/20260518_tier0_audit_T01_results.md.
+  const toggle = page.locator('[data-testid="button-toggle-advanced-settings"]').first();
+  if (await toggle.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Only click if strip isn't already open (className contains "open")
+    const isOpen = await toggle.evaluate(
+      (el: Element) => (el as HTMLElement).className.includes('open')
+    ).catch(() => false);
+    if (!isOpen) {
+      await toggle.click().catch(() => {});
+      await page.waitForTimeout(400);
+    }
+  }
   return page.evaluate(() => {
     const out: Record<string, string> = {};
     const inputs = document.querySelectorAll(
@@ -482,7 +509,7 @@ async function auditDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     a.confidence = evt.confidence;
 
     record(a, "chat-stream-emits-workflow-ready", !!evt.inlineParameters,
-      evt.inlineParameters ? `workflow=${evt.workflowName}` : "no workflow_ready event found");
+      evt.inlineParameters ? `workflow=${evt.workflowName}` : "no inlineParameters found in final/workflow_ready");
 
     if (evt.inlineParameters) {
       const keys = Object.keys(evt.inlineParameters);
@@ -576,7 +603,8 @@ async function auditDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
         const sawRunning = await waitForFirstRunningPhase(page, 120_000);
         record(a, "first-phase-transitions-running", sawRunning);
 
-        const sawCompleted = await waitForAnyCompletedPhase(page, 900_000);
+        // Bug D from 20260518 audit: AWS Batch cold-start can exceed 900s; raise to 25 min.
+        const sawCompleted = await waitForAnyCompletedPhase(page, 1_500_000);
         record(a, "any-phase-reaches-completed", sawCompleted);
         a.screenshots.push(await shot(page, spec.id, "03_after_running"));
 
@@ -632,9 +660,10 @@ async function auditDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
         }
 
         // ── #7  methods-report endpoint ─────────────────────────────────────
+        // Methods report generation calls Claude Sonnet + scans S3, can take 60s+
         const reportResp = await page.request.get(
           `${BASE_URL}/api/invocations/${runId}/methods-report`,
-          { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 30_000 }
+          { headers: { "x-e2e-test-token": E2E_TOKEN }, timeout: 120_000 }
         ).catch(() => null);
         const reportStatus = reportResp?.status() ?? -1;
         record(a, "methods-report-returns-200",
@@ -711,12 +740,14 @@ function printSuiteReport() {
 // ---------------------------------------------------------------------------
 
 test.describe("Tier 0 demo audit", () => {
-  test.describe.configure({ mode: "serial" });
+  // NOTE: previously `mode: "serial"` — a single soft-fail on T01/T02 caused Playwright
+  // to skip the remaining demos. Use "default" so each demo runs independently.
+  test.describe.configure({ mode: "default" });
 
   for (const spec of DEMOS) {
     test(`${spec.id}: ${spec.workflow} — chat-stream + form prefill + phases + outputs`,
       async ({ page }) => {
-        test.setTimeout(1_800_000); // 30 min per demo
+        test.setTimeout(2_100_000); // 35 min per demo — accommodates Bug D cold-start + report gen
         const a = await auditDemo(page, spec);
         // The test passes if no assertions failed AND no exception was caught.
         const failed = a.assertions.filter(x => !x.passed);

@@ -1,0 +1,250 @@
+# Family-key alias map — Phase 1.5 clustering refinement.
+#
+# Maps fragment family_keys to a canonical family_key. Built from the A/B
+# failure cases in 20260518_PHASE1_AB_RESULTS_AND_DECISION.md plus inspection
+# of fragments in the canonical DB.
+#
+# Format:
+#   <canonical_family_key>:
+#     - <fragment_family_key_1>
+#     - <fragment_family_key_2>
+#
+# Rules of thumb:
+#   - Only merge when the fragments are *the same tool*, not different
+#     tools that share a substring. (e.g. STAR aligner vs star_fusion are
+#     DIFFERENT tools — do NOT merge.)
+#   - Keep major-version distinctions when the user would care (MACS2 vs
+#     MACS3 are materially different; metaphlan2 vs metaphlan4 are
+#     different release lineages).
+#   - Merge author/distributor prefixes: naturalis_, ribogalaxy_, rmarkdown_,
+#     phe_, qiime2__<tool>__<variant>, etc.
+
+# ─── Sequence aligners ──────────────────────────────────────────────────
+bwa:
+  - bwa_mem
+  - bwa_mem2
+  - bwa-mem2
+
+bowtie:
+  # Bowtie (v1) and its many wrapper variants. Bowtie2 stays separate.
+  - bowtie_color
+  - bowtie_genomic
+  - bowtie_mapper
+  - bowtie_remove_rrna
+  - bowtie_transcriptomic
+  - sr_bowtie
+  - sr_bowtie_dataset_annotation
+  - ribogalaxy_bowtie_genome
+  - ribogalaxy_bowtie_trans
+  - ribogalaxy_bowtie_transcriptome
+  - bioconductor:rbowtie
+
+bowtie2:
+  - bioconductor:rbowtie2
+  - qiime2__quality_control__bowtie2_build
+
+hisat2:
+  - hisat
+  - bioconductor:rhisat2
+
+# ─── RNA-seq quantification + DE ────────────────────────────────────────
+salmon:
+  - salmonquantmerge
+  - salmon_kallisto_mtx_to_10x
+
+deseq2:
+  - bioconductor:deseq2
+  - damid_deseq2
+  - deseq2_normalization
+  - metadegalaxy_phyloseq_deseq2
+  - rmarkdown_deseq2
+
+edger:
+  - bioconductor:edger
+  - edger_differential_expression
+  - edger_with_design_matrix
+
+featurecounts:
+  - subread_featurecounts1_5_0_p1
+
+# ─── QC and trimming ────────────────────────────────────────────────────
+fastqc:
+  - naturalis_fastqc
+  - rmarkdown_fastqc
+  - rmarkdown_fastqc_report
+  - sum_fastqc
+  - fastqc_stats
+  - bioconductor:fastqcleaner
+
+cutadapt:
+  - naturalis_cutadapt
+  - ribogalaxy_cutadapt
+  - qiime2__cutadapt__trim_paired
+  - qiime2__cutadapt__trim_single
+  - qiime2__cutadapt__demux_paired
+  - qiime2__cutadapt__demux_single
+
+fastp:
+  - bioconductor:rfastp
+  - fastp_json_to_tabular
+  - fastplong
+
+multiqc:
+  # multiqc family is already canonical; no fragments to merge currently.
+
+# ─── BAM/SAM processing ────────────────────────────────────────────────
+samtools:
+  - phe_samtools_mpileup
+  - rmarkdown_samtools_flagstat
+  - bioconductor:rsamtools
+  - samtools_ampliconclip
+  - samtools_bam_to_cram
+  - samtools_bedcov
+  - samtools_calmd
+  - samtools_coverage
+  - samtools_cram_to_bam
+  - samtools_depad
+  - samtools_depth
+  - samtools_faidx
+  - samtools_fastx
+  - samtools_filter
+  - samtools_fixmate
+  - samtools_flag_filter_1
+  - samtools_flagstat
+  - samtools_idxstats
+  - samtools_markdup
+  - samtools_merge
+  - samtools_mpileup
+  - samtools_phase
+  - samtools_reheader
+  - samtools_rmdup
+  - samtools_slice_bam
+  - samtools_sort
+  - samtools_split
+  - samtools_stats
+  - samtools_view
+
+picard:
+  - picard_plus
+  - gatk_picard
+
+bcftools:
+  - bcftools_annotate
+  - bcftools_consensus
+  - bcftools_csq
+  - bcftools_mpileup
+  - bcftools_norm
+  - bcftools_plugin_split_vep
+  - bcftools_sort
+  - bcftools_view
+
+bedtools:
+  - bedtools_annotate
+  - bedtools_bedtobam
+
+# ─── Variant annotation ─────────────────────────────────────────────────
+ensembl_vep:
+  - ensembl vep
+  - ensemblvep
+  - vep filter
+  - vep_cache_downloader
+  - vep_rest
+  - fetch_vep_cache_data
+
+snpeff:
+  - snpeff_3_6c
+  - snpeff_cds_report
+  - snpeff_from_gff_vcf
+  - snpeff_sars_cov
+  - snpeff_to_peptides
+  - mimodd_snpeff
+  - check_snpeff_candidates
+
+# ─── Structure prediction ──────────────────────────────────────────────
+alphafold:
+  - alphafold 3 server
+  - colabfold_alphafold
+  - cryoem alphafold3 pipeline
+
+# ─── Metagenomics ──────────────────────────────────────────────────────
+# Note: metaphlan major versions stay separate; merge author/format variants.
+metaphlan:
+  - metaphlan_hclust_heatmap
+  - metaphlan_database_downloader
+  - extract_metaphlan_database
+  - customize_metaphlan_database
+  - merge_metaphlan_tables
+  - format_metaphlan2_output
+  - combine_metaphlan2_humann2
+  - metaphlan2krona
+
+# metaphlan2 stays its own family (major version). Merge only its variant.
+metaphlan2:
+  - metaphlan2_database_downloader
+  - metaphlan2_hutlab
+
+kraken2:
+  - build_kraken2_database
+  - kraken2tax
+
+kraken:
+  - build_kraken_database
+  - kraken_filter
+  - kraken_report
+  - kraken_taxonomy_report
+  - kraken_translate
+  - kraken_biom
+
+# ─── Assembly ──────────────────────────────────────────────────────────
+spades:
+  - spades_biosyntheticspades
+  - spades_coronaspades
+  - spades_fasta_header_fixer
+  - spades_metaplasmidspades
+  - spades_metaviralspades
+  - spades_plasmidspades
+  - spades_rnaviralspades
+  - metaspades
+  - plasmidspades
+  - rnaspades
+  - filter_spades_repeats
+
+# ─── MACS peak calling ─────────────────────────────────────────────────
+# macs (v1), macs2 (most-used), macs3 stay separate as major versions.
+macs2:
+  - "biomni: perform chipseq peak calling with macs2"
+  - perform_chipseq_peak_calling_with_macs2
+  - pieplot_macs
+  - macs21
+
+# ─── Sequence analysis ─────────────────────────────────────────────────
+emboss:
+  - emboss_needle
+  - emboss_needleall
+
+diamond:
+  - diamond_database_builder
+  - diamond_using_binary
+
+# ─── Trinity transcriptome ─────────────────────────────────────────────
+trinity:
+  - trinityrnaseq
+  - trinityrnaseq_protocol
+  - trinity_rnaseq
+  - trinity_abundance_estimates_to_matrix
+  - trinity_align_and_estimate_abundance
+  - trinity_analyze_diff_expr
+  - trinity_contig_exn50_statistic
+  - trinity_define_clusters_by_cutting_tree
+  - trinity_filter_low_expr_transcripts
+  - trinity_gene_to_trans_map
+  - trinity_psc
+  - trinity_run_de_analysis
+  - trinity_samples_qccheck
+  - trinity_stats
+  - trinity_super_transcripts
+  - trinitystats
+
+# ─── Bismark methylation ───────────────────────────────────────────────
+bismark:
+  - bismark2bedgraph

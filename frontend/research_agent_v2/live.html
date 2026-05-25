@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate — Research-Agent UI · live (SSE-driven)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="src/tokens.css?v=4"/>
+<link rel="stylesheet" href="src/layout.css?v=15"/>
+<link rel="stylesheet" href="src/research-tokens.css?v=1"/>
+<link rel="stylesheet" href="src/research-layout.css?v=2"/>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- SSE adapter (mock + real) -->
+<script src="src/sse-adapter.js?v=1"></script>
+
+<style>
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg, #fafafa); }
+  .live-shell { max-width: 980px; margin: 0 auto; padding: 24px; }
+  .live-head { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--bm-border, #e5e5e5); margin-bottom: 16px; }
+  .live-head h1 { font-size: 16px; font-weight: 600; margin: 0; flex: 1; }
+  .live-head .sub { font-size: 12px; color: var(--text-dim, #888); }
+  .live-head button, .live-head select { font-size: 12px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--bm-border, #e5e5e5); background: white; cursor: pointer; }
+  .live-status { font-size: 11px; color: var(--text-dim, #888); padding: 4px 8px; background: #f5f5f5; border-radius: 6px; }
+  .live-status.connected { color: oklch(0.45 0.13 150); background: oklch(0.96 0.04 150); }
+  .live-status.error     { color: oklch(0.50 0.18 25);  background: oklch(0.97 0.04 25); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- v1 chrome we reuse (only Icon) -->
+<script type="text/babel" src="src/Icon.jsx?v=5"></script>
+
+<!-- Surfaces under test -->
+<script type="text/babel" src="src/PlanChecklist.jsx?v=2"></script>
+<script type="text/babel" src="src/ChatStream.jsx?v=4"></script>
+<script type="text/babel" src="src/ChatCards.jsx?v=4"></script>
+
+<script type="text/babel">
+// ─────────────────────────────────────────────────────────────────────
+// LiveHarness — minimal mount that consumes the SSE-adapter event stream
+// and renders the three core chat surfaces (Plan + ChatStream + chat cards).
+//
+// Purpose: validate that the BioMate event shape (workflow.phase_started,
+// workflow.qc_gate_warning, workflow.completed, etc., with `speaker` + `kind`
+// + `friendly_message`) drives the design's chat surfaces correctly.
+//
+// Once this renders the drug + cryo scenarios cleanly, the same SSE adapter
+// will be wired into ResearchApp.jsx's tape walker as a parallel input.
+// ─────────────────────────────────────────────────────────────────────
+const { useState, useEffect, useMemo } = React;
+
+const SCENARIOS = {
+  drugscreen: 'Drug screen (ADMET + auto-loop + comparison)',
+  cryoem:     'Cryo-EM SPA (5 phases + CTF gate)',
+};
+
+function LiveHarness() {
+  // URL ?scenario=drugscreen|cryoem · ?speed=0.5|1|2 · ?mode=mock|real · ?inv=...
+  const q = new URLSearchParams(window.location.search);
+  const [scenarioId, setScenarioId] = useState(q.get('scenario') || 'drugscreen');
+  const [speed, setSpeed] = useState(parseFloat(q.get('speed') || '1.0'));
+  const mode = q.get('mode') || 'mock';
+  const realInv = q.get('inv') || '';
+  const [status, setStatus] = useState('idle');
+  const [tick, setTick] = useState(0);  // forces stream restart on scenarioId change
+
+  // Engine state — same vocabulary the design's components consume.
+  const [planItems, setPlanItems] = useState([]);
+  const [chatEvents, setChatEvents] = useState([]);
+  const [cards, setCards] = useState([]);
+  const [eventCount, setEventCount] = useState(0);
+  const [errors, setErrors] = useState(0);
+
+  // ── BioMate event → design engine event mapping ───────────────────
+  // The design's ChatStream consumes events of shape {kind:'line', s, m, …}
+  // and {kind:'card', node}. The PlanChecklist consumes items[].
+  // We map BioMate's chat_progress events into both.
+  function applyBiomateEvent(ev) {
+    setEventCount(c => c + 1);
+
+    // Special internal kinds emitted by the mock stream for scenario shaping —
+    // not part of the real BioMate event shape; they orchestrate plan / cards.
+    if (ev.kind === '__planUpdate') {
+      setPlanItems(items => items.map(it => it.id === ev.id ? { ...it, status: ev.status } : it));
+      return;
+    }
+    if (ev.kind === '__showCard') {
+      setCards(cs => [...cs, { id: 'card-' + Date.now() + '-' + Math.random(), card: ev.card, data: ev.data }]);
+      return;
+    }
+    if (ev.kind === '__await' || ev.kind === '__startCountdown') {
+      // No-op in this minimal harness — full ResearchApp engine handles these.
+      return;
+    }
+
+    // Real BioMate event vocabulary:
+    if (ev.kind === 'plan.shown') {
+      const items = (ev.technical && ev.technical.items) || [];
+      setPlanItems(items);
+      // No chat line for plan.shown — the plan strip itself is the announcement.
+      return;
+    }
+
+    // All other events render as a chat line with the derived speaker pill.
+    setChatEvents(es => [
+      ...es,
+      {
+        kind: 'line',
+        s: ev.speaker || 'wf',
+        m: ev.friendly_message,
+        ts: ev.ts,
+        rationaleId: ev.technical && ev.technical.rationale_id,
+        biomateKind: ev.kind,  // for inspection
+      },
+    ]);
+  }
+
+  // ── Stream lifecycle ──────────────────────────────────────────────
+  useEffect(() => {
+    setPlanItems([]); setChatEvents([]); setCards([]); setEventCount(0); setErrors(0);
+    setStatus('connecting');
+
+    let stream;
+    try {
+      if (mode === 'real') {
+        if (!realInv) {
+          setStatus('error: ?mode=real requires ?inv=<invocation_id>');
+          return;
+        }
+        stream = window.SseAdapter.connectRealBiomateStream(realInv);
+      } else {
+        stream = window.SseAdapter.createMockBiomateStream(scenarioId);
+      }
+    } catch (e) {
+      setStatus('error: ' + e.message);
+      setErrors(x => x + 1);
+      return;
+    }
+
+    setStatus('connected');
+    const handle = stream.start(applyBiomateEvent, { speed });
+    return () => handle.close();
+  }, [scenarioId, tick, mode, realInv, speed]);
+
+  const userQuery = scenarioId === 'cryoem'
+    ? 'Run single-particle reconstruction on EMPIAR-10025.'
+    : 'Screen 10,000 compounds for BBB penetrants — flag hERG / Ames offenders.';
+
+  // ── Render ───────────────────────────────────────────────────────
+  return (
+    <div className="live-shell">
+      <div className="live-head">
+        <h1>Research-Agent UI · live harness</h1>
+        <span className={'live-status ' + (status.startsWith('error') ? 'error' : status === 'connected' ? 'connected' : '')}>{status}</span>
+        <span className="sub">{eventCount} events · {errors} errors</span>
+        <select value={scenarioId} onChange={e => setScenarioId(e.target.value)} disabled={mode === 'real'}>
+          {Object.entries(SCENARIOS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
+        <select value={String(speed)} onChange={e => setSpeed(parseFloat(e.target.value))}>
+          <option value="0.5">0.5×</option>
+          <option value="1">1×</option>
+          <option value="2">2×</option>
+          <option value="5">5×</option>
+        </select>
+        <button onClick={() => setTick(t => t + 1)} title="Replay this scenario">Replay</button>
+      </div>
+
+      {planItems.length > 0 && (
+        <PlanChecklist
+          items={planItems}
+          editing={false}
+          collapsed={false}
+          onToggleCollapsed={() => {}}
+          onEditDone={() => {}}
+          onEditCancel={() => {}}
+          onRemoveItem={() => {}}
+          onAddItem={() => {}}
+          onItemAction={() => {}}
+          editLockCountdown={null}
+        />
+      )}
+
+      <div className="thread" style={{ marginTop: 16 }}>
+        <div className="msg user"><div className="bubble">{userQuery}</div></div>
+
+        <ChatStream
+          userQuery=""
+          userName="You"
+          userTs=""
+          workflowName={scenarioId === 'cryoem' ? 'CryoSPARC SPA' : 'ADMET screen + auto-loop'}
+          workflowSub=""
+          panelOpen={false}
+          onReopenPanel={() => {}}
+          events={chatEvents}
+          placement="after-marker"
+          collapseThreshold={3}
+          showTs={false}
+        />
+
+        {cards.map(c => {
+          if (c.card === 'pilotPrompt') {
+            return <PilotPromptCard key={c.id} scenario={{ pilot: c.data, cost: c.data }} onAction={() => {}} dismissed={false}/>;
+          }
+          if (c.card === 'pilotPromotion') {
+            return <PilotPromotionCard key={c.id} data={c.data} onAction={() => {}} countdown={null} dismissed={false}/>;
+          }
+          if (c.card === 'comparison') {
+            return <ComparisonCard key={c.id} data={c.data} onAction={() => {}} countdown={null} dismissed={false} asPanel={false}/>;
+          }
+          if (c.card === 'findings') {
+            return <FindingsChatCard key={c.id} data={c.data}/>;
+          }
+          return null;
+        })}
+      </div>
+
+      <div style={{ marginTop: 32, fontSize: 11, color: '#888', borderTop: '1px dashed #ddd', paddingTop: 12 }}>
+        URL params: <code>?scenario=drugscreen|cryoem</code> · <code>?speed=0.5|1|2|5</code> · <code>?mode=mock|real</code> · <code>?inv=&lt;invocation_id&gt;</code>
+        <br/>
+        Current mode: <b>{mode}</b>{mode === 'real' && <> · inv: <code>{realInv}</code></>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<LiveHarness/>);
+</script>
+</body>
+</html>

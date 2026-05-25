@@ -17,7 +17,7 @@ params.tissue_data = '{"tumor": [5.2, 8.5, 15.3, 18.2, 16.8, 14.5, 10.2], "blood
 process ANALYZE_RADIOLABELED_ANTIBODY_BIODISTRIBUTION {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'

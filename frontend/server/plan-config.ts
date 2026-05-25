@@ -9,14 +9,14 @@
  *   2. Apply tier-aware messaging in quota-exceeded responses.
  *
  * Lago plan codes: "free" | "basic" | "pro" | "enterprise"
- * BioMate tiers:   "premium" | "academic" | "enterprise" | "admin"
- * (New signups default to "premium" — the 14-day trial tier.)
+ * BioMate tiers:   "trial" | "academic" | "professional" | "enterprise" | "admin"
  */
 
 /** Frontend subscription tier → Lago billing plan code */
 export const TIER_TO_BILLING_PLAN: Record<string, string> = {
-  premium:      'basic',  // 14-day trial; default for new signups
+  trial:        'free',
   academic:     'free',
+  professional: 'basic',
   enterprise:   'pro',
   admin:        'enterprise', // custom / unlimited
 };
@@ -27,8 +27,9 @@ export const TIER_TO_BILLING_PLAN: Record<string, string> = {
  * Must stay in sync with DEFAULT_PLAN_LIMITS in quota_enforcer.py.
  */
 export const TIER_QUOTA_USD: Record<string, number | null> = {
-  premium:      25.00,    // 14-day trial budget
+  trial:        5.00,
   academic:     5.00,
+  professional: 25.00,
   enterprise:   500.00,
   admin:        null,
 };

@@ -1,0 +1,24 @@
+[
+  {
+    "testId": "PB-1",
+    "runId": null,
+    "startTs": 1779223566035,
+    "endTs": 1779223748219,
+    "finalStatus": "skipped",
+    "assertions": [
+      {
+        "name": "assistant_mentions_codon_domain",
+        "passed": false
+      },
+      {
+        "name": "workflow_card_or_followup_possible",
+        "passed": false
+      }
+    ],
+    "screenshots": [],
+    "notes": [
+      "hasWorkflowCard=false",
+      "mentionsCodon=false"
+    ]
+  }
+]

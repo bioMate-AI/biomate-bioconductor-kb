@@ -21,11 +21,16 @@ on:
   push:
     # integration/next-phase is the active dev branch; main is the future
     # production branch. Both build images on push.
+    #
+    # No `paths:` filter (per CI/CD plan L1 — "every push rebuilds images").
+    # A path filter looks like a cheap optimization, but couples the deploy
+    # pipeline to coincidence: if a commit only touches backend/**, only the
+    # backend image gets a sha-<commit> tag. deploy.yml then fires at that
+    # SHA and `compose pull` fails because no frontend image exists at the
+    # same SHA. Rebuilding both on every commit keeps backend and frontend
+    # image SHAs in lockstep, which is the property deploy.yml relies on.
     branches: [main, integration/next-phase]
     tags: ['release-*']
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-image.yml'
   workflow_dispatch: {}
 
 permissions:
@@ -155,7 +160,7 @@ jobs:
                     --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" \
                     --exclude-dir=site-packages --exclude-dir=.venv --exclude-dir=node_modules \
                     2>/dev/null | grep -v "^Binary"' \
-                  | grep -vE "^/app/lib/galaxy/" \
+                  | grep -vE "^/app/(lib/galaxy|test)/" \
                   | grep -vE "$ALLOWED" \
                   | head -5 || true)
           if [[ -n "$HITS" ]]; then

@@ -4,7 +4,7 @@
 ProTrek unifies sequence, structure, and function through contrastive learning.
 Enables advanced protein searches across 5B+ proteins.
 
-Local repo: /home/yzhang/biomate/tools_repos/ProTrek
+Local repo: /opt/biomate/tools_repos/ProTrek
 """
 import argparse
 import os
@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 # ProTrek installation directory
-PROTREK_DIR = os.environ.get("PROTREK_DIR", "/home/yzhang/biomate/tools_repos/ProTrek")
+PROTREK_DIR = os.environ.get("PROTREK_DIR", "/opt/biomate/tools_repos/ProTrek")
 
 def run_embedding(args):
     """Generate protein embeddings with ProTrek."""

@@ -102,8 +102,9 @@ venv*/
 *.rda
 *.RData
 
-# Recording output
-recording/
+# Recording output (top-level only — not scripts/recording/)
+/recording/
+scripts/recording/__pycache__/
 
 # Demo videos committed by mistake
 frontend/e2e/demo-videos/

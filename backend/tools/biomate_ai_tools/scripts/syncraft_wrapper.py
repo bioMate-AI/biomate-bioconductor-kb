@@ -16,7 +16,7 @@ import sys
 import time
 
 # SynCraft installation directory
-SYNCRAFT_DIR = os.environ.get("SYNCRAFT_DIR", "/home/yzhang/biomate/tools_repos/syncraft")
+SYNCRAFT_DIR = os.environ.get("SYNCRAFT_DIR", "/opt/biomate/tools_repos/syncraft")
 
 # Error codes
 ERROR_NO_API_KEY = 10

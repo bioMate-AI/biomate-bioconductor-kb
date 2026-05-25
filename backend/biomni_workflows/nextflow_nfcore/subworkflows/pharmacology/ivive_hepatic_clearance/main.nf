@@ -40,7 +40,7 @@ params.smiles        = ''
 process IVIVE_HEPATIC_CLEARANCE {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // local (ARM dev placeholder): biomate/biomni-tools:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86

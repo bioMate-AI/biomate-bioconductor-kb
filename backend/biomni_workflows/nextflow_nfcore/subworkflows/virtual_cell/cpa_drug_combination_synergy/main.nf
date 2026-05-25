@@ -54,7 +54,7 @@ params.dose_ratio_b   = '1.0'           // fractional dose of B (1.0=full Cmax)
 process CPA_DRUG_COMBINATION_SYNERGY {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \

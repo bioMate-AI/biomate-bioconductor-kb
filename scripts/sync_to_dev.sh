@@ -68,6 +68,36 @@ ec2_scp() {
 # Layer 1: Frontend (full Docker rebuild)
 # ---------------------------------------------------------------------------
 
+apply_postgres_migrations() {
+  # Apply any new frontend/migrations/*.sql to biomate-dev-postgres.
+  # Idempotent (each migration uses IF NOT EXISTS / IF EXISTS).
+  # Runs BEFORE frontend deploy so schema is ready when the new bundle starts.
+  log "[pg] Applying frontend/migrations/*.sql to biomate-dev-postgres..."
+  local migrations_dir="$REPO_ROOT/frontend/migrations"
+  if [[ ! -d "$migrations_dir" ]]; then
+    log "[pg] No migrations dir at $migrations_dir — skipping"
+    return 0
+  fi
+  local tar_file=/tmp/biomate_pg_migrations.tar.gz
+  tar -czf "$tar_file" -C "$REPO_ROOT" frontend/migrations 2>/dev/null
+  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/pg_migrations.tar.gz"
+  ec2_ssh '
+    set -e
+    rm -rf /tmp/pg_migrations && mkdir -p /tmp/pg_migrations
+    tar -xzf /tmp/pg_migrations.tar.gz -C /tmp/pg_migrations
+    docker cp /tmp/pg_migrations/frontend/migrations biomate-dev-postgres:/tmp/migrations
+    docker exec biomate-dev-postgres bash -c "
+      set -e
+      cd /tmp/migrations
+      for f in \$(ls *.sql | sort); do
+        echo \"[pg] applying \$f\"
+        psql -U biomate -d biomate -v ON_ERROR_STOP=1 -f \$f >/dev/null
+      done
+    " 2>&1 | tail -20
+  '
+  log "[pg] Migrations applied"
+}
+
 deploy_frontend() {
   log "[frontend] Building archive..."
   local tar_file="/tmp/biomate_frontend_sync.tar.gz"
@@ -93,8 +123,19 @@ deploy_frontend() {
     # Prune dangling images + build cache to prevent disk-full build failures
     docker image prune -f > /dev/null 2>&1 || true
     docker builder prune -f > /dev/null 2>&1 || true
-    docker stop biomate-dev-frontend 2>/dev/null || true
-    docker rm -f biomate-dev-frontend 2>/dev/null || true
+
+    # ── Atomic swap pattern (no downtime) ────────────────────────────────
+    # OLD pattern (caused dev-public outages 2026-05-18):
+    #   docker stop && docker rm OLD → build new → docker run new
+    #   ↳ Multi-minute 502 window while building. If build fails, the
+    #     `keeping previous container running` branch did NOT restore
+    #     reliably because the original image tag was overwritten.
+    #
+    # NEW pattern: build to a `:next` tag, only swap containers AFTER
+    # the build succeeds. Failure path leaves the running container
+    # untouched. Old container only goes down for the ~2 seconds of
+    # the actual docker run, not the multi-minute build.
+
     # Ensure biotools base exists (built once, rarely rebuilt).
     if ! docker image inspect biomate-biotools:1 >/dev/null 2>&1; then
       echo "[frontend] Biotools base missing — building (this is slow, runs once)..."
@@ -102,25 +143,20 @@ deploy_frontend() {
         -f /opt/biomate/frontend_sync/frontend/Dockerfile.biotools \
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5
     fi
-    echo "[frontend] Building app image..."
-    if ! docker build -t biomate-dev-frontend:latest \
+
+    echo "[frontend] Building app image (old container still serving)..."
+    if ! docker build -t biomate-dev-frontend:next \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile \
         /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5; then
-      echo "[frontend] ERROR: app image build failed — keeping previous container running"
-      docker run -d --name biomate-dev-frontend --network biomate-dev-net \
-        -p 3000:3000 --env-file /opt/biomate/.env \
-        -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
-        --restart unless-stopped \
-        biomate-dev-frontend:latest 2>/dev/null || true
+      echo "[frontend] ERROR: app image build failed — old container still up, no swap"
       exit 1
     fi
-    echo "[frontend] Restarting container..."
-    sleep 1
-    # Note: removed the /opt/biomate/dist_index.js volume mount + post-start docker cp.
-    # That was a workaround from when image rebuilds were flaky and would override the
-    # freshly-built bundle with a stale host file. Now that Dockerfile.biotools is split
-    # and the app image rebuilds reliably, we use only the baked-in dist/.
-    #
+
+    # Promote :next → :latest; safe even if no previous :latest exists.
+    docker tag biomate-dev-frontend:next biomate-dev-frontend:latest
+
+    echo "[frontend] Swapping containers..."
+    docker rm -f biomate-dev-frontend 2>/dev/null || true
     # /var/run/docker.sock + /tmp/biomate_code mount: run_code tool spawns
     # ephemeral biomate-biotools:1 sandboxes via host docker; the sandbox
     # bind-mounts /tmp/biomate_code/<session> which must resolve to the same
@@ -198,8 +234,19 @@ deploy_backend_python() {
       || docker exec biomate-galaxy-dev /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
 
     # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
-    docker exec biomate-galaxy-dev test -x /usr/local/bin/nextflow 2>/dev/null \
-      || docker exec biomate-galaxy-dev bash -c "curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+    # Nextflow VERSION PIN (2026-05-21): 25.10.0 is the latest pre-26 LTS.
+    # Nextflow 26.04+ became stricter about DSL2 (e.g. rejects top-level
+    # `def` statements with "Statements cannot be mixed with script
+    # declarations", and is pickier about Groovy heredoc parsing). 21 of
+    # our workflows had to be rewritten today to satisfy 26.04. Rather
+    # than chase every future breaking change, pin to 25.10 LTS which
+    # accepts the older syntax cleanly. Bump deliberately, not by curl.
+    EXPECTED_NF_VER="25.10.0"
+    INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    if [[ "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
+      echo "[galaxy] Nextflow version mismatch (installed=$INSTALLED_NF_VER, want=$EXPECTED_NF_VER) — reinstalling pinned version"
+      docker exec biomate-galaxy-dev bash -c "NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+    fi
   '
   log "[backend] Python files synced"
 }
@@ -224,18 +271,42 @@ deploy_workflows() {
     set -e
     mkdir -p /tmp/workflows_extract
     tar -xzf /tmp/workflows_sync.tar.gz -C /tmp/workflows_extract 2>/dev/null
-    # Force-remove ADMET_pred to ensure fresh copy (fixes cache issue where file content wasnt updating)
-    docker exec biomate-galaxy-dev rm -rf /app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred 2>/dev/null || true
-    docker exec biomate-galaxy-dev rm -rf /app/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred 2>/dev/null || true
-    # Copy workflows into Galaxy container
-    docker cp /tmp/workflows_extract/backend/biomni_workflows \
-      biomate-galaxy-dev:/app/biomni_workflows 2>/dev/null || \
-    docker exec biomate-galaxy-dev mkdir -p /app/biomni_workflows && \
-      docker cp /tmp/workflows_extract/backend/biomni_workflows/. \
-        biomate-galaxy-dev:/app/biomni_workflows/ 2>/dev/null
-    # Clean up Nextflow cache files that might have old versions
-    docker exec biomate-galaxy-dev find /app/biomni_workflows -name '.nextflow*' -exec rm -rf {} + 2>/dev/null || true
-    docker exec biomate-galaxy-dev find /app/biomni_workflows -type d -name 'work' -exec rm -rf {} + 2>/dev/null || true
+    # Copy workflows into Galaxy container via in-container untar so symlinks
+    # in the archive can replace pre-existing directories (the host docker cp
+    # cannot overwrite a directory with a non-directory and silently leaves
+    # stale content — caused the 2026-05-21 ADMET_pred regression where the
+    # symlink drug_discovery/ADMET_pred → pharmacology/ADMET_pred could not
+    # supersede an old standalone directory on dev).
+    docker cp /tmp/workflows_sync.tar.gz biomate-galaxy-dev:/tmp/workflows_sync.tar.gz
+    docker exec biomate-galaxy-dev bash -c "
+      set -e
+      cd /tmp && mkdir -p workflows_extract_in
+      tar -xzf workflows_sync.tar.gz -C workflows_extract_in
+      # Per-file replacement (handles symlink-vs-dir conflicts that defeat cp -r).
+      # Walk the source, remove the dest entry whatever its type, then move new in.
+      cd workflows_extract_in/backend/biomni_workflows
+      find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
+        rel=\${rel#./}
+        dest=/app/biomni_workflows/\$rel
+        mkdir -p \"\$(dirname \"\$dest\")\"
+        rm -rf \"\$dest\" 2>/dev/null
+        cp -P \"\$rel\" \"\$dest\"
+      done
+    " 2>&1 | tail -3
+
+    # Workflow-script cache invalidation: Nextflow caches compiled .nf
+    # scripts by content hash, but stale per-run dirs can keep old plugin
+    # state. We DO NOT delete entire ~/.nextflow (plugins are 100MB+ and
+    # re-downloading on every sync would be slow); we clear only the
+    # script-compile cache + tmp.
+    docker exec biomate-galaxy-dev bash -c "
+      rm -rf /home/galaxy/.nextflow/cache /home/galaxy/.nextflow/tmp 2>/dev/null
+      rm -rf /root/.nextflow/cache /root/.nextflow/tmp 2>/dev/null
+      # Also wipe completed/orphaned per-run dirs older than 1 hour so the
+      # fallback status path will not latch onto a stale timing.json.
+      find /tmp/nextflow_runs -maxdepth 1 -mindepth 1 -type d -mmin +60 -exec rm -rf {} + 2>/dev/null
+      echo \"  ✓ nextflow caches cleared\"
+    " 2>&1 | tail -3
     echo "[workflows] Done"
   '
   log "[workflows] Done"
@@ -246,52 +317,77 @@ deploy_workflows() {
 # ---------------------------------------------------------------------------
 
 deploy_databases() {
-  log "[db] Syncing Galaxy databases via S3..."
-  local S3_PREFIX="s3://biomate-nextflow-work/dev-sync"
+  log "[db] Syncing Galaxy databases..."
 
-  # galaxy_ai_tools.db — 259MB, upload local→S3, EC2 pulls from S3
+  # galaxy_ai_tools.db — 270MB, sync via direct scp (NOT S3).
+  #
+  # WHY scp instead of S3 (2026-05-22):
+  # The dev EC2 host has stale ~/.aws/credentials (Oct 2025) whose access
+  # key has been deleted upstream. The `aws s3 cp` on the host returns
+  # InvalidAccessKeyId and the previous code silently used a stale
+  # `/tmp/galaxy_ai_tools_sync.db` from a prior run — leaving dev on a
+  # stale workflow DB indefinitely. Same failure mode that hit
+  # universe.sqlite. Direct scp avoids it. ~15-30 sec at LAN speed.
+  #
+  # Fixing the EC2 creds (move ~/.aws/credentials aside, let the
+  # BioMateEc2DeployProfile instance role take over) would restore the
+  # S3 path, but that's a separate hardening pass.
   local local_db="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
   local local_db_mtime=$(stat -c %Y "$local_db" 2>/dev/null || echo 0)
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
-    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — uploading to S3..."
-    aws s3 cp "$local_db" "${S3_PREFIX}/galaxy_ai_tools.db" --no-progress
-    log "[db] S3 upload done — EC2 pulling..."
-
+    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
+    ec2_scp "$local_db" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_tools_sync.db" \
+      || { log "[db] scp failed — aborting galaxy_ai_tools.db sync"; return 1; }
     ec2_ssh '
       docker stop biomate-galaxy-dev 2>/dev/null || true
-      aws s3 cp s3://biomate-nextflow-work/dev-sync/galaxy_ai_tools.db \
-        /tmp/galaxy_ai_tools_sync.db --no-progress
       docker cp /tmp/galaxy_ai_tools_sync.db \
         biomate-galaxy-dev:/app/database/galaxy_ai_tools.db
       docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       docker start biomate-galaxy-dev
       docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
       sleep 5
-      echo "[db] galaxy_ai_tools.db replaced"
+      echo "[db] galaxy_ai_tools.db replaced (md5: $(docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db | cut -d" " -f1))"
+      rm -f /tmp/galaxy_ai_tools_sync.db
     '
     LAST_DB_SYNC="$local_db_mtime"
   else
     log "[db] galaxy_ai_tools.db unchanged — skipping"
   fi
 
-  # universe.sqlite — 3.4MB, same pattern
+  # universe.sqlite — 3.4MB, sync via direct scp (NOT S3).
+  #
+  # WHY scp instead of S3 (2026-05-21):
+  # The dev EC2 host lacks S3 read credentials for biomate-nextflow-work
+  # (HeadObject returns 403 Forbidden). The previous S3-path code silently
+  # ran `aws s3 cp` on the host, failed, and continued using a STALE
+  # `/tmp/universe_sync.sqlite` from a prior run — clobbering manual
+  # migration fixes on every sync. Direct scp from the workstation avoids
+  # that failure mode entirely. The file is small (3.4 MB ≈ 2 sec scp).
+  #
+  # Local DB must be at the same alembic head as the deployed code. If
+  # the upgrade below fails with "Multiple head revisions are present",
+  # update LATEST_GXY_HEAD to the new merge-revision filename in
+  # backend/lib/galaxy/model/migrations/alembic/versions_gxy/.
   local universe_db="$REPO_ROOT/backend/database/universe.sqlite"
+  local LATEST_GXY_HEAD="204367c6a604"  # merge_gxy_heads_autofix_sample_sheets
   if [[ -f "$universe_db" && $(stat -c %s "$universe_db") -gt 0 ]]; then
-    log "[db] universe.sqlite — uploading to S3..."
-    aws s3 cp "$universe_db" "${S3_PREFIX}/universe.sqlite" --no-progress
-    ec2_ssh '
-      docker stop biomate-galaxy-dev 2>/dev/null || true
-      aws s3 cp s3://biomate-nextflow-work/dev-sync/universe.sqlite \
-        /tmp/universe_sync.sqlite --no-progress
-      docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite
-      docker exec -u root biomate-galaxy-dev chown -R galaxy:galaxy /app/database/
-      docker exec -u root biomate-galaxy-dev chmod 775 /app/database/
-      docker start biomate-galaxy-dev
-      docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
-      sleep 5
-      echo "[db] universe.sqlite replaced"
-    ' || log "[db] universe.sqlite sync failed"
+    log "[db] universe.sqlite — scp to EC2 (bypass S3)..."
+    ec2_scp "$universe_db" "${EC2_USER}@${EC2_HOST}:/tmp/universe_sync.sqlite" \
+      || { log "[db] scp failed — aborting universe.sqlite sync"; return 1; }
+    # docker cp works on a RUNNING container — no need to stop. chown must
+    # happen while the container runs (docker exec fails on a stopped one).
+    # The restart at the end forces Galaxy workers to re-open the new DB
+    # file (the open file handle from the pre-cp workers is now stale).
+    ec2_ssh "
+      docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite \
+        && docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/universe.sqlite \
+        && echo '[db] file replaced — running alembic upgrade ${LATEST_GXY_HEAD}...' \
+        && (docker exec biomate-galaxy-dev bash -c 'cd /app && ./manage_db.sh upgrade ${LATEST_GXY_HEAD} 2>&1' | tail -5 \
+            || echo '[db] alembic upgrade returned non-zero — Galaxy may be unhealthy after restart') \
+        && docker restart biomate-galaxy-dev >/dev/null \
+        && echo '[db] universe.sqlite replaced + upgraded to ${LATEST_GXY_HEAD}'
+    " || log "[db] universe.sqlite sync failed"
   fi
 
   log "[db] Done"
@@ -302,8 +398,37 @@ deploy_databases() {
 # ---------------------------------------------------------------------------
 
 restart_galaxy() {
-  log "[galaxy] Reloading Galaxy gunicorn workers (HUP)..."
+  log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
+    # Stale cache cleanup — addresses the class of "undetected issues" where
+    # a code/workflow change ships but the runtime keeps serving the old
+    # behaviour because:
+    #   - .pyc bytecode under __pycache__/ wins over fresh .py
+    #   - module-level singletons (e.g. _ai_assistant_instance) survive HUP
+    #     when the master process is reused
+    #   - Nextflow caches compiled workflow scripts in ~/.nextflow and the
+    #     per-run directories under /tmp/nextflow_runs/<run_id>/.nextflow
+    #   - Galaxy AI tool DB query caches inside the worker process
+    # Cleaning these BEFORE the HUP guarantees the new code/workflow is what
+    # serves the next request.
+    echo "[galaxy] Clearing Python bytecode cache (__pycache__ under /app/lib/galaxy/ai)..."
+    docker exec biomate-galaxy-dev bash -c "
+      find /app/lib/galaxy/ai /app/lib/galaxy/webapps/galaxy/api -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null
+      find /app/lib/galaxy/ai /app/lib/galaxy/webapps/galaxy/api -name \"*.pyc\" -delete 2>/dev/null
+      echo \"  ✓ pycache cleared\"
+    " 2>&1 | tail -3
+
+    echo "[galaxy] Clearing Nextflow workflow-script cache (preserves plugins)..."
+    docker exec biomate-galaxy-dev bash -c "
+      # Clear the cache directories Nextflow uses to memoise compiled workflow
+      # bytecode + workflow trace state. /tmp/nextflow_runs/* is per-run and
+      # safe to keep; the global ~/.nextflow/cache is what stores cross-run
+      # script-compile artifacts that pin to stale .nf file hashes.
+      rm -rf /home/galaxy/.nextflow/cache /home/galaxy/.nextflow/tmp 2>/dev/null
+      rm -rf /root/.nextflow/cache /root/.nextflow/tmp 2>/dev/null
+      echo \"  ✓ nextflow caches cleared\"
+    " 2>&1 | tail -3
+
     # Prefer HUP (graceful reload, no 30-min cold start) over docker restart.
     # Use "docker kill -s HUP" from the host — the container has no kill binary.
     GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
@@ -405,9 +530,17 @@ do_sync() {
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
-  # Only restart Galaxy when backend Python changes — .nf files don't require Galaxy restart
-  $do_backend && restart_galaxy
+  # HUP Galaxy when either backend Python OR workflow .nf files change.
+  # Workflows used to skip the HUP on the theory that Nextflow reads .nf
+  # from disk per-run, but Galaxy's in-process workflow_search keeps a
+  # parsed step cache + tool DB cache that stays pinned to old file
+  # contents until the worker process recycles. Skipping HUP caused the
+  # 2026-05-21 class of "fix shipped but old behaviour persists" issues.
+  ($do_backend || $do_workflows) && restart_galaxy
   $do_db        && deploy_databases
+  # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
+  # storage layer never hits a missing column on the new schema.
+  $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
   $do_marketing && deploy_marketing
 

@@ -7,6 +7,7 @@ With automatic cascading fallback for reliability.
 
 import json
 import logging
+import os
 import time
 import uuid
 import httpx
@@ -107,8 +108,23 @@ class LLMClient:
         self.user_id: str = ""
         self.session_id: str = str(uuid.uuid4())
 
-        # Initialize cascading fallback manager
-        self.fallback_manager = FallbackChainManager()
+        # Initialize cascading fallback manager.
+        # The default config_path baked into FallbackChainManager is the
+        # original maintainer's macOS home (/Users/kky/…); on every other
+        # host the yaml fails to load and the chain silently falls back to
+        # hardcoded defaults — which omit Gemini when only GEMINI_API_KEY
+        # (not GOOGLE_API_KEY) is set and stall for ~60s before reaching a
+        # working provider. Resolve the yaml relative to this file so the
+        # repo-checked-in providers config is actually used.
+        _here = os.path.dirname(os.path.abspath(__file__))
+        _cfg = os.path.normpath(
+            os.path.join(_here, "..", "..", "..", "..", "config", "llm_providers.yml")
+        )
+        _cfg = os.environ.get("BIOMATE_LLM_PROVIDERS_YML", _cfg)
+        if os.path.exists(_cfg):
+            self.fallback_manager = FallbackChainManager(config_path=_cfg)
+        else:
+            self.fallback_manager = FallbackChainManager()
 
         # Initialize provider-specific settings
         self._setup_provider()
@@ -556,7 +572,7 @@ DEEPSEEK_MODELS = [
 # Ollama local models
 OLLAMA_MODELS = [
     "gemma4:31b",                    # Gemma 4 31B - Primary local model (BioMate default)
-    "qwen3:32b",                     # Qwen3 32B - Strong reasoning, /think mode
+    "qwen3:8b",                     # Qwen3 32B - Strong reasoning, /think mode
     "qwen3:30b-a3b",                 # Qwen3 30B MoE - Fast (61 tok/s), good MCQ
     "qwen3:14b",                     # Qwen3 14B - Good balance
     "qwen3:8b",                      # Qwen3 8B - Fast
@@ -644,7 +660,7 @@ def get_all_providers() -> Dict[str, Dict[str, Any]]:
         'ollama': {
             'name': 'Ollama (Local)',
             'models': OLLAMA_MODELS,
-            'recommended': 'qwen3:32b',
+            'recommended': 'qwen3:8b',
             'api_key_required': False,
             'local': True,
             'description': 'Local models via Ollama - qwen3, llama3, mistral'

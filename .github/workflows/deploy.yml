@@ -1,0 +1,141 @@
+name: Deploy to environment
+
+# Wraps scripts/deploy.sh in a GHA workflow. P3.1 starting shape: only
+# `test` env is wired (matches the env scaffolding from P1.3 + P2.1+P2.2).
+# Stage and prod paths land when P2.4 / P4.1 provision those envs and Galaxy
+# fork's alembic multi-head issue (task #19) is fixed.
+#
+# Triggers:
+#   - workflow_run from successful image builds (auto-deploy current branch tag)
+#   - workflow_dispatch with explicit env + tag (manual deploy / rollback)
+#
+# Behavior:
+#   - Resolves a deploy tag (sha-* preferred; falls back to <branch>-latest).
+#   - Calls scripts/deploy.sh which uses SSM Run Command to target the
+#     env's EC2 (tag-based), pulls the image, force-recreates compose,
+#     external healthcheck, auto-rollback to previous tag on failure.
+#   - Concurrency group per env so two deploys can't race.
+#
+# Past-incident guardrails enforced (in scripts/deploy.sh itself):
+#   - L3  (no docker prune -af)
+#   - L7  (pkill orphan sync_to_dev.sh)
+#   - L13 (boto3 adaptive retries via AWS CLI v2 default)
+#   - L17 (auto-rollback to previous tag)
+#   - L20 (SSM not SSH)
+#   - L21 (HTTP healthcheck gate)
+
+on:
+  workflow_run:
+    workflows: ["Build & push backend image", "Build & push frontend image"]
+    types: [completed]
+    branches: [main, integration/next-phase]
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [test]
+      tag:
+        description: 'ECR image tag to deploy (sha-*, release-*, or <branch>-latest)'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.env || 'test' }}
+  cancel-in-progress: false   # don't cancel an in-flight deploy mid-rollback
+
+env:
+  AWS_REGION: us-west-2
+  DEPLOY_ROLE: arn:aws:iam::399683337364:role/GitHubActionsDeploy
+
+jobs:
+  deploy-test:
+    # workflow_run is workflow-level; check conclusion + branch inside the job.
+    # workflow_dispatch sets event_name=workflow_dispatch.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    # 10 min is plenty for the deploy: pre-flight + ECR pull (~3 min for a
+    # full image refresh) + healthcheck (90s) + tag commit + notify. Any
+    # ssm_run that hangs past this caps the GHA spend rather than burning
+    # 20 minutes (which is what the first GHA run did when SendCommand was
+    # AccessDenied and the polling loop spun forever — that's now also
+    # fixed in deploy.sh:ssm_run by aborting on empty cmd_id).
+    timeout-minutes: 10
+    environment:
+      name: test
+      url: http://stage-public.biomate.ai
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve target tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            # workflow_run trigger: use the upstream build's head sha-prefixed tag
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            TAG="sha-${SHA:0:12}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Deploying tag: $TAG"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sanity — assumed role identity
+        run: aws sts get-caller-identity --query 'Arn' --output text
+
+      # On workflow_run triggers, the upstream image build was path-filtered:
+      # a backend-only commit produces ONLY a backend image at sha-XXX, and
+      # vice versa. If we tried to `compose pull` at that SHA, the missing
+      # image would fail the deploy through no fault of the pipeline. Verify
+      # both images exist before proceeding — if not, exit success (the
+      # sibling image build, when it lands at this or a later SHA, will
+      # re-trigger this workflow with a coherent tag).
+      - name: Verify both images exist at tag
+        if: github.event_name == 'workflow_run'
+        id: verify
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          MISSING=0
+          for repo in biomate/dev-backend biomate/dev-frontend; do
+            if ! aws ecr describe-images --repository-name "$repo" \
+                  --image-ids imageTag="$TAG" \
+                  --region "$AWS_REGION" >/dev/null 2>&1; then
+              echo "::notice::image $repo:$TAG not yet in ECR — skipping (will re-fire when sibling build completes)"
+              MISSING=1
+            else
+              echo "found: $repo:$TAG"
+            fi
+          done
+          if [[ "$MISSING" == "1" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run deploy.sh
+        if: steps.verify.outputs.skip != 'true'
+        run: |
+          chmod +x scripts/deploy.sh
+          bash scripts/deploy.sh test "${{ steps.tag.outputs.tag }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Deploy → test"
+            echo "- tag: \`${{ steps.tag.outputs.tag }}\`"
+            echo "- url: http://stage-public.biomate.ai"
+            echo "- conclusion: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

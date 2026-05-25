@@ -33,7 +33,7 @@ params.label_key      = 'Unknown'     // obs column for cell type labels (or 'Un
 process MAGECK_COUNT {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/mageck_count", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/mageck_count" }, mode: 'copy'
 
     container 'quay.io/biocontainers/mageck:0.5.9.5--py39h7cff6ad_2'
 
@@ -103,7 +103,7 @@ PYEOF
 process MAGECK_MLE {
     tag "${meta.id}"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/mageck_mle", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/mageck_mle" }, mode: 'copy'
 
     container 'quay.io/biocontainers/mageck:0.5.9.5--py39h7cff6ad_2'
 
@@ -160,7 +160,7 @@ PYEOF
 process SCVI_PERTURBATION {
     tag "${meta.id}"
     label 'process_high'
-    publishDir "${params.outdir}/${meta.id}/scvi_perturbation", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}/scvi_perturbation" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 

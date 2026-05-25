@@ -1194,6 +1194,14 @@ def _generate_executor_config(
             "    client {",
             "        maxConnections = 20",
             "        uploadChunkSize = 104857600",   # 100 MB chunks
+            # JVM SIGSEGV mitigation (2026-05-21): disable AWS SDK CRT (Common
+            # Runtime) S3 path so the bundled CRT JAR's <clinit> never tries
+            # to extract + dlopen its native .so. Falls back to the Apache
+            # HTTP client which uses pure-Java networking. The CRT path
+            # races on chained dlopen under OpenJDK 21.0.11 + Debian trixie
+            # glibc 2.41 and SIGSEGVs inside ld-linux on the PublishDir
+            # thread (~3 of 4 parallel runs observed on 2026-05-20).
+            "        s3.useCrtClient = false",
             "    }",
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
@@ -2193,6 +2201,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         with _runs_lock:
             if run_id in _runs:
                 # On success, enumerate S3 output files so the frontend can list/download them.
+                #
+                # DEPRECATED 2026-05-21: `s3_output_files` is being phased out. New
+                # consumers should call BioMate's `/api/runs/:id/outputs` (the
+                # canonical RunsOutputsService) which lists S3 directly and returns
+                # richer file metadata (fileType, presigned download URLs, step
+                # mapping). This in-memory field stays empty whenever the gunicorn
+                # worker restarts mid-run, which is the root cause of the
+                # 2026-05-21 "outs=0 on succeeded runs" cosmetic issue. We keep
+                # writing it for backward compatibility with older clients that
+                # still read it (frontend artifact-summary triage path, billing
+                # event consumers) — but the field's stability is not guaranteed.
                 if returncode == 0:
                     outdir = _runs[run_id].get("outdir", "")
                     if str(outdir).startswith("s3://"):
@@ -2729,7 +2748,13 @@ def execute_nextflow(
 
     # Pre-flight: check if this pipeline can run on this host with these settings.
     params = dict(request.parameters or {})
+    # `profile` and `executor` are Nextflow CLI / compute options — not pipeline params.
+    # Passing them as --profile in the param loop breaks nf-core (duplicate -profile vs --profile).
+    _param_profile = params.pop("profile", None)
+    _param_executor = params.pop("executor", None)
     compute = dict(request.compute_config or {})
+    if _param_executor and not compute.get("executor"):
+        compute["executor"] = str(_param_executor)
 
     # Default to AWS Batch when NEXTFLOW_USE_AWS=true and no explicit executor is set.
     # This is the platform default: all workflows run on Batch unless explicitly overridden.
@@ -2895,8 +2920,31 @@ def execute_nextflow(
         )
 
     # Profile — explicit request value wins; fall back to BIOMATE_NF_PROFILE env var.
-    profile = request.profile or _default_nf_profile()
-    cmd += ["-profile", profile]
+    profile = request.profile or _param_profile or _default_nf_profile()
+    # Only pass -profile when the workflow's nextflow.config declares that profile.
+    # 2026-05-22 fix: many of our subworkflow main.nf files have no nextflow.config
+    # at all, OR their config doesn't declare the requested profile. Passing
+    # -profile X in either case causes Nextflow to abort with
+    # "Unknown configuration profile: 'X'" in ~15 s. The executor-override
+    # config (passed via -c) already sets process.executor + queue + region,
+    # so the profile is redundant when the workflow has no profile section.
+    _wf_config = Path(nf_path).parent / "nextflow.config"
+    _has_profile = False
+    if _wf_config.exists():
+        try:
+            _config_text = _wf_config.read_text()
+            # Check for `<profile_name> {` inside a `profiles { ... }` block
+            import re as _re
+            _profiles_block = _re.search(r"profiles\s*\{(.*?)^\}", _config_text, _re.DOTALL | _re.MULTILINE)
+            if _profiles_block and _re.search(rf"^\s+{_re.escape(profile)}\s*\{{", _profiles_block.group(1), _re.MULTILINE):
+                _has_profile = True
+        except Exception as _pcfg_err:
+            log.debug(f"[Nextflow run {run_id}] profile-detect: {_pcfg_err}")
+    if _has_profile:
+        cmd += ["-profile", profile]
+        log.info(f"[Nextflow run {run_id}] using -profile {profile} (declared in workflow config)")
+    else:
+        log.info(f"[Nextflow run {run_id}] skipping -profile {profile} (not declared in workflow nextflow.config); executor-override -c provides routing")
 
     # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
     # Workflows default params.mock_mode = true; command-line params override defaults.
@@ -3025,12 +3073,37 @@ def execute_nextflow(
     # Environment
     env = os.environ.copy()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
+    # Pin Nextflow framework version (2026-05-21): 25.10.0 is the latest pre-26
+    # LTS. Nextflow 26.04+ tightened DSL2 parsing (rejects top-level `def`,
+    # parses Groovy heredocs more strictly), which broke 21 of our workflows
+    # without us asking for it. Pinning here ensures each Nextflow run pulls
+    # the 25.10 framework jar regardless of which launcher version is on PATH.
+    # Bump deliberately, not by curl. See aws_infrastructure/configs/Dockerfile.nextflow-base
+    # for the matching base-image numpy<2 pin (a similar "unwanted upgrade" lesson).
+    env["NXF_VER"] = os.environ.get("NXF_VER", "25.10.0")
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
     # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.
     # Set it whenever we're running on AWS Batch so every .nf file picks the correct ECR image.
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
+
+    # JVM crash mitigation: the AWS SDK CRT (Common Runtime) native library
+    # races on extraction when multiple Nextflow heads start in parallel and
+    # crashes in ld-linux during PublishDir threads. Observed 2026-05-20 with
+    # OpenJDK 21.0.11 on Debian trixie: SIGSEGV at ld-linux-x86-64.so.2+0x2475a,
+    # native frame software.amazon.awssdk.crt.CRT.extractAndLoadLibrary, when
+    # 4 Nextflow heads ran concurrently. Give each head its own CRT extraction
+    # directory and raise thread stack so the native loader has room to dlopen.
+    nxf_crt_cache = log_dir / ".aws-crt-cache"
+    nxf_crt_cache.mkdir(parents=True, exist_ok=True)
+    existing_nxf_opts = env.get("NXF_OPTS", "")
+    crt_opts = (
+        f"-Daws.crt.lib.dir={nxf_crt_cache} "
+        f"-Daws.crt.disable.crt.in.client=true "
+        f"-Xss2m"
+    )
+    env["NXF_OPTS"] = f"{existing_nxf_opts} {crt_opts}".strip()
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
@@ -3097,6 +3170,16 @@ def execute_nextflow(
     # needs an inv ID to route the SSE event to the right chat session.
     if invocation_id:
         _narrate_chat(invocation_id, "workflow.submitted", {"run_id": run_id, "workflow": str(nf_path)})
+        # P1.4 — Fire follow-up events that fill the silent gap between
+        # submitted and the first phase_started. The narrator templates
+        # for these existed but had no callers, so the chat looked dead
+        # for the 30s-2min staging window.
+        if accession_params:
+            # SRA / GEO accessions are about to be prefetched.
+            _narrate_chat(invocation_id, "workflow.uploading_inputs", {})
+        if strategy.get("mode") == "awsbatch":
+            # AWS Batch: jobs sit in the queue before any container starts.
+            _narrate_chat(invocation_id, "workflow.queued", {})
 
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.

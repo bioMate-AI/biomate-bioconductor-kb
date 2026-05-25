@@ -16,8 +16,8 @@ import sys
 import tempfile
 
 # Installation directories
-SCFV_DIR = os.environ.get("SCFV_PMPNN_DIR", "/home/yzhang/biomate/tools_repos/scFv_Pmpnn_AF2")
-PMPNN_DIR = os.environ.get("PROTEINMPNN_DIR", "/home/yzhang/biomate/tools_repos/ProteinMPNN")
+SCFV_DIR = os.environ.get("SCFV_PMPNN_DIR", "/opt/biomate/tools_repos/scFv_Pmpnn_AF2")
+PMPNN_DIR = os.environ.get("PROTEINMPNN_DIR", "/opt/biomate/tools_repos/ProteinMPNN")
 
 def run_scfv_conversion(args):
     """Convert antibody heavy/light chains to scFv."""

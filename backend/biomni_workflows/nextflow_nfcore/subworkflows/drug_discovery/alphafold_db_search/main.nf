@@ -38,7 +38,7 @@ params.publish_dir_mode = 'copy'
 process ALPHAFOLD_API_SEARCH {
     tag "${meta.id}"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: params.publish_dir_mode
+    publishDir { "${params.outdir}/${meta.id}" }, mode: params.publish_dir_mode
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest' \

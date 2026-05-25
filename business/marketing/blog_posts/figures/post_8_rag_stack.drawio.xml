@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="rag-stack" id="rag1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Evidence-grounded AI for biology — four layers below the model" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- User query -->
+        <mxCell id="q" value="&lt;b&gt;User query&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;&quot;FIH starting dose for a 35 kDa mAb with NOAEL 50 mg/kg in cyno&quot;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#475569;fontColor=#0f172a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="800" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 4 (top): Outlier + self-consistency -->
+        <mxCell id="l4" value="&lt;b&gt;Layer 4 — Outlier &amp;amp; self-consistency checks&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Flags conflicts across retrieved sources • peer-context outlier detection&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="180" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l3" value="&lt;b&gt;Layer 3 — Grounded generation with mandatory citation&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Every claim followed by citation token • unsupported claims marked &amp;ldquo;not verified&amp;rdquo;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="270" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l2" value="&lt;b&gt;Layer 2 — Retrieval that respects scientific structure&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Dense + BM25 + structured filters • metadata: assay, organism, units, FDA guidance version&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="360" width="1000" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" value="&lt;b&gt;Layer 1 — Curated knowledge sources (not the open web)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7e22ce;fontColor=#581c87;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="450" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Source pills -->
+        <mxCell id="src1" value="PubMed / PMC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=1;arcSize=20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="510" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src2" value="UniProt + AlphaFold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=1;arcSize=20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="510" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src3" value="ChEMBL + DrugBank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=1;arcSize=20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="510" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src4" value="Ensembl + gnomAD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=1;arcSize=20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="510" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src5" value="FDA / ICH / OpenFDA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=1;arcSize=20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="510" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src6" value="nf-core docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;fontColor=#4c1d95;strokeWidth=1;arcSize=20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="950" y="510" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Down arrow into response -->
+        <mxCell id="qe" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="q" target="l4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e43" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="l4" target="l3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e32" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="l3" target="l2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="l2" target="l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Output box -->
+        <mxCell id="out" value="&lt;b&gt;Grounded response&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;&amp;ldquo;Recommended FIH dose by MABEL is 0.1 mg/kg&lt;br/&gt;[FDA 2024 §III.B.2; Lowe et al. 2010, Br J Clin Pharmacol]&amp;rdquo;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#f1f5f9;strokeWidth=3;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="610" width="800" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="benlbl" value="What the user gets" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="400" y="700" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b1" value="✓ Trust calibration&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;every number sourced&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="180" y="730" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" value="✓ Audit trail&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;FDA-defensible decisions&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="480" y="730" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" value="✓ Compounding accuracy&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;corrections feed back&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="780" y="730" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="footer" value="biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="820" width="400" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

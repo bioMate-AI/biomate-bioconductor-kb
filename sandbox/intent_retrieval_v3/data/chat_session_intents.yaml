@@ -1,0 +1,96 @@
+# Chat session resume — intent signals for "resume last session" vs "new conversation".
+#
+# This is a DECISION adapter, not a ranking adapter. Given a user's first
+# message of a new browser load AND a last-session metadata blob (age,
+# terminal state, invocationId), decide whether to restore the previous
+# session or start fresh.
+#
+# Two intent sets:
+#   resume_intents     — phrases signaling "continue what we were doing"
+#   new_intents        — phrases signaling "start fresh", "clear", "new project"
+#
+# Both have disqualifiers to prevent over-eager firing.
+#
+# Decision rules (in adapters/chat_session.py):
+#   1. If any new_intent fires → return "new" (overrides resume entirely)
+#   2. If any resume_intent fires → return "resume"
+#   3. If last-session is terminal (success/fail) AND age < 30min → default "resume"
+#   4. Otherwise → "uncertain" (let UX decide, e.g., prompt the user)
+
+# ─── Resume signals ──────────────────────────────────────────────────────
+continue_previous:
+  trigger_terms:
+    # NOTE: "continue" alone is too broad — collides with biological text
+    # ("cells continue to divide"). Use multi-word forms instead.
+    - keep going
+    - continue working on
+    - continue with
+    - continue the
+    - continuing where
+    - pick up where
+    - resume the
+    - resume my
+    - go back to
+    - where we left off
+    - what's the status
+    - whats the status
+    - show me the results
+    - did it finish
+    - is it done
+    - show progress
+    - status of my run
+  disqualified_if_present:
+    - new project
+    - new analysis
+    - new conversation
+    - start fresh
+    - start over
+    - clear context
+    - reset
+
+reference_prior_artifact:
+  trigger_terms:
+    - the last run
+    - my last
+    - my previous
+    - the report from
+    - that one i ran
+    - that workflow i started
+    - the rnaseq i kicked off
+    - earlier today
+  disqualified_if_present:
+    - new
+    - fresh
+    - different
+
+# ─── New-session signals (override resume) ──────────────────────────────
+new_project:
+  trigger_terms:
+    - new project
+    - new conversation
+    - new analysis
+    - new study
+    - new experiment
+    - fresh start
+    - start fresh
+    - start over
+    - clear context
+    - clear memory
+    - reset
+    - different topic
+    - switch topics
+    - new question entirely
+  disqualified_if_present: []
+
+# ─── Switch-topic signal (slightly weaker than new_project) ─────────────
+topic_pivot:
+  trigger_terms:
+    - moving on
+    - different problem
+    - unrelated question
+    - switching gears
+    - on a different note
+    - by the way
+  disqualified_if_present:
+    - the same
+    - related to

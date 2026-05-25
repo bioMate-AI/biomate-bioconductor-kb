@@ -17,7 +17,7 @@ params.reference_ligand_smiles  = ''
 process DOCKING_AUTODOCK_VINA {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // local (ARM dev): biomni-drug-discovery-nf layers on biomni-structure-to-drug
     // aws batch (AMD64): structure-based DD image (Vina, meeko, obabel, fpocket)

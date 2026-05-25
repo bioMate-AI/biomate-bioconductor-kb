@@ -60,7 +60,7 @@ params.pk_summary_json      = 'null'          // optional: path to PBPK pk_summa
 process PHYSICELL_TUMOR_TGI {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
@@ -120,7 +120,7 @@ auc_eff  = auc_total * penet_factor * 24  # convert to mg*day/L
 
 # ─── Drug effect function (Hill) ─────────────────────────────────────────────
 def drug_effect(conc, ec50, hill):
-    """Fractional kill at concentration conc (Hill equation, 0-1)."""
+    '''Fractional kill at concentration conc (Hill equation, 0-1).'''
     if conc <= 0 or ec50 <= 0: return 0.0
     return conc**hill / (ec50**hill + conc**hill)
 

@@ -12,7 +12,7 @@ Usage:
 import re, wave, struct, pathlib, argparse, json, subprocess, tempfile, os
 
 SAMPLE_RATE = 24000
-SILENCE_MS  = 600   # pause between steps in concatenated track
+SILENCE_MS  = int(os.environ.get('SILENCE_MS', '300'))   # pause between steps in concatenated track
 
 
 def parse_narration(path: str) -> list[dict]:
@@ -20,7 +20,7 @@ def parse_narration(path: str) -> list[dict]:
     blocks = re.split(r'\n---\n', text.strip())
     steps = []
     for block in blocks:
-        m = re.match(r'##\s+Step\s+(\d+)\s+[—-]\s+(.+?)\n+(.+)', block.strip(), re.DOTALL)
+        m = re.search(r'##\s+Step\s+(\d+)\s+[—-]\s+(.+?)\n+(.+)', block.strip(), re.DOTALL)
         if m:
             body = m.group(3).strip()
             body = re.sub(r'\*+([^*]+)\*+', r'\1', body)

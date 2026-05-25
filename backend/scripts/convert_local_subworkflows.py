@@ -93,11 +93,11 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Convert local nf-core subworkflows to Galaxy .ga format')
-    parser.add_argument('--workflows', default='/home/yzhang/biomate/backend/nf-core-workflows',
+    parser.add_argument('--workflows', default='/opt/biomate/backend/nf-core-workflows',
                        help='Path to nf-core workflows directory')
-    parser.add_argument('--db', default='/home/yzhang/biomate/backend/database/galaxy_ai_tools.db',
+    parser.add_argument('--db', default='/opt/biomate/backend/database/galaxy_ai_tools.db',
                        help='Path to Galaxy tools database')
-    parser.add_argument('--output', default='/home/yzhang/biomate/backend/galaxy_workflows/local',
+    parser.add_argument('--output', default='/opt/biomate/backend/galaxy_workflows/local',
                        help='Output directory for .ga files')
     parser.add_argument('--limit', type=int, help='Limit number of subworkflows to convert')
 

@@ -19,7 +19,7 @@ params.covered_regions = null  // alias for regions
 process IS_REGION_FULLY_COVERED {
     tag "$meta.id"
     label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'

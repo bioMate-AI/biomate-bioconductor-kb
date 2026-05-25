@@ -16,11 +16,10 @@ on:
   push:
     # integration/next-phase is the active dev branch; main is the future
     # production branch.
+    # No `paths:` filter — see backend-image.yml header comment for rationale
+    # (path filters desync backend/frontend SHAs and break deploy.yml).
     branches: [main, integration/next-phase]
     tags: ['release-*']
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-image.yml'
   workflow_dispatch: {}
 
 permissions:

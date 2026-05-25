@@ -1,0 +1,574 @@
+family_key,function_signature,wrapper_count,top_category,sample_name,all_tool_ids
+netisce,netisce step,13,Systems Biology,Netisce Step 8,toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_8/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_2/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_7/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_6/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_9/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_12/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_11/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_5/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_1/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_3/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_13/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_4/0.1.0 | toolshed.g2.bx.psu.edu/repos/laurenmarazzi/netisce/netisce_step_10/0.1.0
+bwa,bwa,5,Next Gen Mappers,Map with BWA,toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa/0.7.19 | toolshed.g2.bx.psu.edu/repos/devteam/bwa_wrappers/map_with_bwa_for_solid/1.0.2 | toolshed.g2.bx.psu.edu/repos/devteam/bwa_wrappers/map_with_bwa_for_illumina/1.2.3 | toolshed.g2.bx.psu.edu/repos/evan/bwa_wrappers/map_with_bwa_for_solid/1.0.2 | toolshed.g2.bx.psu.edu/repos/evan/bwa_wrappers/map_with_bwa_for_illumina/1.2.3
+art,art,4,"fastq, fasta, illumina, simulate",ART 454,toolshed.g2.bx.psu.edu/repos/iuc/art/art_454/2014.11.03.0 | toolshed.g2.bx.psu.edu/repos/iuc/art/art_illumina/2014.11.03.0 | toolshed.g2.bx.psu.edu/repos/iuc/art/art_solid/2014.11.03.0 | nfcore/art/illumina
+quast,quast,4,"quast, assembly, quality, contig, scaffold",Quast,toolshed.g2.bx.psu.edu/repos/iuc/quast/quast/5.3.0+galaxy1 | toolshed.g2.bx.psu.edu/repos/aafc-mbb/quast/quast/1.0.0 | toolshed.g2.bx.psu.edu/repos/greg/quast/quast/5.2.0+galaxy0 | nfcore/quast
+sickle,sickle,4,"fastq, sliding window, trimming",Sickle,toolshed.g2.bx.psu.edu/repos/nikhil-joshi/sickle/sickle/1.33 | toolshed.g2.bx.psu.edu/repos/iuc/sickle/sickle/1.33.3 | toolshed.g2.bx.psu.edu/repos/nilesh/sickle/sickle/1.0.0 | nfcore/sickle
+snpeff,download snpeff,4,"annotation, effect prediction, snpeff, variant, vcf",SnpEff Download,toolshed.g2.bx.psu.edu/repos/iuc/data_manager_snpeff/snpeff_download/4.3.1t | toolshed.g2.bx.psu.edu/repos/iuc/snpeff/snpeff_download/5.2+galaxy1 | toolshed.g2.bx.psu.edu/repos/pcingola/snpeff/snpeff_download/1.0 | nfcore/snpeff/download
+seq2hla,seq2hla,4,"hla, typing, rna-seq, genomics, immunogenetics",seq2HLA,toolshed.g2.bx.psu.edu/repos/sebastian-boegel/seq2hla/seq2hla/1.0.0 | toolshed.g2.bx.psu.edu/repos/jjohnson/seq2hla/seq2hla/2.2.0 | toolshed.g2.bx.psu.edu/repos/iuc/seq2hla/seq2hla/2.3+galaxy0 | nfcore/seq2hla
+seqsero2,seqsero2,4,"fasta, fastq, salmonella, sertotype",SeqSero2,toolshed.g2.bx.psu.edu/repos/iuc/seqsero2/seqsero2/1.3.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/seqsero2/seqsero2/1.2.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/ddollee/seqsero2/seqsero2/1.2.1+galaxy0 | nfcore/seqsero2
+bakta,bakta,3,Sequence Analysis,Bakta,toolshed.g2.bx.psu.edu/repos/iuc/data_manager_bakta/bakta/1.9.3+galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/bakta/bakta/1.9.4+galaxy1 | toolshed.g2.bx.psu.edu/repos/thanhlv/bakta/bakta/1.6.1+galaxy0
+build_kraken2_database,kraken2,3,Data Managers,Kraken2,toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_kraken2_database/kraken2/2.0.8_beta_galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/data_manager_build_kraken2_database/kraken2/2.1.3+galaxy6 | toolshed.g2.bx.psu.edu/repos/dave/data_manager_build_kraken2_database/kraken2/2.1.1+galaxy0
+edger,edger,3,Statistics,edgeR,toolshed.g2.bx.psu.edu/repos/fcaramia/edger/edger/0.0.2 | toolshed.g2.bx.psu.edu/repos/iuc/edger/edger/3.36.0+galaxy5 | toolshed.g2.bx.psu.edu/repos/amawla/edger/edger/0.0.3
+fastme,fastme,3,"phylogenetics, newick, minimum_evolution, distance-based",FastME,toolshed.g2.bx.psu.edu/repos/gandres/fastme/fastme/2.1.4.2 | toolshed.g2.bx.psu.edu/repos/dereeper/fastme/fastme/2.0.0 | nfcore/fastme
+bcftools,bcftools view,3,"variant calling, view, bcftools, VCF",bcftools view,toolshed.g2.bx.psu.edu/repos/nilesh/bcftools/bcftools_view/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/bcftools/bcftools_view/0.1.19.0 | nfcore/bcftools/view
+parameters_maystro_workflow,maystro parameters workflow,3,Synthetic Biology,Workflow-0 Parameters Maystro,toolshed.g2.bx.psu.edu/repos/tduigou/parameters_maystro_workflow_0/workflow_0_parameters_maystro/0.1.0 | toolshed.g2.bx.psu.edu/repos/tduigou/parameters_maystro_workflow_1/workflow_1_parameters_maystro/0.1.0 | toolshed.g2.bx.psu.edu/repos/tduigou/parameters_maystro_workflow_2/workflow_2_parameters_maystro/0.1.0
+miniasm,miniasm,3,"assembly, pacbio, nanopore",miniasm,toolshed.g2.bx.psu.edu/repos/iuc/miniasm/miniasm/0.3_r179+galaxy1 | toolshed.g2.bx.psu.edu/repos/erasmus-medical-center/miniasm/miniasm/0.2.0 | nfcore/miniasm
+rnaquast,rnaquast,3,"rna assembly, rnaseq, de novo, quality control",rnaQUAST,toolshed.g2.bx.psu.edu/repos/lehmanju/rnaquast/rnaquast/2.1.0 | toolshed.g2.bx.psu.edu/repos/iuc/rnaquast/rna_quast/2.3.0+galaxy1 | nfcore/rnaquast
+seqprep,seqprep,3,Sequence Analysis,SeqPrep,toolshed.g2.bx.psu.edu/repos/lionelguy/seqprep/seqprep/0.1 | toolshed.g2.bx.psu.edu/repos/galaxyworks/seqprep/seqprep/0.2.2 | toolshed.g2.bx.psu.edu/repos/iuc/seqprep/seqprep/1.3.2+galaxy0
+spades,spades,3,"genome, assembly, genome assembler, small genome, de novo assembler",SPAdes,toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.2.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/lionelguy/spades/spades/1.0 | nfcore/spades
+trinityrnaseq,trinity,3,Transcriptomics,Trinity,toolshed.g2.bx.psu.edu/repos/bhaas/trinityrnaseq/trinity/0.0.1 | toolshed.g2.bx.psu.edu/repos/biomonika/trinityrnaseq/trinity/0.0.1 | toolshed.g2.bx.psu.edu/repos/anmoljh/trinityrnaseq/trinity
+gffread,gffread,3,"gff, conversion, validation",gffread,toolshed.g2.bx.psu.edu/repos/jjohnson/gffread/gffread/2.2.1.0 | toolshed.g2.bx.psu.edu/repos/devteam/gffread/gffread/2.2.1.4+galaxy0 | nfcore/gffread
+mitos,mitos,3,Sequence Analysis,MITOS,toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mitos/mitos/0.0.3 | toolshed.g2.bx.psu.edu/repos/menegidio/mitos/mitos/1.0.5 | toolshed.g2.bx.psu.edu/repos/iuc/mitos/mitos/1.1.7+galaxy0
+multiqc,multiqc,3,"QC, bioinformatics tools, Beautiful stand-alone HTML report",multiqc,toolshed.g2.bx.psu.edu/repos/engineson/multiqc/multiqc/1.0.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.27+galaxy3 | nfcore/multiqc
+metaphlan,metaphlan,3,Metagenomics,MetaPhlAn,toolshed.g2.bx.psu.edu/repos/iuc/metaphlan/metaphlan/4.1.1+galaxy4 | toolshed.g2.bx.psu.edu/repos/george-weingart/metaphlan/metaphlan/1.7.0 | toolshed.g2.bx.psu.edu/repos/dannon/metaphlan/metaphlan/1.7.0
+pangolin,pangolin,3,Sequence Analysis,PANGOLIN,toolshed.g2.bx.psu.edu/repos/iss/pangolin/pangolin/2 | toolshed.g2.bx.psu.edu/repos/nml/pangolin/pangolin/1.1.14+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/pangolin/pangolin/4.3+galaxy2
+barrnap,barrnap,3,"rrna, sequences, removal",barrnap,toolshed.g2.bx.psu.edu/repos/simon-gladman/barrnap/barrnap/1.1.0 | toolshed.g2.bx.psu.edu/repos/iuc/barrnap/barrnap/1.2.2 | nfcore/barrnap
+ectyper,ectyper,3,"escherichia coli, fasta, serotype",ectyper,toolshed.g2.bx.psu.edu/repos/nml/ectyper/ectyper/2.0.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/cstrittmatter/ectyper_v1/ectyper/0.1 | nfcore/ectyper
+fargene,fargene,3,"antibiotic resistance genes, ARGs, identifier, metagenomic, contigs",fargene,toolshed.g2.bx.psu.edu/repos/iuc/fargene/fargene/0.1+galaxy1 | toolshed.g2.bx.psu.edu/repos/thanhlv/fargene/fargene/0.1 | nfcore/fargene
+fastani,fastani,3,"genome, fasta, ANI",FastANI,toolshed.g2.bx.psu.edu/repos/thanhlv/fastani/fastani/1.1 | toolshed.g2.bx.psu.edu/repos/iuc/fastani/fastani/1.3 | nfcore/fastani
+mashmap,mashmap,3,"mapper, aligner, minhash, kmer",mashmap,toolshed.g2.bx.psu.edu/repos/iuc/mashmap/mashmap/3.1.3+galaxy0 | toolshed.g2.bx.psu.edu/repos/fubar/mashmap/mashmap/1.19.2 | nfcore/mashmap
+muscle,muscle,3,"msa, multiple sequence alignment, phylogeny",MUSCLE,toolshed.g2.bx.psu.edu/repos/crs4/muscle/muscle/0.0.11 | toolshed.g2.bx.psu.edu/repos/edward-kirton/muscle/muscle/1.0.0 | nfcore/muscle
+optitype,optitype,3,"hla-typing, ILP, HLA-I",OptiType,toolshed.g2.bx.psu.edu/repos/iuc/optitype/optitype/1.3.5+galaxy0 | toolshed.g2.bx.psu.edu/repos/jjohnson/optitype/optitype/1.3.5 | nfcore/optitype
+selenzy,selenzyme,3,Synthetic Biology,Selenzyme,toolshed.g2.bx.psu.edu/repos/tduigou/selenzy/selenzyme/0.3.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/tduigou/selenzy_wrapper/selenzyme/0.3.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/selenzy_wrapper/selenzyme/0.3.0+galaxy0
+snippy,core snippy,3,"core, alignment, bacteria, snippy",snippy-core,toolshed.g2.bx.psu.edu/repos/simon-gladman/snippy/snippy_core/0.2.0 | toolshed.g2.bx.psu.edu/repos/iuc/snippy/snippy_core/4.6.0+galaxy0 | nfcore/snippy/core
+syri,syri,3,"genomics, synteny, rearrangements, chromosome",SyRI,toolshed.g2.bx.psu.edu/repos/iuc/syri/syri/1.7.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/southgreen/syri/syri/0.1.0+galaxy0 | nfcore/syri
+merge collections,collections merge,3,Collection Operations,Merge Collections,__MERGE_COLLECTION__ | galaxy_Merge_Collections | galaxy_merge_collections
+assemblystats,assemblystats,2,Next Gen Mappers,assemblystats,toolshed.g2.bx.psu.edu/repos/nml/assemblystats/assemblystats/1.1.0 | toolshed.g2.bx.psu.edu/repos/konradpaszkiewicz/assemblystats/assemblystats/1.0.1
+bowtie,bowtie,2,Next Gen Mappers,Map with Bowtie for Illumina,toolshed.g2.bx.psu.edu/repos/shantanu/demo_bowtie/map_with_bowtie_for_illumina/1.1.2 | toolshed.g2.bx.psu.edu/repos/devteam/bowtie_wrappers/map_with_bowtie_for_illumina/1.2.0
+fastplong,fastplong,2,"trimming, quality control, fastq, long reads",Fastplong,toolshed.g2.bx.psu.edu/repos/iuc/fastplong/fastplong/0.4.1+galaxy0 | nfcore/fastplong
+astropy_fits2bitmap,astropy fits2bitmap,2,Astronomy,astropy fits2bitmap,toolshed.g2.bx.psu.edu/repos/astroteam/astropy_fits2bitmap/astropy_fits2bitmap/0.3.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/volodymyr.savchenko/astropy_fits2bitmap/astropy_fits2bitmap/0.1.0+galaxy0
+astropy_fits2csv,astropy fits2csv,2,Astronomy,astropy fits2csv,toolshed.g2.bx.psu.edu/repos/volodymyr.savchenko/astropy_fits2csv/astropy_fits2csv/0.1.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/astroteam/astropy_fits2csv/astropy_fits2csv/0.2.0+galaxy2
+astropy_fitsinfo,astropy fitsinfo,2,Astronomy,astropy fitsinfo,toolshed.g2.bx.psu.edu/repos/volodymyr.savchenko/astropy_fitsinfo/astropy_fitsinfo/0.1.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/astroteam/astropy_fitsinfo/astropy_fitsinfo/0.2.0+galaxy2
+ceas,ceas,2,ChIP-seq,CEAS,toolshed.g2.bx.psu.edu/repos/nikhil-joshi/ceas/ceas/1.0.2 | toolshed.g2.bx.psu.edu/repos/pjbriggs/ceas/ceas/1.0.2-4
+genrich,genrich,2,"peak-calling, ChIP-seq, ATAC-seq",Genrich,toolshed.g2.bx.psu.edu/repos/iuc/genrich/genrich/0.5+galaxy2 | nfcore/genrich
+pureclip,pureclip,2,"iCLIP, eCLIP, CLIP",PureCLIP,toolshed.g2.bx.psu.edu/repos/iuc/pureclip/pureclip/1.0.4+galaxy1 | nfcore/pureclip
+bigwig_to_wig,bigwig wig,2,Convert Formats,BigWig to Wig,toolshed.g2.bx.psu.edu/repos/nikos/bigwig_to_wig/bigwig_to_wig/1.0.2 | toolshed.g2.bx.psu.edu/repos/artbio/bigwig_to_wig/bigwig_to_wig/3+galaxy0
+ena_upload,ena upload,2,Data Export,ENA Upload tool,toolshed.g2.bx.psu.edu/repos/iuc/ena_upload/ena_upload_tool/0.9.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/ieguinoa/ena_upload/ena_upload_tool/0.5.3
+ms2snoop,ms2 snoop,2,Metabolomics,MS2 Snoop,toolshed.g2.bx.psu.edu/repos/lain/ms2snoop/ms2_snoop/1.0.0 | toolshed.g2.bx.psu.edu/repos/workflow4metabolomics/ms2snoop/ms2_snoop/2.2.1+galaxy0
+build_bracken_database,bracken builder database,2,Data Managers,Bracken Database Builder,toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_bracken_database/bracken_database_builder/2.5_galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/data_manager_build_bracken_database/bracken_database_builder/2.8+galaxy0
+defense_finder,defensefinder,2,Genome annotation,DefenseFinder,toolshed.g2.bx.psu.edu/repos/rplanel/data_manager_defense_finder/defensefinder/2.0.0+galaxy2 | toolshed.g2.bx.psu.edu/repos/rplanel/defense_finder/defensefinder/2.0.1+galaxy1
+fetch_index_maf,fetch index,2,Data Managers,Fetch and index,toolshed.g2.bx.psu.edu/repos/dave/data_manager_fetch_index_maf/fetch_and_index/1.1.0 | toolshed.g2.bx.psu.edu/repos/iuc/data_manager_fetch_index_maf/fetch_and_index/1.0.0
+dorina,dorina search,2,Data Source,DoRiNA Search,toolshed.g2.bx.psu.edu/repos/rnateam/dorina/dorina_search/1.0 | toolshed.g2.bx.psu.edu/repos/rekado/dorina/dorina_search/1.0.0
+gdcwebapp,gdcwebapp,2,Convert Formats,GDCWebApp,toolshed.g2.bx.psu.edu/repos/fabio/gdcwebapp/gdcwebapp/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/gdcwebapp/gdcwebapp/1.0.0
+get_reference_fasta,fasta get reference,2,Data Source,get fasta reference,toolshed.g2.bx.psu.edu/repos/mvdbeek/get_reference_fasta/get_fasta_reference/0.1.1 | toolshed.g2.bx.psu.edu/repos/artbio/get_reference_fasta/get_fasta_reference/0.3.2
+cdhit,cd hit protein,2,Fasta Manipulation,CD-HIT PROTEIN,toolshed.g2.bx.psu.edu/repos/bebatut/cdhit/cd_hit_protein/1.3 | toolshed.g2.bx.psu.edu/repos/jjohnson/cdhit/cd_hit_protein/1.2
+cdhit,cd est hit,2,Fasta Manipulation,CD-HIT-EST,toolshed.g2.bx.psu.edu/repos/bebatut/cdhit/cd_hit_est/1.3 | toolshed.g2.bx.psu.edu/repos/jjohnson/cdhit/cd_hit_est/1.2
+cutadapt,cutadapt,2,"trimming, adapter trimming, adapters, quality trimming",Cutadapt,toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.1+galaxy0 | nfcore/cutadapt
+emboss,fuzznuc,2,Sequence Analysis,fuzznuc,toolshed.g2.bx.psu.edu/repos/brinkmanlab/emboss/fuzznuc/6.6.0 | toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/fuzznuc/5.0.3
+fasta_extract,extract fasta sequence,2,Sequence Analysis,Fasta Extract Sequence,toolshed.g2.bx.psu.edu/repos/simon-gladman/fasta_extract/fasta_extract_sequence/1.0.0 | toolshed.g2.bx.psu.edu/repos/nml/fasta_extract/fasta_extract_sequence/1.1.0
+fasta_stats,fasta statistics,2,Sequence Analysis,Fasta Statistics,toolshed.g2.bx.psu.edu/repos/simon-gladman/fasta_stats/fasta_statistics/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/fasta_stats/fasta_statistics/2.0
+chopper,chopper,2,"filter, trimming, fastq, nanopore, qc",Chopper,toolshed.g2.bx.psu.edu/repos/iuc/chopper/chopper/0.11.0+galaxy0 | nfcore/chopper
+fastqc,fastqc,2,"quality control, qc, adapters, fastq",FastQC,toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1 | nfcore/fastqc
+cs_overview,generate information overview,2,Flow Cytometry Analysis,Generate overview information,toolshed.g2.bx.psu.edu/repos/immport-devteam/cs_overview/generate_overview_information/1.1+galaxy1 | toolshed.g2.bx.psu.edu/repos/azomics/cs_overview_2/generate_overview_information/1.1
+flowtext_summary,get summary,2,Flow Cytometry Analysis,Get summary,toolshed.g2.bx.psu.edu/repos/azomics/flowtext_summary/get_summary/1.0+galaxy1 | toolshed.g2.bx.psu.edu/repos/immport-devteam/flowtext_summary/get_summary/1.0+galaxy1
+argnorm,argnorm,2,"amr, antimicrobial resistance, arg, antimicrobial resistance genes, genomics",argNorm,toolshed.g2.bx.psu.edu/repos/iuc/argnorm/argnorm/1.0.0+galaxy0 | nfcore/argnorm
+braker3,braker3,2,"genome, annotation, braker, gff, gtf",BRAKER3,toolshed.g2.bx.psu.edu/repos/genouest/braker3/braker3/3.0.8+galaxy2 | nfcore/braker3
+goenrichment,goenrichment,2,Genome annotation,GOEnrichment,toolshed.g2.bx.psu.edu/repos/ubi.igc/goenrichment/goenrichment/2.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/goenrichment/goenrichment/2.0.1
+interval2maf,blocks extract maf,2,Genomic Interval Operations,Extract MAF blocks,toolshed.g2.bx.psu.edu/repos/dave/interval2maf/extract_maf_blocks/1.0.1 | toolshed.g2.bx.psu.edu/repos/iuc/interval2maf/extract_maf_blocks/1.0.1+galaxy1
+plink,plink,2,Variant Analysis,plink,toolshed.g2.bx.psu.edu/repos/iuc/plink/plink/1.90b6.21+galaxy1 | toolshed.g2.bx.psu.edu/repos/dereeper/plink/plink/2.0.0
+bedtools,bam bed bedtools,2,Genomic Interval Operations,bedtools BAM to BED,toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_bam_to_bed/2.31.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_bed_to_bam/2.31.1+galaxy0
+bedtools,bedtools getfasta,2,"bed, fasta, getfasta",bedtools getfasta,toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_getfasta/2.31.1+galaxy0 | nfcore/bedtools/getfasta
+coverage_report,coverage panel report,2,Sequence Analysis,Panel Coverage Report,toolshed.g2.bx.psu.edu/repos/geert-vandeweyer/coverage_report/panel_coverage_report/0.0.3 | toolshed.g2.bx.psu.edu/repos/iuc/coverage_report/panel_coverage_report/0.0.4
+genebed_maf_to_fasta,blocks gene stitch,2,Genomic Interval Operations,Stitch Gene blocks,toolshed.g2.bx.psu.edu/repos/iuc/genebed_maf_to_fasta/stitch_gene_blocks/1.0.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/dave/genebed_maf_to_fasta/stitch_gene_blocks/1.0.1
+graphlan,graphlan,2,Graphics,GraPhlAn,toolshed.g2.bx.psu.edu/repos/iuc/graphlan/graphlan/1.1.3 | toolshed.g2.bx.psu.edu/repos/bebatut/graphlan/graphlan/0.9.7
+heatmap,heatmap,2,Metabolomics,Heatmap,toolshed.g2.bx.psu.edu/repos/guru-ananda/heatmap/heatmap/1.0.0 | toolshed.g2.bx.psu.edu/repos/ethevenot/heatmap/heatmap/2.2.2
+ashlar,ashlar,2,"image_processing, alignment, registration",ASHLAR,toolshed.g2.bx.psu.edu/repos/perssond/ashlar/ashlar/1.18.0+galaxy1 | nfcore/ashlar
+chopin2,chopin2,2,Machine Learning,chopin2,toolshed.g2.bx.psu.edu/repos/fabio/chopin2/chopin2/1.0.6 | toolshed.g2.bx.psu.edu/repos/iuc/chopin2/chopin2/1.0.9.post1+galaxy0
+camera_combinexsannos,camera combinexsannos,2,Metabolomics,CAMERA.combinexsAnnos,toolshed.g2.bx.psu.edu/repos/workflow4metabolomics/camera_combinexsannos/cameracombinexsannos/2.2.6+camera1.48.0-galaxy1 | toolshed.g2.bx.psu.edu/repos/mmonsoor/camera_combinexsannos/cameracombinexsannos/2.2.2
+cramino,cramino,2,"quality assessment, bam, long-read, genomics",Cramino,toolshed.g2.bx.psu.edu/repos/iuc/cramino/cramino/1.1.0+galaxy2 | nfcore/cramino
+guppy_basecaller,basecaller guppy,2,Sequence Analysis,Guppy basecaller wrapper,toolshed.g2.bx.psu.edu/repos/artbio/guppy_basecaller/guppy_basecaller_wrapper/6.5.7+galaxy0 | toolshed.g2.bx.psu.edu/repos/shellac/guppy_basecaller/guppy_basecaller_wrapper/0.1.3
+pycoqc,pycoqc,2,"qc, quality control, sequencing, nanopore",Pycoqc,toolshed.g2.bx.psu.edu/repos/iuc/pycoqc/pycoqc/2.5.2+galaxy0 | nfcore/pycoqc
+shasta,shasta,2,"nanopore, de-novo, assembly, longread",Shasta,toolshed.g2.bx.psu.edu/repos/iuc/shasta/shasta/0.6.0+galaxy0 | nfcore/shasta
+bismark,bismark deduplicate,2,"bismark, 3-letter genome, map, methylation, 5mC",Bismark Deduplicate,toolshed.g2.bx.psu.edu/repos/bgruening/bismark/bismark_deduplicate/0.22.1 | nfcore/bismark/deduplicate
+blat,blat,2,"blat, sequence, search",BLAT,toolshed.g2.bx.psu.edu/repos/crs4/blat/blat/0.3 | nfcore/blat
+bwa,bwa mem,2,"mem, bwa, alignment, map, fastq",Map with BWA-MEM,toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_mem/0.7.19 | nfcore/bwa/mem
+bwa_tools_mini,bwa,2,Next Gen Mappers,Map with BWA for SOLiD,toolshed.g2.bx.psu.edu/repos/curtish/bwa_tools_mini/map_with_bwa_for_solid/1.0.2 | toolshed.g2.bx.psu.edu/repos/curtish/bwa_tools_mini/map_with_bwa_for_illumina/1.2.3
+cummerbund,cummerbund,2,RNA,cummeRbund,toolshed.g2.bx.psu.edu/repos/jjohnson/cummerbund/cummerbund/0.0.7 | toolshed.g2.bx.psu.edu/repos/devteam/cummerbund/cummerbund/2.16.0+galaxy1
+featurecounts,featurecounts,2,RNA,featureCounts,toolshed.g2.bx.psu.edu/repos/yhoogstrate/featurecounts/featurecounts/1.4.6.p5 | toolshed.g2.bx.psu.edu/repos/iuc/featurecounts/featurecounts/2.1.1+galaxy0
+fasttree,fasttree,2,"phylogeny, newick, alignment",FASTTREE,toolshed.g2.bx.psu.edu/repos/iuc/fasttree/fasttree/2.1.10+galaxy3 | nfcore/fasttree
+mosdepth,mosdepth,2,"mosdepth, bam, cram, coverage",mosdepth,toolshed.g2.bx.psu.edu/repos/iuc/mosdepth/mosdepth/0.3.11+galaxy0 | nfcore/mosdepth
+picard,bedtointervallist,2,SAM,BedToIntervalList,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/bedtointervallist/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_BedToIntervalList/3.1.1.0
+picard,validatesamfile,2,SAM,ValidateSamFile,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/validatesamfile/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_ValidateSamFile/3.1.1.0
+picard,fastqtosam,2,SAM,FastqToSam,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/fastqtosam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_FastqToSam/3.1.1.0
+picard,collectrnaseqmetrics,2,SAM,CollectRnaSeqMetrics,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/collectrnaseqmetrics/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectRnaSeqMetrics/3.1.1.0
+picard,bam downsample sam,2,SAM,Downsample SAM/BAM,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/downsample_sambam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_DownsampleSam/3.1.1.0
+picard,qualityscoredistribution,2,SAM,QualityScoreDistribution,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/qualityscoredistribution/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_QualityScoreDistribution/3.1.1.0
+picard,fixmateinformation,2,SAM,FixMateInformation,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/fixmateinformation/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_FixMateInformation/3.1.1.0
+picard,sortsam,2,SAM,SortSam,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/sortsam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SortSam/3.1.1.0
+picard,collectwgsmetrics,2,SAM,CollectWgsMetrics,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/collectwgsmetrics/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectWgsMetrics/3.1.1.0
+picard,collectbasedistributionbycycle,2,SAM,CollectBaseDistributionByCycle,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/collectbasedistributionbycycle/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectBaseDistributionByCycle/3.1.1.0
+picard,meanqualitybycycle,2,SAM,MeanQualityByCycle,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/meanqualitybycycle/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MeanQualityByCycle/3.1.1.0
+picard,collectgcbiasmetrics,2,SAM,CollectGcBiasMetrics,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/collectgcbiasmetrics/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectGcBiasMetrics/3.1.1.0
+picard,mergesamfiles,2,SAM,MergeSamFiles,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/mergesamfiles/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MergeSamFiles/3.1.1.0
+picard,collectinsertsizemetrics,2,SAM,CollectInsertSizeMetrics,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/collectinsertsizemetrics/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectInsertSizeMetrics/3.1.1.0
+picard,mergebamalignment,2,SAM,MergeBamAlignment,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/mergebamalignment/1.126.1 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MergeBamAlignment/3.1.1.0
+picard,cleansam,2,SAM,CleanSam,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/cleansam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CleanSam/3.1.1.0
+picard,estimatelibrarycomplexity,2,SAM,EstimateLibraryComplexity,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/estimatelibrarycomplexity/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_EstimateLibraryComplexity/3.1.1.0
+picard,markduplicateswithmatecigar,2,SAM,MarkDuplicatesWithMateCigar,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/markduplicateswithmatecigar/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicatesWithMateCigar/3.1.1.0
+picard,markduplicates,2,SAM,MarkDuplicates,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/markduplicates/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0
+picard,addorreplacereadgroups,2,SAM,AddOrReplaceReadGroups,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/addorreplacereadgroups/1.135-gx-1 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_AddOrReplaceReadGroups/3.1.1.0
+picard,addcommentstobam,2,SAM,AddCommentsToBam,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/addcommentstobam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_AddCommentsToBam/3.1.1.0
+picard,samtofastq,2,SAM,SamToFastq,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/samtofastq/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SamToFastq/3.1.1.0
+picard,normalizefasta,2,SAM,NormalizeFasta,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/normalizefasta/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_NormalizeFasta/3.1.1.0
+picard,revertoriginalbasequalitiesandaddmatecigar,2,SAM,RevertOriginalBaseQualitiesAndAddMateCigar,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/revertoriginalbasequalitiesandaddmatecigar/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_RevertOriginalBaseQualitiesAndAddMateCigar/3.1.1.0
+picard,revertsam,2,SAM,RevertSam,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/revertsam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_RevertSam/3.1.1.0
+picard,filtersamreads,2,SAM,FilterSamReads,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/filtersamreads/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_FilterSamReads/3.1.1.0
+picard,reordersam,2,SAM,ReorderSam,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/reordersam/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_ReorderSam/3.1.1.0
+picard,replacesamheader,2,SAM,ReplaceSamHeader,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/replacesamheader/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_ReplaceSamHeader/3.1.1.0
+picard,alignment collect metrics summary,2,SAM,Collect Alignment Summary Metrics,toolshed.g2.bx.psu.edu/repos/avowinkel/picard/collect_alignment_summary_metrics/1.135 | toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CASM/3.1.1.0
+abricate,abricate summary,2,"bacteria, assembly, antimicrobial reistance",ABRicate Summary,toolshed.g2.bx.psu.edu/repos/iuc/abricate/abricate_summary/1.0.1 | nfcore/abricate/summary
+abritamr,abritamr,2,Sequence Analysis,abriTAMR,toolshed.g2.bx.psu.edu/repos/ddollee/abritamr/abritamr/1.0.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/abritamr/abritamr/1.0.19+galaxy1
+abromics_extractor_summarize,abromics extractor summarize,2,Sequence Analysis,abromics_extractor_summarize,toolshed.g2.bx.psu.edu/repos/pimarin/abromics_extractor_summarize/abromics_extractor_summarize/0.5+galaxy1 | toolshed.g2.bx.psu.edu/repos/ifb-elixirfr/abromics_extractor_summarize/abromics_extractor_summarize/0.8.3.6+galaxy0
+abromics_galaxy_json_extractor,abromics extractor json,2,Sequence Analysis,abromics_galaxy_json_extractor,toolshed.g2.bx.psu.edu/repos/pimarin/abromics_galaxy_json_extractor/abromics_galaxy_json_extractor/0.5+galaxy1 | toolshed.g2.bx.psu.edu/repos/ifb-elixirfr/abromics_galaxy_json_extractor/abromics_galaxy_json_extractor/0.8.3.6+galaxy0
+arriba,arriba,2,Sequence Analysis,Arriba,toolshed.g2.bx.psu.edu/repos/jjohnson/arriba/arriba/2.3.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/arriba/arriba/2.5.1+galaxy0
+arriba_draw_fusions,arriba draw fusions,2,Sequence Analysis,Arriba Draw Fusions,toolshed.g2.bx.psu.edu/repos/jjohnson/arriba_draw_fusions/arriba_draw_fusions/2.3.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/arriba_draw_fusions/arriba_draw_fusions/2.5.1+galaxy0
+arriba_get_filters,arriba filters get,2,Sequence Analysis,Arriba Get Filters,toolshed.g2.bx.psu.edu/repos/jjohnson/arriba_get_filters/arriba_get_filters/2.3.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/arriba_get_filters/arriba_get_filters/2.5.1+galaxy0
+deg_annotate,annotate deseq2 dexseq output tables,2,Transcriptomics,Annotate DESeq2/DEXSeq output tables,toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/deg_annotate/1.1.0+galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/annotate_deseq2dexseq_output_tables/1.1.0+galaxy1
+dnabot,bot dna,2,Synthetic Biology,DNA-Bot,toolshed.g2.bx.psu.edu/repos/tduigou/dnabot/dna_bot/4.1.0 | toolshed.g2.bx.psu.edu/repos/iuc/dnabot/dna_bot/3.1.0
+lcrgenie,chain genie ligase reaction,2,Synthetic Biology,Ligase Chain Reaction Genie,toolshed.g2.bx.psu.edu/repos/iuc/lcrgenie/ligase_chain_reaction_genie/1.0.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/tduigou/lcrgenie/ligase_chain_reaction_genie/1.0.2+galaxy0
+rp2biosensor,rp2biosensor,2,Synthetic Biology,rp2biosensor,toolshed.g2.bx.psu.edu/repos/iuc/rp2biosensor/rp2biosensor/3.2.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/tduigou/rp2biosensor/rp2biosensor/3.2.1+galaxy0
+rp2paths,rp2paths,2,Synthetic Biology,RP2paths,toolshed.g2.bx.psu.edu/repos/tduigou/rp2paths/rp2paths/2.1.0+galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/rp2paths/rp2paths/2.0.0
+rpbasicdesign,basicdesign,2,Synthetic Biology,BasicDesign,toolshed.g2.bx.psu.edu/repos/tduigou/rpbasicdesign/basicdesign/1.2.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/rpbasicdesign/basicdesign/1.2.2+galaxy0
+rpfba,analysis balance flux,2,Synthetic Biology,Flux balance analysis,toolshed.g2.bx.psu.edu/repos/tduigou/rpfba/flux_balance_analysis/6.0.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/rpfba/flux_balance_analysis/5.12.3
+collection_column_join,column join,2,Text Manipulation,Column join,toolshed.g2.bx.psu.edu/repos/iuc/collection_column_join/column_join/0.0.3 | toolshed.g2.bx.psu.edu/repos/mvdbeek/collection_column_join/column_join/0.0.3+galaxy2
+concatenate_multiple_datasets,concatenate datasets multiple,2,Text Manipulation,Concatenate multiple datasets,toolshed.g2.bx.psu.edu/repos/mvdbeek/concatenate_multiple_datasets/concatenate_multiple_datasets/0.2 | toolshed.g2.bx.psu.edu/repos/artbio/concatenate_multiple_datasets/concatenate_multiple_datasets/1.4.3
+molecule_datatypes,cml inchi,2,Tool Dependency Packages,InChI to CML,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/inchi_to_cml/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/cml_to_inchi/1.0.0
+molecule_datatypes,mol2 sdf,2,Tool Dependency Packages,SDF to mol2,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/sdf_to_mol2/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol2_to_sdf/1.0.0
+molecule_datatypes,cml sdf,2,Tool Dependency Packages,SDF to CML,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/sdf_to_cml/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/cml_to_sdf/1.0.0
+molecule_datatypes,cml smiles,2,Tool Dependency Packages,SMILES to CML,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/smiles_to_cml/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/cml_to_smiles/1.0.0
+molecule_datatypes,inchi sdf,2,Tool Dependency Packages,SDF to InChI,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/sdf_to_inchi/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/inchi_to_sdf/1.0.0
+molecule_datatypes,sdf smiles,2,Tool Dependency Packages,SMILES to SDF,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/smiles_to_sdf/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/sdf_to_smiles/1.0.1
+molecule_datatypes,cml mol2,2,Tool Dependency Packages,CML to mol2,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/cml_to_mol2/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol2_to_cml/1.0.0
+molecule_datatypes,mol mol2,2,Tool Dependency Packages,MOL to MOL2,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol_to_mol2/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol2_to_mol/1.0.0
+molecule_datatypes,mol2 smiles,2,Tool Dependency Packages,MOL2 to SMILES,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol2_to_smiles/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/smiles_to_mol2/1.0.0
+molecule_datatypes,mol smiles,2,Tool Dependency Packages,SMILES to MOL,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/smiles_to_mol/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol_to_smiles/1.0.0
+molecule_datatypes,inchi mol2,2,Tool Dependency Packages,MOL2 to InChI,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/mol2_to_inchi/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/inchi_to_mol2/1.0.0
+molecule_datatypes,inchi smiles,2,Tool Dependency Packages,SMILES to InChI,toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/smiles_to_inchi/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/molecule_datatypes/inchi_to_smiles/1.0.0
+planemo_test,planemo test,2,Tool Generators,planemo_test,toolshed.g2.bx.psu.edu/repos/fubar/planemo_test/planemo_test/0.01 | toolshed.g2.bx.psu.edu/repos/fubar_too/planemo_test/planemo_test/0.01
+toolfactory,toolfactory,2,Tool Generators,toolfactory,toolshed.g2.bx.psu.edu/repos/fubar/toolfactory/toolfactory/2.00 | toolshed.g2.bx.psu.edu/repos/fubar_too/toolfactory/toolfactory/2.00
+admixture,admixture,2,"ancestry, population genetics, admixture, reference panels, gwas",Admixture,toolshed.g2.bx.psu.edu/repos/dereeper/admixture/admixture/1.23 | nfcore/admixture
+beagle,beagle,2,Variant Analysis,Beagle,toolshed.g2.bx.psu.edu/repos/dereeper/beagle/beagle/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/beagle/beagle/5.4_29Oct24.c8e+galaxy1
+clair3,clair3,2,"germline, variant, Indel, SNV",Clair3,toolshed.g2.bx.psu.edu/repos/iuc/clair3/clair3/1.0.10+galaxy1 | nfcore/clair3
+bandage,bandage image,2,"gfa, graph, assembly, visualisation",Bandage Image,toolshed.g2.bx.psu.edu/repos/iuc/bandage/bandage_image/2022.09+galaxy4 | nfcore/bandage/image
+charts,charts,2,Visualization,Charts,toolshed.g2.bx.psu.edu/repos/iuc/charts/charts/1.0.1 | toolshed.g2.bx.psu.edu/repos/guerler/charts/charts/1.0.0
+flash,flash,2,"sort, reads merging, merge mate pairs",FLASH,toolshed.g2.bx.psu.edu/repos/iuc/flash/flash/1.2.11.4 | nfcore/flash
+flye,flye,2,"assembly, genome, de novo, genome assembler, single molecule",Flye,toolshed.g2.bx.psu.edu/repos/bgruening/flye/flye/2.9.6+galaxy0 | nfcore/flye
+hifiasm,hifiasm,2,"genome assembly, haplotype resolution, phasing, PacBio, HiFi",Hifiasm,toolshed.g2.bx.psu.edu/repos/bgruening/hifiasm/hifiasm/0.25.0+galaxy0 | nfcore/hifiasm
+hypo,hypo,2,"assembly, polishing, nanopore, illumina",HyPo,toolshed.g2.bx.psu.edu/repos/iuc/hypo/hypo/1.0.3+galaxy0 | nfcore/hypo
+idba_ud,idba ud,2,Assembly,IDBA-UD,"toolshed.g2.bx.psu.edu/repos/iuc/idba_ud/idba_ud/1.1.3+galaxy1 | toolshed.g2.bx.psu.edu/repos/stheil/idba_ud_wrapper/idba_ud/1.1.1 (Oct 18, 2012"
+links,links,2,"scaffold, long-reads, genomics",LINKS,toolshed.g2.bx.psu.edu/repos/iuc/links/links/2.0.1+galaxy+1 | nfcore/links
+mauve_contig_mover,contig mauve mover,2,Sequence Analysis,Mauve Contig Mover,toolshed.g2.bx.psu.edu/repos/brinkmanlab/mauve_contig_mover/mauve_contig_mover/1.0 | toolshed.g2.bx.psu.edu/repos/nml/mauve_contig_mover/mauve_contig_mover/1.0.10
+megahit,megahit,2,"megahit, denovo, assembly, debruijn, metagenomics",MEGAHIT,toolshed.g2.bx.psu.edu/repos/iuc/megahit/megahit/1.2.9+galaxy2 | nfcore/megahit
+microsatbed,bed str,2,Sequence Analysis,STR to bed,toolshed.g2.bx.psu.edu/repos/fubar/microsatbed/str_to_bed/1.3.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/microsatbed/str_to_bed/1.3.3+galaxy1
+minia,minia,2,"assembler, short-read, de Bruijn",Minia,toolshed.g2.bx.psu.edu/repos/iuc/minia/minia/3.2.6 | nfcore/minia
+novoplasty,novoplasty,2,Assembly,NOVOplasty,toolshed.g2.bx.psu.edu/repos/menegidio/novoplasty/novoplasty/4.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/novoplasty/novoplasty/4.3.1+galaxy0
+pear,pear,2,"pair-end, read, merge",Pear,toolshed.g2.bx.psu.edu/repos/iuc/pear/pear/0.9.6.4 | nfcore/pear
+raven,raven,2,"de novo, assembly, genome, genome assembler, long uncorrected reads",Raven,toolshed.g2.bx.psu.edu/repos/iuc/raven/raven/1.8.3+galaxy0 | nfcore/raven
+rnaspades,rnaspades,2,Assembly,rnaSPAdes,toolshed.g2.bx.psu.edu/repos/iuc/rnaspades/rnaspades/4.2.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/nml/rnaspades/rnaspades/1.0
+shovill,shovill,2,"bacterial, assembly, illumina",Shovill,toolshed.g2.bx.psu.edu/repos/iuc/shovill/shovill/1.1.0+galaxy2 | nfcore/shovill
+velvetoptimiser,velvetoptimiser,2,Assembly,velvetoptimiser,toolshed.g2.bx.psu.edu/repos/konradpaszkiewicz/velvetoptimiser/velvetoptimiser/1.0.0 | toolshed.g2.bx.psu.edu/repos/simon-gladman/velvetoptimiser/velvetoptimiser/2.2.6+galaxy2
+yahs,yahs,2,"scaffolding, assembly, yahs, hic",YAHS,toolshed.g2.bx.psu.edu/repos/iuc/yahs/yahs/1.2a.2+galaxy3 | nfcore/yahs
+meme_chip,chip meme,2,Sequence Analysis,MEME-ChIP,toolshed.g2.bx.psu.edu/repos/iuc/meme_chip/meme_chip/4.11.2+galaxy1 | toolshed.g2.bx.psu.edu/repos/kevyin/meme_chip/meme_chip/1.2.4
+multigps,multigps,2,ChIP-seq,MultiGPS,toolshed.g2.bx.psu.edu/repos/greg/multigps/multigps/0.74.0 | toolshed.g2.bx.psu.edu/repos/iuc/multigps/multigps/0.74.0
+fml_gff3togtf,gff gtf,2,Convert Formats,GTF-to-GFF,toolshed.g2.bx.psu.edu/repos/vipints/fml_gff3togtf/gtf_to_gff/2.1.0 | toolshed.g2.bx.psu.edu/repos/vipints/fml_gff3togtf/gff_to_gtf/2.1.0
+fml_gff3togtf,bed gff,2,Convert Formats,GFF-to-BED,toolshed.g2.bx.psu.edu/repos/vipints/fml_gff3togtf/gff_to_bed/2.1.0 | toolshed.g2.bx.psu.edu/repos/vipints/fml_gff3togtf/bed_to_gff/2.1.0
+gfa_to_fa,fasta gfa,2,Convert Formats,GFA to FASTA,toolshed.g2.bx.psu.edu/repos/iuc/gfa_to_fa/gfa_to_fasta/0.1.2 | toolshed.g2.bx.psu.edu/repos/erasmus-medical-center/gfa_to_fa/gfa_to_fasta/0.1.0
+readseq,readseq,2,Convert Formats,Readseq,toolshed.g2.bx.psu.edu/repos/gandres/readseq/readseq/1.0.3 | toolshed.g2.bx.psu.edu/repos/dereeper/readseq/readseq/2.0.0
+rseqc,bam mapping sam stats,2,Sequence Analysis,BAM/SAM Mapping Stats,toolshed.g2.bx.psu.edu/repos/nilesh/rseqc/rseqc_bam_stat/5.0.3+galaxy0 | toolshed.g2.bx.psu.edu/repos/nilesh/rseqc/bamsam_mapping_stats/5.0.3+galaxy0
+tximport,tximport,2,Transcriptomics,tximport,toolshed.g2.bx.psu.edu/repos/ieguinoa/tximport/tximport/0.1 | toolshed.g2.bx.psu.edu/repos/iuc/tximport/tximport/1.30.0
+unzip,unzip,2,"unzip, decompression, zip, archiving",Unzip,toolshed.g2.bx.psu.edu/repos/imgteam/unzip/unzip/6.0+galaxy2 | nfcore/unzip
+snpeff,databases snpeff,2,Genome-Wide Association Study,SnpEff Databases,toolshed.g2.bx.psu.edu/repos/iuc/data_manager_snpeff/snpeff_databases/4.3.1t | toolshed.g2.bx.psu.edu/repos/iuc/snpeff/snpeff_databases/5.2+galaxy1
+snpsift_dbnsfp,dbnsfp snpsift,2,Variant Analysis,SnpSift dbNSFP,toolshed.g2.bx.psu.edu/repos/iuc/data_manager_snpsift_dbnsfp/snpsift_dbnsfp/4.1.1 | toolshed.g2.bx.psu.edu/repos/iuc/snpsift_dbnsfp/snpsift_dbnsfp/4.3.0
+spocc_occ,data get occurrences species,2,Ecology,Get species occurrences data,toolshed.g2.bx.psu.edu/repos/mnhn65mo/spocc_occ/get_species_occurrences_data/0.2 | toolshed.g2.bx.psu.edu/repos/ecology/spocc_occ/get_species_occurrences_data/1.2.2
+test,compute content gc,2,Sequence Analysis,Compute GC content,toolshed.g2.bx.psu.edu/repos/audrey_comte/test/compute_gc_content/0.1.0 | toolshed.g2.bx.psu.edu/repos/yveswetzels/test/compute_gc_content/1.0.0
+filtlong,filtlong,2,"nanopore, quality control, QC, filtering, long reads",filtlong,toolshed.g2.bx.psu.edu/repos/iuc/filtlong/filtlong/0.3.1+galaxy0 | nfcore/filtlong
+nanocomp,nanocomp,2,"bam, fasta, fastq, qc, nanopore",NanoComp,toolshed.g2.bx.psu.edu/repos/iuc/nanocomp/nanocomp/1.25.3+galaxy0 | nfcore/nanocomp
+samblaster,samblaster,2,"sort, duplicate marking, bam",samblaster,toolshed.g2.bx.psu.edu/repos/iuc/samblaster/samblaster/0.1.26+galaxy0 | nfcore/samblaster
+sequali,sequali,2,"quality_control, qc, preprocessing",sequali,toolshed.g2.bx.psu.edu/repos/iuc/sequali/sequali/1.0.2+galaxy0 | nfcore/sequali
+trimmomatic,trimmomatic,2,"trimming, adapter trimming, quality trimming",Trimmomatic,toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2 | nfcore/trimmomatic
+islandpath,islandpath,2,"genomes, genomic islands, prediction",IslandPath,toolshed.g2.bx.psu.edu/repos/brinkmanlab/islandpath/islandpath/1.0.6 | nfcore/islandpath
+tsebra,tsebra,2,"genomics, transcript, selector, gene, prediction",TSEBRA,toolshed.g2.bx.psu.edu/repos/iuc/tsebra/tsebra/1.1.2.5+galaxy0 | nfcore/tsebra
+influx_si,influx si,2,Metabolomics,influx_si,toolshed.g2.bx.psu.edu/repos/sokol/influx_si/influx_si/5.1.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/workflow4metabolomics/influx_si/influx_si/7.0.1+galaxy1
+mixmodel4repeated_measures,mixmodel,2,Metabolomics,mixmodel,toolshed.g2.bx.psu.edu/repos/workflow4metabolomics/mixmodel4repeated_measures/mixmodel/3.1.0 | toolshed.g2.bx.psu.edu/repos/jfrancoismartin/mixmodel4repeated_measures/mixmodel/3.1.0
+normalization,normalization,2,Statistics,Normalization,toolshed.g2.bx.psu.edu/repos/marie-tremblay-metatoul/normalization/normalization/1.0.7 | toolshed.g2.bx.psu.edu/repos/vmarcon/normalization/normalization/1.0.0
+centrifuge,centrifuge,2,Metagenomics,Centrifuge,toolshed.g2.bx.psu.edu/repos/jvolkening/centrifuge/centrifuge/1.0.4_beta | toolshed.g2.bx.psu.edu/repos/thanhlv/centrifuge/centrifuge/1.0.4_beta
+customize_metaphlan_database,customize marker metadata sequences,2,Metagenomics,Customize the marker sequences and metadata,toolshed.g2.bx.psu.edu/repos/thanhlv/customize_metaphlan_database/customize_the_marker_sequences_and_metadata/4.0.3+galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/customize_metaphlan_database/customize_the_marker_sequences_and_metadata/4.1.1+galaxy0
+drep,compare drep,2,"drep, genome, fasta, compare, comparison",dRep compare,toolshed.g2.bx.psu.edu/repos/jjohnson/drep/drep_compare/2.4.0.0 | nfcore/drep/compare
+drep,dereplicate drep,2,"drep, genome, fasta, compare, comparison",dRep dereplicate,toolshed.g2.bx.psu.edu/repos/jjohnson/drep/drep_dereplicate/2.4.0.0 | nfcore/drep/dereplicate
+export2graphlan,export graphlan,2,Metagenomics,Export to GraPhlAn,toolshed.g2.bx.psu.edu/repos/bebatut/export2graphlan/export_to_graphlan/0.19 | toolshed.g2.bx.psu.edu/repos/iuc/export2graphlan/export_to_graphlan/0.20+galaxy0
+extract_metaphlan_database,extract marker metadata sequences,2,Metagenomics,Extract the marker sequences and metadata,toolshed.g2.bx.psu.edu/repos/thanhlv/extract_metaphlan_database/extract_the_marker_sequences_and_metadata/4.0.3+galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/extract_metaphlan_database/extract_the_marker_sequences_and_metadata/4.1.1+galaxy0
+frogs,biom frogs tsv,2,Metagenomics,FROGS BIOM to TSV,toolshed.g2.bx.psu.edu/repos/frogs/frogs/frogs_biom_to_tsv/4.2.0+galaxy1 | toolshed.g2.bx.psu.edu/repos/frogs/frogs/frogs_tsv_to_biom/4.2.0+galaxy1
+frogs_2_0,biom frogs tsv,2,Metagenomics,FROGS TSV_to_BIOM,toolshed.g2.bx.psu.edu/repos/frogs/frogs_2_0_0/frogs_tsv_to_biom/2.0.0 | toolshed.g2.bx.psu.edu/repos/frogs/frogs_2_0_0/frogs_biom_to_tsv/2.1.0
+frogs_3_1,biom frogs tsv,2,Metagenomics,FROGS TSV_to_BIOM,toolshed.g2.bx.psu.edu/repos/frogs/frogs_3_1_0/FROGS_tsv_to_biom/3.1 | toolshed.g2.bx.psu.edu/repos/frogs/frogs_3_1_0/FROGS_biom_to_tsv/3.1
+group_humann2_uniref_abundances_to_go,abundances group,2,Metagenomics,Group abundances,toolshed.g2.bx.psu.edu/repos/bebatut/group_humann2_uniref_abundances_to_go/group_abundances/1.2.3 | toolshed.g2.bx.psu.edu/repos/rsajulga/group_humann2_uniref_abundances_to_go/group_abundances/1.2.2
+humann2,humann2,2,Metagenomics,HUMAnN2,toolshed.g2.bx.psu.edu/repos/bebatut/humann2/humann2/0.6.1 | toolshed.g2.bx.psu.edu/repos/iuc/humann2/humann2/0.11.1.3
+humann_associate,association metadata perform,2,Metagenomics,Perform metadata association,toolshed.g2.bx.psu.edu/repos/iuc/humann_associate/perform_metadata_association/3.8+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_associate/perform_metadata_association/3.6.0+galaxy0
+humann_barplot,barplot,2,Metagenomics,Barplot,toolshed.g2.bx.psu.edu/repos/iuc/humann_barplot/barplot/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_barplot/barplot/3.6.0+galaxy0
+humann_reduce_table,reduce,2,Metagenomics,Reduce,toolshed.g2.bx.psu.edu/repos/iuc/humann_reduce_table/reduce/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_reduce_table/reduce/3.6.0+galaxy0
+humann_regroup_table,regroup,2,Metagenomics,Regroup,toolshed.g2.bx.psu.edu/repos/iuc/humann_regroup_table/regroup/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_regroup_table/regroup/3.6.0+galaxy0
+humann_rename_table,features rename,2,Metagenomics,Rename features,toolshed.g2.bx.psu.edu/repos/iuc/humann_rename_table/rename_features/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_rename_table/rename_features/3.6.0+galaxy0
+humann_renorm_table,renormalize,2,Metagenomics,Renormalize,toolshed.g2.bx.psu.edu/repos/iuc/humann_renorm_table/renormalize/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_renorm_table/renormalize/3.6.0+galaxy0
+humann_rna_dna_norm,normalize,2,Metagenomics,Normalize,toolshed.g2.bx.psu.edu/repos/iuc/humann_rna_dna_norm/normalize/3.8+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_rna_dna_norm/normalize/3.6.0+galaxy0
+humann_split_stratified_table,a humann split table,2,Metagenomics,Split a HUMAnN table,toolshed.g2.bx.psu.edu/repos/iuc/humann_split_stratified_table/split_a_humann_table/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_split_stratified_table/split_a_humann_table/3.6.0+galaxy0
+humann_split_table,split,2,Metagenomics,Split,toolshed.g2.bx.psu.edu/repos/thanhlv/humann_split_table/split/3.6.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/humann_split_table/split/3.9+galaxy0
+humann_strain_profiler,make profiles strain,2,Metagenomics,Make strain profiles,toolshed.g2.bx.psu.edu/repos/iuc/humann_strain_profiler/make_strain_profiles/3.8+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_strain_profiler/make_strain_profiles/3.6.0+galaxy0
+humann_unpack_pathways,abundances pathway unpack,2,Metagenomics,Unpack pathway abundances,toolshed.g2.bx.psu.edu/repos/iuc/humann_unpack_pathways/unpack_pathway_abundances/3.9+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/humann_unpack_pathways/unpack_pathway_abundances/3.6.0+galaxy0
+kleborate,kleborate,2,"screen, assembly, Klebsiella, pneumoniae",Kleborate,toolshed.g2.bx.psu.edu/repos/iuc/kleborate/kleborate/2.3.2+galaxy1 | nfcore/kleborate
+kraken2,kraken2,2,Metagenomics,Kraken2,toolshed.g2.bx.psu.edu/repos/iuc/kraken2/kraken2/2.1.3+galaxy2 | toolshed.g2.bx.psu.edu/repos/dfornika/kraken2/kraken2/2.0.7_beta+galaxy0
+krona_text,krona visualize,2,Visualization,Visualize with Krona,toolshed.g2.bx.psu.edu/repos/saskia-hiltemann/krona_text/visualize_with_krona/1 | toolshed.g2.bx.psu.edu/repos/petr-novak/krona_text/visualize_with_krona/1.1
+mash,mash screen,2,"screen, containment, contamination, taxonomic assignment",mash screen,toolshed.g2.bx.psu.edu/repos/iuc/mash/mash_screen/2.3+galaxy4 | nfcore/mash/screen
+maxbin2,maxbin2,2,"metagenomics, assembly, binning, maxbin2, de novo assembly",MaxBin2,toolshed.g2.bx.psu.edu/repos/mbernt/maxbin2/maxbin2/2.2.7+galaxy6 | nfcore/maxbin2
+merge_metaphlan_tables,merge,2,Metagenomics,Merge,toolshed.g2.bx.psu.edu/repos/iuc/merge_metaphlan_tables/merge/4.1.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/merge_metaphlan_tables/merge/4.0.3+galaxy1
+metabuli,classify metabuli,2,Metagenomics,metabuli classify,toolshed.g2.bx.psu.edu/repos/iuc/metabuli/metabuli_classify/1.0.5+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/metabuli/metabuli_classify/1.0.5+galaxy0
+metaphlan2,metaphlan2,2,Metagenomics,MetaPhlAn2,toolshed.g2.bx.psu.edu/repos/bebatut/metaphlan2/metaphlan2/2.5.0 | toolshed.g2.bx.psu.edu/repos/iuc/metaphlan2/metaphlan2/2.6.0.1
+micropita,run,2,Web Services,Run,toolshed.g2.bx.psu.edu/repos/george-weingart/micropita/run/1.0.1 | toolshed.g2.bx.psu.edu/repos/sagun98/micropita/run/1.0.1
+qiime,convert mapping otu sample table unifrac,2,Metagenomics,convert_otu_table_to_unifrac_sample_mapping,toolshed.g2.bx.psu.edu/repos/jjohnson/qiime/convert_otu_table_to_unifrac_sample_mapping/1.2.0 | toolshed.g2.bx.psu.edu/repos/jjohnson/qiime/convert_unifrac_sample_mapping_to_otu_table/1.2.0
+qiime,libraries split,2,Metagenomics,split_libraries,toolshed.g2.bx.psu.edu/repos/jjohnson/qiime/split_libraries/1.2.1 | toolshed.g2.bx.psu.edu/repos/jjohnson/qiime/split_libraries_illumina/1.2.0
+scoary,scoary,2,"gwas, pangenome, prokaryote",Scoary,toolshed.g2.bx.psu.edu/repos/iuc/scoary/scoary/1.6.16+galaxy1 | nfcore/scoary
+semibin_generate_cannot_links,annotations contig semibin,2,Metagenomics,SemiBin: Contig annotations,toolshed.g2.bx.psu.edu/repos/iuc/semibin_generate_cannot_links/semibin_contig_annotations/2.1.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/bgruening/semibin_generate_cannot_links/semibin_contig_annotations/1.1.1+galaxy0
+sortmerna,filter sortmerna,2,RNA,Filter with SortMeRNA,toolshed.g2.bx.psu.edu/repos/bonsai/sortmerna/filter_with_sortmerna/1.0 | toolshed.g2.bx.psu.edu/repos/rnateam/sortmerna/filter_with_sortmerna/4.3.6+galaxy0
+srst2,srst2,2,Sequence Analysis,SRST2,toolshed.g2.bx.psu.edu/repos/iuc/srst2/srst2/0.2.0+galaxy2 | toolshed.g2.bx.psu.edu/repos/nml/srst2/srst2/0.3.7
+ibridges,a a a as as as browse bz2 change download download download file file file files gz log repository repository tar tar tip view view zip,2,Data Export,View repository View change log Browse repository tip files Download as a .tar.gz file Download as a .tar.bz2 file Download as a zip file,toolshed.g2.bx.psu.edu/repos/maarten.schermer/ibridges/view_repository_view_change_log_browse_repository_tip_files_download_as_a_targz_file_download_as_a_tarbz2_file_download_as_a_zip_file/0.4.0 | toolshed.g2.bx.psu.edu/repos/maarten.schermer/ibridges/view_repository_view_change_log_browse_repository_tip_files_download_as_a_targz_file_download_as_a_tarbz2_file_download_as_a_zip_file/0.5.0
+bwa_wrappers_demo,bwa,2,Next Gen Mappers,Map with BWA for SOLiD,toolshed.g2.bx.psu.edu/repos/curtish/bwa_wrappers_demo/map_with_bwa_for_solid/1.0.2 | toolshed.g2.bx.psu.edu/repos/curtish/bwa_wrappers_demo/map_with_bwa_for_illumina/1.2.3
+nextgenmap,nextgenmap,2,"NextGenMap, ngm, alignment, map, fastq",NextGenMap,toolshed.g2.bx.psu.edu/repos/dnbenso/nextgenmap/nextgenmap/0.5.5+galaxy0 | nfcore/nextgenmap
+slamdunk,slamdunk,2,"slamseq, rna-seq, mapping",Slamdunk,toolshed.g2.bx.psu.edu/repos/iuc/slamdunk/slamdunk/0.4.3+galaxy1 | nfcore/slamdunk/map
+smalt,smalt,2,Sequence Analysis,SMALT,toolshed.g2.bx.psu.edu/repos/cjav/smalt/smalt/0.0.3 | toolshed.g2.bx.psu.edu/repos/nml/smalt/smalt/0.7.6+galaxy1
+phyml,phyml,2,Phylogenetics,PhyML,toolshed.g2.bx.psu.edu/repos/vlefort/phyml/phyml/3.1 | toolshed.g2.bx.psu.edu/repos/iuc/phyml/phyml/3.3.20220408+galaxy0
+structure,structure,2,Sequence Analysis,Structure,toolshed.g2.bx.psu.edu/repos/iuc/structure/structure/2.3.4+galaxy1 | toolshed.g2.bx.psu.edu/repos/ylebrascnrs/structure/structure/1.0.1
+trimal,trimal,2,"alignment, trimming, phylogeny",trimAl,toolshed.g2.bx.psu.edu/repos/iuc/trimal/trimal/1.5.0+galaxy1 | nfcore/trimal
+proteinortho,proteinortho,2,"orthology, co-orthology, homology, sequence similarity, spectral clustering",Proteinortho,toolshed.g2.bx.psu.edu/repos/iuc/proteinortho/proteinortho/6.3.6+galaxy0 | nfcore/proteinortho
+proteore_venn_diagram,diagram venn,2,Proteomics,Venn diagram,toolshed.g2.bx.psu.edu/repos/proteore/proteore_venn_diagram/venn_diagram/2021.05.12 | toolshed.g2.bx.psu.edu/repos/galaxyp/proteore_venn_diagram/venn_diagram/2021.06.08
+translate_bed_sequences,bed sequences translate,2,Sequence Analysis,Translate BED Sequences,toolshed.g2.bx.psu.edu/repos/galaxyp/translate_bed_sequences/translate_bed_sequences/0.2.0 | toolshed.g2.bx.psu.edu/repos/jjohnson/translate_bed_sequences/translate_bed_sequences/0.0.1
+miranda,miranda,2,"microrna, mirna, target prediction",miRanda,toolshed.g2.bx.psu.edu/repos/earlhaminst/miranda/miranda/3.3a+galaxy1 | nfcore/miranda
+regtools_junctions_extract,extract junctions regtools,2,RNA,regtools junctions extract,toolshed.g2.bx.psu.edu/repos/yating-l/regtools_junctions_extract/regtools_junctions_extract/0.1.1 | toolshed.g2.bx.psu.edu/repos/rmarenco/regtools_junctions_extract/regtools_junctions_extract/0.1.0
+rsem,fasta gene rsem trinity,2,RNA,RSEM trinity fasta to gene map,toolshed.g2.bx.psu.edu/repos/jjohnson/rsem/rsem_trinity_fasta_to_gene_map/1.1.17 | toolshed.g2.bx.psu.edu/repos/artbio/rsem/rsem_trinity_fasta_to_gene_map/1.0.1
+salmon,quant salmon,2,"index, fasta, genome, reference",Salmon quant,toolshed.g2.bx.psu.edu/repos/bgruening/salmon/salmon_quant/1.10.1+galaxy2 | nfcore/salmon/quant
+trinity,trinity,2,"assembly, de novo assembler, fasta, fastq",Trinity,toolshed.g2.bx.psu.edu/repos/iuc/trinity/trinity/2.15.1+galaxy1 | nfcore/trinity
+bamclipper,bamclipper,2,"primer, clipping, genomics, bam",BAMClipper,toolshed.g2.bx.psu.edu/repos/nml/bamclipper/bamclipper/1.0.0+galaxy0 | nfcore/bamclipper
+biohansel,biohansel,2,Sequence Analysis,biohansel,toolshed.g2.bx.psu.edu/repos/nml/biohansel/biohansel/2.4.0 | nfcore/biohansel
+chromeister,chromeister,2,Sequence Analysis,Chromeister,toolshed.g2.bx.psu.edu/repos/bitlab/chromeister/chromeister/1.0.0 | toolshed.g2.bx.psu.edu/repos/iuc/chromeister/chromeister/1.5.a+galaxy1
+clonalframeml,clonalframeml,2,"fasta, multiple sequence alignment, recombination",clonalframeML,toolshed.g2.bx.psu.edu/repos/dazeone/clonalframeml/clonalframeml/1.0 | nfcore/clonalframeml
+crispresso2,crispresso2,2,"genome editing, CRISPR, sequencing, amplicon",CRISPResso2,toolshed.g2.bx.psu.edu/repos/ieguinoa/crispresso2/crispresso2/0.1.1 | nfcore/crispresso2
+diamond,diamond makedb,2,"fasta, diamond, index, database",Diamond makedb,toolshed.g2.bx.psu.edu/repos/bgruening/diamond/diamond_makedb/2.1.13+galaxy0 | nfcore/diamond/makedb
+falco,falco,2,"quality control, qc, adapters, fastq",Falco,toolshed.g2.bx.psu.edu/repos/iuc/falco/falco/1.2.4+galaxy0 | nfcore/falco
+fastp,fastp,2,"trimming, quality control, fastq",fastp,toolshed.g2.bx.psu.edu/repos/iuc/fastp/fastp/1.0.1+galaxy3 | nfcore/fastp
+fastqe,fastqe,2,"quality control, fastq, emoji, visualization",FASTQE,toolshed.g2.bx.psu.edu/repos/iuc/fastqe/fastqe/0.3.1+galaxy0 | nfcore/fastqe
+gecko,gecko,2,Sequence Analysis,GECKO,toolshed.g2.bx.psu.edu/repos/bitlab/gecko/gecko/1.0.1 | toolshed.g2.bx.psu.edu/repos/iuc/gecko/gecko/1.2+galaxy1
+gfastats,gfastats,2,"gfastats, fasta, genome assembly, genome summary, genome manipulation",gfastats,toolshed.g2.bx.psu.edu/repos/bgruening/gfastats/gfastats/1.3.11+galaxy0 | nfcore/gfastats
+gubbins,gubbins,2,"recombination, alignment, phylogeny",Gubbins,toolshed.g2.bx.psu.edu/repos/iuc/gubbins/gubbins/3.2.1+galaxy0 | nfcore/gubbins
+hicexplorer_chicexportdata,chicexportdata,2,Sequence Analysis,chicExportData,toolshed.g2.bx.psu.edu/repos/bgruening/hicexplorer_chicexportdata/chicexportdata/3.7.6+galaxy1 | toolshed.g2.bx.psu.edu/repos/iuc/hicexplorer_chicexportdata/chicexportdata/3.7.2+galaxy0
+hicexplorer_hicbuildmatrixmicroc,hicbuildmatrixmicroc,2,Sequence Analysis,hicBuildMatrixMicroC,toolshed.g2.bx.psu.edu/repos/iuc/hicexplorer_hicbuildmatrixmicroc/hicbuildmatrixmicroc/3.7.6+galaxy1 | toolshed.g2.bx.psu.edu/repos/bgruening/hicexplorer_hicbuildmatrixmicroc/hicbuildmatrixmicroc/3.7.6+galaxy1
+hicexplorer_hicinterintratad,hicinterintratad,2,Sequence Analysis,hicInterIntraTAD,toolshed.g2.bx.psu.edu/repos/iuc/hicexplorer_hicinterintratad/hicinterintratad/3.7.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/bgruening/hicexplorer_hicinterintratad/hicinterintratad/3.7.6+galaxy1
+hicexplorer_hictadclassifier,hictadclassifier,2,Sequence Analysis,hicTADClassifier,toolshed.g2.bx.psu.edu/repos/iuc/hicexplorer_hictadclassifier/hictadclassifier/3.7.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/bgruening/hicexplorer_hictadclassifier/hictadclassifier/3.7.2+galaxy0
+hicexplorer_hictraintadclassifier,hictraintadclassifier,2,Sequence Analysis,hicTrainTADClassifier,toolshed.g2.bx.psu.edu/repos/iuc/hicexplorer_hictraintadclassifier/hictraintadclassifier/3.7.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/bgruening/hicexplorer_hictraintadclassifier/hictraintadclassifier/3.7.2+galaxy0
+homer,homer pos2bed,2,"peaks, bed, pos",homer_pos2bed,toolshed.g2.bx.psu.edu/repos/kevyin/homer/homer_pos2bed/1.0.0 | nfcore/homer/pos2bed
+homer,findpeaks homer,2,"annotation, peaks, enrichment",homer_findPeaks,toolshed.g2.bx.psu.edu/repos/kevyin/homer/homer_findpeaks/0.1.2 | nfcore/homer/findpeaks
+homer,homer maketagdirectory,2,"peaks, bed, bam, sam",homer_makeTagDirectory,toolshed.g2.bx.psu.edu/repos/kevyin/homer/homer_maketagdirectory/1.0.1 | nfcore/homer/maketagdirectory
+homer,annotatepeaks homer,2,"annotations, peaks, bed",homer_annotatePeaks,toolshed.g2.bx.psu.edu/repos/kevyin/homer/homer_annotatepeaks/0.0.5 | nfcore/homer/annotatepeaks
+idr,idr,2,Sequence Analysis,IDR,toolshed.g2.bx.psu.edu/repos/iuc/idr/idr/2.0.3 | nfcore/idr
+integron_finder,finder integron,2,Sequence Analysis,Integron Finder,toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/integron_finder/2.0.5+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/integron_finder/integron_finder/2.0.2+galaxy0
+interproscan,interproscan,2,"annotation, fasta, protein, dna, interproscan",InterProScan,toolshed.g2.bx.psu.edu/repos/bgruening/interproscan/interproscan/5.59-91.0+galaxy3 | nfcore/interproscan
+kofamscan,kofamscan,2,"fasta, kegg, kofamscan",KofamScan,toolshed.g2.bx.psu.edu/repos/iuc/kofamscan/kofamscan/1.3.0+galaxy4 | nfcore/kofamscan
+last,last split,2,Sequence Analysis,LAST-split,toolshed.g2.bx.psu.edu/repos/iuc/last/last_split/1205+galaxy3 | nfcore/last/split
+last,last train,2,Sequence Analysis,LAST-train,toolshed.g2.bx.psu.edu/repos/iuc/last/last_train/1205+galaxy3 | nfcore/last/train
+legsta,legsta,2,"bacteria, legionella, clinical, pneumophila",legsta,toolshed.g2.bx.psu.edu/repos/iuc/legsta/legsta/0.5.1+galaxy2 | nfcore/legsta
+lissero,lissero,2,"fasta, Listeria monocytogenes, serogroup",lissero,toolshed.g2.bx.psu.edu/repos/estrain/lissero/lissero/1.0.1+galaxy0 | nfcore/lissero
+macs2,callpeak macs2,2,"alignment, atac-seq, chip-seq, peak-calling",MACS2 callpeak,toolshed.g2.bx.psu.edu/repos/iuc/macs2/macs2_callpeak/2.2.9.1+galaxy0 | nfcore/macs2/callpeak
+macs2,macs2,2,Sequence Analysis,MACS2,toolshed.g2.bx.psu.edu/repos/modencode-dcc/macs2/macs2/2.0.10.2 | toolshed.g2.bx.psu.edu/repos/stemcellcommons/macs2/macs2/2.0.10
+mdust,mdust,2,"genomics, dna, low-complexity, masking",mdust,toolshed.g2.bx.psu.edu/repos/urgi-team/mdust/mdust/1.0 | nfcore/mdust
+meningotype,meningotype,2,"fasta, Neisseria meningitidis, serotype",Meningotype,toolshed.g2.bx.psu.edu/repos/iuc/meningotype/meningotype/0.8.5+galaxy0 | nfcore/meningotype
+miniprot,align miniprot,2,"align, fasta, protein, genome, paf",Miniprot align,toolshed.g2.bx.psu.edu/repos/iuc/miniprot/miniprot_align/0.18+galaxy0 | nfcore/miniprot/align
+miniprot,index miniprot,2,"index, fasta, genome, reference",Miniprot index,toolshed.g2.bx.psu.edu/repos/iuc/miniprot_index/miniprot_index/0.18+galaxy1 | nfcore/miniprot/index
+mlst,mlst,2,"mlst, typing, bacteria, assembly",MLST,toolshed.g2.bx.psu.edu/repos/iuc/mlst/mlst/2.22.0 | nfcore/mlst
+nanofilt,nanofilt,2,"nanopore, filtering, QC",NanoFilt,toolshed.g2.bx.psu.edu/repos/leomrtns/nanofilt/nanofilt/0.1.0 | nfcore/nanofilt
+pindel,pindel,2,Variant Analysis,Pindel,toolshed.g2.bx.psu.edu/repos/portiahollyoak/pindel/pindel/0.2.5b8 | toolshed.g2.bx.psu.edu/repos/artbio/pindel/pindel/0.2.5b9+galaxy0
+plasmidfinder,plasmidfinder,2,"fasta, fastq, plasmid",PlasmidFinder,toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/plasmidfinder/2.1.6+galaxy1 | nfcore/plasmidfinder
+pmlst,pmlst,2,Sequence Analysis,pmlst,toolshed.g2.bx.psu.edu/repos/dcouvin/pmlst/pmlst/2.0 | toolshed.g2.bx.psu.edu/repos/dcouvin/pmlst_v2/pmlst/2.0+galaxy2
+polypolish,polypolish,2,Sequence Analysis,Polypolish,toolshed.g2.bx.psu.edu/repos/iuc/polypolish/polypolish/0.6.1+galaxy0 | toolshed.g2.bx.psu.edu/repos/thanhlv/polypolish/polypolish/0.5.0
+prodigal,prodigal,2,"prokaryotes, gene finding, microbial",prodigal,toolshed.g2.bx.psu.edu/repos/edward-kirton/prodigal/prodigal/1.0.1 | nfcore/prodigal
+prokka,prokka,2,"annotation, fasta, prokka",Prokka,toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1 | nfcore/prokka
+rrparser,parser rrules,2,Synthetic Biology,RRules Parser,toolshed.g2.bx.psu.edu/repos/tduigou/rrparser/rrules_parser/2.7.0+galaxy4 | toolshed.g2.bx.psu.edu/repos/iuc/rrparser/rrules_parser/2.7.0+galaxy1
+sbml2sbol,sbmltosbol,2,Synthetic Biology,SbmlToSbol,toolshed.g2.bx.psu.edu/repos/tduigou/sbml2sbol/sbmltosbol/0.1.13+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/sbml2sbol/sbmltosbol/0.1.13+galaxy0
+straindesign_analyzing_model,analyzing model straindesign,2,Synthetic Biology,StrainDesign analyzing-model,toolshed.g2.bx.psu.edu/repos/tduigou/straindesign_analyzing_model/straindesign_analyzing_model/3.2.3+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/straindesign_analyzing_model/straindesign_analyzing_model/3.2.2+galaxy0
+straindesign_reduce_model,model reduce straindesign,2,Synthetic Biology,StrainDesign reduce-model,toolshed.g2.bx.psu.edu/repos/iuc/straindesign_reduce_model/straindesign_reduce_model/3.2.2+galaxy0 | toolshed.g2.bx.psu.edu/repos/tduigou/straindesign_reduce_model/straindesign_reduce_model/3.2.3+galaxy0
+straindesign_simulate_deletion,deletion simulate straindesign,2,Synthetic Biology,StrainDesign simulate-deletion,toolshed.g2.bx.psu.edu/repos/tduigou/straindesign_simulate_deletion/straindesign_simulate_deletion/3.2.3+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/straindesign_simulate_deletion/straindesign_simulate_deletion/3.2.2+galaxy0
+rasusa,rasusa,2,"coverage, depth, subsampling",rasusa,toolshed.g2.bx.psu.edu/repos/iuc/rasusa/rasusa/2.0.0+galaxy0 | nfcore/rasusa
+reverse_complement,complement reverse,2,molecular_biology,reverse complement,toolshed.g2.bx.psu.edu/repos/xuebing/reverse_complement/reverse_complement/1.0.0 | biomni/molecular_biology/reverse_complement
+roary,roary,2,"gff, pan-genome, alignment",Roary,toolshed.g2.bx.psu.edu/repos/iuc/roary/roary/3.13.0+galaxy3 | nfcore/roary
+seqtk,comp seqtk,2,"seqtk, comp, fastx",seqtk_comp,toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_comp/1.5+galaxy0 | nfcore/seqtk/comp
+seqtk,cutn seqtk,2,"cut, fasta, seqtk",seqtk_cutN,toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_cutn/1.5+galaxy0 | nfcore/seqtk/cutn
+seqtk,mergepe seqtk,2,"interleave, merge, fastx",seqtk_mergepe,toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_mergepe/1.5+galaxy0 | nfcore/seqtk/mergepe
+seqtk,sample seqtk,2,"sample, fastx, reads",seqtk_sample,toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_sample/1.5+galaxy0 | nfcore/seqtk/sample
+seqtk,seq seqtk,2,"seq, filter, transformation",seqtk_seq,toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_seq/1.5+galaxy1 | nfcore/seqtk/seq
+seqtk,seqtk subseq,2,"filtering, selection, fastx",seqtk_subseq,toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0 | nfcore/seqtk/subseq
+sniffles,sniffles,2,"sniffles, structural-variant calling, long-read",sniffles,toolshed.g2.bx.psu.edu/repos/iuc/sniffles/sniffles/2.5.2+galaxy0 | nfcore/sniffles
+snippy,snippy,2,Sequence Analysis,snippy,toolshed.g2.bx.psu.edu/repos/simon-gladman/snippy/snippy/0.2.0 | toolshed.g2.bx.psu.edu/repos/iuc/snippy/snippy/4.6.0+galaxy0
+socru,socru,2,Sequence Analysis,socru,toolshed.g2.bx.psu.edu/repos/iuc/socru/socru/2.1.7 | toolshed.g2.bx.psu.edu/repos/thanhlv/socru/socru/2.2.4
+staramr,staramr,2,Sequence Analysis,staramr,toolshed.g2.bx.psu.edu/repos/nml/staramr/staramr/0.11.0+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/staramr/staramr/0.11.0+galaxy3
+te_finder,tefinder,2,Sequence Analysis,TEfinder,toolshed.g2.bx.psu.edu/repos/iuc/te_finder/tefinder/1.0.1+galaxy1 | toolshed.g2.bx.psu.edu/repos/namhsuya/te_finder/tefinder/1.0.1
+varscan,somatic varscan,2,"variant calling, germline, somatic, vcf, variants",VarScan Somatic,toolshed.g2.bx.psu.edu/repos/fcaramia/varscan/varscan_somatic/2.3.5 | nfcore/varscan/somatic
+varscan,mpileup varscan,2,Sequence Analysis,VarScan mpileup,toolshed.g2.bx.psu.edu/repos/fcaramia/varscan/varscan_mpileup/2.3.5 | toolshed.g2.bx.psu.edu/repos/geert-vandeweyer/varscan_wrapper/varscan_mpileup/2.3.5
+vcfdistance,vcfdistance,2,Variant Analysis,VCFdistance:,toolshed.g2.bx.psu.edu/repos/devteam/vcfdistance/vcfdistance/1.0.0_rc3+galaxy0 | toolshed.g2.bx.psu.edu/repos/iuc/vcfdistance/vcfdistance/1.0.0_rc1+galaxy0
+windowmasker,mkcounts windowmasker,2,"fasta, interval, windowmasker",WindowMasker mkcounts,toolshed.g2.bx.psu.edu/repos/iuc/windowmasker/windowmasker_mkcounts/1.0 | nfcore/windowmasker/mkcounts
+windowmasker,ustat windowmasker,2,"fasta, interval, windowmasker",WindowMasker ustat,toolshed.g2.bx.psu.edu/repos/iuc/windowmasker/windowmasker_ustat/1.0 | nfcore/windowmasker/ustat
+vcftools,vcftools,2,"VCFtools, VCF, sort",VCFtools,toolshed.g2.bx.psu.edu/repos/nilesh/vcftools/vcftools/0.0.1 | nfcore/vcftools
+regex_find_replace,column find regex replace,2,Text Manipulation,Column Regex Find And Replace,toolshed.g2.bx.psu.edu/repos/jjohnson/regex_find_replace/column_regex_find_and_replace/0.1.0 | toolshed.g2.bx.psu.edu/repos/galaxyp/regex_find_replace/column_regex_find_and_replace/1.0.3
+regex_find_replace,find regex replace,2,Text Manipulation,Regex Find And Replace,toolshed.g2.bx.psu.edu/repos/jjohnson/regex_find_replace/regex_find_and_replace/0.1.0 | toolshed.g2.bx.psu.edu/repos/galaxyp/regex_find_replace/regex_find_and_replace/1.0.3
+text_to_wordmatrix,text wordmatrix,2,Text Manipulation,Text to wordmatrix,toolshed.g2.bx.psu.edu/repos/iuc/text_to_wordmatrix/text_to_wordmatrix/0.0.2 | toolshed.g2.bx.psu.edu/repos/dlalgroup/text_to_wordmatrix/text_to_wordmatrix/0.0.1
+gffcompare,gffcompare,2,"transcripts, gtf, merge, compare",GffCompare,toolshed.g2.bx.psu.edu/repos/iuc/gffcompare/gffcompare/0.12.10+galaxy0 | nfcore/gffcompare
+marea,analysis cluster,2,Transcriptomics,Cluster Analysis,toolshed.g2.bx.psu.edu/repos/bimib/marea/cluster_analysis/1.1.2 | toolshed.g2.bx.psu.edu/repos/bimib/marea_2/cluster_analysis/2.0.0
+marea,analysis enrichment metabolic reaction,2,Transcriptomics,Metabolic Reaction Enrichment Analysis,toolshed.g2.bx.psu.edu/repos/bimib/marea/metabolic_reaction_enrichment_analysis/1.1.7 | toolshed.g2.bx.psu.edu/repos/bimib/marea_2/metabolic_reaction_enrichment_analysis/2.0.0
+marea,expression2ras,2,Transcriptomics,Expression2RAS,toolshed.g2.bx.psu.edu/repos/bimib/marea/expression2ras/1.0.7 | toolshed.g2.bx.psu.edu/repos/bimib/marea_2/expression2ras/2.0.0
+stringtie,merge stringtie,2,"merge, gtf, reference",StringTie merge,toolshed.g2.bx.psu.edu/repos/iuc/stringtie/stringtie_merge/2.2.3+galaxy0 | nfcore/stringtie/merge
+cutesv,cutesv,2,"cutesv, structural-variant calling, sv",cuteSV,toolshed.g2.bx.psu.edu/repos/iuc/cutesv/cutesv/2.1.3+galaxy0 | nfcore/cutesv
+deepvariant,deepvariant,2,"variant calling, machine learning, neural network",DeepVariant,toolshed.g2.bx.psu.edu/repos/iuc/deepvariant/deepvariant/1.5.0+galaxy1 | nfcore/deepvariant
+freebayes,freebayes,2,"variant caller, SNP, genotyping, somatic variant calling, germline variant calling",FreeBayes,toolshed.g2.bx.psu.edu/repos/devteam/freebayes/freebayes/1.3.10+galaxy1 | nfcore/freebayes
+gatk4,gatk4 mergemutectstats,2,"gatk4, merge, mutect2, mutectstats",gatk4 MergeMutectStats,toolshed.g2.bx.psu.edu/repos/artbio/gatk4/gatk4_mergemutectstats/4.1.7.0+galaxy3 | nfcore/gatk4/mergemutectstats
+gatk4,gatk4 mutect2,2,"gatk4, haplotype, indels, mutect2, snvs",gatk4 Mutect2,toolshed.g2.bx.psu.edu/repos/artbio/gatk4/gatk4_mutect2/4.1.7.0+galaxy3 | nfcore/gatk4/mutect2
+gatk4,filtermutectcalls gatk4,2,"filtermutectcalls, filter, gatk4, mutect2, vcf",gatk4 FilterMutectCalls,toolshed.g2.bx.psu.edu/repos/artbio/gatk4/gatk4_filtermutectcalls/4.1.7.0+galaxy3 | nfcore/gatk4/filtermutectcalls
+jasminesv,jasminesv,2,"jasminesv, jasmine, structural variants, vcf, bam",JasmineSV,toolshed.g2.bx.psu.edu/repos/iuc/jasminesv/jasminesv/1.0.11+galaxy1 | nfcore/jasminesv
+pilon,pilon,2,"polishing, assembly, variant calling",pilon,toolshed.g2.bx.psu.edu/repos/iuc/pilon/pilon/1.20.1 | nfcore/pilon
+pneumocat,pneumocat,2,"fastq, serotype, Streptococcus pneumoniae",PneumoCaT,toolshed.g2.bx.psu.edu/repos/nml/pneumocat/pneumocat/1.2.1 | nfcore/pneumocat
+snpsift,annotate snpsift,2,"variant calling, annotate, snpsift, cancer genomics",SnpSift Annotate,toolshed.g2.bx.psu.edu/repos/iuc/snpsift/snpsift_annotate/4.3+t.galaxy1 | nfcore/snpsift/annotate
+vcfanno,vcfanno,2,"vcf, bed, annotate, variant, lua",vcfanno,toolshed.g2.bx.psu.edu/repos/iuc/vcfanno/vcfanno/0.3.7+galaxy0 | nfcore/vcfanno
+vcftools_filter_stats_diversity,filter vcftools,2,Variant Analysis,VCFtools Filter,toolshed.g2.bx.psu.edu/repos/dereeper/vcftools_filter_stats_diversity/vcftools_filter/1.2.0 | toolshed.g2.bx.psu.edu/repos/gandres/vcftools_filter_stats_diversity/vcftools_filter/1.2.0
+vcftools_filter_stats_diversity,slidingwindow tools vcf,2,Variant Analysis,VCF tools SlidingWindow,toolshed.g2.bx.psu.edu/repos/dereeper/vcftools_filter_stats_diversity/vcf_tools_slidingwindow/1.3.0 | toolshed.g2.bx.psu.edu/repos/gandres/vcftools_filter_stats_diversity/vcf_tools_slidingwindow/1.3.0
+vcftools_filter_stats_diversity,stats vcftools,2,Variant Analysis,VCFtools Stats,toolshed.g2.bx.psu.edu/repos/dereeper/vcftools_filter_stats_diversity/vcftools_stats/1.2.0 | toolshed.g2.bx.psu.edu/repos/gandres/vcftools_filter_stats_diversity/vcftools_stats/1.2.0
+wisecondorx,convert wisecondorx,2,"bam, cram, copy-number",WisecondorX convert,toolshed.g2.bx.psu.edu/repos/artbio/wisecondorx/wisecondorx_convert/1.2.9+galaxy0 | nfcore/wisecondorx/convert
+wisecondorx,predict wisecondorx,2,"copy number variation, bed, npz, png",WisecondorX predict,toolshed.g2.bx.psu.edu/repos/artbio/wisecondorx/wisecondorx_predict/1.2.9+galaxy0 | nfcore/wisecondorx/predict
+nanoplot,nanoplot,2,"quality control, qc, fastq, sequencing summary, nanopore",NanoPlot,toolshed.g2.bx.psu.edu/repos/iuc/nanoplot/nanoplot/1.46.1+galaxy0 | nfcore/nanoplot
+alphafold,alphafold,2,Structure Prediction,ALPHAFOLD,biomate_ds_api_alphafold | auto_alphafold3
+expansionhunter,expansionhunter,2,nf-core,expansionhunter,toolshed.g2.bx.psu.edu/repos/nf-core/expansionhunter/expansionhunter | nfcore/expansionhunter
+gtfsort,gtfsort,2,"sort, example, genomics",gtfsort,toolshed.g2.bx.psu.edu/repos/nf-core/gtfsort/gtfsort | nfcore/gtfsort
+irescue,irescue,2,"scRNA-seq, transposons, repeats",irescue,toolshed.g2.bx.psu.edu/repos/nf-core/irescue/irescue | nfcore/irescue
+pyrodigal,pyrodigal,2,"sort, annotation, prediction, prokaryote",pyrodigal,toolshed.g2.bx.psu.edu/repos/nf-core/pyrodigal/pyrodigal | nfcore/pyrodigal
+cobrameta,cobrameta,2,nf-core,cobrameta,toolshed.g2.bx.psu.edu/repos/nf-core/cobrameta/cobrameta | nfcore/cobrameta
+wfmash,wfmash,2,nf-core,wfmash,toolshed.g2.bx.psu.edu/repos/nf-core/wfmash/wfmash | nfcore/wfmash
+vcf2cytosure,vcf2cytosure,2,"structural_variants, array_cgh, vcf, cytosure",vcf2cytosure,toolshed.g2.bx.psu.edu/repos/nf-core/vcf2cytosure/vcf2cytosure | nfcore/vcf2cytosure
+emmtyper,emmtyper,2,nf-core,emmtyper,toolshed.g2.bx.psu.edu/repos/nf-core/emmtyper/emmtyper | nfcore/emmtyper
+stranger,stranger,2,nf-core,stranger,toolshed.g2.bx.psu.edu/repos/nf-core/stranger/stranger | nfcore/stranger
+ismapper,ismapper,2,nf-core,ismapper,toolshed.g2.bx.psu.edu/repos/nf-core/ismapper/ismapper | nfcore/ismapper
+strdust,strdust,2,nf-core,STRdust,toolshed.g2.bx.psu.edu/repos/nf-core/STRdust/strdust | nfcore/strdust
+plotsr,plotsr,2,nf-core,plotsr,toolshed.g2.bx.psu.edu/repos/nf-core/plotsr/plotsr | nfcore/plotsr
+cafe,cafe,2,nf-core,cafe,toolshed.g2.bx.psu.edu/repos/nf-core/cafe/cafe | nfcore/cafe
+crumble,crumble,2,nf-core,crumble,toolshed.g2.bx.psu.edu/repos/nf-core/crumble/crumble | nfcore/crumble
+svync,svync,2,"structural variants, vcf, standardization, standardize, sv",svync,toolshed.g2.bx.psu.edu/repos/nf-core/svync/svync | nfcore/svync
+nanolyse,nanolyse,2,nf-core,nanolyse,toolshed.g2.bx.psu.edu/repos/nf-core/nanolyse/nanolyse | nfcore/nanolyse
+cellpose,cellpose,2,"segmentation, image, cellpose",cellpose,toolshed.g2.bx.psu.edu/repos/nf-core/cellpose/cellpose | nfcore/cellpose
+hiphase,hiphase,2,"sort, example, genomics",hiphase,toolshed.g2.bx.psu.edu/repos/nf-core/hiphase/hiphase | nfcore/hiphase
+amps,amps,2,nf-core,amps,toolshed.g2.bx.psu.edu/repos/nf-core/amps/amps | nfcore/amps
+fastqscan,fastqscan,2,nf-core,fastqscan,toolshed.g2.bx.psu.edu/repos/nf-core/fastqscan/fastqscan | nfcore/fastqscan
+ffq,ffq,2,nf-core,ffq,toolshed.g2.bx.psu.edu/repos/nf-core/ffq/ffq | nfcore/ffq
+bclconvert,bclconvert,2,nf-core,bclconvert,toolshed.g2.bx.psu.edu/repos/nf-core/bclconvert/bclconvert | nfcore/bclconvert
+fastawindows,fastawindows,2,nf-core,fastawindows,toolshed.g2.bx.psu.edu/repos/nf-core/fastawindows/fastawindows | nfcore/fastawindows
+hasheddrops,hasheddrops,2,nf-core,hasheddrops,toolshed.g2.bx.psu.edu/repos/nf-core/hasheddrops/hasheddrops | nfcore/hasheddrops
+slimfastq,slimfastq,2,nf-core,slimfastq,toolshed.g2.bx.psu.edu/repos/nf-core/slimfastq/slimfastq | nfcore/slimfastq
+svaba,svaba,2,"sv, structural variants, detecting svs, short-read sequencing",svaba,toolshed.g2.bx.psu.edu/repos/nf-core/svaba/svaba | nfcore/svaba
+nanoq,nanoq,2,nf-core,nanoq,toolshed.g2.bx.psu.edu/repos/nf-core/nanoq/nanoq | nfcore/nanoq
+smoothxg,smoothxg,2,nf-core,smoothxg,toolshed.g2.bx.psu.edu/repos/nf-core/smoothxg/smoothxg | nfcore/smoothxg
+gawk,gawk,2,nf-core,gawk,toolshed.g2.bx.psu.edu/repos/nf-core/gawk/gawk | nfcore/gawk
+ltrfinder,ltrfinder,2,nf-core,ltrfinder,toolshed.g2.bx.psu.edu/repos/nf-core/ltrfinder/ltrfinder | nfcore/ltrfinder
+pbptyper,pbptyper,2,nf-core,pbptyper,toolshed.g2.bx.psu.edu/repos/nf-core/pbptyper/pbptyper | nfcore/pbptyper
+pirate,pirate,2,nf-core,pirate,toolshed.g2.bx.psu.edu/repos/nf-core/pirate/pirate | nfcore/pirate
+wgsim,wgsim,2,"simulate, fasta, reads",wgsim,toolshed.g2.bx.psu.edu/repos/nf-core/wgsim/wgsim | nfcore/wgsim
+strobealign,strobealign,2,"strobealign, strobemers, alignment, map, fastq",strobealign,toolshed.g2.bx.psu.edu/repos/nf-core/strobealign/strobealign | nfcore/strobealign
+stare,stare,2,nf-core,stare,toolshed.g2.bx.psu.edu/repos/nf-core/stare/stare | nfcore/stare
+ascat,ascat,2,nf-core,ascat,toolshed.g2.bx.psu.edu/repos/nf-core/ascat/ascat | nfcore/ascat
+paraphase,paraphase,2,"paraphase, long-read, HiFi",paraphase,toolshed.g2.bx.psu.edu/repos/nf-core/paraphase/paraphase | nfcore/paraphase
+haplocheck,haplocheck,2,nf-core,haplocheck,toolshed.g2.bx.psu.edu/repos/nf-core/haplocheck/haplocheck | nfcore/haplocheck
+quartonotebook,quartonotebook,2,"quarto, notebook, reports, python, r",quartonotebook,toolshed.g2.bx.psu.edu/repos/nf-core/quartonotebook/quartonotebook | nfcore/quartonotebook
+ampcombi,ampcombi,2,nf-core,ampcombi,toolshed.g2.bx.psu.edu/repos/nf-core/ampcombi/ampcombi | nfcore/ampcombi
+diann,diann,2,"proteomics, mass spectrometry, DIA, spectral library, quantification",diann,toolshed.g2.bx.psu.edu/repos/nf-core/diann/diann | nfcore/diann
+pbjasmine,pbjasmine,2,nf-core,pbjasmine,toolshed.g2.bx.psu.edu/repos/nf-core/pbjasmine/pbjasmine | nfcore/pbjasmine
+calder2,calder2,2,nf-core,calder2,toolshed.g2.bx.psu.edu/repos/nf-core/calder2/calder2 | nfcore/calder2
+endorspy,endorspy,2,nf-core,endorspy,toolshed.g2.bx.psu.edu/repos/nf-core/endorspy/endorspy | nfcore/endorspy
+yte,yte,2,"yaml, template, python",yte,toolshed.g2.bx.psu.edu/repos/nf-core/yte/yte | nfcore/yte
+raw2ometiff,raw2ometiff,2,"ome, tiff, imaging",raw2ometiff,toolshed.g2.bx.psu.edu/repos/nf-core/raw2ometiff/raw2ometiff | nfcore/raw2ometiff
+perbase,perbase,2,nf-core,perbase,toolshed.g2.bx.psu.edu/repos/nf-core/perbase/perbase | nfcore/perbase
+estsfs,estsfs,2,"site frequency spectrum, ancestral alleles, derived alleles",estsfs,toolshed.g2.bx.psu.edu/repos/nf-core/estsfs/estsfs | nfcore/estsfs
+plasmidid,plasmidid,2,nf-core,plasmidid,toolshed.g2.bx.psu.edu/repos/nf-core/plasmidid/plasmidid | nfcore/plasmidid
+platypus,platypus,2,"variant, call, dna, genetic",platypus,toolshed.g2.bx.psu.edu/repos/nf-core/platypus/platypus | nfcore/platypus
+gfaffix,gfaffix,2,nf-core,gfaffix,toolshed.g2.bx.psu.edu/repos/nf-core/gfaffix/gfaffix | nfcore/gfaffix
+souporcell,souporcell,2,nf-core,souporcell,toolshed.g2.bx.psu.edu/repos/nf-core/souporcell/souporcell | nfcore/souporcell
+tagbam,tagbam,2,nf-core,tagbam,toolshed.g2.bx.psu.edu/repos/nf-core/tagbam/tagbam | nfcore/tagbam
+demuxem,demuxem,2,nf-core,demuxem,toolshed.g2.bx.psu.edu/repos/nf-core/demuxem/demuxem | nfcore/demuxem
+galah,galah,2,nf-core,galah,toolshed.g2.bx.psu.edu/repos/nf-core/galah/galah | nfcore/galah
+spatyper,spatyper,2,nf-core,spatyper,toolshed.g2.bx.psu.edu/repos/nf-core/spatyper/spatyper | nfcore/spatyper
+stardist,stardist,2,"stardist, segmentation, image",stardist,toolshed.g2.bx.psu.edu/repos/nf-core/stardist/stardist | nfcore/stardist
+doubletdetection,doubletdetection,2,"single-cell, doublets, doublet_detection",doubletdetection,toolshed.g2.bx.psu.edu/repos/nf-core/doubletdetection/doubletdetection | nfcore/doubletdetection
+poolsnp,poolsnp,2,"poolseq, mpileup, variant-calling",poolsnp,toolshed.g2.bx.psu.edu/repos/nf-core/poolsnp/poolsnp | nfcore/poolsnp
+aria2,aria2,2,nf-core,aria2,toolshed.g2.bx.psu.edu/repos/nf-core/aria2/aria2 | nfcore/aria2
+paraclu,paraclu,2,"sort, cluster, bed",paraclu,toolshed.g2.bx.psu.edu/repos/nf-core/paraclu/paraclu | nfcore/paraclu
+myloasm,myloasm,2,nf-core,myloasm,toolshed.g2.bx.psu.edu/repos/nf-core/myloasm/myloasm | nfcore/myloasm
+dragonflye,dragonflye,2,nf-core,dragonflye,toolshed.g2.bx.psu.edu/repos/nf-core/dragonflye/dragonflye | nfcore/dragonflye
+vcf2db,vcf2db,2,"vcf2db, vcf, gemini",vcf2db,toolshed.g2.bx.psu.edu/repos/nf-core/vcf2db/vcf2db | nfcore/vcf2db
+gangstr,gangstr,2,nf-core,gangstr,toolshed.g2.bx.psu.edu/repos/nf-core/gangstr/gangstr | nfcore/gangstr
+wget,wget,2,"wget, download, network",wget,toolshed.g2.bx.psu.edu/repos/nf-core/wget/wget | nfcore/wget
+viber,viber,2,"subclonal deconvolution, genomics, cancer evolution",viber,toolshed.g2.bx.psu.edu/repos/nf-core/viber/viber | nfcore/viber
+samshee,samshee,2,"samplesheet, illumina, bclconvert, bcl2fastq",samshee,toolshed.g2.bx.psu.edu/repos/nf-core/samshee/samshee | nfcore/samshee
+untarfiles,untarfiles,2,"untar, uncompress, files",untarfiles,toolshed.g2.bx.psu.edu/repos/nf-core/untarfiles/untarfiles | nfcore/untarfiles
+fusioninspector,fusioninspector,2,nf-core,fusioninspector,toolshed.g2.bx.psu.edu/repos/nf-core/fusioninspector/fusioninspector | nfcore/fusioninspector
+tar,tar,2,"untar, tar, tarball, compression, archive",tar,toolshed.g2.bx.psu.edu/repos/nf-core/tar/tar | nfcore/tar
+pretextsnapshot,pretextsnapshot,2,"pretext, image, hic, png, jpg",pretextsnapshot,toolshed.g2.bx.psu.edu/repos/nf-core/pretextsnapshot/pretextsnapshot | nfcore/pretextsnapshot
+bases2fastq,bases2fastq,2,nf-core,bases2fastq,toolshed.g2.bx.psu.edu/repos/nf-core/bases2fastq/bases2fastq | nfcore/bases2fastq
+igvreports,igvreports,2,"vcf, variant, genomics",igvreports,toolshed.g2.bx.psu.edu/repos/nf-core/igvreports/igvreports | nfcore/igvreports
+vcf2maf,vcf2maf,2,"vcf, maf, annotation",vcf2maf,toolshed.g2.bx.psu.edu/repos/nf-core/vcf2maf/vcf2maf | nfcore/vcf2maf
+deepsomatic,deepsomatic,2,"variant calling, machine learning, neural network",deepsomatic,toolshed.g2.bx.psu.edu/repos/nf-core/deepsomatic/deepsomatic | nfcore/deepsomatic
+gmmdemux,gmmdemux,2,nf-core,gmmdemux,toolshed.g2.bx.psu.edu/repos/nf-core/gmmdemux/gmmdemux | nfcore/gmmdemux
+ampir,ampir,2,nf-core,ampir,toolshed.g2.bx.psu.edu/repos/nf-core/ampir/ampir | nfcore/ampir
+hpsuissero,hpsuissero,2,nf-core,hpsuissero,toolshed.g2.bx.psu.edu/repos/nf-core/hpsuissero/hpsuissero | nfcore/hpsuissero
+clame,clame,2,"sort, example, genomics",clame,toolshed.g2.bx.psu.edu/repos/nf-core/clame/clame | nfcore/clame
+peddy,peddy,2,"pedigrees, ped, family",peddy,toolshed.g2.bx.psu.edu/repos/nf-core/peddy/peddy | nfcore/peddy
+damageprofiler,damageprofiler,2,nf-core,damageprofiler,toolshed.g2.bx.psu.edu/repos/nf-core/damageprofiler/damageprofiler | nfcore/damageprofiler
+bacphlip,bacphlip,2,"phage, lifestyle, temperate, virulent, bacphlip",bacphlip,toolshed.g2.bx.psu.edu/repos/nf-core/bacphlip/bacphlip | nfcore/bacphlip
+scds,scds,2,nf-core,scds,toolshed.g2.bx.psu.edu/repos/nf-core/scds/scds | nfcore/scds
+mcroni,mcroni,2,"resistance, fasta, mcr-1",mcroni,toolshed.g2.bx.psu.edu/repos/nf-core/mcroni/mcroni | nfcore/mcroni
+prinseqplusplus,prinseqplusplus,2,nf-core,prinseqplusplus,toolshed.g2.bx.psu.edu/repos/nf-core/prinseqplusplus/prinseqplusplus | nfcore/prinseqplusplus
+pychopper,pychopper,2,"sort, trimming, nanopore",pychopper,toolshed.g2.bx.psu.edu/repos/nf-core/pychopper/pychopper | nfcore/pychopper
+datavzrd,datavzrd,2,"visualisation, tsv, csv",datavzrd,toolshed.g2.bx.psu.edu/repos/nf-core/datavzrd/datavzrd | nfcore/datavzrd
+cnaqc,cnaqc,2,nf-core,cnaqc,toolshed.g2.bx.psu.edu/repos/nf-core/cnaqc/cnaqc | nfcore/cnaqc
+sortmerna,sortmerna,2,nf-core,sortmerna,toolshed.g2.bx.psu.edu/repos/nf-core/sortmerna/sortmerna | nfcore/sortmerna
+phispy,phispy,2,nf-core,phispy,toolshed.g2.bx.psu.edu/repos/nf-core/phispy/phispy | nfcore/phispy
+allelecounter,allelecounter,2,nf-core,allelecounter,toolshed.g2.bx.psu.edu/repos/nf-core/allelecounter/allelecounter | nfcore/allelecounter
+ncbigenomedownload,ncbigenomedownload,2,nf-core,ncbigenomedownload,toolshed.g2.bx.psu.edu/repos/nf-core/ncbigenomedownload/ncbigenomedownload | nfcore/ncbigenomedownload
+mygene,mygene,2,nf-core,mygene,toolshed.g2.bx.psu.edu/repos/nf-core/mygene/mygene | nfcore/mygene
+trust4,trust4,2,"sort, example, genomics",trust4,toolshed.g2.bx.psu.edu/repos/nf-core/trust4/trust4 | nfcore/trust4
+phyloflash,phyloflash,2,nf-core,phyloflash,toolshed.g2.bx.psu.edu/repos/nf-core/phyloflash/phyloflash | nfcore/phyloflash
+bioawk,bioawk,2,nf-core,bioawk,toolshed.g2.bx.psu.edu/repos/nf-core/bioawk/bioawk | nfcore/bioawk
+telseq,telseq,2,nf-core,telseq,toolshed.g2.bx.psu.edu/repos/nf-core/telseq/telseq | nfcore/telseq
+upd,upd,2,"upd, uniparental, disomy",upd,toolshed.g2.bx.psu.edu/repos/nf-core/upd/upd | nfcore/upd
+sistr,sistr,2,nf-core,sistr,toolshed.g2.bx.psu.edu/repos/nf-core/sistr/sistr | nfcore/sistr
+celesta,celesta,2,nf-core,celesta,toolshed.g2.bx.psu.edu/repos/nf-core/celesta/celesta | nfcore/celesta
+universc,universc,2,nf-core,universc,toolshed.g2.bx.psu.edu/repos/nf-core/universc/universc | nfcore/universc
+bff,bff,2,nf-core,bff,toolshed.g2.bx.psu.edu/repos/nf-core/bff/bff | nfcore/bff
+immunedeconv,immunedeconv,2,nf-core,immunedeconv,toolshed.g2.bx.psu.edu/repos/nf-core/immunedeconv/immunedeconv | nfcore/immunedeconv
+vireo,vireo,2,nf-core,vireo,toolshed.g2.bx.psu.edu/repos/nf-core/vireo/vireo | nfcore/vireo
+rrnatranscripts,rrnatranscripts,2,"ribosomal, rna, genomics",rrnatranscripts,toolshed.g2.bx.psu.edu/repos/nf-core/rrnatranscripts/rrnatranscripts | nfcore/rrnatranscripts
+liftoff,liftoff,2,nf-core,liftoff,toolshed.g2.bx.psu.edu/repos/nf-core/liftoff/liftoff | nfcore/liftoff
+tailfindr,tailfindr,2,"polya tail, fast5, nanopore",tailfindr,toolshed.g2.bx.psu.edu/repos/nf-core/tailfindr/tailfindr | nfcore/tailfindr
+shasum,shasum,2,nf-core,shasum,toolshed.g2.bx.psu.edu/repos/nf-core/shasum/shasum | nfcore/shasum
+pasty,pasty,2,nf-core,pasty,toolshed.g2.bx.psu.edu/repos/nf-core/pasty/pasty | nfcore/pasty
+bamreadcount,bamreadcount,2,nf-core,bamreadcount,toolshed.g2.bx.psu.edu/repos/nf-core/bamreadcount/bamreadcount | nfcore/bamreadcount
+multivcfanalyzer,multivcfanalyzer,2,"vcf, ancient DNA, aDNA, SNP, GATK UnifiedGenotyper",multivcfanalyzer,toolshed.g2.bx.psu.edu/repos/nf-core/multivcfanalyzer/multivcfanalyzer | nfcore/multivcfanalyzer
+coreograph,coreograph,2,nf-core,coreograph,toolshed.g2.bx.psu.edu/repos/nf-core/coreograph/coreograph | nfcore/coreograph
+severus,severus,2,"structural, variation, somatic, germline, long-read",severus,toolshed.g2.bx.psu.edu/repos/nf-core/severus/severus | nfcore/severus
+shigatyper,shigatyper,2,nf-core,shigatyper,toolshed.g2.bx.psu.edu/repos/nf-core/shigatyper/shigatyper | nfcore/shigatyper
+president,president,2,nf-core,president,toolshed.g2.bx.psu.edu/repos/nf-core/president/president | nfcore/president
+fastqdl,fastqdl,2,nf-core,fastqdl,toolshed.g2.bx.psu.edu/repos/nf-core/fastqdl/fastqdl | nfcore/fastqdl
+shigeifinder,shigeifinder,2,nf-core,shigeifinder,toolshed.g2.bx.psu.edu/repos/nf-core/shigeifinder/shigeifinder | nfcore/shigeifinder
+raxmlng,raxmlng,2,"phylogeny, newick, maximum likelihood",raxmlng,toolshed.g2.bx.psu.edu/repos/nf-core/raxmlng/raxmlng | nfcore/raxmlng
+stitch,stitch,2,nf-core,stitch,toolshed.g2.bx.psu.edu/repos/nf-core/stitch/stitch | nfcore/stitch
+ltrharvest,ltrharvest,2,nf-core,ltrharvest,toolshed.g2.bx.psu.edu/repos/nf-core/ltrharvest/ltrharvest | nfcore/ltrharvest
+toulligqc,toulligqc,2,nf-core,toulligqc,toolshed.g2.bx.psu.edu/repos/nf-core/toulligqc/toulligqc | nfcore/toulligqc
+eklipse,eklipse,2,nf-core,eklipse,toolshed.g2.bx.psu.edu/repos/nf-core/eklipse/eklipse | nfcore/eklipse
+longstitch,longstitch,2,"scaffolding, long read, assembly correction",longstitch,toolshed.g2.bx.psu.edu/repos/nf-core/longstitch/longstitch | nfcore/longstitch
+rmarkdownnotebook,rmarkdownnotebook,2,nf-core,rmarkdownnotebook,toolshed.g2.bx.psu.edu/repos/nf-core/rmarkdownnotebook/rmarkdownnotebook | nfcore/rmarkdownnotebook
+tesorter,tesorter,2,nf-core,tesorter,toolshed.g2.bx.psu.edu/repos/nf-core/tesorter/tesorter | nfcore/tesorter
+spotiflow,spotiflow,2,nf-core,spotiflow,toolshed.g2.bx.psu.edu/repos/nf-core/spotiflow/spotiflow | nfcore/spotiflow
+adapterremoval,adapterremoval,2,"trimming, adapters, merging, fastq",adapterremoval,toolshed.g2.bx.psu.edu/repos/nf-core/adapterremoval/adapterremoval | nfcore/adapterremoval
+chromograph,chromograph,2,nf-core,chromograph,toolshed.g2.bx.psu.edu/repos/nf-core/chromograph/chromograph | nfcore/chromograph
+stecfinder,stecfinder,2,"serotype, Escherichia coli, fastq, fasta",stecfinder,toolshed.g2.bx.psu.edu/repos/nf-core/stecfinder/stecfinder | nfcore/stecfinder
+clippy,clippy,2,nf-core,clippy,toolshed.g2.bx.psu.edu/repos/nf-core/clippy/clippy | nfcore/clippy
+checkqc,checkqc,2,nf-core,checkqc,toolshed.g2.bx.psu.edu/repos/nf-core/checkqc/checkqc | nfcore/checkqc
+medaka,medaka,2,nf-core,medaka,toolshed.g2.bx.psu.edu/repos/nf-core/medaka/medaka | nfcore/medaka
+ultraplex,ultraplex,2,nf-core,ultraplex,toolshed.g2.bx.psu.edu/repos/nf-core/ultraplex/ultraplex | nfcore/ultraplex
+sgdemux,sgdemux,2,nf-core,sgdemux,toolshed.g2.bx.psu.edu/repos/nf-core/sgdemux/sgdemux | nfcore/sgdemux
+trimgalore,trimgalore,2,"trimming, adapters, sequencing adapters, fastq",trimgalore,toolshed.g2.bx.psu.edu/repos/nf-core/trimgalore/trimgalore | nfcore/trimgalore
+unicycler,unicycler,2,nf-core,unicycler,toolshed.g2.bx.psu.edu/repos/nf-core/unicycler/unicycler | nfcore/unicycler
+genomescope2,genomescope2,2,nf-core,genomescope2,toolshed.g2.bx.psu.edu/repos/nf-core/genomescope2/genomescope2 | nfcore/genomescope2
+ale,ale,2,"reference-independent, assembly, evaluation",ale,toolshed.g2.bx.psu.edu/repos/nf-core/ale/ale | nfcore/ale
+mtnucratio,mtnucratio,2,nf-core,mtnucratio,toolshed.g2.bx.psu.edu/repos/nf-core/mtnucratio/mtnucratio | nfcore/mtnucratio
+whamg,whamg,2,"whamg, wham, vcf, bam, variant calling",whamg,toolshed.g2.bx.psu.edu/repos/nf-core/whamg/whamg | nfcore/whamg
+abra2,abra2,2,nf-core,abra2,toolshed.g2.bx.psu.edu/repos/nf-core/abra2/abra2 | nfcore/abra2
+staphopiasccmec,staphopiasccmec,2,nf-core,staphopiasccmec,toolshed.g2.bx.psu.edu/repos/nf-core/staphopiasccmec/staphopiasccmec | nfcore/staphopiasccmec
+wittyer,wittyer,2,"structural-variants, benchmarking, vcf",wittyer,toolshed.g2.bx.psu.edu/repos/nf-core/wittyer/wittyer | nfcore/wittyer
+sexdeterrmine,sexdeterrmine,2,"sex determination, genetic sex, relative coverage, ancient dna",sexdeterrmine,toolshed.g2.bx.psu.edu/repos/nf-core/sexdeterrmine/sexdeterrmine | nfcore/sexdeterrmine
+bamaligncleaner,bamaligncleaner,2,nf-core,bamaligncleaner,toolshed.g2.bx.psu.edu/repos/nf-core/bamaligncleaner/bamaligncleaner | nfcore/bamaligncleaner
+cadd,cadd,2,nf-core,cadd,toolshed.g2.bx.psu.edu/repos/nf-core/cadd/cadd | nfcore/cadd
+ngmaster,ngmaster,2,nf-core,ngmaster,toolshed.g2.bx.psu.edu/repos/nf-core/ngmaster/ngmaster | nfcore/ngmaster
+snpdists,snpdists,2,"snp, dist, distance, matrix",snpdists,toolshed.g2.bx.psu.edu/repos/nf-core/snpdists/snpdists | nfcore/snpdists
+hapibd,hapibd,2,nf-core,hapibd,toolshed.g2.bx.psu.edu/repos/nf-core/hapibd/hapibd | nfcore/hapibd
+vardictjava,vardictjava,2,"variant calling, vcf, bam, snv, sv",vardictjava,toolshed.g2.bx.psu.edu/repos/nf-core/vardictjava/vardictjava | nfcore/vardictjava
+trnascanse,trnascanse,2,nf-core,trnascanse,toolshed.g2.bx.psu.edu/repos/nf-core/trnascanse/trnascanse | nfcore/trnascanse
+jupyternotebook,jupyternotebook,2,nf-core,jupyternotebook,toolshed.g2.bx.psu.edu/repos/nf-core/jupyternotebook/jupyternotebook | nfcore/jupyternotebook
+smncopynumbercaller,smncopynumbercaller,2,nf-core,smncopynumbercaller,toolshed.g2.bx.psu.edu/repos/nf-core/smncopynumbercaller/smncopynumbercaller | nfcore/smncopynumbercaller
+bioformats2raw,bioformats2raw,2,"zarr, ome-ngff, imaging",bioformats2raw,toolshed.g2.bx.psu.edu/repos/nf-core/bioformats2raw/bioformats2raw | nfcore/bioformats2raw
+snakemake,snakemake,2,"snakemake, workflow, workflow_mode",snakemake,toolshed.g2.bx.psu.edu/repos/nf-core/snakemake/snakemake | nfcore/snakemake
+glnexus,glnexus,2,nf-core,glnexus,toolshed.g2.bx.psu.edu/repos/nf-core/glnexus/glnexus | nfcore/glnexus
+pbccs,pbccs,2,nf-core,pbccs,toolshed.g2.bx.psu.edu/repos/nf-core/pbccs/pbccs | nfcore/pbccs
+salsa2,salsa2,2,nf-core,salsa2,toolshed.g2.bx.psu.edu/repos/nf-core/salsa2/salsa2 | nfcore/salsa2
+pyclonevi,pyclonevi,2,nf-core,pyclonevi,toolshed.g2.bx.psu.edu/repos/nf-core/pyclonevi/pyclonevi | nfcore/pyclonevi
+ripgrep,ripgrep,2,"search, regex, patterns",ripgrep,toolshed.g2.bx.psu.edu/repos/nf-core/ripgrep/ripgrep | nfcore/ripgrep
+mapdamage2,mapdamage2,2,nf-core,mapdamage2,toolshed.g2.bx.psu.edu/repos/nf-core/mapdamage2/mapdamage2 | nfcore/mapdamage2
+bamtofastq10x,bamtofastq10x,2,nf-core,bamtofastq10x,toolshed.g2.bx.psu.edu/repos/nf-core/bamtofastq10x/bamtofastq10x | nfcore/bamtofastq10x
+bcl2fastq,bcl2fastq,2,nf-core,bcl2fastq,toolshed.g2.bx.psu.edu/repos/nf-core/bcl2fastq/bcl2fastq | nfcore/bcl2fastq
+integronfinder,integronfinder,2,nf-core,integronfinder,toolshed.g2.bx.psu.edu/repos/nf-core/integronfinder/integronfinder | nfcore/integronfinder
+geofetch,geofetch,2,nf-core,geofetch,toolshed.g2.bx.psu.edu/repos/nf-core/geofetch/geofetch | nfcore/geofetch
+ctree,ctree,2,"phylogenetic-trees, cancer-genomics, cancer-evolution, clonal-evolution",ctree,toolshed.g2.bx.psu.edu/repos/nf-core/ctree/ctree | nfcore/ctree
+oatk,oatk,2,"organelle, mitochondrion, plastid, PacBio, HiFi",oatk,toolshed.g2.bx.psu.edu/repos/nf-core/oatk/oatk | nfcore/oatk
+tinc,tinc,2,nf-core,tinc,toolshed.g2.bx.psu.edu/repos/nf-core/tinc/tinc | nfcore/tinc
+abacas,abacas,2,nf-core,abacas,toolshed.g2.bx.psu.edu/repos/nf-core/abacas/abacas | nfcore/abacas
+bamcmp,bamcmp,2,nf-core,bamcmp,toolshed.g2.bx.psu.edu/repos/nf-core/bamcmp/bamcmp | nfcore/bamcmp
+humid,humid,2,"umi, fastq, deduplication, hamming-distance, clustering",humid,toolshed.g2.bx.psu.edu/repos/nf-core/humid/humid | nfcore/humid
+unzipfiles,unzipfiles,2,"unzip, decompression, zip, archiving",unzipfiles,toolshed.g2.bx.psu.edu/repos/nf-core/unzipfiles/unzipfiles | nfcore/unzipfiles
+sourcepredict,sourcepredict,2,"source tracking, metagenomics, machine learning",sourcepredict,toolshed.g2.bx.psu.edu/repos/nf-core/sourcepredict/sourcepredict | nfcore/sourcepredict
+fastcov,fastcov,2,nf-core,fastcov,toolshed.g2.bx.psu.edu/repos/nf-core/fastcov/fastcov | nfcore/fastcov
+hicap,hicap,2,nf-core,hicap,toolshed.g2.bx.psu.edu/repos/nf-core/hicap/hicap | nfcore/hicap
+eggnogmapper,eggnogmapper,2,nf-core,eggnogmapper,toolshed.g2.bx.psu.edu/repos/nf-core/eggnogmapper/eggnogmapper | nfcore/eggnogmapper
+ssuissero,ssuissero,2,nf-core,ssuissero,toolshed.g2.bx.psu.edu/repos/nf-core/ssuissero/ssuissero | nfcore/ssuissero
+vuegen,vuegen,2,"reports, data-visualization, streamlit, quarto",vuegen,toolshed.g2.bx.psu.edu/repos/nf-core/vuegen/vuegen | nfcore/vuegen
+umicollapse,umicollapse,2,"umicollapse, deduplication, genomics",umicollapse,toolshed.g2.bx.psu.edu/repos/nf-core/umicollapse/umicollapse | nfcore/umicollapse
+falint,falint,2,nf-core,falint,toolshed.g2.bx.psu.edu/repos/nf-core/falint/falint | nfcore/falint
+dupradar,dupradar,2,"rnaseq, duplication, genomics",dupradar,toolshed.g2.bx.psu.edu/repos/nf-core/dupradar/dupradar | nfcore/dupradar
+dedup,dedup,2,nf-core,dedup,toolshed.g2.bx.psu.edu/repos/nf-core/dedup/dedup | nfcore/dedup
+phantompeakqualtools,phantompeakqualtools,2,nf-core,phantompeakqualtools,toolshed.g2.bx.psu.edu/repos/nf-core/phantompeakqualtools/phantompeakqualtools | nfcore/phantompeakqualtools
+assemblyscan,assemblyscan,2,nf-core,assemblyscan,toolshed.g2.bx.psu.edu/repos/nf-core/assemblyscan/assemblyscan | nfcore/assemblyscan
+conifer,conifer,2,nf-core,conifer,toolshed.g2.bx.psu.edu/repos/nf-core/conifer/conifer | nfcore/conifer
+iqtree,iqtree,2,"phylogeny, newick, maximum likelihood",iqtree,toolshed.g2.bx.psu.edu/repos/nf-core/iqtree/iqtree | nfcore/iqtree
+untar,untar,2,"untar, uncompress, extract",untar,toolshed.g2.bx.psu.edu/repos/nf-core/untar/untar | nfcore/untar
+peka,peka,2,nf-core,peka,toolshed.g2.bx.psu.edu/repos/nf-core/peka/peka | nfcore/peka
+md5sum,md5sum,2,nf-core,md5sum,toolshed.g2.bx.psu.edu/repos/nf-core/md5sum/md5sum | nfcore/md5sum
+canu,canu,2,nf-core,canu,toolshed.g2.bx.psu.edu/repos/nf-core/canu/canu | nfcore/canu
+clipkit,clipkit,2,nf-core,clipkit,toolshed.g2.bx.psu.edu/repos/nf-core/clipkit/clipkit | nfcore/clipkit
+mobster,mobster,2,"subclonal deconvolution, genomics, cancer evolution",mobster,toolshed.g2.bx.psu.edu/repos/nf-core/mobster/mobster | nfcore/mobster
+sigprofiler,sigprofiler,2,nf-core,sigprofiler,toolshed.g2.bx.psu.edu/repos/nf-core/sigprofiler/sigprofiler | nfcore/sigprofiler
+racon,racon,2,nf-core,racon,toolshed.g2.bx.psu.edu/repos/nf-core/racon/racon | nfcore/racon
+splitubam,splitubam,2,nf-core,splitubam,toolshed.g2.bx.psu.edu/repos/nf-core/splitubam/splitubam | nfcore/splitubam
+eagle2,eagle2,2,"phasing, haplotypes, reference panel, genomics",eagle2,toolshed.g2.bx.psu.edu/repos/nf-core/eagle2/eagle2 | nfcore/eagle2
+annosine,annosine,2,nf-core,annosine,toolshed.g2.bx.psu.edu/repos/nf-core/annosine/annosine | nfcore/annosine
+fastavalidator,fastavalidator,2,nf-core,fastavalidator,toolshed.g2.bx.psu.edu/repos/nf-core/fastavalidator/fastavalidator | nfcore/fastavalidator
+variantbam,variantbam,2,nf-core,variantbam,toolshed.g2.bx.psu.edu/repos/nf-core/variantbam/variantbam | nfcore/variantbam
+leehom,leehom,2,nf-core,leehom,toolshed.g2.bx.psu.edu/repos/nf-core/leehom/leehom | nfcore/leehom
+fast2q,fast2q,2,nf-core,fast2q,toolshed.g2.bx.psu.edu/repos/nf-core/fast2q/fast2q | nfcore/fast2q
+genescopefk,genescopefk,2,nf-core,genescopefk,toolshed.g2.bx.psu.edu/repos/nf-core/genescopefk/genescopefk | nfcore/genescopefk
+melon,melon,2,"profile, metagenomics, melon, classification, long reads",melon,toolshed.g2.bx.psu.edu/repos/nf-core/melon/melon | nfcore/melon
+duphold,duphold,2,"sort, duphold, structural variation, depth information",duphold,toolshed.g2.bx.psu.edu/repos/nf-core/duphold/duphold | nfcore/duphold
+deeptmhmm,deeptmhmm,2,"transmembrane, protein, classification",deeptmhmm,toolshed.g2.bx.psu.edu/repos/nf-core/deeptmhmm/deeptmhmm | nfcore/deeptmhmm
+idemux,idemux,2,nf-core,idemux,toolshed.g2.bx.psu.edu/repos/nf-core/idemux/idemux | nfcore/idemux
+faqcs,faqcs,2,"trimming, quality control, fastq, faqcs",faqcs,toolshed.g2.bx.psu.edu/repos/nf-core/faqcs/faqcs | nfcore/faqcs
+mashtree,mashtree,2,"tree, mash, fasta, fastq",mashtree,toolshed.g2.bx.psu.edu/repos/nf-core/mashtree/mashtree | nfcore/mashtree
+gunzip,gunzip,2,nf-core,gunzip,toolshed.g2.bx.psu.edu/repos/nf-core/gunzip/gunzip | nfcore/gunzip
+bedgovcf,bedgovcf,2,nf-core,bedgovcf,toolshed.g2.bx.psu.edu/repos/nf-core/bedgovcf/bedgovcf | nfcore/bedgovcf
+backsub,backsub,2,nf-core,backsub,toolshed.g2.bx.psu.edu/repos/nf-core/backsub/backsub | nfcore/backsub
+agrvate,agrvate,2,nf-core,agrvate,toolshed.g2.bx.psu.edu/repos/nf-core/agrvate/agrvate | nfcore/agrvate
+oncocnv,oncocnv,2,nf-core,oncocnv,toolshed.g2.bx.psu.edu/repos/nf-core/oncocnv/oncocnv | nfcore/oncocnv
+adapterremovalfixprefix,adapterremovalfixprefix,2,nf-core,adapterremovalfixprefix,toolshed.g2.bx.psu.edu/repos/nf-core/adapterremovalfixprefix/adapterremovalfixprefix | nfcore/adapterremovalfixprefix
+lima,lima,2,nf-core,lima,toolshed.g2.bx.psu.edu/repos/nf-core/lima/lima | nfcore/lima
+basicpy,basicpy,2,nf-core,basicpy,toolshed.g2.bx.psu.edu/repos/nf-core/basicpy/basicpy | nfcore/basicpy
+velocyto,velocyto,2,nf-core,velocyto,toolshed.g2.bx.psu.edu/repos/nf-core/velocyto/velocyto | nfcore/velocyto
+gzrt,gzrt,2,nf-core,gzrt,toolshed.g2.bx.psu.edu/repos/nf-core/gzrt/gzrt | nfcore/gzrt
+cmaple,cmaple,2,"phylogeny, phylogenetic tree, maximum likelihood, dna, amino acid",cmaple,toolshed.g2.bx.psu.edu/repos/nf-core/cmaple/cmaple | nfcore/cmaple
+ngmerge,ngmerge,2,"sort, reads merging, merge mate pairs",ngmerge,toolshed.g2.bx.psu.edu/repos/nf-core/ngmerge/ngmerge | nfcore/ngmerge
+cowpy,cowpy,2,nf-core,cowpy,toolshed.g2.bx.psu.edu/repos/nf-core/cowpy/cowpy | nfcore/cowpy
+maltextract,maltextract,2,nf-core,maltextract,toolshed.g2.bx.psu.edu/repos/nf-core/maltextract/maltextract | nfcore/maltextract
+snpsites,snpsites,2,nf-core,snpsites,toolshed.g2.bx.psu.edu/repos/nf-core/snpsites/snpsites | nfcore/snpsites
+pairix,pairix,2,nf-core,pairix,toolshed.g2.bx.psu.edu/repos/nf-core/pairix/pairix | nfcore/pairix
+fqtk,fqtk,2,nf-core,fqtk,toolshed.g2.bx.psu.edu/repos/nf-core/fqtk/fqtk | nfcore/fqtk
+multiseqdemux,multiseqdemux,2,nf-core,multiseqdemux,toolshed.g2.bx.psu.edu/repos/nf-core/multiseqdemux/multiseqdemux | nfcore/multiseqdemux
+htodemux,htodemux,2,nf-core,htodemux,toolshed.g2.bx.psu.edu/repos/nf-core/htodemux/htodemux | nfcore/htodemux
+thermorawfileparser,thermorawfileparser,2,"raw, mzml, mgf, parquet, parser",thermorawfileparser,toolshed.g2.bx.psu.edu/repos/nf-core/thermorawfileparser/thermorawfileparser | nfcore/thermorawfileparser
+rapidnj,rapidnj,2,"phylogeny, newick, neighbour-joining",rapidnj,toolshed.g2.bx.psu.edu/repos/nf-core/rapidnj/rapidnj | nfcore/rapidnj
+bwa,bwa index,2,"index, fasta, genome, reference",BWA Index,toolshed.g2.bx.psu.edu/repos/devteam/bwa_index/bwa_index | nfcore/bwa/index
+samtools,index samtools,2,"index, bam, sam, cram",SAMtools Index,toolshed.g2.bx.psu.edu/repos/devteam/samtools_index/samtools_index | nfcore/samtools/index
+classify 2d,2d classify,2,opensource_cryoem,Classify 2D,biomni/opensource_cryoem/classify_2d | biomni/cryo_em/classify_2d

@@ -1,0 +1,64 @@
+# Expanded memory-recall eval set — 50 queries.
+#
+# 20 cases inherited from memory_eval_set.yaml (have intent entries).
+# 30 NEW HELD-OUT cases targeting memory files NOT covered by the current
+# intent_anchors YAML. These measure how the adapter performs on queries it
+# hasn't been curated for.
+#
+# Honest baseline goal: if treatment ≥ baseline on the HELD-OUT subset, the
+# adapter generalizes (or at worst doesn't harm). If treatment < baseline
+# on held-out, the adapter is overfitted to its YAML.
+
+# ─── Inherited from memory_eval_set.yaml (covered by intents) ──────────
+- {id: q01, query: "what's the latest status of the regulatory LLM v6 v7 training?", expected: project_regulatory_llm_v6.md, set: covered}
+- {id: q02, query: "remind me of the BixBench v21 results", expected: project_bixbench_v21.md, set: covered}
+- {id: q03, query: "summarize the biomate-cryo benchmark preprint work", expected: project_biomate_cryo_benchmark.md, set: covered}
+- {id: q04, query: "show me the workflow pricing table for drug development", expected: project_workflow_pricing_table.md, set: covered}
+- {id: q05, query: "tell me about the memory architecture gaps and recall design", expected: project_memory_architecture_gaps.md, set: covered}
+- {id: q06, query: "what's our policy on AlphaFold3 routing through biomate?", expected: feedback_af3_policy.md, set: covered}
+- {id: q07, query: "remind me about gemini model selection guidance", expected: feedback_gemini_model_selection.md, set: covered}
+- {id: q08, query: "what was decided about cryosparc auth and licensing?", expected: feedback_cryosparc_auth.md, set: covered}
+- {id: q09, query: "tell me the e2e auth pattern with bypass token", expected: feedback_e2e_auth_pattern.md, set: covered}
+- {id: q10, query: "what discipline rules do we have for e2e tests?", expected: feedback_test_writing_discipline.md, set: covered}
+- {id: q11, query: "summarize the biomni eval1 v17 v20 results", expected: project_biomni_eval1_v17.md, set: covered}
+- {id: q12, query: "what's the CRO production integration status?", expected: project_cro_production_integration.md, set: covered}
+- {id: q13, query: "show me the ADMET auto-loop architecture", expected: project_drug_dev_gaps.md, set: covered}
+- {id: q14, query: "tell me about the unified workflow search hybrid retrieval", expected: project_session5_benchmarking.md, set: covered}
+- {id: q15, query: "what's the gpu infrastructure issue we identified?", expected: project_gpu_infrastructure_issue.md, set: covered}
+- {id: q16, query: "remind me about hallucination vs error rate distinction", expected: feedback_hallucination_vs_error.md, set: covered}
+- {id: q17, query: "show the BixBench v10 80 percent breakthrough", expected: project_bixbench_v10.md, set: covered}
+- {id: q18, query: "what's the cryoEM auto-loop architecture decisions?", expected: project_cryoem_autoloop.md, set: covered}
+- {id: q19, query: "what was the citation metric feedback?", expected: feedback_citation_metric.md, set: covered}
+- {id: q20, query: "tell me about pharmacology workflow phase annotations", expected: project_pharmacology_workflows_may5.md, set: covered}
+
+# ─── NEW HELD-OUT cases (30 — no intent entries cover these) ────────────
+- {id: h01, query: "remind me about the BOIN clinical trial pipeline 100 percent achievement", expected: project_boin_100pct.md, set: heldout}
+- {id: h02, query: "what's the chat history sync fix we shipped?", expected: project_chat_history_sync.md, set: heldout}
+- {id: h03, query: "show me the CRO CDMO plan and positioning", expected: project_cro_cdmo_plan.md, set: heldout}
+- {id: h04, query: "what was the cryoEM file upload work?", expected: project_cryoem_file_upload.md, set: heldout}
+- {id: h05, query: "tell me about the cryoEM pipeline fixes from May 4", expected: project_cryoem_pipeline_fixes_may4.md, set: heldout}
+- {id: h06, query: "show me the cryoEM RAG enrichment work for cryo-EM knowledge", expected: project_cryoem_rag_enrichment.md, set: heldout}
+- {id: h07, query: "what's the CryoEnsemble pilot status?", expected: project_cryoensemble_pilot_status.md, set: heldout}
+- {id: h08, query: "tell me about cryosparc E2E UX testing", expected: project_cryosparc_e2e_ux.md, set: heldout}
+- {id: h09, query: "what dsl2 syntax fixes did we apply?", expected: project_dsL2_syntax_fixes.md, set: heldout}
+- {id: h10, query: "show me external benchmarks results from April 2026", expected: project_external_benchmarks_2026_04_16.md, set: heldout}
+- {id: h11, query: "what's the status of cryoEM gap tests?", expected: project_gap_tests_status.md, set: heldout}
+- {id: h12, query: "tell me about the gromacs batch debug work", expected: project_gromacs_batch_debug.md, set: heldout}
+- {id: h13, query: "remind me of the hybrid workflow search design", expected: project_hybrid_workflow_search.md, set: heldout}
+- {id: h14, query: "what was the knowledge flow audit findings?", expected: project_knowledge_flow_audit.md, set: heldout}
+- {id: h15, query: "show me the pharma benchmark prerequisite gate work", expected: project_pharma_benchmark_gate.md, set: heldout}
+- {id: h16, query: "tell me about pharma validation completion", expected: project_pharma_validation.md, set: heldout}
+- {id: h17, query: "what's the pilot study policy?", expected: project_pilot_study_policy.md, set: heldout}
+- {id: h18, query: "show me the pilot study 9 of 9 status", expected: project_pilot_study_9_of_9.md, set: heldout}
+- {id: h19, query: "what's the protein dynamics pipeline status?", expected: project_protein_dynamics_pipeline.md, set: heldout}
+- {id: h20, query: "remind me about reference UX match with claude design", expected: project_reference_ux_match.md, set: heldout}
+- {id: h21, query: "what's the regulatory LLM v4 baseline work?", expected: project_regulatory_llm_v4.md, set: heldout}
+- {id: h22, query: "show me routing benchmark rebuild design", expected: project_routing_benchmark_rebuild.md, set: heldout}
+- {id: h23, query: "what's the routing prompt optimization plan?", expected: project_routing_prompt_optimization.md, set: heldout}
+- {id: h24, query: "tell me about routing systemic fixes we shipped", expected: project_routing_systemic_fixes.md, set: heldout}
+- {id: h25, query: "what was the session 2 UX surfaces work?", expected: project_session2_ux_surfaces.md, set: heldout}
+- {id: h26, query: "remind me about CRM stack with zoho social and CRM", expected: project_crm_stack.md, set: heldout}
+- {id: h27, query: "what's our policy on pipeline resource discipline?", expected: feedback_pipeline_resource_discipline.md, set: heldout}
+- {id: h28, query: "what was the nextflow ode patterns guidance for safety?", expected: feedback_nextflow_ode_patterns.md, set: heldout}
+- {id: h29, query: "tell me the docx generation feedback we documented", expected: feedback_docx_generation.md, set: heldout}
+- {id: h30, query: "what's the e2e param filling rule we have?", expected: feedback_e2e_param_filling.md, set: heldout}

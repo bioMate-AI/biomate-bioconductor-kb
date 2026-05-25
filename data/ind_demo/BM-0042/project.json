@@ -1,0 +1,30 @@
+{
+  "id": "p-bm0042",
+  "molecule": "BM-0042",
+  "compound_class": "small molecule, 3rd-generation EGFR TKI",
+  "target": "EGFR L858R / T790M (mutant-selective)",
+  "indication": "Non-small cell lung cancer (NSCLC), 2nd-line after 1st/2nd-gen TKI failure",
+  "sponsor": "Acme Therapeutics",
+  "sponsor_id": "acme-therapeutics",
+  "regions": ["FDA", "EMA", "NMPA", "PMDA"],
+  "stage": "IND-enabling, pre-FIH",
+  "filing_target_date": "2026-09-30",
+  "compound_metadata": {
+    "smiles": "CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1NC(=O)C=CN(C)C",
+    "inchikey": "DEMO-BM0042-PLACEHOLDER",
+    "molecular_weight_da": 449.5,
+    "logp_calc": 3.1,
+    "tpsa": 102.5,
+    "hba": 8,
+    "hbd": 2,
+    "rotatable_bonds": 7,
+    "salt_form": "mesylate",
+    "physical_form": "white-to-off-white crystalline solid"
+  },
+  "formulation": {
+    "phase1_dosage_form": "immediate-release tablet",
+    "strengths_mg": [10, 20, 40, 80],
+    "excipients": ["microcrystalline cellulose", "lactose monohydrate", "croscarmellose sodium", "magnesium stearate"],
+    "container_closure": "HDPE bottle with induction seal"
+  }
+}

@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="options-matrix" id="opts1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Domain-specific LLMs for biology — four options, where BioMate sits" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Axis labels -->
+        <mxCell id="xlbl" value="↑ COST / TIME / LOCK-IN" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#475569;rotation=-90;" vertex="1" parent="1">
+          <mxGeometry x="20" y="350" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ylbl" value="DOMAIN CONTROL / ON-PREM CAPABILITY →" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="450" y="700" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Option 1 (bottom-left) -->
+        <mxCell id="o1" value="&lt;b&gt;1. Prompt + RAG&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;On frontier model&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#0369a1&quot;&gt;Weeks • $50–150K/mo&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#475569&quot;&gt;No custom training&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=3;arcSize=15;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="540" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Option 2 -->
+        <mxCell id="o2" value="&lt;b&gt;2. Fine-tune&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;LoRA on open base&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#0369a1&quot;&gt;1–3 mo • $50–200K&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#475569&quot;&gt;Narrow tasks&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="400" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Option 3 - HIGHLIGHTED (exception) -->
+        <mxCell id="o3" value="&lt;b&gt;3. Continue pre-training&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;On open base + corpus&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#0369a1&quot;&gt;3–9 mo • $500K–1.5M&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#7c2d12&quot;&gt;⭐ BioMate Reg-LLM v6/v7&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=3;arcSize=15;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="260" width="240" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Option 4 -->
+        <mxCell id="o4" value="&lt;b&gt;4. Train from scratch&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Full foundation model&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#0369a1&quot;&gt;9–18+ mo • $10M+&lt;/span&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#dc2626&quot;&gt;✗ Off the table for us&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#b91c1c;fontColor=#7f1d1d;strokeWidth=2;arcSize=15;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="120" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Trend arrow across -->
+        <mxCell id="trend" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#94a3b8;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="650" as="sourcePoint" />
+            <mxPoint x="1080" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Callouts -->
+        <mxCell id="def" value="&lt;b style=&quot;color:#15803d&quot;&gt;DEFAULT&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Workhorse for orchestration, workflow routing, parameter selection, QC interpretation&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="defe" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#15803d;dashed=1;" edge="1" parent="1" source="def" target="o1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="exc" value="&lt;b style=&quot;color:#b45309&quot;&gt;THE EXCEPTION&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:12px&quot;&gt;FDA regulatory writing — constrained corpus, on-prem requirement, cost crossover&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbeb;strokeColor=#b45309;fontColor=#78350f;strokeWidth=1;arcSize=15;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="400" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="exce" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#b45309;dashed=1;" edge="1" parent="1" source="exc" target="o3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Footer thesis -->
+        <mxCell id="thesis" value="&lt;b&gt;Build scaffolding first, train models second — and train only where the domain has a constrained corpus, specialized output, and customer-driven deployment constraints frontier APIs can't satisfy.&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#f1f5f9;strokeWidth=2;arcSize=15;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="140" y="700" width="900" height="60" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

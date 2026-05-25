@@ -9,8 +9,8 @@ import json
 import os
 import sys
 
-# GenMol model directory
-MODEL_DIR = os.environ.get("GENMOL_MODEL_DIR", "/home/yzhang/biomate/models/genmol")
+# GenMol model directory — set GENMOL_MODEL_DIR per environment.
+MODEL_DIR = os.environ.get("GENMOL_MODEL_DIR", "/opt/biomate/models/genmol")
 
 def generate_unconditional(args):
     """Generate diverse molecules without constraints."""

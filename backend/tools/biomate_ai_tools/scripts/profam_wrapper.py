@@ -13,11 +13,11 @@ import subprocess
 import sys
 
 # ProFam installation directory
-PROFAM_DIR = os.environ.get("PROFAM_DIR", "/home/yzhang/biomate/tools_repos/profam")
-CHECKPOINT_DIR = os.environ.get("PROFAM_CHECKPOINT", "/home/yzhang/biomate/models/profam")
+PROFAM_DIR = os.environ.get("PROFAM_DIR", "/opt/biomate/tools_repos/profam")
+CHECKPOINT_DIR = os.environ.get("PROFAM_CHECKPOINT", "/opt/biomate/models/profam")
 
 # Virtual environment Python (prefer venv if available)
-VENV_PYTHON = "/home/yzhang/biomate/backend/tools/biomate_ai_tools/.venv/bin/python"
+VENV_PYTHON = "/opt/biomate/backend/tools/biomate_ai_tools/.venv/bin/python"
 PYTHON_EXE = VENV_PYTHON if os.path.exists(VENV_PYTHON) else sys.executable
 
 

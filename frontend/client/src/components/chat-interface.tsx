@@ -891,6 +891,25 @@ export function ChatInterface({
           annotation: step.annotation || step.description
         })) : []
 
+      // Push LLM-extracted inline params from data.metadata.inlineParameters
+      // (camelCase, set by galaxy-assistant.ts after WORKFLOW_PARAM_ALIASES remap)
+      // into workflowData.inline_parameters (snake_case) where the viewer reads
+      // them via workflowDefinition.inline_parameters. Without this, the form
+      // renders with default values and the execute POST body has empty
+      // toolParameters — the original demo-blocker bug.
+      if (workflowData && data.metadata?.inlineParameters && typeof data.metadata.inlineParameters === 'object') {
+        const remappedParams = data.metadata.inlineParameters as Record<string, any>;
+        if (Object.keys(remappedParams).length > 0) {
+          workflowData = {
+            ...workflowData,
+            inline_parameters: {
+              ...(workflowData.inline_parameters || {}),
+              ...remappedParams,
+            },
+          };
+        }
+      }
+
       console.log('[ChatInterface] Steps array:', stepsArray)
 
       const aiMessage: Message = {
@@ -929,6 +948,10 @@ export function ChatInterface({
           recommendedTools: data.metadata?.recommendedTools || [],
           recommendedDatasets: data.metadata?.recommendedDatasets || [],
           workflowSuggestion: data.metadata?.workflowSuggestion,
+          // Store LLM-extracted inline params at message metadata level too —
+          // chat-with-artifacts panel auto-open merges this into workflow.inline_parameters
+          // as a fallback in case workflowData mutation gets serialized away (Bug A+C).
+          inlineParameters: data.metadata?.inlineParameters,
           sources: data.metadata?.sources || {},
           memoryUsed: data.metadata?.memoryUsed || false,
           domainGuard: data.metadata?.domainGuard,

@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="auto-loop" id="al1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Auto-loop QC remediation — close the loop, not just start it" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="run" value="&lt;b&gt;Run workflow&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;ADMET / CryoEM / RNA-seq / NCA-PK / Docking&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gate" value="&lt;b&gt;Per-phase QC gate&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;hERG (Aronov 2008) • CTF/FSC&lt;br/&gt;FDA 2020 DDI R1/R2&lt;br/&gt;AUC extrap ≤ 20%&lt;br/&gt;Pass / Advisory / Halt&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="450" y="100" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pass" value="&lt;b&gt;Pass&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Final output + report&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="halt" value="&lt;b&gt;Halt → diagnose + propose remediation&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Was: logP ≤ 5, MW ≤ 550&lt;br/&gt;Now: logP ≤ 4.5, MW ≤ 500&lt;br/&gt;Citation: Aronov 2008&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#b91c1c;fontColor=#7f1d1d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="900" y="180" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hitl" value="&lt;b&gt;Human-in-the-loop&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;User sees was → now diff + citations&lt;br/&gt;Approves or rejects&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7e22ce;fontColor=#581c87;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="900" y="320" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="log" value="&lt;b&gt;Audit log&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Approval timestamp + user ID&lt;br/&gt;Evidence snapshot&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cffafe;strokeColor=#0e7490;fontColor=#164e63;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="900" y="420" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="run" target="gate"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ep" value="pass" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#15803d;fontColor=#15803d;fontStyle=1;" edge="1" parent="1" source="gate" target="pass"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eh" value="halt" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b91c1c;fontColor=#b91c1c;fontStyle=1;" edge="1" parent="1" source="gate" target="halt"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ehh" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="halt" target="hitl"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ehl" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="hitl" target="log"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="loop" value="re-run with new params" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#7e22ce;dashed=1;fontColor=#7e22ce;fontStyle=2;exitX=0;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="hitl" target="run"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="domains" value="&lt;b&gt;Production auto-loops (test pass rates)&lt;/b&gt;" style="text;html=1;align=left;fontSize=14;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="80" y="540" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="ADMET — 24/24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="80" y="580" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="CYP-DDI — 24/24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="280" y="580" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="Docking — 24/24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="480" y="580" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="NCA-PK — 24/24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="680" y="580" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="CryoEM — 95/95 + 24 E2E" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=1;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="880" y="580" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conv" value="&lt;b&gt;Cross-domain convergence: 96.4% within 3 iterations&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#f1f5f9;strokeWidth=2;arcSize=15;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="200" y="660" width="800" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cta" value="biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="730" width="200" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

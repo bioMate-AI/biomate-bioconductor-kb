@@ -73,6 +73,14 @@ COPY --chown=galaxy:galaxy . .
 # fetch secrets at boot via IAM role and the host-mounted file goes away.
 RUN cp config/galaxy.yml.template config/galaxy.yml \
     && mkdir -p database logs config/plugins /app/.nextflow \
+    # Galaxy needs several .sample config files at /app/config/ at boot. The
+    # canonical copies ship inside lib/galaxy/config/sample/ (upstream Galaxy).
+    # The host's backend/config/*.sample files are gitignored so they don't
+    # exist in the build context — pull from the vendored sample dir instead.
+    && cp -n lib/galaxy/config/sample/tool_conf.xml.sample            config/ \
+    && cp -n lib/galaxy/config/sample/datatypes_conf.xml.sample       config/ \
+    && cp -n lib/galaxy/config/sample/job_conf.sample.yml             config/ \
+    && cp -n lib/galaxy/config/sample/tool_data_table_conf.xml.sample config/ \
     && chmod +x /app/start_biomate.sh /app/run.sh \
     # Galaxy's default 'files' log handler writes to /app/galaxy.log; the file
     # must exist and be writable by the galaxy user BEFORE Galaxy starts,

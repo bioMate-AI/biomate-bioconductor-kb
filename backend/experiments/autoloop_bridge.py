@@ -42,6 +42,10 @@ _DOMAIN_KEYWORDS: dict[str, set[str]] = {
         "NCA_PKNCA", "NCA_ANALYSIS", "NONCOMPARTMENTAL", "PKNCA",
         "NCA_PK",
     },
+    "pbpk": {
+        "PBPK_SIMULATION", "PBPK_PEDIATRIC", "PK_SIM_PBPK", "SIMCYP_PBPK",
+        "PBPK", "PHYSIOLOGICALLY_BASED_PK",
+    },
 }
 
 
@@ -150,11 +154,35 @@ def _adapt_nca_pk(raw: dict) -> dict:
     }
 
 
+def _adapt_pbpk(raw: dict) -> dict:
+    """
+    Map qc_trace_monitor PBPK parser output (or pbpk_qc.json from the
+    pbpk_simulation Nextflow process) → PBPKQCEvaluator input.
+
+    Accepts both flat (qc_trace_monitor) and nested (pbpk_qc.json) keys
+    because the PBPK gate JSON schema is still being defined (see
+    docs/20260521_DEPLOYMENT_MISTAKES_LESSONS.md). Missing values default
+    to None so the evaluator skips that gate gracefully.
+    """
+    return {
+        "tmax_h":                float(raw.get("tmax_h", 0.0) or 0.0),
+        "simulation_duration_h": float(raw.get("simulation_duration_h",
+                                                raw.get("sim_duration_h", 0.0)) or 0.0),
+        "cl_l_per_h":            float(raw.get("cl_l_per_h",
+                                                raw.get("clearance_L_h", 0.0)) or 0.0),
+        "thalf_estimable":       bool(raw.get("thalf_estimable", True)),
+        "mass_balance_recovery": raw.get("mass_balance_recovery", None),
+        "auc_pred_h_ug_per_mL":  raw.get("auc_pred_h_ug_per_mL", None),
+        "auc_obs_h_ug_per_mL":   raw.get("auc_obs_h_ug_per_mL", None),
+    }
+
+
 _ADAPTERS: dict[str, Callable[[dict], dict]] = {
     "admet":   _adapt_admet,
     "docking": _adapt_docking,
     "cyp_ddi": _adapt_cyp_ddi,
     "nca_pk":  _adapt_nca_pk,
+    "pbpk":    _adapt_pbpk,
 }
 
 # ── Phase routing ─────────────────────────────────────────────────────────────
@@ -172,6 +200,7 @@ _DOMAIN_DEFAULT_PHASE: dict[str, str] = {
     "docking": "phase_1_docking",
     "cyp_ddi": "phase_2_ddi_risk",
     "nca_pk":  "phase_1_nca_analysis",
+    "pbpk":    "phase_1_pbpk_simulation",
 }
 
 
@@ -193,6 +222,8 @@ _DOMAIN_DEFAULT_PROFILE: dict[str, str] = {
     "docking": "docking_hit_finding",
     "cyp_ddi": "cyp_ddi_standard",
     "nca_pk":  "nca_standard",
+    "pbpk":    "pbpk_screening",   # advisory-only default; users opt-in to
+                                    # pbpk_ind_submission for halt-grade gates
 }
 
 # ── In-memory suggestion store ─────────────────────────────────────────────────
@@ -355,6 +386,12 @@ def _load_components(domain: str) -> tuple:
         from experiments.nca_pk_autoloop.enriched_tuner import KnowledgeEnrichedNCAPKTuner
         from experiments.nca_pk_autoloop.params import NCAPKParams
         return NCAPKQCEvaluator, KnowledgeEnrichedNCAPKTuner, NCAPKParams
+
+    if domain == "pbpk":
+        from experiments.pbpk_autoloop.qc_evaluator import PBPKQCEvaluator
+        from experiments.pbpk_autoloop.enriched_tuner import KnowledgeEnrichedPBPKTuner
+        from experiments.pbpk_autoloop.params import PBPKParams
+        return PBPKQCEvaluator, KnowledgeEnrichedPBPKTuner, PBPKParams
 
     raise ValueError(f"Unknown domain: {domain!r}")
 

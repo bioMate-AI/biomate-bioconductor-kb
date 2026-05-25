@@ -37,10 +37,22 @@ RUN apt-get update \
 # numpy/scipy/pandas: required by most BioMate computational workflows
 # biopython: sequence parsing, BLAST, PDB handling
 # rdkit: cheminformatics for pharmacology/ADMET workflows
+#
+# NUMPY PIN (2026-05-21): rdkit's pre-built wheel on PyPI is still compiled
+# against the numpy 1.x C ABI. Without an upper bound, pip resolves numpy to
+# 2.x and any later import of RDKit's C extensions (Standardizer, GraphDescriptors,
+# rdMolStandardize.rdMolStandardize) fails with:
+#   AttributeError: _ARRAY_API not found
+# This broke every cheminformatics workflow downstream of biomni-tools
+# (caught on dev via cyp_ddi_panel runtime). Pin numpy<2 here so EVERY image
+# `FROM biomate-nextflow-base` inherits a consistent numpy + RDKit ABI.
+# When rdkit ships numpy-2-compatible wheels broadly (track via
+# https://github.com/rdkit/rdkit/issues — numpy 2 support was added in
+# rdkit 2024.09.1+), remove this pin or bump to numpy<3.
 RUN pip install --no-cache-dir cryosparc-tools==5.0.2
 RUN pip install --no-cache-dir \
     gget \
-    numpy \
+    "numpy<2" \
     scipy \
     pandas \
     biopython \

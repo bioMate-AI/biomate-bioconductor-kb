@@ -14,7 +14,7 @@
 
 set -e
 
-MODELS_DIR="${1:-/home/yzhang/biomate/models}"
+MODELS_DIR="${1:-/opt/biomate/models}"
 S3_BUCKET="s3://biomate-models"
 UPLOAD_S3=false
 

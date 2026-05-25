@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T00:00:00.000Z" agent="biomate-marketing" version="24.0.0">
+  <diagram name="memory-governance" id="mg1">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Long-running pharma agent — memory + traceability + governance + HITL" style="text;html=1;align=center;fontSize=22;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="session" value="&lt;b&gt;Current session&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;User: &quot;Continue the ADMET series we ran last week, this time with the tightened logP filter&quot;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#475569;fontColor=#0f172a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="1100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep" value="&lt;b&gt;Episode memory&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;What happened&lt;br/&gt;Past runs distilled into structured records&lt;br/&gt;Inputs / params / outputs / QC / corrections&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontColor=#1e3a8a;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="280" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="co" value="&lt;b&gt;Correction memory&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;What the user fixed&lt;br/&gt;&amp;ldquo;Cap MW at 480 in this series&amp;rdquo;&lt;br/&gt;Standing rules → every future call&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontColor=#14532d;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="400" y="200" width="280" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="reg" value="&lt;b&gt;Prediction registry&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Traceability&lt;br/&gt;Every model output: version • inputs&lt;br/&gt;output • confidence • citations&lt;br/&gt;Outcome reconciled when result arrives&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#b45309;fontColor=#78350f;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="720" y="200" width="280" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gov" value="&lt;b&gt;Governance + HITL&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Human approves&lt;br/&gt;High-stakes decision&lt;br/&gt;Approval logged: time + user + evidence&lt;br/&gt;GxP-defensible&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7e22ce;fontColor=#581c87;strokeWidth=2;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="200" width="180" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.15;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="session" target="ep"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.4;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="session" target="co"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.65;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="session" target="reg"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.9;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="session" target="gov"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="agent" value="&lt;b style=&quot;color:#f1f5f9&quot;&gt;BioMate agent with stable long-running memory&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:11px;color:#cbd5e1&quot;&gt;Knows past runs • applies standing corrections • cites the right registry rows • routes high-stakes calls to HITL approval&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#f1f5f9;strokeWidth=3;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="390" width="1100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ea1" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.15;entryY=0;" edge="1" parent="1" source="ep" target="agent"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea2" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.4;entryY=0;" edge="1" parent="1" source="co" target="agent"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea3" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.65;entryY=0;" edge="1" parent="1" source="reg" target="agent"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea4" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="gov" target="agent"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="pillars" value="&lt;b&gt;The pillars work as a system — or they don't work&lt;/b&gt;" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="100" y="500" width="1100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="anti1" value="✗ Memory without traceability = confidently remembering wrong things" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#b91c1c;" vertex="1" parent="1">
+          <mxGeometry x="200" y="540" width="900" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="anti2" value="✗ Traceability without HITL = audit trail of decisions nobody signed" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#b91c1c;" vertex="1" parent="1">
+          <mxGeometry x="200" y="560" width="900" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="anti3" value="✗ Governance without memory = signed decisions promptly forgotten" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#b91c1c;" vertex="1" parent="1">
+          <mxGeometry x="200" y="580" width="900" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="anti4" value="✗ HITL without traceability = approvals nobody can reconstruct" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#b91c1c;" vertex="1" parent="1">
+          <mxGeometry x="200" y="600" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bench" value="&lt;b&gt;Benchmark evidence:&lt;/b&gt;  Memory 20/20 (100% weighted) • +45% vs GPT-4o no-injection • LongMemEval + LoCoMo aligned • Session 8 P1+P2 live (4/4 E2E)" style="text;html=1;align=center;fontSize=12;fontStyle=2;fontColor=#15803d;" vertex="1" parent="1">
+          <mxGeometry x="60" y="650" width="1180" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cta" value="biomate.ai" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#0369a1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="700" width="200" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -26,7 +26,7 @@ params.alert_severity_threshold = '1'   // 1=HIGH only, 2=HIGH+MEDIUM, 3=all
 process REPEATED_DOSE_TOX_PREDICTION {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
+    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 

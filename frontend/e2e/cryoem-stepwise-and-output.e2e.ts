@@ -1418,6 +1418,28 @@ test("CS-3+4+5+10+12+13+14: CryoSPARC SPA — execute → live steps → outputs
     const viewer = page.locator('[data-testid="density-map-viewer"], [class*="density-map-viewer"]').first();
     const viewerVisible = await viewer.waitFor({ state: "visible", timeout: 30_000 })
       .then(() => true).catch(() => false);
+    // Diagnostic dump when the viewer doesn't mount — captures what
+    // ChatOutputAttachments actually rendered so we don't need another
+    // GPU run to investigate. See
+    // docs/20260518_OUTPUTS_CONSOLIDATION_AND_DEV_HARDENING_SESSION.md §"CS-14 residual".
+    if (!viewerVisible) {
+      const diag = await page.evaluate(() => {
+        const root = document.querySelector('[data-testid="chat-output-attachments"]');
+        if (!root) return { found: false, note: "chat-output-attachments not in DOM" };
+        const allTestIds = Array.from(root.querySelectorAll("[data-testid]"))
+          .map((el) => (el as HTMLElement).dataset.testid!)
+          .slice(0, 50);
+        const headings = Array.from(root.querySelectorAll("h2,h3,h4"))
+          .map((el) => (el as HTMLElement).innerText)
+          .slice(0, 20);
+        const text = (root as HTMLElement).innerText.slice(0, 1500);
+        // Try to detect items rendered as DensityMapViewer vs FileOutput etc.
+        const cardCount = root.querySelectorAll('[class*="card"], [class*="Card"]').length;
+        return { found: true, allTestIds, headings, text, cardCount };
+      }).catch((e) => ({ found: false, note: `eval error: ${(e as Error).message}` }));
+      console.log("[CS-14 DIAG] viewer-not-found dump:", JSON.stringify(diag).slice(0, 3000));
+      (audit14 as any).diagnostic = diag;
+    }
     assert(audit14, "density-map-viewer-present", viewerVisible);
     // CS-4 equivalent assertion (was render-for-mrc)
     if (viewerVisible) {

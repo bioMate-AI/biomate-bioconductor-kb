@@ -996,3 +996,47 @@ body.ind-app {
   margin: 12px 18px;
 }
 .ind-chip-cta b { color: var(--ind-text); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Sandbox hotfix — narrow-viewport overrides
+ *
+ * The @media (max-width: 1024px) block earlier in this file (line 56)
+ * declares `.ind-doc-panel { display: none; }`, but the base rule for
+ * `.ind-doc-panel` (line 426) sets `display: flex` and comes later in
+ * the cascade — so at 1024px the panel never actually hides. Same bug
+ * present in reference/claude_design/IND_design/ind/styles-ind.css
+ * (the prototype was never tested at 1024px width).
+ *
+ * Re-applying the media-query overrides here at the end of the file so
+ * the cascade resolves correctly. When Claude Design lifts the fix
+ * upstream, this block can be removed.
+ * ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ind-doc-panel { display: none !important; }
+  .ind-doc-fab   { display: flex !important; }
+  .ind-shell     { grid-template-columns: 220px minmax(0, 1fr) !important; }
+  .ind-center    { grid-column: 2 / -1 !important; }
+}
+
+/* TipTap paragraph: make the editor content flow inline so the finding-chip
+ * and cite-add icon appear at the end of the paragraph text (like the
+ * prototype's contentEditable <p>). Without this, the editor is block-level
+ * and the chip pushes to a new line below the paragraph.
+ */
+/* TipTap renders <div class="ProseMirror tiptap-paragraph"> wrapped by an
+ * EditorContent <div>. Flatten the layout so the editor's <p> flows inline
+ * with chip + cite-add siblings (matching prototype's contentEditable <p>). */
+.ind-doc-paragraph {
+  display: block;
+  line-height: 1.55;
+}
+.ind-doc-paragraph > div:first-child { display: inline; }
+.ind-doc-paragraph .ProseMirror,
+.ind-doc-paragraph .tiptap-paragraph { display: inline; outline: none; }
+.ind-doc-paragraph .ProseMirror > p { display: inline; margin: 0; }
+.ind-doc-paragraph .finding-chip,
+.ind-doc-paragraph .cite-add {
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: baseline;
+}

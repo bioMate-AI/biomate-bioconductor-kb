@@ -1,0 +1,89 @@
+{
+  "created_at": "2026-05-12T18:10:54.137145+00:00",
+  "api_url": "http://127.0.0.1:8081",
+  "user_id": "andv-inhibitor-full-20260512",
+  "pdb_input": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
+  "through_step": 4,
+  "steps": [
+    {
+      "key": "pocket",
+      "title": "Pocket detection + druggability",
+      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/pocket_detection_druggability/main.nf",
+      "run_id": "1383259f-ec1f-44c6-ab4d-3595e60b5d15",
+      "status": "succeeded",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/report.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/timeline.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/structure_druggability_report.tsv",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/structure_pockets.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/structure_top_pocket.pdb",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/versions.yml",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/structure_qc_result.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/versions.yml"
+      ],
+      "pockets_json": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/01_pocket/structure_pockets.json",
+      "top_pocket_center": [
+        173.607,
+        208.847,
+        174.042
+      ]
+    },
+    {
+      "key": "pharmacophore",
+      "title": "Pharmacophore library filtering",
+      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/pharmacophore_filtering/main.nf",
+      "run_id": "b09456e7-b758-4e81-8d15-57fb0470f761",
+      "status": "succeeded",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/pharmacophore_model.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/versions.yml",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/match_report.tsv",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/screened_scores.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/versions.yml",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/filtered_compounds.smi",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/match_report.tsv",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/pharmacophore_model.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/summary.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/versions.yml",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/report.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/02_pharmacophore/timeline.html"
+      ]
+    },
+    {
+      "key": "admet",
+      "title": "Predict ADMET properties",
+      "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+      "run_id": "38e3404a-1456-4642-8ed3-03256e85fe51",
+      "status": "succeeded",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/dag.dot",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/report.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/timeline.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/pk_summary.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/predict_admet_properties_output.txt",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/predict_admet_properties_results.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/toxicity_report.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/03_admet/versions.yml"
+      ]
+    },
+    {
+      "key": "docking_vina",
+      "title": "AutoDock Vina docking",
+      "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf",
+      "run_id": "f468aa94-a009-42e8-95b8-a89301107038",
+      "status": "succeeded",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina/docking_autodock_vina_output.txt",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina/docking_autodock_vina_results.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina/pose_000.pdbqt",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina/pose_001.pdbqt",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina/pose_002.pdbqt",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260512T181054Z/04_docking_vina/versions.yml"
+      ]
+    }
+  ]
+}
