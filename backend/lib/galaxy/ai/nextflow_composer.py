@@ -167,9 +167,21 @@ class _ToolContext:
     def step_summary(self) -> str:
         """Short step sequence for LLM context (from best_practice_functions or vignette)."""
         if self.best_practice_functions:
+            # tool_knowledge.best_practice_functions is normally {fn: meta_dict, ...}
+            # but some legacy records store a bare list [meta_dict, ...]. Normalise.
+            if isinstance(self.best_practice_functions, dict):
+                _items = self.best_practice_functions.items()
+            elif isinstance(self.best_practice_functions, list):
+                _items = (
+                    (m.get("fn") or m.get("name") or f"fn{idx}", m)
+                    for idx, m in enumerate(self.best_practice_functions)
+                    if isinstance(m, dict)
+                )
+            else:
+                _items = []
             steps = []
             seen_steps: set = set()
-            for fn, meta in self.best_practice_functions.items():
+            for fn, meta in _items:
                 step_label = meta.get("step", "")
                 if step_label and step_label not in seen_steps:
                     seen_steps.add(step_label)
