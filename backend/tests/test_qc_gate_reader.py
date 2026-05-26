@@ -230,11 +230,111 @@ def test_overall_level_fail_when_any_fails():
 # ─── Coverage ────────────────────────────────────────────────────────
 
 def test_supported_domains_count():
-    """Reader covers all 10 QC-but-no-autoloop domains."""
+    """Reader covers all 11 QC-but-no-autoloop domains (10 gate-only + structure_prediction)."""
     domains = set(list_supported_domains())
     expected = {"hts", "ich_s5", "ich_s7", "clinical_trial", "allometric",
-                "ivive", "openfe", "p0_pkpd", "pocket_detection", "aizynthfinder"}
+                "ivive", "openfe", "p0_pkpd", "pocket_detection", "aizynthfinder",
+                "structure_prediction"}
     assert domains == expected, f"missing: {expected - domains}, extra: {domains - expected}"
+
+
+# ─── Structure prediction (Boltz / Chai / AlphaFold) ─────────────────
+
+def test_struct_pred_mean_plddt_pass():
+    e = build_gate_event("boltz_structure_prediction", "structure_prediction",
+                          {"mean_plddt": 85.0})
+    g = next(x for x in e["gates"] if x["gate"] == "struct_pred_mean_plddt")
+    assert g["action"] == "pass"
+    assert g["level"] == "GOLD"
+
+
+def test_struct_pred_mean_plddt_fail():
+    e = build_gate_event("boltz_structure_prediction", "structure_prediction",
+                          {"mean_plddt": 45.0})
+    g = next(x for x in e["gates"] if x["gate"] == "struct_pred_mean_plddt")
+    assert g["action"] == "halt"
+    assert g["level"] == "FAIL"
+
+
+def test_struct_pred_confident_fraction_pass():
+    e = build_gate_event("chai1_structure_prediction", "structure_prediction",
+                          {"mean_plddt": 80.0, "confident_fraction": 0.85})
+    g = next(x for x in e["gates"] if x["gate"] == "struct_pred_confident_fraction")
+    assert g["action"] == "pass"
+
+
+def test_struct_pred_confident_fraction_fail():
+    e = build_gate_event("chai1_structure_prediction", "structure_prediction",
+                          {"confident_fraction": 0.4})
+    g = next(x for x in e["gates"] if x["gate"] == "struct_pred_confident_fraction")
+    assert g["action"] == "halt"
+    assert g["level"] == "FAIL"
+
+
+def test_struct_pred_max_pae_skipped_when_missing():
+    """Single-domain proteins don't report max_pae → gate not emitted."""
+    e = build_gate_event("boltz_structure_prediction", "structure_prediction",
+                          {"mean_plddt": 85.0, "confident_fraction": 0.9})
+    gate_names = {g["gate"] for g in e["gates"]}
+    assert "struct_pred_max_pae" not in gate_names
+    assert "struct_pred_mean_plddt" in gate_names
+
+
+def test_struct_pred_max_pae_pass():
+    e = build_gate_event("alphafold_predict", "structure_prediction",
+                          {"max_pae": 5.0})
+    g = next(x for x in e["gates"] if x["gate"] == "struct_pred_max_pae")
+    assert g["action"] == "pass"
+
+
+def test_struct_pred_max_pae_fail():
+    e = build_gate_event("alphafold_predict", "structure_prediction",
+                          {"max_pae": 20.0})
+    g = next(x for x in e["gates"] if x["gate"] == "struct_pred_max_pae")
+    assert g["action"] == "halt"
+
+
+def test_boltz_process_classification():
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    assert classify_gate_only_domain("BOLTZ_PREDICT") == "structure_prediction"
+    assert classify_gate_only_domain("BOLTZ_STRUCTURE_PREDICTION") == "structure_prediction"
+
+
+def test_chai_process_classification():
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    assert classify_gate_only_domain("CHAI1_PREDICT") == "structure_prediction"
+    assert classify_gate_only_domain("CHAI1_STRUCTURE_PREDICTION") == "structure_prediction"
+
+
+def test_alphafold_process_classification():
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    assert classify_gate_only_domain("ALPHAFOLD_PREDICT") == "structure_prediction"
+    assert classify_gate_only_domain("RUN_AF3_INFERENCE") == "structure_prediction"
+
+
+def test_end_to_end_boltz_event():
+    """Realistic Boltz output → event with 3 gates + evidence on each."""
+    metrics = {
+        "mean_plddt": 82.5,
+        "confident_fraction": 0.78,
+        "max_pae": 6.2,
+    }
+    event = build_gate_event(
+        workflow_name="BOLTZ_PREDICT",
+        domain="structure_prediction",
+        metrics=metrics,
+    )
+    assert event["passed"] is True
+    gate_names = {g["gate"] for g in event["gates"]}
+    assert gate_names == {
+        "struct_pred_mean_plddt",
+        "struct_pred_confident_fraction",
+        "struct_pred_max_pae",
+    }
+    for g in event["gates"]:
+        assert isinstance(g["evidence"], list)
+        assert len(g["evidence"]) >= 1
+        assert g["evidence"][0]["paper_ref"]
 
 
 def test_end_to_end_read_and_build(tmp_path):

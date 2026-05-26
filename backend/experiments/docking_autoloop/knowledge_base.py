@@ -6,11 +6,15 @@ SOURCES AND INTEGRITY POLICY
 All threshold values and remediation rationale come from primary publications
 on molecular docking methodology.
 
-Each KnowledgeEntry cites:
-  - source_file: the BioMate document or publication that contains the claim
-  - source_text: a direct verbatim quote from that source
-  - paper_doi:   DOI of the underlying publication
-  - paper_ref:   short citation (authors, journal, year)
+Each KnowledgeEntry carries a `provenance` grade:
+  GOLD   — paper states the threshold/rule verbatim.
+  SILVER — paper supports the concept; numeric threshold is community convention.
+  BRONZE — operational/vendor heuristic; paper is related context only.
+
+Most docking thresholds (binding-score cutoffs, exhaustiveness ladders, box
+expansions) fall under BRONZE because the original Vina/Glide papers do not
+prescribe project-level pass/fail cutoffs — those are vendor and community
+heuristics. See docs/20260522_AUTOLOOP_EVIDENCE_PROVENANCE_AUDIT.md.
 
 PRIMARY SOURCES:
   Trott O & Olson AJ (2010) — "AutoDock Vina: improving the speed and accuracy
@@ -23,9 +27,6 @@ PRIMARY SOURCES:
   Halgren TA et al. (2004) — "Glide: A New Approach for Rapid, Accurate
     Docking and Scoring. 2. Enrichment Factors in Database Screening"
     DOI: 10.1021/jm030644s
-  Morris GM et al. (1998) — "Automated docking using a Lamarckian genetic
-    algorithm and an empirical binding free energy function"
-    DOI: 10.1002/(SICI)1096-987X(19981115)19:14<1639::AID-JCC10>3.0.CO;2-B
 """
 
 from __future__ import annotations
@@ -38,24 +39,40 @@ class KnowledgeEntry:
     """
     One piece of knowledge supporting a docking parameter tuning decision.
 
-    source_file : Path or URL of the BioMate doc or primary publication.
-    source_text : Exact verbatim text copied from that source.
-    paper_ref   : Short citation of the underlying publication.
-    paper_doi   : DOI of that publication.
-    finding     : Plain-language summary of what this means for the tuning rule.
+    paper_ref       : Short citation.
+    paper_doi       : DOI.
+    provenance      : "GOLD" | "SILVER" | "BRONZE".
+    paper_supports  : Factual content of the source.
+    rule_text       : Operational threshold BioMate enforces.
+    finding         : Remediation guidance.
+
+    Legacy `source_file`/`source_text` retained for back-compat; `source_text`
+    is an alias for `paper_supports`.
     """
-    source_file: str
-    source_text: str
     paper_ref: str
     paper_doi: str
+    provenance: str
+    paper_supports: str
+    rule_text: str
     finding: str
+    source_file: str = ""
+    source_text: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.source_text:
+            self.source_text = self.paper_supports
+        if not self.source_file:
+            self.source_file = self.paper_ref
 
     def to_dict(self) -> dict:
         return {
-            "source_text": self.source_text,
+            "provenance": self.provenance,
+            "paper_supports": self.paper_supports,
+            "rule_text": self.rule_text,
             "paper_ref": self.paper_ref,
             "paper_doi": self.paper_doi,
             "finding": self.finding,
+            "source_text": self.source_text,
         }
 
     def short_ref(self) -> str:
@@ -69,36 +86,46 @@ _KNOWLEDGE: dict[str, list[KnowledgeEntry]] = {
     "valid_poses": [
         KnowledgeEntry(
             source_file="Trott & Olson (2010) AutoDock Vina",
-            source_text=(
-                "The exhaustiveness parameter controls the thoroughness of the search "
-                "and is set to 8 by default. Increasing exhaustiveness to 16 or 32 "
-                "significantly reduces the probability of missing the global minimum, "
-                "especially for flexible ligands in large binding sites."
-            ),
             paper_ref="Trott & Olson (2010) J Comput Chem 31:455-461",
             paper_doi="10.1002/jcc.21334",
+            provenance="BRONZE",
+            paper_supports=(
+                "Trott & Olson (2010) document that AutoDock Vina's exhaustiveness "
+                "parameter controls search thoroughness (default = 8) and that "
+                "increasing it reduces the probability of missing the global minimum, "
+                "particularly for flexible ligands. The paper does not prescribe a "
+                "specific 8→16 doubling rule as a remediation step — that is an "
+                "operational ladder used by the Vina community."
+            ),
+            rule_text=(
+                "BioMate docking gate raises exhaustiveness 8→16 (and 16→32) on "
+                "zero-valid-pose HALT. This is a vendor/community-heuristic ladder "
+                "consistent with the Vina paper's general recommendation."
+            ),
             finding=(
-                "Doubling exhaustiveness from 8→16 reduces the probability of missing "
-                "the global minimum docking pose, particularly for large or flexible "
-                "binding pockets where conformational space is not fully sampled at "
-                "default settings."
+                "Doubling exhaustiveness reduces the probability of missing the "
+                "global-minimum pose for flexible ligands or large pockets."
             ),
         ),
         KnowledgeEntry(
             source_file="Trott & Olson (2010) AutoDock Vina",
-            source_text=(
-                "The search space (bounding box) should be large enough to encompass "
-                "the entire binding site plus some buffer. If the box is too small, "
-                "poses may be clipped or the ligand may fail to find valid orientations. "
-                "We recommend adding 5–10 Å to each dimension around the expected binding site."
-            ),
             paper_ref="Trott & Olson (2010) J Comput Chem 31:455-461",
             paper_doi="10.1002/jcc.21334",
+            provenance="BRONZE",
+            paper_supports=(
+                "Vina docs recommend the search box encompass the binding site plus "
+                "a 5–10 Å buffer. The 1 Å-per-retry expansion specifically used as a "
+                "remediation step is operational, not from the paper."
+            ),
+            rule_text=(
+                "BioMate expands the bounding box by 1 Å per retry when zero valid "
+                "poses are produced — an operational step within the Vina-recommended "
+                "buffer envelope."
+            ),
             finding=(
-                "Expanding the bounding box by 1 Å per retry allows poses that were "
-                "clipped at the original box boundary to be sampled. "
-                "Zero poses almost always indicates either exhaustiveness too low "
-                "or box too tight for the ligand."
+                "Expanding the box 1 Å per retry recovers poses clipped at the original "
+                "box boundary. Zero valid poses usually indicates exhaustiveness too "
+                "low or box too tight."
             ),
         ),
     ],
@@ -106,53 +133,67 @@ _KNOWLEDGE: dict[str, list[KnowledgeEntry]] = {
     "best_binding_score": [
         KnowledgeEntry(
             source_file="Trott & Olson (2010) AutoDock Vina",
-            source_text=(
-                "In our experience, a binding affinity of around −7 kcal/mol corresponds "
-                "to a dissociation constant of approximately 2 µM, which is often considered "
-                "a starting point for lead optimization. Scores weaker than −7 kcal/mol "
-                "generally represent fragment-level or non-specific binding."
-            ),
             paper_ref="Trott & Olson (2010) J Comput Chem 31:455-461",
             paper_doi="10.1002/jcc.21334",
+            provenance="BRONZE",
+            paper_supports=(
+                "Trott & Olson note in passing that a binding affinity near "
+                "−7 kcal/mol corresponds roughly to ~2 µM Kd as a rough guide. "
+                "The paper does NOT prescribe a project-level hit/no-hit threshold; "
+                "the −7 kcal/mol cutoff is a community/vendor convention."
+            ),
+            rule_text=(
+                "BioMate uses −7 kcal/mol as an operational Vina hit cutoff "
+                "(~2 µM Kd-equivalent). On weak-score HALT, exhaustiveness is raised "
+                "to improve pose-search coverage. This is a vendor heuristic."
+            ),
             finding=(
-                "The −7 kcal/mol hit threshold corresponds to ~2 µM Kd. "
-                "Increasing exhaustiveness improves the probability of finding a "
-                "near-optimal pose when weak scores arise from under-sampling of "
-                "the binding pocket."
+                "The −7 kcal/mol Vina cutoff (~2 µM Kd) is a community hit threshold. "
+                "Raising exhaustiveness reduces under-sampling artifacts in weak scores."
             ),
         ),
         KnowledgeEntry(
             source_file="Friesner RA et al. (2004) Glide",
-            source_text=(
-                "XP (Extra Precision) Glide scoring achieves superior enrichment relative "
-                "to SP (Standard Precision) for lead optimization campaigns, particularly "
-                "for distinguishing between active and inactive compounds when "
-                "GlideScore differences are small (< 1 kcal/mol). The XP descriptor "
-                "penalty terms reward tight pocket fit and penalize desolvation."
-            ),
             paper_ref="Friesner et al. (2004) J Med Chem 47:1739-1749",
             paper_doi="10.1021/jm0306430",
+            provenance="BRONZE",
+            paper_supports=(
+                "Friesner et al. introduce Glide XP and demonstrate that XP provides "
+                "improved enrichment over SP for lead optimization, especially when "
+                "GlideScore differences between actives and inactives are small "
+                "(< 1 kcal/mol). The paper does not prescribe specific −6 SP / −8 XP "
+                "project-level hit cutoffs."
+            ),
+            rule_text=(
+                "BioMate uses operational Glide cutoffs of −6 kcal/mol (SP) and "
+                "−8 kcal/mol (XP). On weak SP scores, BioMate upgrades the run "
+                "from SP → XP — a vendor/community remediation step consistent with "
+                "the Friesner findings."
+            ),
             finding=(
-                "Upgrading Glide from SP to XP scoring provides more accurate ranking "
-                "for compounds near the hit threshold (−6 kcal/mol SP, −8 kcal/mol XP). "
-                "SP may miss tight-binding poses because it does not penalize "
-                "geometrically strained binding modes."
+                "Upgrading Glide SP → XP improves ranking accuracy near the hit threshold. "
+                "SP can miss tight-binding poses that XP descriptors capture."
             ),
         ),
         KnowledgeEntry(
             source_file="Halgren TA et al. (2004) Glide Part 2",
-            source_text=(
-                "Standard Precision (SP) Glide is calibrated for high-throughput "
-                "virtual screening where speed is essential. For lead optimization, "
-                "Extra Precision (XP) Glide provides AUC improvements of 10–25% "
-                "over SP on typical pharmaceutical target sets."
-            ),
             paper_ref="Halgren et al. (2004) J Med Chem 47:1750-1759",
             paper_doi="10.1021/jm030644s",
+            provenance="BRONZE",
+            paper_supports=(
+                "Halgren et al. report that Glide SP is calibrated for high-throughput "
+                "virtual screening and that XP provides AUC improvements of 10–25% "
+                "over SP on pharmaceutical target sets. The paper does not prescribe "
+                "BioMate's specific SP→XP escalation policy."
+            ),
+            rule_text=(
+                "BioMate escalates Glide SP → XP rescoring when SP fails to identify a "
+                "clear hit (GlideScore > −6). This is an operational step consistent "
+                "with the Halgren AUC findings."
+            ),
             finding=(
-                "When SP scoring fails to identify a clear hit (GlideScore > −6), "
-                "XP re-scoring of the same receptor-ligand poses provides meaningfully "
-                "better separation of active from inactive compounds."
+                "When SP scoring fails to yield a clear hit, XP rescoring of the same "
+                "poses provides meaningfully better active/inactive separation."
             ),
         ),
     ],

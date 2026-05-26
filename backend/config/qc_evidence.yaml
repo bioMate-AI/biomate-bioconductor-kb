@@ -253,6 +253,42 @@ structure_prediction:
       finding: >
         Remediation: increase recycling_steps (3 → 6) or use deeper
         MSA (Mirdita 2022 ColabFold).
+  struct_pred_confident_fraction:
+    - paper_ref: "Tunyasuvunakool K et al. Nature 2021; 596:590-596"
+      paper_doi: "10.1038/s41586-021-03828-w"
+      provenance: SILVER
+      paper_supports: >
+        Tunyasuvunakool et al. apply AlphaFold to the human proteome and
+        report per-residue pLDDT distributions, defining the >70 band as
+        the "confident" set used for downstream structural analyses. The
+        paper frames confident-fraction as a model-quality summary but
+        does NOT state the exact ≥0.70 fraction cutoff used here — that
+        is a community convention extrapolated from the paper's framework.
+      rule_text: >
+        BioMate flags structures with confident_fraction (frac residues
+        with pLDDT > 70) below 0.70 as advisory. Cutoff is operational.
+      finding: >
+        Remediation: increase recycling iterations, supply a deeper MSA,
+        or restrict downstream analysis to confident residues only.
+  struct_pred_max_pae:
+    - paper_ref: "Tunyasuvunakool K et al. Nature 2021; 596:590-596"
+      paper_doi: "10.1038/s41586-021-03828-w"
+      provenance: SILVER
+      paper_supports: >
+        Tunyasuvunakool et al. use predicted aligned error (PAE) to
+        characterise inter-domain relative orientation confidence; low
+        PAE between domains indicates the model places them reliably
+        with respect to each other. The paper presents PAE as a continuous
+        confidence measure but does NOT state the exact ≤8 Å cutoff used
+        here — that is a community convention extrapolated from the
+        paper's framework.
+      rule_text: >
+        BioMate flags multi-domain structures with max inter-domain
+        PAE > 8 Å as advisory. Skipped for single-domain proteins where
+        max_pae is not reported.
+      finding: >
+        Remediation: deepen MSA, increase recycling, or treat domains
+        independently if inter-domain orientation is unreliable.
 
 # ─── HTS plate quality (hts_plate_qc_hit_calling) ─────────────────────
 hts:
