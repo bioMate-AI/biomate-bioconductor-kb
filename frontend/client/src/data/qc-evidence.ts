@@ -188,6 +188,166 @@ export const QC_EVIDENCE: QCEvidenceMap = {
         "finding": "Remediation: increase recycling_steps (3 → 6) or use deeper MSA (Mirdita 2022 ColabFold).\n"
       }
     ]
+  },
+  "hts": {
+    "hts_z_prime": [
+      {
+        "paper_ref": "Zhang JH, Chung TD, Oldenburg KR. J Biomol Screen 1999; 4(2):67-73",
+        "paper_doi": "10.1177/108705719900400206",
+        "provenance": "GOLD",
+        "paper_supports": "Zhang 1999 introduces the Z'-factor statistic and explicitly recommends Z' ≥ 0.5 as \"excellent\" assay quality. Z' between 0 and 0.5 = \"doable but marginal\"; Z' < 0 = \"screen will not work.\"\n",
+        "rule_text": "BioMate flags plates with Z' < 0.5 (configurable via params.min_z_prime). The 0.5 cutoff is the Zhang 1999 \"excellent\" threshold verbatim.\n",
+        "finding": "Remediation when triggered: investigate control well distribution, plate-edge effects, or re-run with different controls.\n"
+      }
+    ],
+    "hts_signal_window": [
+      {
+        "paper_ref": "Iversen PW et al. J Biomol Screen 2006; 11(3):247-252",
+        "paper_doi": "10.1177/1087057105285610",
+        "provenance": "SILVER",
+        "paper_supports": "Iversen 2006 establishes signal-window as a complement to Z'. Signal-window ≥ 2 is generally accepted as adequate dynamic range, though the paper presents it as a continuous quality metric, not a hard cutoff.\n",
+        "rule_text": "BioMate computes signal window but does not yet enforce a hard gate. Recommended cutoff: SW ≥ 2 (Iversen 2006 convention).\n",
+        "finding": "Pair with Z' for full dynamic-range assessment; SW low + Z' OK indicates separation by mean but poor variance characterization.\n"
+      }
+    ]
+  },
+  "ich_s5": {
+    "ich_s5_safety_margin": [
+      {
+        "paper_ref": "ICH S5(R3) Guideline on detection of reproductive and developmental toxicity (2020)",
+        "paper_doi": "https://database.ich.org/sites/default/files/S5-R3_Step4_Guideline_2020_0218.pdf",
+        "provenance": "GOLD",
+        "paper_supports": "ICH S5(R3) §3.1 specifies that for women of childbearing potential (WOCBP), the default safety margin between the highest non-effect dose in animal reproductive toxicity studies and clinical exposure should be ≥10× Cmax.\n",
+        "rule_text": "BioMate flags compounds with safety margin < 10× Cmax under the WOCBP scenario (RED) or 10-30× (YELLOW).\n",
+        "finding": "Remediation: dose reduction, alternative formulation to reduce Cmax, or additional reproductive tox studies.\n"
+      }
+    ],
+    "ich_s5_structural_alert": [
+      {
+        "paper_ref": "Schilter B et al. Regul Toxicol Pharmacol 2013; 67(1):39-52",
+        "paper_doi": "10.1016/j.yrtph.2013.05.001",
+        "provenance": "SILVER",
+        "paper_supports": "Schilter 2013 catalogs structural alerts for reproductive toxicity (DART) including known teratogens, endocrine disruptors, and developmental toxicants. The categorical RED/YELLOW/GREEN scheme is BioMate's adaptation.\n",
+        "rule_text": "BioMate classifies alerts as RED (known teratogen), YELLOW (structural similarity to teratogens), or GREEN (no alerts). Categorical tiers, not numeric thresholds.\n",
+        "finding": "Remediation: structural modification to remove flagged moieties; early DART screening (Hayess 2013 EST assay) recommended.\n"
+      }
+    ]
+  },
+  "ich_s7": {
+    "ich_s7b_herg_margin": [
+      {
+        "paper_ref": "ICH S7B Nonclinical Evaluation of Delayed Ventricular Repolarization (2005)",
+        "paper_doi": "https://database.ich.org/sites/default/files/S7B_Guideline.pdf",
+        "provenance": "GOLD",
+        "paper_supports": "ICH S7B requires both in vitro IKr (hERG) assay and in vivo QT/QTc assessment. Safety margin = hERG IC50 / free Cmax. A margin < 30× indicates need for further QT investigation; < 10× is high cardiac risk.\n",
+        "rule_text": "BioMate flags safety margin < 10× as RED, 10-30× as YELLOW, ≥30× as GREEN.\n",
+        "finding": "Remediation: structural modification to reduce hERG binding, or comprehensive in vivo QT assessment.\n"
+      }
+    ],
+    "ich_s7b_qnet": [
+      {
+        "paper_ref": "Dutta S et al. Front Physiol 2017; 8:616",
+        "paper_doi": "10.3389/fphys.2017.00616",
+        "provenance": "GOLD",
+        "paper_supports": "Dutta 2017 establishes qNET (net charge difference) as a CiPA proarrhythmia metric. qNET < -30 pC/pF indicates high proarrhythmic risk under the CiPA initiative.\n",
+        "rule_text": "BioMate flags qNET < -30 pC/pF as triggering CiPA Tier 2 evaluation (in silico action potential modeling).\n",
+        "finding": "Remediation: full CiPA cell-model simulation (Dutta 2017) or avoidance if multi-channel risk confirmed.\n"
+      }
+    ]
+  },
+  "clinical_trial": {
+    "boin_dlt_boundary": [
+      {
+        "paper_ref": "Liu S, Yuan Y. J R Stat Soc C 2015; 64(3):507-523",
+        "paper_doi": "10.1111/rssc.12089",
+        "provenance": "GOLD",
+        "paper_supports": "Liu & Yuan 2015 establishes BOIN dose-escalation boundaries λ_e and λ_d as functions of target DLT rate φ. For φ=0.25, λ_e=0.197 (escalate) and λ_d=0.298 (de-escalate). MTD = highest dose with observed DLT rate ≤ φ.\n",
+        "rule_text": "BioMate enforces BOIN decision rules verbatim from Liu & Yuan 2015 Table 2. MTD selection per the paper's algorithm.\n",
+        "finding": "Remediation: BOIN parameters are not auto-tunable — the algorithm is the gold standard. If MTD selection seems wrong, audit the DLT observations.\n"
+      }
+    ]
+  },
+  "allometric": {
+    "allometric_r_squared": [
+      {
+        "paper_ref": "FDA Estimating the Maximum Safe Starting Dose in Initial Clinical Trials (2005)",
+        "paper_doi": "https://www.fda.gov/media/72309/download",
+        "provenance": "GOLD",
+        "paper_supports": "FDA 2005 FIH dose guidance describes allometric scaling of animal pharmacokinetic parameters (CL, V) across species to predict human PK. Inter-species power-law fit with R² is the standard quality metric.\n",
+        "rule_text": "BioMate flags allometric fits with R² < 0.85 as low confidence (would not be acceptable in FIH submission).\n",
+        "finding": "Remediation: include additional species (typically ≥3), check for outliers (often the smallest species), or use mechanistic PBPK scaling instead.\n"
+      }
+    ]
+  },
+  "ivive": {
+    "ivive_fold_error": [
+      {
+        "paper_ref": "Obach RS. Drug Metab Dispos 1999; 27(11):1350-1359",
+        "paper_doi": "(no DOI; PMID 10534321)",
+        "provenance": "GOLD",
+        "paper_supports": "Obach 1999 establishes that in vitro–in vivo extrapolation (IVIVE) from hepatocyte CLint should predict in vivo CL within 2-fold for ~50% of compounds; within 3-fold for ~80%. The 2-fold criterion is the de facto acceptance threshold.\n",
+        "rule_text": "BioMate flags IVIVE predictions with |predicted/observed| > 2 as failing the Obach 1999 criterion.\n",
+        "finding": "Remediation: incorporate well-stirred or parallel-tube model corrections; consider protein binding and active transport.\n"
+      }
+    ],
+    "ivive_well_stirred_consistency": [
+      {
+        "paper_ref": "Pang KS, Rowland M. J Pharmacokinet Biopharm 1977; 5(6):625-653",
+        "paper_doi": "10.1007/BF01059688",
+        "provenance": "SILVER",
+        "paper_supports": "Pang & Rowland 1977 derives the well-stirred and parallel-tube models of hepatic clearance. Well-stirred: CL = Q_h × fu × CLint / (Q_h + fu × CLint). For high-extraction drugs (E > 0.7), the choice of model matters and consistency between in vitro and in vivo is harder.\n",
+        "rule_text": "BioMate adopts the well-stirred model as default; flags when extraction ratio E > 0.7 indicates model-choice sensitivity.\n",
+        "finding": "Remediation: try parallel-tube model; for high-E drugs, in vitro CLint may underpredict in vivo CL by 2-3 fold.\n"
+      }
+    ]
+  },
+  "openfe": {
+    "openfe_cycle_closure": [
+      {
+        "paper_ref": "Mey ASJS et al. Living J Comput Mol Sci 2020; 2(1):18378",
+        "paper_doi": "10.33011/livecoms.2.1.18378",
+        "provenance": "GOLD",
+        "paper_supports": "Mey 2020 (Best Practices for Relative Binding Free Energy Simulations) recommends that the sum of free energies around any closed thermodynamic cycle should be < 1 kcal/mol for the calculation to be considered converged. Larger errors indicate sampling problems.\n",
+        "rule_text": "BioMate flags RBFE results with cycle-closure |ΔG_sum| > 1 kcal/mol as not converged.\n",
+        "finding": "Remediation: extend simulation time, add intermediate λ windows, or use Hamiltonian Replica Exchange (HREX).\n"
+      }
+    ]
+  },
+  "p0_pkpd": {
+    "p0_pkpd_weight_loss_band": [
+      {
+        "paper_ref": "Overgaard RV et al. Clin Pharmacokinet 2019; 58:781-791",
+        "paper_doi": "10.1007/s40262-018-0728-4",
+        "provenance": "GOLD",
+        "paper_supports": "Overgaard 2019 reports the semaglutide PKPD model predictions for weight change vs SUSTAIN clinical trial outcomes. The passing acceptance band for model qualification is ±3 to -6 kg weight change at week 30, matching SUSTAIN-1 (Sorli 2017).\n",
+        "rule_text": "BioMate validates simulations against the ±3 to -6 kg band at 30 weeks.\n",
+        "finding": "Remediation: re-fit ER model parameters or refine PD model structure (typically the issue is appetite vs basal metabolic rate coupling).\n"
+      }
+    ]
+  },
+  "pocket_detection": {
+    "pocket_druggability_score": [
+      {
+        "paper_ref": "Le Guilloux V, Schmidtke P, Tuffery P. BMC Bioinformatics 2009; 10:168",
+        "paper_doi": "10.1186/1471-2105-10-168",
+        "provenance": "GOLD",
+        "paper_supports": "Le Guilloux 2009 introduces fpocket and establishes the druggability score (combining pocket volume, hydrophobicity, and polarity). Score ≥ 0.5 indicates a druggable pocket; < 0.3 is non-druggable.\n",
+        "rule_text": "BioMate gates pocket druggability ≥ 0.5 as PASS; 0.3-0.5 as borderline; < 0.3 as FAIL.\n",
+        "finding": "Remediation: allosteric site search, fragment screening for cryptic pocket opening, or PROTAC strategy.\n"
+      }
+    ]
+  },
+  "aizynthfinder": {
+    "aizynth_solved_routes": [
+      {
+        "paper_ref": "Genheden S et al. J Cheminform 2020; 12:70",
+        "paper_doi": "10.1186/s13321-020-00472-1",
+        "provenance": "SILVER",
+        "paper_supports": "Genheden 2020 introduces aizynthfinder retrosynthesis. The paper recommends generating ≥1 solved synthetic route within a time budget; the specific score thresholds (≥0.9 for \"high quality\") are reasonable but presented as guidelines rather than fixed cutoffs.\n",
+        "rule_text": "BioMate flags compounds with 0 solved routes as PASS-fail and flags max score < 0.9 as WARN.\n",
+        "finding": "Remediation: relax stock database constraints; increase search time budget; consider alternative disconnections.\n"
+      }
+    ]
   }
 };
 
