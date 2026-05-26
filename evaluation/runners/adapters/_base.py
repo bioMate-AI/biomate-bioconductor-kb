@@ -39,13 +39,32 @@ class ModelAdapter(Protocol):
 
 
 def strip_thinking(text: str) -> str:
-    """Defense against `<think>…</think>` leaking into output across providers.
+    """Defense against chain-of-thought leakage across providers.
 
-    Some Qwen3 variants emit the tag even with `enable_thinking=False`, and
-    occasionally frontier models leak chain-of-thought tokens too.
+    Strips:
+      - `<think>…</think>` tags (some Qwen3 variants)
+      - Italic-wrapped author notes Gemini-3-series emits before the draft
+        (`*Wait, let's refine…*`, `*Let me draft a paragraph that…*`)
+      - "Sentence 1:", "Sentence 2:" enumeration that meta-commentary uses
+      - Anything before the first `[BioMate-generated draft]` token if present
+        (the system prompt mandates that as the prefix)
     """
     import re
-    return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL).strip()
+    text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
+
+    # If the mandated prefix is present, anchor on it — drop anything before
+    anchor = "[BioMate-generated draft]"
+    idx = text.find(anchor)
+    if idx > 0:
+        text = text[idx:]
+
+    # Strip italic-wrapped meta-commentary at the start
+    text = re.sub(r"^\s*\*[^*]{5,200}\*\s*", "", text, flags=re.MULTILINE)
+
+    # Strip "Sentence N:" enumeration
+    text = re.sub(r"^\s*Sentence\s+\d+\s*:\s*", "", text, flags=re.MULTILINE | re.IGNORECASE)
+
+    return text.strip()
 
 
 def assert_env(var: str) -> str:

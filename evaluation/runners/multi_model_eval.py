@@ -179,10 +179,16 @@ def _eval_model(
 # ---------------------------------------------------------------------------
 
 def _write_summary(results_dir: Path, model_names: list[str]) -> None:
+    """Aggregate every <model>.jsonl found in results_dir into summary.csv.
+
+    Walks the whole directory rather than just `model_names` so that running
+    with `--models foo` doesn't clobber earlier rows for other models.
+    """
     summary_path = results_dir / "summary.csv"
     checker_names = all_checker_names()
     rows = []
-    for name in model_names:
+    found = sorted({p.stem for p in results_dir.glob("*.jsonl") if p.stem != "summary"})
+    for name in found:
         path = results_dir / f"{name}.jsonl"
         if not path.exists():
             continue

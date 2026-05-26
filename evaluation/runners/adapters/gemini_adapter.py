@@ -13,15 +13,22 @@ class GeminiAdapter:
         self._client = None
 
     def _ensure_client(self) -> None:
-        if self._client is not None:
+        # We re-create the client per generate() so system_instruction can vary
+        # by example. Configuration of the API key happens once.
+        if getattr(self, "_configured", False):
             return
         try:
             import google.generativeai as genai
         except ImportError as e:
             raise AdapterError(f"google-generativeai SDK not installed: {e}") from e
-        api_key = assert_env("GEMINI_API_KEY")
+        import os
+        api_key = (os.environ.get("GEMINI_API_KEY")
+                   or os.environ.get("GOOGLE_API_KEY") or "").strip()
+        if not api_key:
+            raise AdapterError("Missing env var: GEMINI_API_KEY (or GOOGLE_API_KEY)")
         genai.configure(api_key=api_key)
-        self._client = genai.GenerativeModel(self.model)
+        self._genai = genai
+        self._configured = True
 
     def generate(
         self,
@@ -30,14 +37,21 @@ class GeminiAdapter:
         max_new_tokens: int = 400,
     ) -> str:
         self._ensure_client()
-        # Gemini API: system instruction can be set per-call via the prompt prefix
-        # or via system_instruction. We use the latter via re-create when needed,
-        # but the simpler portable path is to inline as a prefix.
-        full_prompt = f"{system_prompt}\n\n{user_prompt}"
-        resp = self._client.generate_content(
-            full_prompt,
+        # Per-call client with system_instruction — the supported way to give
+        # Gemini a system role. Concatenating into the user prompt makes the
+        # model echo the rules instead of following them.
+        gm = self._genai.GenerativeModel(
+            self.model, system_instruction=system_prompt,
+        )
+        # Gemini Flash burns tokens on internal reasoning before any output
+        # appears, so a 400-token budget yields ~60 chars of prose. Per memory
+        # `feedback_gemini_model_selection` we floor at 1024; empirically for
+        # IND prose we need 2048 to fit a 300-500 word paragraph.
+        effective_max = max(max_new_tokens * 5, 2048)
+        resp = gm.generate_content(
+            user_prompt,
             generation_config={
-                "max_output_tokens": max_new_tokens,
+                "max_output_tokens": effective_max,
                 "temperature": 0.3,
                 "top_p": 0.9,
             },
@@ -54,4 +68,5 @@ class GeminiAdapter:
         return strip_thinking(text.strip())
 
     def close(self) -> None:
-        self._client = None
+        self._configured = False
+        self._genai = None

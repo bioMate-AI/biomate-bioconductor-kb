@@ -1,0 +1,4 @@
+model,n_examples,mrsd_calc,adversity_tense,phase_gating,tabulated_vs_prose,citation_accuracy,hedge_language,structural,numeric_ranges,cross_section_consistency,macro_avg
+claude_sonnet_4_6,10,0.5,1.0,1.0,0.7,0.9,1.0,0.9,1.0,1.0,0.8889
+gemini_3_5_flash,10,0.7778,1.0,1.0,0.0,0.6667,1.0,0.4444,1.0,1.0,0.7654
+gpt_4o,10,0.6,1.0,1.0,0.7,0.8,1.0,1.0,1.0,1.0,0.9
