@@ -84,6 +84,11 @@ _CODON_MRNA_SIGNALS = (
     "target_sequence", "host_codon_usage", "mrna-lnp", "mrna lnp", "codon usage",
     "synthetic_biology", "10813",
 )
+# ANDV inhibitor / pharmacology — site-directed AutoDock Vina (BioMNI subworkflow).
+_DOCKING_VINA_SIGNALS = (
+    "autodock vina", "autodock_vina", "docking_autodock_vina", "docking autodock vina",
+    "site-directed docking", "site directed docking", "vina docking", "12824",
+)
 
 try:
     import numpy as _np
@@ -773,29 +778,28 @@ class UnifiedWorkflowSearch:
                             m = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
                                                    preferred_domains=preferred_domains, penalized_domains=penalized_domains)
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
-                            # Synthetic score: 7.0 − 0.3*rank.
-                            # The LLM Pass-0 explicitly named this workflow, so even though FTS
-                            # missed it the LLM signal is strong. Old base of 2.8 capped all
-                            # rescued matches below _MATCH_SCORE_MED (6.0), so the dispatcher
-                            # always demoted them to "low_confidence" → compose-from-scratch
-                            # path, never template_reuse. Tier-0 audit (T03 in_vivo_base_edit_design,
-                            # T04 glp1_modality_bakeoff) was the canonical failure: LLM picked
-                            # the correct workflow, scorer assigned 2.80, dispatcher composed a
-                            # blank "Generated Workflow" instead.
-                            # Base 7.0 puts rank-1 rescues over the 6.0 medium-confidence
-                            # threshold while still below the 12.0 high-confidence threshold,
-                            # so they enter template_reuse but still get _llm_verify_routing.
+                            # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
                             m = WorkflowMatch(
                                 id=m.id, name=m.name, description=m.description,
                                 domain=m.domain, source=m.source, format=m.format,
                                 step_count=m.step_count, tools=m.tools, tags=m.tags,
                                 filename=m.filename, workflow_json=m.workflow_json,
-                                score=round(7.0 - 0.3 * rank, 2),
+                                score=round(2.8 - 0.3 * rank, 2),
                                 match_type="llm_rescued",
                             )
                             results.append(m)
                         if rescued_rows:
-                            results.sort(key=lambda x: x.score, reverse=True)
+                            # Final sort prioritises LLM-selected workflows over
+                            # FTS-only noise. Without this, generic-keyword Bioconductor
+                            # entries (TCC, openCyto, snm…) score 25-30+ on common query
+                            # words and outrank the LLM's actual choice. Tier 0 T03
+                            # (PCSK9 base edit) saw best=TCC (31.35, high_confidence) while
+                            # the LLM had named in_vivo_base_edit_design — the dispatcher
+                            # committed to TCC and the form-prefill chain stayed blank.
+                            # Key: (LLM-selected?, score). False sorts after True.
+                            results.sort(
+                                key=lambda x: (x.id not in llm_rank_map if llm_rank_map else True, -x.score)
+                            )
                             log.debug("Pass-0 rescued %d LLM-selected workflows not in FTS", len(rescued_rows))
                     except Exception as exc:
                         log.debug("Pass-0 rescue fetch failed: %s", exc)
@@ -860,6 +864,20 @@ class UnifiedWorkflowSearch:
                 ]
                 if filtered:
                     results = filtered
+
+            # Final ordering: when LLM Pass-0 has named workflows, surface those above
+            # FTS-only matches regardless of FTS score. Generic Bioconductor entries
+            # (TCC, openCyto, snm…) routinely score 25-30+ on common keyword overlap
+            # without being topically relevant. Without this guard the dispatcher
+            # picks them over the LLM's named choice (Tier 0 T03 canonical failure).
+            if llm_rank_map:
+                results.sort(
+                    key=lambda x: (
+                        x.id not in llm_rank_map,                # LLM-named first
+                        llm_rank_map.get(x.id, 999),             # then by LLM rank
+                        -x.score,                                # then by raw score
+                    )
+                )
 
             return results[:limit]
 
@@ -1026,6 +1044,12 @@ class UnifiedWorkflowSearch:
             for known in _KNOWN_NFCORE_PIPELINE_SLUGS:
                 if known in phrase_compact:
                     negated.add(known)
+            # "not … immunopeptidomics" excludes LC-MS mhcquant, not codon optimization.
+            if "immunopeptidomic" in phrase_compact:
+                negated.add("mhcquant")
+        q_low = query.lower()
+        if re.search(r"\bnot\b", q_low) and "immunopeptidomic" in q_low.replace(" ", ""):
+            negated.add("mhcquant")
         return negated
 
     def _resolve_pipeline_slug_conflict(self, slugs: List[str], query: str) -> str:
@@ -1044,27 +1068,38 @@ class UnifiedWorkflowSearch:
         return slugs[0]
 
     def _extract_biomni_subworkflow_anchor(self, query: str, cursor) -> Optional[str]:
-        """Named BioMNI subworkflow paths (e.g. optimize_codons_for_heterologous_expression)."""
+        """Named BioMNI subworkflow paths (e.g. optimize_codons, docking_autodock_vina)."""
         q = query.lower()
-        if not any(s in q for s in _CODON_MRNA_SIGNALS):
-            return None
-        _ANCHOR_TOKENS = (
-            "optimize_codons_for_heterologous_expression",
-            "optimize_codons",
-            "heterologous_expression",
-        )
-        for token in _ANCHOR_TOKENS:
-            try:
-                cursor.execute(
-                    "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
-                    (token,),
+        token_groups: List[tuple] = []
+        if any(s in q for s in _CODON_MRNA_SIGNALS):
+            token_groups.append(
+                (
+                    "optimize_codons_for_heterologous_expression",
+                    "optimize_codons",
+                    "heterologous_expression",
                 )
-                row = cursor.fetchone()
-                if row and row[0] > 0:
-                    log.debug("[WorkflowSearch] BioMNI subworkflow anchor=%s", token)
-                    return token
-            except Exception:
-                continue
+            )
+        if any(s in q for s in _DOCKING_VINA_SIGNALS) and "diffdock" not in q:
+            token_groups.append(
+                (
+                    "docking_autodock_vina",
+                    "autodock_vina",
+                    "autodock",
+                )
+            )
+        for _ANCHOR_TOKENS in token_groups:
+            for token in _ANCHOR_TOKENS:
+                try:
+                    cursor.execute(
+                        "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
+                        (token,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0] > 0:
+                        log.debug("[WorkflowSearch] BioMNI subworkflow anchor=%s", token)
+                        return token
+                except Exception:
+                    continue
         return None
 
     def _extract_explicit_pipeline_slug(self, query: str) -> Optional[str]:
