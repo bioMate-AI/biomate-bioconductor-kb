@@ -264,7 +264,16 @@ class ToolKnowledgeProvider:
                 alternatives=alternatives
             )
 
-            # Parse recommended parameters
+            # Parse recommended parameters. Legacy rows can store this column as a
+            # list-of-dicts instead of {name: meta}. Normalise so .items() never KOs the path.
+            if isinstance(recommended_params, list):
+                recommended_params = {
+                    (p.get("name") or f"param{idx}"): p
+                    for idx, p in enumerate(recommended_params)
+                    if isinstance(p, dict)
+                }
+            elif not isinstance(recommended_params, dict):
+                recommended_params = {}
             for param_name, param_info in recommended_params.items():
                 if isinstance(param_info, dict):
                     knowledge.recommended_parameters[param_name] = ParameterRecommendation(
