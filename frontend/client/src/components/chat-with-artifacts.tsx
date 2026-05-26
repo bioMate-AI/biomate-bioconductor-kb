@@ -127,6 +127,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // re-renders (e.g. session restore) don't re-apply them.
   const appliedEditMessages = useRef<Set<string>>(new Set())
   const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string }>>([])
+  // Structural ops (add_step / remove_step / reorder) are parked here and
+  // require an explicit confirm before they mutate the panel artifact.
+  // set_param auto-applies.
+  const [pendingStructuralEdits, setPendingStructuralEdits] = useState<Array<{ id: string; edit: WorkflowEdit; summary: string }>>([])
+  const summarizeEdit = (e: WorkflowEdit): string => {
+    switch (e.op) {
+      case 'set_param': return `${e.paramName}: ${JSON.stringify(e.value)}`
+      case 'add_step':  return `+ ${e.workflowPath}${e.afterStepId ? ` after ${e.afterStepId}` : ''}`
+      case 'remove_step': return `− ${e.stepId}`
+      case 'reorder':   return `${e.stepId} before ${e.beforeStepId}`
+    }
+  }
   useEffect(() => {
     if (!panelWorkflow || !currentChatSession?.messages) return
     for (const msg of currentChatSession.messages) {
@@ -135,26 +147,41 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (!edits || edits.length === 0) continue
       if (appliedEditMessages.current.has(msg.id)) continue
       appliedEditMessages.current.add(msg.id)
-      const result = applyWorkflowEdits(panelWorkflow, edits)
-      setPanelWorkflow(result.next)
-      if (result.rejected.length > 0) {
-        console.warn('[workflow-edits] rejected ops:', result.rejected)
-      }
-      // Build a 1-line summary per applied op for the diff chip.
-      const summaries = result.applied.map((e) => {
-        switch (e.op) {
-          case 'set_param': return `${e.paramName}: ${JSON.stringify(e.value)}`
-          case 'add_step':  return `+ ${e.workflowPath}${e.afterStepId ? ` after ${e.afterStepId}` : ''}`
-          case 'remove_step': return `− ${e.stepId}`
-          case 'reorder':   return `${e.stepId} before ${e.beforeStepId}`
+      // Partition: auto-apply set_param, park the rest.
+      const auto = edits.filter((e) => e.op === 'set_param')
+      const structural = edits.filter((e) => e.op !== 'set_param')
+      if (auto.length > 0) {
+        const result = applyWorkflowEdits(panelWorkflow, auto)
+        setPanelWorkflow(result.next)
+        if (result.rejected.length > 0) console.warn('[workflow-edits] rejected ops:', result.rejected)
+        const summaries = result.applied.map(summarizeEdit)
+        if (summaries.length > 0) {
+          setAppliedEditsDisplay((prev) => [...prev, { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · ') }])
         }
-      })
-      setAppliedEditsDisplay((prev) => [
-        ...prev,
-        { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · ') },
-      ])
+      }
+      if (structural.length > 0) {
+        setPendingStructuralEdits((prev) => [
+          ...prev,
+          ...structural.map((edit, i) => ({ id: `${msg.id}-pend-${i}`, edit, summary: summarizeEdit(edit) })),
+        ])
+      }
     }
   }, [currentChatSession?.messages, panelWorkflow])
+  const confirmStructuralEdit = (id: string) => {
+    const entry = pendingStructuralEdits.find((p) => p.id === id)
+    if (!entry || !panelWorkflow) return
+    const result = applyWorkflowEdits(panelWorkflow, [entry.edit])
+    setPanelWorkflow(result.next)
+    setPendingStructuralEdits((prev) => prev.filter((p) => p.id !== id))
+    if (result.applied.length > 0) {
+      setAppliedEditsDisplay((prev) => [...prev, { id: `confirm-${id}`, summary: entry.summary }])
+    } else if (result.rejected.length > 0) {
+      console.warn('[workflow-edits] confirm rejected:', result.rejected)
+    }
+  }
+  const dismissStructuralEdit = (id: string) => {
+    setPendingStructuralEdits((prev) => prev.filter((p) => p.id !== id))
+  }
 
   // Gap 2 — rule-based extraction from user messages (frontend-only v1).
   const extractedFromUserMsgs = useRef<Set<string>>(new Set())
@@ -1369,6 +1396,46 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
         {/* Center: Chat */}
         <div className="flex-1 overflow-hidden min-w-0">
+          {pendingStructuralEdits.length > 0 && (
+            <div
+              data-testid="workflow-edits-pending"
+              style={{
+                display: 'flex', flexWrap: 'wrap', gap: 6,
+                padding: '6px 12px', borderTop: '1px solid var(--bm-border, oklch(0.92 0.005 260))',
+                background: 'oklch(0.98 0.02 60)',
+              }}
+            >
+              {pendingStructuralEdits.map((p) => (
+                <span
+                  key={p.id}
+                  data-testid={`workflow-edits-pending-${p.id}`}
+                  style={{
+                    fontSize: 11, padding: '2px 6px 2px 8px', borderRadius: 999,
+                    background: 'oklch(0.94 0.06 70)', color: 'oklch(0.40 0.12 60)',
+                    fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <span aria-hidden>?</span>
+                  <span>{p.summary}</span>
+                  <button
+                    type="button"
+                    aria-label="apply"
+                    data-testid={`button-apply-${p.id}`}
+                    onClick={() => confirmStructuralEdit(p.id)}
+                    style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}
+                  >Apply</button>
+                  <button
+                    type="button"
+                    aria-label="dismiss"
+                    data-testid={`button-dismiss-${p.id}`}
+                    onClick={() => dismissStructuralEdit(p.id)}
+                    style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6 }}
+                  >×</button>
+                </span>
+              ))}
+            </div>
+          )}
           {appliedEditsDisplay.length > 0 && (
             <div
               data-testid="workflow-edits-chips"
