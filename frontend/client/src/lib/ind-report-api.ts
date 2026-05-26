@@ -245,3 +245,110 @@ export type ActiveAdapter = {
 export function getActiveAdapter(orgId?: string | null): Promise<ActiveAdapter> {
   return getJson("/api/regulatory/active_adapter", orgId);
 }
+
+// ---------------------------------------------------------------------------
+// IND project registry — CRUD
+// ---------------------------------------------------------------------------
+
+export type IndProjectRow = {
+  id: string;
+  molecule: string;
+  target: string;
+  indication: string;
+  sponsor: string;
+  sponsor_id?: string;
+  regions: string[];
+  status: "draft" | "in_progress" | "signed" | "blocked";
+  statusText?: string;
+  created_at?: string;
+};
+
+export function listProjects(): Promise<{ projects: IndProjectRow[] }> {
+  return getJson("/api/ind-report/projects");
+}
+
+export function createProject(
+  body: Omit<IndProjectRow, "id" | "created_at" | "statusText"> & { id?: string; statusText?: string },
+  orgId?: string | null,
+): Promise<IndProjectRow> {
+  return postJson("/api/ind-report/projects", body, orgId);
+}
+
+// ---------------------------------------------------------------------------
+// Sign — 21 CFR Part 11 two-factor e-signature
+// ---------------------------------------------------------------------------
+
+export type SignRequest = {
+  totp_code: string;
+  signer_title: string;
+  signer_creds: string;
+  signature_scope: string;
+  document_sha256: string;
+  adapter_versions: Record<string, string>;
+};
+
+export type SignResponse = {
+  signed: boolean;
+  signature_id: string;
+  signed_at: string;
+  document_sha256_short: string;
+};
+
+export function signDocument(
+  projectId: string,
+  body: SignRequest,
+  orgId?: string | null,
+): Promise<SignResponse> {
+  return postJson(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/sign`,
+    body,
+    orgId,
+  );
+}
+
+/** Compute SHA-256 of a string (used to bind the signature to the doc body). */
+export async function sha256Hex(input: string): Promise<string> {
+  const enc = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ---------------------------------------------------------------------------
+// Markdown export
+// ---------------------------------------------------------------------------
+
+export type DocumentSection = {
+  id: string;       // "2.6.1"
+  title: string;
+  body: string;
+};
+
+/** Trigger a Markdown download of the IND module. */
+export async function downloadMarkdown(
+  projectId: string,
+  sections: DocumentSection[],
+): Promise<void> {
+  const resp = await fetch(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/document.md`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sections }),
+    },
+  );
+  if (!resp.ok) throw new Error(`download HTTP ${resp.status}`);
+  const blob = await resp.blob();
+  const cd = resp.headers.get("content-disposition") || "";
+  const m = cd.match(/filename="([^"]+)"/);
+  const filename = m ? m[1] : `${projectId}_2.6.md`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
