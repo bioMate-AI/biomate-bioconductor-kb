@@ -3068,14 +3068,14 @@ def execute_nextflow(
     # Environment
     env = os.environ.copy()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
-    # Pin Nextflow framework version (2026-05-21): 25.10.0 is the latest pre-26
+    # Pin Nextflow framework version (2026-05-21): 25.10.5 is the latest pre-26
     # LTS. Nextflow 26.04+ tightened DSL2 parsing (rejects top-level `def`,
     # parses Groovy heredocs more strictly), which broke 21 of our workflows
     # without us asking for it. Pinning here ensures each Nextflow run pulls
     # the 25.10 framework jar regardless of which launcher version is on PATH.
     # Bump deliberately, not by curl. See aws_infrastructure/configs/Dockerfile.nextflow-base
     # for the matching base-image numpy<2 pin (a similar "unwanted upgrade" lesson).
-    env["NXF_VER"] = os.environ.get("NXF_VER", "25.10.0")
+    env["NXF_VER"] = os.environ.get("NXF_VER", "25.10.5")
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
     # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.
