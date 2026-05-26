@@ -128,7 +128,7 @@ For the full 326-example run:
 | Claude Opus 4.7 | ~$18 | ~12 min |
 | GPT-4o | ~$1.50 | ~3 min |
 | o3-mini | ~$0.90 | ~5 min |
-| Gemini 3.5 Flash | ~$0.40 | ~3 min |
+| Gemini 3.5 Flash | ~$4.50 | ~3 min |  (GA $1.50/M in, $9/M out — incl thinking tokens)
 | Gemini 2.5 Pro | ~$3.50 | ~6 min |
 | **Total API** | **~$25-30** | (run in parallel — ~12 min wall) |
 | Local Qwen (v6) | $0 | ~30 min (incl 80s cold load) |
@@ -137,7 +137,10 @@ For the full 326-example run:
 Plus the citation-accuracy LLM judge (Sonnet 4.6) if you re-enable it from
 `scripts/evaluate_regulatory_llm.py` — adds ~$3 + ~5 min.
 
-End-to-end: **~70-90 min wall, ~$28-35 cost** for one full pass.
+End-to-end: **~70-90 min wall, ~$30-40 cost** for one full pass.
+(Gemini 3.5 Flash GA at $1.50/M in + $9/M out incl thinking tokens is the
+single biggest line item among the cheap models. If cost matters, swap to
+`gemini-3-flash-preview` while it's still available — $0.075/M in, $0.30/M out.)
 
 ## When to re-run
 
