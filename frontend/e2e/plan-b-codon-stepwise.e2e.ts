@@ -33,6 +33,8 @@ import {
   fillRequiredParams,
   readParamValues,
   clickRunAndWaitTerminal,
+  assertCodonWorkflowPanelOrSkip,
+  getWorkflowPanelTitle,
   assertAssistantMentions,
   type StepwiseSuiteRecord,
 } from "./andv-stepwise-shared.js";
@@ -58,7 +60,7 @@ const PLAN_B_QUERY = [
   "Step 1: optimize codons for heterologous expression before RNA structure and LNP formulation.",
   "",
   "Use workflow optimize_codons_for_heterologous_expression (registry id 10813).",
-  "This step is codon optimization only — not epitope prediction or immunopeptidomics.",
+  "This step is codon optimization only — not epitopeprediction, mhcquant, or immunopeptidomics.",
   "",
   `target_sequence = ${PLAN_B_TARGET_SEQUENCE}`,
   `outdir = ${planBOutdirS3()}`,
@@ -222,18 +224,8 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
     ]);
     expect(cardOk).toBeTruthy();
 
-    const panelTitle =
-      (await page
-        .locator(
-          '[data-testid="workflow-artifact-panel"] .panel-name, [data-testid="workflow-right-panel"] .panel-name'
-        )
-        .first()
-        .textContent({ timeout: 5000 })
-        .catch(() => "")) ?? "";
-    if (
-      /epitopeprediction|mhcquant/i.test(panelTitle) &&
-      !/codon|optimize|heterologous/i.test(panelTitle)
-    ) {
+    const panelTitle = await getWorkflowPanelTitle(page);
+    if (!(await assertCodonWorkflowPanelOrSkip(page, "PB-4"))) {
       record("PB-4", {
         runId: null,
         startTs,
@@ -282,7 +274,25 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
     await setupTestUser(page, "plan-b-pb5");
 
     await sendMessageAndWaitForResponse(page, PLAN_B_QUERY, 180_000);
-    await waitForWorkflowCard(page, "PB-5", ["Show codon optimization workflow card."]);
+    const cardOk = await waitForWorkflowCard(page, "PB-5", ["Show codon optimization workflow card."]);
+    expect(cardOk, "Expected workflow card with Run button").toBeTruthy();
+    const panelTitle = await getWorkflowPanelTitle(page);
+    if (!(await assertCodonWorkflowPanelOrSkip(page, "PB-5"))) {
+      record("PB-5", {
+        runId: null,
+        startTs,
+        endTs: Date.now(),
+        finalStatus: "skipped",
+        assertions: [
+          { name: "workflow_is_codon_optimization", passed: false, note: panelTitle },
+        ],
+        screenshots: [],
+        notes: ["Wrong workflow in panel — expected codon optimization"],
+      });
+      test.skip(true, `Wrong workflow in panel: ${panelTitle.trim()}`);
+      return;
+    }
+
     await fillRequiredParams(page, "PB-5", buildPlanBParams());
 
     const terminal = await clickRunAndWaitTerminal(page, 1_200_000);

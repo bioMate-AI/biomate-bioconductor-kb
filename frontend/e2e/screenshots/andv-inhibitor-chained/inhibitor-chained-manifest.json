@@ -1,0 +1,46 @@
+{
+  "created_at": "2026-05-26T14:39:06.820Z",
+  "source": "biomate_ui_e2e",
+  "steps": [
+    {
+      "key": "pocket",
+      "title": "Pocket detection + druggability",
+      "runId": "0ae11fe7-6a78-4cb7-8d5f-13d44020c711",
+      "status": "failed",
+      "panelTitle": "Pocket Detection Druggability",
+      "notes": [
+        "executeUrl=http://localhost:5000/api/workflows/execute"
+      ]
+    },
+    {
+      "key": "pharmacophore",
+      "title": "Pharmacophore library filtering",
+      "runId": "d15a4dbe-dd13-4585-a23d-091a58257322",
+      "status": "completed",
+      "panelTitle": "Pharmacophore Filtering",
+      "notes": [
+        "executeUrl=http://localhost:5000/api/workflows/execute"
+      ]
+    },
+    {
+      "key": "admet",
+      "title": "Predict ADMET properties",
+      "runId": "e04ed8ae-05d9-4e67-9299-b0e89286a067",
+      "status": "failed",
+      "panelTitle": "Predict ADMET Properties (AI)",
+      "notes": [
+        "executeUrl=http://localhost:5000/api/workflows/execute"
+      ]
+    },
+    {
+      "key": "docking_vina",
+      "title": "AutoDock Vina docking",
+      "runId": null,
+      "status": "skipped",
+      "panelTitle": "",
+      "notes": [
+        "No workflow card"
+      ]
+    }
+  ]
+}
