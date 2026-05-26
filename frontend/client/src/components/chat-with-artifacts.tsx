@@ -95,11 +95,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [showSessionEndPulse, setShowSessionEndPulse] = useState(false)
   const [externalPromptRequest, setExternalPromptRequest] = useState<{ id: number; prompt: string } | null>(null)
   const promptRequestCounter = useRef(0)
-  const [showRunManager, setShowRunManager] = useState(false)
+  const [showRunManager, setShowRunManager] = useState<boolean>(() => {
+    try { return localStorage.getItem('biomate-run-manager-open') === 'true' } catch { return false }
+  })
+  useEffect(() => { try { localStorage.setItem('biomate-run-manager-open', String(showRunManager)) } catch {} }, [showRunManager])
   const [runList, setRunList] = useState<RunListItem[]>([])
   const [isRunListLoading, setIsRunListLoading] = useState(false)
   const [runListError, setRunListError] = useState<string | null>(null)
-  const [runManagerScope, setRunManagerScope] = useState<RunManagerScope>('current_chat')
+  const [runManagerScope, setRunManagerScope] = useState<RunManagerScope>(() => {
+    try {
+      const v = localStorage.getItem('biomate-run-manager-scope')
+      return (v === 'all_chats' || v === 'current_chat') ? v : 'current_chat'
+    } catch { return 'current_chat' }
+  })
+  useEffect(() => { try { localStorage.setItem('biomate-run-manager-scope', runManagerScope) } catch {} }, [runManagerScope])
   const [runSearchQuery, setRunSearchQuery] = useState("")
   const [runStatusFilter, setRunStatusFilter] = useState<"all" | RunBucket>("all")
   const [runSort, setRunSort] = useState<RunManagerSort>("updated_desc")

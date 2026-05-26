@@ -39,6 +39,10 @@ interface WorkflowHistoryDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Fires when user clicks "Open" on a run row. Host should navigate to the chat session. */
   onOpenRun?: (row: RunRow) => void;
+  /** Fires when user clicks "Run again" on a completed/failed row. Host should
+      navigate to the run's chat session AND auto-confirm with the prior params
+      (Gap 3 carryover handles the pre-fill once the panel re-attaches). */
+  onRunAgain?: (row: RunRow) => void;
 }
 
 function statusColor(status: string): string {
@@ -62,7 +66,7 @@ function formatWhen(iso: string): string {
   return d.toLocaleDateString();
 }
 
-export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun }: WorkflowHistoryDialogProps) {
+export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain }: WorkflowHistoryDialogProps) {
   const [tab, setTab] = useState<'recent' | 'starred'>('recent');
   const [rows, setRows] = useState<RunRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -155,18 +159,34 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun }: Workflo
                           {r.status} · {formatWhen(r.createdAt)}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        data-testid={`button-open-run-${r.runId}`}
-                        disabled={!r.chatSessionId}
-                        onClick={() => {
-                          onOpenRun?.(r);
-                          onOpenChange(false);
-                        }}
-                      >
-                        Open
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          data-testid={`button-open-run-${r.runId}`}
+                          disabled={!r.chatSessionId}
+                          onClick={() => {
+                            onOpenRun?.(r);
+                            onOpenChange(false);
+                          }}
+                        >
+                          Open
+                        </Button>
+                        {(r.status === 'completed' || r.status === 'ok' || r.status === 'succeeded' || r.status === 'failed' || r.status === 'error') && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            data-testid={`button-run-again-${r.runId}`}
+                            disabled={!r.chatSessionId}
+                            onClick={() => {
+                              onRunAgain?.(r);
+                              onOpenChange(false);
+                            }}
+                          >
+                            Run again
+                          </Button>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>

@@ -922,6 +922,12 @@ export function NextflowWorkflowViewer({
   // QC gate inline panel state (SSE-triggered)
   const [showQcInline, setShowQcInline] = useState(false);
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
+  // Gap 1 (inverse) — near-threshold QC advisories keyed by process_name.
+  // The narrator already emits a chat line via workflow.qc_gate_warning; here
+  // we surface the same information in the panel so the user sees the
+  // annotation on the step card. Backend emit site:
+  // backend/lib/galaxy/jobs/qc_trace_monitor.py:5744.
+  const [qcAdvisoryByStep, setQcAdvisoryByStep] = useState<Record<string, { metric?: string; value?: any; threshold?: any }[]>>({});
   const [qcGateSecondsLeft, setQcGateSecondsLeft] = useState<number | null>(null);
   // Low-confidence "Confirm anyway" auto-proceed countdown
   const [lowConfSecondsLeft, setLowConfSecondsLeft] = useState<number | null>(null);
@@ -1811,6 +1817,18 @@ export function NextflowWorkflowViewer({
         }
       } catch (err) {
         console.error("[QC Gate NFViewer] Failed to parse event:", err);
+      }
+    });
+
+    es.addEventListener("qc_warning", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        const proc = String(data.process_name || '');
+        const warnings = (data.warnings || []) as any[];
+        if (!proc || warnings.length === 0) return;
+        setQcAdvisoryByStep((prev) => ({ ...prev, [proc]: warnings.map((w) => ({ metric: w.metric, value: w.value, threshold: w.threshold })) }));
+      } catch (err) {
+        console.error("[QC Warning NFViewer] Failed to parse event:", err);
       }
     });
 
