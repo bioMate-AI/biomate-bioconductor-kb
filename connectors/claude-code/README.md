@@ -22,14 +22,14 @@ The installer opens your browser, runs OAuth 2.1 + PKCE against `biomate.ai`, an
 
 ```
 > Run nf-core/rnaseq differential expression on these FASTQs:
-  s3://example/treated_R1.fq.gz, s3://example/treated_R2.fq.gz
-  s3://example/control_R1.fq.gz, s3://example/control_R2.fq.gz
+  s3://biomate-demo/treated_R1.fq.gz, s3://biomate-demo/treated_R2.fq.gz
+  s3://biomate-demo/control_R1.fq.gz, s3://biomate-demo/control_R2.fq.gz
   Compare treated vs control, GRCh38.
 ```
 
 ```
 > Refine this cryo-EM particle stack with CryoSPARC homogeneous refinement:
-  s3://example/particles.cs
+  s3://biomate-demo/particles.cs
   Apply C2 symmetry.
 ```
 

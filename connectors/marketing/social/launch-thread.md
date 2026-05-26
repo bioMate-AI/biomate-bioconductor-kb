@@ -147,7 +147,7 @@ Happy to answer questions about anything — especially the hard parts of mappin
 
 ```
 筛选 aspirin 的 hERG 抑制和 CYP3A4 代谢
-对 s3://lab/rnaseq/ 跑 nf-core/rnaseq, treated vs control, GRCh38
+对 s3://biomate-demo/rnaseq/ 跑 nf-core/rnaseq, treated vs control, GRCh38
 ```
 
 **和其他 AI 助手什么区别？**

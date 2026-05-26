@@ -21,7 +21,7 @@
 >
 > Run real bioinformatics. From anywhere. With BioMate.
 >
-> Install with: `npx at-biomate-slash-connect`."
+> Install with: `npx @biomate/connect`."
 
 ## Storyboard
 

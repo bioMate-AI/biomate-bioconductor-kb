@@ -17,13 +17,13 @@ This directory holds the OpenAPI 3.1 spec consumed by ChatGPT's GPT builder ("Co
    https://api.biomate.ai/connectors/chatgpt/openapi.json
    ```
    (or upload the local `openapi.json` directly during testing).
-5. Authentication: choose **OAuth**. Use these values:
-   - **Client ID**: from `1Password → BioMate ChatGPT Action OAuth client`
-   - **Client Secret**: ditto
-   - **Authorization URL**: `https://biomate.ai/oauth/authorize`
-   - **Token URL**: `https://biomate.ai/oauth/token`
-   - **Scope**: `runs:read runs:write workflows:search memory:read memory:write`
-   - **Token Exchange Method**: `Basic Auth Header`
+5. Authentication: choose **OAuth**. Use these values (matches `INSTALL.md` and the OAuth 2.1 + PKCE public-client model — there is **no client secret**):
+   - **Client ID**: `biomate-chatgpt`
+   - **Client Secret**: *(leave blank — PKCE public client)*
+   - **Authorization URL**: `https://api.biomate.ai/oauth/authorize`
+   - **Token URL**: `https://api.biomate.ai/oauth/token`
+   - **Scope**: `runs:read runs:write workflows:search memory:read memory:write files:upload reports:export billing:read`
+   - **Token Exchange Method**: Default (POST)
 6. **Privacy policy URL**: `https://biomate.ai/legal/privacy` (required for store submission).
 7. Test in the right pane: ask *"Run ADMET screening on aspirin SMILES."* → expect the GPT to call `biomate_session` and stream back a deep link.
 8. **Publish** → choose **Public** for the store, **Anyone with the link** for a soft launch.

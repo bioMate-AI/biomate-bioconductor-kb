@@ -33,9 +33,9 @@ Using BioMate workflow 12849 (nf-core/sarek)…
 ▸ HaplotypeCaller                    pending
 ▸ VEP annotation                     pending
 
-[poll_run 30s] Phase 2: Mark duplicates — running
-[poll_run 60s] Phase 3: BQSR — running
-[poll_run 30s] Phase 4: HaplotypeCaller — running 2/4 samples
+[get_run 30s] Phase 2: Mark duplicates — running
+[get_run 60s] Phase 3: BQSR — running
+[get_run 30s] Phase 4: HaplotypeCaller — running 2/4 samples
 …
 ✓ Run complete. 4,892 variants called per sample (avg). VEP-annotated VCFs in s3://biomate-runs/run-xyz/output/
 
@@ -44,7 +44,7 @@ Top tier-1 pathogenic findings (ClinVar):
   Sample 2: TP53 R175H (P) — missense, cancer
 ```
 
-**Caption overlay:** `Polling — Codex doesn't render progress UI, but the model loops on poll_run automatically`
+**Caption overlay:** `Polling — Codex doesn't render progress UI, but the model loops on get_run automatically`
 
 ### Beat 3 — Payoff (1:05–1:15)
 

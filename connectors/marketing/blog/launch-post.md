@@ -40,7 +40,7 @@ A Slack app is in private beta with three pilot labs and will ship publicly in 2
 Pick the ADMET pipeline from the catalog. Normalize the SMILES. Run DeepPK on AWS Batch. Compute the QC gate (hERG IC50 < 10μM blocks; CYP3A4 inhibition ratio > 0.5 flags). Return a structured result + a methods PDF.
 
 ```
-> Run nf-core/rnaseq differential expression on s3://lab/rnaseq/treated vs control, GRCh38.
+> Run nf-core/rnaseq differential expression on s3://biomate-demo/rnaseq/treated vs control, GRCh38.
 ```
 
 Find the FASTQs. Build the sample sheet. Submit STAR + salmon + DESeq2. Show the top-20 DE table inline with a volcano plot thumbnail. Five minutes, six samples, about forty cents.

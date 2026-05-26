@@ -10,7 +10,7 @@
 | [Codex CLI](./codex/) | `npx @biomate/connect codex` | ✓ |
 | [ChatGPT](./chatgpt/) | [Custom GPT setup →](./chatgpt/INSTALL.md) | ✓ |
 | [Open Claw / WeChat](./open-claw/) | `npx @biomate/connect open-claw` | ✓ |
-| [Slack](./slack/) | [Add to Slack →](https://biomate.ai/connectors/slack/install) | ✓ |
+| [Slack](./slack/) | [Add to Slack →](https://biomate.ai/connectors/slack/install) | Pilot (public ~2 weeks post-launch) |
 
 ## The 30-second pitch
 
@@ -20,7 +20,7 @@ Connect once, then ask anywhere:
 
 > Screen aspirin and caffeine for hERG and CYP3A4 inhibition.
 
-> Run nf-core/rnaseq differential expression on s3://lab/rnaseq/, treated vs control.
+> Run nf-core/rnaseq differential expression on s3://biomate-demo/rnaseq/, treated vs control.
 
 > Refine this particle stack with CryoSPARC homogeneous refinement.
 

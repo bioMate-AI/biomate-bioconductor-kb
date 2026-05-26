@@ -11,7 +11,7 @@ After install, each user runs `/biomate login` in any channel where the app is p
 ## Try it
 
 ```
-/biomate run nf-core/rnaseq on s3://lab/rnaseq/, treated vs control, GRCh38
+/biomate run nf-core/rnaseq on s3://biomate-demo/rnaseq/, treated vs control, GRCh38
 ```
 
 ```
@@ -32,7 +32,7 @@ The bot replies in-thread with phase/step updates as the workflow runs, and post
 
 ## Tools available
 
-The Slack bot exposes the same 14-tool BioMate surface — see [`../claude-code/README.md`](../claude-code/README.md). Plus three Slack-specific slash subcommands:
+The Slack bot exposes the same 14-tool BioMate surface — see [`../claude-code/README.md`](../claude-code/README.md). Plus four Slack-specific slash subcommands:
 
 | Command | Maps to |
 |---|---|

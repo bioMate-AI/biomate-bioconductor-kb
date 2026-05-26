@@ -49,7 +49,7 @@ Screen aspirin and caffeine for hERG and CYP3A4 inhibition.
 
 ```
 Run RNA-seq differential expression on these FASTQs:
-  s3://example/sample_R1.fq.gz, s3://example/sample_R2.fq.gz
+  s3://biomate-demo/sample_R1.fq.gz, s3://biomate-demo/sample_R2.fq.gz
 Compare treated vs control.
 ```
 

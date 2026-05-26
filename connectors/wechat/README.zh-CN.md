@@ -23,7 +23,7 @@ npx @biomate/connect open-claw
 ```
 
 ```
-对 s3://lab/rnaseq/ 跑 nf-core/rnaseq, treated vs control, GRCh38
+对 s3://biomate-demo/rnaseq/ 跑 nf-core/rnaseq, treated vs control, GRCh38
 ```
 
 ```

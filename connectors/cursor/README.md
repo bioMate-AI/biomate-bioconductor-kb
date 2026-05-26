@@ -17,12 +17,12 @@ Then **restart Cursor**. The BioMate tools appear in the MCP servers panel (Sett
 ```
 
 ```
-@biomate Run nf-core/sarek WGS variant calling on samples in s3://lab/wgs/run-2026-05/
+@biomate Run nf-core/sarek WGS variant calling on samples in s3://biomate-demo/wgs/run-2026-05/
 against GRCh38. Use the standard GATK best-practices configuration.
 ```
 
 ```
-@biomate Refine this cryo-EM particle stack — s3://lab/cryo/particles.cs — with
+@biomate Refine this cryo-EM particle stack — s3://biomate-demo/cryo/particles.cs — with
 CryoSPARC homogeneous refinement. C2 symmetry.
 ```
 

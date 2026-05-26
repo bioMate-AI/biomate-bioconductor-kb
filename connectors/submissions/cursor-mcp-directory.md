@@ -34,8 +34,8 @@ Target: https://cursor.directory/mcp (submission form)
 > Open chat and ask:
 >
 > - "Screen aspirin and caffeine for hERG and CYP3A4 inhibition."
-> - "Run nf-core/rnaseq DE on s3://lab/rnaseq/, treated vs control, GRCh38."
-> - "Refine s3://lab/cryo/particles.cs with CryoSPARC homogeneous refinement, C2 symmetry."
+> - "Run nf-core/rnaseq DE on s3://biomate-demo/rnaseq/, treated vs control, GRCh38."
+> - "Refine s3://biomate-demo/cryo/particles.cs with CryoSPARC homogeneous refinement, C2 symmetry."
 >
 > ### Tools (14 across 3 tiers)
 >

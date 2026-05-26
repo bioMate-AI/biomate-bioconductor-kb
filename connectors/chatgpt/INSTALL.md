@@ -80,7 +80,7 @@ Never invent workflow IDs or parameters. If you don't know, search first.
 ## Try it
 
 ```
-Run RNA-seq differential expression on s3://example/rnaseq/ — treated vs control,
+Run RNA-seq differential expression on s3://biomate-demo/rnaseq/ — treated vs control,
 GRCh38. Show the top 20 DE genes when done.
 ```
 
