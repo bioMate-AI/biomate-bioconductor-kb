@@ -18,6 +18,7 @@ import { CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, BookOpen,
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { QCEvidenceTooltip } from "./qc-evidence-tooltip"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -303,7 +304,11 @@ export function AutoLoopPanel({ state, onDismiss, onAccept, currentParams }: Aut
             <tbody>
               {gateResults.gates.map(g => (
                 <tr key={g.gate} title={g.message || undefined} className="border-b border-blue-100 dark:border-blue-900/40 last:border-0 cursor-default">
-                  <td className="py-1 pr-3 font-mono text-gray-700 dark:text-gray-300">{gateLabel(g.gate)}</td>
+                  <td className="py-1 pr-3 font-mono text-gray-700 dark:text-gray-300">
+                    <QCEvidenceTooltip domain={gateResults.domain} gate={g.gate}>
+                      {gateLabel(g.gate)}
+                    </QCEvidenceTooltip>
+                  </td>
                   <td className={`py-1 pr-3 text-right font-mono font-semibold ${
                     g.action === "halt" ? "text-red-600 dark:text-red-400" :
                     g.action === "pass" ? "text-green-600 dark:text-green-400" :
