@@ -778,13 +778,23 @@ class UnifiedWorkflowSearch:
                             m = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
                                                    preferred_domains=preferred_domains, penalized_domains=penalized_domains)
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
-                            # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
+                            # Synthetic score: 7.0 − 0.3*rank.
+                            # Old base of 2.8 capped all rescued matches below
+                            # _MATCH_SCORE_MED (6.0), so the dispatcher always demoted
+                            # them to "low_confidence" → compose-from-scratch path,
+                            # never template_reuse. Tier-0 audit (T03 in_vivo_base_edit_design,
+                            # T04 glp1_modality_bakeoff) was the canonical failure: LLM
+                            # picked the correct workflow, scorer assigned 2.80, dispatcher
+                            # composed a blank "Generated Workflow" instead.
+                            # Base 7.0 puts rank-1 rescues over the 6.0 medium-confidence
+                            # threshold while still below the 12.0 high-confidence threshold,
+                            # so they enter template_reuse but still get _llm_verify_routing.
                             m = WorkflowMatch(
                                 id=m.id, name=m.name, description=m.description,
                                 domain=m.domain, source=m.source, format=m.format,
                                 step_count=m.step_count, tools=m.tools, tags=m.tags,
                                 filename=m.filename, workflow_json=m.workflow_json,
-                                score=round(2.8 - 0.3 * rank, 2),
+                                score=round(7.0 - 0.3 * rank, 2),
                                 match_type="llm_rescued",
                             )
                             results.append(m)
