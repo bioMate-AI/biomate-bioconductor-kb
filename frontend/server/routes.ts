@@ -2001,6 +2001,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public auth config (used by registration UI)
+  app.get("/api/auth/config", (_req, res) => {
+    res.json({
+      requireInviteCode: process.env.REQUIRE_INVITE_CODE === 'true',
+    });
+  });
+
   // Resend verification email
   app.post("/api/auth/resend-verification", emailVerificationLimiter, authenticateToken, async (req, res) => {
     try {

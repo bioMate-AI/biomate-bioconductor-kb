@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useLocation, useSearch } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
@@ -41,6 +41,14 @@ export default function RegisterPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
+  const [inviteRequired, setInviteRequired] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/config', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(c => { if (c) setInviteRequired(!!c.requireInviteCode) })
+      .catch(() => {})
+  }, [])
 
   const passwordRequirements = [
     { label: "At least 8 characters", met: formData.password.length >= 8 },
@@ -433,7 +441,9 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="inviteCode">
                 Invite Code
-                <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
+                <span className="ml-1 text-xs text-muted-foreground">
+                  {inviteRequired === null ? '' : inviteRequired ? '(required)' : '(optional)'}
+                </span>
               </Label>
               <Input
                 id="inviteCode"
@@ -442,6 +452,7 @@ export default function RegisterPage() {
                 value={formData.inviteCode}
                 onChange={(e) => setFormData({ ...formData, inviteCode: e.target.value.toUpperCase() })}
                 disabled={isLoading}
+                required={inviteRequired === true}
                 className="font-mono tracking-wider"
               />
             </div>
