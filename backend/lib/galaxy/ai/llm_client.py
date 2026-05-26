@@ -549,11 +549,12 @@ CLAUDE_MODELS = [
 
 # Google Gemini models
 GEMINI_MODELS = [
-    "gemini-3-flash-preview",        # Gemini 3 Flash Preview - Primary cloud model (BioMate default)
-    "gemini-2.0-flash-exp",          # Gemini 2.0 Flash - Latest experimental
-    "gemini-1.5-pro",                # Gemini 1.5 Pro - Production ready
-    "gemini-1.5-flash",              # Gemini 1.5 Flash - Fast responses
-    "gemini-nano",                   # Gemini Nano - Edge/mobile
+    "gemini-3.5-flash",              # Gemini 3.5 Flash - current Flash GA
+    "gemini-3-flash-preview",        # Gemini 3 Flash Preview - prior default
+    "gemini-2.0-flash-exp",          # Gemini 2.0 Flash - experimental
+    "gemini-1.5-pro",                # Gemini 1.5 Pro - production
+    "gemini-1.5-flash",              # Gemini 1.5 Flash
+    "gemini-nano",                   # Gemini Nano - edge/mobile
 ]
 
 # OpenAI models

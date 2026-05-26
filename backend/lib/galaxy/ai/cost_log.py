@@ -37,6 +37,7 @@ _PRICE_PER_1K: Dict[str, Dict[str, float]] = {
     "claude-3-haiku-20240307":            {"input": 0.00025,  "output": 0.00125},
     "claude-3-opus-20240229":             {"input": 0.015,    "output": 0.075},
     # Gemini models
+    "gemini-3.5-flash":                   {"input": 0.000075, "output": 0.00030},  # TODO confirm GA pricing
     "gemini-3-flash-preview":             {"input": 0.000075, "output": 0.00030},
     # OpenAI models
     "gpt-4o":                             {"input": 0.0025,   "output": 0.01},
