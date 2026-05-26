@@ -113,7 +113,7 @@ process SMILES_VALIDATION {
     def compound_name = params.compound_name
     """
     set -euo pipefail
-    pip install rdkit-pypi 2>/dev/null || true
+    pip install rdkit 2>/dev/null || true
 
     python3 - <<'PYEOF'
 import json, sys
@@ -220,7 +220,7 @@ process CYP_INHIBITION {
     def cutoff_10um  = params.inhibitor_cutoff_10um
     """
     set -euo pipefail
-    pip install rdkit-pypi scikit-learn numpy matplotlib 2>/dev/null || true
+    pip install rdkit scikit-learn numpy matplotlib 2>/dev/null || true
 
     python3 - <<'PYEOF'
 import json, math, hashlib
@@ -403,7 +403,7 @@ process HEPATIC_CLEARANCE {
     def rb         = params.blood_to_plasma_ratio
     """
     set -euo pipefail
-    pip install rdkit-pypi scikit-learn numpy matplotlib 2>/dev/null || true
+    pip install rdkit scikit-learn numpy matplotlib 2>/dev/null || true
 
     python3 - <<'PYEOF'
 import json, math, hashlib
@@ -583,7 +583,7 @@ process DDI_RISK_ASSESSMENT {
     def fu_plasma_p   = params.fu_plasma ?: 'null'
     """
     set -euo pipefail
-    pip install rdkit-pypi numpy 2>/dev/null || true
+    pip install rdkit numpy 2>/dev/null || true
 
     python3 - <<'PYEOF'
 import json, math
