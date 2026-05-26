@@ -91,9 +91,61 @@ export async function getWorkflowPanelTitle(page: Page): Promise<string> {
   ).trim();
 }
 
+/** True when the right panel shows codon optimization (not epitope/mhcquant). */
+export function isCodonOptimizationPanelTitle(panelTitle: string): boolean {
+  const title = panelTitle.trim();
+  if (!title) return false;
+  if (/codon|optimize|heterologous/i.test(title)) return true;
+  if (/epitopeprediction|mhcquant/i.test(title)) return false;
+  return false;
+}
+
+export async function assertCodonWorkflowPanelOrSkip(
+  page: Page,
+  label: string
+): Promise<boolean> {
+  const panelTitle = await getWorkflowPanelTitle(page);
+  if (!isCodonOptimizationPanelTitle(panelTitle)) {
+    console.log(`[${label}] skip — wrong workflow in panel: ${panelTitle.trim()}`);
+    return false;
+  }
+  return true;
+}
+
+/** Read existing suite audit JSON; returns [] if missing or invalid. */
+export function readSuiteAudit(auditPath: string): StepwiseSuiteRecord[] {
+  if (!fs.existsSync(auditPath)) return [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(auditPath, "utf8"));
+    return Array.isArray(parsed) ? (parsed as StepwiseSuiteRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Merge audit records by testId; newer endTs wins so partial reruns accumulate. */
+export function mergeSuiteAuditRecords(
+  existing: StepwiseSuiteRecord[],
+  incoming: StepwiseSuiteRecord[]
+): StepwiseSuiteRecord[] {
+  const byId = new Map<string, StepwiseSuiteRecord>();
+  for (const record of existing) byId.set(record.testId, record);
+  for (const record of incoming) {
+    const prev = byId.get(record.testId);
+    if (!prev || record.endTs >= prev.endTs) byId.set(record.testId, record);
+  }
+  return [...byId.values()].sort((a, b) =>
+    a.testId.localeCompare(b.testId, undefined, { numeric: true })
+  );
+}
+
 export function writeSuiteAudit(auditPath: string, records: StepwiseSuiteRecord[]): void {
-  fs.writeFileSync(auditPath, JSON.stringify(records, null, 2));
-  console.log(`[audit] wrote ${auditPath} (${records.length} records)`);
+  fs.mkdirSync(path.dirname(auditPath), { recursive: true });
+  const merged = mergeSuiteAuditRecords(readSuiteAudit(auditPath), records);
+  fs.writeFileSync(auditPath, JSON.stringify(merged, null, 2));
+  console.log(
+    `[audit] wrote ${auditPath} (${merged.length} records, ${records.length} from this run)`
+  );
 }
 
 export function attachExecuteCapture(page: Page): {
@@ -328,8 +380,8 @@ export async function fillRequiredParams(
       continue;
     }
     const currentVal = await input.inputValue().catch(() => "");
-    if (currentVal && currentVal !== "null") {
-      console.log(`[${label}] param ${paramId} already="${currentVal}"`);
+    if (currentVal && currentVal !== "null" && currentVal === value) {
+      console.log(`[${label}] param ${paramId} already set`);
       continue;
     }
     const filled = await setParamValue(page, paramId, value);
