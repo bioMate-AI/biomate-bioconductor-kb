@@ -28,6 +28,7 @@ from .workflow_optimizer import WorkflowOptimizer, WorkflowValidator, Optimizati
 from .unified_workflow_search import (
     UnifiedWorkflowSearch as _BaseUnifiedWorkflowSearch,
     get_workflow_search,
+    _CODON_MRNA_SIGNALS,
 )
 # Wired workflow search: applies workflow_intent priority + inject when
 # BIOMATE_WORKFLOW_INTENT_PRIORITIZE=1 (+ optional INJECT=1). Bit-identical
@@ -3277,6 +3278,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 user_intent = user_intent + _hint
                 log.info("[UnifiedWorkflowGeneration] Codon/mRNA pattern detected — injected optimize_codons routing hint")
 
+            # ANDV inhibitor / pharmacology: site-directed AutoDock Vina (not DiffDock / AF3 chain).
+            _DOCKING_VINA_PAT = _re_routing.compile(
+                r'\b(autodock\s*vina|docking_autodock_vina|site[- ]directed\s+docking|vina\s+docking)\b',
+                _re_routing.IGNORECASE,
+            )
+            if _DOCKING_VINA_PAT.search(user_intent) and not _re_routing.search(
+                r'\bdiffdock\b', user_intent, _re_routing.IGNORECASE
+            ):
+                _hint = (
+                    "\n[Routing hint: site-directed AutoDock Vina molecular docking — "
+                    "use pharmacology/docking_autodock_vina (registry id 12824), "
+                    "NOT structure_prediction_docking or ADMET-only workflows unless ADMET was explicitly requested]"
+                )
+                user_intent = user_intent + _hint
+                log.info("[UnifiedWorkflowGeneration] AutoDock Vina pattern detected — injected docking_autodock_vina routing hint")
+
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
             trials = self._build_intent_trials(user_intent, key_terms=key_terms)
@@ -3337,7 +3354,17 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             #   _MATCH_SCORE_MED  = 6.0   (medium_confidence / plausible)
             _DISAMBIG_MIN_SCORE = 6.0
             _DISAMBIG_GAP_THRESHOLD = 3.0
-            if search_results and match_type != 'high_confidence':
+            # Skip disambiguation when the top match is an llm_rescued pick — LLM Pass-0
+            # already disambiguated by naming it, and synthetic-score gaps between
+            # rescued entries are deterministically small (0.3 per rank step), so the
+            # gap heuristic always trips and prevents the LLM's choice from being
+            # committed. Tier 0 T04 (GLP-1 vs MASH) hit this: rescued top scored 7.00,
+            # next 6.70, gap 0.30 < 3.0 → disambiguation → "Generated Workflow".
+            _top_is_llm_rescued = (
+                bool(search_results)
+                and getattr(search_results[0], 'match_type', None) == 'llm_rescued'
+            )
+            if search_results and match_type != 'high_confidence' and not _top_is_llm_rescued:
                 plausible = [r for r in search_results if r.score >= _DISAMBIG_MIN_SCORE]
                 if (len(plausible) >= 2
                         and (plausible[0].score - plausible[1].score) < _DISAMBIG_GAP_THRESHOLD):
@@ -3399,6 +3426,28 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             "explicit slug %r matches top hit %s",
                             _explicit_slug,
                             search_results[0].name,
+                        )
+                # Plan B: trust retrieval when codon/mRNA intent matches a codon subworkflow top hit.
+                # LLM verify has overridden #1 → mhcquant when the query mentions vaccine/ANDV context.
+                if _needs_verify and search_results:
+                    _q_low = user_intent.lower()
+                    _has_codon_intent = any(s in _q_low for s in _CODON_MRNA_SIGNALS)
+                    _top = search_results[0]
+                    _top_slug = self.workflow_search._normalise_pipeline_slug(
+                        _top.name.split("/")[-1]
+                    )
+                    _top_fn = (_top.filename or "").lower()
+                    if _has_codon_intent and (
+                        _top.id == 10813
+                        or "codon" in _top_slug
+                        or "optimize_codons" in _top_fn
+                    ):
+                        _needs_verify = False
+                        log.info(
+                            "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
+                            "codon/mRNA intent with top hit %s (id=%s)",
+                            _top.name,
+                            _top.id,
                         )
                 if _needs_verify:
                     _routing_audit = self._llm_verify_routing(
