@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "testId": "PA-4",
+    "runId": "093e8325-af69-4373-a1e9-361e7edeb58d",
+    "startTs": 1779803222131,
+    "endTs": 1779803952042,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "execute_captured_run_id",
+        "passed": true,
+        "note": "093e8325-af69-4373-a1e9-361e7edeb58d"
+      },
+      {
+        "name": "terminal_completed_or_failed",
+        "passed": true
+      }
+    ],
+    "screenshots": [],
+    "notes": [
+      "executeUrl=http://localhost:5000/api/workflows/execute"
+    ]
+  }
+]
