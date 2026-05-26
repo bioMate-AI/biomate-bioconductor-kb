@@ -1221,6 +1221,19 @@ def _generate_executor_config(
             "}",
             "docker.enabled = true",
             f"workDir = 's3://{s3_bucket}/nextflow/work/{user_id}/{run_id}'",
+            # 2026-05-22 fix: declare an empty `profiles { aws { } }` block so
+            # `-profile aws` validates against this config even for workflows
+            # that have no nextflow.config of their own (e.g. transporter_ddi_pgp_bcrp,
+            # bispecific_antibody_design — 33 standalone workflows in this state).
+            # The profile body is empty on purpose: all real Batch settings
+            # (executor, queue, region, aws-cli path, CRT-disable, GPU routing)
+            # are at top level above and apply unconditionally. This block exists
+            # only to satisfy Nextflow's `Unknown configuration profile` check.
+            "profiles {",
+            "    aws {",
+            "        // intentionally empty — real settings are top-level above",
+            "    }",
+            "}",
         ]
 
         if not queue:
@@ -2921,30 +2934,12 @@ def execute_nextflow(
 
     # Profile — explicit request value wins; fall back to BIOMATE_NF_PROFILE env var.
     profile = request.profile or _param_profile or _default_nf_profile()
-    # Only pass -profile when the workflow's nextflow.config declares that profile.
-    # 2026-05-22 fix: many of our subworkflow main.nf files have no nextflow.config
-    # at all, OR their config doesn't declare the requested profile. Passing
-    # -profile X in either case causes Nextflow to abort with
-    # "Unknown configuration profile: 'X'" in ~15 s. The executor-override
-    # config (passed via -c) already sets process.executor + queue + region,
-    # so the profile is redundant when the workflow has no profile section.
-    _wf_config = Path(nf_path).parent / "nextflow.config"
-    _has_profile = False
-    if _wf_config.exists():
-        try:
-            _config_text = _wf_config.read_text()
-            # Check for `<profile_name> {` inside a `profiles { ... }` block
-            import re as _re
-            _profiles_block = _re.search(r"profiles\s*\{(.*?)^\}", _config_text, _re.DOTALL | _re.MULTILINE)
-            if _profiles_block and _re.search(rf"^\s+{_re.escape(profile)}\s*\{{", _profiles_block.group(1), _re.MULTILINE):
-                _has_profile = True
-        except Exception as _pcfg_err:
-            log.debug(f"[Nextflow run {run_id}] profile-detect: {_pcfg_err}")
-    if _has_profile:
-        cmd += ["-profile", profile]
-        log.info(f"[Nextflow run {run_id}] using -profile {profile} (declared in workflow config)")
-    else:
-        log.info(f"[Nextflow run {run_id}] skipping -profile {profile} (not declared in workflow nextflow.config); executor-override -c provides routing")
+    cmd += ["-profile", profile]
+    # NB: the executor-override config (passed via -c above) declares an empty
+    # `profiles { aws { } }` block so '-profile aws' validates even for workflows
+    # that have no nextflow.config of their own (transporter_ddi_pgp_bcrp,
+    # bispecific_antibody_design, 31 other standalone-capable workflows).
+    # See _generate_executor_config for the declaration.
 
     # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
     # Workflows default params.mock_mode = true; command-line params override defaults.
