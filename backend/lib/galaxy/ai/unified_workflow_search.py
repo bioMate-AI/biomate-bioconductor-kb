@@ -839,17 +839,16 @@ class UnifiedWorkflowSearch:
                     except Exception as exc:
                         log.debug("[WorkflowEmbed] Dense rescue fetch failed: %s", exc)
 
-
-            # Drop workflows the user explicitly negated (e.g. NOT mhcquant).
+            # Remove workflows the user explicitly negated (e.g. "NOT mhcquant").
             negated_slugs = self._extract_negated_pipeline_slugs(query)
             if negated_slugs:
-                filtered = []
-                for m in results:
-                    bare = self._normalise_pipeline_slug(m.name.split("/")[-1])
-                    if bare in negated_slugs:
-                        continue
-                    filtered.append(m)
-                results = filtered
+                filtered = [
+                    m
+                    for m in results
+                    if self._normalise_pipeline_slug(m.name.split("/")[-1]) not in negated_slugs
+                ]
+                if filtered:
+                    results = filtered
 
             return results[:limit]
 
@@ -950,7 +949,6 @@ class UnifiedWorkflowSearch:
             if not any(tok in q for tok in _MHCQUANT_MS_SIGNALS):
                 penalized.update({'proteomics'})
 
-
         return preferred, penalized
 
     # Tokens that signal "I have raw data to process" or "I want to run a pipeline"
@@ -992,23 +990,31 @@ class UnifiedWorkflowSearch:
         q = query.lower()
         return any(signal in q for signal in self._RAW_DATA_INTENT_SIGNALS)
 
-
     @staticmethod
     def _normalise_pipeline_slug(raw: str) -> str:
         return re.sub(r"[^a-z0-9]", "", (raw or "").lower())
 
     def _extract_negated_pipeline_slugs(self, query: str) -> set:
-        """Slugs the user explicitly excluded (e.g. 'NOT mhcquant')."""
+        """Slugs the user explicitly excluded (e.g. 'NOT mhcquant', 'not epitope prediction')."""
         negated: set = set()
         q = query.lower()
         for m in re.finditer(
             r"\b(?:not|avoid|never|don'?t\s+use|instead\s+of)\s+"
-            r"(?:nf[\s\-]?core[/\s]+)?([a-z][a-z0-9_-]+)",
+            r"(?:nf[\s\-]?core[/\s]+)?([a-z][a-z0-9_\s-]+?)"
+            r"(?:\s+or|\s+and|,|\.|$|\)|—)",
             q,
         ):
-            slug = self._normalise_pipeline_slug(m.group(1))
-            if slug:
-                negated.add(slug)
+            phrase = m.group(1).strip()
+            phrase_compact = self._normalise_pipeline_slug(phrase)
+            if phrase_compact:
+                negated.add(phrase_compact)
+            first_token = phrase.split()[0] if phrase else ""
+            first_compact = self._normalise_pipeline_slug(first_token)
+            if first_compact:
+                negated.add(first_compact)
+            for known in _KNOWN_NFCORE_PIPELINE_SLUGS:
+                if known in phrase_compact:
+                    negated.add(known)
         return negated
 
     def _resolve_pipeline_slug_conflict(self, slugs: List[str], query: str) -> str:
@@ -1069,6 +1075,7 @@ class UnifiedWorkflowSearch:
 
         if not found:
             return None
+        # Deduplicate preserving order
         seen: set = set()
         unique = [s for s in found if not (s in seen or seen.add(s))]  # type: ignore[func-returns-value]
         return self._resolve_pipeline_slug_conflict(unique, query)
@@ -1081,6 +1088,12 @@ class UnifiedWorkflowSearch:
         the FTS index. Returns the FTS token if it matches at least one indexed workflow;
         returns None otherwise (safe fallback — never breaks the search).
         """
+        # Plan B: codon/mRNA subworkflows are named explicitly — prefer them over
+        # incidental nf-core slug matches (e.g. "not epitope prediction").
+        biomni_anchor = self._extract_biomni_subworkflow_anchor(query, cursor)
+        if biomni_anchor:
+            return biomni_anchor
+
         explicit_slug = self._extract_explicit_pipeline_slug(query)
         if explicit_slug:
             try:
@@ -1094,10 +1107,6 @@ class UnifiedWorkflowSearch:
                     return explicit_slug
             except Exception:
                 pass
-
-        biomni_anchor = self._extract_biomni_subworkflow_anchor(query, cursor)
-        if biomni_anchor:
-            return biomni_anchor
 
         # Patterns that signal the user is naming a specific tool
         _NAMED_TOOL_PATTERNS = [
@@ -1496,7 +1505,6 @@ class UnifiedWorkflowSearch:
                 score -= 28.0
             if has_pred_intent and not has_ms_intent and "mhc" in bare_name:
                 score -= 15.0
-
 
         # 5. Source priority — boosted to make nfcore clearly win over bioconductor
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
