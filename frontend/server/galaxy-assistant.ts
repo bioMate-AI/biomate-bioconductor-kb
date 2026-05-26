@@ -4284,7 +4284,12 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       if (isGemini && this.gemini) {
         const geminiModel = this.gemini.getGenerativeModel({
           model: this.modelConfig.intentModel,
-          generationConfig: { temperature: 0, maxOutputTokens: 2500, responseMimeType: 'application/json' },
+          // Bumped 2500→4096: complex tier 0 queries (e.g. T03 "Base editing strategy for
+          // PCSK9 LOF in hypercholesterolemia (VERVE-102 style)") truncated JSON output at
+          // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
+          // Gemini thinking tokens count against this budget; 4096 leaves room for the
+          // full intent + inlineParameters payload.
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
           systemInstruction: systemPrompt,
         });
         // Retry with exponential backoff on 429 rate limit
