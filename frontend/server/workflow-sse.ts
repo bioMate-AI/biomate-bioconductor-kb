@@ -28,6 +28,42 @@ export interface SSEManagerOptions {
 }
 
 /**
+ * Gap 1 — Node-side narrator parity for Galaxy-classic runs.
+ * See docs/20260521_GAP1_NARRATOR_EXECUTOR_PARITY.md.
+ */
+const narrated = new Set<string>();
+async function narrateNodeEvent(invocationId: string, kind: string, technical: Record<string, any>, dedupeSuffix?: string): Promise<void> {
+  const dedupeKey = `${invocationId}:${kind}${dedupeSuffix ? ':' + dedupeSuffix : ''}`;
+  if (narrated.has(dedupeKey)) return;
+  narrated.add(dedupeKey);
+  const friendly = renderFriendly(kind, technical);
+  const payload = { invocation_id: invocationId, event_type: 'chat_progress', data: { kind, invocation_id: invocationId, friendly_message: friendly, ts: Date.now() / 1000, technical } };
+  try {
+    const port = process.env.PORT || '5000';
+    await fetch(`http://localhost:${port}/internal/sse-inject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  } catch (e) {
+    console.debug('[narrateNodeEvent] inject failed:', (e as any)?.message || e);
+  }
+}
+function renderFriendly(kind: string, t: Record<string, any>): string {
+  switch (kind) {
+    case 'workflow.completed': {
+      const done = t.steps_succeeded, total = t.steps_total;
+      return (typeof done === 'number' && typeof total === 'number') ? `Workflow finished. ${done}/${total} steps succeeded.` : 'Workflow finished.';
+    }
+    case 'workflow.failed': {
+      const reason = t.reason ? String(t.reason).split('.')[0].trim() : null;
+      return reason ? `Workflow stopped — ${reason}. Looking into why…` : 'Workflow stopped.';
+    }
+    case 'workflow.paused': return 'Workflow paused.';
+    case 'workflow.cancelled': return 'Workflow cancelled.';
+    case 'workflow.step_completed': { const name = t.step_label || t.tool_id || 'step'; return `${name} done.`; }
+    case 'workflow.step_failed': { const name = t.step_label || t.tool_id || 'Step'; return `${name} failed.`; }
+    default: return `Workflow update: ${kind}.`;
+  }
+}
+
+/**
  * SSE Manager for workflow execution updates
  */
 export class WorkflowSSEManager {
@@ -49,27 +85,33 @@ export class WorkflowSSEManager {
     this.poller.on('workflow_state', async (update: WorkflowExecutionUpdate) => {
       this.broadcastToClients(update.invocation_id, update);
 
-      // Update local invocation record
       try {
         const data = update.data as any;
         await storage.updateInvocation(update.invocation_id, {
           status: data.workflow_state || 'running',
           updatedAt: new Date(),
         });
+        const state = String(data.workflow_state || '').toLowerCase();
+        if (state === 'ok' || state === 'completed' || state === 'scheduled') {
+          narrateNodeEvent(update.invocation_id, 'workflow.completed', { workflow_state: data.workflow_state });
+        } else if (state === 'error' || state === 'failed') {
+          narrateNodeEvent(update.invocation_id, 'workflow.failed', { reason: data.error || data.workflow_state });
+        } else if (state === 'paused') {
+          narrateNodeEvent(update.invocation_id, 'workflow.paused', {});
+        } else if (state === 'deleted' || state === 'cancelled') {
+          narrateNodeEvent(update.invocation_id, 'workflow.cancelled', {});
+        }
       } catch (e) {
         console.warn('[SSE] Failed to update local invocation:', e);
       }
     });
 
-    // Step-level state changes
     this.poller.on('step_state', async (update: WorkflowExecutionUpdate) => {
       this.broadcastToClients(update.invocation_id, update);
 
-      // Update local invocation record with step progress
       try {
         const data = update.data as any;
         if (data.step_state === 'ok' || data.step_state === 'completed') {
-          // Increment completed steps
           const invocation = await storage.getInvocation(update.invocation_id);
           if (invocation) {
             await storage.updateInvocation(update.invocation_id, {
@@ -78,6 +120,9 @@ export class WorkflowSSEManager {
               updatedAt: new Date(),
             });
           }
+          narrateNodeEvent(update.invocation_id, 'workflow.step_completed', { step_label: data.step_label, tool_id: data.tool_id, step_id: data.step_id }, String(data.step_id || data.tool_id || ''));
+        } else if (data.step_state === 'error' || data.step_state === 'failed') {
+          narrateNodeEvent(update.invocation_id, 'workflow.step_failed', { step_label: data.step_label, tool_id: data.tool_id, step_id: data.step_id }, String(data.step_id || data.tool_id || ''));
         }
       } catch (e) {
         console.warn('[SSE] Failed to update step progress:', e);
