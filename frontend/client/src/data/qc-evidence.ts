@@ -4,11 +4,6 @@
  *   python3 -c "import yaml, json; print(json.dumps(yaml.safe_load(open('backend/config/qc_evidence.yaml')), indent=2, ensure_ascii=False))" \
  *     > frontend/client/src/data/qc-evidence.json
  *
- * Why embed at build time instead of fetching via /api/qc/evidence?
- * The Node routes.ts file is protected against parallel-session edits
- * (see docs/20260521_DEPLOYMENT_MISTAKES_LESSONS.md). Embedding the
- * static provenance data into the bundle avoids the API path entirely.
- *
  * Provenance grades:
  *   GOLD   — verbatim from cited source
  *   SILVER — community convention; concept supported, exact cutoff not
@@ -186,6 +181,26 @@ export const QC_EVIDENCE: QCEvidenceMap = {
         "paper_supports": "AlphaFold supplementary materials define pLDDT bands: >90 high accuracy; 70-90 well-modelled; 50-70 low confidence; <50 often disordered.\n",
         "rule_text": "Recommended gate: mean pLDDT ≥ 70 for downstream docking use.\n",
         "finding": "Remediation: increase recycling_steps (3 → 6) or use deeper MSA (Mirdita 2022 ColabFold).\n"
+      }
+    ],
+    "struct_pred_confident_fraction": [
+      {
+        "paper_ref": "Tunyasuvunakool K et al. Nature 2021; 596:590-596",
+        "paper_doi": "10.1038/s41586-021-03828-w",
+        "provenance": "SILVER",
+        "paper_supports": "Tunyasuvunakool et al. apply AlphaFold to the human proteome and report per-residue pLDDT distributions, defining the >70 band as the \"confident\" set used for downstream structural analyses. The paper frames confident-fraction as a model-quality summary but does NOT state the exact ≥0.70 fraction cutoff used here — that is a community convention extrapolated from the paper's framework.\n",
+        "rule_text": "BioMate flags structures with confident_fraction (frac residues with pLDDT > 70) below 0.70 as advisory. Cutoff is operational.\n",
+        "finding": "Remediation: increase recycling iterations, supply a deeper MSA, or restrict downstream analysis to confident residues only.\n"
+      }
+    ],
+    "struct_pred_max_pae": [
+      {
+        "paper_ref": "Tunyasuvunakool K et al. Nature 2021; 596:590-596",
+        "paper_doi": "10.1038/s41586-021-03828-w",
+        "provenance": "SILVER",
+        "paper_supports": "Tunyasuvunakool et al. use predicted aligned error (PAE) to characterise inter-domain relative orientation confidence; low PAE between domains indicates the model places them reliably with respect to each other. The paper presents PAE as a continuous confidence measure but does NOT state the exact ≤8 Å cutoff used here — that is a community convention extrapolated from the paper's framework.\n",
+        "rule_text": "BioMate flags multi-domain structures with max inter-domain PAE > 8 Å as advisory. Skipped for single-domain proteins where max_pae is not reported.\n",
+        "finding": "Remediation: deepen MSA, increase recycling, or treat domains independently if inter-domain orientation is unreliable.\n"
       }
     ]
   },

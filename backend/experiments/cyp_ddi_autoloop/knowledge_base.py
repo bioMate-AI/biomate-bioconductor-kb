@@ -6,11 +6,15 @@ SOURCES AND INTEGRITY POLICY
 All threshold values and remediation rationale come from primary regulatory
 guidance and peer-reviewed pharmacokinetic literature.
 
-Each KnowledgeEntry cites:
-  - source_file: the BioMate document or regulatory guidance that contains the claim
-  - source_text: a direct verbatim quote from that source
-  - paper_doi:   DOI or URL of the underlying publication
-  - paper_ref:   short citation (authors, journal, year)
+Each KnowledgeEntry carries a `provenance` grade:
+  GOLD   — the cited source states the threshold/rule verbatim.
+  SILVER — the source supports the underlying mechanism; the exact numeric
+           threshold is community/operational convention.
+  BRONZE — operational heuristic; the source is related context only.
+
+The schema separates `paper_supports` (what the source actually states) from
+`rule_text` (what BioMate enforces). See
+docs/20260522_AUTOLOOP_EVIDENCE_PROVENANCE_AUDIT.md.
 
 PRIMARY SOURCES:
   FDA DDI Guidance (2020) — "In Vitro Drug Interaction Studies — Cytochrome
@@ -33,24 +37,40 @@ class KnowledgeEntry:
     """
     One piece of knowledge supporting a CYP DDI parameter tuning decision.
 
-    source_file : Path or URL of the BioMate doc or regulatory guidance.
-    source_text : Exact verbatim text copied from that source.
-    paper_ref   : Short citation of the underlying publication.
-    paper_doi   : DOI or URL of that publication.
-    finding     : Plain-language summary of what this means for the tuning rule.
+    paper_ref       : Short citation of the underlying publication.
+    paper_doi       : DOI or URL of that publication.
+    provenance      : "GOLD" | "SILVER" | "BRONZE".
+    paper_supports  : What the source actually states (factual).
+    rule_text       : What BioMate enforces (operational).
+    finding         : Plain-language remediation guidance.
+
+    Legacy `source_file`/`source_text` retained for back-compat; `source_text`
+    is an alias for `paper_supports`.
     """
-    source_file: str
-    source_text: str
     paper_ref: str
     paper_doi: str
+    provenance: str
+    paper_supports: str
+    rule_text: str
     finding: str
+    source_file: str = ""
+    source_text: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.source_text:
+            self.source_text = self.paper_supports
+        if not self.source_file:
+            self.source_file = self.paper_ref
 
     def to_dict(self) -> dict:
         return {
-            "source_text": self.source_text,
+            "provenance": self.provenance,
+            "paper_supports": self.paper_supports,
+            "rule_text": self.rule_text,
             "paper_ref": self.paper_ref,
             "paper_doi": self.paper_doi,
             "finding": self.finding,
+            "source_text": self.source_text,
         }
 
     def short_ref(self) -> str:
@@ -63,92 +83,110 @@ _KNOWLEDGE: dict[str, list[KnowledgeEntry]] = {
 
     "clinical_study_isoforms": [
         KnowledgeEntry(
-            source_file="FDA DDI Guidance 2020 (https://www.fda.gov/media/134582/download)",
-            source_text=(
-                "For reversible CYP inhibition, the basic model for R1 is: "
-                "R1 = 1 + [I]/Ki, where [I] is the mean Cmax,ss (total) and Ki is the "
-                "in vitro inhibitory constant. An R1 value ≥ 1.1 triggers a recommendation "
-                "for a clinical DDI study (CLINICAL_STUDY_RECOMMENDED)."
-            ),
             paper_ref="FDA (2020) In Vitro Drug Interaction Studies Guidance",
             paper_doi="https://www.fda.gov/media/134582/download",
+            provenance="GOLD",
+            paper_supports=(
+                "The FDA 2020 DDI guidance states verbatim that for reversible CYP "
+                "inhibition the basic model is R1 = 1 + [I]/Ki, where [I] is mean "
+                "Cmax,ss (total). The guidance specifies that R1 ≥ 1.1 indicates a "
+                "potential clinical DDI and prompts a recommendation for a clinical "
+                "DDI study."
+            ),
+            rule_text=(
+                "BioMate CYP-DDI gate triggers CLINICAL_STUDY_RECOMMENDED at R1 ≥ 1.1, "
+                "matching the FDA 2020 cutoff verbatim. The remediation lowers the "
+                "input Cmax,ss (which directly reduces R1) by 50%."
+            ),
             finding=(
-                "Reducing Cmax,ss directly lowers R1 = 1 + Cmax/Ki. "
-                "A 50% reduction in Cmax typically halves R1-1, moving below the "
-                "1.1 CLINICAL_STUDY threshold for weakly inhibiting compounds."
+                "Reducing Cmax,ss by 50% halves the (R1−1) term, moving weakly-"
+                "inhibiting compounds below the FDA 1.1 CLINICAL_STUDY threshold."
             ),
         ),
         KnowledgeEntry(
-            source_file="FDA DDI Guidance 2020 (https://www.fda.gov/media/134582/download)",
-            source_text=(
-                "The use of total Cmax,ss (as opposed to unbound Cmax,ss) in the "
-                "basic model is a conservative approach that may overestimate DDI risk. "
-                "When total Cmax,ss-based models predict risk, sponsors may use "
-                "unbound Cmax,ss for mechanistic static or PBPK models."
-            ),
             paper_ref="FDA (2020) In Vitro Drug Interaction Studies Guidance",
             paper_doi="https://www.fda.gov/media/134582/download",
+            provenance="GOLD",
+            paper_supports=(
+                "FDA 2020 explicitly allows sponsors to refine from total Cmax,ss to "
+                "unbound Cmax,ss in the basic model, noting that total Cmax,ss is the "
+                "conservative default and may overestimate DDI risk."
+            ),
+            rule_text=(
+                "BioMate's 50% Cmax reduction step is a simulation-level approximation "
+                "of the FDA-permitted total→unbound Cmax refinement when the total-"
+                "Cmax R1 triggers a clinical study recommendation."
+            ),
             finding=(
-                "When total-Cmax-based R1 triggers CLINICAL_STUDY, reducing the "
-                "input Cmax parameter by 50% approximates the refinement step "
-                "of switching from total to unbound Cmax in the FDA basic model."
+                "Reducing input Cmax by 50% approximates the FDA-sanctioned "
+                "total→unbound Cmax refinement step in the basic R1 model."
             ),
         ),
     ],
 
     "investigate_isoforms": [
         KnowledgeEntry(
-            source_file="FDA DDI Guidance 2020 (https://www.fda.gov/media/134582/download)",
-            source_text=(
-                "An R1 value ≥ 1.02 indicates that a further investigation is warranted "
-                "(INVESTIGATE). Sponsors should evaluate whether clinical DDI studies are "
-                "needed or whether mechanistic static/PBPK modelling is sufficient to "
-                "characterize the interaction."
-            ),
             paper_ref="FDA (2020) In Vitro Drug Interaction Studies Guidance",
             paper_doi="https://www.fda.gov/media/134582/download",
+            provenance="GOLD",
+            paper_supports=(
+                "FDA 2020 specifies R1 ≥ 1.02 as the threshold above which further "
+                "investigation (mechanistic static models, PBPK, or clinical study) "
+                "is warranted."
+            ),
+            rule_text=(
+                "BioMate CYP-DDI gate raises INVESTIGATE at R1 ≥ 1.02, verbatim from "
+                "the FDA 2020 guidance. Remediation reduces input Cmax by 30%."
+            ),
             finding=(
-                "R1 ≥ 1.02 is the INVESTIGATE threshold. Reducing Cmax by 30% brings "
-                "marginal flagging at R1 ≈ 1.02–1.05 below the threshold for most "
-                "weakly-inhibiting compounds with Ki > 10 µM."
+                "R1 ≥ 1.02 is the FDA INVESTIGATE threshold; a 30% Cmax reduction "
+                "moves marginal compounds (R1 ≈ 1.02–1.05) below it."
             ),
         ),
         KnowledgeEntry(
-            source_file="Obach RS et al., Drug Metab Dispos (2006)",
-            source_text=(
-                "For CYP3A4 inhibition, the clinical relevance of in vitro Ki values "
-                "depends heavily on the plasma concentration at the enzyme site. "
-                "R1 = 1 + Cmax/Ki; a 30% reduction in Cmax reduces R1 by "
-                "0.3 × Cmax/Ki, which is often sufficient to move from INVESTIGATE "
-                "to NOT_EXPECTED for compounds with Ki > 5 µM."
-            ),
             paper_ref="Obach et al. (2006) Drug Metab Dispos 34:786-796",
             paper_doi="10.1124/dmd.105.005595",
+            provenance="SILVER",
+            paper_supports=(
+                "Obach et al. (2006) characterize the relationship between in vitro "
+                "Ki values and in vivo CYP3A4 inhibition risk, showing R1 scales "
+                "linearly with Cmax/Ki. The paper supports the mechanistic basis for "
+                "Cmax-based remediation but does not prescribe a specific 30% "
+                "reduction factor."
+            ),
+            rule_text=(
+                "BioMate uses a 30% Cmax reduction (× 0.7) as an operational "
+                "remediation calibrated against the Obach Cmax/Ki framework for "
+                "compounds with Ki > 5 µM."
+            ),
             finding=(
-                "A 30% reduction in Cmax (× 0.7) is calibrated to move weakly-inhibiting "
-                "compounds (Ki > 5 µM) from INVESTIGATE to NOT_EXPECTED "
-                "in the basic FDA R1 model."
+                "A 30% Cmax reduction is calibrated to move weakly-inhibiting compounds "
+                "(Ki > 5 µM) from INVESTIGATE to NOT_EXPECTED under the FDA basic R1 model."
             ),
         ),
     ],
 
     "tdi_concern": [
         KnowledgeEntry(
-            source_file="FDA DDI Guidance 2020 (https://www.fda.gov/media/134582/download)",
-            source_text=(
-                "Time-dependent inhibition (TDI) can arise from mechanism-based inactivation "
-                "of CYP enzymes. The R2 parameter accounts for TDI: "
-                "R2 = Auclinact / (Auclinact + kdeg), where Auclinact is the apparent "
-                "inactivation rate. An R2 ≤ 0.79 triggers INVESTIGATE; R2 ≤ 0.71 triggers "
-                "CLINICAL_STUDY_RECOMMENDED."
-            ),
             paper_ref="FDA (2020) In Vitro Drug Interaction Studies Guidance",
             paper_doi="https://www.fda.gov/media/134582/download",
+            provenance="GOLD",
+            paper_supports=(
+                "FDA 2020 prescribes the R2 framework for time-dependent CYP "
+                "inhibition: R2 captures the apparent inactivation rate relative to "
+                "enzyme degradation. The guidance specifies R2 ≤ 0.79 → INVESTIGATE "
+                "and R2 ≤ 0.71 → CLINICAL_STUDY_RECOMMENDED."
+            ),
+            rule_text=(
+                "BioMate enforces the FDA 2020 R2 cutoffs verbatim (0.79 / 0.71). "
+                "The remediation is advisory only — no automatic parameter change — "
+                "because in silico TDI predictions have a high false-positive rate "
+                "and experimental confirmation (dialysis washout) is recommended "
+                "before assuming clinical relevance."
+            ),
             finding=(
-                "TDI concern is advisory because structural alerts for mechanism-based "
-                "inactivation are frequently false positives in silico. The recommendation "
-                "is to confirm TDI experimentally (dialysis washout protocol) before "
-                "assuming clinical relevance."
+                "TDI concern is advisory: confirm mechanism-based inactivation "
+                "experimentally before assuming clinical relevance."
             ),
         ),
     ],

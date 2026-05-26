@@ -196,6 +196,75 @@ def _gate_aizynth_solved_routes(m: dict) -> Optional[tuple]:
     return ("aizynth_solved_routes", float(v), float(threshold), passed, level, msg)
 
 
+def _gate_struct_pred_mean_plddt(m: dict) -> Optional[tuple]:
+    """Mean pLDDT ≥ 70 for downstream docking use (Jumper 2021 GOLD)."""
+    v = m.get("mean_plddt")
+    if v is None:
+        v = m.get("plddt_mean")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 70.0
+    passed = v >= threshold
+    if v >= 70.0:
+        level = "GOLD"
+    elif v >= 50.0:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"mean pLDDT={v:.1f}" + ("" if passed else f" < {threshold} (Jumper 2021)")
+    return ("struct_pred_mean_plddt", v, threshold, passed, level, msg)
+
+
+def _gate_struct_pred_confident_fraction(m: dict) -> Optional[tuple]:
+    """Fraction of residues with pLDDT > 70 should be ≥ 0.70
+    (Tunyasuvunakool 2021 SILVER)."""
+    v = m.get("confident_fraction")
+    if v is None:
+        v = m.get("frac_plddt_gt_70")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 0.70
+    passed = v >= threshold
+    if v >= 0.70:
+        level = "SILVER"
+    elif v >= 0.50:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"confident fraction={v:.2f}" + (
+        "" if passed else f" < {threshold} (Tunyasuvunakool 2021)"
+    )
+    return ("struct_pred_confident_fraction", v, threshold, passed, level, msg)
+
+
+def _gate_struct_pred_max_pae(m: dict) -> Optional[tuple]:
+    """Max inter-domain PAE ≤ 8 Å (Tunyasuvunakool 2021 SILVER).
+
+    Skipped if max_pae not present — single-domain proteins don't
+    have meaningful inter-domain PAE.
+    """
+    v = m.get("max_pae")
+    if v is None:
+        v = m.get("pae_max")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 8.0
+    passed = v <= threshold
+    if v <= 8.0:
+        level = "SILVER"
+    elif v <= 15.0:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"max PAE={v:.1f} Å" + (
+        "" if passed else f" > {threshold} Å (Tunyasuvunakool 2021)"
+    )
+    return ("struct_pred_max_pae", v, threshold, passed, level, msg)
+
+
 # Domain → list of gate functions to apply
 _GATE_REGISTRY: dict[str, list] = {
     "hts":             [_gate_hts_z_prime, _gate_hts_signal_window],
@@ -208,6 +277,11 @@ _GATE_REGISTRY: dict[str, list] = {
     "p0_pkpd":         [_gate_p0_pkpd_weight_loss],
     "pocket_detection":[_gate_pocket_druggability],
     "aizynthfinder":   [_gate_aizynth_solved_routes],
+    "structure_prediction": [
+        _gate_struct_pred_mean_plddt,
+        _gate_struct_pred_confident_fraction,
+        _gate_struct_pred_max_pae,
+    ],
 }
 
 

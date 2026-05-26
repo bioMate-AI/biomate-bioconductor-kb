@@ -80,6 +80,11 @@ _PROCESS_KEYWORDS: dict[str, set[str]] = {
     "aizynthfinder": {
         "AIZYNTHFINDER", "RETROSYNTHESIS",
     },
+    "structure_prediction": {
+        "BOLTZ", "BOLTZ_PREDICT", "BOLTZ_STRUCTURE_PREDICTION",
+        "CHAI", "CHAI1", "CHAI1_PREDICT", "CHAI1_STRUCTURE_PREDICTION",
+        "ALPHAFOLD", "ALPHAFOLD_PREDICT", "AF2", "AF3",
+    },
 }
 
 
