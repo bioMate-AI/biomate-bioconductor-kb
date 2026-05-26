@@ -3261,6 +3261,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 user_intent = user_intent + _hint
                 log.info("[UnifiedWorkflowGeneration] Count-matrix pattern detected — injected differentialabundance routing hint")
 
+            # Plan B / synthetic biology: codon optimization before mRNA-LNP engineering.
+            _CODON_MRNA_PAT = _re_routing.compile(
+                r'\b(optimize\s+codons?|codon\s+optimi[sz]ation|heterologous\s+expression|'
+                r'host_codon_usage|target_sequence|optimize_codons_for_heterologous_expression|'
+                r'mrna[\s-]lnp|registry\s+id\s+10813)\b',
+                _re_routing.IGNORECASE,
+            )
+            if _CODON_MRNA_PAT.search(user_intent):
+                _hint = (
+                    "\n[Routing hint: codon optimization / mRNA construct engineering — "
+                    "use optimize_codons_for_heterologous_expression (registry id 10813), "
+                    "NOT nf-core/epitopeprediction or immunopeptidomics workflows]"
+                )
+                user_intent = user_intent + _hint
+                log.info("[UnifiedWorkflowGeneration] Codon/mRNA pattern detected — injected optimize_codons routing hint")
+
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
             trials = self._build_intent_trials(user_intent, key_terms=key_terms)
