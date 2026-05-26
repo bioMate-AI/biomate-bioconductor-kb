@@ -4,6 +4,7 @@ import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
+import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
@@ -151,6 +152,31 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       setAppliedEditsDisplay((prev) => [
         ...prev,
         { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · ') },
+      ])
+    }
+  }, [currentChatSession?.messages, panelWorkflow])
+
+  // Gap 2 — rule-based extraction from user messages (frontend-only v1).
+  const extractedFromUserMsgs = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!panelWorkflow || !currentChatSession?.messages) return
+    for (const msg of currentChatSession.messages) {
+      if (msg.role !== 'user') continue
+      if (extractedFromUserMsgs.current.has(msg.id)) continue
+      extractedFromUserMsgs.current.add(msg.id)
+      const text = typeof msg.content === 'string' ? msg.content : ''
+      const edits = extractWorkflowEdits(text, panelWorkflow)
+      if (edits.length === 0) continue
+      const result = applyWorkflowEdits(panelWorkflow, edits)
+      if (result.applied.length === 0) continue
+      setPanelWorkflow(result.next)
+      const summaries = result.applied.map((e) => {
+        if (e.op === 'set_param') return `${e.paramName}: ${JSON.stringify(e.value)}`
+        return e.op
+      })
+      setAppliedEditsDisplay((prev) => [
+        ...prev,
+        { id: `user-${msg.id}-${prev.length}`, summary: summaries.join(' · ') },
       ])
     }
   }, [currentChatSession?.messages, panelWorkflow])
