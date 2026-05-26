@@ -13,7 +13,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import { callGeminiFlash, GEMINI_FLASH_MODEL } from './gemini-flash';
+import { callGeminiFlash } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { conversationStateManager } from './conversation-state';
 import { userPatternsService, type UserContext } from './user-patterns-service';
