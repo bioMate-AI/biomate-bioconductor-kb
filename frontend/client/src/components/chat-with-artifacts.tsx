@@ -3,6 +3,7 @@ import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
+import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
@@ -118,6 +119,28 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // Gap 2 — apply assistant-emitted workflow edits to the open panel artifact.
+  // Backend extractor not yet wired (TODO in docs/20260521_GAP2_CHAT_DRIVEN_EDITS.md);
+  // this effect activates the moment any assistant message arrives with
+  // `metadata.workflowEdits`. Already-applied ops are tracked by message id so
+  // re-renders (e.g. session restore) don't re-apply them.
+  const appliedEditMessages = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!panelWorkflow || !currentChatSession?.messages) return
+    for (const msg of currentChatSession.messages) {
+      if (msg.role !== 'assistant') continue
+      const edits = (msg.metadata as any)?.workflowEdits as WorkflowEdit[] | undefined
+      if (!edits || edits.length === 0) continue
+      if (appliedEditMessages.current.has(msg.id)) continue
+      appliedEditMessages.current.add(msg.id)
+      const result = applyWorkflowEdits(panelWorkflow, edits)
+      setPanelWorkflow(result.next)
+      if (result.rejected.length > 0) {
+        console.warn('[workflow-edits] rejected ops:', result.rejected)
+      }
+    }
+  }, [currentChatSession?.messages, panelWorkflow])
+
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(520)
   const panelResizingRef = useRef(false)
