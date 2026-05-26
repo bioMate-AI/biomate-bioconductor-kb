@@ -427,6 +427,7 @@ function PhaseGroupSection({
   qcOverrides,
   onQcChange,
   paramGroupToPhaseKey,
+  qcAdvisoryByStep,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -452,6 +453,8 @@ function PhaseGroupSection({
   onQcChange: (key: string, val: number | null) => void;
   /** Pre-built map from normalized group name → phase key, computed once at panel mount. */
   paramGroupToPhaseKey: Map<string, string>;
+  /** Gap 1 (inverse) — near-threshold advisories keyed by process_name. */
+  qcAdvisoryByStep?: Record<string, { metric?: string; value?: any; threshold?: any }[]>;
 }) {
   const { steps, label, phaseParams } = group;
   const [qcEditorOpen, setQcEditorOpen] = React.useState(false);
@@ -630,6 +633,21 @@ function PhaseGroupSection({
                   <div className={`name${isFailed ? ' dim' : ''}`}>
                     {STEP_NUMBERS[idx] ?? `${idx + 1}.`}&nbsp;{step.name}
                   </div>
+                  {(() => {
+                    const adv = qcAdvisoryByStep?.[String(step.processName || step.name || '')];
+                    if (!adv || adv.length === 0) return null;
+                    const head = adv[0];
+                    const more = adv.length - 1;
+                    return (
+                      <span
+                        data-testid={`phase-step-advisory-${step.id}`}
+                        title={adv.map((a) => `${a.metric}: ${a.value} (threshold ${a.threshold})`).join(', ')}
+                        style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 4, background: 'oklch(0.95 0.06 80)', color: 'oklch(0.45 0.15 70)' }}
+                      >
+                        ⚠ {head.metric}{more > 0 ? ` +${more}` : ''}
+                      </span>
+                    );
+                  })()}
                   {isRunning && <span className="chip run" style={{marginLeft:'auto'}}><Loader2 className="h-2.5 w-2.5 animate-spin" style={{display:'inline-block'}}/>RUNNING</span>}
                   {isDone    && <span className="chip ok"  style={{marginLeft:'auto'}}>DONE</span>}
                   {isFailed  && <span className="chip err" style={{marginLeft:'auto'}}>FAILED</span>}
@@ -2356,6 +2374,7 @@ export function NextflowWorkflowViewer({
                       handleExecute();
                     }}
                     paramGroupToPhaseKey={paramGroupToPhaseKey}
+                    qcAdvisoryByStep={qcAdvisoryByStep}
                   />
                 ))}
                 <button

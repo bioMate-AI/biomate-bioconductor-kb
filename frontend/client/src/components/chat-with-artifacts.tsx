@@ -125,6 +125,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // `metadata.workflowEdits`. Already-applied ops are tracked by message id so
   // re-renders (e.g. session restore) don't re-apply them.
   const appliedEditMessages = useRef<Set<string>>(new Set())
+  const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string }>>([])
   useEffect(() => {
     if (!panelWorkflow || !currentChatSession?.messages) return
     for (const msg of currentChatSession.messages) {
@@ -138,8 +139,59 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (result.rejected.length > 0) {
         console.warn('[workflow-edits] rejected ops:', result.rejected)
       }
+      // Build a 1-line summary per applied op for the diff chip.
+      const summaries = result.applied.map((e) => {
+        switch (e.op) {
+          case 'set_param': return `${e.paramName}: ${JSON.stringify(e.value)}`
+          case 'add_step':  return `+ ${e.workflowPath}${e.afterStepId ? ` after ${e.afterStepId}` : ''}`
+          case 'remove_step': return `− ${e.stepId}`
+          case 'reorder':   return `${e.stepId} before ${e.beforeStepId}`
+        }
+      })
+      setAppliedEditsDisplay((prev) => [
+        ...prev,
+        { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · ') },
+      ])
     }
   }, [currentChatSession?.messages, panelWorkflow])
+
+  // Phase 2.3 receiver — when the sidebar Workflows dialog dispatches "Run again",
+  // it navigates here with ?runAgain=<runId>. Once on mount we load that run,
+  // attach its workflow definition to the panel, and trigger handleRunWorkflow
+  // with the prior submitted params (Gap 3's extractor flattens them).
+  const handledRunAgain = useRef<string | null>(null)
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const runId = url.searchParams.get('runAgain')
+    if (!runId || handledRunAgain.current === runId) return
+    handledRunAgain.current = runId
+    ;(async () => {
+      try {
+        const r = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}`, { credentials: 'include' })
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const run = await r.json()
+        const wf = run?.workflowDefinition
+        if (!wf) {
+          console.warn('[runAgain] run has no workflowDefinition; skipping')
+          return
+        }
+        const priorParams = extractSubmittedParams(run)
+        setPanelWorkflow(wf)
+        // Re-execute with prior params merged into inline_parameters so the
+        // backend re-runs with the user's prior choices.
+        await handleRunWorkflow({ ...wf, inline_parameters: { ...(wf.inline_parameters || {}), ...priorParams } }, [])
+      } catch (e) {
+        console.warn('[runAgain] failed:', e)
+      } finally {
+        // Strip the param so refreshes don't re-trigger
+        url.searchParams.delete('runAgain')
+        window.history.replaceState({}, '', url.toString())
+      }
+    })()
+    // Only depend on the param; intentionally do not include handleRunWorkflow
+    // because it changes identity each render and we want a single-shot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(520)
