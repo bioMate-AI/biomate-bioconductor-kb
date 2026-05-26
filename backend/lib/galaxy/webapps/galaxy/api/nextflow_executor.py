@@ -3093,9 +3093,17 @@ def execute_nextflow(
     nxf_crt_cache = log_dir / ".aws-crt-cache"
     nxf_crt_cache.mkdir(parents=True, exist_ok=True)
     existing_nxf_opts = env.get("NXF_OPTS", "")
+    # Force non-CRT HTTP clients (Netty for async, Apache for sync). These are
+    # the real AWS SDK Java v2 service-impl properties (verified 2026-05-26 via
+    # docs.aws.amazon.com/sdk-for-java/.../http-configuration-crt.html). The
+    # previous '-Daws.crt.disable.crt.in.client=true' was a non-existent
+    # property and did nothing, so CRT's extractAndLoadLibrary kept racing in
+    # ld-linux. Keep per-run lib.dir as defense-in-depth for anything else on
+    # the classpath that may still instantiate S3CrtAsyncClient.
     crt_opts = (
         f"-Daws.crt.lib.dir={nxf_crt_cache} "
-        f"-Daws.crt.disable.crt.in.client=true "
+        f"-Dsoftware.amazon.awssdk.http.async.service.impl=software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService "
+        f"-Dsoftware.amazon.awssdk.http.service.impl=software.amazon.awssdk.http.apache.ApacheSdkHttpService "
         f"-Xss2m"
     )
     env["NXF_OPTS"] = f"{existing_nxf_opts} {crt_opts}".strip()
