@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
@@ -1345,6 +1346,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       workflowDefinition={panelWorkflow}
                       invocationId={currentRun?.execution?.galaxyInvocationId || currentRun?.id}
                       workflowId={panelWorkflow?.id}
+                      lastSubmittedParams={extractSubmittedParams(currentRun)}
                       prereqChecklist={prereqChecklist}
                       autofix={currentRun?.execution?.nextflowStatus?.autofix}
                       nextflowStatus={currentRun?.execution?.nextflowStatus}

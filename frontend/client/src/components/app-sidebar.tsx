@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { SettingsDialog } from "./settings-dialog"
 import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
+import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
@@ -301,7 +302,8 @@ export function AppSidebar({
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [toolCategoriesExpanded, setToolCategoriesExpanded] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [showStarredDialog, setShowStarredDialog] = useState(false);
+  const [showStarredDialog, setShowStarredDialog] = useState(false)
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -411,18 +413,9 @@ export function AppSidebar({
         <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>New Chat</span>
         </button>
-        {/* Beta: hide nav items whose pages aren't implemented yet. Re-enable
-            (uncomment) once each route lands a real implementation.
-            Currently disabled: Workflows, Runs, Capabilities, Research notes.
-            Kept visible: New Chat, CRO Library, IND Report.
-
-        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowStarredDialog(true)}>
+        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowHistoryDialog(true)}>
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>
         </button>
-        <button className="side-link" data-testid="button-runs-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/dashboard')}>
-          <Activity className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Runs</span>
-        </button>
-        */}
         {/* CRO Library — commented out until fully implemented and validated
         <button className="side-link" data-testid="button-cro-compliance" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/drug-discovery-cro')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>CRO Library</span>
@@ -553,7 +546,9 @@ export function AppSidebar({
       <StarredWorkflowsDialog open={showStarredDialog} onOpenChange={setShowStarredDialog}
         onWorkflowSelect={(workflow) => console.log('Selected starred workflow:', workflow)}
       />
-      <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
+      
+      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} />
+<RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />
     </div>

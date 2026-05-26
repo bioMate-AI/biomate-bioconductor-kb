@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
+import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
@@ -25,6 +26,7 @@ interface NextflowWorkflowViewerProps {
   prereqChecklist?: PrereqChecklist;
   workflowDefinition?: any; // Nextflow definition
   initialParams?: any;
+  lastSubmittedParams?: Record<string, any>;
   onExecute?: (params: any) => void;
   onPause?: () => void;
   onResume?: () => void;
@@ -816,8 +818,9 @@ export function NextflowWorkflowViewer({
   invocationId,
   executionBlockedReason,
   prereqChecklist,
-  workflowDefinition, 
-  initialParams, 
+  workflowDefinition,
+  initialParams,
+  lastSubmittedParams,
   onExecute,
   onPause,
   onResume,
@@ -844,6 +847,11 @@ export function NextflowWorkflowViewer({
   // Stored as a ref (not state) so the useEffect sees the live value without needing
   // it in the dependency array, and without triggering extra re-renders.
   const userOverriddenParams = useRef<Set<string>>(new Set());
+
+  const { showingSubmittedParams, resetToDefaults } = useRunAgainParamCarryover({
+    status, runId, lastSubmittedParams, userOverriddenParams, setParams,
+    defaults: initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {},
+  });
   // Drag-to-resize refs — used by the panel-resizer drag handle
   const resizingRef = useRef(false);
   const resizeStartXRef = useRef(0);
@@ -2768,6 +2776,9 @@ export function NextflowWorkflowViewer({
                 'Confirm and run workflow'
               )}
             </button>
+          )}
+          {showingSubmittedParams && (status === 'completed' || status === 'failed') && (
+            <button type="button" data-testid="button-reset-params-to-defaults" onClick={resetToDefaults} title="Showing params from your last run. Click to reset to workflow defaults." style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reset to defaults</button>
           )}
         </div>
         <div className="run-foot-meta">

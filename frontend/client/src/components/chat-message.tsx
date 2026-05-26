@@ -446,8 +446,8 @@ export function ChatMessage({
                 );
               }
 
-              // Dynamic multi-step pipeline — AI-generated sequential execution plan
-              const isPipelineWorkflow = message.metadata?.workflow?.workflow_type === 'pipeline'
+              // PipelineListView in chat is commented out 2026-05-21 — duplicates the right panel's phase list.
+              const isPipelineWorkflow = false // message.metadata?.workflow?.workflow_type === 'pipeline'
               if (isPipelineWorkflow) {
                 const wf = message.metadata?.workflow
                 const steps = (wf.pipeline_steps || []).map((s: any, idx: number) => ({
