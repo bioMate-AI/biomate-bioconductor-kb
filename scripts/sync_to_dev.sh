@@ -234,14 +234,14 @@ deploy_backend_python() {
       || docker exec biomate-galaxy-dev /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
 
     # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
-    # Nextflow VERSION PIN (2026-05-21): 25.10.0 is the latest pre-26 LTS.
+    # Nextflow VERSION PIN (2026-05-21): 25.10.5 is the latest pre-26 LTS.
     # Nextflow 26.04+ became stricter about DSL2 (e.g. rejects top-level
     # `def` statements with "Statements cannot be mixed with script
     # declarations", and is pickier about Groovy heredoc parsing). 21 of
     # our workflows had to be rewritten today to satisfy 26.04. Rather
     # than chase every future breaking change, pin to 25.10 LTS which
     # accepts the older syntax cleanly. Bump deliberately, not by curl.
-    EXPECTED_NF_VER="25.10.0"
+    EXPECTED_NF_VER="25.10.5"
     INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
     if [[ "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
       echo "[galaxy] Nextflow version mismatch (installed=$INSTALLED_NF_VER, want=$EXPECTED_NF_VER) — reinstalling pinned version"
