@@ -1369,6 +1369,44 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
         {/* Center: Chat */}
         <div className="flex-1 overflow-hidden min-w-0">
+          {appliedEditsDisplay.length > 0 && (
+            <div
+              data-testid="workflow-edits-chips"
+              style={{
+                display: 'flex', flexWrap: 'wrap', gap: 6,
+                padding: '6px 12px', borderTop: '1px solid var(--bm-border, oklch(0.92 0.005 260))',
+                background: 'oklch(0.99 0.003 260)',
+              }}
+            >
+              {appliedEditsDisplay.slice(-6).map((chip) => (
+                <span
+                  key={chip.id}
+                  data-testid={`workflow-edits-chip-${chip.id}`}
+                  className="workflow-edits-chip"
+                  style={{
+                    fontSize: 11, padding: '2px 8px', borderRadius: 999,
+                    background: 'oklch(0.95 0.03 145)', color: 'oklch(0.40 0.10 145)',
+                    fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <span aria-hidden>✓</span>
+                  <span>{chip.summary}</span>
+                  <button
+                    type="button"
+                    aria-label="dismiss"
+                    onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))}
+                    style={{
+                      marginLeft: 2, padding: 0, border: 'none', background: 'transparent',
+                      cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <ChatInterface
             chatSession={currentChatSession}
             onWorkflowGenerated={handleWorkflowGenerated}
