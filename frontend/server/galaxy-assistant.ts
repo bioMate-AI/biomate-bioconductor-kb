@@ -672,8 +672,8 @@ const DOMAIN_ROUTING_RULES: Record<string, string> = {
  */
 const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
   bispecific_format_triage: {
-    target_1: 'target_a', targetA: 'target_a', first_target: 'target_a',
-    target_2: 'target_b', targetB: 'target_b', second_target: 'target_b',
+    target_1: 'target_a', target1: 'target_a', targetA: 'target_a', first_target: 'target_a',
+    target_2: 'target_b', target2: 'target_b', targetB: 'target_b', second_target: 'target_b',
     disease: 'indication',
   },
   in_vivo_cart_codesign: {
@@ -681,6 +681,7 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
     car_target: 'car_target',
     delivery_vehicle: 'lnp_targeting', lnp: 'lnp_targeting',
     delivery_mechanism: 'lnp_targeting', delivery: 'lnp_targeting',
+    delivery_method: 'lnp_targeting',
     lnp_target: 'lnp_targeting', targeting_ligand: 'lnp_targeting',
     cell: 'delivery_cell',
     disease: 'indication',
@@ -693,6 +694,7 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
     disease: 'indication',
     reference_therapeutic: '__drop__', reference: '__drop__',
     reference_style: '__drop__', reference_drug: '__drop__',
+    style: '__drop__',
   },
   atlas_expression_query: {
     gene: 'target_gene', target: 'target_gene',
@@ -707,7 +709,7 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
     // (alias). Tier 0 demo asserts on `disease`. Map LLM-natural `indication` / `condition`
     // → `disease` so the panel populates the asserted key.
     indication: 'disease', condition: 'disease',
-    modalities: '__drop__',
+    modalities: '__drop__', drugs_to_compare: '__drop__', drugs: '__drop__',
     receptors_to_compare: 'receptors',
   },
   adc_design: {
