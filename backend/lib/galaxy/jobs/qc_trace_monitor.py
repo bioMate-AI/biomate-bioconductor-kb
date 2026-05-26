@@ -1187,6 +1187,22 @@ class NextflowQCGateHandler:
         except Exception as _al_exc:
             log.debug(f"[AutoLoop] Non-fatal evaluation error for {process_name}: {_al_exc}")
 
+        # ── Gate-only evidence emission (HTS / ICH-S5 / ICH-S7 / BOIN / ───
+        # allometric / IVIVE / OpenFE / p0_pkpd / pocket_detection /
+        # aizynthfinder). Emits autoloop_gate_results SSE events for the
+        # 10 QC-but-no-autoloop domains so their gates render with the
+        # same hover-tooltip evidence as the auto-loop domains.
+        try:
+            from galaxy.ai.retrievers.qc_gate_emit import emit_gate_only_event
+            emit_gate_only_event(
+                process_name=process_name,
+                qc_metrics=qc_metrics,
+                sse_callback=self.sse_callback,
+                invocation_id=self.invocation_id,
+            )
+        except Exception:
+            pass  # fail-safe: never block the existing QC pipeline
+
     def _calculate_qc_metrics(
         self,
         process_name: str,
