@@ -154,7 +154,21 @@ echo "uname=$(uname -r)"
 echo "docker=$(docker --version 2>&1 || echo MISSING)"
 echo "compose=$(docker compose version 2>&1 || echo MISSING)"
 USED=$(df / | awk "NR==2 {sub(/%/,\"\",\$5); print \$5+0}")
-echo "disk_used=${USED}%"
+echo "disk_used_before_prune=${USED}%"
+# Failed deploys (compose pull succeeded, compose up rolled back) leave
+# images on disk that the post-success prune never gets to clean. Across
+# a few iteration cycles this consistently pushes disk over 80%, blocking
+# the NEXT deploy at the DISK_FULL gate. Soft-prune at the start —
+# `--filter until=2h` keeps the last couple of attempts for forensics
+# while removing the older accumulated residue. (L3: we still never use
+# `prune -af` here.)
+if [ "$USED" -gt 60 ]; then
+  echo "soft-prune (disk ${USED}%)"
+  docker image prune -f --filter "until=2h" 2>&1 | tail -3
+  docker container prune -f --filter "until=2h" 2>&1 | tail -3
+  USED=$(df / | awk "NR==2 {sub(/%/,\"\",\$5); print \$5+0}")
+  echo "disk_used_after_prune=${USED}%"
+fi
 if [ "$USED" -gt 80 ]; then
   echo "DISK_FULL ($USED% > 80%) — aborting deploy"
   exit 1
