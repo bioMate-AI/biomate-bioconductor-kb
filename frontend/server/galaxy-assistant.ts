@@ -208,6 +208,29 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   thinkingBudget: 2000,
 };
 
+// Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
+// Overridable via env so model names can be tuned without code changes.
+const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-2.5-flash';
+const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-2.5-pro';
+
+/**
+ * Pick the appropriate Gemini intent model based on query complexity.
+ * Routes Pro for queries that are likely to produce large JSON intent payloads:
+ *   - long messages (>140 chars)
+ *   - multi-entity / comparison queries ("compare A vs B vs C", multi-target lists)
+ *   - dense technical jargon (3+ tokens that look like gene names / drug names / IDs)
+ * Otherwise routes Flash for cost/latency.
+ */
+export function pickGeminiIntentModel(message: string): string {
+  const msg = String(message || '');
+  if (msg.length > 140) return GEMINI_PRO_MODEL;
+  if (/\b(compare|versus|vs\.?|triage|bake[- ]?off|strategy|design.*for)\b/i.test(msg)) return GEMINI_PRO_MODEL;
+  // Multi-entity: 3+ all-caps gene/drug-style tokens (e.g. PD-1, VEGF, BCMA, PCSK9)
+  const upperTokens = (msg.match(/\b[A-Z][A-Z0-9-]{1,}\b/g) || []).length;
+  if (upperTokens >= 3) return GEMINI_PRO_MODEL;
+  return GEMINI_FLASH_MODEL;
+}
+
 export interface GalaxyAssistantOptions {
   anthropicApiKey: string;
   galaxyAPIProxy: GalaxyAPIProxy;
@@ -4270,8 +4293,14 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
 
     try {
       const intentStartTime = Date.now();
+      // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
+      // Falls back to the configured intentModel for non-Gemini backbones.
+      const configured = this.modelConfig.intentModel;
+      const isGemini = configured.startsWith('gemini-');
+      const effectiveIntentModel = isGemini ? pickGeminiIntentModel(message) : configured;
       console.log('[GalaxyAssistant] Intent API request:', {
-        model: this.modelConfig.intentModel,
+        model: effectiveIntentModel,
+        tier: isGemini ? (effectiveIntentModel === GEMINI_PRO_MODEL ? 'pro' : 'flash') : 'non-gemini',
         max_tokens: 4096,
         system_prompt_length: systemPrompt.length,
         message_length: message.length
@@ -4279,11 +4308,10 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
 
       // Intent classification - using configurable model (Anthropic or Gemini)
       let resultText: string;
-      const isGemini = this.modelConfig.intentModel.startsWith('gemini-');
 
       if (isGemini && this.gemini) {
         const geminiModel = this.gemini.getGenerativeModel({
-          model: this.modelConfig.intentModel,
+          model: effectiveIntentModel,
           // Bumped 2500→4096: complex tier 0 queries (e.g. T03 "Base editing strategy for
           // PCSK9 LOF in hypercholesterolemia (VERVE-102 style)") truncated JSON output at
           // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
@@ -4311,7 +4339,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         }
         resultText = geminiResult.response.text();
         console.log('[GalaxyAssistant] Intent API response (Gemini):', {
-          model: this.modelConfig.intentModel,
+          model: effectiveIntentModel,
           time_ms: Date.now() - intentStartTime,
         });
       } else {
