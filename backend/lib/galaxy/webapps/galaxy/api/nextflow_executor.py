@@ -3881,7 +3881,12 @@ def get_nextflow_status(
             # for >5 min without a Nextflow "Execution complete" log, treat as completed.
             # This handles the race where Nextflow exits cleanly but its log line is read
             # before the final write, leaving the executor stuck in "running" indefinitely.
-            if _s3_outdir and _fb_started_at:
+            # Guarded by aws-cli availability — the Galaxy container PATH does not always
+            # include `aws`, and an unhandled FileNotFoundError here used to 500 the whole
+            # endpoint, returning nf.status=None to the frontend even though the workflow
+            # was running normally.
+            import shutil as _shutil_h
+            if _s3_outdir and _fb_started_at and _shutil_h.which("aws"):
                 import subprocess as _sp_h
                 _h_ls = _sp_h.run(
                     ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
