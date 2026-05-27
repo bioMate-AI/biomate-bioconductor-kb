@@ -3942,6 +3942,17 @@ def get_nextflow_status(
             _running_processes = _build_processes_from_s3_files(
                 _running_s3_files, _s3_outdir or "", _disk_timing.get("workflow_domain", "")
             ) if _running_s3_files and _s3_outdir else []
+            # Pre-completion phase visibility: when the trace file is empty (Batch task
+            # not yet finished reporting) and S3 hasn't produced output files yet, parse
+            # the Nextflow log's progress block so the frontend can render real phase
+            # state instead of zeros. Without this the UI shows "running" with
+            # processes=[] for the first 1-3 minutes of every Batch cold-start.
+            if not _running_processes and total_steps_fb == 0 and log_full_text:
+                _live = _parse_processes_from_log(log_full_text)
+                if _live["processes"]:
+                    _running_processes = _live["processes"]
+                    completed_steps_fb = _live["completedSteps"]
+                    total_steps_fb = _live["totalSteps"]
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
