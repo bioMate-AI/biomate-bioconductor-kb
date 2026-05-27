@@ -1,0 +1,5 @@
+domain,n_entries,gold,silver,bronze,gold_pct,silver_pct,bronze_pct
+ADMET,6,3,3,0,50.0,50.0,0.0
+CYP_DDI,5,4,1,0,80.0,20.0,0.0
+Docking,5,0,0,5,0.0,0.0,100.0
+NCA_PK,5,3,1,1,60.0,20.0,20.0
