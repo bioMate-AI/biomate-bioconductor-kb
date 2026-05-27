@@ -101,16 +101,20 @@ Frontend: `galaxy-assistant.ts` collapses multi-intent to a **single workflow ca
 
 ---
 
-## Week 4–6 — Science sprint (positive publication)
+## Week 4–6 — Science sprint (positive publication) **PRIORITY**
 
-Per `feedback_review/COMPUTATIONAL_EXPERIMENTAL_PLAN_POSITIVE_RESULTS.md`:
+Orchestrator: `research/anti-virus/science_sprint/run_sprint_parallel.sh`  
+Docs: `research/anti-virus/science_sprint/README.md`
 
-| ID | Milestone | Status |
-|----|-----------|--------|
-| S1 | Inhibitor: ensemble docking + MD (replace rigid Vina-only claim) | ⬜ |
-| S2 | Plan A: multi-tool / conformational epitope expansion | ⬜ |
-| S3 | Outbreak framing sections in both manuscripts | ⬜ |
-| S4 | bioRxiv-ready package | ⬜ |
+| ID | Milestone | Script | Status |
+|----|-----------|--------|--------|
+| S1a | GROMACS MD on top-pocket receptor | `track_inh_md.py` | ⬜ |
+| S1b | Ensemble Vina (6 conformers vs rigid baseline) | `track_inh_ensemble_docking.py` | ⬜ |
+| S2a | Epitope: MHCnuggets + NetMHCpan | `track_plan_a_multitool.py` | ⬜ |
+| S2b | Structural epitope patches (9P3I) | `track_plan_a_structural_epitopes.py` | ⬜ |
+| S2c | Cross-species ANDV/SNV/PUUV conservation | `track_plan_a_cross_species.py` | ⬜ |
+| S3 | Manuscript: replace `[planned expansion]` with sprint outputs | manual | ⬜ |
+| S4 | bioRxiv-ready package | — | ⬜ |
 
 ---
 
