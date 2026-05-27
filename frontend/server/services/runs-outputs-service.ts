@@ -220,6 +220,33 @@ export class RunsOutputsService {
             console.info(
               `[runs-outputs] publishDir gap recovery: harvested ${items.length} files from work/ for run ${meta.runId}`
             );
+            // Status reconcile: when we successfully recover user outputs from
+            // work/, the workflow's AWS Batch tasks completed cleanly — the
+            // 'failed' status came from Nextflow's monitor dying before
+            // finalize, NOT from the workflow itself failing. Upgrade the
+            // stored status to 'succeeded' so the UI no longer shows a
+            // misleading failure badge for runs that produced real outputs.
+            if (meta.status === "failed") {
+              try {
+                const run = await storage.getExecutionRun(meta.runId);
+                if (run) {
+                  await storage.updateExecutionRun(run.id, {
+                    execution: {
+                      ...run.execution,
+                      status: "succeeded" as any,
+                      errorMessage: undefined,
+                    },
+                  });
+                  console.info(
+                    `[runs-outputs] status upgraded failed -> succeeded for ${meta.runId} (work/ recovery surfaced ${items.length} outputs)`
+                  );
+                }
+              } catch (e: any) {
+                console.warn(
+                  `[runs-outputs] status upgrade failed (non-fatal): ${e?.message || e}`
+                );
+              }
+            }
           }
         } catch (e: any) {
           console.warn(
