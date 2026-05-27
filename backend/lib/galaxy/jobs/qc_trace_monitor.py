@@ -1392,6 +1392,24 @@ class NextflowQCGateHandler:
             return self._parse_qsar_results(task_work_dir)
 
         else:
+            # ── Generic gate-only fallback (2026-05-27) ─────────────────
+            # When no domain-specific parser matched, look for a
+            # qc_metrics.json artifact in the task work dir. This is the
+            # entry point for the 20+ gate-only domains whose main.nf
+            # already writes qc_metrics.json but for which no dedicated
+            # parser exists above. Without this, handle_process_completion
+            # early-returns and emit_gate_only_event never runs.
+            for candidate in ("qc_metrics.json", "qc.json", "qc_report.json"):
+                p = Path(task_work_dir) / candidate
+                if p.is_file():
+                    try:
+                        import json as _json
+                        with open(p) as _f:
+                            blob = _json.load(_f)
+                        if isinstance(blob, dict) and blob:
+                            return blob
+                    except Exception:
+                        continue
             return None
 
     # ── S3 published report reader ────────────────────────────────────────────
