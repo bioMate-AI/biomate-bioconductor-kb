@@ -12804,6 +12804,9 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
   app.post("/api/regulatory/generate_stream", express.json(), indStreamProxy);
   app.post("/api/regulatory/generate_smoke", express.json(), indProxy);
+  // IND action endpoints — sign + markdown export (ind_actions_router.py).
+  app.post("/api/ind-report/projects/:projectId/sign", express.json(), indProxy);
+  app.post("/api/ind-report/projects/:projectId/document.md", express.json(), indProxy);
 
   const httpServer = createServer(app);
 
