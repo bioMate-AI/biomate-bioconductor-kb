@@ -87,6 +87,13 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
     # AND fires the SSE callback we provide.
     _narrator_emit(invocation_id, kind, technical, sse_callback=_post_sse)
 
+
+def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Drop exported bash completion functions (BASH_FUNC_*) that break Batch/Nextflow shells."""
+    raw = dict(base if base is not None else os.environ)
+    return {k: v for k, v in raw.items() if not k.startswith("BASH_FUNC")}
+
+
 # QC handler registry: invocation_id → NextflowQCGateHandler
 # Populated by _start_qc_monitor so the export endpoint can retrieve live state.
 _qc_handlers: Dict[str, Any] = {}
@@ -273,130 +280,6 @@ def _clean_log_line(line: str) -> str:
     return cleaned
 
 
-# Parses Nextflow progress lines like:
-#   [ce/ac8b01] BIS…bispec:phaseA:PD-1_x_VEGF) | 0 of 1
-#   [-        ] BISPEC_FORMAT_SCORING          -
-#   [a1b2c3d4] process > NAME (tag) | 3 of 5, cached: 2
-_NF_PROC_RE = re.compile(
-    r'^\s*\[(?P<hash>[a-f0-9/]{8,}|-+\s*)\]\s+'
-    r'(?:process\s*>\s*)?'
-    r'(?P<name>[A-Za-z_][\w:.\-]*)'
-    r'(?:\s*\([^)]*\))?'
-    r'(?:\s*\|\s*(?P<done>\d+)\s*of\s*(?P<total>\d+))?'
-)
-
-
-def _parse_processes_from_log(log_text: str) -> Dict[str, Any]:
-    """Parse the last live Nextflow progress block.
-
-    Nextflow rewrites the progress block on every refresh, so the latest
-    occurrence wins. Returns a dict with `processes`, `completedSteps`,
-    `totalSteps` so the cross-worker fallback in get_nextflow_status() can
-    surface real progress instead of a hardcoded zero.
-    """
-    out: Dict[str, Any] = {"processes": [], "completedSteps": 0, "totalSteps": 0}
-    if not log_text:
-        return out
-    # Pre-scan the entire log for un-truncated process names. When a Nextflow
-    # task is submitted with a long tag, the live progress block prints
-    # "BIS…bispec:phaseA:PD-1_x_VEGF" — the regex captures only "BIS" before
-    # the ellipsis. The corresponding full name appears in the initial
-    # process-list block before the first "executor >" line, where each process
-    # is shown on its own line with no truncation.
-    full_names: set = set()
-    for raw in log_text.splitlines():
-        line = _strip_ansi(raw).strip()
-        if not line.startswith("["):
-            continue
-        m = _NF_PROC_RE.match(line)
-        if not m:
-            continue
-        nm = m.group("name")
-        # Skip ellipsis-truncated names; they cannot be a source of truth.
-        if "…" in line[line.find(nm):line.find(nm) + 60]:
-            continue
-        # Heuristic: only collect plausible process names (NF convention is
-        # UPPER_SNAKE_CASE; anything shorter than 4 chars is too noisy to alias).
-        if len(nm) >= 4:
-            full_names.add(nm)
-
-    def _resolve_name(short: str, line_text: str, others_in_block: set) -> str:
-        # If the source line contains "<short>…", look up a full name that
-        # starts with the short prefix.
-        if f"{short}…" not in line_text:
-            return short
-        candidates = [n for n in full_names if n.startswith(short) and n != short]
-        if not candidates:
-            return short
-        if len(candidates) == 1:
-            return candidates[0]
-        # Multiple matches: exclude any that already appear un-truncated as a
-        # sibling line in the same block — the truncated entry must be the one
-        # NOT listed separately. If only one remains, use it.
-        remaining = [n for n in candidates if n not in others_in_block]
-        if len(remaining) == 1:
-            return remaining[0]
-        if remaining:
-            return min(remaining, key=len)
-        return min(candidates, key=len)
-
-    # Index of the latest "executor >" line — Nextflow restarts the progress
-    # block after each refresh, so we want everything after the final restart.
-    last_block_start = log_text.rfind("executor >")
-    block = log_text[last_block_start:] if last_block_start != -1 else log_text
-
-    # Pre-scan the block once to collect un-truncated process names appearing as
-    # sibling lines (used by _resolve_name to disambiguate truncated entries).
-    block_full_names: set = set()
-    for raw in block.splitlines():
-        line = _strip_ansi(raw).strip()
-        if not line.startswith("["):
-            continue
-        m_pre = _NF_PROC_RE.match(line)
-        if not m_pre:
-            continue
-        nm_pre = m_pre.group("name")
-        if f"{nm_pre}…" in line:
-            continue  # truncated; not a source of truth
-        block_full_names.add(nm_pre)
-
-    by_name: Dict[str, Dict[str, Any]] = {}
-    for raw in block.splitlines():
-        line = _strip_ansi(raw).strip()
-        if not line.startswith("["):
-            continue
-        m = _NF_PROC_RE.match(line)
-        if not m:
-            continue
-        raw_name = m.group("name")
-        name = _resolve_name(raw_name, line, block_full_names)
-        hash_field = (m.group("hash") or "").strip()
-        is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
-        done = int(m.group("done") or 0)
-        total = int(m.group("total") or 0)
-        if total > 0:
-            if done >= total:
-                status = "completed"
-            elif is_submitted:
-                status = "running"
-            else:
-                status = "pending"
-        else:
-            status = "running" if is_submitted else "pending"
-        by_name[name] = {
-            "name": name,
-            "status": status,
-            "hash": hash_field if is_submitted else None,
-            "completed": done,
-            "total": total or 1,
-        }
-    procs = list(by_name.values())
-    out["processes"] = procs
-    out["completedSteps"] = sum(p["completed"] for p in procs)
-    out["totalSteps"] = sum(p["total"] for p in procs)
-    return out
-
-
 def _classify_accession(value: str) -> Optional[Dict[str, str]]:
     """
     Return accession metadata if *value* is a recognised public-database accession,
@@ -503,8 +386,6 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
-        backend_root / "biomni_workflows" / "nextflow",  # legacy generated workflows
-        backend_root / "biomni_workflows" / "nextflow" / "subworkflows",
         backend_root / "nf-core-workflows",
         backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools",
         backend_root / "nf-core-modules",
@@ -534,14 +415,6 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
       - nfcore/subworkflows/<name>
       - biomni_nf/<domain>/<name>.nf
     """
-    # Strip legacy 'backend/' prefix if present (old DB entries may have it)
-    if raw_path.startswith("backend/"):
-        raw_path = raw_path.split("backend/", 1)[1]
-
-    # Strip 'biomni_workflows/' prefix if present (normalize to relative path)
-    if raw_path.startswith("biomni_workflows/"):
-        raw_path = raw_path.split("biomni_workflows/", 1)[1]
-
     provided = Path(raw_path)
     if provided.is_absolute() and provided.exists():
         return provided
@@ -573,15 +446,6 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         # AI sometimes returns paths prefixed with nextflow_nfcore/ — strip it and
         # search both with and without an intermediate subworkflows/ component.
         rest = raw_path.split("nextflow_nfcore/", 1)[1].strip("/")
-        logical_candidates.extend([
-            Path(rest),
-            Path(rest) / "main.nf",
-            Path("subworkflows") / rest,
-            Path("subworkflows") / rest / "main.nf",
-        ])
-    elif raw_path.startswith("nextflow/"):
-        # Legacy nextflow/ directory (biomni_workflows/nextflow/subworkflows/)
-        rest = raw_path.split("nextflow/", 1)[1].strip("/")
         logical_candidates.extend([
             Path(rest),
             Path(rest) / "main.nf",
@@ -1318,14 +1182,6 @@ def _generate_executor_config(
             "    client {",
             "        maxConnections = 20",
             "        uploadChunkSize = 104857600",   # 100 MB chunks
-            # JVM SIGSEGV mitigation (2026-05-21): disable AWS SDK CRT (Common
-            # Runtime) S3 path so the bundled CRT JAR's <clinit> never tries
-            # to extract + dlopen its native .so. Falls back to the Apache
-            # HTTP client which uses pure-Java networking. The CRT path
-            # races on chained dlopen under OpenJDK 21.0.11 + Debian trixie
-            # glibc 2.41 and SIGSEGVs inside ld-linux on the PublishDir
-            # thread (~3 of 4 parallel runs observed on 2026-05-20).
-            "        s3.useCrtClient = false",
             "    }",
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
@@ -1345,19 +1201,6 @@ def _generate_executor_config(
             "}",
             "docker.enabled = true",
             f"workDir = 's3://{s3_bucket}/nextflow/work/{user_id}/{run_id}'",
-            # 2026-05-22 fix: declare an empty `profiles { aws { } }` block so
-            # `-profile aws` validates against this config even for workflows
-            # that have no nextflow.config of their own (e.g. transporter_ddi_pgp_bcrp,
-            # bispecific_antibody_design — 33 standalone workflows in this state).
-            # The profile body is empty on purpose: all real Batch settings
-            # (executor, queue, region, aws-cli path, CRT-disable, GPU routing)
-            # are at top level above and apply unconditionally. This block exists
-            # only to satisfy Nextflow's `Unknown configuration profile` check.
-            "profiles {",
-            "    aws {",
-            "        // intentionally empty — real settings are top-level above",
-            "    }",
-            "}",
         ]
 
         if not queue:
@@ -2338,17 +2181,6 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         with _runs_lock:
             if run_id in _runs:
                 # On success, enumerate S3 output files so the frontend can list/download them.
-                #
-                # DEPRECATED 2026-05-21: `s3_output_files` is being phased out. New
-                # consumers should call BioMate's `/api/runs/:id/outputs` (the
-                # canonical RunsOutputsService) which lists S3 directly and returns
-                # richer file metadata (fileType, presigned download URLs, step
-                # mapping). This in-memory field stays empty whenever the gunicorn
-                # worker restarts mid-run, which is the root cause of the
-                # 2026-05-21 "outs=0 on succeeded runs" cosmetic issue. We keep
-                # writing it for backward compatibility with older clients that
-                # still read it (frontend artifact-summary triage path, billing
-                # event consumers) — but the field's stability is not guaranteed.
                 if returncode == 0:
                     outdir = _runs[run_id].get("outdir", "")
                     if str(outdir).startswith("s3://"):
@@ -3056,14 +2888,9 @@ def execute_nextflow(
             ),
         )
 
-    # Profile — explicit request value wins; fall back to BIOMATE_NF_PROFILE env var.
+    # Profile — explicit request value wins; fall back to param then BIOMATE_NF_PROFILE env var.
     profile = request.profile or _param_profile or _default_nf_profile()
     cmd += ["-profile", profile]
-    # NB: the executor-override config (passed via -c above) declares an empty
-    # `profiles { aws { } }` block so '-profile aws' validates even for workflows
-    # that have no nextflow.config of their own (transporter_ddi_pgp_bcrp,
-    # bispecific_antibody_design, 31 other standalone-capable workflows).
-    # See _generate_executor_config for the declaration.
 
     # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
     # Workflows default params.mock_mode = true; command-line params override defaults.
@@ -3189,48 +3016,15 @@ def execute_nextflow(
     trace_path = log_dir / "workflow-trace.txt"
     cmd += ["-with-trace", str(trace_path)]
 
-    # Environment
-    env = os.environ.copy()
+    # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
+    env = _sanitize_subprocess_env()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
-    # Pin Nextflow framework version (2026-05-21): 25.10.5 is the latest pre-26
-    # LTS. Nextflow 26.04+ tightened DSL2 parsing (rejects top-level `def`,
-    # parses Groovy heredocs more strictly), which broke 21 of our workflows
-    # without us asking for it. Pinning here ensures each Nextflow run pulls
-    # the 25.10 framework jar regardless of which launcher version is on PATH.
-    # Bump deliberately, not by curl. See aws_infrastructure/configs/Dockerfile.nextflow-base
-    # for the matching base-image numpy<2 pin (a similar "unwanted upgrade" lesson).
-    env["NXF_VER"] = os.environ.get("NXF_VER", "25.10.5")
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
     # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.
     # Set it whenever we're running on AWS Batch so every .nf file picks the correct ECR image.
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
-
-    # JVM crash mitigation: the AWS SDK CRT (Common Runtime) native library
-    # races on extraction when multiple Nextflow heads start in parallel and
-    # crashes in ld-linux during PublishDir threads. Observed 2026-05-20 with
-    # OpenJDK 21.0.11 on Debian trixie: SIGSEGV at ld-linux-x86-64.so.2+0x2475a,
-    # native frame software.amazon.awssdk.crt.CRT.extractAndLoadLibrary, when
-    # 4 Nextflow heads ran concurrently. Give each head its own CRT extraction
-    # directory and raise thread stack so the native loader has room to dlopen.
-    nxf_crt_cache = log_dir / ".aws-crt-cache"
-    nxf_crt_cache.mkdir(parents=True, exist_ok=True)
-    existing_nxf_opts = env.get("NXF_OPTS", "")
-    # Force non-CRT HTTP clients (Netty for async, Apache for sync). These are
-    # the real AWS SDK Java v2 service-impl properties (verified 2026-05-26 via
-    # docs.aws.amazon.com/sdk-for-java/.../http-configuration-crt.html). The
-    # previous '-Daws.crt.disable.crt.in.client=true' was a non-existent
-    # property and did nothing, so CRT's extractAndLoadLibrary kept racing in
-    # ld-linux. Keep per-run lib.dir as defense-in-depth for anything else on
-    # the classpath that may still instantiate S3CrtAsyncClient.
-    crt_opts = (
-        f"-Daws.crt.lib.dir={nxf_crt_cache} "
-        f"-Dsoftware.amazon.awssdk.http.async.service.impl=software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService "
-        f"-Dsoftware.amazon.awssdk.http.service.impl=software.amazon.awssdk.http.apache.ApacheSdkHttpService "
-        f"-Xss2m"
-    )
-    env["NXF_OPTS"] = f"{existing_nxf_opts} {crt_opts}".strip()
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
@@ -3297,16 +3091,6 @@ def execute_nextflow(
     # needs an inv ID to route the SSE event to the right chat session.
     if invocation_id:
         _narrate_chat(invocation_id, "workflow.submitted", {"run_id": run_id, "workflow": str(nf_path)})
-        # P1.4 — Fire follow-up events that fill the silent gap between
-        # submitted and the first phase_started. The narrator templates
-        # for these existed but had no callers, so the chat looked dead
-        # for the 30s-2min staging window.
-        if accession_params:
-            # SRA / GEO accessions are about to be prefetched.
-            _narrate_chat(invocation_id, "workflow.uploading_inputs", {})
-        if strategy.get("mode") == "awsbatch":
-            # AWS Batch: jobs sit in the queue before any container starts.
-            _narrate_chat(invocation_id, "workflow.queued", {})
 
     # Register run before starting any thread so status endpoint returns immediately.
     # Capture started_at once so _runs and timing.json use the identical timestamp.
@@ -3776,14 +3560,6 @@ def get_nextflow_status(
             )
             if not nf_done and not nf_failed_log:
                 # Log doesn't yet show completion → run is still in progress.
-                # Parse processes/completed/total from the live progress block.
-                # Without this the frontend sees processes=[], completedSteps=0,
-                # totalSteps=0 even though the .nextflow.log has [hash] PROCESS_NAME
-                # | 1 of 4 entries the test layer reads to drive phase cards.
-                _parsed = _parse_processes_from_log(log_full_text)
-                _total = _parsed["totalSteps"] or 0
-                _done = _parsed["completedSteps"] or 0
-                _pct = int(_done / _total * 100) if _total else 0
                 return {
                     "run_id": run_id,
                     "invocation_id": run_id,
@@ -3794,10 +3570,10 @@ def get_nextflow_status(
                     "log_tail": log_tail_fallback,
                     "is_batch": False,
                     "s3_output_files": [],
-                    "completedSteps": _done,
-                    "totalSteps": _total,
-                    "progressPercent": _pct,
-                    "processes": _parsed["processes"],
+                    "completedSteps": 0,
+                    "totalSteps": 0,
+                    "progressPercent": 50,
+                    "processes": [],
                     "started_at": _fb_started_at,
                     "completed_at": None,
                     "duration_s": _fb_duration_s,
@@ -3812,11 +3588,6 @@ def get_nextflow_status(
             has_results = len(real_subdirs) > 0
 
             fallback_status = "succeeded" if has_results else "failed"
-            # Even at terminal state, parse the log for per-process state so the
-            # client can render per-phase status badges and not just an aggregate.
-            _parsed_term = _parse_processes_from_log(log_full_text)
-            _total_term = _parsed_term["totalSteps"] or 0
-            _done_term = _parsed_term["completedSteps"] or 0
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
@@ -3827,10 +3598,10 @@ def get_nextflow_status(
                 "log_tail": log_tail_fallback,
                 "is_batch": False,
                 "s3_output_files": [],
-                "completedSteps": _done_term,
-                "totalSteps": _total_term,
+                "completedSteps": 0,
+                "totalSteps": 0,
                 "progressPercent": 100,
-                "processes": _parsed_term["processes"],
+                "processes": [],
                 "started_at": _fb_started_at,
                 "completed_at": _fb_completed_at,
                 "duration_s": _fb_duration_s,
@@ -3941,12 +3712,7 @@ def get_nextflow_status(
             # for >5 min without a Nextflow "Execution complete" log, treat as completed.
             # This handles the race where Nextflow exits cleanly but its log line is read
             # before the final write, leaving the executor stuck in "running" indefinitely.
-            # Guarded by aws-cli availability — the Galaxy container PATH does not always
-            # include `aws`, and an unhandled FileNotFoundError here used to 500 the whole
-            # endpoint, returning nf.status=None to the frontend even though the workflow
-            # was running normally.
-            import shutil as _shutil_h
-            if _s3_outdir and _fb_started_at and _shutil_h.which("aws"):
+            if _s3_outdir and _fb_started_at:
                 import subprocess as _sp_h
                 _h_ls = _sp_h.run(
                     ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
@@ -4002,17 +3768,6 @@ def get_nextflow_status(
             _running_processes = _build_processes_from_s3_files(
                 _running_s3_files, _s3_outdir or "", _disk_timing.get("workflow_domain", "")
             ) if _running_s3_files and _s3_outdir else []
-            # Pre-completion phase visibility: when the trace file is empty (Batch task
-            # not yet finished reporting) and S3 hasn't produced output files yet, parse
-            # the Nextflow log's progress block so the frontend can render real phase
-            # state instead of zeros. Without this the UI shows "running" with
-            # processes=[] for the first 1-3 minutes of every Batch cold-start.
-            if not _running_processes and total_steps_fb == 0 and log_full_text:
-                _live = _parse_processes_from_log(log_full_text)
-                if _live["processes"]:
-                    _running_processes = _live["processes"]
-                    completed_steps_fb = _live["completedSteps"]
-                    total_steps_fb = _live["totalSteps"]
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
@@ -4084,24 +3839,6 @@ def get_nextflow_status(
         processes = _build_processes_from_s3_files(s3_files, outdir, workflow_domain)
     else:
         processes = []
-
-    # In-memory path early-cold-start fallback: when trace.txt is still empty
-    # and no S3 outputs exist yet (the first 1-3 min on Batch), parse the
-    # Nextflow log's progress block so the frontend can show real pending /
-    # running / completed phase status instead of empty processes=[].
-    if not processes and log_tail:
-        try:
-            _log_full_text = ""
-            if log_path.exists():
-                _log_full_text = log_path.read_text(errors="replace")
-            if _log_full_text:
-                _live = _parse_processes_from_log(_log_full_text)
-                if _live["processes"]:
-                    processes = _live["processes"]
-                    progress["completedSteps"] = _live["completedSteps"]
-                    progress["totalSteps"] = _live["totalSteps"]
-        except Exception:
-            pass
 
     progress = {**progress, "processes": processes}
     work_dir = info.get("work_dir", "")
