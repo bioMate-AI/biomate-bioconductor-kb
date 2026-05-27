@@ -74,7 +74,7 @@ test("Gap 3 — Run again pre-fills submitted params; Reset link restores defaul
   // QC preprocessing on a tiny test FASTQ — typically completes in ~30s end-to-end.
   await page.fill('textarea[placeholder*="message"], textarea[data-testid="chat-input"]',
     "Run QC preprocessing on /test/fixtures/tiny.fastq.gz");
-  await page.click('button[data-testid="button-send-message"], button[type="submit"]');
+  await page.click('[data-testid="chat-send-button"]');
 
   // Wait for the workflow panel to open in the right pane.
   await page.waitForSelector('[data-testid="button-run-workflow-panel"]', { timeout: 90000 });
