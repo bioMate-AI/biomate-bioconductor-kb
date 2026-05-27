@@ -238,32 +238,32 @@ def pbpk_ode(t, y):
     dAgl = -ka_eff * Agut_lum if route == 'oral' else 0
 
     # Gut wall
-    dAgut = ka_eff * Agut_lum - Qgut/1000 * (Cgut/Kp_gut - Cblood)
+    dAgut = ka_eff * Agut_lum - Qgut * (Cgut/Kp_gut - Cblood)
 
     # Liver (includes portal from gut)
-    dAliver = Qliver/1000 * Cblood + Qgut/1000 * Cgut/Kp_gut \
-              - (Qliver+Qgut)/1000 * Cliver/Kp_liver \
-              - CL_hep/1000 * Cliver/Kp_liver * fu_p
+    dAliver = Qliver * Cblood + Qgut * Cgut/Kp_gut \
+              - (Qliver+Qgut) * Cliver/Kp_liver \
+              - CL_hep * Cliver/Kp_liver * fu_p
 
     # Lung (receives total cardiac output from heart)
-    dAlung = Qlung/1000 * Cblood - Qlung/1000 * Clung/Kp_lung
+    dAlung = Qlung * Cblood - Qlung * Clung/Kp_lung
 
     # Kidney
-    dAkidney = Qkidney/1000 * Cblood - Qkidney/1000 * Ckidney/Kp_kidney \
-               - CL_ren/1000 * Cu_blood
+    dAkidney = Qkidney * Cblood - Qkidney * Ckidney/Kp_kidney \
+               - CL_ren * Cu_blood
 
     # Peripheral
-    dAperiph = max(0,Qperiph)/1000 * Cblood - max(0,Qperiph)/1000 * Cperiph/Kp_periph
+    dAperiph = max(0,Qperiph) * Cblood - max(0,Qperiph) * Cperiph/Kp_periph
 
     # Blood (venous mixing pool: receives returns from all tissues, drains to lung)
     # Must subtract Qlung*Cblood: venous blood flows to lung (lung ODE gains this term)
-    dAblood = Qlung/1000 * Clung/Kp_lung \
-              - Qlung/1000 * Cblood \
-              + (Qliver+Qgut)/1000 * Cliver/Kp_liver \
-              + Qkidney/1000 * Ckidney/Kp_kidney \
-              + max(0,Qperiph)/1000 * Cperiph/Kp_periph \
-              - Qliver/1000 * Cblood - Qkidney/1000 * Cblood \
-              - Qgut/1000 * Cblood - max(0,Qperiph)/1000 * Cblood
+    dAblood = Qlung * Clung/Kp_lung \
+              - Qlung * Cblood \
+              + (Qliver+Qgut) * Cliver/Kp_liver \
+              + Qkidney * Ckidney/Kp_kidney \
+              + max(0,Qperiph) * Cperiph/Kp_periph \
+              - Qliver * Cblood - Qkidney * Cblood \
+              - Qgut * Cblood - max(0,Qperiph) * Cblood
 
     # IV: inject directly into blood at t=0
     dAabs = ka_eff * Agut_lum if route == 'oral' else 0
