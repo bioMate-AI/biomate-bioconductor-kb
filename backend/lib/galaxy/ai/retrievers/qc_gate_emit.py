@@ -170,3 +170,30 @@ def emit_gate_only_event(
 def list_gate_only_domains() -> list[str]:
     """Return the 10 gate-only domains this helper handles."""
     return list(_PROCESS_KEYWORDS.keys())
+
+
+# ─── Additive registration (anti-collision pattern, 2026-05-26) ───────
+# Adds cancer_biology / cryo_em / cryo_et keywords via module-level
+# mutation instead of editing the _PROCESS_KEYWORDS literal above
+# (which is subject to parallel-session linter reverts).
+_PROCESS_KEYWORDS.setdefault("cancer_biology", {
+    "DETECT_SOMATIC_MUTATIONS", "ANNOTATE_SOMATIC", "SOMATIC_VARIANT_CALLING",
+    "MUTECT2", "STRELKA2", "VARSCAN_SOMATIC",
+    "DETECT_CNV", "CNV_CALLING", "DETECT_SV", "SV_CALLING",
+    "CANCER_BIOLOGY",
+})
+_PROCESS_KEYWORDS.setdefault("cryo_em", {
+    "CRYOSPARC_STANDARD_SPA", "CRYOSPARC", "SPA_PIPELINE",
+    "FOCUSED_REFINEMENT", "GLOBAL_CTF_REFINEMENT", "HELICAL_REFINEMENT",
+    "LOCAL_REFINEMENT", "PARTICLE_SUBTRACTION",
+    "3D_VARIABILITY", "3D_CLASSIFICATION", "AB_INITIO_3D",
+    "TOPAZ_EXTRACT", "TOPAZ_TRAIN",
+    "IMPORT_MICROGRAPHS", "IMPORT_PARTICLES",
+})
+_PROCESS_KEYWORDS.setdefault("cryo_et", {
+    "ET_FULL_PIPELINE", "ET_PIPELINE",
+    "IMPORT_TILTSERIES", "TILT_SERIES_IMPORT",
+    "TILT_ALIGNMENT", "TILT_SERIES_ALIGN", "ARETOMO", "IMOD_ALIGN",
+    "TOMOGRAM_RECONSTRUCTION", "TOMOGRAM_RECON", "TOMO_RECON",
+    "SUBTOMOGRAM_AVERAGING", "SUBTOMO_AVG",
+})

@@ -234,7 +234,7 @@ def test_supported_domains_count():
     domains = set(list_supported_domains())
     expected = {"hts", "ich_s5", "ich_s7", "clinical_trial", "allometric",
                 "ivive", "openfe", "p0_pkpd", "pocket_detection", "aizynthfinder",
-                "structure_prediction"}
+                "structure_prediction", "cancer_biology", "cryo_em", "cryo_et"}
     assert domains == expected, f"missing: {expected - domains}, extra: {domains - expected}"
 
 
@@ -352,3 +352,77 @@ def test_end_to_end_read_and_build(tmp_path):
     assert event["overall_level"] == "GOLD"
     z_gate = next(g for g in event["gates"] if g["gate"] == "hts_z_prime")
     assert z_gate["evidence"][0]["paper_ref"].startswith("Zhang")
+
+
+# ─── Cryo-ET tests ───────────────────────────────────────────────────
+
+def test_cryo_et_in_supported_domains():
+    assert "cryo_et" in set(list_supported_domains())
+
+
+def test_cryo_et_sta_fsc_gold():
+    e = build_gate_event("subtomogram_averaging", "cryo_et",
+                          {"fsc_0143_resolution_angstroms": 7.5})
+    g = next(g for g in e["gates"] if g["gate"] == "cryo_et_sta_fsc_resolution")
+    assert g["level"] == "GOLD"
+
+
+def test_cryo_et_sta_fsc_fail():
+    e = build_gate_event("subtomogram_averaging", "cryo_et",
+                          {"fsc_0143_resolution_angstroms": 35.0})
+    g = next(g for g in e["gates"] if g["gate"] == "cryo_et_sta_fsc_resolution")
+    assert g["action"] == "halt"
+
+
+def test_cryo_et_tilt_residual_pass():
+    e = build_gate_event("tilt_alignment", "cryo_et",
+                          {"tilt_residual_pixels": 0.4})
+    g = next(g for g in e["gates"] if g["gate"] == "cryo_et_tilt_residual")
+    assert g["level"] == "GOLD"
+
+
+def test_cryo_et_tilt_residual_fail():
+    e = build_gate_event("tilt_alignment", "cryo_et",
+                          {"tilt_residual_pixels": 4.5})
+    g = next(g for g in e["gates"] if g["gate"] == "cryo_et_tilt_residual")
+    assert g["action"] == "halt"
+
+
+def test_cryo_et_defocus_in_range():
+    e = build_gate_event("import_tiltseries", "cryo_et",
+                          {"defocus_um": -3.5})
+    g = next(g for g in e["gates"] if g["gate"] == "cryo_et_defocus_range")
+    assert g["action"] == "pass"
+
+
+def test_cryo_et_defocus_out_of_range():
+    e = build_gate_event("import_tiltseries", "cryo_et",
+                          {"defocus_um": -12.0})
+    g = next(g for g in e["gates"] if g["gate"] == "cryo_et_defocus_range")
+    assert g["action"] == "halt"
+
+
+def test_cryo_et_process_classification():
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    for proc in ("ET_FULL_PIPELINE", "IMPORT_TILTSERIES", "TILT_ALIGNMENT",
+                  "TOMOGRAM_RECONSTRUCTION", "SUBTOMOGRAM_AVERAGING"):
+        assert classify_gate_only_domain(proc) == "cryo_et", f"failed for {proc}"
+
+
+def test_cryo_et_no_collision_with_cryo_em():
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    assert classify_gate_only_domain("CRYOSPARC_STANDARD_SPA") == "cryo_em"
+    assert classify_gate_only_domain("TOPAZ_EXTRACT") == "cryo_em"
+    assert classify_gate_only_domain("IMPORT_MICROGRAPHS") == "cryo_em"
+    assert classify_gate_only_domain("IMPORT_TILTSERIES") == "cryo_et"
+    assert classify_gate_only_domain("SUBTOMOGRAM_AVERAGING") == "cryo_et"
+
+
+def test_cryo_et_end_to_end():
+    e = build_gate_event("subtomogram_averaging", "cryo_et",
+                          {"fsc_0143_resolution_angstroms": 7.2,
+                           "tilt_residual_pixels": 0.4, "defocus_um": -4.0})
+    assert e["passed"] is True
+    assert len(e["gates"]) == 3
+    for g in e["gates"]:
+        assert len(g["evidence"]) >= 1
