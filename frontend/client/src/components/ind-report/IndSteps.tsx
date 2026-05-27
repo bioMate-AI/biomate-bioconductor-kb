@@ -294,9 +294,23 @@ export function Step2Admet({
               <Upload size={12} /> Upload PDF or CSV
             </button>
             <span style={{ color: "var(--ind-text-dim)" }}>or</span>
-            <span>Link NDA:</span>
-            <input className="nda-input" placeholder="NDA #" />
-            <button className="ind-btn sm">Fetch →</button>
+            <span title="Reference compound NDA fetch — wires to FDA NDA review search; not yet active in pilot.">
+              Link NDA:
+            </span>
+            <input
+              className="nda-input"
+              placeholder="NDA # (coming soon)"
+              disabled
+              aria-disabled="true"
+              title="NDA fetch not yet wired — upload PDF/CSV directly for now."
+            />
+            <button
+              className="ind-btn sm"
+              disabled
+              title="NDA fetch not yet wired."
+            >
+              Fetch →
+            </button>
           </div>
         </div>
       )}
