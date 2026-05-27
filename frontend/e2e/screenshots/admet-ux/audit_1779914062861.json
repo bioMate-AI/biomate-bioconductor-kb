@@ -1,0 +1,48 @@
+[
+  {
+    "testId": "AD-0",
+    "workflowName": "ADMET QC profiles API",
+    "runId": null,
+    "startTs": 1779913962673,
+    "endTs": 1779913962673,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "/api/qc/profiles responded with profile list",
+        "passed": true,
+        "note": "total=44, admet="
+      },
+      {
+        "name": "admet_standard registered",
+        "passed": false,
+        "note": "missing — gate defaults will be sourced from qc_evaluator.py QC_PROFILES"
+      },
+      {
+        "name": "admet_cns registered (stricter CNS profile)",
+        "passed": false
+      },
+      {
+        "name": "admet_oncology registered (oncology tolerant profile)",
+        "passed": false
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "testId": "AD-1",
+    "workflowName": "ADMET full journey",
+    "runId": null,
+    "startTs": 1779914062861,
+    "endTs": 1779914062861,
+    "finalStatus": "error: locator.fill: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n",
+    "assertions": [
+      {
+        "name": "Registration + home loaded",
+        "passed": true
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/admet-ux/AD1_01_home.png"
+    ]
+  }
+]
