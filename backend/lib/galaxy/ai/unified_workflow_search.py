@@ -81,6 +81,7 @@ _MHCQUANT_MS_SIGNALS = (
 # Plan B / synthetic biology — codon optimization, mRNA construct QC (BioMNI subworkflows).
 _CODON_MRNA_SIGNALS = (
     "optimize codons", "codon optimization", "codon optimisation", "heterologous expression",
+    "optimize_codons_for_heterologous_expression",
     "target_sequence", "host_codon_usage", "mrna-lnp", "mrna lnp", "codon usage",
     "synthetic_biology", "10813",
 )
@@ -778,39 +779,18 @@ class UnifiedWorkflowSearch:
                             m = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
                                                    preferred_domains=preferred_domains, penalized_domains=penalized_domains)
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
-                            # Synthetic score: 7.0 − 0.3*rank.
-                            # Old base of 2.8 capped all rescued matches below
-                            # _MATCH_SCORE_MED (6.0); dispatcher demoted to "low_confidence"
-                            # and the compose-from-scratch path fired. Base 7.0 puts rank-1
-                            # rescues over the medium threshold while staying below the 12.0
-                            # high-confidence threshold. Match_type is computed from the
-                            # final score (not the literal "llm_rescued" string) so the
-                            # dispatcher's match_type branches in ai_assistant.py:3493+
-                            # fire correctly — previously "llm_rescued" matched neither
-                            # the high_confidence nor medium_confidence branch and silently
-                            # fell through to compose-from-scratch.
-                            _rescue_score = round(7.0 - 0.3 * rank, 2)
+                            # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
                             m = WorkflowMatch(
                                 id=m.id, name=m.name, description=m.description,
                                 domain=m.domain, source=m.source, format=m.format,
                                 step_count=m.step_count, tools=m.tools, tags=m.tags,
                                 filename=m.filename, workflow_json=m.workflow_json,
-                                score=_rescue_score,
-                                match_type=self._classify_match(_rescue_score),
+                                score=round(2.8 - 0.3 * rank, 2),
+                                match_type="llm_rescued",
                             )
                             results.append(m)
                         if rescued_rows:
-                            # Final sort prioritises LLM-selected workflows over FTS
-                            # keyword-overlap noise (Bioconductor TCC, openCyto, snm…
-                            # routinely score 25-30+ on generic words). LLM-named comes
-                            # first regardless of FTS score; non-LLM matches keep their
-                            # FTS rank below.
-                            results.sort(
-                                key=lambda x: (
-                                    x.id not in llm_rank_map if llm_rank_map else True,
-                                    -x.score,
-                                )
-                            )
+                            results.sort(key=lambda x: x.score, reverse=True)
                             log.debug("Pass-0 rescued %d LLM-selected workflows not in FTS", len(rescued_rows))
                     except Exception as exc:
                         log.debug("Pass-0 rescue fetch failed: %s", exc)

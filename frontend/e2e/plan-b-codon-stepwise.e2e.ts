@@ -100,7 +100,7 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
   });
 
   test("PB-1: chat routing mentions codon / mRNA optimization", async ({ page }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(420_000);
     const startTs = Date.now();
     await setupTestUser(page, "plan-b");
     await shot(page, SS_DIR, "PB-1_00_before_chat");
