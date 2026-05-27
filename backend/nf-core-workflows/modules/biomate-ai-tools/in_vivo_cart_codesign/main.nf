@@ -28,7 +28,7 @@ params.delivery_cell  = 'T_cell'        // T_cell | NK_cell | macrophage
 params.lnp_targeting  = 'auto'           // spleen_C12-200 | anti_CD8 | anti_CD5 | anti_CD3 | untargeted_MC3 | auto
 params.persistence    = 'transient'      // transient | persistent
 
-CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
     ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
     : 'biomate/biomni-tools:latest'
 
