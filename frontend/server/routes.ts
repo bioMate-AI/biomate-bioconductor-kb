@@ -2044,10 +2044,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await authService.verifyEmail(token);
 
+      // Auto-login: issue a fresh JWT and set the cookie so the user lands
+      // on the platform without an extra login step (fixes BUG-05 loop when
+      // the original registration cookie was never accepted or the user
+      // verifies on a different device).
+      const freshToken = authService.generateToken(user as any);
+      res.cookie('biomate_token', freshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
       res.json({
         success: true,
         message: 'Email verified successfully',
         user,
+        token: freshToken,
       });
     } catch (error: any) {
       console.error('[Auth] Email verification error:', error);
@@ -2319,8 +2332,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // Redirect to dashboard with token
-        res.redirect(`/dashboard?oauth_success=true`);
+        // /dashboard route is currently disabled — land on the app root instead.
+        res.redirect(`/?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] Google callback error:', error);
         res.redirect('/login?error=oauth_error');
@@ -2355,8 +2368,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // Redirect to dashboard with token
-        res.redirect(`/dashboard?oauth_success=true`);
+        // /dashboard route is currently disabled — land on the app root instead.
+        res.redirect(`/?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] GitHub callback error:', error);
         res.redirect('/login?error=oauth_error');
