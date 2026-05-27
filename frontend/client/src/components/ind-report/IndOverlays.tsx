@@ -281,17 +281,25 @@ export function IndAuditOverlay({
   const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [reason, setReason] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | AuditFinding["severity"]>("all");
+  // P1-2: optimistic dismissal — fade card + show "Dismissed" badge before
+  // the POST completes; roll back on failure.
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
 
   const filtered =
     filter === "all" ? audit.findings : audit.findings.filter((f) => f.severity === filter);
 
   const sevSummary = (["CRITICAL", "MAJOR", "MINOR", "INFO"] as const).map((sev) => ({
     sev,
-    count: audit.findings.filter((f) => f.severity === sev && !f.addressed).length,
+    count: audit.findings.filter((f, idx) =>
+      f.severity === sev && !f.addressed && !dismissed.has(idx),
+    ).length,
   }));
 
   const submitDismiss = async (i: number, finding: AuditFindingWithMeta) => {
     if (!reason) return;
+    setDismissed((prev) => new Set(prev).add(i));
+    setDismissingId(null);
+    setReason(null);
     try {
       await captureDismissal(
         finding.id ?? `finding-${i}`,
@@ -304,9 +312,12 @@ export function IndAuditOverlay({
       );
     } catch (err) {
       console.warn("[ind] captureDismissal failed:", err);
+      setDismissed((prev) => {
+        const next = new Set(prev);
+        next.delete(i);
+        return next;
+      });
     }
-    setDismissingId(null);
-    setReason(null);
   };
 
   return (
@@ -345,10 +356,14 @@ export function IndAuditOverlay({
         </select>
       </div>
       <div className="ind-audit-list">
-        {filtered.map((f, i) => (
+        {filtered.map((f, i) => {
+          const isDismissedLocal = dismissed.has(i);
+          const isFaded = f.addressed || isDismissedLocal;
+          return (
           <div
             key={i}
-            className={`ind-audit-finding ${f.severity.toLowerCase()}${f.addressed ? " addressed" : ""}`}
+            className={`ind-audit-finding ${f.severity.toLowerCase()}${isFaded ? " addressed" : ""}`}
+            data-testid={`audit-finding-${i}`}
           >
             <div className="ind-audit-finding-head">
               <span className="sec">{f.section}</span>
@@ -358,6 +373,14 @@ export function IndAuditOverlay({
                   ✓ Addressed
                 </span>
               )}
+              {isDismissedLocal && !f.addressed && (
+                <span
+                  data-testid={`audit-dismissed-badge-${i}`}
+                  style={{ fontSize: 11, color: "var(--ind-text-muted)", fontWeight: 600 }}
+                >
+                  ✓ Dismissed
+                </span>
+              )}
             </div>
             {f.title && <div className="title">{f.title}</div>}
             <div className="desc">{f.desc}</div>
@@ -365,7 +388,7 @@ export function IndAuditOverlay({
               <button className="ind-link" onClick={() => onJumpTo(f.section)}>
                 → Jump to section
               </button>
-              {!f.addressed && (
+              {!isFaded && (
                 <button
                   className="ind-link"
                   onClick={() => {
@@ -414,7 +437,8 @@ export function IndAuditOverlay({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       <footer className="ind-audit-foot">
         <span>
