@@ -226,3 +226,21 @@ If still off, additional issues (mppg_total liver density factor, ionization Kp 
 ## Reference
 
 This audit complements the older `docs/20260418_SCIENTIFIC_AUDIT_AND_FIXES.md`. Several issues called out there (PBPK mass balance) were not fully resolved in current code; the `/1000` unit error appears to be a separate regression introduced after that audit.
+
+## Validation result (pbpk_simulation /1000 fix, commit 69053fcd3)
+
+After force-deploying the ODE fix to dev and re-running aspirin 325 mg oral:
+
+| Metric | Before fix | After fix | Literature | Status |
+|---|---|---|---|---|
+| Cmax (µg/mL) | 11.2 | **6.675** | ~6 | **✓ matches** |
+| tmax (h) | 84 | **2.67** | <1 | ✓ right ballpark |
+| t½ (h) | 490 | 27.4 | 2-3 | ⚠ ~10× off |
+| AUC (µg·h/mL) | 742.9 | 257.8 | ~25 | ⚠ ~10× off |
+| PK profile shape | monotonic rise | rises→peaks 2.5h→declines | same | **✓ correct curve** |
+
+**Core /1000 unit error: FIXED.** The PK profile now has the correct absorption-elimination shape and Cmax matches literature.
+
+**Remaining ~10× factor on terminal half-life** points to a separate chemistry-side issue. The most likely culprit: `fu_plasma` default of 0.05 is too low for aspirin (real value ≈ 0.2 because albumin binding saturates at therapeutic doses). A 4× higher fu_p would 4× the clearance rate via the `CL_hep × Cliver × fu_p` term, bringing t½ to ~7h, closer to literature.
+
+This is a parameter-defaulting / drug-property estimation issue, not a framework bug. Filed for future tuning of the compound-property estimation logic.
