@@ -1,0 +1,5 @@
+domain,n_scenarios,baseline_single_shot_pct,autoloop_gate_pass_at_1_pct,autoloop_gate_pass_within_3_pct,mean_iterations_to_converge,mean_extra_retries,escalation_rate_pct
+ADMET,36,40.0,13.9,100.0,3.97,0.97,0.0
+CYP_DDI,27,30.0,25.9,100.0,1.74,0.74,0.0
+Docking,35,20.0,22.9,85.7,1.73,0.73,14.3
+NCA_PK,27,50.0,25.9,100.0,1.74,0.74,0.0

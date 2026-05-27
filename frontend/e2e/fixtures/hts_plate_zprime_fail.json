@@ -1,0 +1,17 @@
+{
+  "_comment": "Synthetic HTS plate where pos-ctrl and neg-ctrl distributions overlap heavily. Z' will compute to ~0.2 (FAIL, < 0.5).",
+  "plate_data": [
+    {"well": "A1", "compound_id": "POS_CTRL", "signal": 200, "is_pos_ctrl": true,  "is_neg_ctrl": false, "concentration_uM": null},
+    {"well": "A2", "compound_id": "POS_CTRL", "signal": 290, "is_pos_ctrl": true,  "is_neg_ctrl": false, "concentration_uM": null},
+    {"well": "A3", "compound_id": "POS_CTRL", "signal": 410, "is_pos_ctrl": true,  "is_neg_ctrl": false, "concentration_uM": null},
+    {"well": "A4", "compound_id": "POS_CTRL", "signal": 520, "is_pos_ctrl": true,  "is_neg_ctrl": false, "concentration_uM": null},
+    {"well": "H9",  "compound_id": "NEG_CTRL", "signal": 700, "is_pos_ctrl": false, "is_neg_ctrl": true,  "concentration_uM": null},
+    {"well": "H10", "compound_id": "NEG_CTRL", "signal": 820, "is_pos_ctrl": false, "is_neg_ctrl": true,  "concentration_uM": null},
+    {"well": "H11", "compound_id": "NEG_CTRL", "signal": 930, "is_pos_ctrl": false, "is_neg_ctrl": true,  "concentration_uM": null},
+    {"well": "H12", "compound_id": "NEG_CTRL", "signal": 1080, "is_pos_ctrl": false, "is_neg_ctrl": true, "concentration_uM": null},
+    {"well": "B1", "compound_id": "CPD-0001", "signal": 480, "is_pos_ctrl": false, "is_neg_ctrl": false, "concentration_uM": null},
+    {"well": "B2", "compound_id": "CPD-0002", "signal": 850, "is_pos_ctrl": false, "is_neg_ctrl": false, "concentration_uM": null}
+  ],
+  "expected_z_prime_lt": 0.5,
+  "expected_qc_status": "FAIL"
+}
