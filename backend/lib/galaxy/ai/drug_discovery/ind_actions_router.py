@@ -201,3 +201,118 @@ async def download_markdown(
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Version history (P2-6) — append-only snapshots per project
+# Storage: data/ind_demo/registry/versions/<project_id>.jsonl
+# ---------------------------------------------------------------------------
+
+_VERSIONS_DIR = _REPO_ROOT / "data" / "ind_demo" / "registry" / "versions"
+_PROJECT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,40}$")
+
+
+def _versions_path(project_id: str) -> Path:
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+    return _VERSIONS_DIR / f"{project_id}.jsonl"
+
+
+class SnapshotRequest(BaseModel):
+    document_sha256: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+    adapter_versions: dict[str, str] = Field(default_factory=dict)
+    section_count: int = Field(0, ge=0)
+    note: Optional[str] = Field(None, max_length=400)
+
+
+def _read_versions(project_id: str) -> list[dict]:
+    path = _versions_path(project_id)
+    if not path.exists():
+        return []
+    out: list[dict] = []
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line))
+        except Exception as exc:
+            log.warning("[versions] skipping malformed row: %s", exc)
+    return out
+
+
+@router.post("/api/ind-report/projects/{project_id}/snapshot")
+async def create_snapshot(
+    project_id: str,
+    body: SnapshotRequest,
+    x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+    user: dict = Depends(require_authenticated_user),
+):
+    """Append an immutable snapshot row. Auto-numbers as next version."""
+    existing = _read_versions(project_id)
+    next_version = (existing[-1].get("version", 0) + 1) if existing else 1
+    record = {
+        "version": next_version,
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "document_sha256": body.document_sha256,
+        "document_sha256_short": body.document_sha256[:12],
+        "adapter_versions": body.adapter_versions,
+        "section_count": body.section_count,
+        "author": user.get("user_id", "anonymous"),
+        "note": body.note,
+    }
+    if x_biomate_org_id:
+        record["org_id"] = x_biomate_org_id
+    path = _versions_path(project_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as f:
+        f.write(json.dumps(record) + "\n")
+    log.info("[versions] project=%s v%d sha=%s by=%s",
+             project_id, next_version, record["document_sha256_short"], record["author"])
+    return record
+
+
+@router.get("/api/ind-report/projects/{project_id}/versions")
+async def list_versions(project_id: str):
+    """Return all snapshots oldest-first. Anonymous-readable."""
+    rows = _read_versions(project_id)
+    return {"project_id": project_id, "count": len(rows), "versions": rows}
+
+
+# ---------------------------------------------------------------------------
+# Region-aware sections render (P1-4 backend stub)
+# Returns not_implemented for non-FDA; frontend uses this to keep
+# EMA/NMPA/PMDA grayed-out in the region selector.
+# ---------------------------------------------------------------------------
+
+class RenderSectionRequest(BaseModel):
+    section_type: str = Field(..., min_length=1, max_length=40)
+    region: str = Field("FDA", pattern=r"^(FDA|EMA|NMPA|PMDA)$")
+    inputs: dict[str, str] = Field(default_factory=dict)
+
+
+@router.post("/api/ind-report/projects/{project_id}/sections/render")
+async def render_section_for_region(
+    project_id: str,
+    body: RenderSectionRequest,
+    x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+):
+    """Region-aware section render. Non-FDA returns not_implemented today."""
+    if body.region != "FDA":
+        return {
+            "status": "not_implemented",
+            "region": body.region,
+            "reason": (
+                f"{body.region} prose rendering is not yet wired. "
+                f"Per-region SFT corpus exists (task3_region_adaptation.jsonl); "
+                f"inference route not yet built. FDA-only in beta."
+            ),
+            "fallback_region": "FDA",
+        }
+    return {
+        "status": "ok",
+        "region": "FDA",
+        "section_type": body.section_type,
+        "project_id": project_id,
+        "note": "Render via /api/regulatory/generate_stream for actual prose.",
+    }
