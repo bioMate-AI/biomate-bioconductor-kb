@@ -220,37 +220,53 @@ export class RunsOutputsService {
             console.info(
               `[runs-outputs] publishDir gap recovery: harvested ${items.length} files from work/ for run ${meta.runId}`
             );
-            // Status reconcile: when we successfully recover user outputs from
-            // work/, the workflow's AWS Batch tasks completed cleanly — the
-            // 'failed' status came from Nextflow's monitor dying before
-            // finalize, NOT from the workflow itself failing. Upgrade the
-            // stored status to 'succeeded' so the UI no longer shows a
-            // misleading failure badge for runs that produced real outputs.
-            if (meta.status === "failed") {
-              try {
-                const run = await storage.getExecutionRun(meta.runId);
-                if (run) {
-                  await storage.updateExecutionRun(run.id, {
-                    execution: {
-                      ...run.execution,
-                      status: "succeeded" as any,
-                      errorMessage: undefined,
-                    },
-                  });
-                  console.info(
-                    `[runs-outputs] status upgraded failed -> succeeded for ${meta.runId} (work/ recovery surfaced ${items.length} outputs)`
-                  );
-                }
-              } catch (e: any) {
-                console.warn(
-                  `[runs-outputs] status upgrade failed (non-fatal): ${e?.message || e}`
-                );
-              }
-            }
+            // Status upgrade for this case is now handled by the unified
+            // reconcile block below (after both outputs/ and work/ paths).
           }
         } catch (e: any) {
           console.warn(
             `[runs-outputs] work/ fallback list failed for ${workPrefix}: ${e?.message || e}`
+          );
+        }
+      }
+    }
+
+    // General status reconcile: when status=failed but real workflow outputs
+    // exist (anywhere: outputs/ or recovered from work/), the workflow's
+    // compute completed successfully — the 'failed' came from Nextflow's
+    // monitor dying after publishDir wrote files but before Galaxy got a
+    // terminal event. Upgrade to 'succeeded' so the UI matches reality.
+    //
+    // Filter excludes Nextflow auto-report files (report.html, timeline.html,
+    // dag.dot, versions.yml) — those are produced even when the workflow's
+    // own scripts failed, so we'd false-upgrade real failures otherwise.
+    if (meta.status === "failed" && items.length > 0) {
+      const autoReportNames = new Set([
+        "report.html", "timeline.html", "dag.dot", "versions.yml",
+      ]);
+      const realOutputs = items.filter((obj) => {
+        const name = obj.Key?.split("/").pop() || "";
+        return !autoReportNames.has(name) && !name.startsWith(".");
+      });
+      if (realOutputs.length > 0) {
+        try {
+          const run = await storage.getExecutionRun(meta.runId);
+          if (run) {
+            await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: "succeeded" as any,
+                errorMessage: undefined,
+              },
+            });
+            console.info(
+              `[runs-outputs] status reconcile: ${meta.runId} failed -> succeeded ` +
+              `(${realOutputs.length} real output files present)`
+            );
+          }
+        } catch (e: any) {
+          console.warn(
+            `[runs-outputs] status upgrade failed (non-fatal): ${e?.message || e}`
           );
         }
       }
