@@ -4834,3 +4834,101 @@ Keep responses concise and actionable. The chat_prompt should be ready to paste.
             "llm_used": False,
             "llm_error": str(exc),
         }
+
+
+
+# ---------------------------------------------------------------------------
+# Gap 2 — Workflow edits extractor (LLM-backed companion to the frontend rules)
+# ---------------------------------------------------------------------------
+# The frontend extractor at frontend/client/src/lib/workflow-edits-extract.ts
+# handles deterministic "set X to Y" cases. This endpoint covers the cases
+# the frontend rules can't: multi-op intents, structural edits ("add a
+# docking step after rnaseq"), and ambiguous parameter references.
+#
+# Contract:
+#   POST /api/ai_assistant/extract_workflow_edits
+#   body: { workflow: <workflow JSON>, message: "<user's NL>" }
+#   returns: { edits: WorkflowEdit[] }
+# WorkflowEdit shape matches frontend/client/src/lib/workflow-edits.ts.
+#
+# Conservative by design: returns [] when intent is ambiguous so we never
+# apply something the user didn't ask for.
+@router.post(
+    "/api/ai_assistant/extract_workflow_edits",
+    summary="Extract structured workflow-edit ops from a natural-language message."
+)
+def extract_workflow_edits(
+    request: Dict[str, Any],
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    workflow = request.get("workflow") or {}
+    message = (request.get("message") or "").strip()
+    if not message:
+        return {"edits": []}
+    if not isinstance(workflow, dict):
+        return {"edits": []}
+
+    # Compact the workflow shape for the prompt. We only feed step ids,
+    # workflow_path, and current params — the LLM doesn't need the full
+    # parameter schema for the simplest cases.
+    steps = workflow.get("pipeline_steps") or workflow.get("chain_steps") or []
+    step_summary = []
+    for s in steps[:32]:  # cap to keep the prompt small
+        if not isinstance(s, dict):
+            continue
+        step_summary.append({
+            "id": s.get("id"),
+            "workflow_path": s.get("workflow_path") or s.get("nextflow_path"),
+            "workflow_name": s.get("workflow_name"),
+            "params": list((s.get("params") or s.get("parameters") or {}).keys())[:24],
+        })
+
+    prompt = f"""You translate the user's natural-language request into structured workflow-edit ops.
+
+Workflow steps (id, workflow_path, declared param names):
+{step_summary if step_summary else "(single-workflow artifact, no chain)"}
+
+Top-level inline_parameters (if any): {list((workflow.get("inline_parameters") or {}).keys())[:24]}
+
+User message: {message!r}
+
+Return a JSON object with a single key "edits", whose value is a list of ops. Each op MUST match one of these exact shapes (TypeScript-style):
+  {{ "op": "set_param", "stepId": "<step id>", "paramName": "<param>", "value": <number|string|boolean> }}
+  {{ "op": "add_step", "afterStepId": "<step id>" | null, "workflowPath": "<path>", "params": {{...}} }}
+  {{ "op": "remove_step", "stepId": "<step id>" }}
+  {{ "op": "reorder", "stepId": "<step id>", "beforeStepId": "<step id>" }}
+
+Rules:
+- Only emit ops the user clearly asked for. When in doubt, return [].
+- For set_param, the stepId MUST be one of the listed ids unless there is no chain (then use any string).
+- For add_step, the workflowPath should be a known workflow path; if uncertain, return [].
+- Return ONLY the JSON object, no prose, no markdown.
+"""
+
+    try:
+        from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
+        raw = _gemini_flash(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=512,
+            temperature=0.1,
+            json_mode=True,
+        ).strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        import json as _json
+        parsed = _json.loads(raw)
+        edits = parsed.get("edits", []) if isinstance(parsed, dict) else []
+        if not isinstance(edits, list):
+            return {"edits": []}
+        # Filter to valid ops only.
+        valid_ops = {"set_param", "add_step", "remove_step", "reorder"}
+        cleaned = []
+        for e in edits:
+            if not isinstance(e, dict):
+                continue
+            if e.get("op") not in valid_ops:
+                continue
+            cleaned.append(e)
+        return {"edits": cleaned}
+    except Exception as exc:
+        log.warning("extract_workflow_edits failed: %s", exc)
+        return {"edits": [], "error": str(exc)}

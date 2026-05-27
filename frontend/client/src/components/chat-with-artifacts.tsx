@@ -126,7 +126,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // `metadata.workflowEdits`. Already-applied ops are tracked by message id so
   // re-renders (e.g. session restore) don't re-apply them.
   const appliedEditMessages = useRef<Set<string>>(new Set())
+<<<<<<< Updated upstream
   const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string; snapshot?: any }>>([])
+=======
+  const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string; snapshot: any }>>([])
+>>>>>>> Stashed changes
   // Structural ops (add_step / remove_step / reorder) are parked here and
   // require an explicit confirm before they mutate the panel artifact.
   // set_param auto-applies.
@@ -215,6 +219,55 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         { id: `user-${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot },
       ])
     }
+  }, [currentChatSession?.messages, panelWorkflow])
+
+  // Gap 2 — backend LLM fallback when the rule extractor returns [].
+  // Fires once per user message that produced no rule-based hits.
+  const llmExtractedUserMsgs = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!panelWorkflow || !currentChatSession?.messages) return
+    const lastUserMsg = [...currentChatSession.messages].reverse().find((m) => m.role === 'user')
+    if (!lastUserMsg) return
+    if (llmExtractedUserMsgs.current.has(lastUserMsg.id)) return
+    // Only attempt LLM fallback if rule extractor returned nothing.
+    if (!extractedFromUserMsgs.current.has(lastUserMsg.id)) return
+    const text = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : ''
+    const ruleHit = extractWorkflowEdits(text, panelWorkflow).length > 0
+    if (ruleHit) return
+    llmExtractedUserMsgs.current.add(lastUserMsg.id)
+    ;(async () => {
+      try {
+        const r = await fetch('/api/ai_assistant/extract_workflow_edits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ workflow: panelWorkflow, message: text }),
+        })
+        if (!r.ok) return
+        const data = await r.json()
+        const edits = (data?.edits || []) as WorkflowEdit[]
+        if (edits.length === 0) return
+        const auto = edits.filter((e) => e.op === 'set_param')
+        const structural = edits.filter((e) => e.op !== 'set_param')
+        if (auto.length > 0) {
+          const snapshot = panelWorkflow
+          const result = applyWorkflowEdits(panelWorkflow, auto)
+          setPanelWorkflow(result.next)
+          const summaries = result.applied.map(summarizeEdit)
+          if (summaries.length > 0) {
+            setAppliedEditsDisplay((prev) => [...prev, { id: `llm-${lastUserMsg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot }])
+          }
+        }
+        if (structural.length > 0) {
+          setPendingStructuralEdits((prev) => [
+            ...prev,
+            ...structural.map((edit, i) => ({ id: `llm-${lastUserMsg.id}-pend-${i}`, edit, summary: summarizeEdit(edit) })),
+          ])
+        }
+      } catch (e) {
+        console.debug('[workflow-edits] LLM fallback failed:', e)
+      }
+    })()
   }, [currentChatSession?.messages, panelWorkflow])
 
   // Phase 2.3 receiver — when the sidebar Workflows dialog dispatches "Run again",
@@ -1469,9 +1522,26 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   <span aria-hidden>✓</span>
                   <span>{chip.summary}</span>
                   {chip.snapshot && (
+<<<<<<< Updated upstream
                     <button type="button" aria-label="undo" data-testid={`button-undo-${chip.id}`} onClick={() => undoAppliedEdit(chip.id)} style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}>Undo</button>
                   )}
                   <button type="button" aria-label="dismiss" onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))} style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}>×</button>
+=======
+                    <button
+                      type="button"
+                      aria-label="undo"
+                      data-testid={`button-undo-${chip.id}`}
+                      onClick={() => undoAppliedEdit(chip.id)}
+                      style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}
+                    >Undo</button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="dismiss"
+                    onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))}
+                    style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}
+                  >×</button>
+>>>>>>> Stashed changes
                 </span>
               ))}
             </div>

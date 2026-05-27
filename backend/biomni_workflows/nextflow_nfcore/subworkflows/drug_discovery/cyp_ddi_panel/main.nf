@@ -134,8 +134,8 @@ if mol is None:
 
 # Standardize
 from rdkit.Chem.MolStandardize import rdMolStandardize
-standardizer = rdMolStandardize.Standardizer()
-mol = standardizer.standardize(mol)
+# rdkit 2022.09+ removed Standardizer class; use Cleanup() function instead
+mol = rdMolStandardize.Cleanup(mol)
 canonical_smiles = Chem.MolToSmiles(mol)
 inchi = Chem.MolToInchi(mol)
 inchikey = Chem.InchiToInchiKey(inchi) if inchi else None

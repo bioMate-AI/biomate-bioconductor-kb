@@ -55,7 +55,7 @@ export class GalaxyAPIProxy {
 
     this.client = axios.create({
       baseURL: this.galaxyUrl,
-      timeout: 120000, // 120 seconds — LLM param inference can take 60-90s on cold start
+      timeout: 300000, // 5 min — unified workflow gen + param inference on cold start (Plan B E2E)
       headers: {
         'Content-Type': 'application/json',
         ...(this.apiKey && { 'X-API-Key': this.apiKey }),

@@ -265,6 +265,179 @@ def _gate_struct_pred_max_pae(m: dict) -> Optional[tuple]:
     return ("struct_pred_max_pae", v, threshold, passed, level, msg)
 
 
+# ─── Cancer biology / somatic variant calling ─────────────────────────
+
+def _gate_cancer_somatic_vaf_min(m: dict) -> Optional[tuple]:
+    """VAF ≥ 0.05 (GATK / Mutect2 default)."""
+    v = m.get("vaf")
+    if v is None:
+        v = m.get("variant_allele_frequency")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 0.05
+    passed = v >= threshold
+    level = "GOLD" if passed else "FAIL"
+    msg = f"VAF={v:.3f}" + ("" if passed else f" < {threshold} (GATK Mutect2)")
+    return ("cancer_somatic_vaf_min", v, threshold, passed, level, msg)
+
+
+def _gate_cancer_somatic_depth_min(m: dict) -> Optional[tuple]:
+    """Depth ≥ 30× (Strelka2 / GATK Best Practices)."""
+    v = m.get("depth")
+    if v is None:
+        v = m.get("mean_depth")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 30.0
+    passed = v >= threshold
+    level = "GOLD" if passed else "FAIL"
+    msg = f"depth={v:.1f}×" + ("" if passed else f" < {threshold}× (Strelka2)")
+    return ("cancer_somatic_depth_min", v, threshold, passed, level, msg)
+
+
+def _gate_cancer_somatic_mapping_quality(m: dict) -> Optional[tuple]:
+    """Mean MAPQ ≥ 20 (Phred-20 = 99% mapping accuracy; BWA-MEM convention)."""
+    v = m.get("mapq_mean")
+    if v is None:
+        v = m.get("mean_mapq")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 20.0
+    passed = v >= threshold
+    if v >= 20.0:
+        level = "SILVER"
+    elif v >= 10.0:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"mean MAPQ={v:.1f}" + ("" if passed else f" < {threshold} (BWA-MEM)")
+    return ("cancer_somatic_mapping_quality", v, threshold, passed, level, msg)
+
+
+# ─── Cryo-EM single-particle reconstruction ───────────────────────────
+
+def _gate_cryo_em_fsc_resolution(m: dict) -> Optional[tuple]:
+    """FSC=0.143 resolution; ≤4 Å pass, 4-8 Å advisory, >8 Å fail
+    (Rosenthal & Henderson 2003 GOLD criterion; 4 Å operational cutoff)."""
+    v = m.get("fsc_resolution_angstroms")
+    if v is None:
+        v = m.get("resolution_A")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 4.0
+    passed = v <= threshold
+    if v <= 4.0:
+        level = "GOLD"
+    elif v <= 8.0:
+        level = "SILVER"
+    else:
+        level = "FAIL"
+    msg = f"FSC0.143 res={v:.2f} Å" + ("" if passed else f" > {threshold} Å (Rosenthal & Henderson 2003)")
+    return ("cryo_em_fsc_resolution", v, threshold, passed, level, msg)
+
+
+def _gate_cryo_em_motion_drift(m: dict) -> Optional[tuple]:
+    """Total drift ≤ 50 Å per movie (cryoSPARC operational)."""
+    v = m.get("total_drift_angstroms")
+    if v is None:
+        v = m.get("drift_A")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 50.0
+    passed = v <= threshold
+    if v <= 50.0:
+        level = "SILVER"
+    elif v <= 100.0:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"drift={v:.1f} Å" + ("" if passed else f" > {threshold} Å (cryoSPARC)")
+    return ("cryo_em_motion_drift", v, threshold, passed, level, msg)
+
+
+def _gate_cryo_em_particle_count(m: dict) -> Optional[tuple]:
+    """≥ 50,000 particles for sub-3 Å (Henderson 1995 theory)."""
+    v = m.get("n_particles")
+    if v is None:
+        v = m.get("particle_count")
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 50000.0
+    passed = v >= threshold
+    if v >= 50000.0:
+        level = "SILVER"
+    elif v >= 10000.0:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"n_particles={int(v)}" + ("" if passed else f" < {int(threshold)} (Henderson 1995)")
+    return ("cryo_em_particle_count", v, threshold, passed, level, msg)
+
+
+# ─── Cryo-ET gates ────────────────────────────────────────────────────
+
+def _gate_cryo_et_sta_fsc_resolution(m: dict) -> Optional[tuple]:
+    """STA FSC 0.143 resolution from subtomogram averaging.
+    Lower = better. Threshold derived from cryo-ET community target."""
+    v = m.get("fsc_0143_resolution_angstroms", m.get("fsc_resolution_angstroms"))
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 15.0  # advisory above; FAIL above 30
+    passed = v <= threshold
+    if v <= 8:
+        level = "GOLD"
+    elif v <= 15:
+        level = "SILVER"
+    elif v <= 30:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"STA FSC@0.143={v:.1f} Å" + ("" if passed else f" > {threshold} Å (Rosenthal & Henderson 2003)")
+    return ("cryo_et_sta_fsc_resolution", v, threshold, passed, level, msg)
+
+
+def _gate_cryo_et_tilt_residual(m: dict) -> Optional[tuple]:
+    """Mean tilt-alignment residual in pixels (lower = better).
+    Mastronarde & Held 2017; cutoffs operational."""
+    v = m.get("tilt_residual_pixels", m.get("mean_residual_px"))
+    if v is None:
+        return None
+    v = float(v)
+    threshold = 1.0
+    passed = v <= threshold
+    if v <= 0.5:
+        level = "GOLD"
+    elif v <= 1.0:
+        level = "SILVER"
+    elif v <= 3.0:
+        level = "BRONZE"
+    else:
+        level = "FAIL"
+    msg = f"tilt residual={v:.2f} px" + ("" if passed else f" > {threshold} px (IMOD/AreTomo community)")
+    return ("cryo_et_tilt_residual", v, threshold, passed, level, msg)
+
+
+def _gate_cryo_et_defocus_range(m: dict) -> Optional[tuple]:
+    """Mean defocus in µm should be in [-8.0, -0.5] for cryo-ET.
+    Hagen 2017 dose-symmetric tilt schemes."""
+    v = m.get("defocus_um", m.get("mean_defocus_um"))
+    if v is None:
+        return None
+    v = float(v)
+    # Negative values; outside [-8, -0.5] is implausible
+    in_range = -8.0 <= v <= -0.5
+    level = "GOLD" if in_range else "FAIL"
+    msg = f"defocus={v:.2f} µm" + ("" if in_range else " outside [-8.0, -0.5] µm range (Hagen 2017)")
+    return ("cryo_et_defocus_range", v, 0.0, in_range, level, msg)
+
+
 # Domain → list of gate functions to apply
 _GATE_REGISTRY: dict[str, list] = {
     "hts":             [_gate_hts_z_prime, _gate_hts_signal_window],
@@ -281,6 +454,21 @@ _GATE_REGISTRY: dict[str, list] = {
         _gate_struct_pred_mean_plddt,
         _gate_struct_pred_confident_fraction,
         _gate_struct_pred_max_pae,
+    ],
+    "cancer_biology": [
+        _gate_cancer_somatic_vaf_min,
+        _gate_cancer_somatic_depth_min,
+        _gate_cancer_somatic_mapping_quality,
+    ],
+    "cryo_em": [
+        _gate_cryo_em_fsc_resolution,
+        _gate_cryo_em_motion_drift,
+        _gate_cryo_em_particle_count,
+    ],
+    "cryo_et": [
+        _gate_cryo_et_sta_fsc_resolution,
+        _gate_cryo_et_tilt_residual,
+        _gate_cryo_et_defocus_range,
     ],
 }
 

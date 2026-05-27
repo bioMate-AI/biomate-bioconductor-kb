@@ -21,6 +21,10 @@ import {
   IndSignOverlay, IndAuditOverlay, IndEmptyState,
   type AuditFindingWithMeta, type ReferenceCompound,
 } from "@/components/ind-report/IndOverlays";
+import { NewProjectModal } from "@/components/ind-report/NewProjectModal";
+import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal";
+import { downloadMarkdown, type DocumentSection } from "@/lib/ind-report-api";
+import { useLocation } from "wouter";
 
 // Demo seed — replace with GET /api/ind-report/projects when backend route exists.
 // For now this page renders the shell so the styling can be visually verified.
@@ -308,19 +312,53 @@ const DEMO_DOC_FOR_PANEL: DocPanelDoc = {
 // IndReportPage stays thin. Sign / Audit lift to the page (they're full-
 // screen overlays, not panel-internal).
 function DocPanelHost({
-  activeProject, onSign, onAudit,
+  activeProject, onSign, onAudit, showAudit, onAuditClose,
 }: {
   activeProject: IndProjectSummary | null;
   onSign: () => void;
   onAudit: () => void;
+  showAudit: boolean;
+  onAuditClose: () => void;
 }) {
   const [region, setRegion] = useState<Region | "ALL">("FDA");
   const [showVersions, setShowVersions] = useState(false);
+  const [, setLocation] = useLocation();
   const knobs = readKnobs();
 
   if (!activeProject) {
     return <aside className="ind-doc-panel" />;
   }
+
+  // Replaces `alert("Download .md (stub)")` (closes P0-4). Walks the doc
+  // body, ships it to the backend markdown renderer, triggers a real file
+  // download. DOCX is greyed-out / disabled until python-docx is wired.
+  const handleDownload = (fmt: "md" | "docx") => {
+    if (fmt === "docx") {
+      // P0-4 honest stance: don't pretend DOCX works. Tell the user.
+      window.alert("DOCX export ships next sprint. Use the Markdown download for now.");
+      return;
+    }
+    const sections: DocumentSection[] = DEMO_DOC_FOR_PANEL.sections.map((s) => ({
+      id: s.id,
+      title: s.title,
+      body: (s.subs ?? [])
+        .map((sub) => DEMO_DOC_FOR_PANEL.bodyByPid[`p-${sub.id}`] ?? "")
+        .filter(Boolean)
+        .join("\n\n"),
+    }));
+    downloadMarkdown(activeProject.id, sections).catch((e) =>
+      console.error("[ind] markdown download failed:", e),
+    );
+  };
+
+  // Replaces `alert("Chat handoff (stub)")` (closes P0-5).
+  // Routes to /chat with project context so BioMate chat opens pre-loaded
+  // with the active campaign.
+  const handleChatHandoff = () => {
+    const url = `/chat?context=ind-report&project=${encodeURIComponent(activeProject.id)}&molecule=${encodeURIComponent(activeProject.molecule)}`;
+    setLocation(url);
+  };
+
   return (
     <IndDocPanel
       doc={DEMO_DOC_FOR_PANEL}
@@ -332,10 +370,33 @@ function DocPanelHost({
       onVersionsClick={() => setShowVersions((v) => !v)}
       showVersions={showVersions}
       onVersionsClose={() => setShowVersions(false)}
-      onDownload={(fmt) => alert(`Download .${fmt} (stub)`)}
-      onChatHandoff={() => alert("Chat handoff (stub)")}
+      onDownload={handleDownload}
+      onChatHandoff={handleChatHandoff}
       projectId={activeProject.id}
       orgId={null}
+      // P2-1: real header from active project, not hardcoded BM-0042 string
+      headerSub={`${activeProject.molecule} · ${activeProject.sponsor ?? "Acme Therapeutics"} · ${activeProject.indication}`}
+      // P0-2: audit overlay rendered as a SLOT inside the doc panel — the
+      // .ind-audit-overlay { position: absolute; inset: 0 } CSS overlays the
+      // panel (the positioned ancestor) instead of floating at the page root.
+      auditOverlay={
+        showAudit ? (
+          <IndAuditOverlay
+            audit={{
+              findings: (knobs.auditHasCritical ? DEMO_AUDIT_CRITICAL : DEMO_AUDIT).findings as AuditFindingWithMeta[],
+              chainRecords: 142,
+              lastVerified: "2026-05-16 14:22",
+            }}
+            onClose={onAuditClose}
+            onJumpTo={(section) => {
+              const id = section.replace("§", "").split(".").slice(0, 3).join(".");
+              const el = document.querySelector(`[data-section="${id}"]`);
+              if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+              onAuditClose();
+            }}
+          />
+        ) : undefined
+      }
     />
   );
 }
@@ -353,11 +414,16 @@ export function IndReportPage() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("onboarding") === "1";
   const [showOnboarding, setShowOnboarding] = useState(initialOnboarding);
+  const [projects, setProjects] = useState<IndProjectSummary[]>(DEMO_PROJECTS);
   const [activeId, setActiveId] = useState<string | null>(DEMO_PROJECTS[0].id);
   const [showSettings, setShowSettings] = useState(false);
   const [showSign, setShowSign] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
-  const activeProject = DEMO_PROJECTS.find((p) => p.id === activeId) ?? null;
+  // Closes punch list P0-3: + New project opens this modal instead of TODO no-op
+  const [showNewProject, setShowNewProject] = useState(false);
+  // Closes punch list P0-6: mobile FAB opens the doc panel as a full-screen modal
+  const [showDocModal, setShowDocModal] = useState(false);
+  const activeProject = projects.find((p) => p.id === activeId) ?? null;
 
   // Tag body so global styles in ind-report.css that target body.ind-app apply.
   useEffect(() => {
@@ -387,12 +453,10 @@ export function IndReportPage() {
   return (
     <div className="ind-shell">
       <IndLeftNav
-        projects={DEMO_PROJECTS}
+        projects={projects}
         activeId={activeId}
         onSelect={setActiveId}
-        onNew={() => {
-          /* TODO: wire new-project dialog */
-        }}
+        onNew={() => setShowNewProject(true)}
         onSettings={() => setShowSettings(true)}
       />
 

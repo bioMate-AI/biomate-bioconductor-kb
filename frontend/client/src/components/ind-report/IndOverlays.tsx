@@ -11,28 +11,51 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Download, X } from "lucide-react";
-import { captureDismissal, type DismissalReason } from "@/lib/ind-report-api";
+import {
+  captureDismissal, signDocument, sha256Hex,
+  type DismissalReason, type SignResponse,
+} from "@/lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
 
 // ── Sign & Freeze ──────────────────────────────────────────────
+//
+// Closes punch list P0-1 (sign was a stub). doSign() now:
+//   1. Computes SHA-256 of the canonical document body
+//   2. POSTs to /api/ind-report/projects/:id/sign with the 6-digit TOTP
+//      + signer attestation + adapter-version map
+//   3. Backend verifies TOTP via AuthService.verify_totp (or dev fallback)
+//   4. On 401: red TOTP boxes + retry message (modal stays open)
+//   5. On 200: success card shows the real signature_id + signed_at
+//
+// The countdown timer is a real RFC 6238 TOTP window (30s steps from
+// Math.floor(Date.now()/1000) % 30), not a cosmetic loop.
 export function IndSignOverlay({
-  doc, onCancel, onSigned,
+  doc, projectId, onCancel, onSigned, orgId = null,
 }: {
-  doc: IndDoc & { shaPrefix?: string; version?: number };
+  doc: IndDoc & { shaPrefix?: string; version?: number; bodyByPid?: Record<string, string> };
+  projectId: string;
   onCancel: () => void;
-  onSigned?: (info: { title: string; creds: string; scope: string }) => void;
+  onSigned?: (info: { title: string; creds: string; scope: string; sig?: SignResponse }) => void;
+  orgId?: string | null;
 }) {
   const [step, setStep] = useState<"sign" | "success">("sign");
   const [title, setTitle] = useState("Director, Computational Pharmacology");
   const [creds, setCreds] = useState("PhD Pharmacology · 10 years IND experience");
   const [scope, setScope] = useState("§2.6.1–§2.6.6 nonclinical pharmacology");
   const [totp, setTotp] = useState<string[]>(["", "", "", "", "", ""]);
-  const [timer, setTimer] = useState(22);
+  const [timer, setTimer] = useState(() => 30 - (Math.floor(Date.now() / 1000) % 30));
+  const [submitting, setSubmitting] = useState(false);
+  const [errMsg, setErrMsg] = useState<string>("");
+  const [sigResp, setSigResp] = useState<SignResponse | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Real RFC 6238 TOTP window: refresh every second, snap to 30s boundaries.
   useEffect(() => {
     if (step !== "sign") return;
-    const t = setInterval(() => setTimer((s) => (s > 0 ? s - 1 : 30)), 1000);
+    const t = setInterval(() => {
+      const sec = 30 - (Math.floor(Date.now() / 1000) % 30);
+      setTimer(sec);
+    }, 1000);
     return () => clearInterval(t);
   }, [step]);
 
@@ -42,13 +65,49 @@ export function IndSignOverlay({
     const next = [...totp];
     next[i] = v.slice(-1);
     setTotp(next);
+    setErrMsg("");
     if (v && i < 5) inputRefs.current[i + 1]?.focus();
   };
 
-  const doSign = () => {
-    if (!allFilled) return;
-    setStep("success");
-    setTimeout(() => onSigned?.({ title, creds, scope }), 100);
+  const doSign = async () => {
+    if (!allFilled || submitting) return;
+    setSubmitting(true);
+    setErrMsg("");
+    try {
+      const canonical = JSON.stringify({
+        sections: doc.sections?.map?.((s: any) => ({ id: s.id, title: s.title })) ?? [],
+        bodyByPid: (doc as any).bodyByPid ?? {},
+        version: doc.version ?? 0,
+      });
+      const docHash = await sha256Hex(canonical);
+      const resp = await signDocument(
+        projectId,
+        {
+          totp_code: totp.join(""),
+          signer_title: title,
+          signer_creds: creds,
+          signature_scope: scope,
+          document_sha256: docHash,
+          adapter_versions: {},
+        },
+        orgId,
+      );
+      setSigResp(resp);
+      setStep("success");
+      setTimeout(() => onSigned?.({ title, creds, scope, sig: resp }), 100);
+    } catch (e: any) {
+      const msg = String(e?.message ?? e);
+      if (msg.includes("401") || msg.toLowerCase().includes("totp")) {
+        setErrMsg("Invalid TOTP code — check your authenticator and try again.");
+      } else {
+        setErrMsg(msg);
+      }
+      // Clear digits so user can retype
+      setTotp(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (step === "success") {
@@ -61,11 +120,11 @@ export function IndSignOverlay({
             </div>
             <h3>Signed</h3>
             <div className="summary">
-              Document frozen · SHA-256 locked · version v{doc.version ?? 2}
+              Document frozen · SHA-256 {sigResp?.document_sha256_short ?? "(local)"} · version v{doc.version ?? 2}
               <br />
-              Signed by: Dr. Jane Smith
+              Signed by: {title}
               <br />
-              Sig ID: 3f82a1cc… · 2026-05-04 18:44 UTC
+              Sig ID: {sigResp?.signature_id?.slice(0, 12) ?? "pending"}… · {sigResp?.signed_at ?? new Date().toISOString()}
             </div>
             <div className="actions">
               <button className="ind-btn primary">
@@ -160,14 +219,33 @@ export function IndSignOverlay({
               </div>
               <div className="totp-timer">refreshes in {timer}s</div>
             </div>
+            {errMsg && (
+              <div
+                role="alert"
+                data-testid="sign-totp-error"
+                style={{
+                  marginTop: 8, padding: "8px 10px", borderRadius: 6,
+                  background: "#fef2f2", color: "#b91c1c",
+                  fontSize: 12, lineHeight: 1.5,
+                  border: "1px solid #fecaca",
+                }}
+              >
+                {errMsg}
+              </div>
+            )}
           </div>
         </div>
         <div className="sign-foot">
-          <button className="ind-btn" onClick={onCancel}>
+          <button className="ind-btn" onClick={onCancel} disabled={submitting}>
             Cancel
           </button>
-          <button className="ind-btn primary" onClick={doSign} disabled={!allFilled}>
-            Sign and freeze →
+          <button
+            className="ind-btn primary"
+            onClick={doSign}
+            disabled={!allFilled || submitting}
+            data-testid="sign-submit"
+          >
+            {submitting ? "Verifying…" : "Sign and freeze →"}
           </button>
         </div>
       </div>

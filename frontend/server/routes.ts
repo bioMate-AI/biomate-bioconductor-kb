@@ -5358,7 +5358,21 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Start a pilot run for parameter tuning
-  app.post("/api/ai_assistant/pilot/start", optionalAuth, async (req, res) => {
+  app.post("/api/ai_assistant/extract_workflow_edits", optionalAuth, async (req, res) => {
+    try {
+      const { workflow, message } = req.body || {};
+      if (!message || !workflow) {
+        return res.json({ edits: [] });
+      }
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/extract_workflow_edits', { workflow, message });
+      res.json(response.data);
+    } catch (error: any) {
+      console.warn('[extract_workflow_edits] proxy failed:', error?.message || error);
+      res.json({ edits: [], error: error?.message || 'extract failed' });
+    }
+  });
+
+    app.post("/api/ai_assistant/pilot/start", optionalAuth, async (req, res) => {
     try {
       const { workflow_id, total_samples, config } = req.body;
 

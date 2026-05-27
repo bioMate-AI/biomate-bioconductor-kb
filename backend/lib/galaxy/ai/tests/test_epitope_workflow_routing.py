@@ -60,7 +60,16 @@ def test_plan_b_negated_epitope_not_treated_as_explicit_slug():
     ws = _load_search()
     negated = ws._extract_negated_pipeline_slugs(PLAN_B_QUERY)
     assert "epitopeprediction" in negated
+    assert "mhcquant" in negated
     assert ws._extract_explicit_pipeline_slug(PLAN_B_QUERY) is None
+
+
+def test_immunopeptidomics_negation_excludes_mhcquant():
+    ws = _load_search()
+    negated = ws._extract_negated_pipeline_slugs(
+        "codon step only — not epitope prediction or immunopeptidomics"
+    )
+    assert "mhcquant" in negated
 
 
 def test_plan_b_routes_to_optimize_codons_not_epitopeprediction():
@@ -72,3 +81,12 @@ def test_plan_b_routes_to_optimize_codons_not_epitopeprediction():
     assert "codon" in top.name.lower() or "optimize" in top.filename.lower()
     names = [m.name.lower() for m in results[:3]]
     assert not any("epitopeprediction" in n for n in names[:1]), f"epitope won: {names}"
+
+
+def test_plan_b_vaccine_wording_does_not_prefer_immunoinformatics_domain():
+    """Plan B mentions vaccine track but must not boost epitope domain over codon."""
+    ws = _load_search()
+    pref, pen = ws._infer_domain_preferences(PLAN_B_QUERY)
+    assert "immunoinformatics" not in pref, f"unexpected immunoinformatics bias: {pref}"
+    assert "synthetic_biology" in pref
+    assert "immunoinformatics" in pen
