@@ -11,6 +11,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Google Analytics 4 — environment-aware (prod vs dev vs localhost).
+         The measurement ID is picked at runtime by hostname so the same
+         build artifact ships to all environments. Replace the dev ID
+         placeholder with the real one once the dev GA4 property exists. -->
+    <script>
+      (function() {
+        var host = window.location.hostname;
+        var measurementId = null;
+        if (host === 'biomate.ai' || host === 'www.biomate.ai') {
+          measurementId = 'G-65JDDPEDQ5';            // Prod property
+        } else if (host === 'dev.biomate.ai' || host.indexOf('.dev.biomate.ai') !== -1) {
+          measurementId = 'G-DEV-PLACEHOLDER';       // TODO: replace with dev property ID
+        }
+        // localhost / 127.0.0.1 / playwright / E2E → no analytics noise
+        if (!measurementId || measurementId === 'G-DEV-PLACEHOLDER') return;
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        window.gtag = gtag;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', measurementId, { anonymize_ip: true });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
