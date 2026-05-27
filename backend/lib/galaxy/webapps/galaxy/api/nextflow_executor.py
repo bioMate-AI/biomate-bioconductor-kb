@@ -1201,6 +1201,19 @@ def _generate_executor_config(
             "}",
             "docker.enabled = true",
             f"workDir = 's3://{s3_bucket}/nextflow/work/{user_id}/{run_id}'",
+            # Restored 2026-05-27 (was removed by d0655c270 sync revert).
+            # Declare empty `profiles { aws { } }` so `-profile aws` validates
+            # against this -c override config for workflows that have no
+            # nextflow.config of their own. Body is empty on purpose — real
+            # Batch settings are top-level above. Without this, ~33 standalone
+            # workflows (exposure_response_modeling, transporter_ddi_pgp_bcrp,
+            # bispecific_antibody_design, ...) abort in ~15s with
+            # 'Unknown configuration profile: aws'.
+            "profiles {",
+            "    aws {",
+            "        // intentionally empty — real settings are top-level",
+            "    }",
+            "}",
         ]
 
         if not queue:
