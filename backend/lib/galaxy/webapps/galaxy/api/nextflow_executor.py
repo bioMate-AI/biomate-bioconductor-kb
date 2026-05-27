@@ -273,6 +273,70 @@ def _clean_log_line(line: str) -> str:
     return cleaned
 
 
+# Parses Nextflow progress lines like:
+#   [ce/ac8b01] BIS…bispec:phaseA:PD-1_x_VEGF) | 0 of 1
+#   [-        ] BISPEC_FORMAT_SCORING          -
+#   [a1b2c3d4] process > NAME (tag) | 3 of 5, cached: 2
+_NF_PROC_RE = re.compile(
+    r'^\s*\[(?P<hash>[a-f0-9/]{8,}|-+\s*)\]\s+'
+    r'(?:process\s*>\s*)?'
+    r'(?P<name>[A-Za-z_][\w:.\-]*)'
+    r'(?:\s*\([^)]*\))?'
+    r'(?:\s*\|\s*(?P<done>\d+)\s*of\s*(?P<total>\d+))?'
+)
+
+
+def _parse_processes_from_log(log_text: str) -> Dict[str, Any]:
+    """Parse the last live Nextflow progress block.
+
+    Nextflow rewrites the progress block on every refresh, so the latest
+    occurrence wins. Returns a dict with `processes`, `completedSteps`,
+    `totalSteps` so the cross-worker fallback in get_nextflow_status() can
+    surface real progress instead of a hardcoded zero.
+    """
+    out: Dict[str, Any] = {"processes": [], "completedSteps": 0, "totalSteps": 0}
+    if not log_text:
+        return out
+    # Index of the latest "executor >" line — Nextflow restarts the progress
+    # block after each refresh, so we want everything after the final restart.
+    last_block_start = log_text.rfind("executor >")
+    block = log_text[last_block_start:] if last_block_start != -1 else log_text
+    by_name: Dict[str, Dict[str, Any]] = {}
+    for raw in block.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m = _NF_PROC_RE.match(line)
+        if not m:
+            continue
+        name = m.group("name")
+        hash_field = (m.group("hash") or "").strip()
+        is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
+        done = int(m.group("done") or 0)
+        total = int(m.group("total") or 0)
+        if total > 0:
+            if done >= total:
+                status = "completed"
+            elif is_submitted:
+                status = "running"
+            else:
+                status = "pending"
+        else:
+            status = "running" if is_submitted else "pending"
+        by_name[name] = {
+            "name": name,
+            "status": status,
+            "hash": hash_field if is_submitted else None,
+            "completed": done,
+            "total": total or 1,
+        }
+    procs = list(by_name.values())
+    out["processes"] = procs
+    out["completedSteps"] = sum(p["completed"] for p in procs)
+    out["totalSteps"] = sum(p["total"] for p in procs)
+    return out
+
+
 def _classify_accession(value: str) -> Optional[Dict[str, str]]:
     """
     Return accession metadata if *value* is a recognised public-database accession,
@@ -3652,6 +3716,14 @@ def get_nextflow_status(
             )
             if not nf_done and not nf_failed_log:
                 # Log doesn't yet show completion → run is still in progress.
+                # Parse processes/completed/total from the live progress block.
+                # Without this the frontend sees processes=[], completedSteps=0,
+                # totalSteps=0 even though the .nextflow.log has [hash] PROCESS_NAME
+                # | 1 of 4 entries the test layer reads to drive phase cards.
+                _parsed = _parse_processes_from_log(log_full_text)
+                _total = _parsed["totalSteps"] or 0
+                _done = _parsed["completedSteps"] or 0
+                _pct = int(_done / _total * 100) if _total else 0
                 return {
                     "run_id": run_id,
                     "invocation_id": run_id,
@@ -3662,10 +3734,10 @@ def get_nextflow_status(
                     "log_tail": log_tail_fallback,
                     "is_batch": False,
                     "s3_output_files": [],
-                    "completedSteps": 0,
-                    "totalSteps": 0,
-                    "progressPercent": 50,
-                    "processes": [],
+                    "completedSteps": _done,
+                    "totalSteps": _total,
+                    "progressPercent": _pct,
+                    "processes": _parsed["processes"],
                     "started_at": _fb_started_at,
                     "completed_at": None,
                     "duration_s": _fb_duration_s,
@@ -3680,6 +3752,11 @@ def get_nextflow_status(
             has_results = len(real_subdirs) > 0
 
             fallback_status = "succeeded" if has_results else "failed"
+            # Even at terminal state, parse the log for per-process state so the
+            # client can render per-phase status badges and not just an aggregate.
+            _parsed_term = _parse_processes_from_log(log_full_text)
+            _total_term = _parsed_term["totalSteps"] or 0
+            _done_term = _parsed_term["completedSteps"] or 0
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
@@ -3690,10 +3767,10 @@ def get_nextflow_status(
                 "log_tail": log_tail_fallback,
                 "is_batch": False,
                 "s3_output_files": [],
-                "completedSteps": 0,
-                "totalSteps": 0,
+                "completedSteps": _done_term,
+                "totalSteps": _total_term,
                 "progressPercent": 100,
-                "processes": [],
+                "processes": _parsed_term["processes"],
                 "started_at": _fb_started_at,
                 "completed_at": _fb_completed_at,
                 "duration_s": _fb_duration_s,
