@@ -5172,6 +5172,8 @@ ${paramLines || '(none recorded)'}`;
               'claude-sonnet-4-5-20250929': {i:  3.00,  o: 15.00},
               'claude-haiku-4-5-20251001':  {i:  0.25,  o:  1.25},
               'gemini-3-flash-preview':     {i:  0.075, o:  0.30},
+              'gemini-3.5-flash':           {i:  1.50,  o:  9.00},
+              'gemini-3.5-pro':             {i:  1.25,  o: 10.00},
             };
             const p = pricing[model] ?? {i: 3.00, o: 15.00};
             const cost = (inTok * p.i + outTok * p.o) / 1_000_000;
