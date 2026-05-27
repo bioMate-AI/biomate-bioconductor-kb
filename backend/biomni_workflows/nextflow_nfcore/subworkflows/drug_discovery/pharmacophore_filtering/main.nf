@@ -512,8 +512,19 @@ workflow {
             error "Parameter `compound_library` is required (SMILES/SDF library path)"
         }
 
-        ch_reference = Channel.fromPath(params.reference_actives, checkIfExists: false)
-        ch_library = Channel.fromPath(params.compound_library, checkIfExists: false)
+        // Support inline SMILES (newline- or comma-separated strings) in addition to file paths.
+        // Detect inline form by looking for embedded newlines/commas or absence of path separators.
+        def write_inline = { String content, String fname ->
+            def f = new File("${workflow.workDir}/${fname}")
+            f.parentFile.mkdirs()
+            f.text = content.replace(',', '\n').trim() + '\n'
+            return f.absolutePath
+        }
+        def is_inline = { String v -> v && !(v ==~ /^(s3:\/\/|https?:\/\/|\/|\.\/).*/) && (v.contains('\n') || v.contains(',') || !v.contains('.')) }
+        def ref_path = is_inline(params.reference_actives.toString()) ? write_inline(params.reference_actives.toString(), 'reference_actives.smi') : params.reference_actives
+        def lib_path = is_inline(params.compound_library.toString()) ? write_inline(params.compound_library.toString(), 'compound_library.smi') : params.compound_library
+        ch_reference = Channel.fromPath(ref_path, checkIfExists: false)
+        ch_library = Channel.fromPath(lib_path, checkIfExists: false)
 
         PHARMACOPHORE_FILTERING(ch_reference, ch_library)
 }
