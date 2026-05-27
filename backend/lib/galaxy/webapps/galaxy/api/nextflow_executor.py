@@ -297,6 +297,42 @@ def _parse_processes_from_log(log_text: str) -> Dict[str, Any]:
     out: Dict[str, Any] = {"processes": [], "completedSteps": 0, "totalSteps": 0}
     if not log_text:
         return out
+    # Pre-scan the entire log for un-truncated process names. When a Nextflow
+    # task is submitted with a long tag, the live progress block prints
+    # "BIS…bispec:phaseA:PD-1_x_VEGF" — the regex captures only "BIS" before
+    # the ellipsis. The corresponding full name appears in the initial
+    # process-list block before the first "executor >" line, where each process
+    # is shown on its own line with no truncation.
+    full_names: set = set()
+    for raw in log_text.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m = _NF_PROC_RE.match(line)
+        if not m:
+            continue
+        nm = m.group("name")
+        # Skip ellipsis-truncated names; they cannot be a source of truth.
+        if "…" in line[line.find(nm):line.find(nm) + 60]:
+            continue
+        # Heuristic: only collect plausible process names (NF convention is
+        # UPPER_SNAKE_CASE; anything shorter than 4 chars is too noisy to alias).
+        if len(nm) >= 4:
+            full_names.add(nm)
+
+    def _resolve_name(short: str, line_text: str) -> str:
+        # If the source line contains "<short>…", look up a full name that
+        # starts with the short prefix.
+        if f"{short}…" not in line_text:
+            return short
+        candidates = [n for n in full_names if n.startswith(short) and n != short]
+        if len(candidates) == 1:
+            return candidates[0]
+        if not candidates:
+            return short
+        # Multiple matches: prefer the shortest one to avoid over-aliasing.
+        return min(candidates, key=len)
+
     # Index of the latest "executor >" line — Nextflow restarts the progress
     # block after each refresh, so we want everything after the final restart.
     last_block_start = log_text.rfind("executor >")
@@ -309,7 +345,8 @@ def _parse_processes_from_log(log_text: str) -> Dict[str, Any]:
         m = _NF_PROC_RE.match(line)
         if not m:
             continue
-        name = m.group("name")
+        raw_name = m.group("name")
+        name = _resolve_name(raw_name, line)
         hash_field = (m.group("hash") or "").strip()
         is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
         done = int(m.group("done") or 0)
