@@ -22,7 +22,7 @@
         var measurementId = null;
         if (host === 'biomate.ai' || host === 'www.biomate.ai') {
           measurementId = 'G-65JDDPEDQ5';            // Prod property
-        } else if (host === 'dev.biomate.ai' || host.indexOf('.dev.biomate.ai') !== -1) {
+        } else if (host === 'dev-public.biomate.ai' || host.indexOf('.dev-public.biomate.ai') !== -1) {
           measurementId = 'G-DEV-PLACEHOLDER';       // TODO: replace with dev property ID
         }
         // localhost / 127.0.0.1 / playwright / E2E → no analytics noise
