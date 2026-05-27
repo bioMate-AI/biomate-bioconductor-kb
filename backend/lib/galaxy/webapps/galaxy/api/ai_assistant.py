@@ -1684,6 +1684,11 @@ Rules:
 Return ONLY a JSON object, no markdown, no explanation.
 Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1", "exhaustiveness": 4, "box_center": [22.0, 2.5, 17.0], "box_size": [20.0, 20.0, 20.0]}}"""
 
+    # Short-circuit when no Gemini key is configured — otherwise the LLM call
+    # hangs the request waiting on auth and the frontend chat spinner stays up.
+    import os as _os
+    if not (_os.environ.get("GOOGLE_API_KEY") or _os.environ.get("GEMINI_API_KEY")):
+        return {"edits": [], "reason": "no_api_key"}
     try:
         from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
         raw = _gemini_flash(
