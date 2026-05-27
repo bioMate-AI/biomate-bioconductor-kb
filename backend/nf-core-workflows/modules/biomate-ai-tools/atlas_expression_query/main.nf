@@ -23,7 +23,7 @@ params.target_gene    = 'null'
 params.tissues        = 'all'
 params.census_offline = 'auto'
 
-CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
     ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
     : 'biomate/biomni-tools:latest'
 

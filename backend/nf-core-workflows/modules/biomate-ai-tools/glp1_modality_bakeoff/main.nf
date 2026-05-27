@@ -25,7 +25,7 @@ params.disease       = 'null'        // alias for indication
 params.modalities    = 'auto'        // comma list: sema,tirz,reta,orfor,mrna,aav | auto
 params.delivery_pref = 'auto'        // injectable_peptide | oral | mrna | gene_therapy | auto
 
-CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
     ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
     : 'biomate/biomni-tools:latest'
 
