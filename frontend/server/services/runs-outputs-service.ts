@@ -185,6 +185,50 @@ export class RunsOutputsService {
       return [];
     }
 
+    // Task #16 fallback: when publishDir never ran (Nextflow JVM died mid-run
+    // — container restart, worker recycle, OOM), output files are stranded in
+    // s3://<bucket>/nextflow/work/<domain>/<nfRunId>/<hash>/<file>. Harvest
+    // them so users see real outputs instead of an empty list. Derive the
+    // work prefix by translating ".../outputs/<domain>/<hash>" →
+    // ".../work/<domain>/<nfRunId>/". Skip Nextflow control files (.command.*,
+    // .exitcode, etc.) — they're not user outputs.
+    if (items.length === 0) {
+      const m = parsed.prefix.match(/^(.*)\/outputs\/([^/]+)\/([^/]+)$/);
+      const nfRunId = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
+      if (m && nfRunId) {
+        const workPrefix = `${m[1]}/work/${m[2]}/${nfRunId}/`;
+        let workCt: string | undefined = undefined;
+        try {
+          do {
+            const lr: any = await client.send(
+              new ListObjectsV2Command({
+                Bucket: parsed.bucket,
+                Prefix: workPrefix,
+                ContinuationToken: workCt,
+                MaxKeys: 1000,
+              })
+            );
+            for (const obj of lr.Contents || []) {
+              if (!obj.Key || obj.Key.endsWith("/")) continue;
+              const name = obj.Key.split("/").pop() || "";
+              if (name.startsWith(".")) continue; // skip .command.*, .exitcode, etc.
+              items.push(obj);
+            }
+            workCt = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+          } while (workCt);
+          if (items.length > 0) {
+            console.info(
+              `[runs-outputs] publishDir gap recovery: harvested ${items.length} files from work/ for run ${meta.runId}`
+            );
+          }
+        } catch (e: any) {
+          console.warn(
+            `[runs-outputs] work/ fallback list failed for ${workPrefix}: ${e?.message || e}`
+          );
+        }
+      }
+    }
+
     // Presign + normalize in parallel
     return Promise.all(
       items.map(async (obj) => {
