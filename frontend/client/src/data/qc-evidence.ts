@@ -363,6 +363,70 @@ export const QC_EVIDENCE: QCEvidenceMap = {
         "finding": "Remediation: relax stock database constraints; increase search time budget; consider alternative disconnections.\n"
       }
     ]
+  },
+  "cancer_biology": {
+    "cancer_somatic_vaf_min": [
+      {
+        "paper_ref": "GATK Best Practices for Somatic Short Variant Discovery (Mutect2) — Broad Institute",
+        "paper_doi": "https://gatk.broadinstitute.org/hc/en-us/articles/360035531132",
+        "provenance": "GOLD",
+        "paper_supports": "GATK Best Practices for somatic short-variant discovery use Mutect2 with default FilterMutectCalls parameters; the default minimum confident variant allele fraction is 0.05 (5%). Calls below this VAF are filtered as not confidently somatic.\n",
+        "rule_text": "BioMate halts when VAF < 0.05 — below the GATK/Mutect2 default confident-call threshold for somatic variants.\n",
+        "finding": "Remediation: increase tumor sequencing depth (deeper coverage at low-VAF loci), or restrict downstream analysis to VAF ≥ 0.05.\n"
+      }
+    ],
+    "cancer_somatic_depth_min": [
+      {
+        "paper_ref": "Kim S et al. Strelka2. Nat Methods 2018; 15:591-594",
+        "paper_doi": "10.1038/s41592-018-0051-x",
+        "provenance": "GOLD",
+        "paper_supports": "Strelka2 (Kim 2018) reports 30× tumor coverage as the standard depth used in benchmarking somatic variant callers; GATK Best Practices also recommends ≥30× tumor depth for confident somatic calls.\n",
+        "rule_text": "BioMate halts when locus depth < 30× — below the standard somatic-calling depth (Strelka2 / GATK Best Practices).\n",
+        "finding": "Remediation: increase sequencing depth; for low-coverage samples, consider hybrid-capture re-enrichment of the panel.\n"
+      }
+    ],
+    "cancer_somatic_mapping_quality": [
+      {
+        "paper_ref": "Li H. BWA-MEM. Bioinformatics 2009; 25:1754-1760",
+        "paper_doi": "10.1093/bioinformatics/btp324",
+        "provenance": "SILVER",
+        "paper_supports": "Li 2009 defines BWA-MEM MAPQ as a Phred-scaled mapping confidence (MAPQ 20 = 99% mapping accuracy). GATK Best Practices recommend filtering low-MAPQ reads from variant calling. The specific MAPQ ≥ 20 cutoff is community convention derived from the Phred-20 = 99% accuracy interpretation.\n",
+        "rule_text": "BioMate halts when mean MAPQ < 10; advisory at 10-20; passes at ≥20 (community Phred-20 = 99% accuracy convention).\n",
+        "finding": "Remediation: re-align with stricter mapping parameters; mask repetitive/low-complexity regions; check for adapter contamination.\n"
+      }
+    ]
+  },
+  "cryo_em": {
+    "cryo_em_fsc_resolution": [
+      {
+        "paper_ref": "Rosenthal PB & Henderson R. J Mol Biol 2003; 333:721-745",
+        "paper_doi": "10.1016/j.jmb.2003.07.013",
+        "provenance": "GOLD",
+        "paper_supports": "Rosenthal & Henderson 2003 establish FSC=0.143 as the gold-standard resolution criterion for cryo-EM single-particle reconstructions; the 0.143 threshold is the verbatim cutoff for reporting resolution in essentially all subsequent cryo-EM publications.\n",
+        "rule_text": "BioMate passes maps with FSC0.143 resolution ≤ 4 Å (publication quality), advisory at 4-8 Å, halt > 8 Å. The 4 Å publication cutoff is operational; the FSC=0.143 criterion is GOLD.\n",
+        "finding": "Remediation: collect more micrographs to add particles; re-pick with optimized particle diameter; run additional rounds of 2D/3D classification to remove junk.\n"
+      }
+    ],
+    "cryo_em_motion_drift": [
+      {
+        "paper_ref": "Punjani A et al. cryoSPARC. Nat Methods 2017; 14:290-296",
+        "paper_doi": "10.1038/nmeth.4169",
+        "provenance": "SILVER",
+        "paper_supports": "cryoSPARC (Punjani 2017) reports typical beam-induced motion magnitudes and includes motion correction as a standard pre-processing step; the paper supports the concept that excessive drift correlates with poor downstream resolution but does not state a specific 50 Å cutoff verbatim.\n",
+        "rule_text": "BioMate passes movies with total drift ≤ 50 Å, advisory at 50-100 Å, halt > 100 Å. The specific 50 Å cutoff is operational convention from cryoSPARC documentation.\n",
+        "finding": "Remediation: discard high-drift movies; collect new data with shorter exposures or smaller dose-per-frame; verify stage stability on the microscope.\n"
+      }
+    ],
+    "cryo_em_particle_count": [
+      {
+        "paper_ref": "Henderson R. Q Rev Biophys 1995; 28:171-193",
+        "paper_doi": "10.1017/S003358350000305X",
+        "provenance": "SILVER",
+        "paper_supports": "Henderson 1995 provides the information-limit theory linking the number of particles to achievable resolution in cryo-EM single-particle reconstruction. The theoretical basis (more particles → higher resolution) is GOLD; the specific 50,000 particles threshold for sub-3 Å is operational practice.\n",
+        "rule_text": "BioMate passes datasets with ≥50,000 particles for sub-3 Å targets, advisory at 10K-50K, halt < 10K. The exact 50K cutoff is operational; Henderson's information-limit theory is the theoretical anchor.\n",
+        "finding": "Remediation: collect additional micrographs; loosen 2D/3D classification filters; recheck particle picking thresholds.\n"
+      }
+    ]
   }
 };
 

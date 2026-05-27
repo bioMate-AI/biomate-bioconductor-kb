@@ -1747,6 +1747,111 @@ export class GalaxyAssistant {
   }
 
   /**
+   * Stepwise E2E: user asks to show one named workflow card but the message also references
+   * earlier pipeline steps (e.g. "use pocket from step 1"). Pick the intent that matches the
+   * named tool — not sequential primaryIntent (always intents[0]).
+   */
+  private _pickIntentForNamedWorkflowCard(
+    decomposition: IntentDecomposition,
+    message: string
+  ): DecomposedIntent {
+    const { intents, primaryIntent, isSequential } = decomposition;
+    const namedMatchers: Array<{ msg: RegExp; intent: RegExp }> = [
+      {
+        msg: /\b(autodock\s*vina|docking_autodock_vina|docking_autodock|site[- ]directed\s+docking|vina\s+docking)\b/i,
+        intent: /\b(autodock|docking|vina)\b/i,
+      },
+      {
+        msg: /\b(predict\s+admet|admet\s+propert)/i,
+        intent: /\b(admet|toxicity|absorption|distribution|metabolism)\b/i,
+      },
+      {
+        msg: /\b(pharmacophore\s+filter|pharmacophore\s+screen)/i,
+        intent: /\b(pharmacophore|screen)\b/i,
+      },
+      {
+        msg: /\b(pocket\s+detection|fpocket|druggability)\b/i,
+        intent: /\b(pocket|fpocket|druggability)\b/i,
+      },
+      {
+        msg: /\b(optimize_codons_for_heterologous_expression|registry\s+id\s+10813\b|host_codon_usage)\b/i,
+        intent: /\b(codon|optimize|heterologous|10813)\b/i,
+      },
+    ];
+
+    for (const { msg, intent } of namedMatchers) {
+      if (!msg.test(message)) continue;
+      const hit = intents.find(
+        (i) =>
+          intent.test(i.subQuery) ||
+          (i.keywords || []).some((k) => intent.test(String(k)))
+      );
+      if (hit) return hit;
+      if (isSequential && intents.length > 0) return intents[intents.length - 1];
+      const wgIntents = intents.filter(
+        (i) => i.type === 'workflow_generation' || i.actions?.needsWorkflowGeneration
+      );
+      if (wgIntents.length > 0) return wgIntents[wgIntents.length - 1];
+      if (intents.length > 0) return intents[intents.length - 1];
+      break;
+    }
+
+    const stepMatch = message.match(/\bstep\s*(\d+)\b/i);
+    if (stepMatch) {
+      const idx = parseInt(stepMatch[1], 10) - 1;
+      if (idx >= 0 && idx < intents.length) return intents[idx];
+    }
+
+    return primaryIntent;
+  }
+
+  /**
+   * Collapse multi/sequential intent to a single workflow_generation intent when the user
+   * explicitly requested one named workflow card (ANDV inhibitor stepwise E2E).
+   */
+  private _maybeCollapseNamedWorkflowCardRequest(
+    decomposition: IntentDecomposition,
+    message: string
+  ): void {
+    const wantsNamedWorkflowCard =
+      /\b(show|generate).{0,80}workflow\s+card\b/i.test(message) ||
+      /\bworkflow\s+card\b.{0,40}\b(run\s+button|with\s+run)\b/i.test(message);
+    const wantsNamedWorkflow =
+      /\b(autodock\s*vina|docking_autodock_vina|docking_autodock|site[- ]directed\s+docking|predict\s+admet|pocket\s+detection|pharmacophore\s+filter|fpocket|druggability)\b/i.test(
+        message
+      ) ||
+      /\b(optimize_codons_for_heterologous_expression|registry\s+id\s+10813\b)\b/i.test(message) ||
+      (/\bcodon\s+optimi[sz]ation\b/i.test(message) && /\bhost_codon_usage\b/i.test(message));
+    if (
+      !(decomposition.isMultiIntent || decomposition.isSequential) ||
+      !wantsNamedWorkflowCard ||
+      !wantsNamedWorkflow
+    ) {
+      return;
+    }
+
+    const picked = this._pickIntentForNamedWorkflowCard(decomposition, message);
+    const collapsed: DecomposedIntent = {
+      ...picked,
+      subQuery: message,
+      type: 'workflow_generation',
+      actions: {
+        ...picked.actions,
+        needsWorkflowGeneration: true,
+        needsToolSearch: picked.actions.needsToolSearch !== false,
+        needsLLMReasoning: true,
+      },
+    };
+    console.log(
+      '[GalaxyAssistant] Single workflow-card request: collapsing to named-workflow intent (contextual step refs ignored)'
+    );
+    decomposition.isMultiIntent = false;
+    decomposition.isSequential = false;
+    decomposition.intents = [collapsed];
+    decomposition.primaryIntent = collapsed;
+  }
+
+  /**
    * ClarificationGate (S1): Check if the intent is ambiguous and, if so, return a clarifying
    * question response before workflow generation proceeds.
    *
@@ -1973,6 +2078,7 @@ Rules:
     // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
     log('Step 1: Analyzing intent');
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
+    this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
 
@@ -2141,6 +2247,47 @@ Rules:
         && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept)\b/i.test(message);
       if (_isCryoEmWorkflowQuery) {
         log('CryoEM SPA override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // AutoDock Vina / site-directed docking override (ANDV inhibitor step 4 and similar).
+    if (!actions.needsWorkflowGeneration) {
+      const _isNamedDockingToolQuery =
+        /\b(autodock\s*vina|docking_autodock_vina|site[- ]directed\s+docking|vina\s+docking|molecular\s+docking\s+with\s+vina)\b/i.test(
+          message
+        ) && !/\b(diffdock|blind\s+dock)\b/i.test(message);
+      if (_isNamedDockingToolQuery) {
+        log('Named docking tool override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Plan B codon optimization override (ANDV mRNA-LNP stepwise E2E).
+    // Classifier often returns research_question when the prompt mentions vaccine/LNP context.
+    if (!actions.needsWorkflowGeneration) {
+      const _isPlanBCodonQuery =
+        /\boptimize_codons_for_heterologous_expression\b/i.test(message) ||
+        /\bregistry\s+id\s+10813\b/i.test(message) ||
+        (/\bcodon\s+optimi[sz]ation\b/i.test(message) &&
+          /\b(host_codon_usage|target_sequence)\b/i.test(message));
+      if (_isPlanBCodonQuery) {
+        log('Plan B codon optimization override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // nf-core epitopeprediction override (ANDV Plan A stepwise E2E).
+    if (!actions.needsWorkflowGeneration) {
+      const _isPlanAEpitopeQuery =
+        /\b(epitopeprediction|nf[\s-]?core\/epitopeprediction)\b/i.test(message) ||
+        /\bregistry\s+id\s+12700\b/i.test(message) ||
+        (/\bepitope\s+prediction\b/i.test(message) && /\bmhcnuggets\b/i.test(message));
+      if (_isPlanAEpitopeQuery && !/\bmhcquant\b/i.test(message.replace(/\bnot\s+mhcquant\b/gi, ''))) {
+        log('Plan A epitopeprediction override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
@@ -3209,6 +3356,19 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     };
 
     const actions = intent.actions;
+
+    // Named docking tool override (multi-intent fan-out when collapse did not run).
+    if (!actions.needsWorkflowGeneration) {
+      const _dockMsg = `${intent.subQuery} ${originalMessage}`;
+      const _isNamedDockingToolQuery =
+        /\b(autodock\s*vina|docking_autodock_vina|site[- ]directed\s+docking|vina\s+docking|molecular\s+docking\s+with\s+vina)\b/i.test(
+          _dockMsg
+        ) && !/\b(diffdock|blind\s+dock)\b/i.test(_dockMsg);
+      if (_isNamedDockingToolQuery) {
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
 
     try {
       // Action-flag-based routing: multiple agents can be invoked per intent

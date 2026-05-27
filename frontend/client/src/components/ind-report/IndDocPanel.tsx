@@ -67,6 +67,13 @@ type Props = {
   projectId: string;
   // Optional org-id for paid-tier isolation; passed through to all feedback calls.
   orgId?: string | null;
+  // Header sub-line override; pages pass `${molecule} · ${sponsor} · ${indication}`
+  // so the header reflects the active project (closes punch list P2-1).
+  headerSub?: string;
+  // Audit overlay slot — page passes its <IndAuditOverlay/> here so the overlay
+  // renders inside the doc panel (the positioned ancestor for the absolute
+  // inset:0 styling). Closes punch list P0-2.
+  auditOverlay?: ReactNode;
 };
 
 // Helper — pull body text for a paragraph ID
@@ -80,7 +87,7 @@ const SECTION_ORDER = ["2.6.1", "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6"];
 export function IndDocPanel({
   doc, audit, region, onRegionChange, onSign, onAudit,
   onVersionsClick, showVersions, onVersionsClose, onDownload, onChatHandoff,
-  projectId, orgId = null,
+  projectId, orgId = null, headerSub, auditOverlay,
 }: Props) {
   const [editedParas, setEditedParas] = useState<Record<string, boolean>>({});
   const [showCitePop, setShowCitePop] = useState<string | null>(null);
@@ -99,7 +106,7 @@ export function IndDocPanel({
             v{doc.version}
           </span>
         </div>
-        <div className="ind-doc-sub">BM-0042 · Acme Therapeutics · NSCLC</div>
+        <div className="ind-doc-sub">{headerSub ?? "BM-0042 · Acme Therapeutics · NSCLC"}</div>
         <div className="ind-doc-meta">
           {doc.signed ? (
             <span className="adapter-badge" title="This document is signed and frozen">
@@ -239,6 +246,10 @@ export function IndDocPanel({
           }}
         />
       )}
+      {/* Audit overlay slot — overlays this panel via the existing
+          .ind-audit-overlay { position: absolute; inset: 0 } rule, since
+          .ind-doc-panel is position:sticky (= a positioned ancestor). */}
+      {auditOverlay}
     </aside>
   );
 }
