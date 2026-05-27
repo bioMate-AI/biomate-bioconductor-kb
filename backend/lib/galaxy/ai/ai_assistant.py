@@ -29,6 +29,7 @@ from .unified_workflow_search import (
     UnifiedWorkflowSearch as _BaseUnifiedWorkflowSearch,
     get_workflow_search,
     _CODON_MRNA_SIGNALS,
+    _DOCKING_VINA_SIGNALS,
 )
 # Wired workflow search: applies workflow_intent priority + inject when
 # BIOMATE_WORKFLOW_INTENT_PRIORITIZE=1 (+ optional INJECT=1). Bit-identical
@@ -3007,10 +3008,17 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _required_names = {p.get('name') for p in req if p.get('required', True)}
         _explicit_names = {s.get('name') for s in explicit_suggestions if s.get('name')}
         _explicit_covers_required = _required_names and _required_names.issubset(_explicit_names)
+        _has_dock_intent = any(s in _q_low for s in _DOCKING_VINA_SIGNALS)
+        _explicit_dock_12824 = bool(
+            re.search(r'\b12824\b', _q_low)
+            or 'docking_autodock_vina' in _q_low
+            or 'autodock vina' in _q_low
+        )
         _skip_param_llm = (
             _explicit_covers_required
             or (_has_codon_intent and _explicit_registry_10813 and len(explicit_suggestions) >= 2)
             or (_has_codon_intent and _explicit_registry_10813)
+            or (_has_dock_intent and _explicit_dock_12824 and 'pdb_input' in _q_low)
         )
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
@@ -3124,13 +3132,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not (has_codon and explicit_10813):
             return None
 
-        results = self.workflow_search.search(user_intent, limit=3)
-        if not results:
-            return None
-        top = results[0]
-        top_fn = (top.filename or '').lower()
-        if top.id != 10813 and 'optimize_codons' not in top_fn:
-            return None
+        # Direct registry lookup — skip BGE embedding search (cold start can exceed
+        # gunicorn worker timeout and fail Plan B E2E when Galaxy was just restarted).
+        top = self.workflow_search.get_workflow(10813)
+        if not top:
+            results = self.workflow_search.search(user_intent, limit=3)
+            if not results:
+                return None
+            top = results[0]
+            top_fn = (top.filename or '').lower()
+            if top.id != 10813 and 'optimize_codons' not in top_fn:
+                return None
+            results_list = results
+        else:
+            top_fn = (top.filename or '').lower()
+            if 'optimize_codons' not in top_fn and top.id != 10813:
+                return None
+            results_list = [top]
 
         log.info(
             "[UnifiedWorkflowGeneration] Fast path registry 10813 → %s (score=%.1f)",
@@ -3143,7 +3161,48 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             user_intent=user_intent,
             source='template_reuse',
             needs_user_feedback=False,
-            search_results=results,
+            search_results=results_list,
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
+    def _try_fast_path_explicit_docking_workflow(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Return AutoDock Vina (12824) without BGE search when named in ANDV inhibitor E2E."""
+        import re as _re_dock
+
+        q_low = user_intent.lower()
+        has_dock = any(s in q_low for s in _DOCKING_VINA_SIGNALS)
+        explicit_vina = bool(
+            _re_dock.search(r'\b12824\b', q_low)
+            or 'docking_autodock_vina' in q_low
+            or 'autodock vina' in q_low
+        )
+        if not (has_dock and explicit_vina):
+            return None
+
+        top = self.workflow_search.get_workflow(12824)
+        if not top:
+            return None
+        top_fn = (top.filename or '').lower()
+        if top.id != 12824 and 'docking_autodock_vina' not in top_fn and 'autodock' not in top_fn:
+            return None
+
+        log.info(
+            "[UnifiedWorkflowGeneration] Fast path registry 12824 → %s",
+            top.name,
+        )
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
             selected_trial='',
             trials=[],
             uploaded_datasets=uploaded_datasets,
@@ -3213,6 +3272,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             )
             if _fast_codon:
                 return _fast_codon
+
+            _fast_dock = self._try_fast_path_explicit_docking_workflow(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_dock:
+                return _fast_dock
 
             # Ensure the fast LLM client is initialized before chain search.
             # _llm_select_chain (chain verifier) needs workflow_search._llm_client set BEFORE
@@ -3424,17 +3489,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             #   _MATCH_SCORE_MED  = 6.0   (medium_confidence / plausible)
             _DISAMBIG_MIN_SCORE = 6.0
             _DISAMBIG_GAP_THRESHOLD = 3.0
-            # Skip disambiguation when the top match score is in the LLM-rescue band
-            # (6.5 < score <= 7.0). Rescue scores are deterministically spaced 0.3
-            # per rank, so the gap heuristic always trips and silently routes the call
-            # to compose-from-scratch. Tier 0 T04 (GLP-1 / MASH) was the canonical
-            # failure: top=7.00, next=6.70, gap=0.30 < 3.0 → disambig → blank response.
-            # The LLM already disambiguated by selecting this workflow at rank 0.
-            _top_in_rescue_band = (
-                bool(search_results)
-                and 6.5 < getattr(search_results[0], 'score', 0.0) <= 7.0
-            )
-            if search_results and match_type != 'high_confidence' and not _top_in_rescue_band:
+            if search_results and match_type != 'high_confidence':
                 plausible = [r for r in search_results if r.score >= _DISAMBIG_MIN_SCORE]
                 if (len(plausible) >= 2
                         and (plausible[0].score - plausible[1].score) < _DISAMBIG_GAP_THRESHOLD):

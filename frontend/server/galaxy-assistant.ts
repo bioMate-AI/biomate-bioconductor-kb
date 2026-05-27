@@ -1877,7 +1877,8 @@ export class GalaxyAssistant {
   ): void {
     const forceWf =
       this._isPlanBCodonQuery(message) ||
-      this._isPlanAEpitopeQuery(message);
+      this._isPlanAEpitopeQuery(message) ||
+      /\b(autodock\s*vina|docking_autodock_vina|registry\s+id\s+12824)\b/i.test(message);
     if (!forceWf) return;
 
     const apply = (intent: DecomposedIntent) => {
