@@ -1,0 +1,22 @@
+{
+  "run_id": "e4-cryo-001",
+  "tool": "cryosparc_live",
+  "domain": "cryo_em",
+  "decisions": [
+    {
+      "gate": "FSC_resolution_A",
+      "value": 2.8,
+      "passed": true
+    },
+    {
+      "gate": "motion_drift_A",
+      "value": 0.7,
+      "passed": true
+    },
+    {
+      "gate": "particle_count",
+      "value": 145000,
+      "passed": true
+    }
+  ]
+}

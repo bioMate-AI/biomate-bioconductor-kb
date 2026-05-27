@@ -1,0 +1,58 @@
+{
+  "run_id": "e4-cryo-002",
+  "phase": "preprocessing",
+  "domain": "cryo_em",
+  "workflow": "cryosparc_standard_spa",
+  "overall_level": "FAIL",
+  "passed": false,
+  "gates": [
+    {
+      "gate": "cryo_em_motion_drift",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 1.6,
+      "threshold": 1.0,
+      "message": "drift 1.6 \u00c5 > 1.0",
+      "evidence": [
+        {
+          "paper_ref": "Zheng et al. Nat Methods 2017; 14:331-332",
+          "paper_doi": "10.1038/nmeth.4193",
+          "provenance": "SILVER",
+          "rule_text": "Per-frame motion < 1.0 \u00c5 typical for MotionCor2; flag > 1.0 \u00c5."
+        }
+      ]
+    },
+    {
+      "gate": "cryo_em_particle_count",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 12000,
+      "threshold": 20000,
+      "message": "12k < 20k floor",
+      "evidence": [
+        {
+          "paper_ref": "Sigworth FJ J Struct Biol 1998; 122:328-339",
+          "paper_doi": "10.1006/jsbi.1998.4014",
+          "provenance": "BRONZE",
+          "rule_text": "BioMate operational floor of 20k particles for sub-3 \u00c5 reconstruction."
+        }
+      ]
+    },
+    {
+      "gate": "cryo_em_fsc_resolution",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 6.2,
+      "threshold": 4.0,
+      "message": "FSC=6.2 \u00c5",
+      "evidence": [
+        {
+          "paper_ref": "Rosenthal & Henderson J Mol Biol 2003; 333:721-745",
+          "paper_doi": "10.1016/j.jmb.2003.07.013",
+          "provenance": "GOLD",
+          "rule_text": "FSC 0.143 gold-standard resolution cutoff; report best half-map FSC."
+        }
+      ]
+    }
+  ]
+}

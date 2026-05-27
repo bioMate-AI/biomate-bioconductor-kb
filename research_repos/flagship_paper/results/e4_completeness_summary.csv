@@ -1,0 +1,4 @@
+group,n,min,q1,median,q3,max,mean
+biomate,10,1.0,1.0,1.0,1.0,1.0,1.0
+baseline_grouped,10,0.0,0.0,0.0,0.0,0.0,0.0
+# Mann-Whitney U two-sided: U=0.00, p=1.571e-04

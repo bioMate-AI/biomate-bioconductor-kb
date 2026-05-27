@@ -1,0 +1,42 @@
+{
+  "run_id": "e4-hts-002",
+  "phase": "plate_qc",
+  "domain": "hts",
+  "workflow": "hts_plate_qc",
+  "overall_level": "FAIL",
+  "passed": false,
+  "gates": [
+    {
+      "gate": "hts_z_prime",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 0.18,
+      "threshold": 0.5,
+      "message": "Z'=0.18 < 0.5",
+      "evidence": [
+        {
+          "paper_ref": "Zhang JH et al. J Biomol Screen 1999; 4:67-73",
+          "paper_doi": "10.1177/108705719900400206",
+          "provenance": "GOLD",
+          "rule_text": "Z' \u2265 0.5 = excellent assay; Z' < 0 = unusable."
+        }
+      ]
+    },
+    {
+      "gate": "hts_signal_window",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 1.4,
+      "threshold": 2.0,
+      "message": "SW=1.4 < 2",
+      "evidence": [
+        {
+          "paper_ref": "Iversen et al. Assay Guidance Manual 2006 (NCBI Bookshelf)",
+          "paper_doi": "https://www.ncbi.nlm.nih.gov/books/NBK53196/",
+          "provenance": "SILVER",
+          "rule_text": "Signal window \u2265 2 considered acceptable for HTS campaigns."
+        }
+      ]
+    }
+  ]
+}

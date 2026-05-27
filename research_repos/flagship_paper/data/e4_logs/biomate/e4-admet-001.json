@@ -1,0 +1,58 @@
+{
+  "run_id": "e4-admet-001",
+  "phase": "qc_gate",
+  "domain": "admet",
+  "workflow": "admet_autoloop",
+  "overall_level": "FAIL",
+  "passed": false,
+  "gates": [
+    {
+      "gate": "admet_herg_block",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 3.2,
+      "threshold": 10.0,
+      "message": "hERG IC50 3.2 \u00b5M < 10",
+      "evidence": [
+        {
+          "paper_ref": "Aronov AM. Drug Discov Today 2005; 10:149-155",
+          "paper_doi": "10.1016/S1359-6446(04)03278-7",
+          "provenance": "GOLD",
+          "rule_text": "hERG IC50 < 10 \u00b5M flagged as cardiotoxicity risk."
+        }
+      ]
+    },
+    {
+      "gate": "admet_dili_probability",
+      "action": "halt",
+      "level": "FAIL",
+      "value": 0.72,
+      "threshold": 0.6,
+      "message": "DILI=0.72",
+      "evidence": [
+        {
+          "paper_ref": "Lammert et al. Hepatology 2010; 51:615-620",
+          "paper_doi": "10.1002/hep.23317",
+          "provenance": "SILVER",
+          "rule_text": "DILI risk score > 0.6 flagged; predictive model threshold convention."
+        }
+      ]
+    },
+    {
+      "gate": "admet_ames",
+      "action": "pass",
+      "level": "GOLD",
+      "value": 0,
+      "threshold": 1,
+      "message": "Ames negative",
+      "evidence": [
+        {
+          "paper_ref": "Kazius et al. J Med Chem 2005; 48:312-320",
+          "paper_doi": "10.1021/jm040835a",
+          "provenance": "GOLD",
+          "rule_text": "Ames-positive prediction halts; FDA ICH M7 requires (Q)SAR for mutagenicity."
+        }
+      ]
+    }
+  ]
+}

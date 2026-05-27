@@ -1,0 +1,20 @@
+{
+  "run_id": "e4-hts-001",
+  "tool": "spotfire_plateqc",
+  "domain": "hts",
+  "decisions": [
+    {
+      "gate": "Z_prime",
+      "value": 0.71,
+      "passed": true,
+      "threshold": 0.5,
+      "vendor_doc": "https://docs.tibco.com/spotfire"
+    },
+    {
+      "gate": "signal_window",
+      "value": 4.3,
+      "passed": true,
+      "threshold": 2.0
+    }
+  ]
+}
