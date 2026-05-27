@@ -8715,6 +8715,39 @@ ${paramLines || '(none recorded)'}`;
             'starting', 'fetching_accessions', 'alive', 'ready', 'in_progress',
           ]);
           const isTerminalNfState = nfState && !IN_PROGRESS_STATES.has(nfState);
+
+          // Stuck-running guard (Task #16 extension). When the Nextflow JVM
+          // dies (gunicorn worker recycle, container restart, OOM) Galaxy
+          // never gets a terminal event and the run stays 'running' forever.
+          // If wall-clock > 12h with no terminal signal, force-fail. No
+          // drug-dev workflow legitimately exceeds 12h. The publishDir-gap
+          // recovery in runs-outputs-service still surfaces any files the
+          // AWS Batch task wrote before Nextflow died.
+          const STUCK_RUNNING_MS = 12 * 60 * 60 * 1000;
+          const startedAt = run.execution?.startedAt
+            ? new Date(run.execution.startedAt as any).getTime()
+            : 0;
+          if (
+            !isTerminalNfState &&
+            run.execution.status === 'running' &&
+            startedAt > 0 &&
+            (Date.now() - startedAt) > STUCK_RUNNING_MS
+          ) {
+            console.warn(
+              `[ExecutionRun] stuck-running guard: marking ${run.id} as failed (>12h no terminal signal)`
+            );
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: 'failed' as ExecutionRunStatus,
+                errorMessage:
+                  'Run exceeded 12h with no terminal signal — Nextflow process likely died. ' +
+                  'AWS Batch outputs may still be recoverable via /api/runs/:id/outputs (publishDir-gap fallback).',
+                completedAt: new Date(),
+              },
+            }) || run;
+          }
+
           if (isTerminalNfState) {
             const isSuccessNfState   = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
             const isPausedNfState    = nfState === 'paused';

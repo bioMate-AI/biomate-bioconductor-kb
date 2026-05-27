@@ -146,6 +146,9 @@ SMARTS_MAP = {
     "Hydrophobe":   "[c,s,S&H0&v2,Br,I,\$(C(F)(F)F),\$(CC(F)(F)F)]",
     "PosIonizable": "[+!H0,\$(N-[CX3]=[NH]),\$(NC(=N)N),\$(n1ccnc1)]",
     "NegIonizable": "[\$([CX3](=O)[OX1H0-,OX2H1]),\$([SX4](=[OX1])(=[OX1])([OX2H,OX1H0-])[OX2H,OX1H0-])]",
+    # ZnBinder: zinc-binding groups (ZBGs) — hydroxamic acid, thiol, carboxylate
+    # Common in metalloprotease (MMP, HDAC, carbonic anhydrase) inhibitors.
+    "ZnBinder":     "[\$([CX3](=O)N[OH,OX1-]),\$([SX2H,SX1-]),\$([CX3](=O)[OX1H0-,OX2H1])]",
 }
 
 features = []

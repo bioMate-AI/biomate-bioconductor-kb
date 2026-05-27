@@ -118,6 +118,18 @@ if RDKIT and smi:
 mw   = mw_in  or 300.0
 logp = logp_in or 2.0
 
+# Auto-estimate fu_plasma from logP when user didn't explicitly set it.
+# Lobell-Sivars-style QSAR: fu = 1 / (1 + 10^(0.5*logP - 0.4)), clamped.
+# Better than the static 0.05/0.1 default: gives aspirin (logP=1.31) fu~0.37
+# vs literature 0.2-0.5, vs old default 0.05 which gave 10x-too-slow clearance.
+# Saturable albumin binding (where fu rises with concentration) is NOT modeled
+# — needs full Schmitt eqs. If you have a measured fu_plasma from a compound
+# database, pass it as PARAM_FU_PLASMA to override this estimate.
+_user_fu = os.environ.get('PARAM_FU_PLASMA', '').strip()
+if not _user_fu or _user_fu in ('0.05', '0.1', 'null', 'None'):
+    _fu_est = 1.0 / (1.0 + 10.0 ** (0.5 * logp - 0.4))
+    fu_p = max(0.01, min(0.99, _fu_est))
+
 # -- Physiological parameters per population (Willmann 2003) ------------------
 PHYSIOLOGY = {
     'healthy_adult': {
