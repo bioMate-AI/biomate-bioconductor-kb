@@ -234,7 +234,7 @@ function PlatformLayout({
         </div>
       ) : (
         /* Full sidebar */
-        <div className="flex-shrink-0 flex" style={{ width: 260 }}>
+        <div className="flex-shrink-0 flex overflow-hidden" style={{ width: 260, minWidth: 260, maxWidth: 260 }}>
           <AppSidebar
             onNewChat={onNewChat}
             onChatSelect={onChatSelect}

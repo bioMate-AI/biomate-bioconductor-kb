@@ -244,6 +244,9 @@ export function AppSidebar({
       borderRight: '1px solid var(--bm-border, hsl(var(--border)))',
       padding: '14px 10px',
       gap: 0,
+      width: '100%',
+      minWidth: 0,
+      overflow: 'hidden',
     }}>
       {/* Brand — full-width logo header (matches Research Agent UI design).
           Negates the sidebar's 14/10px padding so the image touches both
