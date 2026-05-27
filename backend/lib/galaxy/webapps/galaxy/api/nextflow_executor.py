@@ -320,23 +320,46 @@ def _parse_processes_from_log(log_text: str) -> Dict[str, Any]:
         if len(nm) >= 4:
             full_names.add(nm)
 
-    def _resolve_name(short: str, line_text: str) -> str:
+    def _resolve_name(short: str, line_text: str, others_in_block: set) -> str:
         # If the source line contains "<short>…", look up a full name that
         # starts with the short prefix.
         if f"{short}…" not in line_text:
             return short
         candidates = [n for n in full_names if n.startswith(short) and n != short]
-        if len(candidates) == 1:
-            return candidates[0]
         if not candidates:
             return short
-        # Multiple matches: prefer the shortest one to avoid over-aliasing.
+        if len(candidates) == 1:
+            return candidates[0]
+        # Multiple matches: exclude any that already appear un-truncated as a
+        # sibling line in the same block — the truncated entry must be the one
+        # NOT listed separately. If only one remains, use it.
+        remaining = [n for n in candidates if n not in others_in_block]
+        if len(remaining) == 1:
+            return remaining[0]
+        if remaining:
+            return min(remaining, key=len)
         return min(candidates, key=len)
 
     # Index of the latest "executor >" line — Nextflow restarts the progress
     # block after each refresh, so we want everything after the final restart.
     last_block_start = log_text.rfind("executor >")
     block = log_text[last_block_start:] if last_block_start != -1 else log_text
+
+    # Pre-scan the block once to collect un-truncated process names appearing as
+    # sibling lines (used by _resolve_name to disambiguate truncated entries).
+    block_full_names: set = set()
+    for raw in block.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m_pre = _NF_PROC_RE.match(line)
+        if not m_pre:
+            continue
+        nm_pre = m_pre.group("name")
+        if f"{nm_pre}…" in line:
+            continue  # truncated; not a source of truth
+        block_full_names.add(nm_pre)
+
     by_name: Dict[str, Dict[str, Any]] = {}
     for raw in block.splitlines():
         line = _strip_ansi(raw).strip()
@@ -346,7 +369,7 @@ def _parse_processes_from_log(log_text: str) -> Dict[str, Any]:
         if not m:
             continue
         raw_name = m.group("name")
-        name = _resolve_name(raw_name, line)
+        name = _resolve_name(raw_name, line, block_full_names)
         hash_field = (m.group("hash") or "").strip()
         is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
         done = int(m.group("done") or 0)
