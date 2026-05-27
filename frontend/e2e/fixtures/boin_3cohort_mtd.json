@@ -1,0 +1,32 @@
+{
+  "_comment": "Synthetic BOIN dose-escalation trial: 3 dose cohorts of 10 patients each. Observed DLT rates are 0.10, 0.22, 0.40. With target_dlt_rate phi=0.25 the BOIN rule selects dose 2 (0.22 <= 0.25 < 0.40) as MTD. boin_dlt_boundary gate computes ratio = mtd_observed_dlt_rate / target_dlt_rate. To exercise BO-3 (advisory-only halt), the harness should pass mtd_observed_dlt_rate=0.32 (ratio=1.28 > 1.0, FAIL/halt) while keeping the test deterministic. Liu & Yuan 2015 (J R Stat Soc C 64(3):507-523).",
+  "trial_design": {
+    "design": "BOIN",
+    "target_dlt_rate": 0.25,
+    "cohort_size": 10,
+    "n_cohorts": 3,
+    "doses_mg": [25, 50, 100],
+    "max_sample_size": 30
+  },
+  "cohorts": [
+    {"dose_level": 1, "dose_mg": 25,  "n_patients": 10, "n_dlt": 1, "observed_dlt_rate": 0.10},
+    {"dose_level": 2, "dose_mg": 50,  "n_patients": 10, "n_dlt": 2, "observed_dlt_rate": 0.22},
+    {"dose_level": 3, "dose_mg": 100, "n_patients": 10, "n_dlt": 4, "observed_dlt_rate": 0.40}
+  ],
+  "expected_mtd": {
+    "dose_level": 2,
+    "dose_mg": 50,
+    "mtd_observed_dlt_rate": 0.22,
+    "boin_action": "stay",
+    "boin_lambda_e": 0.197,
+    "boin_lambda_d": 0.298
+  },
+  "halt_scenario": {
+    "_comment": "Override used in BO-3: force MTD into a halt state without changing fixture trial design. The pipeline should report mtd_observed_dlt_rate=0.32 vs target 0.25 -> ratio=1.28 -> halt.",
+    "mtd_observed_dlt_rate": 0.32,
+    "target_dlt_rate": 0.25,
+    "expected_ratio": 1.28,
+    "expected_gate_action": "halt",
+    "expected_remediation_count": 0
+  }
+}
