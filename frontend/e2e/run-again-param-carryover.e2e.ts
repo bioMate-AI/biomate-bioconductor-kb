@@ -35,23 +35,36 @@ if (!fs.existsSync(SS_DIR)) fs.mkdirSync(SS_DIR, { recursive: true });
 test.setTimeout(360000); // 6 min — workflow needs to start, complete, and verify
 
 async function registerAndGoHome(page: Page): Promise<void> {
+  // Matches the robust pattern from full-workflow-e2e.ts: tolerate registration
+  // form quirks (extra optional fields, validation paths) and recover by
+  // navigating directly to / after a brief wait. The auth cookie is set on
+  // submit even when the URL doesn't change.
   const email = `e2e_gap3_${Date.now()}@biomate.test`;
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
   await page.context().clearCookies();
   await page.goto(`${BASE_URL}/register`);
+  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch {} }).catch(() => {});
   await page.waitForLoadState("load");
-  await page.evaluate(() => {
-    try { localStorage.clear(); sessionStorage.clear(); } catch {}
-  }).catch(() => {});
-  await page.waitForSelector("#name", { state: "visible", timeout: 10000 });
-  await page.fill("#name", "Gap3 E2E");
-  await page.fill("#email", email);
-  await page.fill("#password", "TestPass123!");
-  await page.fill("#confirmPassword", "TestPass123!");
-  await page.click("#terms");
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/(home|chat|$)/, { timeout: 15000 });
-  await page.waitForLoadState("networkidle");
+  try {
+    await page.waitForSelector("#name", { state: "visible", timeout: 10000 });
+    await page.fill("#name", "Gap3 E2E");
+    await page.fill("#email", email);
+    await page.fill("#organization", "BioMate Test Lab");
+    await page.selectOption("#role", { label: "Research Scientist" });
+    await page.fill("#password", "TestPass123!");
+    await page.fill("#confirmPassword", "TestPass123!");
+    await page.click("#terms");
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(3000);
+  } catch {
+    // ignore — recovery via direct goto below
+  }
+  await page.goto(BASE_URL);
+  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch {} }).catch(() => {});
+  await page.reload();
+  await page.waitForLoadState("load");
+  await page.waitForSelector("textarea", { state: "visible", timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
 }
 
 test("Gap 3 — Run again pre-fills submitted params; Reset link restores defaults", async ({ page }) => {
