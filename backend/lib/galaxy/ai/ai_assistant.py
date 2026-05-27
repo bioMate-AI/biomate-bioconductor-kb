@@ -2995,9 +2995,26 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # that LLM inference skips, and any param the user typed verbatim).
         explicit_suggestions = self._extract_explicit_params_from_query(user_intent, req, opt)
         req, opt = self._apply_llm_suggestions(req, opt, explicit_suggestions)
-        # Layer 2: apply LLM intent-inferred suggestions (non-blocking)
-        llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
-        req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        # Layer 2: apply LLM intent-inferred suggestions (non-blocking).
+        # Skip when the user already supplied explicit values (common in Plan B E2E / CLI
+        # parity prompts) — gemini param inference can exceed the Node proxy timeout.
+        _q_low = user_intent.lower()
+        _has_codon_intent = any(s in _q_low for s in _CODON_MRNA_SIGNALS)
+        _explicit_registry_10813 = bool(
+            re.search(r'\b10813\b', _q_low)
+            or 'optimize_codons_for_heterologous_expression' in _q_low
+        )
+        _required_names = {p.get('name') for p in req if p.get('required', True)}
+        _explicit_names = {s.get('name') for s in explicit_suggestions if s.get('name')}
+        _explicit_covers_required = _required_names and _required_names.issubset(_explicit_names)
+        _skip_param_llm = (
+            _explicit_covers_required
+            or (_has_codon_intent and _explicit_registry_10813 and len(explicit_suggestions) >= 2)
+            or (_has_codon_intent and _explicit_registry_10813)
+        )
+        if not _skip_param_llm:
+            llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
+            req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
         citations = self._build_workflow_citations(match.tools, match.domain, match.tags)
         warnings = [] if not needs_user_feedback else [
             'Medium confidence match — please verify tool selection is appropriate'
@@ -3085,6 +3102,53 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             **({'citations': citations} if citations else {}),
         }
 
+    def _try_fast_path_explicit_codon_workflow(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Return codon optimization workflow without chain/LLM routing when registry 10813 is explicit.
+
+        Plan B E2E and CLI parity prompts name optimize_codons_for_heterologous_expression with
+        explicit parameters. The full unified path can exceed HTTP worker timeouts when LLM
+        param inference or chain verification runs unnecessarily.
+        """
+        import re as _re_fast
+
+        q_low = user_intent.lower()
+        has_codon = any(s in q_low for s in _CODON_MRNA_SIGNALS)
+        explicit_10813 = bool(
+            _re_fast.search(r'\b10813\b', q_low)
+            or 'optimize_codons_for_heterologous_expression' in q_low
+        )
+        if not (has_codon and explicit_10813):
+            return None
+
+        results = self.workflow_search.search(user_intent, limit=3)
+        if not results:
+            return None
+        top = results[0]
+        top_fn = (top.filename or '').lower()
+        if top.id != 10813 and 'optimize_codons' not in top_fn:
+            return None
+
+        log.info(
+            "[UnifiedWorkflowGeneration] Fast path registry 10813 → %s (score=%.1f)",
+            top.name,
+            top.score,
+        )
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=results,
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
     def generate_workflow_unified(
         self,
         user_intent: str,
@@ -3143,6 +3207,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # Initialise variables that may be set only in specific code paths
             # so the final return dict can always reference them safely.
             dataset_match_result: Dict[str, Any] = {}
+
+            _fast_codon = self._try_fast_path_explicit_codon_workflow(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_codon:
+                return _fast_codon
 
             # Ensure the fast LLM client is initialized before chain search.
             # _llm_select_chain (chain verifier) needs workflow_search._llm_client set BEFORE
@@ -3354,17 +3424,17 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             #   _MATCH_SCORE_MED  = 6.0   (medium_confidence / plausible)
             _DISAMBIG_MIN_SCORE = 6.0
             _DISAMBIG_GAP_THRESHOLD = 3.0
-            # Skip disambiguation when the top match is an llm_rescued pick — LLM Pass-0
-            # already disambiguated by naming it, and synthetic-score gaps between
-            # rescued entries are deterministically small (0.3 per rank step), so the
-            # gap heuristic always trips and prevents the LLM's choice from being
-            # committed. Tier 0 T04 (GLP-1 vs MASH) hit this: rescued top scored 7.00,
-            # next 6.70, gap 0.30 < 3.0 → disambiguation → "Generated Workflow".
-            _top_is_llm_rescued = (
+            # Skip disambiguation when the top match score is in the LLM-rescue band
+            # (6.5 < score <= 7.0). Rescue scores are deterministically spaced 0.3
+            # per rank, so the gap heuristic always trips and silently routes the call
+            # to compose-from-scratch. Tier 0 T04 (GLP-1 / MASH) was the canonical
+            # failure: top=7.00, next=6.70, gap=0.30 < 3.0 → disambig → blank response.
+            # The LLM already disambiguated by selecting this workflow at rank 0.
+            _top_in_rescue_band = (
                 bool(search_results)
-                and getattr(search_results[0], 'match_type', None) == 'llm_rescued'
+                and 6.5 < getattr(search_results[0], 'score', 0.0) <= 7.0
             )
-            if search_results and match_type != 'high_confidence' and not _top_is_llm_rescued:
+            if search_results and match_type != 'high_confidence' and not _top_in_rescue_band:
                 plausible = [r for r in search_results if r.score >= _DISAMBIG_MIN_SCORE]
                 if (len(plausible) >= 2
                         and (plausible[0].score - plausible[1].score) < _DISAMBIG_GAP_THRESHOLD):
@@ -3428,16 +3498,27 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             search_results[0].name,
                         )
                 # Plan B: trust retrieval when codon/mRNA intent matches a codon subworkflow top hit.
-                # LLM verify has overridden #1 → mhcquant when the query mentions vaccine/ANDV context.
+                # LLM verify has overridden #1 → mhcquant/epitopeprediction when the query
+                # mentions vaccine/ANDV context.
                 if _needs_verify and search_results:
                     _q_low = user_intent.lower()
                     _has_codon_intent = any(s in _q_low for s in _CODON_MRNA_SIGNALS)
+                    _explicit_registry_10813 = bool(
+                        re.search(r'\b10813\b', _q_low)
+                        or 'optimize_codons_for_heterologous_expression' in _q_low
+                    )
                     _top = search_results[0]
                     _top_slug = self.workflow_search._normalise_pipeline_slug(
                         _top.name.split("/")[-1]
                     )
                     _top_fn = (_top.filename or "").lower()
-                    if _has_codon_intent and (
+                    if _explicit_registry_10813 and _has_codon_intent:
+                        _needs_verify = False
+                        log.info(
+                            "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
+                            "explicit Plan B registry 10813 / optimize_codons in query"
+                        )
+                    elif _has_codon_intent and (
                         _top.id == 10813
                         or "codon" in _top_slug
                         or "optimize_codons" in _top_fn

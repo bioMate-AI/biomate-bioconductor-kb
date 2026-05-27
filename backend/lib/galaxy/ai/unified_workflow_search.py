@@ -780,35 +780,36 @@ class UnifiedWorkflowSearch:
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
                             # Synthetic score: 7.0 − 0.3*rank.
                             # Old base of 2.8 capped all rescued matches below
-                            # _MATCH_SCORE_MED (6.0), so the dispatcher always demoted
-                            # them to "low_confidence" → compose-from-scratch path,
-                            # never template_reuse. Tier-0 audit (T03 in_vivo_base_edit_design,
-                            # T04 glp1_modality_bakeoff) was the canonical failure: LLM
-                            # picked the correct workflow, scorer assigned 2.80, dispatcher
-                            # composed a blank "Generated Workflow" instead.
-                            # Base 7.0 puts rank-1 rescues over the 6.0 medium-confidence
-                            # threshold while still below the 12.0 high-confidence threshold,
-                            # so they enter template_reuse but still get _llm_verify_routing.
+                            # _MATCH_SCORE_MED (6.0); dispatcher demoted to "low_confidence"
+                            # and the compose-from-scratch path fired. Base 7.0 puts rank-1
+                            # rescues over the medium threshold while staying below the 12.0
+                            # high-confidence threshold. Match_type is computed from the
+                            # final score (not the literal "llm_rescued" string) so the
+                            # dispatcher's match_type branches in ai_assistant.py:3493+
+                            # fire correctly — previously "llm_rescued" matched neither
+                            # the high_confidence nor medium_confidence branch and silently
+                            # fell through to compose-from-scratch.
+                            _rescue_score = round(7.0 - 0.3 * rank, 2)
                             m = WorkflowMatch(
                                 id=m.id, name=m.name, description=m.description,
                                 domain=m.domain, source=m.source, format=m.format,
                                 step_count=m.step_count, tools=m.tools, tags=m.tags,
                                 filename=m.filename, workflow_json=m.workflow_json,
-                                score=round(7.0 - 0.3 * rank, 2),
-                                match_type="llm_rescued",
+                                score=_rescue_score,
+                                match_type=self._classify_match(_rescue_score),
                             )
                             results.append(m)
                         if rescued_rows:
-                            # Final sort prioritises LLM-selected workflows over
-                            # FTS-only noise. Without this, generic-keyword Bioconductor
-                            # entries (TCC, openCyto, snm…) score 25-30+ on common query
-                            # words and outrank the LLM's actual choice. Tier 0 T03
-                            # (PCSK9 base edit) saw best=TCC (31.35, high_confidence) while
-                            # the LLM had named in_vivo_base_edit_design — the dispatcher
-                            # committed to TCC and the form-prefill chain stayed blank.
-                            # Key: (LLM-selected?, score). False sorts after True.
+                            # Final sort prioritises LLM-selected workflows over FTS
+                            # keyword-overlap noise (Bioconductor TCC, openCyto, snm…
+                            # routinely score 25-30+ on generic words). LLM-named comes
+                            # first regardless of FTS score; non-LLM matches keep their
+                            # FTS rank below.
                             results.sort(
-                                key=lambda x: (x.id not in llm_rank_map if llm_rank_map else True, -x.score)
+                                key=lambda x: (
+                                    x.id not in llm_rank_map if llm_rank_map else True,
+                                    -x.score,
+                                )
                             )
                             log.debug("Pass-0 rescued %d LLM-selected workflows not in FTS", len(rescued_rows))
                     except Exception as exc:
@@ -874,20 +875,6 @@ class UnifiedWorkflowSearch:
                 ]
                 if filtered:
                     results = filtered
-
-            # Final ordering: when LLM Pass-0 has named workflows, surface those above
-            # FTS-only matches regardless of FTS score. Generic Bioconductor entries
-            # (TCC, openCyto, snm…) routinely score 25-30+ on common keyword overlap
-            # without being topically relevant. Without this guard the dispatcher
-            # picks them over the LLM's named choice (Tier 0 T03 canonical failure).
-            if llm_rank_map:
-                results.sort(
-                    key=lambda x: (
-                        x.id not in llm_rank_map,                # LLM-named first
-                        llm_rank_map.get(x.id, 999),             # then by LLM rank
-                        -x.score,                                # then by raw score
-                    )
-                )
 
             return results[:limit]
 
@@ -983,7 +970,13 @@ class UnifiedWorkflowSearch:
             penalized.update({'microbiology', 'metagenomics', 'transcriptomics'})
 
         # Computational epitope / vaccine immunoinformatics (not LC-MS proteomics).
-        if any(tok in q for tok in _EPI_TOPE_PREDICTION_SIGNALS):
+        # Plan B mRNA-LNP queries mention "vaccine" but are codon optimization — do not
+        # boost immunoinformatics when codon/mRNA construct signals are present.
+        has_codon_intent = any(tok in q for tok in _CODON_MRNA_SIGNALS)
+        if has_codon_intent:
+            preferred.update({'synthetic_biology', 'general'})
+            penalized.update({'immunoinformatics'})
+        elif any(tok in q for tok in _EPI_TOPE_PREDICTION_SIGNALS):
             preferred.update({'immunoinformatics', 'general'})
             if not any(tok in q for tok in _MHCQUANT_MS_SIGNALS):
                 penalized.update({'proteomics'})
