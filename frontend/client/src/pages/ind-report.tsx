@@ -338,14 +338,17 @@ function DocPanelHost({
       window.alert("DOCX export ships next sprint. Use the Markdown download for now.");
       return;
     }
-    const sections: DocumentSection[] = DEMO_DOC_FOR_PANEL.sections.map((s) => ({
-      id: s.id,
-      title: s.title,
-      body: (s.subs ?? [])
-        .map((sub) => DEMO_DOC_FOR_PANEL.bodyByPid[`p-${sub.id}`] ?? "")
-        .filter(Boolean)
-        .join("\n\n"),
-    }));
+    const sections: DocumentSection[] = DEMO_DOC_FOR_PANEL.sections.map((s) => {
+      const subs = (s as { subs?: { id: string }[] }).subs ?? [];
+      return {
+        id: s.id,
+        title: s.title,
+        body: subs
+          .map((sub) => DEMO_DOC_FOR_PANEL.bodyByPid[`p-${sub.id}`] ?? "")
+          .filter(Boolean)
+          .join("\n\n"),
+      };
+    });
     downloadMarkdown(activeProject.id, sections).catch((e) =>
       console.error("[ind] markdown download failed:", e),
     );
@@ -375,7 +378,7 @@ function DocPanelHost({
       projectId={activeProject.id}
       orgId={null}
       // P2-1: real header from active project, not hardcoded BM-0042 string
-      headerSub={`${activeProject.molecule} · ${activeProject.sponsor ?? "Acme Therapeutics"} · ${activeProject.indication}`}
+      headerSub={`${activeProject.molecule} · Acme Therapeutics · ${activeProject.indication}`}
       // P0-2: audit overlay rendered as a SLOT inside the doc panel — the
       // .ind-audit-overlay { position: absolute; inset: 0 } CSS overlays the
       // panel (the positioned ancestor) instead of floating at the page root.
@@ -482,34 +485,51 @@ export function IndReportPage() {
         activeProject={activeProject}
         onSign={() => setShowSign(true)}
         onAudit={() => setShowAudit(true)}
+        showAudit={showAudit}
+        onAuditClose={() => setShowAudit(false)}
       />
 
-      {showSign && (
+      {showSign && activeProject && (
         <IndSignOverlay
           doc={{ ...DEMO_DOC_FOR_PANEL }}
+          projectId={activeProject.id}
           onCancel={() => setShowSign(false)}
-          /* Don't dismiss the overlay on signed — the success card with
-             Download DOCX / Audit Trail buttons must stay until the user
-             clicks Close. */
-          onSigned={() => {}}
-        />
-      )}
-      {showAudit && (
-        <IndAuditOverlay
-          audit={{
-            findings: DEMO_AUDIT.findings as AuditFindingWithMeta[],
-            chainRecords: 142,
-            lastVerified: "2026-05-16 14:22",
-          }}
-          onClose={() => setShowAudit(false)}
-          onJumpTo={(section) => {
-            const id = section.replace("§", "").split(".").slice(0, 3).join(".");
-            const el = document.querySelector(`[data-section="${id}"]`);
-            if (el) el.scrollIntoView({ block: "start" });
-            setShowAudit(false);
+          onSigned={(info) => {
+            if (info.sig) {
+              setProjects((prev) =>
+                prev.map((p) =>
+                  p.id === activeProject.id
+                    ? { ...p, status: "signed" as const, statusText: `Signed · ${info.sig!.signed_at}` }
+                    : p,
+                ),
+              );
+            }
           }}
         />
       )}
+
+      {/* P0-2: audit overlay now hosted INSIDE DocPanelHost via the
+          auditOverlay slot — overlays only the doc panel, not the page. */}
+
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onCreated={(p) => {
+            setProjects((prev) => [...prev, p as unknown as IndProjectSummary]);
+            setActiveId(p.id);
+          }}
+        />
+      )}
+
+      <DocPanelMobileModal open={showDocModal} onClose={() => setShowDocModal(false)}>
+        <DocPanelHost
+          activeProject={activeProject}
+          onSign={() => setShowSign(true)}
+          onAudit={() => setShowAudit(true)}
+          showAudit={showAudit}
+          onAuditClose={() => setShowAudit(false)}
+        />
+      </DocPanelMobileModal>
 
       {showSettings && (
         <div
