@@ -436,6 +436,16 @@ export function IndReportPage() {
 
   // Onboarding mode — show EmptyState in place of the main pipeline.
   if (showOnboarding) {
+    // P2-5: reference-compound chips now LOAD a demo project so the user
+    // sees a worked example instead of an empty starter shell. Mapping:
+    //   ref-osim (EGFR T790M)  → BM-0042 (EGFR L858R, NSCLC)        — closest kinase analogue
+    //   ref-pembro (PD-1)       → BM-0029 (PD-L1, TNBC)               — closest immuno-oncology
+    //   ref-sema (GLP-1)        → BM-0042                              — fallback
+    const referenceToProject: Record<string, string> = {
+      "ref-osim":   "p-bm0042",
+      "ref-pembro": "p-bm0029",
+      "ref-sema":   "p-bm0042",
+    };
     return (
       <div className="ind-shell">
         <IndLeftNav
@@ -446,7 +456,11 @@ export function IndReportPage() {
         />
         <IndEmptyState
           onStart={() => setShowOnboarding(false)}
-          onPickReference={() => setShowOnboarding(false)}
+          onPickReference={(refId) => {
+            const target = referenceToProject[refId] ?? projects[0]?.id ?? null;
+            if (target) setActiveId(target);
+            setShowOnboarding(false);
+          }}
           referenceCompounds={DEMO_REFERENCE_COMPOUNDS}
         />
       </div>
