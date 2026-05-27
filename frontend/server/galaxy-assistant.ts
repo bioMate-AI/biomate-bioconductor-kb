@@ -210,8 +210,8 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
 
 // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
 // Overridable via env so model names can be tuned without code changes.
-const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-2.5-flash';
-const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-2.5-pro';
+const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-3.5-flash';
+const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.5-pro';
 
 /**
  * Pick the appropriate Gemini intent model based on query complexity.
