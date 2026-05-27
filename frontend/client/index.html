@@ -12,30 +12,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Google Analytics 4 — environment-aware (prod vs dev vs localhost).
-         The measurement ID is picked at runtime by hostname so the same
-         build artifact ships to all environments. Replace the dev ID
-         placeholder with the real one once the dev GA4 property exists. -->
+    <!-- Google Analytics 4 — static loader so Tag Assistant / Google's
+         "Tag Detected" check sees a literal <script src="…googletagmanager…">.
+         The loader by itself does NOT send any hits; only gtag('config', …)
+         dispatches the initial page_view. We pick which property to config
+         at runtime by hostname so prod vs dev traffic stays separated, and
+         localhost / E2E hosts call neither (zero noise). -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
     <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ dataLayer.push(arguments); }
+      window.gtag = gtag;
+      gtag('js', new Date());
       (function() {
         var host = window.location.hostname;
-        var measurementId = null;
         if (host === 'biomate.ai' || host === 'www.biomate.ai') {
-          measurementId = 'G-65JDDPEDQ5';            // Prod property
+          gtag('config', 'G-65JDDPEDQ5', { anonymize_ip: true });
         } else if (host === 'dev-public.biomate.ai' || host.indexOf('.dev-public.biomate.ai') !== -1) {
-          measurementId = 'G-DEV-PLACEHOLDER';       // TODO: replace with dev property ID
+          gtag('config', 'G-8YG54DFHQG', { anonymize_ip: true });
         }
-        // localhost / 127.0.0.1 / playwright / E2E → no analytics noise
-        if (!measurementId || measurementId === 'G-DEV-PLACEHOLDER') return;
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){ dataLayer.push(arguments); }
-        window.gtag = gtag;
-        var s = document.createElement('script');
-        s.async = true;
-        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
-        document.head.appendChild(s);
-        gtag('js', new Date());
-        gtag('config', measurementId, { anonymize_ip: true });
+        // localhost / 127.0.0.1 / playwright → no config call → no hits
       })();
     </script>
   </head>
