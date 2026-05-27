@@ -1,0 +1,230 @@
+{
+  "created_at": "2026-05-27T17:50:23.601083+00:00",
+  "stamp": "20260527T175019Z",
+  "structure_source": "9P3I_cif",
+  "structure_path": "/tmp/tmpcvwzay4k.pdb",
+  "pocket_pdb": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+  "cif_fallback": "/home/yzhang/biomate/research/anti-virus/structures/9P3I.cif",
+  "n_ca_atoms": 3964,
+  "neighbor_threshold": 8,
+  "distance_cutoff_A": 10.0,
+  "window": 9,
+  "min_exposed_in_window": 5,
+  "chain_summary": {
+    "A": {
+      "total_ca_residues": 516,
+      "exposed_ca_residues": 11,
+      "fraction_exposed": 0.0213
+    },
+    "B": {
+      "total_ca_residues": 475,
+      "exposed_ca_residues": 12,
+      "fraction_exposed": 0.0253
+    },
+    "C": {
+      "total_ca_residues": 516,
+      "exposed_ca_residues": 11,
+      "fraction_exposed": 0.0213
+    },
+    "D": {
+      "total_ca_residues": 475,
+      "exposed_ca_residues": 12,
+      "fraction_exposed": 0.0253
+    },
+    "E": {
+      "total_ca_residues": 516,
+      "exposed_ca_residues": 11,
+      "fraction_exposed": 0.0213
+    },
+    "F": {
+      "total_ca_residues": 475,
+      "exposed_ca_residues": 12,
+      "fraction_exposed": 0.0253
+    },
+    "G": {
+      "total_ca_residues": 516,
+      "exposed_ca_residues": 11,
+      "fraction_exposed": 0.0213
+    },
+    "H": {
+      "total_ca_residues": 475,
+      "exposed_ca_residues": 12,
+      "fraction_exposed": 0.0253
+    }
+  },
+  "n_exposed_residues": 92,
+  "patches": [
+    {
+      "patch_id": 1,
+      "window_start_index": 485,
+      "window_size": 9,
+      "exposed_in_window": 5,
+      "chain": "A",
+      "residue_range": {
+        "start": 505,
+        "end": 628
+      },
+      "residues": [
+        {
+          "chain": "A",
+          "resseq": 509,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 8
+        },
+        {
+          "chain": "A",
+          "resseq": 510,
+          "resname": "LYS",
+          "ca_neighbors_within_10A": 7
+        },
+        {
+          "chain": "A",
+          "resseq": 511,
+          "resname": "CYS",
+          "ca_neighbors_within_10A": 6
+        },
+        {
+          "chain": "A",
+          "resseq": 512,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 5
+        },
+        {
+          "chain": "A",
+          "resseq": 628,
+          "resname": "SER",
+          "ca_neighbors_within_10A": 7
+        }
+      ]
+    },
+    {
+      "patch_id": 2,
+      "window_start_index": 1476,
+      "window_size": 9,
+      "exposed_in_window": 5,
+      "chain": "C",
+      "residue_range": {
+        "start": 505,
+        "end": 628
+      },
+      "residues": [
+        {
+          "chain": "C",
+          "resseq": 509,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 8
+        },
+        {
+          "chain": "C",
+          "resseq": 510,
+          "resname": "LYS",
+          "ca_neighbors_within_10A": 7
+        },
+        {
+          "chain": "C",
+          "resseq": 511,
+          "resname": "CYS",
+          "ca_neighbors_within_10A": 6
+        },
+        {
+          "chain": "C",
+          "resseq": 512,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 5
+        },
+        {
+          "chain": "C",
+          "resseq": 628,
+          "resname": "SER",
+          "ca_neighbors_within_10A": 7
+        }
+      ]
+    },
+    {
+      "patch_id": 3,
+      "window_start_index": 2467,
+      "window_size": 9,
+      "exposed_in_window": 5,
+      "chain": "E",
+      "residue_range": {
+        "start": 505,
+        "end": 628
+      },
+      "residues": [
+        {
+          "chain": "E",
+          "resseq": 509,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 8
+        },
+        {
+          "chain": "E",
+          "resseq": 510,
+          "resname": "LYS",
+          "ca_neighbors_within_10A": 7
+        },
+        {
+          "chain": "E",
+          "resseq": 511,
+          "resname": "CYS",
+          "ca_neighbors_within_10A": 6
+        },
+        {
+          "chain": "E",
+          "resseq": 512,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 5
+        },
+        {
+          "chain": "E",
+          "resseq": 628,
+          "resname": "SER",
+          "ca_neighbors_within_10A": 7
+        }
+      ]
+    },
+    {
+      "patch_id": 4,
+      "window_start_index": 3458,
+      "window_size": 9,
+      "exposed_in_window": 5,
+      "chain": "G",
+      "residue_range": {
+        "start": 505,
+        "end": 628
+      },
+      "residues": [
+        {
+          "chain": "G",
+          "resseq": 509,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 8
+        },
+        {
+          "chain": "G",
+          "resseq": 510,
+          "resname": "LYS",
+          "ca_neighbors_within_10A": 7
+        },
+        {
+          "chain": "G",
+          "resseq": 511,
+          "resname": "CYS",
+          "ca_neighbors_within_10A": 6
+        },
+        {
+          "chain": "G",
+          "resseq": 512,
+          "resname": "LEU",
+          "ca_neighbors_within_10A": 5
+        },
+        {
+          "chain": "G",
+          "resseq": 628,
+          "resname": "SER",
+          "ca_neighbors_within_10A": 7
+        }
+      ]
+    }
+  ]
+}
