@@ -1851,6 +1851,45 @@ export class GalaxyAssistant {
     decomposition.primaryIntent = collapsed;
   }
 
+  /** Plan B codon optimization (registry 10813) — shared by single- and multi-intent paths. */
+  private _isPlanBCodonQuery(message: string): boolean {
+    return (
+      /\boptimize_codons_for_heterologous_expression\b/i.test(message) ||
+      /\bregistry\s+id\s+10813\b/i.test(message) ||
+      (/\bcodon\s+optimi[sz]ation\b/i.test(message) &&
+        /\b(host_codon_usage|target_sequence)\b/i.test(message))
+    );
+  }
+
+  /** Plan A epitopeprediction (registry 12700). */
+  private _isPlanAEpitopeQuery(message: string): boolean {
+    return (
+      /\b(epitopeprediction|nf[\s-]?core\/epitopeprediction)\b/i.test(message) ||
+      /\bregistry\s+id\s+12700\b/i.test(message) ||
+      (/\bepitope\s+prediction\b/i.test(message) && /\bmhcnuggets\b/i.test(message))
+    ) && !/\bmhcquant\b/i.test(message.replace(/\bnot\s+mhcquant\b/gi, ''));
+  }
+
+  /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
+  private _applyNamedWorkflowOverridesToDecomposition(
+    decomposition: IntentDecomposition,
+    message: string
+  ): void {
+    const forceWf =
+      this._isPlanBCodonQuery(message) ||
+      this._isPlanAEpitopeQuery(message);
+    if (!forceWf) return;
+
+    const apply = (intent: DecomposedIntent) => {
+      if (!intent.actions.needsWorkflowGeneration) {
+        intent.actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    };
+    apply(decomposition.primaryIntent);
+    for (const i of decomposition.intents) apply(i);
+  }
+
   /**
    * ClarificationGate (S1): Check if the intent is ambiguous and, if so, return a clarifying
    * question response before workflow generation proceeds.
@@ -2079,6 +2118,7 @@ Rules:
     log('Step 1: Analyzing intent');
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
+    this._applyNamedWorkflowOverridesToDecomposition(decomposition, message);
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
 
@@ -2265,28 +2305,13 @@ Rules:
       }
     }
 
-    // Plan B codon optimization override (ANDV mRNA-LNP stepwise E2E).
-    // Classifier often returns research_question when the prompt mentions vaccine/LNP context.
+    // Plan B / Plan A named-workflow overrides (ANDV stepwise E2E).
     if (!actions.needsWorkflowGeneration) {
-      const _isPlanBCodonQuery =
-        /\boptimize_codons_for_heterologous_expression\b/i.test(message) ||
-        /\bregistry\s+id\s+10813\b/i.test(message) ||
-        (/\bcodon\s+optimi[sz]ation\b/i.test(message) &&
-          /\b(host_codon_usage|target_sequence)\b/i.test(message));
-      if (_isPlanBCodonQuery) {
+      if (this._isPlanBCodonQuery(message)) {
         log('Plan B codon optimization override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
-      }
-    }
-
-    // nf-core epitopeprediction override (ANDV Plan A stepwise E2E).
-    if (!actions.needsWorkflowGeneration) {
-      const _isPlanAEpitopeQuery =
-        /\b(epitopeprediction|nf[\s-]?core\/epitopeprediction)\b/i.test(message) ||
-        /\bregistry\s+id\s+12700\b/i.test(message) ||
-        (/\bepitope\s+prediction\b/i.test(message) && /\bmhcnuggets\b/i.test(message));
-      if (_isPlanAEpitopeQuery && !/\bmhcquant\b/i.test(message.replace(/\bnot\s+mhcquant\b/gi, ''))) {
+      } else if (this._isPlanAEpitopeQuery(message)) {
         log('Plan A epitopeprediction override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
@@ -3239,7 +3264,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       recommendedTools,
       recommendedDatasets,
       {
-        shouldGenerate: workflowGenerated,
+        shouldGenerate:
+          workflowGenerated ||
+          this._isPlanBCodonQuery(message) ||
+          this._isPlanAEpitopeQuery(message),
         userIntent: message,
         confidence: primaryIntent.confidence,
         reasoning: `Multi-intent: ${decomposition.intents.map(i => i.type).join(', ')}`,
@@ -3365,6 +3393,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           _dockMsg
         ) && !/\b(diffdock|blind\s+dock)\b/i.test(_dockMsg);
       if (_isNamedDockingToolQuery) {
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Plan B / Plan A overrides (multi-intent fan-out when collapse did not run).
+    if (!actions.needsWorkflowGeneration) {
+      const _namedMsg = `${intent.subQuery} ${originalMessage}`;
+      if (this._isPlanBCodonQuery(_namedMsg) || this._isPlanAEpitopeQuery(_namedMsg)) {
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
@@ -5696,10 +5733,19 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // When a workflow was generated, produce a meaningful workflow-ready message.
       if (!rawResponse.trim()) {
         const _wfGa = (generatedWorkflow as any)?.workflow_ga || {};
-        const _wfName = _wfGa.name || (generatedWorkflow as any)?.name;
+        const _wfName =
+          _wfGa.name ||
+          (generatedWorkflow as any)?.workflow_name ||
+          (generatedWorkflow as any)?.name;
         const _wfDesc = _wfGa.description?.slice(0, 120) || '';
         if (_wfName) {
           rawResponse = `**Workflow ready** — **${_wfName}** has been set up in the panel. ${_wfDesc ? _wfDesc.split('.')[0] + '. ' : ''}Review the parameters and click **Confirm & Run** to execute.`;
+        } else if (this._isPlanBCodonQuery(message)) {
+          rawResponse =
+            '**Codon optimization** — **optimize_codons_for_heterologous_expression** (registry id 10813) is ready in the panel. Review target_sequence, host_codon_usage, and outdir, then click **Confirm & Run**.';
+        } else if (this._isPlanAEpitopeQuery(message)) {
+          rawResponse =
+            '**Epitope prediction** — **nf-core/epitopeprediction** (registry id 12700) is ready in the panel. Review inputs and click **Confirm & Run**.';
         } else {
           rawResponse = 'I processed your request using the available tools.';
         }

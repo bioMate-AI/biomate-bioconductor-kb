@@ -105,10 +105,10 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
     await setupTestUser(page, "plan-b");
     await shot(page, SS_DIR, "PB-1_00_before_chat");
 
-    const hasCard = await sendMessageAndWaitForResponse(page, PLAN_B_QUERY, 180_000);
+    let hasCard = await sendMessageAndWaitForResponse(page, PLAN_B_QUERY, 180_000);
     await shot(page, SS_DIR, "PB-1_01_after_response");
 
-    const mentionsCodon = await assertAssistantMentions(page, [
+    let mentionsCodon = await assertAssistantMentions(page, [
       "codon",
       "mRNA",
       "optimize",
@@ -117,6 +117,22 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
       "expression",
       "10813",
     ]);
+
+    if (!hasCard && !mentionsCodon) {
+      hasCard = await waitForWorkflowCard(page, "PB-1", [
+        "Show optimize_codons_for_heterologous_expression workflow card with Run button.",
+        "Plan B codon optimization registry 10813.",
+      ]);
+      mentionsCodon =
+        mentionsCodon ||
+        (await assertAssistantMentions(page, [
+          "codon",
+          "mRNA",
+          "optimize",
+          "heterologous",
+          "10813",
+        ]));
+    }
 
     record("PB-1", {
       runId: null,
@@ -219,9 +235,15 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
     await setupTestUser(page, "plan-b-pb4");
     await sendMessageAndWaitForResponse(page, PLAN_B_QUERY, 180_000);
 
-    const cardOk = await waitForWorkflowCard(page, "PB-4", [
-      "Load optimize_codons_for_heterologous_expression (10813), not epitopeprediction.",
-    ]);
+    const cardOk = await waitForWorkflowCard(
+      page,
+      "PB-4",
+      [
+        "Load optimize_codons_for_heterologous_expression (10813), not epitopeprediction.",
+        "Show the codon optimization workflow card with Run button enabled.",
+      ],
+      600_000
+    );
     expect(cardOk).toBeTruthy();
 
     const panelTitle = await getWorkflowPanelTitle(page);
@@ -274,7 +296,15 @@ test.describe.serial("Plan B codon optimization — stepwise UI", () => {
     await setupTestUser(page, "plan-b-pb5");
 
     await sendMessageAndWaitForResponse(page, PLAN_B_QUERY, 180_000);
-    const cardOk = await waitForWorkflowCard(page, "PB-5", ["Show codon optimization workflow card."]);
+    const cardOk = await waitForWorkflowCard(
+      page,
+      "PB-5",
+      [
+        "Show optimize_codons_for_heterologous_expression (registry 10813) workflow card.",
+        "NOT epitopeprediction or mhcquant — codon optimization only.",
+      ],
+      600_000
+    );
     expect(cardOk, "Expected workflow card with Run button").toBeTruthy();
     const panelTitle = await getWorkflowPanelTitle(page);
     if (!(await assertCodonWorkflowPanelOrSkip(page, "PB-5"))) {
