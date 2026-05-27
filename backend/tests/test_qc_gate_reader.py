@@ -234,7 +234,7 @@ def test_supported_domains_count():
     domains = set(list_supported_domains())
     expected = {"hts", "ich_s5", "ich_s7", "clinical_trial", "allometric",
                 "ivive", "openfe", "p0_pkpd", "pocket_detection", "aizynthfinder",
-                "structure_prediction", "cancer_biology", "cryo_em", "cryo_et"}
+                "structure_prediction", "cancer_biology", "cryo_em", "cryo_et", "lnp_formulation", "nlmixr2_poppk", "antibody_developability", "sirna_offtarget", "polymorph_stability", "biomarker_enrichment"}
     assert domains == expected, f"missing: {expected - domains}, extra: {domains - expected}"
 
 
@@ -426,3 +426,124 @@ def test_cryo_et_end_to_end():
     assert len(e["gates"]) == 3
     for g in e["gates"]:
         assert len(g["evidence"]) >= 1
+
+
+# ─── Tests for 6 domains added 2026-05-26 ─────────────────────────────
+
+# LNP formulation
+def test_lnp_z_avg_pass():
+    e = build_gate_event("LNP_FORMULATION_OPTIMIZATION", "lnp_formulation", {"z_avg_nm": 85.0})
+    g = next(g for g in e["gates"] if g["gate"] == "lnp_z_avg_particle_size")
+    assert g["action"] == "pass"
+
+def test_lnp_z_avg_fail():
+    e = build_gate_event("LNP_FORMULATION_OPTIMIZATION", "lnp_formulation", {"z_avg_nm": 220.0})
+    g = next(g for g in e["gates"] if g["gate"] == "lnp_z_avg_particle_size")
+    assert g["level"] == "FAIL"
+
+def test_lnp_pdi_fail():
+    e = build_gate_event("LNP_FORMULATION_OPTIMIZATION", "lnp_formulation", {"pdi": 0.42})
+    g = next(g for g in e["gates"] if g["gate"] == "lnp_pdi")
+    assert g["level"] == "FAIL"
+
+def test_lnp_encap_fail():
+    e = build_gate_event("LNP_FORMULATION_OPTIMIZATION", "lnp_formulation",
+                          {"encapsulation_efficiency_pct": 55.0})
+    g = next(g for g in e["gates"] if g["gate"] == "lnp_encapsulation_efficiency")
+    assert g["level"] == "FAIL"
+
+# nlmixr2 popPK
+def test_nlmixr2_eta_pass():
+    e = build_gate_event("POPPK_NLMIXR2_FIT", "nlmixr2_poppk", {"eta_shrinkage_pct_max": 12.0})
+    g = next(g for g in e["gates"] if g["gate"] == "nlmixr2_eta_shrinkage")
+    assert g["level"] == "GOLD"
+
+def test_nlmixr2_eta_fail():
+    e = build_gate_event("POPPK_NLMIXR2_FIT", "nlmixr2_poppk", {"eta_shrinkage_pct_max": 42.0})
+    g = next(g for g in e["gates"] if g["gate"] == "nlmixr2_eta_shrinkage")
+    assert g["level"] == "FAIL"
+
+def test_nlmixr2_condition_fail():
+    e = build_gate_event("POPPK_NLMIXR2_FIT", "nlmixr2_poppk", {"condition_number": 5200.0})
+    g = next(g for g in e["gates"] if g["gate"] == "nlmixr2_condition_number")
+    assert g["level"] == "FAIL"
+
+# Antibody developability
+def test_ab_tap_cdr_length_pass():
+    e = build_gate_event("BISPECIFIC_ANTIBODY_DESIGN", "antibody_developability",
+                          {"tap_total_cdr_length": 55})
+    g = next(g for g in e["gates"] if g["gate"] == "ab_tap_cdr_length")
+    assert g["level"] == "GOLD"
+
+def test_ab_tap_cdr_length_fail():
+    e = build_gate_event("BISPECIFIC_ANTIBODY_DESIGN", "antibody_developability",
+                          {"tap_total_cdr_length": 75})
+    g = next(g for g in e["gates"] if g["gate"] == "ab_tap_cdr_length")
+    assert g["level"] == "FAIL"
+
+def test_ab_camsol_fail():
+    e = build_gate_event("SCFV_ANTIBODY_DESIGN", "antibody_developability",
+                          {"camsol_intrinsic_score": -0.5})
+    g = next(g for g in e["gates"] if g["gate"] == "ab_camsol_intrinsic_solubility")
+    assert g["level"] == "FAIL"
+
+# siRNA
+def test_sirna_seed_pass():
+    e = build_gate_event("SIRNA_OFFTARGET_ANALYSIS", "sirna_offtarget",
+                          {"min_seed_mismatches": 3})
+    g = next(g for g in e["gates"] if g["gate"] == "sirna_seed_mismatch_count")
+    assert g["action"] == "pass"
+
+def test_sirna_seed_fail():
+    e = build_gate_event("SIRNA_OFFTARGET_ANALYSIS", "sirna_offtarget",
+                          {"min_seed_mismatches": 0})
+    g = next(g for g in e["gates"] if g["gate"] == "sirna_seed_mismatch_count")
+    assert g["level"] == "FAIL"
+
+def test_sirna_asymmetry_pass():
+    e = build_gate_event("SIRNA_DESIGN", "sirna_offtarget",
+                          {"delta_dg_asymmetry_kcal_mol": 1.2})
+    g = next(g for g in e["gates"] if g["gate"] == "sirna_thermodynamic_asymmetry")
+    assert g["level"] == "GOLD"
+
+# Polymorph stability
+def test_polymorph_assay_fail():
+    e = build_gate_event("POLYMORPH_STABILITY_SCREENING", "polymorph_stability",
+                          {"assay_loss_pct_6mo_accelerated": 6.8})
+    g = next(g for g in e["gates"] if g["gate"] == "assay_degradation_accelerated")
+    assert g["level"] == "FAIL"
+
+def test_polymorph_conversion_pass():
+    e = build_gate_event("POLYMORPH_STABILITY_SCREENING", "polymorph_stability",
+                          {"polymorph_conversion_pct": 2.1})
+    g = next(g for g in e["gates"] if g["gate"] == "polymorph_form_conversion")
+    assert g["action"] == "pass"
+
+# Biomarker enrichment
+def test_biomarker_hr_pass():
+    e = build_gate_event("BIOMARKER_PATIENT_ENRICHMENT", "biomarker_enrichment",
+                          {"biomarker_pos_hr": 0.55})
+    g = next(g for g in e["gates"] if g["gate"] == "biomarker_positive_hazard_ratio")
+    assert g["action"] == "pass"
+
+def test_biomarker_hr_fail():
+    e = build_gate_event("BIOMARKER_PATIENT_ENRICHMENT", "biomarker_enrichment",
+                          {"biomarker_pos_hr": 0.85})
+    g = next(g for g in e["gates"] if g["gate"] == "biomarker_positive_hazard_ratio")
+    assert g["level"] == "FAIL"
+
+def test_biomarker_prevalence_advisory():
+    e = build_gate_event("BIOMARKER_PATIENT_ENRICHMENT", "biomarker_enrichment",
+                          {"biomarker_prevalence": 0.05})
+    g = next(g for g in e["gates"] if g["gate"] == "predictive_prevalence")
+    assert g["action"] != "pass"
+
+# Classification tests
+def test_new_domain_classifications():
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    assert classify_gate_only_domain("LNP_FORMULATION_OPTIMIZATION") == "lnp_formulation"
+    assert classify_gate_only_domain("POPPK_NLMIXR2_FIT") == "nlmixr2_poppk"
+    assert classify_gate_only_domain("BISPECIFIC_ANTIBODY_DESIGN") == "antibody_developability"
+    assert classify_gate_only_domain("SIRNA_OFFTARGET_ANALYSIS") == "sirna_offtarget"
+    assert classify_gate_only_domain("POLYMORPH_STABILITY_SCREENING") == "polymorph_stability"
+    assert classify_gate_only_domain("BIOMARKER_PATIENT_ENRICHMENT") == "biomarker_enrichment"

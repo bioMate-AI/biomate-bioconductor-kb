@@ -553,3 +553,147 @@ def build_gate_event(
 def list_supported_domains() -> list[str]:
     """Return the domains for which gates are wired in this reader."""
     return list(_GATE_REGISTRY.keys())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 6 additional domains added 2026-05-26 (LNP, nlmixr2 popPK, antibody
+# developability, siRNA off-target, polymorph stability, biomarker enrichment)
+# ═══════════════════════════════════════════════════════════════════════
+
+def _gate_lnp_z_avg_particle_size(m: dict) -> Optional[tuple]:
+    v = m.get("z_avg_nm")
+    if v is None: return None
+    v = float(v)
+    if 60.0 <= v <= 120.0: return ("lnp_z_avg_particle_size", v, 120.0, True, "SILVER", f"Z-avg {v:.1f} nm in CLT")
+    if 40.0 <= v < 60.0 or 120.0 < v <= 150.0: return ("lnp_z_avg_particle_size", v, 120.0, True, "BRONZE", f"Z-avg {v:.1f} nm advisory")
+    return ("lnp_z_avg_particle_size", v, 120.0, False, "FAIL", f"Z-avg {v:.1f} nm out of range")
+
+def _gate_lnp_pdi(m: dict) -> Optional[tuple]:
+    v = m.get("pdi")
+    if v is None: return None
+    v = float(v)
+    if v < 0.2: return ("lnp_pdi", v, 0.2, True, "SILVER", f"PDI {v:.3f}")
+    if v <= 0.3: return ("lnp_pdi", v, 0.2, True, "BRONZE", f"PDI {v:.3f}")
+    return ("lnp_pdi", v, 0.2, False, "FAIL", f"PDI {v:.3f} > 0.3")
+
+def _gate_lnp_encapsulation_efficiency(m: dict) -> Optional[tuple]:
+    v = m.get("encapsulation_efficiency_pct")
+    if v is None: return None
+    v = float(v)
+    if v >= 85.0: return ("lnp_encapsulation_efficiency", v, 85.0, True, "SILVER", f"EE {v:.1f}%")
+    if v >= 70.0: return ("lnp_encapsulation_efficiency", v, 85.0, True, "BRONZE", f"EE {v:.1f}%")
+    return ("lnp_encapsulation_efficiency", v, 85.0, False, "FAIL", f"EE {v:.1f}% < 70%")
+
+def _gate_nlmixr2_eta_shrinkage(m: dict) -> Optional[tuple]:
+    v = m.get("eta_shrinkage_pct_max")
+    if v is None: return None
+    v = float(v)
+    if v < 20.0: return ("nlmixr2_eta_shrinkage", v, 20.0, True, "GOLD", f"η-shrinkage {v:.1f}%")
+    if v <= 30.0: return ("nlmixr2_eta_shrinkage", v, 30.0, True, "SILVER", f"η-shrinkage {v:.1f}%")
+    return ("nlmixr2_eta_shrinkage", v, 30.0, False, "FAIL", f"η-shrinkage {v:.1f}%")
+
+def _gate_nlmixr2_condition_number(m: dict) -> Optional[tuple]:
+    v = m.get("condition_number")
+    if v is None: return None
+    v = float(v)
+    if v < 100.0: return ("nlmixr2_condition_number", v, 100.0, True, "SILVER", f"Cond {v:.1f}")
+    if v <= 1000.0: return ("nlmixr2_condition_number", v, 1000.0, True, "BRONZE", f"Cond {v:.1f}")
+    return ("nlmixr2_condition_number", v, 1000.0, False, "FAIL", f"Cond {v:.1f} ill-conditioned")
+
+def _gate_nlmixr2_ofv_stability(m: dict) -> Optional[tuple]:
+    v = m.get("ofv_delta_max")
+    if v is None: return None
+    v = float(v)
+    if v < 1.0: return ("nlmixr2_ofv_stability", v, 1.0, True, "BRONZE", f"|ΔOFV| {v:.2f}")
+    if v < 3.84: return ("nlmixr2_ofv_stability", v, 3.84, True, "BRONZE", f"|ΔOFV| {v:.2f}")
+    return ("nlmixr2_ofv_stability", v, 3.84, False, "FAIL", f"|ΔOFV| {v:.2f}")
+
+def _gate_ab_tap_cdr_length(m: dict) -> Optional[tuple]:
+    v = m.get("tap_total_cdr_length")
+    if v is None: return None
+    v = float(v)
+    if 43 <= v <= 63: return ("ab_tap_cdr_length", v, 63.0, True, "GOLD", f"CDR {v:.0f} CST")
+    if 40 <= v < 43 or 63 < v <= 67: return ("ab_tap_cdr_length", v, 63.0, True, "SILVER", f"CDR {v:.0f}")
+    return ("ab_tap_cdr_length", v, 63.0, False, "FAIL", f"CDR {v:.0f} outside")
+
+def _gate_ab_tap_surface_hydrophobicity(m: dict) -> Optional[tuple]:
+    v = m.get("tap_psh_score")
+    if v is None: return None
+    v = float(v)
+    p = 90.0 <= v <= 150.0
+    return ("ab_tap_surface_hydrophobicity", v, 150.0, p, "GOLD" if p else "FAIL", f"PSH {v:.1f}")
+
+def _gate_ab_camsol_intrinsic_solubility(m: dict) -> Optional[tuple]:
+    v = m.get("camsol_intrinsic_score")
+    if v is None: return None
+    v = float(v)
+    if v >= 1.0: return ("ab_camsol_intrinsic_solubility", v, 1.0, True, "SILVER", f"CamSol {v:.2f}")
+    if v >= 0.0: return ("ab_camsol_intrinsic_solubility", v, 1.0, True, "BRONZE", f"CamSol {v:.2f}")
+    return ("ab_camsol_intrinsic_solubility", v, 0.0, False, "FAIL", f"CamSol {v:.2f}")
+
+def _gate_sirna_seed_mismatch_count(m: dict) -> Optional[tuple]:
+    v = m.get("min_seed_mismatches")
+    if v is None: return None
+    v = float(v)
+    if v >= 2: return ("sirna_seed_mismatch_count", v, 2.0, True, "SILVER", f"Seed mm {int(v)}")
+    if v >= 1: return ("sirna_seed_mismatch_count", v, 2.0, True, "BRONZE", f"Seed mm {int(v)} advisory")
+    return ("sirna_seed_mismatch_count", v, 2.0, False, "FAIL", f"Seed mm {int(v)}")
+
+def _gate_sirna_thermodynamic_asymmetry(m: dict) -> Optional[tuple]:
+    v = m.get("delta_dg_asymmetry_kcal_mol")
+    if v is None: return None
+    v = float(v)
+    if v >= 0.5: return ("sirna_thermodynamic_asymmetry", v, 0.5, True, "GOLD", f"ΔdG {v:.2f}")
+    if v >= 0.0: return ("sirna_thermodynamic_asymmetry", v, 0.5, True, "SILVER", f"ΔdG {v:.2f}")
+    return ("sirna_thermodynamic_asymmetry", v, 0.5, False, "FAIL", f"ΔdG {v:.2f}")
+
+def _gate_assay_degradation_accelerated(m: dict) -> Optional[tuple]:
+    v = m.get("assay_loss_pct_6mo_accelerated")
+    if v is None: return None
+    v = float(v)
+    p = v < 5.0
+    return ("assay_degradation_accelerated", v, 5.0, p, "GOLD" if p else "FAIL", f"Assay loss {v:.1f}%")
+
+def _gate_polymorph_form_conversion(m: dict) -> Optional[tuple]:
+    v = m.get("polymorph_conversion_pct")
+    if v is None: return None
+    v = float(v)
+    p = v < 10.0
+    return ("polymorph_form_conversion", v, 10.0, p, "SILVER" if p else "FAIL", f"Polymorph conv {v:.1f}%")
+
+def _gate_shelf_life_projection(m: dict) -> Optional[tuple]:
+    v = m.get("shelf_life_months_95lcb")
+    if v is None: return None
+    v = float(v)
+    p = v >= 24.0
+    return ("shelf_life_projection", v, 24.0, p, "SILVER" if p else "BRONZE", f"Shelf-life {v:.1f}mo")
+
+def _gate_biomarker_positive_hazard_ratio(m: dict) -> Optional[tuple]:
+    v = m.get("biomarker_pos_hr")
+    if v is None: return None
+    v = float(v)
+    p = v <= 0.7
+    return ("biomarker_positive_hazard_ratio", v, 0.7, p, "SILVER" if p else "FAIL", f"BM+ HR {v:.3f}")
+
+def _gate_predictive_prevalence(m: dict) -> Optional[tuple]:
+    v = m.get("biomarker_prevalence")
+    if v is None: return None
+    v = float(v)
+    p = 0.10 <= v <= 0.50
+    return ("predictive_prevalence", v, 0.50, p, "SILVER" if p else "BRONZE", f"Prev {v:.2f}")
+
+def _gate_phase3_enrichment_factor(m: dict) -> Optional[tuple]:
+    v = m.get("enrichment_factor")
+    if v is None: return None
+    v = float(v)
+    p = v >= 1.5
+    return ("phase3_enrichment_factor", v, 1.5, p, "BRONZE", f"EF {v:.2f}")
+
+_GATE_REGISTRY.update({
+    "lnp_formulation": [_gate_lnp_z_avg_particle_size, _gate_lnp_pdi, _gate_lnp_encapsulation_efficiency],
+    "nlmixr2_poppk": [_gate_nlmixr2_eta_shrinkage, _gate_nlmixr2_condition_number, _gate_nlmixr2_ofv_stability],
+    "antibody_developability": [_gate_ab_tap_cdr_length, _gate_ab_tap_surface_hydrophobicity, _gate_ab_camsol_intrinsic_solubility],
+    "sirna_offtarget": [_gate_sirna_seed_mismatch_count, _gate_sirna_thermodynamic_asymmetry],
+    "polymorph_stability": [_gate_assay_degradation_accelerated, _gate_polymorph_form_conversion, _gate_shelf_life_projection],
+    "biomarker_enrichment": [_gate_biomarker_positive_hazard_ratio, _gate_predictive_prevalence, _gate_phase3_enrichment_factor],
+})
