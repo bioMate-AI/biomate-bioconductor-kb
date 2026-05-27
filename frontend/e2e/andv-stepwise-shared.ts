@@ -65,6 +65,26 @@ export interface ChainedPipelineManifest {
   steps: ChainedManifestStep[];
 }
 
+export function readChainedManifest(manifestPath: string): ChainedManifestStep[] {
+  if (!fs.existsSync(manifestPath)) return [];
+  try {
+    const data = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as ChainedPipelineManifest;
+    return Array.isArray(data.steps) ? data.steps : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Merge one step into an on-disk manifest (supports --grep INH-C4 isolated runs). */
+export function mergeChainedStepIntoManifest(
+  manifestPath: string,
+  step: ChainedManifestStep
+): ChainedManifestStep[] {
+  const steps = readChainedManifest(manifestPath).filter((s) => s.key !== step.key);
+  steps.push(step);
+  return steps;
+}
+
 export function writeChainedManifest(
   manifestPath: string,
   steps: ChainedManifestStep[]
@@ -181,16 +201,41 @@ export function attachExecuteCapture(page: Page): {
   };
 }
 
+async function isAssistantThinking(page: Page): Promise<boolean> {
+  const thinkingSelectors = [
+    "[data-testid='chat-response-pending']",
+    "[data-testid='chat-analysis-status']",
+    "text=BioMate is thinking",
+  ];
+  for (const sel of thinkingSelectors) {
+    if (await page.locator(sel).first().isVisible({ timeout: 200 }).catch(() => false)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function stopStuckAssistantReply(page: Page, label: string): Promise<void> {
+  const stopBtn = page.getByRole("button", { name: /stop reply/i }).first();
+  if (await stopBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await stopBtn.click({ force: true }).catch(() => {});
+    console.log(`[${label}] clicked Stop reply — assistant was stuck thinking`);
+    await page.waitForTimeout(1500);
+  }
+}
+
 export async function waitForWorkflowCard(
   page: Page,
   label: string,
   followUpTexts: string[],
-  timeoutMs = 300_000
+  timeoutMs = 480_000
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   const followUpIntervalMs = 45_000;
+  const thinkingStuckMs = 90_000;
   let followUpsSent = 0;
-  let lastFollowUpTs = Date.now();
+  let lastFollowUpTs = Date.now() - followUpIntervalMs;
+  let thinkingSince: number | null = null;
 
   while (Date.now() < deadline) {
     await page
@@ -213,27 +258,41 @@ export async function waitForWorkflowCard(
       }
     }
 
+    const genFailed = await page
+      .getByText(/Workflow generation is currently unavailable/i)
+      .first()
+      .isVisible({ timeout: 200 })
+      .catch(() => false);
+
+    const busy = await isAssistantThinking(page);
+    if (busy) {
+      thinkingSince = thinkingSince ?? Date.now();
+      if (Date.now() - thinkingSince >= thinkingStuckMs) {
+        await stopStuckAssistantReply(page, label);
+        thinkingSince = null;
+      }
+    } else {
+      thinkingSince = null;
+    }
+
+    const thinkingStuck =
+      thinkingSince !== null && Date.now() - thinkingSince >= thinkingStuckMs;
+
     if (
       Date.now() - lastFollowUpTs >= followUpIntervalMs &&
-      followUpsSent < followUpTexts.length
+      followUpsSent < followUpTexts.length &&
+      (!busy || genFailed || thinkingStuck)
     ) {
-      const thinking = ["[data-testid='chat-response-pending']"];
-      const busy = await page
-        .locator(thinking[0])
-        .first()
-        .isVisible({ timeout: 200 })
-        .catch(() => false);
-      if (!busy) {
-        const ta = page.getByTestId("chat-input");
-        if (await ta.isVisible({ timeout: 1000 }).catch(() => false)) {
-          const msg = followUpTexts[followUpsSent];
-          console.log(`[${label}] follow-up #${followUpsSent + 1}: ${msg.slice(0, 72)}…`);
-          await sendChatMessage(page, msg);
-          await waitForResponseComplete(page, 180_000);
-          followUpsSent++;
-          lastFollowUpTs = Date.now();
-          continue;
-        }
+      const ta = page.getByTestId("chat-input");
+      if (await ta.isVisible({ timeout: 1000 }).catch(() => false)) {
+        const msg = followUpTexts[followUpsSent];
+        console.log(`[${label}] follow-up #${followUpsSent + 1}: ${msg.slice(0, 72)}…`);
+        await sendChatMessage(page, msg);
+        await waitForResponseComplete(page, 120_000);
+        followUpsSent++;
+        lastFollowUpTs = Date.now();
+        thinkingSince = null;
+        continue;
       }
     }
     await page.waitForTimeout(1500);

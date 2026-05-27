@@ -126,11 +126,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // `metadata.workflowEdits`. Already-applied ops are tracked by message id so
   // re-renders (e.g. session restore) don't re-apply them.
   const appliedEditMessages = useRef<Set<string>>(new Set())
-<<<<<<< Updated upstream
   const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string; snapshot?: any }>>([])
-=======
-  const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string; snapshot: any }>>([])
->>>>>>> Stashed changes
   // Structural ops (add_step / remove_step / reorder) are parked here and
   // require an explicit confirm before they mutate the panel artifact.
   // set_param auto-applies.
@@ -1522,11 +1518,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   <span aria-hidden>✓</span>
                   <span>{chip.summary}</span>
                   {chip.snapshot && (
-<<<<<<< Updated upstream
-                    <button type="button" aria-label="undo" data-testid={`button-undo-${chip.id}`} onClick={() => undoAppliedEdit(chip.id)} style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}>Undo</button>
-                  )}
-                  <button type="button" aria-label="dismiss" onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))} style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}>×</button>
-=======
                     <button
                       type="button"
                       aria-label="undo"
@@ -1541,7 +1532,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))}
                     style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}
                   >×</button>
->>>>>>> Stashed changes
                 </span>
               ))}
             </div>

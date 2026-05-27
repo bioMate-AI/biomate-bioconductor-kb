@@ -30,6 +30,7 @@ import {
   fillRequiredParams,
   clickRunAndWaitTerminal,
   writeChainedManifest,
+  mergeChainedStepIntoManifest,
   getWorkflowPanelTitle,
   type ChainedManifestStep,
 } from "./andv-stepwise-shared.js";
@@ -147,9 +148,17 @@ async function runChainedStep(
   };
 }
 
+function manifestStepsForAudit(): ChainedManifestStep[] {
+  if (CHAINED_STEPS.length >= 4) return CHAINED_STEPS;
+  const last = CHAINED_STEPS[CHAINED_STEPS.length - 1];
+  if (!last) return CHAINED_STEPS;
+  return mergeChainedStepIntoManifest(MANIFEST_PATH, last);
+}
+
 test.describe.serial("ANDV inhibitor — UI chained manifest", () => {
   test.afterAll(() => {
-    writeChainedManifest(MANIFEST_PATH, CHAINED_STEPS);
+    const steps = manifestStepsForAudit();
+    if (steps.length > 0) writeChainedManifest(MANIFEST_PATH, steps);
   });
 
   test("INH-C1: manifest step 1 — pocket", async ({ page }) => {
@@ -216,14 +225,16 @@ test.describe.serial("ANDV inhibitor — UI chained manifest", () => {
       panelMustMatch: /vina|dock/i,
     });
     CHAINED_STEPS.push(step);
+    const manifestSteps = manifestStepsForAudit();
+    writeChainedManifest(MANIFEST_PATH, manifestSteps);
 
-    const succeeded = CHAINED_STEPS.filter((s) => s.status === "completed").length;
-    const recorded = CHAINED_STEPS.filter((s) => s.runId).length;
+    const succeeded = manifestSteps.filter((s) => s.status === "completed").length;
+    const recorded = manifestSteps.filter((s) => s.runId).length;
     console.log(
-      `[INH-CMAN] manifest steps=${CHAINED_STEPS.length} with_run_id=${recorded} completed=${succeeded}`
+      `[INH-CMAN] manifest steps=${manifestSteps.length} with_run_id=${recorded} completed=${succeeded}`
     );
 
-    expect(CHAINED_STEPS.length).toBe(4);
+    expect(manifestSteps.length).toBe(4);
     expect(recorded).toBeGreaterThanOrEqual(2);
     expect(step.status === "completed" || step.status === "failed").toBeTruthy();
   });

@@ -20,5 +20,46 @@
       "hasWorkflowCard=true",
       "mentionsCodon=false"
     ]
+  },
+  {
+    "testId": "PB-4",
+    "runId": "8e66fac9-87c0-4317-b66d-cbb61b73d52c",
+    "startTs": 1779852503618,
+    "endTs": 1779852693664,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "execute_captured_run_id",
+        "passed": true,
+        "note": "8e66fac9-87c0-4317-b66d-cbb61b73d52c"
+      },
+      {
+        "name": "terminal_completed_or_failed",
+        "passed": true
+      }
+    ],
+    "screenshots": [],
+    "notes": [
+      "executeUrl=http://localhost:5000/api/workflows/execute"
+    ]
+  },
+  {
+    "testId": "PB-5",
+    "runId": null,
+    "startTs": 1779852693770,
+    "endTs": 1779852883503,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "completion_banner_when_completed",
+        "passed": true
+      },
+      {
+        "name": "download_or_outputs_when_completed",
+        "passed": true
+      }
+    ],
+    "screenshots": [],
+    "notes": []
   }
 ]
