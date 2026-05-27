@@ -597,8 +597,8 @@ def get_recommended_model(provider: str) -> str:
     """Get recommended model for provider."""
     recommendations = {
         'anthropic': 'claude-sonnet-4-5',
-        'gemini': 'gemini-3-flash-preview',
-        'google': 'gemini-3-flash-preview',
+        'gemini': 'gemini-3.5-flash',
+        'google': 'gemini-3.5-flash',
         'openai': 'gpt-4o',
         'deepseek': 'deepseek-chat',
         'ollama': 'gemma4:31b',
