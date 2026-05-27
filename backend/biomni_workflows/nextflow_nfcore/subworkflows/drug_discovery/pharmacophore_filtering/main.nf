@@ -515,8 +515,10 @@ workflow {
         // Support inline SMILES (newline- or comma-separated strings) in addition to file paths.
         // Detect inline form by looking for embedded newlines/commas or absence of path separators.
         def write_inline = { String content, String fname ->
-            // workflow.workDir may be s3:// — must use local tmp so File() works
+            // workflow.workDir may be s3:// — must use local tmp so File() works.
+            // deleteOnExit so /tmp doesn't accumulate stragglers across runs.
             def f = java.io.File.createTempFile("inline_", "_${fname}")
+            f.deleteOnExit()
             f.text = content.replace(',', '\n').trim() + '\n'
             return f.absolutePath
         }
