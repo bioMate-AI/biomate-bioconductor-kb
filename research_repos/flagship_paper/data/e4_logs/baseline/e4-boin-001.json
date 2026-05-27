@@ -1,0 +1,14 @@
+{
+  "run_id": "e4-boin-001",
+  "tool": "sas_boin_macro",
+  "domain": "clinical_trial",
+  "decisions": [
+    {
+      "gate": "DLT_rate",
+      "value": 0.08,
+      "passed": true,
+      "threshold": 0.236,
+      "comment": "escalate per BOIN table"
+    }
+  ]
+}

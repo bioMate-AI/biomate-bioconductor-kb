@@ -1,0 +1,25 @@
+{
+  "run_id": "e4-cryo-002",
+  "tool": "relion4_scheme",
+  "domain": "cryo_em",
+  "decisions": [
+    {
+      "gate": "motion_drift_A",
+      "value": 1.6,
+      "passed": false,
+      "threshold": 1.0
+    },
+    {
+      "gate": "particle_count",
+      "value": 12000,
+      "passed": false,
+      "threshold": 20000
+    },
+    {
+      "gate": "FSC_resolution_A",
+      "value": 6.2,
+      "passed": false,
+      "threshold": 4.0
+    }
+  ]
+}

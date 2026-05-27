@@ -1,0 +1,39 @@
+{
+  "_comment": "Known hERG-active compound (terfenadine-like scaffold). Crafted to fail admet_standard hERG IC50 gate (<10 µM) and DILI probability gate (>0.5). High logP (~6) and MW (~470) should trigger Ro5 advisory and feed remediation knobs (logP filter <=4, MW <=450) per Aronov 2008 + Lammert 2010 + Lipinski 1997.",
+  "smiles": [
+    "CC(C)(C)c1ccc(C(O)CCCN2CCC(C(O)(c3ccccc3)c4ccccc4)CC2)cc1"
+  ],
+  "compound_name": "terfenadine_analog_001",
+  "expected_predictions": {
+    "hERG_IC50_uM": 5.0,
+    "DILI_probability": 0.62,
+    "Ames_probability": 0.18,
+    "logP": 6.1,
+    "MW": 471.7,
+    "TPSA_A2": 43.7
+  },
+  "expected_failing_gates_admet_standard": [
+    "herg_ic50",
+    "dili_probability",
+    "logp"
+  ],
+  "expected_failing_gates_admet_cns": [
+    "herg_ic50",
+    "dili_probability",
+    "logp",
+    "molecular_weight",
+    "tpsa"
+  ],
+  "expected_remediations": [
+    {
+      "gate": "herg_ic50",
+      "param_changes_keys": ["logp_max"],
+      "citation_match": "Aronov"
+    },
+    {
+      "gate": "dili_probability",
+      "param_changes_keys": ["logp_max"],
+      "citation_match": "Lammert"
+    }
+  ]
+}

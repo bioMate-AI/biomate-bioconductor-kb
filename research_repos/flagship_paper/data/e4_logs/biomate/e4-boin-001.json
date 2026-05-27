@@ -1,0 +1,26 @@
+{
+  "run_id": "e4-boin-001",
+  "phase": "dose_decision",
+  "domain": "clinical_trial",
+  "workflow": "boin_trial",
+  "overall_level": "GOLD",
+  "passed": true,
+  "gates": [
+    {
+      "gate": "boin_dlt_boundary",
+      "action": "pass",
+      "level": "GOLD",
+      "value": 0.08,
+      "threshold": 0.236,
+      "message": "DLT 1/12 \u2192 escalate",
+      "evidence": [
+        {
+          "paper_ref": "Yuan Y et al. Clin Cancer Res 2016; 22:4291-4301",
+          "paper_doi": "10.1158/1078-0432.CCR-16-0592",
+          "provenance": "GOLD",
+          "rule_text": "BOIN escalation/de-escalation boundaries; target DLT 0.25."
+        }
+      ]
+    }
+  ]
+}

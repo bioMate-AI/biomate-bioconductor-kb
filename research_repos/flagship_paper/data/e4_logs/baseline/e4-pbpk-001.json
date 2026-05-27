@@ -1,0 +1,24 @@
+{
+  "run_id": "e4-pbpk-001",
+  "tool": "pksim_report",
+  "domain": "pbpk",
+  "decisions": [
+    {
+      "gate": "AUC_fold_error",
+      "value": 1.4,
+      "passed": true,
+      "threshold": 2.0,
+      "comment": "within fold-error window"
+    },
+    {
+      "gate": "mass_balance_residual",
+      "value": 0.02,
+      "passed": true
+    },
+    {
+      "gate": "Tmax_fraction_of_window",
+      "value": 0.45,
+      "passed": true
+    }
+  ]
+}

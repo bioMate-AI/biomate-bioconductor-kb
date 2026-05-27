@@ -1,0 +1,24 @@
+{
+  "run_id": "e4-admet-001",
+  "tool": "datawarrior_admet",
+  "domain": "admet",
+  "decisions": [
+    {
+      "gate": "hERG_IC50_uM",
+      "value": 3.2,
+      "passed": false,
+      "comment": "flagged by builtin hERG model"
+    },
+    {
+      "gate": "DILI_score",
+      "value": 0.72,
+      "passed": false,
+      "comment": "high"
+    },
+    {
+      "gate": "Ames",
+      "value": 0,
+      "passed": true
+    }
+  ]
+}

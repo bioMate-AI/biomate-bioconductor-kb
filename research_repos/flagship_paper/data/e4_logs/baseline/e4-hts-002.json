@@ -1,0 +1,19 @@
+{
+  "run_id": "e4-hts-002",
+  "tool": "spotfire_plateqc",
+  "domain": "hts",
+  "decisions": [
+    {
+      "gate": "Z_prime",
+      "value": 0.18,
+      "passed": false,
+      "threshold": 0.5
+    },
+    {
+      "gate": "signal_window",
+      "value": 1.4,
+      "passed": false,
+      "threshold": 2.0
+    }
+  ]
+}
