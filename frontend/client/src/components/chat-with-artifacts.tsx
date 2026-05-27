@@ -126,7 +126,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // `metadata.workflowEdits`. Already-applied ops are tracked by message id so
   // re-renders (e.g. session restore) don't re-apply them.
   const appliedEditMessages = useRef<Set<string>>(new Set())
-  const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string }>>([])
+  const [appliedEditsDisplay, setAppliedEditsDisplay] = useState<Array<{ id: string; summary: string; snapshot?: any }>>([])
   // Structural ops (add_step / remove_step / reorder) are parked here and
   // require an explicit confirm before they mutate the panel artifact.
   // set_param auto-applies.
@@ -151,12 +151,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const auto = edits.filter((e) => e.op === 'set_param')
       const structural = edits.filter((e) => e.op !== 'set_param')
       if (auto.length > 0) {
+        const snapshot = panelWorkflow
         const result = applyWorkflowEdits(panelWorkflow, auto)
         setPanelWorkflow(result.next)
         if (result.rejected.length > 0) console.warn('[workflow-edits] rejected ops:', result.rejected)
         const summaries = result.applied.map(summarizeEdit)
         if (summaries.length > 0) {
-          setAppliedEditsDisplay((prev) => [...prev, { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · ') }])
+          setAppliedEditsDisplay((prev) => [...prev, { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot }])
         }
       }
       if (structural.length > 0) {
@@ -170,17 +171,24 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const confirmStructuralEdit = (id: string) => {
     const entry = pendingStructuralEdits.find((p) => p.id === id)
     if (!entry || !panelWorkflow) return
+    const snapshot = panelWorkflow
     const result = applyWorkflowEdits(panelWorkflow, [entry.edit])
     setPanelWorkflow(result.next)
     setPendingStructuralEdits((prev) => prev.filter((p) => p.id !== id))
     if (result.applied.length > 0) {
-      setAppliedEditsDisplay((prev) => [...prev, { id: `confirm-${id}`, summary: entry.summary }])
+      setAppliedEditsDisplay((prev) => [...prev, { id: `confirm-${id}`, summary: entry.summary, snapshot }])
     } else if (result.rejected.length > 0) {
       console.warn('[workflow-edits] confirm rejected:', result.rejected)
     }
   }
   const dismissStructuralEdit = (id: string) => {
     setPendingStructuralEdits((prev) => prev.filter((p) => p.id !== id))
+  }
+  const undoAppliedEdit = (id: string) => {
+    const entry = appliedEditsDisplay.find((c) => c.id === id)
+    if (!entry || !entry.snapshot) return
+    setPanelWorkflow(entry.snapshot)
+    setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== id))
   }
 
   // Gap 2 — rule-based extraction from user messages (frontend-only v1).
@@ -196,6 +204,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (edits.length === 0) continue
       const result = applyWorkflowEdits(panelWorkflow, edits)
       if (result.applied.length === 0) continue
+      const snapshot = panelWorkflow
       setPanelWorkflow(result.next)
       const summaries = result.applied.map((e) => {
         if (e.op === 'set_param') return `${e.paramName}: ${JSON.stringify(e.value)}`
@@ -203,7 +212,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       })
       setAppliedEditsDisplay((prev) => [
         ...prev,
-        { id: `user-${msg.id}-${prev.length}`, summary: summaries.join(' · ') },
+        { id: `user-${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot },
       ])
     }
   }, [currentChatSession?.messages, panelWorkflow])
@@ -1459,17 +1468,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 >
                   <span aria-hidden>✓</span>
                   <span>{chip.summary}</span>
-                  <button
-                    type="button"
-                    aria-label="dismiss"
-                    onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))}
-                    style={{
-                      marginLeft: 2, padding: 0, border: 'none', background: 'transparent',
-                      cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1,
-                    }}
-                  >
-                    ×
-                  </button>
+                  {chip.snapshot && (
+                    <button type="button" aria-label="undo" data-testid={`button-undo-${chip.id}`} onClick={() => undoAppliedEdit(chip.id)} style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}>Undo</button>
+                  )}
+                  <button type="button" aria-label="dismiss" onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))} style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}>×</button>
                 </span>
               ))}
             </div>
