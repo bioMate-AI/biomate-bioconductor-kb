@@ -38,9 +38,9 @@ function StatusPill({ state, text }: { state: StepState; text: ReactNode }) {
 }
 
 // ── StepShell ──────────────────────────────────────────────────
-function StepShell({ num, title, state, statusText, children, expanded, onToggle, dataTour }: StepShellProps) {
+function StepShell({ num, title, state, statusText, children, expanded, onToggle }: StepShellProps) {
   return (
-    <section className={`ind-step ${state}${expanded ? " expanded" : ""}`} data-tour={dataTour}>
+    <section className={`ind-step ${state}${expanded ? " expanded" : ""}`}>
       <header className="ind-step-head" onClick={onToggle}>
         <div className="ind-step-num">{num}</div>
         <div className="ind-step-title">{title}</div>
@@ -75,7 +75,7 @@ export function Step1ProjectSetup({
 }) {
   const regs: ("FDA" | "EMA" | "NMPA" | "PMDA")[] = ["FDA", "EMA", "NMPA", "PMDA"];
   return (
-    <StepShell num="①" title="Project Setup" state="complete" statusText="Complete" expanded={expanded} onToggle={onToggle} dataTour="ind-step-1">
+    <StepShell num="①" title="Project Setup" state="complete" statusText="Complete" expanded={expanded} onToggle={onToggle}>
       <div className="kv-list">
         <div className="k">Molecule</div>
         <div className="v">
@@ -156,7 +156,7 @@ export function Step2Admet({
 
   if (running) {
     return (
-      <StepShell num="②" title="ADMET Screening" state="running" statusText={`Running… ${progress}%`} expanded={true} onToggle={onToggle} dataTour="ind-step-2">
+      <StepShell num="②" title="ADMET Screening" state="running" statusText={`Running… ${progress}%`} expanded={true} onToggle={onToggle}>
         <div style={{ fontSize: 12.5, color: "var(--ind-text-muted)" }}>
           Workflow: <span className="mono" style={{ fontFamily: "JetBrains Mono", fontSize: 11.5 }}>predict_admet_properties</span> (AWS Batch)
           <br />
@@ -177,7 +177,7 @@ export function Step2Admet({
   }
 
   return (
-    <StepShell num="②" title="ADMET Screening" state="complete" statusText={`${data.summary.pass}/${data.summary.total} pass`} expanded={expanded} onToggle={onToggle} dataTour="ind-step-2">
+    <StepShell num="②" title="ADMET Screening" state="complete" statusText={`${data.summary.pass}/${data.summary.total} pass`} expanded={expanded} onToggle={onToggle}>
       {importedFromChat && (
         <div
           style={{
@@ -359,7 +359,6 @@ export function Step3Pbpk({
       }
       expanded={expanded || !passed}
       onToggle={onToggle}
-      dataTour="ind-step-3"
     >
       <div className="kv-list">
         <div className="k">Model</div>
@@ -479,7 +478,6 @@ export function Step4Leads({ data, expanded, onToggle }: { data: LeadsData; expa
       }
       expanded={expanded}
       onToggle={onToggle}
-      dataTour="ind-step-4"
     >
       <div style={{ fontSize: 12.5, color: "var(--ind-text-muted)" }}>
         <b>Method:</b> {data.method}
@@ -603,7 +601,6 @@ export function Step5Document({
       }
       expanded={true}
       onToggle={onToggle}
-      dataTour="ind-step-5"
     >
       <div style={{ fontSize: 12.5, color: "var(--ind-text-muted)" }}>
         Sections generated: <span className="mono">§2.6.1.1–§2.6.1.6</span> · <span className="mono">§2.6.2</span> · <span className="mono">§2.6.3</span> · <span className="mono">§2.6.4</span> · <span className="mono">§2.6.5</span> · <span className="mono">§2.6.6</span>
