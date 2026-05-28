@@ -89,7 +89,7 @@ export function Step1ProjectSetup({
         <div className="k">Sponsor</div>
         <div className="v">{project.sponsor}</div>
       </div>
-      <div style={{ marginTop: 12 }} data-tour="ind-regions">
+      <div style={{ marginTop: 12 }}>
         <div className="ind-region-row">
           <span className="label">Target regions:</span>
           {regs.map((r) => (
@@ -181,7 +181,6 @@ export function Step2Admet({
     <StepShell num="②" title="ADMET Screening" state="complete" statusText={`${data.summary.pass}/${data.summary.total} pass`} expanded={expanded} onToggle={onToggle} dataTour="ind-step-2">
       {importedFromChat && (
         <div
-          data-tour="ind-from-chat"
           style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "8px 12px", marginBottom: 10,
@@ -221,10 +220,10 @@ export function Step2Admet({
       </div>
 
       <div className="ind-expand-row">
-        <button className="ind-link" onClick={() => setTableOpen((o) => !o)} data-tour="ind-admet-table">
+        <button className="ind-link" onClick={() => setTableOpen((o) => !o)}>
           {tableOpen ? "▴ Hide ADMET table" : "▾ View ADMET table"}
         </button>
-        <button className="ind-link" onClick={() => setWetlabOpen((o) => !o)} data-tour="ind-wetlab">
+        <button className="ind-link" onClick={() => setWetlabOpen((o) => !o)}>
           + Add wet-lab data
         </button>
       </div>
@@ -373,7 +372,6 @@ export function Step3Pbpk({
       </div>
 
       <div
-        data-tour="ind-pbpk-criterion"
         style={{
           marginTop: 12, padding: "10px 12px",
           background: passed ? "var(--ind-ok-soft)" : "var(--ind-err-soft)",
@@ -490,7 +488,7 @@ export function Step4Leads({ data, expanded, onToggle }: { data: LeadsData; expa
         Evaluated: {data.evaluated} compounds · {data.rounds} optimization rounds
       </div>
       <div style={{ marginTop: 12, overflowX: "auto" }}>
-        <table className="ind-table" data-tour="ind-leads-table">
+        <table className="ind-table">
           <thead>
             <tr>
               <th>Rank</th><th>Compound</th><th>Score</th>
@@ -612,7 +610,7 @@ export function Step5Document({
         Sections generated: <span className="mono">§2.6.1.1–§2.6.1.6</span> · <span className="mono">§2.6.2</span> · <span className="mono">§2.6.3</span> · <span className="mono">§2.6.4</span> · <span className="mono">§2.6.5</span> · <span className="mono">§2.6.6</span>
       </div>
 
-      <div data-tour="ind-audit-summary" style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <span style={{ fontSize: 11.5, color: "var(--ind-text-muted)", marginRight: 4 }}>Regulatory audit:</span>
         <span className={`audit-chip ${crit ? "crit" : "info"}`} style={{ opacity: crit ? 1 : 0.6 }}>
           <span className="audit-chip dot crit" /> {crit} CRITICAL
@@ -641,7 +639,6 @@ export function Step5Document({
       </div>
 
       <div
-        data-tour="ind-versions-inline"
         style={{
           marginTop: 10, padding: "8px 12px",
           background: "var(--ind-bg-sub)", borderRadius: 6,
@@ -657,7 +654,7 @@ export function Step5Document({
         </button>
       </div>
 
-      <div className="coverage-list" data-tour="ind-coverage" style={{ marginTop: 12 }}>
+      <div className="coverage-list" style={{ marginTop: 12 }}>
         <div style={{ fontSize: 11, color: "var(--ind-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.06, marginBottom: 4 }}>
           Document completeness
         </div>
@@ -676,7 +673,7 @@ export function Step5Document({
       </div>
 
       {hasMajor && (
-        <div className="ind-major-warn" data-tour="ind-major-warn">
+        <div className="ind-major-warn">
           <TriangleAlert size={16} />
           <div style={{ flex: 1 }}>
             <b>{major} MAJOR finding{major > 1 ? "s" : ""} before signing</b>
@@ -689,7 +686,7 @@ export function Step5Document({
         </div>
       )}
 
-      <div className="ind-step-actions" data-tour="ind-actions">
+      <div className="ind-step-actions">
         <button className="ind-btn" onClick={onViewDoc}>
           <Eye size={13} /> View Document
         </button>
@@ -697,7 +694,7 @@ export function Step5Document({
           <Download size={13} /> Download DOCX
         </button>
         {!doc.signed ? (
-          <button className={`ind-btn ${hasMajor ? "warn" : "primary"}`} onClick={onSign} data-tour="ind-sign-btn">
+          <button className={`ind-btn ${hasMajor ? "warn" : "primary"}`} onClick={onSign}>
             <Signature size={13} /> {hasMajor ? "Sign with findings →" : "Sign & Freeze →"}
           </button>
         ) : (
