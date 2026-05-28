@@ -2001,13 +2001,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public auth config (used by registration UI)
-  app.get("/api/auth/config", (_req, res) => {
-    res.json({
-      requireInviteCode: process.env.REQUIRE_INVITE_CODE === 'true',
-    });
-  });
-
   // Resend verification email
   app.post("/api/auth/resend-verification", emailVerificationLimiter, authenticateToken, async (req, res) => {
     try {
@@ -2044,23 +2037,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await authService.verifyEmail(token);
 
-      // Auto-login: issue a fresh JWT and set the cookie so the user lands
-      // on the platform without an extra login step (fixes BUG-05 loop when
-      // the original registration cookie was never accepted or the user
-      // verifies on a different device).
-      const freshToken = authService.generateToken(user as any);
-      res.cookie('biomate_token', freshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000,
-      });
-
       res.json({
         success: true,
         message: 'Email verified successfully',
         user,
-        token: freshToken,
       });
     } catch (error: any) {
       console.error('[Auth] Email verification error:', error);
@@ -2332,8 +2312,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // /dashboard route is currently disabled — land on the app root instead.
-        res.redirect(`/?oauth_success=true`);
+        // Redirect to dashboard with token
+        res.redirect(`/dashboard?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] Google callback error:', error);
         res.redirect('/login?error=oauth_error');
@@ -2368,8 +2348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // /dashboard route is currently disabled — land on the app root instead.
-        res.redirect(`/?oauth_success=true`);
+        // Redirect to dashboard with token
+        res.redirect(`/dashboard?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] GitHub callback error:', error);
         res.redirect('/login?error=oauth_error');
@@ -4446,34 +4426,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isDocking  = /docking|dock|autodock|vina|binding/i.test(wfLower);
         const isDrugDisc = /drug.?disc|admet|pbpk|clinical.?trial|ind.?prep|ddi|cyp/i.test(wfLower);
 
-        // CryoSPARC version — extract from run metadata; do NOT hardcode.
-        // (D-AR-1) Previously hardcoded as "v5.0.2"; regulatory submissions
-        // require the true software version. Falls back to a clear sentinel
-        // when no version is available so the report doesn't make a false
-        // claim.
-        const cryoSparcVersion: string = (() => {
-          const wfDef: any = (run as any)?.workflowDefinition || {};
-          const exec: any  = (run as any)?.execution || {};
-          const meta: any  = (run as any)?.metadata || {};
-          const fromAny = (...candidates: any[]): string | null => {
-            for (const c of candidates) {
-              if (typeof c === 'string' && c.trim().length > 0) return c.trim();
-              if (typeof c === 'number') return `v${c}`;
-            }
-            return null;
-          };
-          const v = fromAny(
-            wfDef.cryosparc_version,
-            wfDef.software_versions?.cryosparc,
-            exec.cryosparc_version,
-            exec.softwareVersions?.cryosparc,
-            meta.cryosparc_version,
-            process.env.CRYOSPARC_VERSION,
-          );
-          if (!v) return 'version not recorded';
-          return v.startsWith('v') ? v : `v${v}`;
-        })();
-
         // Parse all JSON output files
         const _parse = (name: string): Record<string, any> => {
           const sample = textOutputSamples.find(s => s.name === name);
@@ -4560,30 +4512,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             compounds_assessed:    String(toxRpt?.compounds_assessed      ?? perCpd.length         ?? 'MISSING'),
             model_type:            String(toxRpt?.model_type               ?? admetRes?.result?.model ?? 'MPNN'),
             estimation_method:     String(toxRpt?.estimation_method        ?? 'rdkit_descriptors'),
-            // Guard: Math.min over an empty array returns Infinity; emit a
-            // clear "no compounds" sentinel so the LLM doesn't treat Infinity
-            // as a numeric IC50 value. (D-AR-2)
-            herg_ic50_min_uM:      perCpd.length === 0
-              ? 'no compounds assessed'
-              : (() => {
-                  const vals = perCpd.map((c:any) => Number(c.herg_ic50_uM)).filter((v:number) => Number.isFinite(v));
-                  return vals.length === 0 ? 'no hERG values reported' : Math.min(...vals).toFixed(3);
-                })(),
+            herg_ic50_min_uM:      String(Math.min(...perCpd.map((c:any) => c.herg_ic50_uM ?? Infinity)).toFixed(3) ?? 'MISSING'),
             dili_risk_max:         String(perCpd.find((c:any) => c.dili_risk === 'high')?.dili_risk ?? toxRpt?.toxicity?.dili_risk ?? 'MISSING'),
             dili_probability_max:  String(toxRpt?.toxicity?.dili_probability ?? 'MISSING'),
             ames_positive:         String(toxRpt?.toxicity?.ames_positive    ?? 'MISSING'),
             ames_probability:      String(toxRpt?.toxicity?.ames_probability ?? 'MISSING'),
             smiles_input:          String(Array.isArray(params?.smiles_list) ? params.smiles_list.join('; ') : (params?.smiles_list ?? params?.smiles ?? 'MISSING')),
-            // Defensive ranges — filter to finite values before Math.min/max
-            // so missing fields don't poison the reported range. (D-AR-2)
-            logP_range: (() => {
-              const vals = perCpd.map((c:any) => Number(c.logP)).filter((v:number) => Number.isFinite(v));
-              return vals.length === 0 ? 'MISSING' : `${Math.min(...vals).toFixed(2)} – ${Math.max(...vals).toFixed(2)}`;
-            })(),
-            mw_range: (() => {
-              const vals = perCpd.map((c:any) => Number(c.mw)).filter((v:number) => Number.isFinite(v));
-              return vals.length === 0 ? 'MISSING' : `${Math.min(...vals).toFixed(1)} – ${Math.max(...vals).toFixed(1)} Da`;
-            })(),
+            logP_range:            String(perCpd.length > 0 ? `${Math.min(...perCpd.map((c:any) => c.logP ?? 99)).toFixed(2)} – ${Math.max(...perCpd.map((c:any) => c.logP ?? -99)).toFixed(2)}` : 'MISSING'),
+            mw_range:              String(perCpd.length > 0 ? `${Math.min(...perCpd.map((c:any) => c.mw ?? 9999)).toFixed(1)} – ${Math.max(...perCpd.map((c:any) => c.mw ?? 0)).toFixed(1)} Da` : 'MISSING'),
           };
         } else if (isRNAseq) {
           const qcRpt  = _parse('multiqc_report.json') || _parse('qc_summary.json');
@@ -4701,7 +4637,7 @@ PIPELINE CONTEXT:
 Workflow: ${workflowName}
 Wall time: ${wallTimeStr}
 Steps completed: ${extractedMetrics.steps_completed}
-Platform: AWS Batch, CryoSPARC ${cryoSparcVersion}, Nextflow DSL2
+Platform: AWS Batch, CryoSPARC v5.0.2, Nextflow DSL2
 Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
 Output path: ${extractedMetrics.s3_output_path}
 
@@ -4826,7 +4762,7 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         const compactMeta = `WORKFLOW: ${workflowName}
 WALL TIME: ${wallTimeStr}
 STEPS COMPLETED: ${extractedMetrics.steps_completed ?? 'N/A'}
-AWS BATCH | CryoSPARC ${cryoSparcVersion} | Nextflow DSL2
+AWS BATCH | CryoSPARC v5.0.2 | Nextflow DSL2
 
 EXTRACTED METRICS:
 ${metricsBlock}
@@ -5007,35 +4943,18 @@ ${paramLines || '(none recorded)'}`;
         credentialMap: credentialMap || undefined,
       };
 
-      // Preflight: if the user pasted a SMILES, hit PubChem live and inject
-      // the canonical compound info before the LLM sees the message. Closes
-      // the "BioMate: I don't have outbound internet" disclaimer behaviour.
-      // See frontend/server/services/smiles-prefetch.ts.
-      let promptedMessage = safeMessage;
-      try {
-        const { prefetchSmiles, renderPrefetchContext } = await import("./services/smiles-prefetch");
-        const hits = await prefetchSmiles(safeMessage);
-        if (hits.length > 0) {
-          const ctxBlock = renderPrefetchContext(hits);
-          promptedMessage = `${ctxBlock}\n\n${safeMessage}`;
-          console.log(`[chat-stream] PubChem prefetched ${hits.length} SMILES hit(s) before LLM call`);
-        }
-      } catch (e: any) {
-        console.warn(`[chat-stream] SMILES prefetch error (non-fatal): ${e?.message || e}`);
-      }
-
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
       // injects prior experience hints, and records interactions for future learning.
       const _streamStartTime = Date.now();
       const assistantResponse = memoryIntegration
         ? await memoryIntegration.processWithMemory(
-            promptedMessage,
+            safeMessage,
             enrichedContext as unknown as MemoryEnhancedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event)
           )
         : await galaxyAssistant.processMessage(
-            promptedMessage,
+            safeMessage,
             enrichedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event)
@@ -5172,8 +5091,6 @@ ${paramLines || '(none recorded)'}`;
               'claude-sonnet-4-5-20250929': {i:  3.00,  o: 15.00},
               'claude-haiku-4-5-20251001':  {i:  0.25,  o:  1.25},
               'gemini-3-flash-preview':     {i:  0.075, o:  0.30},
-              'gemini-3.5-flash':           {i:  1.50,  o:  9.00},
-              'gemini-3.5-pro':             {i:  1.25,  o: 10.00},
             };
             const p = pricing[model] ?? {i: 3.00, o: 15.00};
             const cost = (inTok * p.i + outTok * p.o) / 1_000_000;
@@ -5360,21 +5277,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Start a pilot run for parameter tuning
-  app.post("/api/ai_assistant/extract_workflow_edits", optionalAuth, async (req, res) => {
-    try {
-      const { workflow, message } = req.body || {};
-      if (!message || !workflow) {
-        return res.json({ edits: [] });
-      }
-      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/extract_workflow_edits', { workflow, message });
-      res.json(response.data);
-    } catch (error: any) {
-      console.warn('[extract_workflow_edits] proxy failed:', error?.message || error);
-      res.json({ edits: [], error: error?.message || 'extract failed' });
-    }
-  });
-
-    app.post("/api/ai_assistant/pilot/start", optionalAuth, async (req, res) => {
+  app.post("/api/ai_assistant/pilot/start", optionalAuth, async (req, res) => {
     try {
       const { workflow_id, total_samples, config } = req.body;
 
@@ -8331,9 +8234,13 @@ ${paramLines || '(none recorded)'}`;
           // Local paths (e.g. /frontend/data/uploads/...) are inaccessible from
           // Batch containers — this uploads them and replaces params with s3:// URIs.
           const rawParams = { ...(request.workflowDefinition.parameters || {}) };
-          // profile/executor are Nextflow CLI options — must not be sent as pipeline params.
-          delete rawParams.profile;
-          delete rawParams.executor;
+          const paramProfile =
+            rawParams.profile ??
+            request.executionConfig?.nextflow_profile ??
+            undefined;
+          if ('profile' in rawParams) delete rawParams.profile;
+          if ('executor' in rawParams) delete rawParams.executor;
+
           const stagedParams = await stageLocalFilesForBatch(
             rawParams,
             req.user ? String(req.user.id) : 'anonymous'
@@ -8349,16 +8256,11 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // Profile selection on Batch (2026-05-22 fix):
-              // Empirically only a tiny minority of nextflow_nfcore/ workflows define a `docker`
-              // profile; the vast majority declare `standard` + `aws` (matching our biomate-ai-tools
-              // pattern). The old special-case `path starts with nextflow_nfcore/ → docker` therefore
-              // generated `Unknown configuration profile: 'docker'` for hundreds of workflows
-              // (caught in 2026-05-22 sweep: 4 of 5 drug-dev failures were this single bug).
-              // Just use `aws` on Batch always — workflows that need docker locally still get it
-              // because NEXTFLOW_USE_AWS is false off-Batch.
-              profile: request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
+              // nf-core on AWS Batch uses profile docker + awsbatch executor (not profile "aws").
+              profile:
+                paramProfile ||
+                request.executionConfig?.nextflow_profile ||
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'docker' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
@@ -8443,12 +8345,7 @@ ${paramLines || '(none recorded)'}`;
 
         } catch (error) {
           console.error('[Nextflow Direct] Execution error:', error);
-          const rawErrorMsg = error instanceof Error
-            ? `${error.message}${
-                (error as any).cause
-                  ? ` (cause: ${(error as any).cause?.code || (error as any).cause?.message})`
-                  : ''}`
-            : String(error);
+          const rawErrorMsg = error instanceof Error ? error.message : String(error);
 
           if (executionRun) {
             await storage.updateExecutionRun(executionRun.id, {
@@ -8670,137 +8567,10 @@ ${paramLines || '(none recorded)'}`;
   // Get a specific execution run by ID
   app.get("/api/workflows/runs/:id", async (req, res) => {
     try {
-      let run = await storage.getExecutionRun(req.params.id);
+      const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
-
-      // Reconcile Nextflow terminal state on read. The /status endpoint already
-      // does this; we mirror it here so any caller (page reload, external poll,
-      // sync script) gets fresh state without having to know which endpoint to hit.
-      const isNextflowRun =
-        getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
-        run.execution?.executionEngine === 'nextflow' ||
-        !!run.execution?.nextflowRunId ||
-        (run.execution?.executionEngine === 'cryosparc' && !!run.execution?.galaxyInvocationId);
-      const isAlreadyTerminal = ['completed', 'failed', 'cancelled'].includes(run.execution.status);
-      if (isNextflowRun && !isAlreadyTerminal && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
-        try {
-          const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
-          const nextflowStatus = nextflowRunId ? await galaxyAPIProxy.getNextflowStatus(nextflowRunId) : undefined;
-          const nfState = String((nextflowStatus as any)?.status || '').toLowerCase();
-          // Backfill progress.totalSteps when Nextflow knows the count but
-          // the original run record had `workflowDefinition.steps = {}` (the
-          // generate_workflow response returns empty steps for lazy-fetched
-          // workflows). Without this, the panel renders "0 steps" even
-          // though tasks executed.
-          const nfTotalTasks = Number((nextflowStatus as any)?.totalTasks ?? 0);
-          if (nfTotalTasks > 0 && (run.progress?.totalSteps ?? 0) === 0) {
-            run = await storage.updateExecutionRun(run.id, {
-              progress: {
-                ...run.progress,
-                totalSteps: nfTotalTasks,
-                completedSteps: Number((nextflowStatus as any)?.completedTasks ?? run.progress?.completedSteps ?? 0),
-              },
-            }) || run;
-          }
-          // Deny-list approach (vs enumerating terminal states): anything that
-          // is NOT explicitly an in-progress state is treated as terminal.
-          // Galaxy backend can emit many status names (succeeded, completed,
-          // failed, error, interrupted, cancelled, paused, unknown, fail, …) —
-          // a forgotten terminal status leaves the run stuck at "running"
-          // forever, which is worse than a slightly-too-aggressive promotion.
-          const IN_PROGRESS_STATES = new Set([
-            '', 'running', 'queued', 'pending', 'submitted',
-            'starting', 'fetching_accessions', 'alive', 'ready', 'in_progress',
-          ]);
-          const isTerminalNfState = nfState && !IN_PROGRESS_STATES.has(nfState);
-
-          // Stuck-running guard (Task #16 extension). When the Nextflow JVM
-          // dies (gunicorn worker recycle, container restart, OOM) Galaxy
-          // never gets a terminal event and the run stays 'running' forever.
-          // If wall-clock > 12h with no terminal signal, force-fail. No
-          // drug-dev workflow legitimately exceeds 12h. The publishDir-gap
-          // recovery in runs-outputs-service still surfaces any files the
-          // AWS Batch task wrote before Nextflow died.
-          const STUCK_RUNNING_MS = 12 * 60 * 60 * 1000;
-          const startedAt = run.execution?.startedAt
-            ? new Date(run.execution.startedAt as any).getTime()
-            : 0;
-          if (
-            !isTerminalNfState &&
-            run.execution.status === 'running' &&
-            startedAt > 0 &&
-            (Date.now() - startedAt) > STUCK_RUNNING_MS
-          ) {
-            console.warn(
-              `[ExecutionRun] stuck-running guard: marking ${run.id} as failed (>12h no terminal signal)`
-            );
-            run = await storage.updateExecutionRun(run.id, {
-              execution: {
-                ...run.execution,
-                status: 'failed' as ExecutionRunStatus,
-                errorMessage:
-                  'Run exceeded 12h with no terminal signal — Nextflow process likely died. ' +
-                  'AWS Batch outputs may still be recoverable via /api/runs/:id/outputs (publishDir-gap fallback).',
-                completedAt: new Date(),
-              },
-            }) || run;
-          }
-
-          if (isTerminalNfState) {
-            const isSuccessNfState   = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
-            const isPausedNfState    = nfState === 'paused';
-            const isCancelledNfState = nfState === 'cancelled' || nfState === 'aborted' || nfState === 'stopped';
-            // Map to the BioMate ExecutionRunStatus vocabulary. Preserve the
-            // cancel/pause/success/fail distinctions — collapsing cancelled
-            // into failed loses user intent and breaks downstream filters.
-            const mappedNfForBioMate =
-              isSuccessNfState   ? 'succeeded' :
-              isPausedNfState    ? 'paused'    :
-              isCancelledNfState ? 'cancelled' :
-              'failed';
-            const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
-            // Do not downgrade from 'succeeded'. runs-outputs-service may have
-            // already upgraded failed -> succeeded when real outputs were
-            // recovered from work/ or outputs/ (publishDir-gap reconcile).
-            // Galaxy nfState can stay 'failed/interrupted' even when the
-            // workflow's compute completed cleanly, because Galaxy's terminal
-            // event handler missed the Nextflow JVM death. Trust the upgrade.
-            const wouldDowngradeFromSucceeded =
-              run.execution.status === 'succeeded' && mappedStatus !== 'succeeded';
-            const finalStatus = wouldDowngradeFromSucceeded
-              ? ('succeeded' as ExecutionRunStatus)
-              : mappedStatus;
-            const terminalMessage = !isSuccessNfState && !isPausedNfState && !isCancelledNfState && !wouldDowngradeFromSucceeded
-              ? ((nextflowStatus as any)?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
-              : undefined;
-            run = await storage.updateExecutionRun(run.id, {
-              execution: {
-                ...run.execution,
-                status: finalStatus,
-                errorMessage: terminalMessage,
-                completedAt: isPausedNfState ? undefined : new Date(),
-                nextflowStatus: nextflowStatus,
-              },
-            }) || run;
-            const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
-            if (nfInvocationId && !isPausedNfState) {
-              galaxyPoller.emit('workflow_completed', {
-                invocation_id: nfInvocationId,
-                state: isSuccessNfState ? 'ok' : isCancelledNfState ? 'cancelled' : 'failed',
-              });
-            }
-          } else if (run.execution.status === 'running' && nextflowStatus) {
-            run = await storage.updateExecutionRun(run.id, {
-              execution: { ...run.execution, nextflowStatus: nextflowStatus },
-            }) || run;
-          }
-        } catch (statusError: any) {
-          console.warn('[ExecutionRun] Galaxy reconcile failed (non-fatal):', statusError?.message || statusError);
-        }
-      }
-
       res.json(run);
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run:", error);
@@ -8832,27 +8602,12 @@ ${paramLines || '(none recorded)'}`;
           }
 
           // Promote Nextflow terminal state into execution run state.
-          // Deny-list (see /api/workflows/runs/:id reconcile for rationale):
-          // any state not explicitly in-progress is treated as terminal.
           const nfState = String(nextflowStatus?.status || '').toLowerCase();
           const isAlreadyTerminal = ['completed', 'failed', 'cancelled'].includes(run.execution.status);
-          const IN_PROGRESS_STATES_STATUS = new Set([
-            '', 'running', 'queued', 'pending', 'submitted',
-            'starting', 'fetching_accessions', 'alive', 'ready', 'in_progress',
-          ]);
-          const isTerminalNfState = nfState && !IN_PROGRESS_STATES_STATUS.has(nfState);
-          if (isTerminalNfState && !isAlreadyTerminal) {
-            const isSuccessNfState   = nfState === 'succeeded' || nfState === 'completed' || nfState === 'pass';
-            const isPausedNfState    = nfState === 'paused';
-            const isCancelledNfState = nfState === 'cancelled' || nfState === 'aborted' || nfState === 'stopped';
-            const mappedNfForBioMate =
-              isSuccessNfState   ? 'succeeded' :
-              isPausedNfState    ? 'paused'    :
-              isCancelledNfState ? 'cancelled' :
-              'failed';
-            const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
-            const terminalMessage = !isSuccessNfState && !isPausedNfState && !isCancelledNfState
-              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
+          if ((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) {
+            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
+            const terminalMessage = nfState === 'failed'
+              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
               : undefined;
 
             run = await storage.updateExecutionRun(run.id, {
@@ -8860,7 +8615,7 @@ ${paramLines || '(none recorded)'}`;
                 ...run.execution,
                 status: mappedStatus,
                 errorMessage: terminalMessage,
-                completedAt: isPausedNfState ? undefined : new Date(),
+                completedAt: new Date(),
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
@@ -8868,10 +8623,10 @@ ${paramLines || '(none recorded)'}`;
             // D2: Emit workflow_completed so the notification service fires for Nextflow runs.
             // Galaxy poller doesn't poll Nextflow direct runs; we emit manually on terminal state.
             const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
-            if (nfInvocationId && !isPausedNfState) {
+            if (nfInvocationId) {
               galaxyPoller.emit('workflow_completed', {
                 invocation_id: nfInvocationId,
-                state: isSuccessNfState ? 'ok' : isCancelledNfState ? 'cancelled' : 'failed',
+                state: nfState === 'succeeded' ? 'ok' : 'failed',
               });
             }
           } else if (run.execution.status === 'running') {
@@ -9471,14 +9226,7 @@ Rules:
       const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
       const nfStatus = run.execution?.nextflowStatus as any;
 
-      // DEPRECATED 2026-05-21: this endpoint reads from
-      //   nextflowStatus.s3_output_files
-      // which is an in-process Galaxy field that goes empty whenever the
-      // Galaxy worker restarts mid-run. The canonical replacement is
-      //   GET /api/runs/:id/outputs
-      // (RunsOutputsService) which lists S3 directly and returns richer
-      // metadata. New code should call /api/runs/:id/outputs; this
-      // /output_files endpoint is kept for backward compatibility only.
+      // Try S3 output files first (cloud runs), then local disk scan (dev runs)
       let outputFiles = (nfStatus?.s3_output_files || nfStatus?.output_files || []) as any[];
       let outdir = nfStatus?.outdir as string | undefined;
 
@@ -10010,24 +9758,6 @@ Rules:
         }
       });
 
-      // Narrate the resume so the chat thread surfaces it (workflow.resumed).
-      // Template exists in workflow_chat_narrator.py but had no caller before.
-      // Best-effort — failure here must not block the resume response.
-      try {
-        const narrateInv = newNextflowRunId || nextflowRunId;
-        if (narrateInv) {
-          sseManager.injectRawEvent(String(narrateInv), 'chat_progress', {
-            kind: 'workflow.resumed',
-            invocation_id: String(narrateInv),
-            friendly_message: 'Resuming your workflow.',
-            ts: Date.now() / 1000,
-            technical: {},
-          });
-        }
-      } catch (narrErr) {
-        console.warn('[ExecutionRun] Resume narrate failed (continuing):', narrErr);
-      }
-
       res.json(updated);
     } catch (error: any) {
       console.error("[ExecutionRun] Error resuming run:", error);
@@ -10257,26 +9987,14 @@ Rules:
       });
 
       const rawText = (completion.content[0] as any)?.text || '';
-      // Strip markdown fences if present. (D-AR-5)
-      // Trim first, then drop optional ```json prefix and ``` suffix that
-      // may carry surrounding whitespace/newlines. Falls back to extracting
-      // the first {…} block as a second chance before giving up.
-      const jsonStr = rawText.trim()
-        .replace(/^```json\s*\n?/i, '')
-        .replace(/^```\s*\n?/, '')
-        .replace(/\n?\s*```\s*$/, '')
-        .trim();
+      // Strip markdown fences if present
+      const jsonStr = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
 
-      let analysis: Record<string, unknown> | null = null;
+      let analysis: Record<string, unknown>;
       try {
         analysis = JSON.parse(jsonStr);
       } catch {
-        const blockMatch = rawText.match(/\{[\s\S]*\}/);
-        if (blockMatch) {
-          try { analysis = JSON.parse(blockMatch[0]); } catch { /* fall through */ }
-        }
-      }
-      if (!analysis) {
+        // Return raw text as summary if JSON parse fails
         analysis = {
           summary: rawText.slice(0, 500),
           key_findings: [],
@@ -10297,28 +10015,12 @@ Rules:
       const _isAdmetAnalyze = /admet|predict.*admet|admet.*properties/i.test(workflowName);
       const _isRarediseaseAnalyze = /raredisease|longraredisease|rare.*disease/i.test(workflowName);
 
-      // Suggestions trigger on liability phrases, but only if they're not
-      // negated ("no hERG liability", "Ames-clean", "DILI risk NOT detected").
-      // Sentence-level negation check looks at the ~80-char window around
-      // the regex hit. (D-AR-6)
-      const _hasPositiveHit = (re: RegExp): boolean => {
-        for (const match of _analyzeText.matchAll(new RegExp(re, 'gi'))) {
-          const i = match.index ?? 0;
-          const window = _analyzeText.slice(Math.max(0, i - 40), i + (match[0]?.length ?? 0) + 40);
-          if (/\b(no|not|n['’]t|without|negative|absent|cleared?|clean|safe|below threshold|under threshold|good profile)\b/i.test(window)) {
-            continue; // negated mention — skip
-          }
-          return true;
-        }
-        return false;
-      };
-
       if (_isAdmetAnalyze) {
-        if (_hasPositiveHit(/herg|cardiotox|ic50\s*<\s*1\s*µm|cardiac.*liab/i)) {
+        if (/herg|cardiotox|ic50.*<.*1\s*µm|cardiac.*liab/i.test(_analyzeText)) {
           _analyzeProactive.push('Your compound has a hERG liability. I can run REINVENT4 in scaffold decoration mode with a hERG penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
-        } else if (_hasPositiveHit(/dili.*high|dili.*flag|dili.*risk|dili.*positive|hepatotox.*high/i)) {
+        } else if (/dili.*high|dili.*flag|dili.*risk|dili.*positive|hepatotox.*high/i.test(_analyzeText)) {
           _analyzeProactive.push('Your compound has a DILI liability. I can run REINVENT4 in scaffold decoration mode with a DILI penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
-        } else if (_hasPositiveHit(/ames.*positive|ames.*flag|mutagen/i)) {
+        } else if (/ames.*positive|ames.*flag|mutagen/i.test(_analyzeText)) {
           _analyzeProactive.push('Your compound has an Ames mutagenicity liability. I can run REINVENT4 in scaffold decoration mode with an Ames penalty function to generate 10–25 optimized analogs with improved predicted profiles — would you like me to do that?');
         }
       }
@@ -12765,98 +12467,6 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       return res.status(500).json({ error: err.message || 'Resolve failed' });
     }
   });
-
-  // -------------------------------------------------------------------------
-  // IND Report — feedback + adapter passthrough to Galaxy
-  //
-  // Same-origin fetches from the IND Report client (lib/ind-report-api.ts)
-  // need to reach the Galaxy backend on :8081. The handler forwards them
-  // verbatim, preserving Authorization, X-BioMate-Org-Id, and the JSON body.
-  // -------------------------------------------------------------------------
-  const indProxy = async (req: any, res: any) => {
-    const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-    const target = `${galaxyUrl}${req.originalUrl}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (req.headers.authorization) headers["Authorization"] = req.headers.authorization as string;
-    const orgId = req.headers["x-biomate-org-id"];
-    if (orgId) headers["X-BioMate-Org-Id"] = orgId as string;
-    try {
-      const upstream = await fetch(target, {
-        method: req.method,
-        headers,
-        body: req.method === "GET" ? undefined : JSON.stringify(req.body ?? {}),
-      });
-      const ct = upstream.headers.get("content-type") || "";
-      res.status(upstream.status);
-      if (ct.includes("application/json")) {
-        res.json(await upstream.json());
-      } else {
-        res.send(await upstream.text());
-      }
-    } catch (err: any) {
-      res.status(502).json({ error: "ind-proxy upstream failed", detail: err?.message });
-    }
-  };
-
-  app.post("/api/ind-report/projects/:projectId/edit", express.json(), indProxy);
-  app.post("/api/ind-report/audit/:findingId/dismiss", express.json(), indProxy);
-  app.post("/api/ind-report/citations/suggest", express.json(), indProxy);
-  app.post("/api/ind-report/sections/:sectionId/regenerate", express.json(), indProxy);
-  app.get("/api/regulatory/active_adapter", indProxy);
-  // Project registry
-  app.get("/api/ind-report/projects", indProxy);
-  app.get("/api/ind-report/projects/:projectId", indProxy);
-  app.post("/api/ind-report/projects", express.json(), indProxy);
-
-  // SSE-friendly proxy for the LLM streaming endpoint. The standard indProxy
-  // buffers the full upstream response, which would defeat the purpose of
-  // text/event-stream. This variant pipes the upstream body straight to the
-  // client so phase + token events flow in real time.
-  const indStreamProxy = async (req: any, res: any) => {
-    const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-    const target = `${galaxyUrl}${req.originalUrl}`;
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (req.headers.authorization) headers["Authorization"] = req.headers.authorization as string;
-    const orgId = req.headers["x-biomate-org-id"];
-    if (orgId) headers["X-BioMate-Org-Id"] = orgId as string;
-    try {
-      const upstream = await fetch(target, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(req.body ?? {}),
-      });
-      res.status(upstream.status);
-      res.setHeader("Content-Type", upstream.headers.get("content-type") || "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("X-Accel-Buffering", "no");
-      (res as any).flushHeaders?.();
-      if (!upstream.body) { res.end(); return; }
-      const reader = (upstream.body as any).getReader();
-      req.on("close", () => { try { reader.cancel(); } catch {} });
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        res.write(Buffer.from(value));
-        (res as any).flush?.();
-      }
-      res.end();
-    } catch (err: any) {
-      if (!res.headersSent) res.status(502).json({ error: "stream-proxy upstream failed", detail: err?.message });
-      else res.end();
-    }
-  };
-
-  app.post("/api/regulatory/generate_stream", express.json(), indStreamProxy);
-  app.post("/api/regulatory/generate_smoke", express.json(), indProxy);
-  // IND action endpoints — sign + markdown export (ind_actions_router.py).
-  app.post("/api/ind-report/projects/:projectId/sign", express.json(), indProxy);
-  app.post("/api/ind-report/projects/:projectId/document.md", express.json(), indProxy);
-  // P2-6 + P1-4 backend endpoints (ind_actions_router.py).
-  app.get("/api/ind-report/projects/:projectId/versions", indProxy);
-  app.post("/api/ind-report/projects/:projectId/snapshot", express.json(), indProxy);
-  app.post("/api/ind-report/projects/:projectId/sections/render", express.json(), indProxy);
 
   const httpServer = createServer(app);
 
