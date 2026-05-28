@@ -57,6 +57,7 @@ def log_workflow_header() {
 // Process 1: fpocket Pocket Detection
 // ============================================================================
 
+// [Pocket Detection]
 process FPOCKET_POCKET_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
@@ -249,6 +250,7 @@ PYEOF
 // Process 2: Druggability QC Gate
 // ============================================================================
 
+// [Pocket Detection]
 process DRUGGABILITY_QC_GATE {
     tag "${meta.id}"
     label 'process_single'

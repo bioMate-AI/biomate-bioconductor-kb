@@ -58,6 +58,7 @@ def log_workflow_header() {
 // Process 1: SCAFFOLD_INPUT_VALIDATION
 // ============================================================================
 
+// [Analysis]
 process SCAFFOLD_INPUT_VALIDATION {
     tag "${meta.id}"
     label 'process_low'
@@ -188,6 +189,7 @@ PYEOF
 // Process 2: RECAP_FRAGMENTATION
 // ============================================================================
 
+// [Analysis]
 process RECAP_FRAGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
@@ -332,6 +334,7 @@ PYEOF
 // Process 3: MMP_ANALYSIS
 // ============================================================================
 
+// [Analysis]
 process MMP_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
@@ -460,6 +463,7 @@ PYEOF
 // Process 4: SCAFFOLD_HOPPING_CANDIDATES
 // ============================================================================
 
+// [Molecule Generation]
 process SCAFFOLD_HOPPING_CANDIDATES {
     tag "${meta.id}"
     label 'process_medium'

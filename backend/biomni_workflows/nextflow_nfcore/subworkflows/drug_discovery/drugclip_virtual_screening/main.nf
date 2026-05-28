@@ -30,6 +30,7 @@ ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/drugclip:la
 
 // ── Fetch receptor if PDB ID given ───────────────────────────────────────────
 
+// [Analysis]
 process FETCH_RECEPTOR {
     tag "receptor"
     label 'process_low'
@@ -60,6 +61,7 @@ print('Downloaded PDB: ${receptor_input}')
 
 // ── Run DrugCLIP screening ────────────────────────────────────────────────────
 
+// [Virtual Screening]
 process DRUGCLIP_SCREEN {
     tag "drugclip"
     label 'process_gpu'
@@ -91,6 +93,7 @@ process DRUGCLIP_SCREEN {
 
 // ── Generate report ───────────────────────────────────────────────────────────
 
+// [Analysis]
 process SCREENING_REPORT {
     tag "report"
     label 'process_low'

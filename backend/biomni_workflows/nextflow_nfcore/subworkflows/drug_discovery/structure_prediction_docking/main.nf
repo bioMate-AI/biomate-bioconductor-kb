@@ -71,6 +71,7 @@ def log_workflow_header() {
 // Process 1: AlphaFold3 Structure Prediction
 // ============================================================================
 
+// [Analysis]
 process ALPHAFOLD3_STRUCTURE_PREDICTION {
     tag "${meta.id}"
     label 'process_gpu_high'
@@ -233,6 +234,7 @@ PYEOF
 // Process 2: DiffDock Blind Docking
 // ============================================================================
 
+// [Docking]
 process DIFFDOCK_BLIND_DOCKING {
     tag "${meta.id}"
     label 'process_gpu_medium'
@@ -312,6 +314,7 @@ PYEOF
 // Process 3: AutoDock Vina Docking
 // ============================================================================
 
+// [Docking]
 process AUTODOCK_VINA_DOCKING {
     tag "${meta.id}"
     label 'process_high'

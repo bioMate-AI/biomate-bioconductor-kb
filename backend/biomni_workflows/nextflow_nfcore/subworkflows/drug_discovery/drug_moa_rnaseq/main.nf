@@ -70,6 +70,7 @@ def log_workflow_header() {
 // Process 1: Differential Expression Analysis
 // ============================================================================
 
+// [Analysis]
 process DIFFERENTIAL_EXPRESSION {
     tag "${params.drug_name}_vs_control"
     label 'process_medium'
@@ -182,6 +183,7 @@ PYEOF
 // Process 2: Gene Set Enrichment Analysis
 // ============================================================================
 
+// [Analysis]
 process GENE_SET_ENRICHMENT {
     tag "${params.drug_name}_gsea"
     label 'process_medium'
@@ -301,6 +303,7 @@ PYEOF
 // Process 3: LINCS L1000 / CMap Signature Lookup
 // ============================================================================
 
+// [Analysis]
 process LINCS_CMAP_LOOKUP {
     tag "${params.drug_name}_cmap"
     label 'process_single'
@@ -435,6 +438,7 @@ PYEOF
 // Process 4: MoA Aggregation Report
 // ============================================================================
 
+// [MoA Analysis]
 process MOA_REPORT {
     tag "${params.drug_name}_moa_report"
     label 'process_single'

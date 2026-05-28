@@ -79,6 +79,7 @@ def log_workflow_header() {
 // Process 1: AiZynthFinder Retrosynthesis Prediction
 // ============================================================================
 
+// [Retrosynthesis]
 process AIZYNTHFINDER_PREDICT {
     tag "${compound_id}"
     label 'process_medium'
@@ -211,6 +212,7 @@ PYEOF
 // Process 2: Retrosynthesis Filter + QC Gate
 // ============================================================================
 
+// [Retrosynthesis]
 process RETROSYNTHESIS_FILTER {
     tag "${compound_id}"
     label 'process_single'
@@ -354,6 +356,7 @@ EOF
 // Process 3: Retrosynthesis Aggregate Report
 // ============================================================================
 
+// [Retrosynthesis]
 process RETROSYNTHESIS_REPORT {
     tag "aggregate_report"
     label 'process_low'

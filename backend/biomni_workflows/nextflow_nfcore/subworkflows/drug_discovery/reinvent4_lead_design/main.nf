@@ -92,6 +92,7 @@ def RDKIT_CONTAINER     = _useAws ? _ECR_DD : _LOCAL
 // Processes
 // ============================================================================
 
+// [Post-processing]
 process VALIDATE_INPUT {
     /*
      * Validate seed SMILES with RDKit.
@@ -162,6 +163,7 @@ PYEOF
 }
 
 
+// [Molecule Generation]
 process REINVENT_DESIGN {
     /*
      * Core REINVENT4 RL optimization loop.
@@ -317,6 +319,7 @@ PYEOF
 }
 
 
+// [Analysis]
 process FILTER_RANK {
     /*
      * Post-generation filtering and ranking:
@@ -475,6 +478,7 @@ PYEOF
 }
 
 
+// [Reporting]
 process REPORT {
     /*
      * Generate final reports:

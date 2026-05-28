@@ -57,6 +57,7 @@ def log_workflow_header() {
 // Process 1: Pharmacophore Model Generation
 // ============================================================================
 
+// [Pharmacophore Filtering]
 process PHARMACOPHORE_GENERATE {
     tag "pharmacophore_model"
     label 'process_medium'
@@ -203,6 +204,7 @@ EOF
 // Process 2: Pharmacophore Library Screening
 // ============================================================================
 
+// [Pharmacophore Filtering]
 process PHARMACOPHORE_SCREEN {
     tag "library_screen"
     label 'process_medium'
@@ -348,6 +350,7 @@ EOF
 // Process 3: Pharmacophore Report
 // ============================================================================
 
+// [Pharmacophore Filtering]
 process PHARMACOPHORE_REPORT {
     tag "pharmacophore_report"
     label 'process_low'

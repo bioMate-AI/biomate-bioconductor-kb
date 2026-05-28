@@ -38,6 +38,7 @@ log.info '''
 // =============================================================================
 // PROCESS 1: PARSE_ASSAY_DATA
 // =============================================================================
+// [Analysis]
 process PARSE_ASSAY_DATA {
     tag "parse_assay"
     label 'process_low'
@@ -130,6 +131,7 @@ PYEOF
 // =============================================================================
 // PROCESS 2: COMPUTE_COMPOSITE_SCORE
 // =============================================================================
+// [Analysis]
 process COMPUTE_COMPOSITE_SCORE {
     tag "score_compounds"
     label 'process_low'
@@ -238,6 +240,7 @@ PYEOF
 // =============================================================================
 // PROCESS 3: RANK_AND_REPORT
 // =============================================================================
+// [Analysis]
 process RANK_AND_REPORT {
     tag "rank_report"
     label 'process_low'

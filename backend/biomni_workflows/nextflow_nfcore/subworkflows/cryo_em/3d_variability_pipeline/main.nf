@@ -42,6 +42,7 @@ params.outdir               = './results/3d_variability_pipeline'
 // Process Definitions (inline)
 // ============================================================================
 
+// [Analysis]
 process THREE_D_VARIABILITY {
     tag "3d_variability"
     label 'process_gpu'
@@ -143,6 +144,7 @@ process THREE_D_VARIABILITY {
     """
 }
 
+// [Analysis]
 process THREE_D_VARIABILITY_DISPLAY {
     tag "3dva_display"
     label 'process_gpu'

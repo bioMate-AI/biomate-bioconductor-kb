@@ -30,6 +30,7 @@ ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/scfv-pmpnn:
 
 // ── Design scFv sequences ─────────────────────────────────────────────────────
 
+// [Antibody Design]
 process SCFV_DESIGN {
     tag "scfv_design"
     label 'process_gpu'
@@ -57,6 +58,7 @@ process SCFV_DESIGN {
 
 // ── Predict structure of top designs ─────────────────────────────────────────
 
+// [Analysis]
 process STRUCTURE_PREDICTION {
     tag "af2_predict"
     label 'process_gpu'
@@ -82,6 +84,7 @@ process STRUCTURE_PREDICTION {
 
 // ── Summary report ────────────────────────────────────────────────────────────
 
+// [Analysis]
 process DESIGN_REPORT {
     tag "report"
     label 'process_low'

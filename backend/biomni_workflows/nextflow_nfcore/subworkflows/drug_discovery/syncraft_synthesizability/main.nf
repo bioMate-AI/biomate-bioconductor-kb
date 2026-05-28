@@ -31,6 +31,7 @@ ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:la
 
 // ── Prepare input SMILES ─────────────────────────────────────────────────────
 
+// [Analysis]
 process PREPARE_SMILES {
     tag "prepare"
     label 'process_low'
@@ -56,6 +57,7 @@ process PREPARE_SMILES {
 
 // ── Run SynCraft synthesizability optimization ────────────────────────────────
 
+// [Retrosynthesis]
 process SYNCRAFT_OPTIMIZE {
     tag "syncraft"
     label 'process_medium'
@@ -86,6 +88,7 @@ process SYNCRAFT_OPTIMIZE {
 
 // ── Report ────────────────────────────────────────────────────────────────────
 
+// [Analysis]
 process SYNTHESIZABILITY_REPORT {
     tag "report"
     label 'process_low'

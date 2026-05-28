@@ -36,6 +36,7 @@ log.info '''
 // =============================================================================
 // PROCESS 1: VALIDATE_COMPOUNDS
 // =============================================================================
+// [Post-processing]
 process VALIDATE_COMPOUNDS {
     tag "validate"
     label 'process_low'
@@ -137,6 +138,7 @@ PYEOF
 // =============================================================================
 // PROCESS 2: FORMAT_CRO_SUBMISSION
 // =============================================================================
+// [Analysis]
 process FORMAT_CRO_SUBMISSION {
     tag "format_${params.cro_target}"
     label 'process_low'
@@ -239,6 +241,7 @@ PYEOF
 // =============================================================================
 // PROCESS 3: EXPORT_CSV
 // =============================================================================
+// [CRO Export]
 process EXPORT_CSV {
     tag "export_final"
     label 'process_low'
