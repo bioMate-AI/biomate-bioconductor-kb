@@ -349,6 +349,45 @@ def smiles_json_from_pharmacophore_filtered(manifest_steps: list[dict[str, Any]]
     return json.dumps(out)
 
 
+def gromacs_preflight_advisory(params: dict[str, Any]) -> list[str]:
+    """Layer C — human-readable pre-flight advisory for a GROMACS MD submission.
+
+    Explains how the receptor will be sized (pocket crop vs largest-chain fallback)
+    and where the ligand will sit, so a too-large or mis-placed system surfaces
+    BEFORE the Batch job runs rather than after tleap balloons the water box.
+    """
+    lines = ["[GROMACS pre-flight]"]
+    has_box = bool(params.get("box_center"))
+    ligand = str(params.get("ligand", ""))
+    is_smiles = not (ligand.startswith("s3://") or ligand.endswith((".sdf", ".mol2", ".pdb")))
+    if has_box:
+        lines.append(
+            f"  Receptor: crop to pocket box {params['box_center']} "
+            f"+ {params.get('trim_pad', 10.0)} A pad (compact local model)."
+        )
+        if is_smiles:
+            lines.append(
+                "  Ligand: SMILES input — will be recentered to the pocket box so the "
+                "complex stays compact (avoids ~450k-water box)."
+            )
+        else:
+            lines.append(
+                "  Ligand: structured input — ensure it is the DOCKED pose in the pocket; "
+                "otherwise the solvation box may be oversized."
+            )
+    else:
+        lines.append(
+            "  Receptor: no pocket box resolved. For large assemblies RECEPTOR_TRIM "
+            "falls back to the largest chain; pass --use-top-pocket-box for a tighter pocket model."
+        )
+        if is_smiles:
+            lines.append(
+                "  WARNING: SMILES ligand with no box — ligand will NOT be recentered and may "
+                "sit far from the receptor, inflating the solvation box. Prefer --use-top-pocket-box."
+            )
+    return lines
+
+
 def build_parameters_for_step(
     spec: StepSpec,
     args: argparse.Namespace,
@@ -413,6 +452,10 @@ def build_parameters_for_step(
             center, box_size = resolved
             params["box_center"] = json.dumps(list(center))
             params["box_size"] = json.dumps(box_size)
+        # Layer C — pre-flight advisory: surface the sizing/placement strategy
+        # before the (expensive) Batch submit so the operator can intervene early.
+        for line in gromacs_preflight_advisory(params):
+            log(line)
         return params
     if spec.key == "reinvent4":
         seed = args.seed_smiles or "c1ccc2c(c1)ccc(=O)o2"
