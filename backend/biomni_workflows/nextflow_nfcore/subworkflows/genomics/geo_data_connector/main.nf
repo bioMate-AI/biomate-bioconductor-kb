@@ -31,6 +31,7 @@ params.local_series_matrix = null
 
 // ─── PROCESS 1: GEO_FETCH ───────────────────────────────────────────────────
 
+// [Data Retrieval]
 process GEO_FETCH {
     tag "${meta.id}"
     label 'process_medium'
@@ -119,6 +120,7 @@ REOF
 
 // ─── PROCESS 2: GEO_COUNT_MATRIX ────────────────────────────────────────────
 
+// [Analysis]
 process GEO_COUNT_MATRIX {
     tag "${meta.id}"
     label 'process_medium'
@@ -207,6 +209,7 @@ REOF
 
 // ─── PROCESS 3: GEO_CLINICAL_METADATA ───────────────────────────────────────
 
+// [Analysis]
 process GEO_CLINICAL_METADATA {
     tag "${meta.id}"
     label 'process_low'

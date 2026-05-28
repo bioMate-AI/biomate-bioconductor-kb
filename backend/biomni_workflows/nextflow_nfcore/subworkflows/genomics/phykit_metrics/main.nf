@@ -20,6 +20,7 @@ params.outdir = './results'
 // Use biocontainers phykit (Python package shipped via conda)
 PHYKIT_CONTAINER = 'staphb/ncbi-amrfinderplus:latest'   // placeholder — see install step
 
+// [Phylogenetic Analysis]
 process PHYKIT_PER_GENE {
     tag "${prefix}"
     publishDir "${params.outdir}/per_gene", mode: 'copy'
@@ -52,6 +53,7 @@ process PHYKIT_PER_GENE {
     """
 }
 
+// [Analysis]
 process MERGE_METRICS {
     publishDir "${params.outdir}", mode: 'copy'
     container 'python:3.11-slim-bookworm'

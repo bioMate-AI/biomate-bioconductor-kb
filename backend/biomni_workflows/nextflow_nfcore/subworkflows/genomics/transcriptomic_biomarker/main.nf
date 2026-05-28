@@ -74,6 +74,7 @@ def log_workflow_header() {
 // Process 1: BIOMARKER_INPUT_QC
 // ============================================================================
 
+// [Biomarker Analysis]
 process BIOMARKER_INPUT_QC {
     tag "input_qc"
     label 'process_low'
@@ -170,6 +171,7 @@ REOF
 // Process 2: LIMMA_DIFFERENTIAL_EXPRESSION
 // ============================================================================
 
+// [Differential Analysis]
 process LIMMA_DIFFERENTIAL_EXPRESSION {
     tag "limma_de"
     label 'process_medium'
@@ -310,6 +312,7 @@ REOF
 // Process 3: BIOMARKER_SIGNATURE_SCORING
 // ============================================================================
 
+// [Biomarker Analysis]
 process BIOMARKER_SIGNATURE_SCORING {
     tag "signature_scoring"
     label 'process_medium'
@@ -441,6 +444,7 @@ REOF
 // Process 4: BIOMARKER_REPORT
 // ============================================================================
 
+// [Biomarker Analysis]
 process BIOMARKER_REPORT {
     tag "biomarker_report"
     label 'process_medium'
