@@ -22,8 +22,23 @@ This separation prevents the "paraphrase passed off as a quote" failure mode
 identified in docs/20260522_AUTOLOOP_EVIDENCE_PROVENANCE_AUDIT.md.
 
 PRIMARY SOURCES:
-  Aronov AM (2008) — "Predictive in silico modeling for hERG channel blockers"
-    DOI: 10.1021/jm0707476
+  Redfern P et al. (2003) — "Relationships between preclinical cardiac
+    electrophysiology, clinical QT interval prolongation and torsade de
+    pointes for a broad range of drugs" Cardiovasc Res 58(1):32-45
+    DOI: 10.1016/S0008-6363(02)00846-5
+    (Primary regulatory source for the 30× hERG safety margin → 10 µM cutoff.)
+  Bowes J et al. (2012) — "Reducing safety-related drug attrition: the use
+    of in vitro pharmacological profiling" Nat Rev Drug Discov 11(12):909-922
+    DOI: 10.1038/nrd3845
+    (Cross-pharma industry consensus on the 10 µM hERG operational threshold.)
+  Aronov AM (2008) — "Tuning out of hERG" Curr Opin Drug Discov Devel
+    11(1):128-140, PMID: 18175275
+    (Property-tuning framework: logP/MW reduction to mitigate hERG liability.)
+  Waring MJ & Johnstone C (2007) — "A quantitative assessment of hERG
+    liability as a function of lipophilicity" Bioorg Med Chem Lett
+    17(6):1759-1764
+    DOI: 10.1016/j.bmcl.2006.12.061
+    (Quantitative logP↔IC50 regression underlying the auto-loop's logP filter.)
   Lammert C et al. (2010) — "Oral medications with significant hepatic
     first-pass metabolism are at increased risk for hepatic adverse effects"
     DOI: 10.1093/toxsci/kfq059
@@ -103,25 +118,71 @@ _KNOWLEDGE: dict[str, list[KnowledgeEntry]] = {
 
     "herg_ic50": [
         KnowledgeEntry(
-            paper_ref="Aronov (2008) J Med Chem 51:2577-2586",
-            paper_doi="10.1021/jm0707476",
+            paper_ref="Redfern P et al. (2003) Cardiovasc Res 58(1):32-45",
+            paper_doi="10.1016/S0008-6363(02)00846-5",
             provenance="GOLD",
             paper_supports=(
-                "Aronov (2008) analyzed >800 compounds and reported a statistically "
-                "significant correlation between hERG IC50 and logP "
-                "(log10(IC50) ≈ 1.4 − 0.30 × logP, r² = 0.27, p < 0.001). "
-                "The paper recommends a 10 µM hERG IC50 cutoff as a practical "
-                "discovery-stage safety threshold, and shows that reducing logP "
-                "by 1 unit yields ~2-fold IC50 improvement (a 0.5 reduction ≈ 41%)."
+                "Redfern et al. (2003) established the 30× safety margin between "
+                "hERG IC50 and free therapeutic Cmax as the industry-accepted "
+                "cardiac liability cutoff. For a typical small-molecule free Cmax "
+                "of ~0.3 µM this corresponds to a hERG IC50 ≥ 10 µM. The 10 µM "
+                "operational threshold is further confirmed in Bowes et al. (2012) "
+                "Nat Rev Drug Discov 11:909-922 (DOI 10.1038/nrd3845) as the "
+                "cross-pharma industry consensus."
             ),
             rule_text=(
-                "BioMate ADMET gate enforces hERG IC50 ≥ 10 µM (HALT below). "
-                "On HALT, the remediation reduces logP_max by 0.5, which the "
-                "Aronov regression predicts will raise hERG IC50 by ~41%."
+                "BioMate ADMET gate enforces hERG IC50 ≥ 10 µM (HALT below), "
+                "derived from the Redfern 2003 30× margin rule and confirmed by "
+                "Bowes 2012 industry consensus."
             ),
             finding=(
-                "Reducing logP_max by 0.5 is predicted to increase hERG IC50 by ~41%, "
-                "moving borderline hERG-active compounds above the 10 µM safety threshold."
+                "Compounds with hERG IC50 ≤ 10 µM fail the Redfern 30× safety "
+                "margin. Remediation targets the upstream logP/MW filters (see "
+                "Waring & Johnstone 2007 logP regression and Aronov 2008 Curr "
+                "Opin property-tuning entry)."
+            ),
+        ),
+        KnowledgeEntry(
+            paper_ref="Waring MJ & Johnstone C (2007) Bioorg Med Chem Lett 17(6):1759-1764",
+            paper_doi="10.1016/j.bmcl.2006.12.061",
+            provenance="GOLD",
+            paper_supports=(
+                "Waring & Johnstone (2007) reported a quantitative regression "
+                "between lipophilicity (logP/logD) and hERG IC50 across a large "
+                "compound set, showing that lowering logP by ~0.5–1.0 units "
+                "produces a statistically meaningful increase in hERG IC50 "
+                "(roughly 2-fold per unit logP reduction in the regression range)."
+            ),
+            rule_text=(
+                "On HALT, the BioMate remediation reduces logP_max by 0.5, which "
+                "the Waring & Johnstone regression predicts will raise hERG IC50 "
+                "by roughly 40%, moving borderline compounds above the 10 µM cutoff."
+            ),
+            finding=(
+                "Reducing logP_max by 0.5 is predicted to increase hERG IC50 by "
+                "~40% per Waring & Johnstone (2007), moving borderline hERG-active "
+                "compounds above the 10 µM safety threshold."
+            ),
+        ),
+        KnowledgeEntry(
+            paper_ref="Aronov AM (2008) Curr Opin Drug Discov Devel 11(1):128-140",
+            paper_doi="PMID:18175275",
+            provenance="SILVER",
+            paper_supports=(
+                "Aronov (2008) 'Tuning out of hERG' reviews medicinal-chemistry "
+                "strategies to reduce hERG liability, emphasizing reduction of "
+                "lipophilicity (logP/logD) and molecular weight, and attenuation "
+                "of basic-amine pKa, as the principal property-tuning levers."
+            ),
+            rule_text=(
+                "BioMate's secondary remediation reduces molecular weight ceiling "
+                "and tightens basic-amine constraints per the Aronov 2008 "
+                "property-tuning framework."
+            ),
+            finding=(
+                "If logP reduction alone is insufficient, follow the Aronov 2008 "
+                "framework: reduce MW and attenuate basic-amine pKa to further "
+                "mitigate hERG liability."
             ),
         ),
         KnowledgeEntry(
