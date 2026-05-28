@@ -201,7 +201,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'gemini-3.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.5-flash in production
+  intentModel: 'gemini-3-flash-preview',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3-flash-preview in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
@@ -210,8 +210,8 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
 
 // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
 // Overridable via env so model names can be tuned without code changes.
-const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-3.5-flash';
-const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.5-pro';
+const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-2.5-flash';
+const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-2.5-pro';
 
 /**
  * Pick the appropriate Gemini intent model based on query complexity.
@@ -1309,7 +1309,7 @@ export class GalaxyAssistant {
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
     const geminiModelName = modelOverride
-      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-3.5-flash');
+      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-3-flash-preview');
 
     // Convert Anthropic tool definitions → Gemini FunctionDeclarations
     const typeMap: Record<string, SchemaType> = {
@@ -1870,6 +1870,21 @@ export class GalaxyAssistant {
     ) && !/\bmhcquant\b/i.test(message.replace(/\bnot\s+mhcquant\b/gi, ''));
   }
 
+  /**
+   * Pocket detection + druggability (fpocket; ANDV inhibitor pipeline step 1).
+   * Mirrors the Plan A/B named-workflow fast-path so an explicit pocket request
+   * always forces workflow_generation instead of falling back to a generic reply.
+   */
+  private _isPocketDetectionQuery(message: string): boolean {
+    return (
+      /\bpocket_detection_druggability\b/i.test(message) ||
+      /\bfpocket\b/i.test(message) ||
+      (/\bpocket\s+detection\b/i.test(message) &&
+        /\b(druggabilit|pdb_input|pdb\b|binding\s+site)/i.test(message)) ||
+      (/\bdruggabilit/i.test(message) && /\bpocket\b/i.test(message))
+    );
+  }
+
   /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
   private _applyNamedWorkflowOverridesToDecomposition(
     decomposition: IntentDecomposition,
@@ -1878,6 +1893,7 @@ export class GalaxyAssistant {
     const forceWf =
       this._isPlanBCodonQuery(message) ||
       this._isPlanAEpitopeQuery(message) ||
+      this._isPocketDetectionQuery(message) ||
       /\b(autodock\s*vina|docking_autodock_vina|registry\s+id\s+12824)\b/i.test(message);
     if (!forceWf) return;
 
@@ -2314,6 +2330,10 @@ Rules:
         intent.type = 'workflow_generation';
       } else if (this._isPlanAEpitopeQuery(message)) {
         log('Plan A epitopeprediction override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      } else if (this._isPocketDetectionQuery(message)) {
+        log('Pocket detection override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
@@ -3268,7 +3288,8 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         shouldGenerate:
           workflowGenerated ||
           this._isPlanBCodonQuery(message) ||
-          this._isPlanAEpitopeQuery(message),
+          this._isPlanAEpitopeQuery(message) ||
+          this._isPocketDetectionQuery(message),
         userIntent: message,
         confidence: primaryIntent.confidence,
         reasoning: `Multi-intent: ${decomposition.intents.map(i => i.type).join(', ')}`,
@@ -3402,7 +3423,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // Plan B / Plan A overrides (multi-intent fan-out when collapse did not run).
     if (!actions.needsWorkflowGeneration) {
       const _namedMsg = `${intent.subQuery} ${originalMessage}`;
-      if (this._isPlanBCodonQuery(_namedMsg) || this._isPlanAEpitopeQuery(_namedMsg)) {
+      if (
+        this._isPlanBCodonQuery(_namedMsg) ||
+        this._isPlanAEpitopeQuery(_namedMsg) ||
+        this._isPocketDetectionQuery(_namedMsg)
+      ) {
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
@@ -5091,8 +5116,14 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       .filter(Boolean)
       .join(' | ');
 
-    // LLM-based domain classification (Claude Haiku, cached per query)
-    const domainHint = await this._inferDomainWithLLM(userIntent, currentWorkflowText || recentContext || undefined);
+    // Skip Haiku domain round-trip when ANDV E2E names an explicit registry workflow.
+    const _explicitRegistryFastPath =
+      /\bregistry\s+id\s+(10813|12824|12700)\b/i.test(userIntent) ||
+      /\boptimize_codons_for_heterologous_expression\b/i.test(userIntent) ||
+      /\b(autodock\s*vina|docking_autodock_vina)\b/i.test(userIntent);
+    const domainHint = _explicitRegistryFastPath
+      ? undefined
+      : await this._inferDomainWithLLM(userIntent, currentWorkflowText || recentContext || undefined);
     const mergedInlineParameters = {
       ...(inlineParameters || {}),
       ...(domainHint ? { domain_hint: domainHint } : {}),
@@ -5747,6 +5778,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         } else if (this._isPlanAEpitopeQuery(message)) {
           rawResponse =
             '**Epitope prediction** — **nf-core/epitopeprediction** (registry id 12700) is ready in the panel. Review inputs and click **Confirm & Run**.';
+        } else if (this._isPocketDetectionQuery(message)) {
+          rawResponse =
+            '**Pocket detection + druggability** — the **pocket_detection_druggability** workflow (fpocket) is ready in the panel. Review pdb_input, min_druggability, and min_volume, then click **Confirm & Run**.';
         } else {
           rawResponse = 'I processed your request using the available tools.';
         }
@@ -5805,7 +5839,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           // Pass tools so Gemini can call run_code and read_file (always enable for analysis turns)
           const geminiTools = !isWorkflowTurn ? BIOMATE_TOOLS : undefined;
           const geminiResponse = await this._generateWithGemini(
-            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3-flash-preview',
             geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
           );
           return { message: geminiResponse, truncated: false };
