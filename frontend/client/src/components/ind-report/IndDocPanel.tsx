@@ -154,17 +154,17 @@ export function IndDocPanel({
           <span>Region:</span>
           <select value={region} onChange={(e) => onRegionChange(e.target.value as Region | "ALL")}>
             <option value="FDA">FDA</option>
-            <option value="EMA">EMA</option>
-            <option value="NMPA">NMPA</option>
-            <option value="PMDA">PMDA</option>
-            <option value="ALL">All regions (combined)</option>
+            {/* P1-4: EMA/NMPA/PMDA disabled until per-region LoRA inference
+                is wired. The SFT corpus exists; the inference route is
+                the gap. Backend stub at POST /sections/render returns
+                status=not_implemented for non-FDA. Honest beta UX. */}
+            <option value="EMA" disabled>EMA — coming soon</option>
+            <option value="NMPA" disabled>NMPA — coming soon</option>
+            <option value="PMDA" disabled>PMDA — coming soon</option>
+            <option value="ALL" disabled>All regions — coming soon</option>
           </select>
-          <span style={{ color: "var(--ind-text-dim)", marginLeft: 8 }}>
-            {region === "NMPA"
-              ? "incl. GLP declaration"
-              : region === "PMDA"
-              ? "incl. ethnic bridging"
-              : ""}
+          <span style={{ color: "var(--ind-text-dim)", marginLeft: 8, fontSize: 11 }}>
+            FDA-only in beta · multi-region coming soon
           </span>
         </div>
       </header>

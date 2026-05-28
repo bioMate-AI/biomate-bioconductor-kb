@@ -23,6 +23,7 @@ import {
 } from "@/components/ind-report/IndOverlays";
 import { NewProjectModal } from "@/components/ind-report/NewProjectModal";
 import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal";
+import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/SmilesListModal";
 import { downloadMarkdown, type DocumentSection } from "@/lib/ind-report-api";
 import { useLocation } from "wouter";
 
@@ -118,11 +119,12 @@ function readKnobs(): {
 // Pipeline center — wires the 5 step components against demo data.
 // Replace demo data with API calls when integrated to production.
 function PipelineCenter({
-  activeProject, onSign, onAudit,
+  activeProject, onSign, onAudit, onEditCompounds,
 }: {
   activeProject: IndProjectSummary | null;
   onSign: () => void;
   onAudit: () => void;
+  onEditCompounds?: () => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (k: string) => setExpanded((e) => ({ ...e, [k]: !e[k] }));
@@ -162,7 +164,7 @@ function PipelineCenter({
           </button>
         </div>
       </div>
-      <Step1ProjectSetup project={project} onEdit={() => {}} expanded={expanded.s1} onToggle={() => toggle("s1")} />
+      <Step1ProjectSetup project={project} onEdit={onEditCompounds ?? (() => {})} expanded={expanded.s1} onToggle={() => toggle("s1")} />
       <Step2Admet
         data={DEMO_ADMET}
         expanded={expanded.s2}
@@ -426,6 +428,12 @@ export function IndReportPage() {
   const [showNewProject, setShowNewProject] = useState(false);
   // Closes punch list P0-6: mobile FAB opens the doc panel as a full-screen modal
   const [showDocModal, setShowDocModal] = useState(false);
+  // P1-5: SMILES list editor opens from Step1ProjectSetup's "Edit" link
+  const [showSmiles, setShowSmiles] = useState(false);
+  const [smilesEntries, setSmilesEntries] = useState<SmilesEntry[]>(() => [
+    { id: "c-bm0042", smiles: "CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1", label: "BM-0042 (lead)" },
+  ]);
+  const [, setSmilesLead] = useState<string | null>("c-bm0042");
   const activeProject = projects.find((p) => p.id === activeId) ?? null;
 
   // Tag body so global styles in ind-report.css that target body.ind-app apply.
@@ -483,6 +491,7 @@ export function IndReportPage() {
         activeProject={activeProject}
         onSign={() => setShowSign(true)}
         onAudit={() => setShowAudit(true)}
+        onEditCompounds={() => setShowSmiles(true)}
       />
 
       {/* Floating action button — CSS makes this display:flex only at
@@ -524,6 +533,17 @@ export function IndReportPage() {
 
       {/* P0-2: audit overlay now hosted INSIDE DocPanelHost via the
           auditOverlay slot — overlays only the doc panel, not the page. */}
+
+      {showSmiles && (
+        <SmilesListModal
+          initial={smilesEntries}
+          onClose={() => setShowSmiles(false)}
+          onSave={(entries, leadId) => {
+            setSmilesEntries(entries);
+            setSmilesLead(leadId);
+          }}
+        />
+      )}
 
       {showNewProject && (
         <NewProjectModal
