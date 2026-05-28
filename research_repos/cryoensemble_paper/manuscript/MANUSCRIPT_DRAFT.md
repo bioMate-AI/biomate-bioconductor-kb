@@ -381,7 +381,7 @@ PDB structures used: 2RH1, 3J5P, 4AKE, 1AKE, 2CG9, 1CLL, 2OCJ, 1RTD, 4DKL, 1BL8 
 ## References
 
 1. Bock LV, Grubmüller H. Effects of cryo-EM cooling on structural ensembles. *Nat Commun* 2022; doi:10.1038/s41467-022-29332-2
-2. Liu Y-T et al. Overcoming the preferred-orientation problem in cryo-EM with self-supervised deep learning. *Nat Methods* 2024; doi:10.1038/s41592-024-02505-1
+2. Liu Y-T et al. Overcoming the preferred-orientation problem in cryo-EM with self-supervised deep learning. *Nat Methods* 2025; doi:10.1038/s41592-024-02505-1
 3. Zhu D et al. Correction of preferred orientation-induced distortion in cryo-EM maps. *Sci Adv* 2024; doi:10.1126/sciadv.adn0092
 4. Fan X et al. CryoTRANS: predicting high-resolution maps of rare conformations. *Commun Biol* 2024; doi:10.1038/s42003-024-06739-9
 5. Jeon M, Zhong ED et al. CryoBench: diverse and challenging datasets for the heterogeneity problem in cryo-EM. *NeurIPS* 2024; doi:10.48550/arXiv.2408.05526
