@@ -24,16 +24,14 @@ params.indication        = 'undefined'
 params.delivery          = 'auto'
 params.editor_preference = 'auto'
 
-def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-    : 'biomate/biomni-tools:latest'
-
 // [Phase A] Atlas Tissue Check — target gene tissue-restriction lookup and LNP feasibility
 process BASE_EDIT_ATLAS_TISSUE_CHECK {
     tag "base_edit:phaseA:${params.target_gene}"
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)
@@ -134,7 +132,9 @@ process BASE_EDIT_EDITOR_SELECTION {
     tag "base_edit:phaseB"
     label 'process_low'
     publishDir "${params.outdir}/phaseB_editor", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(atlas_json)
@@ -222,7 +222,9 @@ process BASE_EDIT_GRNA_DESIGN {
     tag "base_edit:phaseC"
     label 'process_low'
     publishDir "${params.outdir}/phaseC_grna", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(editor_json), path(atlas_json)
@@ -280,7 +282,9 @@ process BASE_EDIT_CMC_FLAGS {
     tag "base_edit:phaseD"
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(grna_json)

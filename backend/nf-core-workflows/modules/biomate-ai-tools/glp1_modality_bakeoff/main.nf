@@ -25,16 +25,14 @@ params.disease       = 'null'        // alias for indication
 params.modalities    = 'auto'        // comma list: sema,tirz,reta,orfor,mrna,aav | auto
 params.delivery_pref = 'auto'        // injectable_peptide | oral | mrna | gene_therapy | auto
 
-def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-    : 'biomate/biomni-tools:latest'
-
 // [Phase A] Receptor Atlas Profile — GLP1R/GIPR/GCGR tissue expression atlas
 process GLP1_RECEPTOR_ATLAS {
     tag "glp1:phaseA:${params.indication}"
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)
@@ -139,7 +137,9 @@ process GLP1_MODALITY_SCORING {
     tag "glp1:phaseB"
     label 'process_low'
     publishDir "${params.outdir}/phaseB_scoring", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(atlas_json)
@@ -250,7 +250,9 @@ process GLP1_INDICATION_WEIGHTING {
     tag "glp1:phaseC"
     label 'process_low'
     publishDir "${params.outdir}/phaseC_weighting", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(scores_json), path(atlas_json)
@@ -342,7 +344,9 @@ process GLP1_TOP_RECOMMENDATION {
     tag "glp1:phaseD"
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(ranking_json), path(ranking_csv)

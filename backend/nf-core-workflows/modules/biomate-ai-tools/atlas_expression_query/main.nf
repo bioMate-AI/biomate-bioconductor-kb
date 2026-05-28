@@ -23,16 +23,14 @@ params.target_gene    = 'null'
 params.tissues        = 'all'
 params.census_offline = 'auto'
 
-def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-    : 'biomate/biomni-tools:latest'
-
 // [Phase A] Data Fetch — query CELLxGENE Census or fall back to reference cache
 process ATLAS_DATA_FETCH {
     tag "atlas:phaseA:${params.target_gene}"
     label 'process_low'
     publishDir "${params.outdir}/phaseA_fetch", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)
@@ -327,7 +325,9 @@ process ATLAS_TISSUE_TABULATION {
     tag "atlas:phaseB"
     label 'process_low'
     publishDir "${params.outdir}/phaseB_tabulation", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(raw_json)
@@ -431,7 +431,9 @@ process ATLAS_CRITICAL_CHECK {
     tag "atlas:phaseC"
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(tab_json)
