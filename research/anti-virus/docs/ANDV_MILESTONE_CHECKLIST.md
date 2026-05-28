@@ -1,7 +1,7 @@
 # ANDV Campaign — Milestone Checklist
 
 **Branch:** `integration/next-phase`  
-**Last updated:** 2026-05-27  
+**Last updated:** 2026-05-28 (GROMACS retry `20260528T033751Z`; commit `6358231b4`)  
 **Tracks:** (A) Platform / E2E reliability · (B) Inhibitor pipeline · (C) Plan A epitope · (D) Plan B codon · (E) Science / manuscripts
 
 ---
@@ -47,7 +47,7 @@ Frontend: `galaxy-assistant.ts` collapses multi-intent to a **single workflow ca
 
 | ID | Milestone | Owner | Status | Evidence |
 |----|-----------|-------|--------|----------|
-| I0.1 | Galaxy on `universe.sqlite` (verify with `lsof` on gunicorn PID) | Eng | ⬜ | `lsof -p $PID \| grep universe.sqlite` |
+| I0.1 | Galaxy on `universe.sqlite` (verify with `lsof` on gunicorn PID) | Eng | 🔄 | gunicorn restarted 2026-05-28 (`/tmp/galaxy_andv.pid`, HTTP 200 on :8081) |
 | I0.2 | Frontend `:5000` → proxy to `:8081` | Eng | ⬜ | `curl localhost:5000` + one chat turn |
 | I0.3 | Document canonical start command in this file | Eng | ✅ | See above |
 | I0.4 | E2E runs **serial** (max 1–2 Playwright jobs) | Eng | ⬜ | Logs under `frontend/e2e/logs/` |
@@ -87,7 +87,7 @@ Frontend: `galaxy-assistant.ts` collapses multi-intent to a **single workflow ca
 |----|-----------|--------|
 | D1 | UI codon workflow green (PB-1–PB-5) | ⬜ |
 | D2 | CLI/UI parity: optimized sequence + outdir on S3 | ⬜ |
-| D3 | Manuscript Plan B section: real numbers (not placeholder) | ⬜ |
+| D3 | Manuscript Plan B section: real numbers (not placeholder) | ✅ `MANUSCRIPT_PLAN_B_CODON_v1_0.md` (codon 25/57, 43.86%) |
 
 ---
 
@@ -108,13 +108,13 @@ Docs: `research/anti-virus/science_sprint/README.md`
 
 | ID | Milestone | Script | Status |
 |----|-----------|--------|--------|
-| S1a | GROMACS MD on top-pocket receptor | `track_inh_md.py` | ⬜ |
-| S1b | Ensemble Vina (6 conformers vs rigid baseline) | `track_inh_ensemble_docking.py` | ⬜ |
-| S2a | Epitope: MHCnuggets + NetMHCpan | `track_plan_a_multitool.py` | ⬜ |
-| S2b | Structural epitope patches (9P3I) | `track_plan_a_structural_epitopes.py` | ⬜ |
-| S2c | Cross-species ANDV/SNV/PUUV conservation | `track_plan_a_cross_species.py` | ⬜ |
-| S3 | Manuscript: replace `[planned expansion]` with sprint outputs | manual | ⬜ |
-| S4 | bioRxiv-ready package | — | ⬜ |
+| S1a | GROMACS MD on full 9P3I tetramer | `track_inh_md.py` | 🔄 retry `20260528T033751Z` — run `9bf5f9a2-…`, S3 `94e4fe18`; SYSTEM_SETUP on Batch ~12h+ (48h limit; prior fail at 2h) |
+| S1b | Ensemble Vina (6 conformers vs rigid baseline) | `track_inh_ensemble_docking.py` | ✅ `20260527T195530Z` — 6/6 conformers; 3/3 improved vs baseline |
+| S2a | Epitope: MHCnuggets + NetMHCpan | `track_plan_a_multitool.py` | ⚠️ MHCnuggets ✅ (~506s); NetMHCpan blocked — upload DTU `netMHCpan-4.1b.Linux.tar.gz` to S3 (script fix committed `6358231b4`) |
+| S2b | Structural epitope patches (9P3I) | `track_plan_a_structural_epitopes.py` | ✅ `20260527T180210Z` — 4 patches, 92 exposed Cα |
+| S2c | Cross-species ANDV/SNV/PUUV conservation | `track_plan_a_cross_species.py` | ✅ `20260527T180210Z` — 405 peptides, 3 triple-conserved |
+| S3 | Manuscript: replace `[planned expansion]` with sprint outputs | manual | ✅ `MANUSCRIPT_PLAN_A_VACCINE_v1_0.md`, `MANUSCRIPT_ANDV_INHIBITOR_v1_0.md` |
+| S4 | bioRxiv-ready package | `docs/biorxiv_package_v1/INDEX.md` | 🔄 draft index + figure paths; pending GROMACS + NetMHCpan |
 
 ---
 
@@ -122,11 +122,25 @@ Docs: `research/anti-virus/science_sprint/README.md`
 
 | Stream | Action | Log / artifact |
 |--------|--------|----------------|
-| **Infra** | Restart Galaxy on `universe.sqlite` | `/tmp/galaxy_andv_universe.log` |
-| **E2E** | Full inhibitor chained manifest (serial) | `frontend/e2e/logs/inh-full-*.log` |
-| **E2E** | Plan B PB-4/PB-5 + PB-1 confirm | `frontend/e2e/logs/pb-*.log` |
-| **E2E** | Plan A PA-5 | `frontend/e2e/logs/pa5-*.log` |
-| **Science** | Re-run pocket/ADMET only if E2E passes card stage | Batch job IDs in manifest |
+| **Infra** | BASH_FUNC env sanitization in `nextflow_executor.py` + gunicorn reload | Batch jobs no longer instant-fail |
+| **Science** | Sprint run `20260527T191853Z` — MD, multitool, ensemble | `science_sprint/logs/20260527T191853Z_*.log` |
+
+---
+
+## Full parallel TODO queue (2026-05-27)
+
+| Priority | ID | Task | Owner | Status | Blocker |
+|----------|-----|------|-------|--------|---------|
+| P0 | S1a | GROMACS MD full 9P3I — poll → manuscript | Science | 🔄 SYSTEM_SETUP on Batch | Tetramer tleap runtime |
+| P0 | S2a-fix | NetMHCpan: add `netmhcpan_path`, rerun | Eng + Science | 🔄 code fixed | Upload `netMHCpan-4.1b.Linux.tar.gz` to S3 |
+| P0 | infra-poll | False-success detection in `nextflow_executor.py` | Eng | ✅ committed + gunicorn live | — |
+| P1 | S4 | bioRxiv package (`docs/biorxiv_package_v1/`) | Science | 🔄 INDEX draft | GROMACS + NetMHCpan |
+| P1 | infra-commit | Commit executor + Vina + sprint script fixes | Eng | ✅ `6358231b4` | Push to origin |
+| P2 | E5 | E2E inhibitor chained manifest (universe DB) | Eng | ⬜ | Serial E2E; Batch stable |
+| P2 | E1–E4 | E2E Plan A + Plan B UI suites | Eng | ⬜ | I0.1 universe DB verified |
+| P2 | B1–B5 | Re-verify inhibitor UI steps on Batch | Eng | ⬜ | Pocket/ADMET fixes |
+| P3 | D3 | Plan B manuscript real numbers | Science | ⬜ | Codon run green |
+| P3 | I0.1–I0.4 | Infra gate (universe DB, frontend proxy, serial E2E) | Eng | ⬜ | — |
 
 ---
 
@@ -135,13 +149,18 @@ Docs: `research/anti-virus/science_sprint/README.md`
 Update after each run:
 
 ```
-Galaxy DB:     [ ] universe.sqlite  [ ] /tmp/biomate_connection_formal.sqlite
+Galaxy DB:     [ ] verify universe.sqlite  [ ] /tmp/biomate_connection_formal.sqlite
+Batch fix:     [x] BASH_FUNC stripped in nextflow_executor
+False-success: [x] committed + 5 tests pass (`test_nextflow_false_success.py`)
+Science S1a:   [ ] completed  [x] running  [ ] failed  (9bf5f9a2; SYSTEM_SETUP ~12h+ on full 9P3I)
+Science S1b:   [x] completed  [ ] running  [ ] failed  (20260527T195530Z, 3/3 improved)
+Science S2a:   [x] mhcnuggets  [ ] netmhcpan  (blocked: DTU tarball → S3)
+Science S2b/c: [x] structural + cross-species (20260527T180210Z)
+Manuscripts:   [x] Plan A + Inhibitor + Plan B sprint prose
+S4 bioRxiv:    [ ] submit-ready  [x] INDEX draft
 PA-4/5:        [ ] pass
 PB-1/4/5:      [ ] pass
-INH-C1 pocket: [ ] completed  [ ] failed  [ ] skipped
-INH-C2 pharm:  [ ] completed  [ ] failed  [ ] skipped
-INH-C3 admet:  [ ] completed  [ ] failed  [ ] skipped
-INH-C4 vina:   [ ] completed  [ ] failed  [ ] skipped
+INH-C1–C4:     [ ] E2E pass on universe DB
 ```
 
 ---
