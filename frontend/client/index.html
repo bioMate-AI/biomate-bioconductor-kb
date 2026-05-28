@@ -12,12 +12,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Google Analytics 4 — static loader so Tag Assistant / Google's
-         "Tag Detected" check sees a literal <script src="…googletagmanager…">.
-         The loader by itself does NOT send any hits; only gtag('config', …)
-         dispatches the initial page_view. We pick which property to config
-         at runtime by hostname so prod vs dev traffic stays separated, and
-         localhost / E2E hosts call neither (zero noise). -->
+    <!-- Google Analytics 4 — see docs/20260527_GOOGLE_ANALYTICS_SETUP.md for the
+         full rationale. Short version of the pattern below:
+           1. STATIC loader tag (line below): Tag Assistant + Google's
+              "Site Tag Detected" scrape static HTML; a dynamically-injected
+              <script src="…gtag/js…"> is invisible to them and triggers
+              false "not tagged" reports. The loader by itself sends NO hits.
+           2. Hit dispatch (gtag('config', ID)) is gated by hostname so each
+              environment writes to its own GA4 property:
+                biomate.ai / www.biomate.ai            → G-65JDDPEDQ5 (prod)
+                dev-public.biomate.ai / *.dev-public…  → G-8YG54DFHQG (dev)
+                localhost / 127.0.0.1 / E2E hosts      → no config → no hits
+           3. The loader's ?id= param is just the URL it fetches gtag.js from;
+              it does NOT bind the page to that property. config() does. So a
+              single static loader serving the prod ID is fine for all envs. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -31,7 +39,6 @@
         } else if (host === 'dev-public.biomate.ai' || host.indexOf('.dev-public.biomate.ai') !== -1) {
           gtag('config', 'G-8YG54DFHQG', { anonymize_ip: true });
         }
-        // localhost / 127.0.0.1 / playwright → no config call → no hits
       })();
     </script>
   </head>
