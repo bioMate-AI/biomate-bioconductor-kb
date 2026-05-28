@@ -325,6 +325,49 @@ export type DocumentSection = {
   body: string;
 };
 
+// ---------------------------------------------------------------------------
+// Version history — P2-6 backend wiring
+// ---------------------------------------------------------------------------
+
+export type VersionRow = {
+  version: number;
+  created_at: string;
+  document_sha256: string;
+  document_sha256_short: string;
+  adapter_versions: Record<string, string>;
+  section_count: number;
+  author: string;
+  note?: string | null;
+  org_id?: string;
+};
+
+export function listVersions(projectId: string): Promise<{
+  project_id: string;
+  count: number;
+  versions: VersionRow[];
+}> {
+  return getJson(`/api/ind-report/projects/${encodeURIComponent(projectId)}/versions`);
+}
+
+export type SnapshotRequest = {
+  document_sha256: string;
+  adapter_versions: Record<string, string>;
+  section_count: number;
+  note?: string;
+};
+
+export function createSnapshot(
+  projectId: string,
+  body: SnapshotRequest,
+  orgId?: string | null,
+): Promise<VersionRow> {
+  return postJson(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/snapshot`,
+    body,
+    orgId,
+  );
+}
+
 /** Trigger a Markdown download of the IND module. */
 export async function downloadMarkdown(
   projectId: string,
