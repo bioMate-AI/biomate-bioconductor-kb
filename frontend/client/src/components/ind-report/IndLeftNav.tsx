@@ -35,11 +35,11 @@ export function IndLeftNav({ projects, activeId, onSelect, onNew, onSettings }: 
         </div>
       </div>
 
-      <button className="ind-new-project" onClick={onNew} data-tour="ind-new-project">
+      <button className="ind-new-project" onClick={onNew}>
         <Plus size={14} /> New Project
       </button>
 
-      <div className="ind-projects" data-tour="ind-projects">
+      <div className="ind-projects">
         {projects.map((p) => (
           <button
             key={p.id}
