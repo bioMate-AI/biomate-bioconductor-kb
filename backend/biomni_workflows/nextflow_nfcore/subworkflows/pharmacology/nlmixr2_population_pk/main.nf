@@ -51,11 +51,6 @@ params.covariates    = ''
 params.max_iter      = 300
 params.seed          = 1234
 
-// Validate required parameters
-if (!params.pk_data_csv) {
-    error "Please provide --pk_data_csv (individual PK concentration-time data)"
-}
-
 process NLMIXR2_POPULATION_PK {
     tag "$meta.id"
     label 'process_high'
@@ -305,6 +300,10 @@ workflow NLMIXR2_POPULATION_PK_WORKFLOW {
 }
 
 workflow {
+    // Parser-v2 requires top-level statements inside workflow{}, not file-level
+    if (!params.pk_data_csv) {
+        error "Please provide --pk_data_csv (individual PK concentration-time data)"
+    }
     ch_input = Channel.of([id: 'popPK_run'])
     NLMIXR2_POPULATION_PK_WORKFLOW(ch_input)
     NLMIXR2_POPULATION_PK_WORKFLOW.out.results.view { meta, json -> "Results: $json" }
