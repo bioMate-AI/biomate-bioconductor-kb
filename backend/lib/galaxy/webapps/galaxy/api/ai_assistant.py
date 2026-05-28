@@ -711,14 +711,28 @@ def _enrich_steps_with_phase_info(
 
     # ── Parse per-process params.* references from the .nf file content ──
     process_param_refs: dict = {}
-    # ── Parse inline phase annotations: // [Phase X] Label before each process ──
-    # Convention: a comment line immediately before (or within) a process block
-    # in the form  // [Phase A] Phase A — Compound Validation
-    # assigns that process to the named phase group.
-    inline_phase_map: dict = {}   # process_name_upper -> (group, label)
-    _phase_comment_re = re.compile(
+    # ── Parse inline phase annotations ──
+    # Two supported forms (both `// [Something]` immediately before a process):
+    #   Preferred semantic form:   // [Motion Correction]   ← author names phases
+    #                              // [CTF Estimation]         by what they DO; the
+    #                              // [Refinement]             system auto-assigns
+    #                                                          A/B/C by first-seen order.
+    #   Legacy explicit form:      // [Phase A] Compound Validation
+    #                              // [Phase B] Docking      ← author hard-codes letter.
+    #
+    # Both render in the UI as "Phase {letter} — {semantic name}".
+    inline_phase_map: dict = {}   # process_name_upper -> (group_letter, label)
+    _explicit_phase_re = re.compile(
         r'//\s*\[Phase\s+([A-Za-z0-9]+)\]\s*(.*)', re.IGNORECASE
     )
+    _semantic_phase_re = re.compile(
+        r'//\s*\[\s*([^\]]+?)\s*\]\s*(.*)', re.IGNORECASE
+    )
+    # Auto-assignment for the semantic form: dedupe by label, A/B/C/... in file order.
+    semantic_label_to_letter: dict = {}   # label_lower -> letter
+    next_letter_idx = 0
+    _LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
     if content:
         proc_starts = list(re.finditer(r'^process\s+(\w+)\s*\{', content, re.MULTILINE))
         for i, m in enumerate(proc_starts):
@@ -730,18 +744,37 @@ def _enrich_steps_with_phase_info(
             refs = [r for r in refs if r not in _NF_SKIP_PARAMS]
             process_param_refs[proc_name] = refs
 
-            # Scan the 10 lines before this process for a [Phase X] comment
+            # Scan the 10 lines before this process for an annotation comment
             proc_line = content[:m.start()].count('\n')
             file_lines = content.splitlines()
             scan_start = max(0, proc_line - 10)
             for line in reversed(file_lines[scan_start:proc_line]):
-                ph_m = _phase_comment_re.search(line)
+                # Try explicit [Phase X] form first (back-compat)
+                ph_m = _explicit_phase_re.search(line)
                 if ph_m:
                     pg = ph_m.group(1).strip().upper()
                     pl = ph_m.group(2).strip() or f'Phase {pg}'
                     inline_phase_map[proc_name] = (pg, pl)
                     break
-                # Stop scanning if we hit another process definition or blank section
+                # Try semantic [Name] form (preferred — auto-assign letter)
+                sem_m = _semantic_phase_re.search(line)
+                if sem_m:
+                    label = sem_m.group(1).strip()
+                    # Reject things that don't look like a phase name (urls, code, etc.)
+                    if not label or len(label) > 60 or '//' in label or '/' in label:
+                        continue
+                    key = label.lower()
+                    if key not in semantic_label_to_letter:
+                        if next_letter_idx < len(_LETTERS):
+                            semantic_label_to_letter[key] = _LETTERS[next_letter_idx]
+                            next_letter_idx += 1
+                        else:
+                            # Run out of letters (>26 phases) — fall back to index
+                            semantic_label_to_letter[key] = f'P{next_letter_idx}'
+                            next_letter_idx += 1
+                    inline_phase_map[proc_name] = (semantic_label_to_letter[key], label)
+                    break
+                # Stop scanning if we hit another process definition
                 if re.match(r'^process\s+', line.strip()):
                     break
 

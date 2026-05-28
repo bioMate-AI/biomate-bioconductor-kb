@@ -1266,7 +1266,19 @@ export function NextflowWorkflowViewer({
     const groupMap = new Map<string, { steps: any[]; label: string; phaseParams: string[] }>();
     for (const phase of updatedPhases) {
       const key = (phase.phase_group as string) || 'other';
-      const label = (phase.phase_label as string) || `Phase ${key}`;
+      // Render convention (per #23):
+      //   - "Other Steps"               when no annotation matched (key === 'other')
+      //   - "Phase A — Motion Correction" when backend supplied group letter + semantic label
+      //   - "Phase A"                    when only the group letter is present
+      const semantic = (phase.phase_label as string) || '';
+      let label: string;
+      if (key === 'other') {
+        label = 'Other Steps';
+      } else if (semantic && semantic.toLowerCase() !== `phase ${key}`.toLowerCase()) {
+        label = `Phase ${key.toUpperCase()} — ${semantic}`;
+      } else {
+        label = `Phase ${key.toUpperCase()}`;
+      }
       if (!groupMap.has(key)) groupMap.set(key, { steps: [], label, phaseParams: [] });
       const group = groupMap.get(key)!;
       group.steps.push(phase);
