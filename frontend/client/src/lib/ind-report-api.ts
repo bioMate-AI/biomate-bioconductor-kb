@@ -395,3 +395,41 @@ export async function downloadMarkdown(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ---------------------------------------------------------------------------
+// Compound list persistence (P1-5 follow-up)
+// ---------------------------------------------------------------------------
+
+export type CompoundEntry = {
+  id: string;
+  smiles: string;
+  label?: string;
+  lead?: boolean;
+};
+
+export type CompoundsPatch = {
+  compounds: CompoundEntry[];
+  lead_id?: string | null;
+};
+
+export async function updateCompounds(
+  projectId: string,
+  body: CompoundsPatch,
+  orgId?: string | null,
+): Promise<{ project_id: string; count: number; lead_id: string | null; compounds: CompoundEntry[] }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (orgId) headers["X-BioMate-Org-Id"] = orgId;
+  const token = typeof window !== "undefined"
+    ? localStorage.getItem("biomate-jwt") ?? ""
+    : "";
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const resp = await fetch(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/compounds`,
+    { method: "PATCH", headers, body: JSON.stringify(body) },
+  );
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    throw new Error(`PATCH /compounds ${resp.status}: ${t}`);
+  }
+  return resp.json();
+}

@@ -316,3 +316,75 @@ async def render_section_for_region(
         "project_id": project_id,
         "note": "Render via /api/regulatory/generate_stream for actual prose.",
     }
+
+
+# ---------------------------------------------------------------------------
+# Compound list persistence (P1-5 follow-up)
+# ---------------------------------------------------------------------------
+
+class CompoundEntry(BaseModel):
+    id: str = Field(..., pattern=r"^[a-zA-Z0-9_-]{1,40}$")
+    smiles: str = Field(..., min_length=1, max_length=200)
+    label: Optional[str] = Field(None, max_length=80)
+    lead: bool = False
+
+
+class CompoundsPatch(BaseModel):
+    compounds: list[CompoundEntry] = Field(default_factory=list, max_length=200)
+    lead_id: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_-]{1,40}$")
+
+
+@router.patch("/api/ind-report/projects/{project_id}/compounds")
+async def update_compounds(
+    project_id: str,
+    body: CompoundsPatch,
+    x_biomate_org_id: Optional[str] = Header(None, alias="X-BioMate-Org-Id"),
+    user: dict = Depends(require_authenticated_user),
+):
+    """Replace the compound list on the project registry row."""
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+    if not _PROJECTS_PATH.exists():
+        raise HTTPException(404, "project registry not initialized")
+    reg = json.loads(_PROJECTS_PATH.read_text())
+    target = None
+    for p in reg.get("projects", []):
+        if p["id"] == project_id:
+            target = p
+            break
+    if target is None:
+        raise HTTPException(404, f"project not found: {project_id}")
+
+    ids_seen: set[str] = set()
+    for e in body.compounds:
+        if e.id in ids_seen:
+            raise HTTPException(400, f"duplicate compound id: {e.id}")
+        ids_seen.add(e.id)
+    if body.lead_id and body.lead_id not in ids_seen:
+        raise HTTPException(400, f"lead_id '{body.lead_id}' not in compounds list")
+
+    compounds_out = []
+    for e in body.compounds:
+        entry = e.model_dump()
+        if body.lead_id is not None:
+            entry["lead"] = (e.id == body.lead_id)
+        compounds_out.append(entry)
+
+    target["compounds"] = compounds_out
+    target["compounds_updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    target["compounds_updated_by"] = user.get("user_id", "anonymous")
+    if x_biomate_org_id:
+        target["compounds_org_id"] = x_biomate_org_id
+
+    tmp = _PROJECTS_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(reg, indent=2))
+    tmp.replace(_PROJECTS_PATH)
+
+    log.info("[compounds] project=%s n=%d lead=%s by=%s",
+             project_id, len(compounds_out), body.lead_id, user.get("user_id"))
+    return {
+        "project_id": project_id,
+        "count": len(compounds_out),
+        "lead_id": body.lead_id,
+        "compounds": compounds_out,
+    }
