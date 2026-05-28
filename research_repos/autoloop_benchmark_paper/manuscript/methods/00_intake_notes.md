@@ -28,7 +28,7 @@
 ## §2.3 — Per-domain remediation rules
 
 ### ADMET (`backend/experiments/admet_autoloop/param_tuner.py`)
-- `_fix_herg` (lines 99–121) — `logp_max` −0.5; conditional `mw_max_da` ×0.9 if above 400 Da. Cites Aronov 2008 *J Med Chem* 51:6632, DOI 10.1021/jm0707476.
+- `_fix_herg` (lines 99–121) — `logp_max` −0.5; conditional `mw_max_da` ×0.9 if above 400 Da. Cites Waring & Johnstone 2007 *Bioorg Med Chem Lett* 17:1759–1764, DOI 10.1016/j.bmcl.2006.12.061 (quantitative logP/IC50 regression for the −0.5 logP step) and Aronov AM 2008 *Curr Opin Drug Discov Devel* 11:128–140, PMID 18175275 (property-tuning framework for the MW reduction).
 - `_fix_dili_probability` (lines 123–136) — `logp_max ≤ 4.0`, `mw_max_da ≤ 400`. Cites Lammert 2010 *Toxicol Sci*, DOI 10.1093/toxsci/kfq059.
 - `_fix_dili_risk_level` (lines 138–148) — `logp_max ≤ 4.0`. Same anchor.
 - `_fix_ames` (lines 150–168) — `ames_strict=True`; `num_candidates −10`. Cites Kazius 2005 *J Med Chem*, DOI 10.1021/jm040835a.

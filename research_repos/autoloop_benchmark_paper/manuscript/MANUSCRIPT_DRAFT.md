@@ -110,6 +110,15 @@ The auto-loop is bounded by three safety mechanisms. **Hard iteration budget.** 
 
 *[Pending §3.]*
 
+### 4.4 Limitations
+
+- **Convergence headline is bounded.** The 96.4% convergence rate is measured at pass@≤3 iterations on the 125-scenario convergent subset; behaviour past three remediation iterations is not characterised by this benchmark and may not extrapolate.
+- **Curated benchmark, not a random production sample.** The 139-scenario catalog was constructed to exercise gate logic and remediation rules across the four wired domains; it is not a uniformly sampled snapshot of production auto-loop failures, and prevalence-weighted convergence in deployment may differ.
+- **Four of five wired domains exercised here.** ADMET, CYP-DDI, Docking, and NCA-PK are benchmarked in this work. PBPK is wired into the same auto-loop architecture but is not included in this benchmark; its convergence behaviour remains untested at the scenario-suite level.
+- **BRONZE-tier docking thresholds are vendor heuristics.** The Vina kcal/mol and Glide GlideScore cutoffs used by the docking auto-loop are evidence-anchored to vendor documentation and community practice rather than to a controlled prospective study, and are graded BRONZE in the provenance taxonomy accordingly.
+- **No free-form LLM-remediation comparator.** LLM-proposed parameter changes were validated against the deterministic rule set before application; we did not benchmark against an unconstrained free-form LLM remediation arm, so the marginal contribution of the rule-set guardrail versus pure LLM remediation is not quantified here.
+- **Provenance × convergence association is not significant at this n.** The pre-registered E3 Fisher's exact test of provenance grade against per-scenario convergence yields p = 0.106 (NS) on the 112-scenario remediation-triggering subset (Flagship §3.4); the directional trend is consistent with the design hypothesis, but a larger benchmark would be required to confirm it.
+
 ---
 
 ## References (placeholder; to be expanded)
