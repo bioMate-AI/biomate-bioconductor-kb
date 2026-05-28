@@ -90,17 +90,25 @@ pbpk:
 
 admet:
   admet_herg_ic50:
-    - paper_ref: "Aronov AM 2008. J Med Chem 51:6632-6641"
-      paper_doi: "10.1021/jm800467u"
+    - paper_ref: "Redfern P et al. Cardiovasc Res 2003; 58(1):32-45"
+      paper_doi: "10.1016/S0008-6363(02)00846-5"
       provenance: GOLD
       paper_supports: >
-        Aronov 2008 establishes hERG IC50 ≤ 10 µM as the safety cutoff
-        for cardiac liability in early-stage drug discovery.
+        Redfern 2003 establishes the 30× safety margin between hERG
+        IC50 and free therapeutic Cmax as the industry-accepted cardiac
+        liability cutoff; for a typical small-molecule free Cmax of
+        ~0.3 µM this corresponds to an IC50 ≥ 10 µM.
       rule_text: >
         BioMate halts if hERG IC50 ≤ 10 µM (admet_standard profile).
+        The 10 µM operational threshold is confirmed in Bowes 2012
+        (Nat Rev Drug Discov 11:909-922, DOI 10.1038/nrd3845) as the
+        cross-pharma industry consensus.
       finding: >
-        Remediation: tighten upstream logP and pKa filters; hERG
-        liability correlates with basic amines and high lipophilicity.
+        Remediation: tighten upstream logP filter per Waring & Johnstone
+        2007 (Bioorg Med Chem Lett 17:1759-1764, DOI 10.1016/
+        j.bmcl.2006.12.061) logP/IC50 regression; or reduce MW per
+        Aronov 2008 (Curr Opin Drug Discov Devel 11:128-140, PMID
+        18175275) "Tuning out of hERG."
 
   admet_dili_probability:
     - paper_ref: "Lammert C et al. Hepatology 2010; 51:615-620"
