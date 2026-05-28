@@ -148,3 +148,30 @@ models/
 # E2E fixture credentials (do not commit)
 .env.test.local
 frontend/.env.test.local
+
+# 2026-05-28 — runtime/test artifacts that clutter `git status` from various sessions
+# Nextflow scratch (per-run hidden dirs)
+.nextflow/
+.nextflow.log*
+
+# Reference genome downloads (regenerated on demand from NCBI)
+GCF_*.fna
+GCF_*.fna.*
+
+# Alignment outputs from ad-hoc smoke runs
+*_sorted.bam
+aligned_sorted.bam
+SRR*.bam
+
+# HMM scans
+all_hmms.hmm
+
+# Bare-IP-named curl debug files (e.g. "34.217.29.4")
+[0-9]*.[0-9]*.[0-9]*.[0-9]*
+
+# Stray Python repr() filenames (e.g. "<ai.config.AIConfig object at 0x…>")
+backend/<*>
+<*>
+
+# Local .claude/ workspace (project-scoped agent state — not source)
+.claude/
