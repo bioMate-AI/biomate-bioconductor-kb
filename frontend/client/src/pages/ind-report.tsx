@@ -24,6 +24,7 @@ import {
 import { NewProjectModal } from "@/components/ind-report/NewProjectModal";
 import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal";
 import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/SmilesListModal";
+import { listProjects, updateCompounds, type CompoundEntry } from "@/lib/ind-report-api";
 import { downloadMarkdown, type DocumentSection } from "@/lib/ind-report-api";
 import { useLocation } from "wouter";
 
@@ -430,12 +431,37 @@ export function IndReportPage() {
   const [showNewProject, setShowNewProject] = useState(false);
   // Closes punch list P0-6: mobile FAB opens the doc panel as a full-screen modal
   const [showDocModal, setShowDocModal] = useState(false);
-  // P1-5: SMILES list editor opens from Step1ProjectSetup's "Edit" link
+  // P1-5: SMILES list editor opens from Step1ProjectSetup's "Edit" link.
+  // Initial state seeds with the BM-0042 default; hydrated below from the
+  // backend project registry on mount so saved compounds survive reloads.
   const [showSmiles, setShowSmiles] = useState(false);
   const [smilesEntries, setSmilesEntries] = useState<SmilesEntry[]>(() => [
     { id: "c-bm0042", smiles: "CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1", label: "BM-0042 (lead)" },
   ]);
-  const [, setSmilesLead] = useState<string | null>("c-bm0042");
+  const [smilesLead, setSmilesLead] = useState<string | null>("c-bm0042");
+
+  // P1-5: hydrate compound list from the backend project registry when
+  // the active project changes. Backend stores under registry[i].compounds[].
+  // Falls back to current local state on fetch error or empty list.
+  useEffect(() => {
+    if (!activeId) return;
+    let cancelled = false;
+    listProjects()
+      .then((r) => {
+        if (cancelled) return;
+        const p = r.projects.find((x) => x.id === activeId) as
+          (typeof r.projects[number] & { compounds?: CompoundEntry[]; lead_id?: string });
+        if (p?.compounds && p.compounds.length > 0) {
+          setSmilesEntries(p.compounds);
+          const lead = p.compounds.find((c) => c.lead)?.id ?? p.lead_id ?? p.compounds[0].id;
+          setSmilesLead(lead ?? null);
+        }
+      })
+      .catch(() => {
+        // Stay on local seed silently — modal still works
+      });
+    return () => { cancelled = true; };
+  }, [activeId]);
   const activeProject = projects.find((p) => p.id === activeId) ?? null;
 
   // Tag body so global styles in ind-report.css that target body.ind-app apply.
@@ -537,13 +563,28 @@ export function IndReportPage() {
       {/* P0-2: audit overlay now hosted INSIDE DocPanelHost via the
           auditOverlay slot — overlays only the doc panel, not the page. */}
 
-      {showSmiles && (
+      {showSmiles && activeProject && (
         <SmilesListModal
           initial={smilesEntries}
+          leadId={smilesLead ?? undefined}
           onClose={() => setShowSmiles(false)}
           onSave={(entries, leadId) => {
+            // Optimistic local update — modal closes immediately
             setSmilesEntries(entries);
             setSmilesLead(leadId);
+            // Persist to backend (P1-5 follow-up). Fire-and-forget; on
+            // failure log + leave optimistic state in place so user can
+            // retry by re-opening + re-saving.
+            updateCompounds(activeProject.id, {
+              compounds: entries.map((e) => ({
+                id: e.id,
+                smiles: e.smiles,
+                label: e.label,
+              })),
+              lead_id: leadId,
+            }).catch((err) => {
+              console.warn("[ind] updateCompounds failed:", err);
+            });
           }}
         />
       )}
