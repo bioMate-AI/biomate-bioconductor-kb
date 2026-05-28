@@ -177,10 +177,10 @@ process IMPORT_TILTSERIES {
     print(f"  Tilts per series: {num_tilts} ({tilt_min} to {tilt_max} deg, step {tilt_inc} deg)")
     print(f"  Pixel size: {pixel_size} A/px  |  Voltage: {voltage} kV")
     print(f"  Total dose: {total_dose} e-/A2  |  Per-tilt dose: {dose_per_tilt:.3f} e-/A2")
-    """
+    '''
 
     stub:
-    """
+    '''
     touch tiltseries_manifest.json
     touch tiltseries_import_report.json
     """

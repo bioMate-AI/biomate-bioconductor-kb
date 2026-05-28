@@ -140,12 +140,12 @@ GENE_NETWORK = {
 # Computes influence score for each gene given the perturbed genes
 # α = restart probability; higher α = more local effect
 def network_propagation(seed_genes, network, pert_type, alpha=0.5, n_iter=10):
-    """
+    '''
     Simplified network propagation:
     - KO/KD: propagate negative signal through activates edges, positive through represses
     - OE/CRISPRa: propagate positive signal through activates, negative through represses
     Returns dict gene → (direction, score)
-    """
+    '''
     sign = -1 if pert_type in ('KO', 'KD', 'CRISPRi') else +1
 
     scores = {}  # gene → signed influence score

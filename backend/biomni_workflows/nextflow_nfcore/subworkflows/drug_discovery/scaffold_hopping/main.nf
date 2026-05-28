@@ -170,10 +170,10 @@ PYEOF
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
     END_VERSIONS
-    """
+    '''
 
     stub:
-    """
+    '''
     echo 'compound_id,smiles,mw_da,valid,canonical_smiles,inchi_key' > ${meta.id}_validated.csv
     echo '{"valid_count":10}' > ${meta.id}_validation_report.json
     cat <<-END_VERSIONS > versions.yml
@@ -314,10 +314,10 @@ PYEOF
         rdkit: \$(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
     END_VERSIONS
-    """
+    '''
 
     stub:
-    """
+    '''
     echo 'compound_id,scaffold_smiles,fragment_frequency' > ${meta.id}_recap_fragments.csv
     echo '{"total_fragments":8}' > ${meta.id}_recap_summary.json
     cat <<-END_VERSIONS > versions.yml

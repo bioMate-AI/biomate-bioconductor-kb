@@ -142,10 +142,10 @@ process THREE_D_VARIABILITY {
     print(f"  Particles     : {num_particles}")
     print(f"  Components    : {num_components}")
     print(f"  Filter res    : {filter_res} A")
-    """
+    '''
 
     stub:
-    """
+    '''
     touch particles_with_latent.cs 3dva_report.json variability_component_0.cs
     """
 }

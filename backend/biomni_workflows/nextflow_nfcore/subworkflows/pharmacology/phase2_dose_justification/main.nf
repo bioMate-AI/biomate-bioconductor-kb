@@ -143,11 +143,11 @@ def invert_emax(target_effect, emax, ec50, hill):
 
 
 def parse_er_params(raw):
-    """
+    '''
     Parse E-R parameters from JSON string.
     Returns dict with keys: EC50, Emax, Hill_coeff, R2, exposure_metric.
     Falls back to illustrative synthetic parameters if input is missing.
-    """
+    '''
     if raw and raw not in ('null', 'None', ''):
         try:
             data = json.loads(raw)
@@ -191,15 +191,15 @@ def parse_er_params(raw):
 
 
 def dose_to_auc_linear(dose_mg, reference_dose_mg, reference_auc):
-    """Simple linear PK: AUC scales proportionally with dose."""
+    '''Simple linear PK: AUC scales proportionally with dose.'''
     return reference_auc * (dose_mg / reference_dose_mg)
 
 
 def lognormal_percentile(mean_val, cv_pct, percentile):
-    """
+    '''
     Return the given percentile of a log-normal distribution with
     arithmetic mean=mean_val and CV=cv_pct/100.
-    """
+    '''
     cv = cv_pct / 100.0
     sigma2 = math.log(1 + cv**2)
     sigma  = math.sqrt(sigma2)
@@ -210,11 +210,11 @@ def lognormal_percentile(mean_val, cv_pct, percentile):
 def pct_responders_lognormal(emax, ec50, hill, mean_auc, cv_pct,
                               target_effect_pct, n_samples=10000,
                               rng_seed=42):
-    """
+    '''
     Monte Carlo estimate of % responders:
     Subjects whose predicted effect >= target_effect_pct given log-normal AUC
     distribution (arithmetic mean=mean_auc, CV=cv_pct%).
-    """
+    '''
     rng = np.random.default_rng(rng_seed)
     cv = cv_pct / 100.0
     sigma2 = math.log(1 + cv**2)
@@ -228,7 +228,7 @@ def pct_responders_lognormal(emax, ec50, hill, mean_auc, cv_pct,
 
 def pts_estimate(r2, n_datapoints, hill, ec50, emax,
                  ec10_exp, ec90_exp):
-    """
+    '''
     Probability of Technical Success (PTS) for E-R-informed dose selection.
 
     Framework: Lalonde et al. (2007) Clin Pharmacol Ther 82(1):21-32.
@@ -247,7 +247,7 @@ def pts_estimate(r2, n_datapoints, hill, ec50, emax,
          Oncology 0.52, non-oncology 0.65; default 0.60.
 
     PTS = P1 x P2 x P3
-    """
+    '''
     # P1: strength of evidence
     r2_safe = r2 if r2 is not None else 0.70
     # Scale: R2=0.95->P1=0.92, R2=0.80->P1=0.85, R2=0.60->P1=0.72, R2<0.50->P1~0.60

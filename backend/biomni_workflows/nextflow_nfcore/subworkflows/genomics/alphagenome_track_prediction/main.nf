@@ -219,11 +219,11 @@ def fetch_ucsc_sequence(chrom, start, end, db):
         return data.get('dna', '').upper()
 
 def generate_mock_sequence(chrom, start, end):
-    """
+    '''
     Deterministic mock genome sequence for testing.
     Uses a LFSR-style generator seeded by position.
     GC content ~0.42 (human genome average).
-    """
+    '''
     seed_str = f"{chrom}_{start}_{end}"
     seed = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
     n = end - start
@@ -670,10 +670,10 @@ with open("${vcf_file}") as f:
 print(f"[ISM] Computing in-silico mutagenesis for {len(variants)} variants", flush=True)
 
 def ism_delta(ref_seq, pos, ref_allele, alt_allele, ctx_start, seq_features):
-    """
+    '''
     Compute ISM delta: ΔTrack = signal(alt_seq) − signal(ref_seq).
     Uses structural proxy for each variant's local context.
-    """
+    '''
     var_offset = pos - 1 - ctx_start  # 0-based position in context sequence
 
     if var_offset < 0 or var_offset >= len(ref_seq):

@@ -94,7 +94,7 @@ def ac(v, default=None):
 def smiles_heuristic_props(smi):
     """Descriptor estimates from SMILES string when RDKit is absent.
     Uses atom-by-atom MW, ring closure counting, and substructure patterns.
-    """
+    '''
     import re as _re
     # Heavy-atom MW (monoisotopic approx.)
     _aw = {'C': 12.011, 'N': 14.007, 'O': 15.999, 'S': 32.06,
@@ -245,7 +245,7 @@ def calc_descriptors(smi):
 # 1. Polymorph risk score  (Fleming 2010 + Blagden & Davey 2003)
 # ---------------------------------------------------------------------------
 def polymorph_risk(d):
-    """
+    '''
     Score from 0-10; tiers: LOW <3, MEDIUM 3-6, HIGH >6.
 
     Basis:
@@ -256,7 +256,7 @@ def polymorph_risk(d):
       * Aromatic rings -- pi-stacking competition with H-bonds
       * Chiral centres -- each centre doubles possible packing arrangements
     References: Fleming 2010 Table 2; Blagden & Davey 2003 S2
-    """
+    '''
     score = 0.0
     factors = []
 

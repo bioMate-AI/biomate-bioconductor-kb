@@ -135,10 +135,10 @@ process THREE_D_VARIABILITY {
 
     print(f"[1/2] 3D Variability Analysis complete")
     print(f"  Particles  : {num_particles}  |  Components: {num_components}")
-    """
+    '''
 
     stub:
-    """
+    '''
     touch particles_with_latent.cs 3dva_report.json variability_component_0.cs
     """
 }

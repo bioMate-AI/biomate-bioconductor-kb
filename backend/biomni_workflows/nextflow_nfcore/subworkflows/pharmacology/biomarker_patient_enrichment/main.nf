@@ -183,11 +183,11 @@ print(f"INFO: n={n_total} patients, {len(bm_keys)} biomarkers: {bm_keys}", file=
 # Step 1: Biomarker screening -- logistic or linear regression
 # ---------------------------------------------------------------------------
 def logistic_regression_single(x, y):
-    """
+    '''
     Univariate logistic regression of binary y on continuous x.
     Returns (OR, CI_lo, CI_hi, pvalue) using statsmodels if available,
     falling back to a fast scipy logistic regression approximation.
-    """
+    '''
     from scipy.optimize import minimize
 
     x = np.array(x, dtype=float)
@@ -246,10 +246,10 @@ def logistic_regression_single(x, y):
 
 
 def linear_regression_single(x, y):
-    """
+    '''
     Univariate linear regression of continuous y on x.
     Returns (slope, CI_lo, CI_hi, pvalue).
-    """
+    '''
     x = np.array(x, dtype=float)
     y = np.array(y, dtype=float)
     mask = np.isfinite(x) & np.isfinite(y)
@@ -267,7 +267,7 @@ def linear_regression_single(x, y):
 
 
 def bh_correction(pvalues):
-    """Benjamini-Hochberg FDR correction; returns q-values array."""
+    '''Benjamini-Hochberg FDR correction; returns q-values array.'''
     n = len(pvalues)
     if n == 0:
         return []
@@ -328,7 +328,7 @@ for bm, q in zip(bm_order, q_values):
 # Step 2: Optimal cut-point analysis (Youden's J) for continuous biomarkers
 # ---------------------------------------------------------------------------
 def youden_cutpoint(x, y_bin):
-    """Find cut-point maximising J = sensitivity + specificity - 1."""
+    '''Find cut-point maximising J = sensitivity + specificity - 1.'''
     x = np.array(x, dtype=float)
     y_bin = np.array(y_bin, dtype=float)
     mask = np.isfinite(x)
@@ -357,7 +357,7 @@ BOOTSTRAP_N = 500
 MIN_OOB = 20
 
 def bootstrap_youden_cv(x_full, y_full, n_boot=BOOTSTRAP_N):
-    """
+    '''
     Bootstrap bias-correction for Youden cut-point sensitivity/specificity.
 
     For each bootstrap replicate:
@@ -373,7 +373,7 @@ def bootstrap_youden_cv(x_full, y_full, n_boot=BOOTSTRAP_N):
       ci95_sens_lo/hi, ci95_spec_lo/hi            (percentile 95% CI of OOB values)
       bootstrap_n                                 (number of replicates with >=MIN_OOB OOB samples)
       cv_status                                   ("ok" | "insufficient_data")
-    """
+    '''
     x_full = np.array(x_full, dtype=float)
     y_full = np.array(y_full, dtype=float)
     mask   = np.isfinite(x_full) & np.isfinite(y_full)
@@ -587,11 +587,11 @@ for bm in bm_keys:
 # Step 4: Phase III sample size -- two-proportion z-test
 # ---------------------------------------------------------------------------
 def two_proportion_n(p1, p2, alpha_one_sided, power):
-    """
+    '''
     Sample size per arm for two-proportion test (one-sided).
     Using standard z-test formula (Fleiss 1981).
     Returns n_per_arm (integer), or None if inputs are degenerate.
-    """
+    '''
     if p1 <= 0 or p2 <= 0 or p1 >= 1 or p2 >= 1:
         return None
     if abs(p1 - p2) < 1e-9:

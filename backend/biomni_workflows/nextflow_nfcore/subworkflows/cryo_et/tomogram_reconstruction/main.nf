@@ -147,10 +147,10 @@ process TOMOGRAM_RECONSTRUCTION {
     print(f"  Voxel size: {voxel_size_a} A  |  Binning: {binning}x")
     if reconstruction_method == 'sirt':
         print(f"  SIRT iterations: {sirt_iterations}")
-    """
+    '''
 
     stub:
-    """
+    '''
     touch tomogram_reconstruction_report.json
     touch tomograms_manifest.json
     """

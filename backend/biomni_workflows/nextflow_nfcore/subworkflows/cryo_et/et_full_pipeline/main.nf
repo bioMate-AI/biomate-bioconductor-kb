@@ -198,10 +198,10 @@ process IMPORT_TILTSERIES {
     print(f"Imported {num_tiltseries} tilt series")
     print(f"  Tilts per series: {num_tilts} ({tilt_min} to {tilt_max} deg)")
     print(f"  Pixel size: {pixel_size} A/px  |  Voltage: {voltage} kV")
-    """
+    '''
 
     stub:
-    """
+    '''
     touch tiltseries_manifest.json
     touch tiltseries_import_report.json
     """
@@ -457,10 +457,10 @@ process TOMOGRAM_RECONSTRUCTION {
     print(f"Tomogram reconstruction complete ({reconstruction_method.upper()})")
     print(f"  Tomograms: {num_ts}  |  Dimensions: {lateral_px}x{lateral_px}x{thickness_vox} voxels")
     print(f"  Voxel size: {voxel_size_a} A  |  Binning: {binning}x")
-    """
+    '''
 
     stub:
-    """
+    '''
     touch tomogram_reconstruction_report.json
     touch tomograms_manifest.json
     """
@@ -674,10 +674,10 @@ process ET_PIPELINE_SUMMARY {
     print(f"  Particles picked:             {sta_report.get('total_particles_picked', 'N/A')}")
     print(f"  STA FSC 0.143 resolution:      {fsc_res} A")
     print("=" * 70)
-    """
+    '''
 
     stub:
-    """
+    '''
     touch et_pipeline_summary.json
     """
 }

@@ -112,22 +112,22 @@ def ac(v, default=None):
 
 
 def emax_hill(auc, emax, ec50, hill):
-    """
+    '''
     Sigmoid Hill (Emax) model.
     effect_pct = Emax * AUC^hill / (EC50^hill + AUC^hill)
-    """
+    '''
     auc = np.asarray(auc, dtype=float)
     auc = np.maximum(auc, 0.0)
     return emax * (auc ** hill) / (ec50 ** hill + auc ** hill)
 
 
 def emax_hill_fixed_emax(auc, ec50, hill, emax_fixed):
-    """Emax-fixed variant: only EC50 and Hill are free."""
+    '''Emax-fixed variant: only EC50 and Hill are free.'''
     return emax_hill(auc, emax_fixed, ec50, hill)
 
 
 def r_squared(y_obs, y_pred):
-    """Coefficient of determination."""
+    '''Coefficient of determination.'''
     y_obs = np.asarray(y_obs, dtype=float)
     y_pred = np.asarray(y_pred, dtype=float)
     ss_res = np.sum((y_obs - y_pred) ** 2)
@@ -307,7 +307,7 @@ if failed_boots > 0:
           "(excluded from CI).", file=sys.stderr)
 
 def ci95(samples):
-    """Return [2.5th, 97.5th] percentile CI, or [None, None] if too few samples."""
+    '''Return [2.5th, 97.5th] percentile CI, or [None, None] if too few samples.'''
     s = [x for x in samples if x is not None and math.isfinite(x)]
     if len(s) < 10:
         return [None, None]
