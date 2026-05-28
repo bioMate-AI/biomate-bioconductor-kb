@@ -299,6 +299,113 @@ def _clean_log_line(line: str) -> str:
     return cleaned
 
 
+# Nextflow live progress block line:
+#   [ce/ac8b01] BIS…bispec:phaseA:PD-1_x_VEGF) | 0 of 1
+#   [-        ] BISPEC_FORMAT_SCORING          -
+#   [a1b2c3d4] process > NAME (tag) | 3 of 5, cached: 2
+_NF_PROC_RE = re.compile(
+    r'^\s*\[(?P<hash>[a-f0-9/]{8,}|-+\s*)\]\s+'
+    r'(?:process\s*>\s*)?'
+    r'(?P<name>[A-Za-z_][\w:.\-]*)'
+    r'(?:\s*\([^)]*\))?'
+    r'(?:\s*\|\s*(?P<done>\d+)\s*of\s*(?P<total>\d+))?'
+)
+
+
+def _parse_processes_from_log(log_text):
+    """Parse Nextflow's latest live progress block from the log file.
+
+    Returns {'processes', 'completedSteps', 'totalSteps'}. Used as a fallback
+    when workflow-trace.txt is still empty (Batch cold-start window) and no S3
+    outputs exist yet. Resolves ellipsis-truncated names ('BIS…bispec…')
+    against un-truncated sibling lines in the same block.
+    """
+    out = {"processes": [], "completedSteps": 0, "totalSteps": 0}
+    if not log_text:
+        return out
+
+    # Pre-scan whole log for the un-truncated process names.
+    full_names = set()
+    for raw in log_text.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m = _NF_PROC_RE.match(line)
+        if not m:
+            continue
+        nm = m.group("name")
+        if "…" in line[line.find(nm):line.find(nm) + 60]:
+            continue
+        if len(nm) >= 4:
+            full_names.add(nm)
+
+    last_block_start = log_text.rfind("executor >")
+    block = log_text[last_block_start:] if last_block_start != -1 else log_text
+
+    block_full_names = set()
+    for raw in block.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m_pre = _NF_PROC_RE.match(line)
+        if not m_pre:
+            continue
+        nm_pre = m_pre.group("name")
+        if f"{nm_pre}…" in line:
+            continue
+        block_full_names.add(nm_pre)
+
+    def _resolve(short, line_text):
+        if f"{short}…" not in line_text:
+            return short
+        candidates = [n for n in full_names if n.startswith(short) and n != short]
+        if not candidates:
+            return short
+        if len(candidates) == 1:
+            return candidates[0]
+        remaining = [n for n in candidates if n not in block_full_names]
+        if len(remaining) == 1:
+            return remaining[0]
+        if remaining:
+            return min(remaining, key=len)
+        return min(candidates, key=len)
+
+    by_name = {}
+    for raw in block.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m = _NF_PROC_RE.match(line)
+        if not m:
+            continue
+        name = _resolve(m.group("name"), line)
+        hash_field = (m.group("hash") or "").strip()
+        is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
+        done = int(m.group("done") or 0)
+        total = int(m.group("total") or 0)
+        if total > 0:
+            if done >= total:
+                status = "completed"
+            elif is_submitted:
+                status = "running"
+            else:
+                status = "pending"
+        else:
+            status = "running" if is_submitted else "pending"
+        by_name[name] = {
+            "name": name,
+            "status": status,
+            "hash": hash_field if is_submitted else None,
+            "completed": done,
+            "total": total or 1,
+        }
+    procs = list(by_name.values())
+    out["processes"] = procs
+    out["completedSteps"] = sum(p["completed"] for p in procs)
+    out["totalSteps"] = sum(p["total"] for p in procs)
+    return out
+
+
 _NF_LOG_FAILURE_MARKERS = (
     "Workflow execution failed",
     "Pipeline failed",
