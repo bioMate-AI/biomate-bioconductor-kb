@@ -112,7 +112,7 @@ export function IndSignOverlay({
 
   if (step === "success") {
     return (
-      <div className="sign-overlay" data-tour="ind-sign-success">
+      <div className="sign-overlay">
         <div className="sign-card">
           <div className="sign-success">
             <div className="check">
@@ -144,7 +144,7 @@ export function IndSignOverlay({
   }
 
   return (
-    <div className="sign-overlay" data-tour="ind-sign-overlay" onClick={onCancel}>
+    <div className="sign-overlay" onClick={onCancel}>
       <div className="sign-card" onClick={(e) => e.stopPropagation()}>
         <div className="sign-head">
           <h2>Electronic Signature</h2>
@@ -321,7 +321,7 @@ export function IndAuditOverlay({
   };
 
   return (
-    <div className="ind-audit-overlay" data-tour="ind-audit-overlay">
+    <div className="ind-audit-overlay">
       <header className="ind-audit-head">
         <h3>Regulatory Audit</h3>
         <button className="ind-btn sm" onClick={onClose}>
@@ -401,7 +401,7 @@ export function IndAuditOverlay({
               )}
             </div>
             {dismissingId === i && (
-              <div className="ind-dismiss-picker" data-tour="ind-dismiss-picker">
+              <div className="ind-dismiss-picker">
                 <h4>Dismiss this finding because…</h4>
                 {(
                   [
@@ -483,7 +483,7 @@ export function IndEmptyState({
   referenceCompounds: ReferenceCompound[];
 }) {
   return (
-    <div className="ind-empty" data-tour="ind-empty">
+    <div className="ind-empty">
       <div className="ind-empty-card">
         <h1>BioMate IND Report</h1>
         <p className="lede">

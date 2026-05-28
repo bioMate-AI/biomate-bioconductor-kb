@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Download, Eye, Shield, Signature, X } from "lucide-react";
 import {
   captureEdit, suggestCitation, regenerateSection, streamGenerate, sha256Hex,
+  listVersions, type VersionRow,
 } from "@/lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
 import { EditableParagraph } from "./EditableParagraph";
@@ -128,11 +129,11 @@ export function IndDocPanel({
   }, [doc.sections, doc.bodyByPid, doc.version]);
 
   return (
-    <aside className="ind-doc-panel" data-tour="ind-doc-panel">
+    <aside className="ind-doc-panel">
       <header className="ind-doc-head">
         <div className="ind-doc-title">
           CTD Module 2.6 — Nonclinical Written Summaries
-          <span className="ver-chip" onClick={onVersionsClick} data-tour="ind-version-chip">
+          <span className="ver-chip" onClick={onVersionsClick}>
             v{doc.version}
           </span>
         </div>
@@ -150,7 +151,7 @@ export function IndDocPanel({
           <span>·</span>
           <span>{doc.generatedAt}</span>
         </div>
-        <div className="ind-doc-region" data-tour="ind-doc-region">
+        <div className="ind-doc-region">
           <span>Region:</span>
           <select value={region} onChange={(e) => onRegionChange(e.target.value as Region | "ALL")}>
             <option value="FDA">FDA</option>
@@ -169,7 +170,7 @@ export function IndDocPanel({
         </div>
       </header>
 
-      <nav className="ind-doc-tabs" data-tour="ind-doc-tabs">
+      <nav className="ind-doc-tabs">
         {SECTION_ORDER.map((id) => {
           const sec = doc.sections.find((s) => s.id === id);
           return (
@@ -188,7 +189,7 @@ export function IndDocPanel({
         })}
       </nav>
 
-      {showVersions && <VersionHistory doc={doc} onClose={onVersionsClose} />}
+      {showVersions && <VersionHistory doc={doc} projectId={projectId} onClose={onVersionsClose} />}
 
       <div className="ind-doc-body">
         {doc.sections.map((section) => (
@@ -222,7 +223,7 @@ export function IndDocPanel({
         )}
       </div>
 
-      <footer className="ind-doc-foot" data-tour="ind-doc-foot">
+      <footer className="ind-doc-foot">
         <div className="row">
           <span>SHA-256: {docShaShort || doc.shaPrefix || "(computing…)"}…</span>
           <span>·</span>
@@ -482,7 +483,6 @@ function CitePopover({
         className="cite-popover"
         ref={ref}
         onClick={(e) => e.stopPropagation()}
-        data-tour="ind-cite-popover"
       >
         <h4>Suggest a citation</h4>
         <div className="ind-field">
@@ -586,7 +586,6 @@ function RegenerateModal({
         className="modal"
         onClick={(e) => e.stopPropagation()}
         style={{ background: "white", borderRadius: 10, padding: 18, maxWidth: 520, width: "92%" }}
-        data-tour="ind-regenerate-modal"
       >
         <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
           Regenerate §{section}
@@ -686,14 +685,45 @@ function RegenerateModal({
 }
 
 // ── VersionHistory ───────────────────────────────────────────
-function VersionHistory({ doc, onClose }: { doc: DocPanelDoc; onClose: () => void }) {
+//
+// Closes P2-6 frontend: fetches real snapshots from
+// GET /api/ind-report/projects/:id/versions and renders them. The current
+// (in-progress) state is always shown at the top; below it are signed
+// snapshots from the version log.
+function VersionHistory({
+  doc, projectId, onClose,
+}: {
+  doc: DocPanelDoc;
+  projectId: string;
+  onClose: () => void;
+}) {
+  const [versions, setVersions] = useState<VersionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listVersions(projectId)
+      .then((r) => { if (!cancelled) setVersions(r.versions ?? []); })
+      .catch((e) => { if (!cancelled) setErr(String(e?.message ?? e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [projectId]);
+
+  // Latest snapshot version number determines what "current" should display as
+  const latestSigned = versions.length ? versions[versions.length - 1] : null;
+  const currentVersion = (latestSigned?.version ?? 0) + 1;
+
   return (
     <>
       <div style={{ position: "absolute", inset: 0, zIndex: 25 }} onClick={onClose} />
-      <div className="version-popover" data-tour="ind-version-history">
+      <div className="version-popover">
         <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
-          Document versions — BM-0042
+          Document versions
         </h4>
+
+        {/* Current (in-progress) — always shown at top */}
         <div className="version-row">
           <div className="head">
             <span
@@ -702,41 +732,59 @@ function VersionHistory({ doc, onClose }: { doc: DocPanelDoc; onClose: () => voi
                 padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
               }}
             >
-              v{doc.version}
+              v{currentVersion}
             </span>
             <span>Current</span>
-            <span style={{ color: "var(--ind-warn)" }}>· Not yet signed</span>
+            {!doc.signed && <span style={{ color: "var(--ind-warn)" }}>· Not yet signed</span>}
           </div>
           <div className="meta">
-            SHA-256: {doc.shaPrefix}… · Sections: §2.6.1–§2.6.6 · NMPA + PMDA added
+            SHA-256: {doc.shaPrefix}… · Sections: §2.6.1–§2.6.6
           </div>
           <div style={{ fontSize: 11.5, color: "var(--ind-text-muted)", marginTop: 2 }}>
             Generated {doc.generatedAt}
           </div>
         </div>
-        <div className="version-row">
-          <div className="head">
-            <span
-              style={{
-                background: "var(--ind-text-dim)", color: "white",
-                padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
-              }}
-            >
-              v1
-            </span>
-            <span style={{ color: "var(--ind-text-muted)" }}>Superseded</span>
-            <span style={{ color: "var(--ind-ok)" }}>· Signed</span>
+
+        {/* Historical snapshots from backend */}
+        {loading && (
+          <div style={{ padding: 10, fontSize: 11.5, color: "var(--ind-text-muted)" }}>
+            Loading version history…
           </div>
-          <div className="meta">
-            SHA-256: 7e3a11b2… · Sections: §2.6.1–§2.6.3 · FDA + EMA only
+        )}
+        {err && !loading && (
+          <div style={{ padding: 10, fontSize: 11.5, color: "var(--ind-err, #dc2626)" }}>
+            Could not load history: {err}
           </div>
-          <div style={{ fontSize: 11.5, marginTop: 2 }}>
-            2026-05-01 · Dr. Jane Smith · Sig 8f2a3c…
-            <button className="ind-link" style={{ marginLeft: 8, fontSize: 11.5 }}>
-              Download v1 DOCX
-            </button>
+        )}
+        {!loading && !err && versions.length === 0 && (
+          <div style={{ padding: 10, fontSize: 11.5, color: "var(--ind-text-muted)" }}>
+            No prior versions yet — this is v1.
           </div>
-        </div>
+        )}
+        {[...versions].reverse().map((v) => (
+          <div className="version-row" key={v.version} data-testid={`version-row-v${v.version}`}>
+            <div className="head">
+              <span
+                style={{
+                  background: "var(--ind-text-dim)", color: "white",
+                  padding: "1px 7px", borderRadius: 3, fontSize: 10.5, fontWeight: 700,
+                }}
+              >
+                v{v.version}
+              </span>
+              <span style={{ color: "var(--ind-text-muted)" }}>Superseded</span>
+              <span style={{ color: "var(--ind-ok)" }}>· Signed</span>
+            </div>
+            <div className="meta">
+              SHA-256: {v.document_sha256_short}… · {v.section_count} section{v.section_count === 1 ? "" : "s"}
+            </div>
+            <div style={{ fontSize: 11.5, marginTop: 2 }}>
+              {v.created_at?.slice(0, 10)} · {v.author}
+              {v.note && <span style={{ color: "var(--ind-text-muted)" }}> · {v.note}</span>}
+            </div>
+          </div>
+        ))}
+
         <div
           style={{
             marginTop: 10, padding: 10, fontSize: 11.5,
@@ -744,8 +792,8 @@ function VersionHistory({ doc, onClose }: { doc: DocPanelDoc; onClose: () => voi
             background: "var(--ind-bg-sub)", borderRadius: 6, lineHeight: 1.5,
           }}
         >
-          Creating a new version supersedes the signed v1. The v1 signature record and frozen
-          hash remain in the audit trail.
+          Each new signature creates a snapshot. Previous versions, their
+          SHA-256, and signature records remain in the append-only audit chain.
         </div>
       </div>
     </>
