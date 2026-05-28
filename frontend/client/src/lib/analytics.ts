@@ -54,7 +54,15 @@ export type AnalyticsEvent =
   | 'dataset_uploaded'
   | 'settings_opened'
   | 'api_key_configured'
-  | 'pipeline_started';
+  | 'pipeline_started'
+  // Gap 2 — chat-driven workflow edits
+  | 'workflow_edit_applied'
+  | 'workflow_edit_undone'
+  | 'workflow_edit_confirm_required'
+  // Gap 3 / Gap 4 — run reuse
+  | 'run_again_clicked'
+  | 'reset_to_defaults_clicked'
+  | 'workflows_sidebar_opened';
 
 export interface AnalyticsProperties {
   userId?: string;
@@ -71,6 +79,11 @@ export interface AnalyticsProperties {
   query_length?: number;
   page?: string;
   error?: string;
+  // Gap 2 / 3 / 4 properties
+  op?: 'set_param' | 'add_step' | 'remove_step' | 'reorder';
+  via?: 'rule_extractor' | 'llm_extractor' | 'assistant_emit';
+  source?: 'panel' | 'sidebar_history';
+  workflow_name?: string;
   [key: string]: string | number | boolean | undefined;
 }
 

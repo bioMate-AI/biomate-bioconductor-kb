@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Clock, Star as StarIcon, Loader2 } from 'lucide-react';
+import { analytics } from '@/lib/analytics';
 import { starredWorkflowsService } from '@/lib/starred-workflows';
 import type { StarredWorkflow } from '@shared/schema';
 
@@ -179,6 +180,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                             data-testid={`button-run-again-${r.runId}`}
                             disabled={!r.chatSessionId}
                             onClick={() => {
+                              analytics.track('run_again_clicked', { workflow_name: r.workflowName, source: 'sidebar_history' });
                               onRunAgain?.(r);
                               onOpenChange(false);
                             }}
