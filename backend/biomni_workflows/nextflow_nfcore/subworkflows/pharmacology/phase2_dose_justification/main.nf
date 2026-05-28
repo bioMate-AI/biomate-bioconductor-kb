@@ -114,7 +114,7 @@ from scipy.optimize import brentq
 # ---------------------------------------------------------------------------
 
 def ac(v, default=None):
-    """Parse numeric env var with fallback."""
+    '''Parse numeric env var with fallback.'''
     if v in (None, '', 'null', 'None'):
         return default
     try:
@@ -124,13 +124,13 @@ def ac(v, default=None):
 
 
 def emax_model(E, emax, ec50, hill):
-    """Sigmoid Hill (Emax) model: Effect = Emax * E^hill / (EC50^hill + E^hill)."""
+    '''Sigmoid Hill (Emax) model: Effect = Emax * E^hill / (EC50^hill + E^hill).'''
     E = np.asarray(E, dtype=float)
     return emax * E**hill / (ec50**hill + E**hill)
 
 
 def invert_emax(target_effect, emax, ec50, hill):
-    """Return exposure E that produces target_effect; None if outside model range."""
+    '''Return exposure E that produces target_effect; None if outside model range.'''
     if target_effect <= 0:
         return 0.0
     if target_effect >= emax:

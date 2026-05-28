@@ -95,14 +95,14 @@ def ac(v, default=None):
         return default
 
 def normal_ppf(p):
-    """Percent-point function (quantile) of the standard normal via scipy."""
+    '''Percent-point function (quantile) of the standard normal via scipy.'''
     return stats.norm.ppf(p)
 
 # ---------------------------------------------------------------------------
 # Demo data generator (used when patient_data_json is null)
 # ---------------------------------------------------------------------------
 def generate_demo_data():
-    """Synthetic Phase II dataset: 120 patients, 3 biomarkers."""
+    '''Synthetic Phase II dataset: 120 patients, 3 biomarkers.'''
     import random
     random.seed(42)
     np.random.seed(42)

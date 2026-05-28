@@ -158,7 +158,7 @@ print('SMILES to SDF conversion done')
 
         cat antechamber.log parmchk2.log > ligand_prep.log
         echo "LIGAND_PREP complete" >> ligand_prep.log
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -185,7 +185,7 @@ process SYSTEM_SETUP {
     path "tleap.log",       emit: log
 
     script:
-    """
+    '''
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
@@ -208,7 +208,7 @@ TLEAPIN
 
         tleap -f tleap.in 2>&1 | tee tleap.log
         echo "SYSTEM_SETUP complete" >> tleap.log
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -235,7 +235,7 @@ process ENERGY_MINIMIZATION {
     path "em.out",         emit: log
 
     script:
-    """
+    '''
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
@@ -281,7 +281,7 @@ MIN2EOF
 
         cat min1.out min2.out > em.out
         echo "ENERGY_MINIMIZATION complete" >> em.out
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -309,7 +309,7 @@ process EQUILIBRATION {
     path "equil_npt.out",   emit: npt_log
 
     script:
-    """
+    '''
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
@@ -363,7 +363,7 @@ NPTEOF
             -ref nvt.rst
 
         echo "EQUILIBRATION complete" >> equil_npt.out
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -391,7 +391,7 @@ process PRODUCTION_MD {
     path "md.rst",         emit: rst
 
     script:
-    """
+    '''
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
@@ -420,7 +420,7 @@ MDEOF
             -x trajectory.nc
 
         echo "PRODUCTION_MD complete" >> md.out
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -450,7 +450,7 @@ process TRAJECTORY_ANALYSIS {
     path "analysis_summary.json",  emit: summary
 
     script:
-    """
+    '''
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
@@ -530,7 +530,7 @@ with open('analysis_summary.json', 'w') as fh:
     json.dump(summary, fh, indent=2)
 print('TRAJECTORY_ANALYSIS complete')
 PYEOF
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -558,7 +558,7 @@ process MM_GBSA {
     path "binding_summary.json",  emit: summary
 
     script:
-    """
+    '''
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
@@ -670,7 +670,7 @@ with open('binding_summary.json', 'w') as fh:
 dg_str = f'{delta_g:.2f}' if delta_g is not None else 'N/A'
 print(f'MM_GBSA complete -- DeltaG_bind = {dg_str} kcal/mol (GB igb=2)')
 PYEOF
-        """
+        '''
 }
 
 // ============================================================================

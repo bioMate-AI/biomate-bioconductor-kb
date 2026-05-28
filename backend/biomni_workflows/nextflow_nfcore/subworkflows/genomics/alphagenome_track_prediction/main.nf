@@ -210,7 +210,7 @@ ucsc_db    = region['ucsc_db']
 genome     = region['reference_genome']
 
 def fetch_ucsc_sequence(chrom, start, end, db):
-    """Fetch DNA from UCSC REST API (0-based half-open coords)."""
+    '''Fetch DNA from UCSC REST API (0-based half-open coords).'''
     url = (f"https://api.genome.ucsc.edu/getData/sequence"
            f"?genome={db}&chrom={chrom}&start={start}&end={end}")
     req = urllib.request.Request(url, headers={'User-Agent': 'BioMate-AlphaGenome/1.0'})

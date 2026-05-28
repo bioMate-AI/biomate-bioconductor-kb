@@ -139,7 +139,7 @@ process LIGAND_PREP {
             exit 1
         fi
         echo "LigPrep complete" >> ligprep.log
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -166,7 +166,7 @@ process RECEPTOR_PREP {
     path "prep.log",             emit: log
 
     script:
-        """
+        '''
         set -euo pipefail
 
         moebatch -exec "run ['\$MOE/lib/quickprep.svl', [
@@ -182,7 +182,7 @@ process RECEPTOR_PREP {
             exit 1
         fi
         echo "QuickPrep complete" >> prep.log
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -222,7 +222,7 @@ process COVALENT_DOCK {
     path "covdock.log",        emit: log
 
     script:
-        """
+        '''
         set -euo pipefail
 
         moebatch -exec "run ['\$MOE/lib/covdock.svl', [
@@ -241,7 +241,7 @@ process COVALENT_DOCK {
             exit 1
         fi
         echo "CovDock complete" >> covdock.log
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -272,7 +272,7 @@ process POSE_ANALYSIS {
     path "pose_analysis.log", emit: log
 
     script:
-        """
+        '''
         set -euo pipefail
 
         moebatch -exec "
@@ -295,7 +295,7 @@ process POSE_ANALYSIS {
             exit 1
         fi
         echo "POSE_ANALYSIS complete" >> pose_analysis.log
-        """
+        '''
 }
 
 // ----------------------------------------------------------------------------
@@ -326,7 +326,7 @@ process REPORT {
     path "docking_report.html",  emit: report_html
 
     script:
-        """
+        '''
         set -euo pipefail
 
         python3 - << 'PYEOF'
@@ -388,7 +388,7 @@ print('docking_report.html written')
 HTMLEOF
 
         echo "REPORT complete" >> report.log
-        """
+        '''
 }
 
 // ============================================================================

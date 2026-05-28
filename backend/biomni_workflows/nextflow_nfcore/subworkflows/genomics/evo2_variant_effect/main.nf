@@ -531,7 +531,7 @@ GENE_REGIONS = {
 }
 
 def classify_variant(chrom, pos):
-    """Classify variant into functional class using gene coordinate lookup."""
+    '''Classify variant into functional class using gene coordinate lookup.'''
     pos = int(pos)
     for gene_id, (g_chrom, g_start, g_end, g_name, g_type) in GENE_REGIONS.items():
         if chrom == g_chrom and g_start <= pos <= g_end:
