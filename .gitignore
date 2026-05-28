@@ -144,3 +144,7 @@ reference/clawdbot/
 reference/BioDSA/
 .r_lib_cache/
 models/
+
+# E2E fixture credentials (do not commit)
+.env.test.local
+frontend/.env.test.local
