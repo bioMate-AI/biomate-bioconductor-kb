@@ -92,7 +92,8 @@ def ac(v, default=None):
     except: return default
 
 def smiles_heuristic_props(smi):
-    """Descriptor estimates from SMILES string when RDKit is absent.
+    '''Descriptor estimates from SMILES string when RDKit is absent.
+
     Uses atom-by-atom MW, ring closure counting, and substructure patterns.
     '''
     import re as _re
@@ -713,7 +714,7 @@ polymorph_stability_screening:
     Blagden & Davey Chem Soc Rev 2003;
     Fleming et al. Org Process Res Dev 2010
 EOF
-    """
+    '''
 }
 
 workflow POLYMORPH_STABILITY_WORKFLOW {

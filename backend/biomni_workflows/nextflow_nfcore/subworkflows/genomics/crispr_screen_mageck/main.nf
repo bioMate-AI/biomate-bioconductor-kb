@@ -292,7 +292,7 @@ try:
         color = "#c6efce" if status == "DEPLETED" else "#ffeb9c"
         rows += f"<tr style='background:{color}'><td>{r.get('Term','')}</td><td>{r.get('NES',0):.3f}</td><td>{r.get('FDR q-val',1):.4f}</td><td>{status}</td></tr>"
 
-    html = f"""<!DOCTYPE html><html><head><style>
+    html = f'''<!DOCTYPE html><html><head><style>
     body{{font-family:Arial;max-width:900px;margin:40px auto;}}
     table{{width:100%;border-collapse:collapse;}}
     th{{background:#0f4c81;color:white;padding:8px;}}
@@ -301,7 +301,7 @@ try:
     <h1>CRISPR Screen — Pathway Enrichment</h1>
     <p>Gene set: {params.gene_sets} | Top pathways (NES ranked)</p>
     <table><tr><th>Pathway</th><th>NES</th><th>FDR</th><th>Direction</th></tr>{rows}</table>
-    </body></html>"""
+    </body></html>'''
     with open("pathway_enrichment.html", "w") as f:
         f.write(html)
 
