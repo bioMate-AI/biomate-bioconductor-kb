@@ -22,7 +22,6 @@ type StepShellProps = {
   expanded?: boolean;
   onToggle?: () => void;
   expandedHint?: string;
-  dataTour?: string;
   children: ReactNode;
 };
 
