@@ -115,6 +115,8 @@ def build_pipeline_command(
     ligand_smiles: str,
     gromacs_n_steps: int,
     user_id: str | None,
+    receptor_mode: str = "full",
+    step_timeout: int = 21600,
 ) -> list[str]:
     cmd = [
         sys.executable,
@@ -133,9 +135,14 @@ def build_pipeline_command(
         ligand_smiles,
         "--gromacs-n-steps",
         str(gromacs_n_steps),
+        "--step-timeout",
+        str(step_timeout),
     ]
     if user_id:
         cmd.extend(["--user-id", user_id])
+    # Full tetramer needs pocket-box crop before tleap; pocket fragment is already small.
+    if receptor_mode == "full" or pdb_input.endswith("9P3I.pdb"):
+        cmd.append("--use-top-pocket-box")
     return cmd
 
 
@@ -165,6 +172,12 @@ def main() -> None:
         default=250000,
         help="MD steps (default 250000 smoke; use 5000000 for production)",
     )
+    ap.add_argument(
+        "--step-timeout",
+        type=int,
+        default=21600,
+        help="Seconds to poll each pipeline step (default 6h for MD on Batch)",
+    )
     args = ap.parse_args()
 
     base_run = (ROOT / args.base_run).resolve()
@@ -190,6 +203,8 @@ def main() -> None:
         ligand_smiles=args.ligand_smiles,
         gromacs_n_steps=args.gromacs_n_steps,
         user_id=user_id,
+        receptor_mode=args.receptor,
+        step_timeout=args.step_timeout,
     )
 
     track_manifest: dict[str, Any] = {

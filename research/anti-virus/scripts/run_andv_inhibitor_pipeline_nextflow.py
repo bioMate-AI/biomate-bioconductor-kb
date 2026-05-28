@@ -33,6 +33,8 @@ Steps (see manifest `steps[].key`):
   4 docking_vina    — AutoDock Vina; uses top-pocket box from step 1 manifest when --use-top-pocket-box.
   5 gromacs_mmgbsa  — Optional MD + MM-GBSA (heavy); pass --ligand-s3 (S3 URI to .sdf/.mol2 **or**
                     a SMILES string — GROMACS workflow auto-converts SMILES in-container).
+                    When --use-top-pocket-box (or manifest top_pocket_center), crops full receptor
+                    to pocket box + 10 Å pad before tleap (same geometry as Vina step 4).
   6 reinvent4       — Generative optimization; pass --seed-smiles.
 
 Resume after an earlier manifest (skip re-running completed steps):
@@ -144,6 +146,7 @@ def post_execute(
     parameters: dict[str, Any],
     user_id: str,
     workflow_domain: str = "drug_discovery",
+    profile: str = "aws",
 ) -> dict[str, Any]:
     body = {
         "nextflow_path": nextflow_path,
@@ -151,7 +154,7 @@ def post_execute(
         "compute_config": {"executor": "awsbatch", "s3_bucket": "biomate-nextflow-work"},
         "workflow_domain": workflow_domain,
         "user_id": user_id,
-        "profile": "aws",
+        "profile": profile,
     }
     return request_json(api_url, api_key, "POST", "/api/nextflow/execute", body, timeout=180)
 
@@ -230,6 +233,43 @@ def volume_to_box_size(vol_a3: float) -> tuple[float, float, float]:
     r = max(8.0, (3.0 * vol_a3 / (4.0 * math.pi)) ** (1.0 / 3.0) * 1.8)
     edge = min(40.0, 2.2 * r)
     return (edge, edge, edge)
+
+
+def resolve_pocket_box(
+    manifest_steps: list[dict[str, Any]],
+    args: argparse.Namespace,
+    *,
+    require_box: bool,
+) -> tuple[tuple[float, float, float], list[float]] | None:
+    """Top pocket center + Vina box edges from manifest or CLI flags."""
+    center: tuple[float, float, float] | None = None
+    box_size: list[float] = [22.0, 22.0, 22.0]
+
+    pocket_entry = next((s for s in manifest_steps if s.get("key") == "pocket"), None)
+    if pocket_entry and pocket_entry.get("top_pocket_center"):
+        center = tuple(pocket_entry["top_pocket_center"])
+    elif pocket_entry and pocket_entry.get("artifact_dir"):
+        pj = find_pockets_json(Path(pocket_entry["artifact_dir"]))
+        if pj:
+            center = top_pocket_center(pj)
+            try:
+                pdata = json.loads(pj.read_text(encoding="utf-8"))
+                vol = float((pdata.get("pockets") or [{}])[0].get("volume_A3") or 500.0)
+                box_size = list(volume_to_box_size(vol))
+            except Exception:
+                pass
+
+    if center is None and args.use_top_pocket_box:
+        raise ValueError("Could not resolve top pocket center; run step 1 with downloads or pass explicit box")
+    if center is None and args.box_center_json:
+        center = tuple(json.loads(args.box_center_json))
+    if center is None:
+        if require_box:
+            raise ValueError("Provide --use-top-pocket-box or --box-center-json '[x,y,z]'")
+        return None
+    if args.box_size_json:
+        box_size = json.loads(args.box_size_json)
+    return center, box_size
 
 
 @dataclass
@@ -347,29 +387,8 @@ def build_parameters_for_step(
             smiles = args.smiles_json
         center = None
         box_size = [22.0, 22.0, 22.0]
-        if args.use_top_pocket_box:
-            pocket_entry = next((s for s in manifest_steps if s.get("key") == "pocket"), None)
-            local_dir = (pocket_entry or {}).get("artifact_dir")
-            pj = None
-            if local_dir:
-                pj = find_pockets_json(Path(local_dir))
-            if pj:
-                center = top_pocket_center(pj)
-                try:
-                    pdata = json.loads(pj.read_text(encoding="utf-8"))
-                    vol = float((pdata.get("pockets") or [{}])[0].get("volume_A3") or 500.0)
-                    box_size = list(volume_to_box_size(vol))
-                except Exception:
-                    pass
-            if center is None:
-                raise ValueError("Could not resolve top pocket center; run step 1 with downloads or pass explicit box")
-        else:
-            if args.box_center_json:
-                center = tuple(json.loads(args.box_center_json))
-            else:
-                raise ValueError("Provide --use-top-pocket-box or --box-center-json '[x,y,z]'")
-        if args.box_size_json:
-            box_size = json.loads(args.box_size_json)
+        resolved = resolve_pocket_box(manifest_steps, args, require_box=True)
+        center, box_size = resolved
         return {
             "smiles_list": smiles,
             "receptor_pdb_file": args.pdb_input,
@@ -381,12 +400,20 @@ def build_parameters_for_step(
     if spec.key == "gromacs_mmgbsa":
         if not args.ligand_s3:
             raise ValueError("gromacs_mmgbsa step requires --ligand-s3 (e.g. docked ligand SDF on S3)")
-        return {
+        params: dict[str, Any] = {
             "receptor": args.pdb_input,
             "ligand": args.ligand_s3,
             "use_aws": True,
             "n_steps": args.gromacs_n_steps,
+            "auto_trim_receptor": True,
+            "trim_pad": 10.0,
         }
+        resolved = resolve_pocket_box(manifest_steps, args, require_box=False)
+        if resolved:
+            center, box_size = resolved
+            params["box_center"] = json.dumps(list(center))
+            params["box_size"] = json.dumps(box_size)
+        return params
     if spec.key == "reinvent4":
         seed = args.seed_smiles or "c1ccc2c(c1)ccc(=O)o2"
         params: dict[str, Any] = {
@@ -429,7 +456,7 @@ def main() -> None:
         default="",
         help="Optional JSON array for ADMET/docking when step-2 filtered_compounds.smi is absent",
     )
-    ap.add_argument("--use-top-pocket-box", action="store_true", help="Step 4: derive Vina box from step 1 *_pockets.json")
+    ap.add_argument("--use-top-pocket-box", action="store_true", help="Steps 4–5: derive box from step 1 *_pockets.json (Vina + GROMACS receptor trim)")
     ap.add_argument("--box-center-json", default="", help='Override pocket box: "[x,y,z]"')
     ap.add_argument("--box-size-json", default="", help='Override box edges: "[sx,sy,sz]"')
     ap.add_argument("--vina-ncpu", default="4")
@@ -545,6 +572,7 @@ def main() -> None:
             params,
             args.user_id,
             workflow_domain=spec.workflow_domain,
+            profile="gpu_batch" if spec.key == "gromacs_mmgbsa" else "aws",
         )
         (step_dir / "submit.json").write_text(json.dumps(submit, indent=2), encoding="utf-8")
         run_id = submit.get("run_id")
