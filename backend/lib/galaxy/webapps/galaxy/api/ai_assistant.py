@@ -795,15 +795,18 @@ def _enrich_steps_with_phase_info(
             step['phase_group'] = pg
             step['phase_label'] = pl
             param_names = process_param_refs.get(tool_id, [])
+        elif inline_phase_map:
+            # File HAS some annotations but this process is uncovered — mark explicitly
+            # as "other" so the frontend renders "Other Steps" alongside the named phases.
+            step['phase_group'] = 'other'
+            step['phase_label'] = ''
+            param_names = process_param_refs.get(tool_id, [])
         else:
-            # Generic keyword-based assignment (fallback for unannotated workflows)
-            pg, pl = '', ''
-            for keywords, group, label in _GENERIC_PHASE_RULES:
-                if any(k in tool_id for k in keywords):
-                    pg, pl = group, label
-                    break
-            step['phase_group'] = pg
-            step['phase_label'] = pl
+            # File has NO annotations at all → don't synthesize fake phases from
+            # keyword guesses (which produced ugly "Phase other" mixed-state per #23).
+            # Leave phase_group empty so the frontend renders all as one "Steps" group.
+            step['phase_group'] = ''
+            step['phase_label'] = ''
             param_names = process_param_refs.get(tool_id, [])
 
         # Populate parameters as {name: {default: None}} placeholder metadata
