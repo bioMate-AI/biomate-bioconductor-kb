@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
+import { analytics } from '@/lib/analytics';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
@@ -2812,7 +2813,7 @@ export function NextflowWorkflowViewer({
             <button
               className="btn primary"
               data-testid="button-run-workflow-panel"
-              onClick={handleExecute}
+              onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
               disabled={status === 'running' || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
             >
               {status === 'running' ? (
@@ -2827,7 +2828,7 @@ export function NextflowWorkflowViewer({
             </button>
           )}
           {showingSubmittedParams && (status === 'completed' || status === 'failed') && (
-            <button type="button" data-testid="button-reset-params-to-defaults" onClick={resetToDefaults} title="Showing params from your last run. Click to reset to workflow defaults." style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reset to defaults</button>
+            <button type="button" data-testid="button-reset-params-to-defaults" onClick={() => { analytics.track('reset_to_defaults_clicked'); resetToDefaults(); }} title="Showing params from your last run. Click to reset to workflow defaults." style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reset to defaults</button>
           )}
         </div>
         <div className="run-foot-meta">
