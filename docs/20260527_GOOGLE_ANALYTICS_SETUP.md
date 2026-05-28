@@ -2,9 +2,21 @@
 
 **Date:** 2026-05-27
 **File:** `frontend/client/index.html`
-**Properties:**
-- Prod (`biomate.ai` / `www.biomate.ai`): `G-65JDDPEDQ5`
-- Dev-public (`dev-public.biomate.ai`): `G-8YG54DFHQG`
+**Two source folders, two GA4 properties, three behaviors:**
+
+| URL | Property | Source folder | Behavior |
+|---|---|---|---|
+| `biomate.ai`, `www.biomate.ai` (marketing) | `G-65JDDPEDQ5` (prod) | `reference/claude_design/webpage_design_v2/` | static snippet, no hostname gate |
+| `app.biomate.ai`, `www.app.biomate.ai`, `*.app.biomate.ai` (React app prod) | `G-65JDDPEDQ5` (prod) | `frontend/client/index.html` | hostname-gated `config` |
+| `dev-public.biomate.ai`, `*.dev-public.biomate.ai` (React app dev) | `G-8YG54DFHQG` (dev) | `frontend/client/index.html` | hostname-gated `config` |
+| `localhost`, `127.0.0.1`, E2E hosts | — | `frontend/client/index.html` | no `config` → no hits |
+
+**Why two source folders?** biomate.ai is a separate static deploy (the marketing site, 31 HTML pages) from the React app at `app.biomate.ai` / `dev-public.biomate.ai`. They're tagged separately:
+
+- Marketing site uses the canonical single-property snippet (no hostname gate needed — that folder only ever serves from biomate.ai).
+- React app uses the hostname-gated pattern (one bundle, three behaviors).
+
+**Watch out:** there is also a `webpage_design/` folder at the repo root that looks deceptively similar to `reference/claude_design/webpage_design_v2/`. It is NOT the deployed source. The live HTML at biomate.ai was byte-compared to confirm v2 is canonical. If you see gtag changes touching `webpage_design/` and not v2, the commit is in the wrong folder.
 
 This doc captures (1) the problems we hit while wiring GA, (2) the alternatives we considered, and (3) the rationale for the final pattern, so the next person to touch this file doesn't repeat the loop.
 
