@@ -280,6 +280,142 @@ def _clean_log_line(line: str) -> str:
     return cleaned
 
 
+_NF_LOG_FAILURE_MARKERS = (
+    "Workflow execution failed",
+    "Pipeline failed",
+    "ERROR ~ ",
+    "WorkflowScriptErrorException",
+    "netmhcpan_path not specified",
+    "netmhciipan_path not specified",
+)
+
+_NF_LOG_EXCEPTION_RE = re.compile(
+    r'(?:'
+    r'Caused by:\s*\w'
+    r'|(?:^|\s)(?:ERROR|WARN)\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
+    r'|nextflow\.exception\.\w+'
+    r'|org\.codehaus\.groovy'
+    r'|groovy\.lang\.\w+Exception'
+    r'|Stack trace:'
+    r'|\tat groovy\.'
+    r'|\tat org\.codehaus\.groovy'
+    r'|\tat java\.'
+    r'|Script compilation error'
+    r'|MissingPropertyException'
+    r'|MissingMethodException'
+    r')',
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_S3_OUTPUT_REQUIRED_DOMAINS = frozenset({
+    "drug_discovery", "pharmacology", "epitope_prediction",
+    "immunoinformatics", "docking",
+})
+
+_QUICK_FAIL_ZERO_STEPS_THRESHOLD_S = 120
+
+
+def _log_indicates_nextflow_failure(
+    log_full_text: str = "",
+    log_tail: list | str | None = None,
+) -> bool:
+    """True when log content suggests failure despite a clean Nextflow exit code."""
+    text_parts: list[str] = []
+    if log_full_text:
+        text_parts.append(log_full_text)
+    if log_tail:
+        if isinstance(log_tail, list):
+            text_parts.append("\n".join(str(line) for line in log_tail))
+        else:
+            text_parts.append(str(log_tail))
+    combined = "\n".join(text_parts)
+    if not combined.strip():
+        return False
+    for marker in _NF_LOG_FAILURE_MARKERS:
+        if marker in combined:
+            return True
+    return bool(_NF_LOG_EXCEPTION_RE.search(combined))
+
+
+def _workflow_requires_s3_outputs(workflow_domain: str, nextflow_path: str = "") -> bool:
+    domain = (workflow_domain or "").lower()
+    if domain in _S3_OUTPUT_REQUIRED_DOMAINS:
+        return True
+    path_low = (nextflow_path or "").lower()
+    return any(token in path_low for token in (
+        "epitope", "netmhc", "docking", "admet", "pharmacology", "drug_discovery",
+    ))
+
+
+def _read_run_timing_json(run_id: str) -> Dict[str, Any]:
+    """Load persisted timing.json for a run (cross-worker terminal state)."""
+    timing_path = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
+    if not timing_path.is_file():
+        return {}
+    try:
+        import json as _json
+
+        return _json.loads(timing_path.read_text())
+    except Exception:
+        return {}
+
+
+def _apply_disk_timing_terminal_state(info: Dict[str, Any], run_id: str) -> Dict[str, Any]:
+    """Prefer timing.json terminal status/returncode over stale in-memory _runs entries."""
+    disk = _read_run_timing_json(run_id)
+    if not disk.get("completed_at"):
+        return info
+    merged = dict(info)
+    disk_status = disk.get("status")
+    disk_rc = disk.get("returncode")
+    if disk_status in ("failed", "interrupted"):
+        merged["status"] = disk_status
+        if disk_rc is not None:
+            merged["returncode"] = disk_rc
+    elif disk_rc not in (0, None):
+        merged["status"] = "failed"
+        merged["returncode"] = disk_rc
+    return merged
+
+
+def _non_pipeline_info_s3_outputs(s3_output_files: list | None) -> list:
+    """Drop nf-core pipeline_info/ artifacts — they are written even when no tasks run."""
+    kept: list = []
+    for f in s3_output_files or []:
+        uri = str(f.get("s3_uri", ""))
+        name = str(f.get("filename", ""))
+        if "/pipeline_info/" in uri or name.startswith("pipeline_info/"):
+            continue
+        kept.append(f)
+    return kept
+
+
+def _looks_like_false_success(
+    *,
+    log_full_text: str = "",
+    log_tail: list | str | None = None,
+    total_steps: int = 0,
+    duration_s: int | None = None,
+    s3_output_files: list | None = None,
+    workflow_domain: str = "",
+    nextflow_path: str = "",
+) -> bool:
+    """Detect polling heuristics that would mark a quick/no-output failure as succeeded."""
+    if _log_indicates_nextflow_failure(log_full_text, log_tail):
+        return True
+    has_outputs = bool(_non_pipeline_info_s3_outputs(s3_output_files))
+    if (
+        total_steps == 0
+        and duration_s is not None
+        and duration_s < _QUICK_FAIL_ZERO_STEPS_THRESHOLD_S
+        and not has_outputs
+    ):
+        return True
+    if _workflow_requires_s3_outputs(workflow_domain, nextflow_path) and not has_outputs:
+        return True
+    return False
+
+
 def _classify_accession(value: str) -> Optional[Dict[str, str]]:
     """
     Return accession metadata if *value* is a recognised public-database accession,
@@ -922,6 +1058,35 @@ def _validate_input_paths(params: dict) -> None:
         )
 
 
+def _validate_epitope_netmhc_params(nf_path: Path, params: dict) -> None:
+    """Reject epitopeprediction runs that enable NetMHC tools without licensed tarballs."""
+    path_low = str(nf_path).lower()
+    if "epitopeprediction" not in path_low and "epitope_prediction" not in path_low:
+        return
+    tools_raw = str(params.get("tools") or "")
+    tool_list = [t.strip().lower() for t in tools_raw.replace(" ", "").split(",") if t.strip()]
+    missing: list[str] = []
+    if "netmhcpan" in tool_list and not params.get("netmhcpan_path"):
+        missing.append("netmhcpan_path")
+    if "netmhciipan" in tool_list and not params.get("netmhciipan_path"):
+        missing.append("netmhciipan_path")
+    if not missing:
+        return
+    raise HTTPException(
+        status_code=422,
+        detail={
+            "error": "NetMHC software path required",
+            "missing": missing,
+            "suggestion": (
+                "Pass --netmhcpan_path (and/or --netmhciipan_path) as an s3:// URI to the "
+                "DTU-licensed tarball. For Plan A science sprint: "
+                "python3 research/anti-virus/science_sprint/track_plan_a_multitool.py "
+                "--netmhcpan-path s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/netMHCpan-4.1b.Linux.tar.gz"
+            ),
+        },
+    )
+
+
 def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
     """
     Validate an s3:// URL is accessible before launching Nextflow.
@@ -1201,14 +1366,8 @@ def _generate_executor_config(
             "}",
             "docker.enabled = true",
             f"workDir = 's3://{s3_bucket}/nextflow/work/{user_id}/{run_id}'",
-            # Restored 2026-05-27 (was removed by d0655c270 sync revert).
-            # Declare empty `profiles { aws { } }` so `-profile aws` validates
-            # against this -c override config for workflows that have no
-            # nextflow.config of their own. Body is empty on purpose — real
-            # Batch settings are top-level above. Without this, ~33 standalone
-            # workflows (exposure_response_modeling, transporter_ddi_pgp_bcrp,
-            # bispecific_antibody_design, ...) abort in ~15s with
-            # 'Unknown configuration profile: aws'.
+            # Empty profiles.aws so -profile aws validates for workflows without their own
+            # nextflow.config (real Batch settings are top-level above).
             "profiles {",
             "    aws {",
             "        // intentionally empty — real settings are top-level",
@@ -2150,6 +2309,45 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         returncode = process.returncode
         _completed_at_now = time.time()
 
+        # nf-core epitopeprediction calls Nextflow.error() for missing NetMHC paths but
+        # may still exit 0 — scan the log before marking success.
+        _log_text = ""
+        try:
+            if log_path.is_file():
+                _log_text = log_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+        with _runs_lock:
+            _run_snap = dict(_runs.get(run_id) or {})
+        _duration_s: int | None = None
+        _started = _run_snap.get("started_at")
+        if _started:
+            _duration_s = int(_completed_at_now - _started)
+        _total_steps = 0
+        _trace_path = Path(_run_snap.get("trace_path", ""))
+        if _trace_path.is_file():
+            try:
+                _trace_lines = [
+                    l for l in _trace_path.read_text().splitlines()
+                    if l.strip() and not l.startswith("task_id")
+                ]
+                _total_steps = len(_trace_lines)
+            except Exception:
+                pass
+        if returncode == 0 and _looks_like_false_success(
+            log_full_text=_log_text,
+            total_steps=_total_steps,
+            duration_s=_duration_s,
+            s3_output_files=[],
+            workflow_domain=_run_snap.get("workflow_domain", ""),
+            nextflow_path=_run_snap.get("nextflow_path", ""),
+        ):
+            log.warning(
+                "[Nextflow run %s] exit 0 but looks like false success — marking failed",
+                run_id,
+            )
+            returncode = 1
+
         if returncode == 0:
             final_status = "succeeded"
         elif returncode < 0:
@@ -2814,6 +3012,7 @@ def execute_nextflow(
 
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
+    _validate_epitope_netmhc_params(nf_path, params)
 
     constraint = _check_pipeline_constraints(nf_path, params, compute)
     if constraint and constraint.get("blocked"):
@@ -3147,6 +3346,7 @@ def execute_nextflow(
             "started_at": _started_at_now,
             "outdir": str(outdir),
             "workflow_domain": workflow_domain or "",
+            "nextflow_path": request.nextflow_path or str(nf_path),
         }))
     except Exception as _te:
         log.debug("[timing] Could not write timing.json for %s: %s", run_id, _te)
@@ -3527,6 +3727,9 @@ def get_nextflow_status(
     with _runs_lock:
         info = _runs.get(run_id)
 
+    if info is not None:
+        info = _apply_disk_timing_terminal_state(info, run_id)
+
     if info is None:
         # Fallback: run may have been started in a different gunicorn worker.
         # gunicorn --workers 4 creates 4 separate Python processes each with their own
@@ -3566,10 +3769,8 @@ def get_nextflow_status(
             # Nextflow writes pipeline_info/ as soon as execution starts, so we cannot
             # rely on directory presence alone — the run may still be in progress.
             nf_done = "Execution complete" in log_full_text
-            nf_failed_log = (
-                "Workflow execution failed" in log_full_text
-                or "Pipeline failed" in log_full_text
-                or "ERROR ~ " in log_full_text
+            nf_failed_log = _log_indicates_nextflow_failure(
+                log_full_text, log_tail_fallback,
             )
             if not nf_done and not nf_failed_log:
                 # Log doesn't yet show completion → run is still in progress.
@@ -3601,11 +3802,21 @@ def get_nextflow_status(
             has_results = len(real_subdirs) > 0
 
             fallback_status = "succeeded" if has_results else "failed"
+            if fallback_status == "succeeded" and _looks_like_false_success(
+                log_full_text=log_full_text,
+                log_tail=log_tail_fallback,
+                total_steps=0,
+                duration_s=_fb_duration_s,
+                s3_output_files=[],
+                workflow_domain=_disk_timing.get("workflow_domain", ""),
+                nextflow_path=_disk_timing.get("nextflow_path", ""),
+            ):
+                fallback_status = "failed"
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
                 "status": fallback_status,
-                "returncode": 0 if has_results else 1,
+                "returncode": 0 if fallback_status == "succeeded" else 1,
                 "outdir": str(output_dir),
                 "work_dir": str(log_dir / "work"),
                 "log_tail": log_tail_fallback,
@@ -3640,10 +3851,8 @@ def get_nextflow_status(
                     # downstream tasks may not yet be written. Require the Nextflow log to also
                     # show the "Execution complete" or failure marker before declaring done.
                     nf_log_done = "Execution complete" in log_full_text
-                    nf_log_failed = (
-                        "Workflow execution failed" in log_full_text
-                        or "Pipeline failed" in log_full_text
-                        or "ERROR ~ " in log_full_text
+                    nf_log_failed = _log_indicates_nextflow_failure(
+                        log_full_text, log_tail_fallback,
                     )
                     if (nf_log_done or nf_log_failed) and total_steps_fb > 0 and (completed_fb + failed_fb) >= total_steps_fb:
                         trace_done = True
@@ -3652,13 +3861,21 @@ def get_nextflow_status(
                     elif (nf_log_done or nf_log_failed) and total_steps_fb == 0:
                         # Nextflow finished but trace is empty (e.g., all tasks skipped/cached)
                         trace_done = True
-                        trace_failed = nf_log_failed
+                        trace_failed = nf_log_failed or (
+                            _disk_timing.get("status") in ("failed", "interrupted")
+                            or _disk_timing.get("returncode") not in (0, None)
+                        )
                 except Exception:
                     pass
 
             # Also treat timing.json with completed_at as a done signal
             if not trace_done and _fb_completed_at:
                 trace_done = True
+                trace_failed = (
+                    _disk_timing.get("status") in ("failed", "interrupted")
+                    or (_disk_timing.get("returncode") not in (0, None))
+                    or _log_indicates_nextflow_failure(log_full_text, log_tail_fallback)
+                )
 
             # Read S3 outdir from timing.json (written at run start with the actual S3 path).
             # Fallback: scan config file (legacy runs that predate timing.json outdir field).
@@ -3698,6 +3915,16 @@ def get_nextflow_status(
                                 })
                     except Exception:
                         pass
+                if not trace_failed and _looks_like_false_success(
+                    log_full_text=log_full_text,
+                    log_tail=log_tail_fallback,
+                    total_steps=total_steps_fb,
+                    duration_s=_fb_duration_s,
+                    s3_output_files=_s3_files_fb,
+                    workflow_domain=_disk_timing.get("workflow_domain", ""),
+                    nextflow_path=_disk_timing.get("nextflow_path", ""),
+                ):
+                    trace_failed = True
                 _fb_final_status = "failed" if trace_failed else "succeeded"
                 _fb_processes = _build_processes_from_s3_files(
                     _s3_files_fb, _s3_outdir or "", _disk_timing.get("workflow_domain", "")
@@ -3741,18 +3968,32 @@ def get_nextflow_status(
                             _h_files.append({"s3_uri": f"s3://{_s3_outdir.split('s3://')[1].split('/')[0]}/{_hp[3]}", "filename": _hf, "size": int(_hp[2]) if _hp[2].isdigit() else 0})
                 _h_elapsed = time.time() - _fb_started_at
                 if len(_h_files) >= 3 and _h_elapsed > 300:
-                    log.info("[Nextflow] S3 completion heuristic: %d files, %.0fs elapsed — marking completed", len(_h_files), _h_elapsed)
-                    _fb_procs_h = _build_processes_from_s3_files(_h_files, _s3_outdir, "")
-                    return {
-                        "run_id": run_id, "invocation_id": run_id,
-                        "status": "completed", "returncode": 0,
-                        "outdir": _s3_outdir, "work_dir": str(log_dir / "work"),
-                        "log_tail": log_tail_fallback, "is_batch": True,
-                        "s3_output_files": _h_files, "completedSteps": len(_h_files),
-                        "totalSteps": len(_h_files), "progressPercent": 100,
-                        "processes": _fb_procs_h, "started_at": _fb_started_at,
-                        "completed_at": time.time(), "duration_s": int(_h_elapsed),
-                    }
+                    if _looks_like_false_success(
+                        log_full_text=log_full_text,
+                        log_tail=log_tail_fallback,
+                        total_steps=0,
+                        duration_s=int(_h_elapsed),
+                        s3_output_files=_h_files,
+                        workflow_domain=_disk_timing.get("workflow_domain", ""),
+                        nextflow_path=_disk_timing.get("nextflow_path", ""),
+                    ):
+                        log.warning(
+                            "[Nextflow] S3 completion heuristic suppressed for %s (false success)",
+                            run_id,
+                        )
+                    else:
+                        log.info("[Nextflow] S3 completion heuristic: %d files, %.0fs elapsed — marking completed", len(_h_files), _h_elapsed)
+                        _fb_procs_h = _build_processes_from_s3_files(_h_files, _s3_outdir, "")
+                        return {
+                            "run_id": run_id, "invocation_id": run_id,
+                            "status": "completed", "returncode": 0,
+                            "outdir": _s3_outdir, "work_dir": str(log_dir / "work"),
+                            "log_tail": log_tail_fallback, "is_batch": True,
+                            "s3_output_files": _h_files, "completedSteps": len(_h_files),
+                            "totalSteps": len(_h_files), "progressPercent": 100,
+                            "processes": _fb_procs_h, "started_at": _fb_started_at,
+                            "completed_at": time.time(), "duration_s": int(_h_elapsed),
+                        }
 
             # Still running — list intermediate S3 outputs so the UI can show them
             _running_s3_files: list = []
@@ -3804,10 +4045,12 @@ def get_nextflow_status(
     # Read last few lines of log for progress info
     log_tail: list = []
     log_path = Path(info.get("log_path", ""))
+    log_full_text = ""
     if log_path.exists():
         try:
             with open(log_path) as fh:
                 lines = fh.readlines()
+            log_full_text = "".join(lines)
             log_tail = [c for l in lines[-40:] if (c := _clean_log_line(l))][-20:]
         except Exception:
             pass
@@ -3873,9 +4116,40 @@ def get_nextflow_status(
                           if str(f.get("filename", "")).rsplit(".", 1)[-1].lower() in {"json", "csv", "html", "png", "pdf"}]
         _elapsed = now - started_at
         if len(_s3_data_files) >= 3 and _elapsed > 300:
-            log.info("[Nextflow] S3 completion heuristic (normal path): %d files, %.0fs → completed", len(_s3_data_files), _elapsed)
-            _info_status = "completed"
-            completed_at = completed_at or now
+            if not _looks_like_false_success(
+                log_full_text=log_full_text,
+                log_tail=log_tail,
+                total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
+                duration_s=int(_elapsed),
+                s3_output_files=s3_files,
+                workflow_domain=workflow_domain,
+                nextflow_path=info.get("nextflow_path", ""),
+            ):
+                log.info("[Nextflow] S3 completion heuristic (normal path): %d files, %.0fs → completed", len(_s3_data_files), _elapsed)
+                _info_status = "completed"
+                completed_at = completed_at or now
+
+    if _info_status in ("succeeded", "completed") and _looks_like_false_success(
+        log_full_text=log_full_text,
+        log_tail=log_tail,
+        total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
+        duration_s=duration_s,
+        s3_output_files=s3_files,
+        workflow_domain=workflow_domain,
+        nextflow_path=info.get("nextflow_path", ""),
+    ):
+        log.warning(
+            "[Nextflow] Downgrading false success for run %s (steps=%s, duration=%ss, outputs=%d)",
+            run_id,
+            progress.get("totalTasks", progress.get("totalSteps", 0)),
+            duration_s,
+            len(s3_files),
+        )
+        _info_status = "failed"
+
+    _info_returncode = info.get("returncode")
+    if _info_status == "failed" and _info_returncode in (0, None):
+        _info_returncode = 1
 
     # Build QC report from S3 JSON report files when run is terminal
     qc_report: Optional[Dict] = None
@@ -3889,7 +4163,7 @@ def get_nextflow_status(
         "run_id": run_id,
         "invocation_id": info["invocation_id"],
         "status": _info_status,
-        "returncode": info["returncode"],
+        "returncode": _info_returncode,
         "outdir": outdir,
         "work_dir": work_dir,
         "log_tail": log_tail,
