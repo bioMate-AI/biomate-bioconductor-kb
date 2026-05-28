@@ -28,16 +28,14 @@ params.delivery_cell  = 'T_cell'        // T_cell | NK_cell | macrophage
 params.lnp_targeting  = 'auto'           // spleen_C12-200 | anti_CD8 | anti_CD5 | anti_CD3 | untargeted_MC3 | auto
 params.persistence    = 'transient'      // transient | persistent
 
-def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-    : 'biomate/biomni-tools:latest'
-
 // [Phase A] Atlas Safety Check — CAR target expression profile across critical tissues
 process INVIVO_CART_ATLAS_SAFETY {
     tag "invivo_cart:phaseA:${params.car_target}"
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas_safety", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)
@@ -154,7 +152,9 @@ process INVIVO_CART_LNP_TROPISM {
     tag "invivo_cart:phaseB"
     label 'process_low'
     publishDir "${params.outdir}/phaseB_lnp_tropism", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(atlas_json)
@@ -248,7 +248,9 @@ process INVIVO_CART_FRATRICIDE_CHECK {
     tag "invivo_cart:phaseC"
     label 'process_low'
     publishDir "${params.outdir}/phaseC_fratricide", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(lnp_json)
@@ -326,7 +328,9 @@ process INVIVO_CART_CONSTRUCT_ASSEMBLY {
     tag "invivo_cart:phaseD"
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(frat_json)

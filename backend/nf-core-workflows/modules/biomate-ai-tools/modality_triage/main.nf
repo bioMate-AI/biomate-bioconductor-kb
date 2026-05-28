@@ -30,16 +30,14 @@ params.target_gene       = 'null'
 params.indication        = 'oncology'
 params.modalities        = 'all'
 
-def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-    : 'biomate/biomni-tools:latest'
-
 // [Phase A] Atlas Profile — load atlas_expression.json and compute tissue-tier aggregates
 process TRIAGE_ATLAS_PROFILE {
     tag "triage:phaseA:${params.target_gene}"
     label 'process_low'
     publishDir "${params.outdir}/phaseA_atlas", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)
@@ -145,7 +143,9 @@ process TRIAGE_CART_VIABILITY {
     tag "triage:phaseB"
     label 'process_low'
     publishDir "${params.outdir}/phaseB_cart", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(ctx_json)
@@ -225,7 +225,9 @@ process TRIAGE_ADC_BISPECIFIC {
     tag "triage:phaseC"
     label 'process_low'
     publishDir "${params.outdir}/phaseC_adc_bispec", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(cart_json)
@@ -327,7 +329,9 @@ process TRIAGE_MODALITY_RANKING {
     tag "triage:phaseD"
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(adc_json)

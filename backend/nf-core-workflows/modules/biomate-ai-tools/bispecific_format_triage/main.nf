@@ -24,16 +24,14 @@ params.target_b   = 'null'
 params.indication = 'oncology'
 params.mechanism  = 'auto'      // cis_engagement | trans_engagement | auto
 
-def CONTAINER_IMAGE = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-    : 'biomate/biomni-tools:latest'
-
 // [Phase A] Mechanism Inference — precedent lookup and cis/trans engagement classification
 process BISPEC_MECHANISM_INFERENCE {
     tag "bispec:phaseA:${params.target_a}_x_${params.target_b}"
     label 'process_low'
     publishDir "${params.outdir}/phaseA_mechanism", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)
@@ -154,7 +152,9 @@ process BISPEC_FORMAT_SCORING {
     tag "bispec:phaseB"
     label 'process_low'
     publishDir "${params.outdir}/phaseB_scoring", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(mechanism_json)
@@ -221,7 +221,9 @@ process BISPEC_COMPOSITE_RANKING {
     tag "bispec:phaseC"
     label 'process_low'
     publishDir "${params.outdir}/phaseC_ranking", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(scores_json), path(mechanism_json)
@@ -300,7 +302,9 @@ process BISPEC_REPORT_SYNTHESIS {
     tag "bispec:phaseD"
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
-    container CONTAINER_IMAGE
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
+        : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(ranking_json), path(ranking_csv)
