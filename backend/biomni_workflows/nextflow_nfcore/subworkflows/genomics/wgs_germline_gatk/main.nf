@@ -73,6 +73,7 @@ params.max_time     = '72.h'
 // Process Definitions
 // ============================================================================
 
+// [Analysis]
 process FASTERQ_DUMP {
     tag "${accession}"
     publishDir "${params.outdir}/00_fastq", mode: 'copy'
@@ -100,6 +101,7 @@ process FASTERQ_DUMP {
     """
 }
 
+// [Quality Control]
 process FASTQC {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -140,6 +142,7 @@ process FASTQC {
     """
 }
 
+// [Quality Control]
 process FASTP_TRIM {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -167,6 +170,7 @@ process FASTP_TRIM {
     """
 }
 
+// [Alignment]
 process BWA_MEM2_ALIGN {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -228,6 +232,7 @@ process BWA_MEM2_ALIGN {
     """
 }
 
+// [Analysis]
 process SAMTOOLS_SORT_INDEX {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -251,6 +256,7 @@ process SAMTOOLS_SORT_INDEX {
     """
 }
 
+// [Analysis]
 process MARK_DUPLICATES {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -301,6 +307,7 @@ process MARK_DUPLICATES {
     """
 }
 
+// [Analysis]
 process SAMTOOLS_FLAGSTAT {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -353,6 +360,7 @@ process SAMTOOLS_FLAGSTAT {
     """
 }
 
+// [Analysis]
 process MOSDEPTH_COVERAGE {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -410,6 +418,7 @@ process MOSDEPTH_COVERAGE {
     """
 }
 
+// [Alignment Post-processing]
 process BQSR_BASE_RECALIBRATOR {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -449,6 +458,7 @@ process BQSR_BASE_RECALIBRATOR {
     """
 }
 
+// [Alignment Post-processing]
 process BQSR_APPLY {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -489,6 +499,7 @@ process BQSR_APPLY {
     """
 }
 
+// [Variant Calling]
 process HAPLOTYPE_CALLER {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -546,6 +557,7 @@ process HAPLOTYPE_CALLER {
     """
 }
 
+// [Analysis]
 process GENOTYPE_GVCFS {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -591,6 +603,7 @@ process GENOTYPE_GVCFS {
     """
 }
 
+// [Analysis]
 process VARIANT_FILTRATION {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -651,6 +664,7 @@ process VARIANT_FILTRATION {
     """
 }
 
+// [Analysis]
 process VARIANT_ANNOTATION {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"
@@ -698,6 +712,7 @@ process VARIANT_ANNOTATION {
     """
 }
 
+// [Quality Control]
 process MULTIQC_REPORT {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86'
     tag "${params.sample_id}"

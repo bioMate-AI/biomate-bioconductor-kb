@@ -30,6 +30,7 @@ params.label_key      = 'Unknown'     // obs column for cell type labels (or 'Un
 
 // ─── PROCESS 1: Guide assignment via MAGeCK count ───────────────────────────
 
+// [Guide Counting]
 process MAGECK_COUNT {
     tag "${meta.id}"
     label 'process_medium'
@@ -100,6 +101,7 @@ PYEOF
 
 // ─── PROCESS 2: Hit calling via MAGeCK MLE ──────────────────────────────────
 
+// [Guide Counting]
 process MAGECK_MLE {
     tag "${meta.id}"
     label 'process_medium'
@@ -157,6 +159,7 @@ PYEOF
 
 // ─── PROCESS 3: scVI perturbation state inference ───────────────────────────
 
+// [Embedding]
 process SCVI_PERTURBATION {
     tag "${meta.id}"
     label 'process_high'

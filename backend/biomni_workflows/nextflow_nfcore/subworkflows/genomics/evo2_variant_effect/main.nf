@@ -67,6 +67,7 @@ def REFERENCE_URLS = [
 ch_variants = Channel.fromPath(params.input_vcf, checkIfExists: true)
 
 // ── Process 1: VALIDATE_INPUT ─────────────────────────────────────────────────
+// [Post-processing]
 process VALIDATE_INPUT {
     tag "validate"
     container PYTHON_CONTAINER
@@ -160,6 +161,7 @@ PYEOF
 }
 
 // ── Process 2: FETCH_REFERENCE ────────────────────────────────────────────────
+// [Analysis]
 process FETCH_REFERENCE {
     tag "fetch_context"
     container PYTHON_CONTAINER
@@ -283,6 +285,7 @@ PYEOF
 }
 
 // ── Process 3: EVO2_SCORE_VARIANTS ────────────────────────────────────────────
+// [Variant Effect]
 process EVO2_SCORE_VARIANTS {
     tag "evo2_score"
     container EVO2_CONTAINER
@@ -496,6 +499,7 @@ PYEOF
 }
 
 // ── Process 4: RANK_VARIANTS ─────────────────────────────────────────────────
+// [Analysis]
 process RANK_VARIANTS {
     tag "rank"
     container PYTHON_CONTAINER
@@ -601,6 +605,7 @@ PYEOF
 }
 
 // ── Process 5: GENERATE_REPORT ────────────────────────────────────────────────
+// [Reporting]
 process GENERATE_REPORT {
     tag "report"
     container PYTHON_CONTAINER
