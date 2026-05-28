@@ -8761,13 +8761,24 @@ ${paramLines || '(none recorded)'}`;
               isCancelledNfState ? 'cancelled' :
               'failed';
             const mappedStatus: ExecutionRunStatus = toValidRunStatus(mappedNfForBioMate);
-            const terminalMessage = !isSuccessNfState && !isPausedNfState && !isCancelledNfState
+            // Do not downgrade from 'succeeded'. runs-outputs-service may have
+            // already upgraded failed -> succeeded when real outputs were
+            // recovered from work/ or outputs/ (publishDir-gap reconcile).
+            // Galaxy nfState can stay 'failed/interrupted' even when the
+            // workflow's compute completed cleanly, because Galaxy's terminal
+            // event handler missed the Nextflow JVM death. Trust the upgrade.
+            const wouldDowngradeFromSucceeded =
+              run.execution.status === 'succeeded' && mappedStatus !== 'succeeded';
+            const finalStatus = wouldDowngradeFromSucceeded
+              ? ('succeeded' as ExecutionRunStatus)
+              : mappedStatus;
+            const terminalMessage = !isSuccessNfState && !isPausedNfState && !isCancelledNfState && !wouldDowngradeFromSucceeded
               ? ((nextflowStatus as any)?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || `Nextflow run ended in state: ${nfState}`)
               : undefined;
             run = await storage.updateExecutionRun(run.id, {
               execution: {
                 ...run.execution,
-                status: mappedStatus,
+                status: finalStatus,
                 errorMessage: terminalMessage,
                 completedAt: isPausedNfState ? undefined : new Date(),
                 nextflowStatus: nextflowStatus,
