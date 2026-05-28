@@ -253,6 +253,22 @@ _ACCESSION_REGISTRY: list[dict] = [
 
 
 _ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+# OSC 8 hyperlink sequences (Nextflow 26.04+ uses these in the live progress
+# block so task hashes are clickable). Payload looks like
+#   "\x1B]8;;s3://.../018099\x1B\\bispec:phaseA…) | 0 of 1"
+# and breaks the [<hash>] PROCESS regex if not stripped.
+_OSC8_RE = re.compile(r'\x1B\]8;[^\x07\x1B]*(?:\x07|\x1B\\)')
+
+# Nextflow live progress block line:
+#   [ce/ac8b01] BIS…bispec:phaseA:PD-1_x_VEGF) | 0 of 1
+#   [-        ] BISPEC_FORMAT_SCORING          -
+_NF_PROC_RE = re.compile(
+    r'^\s*\[(?P<hash>[a-f0-9/]{8,}|-+\s*)\]\s+'
+    r'(?:process\s*>\s*)?'
+    r'(?P<name>[A-Za-z_][\w:.\-]*)'
+    r'(?:\s*\([^)]*\))?'
+    r'(?:\s*\|\s*(?P<done>\d+)\s*of\s*(?P<total>\d+))?'
+)
 
 # Nextflow startup noise patterns — lines matching any of these are dropped
 # from log_tail to keep execution logs focused on actual process output.
@@ -268,8 +284,11 @@ _NF_NOISE_RE = re.compile(
 )
 
 def _strip_ansi(text: str) -> str:
-    """Remove ANSI escape sequences (colors, cursor movement) from terminal output."""
-    return _ANSI_ESCAPE_RE.sub('', text)
+    """Remove ANSI escape sequences (colors, cursor movement, OSC 8 hyperlinks)
+    from terminal output."""
+    # Strip OSC 8 hyperlinks first so the URL payload between the ESC
+    # sequences doesn't get mistaken for content by the CSI stripper.
+    return _ANSI_ESCAPE_RE.sub('', _OSC8_RE.sub('', text))
 
 
 def _clean_log_line(line: str) -> str:
@@ -278,6 +297,99 @@ def _clean_log_line(line: str) -> str:
     if _NF_NOISE_RE.search(cleaned):
         return ''
     return cleaned
+
+
+def _parse_processes_from_log(log_text):
+    """Parse Nextflow's latest live progress block from the log file.
+
+    Returns {'processes', 'completedSteps', 'totalSteps'}. Used as a fallback
+    when workflow-trace.txt is still empty (Batch cold-start window) and no S3
+    outputs exist yet. Resolves ellipsis-truncated names ('BIS…bispec…')
+    against un-truncated sibling lines in the same block.
+    """
+    out = {"processes": [], "completedSteps": 0, "totalSteps": 0}
+    if not log_text:
+        return out
+
+    full_names = set()
+    for raw in log_text.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m = _NF_PROC_RE.match(line)
+        if not m:
+            continue
+        nm = m.group("name")
+        if "…" in line[line.find(nm):line.find(nm) + 60]:
+            continue
+        if len(nm) >= 4:
+            full_names.add(nm)
+
+    last_block_start = log_text.rfind("executor >")
+    block = log_text[last_block_start:] if last_block_start != -1 else log_text
+
+    block_full_names = set()
+    for raw in block.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m_pre = _NF_PROC_RE.match(line)
+        if not m_pre:
+            continue
+        nm_pre = m_pre.group("name")
+        if f"{nm_pre}…" in line:
+            continue
+        block_full_names.add(nm_pre)
+
+    def _resolve(short, line_text):
+        if f"{short}…" not in line_text:
+            return short
+        candidates = [n for n in full_names if n.startswith(short) and n != short]
+        if not candidates:
+            return short
+        if len(candidates) == 1:
+            return candidates[0]
+        remaining = [n for n in candidates if n not in block_full_names]
+        if len(remaining) == 1:
+            return remaining[0]
+        if remaining:
+            return min(remaining, key=len)
+        return min(candidates, key=len)
+
+    by_name = {}
+    for raw in block.splitlines():
+        line = _strip_ansi(raw).strip()
+        if not line.startswith("["):
+            continue
+        m = _NF_PROC_RE.match(line)
+        if not m:
+            continue
+        name = _resolve(m.group("name"), line)
+        hash_field = (m.group("hash") or "").strip()
+        is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
+        done = int(m.group("done") or 0)
+        total = int(m.group("total") or 0)
+        if total > 0:
+            if done >= total:
+                status = "completed"
+            elif is_submitted:
+                status = "running"
+            else:
+                status = "pending"
+        else:
+            status = "running" if is_submitted else "pending"
+        by_name[name] = {
+            "name": name,
+            "status": status,
+            "hash": hash_field if is_submitted else None,
+            "completed": done,
+            "total": total or 1,
+        }
+    procs = list(by_name.values())
+    out["processes"] = procs
+    out["completedSteps"] = sum(p["completed"] for p in procs)
+    out["totalSteps"] = sum(p["total"] for p in procs)
+    return out
 
 
 _NF_LOG_FAILURE_MARKERS = (
@@ -4158,6 +4270,22 @@ def get_nextflow_status(
         processes = _build_processes_from_s3_files(s3_files, outdir, workflow_domain)
     else:
         processes = []
+
+    # In-memory path cold-start fallback: when trace.txt is still empty and no
+    # S3 outputs exist yet (the first 1-3 min on Batch), parse the Nextflow log
+    # progress block so phase cards render real running/pending state instead
+    # of an empty processes=[].
+    if not processes and log_path.exists():
+        try:
+            _log_full_text = log_path.read_text(errors="replace")
+            if _log_full_text:
+                _live = _parse_processes_from_log(_log_full_text)
+                if _live["processes"]:
+                    processes = _live["processes"]
+                    progress["completedSteps"] = _live["completedSteps"]
+                    progress["totalSteps"] = _live["totalSteps"]
+        except Exception:
+            pass
 
     progress = {**progress, "processes": processes}
     work_dir = info.get("work_dir", "")
