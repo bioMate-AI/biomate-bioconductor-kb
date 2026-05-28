@@ -230,10 +230,10 @@ PYEOF
         fpocket: "4.1"
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
     END_VERSIONS
-    """
+    '''
 
     stub:
-    """
+    '''
     echo '{"num_pockets":3,"pockets":[]}' > ${meta.id}_pockets.json
     touch ${meta.id}_top_pocket.pdb
     printf 'pocket_id\\tvolume_A3\\tdruggability_score\\n' > ${meta.id}_druggability_report.tsv

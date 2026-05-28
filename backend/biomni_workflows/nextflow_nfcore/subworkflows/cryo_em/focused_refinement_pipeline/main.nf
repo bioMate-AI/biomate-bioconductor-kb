@@ -314,10 +314,10 @@ process FOCUSED_REFINEMENT_SUMMARY {
     print(f"  Improvement             : {summary['resolution_improvement_pct']:.1f}%")
     print(f"  Local FSC 0.143         : {summary['local_fsc_0143_resolution']:.2f} A")
     print("=" * 70)
-    """
+    '''
 
     stub:
-    """
+    '''
     touch focused_refinement_summary.json
     """
 }
