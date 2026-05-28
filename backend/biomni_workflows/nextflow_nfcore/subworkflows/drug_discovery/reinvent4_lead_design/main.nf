@@ -471,7 +471,7 @@ with open('filter_stats.json', 'w') as f:
     json.dump(stats, f, indent=2)
 print(json.dumps(stats, indent=2))
 PYEOF
-        """
+        '''
 }
 
 
@@ -499,7 +499,7 @@ process REPORT {
     path "design_summary.json",   emit: summary
 
     script:
-        """
+        '''
         python3 << 'PYEOF'
 import json, csv
 import matplotlib
@@ -576,7 +576,7 @@ with open('design_report.html', 'w') as f:
 
 print(json.dumps(summary, indent=2))
 PYEOF
-        """
+        '''
 }
 
 

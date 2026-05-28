@@ -111,7 +111,7 @@ process LIGPREP {
             -bff 16 \\
             -WAIT \\
             2>&1 | tee ligprep.log
-        """
+        '''
 }
 
 
@@ -132,7 +132,7 @@ process RECEPTOR_PREP {
     path "prepwizard.log",          emit: log
 
     script:
-        """
+        '''
         set -euo pipefail
 
         \$SCHRODINGER/utilities/prepwizard \\
@@ -148,7 +148,7 @@ process RECEPTOR_PREP {
         \$SCHRODINGER/utilities/structconvert \\
             -imae receptor_prepared.mae \\
             -omaegz receptor_prepared.maegz
-        """
+        '''
 }
 
 
@@ -170,7 +170,7 @@ process GRID_GENERATION {
     path "grid_gen.log",      emit: log
 
     script:
-        """
+        '''
         set -euo pipefail
 
         # Determine grid center
@@ -201,7 +201,7 @@ GRID_CENTER \$GCENTER
 GLIDE_IN
 
         \$SCHRODINGER/glide grid_gen.in -WAIT 2>&1 | tee grid_gen.log
-        """
+        '''
 }
 
 
@@ -226,7 +226,7 @@ process GLIDE_DOCKING {
     path "glide.log",           emit: log
 
     script:
-        """
+        '''
         set -euo pipefail
 
         cat > docking.in << GLIDE_IN
@@ -272,7 +272,7 @@ with open('docking_report.csv', 'w', newline='') as f:
     writer.writeheader()
     writer.writerows(rows)
 PYEOF
-        """
+        '''
 }
 
 
@@ -294,7 +294,7 @@ process REPORT {
     path "docking_report.html",  emit: report
 
     script:
-        """
+        '''
         set -euo pipefail
 
         python3 - << 'PYEOF'
@@ -345,7 +345,7 @@ with open('docking_report.html', 'w') as f:
 
 print(json.dumps(summary, indent=2))
 PYEOF
-        """
+        '''
 }
 
 

@@ -141,7 +141,7 @@ PATHWAY_DEG_SIGNATURES = {
 }
 
 def get_effect_vector(targets):
-    """Aggregate pathway effects from drug targets → gene expression vector."""
+    '''Aggregate pathway effects from drug targets → gene expression vector.'''
     gene_scores = {}
     pathways_hit = []
     for t in targets:
@@ -168,7 +168,7 @@ effect_b, pw_b = get_effect_vector(targets_b)
 all_genes = set(effect_a) | set(effect_b)
 
 def bliss(ea, eb):
-    """Bliss independence model — works on normalised effect sizes."""
+    '''Bliss independence model — works on normalised effect sizes.'''
     if ea >= 0 and eb >= 0:
         return ea + eb - ea * eb
     elif ea <= 0 and eb <= 0:
@@ -177,13 +177,13 @@ def bliss(ea, eb):
         return ea + eb
 
 def zip_score(ea, eb):
-    """ZIP (zero interaction potency) approximation."""
+    '''ZIP (zero interaction potency) approximation.'''
     # ZIP expected = weighted Bliss based on dose ratio
     w = ratio_a / (ratio_a + ratio_b) if (ratio_a + ratio_b) > 0 else 0.5
     return w * ea + (1-w) * eb
 
 def hsa(ea, eb):
-    """Highest Single Agent — conservative null model."""
+    '''Highest Single Agent — conservative null model.'''
     return ea if abs(ea) > abs(eb) else eb
 
 combo_bliss  = {g: bliss(effect_a.get(g,0), effect_b.get(g,0)) for g in all_genes}

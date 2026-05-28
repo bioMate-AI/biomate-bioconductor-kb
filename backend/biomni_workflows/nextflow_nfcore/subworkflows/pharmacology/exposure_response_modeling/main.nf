@@ -102,7 +102,7 @@ from scipy.optimize import curve_fit
 # ---------------------------------------------------------------------------
 
 def ac(v, default=None):
-    """Parse numeric env var with graceful fallback."""
+    '''Parse numeric env var with graceful fallback.'''
     if v in (None, '', 'null', 'None'):
         return default
     try:
