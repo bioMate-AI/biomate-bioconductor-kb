@@ -199,7 +199,7 @@ export function AppSidebar({
 
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Get recent projects
   const recentProjects = projectService.getAllProjects().slice(0, 5);
@@ -435,6 +435,17 @@ export function AppSidebar({
           <div style={{ fontWeight: 500, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--bm-text)' }}>{user?.name || user?.email?.split('@')[0] || 'Researcher'}</div>
           <div style={{ color: 'var(--bm-text-dim)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
         </div>
+        <button
+          onClick={async () => { await logout(); setLocation('/login'); }}
+          data-testid="button-logout"
+          title="Sign out"
+          style={{
+            flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+            padding: '4px 8px', borderRadius: 6, fontSize: 11, color: 'var(--bm-text-muted)',
+          }}
+        >
+          Sign&nbsp;out
+        </button>
       </div>
 
       {/* Dialogs */}

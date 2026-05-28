@@ -389,61 +389,11 @@ const WELCOME_PROMPTS: Record<WelcomeDomain, string[]> = {
   ],
 }
 
-function ReturningUserWelcome({ onSend }: { onSend: (msg: string) => void }) {
-  const [selectedDomain, setSelectedDomain] = useState<WelcomeDomain | null>(null)
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
-
-  return (
-    <div data-testid="onboarding-welcome" className="flex flex-col items-center gap-5 py-8 px-2">
-      <div className="text-center space-y-2">
-        <img src="/logo.png" alt="BioMate" className="h-14 w-auto mx-auto mb-1" />
-        <h2 className="text-xl font-semibold">{greeting} — welcome to BioMate</h2>
-        <p className="text-sm text-muted-foreground">
-          Choose a research domain to see suggested analyses, or type your question below.
-        </p>
-      </div>
-
-      {/* Domain picker */}
-      <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
-        {WELCOME_DOMAINS.map(({ key, label, icon: Icon, color }) => (
-          <button
-            key={key}
-            data-testid={`onboarding-domain-btn-${key}`}
-            onClick={() => setSelectedDomain(key === selectedDomain ? null : key)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-              selectedDomain === key
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border hover:bg-muted'
-            )}
-          >
-            <Icon className={cn('h-3.5 w-3.5', selectedDomain === key ? 'text-primary-foreground' : color)} />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Starter prompts for selected domain */}
-      {selectedDomain && (
-        <div className="w-full max-w-lg space-y-2">
-          <p className="text-xs text-muted-foreground text-center mb-1 uppercase tracking-wider font-medium">
-            {WELCOME_DOMAINS.find(d => d.key === selectedDomain)?.label} — suggested analyses
-          </p>
-          {WELCOME_PROMPTS[selectedDomain].map((prompt) => (
-            <button
-              key={prompt}
-              data-testid="onboarding-starter-prompt"
-              onClick={() => onSend(prompt)}
-              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+function ReturningUserWelcome(_props: { onSend: (msg: string) => void }) {
+  // Greeting + 8-domain × 4-query grid removed per todo (item #11):
+  // the hardcoded suggested queries haven't been E2E-validated against every
+  // workflow. Restore once each query is verified to drive a complete run.
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
