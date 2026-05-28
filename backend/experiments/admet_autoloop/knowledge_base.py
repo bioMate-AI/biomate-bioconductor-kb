@@ -41,7 +41,7 @@ PRIMARY SOURCES:
     (Quantitative logP↔IC50 regression underlying the auto-loop's logP filter.)
   Lammert C et al. (2010) — "Oral medications with significant hepatic
     first-pass metabolism are at increased risk for hepatic adverse effects"
-    DOI: 10.1093/toxsci/kfq059
+    DOI: 10.1002/hep.23317
   Kazius J et al. (2005) — "Derivation and validation of toxicophores for
     mutagenicity prediction"
     DOI: 10.1021/jm040835a
@@ -212,8 +212,8 @@ _KNOWLEDGE: dict[str, list[KnowledgeEntry]] = {
 
     "dili_probability": [
         KnowledgeEntry(
-            paper_ref="Lammert et al. (2010) Toxicol Sci 114:246-256",
-            paper_doi="10.1093/toxsci/kfq059",
+            paper_ref="Lammert et al. (2010) Hepatology 51:615-620",
+            paper_doi="10.1002/hep.23317",
             provenance="SILVER",
             paper_supports=(
                 "Lammert et al. (2010) showed that drugs with high lipophilicity and "
@@ -239,8 +239,8 @@ _KNOWLEDGE: dict[str, list[KnowledgeEntry]] = {
 
     "dili_risk_level": [
         KnowledgeEntry(
-            paper_ref="Lammert et al. (2010) Toxicol Sci 114:246-256",
-            paper_doi="10.1093/toxsci/kfq059",
+            paper_ref="Lammert et al. (2010) Hepatology 51:615-620",
+            paper_doi="10.1002/hep.23317",
             provenance="SILVER",
             paper_supports=(
                 "Lammert et al. identify lipophilicity as a primary driver of "
