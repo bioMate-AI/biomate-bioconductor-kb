@@ -1,13 +1,29 @@
 /**
- * BioMate Analytics — self-hosted telemetry
+ * BioMate Analytics — dual-sink telemetry
  *
- * Sends events to BioMate's own backend (POST /api/telemetry/event).
- * No third-party dependency. All data stays in the platform's database.
+ * Every track() call fans out to two sinks:
+ *   1. BioMate's own backend (POST /api/telemetry/event) — full event payload,
+ *      durable in our own database, available for analyses we own end-to-end.
+ *   2. Google Analytics 4 (window.gtag, see frontend/client/index.html) — for
+ *      funnel + acquisition reports in the GA4 console. Skipped automatically
+ *      on hosts that don't have gtag loaded (localhost, E2E, dev without GA),
+ *      so this never adds risk in non-prod environments.
+ *
+ * GA4 event names share BioMate's snake_case taxonomy verbatim (workflow_started,
+ * qc_failed, etc.). When adding a new event, the AnalyticsEvent union below is
+ * the single source of truth — type-checked at every call site.
  *
  * Usage:
  *   import { analytics } from '@/lib/analytics';
  *   analytics.track('workflow_started', { domain: 'rnaseq', steps: 8 });
  */
+
+declare global {
+  interface Window {
+    gtag?: (command: string, ...args: unknown[]) => void;
+    dataLayer?: unknown[];
+  }
+}
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -78,7 +94,7 @@ function track(event: AnalyticsEvent, properties?: AnalyticsProperties): void {
     console.debug('[analytics]', event, payload.properties);
   }
 
-  // Fire-and-forget POST to backend — never await, never throw
+  // Sink 1: fire-and-forget POST to BioMate backend
   fetch('/api/telemetry/event', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -88,6 +104,19 @@ function track(event: AnalyticsEvent, properties?: AnalyticsProperties): void {
   }).catch(() => {
     // Silently ignore — analytics must never affect UX
   });
+
+  // Sink 2: GA4 via gtag (only fires on hosts where the static loader in
+  // frontend/client/index.html called gtag('config', …) — i.e. prod app +
+  // dev-public + marketing site, NOT localhost / E2E).
+  try {
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      // GA4 caps custom event names + param keys: snake_case, ≤40 chars,
+      // no leading underscore. BioMate's existing names already comply.
+      window.gtag('event', event, properties || {});
+    }
+  } catch {
+    // gtag failures must never affect UX
+  }
 }
 
 function identify(userId: string, traits?: { plan?: string; email?: string; name?: string }): void {
