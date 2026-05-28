@@ -274,25 +274,40 @@ else:
                 "input_atoms": n_in}
     else:
         hx, hy, hz = sx / 2.0 + pad, sy / 2.0 + pad, sz / 2.0 + pad
-        kept = []
+        # Residue-level trim: keep a WHOLE residue if any of its atoms is inside
+        # the box. Atom-level slicing leaves partial residues (missing backbone C),
+        # which crashes pdb4amber find_gaps and tleap. Group by (chain, resSeq, iCode).
+        atom_lines = []
         with open(src) as fh:
             for line in fh:
-                if not line.startswith(("ATOM", "HETATM")):
-                    continue
-                try:
-                    x = float(line[30:38]); y = float(line[38:46]); z = float(line[46:54])
-                except ValueError:
-                    continue
-                if (cx - hx <= x <= cx + hx) and (cy - hy <= y <= cy + hy) and (cz - hz <= z <= cz + hz):
-                    kept.append(line)
+                if line.startswith(("ATOM", "HETATM")):
+                    atom_lines.append(line)
+        in_box_res = set()
+        for line in atom_lines:
+            try:
+                x = float(line[30:38]); y = float(line[38:46]); z = float(line[46:54])
+            except ValueError:
+                continue
+            if (cx - hx <= x <= cx + hx) and (cy - hy <= y <= cy + hy) and (cz - hz <= z <= cz + hz):
+                in_box_res.add(line[21:27])
+        kept = [ln for ln in atom_lines if ln[21:27] in in_box_res]
         if len(kept) < 50:
             sys.stderr.write("RECEPTOR_TRIM: only %d atoms inside padded box — check box_center/box_size/pad\\n" % len(kept))
             sys.exit(1)
         with open(dst, "w") as out:
-            out.write("REMARK BioMate: receptor trimmed to search box + %s A pad\\n" % round(pad, 1))
-            out.writelines(kept)
+            out.write("REMARK BioMate: receptor trimmed to search box + %s A pad (whole residues)\\n" % round(pad, 1))
+            prev_chain = None
+            for ln in kept:
+                chain = ln[21]
+                if prev_chain is not None and chain != prev_chain:
+                    out.write("TER\\n")
+                out.write(ln)
+                prev_chain = chain
+            out.write("TER\\n")
             out.write("END\\n")
+        meta_residues = len(in_box_res)
         meta = {"trimmed": True, "input_atoms": n_in, "output_atoms": len(kept),
+                "output_residues": meta_residues,
                 "box_center": [cx, cy, cz], "box_size": [sx, sy, sz], "trim_pad_A": pad}
 
 with open("receptor_trim_meta.json", "w") as f:

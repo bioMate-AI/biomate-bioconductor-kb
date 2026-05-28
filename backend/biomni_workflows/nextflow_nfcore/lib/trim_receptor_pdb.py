@@ -50,19 +50,25 @@ def trim_pdb_to_search_box(
     xmin, xmax = cx - hx, cx + hx
     ymin, ymax = cy - hy, cy + hy
     zmin, zmax = cz - hz, cz + hz
-    kept: list[str] = []
+    # Residue-level trim: keep a WHOLE residue if any atom falls inside the box.
+    # Atom-level slicing leaves partial residues (missing backbone C atoms), which
+    # crashes AmberTools pdb4amber find_gaps and tleap. Group by (chain, resSeq, iCode).
+    atom_lines: list[str] = []
     with open(pdb_path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
-            if not line.startswith(("ATOM", "HETATM")):
-                continue
-            try:
-                x = float(line[30:38])
-                y = float(line[38:46])
-                z = float(line[46:54])
-            except ValueError:
-                continue
-            if xmin <= x <= xmax and ymin <= y <= ymax and zmin <= z <= zmax:
-                kept.append(line)
+            if line.startswith(("ATOM", "HETATM")):
+                atom_lines.append(line)
+    in_box_res: set[str] = set()
+    for line in atom_lines:
+        try:
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+        except ValueError:
+            continue
+        if xmin <= x <= xmax and ymin <= y <= ymax and zmin <= z <= zmax:
+            in_box_res.add(line[21:27])
+    kept = [ln for ln in atom_lines if ln[21:27] in in_box_res]
     if len(kept) < min_atoms:
         raise RuntimeError(
             f"only {len(kept)} atoms inside padded box — check box_center/box_size/pad"
@@ -70,10 +76,16 @@ def trim_pdb_to_search_box(
     pad_s = str(round(float(pad), 1))
     with open(out_path, "w", encoding="utf-8") as out:
         out.write(
-            f"REMARK BioMate: receptor trimmed to search box + {pad_s} A pad\n"
+            f"REMARK BioMate: receptor trimmed to search box + {pad_s} A pad (whole residues)\n"
         )
+        prev_chain: str | None = None
         for ln in kept:
+            chain = ln[21]
+            if prev_chain is not None and chain != prev_chain:
+                out.write("TER\n")
             out.write(ln)
+            prev_chain = chain
+        out.write("TER\n")
         out.write("END\n")
     return len(kept)
 
