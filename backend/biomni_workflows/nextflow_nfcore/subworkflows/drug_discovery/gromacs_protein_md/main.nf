@@ -123,6 +123,7 @@ process LIGAND_PREP {
 
     script:
     def gaff = params.gaff_version
+    def bc   = params.box_center ?: ''
     """
     set -euo pipefail
 
@@ -172,6 +173,55 @@ print('SMILES to SDF conversion done')
     # Generate missing GAFF2 torsion/angle parameters
     parmchk2 -i ligand_gaff2.mol2 -f mol2 -o ligand.frcmod -s ${gaff} \
         2>&1 | tee -a ligand_prep.log
+
+    # Recenter the ligand into the binding pocket (box_center) so the
+    # receptor+ligand complex stays spatially compact for tleap. RDKit embeds
+    # SMILES at the origin; without this the solvation box spans receptor↔origin
+    # (~200 A apart) and tleap adds ~450k waters → intractable / OOM.
+    python3 <<'RECEOF' 2>&1 | tee -a ligand_prep.log
+import json
+
+bc_raw = '''${bc}'''
+if bc_raw.strip():
+    cx, cy, cz = json.loads(bc_raw)
+    lines = open('ligand_gaff2.mol2').read().splitlines()
+    start = None
+    end = None
+    for i, l in enumerate(lines):
+        if l.startswith('@<TRIPOS>ATOM'):
+            start = i + 1
+        elif start is not None and end is None and l.startswith('@<TRIPOS>'):
+            end = i
+    if start is not None:
+        if end is None:
+            end = len(lines)
+        recs = []
+        sx = sy = sz = 0.0
+        for j in range(start, end):
+            p = lines[j].split()
+            if len(p) >= 5:
+                recs.append((j, p))
+                sx += float(p[2]); sy += float(p[3]); sz += float(p[4])
+        n = len(recs)
+        if n:
+            ox, oy, oz = sx / n, sy / n, sz / n
+            dx, dy, dz = cx - ox, cy - oy, cz - oz
+            for j, p in recs:
+                x = float(p[2]) + dx; y = float(p[3]) + dy; z = float(p[4]) + dz
+                atype = p[5] if len(p) > 5 else 'X'
+                subid = p[6] if len(p) > 6 else '1'
+                subname = p[7] if len(p) > 7 else 'LIG'
+                charge = p[8] if len(p) > 8 else '0.0000'
+                lines[j] = "%7s %-8s %9.4f %9.4f %9.4f %-6s %3s %-8s %9s" % (
+                    p[0], p[1], x, y, z, atype, subid, subname, charge)
+            with open('ligand_gaff2.mol2', 'w') as fh:
+                fh.write("\\n".join(lines) + "\\n")
+            print("Recentered ligand to pocket (%.1f, %.1f, %.1f)" % (cx, cy, cz))
+    else:
+        print("WARNING: no @<TRIPOS>ATOM block found; ligand not recentered")
+else:
+    print("No box_center provided; ligand left at original coordinates")
+RECEOF
 
     echo "LIGAND_PREP complete: GAFF2 parameterization done" | tee -a ligand_prep.log
     """
