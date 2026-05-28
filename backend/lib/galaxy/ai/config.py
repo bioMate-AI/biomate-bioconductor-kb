@@ -70,9 +70,17 @@ class AIConfig:
             key = os.getenv(env_var)
             if key:
                 return key
+            if env_var == "GOOGLE_API_KEY":
+                key = os.getenv("GEMINI_API_KEY")
+                if key:
+                    return key
 
         # Fallback to generic keys
-        return os.getenv('ANTHROPIC_API_KEY') or os.getenv('GALAXY_AI_API_KEY')
+        return (
+            os.getenv('ANTHROPIC_API_KEY')
+            or os.getenv('GEMINI_API_KEY')
+            or os.getenv('GALAXY_AI_API_KEY')
+        )
 
     def _init_remaining_config(self):
         """Initialize remaining configuration (called from __init__)."""

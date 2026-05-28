@@ -17,11 +17,16 @@ This replaces the broken fallback logic in llm_client.py lines 193-236.
 import logging
 import asyncio
 import time
+from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Any
 import os
 import yaml
 
 log = logging.getLogger(__name__)
+
+_DEFAULT_LLM_CONFIG = (
+    Path(__file__).resolve().parents[3] / "config" / "llm_providers.yml"
+)
 
 
 class LLMProviderConfig:
@@ -43,26 +48,32 @@ class LLMProviderConfig:
         if self.api_key_env is None:
             # Local provider, always available
             return True
-        return bool(os.environ.get(self.api_key_env))
+        return bool(self.get_api_key())
 
     def get_api_key(self) -> Optional[str]:
         """Get API key from environment."""
-        if self.api_key_env:
-            return os.environ.get(self.api_key_env)
+        if not self.api_key_env:
+            return None
+        key = os.environ.get(self.api_key_env)
+        if key:
+            return key
+        # BioMate start scripts export GEMINI_API_KEY; config references GOOGLE_API_KEY.
+        if self.api_key_env == "GOOGLE_API_KEY":
+            return os.environ.get("GEMINI_API_KEY")
         return None
 
 
 class FallbackChainManager:
     """Manages the fallback chain for LLM requests."""
 
-    def __init__(self, config_path: str = '/Users/kky/biomate/backend/config/llm_providers.yml'):
+    def __init__(self, config_path: Optional[str] = None):
         """
         Initialize fallback chain from config file.
 
         Args:
             config_path: Path to llm_providers.yml
         """
-        self.config_path = config_path
+        self.config_path = config_path or str(_DEFAULT_LLM_CONFIG)
         self.primary: Optional[LLMProviderConfig] = None
         self.fallbacks: List[LLMProviderConfig] = []
         self.retry_config = {}
