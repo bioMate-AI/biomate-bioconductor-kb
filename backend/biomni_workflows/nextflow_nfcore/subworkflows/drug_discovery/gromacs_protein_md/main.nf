@@ -55,6 +55,7 @@ params.trim_pad             = 10.0       // Å beyond half box (literature MD de
 params.auto_trim_receptor   = true       // crop when input atom count >= min_atoms_for_trim
 params.min_atoms_for_trim   = 5000       // skip trim for already-small receptors
 params.max_solvated_atoms   = 300000     // soft budget; RECEPTOR_TRIM warns above this (pre-flight)
+params.single_chain_fallback = true      // Layer B: no box + huge receptor → keep largest chain
 
 // Simulation settings
 params.box_padding          = 12         // Angstrom from protein surface to box edge (tleap)
@@ -204,6 +205,7 @@ process RECEPTOR_TRIM {
     def pad       = params.trim_pad
     def box_pad   = params.box_padding
     def soft_cap  = params.max_solvated_atoms
+    def chain_fb  = params.single_chain_fallback ? 'True' : 'False'
     def bc        = params.box_center ?: ''
     def bs        = params.box_size ?: ''
     """
@@ -218,6 +220,7 @@ min_atoms = ${min_atoms}
 pad = float(${pad})
 box_padding = float(${box_pad})
 soft_cap = int(${soft_cap})
+single_chain_fallback = ${chain_fb}
 bc_raw = '''${bc}'''
 bs_raw = '''${bs}'''
 
@@ -259,11 +262,55 @@ def estimate_solvated(pdb_path):
             "estimated_total_atoms": total}
 
 
-if not bc_raw.strip() or not bs_raw.strip() or not auto_trim:
+def write_chain(src_path, out_path, chain_id, header):
+    # Write all atoms of a single chain, preserving residues and terminating with TER.
+    n = 0
+    with open(src_path) as fh, open(out_path, "w") as out:
+        out.write(header)
+        for line in fh:
+            if line.startswith(("ATOM", "HETATM")) and line[21] == chain_id:
+                out.write(line)
+                n += 1
+        out.write("TER\\n")
+        out.write("END\\n")
+    return n
+
+
+def largest_chain(src_path):
+    counts = {}
+    with open(src_path) as fh:
+        for line in fh:
+            if line.startswith("ATOM"):
+                counts[line[21]] = counts.get(line[21], 0) + 1
+    if not counts:
+        return None, 0
+    best = max(counts, key=counts.get)
+    return best, counts[best]
+
+
+if not auto_trim:
     shutil.copyfile(src, dst)
     n_in, _ = count_atoms(src)
-    meta = {"trimmed": False, "reason": "no box or auto_trim disabled",
-            "input_atoms": n_in}
+    meta = {"trimmed": False, "reason": "auto_trim disabled", "input_atoms": n_in}
+elif not bc_raw.strip() or not bs_raw.strip():
+    # Layer B — no pocket box supplied. If the receptor is large, gracefully fall
+    # back to the largest chain so tleap gets a tractable system instead of choking
+    # on the full assembly. Small receptors pass through unchanged.
+    n_in, _ = count_atoms(src)
+    best_chain, best_n = largest_chain(src) if single_chain_fallback else (None, 0)
+    if single_chain_fallback and n_in >= min_atoms and best_chain is not None and best_n >= 50:
+        header = ("REMARK BioMate: no docking box — fell back to largest chain %s "
+                  "(%d/%d atoms)\\n" % (best_chain, best_n, n_in))
+        n_out = write_chain(src, dst, best_chain, header)
+        meta = {"trimmed": True, "mode": "single_chain_fallback",
+                "chain": best_chain, "input_atoms": n_in, "output_atoms": n_out}
+        sys.stderr.write("RECEPTOR_TRIM: no box; using largest chain %s (%d atoms)\\n"
+                         % (best_chain, n_out))
+    else:
+        shutil.copyfile(src, dst)
+        meta = {"trimmed": False,
+                "reason": "no box; receptor small or fallback disabled",
+                "input_atoms": n_in}
 else:
     cx, cy, cz = json.loads(bc_raw)
     sx, sy, sz = json.loads(bs_raw)
