@@ -116,5 +116,77 @@ class TestNextflowFalseSuccess(unittest.TestCase):
         )
 
 
+class TestBatchStatusFromDisk(unittest.TestCase):
+    def test_read_run_nextflow_log_merges_work_dir_log(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            (log_dir / "nextflow.log").write_text(
+                "Submitted process > SYSTEM_SETUP\n",
+                encoding="utf-8",
+            )
+            work = log_dir / "work"
+            work.mkdir()
+            (work / ".nextflow.log").write_text(
+                "Session aborted -- Cause: Process `SYSTEM_SETUP` failed\n"
+                "> Execution complete -- Goodbye\n",
+                encoding="utf-8",
+            )
+            combined, tail = _nf._read_run_nextflow_log_text(log_dir)
+            self.assertIn("Execution complete", combined)
+            self.assertIn("Session aborted", combined)
+            self.assertTrue(_nf._log_indicates_nextflow_failure(combined, tail))
+
+    def test_evaluate_workflow_trace_terminal_failed_batch_run(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            (log_dir / "workflow-trace.txt").write_text(
+                "task_id\tname\tstatus\texit\trealtime\t%cpu\trss\tpeak_rss\n"
+                "1\tLIGAND_PREP\tCOMPLETED\t0\t5s\t200%\t42 MB\t42 MB\n"
+                "2\tSYSTEM_SETUP\tFAILED\t143\t2h\t-\t-\t-\n",
+                encoding="utf-8",
+            )
+            work = log_dir / "work"
+            work.mkdir()
+            (work / ".nextflow.log").write_text(
+                "Session aborted -- Cause: Process `SYSTEM_SETUP` failed\n"
+                "> Execution complete -- Goodbye\n",
+                encoding="utf-8",
+            )
+            log_text, tail = _nf._read_run_nextflow_log_text(log_dir)
+            done, failed, completed, fail_n, total = _nf._evaluate_workflow_trace_terminal(
+                log_dir, log_text, tail,
+            )
+            self.assertTrue(done)
+            self.assertTrue(failed)
+            self.assertEqual(completed, 1)
+            self.assertEqual(fail_n, 1)
+            self.assertEqual(total, 2)
+
+    def test_stub_launcher_log_alone_does_not_mark_terminal(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            (log_dir / "nextflow.log").write_text(
+                "Submitted process > SYSTEM_SETUP\n",
+                encoding="utf-8",
+            )
+            (log_dir / "workflow-trace.txt").write_text(
+                "task_id\tname\tstatus\texit\trealtime\t%cpu\trss\tpeak_rss\n"
+                "1\tLIGAND_PREP\tCOMPLETED\t0\t5s\t200%\t42 MB\t42 MB\n",
+                encoding="utf-8",
+            )
+            log_text, tail = _nf._read_run_nextflow_log_text(log_dir)
+            done, failed, _, _, _ = _nf._evaluate_workflow_trace_terminal(
+                log_dir, log_text, tail,
+            )
+            self.assertFalse(done)
+            self.assertFalse(failed)
+
+
 if __name__ == "__main__":
     unittest.main()

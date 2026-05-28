@@ -8,6 +8,7 @@
  *
  * Pipeline Steps:
  * 1. LIGAND_PREP         -- AmberTools antechamber + parmchk2 -> GAFF2 force-field params
+ * 1b. RECEPTOR_TRIM      -- Optional: crop large receptors to pocket box + pad (Vina parity)
  * 2. SYSTEM_SETUP        -- tleap: solvate protein-ligand complex; ParmEd -> GROMACS topology
  * 3. ENERGY_MINIMIZATION -- GROMACS steepest descent (gmx grompp + gmx mdrun)
  * 4. NVT_EQUILIBRATION   -- GROMACS 100 ps NVT (position restrained)
@@ -47,8 +48,15 @@ params.force_field          = 'amber99sb-ildn'  // amber99sb-ildn | charmm36m | 
 params.water_model          = 'tip3p'           // tip3p | tip4p | spc
 params.gaff_version         = 'gaff2'           // gaff | gaff2
 
+// Receptor crop (large assemblies — e.g. viral GP tetramers)
+params.box_center           = null       // JSON '[cx,cy,cz]' from pocket / Vina box
+params.box_size             = null       // JSON '[sx,sy,sz]' docking box edges (Å)
+params.trim_pad             = 10.0       // Å beyond half box (literature MD default 10–15)
+params.auto_trim_receptor   = true       // crop when input atom count >= min_atoms_for_trim
+params.min_atoms_for_trim   = 5000       // skip trim for already-small receptors
+
 // Simulation settings
-params.box_padding          = 12         // Angstrom from protein surface to box edge
+params.box_padding          = 12         // Angstrom from protein surface to box edge (tleap)
 params.ion_concentration    = 0.15       // mol/L (NaCl neutralizing salt)
 params.temperature          = 300        // K (NVT/NPT equilibration + production)
 params.pressure             = 1.0        // bar (NPT)
@@ -164,6 +172,49 @@ print('SMILES to SDF conversion done')
         2>&1 | tee -a ligand_prep.log
 
     echo "LIGAND_PREP complete: GAFF2 parameterization done" | tee -a ligand_prep.log
+    """
+}
+
+
+process RECEPTOR_TRIM {
+    /*
+     * Crop large deposited receptors (viral GP tetramers, etc.) to the pocket
+     * search box + padding before tleap solvation — same geometry as Vina trim.
+     * Skips when box params are absent or input is already small (< min_atoms_for_trim).
+     */
+    tag "receptor_trim"
+    container AMBERTOOLS_CONTAINER
+    publishDir "${params.outdir}/prep", mode: params.publish_dir_mode
+
+    input:
+    path receptor_pdb
+
+    output:
+    path "receptor_for_md.pdb", emit: pdb
+    path "receptor_trim_meta.json", emit: meta
+
+    script:
+    def auto_trim = params.auto_trim_receptor ? 'true' : 'false'
+    def min_atoms = params.min_atoms_for_trim
+    def pad       = params.trim_pad
+    def bc        = params.box_center ?: ''
+    def bs        = params.box_size ?: ''
+    def trim_py   = "${projectDir}/../../lib/trim_receptor_pdb.py"
+    """
+    set -euo pipefail
+
+    if [ -z "${bc}" ] || [ -z "${bs}" ]; then
+        cp "${receptor_pdb}" receptor_for_md.pdb
+        echo '{"trimmed":false,"reason":"no box_center/box_size params"}' > receptor_trim_meta.json
+    else
+        python3 "${trim_py}" "${receptor_pdb}" receptor_for_md.pdb \\
+            --box-center '${bc}' \\
+            --box-size '${bs}' \\
+            --pad ${pad} \\
+            --min-input-atoms ${min_atoms} \\
+            $([ "${auto_trim}" = "true" ] && echo "--auto-trim" || echo "--no-auto-trim") \\
+            | tee receptor_trim_meta.json
+    fi
     """
 }
 
@@ -1063,9 +1114,12 @@ workflow {
     // Step 1: Ligand parameterization (AmberTools)
     LIGAND_PREP(ligand_ch)
 
+    // Step 1b: Optional receptor crop (large assemblies)
+    RECEPTOR_TRIM(receptor_ch)
+
     // Step 2: Solvated system setup (tleap + ParmEd)
     SYSTEM_SETUP(
-        receptor_ch,
+        RECEPTOR_TRIM.out.pdb,
         LIGAND_PREP.out.mol2,
         LIGAND_PREP.out.frcmod
     )
