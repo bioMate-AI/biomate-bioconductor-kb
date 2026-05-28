@@ -137,6 +137,21 @@ function identify(userId: string, traits?: { plan?: string; email?: string; name
   _userTraits = {
     plan: traits?.plan,
   };
+  // GA4 user attribution: gtag('set') merges into the global config so every
+  // subsequent event is attributed to this user_id. We don't pass email/name
+  // — those are PII and GA4 rejects unhashed PII in user_id anyway. The
+  // BioMate backend has the full traits already via the sink-1 POST below.
+  try {
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      window.gtag('set', { user_id: userId });
+      if (traits?.plan) {
+        // Custom user property for GA4 segmentation by plan tier.
+        window.gtag('set', 'user_properties', { plan: traits.plan });
+      }
+    }
+  } catch {
+    // gtag failures must never affect UX
+  }
   // Record the identify event itself
   track('user_logged_in', { userId });
 }
@@ -144,6 +159,15 @@ function identify(userId: string, traits?: { plan?: string; email?: string; name
 function reset(): void {
   _userId = undefined;
   _userTraits = {};
+  // Clear the GA4 user binding so post-logout events aren't attributed to
+  // the previous user. Sending user_id: undefined clears it server-side.
+  try {
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      window.gtag('set', { user_id: undefined });
+    }
+  } catch {
+    // gtag failures must never affect UX
+  }
 }
 
 export const analytics = { track, identify, reset };
