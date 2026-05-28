@@ -15,9 +15,9 @@ params.n_poses                  = '9'
 params.reference_ligand_smiles  = ''
 
 process DOCKING_AUTODOCK_VINA {
-    tag "$meta.id"
+    tag 'run'
     label 'process_medium'
-    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
+    publishDir path: { params.outdir }, mode: 'copy', overwrite: true
 
     // local (ARM dev): biomni-drug-discovery-nf layers on biomni-structure-to-drug
     // aws batch (AMD64): structure-based DD image (Vina, meeko, obabel, fpocket)
@@ -26,16 +26,16 @@ process DOCKING_AUTODOCK_VINA {
         : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
-    val(meta)
+    val run_id
 
     output:
-    tuple val(meta), path("docking_autodock_vina_results.json"), emit: results
-    tuple val(meta), path("docking_autodock_vina_output.txt"),   emit: output
-    path "docking_poses/*.pdbqt",                                emit: poses, optional: true
-    path "versions.yml",                                         emit: versions
+    path("docking_autodock_vina_results.json"), emit: results
+    path("docking_autodock_vina_output.txt"),   emit: output
+    path "docking_poses/*.pdbqt",                emit: poses, optional: true
+    path "versions.yml",                         emit: versions
 
     script:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${run_id}"
     """
     export PARAM_SMILES_LIST='${params.smiles_list}'
     export PARAM_RECEPTOR_PDB='${params.receptor_pdb_file}'
@@ -429,7 +429,7 @@ PYEOF
 
 workflow DOCKING_AUTODOCK_VINA_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta) ]
+    ch_input  // channel: val(run_id)
 
     main:
     DOCKING_AUTODOCK_VINA(ch_input)
@@ -442,7 +442,7 @@ workflow DOCKING_AUTODOCK_VINA_WORKFLOW {
 
 // Entry workflow for standalone execution
 workflow {
-    ch_input = Channel.of([id: 'run'])
+    ch_input = Channel.of('run')
     DOCKING_AUTODOCK_VINA_WORKFLOW(ch_input)
     DOCKING_AUTODOCK_VINA_WORKFLOW.out.output.view { "Output: $it" }
 }

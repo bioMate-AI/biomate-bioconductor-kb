@@ -7,7 +7,6 @@ With automatic cascading fallback for reliability.
 
 import json
 import logging
-import os
 import time
 import uuid
 import httpx
@@ -19,6 +18,18 @@ from .llm_client_fallback_implementation import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def _extract_anthropic_text(result: Dict[str, Any]) -> str:
+    """Extract assistant text from Anthropic Messages API payload."""
+    for block in result.get("content") or []:
+        if isinstance(block, dict) and block.get("type") == "text":
+            text = block.get("text")
+            if text:
+                return str(text).strip()
+    raise Exception(
+        f"Anthropic response had no text block (stop_reason={result.get('stop_reason')!r})"
+    )
 
 
 def _emit_llm_billing(
@@ -108,23 +119,8 @@ class LLMClient:
         self.user_id: str = ""
         self.session_id: str = str(uuid.uuid4())
 
-        # Initialize cascading fallback manager.
-        # The default config_path baked into FallbackChainManager is the
-        # original maintainer's macOS home (/Users/kky/…); on every other
-        # host the yaml fails to load and the chain silently falls back to
-        # hardcoded defaults — which omit Gemini when only GEMINI_API_KEY
-        # (not GOOGLE_API_KEY) is set and stall for ~60s before reaching a
-        # working provider. Resolve the yaml relative to this file so the
-        # repo-checked-in providers config is actually used.
-        _here = os.path.dirname(os.path.abspath(__file__))
-        _cfg = os.path.normpath(
-            os.path.join(_here, "..", "..", "..", "..", "config", "llm_providers.yml")
-        )
-        _cfg = os.environ.get("BIOMATE_LLM_PROVIDERS_YML", _cfg)
-        if os.path.exists(_cfg):
-            self.fallback_manager = FallbackChainManager(config_path=_cfg)
-        else:
-            self.fallback_manager = FallbackChainManager()
+        # Initialize cascading fallback manager
+        self.fallback_manager = FallbackChainManager()
 
         # Initialize provider-specific settings
         self._setup_provider()
@@ -312,7 +308,7 @@ class LLMClient:
                     output_tokens=usage.get("output_tokens", 0),
                     duration_ms=(time.monotonic() - t0) * 1000,
                 )
-                return result['content'][0]['text'].strip()
+                return _extract_anthropic_text(result)
             else:
                 raise Exception(f"Anthropic API error: {response.status_code} {response.text}")
 
@@ -549,12 +545,11 @@ CLAUDE_MODELS = [
 
 # Google Gemini models
 GEMINI_MODELS = [
-    "gemini-3.5-flash",              # Gemini 3.5 Flash - current Flash GA
-    "gemini-3-flash-preview",        # Gemini 3 Flash Preview - prior default
-    "gemini-2.0-flash-exp",          # Gemini 2.0 Flash - experimental
-    "gemini-1.5-pro",                # Gemini 1.5 Pro - production
-    "gemini-1.5-flash",              # Gemini 1.5 Flash
-    "gemini-nano",                   # Gemini Nano - edge/mobile
+    "gemini-3-flash-preview",        # Gemini 3 Flash Preview - Primary cloud model (BioMate default)
+    "gemini-2.0-flash-exp",          # Gemini 2.0 Flash - Latest experimental
+    "gemini-1.5-pro",                # Gemini 1.5 Pro - Production ready
+    "gemini-1.5-flash",              # Gemini 1.5 Flash - Fast responses
+    "gemini-nano",                   # Gemini Nano - Edge/mobile
 ]
 
 # OpenAI models
@@ -573,7 +568,7 @@ DEEPSEEK_MODELS = [
 # Ollama local models
 OLLAMA_MODELS = [
     "gemma4:31b",                    # Gemma 4 31B - Primary local model (BioMate default)
-    "qwen3:8b",                     # Qwen3 32B - Strong reasoning, /think mode
+    "qwen3:32b",                     # Qwen3 32B - Strong reasoning, /think mode
     "qwen3:30b-a3b",                 # Qwen3 30B MoE - Fast (61 tok/s), good MCQ
     "qwen3:14b",                     # Qwen3 14B - Good balance
     "qwen3:8b",                      # Qwen3 8B - Fast
@@ -597,8 +592,8 @@ def get_recommended_model(provider: str) -> str:
     """Get recommended model for provider."""
     recommendations = {
         'anthropic': 'claude-sonnet-4-5',
-        'gemini': 'gemini-3.5-flash',
-        'google': 'gemini-3.5-flash',
+        'gemini': 'gemini-3-flash-preview',
+        'google': 'gemini-3-flash-preview',
         'openai': 'gpt-4o',
         'deepseek': 'deepseek-chat',
         'ollama': 'gemma4:31b',
@@ -661,7 +656,7 @@ def get_all_providers() -> Dict[str, Dict[str, Any]]:
         'ollama': {
             'name': 'Ollama (Local)',
             'models': OLLAMA_MODELS,
-            'recommended': 'qwen3:8b',
+            'recommended': 'qwen3:32b',
             'api_key_required': False,
             'local': True,
             'description': 'Local models via Ollama - qwen3, llama3, mistral'
