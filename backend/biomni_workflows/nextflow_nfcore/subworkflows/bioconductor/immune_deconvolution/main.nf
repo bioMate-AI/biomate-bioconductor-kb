@@ -33,6 +33,7 @@ params.checksig            = false
 // PROCESS 1: Immune deconvolution
 // ────────────────────────────────────────────────────────────
 
+// [Immune Deconvolution]
 process BIOC_DECONRNASEQ {
     tag "${meta.id}"
     label 'process_medium'
@@ -150,6 +151,7 @@ process BIOC_DECONRNASEQ {
 // PROCESS 2: Immune summary + correlation
 // ────────────────────────────────────────────────────────────
 
+// [Immune Deconvolution]
 process IMMUNEDECONV_SUMMARY {
     tag "${meta.id}"
     label 'process_low'
