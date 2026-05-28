@@ -467,7 +467,11 @@ export function ChatInterface({
   // Hide typing indicator once streaming content has started appearing in the placeholder
   const lastMsg = displayMessages[displayMessages.length - 1]
   const streamingHasContent = (isTyping || isTypingLocal) && lastMsg?.role === 'assistant' && !!lastMsg?.content?.trim()
-  const displayTyping = (isTyping || isTypingLocal) && !streamingHasContent
+  // Show indicator either before any text appears OR during the workflow-generation
+  // window after the AI text finishes streaming (per todo #24 — the user wants the
+  // "BioMate is generating the workflow for you…" cue in that 2-5 s gap).
+  const displayTyping = (isTyping || isTypingLocal) &&
+    (!streamingHasContent || workflowGeneratingPhase === 'workflow')
   const latestAssistantMessageId = [...displayMessages]
     .reverse()
     .find((msg) => msg.role !== "user")?.id

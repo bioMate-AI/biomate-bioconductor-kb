@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 
 export function TypingIndicator({ phase = 'thinking' }: { phase?: 'thinking' | 'workflow' }) {
-  const label = phase === 'workflow' ? 'Workflow is generating…' : 'BioMate is thinking…'
+  const label = phase === 'workflow'
+    ? 'BioMate is generating the workflow for you…'
+    : 'BioMate is thinking…'
   return (
     <div className="flex gap-4 p-4" data-testid="chat-response-pending">
       <Avatar className="h-8 w-8 flex-shrink-0">
