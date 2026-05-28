@@ -194,27 +194,76 @@ process RECEPTOR_TRIM {
     path "receptor_trim_meta.json", emit: meta
 
     script:
-    def trim_flag = params.auto_trim_receptor ? '--auto-trim' : '--no-auto-trim'
+    // Inline the trim (no external lib file) so it runs inside the AWS Batch
+    // container, which does not stage host-side ${projectDir} Python helpers.
+    // Mirrors trim geometry of pharmacology/docking_autodock_vina.
+    def auto_flag = params.auto_trim_receptor ? 'True' : 'False'
     def min_atoms = params.min_atoms_for_trim
     def pad       = params.trim_pad
     def bc        = params.box_center ?: ''
     def bs        = params.box_size ?: ''
-    def trim_py   = "${projectDir}/../../lib/trim_receptor_pdb.py"
     """
     set -euo pipefail
+    python3 <<'PYEOF'
+import json, sys, shutil
 
-    if [ -z "${bc}" ] || [ -z "${bs}" ]; then
-        cp "${receptor_pdb}" receptor_for_md.pdb
-        echo '{"trimmed":false,"reason":"no box_center/box_size params"}' > receptor_trim_meta.json
-    else
-        python3 "${trim_py}" "${receptor_pdb}" receptor_for_md.pdb \\
-            --box-center '${bc}' \\
-            --box-size '${bs}' \\
-            --pad ${pad} \\
-            --min-input-atoms ${min_atoms} \\
-            ${trim_flag} \\
-            | tee receptor_trim_meta.json
-    fi
+src = "${receptor_pdb}"
+dst = "receptor_for_md.pdb"
+auto_trim = ${auto_flag}
+min_atoms = ${min_atoms}
+pad = float(${pad})
+bc_raw = '''${bc}'''
+bs_raw = '''${bs}'''
+
+
+def count_atoms(p):
+    n = 0
+    with open(p) as fh:
+        for line in fh:
+            if line.startswith(("ATOM", "HETATM")):
+                n += 1
+    return n
+
+
+if not bc_raw.strip() or not bs_raw.strip() or not auto_trim:
+    shutil.copyfile(src, dst)
+    meta = {"trimmed": False, "reason": "no box or auto_trim disabled",
+            "input_atoms": count_atoms(src)}
+else:
+    cx, cy, cz = json.loads(bc_raw)
+    sx, sy, sz = json.loads(bs_raw)
+    n_in = count_atoms(src)
+    if n_in < min_atoms:
+        shutil.copyfile(src, dst)
+        meta = {"trimmed": False, "reason": "receptor below min_atoms",
+                "input_atoms": n_in}
+    else:
+        hx, hy, hz = sx / 2.0 + pad, sy / 2.0 + pad, sz / 2.0 + pad
+        kept = []
+        with open(src) as fh:
+            for line in fh:
+                if not line.startswith(("ATOM", "HETATM")):
+                    continue
+                try:
+                    x = float(line[30:38]); y = float(line[38:46]); z = float(line[46:54])
+                except ValueError:
+                    continue
+                if (cx - hx <= x <= cx + hx) and (cy - hy <= y <= cy + hy) and (cz - hz <= z <= cz + hz):
+                    kept.append(line)
+        if len(kept) < 50:
+            sys.stderr.write("RECEPTOR_TRIM: only %d atoms inside padded box — check box_center/box_size/pad\\n" % len(kept))
+            sys.exit(1)
+        with open(dst, "w") as out:
+            out.write("REMARK BioMate: receptor trimmed to search box + %s A pad\\n" % round(pad, 1))
+            out.writelines(kept)
+            out.write("END\\n")
+        meta = {"trimmed": True, "input_atoms": n_in, "output_atoms": len(kept),
+                "box_center": [cx, cy, cz], "box_size": [sx, sy, sz], "trim_pad_A": pad}
+
+with open("receptor_trim_meta.json", "w") as f:
+    json.dump(meta, f)
+print(json.dumps(meta))
+PYEOF
     """
 }
 
