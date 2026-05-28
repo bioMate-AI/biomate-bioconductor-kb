@@ -65,19 +65,9 @@ export function IndLeftNav({ projects, activeId, onSelect, onNew, onSettings }: 
         ))}
       </div>
 
-      <div className="ind-left-foot">
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            onSettings?.();
-          }}
-        >
-          Settings
-        </a>
-        <a href="#">Billing</a>
-        <a href="#">Help</a>
-      </div>
+      {/* Settings / Billing / Help links removed per todo (item #21):
+          Billing + Help were href="#" stubs; Settings dialog says "porting
+          in progress". Reinstate when each lands. */}
     </aside>
   );
 }
