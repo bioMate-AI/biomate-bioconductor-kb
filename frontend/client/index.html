@@ -21,6 +21,7 @@
            2. Hit dispatch (gtag('config', ID)) is gated by hostname so each
               environment writes to its own GA4 property:
                 biomate.ai / www.biomate.ai            → G-65JDDPEDQ5 (prod)
+                app.biomate.ai / www.app.biomate.ai    → G-65JDDPEDQ5 (prod app)
                 dev-public.biomate.ai / *.dev-public…  → G-8YG54DFHQG (dev)
                 localhost / 127.0.0.1 / E2E hosts      → no config → no hits
            3. The loader's ?id= param is just the URL it fetches gtag.js from;
@@ -34,7 +35,9 @@
       gtag('js', new Date());
       (function() {
         var host = window.location.hostname;
-        if (host === 'biomate.ai' || host === 'www.biomate.ai') {
+        if (host === 'biomate.ai' || host === 'www.biomate.ai'
+            || host === 'app.biomate.ai' || host === 'www.app.biomate.ai'
+            || host.indexOf('.app.biomate.ai') !== -1) {
           gtag('config', 'G-65JDDPEDQ5', { anonymize_ip: true });
         } else if (host === 'dev-public.biomate.ai' || host.indexOf('.dev-public.biomate.ai') !== -1) {
           gtag('config', 'G-8YG54DFHQG', { anonymize_ip: true });
