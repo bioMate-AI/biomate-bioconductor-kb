@@ -33,6 +33,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[3]
 PIPELINE_SCRIPT = ROOT / "research/anti-virus/scripts/run_andv_inhibitor_pipeline_nextflow.py"
 DEFAULT_BASE_RUN = "research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z"
+DEFAULT_9P3I_S3 = "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb"
 ASPIRIN_SMILES = "CC(=O)Oc1ccccc1C(=O)O"
 
 
@@ -63,6 +64,14 @@ def read_pipeline_manifest(base_run: Path) -> dict[str, Any]:
     if not mf_path.is_file():
         raise SystemExit(f"Missing pipeline manifest: {mf_path}")
     return json.loads(mf_path.read_text(encoding="utf-8"))
+
+
+def full_receptor_s3_from_manifest(manifest: dict[str, Any]) -> str:
+    """Prefer campaign full-chain 9P3I; pocket-trimmed fragments break ParmEd/tleap."""
+    pdb = (manifest.get("pdb_input") or "").strip()
+    if pdb.startswith("s3://"):
+        return pdb
+    return DEFAULT_9P3I_S3
 
 
 def top_pocket_s3_from_manifest(base_run: Path, manifest: dict[str, Any]) -> str:
@@ -141,7 +150,13 @@ def main() -> None:
     ap.add_argument(
         "--pdb-input",
         default="",
-        help="Receptor S3 (default: structure_top_pocket.pdb from base-run pocket step)",
+        help="Receptor S3 (default: full 9P3I from pipeline manifest, not fpocket fragment)",
+    )
+    ap.add_argument(
+        "--receptor",
+        choices=("full", "pocket"),
+        default="full",
+        help="full = 9P3I tetramer S3 (default); pocket = structure_top_pocket.pdb from pocket step",
     )
     ap.add_argument("--ligand-smiles", default=ASPIRIN_SMILES, help="Ligand SMILES passed to --ligand-s3")
     ap.add_argument(
@@ -156,7 +171,12 @@ def main() -> None:
     manifest = read_pipeline_manifest(base_run)
     base_run_rel = repo_rel(base_run)
 
-    pdb_input = args.pdb_input.strip() or top_pocket_s3_from_manifest(base_run, manifest)
+    if args.pdb_input.strip():
+        pdb_input = args.pdb_input.strip()
+    elif args.receptor == "pocket":
+        pdb_input = top_pocket_s3_from_manifest(base_run, manifest)
+    else:
+        pdb_input = full_receptor_s3_from_manifest(manifest)
     user_id = (manifest.get("user_id") or "").strip() or None
 
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

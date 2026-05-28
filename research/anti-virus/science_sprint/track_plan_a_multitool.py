@@ -42,8 +42,19 @@ TEMPLATE_DIR = ROOT / "research/anti-virus/runs/plan_a_epitope_samplesheet_templ
 DEFAULT_SAMPLESHEET_S3 = (
     "s3://biomate-nextflow-work/inputs/andv_campaign/plan_a_epitope_samplesheet/samplesheet.csv"
 )
+# Licensed DTU tarball (not in git). Upload after academic registration:
+#   aws s3 cp netMHCpan-4.1b.Linux.tar.gz s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/
+DEFAULT_NETMHCPAN_TARBALL_S3 = (
+    "s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/netMHCpan-4.1b.Linux.tar.gz"
+)
+DEFAULT_WORKFLOW_DOMAIN = "epitope_prediction"
 TOOLS = ("mhcnuggets", "netmhcpan")
 TERMINAL = {"completed", "succeeded", "failed", "cancelled", "error"}
+_NETMHCPAN_FAIL_MARKERS = (
+    "netmhcpan_path not specified",
+    "WorkflowScriptErrorException",
+)
+_PREDICTION_OUTPUT_SUFFIXES = (".tsv", ".xls", ".csv")
 
 
 def log(msg: str) -> None:
@@ -151,6 +162,70 @@ def get_status_with_retry(
     raise RuntimeError("get_status_with_retry: exhausted retries")
 
 
+def s3_object_exists(s3_uri: str) -> bool:
+    if not s3_uri.startswith("s3://"):
+        return False
+    no_scheme = s3_uri[5:]
+    bucket, _, key = no_scheme.partition("/")
+    if not bucket or not key:
+        return False
+    try:
+        proc = subprocess.run(
+            ["aws", "s3", "ls", f"s3://{bucket}/{key}"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        return proc.returncode == 0 and bool(proc.stdout.strip())
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def resolve_netmhcpan_path(explicit: str) -> str:
+    path = (explicit or os.environ.get("BIOMATE_NETMHCPAN_PATH") or DEFAULT_NETMHCPAN_TARBALL_S3).strip()
+    if not path:
+        raise SystemExit(
+            "NetMHCpan requires --netmhcpan-path or BIOMATE_NETMHCPAN_PATH "
+            f"(default: {DEFAULT_NETMHCPAN_TARBALL_S3}). "
+            "Download netMHCpan-4.1b.Linux.tar.gz from DTU and upload to that S3 key."
+        )
+    if not path.startswith("s3://"):
+        raise SystemExit(f"--netmhcpan-path must be an s3:// URI for AWS Batch (got {path!r}).")
+    if not s3_object_exists(path):
+        raise SystemExit(
+            f"NetMHCpan tarball not found at {path}. "
+            "Upload netMHCpan-4.1b.Linux.tar.gz (DTU academic license) before running netmhcpan."
+        )
+    return path
+
+
+def epitope_run_looks_failed(status_payload: dict[str, Any], tool: str) -> str | None:
+    """Return an error string when API status looks successful but outputs/logs say otherwise."""
+    api_status = status_payload.get("terminal_status") or status_payload.get("status", "")
+    if api_status not in ("completed", "succeeded"):
+        return None
+    rc = status_payload.get("returncode")
+    if rc not in (0, None):
+        return f"returncode={rc}"
+    s3_files = status_payload.get("s3_output_files") or []
+    has_prediction = any(
+        str(f.get("filename", "")).endswith(_PREDICTION_OUTPUT_SUFFIXES)
+        for f in s3_files
+    )
+    total = status_payload.get("totalTasks") or status_payload.get("totalSteps") or 0
+    duration = status_payload.get("duration_s")
+    if tool == "netmhcpan" and not has_prediction and (total == 0 or duration is not None and duration < 300):
+        log_text = "\n".join(str(line) for line in (status_payload.get("log_tail") or []))
+        for marker in _NETMHCPAN_FAIL_MARKERS:
+            if marker in log_text:
+                return marker
+        return "no NetMHCpan prediction outputs on S3 (only pipeline_info/)"
+    if tool == "mhcnuggets" and not has_prediction and total == 0:
+        return "no MHCnuggets prediction outputs on S3"
+    return None
+
+
 def resolve_samplesheet_input(explicit: str, template_dir: Path) -> str:
     if explicit.strip():
         return explicit.strip()
@@ -209,6 +284,7 @@ def run_tool_job(
     compute_config: dict[str, Any],
     genome_reference: str,
     workflow_domain: str | None,
+    netmhcpan_path: str | None,
     poll_interval: int,
     timeout: int,
 ) -> dict[str, Any]:
@@ -219,6 +295,10 @@ def run_tool_job(
         "tools": tool,
         "genome_reference": genome_reference,
     }
+    if tool == "netmhcpan":
+        if not netmhcpan_path:
+            raise ValueError("netmhcpan_path is required for netmhcpan runs")
+        parameters["netmhcpan_path"] = netmhcpan_path
     record: dict[str, Any] = {
         "tool": tool,
         "parameters": parameters,
@@ -263,11 +343,16 @@ def run_tool_job(
     record["latest_status"] = status_payload
     terminal = status_payload.get("terminal_status", "")
     record["status"] = terminal or status_payload.get("status", "unknown")
-    if record["status"] not in ("completed", "succeeded"):
+    false_ok = epitope_run_looks_failed(status_payload, tool)
+    if false_ok:
+        record["status"] = "failed"
+        record["error"] = f"false success: {false_ok}"
+        log(f"[{tool}] {record['error']}")
+    elif record["status"] not in ("completed", "succeeded"):
         record["error"] = status_payload.get("error") or f"terminal status={record['status']!r}"
-        tail = status_payload.get("log_tail") or []
-        if tail:
-            record["log_tail"] = tail[-15:]
+    tail = status_payload.get("log_tail") or []
+    if tail:
+        record["log_tail"] = tail[-15:]
     return record
 
 
@@ -294,7 +379,19 @@ def main() -> None:
     ap.add_argument("--user-id", default=os.environ.get("BIOMATE_NF_USER_ID", "plan-a-science-sprint"))
     ap.add_argument("--genome-reference", default="grch37")
     ap.add_argument("--s3-bucket", default="biomate-nextflow-work")
-    ap.add_argument("--workflow-domain", default="")
+    ap.add_argument(
+        "--workflow-domain",
+        default=DEFAULT_WORKFLOW_DOMAIN,
+        help=f"workflow_domain for /api/nextflow/execute (default: {DEFAULT_WORKFLOW_DOMAIN})",
+    )
+    ap.add_argument(
+        "--netmhcpan-path",
+        default="",
+        help=(
+            "S3 URI to netMHCpan-4.1b.Linux.tar.gz (required for netmhcpan; "
+            f"default env BIOMATE_NETMHCPAN_PATH or {DEFAULT_NETMHCPAN_TARBALL_S3})"
+        ),
+    )
     ap.add_argument("--profile", default="docker")
     ap.add_argument("--poll-interval", type=int, default=20)
     ap.add_argument("--timeout", type=int, default=7200)
@@ -328,7 +425,11 @@ def main() -> None:
     samplesheet = resolve_samplesheet_input(args.input, args.samplesheet_template_dir.resolve())
     tools = [t.strip() for t in args.tools.split(",") if t.strip()]
     compute_config = {"executor": "awsbatch", "s3_bucket": args.s3_bucket}
-    wf_domain = args.workflow_domain.strip() or None
+    wf_domain = args.workflow_domain.strip() or DEFAULT_WORKFLOW_DOMAIN
+    netmhcpan_tarball: str | None = None
+    if "netmhcpan" in tools:
+        netmhcpan_tarball = resolve_netmhcpan_path(args.netmhcpan_path)
+        log(f"  netmhcpan_path: {netmhcpan_tarball}")
 
     log(f"Science sprint Plan A multitool stamp={stamp}")
     log(f"  samplesheet: {samplesheet}")
@@ -347,6 +448,7 @@ def main() -> None:
         "compute_config": compute_config,
         "genome_reference": args.genome_reference,
         "workflow_domain": wf_domain,
+        "netmhcpan_path": netmhcpan_tarball,
         "poll_interval": args.poll_interval,
         "timeout": args.timeout,
     }
