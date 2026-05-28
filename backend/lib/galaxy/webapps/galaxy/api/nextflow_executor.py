@@ -262,6 +262,14 @@ _ACCESSION_REGISTRY: list[dict] = [
 
 _ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
+# OSC 8 hyperlink sequences: ESC ] 8 ; <params> ; <URL> (ESC \ | BEL) <text> ESC ] 8 ; ;
+# Nextflow 26.04+ emits these in the live progress block so task IDs are clickable;
+# the literal payload looks like
+#   "]8;;s3://.../018099]8;;\bispec:phaseA…) | 0 of 1"
+# and breaks the [<hash>] PROCESS regex. Strip everything between OSC 8 start and
+# terminator (BEL 0x07 or ST = ESC \).
+_OSC8_RE = re.compile(r'\x1B\]8;[^\x07\x1B]*(?:\x07|\x1B\\)')
+
 # Nextflow startup noise patterns — lines matching any of these are dropped
 # from log_tail to keep execution logs focused on actual process output.
 _NF_NOISE_RE = re.compile(
@@ -276,8 +284,11 @@ _NF_NOISE_RE = re.compile(
 )
 
 def _strip_ansi(text: str) -> str:
-    """Remove ANSI escape sequences (colors, cursor movement) from terminal output."""
-    return _ANSI_ESCAPE_RE.sub('', text)
+    """Remove ANSI escape sequences (colors, cursor movement, OSC 8 hyperlinks)
+    from terminal output."""
+    # Strip OSC 8 hyperlinks first so their URL payload doesn't get mistaken
+    # for content by the CSI stripper.
+    return _ANSI_ESCAPE_RE.sub('', _OSC8_RE.sub('', text))
 
 
 def _clean_log_line(line: str) -> str:
