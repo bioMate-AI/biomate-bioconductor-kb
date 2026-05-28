@@ -194,7 +194,7 @@ process RECEPTOR_TRIM {
     path "receptor_trim_meta.json", emit: meta
 
     script:
-    def auto_trim = params.auto_trim_receptor ? 'true' : 'false'
+    def trim_flag = params.auto_trim_receptor ? '--auto-trim' : '--no-auto-trim'
     def min_atoms = params.min_atoms_for_trim
     def pad       = params.trim_pad
     def bc        = params.box_center ?: ''
@@ -212,7 +212,7 @@ process RECEPTOR_TRIM {
             --box-size '${bs}' \\
             --pad ${pad} \\
             --min-input-atoms ${min_atoms} \\
-            $([ "${auto_trim}" = "true" ] && echo "--auto-trim" || echo "--no-auto-trim") \\
+            ${trim_flag} \\
             | tee receptor_trim_meta.json
     fi
     """
