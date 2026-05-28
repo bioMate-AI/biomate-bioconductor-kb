@@ -54,6 +54,7 @@ params.box_size             = null       // JSON '[sx,sy,sz]' docking box edges 
 params.trim_pad             = 10.0       // Å beyond half box (literature MD default 10–15)
 params.auto_trim_receptor   = true       // crop when input atom count >= min_atoms_for_trim
 params.min_atoms_for_trim   = 5000       // skip trim for already-small receptors
+params.max_solvated_atoms   = 300000     // soft budget; RECEPTOR_TRIM warns above this (pre-flight)
 
 // Simulation settings
 params.box_padding          = 12         // Angstrom from protein surface to box edge (tleap)
@@ -192,6 +193,7 @@ process RECEPTOR_TRIM {
     output:
     path "receptor_for_md.pdb", emit: pdb
     path "receptor_trim_meta.json", emit: meta
+    path "system_size_report.json", emit: size_report
 
     script:
     // Inline the trim (no external lib file) so it runs inside the AWS Batch
@@ -200,6 +202,8 @@ process RECEPTOR_TRIM {
     def auto_flag = params.auto_trim_receptor ? 'True' : 'False'
     def min_atoms = params.min_atoms_for_trim
     def pad       = params.trim_pad
+    def box_pad   = params.box_padding
+    def soft_cap  = params.max_solvated_atoms
     def bc        = params.box_center ?: ''
     def bs        = params.box_size ?: ''
     """
@@ -212,27 +216,58 @@ dst = "receptor_for_md.pdb"
 auto_trim = ${auto_flag}
 min_atoms = ${min_atoms}
 pad = float(${pad})
+box_padding = float(${box_pad})
+soft_cap = int(${soft_cap})
 bc_raw = '''${bc}'''
 bs_raw = '''${bs}'''
 
 
 def count_atoms(p):
     n = 0
+    xs, ys, zs = [], [], []
     with open(p) as fh:
         for line in fh:
             if line.startswith(("ATOM", "HETATM")):
                 n += 1
-    return n
+                try:
+                    xs.append(float(line[30:38]))
+                    ys.append(float(line[38:46]))
+                    zs.append(float(line[46:54]))
+                except ValueError:
+                    pass
+    bbox = None
+    if xs:
+        bbox = (max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs))
+    return n, bbox
+
+
+def estimate_solvated(pdb_path):
+    # Rough cubic-box estimate: protein extent + 2*box_padding per axis;
+    # ~0.0334 water molecules / A^3 (TIP3P bulk density) * 3 atoms/water.
+    n_solute, bbox = count_atoms(pdb_path)
+    if not bbox:
+        return {"solute_atoms": n_solute, "estimated_waters": None,
+                "estimated_total_atoms": None, "box_volume_A3": None}
+    ex, ey, ez = (d + 2.0 * box_padding for d in bbox)
+    vol = ex * ey * ez
+    waters = int(vol * 0.0334)
+    total = n_solute + waters * 3
+    return {"solute_atoms": n_solute,
+            "box_edges_A": [round(ex, 1), round(ey, 1), round(ez, 1)],
+            "box_volume_A3": round(vol, 1),
+            "estimated_waters": waters,
+            "estimated_total_atoms": total}
 
 
 if not bc_raw.strip() or not bs_raw.strip() or not auto_trim:
     shutil.copyfile(src, dst)
+    n_in, _ = count_atoms(src)
     meta = {"trimmed": False, "reason": "no box or auto_trim disabled",
-            "input_atoms": count_atoms(src)}
+            "input_atoms": n_in}
 else:
     cx, cy, cz = json.loads(bc_raw)
     sx, sy, sz = json.loads(bs_raw)
-    n_in = count_atoms(src)
+    n_in, _ = count_atoms(src)
     if n_in < min_atoms:
         shutil.copyfile(src, dst)
         meta = {"trimmed": False, "reason": "receptor below min_atoms",
@@ -262,7 +297,24 @@ else:
 
 with open("receptor_trim_meta.json", "w") as f:
     json.dump(meta, f)
-print(json.dumps(meta))
+
+# Constructive pre-flight: estimate solvated system size for the receptor that
+# SYSTEM_SETUP will hand to tleap, and flag when it exceeds the soft budget.
+size = estimate_solvated(dst)
+est_total = size.get("estimated_total_atoms")
+size["soft_cap_atoms"] = soft_cap
+size["within_budget"] = (est_total is None) or (est_total <= soft_cap)
+if est_total is not None and est_total > soft_cap:
+    size["recommendation"] = (
+        "Estimated solvated system (%d atoms) exceeds soft budget (%d). "
+        "Provide box_center/box_size to crop to the binding site, or run on a single chain."
+        % (est_total, soft_cap)
+    )
+    sys.stderr.write("RECEPTOR_TRIM WARNING: %s\\n" % size["recommendation"])
+with open("system_size_report.json", "w") as f:
+    json.dump(size, f, indent=2)
+
+print(json.dumps({"trim": meta, "size": size}))
 PYEOF
     """
 }
