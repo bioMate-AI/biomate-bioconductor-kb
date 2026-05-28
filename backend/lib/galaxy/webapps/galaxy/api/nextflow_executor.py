@@ -6,6 +6,14 @@ as a background subprocess and returns tracking IDs.
 
 Does NOT require Galaxy workflow/invocation infrastructure.
 """
+# PEP 604 `X | Y` union syntax requires Python 3.10+. The Galaxy container
+# ships Python 3.9, so without this future import, annotations like
+# `def f(x: list | str | None = None)` raise TypeError at module load,
+# crash-looping every gunicorn worker. PEP 563 defers annotation eval so
+# the `|` syntax is treated as a string at definition time and only resolved
+# at runtime (e.g. by typing.get_type_hints()), not at import.
+from __future__ import annotations
+
 import logging
 import os
 import re
