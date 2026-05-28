@@ -114,7 +114,7 @@ The auto-loop is bounded by three safety mechanisms. **Hard iteration budget.** 
 
 1. US Food and Drug Administration. *In Vitro Drug Interaction Studies — Cytochrome P450 Enzyme- and Transporter-Mediated Drug Interactions: Guidance for Industry.* January 2020.
 2. US Food and Drug Administration. *Guidance for Industry: Bioavailability and Bioequivalence Studies for Orally Administered Drug Products — General Considerations.* 2003.
-3. Avilov S et al. Bayesian optimisation in pharmaceutical and chemical process development. *Reaction Chemistry & Engineering* 2023 — *(uncited evidence anchor; auto-loop without provenance)*.
+3. Taylor CJ, Pomberger A, Felton KC, et al. Accelerated Chemical Reaction Optimization Using Multi-Task Learning. *ACS Central Science* 2023; 9(5):957-968. DOI: 10.1021/acscentsci.3c00050.
 4. Redfern WS, Carlsson L, Davis AS, et al. Relationships between preclinical cardiac electrophysiology, clinical QT interval prolongation and torsade de pointes for a broad range of drugs. *Cardiovasc Res* 2003;58(1):32–45. DOI: 10.1016/S0008-6363(02)00846-5.
 5. Lammert C, Bjornsson E, Niklasson A, Chalasani N. Oral medications with significant hepatic first-pass metabolism are at increased risk for hepatic adverse effects. *Toxicol Sci* 2010. DOI: 10.1093/toxsci/kfq059.
 6. Kazius J, McGuire R, Bursi R. Derivation and validation of toxicophores for mutagenicity prediction. *J Med Chem* 2005;48:312–320. DOI: 10.1021/jm040835a.

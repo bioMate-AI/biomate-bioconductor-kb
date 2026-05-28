@@ -32,7 +32,7 @@
 ### 1. Introduction (~1500 words) — drafted
 
 - 1.1 The cost of failed-gate runs in drug discovery (concrete ADMET and CYP-DDI examples).
-- 1.2 Existing tools surface failure, not fix (Schrodinger, Simcyp, ADMET Predictor; Avilov 2023 Bayesian-opt auto-loops without provenance).
+- 1.2 Existing tools surface failure, not fix (Schrodinger, Simcyp, ADMET Predictor; Taylor et al. 2023 multi-task Bayesian optimization for chemical synthesis).
 - 1.3 Gap — autonomous convergence + evidence anchors; either alone insufficient.
 - 1.4 This work — 4 drug-dev domains; preview Fig. 2; honest disclosure on Docking 85.7%.
 
