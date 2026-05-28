@@ -6,8 +6,10 @@ from pathlib import Path
 
 from biomni_workflows.nextflow_nfcore.lib.trim_receptor_pdb import (
     count_pdb_atoms,
+    largest_chain,
     maybe_trim_receptor,
     trim_pdb_to_search_box,
+    write_chain,
 )
 
 
@@ -91,6 +93,32 @@ class TestTrimReceptorPdb(unittest.TestCase):
             self.assertTrue(meta["trimmed"])
             self.assertEqual(meta["output_atoms"], 6000)
             self.assertIn("REMARK BioMate", out.read_text(encoding="utf-8"))
+
+
+    def test_largest_chain_and_write(self):
+        # Layer B fallback: pick the chain with the most atoms and write only it.
+        with tempfile.TemporaryDirectory() as tmp:
+            inp = Path(tmp) / "in.pdb"
+            out = Path(tmp) / "out.pdb"
+            lines = []
+            # Chain A: 3 atoms; Chain B: 1 atom → A is largest
+            for i, ch in enumerate(["A", "A", "A", "B"], 1):
+                lines.append(
+                    f"ATOM  {i:5d}  CA  ALA {ch}{i:4d}      0.000   0.000   0.000  1.00  0.00           C\n"
+                )
+            lines.append("END\n")
+            inp.write_text("".join(lines), encoding="utf-8")
+
+            chain, n = largest_chain(inp)
+            self.assertEqual(chain, "A")
+            self.assertEqual(n, 3)
+
+            written = write_chain(inp, out, chain, "REMARK fallback\n")
+            self.assertEqual(written, 3)
+            body = out.read_text(encoding="utf-8")
+            self.assertIn("ALA A", body)
+            self.assertNotIn("ALA B", body)
+            self.assertTrue(body.rstrip().endswith("END"))
 
 
 if __name__ == "__main__":

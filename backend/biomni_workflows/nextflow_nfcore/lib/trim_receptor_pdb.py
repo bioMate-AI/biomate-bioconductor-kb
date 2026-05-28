@@ -90,6 +90,37 @@ def trim_pdb_to_search_box(
     return len(kept)
 
 
+def largest_chain(pdb_path: str | Path) -> tuple[str | None, int]:
+    """Return (chain_id, atom_count) for the chain with the most ATOM records."""
+    counts: dict[str, int] = {}
+    with open(pdb_path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            if line.startswith("ATOM"):
+                counts[line[21]] = counts.get(line[21], 0) + 1
+    if not counts:
+        return None, 0
+    best = max(counts, key=counts.get)
+    return best, counts[best]
+
+
+def write_chain(
+    pdb_path: str | Path, out_path: str | Path, chain_id: str, header: str
+) -> int:
+    """Write all atoms of a single chain (TER-terminated). Returns atoms written."""
+    n = 0
+    with open(pdb_path, encoding="utf-8", errors="replace") as fh, open(
+        out_path, "w", encoding="utf-8"
+    ) as out:
+        out.write(header)
+        for line in fh:
+            if line.startswith(("ATOM", "HETATM")) and line[21] == chain_id:
+                out.write(line)
+                n += 1
+        out.write("TER\n")
+        out.write("END\n")
+    return n
+
+
 def maybe_trim_receptor(
     pdb_path: str | Path,
     out_path: str | Path,
