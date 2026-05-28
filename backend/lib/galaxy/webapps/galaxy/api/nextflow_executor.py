@@ -4145,6 +4145,22 @@ def get_nextflow_status(
     else:
         processes = []
 
+    # In-memory path cold-start fallback: when trace.txt is still empty and no
+    # S3 outputs exist yet (the first 1-3 min on Batch), parse the Nextflow log
+    # progress block so phase cards render real running/pending state instead
+    # of an empty processes=[].
+    if not processes and log_path.exists():
+        try:
+            _log_full_text = log_path.read_text(errors="replace")
+            if _log_full_text:
+                _live = _parse_processes_from_log(_log_full_text)
+                if _live["processes"]:
+                    processes = _live["processes"]
+                    progress["completedSteps"] = _live["completedSteps"]
+                    progress["totalSteps"] = _live["totalSteps"]
+        except Exception:
+            pass
+
     progress = {**progress, "processes": processes}
     work_dir = info.get("work_dir", "")
 
