@@ -14,6 +14,7 @@
 
 nextflow.enable.dsl = 2
 
+// [Survival Analysis]
 process CRAN_SURVIVAL_KAPLANMEIER {
     tag "${meta.id}"
     label 'process_low'
@@ -84,6 +85,7 @@ process CRAN_SURVIVAL_KAPLANMEIER {
     """
 }
 
+// [Survival Analysis]
 process CRAN_SURVIVAL_COX {
     tag "${meta.id}"
     label 'process_low'
