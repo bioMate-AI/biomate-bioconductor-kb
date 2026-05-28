@@ -71,6 +71,7 @@ ch_vcf    = params.variant_vcf
     : Channel.empty()
 
 // ── Process 1: VALIDATE_REGION ────────────────────────────────────────────────
+// [Post-processing]
 process VALIDATE_REGION {
     tag "validate"
     container PYTHON_CONTAINER
@@ -181,6 +182,7 @@ PYEOF
 }
 
 // ── Process 2: FETCH_SEQUENCE ─────────────────────────────────────────────────
+// [Analysis]
 process FETCH_SEQUENCE {
     tag "fetch_seq"
     container PYTHON_CONTAINER
@@ -281,6 +283,7 @@ PYEOF
 }
 
 // ── Process 3: ALPHAGENOME_PREDICT ───────────────────────────────────────────
+// [Track Prediction]
 process ALPHAGENOME_PREDICT {
     tag "predict"
     container ALPHAGENOME_CONTAINER
@@ -619,6 +622,7 @@ PYEOF
 }
 
 // ── Process 4: VARIANT_EFFECT_SCORE (ISM) ────────────────────────────────────
+// [Variant Effect]
 process VARIANT_EFFECT_SCORE {
     tag "ism"
     container ALPHAGENOME_CONTAINER
@@ -752,6 +756,7 @@ PYEOF
 }
 
 // ── Process 5: AGGREGATE_TRACKS ──────────────────────────────────────────────
+// [Analysis]
 process AGGREGATE_TRACKS {
     tag "aggregate"
     container PYTHON_CONTAINER
@@ -879,6 +884,7 @@ PYEOF
 }
 
 // ── Process 6: GENERATE_REPORT ────────────────────────────────────────────────
+// [Reporting]
 process GENERATE_REPORT {
     tag "report"
     container PYTHON_CONTAINER

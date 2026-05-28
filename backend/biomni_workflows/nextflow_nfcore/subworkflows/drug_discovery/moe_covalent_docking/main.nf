@@ -70,6 +70,7 @@ def MOE_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/moe2024:latest
 // Processes
 // ============================================================================
 
+// [Analysis]
 process LIGAND_PREP {
     /*
      * MOE LigPrep equivalent:
@@ -144,6 +145,7 @@ process LIGAND_PREP {
 
 // ----------------------------------------------------------------------------
 
+// [Receptor Preparation]
 process RECEPTOR_PREP {
     /*
      * MOE QuickPrep:
@@ -187,6 +189,7 @@ process RECEPTOR_PREP {
 
 // ----------------------------------------------------------------------------
 
+// [Covalent Docking]
 process COVALENT_DOCK {
     /*
      * MOE CovDock SVL script:
@@ -246,6 +249,7 @@ process COVALENT_DOCK {
 
 // ----------------------------------------------------------------------------
 
+// [Analysis]
 process POSE_ANALYSIS {
     /*
      * MOE scoring and rescoring:
@@ -300,6 +304,7 @@ process POSE_ANALYSIS {
 
 // ----------------------------------------------------------------------------
 
+// [Reporting]
 process REPORT {
     /*
      * Generate pipeline deliverables:

@@ -68,6 +68,7 @@ def log_workflow_header() {
 // that values are within physiologically plausible ranges.
 // ============================================================================
 
+// [NCA Analysis]
 process NCA_INPUT_VALIDATION {
     tag "validate_input"
     label 'process_low'
@@ -163,6 +164,7 @@ REOF
 // Outputs: nca_results.csv (per-subject rows) + nca_summary.json (pop stats).
 // ============================================================================
 
+// [NCA Analysis]
 process NCA_PKNCA_ANALYSIS {
     tag "nca_analysis"
     label 'process_medium'
@@ -304,6 +306,7 @@ REOF
 // NCA parameters table, and NCA assumptions section.
 // ============================================================================
 
+// [NCA Analysis]
 process NCA_REPORT_HTML {
     tag "nca_report"
     label 'process_low'

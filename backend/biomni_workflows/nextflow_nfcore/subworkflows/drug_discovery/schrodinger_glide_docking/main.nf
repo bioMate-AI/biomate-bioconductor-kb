@@ -71,6 +71,7 @@ def SCHRODINGER_CONTAINER = '399683337364.dkr.ecr.us-west-2.amazonaws.com/schrod
 // Processes
 // ============================================================================
 
+// [Ligand Preparation]
 process LIGPREP {
     /*
      * LigPrep: enumerate ionization states, tautomers, ring conformations,
@@ -115,6 +116,7 @@ process LIGPREP {
 }
 
 
+// [Receptor Preparation]
 process RECEPTOR_PREP {
     /*
      * Protein Preparation Wizard: add H, assign bonds, optimize H-bonds,
@@ -152,6 +154,7 @@ process RECEPTOR_PREP {
 }
 
 
+// [Receptor Preparation]
 process GRID_GENERATION {
     /*
      * Glide receptor grid generation.
@@ -205,6 +208,7 @@ GLIDE_IN
 }
 
 
+// [Docking]
 process GLIDE_DOCKING {
     /*
      * Glide docking at chosen precision:
@@ -276,6 +280,7 @@ PYEOF
 }
 
 
+// [Reporting]
 process REPORT {
     /*
      * Export top-N poses to SDF, generate docking_summary.json and HTML report.

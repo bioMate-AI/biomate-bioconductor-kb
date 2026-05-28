@@ -88,6 +88,7 @@ def cs_connect_block() {
 // Processes
 // ============================================================================
 
+// [Data Import]
 process IMPORT_MOVIES {
     tag { step_label('01_import_movies') }
     publishDir "${params.outdir}/01_import_movies", mode: 'copy'
@@ -173,6 +174,7 @@ process IMPORT_MOVIES {
 
 // ---------------------------------------------------------------------------
 
+// [Motion Correction]
 process PATCH_MOTION_CORRECTION {
     tag { step_label('02_motion_correction') }
     publishDir "${params.outdir}/02_motion_correction", mode: 'copy'
@@ -241,6 +243,7 @@ process PATCH_MOTION_CORRECTION {
 
 // ---------------------------------------------------------------------------
 
+// [CTF Estimation]
 process PATCH_CTF_ESTIMATION {
     tag { step_label('03_ctf_estimation') }
     publishDir "${params.outdir}/03_ctf_estimation", mode: 'copy'
@@ -309,6 +312,7 @@ process PATCH_CTF_ESTIMATION {
 
 // ---------------------------------------------------------------------------
 
+// [Analysis]
 process FILAMENT_TRACER {
     tag { step_label('04_filament_tracer') }
     publishDir "${params.outdir}/04_filament_tracer", mode: 'copy'
@@ -389,6 +393,7 @@ process FILAMENT_TRACER {
 
 // ---------------------------------------------------------------------------
 
+// [Particle Extraction]
 process EXTRACT_HELICAL_PARTICLES {
     tag { step_label('05_extract_particles') }
     publishDir "${params.outdir}/05_extract_particles", mode: 'copy'
@@ -465,6 +470,7 @@ process EXTRACT_HELICAL_PARTICLES {
 
 // ---------------------------------------------------------------------------
 
+// [2D Classification]
 process CLASSIFY_2D_HELICAL {
     tag { step_label('06_classify_2d') }
     label 'process_gpu'
@@ -541,6 +547,7 @@ process CLASSIFY_2D_HELICAL {
 
 // ---------------------------------------------------------------------------
 
+// [Analysis]
 process SELECT_2D_HELICAL {
     tag { step_label('07_select_2d') }
     publishDir "${params.outdir}/07_select_2d", mode: 'copy'
@@ -614,6 +621,7 @@ process SELECT_2D_HELICAL {
 
 // ---------------------------------------------------------------------------
 
+// [Ab Initio Reconstruction]
 process AB_INITIO_HELICAL {
     tag { step_label('08_ab_initio') }
     label 'process_gpu'
@@ -697,6 +705,7 @@ process AB_INITIO_HELICAL {
 
 // ---------------------------------------------------------------------------
 
+// [Analysis]
 process HELICAL_REFINEMENT {
     tag { step_label('09_helical_refinement') }
     label 'process_gpu'
@@ -796,6 +805,7 @@ process HELICAL_REFINEMENT {
 
 // ---------------------------------------------------------------------------
 
+// [Analysis]
 process HELICAL_SHARPENING {
     tag { step_label('10_sharpening') }
     publishDir "${params.outdir}/10_sharpening", mode: 'copy'
@@ -873,6 +883,7 @@ process HELICAL_SHARPENING {
 
 // ---------------------------------------------------------------------------
 
+// [Analysis]
 process HELICAL_PIPELINE_SUMMARY {
     tag { step_label('11_summary') }
     publishDir "${params.outdir}/11_summary", mode: 'copy'

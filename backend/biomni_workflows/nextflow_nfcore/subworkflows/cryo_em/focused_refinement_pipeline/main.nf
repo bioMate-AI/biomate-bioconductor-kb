@@ -41,6 +41,7 @@ params.outdir           = './results/focused_refinement'
 // Process Definitions (inline)
 // ============================================================================
 
+// [Analysis]
 process PARTICLE_SUBTRACTION {
     tag "particle_subtraction"
     publishDir "${params.outdir}/01_particle_subtraction", mode: 'copy'
@@ -138,6 +139,7 @@ process PARTICLE_SUBTRACTION {
     """
 }
 
+// [Refinement]
 process LOCAL_REFINEMENT {
     tag "local_refinement"
     label 'process_gpu'
@@ -249,6 +251,7 @@ process LOCAL_REFINEMENT {
     """
 }
 
+// [Focused Refinement]
 process FOCUSED_REFINEMENT_SUMMARY {
     tag "focused_refinement_summary"
     publishDir "${params.outdir}/03_summary", mode: 'copy'

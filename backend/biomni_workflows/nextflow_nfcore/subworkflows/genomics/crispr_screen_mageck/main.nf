@@ -67,6 +67,7 @@ ch_ctrl_sgrna = params.control_sgrna
     : Channel.empty()
 
 // ── Process: MAGeCK count ─────────────────────────────────────────────────────
+// [Guide Counting]
 process MAGECK_COUNT {
     tag "${meta.sample}"
     container MAGECK_CONTAINER
@@ -163,6 +164,7 @@ PYEOF
 }
 
 // ── Process: MAGeCK test ──────────────────────────────────────────────────────
+// [Guide Counting]
 process MAGECK_TEST {
     tag "RRA gene test"
     container MAGECK_CONTAINER
@@ -241,6 +243,7 @@ PYEOF
 }
 
 // ── Process: Pathway enrichment on MAGeCK hits ───────────────────────────────
+// [Analysis]
 process PATHWAY_ENRICHMENT {
     tag "GSEA on screen hits"
     container PYTHON_CONTAINER
@@ -317,6 +320,7 @@ PYEOF
 }
 
 // ── Process: Final QC summary ─────────────────────────────────────────────────
+// [Analysis]
 process CRISPR_SCREEN_QC_REPORT {
     publishDir "${params.outdir}", mode: 'copy'
 
