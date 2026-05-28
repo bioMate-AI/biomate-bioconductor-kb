@@ -60,10 +60,6 @@ params.hill_bounds      = '0.5,4.0'   // min,max for Hill coefficient
 params.bootstrap_n      = '200'
 params.compound_name    = 'Compound'
 
-if (!params.patient_data_csv) {
-    error "Please provide --patient_data_csv (CSV with patient_id, dose_mg, auc_obs, effect_pct, timepoint)"
-}
-
 process EXPOSURE_RESPONSE_MODELING {
     tag "$meta.id"
     label 'process_low'
@@ -519,6 +515,10 @@ workflow EXPOSURE_RESPONSE_MODELING_WORKFLOW {
 }
 
 workflow {
+    // Parser-v2 requires top-level statements inside workflow{}, not file-level
+    if (!params.patient_data_csv) {
+        error "Please provide --patient_data_csv (CSV with patient_id, dose_mg, auc_obs, effect_pct, timepoint)"
+    }
     meta = [id: 'er_modeling_run', single_end: false]
     Channel.value(meta) | EXPOSURE_RESPONSE_MODELING_WORKFLOW
 }
