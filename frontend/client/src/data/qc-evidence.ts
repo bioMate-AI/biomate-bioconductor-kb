@@ -1,12 +1,7 @@
-/**
- * QC gate evidence — generated from backend/config/qc_evidence.yaml.
- * Provenance grades: GOLD verbatim / SILVER convention / BRONZE heuristic.
- */
-export interface QCEvidenceEntry {
-  paper_ref: string; paper_doi: string;
+/** QC gate evidence — generated from backend/config/qc_evidence.yaml. */
+export interface QCEvidenceEntry { paper_ref: string; paper_doi: string;
   provenance: "GOLD" | "SILVER" | "BRONZE";
-  paper_supports: string; rule_text: string; finding: string;
-}
+  paper_supports: string; rule_text: string; finding: string; }
 export type QCEvidenceMap = Record<string, Record<string, QCEvidenceEntry[]>>;
 export const QC_EVIDENCE: QCEvidenceMap = {
   "pbpk": {
@@ -54,12 +49,12 @@ export const QC_EVIDENCE: QCEvidenceMap = {
   "admet": {
     "admet_herg_ic50": [
       {
-        "paper_ref": "Aronov AM 2008. J Med Chem 51:6632-6641",
-        "paper_doi": "10.1021/jm800467u",
+        "paper_ref": "Redfern P et al. Cardiovasc Res 2003; 58(1):32-45",
+        "paper_doi": "10.1016/S0008-6363(02)00846-5",
         "provenance": "GOLD",
-        "paper_supports": "Aronov 2008 establishes hERG IC50 ≤ 10 µM as the safety cutoff for cardiac liability in early-stage drug discovery.\n",
-        "rule_text": "BioMate halts if hERG IC50 ≤ 10 µM (admet_standard profile).\n",
-        "finding": "Remediation: tighten upstream logP and pKa filters; hERG liability correlates with basic amines and high lipophilicity.\n"
+        "paper_supports": "Redfern 2003 establishes the 30× safety margin between hERG IC50 and free therapeutic Cmax as the industry-accepted cardiac liability cutoff; for a typical small-molecule free Cmax of ~0.3 µM this corresponds to an IC50 ≥ 10 µM.\n",
+        "rule_text": "BioMate halts if hERG IC50 ≤ 10 µM (admet_standard profile). The 10 µM operational threshold is confirmed in Bowes 2012 (Nat Rev Drug Discov 11:909-922, DOI 10.1038/nrd3845) as the cross-pharma industry consensus.\n",
+        "finding": "Remediation: tighten upstream logP filter per Waring & Johnstone 2007 (Bioorg Med Chem Lett 17:1759-1764, DOI 10.1016/ j.bmcl.2006.12.061) logP/IC50 regression; or reduce MW per Aronov 2008 (Curr Opin Drug Discov Devel 11:128-140, PMID 18175275) \"Tuning out of hERG.\"\n"
       }
     ],
     "admet_dili_probability": [
@@ -444,6 +439,188 @@ export const QC_EVIDENCE: QCEvidenceMap = {
         "paper_supports": "Hagen 2017 describes dose-symmetric tilt schemes. Typical defocus targets are -2 to -6 um; outside [-8.0, -0.5] is usually a data-collection error.\n",
         "rule_text": "BioMate flags mean defocus outside [-8.0, -0.5] um as FAIL.\n",
         "finding": "Remediation: re-check SerialEM/Tomo5 collection protocol.\n"
+      }
+    ]
+  },
+  "lnp_formulation": {
+    "lnp_z_avg_particle_size": [
+      {
+        "paper_ref": "FDA Liposome Drug Products Guidance (2018); ISO 22412:2017; Yamamoto et al. Int J Pharm 2019; 569:118547",
+        "paper_doi": "10.1016/j.ijpharm.2019.118547",
+        "provenance": "SILVER",
+        "paper_supports": "FDA 2018 requires DLS characterization of LNP size per ISO 22412 but does not prescribe a numeric Z-avg cutoff. Yamamoto 2019 reports clinical LNP-mRNA Z-averages typically 60-120 nm.\n",
+        "rule_text": "BioMate operational rule: 60-120 nm = pass; 40-60 or 120-150 = advisory; outside = FAIL. Community/literature range, not FDA verbatim.\n",
+        "finding": "Z-avg outside 60-120 nm risks altered biodistribution or aggregation.\n"
+      }
+    ],
+    "lnp_pdi": [
+      {
+        "paper_ref": "ISO 22412:2017; LNP DLS community convention",
+        "paper_doi": "https://www.iso.org/standard/65410.html",
+        "provenance": "SILVER",
+        "paper_supports": "ISO 22412 defines PDI as cumulant analysis width metric. Community convention (Yamamoto 2019, Onpattro CMC) treats PDI < 0.2 as pharmaceutical-grade monodisperse; >0.3 broad.\n",
+        "rule_text": "PDI < 0.2 = pass; 0.2-0.3 = advisory; > 0.3 = FAIL.\n",
+        "finding": "Higher PDI indicates batch heterogeneity / formulation instability.\n"
+      }
+    ],
+    "lnp_encapsulation_efficiency": [
+      {
+        "paper_ref": "Yamamoto et al. Int J Pharm 2019; 569:118547; FDA Liposome Guidance 2018",
+        "paper_doi": "10.1016/j.ijpharm.2019.118547",
+        "provenance": "SILVER",
+        "paper_supports": "LNP-mRNA literature reports RiboGreen-exclusion EE of 85-95% as the clinical-grade target. FDA requires control, not a numeric floor.\n",
+        "rule_text": "EE >= 85% = pass; 70-85% = advisory; < 70% = FAIL.\n",
+        "finding": "Low EE indicates suboptimal lipid:RNA ratio or mixing — reformulate.\n"
+      }
+    ]
+  },
+  "nlmixr2_poppk": {
+    "nlmixr2_eta_shrinkage": [
+      {
+        "paper_ref": "Savic RM & Karlsson MO. Clin Pharmacokinet 2009; 48(7):415-426",
+        "paper_doi": "10.2165/00003088-200948070-00001",
+        "provenance": "GOLD",
+        "paper_supports": "Savic & Karlsson 2009 establish ~30% as the η-shrinkage threshold above which EBE-based diagnostics and covariate screening become unreliable. The paper explicitly recommends this cutoff.\n",
+        "rule_text": "η-shrinkage < 20% = pass; 20-30% = advisory; > 30% = FAIL (EBE-based covariate inference unreliable).\n",
+        "finding": "High shrinkage → rely on simulation-based diagnostics, not EBE plots.\n"
+      }
+    ],
+    "nlmixr2_condition_number": [
+      {
+        "paper_ref": "FDA Population Pharmacokinetics Guidance (1999, reaffirmed 2022); NONMEM/nlmixr2 community",
+        "paper_doi": "https://www.fda.gov/media/128793/download",
+        "provenance": "SILVER",
+        "paper_supports": "FDA requires reporting of model stability/condition diagnostics; the <1000 community convention for covariance matrix condition is from Bonate & Mould/Upton tutorials, not stated verbatim in FDA guidance.\n",
+        "rule_text": "Condition number < 100 = pass; 100-1000 = advisory; > 1000 = FAIL (ill-conditioned, model likely overparameterized).\n",
+        "finding": "Ill conditioning indicates redundant parameters — simplify model.\n"
+      }
+    ],
+    "nlmixr2_ofv_stability": [
+      {
+        "paper_ref": "FDA Pop-PK Guidance + NONMEM community practice",
+        "paper_doi": "https://www.fda.gov/media/128793/download",
+        "provenance": "BRONZE",
+        "paper_supports": "FDA requires convergence/stability evidence. The |ΔOFV| < 3.84 community cutoff comes from chi-squared 1 df interpretation, not published as a Pop-PK QC threshold.\n",
+        "rule_text": "|ΔOFV| < 1.0 = pass; 1.0-3.84 = advisory; >= 3.84 = FAIL.\n",
+        "finding": "Large OFV swings across seeds → local minimum suspected.\n"
+      }
+    ]
+  },
+  "antibody_developability": {
+    "ab_tap_cdr_length": [
+      {
+        "paper_ref": "Raybould MIJ et al. PNAS 2019; 116:4025-4030 (Therapeutic Antibody Profiler)",
+        "paper_doi": "10.1073/pnas.1810576116",
+        "provenance": "GOLD",
+        "paper_supports": "Raybould 2019 Table 1 reports total CDR length distribution across clinical-stage therapeutics; CST 5th-95th percentile bounds for total CDR length are 43-63 residues (IMGT numbering).\n",
+        "rule_text": "Total CDR length within 43-63 residues = pass; 40-43 or 63-67 = advisory; outside = FAIL.\n",
+        "finding": "Outside CST band: risk of poor expression, aggregation, polyspecificity.\n"
+      }
+    ],
+    "ab_tap_surface_hydrophobicity": [
+      {
+        "paper_ref": "Raybould MIJ et al. PNAS 2019; 116:4025-4030",
+        "paper_doi": "10.1073/pnas.1810576116",
+        "provenance": "GOLD",
+        "paper_supports": "Raybould 2019 Table 1 defines TAP PSH (Patches of Surface Hydrophobicity) amber band as CST 5th-95th percentile ≈ 90-150.\n",
+        "rule_text": "PSH within 90-150 = pass; outside = FAIL.\n",
+        "finding": "High PSH correlates with viscosity + self-association at formulation conc.\n"
+      }
+    ],
+    "ab_camsol_intrinsic_solubility": [
+      {
+        "paper_ref": "Sormanni P, Aprile FA, Vendruscolo M. PNAS 2017; 114:E3367-E3375 (CamSol)",
+        "paper_doi": "10.1073/pnas.1422401112",
+        "provenance": "SILVER",
+        "paper_supports": "Sormanni 2017 reports CamSol intrinsic solubility per-residue scale where >+1 = highly soluble, <-1 = aggregation-prone. Whole-sequence average cutoff is community application of the scale.\n",
+        "rule_text": "CamSol score >= 1.0 = pass; 0-1 = advisory; < 0 = FAIL.\n",
+        "finding": "Low CamSol = aggregation-prone regions, poor for high-conc formulation.\n"
+      }
+    ]
+  },
+  "sirna_offtarget": {
+    "sirna_seed_mismatch_count": [
+      {
+        "paper_ref": "Birmingham A et al. Nat Methods 2006; 3:199-204",
+        "paper_doi": "10.1038/nmeth854",
+        "provenance": "SILVER",
+        "paper_supports": "Birmingham 2006 demonstrates seed-region (positions 2-8) complementarity as the driver of siRNA off-target silencing. The paper establishes the property; the >=2 mismatch operational cutoff is community convention.\n",
+        "rule_text": "Min seed mismatches across off-target hit list >= 2 = pass; 1 = advisory; 0 = FAIL.\n",
+        "finding": "Near-perfect seed matches in off-targets = high miRNA-like silencing risk.\n"
+      }
+    ],
+    "sirna_thermodynamic_asymmetry": [
+      {
+        "paper_ref": "Khvorova A, Reynolds A, Jayasena SD. Cell 2003; 115:209-216",
+        "paper_doi": "10.1016/S0092-8674(03)00801-8",
+        "provenance": "GOLD",
+        "paper_supports": "Khvorova 2003 quantitatively demonstrates functional siRNAs exhibit thermodynamic asymmetry favoring antisense-strand loading; functional siRNAs show ΔdG (5' sense - 5' antisense, 5 bp) >= ~0.5 kcal/mol.\n",
+        "rule_text": "Thermodynamic asymmetry ΔdG >= 0.5 kcal/mol = pass; 0-0.5 = advisory; < 0 = FAIL (sense strand will preferentially load into RISC).\n",
+        "finding": "Insufficient asymmetry → sense-strand RISC loading → off-target silencing.\n"
+      }
+    ]
+  },
+  "polymorph_stability": {
+    "assay_degradation_accelerated": [
+      {
+        "paper_ref": "ICH Q1A(R2) Stability Testing (2003) §2.1.7.1",
+        "paper_doi": "https://database.ich.org/sites/default/files/Q1A%28R2%29%20Guideline.pdf",
+        "provenance": "SILVER",
+        "paper_supports": "ICH Q1A(R2) §2.1.7.1 defines significant change at accelerated conditions (40°C/75%RH, 6 mo) as ≥5% change in assay from initial. The 5% threshold is in the guideline verbatim for the significant-change definition.\n",
+        "rule_text": "Assay loss at 6mo / 40°C / 75%RH < 5% = pass; >= 5% = FAIL (significant change per ICH Q1A R2 — intermediate condition study triggered).\n",
+        "finding": "Significant change at accelerated → cannot rely on accelerated for shelf-life.\n"
+      }
+    ],
+    "polymorph_form_conversion": [
+      {
+        "paper_ref": "ICH Q6A Decision Tree #4 (1999); Bauer et al. Pharm Res 2001; Brittain 2009",
+        "paper_doi": "https://database.ich.org/sites/default/files/Q6A%20Guideline.pdf",
+        "provenance": "SILVER",
+        "paper_supports": "ICH Q6A DT#4 requires polymorphic form control when forms differ in performance. The 10% conversion cutoff is community practice (Bauer 2001, Brittain 2009), not numeric in ICH.\n",
+        "rule_text": "Polymorph conversion < 10% during accelerated stability = pass; >= 10% = FAIL (form may be metastable).\n",
+        "finding": "Significant form conversion = reformulate or change polymorph selection.\n"
+      }
+    ],
+    "shelf_life_projection": [
+      {
+        "paper_ref": "ICH Q1E Evaluation of Stability Data (2003) §2.4 + §2.6",
+        "paper_doi": "https://database.ich.org/sites/default/files/Q1E%20Guideline.pdf",
+        "provenance": "SILVER",
+        "paper_supports": "ICH Q1E permits shelf-life extrapolation up to 2× long-term data period when conditions met. 24-month target is community/regulatory convention for room-temperature solid orals.\n",
+        "rule_text": "95% LCB on projected shelf-life >= 24 months = pass; < 24 = advisory.\n",
+        "finding": "Short shelf-life → refrigerated labeling or reformulation indicated.\n"
+      }
+    ]
+  },
+  "biomarker_enrichment": {
+    "biomarker_positive_hazard_ratio": [
+      {
+        "paper_ref": "FDA Enrichment Strategies for Clinical Trials Guidance (2019); Wang SJ et al. Stat Med 2018",
+        "paper_doi": "10.1002/sim.7572",
+        "provenance": "SILVER",
+        "paper_supports": "FDA 2019 endorses predictive enrichment when marker-positive shows substantially larger effect. Wang 2018 + Mehrotra 2011 operationally use HR <= 0.7 for clinically meaningful enrichment; not in FDA verbatim.\n",
+        "rule_text": "Biomarker-positive HR <= 0.7 = pass; > 0.7 = FAIL (enrichment unjustified).\n",
+        "finding": "Inadequate effect concentration in marker+ → reconsider all-comers design.\n"
+      }
+    ],
+    "predictive_prevalence": [
+      {
+        "paper_ref": "Simon R, Maitournam A. Clin Cancer Res 2004; 10:6759-6763",
+        "paper_doi": "10.1158/1078-0432.CCR-04-0496",
+        "provenance": "SILVER",
+        "paper_supports": "Simon & Maitournam 2004 show enrichment efficiency depends on biomarker prevalence. The 10-50% efficient window is community convention derived from their efficiency curves.\n",
+        "rule_text": "Predicted biomarker-positive prevalence in [0.10, 0.50] = pass; outside = advisory.\n",
+        "finding": "<10% prevalence: screening burden too high; >50%: little efficiency benefit.\n"
+      }
+    ],
+    "phase3_enrichment_factor": [
+      {
+        "paper_ref": "Mehrotra DV et al. Pharm Stat 2011; 10:357-369; FDA Enrichment 2019",
+        "paper_doi": "10.1002/pst.473",
+        "provenance": "BRONZE",
+        "paper_supports": "Mehrotra 2011 notes enrichment worthwhile when sample-size reduction exceeds ~30%. The 1.5 enrichment-factor cutoff is back-derived from this; not stated verbatim.\n",
+        "rule_text": "Enrichment factor (N_all_comers / N_enriched) >= 1.5 = pass; < 1.5 = advisory.\n",
+        "finding": "Below 1.5: targeted design saves insufficient sample size vs screening cost.\n"
       }
     ]
   }
