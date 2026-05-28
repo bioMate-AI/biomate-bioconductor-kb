@@ -6,6 +6,14 @@ as a background subprocess and returns tracking IDs.
 
 Does NOT require Galaxy workflow/invocation infrastructure.
 """
+# PEP 604 `X | Y` union syntax requires Python 3.10+. The Galaxy container
+# ships Python 3.9, so without this future import, annotations like
+# `def f(x: list | str | None = None)` raise TypeError at module load,
+# crash-looping every gunicorn worker. PEP 563 defers annotation eval so
+# the `|` syntax is treated as a string at definition time and only resolved
+# at runtime (e.g. by typing.get_type_hints()), not at import.
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -285,6 +293,8 @@ _NF_LOG_FAILURE_MARKERS = (
     "Pipeline failed",
     "ERROR ~ ",
     "WorkflowScriptErrorException",
+    "ProcessFailedException",
+    "Session aborted",
     "netmhcpan_path not specified",
     "netmhciipan_path not specified",
 )
@@ -358,6 +368,50 @@ def _read_run_timing_json(run_id: str) -> Dict[str, Any]:
         return _json.loads(timing_path.read_text())
     except Exception:
         return {}
+
+
+def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
+    """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log)."""
+    parts: list[str] = []
+    for rel in (Path("nextflow.log"), Path("work") / ".nextflow.log"):
+        path = log_dir / rel
+        if not path.is_file():
+            continue
+        try:
+            parts.append(path.read_text(encoding="utf-8", errors="replace"))
+        except Exception:
+            continue
+    combined = "\n".join(parts)
+    log_tail = [c for l in combined.splitlines()[-80:] if (c := _clean_log_line(l))][-20:]
+    return combined, log_tail
+
+
+def _evaluate_workflow_trace_terminal(
+    log_dir: Path,
+    log_full_text: str,
+    log_tail: list[str] | None = None,
+) -> tuple[bool, bool, int, int, int]:
+    """Return (trace_done, trace_failed, completed_count, failed_count, total_count)."""
+    trace_path = log_dir / "workflow-trace.txt"
+    if not trace_path.is_file():
+        return False, False, 0, 0, 0
+    try:
+        trace_lines = [
+            l for l in trace_path.read_text().splitlines()
+            if l.strip() and not l.startswith("task_id")
+        ]
+    except Exception:
+        return False, False, 0, 0, 0
+    total = len(trace_lines)
+    completed = sum(1 for l in trace_lines if "\tCOMPLETED\t" in l)
+    failed = sum(1 for l in trace_lines if "\tFAILED\t" in l)
+    nf_log_done = "Execution complete" in log_full_text
+    nf_log_failed = _log_indicates_nextflow_failure(log_full_text, log_tail)
+    if total > 0 and (completed + failed) >= total and (nf_log_done or nf_log_failed):
+        return True, failed > 0 or nf_log_failed, completed, failed, total
+    if (nf_log_done or nf_log_failed) and total == 0:
+        return True, nf_log_failed, 0, 0, 0
+    return False, False, completed, failed, total
 
 
 def _apply_disk_timing_terminal_state(info: Dict[str, Any], run_id: str) -> Dict[str, Any]:
@@ -3756,12 +3810,9 @@ def get_nextflow_status(
             _fb_duration_s = int(_end - _fb_started_at)
         log_tail_fallback: list = []
         log_full_text = ""
-        if log_path_fallback.exists():
+        if log_dir.exists():
             try:
-                with open(log_path_fallback) as fh:
-                    log_full_text = fh.read()
-                lines = log_full_text.splitlines()
-                log_tail_fallback = [c for l in lines[-40:] if (c := _clean_log_line(l))][-20:]
+                log_full_text, log_tail_fallback = _read_run_nextflow_log_text(log_dir)
             except Exception:
                 pass
         if output_dir.exists():
@@ -3834,39 +3885,9 @@ def get_nextflow_status(
             # Log dir exists but no local output dir.
             # For AWS Batch runs, outdir is S3 — check workflow-trace.txt + timing.json
             # to determine if the Nextflow process actually finished.
-            trace_path_fb = log_dir / "workflow-trace.txt"
-            trace_done = False
-            trace_failed = False
-            completed_steps_fb = 0
-            total_steps_fb = 0
-            if trace_path_fb.exists():
-                try:
-                    trace_text = trace_path_fb.read_text()
-                    trace_lines = [l for l in trace_text.splitlines() if l.strip() and not l.startswith("task_id")]
-                    total_steps_fb = len(trace_lines)
-                    completed_fb = sum(1 for l in trace_lines if "\tCOMPLETED\t" in l)
-                    failed_fb = sum(1 for l in trace_lines if "\tFAILED\t" in l)
-                    # Trace-file "all tasks done" is NOT sufficient on its own for AWS Batch:
-                    # the trace file only contains tasks that have already reported back — many
-                    # downstream tasks may not yet be written. Require the Nextflow log to also
-                    # show the "Execution complete" or failure marker before declaring done.
-                    nf_log_done = "Execution complete" in log_full_text
-                    nf_log_failed = _log_indicates_nextflow_failure(
-                        log_full_text, log_tail_fallback,
-                    )
-                    if (nf_log_done or nf_log_failed) and total_steps_fb > 0 and (completed_fb + failed_fb) >= total_steps_fb:
-                        trace_done = True
-                        trace_failed = failed_fb > 0 or nf_log_failed
-                        completed_steps_fb = completed_fb
-                    elif (nf_log_done or nf_log_failed) and total_steps_fb == 0:
-                        # Nextflow finished but trace is empty (e.g., all tasks skipped/cached)
-                        trace_done = True
-                        trace_failed = nf_log_failed or (
-                            _disk_timing.get("status") in ("failed", "interrupted")
-                            or _disk_timing.get("returncode") not in (0, None)
-                        )
-                except Exception:
-                    pass
+            trace_done, trace_failed, completed_steps_fb, _failed_fb, total_steps_fb = (
+                _evaluate_workflow_trace_terminal(log_dir, log_full_text, log_tail_fallback)
+            )
 
             # Also treat timing.json with completed_at as a done signal
             if not trace_done and _fb_completed_at:
@@ -4046,7 +4067,13 @@ def get_nextflow_status(
     log_tail: list = []
     log_path = Path(info.get("log_path", ""))
     log_full_text = ""
-    if log_path.exists():
+    log_dir = log_path.parent if log_path else Path("")
+    if log_dir.is_dir():
+        try:
+            log_full_text, log_tail = _read_run_nextflow_log_text(log_dir)
+        except Exception:
+            pass
+    elif log_path.exists():
         try:
             with open(log_path) as fh:
                 lines = fh.readlines()
@@ -4054,6 +4081,17 @@ def get_nextflow_status(
             log_tail = [c for l in lines[-40:] if (c := _clean_log_line(l))][-20:]
         except Exception:
             pass
+
+    # Stale in-memory "running" after Nextflow exited on another worker or log landed in work/.nextflow.log
+    if info.get("status") == "running" and log_dir.is_dir():
+        trace_done, trace_failed, _, _, _ = _evaluate_workflow_trace_terminal(
+            log_dir, log_full_text, log_tail,
+        )
+        if trace_done and trace_failed:
+            info = dict(info)
+            info["status"] = "failed"
+            info["returncode"] = 1
+            info["completed_at"] = info.get("completed_at") or time.time()
 
     # Parse trace file for task-level progress
     trace_path = Path(info.get("trace_path", ""))
