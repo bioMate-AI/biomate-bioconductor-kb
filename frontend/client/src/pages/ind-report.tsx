@@ -167,7 +167,9 @@ function PipelineCenter({
       <Step1ProjectSetup project={project} onEdit={onEditCompounds ?? (() => {})} expanded={expanded.s1} onToggle={() => toggle("s1")} />
       <Step2Admet
         data={DEMO_ADMET}
-        expanded={expanded.s2}
+        // Force expansion when the imported-from-chat banner needs to be
+        // visible, so the customer sees the cue without manually expanding.
+        expanded={expanded.s2 ?? knobs.importedFromChat}
         onToggle={() => toggle("s2")}
         running={knobs.step2State === "running"}
         progress={knobs.step2Progress}
@@ -497,9 +499,10 @@ export function IndReportPage() {
       {/* Floating action button — CSS makes this display:flex only at
           viewport ≤1024px (where .ind-doc-panel is hidden). Opens the
           panel as a modal. Stub click for now. */}
+      {/* P0-6: Mobile FAB opens DocPanelMobileModal (CSS shows this only at ≤1024px). */}
       <button
         className="ind-doc-fab"
-        onClick={() => alert("Open document panel (narrow viewport stub)")}
+        onClick={() => setShowDocModal(true)}
       >
         📄 View document
       </button>
