@@ -1,0 +1,125 @@
+name: IND Production Integration Smoke (PI suite)
+
+# Runs the IND module PI-1..PI-12 suite + design audit against the live
+# dev environment after every push to integration/next-phase.
+#
+# Why post-deploy instead of pre-merge:
+#   - The PI suite needs both a real Node frontend (:5000) and a real
+#     Galaxy backend (:8081) with the regulatory adapter on disk + the
+#     /api/ind-report routes registered.
+#   - Spinning that up in CI takes ~3 min for Galaxy alone (workflow DB
+#     index rebuild) and would need the full backend image pulled.
+#   - dev-public.biomate.ai already runs the latest sync; targeting it
+#     gives us a real-stack smoke for ~$0 of CI time.
+#
+# Catches:
+#   - Backend regressions that escape unit tests
+#   - Node proxy route gaps (we found 3 of these in this session alone)
+#   - Galaxy boot issues (DB swap requiring restart, etc.)
+#   - PI-6 auth gate: 401 without bearer + 200 with minted JWT
+#   - Audit overlay placement, data-tour cleanup, region selector
+#     gray-out, real SHA-256, version popover wiring, mobile FAB modal
+
+on:
+  push:
+    branches:
+      - integration/next-phase
+      - main
+      - master
+    paths:
+      - "backend/lib/galaxy/ai/drug_discovery/ind_actions_router.py"
+      - "backend/lib/galaxy/ai/drug_discovery/feedback_router.py"
+      - "backend/lib/galaxy/ai/drug_discovery/llm_streaming_router.py"
+      - "frontend/client/src/pages/ind-report.tsx"
+      - "frontend/client/src/components/ind-report/**"
+      - "frontend/client/src/lib/ind-report-api.ts"
+      - "frontend/server/routes.ts"
+      - "frontend/e2e/ind-report-production.e2e.ts"
+      - "frontend/e2e/ind-design-audit.e2e.ts"
+      - "frontend/e2e/regenerate-dev-smoke.e2e.ts"
+      - ".github/workflows/ind-pi-suite.yml"
+  workflow_dispatch:
+    inputs:
+      require_auth:
+        description: "Run with BIOMATE_REQUIRE_AUTH=1 (exercises PI-6 + Stage C with bearer)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  pi-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for dev backend healthy
+        run: |
+          for i in {1..30}; do
+            if curl -fsS -m 5 "https://dev-public.biomate.ai/api/regulatory/active_adapter" >/dev/null 2>&1; then
+              echo "dev backend reachable"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::dev backend not reachable after 5 min — was the sync_to_dev.sh deploy successful?"
+          exit 1
+
+      - name: Run PI suite (PI-1..PI-13) against dev
+        env:
+          BIOMATE_URL: https://dev-public.biomate.ai
+          GALAXY_URL: https://dev-public.biomate.ai
+          # PI-1/PI-2 are local-only (build + typecheck); skipped against dev
+          # PI-12 needs the local GPU + adapter; skipped against dev
+          BIOMATE_REQUIRE_AUTH: ${{ github.event.inputs.require_auth || 'false' }}
+        run: |
+          npx playwright test e2e/ind-report-production.e2e.ts \
+            --reporter=list --output=/tmp/pi-suite-output
+
+      - name: Run design audit against dev
+        env:
+          BIOMATE_URL: https://dev-public.biomate.ai
+        run: |
+          npx playwright test e2e/ind-design-audit.e2e.ts \
+            --reporter=list --output=/tmp/audit-output
+
+      - name: Upload PI suite artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-suite-${{ github.run_id }}
+          path: |
+            /tmp/pi-suite-output/
+            /tmp/audit-output/
+          retention-days: 14
+
+      - name: Summarize result
+        if: always()
+        run: |
+          echo "## IND PI Suite Result" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: https://dev-public.biomate.ai/ind-report" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: dev-public.biomate.ai (Galaxy)" >> $GITHUB_STEP_SUMMARY
+          echo "- PI-6 auth gate exercised: \`${{ github.event.inputs.require_auth || 'false' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Run: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
