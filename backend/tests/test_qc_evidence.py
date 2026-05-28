@@ -58,11 +58,11 @@ def test_evidence_for_cyp_ddi_r1():
 
 
 def test_evidence_for_admet_herg():
-    """ADMET hERG gate cites Aronov 2008."""
+    """ADMET hERG gate cites Redfern 2003 (30× safety margin → 10 µM cutoff)."""
     items = get_evidence_for_gate("admet", "admet_herg_ic50")
     assert len(items) == 1
     e = items[0]
-    assert "Aronov" in e["paper_ref"]
+    assert "Redfern" in e["paper_ref"]
     assert e["provenance"] == "GOLD"
 
 
