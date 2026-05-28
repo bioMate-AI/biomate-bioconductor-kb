@@ -119,6 +119,8 @@ Seven QC gate modules are implemented as standalone processes (Table 1). Each ga
 
 **Gate 7 — Atomic model quality** (Phase D, post-ModelAngelo/Phenix): Ramachandran favored ≥ 95% (GOLD, wwPDB); rotamer outliers ≤ 1% (GOLD); all-atom clashscore ≤ 20 (SILVER). EMRinger score ≥ 1.0 (SILVER, Barad et al. 2015) as independent map-model cross-validation.
 
+**Architectural note on the gate catalog.** The seven paper-level gate modules described above decompose into eleven metric-level evaluations in the `cryo_em_autoloop/qc_evaluator.py` module of the BioMate codebase, and Gate 7 (atomic model quality) is split across two post-processing tools (ModelAngelo and Phenix). The cross-domain BioMate evidence catalog (`qc_evidence.yaml`) exposes a subset of three metrics from this set — the FSC 0.143 resolution gate, the motion drift gate, and the particle-count gate — selected as the cross-tool reporting subset whose thresholds and citations generalize beyond cryo-EM. The full eleven-evaluation cryo subsystem remains the authoritative source for BioMate-Cryo deployment; the cross-domain catalog provides interoperable display for the broader 25-domain platform described in the companion methods paper (BioMate Team, in preparation). This two-level structure reflects a deliberate separation: domain-specific evaluators provide the depth needed for protocol-aware QC, while the central catalog provides cross-domain reporting consistency for the tooltip UI and audit trail.
+
 ### 2.3 Protocol-Aware Profiles
 
 Four named profiles implement sample-biology-appropriate thresholds (Table 2):
