@@ -6,14 +6,6 @@ as a background subprocess and returns tracking IDs.
 
 Does NOT require Galaxy workflow/invocation infrastructure.
 """
-# PEP 604 `X | Y` union syntax requires Python 3.10+. The Galaxy container
-# ships Python 3.9, so without this future import, annotations like
-# `def f(x: list | str | None = None)` raise TypeError at module load,
-# crash-looping every gunicorn worker. PEP 563 defers annotation eval so
-# the `|` syntax is treated as a string at definition time and only resolved
-# at runtime (e.g. by typing.get_type_hints()), not at import.
-from __future__ import annotations
-
 import logging
 import os
 import re
@@ -262,14 +254,6 @@ _ACCESSION_REGISTRY: list[dict] = [
 
 _ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
-# OSC 8 hyperlink sequences: ESC ] 8 ; <params> ; <URL> (ESC \ | BEL) <text> ESC ] 8 ; ;
-# Nextflow 26.04+ emits these in the live progress block so task IDs are clickable;
-# the literal payload looks like
-#   "]8;;s3://.../018099]8;;\bispec:phaseA…) | 0 of 1"
-# and breaks the [<hash>] PROCESS regex. Strip everything between OSC 8 start and
-# terminator (BEL 0x07 or ST = ESC \).
-_OSC8_RE = re.compile(r'\x1B\]8;[^\x07\x1B]*(?:\x07|\x1B\\)')
-
 # Nextflow startup noise patterns — lines matching any of these are dropped
 # from log_tail to keep execution logs focused on actual process output.
 _NF_NOISE_RE = re.compile(
@@ -284,11 +268,8 @@ _NF_NOISE_RE = re.compile(
 )
 
 def _strip_ansi(text: str) -> str:
-    """Remove ANSI escape sequences (colors, cursor movement, OSC 8 hyperlinks)
-    from terminal output."""
-    # Strip OSC 8 hyperlinks first so their URL payload doesn't get mistaken
-    # for content by the CSI stripper.
-    return _ANSI_ESCAPE_RE.sub('', _OSC8_RE.sub('', text))
+    """Remove ANSI escape sequences (colors, cursor movement) from terminal output."""
+    return _ANSI_ESCAPE_RE.sub('', text)
 
 
 def _clean_log_line(line: str) -> str:
@@ -297,113 +278,6 @@ def _clean_log_line(line: str) -> str:
     if _NF_NOISE_RE.search(cleaned):
         return ''
     return cleaned
-
-
-# Nextflow live progress block line:
-#   [ce/ac8b01] BIS…bispec:phaseA:PD-1_x_VEGF) | 0 of 1
-#   [-        ] BISPEC_FORMAT_SCORING          -
-#   [a1b2c3d4] process > NAME (tag) | 3 of 5, cached: 2
-_NF_PROC_RE = re.compile(
-    r'^\s*\[(?P<hash>[a-f0-9/]{8,}|-+\s*)\]\s+'
-    r'(?:process\s*>\s*)?'
-    r'(?P<name>[A-Za-z_][\w:.\-]*)'
-    r'(?:\s*\([^)]*\))?'
-    r'(?:\s*\|\s*(?P<done>\d+)\s*of\s*(?P<total>\d+))?'
-)
-
-
-def _parse_processes_from_log(log_text):
-    """Parse Nextflow's latest live progress block from the log file.
-
-    Returns {'processes', 'completedSteps', 'totalSteps'}. Used as a fallback
-    when workflow-trace.txt is still empty (Batch cold-start window) and no S3
-    outputs exist yet. Resolves ellipsis-truncated names ('BIS…bispec…')
-    against un-truncated sibling lines in the same block.
-    """
-    out = {"processes": [], "completedSteps": 0, "totalSteps": 0}
-    if not log_text:
-        return out
-
-    # Pre-scan whole log for the un-truncated process names.
-    full_names = set()
-    for raw in log_text.splitlines():
-        line = _strip_ansi(raw).strip()
-        if not line.startswith("["):
-            continue
-        m = _NF_PROC_RE.match(line)
-        if not m:
-            continue
-        nm = m.group("name")
-        if "…" in line[line.find(nm):line.find(nm) + 60]:
-            continue
-        if len(nm) >= 4:
-            full_names.add(nm)
-
-    last_block_start = log_text.rfind("executor >")
-    block = log_text[last_block_start:] if last_block_start != -1 else log_text
-
-    block_full_names = set()
-    for raw in block.splitlines():
-        line = _strip_ansi(raw).strip()
-        if not line.startswith("["):
-            continue
-        m_pre = _NF_PROC_RE.match(line)
-        if not m_pre:
-            continue
-        nm_pre = m_pre.group("name")
-        if f"{nm_pre}…" in line:
-            continue
-        block_full_names.add(nm_pre)
-
-    def _resolve(short, line_text):
-        if f"{short}…" not in line_text:
-            return short
-        candidates = [n for n in full_names if n.startswith(short) and n != short]
-        if not candidates:
-            return short
-        if len(candidates) == 1:
-            return candidates[0]
-        remaining = [n for n in candidates if n not in block_full_names]
-        if len(remaining) == 1:
-            return remaining[0]
-        if remaining:
-            return min(remaining, key=len)
-        return min(candidates, key=len)
-
-    by_name = {}
-    for raw in block.splitlines():
-        line = _strip_ansi(raw).strip()
-        if not line.startswith("["):
-            continue
-        m = _NF_PROC_RE.match(line)
-        if not m:
-            continue
-        name = _resolve(m.group("name"), line)
-        hash_field = (m.group("hash") or "").strip()
-        is_submitted = hash_field and hash_field != "-" and not hash_field.startswith("-")
-        done = int(m.group("done") or 0)
-        total = int(m.group("total") or 0)
-        if total > 0:
-            if done >= total:
-                status = "completed"
-            elif is_submitted:
-                status = "running"
-            else:
-                status = "pending"
-        else:
-            status = "running" if is_submitted else "pending"
-        by_name[name] = {
-            "name": name,
-            "status": status,
-            "hash": hash_field if is_submitted else None,
-            "completed": done,
-            "total": total or 1,
-        }
-    procs = list(by_name.values())
-    out["processes"] = procs
-    out["completedSteps"] = sum(p["completed"] for p in procs)
-    out["totalSteps"] = sum(p["total"] for p in procs)
-    return out
 
 
 _NF_LOG_FAILURE_MARKERS = (
@@ -2467,16 +2341,24 @@ def _write_timing(run_id: str, updates: dict) -> None:
 
 
 def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
-    """Stream stdout+stderr to a log file and update run status when done."""
+    """Wait for the Nextflow subprocess to finish and update run status.
+
+    Naming preserved for backward-compat. Modern launch sites redirect the
+    Nextflow stdout/stderr straight to a file at Popen time (so the worker
+    can die without breaking the pipe and killing Nextflow); this function
+    therefore only needs to wait on the process and finalise status.
+    Legacy callers that still pass stdout=PIPE drain it here for safety.
+    """
     _completed_at_now: float = 0.0
     final_status: str = "interrupted"
     returncode: int = -1
     run_meta: Dict[str, Any] = {}
     try:
-        with open(log_path, "w") as fh:
-            for line in process.stdout:            # type: ignore[union-attr]
-                fh.write(line)
-                fh.flush()
+        if process.stdout is not None:
+            with open(log_path, "w") as fh:
+                for line in process.stdout:            # type: ignore[union-attr]
+                    fh.write(line)
+                    fh.flush()
         process.wait()
         returncode = process.returncode
         _completed_at_now = time.time()
@@ -3058,15 +2940,30 @@ def _accession_chain_thread(
     chain_work_dir = work_base / run_id / "work"
     chain_work_dir.mkdir(parents=True, exist_ok=True)
     try:
+        # True decoupling from the gunicorn worker: redirect stdout/stderr
+        # straight to the log file at Popen time. With stdout=subprocess.PIPE
+        # the worker holds the pipe's read end — if the worker recycles
+        # (OOM, gunicorn timeout, sync redeploy), the pipe closes from the
+        # read side and Nextflow's next write triggers SIGPIPE, killing it
+        # mid-run. The Batch job we just submitted then succeeds in the
+        # cloud but no Nextflow process is left to observe the .exitcode
+        # poll-back. Observed in the wild: T01 Phase A completed on Batch
+        # in 12s with exit 0 and real output files in S3, but the local
+        # Nextflow log stopped writing 1s after submission because the
+        # worker had been recycled. start_new_session=True alone is not
+        # enough — it detaches signals, not file descriptors.
+        log_fh = open(log_path, "ab", buffering=0)
         process = subprocess.Popen(
             substituted_cmd,
-            stdout=subprocess.PIPE,
+            stdout=log_fh,
             stderr=subprocess.STDOUT,
-            text=True,
             cwd=str(chain_work_dir),
             env=env,
             start_new_session=True,
+            close_fds=True,
         )
+        # Parent doesn't need the fd any more — child has its own copy.
+        log_fh.close()
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["process"] = process
@@ -3591,16 +3488,26 @@ def execute_nextflow(
                 log.warning("[Nextflow run %s] Could not copy .nextflow cache: %s", run_id, _e)
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
+    # True decoupling: stdout/stderr go straight to the log file. With
+    # stdout=PIPE the gunicorn worker holds the pipe's read end; when the
+    # worker recycles (OOM / sync redeploy / gunicorn timeout) the pipe
+    # closes from the read side and Nextflow's next write triggers SIGPIPE,
+    # killing it mid-flight. Observed in tier 0 T01 dispatch on dev: Phase A
+    # succeeded on Batch (exit 0, real outputs in S3) but the local Nextflow
+    # process died ~1s after submission because the worker recycled, leaving
+    # the run permanently stuck in "running" → eventually "failed".
     try:
+        log_fh = open(log_path, "ab", buffering=0)
         process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
+            stdout=log_fh,
             stderr=subprocess.STDOUT,
-            text=True,
             cwd=str(work_dir),
             env=env,
             start_new_session=True,
+            close_fds=True,
         )
+        log_fh.close()  # child inherited its own fd; parent doesn't need this
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
@@ -4251,22 +4158,6 @@ def get_nextflow_status(
         processes = _build_processes_from_s3_files(s3_files, outdir, workflow_domain)
     else:
         processes = []
-
-    # In-memory path cold-start fallback: when trace.txt is still empty and no
-    # S3 outputs exist yet (the first 1-3 min on Batch), parse the Nextflow log
-    # progress block so phase cards render real running/pending state instead
-    # of an empty processes=[].
-    if not processes and log_path.exists():
-        try:
-            _log_full_text = log_path.read_text(errors="replace")
-            if _log_full_text:
-                _live = _parse_processes_from_log(_log_full_text)
-                if _live["processes"]:
-                    processes = _live["processes"]
-                    progress["completedSteps"] = _live["completedSteps"]
-                    progress["totalSteps"] = _live["totalSteps"]
-        except Exception:
-            pass
 
     progress = {**progress, "processes": processes}
     work_dir = info.get("work_dir", "")
