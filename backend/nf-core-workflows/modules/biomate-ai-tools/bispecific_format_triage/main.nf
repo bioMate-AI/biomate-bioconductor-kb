@@ -400,7 +400,11 @@ print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('bispecific_format_triage: 2.0')" > versions.yml
-    cp ${ranking_csv} format_ranking.csv
+    # `ranking_csv` is staged into the work-dir as 'format_ranking.csv' already
+    # (it's the same filename the upstream process emitted). The previous
+    # `cp ${ranking_csv} format_ranking.csv` ran `cp foo.csv foo.csv` and exit 1'd,
+    # killing Phase D every run. The output declaration `path("format_ranking.csv")`
+    # publishes the staged input file directly — no copy needed.
     """
 }
 
