@@ -8256,11 +8256,17 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // nf-core on AWS Batch uses profile docker + awsbatch executor (not profile "aws").
+              // Profile selection on Batch (2026-05-22 fix, re-applied 2026-05-28):
+              // biomate-ai-tools workflows define an `aws` profile (no `docker` profile).
+              // nf-core pipelines define `docker` but on Batch they accept `aws` too since
+              // both delegate to the awsbatch executor. Empirically (see sweep on 2026-05-22):
+              // 4 of 5 drug-dev failures were "Unknown configuration profile: 'docker'" from
+              // workflows whose nextflow.config only declares aws/local/spot_gpu/test profiles.
+              // Standardise on `aws` for all Batch runs.
               profile:
                 paramProfile ||
                 request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'docker' : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
