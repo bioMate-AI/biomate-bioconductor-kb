@@ -54,22 +54,12 @@ def parseSampleSheet(csv_path) {
     return rows
 }
 
-// ── Channels ──────────────────────────────────────────────────────────────────
-Channel
-    .fromPath(params.sample_sheet)
-    .splitCsv(header: true)
-    .map { row -> tuple(row.sample_name, file(row.fastq_file), row.condition) }
-    .set { ch_samples }
-
-ch_library   = Channel.fromPath(params.library_file)
-ch_ctrl_sgrna = params.control_sgrna
-    ? Channel.fromPath(params.control_sgrna)
-    : Channel.empty()
+// ── Channels: moved inside workflow{} (parser-v2 forbids top-level statements) ──
 
 // ── Process: MAGeCK count ─────────────────────────────────────────────────────
 // [Guide Counting]
 process MAGECK_COUNT {
-    tag "${meta.sample}"
+    tag "crispr_screen"
     container MAGECK_CONTAINER()
     publishDir "${params.outdir}/mageck_count", mode: 'copy'
 
@@ -361,6 +351,18 @@ PYEOF
 
 // ── Workflow ──────────────────────────────────────────────────────────────────
 workflow {
+    // Channel setup (parser-v2 requires this inside workflow{})
+    Channel
+        .fromPath(params.sample_sheet)
+        .splitCsv(header: true)
+        .map { row -> tuple(row.sample_name, file(row.fastq_file), row.condition) }
+        .set { ch_samples }
+
+    ch_library    = Channel.fromPath(params.library_file)
+    ch_ctrl_sgrna = params.control_sgrna
+        ? Channel.fromPath(params.control_sgrna)
+        : Channel.empty()
+
     // Collect all samples, group with library for counting
     ch_all_samples = ch_samples.collect()
     MAGECK_COUNT(ch_all_samples, ch_library)
