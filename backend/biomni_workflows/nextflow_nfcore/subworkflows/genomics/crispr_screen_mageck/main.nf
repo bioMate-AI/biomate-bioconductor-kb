@@ -60,7 +60,7 @@ def parseSampleSheet(csv_path) {
 // [Guide Counting]
 process MAGECK_COUNT {
     tag "crispr_screen"
-    container MAGECK_CONTAINER()
+    container { MAGECK_CONTAINER() }
     publishDir "${params.outdir}/mageck_count", mode: 'copy'
 
     input:
@@ -157,7 +157,7 @@ PYEOF
 // [Guide Counting]
 process MAGECK_TEST {
     tag "RRA gene test"
-    container MAGECK_CONTAINER()
+    container { MAGECK_CONTAINER() }
     publishDir "${params.outdir}/mageck_test", mode: 'copy'
 
     input:
@@ -236,7 +236,7 @@ PYEOF
 // [Analysis]
 process PATHWAY_ENRICHMENT {
     tag "GSEA on screen hits"
-    container PYTHON_CONTAINER()
+    container { PYTHON_CONTAINER() }
     publishDir "${params.outdir}/pathway_enrichment", mode: 'copy'
 
     input:
@@ -352,20 +352,28 @@ PYEOF
 // ── Workflow ──────────────────────────────────────────────────────────────────
 workflow {
     // Channel setup (parser-v2 requires this inside workflow{})
+    // Build a single-emission tuple [meta_list, fastqs] then combine with library
     Channel
         .fromPath(params.sample_sheet)
         .splitCsv(header: true)
-        .map { row -> tuple(row.sample_name, file(row.fastq_file), row.condition) }
-        .set { ch_samples }
+        .map { row -> [meta: [sample: row.sample_name, condition: row.condition], fastq: file(row.fastq_file)] }
+        .toList()
+        .map { items -> tuple(items.collect { it.meta }, items.collect { it.fastq }) }
+        .set { ch_grouped_samples }
 
     ch_library    = Channel.fromPath(params.library_file)
     ch_ctrl_sgrna = params.control_sgrna
         ? Channel.fromPath(params.control_sgrna)
         : Channel.empty()
 
-    // Collect all samples, group with library for counting
-    ch_all_samples = ch_samples.collect()
-    MAGECK_COUNT(ch_all_samples, ch_library)
+    // Combine the [meta_list, fastqs] tuple with ch_library into a single
+    // 3-element tuple [meta_list, fastqs, library] — matches MAGECK_COUNT
+    // input declaration `tuple val(meta_list), path(fastqs), path(library)`.
+    ch_grouped_samples
+        .combine(ch_library)
+        .set { ch_mageck_input }
+
+    MAGECK_COUNT(ch_mageck_input)
 
     // Gene-level test
     MAGECK_TEST(MAGECK_COUNT.out.counts, ch_ctrl_sgrna.ifEmpty([]))
