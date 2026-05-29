@@ -4159,6 +4159,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // IND Report module — proxy /api/ind-report/* to Galaxy backend
+  //   POST   /api/ind-report/projects/:id/sign
+  //   POST   /api/ind-report/projects/:id/document.md  (returns text/markdown)
+  //   POST   /api/ind-report/projects/:id/document.docx (returns Word blob)
+  //   POST   /api/ind-report/projects/:id/snapshot
+  //   GET    /api/ind-report/projects/:id/versions
+  //   POST   /api/ind-report/projects/:id/sections/render
+  //   POST   /api/ind-report/projects
+  //   PATCH  /api/ind-report/projects/:id/compounds
+  // ─────────────────────────────────────────────────────────────────────────
+  app.all("/api/ind-report/*", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.send(buf);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'IND report proxy error', detail: err.message });
+    }
+  });
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
@@ -4823,15 +4871,89 @@ ${paramLines || '(none recorded)'}`;
   // Streaming chat endpoint (SSE) for token-level response updates
   app.post("/api/chat/stream", optionalAuth, async (req, res) => {
     const abortController = new AbortController();
+
+    // Server-side assistant-message persistence guard (see docs/20260529_CHAT_STREAM_PERSISTENCE_GAP.md).
+    // We accumulate every delta + capture workflow metadata so we can write the
+    // assistant message back to chat_sessions even if the client disconnects
+    // mid-stream. Persistence is idempotent (UPSERT by message_id) so it does
+    // not race with the client-side chat-history sync.
+    let accumulatedContent = "";
+    let workflowMetadata: any = null;
+    let persisted = false;
+
+    const persistAssistantMessage = async (opts: { partial: boolean }): Promise<void> => {
+      if (persisted) return;
+      if (accumulatedContent.length === 0) return; // never persist an empty message
+      const userObj: any = (req as any).user;
+      if (!userObj?.id) return; // anonymous → nothing to persist (no session row)
+      const ctx = (req.body && req.body.context) || {};
+      const sessionId: string | undefined = ctx.sessionId || ctx.memorySessionId;
+      if (!sessionId) return;
+      const assistantMessageId: string =
+        ctx.assistantMessageId || `srv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const messageObj: any = {
+        message_id: assistantMessageId,
+        role: "assistant",
+        content: accumulatedContent,
+        timestamp: new Date().toISOString(),
+        partial: opts.partial,
+      };
+      if (workflowMetadata) messageObj.workflowMetadata = workflowMetadata;
+      try {
+        // UPSERT: ensure session row exists, then merge the assistant message by
+        // message_id (replace existing entry with same id, else append).
+        await pool.query(
+          `INSERT INTO chat_sessions (session_id, user_id, title, messages)
+             VALUES ($1, $2, 'New Chat', $3::jsonb)
+             ON CONFLICT (session_id) DO UPDATE SET
+               messages = (
+                 SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) || $3::jsonb
+                 FROM jsonb_array_elements(chat_sessions.messages) elem
+                 WHERE elem->>'message_id' IS DISTINCT FROM $4
+               ),
+               last_activity = NOW()`,
+          [sessionId, userObj.id, JSON.stringify([messageObj]), assistantMessageId]
+        );
+        persisted = true;
+        console.log(`[ChatStream] Persisted assistant message ${assistantMessageId} (partial=${opts.partial}, len=${accumulatedContent.length})`);
+      } catch (e: any) {
+        console.error('[ChatStream] Failed to persist assistant message:', e?.message || e);
+      }
+    };
+
     // Use socket 'close' (TCP disconnect) not req 'close' (body consumed).
     // req 'close' fires as soon as express body-parser finishes reading the POST body,
     // which is before the SSE response is sent. socket 'close' fires only when the
     // TCP connection is actually destroyed (client disconnect).
-    req.socket?.on('close', () => abortController.abort());
+    req.socket?.on('close', () => {
+      abortController.abort();
+      // Fire-and-forget partial persistence on client disconnect.
+      if (!persisted && accumulatedContent.length > 0) {
+        persistAssistantMessage({ partial: true }).catch(() => {/* logged inside */});
+      }
+    });
 
     let heartbeatTimer: NodeJS.Timeout | null = null;
 
     const safeSend = (event: string, data: unknown): void => {
+      // Server-side accumulation (runs even if write fails / connection dead).
+      if (event === 'delta') {
+        const t = (data as any)?.text;
+        if (typeof t === 'string') accumulatedContent += t;
+      } else if (event === 'workflow_ready') {
+        workflowMetadata = data;
+      } else if (event === 'final') {
+        // Prefer the canonical final assistant message over accumulated deltas
+        // when both are available — the LLM-side message field is authoritative.
+        const finalText = (data as any)?.response;
+        if (typeof finalText === 'string' && finalText.length > 0) {
+          accumulatedContent = finalText;
+        }
+        // Capture the workflow payload from the final event too (some flows
+        // emit workflow data only in 'final', not 'workflow_ready').
+        const wf = (data as any)?.workflow;
+        if (wf && !workflowMetadata) workflowMetadata = { workflow: wf };
+      }
       if (res.writableEnded || abortController.signal.aborted) return;
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
@@ -5174,9 +5296,17 @@ ${paramLines || '(none recorded)'}`;
 
       safeSend("final", responsePayload);
       safeSend("done", { ok: true });
+      // Authoritative server-side persistence on successful completion.
+      // (Idempotent — UPSERT by message_id won't conflict with client sync.)
+      await persistAssistantMessage({ partial: false });
       res.end();
     } catch (error: any) {
       console.error("Chat Stream API error:", error);
+      // Persist whatever we managed to stream before the error so the user can
+      // see partial output on session reload.
+      if (!persisted && accumulatedContent.length > 0) {
+        await persistAssistantMessage({ partial: true }).catch(() => {/* logged */});
+      }
       safeSend("error", {
         message: error?.message || "Streaming chat failed",
       });
