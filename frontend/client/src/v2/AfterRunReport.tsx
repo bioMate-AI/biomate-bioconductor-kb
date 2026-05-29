@@ -30,7 +30,8 @@ interface AfterRunReportProps {
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
-type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc";
+type TabId = "findings" | "outputs" | "methods" | "params" | "qc";
+// "software" + "citations" will rejoin once their backend routes exist.
 
 interface OutputFile {
   step: string;
@@ -54,10 +55,15 @@ export function AfterRunReport({
   // Methods + QC events keyed off invocationId (the backend Nextflow id), falling back to runId.
   const idForBackend = invocationId || runId;
   const methods = useFetchMethods(idForBackend);
-  const citations = useFetchCitations(workflowName);
   const qcEvents = useFetchQcEvents(idForBackend);
+  // workflowName param kept for future Citations tab; suppress unused-var warning.
+  void workflowName;
 
   // Compute which optional tabs to show based on real data presence.
+  // Software + Citations intentionally hidden until their backend routes ship
+  // (per A3 audit + user direction 2026-05-29). Re-enable by appending:
+  //   t.push(["software", "Software"]);          // needs /api/invocations/:id/software
+  //   if (citations.length > 0) t.push([...]);   // needs /api/workflows/:name/citations
   const visibleTabs = useMemo<Array<[TabId, string]>>(() => {
     const t: Array<[TabId, string]> = [
       ["findings", "Findings"],
@@ -65,26 +71,44 @@ export function AfterRunReport({
     ];
     if (methods.hasRealContent) t.push(["methods", "Methods"]);
     t.push(["params", "Parameters"]);
-    // Software is always shown but renders a "Coming soon" placeholder for v0.
-    t.push(["software", "Software"]);
-    if (citations.length > 0) t.push(["citations", "Citations"]);
     if (qcEvents.length > 0) t.push(["qc", "QC audit"]);
     return t;
-  }, [methods.hasRealContent, citations.length, qcEvents.length]);
+  }, [methods.hasRealContent, qcEvents.length]);
+
+  const handleDownload = () => {
+    const md = buildFullReportMarkdown({
+      runId,
+      workflowName,
+      parameters,
+      outputs,
+      methods: methods.text,
+      qcEvents,
+    });
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `biomate-run-${runId}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="after-run-report" style={styles.root}>
       <div style={styles.head}>
         <span style={styles.kicker}>After run</span>
         <span style={{ flex: 1 }} />
-        <a
-          href={`/api/workflows/runs/${runId}/findings/report`}
-          download
-          style={styles.linkish}
-          title="Download a structured methods report"
+        <button
+          type="button"
+          onClick={handleDownload}
+          style={{ ...styles.linkish, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          title="Download a comprehensive markdown report stitching every tab"
+          data-testid="afterrun-download-report"
         >
           ↓ Download report
-        </a>
+        </button>
       </div>
       <div role="tablist" style={styles.tabBar}>
         {visibleTabs.map(([id, label]) => (
@@ -110,8 +134,6 @@ export function AfterRunReport({
         {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
         {tab === "params" && <ParametersTab parameters={parameters} />}
-        {tab === "software" && <SoftwareTab />}
-        {tab === "citations" && <CitationsTab citations={citations} />}
         {tab === "qc" && <QcAuditTab events={qcEvents} />}
       </div>
     </div>
@@ -148,23 +170,9 @@ function useFetchMethods(invocationId: string): MethodsData {
   return data;
 }
 
-function useFetchCitations(workflowName?: string): Array<{ doi?: string; title: string; url?: string }> {
-  const [citations, setCitations] = useState<Array<{ doi?: string; title: string; url?: string }>>([]);
-  useEffect(() => {
-    if (!workflowName) return;
-    let cancelled = false;
-    fetch(`/api/workflows/${encodeURIComponent(workflowName)}/citations`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const arr = Array.isArray(data) ? data : data.citations || [];
-        setCitations(arr);
-      })
-      .catch(() => { /* endpoint may not exist yet — Citations tab simply hides */ });
-    return () => { cancelled = true; };
-  }, [workflowName]);
-  return citations;
-}
+// Citations tab is commented out until /api/workflows/:name/citations
+// backend route ships. Restoration template kept inline near the visibleTabs
+// builder for re-enabling later.
 
 interface QcEvent {
   ts?: string;
@@ -255,37 +263,8 @@ function ParametersTab({ parameters }: { parameters?: Record<string, unknown> })
   );
 }
 
-function SoftwareTab() {
-  return (
-    <div style={styles.tabContent}>
-      <p style={styles.comingSoon}>
-        <strong>Coming soon</strong> — per-run software versions will be sourced
-        from each module's <code>versions.yml</code> (already emitted by ~98% of
-        BioMate workflows). Pending a backend route at
-        <code> /api/invocations/:id/software</code>.
-      </p>
-    </div>
-  );
-}
-
-function CitationsTab({ citations }: { citations: Array<{ doi?: string; title: string; url?: string }> }) {
-  return (
-    <div style={styles.tabContent}>
-      <ul style={styles.citationsList}>
-        {citations.map((c, i) => (
-          <li key={i} style={styles.citationItem}>
-            {c.url ? (
-              <a href={c.url} target="_blank" rel="noreferrer noopener">{c.title}</a>
-            ) : (
-              <span>{c.title}</span>
-            )}
-            {c.doi && <span style={styles.citationDoi}> doi:{c.doi}</span>}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+// SoftwareTab + CitationsTab removed for v0 — restore when backend routes
+// /api/invocations/:id/software and /api/workflows/:name/citations ship.
 
 function QcAuditTab({ events }: { events: QcEvent[] }) {
   return (
@@ -316,6 +295,103 @@ function QcAuditTab({ events }: { events: QcEvent[] }) {
       </table>
     </div>
   );
+}
+
+/**
+ * Build a comprehensive markdown report stitching every visible tab into
+ * one document. Lives client-side so no new backend route is needed for v0.
+ * Future: add a server-side DOCX/PDF generator and switch the download
+ * button to call it.
+ */
+function buildFullReportMarkdown(args: {
+  runId: string;
+  workflowName?: string;
+  parameters?: Record<string, unknown>;
+  outputs: OutputFile[];
+  methods: string;
+  qcEvents: QcEvent[];
+}): string {
+  const { runId, workflowName, parameters, outputs, methods, qcEvents } = args;
+  const lines: string[] = [];
+  lines.push(`# BioMate Run Report`);
+  lines.push("");
+  lines.push(`- **Run ID**: \`${runId}\``);
+  if (workflowName) lines.push(`- **Workflow**: ${workflowName}`);
+  lines.push(`- **Generated**: ${new Date().toISOString()}`);
+  lines.push("");
+
+  // Findings — Findings tab content is fetched independently inside
+  // FindingsCard and not held by this component. Surface a pointer so
+  // the report reader knows to fetch the live findings if they need them.
+  lines.push(`## Findings`);
+  lines.push("");
+  lines.push(`The Findings tab in the UI loads structured AI-generated findings`);
+  lines.push(`from \`/api/workflows/runs/${runId}/findings\`. Open that URL or the`);
+  lines.push(`run in BioMate to view the live findings summary, key results, caveats,`);
+  lines.push(`and recommended next steps.`);
+  lines.push("");
+
+  // Outputs
+  lines.push(`## Outputs`);
+  lines.push("");
+  if (outputs.length === 0) {
+    lines.push(`_No output files registered for this run._`);
+  } else {
+    const byStep: Record<string, OutputFile[]> = {};
+    for (const o of outputs) (byStep[o.step] = byStep[o.step] || []).push(o);
+    for (const [step, files] of Object.entries(byStep)) {
+      lines.push(`### ${step || "(unspecified step)"}`);
+      lines.push("");
+      lines.push(`| File | Type |`);
+      lines.push(`|------|------|`);
+      for (const f of files) lines.push(`| ${f.name} | ${f.ext || "—"} |`);
+      lines.push("");
+    }
+  }
+
+  // Methods
+  if (methods && methods.trim()) {
+    lines.push(`## Methods`);
+    lines.push("");
+    lines.push("```");
+    lines.push(methods.trim());
+    lines.push("```");
+    lines.push("");
+  }
+
+  // Parameters
+  lines.push(`## Parameters`);
+  lines.push("");
+  const params = parameters ? Object.entries(parameters) : [];
+  if (params.length === 0) {
+    lines.push(`_No parameter values recorded._`);
+  } else {
+    lines.push(`| Parameter | Value |`);
+    lines.push(`|-----------|-------|`);
+    for (const [k, v] of params) lines.push(`| \`${k}\` | ${String(v)} |`);
+  }
+  lines.push("");
+
+  // QC audit
+  if (qcEvents.length > 0) {
+    lines.push(`## QC Audit`);
+    lines.push("");
+    lines.push(`| Time | Gate | Status | Measured | Threshold | Message |`);
+    lines.push(`|------|------|--------|----------|-----------|---------|`);
+    for (const e of qcEvents) {
+      lines.push(
+        `| ${e.ts ?? ""} | ${e.gate ?? ""} | ${e.status ?? ""} | ${e.measured ?? ""} | ${e.threshold ?? ""} | ${(e.message ?? "").replace(/\|/g, "\\|")} |`,
+      );
+    }
+    lines.push("");
+  }
+
+  lines.push(`---`);
+  lines.push(`_Generated by BioMate AfterRunReport (v2 preview). Software`);
+  lines.push(`versions and citation tabs will appear once their backend routes`);
+  lines.push(`ship — see docs/20260528_AFTERRUN_FINDINGS.md._`);
+
+  return lines.join("\n");
 }
 
 function qcStatusColor(status: string | undefined): string {
