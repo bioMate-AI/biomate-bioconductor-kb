@@ -42,6 +42,8 @@ export type AnalyticsEvent =
   | 'workflow_completed'
   | 'workflow_failed'
   | 'workflow_cancelled'
+  | 'workflow_chain_started'
+  | 'workflow_chain_failed'
   | 'qc_passed'
   | 'qc_failed'
   | 'qc_warning'
