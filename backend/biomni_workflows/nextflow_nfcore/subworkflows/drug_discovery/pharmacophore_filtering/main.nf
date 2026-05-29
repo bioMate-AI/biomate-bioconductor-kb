@@ -22,6 +22,24 @@
 
 nextflow.enable.dsl = 2
 
+// ────────────────────────────────────────────────────────────────────────────
+// Top-level helper functions (parser-v2 requires function declarations at
+// file level, not closure-assignments inside workflow{}).
+// ────────────────────────────────────────────────────────────────────────────
+def _write_inline_smi(String content, String fname) {
+    // workflow.workDir may be s3:// — must use local tmp so File() works.
+    // deleteOnExit so /tmp doesn't accumulate stragglers across runs.
+    def f = java.io.File.createTempFile("inline_", "_${fname}")
+    f.deleteOnExit()
+    f.text = content.replace(',', '\n').trim() + '\n'
+    return f.absolutePath
+}
+
+def _is_inline_smi(String v) {
+    return v && !(v ==~ /^(s3:\/\/|https?:\/\/|\/|\.\/).*/) && (v.contains('\n') || v.contains(',') || !v.contains('.'))
+}
+
+
 // ============================================================================
 // Default Parameters
 // ============================================================================
@@ -524,19 +542,9 @@ workflow {
             params.compound_library  = params.compound_library  ?: 'CC(=O)Oc1ccccc1C(=O)O\nCCN(CC)CC'
         }
 
-        // Support inline SMILES (newline- or comma-separated strings) in addition to file paths.
-        // Detect inline form by looking for embedded newlines/commas or absence of path separators.
-        def write_inline = { String content, String fname ->
-            // workflow.workDir may be s3:// — must use local tmp so File() works.
-            // deleteOnExit so /tmp doesn't accumulate stragglers across runs.
-            def f = java.io.File.createTempFile("inline_", "_${fname}")
-            f.deleteOnExit()
-            f.text = content.replace(',', '\n').trim() + '\n'
-            return f.absolutePath
-        }
-        def is_inline = { String v -> v && !(v ==~ /^(s3:\/\/|https?:\/\/|\/|\.\/).*/) && (v.contains('\n') || v.contains(',') || !v.contains('.')) }
-        def ref_path = is_inline(params.reference_actives.toString()) ? write_inline(params.reference_actives.toString(), 'reference_actives.smi') : params.reference_actives
-        def lib_path = is_inline(params.compound_library.toString()) ? write_inline(params.compound_library.toString(), 'compound_library.smi') : params.compound_library
+        // Use top-level helpers _is_inline_smi() and _write_inline_smi() (parser-v2: closures inside workflow{} fail static analysis)
+        def ref_path = _is_inline_smi(params.reference_actives.toString()) ? _write_inline_smi(params.reference_actives.toString(), 'reference_actives.smi') : params.reference_actives
+        def lib_path = _is_inline_smi(params.compound_library.toString())  ? _write_inline_smi(params.compound_library.toString(),  'compound_library.smi')  : params.compound_library
         ch_reference = Channel.fromPath(ref_path, checkIfExists: false)
         ch_library = Channel.fromPath(lib_path, checkIfExists: false)
 
