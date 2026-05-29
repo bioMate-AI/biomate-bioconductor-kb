@@ -30,23 +30,24 @@
   },
 
   "_mixed_instances_policy": {
-    "_comment": "Apply this policy to the ASG (not the launch template). 80% spot to keep cost ~$1,760/mo for 5-node steady state; 20% on-demand baseline so a region-wide spot squeeze still leaves the regulatory-LLM endpoint serving.",
+    "_comment": "100% spot. Cost target: ~$165-330/mo for desired=2 nodes (vs $1,760/mo for the prior 80/20 5-node plan). If a region-wide spot squeeze evicts all nodes, the Galaxy backend falls back to Gemini Flash via the existing _call_local_regulatory_llm fallback chain — degraded but not down. ASG sizing: min=1 max=4 desired=2.",
     "LaunchTemplate": {
       "LaunchTemplateSpecification": {
         "LaunchTemplateName": "biomate-vllm-lt",
         "Version": "$Latest"
       },
       "Overrides": [
-        { "InstanceType": "g6.xlarge", "WeightedCapacity": "1" },
-        { "InstanceType": "g6.2xlarge", "WeightedCapacity": "1" },
-        { "InstanceType": "g5.xlarge", "WeightedCapacity": "1" }
+        { "InstanceType": "g6.xlarge",  "WeightedCapacity": "1" },
+        { "InstanceType": "g5.xlarge",  "WeightedCapacity": "1" },
+        { "InstanceType": "g4dn.xlarge","WeightedCapacity": "1" },
+        { "InstanceType": "g6.2xlarge", "WeightedCapacity": "1" }
       ]
     },
     "InstancesDistribution": {
-      "OnDemandBaseCapacity": 1,
-      "OnDemandPercentageAboveBaseCapacity": 20,
-      "SpotAllocationStrategy": "capacity-optimized",
-      "SpotInstancePools": 3
+      "OnDemandBaseCapacity": 0,
+      "OnDemandPercentageAboveBaseCapacity": 0,
+      "SpotAllocationStrategy": "price-capacity-optimized",
+      "SpotInstancePools": 4
     }
   }
 }
