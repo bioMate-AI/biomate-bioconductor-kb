@@ -77,6 +77,7 @@ params.mmgbsa_interval      = 5          // analyse every Nth frame
 params.n_cpus               = 8
 params.gpu                  = true
 params.gpu_device           = 0
+params.gpu_queue            = 'galaxy-cloud-queue-gpu'  // override via CLI for alternate Batch GPU queues
 
 // AWS Batch flag — set via profile (aws/gpu_batch) or CLI --use_aws true
 // Using a param (not System.getenv) so config profiles can set it reliably.
@@ -873,6 +874,7 @@ process PRODUCTION_MD {
      * NPT production MD run (default 10 ns).
      * Unrestrained protein + ligand. GPU-accelerated when params.gpu = true.
      */
+    label 'process_gpu'
     tag "production_md"
     container GROMACS_CONTAINER
     publishDir "${params.outdir}/md", mode: params.publish_dir_mode
@@ -900,15 +902,22 @@ process PRODUCTION_MD {
     WANT_GPU='${want_gpu}'
     GPU_FLAG=""
     if [ "\$WANT_GPU" = "true" ]; then
-        GPU_COUNT=0
-        if command -v nvidia-smi >/dev/null 2>&1; then
-            GPU_COUNT=\$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | grep -c . || true)
-        fi
-        if [ "\${GPU_COUNT:-0}" -gt 0 ]; then
-            GPU_FLAG="-gpu_id 0 -nb gpu -pme gpu -bonded gpu"
-            echo "Production MD: using GPU acceleration (\${GPU_COUNT} device(s))" | tee md_mdrun.log
+        # AWS Batch / ECS injects GPUs via NVIDIA_VISIBLE_DEVICES + accelerator=1.
+        # Do not pass -gpu_id on Batch — GROMACS picks the visible device.
+        if [ -n "\${NVIDIA_VISIBLE_DEVICES:-}" ] && [ "\${NVIDIA_VISIBLE_DEVICES}" != "none" ]; then
+            GPU_FLAG="-nb gpu -pme gpu -bonded gpu"
+            echo "Production MD: GPU via NVIDIA_VISIBLE_DEVICES=\${NVIDIA_VISIBLE_DEVICES}" | tee md_mdrun.log
         else
-            echo "WARNING: GPU requested but nvidia-smi reports 0 devices; using CPU mdrun" | tee md_mdrun.log
+            GPU_COUNT=0
+            if command -v nvidia-smi >/dev/null 2>&1; then
+                GPU_COUNT=\$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | grep -c . || true)
+            fi
+            if [ "\${GPU_COUNT:-0}" -gt 0 ]; then
+                GPU_FLAG="-gpu_id 0 -nb gpu -pme gpu -bonded gpu"
+                echo "Production MD: using GPU acceleration (\${GPU_COUNT} device(s))" | tee md_mdrun.log
+            else
+                echo "WARNING: GPU requested but no device visible; using CPU mdrun" | tee md_mdrun.log
+            fi
         fi
     fi
 

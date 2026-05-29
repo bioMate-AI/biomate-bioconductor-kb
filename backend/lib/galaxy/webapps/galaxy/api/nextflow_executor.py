@@ -1452,6 +1452,12 @@ def _generate_executor_config(
                 "        cpus = 8",
                 "        memory = '32.GB'",
                 "    }",
+                "    withName: 'PRODUCTION_MD' {",
+                f"        queue = '{gpu_queue}'",
+                "        accelerator = 1",
+                "        cpus = 8",
+                "        memory = '32.GB'",
+                "    }",
                 "}",
             ]
             log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
