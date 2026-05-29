@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from "react";
 // WorkflowPanel — main right-side panel
 const { useState: useStateW, useEffect: useEffectW, useRef: useRefW, useMemo } = React;
 

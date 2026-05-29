@@ -1,6 +1,0 @@
-smiles,name
-CC(=O)Oc1ccccc1C(=O)O,Aspirin
-CC12CCC3C(C1CCC2O)CCC4=CC(=O)CCC34C,Testosterone
-CN1CCC[C@H]1c2cccnc2,Nicotine
-OC[C@H]1OC(O)[C@H](O)[C@@H](O)[C@@H]1O,Glucose
-CC(C)Cc1ccc(cc1)C(C)C(=O)O,Ibuprofen

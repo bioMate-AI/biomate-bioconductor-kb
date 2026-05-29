@@ -147,11 +147,19 @@ def post_execute(
     user_id: str,
     workflow_domain: str = "drug_discovery",
     profile: str = "aws",
+    compute_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    batch_compute: dict[str, Any] = {
+        "executor": "awsbatch",
+        "s3_bucket": "biomate-nextflow-work",
+        "gpu_batch_queue": os.environ.get("GPU_BATCH_QUEUE", "galaxy-cloud-queue-gpu"),
+    }
+    if compute_config:
+        batch_compute.update(compute_config)
     body = {
         "nextflow_path": nextflow_path,
         "parameters": parameters,
-        "compute_config": {"executor": "awsbatch", "s3_bucket": "biomate-nextflow-work"},
+        "compute_config": batch_compute,
         "workflow_domain": workflow_domain,
         "user_id": user_id,
         "profile": profile,
@@ -178,6 +186,35 @@ def poll_status(
         time.sleep(poll_interval)
     last["_timeout"] = True
     return last
+
+
+def workflow_status_ok(status: dict[str, Any]) -> bool:
+    """Treat Galaxy 'failed' as success when all Batch processes completed (publish/finalizer bugs)."""
+    st = status.get("status", "")
+    if st in {"completed", "succeeded"}:
+        return True
+    processes = status.get("processes") or []
+    if processes and all((p.get("status") or "").lower() == "completed" for p in processes):
+        log(
+            f"  workflow status={st!r} but all {len(processes)} processes COMPLETED — "
+            "treating as success for artifact download"
+        )
+        return True
+    completed = status.get("completedSteps")
+    total = status.get("totalSteps")
+    if (
+        st == "failed"
+        and isinstance(completed, int)
+        and isinstance(total, int)
+        and total > 0
+        and completed >= total
+    ):
+        log(
+            f"  workflow status={st!r} but completedSteps={completed}/{total} — "
+            "treating as success for artifact download"
+        )
+        return True
+    return False
 
 
 def s3_cp(uri: str, dest: Path) -> bool:
@@ -444,6 +481,8 @@ def build_parameters_for_step(
             "ligand": args.ligand_s3,
             "use_aws": True,
             "n_steps": args.gromacs_n_steps,
+            "gpu": args.gromacs_gpu,
+            "gpu_queue": args.gpu_batch_queue,
             "auto_trim_receptor": True,
             "trim_pad": 10.0,
         }
@@ -506,6 +545,17 @@ def main() -> None:
     ap.add_argument("--vina-exhaustiveness", default="8")
     ap.add_argument("--ligand-s3", default="", help="Step 5: S3 .sdf/.mol2 URI, or SMILES string (GROMACS NF converts SMILES)")
     ap.add_argument("--gromacs-n-steps", type=int, default=5000000, help="MD steps (default ~10 ns at 2 fs)")
+    ap.add_argument(
+        "--gromacs-gpu",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Request GPU production MD on AWS Batch (default: on)",
+    )
+    ap.add_argument(
+        "--gpu-batch-queue",
+        default=os.environ.get("GPU_BATCH_QUEUE", "galaxy-cloud-queue-gpu"),
+        help="AWS Batch GPU queue for PRODUCTION_MD (default: galaxy-cloud-queue-gpu; alt: biomate-gpu-spot-queue)",
+    )
     ap.add_argument("--seed-smiles", default="", help="Step 6: REINVENT4 seed SMILES")
     ap.add_argument("--reinvent-mode", default="scaffold_decoration")
     ap.add_argument("--reinvent-n-steps", type=int, default=200)
@@ -524,6 +574,17 @@ def main() -> None:
         "e.g. reinvent4 — skips gromacs_mmgbsa when MD is not needed or has failed. "
         "Steps are appended in the order listed; directories use canonical indices (e.g. 06_reinvent4).",
     )
+    ap.add_argument(
+        "--step-suffix",
+        default="",
+        help="Optional suffix for artifact dirs/keys when appending the same step twice (e.g. inh01, aspirin).",
+    )
+    ap.add_argument(
+        "--force-rerun-keys",
+        default="",
+        help="With --append-only-keys: drop existing manifest entries for these PIPELINE keys and re-run "
+        "(comma-separated, e.g. gromacs_mmgbsa). Honors --step-suffix.",
+    )
     args = ap.parse_args()
 
     if args.through_step >= 2 and (not args.reference_actives_s3 or not args.compound_library_s3):
@@ -535,6 +596,14 @@ def main() -> None:
         )
 
     api_key = load_api_key()
+    step_suffix = args.step_suffix.strip()
+
+    def manifest_step_key(spec_key: str) -> str:
+        return f"{spec_key}_{step_suffix}" if step_suffix else spec_key
+
+    def step_artifact_dir(spec: StepSpec, idx: int) -> Path:
+        label = manifest_step_key(spec.key)
+        return run_root / f"{idx:02d}_{label}"
 
     append_dir = (ROOT / args.append_to_run).resolve() if args.append_to_run.strip() else None
     append_only = [x.strip() for x in args.append_only_keys.split(",") if x.strip()]
@@ -552,14 +621,22 @@ def main() -> None:
         done = len(manifest.get("steps") or [])
         present_keys = {e.get("key") for e in manifest.get("steps") or []}
 
+        force_rerun = [x.strip() for x in args.force_rerun_keys.split(",") if x.strip()]
+        if force_rerun:
+            force_manifest_keys = {manifest_step_key(k) for k in force_rerun}
+            manifest["steps"] = [e for e in manifest.get("steps") or [] if e.get("key") not in force_manifest_keys]
+            present_keys = {e.get("key") for e in manifest.get("steps") or []}
+            log(f"Force re-run: removed manifest keys {sorted(force_manifest_keys)}")
+
         if append_only:
             unknown = set(append_only) - {s.key for s in PIPELINE}
             if unknown:
                 raise SystemExit(f"--append-only-keys: unknown {unknown}")
             steps_to_run = []
             for k in append_only:
-                if k in present_keys:
-                    log(f"Skip {k}: already in manifest")
+                mk = manifest_step_key(k)
+                if mk in present_keys:
+                    log(f"Skip {mk}: already in manifest")
                     continue
                 steps_to_run.append(next(s for s in PIPELINE if s.key == k))
             if not steps_to_run:
@@ -595,7 +672,7 @@ def main() -> None:
         log("=" * 72)
         log(f"STEP {idx}/{len(PIPELINE)}: {spec.key} — {spec.title}")
         log("=" * 72)
-        step_dir = run_root / f"{idx:02d}_{spec.key}"
+        step_dir = step_artifact_dir(spec, idx)
         step_dir.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -616,6 +693,11 @@ def main() -> None:
             args.user_id,
             workflow_domain=spec.workflow_domain,
             profile="gpu_batch" if spec.key == "gromacs_mmgbsa" else "aws",
+            compute_config=(
+                {"gpu_batch_queue": args.gpu_batch_queue}
+                if spec.key == "gromacs_mmgbsa"
+                else None
+            ),
         )
         (step_dir / "submit.json").write_text(json.dumps(submit, indent=2), encoding="utf-8")
         run_id = submit.get("run_id")
@@ -631,7 +713,7 @@ def main() -> None:
             manifest["error"] = f"step {spec.key} timed out"
             (run_root / "pipeline_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
             raise SystemExit(4)
-        if st not in {"completed", "succeeded"}:
+        if not workflow_status_ok(status):
             manifest["error"] = f"step {spec.key} ended with status {st!r}"
             (run_root / "pipeline_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
             raise SystemExit(5)
@@ -644,7 +726,7 @@ def main() -> None:
             downloaded = download_useful_files(files, step_dir)
 
         entry: dict[str, Any] = {
-            "key": spec.key,
+            "key": manifest_step_key(spec.key),
             "title": spec.title,
             "nextflow_path": spec.nextflow_path,
             "run_id": run_id,
@@ -659,6 +741,8 @@ def main() -> None:
             if ctr:
                 entry["top_pocket_center"] = list(ctr)
 
+        mk = manifest_step_key(spec.key)
+        manifest["steps"] = [e for e in manifest["steps"] if e.get("key") != mk]
         manifest["steps"].append(entry)
         (run_root / "pipeline_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         log(f"Step {spec.key} finished ({st}). Manifest updated.")

@@ -117,6 +117,10 @@ def build_pipeline_command(
     user_id: str | None,
     receptor_mode: str = "full",
     step_timeout: int = 21600,
+    step_suffix: str = "",
+    gromacs_gpu: bool = False,
+    force_rerun: bool = False,
+    gpu_batch_queue: str = "",
 ) -> list[str]:
     cmd = [
         sys.executable,
@@ -138,8 +142,18 @@ def build_pipeline_command(
         "--step-timeout",
         str(step_timeout),
     ]
+    if gromacs_gpu:
+        cmd.append("--gromacs-gpu")
+    else:
+        cmd.append("--no-gromacs-gpu")
     if user_id:
         cmd.extend(["--user-id", user_id])
+    if step_suffix:
+        cmd.extend(["--step-suffix", step_suffix])
+    if force_rerun:
+        cmd.extend(["--force-rerun-keys", "gromacs_mmgbsa"])
+    if gpu_batch_queue:
+        cmd.extend(["--gpu-batch-queue", gpu_batch_queue])
     # Full tetramer needs pocket-box crop before tleap; pocket fragment is already small.
     if receptor_mode == "full" or pdb_input.endswith("9P3I.pdb"):
         cmd.append("--use-top-pocket-box")
@@ -178,6 +192,27 @@ def main() -> None:
         default=21600,
         help="Seconds to poll each pipeline step (default 6h for MD on Batch)",
     )
+    ap.add_argument(
+        "--step-suffix",
+        default="",
+        help="Suffix for MD artifact dir when running multiple ligands on one base run (e.g. inh01, aspirin)",
+    )
+    ap.add_argument(
+        "--gromacs-gpu",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Request GPU production MD on AWS Batch (default: on)",
+    )
+    ap.add_argument(
+        "--gpu-batch-queue",
+        default=os.environ.get("GPU_BATCH_QUEUE", "galaxy-cloud-queue-gpu"),
+        help="Batch GPU queue for PRODUCTION_MD (alt: biomate-gpu-spot-queue)",
+    )
+    ap.add_argument(
+        "--force-rerun",
+        action="store_true",
+        help="Drop existing gromacs_mmgbsa manifest entry for this suffix and re-submit",
+    )
     args = ap.parse_args()
 
     base_run = (ROOT / args.base_run).resolve()
@@ -205,6 +240,10 @@ def main() -> None:
         user_id=user_id,
         receptor_mode=args.receptor,
         step_timeout=args.step_timeout,
+        step_suffix=args.step_suffix.strip(),
+        gromacs_gpu=args.gromacs_gpu,
+        force_rerun=args.force_rerun,
+        gpu_batch_queue=args.gpu_batch_queue.strip(),
     )
 
     track_manifest: dict[str, Any] = {
@@ -215,6 +254,8 @@ def main() -> None:
         "pdb_input": pdb_input,
         "ligand_smiles": args.ligand_smiles,
         "gromacs_n_steps": args.gromacs_n_steps,
+        "gromacs_gpu": args.gromacs_gpu,
+        "gpu_batch_queue": args.gpu_batch_queue,
         "pipeline_script": repo_rel(PIPELINE_SCRIPT),
         "command": cmd,
         "status": "pending",

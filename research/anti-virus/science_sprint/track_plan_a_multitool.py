@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Science sprint — Plan A epitope prediction with multiple tools (MHCnuggets + NetMHCpan).
+Science sprint — Plan A epitope prediction with multiple tools (MHCnuggets + MHCflurry).
 
-Submits nf-core/epitopeprediction (Galaxy workflow id 12700) twice via POST
+Submits nf-core/epitopeprediction (Galaxy workflow id 12700) via POST
 /api/nextflow/execute, following research/anti-virus/scripts/run_plan_a_epitopeprediction_batch.py.
 
-Each tool writes under a dedicated S3 sub-prefix. NetMHCpan failures are logged and do not
-abort the sprint when MHCnuggets succeeds.
+Each tool writes under a dedicated S3 sub-prefix. Default tools are commercial-safe (Apache 2.0).
+Optional netmhcpan requires a DTU academic tarball on S3 and is not used for product builds.
 
 Manifest: research/anti-virus/science_sprint/runs/<timestamp>/track_plan_a_multitool/manifest.json
 
@@ -48,7 +48,7 @@ DEFAULT_NETMHCPAN_TARBALL_S3 = (
     "s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/netMHCpan-4.1b.Linux.tar.gz"
 )
 DEFAULT_WORKFLOW_DOMAIN = "epitope_prediction"
-TOOLS = ("mhcnuggets", "netmhcpan")
+TOOLS = ("mhcnuggets", "mhcflurry")
 TERMINAL = {"completed", "succeeded", "failed", "cancelled", "error"}
 _NETMHCPAN_FAIL_MARKERS = (
     "netmhcpan_path not specified",
@@ -221,8 +221,8 @@ def epitope_run_looks_failed(status_payload: dict[str, Any], tool: str) -> str |
             if marker in log_text:
                 return marker
         return "no NetMHCpan prediction outputs on S3 (only pipeline_info/)"
-    if tool == "mhcnuggets" and not has_prediction and total == 0:
-        return "no MHCnuggets prediction outputs on S3"
+    if tool in ("mhcnuggets", "mhcflurry") and not has_prediction and total == 0:
+        return f"no {tool} prediction outputs on S3"
     return None
 
 
@@ -491,8 +491,9 @@ def main() -> None:
     if net and net.get("status") not in ("completed", "succeeded"):
         log(f"WARNING: NetMHCpan run did not succeed (status={net.get('status')!r}); continuing.")
 
+    optional_tools = {"netmhcpan", "netmhciipan"}
     failed_required = [
-        r for r in runs if r["tool"] != "netmhcpan" and r.get("status") not in ("completed", "succeeded")
+        r for r in runs if r["tool"] not in optional_tools and r.get("status") not in ("completed", "succeeded")
     ]
     if failed_required:
         raise SystemExit(f"Required tool run(s) failed: {[r['tool'] for r in failed_required]}")

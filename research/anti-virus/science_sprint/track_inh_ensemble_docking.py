@@ -28,6 +28,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -47,6 +48,11 @@ DOCK_NF = "nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.
 KNOWN_S3_RECEPTORS: dict[str, str] = {
     "9P3I": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
     "9P3I_top_pocket_only": "s3://biomate-nextflow-work/inputs/andv_campaign/20260514/9P3I_top_pocket_only.pdb",
+    "9P3Y": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3Y.pdb",
+    "9P3X": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3X.pdb",
+    "9P3L": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3L.pdb",
+    "9P3M": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3M.pdb",
+    "top_pocket": "s3://biomate-nextflow-work/inputs/andv_campaign/20260514/9P3I_top_pocket_only.pdb",
 }
 
 
@@ -138,11 +144,16 @@ def pocket_geometry(pockets_path: Path) -> tuple[list[float], list[float]]:
     return [cx, cy, cz], [edge, edge, edge]
 
 
+def _aws_bin() -> str:
+    return shutil.which("aws") or "/usr/local/bin/aws"
+
+
 def aws_cp(src: str, dest: Path | str, *, upload: bool = False) -> bool:
+    aws = _aws_bin()
     if upload:
-        cmd = ["aws", "s3", "cp", str(src), str(dest)]
+        cmd = [aws, "s3", "cp", str(src), str(dest)]
     else:
-        cmd = ["aws", "s3", "cp", str(src), str(dest)]
+        cmd = [aws, "s3", "cp", str(src), str(dest)]
     r = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if r.returncode != 0:
         log(f"  aws s3 cp failed: {r.stderr.strip() or r.stdout.strip()}")
@@ -270,7 +281,7 @@ def build_receptor_ensemble(baseline_run: Path, work_dir: Path) -> list[dict[str
 
 def stage_receptor_s3(conformer: dict[str, Any], s3_prefix: str, ts: str) -> str:
     """Return S3 URI for receptor_pdb_file parameter."""
-    if conformer.get("known_s3") and conformer.get("local_pdb") is None:
+    if conformer.get("known_s3"):
         return conformer["known_s3"]
     local = conformer.get("local_pdb")
     if local is None or not Path(local).is_file():
@@ -286,20 +297,22 @@ def stage_receptor_s3(conformer: dict[str, Any], s3_prefix: str, ts: str) -> str
     return uri
 
 
-def load_baseline(baseline_run: Path) -> dict[str, Any]:
-    path = baseline_run / "04_docking_vina/docking_autodock_vina_results.json"
+def load_baseline(baseline_run: Path, *, docking_json: Path | None = None, top_n: int | None = None) -> dict[str, Any]:
+    path = docking_json or (baseline_run / "04_docking_vina/docking_autodock_vina_results.json")
     if not path.is_file():
         raise SystemExit(f"Baseline docking results not found: {path}")
     data = json.loads(path.read_text(encoding="utf-8"))
+    rows = [r for r in (data.get("results") or []) if r.get("smiles") is not None and r.get("best_affinity_kcal_mol") is not None]
+    if top_n is not None and top_n > 0:
+        rows = sorted(rows, key=lambda r: float(r["best_affinity_kcal_mol"]))[:top_n]
     by_smiles: dict[str, float] = {}
     smiles_order: list[str] = []
-    for row in data.get("results") or []:
-        sm = row.get("smiles")
-        aff = row.get("best_affinity_kcal_mol")
-        if sm is None or aff is None:
+    for row in rows:
+        sm = row["smiles"]
+        if sm in by_smiles:
             continue
         smiles_order.append(sm)
-        by_smiles[sm] = float(aff)
+        by_smiles[sm] = float(row["best_affinity_kcal_mol"])
     if not smiles_order:
         raise SystemExit(f"No SMILES in baseline results: {path}")
     return {
@@ -344,9 +357,25 @@ def download_docking_results(
 
     outdir = (status.get("outdir") or "").rstrip("/")
     if outdir.startswith("s3://"):
-        attempt = f"{outdir}/{target_name}"
-        if aws_cp(attempt, dest):
-            return dest
+        for suffix in ("", "/run", f"/{status.get('run_id', '')[:8]}"):
+            attempt = f"{outdir}{suffix}/{target_name}"
+            if aws_cp(attempt, dest):
+                return dest
+        # Last resort: list prefix and grab first matching key (publishDir variants).
+        aws = _aws_bin()
+        prefix = outdir.replace("s3://", "")
+        bucket, _, key_prefix = prefix.partition("/")
+        list_cmd = [aws, "s3", "ls", f"s3://{bucket}/{key_prefix}/", "--recursive"]
+        r = subprocess.run(list_cmd, capture_output=True, text=True, check=False)
+        if r.returncode == 0:
+            for line in r.stdout.splitlines():
+                if target_name in line:
+                    parts = line.split()
+                    if parts:
+                        rel = parts[-1]
+                        uri = f"s3://{bucket}/{rel}"
+                        if aws_cp(uri, dest):
+                            return dest
     return None
 
 
@@ -410,11 +439,21 @@ def dock_one_conformer(
     record["run_id"] = run_id
     record["status"] = st.get("status")
 
-    if st.get("status") not in {"succeeded", "completed"}:
+    processes = st.get("processes") or []
+    processes_completed = bool(processes) and all(
+        (p.get("status") or "").upper() == "COMPLETED" for p in processes
+    )
+    workflow_ok = st.get("status") in {"succeeded", "completed"}
+    if not workflow_ok and not processes_completed:
         record["error"] = f"docking ended with status={st.get('status')!r}"
         if st.get("_timeout"):
             record["error"] = "polling timeout"
         return record
+    if not workflow_ok and processes_completed:
+        log(
+            f"  [{label}] workflow status={st.get('status')!r} but all processes COMPLETED — "
+            "attempting S3 download"
+        )
 
     results_path = cdir / "docking_autodock_vina_results.json"
     got = download_docking_results(api_url, api_key, st, results_path)
@@ -562,6 +601,19 @@ def main() -> None:
     ap.add_argument("--api-url", default=os.environ.get("BIOMATE_API_URL", "http://127.0.0.1:8081"))
     ap.add_argument("--baseline-run", type=Path, default=DEFAULT_BASELINE_RUN)
     ap.add_argument(
+        "--baseline-docking-json",
+        type=Path,
+        default=None,
+        help="Rigid-receptor baseline scores (default: <baseline-run>/04_docking_vina/...). "
+        "Use ZINC150 vina JSON for publication INH candidates.",
+    )
+    ap.add_argument(
+        "--top-n",
+        type=int,
+        default=None,
+        help="Dock only the top N compounds by best_affinity_kcal_mol from baseline JSON.",
+    )
+    ap.add_argument(
         "--s3-input-prefix",
         default="s3://biomate-nextflow-work/inputs/andv_campaign",
         help="S3 prefix for uploaded ensemble receptor PDBs",
@@ -579,7 +631,8 @@ def main() -> None:
     work_dir.mkdir(parents=True, exist_ok=True)
 
     log(f"Run directory: {work_dir}")
-    baseline = load_baseline(baseline_run)
+    baseline = load_baseline(baseline_run, docking_json=args.baseline_docking_json, top_n=args.top_n)
+    log(f"Compounds to dock: {len(baseline['smiles_list'])} (baseline: {baseline['path']})")
     pockets_json = baseline_run / "01_pocket/structure_pockets.json"
     if not pockets_json.is_file():
         raise SystemExit(f"Missing pockets JSON: {pockets_json}")

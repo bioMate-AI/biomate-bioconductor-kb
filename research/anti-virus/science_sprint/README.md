@@ -61,6 +61,14 @@ python3 research/anti-virus/science_sprint/track_inh_ensemble_docking.py
 
 python3 research/anti-virus/science_sprint/track_plan_a_multitool.py --ensure-worktree
 
+NetMHCpan requires the licensed DTU tarball on S3 (not in git):
+
+```bash
+# After academic download of netMHCpan-4.1b.Linux.tar.gz
+aws s3 cp netMHCpan-4.1b.Linux.tar.gz \\
+  s3://biomate-nextflow-work/inputs/andv_campaign/netmhcpan/netMHCpan-4.1b.Linux.tar.gz
+```
+
 python3 research/anti-virus/science_sprint/track_inh_md.py --gromacs-n-steps 250000  # smoke
 python3 research/anti-virus/science_sprint/track_inh_md.py --gromacs-n-steps 5000000 # production
 ```

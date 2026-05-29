@@ -1,6 +1,10 @@
 {
-  "receptor": "s3://biomate-nextflow-work/inputs/andv_campaign/20260514/9P3I_top_pocket_only.pdb",
+  "receptor": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
   "ligand": "CC(=O)Oc1ccccc1C(=O)O",
   "use_aws": true,
-  "n_steps": 25000
+  "n_steps": 5000000,
+  "auto_trim_receptor": true,
+  "trim_pad": 10.0,
+  "box_center": "[173.607, 208.847, 174.042]",
+  "box_size": "[22.0, 22.0, 22.0]"
 }

@@ -39,7 +39,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
+        "outputDir": "/tmp/andv-inh-retry-1779903982",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -81,91 +81,565 @@
   },
   "suites": [
     {
-      "title": "pharmacology-e2e.e2e.ts",
-      "file": "pharmacology-e2e.e2e.ts",
+      "title": "workflow-chain-matrix.e2e.ts",
+      "file": "workflow-chain-matrix.e2e.ts",
       "column": 0,
       "line": 0,
-      "specs": [
+      "specs": [],
+      "suites": [
         {
-          "title": "PH-3: Survival Analysis KM — oncology trial design, HR table, O'Brien-Fleming boundaries",
-          "ok": true,
-          "tags": [],
-          "tests": [
+          "title": "Workflow Chain E2E Matrix",
+          "file": "workflow-chain-matrix.e2e.ts",
+          "line": 51,
+          "column": 15,
+          "specs": [
             {
-              "timeout": 900000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
+              "title": "API-01: Galaxy backend + curated catalog",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 425936,
-                  "errors": [],
-                  "stdout": [
-                    {
-                      "text": "[screenshot] /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/ph3_01_ready.png\n"
-                    },
-                    {
-                      "text": "[sendChat] page URL before: http://localhost:5000/\n"
-                    },
-                    {
-                      "text": "[sendChat] pressing Enter, text length=346\n"
-                    },
-                    {
-                      "text": "[sendChat] page URL 2s after send: http://localhost:5000/\n"
-                    },
-                    {
-                      "text": "[sendChat] URL after wait: http://localhost:5000/\n"
-                    },
-                    {
-                      "text": "[sendChat] response text length: 1690\n"
-                    },
-                    {
-                      "text": "[screenshot] /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/ph3_02_response.png\n"
-                    },
-                    {
-                      "text": "[screenshot] /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/ph3_03_card.png\n"
-                    },
-                    {
-                      "text": "[Audit] 0/2 → /home/yzhang/biomate/frontend/e2e/screenshots/pharmacology-e2e/audit_2026-05-07T04-02-07-731Z.json\n"
-                    }
-                  ],
-                  "stderr": [
-                    {
-                      "text": "[ASSERT FAIL] workflow-card-appeared\n"
-                    }
-                  ],
-                  "retry": 0,
-                  "startTime": "2026-05-07T03:55:01.721Z",
+                  "timeout": 900000,
                   "annotations": [],
-                  "attachments": [
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/home/yzhang/biomate/frontend/e2e/test-results/pharmacology-e2e.e2e.ts-PH-3c006--O-Brien-Fleming-boundaries-chromium/test-finished-1.png"
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 86,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (1 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:24:18.219Z",
+                      "annotations": [],
+                      "attachments": []
                     }
-                  ]
+                  ],
+                  "status": "expected"
                 }
               ],
-              "status": "expected"
+              "id": "9ac0098a869faf64433b-58d9d7bd23766f29fd37",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 64,
+              "column": 3
+            },
+            {
+              "title": "API-02: Submit chain from catalog + poll status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 30251,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (2 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:24:18.326Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-44bcce715807aac88fd2",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "API-03: Approval gate end_at_step pauses or fails fast",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22228,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (3 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:24:48.589Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-e27ba6b233cf8f5d8a52",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 161,
+              "column": 3
+            },
+            {
+              "title": "API-04: Chain outputs + manifest shape",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 17675,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (4 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:10.832Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-4c7d5147fc9f2f5353db",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 242,
+              "column": 3
+            },
+            {
+              "title": "API-05: Direct Galaxy chain list matches Node proxy",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 40,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.521Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-ec7067fc6cdd4feb2595",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 303,
+              "column": 3
+            },
+            {
+              "title": "GEN-01: Bulk RNA-seq DE → curated chain",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 29,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (5 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.576Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-17dcf7deb18df0afe080",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-02: Drug discovery screening chain",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 30,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (6 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.619Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-a84fa0aa352e7328a0e6",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-03: Target-to-lead full ladder",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 23,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (7 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.662Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-49581a509edfb28b2539",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-04: Rare disease multimodal workup",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (8 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.695Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-0204694bdabae64765cc",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-05: Explicit chain slug",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 21,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (9 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.722Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-3b87b499babcf1378a1d",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-06: ADMET-gated screening",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 20,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (10 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.751Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-8890bf33dadb7033ad5d",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-07: CUT&Tag chromatin chain",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 25,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (11 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.781Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-bd5cfd1e8821f29c85ab",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "GEN-09: ANDV inhibitor track v1",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 21,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (12 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.813Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-071a1d5c08762bc87e17",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 316,
+              "column": 5
+            },
+            {
+              "title": "SEED-01: Seeded chain artifact renders Run Pipeline and submits",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22478,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (13 records)\n"
+                        },
+                        {
+                          "text": "[audit] wrote /home/yzhang/biomate/frontend/e2e/screenshots/workflow-chain-matrix/workflow-chain-matrix-audit.json (13 records)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T04:25:28.839Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/tmp/andv-inh-retry-1779903982/workflow-chain-matrix.e2e.-6bdfe-rs-Run-Pipeline-and-submits-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ac0098a869faf64433b-92c6ea72d51c231fb2e0",
+              "file": "workflow-chain-matrix.e2e.ts",
+              "line": 389,
+              "column": 3
             }
-          ],
-          "id": "279d1ceb198b26a70539-df74694389f4b383a753",
-          "file": "pharmacology-e2e.e2e.ts",
-          "line": 935,
-          "column": 1
+          ]
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-05-07T03:55:00.995Z",
-    "duration": 426780.626,
-    "expected": 1,
+    "startTime": "2026-05-29T04:24:17.728Z",
+    "duration": 93734.847,
+    "expected": 14,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

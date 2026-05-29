@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from "react";
 // Surface 4 — Run-vs-Run Comparison card  (inline chat card)
 // Surface 5 — Pilot Promotion card        (inline chat card)
 //                Findings card             (inline chat card)

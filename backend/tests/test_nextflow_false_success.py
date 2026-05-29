@@ -116,6 +116,65 @@ class TestNextflowFalseSuccess(unittest.TestCase):
         )
 
 
+class TestNextflowFalseFailure(unittest.TestCase):
+    _P0_OK_LOG = (
+        "Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; "
+        "ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0]\n"
+        "> Execution complete -- Goodbye\n"
+    )
+
+    def test_workflow_stats_parsed_from_log(self):
+        stats = _nf._parse_workflow_stats_from_log(log_full_text=self._P0_OK_LOG)
+        self.assertEqual(stats, (1, 0))
+
+    def test_false_failure_with_stats_and_outputs(self):
+        outputs = [
+            {"s3_uri": "s3://b/out/p0_mrna_validation_report.json", "filename": "p0_mrna_validation_report.json"},
+        ]
+        self.assertTrue(
+            _nf._looks_like_false_failure(
+                log_full_text=self._P0_OK_LOG,
+                returncode=1,
+                s3_output_files=outputs,
+            )
+        )
+
+    def test_real_failure_with_session_aborted_not_salvaged(self):
+        self.assertFalse(
+            _nf._looks_like_false_failure(
+                log_full_text="Session aborted -- Cause: Process `FOO` failed\n",
+                returncode=1,
+                s3_output_files=[{"s3_uri": "s3://b/out/x.json", "filename": "x.json"}],
+            )
+        )
+
+    def test_graphviz_warn_with_stats_and_outputs_is_salvaged(self):
+        log = (
+            self._P0_OK_LOG
+            + "WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG\n"
+        )
+        outputs = [{"s3_uri": "s3://b/out/results.json", "filename": "results.json"}]
+        self.assertTrue(
+            _nf._looks_like_false_failure(
+                log_full_text=log,
+                returncode=1,
+                s3_output_files=outputs,
+            )
+        )
+
+    def test_meta_finalize_bug_not_salvaged_when_log_shows_error(self):
+        self.assertFalse(
+            _nf._looks_like_false_failure(
+                log_full_text=(
+                    "ERROR ~ Unexpected error while finalizing task\n"
+                    "cause: No such property: meta for class: nextflow.script.dsl.ProcessDslV1\n"
+                ),
+                returncode=1,
+                s3_output_files=[],
+            )
+        )
+
+
 class TestBatchStatusFromDisk(unittest.TestCase):
     def test_read_run_nextflow_log_merges_work_dir_log(self):
         import tempfile

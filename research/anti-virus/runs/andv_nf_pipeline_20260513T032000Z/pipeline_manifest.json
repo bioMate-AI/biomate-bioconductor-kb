@@ -109,9 +109,65 @@
         "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/top_compounds.csv",
         "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/validated_input.json"
       ]
+    },
+    {
+      "key": "gromacs_mmgbsa_inh01",
+      "title": "GROMACS MD + MM-GBSA",
+      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
+      "run_id": "86770849-7cbd-4fb9-9b04-71a79450f005",
+      "status": "failed",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/em.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/em_potential.xvg",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/minimized.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt_density.xvg",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/nvt.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/nvt.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/nvt_temp.xvg",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/report.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/timeline.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/complex.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/complex.top",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/ligand.frcmod",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/ligand_gaff2.mol2",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/ligand_prep.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/posres.itp",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/receptor_for_md.pdb",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/receptor_trim_meta.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/setup.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/system_size_report.json"
+      ]
+    },
+    {
+      "key": "gromacs_mmgbsa_aspirin",
+      "title": "GROMACS MD + MM-GBSA",
+      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
+      "run_id": "0d4ae83e-55de-4741-b545-6a5ea75bfe4e",
+      "status": "failed",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/em.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/em_potential.xvg",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/minimized.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/report.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/timeline.html",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/complex.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/complex.top",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/ligand.frcmod",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/ligand_gaff2.mol2",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/ligand_prep.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/posres.itp",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/receptor_for_md.pdb",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/receptor_trim_meta.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/setup.log",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/system_size_report.json"
+      ]
     }
   ],
-  "resumed_at": "2026-05-14T03:00:24.243882+00:00",
+  "resumed_at": "2026-05-29T06:39:44.290955+00:00",
   "manifest_resynced_utc": "2026-05-09T12:00:00+00:00",
   "manifest_resync_note": "reinvent4 step artifacts existed under 06_reinvent4/ with status succeeded but pipeline_manifest.json had not been updated; entry backfilled from 06_reinvent4/status.json. GROMACS (step 5) was not completed for this run."
 }

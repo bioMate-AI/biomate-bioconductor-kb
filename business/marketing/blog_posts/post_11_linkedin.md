@@ -44,7 +44,7 @@ Pair this with our inhibitor-track post: same deposited structure, two discovery
 
 Try the orchestration layer:
 
-👉 biomate.ai
+👉 biomate.ai/try
 
 Full essay (two-agent flow + routing fix): [Substack link]
 

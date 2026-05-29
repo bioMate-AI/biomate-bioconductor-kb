@@ -19,9 +19,9 @@
 
 Andes virus (ANDV) causes hantavirus pulmonary syndrome with case fatality rates exceeding 35% in South America, yet no approved small-molecule therapeutics exist. The viral surface glycoprotein (GP) mediates cell entry and represents a rational target for structure-based drug design. However, traditional rigid-receptor docking has yielded weak predicted affinities against the ANDV GP ectodomain, suggesting that conformational dynamics may limit computational screening efficacy. Here we report a systematic in silico pipeline analysis that identifies why rigid docking underperforms for this target and proposes ensemble-based refinements as the next computational step.
 
-We executed an integrated pipeline reproducibly on cloud infrastructure: druggable cavities on a deposited prefusion glycoprotein assembly (PDB 9P3I) were enumerated, a pharmacophore screen applied to a compact six-compound demonstration library yielded three compounds that cleared the filter for property prediction and AutoDock Vina docking within a box anchored on the principal pocket centroid, and predicted absorption-distribution-metabolism-excretion and safety-related readouts accompanied that subset. Best Vina scores spanned modest affinities around five kilocalories per mole, with the strongest numerical score of −4.92 kcal/mol observed for acetylsalicylic acid as a reference small molecule rather than as a claimed antiviral. A generative design step (pipeline folder `06_reinvent4`; archived `score_history.json` reports `tool`: `rdkit_brics_generation`) completed but post-generation filters retained none of the proposed structures (`design_summary.json`: one molecule generated, zero after filters). Explicit-solvent molecular dynamics of the GP tetramer under physiologically relevant conditions and ensemble docking against conformational snapshots rather than the crystallographic snapshot alone are supported in our broader workflow ladder but were not completed for the intact tetrameric assembly in this campaign **[planned computational expansion]**.
+We executed an integrated pipeline reproducibly on cloud infrastructure: druggable cavities on a deposited prefusion glycoprotein assembly (PDB 9P3I) were enumerated, a pharmacophore screen applied to a compact six-compound demonstration library yielded three compounds that cleared the filter for property prediction and AutoDock Vina docking within a box anchored on the principal pocket centroid, and predicted absorption-distribution-metabolism-excretion and safety-related readouts accompanied that subset. Best rigid-receptor Vina scores spanned modest affinities around five kilocalories per mole, with the strongest numerical score of −4.92 kcal/mol observed for acetylsalicylic acid as a reference small molecule rather than as a claimed antiviral. A generative design step (pipeline folder `06_reinvent4`; archived `score_history.json` reports `tool`: `rdkit_brics_generation`) completed but post-generation filters retained none of the proposed structures (`design_summary.json`: one molecule generated, zero after filters). In a science-sprint expansion (`20260527T195530Z`), we re-docked the same three compounds against a six-conformer receptor ensemble—top pocket fragment plus deposited structures 9P3I, 9P3Y, 9P3X, 9P3L, and 9P3M—using the same pocket box on AWS Batch. All six conformers completed; ensemble-best scores improved for all three compounds versus the rigid 9P3I baseline (aspirin −6.22 kcal/mol on 9P3Y, Δ −1.30 kcal/mol). Explicit-solvent molecular dynamics with MM–GBSA rescoring on the full 9P3I tetramer with aspirin was launched in parallel (`20260527T195747Z`; ligand prep complete; system setup running on Batch at manuscript update).
 
-We do not report cell-based antiviral potency in this work; rather, we present the computational infrastructure, validated rigid-receptor docking protocol, and explicit identification of the mechanistic bottleneck (conformational sampling) that has previously limited structure-based inhibitor development for ANDV. Our analysis provides a roadmap for accelerating discovery through ensemble refinement and offers a quantitative baseline against which orthogonal approaches (high-throughput screening, allosteric targeting) can be benchmarked. This work positions structure-informed design as a tractable path for ANDV inhibitor development during the current outbreak.
+We do not report cell-based antiviral potency in this work; rather, we present the computational infrastructure, validated rigid-receptor docking protocol, ensemble refinement that recovers ~1–1.3 kcal/mol in predicted affinity for the demonstration triad, and explicit identification of conformational sampling as the mechanistic bottleneck that has previously limited structure-based inhibitor development for ANDV. Our analysis provides a quantitative baseline and a tested ensemble workflow against which orthogonal approaches (high-throughput screening, allosteric targeting, MM–GBSA rescoring) can be benchmarked. This work positions structure-informed design as a tractable path for ANDV inhibitor development during the current outbreak.
 
 ---
 
@@ -69,9 +69,13 @@ AutoDock Vina evaluated each surviving ligand with nine poses per compound, exha
 
 We executed the generative module in scaffold-decoration mode (`design_mode` in `design_summary.json`) with a composite score rewarding drug-likeness and synthetic accessibility (`qed_sa`). The module completed according to its status record. Implementation label in `score_history.json` is `rdkit_brics_generation` (not REINVENT4). Post-generation chemical filters removed all structures that passed generation; we report `molecules_generated` versus `molecules_after_filter` from `design_summary.json`.
 
+### Ensemble docking (science sprint)
+
+To test whether conformational plasticity limits rigid-receptor scores, we executed `track_inh_ensemble_docking.py` (run stamp `20260527T195530Z`) against the pharmacophore-filtered triad from the chained baseline (`032000Z`). Six receptor conformers shared the pocket centroid and box dimensions from `01_pocket/structure_pockets.json`: the fpocket-trimmed `structure_top_pocket.pdb`, the campaign 9P3I assembly, and four additional deposited coordinates (9P3Y, 9P3X, 9P3L, 9P3M) converted to PDB and uploaded to object storage. Each conformer was docked independently on AWS Batch via the institutional AutoDock Vina Nextflow module with the same SMILES list and search box. Per-conformer JSON outputs were aggregated by taking the best (most negative) Vina score per compound; improvement versus the rigid 9P3I baseline was flagged when the ensemble best was at least 0.5 kcal/mol more favorable. Artifacts: `science_sprint/runs/20260527T195530Z/track_inh_ensemble/ensemble_results.json` and `ensemble_summary.md`.
+
 ### Molecular dynamics refinement
 
-Explicit-solvent molecular dynamics with post-hoc MM–GBSA-style rescoring is supported in our broader ladder for projects that supply tractable receptor–ligand systems. For the intact tetrameric assembly used in the primary docking study, we did not complete a production trajectory within the campaign parameters reported here. That scope decision affects only dynamical rescoring claims and does not alter the docking ranking narrative, which is already bounded by rigid-receptor approximation.
+Explicit-solvent molecular dynamics with post-hoc MM–GBSA-style rescoring uses the institutional GROMACS Nextflow ladder (`gromacs_mmgbsa`). A pocket-trimmed receptor fragment failed at ParmEd/tleap (zero-size coordinate array), consistent with incomplete fpocket extraction for this tetramer. We therefore launched MD on the full 9P3I tetramer S3 input with acetylsalicylic acid as ligand (`track_inh_md.py`, stamp `20260527T195747Z`, 250000 steps smoke configuration). At manuscript update, ligand parameterization had completed and system setup was executing on AWS Batch; production trajectory and MM–GBSA outputs were pending.
 
 ---
 
@@ -81,7 +85,13 @@ Pocket analysis identified ten distinct surface cavities on the receptor model. 
 
 From a six-compound demonstration library, pharmacophore filtering retained three compounds that advanced to property prediction and docking. AutoDock Vina returned best poses with affinities of negative four point nine two kilocalories per mole for acetylsalicylic acid, negative four point six four for paracetamol, and negative three point six five for phenol, ordered from strongest to weakest numerical score among this triad. The log documents that roughly one thousand three hundred heavy-atom records entered the boxed receptor representation after padding, illustrating why subsequent molecular dynamics on the full assembly is expensive relative to typical kinase domains.
 
-The generative design run used acetylsalicylic acid as the seed SMILES under eighty steps with batch size one hundred twenty-eight in the recorded configuration. The archived `score_history.json` logs a single summary epoch with mean and top composite scores near 0.55 on the unitless joint objective; `design_summary.json` reports one molecule generated and zero retained after filters. This pattern highlights that a completed generative step with stable-looking scores can still yield no structures for downstream use when filter stacks are strict, a behavior that must be interpreted when discussing machine-designed analogues in discovery campaigns. **Figures 1–4** summarize pocket druggability with pocket volumes, the data-labeled in silico funnel, Vina best scores for the three docked compounds, and the generative-step score history recorded under `06_reinvent4/score_history.json` for the archived chained run. **Figure 5** adds RDKit 2D structures for the docked triad when the figure script runs with RDKit and all docked SMILES parse.
+The generative design run used acetylsalicylic acid as the seed SMILES under eighty steps with batch size one hundred twenty-eight in the recorded configuration. The archived `score_history.json` logs a single summary epoch with mean and top composite scores near 0.55 on the unitless joint objective; `design_summary.json` reports one molecule generated and zero retained after filters. This pattern highlights that a completed generative step with stable-looking scores can still yield no structures for downstream use when filter stacks are strict, a behavior that must be interpreted when discussing machine-designed analogues in discovery campaigns.
+
+Ensemble docking across six receptor conformers (`20260527T195530Z`) recovered materially stronger Vina scores for all three filtered compounds relative to the rigid 9P3I baseline. Aspirin improved from −4.92 to −6.22 kcal/mol (best on 9P3Y; Δ −1.30), paracetamol from −4.64 to −5.91 kcal/mol (9P3Y; Δ −1.26), and phenol from −3.65 to −4.71 kcal/mol (9P3Y; Δ −1.06). The 9P3I conformer reproduced the baseline scores exactly, confirming consistent box and ligand wiring; alternate deposited structures (especially 9P3Y) yielded the favorable shifts, supporting conformational plasticity as a contributor to weak rigid-receptor affinities rather than a purely technical docking failure. The fpocket-trimmed `top_pocket` conformer returned near-neutral scores (~−0.38 kcal/mol), indicating that the trimmed fragment is not a valid receptor for cross-conformer comparison within the same box. **Table 2** and **Figure 6** summarize rigid versus ensemble-best scores.
+
+Explicit-solvent MD on the full 9P3I tetramer with aspirin (`20260527T195747Z`) had completed ligand GAFF2 parameterization on Batch; system setup (tleap solvation of the tetramer–ligand complex) was in progress at manuscript update and had not yet reached energy minimization or production MD.
+
+**Figures 1–4** summarize pocket druggability with pocket volumes, the data-labeled in silico funnel, Vina best scores for the three docked compounds, and the generative-step score history recorded under `06_reinvent4/score_history.json` for the archived chained run. **Figure 5** adds RDKit 2D structures for the docked triad when the figure script runs with RDKit and all docked SMILES parse. **Figure 6** compares rigid baseline and ensemble-best Vina scores from the sprint aggregate JSON.
 
 ---
 
@@ -117,7 +127,23 @@ If Figure 5 assets are missing (RDKit not installed, or any docked SMILES failed
 
 **Figure 5.** Two-dimensional structures (RDKit) for the three docked SMILES in the same ligand order as Figure 3 (best Vina score at left). This panel is produced only when RDKit is importable **and** every docked SMILES parses with `MolFromSmiles` in the environment used to run `generate_manuscript_inhibitor_figures.py`.
 
+![Figure 6. Rigid vs ensemble docking.](../runs/manuscript_figures_v1/inhibitor/FigB6_ensemble_vs_rigid.png)
+
+**Figure 6.** Rigid-receptor baseline (9P3I, chained run `032000Z`) versus ensemble-best Vina scores from science sprint `20260527T195530Z` (six conformers; best score per compound). Error bars are not shown because Vina reports a single best pose per receptor.
+
 ---
+
+## Table 2
+
+Ensemble aggregate from `science_sprint/runs/20260527T195530Z/track_inh_ensemble/ensemble_results.json`:
+
+| Compound | Rigid baseline (kcal mol⁻¹) | Ensemble best (kcal mol⁻¹) | Δ | Best conformer |
+| --- | ---: | ---: | ---: | --- |
+| Aspirin | −4.917 | −6.217 | −1.30 | 9P3Y |
+| Paracetamol | −4.644 | −5.907 | −1.26 | 9P3Y |
+| Phenol | −3.646 | −4.708 | −1.06 | 9P3Y |
+
+**Table 2.** Rigid 9P3I baseline versus ensemble-best Vina affinity after docking the pharmacophore-filtered triad against six receptor conformers (all conformers succeeded on AWS Batch).
 
 ## Table 1
 
@@ -141,110 +167,23 @@ Regenerate from archived docking JSON (no hand-edited cells):
 
 ## Discussion
 
-Viewed as a medicinal chemistry story, the docking spread across three simple aromatics is not surprising: the demonstration library was never intended to reveal a clinical lead. The scientific point is instead that each number in the docking JSON can be tied to a pharmacophore-filtered input list for the chained run we archive, which is the standard readers should expect when evaluating integrated pipelines. Earlier demonstration executions in our campaign sometimes fed property models and docking with panels that did not match pharmacophore outputs; we cite that audit in supplements for historical completeness but the numbers in this manuscript's Results section should be read as arising from the corrected wiring unless explicitly labeled otherwise.
+Viewed as a medicinal chemistry story, the docking spread across three simple aromatics is not surprising: the demonstration library was never intended to reveal a clinical lead. The scientific point is instead that each number in the docking JSON can be tied to a pharmacophore-filtered input list for the chained run we archive, which is the standard readers should expect when evaluating integrated pipelines. Earlier demonstration executions in our campaign sometimes fed property models and docking with panels that did not match pharmacophore outputs; we cite that audit in supplements for historical completeness but the numbers in this manuscript’s Results section should be read as arising from the corrected wiring unless explicitly labeled otherwise.
 
-### Supplementary Analysis: Comparative Druggability of ANDV GP Versus Established Viral Targets
-
-The modest docking affinities observed in our rigid-receptor screening (best Vina score: −4.92 kcal/mol for aspirin) raised the question of whether this reflects intrinsic limitations of the ANDV GP binding pocket or technical deficiencies in our docking approach. To contextualize these results, we compiled published Vina docking scores for well-validated viral protease inhibitors and compared them to our ANDV GP results.
-
-In published high-throughput docking campaigns on HIV protease, compounds achieving cellular antiviral potency in the nanomolar range typically dock with Vina scores in the −8 to −12 kcal/mol window. Similarly, influenza neuraminidase inhibitors (oseltamivir, zanamivir) dock to their target with predicted affinities in the −8 to −10 kcal/mol range. In contrast, our best-scoring compounds against ANDV GP remained clustered around −5 to −4 kcal/mol even after pharmacophore filtering and ADMET optimization. This 3–4 kcal/mol gap is energetically significant and typically correlates with >100-fold weaker predicted binding.
-
-We propose three non-mutually-exclusive mechanisms to explain this apparent druggability deficit:
-
-**(1) Conformational Plasticity**: ANDV GP undergoes pH-dependent conformational transitions during viral entry and membrane fusion. Our rigid docking protocol samples only a single conformational state (the cryo-EM structure). If the crystallographic coordinates represent a low-energy but non-functional or partially closed state, then small molecules optimized to this snapshot may poorly fit active conformations populated during the fusion pathway. Ensemble docking against MD-derived snapshots **[planned computational expansion]** directly addresses this hypothesis.
-
-**(2) Glycosylation Shielding**: ANDV GP is heavily glycosylated in its native form (N-linked glycosylation on the ectodomain surface). The cryo-EM structure used in our docking likely represents an incompletely glycosylated or recombinantly expressed variant. Native glycosylation could sterically occlude druggable pockets or alter electrostatic surfaces, explaining the discrepancy between in silico predictions and potential in vitro binding measurements.
-
-**(3) Quaternary Context Effects**: ANDV GP functions as part of a ~200 kDa oligomeric spike complex on the virion surface. Our docking simulations on the isolated ectodomain tetramer may not capture allosteric effects, electrostatic field changes, or steric constraints that would apply to the native spike in its oligomeric context. Structure-based design on trimeric or higher-order assemblies would require conformationally refined coordinates currently unavailable.
-
-**Implications for Future Development**: Each of these mechanisms suggests specific remedial approaches:
-- Conformational plasticity → Ensemble docking (planned; see translational roadmap below)
-- Glycosylation shielding → Docking on glycosylated models or allosteric site targeting
-- Quaternary context → Cryo-electron tomography of native virions or design against oligomeric constructs
-
-Thus, the weak rigid-docking affinities observed in our initial screen should be interpreted not as evidence that ANDV GP is undruggable, but rather as an identification of the rate-limiting step for computational lead identification. This clarity enables focused methodological improvements and prioritization of experimental validation resources.
-
-The generative module's zero-retained outcome after one generated candidate is a useful cautionary tale for interdisciplinary audiences excited by automated molecular design. Without relaxing filters or enriching the reward with receptor-aware terms, decoration trajectories may hug chemically familiar regions yet still fail rule-based toxicity or filter chemistry. A natural extension is to re-score surviving analogues with docking and property models in a loop, which returns the scientific narrative to the need for either trimmed receptors for molecular dynamics or independent biophysical assays on expressed protein.
+The generative module’s zero-retained outcome after one generated candidate is a useful cautionary tale for interdisciplinary audiences excited by automated molecular design. Without relaxing filters or enriching the reward with receptor-aware terms, decoration trajectories may hug chemically familiar regions yet still fail rule-based toxicity or filter chemistry. A natural extension is to re-score surviving analogues with docking and property models in a loop, which returns the scientific narrative to the need for either trimmed receptors for molecular dynamics or independent biophysical assays on expressed protein.
 
 We did not pursue antiviral neutralization or cell-entry assays because this work is computational. Readers should not extrapolate from Vina scores to micromolar potency labels. The more defensible near-term use of the pipeline output is to prioritize chemotypes for synthesis or for surface plasmon resonance when soluble ectodomain constructs are available.
-
-### Translational Pathway: From Computational Bottleneck to Clinical Candidate
-
-The bottleneck analysis presented above enables a specific developmental roadmap for ANDV inhibitor discovery that could be accelerated if outbreak-response funding becomes available.
-
-**Stage 1 (Weeks 1–4): Ensemble Refinement [planned computational expansion]**
-- Objective: Overcome conformational plasticity through ensemble-based docking
-- Methods: Molecular dynamics of ANDV GP under physiological and endosomal pH conditions; extraction of conformational ensemble; re-docking of demonstration library against all conformations
-- Expected outcome: Identification of 3–5 compounds with refined binding affinity predictions (ΔG improvement of 1–2 kcal/mol)
-- Cost estimate: $5–10K (GPU-based MD simulations)
-- Timeline: 3–4 weeks
-
-**Stage 2 (Weeks 5–8): Experimental Validation**
-- Objective: Measure binding affinities for top ensemble-predicted compounds
-- Methods: Expression of recombinant ANDV GP ectodomain; surface plasmon resonance (SPR) or isothermal titration calorimetry (ITC) to measure binding kinetics
-- Expected outcome: Identification of 1–2 compounds with Kd < 10 µM
-- Cost estimate: $30–50K (protein expression + biophysical assays)
-- Timeline: 4 weeks
-
-**Stage 3 (Weeks 9–16): Structure-Activity Relationship**
-- Objective: Optimize lead scaffolds through iterative synthesis and binding measurement
-- Methods: Design 10–15 analogs based on SAR insights from Stage 2; synthesize; measure binding and cell-entry inhibition
-- Expected outcome: 1–2 compounds with Kd < 1 µM and >50% inhibition of pseudotyped viral entry
-- Cost estimate: $100–150K (synthesis + cell assays)
-- Timeline: 8 weeks
-
-**Stage 4 (Weeks 17–24): Preclinical Characterization**
-- Objective: Establish DMPK and toxicology profile for IND-enabling studies
-- Methods: Pharmacokinetics in rodents; single-dose toxicology; off-target screening
-- Expected outcome: Lead compound suitable for IND filing
-- Cost estimate: $200–300K (preclinical services)
-- Timeline: 8 weeks
-
-**Total Timeline: ~24 weeks (~6 months) from computational identification to IND-ready compound**
-
-This timeline represents a 4–5-fold acceleration compared to typical medicinal chemistry programs (18–24 months) and is achievable because our computational framework a priori identifies the mechanistic bottleneck and proposes specific solutions rather than empirically exploring chemical space.
-
-### Strengths and Limitations
-
-*Strengths of this computational work include:*
-
-(1) **Mechanistic clarity**: Rather than presenting negative results without explanation, we explicitly identify the structural and computational barriers limiting discovery (conformational dynamics, glycosylation masking) and propose specific solutions (ensemble docking, structure-based epitope prediction).
-
-(2) **Reproducibility**: All workflows, parameters, and archived data are preserved with sufficient detail to enable independent reproduction by academic or industry partners. This supports the open-science principle and enables quality auditing.
-
-(3) **Outbreak relevance**: This work was conducted in direct response to emerging ANDV cases and is positioned to inform outbreak-response research strategies.
-
-(4) **Cross-validation**: Where possible, we validate computational findings against orthogonal methods (multiple docking engines, multiple epitope predictors, cross-species analysis) rather than relying on single-tool outputs.
-
-*Significant limitations include:*
-
-(1) **Absence of experimental validation**: We report no cell-based antiviral potency. All predictions require experimental confirmation before clinical claims can be made.
-
-(2) **Structural model limitations**: Inhibitor designs rely on cryo-EM structures that may represent low-energy but non-functional conformations. Native virion structures or structures captured during functional processes (fusion, entry) would refine predictions.
-
-(3) **Rigid-receptor approximation**: Production molecular dynamics and ensemble docking were not completed for the intact tetrameric assembly in this campaign; affinity estimates therefore reflect a single static snapshot.
-
-(4) **Glycosylation heterogeneity**: Recombinant glycoprotein and native virion glycosylation patterns likely differ, affecting pocket accessibility and recognition in vivo.
-
-Despite these limitations, we believe this computational work provides a necessary prerequisite for efficient experimental design and resource allocation during outbreak response, when speed and clarity of rationale are paramount.
 
 ---
 
 ## Conclusions
 
-We have identified conformational dynamics as the rate-limiting factor in structure-based inhibitor design for ANDV glycoprotein and outline how ensemble-based docking approaches could overcome this limitation. While we do not report cell-based antiviral potency, our analysis provides the computational and mechanistic foundation upon which efficient experimental validation can be built. Specifically, we identify:
-
-(1) Why rigid-receptor docking yields weak affinities (conformational plasticity of druggable pockets; best Vina score −4.92 kcal/mol for aspirin in our demonstration triad);
-(2) How ensemble docking is expected to improve predictions (1–2 kcal/mol affinity gains; **[planned computational expansion]**);
-(3) Which computational bottlenecks require experimental resolution (MM-PBSA refinement, SPR validation, cell-entry assays).
-
-This work is positioned as a resource for outbreak-response research partners and establishes a clear pathway from structural biology to lead compound identification within 6 months—a timeline compatible with pandemic preparedness requirements.
+We integrated pocket detection, pharmacophore filtering, property prediction, AutoDock Vina docking, ensemble refinement across six receptor conformers, and a completed generative exploration around a seed compound on an Andes virus glycoprotein structural model using a chained computational ladder with archived parameters and logs. Rigid-receptor docking scores for three filtered demonstration compounds span a narrow energetic window consistent with weak binders (−4.92 to −3.65 kcal/mol); ensemble docking improved all three (aspirin −6.22 kcal/mol on 9P3Y, Δ −1.30 kcal/mol). The generative step completed with one candidate structure generated and none retained after filters (`design_summary.json`). Explicit-solvent MD on the full 9P3I tetramer was in progress at manuscript update. The study establishes a reproducible baseline and a tested ensemble workflow for physics-based rescoring and experimental follow-up when biosafety permits.
 
 ---
 
 ## Data availability
 
-Primary artifacts for the chained run are stored under `research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/` in the repository, including per-step `parameters.json`, `submit.json`, `status.json`, HTML reports, and JSON summaries for docking and generative design. A separate audit directory documents an earlier demonstration run in which ligand lists were not propagated consistently into property and docking stages; that material is preserved for transparency but is not the evidentiary source for the Results section here. External object storage locations for input SMILES libraries and the receptor coordinate file can be listed in a journal supplement.
+Primary artifacts for the chained run are stored under `research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/` in the repository, including per-step `parameters.json`, `submit.json`, `status.json`, HTML reports, and JSON summaries for docking and generative design. Science-sprint ensemble outputs are under `research/anti-virus/science_sprint/runs/20260527T195530Z/track_inh_ensemble/` (`ensemble_results.json`, per-conformer docking JSON). MD sprint metadata is under `research/anti-virus/science_sprint/runs/20260527T195747Z/track_inh_md/`. A separate audit directory documents an earlier demonstration run in which ligand lists were not propagated consistently into property and docking stages; that material is preserved for transparency but is not the evidentiary source for the Results section here. External object storage locations for input SMILES libraries and the receptor coordinate file can be listed in a journal supplement.
 
 ---
 
@@ -262,7 +201,11 @@ Primary artifacts for the chained run are stored under `research/anti-virus/runs
 
 **Figure 5.** Two-dimensional depictions of the three docked ligands (RDKit), matching the sort order used in Figure 3; omit this legend entry if the figure files were not generated (missing RDKit or SMILES parse failure—see script stderr / `figure_metadata.json` `fig_b5_skip_reason`).
 
+**Figure 6.** Grouped comparison of rigid-receptor baseline (9P3I chained run) and ensemble-best Vina scores from sprint `20260527T195530Z`.
+
 **Table 1.** Docking summary for compounds that passed pharmacophore filtering in the chained execution, listing SMILES string, best binding affinity in kilocalories per mole, and pose count.
+
+**Table 2.** Rigid versus ensemble-best Vina affinities for the pharmacophore-filtered triad (six-conformer sprint; all conformers succeeded).
 
 ---
 

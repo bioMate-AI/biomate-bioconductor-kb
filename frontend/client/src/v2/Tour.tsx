@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from "react";
 // Tutorial Tour — scenario-specific demo tours for video recording.
 //
 // Structure:

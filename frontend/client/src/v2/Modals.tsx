@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from "react";
 // Modals: Skip-phase confirm, Adjust & Rerun, Output preview, Methods report, QC audit
 const { useState: useStateM } = React;
 

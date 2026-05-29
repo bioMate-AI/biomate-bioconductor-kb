@@ -23,6 +23,8 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:feedback:matrix": "bash scripts/run-feedback-e2e-matrix.sh",
+    "e2e:chain-matrix": "playwright test e2e/workflow-chain-matrix.e2e.ts",
+    "e2e:andv-chain": "playwright test e2e/andv-inhibitor-chain-executor.e2e.ts",
     "e2e:report": "playwright show-report e2e/reports",
     "pm:wire:deps": "bash scripts/check-pm-wire-deps.sh",
     "pm:wire:quick": "bash scripts/run-pm-test-wire.sh quick",
