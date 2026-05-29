@@ -161,12 +161,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         if (summaries.length > 0) {
           setAppliedEditsDisplay((prev) => [...prev, { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot }])
         }
+        for (const e of result.applied) analytics.track('workflow_edit_applied', { op: e.op, via: 'assistant_emit' })
       }
       if (structural.length > 0) {
         setPendingStructuralEdits((prev) => [
           ...prev,
           ...structural.map((edit, i) => ({ id: `${msg.id}-pend-${i}`, edit, summary: summarizeEdit(edit) })),
         ])
+        for (const e of structural) analytics.track('workflow_edit_confirm_required', { op: e.op })
       }
     }
   }, [currentChatSession?.messages, panelWorkflow])
@@ -179,6 +181,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     setPendingStructuralEdits((prev) => prev.filter((p) => p.id !== id))
     if (result.applied.length > 0) {
       setAppliedEditsDisplay((prev) => [...prev, { id: `confirm-${id}`, summary: entry.summary, snapshot }])
+      analytics.track('workflow_edit_applied', { op: entry.edit.op, via: 'assistant_emit' })
     } else if (result.rejected.length > 0) {
       console.warn('[workflow-edits] confirm rejected:', result.rejected)
     }
@@ -191,6 +194,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!entry || !entry.snapshot) return
     setPanelWorkflow(entry.snapshot)
     setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== id))
+    analytics.track('workflow_edit_undone', {})
   }
 
   // Gap 2 — rule-based extraction from user messages (frontend-only v1).
@@ -216,6 +220,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         ...prev,
         { id: `user-${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot },
       ])
+      for (const e of result.applied) analytics.track('workflow_edit_applied', { op: e.op, via: 'rule_extractor' })
     }
   }, [currentChatSession?.messages, panelWorkflow])
 
@@ -255,12 +260,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           if (summaries.length > 0) {
             setAppliedEditsDisplay((prev) => [...prev, { id: `llm-${lastUserMsg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot }])
           }
+          for (const e of result.applied) analytics.track('workflow_edit_applied', { op: e.op, via: 'llm_extractor' })
         }
         if (structural.length > 0) {
           setPendingStructuralEdits((prev) => [
             ...prev,
             ...structural.map((edit, i) => ({ id: `llm-${lastUserMsg.id}-pend-${i}`, edit, summary: summarizeEdit(edit) })),
           ])
+          for (const e of structural) analytics.track('workflow_edit_confirm_required', { op: e.op })
         }
       } catch (e) {
         console.debug('[workflow-edits] LLM fallback failed:', e)
@@ -639,6 +646,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!workflow || !currentChatSession) {
       return;
     }
+
+    analytics.track('workflow_suggested', {
+      workflow_name: workflow?.name || workflow?.display_name || workflow?.workflow_name,
+      domain: workflow?.domain,
+      workflow_steps: typeof workflow?.steps === 'object' && workflow?.steps
+        ? Object.keys(workflow.steps).length
+        : Array.isArray(workflow?.pipeline_steps)
+          ? workflow.pipeline_steps.length
+          : undefined,
+    });
 
     // Get fresh session and update with workflow data in the message metadata
     const freshSession = chatHistoryService.getSession(currentChatSession.id);
