@@ -1889,12 +1889,32 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   invocationId={currentRun.execution?.galaxyInvocationId || currentRun.id}
                   workflowName={panelWorkflow?.name}
                   parameters={extractSubmittedParams(currentRun)}
-                  outputs={(currentRun.execution as any)?.outputDatasets?.map((d: any) => ({
-                    step: d.step || d.galaxyDatasetId || '',
-                    name: d.name || '',
-                    path: d.path || '',
-                    ext: (d.extension || d.name?.split('.').pop() || '').toLowerCase(),
-                  })) || []}
+                  outputs={(() => {
+                    // Prefer the structured outputDatasets if populated (Galaxy
+                    // invocations). Nextflow-native runs leave that empty and
+                    // surface files via nextflowStatus.s3_output_files instead.
+                    const exec = currentRun.execution as any
+                    const ods = exec?.outputDatasets || []
+                    if (ods.length > 0) {
+                      return ods.map((d: any) => ({
+                        step: d.step || d.galaxyDatasetId || '',
+                        name: d.name || '',
+                        path: d.path || '',
+                        ext: (d.extension || d.name?.split('.').pop() || '').toLowerCase(),
+                      }))
+                    }
+                    const s3 = exec?.nextflowStatus?.s3_output_files || []
+                    return s3.map((f: any) => {
+                      const path = typeof f === 'string' ? f : (f.path || f.key || f.name || '')
+                      const name = path.split('/').filter(Boolean).pop() || ''
+                      const ext = (name.split('.').pop() || '').toLowerCase()
+                      // Derive a step label from the s3 prefix segment that
+                      // looks like a process name (CRYOSPARC_REFINE/ etc.).
+                      const parts = path.split('/')
+                      const step = parts.length >= 2 ? parts[parts.length - 2] : ''
+                      return { step, name, path, ext }
+                    })
+                  })()}
                 />
               </div>
             )}

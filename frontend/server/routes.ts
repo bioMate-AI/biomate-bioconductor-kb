@@ -4250,6 +4250,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // QC events list — proxy to Galaxy backend. Used by the v2 AfterRunReport
+  // QC audit tab to render the gate event history.
+  app.get("/api/invocations/:invocationId/qc-events", async (req: any, res: any) => {
+    try {
+      const { invocationId } = req.params;
+      const inv = await storage.getInvocation(invocationId).catch(() => null);
+      const backendId = inv?.galaxyInvocationId || invocationId;
+      const response = await (galaxyAPIProxy.client as any).get(
+        `/api/invocations/${backendId}/qc-events`,
+        { params: req.query }
+      );
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      // AfterRunReport hides the tab on any non-200; a 404 here is the
+      // "this workflow has no QC gates" signal and is expected for non-
+      // QC domains.
+      return res.status(status).json(err.response?.data || { error: 'QC events proxy error' });
+    }
+  });
+
   // Methods report download — generates a publication-quality report.
   // Routing:
   //   a) If invocationId is a Galaxy Invocation (has galaxyInvocationId) → proxy to Galaxy backend
