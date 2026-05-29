@@ -6,6 +6,7 @@
 
 - **Execute ANDV stages via Nextflow / API today**: `docs/20260509_ANDV_NEXTFLOW_PIPELINE_EXECUTION.md`
 - **Backlog — registry, gap protocol, DAG orchestration**: `docs/FUTURE_WORK_BIOMATE_ORCHESTRATION.md`
+- **Catalog vs session chaining (is adding chains enough?)**: `docs/20260528_WORKFLOW_CHAINING_INFORMATION_FLOW.md`
 
 **Audience**: Product and engineering decisions around assistant behavior and resource alignment (not step-by-step Batch execution).
 

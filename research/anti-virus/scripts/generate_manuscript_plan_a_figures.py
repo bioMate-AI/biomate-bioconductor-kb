@@ -29,6 +29,35 @@ TSV = (
     / "predictions"
     / "PLAN_A_SMOKE_GP.tsv"
 )
+SPRINT_TSV = (
+    ROOT
+    / "research"
+    / "anti-virus"
+    / "runs"
+    / "plan_a_sprint_20260527T193013Z_mirror"
+    / "predictions"
+    / "PLAN_A_SMOKE_GP.tsv"
+)
+STRUCTURAL_PATCHES = (
+    ROOT
+    / "research"
+    / "anti-virus"
+    / "science_sprint"
+    / "runs"
+    / "20260527T180210Z"
+    / "track_plan_a_structural_epitopes"
+    / "structural_epitope_patches.json"
+)
+CROSS_SPECIES = (
+    ROOT
+    / "research"
+    / "anti-virus"
+    / "science_sprint"
+    / "runs"
+    / "20260527T180210Z"
+    / "track_plan_a_cross_species"
+    / "cross_species_conservation.json"
+)
 MULTIQC_DATA = (
     ROOT
     / "research"
@@ -57,7 +86,7 @@ def fig_workflow() -> None:
         (0.3, 1.2, 1.8, 1.2, "GP segment\n(FASTA / samplesheet)"),
         (2.5, 1.2, 1.8, 1.2, "nf-core\nepitopeprediction"),
         (4.7, 1.2, 1.6, 1.2, "MHCnuggets\n(class I 8–12)"),
-        (6.7, 1.2, 1.6, 1.2, "HLA-A*02:01\nHLA-B*07:02"),
+        (6.5, 1.2, 1.8, 1.2, "NetMHCpan\n(orthogonal)"),
         (8.7, 1.2, 1.1, 1.2, "Tables +\nMultiQC"),
     ]
     for x, y, w, h, txt in boxes:
@@ -122,13 +151,101 @@ def fig_graphical_abstract(n_peptide_allele: int, n_negative_binders: int) -> No
     plt.close(fig)
 
 
-def load_tsv() -> list[dict[str, str]]:
+def load_tsv_path(path: Path) -> list[dict[str, str]]:
     rows = []
-    with TSV.open(newline="", encoding="utf-8") as f:
+    with path.open(newline="", encoding="utf-8") as f:
         r = csv.DictReader(f, delimiter="\t")
         for row in r:
             rows.append(row)
     return rows
+
+
+def load_tsv() -> list[dict[str, str]]:
+    return load_tsv_path(TSV)
+
+
+def row_key(row: dict[str, str]) -> tuple[str, str]:
+    return (row.get("sequence", ""), row.get("allele", ""))
+
+
+def fig_sprint_reproducibility(baseline: list[dict[str, str]], sprint: list[dict[str, str]]) -> None:
+    """Fig A6a: baseline vs sprint MHCnuggets BA (AWS Batch reproducibility)."""
+    base_map = {row_key(r): float(r["BA"]) for r in baseline if r.get("BA")}
+    sprint_map = {row_key(r): float(r["BA"]) for r in sprint if r.get("BA")}
+    keys = sorted(set(base_map) & set(sprint_map))
+    if not keys:
+        raise SystemExit("Fig A6: no overlapping peptide–allele keys between baseline and sprint TSV")
+    x = [base_map[k] for k in keys]
+    y = [sprint_map[k] for k in keys]
+    fig, ax = plt.subplots(figsize=(3.6, 3.2), dpi=300)
+    ax.scatter(x, y, s=8, alpha=0.35, color="#2A9D8F", edgecolors="none")
+    lo, hi = min(x + y), max(x + y)
+    ax.plot([lo, hi], [lo, hi], "--", color="#888888", lw=1)
+    ax.set_xlabel("Baseline BA (May archive)")
+    ax.set_ylabel("Sprint BA (20260527T193013Z)")
+    ax.set_title("Fig. A6a | MHCnuggets reproducibility (Batch re-run)", fontsize=10, fontweight="bold", loc="left")
+    style_axes(ax)
+    fig.savefig(OUT / "FigA6a_sprint_reproducibility.png", bbox_inches="tight")
+    fig.savefig(OUT / "FigA6a_sprint_reproducibility.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+def fig_sprint_science_summary() -> None:
+    """Fig A6b: structural patches + cross-species conserved peptides from science sprint."""
+    if not STRUCTURAL_PATCHES.is_file() or not CROSS_SPECIES.is_file():
+        raise SystemExit("Fig A6b: missing structural or cross-species sprint JSON")
+    struct = json.loads(STRUCTURAL_PATCHES.read_text(encoding="utf-8"))
+    cross = json.loads(CROSS_SPECIES.read_text(encoding="utf-8"))
+    labels = ["Exposed Cα\n(9P3I)", "Surface\npatches", "Peptides\nmapped", "Triple-species\nconserved"]
+    vals = [
+        struct.get("n_exposed_residues", 0),
+        len(struct.get("patches") or []),
+        cross.get("n_peptides_mapped", 0),
+        cross.get("n_cross_species_peptides", 0),
+    ]
+    fig, ax = plt.subplots(figsize=(4.2, 2.8), dpi=300)
+    colors = ["#264653", "#2A9D8F", "#E9C46A", "#E76F51"]
+    ax.bar(range(len(labels)), vals, color=colors, edgecolor="#333333", linewidth=0.4)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, fontsize=7)
+    ax.set_ylabel("Count")
+    ax.set_title("Fig. A6b | Science sprint structural + conservation", fontsize=10, fontweight="bold", loc="left")
+    style_axes(ax)
+    fig.savefig(OUT / "FigA6b_sprint_science_summary.png", bbox_inches="tight")
+    fig.savefig(OUT / "FigA6b_sprint_science_summary.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+def fig_tool_panel(rows: list[dict[str, str]]) -> None:
+    """Fig A6c: MHCnuggets binder calls; NetMHCpan sprint produced no merged TSV (noted in title)."""
+    by_pred: dict[str, int] = defaultdict(int)
+    neg_by_pred: dict[str, int] = defaultdict(int)
+    for row in rows:
+        pred = (row.get("predictor") or "mhcnuggets").strip()
+        by_pred[pred] += 1
+        if str(row.get("binder", "")).strip().lower() in ("false", "0", "no"):
+            neg_by_pred[pred] += 1
+    preds = sorted(by_pred)
+    totals = [by_pred[p] for p in preds]
+    negatives = [neg_by_pred[p] for p in preds]
+    fig, ax = plt.subplots(figsize=(3.8, 2.8), dpi=300)
+    x = range(len(preds))
+    ax.bar(x, totals, color="#457B9D", alpha=0.85, label="peptide–allele rows")
+    ax.bar(x, negatives, color="#E76F51", alpha=0.75, label="negative binder calls")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(preds, fontsize=8)
+    ax.set_ylabel("Count")
+    ax.legend(frameon=False, fontsize=7)
+    ax.set_title(
+        "Fig. A6c | Predictor panel (NetMHCpan sprint: no merged TSV)",
+        fontsize=9,
+        fontweight="bold",
+        loc="left",
+    )
+    style_axes(ax)
+    fig.savefig(OUT / "FigA6c_tool_panel.png", bbox_inches="tight")
+    fig.savefig(OUT / "FigA6c_tool_panel.pdf", bbox_inches="tight")
+    plt.close(fig)
 
 
 def fig_ba_by_allele(rows: list[dict[str, str]]) -> None:
@@ -360,6 +477,23 @@ def main() -> None:
     meta["multiqc_binding_affinity_total_counts"] = n_bind_counts
     meta["multiqc_binder_length_n_columns"] = n_len_cols
     meta["fig_a5_positions"] = fig_sequence_profile(rows)
+    if SPRINT_TSV.is_file():
+        sprint_rows = load_tsv_path(SPRINT_TSV)
+        fig_sprint_reproducibility(rows, sprint_rows)
+        fig_tool_panel(sprint_rows)
+        meta["sprint_tsv"] = str(SPRINT_TSV)
+        meta["sprint_n_rows"] = len(sprint_rows)
+        meta["figures"]["FigA6a_sprint_reproducibility"] = {
+            "kind": "data_plot",
+            "data_source": [str(TSV), str(SPRINT_TSV)],
+        }
+        meta["figures"]["FigA6c_tool_panel"] = {"kind": "data_plot", "data_source": str(SPRINT_TSV)}
+    if STRUCTURAL_PATCHES.is_file() and CROSS_SPECIES.is_file():
+        fig_sprint_science_summary()
+        meta["figures"]["FigA6b_sprint_science_summary"] = {
+            "kind": "data_plot",
+            "data_source": [str(STRUCTURAL_PATCHES), str(CROSS_SPECIES)],
+        }
     (OUT / "figure_metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"Wrote figures to {OUT}")
 

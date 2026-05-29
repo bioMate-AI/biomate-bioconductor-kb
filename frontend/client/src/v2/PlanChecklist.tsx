@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from "react";
 // Surface 1 — Plan Checklist (sticky strip above the chat thread)
 //
 // Props:

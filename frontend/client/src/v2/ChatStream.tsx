@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from "react";
 // Surface 2 — Speaker-pilled chat lines, plus the chat container.
 // Renders a sequence of "events" — each event is either a speaker line
 // or a chat card (pilot promotion / comparison / findings). The same-

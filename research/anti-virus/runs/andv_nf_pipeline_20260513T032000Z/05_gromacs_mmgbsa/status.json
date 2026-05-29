@@ -1,61 +1,237 @@
 {
-  "run_id": "26db0cbc-cd74-44c9-8870-fb79da72bce6",
-  "invocation_id": "26db0cbc-cd74-44c9-8870-fb79da72bce6",
-  "status": "running",
-  "returncode": null,
-  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91",
-  "work_dir": "/tmp/nextflow_runs/26db0cbc-cd74-44c9-8870-fb79da72bce6/work",
+  "run_id": "bc6ce315-bd16-426a-99b3-6a2434a40e39",
+  "invocation_id": "bc6ce315-bd16-426a-99b3-6a2434a40e39",
+  "status": "failed",
+  "returncode": 1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415",
+  "work_dir": "/tmp/nextflow_runs/bc6ce315-bd16-426a-99b3-6a2434a40e39/work",
   "log_tail": [
-    "[-        ] TRAJECTORY_ANALYSIS       -",
-    "[-        ] MM_GBSA                   -",
-    "executor >  awsbatch (2)",
-    "[fa/2234b9] LIGAND_PREP (ligand_prep)   | 1 of 1 \u2714",
-    "[b5/1ba91f] SYSTEM_SETUP (system_setup) | 0 of 1",
-    "[-        ] ENERGY_MINIMIZATION         -",
-    "[-        ] NVT_EQUILIBRATION           -",
-    "[-        ] NPT_EQUILIBRATION           -",
-    "[-        ] PRODUCTION_MD               -",
-    "[-        ] TRAJECTORY_ANALYSIS         -",
-    "[-        ] MM_GBSA                     -",
-    "executor >  awsbatch (2)",
-    "[fa/2234b9] LIGAND_PREP (ligand_prep)   | 1 of 1 \u2714",
-    "[b5/1ba91f] SYSTEM_SETUP (system_setup) | 0 of 1",
-    "[-        ] ENERGY_MINIMIZATION         -",
-    "[-        ] NVT_EQUILIBRATION           -",
-    "[-        ] NPT_EQUILIBRATION           -",
-    "[-        ] PRODUCTION_MD               -",
-    "[-        ] TRAJECTORY_ANALYSIS         -",
-    "[-        ] MM_GBSA                     -"
+    "  s3://biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/bc6ce315-bd16-426a-99b3-6a2434a40e39/7c/0d975bc275cdd98678878e6cd3c722",
+    "Container:",
+    "  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest",
+    "Tip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`",
+    "May-29 05:50:54.219 [main] DEBUG nextflow.Session - Session await > all processes finished",
+    "May-29 05:50:54.277 [TaskFinalizer-7] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit",
+    "May-29 05:50:54.355 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+    "May-29 05:50:54.356 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+    "May-29 05:50:54.357 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
+    "May-29 05:50:54.357 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
+    "May-29 05:50:54.363 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=6; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=2h 55m 15s; failedDuration=20.6s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=16; peakMemory=32 GB; ]",
+    "May-29 05:50:54.363 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+    "May-29 05:50:55.247 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+    "May-29 05:50:55.504 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+    "May-29 05:50:55.513 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+    "May-29 05:50:55.526 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'",
+    "May-29 05:50:55.526 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+    "May-29 05:50:55.527 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
+    "May-29 05:50:55.528 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
+    "May-29 05:50:55.528 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
   ],
   "is_batch": true,
   "s3_output_files": [
     {
-      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand.frcmod",
-      "filename": "ligand.frcmod",
-      "size": 610
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/",
+      "filename": "",
+      "size": 0
     },
     {
-      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand_gaff2.mol2",
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/em.log",
+      "filename": "em.log",
+      "size": 1060873
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/em_potential.xvg",
+      "filename": "em_potential.xvg",
+      "size": 307133
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/minimized.gro",
+      "filename": "minimized.gro",
+      "size": 1870881
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/npt.gro",
+      "filename": "npt.gro",
+      "size": 2868657
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/npt.log",
+      "filename": "npt.log",
+      "size": 35972
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/npt_density.xvg",
+      "filename": "npt_density.xvg",
+      "size": 3238
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/nvt.gro",
+      "filename": "nvt.gro",
+      "size": 2868657
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/nvt.log",
+      "filename": "nvt.log",
+      "size": 71951
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/nvt_temp.xvg",
+      "filename": "nvt_temp.xvg",
+      "size": 2903
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2982806
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 253744
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/complex.gro",
+      "filename": "complex.gro",
+      "size": 1870909
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/complex.top",
+      "filename": "complex.top",
+      "size": 2312169
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/ligand.frcmod",
+      "filename": "ligand.frcmod",
+      "size": 3646
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/ligand_gaff2.mol2",
       "filename": "ligand_gaff2.mol2",
-      "size": 2402
+      "size": 2297
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/ligand_prep.log",
+      "filename": "ligand_prep.log",
+      "size": 1222
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/posres.itp",
+      "filename": "posres.itp",
+      "size": 44443
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/receptor_for_md.pdb",
+      "filename": "receptor_for_md.pdb",
+      "size": 175381
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/receptor_trim_meta.json",
+      "filename": "receptor_trim_meta.json",
+      "size": 180
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/setup.log",
+      "filename": "setup.log",
+      "size": 9056
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/system_size_report.json",
+      "filename": "system_size_report.json",
+      "size": 224
     }
   ],
-  "completedSteps": 0,
-  "totalSteps": 4,
-  "progressPercent": 0,
+  "completedSteps": 6,
+  "totalSteps": 7,
+  "progressPercent": 100,
   "processes": [
+    {
+      "id": "em",
+      "name": "em",
+      "process": "em",
+      "step_dir": "em",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/em.log",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/em_potential.xvg",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/em/minimized.gro"
+      ]
+    },
+    {
+      "id": "npt",
+      "name": "npt",
+      "process": "npt",
+      "step_dir": "npt",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/npt.gro",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/npt.log",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/npt/npt_density.xvg"
+      ]
+    },
+    {
+      "id": "nvt",
+      "name": "nvt",
+      "process": "nvt",
+      "step_dir": "nvt",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/nvt.gro",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/nvt.log",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/nvt/nvt_temp.xvg"
+      ]
+    },
+    {
+      "id": "pipeline_info",
+      "name": "pipeline_info",
+      "process": "pipeline_info",
+      "step_dir": "pipeline_info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/pipeline_info/timeline.html"
+      ]
+    },
     {
       "id": "prep",
       "name": "prep",
+      "process": "prep",
+      "step_dir": "prep",
       "status": "completed",
       "task_files": [
-        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand.frcmod",
-        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/bbfc6a91/prep/ligand_gaff2.mol2"
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/complex.gro",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/complex.top",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/ligand.frcmod",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/ligand_gaff2.mol2",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/ligand_prep.log",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/posres.itp",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/receptor_for_md.pdb",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/receptor_trim_meta.json",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/setup.log",
+        "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/57ff2415/prep/system_size_report.json"
       ]
     }
   ],
-  "started_at": 1778727626.3407388,
-  "completed_at": null,
-  "duration_s": 43198,
-  "_timeout": true
+  "started_at": 1780032284.9058099,
+  "completed_at": 1780033866.2135465,
+  "duration_s": 1580
 }

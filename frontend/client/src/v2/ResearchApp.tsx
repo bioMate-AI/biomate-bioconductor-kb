@@ -1,4 +1,5 @@
 // @ts-nocheck
+import React from 'react';
 // ResearchApp — top-level state + scenario engine + Tweaks panel.
 //
 // The engine walks `scenario.tape` event-by-event:

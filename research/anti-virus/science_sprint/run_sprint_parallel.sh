@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SPRINT="${ROOT}/research/anti-virus/science_sprint"
 LOG_DIR="${SPRINT}/logs"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" "${SPRINT}/runs"
 
 export BIOMATE_API_URL="${BIOMATE_API_URL:-http://127.0.0.1:8081}"
 export GALAXY_API_KEY="${GALAXY_API_KEY:-}"

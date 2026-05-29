@@ -6,6 +6,21 @@ as a background subprocess and returns tracking IDs.
 
 Does NOT require Galaxy workflow/invocation infrastructure.
 """
+# ──────────────────────────────────────────────────────────────────────────
+# CRITICAL — DO NOT REMOVE THIS LINE.
+# This file uses PEP 604 `X | Y` union syntax in 13+ type annotations.
+# Python 3.10+ supports it natively, but the Galaxy container ships
+# Python 3.9. Without `from __future__ import annotations` (PEP 563),
+# the annotations are evaluated at module load and crash every gunicorn
+# worker with: TypeError: unsupported operand type(s) for |: 'type' and 'type'.
+# Symptom: container reports "unhealthy" forever, /api/workflows/execute
+# returns "fetch failed (ECONNREFUSED)", workflows fail with no run dir
+# created. Auto-commit/sync scripts have stripped this line at least 3x
+# this session — restored via commits 903745e19, 1f49b6e45, and again now.
+# If a CI lint can enforce its presence, add it.
+# ──────────────────────────────────────────────────────────────────────────
+from __future__ import annotations
+
 import logging
 import os
 import re

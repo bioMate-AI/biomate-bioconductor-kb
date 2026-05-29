@@ -1,17 +1,7 @@
 {
-  "created_at": "2026-05-26T14:39:06.820Z",
+  "created_at": "2026-05-28T16:10:37.803Z",
   "source": "biomate_ui_e2e",
   "steps": [
-    {
-      "key": "pocket",
-      "title": "Pocket detection + druggability",
-      "runId": "0ae11fe7-6a78-4cb7-8d5f-13d44020c711",
-      "status": "failed",
-      "panelTitle": "Pocket Detection Druggability",
-      "notes": [
-        "executeUrl=http://localhost:5000/api/workflows/execute"
-      ]
-    },
     {
       "key": "pharmacophore",
       "title": "Pharmacophore library filtering",
@@ -35,6 +25,16 @@
     {
       "key": "docking_vina",
       "title": "AutoDock Vina docking",
+      "runId": null,
+      "status": "skipped",
+      "panelTitle": "",
+      "notes": [
+        "No workflow card"
+      ]
+    },
+    {
+      "key": "pocket",
+      "title": "Pocket detection + druggability",
       "runId": null,
       "status": "skipped",
       "panelTitle": "",

@@ -2,13 +2,13 @@
   {
     "testId": "PB-1",
     "runId": null,
-    "startTs": 1779811527391,
-    "endTs": 1779811709852,
+    "startTs": 1780006684306,
+    "endTs": 1780006866340,
     "finalStatus": "unknown",
     "assertions": [
       {
         "name": "assistant_mentions_codon_domain",
-        "passed": false
+        "passed": true
       },
       {
         "name": "workflow_card_or_followup_possible",
@@ -18,29 +18,69 @@
     "screenshots": [],
     "notes": [
       "hasWorkflowCard=true",
-      "mentionsCodon=false"
+      "mentionsCodon=true"
     ]
   },
   {
-    "testId": "PB-4",
-    "runId": "8e66fac9-87c0-4317-b66d-cbb61b73d52c",
-    "startTs": 1779852503618,
-    "endTs": 1779852693664,
-    "finalStatus": "failed",
+    "testId": "PB-2",
+    "runId": null,
+    "startTs": 1779985070271,
+    "endTs": 1779985253047,
+    "finalStatus": "unknown",
     "assertions": [
       {
-        "name": "execute_captured_run_id",
-        "passed": true,
-        "note": "8e66fac9-87c0-4317-b66d-cbb61b73d52c"
+        "name": "workflow_card_detected",
+        "passed": true
       },
       {
-        "name": "terminal_completed_or_failed",
+        "name": "run_button_visible",
         "passed": true
       }
     ],
     "screenshots": [],
+    "notes": []
+  },
+  {
+    "testId": "PB-3",
+    "runId": null,
+    "startTs": 1779985253169,
+    "endTs": 1779985436808,
+    "finalStatus": "unknown",
+    "assertions": [
+      {
+        "name": "target_sequence_set",
+        "passed": true,
+        "note": "ATGAGTAAAGGAGAAGAACTTTTCACTGGAGTTGTCCCAA"
+      },
+      {
+        "name": "outdir_s3_or_prefilled",
+        "passed": true,
+        "note": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_e2e_ui/20260528T162355/"
+      }
+    ],
+    "screenshots": [],
+    "notes": []
+  },
+  {
+    "testId": "PB-4",
+    "runId": "5674c653-c159-4d74-9823-ab4305ce979c",
+    "startTs": 1779985436939,
+    "endTs": 1779986823426,
+    "finalStatus": "timeout",
+    "assertions": [
+      {
+        "name": "execute_captured_run_id",
+        "passed": true,
+        "note": "5674c653-c159-4d74-9823-ab4305ce979c"
+      },
+      {
+        "name": "terminal_completed_or_failed",
+        "passed": false
+      }
+    ],
+    "screenshots": [],
     "notes": [
-      "executeUrl=http://localhost:5000/api/workflows/execute"
+      "executeUrl=http://127.0.0.1:5000/api/workflows/execute"
     ]
   },
   {

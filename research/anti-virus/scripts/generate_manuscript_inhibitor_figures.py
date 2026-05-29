@@ -19,6 +19,10 @@ POCKETS = RUN / "01_pocket" / "structure_pockets.json"
 PHARM_SUMMARY = RUN / "02_pharmacophore" / "summary.json"
 DOCK = RUN / "04_docking_vina" / "docking_autodock_vina_results.json"
 SCORE = RUN / "06_reinvent4" / "score_history.json"
+ENSEMBLE = (
+    ROOT
+    / "research/anti-virus/science_sprint/runs/20260527T195530Z/track_inh_ensemble/ensemble_results.json"
+)
 
 # RDKit is optional; 2D ligand panel (Fig B5) is skipped if unavailable.
 try:
@@ -258,6 +262,39 @@ def fig_docked_ligands_2d(dj: dict[str, Any]) -> tuple[bool, str]:
     return True, ""
 
 
+def fig_ensemble_vs_rigid() -> None:
+    if not ENSEMBLE.is_file():
+        raise SystemExit(f"Missing ensemble results: {ENSEMBLE}")
+    data = json.loads(ENSEMBLE.read_text(encoding="utf-8"))
+    compounds = data.get("aggregate", {}).get("compounds") or data.get("compounds") or []
+    if not compounds:
+        raise SystemExit(f"No compounds in {ENSEMBLE}")
+
+    labels: list[str] = []
+    baseline: list[float] = []
+    ensemble: list[float] = []
+    for c in compounds:
+        smi = c.get("smiles", "")
+        labels.append(DOCKING_LABEL_SHORT.get(smi, smi[:14] + "…"))
+        baseline.append(float(c["baseline_affinity_kcal_mol"]))
+        ensemble.append(float(c["ensemble_best_affinity_kcal_mol"]))
+
+    x = range(len(labels))
+    width = 0.35
+    fig, ax = plt.subplots(figsize=(4.2, 2.9), dpi=300)
+    ax.bar([i - width / 2 for i in x], baseline, width, label="Rigid (9P3I)", color="#457B9D")
+    ax.bar([i + width / 2 for i in x], ensemble, width, label="Ensemble best", color="#E76F51")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Best Vina score (kcal mol⁻¹)")
+    ax.legend(frameon=False, fontsize=7)
+    style_axes(ax)
+    ax.set_title("Fig. B6 | Rigid vs ensemble docking", fontsize=10, fontweight="bold", loc="left")
+    fig.savefig(OUT / "FigB6_ensemble_vs_rigid.png", bbox_inches="tight")
+    fig.savefig(OUT / "FigB6_ensemble_vs_rigid.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     for p in (POCKETS, DOCK, SCORE):
@@ -271,6 +308,8 @@ def main() -> None:
     fig_funnel(n_lib, n_pass, n_dock, funnel_data)
     fig_docking()
     fig_reinvent()
+    if ENSEMBLE.is_file():
+        fig_ensemble_vs_rigid()
     b5_written, b5_skip = fig_docked_ligands_2d(dj)
 
     sh = json.loads(SCORE.read_text(encoding="utf-8"))
@@ -287,12 +326,14 @@ def main() -> None:
             "FigB3_docking_scores": {"kind": "data_plot", "data_source": str(DOCK)},
             "FigB4_generative_score_history": {"kind": "data_plot", "data_source": str(SCORE)},
             "FigB5_docked_ligands_2d": {"kind": "data_plot", "data_source": str(DOCK)},
+            "FigB6_ensemble_vs_rigid": {"kind": "data_plot", "data_source": str(ENSEMBLE)},
         },
         "inputs": {
             "pockets": str(POCKETS),
             "pharmacophore_summary": str(PHARM_SUMMARY) if PHARM_SUMMARY.is_file() else None,
             "docking": str(DOCK),
             "score_history": str(SCORE),
+            "ensemble_results": str(ENSEMBLE) if ENSEMBLE.is_file() else None,
         },
         "n_docked": n_dock,
         "funnel": {

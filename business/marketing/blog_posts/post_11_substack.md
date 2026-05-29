@@ -85,7 +85,7 @@ We do **not** claim animal immunogenicity, neutralization, or population coverag
 
 Run your own samplesheet on Batch through the same orchestration layer:
 
-👉 **https://biomate.ai**
+👉 **https://biomate.ai/try**
 
 Pair with the inhibitor-track post for the full “one structure, two discovery forks” story.
 
