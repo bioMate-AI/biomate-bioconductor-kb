@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap } from "lucide-react"
+import { analytics } from "@/lib/analytics"
 
 // Maximum file size: 5GB for local uploads
 // AWS workflows require file upload first, so we constrain to reduce latency
@@ -135,6 +136,9 @@ export function FileUpload({
       setTimeout(() => {
         setFiles(currentFiles => {
           const completedFiles = currentFiles.filter(f => f.status === 'completed')
+          if (completedFiles.length > 0) {
+            try { analytics.track('dataset_uploaded', { total_samples: completedFiles.length }); } catch {}
+          }
           onUploadComplete(completedFiles)
           return currentFiles
         })
