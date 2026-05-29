@@ -8258,11 +8258,16 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // nf-core on AWS Batch uses profile docker + awsbatch executor (not profile "aws").
+              // ⚠️ DO NOT REVERT to `docker`. Third re-application of 2885eb960 / 140502f23.
+              // biomate-ai-tools workflows define an `aws` profile, NOT `docker`. nf-core
+              // on Batch accepts `aws` too since both delegate to the awsbatch executor.
+              // Hardcoded `docker` triggers "Unknown configuration profile: 'docker'" on
+              // every tier 0 dispatch (verified 2026-05-22, 2026-05-28, 2026-05-29) and
+              // kills the workflow in ~3 seconds before any phase starts.
               profile:
                 paramProfile ||
                 request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'docker' : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
@@ -9234,6 +9239,8 @@ Rules:
         steps: rawSteps.map((s: any) => ({
           nextflow_path: s.nextflow_path || s.workflowPath || s.workflow_path || s.nextflowPath,
           workflow_name: s.workflow_name || s.name,
+          role: s.role,
+          step_key: s.step_key || s.stepKey,
           params: s.params || s.parameters || {},
         })),
       };
