@@ -313,6 +313,7 @@ test.describe("HT-1 HTS Plate QC Hit Calling — full journey", () => {
         "I have a 96-well plate with positive and negative controls.",
         "Apply Z'-factor QC gate (min Z' = 0.5) and signal window check,",
         "then call hits at 50% inhibition threshold.",
+        "(use workflow hts_plate_qc_hit_calling)",
       ].join(" ");
 
       const gotResponse = await sendMessage(page, query, 120_000);
@@ -392,7 +393,7 @@ test.describe("HT-2 QC settings override", () => {
 
     try {
       await registerAndLogin(page, "ht2");
-      const query = "Run HTS plate QC + hit calling on a 96-well screening plate with Z'-factor and signal-window checks.";
+      const query = "Run HTS plate QC + hit calling on a 96-well screening plate with Z'-factor and signal-window checks. (use workflow hts_plate_qc_hit_calling)";
       const gotResponse = await sendMessage(page, query, 90_000);
       assertions.push({ name: "AI response received", passed: gotResponse });
       screenshots.push(await shot(page, "HT2_01_after_query"));
@@ -477,7 +478,7 @@ test.describe("HT-3 QCEvidenceTooltip on gate labels", () => {
 
     try {
       await registerAndLogin(page, "ht3");
-      const query = "Run HTS plate QC and hit calling — apply Z'-factor and signal-window gates on my 96-well plate.";
+      const query = "Run HTS plate QC and hit calling — apply Z'-factor and signal-window gates on my 96-well plate. (use workflow hts_plate_qc_hit_calling)";
       const gotResponse = await sendMessage(page, query, 90_000);
       assertions.push({ name: "AI response received", passed: gotResponse });
       if (!gotResponse) return;
@@ -593,6 +594,7 @@ test.describe("HT-4 Gate failure path", () => {
         "Run HTS plate QC + hit calling with my plate data.",
         `Use this plate_data_json: ${plateJson}`,
         "Apply min_z_prime = 0.5. Expect the Z' gate to FAIL because pos and neg controls overlap.",
+        "(use workflow hts_plate_qc_hit_calling)",
       ].join(" ");
       const gotResponse = await sendMessage(page, query, 90_000);
       assertions.push({ name: "AI response received", passed: gotResponse });
@@ -668,7 +670,7 @@ test.describe("HT-5 Output visualization", () => {
       await registerAndLogin(page, "ht5");
       const gotResponse = await sendMessage(page,
         "Run HTS plate QC + hit calling on a synthetic 96-well plate (use demo data). " +
-        "Hit threshold 50% inhibition.",
+        "Hit threshold 50% inhibition. (use workflow hts_plate_qc_hit_calling)",
         90_000
       );
       assertions.push({ name: "AI responded", passed: gotResponse });
