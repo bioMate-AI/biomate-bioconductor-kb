@@ -14,6 +14,29 @@ import { db } from './db';
 import { workflowExecutions } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { storage } from './storage';
+import { sendMPEvents } from './ga4-measurement-protocol';
+
+/**
+ * GA4 Measurement Protocol dispatch for backend-only terminal events.
+ *
+ * The browser pipeline (analytics.track → gtag) misses runs that finish after
+ * the user closes the tab. This helper fires the same event taxonomy to GA4
+ * server-side so the funnel data is complete.
+ *
+ * No-op when GA4_PROD_API_SECRET / GA4_DEV_API_SECRET are unset (see
+ * frontend/server/ga4-measurement-protocol.ts). Default target is 'prod'
+ * since the Node poller serves prod and dev from the same process; the
+ * invocation's host isn't available here, so we ship to the prod property
+ * when production runs are the canonical case. A future enhancement could
+ * persist the host on the invocation record and route by it.
+ */
+function sendBackendGA4Event(invocationId: string, event: string, params: Record<string, unknown>): void {
+  if (!process.env.GA4_PROD_API_SECRET) return;
+  sendMPEvents(
+    [{ name: event, params: { ...params, invocation_id: invocationId } }],
+    { clientId: `backend-${invocationId}`, target: 'prod' },
+  ).catch(() => { /* swallow — analytics must never affect UX */ });
+}
 
 export interface SSEClient {
   id: string;
@@ -94,12 +117,15 @@ export class WorkflowSSEManager {
         const state = String(data.workflow_state || '').toLowerCase();
         if (state === 'ok' || state === 'completed' || state === 'scheduled') {
           narrateNodeEvent(update.invocation_id, 'workflow.completed', { workflow_state: data.workflow_state });
+          sendBackendGA4Event(update.invocation_id, 'workflow_completed', { workflow_state: data.workflow_state });
         } else if (state === 'error' || state === 'failed') {
           narrateNodeEvent(update.invocation_id, 'workflow.failed', { reason: data.error || data.workflow_state });
+          sendBackendGA4Event(update.invocation_id, 'workflow_failed', { reason: String(data.error || data.workflow_state || '').slice(0, 100) });
         } else if (state === 'paused') {
           narrateNodeEvent(update.invocation_id, 'workflow.paused', {});
         } else if (state === 'deleted' || state === 'cancelled') {
           narrateNodeEvent(update.invocation_id, 'workflow.cancelled', {});
+          sendBackendGA4Event(update.invocation_id, 'workflow_cancelled', {});
         }
       } catch (e) {
         console.warn('[SSE] Failed to update local invocation:', e);
