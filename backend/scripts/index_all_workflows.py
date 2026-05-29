@@ -727,6 +727,49 @@ CURATED_CHAINS = [
         ],
         "tags": ["drug_discovery", "target_to_lead", "pocket_detection", "ADMET", "docking", "MM-GBSA", "REINVENT4", "lead_optimisation"],
     },
+    {
+        "name": "andv_inhibitor_track_v1",
+        "display_name": "ANDV Inhibitor Track (v1)",
+        "domain": "drug_discovery",
+        "description": (
+            "Andes virus (ANDV) glycoprotein inhibitor discovery ladder aligned with the "
+            "research campaign CLI: pocket detection → pharmacophore screen → ADMET triage → "
+            "AutoDock Vina → optional GROMACS MM-GBSA → REINVENT4 generative follow-up. "
+            "Matches run_andv_inhibitor_pipeline_nextflow.py step keys for manifest parity."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "pocket_detection_druggability", "role": "pocket", "params_template": {}},
+            {"order": 2, "workflow_name": "pharmacophore_filtering", "role": "pharmacophore", "params_template": {"min_features": 3}},
+            {"order": 3, "workflow_name": "predict_admet_properties", "role": "admet", "params_template": {"profile": "druglike_lead"}},
+            {"order": 4, "workflow_name": "docking_autodock_vina", "role": "docking_vina", "params_template": {}},
+            {"order": 5, "workflow_name": "gromacs_protein_md", "role": "gromacs_mmgbsa", "params_template": {"sim_ns": 10}},
+            {"order": 6, "workflow_name": "reinvent4_lead_design", "role": "reinvent4", "params_template": {"n_compounds": 50}},
+        ],
+        "connections": [
+            {"from_step": 2, "from_output": "filtered_smiles", "to_step": 3, "to_input": "smiles"},
+            {"from_step": 3, "from_output": "passed_compounds", "to_step": 4, "to_input": "ligand_sdf"},
+            {"from_step": 1, "from_output": "pocket_json", "to_step": 4, "to_input": "pocket_coords"},
+            {"from_step": 4, "from_output": "vina_poses", "to_step": 5, "to_input": "docked_poses"},
+            {"from_step": 5, "from_output": "mmgbsa_scores", "to_step": 6, "to_input": "seed_smiles"},
+        ],
+        "required_inputs": [
+            {"name": "target_pdb", "type": "pdb", "description": "ANDV GP receptor structure (e.g. RCSB 9P3I)"},
+            {"name": "reference_actives", "type": "smiles", "description": "Known actives for pharmacophore definition"},
+            {"name": "compound_library", "type": "smiles|sdf", "description": "Screening library (e.g. ZINC subset)"},
+        ],
+        "expected_outputs": [
+            {"name": "ranked_docking_hits", "type": "csv", "description": "Vina-ranked compounds after ADMET gate"},
+            {"name": "mmgbsa_scores", "type": "csv", "description": "MM-GBSA re-ranked poses (optional step 5)"},
+            {"name": "generated_analogues", "type": "sdf", "description": "REINVENT4 analogues of top hits"},
+        ],
+        "example_queries": [
+            "Run the ANDV inhibitor pipeline on 9P3I with ZINC library",
+            "ANDV glycoprotein inhibitor screen pharmacophore ADMET Vina",
+            "Andes virus drug discovery pocket to docking campaign",
+            "andv_inhibitor_track_v1",
+        ],
+        "tags": ["drug_discovery", "ANDV", "hantavirus", "inhibitor", "Vina", "ADMET", "pharmacophore"],
+    },
 ]
 
 
@@ -1212,23 +1255,38 @@ def index_bioconductor_as_workflows(conn: sqlite3.Connection) -> int:
 
 # ── Backfill input/output types for existing rows ─────────────────────────────
 
-def backfill_input_output_types(conn: sqlite3.Connection) -> Tuple[int, int]:
+def backfill_input_output_types(conn: sqlite3.Connection, force_refresh: bool = False) -> Tuple[int, int]:
     """
-    Populate input_types / output_types for existing workflow rows that have
-    the default empty value '[]'.  Parses the stored workflow_json (nf content)
-    using the same logic as the live indexers.
+    Populate input_types / output_types for existing workflow rows.
+
+    Default (force_refresh=False): only fill rows where the field is
+    NULL/empty/'[]'. Preserves existing entries.
+
+    force_refresh=True: re-extract from current workflow_json for EVERY row.
+    Use when .nf source has been edited (e.g. params removed) but the
+    workflow_hash check prevented re-indexing.
+
+    Discovered 2026-05-29: ~1878 workflows had phantom params (`mock_mode`,
+    others) in input_types because their .nf had params removed in a later
+    edit, but the indexer's hash-match skipped them. Use force_refresh to
+    fix.
 
     Returns (rows_updated_input, rows_updated_output).
     """
     cursor = conn.cursor()
 
-    # Fetch rows missing either field
-    rows = cursor.execute("""
-        SELECT id, source, workflow_json
-        FROM workflows
-        WHERE (input_types IS NULL OR input_types = '[]' OR input_types = '')
-           OR (output_types IS NULL OR output_types = '[]' OR output_types = '')
-    """).fetchall()
+    if force_refresh:
+        rows = cursor.execute(
+            "SELECT id, source, workflow_json FROM workflows WHERE workflow_json IS NOT NULL"
+        ).fetchall()
+    else:
+        # Fetch rows missing either field
+        rows = cursor.execute("""
+            SELECT id, source, workflow_json
+            FROM workflows
+            WHERE (input_types IS NULL OR input_types = '[]' OR input_types = '')
+               OR (output_types IS NULL OR output_types = '[]' OR output_types = '')
+        """).fetchall()
 
     updated_inp = updated_out = 0
 
