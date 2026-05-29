@@ -228,6 +228,7 @@ RECEOF
 }
 
 
+// [Phase A] Ligand & System Preparation
 process RECEPTOR_TRIM {
     /*
      * Crop large deposited receptors (viral GP tetramers, etc.) to the pocket
