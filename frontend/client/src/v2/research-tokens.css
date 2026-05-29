@@ -1,0 +1,89 @@
+/* BioMate Research-Agent UI — extends tokens.css with speaker colors,
+   surface tokens, dark-mode override, and a tiny set of helpers. */
+
+[data-v2-ui] {
+  /* ── Speaker palette (Surface 2) ──────────────────────────── */
+  --v2-bm-plan:     oklch(0.58 0.012 260);   /* neutral grey — PLAN */
+  --v2-bm-plan-soft: oklch(0.95 0.006 260);
+  --v2-bm-wf:       oklch(0.55 0.14 245);    /* primary blue — WF */
+  --v2-bm-wf-soft:   oklch(0.96 0.03 245);
+  --v2-bm-qc:       oklch(0.66 0.16 75);     /* amber — QC */
+  --v2-bm-qc-soft:   oklch(0.96 0.05 75);
+  --v2-bm-qc-err:    oklch(0.58 0.18 25);
+  --v2-bm-qc-err-soft: oklch(0.96 0.05 25);
+  --v2-bm-loop:     oklch(0.55 0.20 305);    /* purple — LOOP */
+  --v2-bm-loop-soft: oklch(0.96 0.045 305);
+  --v2-bm-agent:    oklch(0.55 0.12 195);    /* teal — AGENT */
+  --v2-bm-agent-soft: oklch(0.96 0.035 195);
+  --v2-bm-find:     oklch(0.55 0.13 150);    /* green — FIND */
+  --v2-bm-find-soft: oklch(0.96 0.04 150);
+
+  /* ── Surface 1 — Plan checklist ───────────────────────────── */
+  --plan-row-h: 30px;
+  --plan-bg:    var(--bg-elev);
+  --plan-line:  var(--border);
+
+  /* ── Surface 4 — Comparison ───────────────────────────────── */
+  --delta-up:   oklch(0.55 0.13 150);
+  --delta-dn:   oklch(0.58 0.18 25);
+  --delta-neu:  var(--text-dim);
+
+  /* ── Surface 5 — Pilot ────────────────────────────────────── */
+  --pilot-ok:   oklch(0.55 0.13 150);
+  --pilot-warn: oklch(0.66 0.16 75);
+}
+
+/* ── Dark mode ─────────────────────────────────────────────── */
+.theme-dark {
+  --bg:        oklch(0.18 0.012 260);
+  --bg-elev:   oklch(0.21 0.012 260);
+  --surface:   oklch(0.22 0.012 260);
+  --surface-2: oklch(0.25 0.012 260);
+  --surface-3: oklch(0.28 0.013 260);
+  --border:    oklch(0.32 0.013 260);
+  --border-strong: oklch(0.40 0.014 260);
+  --text:      oklch(0.94 0.005 260);
+  --text-muted:oklch(0.74 0.012 260);
+  --text-dim:  oklch(0.58 0.012 260);
+
+  --accent:      oklch(0.72 0.13 245);
+  --accent-soft: oklch(0.28 0.05 245);
+  --accent-ink:  oklch(0.85 0.10 245);
+
+  --ok:        oklch(0.72 0.14 150);
+  --ok-soft:   oklch(0.28 0.05 150);
+  --warn:      oklch(0.78 0.14 75);
+  --warn-soft: oklch(0.30 0.06 75);
+  --err:       oklch(0.72 0.17 25);
+  --err-soft:  oklch(0.30 0.07 25);
+  --run:       oklch(0.72 0.13 245);
+  --run-soft:  oklch(0.28 0.05 245);
+  --neutral-badge: oklch(0.30 0.008 260);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 1px 3px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.55), 0 16px 40px rgba(0,0,0,0.45);
+
+  --v2-bm-plan:      oklch(0.72 0.012 260);
+  --v2-bm-plan-soft: oklch(0.28 0.008 260);
+  --v2-bm-wf:        oklch(0.72 0.13 245);
+  --v2-bm-wf-soft:   oklch(0.28 0.05 245);
+  --v2-bm-qc:        oklch(0.78 0.14 75);
+  --v2-bm-qc-soft:   oklch(0.30 0.06 75);
+  --v2-bm-qc-err:    oklch(0.72 0.17 25);
+  --v2-bm-qc-err-soft: oklch(0.30 0.07 25);
+  --v2-bm-loop:      oklch(0.72 0.17 305);
+  --v2-bm-loop-soft: oklch(0.30 0.07 305);
+  --v2-bm-agent:     oklch(0.72 0.12 195);
+  --v2-bm-agent-soft:oklch(0.28 0.05 195);
+  --v2-bm-find:      oklch(0.72 0.13 150);
+  --v2-bm-find-soft: oklch(0.28 0.05 150);
+
+  --delta-up:   oklch(0.72 0.13 150);
+  --delta-dn:   oklch(0.72 0.17 25);
+}
+
+/* Density preset (Tweak) */
+.density-compact { --plan-row-h: 26px; }
+.density-compact .chat-line { padding: 1px 0 1px 0; font-size: 12px; }
+.density-compact .plan-item { font-size: 12.5px; }
