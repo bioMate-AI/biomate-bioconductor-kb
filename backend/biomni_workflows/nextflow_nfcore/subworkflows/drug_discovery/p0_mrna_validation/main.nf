@@ -36,7 +36,7 @@ params.mfe_threshold = '-150.0'
 process P0_MRNA_VALIDATION {
     tag "$meta.id"
     label 'process_medium'
-    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
+    publishDir path: params.outdir, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
