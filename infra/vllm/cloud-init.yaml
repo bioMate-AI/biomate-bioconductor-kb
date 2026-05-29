@@ -1,0 +1,73 @@
+# cloud-init user-data for BioMate vLLM ASG instances.
+#
+# This template is rendered by the launch template at instance boot.
+# The placeholders ${VAR} are substituted from terraform / CDK / aws-cli at
+# launch-template creation time. The ASG references the launch template;
+# every spot or on-demand instance the ASG launches runs this user-data.
+
+#cloud-config
+write_files:
+  - path: /etc/systemd/system/biomate-vllm.service
+    content: |
+      [Unit]
+      Description=BioMate vLLM serving regulatory_llm_v6 + per-org adapters
+      Requires=docker.service mnt-efs.mount
+      After=docker.service mnt-efs.mount
+
+      [Service]
+      Type=simple
+      Restart=on-failure
+      RestartSec=10
+      TimeoutStopSec=180
+      Environment=ASG_TARGET_GROUP_ARN=${target_group_arn}
+      Environment=VLLM_PORT=8000
+      Environment=ADAPTERS_DIR=/mnt/efs/biomate-adapters
+      Environment=HF_CACHE_DIR=/mnt/efs/biomate-hfcache
+      Environment=AWS_DEFAULT_REGION=${aws_region}
+      ExecStartPre=-/usr/bin/docker pull ${ecr_image}
+      ExecStart=/usr/bin/docker run --rm --name biomate-vllm \
+        --gpus all --ipc=host \
+        -p 8000:8000 \
+        -v /mnt/efs/biomate-adapters:/mnt/efs/biomate-adapters:ro \
+        -v /mnt/efs/biomate-hfcache:/mnt/efs/biomate-hfcache:rw \
+        -e ASG_TARGET_GROUP_ARN=${target_group_arn} \
+        -e AWS_DEFAULT_REGION=${aws_region} \
+        ${ecr_image}
+      ExecStop=/usr/bin/docker stop -t 60 biomate-vllm
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/mnt-efs.mount
+    content: |
+      [Unit]
+      Description=BioMate EFS adapters volume
+      Before=biomate-vllm.service
+
+      [Mount]
+      What=${efs_id}.efs.${aws_region}.amazonaws.com:/
+      Where=/mnt/efs
+      Type=nfs4
+      Options=nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Install NFS client + Docker if AMI doesn't already have them
+  - apt-get update -y
+  - apt-get install -y nfs-common
+  - mkdir -p /mnt/efs/biomate-adapters /mnt/efs/biomate-hfcache
+  # ECR login (uses the instance profile)
+  - aws ecr get-login-password --region ${aws_region} | \
+      docker login --username AWS --password-stdin ${ecr_registry}
+  # Enable + start the service. Failure here logs to /var/log/cloud-init-output.log
+  - systemctl daemon-reload
+  - systemctl enable mnt-efs.mount biomate-vllm.service
+  - systemctl start mnt-efs.mount
+  - systemctl start biomate-vllm.service
+
+# Send the cloud-init log to CloudWatch so we can debug ASG launches that
+# fail to register healthy.
+output:
+  all: '| tee -a /var/log/cloud-init-output.log'
