@@ -25,7 +25,7 @@ import { NewProjectModal } from "@/components/ind-report/NewProjectModal";
 import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal";
 import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/SmilesListModal";
 import { listProjects, updateCompounds, type CompoundEntry } from "@/lib/ind-report-api";
-import { downloadMarkdown, type DocumentSection } from "@/lib/ind-report-api";
+import { downloadMarkdown, downloadDocx, type DocumentSection } from "@/lib/ind-report-api";
 import { useLocation } from "wouter";
 
 // Demo seed — replace with GET /api/ind-report/projects when backend route exists.

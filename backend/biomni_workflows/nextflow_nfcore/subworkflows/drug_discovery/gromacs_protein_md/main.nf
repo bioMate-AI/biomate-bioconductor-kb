@@ -228,7 +228,6 @@ RECEOF
 }
 
 
-// [Phase A] Ligand & System Preparation
 process RECEPTOR_TRIM {
     /*
      * Crop large deposited receptors (viral GP tetramers, etc.) to the pocket
@@ -894,9 +893,20 @@ process PRODUCTION_MD {
     def n_steps  = params.n_steps
     def dt       = params.dt
     def nstxtc   = params.nstxout_compressed
-    def gpu_flag = params.gpu ? "-gpu_id ${params.gpu_device} -nb gpu -pme gpu -bonded gpu" : ""
+    def want_gpu = params.gpu ? 'true' : 'false'
     """
     set -euo pipefail
+
+    WANT_GPU='${want_gpu}'
+    GPU_FLAG=""
+    if [ "\$WANT_GPU" = "true" ]; then
+        if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+            GPU_FLAG="-gpu_id 0 -nb gpu -pme gpu -bonded gpu"
+            echo "Production MD: using GPU acceleration" | tee md_mdrun.log
+        else
+            echo "WARNING: GPU requested but no device visible on this node; using CPU mdrun" | tee md_mdrun.log
+        fi
+    fi
 
     cat > md.mdp << 'MDP_EOF'
 ; Production MD
@@ -959,8 +969,8 @@ MDP_EOF
     sed -i "s/MDP_PRES/${pres}/g"      md.mdp
 
     gmx grompp -f md.mdp -c ${gro} -p ${top} -o md.tpr -maxwarn 5 2>&1 | tee md_grompp.log
-    gmx mdrun -v -deffnm md -ntmpi 1 -ntomp ${task.cpus} ${gpu_flag} \
-        -nsteps ${n_steps} 2>&1 | tee md_mdrun.log
+    gmx mdrun -v -deffnm md -ntmpi 1 -ntomp ${task.cpus} \$GPU_FLAG \
+        -nsteps ${n_steps} 2>&1 | tee -a md_mdrun.log
     cat md_grompp.log md_mdrun.log > md.log
 
     # Rename final frame GRO

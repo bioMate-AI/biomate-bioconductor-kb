@@ -9,7 +9,7 @@
  * state is persisted to Postgres every turn to survive context compression.
  */
 
-import { db, ltmSchema } from './db';
+import { db, pool, ltmSchema } from './db';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
@@ -317,38 +317,43 @@ export function createEmptyState(sessionId: string, userId?: string, projectId?:
 export class ConversationStateManager {
 
   /**
-   * Load conversation state from the sessions table.
-   * Returns empty state if none exists.
+   * Load conversation state from chat_sessions (TEXT session_id PK).
+   *
+   * Frontend chat session IDs are TEXT (`chat-<ts>-<rand>`), stored in
+   * chat_sessions (migration 0006). The LTM-tier `sessions` table uses
+   * UUID IDs and is a different concept — querying it with a TEXT chat ID
+   * threw `invalid input syntax for type uuid` and silently degraded to
+   * empty state every turn. Migration 0011 adds conversation_state JSONB
+   * to chat_sessions so persistence works on the same row the chat lives in.
    */
   async loadState(sessionId: string): Promise<ConversationState> {
     try {
-      const result = await db
-        .select({ conversationState: ltmSchema.sessions.conversationState })
-        .from(ltmSchema.sessions)
-        .where(eq(ltmSchema.sessions.id, sessionId))
-        .limit(1);
-
-      if (result.length > 0 && result[0].conversationState) {
-        return result[0].conversationState as unknown as ConversationState;
+      const result = await pool.query(
+        'SELECT conversation_state FROM chat_sessions WHERE session_id = $1 LIMIT 1',
+        [sessionId],
+      );
+      const row = result.rows[0];
+      if (row?.conversation_state) {
+        return row.conversation_state as ConversationState;
       }
     } catch (error) {
       console.warn('[ConversationState] Failed to load state, using empty:', error);
     }
-
     return createEmptyState(sessionId);
   }
 
   /**
-   * Persist conversation state to the sessions table (pre-compaction flush).
-   * Called after every turn to ensure state survives context compression.
+   * Persist conversation state on the matching chat_sessions row.
+   * No-op if the row doesn't exist yet (caller is expected to have created
+   * the chat session via POST /api/sessions before the first turn).
    */
   async saveState(state: ConversationState): Promise<void> {
     state.updatedAt = new Date().toISOString();
     try {
-      await db
-        .update(ltmSchema.sessions)
-        .set({ conversationState: state as any })
-        .where(eq(ltmSchema.sessions.id, state.sessionId));
+      await pool.query(
+        'UPDATE chat_sessions SET conversation_state = $1 WHERE session_id = $2',
+        [state, state.sessionId],
+      );
     } catch (error) {
       console.warn('[ConversationState] Failed to save state:', error);
     }

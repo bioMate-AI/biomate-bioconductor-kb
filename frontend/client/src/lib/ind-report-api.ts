@@ -396,6 +396,34 @@ export async function downloadMarkdown(
   URL.revokeObjectURL(url);
 }
 
+/** Trigger a DOCX download of the IND module (Word format for FDA review). */
+export async function downloadDocx(
+  projectId: string,
+  sections: DocumentSection[],
+): Promise<void> {
+  const resp = await fetch(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/document.docx`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sections }),
+    },
+  );
+  if (!resp.ok) throw new Error(`docx download HTTP ${resp.status}`);
+  const blob = await resp.blob();
+  const cd = resp.headers.get("content-disposition") || "";
+  const m = cd.match(/filename="([^"]+)"/);
+  const filename = m ? m[1] : `${projectId}_2.6.docx`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ---------------------------------------------------------------------------
 // Compound list persistence (P1-5 follow-up)
 // ---------------------------------------------------------------------------

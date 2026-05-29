@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path as FastPath
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel, Field
 
 from .feedback_auth import require_authenticated_user
@@ -112,6 +112,11 @@ async def sign_document(
     }
     row_id = append_jsonl(_SIGN_LOG, record)
 
+    # 21 CFR Part 11 §11.10(c): protect records throughout retention period.
+    # Mirror to S3 with Object Lock (WORM) so the local file is recoverable
+    # and tamper-evident. Best-effort: a failed mirror does not block sign.
+    _mirror_sign_row_to_s3_worm(row_id, record)
+
     # Reflect the signed state back into the project registry — sets status=signed.
     if _PROJECTS_PATH.exists():
         try:
@@ -201,6 +206,172 @@ async def download_markdown(
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# DOCX document export — FDA review-ready Word document
+# ---------------------------------------------------------------------------
+
+_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def _render_docx(project: dict, sections: list[DocumentSection]) -> bytes:
+    """Render the IND §2.6 module as a Word document, formatted for FDA review.
+
+    Sectioning matches the FDA Common Technical Document layout: cover page,
+    sponsor block, then numbered §2.6.x headings. Empty bodies emit the
+    same placeholder as the Markdown renderer so the two outputs stay aligned.
+    """
+    from docx import Document
+    from docx.shared import Pt, Inches
+    from io import BytesIO
+
+    doc = Document()
+    for sec_props in doc.sections:
+        sec_props.left_margin = Inches(1)
+        sec_props.right_margin = Inches(1)
+        sec_props.top_margin = Inches(1)
+        sec_props.bottom_margin = Inches(1)
+
+    style = doc.styles["Normal"]
+    style.font.name = "Times New Roman"
+    style.font.size = Pt(11)
+
+    title = doc.add_heading(
+        f"IND Module 2.6 — {project.get('molecule', 'Unknown compound')}", level=0
+    )
+    title.alignment = 1
+
+    meta = doc.add_paragraph()
+    for label, key in [
+        ("Sponsor", "sponsor"),
+        ("Target", "target"),
+        ("Indication", "indication"),
+    ]:
+        run = meta.add_run(f"{label}: ")
+        run.bold = True
+        meta.add_run(f"{project.get(key, '')}\n")
+    regions_run = meta.add_run("Regions: ")
+    regions_run.bold = True
+    meta.add_run(", ".join(project.get("regions", [])) + "\n")
+    status_run = meta.add_run("Status: ")
+    status_run.bold = True
+    meta.add_run(project.get("status", "in_progress"))
+
+    doc.add_paragraph("")
+
+    for sec in sections:
+        doc.add_heading(f"§{sec.id} {sec.title}", level=1)
+        body = sec.body.strip()
+        if body:
+            for para in body.split("\n\n"):
+                doc.add_paragraph(para.strip())
+        else:
+            placeholder = doc.add_paragraph()
+            run = placeholder.add_run("[NO DATA AVAILABLE — section pending]")
+            run.italic = True
+
+    buf = BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+@router.post("/api/ind-report/projects/{project_id}/document.docx")
+async def download_docx(project_id: str, body: DocumentRequest):
+    """Render §2.6 as a Word document. Same input shape as document.md."""
+    if _PROJECTS_PATH.exists():
+        try:
+            reg = json.loads(_PROJECTS_PATH.read_text())
+            project = next((p for p in reg.get("projects", []) if p["id"] == project_id), {})
+        except Exception:
+            project = {}
+    else:
+        project = {}
+    if not project:
+        project = {"molecule": project_id}
+
+    try:
+        blob = _render_docx(project, body.sections)
+    except ImportError as exc:
+        raise HTTPException(
+            500, "python-docx not installed — `pip install python-docx`"
+        ) from exc
+    except Exception as exc:
+        log.exception("[docx] render failed: %s", exc)
+        raise HTTPException(500, f"DOCX render failed: {exc}") from exc
+
+    filename = re.sub(
+        r"[^A-Za-z0-9_.-]", "_", f"{project.get('molecule', project_id)}_2.6.docx"
+    )
+    return Response(
+        content=blob,
+        media_type=_DOCX_MIME,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Sign audit chain → S3 with Object Lock (21 CFR Part 11 §11.10(c))
+# ---------------------------------------------------------------------------
+#
+# Local sign_audit_chain.jsonl is the authoritative read path; S3 is a
+# tamper-evident mirror for retention. Bucket must have Object Lock enabled
+# in COMPLIANCE mode at creation time (cannot be added later). Each signed
+# row is uploaded under:
+#   s3://$BUCKET/$PREFIX/<YYYY>/<MM>/<DD>/<signature_id>.json
+# with x-amz-object-lock-retain-until-date set RETAIN_DAYS into the future.
+#
+# Failures are LOGGED, not raised — local row is already committed.
+
+_SIGN_AUDIT_S3_BUCKET = os.environ.get("BIOMATE_SIGN_AUDIT_S3_BUCKET", "")
+_SIGN_AUDIT_S3_PREFIX = os.environ.get("BIOMATE_SIGN_AUDIT_S3_PREFIX", "ind/sign_audit")
+_SIGN_AUDIT_RETAIN_DAYS = int(os.environ.get("BIOMATE_SIGN_AUDIT_RETAIN_DAYS", "2555"))  # 7y FDA default
+_SIGN_AUDIT_REGION = os.environ.get("AWS_REGION", "us-west-2")
+
+
+def _mirror_sign_row_to_s3_worm(row_id: str, record: dict) -> None:
+    if not _SIGN_AUDIT_S3_BUCKET:
+        return  # mirror disabled — operator must set the env var
+    try:
+        import boto3
+        from datetime import datetime, timedelta, timezone
+
+        signed_dt = datetime.strptime(record["signed_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+        retain_until = signed_dt + timedelta(days=_SIGN_AUDIT_RETAIN_DAYS)
+        key = (
+            f"{_SIGN_AUDIT_S3_PREFIX.rstrip('/')}/"
+            f"{signed_dt.year:04d}/{signed_dt.month:02d}/{signed_dt.day:02d}/"
+            f"{row_id}.json"
+        )
+        payload = json.dumps(
+            {"signature_id": row_id, **record}, sort_keys=True
+        ).encode("utf-8")
+        sha256 = hashlib.sha256(payload).hexdigest()
+
+        s3 = boto3.client("s3", region_name=_SIGN_AUDIT_REGION)
+        s3.put_object(
+            Bucket=_SIGN_AUDIT_S3_BUCKET,
+            Key=key,
+            Body=payload,
+            ContentType="application/json",
+            ObjectLockMode="COMPLIANCE",
+            ObjectLockRetainUntilDate=retain_until,
+            Metadata={
+                "biomate-row-id": row_id,
+                "biomate-doc-sha256": record["document_sha256"],
+                "biomate-payload-sha256": sha256,
+            },
+        )
+        log.info(
+            "[sign] WORM mirrored signature_id=%s to s3://%s/%s retain_until=%s",
+            row_id, _SIGN_AUDIT_S3_BUCKET, key, retain_until.isoformat(),
+        )
+    except Exception as exc:
+        log.warning(
+            "[sign] S3 WORM mirror failed for signature_id=%s: %s", row_id, exc
+        )
 
 
 # ---------------------------------------------------------------------------

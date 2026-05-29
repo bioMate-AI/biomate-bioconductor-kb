@@ -3356,6 +3356,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                                if _chain_clarif_rationale else {}),
                         }
                     log.info("[UnifiedWorkflowGeneration] Chain match: %s (%d steps)", top_chain.name, len(top_chain.steps))
+                    try:
+                        from galaxy.webapps.galaxy.api.workflow_chain import enrich_chain_steps  # noqa: PLC0415
+                        enriched_steps = enrich_chain_steps(top_chain.steps)
+                    except Exception as _enrich_exc:
+                        log.warning("[UnifiedWorkflowGeneration] Chain step enrich failed: %s", _enrich_exc)
+                        enriched_steps = top_chain.steps
                     chain_result: Dict[str, Any] = {
                         'success': True,
                         'workflow_type': 'chain',
@@ -3363,7 +3369,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                         'chain_display_name': top_chain.display_name,
                         'chain_domain': top_chain.domain,
                         'chain_description': top_chain.description,
-                        'chain_steps': top_chain.steps,
+                        'chain_steps': enriched_steps,
                         'chain_connections': top_chain.connections,
                         'required_inputs': top_chain.required_inputs,
                         'expected_outputs': top_chain.expected_outputs,
