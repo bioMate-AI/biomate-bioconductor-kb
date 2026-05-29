@@ -675,8 +675,12 @@ export function ChatInterface({
           stream: true,
           context: {
             previousMessages,
-            // Include session ID for memory integration
-            ...(sessionId && { memorySessionId: sessionId }),
+            // Include session ID for memory integration AND server-side
+            // assistant-message persistence (see docs/20260529_CHAT_STREAM_PERSISTENCE_GAP.md).
+            // The server UPSERTs by assistantMessageId so client + server writes
+            // are idempotent (no duplicate messages).
+            ...(sessionId && { memorySessionId: sessionId, sessionId }),
+            assistantMessageId: placeholderId,
           }
         })
       })
