@@ -21,8 +21,12 @@ import { FindingsCard } from "@/components/findings-card";
 
 interface AfterRunReportProps {
   runId: string;
+  invocationId?: string;       // backend Galaxy/Nextflow invocation id (for /qc-events)
   workflowName?: string;
   parameters?: Record<string, unknown>;
+  /** Pre-fetched outputs from the parent's executionRun state — preferred
+   *  over a separate /steps fetch which doesn't exist as an endpoint. */
+  outputs?: OutputFile[];
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
@@ -37,16 +41,21 @@ interface OutputFile {
 
 export function AfterRunReport({
   runId,
+  invocationId,
   workflowName,
   parameters,
+  outputs: outputsProp,
   onContinueAnalysis,
 }: AfterRunReportProps) {
   const [tab, setTab] = useState<TabId>("findings");
 
-  const outputs = useFetchOutputs(runId);
-  const methods = useFetchMethods(runId);
+  // Outputs come from the parent's executionRun state (no /steps endpoint exists).
+  const outputs = outputsProp ?? [];
+  // Methods + QC events keyed off invocationId (the backend Nextflow id), falling back to runId.
+  const idForBackend = invocationId || runId;
+  const methods = useFetchMethods(idForBackend);
   const citations = useFetchCitations(workflowName);
-  const qcEvents = useFetchQcEvents(runId);
+  const qcEvents = useFetchQcEvents(idForBackend);
 
   // Compute which optional tabs to show based on real data presence.
   const visibleTabs = useMemo<Array<[TabId, string]>>(() => {
@@ -113,45 +122,18 @@ export function AfterRunReport({
 // Data hooks — each tab fetches its own endpoint, gracefully tolerating 404s.
 // ---------------------------------------------------------------------------
 
-function useFetchOutputs(runId: string): OutputFile[] {
-  const [outputs, setOutputs] = useState<OutputFile[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/workflows/runs/${runId}/steps`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const list: OutputFile[] = [];
-        const steps = Array.isArray(data) ? data : data.steps || [];
-        for (const s of steps) {
-          for (const f of s.outputs || s.files || []) {
-            list.push({
-              step: s.name || s.id || "",
-              name: f.name || f.path?.split("/").pop() || "",
-              path: f.path || "",
-              ext: (f.extension || f.name?.split(".").pop() || "").toLowerCase(),
-            });
-          }
-        }
-        setOutputs(list);
-      })
-      .catch(() => { /* ignore */ });
-    return () => { cancelled = true; };
-  }, [runId]);
-  return outputs;
-}
-
 interface MethodsData {
   text: string;
   toolVersions: Record<string, string>;
   hasRealContent: boolean;
 }
 
-function useFetchMethods(runId: string): MethodsData {
+function useFetchMethods(invocationId: string): MethodsData {
   const [data, setData] = useState<MethodsData>({ text: "", toolVersions: {}, hasRealContent: false });
   useEffect(() => {
+    if (!invocationId) return;
     let cancelled = false;
-    fetch(`/api/invocations/${runId}/methods-report`, { credentials: "include" })
+    fetch(`/api/invocations/${invocationId}/methods-report`, { credentials: "include" })
       .then((r) => (r.ok ? r.text() : ""))
       .then((text) => {
         if (cancelled) return;
@@ -162,7 +144,7 @@ function useFetchMethods(runId: string): MethodsData {
       })
       .catch(() => { /* ignore */ });
     return () => { cancelled = true; };
-  }, [runId]);
+  }, [invocationId]);
   return data;
 }
 
@@ -193,11 +175,13 @@ interface QcEvent {
   threshold?: string | number;
 }
 
-function useFetchQcEvents(runId: string): QcEvent[] {
+function useFetchQcEvents(invocationId: string): QcEvent[] {
   const [events, setEvents] = useState<QcEvent[]>([]);
   useEffect(() => {
+    if (!invocationId) return;
     let cancelled = false;
-    fetch(`/api/workflows/runs/${runId}/qc-events`, { credentials: "include" })
+    // Backend route lives at /api/invocations/:id/qc-events (nextflow_executor.py:4478)
+    fetch(`/api/invocations/${invocationId}/qc-events`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
@@ -206,7 +190,7 @@ function useFetchQcEvents(runId: string): QcEvent[] {
       })
       .catch(() => { /* not all workflows emit QC; tab simply hides */ });
     return () => { cancelled = true; };
-  }, [runId]);
+  }, [invocationId]);
   return events;
 }
 
