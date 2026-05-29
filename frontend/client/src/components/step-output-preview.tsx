@@ -10,13 +10,13 @@
  *   sequence → FASTA/FASTQ record list
  *   vcf     → variant table
  *   annotation → BED/GFF table
- *   structure  → PDB/mmCIF text fallback (3D viewer requires NGL — future work)
+ *   structure  → PDB/mmCIF rendered with 3Dmol.js (cartoon + spectrum default)
  *   html    → sandboxed iframe
  *   text    → <pre> with tail toggle
  *   download → download link for unknown binary formats
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
@@ -24,6 +24,8 @@ import { DensityMapViewer } from "./viewers/density-map-viewer";
 import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
 import { CtfQualityChart } from "./viewers/ctf-quality-chart";
+// 3Dmol.js loaded dynamically inside InlineStructureViewer so the structure
+// path doesn't pull ~700 KB into the main bundle.
 
 // ---------------------------------------------------------------------------
 // Types
@@ -534,12 +536,10 @@ function ViewerContent({
       return content.text != null ? <InlineAnnotationViewer text={content.text} ext={ext} /> : null;
 
     case 'structure': {
-      // PDB/mmCIF: text fallback — full 3D viewer (NGL) is future work
-      const cleanStructure = content.text != null ? stripAnsi(content.text) : null;
-      return cleanStructure != null ? (
-        <pre className="text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap">
-          {cleanStructure.slice(0, 4000)}{cleanStructure.length > 4000 ? '\n…' : ''}
-        </pre>
+      // PDB / mmCIF / CIF — render with 3Dmol.js (cartoon + spectrum default).
+      // Falls back to text dump if the WebGL viewer fails to initialise.
+      return content.text != null ? (
+        <InlineStructureViewer text={stripAnsi(content.text)} ext={ext} />
       ) : null;
     }
 
@@ -559,4 +559,90 @@ function ViewerContent({
         </a>
       );
   }
+}
+
+
+/**
+ * InlineStructureViewer — 3Dmol.js rendering of PDB / mmCIF text content
+ * fetched by the parent. Dynamic import keeps 3Dmol out of the main bundle.
+ * Falls back to a text dump when WebGL or 3Dmol init fails.
+ */
+function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
+  const [style, setStyle] = useState<'cartoon' | 'stick' | 'sphere' | 'line'>('cartoon');
+
+  useEffect(() => {
+    if (!containerRef.current || !text) return;
+    let cancelled = false;
+    const container = containerRef.current;
+    const format = ext === 'cif' || ext === 'mmcif' ? 'cif' : 'pdb';
+
+    import('3dmol')
+      .then((mod) => {
+        if (cancelled) return;
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const $3Dmol = (mod as any).default ?? mod;
+          container.innerHTML = '';
+          const viewer = $3Dmol.createViewer(container, { backgroundColor: 'white', antialias: true });
+          viewer.addModel(text, format);
+          const styleObj: Record<string, object> = {
+            cartoon: { cartoon: { color: 'spectrum' } },
+            stick: { stick: { radius: 0.15 } },
+            sphere: { sphere: { scale: 0.4 } },
+            line: { line: {} },
+          };
+          viewer.setStyle({}, styleObj[style]);
+          viewer.zoomTo();
+          viewer.render();
+          (container as HTMLDivElement & { __viewer?: unknown }).__viewer = viewer;
+          setStatus('ready');
+        } catch (e) {
+          console.warn('[InlineStructureViewer] 3Dmol init failed:', e);
+          setStatus('fallback');
+        }
+      })
+      .catch((e) => {
+        console.warn('[InlineStructureViewer] 3Dmol import failed:', e);
+        if (!cancelled) setStatus('fallback');
+      });
+
+    return () => { cancelled = true; };
+  }, [text, ext, style]);
+
+  if (status === 'fallback') {
+    return (
+      <pre className="text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap">
+        {text.slice(0, 4000)}{text.length > 4000 ? '\n…' : ''}
+      </pre>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-muted-foreground mr-1">Style:</span>
+        {(['cartoon', 'stick', 'sphere', 'line'] as const).map((s) => (
+          <Button
+            key={s}
+            variant={style === s ? 'default' : 'outline'}
+            size="sm"
+            className="h-6 text-[10px] px-2"
+            onClick={() => setStyle(s)}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </Button>
+        ))}
+        {status === 'loading' && (
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-2" />
+        )}
+      </div>
+      <div
+        ref={containerRef}
+        className="w-full bg-white rounded border"
+        style={{ height: 320, position: 'relative' }}
+      />
+    </div>
+  );
 }
