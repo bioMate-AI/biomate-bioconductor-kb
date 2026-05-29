@@ -1886,8 +1886,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               <div className="border-b" style={{ background: 'oklch(0.985 0.003 240)' }}>
                 <AfterRunReport
                   runId={currentRun.id}
+                  invocationId={currentRun.execution?.galaxyInvocationId || currentRun.id}
                   workflowName={panelWorkflow?.name}
                   parameters={extractSubmittedParams(currentRun)}
+                  outputs={(currentRun.execution as any)?.outputDatasets?.map((d: any) => ({
+                    step: d.step || d.galaxyDatasetId || '',
+                    name: d.name || '',
+                    path: d.path || '',
+                    ext: (d.extension || d.name?.split('.').pop() || '').toLowerCase(),
+                  })) || []}
                 />
               </div>
             )}
