@@ -74,11 +74,11 @@ def _registry(dry_run: bool) -> list[tuple[str, callable, str]]:
         ("regulatory_llm_v6",   lambda: LocalQwenAdapter(lora_path=LORA_PATH, name="regulatory_llm_v6"),  "local"),
         ("qwen3_8b_base",        lambda: LocalQwenAdapter(lora_path=None,       name="qwen3_8b_base"),     "local"),
         ("claude_sonnet_4_6",    lambda: AnthropicAdapter(model="claude-sonnet-4-6"),     "anthropic"),
-        ("claude_opus_4_7",      lambda: AnthropicAdapter(model="claude-opus-4-7"),       "anthropic"),
-        ("gpt_4o",               lambda: OpenAIAdapter(model="gpt-4o"),                   "openai"),
-        ("o3_mini",              lambda: OpenAIAdapter(model="o3-mini"),                  "openai"),
+        ("claude_opus_4_8",      lambda: AnthropicAdapter(model="claude-opus-4-8"),       "anthropic"),
+        ("gpt_5",                lambda: OpenAIAdapter(model="gpt-5"),                    "openai"),
+        ("gpt_5_mini",           lambda: OpenAIAdapter(model="gpt-5-mini"),               "openai"),
+        ("gemini_3_1_pro_preview", lambda: GeminiAdapter(model="gemini-3.1-pro-preview"), "gemini"),
         ("gemini_3_5_flash",     lambda: GeminiAdapter(model="gemini-3.5-flash"),         "gemini"),
-        ("gemini_2_5_pro",       lambda: GeminiAdapter(model="gemini-2.5-pro"),           "gemini"),
     ]
 
 
