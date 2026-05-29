@@ -61,17 +61,7 @@ def XCMS_CONTAINER() { 'quay.io/biocontainers/bioconductor-xcms:3.24.0--r43hf170
 // ── Channels ──────────────────────────────────────────────────────────────────
 // ch_prot_input moved into workflow {} per parser-v2
 
-ch_prot_meta  = params.sample_annotation
-    ? Channel.fromPath(params.sample_annotation)
-    : Channel.empty()
-
-ch_metab_files = params.metabolomics_mzml
-    ? Channel.fromPath(params.metabolomics_mzml)
-    : Channel.empty()
-
-ch_metab_meta  = params.metabolomics_meta
-    ? Channel.fromPath(params.metabolomics_meta)
-    : Channel.empty()
+// ch_prot_meta, ch_metab_files, ch_metab_meta — moved into workflow{} (parser-v2)
 
 // ════════════════════════════════════════════════════════════════════════════
 // PROTEOMICS ARM
@@ -79,7 +69,7 @@ ch_metab_meta  = params.metabolomics_meta
 
 process PROTEOMICS_QC_NORMALISE {
     tag "Proteomics QC + normalisation"
-    container PYTHON_CONTAINER()
+    container { PYTHON_CONTAINER() }
     publishDir "${params.outdir}/proteomics", mode: 'copy'
 
     input:
@@ -193,7 +183,7 @@ PYEOF
 
 process PROTEOMICS_DIFFERENTIAL_ABUNDANCE {
     tag "Differential abundance (proteomics)"
-    container R_CONTAINER()
+    container { R_CONTAINER() }
     publishDir "${params.outdir}/proteomics", mode: 'copy'
 
     input:
@@ -214,15 +204,15 @@ library(dplyr)
 norm  <- read.table("${norm_matrix}", sep="\\t", header=TRUE, row.names=1)
 meta  <- read.csv("${meta_file}")
 
-conditions <- unique(meta\\$condition)
+conditions <- unique(meta\$condition)
 if (length(conditions) < 2) stop("Need at least 2 conditions for DA")
 
 ctrl  <- conditions[grepl("control|ctrl|untreated|vehicle", conditions, ignore.case=TRUE)][1]
 if (is.na(ctrl)) ctrl <- conditions[1]
 treat <- setdiff(conditions, ctrl)[1]
 
-ctrl_samples  <- meta[meta\\$condition == ctrl, "sample_name"]
-treat_samples <- meta[meta\\$condition == treat, "sample_name"]
+ctrl_samples  <- meta[meta\$condition == ctrl, "sample_name"]
+treat_samples <- meta[meta\$condition == treat, "sample_name"]
 
 ctrl_cols  <- intersect(ctrl_samples, colnames(norm))
 treat_cols <- intersect(treat_samples, colnames(norm))
@@ -232,23 +222,23 @@ res <- data.frame(
   mean_ctrl   = rowMeans(norm[, ctrl_cols,  drop=FALSE], na.rm=TRUE),
   mean_treat  = rowMeans(norm[, treat_cols, drop=FALSE], na.rm=TRUE)
 )
-res\\$log2fc <- res\\$mean_treat - res\\$mean_ctrl
+res\$log2fc <- res\$mean_treat - res\$mean_ctrl
 
 # Simple t-test per protein
 pvals <- apply(norm, 1, function(x) {
   c <- x[ctrl_cols];  t <- x[treat_cols]
   c <- c[!is.na(c)];  t <- t[!is.na(t)]
   if (length(c) < 2 || length(t) < 2) return(NA)
-  tryCatch(t.test(t, c)\\$p.value, error=function(e) NA)
+  tryCatch(t.test(t, c)\$p.value, error=function(e) NA)
 })
-res\\$pval <- pvals
-res\\$padj  <- p.adjust(res\\$pval, method="BH")
-res\\$significant <- !is.na(res\\$padj) & res\\$padj < ${params.fdr_threshold} & abs(res\\$log2fc) > log2(${params.fc_threshold})
+res\$pval <- pvals
+res\$padj  <- p.adjust(res\$pval, method="BH")
+res\$significant <- !is.na(res\$padj) & res\$padj < ${params.fdr_threshold} & abs(res\$log2fc) > log2(${params.fc_threshold})
 
 write.table(res, "da_results_proteomics.tsv", sep="\\t", row.names=FALSE, quote=FALSE)
 
 # HTML volcano (simple)
-sig   <- sum(res\\$significant, na.rm=TRUE)
+sig   <- sum(res\$significant, na.rm=TRUE)
 rows  <- paste0(apply(res[1:min(20,nrow(res)),], 1, function(r) {
   cl <- if (!is.na(r["significant"]) && r["significant"]=="TRUE") "#c6efce" else "white"
   sprintf("<tr style='background:%s'><td>%s</td><td>%.3f</td><td>%s</td><td>%.4f</td></tr>",
@@ -270,7 +260,7 @@ REOF
 
 process METABOLOMICS_PEAK_PICKING {
     tag "XCMS peak picking"
-    container XCMS_CONTAINER()
+    container { XCMS_CONTAINER() }
     publishDir "${params.outdir}/metabolomics", mode: 'copy'
 
     input:
@@ -292,19 +282,19 @@ meta <- read.csv("${meta_file}")
 files <- list.files(".", pattern="\\\\.mzML|\\\\.mzXML", ignore.case=TRUE)
 if (length(files) == 0) {
   # Try from meta
-  files <- meta\\$filename
+  files <- meta\$filename
 }
 
 # Map files to phenodata
-pd <- meta[meta\\$filename %in% files, ]
-raw <- readMSData(pd\\$filename, pdata=new("NAnnotatedDataFrame", pd), mode="onDisk")
+pd <- meta[meta\$filename %in% files, ]
+raw <- readMSData(pd\$filename, pdata=new("NAnnotatedDataFrame", pd), mode="onDisk")
 
 # Peak picking: centWave
 cwp <- CentWaveParam(ppm=20, peakwidth=c(5,60), snthresh=6, prefilter=c(3,1000))
 xdata <- findChromPeaks(raw, param=cwp)
 
 # Grouping
-gdp <- PeakDensityParam(sampleGroups=pd\\$condition, minFraction=0.5, bw=5)
+gdp <- PeakDensityParam(sampleGroups=pd\$condition, minFraction=0.5, bw=5)
 xdata <- groupChromPeaks(xdata, param=gdp)
 
 # Retention time correction
@@ -322,7 +312,7 @@ write.table(peak_table, "peak_table.tsv", sep="\\t", quote=FALSE)
 
 n_features <- nrow(peak_table)
 # QC: coefficient of variation in QC pool samples
-qc_samples <- pd\\$filename[grepl("QC|qc|pool", pd\\$condition, ignore.case=TRUE)]
+qc_samples <- pd\$filename[grepl("QC|qc|pool", pd\$condition, ignore.case=TRUE)]
 qc_matrix  <- fm[, basename(qc_samples), drop=FALSE]
 cv_qc <- if (ncol(qc_matrix) >= 2) {
   median(apply(qc_matrix, 1, function(x) sd(x, na.rm=TRUE)/mean(x, na.rm=TRUE)), na.rm=TRUE)
@@ -348,7 +338,7 @@ REOF
 
 process METABOLOMICS_ANNOTATE_DA {
     tag "Metabolite annotation + DA"
-    container PYTHON_CONTAINER()
+    container { PYTHON_CONTAINER() }
     publishDir "${params.outdir}/metabolomics", mode: 'copy'
 
     input:
@@ -458,7 +448,7 @@ PYEOF
 
 process MULTI_OMICS_INTEGRATION {
     tag "Protein-metabolite integration"
-    container PYTHON_CONTAINER()
+    container { PYTHON_CONTAINER() }
     publishDir "${params.outdir}/multi_omics_integration", mode: 'copy'
 
     input:
@@ -594,6 +584,20 @@ PYEOF
 
 // ── Workflow ──────────────────────────────────────────────────────────────────
 workflow {
+    // Channel setup (parser-v2 requires this inside workflow{})
+    ch_prot_input = params.proteomics_input
+        ? Channel.fromPath(params.proteomics_input)
+        : Channel.empty()
+    ch_prot_meta  = params.sample_annotation
+        ? Channel.fromPath(params.sample_annotation)
+        : Channel.empty()
+    ch_metab_files = params.metabolomics_mzml
+        ? Channel.fromPath(params.metabolomics_mzml)
+        : Channel.empty()
+    ch_metab_meta  = params.metabolomics_meta
+        ? Channel.fromPath(params.metabolomics_meta)
+        : Channel.empty()
+
     run_prot   = params.mode in ['proteomics', 'both'] && params.proteomics_input
     run_metab  = params.mode in ['metabolomics', 'both'] && params.metabolomics_mzml
 
