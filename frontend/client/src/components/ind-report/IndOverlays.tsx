@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Download, X } from "lucide-react";
 import {
-  captureDismissal, signDocument, sha256Hex, downloadDocx,
+  captureDismissal, signDocument, sha256Hex, downloadDocx, downloadAuditTrailPdf,
   type DismissalReason, type SignResponse, type DocumentSection,
 } from "@/lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
@@ -149,7 +149,14 @@ export function IndSignOverlay({
               >
                 <Download size={13} /> Download DOCX
               </button>
-              <button className="ind-btn" disabled title="Audit-trail PDF ships next sprint">
+              <button
+                className="ind-btn"
+                onClick={() =>
+                  downloadAuditTrailPdf(projectId).catch((e) =>
+                    console.error("[ind] audit-trail PDF download failed:", e),
+                  )
+                }
+              >
                 <Download size={13} /> Download Audit Trail PDF
               </button>
               <button className="ind-btn" onClick={onCancel}>

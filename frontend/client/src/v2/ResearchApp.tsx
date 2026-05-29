@@ -873,3 +873,5 @@ function fmtClock() {
 }
 
 Object.assign(window, { ResearchApp, fmtClock });
+
+export default ResearchApp;

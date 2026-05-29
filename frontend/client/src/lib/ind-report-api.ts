@@ -396,6 +396,27 @@ export async function downloadMarkdown(
   URL.revokeObjectURL(url);
 }
 
+/** Trigger an Audit Trail PDF download (21 CFR Part 11 §11.10(e)). */
+export async function downloadAuditTrailPdf(projectId: string): Promise<void> {
+  const resp = await fetch(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/audit-trail.pdf`,
+    { method: "GET" },
+  );
+  if (!resp.ok) throw new Error(`audit-trail PDF HTTP ${resp.status}`);
+  const blob = await resp.blob();
+  const cd = resp.headers.get("content-disposition") || "";
+  const m = cd.match(/filename="([^"]+)"/);
+  const filename = m ? m[1] : `${projectId}_audit_trail.pdf`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /** Trigger a DOCX download of the IND module (Word format for FDA review). */
 export async function downloadDocx(
   projectId: string,

@@ -311,6 +311,209 @@ async def download_docx(project_id: str, body: DocumentRequest):
 
 
 # ---------------------------------------------------------------------------
+# Audit trail PDF — 21 CFR Part 11 §11.10(e) "secure, computer-generated,
+# time-stamped audit trails"
+# ---------------------------------------------------------------------------
+
+
+def _read_sign_audit_rows(project_id: str) -> list[dict]:
+    """Read all signature rows for one project from the local audit chain."""
+    if not _SIGN_LOG.exists():
+        return []
+    rows: list[dict] = []
+    for line in _SIGN_LOG.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("project_id") == project_id:
+            rows.append(rec)
+    rows.sort(key=lambda r: r.get("signed_at", ""))
+    return rows
+
+
+def _render_audit_pdf(project: dict, rows: list[dict]) -> bytes:
+    """Render the 21 CFR Part 11 audit trail PDF for one project.
+
+    One row per signature event with: timestamp, user, signer attestation,
+    document SHA-256, adapter versions, and a hash-chain pointer to the
+    previous row (sha256(prev_row_id + prev_doc_sha)) — so tampering with
+    any row breaks the chain.
+    """
+    from io import BytesIO
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import LETTER
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak,
+    )
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=LETTER,
+        leftMargin=0.75 * inch, rightMargin=0.75 * inch,
+        topMargin=0.6 * inch, bottomMargin=0.6 * inch,
+        title=f"Audit Trail — {project.get('molecule', 'Unknown')}",
+        author="BioMate Regulatory",
+    )
+    styles = getSampleStyleSheet()
+    h1 = styles["Heading1"]
+    h2 = styles["Heading2"]
+    body = ParagraphStyle("body", parent=styles["BodyText"], fontSize=9, leading=12)
+    mono = ParagraphStyle("mono", parent=body, fontName="Courier", fontSize=8)
+
+    story = []
+    story.append(Paragraph(
+        f"IND §2.6 Audit Trail — {project.get('molecule', 'Unknown compound')}", h1,
+    ))
+    story.append(Paragraph(
+        "21 CFR Part 11 §11.10(e) — computer-generated, time-stamped audit trail "
+        "of all signature events for this project. The hash-chain column links "
+        "each row to the previous; recomputing the chain detects tampering.",
+        body,
+    ))
+    story.append(Spacer(1, 0.15 * inch))
+
+    meta_data = [
+        ["Sponsor", project.get("sponsor", "")],
+        ["Target", project.get("target", "")],
+        ["Indication", project.get("indication", "")],
+        ["Regions", ", ".join(project.get("regions", []))],
+        ["Project ID", project.get("id", "")],
+        ["Audit rows", str(len(rows))],
+    ]
+    meta_table = Table(meta_data, colWidths=[1.4 * inch, 5.4 * inch])
+    meta_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 0.25 * inch))
+
+    if not rows:
+        story.append(Paragraph(
+            "<i>No signatures recorded for this project yet.</i>", body,
+        ))
+        doc.build(story)
+        return buf.getvalue()
+
+    story.append(Paragraph("Signature Events", h2))
+
+    # Build the hash chain and one section per signature.
+    prev_link = "GENESIS"
+    for idx, r in enumerate(rows, 1):
+        # Chain link = sha256(prev_link || row_signature_id || doc_sha256)
+        sig_id = r.get("signature_id") or r.get("_row_id") or ""
+        link_input = f"{prev_link}|{sig_id}|{r.get('document_sha256', '')}".encode()
+        chain_link = hashlib.sha256(link_input).hexdigest()
+
+        story.append(Paragraph(f"#{idx} — {r.get('signed_at', '')} UTC", h2))
+        rows_data = [
+            ["Signed at", r.get("signed_at", "")],
+            ["User ID", str(r.get("user_id", ""))],
+            ["Org ID", str(r.get("org_id") or "—")],
+            ["Signer title", r.get("signer_title", "")],
+            ["Signer credentials", r.get("signer_creds", "")],
+            ["Signature scope", r.get("signature_scope", "")],
+            ["TOTP validated", "YES" if r.get("totp_validated") else "NO"],
+            ["Document SHA-256", r.get("document_sha256", "")],
+            ["Signature ID", sig_id],
+            ["Chain previous", prev_link],
+            ["Chain link", chain_link],
+        ]
+        av = r.get("adapter_versions") or {}
+        if av:
+            rows_data.append(["Adapter versions", "; ".join(f"{k}={v}" for k, v in sorted(av.items()))])
+
+        # Wrap SHA columns in mono for readability
+        table_data = []
+        for k, v in rows_data:
+            if k in ("Document SHA-256", "Chain previous", "Chain link"):
+                table_data.append([k, Paragraph(str(v), mono)])
+            else:
+                table_data.append([k, Paragraph(str(v), body)])
+
+        t = Table(table_data, colWidths=[1.6 * inch, 5.2 * inch])
+        t.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f3f4f6")),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 0.2 * inch))
+
+        prev_link = chain_link
+
+    story.append(Spacer(1, 0.2 * inch))
+    story.append(Paragraph(
+        f"<b>Chain head:</b> {prev_link}<br/>"
+        f"<i>Re-derive the chain head by hashing each row in order against the "
+        f"previous link; any mismatch indicates the audit trail was modified "
+        f"after generation.</i>",
+        body,
+    ))
+    doc.build(story)
+    return buf.getvalue()
+
+
+@router.get("/api/ind-report/projects/{project_id}/audit-trail.pdf")
+async def download_audit_pdf(project_id: str):
+    """Generate and return the 21 CFR Part 11 audit trail PDF.
+
+    Reads sign_audit_chain.jsonl for the given project and renders one PDF
+    page section per signature event, with hash-chain links between rows.
+    Public read because each row already contains its own non-repudiation
+    artifacts (signer attestation + TOTP-validated flag + doc SHA-256);
+    the PDF is a presentation of state that anyone with project_id can audit.
+    """
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+
+    if _PROJECTS_PATH.exists():
+        try:
+            reg = json.loads(_PROJECTS_PATH.read_text())
+            project = next((p for p in reg.get("projects", []) if p["id"] == project_id), {})
+        except Exception:
+            project = {}
+    else:
+        project = {}
+    if not project:
+        project = {"molecule": project_id, "id": project_id}
+
+    rows = _read_sign_audit_rows(project_id)
+    try:
+        blob = _render_audit_pdf(project, rows)
+    except ImportError as exc:
+        raise HTTPException(
+            500, "reportlab not installed — `pip install reportlab`"
+        ) from exc
+    except Exception as exc:
+        log.exception("[audit-pdf] render failed: %s", exc)
+        raise HTTPException(500, f"audit PDF render failed: {exc}") from exc
+
+    filename = re.sub(
+        r"[^A-Za-z0-9_.-]", "_",
+        f"{project.get('molecule', project_id)}_audit_trail.pdf",
+    )
+    return Response(
+        content=blob,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Sign audit chain → S3 with Object Lock (21 CFR Part 11 §11.10(c))
 # ---------------------------------------------------------------------------
 #
