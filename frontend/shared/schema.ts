@@ -776,7 +776,7 @@ export const executionConfigSchema = z.object({
   parentRunId: z.string().optional(), // Links to previous iteration
   retryOfRunId: z.string().optional(), // Explicit manual retry context
   retryOfInvocationId: z.string().optional(), // Explicit manual retry context
-  executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
+  executionEngine: z.enum(["nextflow", "galaxy", "chain", "pipeline"]).optional(),
   // Explicit operator override for low-confidence generation states.
   allowLowConfidence: z.boolean().optional(),
   // Named QC profile — selects a curated threshold set (e.g. "rnaseq_ribodepleted")
@@ -1086,7 +1086,7 @@ export const createExecutionRunResponseSchema = z.object({
   runId: z.string(),
   galaxyInvocationId: z.string().optional(),
   galaxyHistoryId: z.string().optional(),
-  executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
+  executionEngine: z.enum(["nextflow", "galaxy", "chain", "pipeline"]).optional(),
   status: executionRunStatusSchema,
   dataScopeApplied: z.object({
     fraction: z.number(),
