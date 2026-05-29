@@ -1,6 +1,6 @@
 # vLLM Deploy Runbook — BioMate regulatory-LLM serving cluster
 
-**Status:** Scaffolding committed. Provisioning requires explicit approval (cost ~$1,760/mo for 5-node g6.xlarge steady state).
+**Status:** Scaffolding committed. **Cost-optimized: 100% spot, desired=2 nodes, ~$165–$330/mo** (down from the original 80/20 5-node ~$1,760/mo plan). When all spot capacity is reclaimed, Galaxy backend falls back to the Gemini Flash path in `_call_local_regulatory_llm` — degraded latency + quality, not an outage.
 
 This runbook turns `infra/vllm/*` into a running 5-node ASG behind an ALB at `https://vllm.biomate.ai`. The Galaxy backend hits this endpoint via `VLLM_BASE_URL` env (already wired in `backend/lib/galaxy/ai/drug_discovery/ind_assembly.py`).
 
@@ -97,7 +97,7 @@ aws ec2 create-launch-template \
 aws autoscaling create-auto-scaling-group \
   --auto-scaling-group-name biomate-vllm-asg \
   --target-group-arns $TG_ARN \
-  --min-size 2 --max-size 8 --desired-capacity 5 \
+  --min-size 1 --max-size 4 --desired-capacity 2 \
   --vpc-zone-identifier "$SUBNET_A,$SUBNET_B,$SUBNET_C" \
   --health-check-type ELB --health-check-grace-period 600 \
   --mixed-instances-policy "$(jq ._mixed_instances_policy /tmp/lt.json)" \
@@ -136,11 +136,13 @@ aws logs tail /aws/ec2/biomate-vllm --follow --filter 'spot-monitor'
 #   [spot-monitor] SIGTERM vLLM
 ```
 
-### Cost guardrails
+### Cost guardrails (100% spot)
 
-- ASG `max-size=8` caps spend to ~$2,800/mo worst case.
-- CloudWatch alarm on `GroupDesiredCapacity > 6` for 30 min → page on-call.
-- If the regulatory-LLM endpoint is idle (no requests for 1h), an EventBridge rule scales the ASG to `desired=1`. Cold-spin back to 5 takes ~4 min when traffic returns.
+- `desired=2 min=1 max=4`. Steady-state spot price for g6.xlarge in us-west-2 is ~$0.20–0.40/hr; 2 nodes × 24h × 30d ≈ **$290–$580/mo** worst case.
+- `max-size=4` caps spend at ~$1,160/mo even if the autoscaler scales to ceiling.
+- CloudWatch alarm on `GroupDesiredCapacity > 3` for 30 min → page on-call.
+- If the endpoint is idle (no requests for 1h), an EventBridge rule scales `desired=1`. Cold-spin back to 2 takes ~3 min when traffic returns.
+- **Spot-only failure mode:** if `capacity-optimized` cannot place any instance (region-wide squeeze), the ASG sits at desired=2/inservice=0 and the ALB returns 503. The Galaxy backend's `_call_local_regulatory_llm` fallback chain catches the 503 and routes to Gemini Flash — quality dips ~12pp but the user sees a response, not an error.
 
 ## Files in this scaffolding
 
