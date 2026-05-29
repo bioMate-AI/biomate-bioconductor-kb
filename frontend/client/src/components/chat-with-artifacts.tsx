@@ -8,7 +8,7 @@ import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
-import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
+import { buildChainSubmitSteps, submitWorkflowFromArtifact } from "@/lib/chain-execution"
 import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
 import { getExecutionAsyncGuidance } from "@/lib/async-guidance"
@@ -645,7 +645,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       return;
     }
 
-    // Funnel event — closes the gap between query_sent and workflow_started.
     analytics.track('workflow_suggested', {
       workflow_name: workflow?.name || workflow?.display_name || workflow?.workflow_name,
       domain: workflow?.domain,
@@ -856,6 +855,74 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       setWorkflowError(error?.message || 'Failed to run workflow');
     }
   };
+
+  const handleRunChain = async (workflow: any) => {
+    emitUxEvent('workflow.chain_run_clicked', {
+      sessionId: currentChatSession?.id,
+      chainName: workflow?.chain_name || workflow?.name,
+    });
+    setWorkflowError(null);
+    setIsWorkflowRunning(true);
+    setWorkflowProgress(0);
+
+    try {
+      const result = await submitWorkflowFromArtifact(
+        workflow,
+        currentChatSession?.id,
+      );
+
+      if (result.runId) {
+        await loadRun(result.runId);
+      }
+
+      if (currentChatSession) {
+        const freshSession = chatHistoryService.getSession(currentChatSession.id);
+        if (freshSession) {
+          const updatedMessages = [...freshSession.messages];
+          let targetIndex = -1;
+          for (let i = updatedMessages.length - 1; i >= 0; i--) {
+            const wf = updatedMessages[i].metadata?.workflow;
+            if (
+              updatedMessages[i].metadata?.type === 'workflow' &&
+              wf?.workflow_type === 'chain' &&
+              (wf?.chain_name === workflow?.chain_name || !workflow?.chain_name)
+            ) {
+              targetIndex = i;
+              break;
+            }
+          }
+          if (targetIndex >= 0) {
+            updatedMessages[targetIndex] = {
+              ...updatedMessages[targetIndex],
+              metadata: {
+                ...updatedMessages[targetIndex].metadata,
+                workflow: {
+                  ...updatedMessages[targetIndex].metadata!.workflow,
+                  chain_run_id: result.chain_run_id,
+                },
+                invocationId: result.runId || result.chain_run_id,
+              },
+            };
+            onChatUpdated({ ...freshSession, messages: updatedMessages });
+          }
+        }
+      }
+
+      analytics.track('workflow_chain_started', {
+        chain_name: workflow?.chain_name,
+        chain_run_id: result.chain_run_id,
+        step_count: workflow?.chain_steps?.length,
+      });
+    } catch (error: any) {
+      console.error('[ChatWithArtifacts] Failed to run chain:', error);
+      setIsWorkflowRunning(false);
+      setWorkflowProgress(0);
+      setWorkflowError(error?.message || 'Failed to run pipeline chain');
+      analytics.track('workflow_chain_failed', { error: error?.message });
+    }
+  };
+
+  const handleRunPipeline = handleRunChain;
 
   const handleStopWorkflow = async () => {
     console.log('[ChatWithArtifacts] Stopping workflow');
@@ -1562,6 +1629,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             showProgress={false}
             onToggleProgress={() => {}}
             onRunWorkflow={handleRunWorkflow}
+            onRunChain={handleRunChain}
+            onRunPipeline={handleRunPipeline}
             onStopWorkflow={handleStopWorkflow}
             onPauseWorkflow={handlePauseWorkflow}
             onResumeWorkflow={handleResumeWorkflow}
