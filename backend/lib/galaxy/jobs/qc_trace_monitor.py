@@ -537,6 +537,81 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
         ],
     },
 
+    # ── ADMET safety profiles (drug-dev / autoloop-wired) ───────────────────
+    # Source of truth for thresholds: backend/experiments/admet_autoloop/qc_evaluator.py
+    # These profiles surface the autoloop's internal QC catalog through the
+    # central /api/qc/profiles endpoint so users and the param-prefill router
+    # can select them by name. Overrides here mirror QC_PROFILES exactly.
+    "admet_standard": {
+        "description": (
+            "Standard ADMET safety screen for oral small-molecule discovery. "
+            "Applies ICH S7B hERG IC50 ≥ 10 µM, DILI probability ≤ 0.5 (Lammert 2010), "
+            "Ames mutagenicity probability ≤ 0.5 (Kazius 2005), and Lipinski Ro5 "
+            "(MW ≤ 500 Da, logP ≤ 5). TPSA ≤ 140 Å² for general oral absorption."
+        ),
+        "domain_hint": "admet",
+        "overrides": {
+            "herg_ic50_threshold_uM": 10.0,
+            "dili_probability_max": 0.5,
+            "dili_risk_level_max": "medium",
+            "ames_probability_max": 0.5,
+            "logp_max": 5.0,
+            "mw_max_da": 500.0,
+            "tpsa_max_A2": 140.0,
+        },
+        "references": [
+            "[GOLD] ICH S7B (2005) — hERG IC50 ≥ 30× Cmax safety margin (Redfern 2003)",
+            "[GOLD] Lammert C et al. (2010) Hepatology 51:615-620 — DILI probability",
+            "[GOLD] Kazius J et al. (2005) J Med Chem 48:312-320 — Ames structural alerts",
+            "[GOLD] Lipinski CA et al. (2001) Adv Drug Deliv Rev 46:3-26 — Rule of Five",
+        ],
+    },
+    "admet_cns": {
+        "description": (
+            "CNS-penetrant compound ADMET safety screen — stricter than admet_standard "
+            "to account for BBB-crossing liabilities. Tighter DILI/Ames cutoffs, smaller "
+            "MW (≤ 450 Da), lower logP (≤ 4), and TPSA ≤ 90 Å² for BBB penetration "
+            "(Hitchcock & Pennington 2006)."
+        ),
+        "domain_hint": "admet",
+        "overrides": {
+            "herg_ic50_threshold_uM": 10.0,
+            "dili_probability_max": 0.4,
+            "dili_risk_level_max": "low",
+            "ames_probability_max": 0.3,
+            "logp_max": 4.0,
+            "mw_max_da": 450.0,
+            "tpsa_max_A2": 90.0,
+        },
+        "references": [
+            "[SILVER] Hitchcock SA & Pennington LD (2006) J Med Chem 49:7559-7583 — BBB TPSA",
+            "[SILVER] Wager TT et al. (2010) ACS Chem Neurosci 1:435-449 — CNS MPO score",
+        ],
+    },
+    "admet_oncology": {
+        "description": (
+            "Oncology ADMET profile — tolerates higher off-target toxicity burden given "
+            "the narrow therapeutic window and life-threatening indication context. "
+            "Stricter hERG (IC50 ≥ 5 µM) because of higher cardiotoxic kinase-inhibitor "
+            "co-administration; relaxed DILI/Ames/MW gates to accommodate kinase-inhibitor "
+            "and antibody-drug-conjugate small-molecule warheads."
+        ),
+        "domain_hint": "admet",
+        "overrides": {
+            "herg_ic50_threshold_uM": 5.0,
+            "dili_probability_max": 0.6,
+            "dili_risk_level_max": "high",
+            "ames_probability_max": 0.6,
+            "logp_max": 6.0,
+            "mw_max_da": 700.0,
+            "tpsa_max_A2": 180.0,
+        },
+        "references": [
+            "[SILVER] FDA Oncology Center of Excellence — Project Optimus (2023) dose optimization",
+            "[BRONZE] DeGoey DA et al. (2018) J Med Chem 61:2636-2651 — beyond Ro5 for oncology",
+        ],
+    },
+
     # ── Pharmacogenomics (PGx) profiles ─────────────────────────────────────
     "pgx_clinical": {
         "description": (
