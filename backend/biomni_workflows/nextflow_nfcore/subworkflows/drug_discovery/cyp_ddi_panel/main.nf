@@ -47,6 +47,7 @@ nextflow.enable.dsl = 2
 // Default Parameters
 // ============================================================================
 
+params.mock_mode      = false   // CI smoke testing only — bypasses required-input guards. Never set true in production.
 params.outdir               = './results/cyp_ddi_panel'
 params.publish_dir_mode     = 'copy'
 
@@ -888,7 +889,11 @@ PYEOF
 // ============================================================================
 
 workflow {
-    if (!params.smiles) error "params.smiles is required (SMILES string of drug candidate)"
+    if (!params.smiles && !params.mock_mode) error "params.smiles is required (SMILES string of drug candidate)"
+    if (params.mock_mode) {
+        log.info "MOCK MODE: using aspirin SMILES for CI testing"
+        params.smiles = params.smiles ?: 'CC(=O)Oc1ccccc1C(=O)O'
+    }
 
     // Step 1: Validate and standardize SMILES
     SMILES_VALIDATION()

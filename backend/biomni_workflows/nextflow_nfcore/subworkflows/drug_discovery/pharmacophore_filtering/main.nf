@@ -26,6 +26,7 @@ nextflow.enable.dsl = 2
 // Default Parameters
 // ============================================================================
 
+params.mock_mode      = false   // CI smoke testing only — bypasses required-input guards. Never set true in production.
 params.outdir           = './results/pharmacophore_filtering'
 params.publish_dir_mode = 'copy'
 
@@ -511,11 +512,16 @@ workflow {
     main:
         log_workflow_header()
 
-        if (!params.reference_actives) {
+        if (!params.reference_actives && !params.mock_mode) {
             error "Parameter `reference_actives` is required (SMILES file path)"
         }
-        if (!params.compound_library) {
+        if (!params.compound_library && !params.mock_mode) {
             error "Parameter `compound_library` is required (SMILES/SDF library path)"
+        }
+        if (params.mock_mode) {
+            log.info "MOCK MODE: substituting canonical reference SMILES (aspirin) for CI testing"
+            params.reference_actives = params.reference_actives ?: 'CC(=O)Oc1ccccc1C(=O)O'
+            params.compound_library  = params.compound_library  ?: 'CC(=O)Oc1ccccc1C(=O)O\nCCN(CC)CC'
         }
 
         // Support inline SMILES (newline- or comma-separated strings) in addition to file paths.

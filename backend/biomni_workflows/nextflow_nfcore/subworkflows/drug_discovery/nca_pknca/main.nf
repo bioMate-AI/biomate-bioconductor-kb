@@ -32,6 +32,7 @@ nextflow.enable.dsl = 2
 // Default Parameters
 // ============================================================================
 
+params.mock_mode      = false   // CI smoke testing only — bypasses required-input guards. Never set true in production.
 params.outdir           = './results/nca_pknca'
 params.publish_dir_mode = 'copy'
 
@@ -553,8 +554,11 @@ workflow NCA_PKNCA {
 workflow {
     log_workflow_header()
 
-    if (!params.input_csv) {
+    if (!params.input_csv && !params.mock_mode) {
         error "ERROR: --input_csv is required (path to concentration-time CSV with columns: time, conc, subject_id)"
+    }
+    if (params.mock_mode) {
+        log.info "MOCK MODE: skipping input_csv requirement (downstream process must handle null)"
     }
 
     ch_csv = Channel.fromPath(params.input_csv, checkIfExists: true)
