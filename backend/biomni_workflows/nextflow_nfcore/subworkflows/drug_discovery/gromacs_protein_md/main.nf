@@ -900,11 +900,15 @@ process PRODUCTION_MD {
     WANT_GPU='${want_gpu}'
     GPU_FLAG=""
     if [ "\$WANT_GPU" = "true" ]; then
-        if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+        GPU_COUNT=0
+        if command -v nvidia-smi >/dev/null 2>&1; then
+            GPU_COUNT=\$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | grep -c . || true)
+        fi
+        if [ "\${GPU_COUNT:-0}" -gt 0 ]; then
             GPU_FLAG="-gpu_id 0 -nb gpu -pme gpu -bonded gpu"
-            echo "Production MD: using GPU acceleration" | tee md_mdrun.log
+            echo "Production MD: using GPU acceleration (\${GPU_COUNT} device(s))" | tee md_mdrun.log
         else
-            echo "WARNING: GPU requested but no device visible on this node; using CPU mdrun" | tee md_mdrun.log
+            echo "WARNING: GPU requested but nvidia-smi reports 0 devices; using CPU mdrun" | tee md_mdrun.log
         fi
     fi
 
@@ -969,8 +973,18 @@ MDP_EOF
     sed -i "s/MDP_PRES/${pres}/g"      md.mdp
 
     gmx grompp -f md.mdp -c ${gro} -p ${top} -o md.tpr -maxwarn 5 2>&1 | tee md_grompp.log
-    gmx mdrun -v -deffnm md -ntmpi 1 -ntomp ${task.cpus} \$GPU_FLAG \
-        -nsteps ${n_steps} 2>&1 | tee -a md_mdrun.log
+    set +e
+    gmx mdrun -v -deffnm md -ntmpi 1 -ntomp ${task.cpus} \$GPU_FLAG \\
+        -nsteps ${n_steps} 2>&1 | tee md_mdrun.log
+    MD_RC=\$?
+    set -e
+    if [ "\$MD_RC" -ne 0 ] && [ -n "\$GPU_FLAG" ]; then
+        echo "WARNING: GPU mdrun failed (exit \$MD_RC); retrying on CPU" | tee -a md_mdrun.log
+        gmx mdrun -v -deffnm md -ntmpi 1 -ntomp ${task.cpus} \\
+            -nsteps ${n_steps} 2>&1 | tee -a md_mdrun.log
+    elif [ "\$MD_RC" -ne 0 ]; then
+        exit "\$MD_RC"
+    fi
     cat md_grompp.log md_mdrun.log > md.log
 
     # Rename final frame GRO
