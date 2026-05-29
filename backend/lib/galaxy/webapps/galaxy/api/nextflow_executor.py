@@ -5427,7 +5427,7 @@ def _make_cryosparc_sse_callback(run_id: str):
     import urllib.request as _urllib_req
     import json as _json
 
-    node_sse_url = "http://localhost:3000/internal/sse-inject"
+    node_sse_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/internal/sse-inject"
 
     def _inject(event_type: str, data: dict):
         try:
