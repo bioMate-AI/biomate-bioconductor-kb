@@ -49,6 +49,15 @@ import CapabilitiesPage from "@/pages/capabilities";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
+import { useUiFlavor } from "@/hooks/use-ui-flavor";
+// v2 surface — loaded behind ?ui=v2 / localStorage.biomate_ui flag.
+// @ts-expect-error ResearchApp is plain JSX with no type declarations
+import ResearchApp from "@/v2/ResearchApp";
+import "@/v2/tokens.css";
+import "@/v2/research-tokens.css";
+import "@/v2/layout.css";
+import "@/v2/research-layout.css";
+import "@/v2/tour.css";
 
 interface ToolItem {
   id: string
@@ -100,6 +109,19 @@ function RootRoute({
     if (!isLoading && !isAuthenticated) setLocation('/login')
   }, [isAuthenticated, isLoading, setLocation])
   if (isLoading || !isAuthenticated) return null
+
+  // v2 chrome — gated behind ?ui=v2 / localStorage.biomate_ui = 'v2'.
+  // The data-v2-ui attribute scopes the v2 design-token :root rules so
+  // they don't bleed into the v1 surface.
+  const uiFlavor = useUiFlavor()
+  if (uiFlavor === 'v2') {
+    return (
+      <div data-v2-ui style={{ height: '100vh', overflow: 'auto' }}>
+        <ResearchApp />
+      </div>
+    )
+  }
+
   return (
     <PlatformLayout
       sidebarCollapsed={sidebarCollapsed}
