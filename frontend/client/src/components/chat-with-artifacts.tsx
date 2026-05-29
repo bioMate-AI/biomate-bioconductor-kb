@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { useAfterRunFlavor } from "@/hooks/use-ui-flavor"
+import { AfterRunReport } from "@/v2/AfterRunReport"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
@@ -1875,6 +1877,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* v2 after-run 7-tab report — gated by ?afterrun=v2 flag, shown
+                above the v1 viewer when the run is completed. Phase 4 preview. */}
+            {useAfterRunFlavor() === 'v2'
+              && (currentRun?.execution?.status === 'completed' || (currentRun?.execution?.status as string) === 'ok')
+              && currentRun?.id && (
+              <div className="border-b" style={{ background: 'oklch(0.985 0.003 240)' }}>
+                <AfterRunReport
+                  runId={currentRun.id}
+                  workflowName={panelWorkflow?.name}
+                  parameters={extractSubmittedParams(currentRun)}
+                />
+              </div>
+            )}
 
             {/* Panel body — viewer manages its own scroll via panel-body flex */}
             <div className="flex-1 overflow-hidden flex flex-col">

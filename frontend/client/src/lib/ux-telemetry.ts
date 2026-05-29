@@ -11,6 +11,8 @@ export type UxEventName =
   | 'workflow.generated'
   | 'workflow.run_clicked'
   | 'workflow.run_switched'
+  | 'workflow.chain_run_clicked'
+  | 'workflow.pipeline_run_clicked'
   | 'workflow.background_action_selected'
   | 'workflow.prereq_recovery_requested'
   | 'workflow.low_confidence_override_clicked'
