@@ -2991,6 +2991,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
               step_count: chainPipelineSteps.length,
               source: 'biomate_curated_chain',
               chain_name: chain.name,
+              chain_connections: chain.connections || [],
               chain_steps: chainPipelineSteps.map((s: any) => s.workflow_name).filter(Boolean),
             },
             suggestions: ['Modify a step', 'Add a QC checkpoint', 'Run only the first step'],
@@ -3493,6 +3494,45 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
   }
 
+  private _chainHintNamesCache: { names: string[]; fetchedAt: number } | null = null;
+
+  /** Live workflow_chains names for intent classifier chain_hint (cached 10 min). */
+  private async _getChainHintNames(): Promise<string[]> {
+    const TTL_MS = 10 * 60 * 1000;
+    if (
+      this._chainHintNamesCache &&
+      Date.now() - this._chainHintNamesCache.fetchedAt < TTL_MS
+    ) {
+      return this._chainHintNamesCache.names;
+    }
+    const fallback = [
+      'bulk_rnaseq_de_analysis',
+      'target_to_lead_full',
+      'drug_discovery_screening',
+      'drug_discovery_admet_gated_screening',
+      'single_cell_multimodal_analysis',
+      'rare_disease_multimodal_workup',
+      'cutandtag_chromatin_analysis',
+      'alternative_polyadenylation_analysis',
+    ];
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const res = await fetch(`${galaxyUrl}/api/workflow-chains`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) return fallback;
+      const data: any = await res.json();
+      const names = (data.chains || []).map((c: any) => c.name).filter(Boolean);
+      if (names.length) {
+        this._chainHintNamesCache = { names, fetchedAt: Date.now() };
+        return names;
+      }
+    } catch {
+      /* use fallback */
+    }
+    return fallback;
+  }
+
   /**
    * Analyze user intent, detecting multiple intents if present.
    * Returns IntentDecomposition with one or more decomposed intents.
@@ -3525,6 +3565,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       };
     }
 
+    const chainHintList = (await this._getChainHintNames()).join(', ');
     const systemPrompt = `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
 ## Information Need Types
@@ -3721,7 +3762,7 @@ BioMate has 61 drug_discovery and 21 pharmacology workflows. Inputs are molecula
 - Perturbation prediction: "predict cell response to drug / CRISPR KO effect / virtual cell / perturbation prediction" → workflow_generation (state_perturbation_prediction or gears_perturbation_prediction)
 - Adaptive trial design: "adaptive trial / RAR randomization / MAMS design / interim stopping rules / O'Brien-Fleming adaptive" → workflow_generation (adaptive_trial_design)
 - Target analysis: "pharmacophore filtering / pocket detection / target tractability / kinome panel" → workflow_generation
-- HTS: "HTS plate QC / Z-factor / hit calling / assay ingestion" → workflow_generation
+- HTS: "HTS plate QC / Z-factor / Z' / signal window / hit calling / dose-response (4PL) on screening plate" → workflow_generation (hts_plate_qc_hit_calling). Disambiguation: HTSFilter is an RNA-seq read-count filter (DESeq2-family), NOT an HTS plate QC tool despite the prefix. sights is an R/Bioconductor HTS-normalization library — prefer hts_plate_qc_hit_calling when the user wants an end-to-end pipeline (Z' + hit calling + report); prefer sights only when the user explicitly asks for SIGHTS or for HTS-normalization-only as an R package.
 - Biologics: "scFv intrabody design / antibody developability / LNP formulation optimization" → workflow_generation
 
 Key: providing concrete molecular inputs (SMILES, PDB, dose levels, CSV data) + asking to run/compute/predict = workflow_generation. Asking "how does hERG work?" = research_question.
@@ -4048,9 +4089,7 @@ needs_thinking: true only when the query requires multi-step reasoning, pipeline
 
 chain_hint: if the query clearly maps to one of these curated workflow chains, return its name;
   otherwise null.
-  Known chain names: [bulk_rnaseq_de_analysis, chip_seq_peak_calling, atac_seq_chromatin,
-  wgs_variant_calling, target_to_lead_full, scrnaseq_seurat_full, metagenomics_diversity,
-  proteomics_dda_full]
+  Known chain names: [${chainHintList}]
 
 For MULTI-intent messages (parallel), respond with an "intents" array:
 {

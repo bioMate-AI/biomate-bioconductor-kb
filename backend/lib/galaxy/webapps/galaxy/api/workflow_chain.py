@@ -108,7 +108,127 @@ _EXT_TO_PARAM: Dict[str, List[str]] = {
     "csv": ["csv", "samplesheet", "input"],
     "txt": ["input"],
     "json": ["params_json", "input"],
+    "sdf": ["ligand_sdf", "compounds", "ligand_file", "input"],
+    "smi": ["smiles", "ligand_smiles", "compound_smiles"],
 }
+
+
+def _list_run_output_files(run_id: str) -> List[Dict[str, Any]]:
+    """Collect output files for a Nextflow run (S3 + local outdir)."""
+    from galaxy.webapps.galaxy.api.nextflow_executor import (  # noqa: PLC0415
+        _runs,
+        _runs_lock,
+        get_nextflow_status,
+    )
+
+    files: List[Dict[str, Any]] = []
+    seen: set = set()
+
+    def _add(f: Dict[str, Any]) -> None:
+        key = f.get("s3_uri") or f.get("path") or f.get("filename")
+        if key and key not in seen:
+            seen.add(key)
+            files.append(f)
+
+    with _runs_lock:
+        run_info = dict(_runs.get(run_id, {}))
+    for f in run_info.get("s3_output_files") or []:
+        _add({**f, "filename": f.get("filename", "")})
+
+    try:
+        status = get_nextflow_status(run_id)
+        for f in status.get("s3_output_files") or []:
+            _add({**f, "filename": f.get("filename", "")})
+        outdir = status.get("outdir")
+        if outdir and Path(outdir).exists():
+            for fpath in sorted(Path(outdir).rglob("*")):
+                if not fpath.is_file():
+                    continue
+                parts_str = str(fpath)
+                if any(skip in parts_str for skip in ["/work/", "/.nextflow/", "/trace.", "/timeline."]):
+                    continue
+                _add({
+                    "filename": fpath.name,
+                    "path": str(fpath),
+                    "extension": fpath.suffix.lstrip(".").lower(),
+                })
+    except Exception as exc:
+        log.debug("workflow_chain: list outputs for %s failed: %s", run_id, exc)
+
+    return files
+
+
+def _apply_connection_handoffs(
+    chain_state: Dict[str, Any],
+    step_index: int,
+    params: Dict[str, Any],
+) -> Tuple[Dict[str, Any], List[str]]:
+    """Wire chain connections into next-step params (Phase 2 artifact contracts)."""
+    from galaxy.chain.artifact_contracts import artifact_value, pick_artifact_file  # noqa: PLC0415
+
+    connections = chain_state.get("connections") or []
+    steps = chain_state.get("steps") or []
+    wired: Dict[str, Any] = {}
+    warnings: List[str] = []
+    target_step = step_index + 1  # catalog connections are 1-based
+
+    for conn in connections:
+        if int(conn.get("to_step", -1)) != target_step:
+            continue
+        from_step = int(conn.get("from_step", 0)) - 1
+        from_output = str(conn.get("from_output", ""))
+        to_input = str(conn.get("to_input", ""))
+        if not from_output or not to_input:
+            continue
+        if from_step < 0 or from_step >= len(steps):
+            warnings.append(f"Invalid from_step {from_step + 1} for → step {target_step}")
+            continue
+        prev_run_id = steps[from_step].get("run_id")
+        if not prev_run_id:
+            warnings.append(f"Step {from_step + 1} missing run_id for {from_output}→{to_input}")
+            continue
+        picked = pick_artifact_file(_list_run_output_files(prev_run_id), from_output)
+        if not picked:
+            warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
+            continue
+        value = artifact_value(picked)
+        if value and to_input not in params:
+            wired[to_input] = value
+            log.info(
+                "workflow_chain: connection step %d→%d: %s → %s = %s",
+                from_step + 1, target_step, from_output, to_input, value[:120],
+            )
+
+    merged = dict(params)
+    for k, v in wired.items():
+        if k not in merged:
+            merged[k] = v
+    return merged, warnings
+
+
+def _extract_step_artifacts(
+    run_id: str,
+    connections: List[Dict[str, Any]],
+    from_step_number: int,
+) -> Dict[str, Any]:
+    """Snapshot logical outputs produced by a completed step."""
+    from galaxy.chain.artifact_contracts import artifact_value, pick_artifact_file  # noqa: PLC0415
+
+    files = _list_run_output_files(run_id)
+    artifacts: Dict[str, Any] = {}
+    for conn in connections:
+        if int(conn.get("from_step", -1)) != from_step_number:
+            continue
+        from_output = str(conn.get("from_output", ""))
+        if not from_output or from_output in artifacts:
+            continue
+        picked = pick_artifact_file(files, from_output)
+        if picked:
+            artifacts[from_output] = {
+                "path": artifact_value(picked),
+                "filename": picked.get("filename"),
+            }
+    return artifacts
 
 
 def _resolve_outputs_for_run(run_id: str, next_workflow_input_types: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
@@ -188,7 +308,7 @@ def _resolve_outputs_for_run(run_id: str, next_workflow_input_types: Optional[Di
 # Chain executor (background thread)
 # ---------------------------------------------------------------------------
 
-def _run_chain(chain_run_id: str) -> None:
+def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
     """Execute chain steps sequentially in a background thread."""
     state = _get_chain(chain_run_id)
     if state is None:
@@ -196,9 +316,14 @@ def _run_chain(chain_run_id: str) -> None:
         return
 
     steps = state["steps"]
-    log.info("workflow_chain: starting chain %s with %d steps", chain_run_id, len(steps))
+    connections = state.get("connections") or []
+    log.info(
+        "workflow_chain: starting chain %s from step %d (%d steps total)",
+        chain_run_id, start_from_step, len(steps),
+    )
 
-    for idx, step in enumerate(steps):
+    for idx in range(start_from_step, len(steps)):
+        step = steps[idx]
         # Re-load state (may have been updated externally)
         current = _get_chain(chain_run_id) or state
 
@@ -224,8 +349,13 @@ def _run_chain(chain_run_id: str) -> None:
             _update_chain(current)
             return
 
-        # Auto-wire previous step's outputs as inputs (skip for first step)
-        if idx > 0:
+        # Auto-wire outputs → inputs via chain connections (Phase 2) or extension heuristics
+        if connections:
+            params, conn_warnings = _apply_connection_handoffs(current, idx, params)
+            if conn_warnings:
+                current["steps"][idx]["handoff_warnings"] = conn_warnings
+                _update_chain(current)
+        elif idx > 0:
             prev_step = current["steps"][idx - 1]
             prev_run_id = prev_step.get("run_id")
 
@@ -315,29 +445,98 @@ def _run_chain(chain_run_id: str) -> None:
             log.error("workflow_chain: chain %s failed at step %d (run_id=%s)", chain_run_id, idx, run_id)
             return
 
+        # Record logical artifacts for downstream steps / aggregate outputs API
+        if connections:
+            current = _get_chain(chain_run_id) or state
+            current["steps"][idx]["artifacts"] = _extract_step_artifacts(
+                run_id, connections, idx + 1,
+            )
+            _update_chain(current)
+
+        current = _get_chain(chain_run_id) or state
+        _write_pipeline_manifest(current)
+
+        end_at = current.get("end_at_step")
+        if end_at is not None and idx >= int(end_at):
+            remaining = any(
+                s.get("status") == "pending"
+                for s in (current.get("steps") or [])[idx + 1:]
+            )
+            if remaining:
+                current["status"] = "awaiting_approval"
+                log.info(
+                    "workflow_chain: chain %s paused after step %d (awaiting approval)",
+                    chain_run_id, idx,
+                )
+            else:
+                current["status"] = "succeeded"
+                current["completed_at"] = datetime.now(timezone.utc).isoformat()
+                log.info("workflow_chain: chain %s completed successfully", chain_run_id)
+            _update_chain(current)
+            return
+
     # All steps succeeded
     current = _get_chain(chain_run_id) or state
     current["status"] = "succeeded"
     current["completed_at"] = datetime.now(timezone.utc).isoformat()
     _update_chain(current)
+    _write_pipeline_manifest(current)
     log.info("workflow_chain: chain %s completed successfully", chain_run_id)
+
+
+def _normalize_run_status(raw_status: str) -> str:
+    """Map Nextflow executor status strings to chain step terminal states."""
+    s = (raw_status or "running").lower()
+    if s in ("succeeded", "completed", "ok", "success"):
+        return "succeeded"
+    if s in ("failed", "error", "errored"):
+        return "failed"
+    if s in ("cancelled", "aborted", "stopped"):
+        return "cancelled"
+    return "running"
 
 
 def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_interval: float = 5.0, timeout: float = 3600.0) -> None:
     """Poll a Nextflow run until it finishes, updating chain state accordingly."""
-    from galaxy.webapps.galaxy.api.nextflow_executor import _runs, _runs_lock  # noqa: PLC0415
+    from galaxy.webapps.galaxy.api.nextflow_executor import (  # noqa: PLC0415
+        _looks_like_false_success,
+        get_nextflow_status,
+    )
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        with _runs_lock:
-            run_info = dict(_runs.get(run_id, {}))
+        status_payload: Dict[str, Any] = {}
+        try:
+            status_payload = get_nextflow_status(run_id)
+        except Exception as exc:
+            log.debug("workflow_chain: get_nextflow_status failed for %s: %s", run_id, exc)
 
-        status = run_info.get("status", "running")
+        status = _normalize_run_status(status_payload.get("status", "running"))
+
+        # Batch/driver mismatch: failed in memory but S3 outputs exist and pass QC heuristics.
+        if status == "failed":
+            s3_files = status_payload.get("s3_output_files") or []
+            if s3_files and not _looks_like_false_success(
+                log_tail=status_payload.get("log_tail"),
+                total_steps=status_payload.get("totalSteps") or 0,
+                duration_s=status_payload.get("duration_s") or 0,
+                s3_output_files=s3_files,
+                workflow_domain=status_payload.get("workflow_domain", ""),
+                nextflow_path=status_payload.get("nextflow_path", ""),
+            ):
+                log.info(
+                    "workflow_chain: run %s reported failed but has valid outputs — treating as succeeded",
+                    run_id,
+                )
+                status = "succeeded"
+
         if status in ("succeeded", "failed", "cancelled"):
             current = _get_chain(chain_run_id)
             if current:
                 current["steps"][step_idx]["status"] = status
                 current["steps"][step_idx]["completed_at"] = datetime.now(timezone.utc).isoformat()
+                if status_payload.get("outdir"):
+                    current["steps"][step_idx]["outdir"] = status_payload.get("outdir")
                 _update_chain(current)
             log.info("workflow_chain: run %s finished with status=%s", run_id, status)
             return
@@ -359,6 +558,140 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
 # ---------------------------------------------------------------------------
 
 _DB_PATH = Path(os.environ.get("GALAXY_AI_DB", "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"))
+
+
+def resolve_workflow_name_to_path(workflow_name: str) -> Optional[str]:
+    """Resolve a curated chain step workflow_name to an indexed nextflow_path (filename)."""
+    if not workflow_name or not str(workflow_name).strip():
+        return None
+    name = str(workflow_name).strip()
+    slug = name.lower().replace(" ", "_").replace("-", "_")
+    try:
+        conn = sqlite3.connect(str(_DB_PATH))
+        queries = [
+            ("SELECT filename FROM workflows WHERE lower(name)=lower(?) AND executable=1 LIMIT 1", (name,)),
+            ("SELECT filename FROM workflows WHERE name LIKE ? AND executable=1 LIMIT 1", (f"%{name}%",)),
+            (
+                "SELECT filename FROM workflows WHERE replace(lower(name),' ','') "
+                "= replace(lower(?),' ','') AND executable=1 LIMIT 1",
+                (name,),
+            ),
+            ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%{slug}%",)),
+            ("SELECT filename FROM workflows WHERE lower(filename) LIKE ? AND executable=1 LIMIT 1", (f"%{name.lower()}%",)),
+        ]
+        for sql, params in queries:
+            row = conn.execute(sql, params).fetchone()
+            if row and row[0]:
+                conn.close()
+                return str(row[0])
+        conn.close()
+    except Exception as exc:
+        log.debug("workflow_chain: path resolve failed for %s: %s", workflow_name, exc)
+    return None
+
+
+def enrich_chain_steps(steps: List[Any]) -> List[Dict[str, Any]]:
+    """Attach nextflow_path to chain step dicts when only workflow_name is present."""
+    enriched: List[Dict[str, Any]] = []
+    for step in steps or []:
+        s = dict(step) if isinstance(step, dict) else {}
+        if not s.get("nextflow_path"):
+            wn = s.get("workflow_name") or ""
+            path = resolve_workflow_name_to_path(wn)
+            if path:
+                s["nextflow_path"] = path
+        enriched.append(s)
+    return enriched
+
+
+def _slug_step_key(workflow_name: Optional[str], role: Optional[str] = None) -> str:
+    if role:
+        return str(role).strip().lower().replace(" ", "_")
+    if not workflow_name:
+        return "step"
+    name = str(workflow_name).lower()
+    for short, key in (
+        ("pocket_detection", "pocket"),
+        ("pharmacophore", "pharmacophore"),
+        ("predict_admet", "admet"),
+        ("docking_autodock_vina", "docking_vina"),
+        ("structure_prediction_docking", "docking"),
+        ("gromacs", "gromacs_mmgbsa"),
+        ("reinvent4", "reinvent4"),
+        ("epitopeprediction", "epitope"),
+    ):
+        if short in name:
+            return key
+    return name.split("/")[-1].replace(" ", "_")[:48]
+
+
+def _build_pipeline_manifest(state: Dict[str, Any]) -> Dict[str, Any]:
+    """ANDV-compatible manifest for chain runs (parity with CLI pipeline_manifest.json)."""
+    steps_out: List[Dict[str, Any]] = []
+    for step in state.get("steps") or []:
+        key = step.get("step_key") or _slug_step_key(
+            step.get("workflow_name"), step.get("role"),
+        )
+        entry: Dict[str, Any] = {
+            "key": key,
+            "title": step.get("workflow_name") or key,
+            "nextflow_path": step.get("nextflow_path"),
+            "run_id": step.get("run_id"),
+            "status": step.get("status"),
+            "artifacts": step.get("artifacts") or {},
+        }
+        if step.get("outdir"):
+            entry["outdir"] = step.get("outdir")
+        if step.get("artifacts"):
+            entry["artifact_paths"] = {
+                k: v.get("path") for k, v in step["artifacts"].items() if isinstance(v, dict)
+            }
+        steps_out.append(entry)
+    succeeded = sum(1 for s in state.get("steps") or [] if s.get("status") == "succeeded")
+    return {
+        "chain_run_id": state.get("chain_run_id"),
+        "chain_name": state.get("chain_name"),
+        "created_at": state.get("created_at"),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "status": state.get("status"),
+        "through_step": succeeded,
+        "steps": steps_out,
+    }
+
+
+def _write_pipeline_manifest(state: Dict[str, Any]) -> None:
+    manifest = _build_pipeline_manifest(state)
+    chain_id = state.get("chain_run_id", "")
+    if not chain_id:
+        return
+    run_dir = _chains_dir() / chain_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    mf_path = run_dir / "pipeline_manifest.json"
+    try:
+        mf_path.write_text(json.dumps(manifest, indent=2, default=str))
+    except Exception as exc:
+        log.warning("workflow_chain: failed to write manifest %s: %s", mf_path, exc)
+
+
+def _resolve_submit_steps(steps: List["ChainStep"]) -> List[Dict[str, Any]]:
+    """Normalize ChainStep models to executor dicts with resolved nextflow_path."""
+    resolved: List[Dict[str, Any]] = []
+    for step in steps:
+        data = step.model_dump() if hasattr(step, "model_dump") else dict(step)
+        nf_path = data.get("nextflow_path")
+        wn = data.get("workflow_name")
+        role = data.get("role")
+        if not nf_path and wn:
+            nf_path = resolve_workflow_name_to_path(str(wn))
+        resolved.append({
+            "nextflow_path": nf_path,
+            "params": data.get("params") or {},
+            "workflow_name": wn,
+            "role": role,
+            "step_key": data.get("step_key") or _slug_step_key(wn, role),
+        })
+    return resolved
+
 
 # Semantic aliases: output type → list of input type strings it satisfies
 _TYPE_ALIASES: Dict[str, List[str]] = {
@@ -443,11 +776,19 @@ def check_step_compatibility(
 
 class ChainStep(BaseModel):
     nextflow_path: Optional[str] = None  # Optional: may be unresolved for AI-generated pipelines
+    workflow_name: Optional[str] = None
+    role: Optional[str] = None
+    step_key: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
 
 
 class ChainSubmitRequest(BaseModel):
     chain_run_id: Optional[str] = None
+    chain_name: Optional[str] = None
+    chat_session_id: Optional[str] = None
+    connections: Optional[List[Dict[str, Any]]] = None
+    start_from_step: Optional[int] = None  # 0-based; resume from this step
+    end_at_step: Optional[int] = None  # 0-based inclusive; pause for approval after this step
     steps: List[ChainStep]
 
 
@@ -472,35 +813,84 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
     if not request.steps:
         raise HTTPException(status_code=400, detail="steps array required")
 
-    chain_run_id = request.chain_run_id or f"chain_{int(time.time())}_{os.urandom(3).hex()}"
+    start_from = max(0, int(request.start_from_step or 0))
+    end_at = request.end_at_step
+    resume = bool(request.chain_run_id and (start_from > 0 or end_at is not None))
 
-    steps_state = [
-        {
-            "index": i,
-            "nextflow_path": step.nextflow_path,
-            "params": step.params or {},
-            "status": "pending",
-            "run_id": None,
-            "started_at": None,
+    if resume and request.chain_run_id:
+        existing = _get_chain(request.chain_run_id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail=f"Chain {request.chain_run_id!r} not found for resume")
+        chain_run_id = request.chain_run_id
+        if start_from > 0:
+            for i in range(start_from, len(existing["steps"])):
+                existing["steps"][i].update({
+                    "status": "pending",
+                    "run_id": None,
+                    "started_at": None,
+                    "completed_at": None,
+                    "error": None,
+                    "artifacts": {},
+                    "handoff_warnings": [],
+                })
+        existing["status"] = "running"
+        existing["completed_at"] = None
+        if request.connections is not None:
+            existing["connections"] = request.connections
+        if request.chain_name:
+            existing["chain_name"] = request.chain_name
+        if end_at is not None:
+            existing["end_at_step"] = int(end_at)
+        _update_chain(existing)
+        steps_state = existing["steps"]
+    else:
+        chain_run_id = request.chain_run_id or f"chain_{int(time.time())}_{os.urandom(3).hex()}"
+        resolved_steps = _resolve_submit_steps(request.steps)
+
+        steps_state = [
+            {
+                "index": i,
+                "nextflow_path": step.get("nextflow_path"),
+                "workflow_name": step.get("workflow_name"),
+                "role": step.get("role"),
+                "step_key": step.get("step_key"),
+                "params": step.get("params") or {},
+                "status": "pending",
+                "run_id": None,
+                "started_at": None,
+                "completed_at": None,
+                "artifacts": {},
+            }
+            for i, step in enumerate(resolved_steps)
+        ]
+
+        state: Dict[str, Any] = {
+            "chain_run_id": chain_run_id,
+            "chain_name": request.chain_name,
+            "chat_session_id": request.chat_session_id,
+            "connections": request.connections or [],
+            "end_at_step": int(end_at) if end_at is not None else None,
+            "status": "running",
+            "steps": steps_state,
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "completed_at": None,
         }
-        for i, step in enumerate(request.steps)
-    ]
+        _update_chain(state)
 
-    state: Dict[str, Any] = {
+    t = threading.Thread(
+        target=_run_chain,
+        args=(chain_run_id, start_from),
+        daemon=True,
+        name=f"chain-{str(chain_run_id)[:12]}",
+    )
+    t.start()
+
+    return {
         "chain_run_id": chain_run_id,
         "status": "running",
         "steps": steps_state,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "completed_at": None,
+        "resumed_from_step": start_from if resume else None,
     }
-    _update_chain(state)
-
-    # Launch background thread
-    t = threading.Thread(target=_run_chain, args=(chain_run_id,), daemon=True, name=f"chain-{chain_run_id[:12]}")
-    t.start()
-
-    return {"chain_run_id": chain_run_id, "status": "running", "steps": steps_state}
 
 
 @router.get("/api/workflows/chain/{chain_run_id}", summary="Poll chain execution status")
@@ -509,7 +899,74 @@ async def get_chain_status(chain_run_id: str) -> Dict[str, Any]:
     state = _get_chain(chain_run_id)
     if state is None:
         raise HTTPException(status_code=404, detail=f"Chain {chain_run_id!r} not found")
-    return state
+    steps = state.get("steps") or []
+    completed = sum(1 for s in steps if s.get("status") == "succeeded")
+    failed = sum(1 for s in steps if s.get("status") == "failed")
+    running = sum(1 for s in steps if s.get("status") == "running")
+    return {
+        **state,
+        "steps_completed": completed,
+        "steps_total": len(steps),
+        "steps_failed": failed,
+        "steps_running": running,
+        "progress": {
+            "completedSteps": completed,
+            "totalSteps": len(steps),
+            "failedSteps": failed,
+            "runningSteps": running,
+            "percentComplete": int(100 * completed / len(steps)) if steps else 0,
+        },
+    }
+
+
+@router.get("/api/workflows/chain/{chain_run_id}/outputs", summary="Aggregate outputs across chain steps")
+async def get_chain_outputs(chain_run_id: str) -> Dict[str, Any]:
+    """Return per-step artifacts and file listings for a workflow chain."""
+    state = _get_chain(chain_run_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"Chain {chain_run_id!r} not found")
+
+    step_outputs: List[Dict[str, Any]] = []
+    all_files: List[Dict[str, Any]] = []
+
+    for step in state.get("steps") or []:
+        run_id = step.get("run_id")
+        entry: Dict[str, Any] = {
+            "step_index": step.get("index"),
+            "workflow_name": step.get("workflow_name"),
+            "nextflow_path": step.get("nextflow_path"),
+            "status": step.get("status"),
+            "run_id": run_id,
+            "artifacts": step.get("artifacts") or {},
+            "files": [],
+        }
+        if run_id:
+            files = _list_run_output_files(run_id)
+            entry["files"] = files
+            for f in files:
+                all_files.append({**f, "step_index": step.get("index"), "run_id": run_id})
+        step_outputs.append(entry)
+
+    return {
+        "chain_run_id": chain_run_id,
+        "chain_name": state.get("chain_name"),
+        "status": state.get("status"),
+        "steps": step_outputs,
+        "output_files": all_files,
+        "count": len(all_files),
+    }
+
+
+@router.get("/api/workflows/chain/{chain_run_id}/manifest", summary="Export ANDV-compatible pipeline manifest")
+async def get_chain_manifest(chain_run_id: str) -> Dict[str, Any]:
+    """Return pipeline_manifest.json shape for chain runs (CLI parity)."""
+    state = _get_chain(chain_run_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"Chain {chain_run_id!r} not found")
+    manifest = _build_pipeline_manifest(state)
+    run_dir = _chains_dir() / chain_run_id
+    disk_path = str(run_dir / "pipeline_manifest.json") if run_dir.exists() else None
+    return {**manifest, "manifest_path": disk_path}
 
 
 @router.post("/api/workflows/runs/{run_id}/resolve-outputs", summary="Resolve run outputs as next-step inputs")

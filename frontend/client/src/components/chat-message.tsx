@@ -99,6 +99,9 @@ interface ChatMessageProps {
   onToolClick?: (tool: any) => void
   onDatasetClick?: (dataset: any) => void
   onRunWorkflow?: (workflow: any, steps: any[]) => void
+  onRunChain?: (workflow: any) => void
+  onRunPipeline?: (workflow: any) => void
+  onApprovePipelineStep?: (workflow: any, completedStepId: string, nextStepId: string) => void
   onStopWorkflow?: () => void
   onPauseWorkflow?: () => void
   onResumeWorkflow?: () => void
@@ -126,6 +129,9 @@ export function ChatMessage({
   onToolClick,
   onDatasetClick,
   onRunWorkflow,
+  onRunChain,
+  onRunPipeline,
+  onApprovePipelineStep,
   onStopWorkflow,
   onPauseWorkflow,
   onResumeWorkflow,
@@ -446,8 +452,8 @@ export function ChatMessage({
                 );
               }
 
-              // PipelineListView in chat is commented out 2026-05-21 — duplicates the right panel's phase list.
-              const isPipelineWorkflow = false // message.metadata?.workflow?.workflow_type === 'pipeline'
+              // Assembled sequential pipeline (Tier 2/3 assistant)
+              const isPipelineWorkflow = message.metadata?.workflow?.workflow_type === 'pipeline'
               if (isPipelineWorkflow) {
                 const wf = message.metadata?.workflow
                 const steps = (wf.pipeline_steps || []).map((s: any, idx: number) => ({
@@ -469,19 +475,12 @@ export function ChatMessage({
                   >
                     <PipelineListView
                       steps={steps}
-                      onConfirmRun={() => {
-                        fetch('/api/workflows/chain', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            workflow_name: wf.name || wf.chain_name || 'Pipeline',
-                            workflow_steps: steps.map((s: any) => ({
-                              nextflow_path: s.nextflowPath || s.workflowPath,
-                              params: s.params,
-                            })),
-                          }),
-                        }).catch(console.error);
-                      }}
+                      approvalGate
+                      chainRunId={wf.chain_run_id}
+                      onConfirmRun={() => onRunPipeline?.(wf)}
+                      onApproveStep={(completedStepId, nextStepId) =>
+                        onApprovePipelineStep?.(wf, completedStepId, nextStepId)
+                      }
                       onModifyStep={(stepId, msg) => onAdjustViaChat?.(`Modify pipeline step ${stepId}: ${msg}`)}
                     />
                   </div>
@@ -506,6 +505,11 @@ export function ChatMessage({
                       connections={wf.chain_connections || []}
                       requiredInputs={wf.required_inputs || []}
                       expectedOutputs={wf.expected_outputs || []}
+                      onRunChain={
+                        onRunChain
+                          ? () => onRunChain(wf)
+                          : undefined
+                      }
                     />
                   </div>
                 )

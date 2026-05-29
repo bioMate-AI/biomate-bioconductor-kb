@@ -3,12 +3,14 @@ import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
+import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
 import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
-import { buildChainSubmitSteps, submitWorkflowFromArtifact } from "@/lib/chain-execution"
+import { submitWorkflowFromArtifact, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
+import { fetchChainStatus, syncPipelineStepsFromChain } from "@/lib/chain-pipeline-sync"
 import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
 import { getExecutionAsyncGuidance } from "@/lib/async-guidance"
@@ -159,14 +161,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         if (summaries.length > 0) {
           setAppliedEditsDisplay((prev) => [...prev, { id: `${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot }])
         }
-        for (const e of result.applied) analytics.track('workflow_edit_applied', { op: e.op, via: 'assistant_emit' })
       }
       if (structural.length > 0) {
         setPendingStructuralEdits((prev) => [
           ...prev,
           ...structural.map((edit, i) => ({ id: `${msg.id}-pend-${i}`, edit, summary: summarizeEdit(edit) })),
         ])
-        for (const e of structural) analytics.track('workflow_edit_confirm_required', { op: e.op })
       }
     }
   }, [currentChatSession?.messages, panelWorkflow])
@@ -179,7 +179,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     setPendingStructuralEdits((prev) => prev.filter((p) => p.id !== id))
     if (result.applied.length > 0) {
       setAppliedEditsDisplay((prev) => [...prev, { id: `confirm-${id}`, summary: entry.summary, snapshot }])
-      analytics.track('workflow_edit_applied', { op: entry.edit.op, via: 'assistant_emit' })
     } else if (result.rejected.length > 0) {
       console.warn('[workflow-edits] confirm rejected:', result.rejected)
     }
@@ -192,7 +191,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!entry || !entry.snapshot) return
     setPanelWorkflow(entry.snapshot)
     setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== id))
-    analytics.track('workflow_edit_undone', {})
   }
 
   // Gap 2 — rule-based extraction from user messages (frontend-only v1).
@@ -218,7 +216,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         ...prev,
         { id: `user-${msg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot },
       ])
-      for (const e of result.applied) analytics.track('workflow_edit_applied', { op: e.op, via: 'rule_extractor' })
     }
   }, [currentChatSession?.messages, panelWorkflow])
 
@@ -258,14 +255,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           if (summaries.length > 0) {
             setAppliedEditsDisplay((prev) => [...prev, { id: `llm-${lastUserMsg.id}-${prev.length}`, summary: summaries.join(' · '), snapshot }])
           }
-          for (const e of result.applied) analytics.track('workflow_edit_applied', { op: e.op, via: 'llm_extractor' })
         }
         if (structural.length > 0) {
           setPendingStructuralEdits((prev) => [
             ...prev,
             ...structural.map((edit, i) => ({ id: `llm-${lastUserMsg.id}-pend-${i}`, edit, summary: summarizeEdit(edit) })),
           ])
-          for (const e of structural) analytics.track('workflow_edit_confirm_required', { op: e.op })
         }
       } catch (e) {
         console.debug('[workflow-edits] LLM fallback failed:', e)
@@ -645,16 +640,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       return;
     }
 
-    analytics.track('workflow_suggested', {
-      workflow_name: workflow?.name || workflow?.display_name || workflow?.workflow_name,
-      domain: workflow?.domain,
-      workflow_steps: typeof workflow?.steps === 'object' && workflow?.steps
-        ? Object.keys(workflow.steps).length
-        : Array.isArray(workflow?.pipeline_steps)
-          ? workflow.pipeline_steps.length
-          : undefined,
-    });
-
     // Get fresh session and update with workflow data in the message metadata
     const freshSession = chatHistoryService.getSession(currentChatSession.id);
     if (freshSession) {
@@ -875,44 +860,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         await loadRun(result.runId);
       }
 
-      if (currentChatSession) {
-        const freshSession = chatHistoryService.getSession(currentChatSession.id);
-        if (freshSession) {
-          const updatedMessages = [...freshSession.messages];
-          let targetIndex = -1;
-          for (let i = updatedMessages.length - 1; i >= 0; i--) {
-            const wf = updatedMessages[i].metadata?.workflow;
-            if (
-              updatedMessages[i].metadata?.type === 'workflow' &&
-              wf?.workflow_type === 'chain' &&
-              (wf?.chain_name === workflow?.chain_name || !workflow?.chain_name)
-            ) {
-              targetIndex = i;
-              break;
-            }
-          }
-          if (targetIndex >= 0) {
-            updatedMessages[targetIndex] = {
-              ...updatedMessages[targetIndex],
-              metadata: {
-                ...updatedMessages[targetIndex].metadata,
-                workflow: {
-                  ...updatedMessages[targetIndex].metadata!.workflow,
-                  chain_run_id: result.chain_run_id,
-                },
-                invocationId: result.runId || result.chain_run_id,
-              },
-            };
-            onChatUpdated({ ...freshSession, messages: updatedMessages });
-          }
-        }
-      }
+      patchWorkflowChainRunId(workflow, result.chain_run_id, result.runId);
 
       analytics.track('workflow_chain_started', {
         chain_name: workflow?.chain_name,
         chain_run_id: result.chain_run_id,
         step_count: workflow?.chain_steps?.length,
       });
+      setIsWorkflowRunning(false);
     } catch (error: any) {
       console.error('[ChatWithArtifacts] Failed to run chain:', error);
       setIsWorkflowRunning(false);
@@ -922,7 +877,224 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
   };
 
-  const handleRunPipeline = handleRunChain;
+  const patchWorkflowChainRunId = (
+    workflow: any,
+    chainRunId: string,
+    runId?: string,
+    chainPayload?: Record<string, unknown>,
+  ) => {
+    if (!currentChatSession) return;
+    const freshSession = chatHistoryService.getSession(currentChatSession.id);
+    if (!freshSession) return;
+
+    const updatedMessages = freshSession.messages.map((msg) => {
+      const wf = msg.metadata?.workflow;
+      if (msg.metadata?.type !== 'workflow' || !wf) return msg;
+      const samePipeline =
+        wf.workflow_type === 'pipeline' &&
+        (wf.name === workflow?.name || !workflow?.name);
+      const sameChain =
+        wf.workflow_type === 'chain' &&
+        (wf.chain_name === workflow?.chain_name || !workflow?.chain_name);
+      if (!samePipeline && !sameChain) return msg;
+
+      const stepsKey = wf.workflow_type === 'pipeline' ? 'pipeline_steps' : 'chain_steps';
+      const existingSteps = (wf[stepsKey] as Record<string, unknown>[]) || [];
+      const chainSteps = (chainPayload?.steps as Record<string, unknown>[]) || [];
+      const syncedSteps =
+        chainSteps.length > 0
+          ? syncPipelineStepsFromChain(existingSteps, chainSteps)
+          : existingSteps;
+
+      return {
+        ...msg,
+        metadata: {
+          ...msg.metadata,
+          workflow: {
+            ...wf,
+            chain_run_id: chainRunId,
+            [stepsKey]: syncedSteps,
+          },
+          invocationId: runId || chainRunId,
+        },
+      };
+    });
+
+    onChatUpdated({ ...freshSession, messages: updatedMessages });
+  };
+
+  const handleRunPipeline = async (workflow: any) => {
+    emitUxEvent('workflow.pipeline_run_clicked', {
+      sessionId: currentChatSession?.id,
+      pipelineName: workflow?.name,
+    });
+    setWorkflowError(null);
+    setIsWorkflowRunning(true);
+    setWorkflowProgress(0);
+
+    try {
+      const result = await submitWorkflowFromArtifact(
+        workflow,
+        currentChatSession?.id,
+        { endAtStep: 0 },
+      );
+
+      if (result.runId) {
+        await loadRun(result.runId);
+      }
+
+      patchWorkflowChainRunId(workflow, result.chain_run_id, result.runId, {
+        steps: result.steps as Record<string, unknown>[] | undefined,
+      });
+
+      analytics.track('workflow_pipeline_started', {
+        pipeline_name: workflow?.name,
+        chain_run_id: result.chain_run_id,
+        step_count: workflow?.pipeline_steps?.length,
+      });
+      setIsWorkflowRunning(false);
+    } catch (error: any) {
+      console.error('[ChatWithArtifacts] Failed to run pipeline:', error);
+      setIsWorkflowRunning(false);
+      setWorkflowProgress(0);
+      setWorkflowError(error?.message || 'Failed to run pipeline');
+      analytics.track('workflow_pipeline_failed', { error: error?.message });
+    }
+  };
+
+  const handleApprovePipelineStep = async (
+    workflow: any,
+    _completedStepId: string,
+    nextStepId: string,
+  ) => {
+    const chainRunId = workflow?.chain_run_id;
+    if (!chainRunId) {
+      setWorkflowError('Pipeline has no active chain run — run step 1 first');
+      return;
+    }
+
+    const rawSteps =
+      (workflow.pipeline_steps as Record<string, unknown>[]) ||
+      (workflow.chain_steps as Record<string, unknown>[]) ||
+      [];
+    const nextIdx = rawSteps.findIndex(
+      (s, idx) => String(s.id || `step-${idx}`) === nextStepId,
+    );
+    if (nextIdx < 0) {
+      setWorkflowError(`Unknown pipeline step: ${nextStepId}`);
+      return;
+    }
+
+    setWorkflowError(null);
+    setIsWorkflowRunning(true);
+
+    try {
+      const result = await resumeWorkflowChain({
+        chainRunId,
+        steps: buildChainSubmitSteps(rawSteps),
+        connections: buildChainConnections(workflow),
+        startFromStep: nextIdx,
+        endAtStep: nextIdx,
+        chainName: workflow?.name || workflow?.chain_name,
+        chatSessionId: currentChatSession?.id,
+      });
+
+      if (result.runId) {
+        await loadRun(result.runId);
+      }
+
+      patchWorkflowChainRunId(workflow, chainRunId, result.runId, {
+        steps: result.steps as Record<string, unknown>[] | undefined,
+      });
+
+      analytics.track('workflow_pipeline_step_approved', {
+        chain_run_id: chainRunId,
+        step_index: nextIdx,
+      });
+      setIsWorkflowRunning(false);
+    } catch (error: any) {
+      console.error('[ChatWithArtifacts] Failed to approve pipeline step:', error);
+      setIsWorkflowRunning(false);
+      setWorkflowError(error?.message || 'Failed to resume pipeline');
+    }
+  };
+
+  // Poll active chain runs and sync step statuses into pipeline/chain chat artifacts
+  useEffect(() => {
+    if (!currentChatSession) return;
+
+    const activeIds = new Set<string>();
+    for (const msg of currentChatSession.messages) {
+      const wf = msg.metadata?.workflow as Record<string, unknown> | undefined;
+      const chainRunId = wf?.chain_run_id as string | undefined;
+      if (!chainRunId) continue;
+      const wtype = wf?.workflow_type;
+      if (wtype === 'pipeline' || wtype === 'chain') {
+        activeIds.add(chainRunId);
+      }
+    }
+    if (activeIds.size === 0) return;
+
+    let cancelled = false;
+
+    const syncChainPayload = (chainRunId: string, payload: Record<string, unknown>) => {
+      const chainSteps = (payload.steps as Record<string, unknown>[]) || [];
+      const chainStatus = String(payload.status || 'running').toLowerCase();
+      const freshSession = chatHistoryService.getSession(currentChatSession.id);
+      if (!freshSession) return;
+
+      let changed = false;
+      const updatedMessages = freshSession.messages.map((msg) => {
+        const wf = msg.metadata?.workflow as Record<string, unknown> | undefined;
+        if (!wf || wf.chain_run_id !== chainRunId) return msg;
+
+        const stepsKey = wf.workflow_type === 'pipeline' ? 'pipeline_steps' : 'chain_steps';
+        const existingSteps = (wf[stepsKey] as Record<string, unknown>[]) || [];
+        const syncedSteps = syncPipelineStepsFromChain(existingSteps, chainSteps);
+        const stepsChanged = JSON.stringify(syncedSteps) !== JSON.stringify(existingSteps);
+        if (stepsChanged) changed = true;
+
+        return {
+          ...msg,
+          metadata: {
+            ...msg.metadata,
+            workflow: {
+              ...wf,
+              [stepsKey]: syncedSteps,
+              chain_status: chainStatus,
+            },
+          },
+        };
+      });
+
+      if (changed) {
+        onChatUpdated({ ...freshSession, messages: updatedMessages });
+      }
+    };
+
+    const poll = async () => {
+      for (const chainRunId of [...activeIds]) {
+        if (cancelled) return;
+        try {
+          const payload = await fetchChainStatus(chainRunId);
+          syncChainPayload(chainRunId, payload);
+          const status = String(payload.status || 'running').toLowerCase();
+          if (['succeeded', 'failed', 'cancelled'].includes(status)) {
+            activeIds.delete(chainRunId);
+          }
+        } catch {
+          // ignore transient poll errors
+        }
+      }
+    };
+
+    void poll();
+    const timer = window.setInterval(() => void poll(), 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [currentChatSession, onChatUpdated]);
 
   const handleStopWorkflow = async () => {
     console.log('[ChatWithArtifacts] Stopping workflow');
@@ -1631,6 +1803,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onRunWorkflow={handleRunWorkflow}
             onRunChain={handleRunChain}
             onRunPipeline={handleRunPipeline}
+            onApprovePipelineStep={handleApprovePipelineStep}
             onStopWorkflow={handleStopWorkflow}
             onPauseWorkflow={handlePauseWorkflow}
             onResumeWorkflow={handleResumeWorkflow}

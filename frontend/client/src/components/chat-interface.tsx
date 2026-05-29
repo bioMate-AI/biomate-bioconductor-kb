@@ -65,6 +65,9 @@ interface ChatInterfaceProps {
   onToggleProgress?: () => void
   // Workflow execution props for inline artifacts
   onRunWorkflow?: (workflow: any, steps: any[]) => void
+  onRunChain?: (workflow: any) => void
+  onRunPipeline?: (workflow: any) => void
+  onApprovePipelineStep?: (workflow: any, completedStepId: string, nextStepId: string) => void
   onStopWorkflow?: () => void
   onPauseWorkflow?: () => void
   onResumeWorkflow?: () => void
@@ -409,6 +412,9 @@ export function ChatInterface({
   showProgress,
   onToggleProgress,
   onRunWorkflow,
+  onRunChain,
+  onRunPipeline,
+  onApprovePipelineStep,
   onStopWorkflow,
   onPauseWorkflow,
   onResumeWorkflow,
@@ -1764,6 +1770,9 @@ export function ChatInterface({
                 }}
                 // Workflow execution props for inline artifacts
                 onRunWorkflow={onRunWorkflow}
+                onRunChain={onRunChain}
+                onRunPipeline={onRunPipeline}
+                onApprovePipelineStep={onApprovePipelineStep}
                 onStopWorkflow={onStopWorkflow}
                 onPauseWorkflow={onPauseWorkflow}
                 onResumeWorkflow={onResumeWorkflow}
