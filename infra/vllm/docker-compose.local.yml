@@ -1,0 +1,76 @@
+# Local smoke-test compose for the BioMate vLLM HTTP-client path.
+#
+# Purpose: validate end-to-end (image boot -> LoRA discovery -> /v1/models ->
+# chat completion -> ind_assembly client) on a workstation GPU before paying
+# for the ASG. Mirrors the production runtime exactly:
+#
+#   - same image / entrypoint as the ECR build (infra/vllm/Dockerfile)
+#   - same ADAPTERS_DIR layout (subdir per adapter, each with lora_adapter/)
+#   - same Qwen3-8B base model, same --lora-modules wiring via start-vllm.sh
+#
+# Differences vs. production (deliberate, documented):
+#   - "EFS" is bind-mounted from the repo ./models dir (read-only)
+#   - HF cache is bind-mounted from the user's local HF cache so we don't
+#     re-download 16GB of Qwen3-8B weights on every cold start
+#   - no ALB, no spot monitor target group (spot-monitor.sh will no-op when
+#     IMDS is unreachable, which is the case in Docker)
+#
+# Run:
+#   cd infra/vllm && docker compose -f docker-compose.local.yml up --build
+#
+# Verify with:
+#   ./smoke-test.sh
+#
+# Tear down:
+#   docker compose -f docker-compose.local.yml down
+
+services:
+  vllm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: biomate-vllm:local
+    container_name: biomate-vllm-local
+    ports:
+      - "8000:8000"
+    environment:
+      # Match production defaults from start-vllm.sh, just smaller mem util
+      # to leave room for the workstation's other GPU consumers.
+      BASE_MODEL: "Qwen/Qwen3-8B"
+      ADAPTERS_DIR: "/mnt/efs/biomate-adapters"
+      HF_CACHE_DIR: "/root/.cache/huggingface"
+      GPU_MEM_UTIL: "0.80"
+      MAX_MODEL_LEN: "4096"
+      MAX_LORAS: "4"
+      MAX_LORA_RANK: "16"
+      VLLM_PORT: "8000"
+      # Disable the spot-monitor's AWS calls in local mode. spot-monitor.sh
+      # polls IMDS (169.254.169.254) which is unreachable from Docker; it
+      # logs and continues, but we set this to keep logs quiet.
+      BIOMATE_DISABLE_SPOT_MONITOR: "1"
+    volumes:
+      # "EFS" — the adapter tree. Mounts repo ./models so any adapter dir
+      # with a lora_adapter/ subfolder is auto-discovered by start-vllm.sh.
+      - ../../models:/mnt/efs/biomate-adapters:ro
+      # Reuse the host HF cache so the 16GB Qwen3-8B base isn't re-pulled.
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # vLLM exposes /health once the model is loaded — typically 60-180s
+    # after container start for a cold Qwen3-8B + LoRA boot.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+    # vLLM needs IPC=host for NCCL / shared-memory tensor handoff between
+    # the API server and the engine worker.
+    ipc: host
+    shm_size: "8gb"
+    restart: "no"
