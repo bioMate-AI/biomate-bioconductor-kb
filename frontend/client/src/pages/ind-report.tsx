@@ -338,11 +338,6 @@ function DocPanelHost({
   // body, ships it to the backend markdown renderer, triggers a real file
   // download. DOCX is greyed-out / disabled until python-docx is wired.
   const handleDownload = (fmt: "md" | "docx") => {
-    if (fmt === "docx") {
-      // P0-4 honest stance: don't pretend DOCX works. Tell the user.
-      window.alert("DOCX export ships next sprint. Use the Markdown download for now.");
-      return;
-    }
     const sections: DocumentSection[] = DEMO_DOC_FOR_PANEL.sections.map((s) => {
       const subs = (s as { subs?: { id: string }[] }).subs ?? [];
       return {
@@ -354,8 +349,9 @@ function DocPanelHost({
           .join("\n\n"),
       };
     });
-    downloadMarkdown(activeProject.id, sections).catch((e) =>
-      console.error("[ind] markdown download failed:", e),
+    const fn = fmt === "docx" ? downloadDocx : downloadMarkdown;
+    fn(activeProject.id, sections).catch((e) =>
+      console.error(`[ind] ${fmt} download failed:`, e),
     );
   };
 

@@ -12,8 +12,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Download, X } from "lucide-react";
 import {
-  captureDismissal, signDocument, sha256Hex,
-  type DismissalReason, type SignResponse,
+  captureDismissal, signDocument, sha256Hex, downloadDocx,
+  type DismissalReason, type SignResponse, type DocumentSection,
 } from "@/lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
 
@@ -127,10 +127,29 @@ export function IndSignOverlay({
               Sig ID: {sigResp?.signature_id?.slice(0, 12) ?? "pending"}… · {sigResp?.signed_at ?? new Date().toISOString()}
             </div>
             <div className="actions">
-              <button className="ind-btn primary">
+              <button
+                className="ind-btn primary"
+                onClick={() => {
+                  const sections: DocumentSection[] = (doc.sections ?? []).map((s: any) => {
+                    const subs = (s.subs ?? []) as { id: string }[];
+                    const bodyByPid = (doc as any).bodyByPid ?? {};
+                    return {
+                      id: s.id,
+                      title: s.title,
+                      body: subs
+                        .map((sub) => bodyByPid[`p-${sub.id}`] ?? "")
+                        .filter(Boolean)
+                        .join("\n\n"),
+                    };
+                  });
+                  downloadDocx(projectId, sections).catch((e) =>
+                    console.error("[ind] DOCX download failed:", e),
+                  );
+                }}
+              >
                 <Download size={13} /> Download DOCX
               </button>
-              <button className="ind-btn">
+              <button className="ind-btn" disabled title="Audit-trail PDF ships next sprint">
                 <Download size={13} /> Download Audit Trail PDF
               </button>
               <button className="ind-btn" onClick={onCancel}>

@@ -1,1 +1,2 @@
 2026-04-08 20:16:59	1m 44s	marvelous_bernard	OK	7cc0d8983cb658734a040a56497be289	196e97c0-2188-47de-97c0-de0c7eb8d06b	nextflow run main.nf -profile docker --outdir /tmp/p0_mrna_results -resume
+2026-05-29 06:23:11	1m 43s	curious_tesla	OK	3a6eed353a55cb868a7be65a282e3a60	85dd0649-5ac4-4ddd-a937-5f673c785364	nextflow run main.nf -profile docker --outdir /tmp/nf_smoke_20260529/p0/out -work-dir /tmp/nf_smoke_20260529/p0/work
