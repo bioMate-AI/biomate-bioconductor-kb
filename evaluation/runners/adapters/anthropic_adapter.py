@@ -31,13 +31,16 @@ class AnthropicAdapter:
         self._ensure_client()
         # tenacity retry handled in the orchestrator (so it's consistent
         # across providers); this method does one call.
-        resp = self._client.messages.create(
+        # claude-opus-4-8 (and successor reasoning models) deprecate temperature.
+        kwargs = dict(
             model=self.model,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
             max_tokens=max_new_tokens,
-            temperature=0.3,
         )
+        if "opus-4-8" not in self.model:
+            kwargs["temperature"] = 0.3
+        resp = self._client.messages.create(**kwargs)
         text = "".join(
             block.text for block in resp.content if getattr(block, "type", "") == "text"
         )

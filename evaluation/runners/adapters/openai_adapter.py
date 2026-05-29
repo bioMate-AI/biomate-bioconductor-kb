@@ -36,9 +36,11 @@ class OpenAIAdapter:
                 {"role": "user", "content": user_prompt},
             ],
         }
-        # o-series uses max_completion_tokens, not max_tokens, and ignores temperature
-        if self.model.startswith("o"):
-            kwargs["max_completion_tokens"] = max_new_tokens
+        # o-series and gpt-5 family use max_completion_tokens (not max_tokens);
+        # both reject temperature. Reasoning tokens eat the budget before any
+        # visible output, so allocate generously for these models.
+        if self.model.startswith("o") or self.model.startswith("gpt-5"):
+            kwargs["max_completion_tokens"] = max(max_new_tokens * 6, 2400)
         else:
             kwargs["max_tokens"] = max_new_tokens
             kwargs["temperature"] = 0.3

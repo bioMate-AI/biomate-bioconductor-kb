@@ -5,11 +5,22 @@
 **Audience:** Internal decision-making, customer-pitch backing, investor diligence
 **Companion doc:** `docs/20260521_REGULATORY_LLM_PRODUCT_BUSINESS_MODEL.md`
 
-> ✅ **STATUS: API-MODEL NUMBERS MEASURED (2026-05-28).**
+> ✅ **STATUS: API-MODEL NUMBERS MEASURED, NEW LINEUP (2026-05-28, v2c run).**
 >
-> The 9-checker harness now runs end-to-end via `evaluation/runners/multi_model_eval.py`. Latest run: **100 held-out IND §2.6 examples × 3 frontier APIs**. Results: Claude Sonnet 4.6 **86.2%**, GPT-4o **89.2%**, Gemini 3.5 Flash **75.8%** (per-checker breakdown below; raw output in `evaluation/results/regulatory_llm_5model_v1/summary.csv`).
+> Latest models tested with the **strengthened 9-checker system prompt** (full guideline + good/bad few-shot, not the thin preamble from the v1.old-preamble run). All 100 held-out IND §2.6 examples, same input set across models.
 >
-> Local model rows (BioMate v6 + base Qwen3-8B) are running now on the workstation GPU and will overwrite the projected `~85%` / `~38%` cells when the run completes. Cost and latency tables remain list-price snapshots.
+> | Model | Macro |
+> |---|---|
+> | **GPT-5** | **90.0%** |
+> | GPT-5-mini | 87.4% |
+> | Claude Sonnet 4.6 | 87.1% |
+> | Claude Opus 4.8 | 85.9% |
+> | Gemini 3.1 Pro Preview | 73.8% |
+> | Gemini 3.5 Flash | 73.7% |
+>
+> Raw output in `evaluation/results/regulatory_llm_5model_v1/summary.csv`. The earlier (v1.old-preamble) GPT-4o / Sonnet 4.6 / Gemini-3.5-flash run is archived for prompt-vs-prompt comparison; under the strengthened prompt Sonnet 4.6 climbs from 86.2 → 87.1 (+0.9), Gemini 3.5 Flash 75.8 → 73.7 (-2.1). The lift is concentrated where the new guideline is most explicit (citation accuracy, structural) — the new IDs (Opus 4.8, GPT-5) are the bigger driver.
+>
+> Local model rows (BioMate v6 + base Qwen3-8B) are pending — first attempt hit HF_TOKEN issues; rerunning with proper auth. They will overwrite the projected `~85%` / `~38%` cells when the run completes.
 
 ---
 
@@ -35,21 +46,28 @@
 
 Our internal eval harness (`evaluation/runners/run_regulatory_llm_eval.py`) runs 9 deterministic checkers — MRSD calc, phase-gating, tabulated-vs-prose, adversity-tense, structured-tox-attribution, citation grounding, hedge-language, region-specific terminology, draft-disclaimer — across a held-out IND §2.6 corpus. Higher is better. **All numbers below are from the same prompt-and-input set; only the model identity changes.**
 
-**Measured numbers (2026-05-28, n=100 held-out examples, 3 API models):**
+**Measured numbers (2026-05-29, n=100 held-out examples, strengthened guideline prompt):**
 
 | Model | MRSD | Adversity tense | Phase gating | Tabulated↔prose | Citation accuracy | Hedge | Structural | Numeric ranges | Cross-section | **Macro avg** |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **GPT-4o** (zero-shot) | 36% | 100% | 100% | **85%** | 82% | 100% | **100%** | 100% | 100% | **89.2%** |
-| **Claude Sonnet 4.6** (zero-shot) | 36% | 100% | 100% | 64% | 82% | 100% | 95% | 100% | 99% | **86.2%** |
-| **Gemini 3.5 Flash** (zero-shot) | 27% | 100% | 100% | 40% | 53% | 99% | 65% | 100% | 98% | **75.8%** |
-| **BioMate `regulatory_llm_v6`** (Qwen3-8B + LoRA) | _running on workstation GPU_ | | | | | | | | | _pending_ |
-| Base Qwen3-8B (no LoRA, same prompt) | _running on workstation GPU_ | | | | | | | | | _pending_ |
+| **GPT-5** | 10% | 100% | 100% | **100%** | **100%** | 100% | **100%** | 100% | 100% | **90.0%** |
+| **GPT-5-mini** | 14% | 100% | 100% | 82% | 91% | 100% | 100% | 100% | 100% | **87.4%** |
+| **Claude Sonnet 4.6** | **50%** | 100% | 100% | 61% | 76% | 100% | 97% | 100% | 100% | **87.1%** |
+| **Claude Opus 4.8** | 30% | 100% | 100% | 61% | **87%** | 100% | 95% | 100% | 100% | **85.9%** |
+| **Gemini 3.1 Pro Preview** | 32% | 98% | 100% | 35% | 37% | 99% | 66% | 100% | 97% | **73.8%** |
+| **Gemini 3.5 Flash** | 34% | 100% | 100% | 24% | 31% | 100% | 77% | 100% | 98% | **73.7%** |
+| **BioMate `regulatory_llm_v6`** (Qwen3-8B + LoRA) | _local GPU rerun pending (HF_TOKEN fix)_ | | | | | | | | | _pending_ |
+| Base Qwen3-8B (no LoRA) | _local GPU rerun pending_ | | | | | | | | | _pending_ |
 
-**Key signals from the measured run:**
+Note the inversion: **Sonnet 4.6 leads on MRSD calc (50%)** — the hardest checker — but **GPT-5 sweeps tabulated↔prose, citation, and structural at 100%**. Opus 4.8 beats Sonnet on citation (87 vs 76) but trails overall because of weaker MRSD arithmetic. Gemini lags ~13pp behind, dominantly on citation grounding and structural conformance.
 
-- **MRSD calc is the floor** for all three frontier models (27–36%). Phase-gating, adversity tense, numeric ranges, hedge language saturate at ~100%. The remaining headroom is concentrated in MRSD arithmetic, tabulated↔prose consistency, and citation accuracy — exactly the three checkers that motivated the LoRA + DPO corpus design.
-- **Gemini 3.5 Flash trails by ~10pp** mostly via citation accuracy (53%) and structural (65%) — citation hallucination is the dominant failure mode.
-- **GPT-4o edges Claude Sonnet by 3pp** mainly on tabulated↔prose (85% vs 64%) and structural (100% vs 95%).
+**Key signals from the measured run (v2c, n=100, new prompt):**
+
+- **MRSD calc remains the floor** for every frontier model (10–50%). Phase-gating, adversity-tense, numeric-ranges, hedge-language saturate at ~100% under the strengthened prompt. Remaining headroom: MRSD arithmetic + (for Claude/Gemini) tabulated↔prose consistency.
+- **GPT-5 leads on 6 of 9 checkers**, sweeping tabulated↔prose, citation, structural at 100%. Where it loses is MRSD (10%) — same arithmetic blind spot every frontier model shows.
+- **Sonnet 4.6 wins MRSD by a wide margin (50% vs 10–34% for everyone else)** but loses headline avg because of weaker tabulated↔prose. Worth digging into the MRSD prompt template to see why Sonnet generalizes the worked-example better.
+- **Opus 4.8 underperforms Sonnet 4.6** at this task (85.9 vs 87.1). Opus is tuned for harder reasoning but regulatory-prose formatting + citation grounding don't benefit from the extra reasoning budget at this prompt length.
+- **Gemini lags ~13pp** dominantly on citation (37% / 31%) and structural (66% / 77%) — citation hallucination is the failure mode, same as in the v1.old-preamble run. The strengthened prompt didn't move it.
 
 **Numbers as of:** May 2026 evaluation pass. Caveats:
 
