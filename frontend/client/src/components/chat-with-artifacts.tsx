@@ -645,6 +645,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       return;
     }
 
+    // Funnel event — closes the gap between query_sent and workflow_started.
+    analytics.track('workflow_suggested', {
+      workflow_name: workflow?.name || workflow?.display_name || workflow?.workflow_name,
+      domain: workflow?.domain,
+      workflow_steps: typeof workflow?.steps === 'object' && workflow?.steps
+        ? Object.keys(workflow.steps).length
+        : Array.isArray(workflow?.pipeline_steps)
+          ? workflow.pipeline_steps.length
+          : undefined,
+    });
+
     // Get fresh session and update with workflow data in the message metadata
     const freshSession = chatHistoryService.getSession(currentChatSession.id);
     if (freshSession) {
