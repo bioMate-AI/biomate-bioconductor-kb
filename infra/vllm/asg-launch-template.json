@@ -1,0 +1,52 @@
+{
+  "_comment": "AWS Launch Template + Mixed Instances Policy for the BioMate vLLM ASG. Apply with `aws ec2 create-launch-template-version` + `aws autoscaling update-auto-scaling-group` — see docs/20260528_VLLM_DEPLOY_RUNBOOK.md. UserData must be base64-encoded from cloud-init.yaml after substituting ${target_group_arn}, ${aws_region}, ${ecr_image}, ${ecr_registry}, ${efs_id}.",
+
+  "LaunchTemplateData": {
+    "ImageId": "ami-0c7217cdde317cfec",
+    "InstanceType": "g6.xlarge",
+    "IamInstanceProfile": { "Name": "biomate-vllm-instance-profile" },
+    "SecurityGroupIds": ["sg-REPLACE-ME"],
+    "BlockDeviceMappings": [
+      {
+        "DeviceName": "/dev/sda1",
+        "Ebs": { "VolumeSize": 100, "VolumeType": "gp3", "DeleteOnTermination": true }
+      }
+    ],
+    "MetadataOptions": {
+      "HttpTokens": "required",
+      "HttpEndpoint": "enabled",
+      "HttpPutResponseHopLimit": 2
+    },
+    "TagSpecifications": [
+      { "ResourceType": "instance",
+        "Tags": [
+          { "Key": "Name", "Value": "biomate-vllm-asg-node" },
+          { "Key": "service", "Value": "regulatory-llm" },
+          { "Key": "managed-by", "Value": "biomate-vllm-asg" }
+        ]
+      }
+    ],
+    "UserData": "BASE64_ENCODED_CLOUD_INIT_HERE"
+  },
+
+  "_mixed_instances_policy": {
+    "_comment": "Apply this policy to the ASG (not the launch template). 80% spot to keep cost ~$1,760/mo for 5-node steady state; 20% on-demand baseline so a region-wide spot squeeze still leaves the regulatory-LLM endpoint serving.",
+    "LaunchTemplate": {
+      "LaunchTemplateSpecification": {
+        "LaunchTemplateName": "biomate-vllm-lt",
+        "Version": "$Latest"
+      },
+      "Overrides": [
+        { "InstanceType": "g6.xlarge", "WeightedCapacity": "1" },
+        { "InstanceType": "g6.2xlarge", "WeightedCapacity": "1" },
+        { "InstanceType": "g5.xlarge", "WeightedCapacity": "1" }
+      ]
+    },
+    "InstancesDistribution": {
+      "OnDemandBaseCapacity": 1,
+      "OnDemandPercentageAboveBaseCapacity": 20,
+      "SpotAllocationStrategy": "capacity-optimized",
+      "SpotInstancePools": 3
+    }
+  }
+}

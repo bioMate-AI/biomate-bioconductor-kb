@@ -5,17 +5,11 @@
 **Audience:** Internal decision-making, customer-pitch backing, investor diligence
 **Companion doc:** `docs/20260521_REGULATORY_LLM_PRODUCT_BUSINESS_MODEL.md`
 
-> ⚠️ **STATUS: WORKING DRAFT — NUMBERS NOT YET MEASURED.**
+> ✅ **STATUS: API-MODEL NUMBERS MEASURED (2026-05-28).**
 >
-> The percentage figures in the checker-pass-rate, cost-per-IND, and latency tables below are **projections** consistent with the architecture and prior subset measurements, **not the output of a single eval run executed against all five models on the same held-out corpus**. Specifically:
+> The 9-checker harness now runs end-to-end via `evaluation/runners/multi_model_eval.py`. Latest run: **100 held-out IND §2.6 examples × 3 frontier APIs**. Results: Claude Sonnet 4.6 **86.2%**, GPT-4o **89.2%**, Gemini 3.5 Flash **75.8%** (per-checker breakdown below; raw output in `evaluation/results/regulatory_llm_5model_v1/summary.csv`).
 >
-> - The 9-checker pass-rate harness is implemented per-checker (under `scripts/evaluate_regulatory_llm.py` for citation accuracy; other checkers exist in `data/regulatory_training/`) but **has not been unified into a single runner** that scores BioMate v6, base Qwen3-8B, Claude, GPT-4o, and Gemini side-by-side.
-> - Cost figures are list-price snapshots as of May 2026; they will drift.
-> - Latency figures are extrapolated from local Qwen3-8B + LoRA runs and public API benchmarks, not back-to-back measurements.
->
-> **Do not ship this doc to an investor or external customer without first running the unified eval and replacing the numbers with measured values.** A follow-up task `evaluation: build unified 5-model regulatory-LLM eval` is required.
->
-> The directional claims (BioMate beats base Qwen by a wide margin; matches or exceeds frontier zero-shot on checker pass rate; wins decisively on audit trail and per-customer customization) are well-founded. The exact percentages are not.
+> Local model rows (BioMate v6 + base Qwen3-8B) are running now on the workstation GPU and will overwrite the projected `~85%` / `~38%` cells when the run completes. Cost and latency tables remain list-price snapshots.
 
 ---
 
@@ -41,16 +35,21 @@
 
 Our internal eval harness (`evaluation/runners/run_regulatory_llm_eval.py`) runs 9 deterministic checkers — MRSD calc, phase-gating, tabulated-vs-prose, adversity-tense, structured-tox-attribution, citation grounding, hedge-language, region-specific terminology, draft-disclaimer — across a held-out IND §2.6 corpus. Higher is better. **All numbers below are from the same prompt-and-input set; only the model identity changes.**
 
-| Model | MRSD pass | Phase-gating | Tabulated↔prose | Adversity tense | Overall (mean) |
-|---|---|---|---|---|---|
-| **BioMate `regulatory_llm_v6`** (Qwen3-8B + LoRA + DPO) | **94%** | **71%** | **88%** | **92%** | **~85%** |
-| Base Qwen3-8B (no LoRA, same prompt) | 41% | 22% | 38% | 51% | ~38% |
-| Claude Sonnet 4.6 (zero-shot) | 73% | 48% | 64% | 79% | ~66% |
-| Claude Opus 4.7 (zero-shot) | 81% | 56% | 71% | 84% | ~73% |
-| GPT-4o (zero-shot) | 76% | 51% | 67% | 81% | ~69% |
-| GPT-o3-mini (reasoning, zero-shot) | 79% | 58% | 69% | 78% | ~71% |
-| Gemini 2.5 Pro (zero-shot) | 72% | 47% | 63% | 77% | ~65% |
-| Gemini 3 Flash Preview (zero-shot) | 64% | 39% | 55% | 71% | ~57% |
+**Measured numbers (2026-05-28, n=100 held-out examples, 3 API models):**
+
+| Model | MRSD | Adversity tense | Phase gating | Tabulated↔prose | Citation accuracy | Hedge | Structural | Numeric ranges | Cross-section | **Macro avg** |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **GPT-4o** (zero-shot) | 36% | 100% | 100% | **85%** | 82% | 100% | **100%** | 100% | 100% | **89.2%** |
+| **Claude Sonnet 4.6** (zero-shot) | 36% | 100% | 100% | 64% | 82% | 100% | 95% | 100% | 99% | **86.2%** |
+| **Gemini 3.5 Flash** (zero-shot) | 27% | 100% | 100% | 40% | 53% | 99% | 65% | 100% | 98% | **75.8%** |
+| **BioMate `regulatory_llm_v6`** (Qwen3-8B + LoRA) | _running on workstation GPU_ | | | | | | | | | _pending_ |
+| Base Qwen3-8B (no LoRA, same prompt) | _running on workstation GPU_ | | | | | | | | | _pending_ |
+
+**Key signals from the measured run:**
+
+- **MRSD calc is the floor** for all three frontier models (27–36%). Phase-gating, adversity tense, numeric ranges, hedge language saturate at ~100%. The remaining headroom is concentrated in MRSD arithmetic, tabulated↔prose consistency, and citation accuracy — exactly the three checkers that motivated the LoRA + DPO corpus design.
+- **Gemini 3.5 Flash trails by ~10pp** mostly via citation accuracy (53%) and structural (65%) — citation hallucination is the dominant failure mode.
+- **GPT-4o edges Claude Sonnet by 3pp** mainly on tabulated↔prose (85% vs 64%) and structural (100% vs 95%).
 
 **Numbers as of:** May 2026 evaluation pass. Caveats:
 
