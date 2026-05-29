@@ -165,6 +165,8 @@ function toValidRunStatus(raw: string | undefined | null): ExecutionRunStatus {
     stopped: 'cancelled',
     scheduled: 'queued',
     pending: 'queued',
+    awaiting_approval: 'paused',
+    paused: 'paused',
   };
   const mapped = mapping[raw.toLowerCase()];
   if (mapped) return mapped;
@@ -8256,17 +8258,11 @@ ${paramLines || '(none recorded)'}`;
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              // Profile selection on Batch (2026-05-22 fix, re-applied 2026-05-28):
-              // biomate-ai-tools workflows define an `aws` profile (no `docker` profile).
-              // nf-core pipelines define `docker` but on Batch they accept `aws` too since
-              // both delegate to the awsbatch executor. Empirically (see sweep on 2026-05-22):
-              // 4 of 5 drug-dev failures were "Unknown configuration profile: 'docker'" from
-              // workflows whose nextflow.config only declares aws/local/spot_gpu/test profiles.
-              // Standardise on `aws` for all Batch runs.
+              // nf-core on AWS Batch uses profile docker + awsbatch executor (not profile "aws").
               profile:
                 paramProfile ||
                 request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'docker' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
@@ -8592,12 +8588,91 @@ ${paramLines || '(none recorded)'}`;
         return res.status(404).json({ error: "Execution run not found" });
       }
 
+      // Chain runs: poll Python chain executor and mirror progress into ExecutionRun
+      const isChainRun =
+        run.execution?.executionEngine === 'chain' ||
+        run.workflowDefinition?.workflow_type === 'chain';
+      let chainStatus: any | undefined = undefined;
+      if (isChainRun && run.execution?.galaxyInvocationId) {
+        try {
+          const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+          const chainResp = await fetch(
+            `${galaxyUrl}/api/workflows/chain/${encodeURIComponent(run.execution.galaxyInvocationId)}`,
+            { signal: AbortSignal.timeout(10000) },
+          );
+          if (chainResp.ok) {
+            chainStatus = await chainResp.json();
+            const chainState = String(chainStatus.status || 'running').toLowerCase();
+            const progress = chainStatus.progress || {};
+            const completedSteps =
+              progress.completedSteps ?? chainStatus.steps_completed ?? run.progress.completedSteps;
+            const totalSteps =
+              progress.totalSteps ?? chainStatus.steps_total ?? run.progress.totalSteps;
+            const isTerminal = ['succeeded', 'failed', 'cancelled'].includes(chainState);
+            const isPaused = chainState === 'awaiting_approval';
+            const mappedStatus = toValidRunStatus(chainState);
+            const progressPatch = {
+              totalSteps,
+              completedSteps,
+              percentComplete: totalSteps
+                ? Math.round((100 * completedSteps) / totalSteps)
+                : run.progress.percentComplete,
+            };
+
+            if (isTerminal && run.execution.status !== mappedStatus) {
+              run =
+                (await storage.updateExecutionRun(run.id, {
+                  execution: {
+                    ...run.execution,
+                    status: mappedStatus,
+                    completedAt: new Date(),
+                    nextflowStatus: chainStatus,
+                  },
+                  progress: { ...run.progress, ...progressPatch },
+                })) || run;
+
+              const chainName =
+                run.workflowDefinition?.chain_name || run.workflowDefinition?.name;
+              if (chainState === 'succeeded' && chainName) {
+                fetch(`${galaxyUrl}/api/workflow-chains/record-run`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chain_name: chainName, success: true }),
+                }).catch(() => undefined);
+              }
+            } else if (isPaused && run.execution.status !== 'paused') {
+              run =
+                (await storage.updateExecutionRun(run.id, {
+                  execution: {
+                    ...run.execution,
+                    status: 'paused',
+                    nextflowStatus: chainStatus,
+                  },
+                  progress: { ...run.progress, ...progressPatch },
+                })) || run;
+            } else if (run.execution.status === 'running' || run.execution.status === 'paused') {
+              run =
+                (await storage.updateExecutionRun(run.id, {
+                  execution: {
+                    ...run.execution,
+                    nextflowStatus: chainStatus,
+                  },
+                  progress: { ...run.progress, ...progressPatch },
+                })) || run;
+            }
+          }
+        } catch (chainErr: any) {
+          console.warn('[ExecutionRun] Failed to fetch chain status:', chainErr?.message || chainErr);
+        }
+      }
+
       // Return lightweight status response
       const isNextflowRun =
-        getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
+        !isChainRun &&
+        (getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
         run.execution?.executionEngine === 'nextflow' ||
-        !!run.execution?.nextflowRunId || // CryoSPARC-via-Nextflow: nf run stored explicitly
-        (run.execution?.executionEngine === 'cryosparc' && !!run.execution?.galaxyInvocationId); // CryoSPARC uses galaxyInvocationId as NF run ID
+        !!run.execution?.nextflowRunId ||
+        (run.execution?.executionEngine === 'cryosparc' && !!run.execution?.galaxyInvocationId));
       let nextflowStatus: any | undefined = undefined;
       let autofix: any | undefined = undefined;
       if (isNextflowRun && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
@@ -9151,8 +9226,14 @@ Rules:
       const rawSteps = req.body?.steps || req.body?.workflow_steps || [];
       const backendBody = {
         chain_run_id: req.body?.chain_run_id,
+        chain_name: req.body?.chain_name || req.body?.workflow_name,
+        chat_session_id: req.body?.chatSessionId || req.body?.chat_session_id,
+        connections: req.body?.connections || [],
+        start_from_step: req.body?.start_from_step ?? 0,
+        end_at_step: req.body?.end_at_step ?? req.body?.endAtStep ?? undefined,
         steps: rawSteps.map((s: any) => ({
           nextflow_path: s.nextflow_path || s.workflowPath || s.workflow_path || s.nextflowPath,
+          workflow_name: s.workflow_name || s.name,
           params: s.params || s.parameters || {},
         })),
       };
@@ -9163,6 +9244,81 @@ Rules:
         signal: AbortSignal.timeout(30000),
       });
       const data = await resp.json();
+
+      // Register chain in session Run Manager (MVI — one campaign object per chat)
+      if (resp.ok && data.chain_run_id) {
+        try {
+          const chainName =
+            req.body?.chain_name ||
+            req.body?.workflow_name ||
+            'Workflow chain';
+          const isResume = Boolean(req.body?.chain_run_id && (req.body?.start_from_step ?? 0) > 0);
+          if (isResume) {
+            const sessionRuns = await storage.getExecutionRuns(
+              req.user?.id,
+              req.body?.projectId,
+              undefined,
+              50,
+              req.body?.chatSessionId,
+            );
+            const existing = sessionRuns.find(
+              (r) => r.execution?.galaxyInvocationId === data.chain_run_id,
+            );
+            if (existing) {
+              const updated = await storage.updateExecutionRun(existing.id, {
+                execution: {
+                  ...existing.execution,
+                  status: 'running',
+                  startedAt: existing.execution.startedAt || new Date(),
+                },
+              });
+              data.runId = updated?.id || existing.id;
+            }
+          }
+          if (!data.runId) {
+          const executionRun = await storage.createExecutionRun(
+            {
+              workflowDefinition: {
+                name: chainName,
+                workflow_type: 'chain',
+                format: 'chain',
+                execution_engine: 'chain',
+                chain_name: req.body?.chain_name,
+                chain_run_id: data.chain_run_id,
+                chain_steps: rawSteps,
+                chain_connections: req.body?.connections || [],
+              },
+              executionConfig: {
+                mode: 'sandbox',
+                dataScope: { fraction: 1.0, samplingStrategy: 'sequential', sampledIds: [] },
+                executionEngine: 'chain',
+              },
+              chatSessionId: req.body?.chatSessionId,
+            },
+            req.user?.id,
+            req.body?.projectId,
+          );
+          const updated = await storage.updateExecutionRun(executionRun.id, {
+            execution: {
+              ...executionRun.execution,
+              status: 'running',
+              galaxyInvocationId: data.chain_run_id,
+              executionEngine: 'chain',
+              startedAt: new Date(),
+            },
+            progress: {
+              totalSteps: rawSteps.length,
+              completedSteps: 0,
+              percentComplete: 0,
+            },
+          });
+          data.runId = updated?.id || executionRun.id;
+          }
+        } catch (regErr: any) {
+          console.warn('[Chain] Failed to register ExecutionRun:', regErr?.message || regErr);
+        }
+      }
+
       res.status(resp.status).json(data);
     } catch (err: any) {
       res.status(503).json({ error: String(err?.message ?? err), detail: 'Chain execution backend unavailable' });
@@ -9177,6 +9333,68 @@ Rules:
       });
       const data = await resp.json();
       res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ error: String(err?.message ?? err) });
+    }
+  });
+
+  app.get("/api/workflows/chain/:chainRunId/outputs", optionalAuth, async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(
+        `${galaxyUrl}/api/workflows/chain/${req.params.chainRunId}/outputs`,
+        { signal: AbortSignal.timeout(15000) },
+      );
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ error: String(err?.message ?? err) });
+    }
+  });
+
+  app.get("/api/workflows/chain/:chainRunId/manifest", optionalAuth, async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(
+        `${galaxyUrl}/api/workflows/chain/${req.params.chainRunId}/manifest`,
+        { signal: AbortSignal.timeout(15000) },
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        return res.status(resp.status).json(data);
+      }
+      // Fallback when Galaxy backend predates manifest route: synthesize from chain status
+      const statusResp = await fetch(
+        `${galaxyUrl}/api/workflows/chain/${req.params.chainRunId}`,
+        { signal: AbortSignal.timeout(10000) },
+      );
+      if (!statusResp.ok) {
+        const errBody = await resp.text().catch(() => '');
+        return res.status(statusResp.status).json({
+          error: errBody || `Chain ${req.params.chainRunId} not found`,
+        });
+      }
+      const state = await statusResp.json();
+      const steps = (state.steps || []).map((step: any) => ({
+        key: step.step_key || step.role || step.workflow_name || `step_${step.index}`,
+        title: step.workflow_name,
+        nextflow_path: step.nextflow_path,
+        run_id: step.run_id,
+        status: step.status,
+        artifacts: step.artifacts || {},
+      }));
+      const succeeded = steps.filter((s: any) => s.status === 'succeeded').length;
+      return res.json({
+        chain_run_id: state.chain_run_id,
+        chain_name: state.chain_name,
+        created_at: state.created_at,
+        updated_at: new Date().toISOString(),
+        status: state.status,
+        through_step: succeeded,
+        steps,
+        manifest_path: null,
+        _fallback: true,
+      });
     } catch (err: any) {
       res.status(503).json({ error: String(err?.message ?? err) });
     }
@@ -9219,14 +9437,61 @@ Rules:
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) run = await storage.getExecutionRunByGalaxyId(req.params.id);
       if (!run) {
-        // Chain runs (/api/workflows/chain) proxy to Python and never register in MemStorage.
-        // Return 200 with empty outputs so callers get a valid response instead of a 404 error state.
+        // Try raw chain_run_id (may be passed directly)
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        try {
+          const chainResp = await fetch(
+            `${galaxyUrl}/api/workflows/chain/${encodeURIComponent(req.params.id)}/outputs`,
+            { signal: AbortSignal.timeout(12000) },
+          );
+          if (chainResp.ok) {
+            const chainData = await chainResp.json() as any;
+            return res.status(200).json({
+              output_files: chainData.output_files || [],
+              outputs: chainData.output_files || [],
+              outdir: null,
+              source: 'chain_aggregate',
+              chain_run_id: chainData.chain_run_id,
+              steps: chainData.steps,
+            });
+          }
+        } catch { /* fall through */ }
         return res.status(200).json({
           output_files: [],
           outputs: [],
           outdir: null,
           source: 'chain_unregistered',
         });
+      }
+
+      // Chain ExecutionRun — aggregate outputs from all steps
+      if (
+        run.execution?.executionEngine === 'chain' ||
+        run.workflowDefinition?.workflow_type === 'chain'
+      ) {
+        const chainId = run.execution?.galaxyInvocationId || run.workflowDefinition?.chain_run_id;
+        if (chainId) {
+          try {
+            const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+            const chainResp = await fetch(
+              `${galaxyUrl}/api/workflows/chain/${encodeURIComponent(chainId)}/outputs`,
+              { signal: AbortSignal.timeout(12000) },
+            );
+            if (chainResp.ok) {
+              const chainData = await chainResp.json() as any;
+              return res.status(200).json({
+                output_files: chainData.output_files || [],
+                outputs: chainData.output_files || [],
+                outdir: null,
+                source: 'chain_aggregate',
+                chain_run_id: chainId,
+                steps: chainData.steps,
+              });
+            }
+          } catch (chainOutErr: any) {
+            console.warn('[output_files] chain aggregate failed:', chainOutErr?.message);
+          }
+        }
       }
       const runId = req.params.id;
       const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';

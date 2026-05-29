@@ -191,6 +191,8 @@ export function WorkflowChainPlan({
 
           {onRunChain && (
             <button
+              type="button"
+              data-testid="button-run-chain-pipeline"
               onClick={onRunChain}
               className="w-full mt-1 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
             >
