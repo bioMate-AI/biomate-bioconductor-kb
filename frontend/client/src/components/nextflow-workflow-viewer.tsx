@@ -1858,6 +1858,7 @@ export function NextflowWorkflowViewer({
         const warnings = (data.warnings || []) as any[];
         if (!proc || warnings.length === 0) return;
         setQcAdvisoryByStep((prev) => ({ ...prev, [proc]: warnings.map((w) => ({ metric: w.metric, value: w.value, threshold: w.threshold })) }));
+        analytics.track('qc_warning', { failing_step: proc, gates_advisory: warnings.length });
       } catch (err) {
         console.error("[QC Warning NFViewer] Failed to parse event:", err);
       }
