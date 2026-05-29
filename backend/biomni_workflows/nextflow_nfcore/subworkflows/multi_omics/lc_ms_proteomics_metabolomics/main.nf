@@ -54,14 +54,12 @@ params.correlation_cutoff  = 0.7
 params.run_joint_enrichment = true
 
 // ── Containers ────────────────────────────────────────────────────────────────
-def PYTHON_CONTAINER = 'quay.io/biocontainers/python:3.11'
-def R_CONTAINER      = 'quay.io/biocontainers/bioconductor-msstats:4.10.0--r43hdfd78af_0'
-def XCMS_CONTAINER   = 'quay.io/biocontainers/bioconductor-xcms:3.24.0--r43hf17093f_0'
+def PYTHON_CONTAINER() { 'quay.io/biocontainers/python:3.11' }
+def R_CONTAINER() { 'quay.io/biocontainers/bioconductor-msstats:4.10.0--r43hdfd78af_0' }
+def XCMS_CONTAINER() { 'quay.io/biocontainers/bioconductor-xcms:3.24.0--r43hf17093f_0' }
 
 // ── Channels ──────────────────────────────────────────────────────────────────
-ch_prot_input = params.proteomics_input
-    ? Channel.fromPath(params.proteomics_input)
-    : Channel.empty()
+// ch_prot_input moved into workflow {} per parser-v2
 
 ch_prot_meta  = params.sample_annotation
     ? Channel.fromPath(params.sample_annotation)
@@ -81,7 +79,7 @@ ch_metab_meta  = params.metabolomics_meta
 
 process PROTEOMICS_QC_NORMALISE {
     tag "Proteomics QC + normalisation"
-    container PYTHON_CONTAINER
+    container PYTHON_CONTAINER()
     publishDir "${params.outdir}/proteomics", mode: 'copy'
 
     input:
@@ -195,7 +193,7 @@ PYEOF
 
 process PROTEOMICS_DIFFERENTIAL_ABUNDANCE {
     tag "Differential abundance (proteomics)"
-    container R_CONTAINER
+    container R_CONTAINER()
     publishDir "${params.outdir}/proteomics", mode: 'copy'
 
     input:
@@ -272,7 +270,7 @@ REOF
 
 process METABOLOMICS_PEAK_PICKING {
     tag "XCMS peak picking"
-    container XCMS_CONTAINER
+    container XCMS_CONTAINER()
     publishDir "${params.outdir}/metabolomics", mode: 'copy'
 
     input:
@@ -350,7 +348,7 @@ REOF
 
 process METABOLOMICS_ANNOTATE_DA {
     tag "Metabolite annotation + DA"
-    container PYTHON_CONTAINER
+    container PYTHON_CONTAINER()
     publishDir "${params.outdir}/metabolomics", mode: 'copy'
 
     input:
@@ -460,7 +458,7 @@ PYEOF
 
 process MULTI_OMICS_INTEGRATION {
     tag "Protein-metabolite integration"
-    container PYTHON_CONTAINER
+    container PYTHON_CONTAINER()
     publishDir "${params.outdir}/multi_omics_integration", mode: 'copy'
 
     input:

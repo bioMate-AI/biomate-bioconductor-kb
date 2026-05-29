@@ -714,7 +714,7 @@ polymorph_stability_screening:
     Blagden & Davey Chem Soc Rev 2003;
     Fleming et al. Org Process Res Dev 2010
 EOF
-    '''
+    """
 }
 
 workflow POLYMORPH_STABILITY_WORKFLOW {
