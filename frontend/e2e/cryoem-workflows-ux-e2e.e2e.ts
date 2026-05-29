@@ -77,31 +77,49 @@ async function shot(page: Page, name: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Auth helpers
+// Auth helpers — API-based fixture login (ported from ADMET test, 2026-05-28).
+// UI registration on dev sets termsAccepted incorrectly and lands the user on
+// /login. Use the shared fixture account + JWT cookie injection instead.
 // ---------------------------------------------------------------------------
+const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "e2e-admet-fixture@biomate.test";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "AdmetE2ETest!2026";
+
 async function registerAndLogin(page: Page, label: string): Promise<{ email: string }> {
-  const email = `e2e_cryoem_${label}_${Date.now()}@biomate.test`;
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
   await page.context().clearCookies();
-  await page.goto(`${BASE_URL}/register`);
-  await page.waitForLoadState("load");
-  await page.evaluate(() => {
-    try { localStorage.clear(); sessionStorage.clear(); } catch {}
-  }).catch(() => {});
 
-  try {
-    await page.waitForSelector("#name", { state: "visible", timeout: 15_000 });
-    await page.fill("#name", `CryoEM E2E ${label}`);
-    await page.fill("#email", email);
-    await page.fill("#password", "TestPass123!");
-    await page.fill("#confirmPassword", "TestPass123!");
-    await page.click("#terms");
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(2000);
-    console.log(`[auth] Registered: ${email}`);
-  } catch {
-    console.log(`[auth] Registration form not found — trying login for: ${email}`);
+  await page.request.post(`${BASE_URL}/api/auth/register`, {
+    headers: { "x-e2e-test-token": E2E_TOKEN, "content-type": "application/json" },
+    data: {
+      name: "CryoEM E2E Fixture",
+      email: FIXTURE_EMAIL,
+      password: FIXTURE_PASSWORD,
+      termsAccepted: true,
+    },
+  }).catch(() => null);
+
+  const loginResp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: { "x-e2e-test-token": E2E_TOKEN, "content-type": "application/json" },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
+  });
+  if (!loginResp.ok()) {
+    throw new Error(`[auth] login failed: ${loginResp.status()} ${await loginResp.text()}`);
   }
+  const loginBody = await loginResp.json();
+  const token: string | undefined = loginBody?.token;
+  if (!token) throw new Error("[auth] login response missing token");
+
+  const url = new URL(BASE_URL);
+  await page.context().addCookies([{
+    name: "biomate_token",
+    value: token,
+    domain: url.hostname,
+    path: "/",
+    httpOnly: true,
+    secure: url.protocol === "https:",
+    sameSite: "Lax",
+  }]);
+  console.log(`[auth] (${label}) API-login OK as ${FIXTURE_EMAIL}`);
 
   await page.goto(BASE_URL);
   await page.waitForLoadState("load");
@@ -133,7 +151,7 @@ async function registerAndLogin(page: Page, label: string): Promise<{ email: str
 
   await page.waitForSelector("textarea", { state: "visible", timeout: 20_000 }).catch(() => {});
   await page.waitForTimeout(1000);
-  return { email };
+  return { email: FIXTURE_EMAIL };
 }
 
 // ---------------------------------------------------------------------------
