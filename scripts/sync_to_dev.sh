@@ -481,13 +481,21 @@ sync_logo() {
 }
 
 # ---------------------------------------------------------------------------
-# Layer 5: Marketing website (webpage_design/ → /var/www/biomate-marketing/)
+# Layer 5: Marketing website (reference/claude_design/webpage_design_v2/ → /var/www/biomate-marketing/)
 # ---------------------------------------------------------------------------
+# Source folder is reference/claude_design/webpage_design_v2/, NOT
+# webpage_design/ at the repo root. The latter is an older draft that
+# is NOT the deployed source. Confirmed 2026-05-28 by byte-comparing the
+# live biomate.ai HTML head to both folders. See
+# docs/20260527_GOOGLE_ANALYTICS_SETUP.md for the full story.
 
 deploy_marketing() {
-  log "[marketing] Syncing webpage_design/ to /var/www/biomate-marketing/..."
+  log "[marketing] Syncing reference/claude_design/webpage_design_v2/ to /var/www/biomate-marketing/..."
   local tar_file="/tmp/biomate_marketing.tar.gz"
-  tar -czf "$tar_file" -C "$REPO_ROOT" webpage_design/ 2>/dev/null
+  # Tar with --transform so the archive is rooted at "webpage_design_v2/" (no
+  # leading reference/claude_design/) — keeps the extraction-side rsync
+  # invariant simple.
+  tar -czf "$tar_file" -C "$REPO_ROOT/reference/claude_design" webpage_design_v2/ 2>/dev/null
   log "[marketing] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/marketing_sync.tar.gz"
@@ -495,10 +503,10 @@ deploy_marketing() {
   ec2_ssh '
     set -e
     sudo mkdir -p /var/www/biomate-marketing
-    sudo tar -xzf /tmp/marketing_sync.tar.gz -C /tmp/marketing_extract --strip-components=1 2>/dev/null || \
-      (mkdir -p /tmp/marketing_extract && tar -xzf /tmp/marketing_sync.tar.gz -C /tmp/marketing_extract)
-    sudo rsync -a --delete /tmp/marketing_extract/webpage_design/ /var/www/biomate-marketing/ 2>/dev/null || \
-      sudo cp -r /tmp/marketing_extract/webpage_design/. /var/www/biomate-marketing/
+    mkdir -p /tmp/marketing_extract && rm -rf /tmp/marketing_extract/* 2>/dev/null || true
+    tar -xzf /tmp/marketing_sync.tar.gz -C /tmp/marketing_extract
+    sudo rsync -a --delete /tmp/marketing_extract/webpage_design_v2/ /var/www/biomate-marketing/ 2>/dev/null || \
+      sudo cp -r /tmp/marketing_extract/webpage_design_v2/. /var/www/biomate-marketing/
     sudo chown -R www-data:www-data /var/www/biomate-marketing/ 2>/dev/null || true
     rm -rf /tmp/marketing_extract
     echo "[marketing] Done — $(ls /var/www/biomate-marketing/*.html 2>/dev/null | wc -l) HTML files"
@@ -519,7 +527,7 @@ do_sync() {
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
   echo "$changed_paths" | grep -q "^backend/biomni_workflows/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
-  echo "$changed_paths" | grep -q "^webpage_design/" && do_marketing=true
+  echo "$changed_paths" | grep -qE "^(webpage_design/|reference/claude_design/webpage_design_v2/)" && do_marketing=true
 
   # Always sync logo
   sync_logo 2>/dev/null || true
