@@ -54,8 +54,39 @@
         <a href="#" class="bm-topic-chip" data-cat="Genomics">Genomics</a>
         <a href="#" class="bm-topic-chip" data-cat="Structural Biology">Structural Biology</a>
         <a href="#" class="bm-topic-chip" data-cat="Cryo-EM">Cryo&#8209;EM</a>
+        <a href="#bm-videos" class="bm-topic-chip" data-cat="Videos">Videos</a>
       </div>
 
+      <!-- ── Videos ── -->
+      <div id="bm-videos" style="margin-bottom:3rem;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.25rem;">
+          <h2 class="bm-h3" style="font-size:1.5rem;">Videos</h2>
+          <span style="font-size:.85rem;color:var(--text-muted);">More demos coming soon</span>
+        </div>
+        <div class="bm-video-grid">
+
+          <!-- Card: Platform overview -->
+          <div class="bm-video-card" onclick="bmOpenVideo('bpG0IWrwN5g','BioMate \u2014 The AI Lab Platform for Life Sciences Research')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')bmOpenVideo('bpG0IWrwN5g','BioMate \u2014 The AI Lab Platform for Life Sciences Research')">
+            <div class="bm-video-thumb">
+              <img src="https://img.youtube.com/vi/bpG0IWrwN5g/maxresdefault.jpg" alt="BioMate platform overview video thumbnail" loading="lazy" />
+              <div class="bm-video-play" aria-hidden="true">
+                <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                  <circle cx="26" cy="26" r="26" fill="rgba(0,0,0,.55)"/>
+                  <polygon points="21,16 39,26 21,36" fill="#fff"/>
+                </svg>
+              </div>
+              <span class="bm-video-dur">2:41</span>
+            </div>
+            <div class="bm-video-meta">
+              <span class="bm-eyebrow" style="font-size:.72rem;">Platform overview &middot; May 2026</span>
+              <h3 style="font-size:1rem;margin:.3rem 0 0;line-height:1.4;">BioMate &mdash; The AI Lab Platform for Life Sciences Research</h3>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Articles ── -->
       <div class="bm-blog-layout">
         <div>
           <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.5rem;">
@@ -162,6 +193,56 @@
   </section>
 
   <div id="bm-foot"></div>
+
+  <!-- ── Video lightbox ── -->
+  <div id="bm-vmodal" class="bm-vmodal" role="dialog" aria-modal="true"
+       onclick="if(event.target===this)bmCloseVideo()">
+    <div class="bm-vmodal-inner">
+      <button class="bm-vmodal-close" onclick="bmCloseVideo()" aria-label="Close video">&times;</button>
+      <div class="bm-vmodal-frame">
+        <iframe id="bm-vframe" src="about:blank" frameborder="0"
+          allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Video grid */
+    .bm-video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+    .bm-video-card { cursor: pointer; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-card,#fff); transition: box-shadow .18s, transform .18s; }
+    .bm-video-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .bm-video-thumb { position: relative; aspect-ratio: 16/9; overflow: hidden; background: #000; }
+    .bm-video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .2s; }
+    .bm-video-card:hover .bm-video-thumb img { opacity: .88; }
+    .bm-video-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .bm-video-dur { position: absolute; bottom: 8px; right: 10px; background: rgba(0,0,0,.72); color: #fff; font-size: .72rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; letter-spacing: .02em; }
+    .bm-video-meta { padding: .9rem 1rem 1rem; }
+
+    /* Lightbox */
+    .bm-vmodal { display: none; position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.85); align-items: center; justify-content: center; padding: 24px; }
+    .bm-vmodal.is-open { display: flex; }
+    .bm-vmodal-inner { position: relative; width: 100%; max-width: 1100px; }
+    .bm-vmodal-close { position: absolute; top: -44px; right: 0; background: none; border: none; color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; opacity: .7; transition: opacity .15s; }
+    .bm-vmodal-close:hover { opacity: 1; }
+    .bm-vmodal-frame { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 10px; overflow: hidden; background: #000; }
+    .bm-vmodal-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  </style>
+
+  <script>
+    function bmOpenVideo(id, title) {
+      var frame = document.getElementById('bm-vframe');
+      frame.title = title;
+      frame.src = 'https://www.youtube.com/embed/' + id + '?autoplay=1&rel=0&modestbranding=1';
+      document.getElementById('bm-vmodal').classList.add('is-open');
+    }
+    function bmCloseVideo() {
+      document.getElementById('bm-vmodal').classList.remove('is-open');
+      document.getElementById('bm-vframe').src = 'about:blank';
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') bmCloseVideo();
+    });
+  </script>
 
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
