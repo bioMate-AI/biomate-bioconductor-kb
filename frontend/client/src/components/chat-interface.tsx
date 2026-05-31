@@ -434,6 +434,12 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const [workflowGeneratingPhase, setWorkflowGeneratingPhase] = useState<'thinking' | 'workflow'>('thinking')
+  // Independent flag: shows "BioMate is generating workflow…" cue for 1.5 s after
+  // onSuccess when a workflow was produced. workflow_ready + final arrive in the same
+  // TCP flush so React batches them — the indicator never renders from workflowGeneratingPhase
+  // alone. This flag fires AFTER onSuccess and is self-clearing.
+  const [showWorkflowCue, setShowWorkflowCue] = useState(false)
+  const workflowCueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // File analysis results: messageId → FileAnalysisResult[] shown below user messages
   const [fileAnalysisMap, setFileAnalysisMap] = useState<Record<string, FileAnalysisResult[]>>({})
   // Soft query queue: messages submitted while AI is responding are held here
@@ -476,8 +482,8 @@ export function ChatInterface({
   // Show indicator either before any text appears OR during the workflow-generation
   // window after the AI text finishes streaming (per todo #24 — the user wants the
   // "BioMate is generating the workflow for you…" cue in that 2-5 s gap).
-  const displayTyping = (isTyping || isTypingLocal) &&
-    (!streamingHasContent || workflowGeneratingPhase === 'workflow')
+  const displayTyping = showWorkflowCue ||
+    ((isTyping || isTypingLocal) && (!streamingHasContent || workflowGeneratingPhase === 'workflow'))
   const latestAssistantMessageId = [...displayMessages]
     .reverse()
     .find((msg) => msg.role !== "user")?.id
@@ -990,6 +996,15 @@ export function ChatInterface({
       }
       setIsTypingLocal(false)
       setWorkflowGeneratingPhase('thinking')
+
+      // Show "BioMate is generating the workflow…" cue for 1.5 s when a workflow
+      // was produced. We can't rely on workflowGeneratingPhase for this because
+      // workflow_ready + final arrive in the same TCP flush and React batches them.
+      if (workflowSuccess && workflowData) {
+        if (workflowCueTimerRef.current) clearTimeout(workflowCueTimerRef.current)
+        setShowWorkflowCue(true)
+        workflowCueTimerRef.current = setTimeout(() => setShowWorkflowCue(false), 1500)
+      }
 
       // Trigger workflow builder display
       if (workflowSuccess && workflowData) {
@@ -1819,7 +1834,7 @@ export function ChatInterface({
               )}
             </div>
           ))}
-          {displayTyping && <TypingIndicator phase={workflowGeneratingPhase} />}
+          {displayTyping && <TypingIndicator phase={showWorkflowCue ? 'workflow' : workflowGeneratingPhase} />}
           {/* Auto-scroll anchor */}
           <div ref={messagesEndRef} />
         </div>
