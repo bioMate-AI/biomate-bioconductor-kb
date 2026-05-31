@@ -172,6 +172,19 @@ html[data-palette="deepnavy"] .bm-nav { background: rgba(239,230,207,.93); }
 .bm-has-dropdown:hover .bm-chevron,
 .bm-has-dropdown.bm-dd-open .bm-chevron { transform: rotate(180deg); }
 
+/* Invisible bridge between the trigger and the dropdown so the mouse can
+   traverse the visual gap without leaving the :hover region. Without this,
+   the submenu closed the instant the cursor crossed the 6px gap below the
+   trigger and the user had to click to anchor it open. */
+.bm-has-dropdown::before {
+  content: "";
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  height: 10px;
+  /* transparent, but takes pointer events to keep hover continuous */
+  background: transparent;
+}
+
 .bm-dropdown {
   position: absolute; top: calc(100% + 6px); left: 0;
   min-width: 210px; list-style: none;
