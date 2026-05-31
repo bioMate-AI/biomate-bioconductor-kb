@@ -313,6 +313,17 @@ export function ChatMessage({
                         <table className="w-full text-xs" {...props}>{children}</table>
                       </div>
                     ),
+                    img: ({ src, alt, ...props }) => {
+                      if (!src) return null;
+                      return (
+                        <img
+                          src={src}
+                          alt={alt ?? ''}
+                          {...props}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      );
+                    },
                   }}
                 >
                   {addCitationLinks(message.content || '')}
