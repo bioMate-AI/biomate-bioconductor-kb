@@ -105,6 +105,11 @@ function RootRoute({
 }: any) {
   const { isAuthenticated, isLoading } = useAuth()
   const [, setLocation] = useLocation()
+  // All hooks must run before any conditional return (rules of hooks).
+  // useUiFlavor must be called every render — moving it after the early
+  // return below caused "Rendered more hooks than during the previous render"
+  // when isLoading flipped true→false.
+  const uiFlavor = useUiFlavor()
   useEffect(() => {
     if (!isLoading && !isAuthenticated) setLocation('/login')
   }, [isAuthenticated, isLoading, setLocation])
@@ -113,7 +118,6 @@ function RootRoute({
   // v2 chrome — gated behind ?ui=v2 / localStorage.biomate_ui = 'v2'.
   // The data-v2-ui attribute scopes the v2 design-token :root rules so
   // they don't bleed into the v1 surface.
-  const uiFlavor = useUiFlavor()
   if (uiFlavor === 'v2') {
     return (
       <div data-v2-ui style={{ height: '100vh', overflow: 'auto' }}>
