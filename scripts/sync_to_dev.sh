@@ -111,7 +111,7 @@ deploy_frontend() {
     frontend/package.json frontend/package-lock.json \
     frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
     frontend/tailwind.config.js frontend/postcss.config.js \
-    frontend/Dockerfile 2>/dev/null
+    frontend/Dockerfile frontend/Dockerfile.biotools 2>/dev/null
   log "[frontend] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/frontend_sync.tar.gz"
