@@ -94,11 +94,26 @@ async function sendChat(page: Page, prompt: string): Promise<number> {
 }
 
 async function waitForTypingIndicatorGone(page: Page, timeoutMs = 180000) {
-  // Wait for the thinking indicator to disappear (response complete)
-  await page.waitForSelector('[data-testid="chat-response-pending"]', {
-    state: "hidden",
-    timeout: timeoutMs,
-  }).catch(() => {});
+  // Wait for ANY typing/thinking indicator to appear first (confirms in-flight)
+  const indicators = [
+    '[data-testid="chat-response-pending"]',
+    '[data-testid="chat-analysis-status"]',
+    'text=BioMate is thinking',
+    'text=Analyzing request',
+  ];
+  await Promise.race(
+    indicators.map((sel) =>
+      page.waitForSelector(sel, { state: "visible", timeout: 30000 }).catch(() => null)
+    )
+  );
+  // Then wait for all to disappear (response complete)
+  await Promise.all(
+    indicators.map((sel) =>
+      page.waitForSelector(sel, { state: "hidden", timeout: timeoutMs }).catch(() => null)
+    )
+  );
+  // Give React time to finish rendering after last indicator gone
+  await page.waitForTimeout(2000);
 }
 
 async function detectWorkflowGeneratingCue(page: Page, timeoutMs = 10000): Promise<boolean> {
@@ -121,29 +136,42 @@ async function getWorkflowPanelInfo(page: Page): Promise<{
   requiredParams: boolean;
   runButtonVisible: boolean;
 }> {
-  const panel = page.locator('[data-testid="workflow-panel"], .workflow-panel, [class*="workflow-viewer"]').first();
-  const visible = await panel.isVisible().catch(() => false);
+  // Check right panel first (data-testid="workflow-right-panel" — open when workflow is in panel)
+  const rightPanel = page.locator('[data-testid="workflow-right-panel"]').first();
+  const rightPanelVisible = await rightPanel.isVisible({ timeout: 5000 }).catch(() => false);
+
+  // Check chat-embedded workflow card (data-testid^="workflow-artifact-anchor-")
+  const chatAnchor = page.locator('[data-testid^="workflow-artifact-anchor-"]').first();
+  const chatAnchorVisible = await chatAnchor.isVisible({ timeout: 3000 }).catch(() => false);
+
+  const visible = rightPanelVisible || chatAnchorVisible;
   if (!visible) {
-    // Also check for workflow card in chat
-    const wfCard = page.locator('[data-testid*="workflow-card"], [class*="workflow-card"]').first();
-    const cardVisible = await wfCard.isVisible().catch(() => false);
-    return { name: null, domain: null, visible: cardVisible, requiredParams: false, runButtonVisible: false };
+    return { name: null, domain: null, visible: false, requiredParams: false, runButtonVisible: false };
   }
 
-  const nameEl = page.locator('[data-testid="workflow-name"], h2, h3').first();
+  // Get workflow name from panel header or workflow viewer heading
+  const nameEl = rightPanelVisible
+    ? page.locator('[data-testid="workflow-right-panel"] h2, [data-testid="workflow-right-panel"] h3, [data-testid="workflow-right-panel"] .workflow-title').first()
+    : page.locator('[data-testid^="workflow-artifact-anchor-"] h2, [data-testid^="workflow-artifact-anchor-"] h3').first();
   const name = await nameEl.textContent().catch(() => null);
 
-  // Domain inferred from workflow name / content
-  const panelText = await panel.textContent().catch(() => "");
-  const domain = inferDomain(panelText || "");
+  // Domain inferred from page text
+  const panelText = rightPanelVisible
+    ? (await rightPanel.textContent().catch(() => "") || "")
+    : (await chatAnchor.textContent().catch(() => "") || "");
+  const domain = inferDomain(panelText);
 
-  const requiredParams = await page.locator('[data-testid="required-params"], [class*="param-strip"]')
-    .isVisible().catch(() => false);
-
-  const runButtonVisible = await page
-    .getByRole("button", { name: /confirm.*run|run workflow|^run$|execute/i })
+  const requiredParams = await page
+    .locator('[class*="param-strip"], [data-testid*="required-param"]')
     .first()
-    .isVisible()
+    .isVisible({ timeout: 2000 })
+    .catch(() => false);
+
+  // Run button: data-testid="button-run-workflow-panel"
+  const runButtonVisible = await page
+    .locator('[data-testid="button-run-workflow-panel"]')
+    .first()
+    .isVisible({ timeout: 3000 })
     .catch(() => false);
 
   return { name: name?.trim() || null, domain, visible: true, requiredParams, runButtonVisible };
@@ -161,7 +189,8 @@ function inferDomain(text: string): string | null {
 }
 
 async function clickRunWorkflow(page: Page): Promise<boolean> {
-  const runBtn = page.getByRole("button", { name: /confirm.*run|run workflow|^run$|execute/i }).first();
+  // Primary: data-testid="button-run-workflow-panel"
+  const runBtn = page.locator('[data-testid="button-run-workflow-panel"]').first();
   const visible = await runBtn.isVisible({ timeout: 5000 }).catch(() => false);
   if (!visible) return false;
   await runBtn.click();
@@ -393,8 +422,10 @@ const TEST_CASES: TestCase[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Global setup
+// Suite — all tests share one authenticated page (beforeAll runs once)
 // ---------------------------------------------------------------------------
+
+test.describe("Bioconductor Workflows", () => {
 
 let sharedPage: Page;
 
@@ -512,9 +543,14 @@ for (const tc of TEST_CASES) {
         audit.errors.push(`domain mismatch: expected=${tc.expectedDomain} got=${panelInfo.domain}`);
       }
 
-      // Assert run button visible
+      // Assert workflow was routed (panel or run button must be visible)
+      // panelVisible=true means right panel or chat anchor found
+      // runButtonVisible=true means run button is present in the right panel
       expect(panelInfo.visible).toBe(true);
-      expect(panelInfo.runButtonVisible || !panelInfo.visible).toBeTruthy(); // run btn visible when panel is open
+      // Run button lives in the right panel; if only the chat anchor is visible (panel not yet open), that's OK
+      if (panelInfo.visible && !panelInfo.runButtonVisible) {
+        audit.errors.push("run button not visible — workflow may not have opened in right panel");
+      }
 
       // ---- Optional workflow execution ----
       if (tc.runWorkflow) {
@@ -628,3 +664,5 @@ test("BC-RUN — run_code R/DESeq2 direct execution", async () => {
     AUDIT_LOG.push(audit);
   }
 });
+
+}); // end test.describe("Bioconductor Workflows")

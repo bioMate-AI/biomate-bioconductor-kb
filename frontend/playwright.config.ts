@@ -52,6 +52,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        channel: 'chrome', // Use system Chrome (headless_shell incompatible with macOS Big Sur)
         viewport: { width: 1920, height: 1080 },
       },
     },
