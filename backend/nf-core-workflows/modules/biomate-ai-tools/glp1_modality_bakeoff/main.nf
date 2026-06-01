@@ -439,7 +439,11 @@ print('\\n'.join(lines))
 PYEOF
 
     python3 -c "print('glp1_modality_bakeoff: 2.0')" > versions.yml
-    cp ${ranking_csv} glp1_modality_ranking.csv
+    # Phase C emits 'glp1_modality_ranking.csv' which Nextflow stages here under the
+    # same name, so `cp ${ranking_csv} glp1_modality_ranking.csv` was self-cp →
+    # exit 1. The output declaration `path("glp1_modality_ranking.csv")` publishes
+    # the staged input file directly. Same fix as bispecific_format_triage Phase D
+    # (commit c74dd0b71).
     """
 }
 

@@ -1,0 +1,4617 @@
+{
+  "created_at": "2026-05-28T22:35:10.906672+00:00",
+  "stamp": "20260528T223509Z",
+  "uniprot_accessions": {
+    "ANDV": "Q9E006",
+    "SNV": "Q89905",
+    "PUUV": "P27312"
+  },
+  "uniprot_headers": {
+    "ANDV": "sp|Q9E006|GP_ANDV Envelopment polyprotein OS=Andes orthohantavirus OX=1980456 GN=GP PE=1 SV=1",
+    "SNV": "sp|Q89905|GP_SINV Envelopment polyprotein OS=Sin Nombre orthohantavirus OX=3052499 GN=GP PE=3 SV=1",
+    "PUUV": "sp|P27312|GP_PUUMS Envelopment polyprotein OS=Puumala virus (strain Sotkamo/V-2969/81) OX=39002 GN=GP PE=1 SV=1"
+  },
+  "fetch_errors": {},
+  "sequence_lengths": {
+    "ANDV": 1138,
+    "SNV": 1140,
+    "PUUV": 1148
+  },
+  "peptide_source": "/home/yzhang/biomate/research/anti-virus/runs/plan_a_epitope_a44876b7_s3_mirror/predictions/PLAN_A_SMOKE_GP.tsv",
+  "n_peptides_mapped": 405,
+  "n_cross_species_peptides": 3,
+  "conservation": {
+    "method": "biopython_pairwise",
+    "reference": "ANDV",
+    "pairwise": {
+      "ANDV_vs_SNV": {
+        "identity": 0.7803,
+        "alignment_length": 1140,
+        "aligned_ref_preview": "MEGWYLVVLGVCYTLTLAMPKTIYELKMECPHTVGLGQGYIIGSTELGLISIEAASDIKLESSCNFDLHTTSMAQKSFTQVEWRKKSDTTDTTNAASTTFEAQTKTVNLRGTCILAPELY",
+        "aligned_other_preview": "MVGWVCIFLVVLTTATAGLTRNLYELKIECPHTVGLGQGYVTGSVEITPILLTQVADLKIESSCNFDLHVPATTTQKYNQVDWTKKSSTTESTNAGATTFEAKTKEINLKGTCNIPPTTF"
+      },
+      "ANDV_vs_PUUV": {
+        "identity": 0.6693,
+        "alignment_length": 1149,
+        "aligned_ref_preview": "MEG-----WYLVVLGVCYTLTLAMPKTIYELKMECPHTVGLGQGYIIGSTELGLISIEAASDIKLESSCNFDLHTTSMAQKSFTQVEWRKKSDTTDTTNAASTTFEAQTKTVNLRGTCIL",
+        "aligned_other_preview": "MGKSSPVCLYLILQGLLLFDTV-NAKNLNELKMECPHTIGLGQGLVVGSVELPPVPIQQIESLKLESSCNFDLHTSTAGQQSFTKWTWETKGDLAENTQASSTSFQTKSSEVNLRGLCLI"
+      }
+    }
+  },
+  "peptide_conservation": [
+    {
+      "peptide": "AASDIKLE",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 54
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AASDIKLES",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 54
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AASDIKLESS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 54
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AASDIKLESSC",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 54
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AASDIKLESSCN",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 54
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AMPKTIYE",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 18
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AMPKTIYEL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 18
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AMPKTIYELK",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 18
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AMPKTIYELKM",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 18
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AMPKTIYELKME",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 18
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AQKSFTQV",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 74
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AQKSFTQVE",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 74
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AQKSFTQVEW",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 74
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AQKSFTQVEWR",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 74
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "AQKSFTQVEWRK",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 74
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ASDIKLES",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 55
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ASDIKLESS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 55
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ASDIKLESSC",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 55
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ASDIKLESSCN",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 55
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ASDIKLESSCNF",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 55
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CNFDLHTT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CNFDLHTTS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CNFDLHTTSM",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CNFDLHTTSMA",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CNFDLHTTSMAQ",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CPHTVGLG",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 30,
+        "SNV": 30
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CPHTVGLGQ",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 30,
+        "SNV": 30
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CPHTVGLGQG",
+      "length": 10,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 30,
+        "SNV": 30
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CPHTVGLGQGY",
+      "length": 11,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 30,
+        "SNV": 30
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CPHTVGLGQGYI",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 30
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CYTLTLAM",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 12
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CYTLTLAMP",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 12
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CYTLTLAMPK",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 12
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CYTLTLAMPKT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 12
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "CYTLTLAMPKTI",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 12
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DIKLESSC",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 57
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DIKLESSCN",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 57
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DIKLESSCNF",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 57
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DIKLESSCNFD",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 57
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DIKLESSCNFDL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 57
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DLHTTSMA",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 67
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DLHTTSMAQ",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 67
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DLHTTSMAQK",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 67
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DLHTTSMAQKS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 67
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "DLHTTSMAQKSF",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 67
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EAASDIKL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 53
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EAASDIKLE",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 53
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EAASDIKLES",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 53
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EAASDIKLESS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 53
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EAASDIKLESSC",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 53
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ECPHTVGL",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 29,
+        "SNV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ECPHTVGLG",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 29,
+        "SNV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ECPHTVGLGQ",
+      "length": 10,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 29,
+        "SNV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ECPHTVGLGQG",
+      "length": 11,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 29,
+        "SNV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ECPHTVGLGQGY",
+      "length": 12,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 29,
+        "SNV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EGWYLVVL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 2
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EGWYLVVLG",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 2
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EGWYLVVLGV",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 2
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EGWYLVVLGVC",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 2
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EGWYLVVLGVCY",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 2
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELGLISIE",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 46
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELGLISIEA",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 46
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELGLISIEAA",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 46
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELGLISIEAAS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 46
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELGLISIEAASD",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 46
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELKMECPH",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 25,
+        "PUUV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELKMECPHT",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 25,
+        "PUUV": 29
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELKMECPHTV",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 25
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELKMECPHTVG",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 25
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ELKMECPHTVGL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 25
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ESSCNFDL",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 61,
+        "SNV": 61,
+        "PUUV": 65
+      },
+      "cross_species": true
+    },
+    {
+      "peptide": "ESSCNFDLH",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "SNV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 61,
+        "SNV": 61,
+        "PUUV": 65
+      },
+      "cross_species": true
+    },
+    {
+      "peptide": "ESSCNFDLHT",
+      "length": 10,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 61,
+        "PUUV": 65
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ESSCNFDLHTT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 61
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ESSCNFDLHTTS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 61
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EWRKKSDT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 82
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "EWRKKSDTT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 82
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FDLHTTSM",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 66
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FDLHTTSMA",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 66
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FDLHTTSMAQ",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 66
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FDLHTTSMAQK",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 66
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FDLHTTSMAQKS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 66
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FTQVEWRK",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 78
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FTQVEWRKK",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 78
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FTQVEWRKKS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 78
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FTQVEWRKKSD",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 78
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "FTQVEWRKKSDT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 78
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLGQGYII",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 35
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLGQGYIIG",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 35
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLGQGYIIGS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 35
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLGQGYIIGST",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 35
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLGQGYIIGSTE",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 35
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLISIEAA",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 48
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLISIEAAS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 48
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLISIEAASD",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 48
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLISIEAASDI",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 48
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GLISIEAASDIK",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 48
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GQGYIIGS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 37
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GQGYIIGST",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 37
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GQGYIIGSTE",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 37
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GQGYIIGSTEL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 37
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GQGYIIGSTELG",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 37
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GSTELGLI",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 43
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GSTELGLIS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 43
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GSTELGLISI",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 43
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GSTELGLISIE",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 43
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GSTELGLISIEA",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 43
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GVCYTLTL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 10
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GVCYTLTLA",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 10
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GVCYTLTLAM",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 10
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GVCYTLTLAMP",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 10
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GVCYTLTLAMPK",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 10
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GWYLVVLG",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 3
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GWYLVVLGV",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 3
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GWYLVVLGVC",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 3
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GWYLVVLGVCY",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 3
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GWYLVVLGVCYT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 3
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GYIIGSTE",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 39
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GYIIGSTEL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 39
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GYIIGSTELG",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 39
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GYIIGSTELGL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 39
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "GYIIGSTELGLI",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 39
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTTSMAQK",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 69
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTTSMAQKS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 69
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTTSMAQKSF",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 69
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTTSMAQKSFT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 69
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTTSMAQKSFTQ",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 69
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTVGLGQG",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 32,
+        "SNV": 32
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTVGLGQGY",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 32,
+        "SNV": 32
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTVGLGQGYI",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 32
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTVGLGQGYII",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 32
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "HTVGLGQGYIIG",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 32
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IEAASDIK",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 52
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IEAASDIKL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 52
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IEAASDIKLE",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 52
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IEAASDIKLES",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 52
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IEAASDIKLESS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 52
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IGSTELGL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 42
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IGSTELGLI",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 42
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IGSTELGLIS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 42
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IGSTELGLISI",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 42
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IGSTELGLISIE",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 42
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IIGSTELG",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 41
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IIGSTELGL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 41
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IIGSTELGLI",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 41
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IIGSTELGLIS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 41
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IIGSTELGLISI",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 41
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IKLESSCN",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 58
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IKLESSCNF",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 58
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IKLESSCNFD",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 58
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IKLESSCNFDL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 58
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IKLESSCNFDLH",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 58
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ISIEAASD",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 50
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ISIEAASDI",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 50
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ISIEAASDIK",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 50
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ISIEAASDIKL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 50
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "ISIEAASDIKLE",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 50
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IYELKMEC",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 23
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IYELKMECP",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 23
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IYELKMECPH",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 23
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IYELKMECPHT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 23
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "IYELKMECPHTV",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 23
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KLESSCNF",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 59,
+        "PUUV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KLESSCNFD",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 59,
+        "PUUV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KLESSCNFDL",
+      "length": 10,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 59,
+        "PUUV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KLESSCNFDLH",
+      "length": 11,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 59,
+        "PUUV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KLESSCNFDLHT",
+      "length": 12,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 59,
+        "PUUV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KMECPHTV",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 27
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KMECPHTVG",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 27
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KMECPHTVGL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 27
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KMECPHTVGLG",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 27
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KMECPHTVGLGQ",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 27
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KSFTQVEW",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 76
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KSFTQVEWR",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 76
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KSFTQVEWRK",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 76
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KSFTQVEWRKK",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 76
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KSFTQVEWRKKS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 76
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KTIYELKM",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 21
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KTIYELKME",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 21
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KTIYELKMEC",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 21
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KTIYELKMECP",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 21
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "KTIYELKMECPH",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 21
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LAMPKTIY",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 17
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LAMPKTIYE",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 17
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LAMPKTIYEL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 17
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LAMPKTIYELK",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 17
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LAMPKTIYELKM",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 17
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LESSCNFD",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 60,
+        "PUUV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LESSCNFDL",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 60,
+        "PUUV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LESSCNFDLH",
+      "length": 10,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 60,
+        "PUUV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LESSCNFDLHT",
+      "length": 11,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 60,
+        "PUUV": 64
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LESSCNFDLHTT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 60
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGLISIEA",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 47
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGLISIEAA",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 47
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGLISIEAAS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 47
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGLISIEAASD",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 47
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGLISIEAASDI",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 47
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGQGYIIG",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 36
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGQGYIIGS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 36
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGQGYIIGST",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 36
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGQGYIIGSTE",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 36
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGQGYIIGSTEL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 36
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGVCYTLT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 9
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGVCYTLTL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 9
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGVCYTLTLA",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 9
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGVCYTLTLAM",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 9
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LGVCYTLTLAMP",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 9
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LHTTSMAQ",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 68
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LHTTSMAQK",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 68
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LHTTSMAQKS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 68
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LHTTSMAQKSF",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 68
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LHTTSMAQKSFT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 68
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LISIEAAS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 49
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LISIEAASD",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 49
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LISIEAASDI",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 49
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LISIEAASDIK",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 49
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LISIEAASDIKL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 49
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LKMECPHT",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 26,
+        "PUUV": 30
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LKMECPHTV",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 26
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LKMECPHTVG",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 26
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LKMECPHTVGL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 26
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LKMECPHTVGLG",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 26
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LTLAMPKT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 15
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LTLAMPKTI",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 15
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LTLAMPKTIY",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 15
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LTLAMPKTIYE",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 15
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LTLAMPKTIYEL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 15
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LVVLGVCY",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 6
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LVVLGVCYT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 6
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LVVLGVCYTL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 6
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LVVLGVCYTLT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 6
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "LVVLGVCYTLTL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 6
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MAQKSFTQ",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 73
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MAQKSFTQV",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 73
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MAQKSFTQVE",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 73
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MAQKSFTQVEW",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 73
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MAQKSFTQVEWR",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 73
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MECPHTVG",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 28
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MECPHTVGL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 28
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MECPHTVGLG",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 28
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MECPHTVGLGQ",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 28
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MECPHTVGLGQG",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 28
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MEGWYLVV",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 1
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MEGWYLVVL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 1
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MEGWYLVVLG",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 1
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MEGWYLVVLGV",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 1
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MEGWYLVVLGVC",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 1
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MPKTIYEL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 19
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MPKTIYELK",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 19
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MPKTIYELKM",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 19
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MPKTIYELKME",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 19
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "MPKTIYELKMEC",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 19
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "NFDLHTTS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 65
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "NFDLHTTSM",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 65
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "NFDLHTTSMA",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 65
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "NFDLHTTSMAQ",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 65
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "NFDLHTTSMAQK",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 65
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PHTVGLGQ",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 31,
+        "SNV": 31
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PHTVGLGQG",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 31,
+        "SNV": 31
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PHTVGLGQGY",
+      "length": 10,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 31,
+        "SNV": 31
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PHTVGLGQGYI",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 31
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PHTVGLGQGYII",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 31
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PKTIYELK",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 20
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PKTIYELKM",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 20
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PKTIYELKME",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 20
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PKTIYELKMEC",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 20
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "PKTIYELKMECP",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 20
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QGYIIGST",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 38
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QGYIIGSTE",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 38
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QGYIIGSTEL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 38
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QGYIIGSTELG",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 38
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QGYIIGSTELGL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 38
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QKSFTQVE",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 75
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QKSFTQVEW",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 75
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QKSFTQVEWR",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 75
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QKSFTQVEWRK",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 75
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QKSFTQVEWRKK",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 75
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QVEWRKKS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 80
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QVEWRKKSD",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 80
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QVEWRKKSDT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 80
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "QVEWRKKSDTT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 80
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SCNFDLHT",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 63,
+        "PUUV": 67
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SCNFDLHTT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SCNFDLHTTS",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SCNFDLHTTSM",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SCNFDLHTTSMA",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 63
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SDIKLESS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 56
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SDIKLESSC",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 56
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SDIKLESSCN",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 56
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SDIKLESSCNF",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 56
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SDIKLESSCNFD",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 56
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SFTQVEWR",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 77
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SFTQVEWRK",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 77
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SFTQVEWRKK",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 77
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SFTQVEWRKKS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 77
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SFTQVEWRKKSD",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 77
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SIEAASDI",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 51
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SIEAASDIK",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 51
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SIEAASDIKL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 51
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SIEAASDIKLE",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 51
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SIEAASDIKLES",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 51
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SMAQKSFT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 72
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SMAQKSFTQ",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 72
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SMAQKSFTQV",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 72
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SMAQKSFTQVE",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 72
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SMAQKSFTQVEW",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 72
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SSCNFDLH",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 62,
+        "SNV": 62,
+        "PUUV": 66
+      },
+      "cross_species": true
+    },
+    {
+      "peptide": "SSCNFDLHT",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 62,
+        "PUUV": 66
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SSCNFDLHTT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 62
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SSCNFDLHTTS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 62
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "SSCNFDLHTTSM",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 62
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "STELGLIS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 44
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "STELGLISI",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 44
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "STELGLISIE",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 44
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "STELGLISIEA",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 44
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "STELGLISIEAA",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 44
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TELGLISI",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 45
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TELGLISIE",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 45
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TELGLISIEA",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 45
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TELGLISIEAA",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 45
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TELGLISIEAAS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 45
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TIYELKME",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 22
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TIYELKMEC",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 22
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TIYELKMECP",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 22
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TIYELKMECPH",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 22
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TIYELKMECPHT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 22
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLAMPKTI",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 16
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLAMPKTIY",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 16
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLAMPKTIYE",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 16
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLAMPKTIYEL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 16
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLAMPKTIYELK",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 16
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLTLAMPK",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 14
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLTLAMPKT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 14
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLTLAMPKTI",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 14
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLTLAMPKTIY",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 14
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TLTLAMPKTIYE",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 14
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TQVEWRKK",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 79
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TQVEWRKKS",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 79
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TQVEWRKKSD",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 79
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TQVEWRKKSDT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 79
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TQVEWRKKSDTT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 79
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TSMAQKSF",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 71
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TSMAQKSFT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 71
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TSMAQKSFTQ",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 71
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TSMAQKSFTQV",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 71
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TSMAQKSFTQVE",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 71
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TTSMAQKS",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 70
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TTSMAQKSF",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 70
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TTSMAQKSFT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 70
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TTSMAQKSFTQ",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 70
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TTSMAQKSFTQV",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 70
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TVGLGQGY",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV"
+      ],
+      "positions": {
+        "ANDV": 33,
+        "SNV": 33
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TVGLGQGYI",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 33
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TVGLGQGYII",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 33
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TVGLGQGYIIG",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 33
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "TVGLGQGYIIGS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 33
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VCYTLTLA",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 11
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VCYTLTLAM",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 11
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VCYTLTLAMP",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 11
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VCYTLTLAMPK",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 11
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VCYTLTLAMPKT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 11
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VEWRKKSD",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 81
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VEWRKKSDT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 81
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VEWRKKSDTT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 81
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VGLGQGYI",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 34
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VGLGQGYII",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 34
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VGLGQGYIIG",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 34
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VGLGQGYIIGS",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 34
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VGLGQGYIIGST",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 34
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VLGVCYTL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 8
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VLGVCYTLT",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 8
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VLGVCYTLTL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 8
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VLGVCYTLTLA",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 8
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VLGVCYTLTLAM",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 8
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VVLGVCYT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 7
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VVLGVCYTL",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 7
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VVLGVCYTLT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 7
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VVLGVCYTLTL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 7
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "VVLGVCYTLTLA",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 7
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "WRKKSDTT",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 83
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "WYLVVLGV",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 4
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "WYLVVLGVC",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 4
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "WYLVVLGVCY",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 4
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "WYLVVLGVCYT",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 4
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "WYLVVLGVCYTL",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 4
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YELKMECP",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 24
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YELKMECPH",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 24
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YELKMECPHT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 24
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YELKMECPHTV",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 24
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YELKMECPHTVG",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 24
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YIIGSTEL",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 40
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YIIGSTELG",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 40
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YIIGSTELGL",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 40
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YIIGSTELGLI",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 40
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YIIGSTELGLIS",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 40
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YLVVLGVC",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 5
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YLVVLGVCY",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 5
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YLVVLGVCYT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 5
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YLVVLGVCYTL",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 5
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YLVVLGVCYTLT",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 5
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YTLTLAMP",
+      "length": 8,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 13
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YTLTLAMPK",
+      "length": 9,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 13
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YTLTLAMPKT",
+      "length": 10,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 13
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YTLTLAMPKTI",
+      "length": 11,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 13
+      },
+      "cross_species": false
+    },
+    {
+      "peptide": "YTLTLAMPKTIY",
+      "length": 12,
+      "found_in": [
+        "ANDV"
+      ],
+      "positions": {
+        "ANDV": 13
+      },
+      "cross_species": false
+    }
+  ],
+  "cross_species_peptides": [
+    {
+      "peptide": "ESSCNFDL",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 61,
+        "SNV": 61,
+        "PUUV": 65
+      },
+      "cross_species": true
+    },
+    {
+      "peptide": "ESSCNFDLH",
+      "length": 9,
+      "found_in": [
+        "ANDV",
+        "SNV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 61,
+        "SNV": 61,
+        "PUUV": 65
+      },
+      "cross_species": true
+    },
+    {
+      "peptide": "SSCNFDLH",
+      "length": 8,
+      "found_in": [
+        "ANDV",
+        "SNV",
+        "PUUV"
+      ],
+      "positions": {
+        "ANDV": 62,
+        "SNV": 62,
+        "PUUV": 66
+      },
+      "cross_species": true
+    }
+  ]
+}

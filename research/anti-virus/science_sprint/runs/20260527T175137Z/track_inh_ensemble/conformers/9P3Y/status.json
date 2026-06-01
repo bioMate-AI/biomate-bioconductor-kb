@@ -1,0 +1,23 @@
+{
+  "run_id": "16d18665-93c7-45ab-89e4-4f34a754afc8",
+  "invocation_id": "d1542dc6-2f13-42e7-b1fd-cff571f5894a",
+  "status": "failed",
+  "returncode": 2,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3Y/6362fab0",
+  "work_dir": "s3://biomate-nextflow-work/nextflow/work/inh-ensemble-20260527-9P3Y/16d18665-93c7-45ab-89e4-4f34a754afc8",
+  "log_tail": [
+    "bash: _parse_usage: line 16: syntax error near unexpected token `('",
+    "bash: _parse_usage: line 16: ` -?(\\[)+([a-zA-Z0-9?]))'",
+    "bash: error importing function definition for `_parse_usage'",
+    "bash: _services: line 5: syntax error near unexpected token `('",
+    "bash: _services: line 5: ` COMPREPLY=($(printf '%s\\n' ${sysvdirs[0]}/!($_backup_glob|functions|README)));'"
+  ],
+  "is_batch": true,
+  "s3_output_files": [],
+  "qc_report": null,
+  "qc_gates": [],
+  "started_at": 1779904313.059437,
+  "completed_at": 1779904313.0640297,
+  "duration_s": 0,
+  "processes": []
+}

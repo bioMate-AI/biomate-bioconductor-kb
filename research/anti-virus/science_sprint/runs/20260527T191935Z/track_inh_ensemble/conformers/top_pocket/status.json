@@ -1,0 +1,25 @@
+{
+  "run_id": "b9d5f56b-a0ad-4dc7-9f9a-6d5d06ea6c58",
+  "invocation_id": "015ceb15-7830-4dc2-9d64-c327d40b3647",
+  "status": "failed",
+  "returncode": 1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-top_pocket/4fe8e3f3",
+  "work_dir": "s3://biomate-nextflow-work/nextflow/work/inh-ensemble-20260527-top_pocket/b9d5f56b-a0ad-4dc7-9f9a-6d5d06ea6c58",
+  "log_tail": [
+    "ERROR ~ Unable to parse config file: '/tmp/nextflow_runs/b9d5f56b-a0ad-4dc7-9f9a-6d5d06ea6c58/biomate_executor_override.config'",
+    "  Compile failed for sources FixedSetSources[name='/groovy/script/Script159938BDEB7B71019DD453FFFC4AE29A/_nf_config_5856166e']. Cause: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:",
+    "  /groovy/script/Script159938BDEB7B71019DD453FFFC4AE29A/_nf_config_5856166e: 5: Unexpected input: '{' @ line 5, column 9.",
+    "     process {",
+    "             ^",
+    "  1 error",
+    " -- Check '.nextflow.log' file for details"
+  ],
+  "is_batch": true,
+  "s3_output_files": [],
+  "qc_report": null,
+  "qc_gates": [],
+  "started_at": 1779909583.0481133,
+  "completed_at": 1779909584.653389,
+  "duration_s": 1,
+  "processes": []
+}

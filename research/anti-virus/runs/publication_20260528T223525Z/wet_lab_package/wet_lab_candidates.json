@@ -1,0 +1,1730 @@
+{
+  "assembled_at": "2026-05-29T07:02:58.708900+00:00",
+  "data_sources": {
+    "uniprot_accessions": {
+      "ANDV": "Q9E006",
+      "SNV": "Q89905",
+      "PUUV": "P27312"
+    },
+    "epitope_tsv": "research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_FULL_GP_MULTITOOL.tsv",
+    "docking_json": "research/anti-virus/science_sprint/runs/20260529T053215Z/track_inh_ensemble/ensemble_results.json"
+  },
+  "summary": {
+    "conserved_9mers_full_gp": 54,
+    "mhc_binders": 922,
+    "mhc_binder_unique_peptides": 20,
+    "conserved_binder_overlap": 10,
+    "docking_hits": 0,
+    "top_vaccine_candidates": 54
+  },
+  "conservation_track": [
+    {
+      "id": "XSP-01",
+      "peptide": "ESSCNFDLH",
+      "position": 61,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-02",
+      "peptide": "CTVFCTLAG",
+      "position": 379,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-03",
+      "peptide": "TVFCTLAGP",
+      "position": 380,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-04",
+      "peptide": "VFCTLAGPG",
+      "position": 381,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-05",
+      "peptide": "FCTLAGPGA",
+      "position": 382,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-06",
+      "peptide": "GIFNISSPT",
+      "position": 399,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-07",
+      "peptide": "IFNISSPTC",
+      "position": 400,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-08",
+      "peptide": "FNISSPTCL",
+      "position": 401,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-09",
+      "peptide": "KKVILTKTL",
+      "position": 442,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-10",
+      "peptide": "KVILTKTLV",
+      "position": 443,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-11",
+      "peptide": "VILTKTLVI",
+      "position": 444,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-12",
+      "peptide": "ILTKTLVIG",
+      "position": 445,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-13",
+      "peptide": "LTKTLVIGQ",
+      "position": 446,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-14",
+      "peptide": "TKTLVIGQC",
+      "position": 447,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-15",
+      "peptide": "KTLVIGQCI",
+      "position": 448,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-16",
+      "peptide": "TLVIGQCIY",
+      "position": 449,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-17",
+      "peptide": "LVIGQCIYT",
+      "position": 450,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-18",
+      "peptide": "VIGQCIYTF",
+      "position": 451,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-19",
+      "peptide": "IGQCIYTFT",
+      "position": 452,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-20",
+      "peptide": "GQCIYTFTS",
+      "position": 453,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-21",
+      "peptide": "AHSLAVELC",
+      "position": 470,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-22",
+      "peptide": "HSLAVELCV",
+      "position": 471,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-23",
+      "peptide": "SLAVELCVP",
+      "position": 472,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-24",
+      "peptide": "LAVELCVPG",
+      "position": 473,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-25",
+      "peptide": "AVELCVPGL",
+      "position": 474,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-26",
+      "peptide": "VELCVPGLH",
+      "position": 475,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-27",
+      "peptide": "ELCVPGLHG",
+      "position": 476,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-28",
+      "peptide": "LCVPGLHGW",
+      "position": 477,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-29",
+      "peptide": "CVPGLHGWA",
+      "position": 478,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-30",
+      "peptide": "VPGLHGWAT",
+      "position": 479,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    }
+  ],
+  "mhc_binder_track": [
+    {
+      "id": "MB-01",
+      "peptide": "ATESALQAHY",
+      "best_allele": "HLA-A*01:01",
+      "rank": 0.0002,
+      "BA": 0.4513893013965309,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-02",
+      "peptide": "MPKTIYEL",
+      "best_allele": "HLA-B*08:01",
+      "rank": 0.0007,
+      "BA": 0.7266569625557731,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-03",
+      "peptide": "KTFEGILTK",
+      "best_allele": "HLA-A*03:01",
+      "rank": 0.0008423913043174,
+      "BA": 0.7211360991001129,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-04",
+      "peptide": "YRTLGVFRY",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0011,
+      "BA": 0.6604817695501388,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-05",
+      "peptide": "IRSCMASVFTSR",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0012,
+      "BA": 0.6548165509654067,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-06",
+      "peptide": "YRTLGVFRYK",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0013,
+      "BA": 0.6510966259082874,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-07",
+      "peptide": "IPMKTDLEL",
+      "best_allele": "HLA-B*07:02",
+      "rank": 0.0017,
+      "BA": 0.6305408131139454,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-08",
+      "peptide": "QRFRGSEQK",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0021,
+      "BA": 0.6135798018240514,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-09",
+      "peptide": "KRMMATKDSF",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0022,
+      "BA": 0.6130867259273899,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-10",
+      "peptide": "VIYEKTHCV",
+      "best_allele": "HLA-A*02:01",
+      "rank": 0.0024999999999977,
+      "BA": 0.7349499344825745,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-11",
+      "peptide": "NPANKEESI",
+      "best_allele": "HLA-B*07:02",
+      "rank": 0.0026,
+      "BA": 0.5989279647418096,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-12",
+      "peptide": "APHLERVTGF",
+      "best_allele": "HLA-B*07:02",
+      "rank": 0.0027,
+      "BA": 0.5971017581910772,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-13",
+      "peptide": "FRKICGFATTPV",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0027,
+      "BA": 0.5935314136550374,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-14",
+      "peptide": "SLKYTRKVCI",
+      "best_allele": "HLA-B*08:01",
+      "rank": 0.0029,
+      "BA": 0.6120528033025673,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-15",
+      "peptide": "VPITWTGYL",
+      "best_allele": "HLA-B*07:02",
+      "rank": 0.0029,
+      "BA": 0.5924686749059331,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-16",
+      "peptide": "NPAHTLTL",
+      "best_allele": "HLA-B*07:02",
+      "rank": 0.0029,
+      "BA": 0.5936907446511591,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-17",
+      "peptide": "SRMLVHPR",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.003,
+      "BA": 0.582051083489717,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-18",
+      "peptide": "SRIQVIYEK",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0031,
+      "BA": 0.5788338029138769,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-19",
+      "peptide": "FRYKSRCYVGL",
+      "best_allele": "HLA-B*27:05",
+      "rank": 0.0035,
+      "BA": 0.56761334810838,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    },
+    {
+      "id": "MB-20",
+      "peptide": "YSYPWQTSK",
+      "best_allele": "HLA-A*03:01",
+      "rank": 0.0037228260869568,
+      "BA": 0.7021188974380492,
+      "cross_species_conserved": false,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
+    }
+  ],
+  "inhibitor_docking_track": [],
+  "vaccine_peptide_candidates": [
+    {
+      "id": "XSP-01",
+      "peptide": "ESSCNFDLH",
+      "position": 61,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-02",
+      "peptide": "CTVFCTLAG",
+      "position": 379,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-03",
+      "peptide": "TVFCTLAGP",
+      "position": 380,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-04",
+      "peptide": "VFCTLAGPG",
+      "position": 381,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-05",
+      "peptide": "FCTLAGPGA",
+      "position": 382,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-06",
+      "peptide": "GIFNISSPT",
+      "position": 399,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-07",
+      "peptide": "IFNISSPTC",
+      "position": 400,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-08",
+      "peptide": "FNISSPTCL",
+      "position": 401,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-09",
+      "peptide": "KKVILTKTL",
+      "position": 442,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-10",
+      "peptide": "KVILTKTLV",
+      "position": 443,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-11",
+      "peptide": "VILTKTLVI",
+      "position": 444,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-12",
+      "peptide": "ILTKTLVIG",
+      "position": 445,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-13",
+      "peptide": "LTKTLVIGQ",
+      "position": 446,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-14",
+      "peptide": "TKTLVIGQC",
+      "position": 447,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-15",
+      "peptide": "KTLVIGQCI",
+      "position": 448,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-16",
+      "peptide": "TLVIGQCIY",
+      "position": 449,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-17",
+      "peptide": "LVIGQCIYT",
+      "position": 450,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-18",
+      "peptide": "VIGQCIYTF",
+      "position": 451,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-19",
+      "peptide": "IGQCIYTFT",
+      "position": 452,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-20",
+      "peptide": "GQCIYTFTS",
+      "position": 453,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-21",
+      "peptide": "AHSLAVELC",
+      "position": 470,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-22",
+      "peptide": "HSLAVELCV",
+      "position": 471,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-23",
+      "peptide": "SLAVELCVP",
+      "position": 472,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-24",
+      "peptide": "LAVELCVPG",
+      "position": 473,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-25",
+      "peptide": "AVELCVPGL",
+      "position": 474,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-26",
+      "peptide": "VELCVPGLH",
+      "position": 475,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-27",
+      "peptide": "ELCVPGLHG",
+      "position": 476,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-28",
+      "peptide": "LCVPGLHGW",
+      "position": 477,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-29",
+      "peptide": "CVPGLHGWA",
+      "position": 478,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    },
+    {
+      "id": "XSP-30",
+      "peptide": "VPGLHGWAT",
+      "position": 479,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": true,
+      "order_priority": "HIGH",
+      "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-\u03b3 ELISpot"
+    }
+  ],
+  "mhc_binders": [
+    {
+      "peptide": "ATESALQAHY",
+      "allele": "HLA-A*01:01",
+      "rank": 0.0002,
+      "BA": 0.4513893013965309,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "MPKTIYEL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0007,
+      "BA": 0.7266569625557731,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "KTFEGILTK",
+      "allele": "HLA-A*03:01",
+      "rank": 0.0008423913043174,
+      "BA": 0.7211360991001129,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcflurry"
+    },
+    {
+      "peptide": "YRTLGVFRY",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0011,
+      "BA": 0.6604817695501388,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "IRSCMASVFTSR",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0012,
+      "BA": 0.6548165509654067,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "YRTLGVFRYK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0013,
+      "BA": 0.6510966259082874,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "IPMKTDLEL",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0017,
+      "BA": 0.6305408131139454,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QRFRGSEQK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0021,
+      "BA": 0.6135798018240514,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "KRMMATKDSF",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0022,
+      "BA": 0.6130867259273899,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VIYEKTHCV",
+      "allele": "HLA-A*02:01",
+      "rank": 0.0024999999999977,
+      "BA": 0.7349499344825745,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcflurry"
+    },
+    {
+      "peptide": "NPANKEESI",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0026,
+      "BA": 0.5989279647418096,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "APHLERVTGF",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0027,
+      "BA": 0.5971017581910772,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FRKICGFATTPV",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0027,
+      "BA": 0.5935314136550374,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SLKYTRKVCI",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0029,
+      "BA": 0.6120528033025673,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VPITWTGYL",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0029,
+      "BA": 0.5924686749059331,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "NPAHTLTL",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0029,
+      "BA": 0.5936907446511591,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SRMLVHPR",
+      "allele": "HLA-B*27:05",
+      "rank": 0.003,
+      "BA": 0.582051083489717,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SRIQVIYEK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0031,
+      "BA": 0.5788338029138769,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VIYEKTHCV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0034,
+      "BA": 0.5977183903800944,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FRYKSRCYVGL",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0035,
+      "BA": 0.56761334810838,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "YSYPWQTSK",
+      "allele": "HLA-A*03:01",
+      "rank": 0.0037228260869568,
+      "BA": 0.7021188974380492,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcflurry"
+    },
+    {
+      "peptide": "ILKCLRVLTF",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0038,
+      "BA": 0.5879068821625513,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "IRSCMASVF",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0039,
+      "BA": 0.5569252360940551,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "GRFQEALKK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0041,
+      "BA": 0.5518050044689784,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VPGLHGWATVM",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0043,
+      "BA": 0.558702216953997,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SRCYVGLVWCLL",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0044,
+      "BA": 0.5446603731229873,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "CMSIRSCMA",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0044,
+      "BA": 0.5702800936093277,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LMPDVAHSL",
+      "allele": "HLA-A*02:01",
+      "rank": 0.0045108695652231,
+      "BA": 0.7341977834701539,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcflurry"
+    },
+    {
+      "peptide": "RTLGVFRYK",
+      "allele": "HLA-A*03:01",
+      "rank": 0.0045108695652231,
+      "BA": 0.6974388897418975,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcflurry"
+    },
+    {
+      "peptide": "RIVGPITAK",
+      "allele": "HLA-A*03:01",
+      "rank": 0.0045108695652231,
+      "BA": 0.700035560131073,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcflurry"
+    },
+    {
+      "peptide": "LRIVGPITAK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0046,
+      "BA": 0.5398935446648634,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SIRSCMASVF",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0047,
+      "BA": 0.5514220891829876,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "CLRVLTFSCS",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0048,
+      "BA": 0.5598482025068913,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LCPRRGHKKTV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.005,
+      "BA": 0.5430790856193715,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "TCMSIRSCMA",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0052,
+      "BA": 0.5525537288099445,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SRCYVGLVWCL",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0052,
+      "BA": 0.527005615839327,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "YLVVLGVCYTL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0055,
+      "BA": 0.5446201744986581,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "YSYRRKLTNPA",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0055,
+      "BA": 0.5453666941298807,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VPMYSSLSTL",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0056,
+      "BA": 0.532838081450556,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FILEKVKIE",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0056,
+      "BA": 0.5435347480163506,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LRVLTFSCSH",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0057,
+      "BA": 0.5153009502756776,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "NLVLNRDVSF",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0058,
+      "BA": 0.5391897861448569,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "CVPGLHGWATVM",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0058,
+      "BA": 0.5286138928211157,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QKKVILTKTLVI",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0058,
+      "BA": 0.5391897861448569,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FRYKSRCYVG",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0059,
+      "BA": 0.5105292861134549,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QPAHTYDTV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0059,
+      "BA": 0.52806348484455,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LRVLTFSCSHY",
+      "allele": "HLA-B*27:05",
+      "rank": 0.006,
+      "BA": 0.5093098721463052,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "KRMMATKDSFQS",
+      "allele": "HLA-B*27:05",
+      "rank": 0.006,
+      "BA": 0.508922122828532,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "MASVFTSRIQVI",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0061,
+      "BA": 0.5333762359315573,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QRFRGSEQKI",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0062,
+      "BA": 0.5051883751490444,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SIRSCMASV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0063,
+      "BA": 0.5210303710416491,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "MPKTIYELKM",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0066,
+      "BA": 0.524784898620942,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "TLAMPKTIYEL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0067,
+      "BA": 0.5218277803557883,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LRGTCILAPEL",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0068,
+      "BA": 0.4940405277790063,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "GRFQEALKKSLK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0071,
+      "BA": 0.4874781541597178,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SGYKRMMAT",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0071,
+      "BA": 0.5166619840932093,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "MPDVAHSLAV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0072,
+      "BA": 0.5062657617863482,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FMTSIKACDLAM",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0072,
+      "BA": 0.5144319795609918,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VPITWTGYLPI",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0075,
+      "BA": 0.5028912740729056,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "TLKKVKKTVL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0076,
+      "BA": 0.5078810026413015,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VPGLHGWATV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0076,
+      "BA": 0.501129810781245,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QRFRGSEQKINF",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0079,
+      "BA": 0.4744377746963744,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "RKICGFATTPV",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0081,
+      "BA": 0.4728219952848684,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "HPRGEDHDAI",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0082,
+      "BA": 0.493299469752035,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "GRFQEALKKSL",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0082,
+      "BA": 0.4706303957541471,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "KFKFILEKVKIE",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0082,
+      "BA": 0.4987302498307071,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LAMPKTIYEL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0083,
+      "BA": 0.4971097034014611,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "ALKKSLKKPEV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0083,
+      "BA": 0.4961690808872654,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "CPRRGHKKTV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0084,
+      "BA": 0.4892014529079629,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FKFILEKVKIE",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0086,
+      "BA": 0.492043288745902,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QVIYEKTHCV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0087,
+      "BA": 0.4901960370548474,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LTCMSIRSCMA",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0088,
+      "BA": 0.4889994105190084,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SIRSCMASV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0088,
+      "BA": 0.4891536575585912,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "YRTLGVFR",
+      "allele": "HLA-B*27:05",
+      "rank": 0.009,
+      "BA": 0.4564034750650311,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "RMMATKDSFQSF",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0091,
+      "BA": 0.4842330303244412,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "SYSYRRKLTNPA",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0093,
+      "BA": 0.4827601999579489,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "TLKKVKKTV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0094,
+      "BA": 0.4812294704395939,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "EALKKSLKKPEV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0096,
+      "BA": 0.4787529839861523,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LKKVKKTVL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0098,
+      "BA": 0.4765172844518588,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LTLAMPKTIYEL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0099,
+      "BA": 0.4750321188087281,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "ISLKYTRKVCI",
+      "allele": "HLA-B*08:01",
+      "rank": 0.01,
+      "BA": 0.4741717180049848,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "CPRRGHKKT",
+      "allele": "HLA-B*07:02",
+      "rank": 0.01,
+      "BA": 0.4703240795056006,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "QPTVYLIAPV",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0101,
+      "BA": 0.4685718977289804,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "APVLTCMSI",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0102,
+      "BA": 0.4671791929760379,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VIGQCIYTFTSL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0106,
+      "BA": 0.4666273584818597,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "NALQGYYVCFL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0107,
+      "BA": 0.4648527850511315,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "LIILKCLRVLTF",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0107,
+      "BA": 0.4655078601447104,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VVGKGGHSGSSF",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0107,
+      "BA": 0.4614217548902687,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "KKVILTKTLVI",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0108,
+      "BA": 0.4631144165049522,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "ESKFKFIL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0108,
+      "BA": 0.4636707160997436,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "RRKLTNPANK",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0109,
+      "BA": 0.4328506411078805,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "MSIRSCMA",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0109,
+      "BA": 0.4626662555389845,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "GRFQEALKKS",
+      "allele": "HLA-B*27:05",
+      "rank": 0.0111,
+      "BA": 0.4307597676771099,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "MPDVAHSL",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0111,
+      "BA": 0.4566979405404627,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "IISLKYTRKVCI",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0112,
+      "BA": 0.4592022937655334,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "FNPAHTLTL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0117,
+      "BA": 0.4535342951452844,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VPMYSSLST",
+      "allele": "HLA-B*07:02",
+      "rank": 0.0119,
+      "BA": 0.4476386769271968,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "CMSIRSCMASV",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0121,
+      "BA": 0.4485674914126462,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "ESKFKFILE",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0122,
+      "BA": 0.4475753676491019,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    },
+    {
+      "peptide": "VGKAYKIISL",
+      "allele": "HLA-B*08:01",
+      "rank": 0.0124,
+      "BA": 0.4462557931590837,
+      "affinity": 0.0,
+      "binder": true,
+      "tool": "mhcnuggets"
+    }
+  ],
+  "inhibitor_docking_hits": []
+}

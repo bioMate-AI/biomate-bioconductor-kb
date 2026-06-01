@@ -1,0 +1,31 @@
+{
+  "created_at": "2026-05-29T05:25:38.723216+00:00",
+  "antigen": "ANDV GP Q9E006",
+  "cds_length_nt": 3414,
+  "n_codons": 1138,
+  "codon_optimization": "# Codon Optimization Analysis Research Log\n\n## Input Sequence Analysis\n- Sequence type: DNA\n- Sequence length: 3414 nucleotides\n- Number of codons: 1138\n\n## Optimization Results\n- Codons modified: 737 out of 1138 (64.76%)\n- Original sequence saved to: original_sequence.txt\n- Optimized sequence saved to: optimized_sequence.txt\n\n## Summary\nThe target gene sequence has been optimized for expression in the provided host organism. The optimization process replaced 737 codons (64.76%) with synonymous codons that have higher usage frequency in the host.\n",
+  "cai_human": 1.0,
+  "cai_threshold": 0.9,
+  "cai_pass": true,
+  "premature_stop_in_orf": false,
+  "premature_stop_position": null,
+  "rna2d_5prime_mfe_kcal_mol": -182.6999969482422,
+  "mfe_threshold": -150.0,
+  "mfe_pass": true,
+  "lnp_recommended": {
+    "IL_mol_pct": 50,
+    "helper_mol_pct": 10,
+    "cholesterol_mol_pct": 38.5,
+    "PEG_mol_pct": 1.5,
+    "predicted_size_nm": 80.0,
+    "predicted_EE_pct": 20,
+    "ionizable_lipid_pKa": 9.5,
+    "pKa_status": "SUBOPTIMAL -- too basic (will not ionize in endosome)",
+    "endosomal_escape_score": 0.202,
+    "tissue_targeting_score": 0.85,
+    "tissue": "liver",
+    "cargo": "mRNA"
+  },
+  "overall_pass": true,
+  "note": "ANDV-specific P0 QC derived from publication run artifacts. Workflow 12819 (spike GenBank gold standard) is launched separately for platform validation."
+}
