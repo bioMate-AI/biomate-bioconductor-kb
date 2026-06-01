@@ -1060,20 +1060,32 @@ def _load_chain_row(row: tuple) -> Dict[str, Any]:
 
 
 @router.get("/api/workflow-chains", summary="List curated workflow chains")
-async def list_workflow_chains(domain: Optional[str] = None) -> Dict[str, Any]:
-    """Return all curated workflow chains, optionally filtered by domain."""
+async def list_workflow_chains(
+    domain: Optional[str] = None,
+    intent_hint: bool = False,
+) -> Dict[str, Any]:
+    """Return curated workflow chains, optionally filtered by domain.
+
+    intent_hint=true excludes 'bioc_reactive' chains (post-completion suggestions only).
+    These are bioc_*_v2 chains meant to be surfaced after a run finishes, not by the
+    upfront intent classifier — excluding them prevents mis-routes where a single-step
+    request gets escalated to a full multi-step pipeline.
+    """
     try:
         conn = sqlite3.connect(str(_DB_PATH))
         try:
+            clauses: list[str] = []
+            params: list[str] = []
+            if intent_hint:
+                clauses.append("source != 'bioc_reactive'")
             if domain:
-                rows = conn.execute(
-                    "SELECT * FROM workflow_chains WHERE domain=? ORDER BY usage_count DESC",
-                    (domain,),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM workflow_chains ORDER BY usage_count DESC"
-                ).fetchall()
+                clauses.append("domain=?")
+                params.append(domain)
+            where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+            rows = conn.execute(
+                f"SELECT * FROM workflow_chains {where} ORDER BY usage_count DESC",
+                params,
+            ).fetchall()
         finally:
             conn.close()
         return {"chains": [_load_chain_row(r) for r in rows], "total": len(rows)}

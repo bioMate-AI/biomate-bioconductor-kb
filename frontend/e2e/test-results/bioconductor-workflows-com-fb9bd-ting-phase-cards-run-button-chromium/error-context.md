@@ -1,0 +1,111 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "BioMate" [ref=e7]
+        - generic "Early-access beta — features may change" [ref=e8]: BETA
+        - button "Collapse sidebar" [ref=e9] [cursor=pointer]:
+          - img [ref=e10]
+      - generic [ref=e12]:
+        - generic [ref=e13]: Workspace
+        - button "New Chat" [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+          - generic [ref=e16]: New Chat
+        - button "Workflows" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e20]: Workflows
+        - button "IND Report" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+          - generic [ref=e25]: IND Report
+      - generic [ref=e26]:
+        - generic [ref=e27]: Current
+        - button "idle Use limma/voom for differential expression on" [ref=e28] [cursor=pointer]:
+          - generic "idle" [ref=e29]
+          - generic [ref=e30]: Use limma/voom for differential expression on
+        - button "idle RNA-seq Analysis Pipeline" [ref=e31] [cursor=pointer]:
+          - generic "idle" [ref=e32]
+          - generic [ref=e33]: RNA-seq Analysis Pipeline
+        - button "idle Variant Calling Workflow" [ref=e34] [cursor=pointer]:
+          - generic "idle" [ref=e35]
+          - generic [ref=e36]: Variant Calling Workflow
+        - button "idle ChIP-seq Data Processing" [ref=e37] [cursor=pointer]:
+          - generic "idle" [ref=e38]
+          - generic [ref=e39]: ChIP-seq Data Processing
+        - button "idle Genome Assembly Help" [ref=e40] [cursor=pointer]:
+          - generic "idle" [ref=e41]
+          - generic [ref=e42]: Genome Assembly Help
+      - generic [ref=e43]:
+        - generic [ref=e44]: BE
+        - generic [ref=e45]:
+          - generic [ref=e46]: BC E2E bc03
+          - generic [ref=e47]: e2e_bc_bc03_1780425031150@biomate.test
+        - button "Sign out" [ref=e48] [cursor=pointer]
+    - generic [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e53]: Use limma/voom for differential expression on
+        - generic [ref=e54]:
+          - button "Run Manager 0" [ref=e55] [cursor=pointer]:
+            - img
+            - text: Run Manager
+            - generic [ref=e56]: "0"
+          - button "Refresh run list" [ref=e57] [cursor=pointer]:
+            - img
+      - generic [ref=e60]:
+        - generic [ref=e65]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: BioMate
+            - paragraph [ref=e72]: Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?
+            - generic [ref=e73]:
+              - button "Copy response" [ref=e74] [cursor=pointer]:
+                - img
+              - button "Save response as file" [ref=e75] [cursor=pointer]:
+                - img
+              - button "Regenerate response" [ref=e76] [cursor=pointer]:
+                - img
+              - button "Download outputs" [disabled]:
+                - img
+          - generic [ref=e78]:
+            - generic [ref=e79]: You · 1:30 PM
+            - paragraph [ref=e82]: Use limma/voom for differential expression on a large RNA-seq cohort (n=120). Continuous covariate age, binary outcome disease vs healthy. Duplicate correlation for repeated measures. Human hg38. FDR < 0.05.
+          - generic [ref=e84]:
+            - generic [ref=e85]: BioMate
+            - generic [ref=e88]:
+              - paragraph [ref=e89]:
+                - text: ⚠️
+                - strong [ref=e90]: Connection error
+              - paragraph [ref=e91]:
+                - strong [ref=e92]: "Reason:"
+                - text: network error
+              - paragraph [ref=e93]:
+                - strong [ref=e94]: "Try again:"
+                - text: Reconnect and send the prompt again. If this keeps happening, wait briefly and retry.
+              - paragraph [ref=e95]:
+                - strong [ref=e96]: "Report issue:"
+                - text: Use Report issue if repeated failures continue so logs and request context can be attached.
+            - generic [ref=e97]:
+              - button "Copy response" [ref=e98] [cursor=pointer]:
+                - img
+              - button "Save response as file" [ref=e99] [cursor=pointer]:
+                - img
+              - button "Regenerate response" [ref=e100] [cursor=pointer]:
+                - img
+              - button "Download outputs" [disabled]:
+                - img
+            - generic [ref=e101]:
+              - button "Try again" [ref=e102] [cursor=pointer]
+              - button "Report confusion" [ref=e103] [cursor=pointer]:
+                - img
+                - text: Report confusion
+        - generic [ref=e107]:
+          - button "Add data" [ref=e108] [cursor=pointer]:
+            - img [ref=e109]
+          - textbox "Ask BioMate to run a workflow, adjust parameters, or extend the pipeline..." [active] [ref=e110]
+          - button [disabled] [ref=e111] [cursor=pointer]:
+            - img [ref=e112]
+        - status [ref=e115]
+  - region "Notifications (F8)":
+    - list
+```
