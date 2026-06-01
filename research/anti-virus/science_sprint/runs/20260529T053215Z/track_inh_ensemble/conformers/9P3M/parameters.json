@@ -1,0 +1,8 @@
+{
+  "smiles_list": "[\"N=C(N)NC(=O)c1nccnc1N\", \"CNC1=NC(N)=C2NCCN=C2N1\", \"Nc1oc2c(N)[n+]([O-])n(O)c2c1O\", \"O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O\", \"C[C@]12NCCN3CCN(CCN1)[C@@H]32\"]",
+  "receptor_pdb_file": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3M.pdb",
+  "box_center": "[173.607, 208.847, 174.042]",
+  "box_size": "[20.27508093773169, 20.27508093773169, 20.27508093773169]",
+  "ncpu": "4",
+  "exhaustiveness": "8"
+}

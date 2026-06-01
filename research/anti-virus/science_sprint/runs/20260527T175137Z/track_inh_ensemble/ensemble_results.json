@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "timestamp": "20260527T175137Z",
+    "baseline_run": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z",
+    "baseline_results": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina/docking_autodock_vina_results.json",
+    "pockets_json": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_pockets.json",
+    "box_center": [
+      173.607,
+      208.847,
+      174.042
+    ],
+    "box_size": [
+      20.27508093773169,
+      20.27508093773169,
+      20.27508093773169
+    ],
+    "smiles_list": [
+      "CC(=O)Oc1ccccc1C(=O)O",
+      "Oc1ccccc1",
+      "CC(=O)Nc1ccc(O)cc1"
+    ],
+    "n_conformers": 6,
+    "conformers": [
+      {
+        "label": "top_pocket",
+        "source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+        "deposit_id": null
+      },
+      {
+        "label": "9P3I",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260527T175137Z/track_inh_ensemble/receptors/9P3I.pdb",
+        "deposit_id": "9P3I"
+      },
+      {
+        "label": "9P3Y",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260527T175137Z/track_inh_ensemble/receptors/9P3Y.pdb",
+        "deposit_id": "9P3Y"
+      },
+      {
+        "label": "9P3X",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260527T175137Z/track_inh_ensemble/receptors/9P3X.pdb",
+        "deposit_id": "9P3X"
+      },
+      {
+        "label": "9P3L",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3L.cif",
+        "deposit_id": "9P3L"
+      },
+      {
+        "label": "9P3M",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3M.cif",
+        "deposit_id": "9P3M"
+      }
+    ],
+    "dry_run": false
+  },
+  "conformer_runs": [
+    {
+      "label": "top_pocket",
+      "deposit_id": null,
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T175137Z/top_pocket.pdb",
+      "run_id": "6d5bdd53-0a20-4234-a909-2a52727fe139",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3I",
+      "deposit_id": "9P3I",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260527T175137Z/track_inh_ensemble/receptors/9P3I.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T175137Z/9P3I.pdb",
+      "run_id": "914e4035-12ce-4b33-b706-3b60f1197110",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3Y",
+      "deposit_id": "9P3Y",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260527T175137Z/track_inh_ensemble/receptors/9P3Y.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T175137Z/9P3Y.pdb",
+      "run_id": "16d18665-93c7-45ab-89e4-4f34a754afc8",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3X",
+      "deposit_id": "9P3X",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260527T175137Z/track_inh_ensemble/receptors/9P3X.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T175137Z/9P3X.pdb",
+      "run_id": "decc71a3-6a57-4963-ba6b-7d2a44814877",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3L",
+      "deposit_id": "9P3L",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/structures/9P3L.cif",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T175137Z/9P3L.pdb",
+      "run_id": "ee2a732e-f1e5-4683-8c22-2a27c37c1d52",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3M",
+      "deposit_id": "9P3M",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/structures/9P3M.cif",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T175137Z/9P3M.pdb",
+      "run_id": "773780bf-671e-470a-a6a8-0123e7d3991e",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    }
+  ],
+  "aggregate": {
+    "n_compounds": 3,
+    "n_improved_vs_baseline": 0,
+    "best_compound": null,
+    "compounds": [
+      {
+        "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+        "baseline_affinity_kcal_mol": -4.917,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "Oc1ccccc1",
+        "baseline_affinity_kcal_mol": -3.646,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "CC(=O)Nc1ccc(O)cc1",
+        "baseline_affinity_kcal_mol": -4.644,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      }
+    ]
+  }
+}

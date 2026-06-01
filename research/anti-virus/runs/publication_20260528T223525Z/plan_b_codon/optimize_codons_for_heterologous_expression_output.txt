@@ -1,0 +1,17 @@
+Biomni: Optimize Codons For Heterologous Expression
+============================================================
+
+# Codon Optimization Analysis Research Log
+
+## Input Sequence Analysis
+- Sequence type: DNA
+- Sequence length: 3414 nucleotides
+- Number of codons: 1138
+
+## Optimization Results
+- Codons modified: 737 out of 1138 (64.76%)
+- Original sequence saved to: original_sequence.txt
+- Optimized sequence saved to: optimized_sequence.txt
+
+## Summary
+The target gene sequence has been optimized for expression in the provided host organism. The optimization process replaced 737 codons (64.76%) with synonymous codons that have higher usage frequency in the host.

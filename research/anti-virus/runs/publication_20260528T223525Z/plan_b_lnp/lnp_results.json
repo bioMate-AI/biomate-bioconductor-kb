@@ -1,0 +1,31 @@
+{
+  "status": "completed",
+  "ionizable_lipid_pKa": 9.5,
+  "pKa_status": "SUBOPTIMAL -- too basic (will not ionize in endosome)",
+  "endosomal_escape_score": 0.202,
+  "formulations_evaluated": 1,
+  "best_formulation": {
+    "IL_mol_pct": 50,
+    "helper_mol_pct": 10,
+    "chol_mol_pct": 38.5,
+    "PEG_mol_pct": 1.5,
+    "predicted_size_nm": 80.0,
+    "predicted_EE_pct": 20,
+    "tissue_score": 0.85,
+    "combined_score": null
+  },
+  "recommended": {
+    "IL_mol_pct": 50,
+    "helper_mol_pct": 10,
+    "cholesterol_mol_pct": 38.5,
+    "PEG_mol_pct": 1.5,
+    "predicted_size_nm": 80.0,
+    "predicted_EE_pct": 20,
+    "ionizable_lipid_pKa": 9.5,
+    "pKa_status": "SUBOPTIMAL -- too basic (will not ionize in endosome)",
+    "endosomal_escape_score": 0.202,
+    "tissue_targeting_score": 0.85,
+    "tissue": "liver",
+    "cargo": "mRNA"
+  }
+}

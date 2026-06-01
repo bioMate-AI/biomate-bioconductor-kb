@@ -1,0 +1,14 @@
+{
+  "status": "completed",
+  "t_half_blood_h": 1.9,
+  "AUC_blood_pct_ID_h": 328.7,
+  "tumor_peak_pct_ID": 0.0,
+  "tumor_peak_time_h": 0.0,
+  "liver_uptake_24h_pct": 80.3,
+  "spleen_uptake_24h_pct": 24.1,
+  "k_MPS_h": 0.27,
+  "k_EPR_h": 0.0,
+  "stealth_rating": "POOR (<2h; rapid MPS clearance)",
+  "MPS_clearance_risk": "MEDIUM",
+  "recommendation": "Increase PEG density to >=0.15 chains/nm2 (current 0.1) and/or increase PEG MW to >=5000 Da for adequate circulation"
+}

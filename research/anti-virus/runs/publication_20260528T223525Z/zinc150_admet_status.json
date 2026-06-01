@@ -1,0 +1,53 @@
+{
+  "run_id": "c5a39f95-12c4-49b5-ac83-9ba1a346704e",
+  "invocation_id": "70db81c5-c007-4573-aef0-1dc0d0df8820",
+  "status": "failed",
+  "returncode": 1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inhibitor_publication/20260528T235300Z/admet150",
+  "work_dir": "s3://biomate-nextflow-work/nextflow/work/publication-zinc150/c5a39f95-12c4-49b5-ac83-9ba1a346704e",
+  "log_tail": [
+    "May-28 23:56:45.841 [TaskFinalizer-1] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=1; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=4; loadMemory=8 GB; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]",
+    "May-28 23:56:46.158 [TaskFinalizer-1] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-3738312523392908912.dot to=s3://biomate-nextflow-work/nextflow/outputs/inhibitor_publication/20260528T235300Z/admet150/pipeline_info/dag.dot",
+    "May-28 23:56:46.160 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-28 23:56:46.440 [TaskFinalizer-1] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "May-28 23:56:46.440 [TaskFinalizer-1] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+    "May-28 23:56:47.354 [TaskFinalizer-1] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+    "May-28 23:56:47.600 [TaskFinalizer-1] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+    "May-28 23:56:47.604 [main] DEBUG nextflow.Session - Session await > all processes finished",
+    "May-28 23:56:47.604 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+    "May-28 23:56:47.604 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+    "May-28 23:56:47.604 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=1; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=4; loadMemory=8 GB; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]",
+    "May-28 23:56:48.137 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-3980630035559699893.dot to=s3://biomate-nextflow-work/nextflow/outputs/inhibitor_publication/20260528T235300Z/admet150/pipeline_info/dag.dot",
+    "May-28 23:56:48.196 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "May-28 23:56:48.196 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+    "May-28 23:56:48.894 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+    "May-28 23:56:49.149 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+    "May-28 23:56:49.154 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+    "May-28 23:56:49.159 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'",
+    "May-28 23:56:49.160 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+    "May-28 23:56:49.160 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+  ],
+  "is_batch": true,
+  "s3_output_files": [],
+  "qc_report": null,
+  "qc_gates": [],
+  "started_at": 1780012369.002222,
+  "completed_at": 1780012610.5399234,
+  "duration_s": 241,
+  "completedTasks": 0,
+  "failedTasks": 0,
+  "runningTasks": 1,
+  "totalTasks": 1,
+  "progressPercent": 0,
+  "processes": [
+    {
+      "id": "1",
+      "name": "PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES (run)",
+      "status": "RUNNING",
+      "work_dir": "",
+      "task_files": [],
+      "outputs": [],
+      "process": "predict_admet_properties (run)"
+    }
+  ]
+}

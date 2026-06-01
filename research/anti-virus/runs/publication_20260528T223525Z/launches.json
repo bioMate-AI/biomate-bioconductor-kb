@@ -1,0 +1,101 @@
+{
+  "launched_at": "2026-05-28T22:35:29.752159+00:00",
+  "plan_a": {
+    "success": true,
+    "run_id": "5eda51b4-70b5-4405-9083-f4ab1746da14",
+    "invocation_id": "6f5eaae4-e59e-4486-a4fd-a52b84641208",
+    "status": "running",
+    "outputs": {
+      "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_full_gp/20260528T223525Z"
+    },
+    "runtime": {
+      "mode": "docker",
+      "image": "biomate/biotools:arm64",
+      "entry": null,
+      "required_modules": [],
+      "missing_modules": [],
+      "host_arch": "arm64",
+      "image_arch": "arm64",
+      "cross_arch_allowed": "false"
+    },
+    "message": "Nextflow workflow started (run_id: 5eda51b4-70b5-4405-9083-f4ab1746da14)"
+  },
+  "plan_b": [
+    {
+      "track": "plan_b_codon",
+      "response": {
+        "success": true,
+        "run_id": "839ff0f7-5146-4e25-8ba8-01e202401a6d",
+        "invocation_id": "f5afcba7-a869-4dae-9019-88ead7c9350d",
+        "status": "running",
+        "outputs": {
+          "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/codon"
+        },
+        "runtime": {
+          "mode": "docker",
+          "image": "biomate/biotools:arm64",
+          "entry": null,
+          "required_modules": [],
+          "missing_modules": [],
+          "host_arch": "arm64",
+          "image_arch": "arm64",
+          "cross_arch_allowed": "false"
+        },
+        "message": "Nextflow workflow started (run_id: 839ff0f7-5146-4e25-8ba8-01e202401a6d)"
+      }
+    },
+    {
+      "track": "plan_b_rna2d",
+      "response": {
+        "success": true,
+        "run_id": "e008d4b9-6a74-4055-9cc8-7865e5b706e7",
+        "invocation_id": "197e62ea-b8fb-428b-be57-d580abee31c2",
+        "status": "running",
+        "outputs": {
+          "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/rna2d"
+        },
+        "runtime": {
+          "mode": "docker",
+          "image": "biomate/biotools:arm64",
+          "entry": null,
+          "required_modules": [],
+          "missing_modules": [],
+          "host_arch": "arm64",
+          "image_arch": "arm64",
+          "cross_arch_allowed": "false"
+        },
+        "message": "Nextflow workflow started (run_id: e008d4b9-6a74-4055-9cc8-7865e5b706e7)"
+      }
+    },
+    {
+      "track": "plan_b_lnp",
+      "response": {
+        "success": true,
+        "run_id": "d065b268-51be-4b78-8b5e-63be4bc7459b",
+        "invocation_id": "60ce136f-739b-4a94-845b-7394f6977521",
+        "status": "running",
+        "outputs": {
+          "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/lnp"
+        },
+        "runtime": {
+          "mode": "docker",
+          "image": "biomate/biotools:comprehensive",
+          "entry": null,
+          "required_modules": [
+            "numpy",
+            "rdkit"
+          ],
+          "missing_modules": [],
+          "host_arch": "arm64",
+          "image_arch": "arm64",
+          "cross_arch_allowed": "false"
+        },
+        "message": "Nextflow workflow started (run_id: d065b268-51be-4b78-8b5e-63be4bc7459b)"
+      }
+    }
+  ],
+  "inhibitor": {
+    "returncode": 2,
+    "stdout_tail": ""
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "smiles_list": "[\"CC(=O)Oc1ccccc1C(=O)O\", \"Oc1ccccc1\", \"CC(=O)Nc1ccc(O)cc1\"]",
+  "receptor_pdb_file": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T174944Z/9P3Y.pdb",
+  "box_center": "[173.607, 208.847, 174.042]",
+  "box_size": "[20.27508093773169, 20.27508093773169, 20.27508093773169]",
+  "ncpu": "4",
+  "exhaustiveness": "8"
+}

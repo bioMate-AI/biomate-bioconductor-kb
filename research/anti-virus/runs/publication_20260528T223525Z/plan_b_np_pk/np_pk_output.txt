@@ -1,0 +1,11 @@
+=== NANOPARTICLE PK & BIODISTRIBUTION REPORT ===
+Particle: 80.0 nm | Surface: peg | PEG: 0.1 chains/nm2 (2000.0 Da)
+Dose: 5.0 mg/kg | Tumor model: none
+
+Blood circulation t1/2:   1.9 h  (POOR (<2h; rapid MPS clearance))
+AUC (blood):           328.7 %ID*h
+Tumor peak:            0.0 %ID/g at 0.0 h
+Liver uptake (24h):    80.3 %ID
+MPS clearance risk:    MEDIUM  (k_MPS=0.27/h)
+
+-> Increase PEG density to >=0.15 chains/nm2 (current 0.1) and/or increase PEG MW to >=5000 Da for adequate circulation

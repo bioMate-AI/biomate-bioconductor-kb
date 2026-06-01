@@ -1,0 +1,6 @@
+ANDV GP mRNA construct P0-style validation (publication run)
+CDS length: 3414 nt
+CAI (human): 1.0 (threshold 0.90, pass=True)
+Premature stops: False
+5' RNA MFE: -182.6999969482422 kcal/mol (threshold -150, pass=True)
+Overall pass: True

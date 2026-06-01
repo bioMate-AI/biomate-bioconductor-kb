@@ -1,0 +1,39 @@
+{
+  "created_at": "2026-05-28T22:35:25.997012+00:00",
+  "stamp": "20260528T223525Z",
+  "accession": "Q9E006",
+  "protein_length_aa": 1138,
+  "cds_length_nt": 3414,
+  "hla_panel": [
+    "A*02:01",
+    "A*01:01",
+    "A*03:01",
+    "A*24:02",
+    "B*07:02",
+    "B*08:01",
+    "B*27:05",
+    "B*35:01"
+  ],
+  "s3_prefix": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528",
+  "local_assets": {
+    "gp_fasta": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/andv_gp_full_Q9E006.fasta",
+    "cds_fasta": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/andv_gp_cds_reverse_translated.fasta",
+    "samplesheet": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/samplesheet_full_gp_s3.csv",
+    "reference_actives": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/reference_actives_antiviral.smi",
+    "zinc_library": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.smi"
+  },
+  "output_prefixes": {
+    "plan_a": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_full_gp/20260528T223525Z",
+    "plan_b_codon": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/codon",
+    "plan_b_rna2d": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/rna2d",
+    "plan_b_lnp": "s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/lnp",
+    "inhibitor": "s3://biomate-nextflow-work/nextflow/outputs/inhibitor_publication/20260528T223525Z"
+  },
+  "s3_uris": {
+    "gp_fasta": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/andv_gp_full_Q9E006.fasta",
+    "cds_fasta": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/andv_gp_cds_reverse_translated.fasta",
+    "samplesheet": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/samplesheet_full_gp_s3.csv",
+    "reference_actives": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/reference_actives_antiviral.smi",
+    "zinc_library": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/zinc600_library.smi"
+  }
+}

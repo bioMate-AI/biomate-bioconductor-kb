@@ -1,0 +1,9 @@
+{
+  "merged_at": "2026-05-29T00:11:36.827794+00:00",
+  "vina_run_id": "858aa65b-64ce-4b69-88b6-c809c0d4dd15",
+  "vina_outdir": "s3://biomate-nextflow-work/nextflow/outputs/inhibitor_publication/20260528T235300Z/vina150",
+  "admet_work_prefix": "s3://biomate-nextflow-work/nextflow/work/publication-zinc150/c5a39f95-12c4-49b5-ac83-9ba1a346704e/42/59b8fe427a8ce02301dc8e6e6ff0a5/",
+  "n_ligands_docked": 145,
+  "best_score_kcal_mol": -6.267,
+  "docking_json": "research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
+}

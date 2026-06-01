@@ -1,0 +1,6 @@
+{
+  "success": true,
+  "function": "predict_rna_secondary_structure",
+  "domain": "microbiology",
+  "result": "ERROR: Invalid RNA sequence. Only A, U, G, C nucleotides are allowed."
+}

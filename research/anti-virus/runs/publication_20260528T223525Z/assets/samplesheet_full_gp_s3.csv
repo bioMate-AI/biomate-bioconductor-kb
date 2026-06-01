@@ -1,0 +1,2 @@
+sample,alleles,mhc_class,filename
+PLAN_A_FULL_GP,A*02:01;A*01:01;A*03:01;A*24:02;B*07:02;B*08:01;B*27:05;B*35:01,I,s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/andv_gp_full_Q9E006.fasta

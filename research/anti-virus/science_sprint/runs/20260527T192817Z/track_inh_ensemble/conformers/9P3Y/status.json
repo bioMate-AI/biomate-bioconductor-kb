@@ -1,0 +1,41 @@
+{
+  "run_id": "1466b54d-d4f3-4795-ab7b-34547625b3cd",
+  "invocation_id": "b92c52c4-480c-4d94-8ca8-125defbb59fe",
+  "status": "failed",
+  "returncode": 1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3Y/65ab7619",
+  "work_dir": "s3://biomate-nextflow-work/nextflow/work/inh-ensemble-20260527-9P3Y/1466b54d-d4f3-4795-ab7b-34547625b3cd",
+  "log_tail": [
+    "Downloading plugin nf-amazon@3.4.1",
+    "Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` [big_bhabha] DSL2 - revision: fd49259465",
+    "[06/c01e62] Submitted process > DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/inh-ensemble-20260527-9P3Y/1466b54d-d4f3-4795-ab7b-34547625b3cd/06/c01e620ea79d249e55cd36a8dd8a6d/docking_autodock_vina_output.txt]",
+    "ERROR ~ Unexpected error while finalizing task 'DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)' - cause: No such property: meta for class: nextflow.script.dsl.ProcessDslV1",
+    " -- Check '.nextflow.log' file for details",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+  ],
+  "is_batch": true,
+  "s3_output_files": [],
+  "qc_report": null,
+  "qc_gates": [],
+  "started_at": 1779910237.5952933,
+  "completed_at": 1779910309.5937462,
+  "duration_s": 71,
+  "completedTasks": 0,
+  "failedTasks": 0,
+  "runningTasks": 1,
+  "totalTasks": 1,
+  "progressPercent": 0,
+  "processes": [
+    {
+      "id": "1",
+      "name": "DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)",
+      "status": "RUNNING",
+      "work_dir": "",
+      "task_files": [],
+      "outputs": [],
+      "process": "docking_autodock_vina (run)"
+    }
+  ]
+}
