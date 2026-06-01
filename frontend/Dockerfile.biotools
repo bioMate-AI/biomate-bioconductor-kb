@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
     libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
     mafft samtools bcftools bwa iqtree bedtools tabix \
-    libhts-dev zlib1g-dev libbz2-dev liblzma-dev \
+    zlib1g-dev libbz2-dev liblzma-dev \
     curl wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
