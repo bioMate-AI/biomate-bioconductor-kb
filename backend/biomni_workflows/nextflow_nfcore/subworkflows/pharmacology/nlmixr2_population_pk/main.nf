@@ -214,16 +214,16 @@ process NLMIXR2_POPULATION_PK {
     # Condition number from covariance matrix
     cov_mat <- tryCatch(fit$covMatrix, error = function(e) NULL)
     cond_number <- if (!is.null(cov_mat) && nrow(cov_mat) > 0) {
-        eig <- eigen(cov_mat, only.values = TRUE)\\$values
+        eig <- eigen(cov_mat, only.values = TRUE)$values
         max(abs(eig)) / min(abs(eig[abs(eig) > 1e-10]))
     } else NA
 
     # OFV (objective function value)
-    ofv <- tryCatch(fit\\$ofv, error = function(e) NA)
+    ofv <- tryCatch(fit$ofv, error = function(e) NA)
 
-    # Convergence: nlmixr2 sets fit\\$message; SAEM converged if no warning keyword
+    # Convergence: nlmixr2 sets fit$message; SAEM converged if no warning keyword
     converged <- tryCatch({
-        msg <- fit\\$message
+        msg <- fit$message
         !grepl("not converge|failed|warning", msg, ignore.case = TRUE)
     }, error = function(e) TRUE)  # assume converged if message not accessible
 
