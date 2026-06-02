@@ -86,14 +86,31 @@ notify() {
 
 # -------- resolve instance --------
 log "Resolving target EC2 for env=$ENV_NAME …"
-INSTANCE_ID=$(aws ec2 describe-instances --region "$AWS_REGION" \
-  --filters "$INSTANCE_TAG_FILTER" "Name=instance-state-name,Values=running" \
-  --query 'Reservations[0].Instances[0].InstanceId' --output text)
+# Look up by tag in any non-terminal state so we can auto-start a stopped instance.
+read -r INSTANCE_ID INSTANCE_STATE < <(aws ec2 describe-instances --region "$AWS_REGION" \
+  --filters "$INSTANCE_TAG_FILTER" \
+    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+  --query 'Reservations[0].Instances[0].[InstanceId,State.Name]' --output text)
 if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
-  echo "ERROR: no running instance matching $INSTANCE_TAG_FILTER" >&2
+  echo "ERROR: no instance matching $INSTANCE_TAG_FILTER (any state)" >&2
   notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "No target instance"; exit 1
 fi
-log "Target: $INSTANCE_ID"
+log "Target: $INSTANCE_ID (state=$INSTANCE_STATE)"
+
+if [[ "$INSTANCE_STATE" == "stopped" || "$INSTANCE_STATE" == "stopping" ]]; then
+  if [[ "$INSTANCE_STATE" == "stopping" ]]; then
+    log "Instance is stopping; waiting for stopped before starting …"
+    aws ec2 wait instance-stopped --region "$AWS_REGION" --instance-ids "$INSTANCE_ID"
+  fi
+  log "Starting instance $INSTANCE_ID …"
+  aws ec2 start-instances --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" >/dev/null
+fi
+if [[ "$INSTANCE_STATE" != "running" ]]; then
+  log "Waiting for instance running + status ok …"
+  aws ec2 wait instance-running --region "$AWS_REGION" --instance-ids "$INSTANCE_ID"
+  aws ec2 wait instance-status-ok --region "$AWS_REGION" --instance-ids "$INSTANCE_ID"
+  log "Instance ready."
+fi
 
 # -------- ssm-run helper --------
 # ssm_run "<shell script>" "<step label>" — sends commands, polls to completion,
