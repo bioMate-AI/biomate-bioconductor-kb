@@ -41,13 +41,83 @@ process BIOC_CAMUTQC {
     library(CaMutQC)
     library(jsonlite)
 
-    # --- Mutfiltercom [] ---
-    # Key functions: mutFilterCom
-    ---------------------------------------------------------------------
-    MAFCom_tmb <- mutFilterCom(MAFdat, panel="WES", assay="Customized", report=FALSE, TMB=TRUE,
-                               bedFile=system.file("extdata/bed/panel_hg38",
-                                                   "Pan-cancer-hg38.rds", package="CaMutQC"),
-                               PONfile=system.file("extdata", "PON_test.txt", package="CaMutQC"),
+    # --- VCF Conversion and Parsing [vcfToMAF] ---
+    # Key functions: vcfToMAF
+    vcf_file <- system.file(
+        "extdata", "WES_EA_T_1_mutect2.vep.vcf",
+        package = "CaMutQC"
+    )
+    maf_data <- CaMutQC::vcfToMAF(vcf_file)
+    head(maf_data)
+
+    # --- Quality and Strand Bias Filtering [mutFilterQual, mutFilterSB, mutFilterAdj] ---
+    # Key functions: mutFilterQual, mutFilterSB, mutFilterAdj
+    maf_qual <- CaMutQC::mutFilterQual(
+        maf_data, panel = "Customized", VAF = 0.01, VAFratio = 4
+    )
+    maf_sb <- CaMutQC::mutFilterSB(maf_qual, SBscore = 2)
+    maf_adj <- CaMutQC::mutFilterAdj(
+        maf_sb, maxIndelLen = 40, minInterval = 15
+    )
+
+    # --- Database and Panel-of-Normals Filtering [mutFilterNormalDP, mutFilterPON, mutFilterDB] ---
+    # Key functions: mutFilterNormalDP, mutFilterPON, mutFilterDB
+    pon_file <- system.file(
+        "extdata", "PON_test.txt", package = "CaMutQC"
+    )
+    maf_pon <- CaMutQC::mutFilterPON(
+        maf_data, PONfile = pon_file, PONformat = "txt"
+    )
+    maf_norm <- CaMutQC::mutFilterNormalDP(
+        maf_pon, dbsnpCutoff = 19, nonCutoff = 8
+    )
+    maf_db <- CaMutQC::mutFilterDB(
+        maf_norm, dbSNP = TRUE, dbVAF = 0.01
+    )
+
+    # --- Comprehensive Mutation Filtering [mutFilterCom, mutFilterCan] ---
+    # Key functions: mutFilterCom, mutFilterCan
+    pon_file <- system.file(
+        "extdata", "PON_test.txt", package = "CaMutQC"
+    )
+    maf_com <- CaMutQC::mutFilterCom(
+        maf_data, panel = "WES", report = FALSE, TMB = FALSE,
+        progressbar = FALSE, PONfile = pon_file, PONformat = "txt"
+    )
+    maf_can <- CaMutQC::mutFilterCan(
+        maf_data, cancerType = "LAML", report = FALSE, TMB = FALSE,
+        progressbar = FALSE, PONfile = pon_file, PONformat = "txt"
+    )
+
+    # --- Tumor Mutational Burden Calculation [calTMB] ---
+    # Key functions: calTMB
+    bed_file <- system.file(
+        "extdata/bed/panel_hg38", "Pan-cancer-hg38.rds",
+        package = "CaMutQC"
+    )
+    tmb_val <- CaMutQC::calTMB(
+        maf_data, assay = "Customized", bedFile = bed_file
+    )
+
+    # --- Multi-caller Integration [processMut, vcfToMAF, mutFilterCom] ---
+    # Key functions: processMut, vcfToMAF, mutFilterCom
+    pon_file <- system.file(
+        "extdata", "PON_test.txt", package = "CaMutQC"
+    )
+    vcf_muse <- system.file(
+        "extdata/Multi-caller", "WES_EA_T_1.MuSE.vep.vcf",
+        package = "CaMutQC"
+    )
+    maf_muse <- CaMutQC::vcfToMAF(vcf_muse)
+    maf_muse_f <- CaMutQC::mutFilterCom(
+        maf_muse, report = FALSE, TMB = FALSE,
+        PONfile = pon_file, PONformat = "txt", progressbar = FALSE
+    )
+    maf_list <- list(maf_muse_f, maf_data)
+    maf_union <- CaMutQC::processMut(
+        maf_list, processMethod = "union"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

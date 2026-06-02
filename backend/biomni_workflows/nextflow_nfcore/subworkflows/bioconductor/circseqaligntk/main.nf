@@ -41,66 +41,73 @@ process BIOC_CIRCSEQALIGNTK {
     library(CircSeqAlignTk)
     library(jsonlite)
 
-    # --- quick start  triming [] ---
-    # Key functions: gunzip, remove_adapters
-    library(R.utils)
-    library(Rbowtie2)
-    gunzip(fq, destname = file.path(ws, 'srna.fq'), overwrite = TRUE, remove = FALSE)
-    # --- quick start  alignment [] ---
-    # Key functions: build_index, align_reads
-    ref_index <- build_index(input = genome_seq,
-    output = file.path(ws, 'index'))
-    aln <- align_reads(input = trimmed_fq,
-    # --- quick start  summary [] ---
-    # Key functions: calc_coverage
+    # --- Adapter Trimming [Adapter Removal] ---
+    # Key functions: remove_adapters
+    ws <- tempdir()
+    fq_in <- file.path(ws, "srna.fq")
+    trimmed_fq <- file.path(ws, "srna_trimmed.fq")
+    params <- "--maxns 1 --trimqualities --minquality 30 --minlength 21"
+    remove_adapters(
+        file1 = fq_in,
+        adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
+        adapter2 = NULL,
+        output1 = trimmed_fq,
+        params = params,
+        basename = file.path(ws, "AdapterRemoval.log"),
+        overwrite = TRUE
+    )
+
+    # --- Reference Indexing [Index Generation] ---
+    # Key functions: build_index, get_slot_contents
+    ws <- tempdir()
+    genome_seq <- system.file(
+        package = "CircSeqAlignTk",
+        "extdata",
+        "FR851463.fa"
+    )
+    ref_index <- build_index(
+        input = genome_seq,
+        output = file.path(ws, "index")
+    )
+    fasta_path <- get_slot_contents(ref_index, "fasta")
+    index_path <- get_slot_contents(ref_index, "index")
+    cut_loci <- get_slot_contents(ref_index, "cut_loc")
+
+    # --- Read Alignment [Alignment] ---
+    # Key functions: align_reads, get_slot_contents
+    ws <- tempdir()
+    trimmed_fq <- file.path(ws, "srna_trimmed.fq")
+    aln <- align_reads(
+        input = trimmed_fq,
+        index = ref_index,
+        output = file.path(ws, "align_results"),
+        n_mismatch = 0,
+        n_threads = 2
+    )
+    bam_path <- get_slot_contents(aln, "bam")
+    stats_info <- get_slot_contents(aln, "stats")
+
+    # --- Coverage Calculation [Coverage Analysis] ---
+    # Key functions: calc_coverage, get_slot_contents
     alncov <- calc_coverage(aln)
-    head(get_slot_contents(alncov, 'forward'))  # alignment coverage in forward strand
-    head(get_slot_contents(alncov, 'reverse')) # alignment coverage in reverse strand
-    # --- implementation  build index [] ---
-    # Key functions: build_index
-    genome_seq <- system.file(package = 'CircSeqAlignTk', 'extdata', 'FR851463.fa')
-    ref_index <- build_index(input = genome_seq, output = file.path(ws, 'index'))
-    # --- implementation  build index output refseq [] ---
-    # Key functions: get_slot_contents
-    get_slot_contents(ref_index, 'fasta')
-    # --- implementation  build index output index [] ---
-    # Key functions: get_slot_contents
-    get_slot_contents(ref_index, 'index')
-    # --- access slot content [] ---
-    # Key functions: slot
-    slot(ref_index, 'fasta')
-    slot(ref_index, 'index')
-    # --- implementation  build index cutloci [] ---
-    # Key functions: get_slot_contents
-    get_slot_contents(ref_index, 'cut_loc')
-    # --- implementation  build ht2index [] ---
-    # Key functions: build_index
-    ref_ht2index <- build_index(input = genome_seq,
-    output = file.path(ws, 'ht2index'),
-    # --- implementation  align read [] ---
-    # Key functions: align_reads
-    fq <- system.file(package = 'CircSeqAlignTk', 'extdata', 'srna.fq.gz')
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'))
-    # --- implementation  align read output bam [] ---
-    # Key functions: get_slot_contents
-    get_slot_contents(aln, 'bam')
-    get_slot_contents(aln, 'clean_bam')
-    # --- implementation  align read stats [] ---
-    # Key functions: get_slot_contents
-    get_slot_contents(aln, 'stats')
-    # --- implementation  align read  mismatch [] ---
-    # Key functions: align_reads
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'),
-    # --- implementation  align read  threads [] ---
-    # Key functions: align_reads
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'),
-    # --- implementation  align read  add params [] ---
-    # Key functions: align_reads
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'),
+    fwd_cov <- get_slot_contents(alncov, "forward")
+    rev_cov <- get_slot_contents(alncov, "reverse")
+
+    # --- Visualisation [Plotting Coverage] ---
+    # Key functions: plot
+    plot(alncov)
+    plot(alncov, read_lengths = c(21, 22))
+
+    # --- Synthetic Read Generation [Simulation] ---
+    # Key functions: generate_reads, get_slot_contents
+    ws <- tempdir()
+    sim <- generate_reads(
+        n = 1000,
+        output = file.path(ws, "synthetic_reads.fq.gz"),
+        mismatch_prob = 0.05
+    )
+    sim_cov <- get_slot_contents(sim, "coverage")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

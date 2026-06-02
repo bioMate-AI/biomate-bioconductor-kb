@@ -41,16 +41,59 @@ process BIOC_CHROMVAR {
     library(chromVAR)
     library(jsonlite)
 
-    # --- filter Samples Plot [] ---
-    # Key functions: filterSamplesPlot, filterSamples, filterPeaks, getJasparMotifs, matchMotifs
-    filtering_plot <- filterSamplesPlot(example_counts, min_depth = 1500,
-    ix <- filterSamples(example_counts, ix_return = TRUE, shiny = FALSE)
+    # --- Quality Control and Filtering [] ---
+    # Key functions: addGCBias, filterSamples, filterPeaks
+    data(example_counts, package = "chromVAR")
+    counts_gc <- addGCBias(
+        example_counts,
+        genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    )
+    counts_filtered <- filterSamples(
+        counts_gc,
+        min_depth = 1500,
+        min_in_peaks = 0.15,
+        shiny = FALSE
+    )
     counts_filtered <- filterPeaks(counts_filtered, non_overlapping = TRUE)
-    # --- compute Variability [] ---
+
+
+    # --- Motif and Kmer Matching [] ---
+    # Key functions: getJasparMotifs, matchMotifs, matchKmers
+    motifs <- getJasparMotifs()
+    motif_ix <- matchMotifs(
+        motifs,
+        counts_filtered,
+        genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    )
+    kmer_ix <- matchKmers(
+        6,
+        counts_filtered,
+        genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    )
+
+
+    # --- Deviation Computation [] ---
+    # Key functions: getBackgroundPeaks, computeDeviations
+    bg_peaks <- getBackgroundPeaks(object = counts_filtered)
+    dev <- computeDeviations(
+        object = counts_filtered,
+        annotations = motif_ix,
+        background_peaks = bg_peaks
+    )
+
+
+    # --- Variability Analysis and Visualization [] ---
     # Key functions: computeVariability, plotVariability, deviationsTsne, plotDeviationsTsne
     variability <- computeVariability(dev)
-    plotVariability(variability, use_plotly = FALSE)
+    var_plot <- plotVariability(variability, use_plotly = FALSE)
     tsne_results <- deviationsTsne(dev, threshold = 1.5, perplexity = 10)
+    tsne_plots <- plotDeviationsTsne(
+        dev,
+        tsne_results,
+        annotation_name = "TEAD3",
+        sample_column = "Cell_Type",
+        shiny = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

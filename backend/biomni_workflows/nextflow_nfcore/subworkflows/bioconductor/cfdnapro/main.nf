@@ -41,50 +41,49 @@ process BIOC_CFDNAPRO {
     library(cfDNAPro)
     library(jsonlite)
 
-    # --- get path to example data [] ---
-    # Key functions: examplePath
-    library(cfDNAPro)
+    # --- Fragment Size Profiling [Fragment Size Profiling] ---
+    # Key functions: examplePath, callSize, plotSingleGroup
     data_path <- examplePath("groups_picard")
-    # --- single group plot [] ---
-    # Key functions: callSize, plotSingleGroup
-    cohort1_plot <- cfDNAPro::callSize(path = data_path) %>%
-    dplyr::filter(group == as.character("cohort_1")) %>%
-    cfDNAPro::plotSingleGroup()
-    # --- fragment size distribution [] ---
-    # Key functions: callSize, plotSingleGroup, ggarrange
-    library(scales)
-    library(ggpubr)
-    library(ggplot2)
-    # --- Median distribution [] ---
-    # Key functions: callMetrics, ylim, theme, scale_y_continuous
-    Set an order for those groups (i.e. the levels of factors).
-    order <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
-    compare_grps<-callMetrics(data_path) %>% plotMetrics(order=order)
-    # --- Modal size bar chart [] ---
-    # Key functions: callMode
-    order <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
-    mode_bin <- callMode(data_path) %>% plotMode(order=order,hline = c(167,111,81))
-    suppressWarnings(print(mode_bin))
-    # --- modal size stacked bar chart [] ---
-    # Key functions: callMode, plotModeSummary
-    order <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
-    callMode(data_path) %>%
-    plotModeSummary(order=order,
-    # --- interpeak distance [] ---
-    # Key functions: callPeakDistance, plotPeakDistance, labs, theme
-    order <- c("cohort_1", "cohort_2", "cohort_4", "cohort_3")
-    inter_peak_dist<-callPeakDistance(path = data_path,  limit = c(50, 135)) %>%
-    plotPeakDistance(order = order) +
-    # --- intervalley distance [] ---
-    # Key functions: callValleyDistance, plotValleyDistance, labs, theme
-    order <- c("cohort_1", "cohort_2", "cohort_4", "cohort_3")
-    inter_valley_dist<-callValleyDistance(path = data_path,
-    limit = c(50, 135)) %>%
-    # --- example Path [] ---
-    # Key functions: examplePath, callPeakDistance, callValleyDistance, callSize, coord_cartesian
-    library(ggplot2)
-    library(cfDNAPro)
-    exam_path <- examplePath("step6")
+    cohort1_plot <- callSize(path = data_path) %>%
+        dplyr::filter(group == "cohort_1") %>%
+        plotSingleGroup()
+
+    # --- Cohort Metrics Comparison [Cohort Metrics Comparison] ---
+    # Key functions: callMetrics, plotMetrics
+    data_path <- examplePath("groups_picard")
+    order_groups <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
+    compare_grps <- callMetrics(data_path) %>%
+        plotMetrics(order = order_groups)
+    p1 <- compare_grps$median_prop_plot
+    p2 <- compare_grps$median_cdf_plot
+
+    # --- Modal Size Analysis [Modal Size Analysis] ---
+    # Key functions: callMode, plotMode, plotModeSummary
+    data_path <- examplePath("groups_picard")
+    order_groups <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
+    mode_bin <- callMode(data_path) %>%
+        plotMode(order = order_groups, hline = c(167, 111, 81))
+    mode_stacked <- callMode(data_path) %>%
+        plotModeSummary(
+            order = order_groups,
+            mode_partition = list(c(166, 167))
+        )
+
+    # --- Peak and Valley Distance Analysis [Peak and Valley Distance Analysis] ---
+    # Key functions: callPeakDistance, plotPeakDistance, callValleyDistance, plotValleyDistance
+    data_path <- examplePath("groups_picard")
+    order_groups <- c("cohort_1", "cohort_2", "cohort_4", "cohort_3")
+    inter_peak_dist <- callPeakDistance(
+        path = data_path,
+        limit = c(50, 135)
+    ) %>%
+        plotPeakDistance(order = order_groups)
+    inter_valley_dist <- callValleyDistance(
+        path = data_path,
+        limit = c(50, 135)
+    ) %>%
+        plotValleyDistance(order = order_groups)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

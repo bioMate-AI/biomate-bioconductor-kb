@@ -38,43 +38,55 @@ process BIOC_CHROMDRAW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(chromDraw)
     library(GRanges)
     library(IRanges)
     library(Rle)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, Rle, IRanges
-    library(GenomicRanges)
-    exampleData <- GRanges(seqnames =Rle(c("ACK1"), c(4)),ranges =
-    IRanges(start = c(0, 6700000,0,12400000),
-            end = c(6700000,12400000,0,17000000),
-            names = c("A","B","CENTROMERE","C")),
-    # --- frame [] ---
-    # Key functions: frame
-    name <- c("yellow", "red");
-    r <- c(255, 255);
-    g <- c(255, 0);
-    b <- c(0, 0);
-    exampleColor <- data.frame(name,r,g,b);
-    # --- path [] ---
-    # Key functions: path, chromDraw
-    library(chromDraw)
-    OUTPUTPATH = file.path(getwd());
-    INPUTPATH = system.file('extdata',
-                            'Ack_and_Stenopetalum_nutans.txt',
-                            package ='chromDraw')
-    # --- chrom Draw G R [] ---
+    # --- Karyotype Visualization from Genomic Ranges [] ---
     # Key functions: chromDrawGR
-    library(chromDraw)
-    chromDrawGR(list(exampleData), exampleColor);
-    # --- path [] ---
-    # Key functions: path, chromDraw
-    library(chromDraw)
-    OUTPUTPATH = file.path(getwd());
-    INPUTPATH = system.file('extdata',
-                            'bed.bed',
-                            package ='chromDraw')
+    chromDraw::chromDrawGR(
+        list(exampleData),
+        exampleColor
+    )
+
+
+    # --- Karyotype Visualization from Text Files [] ---
+    # Key functions: chromDraw
+    outputPath <- file.path(getwd())
+    inputPath <- system.file(
+        "extdata",
+        "Ack_and_Stenopetalum_nutans.txt",
+        package = "chromDraw"
+    )
+    colorPath <- system.file(
+        "extdata",
+        "default_colors.txt",
+        package = "chromDraw"
+    )
+    chromDraw::chromDraw(
+        argc = 7,
+        argv = c(
+            "chromDraw", "-c", colorPath, "-d", inputPath, "-o", outputPath
+        )
+    )
+
+
+    # --- Karyotype Visualization from BED Files [] ---
+    # Key functions: chromDraw
+    outputPath <- file.path(getwd())
+    inputPath <- system.file(
+        "extdata",
+        "bed.bed",
+        package = "chromDraw"
+    )
+    chromDraw::chromDraw(
+        argc = 7,
+        argv = c(
+            "chromDraw", "-f", "bed", "-d", inputPath, "-o", outputPath
+        )
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

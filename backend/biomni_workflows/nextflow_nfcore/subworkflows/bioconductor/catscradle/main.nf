@@ -38,57 +38,76 @@ process BIOC_CATSCRADLE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CatsCradle)
     library(DimPlot)
     library(jsonlite)
 
-    # --- [CC2] [] ---
-    # Key functions: DimPlot
-    library(Seurat,quietly=TRUE)
-    library(ggplot2,quietly=TRUE)
-    DimPlot(exSeuratObj,cols='polychrome') + ggtitle('Cell clusters on UMAP')
-    # --- [CC3] [] ---
-    # Key functions: DimPlot
-    DimPlot(STranspose,cols='polychrome') + ggtitle('Gene clusters on UMAP')
-    # --- [CC4] [] ---
-    # Key functions: geom_point, saveWidget
-    library(plotly,quietly=TRUE)
-    umap = FetchData(STranspose,c('UMAP_1','UMAP_2','seurat_clusters'))
-    umap$gene = colnames(STranspose)
-    # --- [CC5] [] ---
-    # Key functions: pheatmap
-    library(pheatmap,quietly=TRUE)
-    averageExpMatrix = getAverageExpressionMatrix(exSeuratObj,STranspose,layer='data')
-    averageExpMatrix = tagRowAndColNames(averageExpMatrix,
-    # --- [CC7] [] ---
-    # Key functions: geom_point, ggtitle
-    hallmark = getExample('hallmark')
-    umap = FetchData(STranspose,c('umap_1','umap_2'))
-    idx = colnames(STranspose) %in% hallmark[[h]]
-    # --- [CC9] [] ---
-    # Key functions: aes, geom_histogram, geom_vline, ggtitle
-    statsPlot = ggplot(data.frame(medianComplementDistance=stats$randomSubsetDistance),
-    aes(x=medianComplementDistance)) +
-    geom_histogram(bins=50) +
-    # --- [CC10] [] ---
-    # Key functions: geom_histogram, geom_vline, ggtitle
-    df = read.table('hallmarkPValues.txt',header=TRUE,sep='\t')
-    g = ggplot(df,aes(x=logPValue)) +
-    geom_histogram() +
-    # --- [CC11] [] ---
-    # Key functions: geom_point, scale_color_gradient, ggtitle
-    meanZDF	 = meanZPerClusterOnUMAP(exSeuratObj,
-    h = ggplot(meanZDF,aes(x=umap_1,y=umap_2,color=EntericGliaCells)) +
-    geom_point() +
-    # --- [CC12] [] ---
-    # Key functions: geom_point, scale_color_gradient, ggtitle
-    k = ggplot(TDiff,aes(x=umap_1,y=umap_2,color=TDiff)) +
-    geom_point() +
-    scale_color_gradient(low='green',high='red') +
-    # --- [CC13] [] ---
-    # Key functions: geom_point, ggtitle
-    geneSet = intersect(colnames(STranspose),
-    geometricallyNearbyGenes = getNearbyGenes(STranspose,geneSet,radius=0.2,metric='umap')
-    theGeometricGenesThemselves = names(geometricallyNearbyGenes)
+    # --- Object Transposition ---
+    # Key functions: make.getExample, transposeObject
+    getExample <- make.getExample()
+    exSeuratObj <- getExample("exSeuratObj")
+    STranspose <- transposeObject(exSeuratObj)
+
+    # --- Co-clustering Expression Matrix ---
+    # Key functions: getAverageExpressionMatrix, tagRowAndColNames
+    averageExpMatrix <- getAverageExpressionMatrix(
+        exSeuratObj,
+        STranspose,
+        layer = "data"
+    )
+    taggedMatrix <- tagRowAndColNames(
+        averageExpMatrix,
+        ccTag = "cellClusters_",
+        gcTag = "geneClusters_"
+    )
+
+    # --- Gene Set Clustering Statistics ---
+    # Key functions: make.getExample, getObjectSubsetClusteringStatistics
+    getExample <- make.getExample()
+    hallmark <- getExample("hallmark")
+    g2mGenes <- intersect(
+        colnames(STranspose),
+        hallmark[["HALLMARK_G2M_CHECKPOINT"]]
+    )
+    stats <- getObjectSubsetClusteringStatistics(
+        STranspose,
+        g2mGenes,
+        numTrials = 100
+    )
+
+    # --- Spatial Neighborhood Analysis ---
+    # Key functions: make.getExample, meanZPerClusterOnUMAP, getNearbyGenes
+    getExample <- make.getExample()
+    hallmark <- getExample("hallmark")
+    meanZDF <- meanZPerClusterOnUMAP(
+        exSeuratObj,
+        STranspose,
+        "shortName"
+    )
+    geneSet <- intersect(
+        colnames(STranspose),
+        hallmark[["HALLMARK_INTERFERON_ALPHA_RESPONSE"]]
+    )
+    geomNearby <- getNearbyGenes(
+        STranspose,
+        geneSet,
+        radius = 0.2,
+        metric = "umap"
+    )
+
+    # --- Functional Annotation and Prediction ---
+    # Key functions: annotateGenesByGeneSet, annotateGeneAsVector, predictAnnotation
+    getExample <- make.getExample()
+    hallmark <- getExample("hallmark")
+    annotatedGenes <- annotateGenesByGeneSet(hallmark)
+    mycVector <- annotateGeneAsVector("Myc", hallmark, normalised = TRUE)
+    predictedMyc <- predictAnnotation(
+        "Myc",
+        hallmark,
+        STranspose,
+        radius = 0.5
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

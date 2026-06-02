@@ -38,98 +38,70 @@ process BIOC_CHIPSIM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ChIPsim)
     library(DNAStringSet)
     library(jsonlite)
 
-    # --- Genome [] ---
-    # Key functions: sample, DNAStringSet
-    chrLen <- c(2e5, 1e5)
-    chromosomes <- sapply(chrLen, function(n) paste(sample(DNA_BASES, n, replace = TRUE), collapse = ""))
-    names(chromosomes) <- paste("CHR", seq_along(chromosomes), sep="")
-    genome <- DNAStringSet(chromosomes)
-    # --- Simulatequalities [] ---
-    # Key functions: sample, unlist, rawToChar, raw
-    randomQuality <- function(read, ...){
-    	paste(sample(unlist(strsplit(rawToChar(as.raw(64:104)),"")),
-    					nchar(read), replace = TRUE), collapse="")
-    }
-    # --- Output [] ---
-    # Key functions: readSequence
-    dfReads <- function(readPos, readNames, sequence, readLen, ...){
-    	## create vector to hold read sequences and qualities
-    	readSeq <- character(sum(sapply(readPos, sapply, length)))
-    	readQual <- character(sum(sapply(readPos, sapply, length)))
-    	idx <- 1
-    # --- Simulation [] ---
-    # Key functions: defaultFunctions, simChIP, defaultControl
-    myFunctions <- defaultFunctions()
-    myFunctions$readSequence <- dfReads
-    nReads <- 1000
-    simulated <- simChIP(nReads, genome, file = "", functions = myFunctions,
-    		control = defaultControl(readDensity=list(meanLength = 150)))
-    # --- Which [] ---
-    # Key functions: density
-    ## feat <- simulated$features[[1]]
-    ## stableIdx <- which(sapply(feat, inherits, "StableFeature"))
-    ## start <- feat[[stableIdx[1]]]$start
-    ## plot((start-2000):(start+500), simulated$bindDensity[[1]][(start-2000):(start+500)], xlab="Chromosome 1",
-    ## 		ylab="Density", type='l')
-    # --- Bgemission [] ---
-    # Key functions: rgamma
+    # --- Feature Placement [] ---
+    # Key functions: placeFeatures
+    transition <- list(Binding=c(Background=1),
+                       Background=c(Binding=0.05, Background=0.95))
+    transition <- lapply(transition, "class<-", "StateDistribution")
+    init <- c(Binding=0, Background=1)
+    class(init) <- "StateDistribution"
     backgroundFeature <- function(start, length=1000, shape=1, scale=20){
-    	 weight <- rgamma(1, shape=1, scale=20)
-    	 params <- list(start = start, length = length, weight = weight)
-    	 class(params) <- c("Background", "SimulatedFeature")
-    	 params
-    # --- Bindingemission [] ---
-    # Key functions: rpareto1
-    bindingFeature <- function(start, length=500, shape=1, scale=20, enrichment=5, r=1.5){
-    	 stopifnot(r > 1)
-    	 avgWeight <- shape * scale * enrichment
-    	 lowerBound <- ((r - 1) * avgWeight)
-    	 weight <- actuar::rpareto1(1, r, lowerBound)
-    # --- Features1 1 [] ---
-    # Key functions: makeFeatures
-    set.seed(1)
-     generator <- list(Binding=bindingFeature, Background=backgroundFeature)
-     features <- ChIPsim::makeFeatures(generator, transition, init, start = 0, length = 1e6, globals=list(shape=1, scale=20),
-    		 experimentType="TFExperiment", lastFeat=c(Binding = FALSE, Background = TRUE))
-    # --- Sapply [] ---
-    # Key functions: density
-    bindIdx <- sapply(features, inherits, "Binding")
-     plot(density(sapply(features[!bindIdx], "[[", "weight")),
-    		 xlim=c(0,max(sapply(features, "[[", "weight"))), xlab="Sampling weight", main="")
-     lines(density(sapply(features[bindIdx], "[[", "weight")), col=2)
-     legend("topright", legend=c("Background", "Binding"), col=1:2, lty=1)
-    # --- Features1 2 [] ---
-    # Key functions: placeFeatures
-    set.seed(1)
-     features <- ChIPsim::placeFeatures(generator, transition, init, start = 0, length = 1e6, globals=list(shape=1, scale=20),
-    		 experimentType="TFExperiment", lastFeat=c(Binding = FALSE, Background = TRUE))
-    # --- Featuredensity1 [] ---
-    # Key functions: constRegion
+        weight <- rgamma(1, shape=1, scale=20)
+        params <- list(start = start, length = length, weight = weight)
+        class(params) <- c("Background", "SimulatedFeature")
+        params
+    }
+    bindingFeature <- function(start, length=500, shape=1, scale=20){
+        weight <- rgamma(1, shape=1, scale=40)
+        params <- list(start = start, length = length, weight = weight)
+        class(params) <- c("Binding", "SimulatedFeature")
+        params
+    }
+    generator <- list(Binding=bindingFeature, Background=backgroundFeature)
+    features <- ChIPsim::placeFeatures(generator, transition, init,
+        start = 0, length = 1e5, globals=list(shape=1, scale=20),
+        experimentType="TFExperiment",
+        lastFeat=c(Binding = FALSE, Background = TRUE))
+
+
+    # --- Density Calculation [] ---
+    # Key functions: feat2dens, bindDens2readDens
     constRegion <- function(weight, length) rep(weight, length)
-    featureDensity.Binding <- function(feature, ...) constRegion(feature$weight, feature$length)
-    featureDensity.Background <- function(feature, ...) constRegion(feature$weight, feature$length)
-    # --- Density1 [] ---
-    # Key functions: feat2dens
-    dens <- ChIPsim::feat2dens(features)
-    # --- Readloc1 [] ---
-    # Key functions: sample
-    readLoc <- sample(44000:64000, 1e3, prob=dens[44000:64000], replace=TRUE)
-    # --- Reconcilefeatures [] ---
-    # Key functions: any, inherits
-    reconcileFeatures.TFExperiment <- function(features, ...){
-    		bindIdx <- sapply(features, inherits, "Binding")
-    		if(any(bindIdx))
-    			bindLength <- features[[min(which(bindIdx))]]$length
-    		else bindLength <- 1
-    # --- Features2 [] ---
-    # Key functions: placeFeatures
-    set.seed(1)
-     features <- ChIPsim::placeFeatures(generator, transition, init, start = 0, length = 1e6, globals=list(shape=1, scale=20),
-    		 experimentType="TFExperiment", lastFeat=c(Binding = FALSE, Background = TRUE),
-    		 control=list(Binding=list(length=50)))
+    featureDensity.Binding <- function(feature, ...) {
+        constRegion(feature$weight, feature$length)
+    }
+    featureDensity.Background <- function(feature, ...) {
+        constRegion(feature$weight, feature$length)
+    }
+    dens <- ChIPsim::feat2dens(features, length = 1e5)
+    fragLength <- function(x, minLength, maxLength, meanLength, ...){
+        sd <- (maxLength - minLength)/4
+        prob <- dnorm(minLength:maxLength, mean = meanLength, sd = sd)
+        prob <- prob/sum(prob)
+        prob[x - minLength + 1]
+    }
+    readDens <- ChIPsim::bindDens2readDens(dens, fragLength, bind = 50,
+        minLength = 150, maxLength = 250, meanLength = 200)
+
+
+    # --- Read Sampling and Simulation [] ---
+    # Key functions: sampleReads, defaultFunctions, defaultControl, simChIP
+    readLoc <- ChIPsim::sampleReads(readDens, 1e3)
+    myFunctions <- ChIPsim::defaultFunctions()
+    controlArgs <- ChIPsim::defaultControl(
+        features = list(generator = generator, transition = transition,
+                        init = init, start = 0, length = 1e5,
+                        globals = list(shape = 1, scale = 20),
+                        experimentType = "TFExperiment",
+                        lastFeat = c(Binding = FALSE, Background = TRUE)),
+        readDensity = list(meanLength = 150)
+    )
+    simulated <- ChIPsim::simChIP(1000, genome, file = "",
+        functions = myFunctions, control = controlArgs)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

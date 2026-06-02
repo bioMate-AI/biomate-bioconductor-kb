@@ -38,34 +38,40 @@ process BIOC_BUMPYMATRIX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BumpyMatrix)
     library(DataFrame)
     library(jsonlite)
 
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, rnorm, sample
-    ---------------------------------------------------------------------
-    library(S4Vectors)
-    df <- DataFrame(
-        x=rnorm(10000), y=rnorm(10000),
-        gene=paste0("GENE_", sample(100, 10000, replace=TRUE)),
-    # --- Splitasbumpymatrix [] ---
+    # --- Matrix Creation [] ---
     # Key functions: splitAsBumpyMatrix
-    ---------------------------------------------------------------------
-    library(BumpyMatrix)
-    mat <- splitAsBumpyMatrix(df[,c("x", "y")], row=df$gene, column=df$cell)
-    mat
-    mat[1,1][[1]]
-    # --- Dim [] ---
-    # Key functions: dimnames
-    ---------------------------------------------------------------------
-    dim(mat)
-    dimnames(mat)
-    rbind(mat, mat)
-    cbind(mat, mat)
-    # --- Pmax [] ---
-    # Key functions: pmax
-    ---------------------------------------------------------------------
-    pmax(out.x, out.y)
+    df <- S4Vectors::DataFrame(
+        x = rnorm(1000),
+        y = rnorm(1000),
+        gene = paste0("GENE_", sample(50, 1000, replace = TRUE)),
+        cell = paste0("CELL_", sample(10, 1000, replace = TRUE))
+    )
+    mat <- splitAsBumpyMatrix(
+        df[, c("x", "y")],
+        row = df$gene,
+        column = df$cell
+    )
+    smat <- splitAsBumpyMatrix(
+        df[1:100, c("x", "y")],
+        row = df$gene[1:100],
+        column = df$cell[1:100],
+        sparse = TRUE
+    )
+
+    # --- Statistical Summaries [] ---
+    # Key functions: mean, var, quantile, range, pmax
+    out_x <- mat[, , "x"]
+    out_y <- mat[, , "y"]
+    mean_x <- mean(out_x)
+    var_x <- var(out_x)
+    quant_x <- quantile(out_x)
+    range_x <- range(out_x)
+    pmax_xy <- pmax(out_x, out_y)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

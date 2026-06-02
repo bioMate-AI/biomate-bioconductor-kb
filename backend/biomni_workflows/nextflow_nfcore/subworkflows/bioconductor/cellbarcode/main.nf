@@ -41,59 +41,50 @@ process BIOC_CELLBARCODE {
     library(CellBarcode)
     library(jsonlite)
 
-    # --- str_split_fixed [] ---
-    # Key functions: str_split_fixed
-    example_data <- system.file("extdata", "mef_test_data", package = "CellBarcode")
-    fq_files <- dir(example_data, "fastq.gz", full=TRUE)
-    metadata <- stringr::str_split_fixed(basename(fq_files), "_", 10)[, c(4, 6)]
-    # --- bc_extract [] ---
-    # Key functions: bc_extract, bc_cure_umi, bc_2df
-    install.packages("stringr")
-    library(CellBarcode)
-    library(magrittr)
-    # --- quality control 1 [] ---
-    # Key functions: bc_seq_qc, bc_names
-    qc_noFilter <- bc_seq_qc(fq_files)
-    bc_names(qc_noFilter)
-    class(qc_noFilter)
-    # --- qc figure set1 [] ---
-    # Key functions: bc_plot_seqQc
-    bc_plot_seqQc(qc_noFilter)
-    # --- qc figure single1 [] ---
-    # Key functions: bc_plot_seqQc
-    class(qc_noFilter[1])
-    bc_plot_seqQc(qc_noFilter[1])
-    # --- filter low quality seq [] ---
-    # Key functions: bc_seq_filter, bc_plot_seqQc
-    fq_filter <- bc_seq_filter(
-    bc_plot_seqQc(bc_seq_qc(fq_filter))
+    # --- Barcode Extraction [] ---
+    # Key functions: bc_extract, bc_meta
     pattern <- "([ACGA]{12})CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT"
-    # --- extract barcode no UMI [] ---
-    # Key functions: bc_extract
-    pattern <- "CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT"
     bc_obj <- bc_extract(
-    pattern_type = c(barcode = 1))
-    # --- extract barcode with UMI [] ---
-    # Key functions: bc_extract
-    pattern <- "([ACGA]{12})CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT"
-    bc_obj_umi <- bc_extract(
-    pattern_type = c(UMI = 1, barcode = 2))
-    # --- correct barcodde with UMI [] ---
-    # Key functions: bc_cure_umi
-    bc_obj_umi_sub <- bc_cure_umi(
-    # --- correct barcodde with count [] ---
-    # Key functions: bc_cure_depth, bc_cure_umi
-    bc_obj_umi_sub <- bc_cure_depth(bc_obj_umi_sub, depth = 3, isUpdate = FALSE)
-    bc_obj_umi_sub <- bc_cure_umi(
-    bc_obj_umi_sub <- bc_cure_depth(bc_obj_umi_sub, depth = 3, isUpdate = TRUE)
-    # --- correct barcodde clustering [] ---
-    # Key functions: bc_cure_cluster
-    bc_cure_cluster(bc_obj_umi_sub)
-    # --- bc_2matrix [] ---
-    # Key functions: bc_2matrix, bc_cure_depth, bc_2df
-    bc_2matrix(bc_obj_umi_sub)
-    data(bc_obj)
-    Applying bc_cure_depth() to merge them.
+        fq_filter,
+        sample_name = basename(fq_filter),
+        pattern = pattern,
+        maxLDist = 0,
+        pattern_type = c(UMI = 1, barcode = 2)
+    )
+    metadata_df <- bc_meta(bc_obj)
+
+
+    # --- Barcode Curing and Filtering [] ---
+    # Key functions: bc_cure_umi, bc_cure_depth, bc_cure_cluster
+    bc_cured_umi <- bc_cure_umi(
+        bc_obj,
+        depth = 1,
+        isUniqueUMI = TRUE,
+        doFish = TRUE
+    )
+    bc_cured_depth <- bc_cure_depth(
+        bc_cured_umi,
+        depth = 3,
+        isUpdate = TRUE
+    )
+    bc_clustered <- bc_cure_cluster(bc_cured_depth)
+
+
+    # --- Export and Abundance Analysis [] ---
+    # Key functions: bc_2df, bc_2matrix, bc_cleanBc
+    barcode_df <- bc_2df(bc_clustered)
+    barcode_matrix <- bc_2matrix(bc_clustered)
+    clean_bc_list <- bc_cleanBc(bc_clustered, isList = FALSE)
+
+
+    # --- Visualization [] ---
+    # Key functions: bc_plot_single, bc_plot_seqQc
+    bc_plot_seqQc(qc_filtered)
+    bc_plot_single(
+        bc_clustered,
+        count_marks = 10,
+        highlight = c("AAGTCCAGTACTATCGTACTA", "AAGTCCAGTACTGTAGCTACTA")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

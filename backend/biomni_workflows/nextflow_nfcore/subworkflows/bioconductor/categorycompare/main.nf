@@ -38,19 +38,42 @@ process BIOC_CATEGORYCOMPARE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(categoryCompare)
     library(ReadAffy)
     library(jsonlite)
 
-    # --- Linear model fit (limma) [] ---
-    # Key functions: nsFilter, lmFit, makeContrasts, eBayes, topTable
-    e10 <- nsFilter(e10, remove.dupEntrez=TRUE, var.filter=FALSE,
-    e10$estrogen <- factor(e10$estrogen)
-    d10 <- model.matrix(~0 + e10$estrogen)
-    # --- Phenotype data inspection [] ---
-    # Key functions: pData, ReadAffy, new, fdr, ccEnrich, pvalueCutoff, ccCompare, createNetworkFromDataFrames
-    list10 <- list(genes=g10, universe=gUniverse, annotation='org.Hs.eg.db')
-    list48 <- list(genes=g48, universe=gUniverse, annotation='org.Hs.eg.db')
-    geneLists <- list(T10=list10, T48=list48)
+    # --- Gene List Preparation [ccGeneList] ---
+    # Key functions: new, fdr<-
+    g10 <- c("10", "100", "1000", "10000")
+    g48 <- c("10", "100", "1001", "10002")
+    gUniverse <- c("10", "100", "1000", "10000", "1001", "10002", "10003")
+    list10 <- list(genes = g10, universe = gUniverse, annotation = "org.Hs.eg.db")
+    list48 <- list(genes = g48, universe = gUniverse, annotation = "org.Hs.eg.db")
+    geneLists <- list(T10 = list10, T48 = list48)
+    geneLists <- new("ccGeneList", geneLists, ccType = c("BP", "KEGG"))
+    fdr(geneLists) <- 0
+
+    # --- Category Enrichment [ccEnrich] ---
+    # Key functions: ccEnrich
+    enrichLists <- ccEnrich(geneLists)
+
+    # --- Parameter Adjustment [pvalueCutoff] ---
+    # Key functions: pvalueCutoff<-
+    pvalueCutoff(enrichLists$BP) <- 0.001
+
+    # --- Comparison Options Configuration [ccOptions] ---
+    # Key functions: new
+    ccOpts <- new("ccOptions", listNames = names(geneLists), outType = "none")
+
+    # --- Category Comparison [ccCompare] ---
+    # Key functions: ccCompare
+    ccResults <- ccCompare(enrichLists, ccOpts)
+
+    # --- Hierarchical Comparison [graphType] ---
+    # Key functions: graphType<-, ccCompare
+    graphType(enrichLists$BP) <- "hierarchical"
+    ccResultsBPHier <- ccCompare(enrichLists$BP, ccOpts)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
