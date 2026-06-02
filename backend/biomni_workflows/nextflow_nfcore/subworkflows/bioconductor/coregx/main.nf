@@ -41,11 +41,59 @@ process BIOC_COREGX {
     library(TREDataMapper)
     library(jsonlite)
 
-    # --- Fast data table import [] ---
-    # Key functions: include_graphics, fread, kable, TREDataMapper, guessMapping, rowDataMap, colDataMap, assayMap
+
+    # --- Class Diagram [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics('TreatmentResponseExperimentClassDiagram.drawio.png')
+    knitr::include_graphics('TreatmentResponseExperimentStructure.drawio.png')
+
+    # --- Head Data [] ---
+    # Key functions: fread
     filePath <- system.file('extdata', 'merckLongTable.csv', package='CoreGx',
+      mustWork=TRUE)
     merckDT <- fread(filePath, na.strings=c('NULL'))
     colnames(merckDT)
+    knitr::kable(head(merckDT)[, 1:5])
+
+    # --- Sample Data2 [] ---
+    # Key functions: TREDataMapper, guessMapping
+    knitr::kable(head(merckDT)[, 5:ncol(merckDT)])
+    # Our guesses of how we may identify rows, columns and assays
+    groups <- list(
+      justDrugs=c('drug1id', 'drug2id'),
+      drugsAndDoses=c('drug1id', 'drug2id', 'drug1dose', 'drug2dose'),
+      justCells=c('cellid'),
+      cellsAndBatches=c('cellid', 'batchid'),
+      assays1=c('drug1id', 'drug2id', 'cellid'),
+      assays2=c('drug1id', 'drug2id', 'drug1dose', 'drug2dose', 'cellid', 'batchid')
+    )
+
+    # --- Mappings To Datamapper [] ---
+    # Key functions: rowDataMap, colDataMap
+    rowDataMap(TREdataMapper) <- guess$drugsAndDose
+    colDataMap(TREdataMapper) <- guess$cellsAndBatches
+    assays <- list(
+      sensitivity=list(
+        guess$assays2[[1]],
+        guess$assays2[[2]][seq_len(4)]
+      ),
+      profiles=list(
+        guess$assays2[[1]],
+        guess$assays2[[2]][c(5, 6)]
+      )
+    )
+
+    # --- Assign Assaymap [] ---
+    # Key functions: assayMap
+    assayMap(TREdataMapper) <- assays
+    head(rownames(tre))
+
+    # --- Colnames [] ---
+    # Key functions: coregx
+    head(colnames(tre))
+    row <- rownames(tre)[1]
+    columns <- colnames(tre)[1:2]
+    tre[row, columns]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

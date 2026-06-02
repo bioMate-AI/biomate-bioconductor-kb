@@ -40,13 +40,52 @@ process BIOC_MSSTATSCONVERT {
     #!/usr/bin/env Rscript
     library(MSstatsLogsSettings)
     library(MSstatsSaveSessionInfo)
+    library(MSstatsConvert)
     library(jsonlite)
 
-    # --- M Sstats Logs Settings [] ---
-    # Key functions: MSstatsLogsSettings, MSstatsSaveSessionInfo, getInputFile
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+      )
+
+    # --- Logs [] ---
+    # Key functions: MSstatsLogsSettings, log_file.log
     library(MSstatsConvert)
-    MSstatsLogsSettings(use_log_file = TRUE, append = FALSE)
-    MSstatsLogsSettings(use_log_file = TRUE, append = TRUE,
+    # default - creates a new file
+    MSstatsLogsSettings(use_log_file = TRUE, append = FALSE) 
+
+    # default - creates a new file
+    MSstatsLogsSettings(use_log_file = TRUE, append = TRUE, 
+                        log_file_path = "log_file.log") 
+
+    # switches logging off
+    MSstatsLogsSettings(use_log_file = FALSE, append = FALSE) 
+
+    # switches off logs and messages
+    MSstatsLogsSettings(use_log_file = FALSE, verbose = FALSE) 
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Eval = False [] ---
+    # Key functions: MSstatsBalancedDesign, greater, remove
+    # list(
+    #   list(score_column = "Intensity", score_threshold = 1,
+    #        direction = "greater", behavior = "remove",
+    #        handle_na = "remove", fill_value = NA, filter = TRUE, drop = FALSE
+    #        )
+    # )
+
+    ## -----------------------------------------------------------------------------
+    maxquant_balanced = MSstatsBalancedDesign(maxquant_processed, feature_columns)
+    head(maxquant_balanced)
+    dim(maxquant_balanced)
+    dim(maxquant_processed)
+
+    openms_balanced = MSstatsBalancedDesign(openms_processed, feature_columns_tmt)
+    head(openms_balanced)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

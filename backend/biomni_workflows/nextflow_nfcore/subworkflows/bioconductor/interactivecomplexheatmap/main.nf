@@ -41,9 +41,16 @@ process BIOC_INTERACTIVECOMPLEXHEATMAP {
     library(InteractiveComplexHeatmap)
     library(jsonlite)
 
-    # --- Htshinyexample [] ---
-    # Key functions: htShinyExample
-    ---------------------------------------------------------------------
+
+    # --- Eval = False [] ---
+    # Key functions: pheatmap, htShiny, oncoPrint, htShinyExample
+    #  ComplexHeatmap::pheatmap(...)
+    #  htShiny()
+    #  
+    #  oncoPrint(...)
+    #  htShiny()
+
+    ## -----------------------------------------------------------------------------
     htShinyExample()
 
     # --- Save outputs ---

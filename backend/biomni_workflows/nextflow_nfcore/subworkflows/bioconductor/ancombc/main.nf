@@ -41,11 +41,42 @@ process BIOC_ANCOMBC {
     library(ANCOMBC)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: sample_data, arrange, ggplot, geom_point
-    library(ANCOMBC)
+
+    # --- Load [] ---
+    # Key functions: subset_samples, meta, recode, microbiome, obese
+    # library(ANCOMBC)
+
+    ## -----------------------------------------------------------------------------
     data(atlas1006, package = "microbiome")
+
+    # Subset to baseline
     pseq = phyloseq::subset_samples(atlas1006, time == 0)
+
+    # Re-code the bmi group
+    meta_data = microbiome::meta(pseq)
+    meta_data$bmi = recode(meta_data$bmi_group,
+                           obese = "obese",
+                           severeobese = "obese",
+                           morbidobese = "obese")
+
+
+    # --- Eval=false [] ---
+    # Key functions: abundances, aggregate_taxa, meta, ancom, holm, bmi, microbiome
+    # abundance_data = microbiome::abundances(pseq)
+    # aggregate_data = microbiome::abundances(microbiome::aggregate_taxa(pseq, "Family"))
+    # meta_data = microbiome::meta(pseq)
+    # 
+    # set.seed(123)
+    # out = ancom(data = abundance_data, aggregate_data = aggregate_data,
+    #             meta_data = meta_data, p_adj_method = "holm", prv_cut = 0.10,
+    #             lib_cut = 1000, main_var = "bmi", adj_formula = "age + region",
+    #             rand_formula = NULL, lme_control = NULL, struc_zero = TRUE,
+    #             neg_lb = TRUE, alpha = 0.05, n_cl = 2, verbose = TRUE)
+    # 
+    # res = out$res
+
+    ## -----------------------------------------------------------------------------
+    data(dietswap, package = "microbiome")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

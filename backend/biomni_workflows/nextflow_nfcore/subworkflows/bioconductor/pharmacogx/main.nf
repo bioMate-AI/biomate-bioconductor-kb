@@ -39,13 +39,27 @@ process BIOC_PHARMACOGX {
     """
     #!/usr/bin/env Rscript
     library(PharmacoGx)
+    library(knitcitations)
     library(jsonlite)
 
-    # --- cleanbib [] ---
-    # Key functions: cleanbib, cite_options
+
+    # --- Knitcitation [] ---
+    # Key functions: cleanbib, cite_options, pandoc, lung, breast, prostate, CVCL_0023, CVCL_0031
     library(knitcitations)
+
     cleanbib()
     cite_options(citation_format = "pandoc")
+
+    ## -----------------------------------------------------------------------------
+    sample <- data.frame(
+      sampleid = c("A549", "MCF7", "PC3"),
+      tissueid = c("lung", "breast", "prostate"),
+      cellosaurus.accession = c("CVCL_0023", "CVCL_0031", "CVCL_0035"),
+      row.names = c("A549", "MCF7", "PC3"))
+
+    sample
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

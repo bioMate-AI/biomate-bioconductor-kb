@@ -42,13 +42,86 @@ process BIOC_GSEABASE {
     library(GeneSet)
     library(GeneSetCollection)
     library(HTMLReport)
+    library(annotate)
     library(jsonlite)
 
-    # --- GeneSet analysis [] ---
-    # Key functions: GeneSet, showMethods, mapIdentifiers, textConnection, close, unlink, GeneColorSet, GeneSetCollection
+
+    # --- Preliminaries [] ---
+    # Key functions: suppressPackageStartupMessages, GeneSet
+    ## FIXME: <adjMat> adjacency matrix -- color w. +/- 1
+    ## FIXME: limma topTable --> GeneColorSet
+    ## w. verbose=TRUE
+    suppressPackageStartupMessages({
+        library(GSEABase)
+        library(hgu95av2.db)
+        library(GO.db)
+    })
+    data(sample.ExpressionSet) # from Biobase
+    egs <- GeneSet(sample.ExpressionSet[201:250,], setName="Sample")
+    egs
+
+    # --- Gene Ids [] ---
+    # Key functions: geneIds, details, GeneSet, AnnotationIdentifier, GOCollection, showMethods, hgu95av2
+    head(geneIds(egs))
+    details(egs)
+
+    ## -----------------------------------------------------------------------------
+      ## FIXME: GeneSet(AnnotationIdentifier("hgu95av2")) --> non-empty
+      ## FIXME: GeneSet(AnnotationIdentifier("hgu95av2"),
+      ## collectionType=GOCollection()) filters on GOCollection (or KEGG)
+
+    ## ----GeneSet-methods----------------------------------------------------------
+    showMethods("GeneSet", inherited=FALSE)
+
+    # --- Gene Identifier Types [] ---
+    # Key functions: slot, getClass, subclasses, mapIdentifiers, EntrezIdentifier
+    names(slot(getClass("GeneIdentifierType"), "subclasses"))
+    mapIdentifiers(egs, EntrezIdentifier())
+
+    # --- Gene Set Identifiers [] ---
+    # Key functions: getEG, geneIds, GeneSet, EntrezIdentifier, hgu95av2, slot, getClass, subclasses
     library(annotate)                       # getEG
     eids <- unique(getEG(geneIds(egs), "hgu95av2"))
     eids <- eids[!is.na(eids)]
+    GeneSet(EntrezIdentifier(), geneIds=as.character(eids))
+    names(slot(getClass("CollectionType"), "subclasses"))
+
+    # --- Gocollection [] ---
+    # Key functions: GeneSet, GOCollection, EntrezIdentifier, org.Hs.eg.db, BroadCollection, mapIdentifiers, AnnotationIdentifier, extdata
+    GeneSet(GOCollection(c("GO:0005488", "GO:0019825"),
+                         evidenceCode="IDA"),
+            geneIdType=EntrezIdentifier("org.Hs.eg.db"),
+            setName="Sample GO Collection")
+    fl <- system.file("extdata", "Broad1.xml", package="GSEABase")
+    bgs <- GeneSet(BroadCollection(), urls=fl)
+    bgs
+
+    ## ----Broad-to-annotation------------------------------------------------------
+    bgs1 <- mapIdentifiers(bgs, AnnotationIdentifier("hgu95av2"))
+    bgs1
+
+    # --- Subset [] ---
+    # Key functions: textConnection, close, unlink, GeneColorSet, EntrezIdentifier, hide, GeneSetCollection, GOCollection
+    bgs[1:5]
+    bgs[c("GALNS", "LOC646365")]
+
+    ## ----egs-bgs------------------------------------------------------------------
+    egs & bgs1
+
+    ## ----subset-ExpressionSet-----------------------------------------------------
+    sample.ExpressionSet[bgs,]
+
+    ## ----GeneColorSet-setup, echo=FALSE, results="hide"---------------------------
+    gsc <- GeneSetCollection(sample.ExpressionSet[201:250,], setType=GOCollection())
+    gsc
+    gsc[["GO:0005737"]]
+
+    ## ----GeneSetCollection-GOCollection-------------------------------------------
+    GeneSetCollection(sample.ExpressionSet[201:300,],
+                      setType=GOCollection(evidenceCode="IMP"))
+
+    ## ----GeneSetCollection-BroadCollection----------------------------------------
+       ## FIXME: BroadCollection default to paste("c", 1:4, sep="")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

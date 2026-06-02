@@ -41,13 +41,24 @@ process BIOC_CYTOML {
     library(CytoML)
     library(jsonlite)
 
-    # --- Spillover [] ---
-    # Key functions: spillover, compensation, compensate, flowjo_biexp_trans, transformerList, transform
-    ---------------------------------------------------------------------
-    #compensate
-    comp <- spillover(fs[[1]])[["SPILL"]]
-    chnls <- colnames(comp)
-    comp <- compensation(comp)
+
+    # --- Warning=false [] ---
+    # Key functions: fread, tempfile, gatingTemplate, gating, toggle.helperGates, openCyto
+    library(openCyto)
+    #load the original template for tcell panel
+    tbl <- data.table::fread(system.file("extdata/gating_template/tcell.csv", package = "openCyto"))
+    #modify some paramters to fit the current data range
+    tbl[5, gating_args:= "gate_range = c(1e3, 3e3)"]
+    tbl[c(8,11), gating_args:= "gate_range = c(2e3, 3e3)"]
+    #write the new template to disc
+    gtFile <- tempfile()
+    write.csv(tbl, file = gtFile)
+    ##reload the new template
+    gt <- gatingTemplate(gtFile)
+    #run the gating
+    gating(gt, gs)
+    #hide the gates that are not of interest
+    toggle.helperGates(gt, gs)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

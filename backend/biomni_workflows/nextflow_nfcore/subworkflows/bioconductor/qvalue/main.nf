@@ -41,10 +41,61 @@ process BIOC_QVALUE {
     library(qvalue)
     library(jsonlite)
 
-    # --- PackageDescription analysis [] ---
-    # Key functions: packageDescription, qvalue, empPvals, pi0est, lfdr
+
+    # --- Foo [] ---
+    # Key functions: packageDescription, qvalue, help
+    library(qvalue)
+    options(keep.source = TRUE, width = 48)
+    foo <- packageDescription("qvalue")
+    help(package="qvalue")
+    library(qvalue)
+    data(hedenfalk)
+    pvalues <- hedenfalk$p
+    qobj <- qvalue(p = pvalues)
+
+    # --- Quick Stat [] ---
+    # Key functions: empPvals, qvalue
+    library(qvalue)
+    data(hedenfalk)
+    obs_stats <- hedenfalk$stat
+    null_stats <- hedenfalk$stat0
+    pvalues <- empPvals(stat = obs_stats, stat0 = null_stats)
+    qobj <- qvalue(p = pvalues)
+    qvalues <- qobj$qvalues
+    pi0 <- qobj$pi0
+    lfdr <- qobj$lfdr
+    data(hedenfalk)
+    names(hedenfalk)
+
+    # --- Obsnullstat [] ---
+    # Key functions: empPvals, runif
+    null_stats <- hedenfalk$stat0
+    obs_stats <- hedenfalk$stat
+    pvalues <- empPvals(stat = obs_stats, stat0 = null_stats, pool = FALSE)
+    hist(hedenfalk$p, nclass = 20)
+    set.seed(478)
+    p2 = c(hedenfalk$p, (runif(450, min=0.7, max=1))^(0.33))
+    somethingsWrong = list(p=p2)
+    hist(somethingsWrong$p, nclass=20, main="Problematic p-values", xlab="intentionally bad, simulated p-values")
+
+    # --- Run Qvalue [] ---
+    # Key functions: qvalue, summary
+    qobj <- qvalue(p = hedenfalk$p)
+    names(qobj)
+    summary(qobj)
+
+    # --- Pi0 [] ---
+    # Key functions: pi0est, smoother
+    pi0 <- qobj$pi0
     pi0 <- pi0est(p = hedenfalk$p, lambda = seq(0.1, 0.9, 0.1), pi0.method = "smoother" )
     names(pi0)
+    qvalues <- qobj$qvalues
+
+    # --- Tmp [] ---
+    # Key functions: lfdr
+    max(qvalues[qobj$pvalues <= 0.01])
+    localFDR <- qobj$lfdr
+    localFDR <- lfdr(p = hedenfalk$p)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

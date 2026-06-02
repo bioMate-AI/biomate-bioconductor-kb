@@ -43,11 +43,96 @@ process BIOC_TFBSTOOLS {
     library(PFMatrixList)
     library(jsonlite)
 
-    # --- PFMatrix analysis [] ---
-    # Key functions: PFMatrix, name, Matrix, toPWM, toICM, PFMatrixList, readXMLTFFM, getPosProb
+
+    # --- Code [] ---
+    # Key functions: function, doc_date, pkg_ver, set
+    code <- function(...) {
+        cat(paste(..., sep = "\n"))
+    }
+
+    date = "`r doc_date()`"
+    pkg = "`r pkg_ver('BiocStyle')`"
+    short=TRUE #if short==TRUE, do not echo code chunks
+    debug=FALSE
+    knitr::opts_chunk$set(echo=!short, warning=debug, message=debug, error=FALSE,
+                   cache.path = "cache/",
+                   fig.path = "figures/")
+
+    # --- Pfmatrix [] ---
+    # Key functions: PFMatrix, name, toPWM, toICM, rowSums, reverseComplement, vertebrates, log2probratio
+    library(TFBSTools)
+    ## PFMatrix construction; Not all of the slots need to be initialised.
+    pfm <- PFMatrix(ID="MA0004.1", name="Arnt", 
+                    matrixClass="Zipper-Type", strand="+",
+                    bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                    tags=list(family="Helix-Loop-Helix", species="10090",
+                              tax_group="vertebrates",medline="7592839", 
+                              type="SELEX",ACC="P53762", pazar_tf_id="TF0000003",
+                              TFBSshape_ID="11", TFencyclopedia_ID="580"),
+                    profileMatrix=matrix(c(4L,  19L, 0L,  0L,  0L,  0L,
+    pfm2 <- pfm
+    pfmList <- PFMatrixList(pfm1=pfm, pfm2=pfm2, use.names=TRUE)
+    pfmList
+    names(pfmList)
+
+    # --- Tffmread [] ---
+    # Key functions: readXMLTFFM, getPosProb, extdata, tffm_first_order.xml, tffm_detailed.xml, suppressMessages, getMatrixSet, species
     xmlFirst <- file.path(system.file("extdata", package="TFBSTools"),
-    tffmFirst <- readXMLTFFM(xmlFirst, type="First")
-    tffm <- getPosProb(tffmFirst)
+                            "tffm_first_order.xml")
+      tffmFirst <- readXMLTFFM(xmlFirst, type="First")
+      tffm <- getPosProb(tffmFirst)
+
+      xmlDetail <- file.path(system.file("extdata", package="TFBSTools"),
+                             "tffm_detailed.xml")
+      tffmDetail <- readXMLTFFM(xmlDetail, type="Detail")
+      getPosProb(tffmDetail)
+    suppressMessages(library(JASPAR2014))
+    opts <- list()
+    opts[["species"]] <- 9606
+    opts[["name"]] <- "RUNX1"
+    opts[["type"]] <- "SELEX"
+    opts[["all_versions"]] <- TRUE
+    PFMatrixList <- getMatrixSet(JASPAR2014, opts)
+    PFMatrixList
+
+    opts2 <- list()
+
+    # --- Operate Database [] ---
+    # Key functions: initializeJASPARDB, storeMatrix, deleteMatrixHavingID, file.remove, myMatrixDb.sqlite, toPWM
+    db <- "myMatrixDb.sqlite"
+    initializeJASPARDB(db, version="2014")
+    data("MA0043")
+    storeMatrix(db, MA0043)
+    deleteMatrixHavingID(db,"MA0043.1")
+    file.remove(db)
+    pwm <- toPWM(pfm, pseudocounts=0.8)
+    pwm
+
+    # --- Icmmatrix Methods [] ---
+    # Key functions: toICM, seqLogo
+    icm <- toICM(pfm, pseudocounts=0.8, schneider=TRUE)
+    icm
+    seqLogo(icm)
+
+    # --- Pfmsimi [] ---
+    # Key functions: PFMSimilarity, toPWM, PWMSimilarity, prob
+    ## one to one comparison
+    data(MA0003.2)
+    data(MA0004.1)
+    pfmSubject <- MA0003.2
+    pfmQuery <-  MA0004.1
+    PFMSimilarity(pfmSubject, pfmQuery)
+
+    ## one to several comparsion
+    PFMSimilarity(pfmList, pfmQuery)
+
+    data(MA0003.2)
+    data(MA0004.1)
+    pwm1 <- toPWM(MA0003.2, type="prob")
+    pwm2 <- toPWM(MA0004.1, type="prob")
+    PWMSimilarity(pwm1, pwm2, method="Euclidean")
+    PWMSimilarity(pwm1, pwm2, method="Pearson")
+    PWMSimilarity(pwm1, pwm2, method="KL")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

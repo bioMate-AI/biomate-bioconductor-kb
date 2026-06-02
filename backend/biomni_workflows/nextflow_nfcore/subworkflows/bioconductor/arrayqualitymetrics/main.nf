@@ -41,9 +41,42 @@ process BIOC_ARRAYQUALITYMETRICS {
     library(arrayQualityMetrics)
     library(jsonlite)
 
-    # --- to Latex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+
+    # --- Dummy1 [] ---
+    # Key functions: interactive, cairo, dummy.pdf
+    ##options(error=recover)
+    options(bitmapType = "cairo")
+    .HaveDummy = !interactive()
+      if(.HaveDummy) pdf("dummy.pdf")
+
+    # --- Loading [] ---
+    # Key functions: arrayQualityMetrics
+    library("arrayQualityMetrics")
+    library("ALLMLL")
+    data("MLL.A")
+
+    # --- Data Preparation [] ---
+    # Key functions: prepdata
+    preparedData = prepdata(expressionset = MLL.A, 
+                            intgroup = c(), 
+                            do.logtransform = TRUE)
+
+    # --- Metrics [] ---
+    # Key functions: aqm.boxplot, aqm.density
+    bo = aqm.boxplot(preparedData)
+    de = aqm.density(preparedData)
+    qm = list("Boxplot" = bo, "Density" = de)
+
+    # --- Booutliers [] ---
+    # Key functions: arrayqualitymetrics
+    bo@outliers
+
+    # --- Short Report [] ---
+    # Key functions: tempdir, aqm.writereport, pData
+    outdir = tempdir()
+    aqm.writereport(modules = qm, reporttitle = "My example", outdir = outdir, 
+                    arrayTable = pData(MLL.A))
+    outdir
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

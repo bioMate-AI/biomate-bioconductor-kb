@@ -39,10 +39,78 @@ process BIOC_GENOMICFEATURES {
     """
     #!/usr/bin/env Rscript
     library(GenomicFeatures)
+    library(BSgenome.Hsapiens.UCSC.hg19)
     library(jsonlite)
 
-    # --- Sequence level inspection [] ---
-    # Key functions: loadDb, seqlevels, columns, keytypes, transcripts, strand, promoters, exons
+
+    # --- Loadgenomicfeatures [] ---
+    # Key functions: suppressPackageStartupMessages, loadDb, extdata, hg19_knownGene_sample.sqlite, shorthand
+    suppressPackageStartupMessages(library(GenomicFeatures))
+    samplefile <- system.file("extdata", "hg19_knownGene_sample.sqlite",
+                              package="GenomicFeatures")
+    txdb <- loadDb(samplefile)
+    txdb
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    hg19_txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene  # shorthand (for convenience)
+    hg19_txdb
+
+    # --- Seqlevels [] ---
+    # Key functions: seqlevels, chr1, seqlevels0
+    head(seqlevels(hg19_txdb))
+    seqlevels(hg19_txdb) <- "chr1"
+    seqlevels(hg19_txdb) <- seqlevels0(hg19_txdb)
+
+    # --- Seqlevels4 [] ---
+    # Key functions: seqlevels, chr15, columns, keytypes, select
+    seqlevels(hg19_txdb) <- "chr15"
+    seqlevels(hg19_txdb)
+    keys <- c("100033416", "100033417", "100033420")
+    columns(hg19_txdb)
+    keytypes(hg19_txdb)
+    select(hg19_txdb, keys = keys, columns="TXNAME", keytype="GENEID")
+    columns(hg19_txdb)
+    cols <- c("TXNAME", "TXSTRAND", "TXCHROM")
+    select(hg19_txdb, keys=keys, columns=cols, keytype="GENEID")
+
+    # --- Transcripts1 [] ---
+    # Key functions: transcripts, strand, runLength, chr15
+    GR <- transcripts(hg19_txdb)
+    GR[1:3]
+    tx_strand <- strand(GR)
+    tx_strand
+    sum(runLength(tx_strand))
+    length(GR)
+    GR <- transcripts(hg19_txdb, filter=list(tx_chrom = "chr15", tx_strand = "+"))
+    length(GR)
+    unique(strand(GR))
+
+    # --- Transcripts4 [] ---
+    # Key functions: promoters, exons, transcriptsBy, gene
+    PR <- promoters(hg19_txdb, upstream=2000, downstream=400)
+    PR
+    EX <- exons(hg19_txdb)
+    EX[1:4]
+    length(EX)
+    length(GR)
+    GRList <- transcriptsBy(hg19_txdb, by = "gene")
+    length(GRList)
+    names(GRList)[10:13]
+    GRList[11:12]
+
+    # --- Exons By [] ---
+    # Key functions: exonsBy, select, intronsByTranscript, fiveUTRsByTranscript, threeUTRsByTranscript, suppressPackageStartupMessages, shorthand, extractTranscriptSeqs
+    GRList <- exonsBy(hg19_txdb, by = "tx")
+    length(GRList)
+    names(GRList)[10:13]
+    GRList[[12]]
+    GRList <- exonsBy(hg19_txdb, by = "tx")
+    tx_ids <- names(GRList)
+    head(select(hg19_txdb, keys=tx_ids, columns="TXNAME", keytype="TXID"))
+
+    ## ----introns-UTRs-------------------------------------------------------------
+    length(intronsByTranscript(hg19_txdb))
+    length(fiveUTRsByTranscript(hg19_txdb))
+    length(threeUTRsByTranscript(hg19_txdb))
     suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg19))
     genome <- BSgenome.Hsapiens.UCSC.hg19  # shorthand (for convenience)
     tx_seqs1 <- extractTranscriptSeqs(genome, hg19_txdb, use.names=TRUE)

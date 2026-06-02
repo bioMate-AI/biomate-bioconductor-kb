@@ -39,13 +39,47 @@ process BIOC_MZR {
     """
     #!/usr/bin/env Rscript
     library(mzR)
+    library(msdata)
     library(jsonlite)
 
-    # --- OpenMSfile analysis [] ---
-    # Key functions: openMSfile, runInfo, instrumentInfo, header, peaks, peaksCount, openIDfile, psms
+
+    # --- Openraw [] ---
+    # Key functions: openMSfile, msdata
     library(mzR)
     library(msdata)
+
     mzxml <- system.file("threonine/threonine_i2_e35_pH_tree.mzXML",
+                         package = "msdata")
+    aa <- openMSfile(mzxml)
+
+    # --- Get Header Information [] ---
+    # Key functions: runInfo, instrumentInfo, header
+    runInfo(aa)
+    instrumentInfo(aa)
+    header(aa,1)
+
+    # --- Plotspectrum [] ---
+    # Key functions: peaks, peaksCount
+    pl <- peaks(aa,10)
+    peaksCount(aa,10)
+    head(pl)
+    plot(pl[,1], pl[,2], type="h", lwd=1)
+
+    # --- Close The File [] ---
+    # Key functions: close
+    close(aa)
+
+    # --- Openid [] ---
+    # Key functions: openIDfile, mzid, msdata
+    library(mzR)
+    library(msdata)
+
+    file <- system.file("mzid", "Tandem.mzid.gz", package="msdata")
+    x <- openIDfile(file)
+
+    # --- Metadata [] ---
+    # Key functions: mzidInfo
+    mzidInfo(x)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

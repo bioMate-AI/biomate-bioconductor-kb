@@ -39,13 +39,28 @@ process BIOC_MBKMEANS {
     """
     #!/usr/bin/env Rscript
     library(TENxPBMCData)
+    library(scater)
+    library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Log-normalize count data [] ---
-    # Key functions: TENxPBMCData, sample, logNormCounts, rowVars
+
+    # --- Packages [] ---
+    # Key functions: TENxPBMCData, sample, logNormCounts, pbmc4k
     library(TENxPBMCData)
     library(scater)
     library(SingleCellExperiment)
+    library(mbkmeans)
+    library(DelayedMatrixStats)
+
+    ## -----------------------------------------------------------------------------
+    tenx_pbmc4k <- TENxPBMCData(dataset = "pbmc4k")
+
+    set.seed(1034)
+    idx <- sample(seq_len(NCOL(tenx_pbmc4k)), 100)
+    sce <- tenx_pbmc4k[, idx]
+
+    #normalization
+    sce <- logNormCounts(sce)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

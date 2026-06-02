@@ -42,11 +42,58 @@ process BIOC_DERFINDERHELPER {
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Valid analysis [] ---
-    # Key functions: valid, DataFrame, knit, diff, session_info, PrintBibliography
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("derfinderHelper")
+
+    # --- 'citation' [] ---
+    # Key functions: citation, derfinderHelper
+    ## Citation info
+    citation("derfinderHelper")
+
+    # --- Vignette Setup [] ---
+    # Key functions: Sys.time, citation, BibEntry, derfinderHelper, rmarkdown, manual, sessioninfo, testthat
+    ## Track time spent on making the vignette
+    startTime <- Sys.time()
+
+    ## Bib setup
+    library("RefManageR")
+
+    ## Write bibliography information
+    bib <- c(
+        derfinderHelper = citation("derfinderHelper")[1],
+        BiocStyle = citation("BiocStyle"),
+
+    # --- 'create Data' [] ---
+    # Key functions: suppressPackageStartupMessages, DataFrame, Rle, sample, rep, sample1, sample2, sample3
+    ## Create some toy data
+    suppressPackageStartupMessages(library("IRanges"))
+    set.seed(20140923)
+    toyData <- DataFrame(
+        "sample1" = Rle(sample(0:10, 1000, TRUE)),
+        "sample2" = Rle(sample(0:10, 1000, TRUE)),
+        "sample3" = Rle(sample(0:10, 1000, TRUE)),
+        "sample4" = Rle(sample(0:10, 1000, TRUE)),
+        "sample5" = Rle(sample(0:15, 1000, TRUE)),
+        "sample6" = Rle(sample(0:15, 1000, TRUE)),
+
+    # --- 'create Models' [] ---
+    # Key functions: model.matrix
+    ## Build the model matrices
+    mod <- model.matrix(~ sampleDepth + group)
+    mod0 <- model.matrix(~sampleDepth)
+
+    ## Explore them
+    mod
+    mod0
+
+    # --- 'calculate Fstats' [] ---
+    # Key functions: fstats.apply, derfinderHelper
+    library("derfinderHelper")
+    fstats <- fstats.apply(data = toyData, mod = mod, mod0 = mod0, scalefac = 1)
+    fstats
+
+    # --- Reproducibility1 [] ---
+    # Key functions: Sys.time
+    ## Date the vignette was generated
+    Sys.time()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

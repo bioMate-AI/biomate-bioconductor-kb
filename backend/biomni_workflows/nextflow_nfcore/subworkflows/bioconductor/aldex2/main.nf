@@ -41,11 +41,79 @@ process BIOC_ALDEX2 {
     library(ALDEx2)
     library(jsonlite)
 
-    # --- load_all [] ---
-    # Key functions: load_all
-    devtools::load_all('~/Documents/0_git/ALDEx_bioc')
+
+    # --- Basecode [] ---
+    # Key functions: load_all, rep, aldex
+    # this is all the data generated once
+    # all other data will be displayed but not evaluated
+
+    ##### RECODE THE SOURCE PRIOR TO PUSHING TO BIOCONDUCTOR
+    # devtools::load_all('~/Documents/0_git/ALDEx_bioc')
     library(ALDEx2)
     set.seed(11)
+
+    #### BASIC ALDEx2
+    #subset only the last 400 features for efficiency
+    data(selex)
+    selex.sub <- selex[1200:1600,]
+    conds <- c(rep("NS", 7), rep("S", 7))
+    x.aldex <- aldex(selex.sub, conds, mc.samples=16, test="t", effect=TRUE, 
+      include.sample.summary=FALSE, denom="all", verbose=FALSE, paired.test=FALSE, gamma=NULL)
+
+    # --- Ci [] ---
+    # Key functions: sign, par, abline, grey, red, blue
+    sgn <- sign(x.effect$effect.low) == sign(x.effect$effect.high)
+    par(mfrow=c(1,2))
+    plot(x.effect$rab.all, x.effect$diff.btw, pch=19, cex=0.3, col="grey", xlab="Abundance", ylab="Difference", main="Bland-Altman")
+    points(x.effect$rab.all[abs(x.effect$effect) >=2], x.effect$diff.btw[abs(x.effect$effect) >=2], pch=19, cex=0.5, col="red")
+    points(x.effect$rab.all[sgn], x.effect$diff.btw[sgn], cex=0.7, col="blue")
+
+    plot(x.effect$diff.win, x.effect$diff.btw, pch=19, cex=0.3, col="grey",xlab="Dispersion", ylab="Difference", main="Effect")
+    points(x.effect$diff.win[abs(x.effect$effect) >=2], x.effect$diff.btw[abs(x.effect$effect) >=2], pch=19, cex=0.5, col="red")
+    points(x.effect$diff.win[sgn], x.effect$diff.btw[sgn], cex=0.7, col="blue")
+    abline(0,2, lty=2, col="grey")
+    abline(0,-2, lty=2, col="grey")
+
+    # --- Glm [] ---
+    # Key functions: aldex.glm.plot
+    # NEW plot the glm.test and glm.eff data for particular contrasts
+    aldex.glm.plot(glm.test, eff=glm.eff, contrast='B', type='MW', test='fdr')
+
+    # --- Fig=true [] ---
+    # Key functions: rgb, abline
+    # identify which values are significant in both the t-test and glm tests
+    found.by.all <- which(x.all$we.eBH < 0.05 & x.all$wi.eBH < 0.05)
+
+    # identify which values are significant in fewer than all tests
+    found.by.one <- which(x.all$we.eBH < 0.05 | x.all$wi.eBH < 0.05)
+
+    # plot the within and between variation of the data
+    plot(x.all$diff.win, x.all$diff.btw, pch=19, cex=0.3, col=rgb(0,0,0,0.3),
+     xlab="Dispersion", ylab="Difference")
+    points(x.all$diff.win[found.by.one], x.all$diff.btw[found.by.one], pch=19,
+     cex=0.7, col=rgb(0,0,1,0.5))
+    points(x.all$diff.win[found.by.all], x.all$diff.btw[found.by.all], pch=19,
+     cex=0.7, col=rgb(1,0,0,1))
+    abline(0,1,lty=2)
+    abline(0,-1,lty=2)
+
+    # --- Scale [] ---
+    # Key functions: rep, aldex.clr, aldex.effect, aldex.makeScaleMatrix
+    set.seed(11)
+    data(synth2)
+    # basic ALDEx2
+    blocks <- c(rep("N", 10),rep("S", 10))
+    x <- aldex.clr(synth2, blocks, gamma=NULL)
+    x.e <- aldex.effect(x)
+
+    # Add in asymmetry and scale variance
+    # gamma can be smaller for the same output dispersion
+    # in the full scale model built here
+    # make a base scale for group 1 and 2
+    mu.vec = c(log2(rep(1,10)), log2(rep(1.02,10)))
+    scale_samples <- aldex.makeScaleMatrix(gamma=0.25, mu=mu.vec, 
+      conditions=blocks) 
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

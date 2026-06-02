@@ -41,12 +41,21 @@ process BIOC_UCELL {
     library(SmoothKNN)
     library(jsonlite)
 
-    # --- Smoothknn [] ---
-    # Key functions: SmoothKNN
-    ---------------------------------------------------------------------
-    seurat.object <- SmoothKNN(seurat.object,
-                               signature.names = names(signatures),
-                               reduction="pca")
+
+    # --- Warning=false [] ---
+    # Key functions: SmoothKNN, DefaultAssay, FeaturePlot, sessionInfo, pca, umap, RNA_smooth
+    genes <- c("CD2","CSF1R")
+    seurat.object <- SmoothKNN(seurat.object, signature.names=genes,
+                     assay="RNA", reduction="pca", k=20, suffix = "_smooth")
+
+    DefaultAssay(seurat.object) <- "RNA"
+    a <- FeaturePlot(seurat.object, reduction = "umap", features = genes)
+    DefaultAssay(seurat.object) <- "RNA_smooth"
+    b <- FeaturePlot(seurat.object, reduction = "umap", features = genes)
+    a / b
+
+    ## -----------------------------------------------------------------------------
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

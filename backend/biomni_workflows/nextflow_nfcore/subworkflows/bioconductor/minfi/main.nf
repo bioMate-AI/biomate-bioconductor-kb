@@ -41,10 +41,37 @@ process BIOC_MINFI {
     library(minfi)
     library(jsonlite)
 
-    # --- preprocess Raw [] ---
+
+    # --- Rgset Ex [] ---
     # Key functions: preprocessRaw, mapToGenome
+    RGsetEx
+    ## RGsetEx: RGChannelSet, 622,399 features
     MsetEx <- preprocessRaw(RGsetEx)
+    ## MsetEx: MethylSet, 485,512 features
     GMsetEx <- mapToGenome(MsetEx)
+    ## GMsetEx: GenomicMethylSet, 485,512 features
+
+    # --- Base Dir [] ---
+    # Key functions: list.files, extdata, minfiData
+    baseDir <- system.file("extdata", package = "minfiData")
+    list.files(baseDir)
+
+    # --- Base Dir2 [] ---
+    # Key functions: list.files
+    list.files(file.path(baseDir, "5723646052"))
+
+    # --- Sheet [] ---
+    # Key functions: read.metharray.sheet
+    targets <- read.metharray.sheet(baseDir)
+    targets
+
+    # --- Basename Column> [] ---
+    # Key functions: minfi
+    sub(baseDir, "", targets$Basename)
+
+    # --- Reading Targets [] ---
+    # Key functions: read.metharray.exp
+    RGset <- read.metharray.exp(targets = targets)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
