@@ -538,8 +538,13 @@ workflow {
         }
         if (params.mock_mode) {
             log.info "MOCK MODE: substituting canonical reference SMILES (aspirin) for CI testing"
-            params.reference_actives = params.reference_actives ?: 'CC(=O)Oc1ccccc1C(=O)O'
-            params.compound_library  = params.compound_library  ?: 'CC(=O)Oc1ccccc1C(=O)O\nCCN(CC)CC'
+            // Nextflow stringifies null params to 'null' (truthy), so explicit check needed.
+            if (!params.reference_actives || params.reference_actives in ['null', 'None', '']) {
+                params.reference_actives = 'CC(=O)Oc1ccccc1C(=O)O'
+            }
+            if (!params.compound_library || params.compound_library in ['null', 'None', '']) {
+                params.compound_library = 'CC(=O)Oc1ccccc1C(=O)O\nCCN(CC)CC'
+            }
         }
 
         // Use top-level helpers _is_inline_smi() and _write_inline_smi() (parser-v2: closures inside workflow{} fail static analysis)
