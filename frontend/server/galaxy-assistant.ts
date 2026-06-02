@@ -827,6 +827,8 @@ export interface ActionCategories {
   needsBenchmarkAgent: boolean;
   needsDatasetAccess: boolean;
   needsLLMReasoning: boolean;
+  // [v2] Propose a downstream Bioconductor chain based on a recently completed run
+  needsChainProposal: boolean;
 }
 
 /**
@@ -869,6 +871,8 @@ export function inferActionsFromType(type: string): ActionCategories {
     'regulatory_compliance': { needsResearchAgent: true, needsLLMReasoning: true },
     'cost_estimation': { needsBenchmarkAgent: true, needsLLMReasoning: true },
     'general_question': { needsLLMReasoning: true },
+    // [v2] User asks what to do next after a run — propose a downstream Bioconductor chain
+    'chain_proposal': { needsChainProposal: true, needsLLMReasoning: true },
   };
   return {
     needsToolSearch: false,
@@ -878,6 +882,7 @@ export function inferActionsFromType(type: string): ActionCategories {
     needsBenchmarkAgent: false,
     needsDatasetAccess: false,
     needsLLMReasoning: true,
+    needsChainProposal: false,
     ...defaults[type],
   };
 }
@@ -973,6 +978,18 @@ export interface GalaxyAssistantResponse {
   // Research and benchmark results (populated for research/benchmark intents)
   researchResponse?: any;
   benchmarkEvidence?: any;
+
+  // [v2] Proposed downstream chain (populated when needsChainProposal fires)
+  proposedChain?: {
+    name: string;
+    display_name: string;
+    domain: string;
+    description: string;
+    steps: Array<{ order: number; workflow_name: string; role: string; params_template: Record<string, any> }>;
+    connections: Array<{ from_step: number; from_output: string; to_step: number; to_input: string }>;
+    required_inputs: string[];
+    triggered_by_run_name?: string;
+  };
 
   // Metadata
   sources: {
