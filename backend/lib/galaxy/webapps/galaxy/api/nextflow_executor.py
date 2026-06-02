@@ -6,21 +6,6 @@ as a background subprocess and returns tracking IDs.
 
 Does NOT require Galaxy workflow/invocation infrastructure.
 """
-# ──────────────────────────────────────────────────────────────────────────
-# CRITICAL — DO NOT REMOVE THIS LINE.
-# This file uses PEP 604 `X | Y` union syntax in 13+ type annotations.
-# Python 3.10+ supports it natively, but the Galaxy container ships
-# Python 3.9. Without `from __future__ import annotations` (PEP 563),
-# the annotations are evaluated at module load and crash every gunicorn
-# worker with: TypeError: unsupported operand type(s) for |: 'type' and 'type'.
-# Symptom: container reports "unhealthy" forever, /api/workflows/execute
-# returns "fetch failed (ECONNREFUSED)", workflows fail with no run dir
-# created. Auto-commit/sync scripts have stripped this line at least 3x
-# this session — restored via commits 903745e19, 1f49b6e45, and again now.
-# If a CI lint can enforce its presence, add it.
-# ──────────────────────────────────────────────────────────────────────────
-from __future__ import annotations
-
 import logging
 import os
 import re
@@ -104,27 +89,9 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
 
 
 def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-    """Drop exported bash completion functions (BASH_FUNC_*) that break Batch/Nextflow shells,
-    and assert the Nextflow framework pin is present.
-
-    Returns an env dict with NXF_VER already populated. Subprocess launchers
-    must use this rather than building env from os.environ directly, or the
-    pin will silently drift (see docs/20260601_NEXTFLOW_VERSION_DRIFT.md).
-    """
+    """Drop exported bash completion functions (BASH_FUNC_*) that break Batch/Nextflow shells."""
     raw = dict(base if base is not None else os.environ)
-    clean = {k: v for k, v in raw.items() if not k.startswith("BASH_FUNC")}
-    # Defence-in-depth: ensure the Nextflow framework version pin is set in
-    # every subprocess env. Without this, the Nextflow launcher script
-    # downloads whatever framework jar is current on JFrog at first invocation
-    # (drifted from 25.10.5 to 26.04.2 between 2026-05-25 and 2026-06-01,
-    # documented in docs/20260601_NEXTFLOW_VERSION_DRIFT.md).
-    if "NXF_VER" not in clean:
-        clean["NXF_VER"] = "25.10.5"
-        log.warning(
-            "[Nextflow] NXF_VER missing from subprocess env — applying pin 25.10.5. "
-            "If you intentionally want a different version, set NXF_VER explicitly."
-        )
-    return clean
+    return {k: v for k, v in raw.items() if not k.startswith("BASH_FUNC")}
 
 
 # QC handler registry: invocation_id → NextflowQCGateHandler
@@ -327,16 +294,9 @@ _NF_LOG_FAILURE_MARKERS = (
 _NF_LOG_EXCEPTION_RE = re.compile(
     r'(?:'
     r'Caused by:\s*\w'
-    # ERROR-level lines from nextflow / groovy are failures. WARN lines are NOT —
-    # they are routinely emitted for benign config drift (e.g. "Unrecognized config
-    # option 'process.environment.BIOMATE_USER_ID'" or "There's no process matching
-    # config selector: CRYODRGN_TRAIN" which fires on every tier 0 drug-dev workflow
-    # because the shared nextflow.config has cryo-EM selectors). Treating them as
-    # failures triggered premature status="failed" on every run while Phase A was
-    # still executing on Batch — see screenshots at frontend/e2e/screenshots/tier0-audit/.
-    r'|(?:^|\s)ERROR\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
+    r'|(?:^|\s)(?:ERROR|WARN)\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
     r'|nextflow\.exception\.\w+'
-    r'|org\.codehaus\.groovy\.runtime'
+    r'|org\.codehaus\.groovy'
     r'|groovy\.lang\.\w+Exception'
     r'|Stack trace:'
     r'|\tat groovy\.'
@@ -471,11 +431,46 @@ def _evaluate_workflow_trace_terminal(
     return False, False, completed, failed, total
 
 
+def _looks_like_log_stream_orphan_failure(disk: dict) -> bool:
+    """timing.json marked failed within ~30s with rc=-1 from a lost log-stream thread."""
+    if disk.get("returncode") != -1:
+        return False
+    if disk.get("status") not in ("failed", "interrupted", None):
+        return False
+    started = disk.get("started_at")
+    completed = disk.get("completed_at")
+    if started is None or completed is None:
+        return False
+    try:
+        elapsed = float(completed) - float(started)
+    except (TypeError, ValueError):
+        return False
+    return elapsed < 30.0
+
+
+def _revive_orphan_nextflow_run(run_id: str) -> bool:
+    """If the Nextflow JVM is still running, clear bogus terminal timing.json."""
+    if not _find_nextflow_pids_for_run(run_id):
+        return False
+    _write_timing(run_id, {"completed_at": None, "status": "running", "returncode": None})
+    log.warning(
+        "[Nextflow run %s] revived orphan run — Nextflow JVM alive after log-stream loss",
+        run_id,
+    )
+    return True
+
+
 def _apply_disk_timing_terminal_state(info: Dict[str, Any], run_id: str) -> Dict[str, Any]:
     """Prefer timing.json terminal status/returncode over stale in-memory _runs entries."""
     disk = _read_run_timing_json(run_id)
     if not disk.get("completed_at"):
         return info
+    if _looks_like_log_stream_orphan_failure(disk) and _revive_orphan_nextflow_run(run_id):
+        merged = dict(info)
+        merged["status"] = "running"
+        merged["returncode"] = None
+        merged.pop("completed_at", None)
+        return merged
     merged = dict(info)
     disk_status = disk.get("status")
     disk_rc = disk.get("returncode")
@@ -2671,6 +2666,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
 
     except Exception as exc:
         log.error("[Nextflow run %s] log streaming error: %s", run_id, exc)
+        if _find_nextflow_pids_for_run(run_id):
+            log.warning(
+                "[Nextflow run %s] log streaming lost but Nextflow JVM still running — keeping status=running",
+                run_id,
+            )
+            with _runs_lock:
+                if run_id in _runs:
+                    _runs[run_id]["status"] = "running"
+            return
         final_status = "failed"
         _completed_at_now = time.time()
         with _runs_lock:
@@ -3064,22 +3068,15 @@ def _accession_chain_thread(
     chain_work_dir = work_base / run_id / "work"
     chain_work_dir.mkdir(parents=True, exist_ok=True)
     try:
-        # Decouple from gunicorn worker lifetime — see commit b2eaaacd4.
-        # stdout=subprocess.PIPE keeps the worker on the read end of the pipe;
-        # when the worker recycles the pipe closes and Nextflow dies with SIGPIPE.
-        # Redirect stdout straight to the log file at Popen time so the child has
-        # its own fd and the parent dying doesn't take it down.
-        log_fh = open(log_path, "ab", buffering=0)
         process = subprocess.Popen(
             substituted_cmd,
-            stdout=log_fh,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            text=True,
             cwd=str(chain_work_dir),
             env=env,
             start_new_session=True,
-            close_fds=True,
         )
-        log_fh.close()  # parent's fd; child has its own copy
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["process"] = process
@@ -3416,41 +3413,12 @@ def execute_nextflow(
     # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
     env = _sanitize_subprocess_env()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
-    # Pin the Nextflow framework version. Without this, the launcher script downloads
-    # whatever is current on JFrog at first invocation (was drifting to 26.04.2 as of
-    # 2026-06-01 despite sync_to_dev.sh installing the 25.10.5 launcher). The launcher
-    # script's behaviour is entirely controlled by the live NXF_VER env var, NOT by
-    # what was set when the launcher was installed. See docs/20260601_NEXTFLOW_VERSION_DRIFT.md.
-    _NF_PIN = os.environ.get("NXF_VER", "25.10.5")
-    env["NXF_VER"] = _NF_PIN
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
     # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.
     # Set it whenever we're running on AWS Batch so every .nf file picks the correct ECR image.
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
-
-    # JVM crash mitigation (originally commit 4efb990e1, reverted by parallel sweeps,
-    # re-observed 2026-06-02 on dev T01: SIGSEGV in ld-linux-x86-64.so.2+0x2475a inside
-    # software.amazon.awssdk.crt.CRT.extractAndLoadLibrary on a PublishDir thread).
-    # The AWS SDK CRT (Common Runtime) native library races on extraction when
-    # multiple Nextflow heads run from the same container; the native loader chains
-    # many dlopens and runs out of stack on the 1024K default under contention.
-    #
-    # Three-prong mitigation:
-    #   - aws.crt.lib.dir → per-run extraction directory (no cross-run contention)
-    #   - aws.crt.disable.crt.in.client → AWS SDK falls back to Java HTTP client if
-    #     CRT init fails, so a bad load no longer aborts the run
-    #   - -Xss2m → double the JVM thread stack so the chained native loader has room
-    nxf_crt_cache = log_dir / ".aws-crt-cache"
-    nxf_crt_cache.mkdir(parents=True, exist_ok=True)
-    existing_nxf_opts = env.get("NXF_OPTS", "")
-    crt_opts = (
-        f"-Daws.crt.lib.dir={nxf_crt_cache} "
-        f"-Daws.crt.disable.crt.in.client=true "
-        f"-Xss2m"
-    )
-    env["NXF_OPTS"] = f"{existing_nxf_opts} {crt_opts}".strip()
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
@@ -3633,22 +3601,16 @@ def execute_nextflow(
                 log.warning("[Nextflow run %s] Could not copy .nextflow cache: %s", run_id, _e)
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
-    # Decouple from gunicorn worker lifetime — see commit b2eaaacd4. stdout=PIPE
-    # ties the Nextflow JVM to the worker's read end; when the worker recycles
-    # the pipe closes and Nextflow dies with SIGPIPE mid-flight. Redirect stdout
-    # to the log file directly so the child holds its own fd.
     try:
-        log_fh = open(log_path, "ab", buffering=0)
         process = subprocess.Popen(
             cmd,
-            stdout=log_fh,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            text=True,
             cwd=str(work_dir),
             env=env,
             start_new_session=True,
-            close_fds=True,
         )
-        log_fh.close()
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
@@ -4056,6 +4018,13 @@ def get_nextflow_status(
             )
 
             # Also treat timing.json with completed_at as a done signal
+            if (
+                not trace_done
+                and _fb_completed_at
+                and _looks_like_log_stream_orphan_failure(_disk_timing)
+                and _revive_orphan_nextflow_run(run_id)
+            ):
+                _fb_completed_at = None
             if not trace_done and _fb_completed_at:
                 trace_done = True
                 trace_failed = (
