@@ -892,7 +892,11 @@ workflow {
     if (!params.smiles && !params.mock_mode) error "params.smiles is required (SMILES string of drug candidate)"
     if (params.mock_mode) {
         log.info "MOCK MODE: using aspirin SMILES for CI testing"
-        params.smiles = params.smiles ?: 'CC(=O)Oc1ccccc1C(=O)O'
+        // Note: Nextflow params come in as strings; null becomes 'null' (truthy),
+        // so '?:' alone doesn't substitute. Check explicitly.
+        if (!params.smiles || params.smiles in ['null', 'None', '']) {
+            params.smiles = 'CC(=O)Oc1ccccc1C(=O)O'
+        }
     }
 
     // Step 1: Validate and standardize SMILES
