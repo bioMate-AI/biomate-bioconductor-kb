@@ -38,48 +38,50 @@ process BIOC_BSSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(bsseq)
     library(BSseq)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: sampleNames, pData, subsetByOverlaps, GRanges
-    head(start(BS.chr22), n = 4)
-    head(seqnames(BS.chr22), n = 4)
-    sampleNames(BS.chr22)
-    # --- B Sseq [] ---
-    # Key functions: BSseq
-    M <- matrix(0:8, 3, 3)
-    Cov <- matrix(1:9, 3, 3)
-    BStmp <- BSseq(chr = c("chr1", "chrX", "chr1"), pos = 1:3,
-    # --- granges [] ---
-    # Key functions: granges, orderBSseq
-    granges(BStmp)
-    BStmp <- orderBSseq(BStmp, seqOrder = c("chr1", "chrX"))
-    granges(BStmp)
-    # --- chr Select B Sseq [] ---
-    # Key functions: chrSelectBSseq
-    chrSelectBSseq(BStmp, seqnames = "chr1", order = TRUE)
-    # --- combine [] ---
-    # Key functions: combine, granges, getCoverage
-    BStmp2 <- combine(BStmp, BS.chr22[1:3,])
-    granges(BStmp2)
-    getCoverage(BStmp2)
-    # --- collapse B Sseq [] ---
-    # Key functions: collapseBSseq
-    collapseBSseq(BStmp, group = c("A", "A", "B"))
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, getCoverage
-    regions <- GRanges(seqnames = c("chr22", "chr22"),
-    ranges = IRanges(start = 1.5 * 10^7 + c(0,200000),
-    getCoverage(BS.chr22, regions = regions, what = "perRegionTotal")
-    # --- get Coverage [] ---
-    # Key functions: getCoverage
-    getCoverage(BS.chr22, regions = regions, what = "perBase")
-    # --- get Meth [] ---
-    # Key functions: getMeth
-    getMeth(BS.chr22, regions, type = "raw")
-    getMeth(BS.chr22, regions[2], type = "raw", what = "perBase")
+    # --- Combining and Collapsing Datasets [] ---
+    # Key functions: combine, collapseBSseq
+    M1 <- matrix(0:8, 3, 3)
+    Cov1 <- matrix(1:9, 3, 3)
+    BStmp1 <- BSseq(
+        chr = c("chr1", "chr1", "chr1"), pos = 1:3,
+        M = M1, Cov = Cov1, sampleNames = c("A1", "A2", "B")
+    )
+    BStmp2 <- combine(BStmp1, BStmp1)
+    collapsed <- collapseBSseq(BStmp1, group = c("A", "A", "B"))
+
+
+    # --- Coverage and Methylation Extraction [] ---
+    # Key functions: getCoverage, getMeth
+    data(BS.chr22)
+    cov_base <- getCoverage(BS.chr22, type = "Cov")
+    meth_base <- getCoverage(BS.chr22, type = "M")
+    regions <- GRanges(
+        seqnames = c("chr22", "chr22"),
+        ranges = IRanges(
+            start = 1.5 * 10^7 + c(0, 200000),
+            width = 1000
+        )
+    )
+    cov_region <- getCoverage(
+        BS.chr22,
+        regions = regions,
+        what = "perRegionTotal"
+    )
+    meth_raw <- getMeth(BS.chr22, regions, type = "raw")
+
+
+    # --- Bisulfite Smoothing [] ---
+    # Key functions: BSmooth
+    data(BS.chr22)
+    BS.chr22.smoothed <- BSmooth(
+        BS.chr22[, "r1"],
+        verbose = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

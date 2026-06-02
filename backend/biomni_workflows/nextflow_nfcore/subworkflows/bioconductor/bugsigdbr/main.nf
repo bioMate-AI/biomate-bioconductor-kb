@@ -41,32 +41,52 @@ process BIOC_BUGSIGDBR {
     library(bugsigdbr)
     library(jsonlite)
 
-    # --- import Bug Sig D B [] ---
-    # Key functions: importBugSigDB
-    bsdb <- importBugSigDB()
-    dim(bsdb)
-    colnames(bsdb)
-    # --- get Signatures [] ---
+    # --- Extract Microbial Signatures [] ---
     # Key functions: getSignatures
+    sigs_default <- getSignatures(bsdb)
+    sigs_metaphlan <- getSignatures(bsdb, tax.id.type = "metaphlan")
+    sigs_genus <- getSignatures(
+        bsdb,
+        tax.id.type = "taxname",
+        tax.level = "genus",
+        exact.tax.level = FALSE
+    )
+
+
+    # --- Ontology-based Subsetting [] ---
+    # Key functions: getOntology, subsetByOntology
+    efo_ontology <- getOntology("efo")
+    uberon_ontology <- getOntology("uberon")
+    cancer_subset <- subsetByOntology(
+        bsdb,
+        column = "Condition",
+        term = "cancer",
+        ontology = efo_ontology
+    )
+    digestive_subset <- subsetByOntology(
+        bsdb,
+        column = "Body site",
+        term = "digestive system",
+        ontology = uberon_ontology
+    )
+
+
+    # --- Export Signatures [] ---
+    # Key functions: writeGMT, getSignatures
     sigs <- getSignatures(bsdb)
-    length(sigs)
-    # --- write G M T [] ---
-    # Key functions: writeGMT
-    writeGMT(sigs, gmt.file = "bugsigdb_signatures.gmt")
-    # --- browse Signature [] ---
-    # Key functions: browseSignature
-    browseSignature(names(sigs)[1])
-    # --- browse Taxon [] ---
-    # Key functions: browseTaxon
-    browseTaxon(sigs[[1]][1])
-    # --- get Ontology [] ---
-    # Key functions: getOntology
-    efo <- getOntology("efo")
-    # --- subset By Ontology [] ---
-    # Key functions: subsetByOntology
-    sdf <- subsetByOntology(bsdb,
-    dim(sdf)
-    table(sdf[,"Condition"])
+    writeGMT(
+        sigs,
+        gmt.file = "bugsigdb_signatures.gmt"
+    )
+
+
+    # --- Browse Signatures and Taxa [] ---
+    # Key functions: browseSignature, browseTaxon, getSignatures
+    sigs <- getSignatures(bsdb)
+    first_sig_name <- names(sigs)[1]
+    first_taxon <- sigs[[1]][1]
+    browseSignature(first_sig_name)
+    browseTaxon(first_taxon)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

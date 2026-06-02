@@ -38,91 +38,83 @@ process BIOC_BIREWIRE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BiRewire)
     library(E)
     library(jsonlite)
 
-    # --- Getabipartitegraph [] ---
-    # Key functions: incidence
-    data(BRCA_binary_matrix)##loads an binary genomic event matrix for the
-    												##breast cancer dataset
-    g=birewire.bipartite.from.incidence(BRCA_binary_matrix)##models the dataset
-    																								## as igraph bipartite graph
-    # --- Performanalisys [] ---
-    # Key functions: bipartite
-    step=5000
-    max=100*sum(BRCA_binary_matrix)
-    scores<-birewire.analysis.bipartite(BRCA_binary_matrix,step,
-    		verbose=FALSE,max.iter=max,n.networks=5,display=F)
-    # --- Performanalisysundirected [] ---
-    # Key functions: game, adjacency, E, undirected
-    g.und<-erdos.renyi.game(directed=F,loops=F,n=1000,p.or.m=0.01)
-    m.und<-get.adjacency(g.und,sparse=FALSE)
-    step=100
-    max=100*length(E(g.und))
-    scores.und<-birewire.analysis.undirected(m.und,step=step,
-    # --- Rewire [] ---
-    # Key functions: bipartite
-    m2<-birewire.rewire.bipartite(BRCA_binary_matrix,verbose=FALSE)
-    g2<-birewire.rewire.bipartite(g,verbose=FALSE)
-    # --- Rewireundirected [] ---
-    # Key functions: undirected
-    m2.und<-birewire.rewire.undirected(m.und,verbose=FALSE)
-    g2.und<-birewire.rewire.undirected(g.und,verbose=FALSE)
-    # --- Similarity [] ---
-    # Key functions: similarity
-    sc=birewire.similarity(BRCA_binary_matrix,m2)
-    sc=birewire.similarity(BRCA_binary_matrix,t(m2))#also works
-    # --- Projections [] ---
-    # Key functions: bipartite, projections
-    #use a smaller graph!
-    gg <- graph.bipartite( rep(0:1,length=10), c(1:10))
-    result=birewire.rewire.bipartite.and.projections(gg,step=10,
-            max.iter="n",accuracy=0.00005,verbose=FALSE)
-    plot(result$similarity_scores.proj2,type='l',col='red',ylim=c(0,1))
-    # --- Sampler Bipartite [] ---
-    # Key functions: bipartite, incidence, unlink
-    #use a smaller graph!
-    gg <-graph.bipartite(rep(0:1,length=10), c(1:10))
-     ## NOT RUN
-     ##birewire.sampler.bipartite(get.incidence(g),K=10,path='TESTBIREWIRE',verbose=F)
-     ##unlink('TESTBIREWIRE',recursive = T)
-    # --- Monitoring [] ---
-    # Key functions: bipartite, game, undirected
-    ggg <- graph.bipartite( rep(0:1,length=10), c(1:10))
-    tsne = birewire.visual.monitoring.bipartite(ggg,display=F,n.networks=10,perplexity=2)
-    g <- erdos.renyi.game(1000,0.1)
-    tsne = birewire.visual.monitoring.undirected(g,display=F,n.networks=10,perplexity=2)
-    # --- Induced Bipartite And Sif Builder [] ---
-    # Key functions: bipartite, dsg
-    data(test_dsg)
-    dsg=birewire.induced.bipartite(test_dsg,delimitators=list(negative='-',positive='+'))
-    tmp=birewire.build.dsg(dsg,delimitators=list(negative='-',positive='+'))
-    # --- Rewire Dsg [] ---
-    # Key functions: dsg
-    dsg2=birewire.rewire.dsg(dsg=dsg)
-    tmp=birewire.build.dsg(dsg2,delimitators=list(negative='-',positive='+'))
-    # --- Jacard Dsg [] ---
-    # Key functions: dsg
-    birewire.similarity.dsg(dsg,dsg2)
-    # --- Sampler Dsg [] ---
-    # Key functions: dsg, unlink
-    ##NOT RUN
-    ##birewire.sampler.dsg(dsg,K=10,path='TESTBIREWIREDSG',verbose=F,
-    ##			delimitators=list(negative='-',positive='+'))
-    ##unlink('TESTBIREWIREDSG',recursive = T)
-    # --- Sampler Dsg V2 [] ---
-    # Key functions: dsg, unlink
-    ##NOT RUN
-    ##birewire.sampler.dsg(dsg,K=10,path='TESTBIREWIREDSG',verbose=F,
-    ##			delimitators=list(negative='-',positive='+'),check_pos_neg=T)
-    ##unlink('TESTBIREWIREDSG',recursive = T)
-    # --- Example General [] ---
-    # Key functions: game, bipartite, incidence
-    ##NOT RUN
-    #ggg <- bipartite.random.game(n1=100,n2=40,p=0.2)
-    #For recovering quickly the bound N we can perform a short analysis
-    #N=birewire.analysis.bipartite(get.incidence(ggg,sparse=F),max.iter=2,step=1)$N
-    #Now we can perform the real analysis
+    # --- Bipartite Rewiring and Analysis [] ---
+    # Key functions: birewire.rewire.bipartite, birewire.analysis.bipartite
+    data(BRCA_binary_matrix)
+    m2 <- birewire.rewire.bipartite(BRCA_binary_matrix, verbose = FALSE)
+    step <- 5000
+    max_iter <- 100 * sum(BRCA_binary_matrix)
+    scores <- birewire.analysis.bipartite(
+        BRCA_binary_matrix,
+        step,
+        verbose = FALSE,
+        max.iter = max_iter,
+        n.networks = 5,
+        display = FALSE
+    )
+
+
+    # --- Undirected Rewiring and Analysis [] ---
+    # Key functions: birewire.rewire.undirected, birewire.analysis.undirected
+    g_und <- igraph::erdos.renyi.game(
+        directed = FALSE,
+        loops = FALSE,
+        n = 100,
+        p.or.m = 0.1
+    )
+    m_und <- as.matrix(igraph::as_adjacency_matrix(g_und))
+    m2_und <- birewire.rewire.undirected(m_und, verbose = FALSE)
+    step <- 10
+    max_iter <- 100 * length(igraph::E(g_und))
+    scores_und <- birewire.analysis.undirected(
+        m_und,
+        step = step,
+        verbose = FALSE,
+        max.iter = max_iter,
+        n.networks = 5
+    )
+
+
+    # --- Similarity Assessment [] ---
+    # Key functions: birewire.similarity, birewire.rewire.bipartite
+    data(BRCA_binary_matrix)
+    m2 <- birewire.rewire.bipartite(BRCA_binary_matrix, verbose = FALSE)
+    sc_direct <- birewire.similarity(BRCA_binary_matrix, m2)
+    sc_transpose <- birewire.similarity(BRCA_binary_matrix, t(m2))
+
+
+    # --- Projection Analysis [] ---
+    # Key functions: birewire.rewire.bipartite.and.projections
+    gg <- igraph::graph.bipartite(rep(0:1, length = 10), c(1:10))
+    result <- birewire.rewire.bipartite.and.projections(
+        gg,
+        step = 10,
+        max.iter = "n",
+        accuracy = 0.00005,
+        verbose = FALSE
+    )
+
+
+    # --- Visual Monitoring [] ---
+    # Key functions: birewire.visual.monitoring.bipartite, birewire.visual.monitoring.undirected
+    ggg <- igraph::graph.bipartite(rep(0:1, length = 10), c(1:10))
+    tsne_bip <- birewire.visual.monitoring.bipartite(
+        ggg,
+        display = FALSE,
+        n.networks = 10,
+        perplexity = 2
+    )
+    g_und <- igraph::erdos.renyi.game(100, 0.1)
+    tsne_und <- birewire.visual.monitoring.undirected(
+        g_und,
+        display = FALSE,
+        n.networks = 10,
+        perplexity = 2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

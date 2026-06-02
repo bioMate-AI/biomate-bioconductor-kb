@@ -38,127 +38,38 @@ process BIOC_BSGENOME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BSgenome)
     library(DNAString)
     library(jsonlite)
 
-
-    # --- B1 [] ---
-    # Key functions: class, metadata, seqnames, seqinfo, alphabetFrequency
-    library(BSgenome.Celegans.UCSC.ce2)
-    ls("package:BSgenome.Celegans.UCSC.ce2")
-    genome <- BSgenome.Celegans.UCSC.ce2
-    genome
-    class(genome)
-    metadata(genome)
-    seqnames(genome)
-    seqinfo(genome)
-    genome$chrI
+    # --- Sequence Frequency Analysis [] ---
+    # Key functions: alphabetFrequency
+    genome <- BSgenome::getBSgenome("BSgenome.Celegans.UCSC.ce2")
     chrI <- genome$chrI
-    length(chrI)
-    afI <- alphabetFrequency(chrI)
-    afI
-    sum(afI) == length(chrI)
+    af_chrI <- alphabetFrequency(chrI)
+    total_bases <- sum(af_chrI)
+    is_valid <- total_bases == length(chrI)
 
-    # --- B7 [] ---
-    # Key functions: countPattern, matchPattern, class, mismatch, DNAString
+
+    # --- Pattern Matching and Hit Identification [] ---
+    # Key functions: matchPattern, countPattern, mismatch
+    genome <- BSgenome::getBSgenome("BSgenome.Celegans.UCSC.ce2")
+    chrI <- genome$chrI
     p1 <- "ACCCAGGGC"
-    countPattern(p1, chrI)
-    countPattern(p1, chrI, max.mismatch=1)
-    m1 <- matchPattern(p1, chrI, max.mismatch=1)
-    m1[4:6]
-    class(m1)
-    mismatch(p1, m1[4:6])
-    p2 <- DNAString("AAGCCTAAGCCTAAGCCTAA")
-    m2 <- matchPattern(p2, chrI, max.mismatch=2)
-    m2[1:4]
-    p2 == m2[1:4]
-    mismatch(p2, m2[1:4])
-    m2[p2 == m2]
-    m2[p2 != m2]
+    cnt <- countPattern(p1, chrI, max.mismatch = 1)
+    m1 <- matchPattern(p1, chrI, max.mismatch = 1)
+    mismatches <- mismatch(p1, m1[1:min(3, length(m1))])
 
-    # --- C1 [] ---
-    # Key functions: readDNAStringSet, extdata, ce2dict0.fa, fasta, function, file.exists, rep.int, start
-    ce2dict0_file <- system.file("extdata", "ce2dict0.fa", package="BSgenome")
-    ce2dict0 <- readDNAStringSet(ce2dict0_file, "fasta")
-    ce2dict0
-    writeHits <- function(seqname, matches, strand, file="", append=FALSE)
-    {
-        if (file.exists(file) && !append)
-            warning("existing file ", file, " will be overwritten with 'append=FALSE'")
-        if (!file.exists(file) && append)
-            warning("new file ", file, " will have no header with 'append=TRUE'")
-        hits <- data.frame(seqname=rep.int(seqname, length(matches)),
-                           start=start(matches),
-                           end=end(matches),
-                           strand=rep.int(strand, length(matches)),
-    runAnalysis1(ce2dict0, outfile="ce2dict0_ana1.txt")
-    hits1 <- read.table("ce2dict0_ana1.txt", header=TRUE)
-    nrow(hits1)
-    table(hits1$seqname)
-    hits1_table <- table(hits1$patternID)
-    hits1_table
 
-    # --- C7 [] ---
-    # Key functions: pattern, function, seqlengths, plot.new, plot.window, axis, for, match
-    hits1_table[hits1_table == max(hits1_table)] # pattern(s) with more hits
-    setdiff(names(ce2dict0), hits1$patternID) # pattern(s) with no hits
-    plotGenomeHits <- function(bsgenome, seqnames, hits)
-    {
-        chrlengths <- seqlengths(bsgenome)[seqnames]
-        XMAX <- max(chrlengths)
-        YMAX <- length(seqnames)
-        plot.new()
-        plot.window(c(1, XMAX), c(0, YMAX))
-        axis(1)
-        axis(2, at=seq_len(length(seqnames)), labels=rev(seqnames), tick=FALSE, las=1)
-        ## Plot the chromosomes
-    library(hgu95av2probe)
-    tmpseq <- DNAStringSet(hgu95av2probe$sequence)
-    someStats <- function(v)
-    {
-        GC <- DNAString("GC")
-        CG <- DNAString("CG")
-        sapply(seq_len(length(v)),
-               function(i) {
-
-    # --- F3 [] ---
-    # Key functions: active, masks, alphabetFrequency, unmasked, gaps, width
-    active(masks(chrY)) <- FALSE
+    # --- Masking and Genomic Gap Analysis [] ---
+    # Key functions: masks, active, gaps, alphabetFrequency
+    genome <- BSgenome::getBSgenome("BSgenome.Hsapiens.UCSC.hg38.masked")
+    chrY <- genome$chrY
+    active(masks(chrY))["RM"] <- TRUE
     active(masks(chrY))["AGAPS"] <- TRUE
-    alphabetFrequency(unmasked(chrY))
-    alphabetFrequency(chrY)
-    as(chrY, "XStringViews")
-    gaps(as(chrY, "XStringViews"))
-    width(gaps(as(chrY, "XStringViews")))
-    gaps(chrY)
-    alphabetFrequency(gaps(chrY))
-    af0 <- alphabetFrequency(unmasked(chrY))
-    af1 <- alphabetFrequency(chrY)
-    af2 <- alphabetFrequency(gaps(chrY))
-    all(af0 == af1 + af2)
-
-    # --- F9 [] ---
-    # Key functions: active, masks, alphabetFrequency, gaps, countPattern, function, metadata, reverseComplement
-    active(masks(chrY)) <- TRUE
-    af1 <- alphabetFrequency(chrY)
-    af1
-    gaps(chrY)
-    af2 <- alphabetFrequency(gaps(chrY))
-    af2
-    all(af0 == af1 + af2)
-    Ebox <- "CANNTG"
-    active(masks(chrY)) <- FALSE
-    countPattern(Ebox, chrY, fixed=FALSE)
-    countPattern(Ebox, chrY, fixed=c(pattern=FALSE,subject=TRUE))
-    active(masks(chrY))[c("AGAPS", "AMB")] <- TRUE
-    alphabetFrequency(chrY, baseOnly=TRUE)  # no ambiguities
-    countPattern(Ebox, chrY, fixed=FALSE)
-    chr2 <- genome$chr2
-    active(masks(chr2))[-2] <- FALSE
-    alphabetFrequency(gaps(chr2))
-    runOneStrandAnalysis <- function(dict0, bsgenome, seqnames, strand,
-                                     outfile="", append=FALSE)
-    {
+    af_masked <- alphabetFrequency(chrY)
+    gap_views <- gaps(as(chrY, "XStringViews"))
+    gap_widths <- width(gap_views)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

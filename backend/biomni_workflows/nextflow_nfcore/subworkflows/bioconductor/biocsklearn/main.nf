@@ -41,11 +41,39 @@ process BIOC_BIOCSKLEARN {
     library(BiocSklearn)
     library(jsonlite)
 
-    # --- example [] ---
-    # Key functions: example
-    suppressPackageStartupMessages({
-    library(BiocSklearn)
-    library(BiocStyle)
+    # --- Principal Component Analysis [] ---
+    # Key functions: skPCA
+    iris_matrix <- data.matrix(iris[, 1:4])
+    pca_model <- skPCA(iris_matrix, n_components = 3L)
+    pca_summary <- summary(pca_model)
+
+
+    # --- Dimensionality Reduction Retrieval [] ---
+    # Key functions: skPCA, getTransformed
+    iris_matrix <- data.matrix(iris[, 1:4])
+    pca_model <- skPCA(iris_matrix, n_components = 2L)
+    transformed_coords <- getTransformed(pca_model)
+    coords_dimensions <- dim(transformed_coords)
+    coords_preview <- head(transformed_coords)
+
+
+    # --- Incremental PCA for Large Datasets [] ---
+    # Key functions: skIncrPCA, getTransformed
+    iris_matrix <- data.matrix(iris[, 1:4])
+    inc_pca_model <- skIncrPCA(
+        iris_matrix, 
+        n_components = 2L, 
+        batch_size = 10L
+    )
+    inc_transformed <- getTransformed(inc_pca_model)
+
+
+    # --- Clustering with KMeans [] ---
+    # Key functions: skKMeans
+    iris_matrix <- data.matrix(iris[, 1:4])
+    kmeans_model <- skKMeans(iris_matrix, n_clusters = 3L)
+    cluster_assignments <- kmeans_model$labels_
+    cluster_centers <- kmeans_model$cluster_centers_
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,6 +38,7 @@ process BIOC_CAUSALR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CausalR)
     library(CompareHypothesis)
     library(CreateCCG)
     library(CreateCG)
@@ -50,67 +51,57 @@ process BIOC_CAUSALR {
     library(WriteAllExplainedNodesToSifFile)
     library(jsonlite)
 
-    # --- Createcg [] ---
-    # Key functions: CreateCG
-    ---------------------------------------------------------------------
-    cg <- CreateCG(system.file( "extdata", "testNetwork1.sif",
-        package="CausalR"))
-    # --- Plotgraphwithnodenames [] ---
-    # Key functions: PlotGraphWithNodeNames
-    ---------------------------------------------------------------------
-    PlotGraphWithNodeNames(cg)  # producing the following graph.
-    # --- Createccg [] ---
-    # Key functions: CreateCCG
-    ---------------------------------------------------------------------
-    ccg <- CreateCCG(system.file( "extdata", "testNetwork1.sif",
-        package="CausalR"))
-    # --- Plotgraphwithnodenames [] ---
-    # Key functions: PlotGraphWithNodeNames
-    ---------------------------------------------------------------------
-    PlotGraphWithNodeNames(ccg) # producing the following graph.
-    # --- Readexperimentaldata [] ---
-    # Key functions: ReadExperimentalData
-    ---------------------------------------------------------------------
-    experimentalData <- ReadExperimentalData(system.file( "extdata",
-                            "testData1.txt", package="CausalR"),ccg)
-    # --- Rankthehypotheses [] ---
-    # Key functions: RankTheHypotheses
-    -------------------------------------------------------------------------------------------------------------
-    options(width=120)
-    RankTheHypotheses(ccg, experimentalData, delta=2)
-    # --- Makepredictionsfromccg [] ---
-    # Key functions: MakePredictionsFromCCG
-    -------------------------------------------------------------------------------------------------------------
-    predictions <- MakePredictionsFromCCG('Node0',+1,ccg,2)
-    predictions
-    # --- Scorehypothesis [] ---
-    # Key functions: ScoreHypothesis
-    -------------------------------------------------------------------------------------------------------------
-    ScoreHypothesis(predictions, experimentalData)
-    # --- Getnodename [] ---
-    # Key functions: GetNodeName, CompareHypothesis
-    -------------------------------------------------------------------------------------------------------------
-    GetNodeName(ccg,CompareHypothesis(predictions, experimentalData))
-    # --- Rankthehypotheses [] ---
-    # Key functions: RankTheHypotheses
-    -------------------------------------------------------------------------------------------------------------
-    options(width=120)
-    Rankfor4<-RankTheHypotheses(ccg, experimentalData, 2,
-                                correctPredictionsThreshold=4)
-    Rankfor4   # For example output only
-    # --- Runscanr [] ---
-    # Key functions: runSCANR
-    -------------------------------------------------------------------------------------------------------------
-    runSCANR(ccg, experimentalData, numberOfDeltaToScan=2, topNumGenes=4,
-             correctPredictionsThreshold=1,writeResultFiles = TRUE,
-             writeNetworkFiles = "none",quiet=TRUE)
-    # --- Runscanr [] ---
+    # --- Experimental Data Loading [] ---
+    # Key functions: CreateCCG, ReadExperimentalData
+    sif_file <- system.file("extdata", "testNetwork1.sif", package = "CausalR")
+    ccg <- CreateCCG(sif_file)
+    data_file <- system.file("extdata", "testData1.txt", package = "CausalR")
+    experimentalData <- ReadExperimentalData(
+        fileName = data_file,
+        ccg = ccg
+    )
+
+
+    # --- Hypothesis Ranking [] ---
+    # Key functions: CreateCCG, ReadExperimentalData, RankTheHypotheses
+    sif_file <- system.file("extdata", "testNetwork1.sif", package = "CausalR")
+    ccg <- CreateCCG(sif_file)
+    data_file <- system.file("extdata", "testData1.txt", package = "CausalR")
+    experimentalData <- ReadExperimentalData(data_file, ccg)
+    rank_all <- RankTheHypotheses(ccg, experimentalData, delta = 2)
+    test_nodes <- c("Node0", "Node2", "Node3")
+    rank_subset <- RankTheHypotheses(
+        ccg,
+        experimentalData,
+        delta = 2,
+        listOfNodes = test_nodes
+    )
+
+
+    # --- Path and Prediction Analysis [] ---
+    # Key functions: GetShortestPathsFromCCG, MakePredictionsFromCCG, ScoreHypothesis, CompareHypothesis, GetNodeName
+    sif_file <- system.file("extdata", "testNetwork1.sif", package = "CausalR")
+    ccg <- CreateCCG(sif_file)
+    data_file <- system.file("extdata", "testData1.txt", package = "CausalR")
+    experimentalData <- ReadExperimentalData(data_file, ccg)
+    paths <- GetShortestPathsFromCCG(ccg, "Node0", "Node3")
+    predictions <- MakePredictionsFromCCG("Node0", +1, ccg, delta = 2)
+    score <- ScoreHypothesis(predictions, experimentalData)
+    comparison <- CompareHypothesis(predictions, experimentalData)
+    node_names <- GetNodeName(ccg, comparison)
+
+
+    # --- SCANR Network Analysis [] ---
     # Key functions: runSCANR, WriteAllExplainedNodesToSifFile
-    -------------------------------------------------------------------------------------------------------------
-    scanResults <- runSCANR(ccg, experimentalData, numberOfDeltaToScan=2,
-      topNumGenes=4,correctPredictionsThreshold=1,
-      writeResultFiles = FALSE, writeNetworkFiles = "none",quiet=FALSE)
-    WriteAllExplainedNodesToSifFile(scanResults, ccg, experimentalData,
+    sif_file <- system.file("extdata", "testNetwork1.sif", package = "CausalR")
+    ccg <- CreateCCG(sif_file)
+    data_file <- system.file("extdata", "testData1.txt", package = "CausalR")
+    experimentalData <- ReadExperimentalData(data_file, ccg)
+    scan_res <- runSCANR(ccg, experimentalData, numberOfDeltaToScan = 2,
+        topNumGenes = 4, correctPredictionsThreshold = 1,
+        writeResultFiles = FALSE, writeNetworkFiles = "none")
+    WriteAllExplainedNodesToSifFile(scan_res, ccg, experimentalData,
+        delta = 2, correctlyExplainedOnly = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

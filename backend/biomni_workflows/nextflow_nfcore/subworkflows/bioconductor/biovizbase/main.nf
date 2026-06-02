@@ -38,105 +38,52 @@ process BIOC_BIOVIZBASE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(biovizBase)
     library(GCcontent)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Colorblindpal [] ---
-    # Key functions: colorBlindSafePal, mypalFun
-    ## with no arguments, return blind.pal.info
-    head(colorBlindSafePal())
-    ##
-    mypalFun <- colorBlindSafePal("Set2")
-    ## mypalFun(12, repeatable = FALSE) #only three
-    # --- Color Dichromat [] ---
-    # Key functions: colorBlindSafePal, showColor, mypalFun, dichromat
-    ## for palette "Paried"
-    mypalFun <- colorBlindSafePal(21)
-    par(mfrow = c(1, 3))
-    showColor(mypalFun(4))
-    library(dichromat)
-    # --- Cytoband Color [] ---
-    # Key functions: getOption, getBioColor, option
-    getOption("biovizBase")$cytobandColor
-    getBioColor("CYTOBAND")
-    ## differece source from default or options.
-    opts <- getOption("biovizBase")
-    opts$DNABasesNColor[1] <- "red"
-    # --- Cytoband Color Legend [] ---
-    # Key functions: getBioColor, plotColorLegend
-    cols <- getBioColor("CYTOBAND")
-    plotColorLegend(cols, title  = "cytoband")
-    # --- Strand Color [] ---
-    # Key functions: getBioColor, showColor, dichromat
-    par(mfrow = c(1, 3))
-    cols <- getBioColor("STRAND")
-    showColor(cols)
-    showColor(dichromat(cols, "deutan"))
-    showColor(dichromat(cols, "protan"))
-    # --- Base Color [] ---
-    # Key functions: getBioColor
-    getBioColor("DNA_BASES_N")
-    # --- Ne Dichromat [] ---
-    # Key functions: getBioColor, showColor, dichromat
-    par(mfrow = c(1, 3))
-    cols <- getBioColor("DNA_BASES_N", "default")
-    showColor(cols, "name")
-    cols.deu <- dichromat(cols, "deutan")
-    names(cols.deu) <- names(cols)
-    # --- Sample Gr [] ---
-    # Key functions: GRanges, sample, IRanges, rnorm
-    library(GenomicRanges)
-    set.seed(1)
-    N <- 500
-    gr <- GRanges(seqnames =
-                  sample(c("chr1", "chr2", "chr3", "chrX", "chrY"),
-    # --- Addstepping Gr [] ---
-    # Key functions: addStepping, GRanges, IRanges
-    head(addStepping(gr))
-    head(addStepping(gr, group.name = "pair"))
-    gr.close <- GRanges(c("chr1", "chr1"), IRanges(c(10, 20), width = 9))
-    addStepping(gr.close)
-    addStepping(gr.close, extend.size = 5)
-    # --- Maxgap [] ---
-    # Key functions: GRanges, IRanges, maxGap, gaps, start
-    gr.temp <- GRanges("chr1", IRanges(start = c(100, 250),
-                                     end = c(200, 300)))
-    maxGap(gaps(gr.temp, start = min(start(gr.temp))))
-    maxGap(gaps(gr.temp, start = min(start(gr.temp))), ratio = 0.5)
-    # --- Shrink Single [] ---
-    # Key functions: GRanges, IRanges, shrinkageFun, gaps, maxGap, fun1
-    gr1 <- GRanges("chr1", IRanges(start = c(100, 300, 600),
-                                   end = c(200, 400, 800)))
-    shrink.fun1 <- shrinkageFun(gaps(gr1), max.gap = maxGap(gaps(gr1), 0.15))
-    shrink.fun2 <- shrinkageFun(gaps(gr1), max.gap = 0)
-    head(shrink.fun1(gr1))
-    # --- Shrinkagefun [] ---
-    # Key functions: GRanges, IRanges, intersect, gaps, start, shrinkageFun
-    gr2 <- GRanges("chr1", IRanges(start = c(100, 350, 550),
-                                   end = c(220, 500, 900)))
-    gaps.gr <- intersect(gaps(gr1, start = min(start(gr1))),
-                         gaps(gr2, start = min(start(gr2))))
-    shrink.fun <- shrinkageFun(gaps.gr, max.gap = maxGap(gaps.gr))
-    # --- Gc Content [] ---
-    # Key functions: GCcontent, GRanges, IRanges
-    ## library(BSgenome.Hsapiens.UCSC.hg19)
-    ## GCcontent(Hsapiens, GRanges("chr1", IRanges(1e6, 1e6 + 1000)))
-    ## GCcontent(Hsapiens, GRanges("chr1", IRanges(1e6, 1e6 + 1000)), view.width = 300)
-    # --- Pileupasgranges [] ---
-    # Key functions: pileupAsGRanges, pileupGRangesAsVariantTable
-    ## library(Rsamtools)
-    ## data(genesymbol)
-    ## library(BSgenome.Hsapiens.UCSC.hg19)
-    ## bamfile <- system.file("extdata", "SRR027894subRBM17.bam", package="biovizBase")
-    ## test <- pileupAsGRanges(bamfile, region = genesymbol["RBM17"])
-    # --- Ucsc Genome [] ---
-    # Key functions: getIdeogram
-    ## library(rtracklayer)
-    ## hg19IdeogramCyto <- getIdeogram("hg19", cytoband = TRUE)
-    ## hg19Ideogram <- getIdeogram("hg19", cytoband = FALSE)
-    ## unknowIdeogram <- getIdeogram()
+    # --- Gap Calculation [] ---
+    # Key functions: maxGap
+    gr_temp <- GenomicRanges::GRanges(
+        seqnames = "chr1",
+        ranges = IRanges::IRanges(start = c(100, 250), end = c(200, 300))
+    )
+    temp_gaps <- BiocGenerics::gaps(
+        gr_temp,
+        start = min(BiocGenerics::start(gr_temp))
+    )
+    gap_val <- maxGap(temp_gaps)
+    gap_val_ratio <- maxGap(temp_gaps, ratio = 0.5)
+
+
+    # --- Coordinate Shrinkage [] ---
+    # Key functions: shrinkageFun, maxGap
+    gr1 <- GenomicRanges::GRanges(
+        "chr1",
+        IRanges::IRanges(start = c(10, 300, 800), end = c(150, 400, 850))
+    )
+    gr2 <- GenomicRanges::GRanges(
+        "chr1",
+        IRanges::IRanges(start = c(100, 350, 550), end = c(220, 500, 900))
+    )
+    gaps_gr <- BiocGenerics::intersect(
+        BiocGenerics::gaps(gr1, start = min(BiocGenerics::start(gr1))),
+        BiocGenerics::gaps(gr2, start = min(BiocGenerics::start(gr2)))
+    )
+    shrink_fun <- shrinkageFun(gaps_gr, max.gap = maxGap(gaps_gr))
+    shrunk_gr1 <- shrink_fun(gr1)
+    shrunk_gr2 <- shrink_fun(gr2)
+
+
+    # --- Gene Symbol Annotation [] ---
+    # Key functions: genesymbol
+    utils::data("genesymbol", package = "biovizBase")
+    rbm17_coords <- genesymbol["RBM17"]
+    all_symbols <- names(genesymbol)
+    subset_symbols <- genesymbol[1:10]
+    chromosomes <- GenomeInfoDb::seqnames(genesymbol)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

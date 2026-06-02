@@ -41,16 +41,69 @@ process BIOC_CCFINDR {
     library(ccfindR)
     library(jsonlite)
 
-    # --- Visualize phylogenetic tree [] ---
+    # --- Quality Control and Filtering [] ---
+    # Key functions: filter_cells, filter_genes, remove_zeros
+    sc_filtered <- filter_cells(sc, umi.min = 10^2.6, umi.max = 10^3.4)
+    markers <- c("CD4", "CD8A", "CD8B", "CD19", "CD3G", "CD3D", "CD3Z", "CD14")
+    sc_clean <- filter_genes(
+        sc_filtered,
+        markers = markers,
+        vmr.min = 1.5,
+        min.cells.expressed = 50,
+        rescue.genes = TRUE,
+        progress.bar = FALSE
+    )
+    sc_clean <- remove_zeros(sc_clean)
+
+
+    # --- Non-negative Matrix Factorization [] ---
+    # Key functions: factorize, measure
+    sc_fact <- factorize(
+        sc_clean,
+        ranks = seq(3, 5),
+        nrun = 5,
+        verbose = 1,
+        progress.bar = FALSE
+    )
+    perf_measures <- measure(sc_fact)
+
+
+    # --- Bayesian Variational Factorization [] ---
+    # Key functions: vb_factorize, optimal_rank, ranks, basis
+    sb <- vb_factorize(
+        sc_clean,
+        ranks = seq(2, 5),
+        nrun = 5,
+        verbose = 1,
+        Tol = 1e-4,
+        progress.bar = FALSE
+    )
+    opt_r <- optimal_rank(sb)
+    all_ranks <- ranks(sb)
+    basis_mat <- basis(sb)[all_ranks == opt_r][[1]]
+
+
+    # --- Cluster Visualization and Mapping [] ---
+    # Key functions: feature_map, cell_map, visualize_clusters
+    markers <- c("CD4", "CD8A", "CD8B", "CD19", "CD3G", "CD3D", "CD3Z", "CD14")
+    feature_map(
+        sb,
+        markers = markers,
+        rank = 5,
+        max.per.cluster = 4,
+        gene.name = rowData(sb)[, 2],
+        cexRow = 0.7
+    )
+    cell_map(sb, rank = 5)
+    visualize_clusters(sb, rank = 5, cex = 0.7)
+
+
+    # --- Hierarchical Tree Construction [] ---
     # Key functions: build_tree, rename_tips, plot_tree
+    cell_types <- c("B_cell", "CD8+_T", "CD4+_T", "Monocytes", "NK")
     tree <- build_tree(sb, rmax = 5)
-    tree <- rename_tips(tree, rank = 5, tip.labels = cell_type)
+    tree <- rename_tips(tree, rank = 5, tip.labels = cell_types)
     plot_tree(tree, cex = 0.8, show.node.label = TRUE)
-    # --- Filter cells analysis [] ---
-    # Key functions: filter_cells, filter_genes, optimal_rank, ranks, feature_map, cell_map, visualize_clusters
-    feature_map(sb, markers = markers, rank = 5, max.per.cluster = 4, gene.name = rowData(sb)[,2],
-    cell_type <- c('B_cell','CD8+_T','CD4+_T','Monocytes','NK')
-    colnames(basis(sb)[ranks(sb) == 5][[1]]) <- cell_type
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

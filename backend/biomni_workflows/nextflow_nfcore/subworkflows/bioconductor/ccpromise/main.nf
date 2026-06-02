@@ -42,27 +42,35 @@ process BIOC_CCPROMISE {
     library(PrbPROMISE)
     library(jsonlite)
 
-    # --- Load Ccpromise Package And Data [] ---
-    # Key functions: data
-    library(CCPROMISE)
-    data(exmplESet)
-    data(exmplMSet)
-    data(exmplGeneSet)
-    data(exmplPat)
-    # --- Ccpromise At Gene Level [] ---
-    # Key functions: CCPROMISE
-    test1 <- CCPROMISE(geneSet=exmplGeneSet,
-                  ESet=exmplESet,
-                  MSet=exmplMSet,
-                  promise.pattern=exmplPat,
-                  strat.var=NULL,
-    # --- Promise At Probe Pair Level [] ---
-    # Key functions: PrbPROMISE
-    test2 <- PrbPROMISE(geneSet=exmplGeneSet,
-                  ESet=exmplESet,
-                  MSet=exmplMSet,
-                  promise.pattern=exmplPat,
-                  strat.var=NULL,
+    # --- Association Pattern Definition [] ---
+    # Key functions: ccpromis
+    assoc_pattern <- data.frame(
+        stat.col = c("active", "survival"),
+        stat.dir = c(1, -1)
+    )
+
+
+    # --- Canonical Correlation PROMISE Analysis [] ---
+    # Key functions: ccpromis
+    ccpromis_results <- ccpromis(
+        x = gene_data,
+        y = mir_data,
+        z = pheno_data,
+        association = assoc_pattern,
+        nbperm = 100
+    )
+
+
+    # --- Result Extraction and Visualisation [] ---
+    # Key functions: ccpromis
+    p_values <- ccpromis_results$p.value
+    stats <- ccpromis_results$stat
+    significant_indices <- which(p_values < 0.05)
+    plot(
+        ccpromis_results,
+        main = "CCPROMISE Association Analysis",
+        xlab = "Canonical Correlation Statistic"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
