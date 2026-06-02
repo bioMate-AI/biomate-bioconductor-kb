@@ -38,25 +38,28 @@ process BIOC_AGGREGATEBIOVAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(aggregateBioVar)
     library(DESeq)
     library(DESeqDataSetFromMatrix)
     library(jsonlite)
 
-    # --- Create DESeqDataSet from count matrix [] ---
-    # Key functions: DESeqDataSetFromMatrix, DESeq, results
-    small_airway[, which(
-    as.character(small_airway$celltype) == "Secretory cell")]
-    cells_secretory$Genotype <- as.factor(cells_secretory$Genotype)
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: assay, pheatmap, counts, colData, ggplot, geom_jitter
-    scPHeatmap <- function(sumExp, subjectVar, gtVar, logSample = 1:100, ...) {
-    orderSumExp <- sumExp[, order(sumExp[[subjectVar]])]
-    sumExpCounts <- as.matrix(
-    # --- Sample metadata inspection [] ---
-    # Key functions: colData, distinct, intersect, assays, counts, countsBySubject, subjectMetaData, summarizedCounts
-    SummarizedExperiment::colData(x = small_airway) %>% tibble::as_tibble() %>%
-    dplyr::select("orig.ident", "Genotype") %>%
-    dplyr::distinct() %>% dplyr::arrange(.data$orig.ident)
+    # --- Pseudobulk Aggregation [] ---
+    # Key functions: aggregateBioVar
+    aggregate_data <- aggregateBioVar(
+        scExp = small_airway,
+        subjectVar = "orig.ident",
+        cellVar = "celltype"
+    )
+    agg_assays <- names(aggregate_data)
+
+
+    # --- Summarized Counts Generation [] ---
+    # Key functions: summarizedCounts
+    summarized_results <- summarizedCounts(
+        scExp = small_airway,
+        subjectVar = "orig.ident"
+    )
+    sum_dims <- dim(summarized_results)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

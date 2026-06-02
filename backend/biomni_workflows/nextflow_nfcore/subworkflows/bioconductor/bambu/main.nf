@@ -38,6 +38,7 @@ process BIOC_BAMBU {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(bambu)
     library(BamFileList)
     library(BiocFileCache)
     library(DESeq)
@@ -47,72 +48,57 @@ process BIOC_BAMBU {
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: query, ExperimentHub, BamFileList
-    ---------------------------------------------------------------------
-    library(bambu)
-    library(NanoporeRNASeq)
-    data("SGNexSamples")
-    SGNexSamples
-    # --- Query [] ---
-    # Key functions: query, ExperimentHub
-    ---------------------------------------------------------------------
-    # get path to fasta file
-    genomeSequenceData <- query(ExperimentHub(), c("NanoporeRNA", "GRCh38","FASTA"))
-    genomeSequence <- genomeSequenceData[["EH7260"]]
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("HsChr22BambuAnnotation")
-    HsChr22BambuAnnotation
-    # --- Coldata [] ---
-    # Key functions: colData, factor
-    ---------------------------------------------------------------------
-    colData(se.multiSample)$condition <- as.factor(SGNexSamples$cellLine)
-    # --- Transcripttogeneexpression [] ---
+    # --- Transcript Discovery and Quantification [] ---
+    # Key functions: bambu
+    test.bam <- system.file("extdata",
+        "SGNex_A549_directRNA_replicate5_run1_chr9_1_1000000.bam",
+        package = "bambu")
+    fa.file <- system.file("extdata",
+        "Homo_sapiens.GRCh38.dna_sm.primary_assembly_chr9_1_1000000.fa",
+        package = "bambu")
+    se <- bambu(
+        reads = test.bam,
+        annotations = bambuAnnotations,
+        genome = fa.file
+    )
+
+
+    # --- Gene Expression Summarization [] ---
     # Key functions: transcriptToGeneExpression
-    ---------------------------------------------------------------------
-    seGene.multiSample <- transcriptToGeneExpression(se.multiSample)
-    seGene.multiSample
-    # --- Biocfilecache [] ---
-    # Key functions: BiocFileCache, bfcinfo
-    ---------------------------------------------------------------------
-    library(BiocFileCache)
-    bfc <- BiocFileCache(save.dir, ask = FALSE)
-    info <- bfcinfo(bfc)
-    # --- Bambu [] ---
-    # Key functions: bambu
-    ---------------------------------------------------------------------
-    info
-    # running bambu using the first file
-    se <- bambu(reads = info$rpath[1:3], annotations = HsChr22BambuAnnotation, genome = genomeSequence)
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    rowData(se[[1]])
-    # --- Bambu [] ---
-    # Key functions: bambu, metadata
-    ---------------------------------------------------------------------
-    se <- bambu(reads = bamFiles, annotations = HsChr22BambuAnnotation, genome = genomeSequence, trackReads = TRUE)
-    metadata(se)$readToTranscriptMaps[[1]]
-    # --- Bambu [] ---
-    # Key functions: bambu
-    ---------------------------------------------------------------------
-    se <- bambu(reads = bamFiles, annotations = HsChr22BambuAnnotation, genome = genomeSequence, opt.discovery = list(min.txScore.singleExon = 0))
-    # --- Deseqdatasetfrommatrix [] ---
-    # Key functions: DESeqDataSetFromMatrix, assays, colData, DESeq, results
-    ---------------------------------------------------------------------
-    library(DESeq2)
-    dds <- DESeqDataSetFromMatrix(round(assays(seGene.multiSample)$counts),
-                                        colData = colData(se.multiSample),
-                                        design = ~ condition)
-    # --- Dexseqdataset [] ---
-    # Key functions: DEXSeqDataSet, assays, frame, colData, rowData, DEXSeq
-    ---------------------------------------------------------------------
-    library(DEXSeq)
-    dxd <- DEXSeqDataSet(countData = round(assays(se.multiSample)$counts),
-    sampleData = as.data.frame(colData(se.multiSample)),
-    design = ~sample + exon + condition:exon,
+    seGene <- transcriptToGeneExpression(se)
+    sample_conditions <- rep(
+        c("Control", "Treatment"),
+        length.out = ncol(seGene)
+    )
+    SummarizedExperiment::colData(seGene)$condition <- as.factor(
+        sample_conditions
+    )
+
+
+    # --- Visualization [] ---
+    # Key functions: plotBambu
+    plotBambu(se, type = "heatmap")
+    plotBambu(se, type = "pca")
+    plotBambu(
+        se,
+        type = "annotation",
+        gene_id = "ENSG00000099968"
+    )
+
+
+    # --- Exporting Results [] ---
+    # Key functions: writeBambuOutput, writeToGTF
+    save.dir <- tempdir()
+    writeBambuOutput(
+        se,
+        path = save.dir,
+        prefix = "bambu_output_"
+    )
+    save.file <- tempfile(fileext = ".gtf")
+    writeToGTF(
+        SummarizedExperiment::rowRanges(se),
+        file = save.file
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

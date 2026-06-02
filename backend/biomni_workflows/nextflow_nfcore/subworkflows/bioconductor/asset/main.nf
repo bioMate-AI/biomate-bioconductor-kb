@@ -41,21 +41,35 @@ process BIOC_ASSET {
     library(ASSET)
     library(jsonlite)
 
-    # --- eval [] ---
-    # Key functions: eval
-    case    <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
-    control <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
-    for (i in 1:nStudy) {
-    # --- Generalized linear model [] ---
-    # Key functions: eval, glm
-    beta  <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
-    sigma <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
-    for (i in 1:nStudy) {
-    # --- eval [] ---
-    # Key functions: eval
-    for (i in 1:nStudy) {
-    temp <- eval(parse(text=paste("data", i, sep="")))
-    data <- rbind(data, temp)
+    # --- Restricted Subset Association Analysis [] ---
+    # Key functions: h.traits, h.summary
+    sub.def <- function(logicalVec) {
+        sum_val <- sum(logicalVec)
+        ret <- all(logicalVec[1:sum_val])
+        ret
+    }
+    res_restricted <- h.traits(SNPs, studies, beta, sigma, case,
+                               control, meta=TRUE,
+                               zmax.args=list(sub.def=sub.def),
+                               pval.args=list(sub.def=sub.def))
+    h_sum_rest <- h.summary(res_restricted)
+
+
+    # --- Disease Subtype Association Analysis [] ---
+    # Key functions: h.types, h.summary
+    datafile <- system.file("sampleData", "vdata.rda", package="ASSET")
+    load(datafile)
+    data_all <- rbind(data1, data2, data3, data4)
+    data_all$STUDY <- rep(1:4, each=nrow(data1))
+    for (i in 1:4) {
+        data_all[, paste0("STUDY_", i)] <- as.numeric(data_all$STUDY == i)
+    }
+    snp.vars <- paste0("SNP", 1:3)
+    adj.vars <- c("AGE", "STUDY_1", "STUDY_2", "STUDY_3")
+    types.lab <- paste0("TYPE_", 1:3)
+    ret_types <- h.types(data_all, "TYPE", snp.vars, adj.vars,
+                         types.lab, "CONTROL", logit=TRUE)
+    h_sum_types <- h.summary(ret_types)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

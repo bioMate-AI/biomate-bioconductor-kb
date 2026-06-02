@@ -41,90 +41,38 @@ process BIOC_AIRPART {
     library(airpart)
     library(jsonlite)
 
-    # --- Unique [] ---
-    # Key functions: rowData, assays
-    ---------------------------------------------------------------------
-    unique(rowData(sce)) # the true underlying allelic ratios
-    table(sce$x) # counts of each cell type
-    assays(sce)[["a1"]][1:5, 1:5] # allelic counts for the effect allele
-    # --- Assaynames [] ---
-    # Key functions: assayNames
-    ---------------------------------------------------------------------
-    assayNames(sce)
-    sce$x
-    # --- Preprocess [] ---
-    # Key functions: preprocess, makeHeatmap
-    ---------------------------------------------------------------------
-    sce <- preprocess(sce)
-    makeHeatmap(sce)
-    # --- Cellqc [] ---
-    # Key functions: cellQC
-    ---------------------------------------------------------------------
-    cellQCmetrics <- cellQC(sce, mad_detected = 4)
-    cellQCmetrics
-    # --- Features [] ---
-    # Key functions: features
-    ---------------------------------------------------------------------
-    keep_cell <- (
-      cellQCmetrics$filter_sum | # sufficient features (genes)
-        cellQCmetrics$filter_detected | # sufficient molecules counted
-        # sufficient features expressed compared to spike genes,
-    # --- Genecluster [] ---
-    # Key functions: geneCluster, metadata
-    ---------------------------------------------------------------------
+    # --- Gene Clustering [] ---
+    # Key functions: geneCluster, summaryAllelicRatio
     sce <- geneCluster(sce, G = 1:4)
-    metadata(sce)$geneCluster
-    # --- Summaryallelicratio [] ---
-    # Key functions: summaryAllelicRatio
-    ---------------------------------------------------------------------
-    summary <- summaryAllelicRatio(sce)
-    summary
-    # --- Sapply [] ---
-    # Key functions: diff
-    ---------------------------------------------------------------------
-    sapply(1:length(summary), function(i) {
-      inst <- summary[[i]]
-      inst_order <- inst[order(inst$weighted.mean), ]
-      max(diff(inst_order$weighted.mean)) > 0.05
-    # --- Estdisp [] ---
-    # Key functions: estDisp
-    ---------------------------------------------------------------------
-    estDisp(sce, genecluster = 1)
-    # --- Fusedlasso [] ---
-    # Key functions: fusedLasso
-    ---------------------------------------------------------------------
-    sce_sub <- fusedLasso(sce,
-      model = "binomial",
-      genecluster = 1, ncores = 1,
-      niter = 2
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    metadata(sce_sub)$lambda
-    # --- Seq [] ---
-    # Key functions: wilcoxExt, metadata
-    ---------------------------------------------------------------------
+    sce_hc <- geneCluster(sce, method = "hierarchical")
+    summary_ar <- summaryAllelicRatio(sce)
+    cluster_metadata <- metadata(sce)$geneCluster
+
+
+    # --- Cell Type Partitioning [] ---
+    # Key functions: estDisp, fusedLasso, consensusPart, wilcoxExt
+    disp_est <- estDisp(sce, genecluster = 1)
+    sce_sub <- fusedLasso(sce, model = "binomial", genecluster = 1,
+        ncores = 1, niter = 2)
+    sce_sub <- consensusPart(sce_sub)
     thrs <- 10^seq(from = -2, to = -0.4, by = 0.2)
     sce_sub_w <- wilcoxExt(sce, genecluster = 1, threshold = thrs)
-    knitr::kable(metadata(sce_sub_w)$partition, row.names = FALSE)
-    metadata(sce_sub_w)$threshold
-    # --- Extractresult [] ---
-    # Key functions: extractResult
-    ---------------------------------------------------------------------
-    s <- extractResult(sce_sub, "svalue")
-    apply(s[genepoi,],2, function(s){s<0.005})
-    # --- Mcols [] ---
-    # Key functions: mcols
-    ---------------------------------------------------------------------
-    adj.p <- mcols(sce_sub)$adj.p.value
-    adj.p < 0.05
-    # --- Rep [] ---
-    # Key functions: makeSimulatedData, preprocess, cellQC, features, featureQC, makeHeatmap
-    ---------------------------------------------------------------------
-    nct <- 8
-    p.vec <- (rep(c(
-      -3, 0, -3, 3,
-      rep(0, nct / 2),
+
+
+    # --- Allelic Ratio Estimation and Testing [] ---
+    # Key functions: allelicRatio, extractResult
+    sce_sub <- allelicRatio(sce_sub, DAItest = TRUE)
+    ar_results <- extractResult(sce_sub)
+    s_values <- extractResult(sce_sub, "svalue")
+    adj_p <- mcols(sce_sub)$adj.p.value
+
+
+    # --- Visualisation [] ---
+    # Key functions: makeHeatmap, makeForest, makeViolin, makeStep
+    makeHeatmap(sce_sub, order_by_group = FALSE)
+    makeForest(sce_sub, showtext = TRUE)
+    makeViolin(sce_sub)
+    makeStep(sce_sub[1:5, ])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

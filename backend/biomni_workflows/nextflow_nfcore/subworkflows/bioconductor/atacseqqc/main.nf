@@ -38,6 +38,7 @@ process BIOC_ATACSEQQC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ATACseqQC)
     library(BamFile)
     library(NFRscore)
     library(PTscore)
@@ -46,72 +47,59 @@ process BIOC_ATACSEQQC {
     library(TSSEscore)
     library(jsonlite)
 
-    # --- Bamqc [] ---
-    # Key functions: bamQC, estimateLibComplexity, readsDupFreq
-    ---------------------------------------------------------------------
-    #bamQC(bamfile, outPath=NULL)
-    estimateLibComplexity(readsDupFreq(bamfile))
-    # --- Fragsizedist [] ---
-    # Key functions: fragSizeDist
-    ---------------------------------------------------------------------
-    ## generate fragement size distribution
-    fragSize <- fragSizeDist(bamfile, bamfile.labels)
-    # --- List [] ---
-    # Key functions: scanBam, BamFile, ScanBamParam, unlist
-    ---------------------------------------------------------------------
-    ## bamfile tags to be read in
-    possibleTag <- list("integer"=c("AM", "AS", "CM", "CP", "FI", "H0", "H1", "H2",
-                                    "HI", "IH", "MQ", "NH", "NM", "OP", "PQ", "SM",
-                                    "TC", "UQ"),
-    # --- Transcripts [] ---
-    # Key functions: transcripts, PTscore
-    ---------------------------------------------------------------------
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    txs <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    pt <- PTscore(gal1, txs)
+    # --- Alignment Shifting and Filtering [] ---
+    # Key functions: readBamFile, shiftGAlignmentsList
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    seqlev <- "chr1"
+    seqinformation <- GenomeInfoDb::seqinfo(txdb)
+    which_gr <- as(seqinformation[seqlev], "GRanges")
+    gal <- readBamFile(bamfile, which=which_gr, asMates=TRUE, bigFile=TRUE)
+    shifted_bam <- tempfile(fileext = ".bam")
+    gal_shifted <- shiftGAlignmentsList(gal, outbam=shifted_bam)
+
+
+    # --- Transcription Start Site and Nucleosome Scoring [] ---
+    # Key functions: PTscore, NFRscore, TSSEscore
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    txs <- GenomicFeatures::transcripts(txdb)
+    pt <- PTscore(gal_shifted, txs)
+    nfr <- NFRscore(gal_shifted, txs)
+    tsse <- TSSEscore(gal_shifted, txs)
     plot(pt$log2meanCoverage, pt$PT_score,
-    # --- Nfrscore [] ---
-    # Key functions: NFRscore
-    ---------------------------------------------------------------------
-    nfr <- NFRscore(gal1, txs)
+         xlab="log2 mean coverage", ylab="PT score")
     plot(nfr$log2meanCoverage, nfr$NFR_score,
-         xlab="log2 mean coverage",
-         ylab="Nucleosome Free Regions score",
-    # --- Tssescore [] ---
-    # Key functions: TSSEscore
-    ---------------------------------------------------------------------
-    tsse <- TSSEscore(gal1, txs)
-    tsse$TSSEscore
-    plot(100*(-9:10-.5), tsse$values, type="b",
-         xlab="distance to TSS",
-    # --- Seqnames [] ---
-    # Key functions: seqnames, splitGAlignmentsByCut
-    ---------------------------------------------------------------------
-    library(BSgenome.Hsapiens.UCSC.hg19)
-    library(phastCons100way.UCSC.hg19)
-    ## run program for chromosome 1 only
-    txs <- txs[seqnames(txs) %in% "chr1"]
-    # --- Function [] ---
-    # Key functions: matplot, Position
-    ---------------------------------------------------------------------
-    ## rescale the nucleosome-free and nucleosome signals to 0~1
-    range01 <- function(x){(x-min(x))/(max(x)-min(x))}
-    out <- apply(out, 2, range01)
-    matplot(out, type="l", xaxt="n",
-    # --- Query [] ---
-    # Key functions: query, factorFootprints
-    ---------------------------------------------------------------------
-    ## foot prints
-    library(MotifDb)
-    CTCF <- query(MotifDb, c("CTCF"))
-    CTCF <- as.list(CTCF)
-    # --- Vplot [] ---
-    # Key functions: vPlot, distanceDyad
-    ---------------------------------------------------------------------
-    vp <- vPlot(shiftedBamfile, pfm=CTCF[[1]],
-                genome=genome, min.score="90%", seqlev=seqlev,
-                upstream=200, downstream=200,
-                ylim=c(30, 250), bandwidth=c(2, 1))
+         xlab="log2 mean coverage", ylab="NFR score")
+
+
+    # --- Nucleosome Fraction Splitting [] ---
+    # Key functions: splitGAlignmentsByCut
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    txs <- GenomicFeatures::transcripts(txdb)
+    txs_chr1 <- txs[GenomeInfoDb::seqnames(txs) %in% "chr1"]
+    genome <- BSgenome.Hsapiens.UCSC.hg19::Hsapiens
+    conservation <- phastCons100way.UCSC.hg19::phastCons100way.UCSC.hg19
+    out_path <- tempdir()
+    objs <- splitGAlignmentsByCut(gal_shifted, txs=txs_chr1, genome=genome,
+                                  outPath=out_path, conservation=conservation)
+
+
+    # --- Signal Enrichment and Heatmap Visualization [] ---
+    # Key functions: estLibSize, enrichedFragments, featureAlignedHeatmap
+    bamfiles <- file.path(out_path,
+                          c("NucleosomeFree.bam", "mononucleosome.bam"))
+    lib_size <- estLibSize(bamfiles)
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    txs <- GenomicFeatures::transcripts(txdb)
+    tss <- GenomicRanges::promoters(txs, upstream=0, downstream=1)
+    tss <- unique(tss)
+    sigs <- enrichedFragments(gal=objs[c("NucleosomeFree", "mononucleosome")],
+                              TSS=tss, librarySize=lib_size, seqlev="chr1",
+                              TSS.filter=0.5, n.tile=101, upstream=1010,
+                              downstream=1010)
+    sigs_log2 <- lapply(sigs, function(x) log2(x + 1))
+    ChIPpeakAnno::featureAlignedHeatmap(sigs_log2,
+                                        ChIPpeakAnno::reCenterPeaks(tss, width=2020),
+                                        zeroAt=0.5, n.tile=101)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

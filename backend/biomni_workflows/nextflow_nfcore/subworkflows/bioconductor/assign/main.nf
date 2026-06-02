@@ -41,15 +41,60 @@ process BIOC_ASSIGN {
     library(ASSIGN)
     library(jsonlite)
 
-    # --- rep [] ---
-    # Key functions: rep
-    data(trainingData1)
-    data(testData1)
-    data(geneList1)
-    # --- optimize G F R N [] ---
-    # Key functions: optimizeGFRN
-    combat.data <- ComBat.step2(testData, pcaPlots = TRUE)
-    optimization_results <- optimizeGFRN(combat.data, corData,
+    # --- MCMC Sampling [] ---
+    # Key functions: assign.mcmc
+    mcmc.chain <- assign.mcmc(
+        Y = processed.data$testData_sub,
+        Bg = processed.data$B_vector,
+        X = processed.data$S_matrix,
+        Delta_prior_p = processed.data$Pi_matrix,
+        iter = 2000,
+        adaptive_B = TRUE,
+        adaptive_S = FALSE,
+        mixture_beta = TRUE
+    )
+
+
+    # --- Convergence Diagnostics [] ---
+    # Key functions: assign.convergence
+    trace.plot <- assign.convergence(
+        test = mcmc.chain,
+        burn_in = 0,
+        iter = 2000,
+        parameter = "B",
+        whichGene = 1,
+        whichSample = NA,
+        whichPath = NA
+    )
+
+
+    # --- Parameter Estimation [] ---
+    # Key functions: assign.summary
+    mcmc.pos.mean <- assign.summary(
+        test = mcmc.chain,
+        burn_in = 1000,
+        iter = 2000,
+        adaptive_B = TRUE,
+        adaptive_S = FALSE,
+        mixture_beta = TRUE
+    )
+
+
+    # --- Output Generation [] ---
+    # Key functions: assign.output
+    assign.output(
+        processed.data = processed.data,
+        mcmc.pos.mean.testData = mcmc.pos.mean,
+        trainingData = trainingData1,
+        testData = testData1,
+        trainingLabel = trainingLabel1,
+        testLabel = testLabel1,
+        geneList = NULL,
+        adaptive_B = TRUE,
+        adaptive_S = FALSE,
+        mixture_beta = TRUE,
+        outputDir = "output_directory"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,19 +41,22 @@ process BIOC_BEADDATAPACKR {
     library(BeadDataPackR)
     library(jsonlite)
 
-    # --- Compress [] ---
-    # Key functions: compressBeadData
-    compressBeadData(txtFile = "example.txt", locsGrn = "example_Grn.locs",
-    # --- Decompress [] ---
+    # --- Bead Data Decompression [] ---
     # Key functions: decompressBeadData
-    decompressBeadData(inputFile = "example.bab", inputPath = tempPath,
-    # --- read Compressed Data [] ---
-    # Key functions: readCompressedData
-    readCompressedData(inputFile = "example.bab", path = tempPath,
-    probeIDs = c(10008, 10010) )
-    # --- extract Locs File [] ---
-    # Key functions: extractLocsFile
-    locs <- extractLocsFile(inputFile = "example.bab", path = tempPath)
+    babFile <- file.path(tempdir(), "example.bab")
+    decompressBeadData(
+        beadDataFile = babFile,
+        outputPath = tempdir()
+    )
+
+
+    # --- Read Compressed Bead Data [] ---
+    # Key functions: readBeadData
+    babFile <- file.path(tempdir(), "example.bab")
+    beadData <- readBeadData(
+        beadDataFile = babFile,
+        columns = c("G", "GrnX", "GrnY")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

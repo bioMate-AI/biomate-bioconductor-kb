@@ -38,19 +38,68 @@ process BIOC_BIOCOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BioCor)
     library(TOMsimilarity)
     library(jsonlite)
 
-    # --- Hierarchical clustering [] ---
-    # Key functions: mgeneSim, hclust, similarities, TOMsimilarity, cutreeHybrid, labels2colors
-    genes.id <- c("10", "15", "16", "18", "2", "9", "52", "3855", "3880", "644",
-    genes.id <- mapIds(org.Hs.eg.db, keys = genes.id, keytype = "ENTREZID",
-    genes <- names(genes.id)
-    # --- GeneIds analysis [] ---
-    # Key functions: install_github, geneIds, unlist, split, pathSim, mpathSim, geneSim, mgeneSim
-    clusterGeneSim(c("672", "675"), c("100", "10", "1"), genesKegg)
-    clusterGeneSim(c("672", "675"), c("100", "10", "1"), genesKegg, "max")
-    mclusterGeneSim(clusters, genesKegg, c("max", "rcmax.avg"))
+    # --- Gene Similarity Analysis [] ---
+    # Key functions: geneSim, mgeneSim
+    genesKegg <- list(
+        "path1" = c("672", "675"),
+        "path2" = c("10", "100", "1")
+    )
+    g_sim <- BioCor::geneSim("672", "675", genesKegg)
+    gene_list <- c("BRCA1" = "672", "BRCA2" = "675", "NAT2" = "10")
+    mg_sim <- BioCor::mgeneSim(gene_list, genesKegg)
+
+
+    # --- Cluster Similarity Analysis [] ---
+    # Key functions: clusterSim, mclusterSim
+    genesKegg <- list(
+        "path1" = c("672", "675"),
+        "path2" = c("10", "100", "1")
+    )
+    c1 <- c("672", "675")
+    c2 <- c("100", "10", "1")
+    cl_sim <- BioCor::clusterSim(c1, c2, genesKegg)
+    clusters <- list(
+        cluster1 = c1,
+        cluster2 = c2,
+        cluster3 = c("18", "10")
+    )
+    mcl_sim <- BioCor::mclusterSim(clusters, genesKegg, "rcmax.avg")
+
+
+    # --- Cluster Gene Similarity Analysis [] ---
+    # Key functions: clusterGeneSim, mclusterGeneSim
+    genesKegg <- list(
+        "path1" = c("672", "675"),
+        "path2" = c("10", "100", "1")
+    )
+    c1 <- c("672", "675")
+    c2 <- c("100", "10", "1")
+    cg_sim <- BioCor::clusterGeneSim(c1, c2, genesKegg, "max")
+    clusters <- list(
+        cluster1 = c1,
+        cluster2 = c2
+    )
+    mcg_sim <- BioCor::mclusterGeneSim(clusters, genesKegg, "max")
+
+
+    # --- Score Combination and Distance Conversion [] ---
+    # Key functions: combineScores, D2J
+    sim_matrix <- matrix(
+        c(1.0, 0.5, 0.5, 1.0),
+        nrow = 2,
+        dimnames = list(c("p1", "p2"), c("p1", "p2"))
+    )
+    comb_methods <- c("avg", "max", "rcmax", "BMA")
+    scores <- sapply(
+        comb_methods,
+        BioCor::combineScores,
+        scores = sim_matrix
+    )
+    dist_matrix <- BioCor::D2J(sim_matrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

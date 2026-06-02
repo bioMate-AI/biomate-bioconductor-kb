@@ -38,19 +38,31 @@ process BIOC_AWST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(awst)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Principal component analysis [] ---
-    # Key functions: prcomp, ggplot, geom_point, assay, awst
-    res_pca <- prcomp(t(assay(filtered, "awst")))
-    df <- as.data.frame(cbind(res_pca$x, colData(airway)))
-    ggplot(df, aes(x = PC1, y = PC2, color = dex, shape = cell)) +
-    # --- Valid analysis [] ---
-    # Key functions: valid, rowMeans, awst, gene_filter, knit, diff, session_info, PrintBibliography
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("awst")
+    # --- Gene Filtering [] ---
+    # Key functions: gene_filter
+    # Filter out low-intensity genes after AWST transformation
+    filtered_se <- gene_filter(
+        se_transformed,
+        pos_thr = 0,
+        min_val = 0
+    )
+    filtered_matrix <- assay(filtered_se, "awst")
+
+
+    # --- Transformation with Custom Normalization [] ---
+    # Key functions: awst
+    # Apply AWST using a pre-calculated normalized assay slot
+    se_custom <- awst(
+        se,
+        expr_values = "fq",
+        p_min = 0.025,
+        p_max = 0.975
+    )
+    custom_matrix <- assay(se_custom, "awst")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
