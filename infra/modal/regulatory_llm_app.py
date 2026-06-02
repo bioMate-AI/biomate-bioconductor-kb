@@ -101,8 +101,7 @@ app = modal.App("biomate-regulatory-llm", image=image)
         str(HF_CACHE_DIR): hf_cache_vol,
     },
     timeout=10 * 60,                # 10-min max per request (safety net)
-    container_idle_timeout=300,     # 5-min warm window after last request
-    allow_concurrent_inputs=8,      # match vLLM's natural batching width
+    scaledown_window=300,           # 5-min warm window after last request
     secrets=[
         # Optional. Set BIOMATE_VLLM_API_KEY in the Modal secret if you
         # want bearer-token auth on the endpoint.
@@ -111,6 +110,7 @@ app = modal.App("biomate-regulatory-llm", image=image)
         ),
     ],
 )
+@modal.concurrent(max_inputs=8)     # match vLLM's natural batching width
 class RegulatoryLLM:
     BASE_MODEL: str = "Qwen/Qwen3-8B"
 
