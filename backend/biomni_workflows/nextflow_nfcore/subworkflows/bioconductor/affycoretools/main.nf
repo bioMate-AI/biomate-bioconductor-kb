@@ -38,44 +38,44 @@ process BIOC_AFFYCORETOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(affycoretools)
     library(HTMLReport)
     library(jsonlite)
 
-    # --- Linear model fit (limma) [] ---
-    # Key functions: annotateEset, pData, lmFit
-    suppressMessages(library(hgu95av2.db))
-    eset <- annotateEset(eset, hgu95av2.db)
-    suppressMessages(library(limma))
-    # --- H T M L Report [] ---
-    # Key functions: HTMLReport, publish, finish
-    suppressMessages(library(ReportingTools))
-    htab <- HTMLReport("afile", "My cool results")
-    publish(topTable(fit2, 1), htab)
-    # --- make Images [] ---
-    # Key functions: makeImages, HTMLReport, publish, finish
-    d.f <- topTable(fit2, 2)
-    out <- makeImages(df = d.f, eset = eset, grp.factor = pd$type, design = design,
-    htab <- HTMLReport("afile3", "My cool results, affycoretools style")
-    # --- Linear model fit (limma) [] ---
-    # Key functions: lmFit, eBayes
-    grps <- factor(apply(pd[,1:2], 1, paste, collapse = "_"))
-    design <- model.matrix(~0+grps)
+    # --- Linear Modeling and Contrast Fit [] ---
+    # Key functions: lmFit, contrasts.fit, eBayes
+    pd <- pData(phenoData(eset))
+    grps <- factor(apply(pd[, 1:2], 1, paste, collapse = "_"))
+    design <- model.matrix(~0 + grps)
     colnames(design) <- gsub("grps", "", colnames(design))
-    # --- H T M L Report [] ---
-    # Key functions: HTMLReport, makeImages, publish, finish
-    out <- lapply(1:3, function(x) topTable(fit2, x))
-    htab <- lapply(1:3, function(x){
-    tmp <- HTMLReport(gsub("_", " ", colnames(contrast)[x]), colnames(contrast)[x], "./reports")
-    # --- kable [] ---
-    # Key functions: kable
-    d.f <- data.frame(Comparison =  sapply(htab, function(x) XML::saveXML(Link(x))),
-    "Number significant" = sapply(out, nrow), check.names = FALSE)
-    kable(d.f, caption = "Number of significant genes.",
-    # --- make Venn [] ---
+    contrast <- matrix(c(1, -1, 0, 0, 0, 0, 1, -1, 1, -1, -1, 1), ncol = 3)
+    colnames(contrast) <- c("Female_Case_vs_Control",
+                            "Male_Case_vs_Control",
+                            "Interaction")
+    fit <- lmFit(eset, design)
+    fit2 <- contrasts.fit(fit, contrast)
+    fit2 <- eBayes(fit2)
+
+
+    # --- Image Generation and HTML Reporting [] ---
+    # Key functions: makeImages, entrezLinks, affyLinks
+    d.f <- topTable(fit2, coef = 1, number = 10)
+    out <- makeImages(df = d.f, eset = eset, grp.factor = grps,
+                      design = design, contrast = contrast,
+                      colind = 1, repdir = ".")
+    htab <- HTMLReport("report_step", "Affycoretools Results")
+    publish(out$df, htab, .modifyDF = list(entrezLinks, affyLinks))
+    finish(htab)
+
+
+    # --- Venn Diagram Generation [] ---
     # Key functions: makeVenn, vennInLine
     collist <- list(1:2)
-    venn <- makeVenn(fit2, contrast, design, collist = collist, adj.meth = "none")
-    cap <- list(paste("A Venn diagram. Note that the first sentence is bolded",
+    venn <- makeVenn(fit2, contrast, design, collist = collist,
+                     adj.meth = "none")
+    cap <- list(paste("A Venn diagram showing overlap of differentially",
+                      "expressed genes between comparisons."))
+    vennInLine(venn, cap)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

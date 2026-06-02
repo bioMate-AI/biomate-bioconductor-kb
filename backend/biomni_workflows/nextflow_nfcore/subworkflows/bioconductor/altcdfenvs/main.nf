@@ -41,53 +41,14 @@ process BIOC_ALTCDFENVS {
     library(altcdfenvs)
     library(jsonlite)
 
-    # --- Entry [] ---
-    # Key functions: entry, null, close
-    fasta.seq <- read.FASTA.entry(con)
-    while(! is.null(fasta.seq$header)) {
-      print(fasta.seq)
-      fasta.seq <- read.FASTA.entry(con)
-    }
-    # --- Tohypergraph [] ---
+    # --- Convert to Hypergraph [] ---
     # Key functions: toHypergraph
-    hg <- toHypergraph(m)
-    # --- Tographnel [] ---
+    hg <- toHypergraph(alt.cdf)
+
+
+    # --- Convert to GraphNEL [] ---
     # Key functions: toGraphNEL
     gn <- toGraphNEL(hg)
-    # --- Env [] ---
-    # Key functions: env, emptyenv
-    targetNodes <- new.env(hash=TRUE, parent=emptyenv())
-    for (i in seq(along=targets)) {
-      targetNodes[[names(targets)[i]]] <- i
-    }
-    # --- Buildcdfenv [] ---
-    # Key functions: biostrings
-    alt.cdf <-
-      buildCdfEnv.biostrings(m, nrow.chip = 712, ncol.chip = 712)
-    # --- Getseq [] ---
-    # Key functions: getSequence, null
-    getSeq <- function(name) {
-      seq <- getSequence(id=name, type="hgnc_symbol",
-                         seqType="cdna", mart = mart)
-      targets <- seq$cdna
-      if (is.null(targets))
-    # --- Matchaffyprobes [] ---
-    # Key functions: matchAffyProbes
-    m <- matchAffyProbes(hgu133aprobe, targets, "HG-U133A")
-    # --- Slamf [] ---
-    # Key functions: toHypergraph, toGraphNEL, pal, numNodes
-    hg <- toHypergraph(m)
-    gn <- toGraphNEL(hg)
-    library(RColorBrewer)
-    col <- brewer.pal(length(geneSymbols)+1, "Set1")
-    tColors <- rep(col[length(col)], length=numNodes(gn))
-    # --- Totable [] ---
-    # Key functions: toTable
-    library("hgu133a.db")
-    affyTab <- toTable(hgu133aSYMBOL)
-    slamf_i <- grep("^SLAMF", affyTab$symbol)
-    pset_id <- affyTab$probe_id[slamf_i]
-    library("hgu133acdf")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

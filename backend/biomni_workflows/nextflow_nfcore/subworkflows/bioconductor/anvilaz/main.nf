@@ -41,26 +41,16 @@ process BIOC_ANVILAZ {
     library(AnVILAz)
     library(jsonlite)
 
-    # --- avworkspace set [] ---
+    # --- Workspace Selection [] ---
     # Key functions: avworkspace
-    avworkspace("my-namespace/my-workspace")
-    avworkspace()
-    # --- avworkspace namespace [] ---
-    # Key functions: avworkspace_namespace
-    avworkspace_namespace()
-    # --- avworkspace clone [] ---
-    # Key functions: avworkspace_clone, avworkspaces
-    avworkspace_clone(
-    avworkspaces()
-    # --- avnotebooks localize [] ---
-    # Key functions: avnotebooks_localize
-    avnotebooks_localize(destination = "./analyses")
-    # --- avnotebooks delocalize [] ---
-    # Key functions: avnotebooks_delocalize
-    avnotebooks_delocalize(source = "./")
-    # --- avworkflows jobs inputs [] ---
-    # Key functions: avworkflows_jobs_inputs
-    avworkflows_jobs_inputs()
+    AnVILAz::avworkspace("my-azure-namespace/my-azure-workspace")
+    current_ws <- AnVILAz::avworkspace()
+
+
+    # --- Resource Retrieval [] ---
+    # Key functions: avworkspaces
+    ws_list <- AnVILAz::avworkspaces()
+    azure_workspaces <- ws_list[ws_list$platform == "Azure", ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

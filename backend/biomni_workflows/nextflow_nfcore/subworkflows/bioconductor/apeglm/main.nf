@@ -41,26 +41,24 @@ process BIOC_APEGLM {
     library(apeglm)
     library(jsonlite)
 
-    # --- hline [] ---
-    # Key functions: hline
-    par(mfrow=c(1,3))
-    lims <- c(-8,8)
-    hline <- function() abline(h=c(-4:4 * 2),col=rgb(0,0,0,.2))
-    # --- ifelse [] ---
-    # Key functions: ifelse
-    s.val <- svalue(fit$thresh)
-    cols <- ifelse(s.val < .01, "red", "black")
-    plot(res$baseMean[keep],
-    # --- apeglm [] ---
-    # Key functions: apeglm
-    plot(res$baseMean, fit.mle$map[,coef], log="x", xlab=xlab, ylab="log odds")
-    points(res$baseMean[idx], fit.mle$map[idx,coef], col="dodgerblue", cex=3)
-    mle <- cbind(fit.mle$map[,coef], fit.mle$sd[,coef])
-    # --- ifelse [] ---
-    # Key functions: ifelse
-    par(mfrow=c(1,2))
-    ylim <- c(-1,1.5)
-    s.val <- svalue(fit2$thresh) # small-or-false-sign value
+    # --- Posterior Estimation and Shrinkage [] ---
+    # Key functions: svalue
+    s_val <- apeglm::svalue(fit$thresh)
+    apeglm_lfc <- log2(exp(1)) * fit$map[, 5]
+
+
+    # --- Beta-Binomial Dispersion Estimation [] ---
+    # Key functions: bbEstDisp, apeglm
+    fit_mle <- apeglm::apeglm(
+        Y = ase.cts, x = x, log.lik = NULL,
+        param = param, no.shrink = TRUE,
+        log.link = FALSE, method = "betabinCR"
+    )
+    theta_hat <- apeglm::bbEstDisp(
+        success = ase.cts, size = cts,
+        x = x, beta = fit_mle$map,
+        minDisp = 0.01, maxDisp = 5000
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,65 +38,64 @@ process BIOC_ANOTA2SEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(anota2seq)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- anota2seq Data Set From Matrix [] ---
-    # Key functions: anota2seqDataSetFromMatrix, anota2seqRun
-    ads <- anota2seqDataSetFromMatrix(
-    ads <- anota2seqRun(ads)
-    # --- anota2seq Plot F C [] ---
-    # Key functions: anota2seqPlotFC
-    anota2seqPlotFC(ads, selContrast = 1, plotToFile = FALSE)
-    # --- gettingStarted getListOfSignificantGenes translation [] ---
-    # Key functions: anota2seqGetOutput
-    head(
-    anota2seqGetOutput(
-    selContrast = 1)[, c("apvEff", "apvRvmPAdj", "singleRegMode")])
-    # --- initialize object from matrix [] ---
-    # Key functions: anota2seqDataSetFromMatrix
-    ads <- anota2seqDataSetFromMatrix(
-    # --- prepare SE [] ---
-    # Key functions: SummarizedExperiment
-    library(SummarizedExperiment)
-    countData <- as.matrix(cbind(anota2seq_data_P[1:1000,],anota2seq_data_T[1:1000,]))
-    anot <- data.frame(
-    # --- initialize object from SE [] ---
-    # Key functions: anota2seqDataSetFromSE
-    adsFromSE <- anota2seqDataSetFromSE(
-    assayNum = 1, # Position of the count data in assays(mySummarizedExperiment)
-    # --- assess model assumptions [] ---
-    # Key functions: anota2seqPerformQC
-    ads <- anota2seqPerformQC(Anota2seqDataSet = ads,
-    # --- assess model assumptions echoFALSE [] ---
-    # Key functions: anota2seqPerformQC
-    ads <- anota2seqPerformQC(Anota2seqDataSet = ads,
-    # --- assess model assumptions2 [] ---
-    # Key functions: anota2seqResidOutlierTest
-    anota2seqResidOutlierTest(ads, residFitPlot = FALSE,
-    # --- assess model assumptions2 echoFALSE [] ---
-    # Key functions: anota2seqResidOutlierTest
-    ads <- anota2seqResidOutlierTest(ads, residFitPlot = FALSE, generateSingleGenePlots = TRUE, nGraphs = 12)
-    file.rename(from = "ANOTA2SEQ_residual_distributions_single.pdf", to = "figure/ANOTA2SEQ_residual_distributions_single.pdf")
-    file.rename(from = "ANOTA2SEQ_residual_distribution_summary.jpeg", to = "figure/ANOTA2SEQ_residual_distribution_summary.jpeg")
-    # --- analysis translation and buffering [] ---
-    # Key functions: anota2seqAnalyze
-    ads <- anota2seqAnalyze(Anota2seqDataSet = ads,
-    analysis = c("translation", "buffering"))
-    # --- analysis translation and buffering echoFALSE [] ---
-    # Key functions: anota2seqAnalyze
-    ads <- anota2seqAnalyze(Anota2seqDataSet = ads,
-    analysis = c("translation", "buffering"),
-    # --- anota2seq Plot Pvalues [] ---
-    # Key functions: anota2seqPlotPvalues
-    par(mfrow = c(1, 2))
-    anota2seqPlotPvalues(ads, selContrast = 1, plotToFile = FALSE)
-    # --- selSigGenes translation buffering [] ---
-    # Key functions: anota2seqSelSigGenes
-    ads <- anota2seqSelSigGenes(Anota2seqDataSet = ads,
-    # --- singleGeneRegressions translation [] ---
-    # Key functions: anota2seqPlotGenes
-    anota2seqPlotGenes(ads, selContrast = 1, analysis = "translation", plotToFile = FALSE)
+    # --- Quality Control and Outlier Detection [] ---
+    # Key functions: anota2seqPerformQC, anota2seqResidOutlierTest
+    ads <- anota2seqPerformQC(
+        Anota2seqDataSet = ads,
+        generateSingleGenePlots = FALSE
+    )
+    ads <- anota2seqResidOutlierTest(
+        ads,
+        residFitPlot = FALSE,
+        generateSingleGenePlots = FALSE
+    )
+
+
+    # --- Analysis of Translation and Buffering [] ---
+    # Key functions: anota2seqAnalyze, anota2seqSelSigGenes
+    ads <- anota2seqAnalyze(
+        Anota2seqDataSet = ads,
+        analysis = c("translation", "buffering")
+    )
+    ads <- anota2seqSelSigGenes(
+        Anota2seqDataSet = ads,
+        selContrast = 1,
+        minSlopeTranslation = -1,
+        maxSlopeTranslation = 2,
+        minSlopeBuffering = -2,
+        maxSlopeBuffering = 1,
+        maxPAdj = 0.05
+    )
+
+
+    # --- Regulatory Mode Classification [] ---
+    # Key functions: anota2seqRegModes, anota2seqGetOutput
+    ads <- anota2seqRegModes(ads)
+    reg_output <- anota2seqGetOutput(
+        object = ads,
+        output = "regModes",
+        selContrast = 1,
+        analysis = "buffering",
+        getRVM = TRUE
+    )
+
+
+    # --- Visualization of Results [] ---
+    # Key functions: anota2seqPlotFC, anota2seqPlotPvalues
+    anota2seqPlotFC(
+        ads,
+        selContrast = 1,
+        plotToFile = FALSE
+    )
+    anota2seqPlotPvalues(
+        ads,
+        selContrast = 1,
+        plotToFile = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

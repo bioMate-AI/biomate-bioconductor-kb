@@ -41,33 +41,21 @@ process BIOC_ANTIPROFILES {
     library(antiProfiles)
     library(jsonlite)
 
-    # --- Loaddata [] ---
-    # Key functions: show
-    data(apColonData)
-    show(apColonData)
-    # look at sample types by experiment and status
-    table(apColonData$Status, apColonData$SubType, apColonData$ExperimentID)
-    # --- Getstats [] ---
-    # Key functions: pData, apStats, exprs, getProbeStats
-    trainSamples=pData(apColonData)$ExperimentID=="GSE4183"
-    colonStats=apStats(exprs(apColonData)[,trainSamples],
-                       pData(apColonData)$Status[trainSamples],minL=5)
-    head(getProbeStats(colonStats))
-    # --- Plotstat [] ---
-    # Key functions: getProbeStats
-    hist(getProbeStats(colonStats)$stat, nc=100,
-         main="Histogram of log variance ratio", xlab="log2 variance ratio")
-    # --- Buildap [] ---
-    # Key functions: buildAntiProfile, show
-    ap=buildAntiProfile(colonStats, tissueSpec=FALSE, sigsize=100)
-    show(ap)
-    # --- Plotscore [] ---
-    # Key functions: apCount, exprs, palette, pal, dotchart, pData
-    counts=apCount(ap, exprs(apColonData)[,!trainSamples])
-    palette(brewer.pal(8,"Dark2"))
-    # plot in score order
-    o=order(counts)
-    dotchart(counts[o],col=pData(apColonData)$Status[!trainSamples][o]+1,
+    # --- Build Anti-Profile [] ---
+    # Key functions: buildAntiProfile
+    ap <- buildAntiProfile(
+        colonStats,
+        tissueSpec = FALSE,
+        sigsize = 100
+    )
+
+
+    # --- Score New Samples [] ---
+    # Key functions: apCount
+    counts <- apCount(
+        ap,
+        exprs(apColonData)[, !trainSamples]
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,35 +41,34 @@ process BIOC_ALEVINQC {
     library(alevinQC)
     library(jsonlite)
 
-    # --- check Alevin Input Files [] ---
-    # Key functions: checkAlevinInputFiles
+    # --- Quality Control Report Generation [] ---
+    # Key functions: alevinQCReport
     baseDir <- system.file("extdata/alevin_example_v0.14", package = "alevinQC")
-    checkAlevinInputFiles(baseDir = baseDir)
-    # --- tempdir [] ---
-    # Key functions: tempdir, alevinQCReport
     outputDir <- tempdir()
-    alevinQCReport(baseDir = baseDir, sampleId = "testSample",
-    # --- alevin Q C Shiny [] ---
-    # Key functions: alevinQCShiny
-    app <- alevinQCShiny(baseDir = baseDir, sampleId = "testSample")
-    # --- run App [] ---
-    # Key functions: runApp
-    shiny::runApp(app)
-    if (interactive()) {
-    out <- shiny::runApp(app)
-    # --- read Alevin Q C [] ---
+    alevinQCReport(
+        baseDir = baseDir,
+        sampleId = "testSample",
+        outputFile = "alevinReport.html",
+        outputFormat = "html_document",
+        outputDir = outputDir,
+        forceOverwrite = TRUE
+    )
+
+
+    # --- Data Import [] ---
     # Key functions: readAlevinQC
+    baseDir <- system.file("extdata/alevin_example_v0.14", package = "alevinQC")
     alevin <- readAlevinQC(baseDir = baseDir)
-    # --- kable [] ---
-    # Key functions: kable
-    knitr::kable(alevin$summaryTables$fullDataset)
-    knitr::kable(alevin$summaryTables$initialWhitelist)
-    knitr::kable(alevin$summaryTables$finalWhitelist)
-    # --- plot Alevin Knee Raw [] ---
+
+
+    # --- Quality Control Visualization [] ---
     # Key functions: plotAlevinKneeRaw, plotAlevinBarcodeCollapse, plotAlevinQuant, plotAlevinKneeNbrGenes
+    baseDir <- system.file("extdata/alevin_example_v0.14", package = "alevinQC")
+    alevin <- readAlevinQC(baseDir = baseDir)
     plotAlevinKneeRaw(alevin$cbTable)
     plotAlevinBarcodeCollapse(alevin$cbTable)
     plotAlevinQuant(alevin$cbTable)
+    plotAlevinKneeNbrGenes(alevin$cbTable)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

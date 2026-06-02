@@ -38,6 +38,7 @@ process BIOC_AMARETTO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(AMARETTO)
     library(AMARETTO_Download)
     library(AMARETTO_EvaluateTestSet)
     library(AMARETTO_HTMLreport)
@@ -47,31 +48,30 @@ process BIOC_AMARETTO {
     library(AMARETTO_VisualizeModule)
     library(jsonlite)
 
-    # --- Download Multi-Omics Data [] ---
-    # Key functions: tempfile, AMARETTO_Download
-    library(AMARETTO)
-    TargetDirectory <- tempfile()# data download directory
-    DataSetDirectories <- AMARETTO_Download(CancerSite = CancerSite,
-    # --- Preprocess Multi-Omics Data [] ---
-    # Key functions: AMARETTO_Preprocess
-    load("../inst/extdata/MethylStates.rda")
-    ProcessedData <- AMARETTO_Preprocess(DataSetDirectories = DataSetDirectories,
-    # --- Initialize AMARETTO Model [] ---
-    # Key functions: AMARETTO_Initialize
-    AMARETTOinit <- AMARETTO_Initialize(ProcessedData = ProcessedDataLIHC,
-    # --- Run AMARETTO Model [] ---
+    # --- Run AMARETTO Algorithm [] ---
     # Key functions: AMARETTO_Run
-    AMARETTOresults <- AMARETTO_Run(AMARETTOinit = AMARETTOinit)
+    AMARETTOresults <- AMARETTO_Run(
+        AMARETTOinit = AMARETTOinit
+    )
+
+
     # --- Evaluate Test Set [] ---
     # Key functions: AMARETTO_EvaluateTestSet
     AMARETTOtestReport <- AMARETTO_EvaluateTestSet(
-    # --- Visualize AMARETTO Module [] ---
+        AMARETTOresults = AMARETTOresults,
+        MA_Data_TestSet = AMARETTOinit$MA_matrix_Var,
+        RegulatorData_TestSet = AMARETTOinit$RegulatorData
+    )
+
+
+    # --- Visualize Module [] ---
     # Key functions: AMARETTO_VisualizeModule
-    AMARETTO_VisualizeModule(AMARETTOinit = AMARETTOinit,
-    # --- Generate HTML Report [] ---
-    # Key functions: AMARETTO_HTMLreport
-    gmt_file<-system.file("templates/H.C2CP.genesets.gmt",package="AMARETTO")
-    AMARETTO_HTMLreport(AMARETTOinit = AMARETTOinit,,
+    AMARETTO_VisualizeModule(
+        AMARETTOinit = AMARETTOinit,
+        AMARETTOresults = AMARETTOresults,
+        ProcessedData = ProcessedDataLIHC,
+        ModuleNr = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,6 +38,7 @@ process BIOC_ALABASTER_FILES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(alabaster.files)
     library(BamFileReference)
     library(BcfFileReference)
     library(BigBedFileReference)
@@ -45,23 +46,28 @@ process BIOC_ALABASTER_FILES {
     library(DataFrame)
     library(jsonlite)
 
-    # --- Bamfilereference [] ---
-    # Key functions: BamFileReference
-    ---------------------------------------------------------------------
-    library(alabaster.files)
-    library(S4Vectors)
-    wrapped.bam <- BamFileReference(bam.file, index=bam.index)
-    # --- Readobject [] ---
-    # Key functions: readObject
-    ---------------------------------------------------------------------
-    readObject(dir)
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, BigWigFileReference, BigBedFileReference, BcfFileReference, tempfile, saveObject
-    ---------------------------------------------------------------------
-    df <- DataFrame(Sample=LETTERS[1:4])
-    # Adding a column of assorted wrapper files:
+    # --- File Reference Serialization [] ---
+    # Key functions: saveObject, readObject
+    bam.file <- system.file("extdata", "ex1.bam", package = "Rsamtools")
+    wrapped.bam <- BamFileReference(bam.file, index = paste0(bam.file, ".bai"))
+    dir <- tempfile()
+    saveObject(wrapped.bam, dir)
+    roundtrip <- readObject(dir)
+
+
+    # --- Multi-file Reference Packaging [] ---
+    # Key functions: BigWigFileReference, BigBedFileReference, BcfFileReference, saveObject
+    bw.path <- system.file("tests", "test.bw", package = "rtracklayer")
+    bb.path <- system.file("tests", "test.bb", package = "rtracklayer")
+    bcf.path <- system.file("extdata", "ex1.bcf.gz", package = "Rsamtools")
+    df <- S4Vectors::DataFrame(Sample = LETTERS[1:3])
     df$File <- list(
-        wrapped.bam,
+        BigWigFileReference(bw.path),
+        BigBedFileReference(bb.path),
+        BcfFileReference(bcf.path)
+    )
+    dir <- tempfile()
+    saveObject(df, dir)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
