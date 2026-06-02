@@ -3430,6 +3430,28 @@ def execute_nextflow(
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
 
+    # JVM crash mitigation (originally commit 4efb990e1, reverted by parallel sweeps,
+    # re-observed 2026-06-02 on dev T01: SIGSEGV in ld-linux-x86-64.so.2+0x2475a inside
+    # software.amazon.awssdk.crt.CRT.extractAndLoadLibrary on a PublishDir thread).
+    # The AWS SDK CRT (Common Runtime) native library races on extraction when
+    # multiple Nextflow heads run from the same container; the native loader chains
+    # many dlopens and runs out of stack on the 1024K default under contention.
+    #
+    # Three-prong mitigation:
+    #   - aws.crt.lib.dir → per-run extraction directory (no cross-run contention)
+    #   - aws.crt.disable.crt.in.client → AWS SDK falls back to Java HTTP client if
+    #     CRT init fails, so a bad load no longer aborts the run
+    #   - -Xss2m → double the JVM thread stack so the chained native loader has room
+    nxf_crt_cache = log_dir / ".aws-crt-cache"
+    nxf_crt_cache.mkdir(parents=True, exist_ok=True)
+    existing_nxf_opts = env.get("NXF_OPTS", "")
+    crt_opts = (
+        f"-Daws.crt.lib.dir={nxf_crt_cache} "
+        f"-Daws.crt.disable.crt.in.client=true "
+        f"-Xss2m"
+    )
+    env["NXF_OPTS"] = f"{existing_nxf_opts} {crt_opts}".strip()
+
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
     billing_user_id = _uid_for_path  # same sanitised value used in S3 path construction
