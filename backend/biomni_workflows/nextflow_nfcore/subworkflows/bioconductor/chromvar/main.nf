@@ -43,7 +43,9 @@ process BIOC_CHROMVAR {
 
     # --- filter Samples Plot [] ---
     # Key functions: filterSamplesPlot, filterSamples, filterPeaks, getJasparMotifs, matchMotifs
-
+    filtering_plot <- filterSamplesPlot(example_counts, min_depth = 1500,
+    ix <- filterSamples(example_counts, ix_return = TRUE, shiny = FALSE)
+    counts_filtered <- filterPeaks(counts_filtered, non_overlapping = TRUE)
     # --- compute Variability [] ---
     # Key functions: computeVariability, plotVariability, deviationsTsne, plotDeviationsTsne
     variability <- computeVariability(dev)

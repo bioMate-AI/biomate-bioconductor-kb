@@ -45,12 +45,18 @@ process BIOC_MULTIBAC {
     # --- create Mbac [] ---
     # Key functions: createMbac
     data("multiyeast")
+    data_RNA <- createMbac (inputOmics = list(A.rna, B.rna, C.rna),
+    batchFactor = c("A", "B", "C"),
     # --- A R Sy Nbac [] ---
     # Key functions: ARSyNbac
     par(mfrow = c(1,2))
+    arsyn_1 <- ARSyNbac(data_RNA, modelName = "RNA", Variability = 0.95,
+    plot(arsyn_1, typeP="pca.cor", bty = "L",
     # --- Multi Ba C [] ---
     # Key functions: MultiBaC, genModelList, genMissingOmics, batchCorrection
-
+    my_final_mbac <- MultiBaC (my_mbac,
+    my_mbac_2 <- genModelList (my_mbac, test.comp = NULL,
+    multiBatchDesign <- genMissingOmics(my_mbac_2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

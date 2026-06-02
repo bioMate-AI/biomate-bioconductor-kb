@@ -77,10 +77,16 @@ process BIOC_DITTOSEQ {
     # Key functions: SummarizedExperiment, frame
     ---------------------------------------------------------------------
     library(SummarizedExperiment)
+    bulkSE <- SummarizedExperiment(
+        assays = list(counts = exp,
+                 logcounts = logexp),
     # --- Importdittobulk [] ---
     # Key functions: importDittoBulk, frame
     ---------------------------------------------------------------------
     # dittoSeq import which allows
+    bulkSCE <- importDittoBulk(
+        # x can be a DGEList, a DESeqDataSet, a SummarizedExperiment,
+        #   or a list of data matrices
     # --- Metadata [] ---
     # Key functions: metadata, reductions, addDimReduction
     ---------------------------------------------------------------------
@@ -124,13 +130,24 @@ process BIOC_DITTOSEQ {
     # --- Dittodimplot [] ---
     # Key functions: dittoDimPlot
     ---------------------------------------------------------------------
+    dittoDimPlot(sce, "cluster",
+                 do.label = TRUE,
+                 labels.repel = FALSE,
+                 add.trajectory.lineages = list(
     # --- Dittoplot [] ---
     # Key functions: dittoPlot
     ---------------------------------------------------------------------
+    dittoPlot(sce, "ENO1", group.by = "label",
+        plots = c("jitter", "vlnplot", "boxplot"), # <- order matters
+        # change the color and size of jitter points
+        jitter.color = "blue", jitter.size = 0.5,
     # --- Dittoheatmap [] ---
     # Key functions: dittoHeatmap
     ---------------------------------------------------------------------
     # Add annotations
+    dittoHeatmap(sce, genes,
+        annot.by = c("label", "donor"),
+        scaled.to.max = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -51,9 +51,12 @@ process BIOC_PAIREDGSEA {
     # --- paired_diff [] ---
     # Key functions: paired_diff
     set.seed(500) # For reproducible results
+    diff_results <- paired_diff(
+    store_results = FALSE # Set to TRUE (recommended)  if you want
     # --- prepare_msigdb [] ---
     # Key functions: prepare_msigdb, paired_ora
-
+    gene_sets <- pairedGSEA::prepare_msigdb(
+    ora <- paired_ora(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

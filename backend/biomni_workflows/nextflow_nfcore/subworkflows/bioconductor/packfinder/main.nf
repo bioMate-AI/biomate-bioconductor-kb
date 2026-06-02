@@ -38,95 +38,14 @@ process BIOC_PACKFINDER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(packFinder)
+    library(DNAString)
+    library(DNAStringSet)
     library(jsonlite)
 
-
-    # --- Biostrings [] ---
-    # Key functions: DNAString, DNAStringSet, readDNAStringSet, extdata, packMatches.fasta, packFinder, fasta, packSearch
-    # Convert a character vector to a DNAString
-    Biostrings::DNAString("CATG")
-
-    # Convert a list of character vectors to a DNAStringSet
-    Biostrings::DNAStringSet(c(
-        "CATG",
-        "GTAC"
-    ))
-
-    # Convert a FASTA file to a DNAStringSet
-    data("arabidopsisThalianaRefseq")
-
-    packMatches <- packSearch(
-        Biostrings::DNAString("CACTACAA"),
-        arabidopsisThalianaRefseq,
-        elementLength = c(300, 3500),
-        tsdLength = 3
-    )
-
-    head(packMatches)
-
-    # --- Pack Clust Data [] ---
-    # Key functions: readUc, readBlast, extdata, packMatches.uc, packFinder, packMatches.blast6out
-    # We don't have the dependencies for clustering, so get pre-clustered results
-    data(packMatches)
-    readUc(system.file(
-        "extdata",
-        "packMatches.uc",
-        package = "packFinder"
-    ))
-
-    # --- Tir Clust [] ---
-    # Key functions: tirClust, packsToFasta
-    consensusSeqs <- tirClust(packMatches,
-        arabidopsisThalianaRefseq,
-        tirLength = 25
-    )
-
-    head(consensusSeqs)
-    # the packMatches dataframe is exported as a FASTA file for NCBI blast search
-    packsToFasta(
-        packMatches,
-        "tempOutput/packMatches.fasta",
-        arabidopsisThalianaRefseq
-    )
-
-    # --- Csv Convert [] ---
-    # Key functions: packsToCsv, getPacksFromCsv, packsToGRanges, getPacksFromGRanges
+    # --- DNAString analysis [] ---
+    # Key functions: DNAString, DNAStringSet, readDNAStringSet, packSearch, packClust, readUc, readBlast, tirClust
     packsToCsv(packMatches, "tempOutput/packMatches.csv")
     print(getPacksFromCsv("tempOutput/packMatches.csv"))
-    packsGRanges <- packsToGRanges(packMatches)
-    print(packsGRanges)
-
-    print(getPacksFromGRanges(packsGRanges))
-
-    # --- Fasta Convert [] ---
-    # Key functions: packsToFasta, getPacksFromFasta, identifyTirMatches, DNAString, reverseComplement
-    packsToFasta(
-        packMatches,
-        "tempOutput/packMatches.fasta",
-        arabidopsisThalianaRefseq
-    )
-
-    print(getPacksFromFasta("tempOutput/packMatches.fasta"))
-    forwardMatches <- identifyTirMatches(
-        Biostrings::DNAString("CACTACAA"),
-        arabidopsisThalianaRefseq,
-        strand = "+",
-        tsdLength = 3
-    )
-    nrow(forwardMatches)
-
-    # --- Get Tsds [] ---
-    # Key functions: getTsds, identifyPotentialPackElements
-    forwardMatches$TSD <- getTsds(
-        forwardMatches,
-        arabidopsisThalianaRefseq,
-        3,
-        strand = "+"
-    )
-
-    head(forwardMatches)
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

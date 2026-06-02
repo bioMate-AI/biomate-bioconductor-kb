@@ -46,11 +46,12 @@ process BIOC_SYSTEMPIPETOOLS {
 
     # --- Volcano plot of DE results [] ---
     # Key functions: volcanoplot
-
+    volcanoplot(degseqDF, comparison = "M12-A12", filter = c(Fold = 1, FDR = 20),
     # --- ReadComp analysis [] ---
     # Key functions: readComp, showDT, exploreDDS, exploreDDSplot, hclustplot, heatMaplot, run_DESeq2, filterDEGs
     targetspath <- system.file("extdata", "targets.txt", package = "systemPipeR")
     targets <- read.delim(targetspath, comment = "#")
+    cmp <- systemPipeR::readComp(file = targetspath, format = "matrix",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

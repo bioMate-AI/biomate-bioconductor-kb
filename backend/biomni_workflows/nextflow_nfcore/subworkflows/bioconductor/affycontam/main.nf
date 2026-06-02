@@ -66,7 +66,11 @@ process BIOC_AFFYCONTAM {
     ## kppn = featureNames(s12rma)[kp]
     # --- Cod [] ---
     # Key functions: exprs, lmFit, eBayes, contFun
-
+    ## fullrun = function( abatch, arma, contFun, filtpn, targpn, chips=1, ... ) {
+    ## # assess detectability in original data
+    ##  dvec = (1:ncol(exprs(abatch)))
+    ##  des = model.matrix(~dvec)
+    ##  af1 = lmFit( arma[filtpn,], des, method="robust", maxit=300 )
     # --- Ddd [] ---
     # Key functions: fullrun
     ## ff = fullrun( s12, s12rma, setCircRegion, kppn, mostmr, chips=1:2 )
@@ -74,10 +78,16 @@ process BIOC_AFFYCONTAM {
     # Key functions: annotation, grid
     ## scr.40 = function (x, chip = 1, center = c(150, 150), rad = 75, vals = 30,
     ##     valgen = NULL)
+    ## {
+    ##     cdfname = paste(annotation(x), "cdf", sep = "")
+    ##     require(cdfname, character.only = TRUE, quietly = TRUE)
     # --- Scr2 [] ---
     # Key functions: annotation, grid
     ## scr.20k = function (x, chip = 1, center = c(500, 500), rad = 75, vals = 30000,
     ##     valgen = NULL)
+    ## {
+    ##     cdfname = paste(annotation(x), "cdf", sep = "")
+    ##     require(cdfname, character.only = TRUE, quietly = TRUE)
     # --- Dov [] ---
     # Key functions: getCircRegion, setCircRegion
     ## incvarCircRegion = function(x, chip=1, center=c(150,500), rad=100, fac=3) {

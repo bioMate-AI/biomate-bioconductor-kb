@@ -47,7 +47,7 @@ process BIOC_SKEWR {
     barcodes <- getBarcodes(path = baseDir)
     # --- panel Plots [] ---
     # Key functions: panelPlots
-
+    panelPlots(melon.raw, raw.I.red.mixes, raw.I.green.mixes,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

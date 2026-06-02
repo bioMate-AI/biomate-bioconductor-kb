@@ -43,7 +43,8 @@ process BIOC_MZID {
 
     # --- mz I D [] ---
     # Key functions: mzID
-
+    exampleFiles <- list.files(system.file('extdata', package = 'mzID'),
+    mzResults <- mzID(exampleFiles[5])
     # --- flatten [] ---
     # Key functions: flatten
     flatResults <- flatten(mzResults)

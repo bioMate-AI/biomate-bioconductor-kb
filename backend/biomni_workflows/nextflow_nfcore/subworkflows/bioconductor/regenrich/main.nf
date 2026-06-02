@@ -98,13 +98,17 @@ process BIOC_REGENRICH {
     # Key functions: untar
     tmpFolder = tempdir()
     tmpFile = tempfile(pattern = "GSE130567_", tmpdir = tmpFolder, fileext = ".tar")
+    download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file",
     # --- close [] ---
     # Key functions: close
     dat = list()
+    for (file in filesFull){
+    accID = gsub(".*(GSM\\d{7}).*", "\\1", file)
     # --- regenrich_network [] ---
     # Key functions: regenrich_network, regenrich_enrich, regenrich_rankScore
     expressionMatrix = as.matrix(edata) # expression data
     data(TFs)
+    object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

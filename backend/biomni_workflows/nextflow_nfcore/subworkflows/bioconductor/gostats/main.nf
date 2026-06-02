@@ -51,6 +51,7 @@ process BIOC_GOSTATS {
     # Key functions: GSEAGOHyperGParams
     library("GOstats")
     universe = Lkeys(org.Hs.egGO)
+    params <- GSEAGOHyperGParams(name="My Custom GSEA based annot Params",
     # --- call HyperGTest [] ---
     # Key functions: hyperGTest
     Over <- hyperGTest(params)
@@ -59,6 +60,7 @@ process BIOC_GOSTATS {
     # Key functions: GeneSetCollection, GSEAKEGGHyperGParams, hyperGTest
     gsc <- GeneSetCollection(keggFrame, setType = KEGGCollection())
     universe = Lkeys(org.Hs.egGO)
+    kparams <- GSEAKEGGHyperGParams(name="My Custom GSEA based annot Params",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

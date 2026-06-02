@@ -44,9 +44,11 @@ process BIOC_GEMMA_R {
     # --- get_datasets_by_ids [] ---
     # Key functions: get_datasets_by_ids
     get_datasets_by_ids("GSE46416") %>%
+    select(experiment.shortName, experiment.name,
     # --- get_dataset_object [] ---
     # Key functions: get_dataset_object
-
+    dat <- get_dataset_object("GSE46416",
+    dat[[1]]$disease %>% unique()
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: assay, pheatmap, get_dataset_samples, gemma_kable, get_genes
     manicExpr <- assay(manic, "counts")
@@ -59,10 +61,13 @@ process BIOC_GEMMA_R {
     arrange(`contrast_bipolar disorder has_modifier manic phase_pvalue`) %>%
     # --- get_dataset_annotations [] ---
     # Key functions: get_dataset_annotations
-
+    try({
+    get_dataset_annotations(c("GSE35974", "GSE46416"))
     # --- get_dataset_annotations [] ---
     # Key functions: get_dataset_annotations, get_gene_locations
-
+    lapply(c("GSE35974", "GSE12649"), function(dataset) {
+    get_dataset_annotations(dataset) %>%
+    mutate(experiment.shortName = dataset) %>%
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

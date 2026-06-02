@@ -55,6 +55,7 @@ process BIOC_BAYESSPACE {
     # --- spatial Preprocess [] ---
     # Key functions: spatialPreprocess
     set.seed(102)
+    melanoma <- spatialPreprocess(melanoma, platform="ST",
     # --- tuning q [] ---
     # Key functions: qTune, qPlot
     melanoma <- qTune(melanoma, qs=seq(2, 10), platform="ST", d=7, cores=2)
@@ -62,6 +63,7 @@ process BIOC_BAYESSPACE {
     # --- spatial Cluster [] ---
     # Key functions: spatialCluster
     set.seed(149)
+    melanoma <- spatialCluster(melanoma, q=4, platform="ST", d=7,
     # --- cluster Plot [] ---
     # Key functions: clusterPlot
     clusterPlot(melanoma)

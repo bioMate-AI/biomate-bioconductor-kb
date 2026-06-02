@@ -45,7 +45,9 @@ process BIOC_DERFINDER {
 
     # --- 'installDer' [] ---
     # Key functions: valid
-
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("derfinder")
     # --- 'ultraQuick' [] ---
     # Key functions: rawFiles, fullCoverage, regionMatrix, DESeqDataSetFromMatrix
     library("derfinder")
@@ -53,13 +55,17 @@ process BIOC_DERFINDER {
     library("GenomicRanges")
     # --- 'locateAMYfiles' [] ---
     # Key functions: rawFiles
-
+    files <- rawFiles(system.file("extdata", "AMY", package = "derfinderData"),
+    names(files) <- gsub(".bw", "", names(files))
     # --- Load Raw Files [] ---
     # Key functions: fullCoverage
-
+    fullCov <- fullCoverage(
+    totalMapped = rep(1, length(files)), targetSize = 1
     # --- Load Data Windows [] ---
     # Key functions: foo
-
+    foo <- function() {
+    load(system.file("extdata", "fullCov", "fullCovAMY.RData",
+    return(fullCovAMY)
     # --- 'regionMatrix' [] ---
     # Key functions: regionMatrix
     Get the region matrix of Expressed Regions (ERs)
@@ -73,6 +79,7 @@ process BIOC_DERFINDER {
     # Key functions: annotateRegions, vennRegions
     annoRegs <- annotateRegions(ers, genomicState$fullGenome, verbose = FALSE)
     library("derfinderPlot")
+    venn <- vennRegions(annoRegs,
     # --- 'nearestGene' [] ---
     # Key functions: keepSeqlevels, annotateTranscripts, matchGenes, restoreSeqlevels
     library("TxDb.Hsapiens.UCSC.hg19.knownGene")
@@ -80,7 +87,8 @@ process BIOC_DERFINDER {
     library("bumphunter")
     # --- 'firstfive' [] ---
     # Key functions: plotRegionCoverage
-
+    plotRegionCoverage(
+    annotatedRegions = annoRegs, whichRegions = seq_len(5), txdb = txdb,
     # --- knit [] ---
     # Key functions: knit
     library("rmarkdown")

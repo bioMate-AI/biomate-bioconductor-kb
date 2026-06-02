@@ -38,35 +38,14 @@ process BIOC_SIPSIC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SiPSiC)
+    library(SingleCellExperiment)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set, suppressPackageStartupMessages
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-    suppressPackageStartupMessages({library(SiPSiC)})
-
     # --- Example [] ---
-    # Key functions: rpois, SingleCellExperiment, getPathwayScores, counts, dgCMatrix
+    # Key functions: SingleCellExperiment, getPathwayScores
     library(SiPSiC)
     geneCountsMatrix <- matrix(rpois(16, lambda = 10), ncol = 4, nrow = 4)
     geneCountsMatrix <- as(geneCountsMatrix, "dgCMatrix")
-
-    ## Make sure your matrix is indeed a sparse matrix (of type dgCMatrix)! 
-
-    rownames(geneCountsMatrix) <- c("Gene1", "Gene2", "Gene3", "Gene4")
-    colnames(geneCountsMatrix) <- c("Cell1", "Cell2", "Cell3", "Cell4")
-    assayData <- SingleCellExperiment(assays = list(counts = geneCountsMatrix))
-    pathwayGenesList <- c("Gene1", "Gene2", "Gene4")
-    scoresAndIndices <- getPathwayScores(counts(assayData), pathwayGenesList) # The third parameter, percentForNormalization, is optional; If not specified, its value is set to 5.
-    pathwayScoresOfCells <- scoresAndIndices$pathwayScores
-    pathwayGeneIndices <- scoresAndIndices$index
-
-    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

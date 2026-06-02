@@ -76,6 +76,10 @@ process BIOC_TIMECOURSE {
     # --- Function [] ---
     # Key functions: runif, mvrnorm
     sim.data <- function(x, indx=1)
+    {
+       mu <- rep(runif(1,8,x[1]),5)
+       if(indx==1)
+         res <- c(as.numeric(t(mvrnorm(n=3, mu=mu+rnorm(5,sd=5), Sigma=sim.Sigma()))),
     # --- Rep [] ---
     # Key functions: MANOVA
     assay <- rep(c("1.2.04","2.4.04","3.5.04","5.21.04","7.17.04","9.10.04","12.1.04","1.2.05","4.1.05"),each=5)

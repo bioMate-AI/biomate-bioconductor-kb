@@ -41,24 +41,11 @@ process BIOC_USORT {
     library(uSORT)
     library(jsonlite)
 
-
-    # --- Eval=true [] ---
-    # Key functions: args
-    args(uSORT)
-
-    # --- Eval=true [] ---
-    # Key functions: list.files, uSORT, getwd, uSORT_example, autoSPIN, sWanderlust
-    dir <- system.file('extdata', package='uSORT')
-    file <- list.files(dir, pattern='.txt$', full=TRUE)
-    # uSORT_results <- uSORT(exprs_file = file, 
-    #                        log_transform = TRUE,
-    #                        remove_outliers = TRUE,
-    #                        project_name = "uSORT_example",
-    #                        preliminary_sorting_method = "autoSPIN", 
-    #                        refine_sorting_method = "sWanderlust",
-    #                        result_directory = getwd(),
-    #                        save_results = TRUE,
-    #                        reproduce_seed = 1234)
+    # --- Usort Gui [] ---
+    # Key functions: uSORT_GUI
+    ---------------------------------------------------------------------
+    require(uSORT)
+    # uSORT_GUI()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

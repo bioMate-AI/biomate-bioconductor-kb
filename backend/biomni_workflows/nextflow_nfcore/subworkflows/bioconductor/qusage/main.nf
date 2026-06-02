@@ -100,6 +100,7 @@ process BIOC_QUSAGE {
                         col=3,main="CYTOSOLIC DNA SENSING")
       plotDensityCurves(sx.results,path.index=125,col=2,add=T)
       plotDensityCurves(asx.vs.sx, path.index=125,col=1,add=T, lwd=3)
+      legend("topleft", legend=c("asx","sx","asx-sx"),lty=1,col=c(2:3,1),
     # --- Twowaydensitycurves [] ---
     # Key functions: getOption, plotDensityCurves
     getOption("SweaveHooks")[["fig"]]()

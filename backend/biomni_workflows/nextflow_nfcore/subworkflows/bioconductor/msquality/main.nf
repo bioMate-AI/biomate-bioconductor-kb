@@ -50,6 +50,8 @@ process BIOC_MSQUALITY {
     # --- Ms Experiment [] ---
     # Key functions: MsExperiment, DataFrame, sampleData, experimentFiles, spectra
     lmse <- MsExperiment()
+    sd <- DataFrame(sample_id = c("QC1", "QC2"),
+    sample_name = c("QC Pool", "QC Pool"),
     # --- combine sps rplc sps hilic [] ---
     # Key functions: qualityMetrics
     sps_comb <- c(sps_rplc, sps_hilic)
@@ -57,9 +59,13 @@ process BIOC_MSQUALITY {
     # --- calculate Metrics [] ---
     # Key functions: calculateMetrics
     sps_comb_subset <- sps_comb[grep("Sample.1_", sps_comb$dataOrigin), ]
+    metrics_sps_Q1 <- calculateMetrics(object = sps_comb_subset,
+    metrics = qualityMetrics(sps_comb_subset), filterEmptySpectra = FALSE,
     # --- metrics rplc hilic lee2019 [] ---
     # Key functions: calculateMetrics
-
+    metrics_sps <- c("chromatographyDuration", "ticQuantileRtFraction", "rtOverMsQuarters",
+    metrics_rplc_msexp <- calculateMetrics(object = msexp_rplc_subset,
+    metrics = qualityMetrics(msexp_rplc_subset), filterEmptySpectra = TRUE,
     # --- paged table metrics [] ---
     # Key functions: paged_table, plotMetric
     print("metrics_rplc_msexp")

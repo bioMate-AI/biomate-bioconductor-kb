@@ -38,98 +38,14 @@ process BIOC_GSEABENCHMARKER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GSEABenchmarkeR)
+    library(BiocFileCache)
     library(jsonlite)
 
-
-    # --- Ma Comp [] ---
-    # Key functions: loadEData, geo2kegg, maPreproc
-    geo2kegg <- loadEData("geo2kegg")
-    names(geo2kegg)
-    geo2kegg[[1]]
-    geo2kegg <- maPreproc(geo2kegg[1:5])
-    geo2kegg[[1]]
-
-    # --- Ma Groups [] ---
-    # Key functions: loadEData, tcga, extdata, myEData
-    se <- geo2kegg[[1]]
-    table(se$GROUP)
-    tcga <- loadEData("tcga", nr.datasets=2)
-    names(tcga)
-    brca <- tcga[[2]]
-    brca
-    table(brca$GROUP)
-    data.dir <- system.file("extdata", package="GSEABenchmarkeR")
-    edat.dir <- file.path(data.dir, "myEData")
-    edat <- loadEData(edat.dir)
-    names(edat)
-    edat[[1]]
-
-    # --- Differential Expression Ana [] ---
-    # Key functions: runDE, rowData, limma, flexible, getGenesets, hsa, kegg, runEA
-    geo2kegg <- runDE(geo2kegg, de.method="limma", padj.method="flexible")
-    rowData(geo2kegg[[1]], use.names=TRUE)
-    library(EnrichmentBrowser)
-    kegg.gs <- getGenesets(org="hsa", db="kegg")
-    kegg.ora.res <- runEA(geo2kegg[[1]], method="ora", gs=kegg.gs, perm=0)
-    kegg.ora.res
-    res.dir <- tempdir()
-    res <- runEA(geo2kegg, methods=c("ora", "camera"), 
-                    gs=kegg.gs, perm=0, save2file=TRUE, out.dir=res.dir)
-    res$ora[1:2]
-
-    ## -----------------------------------------------------------------------------
-    method <- function(se, gs)
-    # --- Read Rt [] ---
-    # Key functions: readResults, ora, camera, runtime, bpPlot, lengths, ranking
-    ea.rtimes <- readResults(res.dir, names(geo2kegg), 
-                                methods=c("ora", "camera"), type="runtime")
-    ea.rtimes
-    bpPlot(ea.rtimes, what="runtime")
-    mean(ea.rtimes$ora) / mean(ea.rtimes$camera)
-    ea.ranks <- readResults(res.dir, names(geo2kegg), 
-                                methods=c("ora", "camera"), type="ranking")
-    lengths(ea.ranks)
-    ea.ranks$ora[1:2]
-
-    # --- Plot Adj Sig Sets [] ---
-    # Key functions: evalNrSigSets, bpPlot, sig.sets, readRDS, malacards, readDataId2diseaseCodeMap, evalRelevance
-    sig.sets <- evalNrSigSets(ea.ranks, alpha=0.05, padj="BH")
-    sig.sets
-    bpPlot(sig.sets, what="sig.sets")
-    mala.kegg.file <- file.path(data.dir, "malacards", "KEGG.rds")
-    mala.kegg <- readRDS(mala.kegg.file)
-    sapply(mala.kegg, nrow)
-    mala.kegg$ALZ
-    mala.kegg$BRCA
-    d2d.file <- file.path(data.dir, "malacards", "GseId2Disease.txt")
-    d2d.map <- readDataId2diseaseCodeMap(d2d.file)
-    head(d2d.map)
-    ea.ranks$ora$GSE1297
-    obs.score <- evalRelevance(ea.ranks$ora$GSE1297, mala.kegg$ALZ)
-    obs.score
-
-    # --- Comp Rand [] ---
-    # Key functions: substring, compRand, summary, compOpt, evalRelevance, bpPlot, runif, rel.sets
-    gs.names <- ea.ranks$ora$GSE1297$GENE.SET
-    gs.ids <- substring(gs.names, 1, 8)
-    rand.scores <- compRand(mala.kegg$ALZ, gs.ids, perm=50)
-    summary(rand.scores)
-    (sum(rand.scores >= obs.score) + 1) / 51
-    opt.score <- compOpt(mala.kegg$ALZ, gs.ids)
-    opt.score
-    round(obs.score / opt.score * 100, digits=2)
+    # --- Feature metadata inspection [] ---
+    # Key functions: loadEData, maPreproc, runDE, rowData, runEA, runif, bpPlot, lengths
     all.kegg.res <- evalRelevance(ea.ranks, mala.kegg, d2d.map[names(geo2kegg)])
     bpPlot(all.kegg.res, what="rel.sets")
-
-    ## -----------------------------------------------------------------------------
-    rel.ranks <- mala.kegg$ALZ[,1:2]
     rel.ranks$REL.SCORE <- runif(nrow(rel.ranks), min=1, max=100)
-    rel.ranks$REL.SCORE <- round(rel.ranks$REL.SCORE, digits = 2)
-    ind <- order(rel.ranks$REL.SCORE, decreasing = TRUE)
-    rel.ranks <- rel.ranks[ind,]
-    rel.ranks
-    cacheResource(geo2kegg, rname="geo2kegg")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

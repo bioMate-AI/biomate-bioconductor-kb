@@ -43,7 +43,7 @@ process BIOC_RIBODIPA {
 
     # --- plot Track [] ---
     # Key functions: plotTrack
-
+    plotTrack(data = data.psite, genes.list = c("YDR050C", "YDR064W"),
     # --- plot Test [] ---
     # Key functions: plotTest
     plotTest(result = result.pst, genes.list = NULL, threshold = 0.05)

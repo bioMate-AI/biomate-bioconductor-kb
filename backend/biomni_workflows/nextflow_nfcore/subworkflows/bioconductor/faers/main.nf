@@ -50,6 +50,8 @@ process BIOC_FAERS {
     ---------------------------------------------------------------------
     # Please make sure to replace dir with your own directory path, as the file
     # included in the package is a sampled version.
+    data1 <- faers(2004, "q1",
+        dir = system.file("extdata", package = "faers"),
     # --- Faers Get [] ---
     # Key functions: faers_get
     ---------------------------------------------------------------------

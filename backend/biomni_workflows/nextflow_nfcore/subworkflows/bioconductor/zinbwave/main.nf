@@ -51,16 +51,20 @@ process BIOC_ZINBWAVE {
     # Key functions: useMart, useDataset, getBM, DGEList, calcNormFactors, estimateDisp, glmFit, glmWeightedF
     mart <- useMart("ensembl")
     mart <- useDataset("hsapiens_gene_ensembl", mart = mart)
+    bm <- getBM(attributes=c('hgnc_symbol', 'start_position',
     # --- Filter by row sum threshold [] ---
     # Key functions: rowSums
     filter <- rowSums(assay(fluidigm)>5)>5
     table(filter)
     # --- Construct kNN graph for clustering [] ---
     # Key functions: FindNeighbors, FindClusters
-
+    seu <- FindNeighbors(seu, reduction = "zinbwave",
+    seu <- FindClusters(object = seu)
     # --- Custom ggplot2 visualization [] ---
     # Key functions: reducedDim, ggplot, scale_color_brewer, Rtsne, zinbsurf
-
+    fluidigm_surf <- zinbsurf(fluidigm, K = 2, epsilon = 1000,
+    W2 <- reducedDim(fluidigm_surf)
+    data.frame(W2, bio=colData(fluidigm)$Biological_Condition,
     # --- Assay data access [] ---
     # Key functions: register, ReprocessedFluidigmData, assay, assayNames, zinbwave, rowData, zinbFit
     assay(fluidigm) %>% log1p %>% rowVars -> vars

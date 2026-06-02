@@ -56,6 +56,9 @@ process BIOC_HILBERTVIS {
     # Key functions: pushViewport, viewport, plotHilbertCurve, popViewport
     library( grid )
     pushViewport( viewport( layout=grid.layout( 2, 2 ) ) )
+    for( i in 1:4 ) {
+       pushViewport( viewport(
+           layout.pos.row=1+(i-1)%/%2, layout.pos.col=1+(i-1)%%2 ) )
     # --- Hilbertimage [] ---
     # Key functions: hilbertImage
     hMat <- hilbertImage( vec )

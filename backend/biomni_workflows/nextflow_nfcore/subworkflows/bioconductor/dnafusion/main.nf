@@ -46,10 +46,11 @@ process BIOC_DNAFUSION {
 
     # --- EML4 ALK detection2 [] ---
     # Key functions: EML4_ALK_detection
-
+    H3122_result <- EML4_ALK_detection(file = H3122_bam,
+    head(H3122_result)
     # --- EML4 ALK detection3 [] ---
     # Key functions: EML4_ALK_detection
-
+    HCC827_result <- EML4_ALK_detection(file = HCC827_bam,
     # --- EML4 sequence [] ---
     # Key functions: EML4_sequence
     EML4_sequence(H3122_result, genome = "hg38", basepairs = 20)
@@ -68,7 +69,8 @@ process BIOC_DNAFUSION {
     break_position_depth(HCC827_bam, HCC827_result, genome = "hg38", gene = "EML4")
     # --- EML4 ALK analysis results [] ---
     # Key functions: EML4_ALK_analysis
-
+    H3122_results <- EML4_ALK_analysis(file = H3122_bam,
+    HCC827_results <- EML4_ALK_analysis(file = HCC827_bam,
     # --- introns ALK EML4 results [] ---
     # Key functions: introns_ALK_EML4
     introns_ALK_EML4(file=H3122_bam,genome="hg38")
@@ -79,7 +81,7 @@ process BIOC_DNAFUSION {
     find_variants(file=HCC827_bam,genome="hg38")
     # --- session_info [] ---
     # Key functions: session_info
-
+    sessioninfo::session_info(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

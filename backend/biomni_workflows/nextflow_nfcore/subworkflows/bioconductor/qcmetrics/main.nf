@@ -49,10 +49,14 @@ process BIOC_QCMETRICS {
     fData(psm)$Variable_Modifications, sep = "+")
     # --- Custom ggplot2 visualization [] ---
     # Key functions: qcdata, ggplot, geom_jitter, geom_boxplot
-
+    plot(qcinc) <- function(object) {
+    inc <- qcdata(object, "inc")
+    tr <- qcdata(object, "tr")
     # --- Object metadata inspection [] ---
     # Key functions: QcMetric, qcdata, show, status, QcMetrics, metadata, mdata, rtime
-
+    qcReport(n15qcm, reportname = "n15qcreport",
+    title = expinfo(experimentData(psm))["title"],
+    author = expinfo(experimentData(psm))["contact"],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

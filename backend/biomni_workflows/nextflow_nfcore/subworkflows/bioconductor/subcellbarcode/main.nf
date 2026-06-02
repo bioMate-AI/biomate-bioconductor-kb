@@ -50,12 +50,15 @@ process BIOC_SUBCELLBARCODE {
     # --- svm Classification [] ---
     # Key functions: svmClassification
     set.seed(4)
+    cls <- svmClassification(markerProteins = r.markers,
     # --- plot Barcode [] ---
     # Key functions: plotBarcode
-
+    plotBarcode(sampleClassification = cls.df, protein = "NLRP4",
     # --- plot Multiple Protein [] ---
     # Key functions: plotMultipleProtein
     26S proteasome complex (26s proteasome regulatory complex)
+    proteasome26s <- c("PSMA7", "PSMC3","PSMA4", "PSMB4",
+    plotMultipleProtein(sampleClassification = cls.df, proteinList = proteasome26s)
     # --- sankey Plot [] ---
     # Key functions: sankeyPlot
     sankeyPlot(sampleCls1 = cls.df, sampleCls2 = hcc827GEFClass)

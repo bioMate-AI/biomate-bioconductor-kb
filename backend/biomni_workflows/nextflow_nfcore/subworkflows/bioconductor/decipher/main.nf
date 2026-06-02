@@ -105,9 +105,14 @@ process BIOC_DECIPHER {
     ## dbConn <- dbConnect(dbDriver("SQLite"), ":memory:")
     ## Seqs2DB(AA1, "DNAStringSet", dbConn, "AA1", tblName="AA1")
     ## Seqs2DB(AA2, "DNAStringSet", dbConn, "AA2", tblName="AA2")
+    ## AlignDB(dbConn, tblName=c("AA1", "AA2"), add2tbl="AA",
     # --- Expr8 [] ---
     # Key functions: width, attr
     ## # form a chained guide tree
+    ## gT <- lapply(order(width(dna), decreasing=TRUE),
+    ## 	function(x) {
+    ## 		attr(x, "height") <- 0
+    ## 		attr(x, "label") <- names(dna)[x]
     # --- Expr9 [] ---
     # Key functions: BrowseSeqs
     ## BrowseSeqs(DNA, highlight=0)

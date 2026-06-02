@@ -47,7 +47,9 @@ process BIOC_NANOTUBE {
     color = c("white", "black"))
     # --- Table formatting and display [] ---
     # Key functions: processNanostringData, runLimmaAnalysis, makeDiffExprFile, deVolcano, limmaToFGSEA, kable, ruv_rle, nanostringPCA
-
+    deVolcano(limmaResults, plotContrast = "Autoimmune.retinopathy",
+    geom_hline(yintercept = 2, linetype = "dashed", colour = "darkred") +
+    geom_vline(xintercept = 0.5, linetype = "dashed", colour = "darkred") +
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

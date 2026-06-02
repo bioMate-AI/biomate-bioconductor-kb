@@ -41,31 +41,11 @@ process BIOC_STJOINCOUNT {
     library(stJoincount)
     library(jsonlite)
 
-
-    # --- Set Up [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
     # --- "install" [] ---
-    # Key functions: requireNamespace, install, load, dataPrepFromSeurat, stJoincount, extdata, dataframe.rda, label
-    #  if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    #        install.packages("BiocManager")
-    #    }
-    #  BiocManager::install("stJoincount")
-
-    ## -----------------------------------------------------------------------------
-    fpath <- system.file("extdata", "dataframe.rda", package="stJoincount")
-    load(fpath)
-    head(humanBC)
-
-    ## -----------------------------------------------------------------------------
-    fpath <- system.file("extdata", "SeuratBC.rda", package="stJoincount")
-    load(fpath)
-    df <- dataPrepFromSeurat(seuratBC, "label")
-
+    # Key functions: dataPrepFromSeurat, dataPrepFromSpE, resolutionCalc, rasterizeEachCluster
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("stJoincount")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

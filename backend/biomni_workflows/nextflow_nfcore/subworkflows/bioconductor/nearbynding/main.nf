@@ -47,6 +47,7 @@ process BIOC_NEARBYNDING {
     # load transcript list
     load(system.file("extdata/transcript_list.Rda", package="nearBynding"))
     # get GTF file
+    gtf<-system.file("extdata/Homo_sapiens.GRCh38.chr4&5.gtf",
     # --- Getchainchrsize [] ---
     # Key functions: getChainChrSize
     ---------------------------------------------------------------------
@@ -62,6 +63,10 @@ process BIOC_NEARBYNDING {
     # --- Processcaprout [] ---
     # Key functions: processCapRout
     ---------------------------------------------------------------------
+    processCapRout(CapR_outfile = system.file("extdata/chr4and5_3UTR.out",
+                                                package="nearBynding"),
+                    chain = "test.chain",
+                    output_prefix = "chr4and5_3UTR",
     # --- Bindingcontextdistance [] ---
     # Key functions: bindingContextDistance
     ---------------------------------------------------------------------

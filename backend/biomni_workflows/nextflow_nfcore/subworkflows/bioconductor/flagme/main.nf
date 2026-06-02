@@ -70,6 +70,8 @@ process BIOC_FLAGME {
     Ds <- c(0.1, 10, 0.1, 0.1)
     gaps <- c(0.5, 0.5, 0.1, 0.9)
     par(mfrow=c(2,2), mai=c(0.8466,0.4806,0.4806,0.1486))
+    for(i in 1:4){
+      pa <- peaksAlignment(pd@peaksdata[[1]], pd@peaksdata[[2]],
     # --- Multiplealignment [] ---
     # Key functions: multipleAlignment
     print(targets)

@@ -38,23 +38,17 @@ process BIOC_READQPCR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ReadqPCR)
+    library(LC480)
+    library(LC480SampleInfo)
     library(jsonlite)
 
-
-    # --- Cycles Set [] ---
-    # Key functions: getClass
-    cycData
-    ## Information about class CyclesSet
-    getClass("CyclesSet")
-
-    # --- Merge [] ---
-    # Key functions: phenoData, pData, varMetadata
-    cycData1 <- merge(cycData, samInfo)
-    ## Extended pheno data
-    phenoData(cycData1)
-    head(pData(cycData1))
-    varMetadata(phenoData(cycData1))
+    # --- Expression matrix extraction [] ---
+    # Key functions: path, LC480, exprs, pData, fData, getClass, LC480SampleInfo, phenoData
+    taqman.example <- file.path(path, "example.txt")
+    taqman.example.plateNames <- file.path(path, "exampleWithPlateNames.txt")
+    qPCRBatch.taq.mixedPlateNames <- read.taqman(taqman.example,
+                                        taqman.example.plateNames)
+    head(exprs.well.order(qPCRBatch.taq.mixedPlateNames))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

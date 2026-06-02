@@ -38,27 +38,14 @@ process BIOC_COMPOUNDDB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CompoundDb)
+    library(CompDb)
     library(jsonlite)
 
-
-    # --- Load [] ---
-    # Key functions: CompDb, metadata, compoundVariables, compounds, name, formula, exactmass, compound_id
+    # --- Comp Db [] ---
+    # Key functions: CompDb, metadata, compoundVariables, compounds, supportedFilters
     library(CompoundDb)
     cdb <- CompDb(system.file("sql/CompDb.MassBank.sql", package = "CompoundDb"))
-    cdb
-
-    ## -----------------------------------------------------------------------------
     metadata(cdb)
-
-    ## -----------------------------------------------------------------------------
-    compoundVariables(cdb)
-
-    ## -----------------------------------------------------------------------------
-    head(compounds(cdb, columns = c("name", "formula", "exactmass")))
-
-    ## -----------------------------------------------------------------------------
-    head(compounds(cdb, columns = c("compound_id", "name", "formula")))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

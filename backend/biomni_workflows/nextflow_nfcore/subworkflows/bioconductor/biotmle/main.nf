@@ -48,7 +48,9 @@ process BIOC_BIOTMLE {
     benz_idx <- which(names(colData(illuminaData)) %in% "benzene")
     # --- biomarkerTMLE eval [] ---
     # Key functions: biomarkertmle
-
+    biotmle_out <- biomarkertmle(se = illuminaData[1:20, ],
+    g_lib = c("SL.mean", "SL.glm"),
+    Q_lib = c("SL.bayesglm", "SL.ranger"),
     # --- limmaTMLE eval [] ---
     # Key functions: modtest_ic
     modtmle_out <- modtest_ic(biotmle = biotmle_out)

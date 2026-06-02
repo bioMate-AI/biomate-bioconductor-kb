@@ -49,6 +49,8 @@ process BIOC_GARS {
     # --- chu 2 [] ---
     # Key functions: GARS_GA
     set.seed(123)
+    res_GA <- GARS_GA(data=datanorm,
+    classes = colData(datanorm),
     # --- chu 2 bis [] ---
     # Key functions: FitScore, GARS_PlotFitnessEvolution, AllPop, GARS_PlotFeaturesUsage
     fitness_scores <- FitScore(res_GA)

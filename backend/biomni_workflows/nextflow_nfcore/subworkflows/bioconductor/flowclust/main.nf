@@ -45,6 +45,7 @@ process BIOC_FLOWCLUST {
     # Key functions: flowClust
     data(rituximab)
     summary(rituximab)
+    flowClust(
     # --- criterion [] ---
     # Key functions: criterion
     criterion(res2, "BIC")
@@ -55,7 +56,9 @@ process BIOC_FLOWCLUST {
     summary(res2[[3]])
     # --- flow Clust [] ---
     # Key functions: flowClust
-
+    flowClust(
+    varNames = c("FL1.H", "FL3.H"),
+    min = c(0, 0),
     # --- tmix Filter [] ---
     # Key functions: tmixFilter
     s2filter <- tmixFilter("s2filter", c("FL1.H", "FL3.H"), K = 3, B = 100)
@@ -66,7 +69,9 @@ process BIOC_FLOWCLUST {
     split(rituximab2, res2f, population = list(sc1 = 1:2, sc2 = 3))
     # --- rectangle Gate [] ---
     # Key functions: rectangleGate, tmixFilter
-
+    rectangleGate(
+    "FL1.H" = c(0, 400),
+    "FL3.H" = c(0, 800)
     # --- flow Clust2 Prior [] ---
     # Key functions: flowClust2Prior, flowClust
     set.seed(100)

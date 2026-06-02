@@ -41,16 +41,11 @@ process BIOC_PANDAR {
     library(pandaR)
     library(jsonlite)
 
-
-    # --- Plot Z [] ---
-    # Key functions: with, panda, rnorm, prod, plotZ, sessionInfo
+    # --- rnorm [] ---
+    # Key functions: rnorm, plotZ
     panda.res1 <- with(pandaToyData, panda(motif, expression, ppi, hamming=1))
-    panda.res2 <- with(pandaToyData, panda(motif, expression + 
-                       rnorm(prod(dim(expression)),sd=5), ppi, hamming=1))
-    plotZ(panda.res1, panda.res2,addLine=FALSE)
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
+    panda.res2 <- with(pandaToyData, panda(motif, expression +
+    rnorm(prod(dim(expression)),sd=5), ppi, hamming=1))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,16 +43,17 @@ process BIOC_PAST {
 
     # --- loading gwas data [] ---
     # Key functions: load_GWAS_data
-
+    gwas_data <- load_GWAS_data(demo_association_file,
     # --- loading ld data [] ---
     # Key functions: load_LD
     LD <- load_LD(demo_LD_file)
     # --- assigning SNPs [] ---
     # Key functions: assign_SNPs_to_genes
-
+    genes <-assign_SNPs_to_genes(gwas_data,
+    c("gene"),
     # --- find_pathway_significance [] ---
     # Key functions: find_pathway_significance
-
+    rugplots_data <- find_pathway_significance(genes,
     # --- plot_pathways [] ---
     # Key functions: plot_pathways, tempdir
     plot_pathways(rugplots_data,

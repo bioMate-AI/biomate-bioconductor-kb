@@ -54,21 +54,23 @@ process BIOC_KNOWSEQ {
     # --- Download Gene Annotation [] ---
     # Key functions: getGenesAnnotation
     myAnnotation <- getGenesAnnotation(rownames(countsMatrix))
+    myAnnotationMusMusculus <- getGenesAnnotation(rownames(countsMatrix),
     # --- Calculate Gene Expression [] ---
     # Key functions: calculateGeneExpressionValues
-
+    expressionMatrix <- calculateGeneExpressionValues(countsMatrix,myAnnotation,
     # --- Plot Expression Boxplot [] ---
     # Key functions: dataPlot
-
+    dataPlot(expressionMatrix,labels,mode = "boxplot", toPNG = TRUE,
     # --- Remove Batch Effect (ComBat) [] ---
     # Key functions: batchEffectRemoval
     batchGroups <- c(1,1,1,1,2,2,1,2,1,2)
+    expressionMatrixCorrected <- batchEffectRemoval(expressionMatrix, labels,
     # --- Remove Batch Effect (SVA) [] ---
     # Key functions: batchEffectRemoval
     expressionMatrixCorrected <- batchEffectRemoval(expressionMatrix, labels, method = "sva")
     # --- Extract Differentially Expressed Genes [] ---
     # Key functions: DEGsExtraction
-
+    DEGsInformation <- DEGsExtraction(expressionMatrixCorrected, labels,
     # --- Plotting orderded boxplot [] ---
     # Key functions: dataPlot
     dataPlot(DEGsMatrix[1:12,],labels,mode = "orderedBoxplot",toPNG = FALSE,toPDF = FALSE)
@@ -85,13 +87,13 @@ process BIOC_KNOWSEQ {
     rfRanking <- featureSelection(DEGsMatrixML,labels,colnames(DEGsMatrixML), mode = "rf")
     # --- Plotting ML acc [] ---
     # Key functions: dataPlot
-
+    dataPlot(rbind(results_cv_knn$accuracy$meanAccuracy,results_cv_knn$accuracy$standardDeviation),mode = "classResults", legend = c("Mean Acc","Standard Deviation"),
     # --- Plotting ML sens [] ---
     # Key functions: dataPlot
-
+    dataPlot(rbind(results_cv_knn$sensitivity$meanSensitivity,results_cv_knn$sensitivity$standardDeviation),mode = "classResults", legend = c("Mean Sens","Standard Deviation"),
     # --- Plotting ML spec [] ---
     # Key functions: dataPlot
-
+    dataPlot(rbind(results_cv_knn$specificity$meanSpecificity,results_cv_knn$specificity$standardDeviation),mode = "classResults", legend = c("Mean Spec","Standard Deviation"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

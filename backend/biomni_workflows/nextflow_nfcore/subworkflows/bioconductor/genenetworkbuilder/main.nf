@@ -53,7 +53,9 @@ process BIOC_GENENETWORKBUILDER {
     bind<-cbind(from="daf-16", to=c("zip-2", "zip-4", "nhr-3", "nhr-66"))
     # --- export Network [] ---
     # Key functions: exportNetwork, saveXML, textConnection
-
+    exportNetwork(browseNetwork(gR),
+    file=tempfile(fileext = ".network.xgmml"),
+    library("XML")
     # --- build Network [] ---
     # Key functions: buildNetwork, filterNetwork, convertID, polishNetwork, browseNetwork
     library(GeneNetworkBuilder)

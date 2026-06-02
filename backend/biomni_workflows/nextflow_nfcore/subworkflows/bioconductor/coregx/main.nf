@@ -38,7 +38,7 @@ process BIOC_COREGX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CoreGx)
+    library(TREDataMapper)
     library(jsonlite)
 
 

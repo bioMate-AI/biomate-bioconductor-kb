@@ -48,7 +48,9 @@ process BIOC_BNBC {
     colData=colData(cgEx))
     # --- data to bnbc [] ---
     # Key functions: ContactGroup
-
+    MatsList <- lapply(upper.mats.list, function(M) {
+    M[lower.tri(M)] <- M[upper.tri(M)]
+    cg <- ContactGroup(rowData = LociData, contacts = MatsList, colData = SampleData)
     # --- band [] ---
     # Key functions: band
     mat.1 <- contacts(cgEx)[[1]]

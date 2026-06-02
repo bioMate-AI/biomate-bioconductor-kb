@@ -70,12 +70,24 @@ process BIOC_TRAJECTORYGEOMETRY {
     # --- Plotpathprojectioncenterandcircle [] ---
     # Key functions: plotPathProjectionCenterAndCircle, cut
     ---------------------------------------------------------------------
+    plotPathProjectionCenterAndCircle(path=cholPath[,1:3],
+        projection=cholAnswerPermutation$sphericalData$projections,
+        center=cholAnswerPermutation$sphericalData$center,
+        radius=cholAnswerPermutation$sphericalData$distance,
     # --- Analysesinglecelltrajectory [] ---
     # Key functions: analyseSingleCellTrajectory
     ---------------------------------------------------------------------
+    chol_answers = analyseSingleCellTrajectory(attributes = chol_attributes[,1:3],
+        pseudotime = chol_pseudo_time_normalised,
+        randomizationParams = c('byPermutation','permuteWithinColumns'),
+        statistic = "mean",
     # --- Analysebranchpoint [] ---
     # Key functions: analyseBranchPoint
     ---------------------------------------------------------------------
+    chol_branch_point_results = analyseBranchPoint(chol_attributes[,1:3],
+                                            chol_pseudo_time,
+                                            randomizationParams = c("byPermutation",
+                                                            "permuteWithinColumns"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

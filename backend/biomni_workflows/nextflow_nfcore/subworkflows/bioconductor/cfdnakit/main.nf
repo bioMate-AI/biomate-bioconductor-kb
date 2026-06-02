@@ -44,21 +44,26 @@ process BIOC_CFDNAKIT {
     # --- read a bam file and splited into 1000 KB non [] ---
     # Key functions: read_bamfile
     library(cfdnakit)
+    sample_bamfile <- system.file("extdata",
+    plasma_SampleBam <- read_bamfile(sample_bamfile,
     # --- plot fragment length distribution [] ---
     # Key functions: plot_fragment_dist
     plot_fragment_dist(list("Plasma.Sample"=plasma_SampleBam))
     # --- plot fragment length distribution comparing to a healthy cfDNA [] ---
     # Key functions: plot_fragment_dist
-
+    comparing_list <- list("Healthy.cfDNA"=control_bins,
+    plot_fragment_dist(comparing_list)
     # --- getting fragment length profile [] ---
     # Key functions: get_fragment_profile
-
+    get_fragment_profile(sample_bins,
     # --- plot_sl_ratio [] ---
     # Key functions: plot_sl_ratio
-
+    system.file("extdata",
+    patient.SampleFragment <- readRDS(patient.SampleFragment.file)
+    plot_sl_ratio(patient.SampleFragment)
     # --- Reading PoN samples [] ---
     # Key functions: get_zscore_profile
-
+    get_zscore_profile(patient.SampleFragment,
     # --- Reading PoN samples and plot scaled value [] ---
     # Key functions: segmentByPSCB, plot_transformed_sl
     sample_zscore_segment <- segmentByPSCB(sample_zscore)

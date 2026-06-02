@@ -46,6 +46,8 @@ process BIOC_FELLA {
     library(FELLA)
     set.seed(1)
     # Filter overview pathways
+    graph <- buildGraphFromKEGGREST(
+        organism = "hsa",
     # --- 01 Database [] ---
     # Key functions: tempdir, unlink, buildDataFromGraph
     tmpdir <- paste0(tempdir(), "/my_database")
@@ -88,6 +90,10 @@ process BIOC_FELLA {
     # --- 04 Go [] ---
     # Key functions: addGOToGraph
     # GO:0005739 is the term for mitochondrion
+    g.go <- addGOToGraph(
+        graph = g,
+        GOterm = "GO:0005739",
+        godata.options = list(
     # --- 04 Plot Go [] ---
     # Key functions: plotGraph
     plotGraph(
@@ -110,14 +116,24 @@ process BIOC_FELLA {
     # --- 04 File [] ---
     # Key functions: tempfile, exportResults
     tmpfile <- tempfile()
+    exportResults(
+        format = "csv",
+        file = tmpfile,
+        method = "diffusion",
     # --- 04 Pajek [] ---
     # Key functions: tempfile, exportResults
     tmpfile <- tempfile()
+    exportResults(
+        format = "pajek",
+        file = tmpfile,
+        method = "diffusion",
     # --- 05 [] ---
     # Key functions: enrich
     compounds.ovarian <- c(
         "C00275", "C00158", "C00042",
         "C00346", "C00122", "C06468")
+    analysis.ovarian <- enrich(
+        compounds = compounds.ovarian,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

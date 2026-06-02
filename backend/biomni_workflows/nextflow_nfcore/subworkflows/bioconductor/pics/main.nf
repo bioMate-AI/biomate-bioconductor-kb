@@ -51,6 +51,7 @@ process BIOC_PICS {
     # Key functions: segmentPICS, PICS, picsFDR
     segC <- segmentPICS(dataCont, dataC = dataIP, map = map, minReads = 1)
     picsC <- PICS(segC)
+    fdr <- picsFDR(pics, picsC, filter = list(delta = c(50, Inf), se = c(0, 50),
     # --- make G Ranges Output [] ---
     # Key functions: makeGRangesOutput
     plot(fdr[, c(3, 1)])

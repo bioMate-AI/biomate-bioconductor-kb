@@ -67,7 +67,11 @@ process BIOC_GIRAFE {
     detail(exAI[seqnames(exAI)=="chrMT"])
     # --- Setuptoy [] ---
     # Key functions: AlignedGenomeIntervals, detail
-
+    D <- AlignedGenomeIntervals(
+         start=c(1,3,4,5,8,10,11), end=c(5,5,6,8,9,11,13),
+         chromosome=rep(c("chr1","chr2","chr3"), c(2,2,3)),
+         strand=c("-","-","+","+","+","+","+"),
+         sequence=c("ACATT","ACA","CGT","GTAA","AG","CT","TTT"),
     # --- Showreducedata [] ---
     # Key functions: seqnames, matches, detail
     S <- exAI[seqnames(exAI)=="chrX" & matches(exAI)==1L & exAI[,1]>1e8]

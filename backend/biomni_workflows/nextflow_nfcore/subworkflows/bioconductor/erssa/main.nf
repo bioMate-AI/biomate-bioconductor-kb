@@ -41,38 +41,13 @@ process BIOC_ERSSA {
     library(ERSSA)
     library(jsonlite)
 
-
-    # --- Out Width = "500px" [] ---
-    # Key functions: include_graphics
-    knitr::include_graphics("Figures/GTEx/ERSSA_plot_1_NumOfDEGenes_N10_title.png")
-
-    # --- Out Width = "500px" [] ---
-    # Key functions: include_graphics, full, partial
-    knitr::include_graphics("Figures/GTEx/ERSSA_plot_1_NumOfDEGenes_N25_title.png")
-
-    ## -----------------------------------------------------------------------------
+    # --- Data [] ---
+    # Key functions: data
+    ---------------------------------------------------------------------
     library(ERSSA)
-
     # GTEx dataset with 10 heart and 10 muscle samples
     # "full"" dataset contains all ensembl genes
     data(condition_table.full)
-    data(count_table.full)
-
-    # --- Out Width = "500px" [] ---
-    # Key functions: include_graphics
-    knitr::include_graphics("Figures/GTEx/ERSSA_plot_1_NumOfDEGenes.png")
-
-    # --- Out Width = "500px" [] ---
-    # Key functions: include_graphics
-    knitr::include_graphics("Figures/GTEx/ERSSA_plot_2_MarginalNumOfDEGenes.png")
-
-    # --- Out Width = "500px" [] ---
-    # Key functions: include_graphics
-    knitr::include_graphics("Figures/GTEx/ERSSA_plot_3_IntersectDEGenes.png")
-
-    # --- Out Width = "500px" [] ---
-    # Key functions: include_graphics
-    knitr::include_graphics("Figures/GTEx/ERSSA_plot_4_FPRvTPRPlot.png")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

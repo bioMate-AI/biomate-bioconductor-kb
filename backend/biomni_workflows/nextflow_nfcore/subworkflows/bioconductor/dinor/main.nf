@@ -56,7 +56,9 @@ process BIOC_DINOR {
     assays(NomeData)[7:12]
     # --- di N O Me Test [] ---
     # Key functions: diNOMeTest
-
+    res <- diNOMeTest(NomeData,
+    WTsamples = c("WT_1", "WT_2"),
+    KOsamples = c("AdnpKO_1", "AdnpKO_2")
     # --- Custom ggplot2 visualization [] ---
     # Key functions: group_by, summarize, ggplot, geom_bar, facet_grid
     group_by(contrasts, motif, regulated) %>%
@@ -73,7 +75,9 @@ process BIOC_DINOR {
     fpPercHeatmap(footprint_percentages)
     # --- compare Footprints [] ---
     # Key functions: compareFootprints
-
+    compareFootprints(footprint_percentages, res,
+    WTsamples = c("WT_1", "WT_2"),
+    KOsamples = c("AdnpKO_1", "AdnpKO_2"), plotcols =
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

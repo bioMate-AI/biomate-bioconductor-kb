@@ -41,78 +41,11 @@ process BIOC_XEVA {
     library(Xeva)
     library(jsonlite)
 
-
-    # --- L2 [] ---
-    # Key functions: modelInfo, getExperiment, batchInfo
-    data(brca)
-    print(brca)
-    brca.mod <- modelInfo(brca)
-    dim(brca.mod)
-    brca.mod[1:4, ]
-    model.data <- getExperiment(brca, model.id = "X.1004.BG98")
-    head(model.data)
-    batch.name <- batchInfo(brca)
-    batch.name[1:4]
-
-    # --- Batch2 [] ---
-    # Key functions: batchInfo, plotPDX, paclitaxel, untreated
-    batchInfo(brca, batch = "X-1004.binimetinib")
-    plotPDX(brca, batch = "X-4567.BKM120")
-    plotPDX(brca, batch = "X-4567.BKM120", vol.normal = TRUE, control.col = "#a6611a",
-            treatment.col = "#018571", major.line.size = 1, max.time = 40)
-    plotPDX(brca, patient.id="X-3078", drug="paclitaxel",control.name = "untreated")
-
-    # --- Repplot1 [] ---
-    # Key functions: plotPDX, repdx, errorbar, ribbon, summarizeResponse, mRECIST
-    data("repdx")
-    plotPDX(repdx, vol.normal = TRUE, batch = "P1")
-    plotPDX(repdx, batch = "P3", SE.plot = "errorbar")
-    plotPDX(repdx, batch = "P4", vol.normal = TRUE,  SE.plot = "ribbon")
-    brca.mr <- summarizeResponse(brca, response.measure = "mRECIST")
-    brca.mr[1:5, 1:4]
-
-    # --- Water Fall1 [] ---
-    # Key functions: waterfall, binimetinib, best.average.response, summarizeMolecularProfiles, exprs, mutation, response, repdx
-    waterfall(brca, drug="binimetinib", res.measure="best.average.response")
+    # --- BatchInfo analysis [] ---
+    # Key functions: install_github, batchInfo, plotPDX, waterfall, summarizeMolecularProfiles, response, drugSensitivitySig
     mut <- summarizeMolecularProfiles(brca,drug = "BYL719", mDataType="mutation")
     model.type <- Biobase::exprs(mut)["CDK13", ]
     model.type[grepl("Mut", model.type)] <- "mutation"
-    model.type[model.type!="mutation"] <- "wild type"
-    model.color <- list("mutation"="#b2182b", "wild type"="#878787")
-    waterfall(brca, drug="BYL719", res.measure="best.average.response",
-              model.id=names(model.type), model.type= model.type,
-              type.color = model.color)
-    data("repdx")
-    response(repdx, batch="P1", res.measure="angle")
-    data("repdx")
-    response(repdx, batch="P1", res.measure="lmm")
-
-    # --- Biomarker1 [] ---
-    # Key functions: drugSensitivitySig, tamoxifen, slope, best.average.response, pearson, extdata, model.csv
-    data(brca)
-    drugSensitivitySig(object=brca, drug="tamoxifen", mDataType="RNASeq",
-                       features=c(1,2,3,4,5), sensitivity.measure="slope", fit="lm")
-    data(brca)
-    drugSensitivitySig(object=brca, drug="tamoxifen", mDataType="RNASeq",
-                       features=c(1,2,3,4,5),
-                       sensitivity.measure="best.average.response", fit = "lm")
-    data(brca)
-    drugSensitivitySig(object=brca, drug="tamoxifen", mDataType="RNASeq",
-                       features=c(1,2,3,4,5),
-                       sensitivity.measure="best.average.response", fit="pearson")
-    model=read.csv(system.file("extdata", "model.csv", package = "Xeva"))
-    head(model)
-
-    # --- X2 [] ---
-    # Key functions: extdata, drug.csv, experiments.csv, readRDS, batch_list.rds, rnaseq.rds
-    drug=read.csv(system.file("extdata", "drug.csv", package = "Xeva"))
-    head(drug)
-    experiment=read.csv(system.file("extdata","experiments.csv",package="Xeva"))
-    head(experiment)
-    expDesign=readRDS(system.file("extdata","batch_list.rds",package="Xeva"))
-    expDesign[[1]]
-    RNASeq=readRDS(system.file("extdata", "rnaseq.rds", package = "Xeva"))
-    print(RNASeq)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -39,6 +39,7 @@ process BIOC_PHARMACOGX {
     """
     #!/usr/bin/env Rscript
     library(PharmacoGx)
+    library(knitcitations)
     library(jsonlite)
 
 

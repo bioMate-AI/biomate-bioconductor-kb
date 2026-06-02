@@ -61,12 +61,14 @@ process BIOC_ARRAYMVOUT {
     ## library(MAQCsubset)
     ## if (!exists("afxsub")) data(afxsub)
     ## sn = sampleNames(afxsub)
+    ## if (nchar(sn)[1] > 6) {
     # --- Lkadas [] ---
     # Key functions: AffyRNAdeg, plotAffyRNAdeg
     ## #afxsubDEG = AffyRNAdeg(afxsub)
     ## #save(afxsubDEG, file="afxsubDEG.rda")
     ## library(arrayMvout)
     ## data(afxsubDEG)
+    ## plotAffyRNAdeg(afxsubDEG,
     # --- Asdad [] ---
     # Key functions: qc
     ## #afxsubQC = qc(afxsub)

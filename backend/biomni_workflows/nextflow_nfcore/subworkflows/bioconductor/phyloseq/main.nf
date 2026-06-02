@@ -65,6 +65,7 @@ process BIOC_PHYLOSEQ {
     # Key functions: geom_point, geom_line, facet_wrap, distance
     (p12 <- plot_ordination(GlobalPatterns, GloPa.pcoa, "samples", color="SampleType") +
     geom_point(size=5) + geom_path() + scale_colour_hue(guide = FALSE) )
+    (p13 <- plot_ordination(GlobalPatterns, GloPa.pcoa, "samples", axes=c(1, 3),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

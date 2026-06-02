@@ -45,6 +45,7 @@ process BIOC_DAMEFINDER {
     # Key functions: colData, GRanges, dame_track, methyl_circle_plot, methyl_circle_plotCpG
     put SNP in GRanges (you can find the SNP with the dame_track function)
     snp <- GRanges(19, IRanges(267039, width = 1)) #always set the width if your
+    bam.file <- system.file("extdata", "CRC1_chr19_trim.bam",
     # --- Dame track analysis [] ---
     # Key functions: dame_track, dame_track_mean, methyl_MDS_plot
     grp <- factor(c(rep("CRC",3),rep("NORM",2)), levels = c("NORM", "CRC"))

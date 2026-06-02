@@ -45,6 +45,7 @@ process BIOC_PROTGEAR {
     # Key functions: prcomp, get_pca_var, fviz_pca_ind, fviz_pca_biplot, theme_minimal
     res_pca <- prcomp( norm_df, scale = TRUE)
     var <- get_pca_var(res_pca)
+    p1 <- fviz_pca_ind(res_pca,
     # --- Custom ggplot2 visualization [] ---
     # Key functions: sym, ggplot, geom_violin, ylab, theme_minimal, ggtitle, gather, geom_boxplot
     less_20 <- rlang::sym(paste0("CV <= ",cv_cut_off, "_perc"))
@@ -52,7 +53,9 @@ process BIOC_PROTGEAR {
     less_20_per <-  rlang::sym(paste0("% CV <=",cv_cut_off))
     # --- Table formatting and display [] ---
     # Key functions: array_vars, visualize_slide, visualize_slide_2d, map, set_names, ldply, plot_FB, plot_bg
-
+    dataCV_best2 <- purrr::map(.x=dataCV, .f=best_CV_estimation , slide_id="iden",lab_replicates=3,
+    dataCV_best2 <- set_names(dataCV_best2, purrr::map(filenames, name_of_files))
+    dataCV_sample_best2 <- purrr::map(.x=dataCV_best2, .f=cv_by_sample_estimation ,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -86,6 +86,9 @@ process BIOC_IMMUNOTATION {
     # Key functions: build_allele_group, query_allele_frequencies
     ---------------------------------------------------------------------
     hla_selection <- build_allele_group("A*01:02")
+    sel1 <- query_allele_frequencies(hla_selection = hla_selection,
+                                    hla_sample_size_pattern = "bigger_than",
+                                    hla_sample_size = 200,
     # --- Query Allele Frequencies [] ---
     # Key functions: query_allele_frequencies, datatable
     ---------------------------------------------------------------------

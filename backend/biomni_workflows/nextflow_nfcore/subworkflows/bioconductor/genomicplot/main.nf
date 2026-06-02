@@ -41,66 +41,11 @@ process BIOC_GENOMICPLOT {
     library(GenomicPlot)
     library(jsonlite)
 
-
-    # --- Global Code [] ---
-    # Key functions: suppressPackageStartupMessages, loadDb, extdata, txdb.sql
-    suppressPackageStartupMessages(library(GenomicPlot, quietly = TRUE))
-
-    txdb <- AnnotationDbi::loadDb(system.file("extdata", "txdb.sql", 
-                                              package = "GenomicPlot"))
-
-    # --- Metagene Code [] ---
-    # Key functions: setImportParams, plot_5parts_metagene, extdata, treat_chr19.bam, clip_bam, input_chr19.bam, clip_input, start
-    data(gf5_meta)
-
-    queryfiles <- system.file("extdata", "treat_chr19.bam", 
-                              package = "GenomicPlot")
-    names(queryfiles) <- "clip_bam"
-    inputfiles <- system.file("extdata", "input_chr19.bam", 
-                              package = "GenomicPlot")
-    names(inputfiles) <- "clip_input"
-
-    # --- Region Code [] ---
-    # Key functions: setImportParams, plot_region, extdata, test_chip_peak_chr19.narrowPeak, chip_treat_chr19.bam, chip_bam, chip_input_chr19.bam, chip_input
-    centerfiles <- system.file("extdata", "test_chip_peak_chr19.narrowPeak", 
-                               package = "GenomicPlot")
-    names(centerfiles) <- c("NarrowPeak")
-    queryfiles <- c(
-      system.file("extdata", "chip_treat_chr19.bam", package = "GenomicPlot")
-    )
-    names(queryfiles) <- c("chip_bam")
-    inputfiles <- c(
-      system.file("extdata", "chip_input_chr19.bam", package = "GenomicPlot")
-    )
-
-    # --- Locus Code [] ---
-    # Key functions: plot_locus, extdata, test_clip_peak_chr19.bed, test_chip_peak_chr19.bed, iCLIPPeak, chip_treat_chr19.bam, chip_bam, chip_input_chr19.bam
-    centerfiles <- c(
-      system.file("extdata", "test_clip_peak_chr19.bed", package = "GenomicPlot"),
-      system.file("extdata", "test_chip_peak_chr19.bed", package = "GenomicPlot")
-    )
-    names(centerfiles) <- c("iCLIPPeak", "SummitPeak")
-    queryfiles <- c(
-      system.file("extdata", "chip_treat_chr19.bam", package = "GenomicPlot")
-    )
-    names(queryfiles) <- c("chip_bam")
-    # --- Annotation Code [] ---
-    # Key functions: setImportParams, plot_peak_annotation, extdata, gencode.v19.annotation_chr19.gtf, test_chip_peak_chr19.bed, center, hg19
-    gtffile <- system.file("extdata", "gencode.v19.annotation_chr19.gtf", 
-                           package = "GenomicPlot")
-
-    centerfile <- system.file("extdata", "test_chip_peak_chr19.bed", 
-                              package = "GenomicPlot")
+    # --- LoadDb analysis [] ---
+    # Key functions: install_github, loadDb, setImportParams, plot_5parts_metagene, plot_region, plot_locus, plot_peak_annotation, plot_bam_correlation
+    gtffile <- system.file("extdata", "gencode.v19.annotation_chr19.gtf",
+    centerfile <- system.file("extdata", "test_chip_peak_chr19.bed",
     names(centerfile) <- c("SummitPeak")
-
-    # --- Bam Correlation [] ---
-    # Key functions: setImportParams, plot_bam_correlation, extdata, chip_input_chr19.bam, chip_treat_chr19.bam, chip_input, chip_treat, start
-    bamQueryFiles <- c(
-       system.file("extdata", "chip_input_chr19.bam", package = "GenomicPlot"),
-       system.file("extdata", "chip_treat_chr19.bam", package = "GenomicPlot")
-    )
-    names(bamQueryFiles) <- c("chip_input", "chip_treat")
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

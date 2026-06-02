@@ -45,15 +45,20 @@ process BIOC_RJMCMCNUCLEOSOMES {
     # --- synthetic Nuc Reads From Dist [] ---
     # Key functions: syntheticNucReadsFromDist
     library(nucleoSim)
+    sample <- nucleoSim::syntheticNucReadsFromDist(wp.num=val.num,
+    plot(sample)
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, segmentation
     library(GenomicRanges)
+    sampleGRanges <- GRanges(seqnames = sample$dataIP$chr,
+    ranges = IRanges(start = sample$dataIP$start,
     # --- rjmcmc [] ---
     # Key functions: rjmcmc
-
+    resultSegment01 <- rjmcmc(reads  = segment01, nbrIterations = 100000,
     # --- merge All R D S Files From Directory [] ---
     # Key functions: mergeAllRDSFilesFromDirectory
-
+    directory <- system.file("extdata", "demo_vignette",
+    resultsAllMerged <- mergeAllRDSFilesFromDirectory(directory)
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, postTreatment
     reads <- GRanges(sample$dataIP)
@@ -62,6 +67,8 @@ process BIOC_RJMCMCNUCLEOSOMES {
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, GRangesList, plotNucleosomes
     reads <-GRanges(sample$dataIP)
+    resultsBeforeAndAfter <- list(Sample = c(sample$wp$nucleopos,
+    resultsBeforeAndAfter <- GRangesList(Sample = GRanges(
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, seqnames, rjmcmcCHR
     data(syntheticNucleosomeReads)

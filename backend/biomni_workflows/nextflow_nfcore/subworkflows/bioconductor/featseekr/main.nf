@@ -44,6 +44,8 @@ process BIOC_FEATSEEKR {
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: simData, pheatmap
     set.seed(111)
+    sim <- simData(conditions=conditions, n_latent_factors=latent_factors,
+    dim(assay(sim, "data"))
     # --- FeatSeek analysis [] ---
     # Key functions: FeatSeek, plotSelectedFeatures, aperm, dimnames, plotVarianceExplained
     data("subSampleForStabilitySelection", package="DmelSGI")

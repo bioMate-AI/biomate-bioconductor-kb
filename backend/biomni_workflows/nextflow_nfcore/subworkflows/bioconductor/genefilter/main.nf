@@ -53,10 +53,14 @@ process BIOC_GENEFILTER {
     sum(wh3)
     # --- selectfun [] ---
     # Key functions: selectfun, scale, Aggregate
-
+    knnCV <- function(x, selectfun, cov, Agg, pselect = 0.01, scale=FALSE) {
+    nc <- ncol(x)
+    outvals <- rep(NA, nc)
     # --- ttest [] ---
     # Key functions: ttest, filterfun, genefilter
-
+    gfun <- function(expr, cov, p=0.05) {
+    f2 <- ttest(cov, p=p)
+    ffun <- filterfun(f2)
     # --- genescale [] ---
     # Key functions: genescale, new, knnCV
     library("class")

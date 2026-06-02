@@ -38,85 +38,14 @@ process BIOC_DMRSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(dmrseq)
+    library(BSseq)
     library(jsonlite)
 
-
-    # --- Bismarkinput [] ---
-    # Key functions: read.bismark, getCoverage, seqnames, start, pData, sampleNames
-    library(dmrseq)
-    infile <- system.file("extdata/test_data.fastq_bismark.bismark.cov.gz",
-                            package = 'bsseq')
-    bismarkBSseq <- read.bismark(files = infile,
-                                   rmZeroCov = TRUE,
-                                   strandCollapse = FALSE,
-                                   verbose = TRUE)
-    bismarkBSseq
-    data("BS.chr21")
-    M <- getCoverage(BS.chr21, type="M")
-    Cov <- getCoverage(BS.chr21, type="Cov")
-    chr <- as.character(seqnames(BS.chr21))
-    pos <- start(BS.chr21)
-    celltype <- pData(BS.chr21)$CellType
-    sampleNames <- sampleNames(BS.chr21)
-
-    # --- From Scratch [] ---
-    # Key functions: BSseq, show
-    head(M)
-    head(Cov)
-    head(chr)
-    head(pos)
-
-    dim(M)
-    dim(Cov)
-    length(chr)
-    length(pos)
-
-    rm(M, Cov, pos, chr, bismarkBSseq)
-
-    # --- Meta [] ---
-    # Key functions: pData, substr, rowSums2, getCoverage, imr90
+    # --- Phenotype data inspection [] ---
+    # Key functions: BSseq, pData, dmrseq, getCoverage, start, sampleNames, show, register
     pData(bs)$CellType <- celltype
-    pData(bs)$Replicate <- substr(sampleNames, 
-                                  nchar(sampleNames), nchar(sampleNames))
-
-    pData(bs)
-    # which loci and sample indices to keep
-    loci.idx <- which(DelayedMatrixStats::rowSums2(getCoverage(bs, type="Cov")==0) == 0)
-    sample.idx <- which(pData(bs)$CellType %in% c("imr90", "h1"))
-
-    bs.filtered <- bs[loci.idx, sample.idx]
-
-    # --- Results="hide" [] ---
-    # Key functions: dmrseq
-    rm(bs.filtered)
-    testCovariate <- "CellType"
-    regions <- dmrseq(bs=bs[240001:260000,],
-                      cutoff = 0.05,
-                      testCovariate=testCovariate)
-
-    # --- Showresults [] ---
-    # Key functions: show, dmrseq
-    show(regions)
-    testCovariate <- "CellType"
-    blocks <- dmrseq(bs=bs[120001:125000,],
-                      cutoff = 0.05,
-                      testCovariate=testCovariate,
-                      block = TRUE,
-                      minInSpan = 500,
-                      bpSpan = 5e4,
-                      maxGapSmooth = 1e6,
-                      maxGap = 5e3)
-    head(blocks)
-
-    # --- Hyper [] ---
-    # Key functions: getAnnot, plotDMRs, hg18
-    sum(sigRegions$stat > 0) / length(sigRegions)
-    # get annotations for hg18
-    annoTrack <- getAnnot("hg18")
-
-    plotDMRs(bs, regions=regions[1,], testCovariate="CellType",
-        annoTrack=annoTrack)
+    pData(bs)$Replicate <- substr(sampleNames,
+    nchar(sampleNames), nchar(sampleNames))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

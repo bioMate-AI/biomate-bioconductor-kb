@@ -38,16 +38,14 @@ process BIOC_BIOGA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BioGA)
+    library(SummarizedExperiment)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-        collapse = TRUE,
-        comment = "#>"
-    )
+    # --- installation from github [] ---
+    # Key functions: install_github, SummarizedExperiment, assay, initialize_population_cpp
+    devtools::install_github("danymukesha/BioGA")
+    library(BioGA)
+    library(SummarizedExperiment)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

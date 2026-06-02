@@ -50,16 +50,22 @@ process BIOC_SITADELA {
     # Key functions: loadAnnotation
     genes <- loadAnnotation(genome="mm10",refdb="ensembl",type="gene",db=myDb)
     utrs <- loadAnnotation(genome="mm10",refdb="ensembl",type="utr",db=myDb)
+    sumEx <- loadAnnotation(genome="mm10",refdb="ensembl",type="exon",
     # --- tempfile [] ---
     # Key functions: tempfile, addCustomAnnotation, loadAnnotation, unlink
-
+    gtf <- system.file(package="sitadela","extdata",
+    chrom <- system.file(package="sitadela","extdata",
+    chromInfo <- read.delim(chrom,header=FALSE,row.names=1)
     # --- add Custom Annotation [] ---
     # Key functions: addCustomAnnotation, loadAnnotation
     customDir <- file.path(tempdir(),"test_custom")
     dir.create(customDir)
+    if (.Platform$OS.type == "unix" && !grepl("^darwin",R.version$os)) {
     # --- add Annotation [] ---
     # Key functions: addAnnotation
-
+    organisms <- list(
+    sources <- c("ensembl","ucsc","refseq","ncbi")
+    addAnnotation(organisms,sources,forceDownload=FALSE,rc=0.5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

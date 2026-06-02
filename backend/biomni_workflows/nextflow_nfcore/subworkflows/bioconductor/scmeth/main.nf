@@ -41,39 +41,10 @@ process BIOC_SCMETH {
     library(scmeth)
     library(jsonlite)
 
-
-    # --- Warning=false [] ---
-    # Key functions: loadHDF5SummarizedExperiment, coverage, extdata, bismark_data
-    directory <- system.file("extdata", "bismark_data", package='scmeth')
-    bsObject <- HDF5Array::loadHDF5SummarizedExperiment(directory)
-
-    ## -----------------------------------------------------------------------------
+    # --- Coverage [] ---
+    # Key functions: coverage
+    ---------------------------------------------------------------------
     scmeth::coverage(bsObject)
-
-    # --- Warning=false [] ---
-    # Key functions: load, repMask, extdata, mm10
-    library(BSgenome.Mmusculus.UCSC.mm10)
-    load(system.file("extdata", 'bsObject.rda', package='scmeth'))
-    repMask(bs, Mmusculus, "mm10")
-
-    # --- Warning=false [] ---
-    # Key functions: chromosomeCoverage
-    chromosomeCoverage(bsObject)
-
-    # --- Warning=false [] ---
-    # Key functions: datatable, featureCoverage, hg38
-    #library(annotatr)
-    featureList <- c('cpg_islands', 'cpg_shores', 'cpg_shelves')
-    DT::datatable(featureCoverage(bsObject, features=featureList, "hg38"))
-
-    # --- Warning=false [] ---
-    # Key functions: datatable, cpgDensity
-    library(BSgenome.Hsapiens.NCBI.GRCh38)
-    DT::datatable(cpgDensity(bsObject, Hsapiens, windowLength=1000, small=TRUE))
-
-    # --- Warning=false [] ---
-    # Key functions: datatable, downsample
-    DT::datatable(scmeth::downsample(bsObject))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

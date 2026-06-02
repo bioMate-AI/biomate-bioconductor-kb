@@ -99,6 +99,8 @@ process BIOC_CNORFUZZY {
     N = 1
     allRes = list()
     paramsList$verbose=TRUE
+    for (i in 1:N){
+        Res = CNORwrapFuzzy(CNOlistToy, ToyModel, paramsList=paramsList)
     # --- Compilemultires [] ---
     # Key functions: compileMultiRes
     summary = compileMultiRes(allRes,show=FALSE)

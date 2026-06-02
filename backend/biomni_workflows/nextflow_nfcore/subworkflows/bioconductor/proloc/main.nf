@@ -44,9 +44,13 @@ process BIOC_PROLOC {
     # --- Normalize protein intensities [] ---
     # Key functions: quantify, normalise, processingData
     data(itraqdata)
+    itraqdata <- quantify(itraqdata, method = "trap",
+    head(exprs(itraqdata), n = 3)
     # --- Expression matrix extraction [] ---
     # Key functions: setStockcol, dir, readMSnSet, readMSnSet2, getEcols, grepEcols, exprs, getMarkers
-
+    f1 <- dir(system.file("extdata", package = "pRolocdata"),
+    exprsCsv <- read.csv(f1)
+    f2 <- dir(system.file("extdata", package = "pRolocdata"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

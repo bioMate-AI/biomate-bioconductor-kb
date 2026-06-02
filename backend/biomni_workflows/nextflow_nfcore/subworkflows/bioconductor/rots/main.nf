@@ -41,29 +41,10 @@ process BIOC_ROTS {
     library(ROTS)
     library(jsonlite)
 
-
-    # --- Load [] ---
-    # Key functions: rots
-    library(ROTS)
-    data(upsSpikeIn)
-    input = upsSpikeIn
-
     # --- Rots [] ---
     # Key functions: ROTS
     results = ROTS(data = input, groups = groups , B = 100 , K = 500 , seed = 1234)
     names(results)
-
-    # --- Summary [] ---
-    # Key functions: summary
-    summary(results, fdr = 0.05)
-
-    # --- Volcano [] ---
-    # Key functions: volcano
-    plot(results, fdr = 0.05, type = "volcano")
-
-    # --- Heatmap [] ---
-    # Key functions: heatmap
-    plot(results, fdr = 0.05, type = "heatmap")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

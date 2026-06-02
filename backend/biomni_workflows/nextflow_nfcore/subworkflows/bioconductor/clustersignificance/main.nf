@@ -48,7 +48,9 @@ process BIOC_CLUSTERSIGNIFICANCE {
     getData(cl, "AUC")
     # --- Principal component analysis [] ---
     # Key functions: prcomp, sample
-
+    .pca <- function(y, classes, uniq.groups, mat) {
+    pca <- prcomp(
+    sapply(1:ncol(mat[classes %in% uniq.groups[, y], ]),
     # --- Dimnames analysis [] ---
     # Key functions: dimnames, pcp, permute, classify, pvalue
     classes <- rownames(mlpMatrix)

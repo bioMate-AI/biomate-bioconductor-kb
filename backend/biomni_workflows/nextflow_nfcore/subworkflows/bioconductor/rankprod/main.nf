@@ -66,6 +66,7 @@ process BIOC_RANKPROD {
     RP.adv.out <-  RP.advance(arab,arab.cl,arab.origin,
     logged=TRUE,gene.names=arab.gnames,rand=123)
     #The last command can also be written using the old syntax
+    #RP.adv.out <-  RPadvance(arab,arab.cl,arab.origin,
     # --- Plotrp [] ---
     # Key functions: plotRP
     plotRP(RP.adv.out, cutoff=0.05)

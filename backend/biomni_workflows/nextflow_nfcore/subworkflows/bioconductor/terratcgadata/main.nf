@@ -41,13 +41,9 @@ process BIOC_TERRATCGADATA {
     library(terraTCGAdata)
     library(jsonlite)
 
-
-    # --- Include=true [] ---
+    # --- Gcloud Exists [] ---
     # Key functions: gcloud_exists
-    library(AnVIL)
-    library(terraTCGAdata)
-
-    ## -----------------------------------------------------------------------------
+    ---------------------------------------------------------------------
     gcloud_exists()
 
     # --- Save outputs ---

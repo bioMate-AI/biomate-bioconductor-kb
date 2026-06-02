@@ -49,16 +49,22 @@ process BIOC_SARC {
     # --- region Set [] ---
     # Key functions: regionSet, regionSplit
     SARC <- regionSet(cnv = test_cnv, test_cov)
+    SARC <- regionSplit(RE = SARC, #the raggedexpression object we made
+    cnv = metadata(SARC)[['CNVlist']][[1]],
     # --- region Mean [] ---
     # Key functions: regionMean
     SARC <- regionMean(RE = SARC,
     splitcov =  metadata(SARC)[[4]]) #list of cnv specific coverage
     # --- region Quantiles [] ---
     # Key functions: regionQuantiles
-
+    SARC <- regionQuantiles(RE = SARC,
+    cnv = metadata(SARC)[['CNVlist']][[2]], #new cnv file
+    meancov = metadata(SARC)[[5]], #list of cnv specific coverage + means
     # --- prep Anova [] ---
     # Key functions: prepAnova, anovaOnCNV, kable_styling, scroll_box
-
+    SARC <- prepAnova(RE = SARC,
+    start = metadata(SARC)[[2]],
+    end = metadata(SARC)[[3]],
     # --- set up plot [] ---
     # Key functions: TxDb, transcriptsBy, plotCovPrep, regionGrangeMake, addExonsGenes
     library(TxDb.Hsapiens.UCSC.hg38.knownGene)
@@ -66,7 +72,8 @@ process BIOC_SARC {
     TxDb(Homo.sapiens) <- TxDb.Hsapiens.UCSC.hg38.knownGene
     # --- plot CNVs [] ---
     # Key functions: plotCNV
-
+    plotCNV(cnv = metadata(SARC)[['CNVlist']][[4]],
+    setup = metadata(SARC)[[12]],
     # --- cnv Confidence [] ---
     # Key functions: cnvConfidence, kable_styling, scroll_box
     SARC <- cnvConfidence(RE = SARC, cnv = metadata(SARC)[['CNVlist']][[4]])
@@ -75,6 +82,8 @@ process BIOC_SARC {
     # --- check distribution of reads [] ---
     # Key functions: setQDplot, seeDist
     SARC <- setQDplot(RE = SARC, meancov = metadata(SARC)[[5]])
+    seeDist(meanList = metadata(SARC)[[13]],
+    cnv = metadata(SARC)[['CNVlist']][[5]],
     # --- exon numbers and gene names [] ---
     # Key functions: pasteExonsGenes, metadata, kable_styling, scroll_box
     SARC <- pasteExonsGenes(RE = SARC,
@@ -89,6 +98,7 @@ process BIOC_SARC {
     # Key functions: plotCNV, ggsave
     data("test_cnv2")
     library(ggplot2)
+    for (i in seq_len(nrow(test_cnv2))) {
     # --- Tx Db [] ---
     # Key functions: TxDb, transcriptsBy
     require(TxDb.Mmusculus.UCSC.mm10.knownGene)

@@ -55,6 +55,8 @@ process BIOC_COTAN {
     ---------------------------------------------------------------------
     cond <- "mouse_cortex_E17.5"
     obj <- COTAN(raw = sample.dataset)
+    obj <- initializeMetaDataset(obj,
+                                 GEO = GEO,
     # --- Plot [] ---
     # Key functions: ECDPlot
     ---------------------------------------------------------------------

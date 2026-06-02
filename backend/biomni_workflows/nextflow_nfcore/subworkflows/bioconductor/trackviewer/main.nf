@@ -128,6 +128,10 @@ process BIOC_TRACKVIEWER {
     setTrackViewerStyleParam(viewerStyleF, "margin", c(.1, .05, .01, .01))
     vp <- viewTracks(trackList, gr=gr, viewerStyle=viewerStyleF)
     addGuideLine(c(122929767, 122929969), vp=vp)
+    addArrowMark(list(x=122929650,
+                      y=2),
+                 label="label",
+                 col="blue",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

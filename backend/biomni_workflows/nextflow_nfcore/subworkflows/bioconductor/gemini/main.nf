@@ -41,66 +41,11 @@ process BIOC_GEMINI {
     library(gemini)
     library(jsonlite)
 
-
-    # --- Load Data [] ---
-    # Key functions: gemini, counts, guide.annotation, sample.replicate.annotation
-    library("gemini")
-    data("counts", "guide.annotation", "sample.replicate.annotation", package = "gemini")
-    knitr::kable(head(counts[,1:5]), caption = "Counts matrix", align = 'l')
-
-    # --- Table23 Annotations [] ---
-    # Key functions: gemini_create_input, samplename
-    knitr::kable(head(sample.replicate.annotation), caption = "Sample/replicate annotations")
-    knitr::kable(head(guide.annotation[,1:3]), caption = "Guide/gene annotation")
-    Input <- gemini_create_input(counts.matrix = counts,
-                        sample.replicate.annotation = sample.replicate.annotation,
-                        guide.annotation = guide.annotation,
-                        ETP.column = 'pDNA', 
-                        gene.column.names = c("U6.gene", "H1.gene"),
-                        sample.column.name = "samplename",
-                        verbose = TRUE)
-
-    # Note: ETP column can also be specified by column index 
-    # (e.g. ETP.column = c(1))
-
-    # --- Calc Lfc [] ---
-    # Key functions: gemini_calculate_lfc, gemini_initialize
-    Input %<>% gemini_calculate_lfc(normalize = TRUE, 
-                                    CONSTANT = 32)
-    Model <- gemini_initialize(Input = Input, 
-                      nc_gene = "CD81", 
-                      pattern_join = ';',
-                      pattern_split = ';', 
-                      cores = 1,
-                      verbose = TRUE)
-
-    # --- Inference Shortcut [] ---
-    # Key functions: gemini, gemini_plot_mae
-    data("Model", package = "gemini") # This is the result of running the above line
-    gemini_plot_mae(Model)
-
-    # --- Gemini Score [] ---
-    # Key functions: gemini_score
-    # Use non-interacting gene pairs as nc_pairs. 
-    # A caveat here is that this set is constructed only using negative controls! 
-    # This probably leads to biased sampling of the null distribution, 
-    # thereby overestimating the number of significant hits, but still is useful in this case.
-    nc_pairs <- grep("6T|HPRT", rownames(Model$s), value = TRUE)
-
-    # An example of some nc_pairs...
-    head(nc_pairs, n = 5)
-
-    # --- Table5 Fdr [] ---
-    # Key functions: gemini_boxplot
-    knitr::kable(Score$fdr_strong[order(Score$fdr_strong[,"A549"], decreasing = FALSE)[1:10],], caption = "FDRs for top 10 interactions in A549")
-    gemini_boxplot(Model = Model, 
-                   g = "BRCA2",
-                   h = "PARP1",
-                   nc_gene = "CD81",
-                   sample = "A549",
-    			   show_inference = TRUE, 
-    			   identify_guides = TRUE
-    			   )
+    # --- Table formatting and display [] ---
+    # Key functions: install_github, kable, gemini_create_input, gemini_initialize, gemini_plot_mae, gemini_score, gemini_boxplot
+    if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+    devtools::install_github("foo/bar", build_opts = c("--no-resave-data", "--no-manual"), build_vignettes = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

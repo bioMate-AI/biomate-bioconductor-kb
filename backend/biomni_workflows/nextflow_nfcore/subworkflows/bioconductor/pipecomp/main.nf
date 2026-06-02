@@ -49,9 +49,17 @@ process BIOC_PIPECOMP {
     # --- Pipelinedefinition [] ---
     # Key functions: PipelineDefinition, some_fancy_function, my_evaluation_function
     ---------------------------------------------------------------------
+    my_pip <- PipelineDefinition( list(
+      step1=function(x, param1){
+        # do something with x and param1
+        x
     # --- Pipelinedefinition [] ---
     # Key functions: PipelineDefinition
     ---------------------------------------------------------------------
+    my_pip <- PipelineDefinition(
+      list( step1=function(x, meth1){ get(meth1)(x) },
+            step2=function(x, meth2){ get(meth2)(x) } ),
+      evaluation=list( step2=function(x) c(mean=mean(x), max=max(x)) ),
     # --- List [] ---
     # Key functions: tempdir, runPipeline
     ---------------------------------------------------------------------

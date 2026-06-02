@@ -46,10 +46,14 @@ process BIOC_TVTB {
 
     # --- Read VCF variant file [] ---
     # Key functions: readVcf, expand
-
+    vcf <- VariantAnnotation::readVcf(
+    Expand into a ExpandedVCF object (bi-allelic records)
+    vcf <- VariantAnnotation::expand(x = vcf, row.names = TRUE)
     # --- Integer ranges construction [] ---
     # Key functions: requireNamespace, TVTBparam, IRanges, DataFrame, TabixFile, vcfInfo, vcfGeno, svp
-
+    vepR <- VcfVepRules(exprs = list(
+    missense = expression(Consequence %in% c("missense_variant")),
+    CADD_gt15 = expression(CADD_PHRED > 15)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

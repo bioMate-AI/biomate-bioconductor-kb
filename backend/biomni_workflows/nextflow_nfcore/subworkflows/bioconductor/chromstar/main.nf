@@ -80,7 +80,9 @@ process BIOC_CHROMSTAR {
     exportCounts(model, filename=tempfile())
     # --- univariate broad H4K20me1 [] ---
     # Key functions: callPeaksUnivariate, plotHistogram
-
+    file <- system.file("extdata","euratrans","lv-H4K20me1-BN-male-bio1-tech1.bam",
+    data(rn4_chrominfo)
+    binned.data <- binReads(file, assembly=rn4_chrominfo, binsizes=1000,
     # --- univariate braod H4K20me1.2 [] ---
     # Key functions: plotGenomeBrowser
     plotGenomeBrowser(model, chr='chr12', start=1, end=1e6)[[1]]
@@ -92,6 +94,8 @@ process BIOC_CHROMSTAR {
     # --- multivariate replicate univariate [] ---
     # Key functions: plotHistogram
     models <- list()
+    for (i1 in 1:length(binned.data)) {
+    models[[i1]] <- callPeaksUnivariate(binned.data[[i1]], max.time=60)
     # --- multivariate replicate export [] ---
     # Key functions: exportPeaks, exportCounts
     exportPeaks(multi.model, filename=tempfile())

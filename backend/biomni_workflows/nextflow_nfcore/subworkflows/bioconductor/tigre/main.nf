@@ -56,10 +56,14 @@ process BIOC_TIGRE {
     ##                         annotation(drosophila_gpsim_fragment)))
     ## GPPlot(mt_model, nameMapping=getAnnMap("FLYBASE",
     ##                   annotation(drosophila_gpsim_fragment)))
+    ## GPPlot(nt_model, nameMapping=getAnnMap("FLYBASE",
     # --- Gpranktargets [] ---
     # Key functions: GPRankTargets, scores
     ## Rank the targets, filtering weakly expressed genes with average
     ## expression z-score below 1.8
+    scores <- GPRankTargets(drosophila_gpsim_fragment, TF=twi,
+                            testTargets=targetProbes,
+                            options=list(quiet=TRUE),
     # --- Generatemodels [] ---
     # Key functions: generateModels, show
     topmodel <- generateModels(drosophila_gpsim_fragment,
@@ -69,13 +73,20 @@ process BIOC_TIGRE {
     # Key functions: GPRankTargets, scores
     ## Rank the targets, filtering weakly expressed genes with average
     ## expression z-score below 1.8
+    scores <- GPRankTargets(drosophila_gpsim_fragment, TF=twi,
+                            knownTargets=targetProbes[1],
+                            testTargets=targetProbes[2:3],
     # --- Processrawdata [] ---
     # Key functions: processRawData
     ## procData <- processRawData(data, times=c(...),
     ##                            experiments=c(...))
     # --- Scores [] ---
     # Key functions: scores
-
+    ## export.scores(scores, datasetName='Drosophila',
+    ##               experimentSet='GPSIM/GPDISIM',
+    ##               database='database.sqlite',
+    ##               preprocData=drosophila_gpsim_fragment,
+    ##               models=models,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,63 +41,11 @@ process BIOC_RCX {
     library(RCX)
     library(jsonlite)
 
-
-    # --- Include=false [] ---
-    # Key functions: set, createNodes, metaData, name, version, idCounter, elementCount, consistencyGroup
-    library(knitr)
-    opts_chunk$set(tidy.opts=list(width.cutoff=75,
-                                  args.newline = TRUE,
-                                  arrow = TRUE),
-                   tidy=TRUE)
-    # --- Rcx Summary [] ---
-    # Key functions: summary, createNodeAttributes, rep, updateNodeAttributes, type, object, aspect, property
-    summary(rcx)
-    rcx$metaData
-    # --- Node Attributes Auto [] ---
-    # Key functions: createNodeAttributes, rep, updateNodeAttributes, required, auto, object, aspects, properties
-
-    # --- Cartesian Layout [] ---
-    # Key functions: createCartesianLayout, updateCartesianLayout, createCyVisualPropertyProperties, createCyVisualProperty, NETWORK_BACKGROUND_PAINT, NETWORK_EDGE_SELECTION, NETWORK_NODE_SELECTION, true
-
-    # --- Visual Properties Dependencies Nodes [] ---
-    # Key functions: createCyVisualPropertyDependencies, nodeCustomGraphicsSizeSync, nodeSizeLocked, true, false, createCyVisualProperty, createCyVisualPropertyProperties, EDGE_CURVED
-    cyVisualPropertyDependenciesNodes <- createCyVisualPropertyDependencies(
-      name = c(
-        "nodeCustomGraphicsSizeSync",
-        "nodeSizeLocked"
-      ),
-      value = c(
-        "true",
-        "false"
-      )
-    )
-    cyVisualPropertyNodes <- createCyVisualProperty(
-      properties = cyVisualPropertyPropertiesNodes,
-      mappings = cyVisualPropertyMappingNodes,
-      dependencies = cyVisualPropertyDependenciesNodes
-    )
-    # --- Visual Properties Dependencies Edges [] ---
-    # Key functions: createCyVisualPropertyDependencies, arrowColorMatchesEdge, true, createCyVisualProperty, createCyVisualProperties, updateCyVisualProperties, createCyTableColumn, updateCyTableColumn
-    cyVisualPropertyDependenciesEdges <- createCyVisualPropertyDependencies(
-      name = c(
-        "arrowColorMatchesEdge"
-      ),
-      value = c(
-        "true"
-      )
-    )
-    cyVisualPropertyEdges <- createCyVisualProperty(
-      properties=cyVisualPropertyPropertiesEdges,
-      mappings = cyVisualPropertyMappingEdges,
-      dependencies = cyVisualPropertyDependenciesEdges
-    )
-    cyVisualProperties <- createCyVisualProperties(
-      network = cyVisualPropertyNetwork,
-      defaultNodes = cyVisualPropertyNodes,
-      defaultEdges = cyVisualPropertyEdges
-    )
-
-    rcx <- updateCyVisualProperties(rcx, cyVisualProperties)
+    # --- Nodes analysis [] ---
+    # Key functions: createNodes, visualize, readBin, base64encode, createNetworkAttributes, updateNetworkAttributes, createCartesianLayout, updateCartesianLayout
+    description <- paste0(
+    <p>An RCX object (green) is composed of several aspects (red),
+    which themself consist different properties (blue).
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

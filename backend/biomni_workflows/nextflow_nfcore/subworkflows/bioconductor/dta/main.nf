@@ -54,7 +54,11 @@ process BIOC_DTA {
     data(Sc.stress.ensg)
     # --- Plot Half Lives/Sythesis Rates [] ---
     # Key functions: ellipsescatter, it
-
+    plotsfkt = function(){
+    par(mar = c(5,4,4,2)+0.1+1)
+    par(mai = c(1.1,1.1,1.3,0.7))
+    x=res[["6"]][["hl"]][c(Sc.reliable,Sc.rpg.ensg)]
+    y=res[["6"]][["Rsr"]][c(Sc.reliable,Sc.rpg.ensg)]
     # --- Estimation Procedure [] ---
     # Key functions: estimate
     res.nobias = DTA.estimate(Sc.phenomat,Sc.datamat,Sc.tnumber,

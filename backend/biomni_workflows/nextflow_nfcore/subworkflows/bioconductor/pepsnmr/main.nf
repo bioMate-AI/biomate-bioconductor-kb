@@ -46,7 +46,9 @@ process BIOC_PEPSNMR {
     fidList <- ReadFids(file.path(path,dataset_name))
     # --- cbind [] ---
     # Key functions: cbind, kable
-
+    Steps <- c("Group Delay Correction",
+    StepsDescr <- c("Correct for the Bruker Group Delay.",
+    "Transform the FIDs into a spectrum and convert the frequency scale (Hz ->  ppm).",
     # --- Read Fids [] ---
     # Key functions: ReadFids
     library(PepsNMRData)
@@ -55,6 +57,8 @@ process BIOC_PEPSNMR {
     # --- expression [] ---
     # Key functions: expression
     time <- as.numeric(colnames(Fid_data0))*1000
+    plot(time, Re(Fid_data0[spectrIndex,]),type="l", col = col1, xlab=
+    expression(paste("Time (", mu,"s)")), ylab = "Intensity",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

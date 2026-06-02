@@ -63,6 +63,10 @@ process BIOC_SCBUBBLETREE {
     # --- Get R [] ---
     # Key functions: get_r
     ---------------------------------------------------------------------
+    b_r <- get_r(B_gap = 5,
+                 rs = 10^seq(from = -4, to = 0.5, by = 0.5),
+                 x = A,
+                 n_start = 10,
     # --- Kable [] ---
     # Key functions: kable
     ---------------------------------------------------------------------
@@ -71,9 +75,17 @@ process BIOC_SCBUBBLETREE {
     # --- Get K [] ---
     # Key functions: get_k
     ---------------------------------------------------------------------
+    b_k <- get_k(B_gap = 5,
+                 ks = 1:10,
+                 x = A,
+                 n_start = 50,
     # --- Get Bubbletree Graph [] ---
     # Key functions: get_bubbletree_graph
     ---------------------------------------------------------------------
+    l <- get_bubbletree_graph(x = A,
+                              r = 0.1,
+                              algorithm = "original",
+                              n_start = 20,
     # --- Kable [] ---
     # Key functions: kable
     ---------------------------------------------------------------------
@@ -81,6 +93,10 @@ process BIOC_SCBUBBLETREE {
     # --- Get Bubbletree Kmeans [] ---
     # Key functions: get_bubbletree_kmeans
     ---------------------------------------------------------------------
+    k <- get_bubbletree_kmeans(x = A,
+                               k = 5,
+                               cores = 1,
+                               B = 300,
     # --- Get Gini [] ---
     # Key functions: get_gini
     ---------------------------------------------------------------------

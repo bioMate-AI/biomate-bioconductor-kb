@@ -66,6 +66,9 @@ process BIOC_SPATIALEXPERIMENT {
     # Key functions: SpatialExperiment
     ---------------------------------------------------------------------
     xy <- as.matrix(cd[, c("x", "y")])
+    spe2 <- SpatialExperiment(
+        assay = y,
+        colData = cd["z"],
     # --- Spatialexperiment [] ---
     # Key functions: SpatialExperiment, isEmpty, spatialCoords
     ---------------------------------------------------------------------

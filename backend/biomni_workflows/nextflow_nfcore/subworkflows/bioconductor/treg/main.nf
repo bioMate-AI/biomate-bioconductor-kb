@@ -44,20 +44,27 @@ process BIOC_TREG {
 
     # --- 'install' [] ---
     # Key functions: valid
-
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("TREG")
     # --- "download DLPFC data" [] ---
     # Key functions: BiocFileCache, bfcrpath
     bfc <- BiocFileCache::BiocFileCache()
+    url <- paste0(
+    local_data <- BiocFileCache::bfcrpath(url, x = bfc)
     # --- "Data Size Check" [] ---
     # Key functions: obj_size
     lobstr::obj_size(sce.dlpfc.tran)
     # --- "acronyms" [] ---
     # Key functions: tibble
-
+    ct_names <- tibble(
+    "Cell Type" = c(
+    "Acronym" = c(
     # --- "examineSparsity" [] ---
     # Key functions: pheatmap
     sum(assays(sce.dlpfc.tran)$counts == 0) / (nrow(sce.dlpfc.tran) * ncol(sce.dlpfc.tran))
     count_test <- as.matrix(assays(sce.dlpfc.tran)$logcounts[seq_len(1000), seq_len(500)])
+    pheatmap(count_test,
     # --- "top50 filter" [] ---
     # Key functions: rowMeans
     row_means <- rowMeans(assays(sce.dlpfc.tran)$logcounts)
@@ -67,6 +74,7 @@ process BIOC_TREG {
     # Key functions: pheatmap
     sum(assays(sce.dlpfc.tran)$counts == 0) / (nrow(sce.dlpfc.tran) * ncol(sce.dlpfc.tran))
     count_test <- as.matrix(assays(sce.dlpfc.tran)$logcounts[seq_len(1000), seq_len(500)])
+    pheatmap::pheatmap(count_test,
     # --- "get prop zero" [] ---
     # Key functions: get_prop_zero
     prop_zeros <- get_prop_zero(sce.dlpfc.tran, group_col = "cellType.broad")
@@ -75,6 +83,7 @@ process BIOC_TREG {
     # Key functions: rownames_to_column, pivot_longer, aes, geom_histogram, facet_wrap
     rownames_to_column("Gene") %>%
     pivot_longer(!Gene, names_to = "Group", values_to = "prop_zero")
+    (prop_zero_histogram <- ggplot(
     # --- "pickCutoff" [] ---
     # Key functions: geom_vline
     geom_vline(xintercept = propZero_limit, color = "red", linetype = "dashed")
@@ -87,6 +96,7 @@ process BIOC_TREG {
     # Key functions: pheatmap
     sum(assays(sce.dlpfc.tran)$counts == 0) / (nrow(sce.dlpfc.tran) * ncol(sce.dlpfc.tran))
     count_test <- as.matrix(assays(sce.dlpfc.tran)$logcounts[seq_len(1000), seq_len(500)])
+    pheatmap::pheatmap(count_test,
     # --- "rank invariance stepwise" [] ---
     # Key functions: rank_group, rank_cells, rank_invariance
     group_rank <- rank_group(sce.dlpfc.tran, group_col = "cellType.broad")
@@ -95,6 +105,8 @@ process BIOC_TREG {
     # --- "run RI express" [] ---
     # Key functions: rank_invariance_express
     rank_invariance_express() runs the previous functions for you
+    rank_invar2 <- rank_invariance_express(
+    head(sort(rank_invar2, decreasing = TRUE))
     # --- knit [] ---
     # Key functions: knit
     library("rmarkdown")

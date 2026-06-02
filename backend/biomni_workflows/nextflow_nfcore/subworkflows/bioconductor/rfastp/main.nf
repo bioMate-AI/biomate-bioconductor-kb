@@ -41,33 +41,11 @@ process BIOC_RFASTP {
     library(Rfastp)
     library(jsonlite)
 
-
-    # --- Eval = False [] ---
-    # Key functions: install, tempfile, tempdir, rfastp, remotes, extdata, Fox3_Std_small.fq.gz, reads1.fastq.gz
-    #  BiocManager::install("remotes")
-    #  BiocManager::install("RockefellerUniversity/Rfastp")
-
-    ## -------------------------------------------------------------------------------------------------
-    library(Rfastp)
-
-    ## -------------------------------------------------------------------------------------------------
-    se_read1 <- system.file("extdata","Fox3_Std_small.fq.gz",package="Rfastp")
-    pe_read1 <- system.file("extdata","reads1.fastq.gz",package="Rfastp")
-    pe_read2 <- system.file("extdata","reads2.fastq.gz",package="Rfastp")
-    outputPrefix <- tempfile(tmpdir = tempdir())
-
-    ## -------------------------------------------------------------------------------------------------
-    se_json_report <- rfastp(read1 = se_read1, 
-        outputFastq = paste0(outputPrefix, "_se"), thread = 4)
-
-    # --- Umi [] ---
-    # Key functions: rfastp, read1
-    umi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2, 
-        outputFastq = paste0(outputPrefix, '_umi2'), umi = TRUE, umiLoc = "read1",
-        umiLength = 16, umiPrefix = "#", umiNoConnection = TRUE, 
-        umiIgnoreSeqNameSpace = TRUE)
-
-    ## -------------------------------------------------------------------------------------------------
+    # --- rfastp [] ---
+    # Key functions: rfastp, catfastq, qcSummary, curvePlot, trimSummary
+    umi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2,
+    outputFastq = paste0(outputPrefix, '_umi2'), umi = TRUE, umiLoc = "read1",
+    clipr_json_report <- rfastp(read1 = se_read1,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -61,6 +61,7 @@ process BIOC_EUDYSBIOME {
     microDiff
     attach(microDiff)
     par(mar = c(5,4.1,5.1,5))
+    Cartesian(data ,micro.anno = micro.anno,comp.anno= comp.anno,
     # --- Microcount [] ---
     # Key functions: contingencyCount
     microCount = contingencyCount(data ,micro.anno = micro.anno,

@@ -79,9 +79,16 @@ process BIOC_PIPEFRAME {
     # Key functions: getGenome, genomes
     ---------------------------------------------------------------------
     library(BSgenome)
+    checkAndInstallBSgenome <- function(refFilePath){
+        genome <- getGenome()
+        bsgenomename<- BSgenome::available.genomes()[
     # --- Function [] ---
     # Key functions: getRefRc, is, seqnames, null
     ---------------------------------------------------------------------
+    checkAndInstallGenomeFa <- function(refFilePath){
+        outFile <- refFilePath
+        bsgenome<-getRefRc("bsgenome")
+        if(!is(bsgenome, "BSgenome")){
     # --- Initpipeframe [] ---
     # Key functions: initPipeFrame
     ---------------------------------------------------------------------
@@ -120,6 +127,10 @@ process BIOC_PIPEFRAME {
     # --- Function [] ---
     # Key functions: environment, call
     ---------------------------------------------------------------------
+    randomRegionOnGenome <- function(sampleNumb, regionLen = 1000,
+                                     genome = NULL, outputBed = NULL, ...){
+        allpara <- c(list(Class = "RandomRegionOnGenome"),
+                     as.list(environment()),list(...))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

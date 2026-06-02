@@ -49,6 +49,8 @@ process BIOC_TPSVG {
     # --- Feature metadata inspection [] ---
     # Key functions: install_github, tpSVG, rowData, seqFISH_mouseEmbryo, session_info
     set.seed(1)
+    spe_poisson  <- tpSVG(
+    offset = log(spe$total)   # Natural log library size
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

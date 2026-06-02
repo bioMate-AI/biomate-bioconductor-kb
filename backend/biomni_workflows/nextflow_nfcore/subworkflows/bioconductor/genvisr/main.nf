@@ -44,6 +44,8 @@ process BIOC_GENVISR {
     # --- kable 1 [] ---
     # Key functions: kable
     library(knitr)
+    MGI <- c("nonsense", "frame_shift_del",
+    MAF <- c("Nonsense_Mutation", "Frame_Shift_Ins",
     # --- kable [] ---
     # Key functions: kable
     kable(as.data.frame(cbind(sample=as.character(brcaMAF[1:10,16]),

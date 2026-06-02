@@ -41,24 +41,9 @@ process BIOC_TRONCO {
     library(TRONCO)
     library(jsonlite)
 
-
-    # --- Include=false [] ---
-    # Key functions: view, as.genotypes, as.events, as.events.in.sample
-    library(TRONCO)
-    data(aCML)
-    data(crc_maf)
-    data(crc_gistic)
-    data(crc_plain)
-
-    ## -----------------------------------------------------------------------------
-    view(aCML)
-
-    ## -----------------------------------------------------------------------------
-    as.genotypes(aCML)[1:10,5:10]
-
-    ## -----------------------------------------------------------------------------
-    as.events(aCML)[1:5, ]
-    as.events.in.sample(aCML, sample = 'patient 2')
+    # --- oncoprint [] ---
+    # Key functions: oncoprint
+    oncoprint(pathway, title = 'Custom pathway',  font.row = 8, cellheight = 15, cellwidth = 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

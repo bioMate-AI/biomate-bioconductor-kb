@@ -67,6 +67,7 @@ process BIOC_ANTIPROFILES {
     palette(brewer.pal(8,"Dark2"))
     # plot in score order
     o=order(counts)
+    dotchart(counts[o],col=pData(apColonData)$Status[!trainSamples][o]+1,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

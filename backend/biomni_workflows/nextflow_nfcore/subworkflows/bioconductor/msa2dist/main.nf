@@ -51,12 +51,17 @@ process BIOC_MSA2DIST {
     # --- Custom ggplot2 visualization [] ---
     # Key functions: select, gather, ggplot, aes, geom_line, factor, geom_point
     ---------------------------------------------------------------------
+    print(hiv.xy |> dplyr::select(Codon,SynMean,NonSynMean,IndelMean) |>
+        tidyr::gather(variable, values, -Codon) |>
+        ggplot2::ggplot(aes(x=Codon, y=values)) +
+        ggplot2::geom_line(aes(colour=factor(variable))) +
     # --- DNAString analysis [] ---
     # Key functions: data, DNAString, DNAStringSet, dnastring2aln, aln2dnastring, dnastring2dnabin, dnabin2dnastring, cds2aa
     ---------------------------------------------------------------------
     ## use frame 2 and shorten to circumvent multiple of three error
     cds1 <- Biostrings::DNAString("-ATGCAACATTGC-")
     cds2 <- Biostrings::DNAString("-ATG---CATTGC-")
+    cds1.cds2.aln <- c(Biostrings::DNAStringSet(cds1),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

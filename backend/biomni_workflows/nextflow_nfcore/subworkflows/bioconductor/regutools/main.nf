@@ -65,31 +65,63 @@ process BIOC_REGUTOOLS {
     head(list_attributes(e_coli_regulondb, "GENE"), 8)
     # --- 'Get Dataset' [] ---
     # Key functions: get_dataset
-
+    get_dataset(
+        regulondb = e_coli_regulondb,
+        dataset = "GENE",
+        attributes = c("posleft", "posright", "strand", "name"),
+        filters = list("name" = c("araC", "crp", "lacI"))
     # --- 'Get Dataset Interval' [] ---
     # Key functions: get_dataset
-
+    get_dataset(
+        e_coli_regulondb,
+        attributes = c("posright", "name"),
+        filters = list("posright" = c(1, 5000)),
+        interval = "posright",
     # --- 'Get Dataset Df' [] ---
     # Key functions: get_dataset, slotNames
-
+    res <- get_dataset(
+        regulondb = e_coli_regulondb,
+        dataset = "GENE",
+        attributes = c("posleft", "posright", "strand", "name"),
+        filters = list("name" = c("araC", "crp", "lacI"))
     # --- 'Convert Granges' [] ---
     # Key functions: convert_to_granges
     convert_to_granges(res)
     # --- 'Get Dataset Granges' [] ---
     # Key functions: get_dataset
-
+    get_dataset(
+        regulondb = e_coli_regulondb,
+        dataset = "GENE",
+        attributes = c("posleft", "posright", "strand", "name"),
+        filters = list("name" = c("araC", "crp", "lacI")),
     # --- 'Dnastring Res' [] ---
     # Key functions: get_dataset, convert_to_biostrings, mcols
-
+    res_dnastring <- get_dataset(
+        regulondb = e_coli_regulondb,
+        dataset = "GENE",
+        attributes = c("posleft", "posright", "strand", "name", "dna_sequence"),
+        filters = list("name" = c("araC", "crp", "lacI"))
     # --- 'Product Seq' [] ---
     # Key functions: get_dataset, convert_to_biostrings, mcols
-
+    res_prodstring <- get_dataset(
+        regulondb = e_coli_regulondb,
+        dataset = "GENE",
+        attributes = c("posleft", "posright", "strand", "name", "product_sequence"),
+        filters = list("name" = c("araC", "crp", "lacI"))
     # --- 'Partial Match' [] ---
     # Key functions: get_dataset
-
+    get_dataset(
+        e_coli_regulondb,
+        attributes = c("posright", "name"),
+        filters = list("name" = "ara"),
+        partialmatch = "name",
     # --- 'Position Interval' [] ---
     # Key functions: get_dataset
-
+    get_dataset(
+        e_coli_regulondb,
+        attributes = c("name", "strand", "posright", "product_name"),
+        dataset = "GENE",
+        filters = list(posright = c("2000", "4000000")),
     # --- 'Genomic Elements' [] ---
     # Key functions: get_dna_objects
     get_dna_objects(e_coli_regulondb)

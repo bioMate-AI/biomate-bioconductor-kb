@@ -44,6 +44,7 @@ process BIOC_RNASEQCOMP {
     # --- markdown [] ---
     # Key functions: markdown
     BiocStyle::markdown()
+    knitr::opts_chunk$set(dev="png",fig.show="hold",
     # --- rep [] ---
     # Key functions: rep
     condInfo <- factor(simdata$samp$condition)
@@ -51,7 +52,9 @@ process BIOC_RNASEQCOMP {
     evaluationFeature <- rep(TRUE, nrow(simdata$meta))
     # --- signal Calibrate [] ---
     # Key functions: signalCalibrate, show
-
+    dat <- signalCalibrate(simdata$quant, condInfo, repInfo, evaluationFeature,
+    class(dat)
+    show(dat)
     # --- plot S D [] ---
     # Key functions: plotSD
     plotSD(dat,ylim=c(0,1.4))

@@ -96,6 +96,9 @@ process BIOC_SAMPLECLASSIFIER {
     # Key functions: unlist
     misclas.inds <- which(as.character(res2.svm.df[,1])!=as.character(res2.svm.df[,2]))
     colnames(res2.svm.df) <- c("query_real_class","predicted_class_by_SVM")
+    pred.classifyProfile.rnaseq <- as.character(unlist(lapply(res2.list[which(names(res2.list) %in%
+    as.character(res2.svm.df[misclas.inds,1]))],"[",1,1,drop=TRUE)))
+    comp.df <- cbind(res2.svm.df[misclas.inds,],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

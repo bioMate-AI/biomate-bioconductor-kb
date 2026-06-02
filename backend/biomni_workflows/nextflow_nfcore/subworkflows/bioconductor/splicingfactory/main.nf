@@ -46,11 +46,13 @@ process BIOC_SPLICINGFACTORY {
     tokeep <- rowSums(readcounts > 5) > 5
     # --- calculate_diversity [] ---
     # Key functions: calculate_diversity
-
+    laplace_entropy <- calculate_diversity(readcounts, genes,  method = "laplace",
+    head(assay(laplace_entropy)[, 1:5])
     # --- Custom ggplot2 visualization [] ---
     # Key functions: pivot_longer, drop_na, ggplot
     library("tidyr")
     library("ggplot2")
+    laplace_data <- cbind(assay(laplace_entropy),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

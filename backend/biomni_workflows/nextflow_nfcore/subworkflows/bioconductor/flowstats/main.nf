@@ -72,6 +72,7 @@ process BIOC_FLOWSTATS {
     require(gridExtra)
     pars <- colnames(gs)[c(3,4,5,7)]
     data <- gs_pop_get_data(gs, "TCells")
+    plots <- lapply(pars, function(par)
     # --- Quad Gate [] ---
     # Key functions: quadrantGate, gs_pop_get_data, gs_pop_add, recompute
     qgate <- quadrantGate(gs_pop_get_data(gs, "TCells"), stains=c("CD4", "CD8"),
@@ -85,6 +86,10 @@ process BIOC_FLOWSTATS {
     # --- Variation Norm [] ---
     # Key functions: gs_pop_get_data, ggplot, ggcyto, aes, geom_density_ridges, theme
     data <- gs_pop_get_data(gs, "TCells")
+    plots <- lapply(pars, function(par)
+      as.ggplot(ggcyto(data, aes(x = !!par, fill = GroupID)) +
+        geom_density_ridges(mapping = aes(y = name), alpha = 0.4) +
+        theme(axis.title.y = element_blank(),
     # --- Quad Gate Norm Plot [] ---
     # Key functions: ggcyto, gs_pop_get_data, aes, geom_hex, geom_gate, gs_pop_get_gate
     ggcyto(gs_pop_get_data(gs, "TCells"), aes(x=CD4, y=CD8)) +

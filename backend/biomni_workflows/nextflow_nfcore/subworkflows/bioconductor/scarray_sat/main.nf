@@ -41,46 +41,11 @@ process BIOC_SCARRAY_SAT {
     library(SCArray.sat)
     library(jsonlite)
 
-
-    # --- Workflow [] ---
-    # Key functions: include_graphics, scarray_sat.svg
-    knitr::include_graphics("scarray_sat.svg")
-
-    # --- Eval=false [] ---
-    # Key functions: requireNamespace, install, suppressPackageStartupMessages, extdata, example.gds
-    #  if (!requireNamespace("BiocManager", quietly=TRUE))
-    #      install.packages("BiocManager")
-    #  BiocManager::install("SCArray.sat")
-
-    ## -----------------------------------------------------------------------------
-    # Load the packages
-    suppressPackageStartupMessages({
-        library(Seurat)
-        library(SCArray)
-        library(SCArray.sat)
-    })
-
-    # Input GDS file with raw counts
-    fn <- system.file("extdata", "example.gds", package="SCArray")
-
-
-    # --- Benchmark [] ---
-    # Key functions: include_graphics, tempfile, saveRDS, remove, readRDS, GetAssayData, benchmark.svg, counts
+    # --- Load saved R data object [] ---
+    # Key functions: include_graphics, tempfile, remove
     knitr::include_graphics("benchmark.svg")
-
-    ## -----------------------------------------------------------------------------
-    d    # the example for the small dataset
-
     save_fn <- tempfile(fileext=".rds")  # or specify an appropriate location
-    save_fn
     saveRDS(d, save_fn)  # save to a RDS file
-
-    remove(d)  # delete the variable d
-    gc()       # trigger a garbage collection
-
-    d <- readRDS(save_fn)  # load from a RDS file
-    d
-    GetAssayData(d, slot="counts")  # reopens the GDS file automatically
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

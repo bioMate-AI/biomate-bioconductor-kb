@@ -73,6 +73,9 @@ process BIOC_XDE {
     # Key functions: burnin, iterations, output, thin, directory, xde
     ## burnin(params) <- FALSE
     ## iterations(params) <- 2000
+    ## output(params)[c("potential", "acceptance",
+    ## 		 "diffExpressed",
+    ## 		 "nu", ##"DDelta",
     # --- Savexmcmc [] ---
     # Key functions: calculatePosteriorAvg, calculateBayesianEffectSize, q
     ## ##this function should work

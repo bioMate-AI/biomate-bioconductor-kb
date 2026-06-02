@@ -43,7 +43,8 @@ process BIOC_RNASENSE {
 
     # --- get F C [] ---
     # Key functions: getFC
-
+    resultFC <- getFC(dataset = mydata,
+    head(resultFC)
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, aes, xlab
     library(ggplot2)
@@ -51,7 +52,8 @@ process BIOC_RNASENSE {
     aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) +
     # --- get Switch [] ---
     # Key functions: getSwitch
-
+    resultSwitch <- getSwitch(dataset = mydata,
+    head(resultSwitch)
     # --- combine Results [] ---
     # Key functions: combineResults
     resultCombined <- combineResults(resultSwitch, resultFC)

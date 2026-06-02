@@ -44,27 +44,37 @@ process BIOC_METHYLINHERITANCE {
     # --- get Treatment [] ---
     # Key functions: getTreatment
     data(demoForTransgenerationalAnalysis)
+    The generations are stored in order (first entry = first generation,
+    length(demoForTransgenerationalAnalysis)
     # --- run Observation [] ---
     # Key functions: runObservation, loadAllRDSResults
-
+    runObservation(methylKitData = demoForTransgenerationalAnalysis,
+    The results can be retrived using loadAllRDSResults() method
+    observedResults <- loadAllRDSResults(
     # --- run Permutation [] ---
     # Key functions: runPermutation, loadAllRDSResults
-
+    runPermutation(methylKitData = demoForTransgenerationalAnalysis, # multi-generational dataset
+    The results can be retrived using loadAllRDSResults() method
+    permutationResults <- loadAllRDSResults(
     # --- merge Permutation And Observation [] ---
     # Key functions: mergePermutationAndObservation
-
+    allResults <- mergePermutationAndObservation(permutationResults =
     # --- extract Info [] ---
     # Key functions: extractInfo
-
+    F1_and_F2_results <- extractInfo(allResults = allResults, type = "sites",
+    head(F1_and_F2_results)
     # --- plot Graph [] ---
     # Key functions: plotGraph
     output <- plotGraph(F1_and_F2)
     # --- run Permutation [] ---
     # Key functions: runPermutation
-
+    permutationResult <- runPermutation(
+    permutationResult <- runPermutation(
     # --- meth Read [] ---
     # Key functions: methRead
     library(methylKit)
+    generation_01 <- methRead(location = list("demo/F1_control_01.txt", "demo/F1_case_01.txt"),
+    sample.id = list("F1_control_01", "F1_case_01"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

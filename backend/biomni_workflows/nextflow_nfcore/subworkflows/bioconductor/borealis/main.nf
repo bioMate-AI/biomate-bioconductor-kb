@@ -41,24 +41,11 @@ process BIOC_BOREALIS {
     library(borealis)
     library(jsonlite)
 
-
-    # --- Sg [] ---
-    # Key functions: plotCpGsite, patient_72, vignette_CpG_model_chr14.csv, vignette_CpG_model_rawMethCount_chr14.tsv, vignette_CpG_model_rawTotalCount_chr14.tsv
-    # Use Borealis plotting function to investigate this site further
+    # --- plot Cp Gsite [] ---
+    # Key functions: plotCpGsite
     plotCpGsite("chr14:24780288", sampleOfInterest="patient_72",
-                modelFile=file.path(outdir,"vignette_CpG_model_chr14.csv"),
-                methCountFile=file.path(outdir,
-                                    "vignette_CpG_model_rawMethCount_chr14.tsv"),
-                totalCountFile=file.path(outdir,
-                                    "vignette_CpG_model_rawTotalCount_chr14.tsv"))
-
-    ## -----------------------------------------------------------------------------
-    padjThresh <- 0.05
-
-    ## -----------------------------------------------------------------------------
-    # Calculate how may CpGs per annotatr feature and store in dataframe
-    allAnnot <- as.data.frame(allAnnot)
-    featureids <- allAnnot$annot.id
+    modelFile=file.path(outdir,"vignette_CpG_model_chr14.csv"),
+    methCountFile=file.path(outdir,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

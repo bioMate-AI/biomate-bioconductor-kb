@@ -57,6 +57,10 @@ process BIOC_RANDPACK {
     # --- Doce [] ---
     # Key functions: new, treatmentFactors, factorNames, numberOfFactorLevels
     trts = c( A = 3L, B = 4L, C = 1L)
+     CEvac = new("ClinicalExperiment",
+        name="My first experiment",
+        treatments = trts,
+        factors = list( F1 = c("A", "B", "C"), F2 = c("t1", "t2")),
     # --- Doct [] ---
     # Key functions: createTrial
     ##  CTvac = createTrial(CEvac, seed=c(301, 401))
@@ -88,6 +92,7 @@ process BIOC_RANDPACK {
      covariates=list(sex="F", age=33), strata="Center1")
      pD2 = new("PatientData", name="Sally Z", date=Sys.Date(),
      covariates=list(sex="F", age=34), strata="Center1")
+     pD3 = new("PatientData", name="Tom Z", date=Sys.Date(),
     # --- Gett [] ---
     # Key functions: getTreatment
     trt1 = getTreatment(CT1, pD1)

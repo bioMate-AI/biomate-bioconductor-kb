@@ -92,6 +92,8 @@ process BIOC_BIOMVRCNS {
     data(encodeTP53)
     cgr<-encodeTP53$cgr
     gmgr<-encodeTP53$gmgr
+    mcols(cgr)<-DataFrame(
+    	Gm12878=1+rowSums(as.matrix(mcols(cgr)[,1:2])),
     # --- Encodehsmmtxdbsojourn [] ---
     # Key functions: biomvRhsmm
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)

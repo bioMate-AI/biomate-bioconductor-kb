@@ -80,6 +80,8 @@ process BIOC_SSIZE {
     all.delta  <- delta(sd=exp.sd, power=power, n=n,
                         sig.level=sig.level)
     par(cex=1, mar=c(5.1,5.1,4,2))
+    delta.plot(all.delta, lwd=2, col="magenta", xlim=c(1,10),
+    	   ylab = paste("Proportion of Genes with ",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

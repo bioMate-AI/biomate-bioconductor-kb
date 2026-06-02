@@ -49,6 +49,7 @@ process BIOC_SESAME {
     # Key functions: sesameDataGet, ggplot, geom_line, labs, theme
     se <- sesameDataGet("MM285.10.SE.tissue")
     library(tibble)
+    df_plot <- as.data.frame(t(assay(se)[
     # --- Table formatting and display [] ---
     # Key functions: sesameDataCache, KYCG_getDBs, testEnrichment, KYCG_plotEnrichAll, kable, rowData, KYCG_listDBGroups, KYCG_buildGeneDBs
     df <- rowData(sesameDataGet('MM285.tissueSignature'))

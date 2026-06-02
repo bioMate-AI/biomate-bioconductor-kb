@@ -43,16 +43,23 @@ process BIOC_MICSQTL {
 
     # --- Create SummarizedExperiment [] ---
     # Key functions: SummarizedExperiment, metadata
-
+    se <- SummarizedExperiment(
+    assays = list(protein = your_protein_data),
+    metadata(se) <- list(
     # --- ajive_decomp [] ---
     # Key functions: ajive_decomp, deconv
     se <- ajive_decomp(se, use_marker = FALSE, refactor_loading = TRUE)
+    se <- deconv(se, source = "cross", method = "JNMF",
+    Step = c(10^(-9), 10^(-7)),
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, aes, geom_point, geom_boxplot
-
+    ggplot(
+    cbind(data.frame(melt(metadata(se)$prop), metadata(se)$meta)),
+    aes(x = Var2, y = value, fill = Var2)
     # --- ajive_decomp [] ---
     # Key functions: ajive_decomp, metadata
-
+    se <- ajive_decomp(se, plot = TRUE,
+    metadata(se)$cns_plot
     # --- Principal component analysis [] ---
     # Key functions: prcomp
     pca_res <- prcomp(t(assay(se)), rank. = 3, scale. = FALSE)
@@ -60,13 +67,16 @@ process BIOC_MICSQTL {
     pca_res_protein <- cbind(pca_res_protein, metadata(se)$meta$disease)
     # --- Principal component analysis [] ---
     # Key functions: ggpairs, prcomp
-
+    ggpairs(pca_res_protein,
+    columns = seq_len(3), aes(color = disease, alpha = 0.5),
+    upper = list(continuous = "points")
     # --- row Data [] ---
     # Key functions: rowData
     target_protein <- rowData(se)[rowData(se)$Chr == 9, ][seq_len(3), "Symbol"]
     # --- filter 4 [] ---
     # Key functions: feature_filter
-
+    se <- feature_filter(se,
+    filter_method = c("allele", "distance"),
     # --- unlist [] ---
     # Key functions: unlist
     unlist(lapply(metadata(se)$choose_SNP_list, length))

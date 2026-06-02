@@ -54,6 +54,7 @@ process BIOC_CLUSTERJUDGE {
     data(Yeast.GO.assocs)
     ### because it takes time, we use a small sampled subset of associations
     entity.attribute.sampled <- Yeast.GO.assocs[sample(1:nrow(Yeast.GO.assocs),100),]
+    mi.GO.Yeast.sampled <- attribute_mut_inf(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

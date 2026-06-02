@@ -57,6 +57,10 @@ process BIOC_SCREPERTOIRE {
     # --- Clonalcompare [] ---
     # Key functions: clonalCompare
     ---------------------------------------------------------------------
+    clonalCompare(combined.TCR,
+                  clones = c("CVVSDNTGGFKTIF_CASSVRRERANTGELFF", "NA_CASSVRRERANTGELFF"),
+                  relabel.clones = TRUE,
+                  samples = c("P17B", "P17L"),
     # --- Positionalentropy [] ---
     # Key functions: positionalEntropy
     ---------------------------------------------------------------------
@@ -67,6 +71,9 @@ process BIOC_SCREPERTOIRE {
     # Key functions: clonalDiversity
     ---------------------------------------------------------------------
     #Return only a subset of metrics
+    clonalDiversity(combined.TCR,
+                    metrics = c("shannon", "ACE"),
+                    cloneCall = "gene",
     # --- Subset [] ---
     # Key functions: getCirclize, hue_pal, levels, chordDiagram
     ---------------------------------------------------------------------

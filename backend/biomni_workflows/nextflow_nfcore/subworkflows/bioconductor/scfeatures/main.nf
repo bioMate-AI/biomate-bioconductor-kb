@@ -46,6 +46,8 @@ process BIOC_SCFEATURES {
     ---------------------------------------------------------------------
     data("example_scrnaseq" , package = "scFeatures")
     data <- example_scrnaseq
+    scfeatures_result <- scFeatures(data = data@assays$RNA@data, sample = data$sample, celltype = data$celltype,
+                                    feature_types = "gene_mean_celltype"  ,
     # --- Data [] ---
     # Key functions: tempdir, run_association_study_report
     ---------------------------------------------------------------------

@@ -45,9 +45,13 @@ process BIOC_INTERACCIRCOS {
     # --- screenshot.force = FALSE [] ---
     # Key functions: Circos
     library(interacCircos)
+    Circos(zoom = TRUE,genome=list("Example1"=100,"Example2"=200,
+    "Example3"=300),genomeFillColor = c("red","blue","green"),
     # --- screenshot.force = FALSE [] ---
     # Key functions: Circos, CircosBackground
     library(interacCircos)
+    Circos(moduleList=CircosSnp('SNP01', minRadius =150,
+    CircosBackground('BG01',minRadius = 145,maxRadius = 200),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

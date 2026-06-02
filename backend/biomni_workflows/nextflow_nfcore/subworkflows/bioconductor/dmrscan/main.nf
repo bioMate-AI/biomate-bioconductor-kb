@@ -41,56 +41,9 @@ process BIOC_DMRSCAN {
     library(DMRScan)
     library(jsonlite)
 
-
-    # --- Data [] ---
-    # Key functions: phenotype
-    library(DMRScan)
-    data(DMRScan.methylationData) ## Load methylation data from chromosome 22, with 52018 CpGs measured
-    data(DMRScan.phenotypes) ## Load phenotype (end-point for methylation data)
-
-    # --- Obs [] ---
-    # Key functions: function, summary, binomial, logit
-    #observations <- apply(DMRScan.methylationData,1,function(x,y){
-    #                        summary(glm(y ~ x, 
-    #                        family = binomial(link = "logit")))$coefficients[2,3]}, 
-    #                                            y = DMRScan.phenotypes)
-
-    observations <- apply(DMRScan.methylationData,1,function(x,y){
-                            summary(lm(x ~ y))$coefficients[2,3]}, 
-                                               y = DMRScan.phenotypes)
-    head(observations)
-
-    # --- Pos [] ---
-    # Key functions: unlist
-    pos <- matrix(as.integer(unlist(strsplit(names(observations),split="chr|[.]"))), 
-                                                    ncol = 3, byrow = TRUE)[,-1] 
-    head(pos)
-
-    # --- Cache = True [] ---
-    # Key functions: distance
-    ## Minimum number of CpGs in a tested cluster 
-    min.cpg <- 3  
-
-    ## Maxium distance (in base-pairs) within a cluster 
-    ## before it is broken up into two seperate cluster
-    max.gap <- 750
-
-    # --- Reg [] ---
+    # --- make Cp Gregions [] ---
     # Key functions: makeCpGregions
-    regions <- makeCpGregions(observations  = observations, chr = pos[,1], pos = pos[,2], 
-                                                  maxGap = 750, minCpG = 3)
-
-    # --- Thres [] ---
-    # Key functions: estimateWindowThreshold, sampling, siegmund
-    window.sizes <- 3:7 ## Number of CpGs in the sliding windows 
-    ## (can be either a single number or a sequence)
-    n.CpG        <- sum(sapply(regions, length)) ## Number of CpGs to be tested
-    ## Estimate the window threshold, based on the number of CpGs and window sizes 
-    ## using important sampling
-    window.thresholds.importancSampling <- estimateWindowThreshold(nProbe = n.CpG, windowSize = window.sizes, 
-                                                                        method = "sampling", mcmc = 10000)
-
-    ## Estimating the window threshold using the closed form expression
+    regions <- makeCpGregions(observations  = observations, chr = pos[,1], pos = pos[,2],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

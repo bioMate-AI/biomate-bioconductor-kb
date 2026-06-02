@@ -48,6 +48,10 @@ process BIOC_RANDROTATION {
     # --- Function [] ---
     # Key functions: ComBat, lmFit, eBayes
     ---------------------------------------------------------------------
+    statistic <- function(Y, batch, mod){
+      # (I) Batch effect correction with "Combat" from the "sva" package
+      Y <- sva::ComBat(dat = Y, batch = batch, mod = mod)
+      # (II) Linear model fit
     # --- Pfdr [] ---
     # Key functions: pFdr, qqunif
     ---------------------------------------------------------------------
@@ -100,6 +104,10 @@ process BIOC_RANDROTATION {
     # --- Function [] ---
     # Key functions: ComBat, lmFit, eBayes
     ---------------------------------------------------------------------
+    statistic <- function(Y, batch, mod, coef){
+      Y.tmp <- sva::ComBat(dat = Y, batch = batch, mod = mod)
+      fit1 <- limma::lmFit(Y.tmp, mod)
+      fit1 <- limma::eBayes(fit1)
     # --- Pfdr [] ---
     # Key functions: pFdr, qqunif
     ---------------------------------------------------------------------

@@ -38,34 +38,17 @@ process BIOC_CFTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(cfTools)
+    library(GenerateFragMeth)
+    library(GenerateMarkerParam)
+    library(MergeCpGs)
+    library(MergePEReads)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Demo [] ---
-    # Key functions: read.table, MergePEReads, cfTools, demo.sorted.bed.txt.gz, CpG_OT_demo.txt.gz, CpG_OB_demo.txt.gz
+    # --- Merge P E Reads [] ---
+    # Key functions: MergePEReads, MergeCpGs, GenerateFragMeth, GenerateMarkerParam
     library(cfTools)
     library(utils)
     demo.dir <- system.file("data", package="cfTools")
-
-    ## -----------------------------------------------------------------------------
-    PEReads <- file.path(demo.dir, "demo.sorted.bed.txt.gz")
-    head(read.table(PEReads, header=FALSE), 2)
-
-    ## -----------------------------------------------------------------------------
-    fragInfo <- MergePEReads(PEReads)
-    head(fragInfo, 2)
-
-    ## -----------------------------------------------------------------------------
-    CpG_OT <- file.path(demo.dir, "CpG_OT_demo.txt.gz")
-    CpG_OB <- file.path(demo.dir, "CpG_OB_demo.txt.gz")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

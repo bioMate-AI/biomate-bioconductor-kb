@@ -45,6 +45,9 @@ process BIOC_METHRIX {
     # Key functions: files, frame
     ---------------------------------------------------------------------
     #Example bedgraph files
+    bdg_files <- list.files(
+      path = system.file('extdata', package = 'methrix'),
+      pattern = "*bedGraph\\.gz$",
     # --- Data [] ---
     # Key functions: get_matrix
     ---------------------------------------------------------------------

@@ -47,6 +47,7 @@ process BIOC_CHETAH {
     # Key functions: SingleCellExperiment, CHETAHclassifier, PlotCHETAH
     reference <- SingleCellExperiment(assays = list(counts = ref_counts),
     colData = DataFrame(celltypes = ref_ct))
+    input <- SingleCellExperiment(assays = list(counts = input_counts),
     # --- assay [] ---
     # Key functions: assay, reducedDim
     data('headneck_ref')
@@ -56,9 +57,10 @@ process BIOC_CHETAH {
     # Key functions: SingleCellExperiment
     headneck_ref <- SingleCellExperiment(assays = list(counts = counts_hn),
     colData = DataFrame(celltypes = celltypes_hn))
+    input_mel <- SingleCellExperiment(assays = list(counts = counts_melanoma),
     # --- C H E T A Hclassifier [] ---
     # Key functions: CHETAHclassifier
-
+    input_mel <- CHETAHclassifier(input = input_mel,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -59,6 +59,7 @@ process BIOC_MOTIFMATCHR {
     motif_ix <- matchMotifs(example_motifs, peaks, genome = "hg19")
     print(motif_ix)
     head(motifMatches(motif_ix))
+    motif_ix_scores <- matchMotifs(example_motifs, peaks,
     # --- Date [] ---
     # Key functions: Date
     ---------------------------------------------------------------------

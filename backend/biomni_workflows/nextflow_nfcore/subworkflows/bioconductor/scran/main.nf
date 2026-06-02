@@ -117,6 +117,7 @@ process BIOC_SCRAN {
     library(bluster)
     ratio <- pairwiseModularity(g, cluster, as.ratio=TRUE)
     library(pheatmap)
+    pheatmap(log10(ratio+1), cluster_cols=FALSE, cluster_rows=FALSE,
     # --- Bootstrapstability [] ---
     # Key functions: bootstrapStability, buildSNNGraph, cluster_walktrap, pheatmap, colorRampPalette
     ---------------------------------------------------------------------

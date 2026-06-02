@@ -38,47 +38,14 @@ process BIOC_QCKITFASTQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(qckitfastq)
+    library(GC_content)
     library(jsonlite)
 
-
-    # --- Loading File [] ---
-    # Key functions: fastqq, extdata, qckitfastq
-    library(qckitfastq)
-    infile <- system.file("extdata", "10^5_reads_test.fq.gz", package = "qckitfastq")
-    fseq <- seqTools::fastqq(infile)
-
-    # --- Read Length [] ---
-    # Key functions: read_length, kable_styling, plot_read_length
-    read_len <- read_length(fseq)
-    kable(head(read_len)) %>% kable_styling()
-    plot_read_length(read_len)
-
-    # --- Per Base Sequence Quality [] ---
-    # Key functions: per_base_quality, kable_styling, plot_per_base_quality
-    bs <- per_base_quality(infile)
-    kable(head(bs)) %>% kable_styling()
-    plot_per_base_quality(bs)
-
-    # --- Per Read Quality [] ---
-    # Key functions: per_read_quality, kable_styling, plot_per_read_quality
-    prq <- per_read_quality(infile)
-    kable(head(prq)) %>% kable_styling()
-    plot_per_read_quality(prq)
-
-    # --- Gc Content [] ---
-    # Key functions: GC_content, kable_styling, plot_GC_content
-    gc_df <- GC_content(infile)
-    kable(head(gc_df)) %>% kable_styling()
-    plot_GC_content(gc_df)
-
-    # --- Nucleotide Read Content [] ---
-    # Key functions: read_base_content, kable_styling, read_content, plot_read_content
-    scA <- read_base_content(fseq, content = "A")
-    kable(head(scA)) %>% kable_styling()
-    rc <- read_content(fseq)
-    kable(head(rc)) %>% kable_styling()
-    plot_read_content(rc)
+    # --- Table formatting and display [] ---
+    # Key functions: kable, fastqq, read_length, plot_read_length, per_base_quality, plot_per_base_quality, per_read_quality, plot_per_read_quality
+    if(.Platform$OS.type != "windows") {
+    infile2 <- system.file("extdata", "test.fq.gz", package = "qckitfastq")
+    ac_sorted <- adapter_content(infile2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

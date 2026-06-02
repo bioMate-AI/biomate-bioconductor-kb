@@ -43,7 +43,9 @@ process BIOC_BIOCOR {
 
     # --- Hierarchical clustering [] ---
     # Key functions: mgeneSim, hclust, similarities, TOMsimilarity, cutreeHybrid, labels2colors
-
+    genes.id <- c("10", "15", "16", "18", "2", "9", "52", "3855", "3880", "644",
+    genes.id <- mapIds(org.Hs.eg.db, keys = genes.id, keytype = "ENTREZID",
+    genes <- names(genes.id)
     # --- GeneIds analysis [] ---
     # Key functions: install_github, geneIds, unlist, split, pathSim, mpathSim, geneSim, mgeneSim
     clusterGeneSim(c("672", "675"), c("100", "10", "1"), genesKegg)

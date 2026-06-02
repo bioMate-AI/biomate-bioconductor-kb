@@ -52,6 +52,8 @@ process BIOC_METCIRC {
     # --- order Similarity Matrix [] ---
     # Key functions: orderSimilarityMatrix, createLinkDf
     condition <- c("SPL", "LIM", "ANT", "STY")
+    simM <- orderSimilarityMatrix(similarityMatrix = similarityMat,
+    groupname <- rownames(simM)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

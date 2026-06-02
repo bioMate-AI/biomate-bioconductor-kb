@@ -77,6 +77,10 @@ process BIOC_GYPSUM {
     # --- List [] ---
     # Key functions: validateMetadata
     ---------------------------------------------------------------------
+    metadata <- list(
+        title="Fatherhood",
+        description="Luke ich bin dein Vater.",
+        sources=list(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

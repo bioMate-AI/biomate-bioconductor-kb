@@ -43,7 +43,9 @@ process BIOC_SIAMCAT {
 
     # --- clean metadata 1 [] ---
     # Key functions: group_by, ungroup
-
+    select(sampleID, subjectID, study_condition, disease_subtype,
+    mutate(visit=str_extract(sampleID, '_[0-9]+$')) %>%
+    mutate(visit=str_remove(visit, '_')) %>%
     # --- curated Metagenomic Data [] ---
     # Key functions: curatedMetagenomicData
     feat <- curatedMetagenomicData(x=x, dryrun=FALSE)

@@ -41,16 +41,10 @@ process BIOC_ANVILBASE {
     library(AnVILBase)
     library(jsonlite)
 
-
-    # --- Eval=false [] ---
-    # Key functions: cloud_platform, avplatform_namespace, sessionInfo
-    #  cloud_platform()
-
-    ## -----------------------------------------------------------------------------
+    # --- Avplatform Namespace [] ---
+    # Key functions: avplatform_namespace
+    ---------------------------------------------------------------------
     avplatform_namespace()
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

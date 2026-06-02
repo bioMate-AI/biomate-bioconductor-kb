@@ -48,6 +48,7 @@ process BIOC_TRANSLATOME {
      library(tRanslatome)
      ##loading the training data set
      data(tRanslatomeSampleData)
+     translatome.analysis <- newTranslatomeDataset(expressionMatrix,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -47,6 +47,7 @@ process BIOC_BASICSTARRSEQ {
                                     package="BasicSTARRseq")
     inputFileName <- system.file("extdata", "smallInput.bam",
                                  package="BasicSTARRseq")
+    STARRseqData(sample=starrseqFileName, control=inputFileName,
     # --- Basicstarrseq.Rnw:48 50 [] ---
     # Key functions: STARRseqData
     STARRseqData(sample=starrseqFileName, control=inputFileName,

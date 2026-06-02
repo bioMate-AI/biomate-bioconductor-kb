@@ -41,82 +41,11 @@ process BIOC_LYMPHOSEQ {
     library(LymphoSeq)
     library(jsonlite)
 
-
-    # --- Results = "hide" [] ---
-    # Key functions: readImmunoSeq, extdata, TCRB_sequencing, TRB_Unsorted_0
-    library(LymphoSeq)
-
-    TCRB.path <- system.file("extdata", "TCRB_sequencing", package = "LymphoSeq")
-
-    TCRB.list <- readImmunoSeq(path = TCRB.path)
-    names(TCRB.list)
-    lapply(TCRB.list, dim)
-    CMV <- TCRB.list[grep("CMV", names(TCRB.list))]
-    names(CMV)
-    TRB_Unsorted_0 <- TCRB.list[["TRB_Unsorted_0"]]
-    head(TRB_Unsorted_0)
-
-    # --- Comment = "" [] ---
-    # Key functions: extdata, TCRB_metadata.csv, samples, productiveSeq, aminoAcid, nucleotide, TRB_Unsorted_0
-    TCRB.metadata <- read.csv(system.file("extdata", "TCRB_metadata.csv", package = "LymphoSeq"))
-    TCRB.metadata
-    selected <- as.character(TCRB.metadata[TCRB.metadata$phenotype == "Unsorted" & 
-                                     TCRB.metadata$day > 300, "samples"])
-    TCRB.list.selected <- TCRB.list[selected]
-    names(TCRB.list.selected)
-    productive.TRB.aa <- productiveSeq(file.list = TCRB.list, aggregate = "aminoAcid", 
-                                   prevalence = FALSE)
-    productive.TRB.nt <- productiveSeq(file.list = TCRB.list, aggregate = "nucleotide", 
-                                   prevalence = FALSE)
-    head(TCRB.list[["TRB_Unsorted_0"]])
-
-    # --- Comment = "" [] ---
-    # Key functions: TRB_Unsorted_0, clonality, readImmunoSeq, extdata, IGH_sequencing
-    head(productive.TRB.aa[["TRB_Unsorted_0"]])
-    head(productive.TRB.nt[["TRB_Unsorted_0"]])
-    clonality(file.list = TCRB.list)
-    IGH.path <- system.file("extdata", "IGH_sequencing", package = "LymphoSeq")
-
-    IGH.list <- readImmunoSeq(path = IGH.path)
-
-    # --- Comment = "" [] ---
-    # Key functions: clonalRelatedness, productiveSeq, nucleotide, alignSeq, IGH_MVQ92552A_BL, aminoAcid, consule, searchSeq
-    clonalRelatedness(list = IGH.list, editDistance = 10)
-    productive.IGH.nt <- productiveSeq(file.list = IGH.list, aggregate = "nucleotide")
-    alignSeq(list = productive.IGH.nt, sample = "IGH_MVQ92552A_BL", type = "aminoAcid", 
-             method = "ClustalW", output = "consule")
-    searchSeq(list = productive.TRB.aa, sequence = "CASSPVSNEQFF", type = "aminoAcid", 
-              match = "global", editDistance = 0)
-
-    # --- Comment = "" [] ---
-    # Key functions: searchPublished, bhattacharyyaMatrix, similarityMatrix, commonSeqs, TRB_Unsorted_0, TRB_Unsorted_32, differentialAbundance, TRB_Unsorted_949
-    published <- searchPublished(list = productive.TRB.aa)
-    head(published)
-    bhattacharyya.matrix <- bhattacharyyaMatrix(productive.seqs = productive.TRB.aa)
-    bhattacharyya.matrix
-    similarity.matrix <- similarityMatrix(productive.seqs = productive.TRB.aa)
-    similarity.matrix
-    common <- commonSeqs(samples = c("TRB_Unsorted_0", "TRB_Unsorted_32"), 
-                        productive.aa = productive.TRB.aa)
-    head(common)
-    differentialAbundance(list = productive.TRB.aa, 
-                          sample1 = "TRB_Unsorted_949", 
-                          sample2 = "TRB_Unsorted_1320", 
-                          type = "aminoAcid", q = 0.01)
-
-    # --- Comment = "" [] ---
-    # Key functions: uniqueSeqs, seqMatrix, topFreq, geneFreq
-    unique.seqs <- uniqueSeqs(productive.aa = productive.TRB.aa)
-    head(unique.seqs)
-    sequence.matrix <- seqMatrix(productive.aa = productive.TRB.aa, sequences = unique.seqs$aminoAcid)
-    head(sequence.matrix)
-    top.freq <- topFreq(productive.aa = productive.TRB.aa, percent = 0.1)
-    head(top.freq)
-    top.freq <- topFreq(productive.aa = productive.TRB.aa, percent = 0)
-    top.freq.matrix <- merge(top.freq, sequence.matrix)
-    head(top.freq.matrix)
-    vGenes <- geneFreq(productive.nt = productive.TRB.nt, locus = "V", family = TRUE)
-    head(vGenes)
+    # --- Mergefiles [] ---
+    # Key functions: mergeFiles
+    ---------------------------------------------------------------------
+    TRB_949_Merged <- mergeFiles(samples = c("TRB_CD4_949", "TRB_CD8_949"),
+                                    file.list = TCRB.list)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

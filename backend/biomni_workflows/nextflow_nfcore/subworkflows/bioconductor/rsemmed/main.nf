@@ -80,12 +80,16 @@ process BIOC_RSEMMED {
     # Key functions: make_edge_weights, find_paths, find_nodes
     ---------------------------------------------------------------------
     w <- make_edge_weights(g_small, e_feat, node_semtypes_out = c("humn", "popg"))
+    paths_subset_reweight <- find_paths(
+        graph = g_small,
+        from = find_nodes(g_small, names = "sickle trait"),
     # --- Nodes [] ---
     # Key functions: nodes, get_middle_nodes, make_edge_weights, find_paths, find_nodes
     ---------------------------------------------------------------------
     ## Obtain the middle nodes (2nd node on the path)
     out_names <- get_middle_nodes(g_small, paths_subset)
     ## Readjust weights
+    w <- make_edge_weights(g_small, e_feat,
     # --- Get Middle Nodes [] ---
     # Key functions: get_middle_nodes
     ---------------------------------------------------------------------

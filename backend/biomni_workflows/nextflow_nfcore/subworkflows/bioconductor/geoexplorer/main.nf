@@ -41,19 +41,9 @@ process BIOC_GEOEXPLORER {
     library(GEOexplorer)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Load Library [] ---
+    # --- load App [] ---
     # Key functions: loadApp
     library(GEOexplorer)
-
-    ## -----------------------------------------------------------------------------
     loadApp()
 
     # --- Save outputs ---

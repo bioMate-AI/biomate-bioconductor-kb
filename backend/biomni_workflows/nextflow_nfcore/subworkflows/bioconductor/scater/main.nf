@@ -45,6 +45,7 @@ process BIOC_SCATER {
     # Key functions: plotHighestExprs, logNormCounts, getVarianceExplained, plotExplanatoryVariables
     plotHighestExprs(example_sce, exprs_values = "counts")
     example_sce <- logNormCounts(example_sce)
+    vars <- getVarianceExplained(example_sce,
     # --- Run PCA [] ---
     # Key functions: plotExpression, runPCA, runTSNE, runUMAP, plotPCA
     plotExpression(example_sce, rownames(example_sce)[1:6])

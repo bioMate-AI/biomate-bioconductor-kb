@@ -50,6 +50,7 @@ process BIOC_QMTOOLS {
     # Key functions: imputeIntensity, assay, ggplot, geom_point
     se <- imputeIntensity(faahko_se, i = "raw", name = "knn", method = "knn")
     m <- assay(faahko_se, "raw")
+    knn_scaled <- as.data.frame(
     # --- Feature metadata inspection [] ---
     # Key functions: plotMiss, normalizeIntensity, plotBox, reduceFeatures, plotReduced, clusterFeatures, rowData, plotRTgroup
     se <- normalizeIntensity(se, i = "knn", name = "knn_vsn", method = "vsn")

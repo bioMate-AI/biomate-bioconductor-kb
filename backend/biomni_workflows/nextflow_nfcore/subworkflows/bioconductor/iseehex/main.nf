@@ -53,6 +53,10 @@ process BIOC_ISEEHEX {
     # --- List [] ---
     # Key functions: ReducedDimensionPlot, ReducedDimensionHexPlot, iSEE
     ---------------------------------------------------------------------
+    initialPanels <- list(
+        ReducedDimensionPlot(
+            ColorBy = "Feature name", ColorByFeatureName = "Cux2", PanelWidth = 6L),
+        ReducedDimensionHexPlot(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -69,6 +69,8 @@ process BIOC_PLYINTERACTIONS {
     # --- mcols [] ---
     # Key functions: mcols, as_tibble, count
     mutate(threshold = left_join(as_tibble(mcols(annotated_pairs)), filters)$threshold) |>
+    mutate(type = case_when(
+    group %in% c('--', '++') & n_fragments < threshold ~ "excluded",
     # --- Ps1 [] ---
     # Key functions: group_by, count, as_tibble, ggplot
     mutate(s = abs(end2 - start1)) |>

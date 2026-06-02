@@ -50,9 +50,12 @@ process BIOC_GVIZ {
     # Key functions: GRanges, plotTracks
     introns <- GRanges("chr12", IRanges(start = c(2973662, 2973919),
     end = c(2973848, 2974520)))
+    plotTracks(c(bmt, alTrack), from = afrom + 12700, to = afrom + 15200,
     # --- Markdown analysis [] ---
     # Key functions: markdown, latex, biomartCacheClear, genome, AnnotationTrack, GenomeAxisTrack, plotTracks, IdeogramTrack
-
+    types <- data.frame(Value=c("p", "l", "b", "a", "s", "S", "g", "r", "h", "confint", "smooth", "histogram", "mountain", "polygon", "boxplot", "gradient", "heatmap", "horizon"),
+    Type=c("dot plot", "lines plot", "dot and lines plot", "lines plot of average (i.e., mean) values", "stair steps (horizontal first)",
+    "stair steps (vertical first)", "add grid lines", "add linear regression line", "histogram lines", "confidence intervals for average values", "add loess curve",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

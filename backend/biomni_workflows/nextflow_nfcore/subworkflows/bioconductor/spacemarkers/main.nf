@@ -44,6 +44,10 @@ process BIOC_SPACEMARKERS {
     # --- set [] ---
     # Key functions: set
     --------------------------------------
+    knitr::opts_knit$set(
+        collapse = TRUE,
+        comment = "#>",
+        fig.align   = 'center'
     # --- Unlink [] ---
     # Key functions: unlink, files
     ---------------------------------------------------------------------
@@ -68,9 +72,17 @@ process BIOC_SPACEMARKERS {
     # --- Getinteractinggenes [] ---
     # Key functions: getInteractingGenes
     ---------------------------------------------------------------------
+    SpaceMarkers <- getInteractingGenes(data = counts_matrix,
+                                        reconstruction = cogaps_matrix,
+                                        optParams = optParams,
+                                        spPatterns = spPatterns,
     # --- Function [] ---
     # Key functions: frame
     ---------------------------------------------------------------------
+    compare_genes <- function(ref_list, list2,ref_name = "mode1",
+                                list2_name = "mode2", sub_slice = NULL){
+        ref_rank <- seq(1,length(ref_list),1)
+        list2_ref_rank <- which(list2 %in% ref_list)
     # --- Compare Genes [] ---
     # Key functions: compare_genes
     ---------------------------------------------------------------------
@@ -81,6 +93,10 @@ process BIOC_SPACEMARKERS {
     # --- Getinteractinggenes [] ---
     # Key functions: getInteractingGenes
     ---------------------------------------------------------------------
+    SpaceMarkers_enrich <- getInteractingGenes(data = counts_matrix,
+                                        reconstruction = cogaps_matrix,
+                                        optParams = optParams,
+                                        spPatterns = spPatterns,
     # --- Compare Genes [] ---
     # Key functions: compare_genes
     ---------------------------------------------------------------------
@@ -91,10 +107,17 @@ process BIOC_SPACEMARKERS {
     # --- Function [] ---
     # Key functions: ggproto, ggproto_parent, setup_data, viewport, editGrob, ggname
     ---------------------------------------------------------------------
+    geom_spatial <-  function(mapping = NULL,
+        data = NULL,
+        stat = "identity",
+        position = "identity",
     # --- List [] ---
     # Key functions: csv, factor
     ---------------------------------------------------------------------
     bcs <- list()
+    for (i in 1:length(sample_names)) {
+        bcs[[i]] <- read.csv(tissue_paths[i],col.names=c(
+            "barcode","tissue","row","col","imagerow","imagecol"), header = FALSE)
     # --- List [] ---
     # Key functions: frame, rowSums
     ---------------------------------------------------------------------

@@ -63,7 +63,7 @@ process BIOC_R3CPET {
     head(TF)
     # --- loadPPI usage [] ---
     # Key functions: loadPPI
-
+    loadPPI(object,type=c("HPRD","Biogid"),customPPI = NULL,
     # --- loadPPI loading [] ---
     # Key functions: loadPPI
     x <- loadPPI(x,type="HPRD", filter=TRUE)
@@ -93,7 +93,8 @@ process BIOC_R3CPET {
     clusterInteractions(object, method="sota", nbClus=20 )
     # --- plot3CPETRes usage [] ---
     # Key functions: plot3CPETRes
-
+    plot3CPETRes(object, path="", W=14, H=7 ,
+    type=c("heatmap","clusters","curve","avgCurve","netSim", "networks"),
     # --- get Regions Incluster [] ---
     # Key functions: getRegionsIncluster
     getRegionsIncluster(hlda,x,cluster=3)

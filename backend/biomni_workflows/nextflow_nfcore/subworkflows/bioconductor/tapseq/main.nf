@@ -38,49 +38,15 @@ process BIOC_TAPSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(TAPseq)
+    library(TAPseqInput)
     library(jsonlite)
 
-
-    # --- Include=false [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Include=false [] ---
-    # Key functions: tapseq
-    # Primer3 and BLAST are not run in this vignette, because they might be missing on the build system.
-    # already designed primers are loaded from internal data
-    outer_primers <- TAPseq:::vignette_data$outer_primers
-
-    # --- Results="hide" [] ---
-    # Key functions: tapseq_primers, pcr_products
-    # get primers and pcr products for specific genes
-    tapseq_primers(outer_primers$HBE1)
-    pcr_products(outer_primers$HBE1)
-
-    # these can also be accessed for all genes
-    tapseq_primers(outer_primers)
-    pcr_products(outer_primers)
-
-    # --- Results="hide" [] ---
-    # Key functions: pickPrimers, tapseq_primers, off_targets
-    # select best primer per target gene based on the number of potential off-targets
-    best_outer_primers <- pickPrimers(outer_primers, n = 1, by = "off_targets")
-
-    # each object now only contains the best primer
-    tapseq_primers(best_outer_primers$IFITM1)
-
-    # --- Include=false [] ---
-    # Key functions: tapseq
-    best_inner_primers <- TAPseq:::vignette_data$best_inner_primers
-
-    # --- Include=false [] ---
-    # Key functions: tapseq
-    outer_comp <- TAPseq:::vignette_data$outer_comp
-    inner_comp <- TAPseq:::vignette_data$inner_comp
+    # --- Tapseqinput [] ---
+    # Key functions: TAPseqInput
+    ---------------------------------------------------------------------
+    # create TAPseq IO for outer forward primers from truncated transcript sequences
+    outer_primers <- TAPseqInput(txs_seqs, target_annot = truncated_txs,
+                                 product_size_range = c(350, 500), primer_num_return = 5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

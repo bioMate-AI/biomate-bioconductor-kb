@@ -65,6 +65,7 @@ process BIOC_PHILR {
     # Add some metadata for the visualization
     d$SampleType <- factor(metadata$SampleType)
     # Create a plot
+    ggplot(data = d,
     # --- Matrix [] ---
     # Key functions: coefficients
     ---------------------------------------------------------------------

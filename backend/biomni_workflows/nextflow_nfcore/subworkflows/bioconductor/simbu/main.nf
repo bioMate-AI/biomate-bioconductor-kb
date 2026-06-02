@@ -41,29 +41,11 @@ process BIOC_SIMBU {
     library(SimBu)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Format="markdown" [] ---
-    # Key functions: assays, simulate_bulk, sample1, sample2, sample3, sample4, bulk_counts, bulk_tpm
+    # --- format="markdown" [] ---
+    # Key functions: simulate_bulk, merge_simulations
     pure_scenario_dataframe <- data.frame(
-      "B cells" = c(0.2, 0.1, 0.5, 0.3),
-      "T cells" = c(0.3, 0.8, 0.2, 0.5),
-      "NK cells" = c(0.5, 0.1, 0.3, 0.2),
-      row.names = c("sample1", "sample2", "sample3", "sample4")
-    )
-    pure_scenario_dataframe
-
-    ## -----------------------------------------------------------------------------
-    utils::head(SummarizedExperiment::assays(simulation$bulk)[["bulk_counts"]])
-    utils::head(SummarizedExperiment::assays(simulation$bulk)[["bulk_tpm"]])
-
-    ## -----------------------------------------------------------------------------
+    "B cells" = c(0.2, 0.1, 0.5, 0.3),
+    "T cells" = c(0.3, 0.8, 0.2, 0.5),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

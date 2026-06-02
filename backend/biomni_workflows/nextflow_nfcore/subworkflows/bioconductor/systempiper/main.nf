@@ -66,13 +66,19 @@ process BIOC_SYSTEMPIPER {
     sal <- SPRproject(envir = new.env())
     # --- firstStep R [] ---
     # Key functions: appendStep, split
-
+    appendStep(sal) <- LineWise(code = {
+    mapply(function(x, y) write.csv(x, y),
+    split(iris, factor(iris$Species)),
     # --- gzip secondStep [] ---
     # Key functions: appendStep, cmdlist, outfiles
     targetspath <- system.file("extdata/cwl/gunzip", "targets_gunzip.txt", package = "systemPipeR")
+    appendStep(sal) <- SYSargsList(step_name = "gzip",
+    dir_path = system.file("extdata/cwl", package = "systemPipeR"),
     # --- append Step [] ---
     # Key functions: appendStep
-
+    appendStep(sal) <- SYSargsList(step_name = "gunzip",
+    dir_path = system.file("extdata/cwl", package = "systemPipeR"),
+    inputvars = c(gzip_file = "_FILE_PATH_", SampleName = "_SampleName_"),
     # --- targetsWF 3 [] ---
     # Key functions: targetsWF
     targetsWF(sal['gunzip'])
@@ -84,7 +90,9 @@ process BIOC_SYSTEMPIPER {
     getColumn(sal, step = "gunzip", 'outfiles')
     # --- Custom ggplot2 visualization [] ---
     # Key functions: appendStep, ggplot, geom_bar, geom_errorbar
-
+    appendStep(sal) <- LineWise(code = {
+    df <- lapply(getColumn(sal, step = "gunzip", 'outfiles'), function(x) read.delim(x, sep = ",")[-1])
+    df <- do.call(rbind, df)
     # --- importWF rmd [] ---
     # Key functions: SPRproject, importWF
     sal_rmd <- SPRproject(logs.dir = ".SPRproject_rmd")

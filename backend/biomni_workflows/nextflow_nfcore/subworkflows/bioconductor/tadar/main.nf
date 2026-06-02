@@ -44,6 +44,8 @@ process BIOC_TADAR {
     # --- Create GenomicRanges object [] ---
     # Key functions: rnorm, GRanges
     set.seed(230704)
+    simulate_dar <- function(n, mean) {
+    vapply(
     # --- Define comparison contrasts [] ---
     # Key functions: makeContrasts
     vcf <- system.file("extdata", "chr1.vcf.bgz", package="tadar")

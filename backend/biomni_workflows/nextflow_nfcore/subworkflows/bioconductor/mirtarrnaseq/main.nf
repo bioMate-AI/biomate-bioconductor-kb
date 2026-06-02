@@ -43,13 +43,19 @@ process BIOC_MIRTARRNASEQ {
 
     # --- run Models [] ---
     # Key functions: runModels, criterion, melt
-
+    blaGaus <- runModels(Combine,
+    family = glm_gaussian(),
+    Plot the regression relationship for the mRNA and miRNAs (BHLF1 is the EBV
     # --- run Models [] ---
     # Key functions: runModels, melt
-
+    blaPois <- runModels(Combine,
+    family = glm_poisson(),
+    par(oma=c(2,2,2,2))
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_density, xlim, ggtitle
     bindM <- rbind(PM, BM, GM, ZpM, ZNBM)
+    p2 <- ggplot(data = bindM, aes(x = value, group = variable,
+    geom_density(adjust = 1.5, alpha = .3) +
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

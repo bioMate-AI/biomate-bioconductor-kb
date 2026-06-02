@@ -38,47 +38,16 @@ process BIOC_HICBRICKS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HiCBricks)
+    library(Brick_add_ranges)
+    library(Brick_get_ranges)
+    library(Brick_vizart_plot_heatmap)
     library(jsonlite)
 
-
-    # --- Eval = False [] ---
-    # Key functions: tempdir, load_BrickContainer, Brick_list_rangekeys, Brick_get_bintable, Brick_get_ranges, Brick_return_region_position, Brick_fetch_range_index, Brick_get_values_by_distance
-    #  
-    #  cooler zoomify -p 1 \
-    #    -r 200000,500000 \
-    #    -o 2_test_cool_from_hicbricks.mcool \
-    #    test_cool_from_hicbricks.cool
-    #  
-
-    ## -----------------------------------------------------------------------------
-
-    BrickContainer_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
+    # --- Load BrickContainer analysis [] ---
+    # Key functions: load_BrickContainer, Brick_vizart_plot_heatmap, Brick_add_ranges, Brick_get_ranges
     BrickContainer_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
     My_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)
-
-    # --- Plot2 [] ---
-    # Key functions: tempdir, load_BrickContainer, function, is.nan, is.infinite, Brick_vizart_plot_heatmap, HiCBricks_vignette_test
-    BrickContainer_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
-    My_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)
-
-    Failsafe_log10 <- function(x){
-        x[is.na(x) | is.nan(x) | is.infinite(x)] <- 0
-        return(log10(x+1))
-    }
-
-    # --- Plot4 [] ---
-    # Key functions: Brick_vizart_plot_heatmap, tempdir
-
-    # --- Plot6 [] ---
-    # Key functions: Brick_vizart_plot_heatmap, tempdir
-
-    # --- Plot8 [] ---
-    # Key functions: Brick_vizart_plot_heatmap, tempdir
-
-    # --- Plot10 [] ---
-    # Key functions: Brick_vizart_plot_heatmap, tempdir, load_BrickContainer, for, Brick_local_score_differentiator, Brick_add_ranges, Brick_get_ranges, unlist
-
+    Brick_vizart_plot_heatmap(File = file.path(tempdir(),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

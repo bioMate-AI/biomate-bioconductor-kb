@@ -85,6 +85,7 @@ process BIOC_ONCOMIX {
     library(RColorBrewer)
     col <- brewer.pal(3, "Dark2")
     ggplot(mmParamsMg, aes(x=score, y=..density.., fill=is.na(geneSymbol))) +
+        geom_histogram(data=subset(mmParamsMg, is.na(geneSymbol)),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

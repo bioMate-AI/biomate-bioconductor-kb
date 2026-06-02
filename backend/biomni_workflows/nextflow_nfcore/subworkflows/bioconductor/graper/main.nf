@@ -69,6 +69,7 @@ process BIOC_GRAPER {
     # get estimated posterior inclusion probabilities per feature
     pips <- getPIPs(fit)
     # plot pips for zero versus non-zero features
+    df <- data.frame(pips = pips,
     # --- Plotgrouppenalties [] ---
     # Key functions: plotGroupPenalties
     ---------------------------------------------------------------------

@@ -44,7 +44,9 @@ process BIOC_MARINER {
 
     # --- Create GenomicRanges object [] ---
     # Key functions: GInteractions, GRanges, snapToBins
-
+    gi <- GInteractions(
+    anchor1 = c(
+    GRanges("chr1:1-15"),
     # --- As ginteractions analysis [] ---
     # Key functions: install_github, as_ginteractions, seqnames1, start1, end1, seqnames2, start2, binPairs
     binned <- binPairs(x=gi, binSize = 1e3, pos1='center', pos2='center')

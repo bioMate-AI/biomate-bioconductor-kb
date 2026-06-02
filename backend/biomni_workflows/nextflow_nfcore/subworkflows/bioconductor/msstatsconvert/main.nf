@@ -38,6 +38,8 @@ process BIOC_MSSTATSCONVERT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MSstatsLogsSettings)
+    library(MSstatsSaveSessionInfo)
     library(MSstatsConvert)
     library(jsonlite)
 

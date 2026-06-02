@@ -96,9 +96,17 @@ process BIOC_REGIONER {
     # --- Function [] ---
     # Key functions: toGRanges, getSeq, alphabetFrequency, width
     ---------------------------------------------------------------------
+    gcContent <- function(A, bsgenome, ...) {
+    A <- toGRanges(A)
+    reg.seqs <- getSeq(bsgenome, A)
+    base.frequency <- alphabetFrequency(reg.seqs)
     # --- Function [] ---
     # Key functions: toGRanges, mcols, sample
     ---------------------------------------------------------------------
+    permuteRegionsMetadata <- function(A, ...) {
+    A <- toGRanges(A)
+    mcols(A)[,1] <- mcols(A)[sample(length(A)),1]
+    return(A)
     # --- Createrandomregions [] ---
     # Key functions: createRandomRegions, overlapPermTest
     ---------------------------------------------------------------------

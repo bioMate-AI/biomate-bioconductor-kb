@@ -41,24 +41,11 @@ process BIOC_CSSQ {
     library(CSSQ)
     library(jsonlite)
 
-
-    # --- Setup Knitr [] ---
-    # Key functions: BioC, F1000, ifelse, set, read.table, extdata, chr19_regions.bed, sample_info.txt
+    # --- get Region Counts [] ---
+    # Key functions: getRegionCounts, colData, rowRanges, loadCountData, ansTransform
     library(BiocStyle)
-    # Decide whether to display parts for BioC (TRUE) or F1000 (FALSE)
-    on.bioc <- TRUE
+    Decide whether to display parts for BioC (TRUE) or F1000 (FALSE)
     library(knitr)
-    # Use fig.width = 7 for html and fig.width = 6 for pdf
-    fig.width <- ifelse(on.bioc, 8, 6)
-    knitr::opts_chunk$set(cache = 2, warning = FALSE, message = FALSE, error = FALSE,
-      cache.path = "cache/", fig.path = "figure/", fig.width = fig.width)
-
-    ## -----------------------------------------------------------------------------
-    library(CSSQ)
-    regionBed <- read.table(system.file("extdata", "chr19_regions.bed", package="CSSQ",mustWork = TRUE))
-    sampleInfo <- read.table(system.file("extdata", "sample_info.txt", package="CSSQ",mustWork = TRUE),sep="\t",header=TRUE)
-    head(regionBed)
-    sampleInfo
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

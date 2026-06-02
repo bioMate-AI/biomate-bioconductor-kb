@@ -38,81 +38,15 @@ process BIOC_MISSROWS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(missRows)
+    library(MIDTList)
+    library(MIMFA)
     library(jsonlite)
 
-
-    # --- Load Data [] ---
-    # Key functions: MIDTList, trans, prote
-    data(NCI60)
-
-    ## --------------------------------------------------------------------------
-    names(NCI60)
-
-    ## --------------------------------------------------------------------------
-    table(NCI60$dataTables$cell.line$type)
-
-    ## --------------------------------------------------------------------------
-    NCI60$mae
-    tableList <- NCI60$dataTables[1:2]
-    cell.line <- NCI60$dataTables$cell.line
-
-    midt <- MIDTList(tableList, colData=cell.line, 
-                        assayNames=c("trans", "prote"))
-
-    # --- Sep Midtlist [] ---
-    # Key functions: MIDTList, trans, prote
-    table1 <- NCI60$dataTables$trans
-    table2 <- NCI60$dataTables$prote
-    cell.line <- NCI60$dataTables$cell.line
-
-    midt <- MIDTList(table1, table2, colData=cell.line,
-                        assayNames=c("trans", "prote"))
-    midt <- MIDTList("trans" = table1, "prote" = table2,
-                    colData=cell.line)
-
-    # --- Mae Midtlist [] ---
-    # Key functions: MIDTList, MIMFA, colData
-    midt <- MIDTList(NCI60$mae)
-
-    ## --------------------------------------------------------------------------
-    midt
-    set.seed(123)
-    midt <- MIMFA(midt, ncomp=50, M=30, estimeNC=TRUE)
-
-    ## --------------------------------------------------------------------------
-    midt
-
-    ## --------------------------------------------------------------------------
-    names(midt)
-
-    ## --------------------------------------------------------------------------
-
-    # --- Mth Conf [] ---
-    # Key functions: configurations, missPattern, grey70
-    conf <- configurations(midt, M=5)
-    dim(conf)
-    patt <- missPattern(midt, colMissing="grey70")
-
-    # --- Missing Pattern Mat [] ---
-    # Key functions: plotInd, white, ellipse, convex.hull
-    patt
-    plotInd(midt, colMissing="white")
-
-    ## ----plotInd-ellipses, fig.width=6, fig.height=5, out.width="0.55\\textwidth"----
-    plotInd(midt, confAreas="ellipse", confLevel=0.95)
-
-    ## ----plotInd-convexhull, fig.width=6, fig.height=5, out.width="0.55\\textwidth"----
-    plotInd(midt, confAreas="convex.hull")
-
-    # --- Plot Var [] ---
-    # Key functions: plotVar, tuneM
-    plotVar(midt, radIn=0.5)
-
-    ## ----plotVar-cutoff, fig.width=6, fig.height=5, out.width="0.55\\textwidth"----
-    plotVar(midt, radIn=0.55, varNames=TRUE, cutoff=0.55)
-    set.seed(1)
-    tune <- tuneM(midt, ncomp=2, Mmax=100, inc=10, N=20, showPlot=FALSE)
+    # --- MIDTList analysis [] ---
+    # Key functions: MIDTList, MIMFA, plotInd, plotVar, configurations, missPattern, tuneM
+    midt <- MIDTList(table1, table2, colData=df)
+    midt <- MIMFA(midt, ncomp=2, M=30)
+    plotInd(midt)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

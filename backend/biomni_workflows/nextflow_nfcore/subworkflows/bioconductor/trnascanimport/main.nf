@@ -41,38 +41,11 @@ process BIOC_TRNASCANIMPORT {
     library(tRNAscanImport)
     library(jsonlite)
 
-
-    # --- Plot1 [] ---
-    # Key functions: trnascanimport
-    plots$length
-
-    # --- Plot2 [] ---
-    # Key functions: trnascanimport
-    plots$tRNAscan_score
-
-    # --- Plot3 [] ---
-    # Key functions: trnascanimport
-    plots$gc
-
-    # --- Plot4 [] ---
-    # Key functions: trnascanimport
-    plots$tRNAscan_intron
-
-    # --- Plot5 [] ---
-    # Key functions: trnascanimport
-    plots$variableLoop_length
-
-    # --- T Rna Precursor [] ---
-    # Key functions: getSeq, get.tRNAprecursor, sessionInfo, chrmt
+    # --- tRNA precursor [] ---
+    # Key functions: getSeq
     library(BSgenome.Scerevisiae.UCSC.sacCer3)
     genome <- getSeq(BSgenome.Scerevisiae.UCSC.sacCer3)
-    # renaming chromosome to match tRNAscan output
     names(genome) <- c(names(genome)[-17L],"chrmt")
-    tRNAprecursor <- get.tRNAprecursor(gr, genome)
-    head(tRNAprecursor)
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

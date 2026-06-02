@@ -65,6 +65,7 @@ process BIOC_SSPATHS {
     # plot the ROC curve
     plot(training_res[[4]], col="blue", ylim=c(0, 1))
     roc_text <- paste("AUC:", round(training_res$auc_roc,3))
+    legend(0.1,0.8, roc_text,
     # --- Data [] ---
     # Key functions: SummarizedExperiment, colData, get_new_samp_score
     data(new_samp_df)
@@ -74,7 +75,11 @@ process BIOC_SSPATHS {
     new_score_df <- get_new_samp_score(gene_weights, new_samp_se)
     # --- Function [] ---
     # Key functions: ggplot, aes, geom_boxplot, theme
-
+    plot_scores <- function(hif_scores){
+        # format the sample IDS
+        hif_scores$sample_type <- substr(hif_scores$sample_id, 1,
+                                      nchar((hif_scores$sample_id))-2)
+        colnames(hif_scores)[2] <- "pathway_score"
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -53,6 +53,8 @@ process BIOC_XINA {
     # --- XINA clustering plot [] ---
     # Key functions: theme, plot_clusters
     library(ggplot2)
+    theme1 <- theme(title=element_text(size=8, face='bold'),
+    axis.text.x = element_text(size=7),
     # --- XINA condition composition [] ---
     # Key functions: theme, plot_condition_compositions
     theme2 <- theme(legend.key.size = unit(0.3, "cm"),

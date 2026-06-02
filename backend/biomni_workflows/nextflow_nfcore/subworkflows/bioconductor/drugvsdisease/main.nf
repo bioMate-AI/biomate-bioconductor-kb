@@ -75,6 +75,7 @@ process BIOC_DRUGVSDISEASE {
     ## data(customClust,package="DrugVsDisease")
     ## data(customedge,package="DrugVsDisease")
     ## data(customsif,package="DrugVsDisease")
+    ## customRefData<-classifyprofile(data=sel22528$ranklist, lengthtest=100,
     # --- Classifyprofile [] ---
     # Key functions: classifyprofile
     ## CytoOut<-classifyprofile(data=sel22528$ranklist,cytoout=TRUE,

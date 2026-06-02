@@ -53,6 +53,8 @@ process BIOC_EPIALLELER {
     -----------------------------------------------------------------------------------------
     # report for amplicon-based data
     # matching is done by exact start or end positions plus/minus tolerance
+    amplicon.report <- generateAmpliconReport(
+      bam=system.file("extdata", "amplicon010meth.bam", package="epialleleR"),
     # --- Generatemhlreport [] ---
     # Key functions: generateMhlReport
     -----------------------------------------------------------------------------------------

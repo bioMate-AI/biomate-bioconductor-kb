@@ -51,10 +51,14 @@ process BIOC_MLSEQ {
     vars <- sort(apply(cervical, 1, var, na.rm = TRUE), decreasing = TRUE)
     # --- mwe limitations on continuous classifiers [] ---
     # Key functions: classify, show
-
+    fit <- classify(data = data.trainS4, method = "svmRadial",
+    control = trainControl(method = "repeatedcv", number = 2,
+    show(fit)
     # --- Optimizing model parameters example [] ---
     # Key functions: show
     set.seed(2128)
+    fit.svm <- classify(data = data.trainS4, method = "svmRadial",
+    control = trainControl(method = "repeatedcv", number = 5,
     # --- fitted model svm figure [] ---
     # Key functions: cairo_pdf
     cairo_pdf(filename = "fitted_model_svm_figure.pdf", height = 5.5)
@@ -62,7 +66,9 @@ process BIOC_MLSEQ {
     dev.off()
     # --- Get reference alleles from VCF [] ---
     # Key functions: discreteControl, classify, show, method, ref
-
+    venn.plot <- venn.diagram(
+    x = list(voomNSC = genes.vnsc, NSC = genes.pam, PLDA = genes.plda, PLDA2 = genes.plda2),
+    fill = c("khaki1", "skyblue", "tomato3", "darkolivegreen3"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

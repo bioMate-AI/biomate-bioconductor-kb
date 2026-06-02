@@ -38,74 +38,14 @@ process BIOC_ESCHER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(escheR)
+    library(Visium_humanDLPFC)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set, Visium_humanDLPFC
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      message = FALSE,
-      comment = "#>",
-      # fig.width = 8,
-      # fig.height = 8,
-      fig.small = TRUE,
-      fig.retina = NULL
-    )
-    spe <- Visium_humanDLPFC()
-
-    # Subset in-tissue spots
-    spe <- spe[, spe$in_tissue == 1]
-    spe <- spe[, !is.na(spe$ground_truth)]
-
-    # --- Spe Summary [] ---
-    # Key functions: make_escheR
-    spe
-    p <- make_escheR(spe)
-
-    # --- Creat Fill [] ---
-    # Key functions: add_fill, cell_count, add_ground, ground_truth
-    (p1 <- p |>
-       add_fill(var = "cell_count"))
-    (p2 <- p |>
-       add_ground(var = "ground_truth")) # round layer
-
-    # --- Add Symbol [] ---
-    # Key functions: add_symbol, ground_truth, counts, rowData, make_escheR, add_fill, add_ground, counts_MOBP
-    p2 |>
-      add_symbol(var = "ground_truth", size = 0.2) # Symbol layer
-    # Prep data
-    # Adding gene counts for MBP to the colData
-    spe$counts_MOBP <- counts(spe)[which(rowData(spe)$gene_name=="MOBP"),]
-
-    (p <- make_escheR(spe) |> 
-        add_fill(var = "counts_MOBP") |> 
-        add_ground(var = "ground_truth", stroke = 0.5))
-
-    # --- Improved Con Cat Eg [] ---
-    # Key functions: scale_fill_gradient, white, black, cut, fivenum
-    (p2 <- p + 
-       scale_fill_gradient(low = "white", high = "black"))
-    spe$tmp_group <- cut(
-      spe$array_row, 
-      breaks = c(min(spe$array_row)-1 ,
-                 fivenum(spe$array_row))
-    )
-
-    table(spe$tmp_group)
-
-    # --- Cat Cat Eg [] ---
-    # Key functions: make_escheR, add_fill, add_ground, scale_fill_brewer, theme_void, tmp_group, ground_truth, transparent
-    make_escheR(spe) |> 
-      add_fill(var = "tmp_group") |> 
-      add_ground(var = "ground_truth", stroke = 0.5) +
-      scale_fill_brewer() +
-      theme_void()
-    make_escheR(spe) |> 
-      add_fill(var = "tmp_group") |> 
-      add_ground(var = "ground_truth", stroke = 0.5) +
-      scale_fill_brewer() +
+    # --- Color scale styling [] ---
+    # Key functions: install_github, Visium_humanDLPFC, make_escheR, add_fill, add_ground, add_symbol, scale_fill_gradient, fivenum
+    plot_list <- unique(spe$sample_id) |> # Create a list of sample names
+    lapply(FUN = function(.sample_id){ # Iterate over all samples
+    make_escheR(spe_single) |>
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

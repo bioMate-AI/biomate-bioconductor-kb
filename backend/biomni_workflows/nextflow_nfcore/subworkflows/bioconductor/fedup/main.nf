@@ -43,10 +43,14 @@ process BIOC_FEDUP {
 
     # --- plot Dot Plot [] ---
     # Key functions: plotDotPlot, facet_grid, theme, tempdir, writeFemap
-
+    p <- plotDotPlot(
+    xLab = "-log10(qvalue)",
+    fillCol = c("#6D90CA", "#F6EB13"),
     # --- fedupEM geneDouble [] ---
     # Key functions: tempfile, plotFemap
     netFile <- tempfile("fedupEM_geneDouble", fileext = ".png")
+    plotFemap(
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

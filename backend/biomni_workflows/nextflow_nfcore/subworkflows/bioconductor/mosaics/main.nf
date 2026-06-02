@@ -47,6 +47,7 @@ process BIOC_MOSAICS {
         fileFormat="bam", outfileLoc="./",
         byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL,
         PET=FALSE, fragLen=200, binSize=200, capping=0 )
+    constructBins( infile=system.file( file.path("extdata","wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam"), package="mosaicsExample"),
     # --- Io Readbin [] ---
     # Key functions: readBins
     fileName <- c(
@@ -79,6 +80,7 @@ process BIOC_MOSAICS {
         fileFormat="bam", outfileLoc="./",
         byChr=FALSE, useChrfile=FALSE, chrfile=NULL, excludeChr=NULL,
         PET=FALSE, fragLen=200, binSize=200, capping=0 )
+    constructBins( infile=system.file( file.path("extdata","wgEncodeBroadHistoneGm12878ControlStdAlnRep1_chr22_sorted.bam"), package="mosaicsExample"),
     # --- Mosaicsfithmm [] ---
     # Key functions: mosaicsFitHMM
     hmmHM <- mosaicsFitHMM( fitHM, signalModel = "2S",
@@ -109,10 +111,18 @@ process BIOC_MOSAICS {
     head(print(peakHM))
     # --- Mosaicsrunall [] ---
     # Key functions: mosaicsRunAll
-
+    ##      mosaicsRunAll(
+    ##          chipFile="/scratch/eland/STAT1_ChIP_eland_results.txt",
+    ##          chipFileFormat="eland_result",
+    ##          controlFile="/scratch/eland/STAT1_control_eland_results.txt",
+    ##          controlFileFormat="eland_result",
     # --- Ts Readbin [] ---
     # Key functions: readBins, path
-
+    exampleBinData <- readBins( type=c("chip","input","M","GC","N"),
+        fileName=c( system.file( file.path("extdata","chip_chr21.txt"), package="mosaicsExample"),
+        system.file( file.path("extdata","input_chr21.txt"), package="mosaicsExample"),
+        system.file( file.path("extdata","M_chr21.txt"), package="mosaicsExample"),
+        system.file( file.path("extdata","GC_chr21.txt"), package="mosaicsExample"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

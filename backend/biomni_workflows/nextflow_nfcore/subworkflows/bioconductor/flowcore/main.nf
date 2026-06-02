@@ -43,7 +43,9 @@ process BIOC_FLOWCORE {
 
     # --- Data import and loading [] ---
     # Key functions: compensate, getData, fsApply, gs_pop_add, recompute
-
+    if(require(openCyto)){
+    thisData <- getData(gs, "nonDebris") #get parent data
+    singlet_gate <- fsApply(thisData,
     # --- Quality control and filtering [] ---
     # Key functions: phenoData, pData
     phenoData(fs)$Filename <- fsApply(fs,keyword, "$FIL")

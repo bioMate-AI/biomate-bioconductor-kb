@@ -49,10 +49,14 @@ process BIOC_BENCHDAMIC {
     priorInfo <- data.frame(genera, "Type" =  microbial_metabolism[genera, "Type"])
     # --- Quality control and filtering [] ---
     # Key functions: TreeSummarizedExperiment, colData
-
+    sim_obj <- TreeSummarizedExperiment::TreeSummarizedExperiment(
+    assays = list("counts" = sim_list[[1]][["counts"]]),
+    SummarizedExperiment::colData(sim_obj)[, "colData.Group"] <- as.factor(
     # --- HURDLE analysis [] ---
     # Key functions: fitHURDLE, prepareObserved, fitModels, plotRMSE, ldply, plot_grid, plotMD, kable_styling
     available_methods <- read.csv(file = "./benchdamic_methods.csv", sep = ";")
+    kable(x = available_methods,
+    col.names = c("Method (package)", "Short description", "Test",
     # --- Visualization and reporting [] ---
     # Key functions: plotPositives, facet_wrap, theme, geom_hline, ylim
     plotPositives(positives = positives_nodir) +

@@ -46,37 +46,47 @@ process BIOC_COMETHDMR {
 
     # --- Co Meth All Regions [] ---
     # Key functions: CoMethAllRegions
-
+    system.time(
+    coMeth_ls <- CoMethAllRegions(
     # --- lmmTestAllRegions 1 [] ---
     # Key functions: lmmTestAllRegions
-
+    out_df <- lmmTestAllRegions(
     # --- Annotate Results [] ---
     # Key functions: AnnotateResults
-
+    system.time(
+    outAnno_df <- AnnotateResults(
     # --- Cp Gs Info One Region [] ---
     # Key functions: CpGsInfoOneRegion
-
+    outCpGs_df <- CpGsInfoOneRegion(
     # --- CpGsInfoOneRegion 2 [] ---
     # Key functions: CpGsInfoOneRegion
-
+    CpGsInfoOneRegion(
+    gene_ls <- readRDS(
+    system.file(
     # --- Get Residuals [] ---
     # Key functions: GetResiduals
-
+    resid_mat <- GetResiduals(
+    covariates_char = c("age.brain", "sex", "slide")
     # --- CoMethAllRegions 2 [] ---
     # Key functions: CoMethAllRegions
-
+    Cgi_ls <- readRDS(
+    system.file(
+    coMeth_ls <- CoMethAllRegions(
     # --- CoMethAllRegions 3 [] ---
     # Key functions: CoMethAllRegions
-
+    coMeth_ls <- CoMethAllRegions(
     # --- CoMethAllRegions 4 [] ---
     # Key functions: CoMethAllRegions
-
+    coMethData_df <- CoMethAllRegions(
     # --- lmmTestAllRegions 2 [] ---
     # Key functions: lmmTestAllRegions
-
+    lmmTestAllRegions(
+    data(betasChr22_df)
     # --- find and test regions [] ---
     # Key functions: CoMethAllRegions, lmmTestAllRegions, AnnotateResults
-
+    coMeth_ls <- CoMethAllRegions(
+    results <- lmmTestAllRegions(
+    AnnotateResults(lmmRes_df = results, arrayType = "450k")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,13 +43,15 @@ process BIOC_MBECS {
 
     # --- to String [] ---
     # Key functions: toString, packageDescription
-
+    pkg_dependencies <- data.frame("Package"=c("phyloseq","magrittr","cluster",
+    for( pkg in 1:length(pkg_dependencies$Package) ) {
+    toString(utils::packageVersion(eval(pkg_dependencies$Package[pkg])))
     # --- Usage prelimreport [] ---
     # Key functions: mbecReportPrelim
-
+    mbecReportPrelim(input.obj=mbec.obj, model.vars=c("batch","group"),
     # --- Usage postreport [] ---
     # Key functions: mbecReportPost
-
+    mbecReportPost(input.obj=mbec.obj, model.vars=c("batch","group"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

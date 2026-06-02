@@ -69,6 +69,10 @@ process BIOC_DIFFUSTATS {
     # --- Code Block 7 [] ---
     # Key functions: igraph, scores2colours, scores2shapes
     score_col <- 4
+    igraph::plot.igraph(
+        graph_toy,
+        vertex.color = diffuStats::scores2colours(output_mc[, score_col]),
+        vertex.shape = diffuStats::scores2shapes(input_mat[, score_col]),
     # --- Code Block 8 [] ---
     # Key functions: perf, grid
     df_perf <- perf(

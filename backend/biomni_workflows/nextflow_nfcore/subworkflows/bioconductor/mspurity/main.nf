@@ -41,50 +41,11 @@ process BIOC_MSPURITY {
     library(msPurity)
     library(jsonlite)
 
-
-    # --- Results='hide' [] ---
-    # Key functions: list.files, xcmsSet, group, extdata, lcms, mzML, msPurityData
-    library(msPurity)
-    library(xcms)
-    mzMLpths <- list.files(system.file("extdata", "lcms", "mzML", package="msPurityData"), full.names = TRUE)
-
-    #read in the data
-    xset = xcms::xcmsSet(mzMLpths, method = 'centWave', mslevel=1, snthresh = 3, noise = 100, ppm = 10, peakwidth = c(3, 30))
-
-    #for this example we will subset the data to focus on retention time range 30-90 seconds and scan range 100-200 m/z
-    xset@peaks = xset@peaks[xset@peaks[,4] >= 30 & xset@peaks[,4] <= 90,] #retention time filter
-    xset@peaks = xset@peaks[xset@peaks[,1] >= 100 & xset@peaks[,1] <= 200,] #m/z filter
-
-    # --- Results='hide' [] ---
-    # Key functions: list.files, readMSData, filterRt, filterMz, CentWaveParam, findChromPeaks, samples, PeakDensityParam
-    library(msPurity)
-    library(magrittr)
-    library(xcms)
-    library(MSnbase)
-    mzMLpths <- list.files(system.file("extdata", "lcms", "mzML", package="msPurityData"), full.names = TRUE)
-
-    #read in data and subset to use data between 30 and 90 seconds and 100 and 200 m/z
-    msdata = readMSData(mzMLpths, mode = 'onDisk', msLevel. = 1)
-    rtr = c(30, 90)
-    mzr = c(100, 200)
-
-    # --- Results='hide' [] ---
-    # Key functions: purityA, frag4feature
-    pa  <- purityA(mzMLpths)
-    pa <- frag4feature(pa = pa, xcmsObj = xcmsObj)
-
-    # --- Results='hide' [] ---
-    # Key functions: filterFragSpectra
-    pa <- filterFragSpectra(pa = pa)
-
-    # --- Results='hide' [] ---
-    # Key functions: averageIntraFragSpectra, averageInterFragSpectra
-    pa <- averageIntraFragSpectra(pa = pa) # use parameters specific to intra spectra 
-    pa <- averageInterFragSpectra(pa = pa) # use parameters specific to inter spectra
-
-    # --- Results='hide' [] ---
-    # Key functions: averageAllFragSpectra
-    pa <- averageAllFragSpectra(pa = pa)
+    # --- Perform Spectral Matching [] ---
+    # Key functions: spectralMatching
+    ---------------------------------------------------------------------
+    result <- spectralMatching(q_dbPth, q_xcmsGroups = c(432), l_accessions=c('CCMSLIB00003740033'))
+    print(result)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

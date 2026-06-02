@@ -52,6 +52,8 @@ process BIOC_GSEAMINING {
     ---------------------------------------------------------------------
     library(GSEAmining)
     data("genesets_sel", package = 'GSEAmining')
+    gs.filt <- gm_filter(genesets_sel,
+                         p.adj = 0.05,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

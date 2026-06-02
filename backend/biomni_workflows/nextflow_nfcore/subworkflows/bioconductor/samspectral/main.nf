@@ -51,6 +51,7 @@ process BIOC_SAMSPECTRAL {
     set.seed(4)
     data(small_data)
     full <- small
+    L <- SamSPECTRAL(full,dimension=c(1,2,3),normal.sigma = 200,
     # --- F Example [] ---
     # Key functions: na
     ## Computing the frequency:
@@ -81,6 +82,7 @@ process BIOC_SAMSPECTRAL {
     ## Compute conductance between communities
     conductance <- Conductance_Calculation(full, normal.sigma, space.length, society, precision)
     ## Compute the eigenspace:
+    if (run.live){
     # --- F Appropriate [] ---
     # Key functions: Conductance_Calculation, Civilized_Spectral_Clustering
     normal.sigma <- 250
@@ -115,6 +117,7 @@ process BIOC_SAMSPECTRAL {
     separation.factor <- 0.5
     ## post-possesing:
     component.of <-
+        Connecting(full, society, conductance, number.of.clusters,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,10 +43,13 @@ process BIOC_RAWDIAG {
 
     # --- system2 [] ---
     # Key functions: system2
-
+    if (Sys.info()["sysname"] %in% c("Darwin", "Linux")) {
+    system2("mono", args = '--version', stdout = TRUE)
     # --- check Rawrr [] ---
     # Key functions: checkRawrr, installRawFileReaderDLLs, installRawrrExe
     rawDiag::checkRawrr()
+    if (isFALSE(rawrr::.checkDllInMonoPath())){
+    rawrr::installRawFileReaderDLLs()
     # --- rawrr Assembly Path [] ---
     # Key functions: rawrrAssemblyPath
     rawrr::rawrrAssemblyPath()

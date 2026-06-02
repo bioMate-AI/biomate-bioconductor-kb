@@ -41,9 +41,8 @@ process BIOC_CTDATA {
     library(CTdata)
     library(jsonlite)
 
-
-    # --- Data [] ---
-    # Key functions: datatable, CTdata
+    # --- datatable [] ---
+    # Key functions: datatable
     library("CTdata")
     DT::datatable(CTdata())
 

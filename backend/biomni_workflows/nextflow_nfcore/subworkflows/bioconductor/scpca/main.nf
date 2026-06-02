@@ -52,6 +52,9 @@ process BIOC_SCPCA {
     # Key functions: spca
     # perform sPCA on toy_df for a range of L1 penalty terms
     penalties <- exp(seq(log(10), log(1000), length.out = 6))
+    df_ls <- lapply(penalties, function(penalty) {
+      spca_sim_p <- elasticnet::spca(toy_df[, 1:30], K = 2, para = rep(penalty, 2),
+                         type = "predictor", sparse = "penalty")$loadings
     # --- Cpca Sim [] ---
     # Key functions: scPCA, as_tibble, mutate, ggplot, aes, geom_point
     cpca_sim <- scPCA(target = toy_df[, 1:30],
@@ -63,6 +66,9 @@ process BIOC_SCPCA {
     # Key functions: scPCA, as_tibble, mutate
     # run scPCA for using 40 logarithmically seperated contrastive parameter values
     # and possible 20 L1 penalty terms
+    scpca_sim <- scPCA(target = toy_df[, 1:30],
+                       background = background_df,
+                       n_centers = 4,
     # --- Cpca Sim Cv [] ---
     # Key functions: scPCA, as_tibble, mutate, ggplot, aes, geom_point
     cpca_cv_sim <- scPCA(target = toy_df[, 1:30],
@@ -72,18 +78,32 @@ process BIOC_SCPCA {
                          cv = 3)
     # --- Scpca Sim Cv [] ---
     # Key functions: scPCA, as_tibble, mutate
-
+    scpca_cv_sim <- scPCA(target = toy_df[, 1:30],
+                          background = background_df,
+                          n_centers = 4,
+                          cv = 3,
+                          penalties = exp(seq(log(0.01), log(0.5), length.out = 10)),
     # --- Plot Cv Cpca Scpca [] ---
     # Key functions: ggarrange
-
+    ggarrange(
+      p_cpca_cv, p_scpca_cv,
+      nrow = 1,
+      common.legend = TRUE,
+      legend = "right"
     # --- Microbenchmark Comparison [] ---
     # Key functions: microbenchmark, scPCA, autoplot, ggtitle, theme_minimal
-
+    timing_scPCA <- microbenchmark(
+      "Zou et al." = scPCA(target = toy_df[, 1:30],
+                           background = background_df,
+                           n_centers = 4,
+                           alg = "iterative"),
     # --- Sce Setup [] ---
     # Key functions: newSplatParams, splatSimulate
     library(splatter)
     library(SingleCellExperiment)
     # Simulate the three groups of cells. Mask cell heterogeneity with batch effect
+    params <- newSplatParams(
+      seed = 6757293,
     # --- Make Sce Subs [] ---
     # Key functions: assay
     # rank genes by variance
@@ -102,6 +122,9 @@ process BIOC_SCPCA {
     # Key functions: frame, ggplot, aes, geom_point, ggtitle, scale_colour_viridis_d, scale_shape_discrete
     # plot the 2D representations
     # prepare PCA
+    pca_df <- data.frame(
+      PC1 = pca_out$x[, 1],
+      PC2 = pca_out$x[, 2],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

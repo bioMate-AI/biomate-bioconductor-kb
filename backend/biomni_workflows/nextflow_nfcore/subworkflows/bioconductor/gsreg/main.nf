@@ -78,6 +78,8 @@ process BIOC_GSREG {
     Nperm = 10;
     VarAnPerm = vector(mode="list",length=Nperm)
     for( i in seq_len(Nperm))
+    {
+      VarAnPerm[[i]] = GSReg.GeneSets.EVA(geneexpres=exprsdata, pathways=diracpathways,
     # --- Plot [] ---
     # Key functions: pnorm
     plot(x=abs(zscore),y=pvaluesperm,xlab="|Z-score|",
@@ -107,6 +109,7 @@ process BIOC_GSREG {
     require('org.Hs.eg.db')
     require('GenomicRanges')
     data(juncExprsSimulated)
+    overlapMat <- GSReg.overlapJunction(juncExprs =  junc.RPM.Simulated,
     # --- Data [] ---
     # Key functions: SEVA
     data(juncExprsSimulated)

@@ -53,6 +53,8 @@ process BIOC_GTRELLIS {
     -----------------------------------------------------------------------------------------
     bed = generateRandomBed()
     gtrellis_layout(category = "chr1", n_track = 4, track_ylim = range(bed[[4]]))
+    add_track(bed, panel_fun = function(bed) {
+        grid.points((bed[[2]] + bed[[3]]) / 2, bed[[4]], pch = 16, size = unit(2, "mm"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

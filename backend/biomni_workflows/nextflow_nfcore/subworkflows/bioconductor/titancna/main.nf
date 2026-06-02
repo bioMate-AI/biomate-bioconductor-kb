@@ -62,14 +62,22 @@ process BIOC_TITANCNA {
     ## registerDoMC(cores = 4) #use 4 cores on a single machine
     # --- Runemclonalcn [] ---
     # Key functions: runEMclonalCN
-
+    convergeParams <- runEMclonalCN(data, params,
+                                    maxiter = 3, maxiterUpdate = 50,
+                                    useOutlierState = FALSE, txnExpLen = 1e15,
+                                    txnZstrength = 5e5,
+                                    normalEstimateMethod = "map",
     # --- Viterbiclonalcn [] ---
     # Key functions: viterbiClonalCN
     optimalPath <- viterbiClonalCN(data, convergeParams)
     head(optimalPath)
     # --- Outputtitanresults [] ---
     # Key functions: outputTitanResults
-
+    results <- outputTitanResults(data, convergeParams, optimalPath,
+                                  filename = NULL, posteriorProbs = FALSE,
+                                  subcloneProfiles = TRUE, correctResults = TRUE,
+                                  proportionThreshold = 0.05,
+                                  proportionThresholdClonal = 0.05,
     # --- Eval [] ---
     # Key functions: outputTitanSegments
     segs <- outputTitanSegments(results, id = "test", convergeParams,
@@ -91,6 +99,7 @@ process BIOC_TITANCNA {
     ploidy
     normal <- tail(convergeParams$n, 1)
     normal
+    plotCNlogRByChr(results, segs = segs, chr = 2, ploidy = ploidy, normal = normal,
     # --- Plotallelicratio [] ---
     # Key functions: plotAllelicRatio
     plotAllelicRatio(results, chr = 2, ylim = c(0, 1), cex = 0.25,

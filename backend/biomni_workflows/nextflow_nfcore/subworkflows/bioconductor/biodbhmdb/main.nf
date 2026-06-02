@@ -41,45 +41,11 @@ process BIOC_BIODBHMDB {
     library(biodbHmdb)
     library(jsonlite)
 
-
-    # --- Results='hide' [] ---
-    # Key functions: newInst, getFactory, createConn, setPropValSlot, getNbEntries, getEntryIds, extdata, hmdb_extract.zip
-    mybiodb <- biodb::newInst()
-
-    ## -----------------------------------------------------------------------------
-    conn <- mybiodb$getFactory()$createConn('hmdb.metabolites')
-
-    ## -----------------------------------------------------------------------------
-    dbExtract <- system.file("extdata", 'generated', "hmdb_extract.zip",
-        package="biodbHmdb")
-    conn$setPropValSlot('urls', 'db.zip.url', dbExtract)
-
-    ## -----------------------------------------------------------------------------
-    conn$getNbEntries()
-
-    ## -----------------------------------------------------------------------------
-    ids <- conn$getEntryIds(2)
-
-    # --- Entry By Name Table [] ---
-    # Key functions: searchForEntries, getEntry, getFieldsAsDataframe, pipe
+    # --- kable [] ---
+    # Key functions: kable
     knitr::kable(entryDf, "pipe", caption="The entry returned when searching by name.")
-
-    ## -----------------------------------------------------------------------------
     id <- conn$searchForEntries(list(description=c('Parkinson', 'sclerosis')), max.results=1)
-    id
-
-    ## -----------------------------------------------------------------------------
     entryDf <- conn$getEntry(id)$getFieldsAsDataframe(fields=c('accession', 'name', 'description'))
-
-    # --- Entry By Desc Table [] ---
-    # Key functions: terminate, sessionInfo, pipe
-    knitr::kable(entryDf, "pipe", caption="The entry returned when searching by description.")
-
-    ## -----------------------------------------------------------------------------
-    mybiodb$terminate()
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

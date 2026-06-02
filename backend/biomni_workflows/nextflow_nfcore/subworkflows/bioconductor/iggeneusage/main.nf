@@ -50,6 +50,10 @@ process BIOC_IGGENEUSAGE {
     # --- Dgu [] ---
     # Key functions: DGU, chain, run, level, rate, step
     ---------------------------------------------------------------------
+    M <- DGU(ud = d_zibb_3, # input data
+             mcmc_warmup = 300, # how many MCMC warm-ups per chain (default: 500)
+             mcmc_steps = 1500, # how many MCMC steps per chain (default: 1,500)
+             mcmc_chains = 3, # how many MCMC chain to run (default: 4)
     # --- Check Hmc Diagnostics [] ---
     # Key functions: check_hmc_diagnostics
     ---------------------------------------------------------------------
@@ -61,6 +65,10 @@ process BIOC_IGGENEUSAGE {
     # --- Loo [] ---
     # Key functions: LOO, chain, run, level, rate, step
     ---------------------------------------------------------------------
+    L <- LOO(ud = d_zibb_3, # input data
+             mcmc_warmup = 500, # how many MCMC warm-ups per chain (default: 500)
+             mcmc_steps = 1000, # how many MCMC steps per chain (default: 1,500)
+             mcmc_chains = 1, # how many MCMC chain to run (default: 4)
     # --- Call [] ---
     # Key functions: call
     ---------------------------------------------------------------------
@@ -74,6 +82,10 @@ process BIOC_IGGENEUSAGE {
     # --- Dgu [] ---
     # Key functions: DGU, chain, run, level, rate, step
     ---------------------------------------------------------------------
+    M <- DGU(ud = d_zibb_4, # input data
+             mcmc_warmup = 500, # how many MCMC warm-ups per chain (default: 500)
+             mcmc_steps = 1500, # how many MCMC steps per chain (default: 1,500)
+             mcmc_chains = 2, # how many MCMC chain to run (default: 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

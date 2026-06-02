@@ -41,52 +41,11 @@ process BIOC_RCOLLECTL {
     library(Rcollectl)
     library(jsonlite)
 
-
-    # --- Vignette Setup [] ---
-    # Key functions: Sys.time, cleanbib, cite_options, citation, write.bibtex, knitcitations, to.doc, text
-    ## Track time spent on making the vignette
-    startTime <- Sys.time()
-
-    ## Bib setup
-    library("knitcitations")
-
-    ## Load knitcitations with a clean bibliography
-    cleanbib()
-    cite_options(hyperlink = "to.doc", citation_format = "text", style = "html")
-
-    # --- Lkdemo [] ---
-    # Key functions: cl_parse, attr, meta
-    lk = cl_parse(system.file("demotab/demo_1123.tab.gz", package="Rcollectl"))
-    dim(lk)
-    attr(lk, "meta")
-    lk[1:5,1:5]
-
-    # --- Lkviz [] ---
-    # Key functions: plot_usage
-    plot_usage(lk)
-
-    # --- Lkts [] ---
-    # Key functions: cl_start, Sys.sleep, cl_timestamp, cl_stop, cl_result_path, plot_usage, cl_parse, cl_timestamp_layer
-    id <- cl_start() 
-         Sys.sleep(2)
-         #code
-         cl_timestamp(id, "step1")
-         Sys.sleep(2)
-         # code
-         Sys.sleep(2)
-         cl_timestamp(id, "step2")
-         Sys.sleep(2)
-         # code
-
-    # --- Create Vignette2 [] ---
-    # Key functions: file.remove
-    ## Clean up
-    file.remove("Rcollectl.bib")
-
-    # --- Reproduce1 [] ---
-    # Key functions: Sys.time
-    ## Date the vignette was generated
-    Sys.time()
+    # --- Cleanbib analysis [] ---
+    # Key functions: cleanbib, cite_options, attr, cl_stop, plot_usage, cl_start, cl_timestamp, cl_result_path
+    library("rmarkdown")
+    system.time(render("Rcollectl.Rmd", "BiocStyle::html_document"))
+    library("knitr")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

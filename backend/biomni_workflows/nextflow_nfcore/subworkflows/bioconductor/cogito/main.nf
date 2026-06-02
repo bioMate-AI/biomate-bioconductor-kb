@@ -41,39 +41,9 @@ process BIOC_COGITO {
     library(Cogito)
     library(jsonlite)
 
-
-    # --- Murine Example Data Set Rna [] ---
-    # Key functions: cogito
-    head(MurEpi.RNA.small[, 1:3])
-
-    # --- Murine Example Data Set Rrbs [] ---
-    # Key functions: cogito
-    head(MurEpi.RRBS.small[, 1:3])
-
-    # --- Murine Example Data Set Ch Ip [] ---
-    # Key functions: cogito
-    head(MurEpi.ChIP.small[[1]])
-
-    # --- Workflow Aggregate Ranges With Small Murine Data Set [] ---
-    # Key functions: aggregateRanges, murine.example
-    mm9 <- TxDb.Mmusculus.UCSC.mm9.knownGene::TxDb.Mmusculus.UCSC.mm9.knownGene
-
-    example.dataset <- list(ChIP = MurEpi.ChIP.small, 
-                            RNA = MurEpi.RNA.small,
-                            RRBS = MurEpi.RRBS.small)
-
-    aggregated.ranges <- aggregateRanges(ranges = example.dataset,
-                                            organism = mm9,
-                                            name = "murine.example")
-
-    # --- Workflow Result Genes Of Aggregate Ranges With Small Murine Data Set [] ---
-    # Key functions: cogito
-    head(aggregated.ranges$genes[, c(1, 2:3, 13:14, 27:28)])
-
-    # --- Workflow Result 1 Genes Of Aggregate Ranges With Small Murine Data Set [] ---
-    # Key functions: cogito
-    lapply(aggregated.ranges$config$technologies, head, 3)
-    head(lapply(aggregated.ranges$config$conditions, head, 3), 3)
+    # --- workflow summarizeRanges with small murine data set [] ---
+    # Key functions: summarizeRanges
+    summarizeRanges(aggregated.ranges = aggregated.ranges)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

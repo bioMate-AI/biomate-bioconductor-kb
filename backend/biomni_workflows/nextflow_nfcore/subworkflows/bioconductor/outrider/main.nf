@@ -46,7 +46,9 @@ process BIOC_OUTRIDER {
 
     # --- bpparam [] ---
     # Key functions: bpparam, bpworkers, register
-
+    suppressPackageStartupMessages({
+    library(OUTRIDER)
+    library(beeswarm)
     # --- rnorm [] ---
     # Key functions: rnorm, beeswarm
     par.old <- par(no.readonly=TRUE)
@@ -55,22 +57,32 @@ process BIOC_OUTRIDER {
     # --- Extract differential expression results [] ---
     # Key functions: OutriderDataSet, filterExpression, OUTRIDER, results, plotQQ
     library(OUTRIDER)
+    ctsFile <- system.file('extdata', 'KremerNBaderSmall.tsv',
+    ctsTable <- read.table(ctsFile, check.names=FALSE)
     # --- make Example Outrider Data Set [] ---
     # Key functions: makeExampleOutriderDataSet, OutriderDataSet
     odsSmall <- makeExampleOutriderDataSet(dataset="Kremer")
+    baseURL <- paste0("https://static-content.springer.com/esm/",
+    count_URL <- paste0(baseURL, "41467_2017_BFncomms15824_MOESM390_ESM.txt")
     # --- db Connect [] ---
     # Key functions: dbConnect, dbGetQuery, loadDb
-
+    try({
+    library(RMariaDB)
+    library(AnnotationDbi)
     # --- filter Expression [] ---
     # Key functions: filterExpression, plotFPKM, plotExpressedGenes
-
+    ods <- filterExpression(ods, txdb, mapping=map,
+    plotFPKM(ods)
+    plotExpressedGenes(ods)
     # --- plotting between sample correlations [] ---
     # Key functions: plotCountCorHeatmap, plotCountGeneSampleHeatmap
-
+    ods <- plotCountCorHeatmap(ods, colGroups=c("SEX", "RNA_HOX_GROUP"),
+    ods <- plotCountGeneSampleHeatmap(ods, colGroups=c("SEX", "RNA_HOX_GROUP"),
     # --- controlling for confounders [] ---
     # Key functions: estimateSizeFactors, controlForConfounders, plotCountCorHeatmap
     ods <- estimateSizeFactors(ods)
     ods <- controlForConfounders(ods, q=21, iterations=3)
+    ods <- plotCountCorHeatmap(ods, normalized=TRUE,
     # --- find Encoding Dim [] ---
     # Key functions: findEncodingDim, plotEncDimSearch
     ods <- findEncodingDim(ods)

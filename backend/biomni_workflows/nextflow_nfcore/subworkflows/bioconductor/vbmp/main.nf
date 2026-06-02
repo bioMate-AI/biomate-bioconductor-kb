@@ -43,7 +43,11 @@ process BIOC_VBMP {
 
     # --- Example11 [] ---
     # Key functions: 2, U, runif
-
+    genSample <- function(n, noiseVar=0) {
+        KF <- 10; # magnify factor
+        nt <- round(n/3,0)#
+        ## class 1 and 2 (x ~ U(0,1))
+        u <- 4. * matrix(runif(2*KF*n), nrow=KF*n, ncol=2) - 2.;
     # --- Example14 [] ---
     # Key functions: genSample
     dataXtTrain <- genSample(Ntrain, nNoisyInputs);
@@ -70,7 +74,11 @@ process BIOC_VBMP {
       brca.x <- t(exprs(BRCA12));
     # --- Example21 [] ---
     # Key functions: vbmp, predClass
-
+    predictVBMP <- function(x) {
+          sKernelType <- "iprod";
+          Thresh      <- 1e-8;
+          theta       <- rep(1.0, ncol(brca.x));
+          max.train.iter <- 24;
     # --- Example212 [] ---
     # Key functions: rep
     # fake predictVBMP to speed-up the RCMD TEST

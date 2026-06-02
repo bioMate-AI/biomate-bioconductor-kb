@@ -44,6 +44,7 @@ process BIOC_SPANIEL {
     # --- create Visium S C E [] ---
     # Key functions: createVisiumSCE
     pathToTenXOuts <- file.path(system.file(package = "Spaniel"), "extdata/outs")
+    sce <- createVisiumSCE(tenXDir=pathToTenXOuts,
     # --- col Data [] ---
     # Key functions: colData
     colData(sce)[, c("Barcode", "pixel_x", "pixel_y")]
@@ -52,10 +53,12 @@ process BIOC_SPANIEL {
     metadata(sce)$ImgDims
     # --- spaniel Plot [] ---
     # Key functions: spanielPlot
-
+    spanielPlot(object = sce,
     # --- Log-normalize count data [] ---
     # Key functions: logNormCounts, spanielPlot, runPCA, runUMAP, buildSNNGraph
     sce <- logNormCounts(sce)
+    p2 <- spanielPlot(object = sce,
+    library(scran)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

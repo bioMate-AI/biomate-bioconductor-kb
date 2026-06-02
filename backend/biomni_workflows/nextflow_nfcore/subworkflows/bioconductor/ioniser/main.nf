@@ -41,58 +41,11 @@ process BIOC_IONISER {
     library(IONiseR)
     library(jsonlite)
 
-
-    # --- Load Data [] ---
-    # Key functions: ioniser
-    library(minionSummaryData)
-    data(s.typhi.rep1)
-    s.typhi.rep1
-
-    # --- Extract Data1 [] ---
-    # Key functions: baseCalled
-    baseCalled(s.typhi.rep1)
-    baseCalled(s.typhi.rep1[1:2])
-
-    # --- Summary Plots1 [] ---
-    # Key functions: plotReadAccumulation, plotActiveChannels, grid.arrange, plotReadCategoryCounts, plotReadCategoryQuals
-    p1 <- plotReadAccumulation(s.typhi.rep1)
-    p2 <- plotActiveChannels(s.typhi.rep1)
-    grid.arrange(p1, p2, ncol = 2)
-    p1 <- plotReadCategoryCounts(s.typhi.rep1)
-    p2 <- plotReadCategoryQuals(s.typhi.rep1)
-    grid.arrange(p1, p2, ncol = 2)
-
-    # --- Summary Plots2 [] ---
-    # Key functions: plotEventRate, plotBaseProductionRate, grid.arrange, layoutPlot, nreads
-    p1 <- plotEventRate(s.typhi.rep1)
-    p2 <- plotBaseProductionRate(s.typhi.rep1)
-    grid.arrange(p1, p2, ncol = 2)
-    p1 <- layoutPlot(s.typhi.rep1, attribute = "nreads")
-    p2 <- layoutPlot(s.typhi.rep1, attribute = "kb")
-    grid.arrange(p1, p2, ncol = 2)
-
-    # --- Heatmap Example [] ---
-    # Key functions: baseCalled, filter, left_join, readInfo, group_by, summarise, channelHeatmap, grid.arrange
-    library(dplyr)
-
-    read_count_2D <- baseCalled(s.typhi.rep1) %>% ## start with base called reads
-      filter(strand == 'template') %>% ## keep template so we don't count things twice
-      left_join(readInfo(s.typhi.rep1), by = 'id') %>% ## channel stored in @readInfo slot, match by id column
-      group_by(channel) %>% ## group according to channel
-      summarise(d2_count = length(which(full_2D == TRUE)), ## count those with full 2D status
-                d2_prop = length(which(full_2D == TRUE)) / n()) ## divide by total count of reads from channel
-
-    ## plot side-by-side
-    data(s.typhi.rep3, package = 'minionSummaryData')
-    ## we will plot the median event signal for each read on z-axis
-    z_scale = select(eventData(s.typhi.rep3), id, median_signal)
-    channelActivityPlot( s.typhi.rep3, zScale = z_scale )
-
-    # --- Pentamer Correlation [] ---
-    # Key functions: plotKmerFrequencyCorrelation, writeFastq, fastq, tempfile
-    plotKmerFrequencyCorrelation( s.typhi.rep3, only2D = FALSE )
-    library(ShortRead)
-    writeFastq( fastq( s.typhi.rep1 ), file = tempfile() )
+    # --- BaseCalled analysis [] ---
+    # Key functions: baseCalled, plotReadAccumulation, plotActiveChannels, plotReadCategoryCounts, plotReadCategoryQuals, plotEventRate, plotBaseProductionRate, layoutPlot
+    fast5files <- system.file('extdata', 'example.fast5', package = "IONiseR")
+    fast5toFastq(files = fast5files, fileName = "test", outputDir = tempdir(),
+    list.files(path = tempdir(), pattern = "*.fq.gz$")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

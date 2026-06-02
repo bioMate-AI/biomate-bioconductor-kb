@@ -66,6 +66,10 @@ process BIOC_MLP {
     # --- Runmlp [] ---
     # Key functions: MLP
     set.seed(111)
+    mlpOut <- MLP(
+    		geneSet = geneSet,
+    		geneStatistic = pvalues,
+    		minGenes = 5,
     # --- Showattributes [] ---
     # Key functions: attributes
     str(attributes(mlpOut))
@@ -93,6 +97,8 @@ process BIOC_MLP {
     geneSetID <- rownames(mlpOut)[1]
     pdf("geneSignificance.pdf", width = 10, height = 10)
     op <- par(mar = c(25, 10, 6, 2))
+    plotGeneSetSignificance(
+    		geneSet = geneSet,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -65,6 +65,8 @@ process BIOC_GOTHIC {
     ## dirPath = system.file("extdata", package="HiCDataLymphoblast")
     ## fileName1 = list.files(dirPath, full.names=TRUE)[1]
     ## fileName2 = list.files(dirPath, full.names=TRUE)[2]
+    ## binom=GOTHiC(fileName1,fileName2, sampleName="lymphoid_chr20",
+    ## res=1000000, BSgenomeName="BSgenome.Hsapiens.UCSC.hg18",
     # --- Package Vignettes.Snw:114 119 [] ---
     # Key functions: files, GOTHiChicup
     ## dirPath <- system.file("extdata", package="HiCDataLymphoblast")

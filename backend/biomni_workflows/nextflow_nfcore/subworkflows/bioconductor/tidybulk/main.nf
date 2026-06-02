@@ -79,6 +79,7 @@ process BIOC_TIDYBULK {
     # --- identify_abundant [] ---
     # Key functions: identify_abundant, reduce_dimensions
     identify_abundant() |>
+    reduce_dimensions(
     # --- rotate_dimensions [] ---
     # Key functions: rotate_dimensions
     rotate_dimensions(`Dim1`, `Dim2`, rotation_degrees = 45, action="get")
@@ -97,6 +98,8 @@ process BIOC_TIDYBULK {
     # --- identify_abundant [] ---
     # Key functions: identify_abundant, test_differential_abundance
     identify_abundant(factor_of_interest = condition) |>
+    test_differential_abundance(
+    .contrasts = c( "conditionTRUE - conditionFALSE"),
     # --- deconvolve_cellularity [] ---
     # Key functions: deconvolve_cellularity
     deconvolve_cellularity(action="get", cores=1, prefix = "cibersort__")

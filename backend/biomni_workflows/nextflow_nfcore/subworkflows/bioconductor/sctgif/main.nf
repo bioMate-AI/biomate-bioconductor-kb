@@ -53,7 +53,9 @@ process BIOC_SCTGIF {
     reducedDims(sce) <- SimpleList(PCA=pca.DistalLungEpithelium)
     # --- col Sums [] ---
     # Key functions: colSums, normcounts
-
+    CPMED <- function(input){
+    libsize <- colSums(input)
+    median(libsize) * t(t(input) / libsize)
     # --- setting T G I F [] ---
     # Key functions: settingTGIF
     settingTGIF(sce, gmt, reducedDimNames="PCA", assayNames="normcounts")

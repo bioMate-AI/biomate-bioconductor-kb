@@ -54,11 +54,14 @@ process BIOC_BIGGR {
     uncertain.vars <- data.frame(var=equation.vars[1:4],
                                  value=equation.values[1:4],
                                  sd=c(0.058,0.032,0.034,0.004))
+    uncertain.vars <- data.frame(var=c(equation.vars[c(1,2,3,4)]),
     # --- Fig Tca [] ---
     # Key functions: sbml2hyperdraw
     relevant.species <- c("M_cit_m", "M_icit_m" , "M_akg_m",
                           "M_succoa_m", "M_succ_m", "M_fum_m",
                           "M_mal_DASH_L_m", "M_oaa_m")
+    relevant.reactions <- c("R_CSm", "R_ACONTm", "R_ICDHxm",
+                            "R_AKGDm", "R_SUCOAS1m", "R_SUCD1m",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

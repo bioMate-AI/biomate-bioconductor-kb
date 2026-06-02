@@ -58,7 +58,11 @@ process BIOC_MGSA {
     subset(res, estimate > 0.5)
     # --- Readgaf [] ---
     # Key functions: readGAF
-
+    readGAF(
+    	system.file(
+    		"example_files/gene_association_head.sgd",
+    		package="mgsa"
+    	)
     # --- Mgsa Custom Set [] ---
     # Key functions: mgsa
     mgsa( c("A", "B"), list(set1=LETTERS[1:3], set2=LETTERS[2:5]) )

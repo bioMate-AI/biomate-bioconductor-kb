@@ -107,6 +107,8 @@ process BIOC_BIOCGRAPH {
     set.seed(123)
     counts = matrix(rexp(numNodes(g1)*4), ncol=4)
     g1layout <- agopen(g1, name="foo")
+    makeNodeDrawFunction <- function(x) {
+      force(x)
     # --- Bipartite1 [] ---
     # Key functions: sample, ftM2graphNEL
     set.seed(123)

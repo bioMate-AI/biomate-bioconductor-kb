@@ -43,13 +43,13 @@ process BIOC_RIBOR {
 
     # --- plot length distribution ribo [] ---
     # Key functions: plot_length_distribution
-
+    plot_length_distribution(x           = original.ribo,
     # --- plot length distribution UTR5 ribo [] ---
     # Key functions: plot_length_distribution
-
+    plot_length_distribution(x           = original.ribo,
     # --- get length dist basic [] ---
     # Key functions: get_length_distribution
-
+    rc <- get_length_distribution(ribo.object      = original.ribo,
     # --- plot length distribution from dataframe [] ---
     # Key functions: plot_length_distribution
     plot_length_distribution(rc, fraction = TRUE)
@@ -58,16 +58,19 @@ process BIOC_RIBOR {
     get_info(original.ribo)$attributes$metagene_radius
     # --- plot metagene ribo start [] ---
     # Key functions: plot_metagene
-
+    plot_metagene(original.ribo,
+    experiment  = c("GSM1606107"),
     # --- plot metagene ribo [] ---
     # Key functions: plot_metagene
-
+    plot_metagene(original.ribo,
+    meta.start <- get_metagene(ribo.object = original.ribo,
+    print(meta.start[ , 1:10])
     # --- plot metagene from dt [] ---
     # Key functions: plot_metagene
     plot_metagene(tidy.meta.start, normalize = TRUE)
     # --- plot region counts ribo [] ---
     # Key functions: plot_region_counts
-
+    plot_region_counts(x           = original.ribo,
     # --- get region counts default [] ---
     # Key functions: get_region_counts
     rc <- get_region_counts(original.ribo,
@@ -82,14 +85,16 @@ process BIOC_RIBOR {
     region      = c("CDS"))
     # --- get region counts non [] ---
     # Key functions: get_region_counts
-
+    rc <- get_region_counts(original.ribo,
     # --- get region counts normalize [] ---
     # Key functions: get_region_counts
     rc <- get_region_counts(original.ribo,
     region      = c("CDS"))
     # --- plot region counts dt [] ---
     # Key functions: plot_region_counts
-
+    rc.info <- get_region_counts(ribo.object = original.ribo,
+    region      = c("UTR5", "CDS", "UTR3"),
+    plot_region_counts(rc.info)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

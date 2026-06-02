@@ -50,6 +50,7 @@ process BIOC_LIMPCA {
     # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot
     resPCA <- limpca::pcaBySvd(trout$outcomes)
     limpca::pcaScreePlot(resPCA, nPC = 8)
+    limpca::pcaScorePlot(
     # --- Transformation [] ---
     # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot
     trout_log$outcomes <- as.matrix(log10(trout$outcomes))
@@ -59,26 +60,36 @@ process BIOC_LIMPCA {
     # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot
     resPCA2 <- limpca::pcaBySvd(trout_clean$outcomes)
     limpca::pcaScreePlot(resPCA2, nPC = 8)
+    limpca::pcaScorePlot(
     # --- Mean aggregation [] ---
     # Key functions: aggregate
     mean_outcomes <- matrix(0, nrow = 24, ncol = 15)
     mean_design <- matrix(0, nrow = 24, ncol = 3)
+    y <- list(
     # --- Centering and Scaling [] ---
     # Key functions: scale
     mean_outcomes <- scale(mean_outcomes, center = TRUE, scale = TRUE)
+    trout_mean <- list(
+    rm(
     # --- Design [] ---
     # Key functions: pander, plotDesign
     pander(head(trout_mean$design))
+    limpca::plotDesign(
     # --- Lineplot [] ---
     # Key functions: plotLine, theme
-
+    limpca::plotLine(trout_mean$outcomes,
+    rows = c(1, 24),
+    ggplot2::theme(axis.text.x = element_text(angle = 45, hjust = 1))
     # --- pca By Svd [] ---
     # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot, pcaLoading1dPlot, theme
     resPCA_mean <- limpca::pcaBySvd(trout_mean$outcomes)
     pcaScreePlot(resPCA_mean, nPC = 6)
+    limpca::pcaScorePlot(
     # --- Scatterplot Matrix [] ---
     # Key functions: plotScatterM
-
+    limpca::plotScatterM(
+    Y = trout_mean$outcomes, cols = c(1:15),
+    vec.colorup = c("CadetBlue4", "pink", "orange"),
     # --- lmp Model Matrix [] ---
     # Key functions: lmpModelMatrix, pander
     resLmpModelMatrix <- limpca::lmpModelMatrix(trout_mean)
@@ -88,10 +99,12 @@ process BIOC_LIMPCA {
     resLmpEffectMatrices <- lmpEffectMatrices(resLmpModelMatrix)
     # --- Bootstrap [] ---
     # Key functions: lmpBootstrapTests, pander
-
+    resLmpBootstrapTests <- lmpBootstrapTests(
+    pander::pander(t(resLmpBootstrapTests$resultsTable))
     # --- ASCA PCA [] ---
     # Key functions: lmpPcaEffects
-
+    resASCA <- lmpPcaEffects(
+    combineEffects = list(c(
     # --- ASCA Contrib [] ---
     # Key functions: lmpContributions
     resLmpContributions <- lmpContributions(resASCA)

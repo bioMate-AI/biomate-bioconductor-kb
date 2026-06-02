@@ -43,7 +43,8 @@ process BIOC_WEITRIX {
 
     # --- Linear model fit (limma) [] ---
     # Key functions: weitrix_elist, lmFit, eBayes, topTable, makeContrasts, weitrix_confects
-
+    multiple_contrasts <- limma::makeContrasts(
+    weitrix_confects(cal, design, contrasts=multiple_contrasts, fdr=0.05)
     # --- Custom ggplot2 visualization [] ---
     # Key functions: rowData, weitrix_x, weitrix_weights, ggplot, matrix_long, geom_hline, geom_line, geom_point
     matrix_long(comp$col[,-1], row_info=samples, varnames=c("sample","component")) %>%

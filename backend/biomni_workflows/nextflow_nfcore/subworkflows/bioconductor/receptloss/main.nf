@@ -41,24 +41,13 @@ process BIOC_RECEPTLOSS {
     library(receptLoss)
     library(jsonlite)
 
-
-    # --- Warning=false [] ---
-    # Key functions: rnorm
-    library(receptLoss)
-    library(dplyr)
-    library(ggplot2)
-
-    set.seed(100)
-
-    ## Simulate matrix of expression values from
-    ## 10 genes measured in both normal tissue and 
-    ## tumor tissue in 100 patients
-
-    exprMatrNml <- matrix(abs(rnorm(100, mean=2.5)), nrow=10) 
-    exprMatrTum <- matrix(abs(rnorm(1000)), nrow=10)
-    geneNames <- paste0(letters[seq_len(nrow(exprMatrNml))], 
-                    seq_len(nrow(exprMatrNml)))
-    rownames(exprMatrNml) <- rownames(exprMatrTum) <- geneNames
+    # --- Receptloss [] ---
+    # Key functions: receptLoss
+    ---------------------------------------------------------------------
+    nSdBelow <- 2
+    minPropPerGroup <- .2
+    rl <- receptLoss(exprMatrNml, exprMatrTum, nSdBelow, minPropPerGroup)
+    head(rl)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -50,6 +50,7 @@ process BIOC_METAGENOMESEQ {
     # Key functions: fitTimeSeries
     set.seed(123)
     classes = unique(fData(mouseData)[,"class"])
+    timeSeriesFits = lapply(classes,function(i){
     # --- plot Class Time Series [] ---
     # Key functions: plotClassTimeSeries, plotTimeSeries
     par(mfrow=c(2,1))

@@ -48,16 +48,22 @@ process BIOC_BANKSY {
     # --- Harmony Matrix [] ---
     # Key functions: HarmonyMatrix, reducedDim
     set.seed(SEED)
+    harmony_embedding <- HarmonyMatrix(
+    data_mat = reducedDim(spe, "PCA_M1_lam0.2"),
     # --- run Banksy U M A P [] ---
     # Key functions: runBanksyUMAP
     spe <- runBanksyUMAP(spe, use_agf = TRUE, lambda = lambda, npcs = npcs)
     spe <- runBanksyUMAP(spe, dimred = "Harmony_BANKSY")
     # --- plot_grid [] ---
     # Key functions: plot_grid, plotReducedDim, theme, guides
-
+    plot_grid(
+    plotReducedDim(spe, "UMAP_M1_lam0.2",
+    theme(legend.position = "none"),
     # --- Custom ggplot2 visualization [] ---
     # Key functions: clusterNames, ARI, ggplot, geom_point
     cnm <- clusterNames(spe)[2]
+    spatial_plots <- lapply(sample_names, function(snm) {
+    ari <- aricode::ARI(x$clust_annotation, colData(x)[, cnm])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

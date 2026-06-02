@@ -38,42 +38,19 @@ process BIOC_PVIZ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Pviz)
+    library(ATrack)
+    library(CladeTrack)
+    library(DTrack)
+    library(ProbeTrack)
+    library(ProteinAxisTrack)
+    library(ProteinSequenceTrack)
     library(jsonlite)
 
-
-    # --- Include=false [] ---
-    # Key functions: set, ATrack, plotTracks, DTrack, black
-    library(knitr)
-    opts_chunk$set(tidy=FALSE)
-
-    ## ----loading-package, message=FALSE-------------------------------------------
-    library(Pviz)
-
-    ## ----ATrack-example, fig.height=1.5-------------------------------------------
-    at<-ATrack(start = c(250, 480), end = c(320, 520), id = c("Anno1", "Anno2"),
-               showFeatureId = TRUE, fontcolor = "black", name = "Annotations")
-    plotTracks(at, from = 1, to = 600)
-
-    ## ----DTrack-example, fig.height=4---------------------------------------------
-    library(pepDat)
-    data(restab_aggregate)
-    # --- Clade Track [] ---
-    # Key functions: CladeTrack, plotTracks, ProbeTrack, plot_inter, plot_clade
+    # --- Object metadata inspection [] ---
+    # Key functions: ATrack, plotTracks, DTrack, ProteinAxisTrack, metadata, ProteinSequenceTrack, ProbeTrack, CladeTrack
     ctA <- CladeTrack(restab, clade = "A", type = "l")
     ctM <- CladeTrack(restab, clade = "M", type = "l", legend = TRUE)
     plotTracks(c(ctA, ctM), main = "Clades comparison", cex.main = 1.5)
-
-    ## ----complex-plot, fig.width=9, fig.height=6----------------------------------
-    pt <- ProbeTrack(sequence = restab$peptide, intensity = restab$group2,
-                   probeStart = restab$start, cex=0, legend=TRUE)
-    plotTracks(trackList=c(pat, st, at, pt, ctM), from=460, to=560,
-               type="l")
-
-    ## ----plot-inter, fig.width=9, fig.height=4------------------------------------
-    plot_inter(restab_aggregate)
-
-    ## ----plot-clade, fig.width=9, fig.height=4------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,14 +41,12 @@ process BIOC_RUVCORR {
     library(RUVcorr)
     library(jsonlite)
 
-
-    # --- Warning=false [] ---
-    # Key functions: function, histogramPlot
-    cor_AllRUV_na <- lapply(expr_AllRUV, function(x) cor(x[,na_index]))
-    cor_Raw_na <- cor(expr[,na_index])
-
-    lapply(1:4, function(i) histogramPlot(cor_AllRUV_na[seq(0,15,4)+i], cor_Raw_na,
-      title=paste("nu=", nu[i]), legend=c(paste("k=", k), "Raw")))
+    # --- Prioritise [] ---
+    # Key functions: prioritise, element
+    ---------------------------------------------------------------------
+    prior<-prioritise(CleanData, na_index, cand_index, Weight=NULL, threshold=threshold)
+    print(prior)
+    xx[which(is.element(names(xx), prior[,1]))]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

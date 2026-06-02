@@ -118,7 +118,11 @@ process BIOC_GAGE {
     #Molecular Function analysis is quicker, hence run as demo
     # --- Goresults [] ---
     # Key functions: geneData
-
+    for (gs in rownames(cnts.mf.p$less)[1:3]) {
+        outname = gsub(" |:|/", "_", substr(gs, 12, 100))
+        geneData(genes = go.sets.hs[[gs]], exprs = cnts.norm, ref = ref.idx,
+            samp = samp.idx, outname = outname, txt = T, heatmap = T,
+            limit = 3, scatterplot = T)
     # --- Pergenescore [] ---
     # Key functions: test, rowMeans, gage
     cnts.t= apply(cnts.norm, 1, function(x) t.test(x[samp.idx], x[ref.idx],

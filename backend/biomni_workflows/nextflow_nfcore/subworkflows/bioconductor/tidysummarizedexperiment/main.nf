@@ -41,35 +41,11 @@ process BIOC_TIDYSUMMARIZEDEXPERIMENT {
     library(tidySummarizedExperiment)
     library(jsonlite)
 
-
-    # --- Eval=false [] ---
-    # Key functions: install_github, assays
-    #  devtools::install_github("stemangiola/tidySummarizedExperiment")
-
-    ## -----------------------------------------------------------------------------
-    library(ggplot2)
-    library(tidySummarizedExperiment)
-
-    ## -----------------------------------------------------------------------------
-    pasilla_tidy <- tidySummarizedExperiment::pasilla 
-
-    ## -----------------------------------------------------------------------------
-    pasilla_tidy
-
-    ## -----------------------------------------------------------------------------
-    assays(pasilla_tidy)
-
-
-    # --- Plot1 [] ---
-    # Key functions: scale_x_log10, sessionInfo
-    pasilla_tidy %>%
-        ggplot(aes(counts + 1, group=.sample, color=`type`)) +
-        geom_density() +
-        scale_x_log10() +
-        my_theme
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
+    # --- Custom ggplot2 visualization [] ---
+    # Key functions: ggplot, geom_density, scale_x_log10
+    ggplot(aes(counts + 1, group=.sample, color=`type`)) +
+    geom_density() +
+    scale_x_log10() +
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

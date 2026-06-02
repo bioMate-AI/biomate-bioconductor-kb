@@ -110,6 +110,7 @@ process BIOC_CAUSALR {
     scanResults <- runSCANR(ccg, experimentalData, numberOfDeltaToScan=2,
       topNumGenes=4,correctPredictionsThreshold=1,
       writeResultFiles = FALSE, writeNetworkFiles = "none",quiet=FALSE)
+    WriteAllExplainedNodesToSifFile(scanResults, ccg, experimentalData,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

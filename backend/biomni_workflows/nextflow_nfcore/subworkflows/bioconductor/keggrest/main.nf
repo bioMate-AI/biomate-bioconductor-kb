@@ -44,6 +44,8 @@ process BIOC_KEGGREST {
     # --- hook_output [] ---
     # Key functions: hook_output
     hook_output = knit_hooks$get('output')
+    knit_hooks$set(output = function(x, options) {
+    if (!is.null(n <- options$linewidth)) {
     # --- list Databases [] ---
     # Key functions: listDatabases
     library(KEGGREST)

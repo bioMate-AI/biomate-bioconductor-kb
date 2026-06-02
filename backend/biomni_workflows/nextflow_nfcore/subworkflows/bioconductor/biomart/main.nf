@@ -43,11 +43,14 @@ process BIOC_BIOMART {
 
     # --- Query BioMart annotation [] ---
     # Key functions: getBM
-
+    getBM(attributes = c('refsnp_id','allele','chrom_start','chrom_strand'),
+    filters = c('chr_name','start','end'),
+    values = list(8, 148350, 148420),
     # --- UseEnsembl analysis [] ---
     # Key functions: useEnsembl, listDatasets, searchDatasets, useDataset, listEnsemblArchives, listEnsembl, listEnsemblGenomes, useEnsemblGenomes
     human <- useEnsembl("ensembl", dataset = "hsapiens_gene_ensembl")
     mouse <- useEnsembl("ensembl", dataset = "mmusculus_gene_ensembl")
+    getLDS(attributes = c("hgnc_symbol","chromosome_name", "start_position"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

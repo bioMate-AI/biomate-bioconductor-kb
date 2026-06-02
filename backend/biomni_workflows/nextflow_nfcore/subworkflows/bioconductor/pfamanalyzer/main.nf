@@ -41,50 +41,9 @@ process BIOC_PFAMANALYZER {
     library(pfamAnalyzeR)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Locate File [] ---
-    # Key functions: file.exists, pfamAnalyzeR
-    ### Create sting pointing to result file
-    # note that you do not need to use the "system.file".
-    # That is only needed when accessing files in an R package
-    pfamResultFile <- system.file(
-        "extdata/pfam_results.txt",
-        package = "pfamAnalyzeR"
-    )
-
-    file.exists(pfamResultFile)
-
-    # --- Run Analysis [] ---
+    # --- pfam Analyze R [] ---
     # Key functions: pfamAnalyzeR
-    ### Run entire pfam analysis
     pfamRes <- pfamAnalyzeR(pfamResultFile)
-
-    # --- Explore Results [] ---
-    # Key functions: select
-    ### Look at a few entries
-    pfamRes %>% 
-        select(seq_id, hmm_name, type, domain_isotype, domain_isotype_simple) %>% 
-        head()
-
-    ### Summarize domain isotype
-    table(pfamRes$domain_isotype)
-
-    ### Summarize domain isotype
-    table(pfamRes$domain_isotype_simple)
-
-    # --- Type Cautions [] ---
-    # Key functions: pfamanalyzer
-    table(
-        pfamRes$type,
-        pfamRes$domain_isotype_simple
-    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

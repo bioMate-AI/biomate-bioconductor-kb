@@ -65,6 +65,10 @@ process BIOC_AIRPART {
     # --- Features [] ---
     # Key functions: features
     ---------------------------------------------------------------------
+    keep_cell <- (
+      cellQCmetrics$filter_sum | # sufficient features (genes)
+        cellQCmetrics$filter_detected | # sufficient molecules counted
+        # sufficient features expressed compared to spike genes,
     # --- Genecluster [] ---
     # Key functions: geneCluster, metadata
     ---------------------------------------------------------------------
@@ -78,6 +82,10 @@ process BIOC_AIRPART {
     # --- Sapply [] ---
     # Key functions: diff
     ---------------------------------------------------------------------
+    sapply(1:length(summary), function(i) {
+      inst <- summary[[i]]
+      inst_order <- inst[order(inst$weighted.mean), ]
+      max(diff(inst_order$weighted.mean)) > 0.05
     # --- Estdisp [] ---
     # Key functions: estDisp
     ---------------------------------------------------------------------
@@ -85,6 +93,10 @@ process BIOC_AIRPART {
     # --- Fusedlasso [] ---
     # Key functions: fusedLasso
     ---------------------------------------------------------------------
+    sce_sub <- fusedLasso(sce,
+      model = "binomial",
+      genecluster = 1, ncores = 1,
+      niter = 2
     # --- Metadata [] ---
     # Key functions: metadata
     ---------------------------------------------------------------------
@@ -110,6 +122,9 @@ process BIOC_AIRPART {
     # Key functions: makeSimulatedData, preprocess, cellQC, features, featureQC, makeHeatmap
     ---------------------------------------------------------------------
     nct <- 8
+    p.vec <- (rep(c(
+      -3, 0, -3, 3,
+      rep(0, nct / 2),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

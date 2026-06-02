@@ -48,7 +48,9 @@ process BIOC_COGEQC {
     str(maize_stats)
     # --- get maize genomes with filters [] ---
     # Key functions: get_genome_stats, compare_genome_stats
-
+    filt <- list(
+    filtered_maize_genomes <- get_genome_stats(taxon = "Zea mays", filters = filt)
+    dim(filtered_maize_genomes)
     # --- plot genome stats [] ---
     # Key functions: plot_genome_stats
     plot_genome_stats(ncbi_stats = maize_stats)
@@ -59,6 +61,7 @@ process BIOC_COGEQC {
     # Key functions: run_busco, read_busco
     sequence <- system.file("extdata", "Hse_subset.fa", package = "cogeqc")
     download_path <- paste0(tempdir(), "/datasets")
+    if(busco_is_installed()) {
     # --- plot_busco [] ---
     # Key functions: plot_busco
     plot_busco(busco_summary)

@@ -45,6 +45,9 @@ process BIOC_PANELCN_MOPS {
     # Key functions: elementMetadata, createResultTable
     ------------------------------------------------------
     sampleNames <- colnames(elementMetadata(test))
+    resulttable <- createResultTable(resultlist = resultlist, XandCB = XandCB,
+                                        countWindows = countWindows,
+                                        selectedGenes = selectedGenes,
     # --- Integercopynumber [] ---
     # Key functions: integerCopyNumber
     ------------------------------------------------------
@@ -53,6 +56,9 @@ process BIOC_PANELCN_MOPS {
     # Key functions: elementMetadata, createResultTable
     ------------------------------------------------------
     sampleNames <- colnames(elementMetadata(test))
+    resulttable <- createResultTable(resultlist = resultlist, XandCB = XandCB,
+                                        countWindows = countWindows,
+                                        selectedGenes = selectedGenes,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -55,11 +55,17 @@ process BIOC_CORRAL {
     # --- Plot Embedding Sce [] ---
     # Key functions: plot_embedding_sce
     ---------------------------------------------------------------------
+    plot_embedding_sce(sce = zm4eq.sce,
+                       which_embedding = 'corral',
+                       plot_title = 'corral on Zhengmix4eq',
+                       color_attr = 'phenoid',
     # --- Runumap [] ---
     # Key functions: runUMAP, runTSNE, plot_embedding_sce, arrange
     ---------------------------------------------------------------------
     library(scater)
     library(gridExtra) # so we can arrange the plots side by side
+    zm4eq.sce <- runUMAP(zm4eq.sce,
+                         dimred = 'corral',
     # --- Assay [] ---
     # Key functions: assay, corral
     ---------------------------------------------------------------------
@@ -69,6 +75,9 @@ process BIOC_CORRAL {
     # Key functions: plot_embedding
     ---------------------------------------------------------------------
     celltype_vec <- zm4eq.sce$phenoid
+    plot_embedding(embedding = zm4eq.countcorral$v,
+                   plot_title = 'corral on Zhengmix4eq',
+                   color_vec = celltype_vec,
     # --- Corral [] ---
     # Key functions: corral
     ---------------------------------------------------------------------

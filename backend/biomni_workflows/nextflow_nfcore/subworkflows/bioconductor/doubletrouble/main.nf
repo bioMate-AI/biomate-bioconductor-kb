@@ -43,7 +43,9 @@ process BIOC_DOUBLETROUBLE {
 
     # --- valid [] ---
     # Key functions: valid
-
+    if(!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("doubletrouble")
     # --- process_input [] ---
     # Key functions: process_input
     library(syntenet)
@@ -52,18 +54,28 @@ process BIOC_DOUBLETROUBLE {
     # --- run diamond intraspecies [] ---
     # Key functions: run_diamond
     data(diamond_intra)
+    if(diamond_is_installed()) {
+    diamond_intra <- run_diamond(
     # --- binary classification [] ---
     # Key functions: classify_gene_pairs
-
+    c_binary <- classify_gene_pairs(
+    names(c_binary)
+    head(c_binary$Scerevisiae)
     # --- expanded classification [] ---
     # Key functions: classify_gene_pairs
-
+    c_standard <- classify_gene_pairs(
+    names(c_standard)
+    head(c_standard$Scerevisiae)
     # --- blast interspecies [] ---
     # Key functions: run_diamond
     data(diamond_inter) # load pre-computed output in case DIAMOND is not installed
+    comparisons <- data.frame(
+    if(diamond_is_installed()) {
     # --- full classification [] ---
     # Key functions: classify_gene_pairs
-
+    c_extended <- classify_gene_pairs(
+    names(c_extended)
+    head(c_extended$Scerevisiae)
     # --- classify_genes [] ---
     # Key functions: classify_genes
     c_genes <- classify_genes(c_full)

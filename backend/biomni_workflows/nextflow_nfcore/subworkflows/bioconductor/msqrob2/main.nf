@@ -74,6 +74,10 @@ process BIOC_MSQROB2 {
     # --- Normalize [] ---
     # Key functions: normalize
     ---------------------------------------------------------------------
+    pe <- normalize(pe,
+        i = "peptideLog",
+        name = "peptideNorm",
+        method = "center.median"
     # --- Plotdensities [] ---
     # Key functions: plotDensities, assay
     ---------------------------------------------------------------------

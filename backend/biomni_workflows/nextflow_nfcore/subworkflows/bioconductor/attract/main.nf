@@ -98,6 +98,9 @@ process BIOC_ATTRACT {
     # Key functions: rainbow, plotsynexprs
     par(mfrow=c(2,2))
     pretty.col <- rainbow(3)
+    for( i in 1:3 ){
+    	plotsynexprs(mapk.syn, tickMarks=c(6, 28, 47, 60),
+                   tickLabels=c("ESC", "PRO", "NSC", "TER"),
     # --- Findcorrp [] ---
     # Key functions: findCorrPartners
     mapk.cor <- findCorrPartners(mapk.syn, loring.eset, remove.these.genes)

@@ -38,72 +38,17 @@ process BIOC_RTOPPER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RTopper)
+    library(GO)
+    library(Term)
     library(jsonlite)
 
-
-    # --- Start [] ---
-    # Key functions: class, str
-    options(width=50)
-    rm(list=ls())
-    set.seed(9)
-    library(RTopper)
-    data(exampleData)
-    ls()
-    class(dat)
-    names(dat)
-    sapply(dat,class)
-    sapply(dat,dim)
-    dim(pheno)
-    str(pheno)
-
-    # --- Str Data [] ---
-    # Key functions: function, org.Hs.eg
-    ###data structure
-    lapply(dat,function(x) head(x)[,1:3])
-    sum(rownames(dat[[1]])%in%rownames(dat[[2]]))
-    sum(rownames(dat[[2]])%in%rownames(dat[[3]]))
-    library(org.Hs.eg.db)
-    org.Hs.eg()
-
-    # --- List Fgs [] ---
-    # Key functions: str, function, unlist, mget, sample
-    kegg <- as.list(org.Hs.egPATH2EG)
-    go <- as.list(org.Hs.egGO2ALLEGS)
-    length(kegg)
-    length(go)
-    str(kegg[1:5])
-    names(kegg)[1:5]
-    str(go[1:5])
-    names(go)[1:5]
-    someKeggID <- c("00450", "04971", "00970", "04260", "05320")
-    kegg <- lapply(kegg[someKeggID],function(x) unique(unlist(mget(x,org.Hs.egSYMBOL))))
-    go <- lapply(go[sample(1:length(go),5)],function(x) unique(unlist(mget(x,org.Hs.egSYMBOL))))
-    str(kegg)
-    str(go)
-
-    # --- Annotate Fgs [] ---
-    # Key functions: keggGet, hsa, Term
-    library(KEGGREST)
-    # --- List Fgs [] ---
-    # Key functions: convertToDr, class, str
-    fgsList <- list(go=go, kegg=kegg)
-
-    fgsList$go
-    dataDr <- convertToDr(dat, pheno, 4)
-    class(dataDr)
-    length(dataDr)
-    names(dataDr)[1:5]
-    str(dataDr[1:2])
-
-    # --- Integrated Score [] ---
-    # Key functions: computeDrStat, str, bic
-    bicStatInt <- computeDrStat(dataDr, columns = c(1:4), method="bic", integrate = TRUE)
-    names(bicStatInt)
-    str(bicStatInt)
-    bicStatSep <- computeDrStat(dataDr, columns = c(1:4), method="bic", integrate = FALSE)
-    names(bicStatSep)
-    str(bicStatSep)
+    # --- Mget analysis [] ---
+    # Key functions: eg, unlist, mget, sample, keggGet, GO, Term, convertToDr
+    gseUP.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList,
+    				 absolute=FALSE, type="t", alternative="up")
+    gseDW.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList,
+    				 absolute=FALSE, type="t", alternative="down")
+    gseBOTH.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

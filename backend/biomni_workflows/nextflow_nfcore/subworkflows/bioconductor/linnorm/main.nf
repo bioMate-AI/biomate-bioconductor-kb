@@ -41,21 +41,10 @@ process BIOC_LINNORM {
     library(Linnorm)
     library(jsonlite)
 
-
-    # --- Kable1 [] ---
-    # Key functions: linnorm
+    # --- kable [] ---
+    # Key functions: kable
     library(knitr)
     kable(Genes10[,c(1:5)], digits=4)
-
-    # --- Kable2 [] ---
-    # Key functions: linnorm
-    library(knitr)
-    kable(Genes10, digits=4, row.names=FALSE)
-
-    # --- Kable3 [] ---
-    # Key functions: linnorm
-    library(knitr)
-    kable(Genes10, digits=4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

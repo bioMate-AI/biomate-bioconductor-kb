@@ -43,22 +43,33 @@ process BIOC_SCIFER {
 
     # --- fcs_processing [] ---
     # Key functions: fcs_processing, fcs_plot
-
+    fcs_data <- fcs_processing(
+    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
+    fcs_plot(fcs_data)
     # --- check fcs noprobe [] ---
     # Key functions: fcs_processing, fcs_plot
-
+    fcs_data <- fcs_processing(
+    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
+    fcs_plot(fcs_data)
     # --- check fcs probe [] ---
     # Key functions: fcs_processing, fcs_plot
-
+    fcs_data <- fcs_processing(
+    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
+    fcs_plot(fcs_data)
     # --- check fcs probe compensated [] ---
     # Key functions: fcs_processing, fcs_plot
-
+    fcs_data <- fcs_processing(
+    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
+    fcs_plot(fcs_data)
     # --- summarise_abi_file [] ---
     # Key functions: summarise_abi_file
-
+    abi_seq <- sangerseqR::read.abif(
+    system.file("/extdata/sorted_sangerseq/E18_C1/A1_3_IgG_Inner.ab1",
+    Summarise using summarise_abi_file()
     # --- bcr sequences [] ---
     # Key functions: summarise_quality
-
+    sf <- summarise_quality(
+    folder_sequences = system.file("extdata/sorted_sangerseq", package = "scifer"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

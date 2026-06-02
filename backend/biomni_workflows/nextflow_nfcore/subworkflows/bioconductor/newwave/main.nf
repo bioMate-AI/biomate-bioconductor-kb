@@ -47,6 +47,7 @@ process BIOC_NEWWAVE {
     params <- newSplatParams()
     N=500
     set.seed(1234)
+    data <- splatSimulateGroups(params,batchCells=c(N/2,N/2),
     # --- Coldata [] ---
     # Key functions: colData
     ---------------------------------------------------------------------

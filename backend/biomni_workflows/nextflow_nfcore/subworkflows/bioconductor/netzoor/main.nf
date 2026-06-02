@@ -43,7 +43,7 @@ process BIOC_NETZOOR {
 
     # --- fig=TRUE [] ---
     # Key functions: condorCoreEnrich
-
+    core_stats <- condorCoreEnrich(test_nodes=c("Alice","Mary"),
     # --- fig=TRUE [] ---
     # Key functions: condorPlotHeatmap
     condorPlotHeatmap(condor.object)

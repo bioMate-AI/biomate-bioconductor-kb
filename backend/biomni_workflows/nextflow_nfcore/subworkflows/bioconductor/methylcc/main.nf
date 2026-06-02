@@ -55,7 +55,9 @@ process BIOC_METHYLCC {
     est_minfi <- minfi::estimateCellCounts(rgset)
     # --- Custom ggplot2 visualization [] ---
     # Key functions: cell_counts, full_join, ggplot, geom_point, geom_abline
-
+    df_minfi = gather(cbind("samples" = rownames(cell_counts(est)),
+    as.data.frame(est_minfi)),
+    df_methylCC = gather(cbind("samples" = rownames(cell_counts(est)),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

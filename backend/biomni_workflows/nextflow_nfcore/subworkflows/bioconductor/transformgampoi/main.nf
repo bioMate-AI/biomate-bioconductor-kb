@@ -38,36 +38,14 @@ process BIOC_TRANSFORMGAMPOI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(transformGamPoi)
+    library(TENxPBMCData)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set, par
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-    set.seed(1)
-    par(cex = 1.5)
-
-    # --- Load Data [] ---
-    # Key functions: TENxPBMCData, sample, assay, rowMeans2, counts, rowVars, pbmc4k
-    # Load the 'TENxPBMCData' as a SingleCellExperiment object
+    # --- T E Nx P B M C Data [] ---
+    # Key functions: TENxPBMCData, assay, rowMeans2, rowVars
     sce <- TENxPBMCData::TENxPBMCData("pbmc4k")
-    # Subset the data to 1,000 x 500 random genes and cells
     sce <- sce[sample(nrow(sce), 1000), sample(ncol(sce), 500)]
-
-    ## -----------------------------------------------------------------------------
     assay(sce, "counts")[1:10, 1:5]
-
-    ## -----------------------------------------------------------------------------
-    library(MatrixGenerics)
-    # Exclude genes where all counts are zero
-    sce <- sce[rowMeans2(counts(sce)) > 0, ]
-    gene_means <- rowMeans2(counts(sce))
-    gene_var <- rowVars(counts(sce))
-    plot(gene_means, gene_var, log = "xy", main = "Log-log scatter plot of mean vs variance")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

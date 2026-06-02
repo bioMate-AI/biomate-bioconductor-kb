@@ -104,9 +104,17 @@ process BIOC_ARRMNORMALIZATION {
     # --- Linear regression model [] ---
     # Key functions: unlist, lm
     plot(x,y,type="n",xlab="Log Background intensity",ylab="Beta value",main=titles[j])
+    		for (i in 1:length(percentiles)){
+    			currentP=percentiles[i]
+    			points(unlist(background),
+                     unlist(currentQuantiles[currentP,]),
     # --- Fig1 [] ---
     # Key functions: unlist, lm
     plot(x,y,type="n",xlab="Log Background intensity",ylab="Beta value",main=titles[j])
+    		for (i in 1:length(percentiles)){
+    			currentP=percentiles[i]
+    			points(unlist(background),
+                     unlist(currentQuantiles[currentP,]),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

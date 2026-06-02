@@ -60,6 +60,7 @@ process BIOC_GWASTOOLS {
     bl.file <- "tmp.bl.gds"
     xyData <- IntensityData(GdsIntensityReader(xy.file),
                             snpAnnot=snpAnnot)
+    genoData <- GenotypeData(GdsGenotypeReader(geno.file),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,24 +41,11 @@ process BIOC_MATTER {
     library(matter)
     library(jsonlite)
 
-
-    # --- Atoms [] ---
-    # Key functions: matter_vec, atomdata, array, runif, matter_arr, path
-    x <- matter_vec(1:10)
-    y <- matter_vec(11:20)
-    z <- cbind(x, y)
-    atomdata(z)
-
-    ## ----array-1------------------------------------------------------------------
+    # --- Matter vec analysis [] ---
+    # Key functions: matter_vec, atomdata, array, matter_arr, path, matter_mat, rowMaj, matter_list
     set.seed(1)
-    a1 <- array(sort(runif(24)), dim=c(4,3,2))
-
-    a2 <- matter_arr(a1)
-    a2
-
-    path(a2)
-
-    ## ----array-2------------------------------------------------------------------
+    l1 <- list(A=runif(10), B=rnorm(15), C=rlnorm(5), D="This is a string!")
+    l2 <- matter_list(l1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

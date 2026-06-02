@@ -48,7 +48,8 @@ process BIOC_OPENPRIMER {
     ggplot2::theme_set(ggplot2::theme_grey(base_size = 12))
     # --- read_settings [] ---
     # Key functions: read_settings
-
+    settings.xml <- system.file("extdata", "settings",
+    settings <- read_settings(settings.xml)
     # --- cvg constraint setup [] ---
     # Key functions: cvg_constraints, conOptions
     No constraints on primer coverage (not recommended!)

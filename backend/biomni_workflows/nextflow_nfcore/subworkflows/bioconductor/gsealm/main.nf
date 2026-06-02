@@ -56,6 +56,7 @@ process BIOC_GSEALM {
     ### Some filtering;
     ### see explanation below code
     bcellIdx <- grep("^B", as.character(ALL$BT))
+    bcrOrNegIdx <- which(as.character(ALL$mol.biol)
     # --- Chromosomemapping [] ---
     # Key functions: mget, featureNames, all, na, unlist, makeChrBandGraph
     minBandSize = 5

@@ -83,6 +83,7 @@ process BIOC_FASTLIQUIDASSOCIATION {
     example.boots <- boottrips[1, , drop = FALSE]
     dim(example.boots)
     set.seed(1)
+    system.time(GLAnew <- fastboots.GLA(tripmat=example.boots,data=fulldata,
     # --- Extend Example [] ---
     # Key functions: new, hyperGTest
     library(GOstats)

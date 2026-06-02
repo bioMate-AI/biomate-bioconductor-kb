@@ -73,10 +73,12 @@ process BIOC_HERON {
     probe_calls_k_of_n <- getKofN(probe_calls_res)
     # --- example epitope finding unique [] ---
     # Key functions: findEpitopeSegments
-
+    epi_segments_uniq_res <- findEpitopeSegments(
+    knitr::kable(head(epi_segments_uniq_res))
     # --- example epitope pvalues [] ---
     # Key functions: calcEpitopePValues, addSequenceAnnotations
-
+    epi_padj_uniq <- calcEpitopePValues(
+    epi_padj_uniq <- addSequenceAnnotations(epi_padj_uniq)
     # --- example epitope calls [] ---
     # Key functions: makeEpitopeCalls, getKofN
     epi_calls_uniq <- makeEpitopeCalls(epi_padj_uniq, one_hit_filter = TRUE)
@@ -84,7 +86,7 @@ process BIOC_HERON {
     knitr::kable(head(epi_calls_k_of_n_uniq))
     # --- example protein pvalues [] ---
     # Key functions: calcProteinPValues
-
+    prot_padj_uniq <- calcProteinPValues(
     # --- example protein calls [] ---
     # Key functions: makeProteinCalls, getKofN
     prot_calls_uniq <- makeProteinCalls(prot_padj_uniq)
@@ -92,13 +94,13 @@ process BIOC_HERON {
     knitr::kable(head(prot_calls_k_of_n_uniq))
     # --- example epitope finding hclust [] ---
     # Key functions: findEpitopeSegments
-
+    epi_segments_hclust_res <- findEpitopeSegments(
     # --- example epitope finding hclust2 [] ---
     # Key functions: findEpitopeSegments
-
+    epi_segments_hclust_res2 <- findEpitopeSegments(
     # --- example epitope finding skater [] ---
     # Key functions: findEpitopeSegments
-
+    epi_segments_skater_res <- findEpitopeSegments(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -80,6 +80,7 @@ process BIOC_ANNOTATIONTOOLS {
     ## ps_Mouse4302_2<-lapply(ps_Mouse4302_2,function(x) {
     ## 	if (length(x)>1) na.omit(x) else x})
     ## gid_Mouse4302_1<-lapply(gid_Mouse4302_1,function(x) {unique(x)})
+    ## gid_Mouse4302_1<-lapply(gid_Mouse4302_1,function(x) {
     # --- ps2ps [] ---
     # Key functions: ps2ps
     ## orthoTable<-ps2ps(annotation_HGU133Plus2,annotation_Mouse4302,homologene,10090)
@@ -106,6 +107,7 @@ process BIOC_ANNOTATIONTOOLS {
     orthops_maxAbsT<-getOrthologousProbesets(ps_mouse,table_human_absT,
     	ortho,max,forceProbesetSelection=TRUE)
     orthops_maxAbsT_ind<-match(unlist(orthops_maxAbsT[[1]]),table_human[,1])
+    plot(table_mouse[selection,2],table_human[orthops_maxAbsM_ind,2],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

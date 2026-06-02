@@ -49,13 +49,19 @@ process BIOC_GENOMICFILES {
     gr <- GRanges("chr14", IRanges(c(19100000, 106000000), width=1e7))
     # --- Count overlapping genomic regions [] ---
     # Key functions: unlist, requireNamespace, countOverlaps, BamFile
-
+    FUN <- function(file, gr, YIELD, MAP, REDUCE, tiles, ...) {
+    requireNamespace("GenomicAlignments") ## for BamFile, readGAlignments()
+    requireNamespace("GenomicFiles") ## for reduceByYield()
     # --- Compute genomic coverage [] ---
     # Key functions: requireNamespace, ScanBamParam, coverage
-
+    MAP = function(range, file, ...) {
+    requireNamespace("GenomicAlignments")  ## for ScanBamParam() and coverage()
+    GenomicAlignments::coverage(
     # --- Sequence level inspection [] ---
     # Key functions: requireNamespace, pileup, reduceByFile, xtabs, reduceByRange, GenomicFiles, include_graphics, bam2R
-
+    MAP = function(range, file, ...) {
+    requireNamespace("GenomicAlignments") ## for ScanBamParam() and coverage()
+    param = Rsamtools::ScanBamParam(which=range)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

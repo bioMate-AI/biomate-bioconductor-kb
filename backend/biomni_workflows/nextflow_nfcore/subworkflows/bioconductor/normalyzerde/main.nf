@@ -47,9 +47,14 @@ process BIOC_NORMALYZERDE {
     outDir <- tempdir()
     designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
     dataFp <- system.file(package="NormalyzerDE", "extdata", "tiny_data.tsv")
+    normalyzer(jobName="vignette_run", designPath=designFp, dataPath=dataFp,
     # --- Code Block 4 [] ---
     # Key functions: normalyzerDE
     normMatrixPath <- paste(outDir, "vignette_run/CycLoess-normalized.txt", sep="/")
+    normalyzerDE("vignette_run",
+                 comparisons=c("4-5"),
+                 designPath=designFp,
+                 dataPath=normMatrixPath,
     # --- Code Block 7 [] ---
     # Key functions: SummarizedExperiment, normalyzer
     dataMatrix <- read.table(dataFp, sep="\t", header = TRUE)
@@ -68,7 +73,11 @@ process BIOC_NORMALYZERDE {
     typeof(sampleNames)
     # --- Code Block 13 [] ---
     # Key functions: normalizeCyclicLoess
-
+    performCyclicLoessNormalization <- function(rawMatrix) {
+        log2Matrix <- log2(rawMatrix)
+        normMatrix <- limma::normalizeCyclicLoess(log2Matrix, method="fast")
+        colnames(normMatrix) <- colnames(rawMatrix)
+        normMatrix
     # --- Code Block 14 [] ---
     # Key functions: getRTNormalizedMatrix
     rtNormMat <- getRTNormalizedMatrix(dataMat,

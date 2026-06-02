@@ -41,51 +41,11 @@ process BIOC_ERMA {
     library(erma)
     library(jsonlite)
 
-
-    # --- Dosetup [] ---
-    # Key functions: suppressPackageStartupMessages
-    suppressPackageStartupMessages({
-    library(rtracklayer)
-    library(BiocStyle)
-    library(erma)
-    library(GenomicFiles)
-    library(ggplot2)
-    library(grid)
-    library(png)
-    library(DT)
-    })
-
-    # --- Lkm [] ---
-    # Key functions: mapmeta, datatable
-    library(DT)
-    library(erma)
-    meta = mapmeta()
-    kpc = c("Comments", "Epigenome.ID..EID.", "Epigenome.Mnemonic", "Quality.Rating", 
-    "Standardized.Epigenome.name", "ANATOMY", "TYPE")
-    datatable(as.data.frame(meta[,kpc]))
-
-    # --- Lkst [] ---
-    # Key functions: datatable
-    data(states_25)
-    datatable(states_25)
-
-    # --- Dofig [] ---
-    # Key functions: readPNG, grid.raster, erma
-    library(png)
-    im = readPNG(system.file("pngs/emparms.png", package="erma"))
-    grid.raster(im)
-
-    # --- Getgf [] ---
-    # Key functions: makeErmaSet, cellTypes, datatable, colData
+    # --- Sequence level inspection [] ---
+    # Key functions: datatable, cellTypes, rowRanges, register, seqlevels, csProfile
     ermaset = makeErmaSet()
-    ermaset
     cellTypes(ermaset)[1:5]
     datatable(as.data.frame(colData(ermaset)[,kpc]))
-
-    # --- Getgm [] ---
-    # Key functions: flank, resize, genemodel
-    uil33 = flank(resize(range(genemodel("IL33")), 1), width=50000)
-    uil33
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

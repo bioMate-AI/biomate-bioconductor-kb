@@ -41,58 +41,11 @@ process BIOC_ATENA {
     library(atena)
     library(jsonlite)
 
-
-    # --- Comparsedann [] ---
-    # Key functions: brewer.pal, mcols, par, grid, axis, text, black
+    # --- Bar plot of enrichment results [] ---
+    # Key functions: grid
     library(RColorBrewer)
-
     pal1 <- brewer.pal(6, "Pastel2")
     pal2 <- brewer.pal(length(unique(mcols(teann)$Class)), "Set2")
-
-    par(mfrow = c(1,2), mar = c(5,4,3,1))
-    bp1 <- barplot(table(mcols(teann)$Status), col = pal1, border = "black",
-            main = "TEs by status", cex.axis=0.8, xaxt = "n")
-    grid(nx=NA, ny=NULL)
-    axis(1, at=bp1, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
-    par(xpd=TRUE)
-    text(x= bp1[, 1] - 0.3, y = 10, labels=names(table(mcols(teann)$Status)), 
-         srt=40, offset = 1.7, cex = 0.8, pos = 1)
-    par(xpd=FALSE)
-
-
-    # --- Results='hide' [] ---
-    # Key functions: qtex, colSums, assay
-    emq <- qtex(empar)
-
-    ## -----------------------------------------------------------------------------
-    emq
-    colSums(assay(emq))
-
-    # --- Results='hide' [] ---
-    # Key functions: qtex, colSums, assay
-    tsq <- qtex(tspar)
-
-    ## -----------------------------------------------------------------------------
-    tsq
-    colSums(assay(tsq))
-
-    # --- Results='hide' [] ---
-    # Key functions: qtex, colSums, assay, rowData
-    ttq <- qtex(ttpar)
-
-    ## -----------------------------------------------------------------------------
-    ttq
-    colSums(assay(ttq))
-
-    ## -----------------------------------------------------------------------------
-    head(assay(ttq))
-
-    ## -----------------------------------------------------------------------------
-    rowData(ttq)
-
-    ## -----------------------------------------------------------------------------
-    table(rowData(ttq)$isTE)
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

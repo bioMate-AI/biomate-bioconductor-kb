@@ -58,7 +58,11 @@ process BIOC_SWATHXTEND {
     plotRIICor(Lib2, Lib3)
     # --- Buildspectralibpair [] ---
     # Key functions: buildSpectraLibPair
-
+    ## Lib2_3.hydro <- buildSpectraLibPair(libfiles[1], libfiles[2], hydro,
+    ## 				clean=T,
+    ## 				nomc=T, nomod=T, plot=F,
+    ## 				method="hydro",
+    ## 				outputFormat = "peakview",
     # --- Outputlib [] ---
     # Key functions: outputLib
     ## outputLib(Lib2_3, filename="Lib2_3.txt", format="peakview")

@@ -47,6 +47,7 @@ process BIOC_MUSICATK {
     lusc_maf <- system.file("extdata", "public_TCGA.LUSC.maf", package = "musicatk")
     lusc.variants <- extract_variants_from_maf_file(maf_file = lusc_maf)
     # Extract variants from an individual VCF file
+    luad_vcf <- system.file("extdata", "public_LUAD_TCGA-97-7938.vcf",
     # --- Select Genome [] ---
     # Key functions: select_genome
     g <- select_genome("hg38")

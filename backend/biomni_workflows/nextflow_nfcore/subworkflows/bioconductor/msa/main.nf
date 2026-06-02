@@ -38,7 +38,8 @@ process BIOC_MSA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(msa)
+    library(DNAMultipleAlignment)
+    library(IRanges)
     library(jsonlite)
 
 
@@ -53,6 +54,14 @@ process BIOC_MSA {
     msaDateYear <- as.numeric(substr(msaDateRaw, 1, 4))
     msaDateMonth <- as.numeric(substr(msaDateRaw, 6, 7))
     msaDateDay <- as.numeric(substr(msaDateRaw, 9, 10))
+    msaDate <- paste(month.name[msaDateMonth], " ",
+    mySequenceFile <- system.file("examples", "exampleAA.fasta", package="msa")
+    mySequences <- readAAStringSet(mySequenceFile)
+    mySequences
+    myFirstAlignment <- msa(mySequences)
+    myFirstAlignment
+    print(myFirstAlignment, show="complete")
+
     # --- Visualize Pdf [] ---
     # Key functions: msaPrettyPrint, asis, none, msa, complete, IRanges, colmask
     msaPrettyPrint(myFirstAlignment, y=c(164, 213), output="asis",

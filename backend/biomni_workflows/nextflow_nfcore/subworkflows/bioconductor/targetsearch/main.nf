@@ -56,7 +56,7 @@ process BIOC_TARGETSEARCH {
     rimLimits <- ImportFameSettings(tsd_file_path("rimLimits.txt"))
     # --- R Icorrect [] ---
     # Key functions: RIcorrect
-
+    RImatrix <- RIcorrect(samples.all, rimLimits, writeCDF4path=FALSE,
     # --- rep [] ---
     # Key functions: rep
     isRIMarker <- rep(FALSE, length(samples.all))

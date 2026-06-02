@@ -59,6 +59,7 @@ process BIOC_TIDYTOF {
     # will result in a tibble with only 1 column (the cluster labels)
     phenograph_data |>
         tof_preprocess() |>
+        tof_cluster(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -45,14 +45,17 @@ process BIOC_SUMMIX {
     # Key functions: summix
     library(Summix)
     data("ancestryData")
+    summix(data = ancestryData,
     # --- adjAF example [] ---
     # Key functions: adjAF
     library(Summix)
     data("ancestryData")
+    adjusted_data<-adjAF(data = ancestryData,
     # --- summix local example [] ---
     # Key functions: summix_local
     library(Summix)
     data("ancestryData")
+    results <- summix_local(data = ancestryData,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

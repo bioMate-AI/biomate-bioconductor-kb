@@ -56,7 +56,7 @@ process BIOC_CARDINALIO {
     intensity <- replicate(nx * ny, rlnorm(nmz))
     # --- Imz Meta [] ---
     # Key functions: ImzMeta
-
+    meta <- ImzMeta(spectrumType="MS1 spectrum",
     # --- tempfile [] ---
     # Key functions: tempfile, writeImzML
     path3 <- tempfile(fileext=".imzML")

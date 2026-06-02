@@ -52,6 +52,7 @@ process BIOC_ISOMIRS {
     # Key functions: pheatmap
     library(pheatmap)
     ids = isoNorm(ids, formula = ~ condition)
+    pheatmap(counts(ids, norm=TRUE)[1:100,],
     # --- MA plot of DE results [] ---
     # Key functions: isoDE, plotMA
     dds <- isoDE(ids, formula=~condition)

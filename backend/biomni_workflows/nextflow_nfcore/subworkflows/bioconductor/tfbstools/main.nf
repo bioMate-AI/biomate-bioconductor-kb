@@ -38,7 +38,9 @@ process BIOC_TFBSTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(TFBSTools)
+    library(Matrix)
+    library(PFMatrix)
+    library(PFMatrixList)
     library(jsonlite)
 
 
@@ -60,6 +62,19 @@ process BIOC_TFBSTOOLS {
     # Key functions: PFMatrix, name, toPWM, toICM, rowSums, reverseComplement, vertebrates, log2probratio
     library(TFBSTools)
     ## PFMatrix construction; Not all of the slots need to be initialised.
+    pfm <- PFMatrix(ID="MA0004.1", name="Arnt", 
+                    matrixClass="Zipper-Type", strand="+",
+                    bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                    tags=list(family="Helix-Loop-Helix", species="10090",
+                              tax_group="vertebrates",medline="7592839", 
+                              type="SELEX",ACC="P53762", pazar_tf_id="TF0000003",
+                              TFBSshape_ID="11", TFencyclopedia_ID="580"),
+                    profileMatrix=matrix(c(4L,  19L, 0L,  0L,  0L,  0L,
+    pfm2 <- pfm
+    pfmList <- PFMatrixList(pfm1=pfm, pfm2=pfm2, use.names=TRUE)
+    pfmList
+    names(pfmList)
+
     # --- Tffmread [] ---
     # Key functions: readXMLTFFM, getPosProb, extdata, tffm_first_order.xml, tffm_detailed.xml, suppressMessages, getMatrixSet, species
     xmlFirst <- file.path(system.file("extdata", package="TFBSTools"),

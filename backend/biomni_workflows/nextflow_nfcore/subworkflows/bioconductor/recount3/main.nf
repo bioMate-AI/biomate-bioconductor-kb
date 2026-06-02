@@ -48,10 +48,14 @@ process BIOC_RECOUNT3 {
     cleanbib()
     # --- 'install' [] ---
     # Key functions: valid
-
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("recount3")
     # --- 'quick example' [] ---
     # Key functions: available_projects, create_rse
     human_projects <- available_projects()
+    proj_info <- subset(
+    Create a RangedSummarizedExperiment (RSE) object at the gene level
     # --- "interactive display" [] ---
     # Key functions: display, create_rse
     proj_info_interactive <- interactiveDisplayBase::display(human_projects)
@@ -98,7 +102,8 @@ process BIOC_RECOUNT3 {
     assay(rse_gene_SRP009615, "counts") <- transform_counts(rse_gene_SRP009615)
     # --- "rse exon" [] ---
     # Key functions: create_rse
-
+    rse_exon_SRP009615 <- create_rse(
+    dim(rse_exon_SRP009615)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

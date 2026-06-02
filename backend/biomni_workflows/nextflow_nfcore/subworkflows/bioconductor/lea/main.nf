@@ -54,6 +54,7 @@ process BIOC_LEA {
     # select the run with the lowest cross-entropy value
     best = which.min(cross.entropy(project.missing, K = 4))
     # Impute the missing genotypes
+    impute(project.missing, "genoM.lfmm",
     # --- Pvalues [] ---
     # Key functions: pvalues
     ---------------------------------------------------------------------
@@ -96,6 +97,10 @@ process BIOC_LEA {
     # --- Gap [] ---
     # Key functions: gap
     ---------------------------------------------------------------------
+    g.gap.scaled <- genetic.gap(input = Y,
+                               env = X,
+                               pred.env = X.pred,
+                               scale = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

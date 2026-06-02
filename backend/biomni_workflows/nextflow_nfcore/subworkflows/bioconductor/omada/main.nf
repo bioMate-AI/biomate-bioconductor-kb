@@ -47,6 +47,7 @@ process BIOC_OMADA {
     new.dataset.analysis <- feasibilityAnalysis(classes = 4, samples = 50,
                                                 features = 15)
     # Basing the simulation on an existing dataset and selecting the number of clusters
+    existing.dataset.analysis <- feasibilityAnalysisDataBased(data = toy_genes,
     # --- Omada [] ---
     # Key functions: k, omada, get_partition_agreement_scores, get_feature_selection_scores, get_feature_selection_optimal_features, get_feature_selection_optimal_number_of_features, get_cluster_voting_scores, get_cluster_voting_memberships
     # Running the whole cascade of tools inputting an expression dataset
@@ -64,6 +65,10 @@ process BIOC_OMADA {
     # --- Partition Agreement [] ---
     # Key functions: partitionAgreement, get_agreement_scores
     # Selecting algorithms, measures and number of clusters
+    agreement.results <- partitionAgreement(toy_genes, algorithm.1 = "spectral",
+                                            measure.1 = "rbfdot",
+                                            algorithm.2 = "kmeans",
+                                            measure.2 = "Lloyd",
     # --- Feature Selection [] ---
     # Key functions: featureSelection, get_average_feature_k_stabilities, get_optimal_features, plot_average_stabilities
     # Selecting minimum and maximum number of clusters and feature step

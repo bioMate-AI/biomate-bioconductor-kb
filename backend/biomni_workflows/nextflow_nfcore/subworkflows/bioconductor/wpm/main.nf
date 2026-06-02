@@ -56,15 +56,21 @@ process BIOC_WPM {
     # --- convert SummarizedExperiment object [] ---
     # Key functions: SummarizedExperiment, convertSE
     counts <- matrix(runif(nrows * ncols, 1, 1e4), nrows)
+    colData <- data.frame(Treatment=rep(c("ChIP", "Input"), 3),
+    se <- SummarizedExperiment::SummarizedExperiment(assays=list(counts=counts),
     # --- run wpm with a CSV file [] ---
     # Key functions: wrapperWPM
-
+    wpm_result <- wpm::wrapperWPM(user_df = imported_csv$df_wpm,
+    plate_dims = list(8,12),
     # --- wrapper W P M [] ---
     # Key functions: wrapperWPM
-
+    wpm_result <- wpm::wrapperWPM(user_df = df,
+    plate_dims = list(8,12),
     # --- visualize plate map [] ---
     # Key functions: drawMap
-
+    drawned_map <- wpm::drawMap(df = wpm_result,
+    sample_gps = length(levels(as.factor(colData$Treatment))),
+    gp_levels = gp_lvl <- levels(as.factor(colData$Treatment)),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -59,9 +59,13 @@ process BIOC_NPARC {
     # --- fit alternative stk4 [] ---
     # Key functions: group_by, augment, rename
     group_by(compoundConcentration) %>%
+    do({
+    fit = NPARC:::fitSingleSigmoid(x = .$temperature, y = .$relAbundance, start=c(Pl = 0, a = 550, b = 10))
     # --- add alternative resids stk4 [] ---
     # Key functions: left_join, distinct
-
+    left_join(alternativePredictions,
+    by = c("relAbundance", "temperature",
+    distinct()
     # --- plot Fig 2 A B [] ---
     # Key functions: geom_line, aes
     geom_line(data = distinct(stk4, temperature, compoundConcentration, alternativePrediction),
@@ -74,7 +78,8 @@ process BIOC_NPARC {
     kable(rssPerModel, digits = 4)
     # --- fit all proteins [] ---
     # Key functions: NPARCfit
-
+    fits <- NPARCfit(x = df$temperature,
+    str(fits, 1)
     # --- plot stk4 results [] ---
     # Key functions: geom_line, aes
     stk4Predictions <- filter(fits$predictions, modelType == "alternative", id == "STK4_IPI00011488")

@@ -60,7 +60,7 @@ process BIOC_PARTCNV {
     GEout <- GetExprCountCyto(cytoloc_output = res, Counts = as.matrix(SimData), normalization = TRUE, qt_cutoff = 0.99)
     # --- part C N V [] ---
     # Key functions: partCNV
-
+    pcout <- partCNV(int_counts = GEout$ProcessedCount,
     # --- PCA dimensionality reduction [] ---
     # Key functions: CreateSeuratObject, NormalizeData, FindVariableFeatures, ScaleData, RunPCA
     library(Seurat)
@@ -76,7 +76,7 @@ process BIOC_PARTCNV {
     GEout <- GetExprCountCyto(cytoloc_output = res, Counts = as.matrix(SimData), normalization = TRUE, qt_cutoff = 0.99)
     # --- part C N V H [] ---
     # Key functions: partCNVH
-
+    pcHout <- partCNVH(int_counts = GEout$ProcessedCount,
     # --- PCA dimensionality reduction [] ---
     # Key functions: CreateSeuratObject, NormalizeData, FindVariableFeatures, ScaleData, RunPCA
     library(Seurat)

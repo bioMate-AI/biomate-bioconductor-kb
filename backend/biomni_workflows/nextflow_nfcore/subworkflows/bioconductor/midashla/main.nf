@@ -47,10 +47,13 @@ process BIOC_MIDASHLA {
     devtools::load_all()
     # --- img [] ---
     # Key functions: img
-
+    htmltools::img(
+    src = knitr::image_uri("MiDAS_logo.png"),
     # --- read Hla Calls [] ---
     # Key functions: readHlaCalls
-
+    read.table(
+    file = system.file("extdata", "MiDAS_tut_pheno.txt", package = "midasHLA"),
+    readHlaCalls(
     # --- show imported data [] ---
     # Key functions: kable_styling, scroll_box
     head(20) %>%
@@ -67,19 +70,24 @@ process BIOC_MIDASHLA {
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
     # --- plot frequencies [] ---
     # Key functions: gather, ggplot, geom_bar, coord_flip, scale_y_continuous
-
+    freq_HLA_long <- tidyr::gather(
+    filter(grepl("^A", allele))
+    ggplot2::ggplot(data = freq_HLA_long, ggplot2::aes(x = allele, y = freq, fill = population)) +
     # --- prep HLA [] ---
     # Key functions: prepareMiDAS
-
+    HLA <- prepareMiDAS(
     # --- run HLA allelic [] ---
     # Key functions: glm, runMiDAS, kableResults
     HLA_model <- glm(disease ~ term, data = HLA, family = binomial())
+    HLA_results <- runMiDAS(
+    kableResults(HLA_results)
     # --- run HLA allelic cond [] ---
     # Key functions: runMiDAS, kableResults
-
+    HLA_results_cond <- runMiDAS(
+    kableResults(HLA_results_cond, scroll_box_height = "200px")
     # --- prepare HLA AA [] ---
     # Key functions: prepareMiDAS
-
+    HLA_AA <- prepareMiDAS(
     # --- HLA AA to df [] ---
     # Key functions: assay
     assay() %>%
@@ -92,9 +100,12 @@ process BIOC_MIDASHLA {
     # --- run HLA AA omnibus [] ---
     # Key functions: glm, runMiDAS, kableResults
     HLA_AA_model <- glm(disease ~ term, data = HLA_AA, family = binomial())
+    HLA_AA_omnibus_results <- runMiDAS(
+    kableResults(HLA_AA_omnibus_results)
     # --- run HLA AA DQB1 9 [] ---
     # Key functions: runMiDAS, kableResults
-
+    HLA_AA_DQB1_9_results <- runMiDAS(
+    kableResults(HLA_AA_DQB1_9_results, scroll_box_height = "250px")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

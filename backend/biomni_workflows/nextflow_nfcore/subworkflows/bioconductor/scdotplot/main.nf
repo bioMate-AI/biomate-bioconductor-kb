@@ -62,9 +62,15 @@ process BIOC_SCDOTPLOT {
     library(scDotPlot)
     library(ggsci)
     sce |>
+        scDotPlot(features = features,
+                  group = "level2class",
     # --- Sceplot2 [] ---
     # Key functions: scDotPlot, pal_d3
     sce |>
+        scDotPlot(scale = TRUE,
+                  features = features,
+                  group = "level2class",
+                  groupAnno = "level1class",
     # --- Get Features Seurat [] ---
     # Key functions: FindAllMarkers, group_by, slice, select, DefaultAssay, rownames_to_column
     library(Seurat)
@@ -75,9 +81,17 @@ process BIOC_SCDOTPLOT {
     # --- Seuratplot1 [] ---
     # Key functions: scDotPlot, pal_d3
     pbmc_small |>
+        scDotPlot(features = features,
+                  group = "RNA_snn_res.1",
+                  groupAnno = "RNA_snn_res.1",
+                  featureAnno = "cluster",
     # --- Seuratplot2 [] ---
     # Key functions: scDotPlot, pal_d3
     pbmc_small |>
+        scDotPlot(scale = TRUE,
+                  features = features,
+                  group = "RNA_snn_res.1",
+                  groupAnno = "RNA_snn_res.1",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,52 +41,9 @@ process BIOC_RPRIMER {
     library(rprimer)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Warning=false [] ---
-    # Key functions: readDNAMultipleAlignment, colmask, extdata, example_alignment.txt, rprimer, fasta
-    library(rprimer)
-    library(Biostrings)
-
-    ## -----------------------------------------------------------------------------
-    filepath <- system.file("extdata", "example_alignment.txt", package = "rprimer")
-
-    myAlignment <- readDNAMultipleAlignment(filepath, format = "fasta")
-
-    ## -----------------------------------------------------------------------------
-    ## Mask everything but position 3000 to 4000 and 5000 to 6000
-    myMaskedAlignment <- myAlignment
-
-    colmask(myMaskedAlignment, invert = TRUE) <- c(3000:4000, 5000:6000)
-
-    ## -----------------------------------------------------------------------------
-
-    # --- Fig 3 [] ---
+    # --- fig 3 [] ---
     # Key functions: plotData
     plotData(myConsensusProfile, highlight = c(from, to))
-
-    ## -----------------------------------------------------------------------------
-    myAssayRegion <- myConsensusProfile[
-      myConsensusProfile$position >= from & 
-        myConsensusProfile$position <= to, 
-    ]
-
-    # --- Warning=false [] ---
-    # Key functions: sessionInfo, exampleRprimerProfile, exampleRprimerOligo, exampleRprimerAssay, exampleRprimerMatchOligo, exampleRprimerMatchAssay
-    data("exampleRprimerProfile")
-    data("exampleRprimerOligo")
-    data("exampleRprimerAssay")
-    data("exampleRprimerMatchOligo")
-    data("exampleRprimerMatchAssay")
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

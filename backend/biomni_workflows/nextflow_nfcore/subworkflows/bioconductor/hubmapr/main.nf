@@ -43,7 +43,9 @@ process BIOC_HUBMAPR {
 
     # --- 'datasets' [] ---
     # Key functions: datasets, object_size
-
+    system.time({
+    datasets_df <- datasets()
+    object_size(datasets_df)
     # --- 'plot' [] ---
     # Key functions: group_by, ggplot, aes, geom_histogram, scale_fill_manual
     select(organ, dataset_type) |>
@@ -56,7 +58,9 @@ process BIOC_HUBMAPR {
     datasets_col_char <- datasets_default_columns(as = "character")
     # --- 'summary cols' [] ---
     # Key functions: bind_cols
-
+    tbl <- bind_cols(
+    dataset = datasets_default_columns(as = "character"),
+    sample = c(samples_default_columns(as = "character"), rep(NA, 7)),
     # --- 'datasets filter' [] ---
     # Key functions: count
     Example from datasets()
@@ -65,6 +69,8 @@ process BIOC_HUBMAPR {
     # --- 'derived using left join' [] ---
     # Key functions: donors, left_join, rename, samples
     donors_df <- donors()
+    filter(Sex == "Female",
+    head(1)
     # --- '* detail()' [] ---
     # Key functions: pull, dataset_detail, unnest_longer, unnest_wider
     filter(dataset_type == "Auto-fluorescence",

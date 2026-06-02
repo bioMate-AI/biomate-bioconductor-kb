@@ -44,17 +44,18 @@ process BIOC_BLOODGEN3MODULE {
 
     # --- group comparison analysis using t [] ---
     # Key functions: Groupcomparison
-
+    Group_df <- Groupcomparison(GSE13015,
     # --- group comparison analysis using limma statistical analysis [] ---
     # Key functions: Groupcomparisonlimma
-
+    Group_limma <- Groupcomparisonlimma(GSE13015,
     # --- grid visulization after running group comparison analysis [] ---
     # Key functions: gridplot
     gridplot(Group_df,
     filename= tempfile())
     # --- fingerprint visualization [] ---
     # Key functions: fingerprintplot
-
+    fingerprintplot(Individual_df,
+    filename = tempfile() ,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

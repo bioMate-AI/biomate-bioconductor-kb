@@ -41,76 +41,10 @@ process BIOC_ISOCORRECTORGUI {
     library(IsoCorrectoRGUI)
     library(jsonlite)
 
-
-    # --- Tool Features Table [] ---
-    # Key functions: isocorrectorgui
-    knitr::kable(
-      IsoCorrectoR$tool_features
-    )
-
-    # --- Molecule File Example Normal Res [] ---
-    # Key functions: normal_resolution, molecule_file
-    fileExample <- IsoCorrectoR[["normal_resolution"]][["molecule_file"]]
-
-    fileExample[4:7, 3] <- ""
-
-    knitr::kable(
-      fileExample, align = "l", caption="Molecule information for normal resolution data"
-    )
-
-    # --- Molecule File Example High Res [] ---
-    # Key functions: high_resolution, molecule_file
-    fileExample <- IsoCorrectoR[["high_resolution"]][["molecule_file"]]
-
+    # --- kable [] ---
+    # Key functions: kable
     fileExample[is.na(fileExample)] <- ""
-
     knitr::kable(
-      fileExample, align = "l", caption="Molecule information for high resolution data"
-    )
-
-    # --- Measurement File Example Norm Res [] ---
-    # Key functions: normal_resolution, measurement_file
-    fileExample <- IsoCorrectoR[["normal_resolution"]][["measurement_file"]]
-
-    #Subset and adjust example to illustrate explanations
-
-    fileExample <- fileExample[c(1:6, 40:43),1:6]
-
-    fileExample[7:10,1] <- gsub('.{2}$', '', fileExample[7:10,1])
-
-    fileExample[c(4,6), "Sample3"] <- ""
-    fileExample[4, "Sample5"] <- ""
-    fileExample[9, "Sample1"] <- ""
-
-    knitr::kable(
-      fileExample, align = "l", row.names = FALSE, caption="Measurement information for normal resolution data"
-    )
-
-    # --- Measurement File Example High Res [] ---
-    # Key functions: high_resolution, measurement_file
-    fileExample <- IsoCorrectoR[["high_resolution"]][["measurement_file"]]
-
-    #Subset and adjust example to illustrate explanations
-
-    fileExample <- fileExample[1:21,1:6]
-
-    fileExample[20,"Sample3"] <- ""
-    fileExample[21,"Sample3"] <- "0"
-    fileExample[16,"Sample3"] <- ""
-
-    knitr::kable(
-      fileExample, align = "l", row.names = FALSE, caption="Measurement information for high resolution data"
-    )
-
-    # --- Element File Example [] ---
-    # Key functions: information
-    fileExample <- IsoCorrectoR$element_file
-
-    fileExample[is.na(fileExample)] <- ""
-
-    knitr::kable(
-      fileExample, align = "l", caption="Element information (resolution independent)"
-    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

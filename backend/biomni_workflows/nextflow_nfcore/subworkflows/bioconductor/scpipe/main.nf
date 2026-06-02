@@ -44,6 +44,10 @@ process BIOC_SCPIPE {
     # --- Sc Atac Trim Barcode [] ---
     # Key functions: sc_atac_trim_barcode
     ---------------------------------------------------------------------
+    sc_atac_trim_barcode (r1            = r1,
+                          r2            = r2,
+                          bc_file       = barcode_fastq,
+                          rmN           = FALSE,
     # --- Sc Atac Bam Tagging [] ---
     # Key functions: sc_atac_bam_tagging
     ---------------------------------------------------------------------
@@ -59,6 +63,10 @@ process BIOC_SCPIPE {
     # --- Sc Atac Feature Counting [] ---
     # Key functions: sc_atac_feature_counting, path
     ---------------------------------------------------------------------
+    sc_atac_feature_counting (fragment_file = file.path(output_folder, "fragments.bed"),
+                              feature_input = features,
+                              bam_tags      = list(bc="CB", mb="OX"),
+                              feature_type  = "peak",
     # --- Readrds [] ---
     # Key functions: path, glimpse
     ---------------------------------------------------------------------
@@ -69,6 +77,10 @@ process BIOC_SCPIPE {
     # --- Sc Atac Create Sce [] ---
     # Key functions: sc_atac_create_sce
     ---------------------------------------------------------------------
+    sce <- sc_atac_create_sce(input_folder = output_folder,
+                       organism     = "hg38",
+                       feature_type = "peak",
+                       pheno_data   = NULL,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

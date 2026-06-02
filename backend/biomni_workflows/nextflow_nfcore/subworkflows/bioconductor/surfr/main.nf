@@ -50,9 +50,12 @@ process BIOC_SURFR {
     # Key functions: Gene2SProtein
     library(SurfR)
     GeneNames <- c("CIITA", "EPCAM", "CD24", "CDCP1", "LYVE1")
+    SurfaceProteins_df <- Gene2SProtein(GeneNames,
     # --- Perform Differential Expression [] ---
     # Key functions: DGE
     library(SurfR)
+    df_zhang <- DGE(expression = countMatrix,
+    head(df_zhang)
     # --- Identify Surface Proteins [] ---
     # Key functions: Gene2SProtein
     df_zhang <- df_zhang[!is.na(df_zhang$padj), ]
@@ -65,7 +68,9 @@ process BIOC_SURFR {
     mGSE121810 <- GEOmetadata(GSE = "GSE121810")
     # --- Perform Differential Expression [] ---
     # Key functions: DGE
-
+    df_GEO <- DGE(expression = cGSE121810,
+    df_GEO <- df_GEO[!is.na(df_GEO$padj), ]
+    head(df_GEO)
     # --- Identify Surface Proteins [] ---
     # Key functions: Gene2SProtein
     SP <- Gene2SProtein(genes = fdr_GeneID, input_type = "gene_name")
@@ -73,7 +78,8 @@ process BIOC_SURFR {
     SPdw <- Gene2SProtein(genes = fdrDW_GeneID, input_type = "gene_name")
     # --- Perform Differential Expression [] ---
     # Key functions: DGE
-
+    df_TCGA <- DGE(expression = cTCGA.THYM,
+    head(df_TCGA)
     # --- Identify Surface Proteins [] ---
     # Key functions: Gene2SProtein
     df_TCGA <- df_TCGA[!is.na(df_TCGA$padj), ]
@@ -82,6 +88,8 @@ process BIOC_SURFR {
     # --- Download GEO Metadata [] ---
     # Key functions: GEOmetadata
     mGSE58135 <- GEOmetadata("GSE58135")
+    mGSE58135$condition[mGSE58135$tissue %in% c("ER+ Breast Cancer Primary Tumor",
+    TP_samples <- c("GSM1401694", "GSM1401717", "GSM1401729")
     # --- Download GEO Counts [] ---
     # Key functions: DownloadArchS4
     cGSE58135 <- DownloadArchS4(mGSE58135$GSM, species = "human")
@@ -89,14 +97,15 @@ process BIOC_SURFR {
     table(mGSE58135$condition)
     # --- Perform Meta-analysis [] ---
     # Key functions: metaRNAseq
-
+    L_fishercomb <- metaRNAseq(ind_deg = list(TCGA.BRCA =  df.TCGA, GEO.GSE58135 = df.GSE58135),
     # --- Perform Meta-analysis [] ---
     # Key functions: metaRNAseq
     L_invnorm <- metaRNAseq(ind_deg = list(TCGA.BRCA =  df.TCGA, GEO.GSE58135 = df.GSE58135),
     nrep = c(102, 56))
     # --- Combine Meta-analysis Results [] ---
     # Key functions: combine_fisher_invnorm, Gene2SProtein
-
+    metacomb <- combine_fisher_invnorm(ind_deg = list(TCGA.BRCA =  df.TCGA,
+    SP <- Gene2SProtein(genes = metacomb_GeneID, input_type = "gene_name")
     # --- Identify Upregulated Surface Proteins [] ---
     # Key functions: Gene2SProtein
     SPup <- Gene2SProtein(genes = metacombUP_GeneID, input_type = "gene_name")

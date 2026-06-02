@@ -98,6 +98,10 @@ process BIOC_PAIRCOMPVIZ {
     # --- Customhasse [] ---
     # Key functions: transReduct, hasse
     # create adjacency matrix
+      e <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0,
+                    1, 0, 0, 0, 0, 0, 0, 0,
+                    1, 1, 0, 0, 0, 0, 0, 0,
+                    1, 0, 0, 0, 0, 0, 0, 0,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -44,6 +44,8 @@ process BIOC_GCAPC {
     # --- markdown [] ---
     # Key functions: markdown
     BiocStyle::markdown()
+    knitr::opts_chunk$set(dev="png",fig.show="hold",
+    set.seed(1)
     # --- read5end Coverage [] ---
     # Key functions: read5endCoverage
     cov <- read5endCoverage(bam)

@@ -59,7 +59,9 @@ process BIOC_MATRIXQCVIS {
     vsn::meanSdPlot(assay(se_t))
     # --- Assay data access [] ---
     # Key functions: hist_sample_num, partial_bundle, mosaic, createBoxplot, assay, normalizeAssay, batchCorrectionAssay, transformAssay
-
+    l_assays <- list(raw = a, normalized = a_n, `batch.corrected` = a_b,
+    df_feature <- createDfFeature(l_assays, feature = rownames(se)[1])
+    featurePlot(df_feature)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

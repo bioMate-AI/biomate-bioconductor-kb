@@ -43,10 +43,12 @@ process BIOC_MIAVIZ {
 
     # --- plot Row Tree [] ---
     # Key functions: plotRowTree
-
+    plotRowTree(altExp(GlobalPatterns,"Genus")[top_taxa,],
     # --- plot Row Tree [] ---
     # Key functions: plotRowTree, plotColGraph, altExp, metadata
-
+    plotRowTree(altExp(GlobalPatterns,"Genus")[top_taxa,],
+    data(col_graph)
+    plotColGraph(col_graph,
     # --- transform Assay [] ---
     # Key functions: transformAssay, runMDS, plotReducedDim
     library(miaTime)

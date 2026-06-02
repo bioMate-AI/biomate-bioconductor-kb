@@ -38,7 +38,9 @@ process BIOC_SHORTREAD {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ShortRead)
+    library(FastqSampler)
+    library(FastqStreamer)
+    library(SolexaPath)
     library(jsonlite)
 
 

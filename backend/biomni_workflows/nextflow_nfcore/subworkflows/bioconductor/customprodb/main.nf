@@ -63,12 +63,14 @@ process BIOC_CUSTOMPRODB {
     ## 			"NM_000179", "NR_029605", "NM_004333", "NM_001127511")
     ## pepfasta <- system.file("extdata", "refseq_pro_seq.fasta",
     ## 				package="customProDB")
+    ## CDSfasta <- system.file("extdata", "refseq_coding_seq.fasta",
     # --- Prepareannoensembl [] ---
     # Key functions: useMart, tempdir, PrepareAnnotationEnsembl
     ## ensembl <- useMart("ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl",
     ##     host="may2015.archive.ensembl.org", path="/biomart/martservice",
     ##     archive=FALSE)
     ## annotation_path <- tempdir()
+    ## transcript_ids <- c("ENST00000234420", "ENST00000269305", "ENST00000445888",
     # --- Calculate [] ---
     # Key functions: calculateRPKM
     load(system.file("extdata/refseq", "exon_anno.RData", package="customProDB"))

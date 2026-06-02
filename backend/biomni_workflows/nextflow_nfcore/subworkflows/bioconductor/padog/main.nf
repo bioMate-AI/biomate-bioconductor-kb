@@ -47,12 +47,21 @@ process BIOC_PADOG {
     set = "GSE9348"
     data(list = set, package = "KEGGdzPathwaysGEO")
     #write a function to extract required info into a list
+    getdataaslist = function(x) {
     # --- Padog [] ---
     # Key functions: padog, equal
     #you can control the number of cores to use via argument 'ncr'
+    myr2 = padog(
+        esetm = dlist$dat.m,
+        group = dlist$ano$Group,
+        paired = dlist$design == "Paired",
     # --- Function [] ---
     # Key functions: getdataaslist, value, filteranot, unlist
-
+    randFun = function(dseed, mname = "myRand") {
+        #a helper function to pass additional variables to your method
+        getdataaslist = getdataaslist
+        return(function(set, mygslist, minsize) {#your method function
+            set.seed(dseed)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

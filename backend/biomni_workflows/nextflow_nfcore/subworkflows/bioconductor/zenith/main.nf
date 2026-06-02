@@ -44,9 +44,12 @@ process BIOC_ZENITH {
     # --- render [] ---
     # Key functions: render
     library(knitr)
+    knitr::opts_chunk$set(
+    rmarkdown::render("loading_genesets.Rmd")
     # --- get Genesets [] ---
     # Key functions: getGenesets
-
+    gmt.file <- system.file("extdata/hsa_kegg_gs.gmt",
+    gs <- getGenesets(gmt.file)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

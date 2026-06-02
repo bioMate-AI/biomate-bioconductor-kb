@@ -44,6 +44,10 @@ process BIOC_SPICYR {
     # --- Spicy [] ---
     # Key functions: spicy, topPairs
     ---------------------------------------------------------------------
+    spicyTestPair <- spicy(
+      kerenSPE,
+      condition = "tumour_type",
+      from = "CD8_T_cell",
     # --- Bind [] ---
     # Key functions: bind
     ---------------------------------------------------------------------
@@ -51,6 +55,10 @@ process BIOC_SPICYR {
     # --- Signifplot [] ---
     # Key functions: signifPlot
     ---------------------------------------------------------------------
+    signifPlot(
+      spicyTest,
+      breaks = c(-3, 3, 1),
+      marksToPlot = c("Macrophages", "DC_or_Mono", "dn_T_CD3", "Neutrophils",
     # --- Spicyboxplot [] ---
     # Key functions: spicyBoxPlot
     ---------------------------------------------------------------------
@@ -68,9 +76,17 @@ process BIOC_SPICYR {
     # --- Spicy [] ---
     # Key functions: spicy, topPairs
     ---------------------------------------------------------------------
+    spicyTestColPairs <- spicy(
+      kerenSPE,
+      condition = "tumour_type",
+      alternateResult = pairAbundances,
     # --- Signifplot [] ---
     # Key functions: signifPlot
     ---------------------------------------------------------------------
+    signifPlot(
+      spicyTestColPairs,
+      breaks = c(-3, 3, 1),
+      marksToPlot = c("Macrophages", "dn_T_CD3", "CD4_T_cell",
     # --- Surv [] ---
     # Key functions: Surv
     ---------------------------------------------------------------------
@@ -88,6 +104,8 @@ process BIOC_SPICYR {
     ---------------------------------------------------------------------
     # filter SPE object to obtain image 24 data
     kerenSubset = kerenSPE[, colData(kerenSPE)$imageID == "24"]
+    pairwiseAssoc = getPairwise(kerenSubset,
+                                sigma = NULL,
     # --- Getpairwise [] ---
     # Key functions: getPairwise, frame
     ---------------------------------------------------------------------
