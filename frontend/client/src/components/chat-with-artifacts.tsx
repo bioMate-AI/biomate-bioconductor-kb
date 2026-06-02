@@ -84,6 +84,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
+  const afterRunFlavor = useAfterRunFlavor()
   const { tourNode, startTour } = useWorkflowTour()
   const { toast } = useToast()
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The

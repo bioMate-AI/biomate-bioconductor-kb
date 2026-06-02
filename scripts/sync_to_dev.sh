@@ -205,10 +205,20 @@ deploy_backend_python() {
   local count=$(sort -u "$tmp_list" | grep -c "\.py$" || true)
   log "[backend] $count Python files to sync"
 
-  # Build tar of backend Python files
+  # Build tar of backend Python files using `git show HEAD:` instead of the
+  # working tree. This prevents concurrent parallel sessions from deploying
+  # a stale or wrong version of a file — only committed content is deployed.
   local tar_file="/tmp/biomate_backend_py.tar.gz"
-  sort -u "$tmp_list" | grep "\.py$" | \
-    xargs tar -czf "$tar_file" -C "$REPO_ROOT" 2>/dev/null || true
+  local tmp_tar_dir="/tmp/biomate_backend_py_staging"
+  rm -rf "$tmp_tar_dir" && mkdir -p "$tmp_tar_dir"
+  while IFS= read -r rel_path; do
+    [[ "$rel_path" == *.py ]] || continue
+    mkdir -p "$tmp_tar_dir/$(dirname "$rel_path")"
+    # Export committed version; fall back to working tree for untracked files
+    git show "HEAD:$rel_path" > "$tmp_tar_dir/$rel_path" 2>/dev/null \
+      || cp "$REPO_ROOT/$rel_path" "$tmp_tar_dir/$rel_path" 2>/dev/null || true
+  done < <(sort -u "$tmp_list")
+  tar -czf "$tar_file" -C "$tmp_tar_dir" . 2>/dev/null || true
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/backend_py_sync.tar.gz"
 
