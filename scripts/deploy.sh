@@ -184,10 +184,20 @@ if [ "$USED" -gt 60 ]; then
   docker image prune -f --filter "until=2h" 2>&1 | tail -3
   docker container prune -f --filter "until=2h" 2>&1 | tail -3
   USED=$(df / | awk "NR==2 {sub(/%/,\"\",\$5); print \$5+0}")
-  echo "disk_used_after_prune=${USED}%"
+  echo "disk_used_after_soft_prune=${USED}%"
 fi
-if [ "$USED" -gt 80 ]; then
-  echo "DISK_FULL ($USED% > 80%) — aborting deploy"
+# Escalate: at 75%+ run prune -af to remove all unreferenced images
+# (not just dangling). Old ECR sha-tagged images that are no longer
+# referenced by any container accumulate and the until-filtered soft
+# prune never touches them.
+if [ "$USED" -gt 75 ]; then
+  echo "hard-prune -af (disk ${USED}%)"
+  docker system prune -af 2>&1 | tail -3
+  USED=$(df / | awk "NR==2 {sub(/%/,\"\",\$5); print \$5+0}")
+  echo "disk_used_after_hard_prune=${USED}%"
+fi
+if [ "$USED" -gt 85 ]; then
+  echo "DISK_FULL ($USED% > 85%) — aborting deploy"
   exit 1
 fi
 # L7: kill any sync_to_dev.sh on the target (parallel-container era only)
