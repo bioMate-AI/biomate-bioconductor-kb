@@ -41,10 +41,18 @@ process BIOC_A4CORE {
     library(a4Core)
     library(jsonlite)
 
-    # --- simulate Data [] ---
-    # Key functions: simulateData
-    eSet <- simulateData(
-    print(eSet)
+    # --- Phenotypic Metadata Extraction [] ---
+    # Key functions: pData
+    phenoData <- pData(eSet)
+    classLabels <- phenoData$class
+    covariates <- phenoData[, "class", drop = FALSE]
+
+
+    # --- Expression Matrix Extraction [] ---
+    # Key functions: exprs
+    expressionMatrix <- exprs(eSet)
+    features <- rownames(expressionMatrix)
+    meanExpression <- rowMeans(expressionMatrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
