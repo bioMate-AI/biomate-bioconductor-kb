@@ -165,7 +165,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           )}
           {!loading && !error && rows.length === 0 && (
             <div className="text-sm text-muted-foreground py-12 text-center">
-              {search ? 'No runs match your search.' : 'No runs yet. Run a workflow and it'll show up here.'}
+              {search ? 'No runs match your search.' : "No runs yet. Run a workflow and it'll show up here."}
             </div>
           )}
           {!loading && !error && rows.length > 0 && (
