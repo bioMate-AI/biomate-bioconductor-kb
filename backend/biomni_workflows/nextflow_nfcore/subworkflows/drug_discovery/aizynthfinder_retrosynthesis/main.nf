@@ -56,6 +56,7 @@ params.aizynthfinder_config = '/opt/aizynthfinder/config.yml'
 // Input
 params.smiles_file      = null   // path to SMILES file OR inline SMILES (one per line); if null, uses seed_smiles
 params.seed_smiles      = null   // single SMILES string (e.g. 'Cc1ccc(NC(=O)...)cc1')
+params.mock_mode        = false  // CI smoke testing only — bypasses required-input guards. NEVER set true in production unless explicitly requested by the user.
 
 // ============================================================================
 // Helper functions
@@ -708,8 +709,15 @@ workflow {
     // complexity (aspirin → imatinib).  In live mode, supply your own
     // SMILES list via --smiles_file <path> (one SMILES per line).
     // ------------------------------------------------------------------
-    if (!params.smiles_file && !params.seed_smiles) {
+    if (!params.smiles_file && !params.seed_smiles && !params.mock_mode) {
         error "Provide --smiles_file <path> (one SMILES per line) or --seed_smiles <SMILES>"
+    }
+    // Mock-mode: substitute aspirin SMILES when neither input provided.
+    def _seed_eff = (params.mock_mode && !params.smiles_file && (params.seed_smiles == null || params.seed_smiles.toString() in ['null', 'None', '']))
+        ? 'CC(=O)Oc1ccccc1C(=O)O'
+        : params.seed_smiles
+    if (params.mock_mode && _seed_eff != params.seed_smiles) {
+        log.info "MOCK MODE: substituting aspirin SMILES as seed for CI testing"
     }
     if (params.smiles_file) {
         ch_smiles = Channel
@@ -718,7 +726,7 @@ workflow {
             .map { line -> line.trim() }
             .filter { it && !it.startsWith("#") }
     } else {
-        ch_smiles = Channel.value(params.seed_smiles.trim())
+        ch_smiles = Channel.value(_seed_eff.trim())
     }
 
     // Run the pipeline
