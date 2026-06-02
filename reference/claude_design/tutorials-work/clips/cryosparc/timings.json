@@ -1,0 +1,145 @@
+{
+  "steps": [
+    {
+      "step": 1,
+      "clip_ms": 9560,
+      "hold_ms": 10760,
+      "gap_ms": 1200,
+      "is_center": true
+    },
+    {
+      "step": 2,
+      "clip_ms": 10161,
+      "hold_ms": 11061,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 3,
+      "clip_ms": 10448,
+      "hold_ms": 11348,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 4,
+      "clip_ms": 16013,
+      "hold_ms": 16913,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 5,
+      "clip_ms": 11232,
+      "hold_ms": 12132,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 6,
+      "clip_ms": 9456,
+      "hold_ms": 10356,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 7,
+      "clip_ms": 8672,
+      "hold_ms": 9572,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 8,
+      "clip_ms": 8489,
+      "hold_ms": 9389,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 9,
+      "clip_ms": 9142,
+      "hold_ms": 10042,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 10,
+      "clip_ms": 16953,
+      "hold_ms": 17853,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 11,
+      "clip_ms": 11284,
+      "hold_ms": 12184,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 12,
+      "clip_ms": 6530,
+      "hold_ms": 7430,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 13,
+      "clip_ms": 10213,
+      "hold_ms": 11113,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 14,
+      "clip_ms": 9978,
+      "hold_ms": 10878,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 15,
+      "clip_ms": 10448,
+      "hold_ms": 11348,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 16,
+      "clip_ms": 10866,
+      "hold_ms": 11766,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 17,
+      "clip_ms": 9012,
+      "hold_ms": 9912,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 18,
+      "clip_ms": 7235,
+      "hold_ms": 8135,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 19,
+      "clip_ms": 13400,
+      "hold_ms": 14300,
+      "gap_ms": 900,
+      "is_center": false
+    },
+    {
+      "step": 20,
+      "clip_ms": 14706,
+      "hold_ms": 15906,
+      "gap_ms": 1200,
+      "is_center": true
+    }
+  ],
+  "total_ms": 232398
+}

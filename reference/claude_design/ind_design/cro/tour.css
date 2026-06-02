@@ -1,0 +1,101 @@
+/* Tour / tutorial */
+.tour-overlay {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  pointer-events: none;
+  z-index: 300;
+}
+.tour-ring {
+  animation: tourPulse 1.8s ease-in-out infinite;
+}
+@keyframes tourPulse {
+  0%, 100% { opacity: .9; }
+  50% { opacity: .45; }
+}
+
+.tour-callout {
+  position: fixed;
+  width: 360px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 16px 40px rgba(10, 14, 28, 0.35), 0 2px 6px rgba(10, 14, 28, 0.18);
+  z-index: 301;
+  font-size: 13px;
+  animation: tourIn .18s ease-out;
+}
+.tour-callout.center {
+  width: 420px;
+}
+@keyframes tourIn {
+  from { opacity: 0; transform: translate(var(--tx, 0), 8px); }
+  to { opacity: 1; }
+}
+.tour-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.tour-step-n {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+  font-weight: 600; color: var(--accent);
+}
+.tour-skip {
+  background: none; border: none; cursor: pointer;
+  font-size: 11.5px; color: var(--text-dim);
+  padding: 2px 4px;
+}
+.tour-skip:hover { color: var(--text); }
+.tour-title {
+  font-size: 14.5px; font-weight: 600; color: var(--text);
+  margin-bottom: 6px; line-height: 1.35;
+}
+.tour-body {
+  font-size: 12.5px; color: var(--text-muted);
+  line-height: 1.55;
+}
+.tour-body b { color: var(--text); font-weight: 600; }
+.tour-body .hint {
+  margin-top: 8px; font-size: 11.5px; color: var(--text-dim);
+}
+.tour-body kbd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  margin: 0 1px;
+}
+.tour-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.tour-dots { display: flex; gap: 4px; }
+.tour-dot {
+  width: 5px; height: 5px; border-radius: 999px;
+  background: var(--border);
+  transition: background .2s;
+}
+.tour-dot.done { background: var(--text-dim); }
+.tour-dot.active { background: var(--accent); width: 14px; border-radius: 3px; }
+.tour-actions { display: flex; gap: 6px; }
+
+/* Tutorial launcher button in top nav */
+.tut-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent-soft, oklch(0.94 0.05 250));
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.tut-btn:hover { background: var(--accent); color: #fff; }

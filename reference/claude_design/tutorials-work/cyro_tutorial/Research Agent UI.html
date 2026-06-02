@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate — Research-Agent UI extension</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<!-- Inherit the v1 design system (tokens + layout) -->
+<link rel="stylesheet" href="src/tokens.css?v=4"/>
+<link rel="stylesheet" href="src/layout.css?v=16"/>
+<link rel="stylesheet" href="src/tour.css?v=3"/>
+<!-- Research-Agent extensions: speaker palette, dark mode, surfaces 1–5 -->
+<link rel="stylesheet" href="src/research-tokens.css?v=1"/>
+<link rel="stylesheet" href="src/research-layout.css?v=5"/>
+<link rel="stylesheet" href="src/research-readable.css?v=1"/>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- v1 data + new scenario tapes -->
+<script src="src/data.js?v=7"></script>
+<script src="src/research-data.js?v=9"></script>
+
+</head>
+<body>
+<div id="root"></div>
+
+<!-- v1 chrome we reuse: Icon set + Sidebar -->
+<script type="text/babel" src="src/Icon.jsx?v=5"></script>
+<script type="text/babel" src="src/Chrome.jsx?v=10"></script>
+
+<!-- v1 workflow panel, unchanged — extension layers in around it -->
+<script type="text/babel" src="src/PhaseCard.jsx?v=8"></script>
+<script type="text/babel" src="src/AutoLoop.jsx?v=6"></script>
+<script type="text/babel" src="src/Modals.jsx?v=9"></script>
+<script type="text/babel" src="src/WorkflowPanel.jsx?v=15"></script>
+<script type="text/babel" src="src/Tour.jsx?v=31"></script>
+
+<!-- Research-Agent surfaces (Surfaces 1, 2, 4, 5; Surface 3 is a hover tooltip) -->
+<script type="text/babel" src="src/PlanChecklist.jsx?v=2"></script>
+<script type="text/babel" src="src/ChatStream.jsx?v=5"></script>
+<script type="text/babel" src="src/ChatCards.jsx?v=5"></script>
+<script type="text/babel" src="src/ResearchTweaks.jsx?v=2"></script>
+<script type="text/babel" src="src/ResearchApp.jsx?v=16"></script>
+
+<script type="text/babel">
+ReactDOM.createRoot(document.getElementById('root')).render(<ResearchApp/>);
+</script>
+</body>
+</html>
