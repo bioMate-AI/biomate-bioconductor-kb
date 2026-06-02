@@ -547,10 +547,15 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                     nfcore_modules_root / "subworkflows" / "nf-core" / rest,
                 ]
             else:
+                nfcore_stubs_root = backend_root / "biomni_workflows" / "nfcore"
+                # Strip leading "nfcore/" when looking in the stubs directory so
+                # "nfcore/differentialabundance/main.nf" → biomni_workflows/nfcore/differentialabundance/main.nf
+                _stub_rel = raw[len("nfcore/"):] if raw.startswith("nfcore/") else raw
                 candidates += [
                     nfcore_root / nf_filename,
                     nfcore_root / "subworkflows" / nf_filename,
                     nfcore_modules_root / "subworkflows" / "nf-core" / nf_filename / "main.nf",
+                    nfcore_stubs_root / _stub_rel,
                 ]
             abs_path = next((c for c in candidates if c.exists()), candidates[0])
         if not abs_path.exists():

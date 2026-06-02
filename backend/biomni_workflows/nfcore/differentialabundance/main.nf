@@ -1,5 +1,12 @@
 // nf-core/differentialabundance — user-facing parameter stub
 // Differential abundance: count matrix → normalisation → DE analysis → visualisation
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, matrix format check, contrast file parse
+// * 2. Normalisation — DESeq2 / edgeR / limma size-factor correction + vst/rlog
+// * 3. Differential abundance — Wald/LRT test, LFC shrinkage, padj filtering
+// * 4. Visualisation — volcano plot, PCA, heatmap, MA plot, dispersion estimates
+// * 5. Report — MultiQC summary, results CSV, methods text
 
 params.input            = null          // Sample metadata CSV (sample, condition, replicate, ...)
 params.matrix           = null          // Count matrix (genes × samples TSV/CSV)

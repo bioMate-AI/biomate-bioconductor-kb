@@ -2320,6 +2320,69 @@ export function NextflowWorkflowViewer({
           })()}
 
 
+          {/* ── Workflow settings strip — TOP of body, before phase list ────── */}
+          {/* Design ref: WorkflowPanel.jsx lines 224-242 — "Workflow settings"   */}
+          {/* collapsible strip sits at the top so global params frame the run    */}
+          {/* before the phase list. Label is "Workflow settings", NOT "Advanced  */}
+          {/* settings". Params rendered as ParameterGroup (editable, with AI     */}
+          {/* Override flow) rather than plain k/v rows as in the design stub.    */}
+          {(() => {
+            const globalParams = renderedParameters.filter(p => {
+              const pg = String((p as any).group || '').trim().toLowerCase();
+              if (!pg) return true;
+              return !paramGroupToPhaseKey.has(pg);
+            });
+            const allParamDefs: any[] = [
+              ...(workflowDefinition?.required_params || []),
+              ...(workflowDefinition?.optional_params || []),
+            ];
+            const mismatch = allParamDefs.find((p: any) => p?.format_mismatch_warning);
+            const requiredUnfilled = globalParams.filter(p => p.required && (!p.value || p.value === ''));
+
+            if (globalParams.length === 0 && !mismatch) return null;
+            return (
+              <div>
+                <button
+                  type="button"
+                  data-testid="button-toggle-workflow-settings"
+                  className={`strip${globalParamsOpen ? ' open' : ''}`}
+                  onClick={() => setGlobalParamsOpen(p => !p)}
+                  title="Workflow settings — input paths, infrastructure, output parameters"
+                >
+                  <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
+                  <span className="label">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Workflow settings
+                    <span className="hint">({globalParams.length} params)</span>
+                    {requiredUnfilled.length > 0 && (
+                      <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
+                    )}
+                  </span>
+                </button>
+                {globalParamsOpen && (
+                  <div className="strip-body">
+                    <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {mismatch && (
+                        <div className="alert warn" data-testid="format-mismatch-warning">
+                          <span>⚠️</span><span>{mismatch.format_mismatch_warning}</span>
+                        </div>
+                      )}
+                      <ParameterGroup
+                        id="params-global"
+                        title="Workflow parameters"
+                        description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' required · ' : ''}${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
+                        parameters={globalParams.sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))}
+                        onChange={handleParamChange}
+                        onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                        defaultOpen={requiredUnfilled.length > 0 || globalParams.some(p => (p as any).autoFilled)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {/* ── Phase section label ──────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (() => {
