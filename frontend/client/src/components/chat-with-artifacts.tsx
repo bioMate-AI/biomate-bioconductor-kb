@@ -316,7 +316,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   }, [])
 
   // Resizable panel width (px)
-  const [panelWidth, setPanelWidth] = useState(520)
+  const [panelWidth, setPanelWidth] = useState(840)
   const panelResizingRef = useRef(false)
   const panelResizeStartX = useRef(0)
   const panelResizeStartW = useRef(0)

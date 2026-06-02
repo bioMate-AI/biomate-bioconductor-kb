@@ -1,29 +1,20 @@
 /**
  * Gap 4 — Workflow History Dialog.
  *
- * Replaces the sidebar's previous "Workflows" → StarredWorkflowsDialog wiring
- * with a tabbed surface: Recent Runs (server-backed, the user's actual run
- * history) + Starred (the original favorites list, unchanged).
- *
- * Recent Runs is the new primary reuse surface. Each row shows a status dot,
- * workflow name, when it ran, and an "Open" button that jumps to the chat
- * session where the run lives. The right workflow panel re-attaches there
- * via the existing session-restore reconciliation effect
- * (chat-with-artifacts.tsx:410-436), and "Run again" then pre-fills the
- * panel with submitted params via Gap 3 (useRunAgainParamCarryover).
+ * Shows the user's workflow runs (server-backed). Each row has a status dot,
+ * workflow name, timestamp, "Open" (jump to chat session) and "Run again"
+ * (re-navigate with prior params via Gap 3 carryover).
  *
  * Doc: docs/20260521_GAP4_SIDEBAR_RUN_HISTORY.md
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Clock, Star as StarIcon, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Search } from 'lucide-react';
 import { analytics } from '@/lib/analytics';
-import { starredWorkflowsService } from '@/lib/starred-workflows';
-import type { StarredWorkflow } from '@shared/schema';
 
 interface RunRow {
   runId: string;
@@ -38,24 +29,22 @@ interface RunRow {
 interface WorkflowHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Fires when user clicks "Open" on a run row. Host should navigate to the chat session. */
   onOpenRun?: (row: RunRow) => void;
-  /** Fires when user clicks "Run again" on a completed/failed row. Host should
-      navigate to the run's chat session AND auto-confirm with the prior params
-      (Gap 3 carryover handles the pre-fill once the panel re-attaches). */
   onRunAgain?: (row: RunRow) => void;
 }
 
 function statusColor(status: string): string {
   const s = (status || '').toLowerCase();
-  if (s === 'running' || s === 'queued' || s === 'pending') return 'oklch(0.65 0.18 230)'; // blue
-  if (s === 'failed' || s === 'error' || s === 'cancelled') return 'oklch(0.62 0.20 25)'; // red
-  if (s === 'completed' || s === 'ok' || s === 'succeeded') return 'oklch(0.65 0.15 145)'; // green
-  return 'oklch(0.7 0.01 260)'; // gray
+  if (s === 'running' || s === 'queued' || s === 'pending') return 'oklch(0.65 0.18 230)';
+  if (s === 'failed' || s === 'error' || s === 'cancelled') return 'oklch(0.62 0.20 25)';
+  if (s === 'completed' || s === 'ok' || s === 'succeeded') return 'oklch(0.65 0.15 145)';
+  return 'oklch(0.7 0.01 260)';
 }
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string | undefined | null): string {
+  if (!iso) return '—';
   const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
   const diffMs = Date.now() - d.getTime();
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return 'just now';
@@ -67,22 +56,29 @@ function formatWhen(iso: string): string {
   return d.toLocaleDateString();
 }
 
+const PAGE_SIZE = 50;
+
 export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain }: WorkflowHistoryDialogProps) {
-  const [tab, setTab] = useState<'recent' | 'starred'>('recent');
   const [rows, setRows] = useState<RunRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (!open || tab !== 'recent') return;
+  function fetchRuns(searchTerm: string, page: number) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    // scope=all_chats so the user sees every workflow they've run, not just
-    // the current chat session's runs.
-    fetch('/api/workflows/runs/overview?scope=all_chats&limit=50', {
-      credentials: 'include',
-    })
+    const params = new URLSearchParams({
+      scope: 'all_chats',
+      limit: String(PAGE_SIZE),
+      offset: String(page * PAGE_SIZE),
+    });
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+
+    fetch(`/api/workflows/runs/overview?${params}`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => {
         if (cancelled) return;
@@ -96,6 +92,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           progressPercent: row.progressPercent ?? 0,
         }));
         setRows(list);
+        setTotal(data?.total ?? list.length);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Failed to load run history');
@@ -103,136 +100,163 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, tab]);
+    return () => { cancelled = true; };
+  }
+
+  // Fetch on open or when offset changes
+  useEffect(() => {
+    if (!open) return;
+    return fetchRuns(search, offset);
+  }, [open, offset]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounce search — reset to page 0 on new query
+  function handleSearch(value: string) {
+    setSearch(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setOffset(0);
+      fetchRuns(value, 0);
+    }, 300);
+  }
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSearch('');
+      setOffset(0);
+      setRows([]);
+      setTotal(0);
+      setError(null);
+    }
+  }, [open]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const currentPage = offset / PAGE_SIZE;
+  const showingFrom = total === 0 ? 0 : offset + 1;
+  const showingTo = Math.min(offset + PAGE_SIZE, total);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl" data-testid="workflow-history-dialog">
         <DialogHeader>
-          <DialogTitle>Workflows</DialogTitle>
+          <DialogTitle>Workflow Runs</DialogTitle>
         </DialogHeader>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'recent' | 'starred')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="recent" data-testid="tab-recent-runs">
-              <Clock className="w-3.5 h-3.5 mr-1.5" /> Recent runs
-            </TabsTrigger>
-            <TabsTrigger value="starred" data-testid="tab-starred">
-              <StarIcon className="w-3.5 h-3.5 mr-1.5" /> Starred
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="recent" className="mt-3">
-            <ScrollArea className="h-[420px] pr-3">
-              {loading && (
-                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading run history…
-                </div>
-              )}
-              {error && (
-                <div className="text-sm text-destructive py-4">{error}</div>
-              )}
-              {!loading && !error && rows.length === 0 && (
-                <div className="text-sm text-muted-foreground py-12 text-center">
-                  No prior runs yet. Run a workflow and it'll show up here.
-                </div>
-              )}
-              {!loading && !error && rows.length > 0 && (
-                <ul className="space-y-1">
-                  {rows.map((r) => (
-                    <li
-                      key={r.runId}
-                      data-testid={`run-history-row-${r.runId}`}
-                      className="flex items-center gap-3 px-2 py-2 rounded hover:bg-accent"
+
+        {/* Search */}
+        <div className="relative mt-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search by name, status, run ID…"
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-8 h-8 text-sm"
+            data-testid="runs-search-input"
+          />
+        </div>
+
+        <ScrollArea className="h-[380px] pr-3">
+          {loading && (
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading…
+            </div>
+          )}
+          {error && (
+            <div className="text-sm text-destructive py-4">{error}</div>
+          )}
+          {!loading && !error && rows.length === 0 && (
+            <div className="text-sm text-muted-foreground py-12 text-center">
+              {search ? 'No runs match your search.' : 'No runs yet. Run a workflow and it'll show up here.'}
+            </div>
+          )}
+          {!loading && !error && rows.length > 0 && (
+            <ul className="space-y-1">
+              {rows.map((r) => (
+                <li
+                  key={r.runId}
+                  data-testid={`run-history-row-${r.runId}`}
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-accent"
+                >
+                  <span
+                    aria-hidden
+                    title={r.status}
+                    style={{
+                      width: 8, height: 8, borderRadius: 999,
+                      background: statusColor(r.status), flexShrink: 0,
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{r.workflowName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.status} · {formatWhen(r.createdAt)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      data-testid={`button-open-run-${r.runId}`}
+                      disabled={!r.chatSessionId}
+                      title={!r.chatSessionId ? 'This run has no linked chat session' : undefined}
+                      onClick={() => {
+                        onOpenRun?.(r);
+                        onOpenChange(false);
+                      }}
                     >
-                      <span
-                        aria-hidden
-                        title={r.status}
-                        style={{
-                          width: 8, height: 8, borderRadius: 999,
-                          background: statusColor(r.status), flexShrink: 0,
+                      Open
+                    </Button>
+                    {(r.status === 'completed' || r.status === 'ok' || r.status === 'succeeded' || r.status === 'failed' || r.status === 'error') && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        data-testid={`button-run-again-${r.runId}`}
+                        disabled={!r.chatSessionId}
+                        title={!r.chatSessionId ? 'This run has no linked chat session' : undefined}
+                        onClick={() => {
+                          analytics.track('run_again_clicked', { workflow_name: r.workflowName, source: 'sidebar_history' });
+                          onRunAgain?.(r);
+                          onOpenChange(false);
                         }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{r.workflowName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {r.status} · {formatWhen(r.createdAt)}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          data-testid={`button-open-run-${r.runId}`}
-                          disabled={!r.chatSessionId}
-                          onClick={() => {
-                            onOpenRun?.(r);
-                            onOpenChange(false);
-                          }}
-                        >
-                          Open
-                        </Button>
-                        {(r.status === 'completed' || r.status === 'ok' || r.status === 'succeeded' || r.status === 'failed' || r.status === 'error') && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            data-testid={`button-run-again-${r.runId}`}
-                            disabled={!r.chatSessionId}
-                            onClick={() => {
-                              analytics.track('run_again_clicked', { workflow_name: r.workflowName, source: 'sidebar_history' });
-                              onRunAgain?.(r);
-                              onOpenChange(false);
-                            }}
-                          >
-                            Run again
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="starred" className="mt-3">
-            <ScrollArea className="h-[420px] pr-3">
-              <StarredInlineList onPick={() => onOpenChange(false)} />
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+                      >
+                        Run again
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </ScrollArea>
+
+        {/* Footer: count + pagination — only shown when there's data */}
+        {total > 0 && (
+          <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
+            <span>{showingFrom}–{showingTo} of {total} runs</span>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  disabled={currentPage === 0 || loading}
+                  onClick={() => setOffset(offset - PAGE_SIZE)}
+                >
+                  ← Prev
+                </Button>
+                <span className="px-1">{currentPage + 1} / {totalPages}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  disabled={currentPage >= totalPages - 1 || loading}
+                  onClick={() => setOffset(offset + PAGE_SIZE)}
+                >
+                  Next →
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-
-function StarredInlineList({ onPick }: { onPick: () => void }) {
-  const [items, setItems] = useState<StarredWorkflow[]>([]);
-  useEffect(() => { setItems(starredWorkflowsService.getAllStarred()); }, []);
-  if (items.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground py-12 text-center">
-        No starred workflows yet. Star one from any workflow card to pin it here.
-      </div>
-    );
-  }
-  return (
-    <ul className="space-y-1">
-      {items.map((w) => (
-        <li
-          key={w.id}
-          data-testid={`starred-row-${w.id}`}
-          className="flex items-center gap-3 px-2 py-2 rounded hover:bg-accent cursor-pointer"
-          onClick={onPick}
-        >
-          <StarIcon className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">{w.title}</div>
-            <div className="text-xs text-muted-foreground truncate">{w.description}</div>
-          </div>
-        </li>
-      ))}
-    </ul>
   );
 }
