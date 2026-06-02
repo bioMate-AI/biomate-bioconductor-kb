@@ -68,8 +68,16 @@ export function AfterRunReport({
   const idForBackend = invocationId || runId;
   const methods = useFetchMethods(idForBackend);
   const qcEvents = useFetchQcEvents(idForBackend);
+  // Findings fetched here too (alongside FindingsCard's own fetch) so the
+  // comprehensive download report can inline real findings prose (PM must-fix #2).
+  const findings = useFetchFindings(runId);
   // workflowName param kept for future Citations tab; suppress unused-var warning.
   void workflowName;
+
+  // Lightweight download-UX state — keeps users from double-clicking and
+  // gives a clear "started" signal (PM must-fix #4, client-side portion).
+  const [downloadState, setDownloadState] = useState<'idle' | 'preparing'>('idle');
+  const [downloadToast, setDownloadToast] = useState<string | null>(null);
 
   // Compute which optional tabs to show based on real data presence.
   // Software + Citations intentionally hidden until their backend routes ship
@@ -88,6 +96,8 @@ export function AfterRunReport({
   }, [methods.hasRealContent, qcEvents.length]);
 
   const handleDownload = () => {
+    if (downloadState !== 'idle') return; // dedup double-click
+    setDownloadState('preparing');
     const md = buildFullReportMarkdown({
       runId,
       workflowName,
@@ -95,6 +105,7 @@ export function AfterRunReport({
       outputs,
       methods: methods.text,
       qcEvents,
+      findings,
     });
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -105,6 +116,9 @@ export function AfterRunReport({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    setDownloadToast('Report downloaded — check your browser');
+    setTimeout(() => setDownloadState('idle'), 2000);
+    setTimeout(() => setDownloadToast(null), 4000);
   };
 
   return (
@@ -112,16 +126,41 @@ export function AfterRunReport({
       <div style={styles.head}>
         <span style={styles.kicker}>After run</span>
         <span style={{ flex: 1 }} />
+        {downloadToast && (
+          <span style={styles.toast} role="status">{downloadToast}</span>
+        )}
         <button
           type="button"
           onClick={handleDownload}
-          style={{ ...styles.linkish, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          disabled={downloadState !== 'idle'}
+          style={{
+            ...styles.linkish,
+            background: "none",
+            border: "none",
+            cursor: downloadState === 'idle' ? "pointer" : "default",
+            padding: 0,
+            opacity: downloadState === 'idle' ? 1 : 0.6,
+          }}
           title="Download a comprehensive markdown report stitching every tab"
           data-testid="afterrun-download-report"
         >
-          ↓ Download report
+          ↓ {downloadState === 'preparing' ? 'Preparing…' : 'Download report'}
         </button>
       </div>
+
+      {/* PM must-fix #1: failed-run section above the tab bar. Shown for
+          failed / cancelled runs so users get error context + a path forward
+          (Run again) without having to read every tab. */}
+      {isFailed && (
+        <FailedRunSection
+          status={executionStatus || 'failed'}
+          errorMessage={errorMessage}
+          failedSteps={failedSteps}
+          logTail={logTail}
+          runId={runId}
+          parameters={parameters}
+        />
+      )}
       <div role="tablist" style={styles.tabBar}>
         {visibleTabs.map(([id, label]) => (
           <button
@@ -145,7 +184,7 @@ export function AfterRunReport({
         )}
         {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
-        {tab === "params" && <ParametersTab parameters={parameters} />}
+        {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
         {tab === "qc" && <QcAuditTab events={qcEvents} />}
       </div>
     </div>
@@ -153,8 +192,132 @@ export function AfterRunReport({
 }
 
 // ---------------------------------------------------------------------------
+// FailedRunSection — shown above the tab bar when execution status is
+// 'failed' or 'cancelled'. Surfaces the offending step, error message, and
+// log tail, plus a Run-again-with-edits CTA that fires a CustomEvent.
+// ---------------------------------------------------------------------------
+
+function FailedRunSection({
+  status,
+  errorMessage,
+  failedSteps,
+  logTail,
+  runId,
+  parameters,
+}: {
+  status: string;
+  errorMessage?: string;
+  failedSteps?: string[];
+  logTail?: string[];
+  runId: string;
+  parameters?: Record<string, unknown>;
+}) {
+  const cancelled = status === 'cancelled';
+  const tail = (logTail || []).slice(-20);
+  const totalLines = logTail?.length || 0;
+
+  const handleRunAgain = () => {
+    // PM must-fix #3 — explicit CTA. Wire-up to the existing run-again-with-
+    // edits flow is a follow-up; for now we surface a CustomEvent that
+    // chat-with-artifacts can listen for, plus a temporary visible signal.
+    window.dispatchEvent(
+      new CustomEvent('biomate:run-again-with-edits', {
+        detail: { runId, parameters },
+      }),
+    );
+    // eslint-disable-next-line no-console
+    console.info('[AfterRunReport] run-again-with-edits dispatched for run', runId);
+    alert('Run again with edits — opening the parameter editor (wire-up pending)');
+  };
+
+  return (
+    <div style={styles.failedSection} data-testid="afterrun-failed-section">
+      <div style={styles.failedHead}>
+        <span
+          style={{
+            ...styles.failedBadge,
+            background: cancelled ? 'oklch(0.85 0.01 240)' : 'oklch(0.92 0.05 25)',
+            color: cancelled ? 'oklch(0.30 0.01 260)' : 'oklch(0.40 0.18 25)',
+          }}
+        >
+          {cancelled ? 'Run cancelled' : 'Run failed'}
+        </span>
+        <button
+          type="button"
+          onClick={handleRunAgain}
+          style={styles.runAgainBtn}
+          data-testid="afterrun-run-again-failed"
+        >
+          ↻ Run again with edits
+        </button>
+      </div>
+
+      {errorMessage && (
+        <pre style={styles.errorBlock} data-testid="afterrun-error-message">
+          {errorMessage}
+        </pre>
+      )}
+
+      {failedSteps && failedSteps.length > 0 && (
+        <div style={styles.failedStepBox}>
+          <div style={styles.failedStepLabel}>Failed step(s)</div>
+          <ul style={styles.failedStepList}>
+            {failedSteps.map((s, i) => (
+              <li key={i} style={styles.failedStepItem}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {tail.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={styles.failedStepLabel}>
+            Log tail {totalLines > tail.length ? `(showing last ${tail.length} of ${totalLines})` : `(${tail.length} lines)`}
+          </div>
+          <pre style={styles.logTailBlock}>{tail.join('\n')}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Data hooks — each tab fetches its own endpoint, gracefully tolerating 404s.
 // ---------------------------------------------------------------------------
+
+interface FindingsData {
+  status: string;
+  summary?: string;
+  key_results?: Array<{ label?: string; value?: string } | string>;
+  caveats?: string[];
+  next_steps?: string[];
+  reportMd?: string;
+}
+
+function useFetchFindings(runId: string): FindingsData | null {
+  const [data, setData] = useState<FindingsData | null>(null);
+  useEffect(() => {
+    if (!runId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const start = Date.now();
+    const poll = async () => {
+      try {
+        const r = await fetch(`/api/workflows/runs/${runId}/findings`, { credentials: "include" });
+        if (!r.ok || cancelled) return;
+        const j: FindingsData = await r.json();
+        if (cancelled) return;
+        setData(j);
+        if (j.status === "pending" && Date.now() - start < 60_000) {
+          timer = setTimeout(poll, 5000);
+        }
+      } catch { /* ignore */ }
+    };
+    poll();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [runId]);
+  return data;
+}
 
 interface MethodsData {
   text: string;
@@ -309,23 +472,53 @@ function MethodsTab({ methods }: { methods: MethodsData }) {
   );
 }
 
-function ParametersTab({ parameters }: { parameters?: Record<string, unknown> }) {
+function ParametersTab({
+  parameters,
+  runId,
+}: { parameters?: Record<string, unknown>; runId?: string }) {
   const entries = parameters ? Object.entries(parameters) : [];
-  if (entries.length === 0) {
-    return <p style={styles.empty}>No parameter values recorded.</p>;
-  }
+
+  // PM must-fix #3: Run-again-with-edits CTA at the top of the tab so iteration
+  // is one click away. Fires a CustomEvent that the parent can hook into; v0
+  // also surfaces a visible signal so the user knows the click registered.
+  const handleRunAgain = () => {
+    if (!runId) return;
+    window.dispatchEvent(
+      new CustomEvent('biomate:run-again-with-edits', {
+        detail: { runId, parameters },
+      }),
+    );
+    // eslint-disable-next-line no-console
+    console.info('[AfterRunReport] run-again-with-edits dispatched (params tab) for run', runId);
+    alert('Run again with edits — opening the parameter editor (wire-up pending)');
+  };
+
   return (
     <div style={styles.tabContent}>
-      <table style={styles.kvTable}>
-        <tbody>
-          {entries.map(([k, v]) => (
-            <tr key={k}>
-              <td style={styles.kvKey}>{k}</td>
-              <td style={styles.kvVal}>{String(v)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div style={{ marginBottom: 10 }}>
+        <button
+          type="button"
+          onClick={handleRunAgain}
+          style={styles.runAgainBtn}
+          data-testid="afterrun-run-again-params"
+        >
+          ↻ Run again with edits
+        </button>
+      </div>
+      {entries.length === 0 ? (
+        <p style={styles.empty}>No parameter values recorded.</p>
+      ) : (
+        <table style={styles.kvTable}>
+          <tbody>
+            {entries.map(([k, v]) => (
+              <tr key={k}>
+                <td style={styles.kvKey}>{k}</td>
+                <td style={styles.kvVal}>{String(v)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
@@ -377,8 +570,9 @@ function buildFullReportMarkdown(args: {
   outputs: OutputFile[];
   methods: string;
   qcEvents: QcEvent[];
+  findings?: FindingsData | null;
 }): string {
-  const { runId, workflowName, parameters, outputs, methods, qcEvents } = args;
+  const { runId, workflowName, parameters, outputs, methods, qcEvents, findings } = args;
   const lines: string[] = [];
   lines.push(`# BioMate Run Report`);
   lines.push("");
@@ -387,16 +581,46 @@ function buildFullReportMarkdown(args: {
   lines.push(`- **Generated**: ${new Date().toISOString()}`);
   lines.push("");
 
-  // Findings — Findings tab content is fetched independently inside
-  // FindingsCard and not held by this component. Surface a pointer so
-  // the report reader knows to fetch the live findings if they need them.
+  // Findings — inlined from useFetchFindings (PM must-fix #2). Falls back to a
+  // pending notice if the AI analysis hasn't completed yet at click time.
   lines.push(`## Findings`);
   lines.push("");
-  lines.push(`The Findings tab in the UI loads structured AI-generated findings`);
-  lines.push(`from \`/api/workflows/runs/${runId}/findings\`. Open that URL or the`);
-  lines.push(`run in BioMate to view the live findings summary, key results, caveats,`);
-  lines.push(`and recommended next steps.`);
-  lines.push("");
+  if (!findings || findings.status === "pending" || !findings.summary) {
+    lines.push(`_Findings analysis is still pending. Re-download in a minute to_`);
+    lines.push(`_capture the structured AI summary, key results, caveats, and next steps._`);
+    lines.push("");
+  } else {
+    if (findings.summary) {
+      lines.push(`### Summary`);
+      lines.push("");
+      lines.push(findings.summary);
+      lines.push("");
+    }
+    if (findings.key_results?.length) {
+      lines.push(`### Key results`);
+      lines.push("");
+      for (const k of findings.key_results) {
+        if (typeof k === "string") {
+          lines.push(`- ${k}`);
+        } else {
+          lines.push(`- **${k.label ?? ""}**: ${k.value ?? ""}`);
+        }
+      }
+      lines.push("");
+    }
+    if (findings.caveats?.length) {
+      lines.push(`### Caveats`);
+      lines.push("");
+      for (const c of findings.caveats) lines.push(`- ${c}`);
+      lines.push("");
+    }
+    if (findings.next_steps?.length) {
+      lines.push(`### Recommended next steps`);
+      lines.push("");
+      for (const n of findings.next_steps) lines.push(`- ${n}`);
+      lines.push("");
+    }
+  }
 
   // Outputs
   lines.push(`## Outputs`);
@@ -502,4 +726,19 @@ const styles: Record<string, React.CSSProperties> = {
   citationDoi: { color: "oklch(0.48 0.012 260)", fontFamily: "ui-monospace, monospace" },
   qcTable: { width: "100%", borderCollapse: "collapse" as React.CSSProperties["borderCollapse"], fontSize: 11 },
   qcCell: { padding: "4px 6px", borderBottom: "1px solid oklch(0.93 0.005 240)", textAlign: "left", verticalAlign: "top" },
+
+  // Failed-run section styles (PM must-fix #1)
+  failedSection: { padding: "10px 12px", margin: "0 0 8px", background: "oklch(0.98 0.018 25)", borderRadius: 6, border: "1px solid oklch(0.88 0.04 25)" },
+  failedHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 },
+  failedBadge: { padding: "3px 9px", fontSize: 11, fontWeight: 600, borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.04em" },
+  runAgainBtn: { marginLeft: "auto", padding: "6px 12px", fontSize: 12, fontWeight: 500, background: "oklch(0.55 0.14 245)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" },
+  errorBlock: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", background: "white", color: "oklch(0.40 0.18 25)", padding: 8, borderRadius: 4, whiteSpace: "pre-wrap", margin: "6px 0", border: "1px solid oklch(0.92 0.04 25)" },
+  failedStepBox: { marginTop: 6 },
+  failedStepLabel: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", marginBottom: 4, fontWeight: 600 },
+  failedStepList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 3 },
+  failedStepItem: { fontSize: 12, fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "white", borderRadius: 4, color: "oklch(0.22 0.01 260)" },
+  logTailBlock: { fontSize: 11, fontFamily: "ui-monospace, monospace", background: "oklch(0.18 0.01 260)", color: "oklch(0.92 0.005 240)", padding: 10, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto", margin: 0 },
+
+  // Download-UX toast (PM must-fix #4)
+  toast: { fontSize: 11, padding: "3px 8px", background: "oklch(0.92 0.04 145)", color: "oklch(0.30 0.13 145)", borderRadius: 12, marginRight: 8 },
 };
