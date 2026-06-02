@@ -52,7 +52,16 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome', // Use system Chrome (headless_shell incompatible with macOS Big Sur)
+        // Use Playwright's bundled chromium (default) — works cross-platform
+        // including aarch64 Linux. The previous `channel: 'chrome'` line
+        // forced the system Chrome binary, which on aarch64 hosts is x86_64
+        // and runs under qemu emulation, crashing Chromium's GPU process
+        // (qemu signal 5/6, GPU process launch failed error_code=1002).
+        // The original macOS Big Sur headless_shell incompatibility that
+        // motivated `channel: 'chrome'` is no longer relevant (Big Sur is
+        // 2020-EOL). Override via PLAYWRIGHT_CHANNEL=chrome if you need
+        // the system binary on a specific machine.
+        channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
         viewport: { width: 1920, height: 1080 },
       },
     },
