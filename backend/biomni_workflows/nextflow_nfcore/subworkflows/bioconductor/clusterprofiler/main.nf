@@ -41,51 +41,43 @@ process BIOC_CLUSTERPROFILER {
     library(clusterProfiler)
     library(jsonlite)
 
-    # --- GO classification [] ---
-    # Key functions: data, groupGO
-    library(clusterProfiler)
-    library(org.Hs.eg.db)
-    
-    data(geneList, package="DOSE")
-    gene <- names(geneList)[abs(geneList) > 2]
-    
-    # Entrez gene ID
-    head(gene)
-    
-    ggo <- groupGO(gene     = gene,
-                   OrgDb    = org.Hs.eg.db,
-                   ont      = "CC",
-    # --- GO over-representation analysis [] ---
-    # Key functions: enrichGO, bitr
-    ego <- enrichGO(gene          = gene,
-                    universe      = names(geneList),
-                    OrgDb         = org.Hs.eg.db,
-                    ont           = "CC",
-                    pAdjustMethod = "BH",
-                    pvalueCutoff  = 0.01,
-                    qvalueCutoff  = 0.05,
-            readable      = TRUE)
-    head(ego)
-    
-    gene.df <- bitr(gene, fromType = "ENTREZID",
-            toType = c("ENSEMBL", "SYMBOL"),
-    # --- GO Gene Set Enrichment Analysis [] ---
-    # Key functions: gseGO
-    ego3 <- gseGO(geneList     = geneList,
-                  OrgDb        = org.Hs.eg.db,
-                  ont          = "CC",
-                  minGSSize    = 100,
-                  maxGSSize    = 500,
-                  pvalueCutoff = 0.05,
-                  verbose      = FALSE)
-    # --- GO analysis for non-model organisms [] ---
-    # Key functions: useEnsemblGenomes, getBM
-    library(biomaRt)
-    ensembl <- useEnsemblGenomes(biomart = "plants_mart", dataset = "nattenuata_eg_gene")
-    gene2go <- getBM(attributes =c("ensembl_gene_id", "go_id"), mart=ensembl)
-    # --- Visualize enriched GO terms as a directed acyclic graph [] ---
-    # Key functions: goplot
-    goplot(ego)
+    # --- GO Functional Classification [] ---
+    # Key functions: groupGO
+    entrez_ids <- c("4312", "8318", "10874", "55143", "55388", "991")
+    ggo_res <- groupGO(
+        gene = entrez_ids,
+        OrgDb = "org.Hs.eg.db",
+        ont = "CC",
+        level = 3,
+        readable = TRUE
+    )
+
+
+    # --- GO Over-Representation Analysis [] ---
+    # Key functions: enrichGO
+    entrez_ids <- c("4312", "8318", "10874", "55143", "55388", "991")
+    ego_res <- enrichGO(
+        gene = entrez_ids,
+        OrgDb = "org.Hs.eg.db",
+        ont = "CC",
+        pAdjustMethod = "BH",
+        pvalueCutoff = 0.01,
+        qvalueCutoff = 0.05,
+        readable = TRUE
+    )
+
+
+    # --- Custom Annotation Enrichment [] ---
+    # Key functions: buildGOmap, enricher
+    gomap_data <- data.frame(
+        GeneID = c("4312", "8318", "10874"),
+        GOID = c("GO:0000775", "GO:0000779", "GO:0072686")
+    )
+    gomap_with_ancestors <- buildGOmap(gomap_data)
+    custom_enrich <- enricher(
+        gene = c("4312", "8318"),
+        TERM2GENE = gomap_with_ancestors
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

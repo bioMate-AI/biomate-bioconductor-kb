@@ -41,43 +41,56 @@ process BIOC_CNVRD2 {
     library(CNVrd2)
     library(jsonlite)
 
-    # --- warnings=FALSE [] ---
-    # Key functions: countReadInWindow
-    readCountMatrix <- countReadInWindow(Object = objectCNVrd2, correctGC = TRUE)
-    # --- 'fcgr3bSS' [] ---
-    # Key functions: new, segmentSamples
+    # --- CNV Segmentation ---
+    # Key functions: segmentSamples
     data(fcgr3bMXL)
+    readCountMatrix <- resultSegment$stdCntMatrix
     objectCNVrd2 <- new("CNVrd2", windows = 1000, chr = "chr1",
-    genes = c(161592986, 161601753),
-    # --- 'fcgr3b4CNs' [] ---
-    # Key functions: new, groupCNVs
+                        st = 161100001, en = 162100000,
+                        dirBamFile = "BamMXL",
+                        genes = c(161592986, 161601753),
+                        geneNames = "3B")
+    resultSegment <- segmentSamples(Object = objectCNVrd2, 
+                                    stdCntMatrix = readCountMatrix)
+
+    # --- Copy Number Genotyping ---
+    # Key functions: groupCNVs
     objectCluster <- new("clusteringCNVs",
-    copynumberGroups <- groupCNVs(Object = objectCluster)
-    # --- 'fcgr3b3CNs' [] ---
-    # Key functions: new, groupCNVs
-    objectCluster <- new("clusteringCNVs",
+                         x = resultSegment$segmentationScores[, 1], 
+                         k = 3, EV = TRUE)
     copynumberGroups <- groupCNVs(Object = objectCluster, rightLimit = 1.5)
-    # --- 'fcgr3bdupSamples' [] ---
-    # Key functions: plotCNVrd2
-    duplicatedSamples <- rownames(allGroups[allGroups[, 2] > 2,])
-    par(mfrow = c(3, 2))
-    for (ii in duplicatedSamples[1:6])
-    # --- 'EUccl3l1results' [] ---
-    # Key functions: new, groupCNVs
-    objectClusterEuroCCL3L1 <- new("clusteringCNVs", x = yEuro, k = 5)
-    europeanCCL3L1Groups <- groupCNVs(Object = objectClusterEuroCCL3L1)
-    # --- warnings=FALSE [] ---
-    # Key functions: identifyPolymorphicRegion
-    fcgr3PolymorphicRegion <- identifyPolymorphicRegion(Object = objectCNVrd2,
-    # --- 'FCGR3polymorphc1' [] ---
-    # Key functions: plotPolymorphicRegion
-    plotPolymorphicRegion(Object = objectCNVrd2, polymorphicRegionObject = fcgr3PolymorphicRegion,
-    xlim = c(161300000, 161800000), drawThresholds = TRUE,
-    # --- 'FCGR3polymorphc2' [] ---
-    # Key functions: plotPolymorphicRegion
-    plotPolymorphicRegion(Object = objectCNVrd2, polymorphicRegionObject = fcgr3PolymorphicRegion,
-    xlim = c(161300000, 161800000), sdThreshold = 0.05, drawThresholds = TRUE,
-    sessionInfo()
+    allGroups <- copynumberGroups$allGroups
+
+    # --- CNV Visualisation and Region Identification ---
+    # Key functions: plotCNVrd2, identifyPolymorphicRegion
+    duplicatedSamples <- rownames(allGroups[allGroups[, 2] > 2, ])
+    fcgr3PolymorphicRegion <- identifyPolymorphicRegion(
+        Object = objectCNVrd2,
+        segmentObject = resultSegment,
+        plotLegend = FALSE
+    )
+    plotCNVrd2(Object = objectCNVrd2,
+               segmentObject = resultSegment,
+               sampleName = duplicatedSamples[1])
+
+    # --- Tag SNP Identification ---
+    # Key functions: calculateLDSNPandCNV
+    vcfFile <- system.file(package = "CNVrd2", "extdata",
+                           "chr1.161600000.161611000.vcf.gz")
+    sampleCNV <- data.frame(
+        copynumberGroups$allGroups[, c(1, 2)],
+        rep("MXL", dim(copynumberGroups$allGroups)[1])
+    )
+    rownames(sampleCNV) <- substr(sampleCNV[, 1], 1, 7)
+    sampleCNV[, 1] <- rownames(sampleCNV)
+    tagSNPs <- calculateLDSNPandCNV(sampleCNV = sampleCNV,
+                                    vcfFile = vcfFile, cnvColumn = 2,
+                                    population = "MXL", popColumn = 3,
+                                    nChunkForVcf = 5, chr = "1",
+                                    st = 161600001, en = 161611000,
+                                    codeSNP = "Three",
+                                    codeCNV = "ThreeGroup")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

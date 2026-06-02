@@ -41,31 +41,43 @@ process BIOC_COGEQC {
     library(cogeqc)
     library(jsonlite)
 
-    # --- get maize genomes [] ---
+    # --- Retrieve Genome Statistics [Retrieve NCBI genome assembly and annotation statistics] ---
     # Key functions: get_genome_stats
-    maize_stats <- get_genome_stats(taxon = "Zea mays")
-    head(maize_stats)
-    str(maize_stats)
-    # --- get maize genomes with filters [] ---
-    # Key functions: get_genome_stats, compare_genome_stats
     filt <- list(
-    filtered_maize_genomes <- get_genome_stats(taxon = "Zea mays", filters = filt)
-    dim(filtered_maize_genomes)
-    # --- plot genome stats [] ---
+        filters.has_annotation = "true",
+        filters.assembly_level = "chromosome"
+    )
+    maize_stats <- get_genome_stats(
+        taxon = "Zea mays",
+        filters = filt
+    )
+
+    # --- Compare Genome Statistics [Compare user genome assembly metrics against NCBI reference data] ---
+    # Key functions: compare_genome_stats
+    my_stats <- data.frame(
+        accession = "my_lovely_maize",
+        sequence_length = 2.4 * 1e9,
+        gene_count_total = 50000,
+        CC_ratio = 2
+    )
+    comparison <- compare_genome_stats(
+        ncbi_stats = maize_stats,
+        user_stats = my_stats
+    )
+
+    # --- Visualise Genome Statistics [Generate comparative plots of genome assembly metrics] ---
     # Key functions: plot_genome_stats
-    plot_genome_stats(ncbi_stats = maize_stats)
-    # --- plot genome stats with user stats [] ---
-    # Key functions: plot_genome_stats
-    plot_genome_stats(ncbi_stats = maize_stats, user_stats = my_stats)
-    # --- run_busco [] ---
-    # Key functions: run_busco, read_busco
-    sequence <- system.file("extdata", "Hse_subset.fa", package = "cogeqc")
-    download_path <- paste0(tempdir(), "/datasets")
-    if(busco_is_installed()) {
-    # --- plot_busco [] ---
-    # Key functions: plot_busco
-    plot_busco(busco_summary)
-    plot_busco(batch_summary)
+    p_stats <- plot_genome_stats(
+        ncbi_stats = maize_stats,
+        user_stats = my_stats
+    )
+
+    # --- Parse and Visualise BUSCO Results [Read BUSCO output and plot completeness scores] ---
+    # Key functions: read_busco, plot_busco
+    output_dir <- system.file("extdata", package = "cogeqc")
+    busco_summary <- read_busco(output_dir)
+    p_busco <- plot_busco(busco_summary)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

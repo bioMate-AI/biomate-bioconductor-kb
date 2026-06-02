@@ -41,35 +41,70 @@ process BIOC_CLUSTIFYR {
     library(clustifyr)
     library(jsonlite)
 
-    # --- "Run clustifyr()" [] ---
-    # Key functions: clustify, cor_to_call, call_to_metadata
-    Calculate correlation coefficients for each cluster (spearman by default)
-    res <- clustify(
-    input = pbmc_matrix, # matrix of normalized scRNA-seq counts (or SCE/Seurat object)
-    # --- "Create correlation heatmap" [] ---
-    # Key functions: plot_cor_heatmap
-    Create heatmap of correlation coefficients using clustifyr() output
-    plot_cor_heatmap(cor_mat = res)
-    # --- "Overlay corr coefficients on UMAP" [] ---
-    # Key functions: plot_cor, plot_grid
-    corr_umaps <- plot_cor(
-    cor_mat = res, # matrix of correlation coefficients from clustifyr()
-    data_to_plot = colnames(res)[1:2], # name of cell type(s) to plot correlation coefficients
-    # --- "Label clusters" [] ---
-    # Key functions: plot_best_call, ggtitle, plot_dims, plot_grid
-    clustifyr_types <- plot_best_call(
-    cor_mat = res, # matrix of correlation coefficients from clustifyr()
-    ggtitle("clustifyr cell types")
-    # --- "clustifyr with gene lists" [] ---
-    # Key functions: clustify_lists, plot_cor_heatmap, cor_to_call, call_to_metadata, sce_pbmc
+    # --- Marker Gene-based Classification [] ---
+    # Key functions: clustify_lists, cor_to_call, call_to_metadata
     list_res <- clustify_lists(
-    plot_cor_heatmap(
-    cor_mat = list_res, # matrix of correlation coefficients from clustify_lists()
-    # --- "average" [] ---
-    # Key functions: average_clusters, object_ref, seurat_ref
+        input = clustifyr::pbmc_matrix_small,
+        metadata = clustifyr::pbmc_meta,
+        cluster_col = "seurat_clusters",
+        marker = clustifyr::cbmc_m,
+        metric = "pct"
+    )
+    list_res2 <- cor_to_call(
+        cor_mat = list_res,
+        cluster_col = "seurat_clusters"
+    )
+    pbmc_meta3 <- call_to_metadata(
+        res = list_res2,
+        metadata = clustifyr::pbmc_meta,
+        cluster_col = "seurat_clusters",
+        rename_prefix = "list_"
+    )
+
+
+    # --- Visualisation of Classification Results [] ---
+    # Key functions: plot_cor_heatmap, plot_cor, plot_best_call, plot_dims
+    res <- clustify(
+        input = clustifyr::pbmc_matrix_small,
+        metadata = clustifyr::pbmc_meta,
+        cluster_col = "seurat_clusters",
+        ref_mat = clustifyr::cbmc_ref,
+        query_genes = clustifyr::pbmc_vargenes[1:100]
+    )
+    plot_cor_heatmap(cor_mat = res)
+    corr_umaps <- plot_cor(
+        cor_mat = res,
+        metadata = clustifyr::pbmc_meta,
+        data_to_plot = colnames(res)[1:2],
+        cluster_col = "seurat_clusters"
+    )
+    clustifyr_types <- plot_best_call(
+        cor_mat = res,
+        metadata = clustifyr::pbmc_meta,
+        do_label = TRUE,
+        do_legend = FALSE,
+        cluster_col = "seurat_clusters"
+    )
+
+
+    # --- Reference Matrix Generation [] ---
+    # Key functions: average_clusters
     new_ref_matrix <- average_clusters(
-    head(new_ref_matrix)
-    new_ref_matrix_sce <- object_ref(
+        mat = clustifyr::pbmc_matrix_small,
+        metadata = clustifyr::pbmc_meta$classified,
+        if_log = TRUE
+    )
+
+
+    # --- SingleCellExperiment Integration [] ---
+    # Key functions: sce_pbmc, clustify
+    sce <- clustifyr::sce_pbmc()
+    res_sce <- clustify(
+        input = sce,
+        ref_mat = clustifyr::cbmc_ref,
+        cluster_col = "clusters",
+        obj_out = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

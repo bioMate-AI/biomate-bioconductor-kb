@@ -38,23 +38,40 @@ process BIOC_CLUSTEREXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(clusterExperiment)
     library(RSEC)
     library(jsonlite)
 
-    # --- Quality control and filtering [] ---
-    # Key functions: assays, metadata, assay
-    assays(se) <- c(SimpleList(normalized_counts=fq),assays(se))
-    assays(se)
-    # --- Dep auto analysis [] ---
-    # Key functions: dep_auto, tableClusters, plotClusters, plotClustersWorkflow, plotBarplot, plotClustersTable, plotCoClustering, plotDendrogram
-    par(mar=plotCMar,mfrow=c(1,2))
-    plotClustersWorkflow(ce, whichClusters ="consensusPCA15",clusterLabel="Consensus",whichClusterMany=match(clusterNames15,clusterLabels(ceSub)),clusterManyLabels=c(shortNames15),axisLine=-1,nBlankLines=1,main="15 PCs")
-    plotClustersWorkflow(ce, whichClusters = c("consensusPCA50"),clusterLabel="Consensus",clusterManyLabels=shortNames50, whichClusterMany=match(clusterNames50,clusterLabels(ceSub)),nBlankLines=1,main="50 PCs")
-    # --- Clustering and classification [] ---
-    # Key functions: buildSNNGraph, cluster_walktrap
-    library(scran)
-    library(igraph)
-    SNN_wrap <- function(inputMatrix, k, steps = 4, ...) {
+    # --- Consensus Clustering [] ---
+    # Key functions: makeConsensus, clusterMatrix
+    ceConsensus <- makeConsensus(ce, proportion=0.7,
+                                 clusterLabel="makeConsensus,0.7")
+    cMat <- clusterMatrix(ceConsensus)
+
+
+    # --- Robust Clustering Pipeline [] ---
+    # Key functions: RSEC, primaryCluster, tableClusters
+    rsecFluidigm <- RSEC(se, isCount=TRUE, consensusProportion=0.6,
+                         mergeMethod="JC", mergeCutoff=0.05,
+                         stopOnErrors=TRUE)
+    primClus <- primaryCluster(rsecFluidigm)
+    tabClus <- tableClusters(rsecFluidigm)
+
+
+    # --- Feature Selection and Differential Expression [] ---
+    # Key functions: getBestFeatures
+    pairsAllRSEC <- getBestFeatures(rsecFluidigm, contrastType="Pairs",
+                                    p.value=0.05, DEMethod="edgeR",
+                                    number=nrow(rsecFluidigm))
+
+
+    # --- Cluster Visualization [] ---
+    # Key functions: plotClusters, plotCoClustering, plotReducedDims
+    plotClusters(rsecFluidigm, whichClusters="workflow",
+                 colData=c("Biological_Condition", "Published2"))
+    plotCoClustering(rsecFluidigm,
+                     whichClusters=c("mergeClusters", "makeConsensus"))
+    plotReducedDims(rsecFluidigm, whichDims=1:4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

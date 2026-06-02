@@ -38,6 +38,7 @@ process BIOC_CLASSIFYR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ClassifyR)
     library(CrossValParams)
     library(DataFrame)
     library(ModellingParams)
@@ -45,51 +46,100 @@ process BIOC_CLASSIFYR {
     library(TrainParams)
     library(jsonlite)
 
-    # --- Crossvalidate [] ---
+    # --- Multi-view Cross-Validation [] ---
     # Key functions: crossValidate, performancePlot
-    -----------------------------------------------------------------------------------------------------------------------
-    result <- crossValidate(measurements, classes, classifier = "SVM",
-                            nFolds = 5, nRepeats = 2, nCores = 1)
-    performancePlot(result)
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, mcols, frame, crossValidate, performancePlot
-    -----------------------------------------------------------------------------------------------------------------------
-    measurementsDF <- DataFrame(measurements)
-    mcols(measurementsDF) <- data.frame(
-      assay = rep(c("assay_1", "assay_2"), times = c(10, 1990)),
-      feature = colnames(measurementsDF)
-    # --- List [] ---
-    # Key functions: frame, crossValidate, performancePlot
-    -----------------------------------------------------------------------------------------------------------------------
-    # Assigns first 10 variables to dataset_1, and the rest to dataset_2
+    data(asthma)
     measurementsList <- list(
-      (measurements |> as.data.frame())[1:10],
-      (measurements |> as.data.frame())[11:2000]
-    # --- Modellingparams [] ---
-    # Key functions: ModellingParams
-    -----------------------------------------------------------------------------------------------------------------------
-    ModellingParams()
-    # --- Calccvperformance [] ---
-    # Key functions: calcCVperformance, performance
-    -----------------------------------------------------------------------------------------------------------------------
+        assay_1 = as.data.frame(measurements)[, 1:10],
+        assay_2 = as.data.frame(measurements)[, 11:2000]
+    )
+    result_mv <- crossValidate(
+        measurementsList,
+        classes,
+        classifier = "SVM",
+        nFolds = 5,
+        nRepeats = 3,
+        multiViewMethod = "merge"
+    )
+    mv_plot <- performancePlot(
+        result_mv,
+        characteristicsList = list(x = "Assay Name")
+    )
+
+
+    # --- Custom Modelling and Testing [] ---
+    # Key functions: CrossValParams, ModellingParams, SelectParams, TrainParams, runTests
+    data(asthma)
+    crossValParams <- CrossValParams(permutations = 5)
+    modellingParamsDD <- ModellingParams(
+        selectParams = SelectParams("KL"),
+        trainParams = TrainParams("naiveBayes"),
+        predictParams = NULL
+    )
+    DDresults <- runTests(
+        measurements,
+        classes,
+        crossValParams,
+        modellingParamsDD,
+        verbose = 1
+    )
+
+
+    # --- Feature Selection Analysis [] ---
+    # Key functions: CrossValParams, runTests, distribution, plotFeatureClasses
+    data(asthma)
+    crossValParams <- CrossValParams(permutations = 5)
+    DMresults <- runTests(measurements, classes, crossValParams, verbose = 1)
+    selectionPercentages <- distribution(DMresults, plot = FALSE)
+    sortedPercentages <- head(
+        selectionPercentages[order(selectionPercentages, decreasing = TRUE)]
+    )
+    bestGenePlot <- plotFeatureClasses(
+        measurements,
+        classes,
+        names(sortedPercentages)[1],
+        dotBinWidth = 0.1,
+        xAxisLabel = "Normalised Expression"
+    )
+
+
+    # --- Performance Comparison [] ---
+    # Key functions: calcCVperformance, samplesMetricMap, performancePlot, ROCplot
+    data(asthma)
+    cv_params <- CrossValParams(permutations = 2)
+    DMresults <- runTests(measurements, classes, cv_params, verbose = 0)
+    DDresults <- runTests(measurements, classes, cv_params, verbose = 0)
     DMresults <- calcCVperformance(DMresults)
-    DMresults
-    performance(DMresults)
-    # --- Performanceplot [] ---
-    # Key functions: performancePlot
-    -----------------------------------------------------------------------------------------------------------------------
-    performancePlot(resultsList)
-    # --- Rankingplot [] ---
-    # Key functions: rankingPlot
-    -----------------------------------------------------------------------------------------------------------------------
-    rankingPlot(DDresults, topRanked = 1:100, xLabelPositions = c(1, seq(10, 100, 10)))
-    # --- List [] ---
+    DDresults <- calcCVperformance(DDresults)
+    resultsList <- list(Abundance = DMresults, Distribution = DDresults)
+    metric_map <- samplesMetricMap(resultsList, showXtickLabels = FALSE)
+    perf_comparison <- performancePlot(resultsList)
+    roc_comparison <- ROCplot(resultsList)
+
+
+    # --- Parameter Tuning [] ---
     # Key functions: CrossValParams, ModellingParams, TrainParams, PredictParams, runTests
-    -----------------------------------------------------------------------------------------------------------------------
+    data(asthma)
     tuneList <- list(cost = c(0.01, 0.1, 1, 10))
-    crossValParams <- CrossValParams(permutations = 5, tuneMode = "Resubstitution")
-    SVMparams <- ModellingParams(trainParams = TrainParams("SVM", kernel = "linear", tuneParams = tuneList),
-                                 predictParams = PredictParams("SVM"))
+    crossValParams <- CrossValParams(
+        permutations = 2,
+        tuneMode = "Resubstitution"
+    )
+    SVMparams <- ModellingParams(
+        trainParams = TrainParams(
+            "SVM",
+            kernel = "linear",
+            tuneParams = tuneList
+        ),
+        predictParams = PredictParams("SVM")
+    )
+    SVMresults <- runTests(
+        measurements,
+        classes,
+        crossValParams,
+        SVMparams
+    )
+    tuned_params <- tunedParameters(SVMresults)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -46,60 +46,35 @@ process BIOC_COGAPS {
     library(MANOVA)
     library(jsonlite)
 
-    # --- new [] ---
-    # Key functions: new, getParam, setParam
-    params <- new("CogapsParams")
-    getParam(params, "nPatterns")
-    params <- setParam(params, "nPatterns", 3)
-    # --- cogaps on modsim [] ---
-    # Key functions: CoGAPS
-    cogapsresult <- CoGAPS(modsimdata, params, outputFrequency = 10000)
-    # --- load single cell data from zenodo [] ---
-    # Key functions: BiocFileCache, bfcrpath
-    options(timeout=50000) # adjust this if you're getting timeout downloading the file
-    bfc <- BiocFileCache::BiocFileCache()
-    pdac_data <- BiocFileCache::bfcrpath(bfc, pdac_url)
-    # --- extract counts matrix [] ---
-    # Key functions: log1p
-    pdac_epi_counts <- as.matrix(pdac_data@assays$originalexp@counts)
-    norm_pdac_epi_counts <- log1p(pdac_epi_counts)
-    head(pdac_epi_counts, n=c(5L, 2L))
-    # --- Cogaps Params [] ---
-    # Key functions: CogapsParams
-    library(CoGAPS)
-    pdac_params <- CogapsParams(nIterations=50000, # 50000 iterations
-    # --- distributed params [] ---
-    # Key functions: setDistributedParams
-    pdac_params <- setDistributedParams(pdac_params, nSets=7)
-    # --- run CoGAPS on single [] ---
+    # --- CoGAPS Execution [] ---
     # Key functions: CoGAPS, toCSV
-    startTime <- Sys.time()
-    pdac_epi_result <- CoGAPS(pdac_epi_counts, pdac_params)
-    endTime <- Sys.time()
-    # --- load precomputed from zenodo [] ---
-    # Key functions: bfcrpath
-    cogapsresult <- BiocFileCache::bfcrpath(bfc, cogapsresult_url)
-    cogapsresult <- readRDS(cogapsresult)
-    # --- pattern UMAP [] ---
-    # Key functions: DefaultAssay, viridis, FeaturePlot
-    DefaultAssay(pdac_data) <- "CoGAPS"
-    pattern_names = rownames(pdac_data@assays$CoGAPS)
-    library(viridis)
-    # --- pattern Markers [] ---
+    cogaps_res <- CoGAPS(
+        data = modsimdata,
+        allParams = params,
+        outputFrequency = 10000
+    )
+    toCSV(cogaps_res, "cogaps_output")
+
+
+    # --- Pattern Marker Identification [] ---
     # Key functions: patternMarkers
-    pm <- patternMarkers(cogapsresult)
-    # --- get hallmarks [] ---
-    # Key functions: getPatternGeneSet
-    hallmark_ls <- list(
-    "HALLMARK_ALLOGRAFT_REJECTION" = c(
-    "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION" = c(
-    # --- plot hallmarks [] ---
-    # Key functions: plotPatternGeneSet
+    pm_markers <- patternMarkers(cogaps_res)
+    sample_facs <- cogaps_res@sampleFactors
+    feat_loads <- cogaps_res@featureLoadings
+
+
+    # --- Gene Set Enrichment Analysis [] ---
+    # Key functions: getPatternGeneSet, plotPatternGeneSet
+    hallmarks_ora <- getPatternGeneSet(
+        cogaps_res,
+        gene.sets = hallmark_ls,
+        method = "overrepresentation"
+    )
     pl_pattern7 <- plotPatternGeneSet(
-    # --- MANOVA variables [] ---
-    # Key functions: MANOVA
-    interestedVariables <- cbind(pdac_data@meta.data[["nCount_RNA"]], pdac_data@meta.data[["nFeature_RNA"]])
-    manova_results <- MANOVA(interestedVariables, cogapsresult)
+        patterngeneset = hallmarks_ora,
+        whichpattern = 7,
+        padj_threshold = 0.05
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,20 +38,62 @@ process BIOC_CNVMETRICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CNVMetrics)
     library(GRanges)
     library(GRangesList)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, processSim, GRangesList
-    require(GenomicRanges)
-    sampleRef <- GRanges(seqnames=c(rep("chr1", 4), rep("chr2", 3), rep("chr3", 6)),
-    ranges=IRanges(start=c(1905048, 4554832, 31686841, 32686222,
-    # --- GRangesListFromDataFrame analysis [] ---
-    # Key functions: include_graphics, makeGRangesListFromDataFrame, calculateOverlapMetric, plotMetric, all, calculateLog2ratioMetric
-    The stage identifying the state (tumor vs metastasis) of the sample
+    # --- CNV Data Preparation [Data Preparation] ---
+    # Key functions: makeGRangesListFromDataFrame
     data.dir <- system.file("extdata", package="CNVMetrics")
-    annotation.file <- file.path(data.dir, "mousePairedOrganoidsInfo.txt")
+    cnv.file <- file.path(data.dir, "mousePairedOrganoids.txt")
+    calls <- read.table(cnv.file, header=TRUE, sep="\t")
+    grl <- GenomicRanges::makeGRangesListFromDataFrame(
+        calls,
+        split.field="ID",
+        keep.extra.columns=TRUE
+    )
+
+    # --- Overlap Metric Calculation [Metric Calculation] ---
+    # Key functions: calculateOverlapMetric
+    metric <- calculateOverlapMetric(
+        segmentData=grl,
+        method="sorensen",
+        nJobs=1
+    )
+
+    # --- Log2 Ratio Metric Calculation [Metric Calculation] ---
+    # Key functions: calculateLog2ratioMetric
+    metricLog <- calculateLog2ratioMetric(
+        segmentData=grl,
+        method="weightedEuclideanDistance",
+        nJobs=1
+    )
+
+    # --- CNV Similarity Visualization [Visualisation] ---
+    # Key functions: plotMetric
+    plotMetric(
+        metric,
+        type="AMPLIFICATION",
+        colorRange=c("white", "steelblue")
+    )
+    plotMetric(
+        metric,
+        type="DELETION",
+        colorRange=c("white", "darkorange"),
+        show_colnames=TRUE,
+        display_numbers=TRUE,
+        number_format="%.2f"
+    )
+    plotMetric(
+        metricLog,
+        colorRange=c("white", "darkorange"),
+        show_colnames=TRUE,
+        display_numbers=TRUE,
+        number_format="%.2f",
+        main="Log2 Ratio Distance"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

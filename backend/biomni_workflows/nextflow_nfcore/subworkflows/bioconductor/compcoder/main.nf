@@ -41,30 +41,50 @@ process BIOC_COMPCODER {
     library(compcodeR)
     library(jsonlite)
 
-    # --- summarize Synthetic Data Set [] ---
-    # Key functions: summarizeSyntheticDataSet
-    summarizeSyntheticDataSet(data.set = "B_625_625_5spc_repl1.rds",
-    # --- run Diff Exp [] ---
-    # Key functions: runDiffExp
-    runDiffExp(data.file = "B_625_625_5spc_repl1.rds",
-    runDiffExp(data.file = "B_625_625_5spc_repl1.rds",
-    runDiffExp(data.file = "B_625_625_5spc_repl1.rds", result.extent = "ttest",
-    # --- run Comparison G U I [] ---
-    # Key functions: runComparisonGUI
-    runComparisonGUI(input.directories = ".",
-    # --- generate Code H T M Ls [] ---
-    # Key functions: generateCodeHTMLs
-    generateCodeHTMLs("B_625_625_5spc_repl1_ttest.rds", ".")
-    # --- run Comparison [] ---
-    # Key functions: runComparison
-    file.table <- data.frame(input.files = c("B_625_625_5spc_repl1_voom.limma.rds",
-    parameters <- list(incl.nbr.samples = NULL, incl.replicates = NULL,
-    comparisons = c("auc", "fdr", "tpr", "ma", "correlation"))
-    # --- comp Data [] ---
+    # --- Dataset Creation and Validation [] ---
     # Key functions: compData, check_compData
-    count.matrix <- matrix(round(1000*runif(4000)), 1000, 4)
-    sample.annot <- data.frame(condition = c(1, 1, 2, 2))
-    info.parameters <- list(dataset = "mytestdata", uID = "123456")
+    count_matrix <- matrix(round(1000 * runif(4000)), 1000, 4)
+    sample_annot <- data.frame(condition = c(1, 1, 2, 2))
+    info_params <- list(dataset = "mytestdata", uID = "123456")
+    cpd <- compData(
+        count.matrix = count_matrix,
+        sample.annotations = sample_annot,
+        info.parameters = info_params
+    )
+    check_compData(cpd)
+
+
+    # --- Differential Expression Benchmarking [] ---
+    # Key functions: runComparison
+    file_table <- data.frame(
+        input.files = c("method1.rds", "method2.rds"),
+        stringsAsFactors = FALSE
+    )
+    params <- list(
+        incl.dataset = "synthetic_test",
+        fdr.threshold = 0.05,
+        tpr.threshold = 0.05,
+        typeI.threshold = 0.05,
+        ma.threshold = 0.05,
+        fdc.maxvar = 1500,
+        overlap.threshold = 0.05,
+        fracsign.threshold = 0.05,
+        comparisons = c("auc", "fdr", "tpr", "ma")
+    )
+    runComparison(
+        file.table = file_table,
+        parameters = params,
+        output.directory = "."
+    )
+
+
+    # --- Report Generation [] ---
+    # Key functions: listcreateRmd, generateCodeHTMLs
+    rmd_templates <- listcreateRmd()
+    generateCodeHTMLs(
+        rds.file = "method1.rds",
+        output.directory = "."
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

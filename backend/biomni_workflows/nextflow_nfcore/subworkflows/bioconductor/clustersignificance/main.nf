@@ -41,21 +41,37 @@ process BIOC_CLUSTERSIGNIFICANCE {
     library(ClusterSignificance)
     library(jsonlite)
 
-    # --- Retrieve data from repository [] ---
+    # --- Projection ---
+    # Key functions: pcp, mlp
+    data(pcpMatrix)
+    classes_pcp <- rownames(pcpMatrix)
+    prj_pcp <- pcp(pcpMatrix, classes_pcp, normalize = TRUE)
+    data(mlpMatrix)
+    classes_mlp <- rownames(mlpMatrix)
+    prj_mlp <- mlp(mlpMatrix, classes_mlp)
+
+    # --- Classification ---
     # Key functions: classify, getData
-    cl <- classify(prj)
-    plot(cl)
-    getData(cl, "AUC")
-    # --- Principal component analysis [] ---
-    # Key functions: prcomp, sample
-    .pca <- function(y, classes, uniq.groups, mat) {
-    pca <- prcomp(
-    sapply(1:ncol(mat[classes %in% uniq.groups[, y], ]),
-    # --- Dimnames analysis [] ---
-    # Key functions: dimnames, pcp, permute, classify, pvalue
-    classes <- rownames(mlpMatrix)
-    pe1 <- permute(mat=mat, iter=iterations, classes=classes, projmethod="pcp")
-    pe2 <- permute(mat=mat, iter=iterations, classes=classes, projmethod="pcp")
+    cl_pcp <- classify(prj_pcp)
+    cl_mlp <- classify(prj_mlp)
+    auc_pcp <- getData(cl_pcp, "AUC")
+    auc_mlp <- getData(cl_mlp, "AUC")
+
+    # --- Permutation Analysis ---
+    # Key functions: permute
+    iterations <- 100
+    pe_pcp <- permute(
+        mat = pcpMatrix, 
+        iter = iterations, 
+        classes = classes_pcp, 
+        projmethod = "pcp"
+    )
+
+    # --- Statistical Significance ---
+    # Key functions: pvalue, conf.int
+    p_val <- pvalue(pe_pcp)
+    ci_val <- conf.int(pe_pcp, conf.level = 0.99)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

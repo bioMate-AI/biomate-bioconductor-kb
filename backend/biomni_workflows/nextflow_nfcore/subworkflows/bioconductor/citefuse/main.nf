@@ -43,83 +43,56 @@ process BIOC_CITEFUSE {
     library(DEgenesCross)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("CITEseq_example", package = "CiteFuse")
-    names(CITEseq_example)
-    lapply(CITEseq_example, dim)
-    # --- Preprocessing [] ---
-    # Key functions: preprocessing
-    ---------------------------------------------------------------------
-    sce_citeseq <- preprocessing(CITEseq_example)
-    sce_citeseq
-    # --- Normaliseexprs [] ---
-    # Key functions: normaliseExprs
-    ---------------------------------------------------------------------
-    sce_citeseq <- normaliseExprs(sce = sce_citeseq,
-                                  altExp_name = "HTO",
-                                  transform = "log")
-    # --- Crosssampledoublets [] ---
-    # Key functions: crossSampleDoublets
-    ---------------------------------------------------------------------
+    # --- Doublet Detection and Filtering [] ---
+    # Key functions: crossSampleDoublets, withinSampleDoublets
     sce_citeseq <- crossSampleDoublets(sce_citeseq)
-    # --- Withinsampledoublets [] ---
-    # Key functions: withinSampleDoublets
-    ---------------------------------------------------------------------
-    sce_citeseq <- withinSampleDoublets(sce_citeseq,
-                                        minPts = 10)
-    # --- Lognormcounts [] ---
-    # Key functions: logNormCounts, normaliseExprs, time, CiteFuse
-    ---------------------------------------------------------------------
-    sce_citeseq <- scater::logNormCounts(sce_citeseq)
-    sce_citeseq <- normaliseExprs(sce_citeseq, altExp_name = "ADT", transform = "log")
-    system.time(sce_citeseq <- CiteFuse(sce_citeseq))
-    # --- Spectralclustering [] ---
-    # Key functions: spectralClustering, metadata, diff
-    ---------------------------------------------------------------------
-    SNF_W_clust <- spectralClustering(metadata(sce_citeseq)[["SNF_W"]], K = 20)
-    plot(SNF_W_clust$eigen_values)
-    which.max(abs(diff(SNF_W_clust$eigen_values)))
-    # --- Spectralclustering [] ---
-    # Key functions: spectralClustering, metadata, factor
-    ---------------------------------------------------------------------
-    SNF_W_clust <- spectralClustering(metadata(sce_citeseq)[["SNF_W"]], K = 5)
+    sce_citeseq <- withinSampleDoublets(sce_citeseq, minPts = 10)
+    sce_citeseq <- sce_citeseq[,
+        sce_citeseq$doubletClassify_within_class == "Singlet" &
+        sce_citeseq$doubletClassify_between_class == "Singlet"
+    ]
+
+
+    # --- Multimodal Integration [] ---
+    # Key functions: normaliseExprs, CiteFuse
+    sce_citeseq <- normaliseExprs(
+        sce_citeseq,
+        altExp_name = "ADT",
+        transform = "log"
+    )
+    sce_citeseq <- CiteFuse(sce_citeseq)
+
+
+    # --- Spectral and Graph-based Clustering [] ---
+    # Key functions: spectralClustering, igraphClustering
+    SNF_W_clust <- spectralClustering(
+        metadata(sce_citeseq)[["SNF_W"]],
+        K = 5
+    )
     sce_citeseq$SNF_W_clust <- as.factor(SNF_W_clust$labels)
-    SNF_W1_clust <- spectralClustering(metadata(sce_citeseq)[["ADT_W"]], K = 5)
-    sce_citeseq$ADT_clust <- as.factor(SNF_W1_clust$labels)
-    # --- Degenes [] ---
-    # Key functions: DEgenes, selectDEgenes, datatable, call, metadata
-    ---------------------------------------------------------------------
-    # DE will be performed for RNA if altExp_name = "none"
-    sce_citeseq <- DEgenes(sce_citeseq,
-                           altExp_name = "none",
-                           group = sce_citeseq$SNF_W_louvain,
-    # --- Data [] ---
-    # Key functions: normaliseExprs, ligandReceptorTest
-    ---------------------------------------------------------------------
-    data("lr_pair_subset", package = "CiteFuse")
-    head(lr_pair_subset)
-    sce_citeseq <- normaliseExprs(sce = sce_citeseq,
-                                  altExp_name = "ADT",
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("sce_ctcl_subset", package = "CiteFuse")
-    # --- Visualiseexprslist [] ---
-    # Key functions: visualiseExprsList
-    ---------------------------------------------------------------------
-    visualiseExprsList(sce_list = list(control = sce_citeseq,
-                                       ctcl = sce_ctcl_subset),
-                       plot = "boxplot",
-                       altExp_name = "none",
-    # --- Degenescross [] ---
-    # Key functions: DEgenesCross, selectDEgenes
-    ---------------------------------------------------------------------
-    de_res <- DEgenesCross(sce_list = list(control = sce_citeseq,
-                                           ctcl = sce_ctcl_subset),
-                           colData_name = c("SNF_W_louvain", "SNF_W_louvain"),
-                           group_to_test = c("2", "6"))
+    SNF_W_louvain <- igraphClustering(sce_citeseq, method = "louvain")
+    sce_citeseq$SNF_W_louvain <- as.factor(SNF_W_louvain)
+
+
+    # --- Dimensionality Reduction and Visualization [] ---
+    # Key functions: reducedDimSNF, visualiseDim, visualiseKNN, visualiseExprs
+    sce_citeseq <- reducedDimSNF(
+        sce_citeseq,
+        method = "tSNE",
+        dimNames = "tSNE_joint"
+    )
+    g1 <- visualiseDim(
+        sce_citeseq,
+        dimNames = "tSNE_joint",
+        colour_by = "SNF_W_clust"
+    )
+    g2 <- visualiseKNN(sce_citeseq, colour_by = "SNF_W_louvain")
+    g3 <- visualiseExprs(
+        sce_citeseq,
+        plot = "boxplot",
+        group_by = "SNF_W_louvain",
+        feature_subset = c("hg19_CD2", "hg19_CD4")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

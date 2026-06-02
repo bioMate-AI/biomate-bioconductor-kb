@@ -38,23 +38,51 @@ process BIOC_CLUSTERJUDGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ClusterJudge)
     library(Database)
     library(jsonlite)
 
-    # --- Database [] ---
-    # Key functions: Database
-    ---------------------------------------------------------------------
-    clusters <- ccyclered$Cluster
-    ###  convert from Gene names to the new standard of Saccharomyces Genome Database (SGD) gene ids
-    ccyclered$SGDID <- sub('^S','S00',ccyclered$SGDID)
-    names(clusters) <- ccyclered$SGDID
-    # --- Data [] ---
-    # Key functions: sample, attribute_mut_inf
-    ---------------------------------------------------------------------
+    # --- Attribute Consolidation [] ---
+    # Key functions: entities_attribute_stats, consolidate_entity_attribute
     data(Yeast.GO.assocs)
-    ### because it takes time, we use a small sampled subset of associations
-    entity.attribute.sampled <- Yeast.GO.assocs[sample(1:nrow(Yeast.GO.assocs),100),]
+    stats <- entities_attribute_stats(Yeast.GO.assocs)
+    Yeast.GO.assocs.cons1 <- consolidate_entity_attribute(
+        entity.attribute = Yeast.GO.assocs,
+        min.entities.per.attr = 3,
+        mut.inf = FALSE
+    )
+
+
+    # --- Mutual Information Estimation [] ---
+    # Key functions: attribute_mut_inf
+    data(Yeast.GO.assocs)
+    entity.attribute.sampled <- Yeast.GO.assocs[1:100, ]
     mi.GO.Yeast.sampled <- attribute_mut_inf(
+        entity.attribute = entity.attribute.sampled,
+        show.progress = FALSE
+    )
+
+
+    # --- Cluster Evaluation [] ---
+    # Key functions: consolidate_entity_attribute, clusterJudge
+    data(ccyclered)
+    data(mi.GO.Yeast)
+    data(Yeast.GO.assocs)
+    ccyclered$SGDID <- sub("^S", "S00", ccyclered$SGDID)
+    clusters <- ccyclered$Cluster
+    names(clusters) <- ccyclered$SGDID
+    Yeast.GO.assocs.cons <- consolidate_entity_attribute(
+        entity.attribute = Yeast.GO.assocs,
+        min.entities.per.attr = 3,
+        mut.inf = mi.GO.Yeast,
+        U.limit = c(0.1, 0.001)
+    )
+    mi.by.swaps <- clusterJudge(
+        clusters = clusters,
+        entity.attribute = Yeast.GO.assocs.cons[["0.001"]],
+        plot.notes = "Yeast clusters judged at uncertainty level 0.001",
+        plot.saveRDS.file = "cj.rds"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
