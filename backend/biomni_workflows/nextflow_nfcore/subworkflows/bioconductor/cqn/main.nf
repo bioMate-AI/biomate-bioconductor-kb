@@ -38,76 +38,28 @@ process BIOC_CQN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cqn)
     library(DGEList)
     library(jsonlite)
 
-    # --- Data1 [] ---
-    # Key functions: data
-    data(montgomery.subset)
-    dim(montgomery.subset)
-    montgomery.subset[1:4,1:4]
-    colnames(montgomery.subset)
-    # --- Data2 [] ---
-    # Key functions: data
-    data(sizeFactors.subset)
-    sizeFactors.subset[1:4]
-    # --- Data3 [] ---
-    # Key functions: data
-    data(uCovar)
-    head(uCovar)
-    # --- Cqncall [] ---
-    # Key functions: cqn
-    cqn.subset <- cqn(montgomery.subset, lengths = uCovar$length,
-                      x = uCovar$gccontent, sizeFactors = sizeFactors.subset,
-                      verbose = TRUE)
-    cqn.subset
-    # --- Cqnplot1 [] ---
+    # --- Normalisation Diagnostics and Plotting [] ---
     # Key functions: cqnplot
-    par(mfrow=c(1,2))
-    cqnplot(cqn.subset, n = 1, xlab = "GC content", lty = 1, ylim = c(1,7))
-    cqnplot(cqn.subset, n = 2, xlab = "length", lty = 1, ylim = c(1,7))
-    # --- Rpkmvalues [] ---
-    # Key functions: sweep
-    RPM <- sweep(log2(montgomery.subset + 1), 2, log2(sizeFactors.subset/10^6))
-    RPKM.std <- sweep(RPM, 1, log2(uCovar$length / 10^3))
-    # --- Whgenes [] ---
-    # Key functions: rowMeans
-    whGenes <- which(rowMeans(RPKM.std) >= 2 & uCovar$length >= 100)
-    M.std <- rowMeans(RPKM.std[whGenes, grp1]) - rowMeans(RPKM.std[whGenes, grp2])
-    A.std <- rowMeans(RPKM.std[whGenes,])
-    M.cqn <- rowMeans(RPKM.cqn[whGenes, grp1]) - rowMeans(RPKM.cqn[whGenes, grp2])
-    A.cqn <- rowMeans(RPKM.cqn[whGenes,])
-    # --- Maplots [] ---
-    # Key functions: alpha
-    par(mfrow = c(1,2))
-    plot(A.std, M.std, cex = 0.5, pch = 16, xlab = "A", ylab = "M",
-         main = "Standard RPKM", ylim = c(-4,4), xlim = c(0,12),
-         col = alpha("black", 0.25))
-    plot(A.cqn, M.cqn, cex = 0.5, pch = 16, xlab = "A", ylab = "M",
-    # --- Edgerconstructor [] ---
-    # Key functions: DGEList
-    library(edgeR)
-    d.mont <- DGEList(counts = montgomery.subset, lib.size = sizeFactors.subset,
-                      group = rep(c("grp1", "grp2"), each = 5), genes = uCovar)
-    # --- Edgerdisp [] ---
-    # Key functions: estimateGLMCommonDisp
-    design <- model.matrix(~ d.mont$sample$group)
+    par(mfrow = c(1, 2))
+    cqnplot(cqn.subset, n = 1, xlab = "GC content", lty = 1, ylim = c(1, 7))
+    cqnplot(cqn.subset, n = 2, xlab = "length", lty = 1, ylim = c(1, 7))
+
+
+    # --- Integration with Differential Expression [] ---
+    # Key functions: cqn
+    d.mont <- edgeR::DGEList(
+        counts = montgomery.subset,
+        lib.size = sizeFactors.subset,
+        group = rep(c("grp1", "grp2"), each = 5),
+        genes = uCovar
+    )
     d.mont$offset <- cqn.subset$glm.offset
-    d.mont.cqn <- estimateGLMCommonDisp(d.mont, design = design)
-    # --- Edgerfit [] ---
-    # Key functions: glmFit, glmLRT, topTags
-    efit.cqn <- glmFit(d.mont.cqn, design = design)
-    elrt.cqn <- glmLRT(efit.cqn, coef = 2)
-    topTags(elrt.cqn, n = 2)
-    # --- Summary [] ---
-    # Key functions: decideTests
-    summary(decideTests(elrt.cqn))
-    # --- Edgerstd [] ---
-    # Key functions: estimateGLMCommonDisp, glmFit, glmLRT, decideTests
-    d.mont.std <- estimateGLMCommonDisp(d.mont, design = design)
-    efit.std <- glmFit(d.mont.std, design = design)
-    elrt.std <- glmLRT(efit.std, coef = 2)
-    summary(decideTests(elrt.std))
+    design <- model.matrix(~ d.mont$sample$group)
+    d.mont.cqn <- edgeR::estimateGLMCommonDisp(d.mont, design = design)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

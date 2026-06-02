@@ -38,69 +38,42 @@ process BIOC_CYTOMDS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CytoMDS)
     library(Bodenmiller_BCR_XL_flowSet)
     library(SnowParam)
     library(jsonlite)
 
-    # --- Bodenmiller_ B C R_ X L_flow Set [] ---
-    # Key functions: Bodenmiller_BCR_XL_flowSet
-    BCRXL_fs <- HDCytoData::Bodenmiller_BCR_XL_flowSet()
-    # --- p Data [] ---
-    # Key functions: pData, keyword
-    phenoData <- flowCore::pData(BCRXL_fs)
-    keyword(BCRXL_fs[[1]], "EXPERIMENT_INFO")$EXPERIMENT_INFO
-    phenoData <- cbind(phenoData, additionalPhenoData)
-    # --- keyword [] ---
-    # Key functions: keyword
-    markerInfo <- keyword(BCRXL_fs[[1]], "MARKER_INFO")$MARKER_INFO
-    table(chClass)
-    (chMarkers <- markerInfo$marker_name[chClass != "none"])
-    # --- arcsinh Transform [] ---
-    # Key functions: arcsinhTransform, transform, transformList
-    trans <- arcsinhTransform(
-    BCRXL_fs_trans <- transform(
-    transformList(chLabels, trans))
-    # --- pairwise E M D Dist [] ---
-    # Key functions: pairwiseEMDDist
-    pwDist <- pairwiseEMDDist(
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_histogram, theme_bw
-    distVec <- pwDist[upper.tri(pwDist)]
-    distVecDF <- data.frame(dist = distVec)
-    pHist <- ggplot(distVecDF, mapping = aes(x=dist)) +
-    # --- compute Metric M D S [] ---
-    # Key functions: computeMetricMDS, show
+    # --- Multidimensional Scaling [] ---
+    # Key functions: computeMetricMDS
     mdsObj <- computeMetricMDS(pwDist, seed = 0)
-    show(mdsObj)
-    # --- plotMDS1 simplest [] ---
-    # Key functions: ggplotSampleMDS
-    ggplotSampleMDS(mdsObj)
-    # --- plotMDS colours shapes 1 2 [] ---
-    # Key functions: ggplotSampleMDS
+    mdsObj2 <- computeMetricMDS(pwDist, seed = 0, nDim = 2)
+    mdsObj3 <- computeMetricMDS(
+        pwDist, seed = 0, targetPseudoRSq = 0.99
+    )
+
+
+    # --- MDS Visualisation [] ---
+    # Key functions: ggplotSampleMDS, ggplotSampleMDSShepard
     p12 <- ggplotSampleMDS(
-    projectionAxes = c(1,2),
-    # --- plotMDS colours shapes 2 3 4 [] ---
-    # Key functions: ggplotSampleMDS
-    p23 <- ggplotSampleMDS(
-    projectionAxes = c(2,3),
-    p34 <- ggplotSampleMDS(
-    # --- ggplot Sample M D S Shepard [] ---
-    # Key functions: ggplotSampleMDSShepard
-    ggplotSampleMDSShepard(mdsObj)
-    # --- compute Metric M D S [] ---
-    # Key functions: computeMetricMDS, ggplotSampleMDS
-    mdsObj2 <- CytoMDS::computeMetricMDS(pwDist, seed = 0, nDim = 2)
-    ggplotSampleMDS(mdsObj2,
-    projectionAxes = c(1,2),
-    # --- ggplot Sample M D S Shepard [] ---
-    # Key functions: ggplotSampleMDSShepard
-    ggplotSampleMDSShepard(mdsObj3)
-    # --- plotMDS medians [] ---
-    # Key functions: channelSummaryStats
-    medians <- channelSummaryStats(BCRXL_fs_trans,
-    # --- plotMDS biplot [] ---
-    # Key functions: ggplotSampleMDS
-    ggplotSampleMDS(mdsObj,
+        mdsObj, pData = phenoData, projectionAxes = c(1, 2),
+        pDataForColour = "group_id", pDataForLabel = "patient_id"
+    )
+    pShepard <- ggplotSampleMDSShepard(mdsObj)
+
+
+    # --- Biplot and Summary Statistics [] ---
+    # Key functions: channelSummaryStats, ggplotSampleMDSWrapBiplots, ggplotMarginalDensities
+    medians <- channelSummaryStats(
+        BCRXL_fs_trans, channels = chLabels, statFUNs = median
+    )
+    pBiplot <- ggplotSampleMDS(
+        mdsObj, pData = phenoData, pDataForColour = "group_id",
+        biplot = TRUE, extVariables = medians
+    )
+    pDens <- ggplotMarginalDensities(
+        BCRXL_fs_trans, channels = chLabels,
+        pDataForColour = "group_id", pDataForGroup = "sample_id"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

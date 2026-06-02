@@ -38,95 +38,41 @@ process BIOC_CNORFUZZY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CNORfuzzy)
     library(CNORwrapFuzzy)
     library(CNOlist)
     library(jsonlite)
 
-    # --- Installcnorfuzzy [] ---
-    # Key functions: requireNamespace, packages
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("CNORfuzzy")
-    # --- Quickstart [] ---
-    # Key functions: data
-    library(CNORfuzzy)
-    data(CNOlistToy, package="CellNOptR")
-    data(ToyModel, package="CellNOptR")
-    # --- Cnorfuzzy Vignette.Rnw:153 157 [] ---
-    # Key functions: data
-    library(CNORfuzzy)
-    library(xtable)
-    data(CNOlistToy, package="CellNOptR")
-    data(ToyModel, package="CellNOptR")
-    # --- Reacidtab [] ---
-    # Key functions: xtable
-    xtable(matrix(ToyModel$reacID, ncol=4), caption="The ToyModel object contains a prior knowledge
-    network with 16 reactions stored in the field \\emph{ToyModel\\$reacID}.
-    There are other fields such as \\emph{namesSpecies} or \\emph{interMat} that are used during the
-    analysis.", label="tab:reacID")
-    # --- Quickstartplotmodel [] ---
-    # Key functions: plotModel
-    library(CNORfuzzy)
-    data(CNOlistToy, package="CellNOptR")
-    data(ToyModel, package="CellNOptR")
-    plotModel(ToyModel, CNOlistToy, compressed=c("p38", "TRAF6", "Ras"))
-    # --- Quickstartplotmodelcompressed [] ---
-    # Key functions: plotModel, expandGates, compressModel, indexFinder
-    library(CNORfuzzy)
-    data(CNOlistToy, package="CellNOptR")
-    data(ToyModel, package="CellNOptR")
-    plotModel(expandGates(compressModel(ToyModel, indexFinder(CNOlistToy, ToyModel))), CNOlistToy)
-    # --- Cnolist [] ---
-    # Key functions: CNOlist
-    data(CNOlistToy, package="CellNOptR")
-    CNOlistToy = CNOlist(CNOlistToy)
-    print(CNOlistToy)
-    # --- Plotcnolist [] ---
-    # Key functions: CNOlist, plotCNOlist
-    # with the old CNOlist (output of makeCNOlist), type
-    data(CNOlistToy, package="CellNOptR")
-    plotCNOlist(CNOlistToy)
-    # with the new version, just type:
-    CNOlistToy = CNOlist(CNOlistToy)
-    # --- Cnorfuzzy Vignette.Rnw:246 250 [] ---
+    # --- Parameter Initialization [] ---
     # Key functions: defaultParametersFuzzy
-    paramsList = defaultParametersFuzzy(CNOlistToy, ToyModel)
-    paramsList$popSize = 50
-    paramsList$maxGens = 50
-    paramsList$optimisation$maxtime = 30
-    # --- Optimisation [] ---
+    data(DreamModel, package = "CellNOptR")
+    data(CNOlistDREAM, package = "CellNOptR")
+    paramsList <- defaultParametersFuzzy(CNOlistDREAM, DreamModel)
+    paramsList$popSize <- 50
+    paramsList$maxTime <- 300
+    paramsList$maxGens <- 200
+    paramsList$stallGenMax <- 50
+    paramsList$verbose <- FALSE
+
+
+    # --- Fuzzy Logic Optimization [] ---
     # Key functions: CNORwrapFuzzy
-    N = 1
-    allRes = list()
-    paramsList$verbose=TRUE
-    for (i in 1:N){
-        Res = CNORwrapFuzzy(CNOlistToy, ToyModel, paramsList=paramsList)
-    # --- Compilemultires [] ---
-    # Key functions: compileMultiRes
-    summary = compileMultiRes(allRes,show=FALSE)
-    # --- Plotmeanfuzzyfit [] ---
-    # Key functions: plotMeanFuzzyFit
-    plotMeanFuzzyFit(0.1, summary$allFinalMSEs, allRes,
-        plotParams=list(cmap_scale=0.5, cex=.9, margin=0.3))
-    # --- Fullanalysis Start [] ---
-    # Key functions: data
-    library(CNORfuzzy)
-    data(DreamModel, package="CellNOptR")
-    data(CNOlistDREAM, package="CellNOptR")
-    # --- Quickstartplotmodel2 [] ---
-    # Key functions: compressModel, indexFinder, plotModel
-    library(CNORfuzzy)
-    data(CNOlistToy, package="CellNOptR")
-    data(ToyModel, package="CellNOptR")
-    compModel = compressModel(DreamModel,  indexFinder(CNOlistDREAM, DreamModel))
-    compSpecies = compModel$speciesCompressed
-    # --- Quickstartplotmodelcompressed2 [] ---
-    # Key functions: compressModel, indexFinder, plotModel
-    library(CNORfuzzy)
-    data(CNOlistToy, package="CellNOptR")
-    data(ToyModel, package="CellNOptR")
-    compModel = compressModel(DreamModel,  indexFinder(CNOlistDREAM, DreamModel))
-    plotModel(compModel, CNOlistDREAM, graphvizParams=list(fontsize=40))
+    allRes <- list()
+    for (i in 1:1) {
+        Res <- CNORwrapFuzzy(CNOlistToy, ToyModel, paramsList = paramsList)
+        allRes[[i]] <- Res
+    }
+
+
+    # --- Multi-run Compilation and Plotting [] ---
+    # Key functions: compileMultiRes, plotMeanFuzzyFit
+    summary_res <- compileMultiRes(allRes, show = FALSE)
+    plotMeanFuzzyFit(
+        threshold = 0.1, 
+        allFinalMSEs = summary_res$allFinalMSEs, 
+        allRes = allRes,
+        plotParams = list(cmap_scale = 0.5, cex = 0.9, margin = 0.3)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

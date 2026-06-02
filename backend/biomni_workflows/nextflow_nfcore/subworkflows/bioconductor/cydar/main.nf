@@ -38,87 +38,35 @@ process BIOC_CYDAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cydar)
     library(DGEList)
     library(Subset)
     library(jsonlite)
 
-    # --- Rep [] ---
-    # Key functions: rnorm, sample
-    ---------------------------------------------------------------------
-    ncells <- 20000
-    nda <- 200
-    nmarkers <- 31
-    down.pos <- 1.8
-    # --- List [] ---
-    # Key functions: poolCells, ncdfFlowSet
-    ---------------------------------------------------------------------
-    library(ncdfFlow)
-    collected.exprs <- list()
-    for (i in seq_along(conditions)) {
-        stuff <- list(combined[sample.id==i,,drop=FALSE])
-    # --- Poolcells [] ---
-    # Key functions: poolCells
-    ---------------------------------------------------------------------
-    pool.ff <- poolCells(collected.exprs)
-    # --- Estimatelogicle [] ---
-    # Key functions: estimateLogicle, transform
-    ---------------------------------------------------------------------
-    library(flowCore)
-    trans <- estimateLogicle(pool.ff, colnames(pool.ff))
-    proc.ff <- transform(pool.ff, trans)
-    # --- Outliergate [] ---
-    # Key functions: outlierGate, filter
-    ---------------------------------------------------------------------
-    gate.31 <- outlierGate(proc.ff, "Marker31", type="upper")
-    gate.31
-    filter.31 <- filter(proc.ff, gate.31)
-    summary(filter.31@subSet)
-    # --- Transform [] ---
-    # Key functions: transform
-    ---------------------------------------------------------------------
-    processed.exprs <- transform(collected.exprs, trans)
-    # --- Subset [] ---
-    # Key functions: Subset
-    ---------------------------------------------------------------------
-    processed.exprs <- Subset(processed.exprs, gate.31)
-    # --- Preparecelldata [] ---
-    # Key functions: prepareCellData
-    ---------------------------------------------------------------------
+    # --- Cell Data Preparation and Counting [] ---
+    # Key functions: prepareCellData, countCells
     cd <- prepareCellData(processed.exprs)
-    # --- Countcells [] ---
-    # Key functions: countCells
-    ---------------------------------------------------------------------
-    cd <- countCells(cd, tol=0.5)
-    # --- Head [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    head(assay(cd))
-    # --- Head [] ---
-    # Key functions: intensities
-    ---------------------------------------------------------------------
-    head(intensities(cd))
-    # --- Dgelist [] ---
-    # Key functions: DGEList, assay
-    ---------------------------------------------------------------------
-    library(edgeR)
-    y <- DGEList(assay(cd), lib.size=cd$totals)
-    # --- Avelogcpm [] ---
-    # Key functions: aveLogCPM
-    ---------------------------------------------------------------------
-    keep <- aveLogCPM(y) >= aveLogCPM(5, mean(cd$totals))
-    cd <- cd[keep,]
-    y <- y[keep,]
-    # --- Matrix [] ---
-    # Key functions: factor, estimateDisp, glmQLFit, glmQLFTest
-    ---------------------------------------------------------------------
-    design <- model.matrix(~factor(conditions))
-    y <- estimateDisp(y, design)
-    fit <- glmQLFit(y, design, robust=TRUE)
-    res <- glmQLFTest(fit, coef=2)
-    # --- Spatialfdr [] ---
-    # Key functions: spatialFDR, intensities
-    ---------------------------------------------------------------------
+    cd <- countCells(cd, tol = 0.5)
+
+
+    # --- Spatial FDR and Sphere Selection [] ---
+    # Key functions: spatialFDR, findFirstSphere, intensityRanges
     qvals <- spatialFDR(intensities(cd), res$table$PValue)
+    nonred <- findFirstSphere(intensities(cd), res$table$PValue)
+    limits <- intensityRanges(cd, p = 0.05)
+
+
+    # --- Visualisation of Sphere Intensities [] ---
+    # Key functions: plotSphereLogFC, plotSphereIntensity, interpretSpheres
+    plotSphereLogFC(coords$x[, 1], coords$x[, 2], sig.res$logFC)
+    plotSphereIntensity(
+        coords$x[, 1], coords$x[, 2], sig.coords[, 1],
+        irange = limits[, 1], main = "Marker1"
+    )
+    app <- interpretSpheres(
+        cd, select = nonred, metrics = res$table, run = FALSE,
+        red.coords = all.coords$x[, 1:2], red.highlight = is.sig
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

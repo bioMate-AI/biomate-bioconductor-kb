@@ -38,24 +38,47 @@ process BIOC_CHEMMINER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ChemmineR)
     library(SDFDataTable)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: conMA, rowSums
-    conMA(sdfset[1:2],
-    exclude=c("H")) # Create bond matrix for first two molecules in sdfset
-    conMA(sdfset[[1]], exclude=c("H")) # Return bond matrix for first molecule
-    # --- Hierarchical clustering [] ---
-    # Key functions: hclust
-    simMA <- sapply(cid(fpset), function(x) fpSim(fpset[x], fpset, sorted=FALSE))
-    hc <- hclust(as.dist(1-simMA), method="single")
-    plot(as.dendrogram(hc), edgePar=list(col=4, lwd=2), horiz=TRUE)
-    # --- Sdf2smiles analysis [] ---
-    # Key functions: sdf2smiles, smiles2sdf, view, atomcountMA, SDFDataTable, fmcs, plotMCS, cid
-    inchis <- c(
-    "InChI=1S/C15H26O/c1-9(2)11-6-5-10(3)15-8-7-14(4,16)13(15)12(11)15/h9-13,16H,5-8H2,1-4H3/t10-,11+,12-,13+,14+,15-/m1/s1",
-    "InChI=1S/C15H20Br2O2/c1-2-12(17)13-7-3-4-8-14-15(19-13)10-11(18-14)6-5-9-16/h3-4,6,9,11-15H,2,7-8,10H2,1H3/t5-,11-,12+,13+,14-,15-/m1/s1",
+    # --- Property Extraction and Matrix Conversion [] ---
+    # Key functions: datablock, datablock2ma, splitNumChar, MW, MF
+    blockmatrix <- datablock2ma(datablocklist=datablock(sdfset))
+    numchar <- splitNumChar(blockmatrix=blockmatrix)
+    propma <- data.frame(
+        MF=MF(sdfset), 
+        MW=MW(sdfset), 
+        atomcountMA(sdfset)
+    )
+    datablock(sdfset) <- propma
+
+
+    # --- Compound Clustering and Similarity Search [] ---
+    # Key functions: cmp.search, cmp.cluster
+    data(apset)
+    search_res <- cmp.search(
+        apset, 
+        apset[1], 
+        type=3, 
+        cutoff=0.3, 
+        quiet=TRUE
+    )
+    clust_res <- cmp.cluster(
+        db=apset, 
+        cutoff=c(0.65, 0.5), 
+        quiet=TRUE
+    )
+
+
+    # --- Database Storage and Querying [] ---
+    # Key functions: initDb, loadSdf, rings, findCompounds, getCompounds
+    conn <- initDb("test.db")
+    ids <- loadSdf(conn, sdfset, function(s) {
+        data.frame(rings(s, type="count", upper=6, arom=TRUE))
+    })
+    results <- findCompounds(conn, "rings", c("rings <= 1"))
+    compounds <- getCompounds(conn, results, keepOrder=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

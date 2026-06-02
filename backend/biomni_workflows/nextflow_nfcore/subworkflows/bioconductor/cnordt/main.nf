@@ -41,38 +41,48 @@ process BIOC_CNORDT {
     library(CNORdt)
     library(jsonlite)
 
-    # --- Installpackage [] ---
-    # Key functions: requireNamespace, packages
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("CNORdt")
-    # --- Getdata [] ---
-    # Key functions: data
-    data(CNOlistPB, package="CNORdt")
-    data(modelPB, package="CNORdt")
-    # --- Preprocess [] ---
-    # Key functions: preprocessing
-    # pre-process model
-    model = preprocessing(CNOlistPB, modelPB)
-    initBstring <- rep(1, length(model$reacID))
-    # --- Optimise [] ---
+    # --- Genetic Algorithm Optimization [] ---
     # Key functions: gaBinaryDT
-    opt1 <- gaBinaryDT(CNOlist=CNOlistPB, model=model, initBstring=initBstring,
-    verbose=FALSE, boolUpdates=10, maxTime=30, lowerB=0.8, upperB=10)
-    # --- Plotdata [] ---
+    opt1 <- gaBinaryDT(
+        CNOlist = CNOlistPB, 
+        model = model, 
+        initBstring = initBstring,
+        verbose = FALSE, 
+        boolUpdates = 10, 
+        maxTime = 30, 
+        lowerB = 0.8, 
+        upperB = 10
+    )
+
+
+    # --- Results Visualization [] ---
     # Key functions: cutAndPlotResultsDT
     cutAndPlotResultsDT(
-    	model=model,
-    	CNOlist=CNOlistPB,
-    	bString=opt1$bString,
-    	plotPDF=FALSE,
-    # --- Writeres [] ---
+        model = model,
+        CNOlist = CNOlistPB,
+        bString = opt1$bString,
+        plotPDF = FALSE,
+        boolUpdates = 10,
+        lowerB = 0.8,
+        upperB = 10
+    )
+
+
+    # --- Export Network and Scaffold [] ---
     # Key functions: writeScaffold, writeNetwork
     writeScaffold(
-    	modelComprExpanded=model,
-    	optimResT1=opt1,
-    	optimResT2=NA,
-    	modelOriginal=modelPB,
+        modelComprExpanded = model,
+        optimResT1 = opt1,
+        optimResT2 = NA,
+        modelOriginal = modelPB,
+        CNOlist = CNOlistPB
+    )
+    writeNetwork(
+        modelOriginal = modelPB,
+        modelComprExpanded = model,
+        optimResT1 = opt1,
+        CNOlist = CNOlistPB
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

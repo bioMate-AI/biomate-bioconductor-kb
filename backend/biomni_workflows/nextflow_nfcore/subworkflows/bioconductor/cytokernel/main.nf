@@ -38,19 +38,26 @@ process BIOC_CYTOKERNEL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cytoKernel)
     library(CytoK)
     library(CytoKDEData)
     library(CytoKDEfeatures)
     library(jsonlite)
 
-    # --- CytoK output [] ---
-    # Key functions: CytoK, CytoKDEfeatures
-    library(cytoKernel)
-    CytoK_output<- CytoK(cytoHDBMW,group_factor = rep(c(0, 1),
-    c(4, 4)),lowerRho=2,upperRho=12,gridRho=4,
-    # --- Cyto K D E Data [] ---
-    # Key functions: CytoKDEData
-    CytoKDEData_HD<- CytoKDEData(CytoK_output, by = "features")
+    # --- Feature Filtering and Extraction [] ---
+    # Key functions: CytoKDEfeatures, CytoKDEData
+    de_percent <- CytoKDEfeatures(CytoK_output)
+    CytoKDEData_HD <- CytoKDEData(CytoK_output, by = "features")
+
+
+    # --- Visualisation of Differential Features [] ---
+    # Key functions: plotCytoK, CytoKFeaturesOrdered
+    heatmap1 <- plotCytoK(
+        CytoK_output,
+        group_factor = rep(c(0, 1), c(4, 4)),
+        topK = 10, featureVars = NULL
+    )
+    featureOrderedExtracted <- CytoKFeaturesOrdered(CytoK_output)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

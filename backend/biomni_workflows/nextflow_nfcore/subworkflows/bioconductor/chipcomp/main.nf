@@ -41,26 +41,17 @@ process BIOC_CHIPCOMP {
     library(ChIPComp)
     library(jsonlite)
 
-    # --- Makeconf [] ---
-    # Key functions: makeConf
-    library(ChIPComp)
-    confs=makeConf(system.file("extdata", "conf.csv", package="ChIPComp"))
-    conf=confs$conf
-    design=confs$design
-    # --- Frame [] ---
-    # Key functions: frame, factor
-    conf=data.frame(
-    SampleID=1:4,
-    condition=c("Helas3","Helas3","K562","K562"),
-    factor=c("H3k27ac","H3k27ac","H3k27ac","H3k27ac"),
-    ipReads=system.file("extdata",c("Helas3.ip1.bed","Helas3.ip2.bed","K562.ip1.bed","K562.ip2.bed"),package="ChIPComp"),
-    # --- Makecountset [] ---
-    # Key functions: makeCountSet
-    countSet=makeCountSet(conf,design,filetype="bed", species="hg19",binsize=1000)
-    # --- Chipcomp [] ---
+    # --- Differential Binding Analysis [] ---
     # Key functions: ChIPComp
-    countSet=ChIPComp(countSet)
-    print(countSet)
+    data(countSet)
+    ans <- ChIPComp(countSet)
+
+
+    # --- Statistical Filtering [] ---
+    # Key functions: ChIPComp
+    data(countSet)
+    ans <- ChIPComp(countSet)
+    sig_peaks <- ans[ans$pvalue < 0.05, ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

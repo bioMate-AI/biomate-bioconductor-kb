@@ -38,6 +38,7 @@ process BIOC_CNER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CNEr)
     library(BiomartGeneRegionTrack)
     library(CNE)
     library(CNE12)
@@ -46,16 +47,71 @@ process BIOC_CNER {
     library(UcscTrack)
     library(jsonlite)
 
-    # --- Connect to BioMart [] ---
-    # Key functions: browserSession, genome, useMart, useDataset, listAttributes, GenomeAxisTrack, UcscTrack, BiomartGeneRegionTrack
-    library(rtracklayer)
-    mySession <- browserSession("UCSC")
-    genome(mySession) <- "hg38"
-    # --- ReadAxt analysis [] ---
-    # Key functions: readAxt, matchDistribution, syntenicDotplot, readBed, CNE, ceScan, CNE12, CNE21
-    bedDanRer10Fn <- file.path(system.file("extdata", package="CNEr"),
-    danRer10Filter <- readBed(bedDanRer10Fn)
-    bedHg38Fn <- file.path(system.file("extdata", package="CNEr"),
+    # --- Alignment Quality Control [] ---
+    # Key functions: matchDistribution, syntenicDotplot
+    matchDistribution(axtHg38DanRer10)
+    fn_chr4 <- system.file("extdata", "chr4.hg19.galGal3.net.axt.gz", package = "CNEr")
+    axt_chr4 <- readAxt(
+        fn_chr4, 
+        tAssemblyFn = system.file("extdata", package = "BSgenome.Hsapiens.UCSC.hg19"),
+        qAssemblyFn = system.file("extdata", package = "BSgenome.Ggallus.UCSC.galGal3")
+    )
+    syntenicDotplot(axt_chr4, firstChrs = "chr4", secondChrs = "chr4", type = "dot")
+
+
+    # --- Conserved Non-coding Elements Scanning [] ---
+    # Key functions: CNE, ceScan, CNE12, CNE21
+    cneDanRer10Hg38 <- CNE(
+        assembly1Fn = system.file("extdata", package = "BSgenome.Drerio.UCSC.danRer10"),
+        assembly2Fn = system.file("extdata", package = "BSgenome.Hsapiens.UCSC.hg38"),
+        axt12Fn = axt_danRer, 
+        axt21Fn = axt_hg38,
+        cutoffs1 = 8L, 
+        cutoffs2 = 4L
+    )
+    cneList <- ceScan(
+        x = cneDanRer10Hg38, 
+        tFilter = danRer10Filter,
+        qFilter = hg38Filter,
+        window = c(50L, 50L, 50L), 
+        identity = c(45L, 48L, 49L)
+    )
+    cne_12_res <- CNE12(cneList[["45_50"]])
+
+
+    # --- CNE Merging and Database Storage [] ---
+    # Key functions: cneMerge, saveCNEToSQLite
+    cneMergedList <- lapply(cneList, cneMerge)
+    db_path <- tempfile()
+    saveCNEToSQLite(
+        cneMergedList[[1]], 
+        dbName = db_path, 
+        tableName = "danRer10_hg38_45_50",
+        overwrite = TRUE
+    )
+
+
+    # --- Query and Density Visualization [] ---
+    # Key functions: readCNERangesFromSQLite, plotCNEWidth, CNEDensity
+    fetchedRanges <- readCNERangesFromSQLite(
+        dbName = db_path, 
+        tableName = "danRer10_hg38_45_50", 
+        chr = "chr6", 
+        start = 24000000L, 
+        end = 27000000L, 
+        whichAssembly = "first",
+        minLength = 50L
+    )
+    cne_density <- CNEDensity(
+        dbName = db_path, 
+        tableName = "danRer10_hg38_45_50",
+        whichAssembly = "first", 
+        chr = "chr6", 
+        start = 24000000L,
+        end = 27000000L, 
+        windowSize = 200L, 
+        minLength = 50L
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

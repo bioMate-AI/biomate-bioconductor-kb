@@ -38,29 +38,36 @@ process BIOC_CHETAH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CHETAH)
     library(CHETAHclassifier)
     library(PlotCHETAH)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, CHETAHclassifier, PlotCHETAH
-    reference <- SingleCellExperiment(assays = list(counts = ref_counts),
-    colData = DataFrame(celltypes = ref_ct))
-    input <- SingleCellExperiment(assays = list(counts = input_counts),
-    # --- assay [] ---
-    # Key functions: assay, reducedDim
-    data('headneck_ref')
-    data('input_mel')
-    counts_hn <- assay(headneck_ref)
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment
-    headneck_ref <- SingleCellExperiment(assays = list(counts = counts_hn),
-    colData = DataFrame(celltypes = celltypes_hn))
-    input_mel <- SingleCellExperiment(assays = list(counts = counts_melanoma),
-    # --- C H E T A Hclassifier [] ---
-    # Key functions: CHETAHclassifier
-    input_mel <- CHETAHclassifier(input = input_mel,
+    # --- Cell Type Classification [] ---
+    # Key functions: CHETAHclassifier, Classify
+    input_mel <- CHETAHclassifier(
+        input = input_mel,
+        ref_cells = headneck_ref
+    )
+    input_mel <- Classify(input = input_mel, 0.8)
+
+
+    # --- Classification Refinement [] ---
+    # Key functions: RenameBelowNode, Classify
+    input_mel <- RenameBelowNode(
+        input_mel, 
+        whichnode = 6,
+        replacement = "T cell"
+    )
+    input_mel <- Classify(input_mel, 0.1)
+
+
+    # --- Reference Evaluation and Visualisation [] ---
+    # Key functions: PlotCHETAH, CorrelateReference, ClassifyReference
+    PlotCHETAH(input = input_mel, tree = FALSE)
+    cor_ref <- CorrelateReference(ref_cells = headneck_ref)
+    class_ref <- ClassifyReference(ref_cells = headneck_ref)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

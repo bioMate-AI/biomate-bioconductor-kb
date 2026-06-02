@@ -38,6 +38,7 @@ process BIOC_CRISPRBASE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(crisprBase)
     library(BaseEditor)
     library(Cas12a)
     library(Cas9)
@@ -48,84 +49,59 @@ process BIOC_CRISPRBASE {
     library(TTTV)
     library(jsonlite)
 
-    # --- Nuclease [] ---
-    # Key functions: Nuclease, GACGC
-    ---------------------------------------------------------------------
-    HgaI <- Nuclease("HgaI",
-                     targetType="DNA",
-                     motifs=c("GACGC(5/10)"),
-                     metadata=list(description="HgaI restriction enzyme"))
-    # --- Nuclease [] ---
-    # Key functions: Nuclease
-    ---------------------------------------------------------------------
-    PfaAI <- Nuclease("PfaAI",
-                      targetType="DNA",
-                      motifs=c("G^GYRCC"),
-                      metadata=list(description="PfaAI restriction enzyme"))
-    # --- Motifs [] ---
-    # Key functions: motifs
-    ---------------------------------------------------------------------
-    motifs(PfaAI)
-    # --- Crisprnuclease [] ---
-    # Key functions: CrisprNuclease, Cas9
-    ---------------------------------------------------------------------
-    SpCas9 <- CrisprNuclease("SpCas9",
-                             targetType="DNA",
-                             pams=c("(3/3)NGG", "(3/3)NAG", "(3/3)NGA"),
-                             weights=c(1, 0.2593, 0.0694),
-    # --- Crisprnuclease [] ---
-    # Key functions: CrisprNuclease, TTTV, Cas12a
-    ---------------------------------------------------------------------
-    AsCas12a <- CrisprNuclease("AsCas12a",
-                               targetType="DNA",
-                               pams="TTTV(18/23)",
-                               metadata=list(description="Wildtype Acidaminococcus
-    # --- Data [] ---
-    # Key functions: cutSites
-    ---------------------------------------------------------------------
-    data(SpCas9, package="crisprBase")
-    data(AsCas12a, package="crisprBase")
-    cutSites(SpCas9)
-    cutSites(SpCas9, strand="-")
-    # --- Rep [] ---
+    # --- CRISPR Nuclease Definition [] ---
+    # Key functions: CrisprNuclease, cutSites
+    SpCas9 <- CrisprNuclease(
+        "SpCas9",
+        targetType = "DNA",
+        pams = c("(3/3)NGG", "(3/3)NAG", "(3/3)NGA"),
+        weights = c(1, 0.2593, 0.0694),
+        metadata = list(description = "SpCas9 nuclease"),
+        pam_side = "3prime",
+        spacer_length = 20
+    )
+    cs_plus <- cutSites(SpCas9, strand = "+")
+    cs_minus <- cutSites(SpCas9, strand = "-")
+
+
+    # --- Target and Protospacer Extraction [] ---
+    # Key functions: extractPamFromTarget, extractProtospacerFromTarget
+    targets <- c("AGGTGCTGATTGTAGTGCTGCGG", "AGGTGCTGATTGTAGTGCTGAGG")
+    pams <- extractPamFromTarget(targets, SpCas9)
+    spacers <- extractProtospacerFromTarget(targets, SpCas9)
+
+
+    # --- Genomic Range Mapping [] ---
     # Key functions: getPamRanges, getProtospacerRanges, getTargetRanges
-    ---------------------------------------------------------------------
-    chr      <- rep("chr7",2)
-    pam_site <- rep(200,2)
-    strand   <- c("+", "-")
-    gr_pam <- getPamRanges(seqnames=chr,
-    # --- Getpamranges [] ---
-    # Key functions: getPamRanges, getProtospacerRanges, getTargetRanges
-    ---------------------------------------------------------------------
-    gr_pam <- getPamRanges(seqnames=chr,
-                           pam_site=pam_site,
-                           strand=strand,
-                           nuclease=AsCas12a)
-    # --- Data [] ---
-    # Key functions: BaseEditor, metadata
-    ---------------------------------------------------------------------
-    data(SpCas9, package="crisprBase")
-    BE4max <- BaseEditor(SpCas9,
-                         baseEditorName="BE4max",
-                         editingStrand="original",
-    # --- Ploteditingweights [] ---
-    # Key functions: plotEditingWeights
-    ---------------------------------------------------------------------
+    chr <- rep("chr7", 2)
+    pam_site <- rep(200, 2)
+    strand <- c("+", "-")
+    gr_pam <- getPamRanges(
+        seqnames = chr, pam_site = pam_site,
+        strand = strand, nuclease = SpCas9
+    )
+    gr_proto <- getProtospacerRanges(
+        seqnames = chr, pam_site = pam_site,
+        strand = strand, nuclease = SpCas9
+    )
+    gr_target <- getTargetRanges(
+        seqnames = chr, pam_site = pam_site,
+        strand = strand, nuclease = SpCas9
+    )
+
+
+    # --- Base Editor Design and Visualisation [] ---
+    # Key functions: BaseEditor, plotEditingWeights
+    ws_matrix <- matrix(0.1, nrow = 4, ncol = 20)
+    rownames(ws_matrix) <- c("A", "C", "G", "T")
+    colnames(ws_matrix) <- 1:20
+    BE4max <- BaseEditor(
+        SpCas9,
+        baseEditorName = "BE4max",
+        editingStrand = "original",
+        editingWeights = ws_matrix
+    )
     plotEditingWeights(BE4max)
-    # --- Crisprnickase [] ---
-    # Key functions: CrisprNickase, Cas9
-    ---------------------------------------------------------------------
-    Cas9D10A <- CrisprNickase("Cas9D10A",
-                               nickingStrand="opposite",
-                               pams=c("(3)NGG", "(3)NAG", "(3)NGA"),
-                               weights=c(1, 0.2593, 0.0694),
-    # --- Crisprnuclease [] ---
-    # Key functions: CrisprNuclease
-    ---------------------------------------------------------------------
-    CasRx <- CrisprNuclease("CasRx",
-                            targetType="RNA",
-                            pams="N",
-                            metadata=list(description="CasRx nuclease"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

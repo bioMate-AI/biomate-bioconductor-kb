@@ -41,80 +41,21 @@ process BIOC_CNORFEEDER {
     library(CNORfeeder)
     library(jsonlite)
 
-    # --- Installpackage2 [] ---
-    # Key functions: packages
-    ## install.packages("path_to_CNORfeeder/CNORfeeder_1.0.0.tar.gz",
-    ##     repos=NULL, type="source")
-    # --- Getdata1 [] ---
-    # Key functions: model
-    ## # load the data already formatted as CNOlist
-    ## data(CNOlistDREAM,package="CellNOptR")
-    ## # load the model (PKN) already in the CNO format
-    ## data(DreamModel,package="CellNOptR")
-    # --- Getdata2 [] ---
-    # Key functions: makeBTables
-    ## BTable <- makeBTables(CNOlist=CNOlistDREAM, k=2, measErr=c(0.1, 0))
-    # --- Linkrank [] ---
-    # Key functions: linksRanking
-    ## Lrank <- linksRanking(CNOlist=CNOlistDREAM, measErr=c(0.1, 0), savefile=FALSE)
-    # --- Getdata3 [] ---
-    # Key functions: preprocessing
-    ## model<-preprocessing(data=CNOlistDREAM, model=DreamModel)
-    # --- Integration [] ---
-    # Key functions: mapBTables2model
-    ## modelIntegr <- mapBTables2model(BTable=BTable,model=model,allInter=TRUE)
-    # --- Plotdata [] ---
-    # Key functions: plotModel
-    ## plotModel(model=modelIntegr, CNOlist=CNOlistDREAM, indexIntegr=modelIntegr$indexIntegr)
-    # --- Weight [] ---
-    # Key functions: weighting
-    ## modelIntegrWeight <- weighting(modelIntegr=modelIntegr, PKNmodel=DreamModel,
-    ##                                CNOlist=CNOlistDREAM, integrFac=10)
-    # --- Weightppi [] ---
-    # Key functions: weighting
-    ## data(PPINigraph,package="CNORfeeder")
-    ## data(UniprotIDdream,package="CNORfeeder")
-    ## modelIntegrWeight <- weighting(modelIntegr=modelIntegr, PKNmodel=DreamModel,
-    ##                                CNOlist=CNOlistDREAM, integrFac=10,
-    ##                                UniprotID=UniprotIDdream, PPI=PPINigraph)
-    # --- Train [] ---
-    # Key functions: algorithm, gaBinaryT1W
-    ## # training to data using genetic algorithm (run longer to obtain better results)
-    ## DreamT1opt<-gaBinaryT1W(CNOlist=CNOlistDREAM, model=modelIntegrWeight,
-    ##                         maxGens=2, popSize=5, verbose=FALSE)
-    # --- Results1 [] ---
-    # Key functions: plotModel, cutAndPlotResultsT1
-    ## # model
-    ## plotModel(model=modelIntegrWeight, CNOlist=CNOlistDREAM, bString=DreamT1opt$bString)
-    ## # data
-    ## cutAndPlotResultsT1(model=modelIntegrWeight, CNOlist=CNOlistDREAM,
-    ##                     bString=DreamT1opt$bString)
-    # --- Results2 [] ---
-    # Key functions: plotModel, plotCNOlist
-    ## # loading the necessary packages
-    ## library(CellNOptR)
-    ## library(MEIGOR)
-    ## library(CNORode)
-    ## library(doParallel)
-    # --- Results3 [] ---
-    # Key functions: import_Omnipath_Interactions
-    ## ## Loading database
-    ## data(database, package="CNORfeeder")
-    ## ## Alternatively, users can download the database from Omnipath and retain only
-    ## ## activatory/inhibitory interactions as shown below.
-    ## ## Please note that OmniPath is in continuous update and new links are
-    # --- Results4 [] ---
-    # Key functions: parameters, createLBodeContPars, defaultParametersSSm, parEstimationLBode, plotLBodeFitness
-    ## # set initial parameters (here parameters k and tau are optimised and n fixed to 3)
-    ## ode_parameters=createLBodeContPars(model, LB_n = 1, LB_k = 0,
-    ##                                    LB_tau = 0, UB_n = 3, UB_k = 1,
-    ##                                    UB_tau = 1, default_n = 3,
-    ##                                    default_k = 0.5, default_tau = 0.01,
-    # --- Results5 [] ---
-    # Key functions: fits, identifyMisfitIndices
-    ## # Identifying the mis-fits (measurements with mse worse than 0.05)
-    ## indices = identifyMisfitIndices(cnolist = cnolist, model = model,
-    ##                                 simData = simData, mseThresh = 0.05)
+    # --- Feeder Path Identification [] ---
+    # Key functions: feederRetrofitting
+    feeder_res <- feederRetrofitting(
+        CNOlist = CNOlistToy,
+        model = ToyModel,
+        database = retrofitted_links
+    )
+
+
+    # --- Integrated Model Generation [] ---
+    # Key functions: mapBack
+    integrated_model <- mapBack(
+        model = ToyModel,
+        addedLinks = feeder_res
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
