@@ -21,6 +21,8 @@
  *   BC-08   WGS GATK4 routing
  *   BC-09   Bismark WGBS routing
  *   BC-10   Disambiguation: scRNA vs bulk RNA-seq
+ *   BC-PARAM Param editability — phase params (string input + boolean toggle) +
+ *           global Advanced settings (Override button flow for AI-prefilled params)
  *   BC-EXEC clusterProfiler/enrichGO full execution — gene list in, CSV+PNG out,
  *           file viewers, API output check, AI analysis panel, methods report
  *   BC-RS-1 InteractiveLauncher dialog structure + tool selection
@@ -830,6 +832,192 @@ for (const tc of ROUTING_CASES) {
     }
   });
 }
+
+// ===========================================================================
+// BC-PARAM — parameter editability
+//   Verifies every param type can be edited in the workflow panel:
+//   1. Phase param string/number input (inline <input class="v">)
+//   2. Phase param boolean toggle (<button class="switch">)
+//   3. Global param Override flow (AI-prefilled → Override btn → inline edit → confirm)
+// ===========================================================================
+
+test("BC-PARAM: parameter editability — phase string, phase boolean toggle, global Override flow", async ({ page }) => {
+  test.setTimeout(480_000); // 8 min: register + chat + waitForCard(300s) + param edits
+  const audit: SuiteRecord = {
+    testId: "BC-PARAM", runId: null, startTs: Date.now(), endTs: 0, finalStatus: "n/a",
+    wallTimeSec: null, steps: [], rstudio: null, assertions: [], screenshots: [],
+  };
+
+  try {
+    await registerUser(page, "bcparam");
+    audit.screenshots.push(await shot(page, "bcparam_00_ready"));
+
+    // Use a DESeq2 routing prompt — references external data so the AI opens the
+    // workflow panel rather than executing inline via run_code.
+    const PARAM_QUERY = [
+      "Set up a DESeq2 differential expression workflow for my bulk RNA-seq data.",
+      "I have a count matrix at s3://my-bucket/counts.csv with 3 treatment vs 3 control samples (human, GRCh38).",
+      "I want to configure parameters in the workflow panel before running.",
+      "padj < 0.05, |log2FC| > 1.",
+    ].join(" ");
+    const gotResponse = await sendChat(page, PARAM_QUERY, 120_000);
+    assert(audit, "ai-response-received", gotResponse);
+
+    const gotCard = await waitForWorkflowCard(page, "BC-PARAM", PARAM_QUERY, 300_000);
+    audit.screenshots.push(await shot(page, "bcparam_01_card"));
+    assert(audit, "workflow-card-appeared", gotCard);
+    if (!gotCard) return;
+
+    // ── 1. Phase param: expand first phase and test string input ──────────────
+    // Phase params only appear when steps are loaded (lazy fetch). Wait briefly.
+    await page.waitForSelector('[data-testid^="phase-params-toggle-"]', { timeout: 8000 }).catch(() => {});
+    const firstPhaseToggle = page.locator('[data-testid^="phase-params-toggle-"]').first();
+    const phaseToggleVisible = await firstPhaseToggle.isVisible({ timeout: 1000 }).catch(() => false);
+    // Soft assertion — only fails if steps load but toggle is broken, not if steps never load
+    if (!phaseToggleVisible) {
+      console.log("[BC-PARAM] phase-params-toggle not visible — steps may not have loaded for this workflow (lazy fetch)");
+    }
+    assert(audit, "phase-params-toggle-visible", phaseToggleVisible, phaseToggleVisible ? "found" : "steps not loaded (lazy fetch — soft skip)");
+
+    if (phaseToggleVisible) {
+      // Expand the phase params section
+      await firstPhaseToggle.click();
+      await page.waitForTimeout(400);
+      audit.screenshots.push(await shot(page, "bcparam_02_phase_expanded"));
+
+      // Find first string/number input inside the expanded phase params
+      const phaseStringInput = page.locator('.phase-params input.v').first();
+      const phaseInputVisible = await phaseStringInput.isVisible({ timeout: 3000 }).catch(() => false);
+      assert(audit, "phase-string-input-visible", phaseInputVisible);
+
+      if (phaseInputVisible) {
+        const originalVal = await phaseStringInput.inputValue().catch(() => "");
+        const testVal = "e2e_test_param_edit";
+        await phaseStringInput.click({ clickCount: 3 });
+        await phaseStringInput.fill(testVal);
+        await phaseStringInput.press("Tab");
+        await page.waitForTimeout(300);
+        const newVal = await phaseStringInput.inputValue().catch(() => "");
+        const editWorked = newVal === testVal || newVal !== originalVal;
+        assert(audit, "phase-string-input-editable", editWorked,
+          `val before="${originalVal}" after="${newVal}"`);
+        audit.screenshots.push(await shot(page, "bcparam_03_phase_string_edit"));
+      }
+
+      // ── 2. Phase param boolean toggle ─────────────────────────────────────
+      const phaseSwitch = page.locator('.phase-params button.switch').first();
+      const phaseSwitchVisible = await phaseSwitch.isVisible({ timeout: 3000 }).catch(() => false);
+      assert(audit, "phase-boolean-toggle-visible", phaseSwitchVisible);
+
+      if (phaseSwitchVisible) {
+        const classBeforeClick = await phaseSwitch.getAttribute("class") ?? "";
+        const wasOn = classBeforeClick.includes(" on");
+        await phaseSwitch.click();
+        await page.waitForTimeout(300);
+        const classAfterClick = await phaseSwitch.getAttribute("class") ?? "";
+        const isOnNow = classAfterClick.includes(" on");
+        const toggled = wasOn !== isOnNow;
+        assert(audit, "phase-boolean-toggle-works", toggled,
+          `class before="${classBeforeClick}" after="${classAfterClick}"`);
+        audit.screenshots.push(await shot(page, "bcparam_04_phase_bool_toggle"));
+      }
+    }
+
+    // ── 3. Global params (Advanced settings) — Override button flow ──────────
+    const advancedToggle = page.locator('[data-testid="button-toggle-workflow-settings"]');
+    const advancedToggleVisible = await advancedToggle.isVisible({ timeout: 5000 }).catch(() => false);
+    assert(audit, "advanced-settings-toggle-visible", advancedToggleVisible);
+
+    if (advancedToggleVisible) {
+      // Open Advanced settings if not already open
+      const alreadyOpen = (await advancedToggle.getAttribute("class") ?? "").includes("open");
+      if (!alreadyOpen) {
+        await advancedToggle.click();
+        await page.waitForTimeout(400);
+      }
+      audit.screenshots.push(await shot(page, "bcparam_05_advanced_open"));
+
+      // Look for AI-prefilled params with Override button
+      const overrideBtn = page.locator('[data-testid^="param-override-btn-"]').first();
+      const overrideBtnVisible = await overrideBtn.isVisible({ timeout: 3000 }).catch(() => false);
+      assert(audit, "global-override-btn-visible", overrideBtnVisible,
+        overrideBtnVisible ? "AI-prefilled param found" : "No AI-prefilled params in global section");
+
+      if (overrideBtnVisible) {
+        // Extract param ID from data-testid
+        const btnTestId = await overrideBtn.getAttribute("data-testid") ?? "";
+        const paramId = btnTestId.replace("param-override-btn-", "");
+        console.log(`[BC-PARAM] Testing Override for param: ${paramId}`);
+
+        // Click Override to enter inline edit mode
+        await overrideBtn.click();
+        await page.waitForTimeout(300);
+
+        const inlineInput = page.locator(`[data-testid="param-inline-edit-${paramId}"]`);
+        const inlineInputVisible = await inlineInput.isVisible({ timeout: 3000 }).catch(() => false);
+        assert(audit, "global-override-inline-input-appears", inlineInputVisible);
+        audit.screenshots.push(await shot(page, "bcparam_06_override_editing"));
+
+        if (inlineInputVisible) {
+          const overrideTestVal = "0.01"; // valid for pvalue_cutoff; safe for any numeric param
+          await inlineInput.click({ clickCount: 3 });
+          await inlineInput.fill(overrideTestVal);
+
+          // Confirm via Enter
+          await inlineInput.press("Enter");
+          await page.waitForTimeout(400);
+
+          // Override button should reappear (edit mode exited)
+          const overrideBtnBack = await page.locator(`[data-testid="param-override-btn-${paramId}"]`)
+            .isVisible({ timeout: 3000 }).catch(() => false);
+          assert(audit, "global-override-committed", overrideBtnBack,
+            "Override btn reappeared after confirm = edit committed");
+
+          // The direct Input with id=paramId should now reflect the committed value
+          // param IDs are snake_case so no CSS escaping needed
+          const directInput = page.locator(`[id="${paramId}"]`).first();
+          const directInputVal = await directInput.inputValue({ timeout: 2000 }).catch(() => null);
+          const valueCommitted = directInputVal === overrideTestVal || directInputVal?.includes("0.01");
+          assert(audit, "global-override-value-persisted", valueCommitted ?? false,
+            `Direct input #${paramId} value="${directInputVal}" expected="${overrideTestVal}"`);
+          audit.screenshots.push(await shot(page, "bcparam_07_override_committed"));
+        }
+      } else {
+        // No autoFilled params in global section — test direct Input edit instead
+        const globalInput = page.locator('.strip-body input[type="text"], .strip-body input[type="number"]').first();
+        const globalInputVisible = await globalInput.isVisible({ timeout: 2000 }).catch(() => false);
+        assert(audit, "global-direct-input-editable", globalInputVisible,
+          "Fallback: direct global input edit (no AI-prefilled params)");
+        if (globalInputVisible) {
+          const origVal = await globalInput.inputValue().catch(() => "");
+          await globalInput.fill("e2e_test_global");
+          await globalInput.press("Tab");
+          await page.waitForTimeout(200);
+          const newGlobalVal = await globalInput.inputValue().catch(() => "");
+          assert(audit, "global-direct-input-value-changed", newGlobalVal !== origVal,
+            `before="${origVal}" after="${newGlobalVal}"`);
+          audit.screenshots.push(await shot(page, "bcparam_07_global_direct_edit"));
+        }
+      }
+    }
+
+    // ── 4. Verify Run button still present after param edits ─────────────────
+    const runBtnStillVisible = await page.locator('[data-testid="button-run-workflow-panel"]')
+      .first().isVisible({ timeout: 5000 }).catch(() => false);
+    assert(audit, "run-btn-still-visible-after-edits", runBtnStillVisible);
+
+    audit.finalStatus = "completed";
+    console.log(`[BC-PARAM] Assertions: ${audit.assertions.filter(a => a.passed).length}/${audit.assertions.length} passed`);
+
+  } catch (err: any) {
+    audit.error = err.message;
+    await shot(page, "bcparam_error").catch(() => {});
+    throw err;
+  } finally {
+    audit.endTs = Date.now();
+    SUITE_AUDIT.push(audit);
+  }
+});
 
 // ===========================================================================
 // BC-EXEC — clusterProfiler/enrichGO full execution
