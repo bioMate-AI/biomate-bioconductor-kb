@@ -27,6 +27,12 @@ interface AfterRunReportProps {
   /** Pre-fetched outputs from the parent's executionRun state — preferred
    *  over a separate /steps fetch which doesn't exist as an endpoint. */
   outputs?: OutputFile[];
+  /** Run state for the failure section + Outputs header directory link. */
+  executionStatus?: string;
+  errorMessage?: string;
+  nextflowOutputDir?: string;
+  logTail?: string[];
+  failedSteps?: string[];
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
@@ -46,8 +52,14 @@ export function AfterRunReport({
   workflowName,
   parameters,
   outputs: outputsProp,
+  executionStatus,
+  errorMessage,
+  nextflowOutputDir,
+  logTail,
+  failedSteps,
   onContinueAnalysis,
 }: AfterRunReportProps) {
+  const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
   const [tab, setTab] = useState<TabId>("findings");
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
