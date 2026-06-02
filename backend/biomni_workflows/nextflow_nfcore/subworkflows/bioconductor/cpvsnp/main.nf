@@ -38,77 +38,35 @@ process BIOC_CPVSNP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cpvSNP)
     library(HTMLReport)
     library(jsonlite)
 
-    # --- Loadlibrariesanddata [] ---
-    # Key functions: data
-    library(cpvSNP)
-    data(geneSetAnalysis)
-    names(geneSetAnalysis)
-    # --- Createarraydata [] ---
-    # Key functions: createArrayData
-    arrayDataGR <- createArrayData(geneSetAnalysis[["arrayData"]],
-        positionName="Position")
-    class(arrayDataGR)
-    # --- Genesets [] ---
-    # Key functions: geneIds, details
+    # --- Gene to SNP Mapping [] ---
+    # Key functions: geneToSNPList
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    genesHg19 <- GenomicFeatures::genes(txdb)
     geneSets <- geneSetAnalysis[["geneSets"]]
-    geneSets
-    length(geneSets)
-    head(geneIds(geneSets[[1]]))
-    details(geneSets[[1]])
-    # --- Genetosnplist [] ---
-    # Key functions: genes, geneToSNPList
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    genesHg19 <- genes(txdb)
     snpsGSC <- geneToSNPList(geneSets, arrayDataGR, genesHg19)
-    class(snpsGSC)
-    # --- Createindepp [] ---
-    # Key functions: element
+
+
+    # --- Gene Set Association Analysis [] ---
+    # Key functions: glossi, pValue, degreesOfFreedom, statistic
+    indep <- geneSetAnalysis[["indepSNPs"]]
     pvals <- arrayDataGR$P[is.element(arrayDataGR$SNP, indep$V1)]
     names(pvals) <- arrayDataGR$SNP[is.element(arrayDataGR$SNP, indep$V1)]
-    head(pvals)
-    # --- Glossi [] ---
-    # Key functions: glossi, pValue, degreesOfFreedom, statistic
     gRes <- glossi(pvals, snpsGSC)
-    gRes
-    gRes2 <- glossi(pvals, snpsGSC[[1]])
-    gRes2
-    pValue(gRes)
-    # --- Publishmultiple [] ---
-    # Key functions: adjust, unlist, pValue, HTMLReport, publish, statistic, finish
-    ## pvals <- p.adjust( unlist( pValue(gRes) ), method= "BH" )
-    ## library(ReportingTools)
-    ## report <- HTMLReport (shortName = "cpvSNP_glossiResult",
-    ##         title = "GLOSSI Results", reportDirectory = "./reports")
-    ## publish(geneSets, report, annotation.db = "org.Hs.eg",
-    # --- Hapmap [] ---
-    # Key functions: plink, element, geneIds, ld
-    ## download.file(
-    ##     url="http://hapmap.ncbi.nlm.nih.gov/genotypes/hapmap3_r3/plink_format/hapmap3_r3_b36_fwd.consensus.qc.poly.ped.gz",
-    ##     destfile="hapmap3_r3_b36_fwd.consensus.qc.poly.ped.gz")
-    ## download.file(
-    ##     url="http://hapmap.ncbi.nlm.nih.gov/genotypes/hapmap3_r3/plink_format/hapmap3_r3_b36_fwd.consensus.qc.poly.map.gz",
-    # --- Vegas [] ---
-    # Key functions: vegas, unlist, simulatedStats, pValue, degreesOfFreedom, statistic
-    ## ldMat <- geneSetAnalysis[["ldMat"]]
-    ## vRes <- vegas(snpsGSC[1], arrayDataGR, ldMat)
-    ## vRes
-    ## summary(unlist(simulatedStats(vRes)))
-    ##
-    # --- Plotb [] ---
-    # Key functions: plotPvals
-    plotPvals(gRes, main="GLOSSI P-values")
-    # --- Plot2 [] ---
-    # Key functions: assocPvalBySetPlot
-    pvals <- arrayDataGR$P
-    names(pvals) <- arrayDataGR$SNP
-    assocPvalBySetPlot(pvals, snpsGSC[[2]])
-    # --- Sessinfo [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    gRes_p <- pValue(gRes)
+    gRes_df <- degreesOfFreedom(gRes)
+    gRes_stat <- statistic(gRes)
+
+
+    # --- Visualisation of Association P-values [] ---
+    # Key functions: plotPvals, assocPvalBySetPlot
+    plotPvals(gRes, main = "GLOSSI P-values")
+    all_pvals <- arrayDataGR$P
+    names(all_pvals) <- arrayDataGR$SNP
+    assocPvalBySetPlot(all_pvals, snpsGSC[[2]])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

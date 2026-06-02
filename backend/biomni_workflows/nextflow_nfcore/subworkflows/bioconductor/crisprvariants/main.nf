@@ -41,15 +41,72 @@ process BIOC_CRISPRVARIANTS {
     library(CrispRVariants)
     library(jsonlite)
 
-    # --- plot Variants [] ---
-    # Key functions: plotVariants, mutationEfficiency, consensusSeqs, reverseComplement
-    p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 8,
-    row.ht.ratio = c(1,8), col.wdth.ratio = c(4,2),
-    plotAlignments.args = list(line.weight = 0.5, ins.size = 2,
-    # --- plot Freq Heatmap [] ---
-    # Key functions: plotFreqHeatmap
-    p <- plotFreqHeatmap(gol, top.n = 3)
-    p + labs(title = "A. plotFreqHeatmap with default options")
+    # --- Reference Sequence Reconstruction [] ---
+    # Key functions: refFromAlns
+    bam_dir <- system.file(package = "CrispRVariants", "extdata/bam")
+    bam_fnames <- dir(bam_dir, "bam$", full.names = TRUE)
+    gd_fname <- system.file(package = "CrispRVariants", "extdata/bed/guide.bed")
+    gd <- rtracklayer::import(gd_fname)
+    gdl <- GenomicRanges::resize(gd, GenomicRanges::width(gd) + 10, fix = "center")
+    alns <- GenomicAlignments::readGAlignments(
+        bam_fnames[[1]],
+        param = Rsamtools::ScanBamParam(tag = "MD", what = c("seq", "flag")),
+        use.names = TRUE
+    )
+    rfa <- refFromAlns(alns, gdl)
+
+
+    # --- Alignment to Target and Variant Counting [] ---
+    # Key functions: readsToTarget, variantCounts
+    ref_fname <- system.file(
+        package = "CrispRVariants",
+        "extdata/ptena_GRCHz10_ref.rda"
+    )
+    load(ref_fname)
+    crispr_set <- readsToTarget(
+        bam_fnames,
+        target = gdl,
+        reference = reference,
+        target.loc = 22
+    )
+    vc <- variantCounts(crispr_set)
+
+
+    # --- Mutation Efficiency and Consensus Sequences [] ---
+    # Key functions: mutationEfficiency, consensusSeqs
+    eff <- mutationEfficiency(
+        crispr_set,
+        filter.cols = "control",
+        exclude.cols = "control"
+    )
+    sqs <- consensusSeqs(crispr_set)
+
+
+    # --- Visualisation of Variants [] ---
+    # Key functions: plotVariants
+    txdb_fname <- system.file(
+        "extdata/GRCz10_81_ptena_txdb.sqlite",
+        package = "CrispRVariants"
+    )
+    txdb <- AnnotationDbi::loadDb(txdb_fname)
+    p <- plotVariants(
+        crispr_set,
+        txdb = txdb,
+        gene.text.size = 8,
+        row.ht.ratio = c(1, 8),
+        col.wdth.ratio = c(4, 2)
+    )
+
+
+    # --- Chimeric Alignment Analysis [] ---
+    # Key functions: getChimeras, plotChimeras
+    ch <- getChimeras(crispr_set, sample = "ptena 4")
+    annotations <- c(
+        GenomicRanges::resize(gd, 1, fix = "start"),
+        GenomicRanges::resize(gd, 1, fix = "end")
+    )
+    annotations$name <- c("ptena_start", "ptena_end")
+    plotChimeras(ch, annotations = annotations)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

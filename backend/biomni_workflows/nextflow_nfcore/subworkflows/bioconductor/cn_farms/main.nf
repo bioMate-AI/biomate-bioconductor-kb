@@ -41,31 +41,53 @@ process BIOC_CN_FARMS {
     library(cn.farms)
     library(jsonlite)
 
-    # --- List [] ---
-    # Key functions: slSummarization, show, assayData
-    summaryMethod <- "Variational"
-    summaryParam <- list()
-    summaryParam$cyc <- c(10)
-    callParam <- list(cores=cores, runtype=runtype)
-    slData <- slSummarization(normData,
-    # --- Combinedata [] ---
-    # Key functions: combineData, show
-    combData <- combineData(slData, npData, runtype=runtype)
-    show(combData)
-    # --- List [] ---
+    # --- Single-locus Summarization [] ---
+    # Key functions: slSummarization, assayData
+    summaryParam <- list(cyc = 10)
+    callParam <- list(cores = 1, runtype = "ff")
+    slData <- slSummarization(
+        normData, 
+        summaryMethod = "Variational", 
+        summaryParam = summaryParam,
+        callParam = callParam,
+        summaryWindow = "std"
+    )
+    sl_intensity <- assayData(slData)$intensity[1:6, 1:5]
+    sl_lz <- assayData(slData)$L_z[1:6, 1:5]
+
+
+    # --- Data Combination [] ---
+    # Key functions: combineData
+    combData <- combineData(slData, npData, runtype = "ff")
+
+
+    # --- Multi-locus Summarization [] ---
     # Key functions: mlSummarization, assayData
-    windowMethod <- "std"
-    windowParam <- list()
-    windowParam$windowSize <- 5
-    windowParam$overlap <- TRUE
-    summaryMethod <- "Variational"
-    # --- Colnames [] ---
-    # Key functions: assayData, sampleNames, dnaCopySf, fData
+    windowParam <- list(windowSize = 5, overlap = TRUE)
+    summaryParam <- list(cyc = 20)
+    callParam <- list(cores = 1, runtype = "ff")
+    mlData <- mlSummarization(
+        slData, 
+        windowMethod = "std", 
+        windowParam = windowParam, 
+        summaryMethod = "Variational", 
+        summaryParam = summaryParam, 
+        callParam = callParam
+    )
+    ml_intensity <- assayData(mlData)$intensity[1:6, 1:5]
+
+
+    # --- Copy Number Segmentation [] ---
+    # Key functions: dnaCopySf, fData
     colnames(assayData(mlData)$L_z) <- sampleNames(mlData)
     segments <- dnaCopySf(
-    		x        =assayData(mlData)$L_z[, 1:10],
-    		chrom    =fData(mlData)$chrom,
-    		maploc   =fData(mlData)$start,
+        x = assayData(mlData)$L_z[, 1:10], 
+        chrom = fData(mlData)$chrom, 
+        maploc = fData(mlData)$start, 
+        cores = 1, 
+        smoothing = FALSE
+    )
+    seg_info <- fData(segments)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

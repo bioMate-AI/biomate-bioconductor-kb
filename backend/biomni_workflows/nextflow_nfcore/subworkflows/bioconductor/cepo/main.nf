@@ -38,36 +38,35 @@ process BIOC_CEPO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Cepo)
     library(MulticoreParam)
     library(SnowParam)
     library(jsonlite)
 
-    # --- visualize colData [] ---
-    # Key functions: colData
-    colData(cellbench)[1:5,]
-    # --- upset [] ---
-    # Key functions: upset
-    library(UpSetR)
-    res_name = topGenes(object = ds_res, n = 500)
-    upset(fromList(res_name), nsets = 3)
-    # --- plot Densities [] ---
+    # --- Gene Filtering and P-value Computation [] ---
+    # Key functions: Cepo
+    ds_res_pvalues <- Cepo(
+        exprsMat = logcounts(cellbench),
+        cellType = cellbench$celltype,
+        computePvalue = 200,
+        prefilter_pzero = 0.4
+    )
+
+
+    # --- Top Genes Extraction [] ---
+    # Key functions: topGenes
+    res_name <- topGenes(object = ds_res, n = 500)
+
+
+    # --- Density Visualization [] ---
     # Key functions: plotDensities
-    plotDensities(x = cellbench,
-    # --- wrap_plots [] ---
-    # Key functions: wrap_plots
-    cepo_genes = Cepo::topGenes(ds_res_batches$average, n = 3)
-    markersPlot = lapply(cepo_genes, function(x) {
-    pp = lapply(x, function(gene) {
-    # --- Fast GSEA analysis [] ---
-    # Key functions: getGeneSets, fgsea
-    library(escape)
-    library(fgsea)
-    hallmarkList <- getGeneSets(species = "Homo sapiens",
-    # --- Snow Param [] ---
-    # Key functions: SnowParam, MulticoreParam, setAutoBPPARAM
-    library(BiocParallel)
-    BPPARAM = if (.Platform$OS.type == "windows") {
-    BiocParallel::SnowParam(workers = 2)
+    plotDensities(
+        x = cellbench,
+        cepoOutput = ds_res,
+        nGenes = 2,
+        assay = "logcounts",
+        celltypeColumn = "celltype"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

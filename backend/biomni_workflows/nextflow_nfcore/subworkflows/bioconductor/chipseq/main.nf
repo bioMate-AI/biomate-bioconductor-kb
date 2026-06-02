@@ -38,47 +38,31 @@ process BIOC_CHIPSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(chipseq)
     library(GRanges)
     library(GenomicRangesList)
     library(jsonlite)
 
-    # --- report [] ---
-    # Key functions: report, compose, GenomicRangesList
-    qa_list <- lapply(sampleFiles, qa)
-    report(do.call(rbind, qa_list))
-    filter <- compose(chipseqFilter(), alignQualityFilter(15))
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GenomicRangesList, GRanges
-    cstest <- GenomicRangesList(lapply(cstest, function(gd)
-    do.call(c, lapply(names(gd), function(chr)
-    starts <- c( pos[["-"]] - 23L, pos[["+"]])
-    # --- estimate.mean.fraglen [] ---
-    # Key functions: slice, viewSums, viewMaxs, resize
-    fraglen <- estimate.mean.fraglen(cstest$ctcf, method="correlation")
-    fraglen[!is.na(fraglen)]
-    ctcf.ext <- resize (cstest$ctcf, width = 200)
-    # --- island Depth Plot [] ---
-    # Key functions: islandDepthPlot
-    islandDepthPlot(cov.ctcf)
-    # --- peak Cutoff [] ---
-    # Key functions: peakCutoff
-    peakCutoff(cov.ctcf, fdr = 0.0001)
+    # --- Coverage and Island Analysis [] ---
+    # Key functions: coverage, slice, viewSums, viewMaxs
+    cov.ctcf <- coverage(ctcf.ext)
+    islands <- slice(cov.ctcf, lower = 1)
+    sums <- viewSums(islands)
+    maxs <- viewMaxs(islands)
+
+
+    # --- Peak Detection and Summary [] ---
+    # Key functions: peakCutoff, slice, peakSummary
+    cutoff <- peakCutoff(cov.ctcf, fdr = 0.0001)
     peaks.ctcf <- slice(cov.ctcf, lower = 8)
-    # --- peak Summary [] ---
-    # Key functions: peakSummary
     peaks <- peakSummary(peaks.ctcf)
-    peak.depths <- viewMaxs(peaks.ctcf)
-    cov.pos <- coverage(ctcf.ext[strand(ctcf.ext) == "+"])
-    # --- browser Session [] ---
-    # Key functions: browserSession, genome
-    library(rtracklayer)
-    session <- browserSession()
-    genome(session) <- "mm9"
-    # --- browser View [] ---
-    # Key functions: browserView
-    peak.ord <- order(unlist(peak.depths), decreasing=TRUE)
-    peak.sort <- as(peaks.ctcf, "GRanges")[peak.ord]
-    view <- browserView(session, peak.sort[1], full = c("gfpCov", "ctcfCov"))
+
+
+    # --- Differential Peak Analysis [] ---
+    # Key functions: diffPeakSummary, coverage, slice
+    cov.gfp <- coverage(resize(cstest$gfp, 200))
+    peaks.gfp <- slice(cov.gfp, lower = 8)
+    peak_diff <- diffPeakSummary(peaks.gfp, peaks.ctcf)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

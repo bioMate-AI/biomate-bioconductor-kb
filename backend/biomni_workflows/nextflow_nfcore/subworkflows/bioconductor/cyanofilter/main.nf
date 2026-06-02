@@ -41,11 +41,40 @@ process BIOC_CYANOFILTER {
     library(cyanoFilter)
     library(jsonlite)
 
-    # --- Table formatting and display [] ---
-    # Key functions: str_extract, kable, retain, noNA, ggpairsDens, noNeg, lnTrans, cellMargin
-    metafile <- metafile %>% dplyr::mutate(Sample.ID2 =
-    stringr::str_extract(metafile$Sample.ID, "BS*[4-5]")
-    names(metafile)[which(stringr::str_detect(names(metafile), "Cells."))] <- "CellspML"
+    # --- Data Preprocessing and Transformation [] ---
+    # Key functions: noNA, noNeg, lnTrans
+    flowfile_nona <- noNA(x = flowfile)
+    flowfile_noneg <- noNeg(x = flowfile_nona)
+    flowfile_logtrans <- lnTrans(
+        x = flowfile_noneg,
+        notToTransform = c("SSC.W", "TIME")
+    )
+
+
+    # --- Margin and Debris Filtering [] ---
+    # Key functions: cellMargin, reducedFlowframe, debrisNc
+    flowfile_marginout <- cellMargin(
+        flowframe = flowfile_logtrans,
+        Channel = "SSC.W",
+        type = "estimate",
+        y_toplot = "FSC.HLin"
+    )
+    reduced_ff <- reducedFlowframe(flowfile_marginout)
+    cells_nodebris <- debrisNc(
+        flowframe = reduced_ff,
+        ch_chlorophyll = "RED.B.HLin",
+        ch_p2 = "YEL.B.HLin",
+        ph = 0.05
+    )
+
+
+    # --- Phytoplankton Gating [] ---
+    # Key functions: phytoFilter, reducedFlowframe
+    bs4_gate1 <- phytoFilter(
+        flowfile = reducedFlowframe(cells_nodebris),
+        pig_channels = c("RED.B.HLin", "YEL.B.HLin", "RED.R.HLin"),
+        com_channels = c("FSC.HLin", "SSC.HLin")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

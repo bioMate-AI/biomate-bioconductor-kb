@@ -41,13 +41,28 @@ process BIOC_CRISPRSEEK {
     library(CRISPRseek)
     library(jsonlite)
 
-    # --- Offtargetanalysis [] ---
-    # Key functions: offTargetAnalysis
-    results <- offTargetAnalysis(inputFilePath, findgRNAsWithREcutOnly = TRUE,
-    REpatternFile = REpatternFile, findPairedgRNAOnly = TRUE,
-    BSgenomeName = Hsapiens, chromToSearch ="chrX", min.gap = 0, max.gap = 20,
-    txdb = TxDb.Hsapiens.UCSC.hg19.knownGene, orgAnn = org.Hs.egSYMBOL,
-    max.mismatch = 0,overlap.gRNA.positions = c(17, 18),
+    # --- Target Sequence Comparison [] ---
+    # Key functions: compare2Sequences
+    seqFile1 <- system.file("extdata", "seq1.fa", package = "CRISPRseek")
+    seqFile2 <- system.file("extdata", "seq2.fa", package = "CRISPRseek")
+    comparison <- CRISPRseek::compare2Sequences(
+        seqFile1,
+        seqFile2,
+        outputDir = tempdir(),
+        overwrite = TRUE
+    )
+
+
+    # --- gRNA Filtering [] ---
+    # Key functions: filtergRNAs
+    all_gRNAs <- Biostrings::DNAStringSet(
+        c("ATCGATCGATCGATCGATCG", "GCTAGCTAGCTAGCTAGCTA")
+    )
+    filtered <- CRISPRseek::filtergRNAs(
+        all_gRNAs,
+        pairgRNA = FALSE,
+        constraint = "GG"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
