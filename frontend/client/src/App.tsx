@@ -51,7 +51,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
 import { useUiFlavor } from "@/hooks/use-ui-flavor";
 // v2 surface — loaded behind ?ui=v2 / localStorage.biomate_ui flag.
-// @ts-expect-error ResearchApp is plain JSX with no type declarations
+// ResearchApp has @ts-nocheck and a default export now; no @ts-expect-error needed.
 import ResearchApp from "@/v2/ResearchApp";
 import "@/v2/tokens.css";
 import "@/v2/research-tokens.css";

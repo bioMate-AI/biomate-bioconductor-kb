@@ -131,7 +131,7 @@ export function AfterRunReport({
         {tab === "findings" && (
           <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} />
         )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} />}
+        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
         {tab === "params" && <ParametersTab parameters={parameters} />}
         {tab === "qc" && <QcAuditTab events={qcEvents} />}
@@ -206,26 +206,81 @@ function useFetchQcEvents(invocationId: string): QcEvent[] {
 // Tab body components
 // ---------------------------------------------------------------------------
 
-function OutputsTab({ outputs, runId: _runId }: { outputs: OutputFile[]; runId: string }) {
-  if (outputs.length === 0) {
-    return <p style={styles.empty}>No output files registered yet.</p>;
+function OutputsTab({
+  outputs,
+  runId,
+  invocationId,
+}: { outputs: OutputFile[]; runId: string; invocationId?: string }) {
+  // Total size summary (when present in the output records)
+  const totalCount = outputs.length;
+  const dlAllUrl = invocationId ? `/api/invocations/${invocationId}/download-all` : null;
+  const reproUrl = `/api/nextflow/runs/${runId}/reproducibility`;
+
+  if (totalCount === 0) {
+    return (
+      <div style={styles.tabContent}>
+        <p style={styles.empty}>No output files registered yet.</p>
+        {/* Bulk-download actions still visible so the user can pull a partial bundle. */}
+        <div style={styles.bulkActions}>
+          {dlAllUrl && (
+            <a href={dlAllUrl} download style={styles.bulkBtn} data-testid="afterrun-download-all">
+              ↓ Download all as ZIP
+            </a>
+          )}
+          <a href={reproUrl} download style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}>
+            ↓ Reproducibility bundle
+          </a>
+        </div>
+      </div>
+    );
   }
+
   const byStep = outputs.reduce<Record<string, OutputFile[]>>((acc, o) => {
     (acc[o.step] = acc[o.step] || []).push(o);
     return acc;
   }, {});
+
   return (
     <div style={styles.tabContent}>
+      {/* Bulk-download actions — for intermediate / large outputs where
+          per-file preview isn't useful, the user grabs everything as a
+          ZIP and inspects locally. */}
+      <div style={styles.bulkActions}>
+        {dlAllUrl && (
+          <a href={dlAllUrl} download style={styles.bulkBtn} data-testid="afterrun-download-all">
+            ↓ Download all ({totalCount}) as ZIP
+          </a>
+        )}
+        <a
+          href={reproUrl}
+          download
+          style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}
+          title="Configs, command scripts, logs, versions.yml — enough to re-run elsewhere"
+        >
+          ↓ Reproducibility bundle
+        </a>
+      </div>
+
       {Object.entries(byStep).map(([step, files]) => (
         <div key={step} style={{ marginBottom: 12 }}>
           <div style={styles.outputStep}>{step}</div>
           <ul style={styles.outputList}>
-            {files.map((f) => (
-              <li key={f.path || f.name} style={styles.outputItem}>
-                <span style={styles.outputName}>{f.name}</span>
-                <span style={styles.outputExt}>{f.ext}</span>
-              </li>
-            ))}
+            {files.map((f) => {
+              const fileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}&download=1`;
+              return (
+                <li key={f.path || f.name} style={styles.outputItem}>
+                  <a
+                    href={fileUrl}
+                    download
+                    style={{ ...styles.outputName, textDecoration: 'none', color: 'inherit' }}
+                    title={`Download ${f.name}`}
+                  >
+                    {f.name}
+                  </a>
+                  <span style={styles.outputExt}>{f.ext}</span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ))}
@@ -417,6 +472,9 @@ const styles: Record<string, React.CSSProperties> = {
   body: { paddingTop: 8 },
   empty: { fontSize: 12, color: "oklch(0.48 0.012 260)", fontStyle: "italic", padding: "16px 4px" },
   tabContent: { fontSize: 12.5 },
+  bulkActions: { display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" as React.CSSProperties["flexWrap"] },
+  bulkBtn: { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, color: "white", background: "oklch(0.55 0.14 245)", borderRadius: 6, textDecoration: "none", cursor: "pointer" },
+  bulkBtnSecondary: { background: "oklch(0.93 0.01 240)", color: "oklch(0.22 0.01 260)" },
   outputStep: { fontSize: 11, fontWeight: 600, color: "oklch(0.35 0.01 260)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" },
   outputList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 3 },
   outputItem: { display: "flex", justifyContent: "space-between", padding: "4px 8px", background: "oklch(0.98 0.003 240)", borderRadius: 4 },
