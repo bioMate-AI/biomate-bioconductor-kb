@@ -1,13 +1,5 @@
 // nf-core/ampliseq — user-facing parameter stub
 // Amplicon sequencing: 16S/ITS/other amplicons → OTU/ASV table → diversity analysis
-//
-// Pipeline phases:
-// * 1. Input validation — samplesheet QC, primer sequence check
-// * 2. Trimming & QC — primer removal (Cutadapt), DADA2 quality profiling
-// * 3. Denoising — DADA2 error learning, ASV inference, chimera removal
-// * 4. Taxonomy — QIIME2 classifier, SILVA / UNITE database assignment
-// * 5. Diversity — alpha rarefaction, beta diversity (UniFrac, Bray-Curtis)
-// * 6. Report — MultiQC, ASV table TSV, taxonomy barplot
 
 params.input             = null          // Samplesheet CSV or FASTQ directory
 params.FW_primer         = null          // Forward primer sequence (e.g. GTGYCAGCMGCCGCGGTAA for 515F)
@@ -27,3 +19,54 @@ params.email             = null
 params.max_memory        = '64.GB'
 params.max_cpus          = 16
 params.max_time          = '120.h'
+
+// [Input Validation]
+process VALIDATE_INPUT {
+    script: """
+    check_samplesheet.py --input ${params.input} \
+        --amplicon_type ${params.amplicon_type} \
+        ${params.ignore_empty_input_files ? '--ignore-empty' : ''}
+    """
+}
+
+// [Trimming & QC]
+process CUTADAPT {
+    script: """
+    cutadapt --front ${params.FW_primer} --adapter ${params.RV_primer} \
+        ${params.region ? "--region ${params.region}" : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Denoising]
+process DADA2_DENOISE {
+    script: """
+    dada2_denoise.R \
+        ${params.trunclenf ? "--truncLenF ${params.trunclenf}" : ''} \
+        ${params.trunclenr ? "--truncLenR ${params.trunclenr}" : ''} \
+        --trunc_qmin ${params.trunc_qmin} \
+        ${params.skip_dada_quality ? '--skip-quality' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Taxonomy]
+process QIIME2_CLASSIFY {
+    script: """
+    qiime2_classify.py \
+        ${params.classifier ? "--classifier ${params.classifier}" : ''} \
+        --amplicon_type ${params.amplicon_type} \
+        ${params.skip_taxonomy ? '--skip' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Diversity & Report]
+process DIVERSITY_ANALYSIS {
+    script: """
+    diversity_analysis.R \
+        ${params.skip_alpha_rarefaction ? '--skip-rarefaction' : ''} \
+        --outdir ${params.outdir} \
+        ${params.email ? "--email ${params.email}" : ''}
+    """
+}

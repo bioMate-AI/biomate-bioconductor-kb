@@ -24,3 +24,56 @@ params.email                = null
 params.max_memory           = '64.GB'
 params.max_cpus             = 8
 params.max_time             = '72.h'
+
+// [Input Validation]
+process VALIDATE_INPUT {
+    script: """
+    check_input_files.py \
+        --input ${params.input} \
+        --database ${params.database}
+    """
+}
+
+// [Database Search]
+process PEPTIDE_IDENTIFICATION {
+    script: """
+    ${params.search_engines}_search.py \
+        --input ${params.input} \
+        --database ${params.database} \
+        ${params.add_decoys ? '--add_decoys' : ''} \
+        --target_fdr ${params.target_fdr} \
+        --ms2_tolerance ${params.ms2_tolerance} \
+        --precursor_tolerance ${params.precursor_tolerance} \
+        ${params.run_mass_calibration ? '--mass_calibration' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Quantification]
+process LFQ_QUANTIFICATION {
+    script: """
+    openms_lfq.py \
+        ${params.labeling_reagent ? "--labeling_reagent ${params.labeling_reagent}" : ''} \
+        ${params.enable_umi ? '--enable_umi' : ''} \
+        --target_fdr ${params.target_fdr} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Statistical Analysis]
+process MSSTATS_ANALYSIS {
+    script: """
+    msstats_analysis.R \
+        --protein_fdr ${params.protein_level_fdr_cutoff} \
+        ${params.labeling_reagent ? "--labeling_reagent ${params.labeling_reagent}" : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Report]
+process MULTIQC {
+    script: """
+    multiqc --outdir ${params.outdir} \
+        ${params.email ? "--email ${params.email}" : ''}
+    """
+}

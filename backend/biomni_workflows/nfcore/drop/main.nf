@@ -43,3 +43,69 @@ params.email             = null
 params.max_memory        = '128.GB'
 params.max_cpus          = 16
 params.max_time          = '96.h'
+
+// [Input Validation]
+process VALIDATE_INPUT {
+    script: """
+    check_sample_annotation.py --input ${params.input} \
+        --genome ${params.genome} \
+        ${params.gene_annotation ? "--gtf ${params.gene_annotation}" : ''} \
+        ${params.hpo_file ? "--hpo ${params.hpo_file}" : ''}
+    """
+}
+
+// [Count Matrix]
+process COUNT_MATRIX {
+    script: """
+    drop_count_matrix.R \
+        --input ${params.input} \
+        --genome ${params.genome} \
+        ${params.gene_annotation ? "--gtf ${params.gene_annotation}" : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [OUTRIDER]
+process OUTRIDER_ANALYSIS {
+    script: """
+    outrider_run.R \
+        ${params.outrider ? '' : '--skip'} \
+        --q_value ${params.outrider_q_value} \
+        --z_score ${params.outrider_z_score} \
+        --min_expression ${params.outrider_min_exp} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [FRASER]
+process FRASER_ANALYSIS {
+    script: """
+    fraser_run.R \
+        ${params.fraser ? '' : '--skip'} \
+        --q_value ${params.fraser_q_value} \
+        --min_dpsi ${params.fraser_dpsi} \
+        --version ${params.fraser_version} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [MAE]
+process MAE_ANALYSIS {
+    script: """
+    mae_run.R \
+        ${params.mae ? '' : '--skip'} \
+        ${params.mae_vcf ? "--vcf ${params.mae_vcf}" : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Report]
+process DROP_REPORT {
+    script: """
+    drop_report.R \
+        --genome ${params.genome} \
+        ${params.hpo_file ? "--hpo ${params.hpo_file}" : ''} \
+        --outdir ${params.outdir} \
+        ${params.email ? "--email ${params.email}" : ''}
+    """
+}

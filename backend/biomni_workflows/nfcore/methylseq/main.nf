@@ -25,3 +25,64 @@ params.email            = null
 params.max_memory       = '128.GB'
 params.max_cpus         = 16
 params.max_time         = '240.h'
+
+// [Input Validation]
+process VALIDATE_INPUT {
+    script: """
+    check_samplesheet.py --input ${params.input} \
+        ${params.rrbs ? '--rrbs' : ''} \
+        ${params.pbat ? '--pbat' : ''}
+    """
+}
+
+// [Trimming]
+process TRIMGALORE {
+    script: """
+    trim_galore \
+        ${params.skip_trimming ? '--skip' : ''} \
+        ${params.rrbs ? '--rrbs' : ''} \
+        ${params.pbat ? '--pbat' : ''} \
+        ${params.non_directional ? '--non_directional' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Alignment]
+process BISMARK_ALIGN {
+    script: """
+    ${params.aligner} \
+        --genome ${params.genome} \
+        ${params.non_directional ? '--non_directional' : ''} \
+        ${params.ignore_flags ? '--ignore_flags' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Methylation Extraction]
+process BISMARK_METHYLATION_EXTRACTOR {
+    script: """
+    bismark_methylation_extractor \
+        ${params.comprehensive ? '--comprehensive' : ''} \
+        ${params.cytosine_report ? '--cytosine_report' : ''} \
+        --genome ${params.genome} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Coverage Filtering]
+process COVERAGE2CYTOSINE {
+    script: """
+    coverage2cytosine.R \
+        --min_coverage ${params.min_coverage} \
+        ${params.cytosine_report ? '--cytosine_report' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Report]
+process MULTIQC {
+    script: """
+    multiqc --outdir ${params.outdir} \
+        ${params.email ? "--email ${params.email}" : ''}
+    """
+}
