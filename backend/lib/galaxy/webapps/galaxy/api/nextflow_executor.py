@@ -3039,15 +3039,22 @@ def _accession_chain_thread(
     chain_work_dir = work_base / run_id / "work"
     chain_work_dir.mkdir(parents=True, exist_ok=True)
     try:
+        # Decouple from gunicorn worker lifetime — see commit b2eaaacd4.
+        # stdout=subprocess.PIPE keeps the worker on the read end of the pipe;
+        # when the worker recycles the pipe closes and Nextflow dies with SIGPIPE.
+        # Redirect stdout straight to the log file at Popen time so the child has
+        # its own fd and the parent dying doesn't take it down.
+        log_fh = open(log_path, "ab", buffering=0)
         process = subprocess.Popen(
             substituted_cmd,
-            stdout=subprocess.PIPE,
+            stdout=log_fh,
             stderr=subprocess.STDOUT,
-            text=True,
             cwd=str(chain_work_dir),
             env=env,
             start_new_session=True,
+            close_fds=True,
         )
+        log_fh.close()  # parent's fd; child has its own copy
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["process"] = process
@@ -3384,6 +3391,13 @@ def execute_nextflow(
     # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
     env = _sanitize_subprocess_env()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
+    # Pin the Nextflow framework version. Without this, the launcher script downloads
+    # whatever is current on JFrog at first invocation (was drifting to 26.04.2 as of
+    # 2026-06-01 despite sync_to_dev.sh installing the 25.10.5 launcher). The launcher
+    # script's behaviour is entirely controlled by the live NXF_VER env var, NOT by
+    # what was set when the launcher was installed. See docs/20260601_NEXTFLOW_VERSION_DRIFT.md.
+    _NF_PIN = os.environ.get("NXF_VER", "25.10.5")
+    env["NXF_VER"] = _NF_PIN
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
     # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.
@@ -3572,16 +3586,22 @@ def execute_nextflow(
                 log.warning("[Nextflow run %s] Could not copy .nextflow cache: %s", run_id, _e)
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
+    # Decouple from gunicorn worker lifetime — see commit b2eaaacd4. stdout=PIPE
+    # ties the Nextflow JVM to the worker's read end; when the worker recycles
+    # the pipe closes and Nextflow dies with SIGPIPE mid-flight. Redirect stdout
+    # to the log file directly so the child holds its own fd.
     try:
+        log_fh = open(log_path, "ab", buffering=0)
         process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
+            stdout=log_fh,
             stderr=subprocess.STDOUT,
-            text=True,
             cwd=str(work_dir),
             env=env,
             start_new_session=True,
+            close_fds=True,
         )
+        log_fh.close()
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
