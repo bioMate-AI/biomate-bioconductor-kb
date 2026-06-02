@@ -1,5 +1,13 @@
 // nf-core/methylseq — user-facing parameter stub
 // Bisulfite/WGBS: FASTQ → trimming → bismark alignment → methylation extraction → QC
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, library type detection (RRBS / WGBS / PBAT)
+// * 2. Trimming — adapter trimming (Trim Galore), non-directional adapter handling
+// * 3. Alignment — Bismark / bwa-meth bisulfite alignment, deduplication
+// * 4. Methylation extraction — CpG / CHG / CHH context methylation calls
+// * 5. Coverage filtering — minimum coverage threshold, cytosine report
+// * 6. Report — MultiQC, methylation BedGraph, genome-wide cytosine TSV
 
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCm38

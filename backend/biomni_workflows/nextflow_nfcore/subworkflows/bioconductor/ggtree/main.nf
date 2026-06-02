@@ -38,10 +38,12 @@ process BIOC_GGTREE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-library(ggtree)
+    library(ggtree)
+    library(jsonlite)
+
 
     # --- Treeman [] ---
-    # Key functions: ggtree
+    # Key functions: collapse, expand, flip, groupClade, groupOTU, identify, rotate, rotate_tree
     treeman <- matrix(c(
       "collapse", "collapse a selecting clade",
       "expand", "expand collapsed clade",
@@ -59,7 +61,7 @@ library(ggtree)
     knitr::kable(treeman, caption = "Tree manipulation functions.", booktabs = T)
 
     # --- Geoms [] ---
-    # Key functions: and
+    # Key functions: and, geom_balance, geom_cladelabel, geom_cladelabel2, geom_hilight, geom_hilight_encircle, geom_label2, geom_nodelab
     geoms <- matrix(c(
       "geom_balance", "highlights the two direct descendant clades of an internal node",
       "geom_cladelabel", "annotate a clade with bar and text label",
@@ -74,11 +76,7 @@ library(ggtree)
       "geom_rootpoint", "annotate root node with symbolic point",
       "geom_segment2", "modified version of geom_segment, with subsetting supported",
       "geom_strip", "annotate associated taxa with bar and (optional) text label",
-      "geom_taxalink", "associate two related taxa by linking them with a curve"
-    ), ncol=2, byrow=TRUE)
-    geoms <- as.data.frame(geoms)
-    colnames(geoms) <- c("Geom", "Description")
-    knitr::kable(geoms, caption = "ggtree geom layers.", booktabs = T)
+      "geom_taxalink", "associate two related taxa by linking them with a curve",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

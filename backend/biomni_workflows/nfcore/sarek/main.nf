@@ -1,5 +1,13 @@
 // nf-core/sarek — user-facing parameter stub
 // Somatic/germline variant calling: WGS/WES → trimming → alignment → variant calling → annotation
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, FASTQ / BAM format check
+// * 2. Preprocessing — adapter trimming, FastQC, duplicate marking
+// * 3. Alignment — BWA-MEM2 / Sentieon mapping, BQSR base quality recalibration
+// * 4. Variant calling — GATK HaplotypeCaller / Mutect2 / Strelka / DeepVariant
+// * 5. Annotation — VEP / SnpEff, CADD scores, ClinVar / gnomAD lookup
+// * 6. Report — MultiQC, VCF stats, coverage summary
 
 params.input            = null          // Samplesheet CSV (patient,sample,status,fastq_1,fastq_2)
 params.genome           = 'GRCh38'      // Reference genome: GRCh38 | GRCh37 | GRCm38

@@ -1,5 +1,12 @@
 // nf-core/proteomicslfq — user-facing parameter stub
 // Label-free quantification proteomics: raw files → identification → quantification → statistics
+//
+// Pipeline phases:
+// * 1. Input validation — raw / mzML format check, FASTA database validation
+// * 2. Database search — Comet / MSGF+ peptide identification, decoy FDR filtering
+// * 3. Quantification — OpenMS feature detection, label-free quantification
+// * 4. Statistical analysis — protein-level FDR, differential abundance (MSstats)
+// * 5. Report — MultiQC, protein/peptide TSV tables, volcano plot PDF
 
 params.input                = null          // Input files (*.raw, *.mzML, *.mzml)
 params.database             = null          // FASTA protein database

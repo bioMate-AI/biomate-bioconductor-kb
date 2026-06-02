@@ -2,6 +2,14 @@
 // Aberrant expression detection (OUTRIDER) and aberrant splicing detection (FRASER)
 // for RNA-seq-based rare disease diagnosis.
 //
+// Pipeline phases:
+// * 1. Input validation — sample annotation TSV QC, BAM format check
+// * 2. Count matrix — gene expression counting (featureCounts), splice junction extraction
+// * 3. OUTRIDER — aberrant expression detection, autoencoder denoising, p-value correction
+// * 4. FRASER — aberrant splicing detection, junction filtering, dPSI calculation
+// * 5. MAE — monoallelic expression analysis (optional, requires VCF)
+// * 6. Report — HTML summary, outlier tables, results TSV
+//
 // Reference: Mertes et al. Genome Medicine 2021, 13:141
 //   https://doi.org/10.1186/s13073-021-00985-8
 

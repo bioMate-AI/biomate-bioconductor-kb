@@ -1,5 +1,13 @@
 // nf-core/raredisease — user-facing parameter stub
 // Rare disease analysis: SNV/indel/SV/CNV calling + clinical annotation
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, pedigree / sex / phenotype check
+// * 2. Preprocessing — adapter trimming, FastQC, duplicate marking
+// * 3. Alignment — BWA-MEM2, BQSR base quality recalibration
+// * 4. Variant calling — GATK HaplotypeCaller SNV/indel, SV (TIDDIT/Manta), CNV (EKLF)
+// * 5. Annotation — VEP clinical annotation, CADD, ClinVar, OMIM/HPO ranking
+// * 6. Report — MultiQC, ranked VCF, clinical variant report TSV
 
 params.input            = null          // Samplesheet CSV (sample,sex,phenotype,paternal_id,maternal_id,fastq_1,fastq_2)
 params.genome           = 'GRCh38'      // Reference genome: GRCh38 | GRCh37
