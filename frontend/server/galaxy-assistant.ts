@@ -2941,6 +2941,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
                 actions: {
                   needsToolSearch: true, needsWorkflowGeneration: true, needsWorkflowModification: false,
                   needsResearchAgent: false, needsBenchmarkAgent: false, needsDatasetAccess: false, needsLLMReasoning: true,
+                  needsChainProposal: false,
                 },
               };
               try {
@@ -4763,6 +4764,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           needsBenchmarkAgent: typeof raw.needsBenchmarkAgent === 'boolean' ? raw.needsBenchmarkAgent : base.needsBenchmarkAgent,
           needsDatasetAccess: typeof raw.needsDatasetAccess === 'boolean' ? raw.needsDatasetAccess : base.needsDatasetAccess,
           needsLLMReasoning: typeof raw.needsLLMReasoning === 'boolean' ? raw.needsLLMReasoning : base.needsLLMReasoning,
+          needsChainProposal: typeof raw.needsChainProposal === 'boolean' ? raw.needsChainProposal : (base.needsChainProposal ?? false),
         };
       }
       return base;
