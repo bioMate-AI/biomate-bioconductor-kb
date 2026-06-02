@@ -38,22 +38,30 @@ process BIOC_MARR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(marr)
     library(Marr)
     library(MarrFeaturesfiltered)
     library(MarrFilterData)
     library(MarrSamplepairsfiltered)
     library(jsonlite)
 
-    # --- Marr output [] ---
-    # Key functions: Marr, MarrFeaturesfiltered, MarrSamplepairsfiltered
-    library(marr)
-    Marr_output<- Marr(msprepCOPD, pSamplepairs =
-    Head of reproducible sample pairs per metabolite (feature)
-    # --- Marr Filter Data [] ---
+    # --- Filtering and Diagnostics [] ---
+    # Key functions: MarrFeaturesfiltered, MarrSamplepairsfiltered
+    filtered_features <- MarrFeaturesfiltered(Marr_output)
+    filtered_samples <- MarrSamplepairsfiltered(Marr_output)
+
+
+    # --- Visualisation [] ---
+    # Key functions: MarrPlotSamplepairs, MarrPlotFeatures
+    MarrPlotSamplepairs(Marr_output)
+    MarrPlotFeatures(Marr_output)
+
+
+    # --- Data Filtering [] ---
     # Key functions: MarrFilterData
-    MarrFilterData(Marr_output, by = "features")
-    MarrFilterData(Marr_output, by = "samplePairs")
-    MarrFilterData(Marr_output, by = "both")
+    filtered_by_features <- MarrFilterData(Marr_output, by = "features")
+    filtered_by_samples <- MarrFilterData(Marr_output, by = "samplePairs")
+    filtered_by_both <- MarrFilterData(Marr_output, by = "both")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

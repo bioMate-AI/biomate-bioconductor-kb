@@ -38,29 +38,69 @@ process BIOC_PROBAMR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(proBAMr)
     library(PSMtab2SAM)
     library(PrepareAnnotationGENCODE)
     library(jsonlite)
 
-    # --- Prepareanno [] ---
-    # Key functions: tempdir, PrepareAnnotationGENCODE
+    # --- GENCODE Annotation Preparation ---
+    # Key functions: PrepareAnnotationGENCODE
     gtfFile <- system.file("extdata", "test.gtf", package="proBAMr")
     CDSfasta <- system.file("extdata", "coding_seq.fasta", package="proBAMr")
     pepfasta <- system.file("extdata", "pro_seq.fasta", package="proBAMr")
     annotation_path <- tempdir()
-    PrepareAnnotationGENCODE(gtfFile, CDSfasta, pepfasta,
-    # --- Psmstab [] ---
-    # Key functions: file
-    passedPSM <- read.table(system.file("extdata", "passedPSM.tab",
-        package="proBAMr"), sep='\t', header=TRUE)
-    passedPSM[1:3, ]
-    # --- P S Mtab2 S A M [] ---
-    # Key functions: PSMtab2SAM, tempdir
+    PrepareAnnotationGENCODE(
+        gtfFile, 
+        CDSfasta, 
+        pepfasta, 
+        annotation_path, 
+        dbsnp=NULL, 
+        splice_matrix=FALSE, 
+        COSMIC=FALSE
+    )
+
+    # --- RefSeq Annotation Preparation ---
+    # Key functions: PrepareAnnotationRefseq
+    CDSfasta <- system.file("extdata", "coding_seq.fasta", package="proBAMr")
+    pepfasta <- system.file("extdata", "pro_seq.fasta", package="proBAMr")
+    annotation_path <- tempdir()
+    PrepareAnnotationRefseq(
+        genome="hg19",
+        CDSfasta=CDSfasta,
+        pepfasta=pepfasta,
+        annotation_path=annotation_path,
+        dbsnp=NULL,
+        splice_matrix=FALSE,
+        COSMIC=FALSE
+    )
+
+    # --- PSM to SAM Conversion ---
+    # Key functions: PSMtab2SAM
     load(system.file("extdata/GENCODE", "exon_anno.RData", package="proBAMr"))
     load(system.file("extdata/GENCODE", "proseq.RData", package="proBAMr"))
     load(system.file("extdata/GENCODE", "procodingseq.RData", package="proBAMr"))
-    options(stringsAsFactors=FALSE)
-    passedPSM <- read.table(system.file("extdata", "passedPSM.tab",
+    passedPSM <- read.table(
+        system.file("extdata", "passedPSM.tab", package="proBAMr"),
+        sep="\t",
+        header=TRUE,
+        stringsAsFactors=FALSE
+    )
+    SAM <- PSMtab2SAM(
+        passedPSM,
+        XScolumn="mvh",
+        exon,
+        proteinseq,
+        procodingseq
+    )
+    write.table(
+        SAM,
+        file=file.path(tempdir(), "test.sam"),
+        sep="\t",
+        quote=FALSE,
+        row.names=FALSE,
+        col.names=FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

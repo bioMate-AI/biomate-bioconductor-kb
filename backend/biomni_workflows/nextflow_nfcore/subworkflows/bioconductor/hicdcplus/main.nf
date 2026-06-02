@@ -41,74 +41,64 @@ process BIOC_HICDCPLUS {
     library(HiCDCPlus)
     library(jsonlite)
 
-    # --- quickStart sig 2 [] ---
-    # Key functions: user_cache_dir
-    cache <- rappdirs::user_cache_dir(appname="HiCDCPlus")
-    print(cache)
-    # --- quickStart sig1 [] ---
-    # Key functions: tempdir, construct_features
-    hicfile_path<-system.file("extdata", "GSE63525_HMEC_combined_example.hic", package = "HiCDCPlus")
-    outdir<-tempdir(check=TRUE)
-    construct_features(output_path=paste0(outdir,"/hg19_50kb_GATC"),
-    # --- quickStart sig2 [] ---
+    # --- Data Import and Count Addition [] ---
     # Key functions: generate_bintolen_gi_list, add_hic_counts
-    gi_list<-generate_bintolen_gi_list(
-    bintolen_path=paste0(outdir,"/hg19_50kb_GATC_bintolen.txt.gz"))
-    gi_list<-add_hic_counts(gi_list,hic_path = hicfile_path)
-    # --- quickStart sig3 [] ---
+    hicfile_path <- system.file(
+        "extdata", "GSE63525_HMEC_combined_example.hic",
+        package = "HiCDCPlus"
+    )
+    gi_list <- generate_bintolen_gi_list(
+        bintolen_path = paste0(outdir, "/hg19_50kb_GATC_bintolen.txt.gz")
+    )
+    gi_list <- add_hic_counts(gi_list, hic_path = hicfile_path)
+
+
+    # --- Normalisation and Modeling [] ---
     # Key functions: expand_1D_features, HiCDCPlus, hicdc2hic, gi_list_write
-    gi_list<-expand_1D_features(gi_list)
-    set.seed(1010) #HiC-DC downsamples rows for modeling
-    gi_list<-HiCDCPlus(gi_list) #HiCDCPlus_parallel runs in parallel across ncores
-    # --- quickStart diff1 [] ---
-    # Key functions: construct_features, generate_bintolen_gi_list, add_hic_counts, expand_1D_features
-    construct_features(output_path=paste0(outdir,"/hg38_50kb_GATC"),
-    chrs=c("chr22"))
-    hicfile_paths<-c(
-    # --- quickStart diff2 [] ---
+    gi_list <- expand_1D_features(gi_list)
+    gi_list <- HiCDCPlus(gi_list)
+    hicdc2hic(
+        gi_list,
+        hicfile = paste0(outdir, "/GSE63525_HMEC_combined_result.hic"),
+        mode = "normcounts", gen_ver = "hg19"
+    )
+    gi_list_write(
+        gi_list,
+        fname = paste0(outdir, "/GSE63525_HMEC_combined_result.txt.gz")
+    )
+
+
+    # --- Differential Analysis [] ---
     # Key functions: hicdcdiff
-    Differential analysis using modified DESeq2 (see ?hicdcdiff)
-    hicdcdiff(input_paths=list(NSD2=c(paste0(outdir,'/GSE131651_NSD2_LOW_arima_example.txt.gz'),
-    paste0(outdir,'/GSE131651_NSD2_HIGH_arima_example.txt.gz')),
-    # --- quickStart ice1 [] ---
-    # Key functions: generate_binned_gi_list, add_hicpro_matrix_counts
-    gi_list<-generate_binned_gi_list(50000,chrs=c("chr21","chr22"))
-    gi_list<-add_hicpro_matrix_counts(gi_list,absfile_path,matrixfile_path,chrs=c("chr21","chr22")) #add paths to iced absfile and matrix files here
-    # --- quickStart ice3 [] ---
-    # Key functions: gi_list_topdom
-    tads<-gi_list_topdom(gi_list,chrs=c("chr22"),window.size = 10)
-    # --- quickStart comp1 [] ---
-    # Key functions: extract_hic_eigenvectors
-    extract_hic_eigenvectors(
-    hicfile=system.file("extdata", "eigenvector_example.hic", package = "HiCDCPlus"),
-    # --- construct_features [] ---
-    # Key functions: construct_features
-    construct_features(output_path=paste0(outdir,"/hg19_50kb_GATC"),
-    sig=c("GATC","GANTC"),bin_type="Bins-uniform",
-    chrs=c("chr22"))
-    # --- gi list uniform [] ---
-    # Key functions: generate_binned_gi_list
-    gi_list<-generate_binned_gi_list(binsize=50000,chrs=c('chr22'),
-    head(gi_list)
-    # --- gi list rebinned [] ---
-    # Key functions: generate_df_gi_list
-    df<-data.frame(chr='chr9',start=c(1,300,7867,103938))
-    gi_list<-generate_df_gi_list(df)
-    # --- gi list bintolen [] ---
-    # Key functions: construct_features, generate_bintolen_gi_list
-    construct_features(output_path=paste0(outdir,"/hg19_50kb_GATC"),
-    chrs=c("chr22"))
-    gi_list<-generate_bintolen_gi_list(
-    # --- custom features 2D [] ---
-    # Key functions: generate_df_gi_list
-    df<-data.frame(chr='chr9',start=seq(1e6,10e6,1e6))
-    gi_list<-generate_df_gi_list(df,Dthreshold=500e3,chrs="chr9")
-    feats<-data.frame(chr='chr9',
-    # --- custom features 1D [] ---
-    # Key functions: generate_df_gi_list, add_1D_features
-    df<-data.frame(chr='chr9',start=seq(1e6,10e6,1e6),end=seq(2e6,11e6,1e6))
-    gi_list<-generate_df_gi_list(df)
-    feats<-data.frame(chr='chr9',start=seq(1e6,10e6,1e6),gc=runif(10))
+    hicdcdiff(
+        input_paths = list(
+            NSD2 = c(
+                paste0(outdir, "/GSE131651_NSD2_LOW_arima_example.txt.gz"),
+                paste0(outdir, "/GSE131651_NSD2_HIGH_arima_example.txt.gz")
+            ),
+            TKO = c(
+                paste0(outdir, "/GSE131651_TKOCTCF_new_example.txt.gz"),
+                paste0(outdir, "/GSE131651_NTKOCTCF_new_example.txt.gz")
+            )
+        ),
+        filter_file = paste0(outdir, "/GSE131651_analysis_indices.txt.gz"),
+        output_path = paste0(outdir, "/diff_analysis_example/"),
+        fitType = "mean", chrs = "chr22", binsize = 50000,
+        diagnostics = TRUE
+    )
+
+
+    # --- ICE Normalisation and TAD Calling [] ---
+    # Key functions: hic2icenorm_gi_list, gi_list_topdom
+    hic_path <- system.file(
+        "extdata", "GSE63525_HMEC_combined_example.hic",
+        package = "HiCDCPlus"
+    )
+    gi_list <- hic2icenorm_gi_list(
+        hic_path, binsize = 50000, chrs = c("chr22"),
+        Dthreshold = 400000
+    )
+    tads <- gi_list_topdom(gi_list, chrs = c("chr22"), window.size = 10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

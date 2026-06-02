@@ -41,74 +41,30 @@ process BIOC_OMICSPCA {
     library(OMICsPCA)
     library(jsonlite)
 
-    # --- Descriptor [] ---
-    # Key functions: descriptor
-    ---------------------------------------------------------------------
-    descriptor(name = multi_assay,
-    factors = c(
-    "H2az",
-    "H3k4me1","H3k9ac"),
-    # --- Chart Correlation [] ---
-    # Key functions: chart_correlation
-    ---------------------------------------------------------------------
+    # --- Group Creation and Descriptive Analysis [] ---
+    # Key functions: create_group, descriptor
+    groupinfo <- create_group(name = multi_assay, 
+                              group_names = c("WE", "RE", "NE", "IntE"),
+                              grouping_factor = "CAGE",
+                              comparison = c(">=", "%in%", "==", "%in%"),
+                              condition = c("25", "1:5", "0", "6:24"))
+    descriptor(name = multi_assay, 
+               factors = c("H2az", "H3k4me1", "H3k9ac"),
+               groups = c("WE", "RE"), choice = 1, 
+               title = "Distribution of cell types", 
+               groupinfo = groupinfo)
+
+
+    # --- Correlation Analysis and Integration [] ---
+    # Key functions: chart_correlation, integrate_variables
     chart_correlation(name = multi_assay, Assay = "H2az",
-    groups = "WE", choice = "hist", bins = 10,
-    groupinfo = groupinfo)
-    # --- Analyse Individuals [] ---
-    # Key functions: analyse_individuals
-    ---------------------------------------------------------------------
-    # selecting top 40 TSS groups according to their contribution on
-    # PC 1 and PC 2 using the argument "select.ind"
-    selected <- analyse_individuals(name = PCAlist,
-    Assay = "H3k4me1",
-    # --- Example [] ---
-    # Key functions: example
-    ---------------------------------------------------------------------
-    # The TSSs used in this example (each row) are obtained by combining
-    # many neighboring TSSs together. The combinations should be uncombined
-    # to find the corresponding annotations.
-    names  <- gsub(";",",",paste(as.character(selected$data$name),
-    # --- Plot Integrated Density [] ---
-    # Key functions: plot_integrated_density, functions, densityplot
-    ---------------------------------------------------------------------
-    densityplot <- plot_integrated_density(name = name, PC = 1,
-    groups = c("WE","RE","IntE","NE"), groupinfo = groupinfo)
-    # additional graphical functions (e.g. xlim, ylim, theme) may be
-    #added with densityplot (see section VIII. Density analysis)
-    # --- Plot Integrated Density 3D [] ---
-    # Key functions: plot_integrated_density_3D
-    ---------------------------------------------------------------------
-    plot_integrated_density_3D(name = name, PC1 = 1, PC2 = 2,
-    group = c("RE","RE"), gridsize = 100, static = TRUE,
-    groupinfo = groupinfo)
-    # --- Extract [] ---
-    # Key functions: extract
-    ---------------------------------------------------------------------
-    # extracting data from integrated PCA
-    data <- extract(name = name, PC = c(1:4),
-    groups = c("WE","RE"), integrated = TRUE, rand = 600,
-    groupinfo = groupinfo)
-    # --- Extract [] ---
-    # Key functions: extract, cluster, plot3d, frame
-    ---------------------------------------------------------------------
-    data <- extract(name = name, PC = c(1:4),
-    groups = c("WE","RE"), integrated = TRUE, rand = 1000,
-    groupinfo = groupinfo)
-    library(factoextra)
-    # --- Daisy [] ---
-    # Key functions: daisy, silhouette, windows
-    ---------------------------------------------------------------------
-    #### Using silhouette index
-    # calculating the distance matrix
-    library(cluster)
-    dist <- daisy(data)
-    # --- Cluster Boxplot [] ---
-    # Key functions: cluster_boxplot, xlab, ylab, ggtitle, theme, element_text, guides, guide_legend
-    ---------------------------------------------------------------------
-    bp <- cluster_boxplot(name = multi_assay,
-    Assay = "H2az", clusterobject = clustered_data,
-    clustercolumn = 5)
-    bp <- bp+xlab("Cell lines") + ylab(
+                      groups = "WE", choice = "scatter", 
+                      groupinfo = groupinfo)
+    PCAlist <- integrate_variables(Assays = c("H2az", "H3k4me1", "H3k9ac"), 
+                                   name = multi_assay,
+                                   groups = c("WE", "RE", "NE", "IntE"), 
+                                   groupinfo = groupinfo,
+                                   scale.unit = FALSE, graph = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

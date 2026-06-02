@@ -38,22 +38,67 @@ process BIOC_ISANALYTICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ISAnalytics)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- path [] ---
-    # Key functions: path
-    library("RefManageR")
-    bib <- c(
-    R = citation(),
-    # --- tribble [] ---
-    # Key functions: tribble, set_af_columns_def, set_mandatory_IS_vars, tempdir, unzip
-    options("ISAnalytics.reports" = FALSE)
-    options("ISAnalytics.reports" = TRUE)
-    library(ISAnalytics)
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
-    PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
+    # --- Data Import [] ---
+    # Key functions: import_association_file, import_single_Vispa2Matrix
+    data_folder <- tempdir()
+    utils::unzip(
+        zipfile = system.file("testdata", "testdata.zip",
+                              package = "ISAnalytics"),
+        exdir = data_folder, overwrite = TRUE
+    )
+    af <- import_association_file(
+        fs::path(data_folder, "barcodes_example_af.tsv.xz"),
+        report_path = NULL
+    )
+    matrix <- import_single_Vispa2Matrix(
+        fs::path(data_folder, "GSE144340_Matrix_542.tsv.xz"),
+        sample_names_to = "ID"
+    )
+
+
+    # --- Descriptive Statistics [] ---
+    # Key functions: sample_statistics, pcr_id_column
+    desc_stats <- sample_statistics(
+        matrix,
+        af,
+        sample_key = pcr_id_column(),
+        value_columns = "Value"
+    )$metadata
+
+
+    # --- Clonal Aggregation [] ---
+    # Key functions: aggregate_values_by_key, aggregate_metadata, pcr_id_column
+    agg_key <- c("SubjectID")
+    agg <- aggregate_values_by_key(
+        matrix, af,
+        key = agg_key,
+        group = "BarcodeSeq",
+        join_af_by = pcr_id_column()
+    )
+    agg_meta_functions <- tibble::tribble(
+        ~Column, ~Function, ~Args, ~Output_colname,
+        "ID", ~ length(unique(.x)), NA, "distinct_id_count"
+    )
+    agg_meta <- aggregate_metadata(
+        af,
+        aggregating_functions = agg_meta_functions,
+        grouping_keys = agg_key
+    )
+
+
+    # --- Abundance Calculation [] ---
+    # Key functions: compute_abundance, reset_dyn_vars_config
+    agg_key <- c("SubjectID")
+    abundance <- compute_abundance(
+        agg,
+        columns = "Value_sum",
+        key = agg_key
+    )
+    reset_dyn_vars_config()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,60 +41,71 @@ process BIOC_RIBOR {
     library(ribor)
     library(jsonlite)
 
-    # --- plot length distribution ribo [] ---
-    # Key functions: plot_length_distribution
-    plot_length_distribution(x           = original.ribo,
-    # --- plot length distribution UTR5 ribo [] ---
-    # Key functions: plot_length_distribution
-    plot_length_distribution(x           = original.ribo,
-    # --- get length dist basic [] ---
-    # Key functions: get_length_distribution
-    rc <- get_length_distribution(ribo.object      = original.ribo,
-    # --- plot length distribution from dataframe [] ---
-    # Key functions: plot_length_distribution
-    plot_length_distribution(rc, fraction = TRUE)
-    # --- learn metagene radius [] ---
-    # Key functions: get_info
-    get_info(original.ribo)$attributes$metagene_radius
-    # --- plot metagene ribo start [] ---
-    # Key functions: plot_metagene
-    plot_metagene(original.ribo,
-    experiment  = c("GSM1606107"),
-    # --- plot metagene ribo [] ---
-    # Key functions: plot_metagene
-    plot_metagene(original.ribo,
-    meta.start <- get_metagene(ribo.object = original.ribo,
-    print(meta.start[ , 1:10])
-    # --- plot metagene from dt [] ---
-    # Key functions: plot_metagene
-    plot_metagene(tidy.meta.start, normalize = TRUE)
-    # --- plot region counts ribo [] ---
-    # Key functions: plot_region_counts
-    plot_region_counts(x           = original.ribo,
-    # --- get region counts default [] ---
-    # Key functions: get_region_counts
-    rc <- get_region_counts(original.ribo,
-    region      = c("CDS"))
-    # --- get region counts transcript [] ---
-    # Key functions: get_region_counts
-    rc <- get_region_counts(original.ribo,
-    region      = c("CDS"))
-    # --- get region counts full [] ---
-    # Key functions: get_region_counts
-    rc <- get_region_counts(original.ribo,
-    region      = c("CDS"))
-    # --- get region counts non [] ---
-    # Key functions: get_region_counts
-    rc <- get_region_counts(original.ribo,
-    # --- get region counts normalize [] ---
-    # Key functions: get_region_counts
-    rc <- get_region_counts(original.ribo,
-    region      = c("CDS"))
-    # --- plot region counts dt [] ---
-    # Key functions: plot_region_counts
-    rc.info <- get_region_counts(ribo.object = original.ribo,
-    region      = c("UTR5", "CDS", "UTR3"),
-    plot_region_counts(rc.info)
+    # --- Read Length Distribution Analysis [] ---
+    # Key functions: plot_length_distribution, get_length_distribution
+    file_path <- system.file(
+        "extdata", "HEK293_ingolia.ribo", 
+        package = "ribor"
+    )
+    original_ribo <- Ribo(file_path, rename = rename_default)
+    plot_length_distribution(
+        x = original_ribo,
+        region = "CDS",
+        range.lower = 28,
+        range.upper = 32,
+        fraction = TRUE
+    )
+    rc <- get_length_distribution(
+        ribo.object = original_ribo,
+        region = "CDS",
+        range.lower = 28,
+        range.upper = 32
+    )
+
+
+    # --- Metagene Analysis [] ---
+    # Key functions: plot_metagene, get_metagene, get_tidy_metagene
+    file_path <- system.file(
+        "extdata", "HEK293_ingolia.ribo", 
+        package = "ribor"
+    )
+    original_ribo <- Ribo(file_path, rename = rename_default)
+    plot_metagene(
+        original_ribo,
+        site = "start",
+        experiment = c("GSM1606107"),
+        range.lower = 28,
+        range.upper = 32
+    )
+    tidy_meta_start <- get_tidy_metagene(
+        ribo.object = original_ribo,
+        site = "start",
+        range.lower = 28,
+        range.upper = 32,
+        length = TRUE
+    )
+    plot_metagene(tidy_meta_start, normalize = TRUE)
+
+
+    # --- Region Counts Analysis [] ---
+    # Key functions: plot_region_counts, get_region_counts
+    file_path <- system.file(
+        "extdata", "HEK293_ingolia.ribo", 
+        package = "ribor"
+    )
+    original_ribo <- Ribo(file_path, rename = rename_default)
+    plot_region_counts(
+        x = original_ribo,
+        range.lower = 28,
+        range.upper = 32
+    )
+    rc_info <- get_region_counts(
+        ribo.object = original_ribo,
+        region = c("UTR5", "CDS", "UTR3"),
+        range.lower = 28,
+        range.upper = 32
+    )
+    plot_region_counts(rc_info)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

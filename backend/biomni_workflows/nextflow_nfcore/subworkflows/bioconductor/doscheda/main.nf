@@ -41,34 +41,36 @@ process BIOC_DOSCHEDA {
     library(Doscheda)
     library(jsonlite)
 
-    # --- new [] ---
-    # Key functions: new, setParameters
-    library(Doscheda)
-    channelNames <- c("Abundance..F1..126..Control..REP_1",
-    ex <- new('ChemoProtSet')
-    # --- set Data [] ---
+    # --- Dataset Loading [] ---
     # Key functions: setData
-    ex<- setData(x = ex, dataFrame = Doscheda::doschedaData,
-    # --- remove Peptides [] ---
-    # Key functions: removePeptides
-    ex <- removePeptides(ex,removePeps = FALSE)
-    # --- run Normalisation [] ---
-    # Key functions: runNormalisation, fitModel
-    ex<- runNormalisation(ex)
-    ex <- fitModel(ex)
-    # --- run Doscheda [] ---
-    # Key functions: runDoscheda
-    channelNames <- c("Abundance..F1..126..Control..REP_1",
-    ex <- runDoscheda(dataFrame = doschedaData, dataChannels = channelNames,
-    runDoscheda()
-    # --- replicate Plot [] ---
-    # Key functions: replicatePlot
-    replicatePlot(ex,conc = 0, repIndex1 = 1, repIndex2 = 2)
-    # --- new [] ---
-    # Key functions: new, setParameters, setData, removePeptides, runNormalisation
-    channelNames <- c("Abundance..F1..126..Control..REP_1",
-    ex <- new('ChemoProtSet')
-    ex<- setParameters(x = ex,chansVal = 6, repsVal = 2,dataTypeStr = 'intensity',
+    channelNames <- c(
+        "Abundance..F1..126..Control..REP_1",
+        "Abundance..F1..127..Sample..REP_1",
+        "Abundance..F2..126..Control..REP_2",
+        "Abundance..F2..127..Sample..REP_2"
+    )
+    ex <- doscheda::setData(
+        x = ex, dataFrame = Doscheda::doschedaData,
+        dataChannels = channelNames,
+        accessionChannel = "Master.Protein.Accessions",
+        sequenceChannel = 'Sequence',
+        qualityChannel = "Qvality.PEP"
+    )
+
+
+    # --- Peptide Filtering and Normalisation [] ---
+    # Key functions: removePeptides, runNormalisation, fitModel
+    ex <- doscheda::removePeptides(ex, removePeps = FALSE)
+    ex <- doscheda::runNormalisation(ex)
+    ex <- doscheda::fitModel(ex)
+
+
+    # --- Diagnostic Plotting [] ---
+    # Key functions: corrPlot, pcaPlot, replicatePlot, volcanoPlot
+    doscheda::corrPlot(ex)
+    doscheda::pcaPlot(ex)
+    doscheda::replicatePlot(ex, conc = 0, repIndex1 = 1, repIndex2 = 2)
+    doscheda::volcanoPlot(ex)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

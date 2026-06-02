@@ -41,26 +41,60 @@ process BIOC_PROJECTR {
     library(projectR)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: scale_colour_manual, scale_fill_manual, scale_shape_manual, ggplot
-    library(ggplot2)
+    # --- PCA Projection [PCA Projection] ---
+    # Key functions: projectR
     data(p.RNAseq6l3c3t)
-    pc.RNAseq6l3c3t<-prcomp(t(p.RNAseq6l3c3t))
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: projectR, scale_colour_manual, ggplot, geom_point
     data(p.ESepiGen4c1l)
-    library(ggplot2)
-    PCA2ESepi <- projectR(data = p.ESepiGen4c1l$mRNA.Seq,loadings=pc.RNAseq6l3c3t,
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: correlateR, unlist, ggplot, geom_tile, scale_fill_viridis
-    data("p.RNAseq6l3c3t")
-    cor2T<-correlateR(genes="T", dat=p.RNAseq6l3c3t, threshtype="N", threshold=10, absR=TRUE)
-    indx<-unlist(sapply(cor2T,rownames))
-    # --- projection Drive R [] ---
-    # Key functions: projectionDriveR, plotConfidenceIntervals, geom_label_repel, xlab
-    options(width = 60)
-    library(dplyr, warn.conflicts = F)
-    data("microglial_counts")
+    pc_source <- prcomp(t(p.RNAseq6l3c3t))
+    PCA2ESepi <- projectR(
+        data = p.ESepiGen4c1l$mRNA.Seq,
+        loadings = pc_source,
+        full = TRUE,
+        dataNames = map.ESepiGen4c1l[["GeneSymbols"]]
+    )
+
+    # --- CoGAPS Pattern Projection [CoGAPS Pattern Projection] ---
+    # Key functions: projectR
+    data(p.ESepiGen4c1l)
+    AP_data <- get(data("AP.RNAseq6l3c3t"))
+    AP_matrix <- AP_data$Amean
+    NMF2ESepi <- projectR(
+        data = p.ESepiGen4c1l$mRNA.Seq,
+        loadings = AP_matrix,
+        full = TRUE,
+        dataNames = map.ESepiGen4c1l[["GeneSymbols"]]
+    )
+
+    # --- Gene Correlation Analysis [Gene Correlation Analysis] ---
+    # Key functions: correlateR
+    data(p.RNAseq6l3c3t)
+    cor2T <- correlateR(
+        genes = "T",
+        dat = p.RNAseq6l3c3t,
+        threshtype = "N",
+        threshold = 10,
+        absR = TRUE
+    )
+    cor_matrix <- cor2T@corM
+
+    # --- Correlation Space Projection [Correlation Space Projection] ---
+    # Key functions: projectR, correlateR
+    data(p.RNAseq6l3c3t)
+    data(p.ESepiGen4c1l)
+    cor2T <- correlateR(
+        genes = "T",
+        dat = p.RNAseq6l3c3t,
+        threshtype = "N",
+        threshold = 10,
+        absR = TRUE
+    )
+    cor2ESepi <- projectR(
+        data = p.ESepiGen4c1l$mRNA.Seq,
+        loadings = cor2T[[1]],
+        full = FALSE,
+        dataNames = map.ESepiGen4c1l$GeneSymbols
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

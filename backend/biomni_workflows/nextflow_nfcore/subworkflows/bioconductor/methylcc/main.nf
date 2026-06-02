@@ -41,23 +41,15 @@ process BIOC_METHYLCC {
     library(methylCC)
     library(jsonlite)
 
-    # --- p Data [] ---
-    # Key functions: pData
-    head(pData(FlowSorted.Blood.450k))
-    pData(FlowSorted.Blood.450k)$CellTypeLong %in% "Whole blood"]
-    # --- estimatecc [] ---
-    # Key functions: estimatecc
-    set.seed(12345)
-    est <- estimatecc(object = rgset)
-    # --- sample Names [] ---
-    # Key functions: sampleNames, estimateCellCounts
-    sampleNames(rgset) <- paste0("Sample", 1:6)
-    est_minfi <- minfi::estimateCellCounts(rgset)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: cell_counts, full_join, ggplot, geom_point, geom_abline
-    df_minfi = gather(cbind("samples" = rownames(cell_counts(est)),
-    as.data.frame(est_minfi)),
-    df_methylCC = gather(cbind("samples" = rownames(cell_counts(est)),
+    # --- Cell Count Extraction [] ---
+    # Key functions: cell_counts
+    counts <- methylCC::cell_counts(est)
+
+
+    # --- Cell Composition Summarization [] ---
+    # Key functions: cell_counts
+    counts_matrix <- methylCC::cell_counts(est)
+    mean_proportions <- colMeans(counts_matrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

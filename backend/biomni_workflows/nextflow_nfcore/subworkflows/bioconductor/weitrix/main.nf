@@ -41,20 +41,39 @@ process BIOC_WEITRIX {
     library(weitrix)
     library(jsonlite)
 
-    # --- Linear model fit (limma) [] ---
-    # Key functions: weitrix_elist, lmFit, eBayes, topTable, makeContrasts, weitrix_confects
-    multiple_contrasts <- limma::makeContrasts(
-    weitrix_confects(cal, design, contrasts=multiple_contrasts, fdr=0.05)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: rowData, weitrix_x, weitrix_weights, ggplot, matrix_long, geom_hline, geom_line, geom_point
-    matrix_long(comp$col[,-1], row_info=samples, varnames=c("sample","component")) %>%
-    ggplot(aes(x=time, y=value, color=strain, group=strain)) +
-    geom_hline(yintercept=0) +
-    # --- Feature metadata inspection [] ---
-    # Key functions: column_to_rownames, extract, rowMeans, as_weitrix, rowData, colData, weitrix_components, weitrix_calibrate_all
-    weitrix_calplot(unwei, fit, covar=log(weitrix_weights(wei)), guides=FALSE) + labs(title="Unweighted\n") |
-    weitrix_calplot(wei, fit, covar=log(weitrix_weights(wei)), guides=FALSE) + labs(title="Weighted by\nread count") |
-    weitrix_calplot(cal, fit, covar=log(weitrix_weights(wei)), guides=FALSE) + labs(title="Calibrated\n")
+    # --- Calibration and Weight Adjustment [] ---
+    # Key functions: weitrix_components, weitrix_calibrate_all, well_knotted_spline
+    design <- model.matrix(~ 1, data = colData(wei))
+    fit <- weitrix_components(wei, design = design)
+    cal <- weitrix_calibrate_all(
+        wei,
+        design = fit,
+        trend_formula = ~ well_knotted_spline(mu, 3)
+    )
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: weitrix_confects, weitrix_elist
+    design_de <- model.matrix(~ factor(rep(c("A", "B"), each = 5)))
+    colnames(design_de) <- c("Intercept", "GroupB")
+    confects <- weitrix_confects(
+        cal,
+        design_de,
+        coef = "GroupB",
+        fdr = 0.05
+    )
+    elist <- weitrix_elist(cal)
+
+
+    # --- Component Analysis and Visualization [] ---
+    # Key functions: weitrix_components_seq, components_seq_screeplot, matrix_long
+    comp_seq <- weitrix_components_seq(cal, p = 2)
+    scree_p <- components_seq_screeplot(comp_seq)
+    comp <- comp_seq[[1]]
+    long_df <- matrix_long(
+        comp$col,
+        varnames = c("sample", "component")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

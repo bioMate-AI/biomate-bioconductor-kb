@@ -38,39 +38,33 @@ process BIOC_WPM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(wpm)
     library(MSnSet)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- convert CSV file [] ---
-    # Key functions: convertCSV
-    imported_csv <- wpm::convertCSV("path-to-CSV-file")
-    # --- create an MSnSet object [] ---
-    # Key functions: MSnSet
-    sample_names <- c("s1","s2","s3","s4", "s5")
-    M <- matrix(NA, nrow = 4, ncol = 5)
-    colnames(M) <- sample_names
-    # --- convert ESet/MSnSet object [] ---
-    # Key functions: convertESet
-    df <- wpm::convertESet(my_MSnSet_object, "Environment")
-    # --- convert SummarizedExperiment object [] ---
-    # Key functions: SummarizedExperiment, convertSE
-    counts <- matrix(runif(nrows * ncols, 1, 1e4), nrows)
-    colData <- data.frame(Treatment=rep(c("ChIP", "Input"), 3),
-    se <- SummarizedExperiment::SummarizedExperiment(assays=list(counts=counts),
-    # --- run wpm with a CSV file [] ---
+    # --- Plate Layout Generation [] ---
     # Key functions: wrapperWPM
-    wpm_result <- wpm::wrapperWPM(user_df = imported_csv$df_wpm,
-    plate_dims = list(8,12),
-    # --- wrapper W P M [] ---
-    # Key functions: wrapperWPM
-    wpm_result <- wpm::wrapperWPM(user_df = df,
-    plate_dims = list(8,12),
-    # --- visualize plate map [] ---
+    wpm_result <- wrapperWPM(
+        user_df = df,
+        plate_dims = list(8, 12),
+        nb_plates = 1,
+        forbidden_wells = "A1,A2",
+        fixed_wells = "B1",
+        spatial_constraint = "NS"
+    )
+
+
+    # --- Plate Map Visualization [] ---
     # Key functions: drawMap
-    drawned_map <- wpm::drawMap(df = wpm_result,
-    sample_gps = length(levels(as.factor(colData$Treatment))),
-    gp_levels = gp_lvl <- levels(as.factor(colData$Treatment)),
+    drawn_map <- drawMap(
+        df = wpm_result,
+        sample_gps = 2,
+        gp_levels = c("ChIP", "Input"),
+        plate_lines = 8,
+        plate_cols = 12,
+        project_title = "ChIP-Seq Plate Layout"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

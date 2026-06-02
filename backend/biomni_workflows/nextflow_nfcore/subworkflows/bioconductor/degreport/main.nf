@@ -38,27 +38,70 @@ process BIOC_DEGREPORT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DEGreport)
     library(DESeq)
     library(DESeqDataSetFromMatrix)
     library(Heatmap)
     library(HeatmapAnnotation)
     library(jsonlite)
 
-    # --- Create DESeqDataSet from count matrix [] ---
-    # Key functions: DESeqDataSetFromMatrix, colData, DESeq, results
-    library(DESeq2)
-    idx <- c(1:10, 75:85)
-    dds <- DESeqDataSetFromMatrix(assays(humanGender)[[1]][1:1000, idx],
-    # --- Heatmap of expression matrix [] ---
-    # Key functions: HeatmapAnnotation, Heatmap, pheatmap
-    library(ComplexHeatmap)
-    th <- HeatmapAnnotation(df = colData(dds),
-    col = degColors(colData(dds), TRUE))
-    # --- Sample metadata inspection [] ---
-    # Key functions: counts, degCheckFactors, degQC, degCovariates, colData, degCorCov, createReport, degComps
-    res[["id"]] <- row.names(res)
-    show <- as.data.frame(res[1:10, c("log2FoldChange", "padj", "id")])
-    degVolcano(res[,c("log2FoldChange", "padj")], plot_text = show)
+    # --- Differential Expression Summarization [] ---
+    # Key functions: degFilter, degComps, deg, significants
+    filter_count <- degFilter(
+        counts,
+        design,
+        "group",
+        min = 1,
+        minreads = 50
+    )
+    degs <- degComps(
+        dds,
+        combs = "group",
+        contrast = list(
+            "group_Male_vs_Female",
+            c("group", "Female", "Male")
+        )
+    )
+    deg_table <- deg(degs[[1]], "raw", "tibble")
+    sig_genes <- significants(degs[[1]], fc = 0, fdr = 0.05)
+
+
+    # --- Diagnostic Visualizations [] ---
+    # Key functions: degMA, degVolcano, degPlot, degPlotWide
+    ma_plot <- degMA(degs[[1]], diff = 2, limit = 3)
+    volcano_plot <- degVolcano(
+        res[, c("log2FoldChange", "padj")],
+        plot_text = res[1:10, c("log2FoldChange", "padj", "id")]
+    )
+    gene_plots <- degPlot(
+        dds = dds,
+        res = res,
+        n = 6,
+        xs = "group"
+    )
+    wide_plot <- degPlotWide(
+        dds,
+        rownames(dds)[1:5],
+        group = "group"
+    )
+
+
+    # --- Expression Pattern Clustering [] ---
+    # Key functions: degPatterns
+    ma_matrix <- counts[1:100, ]
+    patterns <- degPatterns(
+        ma_matrix,
+        design,
+        time = "group"
+    )
+
+
+    # --- Annotation Coloring [] ---
+    # Key functions: degColors
+    color_list <- degColors(
+        design[, 1:4],
+        con_values = c("white", "red")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

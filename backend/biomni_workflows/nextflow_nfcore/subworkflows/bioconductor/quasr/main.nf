@@ -38,71 +38,72 @@ process BIOC_QUASR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(QuasR)
     library(DataTrack)
     library(GeneRegionTrack)
     library(GenomeAxisTrack)
     library(IRanges)
     library(jsonlite)
 
-    # --- q Align [] ---
+    # --- Sequence Alignment [] ---
     # Key functions: qAlign
-    proj <- qAlign(sampleFile, genomeFile)
-    # --- q Q C Report [] ---
-    # Key functions: qQCReport
-    qQCReport(proj, "extdata/qc_report.pdf")
-    # --- promoters [] ---
-    # Key functions: promoters, qCount
-    library(rtracklayer)
-    library(GenomicFeatures)
-    txStart <- import.gff(annotFile, format = "gtf", feature.type = "start_codon")
-    # --- <sampleFileSeqToBam [] ---
-    # Key functions: qAlign
-    proj1 <- qAlign(sampleFile1, genomeFile)
-    write.table(alignments(proj1)$genome, sampleFile2, sep="\t", row.names=FALSE)
-    proj2 <- qAlign(sampleFile2, genomeFile)
-    # --- tempdir [] ---
-    # Key functions: tempdir, preprocessReads, unlink
-    td <- tempdir()
-    infiles <- system.file(package = "QuasR", "extdata",
-    c("rna_1_1.fq.bz2","rna_2_1.fq.bz2"))
-    # --- tempdir [] ---
-    # Key functions: tempdir, preprocessReads
-    td <- tempdir()
-    infiles1 <- system.file(package = "QuasR", "extdata", "rna_1_1.fq.bz2")
-    infiles2 <- system.file(package = "QuasR", "extdata", "rna_1_2.fq.bz2")
-    # --- ChIP qAlign [] ---
-    # Key functions: qAlign
-    proj1 <- qAlign(sampleFile, genome = genomeFile, auxiliaryFile = auxFile)
-    # --- ChIP qcplot1 [] ---
-    # Key functions: qQCReport
-    qcdat1 <- qQCReport(proj1, pdfFilename = "extdata/qc_report.pdf")
-    # --- ChIP qcplots2 [] ---
-    # Key functions: qQCReport
-    qQCReport(proj1, pdfFilename = "extdata/qc_report.pdf")
-    # --- ChIP alignmentStats [] ---
-    # Key functions: alignmentStats
-    alignmentStats(proj1)
-    # --- ChIP qExportWig [] ---
-    # Key functions: qExportWig
-    qExportWig(proj1, binsize = 100L, scaling = TRUE, collapseBySample = TRUE)
-    # --- ChIP GenomicFeatures [] ---
-    # Key functions: scanFaIndex, makeTxDbFromGFF, promoters
-    library(txdbmaker)
-    chrLen <- scanFaIndex(genomeFile)
-    chrominfo <- data.frame(chrom = as.character(seqnames(chrLen)),
-    # --- ChIP qCount [] ---
+    sampleFile <- "extdata/samples_chip_single.txt"
+    genomeFile <- "extdata/hg19sub.fa"
+    auxFile <- "extdata/auxiliaries.txt"
+    proj <- qAlign(
+        sampleFile = sampleFile,
+        genome = genomeFile,
+        auxiliaryFile = auxFile
+    )
+
+
+    # --- Quality Control and Statistics [] ---
+    # Key functions: qQCReport, alignmentStats
+    qc_stats <- alignmentStats(proj)
+    qcdat <- qQCReport(
+        proj,
+        pdfFilename = "qc_report.pdf"
+    )
+
+
+    # --- Genomic Feature Quantification [] ---
     # Key functions: qCount
-    cnt <- qCount(proj1, promRegSel)
-    # --- ChIP visualize [] ---
-    # Key functions: import, GenomeAxisTrack, DataTrack, GeneRegionTrack, plotTracks
-    gr1 <- import("Sample1.wig.gz")
-    gr2 <- import("Sample2.wig.gz")
-    library(Gviz)
-    # --- ChIP qProfile [] ---
+    query_regions <- GenomicRanges::GRanges(
+        seqnames = c("chr3", "chr3"),
+        ranges = IRanges::IRanges(
+            start = c(1000, 5000),
+            end = c(2000, 6000)
+        )
+    )
+    cnt <- qCount(proj, query = query_regions)
+
+
+    # --- Export to Wiggle Format [] ---
+    # Key functions: qExportWig
+    qExportWig(
+        proj,
+        binsize = 100L,
+        scaling = TRUE,
+        collapseBySample = TRUE
+    )
+
+
+    # --- Signal Profiling [] ---
     # Key functions: qProfile
-    prS <- qProfile(proj1, tssRegions, upstream = 3000, downstream = 3000,
-    prO <- qProfile(proj1, tssRegions, upstream = 3000, downstream = 3000,
-    lapply(prS, "[", , 1:10)
+    tssRegions <- GenomicRanges::GRanges(
+        seqnames = c("chr3"),
+        ranges = IRanges::IRanges(
+            start = c(1500, 5500),
+            width = 1
+        )
+    )
+    prS <- qProfile(
+        proj,
+        tssRegions,
+        upstream = 3000,
+        downstream = 3000,
+        orientation = "same"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

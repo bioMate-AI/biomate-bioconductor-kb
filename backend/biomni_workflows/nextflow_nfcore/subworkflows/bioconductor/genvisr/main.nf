@@ -41,15 +41,54 @@ process BIOC_GENVISR {
     library(GenVisR)
     library(jsonlite)
 
-    # --- kable 1 [] ---
-    # Key functions: kable
-    library(knitr)
-    MGI <- c("nonsense", "frame_shift_del",
-    MAF <- c("Nonsense_Mutation", "Frame_Shift_Ins",
-    # --- kable [] ---
-    # Key functions: kable
-    kable(as.data.frame(cbind(sample=as.character(brcaMAF[1:10,16]),
-    mut_burden=as.numeric(rnorm(10, mean=2, sd=.5)))))
+    # --- Transition and Transversion Analysis [] ---
+    # Key functions: TvTi
+    expec <- c("A->C or T->G (TV)"=.066, "A->G or T->C (TI)"=.217,
+               "A->T or T->A (TV)"=.065, "G->A or C->T (TI)"=.4945,
+               "G->C or C->G (TV)"=.0645, "G->T or C->A (TV)"=.093)
+    TvTi(brcaMAF, y=expec, lab_txtAngle=45, fileType="MAF",
+         palette=c("#77C55D", "#A461B4", "#C1524B", "#93B5BB", 
+                   "#4F433F", "#BFA753"))
+
+
+    # --- Genomic Coverage Visualisation [] ---
+    # Key functions: genCov
+    gr <- GenomicRanges::GRanges(seqnames=c("chr10"), 
+                                 ranges=IRanges::IRanges(start=c(89622195), 
+                                 end=c(89729532)), 
+                                 strand=BiocGenerics::strand(c("+")))
+    cov_input_A <- data.frame(chr=10, start=89622194:89729524, 
+                              end=89622195:89729525, 
+                              cov=c(rnorm(100000, mean=40), rnorm(7331, mean=10)))
+    cov_input_B <- data.frame(chr=10, start=89622194:89729524, 
+                              end=89622195:89729525, 
+                              cov=c(rnorm(50000, mean=40), rnorm(7331, mean=10), 
+                                    rnorm(50000, mean=40)))
+    data_cov <- list("Sample A"=cov_input_A, "Sample B"=cov_input_B)
+    genCov(data_cov, txdb, gr, genome, transform=c("Intron", "CDS", "UTR"), 
+           base=c(10, 2, 2), reduce=TRUE)
+
+
+    # --- Copy Number Visualisation [] ---
+    # Key functions: cnSpec, cnView
+    cnSpec(LucCNseg, genome="hg19")
+    coordinate <- sort(sample(0:106455000, size=2000, replace=FALSE))
+    cn <- c(rnorm(300, mean=3, sd=.2), rnorm(700, mean=2, sd=.2), 
+            rnorm(1000, mean=3, sd=.2))
+    data_cn <- data.frame(chromosome='chr14', coordinate=coordinate, cn=cn)
+    data_seg <- data.frame(chromosome=14, start=coordinate[c(1, 301, 1001)], 
+                           end=coordinate[c(300, 1000, 2000)], 
+                           segmean=c(3, 2, 3))
+    cnView(data_cn, z=data_seg, chr='chr14', genome='hg19', ideogram_txtSize=4)
+
+
+    # --- Loss of Heterozygosity and Coverage Bars [] ---
+    # Key functions: lohSpec, lohView, covBars
+    lohSpec(x=HCC1395_Germline)
+    lohView(HCC1395_Germline, chr='chr5', genome='hg19', ideogram_txtSize=4)
+    cov_matrix <- matrix(sample(100000, 500), nrow=50, ncol=10, 
+                         dimnames=list(0:49, paste0("Sample", 1:10)))
+    covBars(cov_matrix, colour=c("blue", "grey", "red"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

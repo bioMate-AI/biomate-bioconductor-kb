@@ -42,24 +42,24 @@ process BIOC_SINGLECELLEXPERIMENT {
     library(SingleCellExperiment)
     library(jsonlite)
 
+    # --- Internal Metadata Management [] ---
+    # Key functions: int_colData, int_elementMetadata, int_metadata
+    singlecellexperiment::int_colData(sce)$A <- S4Vectors::DataFrame(
+        X = runif(ncol(sce))
+    )
+    singlecellexperiment::int_elementMetadata(sce)$A <- S4Vectors::DataFrame(
+        Y = runif(nrow(sce))
+    )
+    singlecellexperiment::int_metadata(sce)$A <- list(
+        Z = "Aaron"
+    )
 
-    # --- Construct [] ---
-    # Key functions: rpois, SingleCellExperiment, function, int_colData, runif, sample
-    library(SingleCellExperiment)
-    counts <- matrix(rpois(100, lambda = 10), ncol=10, nrow=10)
-    sce <- SingleCellExperiment(assays = list(counts = counts))
-    sce
 
-    ## -----------------------------------------------------------------------------
-    # Function in package A:
-    AsetX <- function(sce) {
-        int_colData(sce)$X <- runif(ncol(sce))
-        sce
-    }
-
-    # Function in package B:
-    BsetX <- function(sce) {
-        int_colData(sce)$X <- sample(LETTERS, ncol(sce), replace=TRUE)
+    # --- Accessing Internal Metadata [] ---
+    # Key functions: int_colData, int_elementMetadata, int_metadata
+    col_meta <- singlecellexperiment::int_colData(sce)$A$X
+    row_meta <- singlecellexperiment::int_elementMetadata(sce)$A$Y
+    study_meta <- singlecellexperiment::int_metadata(sce)$A$Z
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

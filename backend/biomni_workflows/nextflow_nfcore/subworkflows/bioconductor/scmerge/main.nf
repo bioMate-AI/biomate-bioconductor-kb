@@ -38,109 +38,60 @@ process BIOC_SCMERGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scMerge)
     library(IrlbaParam)
     library(jsonlite)
 
-    # --- Loading Data [] ---
-    # Key functions: data
-    ## Subsetted mouse ESC data
+    # --- Unsupervised Batch Correction [scMerge] ---
+    # Key functions: scMerge
     data("example_sce", package = "scMerge")
-    # --- Checking Raw Data [] ---
-    # Key functions: runPCA, plotPCA
-    example_sce = runPCA(example_sce, exprs_values = "logcounts")
-    scater::plotPCA(
-      example_sce,
-      colour_by = "cellTypes",
-      shape_by = "batch")
-    # --- Load Seg [] ---
-    # Key functions: data
-    ## single-cell stably expressed gene list
     data("segList_ensemblGeneID", package = "scMerge")
-    head(segList_ensemblGeneID$mouse$mouse_scSEG)
-    # --- Unsupervised Default [] ---
-    # Key functions: scMerge
     scMerge_unsupervised <- scMerge(
-      sce_combine = example_sce,
-      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
-      kmeansK = c(3, 3),
-      assay_name = "scMerge_unsupervised")
-    # --- Unsupervised Default Plotting [] ---
-    # Key functions: runPCA, plotPCA
-    scMerge_unsupervised = runPCA(scMerge_unsupervised, exprs_values = "scMerge_unsupervised")
-    scater::plotPCA(
-      scMerge_unsupervised,
-      colour_by = "cellTypes",
-      shape_by = "batch")
-    # --- Unsupervised Prop1 [] ---
+        sce_combine = example_sce,
+        ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+        kmeansK = c(3, 3),
+        assay_name = "scMerge_unsupervised"
+    )
+
+    # --- Supervised Batch Correction [scMerge] ---
     # Key functions: scMerge
-    scMerge_unsupervised_all <- scMerge(
-      sce_combine = example_sce,
-      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
-      kmeansK = c(3, 3),
-      assay_name = "scMerge_unsupervised_all",
-    # --- Unsupervised Prop1 Plotting [] ---
-    # Key functions: runPCA, plotPCA
-    scMerge_unsupervised_all = runPCA(scMerge_unsupervised_all,
-                                      exprs_values = "scMerge_unsupervised_all")
-    scater::plotPCA(
-      scMerge_unsupervised_all,
-      colour_by = "cellTypes",
-    # --- Supervised [] ---
-    # Key functions: scMerge
-    scMerge_supervised <- scMerge(
-      sce_combine = example_sce,
-      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
-      kmeansK = c(3, 3),
-      assay_name = "scMerge_supervised",
-    # --- Supervised Plotting [] ---
-    # Key functions: runPCA, plotPCA
-    scMerge_supervised = runPCA(scMerge_supervised,
-                                exprs_values = "scMerge_supervised")
-    scater::plotPCA(
-      scMerge_supervised,
-      colour_by = "cellTypes",
-    # --- Semi Supervised1 [] ---
-    # Key functions: scMerge
-    scMerge_semisupervised1 <- scMerge(
-      sce_combine = example_sce,
-      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
-      kmeansK = c(3,3),
-      assay_name = "scMerge_semisupervised1",
-    # --- Semi Supervised1 Plotting [] ---
-    # Key functions: runPCA, plotPCA
-    scMerge_semisupervised1 = runPCA(scMerge_semisupervised1,
-                                     exprs_values = "scMerge_semisupervised1")
-    scater::plotPCA(
-      scMerge_semisupervised1,
-      colour_by = "cellTypes",
-    # --- Semi Supervised2 [] ---
-    # Key functions: scMerge
-    scMerge_semisupervised2 <- scMerge(
-      sce_combine = example_sce,
-      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
-      kmeansK = c(3, 3),
-      assay_name = "scMerge_semisupervised2",
-    # --- Semi Supervised2 Plotting [] ---
-    # Key functions: runPCA, plotPCA
-    scMerge_semisupervised2 = runPCA(scMerge_semisupervised2,
-                                     exprs_values = "scMerge_semisupervised2")
-    scater::plotPCA(
-      scMerge_semisupervised2,
-      colour_by = "cellTypes",
-    # --- Segindex2 [] ---
-    # Key functions: data
-    ## SEG list in ensemblGene ID
+    data("example_sce", package = "scMerge")
     data("segList_ensemblGeneID", package = "scMerge")
-    ## SEG list in official gene symbols
-    data("segList", package = "scMerge")
-    ## SEG list for human scRNA-Seq data
-    # --- Computation Fast [] ---
-    # Key functions: scMerge, IrlbaParam
-    library(BiocSingular)
+    scMerge_supervised <- scMerge(
+        sce_combine = example_sce,
+        ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+        kmeansK = c(3, 3),
+        assay_name = "scMerge_supervised",
+        cell_type = example_sce$cellTypes
+    )
+
+    # --- Semi-Supervised Batch Correction [scMerge] ---
+    # Key functions: scMerge
+    data("example_sce", package = "scMerge")
+    data("segList_ensemblGeneID", package = "scMerge")
+    scMerge_semisupervised <- scMerge(
+        sce_combine = example_sce,
+        ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+        kmeansK = c(3, 3),
+        assay_name = "scMerge_semisupervised",
+        cell_type = example_sce$cellTypes,
+        cell_type_inc = which(example_sce$cellTypes == "2i"),
+        cell_type_match = FALSE
+    )
+
+    # --- Fast Batch Correction [scMerge] ---
+    # Key functions: scMerge
+    data("example_sce", package = "scMerge")
+    data("segList_ensemblGeneID", package = "scMerge")
     scMerge_fast <- scMerge(
-      sce_combine = example_sce,
-      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
-      kmeansK = c(3, 3),
+        sce_combine = example_sce,
+        ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+        kmeansK = c(3, 3),
+        assay_name = "scMerge_fast",
+        BSPARAM = BiocSingular::IrlbaParam(),
+        svd_k = 20
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

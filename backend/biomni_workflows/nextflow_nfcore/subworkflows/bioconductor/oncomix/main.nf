@@ -38,54 +38,25 @@ process BIOC_ONCOMIX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(oncomix)
     library(MySQL)
     library(jsonlite)
 
-    # --- Oncomixideal [] ---
-    # Key functions: oncoMixIdeal
-    ---------------------------------------------------------------------
-    library(ggplot2)
-    oncoMixIdeal()
-    # --- Oncomixtraditionalde [] ---
-    # Key functions: oncoMixTraditionalDE
-    ---------------------------------------------------------------------
-    oncoMixTraditionalDE()
-    # --- Data [] ---
-    # Key functions: mixModelParams
-    ---------------------------------------------------------------------
-    data(exprNmlIsof, exprTumIsof, package="oncomix")
-    ##look at the matrix of mRNA expression data from adjacent normal samples
-    dim(exprNmlIsof)
-    exprNmlIsof[1:5, 1:5]
-    # --- Topgenequants [] ---
+    # --- Oncogene Candidate Selection [] ---
     # Key functions: topGeneQuants
-    ---------------------------------------------------------------------
-    topGeneQuant <- topGeneQuants(mmParams, deltMu2Thr=99,
-        deltMu1Thr=10, siThr=.99)
-    print(topGeneQuant)
-    # --- Plotgenehist [] ---
-    # Key functions: plotGeneHist
-    ---------------------------------------------------------------------
-    isof = "uc002jxc.2"
+    data(exprNmlIsof, exprTumIsof, package = "oncomix")
+    mmParams <- mixModelParams(exprNmlIsof[1:50, ], exprTumIsof[1:50, ])
+    topGeneQuant <- topGeneQuants(mmParams, deltMu2Thr = 90,
+                                  deltMu1Thr = 5, siThr = 0.9)
+
+
+    # --- Expression Visualization [] ---
+    # Key functions: plotGeneHist, scatterMixPlot
+    data(exprNmlIsof, exprTumIsof, package = "oncomix")
+    mmParams <- mixModelParams(exprNmlIsof[1:50, ], exprTumIsof[1:50, ])
+    isof <- rownames(mmParams)[1]
     plotGeneHist(mmParams, exprNmlIsof, exprTumIsof, isof)
-    # --- Scattermixplot [] ---
-    # Key functions: scatterMixPlot
-    ---------------------------------------------------------------------
-    scatterMixPlot(mmParams=mmParams, geneLabels=rownames(mmParamsTop10))
-    # --- Packages [] ---
-    # Key functions: packages, dbConnect, MySQL
-    ---------------------------------------------------------------------
-    ##The code that follows was used to generate the `queryRes` object
-    ##in September 2017.
-    ##
-    ##install.packages("RMySQL")
-    # --- Pal [] ---
-    # Key functions: pal, ggplot, aes, na, geom_histogram, theme_classic
-    ---------------------------------------------------------------------
-    library(RColorBrewer)
-    col <- brewer.pal(3, "Dark2")
-    ggplot(mmParamsMg, aes(x=score, y=..density.., fill=is.na(geneSymbol))) +
-        geom_histogram(data=subset(mmParamsMg, is.na(geneSymbol)),
+    scatterMixPlot(mmParams, selIndThresh = 0.9)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

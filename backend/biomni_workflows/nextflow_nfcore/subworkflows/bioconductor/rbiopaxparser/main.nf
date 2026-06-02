@@ -41,89 +41,54 @@ process BIOC_RBIOPAXPARSER {
     library(rBiopaxParser)
     library(jsonlite)
 
-    # --- Downloadbiopax [] ---
-    # Key functions: downloadBiopaxData
-    ## file = downloadBiopaxData("NCI","biocarta")
-    # --- Parsebiopax [] ---
-    # Key functions: readBiopax
-    ## biopax = readBiopax(file)
-    ## print(biopax)
-    # --- Accessingbiopax [] ---
-    # Key functions: listInstances, selectInstances, getInstanceProperty, listPathwayComponents
-    pw_list = listInstances(biopax, class="pathway")
-    pw_complete = selectInstances(biopax, class="pathway")
-    pwid1 = "pid_p_100002_wntpathway"
-    pwid2 = "pid_p_100146_hespathway"
-    getInstanceProperty(biopax, pwid1, property="NAME")
-    # --- Pathwaytoregulatorygraphs [] ---
-    # Key functions: pathway2AdjacancyMatrix, pathway2RegulatoryGraph
-    ## pw_1_adj = pathway2AdjacancyMatrix(biopax, pwid1, expandSubpathways=TRUE,
-    ## splitComplexMolecules=TRUE, verbose=TRUE)
-    ## pw_1_graph = pathway2RegulatoryGraph(biopax, pwid1,
-    ## splitComplexMolecules=TRUE, verbose=TRUE)
-    ## pw_2_adj = pathway2AdjacancyMatrix(biopax, pwid2, expandSubpathways=TRUE,
-    # --- Layoutgraphs [] ---
-    # Key functions: layoutRegulatoryGraph
-    ## pw_1_graph_laidout = layoutRegulatoryGraph(pw_1_graph)
-    ## pw_2_graph_laidout = layoutRegulatoryGraph(pw_2_graph)
-    # --- Plotgraphs [] ---
-    # Key functions: plotRegulatoryGraph
-    ## plotRegulatoryGraph(pw_1_graph)
-    ## plotRegulatoryGraph(pw_2_graph)
-    # --- Mergedgraph [] ---
-    # Key functions: uniteGraphs, plotRegulatoryGraph
-    ## merged_graph = uniteGraphs(pw_1_graph_laidout,pw_2_graph_laidout)
-    ## plotRegulatoryGraph(merged_graph, layoutGraph=FALSE)
-    # --- Beautifygraphs [] ---
-    # Key functions: nodeRenderInfo, plotRegulatoryGraph
-    ## nodeRenderInfo(merged_graph)$cex = 1
-    ## nodeRenderInfo(merged_graph)$textCol = "red"
-    ## nodeRenderInfo(merged_graph)$fill = "green"
-    ## plotRegulatoryGraph(merged_graph, layoutGraph=FALSE)
-    # --- Modifypathways [] ---
-    # Key functions: mergePathways, pathway2RegulatoryGraph, plotRegulatoryGraph, layoutRegulatoryGraph
-    ## biopax = mergePathways(biopax, pwid1, pwid2, NAME="mergedpw1", ID="mergedpwid1")
-    ## mergedpw_graph = pathway2RegulatoryGraph(biopax,
-    ## 		"mergedpwid1", splitComplexMolecules=TRUE, verbose=TRUE)
-    ## plotRegulatoryGraph(layoutRegulatoryGraph(mergedpw_graph))
-    # --- Createbiopax1 [] ---
+    # --- Extract Pathway Components [] ---
+    # Key functions: listPathwayComponents, selectInstances
+    data(biopaxexample)
+    pwid1 <- "pid_p_100002_wntpathway"
+    pw_1_component_list <- listPathwayComponents(biopax, pwid1)
+    pw_1_components <- selectInstances(
+        biopax,
+        id=pw_1_component_list$id
+    )
+
+
+    # --- Build BioPAX Model Entities [] ---
     # Key functions: createBiopax, addPhysicalEntity, addPhysicalEntityParticipant, addBiochemicalReaction
-    biopax = createBiopax()
+    biopax <- createBiopax()
     for(i in LETTERS[1:5]) {
-    	biopax = addPhysicalEntity(biopax, class="protein",
-    		NAME=paste("protein",i,sep="_"),
-    		id=paste("proteinid",i,sep="_"))
-    # --- Createbiopax2 [] ---
+        biopax <- addPhysicalEntity(biopax, class="protein",
+            NAME=paste("protein", i, sep="_"), 
+            id=paste("proteinid", i, sep="_"))
+        biopax <- addPhysicalEntityParticipant(biopax,
+            referencedPhysicalEntityID=paste("proteinid", i, sep="_"), 
+            id=paste("PEPid", i, sep="_"))
+        biopax <- addBiochemicalReaction(biopax,
+            LEFT=paste("PEPid", i, sep="_"),
+            RIGHT=paste("PEPid", i, sep="_"),
+            id=paste("BCRid", i, sep="_"))
+    }
+
+
+    # --- Define Regulatory Controls [] ---
     # Key functions: addControl
-    biopax = addControl(biopax, CONTROL_TYPE="ACTIVATION",
-    	CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_B"),id="control_1")
-    biopax = addControl(biopax, CONTROL_TYPE="INHIBITION",
-    	CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_C"),id="control_2")
-    biopax = addControl(biopax, CONTROL_TYPE="ACTIVATION",
-    # --- Createbiopax3 [] ---
+    biopax <- addControl(biopax, CONTROL_TYPE="ACTIVATION",
+        CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_B"), id="control_1")
+    biopax <- addControl(biopax, CONTROL_TYPE="INHIBITION",
+        CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_C"), id="control_2")
+    biopax <- addControl(biopax, CONTROL_TYPE="ACTIVATION",
+        CONTROLLER="PEPid_C", CONTROLLED=c("BCRid_D"), id="control_3")
+    biopax <- addControl(biopax, CONTROL_TYPE="INHIBITION",
+        CONTROLLER="PEPid_C", CONTROLLED=c("BCRid_E"), id="control_4")
+
+
+    # --- Assemble and Merge Pathways [] ---
     # Key functions: addPathway, mergePathways
-    biopax = addPathway(biopax, NAME="pw1",
-    	PATHWAY_COMPONENTS=c("control_1","control_2"), id="pwid1")
-    biopax = addPathway(biopax, NAME="pw2",
-    	PATHWAY_COMPONENTS=c("control_3","control_4"), id="pwid2")
-    biopax = mergePathways(biopax, "pwid1", "pwid2", NAME="pw3", id="pwid3")
-    # --- Createbiopax4 [] ---
-    # Key functions: pathway2RegulatoryGraph
-    ## pw1_graph = pathway2RegulatoryGraph(biopax, "pwid1",
-    ## 	splitComplexMolecules=TRUE, verbose=TRUE)
-    ## pw2_graph = pathway2RegulatoryGraph(biopax, "pwid2",
-    ## 	splitComplexMolecules=TRUE, verbose=TRUE)
-    ## pw3_graph = pathway2RegulatoryGraph(biopax, "pwid3",
-    # --- Createbiopax5 [] ---
-    # Key functions: plotRegulatoryGraph, layoutRegulatoryGraph
-    ## plotRegulatoryGraph(layoutRegulatoryGraph(pw1_graph))
-    ## plotRegulatoryGraph(layoutRegulatoryGraph(pw2_graph))
-    ## plotRegulatoryGraph(layoutRegulatoryGraph(pw3_graph))
-    # --- Removebiopaxinstances [] ---
-    # Key functions: removeProperties, removeInstance
-    ## temp = biopax
-    ## temp = removeProperties(temp, id="newpwid2", properties="PATHWAY-COMPONENTS")
-    ## temp = removeInstance(temp, id="newpwid3")
+    biopax <- addPathway(biopax, NAME="pw1",
+        PATHWAY_COMPONENTS=c("control_1", "control_2"), id="pwid1")
+    biopax <- addPathway(biopax, NAME="pw2",
+        PATHWAY_COMPONENTS=c("control_3", "control_4"), id="pwid2")
+    biopax <- mergePathways(biopax, "pwid1", "pwid2",
+        NAME="pw3", id="pwid3")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

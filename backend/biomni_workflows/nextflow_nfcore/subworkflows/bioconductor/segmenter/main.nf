@@ -38,14 +38,61 @@ process BIOC_SEGMENTER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(segmenter)
     library(AnnotationTrack)
     library(jsonlite)
 
-    # --- Gene annotation retrieval [] ---
-    # Key functions: install_github, learn_model, tempdir, binarize_bam, segment, compare_models, emission, transition
-    binarize_bam(inputdir,
-    example_binaries <- list.files(outputdir, pattern = '*_binary.txt')
-    readLines(file.path(outputdir, example_binaries[1]), n = 3)
+    # --- Chromatin State Model Learning [] ---
+    # Key functions: learn_model
+    inputdir <- system.file('extdata/SAMPLEDATA_HG18', package = 'segmenter')
+    coordsdir <- system.file('extdata/COORDS', package = 'chromhmmData')
+    anchorsdir <- system.file('extdata/ANCHORFILES', package = 'chromhmmData')
+    chromsizefile <- system.file('extdata/CHROMSIZES', 'hg18.txt',
+                                 package = 'chromhmmData')
+    obj <- learn_model(inputdir = inputdir, coordsdir = coordsdir,
+                       anchorsdir = anchorsdir, chromsizefile = chromsizefile,
+                       numstates = 3, assembly = 'hg18',
+                       cells = c('K562', 'GM12878'), annotation = 'RefSeq',
+                       binsize = 200)
+
+
+    # --- Model Comparison and Selection [] ---
+    # Key functions: learn_model, compare_models
+    inputdir <- system.file('extdata/SAMPLEDATA_HG18', package = 'segmenter')
+    coordsdir <- system.file('extdata/COORDS', package = 'chromhmmData')
+    anchorsdir <- system.file('extdata/ANCHORFILES', package = 'chromhmmData')
+    chromsizefile <- system.file('extdata/CHROMSIZES', 'hg18.txt',
+                                 package = 'chromhmmData')
+    objs <- lapply(3:5, function(x) {
+      learn_model(inputdir = inputdir, coordsdir = coordsdir,
+                  anchorsdir = anchorsdir, chromsizefile = chromsizefile,
+                  numstates = x, assembly = 'hg18',
+                  cells = c('K562', 'GM12878'), annotation = 'RefSeq',
+                  binsize = 200)
+    })
+    compare_models(objs, type = 'likelihood')
+
+
+    # --- Parameter Extraction and Heatmap Visualization [] ---
+    # Key functions: emission, transition, plot_heatmap
+    em <- emission(obj)
+    tr <- transition(obj)
+    h1 <- plot_heatmap(obj, row_labels = paste('S', 1:3), name = 'Emission')
+    h2 <- plot_heatmap(obj, type = 'transition',
+                       row_labels = paste('S', 1:3),
+                       column_labels = paste('S', 1:3),
+                       name = 'Transition')
+
+
+    # --- Genomic Enrichment Analysis [] ---
+    # Key functions: overlap, TSS, TES, plot_heatmap
+    ol <- overlap(obj)
+    tss_enrich <- TSS(obj)
+    tes_enrich <- TES(obj)
+    plot_heatmap(obj, type = 'overlap',
+                 column_labels = c('Genome', 'CpG', 'Exon', 'Gene',
+                                   'TES', 'TSS', 'TSS2kb', 'laminB1lads'),
+                 show_heatmap_legend = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

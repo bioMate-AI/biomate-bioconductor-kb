@@ -38,31 +38,33 @@ process BIOC_RAWDIAG {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(rawDiag)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- system2 [] ---
-    # Key functions: system2
-    if (Sys.info()["sysname"] %in% c("Darwin", "Linux")) {
-    system2("mono", args = '--version', stdout = TRUE)
-    # --- check Rawrr [] ---
-    # Key functions: checkRawrr, installRawFileReaderDLLs, installRawrrExe
-    rawDiag::checkRawrr()
-    if (isFALSE(rawrr::.checkDllInMonoPath())){
-    rawrr::installRawFileReaderDLLs()
-    # --- rawrr Assembly Path [] ---
-    # Key functions: rawrrAssemblyPath
-    rawrr::rawrrAssemblyPath()
-    rawrr::rawrrAssemblyPath() |> list.files()
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, normalizePath
-    library(ExperimentHub)
-    ExperimentHub::ExperimentHub() -> eh
-    normalizePath(eh[["EH3222"]]) -> EH3222
-    # --- build Raw Diag Shiny App [] ---
+    # --- Header Extraction [] ---
+    # Key functions: readFileHeader
+    raw_files <- c("sample1.raw", "sample2.raw")
+    headers <- lapply(raw_files, FUN = rawrr::readFileHeader)
+
+
+    # --- Raw Data Loading [] ---
+    # Key functions: readRaw
+    raw_files <- c("sample1.raw", "sample2.raw")
+    raw_data <- lapply(raw_files, FUN = rawDiag::readRaw)
+    merged_data <- Reduce(f = rbind, x = raw_data)
+
+
+    # --- Diagnostic Plotting [] ---
+    # Key functions: plotTic, plotScanTime
+    tic_plot <- rawDiag::plotTic(merged_data, method = "trellis")
+    scantime_plot <- rawDiag::plotScanTime(merged_data, method = "trellis")
+
+
+    # --- Shiny Application Generation [] ---
     # Key functions: buildRawDiagShinyApp
-    dirname() |>
-    rawDiag::buildRawDiagShinyApp() -> app
+    raw_dir <- dirname("sample1.raw")
+    app <- rawDiag::buildRawDiagShinyApp(raw_dir)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

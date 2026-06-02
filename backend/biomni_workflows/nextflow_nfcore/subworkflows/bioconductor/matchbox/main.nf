@@ -41,50 +41,33 @@ process BIOC_MATCHBOX {
     library(matchBox)
     library(jsonlite)
 
-    # --- Loadmatchboxexpression [] ---
-    # Key functions: data
-    data(matchBoxExpression)
-    # --- Mergedata [] ---
-    # Key functions: mergeData
-    data <- mergeData(allDataBySymbolAndT, idCol="SYMBOL", byCol="t")
-    # --- Computecat [] ---
+    # --- Concordance Computation [] ---
     # Key functions: computeCat
-    catHigh2LowNoRefByEqualRanks <- computeCat(data = data, idCol = 1,
-    					   method="equalRank", decreasing=TRUE)
-    # --- Calchyppi [] ---
-    # Key functions: calcHypPI
-    PIbyRefEqualRanks <- calcHypPI(data=data)
-    # --- Fig1 [] ---
+    catDataRanks <- computeCat(
+        data = mergedData,
+        cols = c("study1.t", "study2.t"),
+        idCol = "GeneID",
+        method = "equalRank",
+        decreasing = TRUE
+    )
+
+
+    # --- Concordance Visualisation [] ---
     # Key functions: plotCat
-    plotCat(catData = catHigh2LowWithRefByEqualRanks,
-    	preComputedPI=PIbyRefEqualRanks03,
-    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30, col=c("red", "blue"),
-    	main="CAT curves for decreasing t-statistics",
-    	where="center", legend=TRUE, legCex=1, ncol=1,
-    # --- Fig2 [] ---
-    # Key functions: plotCat
-    plotCat(catData = catHigh2LowWithRefByEqualStats,
-    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30, col=c("red", "blue"),
-    	main="CAT curves for decreasing t-statistics",
-    	where="center", legend=TRUE, legCex=1, ncol=1,
-    	plotLayout = layout(matrix(1:2, ncol = 2), widths = c(2,1)))
-    # --- Fig3 [] ---
-    # Key functions: plotCat
-    plotCat(catData = catHigh2LowNoRefByEqualRanks,
-    	preComputedPI=PIbyRefEqualRanks,
-    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30,
-    	main="CAT curves for decreasing t-statistics",
-    	where="center", legend=TRUE, legCex=1, ncol=1,
-    # --- Fig4 [] ---
-    # Key functions: plotCat
-    plotCat(catData = catHigh2LowNoRefByEqualRanks,
-    	preComputedPI=PIbyRefEqualRanksNoExpectedProp,
-    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30,
-    	main="CAT curves for decreasing t-statistics",
-    	where="center", legend=TRUE, legCex=1, ncol=1,
-    # --- Sessioinfo [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    plotCat(
+        catData = catDataRanks,
+        cex = 1.2,
+        lwd = 1.2,
+        cexPts = 1.2,
+        spacePts = 30,
+        col = "red",
+        main = "CAT curves for decreasing t-statistics",
+        where = "center",
+        legend = TRUE,
+        legCex = 1,
+        ncol = 1,
+        plotLayout = layout(matrix(1:2, ncol = 2), widths = c(2, 1))
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

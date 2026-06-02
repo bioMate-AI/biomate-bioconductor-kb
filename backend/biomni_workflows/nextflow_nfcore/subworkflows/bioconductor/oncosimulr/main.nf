@@ -38,19 +38,27 @@ process BIOC_ONCOSIMULR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(OncoSimulR)
     library(RNGkind)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums
-    clonal_interf_per_time <- function(x) {
-    shannon <- apply(y, 1, OncoSimulR:::shannonI)
-    tot <- rowSums(y)
-    # --- RNGkind analysis [] ---
-    # Key functions: include_graphics, RNGkind, simOGraph, oncoSimulPop, samplePop, allFitnessEffects, allMutatorEffects, evalAllGenotypesFitAndMut
-    evalAllGenotypes(afeT2, spPopSizes = c(100,10,10), currentTime = 49)[c(2,3), ]
-    evalAllGenotypes(afeT2, spPopSizes = c(100,10,10), currentTime = 51)[c(2,3), ]
-    evalAllGenotypes(afeT2, spPopSizes = c(100,10,10), currentTime = 101)[c(2,3), ]
+    # --- Fitness and Mutator Effects Modeling [] ---
+    # Key functions: allFitnessEffects, allMutatorEffects, evalAllGenotypesFitAndMut
+    od <- allFitnessEffects(
+        epistasis = c("u" = 0.2, "u:i" = -Inf, "u:v" = -Inf,
+                      "i" = -0.02, "v:-i" = -Inf, "v:i" = 0.6))
+    odm <- allMutatorEffects(noIntGenes = c("i" = 50))
+    eval_res <- evalAllGenotypesFitAndMut(od, odm, addwt = TRUE)
+
+
+    # --- Fitness Landscape Evolution [] ---
+    # Key functions: rfitness, allFitnessEffects, oncoSimulPop, LOD, diversityLOD
+    rl <- rfitness(5, c = 1.5, min_accessible_genotypes = 5)
+    afe <- allFitnessEffects(genotFitness = rl)
+    simulrl <- oncoSimulPop(5, afe, keepPhylog = TRUE, keepEvery = 1,
+                            onlyCancer = TRUE, initSize = 1000,
+                            seed = NULL, mc.cores = 1)
+    div_lod <- diversityLOD(LOD(simulrl))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

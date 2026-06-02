@@ -38,101 +38,51 @@ process BIOC_RSVSIM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RSVSim)
     library(DNAStringSet)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Toyexample [] ---
-    # Key functions: DNAStringSet
-    genome = DNAStringSet(
-    c("AAAAAAAAAAAAAAAAAAAATTTTTTTTTTTTTTTTTTTT",
-    "GGGGGGGGGGGGGGGGGGGGCCCCCCCCCCCCCCCCCCCC"))
-    names(genome) = c("chr1","chr2")
-    genome
-    # --- Genomeecoli [] ---
-    # Key functions: DNAStringSet
-    ## library(BSgenome.Ecoli.NCBI.20080805)
-    ## genome = DNAStringSet(Ecoli[["NC_008253"]])
-    ## names(genome) = "NC_008253"
-    # --- Deletionexample [] ---
-    # Key functions: simulateSV, metadata
-    sim = simulateSV(output=NA, genome=genome, dels=3, sizeDels=10,
-    bpSeqSize=6, seed=456, verbose=FALSE)
-    sim
-    metadata(sim)
-    # --- Insertionexample [] ---
-    # Key functions: simulateSV, metadata
-    sim = simulateSV(output=NA, genome=genome, ins=3, sizeIns=5, bpSeqSize=6,
-    seed=246, verbose=FALSE)
-    sim
-    metadata(sim)
-    # --- Inversionexample [] ---
-    # Key functions: simulateSV, metadata
-    sim = simulateSV(output=NA, genome=genome, invs=3, sizeInvs=c(2,4,6),
-    bpSeqSize=6, seed=456, verbose=FALSE)
-    sim
-    metadata(sim)
-    # --- Tandemdupexample [] ---
-    # Key functions: simulateSV, metadata
-    sim = simulateSV(output=NA, genome=genome, dups=1, sizeDups=6, maxDups=3,
-    bpSeqSize=6, seed=3456, verbose=FALSE)
-    sim
-    metadata(sim)
-    # --- Translocationexample1 [] ---
-    # Key functions: simulateSV, metadata
-    sim = simulateSV(output=NA, genome=genome,trans=1, bpSeqSize=6, seed=123, verbose=FALSE)
-    sim
-    metadata(sim)
-    # --- Weightsmechanisms [] ---
-    # Key functions: show
-    data(weightsMechanisms, package="RSVSim")
-    show(weightsMechanisms)
-    # --- Weightsrepeats [] ---
-    # Key functions: show
-    data(weightsRepeats, package="RSVSim")
-    show(weightsRepeats)
-    # --- Weightsexample [] ---
-    # Key functions: frame, simulateSV
-    ## weightsRepeats = data.frame(
-    ##   NAHR = c(0,0,3,1,0,0,0),
-    ##   NHR = c(1.04,0.62,1.16,0,2.06,0,0),
-    ##   TEI = c(1.66,0.25,0,0,0,0,0),
-    ##   VNTR = c(0,0,0,0,0,1,0),
-    # --- Bpmutationsexample [] ---
-    # Key functions: simulateSV, metadata
-    sim = simulateSV(output=NA, genome=genome, dels=1, sizeDels=5, bpFlankSize=10,
-    percSNPs=0.25, indelProb=1, maxIndelSize=3, bpSeqSize=10, seed=123, verbose=FALSE)
-    sim
-    metadata(sim)
-    # --- Regionsexample1 [] ---
-    # Key functions: GRanges, IRanges, simulateSV, metadata
-    regions = GRanges(IRanges(c(21,1),c(40,20)), seqnames=c("chr1","chr2"))
-    regions
-    sim = simulateSV(output=NA, genome=genome, invs=4, sizeInvs=5,
-    regionsInvs=regions, bpSeqSize=6, seed=2345, verbose=FALSE)
-    sim
-    # --- Regionsexample2 [] ---
-    # Key functions: makeTxDbFromUCSC, exonsBy, unlist, GRanges, IRanges, start, end, seqnames
-    ## transcriptDB = makeTxDbFromUCSC(genome = "hg19",tablename = "knownGene")
-    ## exons = exonsBy(transcriptDB)
-    ## exons = unlist(exons)
-    ## exons = GRanges(IRanges(start=start(exons), end=end(exons)), seqnames=seqnames(exons))
-    ## simulateSV(output=NA, dels=100, regionsDels=exons, sizeDels=1000, bpSeqSize=50)
-    # --- Regionsexample3 [] ---
-    # Key functions: GRanges, IRanges, simulateSV, metadata
-    knownDeletion = GRanges(IRanges(16,25), seqnames="chr2")
-    names(knownDeletion) = "myDeletion"
-    knownDeletion
-    sim = simulateSV(output=NA, genome=genome, regionsDels=knownDeletion,
-    bpSeqSize=10, random=FALSE, verbose=FALSE)
-    # --- Regionsexample4 [] ---
-    # Key functions: GRanges, IRanges, simulateSV, metadata
-    knownInsertion = GRanges(IRanges(16,25),seqnames="chr1", chrB="chr2", startB=26)
-    names(knownInsertion) = "myInsertion"
-    knownInsertion
-    sim = simulateSV(output=NA, genome=genome, regionsIns=knownInsertion,
-    bpSeqSize=10, random=FALSE, verbose=FALSE)
+    # --- Insertion and Inversion Simulation [] ---
+    # Key functions: simulateSV
+    sim_ins <- simulateSV(
+        output = NA, genome = genome, ins = 3,
+        sizeIns = 5, bpSeqSize = 6, seed = 246, verbose = FALSE
+    )
+    sim_inv <- simulateSV(
+        output = NA, genome = genome, invs = 3,
+        sizeInvs = c(2, 4, 6), bpSeqSize = 6, seed = 456, verbose = FALSE
+    )
+
+
+    # --- Structural Variant Size Estimation [] ---
+    # Key functions: estimateSVSizes
+    svSizes <- c(10, 20, 30, 40, 60, 80, 100, 150, 200, 250, 300)
+    simSizes <- estimateSVSizes(
+        n = 1000, svSizes = svSizes,
+        minSize = 10, maxSize = 1000, hist = FALSE
+    )
+    delSizes <- estimateSVSizes(
+        n = 1000, minSize = 500, maxSize = 10000,
+        default = "deletions", hist = FALSE
+    )
+
+
+    # --- Structural Variant Comparison [] ---
+    # Key functions: simulateSV, compareSV
+    sim <- simulateSV(
+        output = NA, genome = genome, dels = 5,
+        sizeDels = 5, bpSeqSize = 10, seed = 2345, verbose = FALSE
+    )
+    simSVs <- GenomicRanges::metadata(sim)$deletions
+    querySVs <- data.frame(
+        chr = c("chr1", "chr1", "chr2"),
+        start = c(12, 17, 2),
+        end = c(15, 24, 6),
+        bpSeq = c("AAAAAAAAAA", "AAAAAAATTT", "GGGGGGGGGG")
+    )
+    comparison <- compareSV(querySVs, simSVs, tol = 3)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

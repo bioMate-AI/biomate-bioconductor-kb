@@ -41,9 +41,25 @@ process BIOC_SIMPLESEG {
     library(simpleSeg)
     library(jsonlite)
 
-    # --- simple Seg [] ---
-    # Key functions: simpleSeg
-    masks <- simpleSeg::simpleSeg(images,
+    # --- Feature Extraction [] ---
+    # Key functions: measureObjects
+    cellSCE <- cytomapper::measureObjects(
+        masks,
+        images,
+        img_id = "imageID"
+    )
+
+
+    # --- Cell Normalisation [] ---
+    # Key functions: normalizeCells
+    cellSCE <- simpleseg::normalizeCells(
+        cellSCE,
+        assayIn = "counts",
+        assayOut = "norm",
+        imageID = "imageID",
+        transformation = "sqrt",
+        method = c("trim99", "minMax")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

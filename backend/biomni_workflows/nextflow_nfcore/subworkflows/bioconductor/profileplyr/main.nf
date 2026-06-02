@@ -38,49 +38,72 @@ process BIOC_PROFILEPLYR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(profileplyr)
     library(BamBigwig_to_chipProfile)
     library(jsonlite)
 
-    # --- generate Enriched Heatmap [] ---
-    # Key functions: generateEnrichedHeatmap
-    heatmap <- generateEnrichedHeatmap(proplyrObject)
-    class(heatmap)
-    # --- convert To Enriched Heatmap Mat [] ---
-    # Key functions: convertToEnrichedHeatmapMat, summarize
-    EH_mat <- convertToEnrichedHeatmapMat(proplyrObject)
-    the matrices of this list can be inputs for EnrichedHeatmap()
-    object_sumMat <- summarize(proplyrObject,
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_boxplot
-    library(ggplot2)
-    ggplot(proplyrObject_long, aes(x = Sample, y = log(Signal))) +
-    geom_boxplot()
-    # --- cluster Ranges [] ---
+    # --- Data Import and Object Creation [import] ---
+    # Key functions: import_deepToolsMat, BamBigwig_to_chipProfile, as_profileplyr
+    example_file <- system.file("extdata", "example_deepTools_MAT",
+                                package = "profileplyr")
+    proplyrObject <- import_deepToolsMat(example_file)
+    test_ranges <- system.file("extdata", "newranges_small.bed",
+                               package = "profileplyr")
+    signal_files <- system.file("extdata",
+                                "Sorted_Hindbrain_day_12_1_filtered.bam",
+                                package = "profileplyr")
+    chip_profile <- BamBigwig_to_chipProfile(signal_files, test_ranges,
+                                             format = "bam", paired = FALSE,
+                                             style = "percentOfRegion")
+    proplyr_from_bam <- as_profileplyr(chip_profile)
+
+    # --- Metadata Annotation and Sorting [annotation] ---
+    # Key functions: sampleData, orderBy
+    example_file <- system.file("extdata", "example_deepTools_MAT",
+                                package = "profileplyr")
+    proplyrObject <- import_deepToolsMat(example_file)
+    rownames(sampleData(proplyrObject)) <- c("Hindbrain", "Liver", "Kidney")
+    proplyr_ordered <- orderBy(proplyrObject, "score")
+
+    # --- Clustering Genomic Ranges [clustering] ---
     # Key functions: clusterRanges
-    clusterRanges(proplyrObject,
-    this code prints heatmap (does not return), but heatmap not shown here to save space
-    # --- cluster Ranges [] ---
-    # Key functions: clusterRanges, rowRanges, params
-    set.seed(0)
-    kmeans <- clusterRanges(proplyrObject,
-    rowRanges(kmeans)[1:3]
-    # --- cluster Ranges [] ---
-    # Key functions: clusterRanges
-    set.seed(0)
-    kmeans <- clusterRanges(proplyrObject,
-    # --- generate Enriched Heatmap [] ---
-    # Key functions: generateEnrichedHeatmap
-    generateEnrichedHeatmap(kmeans)
-    # --- Bam Bigwig_to_chip Profile [] ---
-    # Key functions: BamBigwig_to_chipProfile, annotateRanges, groupBy, generateEnrichedHeatmap
-    BamBigwig_to_chipProfile(signalFiles,
-    annotateRanges(TxDb = "mm10")  %>%
-    groupBy(group = gene_list_dataframe) %>% #subseting by our gene list
-    # --- import_deep Tools Mat [] ---
-    # Key functions: import_deepToolsMat, annotateRanges, groupBy, clusterRanges, generateEnrichedHeatmap
-    NOTE: could also use BamBigwig_to_chipProfile() and as_profileplyr()
-    set.seed(0)
-    annotated_object <- import_deepToolsMat(example) %>%
+    example_file <- system.file("extdata", "example_deepTools_MAT",
+                                package = "profileplyr")
+    proplyrObject <- import_deepToolsMat(example_file)
+    kmeans_clustered <- clusterRanges(proplyrObject,
+                                      fun = rowMeans,
+                                      kmeans_k = 4,
+                                      silent = TRUE)
+    hclust_clustered <- clusterRanges(proplyrObject,
+                                      fun = rowMeans,
+                                      cutree_rows = 4,
+                                      silent = TRUE)
+
+    # --- Signal Summarization [summarization] ---
+    # Key functions: summarize
+    example_file <- system.file("extdata", "example_deepTools_MAT",
+                                package = "profileplyr")
+    proplyrObject <- import_deepToolsMat(example_file)
+    object_sum_mat <- summarize(proplyrObject,
+                                fun = rowMeans,
+                                output = "matrix")
+    object_sum_long <- summarize(proplyrObject,
+                                 fun = rowMeans,
+                                 output = "long")
+    object_sum_obj <- summarize(proplyrObject,
+                                fun = rowMeans,
+                                output = "object")
+
+    # --- Heatmap Generation and Export [visualization] ---
+    # Key functions: generateEnrichedHeatmap, convertToEnrichedHeatmapMat, export_deepToolsMat
+    example_file <- system.file("extdata", "example_deepTools_MAT",
+                                package = "profileplyr")
+    proplyrObject <- import_deepToolsMat(example_file)
+    heatmap_plot <- generateEnrichedHeatmap(proplyrObject)
+    eh_matrix_list <- convertToEnrichedHeatmapMat(proplyrObject)
+    output_path <- file.path(tempdir(), "ATAC_example.MAT.gz")
+    export_deepToolsMat(proplyrObject, con = output_path)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

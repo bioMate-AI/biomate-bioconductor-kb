@@ -38,94 +38,49 @@ process BIOC_RANDPACK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(randPack)
     library(Date)
     library(jsonlite)
 
-    # --- Docl [] ---
-    # Key functions: getClass
-    library(randPack)
-    getClass("ClinicalTrial")
-    getClass("ClinicalExperiment")
-    getClass("PatientID")
-    # --- Doadmin [] ---
-    # Key functions: new, validPID
-    pIDs = new("PatientID",
-                strata = c("Center1", "Center2"),
-                start = c(1000L, 2000L),
-                stop = c(1150L, 2150L)
-     )
-    # --- Doce [] ---
-    # Key functions: new, treatmentFactors, factorNames, numberOfFactorLevels
-    trts = c( A = 3L, B = 4L, C = 1L)
-     CEvac = new("ClinicalExperiment",
-        name="My first experiment",
-        treatments = trts,
-        factors = list( F1 = c("A", "B", "C"), F2 = c("t1", "t2")),
-    # --- Doct [] ---
-    # Key functions: createTrial
-    ##  CTvac = createTrial(CEvac, seed=c(301, 401))
-    # --- Dora [] ---
-    # Key functions: getClass
-    getClass("RandomizerDesc")
-    getClass("Randomizer")
-    getClass("PermutedBlockDesc")
-    getClass("PermutedBlock")
-    # --- Dohi [] ---
-    # Key functions: 24, newPBlock, split
-    ##should be 24 (no, 32) long and have one C ever 8 allocs
-    table(dempb <- randPack:::.newPBlock(pbdesc))
-    bls = rep(1:4, each=8)
-    sapply(split(dempb,bls), function(x) sum(x=="C"))
-    # --- Dopure [] ---
-    # Key functions: new, makeRandomizer, newRandom
-    rd = new("RandomDesc", treatments = trts, type = "Random", numPatients = 32L)
-    mmpb = makeRandomizer("Expt1", pbdesc, seed = 101)
-    mmr = makeRandomizer("Expr1r", rd, seed=201)
-    demrd = randPack:::.newRandom(rd)
-    table(demrd)
-    # --- Lkv [] ---
-    # Key functions: createTrial
-    CT1 = createTrial(CE1, seed=c(301, 401))
-    # --- Mk4 [] ---
-    # Key functions: new, Date
-    pD1 = new("PatientData", name="Sally H", date=Sys.Date(),
-     covariates=list(sex="F", age=33), strata="Center1")
-     pD2 = new("PatientData", name="Sally Z", date=Sys.Date(),
-     covariates=list(sex="F", age=34), strata="Center1")
-     pD3 = new("PatientData", name="Tom Z", date=Sys.Date(),
-    # --- Gett [] ---
-    # Key functions: getTreatment
-    trt1 = getTreatment(CT1, pD1)
-     trt2 = getTreatment(CT1, pD2)
-     trt3 = getTreatment(CT1, pD3)
-     trt4 = getTreatment(CT1, pD4)
-    # --- Gete [] ---
-    # Key functions: getEnrolleeInfo
-    getEnrolleeInfo(CT1)
-    # --- Keepo [] ---
-    # Key functions: strataFun
-    ##since the strata are Center1 or Center2, we can just pull those
-      ##out directly. If the strata were by, say sex and center then we
-      ##would need to have some name mangling scheme.
-      sFun = function(pDesc) pDesc@strata
-    ## patientID class
-    # --- Useco [] ---
-    # Key functions: new, createTrial, getTreatment
-    trts = c( A = 1L, B= 1L)
-    bcdesc = new("EfronBiasedCoinDesc", treatments = trts, type="EfronBiasedCoin",
-         numPatients=1000L, p=2/3)
-    CE1@randomization = list(Center1= list(bcdesc), Center2=list(bcdesc))
-    CT2 = createTrial(CE1, seed=c(301, 401))
-    # --- Useur [] ---
-    # Key functions: new, createTrial, getTreatment
-    urndesc = new("UrnDesc", treatments = trts, type="Urn",
-         numPatients=1000L, alpha=1, beta=3)
-    CE1@randomization = list(Center1= list(urndesc), Center2=list(urndesc))
-    CT3 = createTrial(CE1, seed=c(301, 401))
-    utrt1 = getTreatment(CT3, pD1)
-    # --- Zzz [] ---
-    # Key functions: randomization
-    randomization(CE1) = list(Center1=list(md), Center2 = list(md))
+    # --- Randomizer Creation and Trial Initialization [] ---
+    # Key functions: makeRandomizer, createTrial
+    pbdesc <- new("PermutedBlockDesc",
+        treatments = c(A = 3L, B = 4L, C = 1L),
+        type = "PermutedBlock",
+        numBlocks = 4L
+    )
+    mmpb <- makeRandomizer("Expt1", pbdesc, seed = 101)
+    CE1 <- new("ClinicalExperiment",
+        name = "My first experiment",
+        treatments = c(A = 3L, B = 4L, C = 1L),
+        factors = list(F1 = c("A", "B", "C"), F2 = c("t1", "t2")),
+        strataFun = function(pDesc) pDesc@strata,
+        randomization = list(Center1 = list(pbdesc), Center2 = list(pbdesc)),
+        patientIDs = pIDs
+    )
+    CT1 <- createTrial(CE1, seed = c(301, 401))
+
+
+    # --- Patient Enrollment and Treatment Allocation [] ---
+    # Key functions: getTreatment, getEnrolleeInfo
+    pD1 <- new("PatientData", name = "Sally H", date = Sys.Date(),
+        covariates = list(sex = "F", age = 33), strata = "Center1")
+    pD2 <- new("PatientData", name = "Sally Z", date = Sys.Date(),
+        covariates = list(sex = "F", age = 34), strata = "Center1")
+    trt1 <- getTreatment(CT1, pD1)
+    trt2 <- getTreatment(CT1, pD2)
+    enrollee_info <- getEnrolleeInfo(CT1)
+
+
+    # --- Biased Coin and Urn Randomization [] ---
+    # Key functions: createTrial, getTreatment
+    trts <- c(A = 1L, B = 1L)
+    bcdesc <- new("EfronBiasedCoinDesc", treatments = trts,
+        type = "EfronBiasedCoin", numPatients = 1000L, p = 2/3)
+    CE1@randomization <- list(Center1 = list(bcdesc), Center2 = list(bcdesc))
+    CT2 <- createTrial(CE1, seed = c(301, 401))
+    btrt1 <- getTreatment(CT2, pD1)
+    btrt2 <- getTreatment(CT2, pD2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

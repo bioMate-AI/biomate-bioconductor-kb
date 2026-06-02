@@ -41,32 +41,60 @@ process BIOC_INTAD {
     library(InTAD)
     library(jsonlite)
 
-    # --- new Sig In T A D [] ---
-    # Key functions: newSigInTAD
-    inTadSig <- newSigInTAD(enhSel, enhSelGR, rpkmCountsSel, txsSel,mbAnnData)
-    # --- filter Gene Expr [] ---
+    # --- Filter Gene Expression [] ---
     # Key functions: filterGeneExpr
-    inTadSig <- filterGeneExpr(inTadSig, checkExprDistr = TRUE)
-    # --- combine In T A D [] ---
+    inTadSig <- filterGeneExpr(
+        inTadSig,
+        checkExprDistr = TRUE
+    )
+
+
+    # --- Integrate TAD Regions [] ---
     # Key functions: combineInTAD
-    inTadSig <- combineInTAD(inTadSig, tadGR)
-    # --- find Correlation [] ---
+    inTadSig <- combineInTAD(
+        inTadSig,
+        tadGR
+    )
+
+
+    # --- Enhancer-Gene Correlation Analysis [] ---
     # Key functions: findCorrelation
-    par(mfrow=c(1,2)) # option to combine plots in the graph
-    corData <- findCorrelation(inTadSig,plot.proportions = TRUE)
-    # --- combine With Loops [] ---
-    # Key functions: combineWithLoops
-    inTadSig <- combineWithLoops(inTadSig, loopsDfSel)
-    # --- find Cor From Loops [] ---
-    # Key functions: findCorFromLoops
-    loopEag <- findCorFromLoops(inTadSig,method = "spearman")
-    # --- plot Correlation [] ---
-    # Key functions: plotCorrelation
-    plotCorrelation(inTadSig, cID, "GABRA5",
-    # --- plot Cor Across Ref [] ---
-    # Key functions: plotCorAcrossRef
-    plotCorAcrossRef(inTadSig,corData,
-    targetRegion = GRanges("chr15:25000000-28000000"),
+    corData <- findCorrelation(
+        inTadSig,
+        plot.proportions = TRUE
+    )
+
+
+    # --- Integrate Chromatin Loops [] ---
+    # Key functions: combineWithLoops, findCorFromLoops
+    inTadSig <- combineWithLoops(
+        inTadSig,
+        loopsDfSel
+    )
+    loopEag <- findCorFromLoops(
+        inTadSig,
+        method = "spearman"
+    )
+
+
+    # --- Visualization of Correlations [] ---
+    # Key functions: plotCorrelation, plotCorAcrossRef
+    plotCorrelation(
+        inTadSig,
+        "chr15:26372163-26398073",
+        "GABRA5",
+        xLabel = "RPKM gene expr log2",
+        yLabel = "H3K27ac enrichment log2",
+        colByPhenotype = "Subgroup"
+    )
+    plotCorAcrossRef(
+        inTadSig,
+        corData,
+        targetRegion = GRanges("chr15:25000000-28000000"),
+        showCorVals = TRUE,
+        symmetric = TRUE,
+        tads = tadGR
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

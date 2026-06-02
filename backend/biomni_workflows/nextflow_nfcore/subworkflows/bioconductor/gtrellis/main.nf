@@ -41,20 +41,23 @@ process BIOC_GTRELLIS {
     library(gtrellis)
     library(jsonlite)
 
-    # --- Lapply [] ---
-    # Key functions: frame
-    -----------------------------------------------------------------------------------------
-    tp_family$TP53 = lapply(tp_family$TP53, function(df) {
-            data.frame(start = abs(df[[2]] - 7590856),
-                       end = abs(df[[1]] - 7590856))
-        })
-    # --- Generaterandombed [] ---
-    # Key functions: generateRandomBed, gtrellis_layout, add_track, unit
-    -----------------------------------------------------------------------------------------
-    bed = generateRandomBed()
-    gtrellis_layout(category = "chr1", n_track = 4, track_ylim = range(bed[[4]]))
+    # --- Genomic Track Visualization [] ---
+    # Key functions: add_points_track, add_segments_track, add_lines_track, add_rect_track
+    gtrellis_layout(track_ylim = c(-2, 2), nrow = 3, byrow = FALSE)
+    add_points_track(bed, bed[[4]], gp = gpar(col = "red"))
+    add_segments_track(bed, bed[[4]], gp = gpar(col = "blue", lwd = 2))
+    add_lines_track(bed, bed[[4]], area = TRUE, gp = gpar(fill = "grey"))
+    add_rect_track(bed, h1 = bed[[4]], h2 = 0, gp = gpar(fill = "green"))
+
+
+    # --- Custom Panel Drawing [] ---
+    # Key functions: add_track, get_cell_meta_data
+    gtrellis_layout(nrow = 3, track_ylim = c(-2, 2))
     add_track(bed, panel_fun = function(bed) {
-        grid.points((bed[[2]] + bed[[3]]) / 2, bed[[4]], pch = 16, size = unit(2, "mm"))
+        x = (bed[[2]] + bed[[3]]) / 2
+        y = bed[[4]]
+        grid.points(x, y, pch = 16, size = unit(1, "mm"))
+    })
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

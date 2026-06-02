@@ -38,37 +38,39 @@ process BIOC_SPATIALSIMGP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(spatialSimGP)
     library(Visium_mouseCoronal)
     library(jsonlite)
 
-    # --- Visium Mousecoronal [] ---
-    # Key functions: Visium_mouseCoronal, colData, ifelse, spatialCoords
-    ---------------------------------------------------------------------
-    spe_demo <- Visium_mouseCoronal()
-    colData(spe_demo)$subset <- ifelse(
-       colData(spe_demo)$array_row > 20 &
-       colData(spe_demo)$array_row < 65 &
-    # --- Frame [] ---
-    # Key functions: frame, spatialCoords, counts, ggplot, aes, geom_point, coord_fixed
-    ---------------------------------------------------------------------
-    df <- as.data.frame(cbind(spatialCoords(spe), expr = counts(spe)[1, ]))
-    ggplot(df, aes(x = pxl_col_in_fullres, y = pxl_row_in_fullres,
-                   color = expr)) +
-      geom_point(size = 2.2) +
-    # --- Rep [] ---
+    # --- Unique Length Scale Simulation [] ---
     # Key functions: spatial_simulate
-    ---------------------------------------------------------------------
-    # 20 spots per side
-    n_side <- 20
-    # x and y coordinates for the grid
-    x_coords <- rep(1:n_side, each = n_side)
-    # --- Frame [] ---
-    # Key functions: frame, spatialCoords, counts, ggplot, aes, geom_point, coord_fixed
-    ---------------------------------------------------------------------
-    df <- as.data.frame(cbind(spatialCoords(spe), expr = counts(spe)[1, ]))
-    ggplot(df, aes(x = pxl_col_in_fullres, y = pxl_row_in_fullres,
-                   color = expr)) +
-      geom_point(size = 5) +
+    n_genes <- 5
+    proportion <- 0.4
+    range_sigma.sq <- c(1.5, 3)
+    range_beta <- c(3, 7)
+    length_scale <- c(60, 40, 20, 80, 100)
+    spe <- spatial_simulate(
+        n_genes = n_genes,
+        proportion = proportion,
+        coords = coords,
+        range_sigma.sq = range_sigma.sq,
+        range_beta = range_beta,
+        length_scale = length_scale,
+        length_scale_option = "unique"
+    )
+
+
+    # --- Zero Proportion Simulation [] ---
+    # Key functions: spatial_simulate
+    spe_zero <- spatial_simulate(
+        n_genes = 1,
+        proportion = 0,
+        coords = coords,
+        range_sigma.sq = c(1, 1),
+        range_beta = c(3, 3),
+        length_scale = 60,
+        length_scale_option = "fixed"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

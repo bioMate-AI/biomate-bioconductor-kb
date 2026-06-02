@@ -41,15 +41,28 @@ process BIOC_ZENITH {
     library(zenith)
     library(jsonlite)
 
-    # --- render [] ---
-    # Key functions: render
-    library(knitr)
-    knitr::opts_chunk$set(
-    rmarkdown::render("loading_genesets.Rmd")
-    # --- get Genesets [] ---
-    # Key functions: getGenesets
-    gmt.file <- system.file("extdata/hsa_kegg_gs.gmt",
-    gs <- getGenesets(gmt.file)
+    # --- Enrichment Visualisation [] ---
+    # Key functions: plotZenithResults
+    png("zenith_enrichment_heatmap.png", width = 800, height = 600)
+    plotZenithResults(
+        res_zenith,
+        ndeg = 10,
+        transparent = FALSE
+    )
+    dev.off()
+
+
+    # --- Enrichment Filtering [] ---
+    # Key functions: zenith
+    significant_sets <- res_zenith[
+        res_zenith$FDR < 0.05, 
+        c("GeneSet", "NES", "PValue", "FDR")
+    ]
+    write.csv(
+        significant_sets, 
+        file = "significant_enrichments.csv", 
+        row.names = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

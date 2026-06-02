@@ -41,16 +41,46 @@ process BIOC_NETPATHMINER {
     library(NetPathMiner)
     library(jsonlite)
 
-    # --- fig=TRUE [] ---
-    # Key functions: plotClusters
-    plotClusters(ybinpaths, p.cluster)
-    # --- fig=TRUE [] ---
-    # Key functions: plotPaths
-    plotPaths(ranked.p, rgraph)
-    plotPaths(ranked.p, graph, path.clusters=p.class)
-    # --- fig=TRUE [] ---
-    # Key functions: plotAllNetworks
-    plotAllNetworks(ranked.p, metabolic.net = graph, reaction.net = rgraph,
+    # --- Edge Weight Assignment [] ---
+    # Key functions: assignEdgeWeights
+    rgraph <- assignEdgeWeights(
+        microarray = ex_microarray,
+        graph = rgraph,
+        weight.method = "cor",
+        use.attr = "miriam.uniprot",
+        y = colnames(ex_microarray),
+        bootstrap = FALSE
+    )
+
+
+    # --- Path Ranking and Clustering [] ---
+    # Key functions: pathRanker, pathsToBinary, pathCluster
+    ranked.p <- pathRanker(
+        rgraph,
+        method = "prob.shortest.path",
+        K = 25,
+        minPathSize = 6
+    )
+    ybinpaths <- pathsToBinary(ranked.p)
+    p.cluster <- pathCluster(ybinpaths, M = 2)
+
+
+    # --- Path Classification and Visualisation [] ---
+    # Key functions: pathClassifier, plotClusters, plotAllNetworks
+    p.class <- pathClassifier(
+        ybinpaths,
+        target.class = "BCR/ABL",
+        M = 2
+    )
+    plotClusters(ybinpaths, p.class)
+    plotAllNetworks(
+        ranked.p,
+        metabolic.net = graph,
+        reaction.net = rgraph,
+        path.clusters = p.class,
+        vertex.label = "",
+        vertex.size = 4
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

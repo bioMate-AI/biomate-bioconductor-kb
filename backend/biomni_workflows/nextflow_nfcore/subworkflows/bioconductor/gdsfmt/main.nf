@@ -41,99 +41,37 @@ process BIOC_GDSFMT {
     library(gdsfmt)
     library(jsonlite)
 
-    # --- Gds [] ---
-    # Key functions: gds
-    ---------------------------------------------------------------------
-    library(gdsfmt)
-    gfile <- createfn.gds("test.gds")
-    # --- Gdsn [] ---
-    # Key functions: gdsn, factor, sample, frame
-    ---------------------------------------------------------------------
-    add.gdsn(gfile, "int", val=1:10000)
-    add.gdsn(gfile, "double", val=seq(1, 1000, 0.4))
-    add.gdsn(gfile, "character", val=c("int", "double", "logical", "factor"))
-    add.gdsn(gfile, "logical", val=rep(c(TRUE, FALSE, NA), 50), visible=FALSE)
-    # --- Gdsn [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    folder <- addfolder.gdsn(gfile, "folder")
-    add.gdsn(folder, "int", val=1:1000)
-    add.gdsn(folder, "double", val=seq(1, 100, 0.4), visible=FALSE)
-    # --- Gds [] ---
-    # Key functions: gds
-    ---------------------------------------------------------------------
-    # close the GDS file
-    closefn.gds(gfile)
-    # --- Gdsn [] ---
-    # Key functions: gdsn, show
-    ---------------------------------------------------------------------
-    n <- add.gdsn(gfile, "I1", val=matrix(1:15, nrow=3))
-    show(n)
-    # --- Gdsn [] ---
-    # Key functions: gdsn, int, show
-    ---------------------------------------------------------------------
-    (n2 <- add.gdsn(gfile, "I2", storage="int", valdim=c(100, 2000)))
-    for (i in 1:2000)
-    {
-        write.gdsn(n2, seq.int(100*(i-1)+1, length.out=100),
-    # --- Gds [] ---
-    # Key functions: gds
-    ---------------------------------------------------------------------
-    # close the GDS file
-    closefn.gds(gfile)
-    # --- Gds [] ---
-    # Key functions: gds, gdsn
-    ---------------------------------------------------------------------
-    gfile <- createfn.gds("test.gds")
-    add.gdsn(gfile, "I1", val=matrix(1:20, nrow=4))
-    add.gdsn(gfile, "I2", val=1:100)
-    closefn.gds(gfile)
-    # --- Gdsn [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    # read a subset
-    read.gdsn(n, start=c(2, 2), count=c(2, 3))
-    read.gdsn(n, start=c(2, 2), count=c(2, 3), .value=c(6,15), .substitute=NA)
-    # --- Gdsn [] ---
-    # Key functions: gdsn, gds
-    ---------------------------------------------------------------------
-    apply.gdsn(n, margin=1, FUN=print, as.is="none")
-    apply.gdsn(n, margin=2, FUN=print, as.is="none")
-    # close the GDS file
-    closefn.gds(gfile)
-    # --- Gds [] ---
-    # Key functions: gds, gdsn
-    ---------------------------------------------------------------------
-    gfile <- createfn.gds("test.gds")
-    n1 <- add.gdsn(gfile, "I1", val=1:100)
-    n2 <- add.gdsn(gfile, "I2", val=matrix(1:20, nrow=4))
-    gfile
-    # --- Gdsn [] ---
-    # Key functions: gdsn, gds
-    ---------------------------------------------------------------------
-    n.t <- add.gdsn(gfile, "transpose", storage="int", valdim=c(5,0))
-    # apply the function over rows of matrix
-    apply.gdsn(n2, margin=1, FUN=c, as.is="gdsnode", target.node=n.t)
-    # matrix transpose
-    # --- Gds [] ---
-    # Key functions: gds
-    ---------------------------------------------------------------------
-    # close the GDS file
-    closefn.gds(gfile)
-    # --- Gds [] ---
-    # Key functions: gds, sample, gdsn
-    ---------------------------------------------------------------------
-    # create a GDS file
-    f <- createfn.gds("test.gds")
-    set.seed(1000)
-    m <- matrix(sample(c(0:2), 56, replace=T), nrow=4)
-    # --- Gds [] ---
-    # Key functions: gds, gdsn, rnorm
-    ---------------------------------------------------------------------
-    # create a GDS file
-    f <- createfn.gds("test.gds")
-    n <- add.gdsn(f, "raw", rnorm(1115), compress="ZIP", closezip=TRUE)
-    digest.gdsn(n, action="add")
+    # --- Data Writing and Modification [] ---
+    # Key functions: write.gdsn, append.gdsn, closefn.gds
+    gfile <- gdsfmt::createfn.gds("test.gds")
+    n <- gdsfmt::add.gdsn(gfile, "I1", val = matrix(1:15, nrow = 3))
+    gdsfmt::write.gdsn(n, rep(0, 5), start = c(2, 1), count = c(1, -1))
+    gdsfmt::append.gdsn(n, 16:24)
+    gdsfmt::closefn.gds(gfile)
+
+
+    # --- Data Retrieval [] ---
+    # Key functions: openfn.gds, index.gdsn, read.gdsn
+    gfile <- gdsfmt::openfn.gds("test.gds")
+    n <- gdsfmt::index.gdsn(gfile, "I1")
+    val_all <- gdsfmt::read.gdsn(n)
+    val_sub <- gdsfmt::read.gdsn(n, start = c(2, 2), count = c(2, 3))
+    gdsfmt::closefn.gds(gfile)
+
+
+    # --- Data Transformation and Application [] ---
+    # Key functions: apply.gdsn, openfn.gds, closefn.gds
+    gfile <- gdsfmt::openfn.gds("test.gds")
+    n2 <- gdsfmt::index.gdsn(gfile, "I1")
+    n_t <- gdsfmt::add.gdsn(
+        gfile, "transpose", storage = "int", valdim = c(5, 0),
+        replace = TRUE
+    )
+    gdsfmt::apply.gdsn(
+        n2, margin = 1, FUN = c, as.is = "gdsnode",
+        target.node = n_t
+    )
+    gdsfmt::closefn.gds(gfile)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

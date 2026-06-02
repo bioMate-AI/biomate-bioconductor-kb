@@ -38,6 +38,7 @@ process BIOC_ZELLKONVERTER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(zellkonverter)
     library(AnnData2SCE)
     library(AnnDataDependencies)
     library(SCE2AnnData)
@@ -45,31 +46,46 @@ process BIOC_ZELLKONVERTER {
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- read H5 A D [] ---
-    # Key functions: readH5AD
-    library(zellkonverter)
-    example_h5ad <- system.file(
-    readH5AD(example_h5ad)
-    # --- Zeisel Brain Data [] ---
-    # Key functions: ZeiselBrainData, tempfile, writeH5AD
-    library(scRNAseq)
-    sce_zeisel <- ZeiselBrainData()
-    out_path <- tempfile(pattern = ".h5ad")
-    # --- Segerstolpe Pancreas Data [] ---
-    # Key functions: SegerstolpePancreasData, basiliskRun, SCE2AnnData, AnnData2SCE
-    library(basilisk)
-    library(scRNAseq)
-    seger <- SegerstolpePancreasData()
-    # --- Ann Data Dependencies [] ---
+    # --- Export SingleCellExperiment Data [] ---
+    # Key functions: writeH5AD
+    out_path <- tempfile(
+        pattern = "output",
+        fileext = ".h5ad"
+    )
+    writeH5AD(
+        sce = sce,
+        file = out_path,
+        verbose = TRUE
+    )
+
+
+    # --- Convert SingleCellExperiment to AnnData [] ---
+    # Key functions: SCE2AnnData, zellkonverterAnnDataEnv
+    adata <- basilisk::basiliskRun(
+        fun = function(x) {
+            SCE2AnnData(x)
+        },
+        env = zellkonverterAnnDataEnv(),
+        x = sce
+    )
+
+
+    # --- Convert AnnData to SingleCellExperiment [] ---
+    # Key functions: AnnData2SCE, zellkonverterAnnDataEnv
+    sce_back <- basilisk::basiliskRun(
+        fun = function(x) {
+            AnnData2SCE(x)
+        },
+        env = zellkonverterAnnDataEnv(),
+        x = adata
+    )
+
+
+    # --- Check Environment Dependencies [] ---
     # Key functions: AnnDataDependencies
-    AnnDataDependencies()
-    # --- read H5 A D [] ---
-    # Key functions: readH5AD
-    readH5AD(example_h5ad, verbose = TRUE)
-    # --- set Zellkonverter Verbose [] ---
-    # Key functions: setZellkonverterVerbose
-    setZellkonverterVerbose(TRUE)
-    sessionInfo()
+    deps <- AnnDataDependencies(
+        version = "0.7.6"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

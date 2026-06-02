@@ -41,30 +41,27 @@ process BIOC_PICS {
     library(PICS)
     library(jsonlite)
 
-    # --- genome segmentation [] ---
-    # Key functions: segmentPICS
-    seg <- segmentPICS(dataIP, dataC = dataCont, map = map, minReads = 1)
-    # --- P I C S [] ---
+    # --- Probabilistic Inference of ChIP-Seq [] ---
     # Key functions: PICS
     pics <- PICS(seg, nCores = 2)
-    # --- segment P I C S [] ---
+
+
+    # --- False Discovery Rate Estimation [] ---
     # Key functions: segmentPICS, PICS, picsFDR
-    segC <- segmentPICS(dataCont, dataC = dataIP, map = map, minReads = 1)
+    segC <- segmentPICS(dataCont_gr, dataC = dataIP_gr, map = map_gr,
+                        minReads = 1)
     picsC <- PICS(segC)
-    fdr <- picsFDR(pics, picsC, filter = list(delta = c(50, Inf), se = c(0, 50),
-    # --- make G Ranges Output [] ---
+    fdr <- picsFDR(pics, picsC, filter = list(delta = c(50, Inf),
+                   se = c(0, 50), sigmaSqF = c(0, 22500),
+                   sigmaSqR = c(0, 22500)))
+
+
+    # --- Export Genomic Ranges [] ---
     # Key functions: makeGRangesOutput
-    plot(fdr[, c(3, 1)])
-    myFilter = list(delta = c(50, 300), se = c(0, 50), sigmaSqF = c(0, 22500),
-    sigmaSqR = c(0, 22500))
-    # --- export [] ---
-    # Key functions: export
-    library(rtracklayer)
-    export(rdBed, "myfile.bed")
-    # --- make G Ranges Output [] ---
-    # Key functions: makeGRangesOutput, export
-    rdWig <- makeGRangesOutput(pics, type="wig", filter=c(myFilter, list(score=c(1,Inf))))
-    export(rdWig, "myfile.wig")
+    myFilter <- list(delta = c(50, 300), se = c(0, 50),
+                     sigmaSqF = c(0, 22500), sigmaSqR = c(0, 22500))
+    rdBed <- makeGRangesOutput(pics, type = "bed",
+                               filter = c(myFilter, list(score = c(1, Inf))))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

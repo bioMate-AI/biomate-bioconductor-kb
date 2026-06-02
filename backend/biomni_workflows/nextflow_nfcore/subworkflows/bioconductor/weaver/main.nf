@@ -38,30 +38,32 @@ process BIOC_WEAVER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(weaver)
     library(Sweave)
     library(jsonlite)
 
-    # --- Basicproc [] ---
-    # Key functions: tempdir, output, Sweave, weaver
-    library("weaver")
-    testDocPath <- system.file("extdata/doc1.Rnw", package="weaver")
-    curDir <- getwd()
-    setwd(tempdir())
-    z <- capture.output(Sweave(testDocPath, driver=weaver()),
-    # --- Another [] ---
-    # Key functions: tempdir, output, Sweave, weaver, tempfile
-    testDocPath <- system.file("extdata/doc2.Rnw", package="weaver")
-    curDir <- getwd()
-    setwd(tempdir())
-    z <- capture.output(Sweave(testDocPath, driver=weaver()),
-                        file=tempfile())
-    # --- Again [] ---
-    # Key functions: tempdir, output, Sweave, weaver, tempfile
-    testDocPath <- system.file("extdata/doc1.Rnw", package="weaver")
-    curDir <- getwd()
-    setwd(tempdir())
-    z <- capture.output(Sweave(testDocPath, driver=weaver()),
-                        file=tempfile())
+    # --- Cached Document Compilation [] ---
+    # Key functions: weaver
+    doc_path <- system.file("extdata/doc1.Rnw", package = "weaver")
+    temp_dir <- tempdir()
+    old_dir <- setwd(temp_dir)
+    utils::Sweave(
+        file = doc_path,
+        driver = weaver()
+    )
+    setwd(old_dir)
+
+
+    # --- Parallel Report Generation [] ---
+    # Key functions: weaver
+    doc_path_2 <- system.file("extdata/doc2.Rnw", package = "weaver")
+    temp_dir_2 <- tempdir()
+    old_dir_2 <- setwd(temp_dir_2)
+    utils::Sweave(
+        file = doc_path_2,
+        driver = weaver()
+    )
+    setwd(old_dir_2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

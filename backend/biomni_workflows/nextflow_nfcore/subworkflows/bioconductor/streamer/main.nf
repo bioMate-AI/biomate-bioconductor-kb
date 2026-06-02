@@ -38,47 +38,56 @@ process BIOC_STREAMER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Streamer)
     library(GRanges)
     library(IRanges)
     library(Rle)
     library(Stream)
     library(jsonlite)
 
-    # --- Baminput Class [] ---
-    # Key functions: setRefClass, methods, msg, yield
-    .BamInput <-
-        setRefClass("BamInput",
-        contains="Producer",
-        fields=list(
-            file="character",
-    # --- Baminput Constructor [] ---
-    # Key functions: scanBamHeader, new
-    BamInput <- function(file, ranges,...)
-    {
-        .seqNames <- names(scanBamHeader(file)[[1]]$target)
-        .BamInput$new(file=file, ranges=ranges, .seqNames=.seqNames, ...)
-    }
-    # --- Countgoverlap Class [] ---
-    # Key functions: setRefClass, methods, msg, yield, callSuper
-    .CountGOverlap <-
-        setRefClass("CountGOverlap",
-        contains="Consumer",
-        fields=list(ranges="GRanges",
-                    mode="character",
-    # --- Bam File And Ranges [] ---
-    # Key functions: GRanges, Rle, IRanges, strand
-    galn_file <- system.file("extdata", "ex1.bam", package="Rsamtools")
-    gr <-
-        GRanges(seqnames =
-                Rle(c("seq2", "seq2", "seq2", "seq1"), c(1, 3, 2, 4)),
-                ranges = IRanges(rep(10,1), width = 1:10,
-    # --- Overlap Counter [] ---
-    # Key functions: Stream, levels, seqnames, yield
-    overlapCounter <- function(pr, cs) {
-        s <- Stream(pr, cs)
-        len <- length(levels(seqnames(pr$ranges)))
-        lst <- vector("list", len)
-        for(i in 1:len) {
+    # --- Producer Initialization ---
+    # Key functions: Producer, setRefClass
+    .MyProducer <- setRefClass("MyProducer",
+        contains = "Producer",
+        fields = list(data = "list")
+    )
+    .MyProducer$methods(
+        yield = function() {
+            if (length(.self$data) == 0) return(list())
+            val <- .self$data[[1]]
+            .self$data <- .self$data[-1]
+            list(val)
+        }
+    )
+    prod <- .MyProducer$new(data = list(1:10, 11:20, 21:30))
+
+    # --- Consumer Configuration ---
+    # Key functions: Consumer, setRefClass
+    .MyConsumer <- setRefClass("MyConsumer",
+        contains = "Consumer"
+    )
+    .MyConsumer$methods(
+        yield = function() {
+            input <- callSuper()[[1]]
+            if (length(input) == 0) return(NULL)
+            sum(input)
+        }
+    )
+    cons <- .MyConsumer$new()
+
+    # --- Stream Assembly ---
+    # Key functions: Stream, status
+    stream <- Stream(prod, cons)
+    stream_status <- status(stream)
+
+    # --- Data Streaming and Processing ---
+    # Key functions: yield, reset
+    results <- list()
+    results[[1]] <- yield(stream)
+    results[[2]] <- yield(stream)
+    results[[3]] <- yield(stream)
+    reset(stream)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

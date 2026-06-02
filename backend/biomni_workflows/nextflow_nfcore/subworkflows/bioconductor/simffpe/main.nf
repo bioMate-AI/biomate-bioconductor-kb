@@ -38,38 +38,37 @@ process BIOC_SIMFFPE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SimFFPE)
     library(DNAStringSet)
     library(jsonlite)
 
-    # --- Calcphredscoreprofile [] ---
-    # Key functions: calcPhredScoreProfile
-    library(SimFFPE)
-    bamFilePath <- system.file("extdata", "example.bam", package = "SimFFPE")
-    regionPath <- system.file("extdata", "regionsBam.txt", package = "SimFFPE")
-    regions <- read.table(regionPath)
-    PhredScoreProfile <- calcPhredScoreProfile(bamFilePath, targetRegions = regions)
-    # --- Readdnastringset [] ---
-    # Key functions: readDNAStringSet
+    # --- Whole Genome FFPE Read Simulation [] ---
+    # Key functions: readSimFFPE
     referencePath <- system.file("extdata", "example.fasta", package = "SimFFPE")
-    reference <- readDNAStringSet(referencePath)
-    reference
-    # --- Target Region Table [] ---
-    # Key functions: file
-    regionPath <- system.file("extdata", "regionsSim.txt", package = "SimFFPE")
-    targetRegions <- read.table(regionPath)
-    # --- Readsimffpe [] ---
-    # Key functions: tempdir, readSimFFPE, DNAStringSet
-    ## Simulate reads of the first three sequences of the reference genome
+    reference <- Biostrings::readDNAStringSet(referencePath)
     sourceSeq <- reference[1:3]
     outFile1 <- paste0(tempdir(), "/sim1")
-    readSimFFPE(sourceSeq, referencePath, PhredScoreProfile2, outFile1,
-                overWrite = TRUE, coverage = 80, readLen = 150,
-    # --- Targetreadsimffpe [] ---
-    # Key functions: tempdir, targetReadSimFFPE
+    PhredScoreProfilePath <- system.file(
+        "extdata", "PhredScoreProfile1.txt", package = "SimFFPE"
+    )
+    profile <- as.matrix(read.table(PhredScoreProfilePath, skip = 1))
+    SimFFPE::readSimFFPE(
+        sourceSeq, referencePath, profile, outFile1,
+        overWrite = TRUE, coverage = 10, readLen = 100,
+        enzymeCut = TRUE, threads = 1
+    )
+
+
+    # --- Targeted FFPE Read Simulation [] ---
+    # Key functions: targetReadSimFFPE
     outFile3 <- paste0(tempdir(), "/sim3")
-    targetReadSimFFPE(referencePath, PhredScoreProfile, targetRegions, outFile3,
-                      coverage = 120, readLen = 100, meanInsertLen = 180,
-                      sdInsertLen = 50, enzymeCut = FALSE)
+    regionPath <- system.file("extdata", "regionsBam.txt", package = "SimFFPE")
+    targetRegions <- read.table(regionPath)
+    SimFFPE::targetReadSimFFPE(
+        referencePath, profile, targetRegions, outFile3,
+        coverage = 20, readLen = 100, meanInsertLen = 180,
+        sdInsertLen = 50, enzymeCut = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

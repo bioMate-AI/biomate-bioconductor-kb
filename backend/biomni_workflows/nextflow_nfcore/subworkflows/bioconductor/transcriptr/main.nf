@@ -41,50 +41,38 @@ process BIOC_TRANSCRIPTR {
     library(transcriptR)
     library(jsonlite)
 
-    # --- Estimatebackground [] ---
-    # Key functions: estimateBackground
-    ---------------------------------------------------------------------
-    estimateBackground(tds, fdr.cutoff = 0.01)
-    # view estimated cutoff value
-    tds
-    # --- Seq [] ---
-    # Key functions: estimateGapDistance
-    ---------------------------------------------------------------------
-    # create a range of gap distances to test
-    # from 0 bp to 10000 bp with the step of 100 bp
-    gd <- seq(from = 0, to = 10000, by = 100)
-    estimateGapDistance(object = tds, annot = knownGene.genes, filter.annot = TRUE,
-    # --- Detecttranscripts [] ---
-    # Key functions: detectTranscripts
-    ---------------------------------------------------------------------
+    # --- Transcript Detection and Annotation [] ---
+    # Key functions: detectTranscripts, annotateTranscripts, getTranscripts
     detectTranscripts(tds, estimate.params = TRUE)
-    # --- Annotatetranscripts [] ---
-    # Key functions: annotateTranscripts
-    ---------------------------------------------------------------------
-    annotateTranscripts(object = tds, annot = knownGene.genes, min.overlap = 0.5)
-    # --- Gettranscripts [] ---
-    # Key functions: getTranscripts
-    ---------------------------------------------------------------------
+    annotateTranscripts(
+        object = tds,
+        annot = knownGene.genes,
+        min.overlap = 0.5
+    )
     trx <- getTranscripts(tds, min.length = 250, min.fpkm = 0.5)
-    head(trx, 5)
-    # --- Getpeaks [] ---
-    # Key functions: getPeaks
-    ---------------------------------------------------------------------
+
+
+    # --- ChIP Peak Analysis and Prediction [] ---
+    # Key functions: predictTssOverlap, predictStrand, getPeaks
+    predictTssOverlap(object = cds, feature = "pileup", p = 0.75)
+    predictStrand(
+        cdsObj = cds,
+        tdsObj = tds,
+        quant.cutoff = 0.1,
+        win.size = 2000
+    )
     peaks <- getPeaks(cds)
-    head(peaks, 3)
-    # --- Breaktranscriptsbypeaks [] ---
+
+
+    # --- Transcript Fragmentation by Peaks [] ---
     # Key functions: breakTranscriptsByPeaks, annotateTranscripts, getTranscripts
-    ---------------------------------------------------------------------
-    # set `estimate.params = TRUE` to re-calculate FPKM and coverage density
     breakTranscriptsByPeaks(tdsObj = tds, cdsObj = cds, estimate.params = TRUE)
-    # re-annotate identified transcripts
-    annotateTranscripts(object = tds, annot = knownGene.genes, min.overlap = 0.5)
-    # --- Findoverlaps [] ---
-    # Key functions: findOverlaps, queryHits
-    ---------------------------------------------------------------------
-    hits <- findOverlaps(query = trx, subject = trx.final)
-    trx.broken <- trx[unique(queryHits(hits)[duplicated(queryHits(hits))])]
-    head(trx.broken, 5)
+    annotateTranscripts(
+        object = tds,
+        annot = knownGene.genes,
+        min.overlap = 0.5
+    )
+    trx_final <- getTranscripts(tds)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

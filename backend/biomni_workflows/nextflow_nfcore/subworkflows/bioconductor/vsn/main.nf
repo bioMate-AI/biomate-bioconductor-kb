@@ -41,16 +41,39 @@ process BIOC_VSN {
     library(vsn)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, coord_fixed, meanSdPlot
-    library("ggplot2")
-    allpositive = (rowSums(exprs(kidney) <= 0) == 0)
-    df1 = data.frame(log2(exprs(kidney)[allpositive, ]),
-    # --- Expression matrix extraction [] ---
-    # Key functions: smoothScatter, phenoData, assayData, matplot, array, exprs, coefficients, coef
-    mai = par("mai"); mai[3]=0; par(mai)
-    plot(x2, m, ylim=c(-2, 3.5), type="n", xlab=expression(x[2]), ylab="")
-    abline(h=-log2(fc), col="red", lwd=lwd, lty=1)
+    # --- Variance Stabilizing Normalization [vsn] ---
+    # Key functions: justvsn, vsn2, predict, exprs
+    data("kidney", package = "vsn")
+    xnorm = justvsn(kidney)
+    fit = vsn2(kidney)
+    ynorm = predict(fit, kidney)
+    M = exprs(xnorm)[, 1] - exprs(xnorm)[, 2]
+
+    # --- Quality Control and Diagnostics [vsn] ---
+    # Key functions: meanSdPlot, justvsn
+    data("kidney", package = "vsn")
+    xnorm = justvsn(kidney)
+    meanSdPlot(xnorm, ranks = TRUE)
+    meanSdPlot(xnorm, ranks = FALSE)
+
+    # --- Affymetrix RMA Normalization [vsn] ---
+    # Key functions: vsnrma, exprs
+    data("Dilution", package = "affydata")
+    d_vsn = vsnrma(Dilution)
+    vsn_exprs = exprs(d_vsn)
+
+    # --- Stratified Normalization [vsn] ---
+    # Key functions: justvsn, exprs
+    data("lymphoma", package = "vsn")
+    wg = which(lymphoma$dye == "Cy3")
+    wr = which(lymphoma$dye == "Cy5")
+    lymRG = new("RGList", list(
+        R = exprs(lymphoma)[, wr],
+        G = exprs(lymphoma)[, wg]
+    ))
+    pin_strata = rep(1:16, each = 576)
+    EconStr = justvsn(lymRG[, 1], strata = pin_strata)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

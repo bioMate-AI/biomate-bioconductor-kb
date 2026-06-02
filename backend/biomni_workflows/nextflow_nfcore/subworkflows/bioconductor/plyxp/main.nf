@@ -41,48 +41,45 @@ process BIOC_PLYXP {
     library(plyxp)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: cols, rows, mutate, log1p
-    ---------------------------------------------------------------------
-    # add data (mutate) to any of the three tables,
-    # assay, colData, rowData,
-    # ...using contextual helpers cols() and rows()
-    airway |>
-    # --- Runif [] ---
-    # Key functions: runif, mutate, rows, rowMeans
-    ---------------------------------------------------------------------
-    airway$sizeFactor <- runif(8, .9, 1.1)
-    # making scaled counts, then computing row means:
-    airway |>
-      mutate(scaled_counts = counts / .cols$sizeFactor, #
-    # --- Mutate [] ---
-    # Key functions: mutate, rows, cols, map_dbl
-    ---------------------------------------------------------------------
-    airway |>
-      mutate(scaled_counts = counts / .cols$sizeFactor,
-             # You may expect a list when accessing other contexts
-             # from either the rows() or cols() contexts.
-    # --- Group By [] ---
-    # Key functions: group_by, rows, summarize, colSums, rowData, pull
-    ---------------------------------------------------------------------
-    summary <- airway |>
-      group_by(rows(gene_biotype)) |>
-      summarize(col_sums = colSums(counts),
-                # may rename rows with .features
-    # --- Mutate [] ---
-    # Key functions: mutate
-    ---------------------------------------------------------------------
-    # here the `.cols$` pronoun reshapes the data to fit the `assays` context
-    airway |>
-      mutate(scaled_counts = counts / .cols$sizeFactor)
-    # this is equivalent to the following, where we have to transpose
-    # --- Mutate [] ---
+    # --- Initialization and Contextual Mutation [Initialization] ---
+    # Key functions: new_plyxp, mutate, cols, rows
+    airway_ply <- new_plyxp(airway)
+    airway_mutated <- airway_ply |>
+        mutate(
+            log_counts = log1p(counts),
+            cols(treated = dex == "trt"),
+            rows(new_id = paste0("gene-", gene_name))
+        )
+
+    # --- Assay Scaling and Normalisation [Normalisation] ---
+    # Key functions: mutate, rows
+    airway_ply$sizeFactor <- runif(ncol(airway_ply), 0.9, 1.1)
+    airway_scaled <- airway_ply |>
+        mutate(
+            scaled_counts = counts / .cols$sizeFactor,
+            rows(ave_scl_cts = rowMeans(.assays_asis$scaled_counts))
+        )
+
+    # --- Grouping and Summarisation [Aggregation] ---
+    # Key functions: group_by, summarize, rows, pull
+    summary_se <- airway_ply |>
+        group_by(rows(gene_biotype)) |>
+        summarize(
+            col_sums = colSums(counts),
+            rows(.features = unique(gene_biotype))
+        )
+    col_sums_df <- summary_se |>
+        pull(col_sums)
+
+    # --- Feature and Sample Renaming [Metadata Management] ---
     # Key functions: mutate, rows, cols
-    ---------------------------------------------------------------------
-    se_simple
-    # moving data to rownames and colnames
-    se_simple |>
-      mutate(
+    se_renamed <- airway_ply |>
+        mutate(
+            orig_names = sprintf("%s-%s", .rows$.features, .cols$.samples),
+            rows(.features = gene_name),
+            cols(.samples = Sample)
+        )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

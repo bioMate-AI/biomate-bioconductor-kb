@@ -41,41 +41,50 @@ process BIOC_TURBONORM {
     library(TurboNorm)
     library(jsonlite)
 
-    # --- Code1 [] ---
-    # Key functions: sin, funky, rnorm
-    library(TurboNorm)
-    funky <- function(x) sin(2*pi*x^3)^3
-    m <- 100
-    x <- seq(0, 1, length=m)
-    y <- funky(x) + rnorm(m, 0, 0.1)
-    # --- Code2 [] ---
-    # Key functions: curve, turbotrend
-    plot(x, y, type='p', xlab="", ylab="")
-    curve(funky, add=TRUE)
-    fitOrig <- turbotrend(x, y, n=15, method="original")
-    lines(fitOrig, col="green", type='b', pch=1)
-    # --- Code4 [] ---
+    # --- Trend Fitting [turbotrend] ---
+    # Key functions: turbotrend
+    x <- seq(0, 1, length = 100)
+    y <- sin(2 * pi * x^3)^3 + rnorm(100, 0, 0.1)
+    fit_orig <- turbotrend(x, y, n = 15, method = "original")
+    fit_fast <- turbotrend(x, y, n = 15, method = "fast")
+
+    # --- Microarray Normalization [pspline] ---
     # Key functions: pspline
-    library(marray)
-    data(swirl)
-    x <- pspline(swirl, showArrays=2, pch=20, col="grey")
-    # --- Code5 [] ---
+    data(swirl, package = "marray")
+    normalized_swirl <- pspline(
+        swirl,
+        showArrays = 2,
+        pch = 20,
+        col = "grey"
+    )
+
+    # --- Methylation Data Preparation [normalizeWithinArrays] ---
     # Key functions: normalizeWithinArrays
-    library(TurboNorm)
-    data(methylation)
-    indices <- methylation$weights[,1]
+    data(methylation, package = "turbonorm")
+    indices <- methylation$weights[, 1]
     weights <- rep(1, length(indices))
-    weights[indices] <- length(indices)/sum(indices)
-    # --- Code6 [] ---
-    # Key functions: frame, factor
-    data <- data.frame(M=as.vector(MA$M),
-    A=as.vector(MA$A),
-    Array=factor(rep(labels, each=nrow(MA$A)), levels=rev(labels)))
-    library(lattice)
-    print(xyplot(M~A|Array, xlab="", ylab="", data=data, type='g',
-    # --- Code7 [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    weights[indices] <- length(indices) / sum(indices)
+    ma_data <- marray::normalizeWithinArrays(
+        methylation,
+        method = "none",
+        bc.method = "none"
+    )
+
+    # --- Visualization with Panel Splines [panel.pspline] ---
+    # Key functions: panel.pspline
+    plot_data <- data.frame(
+        M = as.vector(ma_data$M),
+        A = as.vector(ma_data$A)
+    )
+    plot_obj <- lattice::xyplot(
+        M ~ A,
+        data = plot_data,
+        panel = function(x, y) {
+            lattice::panel.xyplot(x, y, col = "grey")
+            panel.pspline(x, y, weights = weights, col = "red", lwd = 2)
+        }
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

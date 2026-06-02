@@ -41,22 +41,57 @@ process BIOC_SPECL {
     library(specL)
     library(jsonlite)
 
-    # --- tempfile [] ---
-    # Key functions: tempfile, render
-    library(rmarkdown)
-    library(BiocStyle)
-    report_file <- tempfile(fileext='.Rmd');
-    # --- kable [] ---
-    # Key functions: kable
-    library(knitr)
-    kable(t(as.data.frame(INPUT)))
-    ii <- ((lapply(INPUT, function(x){ if(typeof(x) %in% c("character", "double")){paste(x, collapse = ', ')}else{NULL} } )))
-    # --- specL::genSwathIonLib [] ---
+    # --- Read Bibliospec Data [read.bibliospec] ---
+    # Key functions: read.bibliospec
+    filtered_file <- system.file("extdata", "peptideStd.sqlite",
+                                 package = "specL")
+    redundant_file <- system.file("extdata", "peptideStd_redundant.sqlite",
+                                  package = "specL")
+    BLIB_FILTERED <- read.bibliospec(filtered_file)
+    BLIB_REDUNDANT <- read.bibliospec(redundant_file)
+    summary(BLIB_FILTERED)
+    summary(BLIB_REDUNDANT)
+
+    # --- Protein Annotation [annotate.protein_id] ---
+    # Key functions: annotate.protein_id
+    fasta_file <- system.file("extdata", "SP201602-specL.fasta.gz",
+                              package = "specL")
+    FASTA <- seqinr::read.fasta(fasta_file, seqtype = "AA", as.string = TRUE)
+    BLIB_FILTERED <- annotate.protein_id(BLIB_FILTERED, fasta = FASTA)
+    summary(BLIB_FILTERED)
+
+    # --- Generate SWATH Ion Library [genSwathIonLib] ---
     # Key functions: genSwathIonLib
-    specLibrary <- specL::genSwathIonLib(
-    # --- slot Names [] ---
-    # Key functions: slotNames
-    slotNames(specLibrary@ionlibrary[[1]])
+    fragmentIonFunction_specL <- function (b, y) {
+        Hydrogen <- 1.007825
+        b1_ <- (b)
+        y1_ <- (y)
+        b2_ <- (b + Hydrogen) / 2
+        y2_ <- (y + Hydrogen) / 2
+        return(cbind(b1_, y1_, b2_, y2_))
+    }
+    specLibrary <- genSwathIonLib(
+        data = BLIB_FILTERED,
+        data.fit = BLIB_REDUNDANT,
+        max.mZ.Da.error = 0.05,
+        topN = 6,
+        fragmentIonMzRange = c(300, 1250),
+        fragmentIonRange = c(5, 200),
+        fragmentIonFUN = fragmentIonFunction_specL,
+        mascotIonScoreCutOFF = 17,
+        iRT = specL::iRTpeptides
+    )
+    summary(specLibrary)
+
+    # --- Export and Visualisation [write.spectronaut] ---
+    # Key functions: write.spectronaut, plot
+    output_file <- tempfile(fileext = ".csv")
+    write.spectronaut(specLibrary, file = output_file)
+    plot(specLibrary)
+    if (length(specLibrary@ionlibrary) > 0) {
+        plot(specLibrary@ionlibrary[[1]])
+    }
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

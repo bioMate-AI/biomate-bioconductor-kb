@@ -38,78 +38,39 @@ process BIOC_SIGCHECK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SigCheck)
     library(MulticoreParam)
     library(jsonlite)
 
-    # --- Loaddata [] ---
-    # Key functions: data
-    library(breastCancerNKI)
-    data(nki)
-    nki
-    # --- Excludena [] ---
-    # Key functions: na
-    dim(nki)
-    nki <- nki[,!is.na(nki$e.dmfs)]
-    dim(nki)
-    # --- Loadknown [] ---
-    # Key functions: data
-    library(SigCheck)
-    data(knownSignatures)
-    names(knownSignatures)
-    # --- Sigchecksurvival [] ---
+    # --- Background Comparison and Permutation Tests [] ---
+    # Key functions: sigCheckRandom, sigCheckKnown, sigCheckPermutedSurvival, sigCheckPermutedFeatures
+    check_random <- sigCheckRandom(check, N = 100)
+    check_known <- sigCheckKnown(check, knownSignatures$cancer)
+    check_perm_surv <- sigCheckPermutedSurvival(check, N = 100)
+    check_perm_feat <- sigCheckPermutedFeatures(check, N = 100)
+    random_pval <- check_random@survivalPval
+
+
+    # --- Classifier-Based Evaluation [] ---
     # Key functions: sigCheck
-    check <- sigCheck(nki, classes="e.dmfs", survival="t.dmfs",
-                      signature=knownSignatures$cancer$VANTVEER,
-                      annotation="HUGO.gene.symbol",
-                      validationSamples=which(nki$series=="NKI2"))
-    check
-    # --- Sigcheckallsurvivalnoeval [] ---
-    # Key functions: sigCheckAll
-    ## nkiResults <- sigCheckAll(check, iterations=1000)
-    # --- Sigcheckplotsurvival [] ---
+    check_classifier <- sigCheck(
+        nki,
+        classes = "e.dmfs",
+        signature = knownSignatures$cancer$VANTVEER,
+        annotation = "HUGO.gene.symbol",
+        validationSamples = which(nki$series == "NKI2"),
+        scoreMethod = "classifier"
+    )
+    sig_perf <- check_classifier@sigPerformance
+    mode_perf <- check_classifier@modePerformance
+    confusion_mat <- check_classifier@confusion
+
+
+    # --- Visualization of Signature Performance [] ---
     # Key functions: sigCheckPlot
     sigCheckPlot(nkiResults)
-    # --- Sigcheckhi [] ---
-    # Key functions: sigCheck
-    par(mfrow=c(2,2))
-    p5 <- sigCheck(check,
-                  scoreMethod="High",threshold=.5,
-                  plotTrainingKM=F)@survivalPval
-    p66 <- sigCheck(check,
-    # --- Sigchecksurvivalclass [] ---
-    # Key functions: sigCheck
-    check <- sigCheck(check, scoreMethod="classifier")
-    check@survivalPval
-    # --- Sigcheckclassifier [] ---
-    # Key functions: sigCheck
-    check <- sigCheck(nki, classes="e.dmfs",
-                      signature=knownSignatures$cancer$VANTVEER,
-                      annotation="HUGO.gene.symbol",
-                      validationSamples=which(nki$series=="NKI2"),
-                      scoreMethod="classifier")
-    # --- Sigcheckclassify [] ---
-    # Key functions: sigCheckRandom, sigCheckKnown
-    ## classifyRandom <- sigCheckRandom(check, iterations=1000)
-    ## classifyKnown <- sigCheckKnown(check)
-    # --- Loadclassifyresults [] ---
-    # Key functions: data
-    data(classifyResults)
-    # --- Sigclassifyplot [] ---
-    # Key functions: sigCheckPlot
-    par(mfrow=c(1,2))
-    sigCheckPlot(classifyRandom, classifier=TRUE)
-    sigCheckPlot(classifyKnown,  classifier=TRUE)
-    # --- Msigdbnoeval [] ---
-    # Key functions: gmt, sigCheckKnown, sigCheckPlot
-    ## c6.oncogenic <- read.gmt('c6.all.v5.0.symbols.gmt')
-    ## check.c6 <- sigCheckKnown(check, c6.oncogenic)
-    ## sigCheckPlot(check.c6)
-    # --- Multicoreparam [] ---
-    # Key functions: MulticoreParam, register
-    CoresToUse <- 6
-    library(BiocParallel)
-    mcp <- MulticoreParam(workers=CoresToUse)
-    register(mcp, default=TRUE)
+    sigCheckPlot(classifyRandom, classifier = TRUE)
+    sigCheckPlot(classifyKnown, classifier = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

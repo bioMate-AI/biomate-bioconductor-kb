@@ -38,24 +38,38 @@ process BIOC_SCHEX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(schex)
     library(RunUMAP)
     library(jsonlite)
 
-    # --- UMAP embedding [] ---
-    # Key functions: RunUMAP
-    set.seed(10)
-    pbmc_small <- RunUMAP(pbmc_small,
-    # --- plot_hexbin_density [] ---
+    # --- Density Visualization [] ---
     # Key functions: plot_hexbin_density
-    plot_hexbin_density(pbmc.sce)
-    # --- plot_hexbin_meta [] ---
+    density_plot <- schex::plot_hexbin_density(
+        pbmc.sce
+    )
+
+
+    # --- Metadata Visualization [] ---
     # Key functions: plot_hexbin_meta
-    plot_hexbin_meta(pbmc.sce, col = "nCount_RNA", action = "median")
-    # --- plot_hexbin_feature [] ---
+    meta_plot <- schex::plot_hexbin_meta(
+        pbmc.sce,
+        col = "nCount_RNA",
+        action = "median"
+    )
+
+
+    # --- Feature Expression Visualization [] ---
     # Key functions: plot_hexbin_feature
-    schex::plot_hexbin_feature(pbmc.sce,
-    title = paste0("Mean of ", gene_id)
-    gg <- schex::plot_hexbin_feature(pbmc.sce,
+    gene_id <- "CD1C"
+    feature_plot <- schex::plot_hexbin_feature(
+        pbmc.sce,
+        type = "counts",
+        feature = gene_id,
+        action = "mean",
+        xlab = "UMAP1",
+        ylab = "UMAP2",
+        title = paste0("Mean of ", gene_id)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

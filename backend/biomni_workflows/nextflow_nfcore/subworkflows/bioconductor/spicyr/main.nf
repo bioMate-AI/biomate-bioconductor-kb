@@ -38,85 +38,58 @@ process BIOC_SPICYR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(spicyR)
     library(Surv)
     library(jsonlite)
 
-    # --- Spicy [] ---
-    # Key functions: spicy, topPairs
-    ---------------------------------------------------------------------
-    spicyTestPair <- spicy(
-      kerenSPE,
-      condition = "tumour_type",
-      from = "CD8_T_cell",
-    # --- Bind [] ---
-    # Key functions: bind
-    ---------------------------------------------------------------------
-    bind(spicyTest)[1:5, 1:5]
-    # --- Signifplot [] ---
-    # Key functions: signifPlot
-    ---------------------------------------------------------------------
+    # --- Significance Visualization [] ---
+    # Key functions: signifPlot, spicyBoxPlot
     signifPlot(
-      spicyTest,
-      breaks = c(-3, 3, 1),
-      marksToPlot = c("Macrophages", "DC_or_Mono", "dn_T_CD3", "Neutrophils",
-    # --- Spicyboxplot [] ---
-    # Key functions: spicyBoxPlot
-    ---------------------------------------------------------------------
-    spicyBoxPlot(results = spicyTest,
-                 # from = "Macrophages",
-                 # to = "dn_T_CD3"
-                 rank = 1)
-    # --- Buildspatialgraph [] ---
-    # Key functions: buildSpatialGraph, convPairs
-    ---------------------------------------------------------------------
-    kerenSPE <- imcRtools::buildSpatialGraph(kerenSPE,
-                                             img_id = "imageID",
-                                             type = "knn", k = 20,
-                                            coords = c("x", "y"))
-    # --- Spicy [] ---
-    # Key functions: spicy, topPairs
-    ---------------------------------------------------------------------
+        spicyTest,
+        breaks = c(-3, 3, 1),
+        marksToPlot = c("Macrophages", "DC_or_Mono", "dn_T_CD3",
+                        "Neutrophils", "CD8_T_cell", "Keratin_Tumour")
+    )
+    spicyBoxPlot(
+        results = spicyTest,
+        rank = 1
+    )
+
+
+    # --- Spatial Graph Conversion and Testing [] ---
+    # Key functions: convPairs, spicy, topPairs
+    pairAbundances <- convPairs(
+        kerenSPE,
+        colPair = "knn_interaction_graph"
+    )
     spicyTestColPairs <- spicy(
-      kerenSPE,
-      condition = "tumour_type",
-      alternateResult = pairAbundances,
-    # --- Signifplot [] ---
-    # Key functions: signifPlot
-    ---------------------------------------------------------------------
-    signifPlot(
-      spicyTestColPairs,
-      breaks = c(-3, 3, 1),
-      marksToPlot = c("Macrophages", "dn_T_CD3", "CD4_T_cell",
-    # --- Surv [] ---
-    # Key functions: Surv
-    ---------------------------------------------------------------------
-    kerenSPE$event = 1 - kerenSPE$Censored
-    kerenSPE$survival = Surv(kerenSPE$`Survival_days_capped*`, kerenSPE$event)
-    # --- Spicy [] ---
-    # Key functions: spicy
-    ---------------------------------------------------------------------
-    # Running survival analysis
-    spicySurvival = spicy(kerenSPE,
-                          condition = "survival")
-    # top 10 significant pairs
-    # --- Coldata [] ---
-    # Key functions: colData, getPairwise, frame
-    ---------------------------------------------------------------------
-    # filter SPE object to obtain image 24 data
-    kerenSubset = kerenSPE[, colData(kerenSPE)$imageID == "24"]
-    pairwiseAssoc = getPairwise(kerenSubset,
-                                sigma = NULL,
-    # --- Getpairwise [] ---
-    # Key functions: getPairwise, frame
-    ---------------------------------------------------------------------
-    pairwiseAssoc = getPairwise(kerenSubset,
-                                sigma = 20,
-                                Rs = 100) |>
-      as.data.frame()
-    # --- Plotimage [] ---
+        kerenSPE,
+        condition = "tumour_type",
+        alternateResult = pairAbundances,
+        weights = FALSE
+    )
+    topColPairs <- topPairs(spicyTestColPairs)
+
+
+    # --- Pairwise Association Estimation [] ---
+    # Key functions: getPairwise
+    kerenSubset <- kerenSPE[, colData(kerenSPE)$imageID == "24"]
+    pairwiseAssoc <- getPairwise(
+        kerenSubset,
+        sigma = 20,
+        Rs = 100
+    )
+    pairwiseDF <- as.data.frame(pairwiseAssoc)
+
+
+    # --- Spatial Image Plotting [] ---
     # Key functions: plotImage
-    ---------------------------------------------------------------------
-    plotImage(kerenSPE, "24", from = "Keratin_Tumour", to = "Neutrophils")
+    plotImage(
+        kerenSPE,
+        "24",
+        from = "Keratin_Tumour",
+        to = "Neutrophils"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

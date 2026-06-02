@@ -38,43 +38,26 @@ process BIOC_VELOCIRAPTOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(velociraptor)
     library(HermannSpermatogenesisData)
     library(jsonlite)
 
-    # --- Hermannspermatogenesisdata [] ---
-    # Key functions: HermannSpermatogenesisData
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce <- HermannSpermatogenesisData()
-    sce
-    # --- Lognormcounts [] ---
-    # Key functions: logNormCounts, modelGeneVar, getTopHVGs
-    ---------------------------------------------------------------------
-    library(scuttle)
-    sce <- logNormCounts(sce, assay.type=1)
-    library(scran)
-    dec <- modelGeneVar(sce)
-    # --- Scvelo [] ---
-    # Key functions: scvelo
-    ---------------------------------------------------------------------
-    library(velociraptor)
-    velo.out <- scvelo(
-      sce, subset.row=top.hvgs, assay.X="spliced",
-      scvelo.params=list(neighbors=list(n_neighbors=30L))
-    # --- Embedvelocity [] ---
-    # Key functions: embedVelocity, reducedDim, gridVectors, plotTSNE, geom_segment, aes, arrow
-    ---------------------------------------------------------------------
-    embedded <- embedVelocity(reducedDim(sce, "TSNE"), velo.out)
-    grid.df <- gridVectors(sce, embedded, use.dimred = "TSNE")
-    library(ggplot2)
-    plotTSNE(sce, colour_by="velocity_pseudotime") +
-    # --- Scvelo [] ---
-    # Key functions: scvelo
-    ---------------------------------------------------------------------
-    # Only setting assay.X= for the initial AnnData creation,
-    # it is not actually used in any further steps.
-    velo.out2 <- scvelo(sce, assay.X=1, subset.row=top.hvgs, use.dimred="PCA")
-    velo.out2
+    # --- Velocity Embedding Projection [] ---
+    # Key functions: embedVelocity
+    tsne_coords <- SingleCellExperiment::reducedDim(sce, "TSNE")
+    embedded_velo <- embedVelocity(
+        tsne_coords,
+        velo_out
+    )
+
+
+    # --- Velocity Grid Aggregation [] ---
+    # Key functions: gridVectors
+    grid_df <- gridVectors(
+        sce,
+        embedded_velo,
+        use.dimred = "TSNE"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

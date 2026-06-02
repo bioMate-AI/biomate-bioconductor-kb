@@ -44,31 +44,66 @@ process BIOC_GENETONIC {
     library(GeneTonicList)
     library(jsonlite)
 
-    # --- Create DESeqDataSet [] ---
-    # Key functions: DESeqDataSet
-    library("macrophage")
-    library("DESeq2")
-    data("gse", package = "macrophage")
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums, estimateSizeFactors, gene_plot, geneinfo_to_html
-    head(mosdef::deresult_to_df(res_macrophage_IFNg_vs_naive))
-    dds_macrophage <- estimateSizeFactors(dds_macrophage)
-    mosdef::gene_plot(dds_macrophage,
-    # --- Variance-stabilizing transformation (VST) [] ---
-    # Key functions: vst, gs_scores, gs_scoresheat
-    vst_macrophage <- vst(dds_macrophage)
-    scores_mat <- gs_scores(
-    gs_scoresheat(scores_mat,
-    # --- Run DESeq2 differential expression [] ---
-    # Key functions: DESeq, results
-    dds_macrophage <- DESeq(dds_macrophage)
-    res_macrophage_IFNg_vs_naive <- results(dds_macrophage,
-    contrast = c("condition", "IFNg", "naive"),
-    # --- Feature metadata inspection [] ---
-    # Key functions: GeneTonic, example, deresult_to_df, rowData, run_topGO, shake_topGOtableResult, get_annotation_orgdb, get_aggrscores
-    library("AnnotationDbi")
-    de_symbols_IFNg_vs_naive <- mosdef::deresult_to_df(res_macrophage_IFNg_vs_naive, FDR = 0.05)$SYMBOL
-    bg_ids <- rowData(dds_macrophage)$SYMBOL[rowSums(counts(dds_macrophage)) > 0]
+    # --- Enrichment Table Enhancement [] ---
+    # Key functions: enhance_table
+    p <- enhance_table(
+        res_enrich = res_enrich_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        n_gs = 30,
+        annotation_obj = anno_df,
+        chars_limit = 60
+    )
+
+
+    # --- Gene-Geneset Visualisation [] ---
+    # Key functions: gs_alluvial, ggs_graph
+    alluvial_plot <- gs_alluvial(
+        res_enrich = res_enrich_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        annotation_obj = anno_df,
+        n_gs = 4
+    )
+    ggs <- ggs_graph(
+        res_enrich = res_enrich_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        annotation_obj = anno_df,
+        n_gs = 20
+    )
+
+
+    # --- Enrichment Map Analysis [] ---
+    # Key functions: enrichment_map
+    em <- enrichment_map(
+        res_enrich = res_enrich_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        n_gs = 30,
+        color_by = "z_score",
+        annotation_obj = anno_df
+    )
+
+
+    # --- Enrichment Distillation [] ---
+    # Key functions: distill_enrichment
+    distilled <- distill_enrichment(
+        res_enrich = res_enrich_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        annotation_obj = anno_df,
+        n_gs = 60,
+        cluster_fun = "cluster_markov"
+    )
+
+
+    # --- Fuzzy Clustering of Gene Sets [] ---
+    # Key functions: gs_fuzzyclustering
+    fuzzy_subset <- gs_fuzzyclustering(
+        res_enrich = res_enrich_macrophage[1:100, ],
+        n_gs = 100,
+        gs_ids = NULL,
+        similarity_matrix = NULL,
+        similarity_threshold = 0.35,
+        fuzzy_seeding_initial_neighbors = 3,
+        fuzzy_multilinkage_rule = 0.5
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

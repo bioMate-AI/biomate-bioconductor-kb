@@ -38,33 +38,36 @@ process BIOC_KOINAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(koinar)
     library(Koina)
     library(SpectrumSimilarity)
     library(jsonlite)
 
-    # --- Koina [] ---
-    # Key functions: Koina
-    prosit2019 <- koinar::Koina(
-    # --- predict With Koina Model [] ---
+    # --- Predict Peptide Intensities [] ---
     # Key functions: predictWithKoinaModel
-    input <- data.frame(
-    peptide_sequences = c("LGGNEQVTR", "GAGSSEPVTGLDAK"),
-    collision_energies = c(25, 25),
-    # --- Koina [] ---
+    peptides <- data.frame(
+        peptide_sequences = c("LGGNEQVTR", "GAGSSEPVTGLDAK"),
+        collision_energies = c(25, 25),
+        precursor_charges = c(1, 2)
+    )
+    predictions <- koinar::predictWithKoinaModel(
+        prosit_model,
+        peptides
+    )
+
+
+    # --- Compare Alternative Models [] ---
     # Key functions: Koina
-    pred_prosit <- prosit2019$predict((input))
-    ms2pip <- koinar::Koina(
-    pred_ms2pip <- ms2pip$predict(input)
-    # --- xyplot [] ---
-    # Key functions: xyplot
-    lattice::xyplot(intensities ~ mz | model * peptide_sequences,
-    group = grepl("y", annotation),
-    data = rbind(
-    # --- Spectrum Similarity [] ---
-    # Key functions: SpectrumSimilarity
-    sim <- OrgMassSpecR::SpectrumSimilarity(pred_prosit[pred_prosit$peptide_sequences == peptide_sequence, c("mz", "intensities")],
-    pred_ms2pip[pred_ms2pip$peptide_sequences == peptide_sequence, c("mz", "intensities")],
-    title(main = paste(peptide_sequence, "| Spectrum similarity", round(sim, 3)))
+    input_data <- data.frame(
+        peptide_sequences = c("LKEATIQLDELNQK"),
+        collision_energies = c(35),
+        precursor_charges = c(3)
+    )
+    ms2pip_model <- koinar::Koina(
+        model_name = "ms2pip_HCD2021",
+        server_url = "koina.wilhelmlab.org"
+    )
+    pred_ms2pip <- ms2pip_model$predict(input_data)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

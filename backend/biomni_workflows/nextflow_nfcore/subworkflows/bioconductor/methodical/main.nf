@@ -38,45 +38,59 @@ process BIOC_METHODICAL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(methodical)
     library(AnnotationHub)
     library(DESeqDataSetFromMatrix)
     library(jsonlite)
 
-    # --- Download Meth Dataset [] ---
-    # Key functions: download_meth_dataset, download_rnaseq_dataset, frame, fread
-    ---------------------------------------------------------------------
-    # Download mcrpc_wgbs_hg38 from TumourMethDatasets.
-    mcrpc_wgbs_hg38_chr11 <- TumourMethData::download_meth_dataset(dataset = "mcrpc_wgbs_hg38_chr11")
-    # Download transcript counts
-    mcrpc_transcript_counts_file <- TumourMethData::download_rnaseq_dataset(dataset = "mcrpc_wgbs_hg38_chr11")
-    # --- Annotationhub [] ---
-    # Key functions: AnnotationHub, seqnames, resize, expand_granges
-    ---------------------------------------------------------------------
-    # Download Gencode annotation
-    library(AnnotationHub)
-    transcript_annotation <- AnnotationHub()[["AH75119"]]
-    # Import the Gencode annotation and subset for transcript annotation for non-mitochondrial protein-coding genes
-    # --- Deseqdatasetfrommatrix [] ---
-    # Key functions: DESeqDataSetFromMatrix, frame, estimateSizeFactors, counts
-    ---------------------------------------------------------------------
-    # Subset mcrpc_transcript_counts for protein-coding transcripts
-    mcrpc_transcript_counts <- mcrpc_transcript_counts[transcript_tss_chr11$ID, ]
-    # Create a DESeqDataSet from Kallisto counts.
-    mcrpc_transcript_counts_dds <- DESeqDataSetFromMatrix(countData = mcrpc_transcript_counts,
-    # --- Intersect [] ---
-    # Key functions: intersect, bpparam, time, calculateMethSiteTranscriptCors
-    ---------------------------------------------------------------------
-    # Find samples with both WGBS and RNA-seq count data
-    common_mcprc_samples <- intersect(names(mcrpc_transcript_counts), colnames(mcrpc_wgbs_hg38_chr11))
-    # Create a BPPARAM class
-    BPPARAM = BiocParallel::bpparam()
-    # --- Head [] ---
-    # Key functions: attributes
-    ---------------------------------------------------------------------
-    # Extract correlation results for ENST00000398606 transcript
-    gstp1_cpg_meth_transcript_cors <- transcript_cpg_meth_cors_mcrpc_samples_5kb[["ENST00000398606"]]
-    # Examine first few rows of the results
-    head(gstp1_cpg_meth_transcript_cors)
+    # --- Define Genomic Regions [Genomics] ---
+    # Key functions: expand_granges
+    tss_proximal_regions_chr11 <- methodical::expand_granges(
+        transcript_tss_chr11,
+        upstream = 5000,
+        downstream = 5000
+    )
+
+    # --- Calculate Site Methylation Transcription Correlations [Correlation Analysis] ---
+    # Key functions: calculateMethSiteTranscriptCors
+    transcript_cpg_meth_cors_mcrpc_samples_5kb <-
+        methodical::calculateMethSiteTranscriptCors(
+            meth_rse = mcrpc_wgbs_hg38_chr11,
+            transcript_expression_table = mcrpc_transcript_counts_normalized,
+            samples_subset = common_mcprc_samples,
+            tss_gr = transcript_tss_chr11,
+            tss_associated_gr = tss_proximal_regions_chr11,
+            cor_method = "pearson",
+            max_sites_per_chunk = NULL,
+            BPPARAM = BiocParallel::bpparam()
+        )
+
+    # --- Calculate Region Methylation Transcription Correlations [Correlation Analysis] ---
+    # Key functions: calculateRegionMethylationTranscriptCors
+    transcript_body_meth_cors_mcrpc_samples <-
+        methodical::calculateRegionMethylationTranscriptCors(
+            meth_rse = mcrpc_wgbs_hg38_chr11,
+            transcript_expression_table = mcrpc_transcript_counts_normalized,
+            samples_subset = common_mcprc_samples,
+            genomic_regions = transcript_annotation_chr11,
+            genomic_region_transcripts = transcript_annotation_chr11$ID,
+            region_methylation_summary_function = colMeans,
+            cor_method = "pearson",
+            BPPARAM = BiocParallel::bpparam()
+        )
+
+    # --- Visualise Correlation Coefficients [Visualisation] ---
+    # Key functions: plotMethSiteCorCoefs
+    gstp1_cpg_meth_transcript_cors <-
+        transcript_cpg_meth_cors_mcrpc_samples_5kb[["ENST00000398606"]]
+
+    meth_cor_plot_relative_distance <- methodical::plotMethSiteCorCoefs(
+        meth_site_cor_values = gstp1_cpg_meth_transcript_cors,
+        reference_tss = TRUE,
+        ylabel = "Correlation Value",
+        title = "Correlation Between GSTP1 Transcription and CpG Methylation"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

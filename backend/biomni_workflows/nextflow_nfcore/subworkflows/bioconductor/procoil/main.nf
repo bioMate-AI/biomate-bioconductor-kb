@@ -38,15 +38,39 @@ process BIOC_PROCOIL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(procoil)
     library(AAString)
     library(AAStringSet)
     library(jsonlite)
 
-    # --- Object metadata inspection [] ---
-    # Key functions: packageDescription, predict, readCCModel, bmp, attr, AAString, metadata, AAStringSet
-    GCN4mSeq <- c("GCN4wt"        ="MKQLEDKVEELLSKNYHLENEVARLKKLV",
-    GCN4mReg <- rep("abcdefgabcdefgabcdefgabcdefga", 4)
-    GCN4mut <- predict(PrOCoilModel, GCN4mSeq, GCN4mReg)
+    # --- Single Sequence Prediction [] ---
+    # Key functions: predict
+    seq_wt <- "MKQLEDKVEELLSKNYHLENEVARLKKLV"
+    reg_wt <- "abcdefgabcdefgabcdefgabcdefga"
+    pred_wt <- predict(PrOCoilModel, seq_wt, reg_wt)
+
+
+    # --- Multiple Sequence Prediction [] ---
+    # Key functions: predict
+    seqs_mut <- c(
+        "GCN4wt" = "MKQLEDKVEELLSKNYHLENEVARLKKLV",
+        "GCN4_N16Y_L19T" = "MKQLEDKVEELLSKYYHTENEVARLKKLV",
+        "GCN4_E22R_K27E" = "MKQLEDKVEELLSKNYHLENRVARLEKLV"
+    )
+    regs_mut <- rep("abcdefgabcdefgabcdefgabcdefga", 3)
+    pred_mut <- predict(PrOCoilModel, seqs_mut, regs_mut)
+
+
+    # --- Visualization [] ---
+    # Key functions: plot, heatmap
+    seqs_mut <- c(
+        "GCN4wt" = "MKQLEDKVEELLSKNYHLENEVARLKKLV",
+        "GCN4_N16Y_L19T" = "MKQLEDKVEELLSKYYHTENEVARLKKLV"
+    )
+    regs_mut <- rep("abcdefgabcdefgabcdefgabcdefga", 2)
+    pred_mut <- predict(PrOCoilModel, seqs_mut, regs_mut)
+    plot(pred_mut, legend = c("wild type", "mutant"))
+    heatmap(pred_mut)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

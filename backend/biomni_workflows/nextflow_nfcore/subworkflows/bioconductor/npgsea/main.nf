@@ -38,102 +38,60 @@ process BIOC_NPGSEA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(npGSEA)
     library(GeneSet)
     library(GeneSetCollection)
     library(HTMLReport)
     library(jsonlite)
 
-    # --- Loadlibrariesanddata [] ---
-    # Key functions: na, factor, featureFilter
-    library(ALL)
-    library(hgu95av2.db)
-    library(genefilter)
-    library(limma)
-    library(GSEABase)
-    # --- Adjustnames [] ---
-    # Key functions: featureNames, select
-    featureNames(ALL) <- select(hgu95av2.db, featureNames(ALL),
-                                "ENTREZID", "PROBEID")$ENTREZID
-    # --- Makesets [] ---
-    # Key functions: exprs, GeneSet, sample
-    xData <- exprs(ALL)
-    geneEids <- rownames(xData)
-    set.seed(12345)
-    set1 <- GeneSet(geneIds=sample(geneEids,15, replace=FALSE),
-                 setName="set1",
-    # --- Empirical Bayes moderation (limma) [] ---
-    # Key functions: eBayes, lmFit, topTable, GeneSet
-    model <- model.matrix(~mol.biol, ALL)
-    fit  <-  eBayes(lmFit(ALL, model))
-    tt <- topTable(fit, coef=2, n=200)
-    ttUp <- tt[which(tt$logFC >0), ]
-    ttDown <- tt[which(tt$logFC <0), ]
-    # --- Gsc [] ---
-    # Key functions: GeneSetCollection
-    gsc <- GeneSetCollection( c(set1, set2, set3, set4, set5, set6, set7) )
-    gsc
-    # --- Runit [] ---
+    # --- Gene Set Preparation [GeneSet, GeneSetCollection] ---
+    # Key functions: GeneSet, GeneSetCollection
+    gene_ids <- paste0("G", 1:100)
+    set1 <- GeneSet(geneIds = gene_ids[1:15], setName = "set1",
+                    shortDescription = "Simulated Gene Set 1")
+    set2 <- GeneSet(geneIds = gene_ids[16:50], setName = "set2",
+                    shortDescription = "Simulated Gene Set 2")
+    gsc <- GeneSetCollection(c(set1, set2))
+
+    # --- Non-parametric GSEA Analysis [npGSEA, betaHats, chiSqStat] ---
+    # Key functions: npGSEA, betaHats, chiSqStat
+    expr_matrix <- matrix(rnorm(100 * 20), nrow = 100)
+    rownames(expr_matrix) <- paste0("G", 1:100)
+    phenotype <- factor(rep(c("Control", "Treatment"), each = 10))
+    res_norm <- npGSEA(x = expr_matrix, y = phenotype, 
+                       set = set1, approx = "norm")
+    res_beta <- npGSEA(x = expr_matrix, y = phenotype, 
+                       set = set1, approx = "beta")
+    res_chisq <- npGSEA(x = expr_matrix, y = phenotype, 
+                        set = set1, approx = "chiSq")
+    beta_vals <- betaHats(res_beta)
+    chisq_val <- chiSqStat(res_chisq)
+
+    # --- Weighted and Covariate-Adjusted GSEA [npGSEA] ---
     # Key functions: npGSEA
-    yFactor <- ALL$mol.biol
-    res1 <- npGSEA(x = ALL, y = yFactor, set = set1)  ##with the eset
-    res1
-    res2_exprs <- npGSEA(xData, ALL$mol.biol, gsc[[2]])  ##with the expression data
-    res2_exprs
-    # --- Accessorfunctions [] ---
-    # Key functions: npGSEA, geneSetName, stat, sigmaSq, zStat, pTwoSided, pLeft, pValues
-    res3 <- npGSEA(ALL, yFactor, set3)
-    res3
-    geneSetName(res3)
-    stat(res3)
-    sigmaSq(res3)
-    # --- Runitnorm [] ---
-    # Key functions: npGSEA, betaHats, npGSEAPlot
-    res5_norm <- npGSEA(ALL, yFactor, set5, approx= "norm")
-    res5_norm
-    betaHats(res5_norm)
-    npGSEAPlot(res5_norm)
-    # --- Runitbeta [] ---
-    # Key functions: npGSEA, betaHats, npGSEAPlot
-    res5_beta <- npGSEA(ALL, yFactor, set5, approx= "beta")
-    res5_beta
-    betaHats(res5_beta)
-    npGSEAPlot(res5_beta)
-    # --- Runitchisq [] ---
-    # Key functions: npGSEA, betaHats, chiSqStat, stat, sigmaSq, npGSEAPlot
-    res5_chiSq <- npGSEA(ALL, yFactor, set5, approx= "chiSq")
-    res5_chiSq
-    betaHats(res5_chiSq)
-    chiSqStat(res5_chiSq)
-    stat(res5_chiSq)
-    # --- Runitwts [] ---
-    # Key functions: npGSEA, exprs, geneIds, featureNames
-    res7_nowts <- npGSEA(x = ALL, y= yFactor, set = set7)
-    res7_nowts
-    wts <- apply(exprs(ALL)[match(geneIds(set7), featureNames(ALL)), ],
-    						1, var)
-    wts <- 1/wts
-    # --- Addcovariates [] ---
-    # Key functions: npGSEA
-    res3_age <- npGSEA(x = ALL, y = yFactor, set = set3, covars = ALL$age)
-    res3_age
-    res3_agesex <- npGSEA(x = ALL, y = yFactor, set = set3, covars = cbind(ALL$age, ALL$sex))
-    res3_agesex
-    # --- Runmultiplenpgsea [] ---
-    # Key functions: npGSEA, unlist, pLeft, stat, zStat
-    resgsc_norm <- npGSEA(x = ALL, y = yFactor, set = gsc)
-    unlist( pLeft(resgsc_norm) )
-    unlist( stat (resgsc_norm) )
-    unlist( zStat (resgsc_norm) )
-    # --- Publishmultiplenpgsea [] ---
-    # Key functions: adjust, unlist, pTwoSided, HTMLReport, publish, zStat, finish
-    ## pvals <- p.adjust( unlist(pTwoSided(resgsc_norm)), method= "BH" )
-    ## library(ReportingTools)
-    ## npgseaReport <- HTMLReport (shortName = "npGSEA",
-    ##         title = "npGSEA Results", reportDirectory = "./reports")
-    ## publish(gsc, npgseaReport, annotation.db = "org.Hs.eg",
-    # --- Sessinfo [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    expr_matrix <- matrix(rnorm(100 * 20), nrow = 100)
+    rownames(expr_matrix) <- paste0("G", 1:100)
+    phenotype <- factor(rep(c("Control", "Treatment"), each = 10))
+    covariate <- rnorm(20)
+    wts <- apply(expr_matrix[1:15, ], 1, var)
+    wts <- 1 / wts
+    res_wts <- npGSEA(x = expr_matrix, y = phenotype, 
+                      set = set1, w = wts, approx = "norm")
+    res_covar <- npGSEA(x = expr_matrix, y = phenotype, 
+                        set = set1, covars = covariate)
+
+    # --- Diagnostics and Visualisation [npGSEAPlot, stat, zStat, pValues, pLeft] ---
+    # Key functions: npGSEAPlot, stat, zStat, pValues, pLeft
+    expr_matrix <- matrix(rnorm(100 * 20), nrow = 100)
+    rownames(expr_matrix) <- paste0("G", 1:100)
+    phenotype <- factor(rep(c("Control", "Treatment"), each = 10))
+    res <- npGSEA(x = expr_matrix, y = phenotype, set = set1)
+    stat_val <- stat(res)
+    z_val <- zStat(res)
+    p_vals <- pValues(res)
+    p_left <- pLeft(res)
+    npGSEAPlot(res)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,6 +38,7 @@ process BIOC_REGIONALST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RegionalST)
     library(CARD_deconvolution)
     library(GetOneRadiusEntropy_withProp)
     library(ManualSelectCenter)
@@ -46,16 +47,101 @@ process BIOC_REGIONALST {
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment
-    library(Matrix)
-    rowData <- read.csv("path/to/rowData.csv", stringsAsFactors=FALSE)
-    colData <- read.csv("path/to/colData.csv", stringsAsFactors=FALSE, row.names=1)
-    # --- Assay listing [] ---
-    # Key functions: readVisium, spatialPreprocess, assays, createCARDObject, CARD_deconvolution, metadata, mySpatialPreprocess, GetOneRadiusEntropy_withProp
+    # --- Entropy Calculation [] ---
+    # Key functions: GetOneRadiusEntropy_withProp
+    weight <- data.frame(
+        celltype = c("Cancer Epithelial", "CAFs", "T-cells", "Endothelial",
+                     "PVL", "Myeloid", "B-cells", "Normal Epithelial",
+                     "Plasmablasts"),
+        weight = c(0.25, 0.05, 0.25, 0.05, 0.025, 0.05, 0.25, 0.05, 0.025)
+    )
+    OneRad <- GetOneRadiusEntropy_withProp(
+        example_sce,
+        selectN = length(example_sce$spot),
+        weight = weight,
+        radius = 5,
+        doPlot = FALSE,
+        mytitle = "Radius 5 weighted entropy"
+    )
+
+
+    # --- Region of Interest Selection [] ---
+    # Key functions: RankCenterByEntropy_withProp, PlotOneSelectedCenter, DrawRegionProportion_withProp
+    example_sce <- RankCenterByEntropy_withProp(
+        example_sce,
+        weight,
+        selectN = round(length(example_sce$spot) / 5),
+        topN = 3,
+        min_radius = 10,
+        radius_vec = c(5, 10),
+        doPlot = FALSE
+    )
+    sel_plot <- PlotOneSelectedCenter(example_sce, ploti = 1)
+    prop_plot <- DrawRegionProportion_withProp(
+        example_sce,
+        label = "CellType",
+        selCenter = c(1, 2, 3)
+    )
+
+
+    # --- Cross-Regional Differential Expression [] ---
+    # Key functions: GetCrossRegionalDE_withProp
+    CR12_DE <- GetCrossRegionalDE_withProp(
+        example_sce,
+        twoCenter = c(1, 2),
+        label = "celltype",
+        angle = 30,
+        hjust = 0,
+        size = 3,
+        padj_filter = 0.05,
+        doHeatmap = FALSE
+    )
+
+
+    # --- Cell-Type Specific Regional Analysis [] ---
+    # Key functions: FindRegionalCells, GetCellTypeSpecificDE_withProp
     thisID1 <- S4Vectors::metadata(example_sce)$selectCenters$selectID[1]
-    thisRadius1 <- S4Vectors::metadata(example_sce)$selectCenters$selectRadius[1]
-    OutRegRes1 <- RegionalST::FindRegionalCells(example_sce,
+    OutRegRes1 <- FindRegionalCells(
+        example_sce,
+        centerID = thisID1,
+        radius = 20,
+        enhanced = FALSE,
+        doPlot = FALSE,
+        returnPlot = FALSE
+    )
+    thisID2 <- S4Vectors::metadata(example_sce)$selectCenters$selectID[2]
+    OutRegRes2 <- FindRegionalCells(
+        example_sce,
+        centerID = thisID2,
+        radius = 20,
+        enhanced = FALSE,
+        doPlot = FALSE,
+        returnPlot = FALSE
+    )
+    CTS_DE <- GetCellTypeSpecificDE_withProp(
+        example_sce,
+        Regional1ID = OutRegRes1$closeID,
+        Regional2ID = OutRegRes2$closeID,
+        n_markers = 10,
+        angle = 30,
+        hjust = 0,
+        size = 3,
+        padj_filter = 1,
+        doHeatmap = FALSE
+    )
+
+
+    # --- Pathway Enrichment Analysis [] ---
+    # Key functions: DoGSEA, DrawDotplot
+    lCTres <- list(CTS_DE)
+    CTres <- DoGSEA(lCTres, whichDB = "hallmark", withProp = TRUE)
+    gsea_plot <- DrawDotplot(
+        CTres,
+        CT = 1,
+        angle = 15,
+        vjust = 1,
+        chooseP = "padj"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

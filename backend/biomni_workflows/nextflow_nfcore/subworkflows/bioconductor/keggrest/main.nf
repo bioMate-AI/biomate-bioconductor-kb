@@ -41,36 +41,42 @@ process BIOC_KEGGREST {
     library(KEGGREST)
     library(jsonlite)
 
-    # --- hook_output [] ---
-    # Key functions: hook_output
-    hook_output = knit_hooks$get('output')
-    knit_hooks$set(output = function(x, options) {
-    if (!is.null(n <- options$linewidth)) {
-    # --- list Databases [] ---
-    # Key functions: listDatabases
-    library(KEGGREST)
-    listDatabases()
-    # --- get organisms [] ---
-    # Key functions: keggList
-    org <- keggList("organism")
-    head(org)
-    # --- kegg Get [] ---
+    # --- Entity Retrieval and Sequence Extraction [] ---
     # Key functions: keggGet
-    query <- keggGet(c("hsa:10458", "ece:Z5100"))
-    # --- kegg Get [] ---
-    # Key functions: keggGet, tempfile, writePNG
-    png <- keggGet("hsa05130", "image")
-    t <- tempfile()
-    library(png)
-    # --- kegg Find [] ---
+    query_res <- keggGet(c("hsa:10458", "ece:Z5100"))
+    entry_names <- lapply(query_res, function(x) x$ENTRY)
+    dblinks <- lapply(query_res, function(x) x$DBLINKS)
+    aa_seqs <- keggGet(c("hsa:10458", "ece:Z5100"), "aaseq")
+    nt_seqs <- keggGet(c("hsa:10458", "ece:Z5100"), "ntseq")
+
+
+    # --- Database Searching and Filtering [] ---
     # Key functions: keggFind
-    keggFind("compound", 174.05, "exact_mass")
-    # --- conv with ids [] ---
+    toxin_genes <- keggFind("genes", c("shiga", "toxin"))
+    exact_compounds <- keggFind("compound", "C7H10O5", "formula")
+    mass_compounds <- keggFind("compound", 174.05, "exact_mass")
+    weight_compounds <- keggFind("compound", 300:310, "mol_weight")
+
+
+    # --- Identifier Conversion [] ---
     # Key functions: keggConv
-    keggConv("ncbi-proteinid", c("hsa:10458", "ece:Z5100"))
-    # --- kegg Link [] ---
+    ncbi_to_kegg <- keggConv("ncbi-proteinid", c("hsa:10458", "ece:Z5100"))
+    eco_to_ncbi <- keggConv("eco", "ncbi-geneid")
+    ncbi_to_eco <- keggConv("ncbi-geneid", "eco")
+
+
+    # --- Pathway and Gene Linkage [] ---
     # Key functions: keggLink
-    keggLink("pathway", c("hsa:10458", "ece:Z5100"))
+    hsa_pathways <- keggLink("pathway", "hsa")
+    specific_links <- keggLink("pathway", c("hsa:10458", "ece:Z5100"))
+    compound_pathways <- keggLink("pathway", "compound")
+
+
+    # --- Pathway Visualization Retrieval [] ---
+    # Key functions: keggGet
+    pathway_img <- keggGet("hsa05130", "image")
+    img_file <- tempfile(fileext = ".png")
+    writeBin(pathway_img, img_file)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

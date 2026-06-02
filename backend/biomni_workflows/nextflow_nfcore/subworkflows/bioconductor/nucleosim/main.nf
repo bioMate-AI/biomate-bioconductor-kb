@@ -41,21 +41,28 @@ process BIOC_NUCLEOSIM {
     library(nucleoSim)
     library(jsonlite)
 
-    # --- synthetic Nuc Map From Dist [] ---
-    # Key functions: syntheticNucMapFromDist
-    nuc.len          <- 147        ### Length of the nucleosome (default: 147)
-    lin.len          <- 20         ### Length of the DNA linker (default: 20)
-    nucleosomeMap <- syntheticNucMapFromDist(wp.num=wp.num, wp.del=wp.del,
-    # --- synthetic Nuc Reads From Dist [] ---
+    # --- Synthetic Reads Simulation [] ---
     # Key functions: syntheticNucReadsFromDist
-    nuc.len          <- 147           ### Length of the nucleosome (default: 147)
-    lin.len          <- 20            ### Length of the DNA linker (default: 20)
-    nucleosomeSample <- syntheticNucReadsFromDist(wp.num=wp.num, wp.del=wp.del,
-    # --- synthetic Nuc Reads From Map [] ---
-    # Key functions: syntheticNucReadsFromMap
-    class(nucleosomeMap)
-    nucleosomeSampleFromMap <- syntheticNucReadsFromMap(nucleosomeMap,
-    head(nucleosomeSampleFromMap$dataIP, n = 2)
+    nucleosomeSample <- syntheticNucReadsFromDist(
+        wp.num = 30, wp.del = 10, wp.var = 30,
+        fuz.num = 10, fuz.var = 50, max.cover = 90,
+        nuc.len = 147, len.var = 12, read.len = 45,
+        lin.len = 20, rnd.seed = 202, distr = "Uniform",
+        offset = 10000
+    )
+    sample_data <- nucleosomeSample$dataIP
+
+
+    # --- Hybridization Simulation [] ---
+    # Key functions: syntheticNucMapFromDist
+    nucleosomeMapTiling <- syntheticNucMapFromDist(
+        wp.num = 10, wp.del = 2, wp.var = 20,
+        fuz.num = 1, fuz.var = 32, max.cover = 50,
+        nuc.len = 145, len.var = 3, lin.len = 40,
+        rnd.seed = 212309, as.ratio = TRUE,
+        distr = "Uniform"
+    )
+    tiling_ratio <- nucleosomeMapTiling$syn.ratio
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

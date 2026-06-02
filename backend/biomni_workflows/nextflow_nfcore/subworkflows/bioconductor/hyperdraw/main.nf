@@ -38,30 +38,23 @@ process BIOC_HYPERDRAW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(hyperdraw)
     library(DirectedHyperedge)
     library(Hypergraph)
     library(jsonlite)
 
-    # --- Graphbph [] ---
-    # Key functions: graphBPH
-    testbph <- graphBPH(testgnel, edgeNodePattern="^R")
-    # --- Directedhyperedge [] ---
-    # Key functions: DirectedHyperedge, Hypergraph, graphBPH
-    dh1 <- DirectedHyperedge("A", "B", "R1")
-    dh2 <- DirectedHyperedge(c("A", "B"), c("C", "D"), "R2")
-    dh3 <- DirectedHyperedge("D", "E", "R3")
-    hg <- Hypergraph(LETTERS[1:5], list(dh1, dh2, dh3))
-    hgbph <- graphBPH(hg)
-    # --- Graphlayout [] ---
-    # Key functions: graphLayout
-    testrabph <- graphLayout(testbph)
-    # --- Rabph [] ---
-    # Key functions: edgeDataDefaults, edgeData, nodeDataDefaults, unit
-    edgeDataDefaults(testrabph, "lwd") <- 1
-    edgeData(testrabph, c("A", "R1"),
-                        c("R1", "B"), "lwd") <- c("5", "3")
-    edgeDataDefaults(testrabph, "color") <- "black"
-    edgeData(testrabph, c("A", "R1"),
+    # --- Specific Element Customization [] ---
+    # Key functions: edgeData, nodeData
+    edgeData(testrabph, c("A", "R1"), c("R1", "B"), "lwd") <- c("5", "3")
+    edgeData(testrabph, c("A", "R1"), c("R1", "B"), "color") <- "red"
+    nodeData(testrabph, c("A", "B"), "color") <- "blue"
+
+
+    # --- Hypergraph Rendering [] ---
+    # Key functions: plot
+    plot(testrabph)
+    plot(testbph)
+    plot(testgnel)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

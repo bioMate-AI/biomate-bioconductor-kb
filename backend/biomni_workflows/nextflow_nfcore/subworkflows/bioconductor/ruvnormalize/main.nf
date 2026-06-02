@@ -41,102 +41,85 @@ process BIOC_RUVNORMALIZE {
     library(RUVnormalize)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: exprs, phenoData
-    data('gender', package='RUVnormalizeData')
-    Y <- t(exprs(gender))
-    X <- as.numeric(phenoData(gender)$gender == 'M')
-    X <- X - mean(X)
-    X <- cbind(X/(sqrt(sum(X^2))))
-    # --- Centering [] ---
-    # Key functions: scale
-    ## Remove platform effect by centering.
-    Y[chip=='hgu95a.db',] <- scale(Y[chip=='hgu95a.db',], scale=FALSE)
-    Y[chip=='hgu95av2.db',] <- scale(Y[chip=='hgu95av2.db',], scale=FALSE)
-    # --- Uncorrected [] ---
-    # Key functions: kmeans, clScore
-    ## Sort genes by their standard deviation
+    # --- Uncorrected Evaluation ---
+    # Key functions: clScore, svdPlot
     sdY <- apply(Y, 2, sd)
     ssd <- sort(sdY, decreasing=TRUE, index.return=TRUE)$ix
-    ## Cluster the samples
     kmres <- kmeans(Y[, ssd[1:nKeep], drop=FALSE], centers=2, nstart=200)
-    # --- Uncorrectedplot [] ---
-    # Key functions: svdPlot
-    svdResUncorr <- svdPlot(Y[, ssd[1:nKeep], drop=FALSE],
-                            annot=annot,
-                            labels=lab.and.region,
-                            svdRes=NULL,
-                            plAnnots=plAnnots,
-    # --- Mc [] ---
-    # Key functions: scale, kmeans, clScore
-    ## Centering by region-lab
-    YmeanCorr <- Y
-    for(rr in unique(lregions)){
-      for(ll in unique(llabs)){
-        YmeanCorr[(lregions==rr)&(llabs==ll),] <- scale(YmeanCorr[(lregions==rr)&(llabs==ll),],scale=FALSE)
-    # --- Mcplot [] ---
-    # Key functions: svdPlot
-    svdResMC <- svdPlot(YmeanCorr[, ssd[1:nKeep], drop=FALSE],
-                        annot=annot,
-                        labels=lab.and.region,
-                        svdRes=NULL,
-                        plAnnots=plAnnots,
-    # --- Nsruv2 [] ---
-    # Key functions: naiveRandRUV, kmeans, clScore
-    ## Naive RUV-2 no shrinkage
-    k <- 20
-    nu <- 0
-    nsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=k)
-    sdY <- apply(nsY, 2, sd)
-    # --- svd Plot [] ---
-    # Key functions: svdPlot
-    svdRes2ns <- svdPlot(nsY[, ssd[1:nKeep], drop=FALSE],
-                         annot=annot,
-                         labels=lab.and.region,
-                         svdRes=NULL,
-                         plAnnots=plAnnots,
-    # --- Sruv2 [] ---
-    # Key functions: naiveRandRUV, kmeans, clScore
-    ## Naive RUV-2 + shrinkage
-    k <- m
-    nu.coeff <- 1e-3
-    nY <- naiveRandRUV(Y, cIdx, nu.coeff=nu.coeff, k=k)
-    sdY <- apply(nY, 2, sd)
-    # --- svd Plot [] ---
-    # Key functions: svdPlot
-    svdRes2 <- svdPlot(nY[, ssd[1:nKeep], drop=FALSE],
-                         annot=annot,
-                         labels=lab.and.region,
-                         svdRes=NULL,
-                         plAnnots=plAnnots,
-    # --- Rep [] ---
-    # Key functions: naiveReplicateRUV, kmeans, clScore
-    ## Replicate-based
+    uScore <- clScore(kmres$cluster, X)
+    svdResUncorr <- svdPlot(
+        Y[, ssd[1:nKeep], drop=FALSE],
+        annot=annot,
+        labels=lab.and.region,
+        svdRes=NULL,
+        plAnnots=plAnnots,
+        kColors=gender.col,
+        file=NULL
+    )
+
+    # --- Naive RUV-2 Normalization without Shrinkage ---
+    # Key functions: naiveRandRUV, clScore, svdPlot
+    nsY <- naiveRandRUV(Y, cIdx, nu.coeff=0, k=20)
+    sdY_ns <- apply(nsY, 2, sd)
+    ssd_ns <- sort(sdY_ns, decreasing=TRUE, index.return=TRUE)$ix
+    kmres2ns <- kmeans(
+        nsY[, ssd_ns[1:nKeep], drop=FALSE],
+        centers=2,
+        nstart=200
+    )
+    nsScore <- clScore(kmres2ns$cluster, X)
+    svdRes2ns <- svdPlot(
+        nsY[, ssd_ns[1:nKeep], drop=FALSE],
+        annot=annot,
+        labels=lab.and.region,
+        svdRes=NULL,
+        plAnnots=plAnnots,
+        kColors=gender.col,
+        file=NULL
+    )
+
+    # --- Naive RUV-2 Normalization with Shrinkage ---
+    # Key functions: naiveRandRUV, clScore, svdPlot
+    nY <- naiveRandRUV(Y, cIdx, nu.coeff=1e-3, k=ncol(Y))
+    sdY_s <- apply(nY, 2, sd)
+    ssd_s <- sort(sdY_s, decreasing=TRUE, index.return=TRUE)$ix
+    kmres2 <- kmeans(
+        nY[, ssd_s[1:nKeep], drop=FALSE],
+        centers=2,
+        nstart=200
+    )
+    nScore <- clScore(kmres2$cluster, X)
+    svdRes2 <- svdPlot(
+        nY[, ssd_s[1:nKeep], drop=FALSE],
+        annot=annot,
+        labels=lab.and.region,
+        svdRes=NULL,
+        plAnnots=plAnnots,
+        kColors=gender.col,
+        file=NULL
+    )
+
+    # --- Replicate-based RUV Normalization ---
+    # Key functions: naiveReplicateRUV, clScore, svdPlot
     sRes <- naiveReplicateRUV(Y, cIdx, scIdx, k=20)
-    sdY <- apply(sRes$cY, 2, sd)
-    ssd <- sort(sdY,decreasing=TRUE,index.return=TRUE)$ix
-    kmresRep <- kmeans(sRes$cY[,ssd[1:nKeep],drop=FALSE],centers=2,nstart=200)
-    # --- Repplot [] ---
-    # Key functions: svdPlot
-    svdResRep <- svdPlot(sRes$cY[, ssd[1:nKeep], drop=FALSE],
-                         annot=annot,
-                         labels=lab.and.region,
-                         svdRes=NULL,
-                         plAnnots=plAnnots,
-    # --- Rep Iter [] ---
-    # Key functions: iterativeRUV
-    if (require(spams)){
-      ## Iterative replicate-based
-      cEps <- 1e-6
-      maxIter <- 30
-      p <- 20
-    # --- Ridge Iter [] ---
-    # Key functions: iterativeRUV
-    if (require(spams)){
-      ## Iterated ridge
-      paramXb <- list()
-      paramXb$K <- p
-      paramXb$D <- matrix(c(0.),nrow = 0,ncol=0)
+    sdY_rep <- apply(sRes$cY, 2, sd)
+    ssd_rep <- sort(sdY_rep, decreasing=TRUE, index.return=TRUE)$ix
+    kmresRep <- kmeans(
+        sRes$cY[, ssd_rep[1:nKeep], drop=FALSE],
+        centers=2,
+        nstart=200
+    )
+    RepScore <- clScore(kmresRep$cluster, X)
+    svdResRep <- svdPlot(
+        sRes$cY[, ssd_rep[1:nKeep], drop=FALSE],
+        annot=annot,
+        labels=lab.and.region,
+        svdRes=NULL,
+        plAnnots=plAnnots,
+        kColors=gender.col,
+        file=NULL
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

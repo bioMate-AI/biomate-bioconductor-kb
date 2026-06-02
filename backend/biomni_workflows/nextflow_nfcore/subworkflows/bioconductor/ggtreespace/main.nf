@@ -41,25 +41,44 @@ process BIOC_GGTREESPACE {
     library(ggtreeSpace)
     library(jsonlite)
 
-    # --- rtree [] ---
-    # Key functions: rtree, fastBM, fastAnc
-    tr <- rtree(15)
-    td <- fastBM(tr, nsim = 2)
-    tda1 <- fastAnc(tr, td[, 1])
-    # --- ggtreespace [] ---
+    # --- Tree Space Initialization ---
+    # Key functions: ggtreespace
+    tr <- ape::rtree(15)
+    td <- phytools::fastBM(tr, nsim = 2)
+    p_space <- ggtreespace(tr, td)
+
+    # --- Visualizing Tree Space with Tip Points ---
     # Key functions: ggtreespace, geom_tippoint
-    ggtreespace(tr, td) +
-    geom_tippoint()
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: rtree, fastBM, ggplot, geom_treespace
-    tr1 <- rtree(15)
-    td1 <- fastBM(tr1, nsim = 2)
-    ggplot() +
-    # --- rtree [] ---
-    # Key functions: rtree, fastBM, colorRampPalette, ggtreespace, geom_tippoint
-    tr <- rtree(15)
-    td <- fastBM(tr, nsim = 2, bounds = c(0, Inf))
-    col <- colorRampPalette(c(
+    tr <- ape::rtree(15)
+    td <- phytools::fastBM(tr, nsim = 2)
+    p_tips <- ggtreespace(tr, td) +
+        geom_tippoint()
+
+    # --- Alternative ggplot Integration ---
+    # Key functions: geom_treespace
+    tr1 <- ape::rtree(15)
+    td1 <- phytools::fastBM(tr1, nsim = 2)
+    p_custom <- ggplot2::ggplot() +
+        geom_treespace(tr1, td1)
+
+    # --- Trait Heatmap Projection ---
+    # Key functions: ggtreespace, geom_tsheatmap, theme_treespace2
+    tr <- ape::rtree(15)
+    td <- phytools::fastBM(tr, nsim = 2, bounds = c(0, Inf))
+    tdex <- data.frame(
+        z = phytools::fastBM(tr, nsim = 1, bounds = c(0, Inf)),
+        node = 1:15
+    )
+    p_base <- ggtreespace(tr, td)
+    p_heatmap <- p_base %<+% tdex +
+        geom_tsheatmap(
+            trait = "z",
+            alpha = 0.7,
+            resolution = 0.01,
+            bin = 24
+        ) +
+        theme_treespace2()
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

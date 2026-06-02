@@ -41,16 +41,60 @@ process BIOC_TREECLIMBR {
     library(treeclimbR)
     library(jsonlite)
 
-    # --- Data import and preprocessing [] ---
-    # Key functions: joinNode, unlist, ggtree, aes, geom_text2
-    da_lse <- readRDS(system.file("extdata", "da_sim_100_30_18de.rds",
-    nds <- joinNode(tree = rowTree(da_lse),
-    node = rownames(da_lse)[rowData(da_lse)$Signal])
-    # --- ShowNode analysis [] ---
-    # Key functions: showNode, aggTSE, runDA, nodeResult, getCand, geom_point2, labs, theme
-    ds_res <- runDS(SE = ds_se, tree = colTree(ds_tse), option = "glmQL",
-    design = model.matrix(~ group, data = colData(ds_se)),
-    contrast = c(0, 1), filter_min_count = 0,
+    # --- Node Aggregation and Differential Abundance [] ---
+    # Key functions: showNode, aggTSE, runDA
+    all_node <- showNode(tree = rowTree(da_lse), only.leaf = FALSE)
+    da_tse <- aggTSE(x = da_lse, rowLevel = all_node, rowFun = sum)
+    da_res <- runDA(
+        da_tse,
+        assay = "counts",
+        option = "glmQL",
+        design = model.matrix(~ group, data = colData(da_tse)),
+        contrast = c(0, 1),
+        filter_min_count = 0,
+        filter_min_prop = 0,
+        filter_min_total_count = 15
+    )
+
+
+    # --- Candidate Selection and Evaluation [] ---
+    # Key functions: nodeResult, getCand, evalCand, infoCand
+    da_tbl <- nodeResult(da_res, n = Inf, type = "DA")
+    da_cand <- getCand(
+        tree = rowTree(da_tse),
+        score_data = da_tbl,
+        node_column = "node",
+        p_column = "PValue",
+        threshold = 0.05,
+        sign_column = "logFC",
+        message = FALSE
+    )
+    da_best <- evalCand(
+        tree = rowTree(da_tse),
+        levels = da_cand$candidate_list,
+        score_data = da_tbl,
+        node_column = "node",
+        p_column = "PValue",
+        sign_column = "logFC"
+    )
+    da_info <- infoCand(object = da_best)
+
+
+    # --- Performance Evaluation [] ---
+    # Key functions: topNodes, fdr, tpr
+    da_out <- topNodes(object = da_best, n = Inf, p_value = 0.05)
+    fdr_val <- fdr(
+        rowTree(da_tse),
+        truth = rownames(da_lse)[rowData(da_lse)$Signal],
+        found = da_out$node,
+        only.leaf = TRUE
+    )
+    tpr_val <- tpr(
+        rowTree(da_tse),
+        truth = rownames(da_lse)[rowData(da_lse)$Signal],
+        found = da_out$node,
+        only.leaf = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

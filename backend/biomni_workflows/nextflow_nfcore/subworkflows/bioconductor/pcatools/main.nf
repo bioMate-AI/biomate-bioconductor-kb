@@ -41,111 +41,31 @@ process BIOC_PCATOOLS {
     library(PCAtools)
     library(jsonlite)
 
-
-    # --- Vroom Connection Size [] ---
-    # Key functions: Sys.setenv, screeplot, biplot
-    Sys.setenv(VROOM_CONNECTION_SIZE='512000')
-    screeplot(p, axisLabSize = 18, titleLabSize = 22)
-    biplot(p, showLoadings = TRUE,
-        labSize = 5, pointSize = 5, sizeLoadingsNames = 5)
-
-    # --- Ex3b [] ---
-    # Key functions: biplot, pairsplot, plotloadings
-    biplot(p, showLoadings = TRUE, lab = NULL)
+    # --- Dimensionality Reduction Visualization [] ---
+    # Key functions: screeplot, biplot, pairsplot
+    screeplot(
+        p,
+        components = getComponents(p, 1:20),
+        vline = c(horn$n, elbow)
+    )
+    biplot(
+        p,
+        showLoadings = TRUE,
+        lab = NULL
+    )
     pairsplot(p)
-    plotloadings(p, labSize = 3)
-
-    # --- Ex6 [] ---
-    # Key functions: eigencorplot, parallelPCA, findElbowPoint, screeplot, getComponents, geom_label, cumsum
-    eigencorplot(p,
-        metavars = c('Study','Age','Distant.RFS','ER',
-          'GGI','Grade','Size','Time.RFS'))
 
 
-    ## -----------------------------------------------------------------------------
-
-      p$rotated[1:5,1:5]
-
-      p$loadings[1:5,1:5]
-    horn <- parallelPCA(mat)
-      horn$n
-
-
-    ## -----------------------------------------------------------------------------
-
-      elbow <- findElbowPoint(p$variance)
-      elbow
-    library(ggplot2)
-
-
-    # --- Ex8 [] ---
-    # Key functions: biplot
-    biplot(p,
-        lab = paste0(p$metadata$Age, ' años'),
-        colby = 'ER',
-        hline = 0, vline = 0,
-        legendPosition = 'right')
-    biplot(p,
-        colby = 'ER', colkey = c('ER+' = 'forestgreen', 'ER-' = 'purple'),
-        colLegendTitle = 'ER-\nstatus',
-        # encircle config
-          encircle = TRUE,
-          encircleFill = TRUE,
-        hline = 0, vline = c(-25, 0, 25),
-        legendPosition = 'top', legendLabSize = 16, legendIconSize = 8.0)
-
-      biplot(p,
-    biplot(p,
-        colby = 'ER', colkey = c('ER+' = 'forestgreen', 'ER-' = 'purple'),
-        # ellipse config
-          ellipse = TRUE,
-          ellipseType = 't',
-
-    # --- Ex12a [] ---
-    # Key functions: biplot, scale_colour_gradient
-    biplot(p,
-        lab = NULL,
-        colby = 'ER', colkey = c('ER+'='royalblue', 'ER-'='red3'),
-        hline = c(-25, 0, 25), vline = c(-25, 0, 25),
-        vlineType = c('dotdash', 'solid', 'dashed'),
-        gridlines.major = FALSE, gridlines.minor = FALSE,
-        pointSize = 5,
-        legendPosition = 'left', legendLabSize = 14, legendIconSize = 8.0,
-        shape = 'Grade', shapekey = c('Grade 1'=15, 'Grade 2'=17, 'Grade 3'=8),
-        drawConnectors = FALSE,
-    biplot(p,
-        # loadings parameters
-          showLoadings = TRUE,
-          lengthLoadingsArrowsFactor = 1.5,
-          sizeLoadingsNames = 4,
-          colLoadingsNames = 'red4',
-        # other parameters
-          lab = NULL,
-          colby = 'ER', colkey = c('ER+'='royalblue', 'ER-'='red3'),
-          hline = 0, vline = c(-25, 0, 25),
-
-    # --- Ex14 [] ---
-    # Key functions: pairsplot, getComponents, unit, plotloadings
-    pairsplot(p,
-        components = getComponents(p, c(1:10)),
-        triangle = TRUE, trianglelabSize = 12,
-        hline = 0, vline = 0,
-        pointSize = 0.4,
-        gridlines.major = FALSE, gridlines.minor = FALSE,
-        colby = 'Grade',
-        title = 'Pairs plot', plotaxes = FALSE,
-        margingaps = unit(c(-0.01, -0.01, -0.01, -0.01), 'cm'))
-    pairsplot(p,
-        components = getComponents(p, c(4,33,11,1)),
-        triangle = FALSE,
-        hline = 0, vline = 0,
-        pointSize = 0.8,
-        gridlines.major = FALSE, gridlines.minor = FALSE,
-        colby = 'ER',
-        title = 'Pairs plot', titleLabSize = 22,
-        axisLabSize = 14, plotaxes = TRUE,
-        margingaps = unit(c(0.1, 0.1, 0.1, 0.1), 'cm'))
-    plotloadings(p,
+    # --- Loadings and Metadata Association [] ---
+    # Key functions: plotloadings, eigencorplot
+    plotloadings(
+        p,
+        labSize = 3
+    )
+    eigencorplot(
+        p,
+        metavars = c("Study", "Age", "ER", "Grade")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

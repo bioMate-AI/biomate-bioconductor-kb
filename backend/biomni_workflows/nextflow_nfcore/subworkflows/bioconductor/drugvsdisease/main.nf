@@ -41,45 +41,21 @@ process BIOC_DRUGVSDISEASE {
     library(DrugVsDisease)
     library(jsonlite)
 
-    # --- Generateprofiles [] ---
-    # Key functions: generateprofiles
-    ## library(DrugVsDisease)
-    ## profileAE<-generateprofiles(input="AE",accession="E-GEOD-22528")
-    # --- Selectrankedlists [] ---
-    # Key functions: selectrankedlists
-    ## selprofiles<-selectrankedlists(profileAE,1)
-    # --- Classifyprofile [] ---
-    # Key functions: classifyprofile
-    ## default<-classifyprofile(data=selprofiles$ranklist, signif.fdr=1.1)
-    # --- Frame [] ---
-    # Key functions: frame, xtable
-    ## library(xtable)
-    ## default<-as.data.frame(default[[1]])
-    ## xtable(default[,2:4])
-    # --- Aex [] ---
-    # Key functions: generateprofiles
-    ## profileAE<-generateprofiles(input="AE",accession="E-GEOD-22528")
-    # --- Geo [] ---
-    # Key functions: generateprofiles
-    ## gds1479<-generateprofiles("GEO",accession="GDS1479",
-    ## annotation="hgu133a",factorvalue="specimen",case="disease")
-    # --- Selectrankedlists [] ---
-    # Key functions: selectrankedlists
-    ## sel1479<-selectrankedlists(gds1479,c(3,18))
-    # --- Classifyprofile [] ---
-    # Key functions: classifyprofile
-    ## default<-classifyprofile(data=sel22528$ranklist, signif.fdr=1.1)
-    # --- Data [] ---
-    # Key functions: classifyprofile
-    ## data(customDB,package="DrugVsDisease")
-    ## data(customClust,package="DrugVsDisease")
-    ## data(customedge,package="DrugVsDisease")
-    ## data(customsif,package="DrugVsDisease")
-    ## customRefData<-classifyprofile(data=sel22528$ranklist, lengthtest=100,
-    # --- Classifyprofile [] ---
-    # Key functions: classifyprofile
-    ## CytoOut<-classifyprofile(data=sel22528$ranklist,cytoout=TRUE,
-    ## cytofile="CytoscapeOutput",adj="BH")
+    # --- Drug Disease Screening [] ---
+    # Key functions: screenDvD
+    screening_results <- screenDvD(
+        disease_profiles,
+        drug_ref = "custom",
+        vargenes = 100
+    )
+
+
+    # --- Result Export [] ---
+    # Key functions: writeDvD
+    writeDvD(
+        screening_results,
+        file = "dvd_results.txt"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

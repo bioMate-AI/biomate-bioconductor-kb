@@ -41,11 +41,32 @@ process BIOC_IONISER {
     library(IONiseR)
     library(jsonlite)
 
-    # --- BaseCalled analysis [] ---
-    # Key functions: baseCalled, plotReadAccumulation, plotActiveChannels, plotReadCategoryCounts, plotReadCategoryQuals, plotEventRate, plotBaseProductionRate, layoutPlot
-    fast5files <- system.file('extdata', 'example.fast5', package = "IONiseR")
-    fast5toFastq(files = fast5files, fileName = "test", outputDir = tempdir(),
-    list.files(path = tempdir(), pattern = "*.fq.gz$")
+    # --- Read Quality Control and Accumulation [] ---
+    # Key functions: plotReadAccumulation, plotActiveChannels, plotReadCategoryCounts, plotReadCategoryQuals
+    p1 <- plotReadAccumulation(minionSummaryData::s.typhi.rep1)
+    p2 <- plotActiveChannels(minionSummaryData::s.typhi.rep1)
+    p3 <- plotReadCategoryCounts(minionSummaryData::s.typhi.rep1)
+    p4 <- plotReadCategoryQuals(minionSummaryData::s.typhi.rep1)
+
+
+    # --- Spatial Channel Activity Analysis [] ---
+    # Key functions: layoutPlot, channelActivityPlot, eventData
+    p1 <- layoutPlot(minionSummaryData::s.typhi.rep1, attribute = "nreads")
+    p2 <- layoutPlot(minionSummaryData::s.typhi.rep1, attribute = "kb")
+    z_scale <- dplyr::select(
+        eventData(minionSummaryData::s.typhi.rep3),
+        id,
+        median_signal
+    )
+    p3 <- channelActivityPlot(minionSummaryData::s.typhi.rep3, zScale = z_scale)
+
+
+    # --- K-mer Frequency Correlation [] ---
+    # Key functions: plotKmerFrequencyCorrelation
+    kmer_corr <- plotKmerFrequencyCorrelation(
+        minionSummaryData::s.typhi.rep3,
+        only2D = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

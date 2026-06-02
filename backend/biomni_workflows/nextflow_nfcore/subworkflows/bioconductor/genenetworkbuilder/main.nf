@@ -41,26 +41,55 @@ process BIOC_GENENETWORKBUILDER {
     library(GeneNetworkBuilder)
     library(jsonlite)
 
-    # --- build Network [] ---
-    # Key functions: buildNetwork, filterNetwork, polishNetwork, exportNetwork
-    library(GeneNetworkBuilder)
-    data("ce.miRNA.map")
+    # --- Network Construction [] ---
+    # Key functions: buildNetwork
     data("ce.interactionmap")
-    # --- convert I D [] ---
-    # Key functions: convertID, buildNetwork, filterNetwork, polishNetwork
-    library(GeneNetworkBuilder)
     data("example.data")
-    bind<-cbind(from="daf-16", to=c("zip-2", "zip-4", "nhr-3", "nhr-66"))
-    # --- export Network [] ---
-    # Key functions: exportNetwork, saveXML, textConnection
-    exportNetwork(browseNetwork(gR),
-    file=tempfile(fileext = ".network.xgmml"),
-    library("XML")
-    # --- build Network [] ---
-    # Key functions: buildNetwork, filterNetwork, convertID, polishNetwork, browseNetwork
-    library(GeneNetworkBuilder)
-    data("hs.interactionmap")
-    data("hs.miRNA.map")
+    sifNetwork <- buildNetwork(
+        TFbindingTable = example.data$ce.bind, 
+        interactionmap = ce.interactionmap, 
+        level = 2
+    )
+
+
+    # --- Network Filtering [] ---
+    # Key functions: filterNetwork, convertID
+    data("ce.miRNA.map")
+    data("ce.mapIDs")
+    cifNetwork <- filterNetwork(
+        rootgene = "WBGene00000912", 
+        sifNetwork = sifNetwork, 
+        exprsData = unique_expr, 
+        mergeBy = "symbols",
+        miRNAlist = as.character(ce.miRNA.map[, 1]), 
+        tolerance = 1, 
+        cutoffPVal = 0.01, 
+        cutoffLFC = 1
+    )
+    cifNetwork_mapped <- convertID(
+        cifNetwork, 
+        ce.mapIDs, 
+        ByName = c("from", "to")
+    )
+
+
+    # --- Network Polishing and Export [] ---
+    # Key functions: polishNetwork, browseNetwork, exportNetwork, toGXL
+    gR <- polishNetwork(
+        cifNetwork = cifNetwork_mapped, 
+        nodecolor = colorRampPalette(c("green", "yellow", "red"))(10)
+    )
+    html_net <- browseNetwork(gR)
+    exportNetwork(
+        html_net, 
+        file = "network.html"
+    )
+    exportNetwork(
+        html_net, 
+        file = "network.xgmml", 
+        format = "XGMML"
+    )
+    gxl_data <- toGXL(gR)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

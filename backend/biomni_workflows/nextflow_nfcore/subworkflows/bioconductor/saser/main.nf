@@ -38,99 +38,48 @@ process BIOC_SASER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(saseR)
     library(BamtoAspliCounts)
     library(DESeqDataSetFromMatrix)
     library(DGEList)
     library(MulticoreParam)
     library(jsonlite)
 
-    # --- Aspliexamplegtf [] ---
-    # Key functions: aspliExampleGTF, aspliExampleBamList
-    ---------------------------------------------------------------------
-    gtfFileName <- ASpli::aspliExampleGTF()
-    BAMFiles <- ASpli::aspliExampleBamList()
-    gtfFileName
-    head(BAMFiles)
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    targets <- data.frame(
-      row.names = paste0('Sample',c(1:12)),
-      bam = BAMFiles,
-      f1 = rep("A",12),
-    # --- Maketxdbfromgff [] ---
-    # Key functions: makeTxDbFromGFF, binGenome
-    ---------------------------------------------------------------------
-    genomeTxDb <- txdbmaker::makeTxDbFromGFF(gtfFileName)
-    features <- binGenome(genomeTxDb, logTo = NULL)
-    # --- Bamtoasplicounts [] ---
-    # Key functions: BamtoAspliCounts, MulticoreParam
-    ---------------------------------------------------------------------
-    ASpliSE <- BamtoAspliCounts(
-                        features = features,
-                        targets = targets,
-                        minReadLength = 100,
-    # --- Convertaspli [] ---
-    # Key functions: convertASpli
-    ---------------------------------------------------------------------
-    SEgenes <- convertASpli(ASpliSE, type = "gene")
-    SEbins <- convertASpli(ASpliSE, type = "bin")
-    SEjunctions <- convertASpli(ASpliSE, type = "junction")
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    metadata(SEgenes)$design <- ~1
-    # --- Filterbyexpr [] ---
-    # Key functions: filterByExpr
-    ---------------------------------------------------------------------
+    # --- Filtering and Normalisation [] ---
+    # Key functions: filterByExpr, calculateOffsets
     filtergenes <- filterByExpr(SEgenes)
-    SEgenes <- SEgenes[filtergenes,]
-    # --- Calculateoffsets [] ---
-    # Key functions: calculateOffsets
-    ---------------------------------------------------------------------
+    SEgenes <- SEgenes[filtergenes, ]
     SEgenes <- calculateOffsets(SEgenes, method = "TMM")
-    # --- Saserfindencodingdim [] ---
-    # Key functions: saseRfindEncodingDim
-    ---------------------------------------------------------------------
-    SEgenes <- saseRfindEncodingDim(SEgenes, method = "GD")
-    # --- Saserfit [] ---
-    # Key functions: saseRfit
-    ---------------------------------------------------------------------
-    SEgenes <- saseRfit(SEgenes,
-                        analysis = "AE",
-                        padjust = "BH",
-                        fit = "fast")
-    # --- Apply [] ---
-    # Key functions: assays
-    ---------------------------------------------------------------------
-    order <- apply(assays(SEgenes)$pValue, 2, order, decreasing = FALSE)
-    topPvalsGenes <- sapply(1:ncol(SEgenes),
-                       function(x) {assays(SEgenes)$pValue[order[1:5,x],x]})
-    rownames(topPvalsGenes) <- NULL
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    metadata(SEbins)$design <- ~1
-    metadata(SEjunctions)$design <- ~1
-    # --- Calculateoffsets [] ---
-    # Key functions: calculateOffsets
-    ---------------------------------------------------------------------
-    SEbins <- calculateOffsets(SEbins,
-                                method = "AS",
-                                aggregation = "locus")
-    SEjunctions <- calculateOffsets(SEjunctions,
-    # --- Filterbyexpr [] ---
-    # Key functions: filterByExpr
-    ---------------------------------------------------------------------
     filterbins <- filterByExpr(SEbins)
-    SEbins <- SEbins[filterbins,]
-    filterjunctions <- filterByExpr(SEjunctions)
-    SEjunctions <- SEjunctions[filterjunctions,]
-    # --- Saserfindencodingdim [] ---
+    SEbins <- SEbins[filterbins, ]
+    SEbins <- calculateOffsets(SEbins, method = "AS", aggregation = "locus")
+
+
+    # --- Encoding Dimension Estimation [] ---
     # Key functions: saseRfindEncodingDim
-    ---------------------------------------------------------------------
+    SEgenes <- saseRfindEncodingDim(SEgenes, method = "GD")
     SEbins <- saseRfindEncodingDim(SEbins, method = "GD")
     SEjunctions <- saseRfindEncodingDim(SEjunctions, method = "GD")
+
+
+    # --- Model Fitting and Splicing Analysis [] ---
+    # Key functions: saseRfit
+    SEgenes <- saseRfit(SEgenes, analysis = "AE", padjust = "BH", fit = "fast")
+    SEbins <- saseRfit(SEbins, analysis = "AS", padjust = "BH", fit = "fast")
+    SEjunctions <- saseRfit(SEjunctions, analysis = "AS", padjust = "BH",
+                            fit = "fast")
+
+
+    # --- Result Extraction [] ---
+    # Key functions: assays, metadata
+    gene_pvals <- assays(SEgenes)$pValue
+    bin_pvals <- assays(SEbins)$pValue
+    sig_genes <- lapply(seq_len(ncol(SEgenes)), function(x) {
+        rownames(SEgenes)[assays(SEgenes)$pValueAdjust[, x] < 0.05]
+    })
+    sig_bins <- lapply(seq_len(ncol(SEbins)), function(x) {
+        rownames(SEbins)[assays(SEbins)$pValueAdjust[, x] < 0.05]
+    })
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

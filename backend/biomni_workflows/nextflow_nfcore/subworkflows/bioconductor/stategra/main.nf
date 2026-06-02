@@ -41,106 +41,73 @@ process BIOC_STATEGRA {
     library(STATegRa)
     library(jsonlite)
 
-    # --- Createomicsexpressionset [] ---
-    # Key functions: createOmicsExpressionSet
-    ---------------------------------------------------------------------
-    # Block1 - gene expression data
-    B1 <- createOmicsExpressionSet(Data=Block1.PCA, pData=ed.PCA,
-                                   pDataDescr=c("classname"))
-    # Block2 - miRNA expression data
-    # --- Modelselection [] ---
-    # Key functions: modelSelection, arrange
-    ---------------------------------------------------------------------
-    ms <- modelSelection(Input=list(B1, B2), Rmax=3, fac.sel="single%",
-                         varthreshold=0.03, center=TRUE, scale=TRUE,
-                         weight=TRUE, plot_common=FALSE, plot_dist=FALSE)
-    grid.arrange(ms$common$pssq, ms$common$pratios, ncol=2) #switching plot_common=TRUE gives automaticaly these plots
-    # --- Omicscompanalysis [] ---
+    # --- Model Selection [] ---
+    # Key functions: modelSelection
+    ms <- modelSelection(
+        Input = list(B1, B2),
+        Rmax = 3,
+        fac.sel = "single%",
+        varthreshold = 0.03,
+        center = TRUE,
+        scale = TRUE,
+        weight = TRUE,
+        plot_common = FALSE,
+        plot_dist = FALSE
+    )
+
+
+    # --- Component Analysis [] ---
     # Key functions: omicsCompAnalysis
-    ---------------------------------------------------------------------
-    discoRes <- omicsCompAnalysis(Input=list(B1, B2), Names=c("expr", "mirna"),
-                                  method="DISCOSCA", Rcommon=2, Rspecific=c(2, 2),
-                                  center=TRUE, scale=TRUE, weight=TRUE)
-    jiveRes <- omicsCompAnalysis(Input=list(B1, B2), Names=c("expr", "mirna"),
-    # --- Slotnames [] ---
-    # Key functions: slotNames
-    ---------------------------------------------------------------------
-    slotNames(discoRes)
-    # --- Getvaf [] ---
+    discoRes <- omicsCompAnalysis(
+        Input = list(B1, B2),
+        Names = c("expr", "mirna"),
+        method = "DISCOSCA",
+        Rcommon = 2,
+        Rspecific = c(2, 2),
+        center = TRUE,
+        scale = TRUE,
+        weight = TRUE
+    )
+    jiveRes <- omicsCompAnalysis(
+        Input = list(B1, B2),
+        Names = c("expr", "mirna"),
+        method = "JIVE",
+        Rcommon = 2,
+        Rspecific = c(2, 2),
+        center = TRUE,
+        scale = TRUE,
+        weight = TRUE
+    )
+
+
+    # --- Variance Explained Analysis [] ---
     # Key functions: getVAF, plotVAF
-    ---------------------------------------------------------------------
-    # DISCO-SCA plotVAF
-    getVAF(discoRes)
+    discoVAF <- getVAF(discoRes)
+    jiveVAF <- getVAF(jiveRes)
     plotVAF(discoRes)
-    # JIVE plotVAF
-    # --- Plotres [] ---
-    # Key functions: plotRes
-    ---------------------------------------------------------------------
-    # Scatterplot of scores variables associated to common components
-    # DISCO-SCA
-    plotRes(object=discoRes, comps=c(1, 2), what="scores", type="common",
-            combined=FALSE, block=NULL, color="classname", shape=NULL, labels=NULL,
-    # --- Plotres [] ---
-    # Key functions: plotRes, g_legend, arrange, arrangeGrob, theme
-    ---------------------------------------------------------------------
-    # O2PLS
-    # Scatterplot of scores variables associated to common components
-    # Associated to first block
-    p1 <- plotRes(object=o2plsRes, comps=c(1, 2), what="scores", type="common",
-    # --- Plotres [] ---
-    # Key functions: plotRes, arrange, arrangeGrob, theme
-    ---------------------------------------------------------------------
-    # Loadings plot for common components
-    # Separately for each block
-    p1 <- plotRes(object=discoRes, comps=c(1, 2), what="loadings", type="common",
-                  combined=FALSE, block="expr", color="classname", shape=NULL,
-    # --- Createomicsexpressionset [] ---
-    # Key functions: createOmicsExpressionSet
-    ---------------------------------------------------------------------
-    # Block1 - Expression data
-    mRNA.ds <- createOmicsExpressionSet(Data=Block1, pData=ed, pDataDescr=c("classname"))
-    # Block2 - miRNA expression data
-    miRNA.ds <- createOmicsExpressionSet(Data=Block2, pData=ed, pDataDescr=c("classname"))
-    # --- Biodistclass [] ---
-    # Key functions: bioDistclass, exprs
-    ---------------------------------------------------------------------
-    # Create Gene-gene distance computed through mRNA data
-    bioDistmRNA <- bioDistclass(name="mRNAbymRNA",
-                                distance=cor(t(exprs(mRNA.ds)),
-                                             method="spearman"),
-    # --- Biomap [] ---
-    # Key functions: bioMap
-    ---------------------------------------------------------------------
-    MAP.SYMBOL <- bioMap(name = "Symbol-miRNA",
-                         metadata = list(type_v1="Gene", type_v2="miRNA",
-                                         source_database="targetscan.Hs.eg.db",
-                                         data_extraction="July2014"),
-    # --- Biodist [] ---
-    # Key functions: bioDist
-    ---------------------------------------------------------------------
-    bioDistmiRNA <- bioDist(referenceFeatures=rownames(Block1),
-                            reference="Var1",
-                            mapping=MAP.SYMBOL,
-                            surrogateData=miRNA.ds,
-    # --- Biodistw [] ---
-    # Key functions: bioDistW
-    ---------------------------------------------------------------------
-    bioDistWList <- bioDistW(referenceFeatures=rownames(Block1),
-                             bioDistList=bioDistList,
-                             weights=sample.weights)
-    length(bioDistWList)
-    # --- Biodistfeature [] ---
-    # Key functions: bioDistFeature
-    ---------------------------------------------------------------------
-    IDH1.F <- bioDistFeature(Feature="IDH1",
-                             listDistW=bioDistWList,
-                             threshold.cor=0.7)
-    # --- Omicsnpc [] ---
-    # Key functions: omicsNPC
-    ---------------------------------------------------------------------
-    results <- omicsNPC(dataInput=TCGA_BRCA_Data, dataTypes=dataTypes,
-                        combMethods=combMethods, numPerms=numPerms,
-                        numCores=numCores, verbose=verbose)
+    plotVAF(jiveRes)
+
+
+    # --- Score Visualization [] ---
+    # Key functions: getScores, plotRes
+    disco_common <- getScores(discoRes, part = "common")
+    plotRes(
+        object = discoRes,
+        comps = c(1, 2),
+        what = "scores",
+        type = "common",
+        combined = FALSE,
+        block = NULL,
+        color = "classname",
+        shape = NULL,
+        labels = NULL,
+        background = TRUE,
+        palette = NULL,
+        pointSize = 4,
+        labelSize = NULL,
+        axisSize = NULL,
+        titleSize = NULL
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

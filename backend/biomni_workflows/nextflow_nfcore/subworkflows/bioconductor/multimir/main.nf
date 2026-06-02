@@ -38,63 +38,56 @@ process BIOC_MULTIMIR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(multiMiR)
     library(DGEList)
     library(jsonlite)
 
-    # --- multimir switchDBVersion [] ---
-    # Key functions: multimir_dbInfoVersions, multimir_switchDBVersion
-    vers_table <- multimir_dbInfoVersions()
-    multimir_switchDBVersion(db_version = "2.0.0")
-    multimir_switchDBVersion(db_version = curr_vers)
-    # --- predicted_tables [] ---
-    # Key functions: predicted_tables, validated_tables, diseasedrug_tables, reverse_table_lookup
-    predicted_tables()
-    validated_tables()
-    diseasedrug_tables()
-    # --- Load saved R data object [] ---
-    # Key functions: DGEList, calcNormFactors, estimateGLMCommonDisp, estimateGLMTrendedDisp
-    library(edgeR)
-    library(multiMiR)
-    counts_file  <- system.file("extdata", "counts_table.Rds", package = "multiMiR")
-    # --- Example1 [] ---
+    # --- Entity Exploration and Table Lookup [] ---
+    # Key functions: list_multimir, predicted_tables, validated_tables, reverse_table_lookup
+    sample_mirnas <- list_multimir("mirna", limit = 10)
+    sample_genes <- list_multimir("gene", limit = 10)
+    pred_tables <- predicted_tables()
+    val_tables <- validated_tables()
+    targetscan_source <- reverse_table_lookup("targetscan")
+
+
+    # --- MicroRNA Target Querying [] ---
     # Key functions: get_multimir
-    example1 <- get_multimir(mirna = 'hsa-miR-18a-3p', summary = TRUE)
-    names(example1)
-    table(example1@data$type)
-    # --- Example2 [] ---
+    multimir_results <- get_multimir(
+        org = "hsa",
+        mirna = "hsa-miR-18a-3p",
+        table = "validated",
+        summary = TRUE
+    )
+    result_data <- multimir_results@data
+    result_summary <- multimir_results@summary
+    luciferase_validated <- result_data[
+        grep("Luciferase", result_data[, "experiment"]), 
+    ]
+
+
+    # --- Disease and Drug Association Querying [] ---
     # Key functions: get_multimir
-    example2 <- get_multimir(disease.drug = 'cisplatin', table = 'disease.drug')
-    names(example2)
-    nrow(example2@data)
-    # --- Example3 part1 [] ---
-    # Key functions: get_multimir
-    example3 <- get_multimir(org     = "mmu",
-    names(example3)
-    table(example3@data$type)
-    # --- Example4 part1 [] ---
-    # Key functions: get_multimir
-    example4 <- get_multimir(org     = 'hsa',
-    target  = c('AKT2', 'CERS6', 'S1PR3', 'SULF2'),
-    # --- Example5 part2 [] ---
-    # Key functions: get_multimir
-    example5 <- get_multimir(org     = "hsa",
-    # --- Example5 part4 [] ---
-    # Key functions: keys
-    mykeys <- keys(example5, keytype = mykeytype)
-    mykeys <- mykeys[grep("bladder", mykeys, ignore.case = TRUE)]
-    result <- select(example5, keytype = "disease_drug", keys = mykeys,
-    # --- columns [] ---
-    # Key functions: columns, keytypes, keys
-    columns(example4)
-    head(keys(example4))
-    keytypes(example4)
-    # --- Direct query1 [] ---
-    # Key functions: search_multimir
-    direct2 <- search_multimir(query = "describe diana_microt")
-    # --- Direct query2 [] ---
-    # Key functions: search_multimir
-    ON (m.mature_mirna_uid=i.mature_mirna_uid and
-    direct3 <- search_multimir(query = qry)
+    drug_results <- get_multimir(
+        disease.drug = "cisplatin",
+        table = "disease.drug"
+    )
+    drug_data <- drug_results@data
+    association_types <- table(drug_data$type)
+
+
+    # --- Result Filtering and Selection [] ---
+    # Key functions: select, keys, columns
+    all_columns <- columns(multimir_results)
+    validated_subset <- select(
+        multimir_results,
+        keytype = "type",
+        keys = "validated",
+        columns = all_columns
+    )
+    unique_pairs <- validated_subset[
+        !duplicated(validated_subset[, c("mature_mirna_id", "target_entrez")]), 
+    ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

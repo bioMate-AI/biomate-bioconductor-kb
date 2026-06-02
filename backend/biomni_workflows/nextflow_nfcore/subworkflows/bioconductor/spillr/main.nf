@@ -41,21 +41,35 @@ process BIOC_SPILLR {
     library(spillR)
     library(jsonlite)
 
-    # --- prep Data [] ---
-    # Key functions: prepData, assignPrelim, applyCutoffs, computeSpillmat
-    library(spillR)
-    library(CATALYST)
-    library(dplyr)
-    # --- row Data [] ---
-    # Key functions: rowData, as_tibble, compCytof, plot_grid
-    rowData(sce_bead)[, c("channel_name", "is_bc")] |>
-    as_tibble() |>
-    dplyr::filter(is_bc == TRUE) |>
-    # --- plot Diagnostics [] ---
-    # Key functions: plotDiagnostics, plot_grid
+    # --- CyTOF Spillover Compensation [] ---
+    # Key functions: compCytof
+    data(mp_cells, package = "CATALYST")
+    r_data <- SummarizedExperiment::rowData(sce_bead)
+    marker_to_barc <- data.frame(
+        marker = r_data$channel_name,
+        is_bc = r_data$is_bc
+    )
+    marker_to_barc <- marker_to_barc[marker_to_barc$is_bc == TRUE, ]
+    marker_to_barc$barcode <- bc_key[seq_len(nrow(marker_to_barc))]
+    sce <- CATALYST::prepData(mp_cells)
+    sce_spillr <- spillR::compCytof(
+        sce,
+        sce_bead,
+        marker_to_barc,
+        impute_value = NA,
+        overwrite = FALSE
+    )
+
+
+    # --- Compensation Diagnostics [] ---
+    # Key functions: plotDiagnostics
     ps <- spillR::plotDiagnostics(sce_spillr, "Yb173Di")
-    x_lim <- c(0, 7)
-    plot_grid(ps[[1]] + xlim(x_lim),
+    diag_plot <- cowplot::plot_grid(
+        ps[[1]] + ggplot2::xlim(c(0, 7)),
+        ps[[2]] + ggplot2::xlim(c(0, 7)),
+        ncol = 1,
+        align = "v"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

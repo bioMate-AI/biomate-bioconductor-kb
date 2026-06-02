@@ -41,20 +41,57 @@ process BIOC_SCFEATURES {
     library(scFeatures)
     library(jsonlite)
 
-    # --- Data [] ---
+    # --- Feature Extraction [scfeatures] ---
     # Key functions: scFeatures
-    ---------------------------------------------------------------------
-    data("example_scrnaseq" , package = "scFeatures")
-    data <- example_scrnaseq
-    scfeatures_result <- scFeatures(data = data@assays$RNA@data, sample = data$sample, celltype = data$celltype,
-                                    feature_types = "gene_mean_celltype"  ,
-    # --- Data [] ---
-    # Key functions: tempdir, run_association_study_report
-    ---------------------------------------------------------------------
-    # here we use the demo data from the package
-    data("scfeatures_result" , package = "scFeatures")
-    # here we use the current working directory to save the html output
-    # modify this to save the html file to other directory
+    data("example_scrnaseq", package = "scFeatures")
+    scfeatures_result <- scFeatures(
+        data = example_scrnaseq@assays$RNA@data,
+        sample = example_scrnaseq$sample,
+        celltype = example_scrnaseq$celltype,
+        feature_types = "gene_mean_celltype",
+        type = "scrna",
+        ncores = 1,
+        species = "Homo sapiens"
+    )
+    feature_matrix <- scfeatures_result$gene_mean_celltype
+
+    # --- Classification Modeling [classifyr] ---
+    # Key functions: crossValidate, performancePlot
+    X <- feature_matrix
+    y_df <- example_scrnaseq@meta.data[!duplicated(example_scrnaseq$sample), ]
+    y <- y_df[match(rownames(X), y_df$sample), ]$condition
+    cv_result <- ClassifyR::crossValidate(
+        X, y,
+        classifier = "randomForest",
+        nCores = 1,
+        nFolds = 3,
+        nRepeats = 5
+    )
+    plot_obj <- ClassifyR::performancePlot(results = cv_result)
+
+    # --- Survival Analysis [survival] ---
+    # Key functions: hclust, cutree
+    X_t <- t(feature_matrix)
+    dist_matrix <- as.dist(1 - cor(X_t, method = "pearson"))
+    hclust_res <- hclust(dist_matrix, method = "ward.D2")
+    cluster_res <- cutree(hclust_res, k = 2)
+    survival_day <- seq_len(ncol(X_t)) * 10
+    censoring <- rep(c(0, 1), length.out = ncol(X_t))
+    metadata <- data.frame(
+        cluster = factor(cluster_res),
+        survival_day = survival_day,
+        censoring = censoring
+    )
+
+    # --- Association Study Reporting [scfeatures] ---
+    # Key functions: run_association_study_report
+    data("scfeatures_result", package = "scFeatures")
+    output_folder <- tempdir()
+    run_association_study_report(
+        scfeatures_result,
+        output_folder
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

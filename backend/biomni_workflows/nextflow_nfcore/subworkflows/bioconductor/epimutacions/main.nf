@@ -41,31 +41,41 @@ process BIOC_EPIMUTACIONS {
     library(epimutacions)
     library(jsonlite)
 
-    # --- epimutations [] ---
+    # --- Parameter Initialization [epimutacions] ---
+    # Key functions: norm_parameters, epi_parameters
+    norm_params <- norm_parameters(
+        illumina = list("bg.correct" = FALSE)
+    )
+    epi_params <- epi_parameters(
+        manova = list("pvalue_cutoff" = 0.01),
+        iso.forest = list("outlier_score_cutoff" = 0.15)
+    )
+
+    # --- Data Preprocessing [epimutacions] ---
+    # Key functions: epi_preprocess
+    GRset <- epi_preprocess(
+        baseDir = tempdir(),
+        reference_panel = NULL,
+        pattern = "SampleSheet.csv"
+    )
+
+    # --- Epimutation Detection [epimutacions] ---
     # Key functions: epimutations
-    epi_mvo <- epimutations(case_samples,
-    # --- annotate_epimutations [] ---
+    epi_mvo <- epimutations(
+        case_samples = case_samples,
+        control_samples = control_samples,
+        method = "manova",
+        epi_params = epi_params
+    )
+
+    # --- Epimutation Annotation [epimutacions] ---
     # Key functions: annotate_epimutations
-    rst_mvo <- annotate_epimutations(epi_mvo, omim = TRUE)
-    # --- annot relIsland [] ---
-    # Key functions: column_spec
-    kableExtra::kable(
-    rst_mvo[ c(27,32) ,c("epi_id", "cpg_ids", "Relation_to_Island")],
-    column_spec(1:3, width = "4cm")
-    # --- column_spec [] ---
-    # Key functions: column_spec
-    kableExtra::kable(
-    rst_mvo[ c(4,8,22) , c("epi_id", "OMIM_ACC", "OMIM_DESC")],
-    column_spec(1:3, width = "4cm")
-    # --- plot_epimutations [] ---
-    # Key functions: plot_epimutations
-    plot_epimutations(as.data.frame(epi_mvo[1,]), methy)
-    # --- plot mvo genes annot [] ---
-    # Key functions: plot_epimutations
-    p <- plot_epimutations(as.data.frame(epi_mvo[1,]),
-    # --- plot mvo regulation [] ---
-    # Key functions: plot_epimutations
-    p <- plot_epimutations(as.data.frame(epi_mvo[1,]),
+    rst_mvo <- annotate_epimutations(
+        epi_results = epi_mvo,
+        omim = TRUE,
+        genome = "hg19"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

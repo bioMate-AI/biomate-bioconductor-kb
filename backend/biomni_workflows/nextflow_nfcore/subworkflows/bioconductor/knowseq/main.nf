@@ -38,62 +38,79 @@ process BIOC_KNOWSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(KnowSeq)
     library(DEGsExtraction)
     library(DEGsToDiseases)
     library(DEGsToPathways)
     library(jsonlite)
 
-    # --- Prepare Count Files [] ---
-    # Key functions: rep, rbind
-    suppressMessages(library(KnowSeq))
-    dir <- system.file("extdata", package="KnowSeq")
-    GSE74251 <- read.csv(paste(dir,"GSE74251.csv",sep = "/"))
-    # --- Merge Count Files [] ---
+    # --- Data Preparation and Merging [Data Preparation] ---
     # Key functions: countsToMatrix
-    countsInformation <- countsToMatrix("mergedCountsInfo.csv", extension = "count")
-    # --- Download Gene Annotation [] ---
-    # Key functions: getGenesAnnotation
+    countsInformation <- countsToMatrix(
+        "mergedCountsInfo.csv",
+        extension = "count"
+    )
+    countsMatrix <- countsInformation$countsMatrix
+    labels <- countsInformation$labels
+
+    # --- Gene Annotation and Expression Calculation [Gene Annotation] ---
+    # Key functions: getGenesAnnotation, calculateGeneExpressionValues
     myAnnotation <- getGenesAnnotation(rownames(countsMatrix))
-    myAnnotationMusMusculus <- getGenesAnnotation(rownames(countsMatrix),
-    # --- Calculate Gene Expression [] ---
-    # Key functions: calculateGeneExpressionValues
-    expressionMatrix <- calculateGeneExpressionValues(countsMatrix,myAnnotation,
-    # --- Plot Expression Boxplot [] ---
-    # Key functions: dataPlot
-    dataPlot(expressionMatrix,labels,mode = "boxplot", toPNG = TRUE,
-    # --- Remove Batch Effect (ComBat) [] ---
+    expressionMatrix <- calculateGeneExpressionValues(
+        countsMatrix,
+        myAnnotation,
+        genesNames = TRUE
+    )
+
+    # --- Batch Effect Removal [Batch Correction] ---
     # Key functions: batchEffectRemoval
-    batchGroups <- c(1,1,1,1,2,2,1,2,1,2)
-    expressionMatrixCorrected <- batchEffectRemoval(expressionMatrix, labels,
-    # --- Remove Batch Effect (SVA) [] ---
-    # Key functions: batchEffectRemoval
-    expressionMatrixCorrected <- batchEffectRemoval(expressionMatrix, labels, method = "sva")
-    # --- Extract Differentially Expressed Genes [] ---
-    # Key functions: DEGsExtraction
-    DEGsInformation <- DEGsExtraction(expressionMatrixCorrected, labels,
-    # --- Plotting orderded boxplot [] ---
-    # Key functions: dataPlot
-    dataPlot(DEGsMatrix[1:12,],labels,mode = "orderedBoxplot",toPNG = FALSE,toPDF = FALSE)
-    # --- Plotting genes boxplot [] ---
-    # Key functions: dataPlot
-    dataPlot(DEGsMatrix[1:12,],labels,mode = "genesBoxplot",toPNG = FALSE,toPDF = FALSE)
-    # --- Plot DEGs Heatmap [] ---
-    # Key functions: dataPlot
-    dataPlot(DEGsMatrix[1:12,],labels,mode = "heatmap",toPNG = FALSE,toPDF = FALSE)
-    # --- Train Machine Learning Classifiers [] ---
-    # Key functions: featureSelection, knn_trn, svm_trn, rf_trn
+    expressionMatrixCorrected <- batchEffectRemoval(
+        expressionMatrix,
+        labels,
+        method = "sva"
+    )
+
+    # --- Differential Expression Analysis [Differential Expression] ---
+    # Key functions: DEGsExtraction, dataPlot
+    DEGsInformation <- DEGsExtraction(
+        expressionMatrixCorrected,
+        labels,
+        lfc = 1.0,
+        pvalue = 0.01,
+        number = 100,
+        cov = 1
+    )
+    DEGsMatrix <- DEGsInformation$DEG_Results$DEGs_Matrix
+
+    # --- Feature Selection and Machine Learning Training [Machine Learning] ---
+    # Key functions: featureSelection, knn_trn
     DEGsMatrixML <- t(DEGsMatrix)
-    mrmrRanking <- featureSelection(DEGsMatrixML,labels,colnames(DEGsMatrixML), mode = "mrmr")
-    rfRanking <- featureSelection(DEGsMatrixML,labels,colnames(DEGsMatrixML), mode = "rf")
-    # --- Plotting ML acc [] ---
-    # Key functions: dataPlot
-    dataPlot(rbind(results_cv_knn$accuracy$meanAccuracy,results_cv_knn$accuracy$standardDeviation),mode = "classResults", legend = c("Mean Acc","Standard Deviation"),
-    # --- Plotting ML sens [] ---
-    # Key functions: dataPlot
-    dataPlot(rbind(results_cv_knn$sensitivity$meanSensitivity,results_cv_knn$sensitivity$standardDeviation),mode = "classResults", legend = c("Mean Sens","Standard Deviation"),
-    # --- Plotting ML spec [] ---
-    # Key functions: dataPlot
-    dataPlot(rbind(results_cv_knn$specificity$meanSpecificity,results_cv_knn$specificity$standardDeviation),mode = "classResults", legend = c("Mean Spec","Standard Deviation"),
+    mrmrRanking <- featureSelection(
+        DEGsMatrixML,
+        labels,
+        colnames(DEGsMatrixML),
+        mode = "mrmr"
+    )
+    results_cv_knn <- knn_trn(
+        DEGsMatrixML,
+        labels,
+        names(mrmrRanking)[1:10],
+        5
+    )
+
+    # --- Machine Learning Testing and Visualization [Model Evaluation] ---
+    # Key functions: dataPlot, knn_test
+    dataPlot(results_cv_knn, labels, mode = "heatmapResults")
+    trainMat <- DEGsMatrixML[c(1:4, 6:9), ]
+    trainLab <- labels[c(1:4, 6:9)]
+    testMat <- DEGsMatrixML[c(5, 10), ]
+    testLab <- labels[c(5, 10)]
+    results_test_knn <- knn_test(
+        trainMat, trainLab, testMat, testLab,
+        names(mrmrRanking)[1:10],
+        bestK = results_cv_knn$bestK
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

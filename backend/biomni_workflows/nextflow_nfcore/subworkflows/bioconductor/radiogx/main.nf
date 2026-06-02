@@ -41,56 +41,72 @@ process BIOC_RADIOGX {
     library(RadioGx)
     library(jsonlite)
 
-    # --- available rsets [] ---
-    # Key functions: availableRSets
-    RSets <- availableRSets()
-    # --- download R Set [] ---
-    # Key functions: downloadRSet
-    Cleveland <- downloadRSet('Cleveland', saveDir='.')
-    # --- radiation info accessor [] ---
-    # Key functions: radiationInfo
-    radInf <- radiationInfo(clevelandSmall)
-    # --- kable [] ---
-    # Key functions: kable
-    knitr::kable(radInf)
-    # --- radiation types accessor [] ---
-    # Key functions: radiationTypes
-    radTypes <- radiationTypes(clevelandSmall)
-    # --- molecular data slot accessors [] ---
-    # Key functions: mDataNames
-    Get the list (equivalent to @molecularProfiles, except that it is robust to changes in RSet structure
-    str(molecularProfilesSlot(clevelandSmall), max.level=2)
-    mDataNames(clevelandSmall)
-    # --- sample meta data [] ---
-    # Key functions: phenoInfo
-    phenoInf <- phenoInfo(clevelandSmall, 'cnv')
-    # --- print sample meta data [] ---
-    # Key functions: kable
-    knitr::kable(phenoInf[, 1:5], row.names=FALSE)
-    # --- feature meta data [] ---
-    # Key functions: featureInfo
-    featInfo <- featureInfo(clevelandSmall, 'rna')
-    # --- print feature meta data [] ---
-    # Key functions: kable
-    knitr::kable(featInfo[1:3, 1:5], row.names=FALSE)
-    # --- molecular data [] ---
-    # Key functions: molecularProfiles
-    mProf <- molecularProfiles(clevelandSmall, 'rnaseq')
-    # --- print molecular profile data [] ---
-    # Key functions: kable
-    knitr::kable(mProf[1:3, 1:5])
-    # --- response data accessors [] ---
-    # Key functions: treatmentResponse, sensitivityRaw, sensitivityProfiles, sensitivityInfo
-    sens <- treatmentResponse(clevelandSmall)
-    sensRaw <- sensitivityRaw(clevelandSmall)
-    sensProf <- sensitivityProfiles(clevelandSmall)
-    # --- sensitivity Raw [] ---
-    # Key functions: sensitivityRaw
-    sensRaw <- sensitivityRaw(clevelandSmall)
-    # --- selecting cancer cell line [] ---
-    # Key functions: sensitivityInfo
-    cancerCellLine <- sensitivityInfo(clevelandSmall)$sampleid[1]
-    print(cancerCellLine)
+    # --- Dataset Exploration and Metadata Extraction [radiationInfo, radiationTypes, mDataNames, phenoInfo, availableRSets] ---
+    # Key functions: availableRSets, radiationInfo, radiationTypes, mDataNames, phenoInfo
+    data(clevelandSmall)
+    rsets <- availableRSets()
+    rad_info <- radiationInfo(clevelandSmall)
+    rad_types <- radiationTypes(clevelandSmall)
+    mol_names <- mDataNames(clevelandSmall)
+    pheno_info <- phenoInfo(clevelandSmall, "cnv")
+
+    # --- Molecular and Response Data Access [molecularProfiles, treatmentResponse, sensitivityRaw, sensitivityProfiles, sensitivityInfo] ---
+    # Key functions: molecularProfiles, treatmentResponse, sensitivityRaw, sensitivityProfiles, sensitivityInfo
+    data(clevelandSmall)
+    m_prof <- molecularProfiles(clevelandSmall, "rnaseq")
+    sens_resp <- treatmentResponse(clevelandSmall)
+    sens_raw <- sensitivityRaw(clevelandSmall)
+    sens_prof <- sensitivityProfiles(clevelandSmall)
+    sens_info <- sensitivityInfo(clevelandSmall)
+
+    # --- Dose-Response Curve Fitting and Metric Calculation [linearQuadraticModel, computeSF2, computeD10, computeAUC] ---
+    # Key functions: linearQuadraticModel, computeSF2, computeD10, computeAUC
+    data(clevelandSmall)
+    sens_raw <- sensitivityRaw(clevelandSmall)
+    rad_doses <- sens_raw[1, , "Dose"]
+    surv_fracs <- sens_raw[1, , "Viability"]
+    lq_model <- linearQuadraticModel(D = rad_doses, SF = surv_fracs)
+    sf2 <- computeSF2(pars = lq_model)
+    d10 <- computeD10(pars = lq_model)
+    auc <- computeAUC(
+        D = rad_doses,
+        pars = lq_model,
+        lower = 0,
+        upper = 1
+    )
+
+    # --- Dose-Response Visualization [doseResponseCurve, cellInfo] ---
+    # Key functions: doseResponseCurve, cellInfo
+    data(clevelandSmall)
+    cell_id <- cellInfo(clevelandSmall)$sampleid[5]
+    doseResponseCurve(
+        rSets = list(clevelandSmall),
+        cellline = cell_id
+    )
+    doseResponseCurve(
+        Ds = list("Exp1" = c(0, 2, 4, 6)),
+        SFs = list("Exp1" = c(1, 0.6, 0.4, 0.2)),
+        plot.type = "Both"
+    )
+
+    # --- Profile Summarization and Signature Computation [summarizeSensitivityProfiles, summarizeMolecularProfiles, radSensitivitySig, fNames] ---
+    # Key functions: summarizeSensitivityProfiles, summarizeMolecularProfiles, radSensitivitySig, fNames
+    data(clevelandSmall)
+    sens_sum <- summarizeSensitivityProfiles(clevelandSmall)
+    mol_sum <- summarizeMolecularProfiles(
+        clevelandSmall,
+        mDataType = "rna",
+        summary.stat = "median",
+        fill.missing = FALSE
+    )
+    feats <- fNames(clevelandSmall, "rna")[2:5]
+    rad_sig <- radSensitivitySig(
+        clevelandSmall,
+        mDataType = "rna",
+        features = feats,
+        nthread = 1
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

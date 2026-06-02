@@ -38,6 +38,7 @@ process BIOC_DITTOSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(dittoSeq)
     library(BaronPancreasData)
     library(FindMarkers)
     library(Idents)
@@ -45,109 +46,76 @@ process BIOC_DITTOSEQ {
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Baronpancreasdata [] ---
-    # Key functions: BaronPancreasData
-    ---------------------------------------------------------------------
-    ## Download Data
-    library(scRNAseq)
-    sce <- BaronPancreasData()
-    # Trim to only 5 of the cell types for simplicity of vignette
-    # --- Lognormcounts [] ---
-    # Key functions: logNormCounts, modelGeneVar, getTopHVGs, runPCA, runUMAP, clusterCells
-    ---------------------------------------------------------------------
-    ## Some Quick Pre-processing
-    # Normalization.
-    library(scater)
-    sce <- logNormCounts(sce)
-    # --- Dittodimplot [] ---
-    # Key functions: dittoDimPlot, dittoPlot, dittoBarPlot
-    ---------------------------------------------------------------------
-    library(dittoSeq)
-    dittoDimPlot(sce, "donor")
-    dittoPlot(sce, "ENO1", group.by = "label")
-    dittoBarPlot(sce, "label", group.by = "donor")
-    # --- Matrix [] ---
-    # Key functions: rpois
-    ---------------------------------------------------------------------
-    # First, we'll just make some mock expression and conditions data
-    exp <- matrix(rpois(20000, 5), ncol=20)
-    colnames(exp) <- paste0("donor", seq_len(ncol(exp)))
-    rownames(exp) <- paste0("gene", seq_len(nrow(exp)))
-    # --- Summarizedexperiment [] ---
-    # Key functions: SummarizedExperiment, frame
-    ---------------------------------------------------------------------
-    library(SummarizedExperiment)
-    bulkSE <- SummarizedExperiment(
-        assays = list(counts = exp,
-                 logcounts = logexp),
-    # --- Importdittobulk [] ---
-    # Key functions: importDittoBulk, frame
-    ---------------------------------------------------------------------
-    # dittoSeq import which allows
-    bulkSCE <- importDittoBulk(
-        # x can be a DGEList, a DESeqDataSet, a SummarizedExperiment,
-        #   or a list of data matrices
-    # --- Metadata [] ---
-    # Key functions: metadata, reductions, addDimReduction
-    ---------------------------------------------------------------------
-    # Add metadata (metadata can alternatively be added in this way)
-    bulkSCE$conditions <- conditions
-    bulkSCE$sex <- sex
-    # Add dimensionality reductions (can alternatively be added this way)
-    # --- Dittodimplot [] ---
-    # Key functions: dittoDimPlot, dittoBarPlot, dittoBoxPlot, dittoHeatmap, getGenes
-    ---------------------------------------------------------------------
-    library(dittoSeq)
-    dittoDimPlot(bulkSCE, "sex", size = 3, do.ellipse = TRUE)
-    dittoBarPlot(bulkSCE, "sex", group.by = "conditions")
-    dittoBoxPlot(bulkSCE, "gene1", group.by = "sex")
-    # --- Getmetas [] ---
-    # Key functions: getMetas, isMeta, meta, metaLevels
-    ---------------------------------------------------------------------
-    # Retrieve all metadata slot names
-    getMetas(sce)
-    # Query for the presence of a metadata slot
-    isMeta("nCount_RNA", sce)
-    # --- Getgenes [] ---
-    # Key functions: getGenes, gene, isGene
-    ---------------------------------------------------------------------
-    # Retrieve all gene names
-    getGenes(sce)[1:10]
-    # Query for the presence of a gene(s)
-    isGene("CD3E", sce)
-    # --- Getreductions [] ---
-    # Key functions: getReductions
-    ---------------------------------------------------------------------
-    # Retrieve all dimensionality reductions
-    getReductions(sce)
-    # --- Isbulk [] ---
-    # Key functions: isBulk, setBulk
-    ---------------------------------------------------------------------
-    # Getter
-    isBulk(sce)
-    isBulk(bulkSCE)
-    # Setter
-    # --- Dittodimplot [] ---
-    # Key functions: dittoDimPlot
-    ---------------------------------------------------------------------
-    dittoDimPlot(sce, "cluster",
-                 do.label = TRUE,
-                 labels.repel = FALSE,
-                 add.trajectory.lineages = list(
-    # --- Dittoplot [] ---
-    # Key functions: dittoPlot
-    ---------------------------------------------------------------------
-    dittoPlot(sce, "ENO1", group.by = "label",
-        plots = c("jitter", "vlnplot", "boxplot"), # <- order matters
-        # change the color and size of jitter points
-        jitter.color = "blue", jitter.size = 0.5,
-    # --- Dittoheatmap [] ---
-    # Key functions: dittoHeatmap
-    ---------------------------------------------------------------------
-    # Add annotations
-    dittoHeatmap(sce, genes,
-        annot.by = c("label", "donor"),
-        scaled.to.max = TRUE,
+    # --- Metadata and Gene Querying [] ---
+    # Key functions: getMetas, isMeta, metaLevels, getGenes, isGene
+    meta_slots <- getMetas(bulk_sce)
+    has_conds <- isMeta("conditions", bulk_sce)
+    cond_levels <- metaLevels("conditions", bulk_sce)
+    all_genes <- getGenes(bulk_sce)
+    has_gene1 <- isGene("gene1", bulk_sce)
+    gene_check <- isGene(
+        c("gene1", "gene2", "non-existent"),
+        bulk_sce,
+        return.values = TRUE
+    )
+
+
+    # --- Dimensionality Reduction and Scatter Visualisation [] ---
+    # Key functions: dittoDimPlot, dittoScatterPlot, getReductions
+    avail_reductions <- getReductions(bulk_sce)
+    dim_plot <- dittoDimPlot(
+        object = bulk_sce,
+        var = "conditions",
+        reduction.use = "pca",
+        size = 3,
+        do.ellipse = TRUE
+    )
+    scatter_plot <- dittoScatterPlot(
+        object = bulk_sce,
+        x.var = "gene1",
+        y.var = "gene2",
+        color.var = "conditions"
+    )
+
+
+    # --- Expression and Distribution Profiling [] ---
+    # Key functions: dittoPlot, dittoBoxPlot, dittoBarPlot, dittoHeatmap
+    violin_plot <- dittoPlot(
+        object = bulk_sce,
+        var = "gene1",
+        group.by = "conditions"
+    )
+    box_plot <- dittoBoxPlot(
+        object = bulk_sce,
+        var = "gene1",
+        group.by = "conditions"
+    )
+    bar_plot <- dittoBarPlot(
+        object = bulk_sce,
+        var = "conditions",
+        group.by = "conditions"
+    )
+    heatmap_plot <- dittoHeatmap(
+        object = bulk_sce,
+        genes = getGenes(bulk_sce)[1:5],
+        annot.by = "conditions"
+    )
+
+
+    # --- Hexagonal Binning Visualisation [] ---
+    # Key functions: dittoDimHex, dittoScatterHex
+    hex_dim_plot <- dittoDimHex(
+        object = bulk_sce,
+        var = "gene1",
+        reduction.use = "pca"
+    )
+    hex_scatter_plot <- dittoScatterHex(
+        object = bulk_sce,
+        x.var = "gene1",
+        y.var = "gene2",
+        color.var = "conditions",
+        max.density = 10
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

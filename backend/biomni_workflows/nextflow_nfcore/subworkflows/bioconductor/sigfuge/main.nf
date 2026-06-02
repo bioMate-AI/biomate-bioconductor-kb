@@ -38,6 +38,7 @@ process BIOC_SIGFUGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SigFuge)
     library(ApplyPileupsParam)
     library(GRanges)
     library(IRanges)
@@ -49,54 +50,29 @@ process BIOC_SIGFUGE {
     library(SFpval)
     library(jsonlite)
 
-    # --- Granges [] ---
-    # Key functions: GRanges, Rle, IRanges, strand
-    library(SigFuge)
-    geneAnnot <- GRanges(seqnames=Rle("chr9", 5),
-                ranges=IRanges(start=c(21967751,21968574,21970901,21974403,21994138),
-                                 end=c(21968241,21968770,21971207,21975132,21994490)),
-                strand=Rle(strand("-"), 5))
-    # --- Granges [] ---
-    # Key functions: GRanges, Rle, IRanges, strand, path
-    library(Rsamtools)
-    library(prebsdata)
-    geneAnnot <- GRanges(seqnames=Rle("20", 9),
-                ranges=IRanges(
-                    start=c(49551405,49552685,49557402,49558568,49562274,
-    # --- Function [] ---
-    # Key functions: colSums, ApplyPileupsParam, PileupFiles, applyPileups
-    calcInfo <- function(x) {
-        info <- apply(x[["seq"]], 2, function(y) {
-            y <- y[c("A", "C", "G", "T"), , drop=FALSE]
-            cvg <- colSums(y)
-        })
-    # --- Data [] ---
-    # Key functions: data
-    data(geneAnnot)
-    data(geneDepth)
-    # --- Sffigure [] ---
-    # Key functions: SFfigure
-    genename <- "CDKN2A"
-    mdata <- geneDepth[,101:150]
-    SFfigure(data=mdata, locusname=genename,
-               annot=geneAnnot, lplots=1:3, savestr=genename,
-               titlestr="CDKN2A locus, LUSC samples")
-    # --- Sfpval [] ---
-    # Key functions: SFpval
-    output <- SFpval(mdata)
-    output@pvalnorm
-    # --- Sfnormalize [] ---
-    # Key functions: SFnormalize, SFlabels
-    norm <- SFnormalize(mdata)
-    labels <- SFlabels(norm)
-    labels[1:10]
-    # --- Which [] ---
-    # Key functions: SFfigure
-    ## exp.data <- mdata[,-which(norm$flag == 1)]
-    ## labels <- labels[-which(norm$flag == 1)]
-    ##
-    ## SFfigure(exp.data, locusname=genename, annot=geneAnnot,
-    ##            data.labels=labels, flag=0, lplots=2,
+    # --- Data Preparation [sigfuge] ---
+    # Key functions: sigfuge
+    data(sigfuge_example)
+    features <- sigfuge_example$features
+    grid <- sigfuge_example$grid
+    norm_features <- features / rowSums(features)
+
+    # --- Clustering and Significance Testing [sigfuge] ---
+    # Key functions: sigfuge
+    sf_result <- sigfuge(
+        X = norm_features,
+        grid = grid,
+        nclust = 2
+    )
+
+    # --- Visualisation [sigfuge] ---
+    # Key functions: sigfugePlot
+    sigfugePlot(
+        X = norm_features,
+        grid = grid,
+        class = sf_result$class
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

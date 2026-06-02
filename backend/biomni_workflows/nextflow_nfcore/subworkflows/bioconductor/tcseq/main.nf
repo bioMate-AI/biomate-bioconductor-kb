@@ -38,6 +38,7 @@ process BIOC_TCSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TCseq)
     library(DBanalysis)
     library(DBresult)
     library(SummarizedExperiment)
@@ -45,61 +46,55 @@ process BIOC_TCSEQ {
     library(TCAFromSummarizedExperiment)
     library(jsonlite)
 
-    # --- Peakreference [] ---
-    # Key functions: peakreference
-    ## dir <- dir.peaks
-    ## gf <- peakreference(dir = dir, pattern = "narrowpeaks")
-    # --- Data [] ---
-    # Key functions: data
-    data("genomicIntervals")
-    head(genomicIntervals)
-    # --- Data [] ---
-    # Key functions: TCA
-    # Experiment design
-    data("experiment_BAMfile")
-    head(experiment_BAMfile)
-    # create a TCA object
-    tca <- TCA(design = experiment_BAMfile, genomicFeature = genomicIntervals)
-    # --- Countreads [] ---
-    # Key functions: countReads
-    ## tca <- countReads(tca, dir = dir.BAM)
-    # --- Data [] ---
-    # Key functions: TCA
-    #Experiment design without BAM file information
-    data("experiment")
-    #Counts table
-    data("countsTable")
-    tca <- TCA(design = experiment, genomicFeature = genomicIntervals,
-    # --- Counts [] ---
-    # Key functions: counts
-    ## counts(tca) <- countsTable
-    # --- Suppresswarnings [] ---
-    # Key functions: SummarizedExperiment, TCAFromSummarizedExperiment
-    suppressWarnings(library(SummarizedExperiment))
-    se <- SummarizedExperiment(assays=list(counts = countsTable), colData = experiment)
-    tca <- TCAFromSummarizedExperiment(se = se, genomicFeature = genomicIntervals)
-    # --- Dbanalysis [] ---
-    # Key functions: DBanalysis
-    tca <- DBanalysis(tca)
-    # --- Dbresult [] ---
-    # Key functions: DBresult
-    DBres <- DBresult(tca, group1 = "0h", group2 = c("24h","40h","72h"))
-    str(DBres, strict.width =  "cut")
-    head(DBres$`24hvs0h`)
-    # --- Timecoursetable [] ---
-    # Key functions: timecourseTable
-    # values are logFC
-    tca <- timecourseTable(tca, value = "FC", control.group = "0h", norm.method = "rpkm", filter = TRUE)
-    # --- Tctable [] ---
-    # Key functions: tcTable
-    t <- tcTable(tca)
-    head(t)
-    # --- Timeclust [] ---
+    # --- Differential Binding Analysis [] ---
+    # Key functions: DBanalysis, DBresult
+    tca <- DBanalysis(
+        tca,
+        filter.type = "raw",
+        filter.value = 10,
+        samplePassfilter = 2
+    )
+    DBres <- DBresult(
+        tca,
+        group1 = "0h",
+        group2 = c("24h", "40h", "72h")
+    )
+    DBres.sig <- DBresult(
+        tca,
+        group1 = "0h",
+        group2 = c("24h", "40h", "72h"),
+        top.sig = TRUE
+    )
+
+
+    # --- Time-course Table Construction [] ---
+    # Key functions: timecourseTable, tcTable
+    tca <- timecourseTable(
+        tca,
+        value = "expression",
+        norm.method = "rpkm",
+        filter = TRUE
+    )
+    t_table <- tcTable(tca)
+
+
+    # --- Time-course Clustering [] ---
     # Key functions: timeclust
-    tca <- timeclust(tca, algo = "cm", k = 6, standardize = TRUE)
-    # --- Timeclustplot [] ---
-    # Key functions: timeclustplot, score
-    ## p <- timeclustplot(tca, value = "z-score(PRKM)", cols = 3)
+    tca <- timeclust(
+        tca,
+        algo = "cm",
+        k = 6,
+        standardize = TRUE
+    )
+
+
+    # --- Cluster Visualization [] ---
+    # Key functions: timeclustplot
+    p <- timeclustplot(
+        tca,
+        value = "z-score(PRKM)",
+        cols = 3
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,29 +41,30 @@ process BIOC_PARGLMS {
     library(parglms)
     library(jsonlite)
 
-    # --- batch Map [] ---
-    # Key functions: batchMap, showStatus
-    library(MASS)
-    library(BatchJobs)
-    data(anorexia)  # N = 72
-    # --- wait For Jobs [] ---
-    # Key functions: waitForJobs
-    suppressMessages(submitJobs(myr,progressbar=FALSE))
-    waitForJobs(myr)
-    # --- submit Jobs [] ---
-    # Key functions: submitJobs, waitForJobs
-    submitJobs(myr)
-    waitForJobs(myr)
-    # --- seqlevels Style [] ---
-    # Key functions: seqlevelsStyle
-    litdec = function(grWithFDR) {
-    library(gQTLstats)
-    if (!exists("hmm878")) data(hmm878)
-    # --- summary P G [] ---
-    # Key functions: summaryPG
-    prst$extractor = function(store,i) litdec(loadResult(store,i)[[1]])
-    p1 = parGLM( isGwasHit ~ hmmState, prst,
-    family=binomial, binit=rep(0,13), tol=.001,
+    # --- Job Execution [] ---
+    # Key functions: submitJobs, waitForJobs, loadResult
+    BatchJobs::submitJobs(
+        reg = myr,
+        progressbar = FALSE
+    )
+    BatchJobs::waitForJobs(reg = myr)
+    res1 <- BatchJobs::loadResult(
+        reg = myr,
+        id = 1
+    )
+
+
+    # --- Parallel GLM Estimation [] ---
+    # Key functions: parGLM
+    pp <- parGLM(
+        formula = Postwt ~ Treat + Prewt,
+        registry = myr,
+        family = gaussian,
+        binit = c(0, 0, 0, 0),
+        maxit = 10,
+        tol = 0.001
+    )
+    coef_estimates <- pp$coef
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

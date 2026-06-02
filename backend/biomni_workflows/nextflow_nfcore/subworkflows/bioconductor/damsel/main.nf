@@ -41,20 +41,66 @@ process BIOC_DAMSEL {
     library(Damsel)
     library(jsonlite)
 
-    # --- plot Corr Heatmap [] ---
-    # Key functions: plotCorrHeatmap, plotCountsDistribution
+    # --- Quality Control [] ---
+    # Key functions: plotCorrHeatmap, plotCountsDistribution, plotCounts
     plotCorrHeatmap(df = counts.df, method = "spearman")
     plotCountsDistribution(counts.df, constant = 1)
-    # --- Plot counts for individual gene [] ---
-    # Key functions: plotCounts, makeDGE
-    plotCounts(counts.df,
+    p_counts <- plotCounts(
+        counts.df,
+        seqnames = "chr2L",
+        start_region = 1,
+        end_region = 40000,
+        layout = "spread"
+    )
+
+
+    # --- Differential Methylation Analysis [] ---
+    # Key functions: makeDGE, testDmRegions
     dge <- makeDGE(counts.df)
-    head(dge)
-    # --- MDS plot of sample distances [] ---
-    # Key functions: plotMDS, testDmRegions, group_by, summarise
-    group <- dge$samples$group %>% as.character()
-    limma::plotMDS(dge, col = as.numeric(factor(group)))
-    dm_results <- testDmRegions(dge, p.value = 0.05, lfc = 1, regions = regions, plot = TRUE)
+    dm_results <- testDmRegions(
+        dge,
+        p.value = 0.05,
+        lfc = 1,
+        regions = regions,
+        plot = FALSE
+    )
+
+
+    # --- Peak Identification and Annotation [] ---
+    # Key functions: identifyPeaks, collateGenes, annotatePeaksGenes
+    peaks <- identifyPeaks(dm_results)
+    txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene::TxDb.Dmelanogaster.UCSC.dm6.ensGene
+    genes <- collateGenes(
+        genes = txdb,
+        regions = regions,
+        org.Db = org.Dm.eg.db::org.Dm.eg.db
+    )
+    annotation <- annotatePeaksGenes(
+        peaks,
+        genes,
+        regions = regions,
+        max_distance = 5000
+    )
+
+
+    # --- Functional Enrichment and Visualization [] ---
+    # Key functions: testGeneOntology, plotGeneOntology, plotWrap
+    ontology <- testGeneOntology(
+        annotation$all,
+        genes,
+        regions = regions,
+        extend_by = 2000
+    )
+    plotGeneOntology(ontology$signif_results)
+    plotWrap(
+        id = peaks[1, ]$peak_id,
+        counts.df = counts.df,
+        dm_results.df = dm_results,
+        peaks.df = peaks,
+        gatc_sites.df = gatc_sites,
+        genes.df = genes,
+        txdb = txdb
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

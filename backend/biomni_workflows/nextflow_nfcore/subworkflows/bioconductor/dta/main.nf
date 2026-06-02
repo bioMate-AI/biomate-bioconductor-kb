@@ -41,76 +41,21 @@ process BIOC_DTA {
     library(DTA)
     library(jsonlite)
 
-    # --- Estimation Procedure [] ---
-    # Key functions: estimate
-    res = DTA.estimate(Sc.phenomat,Sc.datamat,Sc.tnumber,
-    ccl = 150,mRNAs = 60000,reliable = Sc.reliable,
-    condition = "real_data",save.plots = TRUE,notinR = TRUE,folder = ".")
-    # --- Plot Half Lives/Sythesis Rates [] ---
-    # Key functions: data
-    data(Sc.ribig.ensg)
-    data(Sc.rpg.ensg)
-    data(Sc.tf.ensg)
-    data(Sc.stress.ensg)
-    # --- Plot Half Lives/Sythesis Rates [] ---
-    # Key functions: ellipsescatter, it
-    plotsfkt = function(){
-    par(mar = c(5,4,4,2)+0.1+1)
-    par(mai = c(1.1,1.1,1.3,0.7))
-    x=res[["6"]][["hl"]][c(Sc.reliable,Sc.rpg.ensg)]
-    y=res[["6"]][["Rsr"]][c(Sc.reliable,Sc.rpg.ensg)]
-    # --- Estimation Procedure [] ---
-    # Key functions: estimate
-    res.nobias = DTA.estimate(Sc.phenomat,Sc.datamat,Sc.tnumber,
-    ccl = 150, mRNAs = 60000,reliable = Sc.reliable,save.plots = TRUE,
-    notinR = TRUE,folder = ".",bicor = FALSE,condition="no_bias_correction")
-    # --- Creating Simulation Object [] ---
-    # Key functions: generate
-    sim.object = DTA.generate(timepoints=rep(c(6,12),2))
-    # --- Estimation Procedure For Simulated Data [] ---
-    # Key functions: estimate
-    res.sim = DTA.estimate(ratiomethod = "bias",save.plots = TRUE,
-    notinR = TRUE,folder = ".",simulation = TRUE,sim.object = sim.object,
-    condition = "simulation")
-    # --- Loading Miller2011Dynamic [] ---
-    # Key functions: data
-    data(Miller2011dynamic)
-    # --- Estimation Procedure [] ---
-    # Key functions: estimate
-    timecourse.res = DTA.dynamic.estimate(Sc.phenomat.dynamic,Sc.datamat.dynamic,
-    Sc.tnumber,ccl = 150,mRNAs = 60000,reliable = Sc.reliable.dynamic,
-    LtoTratio = rep(0.1,7),save.plots = TRUE,notinR = TRUE,folder = ".",
-    condition = "timecourse")
-    # --- Creating Timecourse Simulation [] ---
-    # Key functions: rf, pmax, rnorm
-    nrgenes = 5000
-    truesynthesisrates = rf(nrgenes,5,5)*18
-    steady = rep(1,nrgenes)
-    shock = 1/pmax(rnorm(nrgenes,mean = 8,sd = 4),1)
-    induction = pmax(rnorm(nrgenes,mean = 8,sd = 4),1)
-    # --- Creating Timecourse Simulation Object [] ---
-    # Key functions: generate
-    timecourse.sim.object = DTA.dynamic.generate(duration = 36,lab.duration = 6,
-    nrgenes = nrgenes,mu.values.mat = mu.values.mat,mu.breaks.mat = mu.breaks.mat,
-    lambda.values.mat = lambda.values.mat,lambda.breaks.mat = lambda.breaks.mat)
-    # --- Estimation Procedure For Simulated Timecourse Data [] ---
-    # Key functions: estimate
-    timecourse.res.sim = DTA.dynamic.estimate(save.plots = TRUE,notinR = TRUE,
-    simulation = TRUE,sim.object = timecourse.sim.object,ratiomethod = "tls",
-    folder = ".",condition = "simulation_timecourse",check = FALSE)
-    # --- Loading Doelken2008 [] ---
-    # Key functions: data
-    ## data(Doelken2008)
-    # --- Mm Map Tnumber [] ---
-    # Key functions: it
-    ## Mm.tnumber = DTA.map.it(Mm.tnumber,Mm.enst2ensg)
-    # --- Mm Dta Estimation Procedure [] ---
-    # Key functions: estimate
-    ## res = DTA.estimate(Mm.phenomat,Mm.datamat,Mm.tnumber,
-    ## ccl = 24*60,reliable = Mm.reliable,ratiomethod = "tls")
-    # --- Hs Map Tnumber [] ---
-    # Key functions: it
-    ## Hs.tnumber = DTA.map.it(Hs.tnumber,Hs.enst2ensg)
+    # --- Rate Estimation and Normalization [] ---
+    # Key functions: dta.plot.rates
+    dta.plot.rates(
+        res,
+        filename = "rates_plot.pdf",
+        replicates = TRUE
+    )
+
+
+    # --- Quality Control and Convex Hull Plotting [] ---
+    # Key functions: dta.plot.convexhull
+    dta.plot.convexhull(
+        res,
+        filename = "convexhull_plot.pdf"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

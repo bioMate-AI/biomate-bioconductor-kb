@@ -41,16 +41,36 @@ process BIOC_DRIMSEQ {
     library(DRIMSeq)
     library(jsonlite)
 
-    # --- Extract differential expression results [] ---
-    # Key functions: results, plotProportions, stageRTx, stageWiseAdjustment, getSignificantGenes
-    res2 <- results(d2)
-    res2 <- res2[order(res2$pvalue, decreasing = FALSE), ]
-    ggp <- plotProportions(d2, gene_id = top_gene_id2, group_variable = "group")
-    # --- News analysis [] ---
-    # Key functions: news, dmDSdata, dmFilter, dmPrecision, common_precision, plotPrecision, dmFit, dmTest
-    pasilla_samples2 <- data.frame(sample_id = pasilla_metadata$SampleName,
-    d2 <- dmDSdata(counts = pasilla_counts, samples = pasilla_samples2)
-    d2 <- d2[names(d2) %in% gene_id_subset, ]
+    # --- Quality Filtering [] ---
+    # Key functions: dmFilter
+    d <- dmFilter(
+        d,
+        min_samps_gene_expr = 7,
+        min_samps_feature_expr = 3,
+        min_gene_expr = 10,
+        min_feature_expr = 10
+    )
+
+
+    # --- Precision Estimation [] ---
+    # Key functions: dmPrecision, plotPrecision
+    design_full <- model.matrix(~ group, data = samples(d))
+    d <- dmPrecision(d, design = design_full)
+    plotPrecision(d)
+
+
+    # --- Model Fitting [] ---
+    # Key functions: dmFit, proportions, coefficients
+    d <- dmFit(d, design = design_full, verbose = 1)
+    props <- proportions(d)
+    coefs <- coefficients(d)
+
+
+    # --- Differential Transcript Usage [] ---
+    # Key functions: dmTest, results, plotPValues
+    d <- dmTest(d, coef = "groupKD", verbose = 1)
+    res <- results(d)
+    plotPValues(d)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,18 +41,26 @@ process BIOC_SEQ_HOTSPOT {
     library(seq.hotSPOT)
     library(jsonlite)
 
-    # --- run amp finder [] ---
-    # Key functions: amp_pool
+    # --- Hotspot Binning [] ---
+    # Key functions: fw_hotspot, amp_pool
+    data("mutation_data", package = "seq.hotspot")
     amps <- amp_pool(data = mutation_data, amp = 100)
-    head(amps)
-    # --- fw_hotspot [] ---
-    # Key functions: fw_hotspot
-    fw_bins <- fw_hotspot(bins = amps, data = mutation_data, amp = 100, len = 1000, include_genes = TRUE)
-    head(fw_bins)
-    # --- com_hotspot [] ---
-    # Key functions: com_hotspot
-    com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps, data = mutation_data,
-    head(com_bins)
+    fw_bins <- fw_hotspot(bins = amps, data = mutation_data,
+                          amp = 100, len = 1000,
+                          include_genes = TRUE)
+
+
+    # --- Hotspot Combination and Filtering [] ---
+    # Key functions: com_hotspot, fw_hotspot, amp_pool
+    data("mutation_data", package = "seq.hotspot")
+    amps <- amp_pool(data = mutation_data, amp = 100)
+    fw_bins <- fw_hotspot(bins = amps, data = mutation_data,
+                          amp = 100, len = 1000,
+                          include_genes = TRUE)
+    com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps,
+                            data = mutation_data, amp = 100,
+                            len = 1000, size = 3,
+                            include_genes = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

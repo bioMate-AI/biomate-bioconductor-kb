@@ -38,28 +38,42 @@ process BIOC_NEBULOSA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Nebulosa)
     library(BiocFileCache)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums, perCellQCMetrics, quickPerCellQC
-    is_mito <- grepl("^MT-", rownames(pbmc))
-    qcstats <- perCellQCMetrics(pbmc, subsets = list(Mito = is_mito))
-    qcfilter <- quickPerCellQC(qcstats, percent_subsets = c("subsets_Mito_percent"))
-    # --- Build SNN graph for clustering [] ---
-    # Key functions: buildSNNGraph, cluster_louvain, colLabels
-    g <- buildSNNGraph(pbmc, k = 10, use.dimred = "PCA")
-    clust <- igraph::cluster_louvain(g)$membership
-    colLabels(pbmc) <- factor(clust)
-    # --- Run PCA [] ---
-    # Key functions: runPCA, runUMAP
-    set.seed(66)
-    pbmc <- runPCA(pbmc, scale = TRUE, subset_row = top_hvgs)
-    # --- Feature metadata inspection [] ---
-    # Key functions: BiocFileCache, bfcrpath, untar, read10xCounts, rowData, colSums, logcounts, modelGeneVar
-    bfc <- BiocFileCache(ask = FALSE)
-    data_file <- bfcrpath(bfc, file.path(
-    untar(data_file, exdir = tempdir())
+    # --- Multi-Gene Density Estimation [] ---
+    # Key functions: plot_density
+    p_multi <- plot_density(
+        object = pbmc,
+        features = c("CD8A", "CCR7"),
+        reduction = "UMAP",
+        combine = TRUE,
+        size = 0.5
+    )
+
+
+    # --- Joint Density Estimation [] ---
+    # Key functions: plot_density
+    p_joint <- plot_density(
+        object = pbmc,
+        features = c("CD4", "CCR7"),
+        joint = TRUE,
+        reduction = "UMAP",
+        size = 0.5
+    )
+
+
+    # --- Uncombined Density Estimation [] ---
+    # Key functions: plot_density
+    p_list <- plot_density(
+        object = pbmc,
+        features = c("CD8A", "CCR7"),
+        joint = TRUE,
+        combine = FALSE,
+        reduction = "UMAP"
+    )
+    joint_only <- p_list[[length(p_list)]]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

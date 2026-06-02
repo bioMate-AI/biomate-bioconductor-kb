@@ -41,21 +41,33 @@ process BIOC_NETACTIVITY {
     library(NetActivity)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: gather, assay, ggplot, geom_boxplot
-    rbind(assay(vst[1:5, ]) %>%
-    data.frame() %>%
-    mutate(Gene = rownames(.)) %>%
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_boxplot, theme_bw, ylab
-    data.frame(Expression = as.vector(assay(scores["GO:1990440", ])),
-    ggplot(aes(x = Treatment, y = Expression, col = Treatment)) +
-    geom_boxplot() +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: rowData, ggplot, geom_bar, theme_bw, ylab
+    # --- Gene Set Scoring [] ---
+    # Key functions: computeGeneSetScores
+    scores <- computeGeneSetScores(out_array, "gtex_gokegg")
+    scores_meta <- rowData(scores)
+
+
+    # --- Differential Activity Analysis [] ---
+    # Key functions: computeGeneSetScores
+    mod <- model.matrix(~ Treatment + Time, colData(scores))
+    fit <- limma::lmFit(assay(scores), mod)
+    fit <- limma::eBayes(fit)
+    topTab <- limma::topTable(fit, coef = 2:4, n = Inf)
+    topTab$GeneSetName <- rowData(scores)[rownames(topTab), "Term"]
+
+
+    # --- Visualisation of Scores and Weights [] ---
+    # Key functions: computeGeneSetScores
     weights <- rowData(scores)["GO:1990440", ]$Weights_SYMBOL[[1]]
-    data.frame(weight = weights, gene = names(weights)) %>%
-    mutate(Direction = ifelse(weight > 0, "Positive", "Negative")) %>%
+    df_weights <- data.frame(
+        weight = weights,
+        gene = names(weights)
+    )
+    df_weights$Direction <- ifelse(
+        df_weights$weight > 0,
+        "Positive",
+        "Negative"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

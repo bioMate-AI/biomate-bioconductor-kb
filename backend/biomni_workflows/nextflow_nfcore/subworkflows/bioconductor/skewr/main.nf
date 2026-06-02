@@ -41,13 +41,29 @@ process BIOC_SKEWR {
     library(skewr)
     library(jsonlite)
 
-    # --- get Barcodes [] ---
-    # Key functions: getBarcodes
-    baseDir <- system.file("extdata/5723646052", package = "minfiData")
-    barcodes <- getBarcodes(path = baseDir)
-    # --- panel Plots [] ---
+    # --- Parameter Estimation [] ---
+    # Key functions: getSNparams
+    sn.raw.meth.I.red <- skewr::getSNparams(
+        melon.raw, "M", "I-red"
+    )
+    sn.raw.unmeth.I.red <- skewr::getSNparams(
+        melon.raw, "U", "I-red"
+    )
+    sn.raw.meth.II <- skewr::getSNparams(
+        melon.raw, "M", "II"
+    )
+
+
+    # --- Visualization and Panel Plotting [] ---
     # Key functions: panelPlots
-    panelPlots(melon.raw, raw.I.red.mixes, raw.I.green.mixes,
+    raw.I.red.mixes <- list(sn.raw.meth.I.red, sn.raw.unmeth.I.red)
+    skewr::panelPlots(
+        melon.raw,
+        raw.I.red.mixes,
+        raw.I.green.mixes,
+        raw.II.mixes,
+        norm = "Raw"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

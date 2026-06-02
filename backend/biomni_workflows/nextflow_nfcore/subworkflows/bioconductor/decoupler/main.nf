@@ -38,17 +38,55 @@ process BIOC_DECOUPLER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(decoupleR)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: pheatmap, pivot_wider_profile
-    filter(statistic=='consensus') %>%
-    pivot_wider_profile(id_cols = source, names_from = condition,
-    as.matrix()
-    # --- Toy data analysis [] ---
-    # Key functions: get_toy_data, run_fgsea, run_ulm, decouple, PrintBibliography
-    res_gsea <- run_fgsea(mat, network, .source='source', .target='target', nproc=1, minsize = 0)
+    # --- GSEA Activity Estimation [] ---
+    # Key functions: run_fgsea
+    res_gsea <- run_fgsea(
+        mat = mat,
+        network = network,
+        .source = "source",
+        .target = "target",
+        nproc = 1,
+        minsize = 0
+    )
+
+
+    # --- ULM Activity Estimation [] ---
+    # Key functions: run_ulm
+    res_ulm <- run_ulm(
+        mat = mat,
+        network = network,
+        .source = "source",
+        .target = "target",
+        .mor = "mor",
+        minsize = 0
+    )
+
+
+    # --- Consensus Activity Estimation [] ---
+    # Key functions: decouple
+    res_decouple <- decouple(
+        mat = mat,
+        network = network,
+        .source = "source",
+        .target = "target",
+        minsize = 0
+    )
+
+
+    # --- Profile Reshaping and Formatting [] ---
+    # Key functions: pivot_wider_profile
+    res_consensus <- res_decouple[res_decouple$statistic == "consensus", ]
+    mat_consensus <- pivot_wider_profile(
+        res_consensus,
+        id_cols = source,
+        names_from = condition,
+        values_from = score
+    )
+    final_matrix <- as.matrix(mat_consensus)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

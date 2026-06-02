@@ -38,16 +38,32 @@ process BIOC_ENMIX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ENmix)
     library(AnnotatedDataFrame)
     library(MethylSet)
     library(QCinfo)
     library(jsonlite)
 
-    # --- Sample metadata inspection [] ---
-    # Key functions: readidat, QCinfo, preprocessENmix, rcp, qcfilter, colData, plotCtrl, AnnotatedDataFrame
-    library(ENmix)
-    rgSet <- readidat(path = "directory path for idat files",
-    system("wget https://webdata.illumina.com/downloads/productfiles/humanmethylation450/humanmethylation450_15017482_v1-2.csv")
+    # --- Background Correction and Normalization [] ---
+    # Key functions: preprocessENmix, norm.quantile, rcp
+    meth_corrected <- preprocessENmix(
+        rgSet_filtered,
+        bgParaEst = "oob",
+        dyeCorr = "RELU"
+    )
+    meth_norm <- norm.quantile(
+        meth_corrected,
+        method = "quantile1"
+    )
+    beta_rcp <- rcp(meth_norm)
+
+
+    # --- Probe and Sample Filtering [] ---
+    # Key functions: mffilter
+    beta_filtered <- mffilter(
+        beta_rcp,
+        threshold = 0.05
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

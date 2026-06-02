@@ -38,24 +38,37 @@ process BIOC_SHINY_GOSLING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(shiny.gosling)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges
-    temp_file <- file.path(tempdir(), "data.gz")
-    download.file(url, destfile = temp_file, method = "auto", mode = "wb")
-    df <- read.delim(
-    # --- fluid Page [] ---
-    # Key functions: fluidPage, use_gosling, goslingOutput, add_single_track, compose_view
-    ui <- fluidPage(
-    use_gosling(clear_files = FALSE),
-    goslingOutput("gosling_plot")
-    # --- add_single_track [] ---
-    # Key functions: add_single_track, compose_view, arrange_views, shinyApp, use_gosling
-    if (!dir.exists("data")) {
-    dir.create("data")
-    utils::write.csv(gr, "data/ChipSeqPeaks.csv", row.names = FALSE)
+    # --- View Composition and Arrangement [] ---
+    # Key functions: compose_view, arrange_views
+    composed_view <- compose_view(
+        layout = "linear",
+        tracks = track_1
+    )
+    arranged_view <- arrange_views(
+        title = "Basic Marks: bar",
+        subtitle = "Tutorial Examples",
+        views = composed_view
+    )
+
+
+    # --- Shiny Application Integration [] ---
+    # Key functions: use_gosling, goslingOutput, renderGosling, gosling
+    ui <- shiny::fluidPage(
+        use_gosling(clear_files = FALSE),
+        goslingOutput("gosling_plot")
+    )
+    server <- function(input, output, session) {
+        output$gosling_plot <- renderGosling({
+            gosling(
+                component_id = "component_1",
+                arranged_view
+            )
+        })
+    }
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

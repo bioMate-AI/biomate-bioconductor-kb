@@ -38,108 +38,23 @@ process BIOC_TIDYCOVERAGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tidyCoverage)
     library(AnnotationHub)
     library(BigWigFileList)
     library(CoverageExperiment)
     library(GRanges)
     library(jsonlite)
 
-    # --- Showclass [] ---
-    # Key functions: showClass, rowData, rowRanges, colData, assays, assay
-    ---------------------------------------------------------------------
-    library(tidyCoverage)
-    showClass("CoverageExperiment")
-    data(ce)
-    ce
-    # --- Assay [] ---
-    # Key functions: assay, rowData, width
-    ---------------------------------------------------------------------
-    assay(ce, 'coverage')
-    assay(ce, 'coverage')[1, 1] |> class()
-    assay(ce, 'coverage')[1, 1] |> length()
-    assay(ce, 'coverage')[1, 1][[1]] |> class()
-    # --- Showclass [] ---
-    # Key functions: showClass, rowData, rowRanges, colData, assays, assay
-    ---------------------------------------------------------------------
-    showClass("AggregatedCoverage")
-    data(ac)
-    ac
-    rowData(ac)
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    assay(ac[1, 1], 'mean')[[1]] |> dim()
-    assay(ac[1, 1], 'mean')[[1]] |> length()
-    assay(ac[1, 1], 'mean')[[1]][1:10]
-    # --- Coverageexperiment [] ---
-    # Key functions: CoverageExperiment, import, assay
-    ---------------------------------------------------------------------
-    CE2 <- CoverageExperiment(
-        tracks = import(bw_file, as = "Rle"),
-        features = import(bed_file),
-        width = 3000,
-    # --- Coarsen [] ---
-    # Key functions: coarsen
-    ---------------------------------------------------------------------
-    CE3 <- coarsen(CE, window = 20)
-    CE3
-    identical(CE2, CE3)
-    # --- Expand [] ---
-    # Key functions: expand
-    ---------------------------------------------------------------------
-    expand(CE)
-    # --- List [] ---
-    # Key functions: BigWigFileList, GRanges, CoverageExperiment, width
-    ---------------------------------------------------------------------
-    # ~~~~~~~~~~~~~~~ Import coverage tracks into a named list ~~~~~~~~~~~~~~~ #
-    tracks <- list(
-        Scc1 = system.file("extdata", "Scc1.bw", package = "tidyCoverage"),
-        RNA_fwd = system.file("extdata", "RNA.fwd.bw", package = "tidyCoverage"),
-    # --- Coarsen [] ---
-    # Key functions: coarsen, expand, ggplot, aes, geom_col, facet_grid, scale_x_continuous
-    ---------------------------------------------------------------------
-    library(ggplot2)
-    CE_chrII |>
-        coarsen(window = 10) |>
-        expand() |>
-    # --- Aggregate [] ---
-    # Key functions: aggregate, assay
-    ---------------------------------------------------------------------
-    AC <- aggregate(CE)
-    AC
-    assay(AC, 'mean')[1, 1][[1]] |> length()
-    # --- As Tibble [] ---
-    # Key functions: as_tibble
-    ---------------------------------------------------------------------
-    as_tibble(AC20)
-    # --- Coverageexperiment [] ---
-    # Key functions: CoverageExperiment, import, coarsen, aggregate, as_tibble
-    ---------------------------------------------------------------------
-    # Coarsen `CoverageExperiment` with `window = ...` then per-bin `aggregate`:
-    CoverageExperiment(
-        tracks = import(bw_file, as = "Rle"), features = import(bed_file),
-        width = 3000
-    # --- List [] ---
-    # Key functions: map, CoverageExperiment, aggregate
-    ---------------------------------------------------------------------
-    library(purrr)
-    library(plyranges)
-    # ~~~~~~~~~~~~~~~ Import genomic features into a named list ~~~~~~~~~~~~~~~ #
-    features <- list(
-    # --- As Tibble [] ---
-    # Key functions: as_tibble, ggplot, geom_aggrcoverage
-    ---------------------------------------------------------------------
-    AC |>
-        as_tibble() |>
-        ggplot() +
-        geom_aggrcoverage()
-    # --- As Tibble [] ---
-    # Key functions: as_tibble, ggplot, aes, geom_aggrcoverage, facet_grid
-    ---------------------------------------------------------------------
-    AC |>
-        as_tibble() |>
-        ggplot(aes(col = track)) +
-        geom_aggrcoverage() +
+    # --- Resolution Coarsening and Expansion [] ---
+    # Key functions: coarsen, expand
+    cov_coarse <- coarsen(cov_exp, window = 20)
+    cov_expanded <- expand(cov_coarse)
+
+
+    # --- Coverage Aggregation [] ---
+    # Key functions: aggregate, as_tibble
+    cov_aggregated <- aggregate(cov_exp, bin = 20)
+    cov_tibble <- as_tibble(cov_aggregated)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

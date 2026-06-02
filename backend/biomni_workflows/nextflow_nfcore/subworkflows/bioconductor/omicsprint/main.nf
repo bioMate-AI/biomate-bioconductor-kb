@@ -41,83 +41,11 @@ process BIOC_OMICSPRINT {
     library(omicsPrint)
     library(jsonlite)
 
-    # --- Toydata [] ---
-    # Key functions: sample, rbinom, swap
-    swap <- function(x, frac=0.05) {
-        n <- length(x)
-        k <- floor(n*frac)
-        x1 <- sample(1:n,k)
-        x2 <- sample(1:n,k) ##could be overlapping
-    # --- Allelesharing [] ---
-    # Key functions: alleleSharing
-    data <- alleleSharing(x, verbose=TRUE)
-    # --- Inferrelations [] ---
-    # Key functions: inferRelations
-    mismatches <- inferRelations(data)
-    mismatches
-    # --- Extendedrelations [] ---
-    # Key functions: grid
-    relations <- expand.grid(idx = colnames(x), idy= colnames(x))
-    relations$relation_type <- "unrelated"
-    relations$relation_type[relations$idx == relations$idy] <- "identical"
-    relations$relation_type[c(2,5)] <- "identical" ##replicate
-    relations$relation_type[c(3,7,9,10)] <- "parent offspring"
-    # --- Addrelations [] ---
-    # Key functions: alleleSharing, inferRelations
-    data <- alleleSharing(x, relations=relations)
-    data
-    mismatches <- inferRelations(data)
-    mismatches
-    # --- Xyallelesharing1 [] ---
-    # Key functions: sample, alleleSharing
-    rownames(x) <- paste0("rs", 1:100)
-    y <- x[sample(1:100, 80),]
-    data <- alleleSharing(x, y)
-    # --- Xyallelesharing2 [] ---
-    # Key functions: inferRelations
-    data
-    mismatches <- inferRelations(data)
-    mismatches
-    # --- Addrelations2 [] ---
-    # Key functions: alleleSharing, inferRelations
-    data <- alleleSharing(x, y, relations)
-    data
-    mismatches <- inferRelations(data)
-    mismatches
-    # --- Downloadretry [] ---
-    # Key functions: tempfile, getGEO
-    library(GEOquery)
-    library(SummarizedExperiment)
-    file <- tempfile(fileext = ".txt.gz")
-    cnt <- 0
-    value <- -1
-    # --- make Summarized Experiment From Expression Set [] ---
-    # Key functions: makeSummarizedExperimentFromExpressionSet
-    se <- makeSummarizedExperimentFromExpressionSet(gset)
-    se
-    # --- Makerelationships [] ---
-    # Key functions: grid, colData
-    r <- expand.grid(idx=colnames(se), idy=colnames(se))
-    r$Xpair <- sapply(strsplit(as.character(colData(se)[r$idx, "source_name_ch1"]),
-                               split = "_"), head, 1)
-    r$Ypair <- sapply(strsplit(as.character(colData(se)[r$idy, "source_name_ch1"]),
-                               split = "_"), head, 1)
-    # --- Selectcpgs [] ---
-    # Key functions: mcols
-    data(hm450.manifest.pop.GoNL)
-    cpgs <- names(hm450.manifest.pop.GoNL[
-        mcols(hm450.manifest.pop.GoNL)$MASK.snp5.EAS])
-    se <- se[cpgs,]
-    # --- Genotyping [] ---
-    # Key functions: beta2genotype
+    # --- Genotype Conversion and Verification [] ---
+    # Key functions: beta2genotype, alleleSharing, inferRelations
     dnamCalls <- beta2genotype(se, assayName = "exprs")
-    dim(dnamCalls)
-    dnamCalls[1:5, 1:5]
-    # --- Allelesharing [] ---
-    # Key functions: alleleSharing, inferRelations
     data <- alleleSharing(dnamCalls, relations = r, verbose = TRUE)
     mismatches <- inferRelations(data)
-    mismatches
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

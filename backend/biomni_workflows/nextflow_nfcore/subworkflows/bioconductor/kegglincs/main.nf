@@ -38,62 +38,56 @@ process BIOC_KEGGLINCS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(KEGGlincs)
     library(KEGG_lincs)
     library(jsonlite)
 
-    # --- get KGML [] ---
-    # Key functions: get_KGML, slot
-    FoxO_KGML <- get_KGML("hsa04068")
-    slot(FoxO_KGML, "pathwayInfo")
-    # --- access KGML [] ---
-    # Key functions: slot
-    slot(slot(FoxO_KGML, "pathwayInfo"), "image")
-    # --- slot [] ---
-    # Key functions: slot
-    image_link <- slot(slot(FoxO_KGML, "pathwayInfo"), "image")
-    download.file(image_link, basename(image_link), mode = "wb")
-    # --- speed up for ex [] ---
-    # Key functions: expand_KEGG_mappings
-    FoxO_KEGG_mappings <- expand_KEGG_mappings(FoxO_KGML, convert_KEGG_IDs = FALSE)
-    # --- expand mapping for show [] ---
-    # Key functions: expand_KEGG_mappings
-    FoxO_KEGG_mappings <- expand_KEGG_mappings(FoxO_KGML)
-    # --- expand_ K E G G_edges [] ---
-    # Key functions: expand_KEGG_edges
-    FoxO_edges <- expand_KEGG_edges(FoxO_KGML, FoxO_KEGG_mappings)
-    # --- node_mapping_info [] ---
+    # --- Expand KEGG Mappings and Edges [] ---
+    # Key functions: expand_KEGG_mappings, expand_KEGG_edges
+    p53_KEGG_mappings <- expand_KEGG_mappings(
+        p53_KGML, 
+        convert_KEGG_IDs = TRUE
+    )
+    p53_edges <- expand_KEGG_edges(
+        p53_KGML, 
+        p53_KEGG_mappings
+    )
+
+
+    # --- Generate Graph Object [] ---
     # Key functions: node_mapping_info, edge_mapping_info, get_graph_object
-    FoxO_node_mapping_info <- node_mapping_info(FoxO_KEGG_mappings)
-    FoxO_edge_mapping_info <- edge_mapping_info(FoxO_edges)
-    GO <- get_graph_object(FoxO_node_mapping_info, FoxO_edge_mapping_info)
-    # --- cyto_vis [] ---
-    # Key functions: cyto_vis
-    cyto_vis(GO, "FoxO Pathway with Expanded Edges[no data added]")
-    # --- default p53 [] ---
-    # Key functions: KEGG_lincs
-    KEGG_lincs("hsa04115")
-    # --- begin workflow1 [] ---
-    # Key functions: get_KGML, expand_KEGG_mappings, expand_KEGG_edges
-    p53_KGML <- get_KGML("hsa04115")
-    p53_KEGG_mappings <- expand_KEGG_mappings(p53_KGML)
-    p53_edges <- expand_KEGG_edges(p53_KGML, p53_KEGG_mappings)
-    # --- show pathway genes [] ---
-    # Key functions: path_genes_by_cell_type
-    path_genes_by_cell_type(p53_KEGG_mappings)
-    # --- show summary for ex [] ---
-    # Key functions: path_genes_by_cell_type
-    p53_L1000_summary <- path_genes_by_cell_type(p53_KEGG_mappings, get_KOs = TRUE)
-    # --- avoid poor map render [] ---
-    # Key functions: path_genes_by_cell_type
-    p53_L1000_summary <- path_genes_by_cell_type(p53_KEGG_mappings, get_KOs = TRUE,
-    knitr::kable(tail(p53_L1000_summary))
-    # --- overlap_info [] ---
-    # Key functions: overlap_info
-    p53_PC3_data <- overlap_info(p53_KGML, p53_KEGG_mappings, "PC3")
-    p53_HA1E_data <- overlap_info(p53_KGML, p53_KEGG_mappings, "HA1E")
-    # --- show overlap data [] ---
-    # Key functions: kable
-    knitr::kable(head(p53_PC3_data[1:6]))
+    p53_node_info <- node_mapping_info(p53_KEGG_mappings)
+    p53_edge_info <- edge_mapping_info(p53_edges)
+    graph_obj <- get_graph_object(
+        p53_node_info, 
+        p53_edge_info
+    )
+
+
+    # --- Cell Type Specific Gene Coverage [] ---
+    # Key functions: path_genes_by_cell_type, overlap_info
+    p53_L1000_summary <- path_genes_by_cell_type(
+        p53_KEGG_mappings, 
+        get_KOs = TRUE,
+        generate_plot = FALSE
+    )
+    p53_PC3_data <- overlap_info(
+        p53_KGML, 
+        p53_KEGG_mappings, 
+        "PC3",
+        keep_counts_only = FALSE
+    )
+
+
+    # --- Integrate Edge Data [] ---
+    # Key functions: add_edge_data
+    p53_PC3_edges <- add_edge_data(
+        p53_edges, 
+        p53_KEGG_mappings,
+        p53_PC3_data, 
+        only_mapped = TRUE,
+        data_column_no = c(3, 10, 12)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

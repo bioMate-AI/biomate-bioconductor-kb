@@ -38,94 +38,35 @@ process BIOC_PCAN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(PCAN)
     library(MulticoreParam)
     library(SerialParam)
     library(jsonlite)
 
-    # --- Quote [] ---
-    # Key functions: quote, MulticoreParam
-    ---------------------------------------------------------------------
-    library(PCAN)
-    ## Some functions can be parallelized.
-    ## They use the bpmapply function from the BiocParallel library.
-    ## Follow instructions provided in the BiocParallel manual to
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(geneByTrait, package="PCAN")
-    head(geneByTrait, n=3)
-    dim(geneByTrait)
-    # --- Unique [] ---
-    # Key functions: merge
-    ---------------------------------------------------------------------
-    geneByHp <- unique(merge(
-        geneByTrait,
-        hpByTrait,
-        by="id"
-    # --- Unstack [] ---
-    # Key functions: unstack, computeHpIC
-    ---------------------------------------------------------------------
-    info <- unstack(geneByHp, entrez~hp)
-    ic <- computeHpIC(info, hp_descendants)
-    # --- Which [] ---
-    # Key functions: calcHpSim
-    ---------------------------------------------------------------------
-    hp1 <- "HP:0000518"
-    hp2 <- "HP:0030084"
-    hpDef[which(hpDef$id %in% c(hp1, hp2)), 1:2]
-    calcHpSim(hp1, hp2, IC=ic, ancestors=hp_ancestors)
-    # --- Comparehpsets [] ---
-    # Key functions: compareHPSets, SerialParam
-    ---------------------------------------------------------------------
+    # --- Phenotype Semantic Similarity Calculation [] ---
+    # Key functions: calcHpSim, compareHPSets
+    sim_val <- calcHpSim(
+        "HP:0000518",
+        "HP:0030084",
+        IC = ic,
+        ancestors = hp_ancestors
+    )
     compMat <- compareHPSets(
-        hpSet1=genHp, hpSet2=hpOfInterest,
-        IC=ic,
-        ancestors=hp_ancestors,
-    # --- Hpsetcompsummary [] ---
+        hpSet1 = genHp,
+        hpSet2 = hpOfInterest,
+        IC = ic,
+        ancestors = hp_ancestors,
+        method = "Resnik"
+    )
+
+
+    # --- Gene-Phenotype Association Scoring [] ---
     # Key functions: hpSetCompSummary
-    ---------------------------------------------------------------------
-    hpSetCompSummary(compMat, method="bma", direction="symSim")
-    # --- Comparehpsets [] ---
-    # Key functions: compareHPSets, SerialParam, unstack, unlist
-    ---------------------------------------------------------------------
-    ## Compute semantic similarity between HP of interest and all HP terms
-    ## This step is time consumming and can be parallelized.
-    ## Use the BPPARAM parameter to specify your own
-    ## back-end with appropriate number of workers.
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(hsEntrezByRPath, rPath, package="PCAN")
-    head(rPath, n=3)
-    lapply(head(hsEntrezByRPath, 3), head)
-    # --- Hpgenelistcomp [] ---
-    # Key functions: hpGeneListComp
-    ---------------------------------------------------------------------
-    rPathRes <- hpGeneListComp(
-        geneList=hsEntrezByRPath[[candPath]],
-        ssMatByGene = hpMatByGene,
-        geneSSScore = resnSss
-    # --- Which [] ---
-    # Key functions: na
-    ---------------------------------------------------------------------
-    pathSss <- rPathRes$scores[which(!is.na(rPathRes$scores))]
-    names(pathSss) <- geneDef[match(names(pathSss), geneDef$entrez), "symbol"]
-    par(mar=c(7.1, 4.1, 4.1, 2.1))
-    barplot(
-    # --- Which [] ---
-    # Key functions: hpGeneHeatmap, colorRampPalette
-    ---------------------------------------------------------------------
-    geneLabels <- geneDef$symbol[which(!duplicated(geneDef$entrez))]
-    names(geneLabels) <- geneDef$entrez[which(!duplicated(geneDef$entrez))]
-    hpLabels <- hpDef$name
-    names(hpLabels) <- hpDef$id
-    # --- Unique [] ---
-    # Key functions: hpGeneListComp
-    ---------------------------------------------------------------------
-    neighbors <- unique(c(
-        hqStrNw$gene1[which(hqStrNw$gene2==genId)],
-        hqStrNw$gene2[which(hqStrNw$gene1==genId)],
-        genId
+    score_summary <- hpSetCompSummary(
+        compMat,
+        method = "bma",
+        direction = "symSim"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,45 @@ process BIOC_EVALUOMER {
     library(evaluomeR)
     library(jsonlite)
 
-    # --- Assay data access [] ---
-    # Key functions: metricsCorrelations, assay, stability, kable_styling, scroll_box, diff, stabilityRange, qualityRange
-    stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4),
-    qualityData <- qualityRange(data=ontMetrics, k.range=c(2,4),
+    # --- Stability and Range Estimation [] ---
+    # Key functions: stability, stabilityRange
+    data("rnaMetrics")
+    stabilityData <- stability(
+        rnaMetrics,
+        k = 2,
+        bs = 100
+    )
+    stabilityRangeData <- stabilityRange(
+        rnaMetrics,
+        k.range = c(2, 4),
+        bs = 100
+    )
+
+
+    # --- Quality and Optimal K Evaluation [] ---
+    # Key functions: stabilityRange, qualityRange, getOptimalKValue
+    data("ontMetrics")
+    stabilityData <- stabilityRange(
+        data = ontMetrics,
+        k.range = c(2, 4),
+        bs = 20,
+        getImages = FALSE
+    )
+    qualityData <- qualityRange(
+        data = ontMetrics,
+        k.range = c(2, 4),
+        getImages = FALSE
+    )
     kOptTable <- getOptimalKValue(stabilityData, qualityData)
+
+
+    # --- Metric Visualization [] ---
+    # Key functions: plotMetricsMinMax, plotMetricsBoxplot, plotMetricsCluster, plotMetricsViolin
+    data("rnaMetrics")
+    plotMetricsMinMax(rnaMetrics)
+    plotMetricsBoxplot(rnaMetrics)
+    plotMetricsCluster(rnaMetrics)
+    plotMetricsViolin(rnaMetrics)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

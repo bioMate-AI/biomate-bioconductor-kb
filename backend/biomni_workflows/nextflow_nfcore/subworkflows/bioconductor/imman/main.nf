@@ -41,13 +41,29 @@ process BIOC_IMMAN {
     library(IMMAN)
     library(jsonlite)
 
-    # --- Code Block 3 [] ---
+    # --- Interolog Mapping with Network Shrinkage [] ---
     # Key functions: IMMAN
-    output = IMMAN(ProteinLists, fileNames=NULL, Species_IDs,
-                  identityU, substitutionMatrix,
-                  gapOpening, gapExtension, BestHit,
-                  coverage, NetworkShrinkage,
-                  score_threshold, STRINGversion,
+    shrink_results <- IMMAN(
+        ProteinLists = protein_data,
+        Species_IDs = c("9606", "10090"),
+        identityU = 0.5,
+        substitutionMatrix = "BLOSUM62",
+        gapOpening = 12,
+        gapExtension = 2,
+        BestHit = FALSE,
+        coverage = 0.6,
+        NetworkShrinkage = TRUE,
+        score_threshold = 500,
+        STRINGversion = "10"
+    )
+
+
+    # --- Network Filtering and Edge Extraction [] ---
+    # Key functions: IMMAN
+    final_network <- shrink_results$MappedNetwork
+    edge_weights <- shrink_results$Scores
+    valid_indices <- which(edge_weights >= 600)
+    filtered_network <- final_network[valid_indices, ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

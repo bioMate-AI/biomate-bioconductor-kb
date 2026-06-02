@@ -38,92 +38,76 @@ process BIOC_SEVENBRIDGES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(sevenbridges)
     library(Auth)
     library(Date)
     library(Metadata)
     library(Tool)
     library(jsonlite)
 
-    # --- Create Auth Object [] ---
-    # Key functions: Auth, api
-    ---------------------------------------------------------------------
-    #  library("sevenbridges")
-    #  a <- Auth(token = "your_token", platform = "aws-us")
-    #  a$api(path = "projects", method = "GET")
-    # --- Get Project Details [] ---
-    # Key functions: project
-    ---------------------------------------------------------------------
-    #  a$project()
-    # --- Packages [] ---
-    # Key functions: packages
-    ---------------------------------------------------------------------
-    #  install.packages("BiocManager")
-    #  BiocManager::install("sevenbridges")
-    # --- Packages [] ---
-    # Key functions: packages, install_github, repositories
-    ---------------------------------------------------------------------
-    #  install.packages("BiocManager")
-    #  install.packages("readr")
-    #
-    #  devtools::install_github(
-    # --- Create Auth Object [] ---
+    # --- Platform Authentication ---
     # Key functions: Auth
-    ---------------------------------------------------------------------
-    #  (a <- Auth(platform = "cgc", token = "your_token"))
-    # --- Set Environment Variables [] ---
-    # Key functions: sbg_set_env
-    ---------------------------------------------------------------------
-    #  sbg_set_env("https://cgc-api.sbgenomics.com/v2", "your_token")
-    # --- Create Auth Object [] ---
+    a <- Auth(
+        token = "your_token",
+        platform = "aws-us"
+    )
+    p <- a$project(id = "your_project_id")
+
+    # --- App Schema Inspection ---
+    # Key functions: convert_app, output_matrix
+    f1 <- system.file(
+        "extdata/app", "flow_star.json",
+        package = "sevenbridges"
+    )
+    app <- convert_app(f1)
+    in_mat <- app$input_matrix(
+        c("id", "label", "type"),
+        required = TRUE
+    )
+    out_mat <- output_matrix(f1)
+
+    # --- File Querying ---
     # Key functions: Auth
-    ---------------------------------------------------------------------
-    #  a <- Auth(from = "env")
-    # --- Get User Information [] ---
-    # Key functions: user
-    ---------------------------------------------------------------------
-    #  a$user()
-    # --- Check Rate Limit [] ---
-    # Key functions: rate_limit
-    ---------------------------------------------------------------------
-    #  a$rate_limit()
-    # --- Show Billing Information [] ---
-    # Key functions: billing, invoice
-    ---------------------------------------------------------------------
-    #  # check your billing info
-    #  a$billing()
-    #  a$invoice()
-    # --- Show Billing Information [] ---
-    # Key functions: billing
-    ---------------------------------------------------------------------
-    #  a$billing(id = "your_billing_id", breakdown = TRUE)
-    # --- Show Billing Information [] ---
-    # Key functions: billing, project_new
-    ---------------------------------------------------------------------
-    #  # get billing group id
-    #  bid <- a$billing()$id
-    #  # create new project
-    #  (p <- a$project_new(name = "api testing", bid, description = "Just a test"))
-    # --- Get Project Details [] ---
-    # Key functions: project
-    ---------------------------------------------------------------------
-    #  # list first 100
-    #  a$project()
-    #  # list all
-    #  a$project(complete = TRUE)
-    # --- List Public Apps [] ---
-    # Key functions: public_app
-    ---------------------------------------------------------------------
-    #  # search by name matching, complete = TRUE search all apps,
-    #  # not limited by offset or limit.
-    #  a$public_app(name = "STAR", complete = TRUE)
-    #  # search by id is accurate
-    # --- Copy Public App [] ---
-    # Key functions: copy_app, project, app
-    ---------------------------------------------------------------------
-    #  # copy
-    #  a$copy_app(
-    #    id = "admin/sbg-public-data/rna-seq-alignment-star/5",
-    #    project = "RFranklin/api-testing", name = "new copy of star"
+    fastq_in <- p$file(
+        name = "SRR1039508*.fastq",
+        complete = TRUE
+    )
+    fasta_in <- p$file(
+        name = "Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+        exact = TRUE
+    )
+    gtf_in <- p$file(
+        name = "Homo_sapiens.GRCh38.84.gtf",
+        exact = TRUE
+    )
+
+    # --- Task Creation and Batching ---
+    # Key functions: batch
+    taskName <- "RFranklin-star-alignment"
+    tsk <- p$task_add(
+        name = taskName,
+        description = "Batch Star Test",
+        app = "RFranklin/api-testing-2/newcopyofstar/0",
+        batch = batch(
+            input = "fastq",
+            criteria = c("metadata.sample_id")
+        ),
+        inputs = list(
+            sjdbGTFfile = gtf_in,
+            fastq = fastq_in,
+            genomeFastaFiles = fasta_in
+        )
+    )
+
+    # --- Task Execution and Monitoring ---
+    # Key functions: setTaskHook, getTaskHook
+    tsk$run()
+    setTaskHook("completed", function() {
+        tsk$download(tempdir())
+        return(TRUE)
+    })
+    current_hook <- getTaskHook("completed")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

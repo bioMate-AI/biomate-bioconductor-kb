@@ -38,50 +38,48 @@ process BIOC_PAIRKAT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pairkat)
     library(GatherNetworks)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
+    # --- Data Preparation [SummarizedExperiment] ---
+    # Key functions: SummarizedExperiment, colData, rowData, assays
+    data("smokers", package = "pairkat")
+    phenotype <- SummarizedExperiment::colData(smokers)
     pathways <- SummarizedExperiment::rowData(smokers)
-    head(pathways)[, 1:2]
-    # --- Assays [] ---
-    # Key functions: assays
-    ---------------------------------------------------------------------
     metabolome <- SummarizedExperiment::assays(smokers)$metabolomics
-    head(metabolome)[, 1:3]
-    # --- Summarizedexperiment [] ---
-    # Key functions: SummarizedExperiment
-    ---------------------------------------------------------------------
-    smokers <-
-      SummarizedExperiment::SummarizedExperiment(
+    smokers_se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(metabolomics = metabolome),
         rowData = pathways,
-    # --- Head [] ---
-    # Key functions: keggList
-    ---------------------------------------------------------------------
-    head(KEGGREST::keggList("organism"))[, 2:3]
-    # --- Gathernetworks [] ---
+        colData = phenotype
+    )
+
+    # --- Network Generation [GatherNetworks] ---
     # Key functions: GatherNetworks
-    ---------------------------------------------------------------------
     networks <- GatherNetworks(
-      SE = smokers,
-      keggID = "kegg_id",
-      species = "hsa",
-    # --- Arrange [] ---
-    # Key functions: arrange
-    ---------------------------------------------------------------------
-    # view formula call
-    output$call
-    # view results
-    results <- dplyr::arrange(output$results, p.value)
-    # --- Plotnetworks [] ---
+        SE = smokers,
+        keggID = "kegg_id",
+        species = "hsa",
+        minPathwaySize = 5
+    )
+
+    # --- Pathway Association Testing [PaIRKAT] ---
+    # Key functions: PaIRKAT
+    output <- PaIRKAT(
+        formula = log_FEV1_FVC_ratio ~ age,
+        networks = networks
+    )
+    results <- output$results
+    sorted_results <- results[order(results$p.value), ]
+
+    # --- Network Visualization [plotNetworks] ---
     # Key functions: plotNetworks
-    ---------------------------------------------------------------------
-    plotNetworks(networks = networks,
-                 pathway = "Glycerophospholipid metabolism")
+    plotNetworks(
+        networks = networks,
+        pathway = "Glycerophospholipid metabolism"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

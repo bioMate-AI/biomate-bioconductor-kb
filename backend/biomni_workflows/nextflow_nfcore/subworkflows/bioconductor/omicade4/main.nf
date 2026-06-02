@@ -41,27 +41,12 @@ process BIOC_OMICADE4 {
     library(omicade4)
     library(jsonlite)
 
-    # --- Load Lib Data [] ---
-    # Key functions: data
-    library(omicade4)
-    data(NCI60_4arrays)
-    # --- Cluster Data Separately [] ---
-    # Key functions: dist, hclust
-    layout(matrix(1:4, 1, 4))
-    par(mar=c(2, 1, 0.1, 6))
-    for (df in NCI60_4arrays) {
-      d <- dist(t(df))
-      hcl <- hclust(d)
-    # --- Mcia [] ---
-    # Key functions: mcia
-    mcoin <- mcia(NCI60_4arrays, cia.nf=10)
-    class(mcoin)
-    # --- Selectvar Mcia Melan [] ---
-    # Key functions: selectVar
+    # --- Multi-Co-Inertia Visualization [] ---
+    # Key functions: selectVar, plotVar
+    cancer_type <- colnames(NCI60_4arrays$agilent)
+    cancer_type <- sapply(strsplit(cancer_type, split="\\."), function(x) x[1])
+    plot(mcoin, axes=1:2, phenovec=cancer_type, sample.lab=FALSE, df.color=1:4)
     melan_gene <- selectVar(mcoin, a1.lim=c(2, Inf), a2.lim=c(-Inf, Inf))
-    melan_gene
-    # --- Plotvar Mcia [] ---
-    # Key functions: plotVar
     geneStat <- plotVar(mcoin, var=c("S100B", "S100A1"), var.lab=TRUE)
 
     # --- Save outputs ---

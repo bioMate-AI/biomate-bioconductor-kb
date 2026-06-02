@@ -38,21 +38,45 @@ process BIOC_RMMQUANT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Rmmquant)
     library(DESeq)
     library(DESeqDataSetFromMatrix)
     library(RmmquantRun)
     library(jsonlite)
 
-    # --- Create DESeqDataSet from count matrix [] ---
-    # Key functions: RmmquantRun, DESeqDataSetFromMatrix, DESeq, lfcShrink
-    output   <- RmmquantRun(genomicRanges=gr, readsFiles=bamFiles,
-    coldata <- data.frame(condition=factor(c(rep("control", 3), rep("KO", 3)),
-    levels=c("control", "KO")),
-    # --- Assay listing [] ---
-    # Key functions: RmmquantRun, assays, getBamFileList, genes
-    dir <- system.file("extdata", package="Rmmquant", mustWork = TRUE)
-    gtfFile <- file.path(dir, "test.gtf")
-    bamFile <- file.path(dir, "test.bam")
+    # --- Multi-sample Quantification [] ---
+    # Key functions: getBamFileList, RmmquantRun
+    bamFiles <- getBamFileList()
+    sampleNames <- names(bamFiles)
+    gr <- GenomicFeatures::genes(
+        TxDb.Mmusculus.UCSC.mm9.knownGene::TxDb.Mmusculus.UCSC.mm9.knownGene,
+        filter = list(tx_chrom = "chr19")
+    )
+    output <- RmmquantRun(
+        genomicRanges = gr,
+        readsFiles = bamFiles,
+        sampleNames = sampleNames,
+        sorts = FALSE
+    )
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: RmmquantRun
+    counts_matrix <- SummarizedExperiment::assays(output)$counts
+    coldata <- data.frame(
+        condition = factor(
+            c(rep("control", 3), rep("KO", 3)),
+            levels = c("control", "KO")
+        ),
+        row.names = sampleNames
+    )
+    dds <- DESeq2::DESeqDataSetFromMatrix(
+        countData = counts_matrix,
+        colData = coldata,
+        design = ~ condition
+    )
+    dds <- DESeq2::DESeq(dds)
+    res <- DESeq2::lfcShrink(dds, coef = 2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

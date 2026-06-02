@@ -38,6 +38,7 @@ process BIOC_MASTR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(mastR)
     library(CreateSeuratObject)
     library(DGEList)
     library(ExpressionSet)
@@ -46,74 +47,87 @@ process BIOC_MASTR {
     library(MarkerBasedDecomposition)
     library(jsonlite)
 
-    # --- LM markers [] ---
-    # Key functions: get_lm_sig
-    data("lm7", "lm22")
-    LM <- get_lm_sig(lm7.pattern = "^NK", lm22.pattern = "NK cells")
-    # --- MSigDB gene sets [] ---
-    # Key functions: get_gsc_sig
-    data("msigdb_gobp_nk")
-    MSig <- get_gsc_sig(
-    # --- set Names [] ---
-    # Key functions: setNames, setName, gsc_plot
-    gsn <- setNames(names(MSig), LETTERS[seq_along(MSig)])
-    for (i in seq_along(MSig)) {
-    setName(MSig[[i]]) <- LETTERS[i]
-    # --- merge MSigDB [] ---
-    # Key functions: merge_markers, setName
-    MSig <- merge_markers(MSig)
-    setName(MSig) <- "MSigDB"
-    # --- PanglaoDB markers [] ---
-    # Key functions: list_panglao_organs, list_panglao_types, get_panglao_sig
-    list_panglao_organs()
-    list_panglao_types(organ = "Immune system")
-    Panglao <- get_panglao_sig(type = "NK cells")
-    # --- Gene Set [] ---
-    # Key functions: GeneSet
-    data("nk_markers")
-    nk_m <- GeneSet(nk_markers$HGNC_Symbol,
-    geneIdType = SymbolIdentifier(),
-    # --- integrate markers [] ---
-    # Key functions: GeneSetCollection, merge_markers, gsc_plot
-    gsc <- GeneSetCollection(c(nk_m, LM, MSig)) ## add Panglao if you run it
-    Markers <- merge_markers(gsc)
-    gsc_plot(gsc)
-    # --- process_data [] ---
-    # Key functions: process_data, attributes
+    # --- Expression Data Processing and Feature Selection [] ---
+    # Key functions: process_data, select_sig
+    data("im_data_6")
     proc_data <- process_data(
-    markers = geneIds(Markers),
-    attributes(proc_data)
-    # --- select_sig [] ---
-    # Key functions: select_sig
-    set.seed(123)
+        data = im_data_6,
+        group_col = "celltype:ch1",
+        target_group = "NK",
+        markers = c("ENSG00000149294", "ENSG00000111537"),
+        gene_id = "ENSEMBL"
+    )
+    proc_data$voomE <- proc_data$vfit$E
     sig_ct <- select_sig(proc_data, feature_selection = "auto")
-    head(sig_ct)
-    # --- markers for cell type [] ---
-    # Key functions: mapIds, geneIds, intersect
-    deg_up <- mapIds(
-    geneIds(sig_ct[["UP"]]),
-    deg_up <- na.omit(deg_up)
-    # --- PCA on sig [] ---
-    # Key functions: pca_matrix_plot, plot_annotation
-    pca_matrix_plot(proc_data,
-    patchwork::plot_annotation("Intersected UP DEGs")
-    pca_matrix_plot(proc_data,
-    # --- bg data filtration [] ---
-    # Key functions: rowSums
-    keep <- rowSums(bg_mat > 1, na.rm = TRUE) > 2
-    # --- remove bg in customized [] ---
-    # Key functions: remove_bg_exp_mat
+
+
+    # --- Background Noise Filtering [] ---
+    # Key functions: ccle_2_wide, remove_bg_exp_mat
+    data("ccle_crc_5")
+    ccle <- data.frame(
+        ccle_crc_5$counts,
+        gene_name = rownames(ccle_crc_5),
+        primary_disease = "CRC"
+    )
+    ccle_long <- tidyr::pivot_longer(
+        ccle,
+        -c(gene_name, primary_disease),
+        names_to = "depmap_id",
+        values_to = "rna_expression"
+    )
+    ccle_wide <- ccle_2_wide(ccle = ccle_long)
+    keep <- rowSums(ccle_wide > 1, na.rm = TRUE) > 2
+    ccle_wide <- ccle_wide[keep, ]
     m_ccl <- remove_bg_exp_mat(
-    markers = geneIds(Markers),
-    gene_id = c("ENSEMBL", "SYMBOL")
-    # --- ccle construction [] ---
-    # Key functions: pivot_longer
-    ccle <- data.frame(ccle_crc_5$counts,
-    gene_name = rownames(ccle_crc_5),
-    tidyr::pivot_longer(-c(gene_name, primary_disease),
-    # --- ccle to wide mat [] ---
-    # Key functions: ccle_2_wide
-    ccle <- ccle_2_wide(ccle = ccle)
+        sig_mat = matrix(rnorm(100), nrow = 10),
+        bg_mat = ccle_wide,
+        markers = c("NCAM1", "NCR1"),
+        gene_id = c("ENSEMBL", "SYMBOL")
+    )
+
+
+    # --- Signature Evaluation and Visualization [] ---
+    # Key functions: pca_matrix_plot, sig_heatmap, sig_boxplot, sig_gseaplot
+    pca_matrix_plot(
+        proc_data,
+        features = c("ENSG00000149294"),
+        group_by = "celltype.ch1",
+        slot = "voomE",
+        n = 3,
+        gene_id = "ENSEMBL"
+    )
+    sig_heatmap(
+        data = proc_data,
+        sigs = c("ENSG00000149294"),
+        group_col = "celltype.ch1",
+        markers = c("ENSG00000149294"),
+        gene_id = "ENSEMBL",
+        slot = "voomE"
+    )
+    sig_boxplot(
+        data = proc_data,
+        sigs = c("ENSG00000149294"),
+        group_col = "celltype.ch1",
+        target_group = "NK",
+        gene_id = "ENSEMBL",
+        slot = "voomE"
+    )
+
+
+    # --- Multi-dataset Refinement [] ---
+    # Key functions: filter_subset_sig
+    data("im_data_6")
+    m_ct_m <- filter_subset_sig(
+        data = list(A = im_data_6, B = im_data_6),
+        markers = c("ENSG00000149294", "ENSG00000111537"),
+        group_col = "celltype:ch1",
+        target_group = "NK",
+        feature_selection = "auto",
+        dir = "UP",
+        gene_id = "ENSEMBL",
+        comb = union,
+        summary = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

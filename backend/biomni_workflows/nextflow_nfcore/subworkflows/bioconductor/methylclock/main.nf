@@ -41,67 +41,33 @@ process BIOC_METHYLCLOCK {
     library(methylclock)
     library(jsonlite)
 
-    # --- get_ Test Dataset [] ---
-    # Key functions: get_TestDataset
-    TestDataset <- get_TestDataset()
-    cpgs.missing <- checkClocks(TestDataset)
-    # --- common Clock Cpgs [] ---
-    # Key functions: commonClockCpgs
-    commonClockCpgs(cpgs.missing, "Hannum" )
-    commonClockCpgs(cpgs.missing.GA, "Bohlin" )
-    # --- load horvath example [] ---
-    # Key functions: get_MethylationDataExample
-    library(tidyverse)
-    MethylationData <- get_MethylationDataExample()
-    # --- show cpg miss [] ---
-    # Key functions: checkClocks
-    missCpGs <- checkClocks(MethylationData)
-    # --- covariates horvath example [] ---
-    # Key functions: read_csv
-    library(tidyverse)
-    path <- system.file("extdata", package = "methylclock")
-    covariates <- read_csv(file.path(path, "SampleAnnotationExample55.csv"))
-    # --- get geo gse58045 [] ---
-    # Key functions: getGEO
-    Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
-    dd <- GEOquery::getGEO("GSE58045")
-    Sys.setenv("VROOM_CONNECTION_SIZE" = 131072)
-    # --- age gse58045 [] ---
-    # Key functions: pData
-    pheno <- pData(gse58045)
-    age <- as.numeric(pheno$`age:ch1`)
-    # --- plot D N Am Age [] ---
-    # Key functions: plotDNAmAge
-    plotDNAmAge(age.gse58045$Horvath, age)
-    # --- get geo gse19711 [] ---
-    # Key functions: getGEO
-    Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
-    dd <- GEOquery::getGEO("GSE19711")
-    Sys.setenv("VROOM_CONNECTION_SIZE" = 131072)
-    # --- get case control [] ---
-    # Key functions: pData
-    pheno <- pData(gse19711)
-    age <- as.numeric(pheno$`ageatrecruitment:ch1`)
-    table(disease)
-    # --- attr [] ---
-    # Key functions: attr
-    cell <- attr(age.gse19711, "cell_proportion")
-    mod.cell <- glm(disease ~ ageAcc.Levine + cell, data=age.gse19711,
-    summary(mod.cell)
-    # --- get geo 109446 [] ---
-    # Key functions: getGEO
-    dd <- GEOquery::getGEO("GSE109446")
-    # --- age gse109446 [] ---
-    # Key functions: pData
-    controls <- pData(gse109446)$`diagnosis:ch1`=="control"
-    age <- as.numeric(pData(gse)$`age:ch1`)
-    age.gse <- DNAmAge(gse, age=age)
-    # --- plot Cor Clocks [] ---
-    # Key functions: plotCorClocks
-    plotCorClocks(age.gse)
-    # --- plot D N Am Age [] ---
-    # Key functions: plotDNAmAge
-    plotDNAmAge(ga.progress$Knight, progress_vars$EGA,
+    # --- DNA Methylation Age Estimation [] ---
+    # Key functions: DNAmAge
+    age_est <- methylclock::DNAmAge(
+        MethylationData,
+        clocks = c("Horvath", "BNN"),
+        min.perc = 0.25
+    )
+
+
+    # --- Gestational Age Estimation [] ---
+    # Key functions: DNAmGA
+    ga_est <- methylclock::DNAmGA(
+        progress_data,
+        age = progress_vars$EGA,
+        cell.count = FALSE
+    )
+
+
+    # --- Visualization of Epigenetic Clocks [] ---
+    # Key functions: plotDNAmAge, plotCorClocks
+    methylclock::plotDNAmAge(
+        ga_est$Knight,
+        progress_vars$EGA,
+        tit = "GA Knight's method",
+        clock = "GA"
+    )
+    methylclock::plotCorClocks(age_gse58045)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

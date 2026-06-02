@@ -41,21 +41,51 @@ process BIOC_MMUPHIN {
     library(MMUPHin)
     library(jsonlite)
 
-    # --- Slice coverage by threshold [] ---
-    # Key functions: arrange, slice, ggplot, geom_bar, coord_flip
-    loading <- data.frame(feature = rownames(fit_continuous$consensus_loadings),
-    arrange(-abs(loading1)) %>%
-    slice(1:20) %>%
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: arrange, ggplot, geom_bar, coord_flip, geom_point, geom_line, geom_errorbar, vegdist
-    data("vaginal_abd", "vaginal_meta")
-    D_vaginal <- vegdist(t(vaginal_abd))
-    fit_discrete_vag <- discrete_discover(D = D_vaginal,
-    # --- Adjust batch analysis [] ---
-    # Key functions: adjust_batch, vegdist, adonis2, lm_meta, discrete_discover, continuous_discover
+    # --- Batch Effect Adjustment [adjust_batch] ---
+    # Key functions: adjust_batch
+    fit_adjust_batch <- adjust_batch(
+        feature_abd = CRC_abd,
+        batch = "studyID",
+        covariates = "study_condition",
+        data = CRC_meta,
+        control = list(verbose = FALSE)
+    )
+    CRC_abd_adj <- fit_adjust_batch$feature_abd_adj
+
+    # --- Meta-analytical Differential Abundance [lm_meta] ---
+    # Key functions: lm_meta
+    fit_lm_meta <- lm_meta(
+        feature_abd = CRC_abd_adj,
+        batch = "studyID",
+        exposure = "study_condition",
+        covariates = c("gender", "age", "BMI"),
+        data = CRC_meta,
+        control = list(verbose = FALSE)
+    )
+    meta_fits <- fit_lm_meta$meta_fits
+
+    # --- Discrete Structure Discovery [discrete_discover] ---
+    # Key functions: discrete_discover
     control_meta <- subset(CRC_meta, study_condition == "control")
     control_abd_adj <- CRC_abd_adj[, rownames(control_meta)]
-    D_control <- vegdist(t(control_abd_adj))
+    D_control <- vegan::vegdist(t(control_abd_adj))
+    fit_discrete <- discrete_discover(
+        D = D_control,
+        batch = "studyID",
+        data = control_meta,
+        control = list(k_max = 8, verbose = FALSE)
+    )
+
+    # --- Continuous Structure Discovery [continuous_discover] ---
+    # Key functions: continuous_discover
+    fit_continuous <- continuous_discover(
+        feature_abd = control_abd_adj,
+        batch = "studyID",
+        data = control_meta,
+        control = list(var_perc_cutoff = 0.5, verbose = FALSE)
+    )
+    consensus_loadings <- fit_continuous$consensus_loadings
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

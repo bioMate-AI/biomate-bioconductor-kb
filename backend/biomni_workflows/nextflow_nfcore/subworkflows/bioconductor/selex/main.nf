@@ -38,16 +38,20 @@ process BIOC_SELEX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SELEX)
     library(Length)
     library(jsonlite)
 
-    # --- Config analysis [] ---
-    # Key functions: config, exampledata, loadAnnotation, sampleSummary, sample, kmax, mm, mmSummary
-    infoscores = selex.infogainSummary()
-    idx = which(infoscores$InformationGain==max(infoscores$InformationGain))
-    colstring = rep('BLUE', nrow(infoscores))
-    colstring[idx] = 'RED'
-    barplot(height=infoscores$InformationGain, names.arg=infoscores$K, col=colstring,
+    # --- Working Directory Initialization [] ---
+    # Key functions: selex.config
+    workDir <- file.path(tempdir(), "selex_work_multi")
+    selex.config(workingDir = workDir, maxThreadNumber = 4)
+
+
+    # --- Thread Allocation Setup [] ---
+    # Key functions: selex.config
+    workDir <- file.path(tempdir(), "selex_final")
+    selex.config(workingDir = workDir, maxThreadNumber = 1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

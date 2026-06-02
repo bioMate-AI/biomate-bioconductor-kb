@@ -38,75 +38,66 @@ process BIOC_REDER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RedeR)
     library(RedPort)
     library(jsonlite)
 
-    # --- label='Add a graph' [] ---
-    # Key functions: addGraphToRedeR
-    gtoy1 <- graph.lattice(c(3,3,3))
-    addGraphToRedeR(g=gtoy1, layout=layout_with_kk(gtoy1))
-    # --- label='Get a graph' [] ---
-    # Key functions: getGraphFromRedeR
-    gtoy2 <- getGraphFromRedeR()
-    summary(gtoy2)
-    + attr: zoom (g/n), name (v/c), x (v/n), y (v/n)
-    # --- label='Generate two scale [] ---
-    # Key functions: sample_pa, addGraphToRedeR
-    g1 <- sample_pa(7)
-    g2 <- sample_pa(5)
-    V(g1)$name <- paste("m",1:7,sep="")
-    # --- label='Select nodes in containers' [] ---
-    # Key functions: selectNodes, getGraphFromRedeR
-    selectNodes(nodes="N2")
-    getGraphFromRedeR(status="selected")
-    # --- label='Generate a larger scale [] ---
-    # Key functions: sample_pa
-    g1 <- sample_pa(100, directed=FALSE)
-    V(g1)$name <- paste0("V",1:vcount(g1))
-    summary(g1)
-    # --- label='Send the g1 graph to RedeR' [] ---
-    # Key functions: addGraphToRedeR
-    addGraphToRedeR(g=g1, zoom=50)
-    # --- label='Run the interactive layout' [] ---
-    # Key functions: relaxRedeR
-    relaxRedeR(p1=20, p2=150, p3=20, p4=100, p5=10)
-    # --- Red Port [] ---
-    # Key functions: RedPort, attributes
-    rdp <- RedPort()
-    attribs <- attributes(rdp)
-    attribs$GraphAttr$Usage <- gsub("$","\\$",attribs$GraphAttr$Usage, fixed=TRUE)
-    # --- label='Workflow 1: Initialize the RedeR application' [] ---
-    # Key functions: startRedeR, resetRedeR
-    startRedeR()
-    resetRedeR()
-    # --- label='Workflow 1: Extract a subgraph and set attributes' [] ---
-    # Key functions: subg
-    gt3 <- subg(g=hs.inter, dat=deg.t3, refcol=1)
-    gt3 <- att.setv(g=gt3, from="Symbol", to="nodeLabel")
-    gt3 <- att.setv(g=gt3, from="logFC.t3", to="nodeColor",
-    # --- label='Workflow 1: Extract another subgraph and set attributes' [] ---
-    # Key functions: subg
-    gt6 <- subg(g=hs.inter, dat=deg.t6, refcol=1)
-    gt6 <- att.setv(g=gt6, from="Symbol", to="nodeLabel")
-    gt6 <- att.setv(g=gt6, from="logFC.t6", to="nodeColor",
-    # --- label='=Workflow 1: Extract another subgraph and set attributes' [] ---
-    # Key functions: subg
-    gt12 <- subg(g=hs.inter, dat=deg.t12, refcol=1)
-    gt12 <- att.setv(g=gt12, from="Symbol", to="nodeLabel")
-    gt12 <- att.setv(g=gt12, from="logFC.t12", to="nodeColor",
-    # --- label='Workflow 1: Send subgraphs to the RedeR application' [] ---
-    # Key functions: addGraphToRedeR
-    N1 <- addGraphToRedeR(gt3, gcoord=c(10,25), gscale=20,
-    N2 <- addGraphToRedeR(gt6, gcoord=c(20,70), gscale=50,
-    N3 <- addGraphToRedeR(gt12, gcoord=c(70,55), gscale=80,
-    # --- label='Workflow 1: Nest sub [] ---
-    # Key functions: nestNodes
-    N4 <- nestNodes(nodes=V(gt3)$name, parent=N2, theme='th2')
-    N5 <- nestNodes(nodes=V(gt3)$name, parent=N3, theme='th2')
-    nestNodes(nodes=V(gt3)$name, parent=N5, theme='th2')
-    # --- label='Workflow 1: Assign edges to containers' [] ---
-    # Key functions: mergeOutEdges
-    mergeOutEdges(nlevels=2)
+    # --- Graph Construction and Visualization [] ---
+    # Key functions: addGraphToRedeR, getGraphFromRedeR, selectNodes
+    gtoy1 <- igraph::graph.lattice(c(3, 3, 3))
+    igraph::V(gtoy1)$name <- paste0("N", 1:27)
+    addGraphToRedeR(g = gtoy1, layout = igraph::layout_with_kk(gtoy1))
+    selectNodes(nodes = "N2")
+    gtoy2 <- getGraphFromRedeR(status = "selected")
+
+
+    # --- Attribute Mapping and Customization [] ---
+    # Key functions: att.addv, att.adde, att.mapv
+    g1 <- igraph::sample_pa(100, directed = FALSE)
+    igraph::V(g1)$name <- paste0("V", 1:igraph::vcount(g1))
+    g1 <- att.addv(g1, to = "nodeLabelSize", value = 20)
+    g1 <- att.adde(g1, to = "edgeLineType", value = "DOTTED")
+    df <- data.frame(
+        ID = igraph::V(g1)$name,
+        newAttr1 = rnorm(100),
+        newAttr2 = rnorm(100)
+    )
+    g1 <- att.mapv(g = g1, dat = df, refcol = 1)
+
+
+    # --- Visual Attribute Scaling [] ---
+    # Key functions: att.setv
+    g1 <- att.setv(
+        g1,
+        from = "newAttr1",
+        to = "nodeColor",
+        breaks = seq(-2, 2, 0.4),
+        pal = 2
+    )
+    g1 <- att.setv(
+        g1,
+        from = "newAttr2",
+        to = "nodeSize",
+        nquant = 10,
+        xlim = c(20, 50, 1)
+    )
+
+
+    # --- Biological Subgraph Extraction [] ---
+    # Key functions: subg, att.setv, addGraphToRedeR
+    data(ER.limma)
+    data(hs.inter)
+    deg.t3 <- ER.limma[ER.limma$degenes.t3 != 0, ]
+    gt3 <- subg(g = hs.inter, dat = deg.t3, refcol = 1)
+    gt3 <- att.setv(g = gt3, from = "Symbol", to = "nodeLabel")
+    gt3 <- att.setv(
+        g = gt3,
+        from = "logFC.t3",
+        to = "nodeColor",
+        breaks = seq(-2, 2, 0.4),
+        pal = 2
+    )
+    addGraphToRedeR(g = gt3, isNested = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

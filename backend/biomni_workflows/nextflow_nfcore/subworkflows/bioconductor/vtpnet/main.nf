@@ -41,62 +41,42 @@ process BIOC_VTPNET {
     library(vtpnet)
     library(jsonlite)
 
-    # --- Lkco [] ---
-    # Key functions: dimnames, ugraph, aM2bpG
-    #
-    # tags formatted for display
-    #
-    diseaseTags = c("Ankylosing\\\nspondylitis", "Asthma",
-          "Celiac\\\ndisease", "Crohn's\\\ndisease",
-    # --- Dog1 [] ---
-    # Key functions: edges, subGraph, flat
-    library(Rgraphviz)
-    #flat = function(x, g) c(x, edges(g)[[x]])
-    #sub = subGraph(unique(c(flat("Crohn's\\\ndisease", cvtp),
-    #    flat("Ulcerative\\\ncolitis", cvtp))), cvtp)
-    sub = subGraph(unique(c(diseaseTags[1:4], TFtags[1:6])), cvtp)
-    # --- Lkvd [] ---
-    # Key functions: values
-    library(vtpnet)
-    data(maurGWAS)
-    length(maurGWAS)
-    names(values(maurGWAS))
-    # --- Lkpax [] ---
+    # --- Data Loading and Exploration [Data Acquisition] ---
     # Key functions: data
+    data(maurGWAS)
     data(pax4)
-    length(pax4)
-    pax4[1:4]
-    # --- Lksearch [] ---
-    # Key functions: registerDoParallel, seqnames, query, foreach, matchPWM, call
-    ## library(foreach)
-    ## library(doParallel)
-    ## registerDoParallel(cores=12)
-    ## library(BSgenome.Hsapiens.UCSC.hg19)
-    ## library(MotifDb)
-    # --- Lkmat [] ---
-    # Key functions: overlapsAny
     data(pax4_85)
-    vp_pax4_85 = maurGWAS[ overlapsAny(maurGWAS, pax4_85) ]
-    length(vp_pax4_85)
     data(pax4_75)
-    vp_pax4_75 = maurGWAS[ overlapsAny(maurGWAS, pax4_75) ]
-    # --- Lkfim [] ---
+    gwas_count = length(maurGWAS)
+    pax4_count = length(pax4)
+    gwas_metadata_cols = names(GenomicRanges::values(maurGWAS))
+
+    # --- Variant-TF Overlap Analysis [Overlap Analysis] ---
     # Key functions: overlapsAny
-    vp_pax4_fimo = maurGWAS[ overlapsAny(maurGWAS, pax4) ]
-    length(vp_pax4_fimo)
-    # --- Lkta [] ---
-    # Key functions: setdiff
+    vp_pax4_85 = maurGWAS[GenomicRanges::overlapsAny(maurGWAS, pax4_85)]
+    vp_pax4_75 = maurGWAS[GenomicRanges::overlapsAny(maurGWAS, pax4_75)]
+    vp_pax4_fimo = maurGWAS[GenomicRanges::overlapsAny(maurGWAS, pax4)]
     u75 = unique(vp_pax4_75$disease_trait)
     ufimo = unique(vp_pax4_fimo$disease_trait)
-    length(setdiff(u75, ufimo))
-    length(setdiff(ufimo, u75))
-    # --- Domap [] ---
-    # Key functions: requireNamespace, filterGWASbyMap, getOneHits
+    diff_traits = setdiff(u75, ufimo)
+
+    # --- GWAS Filtering and Hit Identification [Filtering] ---
+    # Key functions: filterGWASbyMap, getOneHits
     data(cancerMap)
-    requireNamespace("gwascat")
-    load(system.file("legacy/gwrngs19.rda", package="gwascat"))
-    cangw = filterGWASbyMap( gwrngs19, cancerMap )
-    getOneHits( pax4, cangw, "fimo" )
+    data(maurGWAS)
+    data(pax4)
+    cangw = filterGWASbyMap(maurGWAS, cancerMap)
+    hits = getOneHits(pax4, cangw, "fimo")
+
+    # --- Network Construction and Subgraphing [Network Analysis] ---
+    # Key functions: aM2bpG, ugraph, subGraph
+    diseaseTags = c("Ankylosing\nspondylitis", "Asthma", "Celiac\ndisease")
+    TFtags = c("ELF3", "MEF2A", "TCF3")
+    adjm = matrix(1, nrow=length(diseaseTags), ncol=length(TFtags))
+    dimnames(adjm) = list(diseaseTags, TFtags)
+    cvtp = graph::ugraph(graph::aM2bpG(adjm))
+    sub = graph::subGraph(unique(c(diseaseTags[1:2], TFtags[1:2])), cvtp)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

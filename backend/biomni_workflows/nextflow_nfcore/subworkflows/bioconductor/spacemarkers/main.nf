@@ -41,107 +41,80 @@ process BIOC_SPACEMARKERS {
     library(SpaceMarkers)
     library(jsonlite)
 
-    # --- set [] ---
-    # Key functions: set
-    --------------------------------------
-    knitr::opts_knit$set(
-        collapse = TRUE,
-        comment = "#>",
-        fig.align   = 'center'
-    # --- Unlink [] ---
-    # Key functions: unlink, files
-    ---------------------------------------------------------------------
-    unlink(basename(sp_url))
-    files <- list.files(".")[grepl(counts_file,list.files("."))]
-    unlink(files)
-    unlink("spatial", recursive = TRUE)
-    # --- Readrds [] ---
-    # Key functions: intersect, slot
-    ---------------------------------------------------------------------
-    cogaps_result <- readRDS(system.file("extdata","CoGAPS_result.rds",
-        package="SpaceMarkers",mustWork = TRUE))
-    features <- intersect(rownames(counts_matrix),rownames(
-        slot(cogaps_result,"featureLoadings")))
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+    # --- Load Spatial Data ---
+    # Key functions: load10XExpr, load10XCoords
+    counts_matrix <- load10XExpr(
+        visiumDir = ".",
+        h5filename = "Visium_Human_Breast_Cancer_filtered_feature_bc_matrix.h5"
+    )
+    good_gene_threshold <- 3
+    goodGenes <- rownames(counts_matrix)[
+        apply(counts_matrix, 1, function(x) sum(x > 0) >= good_gene_threshold)
+    ]
+    counts_matrix <- counts_matrix[goodGenes, ]
+    spCoords <- load10XCoords(visiumDir = ".", version = "1.0")
+    rownames(spCoords) <- spCoords$barcode
+
+    # --- Integrate Spatial Patterns ---
+    # Key functions: None
+    cogaps_result <- readRDS(system.file(
+        "extdata", "CoGAPS_result.rds",
+        package = "SpaceMarkers", mustWork = TRUE
+    ))
+    features <- intersect(
+        rownames(counts_matrix),
+        rownames(slot(cogaps_result, "featureLoadings"))
+    )
+    barcodes <- intersect(
+        colnames(counts_matrix),
+        rownames(slot(cogaps_result, "sampleFactors"))
+    )
+    counts_matrix <- counts_matrix[features, barcodes]
+    cogaps_matrix <- slot(cogaps_result, "featureLoadings")[features, ] %*%
+        t(slot(cogaps_result, "sampleFactors")[barcodes, ])
+    spCoords <- spCoords[barcodes, ]
+    spPatterns <- cbind(
+        spCoords,
+        slot(cogaps_result, "sampleFactors")[barcodes, ]
+    )
+
+    # --- Residual Mode Analysis ---
+    # Key functions: getInteractingGenes
     data("curated_genes")
-    spPatterns<-spPatterns[c("barcode","y","x","Pattern_1","Pattern_5")]
-    counts_matrix <- counts_matrix[curated_genes,]
-    cogaps_matrix <- cogaps_matrix[curated_genes, ]
-    # --- Getinteractinggenes [] ---
+    data("optParams")
+    spPatterns_sub <- spPatterns[
+        c("barcode", "y", "x", "Pattern_1", "Pattern_5")
+    ]
+    counts_sub <- counts_matrix[curated_genes, ]
+    cogaps_sub <- cogaps_matrix[curated_genes, ]
+    SpaceMarkers_res <- getInteractingGenes(
+        data = counts_sub,
+        reconstruction = cogaps_sub,
+        optParams = optParams,
+        spPatterns = spPatterns_sub,
+        refPattern = "Pattern_1",
+        mode = "residual",
+        analysis = "overlap"
+    )
+
+    # --- Differential Expression Mode Analysis ---
     # Key functions: getInteractingGenes
-    ---------------------------------------------------------------------
-    SpaceMarkers <- getInteractingGenes(data = counts_matrix,
-                                        reconstruction = cogaps_matrix,
-                                        optParams = optParams,
-                                        spPatterns = spPatterns,
-    # --- Function [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    compare_genes <- function(ref_list, list2,ref_name = "mode1",
-                                list2_name = "mode2", sub_slice = NULL){
-        ref_rank <- seq(1,length(ref_list),1)
-        list2_ref_rank <- which(list2 %in% ref_list)
-    # --- Compare Genes [] ---
-    # Key functions: compare_genes
-    ---------------------------------------------------------------------
-    res_to_DE <- compare_genes(head(residual_p1_p5$Gene, n = 20),DE_p1_p5$Gene,
-                                ref_name="residual",list2_name="DE")
-    DE_to_res <- compare_genes(head(DE_p1_p5$Gene, n = 20),residual_p1_p5$Gene,
-                                ref_name = "DE",list2_name = "residual")
-    # --- Getinteractinggenes [] ---
-    # Key functions: getInteractingGenes
-    ---------------------------------------------------------------------
-    SpaceMarkers_enrich <- getInteractingGenes(data = counts_matrix,
-                                        reconstruction = cogaps_matrix,
-                                        optParams = optParams,
-                                        spPatterns = spPatterns,
-    # --- Compare Genes [] ---
-    # Key functions: compare_genes
-    ---------------------------------------------------------------------
-    enrich_res_to_de<-compare_genes(
-        head(DE_p1_p5_enrichment, 20),
-        residual_p1_p5_enrichment,
-        ref_name="DE_Enrich",list2_name = "res_Enrich")
-    # --- Function [] ---
-    # Key functions: ggproto, ggproto_parent, setup_data, viewport, editGrob, ggname
-    ---------------------------------------------------------------------
-    geom_spatial <-  function(mapping = NULL,
-        data = NULL,
-        stat = "identity",
-        position = "identity",
-    # --- List [] ---
-    # Key functions: csv, factor
-    ---------------------------------------------------------------------
-    bcs <- list()
-    for (i in 1:length(sample_names)) {
-        bcs[[i]] <- read.csv(tissue_paths[i],col.names=c(
-            "barcode","tissue","row","col","imagerow","imagecol"), header = FALSE)
-    # --- List [] ---
-    # Key functions: frame, rowSums
-    ---------------------------------------------------------------------
-    matrix <- list()
-    for (i in 1:length(sample_names)) {
-        matrix[[i]] <- as.data.frame(t(as.matrix(counts_matrix)))
-    }
-    # --- Function [] ---
-    # Key functions: colorRampPalette
-    ---------------------------------------------------------------------
-    myPalette <- function(numLevels) {
-        return(colorRampPalette(c("blue","yellow"))(numLevels))}
-    # --- Ifelse [] ---
-    # Key functions: ifelse, na, factor, frame
-    ---------------------------------------------------------------------
-    region <- SpaceMarkers$hotspots[,1]
-    region <- ifelse(!is.na(region)&!is.na(SpaceMarkers$hotspots[,2]),
-                        "Interacting",ifelse(!is.na(region),region,
-                                                SpaceMarkers$hotspots[,2]))
-    # --- Head [] ---
-    # Key functions: filter
-    ---------------------------------------------------------------------
-    head(residual_p1_p5 %>% dplyr::filter(
-        sp_genes$`Pattern_1 x Pattern_5` == "vsBoth"),n_genes)
+    data("curated_genes")
+    data("optParams")
+    spPatterns_sub <- spPatterns[
+        c("barcode", "y", "x", "Pattern_1", "Pattern_5")
+    ]
+    counts_sub <- counts_matrix[curated_genes, ]
+    SpaceMarkers_DE <- getInteractingGenes(
+        data = counts_sub,
+        reconstruction = NULL,
+        optParams = optParams,
+        spPatterns = spPatterns_sub,
+        refPattern = "Pattern_1",
+        mode = "DE",
+        analysis = "overlap"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

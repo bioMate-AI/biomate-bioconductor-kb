@@ -41,85 +41,78 @@ process BIOC_FLOWVIZ {
     library(flowViz)
     library(jsonlite)
 
+    # --- Data Loading and Transformation [flowViz] ---
+    # Key functions: pData, transformList, %on%
+    data(GvHD, package = "flowCore")
+    GvHD_sub <- GvHD[flowCore::pData(GvHD)$Patient == 6]
+    tf <- flowCore::transformList(
+        from = colnames(GvHD_sub)[3:7],
+        tfun = asinh
+    )
+    GvHD_trans <- tf %on% GvHD_sub
 
-    # --- Load Data [] ---
-    # Key functions: pData, transformList, rectangleGate, xyplot
-    library(flowViz)
-    data(GvHD)
-    head(pData(GvHD))
-    GvHD <- GvHD[pData(GvHD)$Patient==6]
-    tf <- transformList(from=colnames(GvHD)[3:7], tfun=asinh)
-    GvHD <- tf %on% GvHD
-    rgate <- rectangleGate("FSC-H"=c(0, 400),"SSC-H"=c(-50, 300))
-    print(xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate))
-    rgate2 <- rgate * rectangleGate("FL1-H"=c(2, 4))
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate2)
+    # --- Bivariate Gating and Visualization [flowViz] ---
+    # Key functions: xyplot, rectangleGate
+    rgate <- flowCore::rectangleGate(
+        "FSC-H" = c(0, 400),
+        "SSC-H" = c(-50, 300)
+    )
+    rgate2 <- rgate * flowCore::rectangleGate("FL1-H" = c(2, 4))
+    xyplot(
+        `SSC-H` ~ `FSC-H` | Visit,
+        data = GvHD_trans,
+        filter = rgate2,
+        smooth = FALSE,
+        xbin = 128
+    )
 
-    # --- Non Smooth Scatter [] ---
-    # Key functions: xyplot, trellis.last.object, rectangleGate, filters
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE)
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate, smooth=FALSE,xbin=128)
-    print(plot(trellis.last.object()))
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate,
-    smooth=FALSE, stat=TRUE,pos=0.5,abs=TRUE)
+    # --- Statistical Gating and Plotting [flowViz] ---
+    # Key functions: xyplot, norm2Filter, filter
+    n2Filter <- flowCore::norm2Filter(
+        "SSC-H", "FSC-H",
+        scale = 2,
+        filterId = "Lymphocytes"
+    )
+    n2Filter.results <- flowCore::filter(GvHD_trans, n2Filter)
+    xyplot(
+        `SSC-H` ~ `FSC-H` | Visit,
+        data = GvHD_trans,
+        filter = n2Filter.results,
+        names = TRUE,
+        par.settings = list(
+            gate = list(fill = "black", alpha = 0.2, col = "transparent"),
+            gate.text = list(col = "darkred", alpha = 0.7, cex = 0.6)
+        )
+    )
 
-    ## ----multi-filters------------------------------------------------------------
-    recGate1<-rectangleGate("FL4-H"=c(3.3,5.3),"FL2-H"=c(2.5,5))
-    recGate2<-rectangleGate("FL4-H"=c(4,6),"FL2-H"=c(6,8))
-    filters1<-filters(list(recGate1,recGate2))
-    xyplot(`FL2-H` ~ `FL4-H`
-    	   ,data=GvHD[[1]]
-           ,filter=filters1
-    print(plot(trellis.last.object()))
+    # --- One-dimensional Density Plotting [flowViz] ---
+    # Key functions: densityplot, curv1Filter
+    rgate2 <- flowCore::rectangleGate(
+        "FSC-H" = c(0, 400),
+        "SSC-H" = c(-50, 300)
+    )
+    densityplot(
+        ~ .,
+        GvHD_trans,
+        channels = c("FSC-H", "SSC-H", "FL1-H"),
+        filter = list(flowStats::curv1Filter("FSC-H"), NULL, rgate2)
+    )
 
-    # --- Non Smooth Scatter Outline2 [] ---
-    # Key functions: xyplot, trellis.last.object, norm2Filter, filter, curv2Filter
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate2,
-           smooth=FALSE, outline=TRUE)
-    print(plot(trellis.last.object()))
-    n2Filter <- norm2Filter("SSC-H", "FSC-H", scale=2, filterId="Lymphocytes")
-    n2Filter.results <- filter(GvHD, n2Filter)
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=n2Filter.results)
-    print(plot(trellis.last.object()))
-    library(flowStats)
-    c2f <- curv2Filter("FSC-H", "FL4-H", bwFac=1.8)
-    c2f.results <- filter(GvHD, c2f)
-    xyplot(`FL4-H` ~ `FSC-H` | Visit, data=GvHD, filter=c2f.results)
+    # --- Parallel Coordinates Visualization [flowViz] ---
+    # Key functions: parallel, norm2Filter, filter
+    n2Filter <- flowCore::norm2Filter(
+        "SSC-H", "FSC-H",
+        scale = 2,
+        filterId = "Lymphocytes"
+    )
+    n2Filter.results <- flowCore::filter(GvHD_trans, n2Filter)
+    parallel(
+        ~ . | Visit,
+        GvHD_trans,
+        filter = n2Filter.results,
+        alpha = 0.01
+    )
 
-    # --- Plotcurv2filter [] ---
-    # Key functions: trellis.last.object, densityplot, curv1Filter
-    print(plot(trellis.last.object()))
-    densityplot(~ `FSC-H`, GvHD, filter=curv1Filter("FSC-H"))
-    print(plot(trellis.last.object()))
-    densityplot(~ ., GvHD, channels=c("FSC-H", "SSC-H", "FL1-H"), 
-    filter=list(curv1Filter("FSC-H"), NULL, rgate2))
-    print(plot(trellis.last.object()))
-
-    # --- Pars1 [] ---
-    # Key functions: xyplot, black, trellis.last.object, orange, rainbow, transparent
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate,
-           par.settings=list(gate=list(fill="black", alpha=0.2)))
-    print(plot(trellis.last.object()))
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate,
-           smooth=FALSE, 
-           par.settings=list(gate=list(col="orange", alpha=0.04,
-                                       pch=20, cex=0.7),
-                             flow.symbol=list(alpha=0.04, pch=20, cex=0.7)))
-    print(plot(trellis.last.object()))
-    xyplot(`FL4-H` ~ `FSC-H` | Visit, data=GvHD, filter=c2f.results,
-    par.settings=list(gate=list(fill=rainbow(10), alpha=0.5, col="transparent")))
-
-    # --- Plot Pars4 [] ---
-    # Key functions: trellis.last.object, xyplot, black, transparent, darkred, parallel
-    print(plot(trellis.last.object()))
-    xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=n2Filter.results, 
-           names=TRUE, 
-           par.settings=list(gate=list(fill="black", alpha=0.2, 
-                                       col="transparent"),
-                             gate.text=list(col="darkred", alpha=0.7, cex=0.6)))
-    print(plot(trellis.last.object()))
-    parallel(~ . | Visit, GvHD, filter=n2Filter.results, alpha = 0.01)
-    print(plot(trellis.last.object()))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

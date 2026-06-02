@@ -41,30 +41,69 @@ process BIOC_EPIREGULON_EXTRA {
     library(epiregulon.extra)
     library(jsonlite)
 
-    # --- find Differential Activity [] ---
-    # Key functions: findDifferentialActivity
-    library(epiregulon.extra)
+    # --- Differential Activity Analysis [] ---
+    # Key functions: findDifferentialActivity, getSigGenes
     markers <- findDifferentialActivity(
+        activity_matrix = score.combine,
+        clusters = GeneExpressionMatrix$hash_assignment,
+        pval.type = "some",
+        direction = "up",
+        test.type = "t",
+        logvalue = FALSE
+    )
     markers.sig <- getSigGenes(markers, topgenes = 5)
-    # --- plot Bubble [] ---
-    # Key functions: plotBubble, plotActivityViolin
+
+
+    # --- Activity Visualization [] ---
+    # Key functions: plotBubble, plotActivityViolin, plotActivityDim
     plotBubble(
-    tf = c("NKX2-1", "GATA6", "FOXA1", "FOXA2"),
-    plotBubble(
-    # --- regulon Enrich [] ---
-    # Key functions: regulonEnrich, enrichPlot
-    msigdb.hs <- msigdb::getMsigdb(org = 'hs', id = 'SYM', version = '7.4')
-    msigdb.hs <- msigdb.hs[unlist(lapply(msigdb.hs, function(x) {GSEABase::bcCategory(GSEABase::collectionType(x)) %in% c("c6", "h")}))]
-    gs.list <- do.call(rbind, lapply(names(msigdb.hs), function(x) {
-    # --- plot gsea network [] ---
-    # Key functions: plotGseaNetwork
+        activity_matrix = score.combine,
+        tf = c("NKX2-1", "GATA6", "FOXA1", "FOXA2"),
+        clusters = GeneExpressionMatrix$hash_assignment
+    )
+    plotActivityViolin(
+        activity_matrix = score.combine,
+        tf = c("NKX2-1", "GATA6", "FOXA1", "FOXA2", "AR"),
+        clusters = GeneExpressionMatrix$hash_assignment
+    )
+    ActivityPlot <- plotActivityDim(
+        sce = GeneExpressionMatrix,
+        activity_matrix = score.combine,
+        tf = c("NKX2-1", "GATA6", "FOXA1", "FOXA2", "AR"),
+        dimtype = "UMAP_Combined",
+        label = "Clusters",
+        point_size = 0.3,
+        ncol = 3,
+        rasterise = TRUE
+    )
+
+
+    # --- Regulon Enrichment Analysis [] ---
+    # Key functions: regulonEnrich, enrichPlot, plotGseaNetwork
+    enrichresults <- regulonEnrich(
+        TF = c("GATA6", "NKX2-1"),
+        regulon = regulon,
+        weight = "weight",
+        weight_cutoff = 0.1,
+        genesets = gs.list
+    )
+    enrichPlot(results = enrichresults)
     plotGseaNetwork(
-    tf = names(enrichresults),
-    # --- differential networks [] ---
-    # Key functions: plotDiffNetwork
-    plotDiffNetwork(regulon,
-    tf = c("GATA6"),
-    clusters = c("C1", "C5"),
+        tf = names(enrichresults),
+        enrichresults = enrichresults,
+        p.adj_cutoff = 0.1,
+        ntop_pathways = 10
+    )
+
+
+    # --- Network Construction and Centrality [] ---
+    # Key functions: buildGraph, buildDiffGraph, addCentrality, normalizeCentrality, rankTfs
+    C1_network <- buildGraph(regulon, weights = "weight", cluster = "C1")
+    C5_network <- buildGraph(regulon, weights = "weight", cluster = "C5")
+    diff_graph <- buildDiffGraph(C1_network, C5_network, abs_diff = FALSE)
+    diff_graph <- addCentrality(diff_graph)
+    diff_graph <- normalizeCentrality(diff_graph)
+    rank_table <- rankTfs(diff_graph)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

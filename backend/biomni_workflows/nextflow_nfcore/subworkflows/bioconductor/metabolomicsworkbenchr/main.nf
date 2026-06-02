@@ -41,25 +41,56 @@ process BIOC_METABOLOMICSWORKBENCHR {
     library(metabolomicsWorkbenchR)
     library(jsonlite)
 
-    # --- Do Query [] ---
+    # --- Study Querying [] ---
     # Key functions: do_query
-    ---------------------------------------------------------------------
-    # search for all studies with "Diabetes" in the title and return a summary
-    df = do_query(
-        context = 'study',
-        input_item = 'study_title',
-    # --- Context Inputs [] ---
-    # Key functions: context_inputs
-    ---------------------------------------------------------------------
-    # valid inputs for "study" context
-    context_inputs('study')
-    # --- Do Query [] ---
+    diabetes_studies <- do_query(
+        context = "study",
+        input_item = "study_title",
+        input_value = "Diabetes",
+        output_item = "summary"
+    )
+    untargeted_studies <- do_query(
+        context = "study",
+        input_item = "ignored",
+        input_value = "ignored",
+        output_item = "untarg_studies"
+    )
+
+
+    # --- Compound and Gene Querying [] ---
     # Key functions: do_query
-    ---------------------------------------------------------------------
-    df = do_query(
-      context = 'study',
-      input_item = 'ignored',
-      input_value = 'ignored',
+    compound_data <- do_query(
+        context = "compound",
+        input_item = "regno",
+        input_value = "11",
+        output_item = "compound_exact"
+    )
+    gene_data <- do_query(
+        context = "gene",
+        input_item = "gene_name",
+        input_value = "acetyl-CoA",
+        output_item = "gene_partial"
+    )
+
+
+    # --- SummarizedExperiment Retrieval [] ---
+    # Key functions: do_query
+    se_dataset <- do_query(
+        context = "study",
+        input_item = "study_id",
+        input_value = "ST000001",
+        output_item = "SummarizedExperiment"
+    )
+
+
+    # --- MultiAssayExperiment Retrieval [] ---
+    # Key functions: do_query
+    mae_dataset <- do_query(
+        context = "study",
+        input_item = "study_id",
+        input_value = "ST000009",
+        output_item = "MultiAssayExperiment"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

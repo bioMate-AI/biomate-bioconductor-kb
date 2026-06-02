@@ -41,65 +41,43 @@ process BIOC_TWODDPCR {
     library(twoddpcr)
     library(jsonlite)
 
-    # --- Ddpcrplate [] ---
-    # Key functions: ddpcrPlate
-    ---------------------------------------------------------------------
-    plate <- ddpcrPlate(wells=KRASdata)
-    # --- Commonclassificationmethod [] ---
-    # Key functions: commonClassificationMethod
-    ---------------------------------------------------------------------
-    commonClassificationMethod(plate)
-    # --- Thresholdclassify [] ---
-    # Key functions: thresholdClassify
-    ---------------------------------------------------------------------
+    # --- Threshold and K-means Classification [] ---
+    # Key functions: thresholdClassify, kmeansClassify, commonClassificationMethod
     plate <- thresholdClassify(plate, ch1Threshold=6789, ch2Threshold=3000)
-    # --- Commonclassificationmethod [] ---
-    # Key functions: commonClassificationMethod
-    ---------------------------------------------------------------------
-    commonClassificationMethod(plate)
-    # --- Mahalanobisrain [] ---
-    # Key functions: mahalanobisRain
-    ---------------------------------------------------------------------
+    plate <- kmeansClassify(plate)
+    method <- commonClassificationMethod(plate)
+    dropletPlot(plate, cMethod="kmeans")
+
+
+    # --- Mahalanobis Distance Rain Filtering [] ---
+    # Key functions: mahalanobisRain, plateSummary
     plate <- mahalanobisRain(plate, cMethod="kmeans", maxDistances=3)
-    # --- Commonclassificationmethod [] ---
-    # Key functions: commonClassificationMethod
-    ---------------------------------------------------------------------
-    commonClassificationMethod(plate)
-    # --- Mahalanobisrain [] ---
-    # Key functions: mahalanobisRain, commonClassificationMethod
-    ---------------------------------------------------------------------
-    plate <- mahalanobisRain(plate, cMethod="kmeans",
-                             maxDistances=list(NN=35, NP=35, PN=35, PP=35))
-    commonClassificationMethod(plate)
-    # --- Summary [] ---
-    # Key functions: lm
-    ---------------------------------------------------------------------
-    bioradLmSummary <- summary(lm(x ~ Cluster, data=mtConcentrations))
-    kmLmSummary <- summary(lm(x ~ kmeans, data=mtConcentrations))
-    kmMahRainLmSummary <- summary(lm(x ~ kmeansMahRain, data=mtConcentrations))
-    knitr::kable(c("Cluster"=bioradLmSummary$r.squared,
-    # --- Removedropletclasses [] ---
-    # Key functions: removeDropletClasses, call
-    ---------------------------------------------------------------------
+    kmeansMahRainSummary <- plateSummary(plate, cMethod="kmeansMahRain")
+    head(kmeansMahRainSummary)
+
+
+    # --- Supervised Classification using KNN [] ---
+    # Key functions: removeDropletClasses, knnClassify
+    trainWells <- plate[c("E03", "A04")]
+    trainPlate <- ddpcrPlate(wells=trainWells)
+    trainPlate <- kmeansClassify(trainPlate)
+    trainPlate <- mahalanobisRain(trainPlate, cMethod="kmeans", maxDistances=3)
     trainSet <- removeDropletClasses(trainPlate, cMethod="kmeansMahRain")
     trainSet <- do.call(rbind, trainSet)
-    colnames(trainSet)
-    # --- Commonclassificationmethod [] ---
-    # Key functions: commonClassificationMethod
-    ---------------------------------------------------------------------
-    commonClassificationMethod(plate)
-    # --- Gridclassify [] ---
-    # Key functions: gridClassify, dropletPlot
-    ---------------------------------------------------------------------
+    trainAmplitudes <- trainSet[, c("Ch1.Amplitude", "Ch2.Amplitude")]
+    trainCl <- trainSet$kmeansMahRain
+    plate <- knnClassify(plate, trainData=trainAmplitudes, cl=trainCl, k=3)
+
+
+    # --- Alternative Classification Methods [] ---
+    # Key functions: gridClassify, sdRain
     plate <- gridClassify(plate,
                           ch1NNThreshold=6500, ch2NNThreshold=2110,
                           ch1NPThreshold=5765, ch2NPThreshold=5150,
                           ch1PNThreshold=8550, ch2PNThreshold=2450,
-    # --- Sdrain [] ---
-    # Key functions: sdRain, dropletPlot
-    ---------------------------------------------------------------------
-    plate <- sdRain(plate, cMethod="kmeans")
-    dropletPlot(plate, cMethod="kmeansSdRain")
+                          ch1PPThreshold=6700, ch2PPThreshold=3870)
+    plate <- sdRain(plate, cMethod="kmeans",
+                    errorLevel=list(NN=5, NP=5, PN=3, PP=3))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,19 +38,72 @@ process BIOC_RAWRR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(rawrr)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, normalizePath
-    library(ExperimentHub)
-    eh <- ExperimentHub::ExperimentHub()
-    EH4547 <- normalizePath(eh[["EH4547"]])
-    # --- InstallRawFileReaderDLLs analysis [] ---
-    # Key functions: include_graphics, installRawFileReaderDLLs, installRawrrExe, readFileHeader, readSpectrum, makeAccessor, maxIonTime, readChromatogram
-    iRTmz <- c(487.2571, 547.2984, 622.8539, 636.8695, 644.8230, 669.8384, 683.8282,
-    names(iRTmz) <- c("LGGNEQVTR", "YILAGVENSK", "GTFIIDPGGVIR", "GTFIIDPAAVIR",
-    C <- rawrr::readChromatogram(rawfile, mass = iRTmz, tol = 10, type = "xic", filter = "ms")
+    # --- Assembly Installation [Assembly Installation] ---
+    # Key functions: installRawFileReaderDLLs, installRawrrExe, .checkDllInMonoPath
+    if (isFALSE(rawrr::.checkDllInMonoPath())) {
+        rawrr::installRawFileReaderDLLs()
+    }
+    rawrr::installRawrrExe()
+
+    # --- Metadata and Index Extraction [Metadata Extraction] ---
+    # Key functions: sampleFilePath, readFileHeader, readIndex
+    rawfile <- rawrr::sampleFilePath()
+    header_info <- rawrr::readFileHeader(rawfile = rawfile)
+    file_index <- rawrr::readIndex(rawfile = rawfile)
+    ms2_index <- subset(
+        file_index,
+        file_index$MSOrder == "Ms2"
+    )
+
+    # --- Spectrum Extraction and Accessors [Spectrum Extraction] ---
+    # Key functions: sampleFilePath, readSpectrum, scanNumber, makeAccessor
+    rawfile <- rawrr::sampleFilePath()
+    scans <- c(1, 2, 3)
+    spectra <- rawrr::readSpectrum(rawfile = rawfile, scan = scans)
+    scan_num <- rawrr::scanNumber(spectra[[1]])
+    max_ion_time_acc <- rawrr::makeAccessor(
+        key = "Max. Ion Time (ms):",
+        returnType = "double"
+    )
+    ion_time <- max_ion_time_acc(spectra[[1]])
+
+    # --- Chromatogram Extraction [Chromatogram Extraction] ---
+    # Key functions: sampleFilePath, readChromatogram
+    rawfile <- rawrr::sampleFilePath()
+    tic_chrom <- rawrr::readChromatogram(rawfile = rawfile, type = "tic")
+    bpc_chrom <- rawrr::readChromatogram(rawfile = rawfile, type = "bpc")
+    iRTmz <- c(487.2571, 547.2984)
+    names(iRTmz) <- c("LGGNEQVTR", "YILAGVENSK")
+    xic_chrom <- rawrr::readChromatogram(
+        rawfile = rawfile,
+        mass = iRTmz,
+        tol = 10,
+        type = "xic",
+        filter = "ms"
+    )
+
+    # --- Peak Fitting and Analysis [Peak Analysis] ---
+    # Key functions: sampleFilePath, readChromatogram
+    rawfile <- rawrr::sampleFilePath()
+    iRTmz <- c(487.2571, 547.2984)
+    names(iRTmz) <- c("LGGNEQVTR", "YILAGVENSK")
+    chroms <- rawrr::readChromatogram(
+        rawfile = rawfile,
+        mass = iRTmz,
+        tol = 10,
+        type = "xic",
+        filter = "ms"
+    )
+    peaks <- rawrr:::pickPeak.rawrrChromatogram(chroms)
+    fitted_peaks <- rawrr:::fitPeak.rawrrChromatogram(peaks)
+    rt_fitted <- sapply(fitted_peaks, function(x) {
+        x$xx[which.max(x$yp)[1]]
+    })
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

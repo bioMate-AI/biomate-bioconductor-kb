@@ -50,74 +50,50 @@ process BIOC_EVENTPOINTER {
     library(EventPointer_RNASeq_IGV)
     library(jsonlite)
 
-    # --- tempdir [] ---
-    # Key functions: tempdir, CDFfromGTF
-    PathFiles<-system.file("extdata",package="EventPointer")
-    DONSON_GTF<-paste(PathFiles,"/DONSON.gtf",sep="")
-    PSRProbes<-paste(PathFiles,"/PSR_Probes.txt",sep="")
-    # --- timestamp On [] ---
-    # Key functions: timestampOn, NormExpBackgroundCorrection, process, QuantileNormalization, ExonRmaPlm
-    verbose <- Arguments$getVerbose(-8);
-    timestampOn(verbose);
-    cdfG <- AffymetrixCdfFile$byChipType(cdfGFile)
-    # --- EP arrays [] ---
-    # Key functions: EventPointer
-    data(ArraysData)
-    Dmatrix<-matrix(c(1,1,1,1,0,0,1,1),nrow=4,ncol=2,byrow=FALSE)
-    Cmatrix<-t(t(c(0,1)))
-    # --- EP Arrays Res Table [] ---
-    # Key functions: kable
-    kable(Events[1:5,],digits=5,row.names=TRUE,align="c",caption = "Table 1: EventPointer Arrays results")
-    # --- Arrays IGV [] ---
-    # Key functions: tempdir, EventPointer_IGV
-    DONSON_GTF<-paste(PathFiles,"/DONSON.gtf",sep="")
-    PSRProbes<-paste(PathFiles,"/PSR_Probes.txt",sep="")
-    JunctionProbes<-paste(PathFiles,"/Junction_Probes.txt",sep="")
-    # --- Prepare Bam_ E P [] ---
-    # Key functions: PrepareBam_EP
-    PathToSamples <- system.file("extdata/bams", package = "SGSeq")
-    PathToGTF<-paste(system.file("extdata",package="EventPointer"),"/FBXO31.gtf",sep="")
-    SG_RNASeq<-PrepareBam_EP(Samples=Samples,
-    # --- tempdir [] ---
-    # Key functions: tempdir, EventDetection
-    data(SG_RNASeq)
-    TxtPath<-tempdir()
-    AllEvents_RNASeq<-EventDetection(SG_RNASeq,cores=1,Path=TxtPath)
-    # --- EP RNASeq [] ---
+    # --- Alternative Splicing Analysis [] ---
     # Key functions: EventPointer_RNASeq
-    Dmatrix<-matrix(c(1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1),ncol=2,byrow=FALSE)
-    Cmatrix<-t(t(c(0,1)))
-    Events <- EventPointer_RNASeq(AllEvents_RNASeq,Dmatrix,Cmatrix,Statistic="LogFC",PSI=TRUE)
-    # --- EP RNASeq Res Table [] ---
-    # Key functions: kable
-    kable(Events[1:5,],digits=5,row.names=TRUE,align="c",caption = "Table 2: EventPointer RNASeq results")
-    # --- RNAS IGV [] ---
-    # Key functions: tempdir, EventPointer_RNASeq_IGV
-    EventsTxt<-paste(system.file("extdata",package="EventPointer"),"/EventsFound_RNASeq.txt",sep="")
-    PathGTF<-tempdir()
-    EventPointer_RNASeq_IGV(Events,SG_RNASeq,EventsTxt,PathGTF)
-    # --- GTFfGTF 2 [] ---
-    # Key functions: EventDetection_transcriptome
-    EventXtrans <- EventDetection_transcriptome(inputFile = inputFile,
-    # --- getbootstrapdata [] ---
-    # Key functions: getbootstrapdata
-    PathSamples<-system.file("extdata",package="EventPointer")
-    PathSamples <- paste0(PathSamples,"/output")
-    PathSamples <- dir(PathSamples,full.names = TRUE)
-    # --- dir [] ---
-    # Key functions: dir
-    PathFiles <- system.file("extdata",package="EventPointer")
-    filesnames <- dir(paste0(PathFiles,"/output"))
-    PathFiles <- dir(paste0(PathFiles,"/output"),full.names = TRUE)
-    # --- PSI Statistic [] ---
+    Dmatrix <- matrix(c(1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1), ncol = 2)
+    Cmatrix <- t(t(c(0, 1)))
+    Events <- EventPointer_RNASeq(
+        AllEvents_RNASeq,
+        Dmatrix,
+        Cmatrix,
+        Statistic = "LogFC",
+        PSI = TRUE
+    )
+
+
+    # --- PSI Value Estimation [] ---
     # Key functions: GetPSI_FromTranRef
-    rownames(RNASeq) <- sapply(strsplit(rownames(RNASeq),"\\|"),function(X) return(X[1]))
-    RNASeq<-as.matrix(RNASeq) #must be a matrix variable
-    PSIss_nb <- GetPSI_FromTranRef(PathsxTranscript = EventXtrans,
-    # --- psi with bootstrap [] ---
-    # Key functions: GetPSI_FromTranRef
-    rownames(data_exp[[1]]) <- sapply(strsplit(rownames(data_exp[[1]]),"\\|"),function(X) return(X[1]))
-    PSIss <- GetPSI_FromTranRef(PathsxTranscript = EventXtrans,
+    PSIss_nb <- GetPSI_FromTranRef(
+        PathsxTranscript = EventXtrans,
+        Samples = RNASeq,
+        Bootstrap = FALSE,
+        Filter = FALSE
+    )
+    PSI <- PSIss_nb$PSI
+    Expression <- PSIss_nb$ExpEvs
+
+
+    # --- Statistical Analysis and Results [] ---
+    # Key functions: EventPointer_RNASeq_TranRef
+    Design <- matrix(c(1, 1, 1, 1, 0, 0, 1, 1), nrow = 4)
+    Contrast <- matrix(c(0, 1), nrow = 2)
+    Fit <- EventPointer_RNASeq_TranRef(
+        Count_Matrix = Expression,
+        Statistic = "LogFC",
+        Design = Design,
+        Contrast = Contrast
+    )
+
+
+    # --- Event Reclassification [] ---
+    # Key functions: Events_ReClassification
+    data("SG_reclassify")
+    EventTable_new <- Events_ReClassification(
+        EventTable = EventTable,
+        SplicingGraph = SG_reclassify
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

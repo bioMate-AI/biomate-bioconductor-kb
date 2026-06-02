@@ -41,49 +41,58 @@ process BIOC_MOSBI {
     library(mosbi)
     library(jsonlite)
 
-    # --- Function [] ---
-    # Key functions: colhistogram
-    ---------------------------------------------------------------------
-    z_score <- function(x, margin = 2) {
-        z_fun <- function(y) {
-            (y - mean(y, na.rm = TRUE)) / sd(y, na.rm = TRUE)
-        }
-    # --- Bicluster Network [] ---
-    # Key functions: bicluster_network
-    ---------------------------------------------------------------------
-    bic_net <- mosbi::bicluster_network(all_bics, # List of biclusters
-        data_matrix, # Data matrix
+    # --- Biclustering Ensemble Execution [Biclustering] ---
+    # Key functions: run_fabia, run_isa, run_plaid, run_qubic, colhistogram
+    fb <- mosbi::run_fabia(data_matrix)
+    BCisa <- mosbi::run_isa(data_matrix)
+    BCplaid <- mosbi::run_plaid(data_matrix)
+    BCqubic <- mosbi::run_qubic(data_matrix)
+    all_bics <- c(fb, BCisa, BCplaid, BCqubic)
+    cols_hist <- mosbi::colhistogram(all_bics)
+    rows_hist <- mosbi::rowhistogram(all_bics)
+
+    # --- Bicluster Network Generation [Network Analysis] ---
+    # Key functions: bicluster_network, get_adjacency
+    bic_net <- mosbi::bicluster_network(
+        all_bics,
+        data_matrix,
         n_randomizations = 5,
-        # Number of randomizations for the
-    # --- Heatmap [] ---
-    # Key functions: heatmap, get_adjacency
-    ---------------------------------------------------------------------
-    stats::heatmap(get_adjacency(bic_net))
-    # --- Plot Algo Network [] ---
-    # Key functions: plot_algo_network
-    ---------------------------------------------------------------------
-    mosbi::plot_algo_network(bic_net, all_bics, vertex.label = NA)
-    # --- Vapply [] ---
-    # Key functions: pal
-    ---------------------------------------------------------------------
-    # Prepare groups for plotting
-    samples <- vapply(
+        MARGIN = "both",
+        metric = 4,
+        n_steps = 1000,
+        plot_edge_dist = FALSE
+    )
+    adj_matrix <- mosbi::get_adjacency(bic_net)
+
+    # --- Network Visualization [Visualisation] ---
+    # Key functions: plot_algo_network, plot_piechart_bicluster_network
+    weeks <- vapply(
         strsplit(colnames(data_matrix), "\\."),
-        function(x) {
-    # --- Get Louvain Communities [] ---
-    # Key functions: get_louvain_communities
-    ---------------------------------------------------------------------
-    coms <- mosbi::get_louvain_communities(bic_net,
+        function(x) x[1],
+        ""
+    )
+    names(weeks) <- colnames(data_matrix)
+    week_cols <- c("yellow", "orange", "red", "green", "brown")
+    mosbi::plot_algo_network(bic_net, all_bics, vertex.label = NA)
+    mosbi::plot_piechart_bicluster_network(
+        bic_net, all_bics, weeks, week_cols, vertex.label = NA
+    )
+
+    # --- Community Detection and Ensemble Extraction [Ensemble Clustering] ---
+    # Key functions: get_louvain_communities, ensemble_biclusters
+    coms <- mosbi::get_louvain_communities(
+        bic_net,
         min_size = 3,
         bics = all_bics
     )
-    # --- Ensemble Biclusters [] ---
-    # Key functions: ensemble_biclusters
-    ---------------------------------------------------------------------
-    ensemble_bicluster_list <- mosbi::ensemble_biclusters(coms, all_bics,
+    ensemble_bicluster_list <- mosbi::ensemble_biclusters(
+        coms,
+        all_bics,
         data_matrix,
-        row_threshold = .1,
-        col_threshold = .1
+        row_threshold = 0.1,
+        col_threshold = 0.1
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

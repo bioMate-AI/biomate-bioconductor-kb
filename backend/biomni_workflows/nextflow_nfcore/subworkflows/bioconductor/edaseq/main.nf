@@ -38,6 +38,7 @@ process BIOC_EDASEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(EDASeq)
     library(BamFileList)
     library(DESeq)
     library(DESeqDataSetFromMatrix)
@@ -46,26 +47,44 @@ process BIOC_EDASEQ {
     library(FastqFileList)
     library(jsonlite)
 
-    # --- Create DGEList count object [] ---
-    # Key functions: DGEList, estimateDisp, glmFit, glmLRT, topTags, DESeqDataSetFromMatrix, normalizationFactors, DESeq
-    library(edgeR)
-    design <- model.matrix(~conditions, data=pData(dataOffset))
-    y <- DGEList(counts=counts(dataOffset),
-    # --- Normalize count data [] ---
-    # Key functions: betweenLaneNormalization, normCounts
-    dataNorm <- betweenLaneNormalization(data, round=FALSE, offset=TRUE)
-    norm1 <- normCounts(dataNorm)
-    norm2 <- exp(log(counts(dataNorm) + 0.1 ) + offst(dataNorm)) - 0.1
-    # --- Visualization and reporting [] ---
-    # Key functions: plotQuality
-    colors <- c(rep(rgb(1,0,0,alpha=0.7),2),
-    rep(rgb(0,0,1,alpha=0.7),2),
-    rep(rgb(0,1,0,alpha=0.7),2),
-    # --- Phenotype data inspection [] ---
-    # Key functions: DataFrame, FastqFileList, elementMetadata, BamFileList, plotQuality, plotNtFrequency, intersect, newSeqExpressionSet
-    files <- list.files(file.path(system.file(package = "yeastRNASeq"),
-    names(files) <- gsub("\\.fastq.*", "", basename(files))
-    met <- DataFrame(conditions=c(rep("mut",2), rep("wt",2)),
+    # --- Bias Assessment [] ---
+    # Key functions: newSeqExpressionSet, biasPlot, MDPlot, meanVarPlot
+    feature <- data.frame(gc = yeastGC, length = yeastLength)
+    data <- newSeqExpressionSet(
+        counts = as.matrix(geneLevelData[common, ]),
+        featureData = feature[common, ],
+        phenoData = data.frame(
+            conditions = factor(c(rep("mut", 2), rep("wt", 2))),
+            row.names = colnames(geneLevelData)
+        )
+    )
+    biasPlot(data, "gc", log = TRUE, ylim = c(1, 5))
+    MDPlot(data, c(1, 3))
+    meanVarPlot(data, log = TRUE, ylim = c(0, 16))
+
+
+    # --- Normalization [] ---
+    # Key functions: withinLaneNormalization, betweenLaneNormalization
+    dataWithin <- withinLaneNormalization(
+        data,
+        "gc",
+        which = "full"
+    )
+    dataNorm <- betweenLaneNormalization(
+        dataWithin,
+        which = "full"
+    )
+    dataOffset <- withinLaneNormalization(
+        data,
+        "gc",
+        which = "full",
+        offset = TRUE
+    )
+    dataOffset <- betweenLaneNormalization(
+        dataOffset,
+        which = "full",
+        offset = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

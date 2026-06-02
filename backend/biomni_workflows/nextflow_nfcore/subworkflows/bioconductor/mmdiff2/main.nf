@@ -38,15 +38,54 @@ process BIOC_MMDIFF2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MMDiff2)
     library(DBAmmd)
     library(Samples)
     library(jsonlite)
 
-    # --- DBAmmd analysis [] ---
-    # Key functions: DBAmmd, setRegions, getPeakReads, estimateFragmentCenters, compHists, plotPeak, query, compDists
-    MMD <- compPvals(MMD,dist.method='MMD')
-    plotDists(MMD, dist.method='MMD',whichContrast=1,
+    # --- Data Initialization and Peak Loading ---
+    # Key functions: DBAmmd, setRegions, getPeakReads
+    ExperimentData <- list(genome = 'BSgenome.Mmusculus.UCSC.mm9',
+                           dataDir = system.file("extdata",
+                                                 package="MMDiffBamSubset"),
+                           sampleSheet="Cfp1.csv")
+    MetaData <- list('ExpData' = ExperimentData)
+    MMD <- DBAmmd(MetaData)
+    data('Cfp1-Peaks')
+    MMD <- setRegions(MMD, Peaks)
+    MMD <- getPeakReads(MMD)
+
+    # --- Fragment Center Estimation and Histogram Computation ---
+    # Key functions: estimateFragmentCenters, compHists
+    MMD <- estimateFragmentCenters(MMD)
+    MMD <- compHists(MMD, bin.length=20, whichPos="Center")
+
+    # --- Distance Computation and Contrast Setup ---
+    # Key functions: compDists, Samples, setContrast
+    MMD <- compDists(MMD, dist.method = "MMD", run.parallel = FALSE)
+    group1 <- Samples(MMD)$Condition == '1'
+    names(group1) <- Samples(MMD)$SampleID
+    group2 <- Samples(MMD)$Condition == '2'
+    names(group2) <- Samples(MMD)$SampleID
+    contrast <- list(group1=group1, group2=group2,
+                     name1='WT,REsc', name2='Null')
+    MMD <- setContrast(MMD, contrast=contrast)
+
+    # --- Differential Testing and Results Reporting ---
+    # Key functions: compPvals, reportResults
+    MMD <- compPvals(MMD, dist.method='MMD')
     res <- reportResults(MMD)
+
+    # --- Visualization of Peaks and Distances ---
+    # Key functions: plotDists, plotDISTS4Peak
+    Peak.ids <- names(res)
+    plotDists(MMD, dist.method='MMD', whichContrast=1,
+              diff.method='MMD.locfit', bUsePval=FALSE, th=0.1)
+    if (length(Peak.ids) > 0) {
+        plotDISTS4Peak(MMD, Peak.id=Peak.ids[1], dist.method='MMD',
+                       whichContrast=1, Zoom=TRUE)
+    }
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

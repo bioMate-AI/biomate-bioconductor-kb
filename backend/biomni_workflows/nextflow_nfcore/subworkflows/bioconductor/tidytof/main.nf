@@ -41,25 +41,36 @@ process BIOC_TIDYTOF {
     library(tidytof)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: tof_preprocess, tof_cluster, starts_with, tof_metacluster, select
-    ---------------------------------------------------------------------
-    data(phenograph_data)
-    set.seed(203L)
-    phenograph_clusters <-
-        phenograph_data |>
-    # --- Count [] ---
-    # Key functions: count
-    ---------------------------------------------------------------------
-    phenograph_clusters |>
-        dplyr::count(phenograph_cluster, .kmeans_metacluster, sort = TRUE)
-    # --- Column [] ---
-    # Key functions: column, tof_preprocess, tof_cluster, contains
-    ---------------------------------------------------------------------
-    # will result in a tibble with only 1 column (the cluster labels)
-    phenograph_data |>
-        tof_preprocess() |>
+    # --- Cell Clustering [] ---
+    # Key functions: tof_cluster
+    clustered_data <- preprocessed_data |>
         tof_cluster(
+            cluster_cols = starts_with("cd"),
+            num_neighbors = 50L,
+            distance_function = "cosine",
+            method = "phenograph"
+        )
+
+
+    # --- Metaclustering [] ---
+    # Key functions: tof_metacluster
+    metaclustered_data <- clustered_data |>
+        tof_metacluster(
+            cluster_col = .phenograph_cluster,
+            metacluster_cols = starts_with("cd"),
+            num_metaclusters = 3L,
+            method = "kmeans"
+        )
+
+
+    # --- Alternative Clustering [] ---
+    # Key functions: tof_cluster
+    kmeans_clusters <- preprocessed_data |>
+        tof_cluster(
+            cluster_cols = contains("cd"),
+            method = "kmeans",
+            augment = FALSE
+        )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

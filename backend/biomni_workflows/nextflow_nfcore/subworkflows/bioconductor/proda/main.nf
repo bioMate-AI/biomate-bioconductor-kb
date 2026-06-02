@@ -41,26 +41,48 @@ process BIOC_PRODA {
     library(proDA)
     library(jsonlite)
 
-    # --- generate_synthetic_data [] ---
-    # Key functions: generate_synthetic_data, proDA, test_diff
-    library(proDA)
-    syn_dataset <- generate_synthetic_data(n_proteins = 100, n_conditions = 2)
-    fit <- proDA(syn_dataset$Y, design = syn_dataset$groups)
-    # --- median_normalization [] ---
-    # Key functions: median_normalization, dist_approx
-    boxplot(abundance_matrix,
-    normalized_abundance_matrix <- median_normalization(abundance_matrix)
-    da <- dist_approx(normalized_abundance_matrix)
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: pheatmap, proDA
-    install.packages("pheatmap")
-    sel <- c(1:3,  # CG1407
-    plot_mat <- as.matrix(da$mean)[sel, sel]
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: pheatmap, test_diff
-    install.packages("pheatmap")
-    pheatmap::pheatmap(dist_approx(fit[1:20, 1:3], by_sample = FALSE)$mean)
-    test_res <- test_diff(fit, "conditionCG1407")
+    # --- Data Preparation and Normalisation [] ---
+    # Key functions: generate_synthetic_data, median_normalization
+    syn_data <- generate_synthetic_data(
+        n_proteins = 150,
+        n_conditions = 3,
+        n_replicates = 3
+    )
+    raw_matrix <- syn_data$Y
+    raw_matrix[raw_matrix == 0] <- NA
+    norm_matrix <- median_normalization(raw_matrix)
+
+    # --- Sample Distance Estimation [] ---
+    # Key functions: dist_approx
+    distance_result <- dist_approx(
+        norm_matrix,
+        by_sample = TRUE
+    )
+    mean_distance <- distance_result$mean
+    sd_distance <- distance_result$sd
+
+    # --- Probabilistic Dropout Model Fitting [] ---
+    # Key functions: proDA
+    col_data <- data.frame(
+        condition = syn_data$groups,
+        row.names = colnames(norm_matrix)
+    )
+    fit <- proDA(
+        norm_matrix,
+        design = ~ condition,
+        col_data = col_data
+    )
+    feature_params <- fit$feature_parameters
+
+    # --- Differential Abundance Testing [] ---
+    # Key functions: test_diff
+    contrast_res <- test_diff(
+        fit,
+        contrast = "conditionCondition_2",
+        sort_by = "pval"
+    )
+    significant_proteins <- contrast_res[contrast_res$adj_pval < 0.05, ]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

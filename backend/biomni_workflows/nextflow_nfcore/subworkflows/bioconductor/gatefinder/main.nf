@@ -41,22 +41,24 @@ process BIOC_GATEFINDER {
     library(GateFinder)
     library(jsonlite)
 
-    # --- exprs [] ---
-    # Key functions: exprs
-    library(GateFinder)
-    library(flowCore)
-    data(LPSData)
-    targetpop <- (exprs(rawdata)[,34] > 3.5)
-    plot(exprs(rawdata)[ , c(2,34)], pch='.', col=targetpop+1,
-    # --- exprs [] ---
-    # Key functions: exprs, GateFinder
-    x=exprs(rawdata)[ , prop.markers]
-    colnames(x)=marker.names[prop.markers]
-    results=GateFinder(x, targetpop)
-    # --- Gate Finder [] ---
+    # --- Gating Optimization [] ---
     # Key functions: GateFinder
-    results=GateFinder(x, targetpop, outlier.percentile=0.5)
-    plot (x, results, c(2,3), targetpop)
+    results <- GateFinder(
+        x = x,
+        target = targetpop,
+        outlier.percentile = 0.5,
+        beta = 0.5
+    )
+
+
+    # --- Gating Visualization [] ---
+    # Key functions: plot
+    plot(
+        x,
+        results,
+        c(2, 3),
+        targetpop
+    )
     plot(results)
 
     # --- Save outputs ---

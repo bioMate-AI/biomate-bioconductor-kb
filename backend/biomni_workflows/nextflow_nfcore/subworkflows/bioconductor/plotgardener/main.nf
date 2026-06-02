@@ -41,39 +41,54 @@ process BIOC_PLOTGARDENER {
     library(plotgardener)
     library(jsonlite)
 
-    # --- hic quickplot [] ---
-    # Key functions: plotHicSquare
-    library(plotgardener)
-    library(plotgardenerData)
-    data("IMR90_HiC_10kb")
-    # --- signal quickplot [] ---
-    # Key functions: plotSignal
-    library(plotgardener)
+    # --- Genomic Signal Visualization [] ---
+    # Key functions: plotSignal, plotGenes
     library(plotgardenerData)
     data("IMR90_ChIP_H3K27ac_signal")
-    # --- gene quickplot [] ---
-    # Key functions: plotGenes
-    library(plotgardener)
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(org.Hs.eg.db)
-    # --- gwas quickplot [] ---
-    # Key functions: plotManhattan
-    library(plotgardener)
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    plotSignal(
+        data = IMR90_ChIP_H3K27ac_signal,
+        chrom = "chr21", chromstart = 28000000, chromend = 30300000,
+        assembly = "hg19"
+    )
+    plotGenes(
+        assembly = "hg19",
+        chrom = "chr21", chromstart = 28000000, chromend = 30300000
+    )
+
+
+    # --- Hi-C Interaction Plotting [] ---
+    # Key functions: plotHicSquare, annoHeatmapLegend, annoGenomeLabel
     library(plotgardenerData)
-    # --- page Create [] ---
-    # Key functions: pageCreate
-    pageCreate(width = 3.25, height = 3.25, default.units = "inches")
-    # --- page Create [] ---
-    # Key functions: pageCreate, plotHicSquare
-    pageCreate(width = 3.25, height = 3.25, default.units = "inches")
     data("IMR90_HiC_10kb")
     hicPlot <- plotHicSquare(
-    # --- page Create [] ---
-    # Key functions: pageCreate, plotHicSquare, annoHeatmapLegend, annoGenomeLabel
-    pageCreate(width = 3.25, height = 3.25, default.units = "inches")
-    data("IMR90_HiC_10kb")
-    hicPlot <- plotHicSquare(
+        data = IMR90_HiC_10kb,
+        chrom = "chr21", chromstart = 28000000, chromend = 30300000,
+        assembly = "hg19",
+        x = 0.25, y = 0.25, width = 2.5, height = 2.5,
+        default.units = "inches"
+    )
+    annoHeatmapLegend(
+        plot = hicPlot,
+        x = 2.85, y = 0.25, width = 0.1, height = 1.25,
+        default.units = "inches"
+    )
+    annoGenomeLabel(
+        plot = hicPlot,
+        x = 0.25, y = 2.75, width = 2.5, height = 0.25,
+        default.units = "inches"
+    )
+
+
+    # --- Association Mapping Visualization [] ---
+    # Key functions: plotManhattan
+    library(plotgardenerData)
+    data("hg19_insulin_GWAS")
+    plotManhattan(
+        data = hg19_insulin_GWAS,
+        assembly = "hg19",
+        fill = c("steel blue", "grey"),
+        ymax = 1.1, cex = 0.20
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

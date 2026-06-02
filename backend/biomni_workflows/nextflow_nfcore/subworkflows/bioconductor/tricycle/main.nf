@@ -41,48 +41,73 @@ process BIOC_TRICYCLE {
     library(tricycle)
     library(jsonlite)
 
-    # --- project_cycle_space [] ---
-    # Key functions: project_cycle_space
-    neurosphere_example <- project_cycle_space(neurosphere_example)
-    # --- plot projection [] ---
-    # Key functions: plotReducedDim, labs, ggtitle, theme_bw
-    library(ggplot2)
-    library(scattermore)
-    library(scater)
-    # --- estimate_cycle_position [] ---
+    # --- Cell Cycle Position Estimation [] ---
     # Key functions: estimate_cycle_position
-    neurosphere_example <- estimate_cycle_position(neurosphere_example)
-    names(colData(neurosphere_example))
-    # --- assay [] ---
-    # Key functions: assay
-    top2a.idx <- which(rowData(neurosphere_example)$Gene == 'Top2a')
-    fit.l <- fit_periodic_loess(neurosphere_example$tricyclePosition,
-    assay(neurosphere_example, 'logcounts')[top2a.idx,],
-    # --- estimate_ Schwabe_stage [] ---
-    # Key functions: estimate_Schwabe_stage, plotReducedDim, labs, theme_bw
-    neurosphere_example <- estimate_Schwabe_stage(neurosphere_example,
-    scater::plotReducedDim(neurosphere_example, dimred = "tricycleEmbedding",
-    labs(x = "Projected PC1", y = "Projected PC2",
-    # --- plot_ccposition_den [] ---
-    # Key functions: plot_ccposition_den, theme_bw
-    plot_ccposition_den(neurosphere_example$tricyclePosition,
-    theme_bw(base_size = 14)
-    plot_ccposition_den(neurosphere_example$tricyclePosition,
-    # --- plot_emb_circle_scale [] ---
-    # Key functions: plot_emb_circle_scale, theme_bw, circle_scale_legend, plot_grid
-    library(cowplot)
-    p <- plot_emb_circle_scale(neurosphere_example, dimred = 1,
-    theme_bw(base_size = 14)
-    # --- estimate_cycle_position [] ---
-    # Key functions: estimate_cycle_position
-    set.seed(100)
-    gocc_sce.o <- run_pca_cc_genes(neurosphere_example,
-    new.ref <- attr(reducedDim(gocc_sce.o, 'PCA'), 'rotation')[, seq_len(2)]
-    # --- qplot [] ---
-    # Key functions: qplot, labs, theme_bw
-    cor(neurosphere_example$tricyclePosition, new_sce$tricyclePosition)
-    CircStats::circ.cor(neurosphere_example$tricyclePosition, new_sce$tricyclePosition)
-    qplot(x = neurosphere_example$tricyclePosition,y = new_sce$tricyclePosition) +
+    sce_positioned <- estimate_cycle_position(
+        sce_projected
+    )
+    positions <- sce_positioned$tricyclePosition
+
+
+    # --- Cell Cycle Stage Assignment [] ---
+    # Key functions: estimate_Schwabe_stage
+    sce_staged <- estimate_Schwabe_stage(
+        sce_positioned,
+        gname.type = "ENSEMBL",
+        species = "mouse"
+    )
+    stages <- sce_staged$CCStage
+
+
+    # --- Periodic Expression Fitting [] ---
+    # Key functions: fit_periodic_loess
+    top2a_idx <- which(
+        SummarizedExperiment::rowData(sce_staged)$Gene == "Top2a"
+    )
+    fit_results <- fit_periodic_loess(
+        sce_staged$tricyclePosition,
+        SummarizedExperiment::assay(sce_staged, "logcounts")[top2a_idx, ],
+        plot = FALSE
+    )
+
+
+    # --- Cell Cycle Visualization [] ---
+    # Key functions: plot_ccposition_den, plot_emb_circle_scale, circle_scale_legend
+    density_plot <- plot_ccposition_den(
+        sce_staged$tricyclePosition,
+        sce_staged$sample,
+        "sample",
+        bw = 10,
+        fig.title = "Kernel density of theta"
+    )
+    circle_plot <- plot_emb_circle_scale(
+        sce_staged,
+        dimred = 1,
+        point.size = 3.5,
+        point.alpha = 0.9
+    )
+    legend_plot <- circle_scale_legend(
+        text.size = 5,
+        alpha = 0.9
+    )
+
+
+    # --- Custom Reference Generation [] ---
+    # Key functions: run_pca_cc_genes, estimate_cycle_position
+    gocc_sce <- run_pca_cc_genes(
+        sce_staged,
+        exprs_values = "logcounts",
+        species = "mouse"
+    )
+    new_ref <- attr(
+        SingleCellExperiment::reducedDim(gocc_sce, "PCA"),
+        "rotation"
+    )[, seq_len(2)]
+    sce_custom <- estimate_cycle_position(
+        sce_staged,
+        ref.m = new_ref,
+        dimred = "tricycleEmbedding2"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

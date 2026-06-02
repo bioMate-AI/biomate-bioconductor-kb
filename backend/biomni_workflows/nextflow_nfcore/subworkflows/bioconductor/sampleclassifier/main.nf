@@ -41,64 +41,39 @@ process BIOC_SAMPLECLASSIFIER {
     library(sampleClassifier)
     library(jsonlite)
 
-    # --- Load Rnaseqdata [] ---
-    # Key functions: assay
-    library(sampleClassifierData)
-    data("se_rnaseq_refmat")
-    rnaseq_refmat <- assay(se_rnaseq_refmat)
-    # --- Load Microdata 1 [] ---
-    # Key functions: assay
-    library(sampleClassifierData)
-    data("se_micro_refmat")
-    micro_refmat <- assay(se_micro_refmat)
-    dim(micro_refmat)
-    # --- Load Microdata 2 [] ---
-    # Key functions: assay
-    data("se_micro_testmat")
-    micro_testmat <- assay(se_micro_testmat)
-    dim(micro_testmat)
-    # --- Classify Microdata [] ---
-    # Key functions: classifyProfile
-    res1.list <- classifyProfile(ref_matrix=micro_refmat, query_mat=micro_testmat,
-    chip1="hgu133plus2",chip2="hgu133a", write2File=FALSE)
-    # --- Heatmap [] ---
-    # Key functions: heatmap
+    # --- Microarray SVM Classification [] ---
+    # Key functions: classifyProfile.svm
+    res1.svm.df <- classifyProfile.svm(
+        ref_matrix = micro_refmat,
+        query_mat = micro_testmat,
+        chip1 = "hgu133plus2",
+        chip2 = "hgu133a"
+    )
+
+
+    # --- RNA-seq Profile Classification [] ---
+    # Key functions: classifyProfile.rnaseq
+    res2.list <- classifyProfile.rnaseq(
+        ref_matrix = rnaseq_refmat,
+        query_mat = rnaseq_testmat,
+        gene.ids.type = "ensembl",
+        write2File = FALSE
+    )
+
+
+    # --- RNA-seq SVM Classification [] ---
+    # Key functions: classifyProfile.rnaseq.svm
+    res2.svm.df <- classifyProfile.rnaseq.svm(
+        ref_matrix = rnaseq_refmat,
+        query_mat = rnaseq_testmat,
+        gene.ids.type = "ensembl"
+    )
+
+
+    # --- Visualization of Classification Results [] ---
+    # Key functions: get.heatmap
     get.heatmap(res1.list)
-    # --- Classify Microdata Svm [] ---
-    # Key functions: svm
-    res1.svm.df <- classifyProfile.svm(ref_matrix=micro_refmat, query_mat=micro_testmat,
-    chip1="hgu133plus2",chip2="hgu133a")
-    res1.svm.df
-    # --- Classify Rnaseq [] ---
-    # Key functions: assay
-    library(sampleClassifierData)
-    data("se_rnaseq_refmat")
-    rnaseq_refmat <- assay(se_rnaseq_refmat)
-    dim(rnaseq_refmat)
-    # --- Load Testrnaseq [] ---
-    # Key functions: assay
-    data("se_rnaseq_testmat")
-    rnaseq_testmat <- assay(se_rnaseq_testmat)
-    dim(rnaseq_testmat)
-    # --- Classify Rnaseq2 [] ---
-    # Key functions: rnaseq
-    res2.list <- classifyProfile.rnaseq(ref_matrix=rnaseq_refmat, query_mat=rnaseq_testmat,
-    gene.ids.type="ensembl",write2File=FALSE)
-    # --- Heatmap2 [] ---
-    # Key functions: heatmap
     get.heatmap(res2.list)
-    # --- Show Results3 [] ---
-    # Key functions: svm
-    res2.svm.df <- classifyProfile.rnaseq.svm(ref_matrix=rnaseq_refmat, query_mat=rnaseq_testmat,
-    gene.ids.type="ensembl")
-    res2.svm.df
-    # --- Show Results4 [] ---
-    # Key functions: unlist
-    misclas.inds <- which(as.character(res2.svm.df[,1])!=as.character(res2.svm.df[,2]))
-    colnames(res2.svm.df) <- c("query_real_class","predicted_class_by_SVM")
-    pred.classifyProfile.rnaseq <- as.character(unlist(lapply(res2.list[which(names(res2.list) %in%
-    as.character(res2.svm.df[misclas.inds,1]))],"[",1,1,drop=TRUE)))
-    comp.df <- cbind(res2.svm.df[misclas.inds,],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

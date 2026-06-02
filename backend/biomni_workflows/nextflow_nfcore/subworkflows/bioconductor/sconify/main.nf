@@ -38,45 +38,34 @@ process BIOC_SCONIFY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Sconify)
     library(IgM)
     library(MakeHist)
     library(TsneVis)
     library(jsonlite)
 
-    # --- Makehist [] ---
+    # --- Abundance Histogram Analysis [] ---
     # Key functions: MakeHist
-    ---------------------------------------------------------------------
-    # Visualization
-    MakeHist(wand.final, 30, "IL7.fraction.cond.2", "fraction IL7")
-    # Characteristics of the visualization
-    median(wand.final$IL7.fraction.cond.2)
-    # --- Function [] ---
-    # Key functions: sample, frame
-    ---------------------------------------------------------------------
-    # Compare to a coin toss distribution
-    # Flips a coin k number of times, n repetitions, and returns the vector
-    # containing the per-k percent heads
-    KFlip <- function(k, n) {
-    # --- Tsnevis [] ---
-    # Key functions: TsneVis, IgM
-    ---------------------------------------------------------------------
-    # Raw per-cell IgM levels
-    TsneVis(wand.final, "IgM(Eu153)Di", "Raw IgM expression")
-    TsneVis(wand.final, "IL7.fraction.cond.2", "Fraction cells in Il7 condition")
-    # --- Makehist [] ---
-    # Key functions: MakeHist
-    ---------------------------------------------------------------------
-    # Before normalization
-    MakeHist(bz.gmcsf.final, 100, "fraction.cond2", "fraction GM-CSF")
-    # Characteristics of the visualization
-    median(bz.gmcsf.final$fraction.cond2)
-    # --- Tsnevis [] ---
+    MakeHist(
+        df = wand.final,
+        num.bins = 30,
+        col.name = "IL7.fraction.cond.2",
+        title = "fraction IL7"
+    )
+
+
+    # --- t-SNE Projection Visualisation [] ---
     # Key functions: TsneVis
-    ---------------------------------------------------------------------
-    # t-SNE map colored by KNN-based fraction GM-CSF
-    TsneVis(bz.gmcsf.final, "fraction.cond2", "Fraction GM-CSF")
-    # t-SNE map colored by KNN-based fraction GM-CSF
-    TsneVis(bz.gmcsf.final.norm.scale, "fraction.cond2", "Fraction GM-CSF")
+    TsneVis(
+        df = wand.final,
+        col.name = "IgM(Eu153)Di",
+        title = "Raw IgM expression"
+    )
+    TsneVis(
+        df = wand.final,
+        col.name = "IL7.fraction.cond.2",
+        title = "Fraction cells in Il7 condition"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

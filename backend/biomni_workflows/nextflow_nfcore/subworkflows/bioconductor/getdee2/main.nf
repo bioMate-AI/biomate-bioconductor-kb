@@ -41,27 +41,41 @@ process BIOC_GETDEE2 {
     library(getDEE2)
     library(jsonlite)
 
-    # --- get D E E2 Metadata [] ---
-    # Key functions: getDEE2Metadata
-    mdat <- getDEE2Metadata("celegans")
-    head(mdat)
-    # --- get D E E2 [] ---
-    # Key functions: getDEE2, colData
-    suppressPackageStartupMessages(library("SummarizedExperiment"))
-    x <- getDEE2("celegans",SRRvec,metadata=mdat,counts="GeneCounts")
-    colData(x)[1:7]
-    # --- get D E E2 [] ---
+    # --- Expression Data Retrieval [] ---
     # Key functions: getDEE2
-    x <- getDEE2("celegans",c("SRR363798","SRR363799","SRR3581689","SRR3581692"),
-    # --- list_bundles [] ---
-    # Key functions: list_bundles, query_bundles, getDEE2_bundle, assays
+    se_data <- getDEE2(
+        species = "celegans",
+        SRRvec = c("SRR363798", "SRR363799"),
+        counts = "GeneCounts"
+    )
+
+
+    # --- Legacy Format Retrieval [] ---
+    # Key functions: getDEE2
+    legacy_data <- getDEE2(
+        species = "celegans",
+        SRRvec = c("SRR363798", "SRR363799"),
+        legacy = TRUE
+    )
+    gene_counts <- legacy_data$GeneCounts
+    tx_counts <- legacy_data$TxCounts
+
+
+    # --- Bundle Querying and Retrieval [] ---
+    # Key functions: list_bundles, query_bundles, getDEE2_bundle
     bundles <- list_bundles("athaliana")
-    head(bundles)
-    query_bundles(species="athaliana",query="SRP058781",
-    # --- get D E E2_bundle [] ---
-    # Key functions: getDEE2_bundle, assays
-    x <- getDEE2_bundle("drerio", "GSE106677",
-    assays(x)$counts[1:6,1:4]
+    queried_bundles <- query_bundles(
+        species = "athaliana",
+        query = "SRP058781",
+        col = "SRP_accession",
+        bundles = bundles
+    )
+    bundle_data <- getDEE2_bundle(
+        species = "athaliana",
+        bundle_id = "SRP058781",
+        col = "SRP_accession",
+        counts = "GeneCounts"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

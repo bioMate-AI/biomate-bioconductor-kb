@@ -41,82 +41,45 @@ process BIOC_HEATPLUS {
     library(Heatplus)
     library(jsonlite)
 
-    # --- Setup01 [] ---
-    # Key functions: data
-    require(Biobase)
-    data(sample.ExpressionSet)
-    exdat = sample.ExpressionSet
-    # --- Setup02 [] ---
-    # Key functions: pData, lmFit, exprs, eBayes, topTable
-    require(limma)
-    design1 = model.matrix( ~ type, data=pData(exdat))
-    lm1 = lmFit(exprs(exdat), design1)
-    lm1 = eBayes(lm1)
-    geneID = rownames(topTable(lm1, coef=2, num=100, adjust="none",
-    # --- Regheatmap1 [] ---
-    # Key functions: regHeatmap, exprs
-    require(Heatplus)
-    reg1 = regHeatmap(exprs(exdat))
-    plot(reg1)
-    # --- Regheatmap2 [] ---
-    # Key functions: regHeatmap, exprs
-    reg2 = regHeatmap(exprs(exdat2), legend=2, col=heat.colors, breaks=-3:3)
-    plot(reg2)
-    # --- Regheatmap3 [] ---
-    # Key functions: dist, hclust, regHeatmap, exprs
-    corrdist = function(x) as.dist(1-cor(t(x)))
-    hclust.avl = function(x) hclust(x, method="average")
-    reg3 = regHeatmap(exprs(exdat2), legend=2, dendrogram =
-      list(clustfun=hclust.avl, distfun=corrdist))
-    plot(reg3)
-    # --- Regheatmap4 [] ---
-    # Key functions: regHeatmap, exprs
-    reg4 = regHeatmap(exprs(exdat2), legend=3,
-      dendrogram=list(Col=list(status="hide")))
-    plot(reg4)
-    # --- Annheatmap1 [] ---
-    # Key functions: annHeatmap, exprs, pData
-    ann1 = annHeatmap(exprs(exdat), ann=pData(exdat))
-    plot(ann1)
-    # --- Annheatmap2 [] ---
-    # Key functions: annHeatmap, exprs, pData
-    ann2 = annHeatmap(exprs(exdat2), ann=pData(exdat2),
-    	cluster=list(cuth=5000))
-    plot(ann2)
-    # --- Annheatmap3 [] ---
-    # Key functions: annHeatmap, exprs, pData
-    ann3 = annHeatmap(exprs(exdat2), ann=pData(exdat2),
-      cluster=list(cuth=7500, label=c("Control-like", "Case-like")))
-    plot(ann3)
-    # --- Setupx1 [] ---
-    # Key functions: assayData
-    SE = apply(get("se.exprs", assayData(exdat2)), 1, median)
-    # --- Setupx2 [] ---
-    # Key functions: exprs, pData, pt
-    CO = cor(t(exprs(exdat2)), pData(exdat2)$score)
-    df = nrow(exdat2)-2
-    TT = sqrt(df) * CO/sqrt(1-CO^2)
-    PV = 2*pt(-abs(TT), df=df)
-    # --- Setupx3 [] ---
-    # Key functions: mget, featureNames
-    require(hgu95av2.db)
-    allGO = as.list(mget(featureNames(exdat2), hgu95av2GO))
-    isTransElong = sapply(allGO, function(x) "GO:0006414" %in% names(x))
-    # --- Setupx4 [] ---
-    # Key functions: frame
-    annFeatures = data.frame(standard.errors=SE, sigCorScore=PV<0.05,
-    isTransElong)
-    # --- Annheatmap4 [] ---
-    # Key functions: annHeatmap2, exprs, pData
-    ann4 = annHeatmap2(exprs(exdat2),
-      ann=list(Col=list(data=pData(exdat2)), Row=list(data=annFeatures)))
-    plot(ann4)
-    # --- Annheatmap5 [] ---
-    # Key functions: annHeatmap2, exprs, pData
-    ann4a = annHeatmap2(exprs(exdat2),
-      ann=list(Col=list(data=pData(exdat2)), Row=list(data=annFeatures)),
-      labels=list(Row=list(nrow=7), Col=list(nrow=2)))
-    plot(ann4a)
+    # --- Annotated Heatmap Generation [] ---
+    # Key functions: annHeatmap
+    ann1 <- annHeatmap(exprs(exdat), ann = pData(exdat))
+    ann2 <- annHeatmap(
+        exprs(exdat2),
+        ann = pData(exdat2),
+        cluster = list(cuth = 5000)
+    )
+    ann3 <- annHeatmap(
+        exprs(exdat2),
+        ann = pData(exdat2),
+        cluster = list(cuth = 7500, label = c("Control-like", "Case-like"))
+    )
+
+
+    # --- Advanced Annotated Heatmap [] ---
+    # Key functions: annHeatmap2
+    ann4 <- annHeatmap2(
+        exprs(exdat2),
+        ann = list(Col = list(data = pData(exdat2)), Row = list(data = annFeatures))
+    )
+    ann4a <- annHeatmap2(
+        exprs(exdat2),
+        ann = list(Col = list(data = pData(exdat2)), Row = list(data = annFeatures)),
+        labels = list(Row = list(nrow = 7), Col = list(nrow = 2))
+    )
+
+
+    # --- Annotation Conversion [] ---
+    # Key functions: convAnnData
+    ann1_conv <- convAnnData(pData(exdat2), inclRef = FALSE)[, 3:1]
+    colnames(ann1_conv) <- c("Score", "isControl", "isMale")
+    ann2_conv <- convAnnData(annFeatures, inclRef = FALSE)[, 3:1]
+    colnames(ann2_conv) <- c("isTranslationalElongation", "isCorrelated", "SE")
+    ann4c <- annHeatmap2(
+        exprs(exdat2),
+        ann = list(asIs = TRUE, Col = list(data = ann1_conv), Row = list(data = ann2_conv)),
+        labels = list(Row = list(nrow = 7), Col = list(nrow = 2))
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

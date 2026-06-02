@@ -41,56 +41,46 @@ process BIOC_SPKTOOLS {
     library(spkTools)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    data(affy)
-    object <- affy
-    # --- Spkslope [] ---
-    # Key functions: spkSlope
-    spkSlopeOut <- spkSlope(object, label, pch="+")
-    # --- Spkdensity [] ---
+    # --- Density Analysis [] ---
     # Key functions: spkDensity
+    label <- "Affymetrix"
     spkDensity(object, spkSlopeOut, cuts=TRUE, label)
-    # --- Spkbox [] ---
+
+
+    # --- Fold Change and Boxplot Analysis [] ---
     # Key functions: spkBox, plotSpkBox, summarySpkBox
+    fc <- 2
     spkBoxOut <- spkBox(object, spkSlopeOut, fc)
-    plotSpkBox(spkBoxOut, fc, ylim=c(-1.5,2.5))
+    plotSpkBox(spkBoxOut, fc, ylim=c(-1.5, 2.5))
     sbox <- summarySpkBox(spkBoxOut)
-    # --- Spkma [] ---
+
+
+    # --- MA Plotting [] ---
     # Key functions: spkMA
-    spkMA(object, spkSlopeOut, fc, label=label, ylim=c(-2.5,2.5))
-    # --- Spkvar [] ---
-    # Key functions: spkVar, frame
+    fc <- 2
+    label <- "Affymetrix"
+    spkMA(object, spkSlopeOut, fc, label=label, ylim=c(-2.5, 2.5))
+
+
+    # --- Variance and Accuracy Assessment [] ---
+    # Key functions: spkVar, spkAccSD, spkPot
     vtmp <- spkVar(object)
-    sv <- as.numeric(vtmp[,2][-nrow(vtmp)])
+    sv <- as.numeric(vtmp[, 2][-nrow(vtmp)])
     bin <- c("Low", "Med", "High")
-    bins <- bin[spkSlopeOut$breaks[2,]]
-    tab1 <- data.frame(NominalConc=2^spkSlopeOut$breaks[1,],
-    # --- Xtable [] ---
-    # Key functions: xtable
-    library(xtable)
-    tab1x <- xtable(tab1)
-    print(tab1x)
-    # --- Round [] ---
-    # Key functions: spkAccSD, spkPot, frame
+    bins <- bin[spkSlopeOut$breaks[2, ]]
     AccuracySlope <- round(spkSlopeOut$slopes[-1], digits=2)
     AccuracySD <- round(spkAccSD(object, spkSlopeOut), digits=2)
-    pot <- spkPot(object, spkSlopeOut, AccuracySlope, AccuracySD,
-                  precisionQuantile=.995)
-    PrecisionSD <- round(sbox$madFC[1:3], digits=2)
-    # --- Xtable [] ---
-    # Key functions: xtable
-    tab2x <- xtable(tab2)
-    print(tab2x)
-    # --- Round [] ---
+    pot <- spkPot(
+        object, spkSlopeOut, AccuracySlope, AccuracySD,
+        precisionQuantile=0.995
+    )
+
+
+    # --- ANOVA and Balance Analysis [] ---
     # Key functions: spkBal, spkAnova
     bals <- round(spkBal(object))
     anv <- round(spkAnova(object), digits=2)
-    tab3 <- t(c(anv,bals))
-    # --- Xtable [] ---
-    # Key functions: xtable
-    tab3x <- xtable(tab3)
-    print(tab3x)
+    tab3 <- t(c(anv, bals))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

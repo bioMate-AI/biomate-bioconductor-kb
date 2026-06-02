@@ -41,62 +41,56 @@ process BIOC_PMP {
     library(pmp)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(MTBLS79)
-    MTBLS79
-    # --- Sum [] ---
-    # Key functions: na, assay
-    ---------------------------------------------------------------------
-    sum(is.na(assay(MTBLS79)))
-    sum(is.na(assay(MTBLS79))) / length(assay(MTBLS79)) * 100
-    # --- Filter Samples By Mv [] ---
-    # Key functions: filter_samples_by_mv, na, assay
-    ---------------------------------------------------------------------
-    MTBLS79_filtered <- filter_samples_by_mv(df=MTBLS79, max_perc_mv=0.1)
-    MTBLS79_filtered
-    sum(is.na(assay(MTBLS79_filtered)))
-    # --- Filter Peaks By Fraction [] ---
-    # Key functions: filter_peaks_by_fraction, na, assay
-    ---------------------------------------------------------------------
-    MTBLS79_filtered <- filter_peaks_by_fraction(df=MTBLS79_filtered, min_frac=0.9,
-        classes=MTBLS79_filtered$Class, method="QC", qc_label="QC")
-    MTBLS79_filtered
-    sum(is.na(assay(MTBLS79_filtered)))
-    # --- Filter Peaks By Rsd [] ---
-    # Key functions: filter_peaks_by_rsd, na, assay
-    ---------------------------------------------------------------------
-    MTBLS79_filtered <- filter_peaks_by_rsd(df=MTBLS79_filtered, max_rsd=30,
-        classes=MTBLS79_filtered$Class, qc_label="QC")
-    MTBLS79_filtered
-    sum(is.na(assay(MTBLS79_filtered)))
-    # --- Processing History [] ---
-    # Key functions: processing_history
-    ---------------------------------------------------------------------
-    processing_history(MTBLS79_filtered)
-    # --- Pqn Normalisation [] ---
+    # --- Peak Filtering [] ---
+    # Key functions: filter_peaks_by_fraction, filter_peaks_by_rsd
+    MTBLS79_filtered <- filter_peaks_by_fraction(
+        df = MTBLS79_filtered,
+        min_frac = 0.9,
+        classes = MTBLS79_filtered$Class,
+        method = "QC",
+        qc_label = "QC"
+    )
+    MTBLS79_filtered <- filter_peaks_by_rsd(
+        df = MTBLS79_filtered,
+        max_rsd = 30,
+        classes = MTBLS79_filtered$Class,
+        qc_label = "QC"
+    )
+
+
+    # --- Normalisation [] ---
     # Key functions: pqn_normalisation
-    ---------------------------------------------------------------------
-    MTBLS79_pqn_normalised <- pqn_normalisation(df=MTBLS79_filtered,
-        classes=MTBLS79_filtered$Class, qc_label="QC")
-    # --- Mv Imputation [] ---
+    MTBLS79_pqn_normalised <- pqn_normalisation(
+        df = MTBLS79_filtered,
+        classes = MTBLS79_filtered$Class,
+        qc_label = "QC"
+    )
+
+
+    # --- Missing Value Imputation [] ---
     # Key functions: mv_imputation
-    ---------------------------------------------------------------------
-    MTBLS79_mv_imputed <- mv_imputation(df=MTBLS79_pqn_normalised,
-        method="knn")
-    # --- Glog Transformation [] ---
-    # Key functions: glog_transformation
-    ---------------------------------------------------------------------
-    MTBLS79_glog <- glog_transformation(df=MTBLS79_mv_imputed,
-        classes=MTBLS79_filtered$Class, qc_label="QC")
-    # --- Plot Glog [] ---
-    # Key functions: processing_history, glog_plot_optimised_lambda
-    -----------------------------------------------
-    opt_lambda <-
-        processing_history(MTBLS79_glog)$glog_transformation$lambda_opt
-    glog_plot_optimised_lambda(df=MTBLS79_mv_imputed,
-        optimised_lambda=opt_lambda,
+    MTBLS79_mv_imputed <- mv_imputation(
+        df = MTBLS79_pqn_normalised,
+        method = "knn"
+    )
+
+
+    # --- Glog Transformation and Visualisation [] ---
+    # Key functions: glog_transformation, processing_history, glog_plot_optimised_lambda
+    MTBLS79_glog <- glog_transformation(
+        df = MTBLS79_mv_imputed,
+        classes = MTBLS79_filtered$Class,
+        qc_label = "QC"
+    )
+    opt_lambda <- processing_history(
+        MTBLS79_glog
+    )$glog_transformation$lambda_opt
+    glog_plot_optimised_lambda(
+        df = MTBLS79_mv_imputed,
+        optimised_lambda = opt_lambda,
+        classes = MTBLS79_filtered$Class,
+        qc_label = "QC"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

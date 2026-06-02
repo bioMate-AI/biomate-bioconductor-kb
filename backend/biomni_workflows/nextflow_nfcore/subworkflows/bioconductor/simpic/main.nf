@@ -38,44 +38,37 @@ process BIOC_SIMPIC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(simPIC)
     library(PIC_counting)
     library(jsonlite)
 
-    # --- Load saved R data object [] ---
-    # Key functions: simPICestimate, simPICsimulate
-    suppressPackageStartupMessages({
-    library(simPIC)
-    set.seed(12)
-    # --- P I C_counting [] ---
-    # Key functions: PIC_counting
-    pic_mat <- PIC_counting(
-    # --- sim P I Cget [] ---
-    # Key functions: simPICget
-    simPICget(sim.params, "nPeaks")
-    # --- sim P I Cgetparameters [] ---
-    # Key functions: simPICgetparameters, setsimPICparameters
-    Set multiple parameters at once (using a list)
-    sim.params <- setsimPICparameters(sim.params,
-    update = list(nPeaks = 8000, nCells = 500)
-    # --- Load saved R data object [] ---
-    # Key functions: typeof, newsimPICcount, simPICestimate
-    count <- readRDS(system.file("extdata", "test.rds", package = "simPIC"))
-    class(count)
-    typeof(count)
-    # --- sim P I Csimulate [] ---
+    # --- Parameter Customisation [] ---
+    # Key functions: newsimPICcount, setsimPICparameters, simPICget
+    sim_params <- simPIC::newsimPICcount()
+    sim_params <- simPIC::setsimPICparameters(
+        sim_params,
+        update = list(nPeaks = 5000, nCells = 300)
+    )
+    n_peaks <- simPIC::simPICget(sim_params, "nPeaks")
+
+
+    # --- Single-Cell Peak Simulation [] ---
     # Key functions: simPICsimulate
-    sim <- simPICsimulate(new, nCells = 1000)
-    sim <- simPICsimulate(new, nCells =1000, pm.distr = "gamma")
-    # --- counts [] ---
-    # Key functions: counts
-    counts(sim)[1:5, 1:5]
-    head(rowData(sim))
-    head(colData(sim))
-    # --- sim P I Csimulate [] ---
-    # Key functions: simPICsimulate, simPICcompare
-    sim1 <- simPICsimulate(nPeaks = 20000, nCells = 1000)
-    sim2 <- simPICsimulate(nPeaks = 20000, nCells = 1000)
-    comparison <- simPICcompare(list(real = sim1, simPIC = sim2))
+    simulated_data <- simPIC::simPICsimulate(
+        est_params,
+        nCells = 500
+    )
+    sim_counts <- SingleCellExperiment::counts(simulated_data)
+
+
+    # --- Simulation Comparison [] ---
+    # Key functions: simPICcompare
+    sim1 <- simPIC::simPICsimulate(nPeaks = 1000, nCells = 100)
+    sim2 <- simPIC::simPICsimulate(nPeaks = 1000, nCells = 100)
+    comparison <- simPIC::simPICcompare(
+        list(real = sim1, simPIC = sim2)
+    )
+    mean_plot <- comparison$Plots$Means
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

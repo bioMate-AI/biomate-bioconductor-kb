@@ -38,48 +38,68 @@ process BIOC_METHYLPIPE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(methylPipe)
     library(BSprepare)
     library(GElist)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: BSprepare, GRanges
-    file_loc <- system.file('extdata', 'H1_chr20_CG_10k.txt', package='methylPipe')
-    BSprepare(files_location=file_loc,output_folder=file_loc, tabix="/path-to-tabix/")
-    uncov_GR <- GRanges(Rle('chr20'), IRanges(c(14350,69251,84185), c(18349,73250,88184)))
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, mCsmoothing
-    gr <- GRanges("chr20",IRanges(1,5e5))
-    sres <- mCsmoothing(H1.db, gr, Scorefun='sum', Nbins=50, plot=TRUE)
-    # --- methstats [] ---
-    # Key functions: methstats
-    stats.set <- BSdataSet(org=Hsapiens, group=c("C","C","E","E"), IMR_1=IMR90.db,
-    stats_res <- methstats(stats.set,chrom="chr20",mcClass='mCG', Nproc=1)
-    # --- map B Sdata2 G Ranges [] ---
-    # Key functions: mapBSdata2GRanges
+    # --- Methylation Calling and Database Creation ---
+    # Key functions: meth.call, BSdata, BSdataSet
+    file_loc <- system.file('extdata', 'test_methcall', package='methylPipe')
+    meth.call(files_location=file_loc, output_folder=tempdir(),
+              no_overlap=TRUE, read.context="CpG", Nproc=1)
+    uncov_GR <- GenomicRanges::GRanges(
+        GenomicRanges::Rle('chr20'),
+        IRanges::IRanges(c(14350, 69251, 84185), c(18349, 73250, 88184))
+    )
+    H1data <- system.file('extdata', 'H1_chr20_CG_10k_tabix_out.txt.gz',
+                          package='methylPipe')
+    Hsapiens <- BSgenome.Hsapiens.UCSC.hg18::Hsapiens
+    H1.db <- BSdata(file=H1data, uncov=uncov_GR, org=Hsapiens)
+    IMR90data <- system.file('extdata', 'IMR90_chr20_CG_10k_tabix_out.txt.gz',
+                             package='methylPipe')
+    IMR90.db <- BSdata(file=IMR90data, uncov=uncov_GR, org=Hsapiens)
+    H1.IMR90.set <- BSdataSet(org=Hsapiens, group=c("C","E"),
+                              IMR90=IMR90.db, H1=H1.db)
+
+    # --- Methylation Profiling and Smoothing ---
+    # Key functions: mCsmoothing, mapBSdata2GRanges, profileDNAmetBin
+    gr <- GenomicRanges::GRanges("chr20", IRanges::IRanges(1, 5e5))
+    sres <- mCsmoothing(H1.db, gr, Scorefun='sum', Nbins=50, plot=FALSE)
     gr_file <- system.file('extdata', 'GR_chr20.Rdata', package='methylPipe')
     load(gr_file)
-    resmC <- mapBSdata2GRanges(GenoRanges=GR_chr20, Sample=H1.db, context='CG')
-    # --- binm C [] ---
-    # Key functions: binmC, binC, binrC
-    gec.H1 <- profileDNAmetBin(GenoRanges=GR_chr20, Sample=H1.db, mcCLASS='mCG', nbins=3)
-    binmC(gec.H1)[4:5,]
-    binC(gec.H1)[4:5,]
-    # --- G Elist [] ---
-    # Key functions: GElist
-    gecIMR_file <- system.file('extdata', 'gec.IMR90.Rdata', package='methylPipe')
-    load(gecIMR_file)
-    gel <- GElist(gecIMR90=gec.IMR90, gecH1=gec.H1)
-    # --- G Elist [] ---
+    resmC <- mapBSdata2GRanges(GenoRanges=GR_chr20, Sample=H1.db,
+                               context='CG')
+    gec.H1 <- profileDNAmetBin(GenoRanges=GR_chr20, Sample=H1.db,
+                               mcCLASS='mCG', nbins=3)
+
+    # --- Differential Methylation Analysis ---
+    # Key functions: methstats, findDMR, consolidateDMRs
+    gr_file <- system.file('extdata', 'GR_chr20.Rdata', package='methylPipe')
+    load(gr_file)
+    stats.set <- BSdataSet(org=Hsapiens, group=c("C","C","E","E"),
+                           IMR_1=IMR90.db, IMR_2=IMR90.db,
+                           H1_1=H1.db, H1_2=H1.db)
+    stats_res <- methstats(stats.set, chrom="chr20", mcClass='mCG',
+                           Nproc=1)
+    DMRs <- findDMR(object=H1.IMR90.set, Nproc=1, ROI=GR_chr20,
+                    MCClass='mCG', dmrSize=6, dmrBp=800)
+    hyper.DMRs.conso <- consolidateDMRs(DmrGR=DMRs, pvThr=0.05,
+                                         GAP=100, type="hyper")
+
+    # --- Visualization and Genomic Integration ---
     # Key functions: GElist, plotMeth
-    library(TxDb.Hsapiens.UCSC.hg18.knownGene)
+    gecIMR_file <- system.file('extdata', 'gec.IMR90.Rdata',
+                               package='methylPipe')
+    load(gecIMR_file)
+    txdb <- TxDb.Hsapiens.UCSC.hg18.knownGene::TxDb.Hsapiens.UCSC.hg18.knownGene
     gel <- GElist(gecIMR90=gec.IMR90[1:10], gecH1=gec.H1[1:10])
-    plotMeth(gel, colors=c("red","blue"), datatype=c("mC","mC"), yLim=c(.025, .025), brmeth=list(IMR90=IMR90.db, H1=H1.db),
-    # --- find D M R [] ---
-    # Key functions: findDMR
-    DMRs <- findDMR(object= H1.IMR90.set, Nproc=1, ROI=GR_chr20, MCClass='mCG',
-    head(DMRs)
+    plotMeth(gel, colors=c("red","blue"), datatype=c("mC","mC"),
+             yLim=c(.025, .025), brmeth=list(IMR90=IMR90.db, H1=H1.db),
+             mcContext="CG", transcriptDB=txdb, chr="chr20",
+             start=14350, end=277370, org=Hsapiens)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

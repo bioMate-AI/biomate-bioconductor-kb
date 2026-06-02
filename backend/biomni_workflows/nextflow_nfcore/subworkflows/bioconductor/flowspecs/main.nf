@@ -41,54 +41,39 @@ process BIOC_FLOWSPECS {
     library(flowSpecs)
     library(jsonlite)
 
-    # --- Samplenames [] ---
-    # Key functions: sampleNames
-    ---------------------------------------------------------------------
-    sampleNames(unmixCtrls)
-    # --- Specmatcalc [] ---
-    # Key functions: specMatCalc
-    ---------------------------------------------------------------------
-    specMat <- specMatCalc(unmixCtrls, groupNames = c("Beads_", "Dead_"),
-                            autoFluoName = "PBMC_unstained.fcs")
-    str(specMat)
-    # --- Specunmix [] ---
+    # --- Spectral Unmixing [] ---
     # Key functions: specUnmix
-    ---------------------------------------------------------------------
+    data("fullPanel")
     fullPanelUnmix <- specUnmix(fullPanel, specMat)
-    fullPanelUnmix
-    # --- Arctrans [] ---
-    # Key functions: arcTrans, exprs
-    ---------------------------------------------------------------------
-    fullPanelTrans <- arcTrans(fullPanelUnmix, transNames =
-                                colnames(fullPanelUnmix)[6:18])
-    par(mfrow=c(1,2))
-    hist(exprs(fullPanelUnmix)[,7], main = "Pre transformation",
-    # --- Onevsallplot [] ---
-    # Key functions: oneVsAllPlot
-    ---------------------------------------------------------------------
-    oneVsAllPlot(fullPanelTrans, "AF647_IgM", saveResult = FALSE)
-    # --- Corrmatcreate [] ---
-    # Key functions: corrMatCreate
-    ---------------------------------------------------------------------
+
+
+    # --- Arc-sinh Transformation [] ---
+    # Key functions: arcTrans
+    trans_cols <- colnames(fullPanelUnmix)[6:18]
+    fullPanelTrans <- arcTrans(
+        fullPanelUnmix,
+        transNames = trans_cols
+    )
+
+
+    # --- Spillover Correction [] ---
+    # Key functions: corrMatCreate, correctUnmix
     corrMat <- corrMatCreate(specMat)
-    # --- Correctunmix [] ---
-    # Key functions: correctUnmix, oneVsAllPlot
-    ---------------------------------------------------------------------
     corrMat["BV650_CD56", "AF647_IgM"] <- -0.1
     fullPanelCorr <- correctUnmix(fullPanelUnmix, corrMat)
-    oneVsAllPlot(fullPanelCorr, "AF647_IgM", saveResult = FALSE)
-    # --- Flowset [] ---
-    # Key functions: flowSet, sampleNames
-    ---------------------------------------------------------------------
-    fullPanelFs <- flowSet(fullPanelTrans)
-    sampleNames(fullPanelFs) <- "PBMC_full_panel_d1.fcs"
-    # --- flow Set2 Long Df [] ---
+
+
+    # --- Data Conversion [] ---
     # Key functions: flowSet2LongDf
-    ---------------------------------------------------------------------
-    fullPanelDf <- flowSet2LongDf(fullPanelFs, idInfo =
-            list("Tissue" = "|_full_panel_..\\.fcs",
-                 "Donor" = "...._full_panel_|\\.fcs"))
-    str(fullPanelDf)
+    fullPanelFs <- flowCore::flowSet(fullPanelTrans)
+    flowCore::sampleNames(fullPanelFs) <- "PBMC_full_panel_d1.fcs"
+    fullPanelDf <- flowSet2LongDf(
+        fullPanelFs,
+        idInfo = list(
+            "Tissue" = "|_full_panel_..\\.fcs",
+            "Donor" = "...._full_panel_|\\.fcs"
+        )
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

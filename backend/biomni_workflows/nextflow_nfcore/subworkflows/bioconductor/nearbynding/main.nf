@@ -38,41 +38,69 @@ process BIOC_NEARBYNDING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(nearBynding)
     library(GenomeMappingToChainFile)
     library(jsonlite)
 
-    # --- Load [] ---
-    # Key functions: GenomeMappingToChainFile
-    ---------------------------------------------------------------------
-    # load transcript list
-    load(system.file("extdata/transcript_list.Rda", package="nearBynding"))
-    # get GTF file
-    gtf<-system.file("extdata/Homo_sapiens.GRCh38.chr4&5.gtf",
-    # --- Getchainchrsize [] ---
-    # Key functions: getChainChrSize
-    ---------------------------------------------------------------------
-    getChainChrSize(chain = "test.chain",
-                    out_chr = "chr4and5_3UTR.size")
-    # --- Liftovertoexomicbg [] ---
-    # Key functions: liftOverToExomicBG
-    ---------------------------------------------------------------------
-    liftOverToExomicBG(input = "chr4and5_sorted.bedGraph",
-                        chain = "test.chain",
-                        chrom_size = "chr4and5_3UTR.size",
-                        output_bg = "chr4and5_liftOver.bedGraph")
-    # --- Processcaprout [] ---
+    # --- Transcriptome Sequence Extraction [] ---
+    # Key functions: ExtractTranscriptomeSequence
+    gtf <- system.file(
+        "extdata/Homo_sapiens.GRCh38.chr4&5.gtf",
+        package = "nearBynding"
+    )
+    load(system.file("extdata/transcript_list.Rda", package = "nearBynding"))
+    ExtractTranscriptomeSequence(
+        transcript_list = transcript_list,
+        ref_genome = "Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+        genome_gtf = gtf,
+        RNA_fragment = "three_prime_utr",
+        exome_prefix = "chr4and5_3UTR"
+    )
+
+
+    # --- BAM Processing and LiftOver [] ---
+    # Key functions: CleanBAMtoBG, liftOverToExomicBG
+    CleanBAMtoBG(in_bam = "chr4and5_sorted.bam")
+    liftOverToExomicBG(
+        input = "chr4and5_sorted.bedGraph",
+        chain = "test.chain",
+        chrom_size = "chr4and5_3UTR.size",
+        output_bg = "chr4and5_liftOver.bedGraph"
+    )
+
+
+    # --- CapR Output Processing [] ---
     # Key functions: processCapRout
-    ---------------------------------------------------------------------
-    processCapRout(CapR_outfile = system.file("extdata/chr4and5_3UTR.out",
-                                                package="nearBynding"),
-                    chain = "test.chain",
-                    output_prefix = "chr4and5_3UTR",
-    # --- Bindingcontextdistance [] ---
+    gtf <- system.file(
+        "extdata/Homo_sapiens.GRCh38.chr4&5.gtf",
+        package = "nearBynding"
+    )
+    capr_out <- system.file(
+        "extdata/chr4and5_3UTR.out",
+        package = "nearBynding"
+    )
+    processCapRout(
+        CapR_outfile = capr_out,
+        chain = "test.chain",
+        output_prefix = "chr4and5_3UTR",
+        chrom_size = "chr4and5_3UTR.size",
+        genome_gtf = gtf,
+        RNA_fragment = "three_prime_utr"
+    )
+
+
+    # --- Binding Context Distance Analysis [] ---
     # Key functions: bindingContextDistance
-    ---------------------------------------------------------------------
-    bindingContextDistance(RNA_context = "chr4and5_3UTR_stem_liftOver",
-                            protein_file = "chr4and5_liftOver",
-                            RNA_context_2 = "chr4and5_3UTR_hairpin_liftOver")
+    bindingContextDistance(
+        RNA_context = "chr4and5_3UTR_stem_liftOver",
+        protein_file = "chr4and5_liftOver",
+        RNA_context_2 = "chr4and5_3UTR_hairpin_liftOver"
+    )
+    bindingContextDistance(
+        RNA_context = "chr4and5_3UTR_internal_liftOver",
+        protein_file = "chr4and5_liftOver",
+        RNA_context_2 = "chr4and5_3UTR_hairpin_liftOver"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

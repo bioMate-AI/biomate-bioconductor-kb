@@ -41,23 +41,25 @@ process BIOC_WIDGETTOOLS {
     library(widgetTools)
     library(jsonlite)
 
-    # --- Env [] ---
-    # Key functions: env, frame
-    library(widgetTools)
-    PWEnv <- new.env(hash = TRUE, parent = parent.frame(1))
-    # --- Label [] ---
-    # Key functions: label, entryBox, tclvalue, tkgetOpenFile, wName, wValue
-    label1 <- label(wName = "label1", wValue = "File Name: ", wEnv = PWEnv)
-    entry1 <- entryBox(wName = "entry1", wValue = "Feed me using browse",
-                       wEnv = PWEnv)
-    browse2Entry1 <- function(){
-        tempValue <- tclvalue(tkgetOpenFile())
-    # --- Wname [] ---
-    # Key functions: wName
-    wName(label1)
-    wName(label1) <- "YYY"
-    wName(label1)
-    wName(label1) <- "label1"
+    # --- Widget Assembly [] ---
+    # Key functions: widget, wName
+    pWidgets <- list(
+        row1 = list(lbl = lbl, entry = entry),
+        row2 = list(btn = btn, lst = lst)
+    )
+    wName(lbl) <- "NewLabel"
+    aWidget <- widget(
+        wTitle = "Workflow Configurator",
+        pWidgets,
+        funs = list(),
+        env = PWEnv
+    )
+
+
+    # --- Value Extraction [] ---
+    # Key functions: wValue, pWidgets
+    val_entry <- wValue(pWidgets(aWidget)[["row1"]][["entry"]])
+    val_list <- wValue(pWidgets(aWidget)[["row2"]][["lst"]])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

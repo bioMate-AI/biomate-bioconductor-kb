@@ -38,26 +38,30 @@ process BIOC_PROLOCGUI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pRolocGUI)
     library(MSnSetList)
     library(jsonlite)
 
-    # --- p Roloc Vis [] ---
+    # --- Protein Profile Visualization [] ---
     # Key functions: pRolocVis
-    pRolocVis(object = hyperLOPIT2015, fcol = "markers")
-    # --- M Sn Set List [] ---
-    # Key functions: MSnSetList, pRolocVis
-    data(hyperLOPIT2015ms3r1)
-    data(hyperLOPIT2015ms3r2)
-    mydata <- MSnSetList(list(hyperLOPIT2015ms3r1, hyperLOPIT2015ms3r2))
-    # --- p Roloc Vis [] ---
+    data(hyperLOPIT2015, package = "pRolocdata")
+    pRolocVis(
+        object = hyperLOPIT2015,
+        app = "Profile",
+        fcol = "markers",
+        quantiles = c(0.05, 0.95)
+    )
+
+
+    # --- Classification Results Visualization [] ---
     # Key functions: pRolocVis
-    data("hyperLOPIT2015ms2psm")
-    pRolocVis(hyperLOPIT2015ms2psm, app = "aggregate", fcol = "markers",
-    # --- Combine peptide features to proteins [] ---
-    # Key functions: combineFeatures, pRolocVis
-    hl <- combineFeatures(hyperLOPIT2015ms2psm,
-    groupBy = fData(hyperLOPIT2015ms2psm)$Sequence,
-    pRolocVis(hyperLOPIT2015ms2psm, app = "aggregate", fcol = "markers",
+    data(hyperLOPIT2015, package = "pRolocdata")
+    pRolocVis(
+        object = hyperLOPIT2015,
+        app = "Classification",
+        fcol = "markers",
+        scol = "svm.classification"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

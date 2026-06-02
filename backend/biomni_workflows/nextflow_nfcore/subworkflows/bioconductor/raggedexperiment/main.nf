@@ -46,76 +46,40 @@ process BIOC_RAGGEDEXPERIMENT {
     library(Rle)
     library(jsonlite)
 
-    # --- Delim [] ---
-    # Key functions: delim
-    ---------------------------------------------------------------------
-    ASCAT_data_S1 <- read.delim(
-        system.file(
-            "extdata", "ASCAT_Sample1.txt",
-            package = "RaggedExperiment", mustWork = TRUE
-    # --- Granges [] ---
-    # Key functions: GRanges, Rle, IRanges, strand
-    ---------------------------------------------------------------------
-    sample1_ex1 <- GRanges(
-        seqnames = Rle(paste0("chr", ASCAT_data_S1$chr)),
-        ranges = IRanges(start = ASCAT_data_S1$startpos, end = ASCAT_data_S1$endpos),
-        strand = Rle(strand("*")),
-    # --- Makegrangesfromdataframe [] ---
-    # Key functions: makeGRangesFromDataFrame
-    ---------------------------------------------------------------------
-    sample1_ex2 <- makeGRangesFromDataFrame(
-        ASCAT_data_S1[,-c(1)],
-        ignore.strand=TRUE,
-        seqnames.field="chr",
-    # --- Split [] ---
-    # Key functions: split
-    ---------------------------------------------------------------------
-    sample_list <- split(
-        ASCAT_data_All,
-        f = ASCAT_data_All$sample
-    )
-    # --- Makegrangeslistfromdataframe [] ---
-    # Key functions: makeGRangesListFromDataFrame
-    ---------------------------------------------------------------------
-    sample_list_GRanges_ex1 <- makeGRangesListFromDataFrame(
-        ASCAT_data_S1,
-        ignore.strand=TRUE,
-        seqnames.field="chr",
-    # --- Grangeslist [] ---
-    # Key functions: GRangesList
-    ---------------------------------------------------------------------
-    sample_list_GRanges_ex3 <- GRangesList(
-        sample1 = sample1_ex1
-    )
-    sample_list_GRanges_ex3
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, RaggedExperiment
-    ---------------------------------------------------------------------
-    colDat_1 = DataFrame(id = 1)
-    ragexp_1 <- RaggedExperiment(
-        sample1 = sample1_ex2,
-        colData = colDat_1
-    # --- Raggedexperiment [] ---
+    # --- RaggedExperiment Construction [] ---
     # Key functions: RaggedExperiment
-    ---------------------------------------------------------------------
-    ragexp_2 <- RaggedExperiment(
-        sample_list_GRanges_ex1,
-        colData = colDat_1
+    col_data <- DataFrame(
+        sample_id = names(gr_list),
+        row.names = names(gr_list)
     )
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, RaggedExperiment
-    ---------------------------------------------------------------------
-    colDat_3 = DataFrame(id = 1:3)
-    ragexp_3 <- RaggedExperiment(
-        sample_list_GRanges_ex2,
-        colData = colDat_3
-    # --- Raggedexperiment [] ---
-    # Key functions: RaggedExperiment
-    ---------------------------------------------------------------------
-    ragexp_4  <- RaggedExperiment(
-        sample_list_GRanges_ex3,
-        colData = colDat_1
+    re <- RaggedExperiment(
+        gr_list,
+        colData = col_data
     )
+
+
+    # --- Assay Extraction and Representation [] ---
+    # Key functions: sparseAssay, compactAssay, assays
+    sparse_mat <- sparseAssay(re, value = "nMajor")
+    compact_mat <- compactAssay(re, value = "nMinor")
+    assay_list <- assays(re)
+
+
+    # --- Overlapping and Reduction Analysis [] ---
+    # Key functions: qreduceAssay, disjoinAssay
+    query_regions <- GRanges(
+        seqnames = c("1", "2"),
+        ranges = IRanges(
+            start = c(1000000, 2000000),
+            end = c(5000000, 6000000)
+        )
+    )
+    qred_mat <- qreduceAssay(
+        re,
+        query = query_regions,
+        value = "nMajor"
+    )
+    disjoint_mat <- disjoinAssay(re, value = "nMinor")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,19 +41,46 @@ process BIOC_GSEAMINING {
     library(GSEAmining)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: glimpse
-    ---------------------------------------------------------------------
-    # Structure of the data included in the package
-    data('genesets_sel', package = 'GSEAmining')
-    tibble::glimpse(genesets_sel)
-    # --- Data [] ---
-    # Key functions: gm_filter
-    ---------------------------------------------------------------------
-    library(GSEAmining)
-    data("genesets_sel", package = 'GSEAmining')
-    gs.filt <- gm_filter(genesets_sel,
-                         p.adj = 0.05,
+    # --- Gene Set Clustering [] ---
+    # Key functions: gm_clust
+    gs.cl <- gm_clust(gs.filt)
+
+
+    # --- Dendrogram Visualization [] ---
+    # Key functions: gm_dendplot
+    gm_dendplot(
+        gs.filt,
+        gs.cl,
+        col_pos = "orange",
+        col_neg = "black",
+        rect = TRUE,
+        dend_len = 20,
+        rect_len = 2
+    )
+
+
+    # --- Enriched Terms Identification [] ---
+    # Key functions: gm_enrichterms
+    terms_clustered <- gm_enrichterms(
+        gs.filt,
+        gs.cl,
+        clust = TRUE
+    )
+    terms_unclustered <- gm_enrichterms(
+        gs.filt,
+        gs.cl,
+        clust = FALSE,
+        col_pos = "chocolate3",
+        col_neg = "skyblue3"
+    )
+
+
+    # --- Core Genes Enrichment [] ---
+    # Key functions: gm_enrichcores
+    cores_enriched <- gm_enrichcores(
+        gs.filt,
+        gs.cl
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,55 +41,50 @@ process BIOC_GEOMXTOOLS {
     library(GeomxTools)
     library(jsonlite)
 
-    # --- unzip [] ---
-    # Key functions: unzip, isS4
-    datadir <- system.file("extdata", "DSP_NGS_Example_Data",
-    DCCFiles <- dir(datadir, pattern=".dcc$", full.names=TRUE)
-    PKCFiles <- unzip(zipfile = file.path(datadir,  "/pkcs.zip"))
-    # --- assay Data [] ---
-    # Key functions: assayData, pData, fData, featureType, annotation
-    assayData(demoData)[["exprs"]][1:3, 1:3]
-    pData(demoData)[1:3, ]
-    pData(protocolData(demoData))[1:3, ]
-    # --- svar Labels [] ---
-    # Key functions: svarLabels
-    svarLabels(demoData)
-    head(sData(demoData), 2)
-    # --- design [] ---
-    # Key functions: design, dimLabels
-    design(demoData) <- ~ `segments`
-    design(demoData)
-    dimLabels(demoData)
-    # --- with [] ---
-    # Key functions: with
-    dim(demoData)
-    dim(demoData[, demoData$`slide name` == "6panel-old-slide1 (PTL-10891)"])
-    dim(subset(demoData, select = phenoData(demoData)[["slide name"]] == "6panel-old-slide1 (PTL-10891)"))
-    # --- assay Data Element [] ---
-    # Key functions: assayDataElement, assayDataApply
-    assayDataElement(demoData, "demoElem") <-
-    assayDataApply(demoData, MARGIN=2, FUN=log, base=10, elt="exprs")
-    assayDataElement(demoData, "demoElem")[1:3, 1:2]
-    # --- shift Counts One [] ---
-    # Key functions: shiftCountsOne, setSegmentQCFlags, setBioProbeQCFlags, featureData
-    demoData <- shiftCountsOne(demoData, useDALogic=TRUE)
+    # --- Quality Control and Filtering [] ---
+    # Key functions: shiftCountsOne, setSegmentQCFlags, setBioProbeQCFlags
+    demoData <- shiftCountsOne(demoData, useDALogic = TRUE)
     demoData <- setSegmentQCFlags(demoData)
-    head(protocolData(demoData)[["QCFlags"]])
-    # --- normalize [] ---
+    demoData <- setBioProbeQCFlags(demoData)
+    QCResultsIndex <- which(apply(
+        protocolData(demoData)[["QCFlags"]],
+        1L,
+        function(x) sum(x) == 0L
+    ))
+    QCPassed <- demoData[, QCResultsIndex]
+
+
+    # --- Target Aggregation [] ---
+    # Key functions: aggregateCounts, featureType
+    target_demoData <- aggregateCounts(QCPassed)
+    feat_type <- featureType(target_demoData)
+
+
+    # --- Normalization [] ---
     # Key functions: normalize, assayDataElement
-    target_demoData <- normalize(target_demoData , norm_method="quant",
-    target_demoData <- normalize(target_demoData , norm_method="neg", fromElt="exprs",  toElt="neg_norm")
-    target_demoData <- normalize(target_demoData , norm_method="hk", fromElt="exprs", toElt="hk_norm")
-    # --- negative Control Subset [] ---
-    # Key functions: negativeControlSubset, munge
+    target_demoData <- normalize(target_demoData,
+                                 norm_method = "quant",
+                                 desiredQuantile = 0.9,
+                                 toElt = "q_norm")
+    target_demoData <- normalize(target_demoData,
+                                 norm_method = "neg",
+                                 fromElt = "exprs",
+                                 toElt = "neg_norm")
+    target_demoData <- normalize(target_demoData,
+                                 norm_method = "hk",
+                                 fromElt = "exprs",
+                                 toElt = "hk_norm")
+
+
+    # --- Data Transformation and Subsetting [] ---
+    # Key functions: negativeControlSubset, transform, assayDataApply
     neg_set <- negativeControlSubset(demoData)
-    class(neg_set)
-    neg_ctrls <- munge(neg_set, ~ exprs)
-    # --- assay Data Apply [] ---
-    # Key functions: assayDataApply, transform, assayDataElementNames
-    thresh <- assayDataApply(negativeControlSubset(demoData), 2, max)
-    transform(demoData,
-    negCtrlZeroed = sweep(exprs, 2, thresh),
+    thresh <- assayDataApply(neg_set, 2, max)
+    demoData <- transform(
+        demoData,
+        negCtrlZeroed = sweep(exprs(demoData), 2, thresh),
+        log1p_negCtrlZeroed = log1p(pmax(exprs(demoData) - thresh, 0))
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

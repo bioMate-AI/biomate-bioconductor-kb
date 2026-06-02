@@ -42,16 +42,92 @@ process BIOC_CYTOPIPELINE {
     library(CytoProcessingStep)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: reshape, ggplot, geom_point, ggtitle
-    myGGPlot <- function(DF, title){
-    stepNames = colnames(DF)
-    rowNames = rownames(DF)
-    # --- CytoPipeline analysis [] ---
-    # Key functions: include_graphics, CytoPipeline, addProcessingStep, CytoProcessingStep, execute, getCytoPipelineObjectInfos, getCytoPipelineFlowFrame, ggplotEvents
-    sampleFiles <- file.path(rawDataDir, list.files(rawDataDir,
-    pipL_PeacoQC <- CytoPipeline(experimentName = experimentName,
-    addProcessingStep(pipL_PeacoQC,
+    # --- Pipeline Initialization [Pipeline Setup] ---
+    # Key functions: CytoPipeline
+    rawDataDir <- system.file("extdata", package = "CytoPipeline")
+    sampleFiles <- file.path(
+        rawDataDir,
+        list.files(rawDataDir, pattern = "Donor")
+    )
+    pipL_PeacoQC <- CytoPipeline(
+        experimentName = "OMIP021_PeacoQC",
+        sampleFiles = sampleFiles
+    )
+
+    # --- Scale Transformation Queue Setup [Scale Transformation] ---
+    # Key functions: addProcessingStep, CytoProcessingStep
+    pipL_PeacoQC <- addProcessingStep(
+        pipL_PeacoQC,
+        whichQueue = "scale transform",
+        CytoProcessingStep(
+            name = "flowframe_read",
+            FUN = "readSampleFiles",
+            ARGS = list(truncate_max_range = FALSE, min.limit = NULL)
+        )
+    )
+    pipL_PeacoQC <- addProcessingStep(
+        pipL_PeacoQC,
+        whichQueue = "scale transform",
+        CytoProcessingStep(
+            name = "scale_transform_estimate",
+            FUN = "estimateScaleTransforms",
+            ARGS = list(
+                fluoMethod = "estimateLogicle",
+                scatterMethod = "linear",
+                scatterRefMarker = "BV785 - CD3"
+            )
+        )
+    )
+
+    # --- Pre-processing Queue Setup [Quality Control and Filtering] ---
+    # Key functions: addProcessingStep, CytoProcessingStep
+    pipL_PeacoQC <- addProcessingStep(
+        pipL_PeacoQC,
+        whichQueue = "pre-processing",
+        CytoProcessingStep(
+            name = "perform_QC",
+            FUN = "qualityControlPeacoQC",
+            ARGS = list(
+                preTransform = TRUE,
+                min_cells = 150,
+                max_bins = 500,
+                step = 500,
+                MAD = 6
+            )
+        )
+    )
+    pipL_PeacoQC <- addProcessingStep(
+        pipL_PeacoQC,
+        whichQueue = "pre-processing",
+        CytoProcessingStep(
+            name = "remove_doublets",
+            FUN = "removeDoubletsCytoPipeline",
+            ARGS = list(
+                areaChannels = c("FSC-A", "SSC-A"),
+                heightChannels = c("FSC-H", "SSC-H"),
+                nmads = c(3, 5)
+            )
+        )
+    )
+
+    # --- Pipeline Execution [Execution] ---
+    # Key functions: execute
+    workDir <- tempdir()
+    execute(pipL_PeacoQC, path = workDir)
+
+    # --- JSON-based Pipeline Configuration [Pipeline Setup] ---
+    # Key functions: CytoPipeline
+    jsonDir <- system.file("extdata", package = "CytoPipeline")
+    sampleFiles <- file.path(
+        jsonDir,
+        list.files(jsonDir, pattern = "Donor")
+    )
+    pipL_flowAI <- CytoPipeline(
+        file.path(jsonDir, "OMIP021_flowAI_pipeline.json"),
+        experimentName = "OMIP021_flowAI",
+        sampleFiles = sampleFiles
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

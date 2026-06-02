@@ -41,27 +41,60 @@ process BIOC_EPIALLELER {
     library(epialleleR)
     library(jsonlite)
 
-    # --- Generatecytosinereport [] ---
-    # Key functions: generateCytosineReport
-    -----------------------------------------------------------------------------------------
-    # data.table::data.table object for
-    # CpG VEF report
-    cg.vef.report <- generateCytosineReport(bam.data)
-    head(cg.vef.report[order(meth+unmeth, decreasing=TRUE)])
-    # --- Generateampliconreport [] ---
-    # Key functions: generateAmpliconReport, generateCaptureReport, generateBedReport
-    -----------------------------------------------------------------------------------------
-    # report for amplicon-based data
-    # matching is done by exact start or end positions plus/minus tolerance
-    amplicon.report <- generateAmpliconReport(
-      bam=system.file("extdata", "amplicon010meth.bam", package="epialleleR"),
-    # --- Generatemhlreport [] ---
-    # Key functions: generateMhlReport
-    -----------------------------------------------------------------------------------------
-    # lMHL report can be generated using
-    mhl.report <- generateMhlReport(
-      bam=system.file("extdata", "capture.bam", package="epialleleR")
+    # --- Genome and BAM Preprocessing [Preprocessing] ---
+    # Key functions: preprocessGenome, callMethylation, preprocessBam
+    ref_fasta <- system.file(
+        "extdata", "test", "reference.fasta.gz", package="epialleleR"
     )
+    input_bam <- system.file(
+        "extdata", "test", "bwameth-se-unsort-yd.bam", package="epialleleR"
+    )
+    output_bam <- tempfile(pattern="output-", fileext=".bam")
+    genome <- preprocessGenome(ref_fasta)
+    callMethylation(input_bam, output_bam, genome)
+    bam_data <- preprocessBam(output_bam)
+
+    # --- Cytosine Methylation Reporting [Reporting] ---
+    # Key functions: generateCytosineReport, preprocessBam
+    capture_bam <- system.file("extdata", "capture.bam", package="epialleleR")
+    bam_data <- preprocessBam(capture_bam)
+    cg_vef_report <- generateCytosineReport(bam_data)
+    cg_report <- generateCytosineReport(bam_data, threshold.reads=FALSE)
+    cx_report <- generateCytosineReport(
+        bam_data,
+        threshold.reads=FALSE,
+        report.context="CX"
+    )
+
+    # --- Region-Specific Methylation Analysis [Targeted Analysis] ---
+    # Key functions: generateAmpliconReport, generateCaptureReport, generateBedReport
+    amplicon_bam <- system.file(
+        "extdata", "amplicon010meth.bam", package="epialleleR"
+    )
+    amplicon_bed <- system.file(
+        "extdata", "amplicon.bed", package="epialleleR"
+    )
+    capture_bam <- system.file("extdata", "capture.bam", package="epialleleR")
+    capture_bed <- system.file("extdata", "capture.bed", package="epialleleR")
+    amplicon_report <- generateAmpliconReport(
+        bam=amplicon_bam,
+        bed=amplicon_bed
+    )
+    capture_report <- generateCaptureReport(
+        bam=capture_bam,
+        bed=capture_bed
+    )
+    bed_report <- generateBedReport(
+        bam=capture_bam,
+        bed=capture_bed,
+        bed.type="capture"
+    )
+
+    # --- Methylation Haplotype Load Estimation [Haplotype Analysis] ---
+    # Key functions: generateMhlReport
+    capture_bam <- system.file("extdata", "capture.bam", package="epialleleR")
+    mhl_report <- generateMhlReport(bam=capture_bam)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

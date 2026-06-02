@@ -38,85 +38,45 @@ process BIOC_SEQARRAY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SeqArray)
     library(CalcAlleleFreq)
     library(jsonlite)
 
-    # --- Package [] ---
-    # Key functions: package, seqOpen, seqExampleFileName, seqSummary
-    ---------------------------------------------------------------------------------------------------
-    library(SeqArray)
-    # open a SeqArray file in the package (1000 Genomes Phase1, chromosome 22)
-    file <- seqOpen(seqExampleFileName("KG_Phase1"))
-    seqSummary(file)
-    # --- Seqapply [] ---
-    # Key functions: seqApply
-    ---------------------------------------------------------------------------------------------------
-    af <- seqApply(file, "genotype", as.is="double", margin="by.variant",
-        FUN=function(x) { mean(x==0L, na.rm=TRUE) })
-    head(af)
-    # --- Cppfunction [] ---
-    # Key functions: cppFunction, CalcAlleleFreq, size, double
-    ---------------------------------------------------------------------------------------------------
-    library(Rcpp)
-    cppFunction("
-        double CalcAlleleFreq(IntegerVector x)
-        {
-    # --- Seqapply [] ---
-    # Key functions: seqApply
-    ---------------------------------------------------------------------------------------------------
-    af <- seqApply(file, "genotype", as.is="double", margin="by.variant", FUN=CalcAlleleFreq)
-    head(af)
-    # --- Seqblockapply [] ---
-    # Key functions: seqBlockApply, colMeans, frequencies, na, crossprod
-    ---------------------------------------------------------------------------------------------------
-    # covariance variable with an initial value
-    s <- 0
-    seqBlockApply(file, "$dosage", function(x)
-        {
-    # --- Seqparallelsetup [] ---
-    # Key functions: seqParallelSetup, seqNumAllele, seqAlleleFreq
-    ---------------------------------------------------------------------------------------------------
-    # use 2 cores for demonstration
+    # --- Allele Frequency Calculation [] ---
+    # Key functions: seqApply, seqNumAllele, seqAlleleFreq, seqParallelSetup
     seqParallelSetup(2)
-    # numbers of distinct alleles per site
-    table(seqNumAllele(file))
-    # --- Seqsetfilterchrom [] ---
+    af <- seqApply(file, "genotype", as.is="double",
+        margin="by.variant",
+        FUN=function(x) { mean(x==0L, na.rm=TRUE) })
+    num_alleles <- seqNumAllele(file)
+    ref_af <- seqAlleleFreq(file, ref.allele=0L)
+    seqParallelSetup(FALSE)
+
+
+    # --- Genomic Region Filtering and VCF Export [] ---
     # Key functions: seqSetFilterChrom, seqAsVCF
-    ---------------------------------------------------------------------------------------------------
-    # select a region [10Mb, 30Mb] on chromosome 22
     seqSetFilterChrom(file, 22, from.bp=10000000, to.bp=30000000)
-    vcf <- seqAsVCF(file, chr.prefix="chr")
-    vcf
-    # --- Data [] ---
-    # Key functions: pData
-    ---------------------------------------------------------------------------------------------------
-    data(KG_P1_SampData)
-    KG_P1_SampData
-    head(pData(KG_P1_SampData))  # show KG_P1_SampData
-    # --- Snpgdspca [] ---
-    # Key functions: snpgdsPCA, proportion
-    ---------------------------------------------------------------------------------------------------
-    # Run PCA
-    pca <- snpgdsPCA(file, snp.id=snpset.id, num.thread=2)
-    # variance proportion (%)
-    pc.percent <- pca$varprop*100
-    # --- Factor [] ---
-    # Key functions: factor, seqGetData, levels
-    ---------------------------------------------------------------------------------------------------
-    pop.code <- factor(seqGetData(file, "sample.annotation/Population"))
-    head(pop.code)
-    popgroup <- list(
-        EastAsia = c("CHB", "JPT", "CHS", "CDX", "KHV", "CHD"),
-    # --- Seqgetdata [] ---
+    vcf_data <- seqAsVCF(file, chr.prefix="chr")
+
+
+    # --- Dosage Matrix Block Processing [] ---
+    # Key functions: seqBlockApply
+    s <- 0
+    seqBlockApply(file, "$dosage", function(x) {
+        p <- 0.5 * colMeans(x, na.rm=TRUE)
+        g <- (t(x) - 2*p) / sqrt(p*(1-p))
+        g[is.na(g)] <- 0
+        s <<- s + crossprod(g)
+    }, margin="by.variant")
+    s_scaled <- s * (nrow(s) / sum(diag(s)))
+    eig <- eigen(s_scaled, symmetric=TRUE)
+
+
+    # --- Sample Annotation and Data Extraction [] ---
     # Key functions: seqGetData
-    ---------------------------------------------------------------------------------------------------
-    # YRI samples
-    sample.id <- seqGetData(file, "sample.id")
-    CEU.id <- sample.id[pop.code == "CEU"]
-    # --- Seqclose [] ---
-    # Key functions: seqClose
-    ---------------------------------------------------------------------------------------------------
-    seqClose(file)
+    sample_ids <- seqGetData(file, "sample.id")
+    pop_code <- factor(seqGetData(file, "sample.annotation/Population"))
+    ceu_samples <- sample_ids[pop_code == "CEU"]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

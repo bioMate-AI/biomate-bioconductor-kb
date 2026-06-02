@@ -41,57 +41,35 @@ process BIOC_PANR {
     library(PANR)
     library(jsonlite)
 
-    # --- Fitnull [] ---
-    # Key functions: fitNULL
-    ## bm1<-fitNULL(bm1, nPerm=10, thetaNULL=c(alphaNULL=4, betaNULL=4),
-    ## sumMethod="median", permMethod="all", verbose=TRUE)
-    # --- Fitbm [] ---
-    # Key functions: fitBM
-    ## bm1<-fitBM(bm1, para=list(zInit=NULL, thetaInit=c(alphaNeg=2,
-    ## betaNeg=4, alphaNULL=bm1@result$fitNULL$thetaNULL[["alphaNULL"]],
-    ## betaNULL=bm1@result$fitNULL$thetaNULL[["betaNULL"]],
-    ## alphaPos=4, betaPos=2), gamma=NULL),
-    ## ctrl=list(fitNULL=FALSE, tol=1e-1), verbose=TRUE, gradtol=1e-3)
-    # --- Viewnullfitting [] ---
-    # Key functions: view
+    # --- Model Fitting and Visualization [] ---
+    # Key functions: view, summarize
     view(bm1, "fitNULL")
-    # --- Printbm [] ---
-    # Key functions: summarize
-    summarize(bm1, what="ALL")
-    # --- Inferfullpan [] ---
+    view(bm1, "fitBM")
+    bm_summary <- summarize(bm1, what = "ALL")
+
+
+    # --- Posterior Association Network Inference [] ---
     # Key functions: new, infer
-    pan<-new("PAN", bm1=bm1)
-    pan<-infer(pan, para=list(type="SNR", log=TRUE, sign=TRUE,
-    cutoff=log(5)), filter=FALSE, verbose=TRUE)
-    # --- Buildpan [] ---
-    # Key functions: buildPAN
+    pan <- new("PAN", bm1 = bm1)
+    pan <- infer(
+        pan,
+        para = list(type = "SNR", log = TRUE, sign = TRUE, cutoff = log(5)),
+        filter = FALSE,
+        verbose = FALSE
+    )
+
+
+    # --- Network Building and Visualization [] ---
+    # Key functions: buildPAN, summarize
     data(Bakal2007Cluster)
-    pan<-buildPAN(pan, engine="RedeR",
-    para=list(nodeColor=nodeColor, hideNeg=TRUE))
-    # --- Visualfullpan [] ---
-    # Key functions: viewPAN
-    ## library(RedeR)
-    ## viewPAN(pan, what="graph")
-    # --- Searchpvmodule [] ---
-    # Key functions: makeCluster, pvclustModule, is, getOption
-    ## library(pvclust)
-    ## options(cluster=makeCluster(4, "SOCK"))
-    ## pan<-pvclustModule(pan, nboot=1000, metric="cosine", hclustMethod=
-    ## "average", filter=TRUE, verbose=TRUE, r=c(5:12/7))
-    ## if(is(getOption("cluster"), "cluster")) {
-    # --- Sigmodules [] ---
-    # Key functions: sigModules
-    ## inds<-sigModules(pan,pValCutoff=0.01, minSize=3,
-    ## maxSize=100, sortby="pval", decreasing=FALSE)
-    # --- Visualpvmodule [] ---
-    # Key functions: viewPAN
-    ## viewPAN(pan,what="pvclustModule", moduleID=inds)
-    # --- Visualnestedpvmodule [] ---
-    # Key functions: viewNestedModules
-    ## viewNestedModules(pan,pValCutoff=0.05,minSize=3,maxSize=100)
-    # --- Printpan [] ---
-    # Key functions: summarize
-    summarize(pan, what="graph")
+    nodeColor <- rep("blue", nrow(Bakal2007))
+    names(nodeColor) <- rownames(Bakal2007)
+    pan <- buildPAN(
+        pan,
+        engine = "RedeR",
+        para = list(nodeColor = nodeColor, hideNeg = TRUE)
+    )
+    pan_graph <- summarize(pan, what = "graph")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

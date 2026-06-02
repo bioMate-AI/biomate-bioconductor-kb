@@ -41,16 +41,40 @@ process BIOC_TMSIG {
     library(TMSig)
     library(jsonlite)
 
-    # --- Define comparison contrasts [] ---
-    # Key functions: makeContrasts, lmFit, with, topTable
-    group <- rep(c("ctrl", "treat1", "treat2"),
-    design <- model.matrix(~ 0 + group) # design matrix
-    contrasts <- makeContrasts(
-    # --- ReadGMT analysis [] ---
-    # Key functions: readGMT, filterSets, lengths, sparseIncidence, tcrossprod, crossprod, similarity, clusterSets
+    # --- Background-Based Filtering [] ---
+    # Key functions: filterSets
+    topGenes <- table(unlist(geneSets))
+    topGenes <- head(sort(topGenes, decreasing = TRUE), 2000L)
+    background <- names(topGenes)
+    geneSetsFilt <- filterSets(
+        x = geneSets,
+        background = background,
+        min_size = 10L
+    )
     setSizes <- lengths(geneSetsFilt)
     setSizesOld <- lengths(geneSets)[names(geneSetsFilt)]
-    plot(setSizesOld, overlapProp, main = "Set Size vs. Overlap")
+    overlapProp <- setSizes / setSizesOld
+    geneSetsFilt <- geneSetsFilt[overlapProp >= 0.7]
+
+
+    # --- Similarity Matrix and Clustering [] ---
+    # Key functions: sparseIncidence, similarity, clusterSets
+    imat <- sparseIncidence(x = geneSetsFilt)
+    jaccard <- similarity(x = geneSetsFilt, type = "jaccard")
+    clusterDF <- clusterSets(
+        x = geneSetsFilt,
+        type = "jaccard",
+        cutoff = 0.85,
+        method = "complete",
+        h = 0.9
+    )
+
+
+    # --- Set Decomposition and Inversion [] ---
+    # Key functions: filterSets, decomposeSets, invertSets
+    geneSetsFilt2 <- filterSets(geneSetsFilt, max_size = 50L)
+    decompSets <- decomposeSets(x = geneSetsFilt2, overlap = 10L)
+    invertedSets <- invertSets(x = geneSetsFilt)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,62 +38,51 @@ process BIOC_XCORE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(xcore)
     library(AnnotationHub)
     library(DoparParam)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("rinderpest_mini")
-    head(rinderpest_mini)
-    # --- Preparecountsforregression [] ---
-    # Key functions: prepareCountsForRegression
-    ---------------------------------------------------------------------
-    mae <- prepareCountsForRegression(counts = rinderpest_mini,
-                                      design = design,
-                                      base_lvl = "00hr")
-    # --- Experimenthub [] ---
-    # Key functions: ExperimentHub, query
-    ---------------------------------------------------------------------
-    library("ExperimentHub")
-    eh <- ExperimentHub()
-    query(eh, "xcoredata")
-    remap_promoters_f5 <- eh[["EH7301"]]
-    # --- Addsignatures [] ---
-    # Key functions: addSignatures
-    ---------------------------------------------------------------------
-    mae <- addSignatures(mae, remap = remap_promoters_f5)
-    # --- Summary [] ---
-    # Key functions: colSums
-    ---------------------------------------------------------------------
-    summary(colSums(mae[["remap"]]))
-    # --- Filtersignatures [] ---
-    # Key functions: filterSignatures
-    ---------------------------------------------------------------------
-    mae <- filterSignatures(mae, min = 0.05, max = 0.95)
-    # --- Registerdoparallel [] ---
-    # Key functions: registerDoParallel, register, DoparParam, modelGeneExpression
-    ---------------------------------------------------------------------
-    # register parallel backend
-    doParallel::registerDoParallel(2L)
-    BiocParallel::register(BiocParallel::DoparParam(), default = TRUE)
-    # set seed
-    # --- Annotationhub [] ---
-    # Key functions: AnnotationHub
-    ---------------------------------------------------------------------
-    # obtain predicted CTCF binding for hg38;
-    # *TF/motif name must be stored under column 'name'
-    library("AnnotationHub")
-    ah <- AnnotationHub()
-    # --- Getinteractionmatrix [] ---
+    # --- Signature Integration and Filtering [] ---
+    # Key functions: addSignatures, filterSignatures
+    sig_mat <- matrix(
+        runif(100),
+        nrow = 10,
+        ncol = 10,
+        dimnames = list(rownames(counts_mat), paste0("Sig", 1:10))
+    )
+    mae <- addSignatures(mae, remap = sig_mat)
+    mae <- filterSignatures(mae, min = 0.01, max = 0.99)
+
+
+    # --- Expression Modeling [] ---
+    # Key functions: modelGeneExpression
+    res <- modelGeneExpression(
+        mae = mae,
+        xnames = "remap",
+        nfolds = 3
+    )
+    predicted_activities <- res$results$remap
+
+
+    # --- Interaction Matrix Construction [] ---
     # Key functions: getInteractionMatrix
-    ---------------------------------------------------------------------
-    # construct molecular signatures matrix
-    molecular_signature <- getInteractionMatrix(
-      a = promoters_f5,
-      b = CTCF_hg38,
+    promoters <- GenomicRanges::GRanges(
+        "chr1",
+        IRanges::IRanges(c(100, 300), width = 1)
+    )
+    promoters$name <- c("P1", "P2")
+    tf_binding <- GenomicRanges::GRanges(
+        "chr1",
+        IRanges::IRanges(c(120, 280), width = 10)
+    )
+    tf_binding$name <- "TF_A"
+    inter_mat <- getInteractionMatrix(
+        a = promoters,
+        b = tf_binding,
+        ext = 200
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

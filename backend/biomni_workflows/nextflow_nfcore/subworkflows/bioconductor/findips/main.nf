@@ -41,41 +41,49 @@ process BIOC_FINDIPS {
     library(findIPs)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    library(findIPs)
-    data(miller05)
+    # --- Rank Summation [] ---
+    # Key functions: sumRanks
+    data(miller05, package = "findIPs")
     X <- miller05$X
     y <- miller05$y
-    # --- getdrop1ranks [] ---
-    # Key functions: getdrop1ranks
-    ---------------------------------------------------------------------
-    obj <- getdrop1ranks(X, y,
-                         fun = "t.test",
-                         decreasing = FALSE,
-                         topN = 100)
-    # --- Sumranks [] ---
-    # Key functions: sumRanks
-    ---------------------------------------------------------------------
-    results <- sumRanks(origRank = obj$origRank,
-                        drop1Rank = obj$drop1Rank,
-                        topN = 100,
-                        method = "adaptive")
-    # --- Findips [] ---
+    obj <- getdrop1ranks(X, y, fun = "t.test", decreasing = FALSE, topN = 100)
+    results <- sumRanks(
+        origRank = obj$origRank,
+        drop1Rank = obj$drop1Rank,
+        topN = 100,
+        method = "adaptive"
+    )
+
+
+    # --- Informative Parameter Selection [] ---
     # Key functions: findIPs
-    ---------------------------------------------------------------------
-    results.ipsr <- findIPs(X, y,
-                            fun = "t.test",
-                            decreasing = FALSE,
-                            method = "adaptive")
-    # --- Function [] ---
-    # Key functions: test, getdrop1ranks
-    ---------------------------------------------------------------------
-    fun <- function(x, y){
-      kruskal.test(x, y)$p.value
-    }
-    kruskal.test1 <- getdrop1ranks(X, y,
+    data(miller05, package = "findIPs")
+    X <- miller05$X
+    y <- miller05$y
+    results.ipsr <- findIPs(
+        X, 
+        y, 
+        fun = "t.test",
+        decreasing = FALSE,
+        method = "adaptive"
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: plotIPs, plotRankScatters, plotAdaptiveWeights
+    data(miller05, package = "findIPs")
+    X <- miller05$X
+    y <- miller05$y
+    results.ipsr <- findIPs(
+        X, 
+        y, 
+        fun = "t.test",
+        decreasing = FALSE,
+        method = "adaptive"
+    )
+    plotIPs(results.ipsr, topn = 5, ylim = c(0, 8))
+    plotRankScatters(results.ipsr)
+    plotAdaptiveWeights(results.ipsr$kappa, n = 100, type = "line")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

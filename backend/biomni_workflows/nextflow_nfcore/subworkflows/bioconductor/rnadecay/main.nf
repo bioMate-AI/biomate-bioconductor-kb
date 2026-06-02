@@ -41,101 +41,42 @@ process BIOC_RNADECAY {
     library(RNAdecay)
     library(jsonlite)
 
-    # --- Frame [] ---
-    # Key functions: frame, colMeans
-    ---------------------------------------------------------------------
-    # you can see that in this fabricated data the RNAs have a half-life of ~30 min
-    RPM_geneX <- data.frame(T0 = c(150, 135, 148), T30 = c(72, 76, 69), T60 = c(35, 35, 30),
-                         row.names = paste0("rep", 1:3))
-    RPM_geneX
-    # --- Cols [] ---
-    # Key functions: cols, nested
-    ---------------------------------------------------------------------
-    cols(patterns = c("WT", "00"), df = RPMs) #gives the column indices that contain both tags in the column names
-    colnames(RPMs)[cols(patterns = c("WT", "00"), RPMs, "WT", "00")]
-    # NOTE: this is based on grep pattern matching so tags MUST be unique and non-nested (i.e. one entire label should not be part of another).
-    # --- Frame [] ---
-    # Key functions: frame, rowMeans, cols
-    ---------------------------------------------------------------------
-    mean_RPM <- data.frame("geneID" = rownames(RPMs))
-    SE_RPM <- data.frame("geneID" = rownames(RPMs))
-    for(g in treatment){
-      for(t in tdecay){
-    # --- Rep [] ---
-    # Key functions: rep
-    ---------------------------------------------------------------------
-    filt1 <- rep(TRUE, 118) # we will not filter in this example, so the filter value for each gene is set to TRUE.
-    # --- Frame [] ---
-    # Key functions: frame, rowMeans, cols
-    ---------------------------------------------------------------------
-    mT0norm <- data.frame(row.names = rownames(RPMs)[filt1])
-    for(g in treatment){
-      mean_T0reps <- rowMeans(RPMs[filt1, cols(df=RPMs, patterns=c(g, "00"))])
-      for(r in reps){
-    # --- Colmeans [] ---
-    # Key functions: colMeans
-    ---------------------------------------------------------------------
-    stabletable <- mean_mT0norm[stablegenes, ]
-    normFactors <- colMeans(stabletable)
-    write.table(x <- normFactors, paste0(wrdir, "/Normalziation Decay Factors.txt"), sep = "\t")
-    normFactors_mean <- matrix(normFactors, nrow = length(tdecay))
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    mT0norm_2 <- data.frame(mT0norm/normFactorsM,
-                         row.names = rownames(mT0norm))
-    write.table(mT0norm_2, paste0(wrdir, "/T0 normalized and decay factor corrected.txt"), sep = "\t")
-    # --- Melt [] ---
-    # Key functions: melt, colsplit
-    ---------------------------------------------------------------------
-    mT0norm_2.1 <- reshape2::melt(as.matrix(mT0norm_2), varnames = c("geneID", "variable"))
-    mT0norm_2.1 <- cbind(mT0norm_2.1, reshape2::colsplit(mT0norm_2.1$variable, "_", names = c("treatment", "t.decay", "rep")))
-    mT0norm_2.1 <- mT0norm_2.1[, colnames(mT0norm_2.1) !=  "variable"]
-    mT0norm_2.1 <- mT0norm_2.1[, c(1, 3, 4, 5, 2)]
-    # --- Levels [] ---
-    # Key functions: levels, necessary, factor
-    ---------------------------------------------------------------------
-    levels(decay_data$treatment) # This can not be longer than 4 elements for modeling.
-    # reorder factor levels if necessary (skipped here):
-    # decay_data$treatment <- factor(decay_data$treatment, levels = levels(decay_data$treatment)[c(4, 1, 2, 3)]) # numbers here refer to the current order position in the factor levels() - the order of the numbers designates the new position
-    levels(decay_data$treatment)[4] <- "vcs.sov"
-    # --- Group Map [] ---
-    # Key functions: group_map
-    ---------------------------------------------------------------------
-    group_map(decaydata = decay_data, path = paste0(wrdir, "/Model grouping colormap.pdf"), nEquivGrp = nEquivGrp, groups = groups, mods = mods)
-    # --- Mod Optimization [] ---
-    # Key functions: mod_optimization
-    ---------------------------------------------------------------------
-    mod_optimization("AT2G18150", decay_data, group = groups, mod = mods, a_bounds, b_bounds, c("mod1", "mod2", "mod16", "mod239", "mod240"), file_only = FALSE, path = wrdir)
-    mod_optimization("AT4G09680", decay_data, group = groups, mod = mods, a_bounds, b_bounds, c("mod1", "mod2", "mod16", "mod239", "mod240"), file_only = FALSE, path = wrdir)
-    # --- Mclapply [] ---
-    # Key functions: mclapply, getOption, here
-    ---------------------------------------------------------------------
-    ####### To run all genes in parallel use:
-    # parallel::mclapply(ids, FUN = mod_optimization,
-    #                    data = decay_data, group = groups, mod = mods,
-    #                    alpha_bounds = a_bounds, beta_bounds = b_bounds,
-    # --- Sample [] ---
-    # Key functions: sample, time, mod_optimization
-    ---------------------------------------------------------------------
-    test_ids <- sample(ids, 1) # NOTE: that everytime this line is run it generates a different random sampling, therefore the gene modeled below will be different each time this code is run. To test the exact gene shown in the vignette make a new character vector of the gene id reported below and pass it to the gene argument of mod_optimization using lapply instead of passing 'test_ids' as we do here.
-    test_ids
-    a <- proc.time()[3]
-    models <- lapply(X = test_ids, # alternatively use `ids` here to complete the entire sample data set, but be prepared to wait ~ 10 h. These gene IDs will get passed one at time to the "gene" argument of mod_optimization() and return a list of the results data frame.
-    # --- Pdf [] ---
-    # Key functions: ggplot, geom_histogram, aes, coord_cartesian
-    ---------------------------------------------------------------------
-    library(ggplot2)
-    pdf(paste0(wrdir,"/distributions of stats.pdf"))
-    p <- ggplot(results)
-    print(p+geom_histogram(aes(x = sigma2), bins = 300)+
-    # --- Delim [] ---
-    # Key functions: delim
-    ---------------------------------------------------------------------
-    results <- read.delim(paste0(wrdir,"/best model results.txt"))
-    results$alpha_grp <- mods[as.character(results$mod), "a"]
-    results$beta_grp <- mods[as.character(results$mod), "b"]
-    results$mod <- as.numeric(gsub("mod", "", as.character(results$mod)))
+    # --- Batch Decay Visualization [] ---
+    # Key functions: decay_plot, plain_theme
+    ids <- c("AT5G54730", "AT1G27730", "AT4G34190")
+    plots <- lapply(ids, function(i) {
+        p <- decay_plot(
+            i,
+            what = c("meanSE", "models", "Desc"),
+            mod.results = results,
+            gdesc = descriptions,
+            treatments = c("WT", "sov", "vcs", "vcs.sov"),
+            DATA = decay_data
+        )
+        p + plain_theme(13.8, 1, leg.pos = "right")
+    })
+
+
+    # --- Half-life Estimation and Plotting [] ---
+    # Key functions: hl_plot, plain_theme
+    p_hl <- hl_plot(
+        geneID = "AT1G02860",
+        gene_symbol = "SYG1",
+        df_decay_rates = RNAdecay::results,
+        hl_dist_treatment = "WT",
+        hl_treatment = c("WT", "sov", "vcs", "vcs.sov"),
+        arrow_lab_loc = "key"
+    )
+    ids <- c("AT5G54730", "AT1G27730", "AT4G34190")
+    hl_plots <- lapply(ids, function(i) {
+        hl_plot(
+            geneID = i,
+            df_decay_rates = RNAdecay::results,
+            hl_dist_treatment = "WT",
+            hl_treatment = c("WT", "sov", "vcs", "vcs.sov"),
+            arrow_lab_loc = "plot"
+        )
+    })
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

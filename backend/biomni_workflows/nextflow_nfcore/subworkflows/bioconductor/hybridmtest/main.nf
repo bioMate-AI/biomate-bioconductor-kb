@@ -41,20 +41,64 @@ process BIOC_HYBRIDMTEST {
     library(HybridMTest)
     library(jsonlite)
 
-    # --- Loadcorrelationdata [] ---
-    # Key functions: exprs, pData, frame, test
-    library(HybridMTest)
-    data(correlation.data)
-    Y<-exprs(correlation.data)
-    x<-pData(correlation.data)
-    test.specs<-cbind.data.frame(label=c("pearson","spearman","shapiro"),
-    # --- Loadcomparisondata [] ---
-    # Key functions: exprs, pData, frame
-    library(HybridMTest)
-    data(GroupComp.data)
-    brain.express.set <- exprs(GroupComp.data)
-    brain.pheno.data  <- pData(GroupComp.data)
-     brain.express.set[1:5, 1:8]
+    # --- Correlation Hybrid Testing [Analysis] ---
+    # Key functions: hybrid.test, row.pearson, row.spearman, row.slr.shapiro
+    data(correlation.data, package = "hybridmtest")
+    test.specs <- data.frame(
+        label = c("pearson", "spearman", "shapiro"),
+        func.name = c("row.pearson", "row.spearman", "row.slr.shapiro"),
+        x = rep("x", 3),
+        opts = rep("", 3)
+    )
+    ebp.def <- data.frame(
+        wght = c("shapiro.ebp", "(1-shapiro.ebp)"),
+        mthd = c("pearson.ebp", "spearman.ebp")
+    )
+    corr.res <- hybrid.test(
+        correlation.data,
+        test.specs,
+        ebp.def
+    )
+
+    # --- Group Comparison Hybrid Testing [Analysis] ---
+    # Key functions: hybrid.test, row.oneway.anova, row.kruskal.wallis, row.kgrp.shapiro
+    data(GroupComp.data, package = "hybridmtest")
+    test.specs <- data.frame(
+        label = c("anova", "kw", "shapiro"),
+        func.name = c("row.oneway.anova", "row.kruskal.wallis", "row.kgrp.shapiro"),
+        x = rep("grp", 3),
+        opts = rep("", 3)
+    )
+    ebp.def <- data.frame(
+        wght = c("shapiro.ebp", "(1-shapiro.ebp)"),
+        mthd = c("anova.ebp", "kw.ebp")
+    )
+    kgrp.res <- hybrid.test(
+        GroupComp.data,
+        test.specs,
+        ebp.def
+    )
+
+    # --- Two-Group Hybrid Testing [Analysis] ---
+    # Key functions: hybrid.test, row.ttest.equalvar, row.ttest.unequalvar, row.2grp.shapiro
+    data(GroupComp.data, package = "hybridmtest")
+    two_grp_data <- GroupComp.data[, GroupComp.data$grp %in% c(1, 2)]
+    test.specs <- data.frame(
+        label = c("equal", "unequal", "shapiro"),
+        func.name = c("row.ttest.equalvar", "row.ttest.unequalvar", "row.2grp.shapiro"),
+        x = rep("grp", 3),
+        opts = rep("", 3)
+    )
+    ebp.def <- data.frame(
+        wght = c("shapiro.ebp", "(1-shapiro.ebp)"),
+        mthd = c("equal.ebp", "unequal.ebp")
+    )
+    twogrp.res <- hybrid.test(
+        two_grp_data,
+        test.specs,
+        ebp.def
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

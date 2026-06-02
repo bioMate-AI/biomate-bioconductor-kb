@@ -38,31 +38,42 @@ process BIOC_PUMA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(puma)
     library(PMmmgmos)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: data
-    data(pumapca_estrogen)
-    data(eset_estrogen_rma)
-    data(eset_estrogen_mmgmos)
-    # --- Quality control and filtering [] ---
-    # Key functions: celfiles, pData, frame, exprs, assayDataElement, unclass, factor, pumaNormalize
-    ## library(oligo)
-    ## estrogenFilenames<-list.celfiles()
-    ## oligo.estrogen<-read.celfiles(celFiles)
-    ## pData(oligo.estrogen) <- data.frame(
-    ##     "estrogen"=c("absent","absent","present","present"
-    # --- Show analysis [] ---
-    # Key functions: show, mmgmos, rma, reslts, PMmmgmos, gmoExon, igmoExon, pumaPCA
-    ## cel.path<-"cel.path"  ## for example  cel.path<-"/home/gao/celData"
-    ## SampleNameTable<-"SampleNameTable"
-    ## eset_igmoExon<-igmoExon(cel.path="cel.path",SampleNameTable="SampleNameTable"
-    ##                        , exontype="Human"
-    ##                        , gsnorm="none", condition="Yes")
-    # --- Dimensionality reduction [] ---
-    # Key functions: prcomp, exprs
-    pca_estrogen <- prcomp(t(exprs(eset_estrogen_rma)))
+    # --- Expression Estimation with mmgmos [] ---
+    # Key functions: mmgmos, exprs, assayDataElement
+    eset_estrogen_mmgmos <- mmgmos(oligo.estrogen, gsnorm="none")
+    expression_values <- exprs(eset_estrogen_mmgmos)
+    standard_errors <- assayDataElement(
+        eset_estrogen_mmgmos,
+        "se.exprs"
+    )
+
+
+    # --- Exon Level Estimation [] ---
+    # Key functions: gmoExon, exprs, assayDataElement
+    data(eset_gmoExon, package = "pumadata")
+    gene_exprs <- exprs(eset_gmoExon$gene)
+    gene_se <- assayDataElement(eset_gmoExon$gene, "se.exprs")
+    transcript_exprs <- exprs(eset_gmoExon$transcript)
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: pumaDE
+    data(eset_estrogen_mmgmos, package = "pumadata")
+    puma_de_results <- pumaDE(eset_estrogen_mmgmos)
+
+
+    # --- Visualization and Export [] ---
+    # Key functions: pumaPCA, write.reslts
+    data(eset_estrogen_mmgmos, package = "pumadata")
+    pca_results <- pumaPCA(eset_estrogen_mmgmos)
+    write.reslts(
+        eset_estrogen_mmgmos,
+        file = "eset_estrogen_mmgmos"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

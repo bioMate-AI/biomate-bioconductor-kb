@@ -38,75 +38,20 @@ process BIOC_RECOUNT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(recount)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- 'PCA' [] ---
-    # Key functions: plotPCA
-    rld <- tryCatch(rlog(dds), error = function(e) { rlog(dds, fitType = 'mean') })
-    plotPCA(rld, intgroup = intgroup)
-    data_pca <- plotPCA(rld, intgroup = intgroup, returnData = TRUE)
-    # --- 'sampleDist' [] ---
-    # Key functions: dist, colorRampPalette, pheatmap
-    sampleDists <- dist(t(assay(rld)))
-    sampleDistMatrix <- as.matrix(sampleDists)
-    rownames(sampleDistMatrix) <- apply(as.data.frame(colData(rld)[, intgroup]), 1,
-    # --- 'MAplotalpha' [] ---
-    # Key functions: plotMA, metadata
-    MA plot with alpha used in DESeq2::results()
-    plotMA(res, alpha = metadata(res)$alpha, main = paste('MA plot with alpha =',
-    metadata(res)$alpha))
-    # --- 'MAplotalphaHalf' [] ---
+    # --- Quality Control and PCA [] ---
+    # Key functions: rlog, plotPCA
+    rld <- rlog(dds, fitType = "mean")
+    plotPCA(rld, intgroup = "group")
+
+
+    # --- Differential Expression Visualization [] ---
     # Key functions: plotMA
-    MA plot with alpha = 1/2 of the alpha used in DESeq2::results()
-    plotMA(res, alpha = metadata(res)$alpha / 2,
-    main = paste('MA plot with alpha =', metadata(res)$alpha / 2))
-    # --- 'MAplotalpha [] ---
-    # Key functions: plotMA
-    nBest.actual <- min(nBest, nrow(head(res.df, n = nBest)))
-    nBest.alpha <- head(res.df, n = nBest)$padj[nBest.actual]
-    plotMA(res, alpha = nBest.alpha * 1.00000000000001,
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_histogram, labs, xlab, xlim
-    ggplot(res.df[!is.na(res.df$pvalue), ], aes(x = pvalue)) +
-    geom_histogram(alpha=.5, position='identity', bins = 50) +
-    labs(title='Histogram of unadjusted p-values') +
-    # --- kable [] ---
-    # Key functions: kable
-    pval_table <- lapply(c(1e-04, 0.001, 0.01, 0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,
-    0.6, 0.7, 0.8, 0.9, 1), function(x) {
-    data.frame('Cut' = x, 'Count' = sum(res.df$pvalue <= x, na.rm = TRUE))
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_histogram, labs, xlab, xlim
-    ggplot(res.df[!is.na(res.df$padj), ], aes(x = padj)) +
-    geom_histogram(alpha=.5, position='identity', bins = 50) +
-    labs(title=paste('Histogram of', elementMetadata(res)$description[grep('adjusted', elementMetadata(res)$description)])) +
-    # --- kable [] ---
-    # Key functions: kable
-    padj_table <- lapply(c(1e-04, 0.001, 0.01, 0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,
-    0.6, 0.7, 0.8, 0.9, 1), function(x) {
-    data.frame('Cut' = x, 'Count' = sum(res.df$padj <= x, na.rm = TRUE))
-    # --- 'topFeatures' [] ---
-    # Key functions: datatable
-    if(!is.null(searchURL) & outputIsHTML) {
-    res.df$Feature <- paste0('<a href="', searchURL, res.df$Feature, '">',
-    for(i in which(colnames(res.df) %in% c('pvalue', 'padj'))) res.df[, i] <- format(res.df[, i], scientific = TRUE)
-    # --- 'plotCounts' [] ---
-    # Key functions: colData, droplevels, plotCounts
-    plotCounts_gg <- function(i, dds, intgroup) {
-    group <- if (length(intgroup) == 1) {
-    colData(dds)[[intgroup]]
-    # --- diff [] ---
-    # Key functions: diff
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits=3)
-    # --- session_info [] ---
-    # Key functions: session_info
-    options(width = 120)
-    session_info()
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
-    PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
+    plotMA(res, alpha = metadata(res)$alpha,
+        main = paste("MA plot with alpha =", metadata(res)$alpha))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

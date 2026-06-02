@@ -41,11 +41,35 @@ process BIOC_FITHIC {
     library(FitHiC)
     library(jsonlite)
 
-    # --- Table formatting and display [] ---
-    # Key functions: FitHiC, kable
-    library("FitHiC")
-    fragsfile <- system.file("extdata", "fragmentLists/Duan_yeast_EcoRI.gz",
-    intersfile <- system.file("extdata", "contactCounts/Duan_yeast_EcoRI.gz",
+    # --- FitHiC Analysis with Bias Correction [] ---
+    # Key functions: FitHiC
+    frags <- system.file("extdata",
+        "fragmentLists/Dixon_hESC_HindIII_hg18_w40000_chr1.gz",
+        package = "FitHiC")
+    inters <- system.file("extdata",
+        "contactCounts/Dixon_hESC_HindIII_hg18_w40000_chr1.gz",
+        package = "FitHiC")
+    bias <- system.file("extdata",
+        "biasPerLocus/Dixon_hESC_HindIII_hg18_w40000_chr1.gz",
+        package = "FitHiC")
+    outdir <- file.path(getwd(), "Dixon_hESC_HindIII_hg18_w40000_chr1.afterICE")
+    FitHiC(frags, inters, outdir, bias,
+        libname="Dixon_hESC_HindIII_hg18_w40000_chr1", noOfBins=50,
+        distUpThres=5000000, distLowThres=50000, visual=TRUE)
+
+
+    # --- FitHiC Analysis with HiC-Pro Format [] ---
+    # Key functions: FitHiC
+    frags <- system.file("extdata", "fragmentLists/data_5000000_abs.bed.gz",
+        package = "FitHiC")
+    inters <- system.file("extdata", "contactCounts/data_5000000.matrix.gz",
+        package = "FitHiC")
+    bias <- system.file("extdata",
+        "biasPerLocus/data_5000000_iced.matrix.biases.gz", package = "FitHiC")
+    outdir <- file.path(getwd(), "data_5000000")
+    FitHiC(frags, inters, outdir, bias, libname="data_5000000",
+        distUpThres=500000000, distLowThres=5000000, visual=TRUE,
+        useHiCPro=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

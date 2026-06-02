@@ -41,52 +41,39 @@ process BIOC_CURATEDATLASQUERYR {
     library(CuratedAtlasQueryR)
     library(jsonlite)
 
-    # --- Get Metadata [] ---
-    # Key functions: get_metadata
-    ---------------------------------------------------------------------
-    # Note: in real applications you should use the default value of remote_url
-    metadata <- get_metadata(remote_url = METADATA_URL)
-    metadata
-    # --- Distinct [] ---
-    # Key functions: distinct
-    ---------------------------------------------------------------------
-    metadata |>
-        dplyr::distinct(tissue, file_id)
-    # --- Filter [] ---
-    # Key functions: filter, str_like, get_single_cell_experiment
-    ---------------------------------------------------------------------
-    single_cell_counts =
-        metadata |>
+    # --- SingleCellExperiment Extraction [] ---
+    # Key functions: get_single_cell_experiment
+    sce <- metadata |>
         dplyr::filter(
             ethnicity == "African" &
-    # --- Filter [] ---
-    # Key functions: filter, str_like, get_seurat
-    ---------------------------------------------------------------------
-    single_cell_counts_seurat =
-        metadata |>
+            stringr::str_like(assay, "%10x%") &
+            tissue == "lung parenchyma" &
+            stringr::str_like(cell_type, "%CD4%")
+        ) |>
+        get_single_cell_experiment(
+            assays = "cpm",
+            features = "PUM1"
+        )
+
+
+    # --- Seurat Object Extraction [] ---
+    # Key functions: get_seurat
+    seurat_obj <- metadata |>
         dplyr::filter(
             ethnicity == "African" &
-    # --- save H D F5 Summarized Experiment [] ---
-    # Key functions: saveHDF5SummarizedExperiment
-    ---------------------------------------------------------------------
-    single_cell_counts |> HDF5Array::saveHDF5SummarizedExperiment("single_cell_counts", replace = TRUE)
-    # --- Filter [] ---
-    # Key functions: filter, get_single_cell_experiment, join_features, ggplot, aes, theme_bw, theme
-    ---------------------------------------------------------------------
-    metadata |>
-      # Filter and subset
-      dplyr::filter(cell_type_harmonised=="nk") |>
-      # Get counts per million for HCA-A gene
-    # --- Filter [] ---
-    # Key functions: filter, get_unharmonised_metadata
-    ---------------------------------------------------------------------
-    harmonised <- metadata |> dplyr::filter(tissue == "kidney blood vessel")
+            stringr::str_like(assay, "%10x%") &
+            tissue == "lung parenchyma" &
+            stringr::str_like(cell_type, "%CD4%")
+        ) |>
+        get_seurat()
+
+
+    # --- Unharmonised Metadata Retrieval [] ---
+    # Key functions: get_unharmonised_metadata
+    harmonised <- metadata |> 
+        dplyr::filter(tissue == "kidney blood vessel")
     unharmonised <- get_unharmonised_metadata(harmonised)
-    unharmonised
-    # --- Pull [] ---
-    # Key functions: pull
-    ---------------------------------------------------------------------
-    dplyr::pull(unharmonised) |> head(2)
+    head(unharmonised)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

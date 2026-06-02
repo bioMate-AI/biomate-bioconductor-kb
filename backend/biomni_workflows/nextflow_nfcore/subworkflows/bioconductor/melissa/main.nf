@@ -41,19 +41,38 @@ process BIOC_MELISSA {
     library(Melissa)
     library(jsonlite)
 
-    # --- binarise_files [] ---
-    # Key functions: binarise_files
-    library(Melissa)
-    binarise_files(indir = "path_to_met_files_dir")
-    # --- melissa data obj [] ---
-    # Key functions: create_melissa_data_obj
-    melissa_data <- create_melissa_data_obj(met_dir = "path_to_bin_met_dir",
-    # --- filter regions by coverage [] ---
-    # Key functions: filter_by_cpg_coverage
-    melissa_data <- filter_by_cpg_coverage(melissa_data, min_cpgcov = 10)
-    # --- filter regions by variability [] ---
-    # Key functions: filter_by_variability
-    melissa_data <- filter_by_variability(melissa_data, min_var = 0.2)
+    # --- Model Fitting and Clustering [] ---
+    # Key functions: melissa, create_rbf_basis
+    basis_obj <- create_rbf_basis(
+        M = 4,
+        min_val = -1,
+        max_val = 1
+    )
+    melissa_result <- melissa(
+        X = met_data,
+        K = 2,
+        basis = basis_obj,
+        max_iter = 100,
+        vb_init = TRUE
+    )
+
+
+    # --- Methylation Imputation [] ---
+    # Key functions: impute_methylome
+    imputed_profiles <- impute_methylome(
+        model = melissa_result,
+        X = met_data,
+        basis = basis_obj
+    )
+
+
+    # --- Cluster Profiling and Visualization [] ---
+    # Key functions: plot_melissa_profiles
+    profile_plot <- plot_melissa_profiles(
+        model = melissa_result,
+        basis = basis_obj,
+        cluster = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,22 +38,86 @@ process BIOC_TVTB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TVTB)
     library(DataFrame)
     library(IRanges)
     library(TVTBparam)
     library(TabixFile)
     library(jsonlite)
 
-    # --- Read VCF variant file [] ---
+    # --- VCF Import and Expansion [] ---
     # Key functions: readVcf, expand
+    phenoFile <- system.file(
+        "extdata", "integrated_samples.txt", package = "TVTB"
+    )
+    phenotypes <- S4Vectors::DataFrame(
+        read.table(file = phenoFile, header = TRUE, row.names = 1)
+    )
+    vcfFile <- system.file(
+        "extdata", "chr15.phase3_integrated.vcf.gz", package = "TVTB"
+    )
+    tabixVcf <- Rsamtools::TabixFile(file = vcfFile)
     vcf <- VariantAnnotation::readVcf(
-    Expand into a ExpandedVCF object (bi-allelic records)
+        tabixVcf, param = tparam, colData = phenotypes
+    )
     vcf <- VariantAnnotation::expand(x = vcf, row.names = TRUE)
-    # --- Integer ranges construction [] ---
-    # Key functions: requireNamespace, TVTBparam, IRanges, DataFrame, TabixFile, vcfInfo, vcfGeno, svp
+
+
+    # --- Frequency Calculation [] ---
+    # Key functions: addOverallFrequencies, addPhenoLevelFrequencies, addFrequencies
+    vcf <- addOverallFrequencies(vcf = vcf)
+    vcf <- addFrequencies(vcf = vcf, force = TRUE)
+    vcf <- addPhenoLevelFrequencies(
+        vcf = vcf, pheno = "super_pop", level = "AFR"
+    )
+    vcf <- addFrequencies(
+        vcf,
+        list(super_pop = c("EUR", "SAS", "EAS", "AMR"))
+    )
+    vcf <- addFrequencies(vcf, "pop")
+
+
+    # --- Filter Rules Definition [] ---
+    # Key functions: VcfFixedRules, VcfInfoRules, VcfVepRules, VcfFilterRules
+    fixedR <- VcfFixedRules(list(
+        pass = expression(FILTER == "PASS"),
+        qual = expression(QUAL > 20)
+    ))
+    infoR <- VcfInfoRules(
+        exprs = list(
+            rare = expression(MAF < 0.01 & MAF > 0),
+            common = expression(MAF > 0.05),
+            mac_ge3 = expression(HET + 2*ALT >= 3)
+        ),
+        active = c(TRUE, TRUE, FALSE)
+    )
     vepR <- VcfVepRules(exprs = list(
-    missense = expression(Consequence %in% c("missense_variant")),
-    CADD_gt15 = expression(CADD_PHRED > 15)
+        missense = expression(Consequence %in% c("missense_variant")),
+        CADD_gt15 = expression(CADD_PHRED > 15)
+    ))
+    vcfRules <- VcfFilterRules(fixedR, infoR, vepR)
+
+
+    # --- Filter Evaluation and Subsetting [] ---
+    # Key functions: eval, evalSeparately, subsetByFilter
+    info_summary <- eval(expr = infoR, envir = vcf)
+    rules_summary <- eval(expr = vcfRules, envir = vcf)
+    sep_summary <- evalSeparately(expr = vcfRules, envir = vcf)
+    vcf_filtered <- subsetByFilter(vcf, vcfRules["common"])
+
+
+    # --- Visualization [] ---
+    # Key functions: plotInfo, pairsInfo
+    plotInfo(
+        subsetByFilter(vcf, vcfRules["common"]), "AAF",
+        range(GenomicRanges::granges(vcf)),
+        EnsDb.Hsapiens.v75::EnsDb.Hsapiens.v75,
+        "super_pop",
+        zero.rm = FALSE
+    )
+    pairsInfo(
+        subsetByFilter(vcf, vcfRules["common"]), "AAF", "super_pop"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,16 +41,49 @@ process BIOC_GEVA {
     library(geva)
     library(jsonlite)
 
-    # --- Get top DE genes table (limma) [] ---
-    # Key functions: topTable
-    dt1 <- topTable(malm1, number=999999, sort.by="none")
-    dt2 <- topTable(malm2, number=999999, sort.by="none")
-    ginput <- geva.merge.input(dt1, dt2)
-    # --- Table formatting and display [] ---
-    # Key functions: load_all, groupsets, factors, kable
-    factors(ginput) <- c('g1', 'g1', 'g1',
-    Example with GEVAInput (using factor class)
-    factors(ginput) <- factor(c('g1', 'g1', 'g1',
+    # --- Data Preparation and Filtering [Data Preparation] ---
+    # Key functions: geva.ideal.example, geva.input.correct, geva.input.filter, factors<-
+    ginput <- geva.ideal.example()
+    ginput <- geva.input.correct(ginput)
+    ginput <- geva.input.filter(ginput, p.value.cutoff = 0.05)
+    factors(ginput) <- factor(c(
+        "g1", "g1", "g1", "g2", "g2", "g2"
+    ))
+
+    # --- Summarisation [Summarisation] ---
+    # Key functions: geva.summarize
+    gsummary <- geva.summarize(
+        ginput,
+        summary.method = "median",
+        variation.method = "mad"
+    )
+    plot(gsummary)
+
+    # --- Quantile Analysis [Quantile Detection] ---
+    # Key functions: geva.quantiles
+    gquants <- geva.quantiles(
+        gsummary,
+        initial.thresholds = c(S = 1, V = 0.5)
+    )
+    plot(gquants)
+
+    # --- Cluster Analysis [Clustering] ---
+    # Key functions: geva.cluster
+    gcluster <- geva.cluster(
+        gsummary,
+        cluster.method = "hierarchical",
+        resolution = 0.3
+    )
+    plot(gcluster)
+
+    # --- Final Classification [Classification] ---
+    # Key functions: groupsets<-, geva.finalize
+    ggroupedsummary <- gsummary
+    groupsets(ggroupedsummary) <- gquants
+    groupsets(ggroupedsummary) <- gcluster
+    gresults <- geva.finalize(ggroupedsummary)
+    plot(ggroupedsummary)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,22 +38,27 @@ process BIOC_NUCPOS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(nuCpos)
     library(HBA)
     library(jsonlite)
 
-    # --- Nucpos Intro.Rnw:99 107 [] ---
-    # Key functions: HBA
-    load(system.file("extdata", "inseq.RData", package = "nuCpos"))
-    HBA(inseq = inseq, species = "sc")
-    for(i in 1:3) cat(substr(inseq, start = (i-1)*60+1,
-        stop = (i-1)*60+60), "\n")
-    load(system.file("extdata", "INSEQ_DNAString.RData",
-    # --- Nucpos Intro.Rnw:135 139 [] ---
+    # --- Local Affinity Analysis [] ---
     # Key functions: localHBA
-    localHBA(inseq = inseq, species = "sc")
-    barplot(localHBA(inseq = inseq, species = "sc"),
-        names.arg = LETTERS[1:13], xlab = "Nucleosomal subsegments",
-        ylab = "local HBA", main = "Local HBA scores for inseq")
+    local_scores <- localHBA(
+        inseq = inseq,
+        species = "sc"
+    )
+
+
+    # --- Affinity Visualization [] ---
+    # Key functions: localHBA
+    barplot(
+        local_scores,
+        names.arg = LETTERS[1:13],
+        xlab = "Nucleosomal subsegments",
+        ylab = "local HBA",
+        main = "Local HBA scores for inseq"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

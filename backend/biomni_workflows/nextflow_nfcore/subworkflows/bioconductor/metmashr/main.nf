@@ -41,11 +41,75 @@ process BIOC_METMASHR {
     library(MetMashR)
     library(jsonlite)
 
-    # --- set_struct_obj [] ---
-    # Key functions: set_struct_obj, drop_empty_columns, show, set_obj_method
+    # --- Define Preprocessing Models [] ---
+    # Key functions: set_struct_obj, set_obj_method
     set_struct_obj(
-    params = character(0),
-    outputs = c(updated = "annotation_source"),
+        class_name = "drop_empty_columns",
+        struct_obj = "model",
+        params = character(0),
+        outputs = c(updated = "annotation_source"),
+        private = character(0),
+        prototype = list(
+            name = "Drop empty columns",
+            description = "Removes columns where all rows are NA.",
+            predicted = "updated"
+        )
+    )
+    set_obj_method(
+        class_name = "drop_empty_columns",
+        method_name = "model_apply",
+        signature = c("drop_empty_columns", "annotation_source"),
+        definition = function(M, D) {
+            W <- lapply(D$data, function(x) all(is.na(x)))
+            idx <- which(unlist(W))
+            if (length(idx) > 0) {
+                D$data[, idx] <- NULL
+            }
+            M$updated <- D
+            return(M)
+        }
+    )
+
+
+    # --- Database and PubChem Lookup [] ---
+    # Key functions: database_lookup, pubchem_compound_lookup, model_apply
+    lookup_model <- database_lookup(
+        query_column = "refmet_name",
+        database_column = "name",
+        database = refmet,
+        suffix = "_mwb",
+        include = "pubchem_cid"
+    )
+    pc_model <- pubchem_compound_lookup(
+        query_column = "metabolite_name",
+        search_by = "name",
+        suffix = "_pc",
+        output = "cids",
+        records = "best",
+        delay = 0.2,
+        cache = pubchem_cid_cache
+    )
+    res_lookup <- model_apply(lookup_model, AT)
+    res_pc <- model_apply(pc_model, AT)
+
+
+    # --- Workflow Sequence Execution [] ---
+    # Key functions: database_lookup, pubchem_compound_lookup
+    pipeline <- database_lookup(
+        query_column = "refmet_name",
+        database_column = "name",
+        database = refmet,
+        suffix = "_mwb",
+        include = "pubchem_cid"
+    ) + pubchem_compound_lookup(
+        query_column = "metabolite_name",
+        search_by = "name",
+        suffix = "_pc",
+        output = "cids",
+        records = "best",
+        delay = 0.2,
+        cache = pubchem_cid_cache
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

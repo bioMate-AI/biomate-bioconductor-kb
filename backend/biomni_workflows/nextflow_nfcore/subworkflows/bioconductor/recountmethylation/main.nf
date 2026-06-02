@@ -38,58 +38,47 @@ process BIOC_RECOUNTMETHYLATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(recountmethylation)
     library(Body)
     library(TSS1500)
     library(TSS200)
     library(UTR)
     library(jsonlite)
 
-    # --- Getsnpinfo [] ---
-    # Key functions: getSnpInfo
-    ---------------------------------------------------------------------
-    getSnpInfo(rg)
-    # --- Preprocessraw [] ---
+    # --- Preprocessing and SNP Filtering [] ---
     # Key functions: preprocessRaw, mapToGenome, dropLociWithSnps
-    ---------------------------------------------------------------------
-    gm <- preprocessRaw(rg) # make MethylSet
-    gms <- mapToGenome(gm) # make GenomicMethylSet
-    gmsf <- dropLociWithSnps(gms) # filter probes with SNPs
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    as.data.frame(table(man$UCSC_RefGene_Name==""))
-    # --- Unlist [] ---
-    # Key functions: unlist
-    ---------------------------------------------------------------------
+    gm <- minfi::preprocessRaw(rg)
+    gms <- minfi::mapToGenome(gm)
+    gmsf <- minfi::dropLociWithSnps(gms)
+
+
+    # --- Gene-Centric Probe Filtering [] ---
+    # Key functions: grepl, strsplit
+    gene.str <- "ARID1A"
+    gene.patt <- paste0("(^|;)", gene.str, "($|;)")
+    which.gene <- which(grepl(gene.patt, man$UCSC_RefGene_Name))
+    manf <- man[which.gene, ]
     gene.regionv <- unlist(strsplit(man$UCSC_RefGene_Group, ";"))
-    # --- Frame [] ---
-    # Key functions: frame, ggplot, aes, theme_bw, geom_bar, xlab, ylab
-    ---------------------------------------------------------------------
-    df <- as.data.frame(table(gene.regionv)) # get group frequencies
-    ggplot(df, aes(x = gene.regionv, y = Freq, fill = gene.regionv)) + theme_bw() +
-      geom_bar( stat = "identity") + xlab("Gene group") + ylab("Num. probes") +
-      theme(legend.position = "none",
-    # --- Utr [] ---
-    # Key functions: UTR, TSS1500, TSS200, ifelse, frame
-    ---------------------------------------------------------------------
-    # make pattern: "(^|;)5'UTR($|;)|(^|;)TSS1500($|;)|(^|;)TSS200($|;)"
+
+
+    # --- Promoter and Gene Body Mapping [] ---
+    # Key functions: grepl, table
     prom.catv <- c("5'UTR", "TSS1500", "TSS200")
     prom.patt <- paste0("(^|;)", prom.catv, "($|;)", collapse = "|")
-    # use regex to detect promoter-mapping probes
-    # --- Body [] ---
-    # Key functions: Body, UTR, ifelse
-    ---------------------------------------------------------------------
-    # make pattern: "(^|;)Body($|;)|(^|;)3'UTR($|;)"
+    man$promoter <- ifelse(grepl(prom.patt, man$UCSC_RefGene_Group),
+                           TRUE, FALSE)
     body.catv <- c("Body", "3'UTR")
     body.patt <- paste0("(^|;)", body.catv, "($|;)", collapse = "|")
-    # use regex to detect body-mapping probes
-    # --- Frame [] ---
-    # Key functions: frame, ggplot, aes, theme_bw
-    ---------------------------------------------------------------------
-    dfp <- as.data.frame(table(man$Relation_to_Island, man$UCSC_RefGene_Name==""))
-    dfp$region <- paste0(dfp$Var1," ; ", c(rep("genic", 6), rep("intergenic", 6)))
-    ggplot(dfp, aes(x = region, y = Freq, fill = Var1)) + theme_bw() +
-      geom_bar(stat = "identity") + xlab("Relation_to_Island;Genic_status") +
+    man$gene_body <- ifelse(grepl(body.patt, man$UCSC_RefGene_Group),
+                            TRUE, FALSE)
+
+
+    # --- CpG Island and Genic Status Analysis [] ---
+    # Key functions: table, ggplot
+    dfp <- as.data.frame(table(man$Relation_to_Island,
+                               man$UCSC_RefGene_Name == ""))
+    dfp$region <- paste0(dfp$Var1, " ; ",
+                         c(rep("genic", 6), rep("intergenic", 6)))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

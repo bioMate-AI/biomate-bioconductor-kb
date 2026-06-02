@@ -38,86 +38,70 @@ process BIOC_METHYLKIT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(methylKit)
     library(PCASamples)
     library(jsonlite)
 
-    # --- Getmethylationstats [] ---
-    # Key functions: getMethylationStats
-    ---------------------------------------------------------------------
-    getMethylationStats(myobj[[2]],plot=FALSE,both.strands=FALSE)
-    # --- Getcoveragestats [] ---
-    # Key functions: getCoverageStats
-    ---------------------------------------------------------------------
-    getCoverageStats(myobj[[2]],plot=TRUE,both.strands=FALSE)
-    # --- Filterbycoverage [] ---
-    # Key functions: filterByCoverage
-    ---------------------------------------------------------------------
-    filtered.myobj=filterByCoverage(myobj,lo.count=10,lo.perc=NULL,
-                                          hi.count=NULL,hi.perc=99.9)
-    # --- Unite [] ---
-    # Key functions: unite
-    ---------------------------------------------------------------------
-    meth=unite(myobj, destrand=FALSE)
-    # --- Getcorrelation [] ---
-    # Key functions: getCorrelation
-    ---------------------------------------------------------------------
-    getCorrelation(meth,plot=TRUE)
-    # --- Clustersamples [] ---
-    # Key functions: clusterSamples
-    ---------------------------------------------------------------------
-    clusterSamples(meth, dist="correlation", method="ward", plot=TRUE)
-    # --- Pcasamples [] ---
-    # Key functions: PCASamples
-    ---------------------------------------------------------------------
-    PCASamples(meth, screeplot=TRUE)
-    # --- Frame [] ---
-    # Key functions: frame, assocComp, removeComp
-    ---------------------------------------------------------------------
-    # make some batch data frame
-    # this is a bogus data frame
-    # we don't have batch information
-    # for the example data
-    # --- Percmethylation [] ---
-    # Key functions: percMethylation, reconstruct
-    ---------------------------------------------------------------------
-    mat=percMethylation(meth)
-    # do some changes in the matrix
-    # this is just a toy example
-    # ideally you want to correct the matrix
-    # --- Calculatediffmeth [] ---
-    # Key functions: calculateDiffMeth
-    ---------------------------------------------------------------------
-    myDiff=calculateDiffMeth(meth)
-    # --- Getmethyldiff [] ---
-    # Key functions: getMethylDiff
-    ---------------------------------------------------------------------
-    # get hyper methylated bases
-    myDiff25p.hyper=getMethylDiff(myDiff,difference=25,qvalue=0.01,type="hyper")
-    #
-    # get hypo methylated bases
-    # --- Diffmethperchr [] ---
-    # Key functions: diffMethPerChr
-    ---------------------------------------------------------------------
-    diffMethPerChr(myDiff,plot=FALSE,qvalue.cutoff=0.01, meth.cutoff=25)
-    # --- Readtranscriptfeatures [] ---
-    # Key functions: readTranscriptFeatures, annotateWithGeneParts
-    ---------------------------------------------------------------------
-    library(genomation)
-    # read the gene BED file
-    gene.obj=readTranscriptFeatures(system.file("extdata", "refseq.hg18.bed.txt",
-                                               package = "methylKit"))
-    # --- Readfeatureflank [] ---
-    # Key functions: readFeatureFlank, annotateWithFeatureFlank
-    ---------------------------------------------------------------------
-    # read the shores and flanking regions and name the flanks as shores
-    # and CpG islands as CpGi
-    cpg.obj=readFeatureFlank(system.file("extdata", "cpgi.hg18.bed.txt",
-                                            package = "methylKit"),
-    # --- Regioncounts [] ---
-    # Key functions: regionCounts
-    ---------------------------------------------------------------------
-    promoters=regionCounts(myobj,gene.obj$promoters)
-    head(promoters[[1]])
+    # --- Quality Control and Filtering [] ---
+    # Key functions: getMethylationStats, getCoverageStats, filterByCoverage
+    getMethylationStats(myobj[[1]], plot = FALSE, both.strands = FALSE)
+    getCoverageStats(myobj[[1]], plot = FALSE, both.strands = FALSE)
+    filtered_myobj <- filterByCoverage(
+        myobj,
+        lo.count = 10,
+        lo.perc = NULL,
+        hi.count = NULL,
+        hi.perc = 99.9
+    )
+
+
+    # --- Sample Merging and Clustering [] ---
+    # Key functions: unite, getCorrelation, clusterSamples, PCASamples
+    meth <- unite(filtered_myobj, destrand = FALSE)
+    getCorrelation(meth, plot = FALSE)
+    hc <- clusterSamples(
+        meth,
+        dist = "correlation",
+        method = "ward",
+        plot = FALSE
+    )
+    PCASamples(meth, screeplot = FALSE)
+
+
+    # --- Batch Effect Correction [] ---
+    # Key functions: assocComp, removeComp, percMethylation, reconstruct
+    sample_annotation <- data.frame(
+        batch_id = c("a", "a", "b", "b"),
+        age = c(19, 34, 23, 40)
+    )
+    as_comp <- assocComp(mBase = meth, sample_annotation)
+    new_obj <- removeComp(meth, comp = 1)
+    mat <- percMethylation(new_obj)
+    mat[mat == 100] <- 80
+    corrected_obj <- reconstruct(mat, new_obj)
+
+
+    # --- Differential Methylation Analysis [] ---
+    # Key functions: calculateDiffMeth, getMethylDiff, diffMethPerChr
+    my_diff <- calculateDiffMeth(corrected_obj)
+    my_diff_hyper <- getMethylDiff(
+        my_diff,
+        difference = 25,
+        qvalue = 0.01,
+        type = "hyper"
+    )
+    my_diff_hypo <- getMethylDiff(
+        my_diff,
+        difference = 25,
+        qvalue = 0.01,
+        type = "hypo"
+    )
+    diff_chr <- diffMethPerChr(
+        my_diff,
+        plot = FALSE,
+        qvalue.cutoff = 0.01,
+        meth.cutoff = 25
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

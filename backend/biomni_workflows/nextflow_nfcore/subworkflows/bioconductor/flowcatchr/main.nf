@@ -41,11 +41,40 @@ process BIOC_FLOWCATCHR {
     library(flowcatchR)
     library(jsonlite)
 
-    # --- Maintainer analysis [] ---
-    # Key functions: install_github, maintainer, kinematics, normalizeFrames, particles, penaltyFunctionGenerator, trajectories, snap
-    allVelocities <- kinematics(trajPlatelets, feature="curvilinearVelocity")
-    hist(allVelocities, breaks=10, probability=TRUE, col="cadetblue",
-    lines(density(allVelocities, na.rm=TRUE), col="steelblue", lwd=2)
+    # --- Particle Identification [] ---
+    # Key functions: particles, select.particles, add.contours
+    platelets <- particles(plateletsMesenterium, preprocessedPlatelets)
+    selectedPlatelets <- select.particles(platelets, min.area = 3)
+    paintedPlatelets <- add.contours(
+        raw.frames = MesenteriumSubset,
+        binary.frames = preprocessedPlatelets,
+        mode = "particles"
+    )
+
+
+    # --- Particle Tracking [] ---
+    # Key functions: link.particles, trajectories, penaltyFunctionGenerator
+    linkedPlatelets <- link.particles(
+        platelets,
+        L = 26, R = 3,
+        epsilon1 = 0, epsilon2 = 0,
+        lambda1 = 1, lambda2 = 0,
+        penaltyFunction = penaltyFunctionGenerator(),
+        include.area = FALSE
+    )
+    trajPlatelets <- trajectories(linkedPlatelets)
+
+
+    # --- Kinematic Analysis [] ---
+    # Key functions: kinematics
+    allKinematicFeats <- kinematics(
+        trajPlatelets,
+        trajectoryIDs = NULL,
+        acquisitionFrequency = 30,
+        scala = 50,
+        feature = NULL
+    )
+    allVelocities <- kinematics(trajPlatelets, feature = "curvilinearVelocity")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

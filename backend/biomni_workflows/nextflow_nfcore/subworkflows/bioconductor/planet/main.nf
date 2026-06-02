@@ -41,41 +41,18 @@ process BIOC_PLANET {
     library(planet)
     library(jsonlite)
 
-    # --- Projectcelltype [] ---
-    # Key functions: projectCellType
-    ---------------------------------------------------------------------
-    houseman_estimates <- minfi:::projectCellType(
-        plBetas[rownames(plCellCpGsThird), ],
-        plCellCpGsThird,
-        lessThanOne = FALSE
-    # --- Epidish [] ---
-    # Key functions: epidish, projection
-    ---------------------------------------------------------------------
-    # robust partial correlations
-    epidish_RPC <- epidish(
-        beta.m = plBetas[rownames(plCellCpGsThird), ],
-        ref.m = plCellCpGsThird,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    # load example data
-    data(plBetas)
-    data(plPhenoData)
-    dim(plBetas)
-    # --- Mutate [] ---
-    # Key functions: mutate, predictAge
-    ---------------------------------------------------------------------
-    plPhenoData <- plPhenoData %>%
-        mutate(
-            ga_RPC = predictAge(plBetas, type = "RPC"),
-            ga_CPC = predictAge(plBetas, type = "CPC"),
-    # --- Data [] ---
-    # Key functions: all, predictEthnicity
-    ---------------------------------------------------------------------
-    data(ethnicityCpGs)
-    all(ethnicityCpGs %in% rownames(plBetas))
+    # --- Gestational Age Prediction [] ---
+    # Key functions: predictAge
+    ga_RPC <- predictAge(plBetas, type = "RPC")
+    ga_CPC <- predictAge(plBetas, type = "CPC")
+    ga_RRPC <- predictAge(plBetas, type = "RRPC")
+
+
+    # --- Ethnicity Prediction [] ---
+    # Key functions: predictEthnicity
+    data("ethnicityCpGs")
     results <- predictEthnicity(plBetas)
-    results %>%
+    predicted_counts <- table(results$Predicted_ethnicity)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

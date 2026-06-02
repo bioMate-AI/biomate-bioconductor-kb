@@ -41,68 +41,40 @@ process BIOC_RSCUDO {
     library(rScudo)
     library(jsonlite)
 
-    # --- Scudotrain [] ---
-    # Key functions: scudoTrain
-    ---------------------------------------------------------------------
-    trainRes <- scudoTrain(trainData, groups = bt[inTrain], nTop = 100,
-        nBottom = 100, alpha = 0.1)
-    trainRes
-    # --- Upsignatures [] ---
-    # Key functions: upSignatures, consensusUpSignatures
-    ---------------------------------------------------------------------
-    upSignatures(trainRes)[1:5,1:5]
-    consensusUpSignatures(trainRes)[1:5, ]
-    # --- Scudonetwork [] ---
-    # Key functions: scudoNetwork, scudoPlot
-    ---------------------------------------------------------------------
+    # --- Network Construction and Plotting [] ---
+    # Key functions: scudoTrain, scudoNetwork, scudoPlot
+    data(ALL)
+    bt <- as.factor(stringr::str_extract(pData(ALL)$BT, "^."))
+    inTrain <- caret::createDataPartition(bt, list = FALSE)
+    trainData <- ALL[, inTrain]
+    trainRes <- scudoTrain(
+        trainData, groups = bt[inTrain],
+        nTop = 100, nBottom = 100, alpha = 0.1
+    )
     trainNet <- scudoNetwork(trainRes, N = 0.25)
     scudoPlot(trainNet, vertex.label = NA)
-    # --- Scudotest [] ---
-    # Key functions: scudoTest
-    ---------------------------------------------------------------------
-    testRes <- scudoTest(trainRes, testData, bt[-inTrain], nTop = 100,
-        nBottom = 100)
-    testRes
-    # --- Scudonetwork [] ---
-    # Key functions: scudoNetwork, scudoPlot
-    ---------------------------------------------------------------------
-    testNet <- scudoNetwork(testRes, N = 0.25)
-    scudoPlot(testNet, vertex.label = NA)
-    # --- Cluster Spinglass [] ---
-    # Key functions: cluster_spinglass
-    ---------------------------------------------------------------------
-    testClust <- igraph::cluster_spinglass(testNet, spins = 2)
-    plot(testClust, testNet, vertex.label = NA)
-    # --- Scudoclassify [] ---
-    # Key functions: scudoClassify
-    ---------------------------------------------------------------------
-    classRes <- scudoClassify(trainData, testData, N = 0.25, nTop = 100,
-        nBottom = 100, trainGroups = bt[inTrain], alpha = 0.1)
-    # --- Confusionmatrix [] ---
-    # Key functions: confusionMatrix
-    ---------------------------------------------------------------------
-    caret::confusionMatrix(classRes$predicted, bt[-inTrain])
-    # --- Vector [] ---
-    # Key functions: createDataPartition, scudoTrain, scudoNetwork, scudoPlot, scudoClassify, confusionMatrix
-    ---------------------------------------------------------------------
-    inTrain <- as.vector(caret::createDataPartition(stage, p = 0.6, list = FALSE))
-    stageRes <- scudoTrain(ALLB[, inTrain], stage[inTrain], 100, 100, 0.01)
-    stageNet <- scudoNetwork(stageRes, 0.2)
-    scudoPlot(stageNet, vertex.label = NA)
-    # --- Exprs [] ---
-    # Key functions: exprs, rowMeans, test
-    ---------------------------------------------------------------------
-    trainData <- exprs(ALLB[, inTrain])
-    virtControl <- rowMeans(trainData)
-    trainDataNorm <- trainData / virtControl
-    pVals <- apply(trainDataNorm, 1, function(x) {
-    # --- Makepsockcluster [] ---
-    # Key functions: makePSOCKcluster, registerDoParallel, scudoModel, trainControl, train, stopCluster, scudoClassify, confusionMatrix
-    ---------------------------------------------------------------------
-    cl <- parallel::makePSOCKcluster(2)
-    doParallel::registerDoParallel(cl)
-    model <- scudoModel(nTop = (2:6)*20, nBottom = (2:6)*20, N = 0.25)
-    control <- caret::trainControl(method = "cv", number = 5,
+
+
+    # --- Classification and Validation [] ---
+    # Key functions: scudoTrain, scudoTest, scudoClassify
+    data(ALL)
+    bt <- as.factor(stringr::str_extract(pData(ALL)$BT, "^."))
+    inTrain <- caret::createDataPartition(bt, list = FALSE)
+    trainData <- ALL[, inTrain]
+    testData <- ALL[, -inTrain]
+    trainRes <- scudoTrain(
+        trainData, groups = bt[inTrain],
+        nTop = 100, nBottom = 100, alpha = 0.1
+    )
+    testRes <- scudoTest(
+        trainRes, testData, bt[-inTrain],
+        nTop = 100, nBottom = 100
+    )
+    classRes <- scudoClassify(
+        trainData, testData, N = 0.25,
+        nTop = 100, nBottom = 100,
+        trainGroups = bt[inTrain], alpha = 0.1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

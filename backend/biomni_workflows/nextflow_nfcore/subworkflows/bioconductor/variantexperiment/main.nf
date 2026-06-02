@@ -38,14 +38,52 @@ process BIOC_VARIANTEXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(VariantExperiment)
     library(GDSArray)
     library(jsonlite)
 
-    # --- Assay listing [] ---
-    # Key functions: gdsExampleFileName, gdsnodes, GDSArray, makeVariantExperimentFromGDS, args, showAvailable, assays, assay
-    sampleInfo <- system.file("extdata", "Example_sampleInfo.txt",
-    vevcf <- makeVariantExperimentFromVCF(vcf, sample.info = sampleInfo)
-    colData(vevcf)
+    # --- Data Import and Initialization [VariantExperiment] ---
+    # Key functions: showAvailable, makeVariantExperimentFromGDS, makeVariantExperimentFromVCF
+    gds_file <- SeqArray::seqExampleFileName("gds")
+    avail_nodes <- showAvailable(gds_file)
+    ve <- makeVariantExperimentFromGDS(
+        gds_file,
+        rowDataColumns = c("allele", "annotation/id"),
+        infoColumns = c("AC", "AN", "DP"),
+        rowDataOnDisk = TRUE,
+        colDataOnDisk = FALSE
+    )
+
+    # --- Metadata and Annotation Extraction [VariantExperiment] ---
+    # Key functions: gdsfile, makeVariantExperimentFromVCF
+    gds_path <- gdsfile(ve)
+    variant_info <- rowData(ve)
+    sample_info <- colData(ve)
+    vcf_file <- SeqArray::seqExampleFileName("vcf")
+    ve_vcf <- makeVariantExperimentFromVCF(
+        vcf_file,
+        start = 101,
+        count = 1000
+    )
+
+    # --- Genomic Filtering and Subsetting [VariantExperiment] ---
+    # Key functions: subsetByOverlaps
+    target_region <- GenomicRanges::GRanges("22:1-48958933")
+    ve_filtered <- subsetByOverlaps(ve, target_region)
+    ref_t_idx <- as.logical(rowData(ve_filtered)$REF == "T")
+    ve_subset <- ve_filtered[ref_t_idx, ]
+
+    # --- Data Serialization and Persistence [VariantExperiment] ---
+    # Key functions: saveVariantExperiment, loadVariantExperiment
+    out_dir <- tempfile()
+    ve_saved <- saveVariantExperiment(
+        ve_filtered,
+        dir = out_dir,
+        replace = TRUE,
+        chunk_size = 30
+    )
+    ve_loaded <- loadVariantExperiment(dir = out_dir)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,28 +38,24 @@ process BIOC_EASYLIFT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(easylift)
     library(BiocFileCache)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, genome, package
-    gr <- GRanges(
-    seqname = Rle(
-    c("chr1", "chr2"),
-    # --- easylift [] ---
+    # --- Liftover with Custom Chain [] ---
     # Key functions: easylift
-    easylift(gr, "hg38", chain)
-    # --- Bioc File Cache [] ---
-    # Key functions: BiocFileCache, bfcadd
-    bfc <- BiocFileCache()
-    if (nrow(bfcquery(bfc, basename(chain_file))) == 0)
-    bfcadd(bfc, chain_file)
-    # --- easylift [] ---
+    lifted_custom <- easylift(
+        gr = gr,
+        to = "hg38",
+        chain = "path/to/hg19ToHg38.over.chain.gz"
+    )
+
+
+    # --- Liftover Validation [] ---
     # Key functions: easylift
-    easylift(gr, "hg38")
-    gr |> easylift("hg38")
-    sessionInfo()
+    lifted_gr <- easylift(gr, "hg38", chain)
+    target_genome <- genome(lifted_gr)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

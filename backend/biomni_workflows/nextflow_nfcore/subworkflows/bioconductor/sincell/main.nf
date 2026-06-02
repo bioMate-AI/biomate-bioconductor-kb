@@ -41,72 +41,34 @@ process BIOC_SINCELL {
     library(sincell)
     library(jsonlite)
 
-    # --- initialize sincellObject example [] ---
-    # Key functions: sc_InitializingSincellObject
-    SincellObject<-sc_InitializingSincellObject(ExpressionMatrix)
-    # --- monocle expression matrix filtering 2 [] ---
-    # Key functions: detectGenes, differentialGeneTest
-    HSMM <- detectGenes(HSMM, min_expr = 0.1)
-    expressed_genes <- row.names(subset(fData(HSMM), num_cells_expressed >= 50))
-    diff_test_res <- differentialGeneTest(HSMM[expressed_genes,],
-    # --- change geneIDs [] ---
-    # Key functions: getBM
-    GeneEnsemblID<-rownames(EMlog)
-    head(GeneEnsemblID)
-    GeneEnsemblID <- sapply( strsplit(GeneEnsemblID, split=".",fixed=TRUE),"[",1)
-    # --- initialize sincellObject [] ---
-    # Key functions: sc_InitializingSincellObject
-    SO<-sc_InitializingSincellObject(EMlog)
-    # --- cell to cell distance matrix [] ---
-    # Key functions: sc_distanceObj
-    SO<-sc_distanceObj(SO, method="euclidean")
-    SO<-sc_distanceObj(SO, method="cosine")
-    SO<-sc_distanceObj(SO, method="pearson")
-    # --- Mutual Information [] ---
-    # Key functions: sc_distanceObj
-    SO<-sc_distanceObj(SO, method="MI", bins=c(-Inf,0,1,2,Inf))
-    # --- sc_ Dimensionality Reduction Obj [] ---
+    # --- Dimensionality Reduction [] ---
     # Key functions: sc_DimensionalityReductionObj
-    help(sc_DimensionalityReductionObj)
-    Principal Component Analysis (PCA)
-    SO <- sc_DimensionalityReductionObj(SO, method="PCA", dim=3)
-    # --- ICA tSNE [] ---
-    # Key functions: sc_DimensionalityReductionObj
-    Independent Component Analysis (ICA)
-    SO <- sc_DimensionalityReductionObj(SO, method="ICA", dim=3)
-    t-Distributed Stochastic Neighbor Embedding (t-SNE)
-    # --- sc_ Dimensionality Reduction Obj [] ---
-    # Key functions: sc_DimensionalityReductionObj
-    Classic Multidimensional Scaling (classical-MDS).
-    SO <- sc_DimensionalityReductionObj(SO, method="classical-MDS", dim=3)
-    Non-metric Multidimensional Scaling (nonmetric-MDS).
-    # --- color by marker [] ---
+    SO <- sincell::sc_DimensionalityReductionObj(
+        SO,
+        method = "PCA",
+        dim = 3
+    )
+    SO <- sincell::sc_DimensionalityReductionObj(
+        SO,
+        method = "ICA",
+        dim = 3
+    )
+    SO <- sincell::sc_DimensionalityReductionObj(
+        SO,
+        method = "tSNE",
+        dim = 3
+    )
+
+
+    # --- Marker Visualization [] ---
     # Key functions: sc_marker2color
-    colorSCsByMarker<-sc_marker2color(SO, marker=myMarker, color.minimum="yellow3",
-    # --- using rgl package [] ---
-    # Key functions: plot3d
-    library(rgl)
-    plot3d(t(cellsLowDimensionalSpace_nonmetricMDS),
-    plot3d(t(cellsLowDimensionalSpace_ICA),
-    # --- ICA 2dim [] ---
-    # Key functions: sc_DimensionalityReductionObj
-    Independent Component Analysis (ICA)
-    SO <- sc_DimensionalityReductionObj(SO, method="ICA", dim=2)
-    # --- Cluster assessment [] ---
-    # Key functions: sc_clusterObj, clusters
-    SO<- sc_clusterObj(SO, clust.method="max.distance", max.distance=0.5)
-    clusters(SO[["cellsClustering"]])
-    SO<- sc_clusterObj(SO, clust.method="percent", shortest.rank.percent=10)
-    # --- Cluster assessment2 [] ---
-    # Key functions: sc_clusterObj, clusters
-    SO <- sc_clusterObj (SO, clust.method="k-medoids", mutual=TRUE, k=3)
-    clusters(SO[["cellsClustering"]])
-    SO <- sc_clusterObj (SO, clust.method="complete", mutual=TRUE, k=3)
-    # --- graph assessment0 [] ---
-    # Key functions: sc_GraphBuilderObj
-    help(sc_GraphBuilderObj)
-    Minimum Spanning Tree (MST)
-    SO<- sc_GraphBuilderObj(SO, graph.algorithm="MST",
+    colorSCsByMarker <- sincell::sc_marker2color(
+        SO,
+        marker = "CDK1",
+        color.minimum = "yellow3",
+        color.maximum = "blue",
+        relative.to.marker = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

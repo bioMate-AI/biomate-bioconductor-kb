@@ -41,43 +41,29 @@ process BIOC_OMIXER {
     library(Omixer)
     library(jsonlite)
 
-    # --- rna toy data [] ---
-    # Key functions: tibble
-    sampleList <- tibble(sampleId=str_pad(1:48, 4, pad="0"),
-    sex=as_factor(sample(c("m", "f"), 48, replace=TRUE)),
-    age=round(rnorm(48, mean=30, sd=8), 0),
-    # --- rna omixer rand [] ---
-    # Key functions: omixerRand
-    omixerLayout <- omixerRand(sampleList, sampleId="sampleId",
-    head(omixerLayout[1:11])
-    # --- omixer specific rna [] ---
-    # Key functions: omixerSpecific
-    load("randomSeed.Rdata")
-    omixerLayout <- omixerSpecific(sampleList, sampleId="sampleId",
-    # --- omixer sheet rna [] ---
+    # --- Sample Sheet Export [] ---
     # Key functions: omixerSheet
-    omixerSheet(omixerLayout)
-    # --- dna toy data [] ---
-    # Key functions: tibble
-    sampleList<- tibble(sampleId=str_pad(1:616, 4, pad="0"),
-    block=rep(1:308, each=2),
-    time=rep(0:1, 308),
-    # --- rep [] ---
-    # Key functions: rep
-    mask <- rep(c(rep(0, 88), rep(1, 8)), 7)
-    # --- dna omixer rand [] ---
+    sampleList <- tibble::tibble(
+        sampleId = sprintf("%04d", 1:48),
+        sex = factor(sample(c("m", "f"), 48, replace = TRUE))
+    )
+    omixerLayout <- omixerRand(sampleList, sampleId = "sampleId",
+                               iterNum = 5, wells = 48, div = "row",
+                               plateNum = 1, randVars = "sex")
+    sheets <- omixerSheet(omixerLayout)
+
+
+    # --- Multi-plate Layout with Masking [] ---
     # Key functions: omixerRand
-    omixerLayout <- omixerRand(sampleList, sampleId="sampleId",
-    # --- omixer v simple [] ---
-    # Key functions: omixerRand
-    simpleLayout <- omixerRand(sampleList, sampleId="sampleId",
-    # --- omixer specific dna [] ---
-    # Key functions: omixerSpecific
-    load("randomSeed.Rdata")
-    omixerLayout <- omixerSpecific(sampleList, sampleId="sampleId",
-    # --- omixer Sheet [] ---
-    # Key functions: omixerSheet
-    omixerSheet(omixerLayout, group="tissue")
+    sampleList <- tibble::tibble(
+        sampleId = sprintf("%04d", 1:96),
+        tissue = factor(rep(c("blood", "fat"), each = 48))
+    )
+    mask <- rep(c(rep(0, 12), rep(1, 12)), 4)
+    omixerLayout <- omixerRand(sampleList, sampleId = "sampleId",
+                               iterNum = 5, wells = 96, div = "col",
+                               plateNum = 1, randVars = "tissue",
+                               mask = mask)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

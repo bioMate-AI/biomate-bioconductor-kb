@@ -41,35 +41,39 @@ process BIOC_FAERS {
     library(faers)
     library(jsonlite)
 
-    # --- Faers Meta [] ---
-    # Key functions: faers_meta
-    ---------------------------------------------------------------------
-    faers_meta(internal = TRUE)
-    # --- Faers [] ---
-    # Key functions: faers, tempdir
-    ---------------------------------------------------------------------
-    # Please make sure to replace dir with your own directory path, as the file
-    # included in the package is a sampled version.
-    data1 <- faers(2004, "q1",
-        dir = system.file("extdata", package = "faers"),
-    # --- Faers Get [] ---
-    # Key functions: faers_get
-    ---------------------------------------------------------------------
-    faers_get(data2, "demo")
-    # --- Faers Meddra [] ---
-    # Key functions: faers_meddra
-    ---------------------------------------------------------------------
-    faers_meddra(data)
-    faers_meddra(data, use = "hierarchy")
-    # --- Faers Get [] ---
-    # Key functions: faers_get
-    ---------------------------------------------------------------------
-    faers_get(data, "indi")
-    # --- Faers Dedup [] ---
-    # Key functions: faers_dedup
-    ---------------------------------------------------------------------
-    data <- faers_dedup(data)
-    data
+    # --- Standardization and Deduplication [] ---
+    # Key functions: faers_meddra, faers_dedup, faers_get
+    std_path <- system.file("extdata", "standardized_data.rds", package = "faers")
+    data <- readRDS(std_path)
+    meddra_info <- faers_meddra(data, use = "hierarchy")
+    dedup_data <- faers_dedup(data)
+    reac_data <- faers_get(dedup_data, "reac")
+
+
+    # --- Drug Filtering [] ---
+    # Key functions: fda_drugs, faers_filter
+    std_path <- system.file("extdata", "standardized_data.rds", package = "faers")
+    data <- readRDS(std_path)
+    fda_insulin <- fda_drugs()
+    insulin_pattern <- "insulin"
+    insulin_data <- faers_filter(data, .fn = function(x) {
+        idx <- grepl(insulin_pattern, x$drugname, ignore.case = TRUE)
+        x[idx, primaryid]
+    }, .field = "drug")
+
+
+    # --- Pharmacovigilance Signal Detection [] ---
+    # Key functions: faers_phv_signal, faers_filter
+    std_path <- system.file("extdata", "standardized_data.rds", package = "faers")
+    data <- readRDS(std_path)
+    insulin_data <- faers_filter(data, .fn = function(x) {
+        x[grepl("insulin", drugname, ignore.case = TRUE), primaryid]
+    }, .field = "drug")
+    insulin_signals <- faers_phv_signal(
+        insulin_data,
+        .full = data,
+        BPPARAM = BiocParallel::SerialParam(RNGseed = 1L)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,22 +38,43 @@ process BIOC_RNAMODR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RNAmodR)
     library(End5SequenceData)
     library(GFF3File)
     library(ModInosine)
     library(ModSetInosine)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: melt, ggplot
-    plotData <- lapply(stats,function(set){
-    ans <- lapply(lapply(lapply(set,"[[","used_distro"),"[[","chr1"),"[[","1")
-    names <- unique(unlist(lapply(ans,names), use.names = FALSE))
-    # --- Sequence information check [] ---
-    # Key functions: GFF3File, End5SequenceData, bamfiles, ranges, sequences, seqinfo, ModInosine, sequenceData
-    names(seqdata) # matches the transcript names as returned by a TxDb object
-    colnames(seqdata) # returns a CharacterList of all column names
-    bamfiles(seqdata)
+    # --- Modification Detection and Settings [] ---
+    # Key functions: ModInosine, ModSetInosine, settings, modifications
+    mi <- ModInosine(files, annotation = annotation, sequences = sequences)
+    settings(mi) <- list(minScore = 0.5)
+    files_set <- list(
+        "SampleSet1" = c(treated = RNAmodR.Data::RNAmodR.Data.example.wt.1())
+    )
+    msi <- ModSetInosine(
+        files_set,
+        annotation = annotation,
+        sequences = sequences
+    )
+    mod <- modifications(msi)
+
+
+    # --- Comparative Visualization and Statistics [] ---
+    # Key functions: compareByCoord, plotCompareByCoord, plotData, plotROC, stats
+    coord <- unique(unlist(mod))
+    coord$score <- NULL
+    coord$sd <- NULL
+    comp <- compareByCoord(msi, coord)
+    txdb <- txdbmaker::makeTxDbFromGFF(annotation)
+    alias <- data.frame(
+        tx_id = names(GenomicFeatures::id2name(txdb)),
+        name = GenomicFeatures::id2name(txdb)
+    )
+    plotCompareByCoord(msi, coord, alias = alias)
+    plotData(msi, "2", from = 10L, to = 45L, alias = alias)
+    plotROC(msi, coord)
+    msi_stats <- stats(msi)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,10 +41,39 @@ process BIOC_TFHAZ {
     library(TFHAZ)
     library(jsonlite)
 
-    # --- n_zones_ P C A [] ---
+    # --- Dense DNA Zone Identification [] ---
+    # Key functions: dense_zones
+    dense_zones_res <- dense_zones(
+        tf_accumulation, 
+        threshold_step = 1, 
+        chr = "chr21"
+    )
+
+
+    # --- Visualization of Dense Zones [] ---
+    # Key functions: plot_n_zones, w_analysis
+    plot_n_zones(dense_zones_res, chr = "chr21")
+    zones_list <- list(dense_zones_res, dense_zones_res)
+    w_analysis(zones_list, chr = "chr21")
+
+
+    # --- Principal Component Analysis of Zones [] ---
     # Key functions: n_zones_PCA
-    base_dense_21_w_10 is the output of dense_zones function (with
-    n_zones_PCA(TF_dense_w_10, reg_dense_w_10, base_dense_w_10, chr = "chr21")
+    pca_results <- n_zones_PCA(
+        dense_zones_res, 
+        dense_zones_res, 
+        dense_zones_res, 
+        chr = "chr21"
+    )
+
+
+    # --- High Accumulation Zone Detection [] ---
+    # Key functions: high_accumulation_zones
+    high_acc_zones <- high_accumulation_zones(
+        tf_accumulation, 
+        method = "overlaps", 
+        threshold = "std"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

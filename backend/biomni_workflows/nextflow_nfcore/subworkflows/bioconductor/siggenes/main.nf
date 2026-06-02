@@ -41,57 +41,55 @@ process BIOC_SIGGENES {
     library(siggenes)
     library(jsonlite)
 
-    # --- Rep [] ---
-    # Key functions: rep
-    n1 <- n2 <- 5
-    rep(c(0, 1), c(n1, n2))
-    # --- Sam [] ---
-    # Key functions: sam
-    sam.out <- sam(golub, golub.cl, rand = 123, gene.names = golub.gnames[,3])
-    sam.out
-    # --- Siggenes [] ---
-    # Key functions: siggenes
-    list.siggenes(sam.out, 3.3)
-    # --- Finddelta [] ---
+    # --- Significance Analysis of Microarrays ---
+    # Key functions: sam, wilc.stat
+    data(golub)
+    sam.out <- sam(
+        golub,
+        golub.cl,
+        rand = 123,
+        gene.names = golub.gnames[, 3]
+    )
+    sam.out2 <- sam(
+        golub,
+        golub.cl,
+        method = wilc.stat,
+        rand = 123
+    )
+
+    # --- Delta Parameter Selection ---
     # Key functions: findDelta
-    findDelta(sam.out, fdr = 0.05)
-    # --- a0 [] ---
-    # Key functions: a0
-    find.out <- find.a0(golub, golub.cl, rand = 123)
-    # --- Ebam [] ---
-    # Key functions: ebam
-    ebam(find.out, which.a0 = 2)
-    # --- Function [] ---
-    # Key functions: factor, rowttests, exclude, qt
-    t.stat <- function(data, cl){
-        require(genefilter) ||
-            stop("genefilter required.")
-        cl <- as.factor(cl)
-        row.out <- rowttests(data, cl)
-    # --- Sam [] ---
-    # Key functions: sam
-    sam(golub, golub.cl, method = t.stat)
-    # --- Function [] ---
-    # Key functions: factor, rowttests
-    t.find <- function(data, cl, B = 50){
-        require(genefilter)
-        z.fun <- function(data, cl){
-            cl <- as.factor(cl)
-            out <- rowttests(data, cl)
-    # --- a0 [] ---
-    # Key functions: a0
-    t.out <- find.a0(golub, golub.cl, method = t.find, B = 100, rand =123)
-    t.out
-    # --- Function [] ---
-    # Key functions: factor, rowttests, denspr, dt
-    t.ebam<-function(data, cl){
-        require(genefilter)
-        cl <- as.factor(cl)
-        out <- rowttests(data, cl)
-        z <- -out$statistic
-    # --- Ebam [] ---
-    # Key functions: ebam
-    ebam(golub, golub.cl, method = t.ebam)
+    delta.fdr <- findDelta(sam.out, fdr = 0.05)
+    delta.genes <- findDelta(sam.out, genes = 200)
+    optimal.delta <- delta.fdr[1, "delta"]
+
+    # --- Identification of Significant Genes ---
+    # Key functions: summary, list.siggenes
+    sum.sam.out <- summary(sam.out, delta = 3.3)
+    sig.genes.list <- list.siggenes(sam.out, delta = 3.3)
+    sig.rows <- sum.sam.out@row.sig.genes
+    fdr.matrix <- sum.sam.out@mat.fdr
+
+    # --- Empirical Bayes Parameter Optimization ---
+    # Key functions: find.a0, ebam
+    find.out <- find.a0(
+        golub,
+        golub.cl,
+        rand = 123
+    )
+    ebam.out.opt <- ebam(find.out)
+    ebam.out.specific <- ebam(find.out, which.a0 = 2)
+
+    # --- Empirical Bayes Analysis of Microarrays ---
+    # Key functions: ebam, summary
+    ebam.out <- ebam(
+        golub,
+        golub.cl,
+        a0 = 0,
+        rand = 123
+    )
+    ebam.sum <- summary(ebam.out, delta = 0.9)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

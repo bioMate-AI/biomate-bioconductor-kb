@@ -41,26 +41,55 @@ process BIOC_SCCLASSIFY {
     library(scClassify)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("trainClassExample_xin")
-    trainClassExample_xin
-    # --- Features [] ---
-    # Key functions: features
-    ---------------------------------------------------------------------
-    features(trainClassExample_xin)
-    # --- Plotcelltypetree [] ---
+    # --- Cell Type Tree Visualization [] ---
     # Key functions: plotCellTypeTree, cellTypeTree
-    ---------------------------------------------------------------------
-    plotCellTypeTree(cellTypeTree(trainClassExample_xin))
-    # --- Predict Scclassify [] ---
+    train_model <- trainClassExample_xin
+    model_tree <- cellTypeTree(train_model)
+    plotCellTypeTree(model_tree)
+
+
+    # --- Model Training [] ---
+    # Key functions: train_scClassify
+    train_res <- train_scClassify(
+        exprsMat_train = exprsMat_wang_subset,
+        cellTypes_train = wang_cellTypes,
+        tree = "IDEC",
+        selectFeatures = "limma",
+        algorithm = "WKNN",
+        similarity = "pearson",
+        verbose = FALSE
+    )
+
+
+    # --- Cell Type Prediction [] ---
     # Key functions: predict_scClassify
-    ---------------------------------------------------------------------
-    pred_res <- predict_scClassify(exprsMat_test = exprsMat_wang_subset,
-                                   trainRes = trainClassExample_xin,
-                                   cellTypes_test = wang_cellTypes,
-                                   algorithm = "WKNN",
+    test_data <- as(exprsMat_wang_subset, "dgCMatrix")
+    pred_res <- predict_scClassify(
+        exprsMat_test = test_data,
+        trainRes = trainClassExample_xin,
+        cellTypes_test = wang_cellTypes,
+        algorithm = "WKNN",
+        features = c("limma"),
+        similarity = c("pearson", "spearman"),
+        prob_threshold = 0.7,
+        verbose = FALSE
+    )
+
+
+    # --- Joint Training and Classification [] ---
+    # Key functions: scClassify
+    scClassify_res <- scClassify(
+        exprsMat_train = exprsMat_wang_subset,
+        cellTypes_train = wang_cellTypes,
+        exprsMat_test = list(wang = exprsMat_wang_subset),
+        cellTypes_test = list(wang = wang_cellTypes),
+        tree = "IDEC",
+        algorithm = "WKNN",
+        selectFeatures = "limma",
+        similarity = "pearson",
+        returnList = FALSE,
+        verbose = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

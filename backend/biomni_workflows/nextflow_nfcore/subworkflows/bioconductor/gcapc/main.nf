@@ -41,30 +41,46 @@ process BIOC_GCAPC {
     library(gcapc)
     library(jsonlite)
 
-    # --- markdown [] ---
-    # Key functions: markdown
-    BiocStyle::markdown()
-    knitr::opts_chunk$set(dev="png",fig.show="hold",
-    set.seed(1)
-    # --- read5end Coverage [] ---
-    # Key functions: read5endCoverage
-    cov <- read5endCoverage(bam)
-    # --- bind Width [] ---
+    # --- Estimate Binding Width [] ---
     # Key functions: bindWidth
-    bdw <- bindWidth(cov, range=c(50L,300L), step=10L)
-    # --- gc Effects [] ---
+    bdw <- bindWidth(
+        cov_data,
+        range = c(50L, 300L),
+        step = 10L
+    )
+
+
+    # --- Estimate GC Effects [] ---
     # Key functions: gcEffects
-    layout(matrix(1:2,1,2))
-    gcb <- gcEffects(cov, bdw, sampling=c(0.25,1), plot=TRUE, model='poisson')
-    # --- gcapc Peaks [] ---
+    gcb <- gcEffects(
+        cov_data,
+        bdw,
+        sampling = c(0.25, 1),
+        plot = FALSE,
+        model = "poisson"
+    )
+
+
+    # --- Peak Calling [] ---
     # Key functions: gcapcPeaks
-    layout(matrix(1:2,1,2))
-    peaks <- gcapcPeaks(cov, gcb, bdw, plot=TRUE, permute=100L)
-    peaks <- gcapcPeaks(cov, gcb, bdw, plot=TRUE, permute=50L)
-    # --- refine Peaks [] ---
+    peaks <- gcapcPeaks(
+        cov_data,
+        gcb,
+        bdw,
+        plot = FALSE,
+        permute = 50L
+    )
+
+
+    # --- Refine Peaks [] ---
     # Key functions: refinePeaks
-    newpeaks <- refinePeaks(cov, gcb, bdw, peaks=peaks, permute=50L)
-    plot(newpeaks$es,newpeaks$newes,xlab='old score',ylab='new score')
+    newpeaks <- refinePeaks(
+        cov_data,
+        gcb,
+        bdw,
+        peaks = peaks,
+        permute = 50L
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

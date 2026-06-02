@@ -38,14 +38,65 @@ process BIOC_SPASIM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(spaSim)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Valid analysis [] ---
-    # Key functions: valid, install_github, simulate_background_cells, knit, diff, session_info, PrintBibliography
-    BiocManager::valid()
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
+    # --- Cell Type Mixing [] ---
+    # Key functions: simulate_mixing
+    mix_bg <- simulate_mixing(
+        bg_sample = bg,
+        idents = c("Tumour", "Immune", "Others"),
+        props = c(0.2, 0.3, 0.5), 
+        plot_image = FALSE
+    )
+
+
+    # --- Tumour Cluster Simulation [] ---
+    # Key functions: simulate_clusters
+    cluster_properties <- list(
+        C1 = list(
+            name_of_cluster_cell = "Tumour", size = 500, shape = "Oval", 
+            centre_loc = data.frame(x = 600, y = 600),
+            infiltration_types = c("Immune1", "Others"), 
+            infiltration_proportions = c(0.1, 0.05)
+        ), 
+        C2 = list(
+            name_of_cluster_cell = "Immune1", size = 600, shape = "Irregular", 
+            centre_loc = data.frame(x = 1500, y = 500),
+            infiltration_types = c("Immune", "Others"),
+            infiltration_proportions = c(0.1, 0.05)
+        )
+    )
+    clusters <- simulate_clusters(
+        bg_sample = mix_bg,
+        n_clusters = 2,
+        bg_type = "Others",
+        cluster_properties = cluster_properties,
+        plot_image = FALSE
+    )
+
+
+    # --- Immune Ring Simulation [] ---
+    # Key functions: simulate_immune_rings
+    immune_ring_properties <- list(
+        I1 = list(
+            name_of_cluster_cell = "Tumour", size = 500, 
+            shape = "Circle", centre_loc = data.frame(x = 930, y = 1000), 
+            infiltration_types = c("Immune1", "Immune2", "Others"), 
+            infiltration_proportions = c(0.15, 0.05, 0.05),
+            name_of_ring_cell = "Immune1", immune_ring_width = 150,
+            immune_ring_infiltration_types = c("Immune2", "Others"), 
+            immune_ring_infiltration_proportions = c(0.1, 0.15)
+        )
+    )
+    rings <- simulate_immune_rings(
+        bg_sample = bg,
+        bg_type = "Others",
+        n_ir = 1,
+        ir_properties = immune_ring_properties,
+        plot_image = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

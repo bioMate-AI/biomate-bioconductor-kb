@@ -38,45 +38,49 @@ process BIOC_OPOSSOM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(oposSOM)
     library(AnnotatedDataFrame)
     library(ExpressionSet)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    data(opossom.tissues)
-    str(opossom.tissues, vec.len=3)
-    env$indata <- opossom.tissues
-    # --- Data [] ---
-    # Key functions: ExpressionSet
-    data(opossom.tissues)
-    library(Biobase)
-    opossom.tissues.eset = ExpressionSet(assayData=opossom.tissues)
-    opossom.tissues.eset
-    env$indata <- opossom.tissues.eset
-    # --- Frame [] ---
-    # Key functions: frame
-    group.info <- data.frame(
-                      group.labels = c(rep("Homeostasis", 2),
-                                           "Endocrine",
-                                           "Digestion",
-                                           "Exocrine",
-    # --- Expressionset [] ---
+    # --- Environment Initialization [Initialization] ---
+    # Key functions: opossom.new
+    env <- opossom.new(list(
+        dataset.name = "Tissues",
+        dim.1stLvlSom = 20,
+        dim.2ndLvlSom = 20
+    ))
+
+    # --- Data Preparation [Data Loading] ---
     # Key functions: ExpressionSet, AnnotatedDataFrame
-    opossom.tissues.eset = ExpressionSet(assayData=opossom.tissues,
-                                         phenoData=AnnotatedDataFrame(group.info) )
-    opossom.tissues.eset
-    env$indata <- opossom.tissues.eset
-    # --- Usemart [] ---
-    # Key functions: useMart, listDatasets
-    ## library(biomaRt)
-    ## mart<-useMart("ensembl")
-    ## listDatasets(mart)
-    # --- Usemart [] ---
-    # Key functions: useMart, listFilters
-    ## library(biomaRt)
-    ## mart<-useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-    ## listFilters(mart)
+    data(opossom.tissues)
+    group.info <- data.frame(
+        group.labels = c(rep("Homeostasis", 2), "Endocrine", "Digestion",
+                         "Exocrine", "Epithelium", "Reproduction", "Muscle",
+                         rep("Immune System", 2), rep("Nervous System", 2)),
+        group.colors = c(rep("gold", 2), "red2", "brown", "purple", "cyan",
+                         "pink", "green2", rep("blue2", 2), rep("gray", 2)),
+        row.names = colnames(opossom.tissues)
+    )
+    env$indata <- ExpressionSet(
+        assayData = opossom.tissues,
+        phenoData = AnnotatedDataFrame(group.info)
+    )
+
+    # --- Analysis Configuration [Configuration] ---
+    # Key functions: opossom.new
+    env$preferences$pairwise.comparison.list <- list(
+        list(c("liver", "kidney cortex"),
+             c("accumbens", "cerebral cortex")),
+        list(c("tongue", "small intestine"),
+             c("accumbens", "cerebral cortex"))
+    )
+    env$preferences$database.dataset <- "hsapiens_gene_ensembl"
+
+    # --- SOM Pipeline Execution [Execution] ---
+    # Key functions: opossom.run
+    opossom.run(env)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

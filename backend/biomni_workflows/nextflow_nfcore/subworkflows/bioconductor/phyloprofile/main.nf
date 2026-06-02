@@ -41,48 +41,90 @@ process BIOC_PHYLOPROFILE {
     library(PhyloProfile)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: levels, factor, sortInputTaxa, count, estimateGeneAge
-    ---------------------------------------------------------------------
-    ### An example for calculating gene age for the built-in data set.
-    ### See ?estimateGeneAge for more details.
-    #' Load built-in data
-    data("fullProcessedProfile", package="PhyloProfile")
-    # --- Data [] ---
-    # Key functions: levels, factor, sortInputTaxa, count, getCoreGene
-    ---------------------------------------------------------------------
-    ### An example for calculating core gene set for the built-in data set.
-    ### See ?getCoreGene for more details.
-    #' Load built-in data
-    data("fullProcessedProfile", package="PhyloProfile")
-    # --- Data [] ---
-    # Key functions: compareTaxonGroups
-    ---------------------------------------------------------------------
-    #' Load built-in data
-    data("mainLongRaw", package="PhyloProfile")
-    data <- mainLongRaw
-    #' choose the in-group taxa
-    # --- Format [] ---
-    # Key functions: tree, genes, fromInputToProfile
-    ---------------------------------------------------------------------
-    #' Load built-in data
-    #' If input data is in other format (e.g. fasta, OrthoXML, or wide matrix),
-    #' see ?createLongMatrix
+    # --- Phylogenetic Profile Construction [fromInputToProfile] ---
+    # Key functions: fromInputToProfile
     rawInput <- system.file(
-    # --- Data [] ---
-    # Key functions: getInputTaxaID, getInputTaxaName
-    ---------------------------------------------------------------------
-    #' Load raw input
-    data("mainLongRaw", package="PhyloProfile")
-    inputDf <- mainLongRaw
-    #' Set working rank and the reference taxon
-    # --- Data [] ---
-    # Key functions: getInputTaxaID, tree, sortInputTaxa
-    ---------------------------------------------------------------------
-    #' Get list of taxon IDs and names for input profile
-    data("mainLongRaw", package="PhyloProfile")
-    inputDf <- mainLongRaw
-    rankName <- "phylum"
+        "extdata", "test.main.long", package = "PhyloProfile", mustWork = TRUE
+    )
+    profileData <- fromInputToProfile(
+        rawInput,
+        rankName = "class",
+        refTaxon = "Mammalia",
+        taxaTree = NULL,
+        sortedTaxonList = NULL,
+        var1AggregateBy = "max",
+        var2AggregateBy = "mean",
+        percentCutoff = c(0.0, 1.0),
+        coorthologCutoffMax = 10,
+        var1Cutoff = c(0.75, 1.0),
+        var2Cutoff = c(0.5, 1.0),
+        var1Relation = "protein",
+        var2Relation = "species",
+        groupByCat = FALSE,
+        catDt = NULL
+    )
+
+    # --- Profile Clustering [getDataClustering, getDistanceMatrix, clusterDataDend, getDendrogram] ---
+    # Key functions: getDataClustering, getDistanceMatrix, clusterDataDend, getDendrogram
+    data("finalProcessedProfile", package = "PhyloProfile")
+    profiles <- getDataClustering(
+        finalProcessedProfile, "binary", "max", "mean"
+    )
+    distanceMatrix <- getDistanceMatrix(profiles, "mutualInformation")
+    dd <- clusterDataDend(distanceMatrix, "complete")
+    dendrogramPlot <- getDendrogram(dd)
+
+    # --- Gene Age Estimation [sortInputTaxa, estimateGeneAge] ---
+    # Key functions: sortInputTaxa, estimateGeneAge
+    data("fullProcessedProfile", package = "PhyloProfile")
+    taxonIDs <- levels(as.factor(fullProcessedProfile$ncbiID))
+    sortedInputTaxa <- sortInputTaxa(
+        taxonIDs, "class", "Mammalia", NULL, NULL, NULL
+    )
+    taxaCount <- as.data.frame(table(sortedInputTaxa$supertaxon))
+    colnames(taxaCount) <- c("supertaxon", "n")
+    geneAge <- estimateGeneAge(
+        fullProcessedProfile, taxaCount, "class", "Mammalia",
+        c(0, 1), c(0, 1), c(0, 1)
+    )
+
+    # --- Core Gene Identification [sortInputTaxa, getCoreGene] ---
+    # Key functions: sortInputTaxa, getCoreGene
+    data("fullProcessedProfile", package = "PhyloProfile")
+    taxonIDs <- levels(as.factor(fullProcessedProfile$ncbiID))
+    sortedInputTaxa <- sortInputTaxa(
+        taxonIDs, "class", "Mammalia", NULL, NULL, NULL
+    )
+    taxaCount <- as.data.frame(table(sortedInputTaxa$supertaxon))
+    colnames(taxaCount) <- c("supertaxon", "n")
+    coreGenes <- getCoreGene(
+        "class",
+        c("Mammalia", "Saccharomycetes", "Insecta"),
+        fullProcessedProfile,
+        taxaCount,
+        c(0.75, 1.0), c(0.75, 1.0),
+        c(0.0, 1.0), 1
+    )
+
+    # --- Taxon Group Comparison [compareTaxonGroups] ---
+    # Key functions: compareTaxonGroups
+    data("mainLongRaw", package = "PhyloProfile")
+    inGroup <- c("ncbi9606", "ncbi10116")
+    variable <- colnames(mainLongRaw)[4]
+    comparison <- compareTaxonGroups(
+        mainLongRaw, inGroup, TRUE, variable, 0.05
+    )
+
+    # --- Variable Distribution Analysis [createVariableDistributionData, createVarDistPlot] ---
+    # Key functions: createVariableDistributionData, createVarDistPlot
+    data("mainLongRaw", package = "PhyloProfile")
+    distData <- createVariableDistributionData(
+        mainLongRaw, c(0, 1), c(0.5, 1)
+    )
+    distPlot <- createVarDistPlot(
+        distData, "Variable 1", "var1", c(0, 1), 12
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,100 +38,59 @@ process BIOC_SNPRELATE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SNPRelate)
     library(SNPs)
     library(jsonlite)
 
-    # --- Snpgdssummary [] ---
-    # Key functions: snpgdsSummary, snpgdsExampleFileName
-    ---------------------------------------------------------------------
-    snpgdsSummary(snpgdsExampleFileName())
-    # --- Gdsn [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    # Get the attributes of chromosome coding
-    get.attr.gdsn(index.gdsn(genofile, "snp.chromosome"))
-    # --- Snps [] ---
-    # Key functions: SNPs, gdsn
-    ---------------------------------------------------------------------
-    # Take out genotype data for the first 3 samples and the first 5 SNPs
-    (g <- read.gdsn(index.gdsn(genofile, "genotype"), start=c(1,1), count=c(5,3)))
-    # --- Gdsn [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    # Get the attribute of genotype
-    get.attr.gdsn(index.gdsn(genofile, "genotype"))
-    # --- Head [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    # Take out snp.id
-    head(read.gdsn(index.gdsn(genofile, "snp.id")))
-    # Take out snp.rs.id
-    head(read.gdsn(index.gdsn(genofile, "snp.rs.id")))
-    # --- Gdsn [] ---
-    # Key functions: gdsn, snpgdsClose
-    ---------------------------------------------------------------------
-    # Read population information
-    pop <- read.gdsn(index.gdsn(genofile, path="sample.annot/pop.group"))
-    table(pop)
-    # Close the GDS file
-    # --- Data [] ---
-    # Key functions: snpgdsCreateGeno, snpgdsOpen, snpgdsClose
-    ---------------------------------------------------------------------
-    # Load data
-    data(hapmap_geno)
-    # Create a gds file
-    snpgdsCreateGeno("test.gds", genmat = hapmap_geno$genotype,
-    # --- snpgds B E D2 G D S [] ---
+    # --- Data Conversion and Import ---
     # Key functions: snpgdsBED2GDS, snpgdsSummary
-    ---------------------------------------------------------------------
-    # Convert
-    snpgdsBED2GDS(bed.fn, fam.fn, bim.fn, "test.gds")
-    # Summary
-    snpgdsSummary("test.gds")
-    # --- snpgds V C F2 G D S [] ---
-    # Key functions: snpgdsVCF2GDS, snpgdsSummary
-    ---------------------------------------------------------------------
-    # Reformat
-    snpgdsVCF2GDS(vcf.fn, "test.gds", method="biallelic.only")
-    # Summary
-    snpgdsSummary("test.gds")
-    # --- Snpgdsopen [] ---
-    # Key functions: snpgdsOpen, snpgdsExampleFileName
-    ---------------------------------------------------------------------
-    # Open the GDS file
+    bed.fn <- system.file("extdata", "plinkhapmap.bed.gz", package="SNPRelate")
+    fam.fn <- system.file("extdata", "plinkhapmap.fam.gz", package="SNPRelate")
+    bim.fn <- system.file("extdata", "plinkhapmap.bim.gz", package="SNPRelate")
+    snpgdsBED2GDS(bed.fn, fam.fn, bim.fn, "test.gds", verbose=FALSE)
+    gds_summary <- snpgdsSummary("test.gds")
+
+    # --- Linkage Disequilibrium Pruning ---
+    # Key functions: snpgdsOpen, snpgdsLDpruning, snpgdsClose
     genofile <- snpgdsOpen(snpgdsExampleFileName())
-    # --- Scan [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    # Get population information
-    #   or pop_code <- scan("pop.txt", what=character())
-    #   if it is stored in a text file "pop.txt"
-    pop_code <- read.gdsn(index.gdsn(genofile, path="sample.annot/pop.group"))
-    # --- Snpgdspca [] ---
-    # Key functions: snpgdsPCA
-    ---------------------------------------------------------------------
-    # Run PCA
-    pca <- snpgdsPCA(genofile, snp.id=snpset.id, num.thread=2)
-    # --- Proportion [] ---
-    # Key functions: proportion
-    ---------------------------------------------------------------------
-    # variance proportion (%)
-    pc.percent <- pca$varprop*100
-    head(round(pc.percent, 2))
-    # --- Gdsn [] ---
-    # Key functions: gdsn
-    ---------------------------------------------------------------------
-    # Get sample id
-    sample.id <- read.gdsn(index.gdsn(genofile, "sample.id"))
-    # Get population information
-    #   or pop_code <- scan("pop.txt", what=character())
-    # --- Gdsn [] ---
-    # Key functions: gdsn, snpgdsFst, factor
-    ---------------------------------------------------------------------
-    # Get sample id
-    sample.id <- read.gdsn(index.gdsn(genofile, "sample.id"))
-    # Get population information
-    #   or pop_code <- scan("pop.txt", what=character())
+    snpset <- snpgdsLDpruning(genofile,
+                              ld.threshold=0.2,
+                              missing.rate=0.05,
+                              maf=0.05,
+                              verbose=FALSE)
+    pruned_snps <- unlist(unname(snpset))
+    saveRDS(pruned_snps, file="pruned_snps.rds")
+    snpgdsClose(genofile)
+
+    # --- Principal Component Analysis ---
+    # Key functions: snpgdsOpen, snpgdsPCA, snpgdsClose
+    genofile <- snpgdsOpen(snpgdsExampleFileName())
+    pca <- snpgdsPCA(genofile, num.thread=1, verbose=FALSE)
+    pca_df <- data.frame(sample.id = pca$sample.id,
+                         EV1 = pca$eigenvect[,1],
+                         EV2 = pca$eigenvect[,2],
+                         stringsAsFactors = FALSE)
+    saveRDS(pca_df, file="pca_results.rds")
+    snpgdsClose(genofile)
+
+    # --- Identity-By-Descent Analysis ---
+    # Key functions: snpgdsOpen, snpgdsIBDMoM, snpgdsIBDSelection, snpgdsClose
+    genofile <- snpgdsOpen(snpgdsExampleFileName())
+    ibd <- snpgdsIBDMoM(genofile, num.thread=1, verbose=FALSE)
+    ibd_coeff <- snpgdsIBDSelection(ibd)
+    saveRDS(ibd_coeff, file="ibd_coefficients.rds")
+    snpgdsClose(genofile)
+
+    # --- Population Stratification and Fst Estimation ---
+    # Key functions: snpgdsOpen, snpgdsFst, snpgdsClose
+    genofile <- snpgdsOpen(snpgdsExampleFileName())
+    pop_code <- read.gdsn(index.gdsn(genofile, "sample.annot/pop.group"))
+    fst_results <- snpgdsFst(genofile,
+                             population=as.factor(pop_code),
+                             verbose=FALSE)
+    saveRDS(fst_results, file="fst_results.rds")
+    snpgdsClose(genofile)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

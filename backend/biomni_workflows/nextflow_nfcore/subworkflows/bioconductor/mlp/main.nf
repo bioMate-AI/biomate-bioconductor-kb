@@ -41,64 +41,60 @@ process BIOC_MLP {
     library(MLP)
     library(jsonlite)
 
-    # --- Loaddata [] ---
-    # Key functions: annotation
-    pathExampleData <- system.file("exampleFiles", "expressionSetGcrma.rda", package = "MLP")
-      load(pathExampleData)
-      annotation(expressionSetGcrma) <- "mouse4302"
-    # --- Preparepvalues [] ---
-    # Key functions: factor, pData, lmFit, exprs, eBayes
-    ### calculation of the statistics values via limma
-      group <- as.numeric(factor(pData(expressionSetGcrma)$subGroup1, levels = c("WT", "KO")))-1
-      design <- model.matrix(~group)
-      fit <- lmFit(exprs(expressionSetGcrma), design)
-      fit2 <- eBayes(fit)
-    # --- Creategenesets [] ---
-    # Key functions: getGeneSets
-    geneSet <- getGeneSets(species = "Mouse",
-    		geneSetSource = "GOCC",
-    		entrezIdentifiers = names(pvalues)
-    )
-    tail(geneSet, 3)
-    # --- Showattributes [] ---
-    # Key functions: attributes
-    str(attributes(geneSet))
-    # --- Runmlp [] ---
+    # --- Pathway Enrichment Analysis [] ---
     # Key functions: MLP
-    set.seed(111)
     mlpOut <- MLP(
-    		geneSet = geneSet,
-    		geneStatistic = pvalues,
-    		minGenes = 5,
-    # --- Showattributes [] ---
-    # Key functions: attributes
-    str(attributes(mlpOut))
-    # --- Quantilecurves [] ---
-    # Key functions: off
+        geneSet = geneSet,
+        geneStatistic = pvalues,
+        minGenes = 5,
+        maxGenes = 100,
+        rowPermutations = TRUE,
+        nPermutations = 50,
+        smoothPValues = TRUE,
+        probabilityVector = c(0.5, 0.9, 0.95, 0.99),
+        df = 9
+    )
+    mlpSummary <- head(mlpOut)
+
+
+    # --- Quantile Curves Visualisation [] ---
+    # Key functions: plot
     pdf("mlpQuantileCurves.pdf", width = 10, height = 10)
-      plot(mlpOut, type = "quantileCurves")
-      tmp <- dev.off()
-    # --- Barplot [] ---
-    # Key functions: off
+    plot(mlpOut, type = "quantileCurves")
+    dev.off()
+
+
+    # --- Pathway Significance Barplot [] ---
+    # Key functions: plot
     pdf("mlpBarplot.pdf", width = 10, height = 10)
-      op <- par(mar = c(30, 10, 6, 2))
-      plot(mlpOut, type = "barplot", ylab = "-log10(gene set p-value)")
-      par(op)
-      tmp <- dev.off()
-    # --- Gograph [] ---
-    # Key functions: off
+    op <- par(mar = c(30, 10, 6, 2))
+    plot(mlpOut, type = "barplot", ylab = "-log10(gene set p-value)")
+    par(op)
+    dev.off()
+
+
+    # --- Gene Ontology Graph Visualisation [] ---
+    # Key functions: plot
     pdf("mlpGOgraph.pdf", width = 8, height = 6)
-      op <- par(mar = c(0, 0, 0, 0))
-      plot(mlpOut, type = "GOgraph", nRow = 10, nCutDescPath = 15)
-      par(op)
-      tmp <- dev.off()
-    # --- Genesignificance [] ---
-    # Key functions: plotGeneSetSignificance, annotation, off
+    op <- par(mar = c(0, 0, 0, 0))
+    plot(mlpOut, type = "GOgraph", nRow = 10, nCutDescPath = 15)
+    par(op)
+    dev.off()
+
+
+    # --- Gene Set Significance Plot [] ---
+    # Key functions: plotGeneSetSignificance
     geneSetID <- rownames(mlpOut)[1]
     pdf("geneSignificance.pdf", width = 10, height = 10)
     op <- par(mar = c(25, 10, 6, 2))
     plotGeneSetSignificance(
-    		geneSet = geneSet,
+        geneSet = geneSet,
+        geneSetIdentifier = geneSetID,
+        geneStatistic = pvalues,
+        annotationPackage = "mouse4302"
+    )
+    par(op)
+    dev.off()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

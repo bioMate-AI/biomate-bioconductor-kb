@@ -38,33 +38,44 @@ process BIOC_MSNBASE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MSnbase)
     library(MSmap)
     library(PXDataset)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: sampleNames, rowSums, ggplot, geom_boxplot
-    dfr <- cbind(expand.grid("feature" = featureNames(incompdiss),
-    "reporters" = sub("iTRAQ5\\.", "",
-    sampleNames(incompdiss)),
-    # --- Merge overlapping ranges [] ---
-    # Key functions: reduce
-    iddf2 <- reduce(iddf, key = "spectrumID")
-    # --- Combine peptide features to proteins [] ---
-    # Key functions: combineFeatures, quantify, fData, exprs, sample, droplevels
-    sc <- quantify(msexp, method = "count")
-    fData(sc)$DatabaseAccess[1] <- fData(sc)$DatabaseAccess[2]
-    fData(sc)$DatabaseAccess
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_density, facet_wrap, filterIdentificationDataFrame
-    library("ggplot2")
-    ggplot(data = iddf, aes(x = MS.GF.RawScore, colour = isDecoy)) +
-    geom_density() +
-    # --- ReadMSData analysis [] ---
-    # Key functions: readMSData, writeMSData, peaksCount, rtime, chromatogram, PXDataset, pxget, openMSfile
-    quantFile <- dir(system.file(package = "MSnbase", dir = "extdata"),
-    identFile <- dir(system.file(package = "MSnbase", dir = "extdata"),
-    msexp <- readMSData(quantFile, verbose = FALSE)
+    # --- Peptide Identification Integration [] ---
+    # Key functions: readMzIdData, filterIdentificationDataFrame, addIdentificationData
+    iddf <- MSnbase::readMzIdData("sample.mzid")
+    iddf_filtered <- MSnbase::filterIdentificationDataFrame(iddf)
+    msexp <- MSnbase::addIdentificationData(
+        rawdata,
+        id = iddf_filtered
+    )
+
+
+    # --- Spectrum Quality Control [] ---
+    # Key functions: removePeaks, clean, pickPeaks
+    cleaned_exp <- MSnbase::removePeaks(
+        rawdata,
+        t = 400,
+        verbose = FALSE
+    )
+    cleaned_exp <- MSnbase::clean(
+        cleaned_exp,
+        verbose = FALSE
+    )
+    peaks_picked <- MSnbase::pickPeaks(
+        cleaned_exp,
+        verbose = FALSE
+    )
+
+
+    # --- Chromatogram Extraction [] ---
+    # Key functions: chromatogram
+    mtof_tic <- MSnbase::chromatogram(
+        rawdata,
+        aggregationFun = "max"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

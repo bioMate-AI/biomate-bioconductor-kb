@@ -38,76 +38,46 @@ process BIOC_LIQUIDASSOCIATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(LiquidAssociation)
     library(GLA)
     library(LA)
     library(jsonlite)
 
-    # --- Loaddata [] ---
-    # Key functions: na, exprs
-    library(LiquidAssociation)
-    library(yeastCC)
-    library(org.Sc.sgd.db)
-    data(spYCCES)
-    lae <- spYCCES[,-(1:4)]
-    # --- Preprocessing [] ---
-    # Key functions: exprs, na
-    data<-t(exprs(lae[whgene,]))
-    eSetdata<-lae[whgene,]
-    data<-data[!is.na(data[,1]) & !is.na(data[,2]) & !is.na(data[,3]),]
-    colnames(data)<-genes
-    str(data)
-    # --- Glaplot [] ---
-    # Key functions: plotGLA
-    plotGLA(data, cut=3, dim=3, pch=16, filen="GLAplot", save=TRUE)
-    # --- Calculate Gla [] ---
-    # Key functions: LA, GLA
-    LAest<-LA(data)
-    GLAest<-rep(0,3)
-    for ( dim in 1:3){
-    	GLAest[dim]<-GLA(data, cut=4, dim=dim)
-    }
-    # --- Expressionset [] ---
+    # --- Data Preprocessing and Standardization [Preprocessing] ---
+    # Key functions: qqnorm2, stand
+    # Standardize and normalize the triplet expression data
+    # Input 'data' is a matrix of gene expression triplets
+    norm_data <- apply(data, 2, qqnorm2)
+    std_data <- apply(norm_data, 2, stand)
+    colnames(std_data) <- colnames(data)
+    saveRDS(std_data, file = "standardized_data.rds")
+
+    # --- Liquid Association Estimation [Estimation] ---
     # Key functions: GLA
-    eSetGLA<-GLA(eSetdata, cut=4, dim=3, geneMap=geneMap)
-    eSetGLA
-    # --- Cnm Model [] ---
-    # Key functions: full
-    FitCNM.full<-CNM.full(data)
-    FitCNM.full
-    # --- Calculate Sgla [] ---
-    # Key functions: getsGLA, getsLA
-    sGLAest<-getsGLA(data, boots=20, perm=50, cut=4, dim=3)
-    sGLAest
-    sLAest<-getsLA(data,boots=20, perm=50)
-    sLAest
-    # --- Extend Example Filter Small Variance [] ---
-    # Key functions: exprs
-    lae<-t(exprs(lae))
-    V<-apply(lae, 2, var, na.rm=TRUE)
-    ibig<-V > 0.5
-    sum(ibig)
-    big<-which(ibig)
-    # --- Annotation [] ---
-    # Key functions: mappedkeys
-    x <- org.Sc.sgdGENENAME
-    mappedgenes <- mappedkeys(x)
-    xx <- as.list(x[mappedgenes])
-    mapid<-names(xx)
-    orfid<-colnames(bigtriplet)
-    # --- Calculate Gla For All Triplets [] ---
-    # Key functions: choose, combn, GLA
-    num<-choose(ncol(bigtriplet),3)
-    pick<-t(combn(1:ncol(bigtriplet),3))
-    GLAout<-matrix(0, nrow=100, 3)
-    for ( i in 1:100){
-    	dat1<-bigtriplet[,pick[i,]]
-    # --- Hypothesistesting [] ---
-    # Key functions: na, full, getsGLA
-    whtrip<-1
-    data<-bigtriplet[,pickmax[whtrip,]]
-    data<-data[,trip.order[whtrip,]]
-    data<-data[!is.na(data[,1]) & !is.na(data[,2]) & !is.na(data[,3]),]
-    data<-apply(data,2,qqnorm2)
+    # Calculate Liquid Association (LA) score for ExpressionSet
+    # 'eSetdata' is an ExpressionSet, 'geneMap' is a named vector mapping probes
+    la_result <- GLA(eSetdata, cut = 4, dim = 3, geneMap = geneMap)
+    saveRDS(la_result, file = "gla_expression_set_results.rds")
+
+    # --- Conditional Normal Model Fitting [Model Fitting] ---
+    # Key functions: CNM.full
+    # Fit the Conditional Normal Model (CNM) to the standardized triplet data
+    # This model tests the liquid association of the gene triplet
+    cnm_fit <- CNM.full(std_data)
+    saveRDS(cnm_fit, file = "cnm_model_fit.rds")
+
+    # --- Significance Testing [Significance] ---
+    # Key functions: getsGLA
+    # Estimate the significance of the GLA score using bootstrap and permutation
+    sgla_res <- getsGLA(std_data, boots = 20, perm = 50, cut = 4, dim = 3)
+    saveRDS(sgla_res, file = "sgla_significance_testing.rds")
+
+    # --- Visualization [Visualisation] ---
+    # Key functions: plotGLA
+    # Generate a 3D plot of the liquid association for the gene triplet
+    # Saves the plot to a file named 'GLA_plot'
+    plotGLA(std_data, cut = 3, dim = 3, pch = 16, filen = "GLA_plot", save = TRUE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

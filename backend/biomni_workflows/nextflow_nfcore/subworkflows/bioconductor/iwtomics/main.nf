@@ -41,68 +41,39 @@ process BIOC_IWTOMICS {
     library(IWTomics)
     library(jsonlite)
 
-    # --- ETn two samples test [] ---
-    # Key functions: adjusted_pval
-    ETn_test=IWTomicsTest(ETn_example,
-    adjusted_pval(ETn_test)
-    # --- ETn test plot scale 10kb [] ---
-    # Key functions: adjusted_pval, plotTest
-    adjusted_pval(ETn_test,scale_threshold=10)
-    plotTest(ETn_test,scale_threshold=10)
-    # --- one sample test [] ---
-    # Key functions: adjusted_pval
-    result1=IWTomicsTest(regionsFeatures,mu=c(0,5),
-    id_features_subset=c('ftr1','ftr2'))
-    adjusted_pval(result1)
-    # --- two samples test [] ---
-    # Key functions: adjusted_pval
-    result2_mean=IWTomicsTest(regionsFeatures,
-    id_region1=c('elem1','elem2','elem3'),
-    id_region2=c('control','control','control'))
-    # --- adjusted_pval [] ---
-    # Key functions: adjusted_pval
-    set.seed(16)
-    result_rep1=IWTomicsTest(regionsFeatures,
-    adjusted_pval(result_rep1)
-    # --- not fully computable p [] ---
-    # Key functions: adjusted_pval
-    result_warning=IWTomicsTest(regionsFeatures_center,
-    adjusted_pval(result_warning)
-    # --- two samples test [] ---
-    # Key functions: plotTest
-    plotTest(result2_mean,alpha=0.05,id_features_subset='ftr1')
-    # --- two samples test [] ---
-    # Key functions: plotSummary
-    plotSummary(result2_mean,alpha=0.05,groupby='feature',align_lab='Center')
-    # --- one samples test [] ---
-    # Key functions: plotSummary
-    result1_mu1=IWTomicsTest(regionsFeatures,mu=1,
-    id_region1=c('elem1','elem2','elem3','control'))
-    plotSummary(result1_mu1,alpha=0.05,groupby='feature',align_lab='Center')
-    # --- plot Summary [] ---
-    # Key functions: plotSummary
-    result_many=IWTomicsTest(regionsFeatures,
-    id_region1=c('elem1','elem2','elem3',
-    id_region2=c(rep('control',3),
-    # --- curve alignment scale [] ---
-    # Key functions: lengthFeatures, features
-    data(regionsFeatures_scale)
-    lengthFeatures(regionsFeatures_scale[,'ftr1'])
-    features(regionsFeatures_scale)[['ftr1']][['elem1']][,1]
-    # --- curve alignment scale [] ---
-    # Key functions: adjusted_pval, plotSummary
-    result=IWTomicsTest(regionsFeatures_scale_smooth,
-    id_region1=c('elem1','elem2','elem3'),
-    id_region2=c('control','control','control'),
-    # --- change resolution [] ---
-    # Key functions: lengthFeatures
-    lengthFeatures(regionsFeatures)
-    regionsFeatures_smooth=smooth(regionsFeatures,type='locpoly',
-    resolution=c(4000,1000))
-    # --- selection of relevant scale [] ---
-    # Key functions: plotTest
-    result_scale=IWTomicsTest(regionsFeatures_center,
-    plotTest(result_scale,alpha=0.05,scale_threshold=8)
+    # --- Exploratory Visualization [] ---
+    # Key functions: plot, lengthRegions
+    plot(regionsFeatures, type='pairs')
+    plot(regionsFeatures, type='pairsSmooth', col='violet')
+    plot(
+        regionsFeatures, type='curves',
+        N_regions=lengthRegions(regionsFeatures),
+        id_features_subset='ftr1'
+    )
+
+
+    # --- Interval-Wise Hypothesis Testing [] ---
+    # Key functions: IWTomicsTest, adjusted_pval
+    result1 <- IWTomicsTest(
+        regionsFeatures, mu=c(0, 5),
+        id_region1='control', id_region2='',
+        id_features_subset=c('ftr1', 'ftr2')
+    )
+    result2_mean <- IWTomicsTest(
+        regionsFeatures,
+        id_region1=c('elem1', 'elem2', 'elem3'),
+        id_region2=c('control', 'control', 'control')
+    )
+    pvals <- adjusted_pval(result2_mean)
+
+
+    # --- Test Visualization and Summary [] ---
+    # Key functions: plotTest, plotSummary
+    plotTest(result2_mean, alpha=0.05, id_features_subset='ftr1')
+    plotSummary(
+        result2_mean, alpha=0.05,
+        groupby='feature', align_lab='Center'
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

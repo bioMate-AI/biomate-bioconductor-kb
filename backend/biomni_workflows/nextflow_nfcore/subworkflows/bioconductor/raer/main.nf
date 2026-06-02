@@ -38,14 +38,82 @@ process BIOC_RAER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(raer)
     library(FilterParam)
     library(jsonlite)
 
-    # --- Filter Param [] ---
-    # Key functions: FilterParam, pileup_cells, read_sparray, calc_edit_frequency
-    outdir <- file.path(tempdir(), "sc_edits")
-    cbs <- colnames(sce)
-    params <- FilterParam(
+    # --- Single-Cell Editing Frequency Calculation [] ---
+    # Key functions: calc_edit_frequency
+    e_sce <- e_sce[rowSums(assays(e_sce)$nAlt > 0) >= 5, ]
+    e_sce <- calc_edit_frequency(
+        e_sce,
+        edit_from = "Ref",
+        edit_to = "Alt",
+        replace_na = FALSE
+    )
+    altExp(sce) <- e_sce[, colnames(sce)]
+
+
+    # --- Bulk RNA-Seq Editing Pileup [] ---
+    # Key functions: FilterParam, pileup_sites
+    fp <- FilterParam(
+        only_keep_variants = TRUE,
+        trim_5p = 5,
+        trim_3p = 5,
+        min_base_quality = 30,
+        min_mapq = 255,
+        library_type = "fr-first-strand",
+        min_splice_overhang = 10
+    )
+    rse <- pileup_sites(
+        bam_files,
+        fasta = fafn,
+        sites = chr_18_editing_sites,
+        chroms = "chr18",
+        param = fp
+    )
+
+
+    # --- Bulk Editing Frequency and Filtering [] ---
+    # Key functions: calc_edit_frequency
+    rse <- calc_edit_frequency(
+        rse,
+        edit_from = "A",
+        edit_to = "G",
+        drop = TRUE
+    )
+    has_editing <- rowSums(assay(rse, "edit_freq") > 0) >= 1
+    has_depth <- rowSums(assay(rse, "depth") >= 5) == ncol(rse)
+    rse <- rse[has_editing & has_depth, ]
+
+
+    # --- Differential Editing Analysis [] ---
+    # Key functions: make_de_object, find_de_sites
+    deobj <- make_de_object(
+        rse,
+        min_prop = 0.05,
+        min_samples = 3
+    )
+    deobj$sample <- factor(deobj$sample)
+    de_results <- find_de_sites(
+        deobj,
+        test = "DESeq2",
+        sample_col = "sample",
+        condition_col = "genotype",
+        condition_control = "Wildtype",
+        condition_treatment = "ADAR1KO"
+    )
+
+
+    # --- SNP Annotation and Overlap [] ---
+    # Key functions: get_overlapping_snps
+    seqlevelsStyle(alus) <- "NCBI"
+    genome(alus) <- "GRCh38.p2"
+    alu_snps <- get_overlapping_snps(
+        alus,
+        SNPlocs.Hsapiens.dbSNP144.GRCh38
+    )
+    seqlevelsStyle(alu_snps) <- "UCSC"
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

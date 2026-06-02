@@ -41,95 +41,72 @@ process BIOC_DECOMPTUMOR2SIG {
     library(decompTumor2Sig)
     library(jsonlite)
 
-    # --- Pmsignature [] ---
-    # Key functions: pmsignature, getSignaturesFromEstParam
-    ---------------------------------------------------------------------
-    # load example signatures for breast cancer genomes from Nik-Zainal et al
-    # (PMID: 22608084) in the format produced by pmsignature (PMID: 26630308)
-    pmsigdata <- system.file("extdata",
-              "Nik-Zainal_PMID_22608084-pmsignature-Param.Rdata",
-    # --- Isalexandrovset [] ---
-    # Key functions: isAlexandrovSet, isSignatureSet, isShiraishiSet, sameSignatureFormat
-    ---------------------------------------------------------------------
-    isAlexandrovSet(sign_a)
-    isSignatureSet(sign_a)
-    isShiraishiSet(sign_s)
-    isSignatureSet(sign_s)
-    # --- Al [] ---
-    # Key functions: al, readGenomesFromVCF
-    ---------------------------------------------------------------------
-    # load the reference genome and the transcript annotation database
-    refGenome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
-    transcriptAnno <-
-               TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    # --- Al [] ---
-    # Key functions: al, readGenomesFromMPF
-    ---------------------------------------------------------------------
-    # load the reference genome and the transcript annotation database
-    refGenome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
-    transcriptAnno <-
-               TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    # --- Al [] ---
-    # Key functions: al, pmsignature, getGenomesFromMutFeatData
-    ---------------------------------------------------------------------
-    # get breast cancer genomes from Nik-Zainal et al (PMID: 22608084)
-    # in the format produced by pmsignature (PMID: 26630308)
-    pmsigdata <- system.file("extdata",
-                             "Nik-Zainal_PMID_22608084-pmsignature-G.Rdata",
-    # --- Readalexandrovsignatures [] ---
-    # Key functions: readAlexandrovSignatures, plotMutationDistribution
-    ---------------------------------------------------------------------
+    # --- Load Mutational Signatures [] ---
+    # Key functions: readAlexandrovSignatures, convertAlexandrov2Shiraishi, readShiraishiSignatures
+    sig_alex <- readAlexandrovSignatures()
+    sig_shiraishi <- convertAlexandrov2Shiraishi(sig_alex)
+    sig_files <- system.file(
+        "extdata",
+        paste0("Nik-Zainal_PMID_22608084-pmsignature-sig", 1:4, ".tsv"),
+        package = "decompTumor2Sig"
+    )
+    signatures <- readShiraishiSignatures(files = sig_files)
+
+    # --- Load Tumor Genomes [] ---
+    # Key functions: readGenomesFromVCF, readGenomesFromMPF, getGenomesFromMutFeatData
+    ref_genome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    tx_db <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    vcf_file <- system.file(
+        "extdata",
+        "Nik-Zainal_PMID_22608084-VCF-convertedfromMPF.vcf.gz",
+        package = "decompTumor2Sig"
+    )
+    genomes <- readGenomesFromVCF(
+        vcf_file, numBases = 5, type = "Shiraishi",
+        trDir = TRUE, refGenome = ref_genome,
+        transcriptAnno = tx_db, verbose = FALSE
+    )
+
+    # --- Signature Adjustment [] ---
+    # Key functions: adjustSignaturesForRegionSet
+    tx_db <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    ref_genome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    regions_target <- GenomicRanges::promoters(
+        tx_db, upstream = 2000, downstream = 200
+    )
     signatures <- readAlexandrovSignatures()
+    sign_adj <- adjustSignaturesForRegionSet(
+        signatures, regions_target, regionsOriginal = NULL,
+        refGenome = ref_genome
+    )
+
+    # --- Mutational Signature Decomposition [] ---
+    # Key functions: decomposeTumorGenomes, getGenomesFromMutFeatData
+    sig_files <- system.file(
+        "extdata",
+        paste0("Nik-Zainal_PMID_22608084-pmsignature-sig", 1:4, ".tsv"),
+        package = "decompTumor2Sig"
+    )
+    signatures <- readShiraishiSignatures(files = sig_files)
+    pmsigdata <- system.file(
+        "extdata",
+        "Nik-Zainal_PMID_22608084-pmsignature-G.Rdata",
+        package = "decompTumor2Sig"
+    )
+    load(pmsigdata)
+    genomes <- getGenomesFromMutFeatData(G, normalize = TRUE)
+    decomp <- decomposeTumorGenomes(genomes, signatures, verbose = FALSE)
+
+    # --- Visualisation [] ---
+    # Key functions: plotMutationDistribution, plotDecomposedContribution
+    sig_files <- system.file(
+        "extdata",
+        paste0("Nik-Zainal_PMID_22608084-pmsignature-sig", 1:4, ".tsv"),
+        package = "decompTumor2Sig"
+    )
+    signatures <- readShiraishiSignatures(files = sig_files)
     plotMutationDistribution(signatures[[1]])
-    # --- Al [] ---
-    # Key functions: al, readGenomesFromVCF
-    ---------------------------------------------------------------------
-    # load the reference genome and the transcript annotation database
-    refGenome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
-    transcriptAnno <-
-               TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    # --- Decomposetumorgenomes [] ---
-    # Key functions: decomposeTumorGenomes
-    ---------------------------------------------------------------------
-    exposure <- decomposeTumorGenomes(genomes[1], signatures)
-    # --- Isexposureset [] ---
-    # Key functions: isExposureSet
-    ---------------------------------------------------------------------
-    isExposureSet(exposures)
-    # --- Decomposetumorgenomes [] ---
-    # Key functions: decomposeTumorGenomes
-    ---------------------------------------------------------------------
-    exposures <- decomposeTumorGenomes(genomes[1], signatures,
-                                       minExplainedVariance=0.9,
-                                       minNumSignatures=2, maxNumSignatures=NULL,
-                                       greedySearch=FALSE, verbose=TRUE)
-    # --- Decomposetumorgenomes [] ---
-    # Key functions: decomposeTumorGenomes, computeExplainedVariance
-    ---------------------------------------------------------------------
-    exposures <- decomposeTumorGenomes(genomes, signatures)
-    computeExplainedVariance(exposures, signatures, genomes)
-    # --- Composegenomesfromexposures [] ---
-    # Key functions: composeGenomesFromExposures
-    ---------------------------------------------------------------------
-    genomes_predicted <- composeGenomesFromExposures(exposures, signatures)
-    genomes_predicted[1:2]
-    # --- Evaluatedecompositionquality [] ---
-    # Key functions: evaluateDecompositionQuality
-    ---------------------------------------------------------------------
-    evaluateDecompositionQuality(exposures[[1]], signatures,
-                                 genomes[[1]], plot=FALSE)
-    # --- Al [] ---
-    # Key functions: al, readShiraishiSignatures
-    ---------------------------------------------------------------------
-    # get 4 Shiraishi signatures from 21 breast cancers from
-    # Nik-Zainal et al (PMID: 22608084)
-    sigfiles <- system.file("extdata",
-                     paste0("Nik-Zainal_PMID_22608084-pmsignature-sig",1:4,".tsv"),
-    # --- Determinesignaturedistances [] ---
-    # Key functions: determineSignatureDistances
-    ---------------------------------------------------------------------
-    determineSignatureDistances(fromSignature=sign_s4[[1]], toSignatures=sign_s15,
-                                method="frobenius")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

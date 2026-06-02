@@ -38,24 +38,39 @@ process BIOC_QUANTISEQR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(quantiseqr)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Fetch GEO dataset [] ---
-    # Key functions: getGEO, pData, intersect, ExperimentHub, query, run_quantiseq, colData, read_tsv
-    tpm_1700mixtures <- readr::read_tsv("quanTIseq_SimRNAseq_mixture.txt.gz")
-    dim(tpm_1700mixtures)
-    tpm_1700mixtures <- as.matrix(tpm_1700mixtures[, -1])
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: extract_ti_from_se, colData, pivot_longer, ggplot, geom_bar, geom_boxplot, xlab, ylab
-    colnames(ti_quant_sim1700mixtures) <- paste0("quantiseq_", colnames(ti_quant_sim1700mixtures))
-    colnames(true_prop_1700mix) <- paste0("trueprops_", colnames(true_prop_1700mix))
-    colnames(true_prop_1700mix)[1] <- "Sample"
-    # --- Table formatting and display [] ---
-    # Key functions: kable, run_quantiseq, quantiplot, getGEOSuppFiles, signif
-    read.table("GSE107572_tpm_PBMC_RNAseq.txt", header = TRUE)
-    tpminfo_GSE107572 <- getGEOSuppFiles("GSE107572",
-    baseDir = tempdir(),
+    # --- Tumour Deconvolution [quantiseqr] ---
+    # Key functions: run_quantiseq
+    ti_racle <- quantiseqr::run_quantiseq(
+        expression_data = dataset_racle$expr_mat,
+        signature_matrix = "TIL10",
+        is_arraydata = FALSE,
+        is_tumordata = TRUE,
+        scale_mRNA = TRUE
+    )
+
+    # --- Visualisation of Immune Cell Fractions [quantiseqr] ---
+    # Key functions: quantiplot
+    cell_fraction_plot <- quantiplot(
+        ti_racle
+    )
+
+    # --- SummarizedExperiment Deconvolution [quantiseqr] ---
+    # Key functions: run_quantiseq, extract_ti_from_se
+    se_deconv <- quantiseqr::run_quantiseq(
+        expression_data = se_input,
+        signature_matrix = "TIL10",
+        is_arraydata = FALSE,
+        is_tumordata = TRUE,
+        scale_mRNA = TRUE
+    )
+    ti_fractions <- quantiseqr::extract_ti_from_se(
+        se_deconv
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

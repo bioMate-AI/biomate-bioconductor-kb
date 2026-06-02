@@ -41,15 +41,68 @@ process BIOC_METHINHERITSIM {
     library(methInheritSim)
     library(jsonlite)
 
-    # --- run Sim [] ---
+    # --- Dataset Initialization [methinheritsim] ---
     # Key functions: runSim
-    runSim(methData = samplesForChrSynthetic,  # The dataset use for generate
-    vNbSample = c(3, 6), # The number of controls (= number of cases) in
-    vpDiff = c(0.9),   # Mean proportion of samples with
-    # --- unlink [] ---
-    # Key functions: unlink
-    if (dir.exists(temp_dir)) {
-    unlink(temp_dir, recursive = TRUE, force = FALSE)
+    # Load the synthetic template dataset provided by the package
+    data("samplesForChrSynthetic", package = "methInheritSim")
+    
+    # Define the initial parameters for the simulation run
+    nb_blocks <- 10
+    nb_cpgs <- 20
+    total_sites <- nb_blocks * nb_cpgs
+    generation_count <- 3
+
+    # --- Multi-Generation Simulation [methinheritsim] ---
+    # Key functions: runSim
+    data("samplesForChrSynthetic", package = "methInheritSim")
+    temp_dir <- "simulation_output"
+    
+    # Execute the main simulation across multiple generations
+    runSim(methData = samplesForChrSynthetic,
+           nbSynCHR = 1,
+           nbSimulation = 2,
+           nbBlock = 10, nbCpG = 20,
+           nbGeneration = 3,
+           vNbSample = c(3, 6),
+           vpDiff = c(0.9),
+           vpDiffsd = c(0.1),
+           vDiff = c(0.8),
+           vInheritance = c(0.5),
+           propInherite = 0.3,
+           rateDiff = 0.3,
+           minRate = 0.2,
+           propHetero = 0.5,
+           keepDiff = FALSE,
+           outputDir = temp_dir,
+           fileID = "S1",
+           runAnalysis = TRUE,
+           nbCores = 1,
+           vSeed = 32)
+
+    # --- Methylation State Analysis [methinheritsim] ---
+    # Key functions: runSim
+    # Load simulated GRanges and state differential files
+    synthetic_chr <- readRDS("simulation_output/syntheticChr_S1_1.rds")
+    state_diff <- readRDS("simulation_output/stateDiff_S1_1_3_0.9_0.8_0.5_1.rds")
+    methyl_gr <- readRDS("simulation_output/methylGR_S1_1_3_0.9_0.8_0.5_1.rds")
+    
+    # Extract specific generation and sample GRanges for downstream analysis
+    f1_sample3_gr <- methyl_gr[[1]][[3]]
+    f3_sample4_gr <- methyl_gr[[3]][[4]]
+
+    # --- Differential Methylation Evaluation [methinheritsim] ---
+    # Key functions: runSim
+    # Load treatment design and differential methylation statistics
+    treatment_design <- readRDS("simulation_output/treatment_S1_1_3.rds")
+    meth_diff_stats <- readRDS("simulation_output/methDiff_S1_1_3_0.9_0.8_0.5_1.rds")
+    
+    # Extract differential methylation statistics for the first generation
+    f1_diff_stats <- meth_diff_stats[[1]]
+    
+    # Load and extract multi-sample methylation events
+    meth_events <- readRDS("simulation_output/meth_S1_1_3_0.9_0.8_0.5_1.rds")
+    f1_meth_events <- meth_events[[1]]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

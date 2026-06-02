@@ -41,18 +41,10 @@ process BIOC_OMNIPATHR {
     library(OmnipathR)
     library(jsonlite)
 
-
-    # --- Network [] ---
-    # Key functions: transcriptional, interaction_graph
-    gri <- transcriptional()
-    gri
-
-    ## ----network-igraph-----------------------------------------------------------------------------------------
-    gr_graph <- interaction_graph(gri)
-    gr_graph
-
-    # --- Paths [] ---
+    # --- Path Finding [] ---
     # Key functions: find_all_paths
+    gri <- transcriptional()
+    gr_graph <- interaction_graph(gri)
     paths <- find_all_paths(
         graph = gr_graph,
         start = c('EGFR', 'STAT3'),
@@ -60,54 +52,24 @@ process BIOC_OMNIPATHR {
         attr = 'name'
     )
 
-    # --- Enzsub [] ---
+
+    # --- Enzyme-Substrate Interactions [] ---
     # Key functions: enzyme_substrate, enzsub_graph, signed_ptms
     enz_sub <- enzyme_substrate()
-    enz_sub
-
-    ## ----enzsub-igraph------------------------------------------------------------------------------------------
     es_graph <- enzsub_graph(enz_sub)
-    es_graph
-
-    ## ----enzsub-signs-------------------------------------------------------------------------------------------
     es_signed <- signed_ptms(enz_sub)
 
-    # --- Complexes [] ---
-    # Key functions: complexes, annotations, omnipath, annotated_network
-    cplx <- complexes()
-    cplx
 
-    ## ----uniprot-loc--------------------------------------------------------------------------------------------
-    uniprot_loc <- annotations(
-        resources = 'UniProt_location',
-        wide = TRUE
-    )
-    uniprot_loc
-
-    # --- Intercell [] ---
-    # Key functions: intercell, intercell_network, filter_intercell_network, annotation_resources, intercell_generic_categories, intercell_categories, translate_ids, omnipath
-    ic <- intercell()
-    ic
-
-    ## ----intercell-network--------------------------------------------------------------------------------------
-    icn <- intercell_network(high_confidence = TRUE)
-    icn
-
-    ## ----intercell-filter---------------------------------------------------------------------------------------
+    # --- Intercellular Communication [] ---
+    # Key functions: intercell_network, filter_intercell_network
     icn <- intercell_network()
     icn_hc <- filter_intercell_network(
-
-    # --- GO [] ---
-    # Key functions: go_ontology_download, relations_table_to_graph, ontology_ensure_name
-    go <- go_ontology_download()
-    go$rel_tbl_c2p
-
-    ## ----go-graph-----------------------------------------------------------------------------------------------
-    go_graph <- relations_table_to_graph(go$rel_tbl_c2p)
-    go_graph
-
-    ## ----go-name------------------------------------------------------------------------------------------------
-    ontology_ensure_name('GO:0000022')
+        icn,
+        ligand_receptor = TRUE,
+        consensus_percentile = 30,
+        loc_consensus_percentile = 50,
+        simplify = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

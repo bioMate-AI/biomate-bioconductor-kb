@@ -41,21 +41,47 @@ process BIOC_PLYRANGES {
     library(plyranges)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_rect, facet_grid, scale_x_continuous
-    library(ggplot2)
-    query_df <- as.data.frame(query)[, -6]
-    subject_df <- as.data.frame(subject)[, -6]
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, aes, geom_rect, facet_grid
-    left_df <- as.data.frame(left_rng)[, -c(6,7)]
-    left_df$ymin <- c(1,4, 1)
-    left_df$ymax <- c(3,6, 3)
-    # --- as_granges [] ---
-    # Key functions: as_granges, join_overlap_inner, group_by, summarise, group_by_overlaps
-    intensities <- data.frame(seqnames = "VI",
-    start = c(3320:3321,3330:3331,3341:3342),
-    as_granges()
+    # --- Grouping and Filtering [] ---
+    # Key functions: as_granges, filter, group_by
+    grng <- as_granges(data.frame(
+        seqnames = sample(c("chr1", "chr2"), 10, replace = TRUE),
+        strand = sample(c("+", "-"), 10, replace = TRUE),
+        gc = runif(10),
+        start = 1:10,
+        width = 10
+    ))
+    filtered_grng <- filter(grng, gc < 0.3)
+    grouped_grng <- group_by(grng, strand)
+    max_gc_by_strand <- filter(grouped_grng, gc == max(gc))
+
+
+    # --- Overlap Filtering and Aggregation [] ---
+    # Key functions: as_iranges, filter_by_overlaps, filter_by_non_overlaps, group_by_overlaps, summarise
+    ir0 <- as_iranges(data.frame(start = c(5, 10, 15, 20), width = 5))
+    ir1 <- as_iranges(data.frame(start = 2:6, width = 3:7))
+    ir1 <- mutate(ir1, gc = runif(length(ir1)))
+    overlapping_ranges <- filter_by_overlaps(ir0, ir1)
+    non_overlapping_ranges <- filter_by_non_overlaps(ir0, ir1)
+    aggregated_overlaps <- summarise(
+        group_by_overlaps(ir0, ir1),
+        mean_gc = mean(gc)
+    )
+
+
+    # --- Overlap Joins [] ---
+    # Key functions: join_overlap_intersect, join_overlap_inner, join_overlap_left, find_overlaps
+    query <- as_granges(data.frame(
+        seqnames = "chr1", strand = c("+", "-"),
+        start = c(1, 9), end = c(7, 10), key.a = letters[1:2]
+    ))
+    subject <- as_granges(data.frame(
+        seqnames = "chr1", strand = c("-", "+"),
+        start = c(2, 6), end = c(4, 8), key.b = LETTERS[1:2]
+    ))
+    intersect_ranges <- join_overlap_intersect(query, subject)
+    inner_ranges <- join_overlap_inner(query, subject)
+    left_ranges <- join_overlap_left(query, subject)
+    all_overlaps <- find_overlaps(query, subject)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,28 +38,86 @@ process BIOC_MOBILERNA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(mobileRNA)
     library(RNAdistribution)
     library(RNAfeatures)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("sRNA_data")
-    # --- Rnadistribution [] ---
-    # Key functions: RNAdistribution
-    ---------------------------------------------------------------------
-    # plot each replicate as a line, separately, and facet
-    sample_distribution_line <- RNAdistribution(sRNA_data,
-                                                style = "line",
-                                                overlap =  FALSE,
-    # --- Rnafeatures [] ---
-    # Key functions: RNAfeatures, plotRNAfeatures
-    ---------------------------------------------------------------------
-    mobile_features <- RNAfeatures(data = mobile_sRNA,
-                                   annotation = annotation_file)
-    print(mobile_features)
-    # plot as stacked bar chart
+    # --- Reference Merging [Reference Merging] ---
+    # Key functions: RNAmergeGenomes, RNAmergeAnnotations
+    fasta_1 <- system.file("extdata", "reduced_chr12_Eggplant.fa.gz",
+                           package = "mobileRNA")
+    fasta_2 <- system.file("extdata", "reduced_chr2_Tomato.fa.gz",
+                           package = "mobileRNA")
+    out_fa <- file.path(tempdir(), "merged_assembly.fa")
+    merged_ref <- RNAmergeGenomes(genomeA = fasta_1,
+                                  genomeB = fasta_2,
+                                  output_file = out_fa)
+    anno1 <- system.file("extdata", "reduced_chr12_Eggplant.gff.gz",
+                         package = "mobileRNA")
+    anno2 <- system.file("extdata", "reduced_chr2_Tomato.gff.gz",
+                         package = "mobileRNA")
+    out_gff <- file.path(tempdir(), "merged_annotation.gff3")
+    merged_anno <- RNAmergeAnnotations(annotationA = anno1,
+                                       annotationB = anno2,
+                                       output_file = out_gff)
+
+    # --- Mobile RNA Identification [Mobile RNA Identification] ---
+    # Key functions: RNAmobile
+    data("sRNA_data", package = "mobileRNA")
+    controls <- c("selfgraft_1", "selfgraft_2", "selfgraft_3")
+    mobile_sRNA <- RNAmobile(input = "sRNA",
+                             data = sRNA_data,
+                             controls = controls,
+                             genome.ID = "B",
+                             task = "keep")
+
+    # --- Quality Control and Sample Similarity [Quality Control] ---
+    # Key functions: RNAdistribution, plotSamplePCA, plotSampleDistance
+    data("sRNA_data", package = "mobileRNA")
+    dist_line <- RNAdistribution(sRNA_data,
+                                 style = "line",
+                                 overlap = FALSE,
+                                 facet = TRUE,
+                                 colour = "darkgreen")
+    groups <- c("Heterograft", "Heterograft", "Heterograft",
+                "Selfgraft", "Selfgraft", "Selfgraft")
+    pca_plot <- plotSamplePCA(data = sRNA_data,
+                              group = groups,
+                              size.ratio = 2)
+    dist_plot <- plotSampleDistance(sRNA_data)
+
+    # --- Dicer Classification and Subsetting [Dicer Classification] ---
+    # Key functions: RNAdicercall, RNAsubset, RNAdistribution
+    data("sRNA_data", package = "mobileRNA")
+    controls <- c("selfgraft_1", "selfgraft_2", "selfgraft_3")
+    sRNA_dicer <- RNAdicercall(data = sRNA_data,
+                               chimeric = TRUE,
+                               genome.ID = "B_",
+                               controls = controls)
+    sRNA_24 <- RNAsubset(sRNA_dicer, class = 24)
+    sRNA_2122 <- RNAsubset(sRNA_dicer, class = c(21, 22))
+    consensus_plot <- RNAdistribution(data = sRNA_dicer,
+                                      style = "bar",
+                                      data.type = "consensus")
+
+    # --- Differential Expression Analysis [Differential Expression] ---
+    # Key functions: RNAreorder, RNAdifferentialAnalysis, RNAsummary
+    data("sRNA_data", package = "mobileRNA")
+    controls <- c("selfgraft_1", "selfgraft_2", "selfgraft_3")
+    sRNA_dicer <- RNAdicercall(data = sRNA_data,
+                               chimeric = TRUE,
+                               genome.ID = "B_",
+                               controls = controls)
+    reorder_df <- RNAreorder(sRNA_dicer, controls)
+    groups <- c("Selfgraft", "Selfgraft", "Selfgraft",
+                "Heterograft", "Heterograft", "Heterograft")
+    sRNA_DESeq2 <- RNAdifferentialAnalysis(data = reorder_df,
+                                           group = groups,
+                                           method = "DESeq2")
+    summary_all <- RNAsummary(sRNA_DESeq2)
+    summary_sig <- RNAsummary(sRNA_DESeq2, alpha = 0.05)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

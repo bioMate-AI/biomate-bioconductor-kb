@@ -38,65 +38,47 @@ process BIOC_FLAGME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(flagme)
     library(MatchedFilterParam)
     library(jsonlite)
 
-    # --- Rawdata [] ---
-    # Key functions: package, peaksDataset, addAMDISPeaks
-    gcmsPath <- paste(find.package("gcspikelite"), "data", sep="/")
-    data(targets)
-    cdfFiles <- paste(gcmsPath, targets$FileName, sep="/")
-    eluFiles <- gsub("CDF", "ELU", cdfFiles)
-    pd <- peaksDataset(cdfFiles, mz=seq(50,550), rtrange=c(7.5,8.5))
-    # --- Addxcms [] ---
-    # Key functions: peaksDataset, MatchedFilterParam, addXCMSPeaks
-    pd.2 <- peaksDataset(cdfFiles[1:3], mz = seq(50, 550), rtrange = c(7.5, 8.5))
-    mfp <- xcms::MatchedFilterParam(fwhm = 10, snthresh = 5)
-    pd.2 <- addXCMSPeaks(cdfFiles[1:3], pd.2, settings = mfp)
-    pd.2
-    # --- Plotexample1 [] ---
-    # Key functions: plotChrom
-    plotChrom(pd, rtrange=c(7.5,8.5), plotPeaks=TRUE, plotPeakLabels=TRUE,
-         max.near=8, how.near=0.5, col=rep(c("blue","red","black"), each=3))
-    # --- Plotexample2 [] ---
-    # Key functions: plotImage
-    r <- 1
-    plotImage(pd, run=r, rtrange=c(7.5,8.5), main="")
-    v <- which(pd@peaksdata[[r]] > 0, arr.ind=TRUE) # find detected peaks
-    abline(v=pd@peaksrt[[r]])
-    points(pd@peaksrt[[r]][v[,2]], pd@mz[v[,1]], pch=19, cex=.6, col="white")
-    # --- Pairwisealignexample [] ---
+    # --- Chromatogram and Peak Visualization [] ---
+    # Key functions: plotChrom, plotImage
+    plotChrom(pd, rtrange = c(7.5, 8.5), plotPeaks = TRUE,
+              plotPeakLabels = TRUE, max.near = 8, how.near = 0.5,
+              col = rep(c("blue", "red", "black"), each = 3))
+    plotImage(pd, run = 1, rtrange = c(7.5, 8.5), main = "Run 1")
+
+
+    # --- Pairwise Alignment [] ---
     # Key functions: peaksAlignment, plotAlignment
-    Ds <- c(0.1, 10, 0.1, 0.1)
-    gaps <- c(0.5, 0.5, 0.1, 0.9)
-    par(mfrow=c(2,2), mai=c(0.8466,0.4806,0.4806,0.1486))
-    for(i in 1:4){
-      pa <- peaksAlignment(pd@peaksdata[[1]], pd@peaksdata[[2]],
-    # --- Multiplealignment [] ---
+    pa <- peaksAlignment(pd@peaksdata[[1]], pd@peaksdata[[2]],
+                         pd@peaksrt[[1]], pd@peaksrt[[2]],
+                         D = 0.1, gap = 0.5, metric = 1,
+                         type = 1, compress = FALSE)
+    plotAlignment(pa, xlim = c(0, 17), ylim = c(0, 16),
+                  matchCol = "yellow", main = "Pairwise Alignment")
+
+
+    # --- Multiple Alignment [] ---
     # Key functions: multipleAlignment
-    print(targets)
-    ma <- multipleAlignment(pd, group=targets$Group, wn.gap=0.5, wn.D=.05,
-                            bw.gap=.6, bw.D=0.05, usePeaks=TRUE, filterMin=1,
-                            df=50, verbose=FALSE, metric = 1, type = 1) # bug
-    ma
-    # --- Multiplealignmentfig [] ---
-    # Key functions: plotChrom
-    plotChrom(pd, rtrange=c(7.5,8.5), runs=ma@betweenAlignment@runs,
-         mind=ma@betweenAlignment@ind, plotPeaks=TRUE,
-         plotPeakLabels=TRUE, max.near=8, how.near=.5,
-         col=rep(c("blue","red","black"), each=3))
-    # --- Correlationalignment [] ---
-    # Key functions: correlationAlignment
-    ## mp <- correlationAlignment(object=pd.2, thr=0.85, D=20, penality=0.2,
-    ##                            normalize=TRUE, minFilter=1)
-    ## mp
-    # --- Alignmentres [] ---
-    # Key functions: gatherInfo, unlist
-    outList <- gatherInfo(pd,ma)
-    outList[[8]]
-    rtmat <- matrix(unlist(lapply(outList,.subset,"rt"), use.names=FALSE),
-                    nr=length(outList), byrow=TRUE)
-    colnames(rtmat) <- names(outList[[1]]$rt); rownames(rtmat) <- 1:nrow(rtmat)
+    ma <- multipleAlignment(pd, group = targets$Group, wn.gap = 0.5,
+                            wn.D = 0.05, bw.gap = 0.6, bw.D = 0.05,
+                            usePeaks = TRUE, filterMin = 1,
+                            df = 50, verbose = FALSE, metric = 1,
+                            type = 1)
+
+
+    # --- Alignment Results Extraction [] ---
+    # Key functions: plotChrom, gatherInfo
+    plotChrom(pd, rtrange = c(7.5, 8.5), runs = ma@betweenAlignment@runs,
+              mind = ma@betweenAlignment@ind, plotPeaks = TRUE,
+              plotPeakLabels = TRUE, max.near = 8, how.near = 0.5,
+              col = rep(c("blue", "red", "black"), each = 3))
+    outList <- gatherInfo(pd, ma)
+    rtmat <- matrix(unlist(lapply(outList, .subset, "rt"),
+                           use.names = FALSE),
+                    nrow = length(outList), byrow = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,20 +41,33 @@ process BIOC_GPUMAGIC {
     library(gpuMagic)
     library(jsonlite)
 
-    # --- Vecadd [] ---
-    # Key functions: vecAdd, get_global_id, getDeviceList, setDevice, runif, gpuMatrix, gpuEmptMatrix, kernel
-    ---------------------------------------------------------------------
-    #The kernel code
-    src="
+    # --- GPU Matrix Creation [] ---
+    # Key functions: gpuMatrix, gpuEmptMatrix
+    n <- 1000
+    A <- runif(n)
+    B <- runif(n)
+    A_dev <- gpuMatrix(A, type = "double", device = 1)
+    B_dev <- gpuMatrix(B, type = "double", device = 1)
+    res_dev <- gpuEmptMatrix(row = n, col = 1, type = "double", device = 1)
+
+
+    # --- Kernel Execution and Data Retrieval [] ---
+    # Key functions: .kernel, download
+    src <- "
     kernel void vecAdd(global double* A, global double* B, global double* res){
     uint id=get_global_id(0);
-    # --- Vecadd [] ---
-    # Key functions: vecAdd, get_global_id, gpuMatrix, gpuEmptMatrix, kernel, download
-    ---------------------------------------------------------------------
-    #Use auto macro to declare the function argument
-    #The first argument has auto1, second has auto2 and so on.
-    #gAuto is short for global auto
-    src="
+    res[id]=A[id]+B[id];
+    }
+    "
+    .kernel(
+        src = src,
+        kernel = "vecAdd",
+        parms = list(A_dev, B_dev, res_dev),
+        .device = 1,
+        .globalThreadNum = n
+    )
+    res_downloaded <- download(res_dev)
+    res_vector <- as.vector(res_downloaded)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

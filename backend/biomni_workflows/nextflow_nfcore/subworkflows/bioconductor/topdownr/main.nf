@@ -41,16 +41,57 @@ process BIOC_TOPDOWNR {
     library(topdownr)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: colData, filterInjectionTime, ggplot, aes, geom_boxplot, scale, ranger
-    injTimeBefore <- colData(myoglobin)
-    myoglobin <- filterInjectionTime(
-    maxDeviation = log2(3),
-    # --- TopDownDataPath analysis [] ---
-    # Key functions: topDownDataPath, readTopDownFiles, conditionData, assayData, filterCv, filterIntensity, aggregate, bestConditions
+    # --- Data Import [topdownr] ---
+    # Key functions: readTopDownFiles
+    H <- 1.0078250321
     myoglobin <- readTopDownFiles(
-    path = topdownrdata::topDownDataPath("myoglobin"),
-    type = c("a", "b", "c", "x", "y", "z"),
+        path = topdownrdata::topDownDataPath("myoglobin"),
+        type = c("a", "b", "c", "x", "y", "z"),
+        adducts = data.frame(
+            mass = c(-H, H),
+            to = c("c", "z"),
+            name = c("cmH", "zpH")
+        ),
+        modifications = "Met-loss",
+        neutralLoss = NULL,
+        tolerance = 5e-6,
+        conditions = "FilterString"
+    )
+
+    # --- Quality Control and Filtering [topdownr] ---
+    # Key functions: filterInjectionTime, filterCv, filterIntensity
+    myoglobin <- filterInjectionTime(
+        myoglobin,
+        maxDeviation = log2(3),
+        keepTopN = 2
+    )
+    myoglobin <- filterCv(myoglobin, threshold = 30)
+    myoglobin <- filterIntensity(myoglobin, threshold = 0.1)
+
+    # --- Data Aggregation [topdownr] ---
+    # Key functions: aggregate, summary
+    myoglobin_agg <- aggregate(myoglobin)
+    agg_summary <- summary(myoglobin_agg)
+    n_fragments <- agg_summary$Fragments
+
+    # --- Condition Selection [topdownr] ---
+    # Key functions: bestConditions
+    myoglobin_ncb <- as(myoglobin_agg, "NCBSet")
+    best_conds <- bestConditions(myoglobin_ncb, n = 3)
+
+    # --- Fragmentation Mapping [topdownr] ---
+    # Key functions: fragmentationMap
+    sel <- myoglobin_ncb$Mz == 707.3 &
+        myoglobin_ncb$AgcTarget == 1e6 &
+        (myoglobin_ncb$EtdReagentTarget == 1e7 &
+         !is.na(myoglobin_ncb$EtdReagentTarget))
+    myoglobin_sub <- myoglobin_ncb[, sel]
+    fragmentationMap(
+        myoglobin_sub,
+        nCombinations = 10,
+        labels = seq_len(ncol(myoglobin_sub))
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,83 +41,61 @@ process BIOC_REMP {
     library(REMP)
     library(jsonlite)
 
-    # --- Function [] ---
-    # Key functions: set
-    library(knitr)
-    options(width=72)
-    listing <- function(x, options) {
-      paste("\\begin{lstlisting}[basicstyle=\\ttfamily,breaklines=true]\n",
-        x, "\\end{lstlisting}\n", sep = "")
-    # --- Bioconductorremprelease [] ---
-    # Key functions: requireNamespace, packages
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("REMP")
-    # --- Groomethy [] ---
+    # --- Data Preparation and Grooming [Data Prep] ---
     # Key functions: getGM12878, grooMethy
-    # Get GM12878 methylation data (450k array)
-    GM12878_450k <- getGM12878('450k')
+    GM12878_450k <- getGM12878("450k")
     GM12878_450k <- grooMethy(GM12878_450k)
-    GM12878_450k
-    # --- Seqgr [] ---
-    # Key functions: getLocations
-    library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-    getLocations(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-    # --- Remparcel [] ---
-    # Key functions: initREMP
+
+    # --- Repetitive Element Annotation Initialization [Annotation] ---
+    # Key functions: initREMP, saveParcel
     data(Alu.hg19.demo)
-    remparcel <- initREMP(arrayType = "450k",
-                         REtype = "Alu",
-                         annotation.source = "AH",
-                         genome = "hg19",
-    # --- Saveparcel [] ---
-    # Key functions: saveParcel
+    remparcel <- initREMP(
+        arrayType = "450k",
+        REtype = "Alu",
+        annotation.source = "AH",
+        genome = "hg19",
+        RE = Alu.hg19.demo,
+        ncore = 1
+    )
     saveParcel(remparcel)
-    # --- Rempredict [] ---
-    # Key functions: remp
-    remp.res <- remp(GM12878_450k,
-                     REtype = 'Alu',
-                     parcel = remparcel,
-                     ncore = 1,
-                     seed = 777)
-    # --- Rempprint [] ---
-    # Key functions: details
-    remp.res
-    # Display more detailed information
+
+    # --- Repetitive Element Methylation Prediction [Prediction] ---
+    # Key functions: remp, details
+    remp.res <- remp(
+        GM12878_450k,
+        REtype = "Alu",
+        parcel = remparcel,
+        ncore = 1,
+        seed = 777
+    )
     details(remp.res)
-    # --- Rempaccessors [] ---
-    # Key functions: value, rempB, rempM, rowRanges, rempImp, metadata
-    # Predicted RE-CpG methylation value (Beta value)
-    rempB(remp.res)
-    # Predicted RE-CpG methylation value (M value)
-    rempM(remp.res)
-    # Genomic location information of the predicted RE-CpG
-    # --- Remptrim [] ---
-    # Key functions: threshold, rempTrim, details
-    # Any predicted CpG values with quality score less than
-    # threshold (default = 1.7) will be replaced with NA.
-    # CpGs contain more than missingRate * 100% (default = 20%)
-    # missing rate across samples will be discarded.
+
+    # --- Quality Control and Aggregation [Filtering] ---
+    # Key functions: rempTrim, rempAggregate, details
     remp.res <- rempTrim(remp.res, threshold = 1.7, missingRate = 0.2)
-    # --- Rempaggregate [] ---
-    # Key functions: rempAggregate, details
     remp.res <- rempAggregate(remp.res, NCpG = 2)
     details(remp.res)
-    # --- Rempdecodeannot [] ---
-    # Key functions: decodeAnnot, rempAnnot
-    # By default gene symbol annotation will be added
+
+    # --- Genomic Annotation and Data Extraction [Extraction] ---
+    # Key functions: decodeAnnot, rempAnnot, rempB, rempM, rempImp
     remp.res <- decodeAnnot(remp.res)
-    rempAnnot(remp.res)
-    # --- Rempplot [] ---
-    # Key functions: remplot, methylation
+    annot_info <- rempAnnot(remp.res)
+    beta_values <- rempB(remp.res)
+    m_values <- rempM(remp.res)
+    imp_scores <- rempImp(remp.res)
+
+    # --- Visualization and Profiling [Visualization] ---
+    # Key functions: remplot, remprofile, details
     remplot(remp.res, main = "Alu methylation (GM12878)", col = "blue")
-    # --- Remprofile [] ---
-    # Key functions: remprofile, details, rempAggregate
-    # Use Alu.hg19.demo for demonstration
-    remp.res <- remprofile(GM12878_450k,
-                           REtype = "Alu",
-                           annotation.source = "AH",
-                           genome = "hg19",
+    remp.profile <- remprofile(
+        GM12878_450k,
+        REtype = "Alu",
+        annotation.source = "AH",
+        genome = "hg19",
+        RE = Alu.hg19.demo
+    )
+    details(remp.profile)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

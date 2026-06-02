@@ -38,82 +38,32 @@ process BIOC_PIPECOMP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pipeComp)
     library(PipelineDefinition)
     library(jsonlite)
 
-    # --- Buildcombmatrix [] ---
-    # Key functions: buildCombMatrix
-    ---------------------------------------------------------------------
-    comb <- buildCombMatrix(alternatives)
-    head(comb)
-    # --- Pipelinedefinition [] ---
-    # Key functions: PipelineDefinition, some_fancy_function, my_evaluation_function
-    ---------------------------------------------------------------------
-    my_pip <- PipelineDefinition( list(
-      step1=function(x, param1){
-        # do something with x and param1
-        x
-    # --- Pipelinedefinition [] ---
-    # Key functions: PipelineDefinition
-    ---------------------------------------------------------------------
-    my_pip <- PipelineDefinition(
-      list( step1=function(x, meth1){ get(meth1)(x) },
-            step2=function(x, meth2){ get(meth2)(x) } ),
-      evaluation=list( step2=function(x) c(mean=mean(x), max=max(x)) ),
-    # --- List [] ---
-    # Key functions: tempdir, runPipeline
-    ---------------------------------------------------------------------
-    datasets <- list( ds1=1:3, ds2=c(5,10,15))
-    alternatives <- list(meth1=c("log","sqrt"), meth2="cumsum")
-    tmpdir1 <- paste0(tempdir(),"/")
-    res <- runPipeline(datasets, alternatives, my_pip, output.prefix=tmpdir1)
-    # --- Addpipelinestep [] ---
-    # Key functions: addPipelineStep
-    ---------------------------------------------------------------------
-    pip2 <- addPipelineStep(my_pip, name="newstep", after="step1")
-    pip2
-    # --- Stepfn [] ---
-    # Key functions: stepFn, do_something
-    ---------------------------------------------------------------------
-    stepFn(pip2, "newstep", type="function") <- function(x, newparam){
-      do_something(x, newparam)
-    }
-    pip2
-    # --- Files [] ---
-    # Key functions: files
-    ---------------------------------------------------------------------
-    list.files(tmpdir1, pattern="evaluation\\.rds")
-    # --- Files [] ---
-    # Key functions: files, readPipelineResults, aggregatePipelineResults
-    ---------------------------------------------------------------------
-    ds <- list.files(tmpdir1, pattern="evaluation\\.rds", full.names = TRUE)
+    # --- Pipeline Execution [] ---
+    # Key functions: runPipeline
+    datasets <- list(ds1 = 1:3, ds2 = c(5, 10, 15))
+    alternatives <- list(meth1 = c("log", "sqrt"), meth2 = "cumsum")
+    tmpdir1 <- paste0(tempdir(), "/")
+    res <- runPipeline(datasets, alternatives, my_pip,
+                       output.prefix = tmpdir1)
+
+
+    # --- Results Aggregation [] ---
+    # Key functions: readPipelineResults, aggregatePipelineResults
+    ds <- list.files(tmpdir1, pattern = "evaluation\\.rds",
+                     full.names = TRUE)
     names(ds) <- basename(ds)
-    res1 <- readPipelineResults(resfiles=ds)
-    res <- aggregatePipelineResults(res1)
-    # --- List [] ---
-    # Key functions: tempdir, runPipeline
-    ---------------------------------------------------------------------
-    alternatives <- list(meth1=c("log2","sqrt"), meth2="cumsum")
-    tmpdir2 <- paste0(tempdir(),"/")
-    res <- runPipeline(datasets, alternatives, my_pip, output.prefix=tmpdir2)
-    # --- Readpipelineresults [] ---
-    # Key functions: readPipelineResults, mergePipelineResults
-    ---------------------------------------------------------------------
-    res1 <- readPipelineResults(tmpdir1)
-    res2 <- readPipelineResults(tmpdir2)
-    res <- mergePipelineResults(res1,res2)
-    # --- Aggregatepipelineresults [] ---
-    # Key functions: aggregatePipelineResults
-    ---------------------------------------------------------------------
-    res <- aggregatePipelineResults(res)
-    res$evaluation$step2
-    # --- Function [] ---
-    # Key functions: any, runPipeline
-    ---------------------------------------------------------------------
-    fragile.fun <- function(x){
-      if(any(x>10)) stop("Too big!")
-      2^x
-    }
+    res1 <- readPipelineResults(resfiles = ds)
+    res_agg <- aggregatePipelineResults(res1)
+
+
+    # --- Performance Visualization [] ---
+    # Key functions: plotElapsed, evalHeatmap
+    plotElapsed(res, agg.by = FALSE)
+    evalHeatmap(res, what = c("mean", "max"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

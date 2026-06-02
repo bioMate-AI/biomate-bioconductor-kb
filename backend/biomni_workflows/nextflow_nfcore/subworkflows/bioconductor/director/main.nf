@@ -41,42 +41,64 @@ process BIOC_DIRECTOR {
     library(Director)
     library(jsonlite)
 
-    # --- Frame [] ---
-    # Key functions: frame
-    library(Director)
-    table1 <- data.frame(source=c("DrugX", "DrugX", "miR-B", "miR-B", "miR-B",
-            "miR-A", "miR-A", "transc1", "transc2", "transc3", "transc4"),
-        target=c("miR-B", "miR-A", "transc1", "transc2", "transc3", "transc2",
-            "transc4", "gene1", "gene2", "gene2", "gene3"),
-    # --- Createlist [] ---
+    # --- Data Preparation and List Creation [Step 1] ---
     # Key functions: createList
+    table1 <- data.frame(
+        source = c("DrugX", "DrugX", "miR-B", "miR-B", "miR-B",
+                   "miR-A", "miR-A", "transc1", "transc2", "transc3", "transc4"),
+        target = c("miR-B", "miR-A", "transc1", "transc2", "transc3", "transc2",
+                   "transc4", "gene1", "gene2", "gene2", "gene3"),
+        value = c(0.6, 0.8, -0.7, -0.4, -0.34, -0.8, -0.6, 0.8, 0.9, 0.88, 0.6),
+        sourcefc = c(1, 1, 1.5, 1.5, 1.5, 2.6, 2.6, -1.7, -2.6, -1.5, -1.2),
+        targetfc = c(1.5, 2.6, -1.7, -2.6, -1.5, -2.6, -1.2, -0.6, -2.2, -2.2, -0.7),
+        stringsAsFactors = FALSE
+    )
     tempList <- createList(table1)
-    # --- Frame [] ---
-    # Key functions: frame
-    List <- data.frame(source=c("DrugX", "DrugX",
-            "miR-B", "miR-B", "miR-B", "miR-A", "miR-A", "transc1",
-            "transc2", "transc3", "transc4"),
-        target=c("miR-B", "miR-A", "transc1", "transc2", "transc3",
-            "transc2", "transc4", "gene1", "gene2", "gene2", "gene3"),
-    # --- Createlist [] ---
-    # Key functions: createList
-    tempList2 <- createList(List,ListFC)
-    # --- Initsankey [] ---
-    # Key functions: initSankey, makeSankey, drawSankey
+
+    # --- Sankey Diagram Generation [Step 2] ---
+    # Key functions: initSankey, makeSankey
     initSankey()
-    sankey <- makeSankey(tempList2)
-    sankeyd <- drawSankey(sankey)
-    # --- Makesankey [] ---
+    sankey <- makeSankey(tempList)
+    sankey_ref <- sankey$reference[, 1:6]
+
+    # --- Rendering and Visualization [Step 3] ---
+    # Key functions: drawSankey
+    sankey_drawn <- drawSankey(
+        sankey,
+        caption = "Default Sankey Diagram",
+        height = 400
+    )
+
+    # --- Path Averaging and Loop Handling [Step 4] ---
     # Key functions: makeSankey, drawSankey
-    sankey2 <- makeSankey(tempList2, averagePath=TRUE)
-    sankey2d <- drawSankey(sankey2)
-    # --- Initsankey [] ---
+    sankey_avg <- makeSankey(tempList, averagePath = TRUE)
+    sankey_avg_drawn <- drawSankey(sankey_avg)
+    avg_values <- sankey_avg$reference[, c("source", "target")]
+
+    # --- Customizing Visual Parameters [Step 5] ---
     # Key functions: initSankey, makeSankey, drawSankey
-    # Makes the path colours darker by 10%  and uses a single, uniform font size
-    # for the figure rather than font sizes proportional to node size.
-    initSankey(pathOpacity = 0.3, pathHover = 0.6,
-        fontsizeProportion = FALSE, fontsize=20)
-    # Changes the default colours used.
+    initSankey(
+        pathOpacity = 0.3,
+        pathHover = 0.6,
+        fontsizeProportion = FALSE,
+        fontsize = 20
+    )
+    sankey_custom <- makeSankey(
+        tempList,
+        averagePath = TRUE,
+        nodeMin = "orange",
+        nodeMax = "purple",
+        pathMax = "#333333"
+    )
+    sankey_custom_drawn <- drawSankey(
+        sankey_custom,
+        caption = "Customized Figure",
+        nodeValue = "Node colour scale",
+        pathValue = "Path colour scale",
+        legendsize = 14,
+        height = 300
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

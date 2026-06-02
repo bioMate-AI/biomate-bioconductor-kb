@@ -46,64 +46,31 @@ process BIOC_MSEXPERIMENT {
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- P X Dataset [] ---
-    # Key functions: PXDataset, pxfiles
-    library("rpx")
-    px <- PXDataset("PXD022816")
-    pxfiles(px)
-    # --- pxget [] ---
-    # Key functions: pxget
-    (i <- grep(".+0[12].+mzML$", pxfiles(px), value = TRUE))
-    fls <- pxget(px, i)
-    # --- Ms Experiment [] ---
-    # Key functions: MsExperiment
-    msexp <- MsExperiment()
-    # --- make exp fls [] ---
-    # Key functions: MsExperimentFiles
-    msfls <- MsExperimentFiles(mzmls = fls,
-    # --- add exp fls [] ---
-    # Key functions: experimentFiles
-    experimentFiles(msexp) <- msfls
-    # --- add sample data [] ---
-    # Key functions: sampleData
-    sampleData(msexp) <- DataFrame(
-    mzmls = basename(experimentFiles(msexp)[["mzmls"]]),
-    sampleData(msexp)
-    # --- Spectra [] ---
-    # Key functions: Spectra
-    sp <- Spectra(experimentFiles(msexp)[["mzmls"]])
-    # --- spectra [] ---
-    # Key functions: spectra
-    spectra(msexp) <- sp
-    # --- experiment Files [] ---
-    # Key functions: experimentFiles
-    experimentFiles(msexp)[["mzids"]] <- mzids
-    experimentFiles(msexp)
-    # --- metadata [] ---
-    # Key functions: metadata
-    metadata(msexp)[["mzmls_to_mzids"]] <- cmd
-    metadata(msexp)
-    # --- exist Ms Experiment Files [] ---
-    # Key functions: existMsExperimentFiles
-    existMsExperimentFiles(msexp)
-    # --- experiment Files [] ---
-    # Key functions: experimentFiles
-    msexp <- readRDS("msexp.rds")
-    experimentFiles(msexp)
-    # --- spectra [] ---
-    # Key functions: spectra, plotSpectra
-    sp <- spectra(msexp)
-    plotSpectra(sp[1000])
-    # --- make exp2 [] ---
-    # Key functions: MsExperiment, DataFrame, sampleData
-    lmse <- MsExperiment()
-    sd <- DataFrame(sample_id = c("QC1", "QC2"),
-    sample_name = c("QC Pool", "QC Pool"),
-    # --- add fls2 [] ---
-    # Key functions: experimentFiles
-    fls <- dir(system.file("sciex", package = "msdata"), full.names = TRUE)
-    basename(fls)
-    experimentFiles(lmse) <- MsExperimentFiles(
+    # --- Sample Metadata Association [] ---
+    # Key functions: sampleData<-
+    sd <- S4Vectors::DataFrame(
+        mzmls = basename(MsExperiment::experimentFiles(msexp)[["mzmls"]]),
+        fractions = 1:2
+    )
+    MsExperiment::sampleData(msexp) <- sd
+
+
+    # --- Data Linking [] ---
+    # Key functions: linkSampleData
+    msexp <- MsExperiment::linkSampleData(
+        msexp,
+        with = "sampleData.mzmls = spectra.dataOrigin"
+    )
+
+
+    # --- Spectra Filtering [] ---
+    # Key functions: filterSpectra, spectra
+    res <- MsExperiment::filterSpectra(
+        msexp,
+        Spectra::filterRt,
+        rt = c(200, 210)
+    )
+    filtered_sps <- MsExperiment::spectra(res)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

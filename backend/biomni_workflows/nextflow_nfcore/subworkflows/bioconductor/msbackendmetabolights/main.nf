@@ -42,52 +42,34 @@ process BIOC_MSBACKENDMETABOLIGHTS {
     library(Spectra)
     library(jsonlite)
 
-    # --- Mtbls List Files [] ---
-    # Key functions: mtbls_list_files
-    ---------------------------------------------------------------------
-    library(MsBackendMetaboLights)
-    #' List files of a MetaboLights data set
-    all_files <- mtbls_list_files("MTBLS39")
-    # --- Mtbls Ftp Path [] ---
-    # Key functions: mtbls_ftp_path
-    ---------------------------------------------------------------------
-    mtbls_ftp_path("MTBLS39")
-    # --- Grep [] ---
-    # Key functions: mtbls_ftp_path
-    ---------------------------------------------------------------------
-    #' Get the assay files of the data set
-    grep("^a_", all_files, value = TRUE)
-    #' Read the assay file
-    a <- read.table(paste0(mtbls_ftp_path("MTBLS39"),
-    # --- Spectra [] ---
-    # Key functions: Spectra, MsBackendMetaboLights
-    ---------------------------------------------------------------------
-    library(Spectra)
-    #' Load MS data files of one data set
-    s <- Spectra("MTBLS39", filePattern = "63A.cdf",
-                 source = MsBackendMetaboLights())
-    # --- Spectravariables [] ---
-    # Key functions: spectraVariables
-    ---------------------------------------------------------------------
-    spectraVariables(s)
-    # --- Spectradata [] ---
-    # Key functions: spectraData
-    ---------------------------------------------------------------------
-    spectraData(s, c("mtbls_id", "mtbls_assay_name",
-                     "derived_spectral_data_file"))
-    # --- Mtbls Sync [] ---
-    # Key functions: mtbls_sync
-    ---------------------------------------------------------------------
-    mtbls_sync(s@backend)
-    # --- Mtbls Sync Data Files [] ---
-    # Key functions: mtbls_sync_data_files
-    ---------------------------------------------------------------------
+    # --- Initialize Spectra Backend [] ---
+    # Key functions: MsBackendMetaboLights, Spectra
+    be <- MsBackendMetaboLights()
+    s <- Spectra(
+        "MTBLS39",
+        filePattern = "63A.cdf",
+        source = be
+    )
+
+
+    # --- Extract Spectra Metadata [] ---
+    # Key functions: spectraVariables, spectraData
+    vars <- spectraVariables(s)
+    meta <- spectraData(
+        s,
+        columns = c(
+            "mtbls_id", 
+            "mtbls_assay_name", 
+            "derived_spectral_data_file"
+        )
+    )
+
+
+    # --- Synchronize and Cache Data [] ---
+    # Key functions: mtbls_sync, mtbls_sync_data_files, mtbls_cached_data_files
+    synced_be <- mtbls_sync(s@backend)
     res <- mtbls_sync_data_files("MTBLS39", fileName = "AM063A.cdf")
-    res
-    # --- Mtbls Cached Data Files [] ---
-    # Key functions: mtbls_cached_data_files
-    ---------------------------------------------------------------------
-    mtbls_cached_data_files()
+    cached_files <- mtbls_cached_data_files()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

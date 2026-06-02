@@ -41,26 +41,37 @@ process BIOC_TMIXCLUST {
     library(TMixClust)
     library(jsonlite)
 
-    # --- plot_time_series_df [] ---
-    # Key functions: plot_time_series_df
-    library(TMixClust)
-    data(toy_data_df)
-    print(head(toy_data_df))
-    # --- plot_silhouette [] ---
-    # Key functions: plot_silhouette
-    plot_silhouette(best_clust_toy_obj)
-    # --- generate_ T Mix Clust_report [] ---
+    # --- Time Series Clustering [] ---
+    # Key functions: TMixClust
+    cluster_obj <- TMixClust(
+        toy_data,
+        nb_clusters = 3,
+        time_points = c(0, 24, 48, 63, 87)
+    )
+
+
+    # --- Stability Analysis [] ---
+    # Key functions: analyse_stability
+    best_clust_obj <- analyse_stability(
+        toy_data,
+        nb_clusters = 3,
+        nb_clustering_runs = 5,
+        nb_cores = 1
+    )
+
+
+    # --- Cluster Visualization and Validation [] ---
+    # Key functions: plot_silhouette, plot_time_series_df
+    plot_silhouette(best_clust_obj)
+    for (i in seq_len(3)) {
+        c_df <- toy_data[best_clust_obj$em_cluster_assignment == i, ]
+        plot_time_series_df(c_df, plot_title = paste("Cluster", i))
+    }
+
+
+    # --- Report Generation [] ---
     # Key functions: generate_TMixClust_report
-    (not executed here)
-    generate_TMixClust_report(cluster_obj)
-    # --- plot_time_series_df [] ---
-    # Key functions: plot_time_series_df
-    yeast_data_file = system.file("extdata", "yeast_time_series.txt",
-    yeast_data = get_time_series_df(yeast_data_file)
-    plot_time_series_df(yeast_data)
-    # --- to Latex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    generate_TMixClust_report(best_clust_obj)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

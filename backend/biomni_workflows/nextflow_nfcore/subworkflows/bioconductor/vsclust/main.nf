@@ -41,20 +41,43 @@ process BIOC_VSCLUST {
     library(vsclust)
     library(jsonlite)
 
-    # --- Calculation [] ---
-    # Key functions: calculation, 0
-    ---------------------------------------------------------------------
-    #### Input parameters, only read when now parameter file was provided #####
-    ## All principal parameters for running VSClust can be defined as in the
-    ## shiny app at computproteomics.bmb.sdu.dk/Apps/VSClust
-    # name of study
-    # --- Clustering [] ---
-    # Key functions: clustering, runClustWrapper
-    ---------------------------------------------------------------------
-    #### Run clustering (VSClust and standard fcm clustering
-    ClustOut <- runClustWrapper(statOut$dat,
-                                PreSetNumClustVSClust, NULL,
-                                VSClust=TRUE,
+    # --- Variance Estimation ---
+    # Key functions: PrepareSEForVSClust
+    data(miniACC, package = "MultiAssayExperiment")
+    logminiACC <- log2(MultiAssayExperiment::assays(miniACC)$RNASeq2GeneNorm)
+    logminiACC[!is.finite(logminiACC)] <- NA
+    logminiACC <- t(t(logminiACC) - apply(logminiACC, 2, median, na.rm = TRUE))
+    miniACC2 <- c(miniACC, log2rnaseq = logminiACC, mapFrom = 1L)
+    statOut <- PrepareSEForVSClust(
+        miniACC2,
+        "log2rnaseq",
+        coldatname = "OncoSign",
+        isPaired = FALSE,
+        isStat = TRUE
+    )
+
+    # --- Cluster Number Estimation ---
+    # Key functions: estimClustNum, optimalClustNum, estimClust.plot
+    ClustInd <- estimClustNum(
+        statOut$dat,
+        maxClust = 10,
+        cores = 1
+    )
+    opt_vsclust <- optimalClustNum(ClustInd, method = "VSClust")
+    opt_fcm <- optimalClustNum(ClustInd, method = "FCM")
+    estimClust.plot(ClustInd)
+
+    # --- Variance Stabilized Clustering ---
+    # Key functions: runClustWrapper
+    ClustOut <- runClustWrapper(
+        statOut$dat,
+        opt_vsclust,
+        NULL,
+        VSClust = TRUE,
+        cores = 1
+    )
+    Bestcl <- ClustOut$Bestcl
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

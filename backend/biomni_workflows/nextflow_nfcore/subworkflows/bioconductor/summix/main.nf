@@ -41,21 +41,37 @@ process BIOC_SUMMIX {
     library(Summix)
     library(jsonlite)
 
-    # --- summix [] ---
-    # Key functions: summix
-    library(Summix)
-    data("ancestryData")
-    summix(data = ancestryData,
-    # --- adjAF example [] ---
+    # --- Allele Frequency Adjustment [] ---
     # Key functions: adjAF
-    library(Summix)
     data("ancestryData")
-    adjusted_data<-adjAF(data = ancestryData,
-    # --- summix local example [] ---
-    # Key functions: summix_local
-    library(Summix)
+    adjusted_data <- adjAF(
+        data = ancestryData,
+        reference = c("reference_AF_afr", "reference_AF_eur"),
+        observed = "gnomad_AF_afr",
+        pi.target = c(1, 0),
+        pi.observed = c(0.85, 0.15),
+        adj_method = "average",
+        N_reference = c(704, 741),
+        N_observed = 20744,
+        filter = TRUE
+    )
+
+
+    # --- Multi-Ancestry Adjustment [] ---
+    # Key functions: adjAF
     data("ancestryData")
-    results <- summix_local(data = ancestryData,
+    adjusted_multi <- adjAF(
+        data = ancestryData,
+        reference = c("reference_AF_afr", "reference_AF_eur",
+                      "reference_AF_iam"),
+        observed = "gnomad_AF_afr",
+        pi.target = c(1, 0, 0),
+        pi.observed = c(0.812, 0.170, 0.018),
+        adj_method = "average",
+        N_reference = c(704, 741, 47),
+        N_observed = 20744,
+        filter = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

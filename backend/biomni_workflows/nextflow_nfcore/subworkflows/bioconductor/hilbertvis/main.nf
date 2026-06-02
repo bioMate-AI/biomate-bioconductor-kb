@@ -41,53 +41,34 @@ process BIOC_HILBERTVIS {
     library(HilbertVis)
     library(jsonlite)
 
-    # --- Makerandomtestdata [] ---
-    # Key functions: makeRandomTestData
-    library( HilbertVis )
-    vec <- makeRandomTestData( )
-    # --- Plotlongvector [] ---
+    # --- Zoomed Vector Visualisation [] ---
     # Key functions: plotLongVector
-    plotLongVector( vec )
-    # --- Zoomin [] ---
-    # Key functions: plotLongVector
-    start <- 1500000
-    plotLongVector( vec[ start + 0:100000 ], offset=start )
-    # --- Hilbertcurves [] ---
-    # Key functions: pushViewport, viewport, plotHilbertCurve, popViewport
-    library( grid )
-    pushViewport( viewport( layout=grid.layout( 2, 2 ) ) )
-    for( i in 1:4 ) {
-       pushViewport( viewport(
-           layout.pos.row=1+(i-1)%/%2, layout.pos.col=1+(i-1)%%2 ) )
-    # --- Hilbertimage [] ---
-    # Key functions: hilbertImage
-    hMat <- hilbertImage( vec )
-    # --- Showhilbertimage [] ---
+    vec <- sin(seq(0, 100, length.out = 1000000))
+    start <- 150000
+    plotLongVector(vec[start + 0:10000], offset = start)
+
+
+    # --- Hilbert Curve Generation [] ---
+    # Key functions: plotHilbertCurve
+    grid::pushViewport(
+        grid::viewport(layout = grid::grid.layout(2, 2))
+    )
+    for (i in 1:4) {
+        grid::pushViewport(
+            grid::viewport(
+                layout.pos.row = 1 + (i - 1) %/% 2,
+                layout.pos.col = 1 + (i - 1) %% 2
+            )
+        )
+        plotHilbertCurve(i, new.page = FALSE)
+        grid::popViewport()
+    }
+
+
+    # --- Hilbert Image Display [] ---
     # Key functions: showHilbertImage
-    ## showHilbertImage( hMat )
-    # --- Hilberttest [] ---
-    # Key functions: show, showHilbertImage
-    show( showHilbertImage( hMat ) )
-    # --- Showhilbertimage [] ---
-    # Key functions: showHilbertImage
-    ## showHilbertImage( hMat, mode="EBImage" )
-    # --- Hilbertdisplay [] ---
-    # Key functions: hilbertDisplay
-    ## hilbertDisplay( vec )
-    # --- Function [] ---
-    # Key functions: hilbertDisplay
-    ## dumpDataInsteadOfPlotting <- function( data, info ) {
-    ##    str( data )
-    ##    print( info )
-    ## }
-    ## hilbertDisplay( vec, plotFunc=dumpDataInsteadOfPlotting )
-    # --- Hilbertdisplay [] ---
-    # Key functions: hilbertDisplay
-    ## hilbertDisplay( vec, vec2 )
-    # --- Hilbertdisplaythreechannel [] ---
-    # Key functions: hilbertDisplayThreeChannel
-    ## hilbertDisplayThreeChannel(
-    ##    vec / max(vec), vec2 / max(vec), rep( 0, length(vec) ) )
+    hMat <- matrix(runif(256 * 256), nrow = 256)
+    showHilbertImage(hMat)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

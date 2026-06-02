@@ -41,40 +41,87 @@ process BIOC_TTMAP {
     library(TTMap)
     library(jsonlite)
 
-    # --- Loadlibanddata [] ---
-    # Key functions: rowSums, assay, make_matrices
-    library(airway)
-    data(airway)
-    airway <- airway[rowSums(assay(airway))>80,]
-    assay(airway) <- log(assay(airway)+1,2)
-    experiment <- TTMap::make_matrices(airway,seq_len(4),seq_len(4)+4,
-    # --- Part1 [] ---
+    # --- Data Preparation [make_matrices] ---
+    # Key functions: make_matrices
+    counts <- matrix(rpois(800, lambda = 10), ncol = 8)
+    rownames(counts) <- paste0("Gene", 1:100)
+    colnames(counts) <- paste0("Sample", 1:8)
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = counts)
+    )
+    SummarizedExperiment::assay(se) <- log2(
+        SummarizedExperiment::assay(se) + 1
+    )
+    experiment <- ttmap::make_matrices(
+        se,
+        ctrl.cols = 1:4,
+        test.cols = 5:8,
+        NAME = rownames(se),
+        CLID = rownames(se)
+    )
+
+    # --- Control Adjustment [control_adjustment] ---
     # Key functions: control_adjustment
-    E=1
-    Pw=1.1
-    Bw=0
-    TTMAP_part1prime <-TTMap::control_adjustment(normal.pcl = experiment$CTRL,
-    tumor.pcl = experiment$TEST,
-    # --- Part2 [] ---
+    adjusted_data <- ttmap::control_adjustment(
+        normal.pcl = experiment$CTRL,
+        tumor.pcl = experiment$TEST,
+        normalname = "Healthy_Controls",
+        dataname = "Cancer_Effect",
+        org.directory = tempdir(),
+        e = 1,
+        P = 1.1,
+        B = 0
+    )
+
+    # --- Deviation Assessment [hyperrectangle_deviation_assessment] ---
     # Key functions: hyperrectangle_deviation_assessment
-    TTMAP_part1_hda <- TTMap::hyperrectangle_deviation_assessment(x =
-    TTMAP_part1prime,k=dim(TTMAP_part1prime$Normal.mat)[2],
-    dataname = "The_effect_of_cancer", normalname = "The_healthy_controls");
-    head(TTMAP_part1_hda$Dc.Dmat)
-    # --- Part3 [] ---
-    # Key functions: generate_mismatch_distance
-    library(rgl)
-    ALPHA <- 1
-    annot <- c(paste(colnames(experiment$TEST[,-seq_len(3)]),"Dis",sep=".")
-    ,paste(colnames(experiment$CTRL[,-seq_len(3)]),"Dis",sep="."))
-    annot <- cbind(annot,annot)
-    # --- Part4 [] ---
+    hda_results <- ttmap::hyperrectangle_deviation_assessment(
+        x = adjusted_data,
+        k = dim(adjusted_data$Normal.mat)[2],
+        dataname = "Cancer_Effect",
+        normalname = "Healthy_Controls"
+    )
+
+    # --- Topological Mapping [generate_mismatch_distance, calcul_e, ttmap] ---
+    # Key functions: generate_mismatch_distance, calcul_e, ttmap
+    test_cols <- colnames(experiment$TEST[, -seq_len(3)])
+    ctrl_cols <- colnames(experiment$CTRL[, -seq_len(3)])
+    annot_vec <- c(paste0(test_cols, ".Dis"), paste0(ctrl_cols, ".Dis"))
+    annot <- cbind(annot_vec, annot_vec)
+    rownames(annot) <- annot[, 1]
+    mismatch_dist <- ttmap::generate_mismatch_distance(
+        hda_results,
+        select = rownames(hda_results$Dc.Dmat),
+        alpha = 1
+    )
+    e_val <- ttmap::calcul_e(mismatch_dist, 0.95, adjusted_data, 1)
+    ttmap_output <- ttmap::ttmap(
+        hda_results,
+        hda_results$m,
+        select = rownames(hda_results$Dc.Dmat),
+        annot = annot,
+        e = e_val,
+        filename = tempfile(),
+        n = 1,
+        dd = mismatch_dist
+    )
+
+    # --- Significant Genes Identification [ttmap_sgn_genes] ---
     # Key functions: ttmap_sgn_genes
-    TTMap::ttmap_sgn_genes(TTMAP_part2_gtlmap,
-    TTMAP_part1_hda, TTMAP_part1prime,
-    annot, n = 2, a = ALPHA,
-    filename = "first_trial", annot = TTMAP_part1prime$tag.pcl, col = "NAME",
-    path = getwd(), Relaxed = 0)
+    sgn_genes <- ttmap::ttmap_sgn_genes(
+        ttmap_output,
+        hda_results,
+        adjusted_data,
+        annot,
+        n = 2,
+        a = 1,
+        filename = "first_trial",
+        annot = adjusted_data$tag.pcl,
+        col = "NAME",
+        path = tempdir(),
+        Relaxed = 0
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

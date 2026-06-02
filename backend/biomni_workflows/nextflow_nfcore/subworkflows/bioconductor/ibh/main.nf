@@ -41,48 +41,42 @@ process BIOC_IBH {
     library(ibh)
     library(jsonlite)
 
-    # --- Ibhexample [] ---
-    # Key functions: ibh
-    library(ibh)
-     data(ArabidopsisBioGRIDInteractionEntrezId)
-     geneList <- list(839226, 817241, 824340, 832179, 818561, 831145,
-         838782, 826404)
-     ibh(ArabidopsisBioGRIDInteractionEntrezId, geneList)
-    # --- Ibhbiogridexample1 [] ---
-    # Key functions: ibhBioGRID
-    geneList <- list(839226, 817241, 824340, 832179, 818561, 831145,
-       838782, 826404)
-    ibhBioGRID(geneList, organism = "arabidopsis", idType = "EntrezId")
-    # --- Ibhbiogridexample2 [] ---
-    # Key functions: ibhBioGRID
-    geneList <- list("YJR151C", "YBL032W", "YAL040C", "YBL072C",
-         "YCL050C", "YCR009C")
-     ibhBioGRID(geneList, organism = "yeast", idType = "UniqueId")
-    # --- Ibhformultiplegenelistsexample [] ---
-    # Key functions: ibhForMultipleGeneLists
+    # --- Multiple Gene Lists Evaluation [] ---
+    # Key functions: ibhForMultipleGeneLists, ibhForMultipleGeneListsBioGRID
     data(ArabidopsisBioGRIDInteractionEntrezId)
-     listofGeneList <- list(list(839226, 817241, 824340, 832179, 818561,
-         831145, 838782, 826404), list(832018, 839226, 838824))
-     ibhForMultipleGeneLists(ArabidopsisBioGRIDInteractionEntrezId,
-         listofGeneList)
-    # --- Ibhformultiplegenelistsbiogridexample [] ---
-    # Key functions: ibhForMultipleGeneListsBioGRID
-    listofGeneList <- list(list("YJR151C", "YBL032W", "YAL040C",
-         "YBL072C", "YCL050C", "YCR009C"), list("YDR063W", "YDR074W",
-         "YDR080W", "YDR247W", "YGR183C", "YHL033C"), list("YOL068C",
-         "YOL015W", "YOL009C", "YOL004W", "YOR065W"))
-     ibhForMultipleGeneListsBioGRID(listofGeneList, organism = "yeast",
-    # --- Ibhclusterevalexample [] ---
-    # Key functions: exprs, dist, kmeans, ibhClusterEval
-    require(yeastCC)
-     require(stats)
-     data(yeastCC)
-     require(simpIntLists)
-     data(YeastBioGRIDInteractionUniqueId)
-    # --- Ibhclusterevalbiogridexample [] ---
-    # Key functions: ibhClusterEvalBioGRID
-    ibhClusterEvalBioGRID(k$cluster, rownames(subset), organism = "yeast",
-         idType = "UniqueId")
+    listofGeneList <- list(
+        list(839226, 817241, 824340, 832179, 818561, 831145, 838782, 826404), 
+        list(832018, 839226, 838824)
+    )
+    res_multi <- ibhForMultipleGeneLists(
+        ArabidopsisBioGRIDInteractionEntrezId, 
+        listofGeneList
+    )
+    res_multi_biogrid <- ibhForMultipleGeneListsBioGRID(
+        listofGeneList, 
+        organism = "yeast", 
+        idType = "UniqueId"
+    )
+
+
+    # --- Cluster Evaluation [] ---
+    # Key functions: ibhClusterEval, ibhClusterEvalBioGRID
+    data(YeastBioGRIDInteractionUniqueId)
+    mock_matrix <- matrix(runif(500), nrow = 50)
+    rownames(mock_matrix) <- paste0("YAL", sprintf("%03dC", 1:50))
+    d <- dist(mock_matrix, method = "euclidean")
+    k <- kmeans(d, 3)
+    res_cluster <- ibhClusterEval(
+        k$cluster, 
+        rownames(mock_matrix), 
+        YeastBioGRIDInteractionUniqueId
+    )
+    res_cluster_biogrid <- ibhClusterEvalBioGRID(
+        k$cluster, 
+        rownames(mock_matrix), 
+        organism = "yeast", 
+        idType = "UniqueId"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

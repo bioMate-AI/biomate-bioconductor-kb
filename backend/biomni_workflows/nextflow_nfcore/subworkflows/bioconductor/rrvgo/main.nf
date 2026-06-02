@@ -41,39 +41,49 @@ process BIOC_RRVGO {
     library(rrvgo)
     library(jsonlite)
 
-    # --- Pre [] ---
-    # Key functions: set
-    --------------------------------------
-    library(knitr)
-    opts_chunk$set(warning=FALSE, message=FALSE, cache=TRUE)
-    # --- Delim [] ---
-    # Key functions: delim, calculateSimMatrix
-    ---------------------------------------------------------------------
-    library(rrvgo)
-    go_analysis <- read.delim(system.file("extdata/example.txt", package="rrvgo"))
-    simMatrix <- calculateSimMatrix(go_analysis$ID,
-                                    orgdb="org.Hs.eg.db",
-    # --- Setnames [] ---
-    # Key functions: setNames, reduceSimMatrix
-    ---------------------------------------------------------------------
+    # --- Redundant Term Reduction [] ---
+    # Key functions: calculateSimMatrix, reduceSimMatrix
+    go_analysis <- read.delim(
+        system.file("extdata/example.txt", package="rrvgo")
+    )
+    simMatrix <- calculateSimMatrix(
+        go_analysis$ID,
+        orgdb="org.Hs.eg.db",
+        ont="BP",
+        method="Rel"
+    )
     scores <- setNames(-log10(go_analysis$qvalue), go_analysis$ID)
-    reducedTerms <- reduceSimMatrix(simMatrix,
-                                    scores,
-                                    threshold=0.7,
-    # --- Heatmapplot [] ---
-    # Key functions: heatmapPlot
-    ---------------------------------------------------------------------
-    heatmapPlot(simMatrix,
-                reducedTerms,
-                annotateParent=TRUE,
-                annotationLabel="parentTerm",
-    # --- Scatterplot [] ---
-    # Key functions: scatterPlot
-    ---------------------------------------------------------------------
+    reducedTerms <- reduceSimMatrix(
+        simMatrix,
+        scores,
+        threshold=0.7,
+        orgdb="org.Hs.eg.db"
+    )
+
+
+    # --- Visualisation of Reduced Terms [] ---
+    # Key functions: calculateSimMatrix, reduceSimMatrix, heatmapPlot, scatterPlot, wordcloudPlot
+    go_analysis <- read.delim(
+        system.file("extdata/example.txt", package="rrvgo")
+    )
+    simMatrix <- calculateSimMatrix(
+        go_analysis$ID,
+        orgdb="org.Hs.eg.db",
+        ont="BP",
+        method="Rel"
+    )
+    scores <- setNames(-log10(go_analysis$qvalue), go_analysis$ID)
+    reducedTerms <- reduceSimMatrix(
+        simMatrix,
+        scores,
+        threshold=0.7,
+        orgdb="org.Hs.eg.db"
+    )
+    heatmapPlot(
+        simMatrix, reducedTerms,
+        annotateParent=TRUE, annotationLabel="parentTerm", fontsize=6
+    )
     scatterPlot(simMatrix, reducedTerms)
-    # --- Wordcloudplot [] ---
-    # Key functions: wordcloudPlot
-    ---------------------------------------------------------------------
     wordcloudPlot(reducedTerms, min.freq=1, colors="black")
 
     # --- Save outputs ---

@@ -41,17 +41,73 @@ process BIOC_EPIREGULON {
     library(epiregulon)
     library(jsonlite)
 
-    # --- get T F Motif Info [] ---
-    # Key functions: getTFMotifInfo
-    grl <- getTFMotifInfo(genome = "hg38")
-    # --- calculate P2 G [] ---
-    # Key functions: calculateP2G
-    set.seed(1010)
-    p2g <- calculateP2G(peakMatrix = PeakMatrix,
-    # --- add T F Motif Info [] ---
-    # Key functions: addTFMotifInfo
-    overlap <- addTFMotifInfo(grl = grl, p2g = p2g,
-    head(overlap)
+    # --- Regulon Construction [] ---
+    # Key functions: addTFMotifInfo, getRegulon
+    overlap <- addTFMotifInfo(
+        grl = grl,
+        p2g = p2g,
+        peakMatrix = PeakMatrix
+    )
+    regulon <- getRegulon(
+        p2g = p2g,
+        overlap = overlap,
+        aggregate = FALSE
+    )
+
+
+    # --- Network Pruning [] ---
+    # Key functions: pruneRegulon
+    pruned.regulon <- pruneRegulon(
+        expMatrix = GeneExpressionMatrix,
+        exp_assay = "normalizedCounts",
+        peakMatrix = PeakMatrix,
+        peak_assay = "counts",
+        test = "chi.sq",
+        regulon = regulon,
+        clusters = GeneExpressionMatrix$Clusters,
+        prune_value = "pval",
+        regulon_cutoff = 0.05
+    )
+
+
+    # --- Regulon Weighting and Annotation [] ---
+    # Key functions: addWeights, addMotifScore, addLogFC
+    regulon.w <- addWeights(
+        regulon = pruned.regulon,
+        expMatrix = GeneExpressionMatrix,
+        exp_assay = "normalizedCounts",
+        peakMatrix = PeakMatrix,
+        peak_assay = "counts",
+        clusters = GeneExpressionMatrix$Clusters,
+        method = "wilcox"
+    )
+    regulon.w <- addMotifScore(
+        regulon = regulon.w,
+        peaks = rowRanges(PeakMatrix),
+        species = "human",
+        genome = "hg38"
+    )
+    regulon.w <- addLogFC(
+        regulon = regulon.w,
+        clusters = GeneExpressionMatrix$hash_assignment,
+        expMatrix = GeneExpressionMatrix,
+        assay.type = "normalizedCounts",
+        pval.type = "any",
+        logFC_condition = c("HTO10_GATA6_UTR", "HTO2_GATA6_v2"),
+        logFC_ref = "HTO5_NeonG_v2"
+    )
+
+
+    # --- Transcription Factor Activity Estimation [] ---
+    # Key functions: calculateActivity
+    score.combine <- calculateActivity(
+        expMatrix = GeneExpressionMatrix,
+        regulon = regulon.w,
+        mode = "weight",
+        method = "weightedMean",
+        exp_assay = "normalizedCounts",
+        normalize = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

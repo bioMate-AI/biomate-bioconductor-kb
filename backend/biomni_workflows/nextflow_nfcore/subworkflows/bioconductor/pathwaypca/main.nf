@@ -38,26 +38,49 @@ process BIOC_PATHWAYPCA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pathwayPCA)
     library(AESPCA_pVals)
     library(CreateOmics)
     library(SubsetPathwayData)
     library(Surv)
     library(jsonlite)
 
-    # --- Data import and preprocessing [] ---
-    # Key functions: url
-    ovCNV_aespcOut <- readRDS(
-    url(paste0(gitHubPath_char, "ovarian_copyNum_aespcOut.RDS"))
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, theme_bw, aes, geom_col, geom_text, labs, theme_classic, geom_histogram
-    ggplot(wp195gather_df, aes(x = protein, y = sampleID)) +
-    geom_tile(aes(fill = value)) +
-    scale_fill_gradient2(low = "red", mid = "black", high = "green") +
-    # --- DownloadPathwayArchive analysis [] ---
-    # Key functions: downloadPathwayArchive, read_gmt, CreateOmics, AESPCA_pVals, getPathpVals, getPathPCLs, arrange, SubsetPathwayData
-    kidneyWP1559_df <- bind_cols(
-    getPathPCLs(kidney_aespcOut, "WP1559")$PCs %>% select(PC1 = V1)
-    mutate(direction = ifelse(PC1 > median(PC1), "High", "Low")) %>%
+    # --- Omics Container Creation [] ---
+    # Key functions: CreateOmics
+    ov_OmicsSurv <- CreateOmics(
+        assayData_df = ovSurv_df[, -(2:3)],
+        pathwayCollection_ls = wikipathways_PC,
+        response = ovSurv_df[, 1:3],
+        respType = "survival",
+        minPathSize = 5
+    )
+
+
+    # --- Pathway Significance Analysis [] ---
+    # Key functions: AESPCA_pVals, getPathpVals
+    ovarian_aespcOut <- AESPCA_pVals(
+        object = ov_OmicsSurv,
+        numPCs = 1,
+        parallel = FALSE,
+        numReps = 0,
+        adjustment = "BH"
+    )
+    ovOutGather_df <- getPathpVals(
+        ovarian_aespcOut,
+        score = TRUE
+    )
+
+
+    # --- Pathway Loading and Data Extraction [] ---
+    # Key functions: getPathPCLs, SubsetPathwayData
+    wp195PCLs_ls <- getPathPCLs(
+        ovarian_aespcOut,
+        "WP195"
+    )
+    wp195Data_df <- SubsetPathwayData(
+        ov_OmicsSurv,
+        "WP195"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

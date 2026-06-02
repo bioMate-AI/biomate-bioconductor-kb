@@ -38,17 +38,34 @@ process BIOC_TRANSLATOME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tRanslatome)
     library(GOComparison)
     library(GOEnrichment)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: newTranslatomeDataset, computeDEGs, GOEnrichment, GOComparison
-    ##loading the tRanslatome package
-     library(tRanslatome)
-     ##loading the training data set
-     data(tRanslatomeSampleData)
-     translatome.analysis <- newTranslatomeDataset(expressionMatrix,
+    # --- Differential Expression Analysis [] ---
+    # Key functions: computeDEGs
+    limma.DEGs <- computeDEGs(
+        translatome.analysis,
+        method = "limma",
+        mult.cor = TRUE
+    )
+
+
+    # --- Functional Enrichment Analysis [] ---
+    # Key functions: GOEnrichment
+    CCEnrichment <- GOEnrichment(
+        limma.DEGs,
+        ontology = "CC",
+        classOfDEGs = "up",
+        test.method = "elim",
+        test.threshold = 0.05
+    )
+
+
+    # --- Comparative Enrichment Analysis [] ---
+    # Key functions: GOComparison
+    CCComparison <- GOComparison(CCEnrichment)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

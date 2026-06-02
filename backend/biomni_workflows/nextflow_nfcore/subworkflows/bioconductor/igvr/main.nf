@@ -38,37 +38,27 @@ process BIOC_IGVR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(igvR)
     library(DataFrameAnnotationTrack)
     library(DataFrameQuantitativeTrack)
     library(jsonlite)
 
-    # --- igv R [] ---
-    # Key functions: igvR, setBrowserWindowTitle, setGenome
-    igv <- igvR()
-    setBrowserWindowTitle(igv, "simple igvR demo")
-    setGenome(igv, "hg38")
-    # --- show Genomic Region [] ---
+    # --- Genomic Region Navigation [] ---
     # Key functions: showGenomicRegion
-    showGenomicRegion(igv, "MYC")
-    # --- simple data.frame [] ---
-    # Key functions: getGenomicRegion, DataFrameAnnotationTrack, displayTrack
-    loc <- getGenomicRegion(igv)
-    tbl.bed <- data.frame(chrom=loc$chrom, start=loc$start + 2000, end=loc$end-2000,
-    track <- DataFrameAnnotationTrack("simple bed", tbl.bed, color="random")
-    # --- get Genomic Region [] ---
-    # Key functions: getGenomicRegion, with, sample, DataFrameQuantitativeTrack
-    loc <- getGenomicRegion(igv)
-    size <- with(loc, 1 + end - start)
-    starts <- seq(loc$start, loc$end, by=5)
-    # --- get Genomic Region [] ---
-    # Key functions: getGenomicRegion, showGenomicRegion
-    loc <- getGenomicRegion(igv)
-    half.span <- round((loc$end-loc$start)/2)
-    new.region <- with(loc, sprintf("%s:%d-%d", chrom, start-half.span, end+half.span))
-    # --- zoom out new [] ---
-    # Key functions: zoomOut, zoomIn
-    zoomOut(igv)
-    zoomIn(igv)
+    showGenomicRegion(
+        obj = igv,
+        region = "chr1:10,000,000-11,000,000"
+    )
+
+
+    # --- Track Creation and Display [] ---
+    # Key functions: DataFrameQuantitativeTrack, displayTrack
+    track <- DataFrameQuantitativeTrack(
+        trackName = "Sample Quantitative Track",
+        quantitativeData = track_data_frame,
+        color = "blue"
+    )
+    displayTrack(igv, track)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

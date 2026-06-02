@@ -38,66 +38,28 @@ process BIOC_FASTLIQUIDASSOCIATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(fastLiquidAssociation)
     library(CNM)
     library(GLA)
     library(jsonlite)
 
-    # --- Loaddata [] ---
-    # Key functions: na, exprs
-    library(fastLiquidAssociation)
-    suppressMessages(library(yeastCC))
-    suppressMessages(library(org.Sc.sgd.db))
-    data(spYCCES)
-    lae <- spYCCES[,-(1:4)]
-    # --- Calculate Top Mla [] ---
-    # Key functions: detectCores, fastMLA
-    detectCores()
-    example <- fastMLA(data=data,topn=50,nvec=1:5,rvalue=0.5,cut=4,threads=detectCores())
-    example[1:5,]
-    # --- Stopcluster1 [] ---
-    # Key functions: stopImplicitCluster, closeAllConnections
-    stopImplicitCluster()
-    # closeAllConnections()
-    # --- Calculate Cnm [] ---
-    # Key functions: CNM
-    #from our example with fastMLA
-    CNMcalc <- mass.CNM(data=data,GLA.mat=example,nback=5)
-    CNMcalc
-    # --- Calculate Cnm Boots [] ---
-    # Key functions: exprs, CNM
-    fulldata <- t(exprs(lae))
-    load(system.file('data','testmat.RData',package='fastLiquidAssociation'))
-    notsense <- testmat
-    CNMother <- mass.CNM(data=fulldata,GLA.mat=notsense,nback=5)
-    CNMother
-    # --- Time Comparison [] ---
-    # Key functions: makeCluster, detectCores, registerDoParallel
-    #determine number of processors for multicore systems
-    clust <- makeCluster(detectCores())
-    registerDoParallel(clust)
-    boottrips <- CNMother[[2]]
-    dim(boottrips)
-    # --- Speed Test [] ---
-    # Key functions: time, GLA, stopCluster
-    #We take the results for the single triplet and put it in matrix format
-    example.boots <- boottrips[1, , drop = FALSE]
-    dim(example.boots)
-    set.seed(1)
-    system.time(GLAnew <- fastboots.GLA(tripmat=example.boots,data=fulldata,
-    # --- Extend Example [] ---
-    # Key functions: new, hyperGTest
-    library(GOstats)
-    library("org.Sc.sgd.db")
-    ##X3 genes
-    topX3 <- unique(example[,3])
-    hyp.cutoff <- 0.05
-    # --- Obtain Gene List [] ---
-    # Key functions: intersect, mappedkeys
-    ###extracts GO list elements of summary(hyperGtestobj)<cutoff
-    ###converts ORFids to Gene names and returns under GO list element
-    ##for ontology BP
-    GOids <- summary(GOout,categorySize=5)$GOBPID
-    check <- GOout@goDag@nodeData@data
+    # --- Parallelized Liquid Association [] ---
+    # Key functions: fastLA
+    la_parallel <- fastLA(
+        data, 
+        percent = 0.1, 
+        topn = 20, 
+        threads = 2
+    )
+
+
+    # --- Targeted Liquid Association [] ---
+    # Key functions: fastLA
+    la_targeted <- fastLA(
+        data[, 1:10], 
+        percent = 0.01, 
+        topn = 5
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

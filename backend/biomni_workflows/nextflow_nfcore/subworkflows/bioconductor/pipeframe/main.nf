@@ -41,96 +41,25 @@ process BIOC_PIPEFRAME {
     library(pipeFrame)
     library(jsonlite)
 
-    # --- Gettmpdir [] ---
-    # Key functions: getTmpDir
-    ---------------------------------------------------------------------
-    # display current temporary directory
-    getTmpDir()
-    # --- Create [] ---
-    # Key functions: create, setTmpDir, getTmpDir
-    ---------------------------------------------------------------------
-    dir.create("./testdir")
-    # set a new temporary directory
-    setTmpDir("./testdir")
-    # display the new temporary directory
-    # --- Getrefdir [] ---
-    # Key functions: getRefDir
-    ---------------------------------------------------------------------
-    # display current reference directory
-    getRefDir()
-    # --- Setrefdir [] ---
-    # Key functions: setRefDir, getRefDir
-    ---------------------------------------------------------------------
-    # set a new reference directory
-    setRefDir("./refdir")
-    # display the new reference directory
-    getRefDir()
-    # --- Getvalidgenome [] ---
-    # Key functions: getValidGenome
-    ---------------------------------------------------------------------
-    getValidGenome()
-    # --- Setgenome [] ---
+    # --- Reference Genome Configuration [] ---
     # Key functions: setGenome, getGenome
-    ---------------------------------------------------------------------
     setGenome("hg19")
-    #display the current configured genome
-    getGenome()
-    # --- Function [] ---
-    # Key functions: getGenome, genomes
-    ---------------------------------------------------------------------
-    library(BSgenome)
-    checkAndInstallBSgenome <- function(refFilePath){
-        genome <- getGenome()
-        bsgenomename<- BSgenome::available.genomes()[
-    # --- Function [] ---
-    # Key functions: getRefRc, is, seqnames, null
-    ---------------------------------------------------------------------
-    checkAndInstallGenomeFa <- function(refFilePath){
-        outFile <- refFilePath
-        bsgenome<-getRefRc("bsgenome")
-        if(!is(bsgenome, "BSgenome")){
-    # --- Initpipeframe [] ---
-    # Key functions: initPipeFrame
-    ---------------------------------------------------------------------
-    initPipeFrame(availableGenome = c("hg19", "hg38", "mm9", "mm10"),
-                  defaultJobName = "test-pipeline",
-                  defaultCheckAndInstallFunc = checkAndInstall
-    )
-    # --- Getthreads [] ---
-    # Key functions: getThreads
-    ---------------------------------------------------------------------
-    # check the max user thread limit
-    getThreads()
-    # --- Setthreads [] ---
-    # Key functions: setThreads, getThreads
-    ---------------------------------------------------------------------
-    # customize the max threads number
-    setThreads(4)
-    # check the max user thread limit
-    getThreads()
-    # --- Getjobname [] ---
-    # Key functions: getJobName
-    ---------------------------------------------------------------------
-    # display the current job name
-    getJobName()
-    # --- Setjobname [] ---
-    # Key functions: setJobName, getJobName, getJobDir
-    ---------------------------------------------------------------------
-    # set a new job name
-    setJobName("testJobName")
-    # display the new job name
-    getJobName()
-    # --- Addedges [] ---
-    # Key functions: addEdges
-    ---------------------------------------------------------------------
-    addEdges(edges = c("RandomRegionOnGenome","OverlappedRandomRegion"),argOrder = 1)
-    # --- Function [] ---
-    # Key functions: environment, call
-    ---------------------------------------------------------------------
-    randomRegionOnGenome <- function(sampleNumb, regionLen = 1000,
-                                     genome = NULL, outputBed = NULL, ...){
-        allpara <- c(list(Class = "RandomRegionOnGenome"),
-                     as.list(environment()),list(...))
+    current_genome <- getGenome()
+
+
+    # --- Pipeline Graph Construction [] ---
+    # Key functions: addEdges, printMap
+    addEdges(edges = c("RandomRegionOnGenome", "OverlappedRandomRegion"),
+             argOrder = 1)
+    printMap()
+
+
+    # --- Step Definition [] ---
+    # Key functions: runWithFinishCheck
+    checkAndInstall <- function() {
+        runWithFinishCheck(func = checkAndInstallBSgenome,
+                           refName = "bsgenome")
+    }
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

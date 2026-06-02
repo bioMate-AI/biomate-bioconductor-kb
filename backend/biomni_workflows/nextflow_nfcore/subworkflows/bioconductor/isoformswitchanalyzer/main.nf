@@ -41,104 +41,63 @@ process BIOC_ISOFORMSWITCHANALYZER {
     library(IsoformSwitchAnalyzeR)
     library(jsonlite)
 
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    myDesign <- data.frame(
-        sampleID = colnames(salmonQuant$abundance)[-1],
-        condition = gsub('_.*', '', colnames(salmonQuant$abundance)[-1])
-    )
-    # --- Data [] ---
-    # Key functions: subsetSwitchAnalyzeRlist
-    ---------------------------------------------------------------------
-    ### load example data
+    # --- Filtering and Part 1 Analysis [] ---
+    # Key functions: subsetSwitchAnalyzeRlist, isoformSwitchAnalysisPart1
     data("exampleSwitchList")
-    ### Subset for quick runtime
     exampleSwitchList <- subsetSwitchAnalyzeRlist(
-    # --- Extractswitchsummary [] ---
-    # Key functions: extractSwitchSummary
-    ---------------------------------------------------------------------
-    extractSwitchSummary( exampleSwitchList )
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("exampleSwitchListAnalyzed")
-    # --- Extractswitchsummary [] ---
-    # Key functions: extractSwitchSummary
-    ---------------------------------------------------------------------
-    extractSwitchSummary(
-        exampleSwitchListAnalyzed,
-        filterForConsequences = TRUE
-    )
-    # --- Subset [] ---
-    # Key functions: extractTopSwitches
-    ---------------------------------------------------------------------
-    subset(
-        extractTopSwitches(
-            exampleSwitchListAnalyzed,
-            filterForConsequences = TRUE,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    ### A newly created switchAnalyzeRlist + switch analysis
-    data("exampleSwitchList")
-    names(exampleSwitchList)
-    # --- Subsetswitchanalyzerlist [] ---
-    # Key functions: subsetSwitchAnalyzeRlist
-    ---------------------------------------------------------------------
-    exampleSwitchList
-    ### Subset
-    subsetSwitchAnalyzeRlist(
-        exampleSwitchList,
-    # --- Frame [] ---
-    # Key functions: frame, importRdata
-    ---------------------------------------------------------------------
-    ### Make design matrix
-    myDesign <- data.frame(
-        sampleID = colnames(salmonQuant$abundance)[-1],
-        condition = gsub('_.*', '', colnames(salmonQuant$abundance)[-1])
-    # --- Importsalmondata [] ---
-    # Key functions: importSalmonData
-    ---------------------------------------------------------------------
-    aSwitchList <- importSalmonData(
-        salmonFileDataFrame = salmonDf, # as created above
-        showProgress=FALSE              # For nicer printout in vignette
-    )
-    # --- Data [] ---
-    # Key functions: preFilter
-    ---------------------------------------------------------------------
-    data("exampleSwitchList")
-    exampleSwitchListFiltered <- preFilter(
         switchAnalyzeRlist = exampleSwitchList,
-        geneExpressionCutoff = 1,
-    # --- Extractsequence [] ---
-    # Key functions: extractSequence
-    ---------------------------------------------------------------------
-    ### This example relies on the example data from the 'Analyzing Open Reading Frames' section above
-    exampleSwitchListAnalyzed <- extractSequence(
-        exampleSwitchListAnalyzed,
-        pathToOutput = '<insert_path>',
-    # --- Analyzealternativesplicing [] ---
-    # Key functions: analyzeAlternativeSplicing, retentions
-    ---------------------------------------------------------------------
-    ### This example relies on the example data from the 'Importing External Sequence Analysis' section above
-    exampleSwitchListAnalyzed <- analyzeAlternativeSplicing(
-        switchAnalyzeRlist = exampleSwitchListAnalyzed,
-        quiet=TRUE
-    # --- Data [] ---
-    # Key functions: subsetSwitchAnalyzeRlist, genes, extractTopSwitches
-    ---------------------------------------------------------------------
-    ### Load already analyzed data
+        subset = abs(exampleSwitchList$isoformFeatures$dIF) > 0.4
+    )
+    exampleSwitchList <- isoformSwitchAnalysisPart1(
+        switchAnalyzeRlist   = exampleSwitchList,
+        outputSequences      = FALSE,
+        prepareForWebServers = FALSE
+    )
+
+
+    # --- Functional Consequences and Part 2 Analysis [] ---
+    # Key functions: isoformSwitchAnalysisPart2, extractSwitchSummary
+    exampleSwitchList <- isoformSwitchAnalysisPart2(
+        switchAnalyzeRlist        = exampleSwitchList,
+        n                         = 10,
+        removeNoncodinORFs        = TRUE,
+        pathToCPC2resultFile      = system.file(
+            "extdata/cpc2_result.txt", package = "IsoformSwitchAnalyzeR"
+        ),
+        pathToPFAMresultFile      = system.file(
+            "extdata/pfam_results.txt", package = "IsoformSwitchAnalyzeR"
+        ),
+        pathToIUPred2AresultFile  = system.file(
+            "extdata/iupred2a_result.txt.gz", package = "IsoformSwitchAnalyzeR"
+        ),
+        pathToSignalPresultFile   = system.file(
+            "extdata/signalP_results.txt", package = "IsoformSwitchAnalyzeR"
+        ),
+        outputPlots               = FALSE
+    )
+    summary_df <- extractSwitchSummary(exampleSwitchList)
+
+
+    # --- Visualization and Enrichment Analysis [] ---
+    # Key functions: switchPlot, extractSwitchOverlap, extractConsequenceSummary
     data("exampleSwitchListAnalyzed")
-    ### Let's reduce the switchAnalyzeRlist to only one condition
-    exampleSwitchListAnalyzedSubset <- subsetSwitchAnalyzeRlist(
-    # --- Extracttopswitches [] ---
-    # Key functions: extractTopSwitches
-    ---------------------------------------------------------------------
-    ### Extract data.frame with all switching isoforms
-    switchingIso <- extractTopSwitches(
-        exampleSwitchListAnalyzedSubset,
-        filterForConsequences = TRUE,
+    switchPlot(
+        exampleSwitchListAnalyzed,
+        gene='ZAK',
+        condition1 = 'COAD_ctrl',
+        condition2 = 'COAD_cancer'
+    )
+    overlap <- extractSwitchOverlap(
+        exampleSwitchListAnalyzed,
+        filterForConsequences=TRUE,
+        plotIsoforms = FALSE
+    )
+    conseq_summary <- extractConsequenceSummary(
+        exampleSwitchListAnalyzed,
+        consequencesToAnalyze='all',
+        plotGenes = FALSE,
+        asFractionTotal = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

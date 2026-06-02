@@ -38,29 +38,50 @@ process BIOC_GOSTATS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GOstats)
     library(GSEAGOHyperGParams)
     library(GSEAKEGGHyperGParams)
     library(GeneSetCollection)
     library(jsonlite)
 
-    # --- Make GSC [] ---
-    # Key functions: GeneSetCollection
-    library("GSEABase")
-    gsc <- GeneSetCollection(goAllFrame, setType = GOCollection())
-    # --- make parameter [] ---
+    # --- Parameter Setup [] ---
     # Key functions: GSEAGOHyperGParams
-    library("GOstats")
-    universe = Lkeys(org.Hs.egGO)
-    params <- GSEAGOHyperGParams(name="My Custom GSEA based annot Params",
-    # --- call HyperGTest [] ---
-    # Key functions: hyperGTest
+    universe <- AnnotationDbi::Lkeys(org.Hs.eg.db::org.Hs.egGO)
+    genes <- universe[1:500]
+    params <- GSEAGOHyperGParams(
+        name = "My Custom GSEA based annot Params",
+        geneSetCollection = gsc,
+        geneIds = genes,
+        universeGeneIds = universe,
+        ontology = "MF",
+        pvalueCutoff = 0.05,
+        conditional = FALSE,
+        testDirection = "over"
+    )
+
+
+    # --- Hypergeometric Testing [] ---
+    # Key functions: hyperGTest, summary
     Over <- hyperGTest(params)
-    head(summary(Over))
-    # --- KEGG Parameters [] ---
-    # Key functions: GeneSetCollection, GSEAKEGGHyperGParams, hyperGTest
-    gsc <- GeneSetCollection(keggFrame, setType = KEGGCollection())
-    universe = Lkeys(org.Hs.egGO)
-    kparams <- GSEAKEGGHyperGParams(name="My Custom GSEA based annot Params",
+    results_summary <- summary(Over)
+    significant_go <- results_summary[results_summary$Pvalue < 0.05, ]
+
+
+    # --- KEGG Pathway Analysis [] ---
+    # Key functions: KEGGFrame, GSEAKEGGHyperGParams, hyperGTest
+    kegg_frame <- AnnotationDbi::toTable(org.Hs.eg.db::org.Hs.egPATH)
+    keggframeData <- data.frame(kegg_frame$path_id, kegg_frame$gene_id)
+    keggFrame <- KEGGFrame(keggframeData, organism = "Homo sapiens")
+    gsc_kegg <- GeneSetCollection(keggFrame, setType = KEGGCollection())
+    kparams <- GSEAKEGGHyperGParams(
+        name = "KEGG GSEA Params",
+        geneSetCollection = gsc_kegg,
+        geneIds = genes,
+        universeGeneIds = universe,
+        pvalueCutoff = 0.05,
+        testDirection = "over"
+    )
+    kOver <- hyperGTest(kparams)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

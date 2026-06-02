@@ -41,31 +41,25 @@ process BIOC_EASYREPORTING {
     library(easyreporting)
     library(jsonlite)
 
-    # --- Mkdtitle [] ---
-    # Key functions: mkdTitle, mkdCodeChunkComplete, quote, importData
-    ---------------------------------------------------------------------
-    mkdTitle(bioEr, title="Loading Counts Data")
-    mkdCodeChunkComplete(object=bioEr, code=quote(geneCounts <- importData(
-          system.file("extdata/GSE134118_Table_S3.xlsx", package="easyreporting"))),
-          sourceFilesList=system.file("script/importFunctions.R", package="easyreporting"))
-    # --- Mkdtitle [] ---
-    # Key functions: mkdTitle, mkdCodeChunkComplete, quote, plotPCA
-    ---------------------------------------------------------------------
-    mkdTitle(bioEr, title="Plot PCA on count data", level=2)
-    mkdCodeChunkComplete(bioEr,
-                            code=quote(EDASeq::plotPCA(as.matrix(geneCounts))))
-    # --- Mkdtitle [] ---
-    # Key functions: mkdTitle, mkdCodeChunkCommented, applyEdgeRExample
-    ---------------------------------------------------------------------
+    # --- Adding Titles and Code Chunks [] ---
+    # Key functions: mkdTitle, mkdCodeChunkComplete
+    mkdTitle(bioEr, title = "Loading Counts Data")
+    mkdCodeChunkComplete(
+        object = bioEr,
+        code = quote(geneCounts <- importData("counts.xlsx")),
+        sourceFilesList = "importFunctions.R"
+    )
+
+
+    # --- Adding Commented Code Chunks [] ---
+    # Key functions: mkdTitle, mkdCodeChunkCommented
     mkdTitle(bioEr, "Differential Expression Analysis")
-    mkdCodeChunkCommented(bioEr,
-        code="degList <- applyEdgeRExample(counts=geneCounts,
-                        samples=colnames(geneCounts), contrast='Pleura - Broth')",
-    # --- Mkdtitle [] ---
-    # Key functions: mkdTitle, mkdCodeChunkComplete, plotMD
-    ---------------------------------------------------------------------
-    mkdTitle(bioEr, "MD Plot of DEGs", level=2)
-    mkdCodeChunkComplete(bioEr, code="limma::plotMD(degList$test)")
+    mkdCodeChunkCommented(
+        object = bioEr,
+        code = "degList <- applyEdgeRExample(counts=geneCounts)",
+        comment = "Perform DE analysis with edgeR.",
+        sourceFilesList = "geneFunctions.R"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

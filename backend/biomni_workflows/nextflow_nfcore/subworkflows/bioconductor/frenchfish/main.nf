@@ -41,18 +41,31 @@ process BIOC_FRENCHFISH {
     library(frenchFISH)
     library(jsonlite)
 
-    # --- correct autocounts [] ---
+    # --- Correct Automatic Counts [] ---
     # Key functions: getAutomaticCountsEstimates
-    set.seed(366)
-    corrected_automatic_counts <- getAutomaticCountsEstimates(automatic_counts,
-    # --- readin manualcounts [] ---
-    # Key functions: cbind
-    manual_counts <- cbind(red = round(runif(20,0,5), 0),
-    green = round(runif(20,0,5), 0),
-    blue = round(runif(20,0,5), 0))
-    # --- correct manualcounts [] ---
+    nuclear_radius <- 40
+    section_height <- 5
+    corrected_automatic_counts <- getAutomaticCountsEstimates(
+        automatic_counts, 
+        nuclear_radius, 
+        section_height
+    )
+
+
+    # --- Correct Manual Counts [] ---
     # Key functions: getManualCountsEstimates
-    corrected_manual_counts <- getManualCountsEstimates(manual_counts,
+    manual_counts <- matrix(
+        c(2, 1, 3, 0, 1, 2, 4, 1, 0, 2, 1, 1),
+        ncol = 3,
+        dimnames = list(NULL, c("red", "green", "blue"))
+    )
+    nuclear_radius <- 8
+    section_height <- 4
+    corrected_manual_counts <- getManualCountsEstimates(
+        manual_counts, 
+        nuclear_radius, 
+        section_height
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

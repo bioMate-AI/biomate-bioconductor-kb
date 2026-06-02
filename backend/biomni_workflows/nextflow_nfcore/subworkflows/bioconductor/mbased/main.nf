@@ -38,6 +38,7 @@ process BIOC_MBASED {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MBASED)
     library(GRanges)
     library(IRanges)
     library(MulticoreParam)
@@ -45,79 +46,69 @@ process BIOC_MBASED {
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Example1S Sim Phased [] ---
-    # Key functions: args, GRanges, IRanges
-    set.seed(988482)
-    library(MBASED)
-    ##a quick look at the main function
-    args(runMBASED)
-    ## create GRanges object for SNVs of interest.
-    # --- Example1S Sim Unphased [] ---
-    # Key functions: summarizeASEResults_1s, runMBASED, SerialParam
-    summarizeASEResults_1s(
-      runMBASED(
+    # --- Phased ASE Analysis [] ---
+    # Key functions: runMBASED, SerialParam, assays
+    ASEresults_1s_haplotypesKnown <- runMBASED(
+        ASESummarizedExperiment=mySample,
+        isPhased=TRUE,
+        numSim=10^5,
+        BPPARAM=BiocParallel::SerialParam()
+    )
+    ase_maf <- SummarizedExperiment::assays(
+        ASEresults_1s_haplotypesKnown
+    )$majorAlleleFrequency
+    ase_pval <- SummarizedExperiment::assays(
+        ASEresults_1s_haplotypesKnown
+    )$pValueASE
+
+
+    # --- Unphased ASE Analysis [] ---
+    # Key functions: runMBASED, SerialParam, assays
+    ASEresults_1s_unphased <- runMBASED(
         ASESummarizedExperiment=mySample,
         isPhased=FALSE,
-        numSim=10^6,
-    # --- Example1S Nosim [] ---
-    # Key functions: summarizeASEResults_1s, runMBASED, SerialParam
-    ##re-run analysis without simulations
-    summarizeASEResults_1s(
-      runMBASED(
-        ASESummarizedExperiment=mySample,
+        numSim=10^5,
+        BPPARAM=BiocParallel::SerialParam()
+    )
+    unphased_maf <- SummarizedExperiment::assays(
+        ASEresults_1s_unphased
+    )$majorAlleleFrequency
+    unphased_pval <- SummarizedExperiment::assays(
+        ASEresults_1s_unphased
+    )$pValueASE
+
+
+    # --- Two-Sample Comparative ASE Analysis [] ---
+    # Key functions: GRanges, SummarizedExperiment, runMBASED, SerialParam
+    mySNVs_2s <- GenomicRanges::GRanges(
+        seqnames=c('chr1', 'chr2', 'chr2', 'chr2', 'chr3'),
+        ranges=IRanges::IRanges(start=c(100, 1000, 1100, 1200, 2000), width=1),
+        aseID=c('gene1', rep('gene2', 3), 'gene3'),
+        allele1=c('G', 'A', 'C', 'A', 'T'),
+        allele2=c('T', 'C', 'T', 'G', 'G')
+    )
+    names(mySNVs_2s) <- c(
+        'gene1_SNV1', 'gene2_SNV1', 'gene2_SNV2', 'gene2_SNV3', 'gene3_SNV1'
+    )
+    myTumorNormalExample <- SummarizedExperiment::SummarizedExperiment(
+        assays=list(
+            lociAllele1Counts=matrix(
+                c(25, 10, 35, 14, 35, 18, 17, 21, 25, 40), ncol=2,
+                dimnames=list(names(mySNVs_2s), c('tumor', 'normal'))
+            ),
+            lociAllele2Counts=matrix(
+                c(20, 29, 15, 40, 9, 23, 19, 24, 31, 10), ncol=2,
+                dimnames=list(names(mySNVs_2s), c('tumor', 'normal'))
+            )
+        ),
+        rowRanges=mySNVs_2s
+    )
+    ASEresults_2s <- runMBASED(
+        ASESummarizedExperiment=myTumorNormalExample,
         isPhased=FALSE,
-    # --- Example1S Parallel [] ---
-    # Key functions: summarizeASEResults_1s, runMBASED, MulticoreParam, time, SerialParam
-    ## ##re-run analysis while parallelizing computations
-    ## ## results are same as before
-    ## ## with some random flactuations due to simulations
-    ## summarizeASEResults_1s(
-    ##   runMBASED(
-    # --- Binomtestillustration [] ---
-    # Key functions: test
-    binom.test(25, 45, 0.5, 'two.sided')$p.value
-    # --- Isoform Specific [] ---
-    # Key functions: SummarizedExperiment, summarizeASEResults_1s, runMBASED, MulticoreParam
-    isoSpecificExampleSNVs <- mySNVs[2:4,]
-    ## create input RangedSummarizedExperiment object
-    isoSpecificExample <- SummarizedExperiment(
-      assays=list(
-        lociAllele1Counts=matrix(
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, IRanges, SummarizedExperiment
-    mySNVs_2s <- GRanges(
-      seqnames=c('chr1', 'chr2', 'chr2', 'chr2', 'chr3'),
-      ranges=IRanges(start=c(100, 1000, 1100, 1200, 2000), width=1),
-      aseID=c('gene1', rep('gene2', 3), 'gene3'),
-      allele1=c('G', 'A', 'C', 'A', 'T'),
-    # --- Two Sample Asymmetric [] ---
-    # Key functions: tumor, normal, GRanges, IRanges, summarizeASEResults_2s, runMBASED
-    ## single-SNV gene with strong ASE in tumor (25 vs. 5 reads)
-    ## and no ASE in normal (22 vs. 23 reads):
-    mySNV <- GRanges(
-      seqnames=c('chr1'),
-      ranges=IRanges(start=c(100), width=1),
-    # --- Example1S Refbias No Adjustment [] ---
-    # Key functions: summarizeASEResults_1s, runMBASED, SummarizedExperiment, SerialParam
-    mySNVs
-    ## run MBASED with default values:
-    summarizeASEResults_1s(
-      runMBASED(
-        SummarizedExperiment(
-    # --- Example1S Refbias Adjustment [] ---
-    # Key functions: summarizeASEResults_1s, runMBASED, SummarizedExperiment, SerialParam
-    ##run the analysis adjusting for pre-existing allelic bias
-    summarizeASEResults_1s(
-      runMBASED(
-        SummarizedExperiment(
-          assays=list(
-    # --- Overdispersion Example [] ---
-    # Key functions: vectorizedRbetabinomMR, summarizeASEResults_1s, runMBASED, SummarizedExperiment
-    set.seed(5) ## we chose this seed to get a 'significant' result
-    totalAlleleCounts=c(45, 26, 37, 30)
-    ## simulate allele1 counts
-    allele1Counts <- MBASED:::vectorizedRbetabinomMR(
-      n=4,
+        numSim=10^5,
+        BPPARAM=BiocParallel::SerialParam()
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

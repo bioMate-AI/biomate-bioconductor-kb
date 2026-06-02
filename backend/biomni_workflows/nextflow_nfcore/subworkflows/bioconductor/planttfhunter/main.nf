@@ -41,24 +41,25 @@ process BIOC_PLANTTFHUNTER {
     library(planttfhunter)
     library(jsonlite)
 
-    # --- kable [] ---
-    # Key functions: kable
-    data(classification_scheme)
-    knitr::kable(classification_scheme)
-    # --- identifying tfs [] ---
-    # Key functions: annotate_pfam
-    data(gsu_annotation)
-    if(hmmer_is_installed()) {
-    gsu_annotation <- annotate_pfam(gsu)
-    # --- classifying tfs [] ---
+    # --- TF Classification [] ---
     # Key functions: classify_tfs
+    data(gsu_annotation)
     gsu_families <- classify_tfs(gsu_annotation)
-    head(gsu_families)
-    table(gsu_families$Family)
-    # --- get tf counts [] ---
-    # Key functions: get_tf_counts, assay, colData
-    data(tf_counts)
-    if(hmmer_is_installed()) {
+    family_counts <- table(gsu_families$Family)
+
+
+    # --- Abundance Quantification [] ---
+    # Key functions: get_tf_counts
+    data(gsu)
+    proteomes <- list(
+        Gsu1 = gsu[1:10],
+        Gsu2 = gsu[11:20]
+    )
+    species_metadata <- data.frame(
+        row.names = names(proteomes),
+        Division = "Rhodophyta",
+        Origin = c("US", "Belgium")
+    )
     tf_counts <- get_tf_counts(proteomes, species_metadata)
 
     # --- Save outputs ---

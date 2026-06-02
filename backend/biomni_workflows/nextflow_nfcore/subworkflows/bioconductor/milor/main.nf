@@ -38,58 +38,59 @@ process BIOC_MILOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(miloR)
     library(MouseSMARTseqData)
     library(jsonlite)
 
-    # --- Mousesmartseqdata [] ---
-    # Key functions: MouseSMARTseqData, logNormCounts
-    ---------------------------------------------------------------------
-    thy.sce <- MouseSMARTseqData() # this function downloads the full SCE object
-    thy.sce <- logNormCounts(thy.sce)
-    thy.sce
-    # --- Buildgraph [] ---
-    # Key functions: buildGraph, makeNhoods, colData, countCells, frame
-    ---------------------------------------------------------------------
-    # we build KNN graph
+    # --- Graph Construction and Neighborhood Counting [] ---
+    # Key functions: buildGraph, makeNhoods, countCells, plotNhoodSizeHist
     thy.milo <- buildGraph(thy.milo, k = 11, d = 40)
-    thy.milo <- makeNhoods(thy.milo, prop = 0.2, k = 11, d=40, refined = TRUE, refinement_scheme="graph") # make nhoods using graph-only as this is faster
-    colData(thy.milo)$Sample <- paste(colData(thy.milo)$SortDay, colData(thy.milo)$Age, sep="_")
-    # --- Plotnhoodsizehist [] ---
-    # Key functions: plotNhoodSizeHist
-    ---------------------------------------------------------------------
+    thy.milo <- makeNhoods(
+        thy.milo,
+        prop = 0.2,
+        k = 11,
+        d = 40,
+        refined = TRUE,
+        refinement_scheme = "graph"
+    )
+    colData(thy.milo)$Sample <- paste(
+        colData(thy.milo)$SortDay,
+        colData(thy.milo)$Age,
+        sep = "_"
+    )
+    thy.milo <- countCells(
+        thy.milo,
+        meta.data = data.frame(colData(thy.milo)),
+        samples = "Sample"
+    )
     plotNhoodSizeHist(thy.milo)
-    # --- Frame [] ---
-    # Key functions: frame, colData, distinct, nhoodCounts
-    ---------------------------------------------------------------------
-    thy.design <- data.frame(colData(thy.milo))[,c("Sample", "SortDay", "Age")]
-    thy.design <- distinct(thy.design)
+
+
+    # --- Differential Abundance Testing [] ---
+    # Key functions: testNhoods
+    thy.design <- data.frame(colData(thy.milo))[, c("Sample", "SortDay", "Age")]
+    thy.design <- dplyr::distinct(thy.design)
     rownames(thy.design) <- thy.design$Sample
-    ## Reorder rownames to match columns of nhoodCounts(milo)
-    # --- Rownames [] ---
-    # Key functions: testNhoods
-    ---------------------------------------------------------------------
-    rownames(thy.design) <- thy.design$Sample
-    contrast.1 <- c("Age1wk - Age4wk") # the syntax is <VariableName><ConditionLevel> - <VariableName><ControlLevel>
-    # we need to use the ~ 0 + Variable expression here so that we have all of the levels of our variable as separate columns in our model matrix
-    da_results <- testNhoods(thy.milo, design = ~ 0 + Age, design.df = thy.design, model.contrasts = contrast.1,
-    # --- Testnhoods [] ---
-    # Key functions: testNhoods
-    ---------------------------------------------------------------------
-    contrast1.res <- testNhoods(thy.milo, design=~0+ Age, design.df=thy.design, fdr.weighting="graph-overlap", model.contrasts = contrast.all)
-    head(contrast1.res)
-    # --- Matrix [] ---
-    # Key functions: makeContrasts
-    ---------------------------------------------------------------------
-    model <- model.matrix(~ 0 + Age, data=thy.design)
-    ave.contrast <- c("Age1wk - (Age4wk + Age16wk + Age32wk + Age52wk)/4")
-    mod.constrast <- makeContrasts(contrasts=ave.contrast, levels=model)
-    mod.constrast
-    # --- Testnhoods [] ---
-    # Key functions: testNhoods
-    ---------------------------------------------------------------------
-    da_results <- testNhoods(thy.milo, design = ~ 0 + Age, design.df = thy.design, model.contrasts = ave.contrast, fdr.weighting="graph-overlap")
-    table(da_results$SpatialFDR < 0.1)
-    head(da_results)
+    thy.design <- thy.design[colnames(nhoodCounts(thy.milo)), , drop = FALSE]
+    contrast.1 <- c("Age1wk - Age4wk")
+    da_results <- testNhoods(
+        thy.milo,
+        design = ~ 0 + Age,
+        design.df = thy.design,
+        model.contrasts = contrast.1,
+        fdr.weighting = "graph-overlap",
+        norm.method = "TMM"
+    )
+
+
+    # --- Neighborhood Graph Visualization [] ---
+    # Key functions: buildNhoodGraph, plotNhoodGraphDA
+    thy.milo <- buildNhoodGraph(thy.milo)
+    plotNhoodGraphDA(
+        thy.milo,
+        da_results,
+        alpha = 0.1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

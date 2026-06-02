@@ -38,33 +38,47 @@ process BIOC_MUSCAT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(muscat)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, query
-    library(ExperimentHub)
-    eh <- ExperimentHub()
-    query(eh, "Kang")
-    # --- Compute per-cell QC metrics [] ---
-    # Key functions: perCellQCMetrics, isOutlier
-    calculate per-cell quality control (QC) metrics
-    library(scater)
-    qc <- perCellQCMetrics(sce)
-    # --- Log-normalize count data [] ---
-    # Key functions: computeLibraryFactors, logNormCounts
-    sce <- computeLibraryFactors(sce)
-    sce <- logNormCounts(sce)
-    # --- Run UMAP embedding [] ---
-    # Key functions: runUMAP, plotReducedDim, guides, theme_minimal
-    sce <- runUMAP(sce, pca = 20)
-    .plot_dr <- function(sce, dr, col)
-    plotReducedDim(sce, dimred = dr, colour_by = col) +
-    # --- Assay listing [] ---
-    # Key functions: assays, split, unlist, sample, aggregateData, assayNames, mmDS, arrange
-    plotExpression(sce[, sce$cluster_id == "B cells"],
-    features = tbl_fil$`B cells`$gene[seq_len(6)],
-    guides(fill = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+    # --- Data Preparation [prepSCE] ---
+    # Key functions: prepSCE
+    sce$id <- paste0(sce$stim, sce$ind)
+    sce <- prepSCE(
+        sce,
+        kid = "cell",
+        gid = "stim",
+        sid = "id",
+        drop = TRUE
+    )
+
+    # --- Pseudobulk Aggregation [aggregateData] ---
+    # Key functions: aggregateData
+    pb <- aggregateData(
+        sce,
+        assay = "counts",
+        fun = "sum",
+        by = c("cluster_id", "sample_id")
+    )
+
+    # --- Multidimensional Scaling [pbMDS] ---
+    # Key functions: pbMDS
+    pb_mds <- pbMDS(pb)
+
+    # --- Differential State Analysis [pbDS] ---
+    # Key functions: pbDS
+    res <- pbDS(pb, verbose = FALSE)
+    tbl <- res$table[[1]]
+    tbl_fil <- lapply(tbl, function(u) {
+        u <- u[u$p_adj.loc < 0.05 & abs(u$logFC) > 1, ]
+        u[order(u$p_adj.loc), ]
+    })
+
+    # --- Expression Frequency Calculation [calcExprFreqs] ---
+    # Key functions: calcExprFreqs
+    frq <- calcExprFreqs(sce, assay = "counts", th = 0)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

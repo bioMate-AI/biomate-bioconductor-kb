@@ -41,31 +41,63 @@ process BIOC_PHYLOSEQ {
     library(phyloseq)
     library(jsonlite)
 
-    # --- Prune rare taxa from phyloseq object [] ---
-    # Key functions: theme_set, prune_taxa, get_variable, sample_data, subset_taxa
-    data(GlobalPatterns)
-    topsp <- names(sort(taxa_sums(GlobalPatterns), TRUE)[1:200])
-    GP    <- prune_taxa(topsp, GlobalPatterns)
-    # --- Get taxonomic rank names [] ---
-    # Key functions: rank_names, prune_taxa, sample_variables
-    par(mar = c(10, 4, 4, 2) + 0.1) # make more room on bottom margin
-    barplot(sort(taxa_sums(enterotype), TRUE)[1:N]/nsamples(enterotype), las=2)
-    rank_names(enterotype)
-    # --- Subset taxa by criteria [] ---
-    # Key functions: subset_taxa, ordinate, plot_scree
+    # --- Taxonomic and Sample Filtering ---
+    # Key functions: subset_taxa, prune_taxa, taxa_sums, tax_table
     data("GlobalPatterns")
-    gpac <- subset_taxa(GlobalPatterns, Phylum=="Crenarchaeota")
-    (p <- plot_heatmap(gpac, "NMDS", "bray", "SampleType", "Family"))
-    # --- Visualize phylogenetic tree [] ---
-    # Key functions: plot_tree, plot_bar, plot_net, plot_scree, plot_ordination, facet_wrap, melt, ggplot
-    p1  <- plot_ordination(GP, gpca, "species", color="Phylum")
-    (p1 <- ggplot(p1$data, p1$mapping) + geom_point(size=5, alpha=0.5) +
-    facet_wrap(~Phylum) +  scale_colour_hue(guide = FALSE) )
-    # --- Scatter plot visualization [] ---
-    # Key functions: geom_point, geom_line, facet_wrap, distance
-    (p12 <- plot_ordination(GlobalPatterns, GloPa.pcoa, "samples", color="SampleType") +
-    geom_point(size=5) + geom_path() + scale_colour_hue(guide = FALSE) )
-    (p13 <- plot_ordination(GlobalPatterns, GloPa.pcoa, "samples", axes=c(1, 3),
+    top_otus <- names(sort(taxa_sums(GlobalPatterns), TRUE)[1:200])
+    gp_subset <- prune_taxa(top_otus, GlobalPatterns)
+    top_phyla <- sort(tapply(taxa_sums(gp_subset),
+        tax_table(gp_subset)[, "Phylum"], sum), decreasing = TRUE)[1:5]
+    gp_filtered <- subset_taxa(gp_subset,
+        Phylum %in% names(top_phyla))
+
+    # --- Alpha Diversity Analysis ---
+    # Key functions: plot_richness
+    data("GlobalPatterns")
+    alpha_meas <- c("Observed", "Chao1", "Shannon", "Simpson")
+    richness_plot <- plot_richness(GlobalPatterns,
+        x = "SampleType",
+        measures = alpha_meas)
+
+    # --- Ordination and Dimension Reduction ---
+    # Key functions: ordinate, plot_scree, plot_ordination
+    data("GlobalPatterns")
+    gp_pcoa <- ordinate(GlobalPatterns,
+        method = "PCoA",
+        distance = "bray")
+    scree_p <- plot_scree(gp_pcoa,
+        title = "Scree Plot")
+    ord_p <- plot_ordination(GlobalPatterns,
+        gp_pcoa,
+        type = "samples",
+        color = "SampleType")
+
+    # --- Taxonomic Abundance Visualization ---
+    # Key functions: plot_bar, plot_heatmap, subset_taxa
+    data("GlobalPatterns")
+    gp_cren <- subset_taxa(GlobalPatterns, Phylum == "Crenarchaeota")
+    bar_p <- plot_bar(gp_cren,
+        x = "SampleType",
+        fill = "Family")
+    heat_p <- plot_heatmap(gp_cren,
+        method = "NMDS",
+        distance = "bray",
+        sample.label = "SampleType",
+        taxa.label = "Family")
+
+    # --- Phylogenetic Tree and Network Visualization ---
+    # Key functions: subset_taxa, plot_tree, plot_net
+    data("GlobalPatterns")
+    gp_chlam <- subset_taxa(GlobalPatterns, Phylum == "Chlamydiae")
+    tree_p <- plot_tree(gp_chlam,
+        color = "SampleType",
+        shape = "Family",
+        label.tips = "Genus",
+        size = "Abundance")
+    net_p <- plot_net(gp_chlam,
+        maxdist = 0.4,
+        color = "SampleType")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,35 +41,18 @@ process BIOC_RNASEQCOMP {
     library(rnaseqcomp)
     library(jsonlite)
 
-    # --- markdown [] ---
-    # Key functions: markdown
-    BiocStyle::markdown()
-    knitr::opts_chunk$set(dev="png",fig.show="hold",
-    # --- rep [] ---
-    # Key functions: rep
-    condInfo <- factor(simdata$samp$condition)
-    repInfo <- factor(simdata$samp$replicate)
-    evaluationFeature <- rep(TRUE, nrow(simdata$meta))
-    # --- signal Calibrate [] ---
-    # Key functions: signalCalibrate, show
-    dat <- signalCalibrate(simdata$quant, condInfo, repInfo, evaluationFeature,
-    class(dat)
-    show(dat)
-    # --- plot S D [] ---
-    # Key functions: plotSD
-    plotSD(dat,ylim=c(0,1.4))
-    # --- plot N E [] ---
-    # Key functions: plotNE
-    plotNE(dat,xlim=c(0.5,1))
-    # --- plot2 T X [] ---
-    # Key functions: plot2TX
-    plot2TX(dat,genes=simdata$meta$gene,ylim=c(0,0.6))
-    # --- plot R O C [] ---
-    # Key functions: plotROC
-    plotROC(dat,simdata$meta$positive,simdata$meta$fcsign,ylim=c(0,0.8))
-    # --- plot F C [] ---
-    # Key functions: plotFC
-    plotFC(dat,simdata$meta$positive,simdata$meta$fcsign,ylim=c(0,1.2))
+    # --- Quality Control and Dispersion Plotting [] ---
+    # Key functions: plotSD, plotNE, plot2TX
+    plotSD(dat, ylim = c(0, 1.4))
+    plotNE(dat, xlim = c(0.5, 1))
+    plot2TX(dat, genes = simdata$meta$gene, ylim = c(0, 0.6))
+
+
+    # --- Differential Expression Evaluation [] ---
+    # Key functions: plotROC, plotFC
+    simdata$meta$fcsign[simdata$meta$fcstatus == "off.on"] <- NA
+    plotROC(dat, simdata$meta$positive, simdata$meta$fcsign, ylim = c(0, 0.8))
+    plotFC(dat, simdata$meta$positive, simdata$meta$fcsign, ylim = c(0, 1.2))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

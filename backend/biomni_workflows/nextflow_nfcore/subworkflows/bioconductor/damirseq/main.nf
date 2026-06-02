@@ -41,43 +41,53 @@ process BIOC_DAMIRSEQ {
     library(DaMiRseq)
     library(jsonlite)
 
-    # --- chu 2 [] ---
-    # Key functions: assay, colData
-    data(SE)
-    assay(SE)[1:5, c(1:5, 21:25)]
-    colData(SE)
-    # --- chu 5 [] ---
-    # Key functions: assay
-    data_norm <- DaMiR.normalization(SE, minCounts=10, fSample=0.7,
-    print(data_norm)
-    assay(data_norm)[c(1:5), c(1:5, 21:25)]
-    # --- chu 10 [] ---
-    # Key functions: assay
-    data_adjust<-DaMiR.SVadjust(data_filt, sv, n.sv=4)
-    assay(data_adjust[c(1:5), c(1:5, 21:25)])
-    # --- chu 13 [] ---
-    # Key functions: colData
-    set.seed(12345)
-    data_clean<-DaMiR.transpose(assay(data_adjust))
-    df<-colData(data_adjust)
-    # --- chu 17bis1 [] ---
-    # Key functions: sample
-    set.seed(10101)
-    idx_test <- sample(1:ncol(data_adjust), 10)
-    idx_test_cl1<-sample(1:(ncol(data_adjust)/2), nSampl_cl1)
-    # --- chu 17bis12 [] ---
-    # Key functions: rep
-    cv_sample <- c(rep(seq_len(nfold), each=ncol(Learning_set)/(2*nfold)),
-    rep(seq_len(nfold), each=ncol(Learning_set)/(2*nfold)))
-    cv_models <- list()
-    # --- chu 18 [] ---
-    # Key functions: colData
-    set.seed(12345)
-    data_clean_2<-DaMiR.transpose(assay(data_filt))
-    df_2<-colData(data_filt)
-    # --- to Latex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    # --- Batch Effect Correction [] ---
+    # Key functions: DaMiR.SV, DaMiR.SVadjust, DaMiR.Allplot
+    sv <- DaMiR.SV(data_filt)
+    data_adjust <- DaMiR.SVadjust(data_filt, sv, n.sv = 4)
+    DaMiR.Allplot(data_adjust, colData(data_adjust))
+
+
+    # --- Feature Selection and Dimension Reduction [] ---
+    # Key functions: DaMiR.transpose, DaMiR.FSelect, DaMiR.FReduct, DaMiR.MDSplot
+    data_clean <- DaMiR.transpose(assay(data_adjust))
+    df <- colData(data_adjust)
+    data_reduced <- DaMiR.FSelect(data_clean, df, th.corr = 0.4)
+    data_reduced_red <- DaMiR.FReduct(data_reduced$data)
+    DaMiR.MDSplot(data_reduced_red, df)
+
+
+    # --- Feature Ranking and Selection [] ---
+    # Key functions: DaMiR.FSort, DaMiR.FBest, DaMiR.Clustplot
+    df_importance <- DaMiR.FSort(data_reduced_red, df)
+    selected_features <- DaMiR.FBest(
+        data_reduced_red,
+        ranking = df_importance,
+        n.pred = 5
+    )
+    DaMiR.Clustplot(selected_features$data, df)
+
+
+    # --- Ensemble Learning Classification [] ---
+    # Key functions: DaMiR.EnsembleLearning
+    classification_res <- DaMiR.EnsembleLearning(
+        selected_features$data,
+        classes = df$class,
+        fSample.tr = 0.5,
+        fSample.tr.w = 0.5,
+        iter = 10
+    )
+
+
+    # --- Model Training and Prediction [] ---
+    # Key functions: DaMiR.EnsL_Train, DaMiR.EnsL_Predict
+    idx_test <- c(1:5, 21:25)
+    test_set <- data_adjust[, idx_test, drop = FALSE]
+    train_set <- data_adjust[, -idx_test, drop = FALSE]
+    train_features <- train_set[selected_features$predictors, , drop = FALSE]
+    test_features <- test_set[selected_features$predictors, , drop = FALSE]
+    ensl_model <- DaMiR.EnsL_Train(train_features, cl_type = c("RF", "LR"))
+    res_predict <- DaMiR.EnsL_Predict(test_features, bestModel = ensl_model)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,77 +38,25 @@ process BIOC_SRADB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SRAdb)
     library(SQLite)
     library(TABLE_INFO)
     library(jsonlite)
 
-    # --- Time [] ---
-    # Key functions: time, getSRAdbFile
-    ##
-    ##
-    ## timeStart <- proc.time()
-    ## sqlfile <- getSRAdbFile()
-    ## proc.time() - timeStart
-    # --- Dbconnect [] ---
-    # Key functions: dbConnect, SQLite
-    sra_con <- dbConnect(SQLite(),sqlfile)
-    # --- Dblisttables [] ---
-    # Key functions: dbListTables
-    sra_tables <- dbListTables(sra_con)
-    sra_tables
-    # --- Dblistfields [] ---
-    # Key functions: dbListFields
-    dbListFields(sra_con,"study")
-    # --- Dbgetquery [] ---
-    # Key functions: dbGetQuery, TABLE_INFO
-    dbGetQuery(sra_con,'PRAGMA TABLE_INFO(study)')
-    # --- Coldescriptions [] ---
-    # Key functions: colDescriptions
-    colDesc <- colDescriptions(sra_con=sra_con)[1:5,]
-    colDesc[, 1:4]
-    # --- db Get Query [] ---
+    # --- Targeted Metadata Retrieval [] ---
     # Key functions: dbGetQuery
-    rs <- dbGetQuery(sra_con,"select * from study limit 3")
-    rs[, 1:3]
-    # --- Function [] ---
-    # Key functions: count, dbGetQuery, call
-    getTableCounts <- function(tableName,conn) {
-      sql <- sprintf("select count(*) from %s",tableName)
-      return(dbGetQuery(conn,sql)[1,1])
-    }
-    do.call(rbind,sapply(sra_tables[c(2,4,5,11,12)],
-    # --- Dbgetquery [] ---
-    # Key functions: dbGetQuery, count
-    rs <- dbGetQuery(sra_con, paste( "SELECT study_type AS StudyType,
-    	count( * ) AS Number FROM `study` GROUP BY study_type order
-    	by Number DESC ", sep=""))
-    rs
-    # --- Sraconvert [] ---
-    # Key functions: sraConvert
-    conversion <- sraConvert( c('SRP001007','SRP000931'), sra_con = sra_con )
-    conversion[1:3,]
-    # --- Getsra [] ---
-    # Key functions: getSRA
-    rs <- getSRA( search_terms = "breast cancer",
-    	out_types = c('run','study'), sra_con )
-    dim(rs)
-    rs <- getSRA( search_terms = "breast cancer",
-    	out_types = c("submission", "study", "sample",
-    # --- Listsrafile [] ---
-    # Key functions: listSRAfile
-    rs = listSRAfile( c("SRX000122"), sra_con, fileType = 'sra' )
-    # --- Getsrainfo [] ---
-    # Key functions: getSRAinfo
-    # rs = getSRAinfo ( c("SRX000122"), sra_con, sraType = "sra" )
-    # rs[1:3,]
-    # --- Getsrafile [] ---
-    # Key functions: getSRAfile
-    ## getSRAfile( c("SRR000648","SRR000657"), sra_con, fileType = 'sra' )
-    # --- Getfastqinfo [] ---
-    # Key functions: getFASTQinfo, getSRAfile
-    ## getFASTQinfo( c("SRR000648","SRR000657"), sra_con, srcType = 'ftp' )
-    ##
-    ## getSRAfile( c("SRR000648","SRR000657"), sra_con, fileType = 'fastq' )
+    query_str <- paste(
+        "select study_accession, study_title from study where",
+        "study_description like 'Transcriptome%'",
+        sep = " "
+    )
+    transcriptome_studies <- dbGetQuery(sra_con, query_str)
+
+
+    # --- Entity Attribute Extraction [] ---
+    # Key functions: dbGetQuery
+    sample_query <- "select sample_accession, run_accession from sra limit 5"
+    sample_runs <- dbGetQuery(sra_con, sample_query)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

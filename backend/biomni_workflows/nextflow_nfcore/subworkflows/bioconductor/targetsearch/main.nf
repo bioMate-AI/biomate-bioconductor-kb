@@ -38,32 +38,42 @@ process BIOC_TARGETSEARCH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TargetSearch)
     library(ImportFameSettings)
     library(RIcorrect)
     library(RIpath)
     library(jsonlite)
 
-    # --- tsd_data_path [] ---
-    # Key functions: tsd_data_path
-    cdfPath <- tsd_data_path()
-    dir(cdfPath, pattern="cdf$")
-    # --- R Ipath [] ---
-    # Key functions: RIpath
-    samples.all <- ImportSamplesFromDir(cdfPath)
-    RIpath(samples.all) <- "."
-    # --- Import Fame Settings [] ---
-    # Key functions: ImportFameSettings
-    rimLimits <- ImportFameSettings(tsd_file_path("rimLimits.txt"))
-    # --- R Icorrect [] ---
+    # --- Retention Index Correction [] ---
     # Key functions: RIcorrect
-    RImatrix <- RIcorrect(samples.all, rimLimits, writeCDF4path=FALSE,
-    # --- rep [] ---
-    # Key functions: rep
+    RImatrix <- RIcorrect(
+        samples.all,
+        rimLimits,
+        writeCDF4path = FALSE,
+        Window = 15,
+        pp.method = "ppc",
+        IntThreshold = 50
+    )
+
+
+    # --- Retention Index Marker Adjustment [] ---
+    # Key functions: fixRI
     isRIMarker <- rep(FALSE, length(samples.all))
     isRIMarker[c(1, 6, 11)] <- TRUE
-    # --- fix R I [] ---
-    # Key functions: fixRI
+    RImatrix2 <- RImatrix
+    z <- cumsum(as.numeric(isRIMarker))
+    for (i in unique(z)) {
+        RImatrix2[, z == i] <- RImatrix[, z == i][, 1]
+    }
     fixRI(samples.all, rimLimits, RImatrix2, which(!isRIMarker))
+
+
+    # --- Sample Filtering [] ---
+    # Key functions: ImportSamplesFromDir
+    isRIMarker <- rep(FALSE, length(samples.all))
+    isRIMarker[c(1, 6, 11)] <- TRUE
+    samples <- samples.all[!isRIMarker]
+    RImatrix <- RImatrix2[, !isRIMarker]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

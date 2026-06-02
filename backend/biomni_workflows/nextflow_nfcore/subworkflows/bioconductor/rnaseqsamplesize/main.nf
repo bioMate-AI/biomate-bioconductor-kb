@@ -41,40 +41,41 @@ process BIOC_RNASEQSAMPLESIZE {
     library(RnaSeqSampleSize)
     library(jsonlite)
 
-    # --- example [] ---
-    # Key functions: example
-    example(sample_size)
-    # --- est_power_distribution [] ---
-    # Key functions: est_power_distribution
-    est_power_distribution(n=65,f=0.01,rho=2,
-    # --- sample_size_distribution [] ---
+    # --- Sample Size Estimation [] ---
     # Key functions: sample_size_distribution
-    sample_size_distribution(power=0.8,f=0.01,distributionObject="TCGA_READ",
-    # --- est_count_dispersion [] ---
+    size_dist <- sample_size_distribution(
+        power=0.8, f=0.01,
+        distributionObject="TCGA_READ",
+        repNumber=5, showMessage=FALSE
+    )
+
+
+    # --- Parameter Optimization [] ---
+    # Key functions: optimize_parameter, est_power
+    opt_res <- optimize_parameter(
+        fun=est_power, opt1="n",
+        opt2="lambda0", opt1Value=c(3,5,10,15,20),
+        opt2Value=c(1:5,10,20)
+    )
+
+
+    # --- User Data Distribution Estimation [] ---
     # Key functions: est_count_dispersion, est_power_distribution
-    dataMatrixDistribution<-est_count_dispersion(dataMatrix,
-    group=c(rep(0,5),rep(1,5)))
-    est_power_distribution(n=65,f=0.01,rho=2,
-    # --- download_study [] ---
-    # Key functions: download_study, plot_mappedReads_percent, plot_gene_counts_range
-    library(recount)
-    url <- download_study(studyId)
-    load(file.path(studyId, 'rse_gene.Rdata'))
-    # --- get Atlas Data [] ---
-    # Key functions: getAtlasData
-    library(ExpressionAtlas)
-    allExps <- getAtlasData(projectId)
-    expObj=ExpressionAtlasObj[,which(colData(ExpressionAtlasObj)$AtlasAssayGroup %in% c("g2","g4"))]
-    # --- est_power_curve [] ---
-    # Key functions: est_power_curve, plot_power_curve
-    result1<-est_power_curve(n=63, f=0.01, rho=2, lambda0=5, phi0=0.5)
-    result2<-est_power_curve(n=63, f=0.05, rho=2, lambda0=5, phi0=0.5)
-    plot_power_curve(list(result1,result2))
-    # --- optimize_parameter [] ---
-    # Key functions: optimize_parameter
-    result<-optimize_parameter(fun=est_power,opt1="n",
-    opt2="lambda0",opt1Value=c(3,5,10,15,20),
-    opt2Value=c(1:5,10,20))
+    dataMatrix <- matrix(
+        sample(0:3000, 100000, replace=TRUE),
+        nrow=10000, ncol=10
+    )
+    colnames(dataMatrix) <- c(paste0("Control", 1:5), paste0("Treatment", 1:5))
+    row.names(dataMatrix) <- paste0("gene", 1:10000)
+    dataMatrixDistribution <- est_count_dispersion(
+        dataMatrix,
+        group=c(rep(0,5), rep(1,5))
+    )
+    power_dist <- est_power_distribution(
+        n=65, f=0.01, rho=2,
+        distributionObject=dataMatrixDistribution,
+        repNumber=5
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

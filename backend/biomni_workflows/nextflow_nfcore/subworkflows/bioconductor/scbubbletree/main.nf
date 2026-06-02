@@ -38,75 +38,57 @@ process BIOC_SCBUBBLETREE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scBubbletree)
     library(CreateSeuratObject)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: create, objects, colData, CreateSeuratObject
-    ---------------------------------------------------------------------
-    # # This script can be used to generate data("d_ccl", package = "scBubbletree")
-    #
-    # # create directory
-    # dir.create(path = "case_study/")
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    # Load the data
-    data("d_ccl", package = "scBubbletree")
-    # --- Columns [] ---
-    # Key functions: columns
-    ---------------------------------------------------------------------
-    # Extract the 15-dimensional PCA matrix A
-    # A has n=cells as rows, f=15 features as columns (e.g. from PCA)
-    A <- d_ccl$A
-    dim(A)
-    # --- Get R [] ---
+    # --- Resolution Parameter Estimation [] ---
     # Key functions: get_r
-    ---------------------------------------------------------------------
-    b_r <- get_r(B_gap = 5,
-                 rs = 10^seq(from = -4, to = 0.5, by = 0.5),
-                 x = A,
-                 n_start = 10,
-    # --- Kable [] ---
-    # Key functions: kable
-    ---------------------------------------------------------------------
-    knitr::kable(x = b_r$gap_stats_summary[b_r$gap_stats_summary$k == 5, ],
-                 digits = 4, row.names = FALSE)
-    # --- Get K [] ---
+    data("d_ccl", package = "scBubbletree")
+    A <- d_ccl$A
+    b_r <- get_r(
+        B_gap = 5,
+        rs = 10^seq(from = -4, to = 0.5, by = 0.5),
+        x = A,
+        n_start = 10,
+        iter_max = 50,
+        algorithm = "original",
+        knn_k = 50,
+        cores = 1
+    )
+
+    # --- Cluster Number Estimation [] ---
     # Key functions: get_k
-    ---------------------------------------------------------------------
-    b_k <- get_k(B_gap = 5,
-                 ks = 1:10,
-                 x = A,
-                 n_start = 50,
-    # --- Get Bubbletree Graph [] ---
+    data("d_ccl", package = "scBubbletree")
+    A <- d_ccl$A
+    b_k <- get_k(
+        B_gap = 5,
+        ks = 1:10,
+        x = A,
+        n_start = 50,
+        iter_max = 200,
+        kmeans_algorithm = "MacQueen",
+        cores = 1
+    )
+
+    # --- Bubble Tree Graph Construction [] ---
     # Key functions: get_bubbletree_graph
-    ---------------------------------------------------------------------
-    l <- get_bubbletree_graph(x = A,
-                              r = 0.1,
-                              algorithm = "original",
-                              n_start = 20,
-    # --- Kable [] ---
-    # Key functions: kable
-    ---------------------------------------------------------------------
-    knitr::kable(l$tree_meta, digits = 2, row.names = FALSE)
-    # --- Get Bubbletree Kmeans [] ---
-    # Key functions: get_bubbletree_kmeans
-    ---------------------------------------------------------------------
-    k <- get_bubbletree_kmeans(x = A,
-                               k = 5,
-                               cores = 1,
-                               B = 300,
-    # --- Get Gini [] ---
-    # Key functions: get_gini
-    ---------------------------------------------------------------------
-    # gini
-    get_gini(labels = m$cell_line_demuxlet,
-             clusters = l$cluster)$gi
-    # --- Get Gini K [] ---
-    # Key functions: get_gini_k
-    ---------------------------------------------------------------------
-    gini_boot <- get_gini_k(labels = m$cell_line_demuxlet, obj = b_r)
+    data("d_ccl", package = "scBubbletree")
+    A <- d_ccl$A
+    l <- get_bubbletree_graph(
+        x = A,
+        r = 0.1,
+        algorithm = "original",
+        n_start = 20,
+        iter_max = 100,
+        knn_k = 50,
+        cores = 1,
+        B = 300,
+        N_eff = 200,
+        round_digits = 1,
+        show_simple_count = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

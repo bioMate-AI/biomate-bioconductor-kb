@@ -38,39 +38,32 @@ process BIOC_EUDYSBIOME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(eudysbiome)
     library(Cartesian)
     library(jsonlite)
 
-    # --- Assigntax [] ---
-    # Key functions: assignTax
-    ## library("eudysbiome")
-    ## input.fasta = "Unclassified.fasta"
-    ## # using the extracted fasta and taxonomy as template
-    ## assignTax(fasta = input.fasta,ksize = 8, iters = 100,
-    ##                        cutoff = 80, processors=1, dir.out = "assignTax_out")
-    # --- Data [] ---
-    # Key functions: microAnnotate
-    library("eudysbiome")
-    data(diffGenera)
-    head(diffGenera)
-    data(harmGenera)
-    annotation = microAnnotate(diffGenera, annotated.micro = harmGenera)
-    # --- Cartesian [] ---
-    # Key functions: attach, Cartesian
-    data(microDiff)
-    microDiff
-    attach(microDiff)
-    par(mar = c(5,4.1,5.1,5))
-    Cartesian(data ,micro.anno = micro.anno,comp.anno= comp.anno,
-    # --- Microcount [] ---
+    # --- Contingency Table Construction [] ---
     # Key functions: contingencyCount
-    microCount = contingencyCount(data ,micro.anno = micro.anno,
-                                  comp.anno= comp.anno)
-    # --- Test [] ---
-    # Key functions: contingencyTest
-    microTest = contingencyTest(microCount,alternative ="greater")
-    microTest["Chisq.p"]
-    microTest["Fisher.p"]
+    data(microDiff)
+    microCount <- contingencyCount(
+        data = microDiff$data,
+        micro.anno = microDiff$micro.anno,
+        comp.anno = microDiff$comp.anno
+    )
+
+
+    # --- Association Testing [] ---
+    # Key functions: contingencyCount, contingencyTest
+    data(microDiff)
+    microCount <- contingencyCount(
+        data = microDiff$data,
+        micro.anno = microDiff$micro.anno,
+        comp.anno = microDiff$comp.anno
+    )
+    microTest <- contingencyTest(
+        microCount,
+        alternative = "greater"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

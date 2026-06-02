@@ -38,43 +38,50 @@ process BIOC_MSBACKENDMASSBANK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MsBackendMassbank)
     library(Spectra)
     library(jsonlite)
 
-    # --- dir [] ---
-    # Key functions: dir
-    library(Spectra)
-    library(MsBackendMassbank)
-    fls <- dir(system.file("extdata", package = "MsBackendMassbank"),
-    # --- Spectra [] ---
-    # Key functions: Spectra
-    sps <- Spectra(fls[1],
-    source = MsBackendMassbank(),
-    backend = MsBackendDataFrame())
-    # --- spectra Variables [] ---
-    # Key functions: spectraVariables
-    spectraVariables(sps)
-    # --- Spectra [] ---
-    # Key functions: Spectra, spectraVariables
-    sps <- Spectra(fls[-1],
-    source = MsBackendMassbank(),
-    backend = MsBackendDataFrame())
-    # --- intensity [] ---
-    # Key functions: intensity
-    mz(sps)
-    intensity(sps)
-    # --- Spectra [] ---
-    # Key functions: Spectra
-    sps <- Spectra(fls, source = MsBackendMassbank(), nonStop = TRUE)
-    # --- db Connect [] ---
-    # Key functions: dbConnect
-    library(RMariaDB)
-    con <- dbConnect(MariaDB(), host = "localhost", user = "massbank",
-    # --- db Connect [] ---
-    # Key functions: dbConnect, Spectra, spectraVariables, compareSpectra
-    library(RSQLite)
-    con <- dbConnect(SQLite(), system.file("sql", "minimassbank.sqlite",
+    # --- Metadata Extraction and Cleaning [] ---
+    # Key functions: Spectra, spectraVariables, dropNaSpectraVariables
+    metaDataBlocks <- data.frame(
+        metadata = c("ac", "ch", "sp", "ms", "record", "pk", "comment"),
+        read = rep(TRUE, 7)
+    )
+    sps_meta <- Spectra(
+        fls,
+        source = MsBackendMassbank(),
+        backend = MsBackendDataFrame(),
+        metaBlock = metaDataBlocks
+    )
+    all_vars <- spectraVariables(sps_meta)
+    sps_clean <- dropNaSpectraVariables(sps_meta)
+
+
+    # --- Database Backend Connection [] ---
+    # Key functions: MsBackendMassbankSql, Spectra, spectraVariables
+    con <- dbConnect(
+        SQLite(),
+        system.file("sql", "minimassbank.sqlite", package = "MsBackendMassbank")
+    )
     mb <- Spectra(con, source = MsBackendMassbankSql())
+    db_vars <- spectraVariables(mb)
+
+
+    # --- Spectra Filtering and Querying [] ---
+    # Key functions: msLevel, mz, intensity
+    levels <- msLevel(mb)
+    mzs <- mz(mb)
+    ints <- intensity(mb)
+    mb_esi <- mb[mb$ionization == "ESI"]
+
+
+    # --- Spectra Comparison and Matching [] ---
+    # Key functions: compareSpectra, compounds
+    sims <- compareSpectra(mb[11], mb[-11], FUN = ndotproduct, ppm = 40)
+    best_match_idx <- which.max(sims) + 1
+    mb_match <- mb[c(11, best_match_idx)]
+    cmp_info <- compounds(mb_match)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

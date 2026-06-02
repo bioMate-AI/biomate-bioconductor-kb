@@ -41,83 +41,70 @@ process BIOC_TITANCNA {
     library(TitanCNA)
     library(jsonlite)
 
-    # --- Getpositionoverlap [] ---
-    # Key functions: getPositionOverlap
-    logR <- getPositionOverlap(data$chr, data$posn, cnData)
-    data$logR <- log(2^logR)  #transform the log ratio to natural logs
-    # --- Filterdata [] ---
-    # Key functions: filterData
-    data <- filterData(data, c(1:22, "X", "Y"), minDepth = 10, maxDepth = 200,
-                       positionList = NULL, centromere = NULL, centromere.flankLength = 10000)
-    # --- Loaddefaultparameters [] ---
-    # Key functions: loadDefaultParameters
-    numClusters <- 2
-    params <- loadDefaultParameters(copyNumber = 5,
-                                    numberClonalClusters = numClusters,
-                                    symmetric = TRUE, hetBaselineSkew = 0,
-                                    alleleEmissionModel = "binomial", data = data)
-    # --- Registerdomc [] ---
-    # Key functions: registerDoMC
-    ## library(doMC)
-    ## registerDoMC(cores = 4) #use 4 cores on a single machine
-    # --- Runemclonalcn [] ---
+    # --- Model Fitting and Parameter Estimation [] ---
     # Key functions: runEMclonalCN
-    convergeParams <- runEMclonalCN(data, params,
-                                    maxiter = 3, maxiterUpdate = 50,
-                                    useOutlierState = FALSE, txnExpLen = 1e15,
-                                    txnZstrength = 5e5,
-                                    normalEstimateMethod = "map",
-    # --- Viterbiclonalcn [] ---
-    # Key functions: viterbiClonalCN
-    optimalPath <- viterbiClonalCN(data, convergeParams)
-    head(optimalPath)
-    # --- Outputtitanresults [] ---
-    # Key functions: outputTitanResults
-    results <- outputTitanResults(data, convergeParams, optimalPath,
-                                  filename = NULL, posteriorProbs = FALSE,
-                                  subcloneProfiles = TRUE, correctResults = TRUE,
-                                  proportionThreshold = 0.05,
-                                  proportionThresholdClonal = 0.05,
-    # --- Eval [] ---
-    # Key functions: outputTitanSegments
-    segs <- outputTitanSegments(results, id = "test", convergeParams,
-                                filename = NULL, igvfilename = NULL)
-    head(segs)
-    # --- Eval [] ---
+    convergeParams <- runEMclonalCN(
+        data = allele_data,
+        gParams = list(),
+        nParams = list(),
+        pParams = list(),
+        sParams = list(),
+        maxIEM = 50,
+        maxOuterLoop = 15
+    )
+    results <- convergeParams$results
+
+
+    # --- Segment Extraction and Formatting [] ---
+    # Key functions: outputTitanSegments, outputTitanResults
+    segs <- outputTitanSegments(
+        results = results,
+        id = "test_sample",
+        convergeParams = convergeParams,
+        filename = NULL,
+        igvfilename = NULL
+    )
+    formatted_results <- outputTitanResults(
+        results = results,
+        id = "test_sample",
+        convergeParams = convergeParams,
+        filename = NULL
+    )
+
+
+    # --- Integer Copy Number Correction [] ---
     # Key functions: correctIntegerCN
-    # get the estimated tumor ploidy
     ploidy <- tail(convergeParams$phi, 1)
-    # get the estimated normal
     normal <- tail(convergeParams$n, 1)
-    # apply tumor purity and ploidy correction
-    # --- Outputmodelparameters [] ---
-    # Key functions: outputModelParameters
-    ## outputModelParameters(convergeParams, results, outparam, S_Dbw.scale = 10)
-    # --- Tail [] ---
-    # Key functions: plotCNlogRByChr
-    ploidy <- tail(convergeParams$phi, 1)
-    ploidy
-    normal <- tail(convergeParams$n, 1)
-    normal
-    plotCNlogRByChr(results, segs = segs, chr = 2, ploidy = ploidy, normal = normal,
-    # --- Plotallelicratio [] ---
-    # Key functions: plotAllelicRatio
-    plotAllelicRatio(results, chr = 2, ylim = c(0, 1), cex = 0.25,
-                     xlab = "", main = "Chr 2")
-    # --- Tail [] ---
-    # Key functions: plotClonalFrequency
-    norm <- tail(convergeParams$n, 1)
-    norm # estimated normal contamination
-    1 - convergeParams$s[, ncol(convergeParams$s)] # estimated cellular prevalence
-    plotClonalFrequency(results, chr = 2, normal = norm, ylim = c(0, 1),
-                        cex = 0.25, xlab = "", main = "Chr 2")
-    # --- Plotsubcloneprofiles [] ---
-    # Key functions: plotSubcloneProfiles
-    plotSubcloneProfiles(results, chr = 2, cex = 1, spacing = 2, main = "Chr 2")
-    # --- Plotsegmentmedians [] ---
-    # Key functions: plotSegmentMedians
-    plotSegmentMedians(segs, chr=2, resultType = "LogRatio", plotType = "CopyNumber",
-                       plot.new = TRUE, ylim = c(0, 4), main="Chr 2")
+    corrIntCN.results <- correctIntegerCN(
+        results = results,
+        segs = segs,
+        purity = 1 - normal,
+        ploidy = ploidy,
+        maxCNtoCorrect.autosomes = 8,
+        maxCNtoCorrect.X = NULL,
+        correctHOMD = FALSE,
+        minPurityToCorrect = 0.2,
+        gender = "female",
+        chrs = 2
+    )
+    results <- corrIntCN.results$cn
+    segs <- corrIntCN.results$segs
+
+
+    # --- Visualisation of Subclonal Copy Number [] ---
+    # Key functions: plotCNsubclones, plotSegmentMedians
+    plotCNsubclones(
+        dataIn = results,
+        chr = 2,
+        resultType = "copynumber",
+        plotType = "subclone"
+    )
+    plotSegmentMedians(
+        dataIn = results,
+        chr = 2,
+        resultType = "copynumber"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

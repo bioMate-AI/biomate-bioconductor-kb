@@ -38,19 +38,68 @@ process BIOC_DAMEFINDER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DAMEfinder)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: colData, GRanges, dame_track, methyl_circle_plot, methyl_circle_plotCpG
-    put SNP in GRanges (you can find the SNP with the dame_track function)
-    snp <- GRanges(19, IRanges(267039, width = 1)) #always set the width if your
-    bam.file <- system.file("extdata", "CRC1_chr19_trim.bam",
-    # --- Dame track analysis [] ---
-    # Key functions: dame_track, dame_track_mean, methyl_MDS_plot
-    grp <- factor(c(rep("CRC",3),rep("NORM",2)), levels = c("NORM", "CRC"))
-    methyl_MDS_plot(ASMscore, group = grp)
-    utils::sessionInfo()
+    # --- Data Import and Preparation ---
+    # Key functions: extract_bams, read_tuples
+    snp_list <- extract_bams(
+        bamFiles = bam_files,
+        vcfFiles = vcf_files,
+        sampleNames = sample_names,
+        referenceFile = reference_file,
+        coverage = 2
+    )
+    tuple_list <- read_tuples(
+        files = tuple_files,
+        sampleNames = sample_names
+    )
+
+    # --- Allele-Specific Methylation Calculation ---
+    # Key functions: calc_derivedasm, calc_asm
+    derASM <- calc_derivedasm(
+        snp.list = snp_list,
+        cores = 1,
+        verbose = FALSE
+    )
+    ASMscore <- calc_asm(
+        sample_list = tuple_list
+    )
+
+    # --- Differential Allele-Specific Methylation Detection ---
+    # Key functions: find_dames
+    grp <- factor(
+        c(rep("CRC", 4), rep("NORM", 4)),
+        levels = c("NORM", "CRC")
+    )
+    mod <- model.matrix(~grp)
+    dames <- find_dames(
+        derASM,
+        design = mod,
+        pvalAssign = "empirical",
+        maxGap = 300
+    )
+
+    # --- Genomic Visualization ---
+    # Key functions: dame_track, dame_track_mean, methyl_circle_plot
+    dame <- GenomicRanges::GRanges(
+        19,
+        GenomicRanges::IRanges(323736, 324622)
+    )
+    dame_track(
+        dame = dame,
+        ASM = ASMscore,
+        window = 2
+    )
+    methyl_circle_plot(
+        snp = snp,
+        vcfFile = vcf_file,
+        bamFile = bam_file,
+        refFile = reference_file,
+        dame = dame
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

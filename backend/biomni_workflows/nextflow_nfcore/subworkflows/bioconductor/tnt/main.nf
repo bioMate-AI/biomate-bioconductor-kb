@@ -38,6 +38,7 @@ process BIOC_TNT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TnT)
     library(BlockTrack)
     library(GRanges)
     library(IRanges)
@@ -45,43 +46,57 @@ process BIOC_TNT {
     library(TnTGenome)
     library(jsonlite)
 
-    # --- Granges [] ---
-    # Key functions: GRanges, IRanges, BlockTrack
-    ---------------------------------------------------------------------
+    # --- Track Creation [Track Creation] ---
+    # Key functions: BlockTrack
     gr <- GenomicRanges::GRanges("chr7",
-        ranges = IRanges(
-            start = c(26549019L, 26564119L, 26585667L, 26591772L, 26594192L, 26623835L,
-                      26659284L, 26721294L, 26821518L, 26991322L),
-    # --- Tntgenome [] ---
-    # Key functions: TnTGenome
-    ---------------------------------------------------------------------
-    TnT::TnTGenome(btrack)
-    # --- Trackspec [] ---
-    # Key functions: trackSpec
-    ---------------------------------------------------------------------
-    TnT::trackSpec(btrack, "background")
+        ranges = IRanges::IRanges(
+            start = c(26549019L, 26564119L, 26585667L, 26591772L),
+            end =   c(26550183L, 26564500L, 26586158L, 26593309L)
+        ),
+        ID = 1:4,
+        Name = paste("My Range", 1:4)
+    )
+    btrack <- TnT::BlockTrack(gr)
+
+    # --- Track Customization [Track Customization] ---
+    # Key functions: trackSpec, trackData
     btrack2 <- btrack
     TnT::trackSpec(btrack2, "background") <- "blanchedalmond"
     TnT::trackSpec(btrack2, "label")      <- "My Ranges"
-    # --- Trackdata [] ---
-    # Key functions: trackData
-    ---------------------------------------------------------------------
-    btrack2$color                     # Equivalent to `trackData(btrack2)$color`
-    btrack2$color <- "darkseagreen4"  # Equivalent to `trackData(btrack2)$color <- "darkseagreen4"`
-    # --- Trackdata [] ---
-    # Key functions: trackData, shift
-    ---------------------------------------------------------------------
-    TnT::trackData(btrack2) <- GenomicRanges::shift(TnT::trackData(btrack2), 10000)
-    # --- Tntboard [] ---
-    # Key functions: TnTBoard
-    ---------------------------------------------------------------------
-    TnT::TnTBoard(list(btrack, btrack2))
-    # --- Tooltip [] ---
-    # Key functions: tooltip, frame, trackData, TnTGenome
-    ---------------------------------------------------------------------
-    TnT::tooltip(btrack2) <- cbind(TnT::tooltip(btrack2),
-                                   as.data.frame(TnT::trackData(btrack2)))
-    TnT::TnTGenome(btrack2, view.range = TnT::trackData(btrack2)[4] * .05)
+    TnT::trackSpec(btrack2, "height")     <- 50
+    btrack2$color <- "darkseagreen4"
+    TnT::trackData(btrack2) <- GenomicRanges::shift(
+        TnT::trackData(btrack2),
+        10000
+    )
+
+    # --- Interactive Tooltip Configuration [Interactive Tooltip Configuration] ---
+    # Key functions: tooltip, trackData
+    tooltip_df <- as.data.frame(TnT::trackData(btrack2))
+    TnT::tooltip(btrack2) <- cbind(
+        TnT::tooltip(btrack2),
+        tooltip_df
+    )
+
+    # --- Genome Board Visualization [Genome Board Visualization] ---
+    # Key functions: PinTrack, TnTBoard, TnTGenome
+    pintrack <- TnT::PinTrack(
+        GenomicRanges::GRanges("chr7",
+            IRanges::IRanges(start = c(26350000, 26450000), width = 1)
+        ),
+        value = c(1, 3),
+        color = c("blue", "yellow")
+    )
+    board <- TnT::TnTBoard(list(btrack, btrack2, pintrack))
+    genome_view <- TnT::TnTGenome(
+        list(pintrack, btrack2),
+        view.range = GenomicRanges::GRanges("chr7",
+            IRanges::IRanges(26550000, 26600000)
+        ),
+        coord.range = IRanges::IRanges(26350000, 27050000),
+        zoom.allow = IRanges::IRanges(50000, 200000)
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

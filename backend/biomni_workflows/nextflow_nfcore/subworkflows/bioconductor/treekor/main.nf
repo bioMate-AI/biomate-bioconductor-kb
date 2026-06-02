@@ -41,56 +41,42 @@ process BIOC_TREEKOR {
     library(treekoR)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(COVIDSampleData)
-    sce <- DeBiasi_COVID_CD8_samp
-    # --- Getclustertree [] ---
-    # Key functions: getClusterTree
-    ---------------------------------------------------------------------
-    clust_tree <- getClusterTree(exprs,
-                                 clusters,
-                                 hierarchy_method="hopach")
-    # --- Testtree [] ---
+    # --- Tree-based Statistical Testing [] ---
     # Key functions: testTree
-    ---------------------------------------------------------------------
-    tested_tree <- testTree(phylo=clust_tree$clust_tree,
-                          clusters=clusters,
-                          samples=samples,
-                          classes=classes,
-    # --- Gettreeresults [] ---
-    # Key functions: getTreeResults
-    ---------------------------------------------------------------------
+    tested_tree <- testTree(
+        phylo = clust_tree$clust_tree,
+        clusters = clusters,
+        samples = samples,
+        classes = classes,
+        pos_class_name = NULL
+    )
+
+
+    # --- Results Extraction and Visualization [] ---
+    # Key functions: getTreeResults, plotInteractiveHeatmap
     res_df <- getTreeResults(tested_tree)
-    head(res_df, 10)
-    # --- Plotinteractiveheatmap [] ---
-    # Key functions: plotInteractiveHeatmap
-    ---------------------------------------------------------------------
-    plotInteractiveHeatmap(tested_tree,
-                           clust_med_df = clust_tree$median_freq,
-                           clusters=clusters)
-    # --- Getclustertree [] ---
-    # Key functions: getClusterTree, testTree, plotInteractiveHeatmap
-    ---------------------------------------------------------------------
-    clust_tree <- getClusterTree(exprs,
-                                 clusters,
-                                 hierarchy_method="average")
-    tested_tree <- testTree(clust_tree$clust_tree,
-    # --- Getcellprop [] ---
-    # Key functions: getCellProp
-    ---------------------------------------------------------------------
-    prop_df <- getCellProp(phylo=clust_tree$clust_tree,
-                           clusters=clusters,
-                           samples=samples,
-                           classes=classes)
-    # --- Getcellgmeans [] ---
-    # Key functions: getCellGMeans
-    ---------------------------------------------------------------------
-    means_df <- getCellGMeans(clust_tree$clust_tree,
-                              exprs=exprs,
-                              clusters=clusters,
-                              samples=samples,
+    plotInteractiveHeatmap(
+        tested_tree,
+        clust_med_df = clust_tree$median_freq,
+        clusters = clusters
+    )
+
+
+    # --- Cell Proportion and Geometric Mean Calculation [] ---
+    # Key functions: getCellProp, getCellGMeans
+    prop_df <- getCellProp(
+        phylo = clust_tree$clust_tree,
+        clusters = clusters,
+        samples = samples,
+        classes = classes
+    )
+    means_df <- getCellGMeans(
+        clust_tree$clust_tree,
+        exprs = exprs,
+        clusters = clusters,
+        samples = samples,
+        classes = classes
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

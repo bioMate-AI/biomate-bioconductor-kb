@@ -41,74 +41,45 @@ process BIOC_REGENRICH {
     library(RegEnrich)
     library(jsonlite)
 
-    # --- quickExample simpler [] ---
-    # Key functions: regenrich_network, regenrich_enrich, regenrich_rankScore
-    object = regenrich_diffExpr(object) %>%
-    regenrich_network() %>%
-    regenrich_enrich() %>%
-    # --- user defined network1 [] ---
-    # Key functions: regenrich_network
-    network_user = results_topNet(object)
-    print(class(network_user))
-    regenrich_network(object2) = network_user
-    # --- user defined network edges [] ---
-    # Key functions: regenrich_network
-    network_user = slot(results_topNet(object), "elementset")
-    print(class(network_user))
-    regenrich_network(object2) = as.data.frame(network_user)
-    # --- comparingFET GSEA [] ---
-    # Key functions: plotOrders
-    plotOrders(enrich_FET[[1]][1:20], enrich_GSEA[[1]][1:20])
-    # --- regenrich rankScore [] ---
-    # Key functions: results_score
-    object = regenrich_rankScore(object)
-    results_score(object)
-    # --- plot Reg Tar Expr [] ---
-    # Key functions: plotRegTarExpr
-    plotRegTarExpr(object, reg = "ARNTL2")
-    # --- case1ReadData1 1 [] ---
-    # Key functions: rma, featureNames, getSYMBOL, fData
-    library(affy)
-    abatch = ReadAffy(celfile.path = "./GSE31193_RAW/")
-    eset <- rma(abatch)
-    # --- case1ReadData1 2 [] ---
-    # Key functions: getGEO
-    if (!requireNamespace("GEOquery"))
-    BiocManager::install("GEOquery")
-    library(GEOquery)
-    # --- case1ReadData1 3 [] ---
-    # Key functions: pData
-    pd0 = pData(eset)
-    pd = pd0[, c("title", "time:ch1", "agent:ch1")]
-    colnames(pd) = c("title", "time", "group")
-    # --- regenrich_network [] ---
-    # Key functions: regenrich_network, regenrich_enrich, regenrich_rankScore
-    expressionMatrix = exprs(data) # expression data
-    rownames(expressionMatrix) = probeGene_noDu$`Gene Symbol`
-    sampleInfo = pData(data) # sample information
-    # --- plot Reg Tar Expr [] ---
-    # Key functions: plotRegTarExpr
-    plotRegTarExpr(object, reg = "STAT1")
-    # --- Fetch GEO dataset [] ---
-    # Key functions: getGEO, pData
-    library(GEOquery)
-    eset <- getGEO(GEO = "GSE130567")[[1]]
-    pdata = pData(eset)[, c("title", "geo_accession", "cultured in:ch1", "treatment:ch1")]
-    # --- untar [] ---
-    # Key functions: untar
-    tmpFolder = tempdir()
-    tmpFile = tempfile(pattern = "GSE130567_", tmpdir = tmpFolder, fileext = ".tar")
-    download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE130567&format=file",
-    # --- close [] ---
-    # Key functions: close
-    dat = list()
-    for (file in filesFull){
-    accID = gsub(".*(GSM\\d{7}).*", "\\1", file)
-    # --- regenrich_network [] ---
-    # Key functions: regenrich_network, regenrich_enrich, regenrich_rankScore
-    expressionMatrix = as.matrix(edata) # expression data
-    data(TFs)
-    object = RegenrichSet(expr = expressionMatrix, # expression data (matrix)
+    # --- Differential Expression Analysis [] ---
+    # Key functions: regenrich_diffExpr, results_DEA
+    object <- regenrich_diffExpr(object)
+    dea_results <- results_DEA(object)
+    object_limma <- regenrich_diffExpr(
+        object,
+        method = "limma",
+        coef = "week3"
+    )
+    dea_limma_results <- results_DEA(object_limma)
+
+
+    # --- Network Construction [] ---
+    # Key functions: regenrich_network, results_topNet, regenrich_network<-
+    object <- regenrich_network(object)
+    top_net <- results_topNet(object)
+    net_edges <- slot(top_net, "elementset")
+    object_user_net <- object
+    regenrich_network(object_user_net) <- as.data.frame(net_edges)
+
+
+    # --- Enrichment Analysis [] ---
+    # Key functions: regenrich_enrich, results_enrich
+    object <- regenrich_enrich(object)
+    enrich_res <- results_enrich(object)
+    enrich_fet <- slot(enrich_res, "allResult")
+    object_gsea <- regenrich_enrich(
+        object,
+        enrichTest = "GSEA",
+        nperm = 1000
+    )
+    enrich_gsea <- slot(results_enrich(object_gsea), "allResult")
+
+
+    # --- Regulator Ranking and Scoring [] ---
+    # Key functions: regenrich_rankScore, results_score
+    object <- regenrich_rankScore(object)
+    final_scores <- results_score(object)
+    top_regulators <- head(final_scores, n = 20)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

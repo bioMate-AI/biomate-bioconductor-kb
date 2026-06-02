@@ -41,33 +41,56 @@ process BIOC_XMAPBRIDGE {
     library(xmapbridge)
     library(jsonlite)
 
-    # --- Debug [] ---
-    # Key functions: debug
-    cat( xmap.debug( xmap.plot( x, y, species="homo_sapiens", chr="1", type="line" ), newlines=TRUE ) )
-    # --- Split [] ---
-    # Key functions: split
-    l <- split(exon.data,exon.data$"gene")
-    # --- Debug [] ---
-    # Key functions: debug
-    cat( xmap.debug( xmap.plot(x,y,chr,species="homo_sapiens",type="area",col="#ff000066"), newlines=TRUE ) )
-    # --- Array [] ---
-    # Key functions: array, 4th
-    #We were plotting the 1st array (2nd column in g), now plot the 4th (5th column in g)
-    y <- g[,5]
-    # --- Debug [] ---
-    # Key functions: debug
-    cat( xmap.debug( xmap.points(x,y,chr,type="area",col="#0000ff33"), newlines=TRUE ) )
-    # --- Pal [] ---
-    # Key functions: pal, col
-    #Five levels of red, chosen by the RColorBrewer
-    reds <- brewer.pal( 5, "Reds" )
-    reds <- xmap.col( reds, alpha=0x55 )
-    for( i in 1:5 ) {
-      xmap.points( x, y / i, type="area", col=reds[i] )
-    # --- Setenv [] ---
-    # Key functions: setenv
-    #put the environment variable back. Not strictly necessary, but why not?
-    Sys.setenv(XMAP_BRIDGE_CACHE=old.path)
+    # --- Genomic Profile Plotting ---
+    # Key functions: xmap.plot
+    data(xmapbridge, package = "xmapbridge")
+    l <- split(exon.data, exon.data$gene)
+    g <- l[[1]]
+    x <- g$seq_region_end + (g$seq_region_end - g$seq_region_start) / 2
+    y <- g[, 2]
+    chr <- unique(g$name)
+    plot_status <- xmap.plot(
+        x, y, chr, 
+        species = "homo_sapiens", 
+        type = "area", 
+        col = "#ff000066"
+    )
+
+    # --- Multi-track Genomic Visualization ---
+    # Key functions: xmap.plot, xmap.points
+    data(xmapbridge, package = "xmapbridge")
+    g <- exon.data[exon.data$gene == "ENSG00000128394", ]
+    x <- g$seq_region_end + (g$seq_region_end - g$seq_region_start) / 2
+    chr <- unique(g$name)
+    y <- g[, 2]
+    xmap.plot(
+        x, y, chr, 
+        species = "homo_sapiens", 
+        type = "area", 
+        col = "#ff000033", 
+        ylim = c(0, 16)
+    )
+    xmap.points(
+        x, y, chr, 
+        type = "line", 
+        col = "#ff0000ff"
+    )
+
+    # --- Export and Debugging ---
+    # Key functions: xmap.plot, xmap.debug
+    x <- runif(100, 1100000, 1200000)
+    y <- 10 * sin(2 * pi * (x - 1000000) / 10000)
+    plot_call <- xmap.plot(
+        x, y, 
+        species = "homo_sapiens", 
+        chr = "1", 
+        type = "line"
+    )
+    debug_xml <- xmap.debug(
+        plot_call, 
+        newlines = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

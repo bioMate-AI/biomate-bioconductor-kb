@@ -38,82 +38,35 @@ process BIOC_POGOS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pogos)
     library(DRProfSet)
     library(DRTraceSet)
     library(GET)
     library(jsonlite)
 
-    # --- Lkcc [] ---
-    # Key functions: iriCCLE
-    iric = iriCCLE()
-    iric
-    # --- Lkdrp [] ---
+    # --- Retrieve Dose-Response Profiles [] ---
     # Key functions: DRProfSet
-    drp = DRProfSet()
-    drp
-    # --- Lkk [] ---
-    # Key functions: datatable, frame
-    data(cell_lines_v1)
-    datatable(as.data.frame(cell_lines_v1), options=list(lengthMenu=c(3,5,10,50,100)))
-    # --- Lkccc [] ---
-    # Key functions: datatable, frame
-    data(compounds_v1)
-    datatable(as.data.frame(compounds_v1),
-       options=list(lengthMenu=c(3,5,10,50,100)))
-    # --- Lkccc2 [] ---
-    # Key functions: datatable, frame
-    data(datasets_v1)
-    datatable(as.data.frame(datasets_v1))
-    # --- Doch [] ---
-    # Key functions: getOnto, onto_plot
-    library(ontoProc)
-    cc = getOnto("chebi_full")
-    library(ontologyPlot)
-    onto_plot(cc,
-      c("CHEBI:134109", "CHEBI:61115", "CHEBI:75603", "CHEBI:37699",
-    # --- Lkmo [] ---
-    # Key functions: onto_plot
-    onto_plot(cc, c("CHEBI:134109", "CHEBI:61115", "CHEBI:75603", "CHEBI:37699",
-       "CHEBI:68481", "CHEBI:71178", "CHEBI:52172", "CHEBI:64310",
-       "CHEBI:63632", "CHEBI:45863"), fontsize=28, shape="rect")
-    # --- Ana [] ---
-    # Key functions: getOnto, onto_plot
-    clo = getOnto("cellLineOnto", year_added="2022")
-    smoc = c("CLO:0000517", "CLO:0000560", "CLO:0000563", "CLO:0001072",
-    "CLO:0001088", "CLO:0001138", "CLO:0007606")
-    onto_plot(clo, smoc)
-    # --- Lkoo [] ---
-    # Key functions: getOnto, unlist
-    library(ontoProc)
-    clo = getOnto("cellLineOnto", year_added="2022")
-    minds = which(clo$name %in% c("143B cell", "1321N1 cell", "184B5 cell"))
-    tags = clo$id[minds]
-    clo$name[ unlist(clo$parent[tags]) ]
-    # --- Lkefo [] ---
-    # Key functions: getOnto, onto_plot
-    ee = getOnto("efoOnto")
-    onto_plot(ee, c("UBERON:0000474", "UBERON:0000079",
-      "UBERON:0000990", "UBERON:0000995", "UBERON:0003982",
-      "UBERON:0000310", "UBERON:0002107", "UBERON:0001264",
-      "UBERON:0002113", "UBERON:0001007", "UBERON:0002530",
-    # --- Lkcom [] ---
-    # Key functions: getOnto, datatable, frame
-    chl = getOnto("chebi_full")
-    allch = chl$name
-    mm = allch[match(tolower(compounds_v1[,2]), tolower(allch), nomatch=0)]
-    round(length(mm)/nrow(compounds_v1),2) # not high
-    datatable(data.frame(id=names(mm), comp=as.character(mm)))
-    # --- Lkcomb [] ---
-    # Key functions: GET, fromJSON, readBin
-    library(rjson)
-    library(httr)
-    xx = GET("https://pharmacodb.pmgenomics.ca/api/v1/intersections/2/895/1?indent=true")
-    ans = fromJSON(readBin(xx$content, what="character"))
-    doses1 = sapply(ans[[1]]$dose_responses, function(x) x[[1]])
-    # --- Lkbar [] ---
+    drp <- DRProfSet()
+    drp_class <- class(drp)
+    drp_len <- length(drp)
+    plot(drp)
+
+
+    # --- Dose-Response Trace Visualization [] ---
     # Key functions: DRTraceSet
-    library(ggplot2)
-    plot(DRTraceSet(dataset="CCLE"))
+    trace_set <- DRTraceSet(dataset = "CCLE")
+    trace_class <- class(trace_set)
+    plot(trace_set)
+
+
+    # --- Metadata Exploration [] ---
+    # Key functions: cell_lines_v1, compounds_v1, datasets_v1
+    data("cell_lines_v1", package = "pogos")
+    data("compounds_v1", package = "pogos")
+    data("datasets_v1", package = "pogos")
+    cl_df <- as.data.frame(cell_lines_v1)
+    comp_df <- as.data.frame(compounds_v1)
+    ds_df <- as.data.frame(datasets_v1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

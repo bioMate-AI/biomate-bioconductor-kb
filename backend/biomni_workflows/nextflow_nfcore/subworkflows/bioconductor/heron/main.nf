@@ -38,69 +38,56 @@ process BIOC_HERON {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HERON)
     library(HERONSequenceDataSet)
     library(jsonlite)
 
-    # --- example seq mat [] ---
-    # Key functions: kable
-    data(heffron2021_wuhan)
-    knitr::kable(assay(heffron2021_wuhan)[1:5,1:5])
-    # --- example colData [] ---
-    # Key functions: kable
-    knitr::kable(head(colData(heffron2021_wuhan)))
-    # --- example probe meta [] ---
-    # Key functions: metadata
-    probe_meta <- metadata(heffron2021_wuhan)$probe_meta
-    knitr::kable(head(probe_meta[,c("PROBE_SEQUENCE", "PROBE_ID")]))
-    # --- assay [] ---
-    # Key functions: assay, HERONSequenceDataSet, colData, metadata
-    seq_mat <- assay(heffron2021_wuhan)
-    sds <- HERONSequenceDataSet(seq_mat)
-    colData(sds) <- colData(heffron2021_wuhan)
-    # --- quantile normalize [] ---
-    # Key functions: quantileNormalize
-    seq_ds_qn <- quantileNormalize(sds)
-    knitr::kable(head(assay(seq_ds_qn)[,1:5]))
-    # --- example probe pvalues [] ---
-    # Key functions: calcCombPValues, convertSequenceDSToProbeDS
+    # --- Probe P-Value Calculation and Calling [] ---
+    # Key functions: calcCombPValues, convertSequenceDSToProbeDS, makeProbeCalls, getKofN
     seq_pval_res <- calcCombPValues(seq_ds_qn)
     probe_pval_res <- convertSequenceDSToProbeDS(seq_pval_res)
-    knitr::kable(head(assay(probe_pval_res, "padj")[,1:5]))
-    # --- example probe calls [] ---
-    # Key functions: makeProbeCalls, getKofN
     probe_calls_res <- makeProbeCalls(probe_pval_res)
-    knitr::kable(head(assay(probe_calls_res, "calls")[,1:5]))
     probe_calls_k_of_n <- getKofN(probe_calls_res)
-    # --- example epitope finding unique [] ---
+
+
+    # --- Epitope Segmentation [] ---
     # Key functions: findEpitopeSegments
     epi_segments_uniq_res <- findEpitopeSegments(
-    knitr::kable(head(epi_segments_uniq_res))
-    # --- example epitope pvalues [] ---
-    # Key functions: calcEpitopePValues, addSequenceAnnotations
+        probe_calls_res,
+        segment_method = "unique"
+    )
+    epi_segments_hclust_res <- findEpitopeSegments(
+        probe_calls_res,
+        segment_method = "hclust",
+        segment_score_type = "binary",
+        segment_dist_method = "hamming",
+        segment_cutoff = "silhouette"
+    )
+
+
+    # --- Epitope P-Value and Call Analysis [] ---
+    # Key functions: calcEpitopePValues, addSequenceAnnotations, makeEpitopeCalls, getKofN
     epi_padj_uniq <- calcEpitopePValues(
+        probe_calls_res,
+        epitope_ids = epi_segments_uniq_res,
+        metap_method = "wmax1"
+    )
     epi_padj_uniq <- addSequenceAnnotations(epi_padj_uniq)
-    # --- example epitope calls [] ---
-    # Key functions: makeEpitopeCalls, getKofN
-    epi_calls_uniq <- makeEpitopeCalls(epi_padj_uniq, one_hit_filter = TRUE)
+    epi_calls_uniq <- makeEpitopeCalls(
+        epi_padj_uniq,
+        one_hit_filter = TRUE
+    )
     epi_calls_k_of_n_uniq <- getKofN(epi_calls_uniq)
-    knitr::kable(head(epi_calls_k_of_n_uniq))
-    # --- example protein pvalues [] ---
-    # Key functions: calcProteinPValues
+
+
+    # --- Protein Level Analysis [] ---
+    # Key functions: calcProteinPValues, makeProteinCalls, getKofN
     prot_padj_uniq <- calcProteinPValues(
-    # --- example protein calls [] ---
-    # Key functions: makeProteinCalls, getKofN
+        epi_padj_uniq,
+        metap_method = "tippetts"
+    )
     prot_calls_uniq <- makeProteinCalls(prot_padj_uniq)
     prot_calls_k_of_n_uniq <- getKofN(prot_calls_uniq)
-    knitr::kable(head(prot_calls_k_of_n_uniq))
-    # --- example epitope finding hclust [] ---
-    # Key functions: findEpitopeSegments
-    epi_segments_hclust_res <- findEpitopeSegments(
-    # --- example epitope finding hclust2 [] ---
-    # Key functions: findEpitopeSegments
-    epi_segments_hclust_res2 <- findEpitopeSegments(
-    # --- example epitope finding skater [] ---
-    # Key functions: findEpitopeSegments
-    epi_segments_skater_res <- findEpitopeSegments(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

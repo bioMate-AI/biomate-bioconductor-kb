@@ -41,51 +41,22 @@ process BIOC_PGCA {
     library(pgca)
     library(jsonlite)
 
-    # --- Subset [] ---
-    # Key functions: subset
-    -------------------------------------------------------------------------------------------------------------
-    subset(BET2007_v339, N %in% N[Gene_Symbol == 'PRSS2'])
-    # --- Pgcadict [] ---
-    # Key functions: pgcaDict
-    -------------------------------------------------------------------------------------------------------------
-    dict <- pgcaDict(
+    # --- Dictionary Application [] ---
+    # Key functions: applyDict
+    translated <- applyDict(
         BET2007_v339,
         BET2047_v339,
-        col.mapping=c(gene.symbol="Gene_Symbol")
-    # --- Subset [] ---
-    # Key functions: subset
-    -------------------------------------------------------------------------------------------------------------
-    subset(dict$dictionary, pg %in% pg[gene == 'PRSS2'])
-    # --- Applydict [] ---
-    # Key functions: applyDict
-    -------------------------------------------------------------------------------------------------------------
-    translated <- applyDict(BET2007_v339, BET2047_v339, dict=dict)
-    # --- Subset [] ---
-    # Key functions: subset
-    -------------------------------------------------------------------------------------------------------------
-    subset(translated$BET2007_v339, Gene_Symbol == "PRSS2")
-    subset(translated$BET2047_v339, Gene_Symbol == "PRSS2")
-    # --- Pgcadict [] ---
-    # Key functions: pgcaDict
-    -------------------------------------------------------------------------------------------------------------
-    dict.from.files <- pgcaDict(
-        system.file("extdata", "BET1947_v339.txt", package="pgca"),
-        system.file("extdata", "BET2007_v339.txt", package="pgca"),
-        system.file("extdata", "BET2047_v339.txt", package="pgca"),
-    # --- Subset [] ---
-    # Key functions: subset
-    -------------------------------------------------------------------------------------------------------------
-    subset(dict.from.dir$dictionary, pg %in% pg[gene == "PRSS2"])
-    # --- Applydict [] ---
-    # Key functions: applyDict
-    -------------------------------------------------------------------------------------------------------------
-    translated2 <- applyDict(BET1947_v339, BET2007_v339, BET2047_v339, BET2067_v339,
-                             dict=dict.from.dir)
-    # --- Subset [] ---
-    # Key functions: subset
-    -------------------------------------------------------------------------------------------------------------
-    subset(translated2$BET1947_v339, Gene_Symbol == 'PRSS2')
-    subset(translated2$BET2007_v339, Gene_Symbol == 'PRSS2')
+        dict = dict
+    )
+
+
+    # --- Dictionary Saving [] ---
+    # Key functions: saveDict
+    dictOutFile <- tempfile()
+    saveDict(
+        dict,
+        file = dictOutFile
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

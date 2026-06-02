@@ -38,24 +38,52 @@ process BIOC_CONSENSUSSEEKER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(consensusSeekeR)
     library(Seqinfo)
     library(jsonlite)
 
-    # --- Import genomic data file [] ---
-    # Key functions: import, ranges
-    library(rtracklayer)
-    library(GenomicRanges)
+    # --- Data Loading and Formatting [] ---
+    # Key functions: readNarrowPeakFile
     file_narrowPeak <- system.file("extdata",
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, stat_smooth, ylab, ggtitle
-    library(ggplot2)
-    data <- data.frame(extendingSize = size, nbrRegions = nbrRegions)
-    ggplot(data, aes(extendingSize, nbrRegions)) + scale_x_log10("Extending size") +
-    # --- Seqinfo analysis [] ---
-    # Key functions: include_graphics, Seqinfo, readNarrowPeakFile, findConsensusPeakRegions
-    data(A549_FOSL2_01_NarrowPeaks_partial) ; data(A549_FOSL2_01_Peaks_partial)
-    data(A549_FOXA1_01_NarrowPeaks_partial) ; data(A549_FOXA1_01_Peaks_partial)
-    names(A549_FOSL2_01_NarrowPeaks_partial) <- rep("FOSL2",
+        "A549_FOSL2_ENCSR000BQO_MZW_part_chr_1_and_12.narrowPeak",
+        package = "consensusSeekeR")
+    result <- readNarrowPeakFile(file_narrowPeak,
+                                 extractRegions = TRUE,
+                                 extractPeaks = TRUE)
+    regions <- result$narrowPeak
+    peaks <- result$peak
+
+    # --- Genome Information Setup [] ---
+    # Key functions: Seqinfo
+    chrList <- GenomeInfoDb::Seqinfo(seqnames = "chr1",
+                                     seqlengths = 135534747,
+                                     isCircular = NA)
+
+    # --- Consensus Peak Identification [] ---
+    # Key functions: findConsensusPeakRegions
+    data(NOrMAL_nucleosome_positions)
+    data(NOrMAL_nucleosome_ranges)
+    data(PING_nucleosome_positions)
+    data(PING_nucleosome_ranges)
+    names(NOrMAL_nucleosome_positions) <- rep("NOrMAL",
+        length(NOrMAL_nucleosome_positions))
+    names(NOrMAL_nucleosome_ranges) <- rep("NOrMAL",
+        length(NOrMAL_nucleosome_ranges))
+    names(PING_nucleosome_positions) <- rep("PING",
+        length(PING_nucleosome_positions))
+    names(PING_nucleosome_ranges) <- rep("PING",
+        length(PING_nucleosome_ranges))
+    chrList <- GenomeInfoDb::Seqinfo("chr1", 135534747, NA)
+    results <- findConsensusPeakRegions(
+        narrowPeaks = c(NOrMAL_nucleosome_ranges, PING_nucleosome_ranges),
+        peaks = c(NOrMAL_nucleosome_positions, PING_nucleosome_positions),
+        chrInfo = chrList,
+        extendingSize = 25,
+        expandToFitPeakRegion = TRUE,
+        shrinkToFitPeakRegion = TRUE,
+        minNbrExp = 2,
+        nbrThreads = 1)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

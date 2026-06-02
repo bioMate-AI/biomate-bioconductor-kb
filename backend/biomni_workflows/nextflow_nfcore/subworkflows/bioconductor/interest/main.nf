@@ -38,54 +38,69 @@ process BIOC_INTEREST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(IntEREst)
     library(Fraction)
     library(jsonlite)
 
-    # --- reference build [] ---
-    # Key functions: normalizePath, referencePrepare
-    suppressMessages(library("IntEREst"))
-    exonDat<- cbind(tmpEx[,3], ".",
-    tmpEx[,c(7,4,5)], ".", tmpEx[,6], ".",paste("ID=exon",
-    # --- annotate u12 [] ---
+    # --- U12 Intron Annotation [] ---
     # Key functions: annotateU12
-    ind<- u12$gene_name %in% c("RHBDD2", "YBX2")
-    annotateU12(pwmU12U2=list(pwmU12db[[1]][,11:17],pwmU12db[[2]],
-    pwmSsIndex=list(indexDonU12=1, indexBpU12=1, indexAccU12=3,
-    # --- normalize Path [] ---
-    # Key functions: normalizePath, interest, readInterestResults
-    outDir<- file.path(tempdir(),"interestFolder")
-    dir.create(outDir)
-    outDir<- normalizePath(outDir)
-    # --- get Annotation [] ---
-    # Key functions: getAnnotation, exactTestInterest, rowData, Fraction
-    getAnnotation(mdsChr22Obj)
-    test<- exactTestInterest(mdsChr22Obj,
-    sampleAnnoCol="test_ctrl", sampleAnnotation=c("ctrl","test"),
-    # --- get Annotation [] ---
-    # Key functions: getAnnotation, qlfInterest
-    group <- getAnnotation(mdsChr22Obj)[,"type"]
-    qlfRes<- qlfInterest(x=mdsChr22Obj,
-    design=model.matrix(~group), silent=TRUE,
-    # --- u12 Boxplot [] ---
-    # Key functions: u12Boxplot
-    par(mar=c(7,4,2,1))
-    u12Boxplot(mdsChr22Obj, sampleAnnoCol="type",
-    col=rep(c("orange", "yellow"),3) ,	lasNames=3,
-    # --- u12BoxplotNb object [] ---
-    # Key functions: u12BoxplotNb
-    par(mar=c(2,4,1,1))
-    u12BoxplotNb(mdsChr22Obj, sampleAnnoCol="type", lasNames=1,
-    boxplotNames=c(), outline=FALSE, plotLegend=TRUE,
-    # --- u12 Density Plot Intron [] ---
-    # Key functions: u12DensityPlotIntron, lfc
-    u12DensityPlotIntron(mdsChr22Obj,
-    type= c("U12", "U2Up", "U2Dn", "U2UpDn", "U2Rand"),
-    sampleAnnotation=c("ctrl","test"), intExCol="int_ex",
-    # --- add Annotation [] ---
-    # Key functions: addAnnotation, deseqInterest
-    mdsChr22RefIntRetSpObj<- cbind(mdsChr22Obj, mdsChr22IntSpObj)
-    mdsChr22RefIntRetSpObj<- addAnnotation(x=mdsChr22RefIntRetSpObj,
-    sampleAnnotation=c(rep("intron",16), rep("exon",16))
+    ind <- u12$gene_name %in% c("RHBDD2", "YBX2")
+    annoU12 <- annotateU12(
+        pwmU12U2 = list(
+            pwmU12db[[1]][, 11:17], pwmU12db[[2]],
+            pwmU12db[[3]][, 38:40], pwmU12db[[4]][, 11:17],
+            pwmU12db[[5]][, 38:40]
+        ),
+        pwmSsIndex = list(
+            indexDonU12 = 1, indexBpU12 = 1, indexAccU12 = 3,
+            indexDonU2 = 1, indexAccU2 = 3
+        ),
+        referenceChr = u12[ind, "chr"],
+        referenceBegin = u12[ind, "begin"],
+        referenceEnd = u12[ind, "end"],
+        referenceIntronExon = u12[ind, "int_ex"],
+        intronExon = "intron",
+        matchWindowRelativeUpstreamPos = c(NA, -29, NA, NA, NA),
+        matchWindowRelativeDownstreamPos = c(NA, -9, NA, NA, NA),
+        minMatchScore = c("80%", "80%", "40%", "80%", "40%"),
+        refGenome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19,
+        setNaAs = "U2",
+        annotateU12Subtype = TRUE
+    )
+
+
+    # --- Intron Retention Quantification [] ---
+    # Key functions: interest, readInterestResults
+    bamF <- system.file(
+        "extdata", "small_test_SRR1691637_ZRSR2Mut_RHBDD3.bam",
+        package = "IntEREst", mustWork = TRUE
+    )
+    ref <- u12[u12[, "gene_name"] == "RHBDD3", ]
+    out_file <- tempfile(fileext = ".tsv")
+    testInterest <- interest(
+        bamFileYieldSize = 10000,
+        junctionReadsOnly = FALSE,
+        bamFile = bamF,
+        isPaired = TRUE,
+        reference = ref,
+        referenceGeneNames = ref[, "ens_gene_id"],
+        referenceIntronExon = ref[, "int_ex"],
+        outFile = out_file,
+        method = "IntRet",
+        returnObj = FALSE
+    )
+    testIntRetObj <- readInterestResults(
+        resultFiles = out_file,
+        sampleNames = "small_test_SRR1691637_ZRSR2Mut_RHBDD3",
+        sampleAnnotation = data.frame(type = "ZRSR2mut", test_ctrl = "test"),
+        commonColumns = 1:ncol(ref),
+        freqCol = ncol(ref) + 1,
+        scaledRetentionCol = ncol(ref) + 2,
+        scaleLength = TRUE,
+        scaleFragment = TRUE,
+        reScale = TRUE,
+        geneIdCol = "ens_gene_id"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

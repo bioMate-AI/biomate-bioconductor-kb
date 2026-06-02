@@ -38,17 +38,29 @@ process BIOC_RTOPPER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RTopper)
     library(GO)
     library(Term)
     library(jsonlite)
 
-    # --- Mget analysis [] ---
-    # Key functions: eg, unlist, mget, sample, keggGet, GO, Term, convertToDr
-    gseUP.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList,
-    				 absolute=FALSE, type="t", alternative="up")
-    gseDW.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList,
-    				 absolute=FALSE, type="t", alternative="down")
-    gseBOTH.int <- runBatchGSE(dataList=bicStatInt, fgsList=fgsList,
+    # --- Gene Set Score Computation [] ---
+    # Key functions: computeDrStat
+    bicStatInt <- computeDrStat(
+        dataDr, columns = c(1:4),
+        method = "bic", integrate = TRUE
+    )
+    bicStatSep <- computeDrStat(
+        dataDr, columns = c(1:4),
+        method = "bic", integrate = FALSE
+    )
+
+
+    # --- Gene Set Enrichment Integration [] ---
+    # Key functions: combineGSE, adjustPvalGSE
+    data(exampleData, package = "RTopper")
+    gse_geo <- combineGSE(gseABS.sep, method = "geometricMean")
+    gse_max <- combineGSE(gseABS.sep, method = "max")
+    gse_adj <- adjustPvalGSE(gse_geo, proc = "BH")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

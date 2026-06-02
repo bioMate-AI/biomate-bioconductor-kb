@@ -38,101 +38,50 @@ process BIOC_TFBSTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TFBSTools)
     library(Matrix)
     library(PFMatrix)
     library(PFMatrixList)
     library(jsonlite)
 
+    # --- Transcription Factor Motif Similarity Analysis [] ---
+    # Key functions: PFMSimilarity, PWMSimilarity, permuteMatrix
+    pfm_seq <- permuteMatrix(pfm, type="intra")
+    pfm_list <- PFMatrixList(pfm1=pfm, pfm2=pfm_seq, use.names=TRUE)
+    sim_pfm <- PFMSimilarity(pfm_list, pfm)
+    pwm1 <- toPWM(pfm, type="prob")
+    pwm2 <- toPWM(pfm_seq, type="prob")
+    sim_pwm <- PWMSimilarity(pwm1, pwm2, method="Pearson")
 
-    # --- Code [] ---
-    # Key functions: function, doc_date, pkg_ver, set
-    code <- function(...) {
-        cat(paste(..., sep = "\n"))
-    }
 
-    date = "`r doc_date()`"
-    pkg = "`r pkg_ver('BiocStyle')`"
-    short=TRUE #if short==TRUE, do not echo code chunks
-    debug=FALSE
-    knitr::opts_chunk$set(echo=!short, warning=debug, message=debug, error=FALSE,
-                   cache.path = "cache/",
-                   fig.path = "figures/")
+    # --- Transcription Factor Binding Site Search [] ---
+    # Key functions: searchSeq, writeGFF3, relScore, pvalues
+    subject_seq <- Biostrings::DNAString("GAATTCTCTCTTGTTGTAGTCTCTTGACAAAATG")
+    siteset <- searchSeq(
+        pwm, subject_seq, seqname="seq1", 
+        min.score="60%", strand="*"
+    )
+    gff_output <- writeGFF3(siteset)
+    scores <- relScore(siteset)
+    p_vals <- pvalues(siteset, type="TFMPvalue")
 
-    # --- Pfmatrix [] ---
-    # Key functions: PFMatrix, name, toPWM, toICM, rowSums, reverseComplement, vertebrates, log2probratio
-    library(TFBSTools)
-    ## PFMatrix construction; Not all of the slots need to be initialised.
-    pfm <- PFMatrix(ID="MA0004.1", name="Arnt", 
-                    matrixClass="Zipper-Type", strand="+",
-                    bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
-                    tags=list(family="Helix-Loop-Helix", species="10090",
-                              tax_group="vertebrates",medline="7592839", 
-                              type="SELEX",ACC="P53762", pazar_tf_id="TF0000003",
-                              TFBSshape_ID="11", TFencyclopedia_ID="580"),
-                    profileMatrix=matrix(c(4L,  19L, 0L,  0L,  0L,  0L,
-    pfm2 <- pfm
-    pfmList <- PFMatrixList(pfm1=pfm, pfm2=pfm2, use.names=TRUE)
-    pfmList
-    names(pfmList)
 
-    # --- Tffmread [] ---
-    # Key functions: readXMLTFFM, getPosProb, extdata, tffm_first_order.xml, tffm_detailed.xml, suppressMessages, getMatrixSet, species
-    xmlFirst <- file.path(system.file("extdata", package="TFBSTools"),
-                            "tffm_first_order.xml")
-      tffmFirst <- readXMLTFFM(xmlFirst, type="First")
-      tffm <- getPosProb(tffmFirst)
+    # --- Genomic Alignment Search [] ---
+    # Key functions: searchAln, toGRangesList
+    aln1 <- Biostrings::DNAString("ACTTCACCAGCTCCCTGGCGGTAAGTTGATC")
+    aln2 <- Biostrings::DNAString("GTTTCACTACTTCCTTTCGGGTAAGTAAATA")
+    site_pair <- searchAln(
+        pwm, aln1, aln2, seqname1="seq1", seqname2="seq2",
+        min.score="50%", cutoff=0.5, strand="*", type="any"
+    )
+    gff_aln <- writeGFF3(site_pair)
 
-      xmlDetail <- file.path(system.file("extdata", package="TFBSTools"),
-                             "tffm_detailed.xml")
-      tffmDetail <- readXMLTFFM(xmlDetail, type="Detail")
-      getPosProb(tffmDetail)
-    suppressMessages(library(JASPAR2014))
-    opts <- list()
-    opts[["species"]] <- 9606
-    opts[["name"]] <- "RUNX1"
-    opts[["type"]] <- "SELEX"
-    opts[["all_versions"]] <- TRUE
-    PFMatrixList <- getMatrixSet(JASPAR2014, opts)
-    PFMatrixList
 
-    opts2 <- list()
-
-    # --- Operate Database [] ---
-    # Key functions: initializeJASPARDB, storeMatrix, deleteMatrixHavingID, file.remove, myMatrixDb.sqlite, toPWM
-    db <- "myMatrixDb.sqlite"
-    initializeJASPARDB(db, version="2014")
-    data("MA0043")
-    storeMatrix(db, MA0043)
-    deleteMatrixHavingID(db,"MA0043.1")
-    file.remove(db)
-    pwm <- toPWM(pfm, pseudocounts=0.8)
-    pwm
-
-    # --- Icmmatrix Methods [] ---
-    # Key functions: toICM, seqLogo
-    icm <- toICM(pfm, pseudocounts=0.8, schneider=TRUE)
-    icm
-    seqLogo(icm)
-
-    # --- Pfmsimi [] ---
-    # Key functions: PFMSimilarity, toPWM, PWMSimilarity, prob
-    ## one to one comparison
-    data(MA0003.2)
-    data(MA0004.1)
-    pfmSubject <- MA0003.2
-    pfmQuery <-  MA0004.1
-    PFMSimilarity(pfmSubject, pfmQuery)
-
-    ## one to several comparsion
-    PFMSimilarity(pfmList, pfmQuery)
-
-    data(MA0003.2)
-    data(MA0004.1)
-    pwm1 <- toPWM(MA0003.2, type="prob")
-    pwm2 <- toPWM(MA0004.1, type="prob")
-    PWMSimilarity(pwm1, pwm2, method="Euclidean")
-    PWMSimilarity(pwm1, pwm2, method="Pearson")
-    PWMSimilarity(pwm1, pwm2, method="KL")
+    # --- Transcription Factor Flexible Models [] ---
+    # Key functions: readXMLTFFM, getPosProb
+    xml_file <- system.file("extdata", "tffm_first_order.xml", package="TFBSTools")
+    tffm_first <- readXMLTFFM(xml_file, type="First")
+    pos_prob <- getPosProb(tffm_first)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

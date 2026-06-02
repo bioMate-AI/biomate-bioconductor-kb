@@ -42,11 +42,70 @@ process BIOC_QTLEXPERIMENT {
     library(QTLExperiment)
     library(jsonlite)
 
-    # --- Assay data access [] ---
-    # Key functions: mockSummaryStats, QTLExperiment, mockQTLE, sumstats2qtle, mockMASHR, mash2qtle, state_id, feature_id
-    mock_summary_stats <- mockSummaryStats(nStates=nStates, nQTL=nQTL, names=FALSE)
-    qtle <- QTLExperiment(assays=list(betas=mock_summary_stats$betas,
-    feature_id=paste0("gene_", 1:nQTL),
+    # --- Mock Data Generation ---
+    # Key functions: mockSummaryStats, QTLExperiment, mockQTLE
+    nStates <- 6
+    nQTL <- 40
+    mock_stats <- mockSummaryStats(nStates = nStates, nQTL = nQTL)
+    qtle <- QTLExperiment(
+        assays = list(
+            betas = mock_stats$betas,
+            errors = mock_stats$errors
+        ),
+        metadata = list(study = "mock-example")
+    )
+    qtle_mock <- mockQTLE(nStates = nStates, nQTL = nQTL)
+
+    # --- Importing Summary Statistics ---
+    # Key functions: sumstats2qtle, betas
+    input_path <- system.file("extdata", package = "QTLExperiment")
+    state <- c("lung", "thyroid", "spleen", "blood")
+    input <- data.frame(
+        state = state,
+        path = paste0(input_path, "/GTEx_tx_", state, ".tsv")
+    )
+    qtle4 <- sumstats2qtle(
+        input,
+        feature_id = "molecular_trait_id",
+        variant_id = "rsid",
+        betas = "beta",
+        errors = "se",
+        pvalues = "pvalue",
+        verbose = TRUE
+    )
+    b_mat <- betas(qtle4)
+
+    # --- Importing MASHR Objects ---
+    # Key functions: mockMASHR, mash2qtle
+    nStates <- 6
+    nQTL <- 40
+    mashr_sim <- mockMASHR(nStates = nStates, nQTL = nQTL)
+    qtle2 <- mash2qtle(
+        mashr_sim,
+        rowData = DataFrame(
+            feature_id = row.names(mashr_sim$Bhat),
+            variant_id = sample(seq(1:1e5), nQTL)
+        )
+    )
+
+    # --- Accessing and Modifying Assays ---
+    # Key functions: betas, state_id, feature_id, variant_id
+    qtle <- mockQTLE(nStates = 4, nQTL = 20)
+    betas(qtle) <- betas(qtle) * -1
+    states <- state_id(qtle)
+    features <- feature_id(qtle)
+    variants <- variant_id(qtle)
+
+    # --- Data Manipulation and Recovery ---
+    # Key functions: recover_qtle_ids
+    qtle <- mockQTLE(nStates = 4, nQTL = 20)
+    new_colData <- DataFrame(list(
+        some_info1 = LETTERS[1:ncol(qtle)],
+        some_info2 = c(1:ncol(qtle))
+    ))
+    colData(qtle) <- new_colData
+    qtle_recovered <- recover_qtle_ids(qtle)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

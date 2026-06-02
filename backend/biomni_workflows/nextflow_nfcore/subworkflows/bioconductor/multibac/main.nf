@@ -42,21 +42,57 @@ process BIOC_MULTIBAC {
     library(MultiBaC)
     library(jsonlite)
 
-    # --- create Mbac [] ---
+    # --- Data Initialization [MultiBaC Object Creation] ---
     # Key functions: createMbac
     data("multiyeast")
-    data_RNA <- createMbac (inputOmics = list(A.rna, B.rna, C.rna),
-    batchFactor = c("A", "B", "C"),
-    # --- A R Sy Nbac [] ---
+    data_RNA <- createMbac(
+        inputOmics = list(A.rna, B.rna, C.rna),
+        batchFactor = c("A", "B", "C"),
+        experimentalDesign = list(
+            "A" = c("Glu+", "Glu+", "Glu+", "Glu-", "Glu-", "Glu-"),
+            "B" = c("Glu+", "Glu+", "Glu-", "Glu-"),
+            "C" = c("Glu+", "Glu+", "Glu-", "Glu-")
+        ),
+        omicNames = "RNA"
+    )
+
+    # --- Exploratory Data Analysis [PCA of Original Data] ---
+    # Key functions: plot
+    custom_col <- c("brown2", "dodgerblue", "forestgreen")
+    custom_pch <- c(19, 19, 19, 1, 1, 1, 19, 19, 1, 1, 19, 19, 1, 1)
+    plot(
+        data_RNA,
+        typeP = "pca.org",
+        bty = "L",
+        pch = custom_pch,
+        cex = 2,
+        col.per.group = custom_col
+    )
+
+    # --- Batch Effect Correction [ARSyNbac Correction] ---
     # Key functions: ARSyNbac
-    par(mfrow = c(1,2))
-    arsyn_1 <- ARSyNbac(data_RNA, modelName = "RNA", Variability = 0.95,
-    plot(arsyn_1, typeP="pca.cor", bty = "L",
-    # --- Multi Ba C [] ---
-    # Key functions: MultiBaC, genModelList, genMissingOmics, batchCorrection
-    my_final_mbac <- MultiBaC (my_mbac,
-    my_mbac_2 <- genModelList (my_mbac, test.comp = NULL,
-    multiBatchDesign <- genMissingOmics(my_mbac_2)
+    arsyn_corrected <- ARSyNbac(
+        data_RNA,
+        modelName = "RNA",
+        Variability = 0.95,
+        batchEstimation = TRUE,
+        filterNoise = TRUE,
+        Interaction = TRUE
+    )
+
+    # --- Post-Correction Visualization [PCA of Corrected Data] ---
+    # Key functions: plot
+    custom_col <- c("brown2", "dodgerblue", "forestgreen")
+    custom_pch <- c(19, 19, 19, 1, 1, 1, 19, 19, 1, 1, 19, 19, 1, 1)
+    plot(
+        arsyn_corrected,
+        typeP = "pca.cor",
+        bty = "L",
+        pch = custom_pch,
+        cex = 2,
+        col.per.group = custom_col
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,23 +41,27 @@ process BIOC_RCM {
     library(RCM)
     library(jsonlite)
 
-    # --- add Orth Projection [] ---
-    # Key functions: addOrthProjection
-    tmpPlot = plot(ZellerRCM2, taxNum = 10, samColour = "Diagnosis",
-    addOrthProjection(tmpPlot, species = "Alloprevotella tannerae",
-    sample = c(-1.2,1.5))
-    # --- plot Resp Fun [] ---
-    # Key functions: plotRespFun
-    plotRespFun(ZellerRCM2constrNonParam, taxa = NULL ,subdivisions = 50L,
-    yLocVar = c(-30, -50,-75,-62.5,-30,-62.5,-70,-50,-30)*0.225,
-    # --- taxa_names [] ---
-    # Key functions: taxa_names, plotRespFun
-    FusoSpecies = grep("Fusobacterium",value = TRUE,
-    taxa_names(ZellerRCM2constrNonParam$physeq))
-    plotRespFun(ZellerRCM2constrNonParam, Dim = 1, taxa = FusoSpecies,
-    # --- residual Plot [] ---
-    # Key functions: residualPlot
+    # --- Constrained Ordination and Triplots [] ---
+    # Key functions: plot, addOrthProjection
+    plot(ZellerRCM2constr, plotType = c("samples"), samColour = "Diagnosis")
+    tmpPlot2 <- plot(ZellerRCM2constr,
+        plotType = c("species", "samples"), returnCoords = TRUE)
+    addOrthProjection(tmpPlot2, species = "Pseudomonas fluorescens",
+        sample = c(-12, 7))
+
+
+    # --- Response Function and Residual Analysis [] ---
+    # Key functions: plotRespFun, residualPlot
+    plotRespFun(ZellerRCM2constrNonParam, Dim = 1, samShape = "Diagnosis")
     residualPlot(ZellerRCM2constr, whichTaxa = "response", numTaxa = 6)
+    residualPlot(ZellerRCM2constr, whichTaxa = "runs", resid = "Deviance",
+        numTaxa = 6)
+
+
+    # --- Coordinate Extraction and Signal Analysis [] ---
+    # Key functions: extractCoord
+    zellerCoords <- extractCoord(ZellerRCM2)
+    taxaSignals <- rowSums(zellerCoords$species[, c("end1", "end2")]^2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

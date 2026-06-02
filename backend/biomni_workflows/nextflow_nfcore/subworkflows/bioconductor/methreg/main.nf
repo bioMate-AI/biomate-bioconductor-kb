@@ -41,15 +41,73 @@ process BIOC_METHREG {
     library(MethReg)
     library(jsonlite)
 
-    # --- read P N G [] ---
-    # Key functions: readPNG
-    png::readPNG("workflow_methReg.png") %>% grid::grid.raster()
-    # --- plot interaction model [] ---
+    # --- Data Preparation [Data Preparation] ---
+    # Key functions: make_dnam_se, make_exp_se
+    dna.met.chr21.se <- methreg::make_dnam_se(
+        dnam = dna.met.chr21,
+        genome = "hg38",
+        arrayType = "450k",
+        betaToM = FALSE,
+        verbose = FALSE
+    )
+    gene.exp.chr21.se <- methreg::make_exp_se(
+        exp = gene.exp.chr21.log2,
+        genome = "hg38",
+        verbose = FALSE
+    )
+
+    # --- Triplet Creation [Triplet Creation] ---
+    # Key functions: create_triplet_distance_based, create_triplet_regulon_based
+    triplet.promoter <- methreg::create_triplet_distance_based(
+        region = dna.met.chr21.se,
+        target.method = "genes.promoter.overlap",
+        genome = "hg38",
+        target.promoter.upstream.dist.tss = 2000,
+        target.promoter.downstream.dist.tss = 2000,
+        motif.search.window.size = 400,
+        motif.search.p.cutoff  = 1e-08,
+        cores = 1
+    )
+
+    # --- TF Activity Estimation [TF Activity Estimation] ---
+    # Key functions: get_tf_ES
+    rnaseq.tf.es <- methreg::get_tf_ES(
+        exp = SummarizedExperiment::assay(gene.exp.chr21.se),
+        regulons = dorothea::dorothea_hs
+    )
+
+    # --- Interaction Modeling [Interaction Modeling] ---
+    # Key functions: interaction_model
+    results.interaction.model <- methreg::interaction_model(
+        triplet = triplet.promoter,
+        dnam = dna.met.chr21.se,
+        exp = gene.exp.chr21.se,
+        dnam.group.threshold = 0.1,
+        sig.threshold = 0.05,
+        fdr = TRUE,
+        stage.wise.analysis = FALSE,
+        filter.correlated.tf.exp.dnam = FALSE,
+        filter.triplet.by.sig.term = TRUE
+    )
+
+    # --- Stratified Modeling [Stratified Modeling] ---
+    # Key functions: stratified_model
+    results.stratified.model <- methreg::stratified_model(
+        triplet = results.interaction.model,
+        dnam = dna.met.chr21.se,
+        exp = gene.exp.chr21.se,
+        dnam.group.threshold = 0.25
+    )
+
+    # --- Visualisation [Visualisation] ---
     # Key functions: plot_interaction_model
-    plots <- plot_interaction_model(
-    # --- read P N G [] ---
-    # Key functions: readPNG
-    png::readPNG("scenarios.png")  %>% grid::grid.raster()
+    plots <- methreg::plot_interaction_model(
+        triplet.results = results.interaction.model[1, ],
+        dnam = dna.met.chr21.se,
+        exp = gene.exp.chr21.se,
+        dnam.group.threshold = 0.25
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

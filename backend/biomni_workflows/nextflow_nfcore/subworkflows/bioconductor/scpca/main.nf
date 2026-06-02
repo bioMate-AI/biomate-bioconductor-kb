@@ -41,90 +41,48 @@ process BIOC_SCPCA {
     library(scPCA)
     library(jsonlite)
 
-    # --- Pca Sim [] ---
-    # Key functions: prcomp, as_tibble, ggplot, aes
-    # set seed for reproducibility
-    set.seed(1742)
-    # load data
-    data(toy_df)
-    # perform PCA
-    # --- Spca Sim [] ---
-    # Key functions: spca
-    # perform sPCA on toy_df for a range of L1 penalty terms
-    penalties <- exp(seq(log(10), log(1000), length.out = 6))
-    df_ls <- lapply(penalties, function(penalty) {
-      spca_sim_p <- elasticnet::spca(toy_df[, 1:30], K = 2, para = rep(penalty, 2),
-                         type = "predictor", sparse = "penalty")$loadings
-    # --- Cpca Sim [] ---
-    # Key functions: scPCA, as_tibble, mutate, ggplot, aes, geom_point
-    cpca_sim <- scPCA(target = toy_df[, 1:30],
-                      background = background_df,
-                      penalties = 0,
-                      n_centers = 4)
-    # create a dataframe to be plotted
-    # --- Scpca Sim [] ---
-    # Key functions: scPCA, as_tibble, mutate
-    # run scPCA for using 40 logarithmically seperated contrastive parameter values
-    # and possible 20 L1 penalty terms
-    scpca_sim <- scPCA(target = toy_df[, 1:30],
-                       background = background_df,
-                       n_centers = 4,
-    # --- Cpca Sim Cv [] ---
-    # Key functions: scPCA, as_tibble, mutate, ggplot, aes, geom_point
-    cpca_cv_sim <- scPCA(target = toy_df[, 1:30],
-                         background = background_df,
-                         penalties = 0,
-                         n_centers = 4,
-                         cv = 3)
-    # --- Scpca Sim Cv [] ---
-    # Key functions: scPCA, as_tibble, mutate
-    scpca_cv_sim <- scPCA(target = toy_df[, 1:30],
-                          background = background_df,
-                          n_centers = 4,
-                          cv = 3,
-                          penalties = exp(seq(log(0.01), log(0.5), length.out = 10)),
-    # --- Plot Cv Cpca Scpca [] ---
-    # Key functions: ggarrange
-    ggarrange(
-      p_cpca_cv, p_scpca_cv,
-      nrow = 1,
-      common.legend = TRUE,
-      legend = "right"
-    # --- Microbenchmark Comparison [] ---
-    # Key functions: microbenchmark, scPCA, autoplot, ggtitle, theme_minimal
-    timing_scPCA <- microbenchmark(
-      "Zou et al." = scPCA(target = toy_df[, 1:30],
-                           background = background_df,
-                           n_centers = 4,
-                           alg = "iterative"),
-    # --- Sce Setup [] ---
-    # Key functions: newSplatParams, splatSimulate
-    library(splatter)
-    library(SingleCellExperiment)
-    # Simulate the three groups of cells. Mask cell heterogeneity with batch effect
-    params <- newSplatParams(
-      seed = 6757293,
-    # --- Make Sce Subs [] ---
-    # Key functions: assay
-    # rank genes by variance
-    n_genes <- 250
-    vars <- assay(sim_sce) %>%
-      log1p %>%
-      rowVars
-    # --- Perform Dimred [] ---
-    # Key functions: prcomp, log1p, counts, scPCA
-    # for both cPCA and scPCA, we'll set the penalties and contrasts arguments
-    contrasts <- exp(seq(log(0.1), log(100), length.out = 5))
-    penalties <- exp(seq(log(0.001), log(0.1), length.out = 3))
-    # first, PCA
-    pca_out <- prcomp(t(log1p(counts(tg_sce))), center = TRUE, scale. = TRUE)
-    # --- Plot Red Dims [] ---
-    # Key functions: frame, ggplot, aes, geom_point, ggtitle, scale_colour_viridis_d, scale_shape_discrete
-    # plot the 2D representations
-    # prepare PCA
-    pca_df <- data.frame(
-      PC1 = pca_out$x[, 1],
-      PC2 = pca_out$x[, 2],
+    # --- Sparse Contrastive Principal Component Analysis [] ---
+    # Key functions: scPCA
+    scpca_sim <- scPCA(
+        target = toy_df[, 1:30],
+        background = background_df,
+        n_centers = 4,
+        penalties = exp(seq(log(0.01), log(0.5), length.out = 10)),
+        alg = "var_proj"
+    )
+    scpca_df <- as.data.frame(scpca_sim$x)
+    colnames(scpca_df) <- c("scPC1", "scPC2")
+    scpca_df$label <- as.character(toy_df[, 31])
+
+
+    # --- Cross Validated Contrastive PCA [] ---
+    # Key functions: scPCA
+    scpca_cv_sim <- scPCA(
+        target = toy_df[, 1:30],
+        background = background_df,
+        n_centers = 4,
+        cv = 3,
+        penalties = exp(seq(log(0.01), log(0.5), length.out = 10)),
+        alg = "var_proj"
+    )
+    cv_df <- as.data.frame(scpca_cv_sim$x)
+    colnames(cv_df) <- c("scPC1_cv", "scPC2_cv")
+
+
+    # --- Algorithm Comparison and Benchmarking [] ---
+    # Key functions: scPCA
+    scpca_iter <- scPCA(
+        target = toy_df[, 1:30],
+        background = background_df,
+        n_centers = 4,
+        alg = "iterative"
+    )
+    scpca_rand <- scPCA(
+        target = toy_df[, 1:30],
+        background = background_df,
+        n_centers = 4,
+        alg = "rand_var_proj"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

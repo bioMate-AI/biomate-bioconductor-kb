@@ -38,34 +38,78 @@ process BIOC_PADMA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(padma)
     library(MultiAssayExperiment)
     library(jsonlite)
 
-    # --- Multi Assay Experiment [] ---
-    # Key functions: MultiAssayExperiment
-    head(msigdb)
-    head(mirtarbase)
-    library(MultiAssayExperiment)
-    # --- padma [] ---
+    # --- Data Preparation [padma] ---
+    # Key functions: LUAD_subset, msigdb
+    mae_data <- padma::LUAD_subset
+    omics_list <- list(
+        rnaseq = as.matrix(mae_data$rnaseq),
+        methyl = as.matrix(mae_data$methyl),
+        mirna = as.matrix(mae_data$mirna),
+        cna = as.matrix(mae_data$cna)
+    )
+    pheno_df <- data.frame(
+        mae_data$clinical,
+        row.names = mae_data$clinical$bcr_patient_barcode
+    )
+
+    # --- Pathway Deviation Analysis [padma] ---
     # Key functions: padma
-    D4GDI <- msigdb[grep("D4GDI", msigdb$geneset), "geneset"]
-    padma(mae, pathway_name = D4GDI, verbose = FALSE)
-    # --- unlist [] ---
-    # Key functions: unlist, padma
-    D4GDI_genes <- unlist(strsplit(
-    msigdb[grep("D4GDI", msigdb$geneset), "symbol"], ", "))
-    padma(mae, pathway_name = D4GDI_genes, verbose = FALSE)
-    # --- factor Map [] ---
+    geneset_name <- padma::msigdb[
+        grep("D4GDI", padma::msigdb$geneset), "geneset"
+    ]
+    run_padma_res <- padma::padma(
+        omics_list,
+        colData = pheno_df,
+        pathway_name = geneset_name,
+        verbose = FALSE
+    )
+
+    # --- Pathway Deviation Analysis with Imputation [padma] ---
+    # Key functions: padma
+    geneset_name <- padma::msigdb[
+        grep("D4GDI", padma::msigdb$geneset), "geneset"
+    ]
+    run_padma_impute <- padma::padma(
+        omics_list,
+        colData = pheno_df,
+        pathway_name = geneset_name,
+        impute = TRUE,
+        verbose = FALSE
+    )
+
+    # --- Factor Map Visualisation [padma] ---
     # Key functions: factorMap
-    factorMap(run_padma, dim_x = 1, dim_y = 2)
-    # --- omics Contrib [] ---
+    factor_plot <- padma::factorMap(
+        run_padma_res,
+        dim_x = 1,
+        dim_y = 2,
+        ggplot = TRUE
+    )
+    partial_plot <- padma::factorMap(
+        run_padma_res,
+        partial_id = "TCGA-78-7536",
+        dim_x = 1,
+        dim_y = 2,
+        ggplot = TRUE
+    )
+
+    # --- Omics Contribution Analysis [padma] ---
     # Key functions: omicsContrib
-    omicsContrib(run_padma, max_dim = 10)
-    # --- omics Contrib [] ---
-    # Key functions: omicsContrib, padma
-    omicsContrib(run_padma, max_dim = 10, ggplot = FALSE)
-    padma(mae, pathway_name = D4GDI, verbose = FALSE,
-    base_ids = sampleMap(mae)$primary[1:10],
+    contrib_plot <- padma::omicsContrib(
+        run_padma_res,
+        max_dim = 10,
+        ggplot = TRUE
+    )
+    contrib_data <- padma::omicsContrib(
+        run_padma_res,
+        max_dim = 10,
+        ggplot = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

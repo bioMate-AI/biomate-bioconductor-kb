@@ -38,19 +38,31 @@ process BIOC_FEATSEEKR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(FeatSeekR)
     library(FeatSeek)
     library(jsonlite)
 
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: simData, pheatmap
-    set.seed(111)
-    sim <- simData(conditions=conditions, n_latent_factors=latent_factors,
-    dim(assay(sim, "data"))
-    # --- FeatSeek analysis [] ---
-    # Key functions: FeatSeek, plotSelectedFeatures, aperm, dimnames, plotVarianceExplained
-    data("subSampleForStabilitySelection", package="DmelSGI")
-    data <- aperm(data, c(1, 3, 2))
-    dimnames(data)[[2]] <- subSampleForStabilitySelection$phenotype
+    # --- Feature Selection [] ---
+    # Key functions: FeatSeek
+    res <- FeatSeek(sim, max_features = 5)
+    res_custom <- FeatSeek(
+        t(data), 
+        conditions = conds, 
+        max_features = 30, 
+        verbose = TRUE
+    )
+
+
+    # --- Variance Analysis [] ---
+    # Key functions: plotVarianceExplained
+    plotVarianceExplained(res_custom)
+
+
+    # --- Feature Visualization [] ---
+    # Key functions: plotSelectedFeatures
+    plotSelectedFeatures(res)
+    n_feat <- min(which(rowData(res_custom)$explained_variance > 0.7))
+    plotSelectedFeatures(res_custom, n_features = n_feat)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

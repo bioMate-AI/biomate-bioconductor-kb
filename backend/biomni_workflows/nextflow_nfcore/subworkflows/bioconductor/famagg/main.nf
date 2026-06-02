@@ -38,14 +38,42 @@ process BIOC_FAMAGG {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(FamAgg)
     library(FAData)
     library(jsonlite)
 
-    # --- FAData analysis [] ---
-    # Key functions: FAData, switchPlotfun, plotPed, buildPed, any, findFounders, getCommonAncestor, getChildren
-    Perform the analysis (no strata etc) separately for each family.
-    giFam <- genealogicalIndexTest(fad, trait = tcancer, nsim = nsim,
-    head(result(giFam))
+    # --- Pedigree Subsetting [] ---
+    # Key functions: family, buildPed, findFounders
+    fam_four <- family(fad, family = 4)
+    ind_ped <- family(fad, id = "3")
+    sub_ped <- buildPed(fad, id = c("21", "22", "17"), prune = TRUE)
+    fam_founders <- findFounders(fad, family = "4")
+
+
+    # --- Kinship and Ancestry Analysis [] ---
+    # Key functions: getCommonAncestor, getChildren, getAncestors, shareKinship
+    common_anc <- getCommonAncestor(fad, id = c("21", "22", "17"))
+    direct_children <- getChildren(fad, id = "4", max.generations = 1)
+    all_ancestors <- getAncestors(fad, id = "4")
+    kin_all <- shareKinship(fad, id = "4")
+    kin_filtered <- shareKinship(fad, id = "4", rmKinship = 0.125)
+
+
+    # --- Trait Association [] ---
+    # Key functions: trait<-, affectedIndividuals, phenotypedIndividuals
+    cancer_status <- minnbreast$cancer[minnbreast$famid %in% 4:14]
+    names(cancer_status) <- as.character(mbped$id)
+    trait(fad) <- cancer_status
+    affected_ids <- affectedIndividuals(fad)
+    phenotyped_ids <- phenotypedIndividuals(fad)
+
+
+    # --- Pedigree Visualization [] ---
+    # Key functions: switchPlotfun, plotPed, estimateGenerations, generationsFrom
+    switchPlotfun("ks2paint")
+    gens <- generationsFrom(fad, id = "4")
+    gen_levels <- estimateGenerations(fad)
+    plotPed(fad, family = "9", highlight.ids = list(a = c("185", "201")))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,31 +38,87 @@ process BIOC_MONALISA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(monaLisa)
     library(HeatmapAnnotation)
     library(RNGkind)
     library(jsonlite)
 
-    # --- get Matrix Set [] ---
-    # Key functions: getMatrixSet, toPWM, getSeq, findMotifHits
-    get PFMs (vertebrate TFs from Jaspar)
-    pfms <- getMatrixSet(JASPAR2020, list(matrixtype = "PFM",
-    randomly sample 300 PFMs for illustration purposes (for quick runtime)
-    # --- rand Lasso Stab Sel [] ---
-    # Key functions: randLassoStabSel, RNGkind
-    randLassoStabSel() is stochastic, so if we run with parallelization
-    (`mc.cores` argument), we must select a random number generator that can
-    RNGkind("L'Ecuyer-CMRG")
-    # --- plot Stability Paths [] ---
-    # Key functions: plotStabilityPaths
+    # --- Data Loading and Motif Preparation [monaLisa] ---
+    # Key functions: getMatrixSet
+    gr_path <- system.file("extdata", "atac_liver_vs_lung.rds",
+                           package = "monaLisa")
+    gr <- readRDS(gr_path)
+    pfms <- JASPAR2020::getMatrixSet(
+        JASPAR2020::JASPAR2020,
+        list(matrixtype = "PFM", tax_group = "vertebrates")
+    )
+    pwms <- TFBSTools::toPWM(pfms[1:100])
+
+    # --- Motif Search and Hit Detection [monaLisa] ---
+    # Key functions: findMotifHits
+    peakSeq <- Biostrings::getSeq(
+        BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10,
+        gr
+    )
+    hits <- findMotifHits(
+        query = pwms,
+        subject = peakSeq,
+        min.score = 10.0,
+        BPPARAM = BiocParallel::SerialParam()
+    )
+
+    # --- Predictor Matrix Preparation [monaLisa] ---
+    # Key functions: findMotifHits
+    TFBSmatrix <- unclass(table(
+        factor(seqnames(hits), levels = seqlevels(hits)),
+        factor(hits$pwmname, levels = TFBSTools::name(pwms))
+    ))
+    TFBSmatrix <- TFBSmatrix[, colSums(TFBSmatrix) > 0]
+    fMono <- Biostrings::oligonucleotideFrequency(
+        peakSeq, width = 1L, as.prob = TRUE
+    )
+    fDi <- Biostrings::oligonucleotideFrequency(
+        peakSeq, width = 2L, as.prob = TRUE
+    )
+    fracGC <- fMono[, "G"] + fMono[, "C"]
+    oeCpG <- (fDi[, "CG"] + 0.01) / (fMono[, "G"] * fMono[, "C"] + 0.01)
+    TFBSmatrix <- cbind(fracGC, oeCpG, TFBSmatrix)
+
+    # --- Stability Selection [monaLisa] ---
+    # Key functions: randLassoStabSel
+    se <- randLassoStabSel(
+        x = TFBSmatrix,
+        y = gr$logFC_liver_vs_lung,
+        cutoff = 0.8
+    )
+    selected_tfs <- colnames(se)[se$selected]
+
+    # --- Stability and Selection Plotting [monaLisa] ---
+    # Key functions: plotStabilityPaths, plotSelectionProb
     plotStabilityPaths(se)
-    # --- plot Selection Prob [] ---
-    # Key functions: plotSelectionProb
-    plotSelectionProb(se, directional = TRUE)
-    # --- TFBScor selected [] ---
-    # Key functions: rowAnnotation, HeatmapAnnotation
+    plotSelectionProb(
+        se,
+        directional = TRUE,
+        col = c("red", "blue"),
+        main = "TF Selection Probabilities"
+    )
+    selected_features <- colnames(se)[se$selected]
+
+    # --- Motif Correlation and Logo Visualization [monaLisa] ---
+    # Key functions: seqLogoGrob, annoSeqlogo
     sel <- colnames(se)[se$selected]
-    excl <- colnames(se_sub) %in% c("oeCpG", "fracGC")
+    se_sub <- se[, sel]
+    se_sub <- se_sub[, !colnames(se_sub) %in% c("oeCpG", "fracGC")]
     TFBSmatrixCorSel <- cor(TFBSmatrix[, colnames(se_sub)], method = "pearson")
+    pfmsSel <- pfms[match(colnames(TFBSmatrixCorSel), TFBSTools::name(pfms))]
+    maxwidth <- max(sapply(TFBSTools::Matrix(pfmsSel), ncol))
+    seqlogoGrobs <- lapply(pfmsSel, seqLogoGrob, xmax = maxwidth)
+    hmSeqlogo <- ComplexHeatmap::rowAnnotation(
+        logo = annoSeqlogo(seqlogoGrobs, which = "row"),
+        annotation_width = grid::unit(2, "inch"),
+        show_annotation_name = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

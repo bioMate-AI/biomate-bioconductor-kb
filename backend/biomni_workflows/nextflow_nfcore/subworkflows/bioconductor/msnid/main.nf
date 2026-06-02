@@ -41,67 +41,39 @@ process BIOC_MSNID {
     library(MSnID)
     library(jsonlite)
 
-    # --- Msnid [] ---
-    # Key functions: MSnID, read_mzIDs
-    m <- MSnID(".")
-    mzids <- system.file("extdata","phospho.mzid.gz",package="MSnID")
-    m <- read_mzIDs(m, mzids)
-    # --- Report Mods [] ---
-    # Key functions: report_mods
-    # to know the present mod masses
-    report_mods(m)
-    # --- Add Mod Symbol [] ---
-    # Key functions: add_mod_symbol, psms, distinct
-    m <- add_mod_symbol(m, mod_mass="79.966330925", symbol="*")
-    x <- psms(m) %>%
-        distinct(modification, peptide, peptide_mod)
-    # --- Xtable [] ---
-    # Key functions: xtable, align
-    x <- x %>%
-        `[`(sel_idx,) %>%
-        xtable()
-    align(x) <- "lp{1.8in}p{1.8in}p{1.8in}"
-    print(x,
-    # --- Map Mod Sites [] ---
-    # Key functions: map_mod_sites, psms, distinct
-    m <- map_mod_sites(m, fst,
-                       accession_col = "accession",
-                       peptide_mod_col = "peptide_mod",
-                       mod_char = "*",
-                       site_delimiter = "lower")
-    # --- Xtable [] ---
-    # Key functions: xtable, align
-    x <- x %>%
-        `[`(sel_idx,) %>%
-        xtable()
-    align(x) <- "lp{1.8in}p{3.6in}"
-    print(x,
-    # --- Fetch Conversion Table [] ---
-    # Key functions: fetch_conversion_table
-    conv_tab <- fetch_conversion_table("Homo sapiens", "UNIPROT", "SYMBOL")
-    head(conv_tab)
-    # --- Head [] ---
-    # Key functions: accessions, remap_accessions
-    head(accessions(m))
-    m <- remap_accessions(m, conv_tab, extraction_pttrn = "\\|([^|-]+)(-\\d+)?\\|")
-    head(accessions(m))
-    # --- Readaastringset [] ---
-    # Key functions: readAAStringSet, map_mod_sites, psms, distinct
-    fst <- readAAStringSet(fst_path_2)
-    m <- map_mod_sites(m, fst,
-                       accession_col = "accession",
-                       peptide_mod_col = "peptide_mod",
-                       mod_char = "*",
-    # --- Xtable [] ---
-    # Key functions: xtable, align
-    x <- x %>%
-        `[`(sel_idx,) %>%
-        xtable()
-    align(x) <- "lp{1.8in}p{3.6in}"
-    print(x,
-    # --- Unlink [] ---
-    # Key functions: unlink
-    unlink(".Rcache", recursive=TRUE)
+    # --- Data Loading and Parsing [Data Loading and Parsing] ---
+    # Key functions: MSnID, read_mzIDs, id_files, peptides
+    msnid <- MSnID()
+    mzid_files <- c("sample1.mzid", "sample2.mzid")
+    msnid <- read_mzIDs(msnid, mzid_files)
+    loaded_files <- id_files(msnid)
+    peptide_sequences <- peptides(msnid)
+
+    # --- Peptide-Spectrum Match Filtering [Peptide-Spectrum Match Filtering] ---
+    # Key functions: MSnIDFilter, apply_filter
+    filtObj <- MSnIDFilter(msnid)
+    filtObj$msmsScore <- list(comparison = ">", value = 20)
+    filtObj$absParentMassErrorPPM <- list(comparison = "<", value = 10)
+    msnid <- apply_filter(msnid, filtObj)
+
+    # --- FDR Assessment and Optimization [FDR Assessment and Optimization] ---
+    # Key functions: MSnIDFilter, optimize_filter, apply_filter, assess_fdr
+    filtObj <- MSnIDFilter(msnid)
+    filtObj$msmsScore <- list(comparison = ">", value = 10)
+    filtObj$absParentMassErrorPPM <- list(comparison = "<", value = 20)
+    filtObj_opt <- optimize_filter(
+        filtObj, msnid, fdr.max = 0.01,
+        method = "Grid", level = "peptide"
+    )
+    msnid <- apply_filter(msnid, filtObj_opt)
+    fdr_summary <- assess_fdr(msnid, level = "peptide")
+
+    # --- Data Conversion and Export [Data Conversion and Export] ---
+    # Key functions: psms, as
+    psm_table <- psms(msnid)
+    msnset_data <- as(msnid, "MSnSet")
+    flat_dataframe <- as(msnid, "data.frame")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

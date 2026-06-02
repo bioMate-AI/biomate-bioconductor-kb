@@ -41,100 +41,51 @@ process BIOC_KARYOPLOTER {
     library(karyoploteR)
     library(jsonlite)
 
-    # --- Add Data to Plot [] ---
-    # Key functions: toGRanges, frame, plotKaryotype, kpPlotRegions
-    ---------------------------------------------------------------------
-      gains <- toGRanges(data.frame(chr=c("chr1", "chr5", "chr17", "chr22"), start=c(1, 1000000, 4000000, 1),
-                          end=c(5000000, 3200000, 80000000, 1200000)))
-      losses <- toGRanges(data.frame(chr=c("chr3", "chr9", "chr17"), start=c(80000000, 20000000, 1),
-                           end=c(170000000, 30000000, 25000000)))
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype(genome="mm10", plot.type=1, main="The mm10 genome")
-    # --- Create Random Regions [] ---
-    # Key functions: createRandomRegions, toDataframe, runif
-    ---------------------------------------------------------------------
-      rand.data <- createRandomRegions(genome="hg19", nregions=1000, length.mean=1, length.sd=0,
-                          mask=NA, non.overlapping=TRUE)
-      rand.data <- toDataframe(sort(rand.data))
-      rand.data <- cbind(rand.data, y=runif(n=1000, min=-1, max=1))
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype, kpDataBackground, kpAxis, kpPoints, kpText, kpAbline, kpLines
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype(genome="hg19", plot.type=2, chromosomes=c("chr1", "chr2", "chr3"))
-      kpDataBackground(kp, data.panel = 1, r0=0, r1=0.45)
-      kpAxis(kp, ymin=-1, ymax=1, r0=0.05, r1=0.4, col="gray50", cex=0.5)
-      kpPoints(kp, chr=rand.data$chr, x=rand.data$start, y=rand.data$y,
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype()
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype, kpDataBackground
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype(chromosomes = c("chr1", "chr2"), plot.type = 1)
-      kpDataBackground(kp, data.panel = 1)
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype, kpDataBackground, kpAxis
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype(chromosomes=c("chr1", "chr2"), plot.type=2)
-      #data.panel=1
-      kpDataBackground(kp)
-      #Default axis
-    # --- Change Plotting Parameters [] ---
-    # Key functions: plotDefaultPlotParams
-    ---------------------------------------------------------------------
-    plotDefaultPlotParams(plot.type=2)
-    # --- Getdefaultplotparams [] ---
-    # Key functions: getDefaultPlotParams, plotDefaultPlotParams
-    ---------------------------------------------------------------------
-    plot.params <- getDefaultPlotParams(plot.type=2)
-    plot.params$ideogramheight <- 5
-    plot.params$data2height <- 50
-    plot.params$leftmargin <- 0.05
-    # --- Zoom Plot [] ---
-    # Key functions: frame, rnorm, plotKaryotype, kpDataBackground, kpAddBaseNumbers, kpPoints, rainbow
-    ---------------------------------------------------------------------
-      data.points <- data.frame(chr="chr1", pos=(1:240)*1e6, value=rnorm(240, 0.5, 0.1))
-      kp <- plotKaryotype(plot.type = 4, chromosomes = "chr1")
-      kpDataBackground(kp, data.panel = 1)
-      kpAddBaseNumbers(kp)
-    # --- Add Data to Plot [] ---
-    # Key functions: toGRanges, frame, rnorm, plotKaryotype, kpDataBackground, kpAddBaseNumbers, kpPoints, rainbow
-    ---------------------------------------------------------------------
-      detail.region <- toGRanges(data.frame("chr1", 180e6, 240e6))
-      data.points <- data.frame(chr="chr1", pos=(1:240)*1e6, value=rnorm(240, 0.5, 0.1))
-      kp <- plotKaryotype(plot.type = 4, zoom=detail.region)
-      kpDataBackground(kp, data.panel = 1)
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype, kpDataBackground, kpAddBaseNumbers, kpPoints, kpArrows
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype(plot.type = 4, chromosomes = "chr1")
-      kpDataBackground(kp, data.panel = 1)
-      kpAddBaseNumbers(kp)
-      kpPoints(kp, chr = "chr1", x=180e6, y=0.5, pch=16, cex=8, col="#FAC67A", clipping=TRUE)
-    # --- Add Data to Plot [] ---
-    # Key functions: toGRanges, frame, plotKaryotype, kpDataBackground, kpAddBaseNumbers, kpPoints, kpArrows
-    ---------------------------------------------------------------------
-      detail.region <- toGRanges(data.frame("chr1", 135e6, 180e6))
-      kp <- plotKaryotype(plot.type = 4, zoom = detail.region)
-      kpDataBackground(kp, data.panel = 1)
-      kpAddBaseNumbers(kp)
-    # --- Create Karyotype Plot [] ---
-    # Key functions: plotKaryotype, kpDataBackground, kpAxis, kpPoints, kpRect
-    ---------------------------------------------------------------------
-      kp <- plotKaryotype(chromosomes=c("chr1"))
-      kpDataBackground(kp)
-      kpAxis(kp)
-      kpPoints(kp, chr="chr1", x=30000000, y=0.2)
-    # --- Add Data to Plot [] ---
-    # Key functions: toGRanges, frame, plotKaryotype, kpDataBackground, kpAxis, kpPoints, kpRect
-    ---------------------------------------------------------------------
-      dd <- toGRanges(data.frame(chr="chr1", start=30000000, end=30000000, y=0.2))
-      dd2 <- toGRanges(data.frame(chr="chr1", start=100000000, end=120000000, y0=0.2, y1=0.4))
-      kp <- plotKaryotype(chromosomes=c("chr1"))
-      kpDataBackground(kp)
+    # --- Plotting Genomic Regions [] ---
+    # Key functions: kpPlotRegions, kpDataBackground
+    gains <- toGRanges(data.frame(
+        chr=c("chr1", "chr5", "chr17", "chr22"),
+        start=c(1, 1000000, 4000000, 1),
+        end=c(5000000, 3200000, 80000000, 1200000)
+    ))
+    kp <- plotKaryotype(genome="hg19")
+    kpDataBackground(kp, data.panel = 1)
+    kpPlotRegions(kp, gains, col="#FFAACC")
+
+
+    # --- Custom Data Tracks [] ---
+    # Key functions: kpAxis, kpPoints, kpLines
+    rand_data <- createRandomRegions(
+        genome="hg19", nregions=100, length.mean=1,
+        length.sd=0, mask=NA, non.overlapping=TRUE
+    )
+    rand_df <- toDataframe(sort(rand_data))
+    rand_df$y <- runif(n=100, min=-1, max=1)
+    kp <- plotKaryotype(genome="hg19", chromosomes="chr1")
+    kpAxis(kp, ymin=-1, ymax=1, r0=0.05, r1=0.4)
+    kpPoints(
+        kp, chr=rand_df$chr, x=rand_df$start, y=rand_df$y,
+        ymin=-1, ymax=1, r0=0.05, r1=0.4, col="black"
+    )
+    kpLines(
+        kp, chr=rand_df$chr, x=rand_df$start, y=rand_df$y,
+        ymin=-1, ymax=1, r0=0.5, r1=1, col="blue"
+    )
+
+
+    # --- Advanced Custom Tracks [] ---
+    # Key functions: kpBars, kpSegments, kpAbline
+    kp <- plotKaryotype(genome="hg19", chromosomes="chr1")
+    kpAbline(kp, h=0, col="gray", ymin=-1, ymax=1, r0=0, r1=0.5)
+    kpBars(
+        kp, chr=rand_df$chr, x0=rand_df$start, x1=rand_df$end,
+        y1=rand_df$y, col="#AADDAA", ymin=-1, ymax=1, r0=0, r1=0.5
+    )
+    kpSegments(
+        kp, chr=rand_df$chr, x0=rand_df$start, x1=rand_df$end,
+        y0=rand_df$y-0.2, y1=rand_df$y, col="red",
+        ymin=-1, ymax=1, r0=0.5, r1=1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

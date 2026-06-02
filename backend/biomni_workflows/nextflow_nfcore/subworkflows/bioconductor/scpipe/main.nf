@@ -41,46 +41,66 @@ process BIOC_SCPIPE {
     library(scPipe)
     library(jsonlite)
 
-    # --- Sc Atac Trim Barcode [] ---
-    # Key functions: sc_atac_trim_barcode
-    ---------------------------------------------------------------------
-    sc_atac_trim_barcode (r1            = r1,
-                          r2            = r2,
-                          bc_file       = barcode_fastq,
-                          rmN           = FALSE,
-    # --- Sc Atac Bam Tagging [] ---
-    # Key functions: sc_atac_bam_tagging
-    ---------------------------------------------------------------------
-    sorted_tagged_bam <- sc_atac_bam_tagging (inbam = aligned_bam,
-                           output_folder =  output_folder,
-                           bam_tags      = list(bc="CB", mb="OX"),
-                           nthreads      =  12)
-    # --- Sc Atac Create Fragments [] ---
-    # Key functions: sc_atac_create_fragments
-    ---------------------------------------------------------------------
-    sc_atac_create_fragments(inbam = sorted_tagged_bam,
-                             output_folder = output_folder)
-    # --- Sc Atac Feature Counting [] ---
-    # Key functions: sc_atac_feature_counting, path
-    ---------------------------------------------------------------------
-    sc_atac_feature_counting (fragment_file = file.path(output_folder, "fragments.bed"),
-                              feature_input = features,
-                              bam_tags      = list(bc="CB", mb="OX"),
-                              feature_type  = "peak",
-    # --- Readrds [] ---
-    # Key functions: path, glimpse
-    ---------------------------------------------------------------------
-    feature_matrix <- readRDS(file.path(output_folder, "unfiltered_feature_matrix.rds"))
-    dplyr::glimpse(feature_matrix)
-    sparseM <- readRDS(file.path(output_folder, "sparse_matrix.rds"))
-    dplyr::glimpse(sparseM)
-    # --- Sc Atac Create Sce [] ---
+    # --- Alignment and BAM Tagging [] ---
+    # Key functions: sc_aligning, sc_atac_bam_tagging, sc_atac_remove_duplicates
+    output_folder <- "scPipeATAC_output"
+    demux_r1 <- file.path(output_folder, "demux_completematch_R1.fastq.gz")
+    demux_r2 <- file.path(output_folder, "demux_completematch_R3.fastq.gz")
+    reference <- "small_chr21.fa"
+    aligned_bam <- sc_aligning(
+        ref = reference,
+        R1 = demux_r1,
+        R2 = demux_r2,
+        nthreads = 4,
+        output_folder = output_folder
+    )
+    sorted_tagged_bam <- sc_atac_bam_tagging(
+        inbam = aligned_bam,
+        output_folder = output_folder,
+        bam_tags = list(bc = "CB", mb = "OX"),
+        nthreads = 4
+    )
+    removed <- sc_atac_remove_duplicates(
+        sorted_tagged_bam,
+        output_folder = output_folder
+    )
+
+
+    # --- Fragment Generation and Feature Counting [] ---
+    # Key functions: sc_atac_create_fragments, sc_atac_feature_counting
+    output_folder <- "scPipeATAC_output"
+    features <- "NA_peaks.narrowPeak"
+    sc_atac_create_fragments(
+        inbam = file.path(output_folder, "demux_tagged.bam"),
+        output_folder = output_folder
+    )
+    sc_atac_feature_counting(
+        fragment_file = file.path(output_folder, "fragments.bed"),
+        feature_input = features,
+        bam_tags = list(bc = "CB", mb = "OX"),
+        feature_type = "peak",
+        organism = "hg38",
+        cell_calling = "filter",
+        min_uniq_frags = 0,
+        min_frac_peak = 0,
+        min_frac_promoter = 0,
+        yieldsize = 1000000,
+        exclude_regions = TRUE,
+        output_folder = output_folder,
+        fix_chr = "none"
+    )
+
+
+    # --- SingleCellExperiment Construction [] ---
     # Key functions: sc_atac_create_sce
-    ---------------------------------------------------------------------
-    sce <- sc_atac_create_sce(input_folder = output_folder,
-                       organism     = "hg38",
-                       feature_type = "peak",
-                       pheno_data   = NULL,
+    output_folder <- "scPipeATAC_output"
+    sce <- sc_atac_create_sce(
+        input_folder = output_folder,
+        organism = "hg38",
+        feature_type = "peak",
+        pheno_data = NULL,
+        report = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

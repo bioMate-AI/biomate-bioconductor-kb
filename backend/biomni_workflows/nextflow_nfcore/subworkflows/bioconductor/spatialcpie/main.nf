@@ -41,48 +41,30 @@ process BIOC_SPATIALCPIE {
     library(SpatialCPie)
     library(jsonlite)
 
-    # --- Table [] ---
-    # Key functions: file
-    ---------------------------------------------------------------------
-    counts <- read.table(
-        system.file("extdata", "counts.tsv", package = "SpatialCPie"),
-        sep = "\t",
-        check.names = FALSE
-    # --- Readjpeg [] ---
-    # Key functions: readJPEG, parseSpotFile
-    ---------------------------------------------------------------------
-    tissue <- jpeg::readJPEG(
-        system.file("extdata", "he_image.jpg", package = "SpatialCPie")
-    )
-    spots <- parseSpotFile(
-    # --- Dim [] ---
-    # Key functions: rowSums, colSums, all
-    ---------------------------------------------------------------------
-    repeat {
-        d <- dim(counts)
-        counts <- counts[rowSums(counts) >= 20, colSums(counts) >= 20]
-        if (all(dim(counts) == d)) {
-    # --- Runcpie [] ---
+    # --- Cluster Path Analysis [] ---
     # Key functions: runCPie
-    ---------------------------------------------------------------------
     result <- runCPie(
-        counts,
-        image = tissue,
-        spotCoordinates = spots
-    # --- Filter [] ---
-    # Key functions: filter
-    ---------------------------------------------------------------------
-    library(dplyr)
-    subcluster <-
-        result$clusters %>%
-        filter(resolution == 4, cluster %in% c(1, 4)) %>%
-    # --- Runcpie [] ---
+        counts = counts,
+        image = NULL,
+        spotCoordinates = spots,
+        resolutions = c(2, 3, 4)
+    )
+    cluster_graph <- result$clusterGraph
+    array_plot <- result$arrayPlot$`4`
+
+
+    # --- Subcluster Analysis [] ---
     # Key functions: runCPie
-    ---------------------------------------------------------------------
-    subclusterResult <- runCPie(
+    subcluster <- result$clusters[
+        result$clusters$resolution == 4 &
+        result$clusters$cluster %in% c(1, 4),
+        "unit"
+    ]
+    sub_result <- runCPie(
         counts = counts[, subcluster],
-        image = tissue,
+        image = NULL,
         spotCoordinates = spots
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

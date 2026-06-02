@@ -41,27 +41,24 @@ process BIOC_GA4GHSHINY {
     library(GA4GHshiny)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
+    # --- Local GA4GH Server Visualization [] ---
     # Key functions: app
-    library(org.Hs.eg.db)
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(GA4GHshiny)
-    app(host = "http://1kgenomes.ga4gh.org/",
-        serverName = "Hosting Thousand Genomes Project",
-    # --- Code Block 3 [] ---
+    # Launch the GA4GH Shiny application connected to a local server instance.
+    # This is useful for visualizing private or in-house GA4GH-compliant data.
+    local_visualization <- GA4GHshiny::app(
+        host = "http://localhost:8000/",
+        serverName = "Local GA4GH Server"
+    )
+
+
+    # --- Public Repository Querying [] ---
     # Key functions: app
-    library(org.Hs.eg.db)
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(GA4GHshiny)
-    app(host = "http://1kgenomes.ga4gh.org/",
-        serverName = "Hosting Thousand Genomes Project",
-    # --- Code Block 4 [] ---
-    # Key functions: 1, namespace
-    ## R version 4.4.1 (2024-06-14)
-    ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.1 LTS
-    ##
-    ## Matrix products: default
+    # Configure the GA4GH Shiny application to connect to a public API endpoint.
+    # This enables querying global genomic repositories interactively.
+    public_query_app <- GA4GHshiny::app(
+        host = "https://gl-api.ga4gh.org/",
+        serverName = "Global Alliance API"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

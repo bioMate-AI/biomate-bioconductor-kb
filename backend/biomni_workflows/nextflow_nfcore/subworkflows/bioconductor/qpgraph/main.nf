@@ -38,67 +38,23 @@ process BIOC_QPGRAPH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(qpgraph)
     library(Seqinfo)
     library(jsonlite)
 
-    # --- Map [] ---
-    # Key functions: map
-    map <- sim.map(len=rep(100, times=9),
-                   n.mar=rep(10, times=9),
-                   anchor.tel=FALSE,
-                   eq.spacing=TRUE,
-                   include.x=FALSE)
-    # --- Frame [] ---
-    # Key functions: frame
-    annot <- data.frame(chr=as.character(sim.eqtl$genes[, "chr"]),
-                        start=sim.eqtl$genes[, "location"],
-                        end=sim.eqtl$genes[, "location"],
-                        strand=rep("+", nrow(sim.eqtl$genes)),
-                        row.names=rownames(sim.eqtl$genes),
-    # --- Lapply [] ---
-    # Key functions: Seqinfo, nchr
-    pMap <- lapply(map, function(x) x * 5)
-    class(pMap) <- "map"
-    annot$start <- floor(annot$start * 5)
-    annot$end <- floor(annot$end * 5)
-    genome <- Seqinfo(seqnames=names(map), seqlengths=rep(100 * 5, nchr(pMap)),
-    # --- Eqtlnetworkestimationparam [] ---
-    # Key functions: eQTLnetworkEstimationParam
-    param <- eQTLnetworkEstimationParam(cross, physicalMap=pMap,
-                                        geneAnnotation=annot, genome=genome)
-    # --- Eqtlnetworkestimate [] ---
-    # Key functions: eQTLnetworkEstimate
-    eqtlnet.q0 <- eQTLnetworkEstimate(param, ~ marker + gene, verbose=FALSE)
-    eqtlnet.q0
-    # --- Eqtlnetworkestimate [] ---
-    # Key functions: eQTLnetworkEstimate, gene
-    eqtlnet.q0.fdr.nrr <- eQTLnetworkEstimate(param, ~ marker + gene | gene(q=3),
-                                              estimate=eqtlnet.q0.fdr, verbose=FALSE)
-    eqtlnet.q0.fdr.nrr
-    # --- Eqtlnetworkestimate [] ---
-    # Key functions: eQTLnetworkEstimate
-    eqtlnet.q0.fdr.nrr <- eQTLnetworkEstimate(param, estimate=eqtlnet.q0.fdr.nrr,
-                                              epsilon=0.1)
-    eqtlnet.q0.fdr.nrr
-    # --- Alleqtl [] ---
-    # Key functions: alleQTL, split
-    eqtls <- alleQTL(eqtlnet.q0.fdr.nrr)
-    median(sapply(split(eqtls$QTL, eqtls$gene), length))
-    # --- Eqtlnetworkestimate [] ---
-    # Key functions: eQTLnetworkEstimate
-    eqtlnet.q0.fdr.nrr.sel <- eQTLnetworkEstimate(param, estimate=eqtlnet.q0.fdr.nrr,
-                                                  alpha=0.05)
-    eqtlnet.q0.fdr.nrr.sel
-    # --- Hiveplot [] ---
-    # Key functions: newpage, pushViewport, viewport
-    library(grid)
-    library(graph)
-    grid.newpage()
-    pushViewport(viewport(layout=grid.layout(3, 3)))
-    for (i in 1:3) {
-    # --- Info [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    # --- Graphical Model Estimation [] ---
+    # Key functions: qpGraph
+    g <- qpGraph(nrr, threshold = 0.5)
+
+
+    # --- Network Visualization [] ---
+    # Key functions: plot
+    plot(g, main = "Estimated Network")
+
+
+    # --- Hive Plot Visualization [] ---
+    # Key functions: plot
+    plot(eqtlnet.q0.fdr.nrr.sel, type = "hive", chr = 1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

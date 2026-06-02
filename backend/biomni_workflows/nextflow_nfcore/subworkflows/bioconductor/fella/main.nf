@@ -41,99 +41,64 @@ process BIOC_FELLA {
     library(FELLA)
     library(jsonlite)
 
-    # --- 01 Graph [] ---
-    # Key functions: buildGraphFromKEGGREST
-    library(FELLA)
-    set.seed(1)
-    # Filter overview pathways
-    graph <- buildGraphFromKEGGREST(
-        organism = "hsa",
-    # --- 01 Database [] ---
-    # Key functions: tempdir, unlink, buildDataFromGraph
-    tmpdir <- paste0(tempdir(), "/my_database")
-    # Mke sure the database does not exist from a former vignette build
-    # Otherwise the vignette will rise an error
-    # because FELLA will not overwrite an existing database
-    unlink(tmpdir, recursive = TRUE)
-    # --- 01 Loadkegg [] ---
+    # --- Load KEGG Data [] ---
     # Key functions: loadKEGGdata
     fella.data <- loadKEGGdata(
-        databaseDir = tmpdir,
-        internalDir = FALSE,
+        databaseDir = tempdir(), 
+        internalDir = FALSE, 
         loadMatrix = "diffusion"
     )
-    # --- 01 Info [] ---
-    # Key functions: getInfo
-    cat(getInfo(fella.data))
-    # --- 02 Mapcompounds [] ---
-    # Key functions: defineCompounds
+
+
+    # --- Define Compounds [] ---
+    # Key functions: defineCompounds, getInput, getExcluded
+    compounds.epithelial <- c(
+        "C02862", "C00487", "C00025", "C00064", 
+        "C00670", "C00073", "C00588", "C00082", "C00043"
+    )
     analysis.epithelial <- defineCompounds(
-        compounds = compounds.epithelial,
-        data = fella.data)
-    # --- 02 Mapped [] ---
-    # Key functions: getInput, getExcluded
-    getInput(analysis.epithelial)
-    getExcluded(analysis.epithelial)
-    # --- 03 Enrich [] ---
-    # Key functions: runDiffusion
+        compounds = compounds.epithelial, 
+        data = fella.data
+    )
+    input.compounds <- getInput(analysis.epithelial)
+    excluded.compounds <- getExcluded(analysis.epithelial)
+
+
+    # --- Enrichment Analysis [] ---
+    # Key functions: runDiffusion, enrich
     analysis.epithelial <- runDiffusion(
-        object = analysis.epithelial,
-        data = fella.data,
-        approx = "normality")
-    # --- 04 Graph [] ---
-    # Key functions: generateResultsGraph
-    g <- generateResultsGraph(
-        object = analysis.epithelial,
-        method = "diffusion",
-        nlimit = nlimit,
-        data = fella.data)
-    # --- 04 Go [] ---
-    # Key functions: addGOToGraph
-    # GO:0005739 is the term for mitochondrion
-    g.go <- addGOToGraph(
-        graph = g,
-        GOterm = "GO:0005739",
-        godata.options = list(
-    # --- 04 Plot Go [] ---
-    # Key functions: plotGraph
-    plotGraph(
-        g.go,
-        vertex.label.cex = vertex.label.cex)
-    # --- 04 Table [] ---
-    # Key functions: generateResultsTable
-    tab.all <- generateResultsTable(
-        method = "diffusion",
-        nlimit = 100,
-        object = analysis.epithelial,
-        data = fella.data)
-    # --- 04 Enzyme [] ---
-    # Key functions: generateEnzymesTable
-    tab.enzyme <- generateEnzymesTable(
-        method = "diffusion",
-        nlimit = 100,
-        object = analysis.epithelial,
-        data = fella.data)
-    # --- 04 File [] ---
-    # Key functions: tempfile, exportResults
-    tmpfile <- tempfile()
-    exportResults(
-        format = "csv",
-        file = tmpfile,
-        method = "diffusion",
-    # --- 04 Pajek [] ---
-    # Key functions: tempfile, exportResults
-    tmpfile <- tempfile()
-    exportResults(
-        format = "pajek",
-        file = tmpfile,
-        method = "diffusion",
-    # --- 05 [] ---
-    # Key functions: enrich
-    compounds.ovarian <- c(
-        "C00275", "C00158", "C00042",
-        "C00346", "C00122", "C06468")
+        object = analysis.epithelial, 
+        data = fella.data, 
+        approx = "normality"
+    )
     analysis.ovarian <- enrich(
-        compounds = compounds.ovarian,
+        compounds = c("C00275", "C00158", "C00042"), 
+        data = fella.data, 
+        methods = "diffusion"
+    )
+
+
+    # --- Results Export and Visualisation [] ---
+    # Key functions: generateResultsGraph, generateResultsTable, exportResults
+    g <- generateResultsGraph(
+        object = analysis.epithelial, 
+        method = "diffusion", 
+        nlimit = 150, 
+        data = fella.data
+    )
+    tab.all <- generateResultsTable(
+        method = "diffusion", 
+        nlimit = 100, 
+        object = analysis.epithelial, 
+        data = fella.data
+    )
+    exportResults(
+        format = "csv", 
+        file = tempfile(), 
+        method = "diffusion", 
+        object = analysis.epithelial, 
+        data = fella.data
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

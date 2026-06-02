@@ -41,20 +41,44 @@ process BIOC_MOGAMUN {
     library(MOGAMUN)
     library(jsonlite)
 
-    # --- mogamun_init [] ---
-    # Key functions: mogamun_init
-    parameters <- mogamun_init(Generations = 1, PopSize = 10)
-    # --- mogamun_load_data [] ---
+    # --- Data Loading [] ---
     # Key functions: mogamun_load_data
-    dePath <- system.file("extdata/DE/Sample_DE.csv", package = "MOGAMUN")
-    system.file("extdata/DE/Sample_NodesScore.csv", package = "MOGAMUN")
-    paste0(system.file("extdata/LayersMultiplex", package = "MOGAMUN"), "/")
-    # --- mogamun_run [] ---
+    dePath <- system.file(
+        "extdata/DE/Sample_DE.csv", 
+        package = "MOGAMUN"
+    )
+    scoresPath <- system.file(
+        "extdata/DE/Sample_NodesScore.csv", 
+        package = "MOGAMUN"
+    )
+    layersPath <- paste0(
+        system.file("extdata/LayersMultiplex", package = "MOGAMUN"), 
+        "/"
+    )
+    loadedData <- mogamun_load_data(
+        EvolutionParameters = parameters,
+        DifferentialExpressionPath = dePath,
+        NodesScoresPath = scoresPath,
+        NetworkLayersDir = layersPath,
+        Layers = "23"
+    )
+
+
+    # --- Multi-Objective Optimization Run [] ---
     # Key functions: mogamun_run
-    mogamun_run(LoadedData = loadedData, ResultsDir = '.')
-    # --- mogamun_postprocess [] ---
+    mogamun_run(
+        LoadedData = loadedData,
+        ResultsDir = "./mogamun_results"
+    )
+
+
+    # --- Post-processing and Visualization [] ---
     # Key functions: mogamun_postprocess
     mogamun_postprocess(
+        LoadedData = loadedData,
+        ExperimentDir = "./mogamun_results",
+        VisualizeInCytoscape = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

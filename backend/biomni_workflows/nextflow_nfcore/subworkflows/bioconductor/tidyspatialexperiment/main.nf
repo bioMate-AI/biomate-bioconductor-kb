@@ -41,69 +41,29 @@ process BIOC_TIDYSPATIALEXPERIMENT {
     library(tidySpatialExperiment)
     library(jsonlite)
 
-    # --- Coldata [] ---
-    # Key functions: colData, spatialCoords, imgData
-    ---------------------------------------------------------------------
-    spe |>
-        colData() |>
-        head()
-    spe |>
-    # --- Filter [] ---
-    # Key functions: filter
-    ---------------------------------------------------------------------
-    spe |>
-       filter(array_col < 5)
-    # --- Mutate [] ---
-    # Key functions: mutate
-    ---------------------------------------------------------------------
-    spe |>
-        mutate(in_region = c(in_tissue & array_row < 10))
-    # --- Nest [] ---
-    # Key functions: nest, unnest
-    ---------------------------------------------------------------------
-    # Nest the SpatialExperiment object by sample_id
-    spe_nested <-
-        spe |>
-        nest(data = -sample_id)
-    # --- Filter [] ---
-    # Key functions: filter, mutate, map_int, counts, ggplot, aes, reorder
-    ---------------------------------------------------------------------
-    spe |>
-        filter(sample_id == "section1" & in_tissue) |>
-        # Add a column with the sum of feature counts per cell
-        mutate(count_sum = purrr::map_int(.cell, ~
-    # --- Join Features [] ---
+    # --- Feature Expression Joining [] ---
     # Key functions: join_features
-    ---------------------------------------------------------------------
-    # Join feature data in wide format, preserving the SpatialExperiment object
-    spe |>
-        join_features(features = c("ENSMUSG00000025915", "ENSMUSG00000042501"), shape = "wide") |>
-        head()
-    # --- Aggregate Cells [] ---
+    spe_joined <- spe |>
+        join_features(
+            features = c("ENSMUSG00000025915", "ENSMUSG00000042501"),
+            shape = "wide"
+        )
+
+
+    # --- Spatial Gating [] ---
+    # Key functions: gate, filter
+    spe_gated <- spe |>
+        gate(programmatic_gates = demo_brush_data) |>
+        filter(!is.na(.gated))
+
+
+    # --- Pseudobulk Aggregation [] ---
     # Key functions: aggregate_cells
-    ---------------------------------------------------------------------
-    spe |>
-        aggregate_cells(in_tissue, assays = "counts")
-    # --- Filter [] ---
-    # Key functions: filter, mutate, ellipse, ggplot, aes, geom_point
-    ---------------------------------------------------------------------
-    spe |>
-        filter(sample_id == "section1") |>
-        mutate(in_ellipse = ellipse(array_col, array_row, c(20, 40), c(20, 20))) |>
-        ggplot(aes(x = array_col, y = array_row, colour = in_ellipse)) +
-    # --- Filter [] ---
-    # Key functions: filter, na, str_detect
-    ---------------------------------------------------------------------
-    # Select cells within any gate
-    spe_gated |>
-      filter(!is.na(.gated))
-    # Select cells within gate 2
-    # --- Select [] ---
-    # Key functions: select
-    ---------------------------------------------------------------------
-    spe |>
-        select(-.cell) |>
-        head()
+    spe_aggregated <- spe |>
+        aggregate_cells(
+            in_tissue,
+            assays = "counts"
+        )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

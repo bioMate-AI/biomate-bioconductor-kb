@@ -41,71 +41,80 @@ process BIOC_MIDASHLA {
     library(midasHLA)
     library(jsonlite)
 
-    # --- load_all [] ---
-    # Key functions: load_all
-    knitr::opts_chunk$set(echo = TRUE, fig.align="center")
-    devtools::load_all()
-    # --- img [] ---
-    # Key functions: img
-    htmltools::img(
-    src = knitr::image_uri("MiDAS_logo.png"),
-    # --- read Hla Calls [] ---
-    # Key functions: readHlaCalls
-    read.table(
-    file = system.file("extdata", "MiDAS_tut_pheno.txt", package = "midasHLA"),
-    readHlaCalls(
-    # --- show imported data [] ---
-    # Key functions: kable_styling, scroll_box
-    head(20) %>%
-    kable(caption = "HLA data as imported by MiDAS") %>%
-    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
-    # --- get frequencies [] ---
-    # Key functions: getHlaFrequencies
-    freq_HLA <- getHlaFrequencies(hla_calls = dat_HLA, compare = TRUE) %>%
-    filter(Freq > 0.01)
-    # --- show frequencies [] ---
-    # Key functions: kable_styling
-    head() %>%
-    kable(caption = "HLA frequencies, compared to published references") %>%
-    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-    # --- plot frequencies [] ---
-    # Key functions: gather, ggplot, geom_bar, coord_flip, scale_y_continuous
-    freq_HLA_long <- tidyr::gather(
-    filter(grepl("^A", allele))
-    ggplot2::ggplot(data = freq_HLA_long, ggplot2::aes(x = allele, y = freq, fill = population)) +
-    # --- prep HLA [] ---
-    # Key functions: prepareMiDAS
+    # --- Phenotype Preparation and Hardy-Weinberg Equilibrium Testing [] ---
+    # Key functions: prepareMiDAS, HWETest
+    dat_pheno <- read.table(
+        file = system.file("extdata", "MiDAS_tut_pheno.txt", package = "midasHLA"),
+        header = TRUE
+    )
     HLA <- prepareMiDAS(
-    # --- run HLA allelic [] ---
-    # Key functions: glm, runMiDAS, kableResults
+        hla_calls = dat_HLA,
+        colData = dat_pheno,
+        experiment = "hla_alleles"
+    )
+    HLA <- HWETest(
+        object = HLA,
+        experiment = "hla_alleles",
+        HWE_cutoff = 0.05 / 447,
+        as.MiDAS = TRUE
+    )
+
+
+    # --- HLA Association Analysis [] ---
+    # Key functions: runMiDAS
     HLA_model <- glm(disease ~ term, data = HLA, family = binomial())
     HLA_results <- runMiDAS(
-    kableResults(HLA_results)
-    # --- run HLA allelic cond [] ---
-    # Key functions: runMiDAS, kableResults
-    HLA_results_cond <- runMiDAS(
-    kableResults(HLA_results_cond, scroll_box_height = "200px")
-    # --- prepare HLA AA [] ---
-    # Key functions: prepareMiDAS
+        object = HLA_model,
+        experiment = "hla_alleles",
+        inheritance_model = "dominant",
+        lower_frequency_cutoff = 0.02,
+        upper_frequency_cutoff = 0.98,
+        correction = "bonferroni",
+        exponentiate = TRUE
+    )
+
+
+    # --- Amino Acid Association Mapping [] ---
+    # Key functions: prepareMiDAS, runMiDAS, getAllelesForAA
     HLA_AA <- prepareMiDAS(
-    # --- HLA AA to df [] ---
-    # Key functions: assay
-    assay() %>%
-    t() %>%
-    as.data.frame() %>%
-    # --- show HLA AA [] ---
-    # Key functions: kable_styling
-    kable(dat_HLA_AA, caption = "HLA amino acid data as inferred by MiDAS") %>%
-    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-    # --- run HLA AA omnibus [] ---
-    # Key functions: glm, runMiDAS, kableResults
+        hla_calls = dat_HLA,
+        colData = dat_pheno,
+        experiment = "hla_aa"
+    )
     HLA_AA_model <- glm(disease ~ term, data = HLA_AA, family = binomial())
-    HLA_AA_omnibus_results <- runMiDAS(
-    kableResults(HLA_AA_omnibus_results)
-    # --- run HLA AA DQB1 9 [] ---
-    # Key functions: runMiDAS, kableResults
-    HLA_AA_DQB1_9_results <- runMiDAS(
-    kableResults(HLA_AA_DQB1_9_results, scroll_box_height = "250px")
+    HLA_AA_results <- runMiDAS(
+        HLA_AA_model,
+        experiment = "hla_aa",
+        inheritance_model = "dominant",
+        omnibus_groups_filter = "DQB1_9",
+        lower_frequency_cutoff = 0.02,
+        upper_frequency_cutoff = 0.98,
+        correction = "bonferroni",
+        exponentiate = TRUE
+    )
+    HLA_AA_DQB1_9_alleles <- getAllelesForAA(HLA_AA, "DQB1_9")
+
+
+    # --- KIR Ligand and Interaction Analysis [] ---
+    # Key functions: readKirCalls, getKIRFrequencies, prepareMiDAS, runMiDAS
+    dat_KIR <- readKirCalls(
+        file = system.file("extdata", "MiDAS_tut_KIR.txt", package = "midasHLA")
+    )
+    kir_freq <- getKIRFrequencies(dat_KIR)
+    HLAKIR <- prepareMiDAS(
+        hla_calls = dat_HLA,
+        kir_calls = dat_KIR,
+        colData = dat_pheno,
+        experiment = c("hla_NK_ligands", "kir_genes", "hla_kir_interactions")
+    )
+    KIR_model <- glm(disease ~ term, data = HLAKIR, family = binomial())
+    KIR_results <- runMiDAS(
+        KIR_model,
+        experiment = "kir_genes",
+        lower_frequency_cutoff = 0.02,
+        upper_frequency_cutoff = 0.98,
+        exponentiate = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,46 +41,44 @@ process BIOC_GYPSUM {
     library(gypsum)
     library(jsonlite)
 
-    # --- Listassets [] ---
-    # Key functions: listAssets, listVersions, listFiles, saveFile, saveVersion, files
-    ---------------------------------------------------------------------
-    library(gypsum)
-    listAssets("test-R")
-    listVersions("test-R", "basic")
-    listFiles("test-R", "basic", "v1")
-    # --- Fetchmanifest [] ---
-    # Key functions: fetchManifest, fetchSummary
-    ---------------------------------------------------------------------
-    fetchManifest("test-R", "basic", "v1")
-    fetchSummary("test-R", "basic", "v1")
-    # --- Fetchlatest [] ---
-    # Key functions: fetchLatest
-    ---------------------------------------------------------------------
-    fetchLatest("test-R", "basic")
-    # --- Fetchpermissions [] ---
-    # Key functions: fetchPermissions
-    ---------------------------------------------------------------------
-    fetchPermissions("test-R")
-    # --- Fetchquota [] ---
-    # Key functions: fetchQuota
-    ---------------------------------------------------------------------
-    fetchQuota("test-R")
-    # --- Fetchusage [] ---
-    # Key functions: fetchUsage
-    ---------------------------------------------------------------------
-    fetchUsage("test-R")
-    # --- Fetchmetadataschema [] ---
-    # Key functions: fetchMetadataSchema
-    ---------------------------------------------------------------------
+    # --- File and Version Retrieval [] ---
+    # Key functions: saveFile, saveVersion, fetchLatest
+    local_file <- saveFile("test-R", "basic", "v1", "blah.txt")
+    local_dir <- saveVersion("test-R", "basic", "v1")
+    latest_ver <- fetchLatest("test-R", "basic")
+
+
+    # --- Metadata and Usage Auditing [] ---
+    # Key functions: fetchManifest, fetchSummary, fetchPermissions, fetchQuota, fetchUsage
+    manifest <- fetchManifest("test-R", "basic", "v1")
+    summary_info <- fetchSummary("test-R", "basic", "v1")
+    perms <- fetchPermissions("test-R")
+    quota <- fetchQuota("test-R")
+    usage <- fetchUsage("test-R")
+
+
+    # --- Metadata Validation [] ---
+    # Key functions: fetchMetadataSchema, validateMetadata
     schema <- fetchMetadataSchema()
-    cat(head(readLines(schema)), sep="\n")
-    # --- List [] ---
-    # Key functions: validateMetadata
-    ---------------------------------------------------------------------
-    metadata <- list(
-        title="Fatherhood",
-        description="Luke ich bin dein Vater.",
-        sources=list(
+    meta <- list(
+        title = "Fatherhood",
+        description = "Luke ich bin dein Vater.",
+        sources = list(list(provider = "GEO", id = "GSE12345")),
+        taxonomy_id = list("9606"),
+        genome = list("GRCm38"),
+        maintainer_name = "Darth Vader",
+        maintainer_email = "vader@empire.gov",
+        bioconductor_version = "3.10"
+    )
+    validateMetadata(meta, schema)
+
+
+    # --- Upload Preparation [] ---
+    # Key functions: cloneVersion, prepareDirectoryUpload
+    dest <- tempfile()
+    cloneVersion("test-R", "basic", "v1", destination = dest)
+    write(file = file.path(dest, "BFFs"), c("Aaron", "Jayaram"))
+    to_upload <- prepareDirectoryUpload(dest)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

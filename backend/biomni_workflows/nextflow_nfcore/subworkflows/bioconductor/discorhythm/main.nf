@@ -41,11 +41,57 @@ process BIOC_DISCORHYTHM {
     library(DiscoRhythm)
     library(jsonlite)
 
-    # --- DiscoGetSimu analysis [] ---
-    # Key functions: include_graphics, discoGetSimu, discoDFtoSE, discoCheckInput, discoInterCorOutliers, discoPCAoutliers, discoPCA, discoRepAnalysis
-    library(DiscoRhythm)
-    selectDataSE <- discoCheckInput(discoDFtoSE(indata))
-    CorRes <- discoInterCorOutliers(selectDataSE,cor_method,
+    # --- Quality Control and Outlier Detection [] ---
+    # Key functions: discoInterCorOutliers, discoPCAoutliers, discoPCA
+    CorRes <- discoInterCorOutliers(
+        selectDataSE,
+        cor_method = "pearson",
+        threshold = 3,
+        thresh_type = "sd"
+    )
+    PCAres <- discoPCAoutliers(
+        selectDataSE,
+        threshold = 3,
+        scale = TRUE,
+        pcToCut = c("PC1", "PC2", "PC3", "PC4")
+    )
+    discoPCAres <- discoPCA(selectDataSE)
+
+
+    # --- Sample Filtering and Design Summary [] ---
+    # Key functions: discoDesignSummary
+    FilteredSE <- selectDataSE[, !PCAres$outliers & !CorRes$outliers]
+    design_summary <- discoDesignSummary(
+        SummarizedExperiment::colData(FilteredSE)
+    )
+
+
+    # --- Replicate Analysis and Feature Selection [] ---
+    # Key functions: discoRepAnalysis
+    ANOVAres <- discoRepAnalysis(
+        FilteredSE,
+        aov_method = "Equal Variance",
+        aov_pcut = 0.05,
+        aov_Fcut = 1,
+        avg_method = "Median"
+    )
+    FinalSE <- ANOVAres$se
+
+
+    # --- Periodicity and Oscillation Detection [] ---
+    # Key functions: discoPeriodDetection, discoODAs
+    PeriodRes <- discoPeriodDetection(
+        FinalSE,
+        timeType = "linear",
+        main_per = 24
+    )
+    discoODAres <- discoODAs(
+        FinalSE,
+        period = 24,
+        method = "CS",
+        ncores = 1,
+        circular_t = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

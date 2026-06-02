@@ -41,11 +41,34 @@ process BIOC_SIMBU {
     library(SimBu)
     library(jsonlite)
 
-    # --- format="markdown" [] ---
-    # Key functions: simulate_bulk, merge_simulations
-    pure_scenario_dataframe <- data.frame(
-    "B cells" = c(0.2, 0.1, 0.5, 0.3),
-    "T cells" = c(0.3, 0.8, 0.2, 0.5),
+    # --- Bulk Simulation [] ---
+    # Key functions: simulate_bulk
+    simulation1 <- SimBu::simulate_bulk(
+        data = ds,
+        scenario = "random",
+        scaling_factor = "NONE",
+        ncells = 100,
+        nsamples = 5,
+        run_parallel = FALSE
+    )
+    simulation2 <- SimBu::simulate_bulk(
+        data = ds,
+        scenario = "even",
+        scaling_factor = "NONE",
+        ncells = 100,
+        nsamples = 5,
+        run_parallel = FALSE
+    )
+
+
+    # --- Simulation Merging and Visualisation [] ---
+    # Key functions: merge_simulations, plot_simulation
+    merged_simulations <- SimBu::merge_simulations(
+        sim_list = list(simulation1, simulation2)
+    )
+    g_plot <- SimBu::plot_simulation(
+        simulation = merged_simulations
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

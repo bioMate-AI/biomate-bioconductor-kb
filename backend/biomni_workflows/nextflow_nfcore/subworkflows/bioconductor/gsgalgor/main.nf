@@ -38,14 +38,48 @@ process BIOC_GSGALGOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GSgalgoR)
     library(Surv)
     library(jsonlite)
 
-    # --- Expression matrix extraction [] ---
-    # Key functions: install_github, exprs, fData, pData, featureNames, unlist, Surv, sample
-    expandProbesets <- function (eset, sep = "///", map="Gene.symbol"){
-    x <- lapply(featureNames(eset), function(x) strsplit(x, sep)[[1]])
-    y<- lapply(as.character(fData(eset)[,map]), function(x) strsplit(x,sep))
+    # --- Genetic Algorithm Search [] ---
+    # Key functions: galgo
+    output <- GSgalgoR::galgo(
+        generations = 15,
+        population = 30,
+        prob_matrix = train_expr,
+        OS = train_surv,
+        nCV = 5,
+        distancetype = "pearson",
+        TournamentSize = 2,
+        period = 3650
+    )
+
+    # --- Result Conversion [] ---
+    # Key functions: to_list, to_dataframe
+    output_list <- GSgalgoR::to_list(output)
+    output_df <- GSgalgoR::to_dataframe(output)
+    best_solution <- output_list[[1]]
+    solutions_summary <- head(output_df)
+
+    # --- Pareto Front Visualization [] ---
+    # Key functions: plot_pareto
+    GSgalgoR::plot_pareto(output)
+
+    # --- Sample Classification [] ---
+    # Key functions: cluster_classify
+    in_both <- intersect(rownames(train_expr), rownames(centroids))
+    classified_train <- GSgalgoR::cluster_classify(
+        train_expr[in_both, ],
+        centroids[in_both, ],
+        method = "spearman"
+    )
+    classified_test <- GSgalgoR::cluster_classify(
+        test_expr[in_both, ],
+        centroids[in_both, ],
+        method = "spearman"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

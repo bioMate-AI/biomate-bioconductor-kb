@@ -41,17 +41,44 @@ process BIOC_SGSEQ {
     library(SGSeq)
     library(jsonlite)
 
-    # --- plot Features [] ---
-    # Key functions: plotFeatures
-    df <- plotFeatures(sgfc_ucsc, geneID = 1)
-    # --- plot Variants [] ---
-    # Key functions: plotVariants
-    plotVariants(sgvc_pred, eventID = 1, color_novel = "red")
-    # --- plot Splice Graph [] ---
-    # Key functions: plotSpliceGraph, plotCoverage
-    par(mfrow = c(5, 1), mar = c(1, 3, 1, 1))
-    plotSpliceGraph(rowRanges(sgfc_pred), geneID = 1, toscale = "none", color_novel = "red")
-    for (j in 1:4) {
+    # --- Transcript Feature Conversion ---
+    # Key functions: convertToTxFeatures, convertToSGFeatures, analyzeFeatures
+    txf_ucsc <- convertToTxFeatures(txdb)
+    txf_ucsc <- txf_ucsc[txf_ucsc %over% gr]
+    sgf_ucsc <- convertToSGFeatures(txf_ucsc)
+    sgfc_ucsc <- analyzeFeatures(si, features = txf_ucsc)
+
+    # --- Splice Graph Feature Prediction and Quantification ---
+    # Key functions: predictTxFeatures, convertToSGFeatures, annotate, getSGFeatureCounts
+    txf <- predictTxFeatures(si, gr)
+    sgf <- convertToSGFeatures(txf)
+    sgf <- annotate(sgf, txf_ucsc)
+    sgfc <- getSGFeatureCounts(si, sgf)
+
+    # --- Splice Variant Identification and Quantification ---
+    # Key functions: findSGVariants, getSGVariantCounts, variantFreq, counts
+    sgv <- findSGVariants(sgf)
+    sgvc <- getSGVariantCounts(sgv, sgfc)
+    v_freq <- variantFreq(sgvc)
+    v_counts <- counts(sgvc)
+
+    # --- Splice Variant Effect Prediction ---
+    # Key functions: predictVariantEffects
+    sgv_pred <- rowRanges(sgvc)
+    vep <- predictVariantEffects(sgv_pred, txdb, Hsapiens)
+
+    # --- Visualisation of Splice Graphs and Coverage ---
+    # Key functions: plotFeatures, plotVariants, plotSpliceGraph, plotCoverage
+    df_feat <- plotFeatures(sgfc, geneID = 1, color_novel = "red")
+    plotVariants(sgvc, eventID = 1, color_novel = "red")
+    plotSpliceGraph(
+        rowRanges(sgfc),
+        geneID = 1,
+        toscale = "none",
+        color_novel = "red"
+    )
+    plotCoverage(sgfc[, 1], geneID = 1, toscale = "none")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,68 +41,92 @@ process BIOC_GLAD {
     library(GLAD)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: profileCGH, glad
-    data(snijders)
-    profileCGH <- as.profileCGH(gm13330)
-    res <- glad(profileCGH, mediancenter=FALSE,
-                    smoothfunc="lawsglad", bandwidth=10, round=1.5,
-                    model="Gaussian", lkern="Exponential", qlambda=0.999,
-    # --- Data [] ---
+    # --- Genomic Segmentation and Analysis [] ---
+    # Key functions: glad
+    res <- glad(
+        profileCGH,
+        mediancenter = FALSE,
+        smoothfunc = "lawsglad",
+        bandwidth = 10,
+        round = 1.5,
+        model = "Gaussian",
+        lkern = "Exponential",
+        qlambda = 0.999,
+        base = FALSE,
+        lambdabreak = 8,
+        lambdacluster = 8,
+        lambdaclusterGen = 40,
+        type = "tricubic",
+        param = c(d = 6),
+        alpha = 0.001,
+        msize = 2,
+        method = "centroid",
+        nmax = 8,
+        verbose = FALSE
+    )
+
+
+    # --- Advanced Segmentation with daglad [] ---
+    # Key functions: daglad
+    profileCGH_daglad <- daglad(
+        profileCGH,
+        mediancenter = FALSE,
+        normalrefcenter = FALSE,
+        genomestep = FALSE,
+        smoothfunc = "lawsglad",
+        lkern = "Exponential",
+        model = "Gaussian",
+        qlambda = 0.999,
+        bandwidth = 10,
+        base = FALSE,
+        round = 1.5,
+        lambdabreak = 8,
+        lambdaclusterGen = 40,
+        param = c(d = 6),
+        alpha = 0.001,
+        msize = 2,
+        method = "centroid",
+        nmin = 1,
+        nmax = 8,
+        amplicon = 1,
+        deletion = -5,
+        deltaN = 0.2,
+        forceGL = c(-0.3, 0.3),
+        nbsigma = 3,
+        MinBkpWeight = 0.35,
+        CheckBkpPos = TRUE
+    )
+
+
+    # --- Visualization of Genomic Profiles [] ---
     # Key functions: plotProfile
-    data(cytoband)
-    plotProfile(res, unit=3, Bkp=TRUE, labels=FALSE, plotband=FALSE, Smoothing="Smoothing", cytoband = cytoband)
-    # --- Data [] ---
-    # Key functions: profileCGH, daglad
-    data(veltman)
-    profileCGH <- as.profileCGH(P9)
-    profileCGH <- daglad(profileCGH, mediancenter=FALSE, normalrefcenter=FALSE, genomestep=FALSE,
-                         smoothfunc="lawsglad", lkern="Exponential", model="Gaussian",
-                         qlambda=0.999,  bandwidth=10, base=FALSE, round=1.5,
-    # --- Plotprofile [] ---
-    # Key functions: plotProfile
-    plotProfile(profileCGH, Smoothing="Smoothing", Bkp=TRUE, plotband=FALSE, cytoband = cytoband)
-    abline(h=c(-0.3,-0.2,0.2,0.3),col=c("green","black","black","red"))
-    axis(2,at=c(-0.3,-0.2,0.2,0.3), labels=c("forceGL[1]","-deltaN","+deltaN","forceGL[2]"), las=2)
-    # --- Data [] ---
-    # Key functions: profileCGH, daglad
-    data(veltman)
-    profileCGH <- as.profileCGH(P9)
-    profileCGH <- daglad(profileCGH, mediancenter=FALSE, normalrefcenter=FALSE, genomestep=FALSE,
-                         smoothfunc="lawsglad", lkern="Exponential", model="Gaussian",
-                         qlambda=0.999,  bandwidth=10, base=FALSE, round=1.5,
-    # --- Plotprofile [] ---
-    # Key functions: plotProfile
-    plotProfile(profileCGH, Smoothing="Smoothing", Bkp=TRUE, plotband=FALSE, cytoband = cytoband)
-    abline(h=c(-0.15,-0.1,0.1,0.15),col=c("green","black","black","red"))
-    axis(2,at=c(-0.15,-0.1,0.1,0.15), labels=c("forceGL[1]","-deltaN","+deltaN","forceGL[2]"), las=2)
-    # --- Data [] ---
-    # Key functions: data, class
-    data(arrayCGH)
-    # object of class arrayCGH
-    array <- list(arrayValues=array2, arrayDesign=c(4,4,21,22))
-    class(array) <- "arrayCGH"
-    # --- Arrayplot [] ---
-    # Key functions: arrayPlot
-    arrayPlot(array,"Log2Rat", bar="none")
-    # --- Arraypersp [] ---
-    # Key functions: arrayPersp
-    arrayPersp(array,"Log2Rat", box=FALSE, theta=110, phi=40, bar=FALSE)
-    # --- Data [] ---
-    # Key functions: profileCGH, glad
-    data(snijders)
-    profileCGH <- as.profileCGH(gm13330)
-    res <- glad(profileCGH, mediancenter=FALSE,
-                    smoothfunc="lawsglad", bandwidth=10, round=2,
-                    model="Gaussian", lkern="Exponential", qlambda=0.999,
-    # --- Plotprofile [] ---
-    # Key functions: plotProfile
-    plotProfile(res, unit=3, Bkp=TRUE, labels=FALSE, Smoothing="Smoothing", plotband=FALSE, cytoband = cytoband)
-    # --- List [] ---
-    # Key functions: plotProfile
-    text <- list(x=c(90000,200000),y=c(0.15,0.3),labels=c("NORMAL","GAIN"), cex=2)
-    plotProfile(res, unit=3, Bkp=TRUE, labels=TRUE, Chromosome=1,
-    Smoothing="Smoothing", plotband=FALSE, text=text, cytoband = cytoband)
+    plotProfile(
+        res,
+        unit = 3,
+        Bkp = TRUE,
+        labels = FALSE,
+        plotband = FALSE,
+        Smoothing = "Smoothing",
+        cytoband = cytoband
+    )
+
+
+    # --- Array CGH Visualization [] ---
+    # Key functions: arrayPlot, arrayPersp
+    array_obj <- list(
+        arrayValues = array2,
+        arrayDesign = c(4, 4, 21, 22)
+    )
+    class(array_obj) <- "arrayCGH"
+    arrayPlot(array_obj, "Log2Rat", bar = "none")
+    arrayPersp(
+        array_obj,
+        "Log2Rat",
+        box = FALSE,
+        theta = 110,
+        phi = 40,
+        bar = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

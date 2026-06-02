@@ -41,93 +41,44 @@ process BIOC_GGCYTO {
     library(ggcyto)
     library(jsonlite)
 
-    # --- Load Gs [] ---
-    # Key functions: load_gs, files, attr, ggplot, aes, geom_hex, scale_fill_gradientn, colors
-    ---------------------------------------------------------------------
-    gs <- load_gs(list.files(dataDir, pattern = "gs_manual",full = TRUE))
-    attr(gs, "subset") <- "CD3+"
-    ggplot(gs, aes(x = `<B710-A>`, y = `<R780-A>`)) + geom_hex(bins = 128) + scale_fill_gradientn(colours = gray.colors(9))
-    # --- Gs Pop Get Data [] ---
-    # Key functions: gs_pop_get_data, ggplot, aes, geom_density
-    ---------------------------------------------------------------------
-    fs <- gs_pop_get_data(gs, "CD3+")
-    ggplot(fs, aes(x = `<B710-A>`)) + geom_density(fill = "blue", alpha= 0.5)
-    # --- Filterlist [] ---
-    # Key functions: filterList, gs_pop_get_gate, ggplot, aes, geom_hex, geom_polygon
-    ---------------------------------------------------------------------
-    gates <- filterList(gs_pop_get_gate(gs, "CD8"))
-    ggplot(gs, aes(x = `<B710-A>`, y = `<R780-A>`)) + geom_hex(bins = 128) + geom_polygon(data = gates, fill = NA, col = "purple")
-    # --- Ggcyto [] ---
-    # Key functions: ggcyto, aes, geom_hex, geom_gate
-    ---------------------------------------------------------------------
-    ggcyto(gs, aes(x = CD4, y = CD8)) + geom_hex(bins = 128) + geom_gate("CD8")
-    # --- Autoplot [] ---
+    # --- Automated Flow Cytometry Plotting [Visualization] ---
     # Key functions: autoplot
-    ---------------------------------------------------------------------
-    #1d
-    autoplot(fs, "CD4")
-    #2d
-    autoplot(fs, "CD4", "CD8", bins = 64)
-    # --- Data [] ---
-    # Key functions: autoplot, scale_x_logicle, scale_x_flowJo_fasinh, scale_x_flowJo_biexp
-    ---------------------------------------------------------------------
-    data(GvHD)
-    fr <- GvHD[[1]]
-    p <- autoplot(fr, "FL1-H")
-    p #raw scale
-    # --- Autoplot [] ---
-    # Key functions: autoplot, ggcyto_par_set, gate_mindensity, geom_gate, rectangleGate, gh_pop_get_gate
-    ---------------------------------------------------------------------
-    fr <- fs[[1]]
-    p <- autoplot(fr,"CD4", "CD8") + ggcyto_par_set(limits = "instrument")
-    #1d gate vertical
-    gate_1d_v <- openCyto::gate_mindensity(fr, "<B710-A>")
-    # --- Ggcyto [] ---
-    # Key functions: ggcyto, aes, geom_hex, geom_gate, geom_stats
-    ---------------------------------------------------------------------
-    p <- ggcyto(gs, aes(x = "CD4", y = "CD8"), subset = "CD3+") + geom_hex()
-    p + geom_gate("CD4") + geom_stats()
-    p + geom_gate("CD4") + geom_stats(type = "count") #display cell counts
-    # --- Axis X Inverse Trans [] ---
-    # Key functions: axis_x_inverse_trans
-    ---------------------------------------------------------------------
-    p # axis display the transformed values
-    p + axis_x_inverse_trans() # restore the x axis to the raw values
-    # --- Ggcyto Par Set [] ---
-    # Key functions: ggcyto_par_set
-    ---------------------------------------------------------------------
-    p <- p + ggcyto_par_set(limits = "instrument")
-    p
-    # --- Labs Cyto [] ---
-    # Key functions: labs_cyto
-    ---------------------------------------------------------------------
-    p + labs_cyto("markers")
-    # --- Ggcyto Par Set [] ---
-    # Key functions: ggcyto_par_set, facet_wrap, scale_fill_gradientn, pal, labs_cyto, later
-    ---------------------------------------------------------------------
-    #put all the customized settings in one layer
-    mySettings <- ggcyto_par_set(limits = "instrument"
-                                 , facet = facet_wrap("name")
-                                 , hex_fill = scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")))
-    # --- Class [] ---
-    # Key functions: ggplot
-    ---------------------------------------------------------------------
-    class(p) # may not fully compatile with all the `ggplot` functions
-    p1 <- as.ggplot(p)
-    class(p1) # a pure ggplot object, thus can work with all the `ggplot` features
-    # --- Ggcyto Arrange [] ---
-    # Key functions: ggcyto_arrange
-    ---------------------------------------------------------------------
-    gt <- ggcyto_arrange(p, nrow = 1)
-    class(gt)
-    plot(gt)
-    # --- Autoplot [] ---
-    # Key functions: autoplot, gh_pop_get_data, ggcyto_arrange, gtable_rbind
-    ---------------------------------------------------------------------
-    p2 <- autoplot(gh_pop_get_data(gh, "CD3+")[,5:8]) # some density plot
-    p2@arrange.main <- ""#clear the default title
-    gt2 <- ggcyto_arrange(p2, nrow = 1)
-    gt3 <- gridExtra::gtable_rbind(gt, gt2)
+    p_1d <- autoplot(fs, "CD4")
+    p_2d <- autoplot(fs, "CD4", "CD8", bins = 64)
+    p_gs <- autoplot(gs, c("CD4", "CD8"), bins = 64)
+
+    # --- Custom Gating and Statistics Visualization [Visualization] ---
+    # Key functions: ggcyto, geom_gate, geom_stats
+    p <- ggcyto(gs, aes(x = "CD4", y = "CD8"), subset = "CD3+") +
+        geom_hex(bins = 128)
+    p_gate <- p + geom_gate("CD4") + geom_stats(type = "count")
+    p_gate_percent <- p + geom_gate("CD4") + geom_stats()
+
+    # --- Scale and Axis Transformations [Visualization] ---
+    # Key functions: scale_x_logicle, scale_x_flowJo_fasinh, scale_x_flowJo_biexp, axis_x_inverse_trans
+    p_raw <- autoplot(fr, "FL1-H")
+    p_logicle <- p_raw + scale_x_logicle()
+    p_fasinh <- p_raw + scale_x_flowJo_fasinh()
+    p_biexp <- p_raw + scale_x_flowJo_biexp()
+    p_inv <- p_logicle + axis_x_inverse_trans()
+
+    # --- Plot Customization and Theme Settings [Visualization] ---
+    # Key functions: ggcyto_par_set, labs_cyto
+    mySettings <- ggcyto_par_set(
+        limits = "instrument",
+        facet = facet_wrap("name"),
+        lab = labs_cyto("marker")
+    )
+    p_custom <- ggcyto(gs, aes(x = CD4, y = CD8)) +
+        geom_hex(bins = 128) +
+        mySettings
+
+    # --- Layout Arrangement and Conversion [Visualization] ---
+    # Key functions: as.ggplot, ggcyto_arrange
+    p_gg <- as.ggplot(p_custom)
+    p_multi <- autoplot(gh, nodes, bins = 64)
+    gt <- ggcyto_arrange(p_multi, nrow = 1)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

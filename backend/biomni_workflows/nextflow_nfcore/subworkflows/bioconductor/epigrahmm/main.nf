@@ -38,74 +38,47 @@ process BIOC_EPIGRAHMM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(epigraHMM)
     library(GRanges)
     library(jsonlite)
 
-    # --- introduction workflow [] ---
-    # Key functions: epigraHMMDataSetFromBam, normalizeCounts, initializer, epigraHMM, callPeaks
-    library(GenomicRanges)
-    library(epigraHMM)
-    library(SummarizedExperiment)
-    # --- data input countmatrixinput [] ---
-    # Key functions: GRanges, epigraHMMDataSetFromMatrix
-    countData <- list('counts' = matrix(rpois(4e5,10),ncol = 4),
-    'controls' = matrix(rpois(4e5,5),ncol = 4))
-    colData <- data.frame(condition = c('A','A','B','B'),
-    # --- data input baminput [] ---
-    # Key functions: epigraHMMDataSetFromBam
-    bamFiles <- system.file(package="chromstaRData","extdata","euratrans",
-    c("lv-H3K4me3-SHR-male-bio2-tech1.bam",
-    colData <- data.frame(condition = c('SHR','SHR'),
-    # --- data norm offset [] ---
-    # Key functions: normalizeCounts, colSums
-    object_normExample <- normalizeCounts(object_normExample,control = controlEM())
-    normCts <- as.matrix(assay(object_normExample)/
-    exp(assay(object_normExample,'offsets')))
-    # --- refine Sites [] ---
-    # Key functions: refineSites, addOffsets
-    library(gcapc)
-    library(BSgenome.Rnorvegicus.UCSC.rn4)
-    gcnorm <- gcapc::refineSites(counts = assay(object_gcExample),
-    # --- data input controls [] ---
-    # Key functions: epigraHMMDataSetFromBam
-    bamFiles <- list('counts' = system.file(package="chromstaRData",
-    'controls' = system.file(package="chromstaRData",
-    colData <- data.frame(condition = 'BN',replicate = 1)
-    # --- data peak consensus [] ---
-    # Key functions: epigraHMMDataSetFromBam, normalizeCounts, initializer, epigraHMM
-    bamFiles <- system.file(package="chromstaRData","extdata","euratrans",
-    c("lv-H3K27me3-BN-male-bio2-tech1.bam",
-    colData <- data.frame(condition = c('BN','BN'),
-    # --- data peak differential [] ---
-    # Key functions: epigraHMMDataSetFromBam, normalizeCounts, initializer, epigraHMM
-    bamFiles <- system.file(package="chromstaRData","extdata","euratrans",
-    c("lv-H3K27me3-BN-male-bio2-tech1.bam",
-    colData <- data.frame(condition = c('BN','BN','SHR','SHR'),
-    # --- peaks consensus [] ---
-    # Key functions: callPeaks
-    peaks_consensus <- callPeaks(object = object_consensus)
-    # --- peaks differential [] ---
-    # Key functions: callPeaks
-    peaks_differential <- callPeaks(object = object_differential)
-    # --- Create GenomicRanges from table [] ---
-    # Key functions: browserSession, genome, getTable, makeGRangesFromDataFrame
-    library(GenomicRanges)
-    library(rtracklayer)
-    library(GenomeInfoDb)
-    # --- viz consensus [] ---
-    # Key functions: plotCounts
-    plotCounts(object = object_consensus,
-    ranges = GRanges('chr12',IRanges(19500000,20000000)),
-    # --- viz differential [] ---
-    # Key functions: plotCounts
-    plotCounts(object = object_differential,
-    ranges = GRanges('chr12',IRanges(19500000,20100000)),
-    # --- viz heatmap1 [] ---
-    # Key functions: plotPatterns
-    plotPatterns(object = object_differential,
-    # --- viz heatmap2 [] ---
-    # Key functions: plotPatterns
-    plotPatterns(object = object_differential,
+    # --- Normalization [] ---
+    # Key functions: normalizeCounts, controlEM
+    em_control <- controlEM(maxiter = 50,
+                            tol = 1e-2,
+                            verbose = FALSE)
+    object <- normalizeCounts(object = object,
+                              control = em_control)
+
+
+    # --- Model Initialization [] ---
+    # Key functions: initializer, controlEM
+    em_control <- controlEM(maxiter = 50,
+                            tol = 1e-2,
+                            verbose = FALSE)
+    object <- initializer(object = object,
+                          control = em_control)
+
+
+    # --- Consensus Peak Detection [] ---
+    # Key functions: epigraHMM, controlEM
+    em_control <- controlEM(maxiter = 50,
+                            tol = 1e-2,
+                            verbose = FALSE)
+    object <- epigraHMM(object = object,
+                        control = em_control,
+                        type = 'consensus',
+                        dist = 'zinb')
+
+
+    # --- Peak Calling [] ---
+    # Key functions: callPeaks, controlEM
+    em_control <- controlEM(maxiter = 50,
+                            tol = 1e-2,
+                            verbose = FALSE)
+    peaks <- callPeaks(object = object,
+                       control = em_control,
+                       method = 0.05)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

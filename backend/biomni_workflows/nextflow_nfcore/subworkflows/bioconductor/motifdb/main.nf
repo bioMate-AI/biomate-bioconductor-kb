@@ -41,20 +41,37 @@ process BIOC_MOTIFDB {
     library(MotifDb)
     library(jsonlite)
 
-    # --- load MotifDb [] ---
+    # --- Motif Querying [MotifDb] ---
     # Key functions: query
-    library(MotifDb)
-    query(MotifDb, "ctcf")
-    # --- query CTCF human [] ---
-    # Key functions: query
-    library(MotifDb)
-    motifs <- query(MotifDb, andStrings=c("CTCF", "hsapiens"),
-    orStrings=c("jaspar2018", "hocomocov11-core-A"),
-    # --- use seqLogo [] ---
-    # Key functions: seqLogo
-    library(seqLogo)
-    seqLogo(motifs[[1]])  # Hsapiens-jaspar2018-CTCF-MA0139.1
-    seqLogo(motifs[[2]])  # Hsapiens-HOCOMOCOv11-core-A-CTCF_HUMAN.H11MO.0.A
+    ctcf_motifs <- query(
+        MotifDb,
+        andStrings = c("CTCF", "hsapiens"),
+        orStrings = c("jaspar2018", "hocomocov11-core-A"),
+        notStrings = "ctcfl"
+    )
+    motif_names <- names(ctcf_motifs)
+
+    # --- Metadata Extraction [MotifDb] ---
+    # Key functions: values
+    motif_metadata <- values(ctcf_motifs)
+    selected_metadata <- motif_metadata[, c(
+        "organism",
+        "dataSource",
+        "geneSymbol"
+    )]
+
+    # --- Consensus Sequence Generation [MotifDb] ---
+    # Key functions: consensusString
+    consensus_seqs <- sapply(
+        ctcf_motifs,
+        consensusString
+    )
+    consensus_summary <- data.frame(
+        Motif = names(ctcf_motifs),
+        Consensus = consensus_seqs,
+        stringsAsFactors = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

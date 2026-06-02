@@ -41,48 +41,43 @@ process BIOC_VISSE {
     library(vissE)
     library(jsonlite)
 
-    # --- Getmsigdb [] ---
-    # Key functions: getMsigdb, appendKEGG, collections, subsetCollection, sample
-    ---------------------------------------------------------------------
-    library(msigdb)
-    library(GSEABase)
-    #load the MSigDB from the msigdb package
-    msigdb_hs = getMsigdb()
-    # --- Computemsigoverlap [] ---
-    # Key functions: computeMsigOverlap, computeMsigNetwork, plotMsigNetwork
-    ---------------------------------------------------------------------
-    library(vissE)
-    #compute gene-set overlap
-    gs_ovlap = computeMsigOverlap(geneset_gsc, thresh = 0.25)
-    #create an overlap network
-    # --- Rnorm [] ---
-    # Key functions: rnorm, plotMsigNetwork
-    ---------------------------------------------------------------------
-    #simulate gene-set statistics
-    geneset_stats = rnorm(2500)
-    names(geneset_stats) = geneset_res
-    head(geneset_stats)
-    # --- Findmsigclusters [] ---
+    # --- Cluster Identification [] ---
     # Key functions: findMsigClusters, plotMsigNetwork
-    ---------------------------------------------------------------------
-    library(igraph)
-    #identify clusters - order based on cluster size and avg gene-set stats
-    grps = findMsigClusters(gs_ovnet,
-                            genesetStat = geneset_stats,
-    # --- Plotmsigwordcloud [] ---
+    grps = findMsigClusters(
+        gs_ovnet,
+        genesetStat = geneset_stats,
+        alg = igraph::cluster_walktrap,
+        minSize = 5
+    )
+    net_clust_plot = plotMsigNetwork(
+        gs_ovnet,
+        markGroups = grps[1:6],
+        genesetStat = geneset_stats,
+        rmUnmarkedGroups = TRUE
+    )
+
+
+    # --- Text Mining and Wordclouds [] ---
     # Key functions: plotMsigWordcloud
-    ---------------------------------------------------------------------
-    #compute and plot the results of text-mining
-    #using gene-set Names
-    plotMsigWordcloud(msigdb_hs, grps[1:6], type = 'Name')
-    #using gene-set Short descriptions
-    # --- Getimex [] ---
-    # Key functions: getIMEX, plotMsigPPI
-    ---------------------------------------------------------------------
-    #load PPI from the msigdb package
-    ppi = getIMEX('hs', inferred = TRUE)
-    #create the PPI plot
-    set.seed(36)
+    wc_name = plotMsigWordcloud(msigdb_hs, grps[1:6], type = "Name")
+    wc_short = plotMsigWordcloud(msigdb_hs, grps[1:6], type = "Short")
+
+
+    # --- Gene-level Statistics Analysis [] ---
+    # Key functions: plotGeneStats
+    gene_plot = plotGeneStats(gene_stats, msigdb_hs, grps[1:6])
+
+
+    # --- Protein-Protein Interaction Analysis [] ---
+    # Key functions: plotMsigPPI
+    ppi_plot = plotMsigPPI(
+        ppi,
+        msigdb_hs,
+        grps[1:6],
+        geneStat = gene_stats,
+        threshStatistic = 0.2,
+        threshConfidence = 0.2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,10 +41,43 @@ process BIOC_QUANTRO {
     library(quantro)
     library(jsonlite)
 
-    # --- Phenotype data inspection [] ---
-    # Key functions: getBeta, pData, matdensity, matboxplot, quantro, registerDoParallel, quantroPlot
-    matdensity(p, groupFactor = pd$CellType, xlab = " ", ylab = "density",
-    legend('top', c("NeuN_neg", "NeuN_pos"), col = c(1, 2), lty = 1, lwd = 3)
+    # --- Visualise Distributions [matdensity, matboxplot] ---
+    # Key functions: matdensity, matboxplot
+    group_factor <- pd$CellType
+    matdensity(
+        p,
+        groupFactor = group_factor,
+        xlab = "Beta Values",
+        ylab = "Density",
+        main = "Beta Values Density Plot",
+        brewer.n = 8,
+        brewer.name = "Dark2"
+    )
+    matboxplot(
+        p,
+        groupFactor = group_factor,
+        xaxt = "n",
+        main = "Beta Values Boxplot"
+    )
+
+    # --- Test Global Normalisation Assumptions [quantro, summary, anova, quantroStat] ---
+    # Key functions: quantro, summary, anova, quantroStat
+    group_factor <- pd$CellType
+    qtest <- quantro(object = p, groupFactor = group_factor)
+    q_summary <- summary(qtest)
+    q_anova <- anova(qtest)
+    q_stat <- quantroStat(qtest)
+
+    # --- Permutation Testing and Plotting [quantro, quantroPlot] ---
+    # Key functions: quantro, quantroPlot
+    group_factor <- pd$CellType
+    qtest_perm <- quantro(
+        object = p,
+        groupFactor = group_factor,
+        B = 1000
+    )
+    quantroPlot(qtest_perm)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

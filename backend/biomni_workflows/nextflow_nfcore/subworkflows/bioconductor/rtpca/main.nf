@@ -41,75 +41,34 @@ process BIOC_RTPCA {
     library(Rtpca)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("hdacTR_smallExample")
-    # --- Lapply [] ---
-    # Key functions: filter
-    ---------------------------------------------------------------------
-    hdacTR_data_fil <- lapply(hdacTR_data, function(temp_df){
-        filter(temp_df, gene_name %in% random_proteins)
-    })
-    # --- Tpptrimport [] ---
-    # Key functions: tpptrImport
-    ---------------------------------------------------------------------
-    trData <- tpptrImport(configTable = hdacTR_config, data = hdacTR_data_fil)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("string_ppi_df")
-    string_ppi_df
-    # --- Filter [] ---
-    # Key functions: filter, runTPCA
-    ---------------------------------------------------------------------
-    string_ppi_cs_950_df <- string_ppi_df %>%
-        filter(combined_score >= 950 )
+    # --- TPCA Analysis [] ---
+    # Key functions: runTPCA
+    data("string_ppi_df", package = "Rtpca")
+    string_ppi_cs_950_df <- string_ppi_df[string_ppi_df$combined_score >= 950, ]
     vehTPCA <- runTPCA(
         objList = trData,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("ori_et_al_complexes_df")
-    ori_et_al_complexes_df
-    # --- Runtpca [] ---
-    # Key functions: runTPCA
-    ---------------------------------------------------------------------
-    vehComplexTPCA <- runTPCA(
-        objList = trData,
-        complexAnno = ori_et_al_complexes_df,
-        minCount = 2
-    # --- Plotppiroc [] ---
-    # Key functions: plotPPiRoc
-    ---------------------------------------------------------------------
+        ppiAnno = string_ppi_cs_950_df
+    )
+
+
+    # --- Differential TPCA Analysis [] ---
+    # Key functions: runDiffTPCA, diffTpcaResultTable
+    data("string_ppi_df", package = "Rtpca")
+    string_ppi_cs_950_df <- string_ppi_df[string_ppi_df$combined_score >= 950, ]
+    diffTPCA <- runDiffTPCA(
+        objList = trData[1:2],
+        contrastList = trData[3:4],
+        ctrlCondName = "DMSO",
+        contrastCondName = "Panobinostat",
+        ppiAnno = string_ppi_cs_950_df
+    )
+    resTable <- diffTpcaResultTable(diffTPCA)
+
+
+    # --- Visualization [] ---
+    # Key functions: plotPPiRoc, plotDiffTpcaVolcano, plotPPiProfiles
     plotPPiRoc(vehTPCA, computeAUC = TRUE)
-    # --- Plotcomplexroc [] ---
-    # Key functions: plotComplexRoc
-    ---------------------------------------------------------------------
-    plotComplexRoc(vehComplexTPCA, computeAUC = TRUE)
-    # --- Rundifftpca [] ---
-    # Key functions: runDiffTPCA
-    ---------------------------------------------------------------------
-    diffTPCA <-
-        runDiffTPCA(
-            objList = trData[1:2],
-            contrastList = trData[3:4],
-    # --- Plotdifftpcavolcano [] ---
-    # Key functions: plotDiffTpcaVolcano
-    ---------------------------------------------------------------------
-    plotDiffTpcaVolcano(
-        diffTPCA,
-        setXLim = TRUE,
-        xlimit = c(-0.5, 0.5))
-    # --- Head [] ---
-    # Key functions: diffTpcaResultTable, arrange, select
-    ---------------------------------------------------------------------
-    head(diffTpcaResultTable(diffTPCA) %>%
-             arrange(p_value) %>%
-            dplyr::select(pair, rssC1_rssC2, f_stat, p_value, p_adj))
-    # --- Plotppiprofiles [] ---
-    # Key functions: plotPPiProfiles
-    ---------------------------------------------------------------------
+    plotDiffTpcaVolcano(diffTPCA, setXLim = TRUE, xlimit = c(-0.5, 0.5))
     plotPPiProfiles(diffTPCA, pair = c("KPNA6", "KPNB1"))
 
     # --- Save outputs ---

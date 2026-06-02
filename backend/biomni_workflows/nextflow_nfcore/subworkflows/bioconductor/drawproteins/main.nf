@@ -41,59 +41,48 @@ process BIOC_DRAWPROTEINS {
     library(drawProteins)
     library(jsonlite)
 
-    # --- download rel json [] ---
-    # Key functions: get_features
-    drawProteins::get_features("Q04206") ->
-    # --- generate dataframe [] ---
+    # --- Feature Extraction [] ---
     # Key functions: feature_to_dataframe
-    drawProteins::feature_to_dataframe(rel_json) -> rel_data
-    head(rel_data[1:4])
-    # --- using draw canvas [] ---
-    # Key functions: draw_canvas
-    draw_canvas(rel_data) -> p
-    # --- using draw chains [] ---
-    # Key functions: draw_chains
-    p <- draw_chains(p, rel_data)
-    # --- using draw domains [] ---
-    # Key functions: draw_domains
-    p <- draw_domains(p, rel_data)
-    # --- white background [] ---
-    # Key functions: theme
-    p <- p + theme_bw(base_size = 20) + # white background
-    theme(panel.grid.minor=element_blank(),
-    panel.grid.major=element_blank()) +
-    # --- show draw regions [] ---
-    # Key functions: draw_regions
-    draw_regions(p, rel_data) # adds activation domain
-    # --- show draw repeat [] ---
-    # Key functions: draw_repeat
-    draw_repeat(p, rel_data) # doesn't add anything in this case
-    # --- show draw motif [] ---
-    # Key functions: draw_motif
-    draw_motif(p, rel_data) # adds 9aa Transactivation domain & NLS
-    # --- show draw phospho [] ---
-    # Key functions: draw_phospho
-    draw_phospho(p, rel_data, size = 8)
-    # --- relA workflow [] ---
-    # Key functions: draw_canvas, draw_chains, draw_domains, draw_regions, draw_motif
-    draw_canvas(rel_data) -> p
-    p <- draw_chains(p, rel_data)
-    p <- draw_domains(p, rel_data)
-    # --- five NFkappaB [] ---
-    # Key functions: get_features, feature_to_dataframe, draw_canvas, draw_chains, draw_domains
-    prot_data <- drawProteins::get_features("Q04206 Q01201 Q04864 P19838 Q00653")
-    prot_data <- drawProteins::feature_to_dataframe(prot_data)
-    p <- draw_canvas(prot_data)
-    # --- draw_canvas [] ---
+    prot_data <- drawProteins::feature_to_dataframe(prot_json)
+
+
+    # --- Canvas Initialization and Chain Drawing [] ---
     # Key functions: draw_canvas, draw_chains
-    data("five_rel_data")
-    p <- draw_canvas(five_rel_data)
-    p <- draw_chains(p, five_rel_data,
-    # --- draw_canvas [] ---
-    # Key functions: draw_canvas, draw_chains, draw_phospho
-    p <- draw_canvas(five_rel_data)
-    p <- draw_chains(p, five_rel_data,
-    p <- draw_phospho(p, five_rel_data, size = 10, fill = "red")
+    p <- draw_canvas(prot_data)
+    p <- draw_chains(
+        p,
+        prot_data,
+        fill = "lightsteelblue1",
+        outline = "grey",
+        label_size = 5
+    )
+
+
+    # --- Domain and Motif Annotation [] ---
+    # Key functions: draw_domains, draw_regions, draw_motif, draw_repeat
+    p <- draw_domains(p, prot_data)
+    p <- draw_regions(p, prot_data)
+    p <- draw_motif(p, prot_data)
+    p <- draw_repeat(p, prot_data)
+
+
+    # --- Post-Translational Modification and Styling [] ---
+    # Key functions: draw_phospho
+    p <- draw_phospho(p, prot_data, size = 8, fill = "red")
+    p <- p + ggplot2::theme_bw(base_size = 20) +
+        ggplot2::theme(
+            panel.grid.minor = ggplot2::element_blank(),
+            panel.grid.major = ggplot2::element_blank(),
+            axis.ticks = ggplot2::element_blank(),
+            axis.text.y = ggplot2::element_blank(),
+            panel.border = ggplot2::element_blank(),
+            legend.position = "top"
+        ) +
+        ggplot2::labs(
+            title = "Schematic of human NF-kappaB proteins",
+            subtitle = "circles = phosphorylation sites\nsource: UniProt",
+            fill = ""
+        )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

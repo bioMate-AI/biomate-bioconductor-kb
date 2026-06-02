@@ -41,57 +41,24 @@ process BIOC_METAGENE2 {
     library(metagene2)
     library(jsonlite)
 
-    # --- bamFiles show [] ---
-    # Key functions: get_demo_bam_files
-    bam_files <- get_demo_bam_files()
-    basename(bam_files)
-    # --- get_demo_region_filenames [] ---
-    # Key functions: get_demo_region_filenames
-    regions <- get_demo_region_filenames()
-    # --- grangeslist chipseq regions [] ---
-    # Key functions: get_demo_regions
-    regions <- get_demo_regions()
-    # --- demo rna regions [] ---
-    # Key functions: get_demo_rna_regions
-    regions <- get_demo_rna_regions()
-    # --- design definition [] ---
-    # Key functions: kable
-    example_design <- data.frame(Samples = bam_files,
-    align1 = c(1,1,0,0,2),
-    align2 = c(0,0,1,1,2))
-    # --- group region grangeslist [] ---
-    # Key functions: get_demo_regions
-    regions_grl <- get_demo_regions()
-    lapply(regions_grl, length)
-    mg <- metagene2$new(regions = regions_grl,
-    # --- group region metadata [] ---
-    # Key functions: unlist
-    regions_gr <- unlist(get_demo_regions())
-    demo_metadata = data.frame(BedName=names(regions_gr),
-    EvenStart=ifelse((start(regions_gr) %% 2) == 0, "Even", "Odd"),
-    # --- get_demo_metagene [] ---
-    # Key functions: get_demo_metagene
-    mg <- get_demo_metagene()
-    names(mg$get_params())
-    mg$get_params()[["bin_count"]]
-    # --- get_demo_regions [] ---
-    # Key functions: get_demo_regions
-    get_demo_regions()
-    mg <- metagene2$new(regions = get_demo_regions(),
-    bam_files = get_demo_bam_files())
-    # --- plot_metagene [] ---
-    # Key functions: plot_metagene
-    mg1 <- metagene2$new(bam_files = get_demo_bam_files(),
-    regions = get_demo_regions()[1])
-    mg2 <- metagene2$new(bam_files = get_demo_bam_files(),
-    # --- metagene heatmap default order [] ---
-    # Key functions: get_demo_metagene, metagene2_heatmap
-    mg <- get_demo_metagene()
-    metagene2_heatmap(mg)
-    # --- metagene heatmap decreasing order [] ---
-    # Key functions: get_demo_metagene, metagene2_heatmap
-    mg <- get_demo_metagene()
-    metagene2_heatmap(mg, coverage_order(mg, "align1_rep1"))
+    # --- Coverage Profiling and Plotting [] ---
+    # Key functions: produce_metagene
+    example_design <- data.frame(
+        Samples = bam_files,
+        align1 = c(1, 1, 0, 0, 2),
+        align2 = c(0, 0, 1, 1, 2)
+    )
+    mg$produce_metagene(
+        design = example_design,
+        title = "Demo metagene plot"
+    )
+
+
+    # --- Coverage Extraction and Manipulation [] ---
+    # Key functions: get_regions, get_raw_coverages
+    processed_regions <- mg$get_regions()
+    coverages <- mg$get_raw_coverages()
+    mg_copy <- mg$clone(deep = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

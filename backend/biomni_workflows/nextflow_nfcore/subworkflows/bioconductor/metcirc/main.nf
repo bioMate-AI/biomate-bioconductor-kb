@@ -41,19 +41,65 @@ process BIOC_METCIRC {
     library(MetCirc)
     library(jsonlite)
 
-    # --- hcluster [] ---
-    # Key functions: hcluster
-    hClustMSP <- hcluster(similarityMat, method="spearman")
-    plot(hClustMSP, labels = FALSE, xlab="", sub="")
-    # --- cutree [] ---
-    # Key functions: cutree
-    cutTreeMSP <- cutree(hClustMSP, k = 3)
+    # --- Similarity Calculation [Similarity Calculation] ---
+    # Key functions: convertMsp2Spectra, compareSpectra
+    data("convertMsp2Spectra", package = "MetCirc")
+    sps_msp <- convertMsp2Spectra(msp2spectra)
+    similarityMat <- Spectra::compareSpectra(
+        sps_msp[1:10], 
+        FUN = MsCoreUtils::ndotproduct, 
+        ppm = 10, 
+        m = 0.5, 
+        n = 2
+    )
+    colnames(similarityMat) <- rownames(similarityMat) <- sps_msp$name[1:10]
+
+    # --- Clustering and Module Extraction [Clustering and Module Extraction] ---
+    # Key functions: hcluster, cutree
+    data("similarityMat", package = "MetCirc")
+    hClustMSP <- amap::hcluster(similarityMat, method = "spearman")
+    cutTreeMSP <- stats::cutree(hClustMSP, k = 3)
     module1 <- names(cutTreeMSP)[as.vector(cutTreeMSP) == "1"]
-    # --- order Similarity Matrix [] ---
-    # Key functions: orderSimilarityMatrix, createLinkDf
-    condition <- c("SPL", "LIM", "ANT", "STY")
-    simM <- orderSimilarityMatrix(similarityMatrix = similarityMat,
-    groupname <- rownames(simM)
+    similarityMat_module1 <- similarityMat[module1, module1]
+
+    # --- Link Generation [Link Generation] ---
+    # Key functions: createLinkDf, cutLinkDf
+    data("similarityMat", package = "MetCirc")
+    spd <- S4Vectors::DataFrame(name = colnames(similarityMat)[1:10], msLevel = 2L)
+    sps_tissue <- Spectra::Spectra(spd)
+    sps_tissue@metadata <- data.frame(
+        SPL = rep(TRUE, 10), LIM = rep(FALSE, 10), 
+        ANT = rep(TRUE, 10), STY = rep(FALSE, 10)
+    )
+    linkDf <- createLinkDf(
+        similarityMatrix = similarityMat[1:10, 1:10], 
+        sps = sps_tissue,
+        condition = c("SPL", "LIM", "ANT", "STY"), 
+        lower = 0.5, upper = 1
+    )
+    linkDf_cut <- cutLinkDf(linkDf = linkDf, type = "inter")
+
+    # --- Circular Visualization [Circular Visualization] ---
+    # Key functions: orderSimilarityMatrix, createLinkDf, plotCircos
+    data("similarityMat", package = "MetCirc")
+    spd <- S4Vectors::DataFrame(name = colnames(similarityMat)[1:10], msLevel = 2L)
+    sps_tissue <- Spectra::Spectra(spd)
+    sps_tissue@metadata <- data.frame(SPL = rep(TRUE, 10), LIM = rep(FALSE, 10))
+    simM <- orderSimilarityMatrix(
+        similarityMatrix = similarityMat[1:10, 1:10], 
+        sps = sps_tissue, type = "retentionTime", group = FALSE
+    )
+    inds_cond <- paste0("SPL_", 1:10)
+    linkDf <- createLinkDf(
+        similarityMatrix = simM, sps = sps_tissue, 
+        condition = c("SPL", "LIM"), lower = 0.1, upper = 1
+    )
+    plotCircos(
+        inds_cond, linkDf, initialize = TRUE, featureNames = TRUE, 
+        cexFeatureNames = 0.2, groupSector = TRUE, groupName = FALSE, 
+        links = TRUE, highlight = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

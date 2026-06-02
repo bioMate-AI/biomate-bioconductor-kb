@@ -38,6 +38,7 @@ process BIOC_SYNEXTEND {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SynExtend)
     library(DisjointSet)
     library(ExtractBy)
     library(FindSynteny)
@@ -45,34 +46,89 @@ process BIOC_SYNEXTEND {
     library(PairSummaries)
     library(jsonlite)
 
-    # --- build synteny object [] ---
-    # Key functions: FindSynteny
-    library(SynExtend)
-    DBPATH <- system.file("extdata",
-    Syn <- FindSynteny(dbFile = DBPATH)
-    # --- generate genecalls [] ---
+    # --- Synteny Detection [synplots01] ---
+    # Key functions: FindSynteny, pairs
+    db_path <- system.file(
+        "extdata",
+        "Endosymbionts_v02.sqlite",
+        package = "SynExtend"
+    )
+    syn_obj <- FindSynteny(dbFile = db_path)
+    pairs(syn_obj)
+
+    # --- Gene Call Processing [generate_genecalls] ---
     # Key functions: gffToDataFrame
-    GC <- gffToDataFrame(GFF = system.file("extdata",
-    GeneCalls <- get(data("Endosymbionts_GeneCalls", package = "SynExtend"))
-    # --- show rtracklayer [] ---
-    # Key functions: import
-    X01 <- rtracklayer::import(system.file("extdata",
-    class(X01)
-    print(X01)
-    # --- generate initial links [] ---
-    # Key functions: NucleotideOverlap
-    Links <- NucleotideOverlap(SyntenyObject = Syn,
-    # --- Pair Summaries [] ---
-    # Key functions: PairSummaries
-    LinkedPairs1 <- PairSummaries(SyntenyLinks = Links,
-    # --- pairsummariesoperations [] ---
-    # Key functions: DisjointSet
-    SingleLinkageClusters <- DisjointSet(Pairs = LinkedPairs1,
-    # --- Extract By [] ---
-    # Key functions: ExtractBy
-    Sets <- ExtractBy(x = LinkedPairs1,
-    head(Sets)
-    sessionInfo()
+    gff_file <- system.file(
+        "extdata",
+        "GCF_021065005.1_ASM2106500v1_genomic.gff.gz",
+        package = "SynExtend"
+    )
+    gene_calls_df <- gffToDataFrame(GFF = gff_file, Verbose = TRUE)
+
+    # --- Nucleotide Overlap Detection [generate_initial_links] ---
+    # Key functions: NucleotideOverlap, FindSynteny
+    db_path <- system.file(
+        "extdata",
+        "Endosymbionts_v02.sqlite",
+        package = "SynExtend"
+    )
+    syn_obj <- FindSynteny(dbFile = db_path)
+    data("Endosymbionts_GeneCalls", package = "SynExtend")
+    links <- NucleotideOverlap(
+        SyntenyObject = syn_obj,
+        GeneCalls = Endosymbionts_GeneCalls,
+        Verbose = TRUE
+    )
+
+    # --- Pair Summarization [describe_links] ---
+    # Key functions: PairSummaries, NucleotideOverlap, FindSynteny
+    db_path <- system.file(
+        "extdata",
+        "Endosymbionts_v02.sqlite",
+        package = "SynExtend"
+    )
+    syn_obj <- FindSynteny(dbFile = db_path)
+    data("Endosymbionts_GeneCalls", package = "SynExtend")
+    links <- NucleotideOverlap(
+        SyntenyObject = syn_obj,
+        GeneCalls = Endosymbionts_GeneCalls,
+        Verbose = FALSE
+    )
+    linked_pairs <- PairSummaries(
+        SyntenyLinks = links,
+        DBPATH = db_path,
+        PIDs = FALSE,
+        Verbose = TRUE
+    )
+
+    # --- Clustering and Extraction [pairsummariesoperations] ---
+    # Key functions: DisjointSet, ExtractBy, PairSummaries
+    db_path <- system.file(
+        "extdata",
+        "Endosymbionts_v02.sqlite",
+        package = "SynExtend"
+    )
+    syn_obj <- FindSynteny(dbFile = db_path)
+    data("Endosymbionts_GeneCalls", package = "SynExtend")
+    links <- NucleotideOverlap(
+        SyntenyObject = syn_obj,
+        GeneCalls = Endosymbionts_GeneCalls,
+        Verbose = FALSE
+    )
+    linked_pairs <- PairSummaries(
+        SyntenyLinks = links,
+        DBPATH = db_path,
+        PIDs = FALSE,
+        Verbose = FALSE
+    )
+    clusters <- DisjointSet(Pairs = linked_pairs, Verbose = TRUE)
+    extracted_sets <- ExtractBy(
+        x = linked_pairs,
+        y = db_path,
+        z = clusters[1:10],
+        Verbose = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

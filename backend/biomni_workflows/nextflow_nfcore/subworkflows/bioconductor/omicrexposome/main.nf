@@ -41,83 +41,19 @@ process BIOC_OMICREXPOSOME {
     library(omicRexposome)
     library(jsonlite)
 
-    # --- Expos Data [] ---
-    # Key functions: data, class
-    data("brge_expo", package = "brgedata")
-    class(brge_expo)
-    # --- Gexp Data [] ---
-    # Key functions: data
-    data("brge_gexp", package = "brgedata")
-    # --- Gexp Analysis [] ---
-    # Key functions: createMultiDataSet, add_genexp, add_exp, association
-    mds <- createMultiDataSet()
-    mds <- add_genexp(mds, brge_gexp)
-    mds <- add_exp(mds, brge_expo)
-    gexp <- association(mds, formula=~Sex+Age,
-        expset = "exposures", omicset = "expression")
-    # --- Gexp Tables [] ---
-    # Key functions: tableHits, tableLambda
-    hit <- tableHits(gexp, th=0.001)
-    lab <- tableLambda(gexp)
-    merge(hit, lab, by="exposure")
-    # --- Gexp Analysis Sva [] ---
-    # Key functions: association
-    gexp <- association(mds, formula=~Sex+Age,
-        expset = "exposures", omicset = "expression", sva = "fast")
-    # --- Gexp Tables Sva [] ---
-    # Key functions: tableHits, tableLambda
-    hit <- tableHits(gexp, th=0.001)
-    lab <- tableLambda(gexp)
-    merge(hit, lab, by="exposure")
-    # --- Gexp Plot Qq [] ---
-    # Key functions: arrange, plotAssociation, ggtitle
-    gridExtra::grid.arrange(
-        plotAssociation(gexp, rid="Ben_p", type="qq") +
-            ggplot2::ggtitle("Transcriptome - Pb Association"),
-        plotAssociation(gexp, rid="BPA_p", type="qq") +
-            ggplot2::ggtitle("Transcriptome - THM Association"),
-    # --- Gexp Plot Volcano [] ---
-    # Key functions: arrange, plotAssociation, ggtitle
-    gridExtra::grid.arrange(
-        plotAssociation(gexp, rid="Ben_p", type="volcano", tPV=-log10(1e-04)) +
-            ggplot2::ggtitle("Transcriptome - Pb Association"),
-        plotAssociation(gexp, rid="BPA_p", type="volcano", tPV=-log10(1e-04)) +
-            ggplot2::ggtitle("Transcriptome - THM Association"),
-    # --- Prot Data [] ---
-    # Key functions: data
-    data("brge_prot", package="brgedata")
-    brge_prot
-    # --- Prot Analysis [] ---
-    # Key functions: createMultiDataSet, add_eset, add_exp, association
-    mds <- createMultiDataSet()
-    mds <- add_eset(mds, brge_prot, dataset.type  ="proteome")
-    mds <- add_exp(mds, brge_expo)
-    prot <- association(mds, formula=~Sex+Age,
-        expset = "exposures", omicset = "proteome")
-    # --- Prot Hits [] ---
-    # Key functions: tableHits
-    tableHits(prot, th=0.001)
-    # --- Prot Plot Volcano [] ---
-    # Key functions: arrange, plotAssociation, ggtitle, geom_hline
-    gridExtra::grid.arrange(
-        plotAssociation(prot, rid="Ben_p", type="protein") +
-            ggplot2::ggtitle("Proteome - Cd Association") +
-            ggplot2::geom_hline(yintercept = 1, color = "LightPink"),
-        plotAssociation(prot, rid="NO2_p", type="protein") +
-    # --- Missing Exp [] ---
-    # Key functions: plotMissings
-    library(rexposome)
-    plotMissings(brge_expo, set = "exposures")
-    # --- Impute Exp [] ---
-    # Key functions: imputation
-    brge_expo <- imputation(brge_expo)
-    # --- Crossomics Mcia [] ---
-    # Key functions: createMultiDataSet, add_genexp, add_eset, add_exp, crossomics
-    mds <- createMultiDataSet()
-    mds <- add_genexp(mds, brge_gexp)
-    mds <- add_eset(mds, brge_prot, dataset.type = "proteome")
-    mds <- add_exp(mds, brge_expo)
+    # --- Association Visualization [] ---
+    # Key functions: plotAssociation
+    p1 <- plotAssociation(gexp, rid="Ben_p", type="qq")
+    p2 <- plotAssociation(gexp, rid="Ben_p", type="volcano", tPV=-log10(1e-04))
+
+
+    # --- Cross-Omics Integration [] ---
+    # Key functions: crossomics, plotIntegration
     cr_mcia <- crossomics(mds, method = "mcia", verbose = TRUE)
+    cr_mcca <- crossomics(mds, method = "mcca", permute=c(4, 2))
+    colors <- c("green", "blue", "red")
+    names(colors) <- names(mds)
+    plotIntegration(cr_mcia, colors=colors)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

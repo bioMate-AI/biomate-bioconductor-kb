@@ -41,11 +41,86 @@ process BIOC_SCDATAVIZ {
     library(scDataviz)
     library(jsonlite)
 
-    # --- Phenotype data inspection [] ---
-    # Key functions: install_github, processFCS, pData, pca, biplot, reducedDim, performUMAP, findElbowPoint
+    # --- Dimensionality Reduction [performUMAP] ---
+    # Key functions: performUMAP
+    sce <- performUMAP(sce)
+    sce <- performUMAP(sce, reducedDim = 'PCA', dims = c(1:5))
+
+    # --- Density and Contour Visualization [contourPlot] ---
+    # Key functions: contourPlot
+    ggout1 <- contourPlot(sce,
+        reducedDim = 'UMAP',
+        bins = 150,
+        subtitle = 'UMAP performed on expression values',
+        legendLabSize = 18,
+        axisLabSize = 22)
+    ggout2 <- contourPlot(sce,
+        reducedDim = 'UMAP_PCA',
+        bins = 150,
+        subtitle = 'UMAP performed on PC eigenvectors',
+        legendLabSize = 18,
+        axisLabSize = 22)
+
+    # --- Marker Expression Visualization [markerExpression] ---
+    # Key functions: markerExpression
+    markers <- head(rownames(sce), 6)
+    ggout1 <- markerExpression(sce,
+        markers = markers,
+        subtitle = 'UMAP performed on expression values',
+        nrow = 1, ncol = 6,
+        legendKeyHeight = 1.0)
+    ggout2 <- markerExpression(sce,
+        markers = markers,
+        reducedDim = 'UMAP_PCA',
+        subtitle = 'UMAP performed on PC eigenvectors',
+        nrow = 1, ncol = 6,
+        col = c('white', 'darkblue'))
+
+    # --- Metadata Visualization [metadataPlot] ---
+    # Key functions: metadataPlot
+    ggout1 <- metadataPlot(sce,
+        colby = 'group',
+        colkey = c(Healthy = 'royalblue', Disease = 'red2'),
+        title = 'Disease status',
+        subtitle = 'UMAP performed on expression values')
+    ggout2 <- metadataPlot(sce,
+        reducedDim = 'UMAP_PCA',
+        colby = 'treatment',
+        title = 'Treatment type',
+        subtitle = 'UMAP performed on PC eigenvectors')
+
+    # --- Cell Clustering [clusKNN, plotClusters] ---
+    # Key functions: clusKNN, plotClusters
+    sce <- clusKNN(sce,
+        k.param = 20,
+        prune.SNN = 1/15,
+        resolution = 0.01,
+        algorithm = 2,
+        verbose = FALSE)
+    sce <- clusKNN(sce,
+        reducedDim = 'UMAP_PCA',
+        clusterAssignName = 'Cluster_PCA',
+        k.param = 20,
+        prune.SNN = 1/15,
+        resolution = 0.01,
+        algorithm = 2,
+        verbose = FALSE)
+    ggout1 <- plotClusters(sce,
+        clusterColname = 'Cluster',
+        labSize = 7.0,
+        subtitle = 'UMAP performed on expression values')
+
+    # --- Cluster-Specific Marker Expression [markerExpressionPerCluster] ---
+    # Key functions: markerExpressionPerCluster
     clusters <- unique(metadata(sce)[['Cluster_PCA']])
-    markers <- sample(rownames(sce), 5)
-    markerExpressionPerCluster(sce,
+    markers <- head(rownames(sce), 5)
+    ggout <- markerExpressionPerCluster(sce,
+        clusters = clusters,
+        clusterAssign = metadata(sce)[['Cluster_PCA']],
+        markers = markers,
+        nrow = 2, ncol = 5,
+        caption = 'Cluster assignments based on UMAP on PC eigenvectors')
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

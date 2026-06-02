@@ -38,37 +38,59 @@ process BIOC_CYTOPIPELINEGUI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CytoPipelineGUI)
     library(CytoPipeline)
     library(CytoPipelineCheckApp)
     library(ScaleTransformApp)
     library(jsonlite)
 
-    # --- Cyto Pipeline [] ---
-    # Key functions: CytoPipeline
-    rawDataDir <- system.file("extdata", package = "CytoPipeline")
-    sampleFiles <- file.path(rawDataDir, list.files(rawDataDir,
-    workDir <- suppressMessages(base::tempdir())
-    # --- flowframe viz [] ---
-    # Key functions: CytoPipelineCheckApp
-    if (interactive()) {
-    CytoPipelineGUI::CytoPipelineCheckApp(dir = workDir)
-    # --- workflow viz prog [] ---
-    # Key functions: plotSelectedWorkflow
-    CytoPipelineGUI::plotSelectedWorkflow(
-    # --- flowframe viz prog [] ---
-    # Key functions: plotSelectedFlowFrame, plotDiffFlowFrame
+    # --- Flow Frame Quality Control [] ---
+    # Key functions: plotSelectedFlowFrame
     p1 <- CytoPipelineGUI::plotSelectedFlowFrame(
-    p2 <- CytoPipelineGUI::plotSelectedFlowFrame(
-    p3 <- CytoPipelineGUI::plotDiffFlowFrame(
-    # --- scale transform viz [] ---
-    # Key functions: ScaleTransformApp
-    if (interactive()){
-    CytoPipelineGUI::ScaleTransformApp(dir = workDir)
-    # --- scale transform viz prog [] ---
-    # Key functions: buildCytoPipelineFromCache, getCytoPipelineFlowFrame, plotScaleTransformedChannel
-    pipL <- CytoPipeline::buildCytoPipelineFromCache(
-    ff <- CytoPipeline::getCytoPipelineFlowFrame(
-    p1 <- plotScaleTransformedChannel(
+        experimentName = "OMIP021_PeacoQC",
+        whichQueue = "pre-processing",
+        sampleFile = 2,
+        flowFrameName = "perform_QC_obj",
+        path = "workDir",
+        xChannelLabel = "Time : NA",
+        yChannelLabel = "FSC-A : NA",
+        useAllCells = TRUE,
+        useFixedLinearRange = FALSE
+    )
+
+
+    # --- Flow Frame Comparison [] ---
+    # Key functions: plotDiffFlowFrame
+    p_diff <- CytoPipelineGUI::plotDiffFlowFrame(
+        path = "workDir",
+        experimentNameFrom = "OMIP021_PeacoQC",
+        whichQueueFrom = "pre-processing",
+        sampleFileFrom = 2,
+        flowFrameNameFrom = "perform_QC_obj",
+        xChannelLabelFrom = "Time : NA",
+        yChannelLabelFrom = "FSC-A : NA",
+        experimentNameTo = "OMIP021_flowAI",
+        whichQueueTo = "pre-processing",
+        sampleFileTo = 2,
+        flowFrameNameTo = "perform_QC_obj",
+        xChannelLabelTo = "Time : NA",
+        yChannelLabelTo = "FSC-A : NA",
+        useAllCells = TRUE,
+        useFixedLinearRange = FALSE
+    )
+
+
+    # --- Scale Transformation Visualization [] ---
+    # Key functions: plotScaleTransformedChannel
+    p_trans <- CytoPipelineGUI::plotScaleTransformedChannel(
+        fFrame = ff,
+        channel = "CD3",
+        applyTransform = "data",
+        transfoType = "logicle",
+        negDecades = 1,
+        width = 0.5,
+        posDecades = 4
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

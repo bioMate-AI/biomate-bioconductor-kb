@@ -38,47 +38,29 @@ process BIOC_SNPEDIAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SNPediaR)
     library(Rs53576)
     library(jsonlite)
 
-    # --- Getpages [] ---
-    # Key functions: getPages
-    ---------------------------------------------------------------------
-    library (SNPediaR)
-    pg <- getPages (titles = "Rs53576")
-    pg
-    # --- Getpages [] ---
-    # Key functions: getPages, Rs53576
-    ---------------------------------------------------------------------
-    pgs <- getPages (titles = c ("Rs53576(A;A)", "Rs53576(A;G)", "Rs53576(G;G)"))
-    pgs
-    # --- Extractsnptags [] ---
-    # Key functions: extractSnpTags
-    ---------------------------------------------------------------------
-    extractSnpTags (pg$Rs53576)
-    # --- Getpages [] ---
-    # Key functions: getPages, Rs53576
-    ---------------------------------------------------------------------
-    getPages (titles = c ("Rs53576(A;A)", "Rs53576(A;G)", "Rs53576(G;G)"),
-              wikiParseFunction = extractGenotypeTags,
-              tags = c ("allele1", "allele2", "magnitude"))
-    # --- Function [] ---
-    # Key functions: unlist
-    ---------------------------------------------------------------------
-    findPMID <- function (x) {
-        x <- unlist (strsplit (x, split = "\n"))
-        x <- grep ("PMID=", x, value = TRUE)
-        x
-    # --- Getpages [] ---
-    # Key functions: getPages
-    ---------------------------------------------------------------------
-    getPages (titles = c ("Rs53576", "Rs1815739"),
-              wikiParseFunction = findPMID)
-    # --- Getcategoryelements [] ---
-    # Key functions: getCategoryElements
-    ---------------------------------------------------------------------
-    res <- getCategoryElements (category = "Is_a_medical_condition")
-    head (res)
+    # --- Extract SNP and Genotype Tags [] ---
+    # Key functions: extractSnpTags, extractGenotypeTags, getPages
+    snp_tags <- extractSnpTags(pg$Rs53576)
+    genotype_tags <- sapply(pgs, extractGenotypeTags)
+    parsed_pages <- getPages(
+        titles = c("Rs53576(A;A)", "Rs53576(A;G)", "Rs53576(G;G)"),
+        wikiParseFunction = extractGenotypeTags,
+        tags = c("allele1", "allele2", "magnitude")
+    )
+
+
+    # --- Query Medical Categories [] ---
+    # Key functions: getCategoryElements, getPages, extractSnpTags
+    res <- getCategoryElements(category = "Is_a_medical_condition")
+    cancer_conditions <- grep("cancer", res, value = TRUE)
+    cancer_pages <- getPages(
+        titles = head(cancer_conditions, 5),
+        wikiParseFunction = extractSnpTags
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

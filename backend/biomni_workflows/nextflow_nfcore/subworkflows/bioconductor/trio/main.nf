@@ -41,19 +41,30 @@ process BIOC_TRIO {
     library(trio)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: data
-    library(trio)
+    # --- Transmission Disequilibrium Testing [] ---
+    # Key functions: tdt, colTDT, colTDTmaxStat, colTDTmaxTest
     data(trio.data)
-    str(trio.ped1)
-    trio.ped1[1:10,1:12]
-    # --- Ped2geno analysis [] ---
-    # Key functions: ped2geno, tdt, tdtGxG, colTDT, colTDTmaxStat, colTDTmaxTest, colGxG, rep
-    trio.tmp <- trio.check(dat=trio.gen1, is.linkage=FALSE)
-    trio.impu <- trio.prepare(trio.dat=trio.tmp, blocks=c(1,4,2,3), logic=TRUE)
-    str(trio.impu, max=2)
-    trio.impu$freq[1:7,]
-    sim <- trio.sim(freq=trio.impu$freq, interaction="1R and 5R", prev=.001, OR=2,
+    single_tdt <- tdt(mat.test[, 1], model = "dominant")
+    col_tdt_results <- colTDT(mat.test)
+    max_stat_results <- colTDTmaxStat(mat.test)
+    max_test_results <- colTDTmaxTest(mat.test, perm = 100)
+
+
+    # --- Interaction Analysis [] ---
+    # Key functions: colGxG, colGxE, getGxEstats
+    data(trio.data)
+    genes_vector <- paste("G", rep(1:2, c(2, 4)), sep = "")
+    gxg_results <- colGxG(mat.test, genes = genes_vector)
+    sex_covariate <- rep(0:1, each = 50)
+    gxe_results <- colGxE(mat.test, sex_covariate)
+    top_gxe <- getGxEstats(gxe_results, top = 3, sortBy = "lrt2df")
+
+
+    # --- Alternative Association Testing [] ---
+    # Key functions: allelicTDT, scoreTDT
+    data(trio.data)
+    allelic_results <- allelicTDT(mat.test, correct = TRUE)
+    score_results <- scoreTDT(mat.test)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

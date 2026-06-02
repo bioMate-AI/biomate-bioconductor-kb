@@ -38,60 +38,31 @@ process BIOC_VBMP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(vbmp)
     library(U)
     library(jsonlite)
 
-    # --- Example11 [] ---
-    # Key functions: 2, U, runif
-    genSample <- function(n, noiseVar=0) {
-        KF <- 10; # magnify factor
-        nt <- round(n/3,0)#
-        ## class 1 and 2 (x ~ U(0,1))
-        u <- 4. * matrix(runif(2*KF*n), nrow=KF*n, ncol=2) - 2.;
-    # --- Example14 [] ---
-    # Key functions: genSample
-    dataXtTrain <- genSample(Ntrain, nNoisyInputs);
-    dataXtTest  <- genSample(Ntest,  nNoisyInputs);
-    # --- Example15 [] ---
-    # Key functions: rep
-    theta <- rep(1., ncol(dataXtTrain$X));
-    max.train.iter <- 12;
-    # --- Example16 [] ---
+    # --- Variational Bayesian Multinomial Probit Fitting [] ---
     # Key functions: vbmp
-    library(vbmp);
-    res <- vbmp( dataXtTrain$X, dataXtTrain$t.class,
-                 dataXtTest$X, dataXtTest$t.class, theta,
-                 control=list(bThetaEstimate=T, bMonitor=T, maxIts=max.train.iter));
-    # --- Diagnostics [] ---
-    # Key functions: diagnostics, plotDiagnostics
-    ## plot convergence diagnostics (same as setting bPlotFitting=T)
-    plotDiagnostics(res);
-    # --- Example2 [] ---
-    # Key functions: exprs
-    library("Biobase");
-      data("BRCA12");
-      brca.y <- BRCA12$Target.class;
-      brca.x <- t(exprs(BRCA12));
-    # --- Example21 [] ---
-    # Key functions: vbmp, predClass
-    predictVBMP <- function(x) {
-          sKernelType <- "iprod";
-          Thresh      <- 1e-8;
-          theta       <- rep(1.0, ncol(brca.x));
-          max.train.iter <- 24;
-    # --- Example212 [] ---
-    # Key functions: rep
-    # fake predictVBMP to speed-up the RCMD TEST
-      predictVBMP <- function(x) {
-          rep(0,sum(x));
-      }
-    # --- Example22 [] ---
-    # Key functions: sample, ifelse
-    n     <- nrow(brca.x);
-      Kfold <- n; # number of folds , if equal to n then LOO
-      samps <- sample(rep(1:Kfold, length=n), n, replace=FALSE);
-      res   <- rep(NA, n);
-      print(paste("Crossvalidation started...... (",n,"steps )"));
+    X_train <- matrix(rnorm(200), nrow = 20, ncol = 10)
+    y_train <- sample(1:3, 20, replace = TRUE)
+    X_test <- matrix(rnorm(100), nrow = 10, ncol = 10)
+    y_test <- sample(1:3, 10, replace = TRUE)
+    res <- vbmp(
+        X_train, y_train, X_test, y_test,
+        theta = theta_init,
+        control = control_params
+    )
+
+
+    # --- Model Performance Evaluation [] ---
+    # Key functions: predError, predClass
+    error_rate <- predError(res)
+    predicted_labels <- predClass(res)
+    out_summary <- list(
+        error = error_rate,
+        predictions = predicted_labels
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

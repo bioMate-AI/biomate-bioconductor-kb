@@ -38,75 +38,42 @@ process BIOC_SEQPATTERN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(seqPattern)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    data(zebrafishPromoters)
-    zebrafishPromoters
-    head(zebrafishPromoters@elementMetadata)
-    # --- Granges [] ---
-    # Key functions: GRanges, IRanges, seqlengths, promoters, getSeq
-    # create GRanges of dominant TSS position with associated metadata
-    zebrafishPromotersTSS <- GRanges(seqnames = zebrafishPromoters24h$chr,
-                ranges = IRanges(start = zebrafishPromoters24h$dominantTSS,
-                end = zebrafishPromoters24h$dominantTSS),
-                strand = zebrafishPromoters24h$strand,
-    # --- Plotpatterndensitymap [] ---
+    # --- Pattern Occurrence List Generation [] ---
+    # Key functions: getPatternOccurrenceList
+    occurrence_list <- getPatternOccurrenceList(
+        regionsSeq = sequences,
+        patterns = c("CG", "TA", "GC"),
+        seqpos = seq(-15, 14)
+    )
+
+
+    # --- Density Map Visualisation [] ---
     # Key functions: plotPatternDensityMap
-    ## plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq,
-    ##             patterns = c("AA", "TA", "CG", "GC"),
-    ##             seqOrder = order(zebrafishPromotersTSSflank$interquantileWidth),
-    ##             flankUp = 400, flankDown = 800, color = "blue")
-    # --- Promoters [] ---
-    # Key functions: promoters, getSeq
-    # get regions flanking dominant TSS - 200bp upstream and downstream
-    zebrafishPromotersTSSflank <- promoters(zebrafishPromotersTSS, upstream = 200,
-                                            downstream = 200)
-    # obtain genomic sequence of the flanking regions
-    zebrafishPromotersTSSflankSeq <- getSeq(Drerio, zebrafishPromotersTSSflank)
-    # --- Plotpatterndensitymap [] ---
-    # Key functions: plotPatternDensityMap
-    ## # plot density of TATA-box consensus sequence in pink
-    ## plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq,
-    ##             patterns = c("TATAWAWR", "YWTWTATA"),
-    ##             seqOrder = order(zebrafishPromotersTSSflank$interquantileWidth),
-    ##             flankUp = 200, flankDown = 200, nBin = c(400, 10000),
-    # --- Plotmotifdensitymap [] ---
-    # Key functions: plotMotifDensityMap
-    ## plotMotifDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq,
-    ##             motifPWM = TBPpwm, minScore = "90%",
-    ##             seqOrder = order(zebrafishPromotersTSSflank$interquantileWidth),
-    ##             flankUp = 200, flankDown = 200, color = "red")
-    # --- Plotmotifscanscores [] ---
-    # Key functions: plotMotifScanScores
-    ## plotMotifScanScores(regionsSeq = zebrafishPromotersTSSflankSeq,
-    ##             motifPWM = TBPpwm,
-    ##             seqOrder = order(zebrafishPromotersTSSflank$interquantileWidth),
-    ##             flankUp = 200, flankDown = 200)
-    # --- Plotmotifoccurrenceaverage [] ---
-    # Key functions: plotMotifOccurrenceAverage
-    ## # make index of sharp and broad promoters
-    ## sIdx <- zebrafishPromotersTSSflank$interquantileWidth <= 9
-    ## bIdx <- zebrafishPromotersTSSflank$interquantileWidth > 9
-    ## # plot average motif occurrence profile for sharp promoters
-    ## plotMotifOccurrenceAverage(regionsSeq = zebrafishPromotersTSSflankSeq[sIdx],
-    # --- Motifscanhits [] ---
-    # Key functions: motifScanHits
-    motifOccurrence <- motifScanHits(regionsSeq =
-                zebrafishPromotersTSSflankSeq[1:50],
-                motifPWM = TBPpwm, minScore = "90%", seqOrder =
-                order(zebrafishPromotersTSSflank$interquantileWidth[1:50]))
-    head(motifOccurrence)
-    # --- Motifscanscores [] ---
-    # Key functions: motifScanScores
-    scanScores <- motifScanScores(regionsSeq = zebrafishPromotersTSSflankSeq[1:50],
-                motifPWM = TBPpwm, seqOrder =
-                order(zebrafishPromotersTSSflank$interquantileWidth[1:50]))
-    dim(scanScores)
-    scanScores[1:6,1:6]
+    plotPatternDensityMap(
+        regionsSeq = sequences,
+        patterns = c("CG", "GC"),
+        seqpos = seq(-15, 14),
+        colormap = "Blues",
+        enableCentering = TRUE,
+        useMulticore = FALSE
+    )
+
+
+    # --- Average Occurrence Profiling [] ---
+    # Key functions: plotPatternOccurrenceAverage
+    plotPatternOccurrenceAverage(
+        regionsSeq = sequences,
+        patterns = c("TA", "CG"),
+        seqpos = seq(-15, 14),
+        flank = 2,
+        smoothingWindow = 3,
+        color = c("red", "blue")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

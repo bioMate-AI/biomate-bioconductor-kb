@@ -41,66 +41,30 @@ process BIOC_FLOWBIN {
     library(flowBin)
     library(jsonlite)
 
-    # --- Stagea [] ---
-    # Key functions: show
-    library(flowBin)
-    library(flowFP)
-    data(fs1)
-    show(fs1)
-    # --- Stageb [] ---
-    # Key functions: fsApply
-    fsApply(fs1, function(x){x@parameters@data[,'desc']})
-    # --- Stagex [] ---
-    # Key functions: new, show
-    aml.sample <- new('FlowSample',
-    				  			name='Example flowSample',
-                                tube.set=as.list(fs1@frames),
-                                control.tubes=c(1),
-                                bin.pars=c(1,2,5),
-    # --- Examinetubes [] ---
-    # Key functions: set, show, exprs
-    data(amlsample)
-    tube1.frame <- tube.set(aml.sample)[[1]]
-    show(tube1.frame)
-    plot(exprs(tube1.frame)[,c(5,2)], pch=16, cex=0.6, xlim=c(0,4), ylim=c(0,4))
-    # --- Examinetubes2 [] ---
-    # Key functions: exprs
-    plot(exprs(tube1.frame)[,c(3,6)], pch=16, cex=0.6, xlim=c(0,4), ylim=c(0,4))
-    # --- Examinetubes [] ---
-    # Key functions: set, show, exprs
-    tube7.frame <- tube.set(aml.sample)[[7]]
-    show(tube7.frame)
-    plot(exprs(tube7.frame)[,c(3,6)], pch=16, cex=0.6, xlim=c(0,4), ylim=c(0,4))
-    # --- Stage1 [] ---
-    # Key functions: quantileNormalise
+    # --- Quantile Normalisation [] ---
+    # Key functions: quantileNormalise, checkQNorm
     normed.sample <- quantileNormalise(aml.sample)
-    # --- Stage2 [] ---
-    # Key functions: checkQNorm
-    qnorm.check <- checkQNorm(aml.sample, normed.sample, do.plot=F)
-    plot(qnorm.check$sd.before, type='l', lwd=2,
-    	 ylim=c(0, max(qnorm.check$sd.before)),
-    	 xlab='Tubes',
-    	 ylab='Standard deviation of bin densities',
-    # --- Flowbinrun [] ---
+    qnorm.check <- checkQNorm(
+        aml.sample,
+        normed.sample,
+        do.plot = FALSE
+    )
+
+
+    # --- Flow Binning [] ---
     # Key functions: flowBin
-    tube.combined <- flowBin(tube.list=aml.sample@tube.set,
-    bin.pars=aml.sample@bin.pars,
-    control.tubes=aml.sample@control.tubes,
-    expr.method='medianFIDist',
-    scale.expr=T)
-    # --- Flowbinplot [] ---
+    tube.combined <- flowBin(
+        tube.list = aml.sample@tube.set,
+        bin.pars = aml.sample@bin.pars,
+        control.tubes = aml.sample@control.tubes,
+        expr.method = "medianFIDist",
+        scale.expr = TRUE
+    )
+
+
+    # --- Heatmap Visualisation [] ---
     # Key functions: heatmap
-    heatmap(tube.combined, scale='none')
-    # --- Flowbinrun2 [] ---
-    # Key functions: flowBin
-    tube.propPos <- flowBin(tube.list=aml.sample@tube.set,
-    bin.pars=aml.sample@bin.pars,
-    control.tubes=aml.sample@control.tubes,
-    expr.method='propPos',
-    scale.expr=T)
-    # --- Flowbinplot2 [] ---
-    # Key functions: heatmap
-    heatmap(tube.propPos, scale='none')
+    heatmap(tube.combined, scale = "none")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

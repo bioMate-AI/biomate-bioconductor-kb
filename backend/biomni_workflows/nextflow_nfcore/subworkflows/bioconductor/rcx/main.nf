@@ -41,11 +41,24 @@ process BIOC_RCX {
     library(RCX)
     library(jsonlite)
 
-    # --- Nodes analysis [] ---
-    # Key functions: createNodes, visualize, readBin, base64encode, createNetworkAttributes, updateNetworkAttributes, createCartesianLayout, updateCartesianLayout
-    description <- paste0(
-    <p>An RCX object (green) is composed of several aspects (red),
-    which themself consist different properties (blue).
+    # --- Network Edge Creation [] ---
+    # Key functions: createEdges
+    edges <- createEdges(
+        source = c(1, 2, 3),
+        target = c(0, 1, 1),
+        interaction = c("aspectOf", "propertyOf", "propertyOf")
+    )
+
+
+    # --- RCX Object Assembly and Annotation [] ---
+    # Key functions: createRCX, createNodeAttributes, updateNodeAttributes
+    rcx <- createRCX(nodes = nodes, edges = edges)
+    nodeAttributesType <- createNodeAttributes(
+        propertyOf = nodes$id,
+        name = rep("type", length(nodes$id)),
+        value = rep("aspect", length(nodes$id))
+    )
+    rcx <- updateNodeAttributes(rcx, nodeAttributesType)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

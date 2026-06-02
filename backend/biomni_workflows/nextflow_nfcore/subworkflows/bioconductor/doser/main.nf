@@ -38,58 +38,52 @@ process BIOC_DOSER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(doseR)
     library(DataFrame)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(hmel.data.doser)
-    # --- Frame [] ---
-    # Key functions: frame, factor, ifelse
-    ---------------------------------------------------------------------
-    annotxn <- data.frame("Chromosome" = factor(hmel.dat$chromosome,
-    levels = 1:21))
-    annotxn$ZA <- factor(ifelse(hmel.dat$chromosome == 21, "Z", "A"),
-    levels = c("A", "Z"))
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, factor, SummarizedExperiment
-    ---------------------------------------------------------------------
-    counts <- hmel.dat$readcounts
-    colData <- S4Vectors::DataFrame(Treatment=as.factor(reps),
-    row.names=colnames(hmel.dat$readcounts))
-    rowData <- S4Vectors::DataFrame(annotation = annotxn,
-    # --- Coldata [] ---
-    # Key functions: colData, getLibsizes3
-    ---------------------------------------------------------------------
-    SummarizedExperiment::colData(se2)$Libsizes <- getLibsizes3(se2,
-    estimationType = "total")
-    # --- Assays [] ---
-    # Key functions: assays, make_RPKM, digest
-    ---------------------------------------------------------------------
-    SummarizedExperiment::assays(se2)$rpkm <- make_RPKM(se2)
-    # se2 now equals se...
-    data(hmel.se)  # loads hmel.dat list
-    # MD5 checksum equivalence:
-    # --- Simplefilter [] ---
-    # Key functions: simpleFilter
-    ---------------------------------------------------------------------
-    f_se <- simpleFilter(se, mean_cutoff = 0.01, counts = FALSE)
-    # --- Coldata [] ---
-    # Key functions: colData, generateStats, test
-    ---------------------------------------------------------------------
-    se.male <- f_se[, colData(f_se)$Treatment == "Male"]
-    male_ZvA <- generateStats(se.male , groupings = "annotation.ZA", LOG2 = FALSE)
-    male_ZvA$summary  # distributional summary statistics
-    male_ZvA$kruskal  # htest class output from kruskal.test()
-    # --- Test Diffs [] ---
-    # Key functions: test_diffs, test
-    ---------------------------------------------------------------------
-    za.ratios.test <- test_diffs(f_se, groupings = "annotation.ZA",
-    treatment1 = "Male", treatment2 = "Female", LOG2 = FALSE )
-    za.ratios.test$summary  # summary statistics for each grouping
-    za.ratios.test$kruskal  # htest class output from kruskal.test()
+    # --- Expression Filtering and Visualization [] ---
+    # Key functions: simpleFilter, plotMA.se, plotExpr
+    data(hmel.se)
+    doseR::plotMA.se(se, samplesA ="Male", samplesB = "Female", cex = .2)
+    f_se <- doseR::simpleFilter(se, mean_cutoff = 0.01, counts = FALSE)
+    doseR::plotExpr(f_se, groupings = "annotation.ZA", notch = TRUE)
+
+
+    # --- Dosage Compensation Statistics [] ---
+    # Key functions: generateStats, test_diffs
+    se.male <- f_se[, SummarizedExperiment::colData(f_se)$Treatment == "Male"]
+    male_ZvA <- doseR::generateStats(
+        se.male,
+        groupings = "annotation.ZA",
+        LOG2 = FALSE
+    )
+    za.ratios.test <- doseR::test_diffs(
+        f_se,
+        groupings = "annotation.ZA",
+        treatment1 = "Male",
+        treatment2 = "Female",
+        LOG2 = FALSE
+    )
+
+
+    # --- Ratio Distribution Analysis [] ---
+    # Key functions: plotRatioBoxes, plotRatioDensity
+    doseR::plotRatioBoxes(
+        f_se,
+        groupings = "annotation.ZA",
+        treatment1 = "Male",
+        treatment2 = "Female",
+        outline = FALSE
+    )
+    doseR::plotRatioDensity(
+        f_se,
+        groupings = "annotation.ZA",
+        treatment1 = "Male",
+        treatment2 = "Female",
+        type = "l"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

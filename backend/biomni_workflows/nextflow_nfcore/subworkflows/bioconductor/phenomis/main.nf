@@ -38,20 +38,59 @@ process BIOC_PHENOMIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(phenomis)
     library(ExpressionSet)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: SummarizedExperiment, listToMap
-    library(MultiAssayExperiment)
-    experiment.ls <- list()
-    sampleMap.ls <- list()
-    # --- Assay data access [] ---
-    # Key functions: assay, colData, inspecting, annotating_parameters, kable, writing, sampleNames, pData
-    sacurine.se <- annotating(sacurine.se,
-    param.ls = list(query.type = "mz",
-    knitr::kable(rowData(sacurine.se)[!is.na(rowData(sacurine.se)[, "localMS.accession"]), grep("localMS.", colnames(rowData(sacurine.se)), fixed = TRUE)])
+    # --- Signal Correction and Transformation [] ---
+    # Key functions: correcting, transforming
+    sacurine.se <- correcting(
+        sacurine.se,
+        reference.vc = "pool",
+        report.c = "none"
+    )
+    sacurine.se <- transforming(
+        sacurine.se,
+        method.vc = "log10"
+    )
+
+
+    # --- Statistical Hypothesis Testing [] ---
+    # Key functions: hypotesting
+    sacurine.se <- hypotesting(
+        sacurine.se,
+        test.c = "ttest",
+        factor_names.vc = "gender",
+        adjust.c = "BH",
+        adjust_thresh.n = 0.05,
+        report.c = "none"
+    )
+
+
+    # --- Clustering [] ---
+    # Key functions: clustering
+    sacurine.se <- clustering(
+        sacurine.se,
+        clusters.vi = c(5, 3)
+    )
+    clustered_data <- sacurine.se
+
+
+    # --- Metabolite Annotation [] ---
+    # Key functions: annotating
+    sacurine.se <- annotating(
+        sacurine.se,
+        database.c = "local.ms",
+        param.ls = list(
+            query.type = "mz",
+            query.col = "mass_to_charge",
+            ms.mode = "neg",
+            mz.tol = 5,
+            local.ms.db = msdbDF
+        ),
+        report.c = "none"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

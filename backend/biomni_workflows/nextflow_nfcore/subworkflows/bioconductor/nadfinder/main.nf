@@ -41,11 +41,52 @@ process BIOC_NADFINDER {
     library(NADfinder)
     library(jsonlite)
 
-    # --- dir [] ---
-    # Key functions: dir
-    library(NADfinder)
-    library(SummarizedExperiment)
-    path <- system.file("extdata", package = "NADfinder", lib.loc = NULL,
+    # --- Ratio Calculation [] ---
+    # Key functions: log2se
+    dat <- log2se(
+        se = single.count,
+        nucleolusCols = "N18.subsampled.srt.bam",
+        genomeCols = "G18.subsampled.srt.bam",
+        transformation = "log2CPMRatio"
+    )
+
+
+    # --- Chromosome Smoothing [] ---
+    # Key functions: smoothRatiosByChromosome, cumulativePercentage
+    datList <- smoothRatiosByChromosome(
+        se = dat,
+        chr = c("chr18", "chr19"),
+        N = 100
+    )
+    cum_pct <- cumulativePercentage(datList[["chr18"]])
+
+
+    # --- Peak Calling [] ---
+    # Key functions: trimPeaks, callPeaks
+    peaks_list <- lapply(
+        datList,
+        trimPeaks,
+        backgroundPercentage = 0.25,
+        cutoffAdjPvalue = 0.05,
+        countFilter = 1000
+    )
+    peaks_gr <- unlist(GenomicRanges::GRangesList(peaks_list))
+
+
+    # --- Signal Visualization [] ---
+    # Key functions: plotSig
+    ideo_file <- system.file(
+        "extdata", "ideo.mm10.rds",
+        package = "NADfinder"
+    )
+    ideo <- readRDS(ideo_file)
+    plotSig(
+        ideo = ideo,
+        grList = GenomicRanges::GRangesList(peaks_gr),
+        mcolName = "AveSig",
+        layout = list("chr18"),
+        parameterList = list(types = "heatmap")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

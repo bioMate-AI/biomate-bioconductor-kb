@@ -38,35 +38,36 @@ process BIOC_FILTERFFPE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(FilterFFPE)
     library(FFPEReadFilter)
     library(jsonlite)
 
-    # --- Findartifactchimericreads [] ---
-    # Key functions: tempdir, findArtifactChimericReads
-    library(FilterFFPE)
-    # Find artifact chimeric reads
-    file <- system.file("extdata", "example.bam", package = "FilterFFPE")
-    outFolder <- tempdir()
-    FFPEReadsFile <- paste0(outFolder, "/example.FFPEReads.txt")
-    # --- Filterbambyreadnames [] ---
+    # --- Filter BAM by Read Names [] ---
     # Key functions: filterBamByReadNames
-    # Filter artifact chimeric reads and PCR or optical duplicates of chimeric reads
-    dupChim <- readLines(dupChimFile)
-    readsToFilter <- c(artifactReads, dupChim)
-    destination <- paste0(outFolder, "/example.FilterFFPE.bam")
-    filterBamByReadNames(file = file, readsToFilter = readsToFilter,
-    # --- Ffpereadfilter [] ---
-    # Key functions: tempdir, FFPEReadFilter
-    # Perform finding and filtering with one function
     file <- system.file("extdata", "example.bam", package = "FilterFFPE")
     outFolder <- tempdir()
-    FFPEReadsFile <- paste0(outFolder, "/example.FFPEReads.txt")
-    dupChimFile <- paste0(outFolder, "/example.dupChim.txt")
-    # --- Scanbam [] ---
-    # Key functions: scanBam
-    # load Bam file with scanBAM
-    newBam <- Rsamtools::scanBam(destination)
-    head(newBam[[1]]$seq)
+    destination <- paste0(outFolder, "/example.FilterFFPE.bam")
+    filterBamByReadNames(
+        file = file, 
+        readsToFilter = c("read1", "read2"),
+        destination = destination, 
+        overwrite = TRUE
+    )
+
+
+    # --- One-step FFPE Read Filtering [] ---
+    # Key functions: FFPEReadFilter
+    file <- system.file("extdata", "example.bam", package = "FilterFFPE")
+    outFolder <- tempdir()
+    destination <- paste0(outFolder, "/example.FilterFFPE.bam")
+    FFPEReadFilter(
+        file = file, 
+        threads = 2, 
+        destination = destination,
+        overwrite = TRUE, 
+        FFPEReadsFile = paste0(outFolder, "/example.FFPEReads.txt"),
+        dupChimFile = paste0(outFolder, "/example.dupChim.txt")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

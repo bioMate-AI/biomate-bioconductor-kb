@@ -38,92 +38,59 @@ process BIOC_HELP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HELP)
     library(Density)
     library(SAMPLEs)
     library(jsonlite)
 
-    # --- Sub [] ---
-    # Key functions: path, readSampleKey, SAMPLEs, sampleNames
-    chips <- sub("[_.]*532[_.]*pair.*","",basename(msp1.files))
-    chips ## CHIP_IDs
-    samplekey <- file.path(data.path, "sample.key.txt")
-    chips <- readSampleKey(file=samplekey,chips=chips)
-    chips ## SAMPLEs (from supplied key)
-    # --- Calctm [] ---
-    # Key functions: calcTm, getFeatures
-    calcTm("ATCTAGGAAGATTTAGAGAGGCAATGTGTCATTTAGCATCTAATTTTACC")
-    calcTm(getFeatures(pairs,"SEQUENCE")[1:4])
-    # --- Calcgc [] ---
-    # Key functions: calcGC, getFeatures
-    calcGC("ATCTAGGAAGATTTAGAGAGGCAATGTGTCATTTAGCATCTAATTTTACC")
-    calcGC(getFeatures(pairs,"SEQUENCE")[1:4])
-    # --- Getsamples [] ---
-    # Key functions: getSamples, calcPrototype
-    getSamples(pairs)[1:4,]
-    calcPrototype(pairs,center=FALSE)[1:4]
-    # --- Fig1 [] ---
+    # --- Spatial Quality Control [plotChip] ---
     # Key functions: plotChip
-    plotChip(pairs, sample="Brain2")
-    # --- Fig2 [] ---
-    # Key functions: sample, plotChip
-    x <- rep(1:100,100)
-    y <- rep(1:100,each=100)
-    z <- x*(1001:11000/1000)
-    z <- z-mean(z)
-    z <- z*(sample(1:10000/10000)+1)
-    # --- Exprs [] ---
-    # Key functions: exprs, exprs2
-    exprs(pairs) <- log2(exprs(pairs))
-    exprs2(pairs) <- log2(exprs2(pairs))
-    # --- Fig3 [] ---
+    # Visualizing spatial intensity to detect chip manufacturing or hybridization artifacts
+    # Using simulated coordinates to demonstrate spatial plotting
+    x_coords <- rep(1:100, 100)
+    y_coords <- rep(1:100, each = 100)
+    z_values <- x_coords * (1001:11000 / 1000)
+    plotChip(
+        x_coords,
+        y_coords,
+        z_values,
+        main = "Curved gradient",
+        xlab = "x",
+        ylab = "y"
+    )
+
+    # --- Feature-Level Signal Distribution [plotFeature] ---
     # Key functions: plotFeature
-    plotFeature(pairs[,"Brain2"],cex=0.5)
-    # --- Fig4 [] ---
-    # Key functions: density, rainbow
-    plot(density(x),main="")
-    for (i in 1:20) {
-    d <- density(x[which(y==i)])
-    lines(d$x,0.3*d$y/max(d$y),col=rainbow(n=20,start=0,end=0.66)[21-i])
-    }
-    # --- Fig5 [] ---
-    # Key functions: quantileNormalize, density, Density
-    x2 <- quantileNormalize(x,y,num.bins=20,num.steps=1,mode="discrete")
-    d2 <- density(x2)
-    plot(c(min(d2$x), max(d2$x)), c(0, 20), type="p", cex=0, ylab="Density (by bin)", xlab="", main="")
-    for (i in 1:20) {
-    d <- density(x2[which(y==i)])
-    # --- Which [] ---
-    # Key functions: getFeatures, getSamples
-    rand <- which(getFeatures(pairs, "TYPE")=="RAND")
-    msp.rand <- getSamples(pairs, element="exprs")[rand,]
-    hpa.rand <- getSamples(pairs, element="exprs2")[rand,]
-    # --- Which [] ---
-    # Key functions: getFeatures, getSamples, quantileNormalize
-    norand <- which(getFeatures(pairs, "TYPE")=="DATA")
-    size <- as.numeric(getFeatures(pairs, "SIZE"))[norand]
-    msp <- getSamples(pairs, "Brain2", element="exprs")[norand]
-    hpa <- getSamples(pairs, "Brain2", element="exprs2")[norand]
-    nofail <- which(msp>msp.fail["Brain2"] | hpa>hpa.fail["Brain2"])
-    # --- Which [] ---
+    # Plotting feature-level signal distribution for a specific sample
+    # 'pairs' is a pre-loaded data object containing sample measurements
+    plotFeature(
+        pairs[, "Brain2"],
+        cex = 0.5
+    )
+
+    # --- Quantile Normalization [quantileNormalize] ---
     # Key functions: quantileNormalize
-    meth <- which(msp>msp.fail["Brain2"] & hpa<=hpa.meth["Brain2"])
-    hpa.norm <- hpa
-    hpa.norm[meth] <- quantileNormalize(hpa[meth],size[meth])
-    nometh <- which(hpa>hpa.meth["Brain2"])
-    hpa.norm[nometh] <- quantileNormalize(hpa[nometh],size[nometh])
-    # --- Exprs [] ---
-    # Key functions: exprs, exprs2, getSamples
-    pairs.norm <- pairs
-    exprs(pairs.norm)[norand, "Brain2"] <- msp.norm
-    exprs2(pairs.norm)[norand, "Brain2"] <- hpa.norm
-    getSamples(pairs, element="exprs")[1:5,]
-    getSamples(pairs.norm, element="exprs")[1:5,]
-    # --- Getsamples [] ---
-    # Key functions: getSamples, getFeatures, combineData
-    data <- getSamples(pairs,element="exprs2")
-    seqids <- getFeatures(pairs,'SEQ_ID')
-    weight <- getSamples(pairs,element="exprs")
-    combineData(data, seqids, weight, trim=0.2)[1:5,]
+    # Performing quantile normalization to correct for spatial bias
+    # x represents signal intensities, y represents spatial bins
+    x_signal <- rep(1:100, 100)
+    y_bins <- rep(1:100, each = 100)
+    norm_signal <- quantileNormalize(
+        x_signal,
+        y_bins,
+        num.bins = 20,
+        num.steps = 1,
+        mode = "discrete"
+    )
+
+    # --- Pairwise Sample Comparison [plotPairs] ---
+    # Key functions: plotPairs
+    # Generating pairwise scatter plots to compare samples
+    # 'pairs' is a multi-sample data object
+    plotPairs(
+        pairs,
+        element = "exprs2"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

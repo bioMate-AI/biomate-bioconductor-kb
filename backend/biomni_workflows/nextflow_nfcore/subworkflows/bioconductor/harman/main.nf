@@ -41,51 +41,29 @@ process BIOC_HARMAN {
     library(Harman)
     library(jsonlite)
 
-    # --- intensity [] ---
-    # Key functions: intensity
-    library(affydata, quietly = TRUE, warn.conflicts = FALSE)
-    data(Dilution)
-    intensity(Dilution.log) <- log(intensity(Dilution))
-    # --- Principal component analysis [] ---
-    # Key functions: prcomp, rainbow
-    Dilution.loess <- normalize(Dilution.log, method="loess")
-    Dilution.qnt <- normalize(Dilution.log, method="quantiles")
-    pca <- function(exprs, pc_x=1, pc_y=2, cols, ...) {
-    # --- affydata reconstruct [] ---
-    # Key functions: exprs, detach
-    exprs(Dilution.loess.hm) <- reconstructData(loess.hm)
-    exprs(Dilution.qnt.hm) <- reconstructData(qnt.hm)
-    detach('package:affydata')
-    # --- Filter by row sum threshold [] ---
-    # Key functions: preprocessSWAN, preprocessIllumina, detectionP, rowSums
-    rgSet <- read.metharray.exp(targets=targets)
-    mSetSw <- preprocessSWAN(rgSet)
-    mSet <- preprocessIllumina(rgSet, bg.correct=TRUE, normalize="controls",
-    # --- p Data [] ---
-    # Key functions: pData, mdsPlot
-    par(mfrow=c(1, 1))
-    cancer_by_gender_factor <- as.factor(paste(pData(mSetSw)$sex,
-    pData(mSetSw)$status)
-    # --- shift Betas [] ---
-    # Key functions: shiftBetas, beta2m
-    par(mfrow=c(2,2))
-    library(lumi, quietly = TRUE)
-    shifted_betas <- shiftBetas(betas=getBeta(mSetIl), shiftBy=1e-7)
-    # --- myplot [] ---
-    # Key functions: myplot
-    slide_cols <- rep(brewer.pal(9, "Set1"), times=5)[as.factor(episcope$pd$array_num)]
-    myplot <- function(probe) {
-    plot(episcope$original[probe, ],
-    # --- Linear model fit (limma) [] ---
-    # Key functions: lmFit, eBayes
-    fit_hm <- lmFit(ms_hm, design)
-    fit_hm <- eBayes(fit_hm)
-    fit <- lmFit(getM(mSetSw), design)
-    # --- harman [] ---
-    # Key functions: harman
-    log_ms_exprs <- log(exprs(msms_pp) + 1, 2)
-    hm <- harman(log_ms_exprs, expt=expt, batch=batch)
-    summary(hm)
+    # --- Visualisation of Correction [] ---
+    # Key functions: arrowPlot, pcaPlot
+    arrowPlot(olf.harman, main = "Arrowplot of correction")
+    arrowPlot(olf.harman, 1, 8)
+    pcaPlot(olf.harman, colBy = "batch", pchBy = "expt")
+
+
+    # --- Data Reconstruction [] ---
+    # Key functions: reconstructData
+    olf.data.corrected <- reconstructData(olf.harman)
+    olf.data.remade <- reconstructData(olf.harman, this = "original")
+
+
+    # --- PCA Plotting [] ---
+    # Key functions: prcompPlot
+    prcompPlot(
+        imr90.pca,
+        pc_x = 1,
+        pc_y = 2,
+        colFactor = imr90.info$Batch,
+        pchFactor = imr90.info$Treatment,
+        main = "IMR90, PC1 v PC2"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

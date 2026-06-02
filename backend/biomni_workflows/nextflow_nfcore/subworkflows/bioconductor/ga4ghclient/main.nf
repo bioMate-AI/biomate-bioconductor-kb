@@ -38,32 +38,38 @@ process BIOC_GA4GHCLIENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GA4GHclient)
     library(CodingVariants)
     library(jsonlite)
 
-    # --- search Datasets [] ---
-    # Key functions: searchDatasets, searchVariantSets, searchVariants
-    datasets <- searchDatasets(host, nrows = 1)
-    variantSets <- searchVariantSets(host, datasetId, nrows = 1)
-    variants <- searchVariants(host, variantSetId, referenceName = "1",
-    # --- datatable [] ---
-    # Key functions: datatable
-    variants.df <- searchVariants(host, variantSetId, referenceName = "1",
-    DT::datatable(as.data.frame(variants.df), options = list(scrollX = TRUE))
-    # --- search Reference Sets [] ---
-    # Key functions: searchReferenceSets, genes, seqlevelsStyle
-    referenceSets <- searchReferenceSets(host, nrows = 1)
-    head(keys(org.Hs.eg.db, keytype = "SYMBOL"))
-    head(genes(TxDb.Hsapiens.UCSC.hg19.knownGene))
-    # --- Locate variants in genomic features [] ---
-    # Key functions: datatable, seqlevelsStyle, locateVariants, CodingVariants
-    variants.scn1a <- searchVariantsByGRanges(host, variantSetId, gr, asVCF = FALSE)
-    DT::datatable(as.data.frame(variants.scn1a[[1]]), options = list(scrollX = TRUE))
-    variants.scn1a.gr <- makeGRangesFromDataFrame(variants.scn1a[[1]],
-    # --- search Call Sets [] ---
+    # --- Genomic Variant Retrieval [] ---
+    # Key functions: searchVariants
+    host <- "http://1kgenomes.ga4gh.org/"
+    variantSetId <- "release"
+    variants_vcf <- searchVariants(host, variantSetId, referenceName = "1",
+        start = 15000, end = 16000, nrows = 10, asVCF = TRUE)
+    variants_df <- searchVariants(host, variantSetId, referenceName = "1",
+        start = 15000, end = 16000, nrows = 10, asVCF = FALSE)
+
+
+    # --- Gene-Targeted Variant Search [] ---
+    # Key functions: searchVariantsByGRanges
+    host <- "http://1kgenomes.ga4gh.org/"
+    variantSetId <- "release"
+    gr <- GenomicRanges::GRanges(seqnames = "1",
+        ranges = IRanges::IRanges(start = 15000, end = 16000))
+    variants_gene <- searchVariantsByGRanges(host, variantSetId, gr,
+        asVCF = FALSE)
+
+
+    # --- Call Set and Genotype Retrieval [] ---
     # Key functions: searchCallSets, searchVariants
-    callSetIds <- searchCallSets(host, variantSetId, nrows = 5)$id
-    vcf <- searchVariants(host, variantSetId, referenceName = "1",
+    host <- "http://1kgenomes.ga4gh.org/"
+    variantSetId <- "release"
+    callSets <- searchCallSets(host, variantSetId, nrows = 5)
+    callSetIds <- callSets$id
+    vcf_calls <- searchVariants(host, variantSetId, referenceName = "1",
+        start = 15000, end = 16000, callSetIds = callSetIds, nrows = 10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

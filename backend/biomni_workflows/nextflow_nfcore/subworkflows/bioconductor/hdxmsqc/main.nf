@@ -41,69 +41,55 @@ process BIOC_HDXMSQC {
     library(hdxmsqc)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: frame, csv
-    BRD4uncurated <- data.frame(read.csv(system.file("extdata", "ELN55049_AllResultsTables_Uncurated.csv", package = "hdxmsqc", mustWork = TRUE)))
-    # --- Code Block 2 [] ---
-    # Key functions: processHDE
-    BRD4uncurated_wide <- processHDE(HDExaminerFile = BRD4uncurated,
-                                     proteinStates = c("wt", "iBET"))
-    # --- Code Block 4 [] ---
-    # Key functions: readQFeatures
-    BRD4df <- readQFeatures(assayData = BRD4uncurated_wide,
-                            ecol = i,
-                            names = "Deuteration",
-                            fnames = "fnames")
-    # --- Code Block 5 [] ---
-    # Key functions: isMissingAtRandom
+    # --- Missing Value Filtering and Imputation [] ---
+    # Key functions: isMissingAtRandom, impute
     BRD4df_filtered <- isMissingAtRandom(object = BRD4df)
-    # --- Code Block 6 [] ---
-    # Key functions: impute
-    BRD4df_filtered_imputed <- impute(BRD4df_filtered, method = "zero", i = 1)
-    # --- Code Block 7 [] ---
-    # Key functions: computeMassError, plotMassError
+    BRD4df_filtered_imputed <- impute(
+        BRD4df_filtered,
+        method = "zero",
+        i = 1
+    )
+
+
+    # --- Mass Error and Intensity Outlier Analysis [] ---
+    # Key functions: computeMassError, plotMassError, intensityOutliers, plotIntensityOutliers
     massError <- computeMassError(object = BRD4df_filtered_imputed)
     plotMassError(object = BRD4df_filtered_imputed)
-    # --- Code Block 8 [] ---
-    # Key functions: geom_point
-    ## Warning: Removed 8 rows containing missing values or values outside the scale range
-    ## (`geom_point()`).
-    # --- Code Block 9 [] ---
-    # Key functions: intensityOutliers, plotIntensityOutliers
     intensityOutlier <- intensityOutliers(object = BRD4df_filtered_imputed)
     plotIntensityOutliers(object = BRD4df_filtered_imputed)
-    # --- Code Block 10 [] ---
-    # Key functions: rTimeOutliers, plotrTimeOutliers
+
+
+    # --- Retention Time and Monotonicity Analysis [] ---
+    # Key functions: rTimeOutliers, plotrTimeOutliers, computeMonotoneStats, plotMonotoneStat
     dfrt <- rTimeOutliers(object = BRD4df_filtered_imputed)
     plotrTimeOutliers(object = BRD4df_filtered_imputed)
-    # --- Code Block 11 [] ---
-    # Key functions: rep
     experiment <- c("wt", "iBET")
     timepoints <- rep(c(0, 15, 60, 600, 3600, 14000), each = 3)
-    # --- Code Block 12 [] ---
-    # Key functions: computeMonotoneStats, plotMonotoneStat
-    monoStat <- computeMonotoneStats(object = BRD4df_filtered_imputed,
-                                     experiment = experiment,
-                                     timepoints = timepoints)
-    out <- plotMonotoneStat(object = BRD4df_filtered_imputed,
-                                     experiment = experiment,
-    # --- Code Block 13 [] ---
-    # Key functions: imTimeOutlier, plotImTimeOutlier
+    monoStat <- computeMonotoneStats(
+        object = BRD4df_filtered_imputed,
+        experiment = experiment,
+        timepoints = timepoints
+    )
+
+
+    # --- Correlation and Replicate Analysis [] ---
+    # Key functions: imTimeOutlier, chargeCorrelationHdx, replicateCorrelation, replicateOutlier
     imTimeOut <- imTimeOutlier(object = BRD4df_filtered_imputed)
-    plotImTimeOutlier(object = BRD4df_filtered_imputed)
-    # --- Code Block 14 [] ---
-    # Key functions: chargeCorrelationHdx
-    csCor <- chargeCorrelationHdx(object = BRD4df_filtered_imputed,
-                                  experiment = experiment,
-                                  timepoints = timepoints)
-    csCor
-    # --- Code Block 15 [] ---
-    # Key functions: replicateCorrelation, replicateOutlier
-    replicateVar <- replicateCorrelation(object = BRD4df_filtered_imputed,
-                                         experiment = experiment,
-                                         timepoints = timepoints)
-    replicateOut <- replicateOutlier(object = BRD4df_filtered_imputed,
-                                         experiment = experiment,
+    csCor <- chargeCorrelationHdx(
+        object = BRD4df_filtered_imputed,
+        experiment = experiment,
+        timepoints = timepoints
+    )
+    replicateVar <- replicateCorrelation(
+        object = BRD4df_filtered_imputed,
+        experiment = experiment,
+        timepoints = timepoints
+    )
+    replicateOut <- replicateOutlier(
+        object = BRD4df_filtered_imputed,
+        experiment = experiment,
+        timepoints = timepoints
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

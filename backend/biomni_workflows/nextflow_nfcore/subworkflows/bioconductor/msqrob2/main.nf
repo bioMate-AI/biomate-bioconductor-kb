@@ -41,87 +41,56 @@ process BIOC_MSQROB2 {
     library(msqrob2)
     library(jsonlite)
 
-    # --- Which [] ---
-    # Key functions: colData, unlist, factor
-    ---------------------------------------------------------------------
-    cond <- which(strsplit(colnames(pe)[[1]][1], split = "")[[1]] == "A") # find where condition is stored
-    colData(pe)$condition <- substr(colnames(pe), cond, cond) %>%
-        unlist() %>%
-        as.factor()
-    # --- Rowdata [] ---
-    # Key functions: rowData, rowSums, assay
-    ---------------------------------------------------------------------
-    rowData(pe[["peptideRaw"]])$nNonZero <- rowSums(assay(pe[["peptideRaw"]]) > 0)
-    # --- Zeroisna [] ---
-    # Key functions: zeroIsNA
-    ---------------------------------------------------------------------
-    pe <- zeroIsNA(pe, "peptideRaw") # convert 0 to NA
-    # --- Logtransform [] ---
-    # Key functions: logTransform, plotDensities, assay
-    ---------------------------------------------------------------------
-    pe <- logTransform(pe, base = 2, i = "peptideRaw", name = "peptideLog")
-    limma::plotDensities(assay(pe[["peptideLog"]]))
-    # --- Rowdata [] ---
-    # Key functions: rowData, smallestUniqueGroups
-    ---------------------------------------------------------------------
-    Protein_filter <- rowData(pe[["peptideLog"]])$Proteins %in% smallestUniqueGroups(rowData(pe[["peptideLog"]])$Proteins)
-    pe <- pe[Protein_filter,,]
-    # --- Filterfeatures [] ---
+    # --- Preprocessing ---
+    # Key functions: smallestUniqueGroups
+    prot_col <- rowData(pe[["peptideRaw"]])$Proteins
+    unique_filter <- prot_col %in% smallestUniqueGroups(prot_col)
+    pe <- pe[unique_filter, , ]
+    pe <- zeroIsNA(pe, "peptideRaw")
+    pe <- logTransform(
+        pe, 
+        base = 2, 
+        i = "peptideRaw", 
+        name = "peptideLog"
+    )
+
+    # --- Feature Filtering ---
     # Key functions: filterFeatures
-    ---------------------------------------------------------------------
     pe <- filterFeatures(pe, ~ Reverse != "+")
     pe <- filterFeatures(pe, ~ Potential.contaminant != "+")
-    # --- Normalize [] ---
+    rowData(pe[["peptideLog"]])$nNonZero <- rowSums(
+        assay(pe[["peptideLog"]]) > 0, 
+        na.rm = TRUE
+    )
+    pe <- filterFeatures(pe, ~ nNonZero >= 2)
+
+    # --- Normalisation ---
     # Key functions: normalize
-    ---------------------------------------------------------------------
-    pe <- normalize(pe,
+    pe <- normalize(
+        pe,
         i = "peptideLog",
         name = "peptideNorm",
         method = "center.median"
-    # --- Plotdensities [] ---
-    # Key functions: plotDensities, assay
-    ---------------------------------------------------------------------
-    limma::plotDensities(assay(pe[["peptideNorm"]]))
-    # --- Boxplot [] ---
-    # Key functions: assay, palette
-    ---------------------------------------------------------------------
-    boxplot(assay(pe[["peptideNorm"]]),
-        col = palette()[-1],
-        main = "Peptide distribtutions after normalisation", ylab = "intensity"
     )
-    # --- Plotmds [] ---
-    # Key functions: plotMDS, assay, colData
-    ---------------------------------------------------------------------
-    limma::plotMDS(assay(pe[["peptideNorm"]]), col = as.numeric(colData(pe)$condition))
-    # --- Getcoef [] ---
-    # Key functions: getCoef, rowData
-    ---------------------------------------------------------------------
-    getCoef(rowData(pe[["protein"]])$msqrobModels[[1]])
-    # --- Makecontrast [] ---
-    # Key functions: makeContrast, hypothesisTest
-    ---------------------------------------------------------------------
+
+    # --- Protein Aggregation ---
+    # Key functions: aggregateFeatures
+    pe <- aggregateFeatures(
+        pe,
+        i = "peptideNorm",
+        fcol = "Proteins",
+        na.rm = TRUE,
+        name = "protein"
+    )
+
+    # --- Differential Abundance Analysis ---
+    # Key functions: msqrob, makeContrast, hypothesisTest, getCoef
+    pe <- msqrob(object = pe, i = "protein", formula = ~condition)
     L <- makeContrast("conditionB=0", parameterNames = c("conditionB"))
     pe <- hypothesisTest(object = pe, i = "protein", contrast = L)
-    # --- Rowdata [] ---
-    # Key functions: rowData, rownames_to_column, filter, pull, heatmap, assay
-    ---------------------------------------------------------------------
-    sigNames <- rowData(pe[["protein"]])$conditionB %>%
-        rownames_to_column("protein") %>%
-        filter(adjPval < 0.05) %>%
-        pull(protein)
-    # --- Plotmds [] ---
-    # Key functions: plotMDS, assay, colData
-    ---------------------------------------------------------------------
-    limma::plotMDS(assay(pe[["proteinMedian"]]),
-        col = as.numeric(colData(pe)$condition)
-    )
-    # --- Try [] ---
-    # Key functions: msqrob
-    ---------------------------------------------------------------------
-    try(pe <- msqrob(
-        object = pe, i = "protein", formula = ~condition,
-        modelColumnName = "ridge", ridge = TRUE
-    )) # note: intentional error
+    models <- rowData(pe[["protein"]])$msqrobModels
+    coefs <- getCoef(models[[1]])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

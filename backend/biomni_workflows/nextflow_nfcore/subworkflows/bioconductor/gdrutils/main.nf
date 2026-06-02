@@ -38,64 +38,42 @@ process BIOC_GDRUTILS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(gDRutils)
     library(MAEpply)
     library(jsonlite)
 
-    # --- Get Synthetic Data [] ---
-    # Key functions: get_synthetic_data, MAEpply
-    ---------------------------------------------------------------------
-    mae <- get_synthetic_data("finalMAE_combo_matrix_small")
-    MAEpply(mae, dim)
-    # --- Maepply [] ---
-    # Key functions: MAEpply
-    ---------------------------------------------------------------------
-    MAEpply(mae, rowData)
-    # --- Convert Mae Assay To Dt [] ---
-    # Key functions: convert_mae_assay_to_dt
-    ---------------------------------------------------------------------
-    mdt <- convert_mae_assay_to_dt(mae, "Metrics")
-    head(mdt, 3)
-    # --- Convert Se Assay To Dt [] ---
-    # Key functions: convert_se_assay_to_dt
-    ---------------------------------------------------------------------
-    se <- mae[[1]]
-    sdt <- convert_se_assay_to_dt(se, "Metrics")
-    head(sdt, 3)
-    # --- Get Env Identifiers [] ---
-    # Key functions: get_env_identifiers
-    ---------------------------------------------------------------------
-    get_env_identifiers()
-    # --- Set Env Identifier [] ---
-    # Key functions: set_env_identifier
-    ---------------------------------------------------------------------
-    set_env_identifier("concentration", "Dose")
-    # --- Get Env Identifiers [] ---
-    # Key functions: get_env_identifiers
-    ---------------------------------------------------------------------
-    get_env_identifiers("concentration")
-    # --- Reset Env Identifiers [] ---
-    # Key functions: reset_env_identifiers
-    ---------------------------------------------------------------------
-    reset_env_identifiers()
-    # --- Get Env Identifiers [] ---
-    # Key functions: get_env_identifiers
-    ---------------------------------------------------------------------
-    get_env_identifiers("concentration")
-    # --- Table [] ---
-    # Key functions: validate_identifiers
-    ---------------------------------------------------------------------
-    # Example data.table
+    # --- Identifier Validation [] ---
+    # Key functions: validate_identifiers, prettify_flat_metrics
     dt <- data.table::data.table(
-      Barcode = c("A1", "A2", "A3"),
-      Duration = c(24, 48, 72),
-    # --- Validate Mae [] ---
-    # Key functions: validate_MAE
-    ---------------------------------------------------------------------
-    validate_MAE(mae)
-    # --- Validate Se [] ---
-    # Key functions: validate_SE
-    ---------------------------------------------------------------------
-    validate_SE(se)
+        Barcode = c("A1", "A2", "A3"),
+        Duration = c(24, 48, 72),
+        Template = c("T1", "T2", "T3"),
+        clid = c("C1", "C2", "C3")
+    )
+    validated <- gDRutils::validate_identifiers(
+        dt,
+        req_ids = c("barcode", "duration", "template", "cellline")
+    )
+    prettified <- gDRutils::prettify_flat_metrics(
+        c("CellLineName", "Tissue"),
+        human_readable = TRUE
+    )
+
+
+    # --- Data Conversion [] ---
+    # Key functions: get_synthetic_data, convert_mae_assay_to_dt, convert_se_assay_to_dt
+    mae <- gDRutils::get_synthetic_data("finalMAE_combo_matrix_small")
+    mdt <- gDRutils::convert_mae_assay_to_dt(mae, "Metrics")
+    se <- mae[[1]]
+    sdt <- gDRutils::convert_se_assay_to_dt(se, "Metrics")
+
+
+    # --- Quality Control Validation [] ---
+    # Key functions: validate_MAE, validate_SE
+    mae <- gDRutils::get_synthetic_data("finalMAE_combo_matrix_small")
+    se <- mae[[1]]
+    mae_valid <- gDRutils::validate_MAE(mae)
+    se_valid <- gDRutils::validate_SE(se)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,25 +41,73 @@ process BIOC_SCMET {
     library(scMET)
     library(jsonlite)
 
-    # --- Plot Synthetic [] ---
-    # Key functions: expression
-    par(mfrow = c(1,2))
-    plot(scmet_dt$theta_true$mu, scmet_dt$theta_true$gamma, pch = 20,
-         xlab = expression(paste("Mean methylation ",  mu)),
-         ylab = expression(paste("Overdsispersion ",  gamma)))
-    plot(scmet_dt$X[,2], scmet_dt$theta_true$mu, pch = 20,
-    # --- Run Scmet Synthetic [] ---
-    # Key functions: scmet
-    # Run with seed for reproducibility
-    fit_obj <- scmet(Y = scmet_dt$Y, X = scmet_dt$X, L = 4,
-                     iter = 1000, seed = 12)
-    # --- Mean Var Plot1 [] ---
-    # Key functions: scmet_plot_mean_var, plot_grid
-    gg1 <- scmet_plot_mean_var(obj = fit_obj, y = "gamma",
-                               task = NULL, show_fit = TRUE)
-    gg2 <- scmet_plot_mean_var(obj = fit_obj, y = "epsilon",
-                               task = NULL, show_fit = TRUE)
-    cowplot::plot_grid(gg1, gg2, ncol = 2)
+    # --- Maximum Likelihood Estimation [] ---
+    # Key functions: bb_mle
+    bbmle_fit <- scmet_dt$Y[, bb_mle(cbind(total_reads, met_reads)),
+                            by = c("Feature")]
+    bbmle_fit <- bbmle_fit[, c("Feature", "mu", "gamma")]
+
+
+    # --- Highly Variable Features Analysis [] ---
+    # Key functions: scmet_hvf
+    fit_obj <- scmet_hvf(
+        scmet_obj = fit_obj,
+        delta_e = 0.75,
+        evidence_thresh = 0.8,
+        efdr = 0.1
+    )
+    hvf_summary <- fit_obj$hvf$summary
+
+
+    # --- Differential Analysis [] ---
+    # Key functions: scmet, scmet_differential
+    fit_A <- scmet(
+        Y = scmet_diff_dt$scmet_dt_A$Y,
+        X = scmet_diff_dt$scmet_dt_A$X,
+        L = 4,
+        iter = 300,
+        seed = 12
+    )
+    fit_B <- scmet(
+        Y = scmet_diff_dt$scmet_dt_B$Y,
+        X = scmet_diff_dt$scmet_dt_B$X,
+        L = 4,
+        iter = 300,
+        seed = 12
+    )
+    diff_obj <- scmet_differential(
+        obj_A = fit_A,
+        obj_B = fit_B,
+        evidence_thresh_m = 0.65,
+        evidence_thresh_e = 0.65,
+        group_label_A = "A",
+        group_label_B = "B"
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: scmet_plot_mean_var, scmet_plot_estimated_vs_true, scmet_plot_efdr_efnr_grid, scmet_plot_vf_tail_prob
+    gg_mean_var <- scmet_plot_mean_var(
+        obj = fit_obj,
+        y = "gamma",
+        task = "hvf",
+        show_fit = TRUE
+    )
+    gg_est_vs_true <- scmet_plot_estimated_vs_true(
+        obj = fit_obj,
+        sim_dt = scmet_dt,
+        param = "gamma",
+        mle_fit = bbmle_fit
+    )
+    gg_grid <- scmet_plot_efdr_efnr_grid(
+        obj = fit_obj,
+        task = "hvf"
+    )
+    gg_tail <- scmet_plot_vf_tail_prob(
+        obj = fit_obj,
+        x = "mu",
+        task = "hvf"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,47 +41,47 @@ process BIOC_R4RNA {
     library(R4RNA)
     library(jsonlite)
 
-    # --- Plothelix [] ---
-    # Key functions: plotHelix
-    plotHelix(known, line = TRUE, arrow = TRUE)
-    mtext("Known Structure", side = 3, line = -2, adj = 0)
-    # --- Plotdoublehelix [] ---
-    # Key functions: plotDoubleHelix
-    plotDoubleHelix(transat, known, line = TRUE, arrow = TRUE)
-    mtext("TRANSAT\nPredicted\nStructure", side = 3, line = -5, adj = 0)
-    mtext("Known Structure", side = 1, line = -2, adj = 0)
-    # --- Colourbyvalue [] ---
-    # Key functions: colourByValue, plotDoubleHelix, attr
-    message("Assign colour to basepairs according to p-value")
-    transat$col <- col <- colourByValue(transat, log = TRUE)
-    message("Coloured encoded in 'col' column of transat structure")
+    # --- Filtering and Value-based Coloring [] ---
+    # Key functions: colourByValue, plotDoubleHelix
+    transat <- transat[which(transat$value <= 1e-3), ]
+    col <- colourByValue(transat, log = TRUE)
+    transat$col <- col
     plotDoubleHelix(transat, known, line = TRUE, arrow = TRUE)
     legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
-    # --- Plotoverlaphelix [] ---
-    # Key functions: plotOverlapHelix
+        inset = 0.05, bty = "n", border = NA, cex = 0.75,
+        title = "TRANSAT P-values")
+
+
+    # --- Overlap and Structure Comparison [] ---
+    # Key functions: plotHelix, plotDoubleHelix, plotOverlapHelix
+    plotHelix(known, line = TRUE, arrow = TRUE)
+    plotDoubleHelix(transat, known, line = TRUE, arrow = TRUE)
     plotOverlapHelix(transat, known, line = TRUE, arrow = TRUE, scale = FALSE)
-    # --- Plotcovariance [] ---
-    # Key functions: plotCovariance
-    plotCovariance(fasta, transat, cex = 0.5, conflict.col = "grey")
-    # --- Colourbycovariation [] ---
-    # Key functions: colourByCovariation, plotCovariance, attr
+
+
+    # --- Covariance and Alignment Analysis [] ---
+    # Key functions: plotCovariance, colourByCovariation
+    fasta_file <- system.file("extdata", "fasta.txt", package = "R4RNA")
+    fasta <- as.character(Biostrings::readBStringSet(fasta_file))
+    plotCovariance(fasta, known, cex = 0.5)
     col <- colourByCovariation(known, fasta, get = TRUE)
     plotCovariance(fasta, col, grid = TRUE, legend = FALSE)
     legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
         inset = 0.1, bty = "n", border = NA, cex = 0.37, title = "Covariation")
-    # --- Colourbycanonical [] ---
-    # Key functions: colourByCanonical, plotCovariance, attr
-    col <- colourByCanonical(known, fasta, custom_colours, get = TRUE)
-    plotCovariance(fasta, col, base.colour = TRUE, cex = 0.5)
-    legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
-        inset = 0.15, bty = "n", border = NA, cex = 0.75, title = "% Canonical")
-    # --- Colourbyunknottedgroups [] ---
-    # Key functions: colourByUnknottedGroups, plotCovariance
-    col <- colourByUnknottedGroups(known, c("red", "blue"), get = TRUE)
-    plotCovariance(fasta, col, base.colour = TRUE, legend = FALSE, species = 23, grid = TRUE, text = TRUE, text.cex = 0.2, cex = 0.5)
-    # --- Tolatex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+
+
+    # --- Conservation and Canonical Basepair Analysis [] ---
+    # Key functions: colourByConservation, colourByCanonical, colourByUnknottedGroups, plotCovariance
+    fasta_file <- system.file("extdata", "fasta.txt", package = "R4RNA")
+    fasta <- as.character(Biostrings::readBStringSet(fasta_file))
+    custom_colours <- c("green", "blue", "cyan", "red", "black", "grey")
+    col_cons <- colourByConservation(known, fasta, get = TRUE)
+    plotCovariance(fasta, col_cons, palette = custom_colours, cex = 0.5)
+    col_canon <- colourByCanonical(known, fasta, custom_colours, get = TRUE)
+    plotCovariance(fasta, col_canon, base.colour = TRUE, cex = 0.5)
+    col_unkn <- colourByUnknottedGroups(known, c("red", "blue"), get = TRUE)
+    plotCovariance(fasta, col_unkn, base.colour = TRUE, legend = FALSE,
+        species = 23, grid = TRUE, text = TRUE, text.cex = 0.2, cex = 0.5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

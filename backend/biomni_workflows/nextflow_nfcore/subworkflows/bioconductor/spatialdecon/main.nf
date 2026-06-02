@@ -38,16 +38,37 @@ process BIOC_SPATIALDECON {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SpatialDecon)
     library(CreateSeuratObject)
     library(Idents)
     library(TIL_barplot)
     library(jsonlite)
 
-    # --- Signif analysis [] ---
-    # Key functions: signif, heatmap, download_profile_matrix, create_profile_matrix, CreateSeuratObject, Idents, TIL_barplot, florets
-    custom_mtx <- create_profile_matrix(mtx = mini_singleCell_dataset$mtx,            # cell x gene count matrix
-    head(custom_mtx)
-    heatmap(sweep(custom_mtx, 1, apply(custom_mtx, 1, max), "/"),
+    # --- Profile Matrix Creation [] ---
+    # Key functions: create_profile_matrix
+    custom_mtx <- create_profile_matrix(
+        mtx = mini_singleCell_dataset$mtx,
+        cellAnnots = mini_singleCell_dataset$annots,
+        cellTypeCol = "LabeledCellType",
+        cellNameCol = "CellID",
+        matrixName = "custom_mini_colon",
+        outDir = NULL,
+        normalize = FALSE,
+        minCellNum = 5,
+        minGenes = 10,
+        scalingFactor = 5,
+        discardCellTypes = TRUE
+    )
+
+
+    # --- Spatial Deconvolution [] ---
+    # Key functions: spatialdecon
+    res <- spatialdecon(
+        norm = norm,
+        bg = bg,
+        X = safeTME,
+        align_genes = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

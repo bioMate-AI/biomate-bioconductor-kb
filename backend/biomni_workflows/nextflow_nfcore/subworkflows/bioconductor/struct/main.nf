@@ -38,107 +38,68 @@ process BIOC_STRUCT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(struct)
     library(DatasetExperiment)
     library(PCA)
     library(jsonlite)
 
-    # --- Struct Class [] ---
-    # Key functions: struct_class
-    ---------------------------------------------------------------------
-    S = struct_class()
-    S
-    # --- Datasetexperiment [] ---
-    # Key functions: DatasetExperiment, frame
-    ---------------------------------------------------------------------
-    DE = DatasetExperiment(
-      data = iris[,1:4],
-      sample_meta=iris[,5,drop=FALSE],
-      variable_meta=data.frame('idx'=1:4,row.names=colnames(data)),
-    # --- Iris Datasetexperiment [] ---
-    # Key functions: iris_DatasetExperiment
-    ---------------------------------------------------------------------
-    DE = iris_DatasetExperiment()
-    DE
-    # --- Set Struct Obj [] ---
-    # Key functions: set_struct_obj
-    ---------------------------------------------------------------------
-    # mean centre object
-    mean_centre = set_struct_obj(
-      class_name = 'mean_centre',
-      struct_obj = 'model',
-    # --- Mean Centre [] ---
-    # Key functions: mean_centre, PCA
-    ---------------------------------------------------------------------
-    M = mean_centre()
-    M
-    P = PCA(number_components=4)
-    P
-    # --- Set Obj Method [] ---
-    # Key functions: set_obj_method, colMeans, int
-    ---------------------------------------------------------------------
-    # mean centre training
+    # --- Model Definition [] ---
+    # Key functions: set_struct_obj, set_obj_method
+    mean_centre <- set_struct_obj(
+        class_name = 'mean_centre',
+        struct_obj = 'model',
+        params = character(0),
+        outputs = c(centred = 'DatasetExperiment', mean = 'numeric'),
+        private = character(0),
+        prototype = list(predicted = 'centred')
+    )
     set_obj_method(
-      class_name = 'mean_centre',
-      method_name = 'model_train',
-    # --- Mean Centre [] ---
-    # Key functions: mean_centre, model_train, iris_DatasetExperiment, model_predict, colMeans
-    ---------------------------------------------------------------------
-    # create instance of object
-    M = mean_centre()
-    # train with iris data
-    M = model_train(M,iris_DatasetExperiment())
-    # --- Set Obj Method [] ---
-    # Key functions: set_obj_method, svd, frame
-    ---------------------------------------------------------------------
-    # PCA training
+        class_name = 'mean_centre',
+        method_name = 'model_train',
+        definition = function(M, D) {
+            M$mean <- colMeans(D$data)
+            return(M)
+        }
+    )
     set_obj_method(
-      class_name = 'PCA',
-      method_name = 'model_train',
-    # --- Model Apply [] ---
-    # Key functions: model_apply
-    ---------------------------------------------------------------------
-    # get the mean centred data
-    DC = M$centred
-    # train PCA model
-    P = model_apply(P,DC)
-    # --- Mean Centre [] ---
-    # Key functions: mean_centre, PCA
-    ---------------------------------------------------------------------
-    # create model sequence
-    MS = mean_centre() + PCA(number_components = 2)
-    # print summary
-    MS
-    # --- Model Apply [] ---
-    # Key functions: model_apply, iris_DatasetExperiment, sequence, predicted
-    ---------------------------------------------------------------------
-    # apply model sequence to iris_data
-    MS = model_apply(MS,iris_DatasetExperiment())
-    # get default output from sequence (PCA scores with 2 components)
-    predicted(MS)
-    # --- Iterator [] ---
-    # Key functions: iterator, models
-    ---------------------------------------------------------------------
-    # create iterator
-    I = iterator()
-    # add PCA model sequence
-    models(I) = MS
-    # --- Iterator [] ---
-    # Key functions: iterator, mean_centre, PCA, models
-    ---------------------------------------------------------------------
-    # alternative to assign models for iterators
-    I = iterator() * (mean_centre() + PCA())
-    models(I)
-    # --- Iterator [] ---
-    # Key functions: iterator, mean_centre, PCA
-    ---------------------------------------------------------------------
-    I = iterator() * iterator() * (mean_centre() + PCA())
-    # --- Set Struct Obj [] ---
-    # Key functions: set_struct_obj
-    ---------------------------------------------------------------------
-    # new chart object
-    set_struct_obj(
-      class_name = 'pca_scores_plot',
-      struct_obj = 'chart',
+        class_name = 'mean_centre',
+        method_name = 'model_predict',
+        definition = function(M, D) {
+            D$data <- D$data - rep(
+                M$mean,
+                rep.int(nrow(D$data), ncol(D$data))
+            )
+            M$centred <- D
+            return(M)
+        }
+    )
+
+
+    # --- Model Training and Prediction [] ---
+    # Key functions: mean_centre, model_train, model_predict
+    M <- mean_centre()
+    M <- model_train(M, iris_DatasetExperiment())
+    M <- model_predict(M, iris_DatasetExperiment())
+    centred_data <- M$centred$data
+
+
+    # --- Model Sequencing [] ---
+    # Key functions: PCA, model_apply, predicted
+    PCA <- set_struct_obj(
+        class_name = 'PCA',
+        struct_obj = 'model',
+        params = c(number_components = 'numeric'),
+        outputs = c(scores = 'DatasetExperiment', loadings = 'data.frame'),
+        private = character(0),
+        prototype = list(
+            number_components = 2,
+            ontology = 'OBI:0200051',
+            predicted = 'scores'
+        )
+    )
+    MS <- mean_centre() + PCA(number_components = 2)
+    MS <- model_apply(MS, iris_DatasetExperiment())
+    pca_scores <- predicted(MS)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

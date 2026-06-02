@@ -38,6 +38,7 @@ process BIOC_SYSTEMPIPER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(systemPipeR)
     library(BamFileList)
     library(DESeqDataSetFromMatrix)
     library(GOCluster_Report)
@@ -45,64 +46,45 @@ process BIOC_SYSTEMPIPER {
     library(SYSargsList)
     library(jsonlite)
 
-    # --- show D F [] ---
-    # Key functions: showDF
-    targetspath <- system.file("extdata", "targets.txt", package = "systemPipeR")
-    showDF(read.delim(targetspath, comment.char = "#"))
-    # --- read Comp [] ---
-    # Key functions: readComp
-    readComp(file = targetspath, format = "vector", delim = "-")
-    # --- S P Rproject [] ---
-    # Key functions: SPRproject
-    sal <- SPRproject(projPath = getwd(), overwrite = TRUE)
-    # --- SPRproject dir [] ---
-    # Key functions: SPRproject
-    sal <- SPRproject(data = "data", param = "param", results = "results")
-    # --- SPRproject logs [] ---
-    # Key functions: SPRproject
-    sal <- SPRproject(logs.dir= ".SPRproject", sys.file=".SPRproject/SYSargsList.yml")
-    # --- SPRproject env [] ---
-    # Key functions: SPRproject
-    sal <- SPRproject(envir = new.env())
-    # --- firstStep R [] ---
-    # Key functions: appendStep, split
-    appendStep(sal) <- LineWise(code = {
-    mapply(function(x, y) write.csv(x, y),
-    split(iris, factor(iris$Species)),
-    # --- gzip secondStep [] ---
-    # Key functions: appendStep, cmdlist, outfiles
-    targetspath <- system.file("extdata/cwl/gunzip", "targets_gunzip.txt", package = "systemPipeR")
-    appendStep(sal) <- SYSargsList(step_name = "gzip",
-    dir_path = system.file("extdata/cwl", package = "systemPipeR"),
-    # --- append Step [] ---
-    # Key functions: appendStep
-    appendStep(sal) <- SYSargsList(step_name = "gunzip",
-    dir_path = system.file("extdata/cwl", package = "systemPipeR"),
-    inputvars = c(gzip_file = "_FILE_PATH_", SampleName = "_SampleName_"),
-    # --- targetsWF 3 [] ---
-    # Key functions: targetsWF
-    targetsWF(sal['gunzip'])
-    # --- outfiles 2 [] ---
-    # Key functions: outfiles
-    outfiles(sal['gunzip'])
-    # --- get Column [] ---
-    # Key functions: getColumn
-    getColumn(sal, step = "gunzip", 'outfiles')
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: appendStep, ggplot, geom_bar, geom_errorbar
-    appendStep(sal) <- LineWise(code = {
-    df <- lapply(getColumn(sal, step = "gunzip", 'outfiles'), function(x) read.delim(x, sep = ",")[-1])
-    df <- do.call(rbind, df)
-    # --- importWF rmd [] ---
-    # Key functions: SPRproject, importWF
-    sal_rmd <- SPRproject(logs.dir = ".SPRproject_rmd")
-    sal_rmd <- importWF(sal_rmd,
-    file_path = system.file("extdata", "spr_simple_wf.Rmd", package = "systemPipeR"))
-    # --- importWF details [] ---
-    # Key functions: stepsWF, dependency, cmdlist, codeLine, targetsWF
-    stepsWF(sal_rmd)
-    dependency(sal_rmd)
-    cmdlist(sal_rmd)
+    # --- Define LineWise Step [] ---
+    # Key functions: LineWise, appendStep
+    appendStep(sal) <- LineWise(
+        code = {
+            targetspath <- system.file("extdata", "targets.txt",
+                                       package = "systemPipeR")
+            targets <- read.delim(targetspath, comment.char = "#")
+            write.csv(targets, "targets_copy.csv")
+        },
+        step_name = "export_targets"
+    )
+
+
+    # --- Define CWL Step [] ---
+    # Key functions: SYSargsList, appendStep
+    targetspath <- system.file("extdata/cwl/gunzip", "targets_gunzip.txt",
+                               package = "systemPipeR")
+    appendStep(sal) <- SYSargsList(
+        step_name = "gzip",
+        targets = targetspath,
+        dir = TRUE,
+        wf_file = "gunzip/workflow_gzip.cwl",
+        input_file = "gunzip/gzip.yml",
+        dir_path = system.file("extdata/cwl", package = "systemPipeR"),
+        inputvars = c(FileName = "_FILE_PATH_", SampleName = "_SampleName_"),
+        dependency = "export_targets"
+    )
+
+
+    # --- Workflow Execution [] ---
+    # Key functions: runWF, cmdlist, outfiles
+    sal <- runWF(sal)
+    cmdlist(sal, step = "gzip")
+    outfiles(sal)["gzip"]
+
+
+    # --- Workflow Visualization [] ---
+    # Key functions: plotWF
+    plotWF(sal)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

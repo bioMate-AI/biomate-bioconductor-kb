@@ -41,59 +41,40 @@ process BIOC_EPISTASISGA {
     library(epistasisGA)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    library(epistasisGA)
-    data("case.gxe")
-    case <- as.matrix(case.gxe)
-    data("dad.gxe")
-    # --- Rep [] ---
-    # Key functions: rep
-    ---------------------------------------------------------------------
-    ld.block.vec <- rep(6, 4)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    pp.list <- preprocess.genetic.data(case, father.genetic.data = dad,
-                                       mother.genetic.data = mom,
-                                       ld.block.vec = ld.block.vec,
-                                       categorical.exposures = exposure)
-    # --- Data [] ---
-    # Key functions: islands
-    ---------------------------------------------------------------------
-    data(snp.annotations.mci)
-    size3.combined.res <- combine.islands("size3_res", snp.annotations.mci,
-                                          pp.list)
-    size4.combined.res <- combine.islands("size4_res", snp.annotations.mci,
-    # --- Kable [] ---
-    # Key functions: kable_styling, scroll_box
-    ---------------------------------------------------------------------
-    library(magrittr)
-    library(knitr)
-    library(kableExtra)
-    kable(head(size3.combined.res)) %>%
-    # --- Lapply [] ---
-    # Key functions: path, gadgets
-    ---------------------------------------------------------------------
-    #pre-process permuted data
-    preprocessed.lists <- lapply(seq_len(4), function(permutation){
-      exp.perm.file <- file.path("perm_data",
-                                 paste0("exposure.permute", permutation, ".rds"))
-    # --- Lapply [] ---
-    # Key functions: test
-    ---------------------------------------------------------------------
-    # chromosome size 3 results
-    # function requires a list of vectors of
-    # permutation based fitness scores
-    chrom3.perm.fs <- lapply(perm.res.list[[1]],
-    # --- Vector [] ---
-    # Key functions: path, test
-    ---------------------------------------------------------------------
-    top.snps <- as.vector(t(size3.combined.res[1, 1:3]))
-    d3.st.info <- readRDS(file.path("size3_res/null.mean.sd.info.rds"))
-    d3.st.means <- d3.st.info$null.mean
-    d3.st.sd <- d3.st.info$null.se
+    # --- Genetic Algorithm Execution [] ---
+    # Key functions: run.gadgets
+    run.gadgets(
+        pp.list, n.chromosomes = 5, chromosome.size = 3,
+        results.dir = "size3_res", cluster.type = "interactive",
+        registryargs = list(file.dir = "size3_reg", seed = 1300),
+        n.islands = 8, island.cluster.size = 4,
+        n.migrations = 2
+    )
+
+
+    # --- Island Combination and Permutation [] ---
+    # Key functions: combine.islands, permute.dataset
+    size3.combined.res <- combine.islands(
+        "size3_res",
+        snp.annotations.mci,
+        pp.list
+    )
+    permute.dataset(
+        pp.list,
+        permutation.data.file.path = "perm_data",
+        n.permutations = 4
+    )
+
+
+    # --- Global and GxE Testing [] ---
+    # Key functions: global.test, GxE.test
+    global.test.res <- global.test(final.results, n.top.scores = 1)
+    GxE.test.res <- GxE.test(
+        top.snps,
+        pp.list,
+        null.mean.vec = d3.st.means,
+        null.sd.vec = d3.st.sd
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

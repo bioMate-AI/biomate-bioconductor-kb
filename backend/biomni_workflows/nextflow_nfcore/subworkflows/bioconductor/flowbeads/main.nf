@@ -38,71 +38,31 @@ process BIOC_FLOWBEADS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(flowBeads)
     library(BeadFlowFrame)
     library(Fluorochromes)
     library(jsonlite)
 
-    # --- Mef [] ---
-    # Key functions: xtable, Fluorochromes
-    library(xtable)
-    data(dakomef)
-    print(xtable(dakomef,
-                 caption=
-                 "
-    # --- Loadbeads [] ---
-    # Key functions: BeadFlowFrame
-    ## beads1 <- BeadFlowFrame(fcs.filename=system.file('extdata', 'beads1.fcs', package='flowBeads'),
-    ##                         bead.filename=system.file('extdata', 'dakomef.csv', package='flowBeads'))
-    ## beads2 <- BeadFlowFrame(fcs.filename=system.file('extdata', 'beads2.fcs', package='flowBeads'),
-    ##                         bead.filename=system.file('extdata', 'dakomef.csv', package='flowBeads'))
-    # --- Fastloadbeads [] ---
-    # Key functions: data
+    # --- Gate Bead Populations [] ---
+    # Key functions: gateBeads
     data(beads1)
     data(beads2)
-    # --- Beads2 [] ---
-    # Key functions: getDate, getParams, getMEFparams
-    length(beads1)
-    getDate(beads1)
-    getParams(beads1)
-    getMEFparams(beads1)
-    # --- Gatebeads [] ---
-    # Key functions: gateBeads
     gbeads1 <- gateBeads(beads1)
     gbeads2 <- gateBeads(beads2)
-    # --- Howto Flowbeads.Rnw:249 250 [] ---
-    # Key functions: getClusteringStats
-    getClusteringStats(gbeads1)[,,1]
-    # --- Howto Flowbeads.Rnw:253 255 [] ---
-    # Key functions: getClusteringStats
-    beads1.mean.fi.APC <- getClusteringStats(gbeads1)['mean.fi','APC',]
-    beads2.mean.fi.APC <- getClusteringStats(gbeads2)['mean.fi','APC',]
-    # --- Howto Flowbeads.Rnw:263 265 [] ---
-    # Key functions: getMEFtransform
-    mef.transform <- getMEFtransform(gbeads1)
-    names(mef.transform)
-    # --- Plotmefrepeatability [] ---
-    # Key functions: getTransformFunction, getMEFtransform, fun
-    old.par <- par(no.readonly=T)
-    par(mfrow=c(1,2))
-    plot(getTransformFunction(beads1)(beads1.mean.fi.APC),
-         getTransformFunction(beads2)(beads2.mean.fi.APC),
-         xlim=c(0,5),
-    # --- Tomef [] ---
-    # Key functions: toMEF
-    ## toMEF(gbeads1, flow.data)
-    # --- Howto Flowbeads.Rnw:326 328 [] ---
-    # Key functions: relativeNormalise
-    relative.transforms <- relativeNormalise(gbeads1, gbeads2)
-    names(relative.transforms)
-    # --- Howto Flowbeads.Rnw:331 335 [] ---
-    # Key functions: getTransformFunction, getClusteringStats, fun
-    fun <- relative.transforms$APC$fun
-    mfi1 <- getTransformFunction(gbeads1)(getClusteringStats(gbeads1)['mean.fi','APC',])
-    mfi2 <- getTransformFunction(gbeads2)(getClusteringStats(gbeads2)['mean.fi','APC',])
-    fun.mfi1 <- fun(mfi1)
-    # --- Generatereport [] ---
-    # Key functions: generateReport
-    ## generateReport(gbeads1, output.file='report.html')
+    plot(gbeads1)
+    plot(gbeads2)
+
+
+    # --- MEF Transformation and Normalisation [] ---
+    # Key functions: getTransformFunction, getMEFtransform
+    data(beads1)
+    data(beads2)
+    gbeads1 <- gateBeads(beads1)
+    gbeads2 <- gateBeads(beads2)
+    trans_fun1 <- getTransformFunction(beads1)
+    trans_fun2 <- getTransformFunction(beads2)
+    mef_trans1 <- getMEFtransform(gbeads1)
+    mef_trans2 <- getMEFtransform(gbeads2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

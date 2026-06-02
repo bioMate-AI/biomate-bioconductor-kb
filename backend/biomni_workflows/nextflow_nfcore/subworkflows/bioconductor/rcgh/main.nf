@@ -38,42 +38,27 @@ process BIOC_RCGH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(rCGH)
     library(EMnormalize)
     library(jsonlite)
 
-    # --- read Affy Cyto Scan [] ---
-    # Key functions: readAffyCytoScan
-    library(rCGH)
-    filePath <- system.file("extdata",
-    cgh <- readAffyCytoScan(filePath, sampleName = "CSc-Example",
-    # --- set Info [] ---
-    # Key functions: setInfo
-    setInfo(cgh, "item1") <- 35
-    setInfo(cgh, "item2") <- TRUE
-    setInfo(cgh, "item3") <- "someComment"
-    # --- get Info [] ---
-    # Key functions: getInfo
-    getInfo(cgh)
-    getInfo(cgh, c("item1", "item3"))
-    # --- adjust Signal [] ---
-    # Key functions: adjustSignal
-    cgh <- adjustSignal(cgh, nCores=1)
-    # --- segment C G H [] ---
-    # Key functions: segmentCGH, getSegTable
-    cgh <- segmentCGH(cgh, nCores=1)
-    segTable <- getSegTable(cgh)
-    # --- E Mnormalize [] ---
-    # Key functions: EMnormalize
+    # --- Signal Adjustment and Normalisation [] ---
+    # Key functions: adjustSignal, EMnormalize, plotDensity
+    cgh <- adjustSignal(cgh, nCores = 1)
     cgh <- EMnormalize(cgh)
-    # --- by Gene Table [] ---
-    # Key functions: byGeneTable
-    geneTable <- byGeneTable(segTable)
-    head(geneTable, n=3)
-    # --- multiplot [] ---
-    # Key functions: multiplot
+    plotDensity(cgh)
+
+
+    # --- Segmentation and Genomic Profiling [] ---
+    # Key functions: segmentCGH, getSegTable, byGeneTable
+    cgh <- segmentCGH(cgh, nCores = 1)
+    segTable <- getSegTable(cgh)
+    geneTable <- byGeneTable(segTable, genome = "hg19")
+
+
+    # --- Visualization and Recentering [] ---
+    # Key functions: multiplot, recenter, plotProfile
     multiplot(cgh, symbol = c("egfr", "erbb2"))
-    # --- recenter [] ---
-    # Key functions: recenter, plotProfile
     recenter(cgh) <- 2
     plotProfile(cgh, symbol = c("egfr", "erbb2"))
 

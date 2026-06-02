@@ -41,16 +41,34 @@ process BIOC_FEDUP {
     library(fedup)
     library(jsonlite)
 
-    # --- plot Dot Plot [] ---
-    # Key functions: plotDotPlot, facet_grid, theme, tempdir, writeFemap
+    # --- Visualization [] ---
+    # Key functions: plotDotPlot
+    fedupPlot <- fedupRes %>%
+        bind_rows(.id = "set") %>%
+        separate(col = "set", into = c("set", "sign"), sep = "_") %>%
+        subset(qvalue < 0.05) %>%
+        mutate(log10qvalue = -log10(qvalue)) %>%
+        mutate(pathway = gsub("\\%.*", "", pathway)) %>%
+        as.data.frame()
     p <- plotDotPlot(
-    xLab = "-log10(qvalue)",
-    fillCol = c("#6D90CA", "#F6EB13"),
-    # --- fedupEM geneDouble [] ---
-    # Key functions: tempfile, plotFemap
-    netFile <- tempfile("fedupEM_geneDouble", fileext = ".png")
-    plotFemap(
-    sessionInfo()
+        df = fedupPlot,
+        xVar = "log10qvalue",
+        yVar = "pathway",
+        xLab = "-log10(qvalue)",
+        fillVar = "sign",
+        fillLab = "Genetic interaction",
+        fillCol = c("#6D90CA", "#F6EB13"),
+        sizeVar = "fold_enrichment",
+        sizeLab = "Fold enrichment"
+    )
+
+
+    # --- Exporting Results [] ---
+    # Key functions: writeFemap, writePathways
+    resultsFolder <- tempdir()
+    writeFemap(fedupRes, resultsFolder)
+    gmtFile <- tempfile("pathwaysGMT", fileext = ".gmt")
+    writePathways(pathwaysGMT, gmtFile)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

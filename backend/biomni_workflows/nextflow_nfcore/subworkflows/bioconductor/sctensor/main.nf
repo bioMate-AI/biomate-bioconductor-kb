@@ -38,44 +38,27 @@ process BIOC_SCTENSOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scTensor)
     library(AnnotationHub)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Access AnnotationHub resources [] ---
-    # Key functions: AnnotationHub, mcols
-    library("AnnotationHub")
-    ah <- AnnotationHub()
-    mcols(ah)
-    # --- query [] ---
-    # Key functions: query
-    dbfile <- query(ah, c("LRBaseDb", "Homo sapiens", "v002"))[[1]]
-    # --- Access [] ---
-    # Key functions: columns, keytypes, keys
-    columns(LRBase.Hsa.eg.db)
-    keytypes(LRBase.Hsa.eg.db)
-    key_HSA <- keys(LRBase.Hsa.eg.db, keytype="GENEID_L")
-    # --- Other1 [] ---
-    # Key functions: lrNomenclature, species, lrListDatabases, lrVersion, dbInfo
-    lrNomenclature(LRBase.Hsa.eg.db)
-    species(LRBase.Hsa.eg.db)
-    lrListDatabases(LRBase.Hsa.eg.db)
-    # --- Other2 [] ---
-    # Key functions: dbGetQuery
-    suppressPackageStartupMessages(library("RSQLite"))
-    dbGetQuery(dbconn(LRBase.Hsa.eg.db),
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, reducedDims
-    data(GermMale)
-    data(labelGermMale)
-    data(tsneGermMale)
-    # --- cell Cell Setting [] ---
+    # --- Single-Cell Experiment Setup [] ---
     # Key functions: cellCellSetting
-    cellCellSetting(sce, LRBase.Hsa.eg.db, names(labelGermMale))
-    # --- cell Cell Decomp [] ---
-    # Key functions: cellCellDecomp
-    set.seed(1234)
-    cellCellDecomp(sce, ranks=c(2,3))
+    sce <- SingleCellExperiment(assays=list(counts = GermMale))
+    reducedDims(sce) <- SimpleList(TSNE=tsneGermMale$Y)
+    sce <- cellCellSetting(
+        sce, 
+        LRBase.Hsa.eg.db, 
+        names(labelGermMale)
+    )
+
+
+    # --- Cell-Cell Interaction Decomposition [] ---
+    # Key functions: cellCellDecomp, cellCellRanks
+    sce <- cellCellDecomp(sce, ranks=c(2,3))
+    rks <- cellCellRanks(sce)
+    selected_ranks <- rks$selected
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

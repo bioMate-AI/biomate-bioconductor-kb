@@ -38,54 +38,42 @@ process BIOC_DDCT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ddCt)
     library(SDMFrame)
     library(jsonlite)
 
-    # --- Ddctinstall [] ---
-    # Key functions: requireNamespace, packages
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install(ddCt)
-    # --- Readdata [] ---
-    # Key functions: path, datadir, savedir, SDMFrame
-    datadir <- function(x) file.path(load.path, x)
-    savedir <- function(x) file.path(save.path,x)
-    file.names <- datadir(Ct.data.file.name)
-    sho <- paste(gsub(".txt","",Ct.data.file.name),collapse="_")
-    warningFile <- savedir(paste("warning.output",sho,".txt",sep=""))
-    # --- Plot Level [] ---
-    # Key functions: assayData, null, factor
-    for(KindOfPlot in TheKindOfPlot){
-    if(KindOfPlot=="level"){
-      EE1 <- assayData(result)$exprs
-      FF1 <- assayData(result)$level.err
-      theTitle <- "Level"
-    # --- Korrelation [] ---
-    # Key functions: null, pData, assayData, combn
-    A <- name.referenz.gene
-    if (length(A) > 1) {
-     if (!is.null(names.of.the.samples.REMAIN.in.cor)){
-       corRed <- (rownames(pData(result)) %in% names.of.the.samples.REMAIN.in.cor)
-     }else{
-    # --- Ttest [] ---
-    # Key functions: getDir
-    myFoldChange <- function(x){
-      x <- as.numeric(x)
-      if(length(x) == 2 ){
-        resu <- 2^(x[1]-x[2])
-      }else if( length(x) == 1  ){
-    # --- Boxplotshousekkepinggenes [] ---
-    # Key functions: null, pData, assayData, levels, factor
-    if(perform.ttest){
-     if (!is.null(names.of.the.samples.REMAIN.in.ttest)){
-       ttestRed <- (rownames(pData(result)) %in% names.of.the.samples.REMAIN.in.ttest)
-     }else{
-       ttestRed <- !(rownames(pData(result)) %in% names.of.the.samples.NOT.in.ttest)
-    # --- Hh [] ---
-    # Key functions: unlist, delim
-    if(file.exists(warningFile)){
-      bart   <- unlist(read.delim(warningFile,as.is=TRUE,header=FALSE))
-      fehler <- sapply(bart, function(y) gsub("simpleWarning in withCallingHandlers\\(\\{: ","",y))
+    # --- Sample Annotation Setup [] ---
+    # Key functions: sampleNames
+    samples <- sampleNames(ct_data)
+    sample_info <- new("AnnotatedDataFrame",
+        data = data.frame(Sample = samples),
+        varMetadata = data.frame(
+            labelDescription = c("unique identifier"),
+            row.names = c("Sample")
+        )
+    )
+
+
+    # --- Relative Quantification Calculation [] ---
+    # Key functions: ddCtExpression
+    ref_sample <- "Sample2"
+    ref_genes <- c("Gene3", "Gene2")
+    result <- ddCtExpression(
+        ct_data,
+        calibrationSample = ref_sample,
+        housekeepingGenes = ref_genes,
+        sampleInformation = sample_info
+    )
+
+
+    # --- Housekeeping Gene Correlation Analysis [] ---
+    # Key functions: assayData, pData
+    ct_matrix <- assayData(result)$Ct
+    ref_genes <- c("Gene3", "Gene2")
+    if (all(ref_genes %in% rownames(ct_matrix))) {
+        gene1_vals <- ct_matrix[ref_genes[1], ]
+        gene2_vals <- ct_matrix[ref_genes[2], ]
+        hk_cor <- cor(gene1_vals, gene2_vals, use = "pairwise.complete.obs")
     }
 
     # --- Save outputs ---

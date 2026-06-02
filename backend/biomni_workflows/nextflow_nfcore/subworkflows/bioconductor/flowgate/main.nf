@@ -38,33 +38,50 @@ process BIOC_FLOWGATE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(flowGate)
     library(GatingSet)
     library(jsonlite)
 
-    # --- make GatingSet [] ---
-    # Key functions: GatingSet
-    library(flowWorkspace)
+    # --- Data Import and Compensation [flowgate] ---
+    # Key functions: read.flowSet, GatingSet, compensation, compensate
+    fs <- read.flowSet(
+        path = system.file("extdata", package = "flowGate"),
+        pattern = ".FCS$",
+        full.names = TRUE
+    )
     gs <- GatingSet(fs)
-    # --- Compensate data [] ---
-    # Key functions: compensation, compensate
-    path_to_comp <- system.file("extdata",
-    comp_matrix <- read.table(path_to_comp,
+    comp_matrix <- read.table(
+        system.file("extdata", "compdata", "compmatrix", package = "flowCore"),
+        header = TRUE,
+        skip = 2,
+        check.names = FALSE
+    )
     comp <- compensation(comp_matrix)
-    # --- Acquisition [] ---
-    # Key functions: spillover, compensation, compensate
-    spillover(some_new_fs[[3]])
-    comp_matrix <- spillover(some_new_fs[[3]])[[1]]
-    comp <- compensation(comp_matrix)
-    # --- create import function [] ---
-    # Key functions: GatingSet, compensation, compensate
-    import_gs <- function(path, pattern, compensation_matrix){
-    fs <- read.flowSet(path = path,
-    gs <- GatingSet(fs)
-    # --- functional import [] ---
-    # Key functions: import_gs, markernames
-    path_to_fcs <- system.file("extdata",
-    path_to_comp<- system.file("extdata",
-    comp_matrix <- read.table(path_to_comp,
+    gs <- compensate(gs, comp)
+
+    # --- Interactive Gating [flowgate] ---
+    # Key functions: gate, gs_pop_add, recompute
+    p1 <- gate(
+        gs,
+        parent = "root",
+        channels = c("FSC-A", "SSC-A"),
+        alias = "Leukocytes"
+    )
+    gs_pop_add(gs, p1)
+    recompute(gs)
+
+    # --- Gating Visualization [flowgate] ---
+    # Key functions: gs_get_pop_paths, ggcyto, geom_gate, geom_stats
+    quadgates <- gs_get_pop_paths(gs)[
+        stringr::str_detect(gs_get_pop_paths(gs), "CD33")
+    ]
+    p <- ggcyto(gs[[1]], aes("CD33", "CD15")) +
+        geom_hex(bins = 128) +
+        scale_x_flowjo_biexp(maxValue = 252245, widthBasis = -29, pos = 4) +
+        scale_y_flowjo_biexp(maxValue = 250000, widthBasis = -12, pos = 5) +
+        geom_gate(quadgates) +
+        geom_stats()
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,87 +41,56 @@ process BIOC_SPECOND {
     library(SpeCond)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data, class
-    library(SpeCond)
-    data(expSetSpeCondExample)
-    expSetSpeCondExample
-    class(expSetSpeCondExample)
-    data(expressionSpeCondExample)
-    # --- Specond [] ---
-    # Key functions: SpeCond
-    generalResult=SpeCond(Mexp, param.detection=NULL, multitest.correction.method="BY",
-      prefix.file="E", print.hist.pv=TRUE, fit1=NULL, fit2=NULL, specificOutlierStep1=NULL)
-    names(generalResult)
-    specificResult=generalResult$specificResult
-    # --- Getmatrixfromexpressionset [] ---
-    # Key functions: getMatrixFromExpressionSet
-    ## MexpS=getMatrixFromExpressionSet(expSetSpeCondExample,
-    ##   condition.factor=expSetSpeCondExample$Tissue,condition.method="mean")
-    # --- Getfullhtmlspecondresult [] ---
-    # Key functions: getFullHtmlSpeCondResult
-    getFullHtmlSpeCondResult(SpeCondResult=generalResult, param.detection=
-      specificResult$param.detection, page.name="Example_SpeCond_results",
-      page.title="Tissue specific results", sort.condition="all", heatmap.profile=TRUE,
-      heatmap.expression=FALSE, heatmap.unique.profile=FALSE, expressionMatrix=Mexp)
-    # --- Getgenehtmlpage [] ---
-    # Key functions: getGeneHtmlPage
-    genePageInfo=getGeneHtmlPage(Mexp, specificResult, name.index.html=
-      "index_example_SpeCond_Results.html", gene.html.ids=c(1:20))
-    # --- Getdefaultparameter [] ---
-    # Key functions: getDefaultParameter
-    param.detection=getDefaultParameter()
-    param.detection
-    # --- Createparametermatrix [] ---
-    # Key functions: createParameterMatrix
-    param.detection2=createParameterMatrix(mlk.1=10)
-    param.detection2
-    param.detection2B=createParameterMatrix(param.detection=param.detection2,
-      mlk.1=15, rsd.2=0.2)
-    param.detection2B
-    # --- Createparametermatrix [] ---
-    # Key functions: createParameterMatrix, SpeCond
-    param.detection2=createParameterMatrix(param.detection, mlk.1=10)
-    param.detection2
-    generalResult2=SpeCond(Mexp, param.detection=param.detection2,
-      multitest.correction.method="BY", prefix.file="E2",
-      print.hist.pv=TRUE, fit1=generalResult$fit1, fit2=NULL,
-    # --- Fitprior [] ---
-    # Key functions: fitPrior
-    param.detection
-    fit1=fitPrior(Mexp, param.detection=param.detection)
-    # --- Getspecificoutliersstep1 [] ---
-    # Key functions: getSpecificOutliersStep1
-    specificOutlierStep1=getSpecificOutliersStep1(Mexp, fit=fit1$fit1,param.detection,
-      multitest.correction.method="BY", prefix.file="run1_Step1",
-      print.hist.pv=FALSE)
-    # --- Fitnopriorwithexclusion [] ---
-    # Key functions: fitNoPriorWithExclusion
-    fit2=fitNoPriorWithExclusion(Mexp, specificOutlierStep1=specificOutlierStep1,
-      param.detection=param.detection)
-    # --- Getspecificresult [] ---
-    # Key functions: getSpecificResult
-    specificResult=getSpecificResult(Mexp, fit=fit2,
-      specificOutlierStep1=specificOutlierStep1, param.detection,
-      multitest.correction.method="BY", prefix.file="run1_Step2",
-      print.hist.pv=FALSE)
-    # --- Getprofile [] ---
-    # Key functions: getProfile, writeSpeCondResult, writeUniqueProfileSpecificResult, writeGeneResult
-    L.specific.result.profile=getProfile(specificResult$L.specific.result$M.specific)
-    writeSpeCondResult(specificResult$L.specific.result,file.name.profile=
-      "Example_specific_profile.txt", file.specific.gene="Example_list_specific_gene.txt",
-      file.name.unique.profile="Example_specific_unique_profile.txt")
-    writeUniqueProfileSpecificResult(L.specific.result=specificResult$L.specific.result,
-    # --- Data [] ---
-    # Key functions: data
-    data(simulatedSpeCondData)
-    # --- Specond [] ---
-    # Key functions: SpeCond, getFullHtmlSpeCondResult, getGeneHtmlPage
-    generalResult_S1=SpeCond(simulatedSpeCondData, param.detection=NULL,
-      multitest.correction.method="BY", prefix.file="S1", print.hist.pv=TRUE,
-      fit1=NULL, fit2=NULL, specificOutlierStep1=NULL)
-    specificResult_S1=generalResult_S1$specificResult
-    getFullHtmlSpeCondResult(L.specific.result=specificResult_S1$L.specific.result,
+    # --- Mixture Model Fitting [Model Fitting] ---
+    # Key functions: fitGeneMixtureModels
+    expression_matrix <- matrix(
+        rnorm(1000),
+        nrow = 100,
+        ncol = 10,
+        dimnames = list(paste0("Gene", 1:100), paste0("Cond", 1:10))
+    )
+    fit_results <- fitGeneMixtureModels(
+        expressionData = expression_matrix,
+        G = 1:3,
+        verbose = TRUE
+    )
+
+    # --- Condition Specific Detection [Detection] ---
+    # Key functions: getConditionSpecific
+    specific_genes <- getConditionSpecific(
+        expressionData = expression_matrix,
+        fit = fit_results,
+        threshold.pvalue = 0.05,
+        percentage.detect = 0.1
+    )
+
+    # --- Integrated SpeCond Analysis [Analysis] ---
+    # Key functions: specond
+    conditions <- colnames(expression_matrix)
+    specond_results <- specond(
+        expressionData = expression_matrix,
+        conds = conditions,
+        param.detection = NULL,
+        multicore = FALSE
+    )
+
+    # --- Visualisation of Specific Genes [Visualisation] ---
+    # Key functions: plotSpecond
+    plotSpecond(
+        geneName = "Gene1",
+        expressionData = expression_matrix,
+        specondResult = specond_results,
+        param.plot = NULL
+    )
+
+    # --- Exporting Results [Export] ---
+    # Key functions: writeSpecondResult
+    writeSpecondResult(
+        specondResult = specond_results,
+        file = "specond_results_output.txt",
+        prefix = "SpeCond_Analysis"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

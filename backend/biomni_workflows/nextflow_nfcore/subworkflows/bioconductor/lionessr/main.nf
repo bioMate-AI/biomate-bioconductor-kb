@@ -38,55 +38,38 @@ process BIOC_LIONESSR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(lionessR)
     library(DataFrame)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: DataFrame, SummarizedExperiment
-    ---------------------------------------------------------------------
-    data(OSdata)
-    rowData <- DataFrame(row.names = rownames(exp), gene = rownames(exp))
-    colData <- DataFrame(row.names = targets$sample, sample = as.character(targets$sample), mets = targets$mets)
-    se <- SummarizedExperiment(assays = list(counts = as.matrix(exp)),
-    # --- Apply [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    nsel=500
-    cvar <- apply(assay(se), 1, sd)
-    dat <- se[tail(order(cvar), 500), ]
-    # --- Cor [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    netyes <- cor(t(assay(dat)[, dat$mets == "yes"]))
-    netno  <- cor(t(assay(dat)[, dat$mets == "no"]))
-    netdiff <- netyes-netno
-    # --- Rep [] ---
-    # Key functions: melt, tri
-    ---------------------------------------------------------------------
-    cormat2 <- rep(1:nsel, each=nsel)
-    cormat1 <- rep(1:nsel,nsel)
-    el <- cbind(cormat1, cormat2, c(netdiff))
-    melted <- melt(upper.tri(netdiff))
-    # --- Lioness [] ---
-    # Key functions: lioness, assay
-    ---------------------------------------------------------------------
+    # --- Single-Sample Network Reconstruction [] ---
+    # Key functions: lioness
+    netFun <- function(x) {
+        cor(t(x))
+    }
     cormat <- lioness(dat, netFun)
-    corsub <- assay(cormat[which(row.names(cormat) %in% tosel), ])
-    # --- Factor [] ---
-    # Key functions: factor, makeContrasts, lmFit, fit, eBayes, topTable
-    ---------------------------------------------------------------------
-    group <- factor(se$mets)
-    design <- model.matrix(~0+group)
-    cont.matrix <- makeContrasts(yesvsno = (groupyes - groupno), levels = design)
-    fit <- lmFit(corsub, design)
-    # --- Unique [] ---
-    # Key functions: lmFit, fit, eBayes, topTable
-    ---------------------------------------------------------------------
-    topgeneslist <- unique(c(toptable_edges[1:50,]))
-    fit <- lmFit(exp, design)
+
+
+    # --- Differential Network Analysis [] ---
+    # Key functions: lmFit, contrasts.fit, eBayes, topTable
+    group <- factor(dat$mets)
+    design <- model.matrix(~0 + group)
+    colnames(design) <- c("no", "yes")
+    cont.matrix <- makeContrasts(yesvsno = (yes - no), levels = design)
+    fit <- lmFit(assay(cormat), design)
     fit2 <- contrasts.fit(fit, cont.matrix)
     fit2e <- eBayes(fit2)
+    toptable <- topTable(fit2e, number = 100, adjust = "fdr")
+
+
+    # --- Network Visualization [] ---
+    # Key functions: graph.data.frame
+    toptable_edges <- t(matrix(unlist(strsplit(row.names(toptable), "_")), 2))
+    z <- cbind(toptable_edges[1:50, ], toptable$logFC[1:50])
+    g <- graph.data.frame(z, directed = FALSE)
+    E(g)$weight <- as.numeric(z[, 3])
+    E(g)$color <- ifelse(E(g)$weight < 0, "blue", "red")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

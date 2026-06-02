@@ -41,13 +41,33 @@ process BIOC_SCATTERHATCH {
     library(scatterHatch)
     library(jsonlite)
 
-    # --- set [] ---
-    # Key functions: set
-    --------------------------------------
-    knitr::opts_chunk$set(
-        collapse = TRUE,
-        comment = "#>",
-        fig.align   = 'center'
+    # --- Default Hatch Visualization [] ---
+    # Key functions: scatterHatch
+    plt_basic <- scatterHatch(
+        data = pdacData,
+        x = "Xt",
+        y = "Yt",
+        color_by = "location",
+        legendTitle = "Tissue Type"
+    )
+
+
+    # --- Customized Pattern Visualization [] ---
+    # Key functions: scatterHatch
+    custom_patterns <- list(
+        list(pattern = "/", angle = 70),
+        list(pattern = "-"),
+        list(pattern = "x", angle = c(135, 90, 45), lineWidth = 0.2),
+        list(pattern = "+")
+    )
+    plt_custom <- scatterHatch(
+        data = pdacData,
+        x = "Xt",
+        y = "Yt",
+        color_by = "location",
+        legendTitle = "Tissue Type",
+        patternList = custom_patterns
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

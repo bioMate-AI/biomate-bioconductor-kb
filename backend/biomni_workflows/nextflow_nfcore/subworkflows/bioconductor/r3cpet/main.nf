@@ -38,66 +38,43 @@ process BIOC_R3CPET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(R3CPET)
     library(ChiapetExperimentData)
     library(GenerateNetworks)
     library(InferNetworks)
     library(jsonlite)
 
-    # --- Chiapet Experiment Data [] ---
-    # Key functions: ChiapetExperimentData
-    library(R3CPET)
-    petFile <- file.path(system.file("example",package="R3CPET"),"HepG2_interactions.txt")
-    tfbsFile <- file.path(system.file("example",package="R3CPET"),"HepG2_TF.txt.gz")
-    # --- loadPETs example [] ---
-    # Key functions: loadPETs
-    petPath <- system.file("example","HepG2_interactions.txt",package="R3CPET")
-    x <- loadPETs(x,petFile=petPath, IsBed=FALSE)
-    # --- loadPETs BED example [] ---
-    # Key functions: loadPETs
-    petPath <- system.file("example","HepG2_centered.bed",package="R3CPET")
-    x <- loadPETs(x,petFile=petPath, IsBed=TRUE, header = FALSE)
-    # --- TF example [] ---
-    # Key functions: loadTFBS
-    TFPath <- system.file("example","HepG2_TF.txt.gz",package="R3CPET")
-    TF <- read.table(TFPath, sep = "\t", header= FALSE)
-    head(TF)
-    # --- loadPPI usage [] ---
-    # Key functions: loadPPI
-    loadPPI(object,type=c("HPRD","Biogid"),customPPI = NULL,
-    # --- loadPPI loading [] ---
-    # Key functions: loadPPI
-    x <- loadPPI(x,type="HPRD", filter=TRUE)
-    # --- create Indexes [] ---
-    # Key functions: createIndexes
+    # --- Network Inference [] ---
+    # Key functions: createIndexes, GenerateNetworks, topEdges, topNodes, networks
     x <- createIndexes(x)
-    # --- build Networks [] ---
-    # Key functions: buildNetworks
-    nets<- buildNetworks(x, minFreq=0.1, maxFreq=0.9)
-    # --- InferNetowrks usage [] ---
-    # Key functions: InferNetworks
-    InferNetworks(object,thr =0.5,max_iter = 500L, max_time = 3600L, eta=0.01,gamma=1,alpha=1)
-    # --- Infer Networks [] ---
-    # Key functions: InferNetworks
-    hlda <- InferNetworks(nets)
-    # --- InferNetowrks Networks [] ---
-    # Key functions: GenerateNetworks
+    hlda_file <- system.file("example", "hlda.RData", package = "R3CPET")
+    load(hlda_file)
+    edges <- topEdges(hlda)
+    nodes <- topNodes(hlda)
     hlda <- GenerateNetworks(hlda)
-    head(networks(hlda))
-    # --- Annotate expression [] ---
-    # Key functions: annotateExpression, networks
-    data(RPKMS)
-    hlda<- annotateExpression(hlda,RPKMS)
-    networks(hlda)[[1]]
-    # --- cluster Interactions [] ---
-    # Key functions: clusterInteractions
-    clusterInteractions(object, method="sota", nbClus=20 )
-    # --- plot3CPETRes usage [] ---
-    # Key functions: plot3CPETRes
-    plot3CPETRes(object, path="", W=14, H=7 ,
-    type=c("heatmap","clusters","curve","avgCurve","netSim", "networks"),
-    # --- get Regions Incluster [] ---
-    # Key functions: getRegionsIncluster
-    getRegionsIncluster(hlda,x,cluster=3)
+    nets <- networks(hlda)
+
+
+    # --- Expression Annotation and Clustering [] ---
+    # Key functions: annotateExpression, clusterInteractions, getRegionsIncluster
+    hlda_file <- system.file("example", "hlda.RData", package = "R3CPET")
+    load(hlda_file)
+    data(RPKMS, package = "R3CPET")
+    hlda <- annotateExpression(hlda, RPKMS)
+    hlda <- clusterInteractions(hlda, method = "sota", nbClus = 6)
+    regions <- getRegionsIncluster(hlda, x, cluster = 3)
+
+
+    # --- Result Visualization [] ---
+    # Key functions: plot3CPETRes, visualizeCircos
+    hlda_file <- system.file("example", "hlda.RData", package = "R3CPET")
+    load(hlda_file)
+    hlda <- GenerateNetworks(hlda)
+    plot3CPETRes(hlda, type = "heatmap")
+    plot3CPETRes(hlda, type = "curve")
+    plot3CPETRes(hlda, type = "avgCurve")
+    plot3CPETRes(hlda, type = "netSim")
+    visualizeCircos(hlda, x, cluster = 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

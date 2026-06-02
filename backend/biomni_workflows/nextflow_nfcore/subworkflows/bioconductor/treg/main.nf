@@ -38,80 +38,27 @@ process BIOC_TREG {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TREG)
     library(BiocFileCache)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- 'install' [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("TREG")
-    # --- "download DLPFC data" [] ---
-    # Key functions: BiocFileCache, bfcrpath
-    bfc <- BiocFileCache::BiocFileCache()
-    url <- paste0(
-    local_data <- BiocFileCache::bfcrpath(url, x = bfc)
-    # --- "Data Size Check" [] ---
-    # Key functions: obj_size
-    lobstr::obj_size(sce.dlpfc.tran)
-    # --- "acronyms" [] ---
-    # Key functions: tibble
-    ct_names <- tibble(
-    "Cell Type" = c(
-    "Acronym" = c(
-    # --- "examineSparsity" [] ---
-    # Key functions: pheatmap
-    sum(assays(sce.dlpfc.tran)$counts == 0) / (nrow(sce.dlpfc.tran) * ncol(sce.dlpfc.tran))
-    count_test <- as.matrix(assays(sce.dlpfc.tran)$logcounts[seq_len(1000), seq_len(500)])
-    pheatmap(count_test,
-    # --- "top50 filter" [] ---
-    # Key functions: rowMeans
-    row_means <- rowMeans(assays(sce.dlpfc.tran)$logcounts)
-    (median_row_means <- median(row_means))
-    dim(sce.dlpfc.tran)
-    # --- "top50FilterHeatmap" [] ---
-    # Key functions: pheatmap
-    sum(assays(sce.dlpfc.tran)$counts == 0) / (nrow(sce.dlpfc.tran) * ncol(sce.dlpfc.tran))
-    count_test <- as.matrix(assays(sce.dlpfc.tran)$logcounts[seq_len(1000), seq_len(500)])
-    pheatmap::pheatmap(count_test,
-    # --- "get prop zero" [] ---
+    # --- Calculate Proportion of Zeros [] ---
     # Key functions: get_prop_zero
-    prop_zeros <- get_prop_zero(sce.dlpfc.tran, group_col = "cellType.broad")
-    head(prop_zeros)
-    # --- "propZeroDistribution" [] ---
-    # Key functions: rownames_to_column, pivot_longer, aes, geom_histogram, facet_wrap
-    rownames_to_column("Gene") %>%
-    pivot_longer(!Gene, names_to = "Group", values_to = "prop_zero")
-    (prop_zero_histogram <- ggplot(
-    # --- "pickCutoff" [] ---
-    # Key functions: geom_vline
-    geom_vline(xintercept = propZero_limit, color = "red", linetype = "dashed")
-    # --- "filter prop zero" [] ---
+    prop_zeros <- get_prop_zero(
+        sce = sce.filtered,
+        group_col = "cellType.broad"
+    )
+
+
+    # --- Filter Genes by Zero Expression [] ---
     # Key functions: filter_prop_zero
-    filtered_genes <- filter_prop_zero(prop_zeros, cutoff = propZero_limit)
-    length(filtered_genes)
-    length(filtered_genes) / nrow(sce.dlpfc.tran)
-    # --- "propZeroFilterHeatmap" [] ---
-    # Key functions: pheatmap
-    sum(assays(sce.dlpfc.tran)$counts == 0) / (nrow(sce.dlpfc.tran) * ncol(sce.dlpfc.tran))
-    count_test <- as.matrix(assays(sce.dlpfc.tran)$logcounts[seq_len(1000), seq_len(500)])
-    pheatmap::pheatmap(count_test,
-    # --- "rank invariance stepwise" [] ---
-    # Key functions: rank_group, rank_cells, rank_invariance
-    group_rank <- rank_group(sce.dlpfc.tran, group_col = "cellType.broad")
-    cell_rank <- rank_cells(sce.dlpfc.tran, group_col = "cellType.broad")
-    Use both rankings to calculate rank_invariance()
-    # --- "run RI express" [] ---
-    # Key functions: rank_invariance_express
-    rank_invariance_express() runs the previous functions for you
-    rank_invar2 <- rank_invariance_express(
-    head(sort(rank_invar2, decreasing = TRUE))
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("finding_Total_RNA_Expression_Genes.Rmd"))
-    library("knitr")
+    propZero_limit <- 0.9
+    filtered_genes <- filter_prop_zero(
+        prop_zeros = prop_zeros,
+        cutoff = propZero_limit
+    )
+    sce.treg <- sce.filtered[filtered_genes, ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,33 +38,31 @@ process BIOC_GENOMICSCORES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GenomicScores)
     library(GRanges)
     library(jsonlite)
 
-    # --- available G Scores [] ---
-    # Key functions: availableGScores
-    library(GenomicScores)
-    avgs <- availableGScores()
-    # --- score [] ---
-    # Key functions: score, populations, defaultPopulation
-    ppsco <- score(phylop, gwcgr)
-    plot(pcsco, ppsco, xlab="phastCons", ylab="phyloP",
-    populations(phast)
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, gscores
-    par(mar=c(4, 5, 3, 1))
-    barplot(xtab, horiz=TRUE, col=c("red", "royalblue", "gray"),
-    par(xpd=TRUE)
-    # --- split [] ---
-    # Key functions: split, elementNROWS
-    x <- split(loc$PHASTCONS, loc$LOCATION)
-    mask <- elementNROWS(x) > 0
-    boxplot(x[mask], ylab="phastCons score", las=1, cex.axis=1.2, cex.lab=1.5, col="gray")
-    # --- color Ramp Palette [] ---
-    # Key functions: colorRampPalette
-    library(RColorBrewer)
-    par(mar=c(4, 5, 1, 1))
-    hmcol <- colorRampPalette(brewer.pal(nlevels(loc$LOCATION), "Set1"))(nlevels(loc$LOCATION))
+    # --- Loading Genomic Scores [] ---
+    # Key functions: GScores, provider, providerVersion, organism, seqlevelsStyle
+    prov <- provider(phast)
+    ver <- providerVersion(phast)
+    org <- organism(phast)
+    style <- seqlevelsStyle(phast)
+
+
+    # --- Scoring Genomic Ranges [] ---
+    # Key functions: gscores, score
+    gr <- GRanges(seqnames = "chr22",
+        IRanges(start = 50528591:50528596, width = 1))
+    scores_df <- gscores(phast, gr)
+    scores_vec <- score(phast, gr)
+
+
+    # --- Population-Specific Scoring [] ---
+    # Key functions: populations, defaultPopulation, score
+    pops <- populations(phast)
+    def_pop <- defaultPopulation(phast)
+    pop_scores <- score(phast, gr, pop = "DP2")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

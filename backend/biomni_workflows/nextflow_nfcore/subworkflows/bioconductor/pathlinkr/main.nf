@@ -41,37 +41,101 @@ process BIOC_PATHLINKR {
     library(pathlinkR)
     library(jsonlite)
 
-    # --- datasets and preliminary volcano plot [] ---
-    # Key functions: eruption
+    # --- Pathway Enrichment Analysis [] ---
+    # Key functions: pathwayEnrichment, pathwayPlots
     data("exampleDESeqResults")
-    knitr::kable(head(exampleDESeqResults[[1]]))
-    eruption(
-    # --- ppi Build Network [] ---
-    # Key functions: ppiBuildNetwork, ppiPlotNetwork
-    exNetwork <- ppiBuildNetwork(
-    ppiPlotNetwork(
-    title=names(exampleDESeqResults)[1],
-    # --- ppi Enrich Network [] ---
-    # Key functions: ppiEnrichNetwork
-    exNetworkPathways <- ppiEnrichNetwork(
-    geneUniverse = rownames(exampleDESeqResults[[1]])
-    # --- ppi Extract Subnetwork [] ---
-    # Key functions: ppiExtractSubnetwork, ppiPlotNetwork
-    exSubnetwork <- ppiExtractSubnetwork(
-    ppiPlotNetwork(
-    # --- sigora enrichment [] ---
-    # Key functions: pathwayEnrichment
     enrichedResultsSigora <- pathwayEnrichment(
-    head(enrichedResultsSigora)
-    # --- hallmark enrichment [] ---
-    # Key functions: pathwayEnrichment
-    enrichedResultsHm <- pathwayEnrichment(
-    head(enrichedResultsHm)
-    # --- pathway network I [] ---
-    # Key functions: getPathwayDistances, pathnetFoundation, pathnetCreate
+        inputList = exampleDESeqResults,
+        analysis = "sigora",
+        filterInput = TRUE,
+        gpsRepo = "default"
+    )
+    pathwayPlots(
+        pathwayEnrichmentResults = enrichedResultsSigora,
+        columns = 2
+    )
+
+
+    # --- PPI Network Construction [] ---
+    # Key functions: ppiBuildNetwork, ppiPlotNetwork
+    data("exampleDESeqResults")
+    exNetwork <- ppiBuildNetwork(
+        rnaseqResult = exampleDESeqResults[[1]],
+        filterInput = TRUE,
+        order = "zero"
+    )
+    ppiPlotNetwork(
+        network = exNetwork,
+        title = names(exampleDESeqResults)[1],
+        fillColumn = LogFoldChange,
+        fillType = "foldChange",
+        label = TRUE,
+        labelColumn = hgncSymbol,
+        legend = TRUE
+    )
+
+
+    # --- PPI Subnetwork Extraction [] ---
+    # Key functions: ppiEnrichNetwork, ppiExtractSubnetwork, ppiPlotNetwork
+    data("exampleDESeqResults")
+    exNetwork <- ppiBuildNetwork(
+        rnaseqResult = exampleDESeqResults[[1]],
+        filterInput = TRUE,
+        order = "zero"
+    )
+    exNetworkPathways <- ppiEnrichNetwork(
+        network = exNetwork,
+        analysis = "hallmark",
+        filterResults = "default",
+        geneUniverse = rownames(exampleDESeqResults[[1]])
+    )
+    exSubnetwork <- ppiExtractSubnetwork(
+        network = exNetwork,
+        pathwayEnrichmentResult = exNetworkPathways,
+        pathwayToExtract = "INTERFERON GAMMA RESPONSE"
+    )
+    ppiPlotNetwork(
+        network = exSubnetwork,
+        fillType = "oneSided",
+        fillColumn = degree,
+        label = TRUE,
+        labelColumn = hgncSymbol,
+        legendTitle = "Degree"
+    )
+
+
+    # --- Pathway Network Analysis [] ---
+    # Key functions: getPathwayDistances, pathnetFoundation, pathnetCreate, pathnetGGraph
     data("sigoraDatabase")
-    pathwayDistancesJaccard <- getPathwayDistances(pathwayData = sigoraDatabase)
+    data("exampleDESeqResults")
+    pathwayDistancesJaccard <- getPathwayDistances(
+        pathwayData = sigoraDatabase
+    )
     startingPathways <- pathnetFoundation(
+        mat = pathwayDistancesJaccard,
+        maxDistance = 0.8
+    )
+    enrichedResultsSigora <- pathwayEnrichment(
+        inputList = exampleDESeqResults,
+        analysis = "sigora",
+        filterInput = TRUE,
+        gpsRepo = "default"
+    )
+    exPathwayNetworkInput <- enrichedResultsSigora[
+        enrichedResultsSigora$comparison == "COVID Pos Over Time", 
+    ]
+    myPathwayNetwork <- pathnetCreate(
+        pathwayEnrichmentResult = exPathwayNetworkInput,
+        foundation = startingPathways
+    )
+    pathnetGGraph(
+        myPathwayNetwork,
+        labelProp = 0.1,
+        nodeLabelSize = 3,
+        nodeLabelOverlaps = 8,
+        segColour = "red",
+        themeBaseSize = 12
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

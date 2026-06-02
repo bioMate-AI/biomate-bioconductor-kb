@@ -41,45 +41,33 @@ process BIOC_GRAPER {
     library(graper)
     library(jsonlite)
 
-    # --- Graper [] ---
+    # --- Model Fitting [] ---
     # Key functions: graper
-    ---------------------------------------------------------------------
-    fit <- graper(Xtrain, ytrain, annot,
-                n_rep=3, verbose=FALSE, th=0.001)
-    fit
-    # --- Plotelbo [] ---
-    # Key functions: plotELBO
-    ---------------------------------------------------------------------
+    fit <- graper(
+        Xtrain,
+        ytrain,
+        annot,
+        n_rep = 3,
+        verbose = FALSE,
+        th = 0.001
+    )
+
+
+    # --- Model Diagnostics and Visualization [] ---
+    # Key functions: plotELBO, plotPosterior, plotGroupPenalties
     plotELBO(fit)
-    # --- Plotposterior [] ---
-    # Key functions: plotPosterior
-    ---------------------------------------------------------------------
-    plotPosterior(fit, "gamma", gamma0=data$gammas, range=c(0, 20))
-    plotPosterior(fit, "pi", pi0=data$pis)
-    # --- Coefficients [] ---
-    # Key functions: coefficients, coef, qplot, coord_fixed, theme_bw
-    ---------------------------------------------------------------------
-    # get coefficients (without the intercept)
-    beta <- coef(fit, include_intercept=FALSE)
-    # beta <- fit$EW_beta
-    # plot estimated versus true beta
-    # --- Getpips [] ---
-    # Key functions: getPIPs, frame, ggplot, aes, geom_jitter, theme_bw, ylab
-    ---------------------------------------------------------------------
-    # get estimated posterior inclusion probabilities per feature
-    pips <- getPIPs(fit)
-    # plot pips for zero versus non-zero features
-    df <- data.frame(pips = pips,
-    # --- Plotgrouppenalties [] ---
-    # Key functions: plotGroupPenalties
-    ---------------------------------------------------------------------
+    plotPosterior(fit, "gamma", gamma0 = data$gammas, range = c(0, 20))
+    plotPosterior(fit, "pi", pi0 = data$pis)
     plotGroupPenalties(fit)
-    # --- Predict [] ---
-    # Key functions: predict, qplot, coord_fixed, theme_bw
-    ---------------------------------------------------------------------
+
+
+    # --- Prediction and Evaluation [] ---
+    # Key functions: predict, coef, getPIPs
+    beta <- coef(fit, include_intercept = FALSE)
+    intercept <- fit$intercept
+    pips <- getPIPs(fit)
     preds <- predict(fit, Xtest)
-    qplot(preds, ytest) +
-        coord_fixed() + theme_bw()
+    prediction_error <- mean((preds - ytest)^2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

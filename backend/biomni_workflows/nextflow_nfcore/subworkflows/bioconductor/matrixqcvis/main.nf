@@ -38,30 +38,81 @@ process BIOC_MATRIXQCVIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MatrixQCvis)
     library(ECDF)
     library(ExperimentHub)
     library(MAplot)
     library(MAvalues)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub
-    library(ExperimentHub)
-    eh <- ExperimentHub()
-    se <- se[, seq_len(40)]
-    # --- Define comparison contrasts [] ---
-    # Key functions: makeContrasts, assay, normalizeAssay, transformAssay, imputeAssay, lmFit
-    library(limma)
-    cM <- makeContrasts(contrasts = "typeBRCA-typeLUAD", levels = mM)
-    head(cM)
-    # --- Mean-SD plot for transformed data [] ---
-    # Key functions: meanSdPlot
-    vsn::meanSdPlot(assay(se_t))
-    # --- Assay data access [] ---
-    # Key functions: hist_sample_num, partial_bundle, mosaic, createBoxplot, assay, normalizeAssay, batchCorrectionAssay, transformAssay
-    l_assays <- list(raw = a, normalized = a_n, `batch.corrected` = a_b,
-    df_feature <- createDfFeature(l_assays, feature = rownames(se)[1])
-    featurePlot(df_feature)
+    # --- Initial Quality Control ---
+    # Key functions: hist_sample_num, hist_sample, mosaic, createBoxplot, driftPlot
+    tbl_hist <- hist_sample_num(se = se, category = "type")
+    p_hist <- hist_sample(tbl_hist, category = "type")
+    se_tmp <- se
+    se_tmp$arbitrary_values <- rep(c("A", "B"), length.out = ncol(se))
+    p_mosaic <- mosaic(se = se_tmp, f1 = "type", f2 = "arbitrary_values")
+    p_box <- createBoxplot(
+        se,
+        orderCategory = "sample",
+        title = "raw",
+        log = TRUE,
+        violin = TRUE
+    )
+    p_drift <- driftPlot(
+        se,
+        aggregation = "median",
+        category = "type",
+        orderCategory = "type",
+        level = "BRCA",
+        method = "loess"
+    )
+
+    # --- Normalization and Imputation ---
+    # Key functions: normalizeAssay, transformAssay, imputeAssay, cv, plotCV
+    a_raw <- assay(se)
+    a_norm <- normalizeAssay(a_raw, "sum")
+    a_trans <- transformAssay(a_norm, "vsn")
+    a_imp <- imputeAssay(a_trans, "MinDet")
+    cv_raw <- cv(a_raw, "raw")
+    cv_norm <- cv(a_norm, "normalized")
+    cv_trans <- cv(a_trans, "transformed")
+    cv_imp <- cv(a_imp, "imputed")
+    df_cv <- data.frame(cv_raw, cv_norm, cv_trans, cv_imp)
+    p_cv <- plotCV(df_cv)
+
+    # --- Sample Distance Analysis ---
+    # Key functions: distShiny, distSample, sumDistSample
+    a_raw <- assay(se)
+    dist_mat <- distShiny(a_raw)
+    p_dist <- distSample(
+        dist_mat,
+        se,
+        "type",
+        use_raster = TRUE,
+        raster_device = "jpeg"
+    )
+    p_sum_dist <- sumDistSample(dist_mat, title = "raw")
+
+    # --- Feature Diagnostics ---
+    # Key functions: MAvalues, MAplot, ECDF, createDfFeature, featurePlot
+    tbl_ma <- MAvalues(se, group = "all")
+    p_ma <- MAplot(
+        tbl_ma,
+        group = "all",
+        plot = colnames(se)[1]
+    )
+    p_ecdf <- ECDF(se, colnames(se)[1], group = "all")
+    l_assays <- list(raw = assay(se))
+    df_feat <- createDfFeature(l_assays, feature = rownames(se)[1])
+    p_feat <- featurePlot(df_feat)
+
+    # --- Missingness and Differential Expression ---
+    # Key functions: samplesMeasuredMissing, barplotSamplesMeasuredMissing, volcanoPlot
+    tbl_missing <- samplesMeasuredMissing(se)
+    p_missing <- barplotSamplesMeasuredMissing(tbl_missing, measured = TRUE)
+    p_volcano <- volcanoPlot(tT, type = "ttest")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

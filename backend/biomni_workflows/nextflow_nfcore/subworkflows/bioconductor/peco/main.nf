@@ -41,44 +41,24 @@ process BIOC_PECO {
     library(peco)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: packages, install_github
-    install.packages("devtools")
-    library(devtools)
-    install_github("jhsiao999/peco")
-    # --- Code Block 3 [] ---
-    # Key functions: data_transform_quantile, assays
-    sce_top101genes <- data_transform_quantile(sce_top101genes)
-    #> computing on 2 cores
-    assays(sce_top101genes)
-    #> List of length 3
-    #> names(3): counts cpm cpm_quantNormed
-    # --- Code Block 4 [] ---
+    # --- Cell Cycle Phase Prediction [] ---
     # Key functions: cycle_npreg_outsample
     pred_top101genes <- cycle_npreg_outsample(
-        Y_test=sce_top101genes,
-        sigma_est=training_human$sigma[rownames(sce_top101genes),],
-        funs_est=training_human$cellcycle_function[rownames(sce_top101genes)],
-        method.trend="trendfilter",
-    # --- Code Block 5 [] ---
-    # Key functions: colData
-    head(colData(pred_top101genes$Y)$cellcycle_peco)
-    #> 20170905-A01 20170905-A02 20170905-A03 20170905-A06 20170905-A07 20170905-A08
-    #>     1.099557     4.680973     2.544690     4.303982     4.052655     1.350885
-    # --- Code Block 6 [] ---
-    # Key functions: colData, assay, fit_cyclical_many, rowData
-    # predicted cell time in the input data
-    theta_predict = colData(pred_top101genes$Y)$cellcycle_peco
-    names(theta_predict) = rownames(colData(pred_top101genes$Y))
-    # expression values of 10 genes in the input data
-    yy_input = assay(pred_top101genes$Y,"cpm_quantNormed")[1:6,]
-    # --- Code Block 7 [] ---
-    # Key functions: 1, namespace
-    sessionInfo()
-    #> R version 4.4.1 (2024-06-14)
-    #> Platform: x86_64-pc-linux-gnu
-    #> Running under: Ubuntu 24.04.1 LTS
-    #>
+        Y_test = sce_transformed,
+        sigma_est = training_human$sigma[rownames(sce_transformed), ],
+        funs_est = training_human$cellcycle_function[rownames(sce_transformed)],
+        method.trend = "trendfilter"
+    )
+
+
+    # --- Cyclical Model Fitting [] ---
+    # Key functions: fit_cyclical_many
+    theta_predict <- colData(pred_top101genes$Y)$cellcycle_peco
+    yy_input <- assay(pred_top101genes$Y, "cpm_quantNormed")[1:6, ]
+    fit_results <- fit_cyclical_many(
+        Y = yy_input,
+        theta = theta_predict
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

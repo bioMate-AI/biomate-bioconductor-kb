@@ -42,15 +42,30 @@ process BIOC_MSBACKENDRAWFILEREADER {
     library(MsBackendRawFileReader)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub
-    library(ExperimentHub)
-    eh <- ExperimentHub::ExperimentHub()
-    # --- InstallRawFileReaderDLLs analysis [] ---
-    # Key functions: include_graphics, installRawFileReaderDLLs, installRawrrExe, query, normalizePath, backendInitialize, MsBackendRawFileReader, filterScan
-    .generate_mgf <- function(ext, pattern,  dir=tempdir(), ...){
-    mgf <- file.path(dir, paste0(sub("\\.raw", "", unique(basename(beRaw$dataOrigin))),
-    idx <- beRaw$scanType |> grepl(patter=pattern)
+    # --- Scan Filtering [] ---
+    # Key functions: filterScan
+    filtered_be <- MsBackendRawFileReader::filterScan(
+        beRaw,
+        "FTMS + c NSI Full ms2 487.2567@hcd27.00 [100.0000-1015.0000]"
+    )
+
+
+    # --- Spectra Export [] ---
+    # Key functions: export
+    mgf_file <- tempfile(fileext = ".mgf")
+    map <- c(
+        custom = "TITLE",
+        msLevel = "CHARGE",
+        scanIndex = "SCANS",
+        precursorMz = "PEPMASS",
+        rtime = "RTINSECONDS"
+    )
+    MsBackendMgf::export(
+        Spectra::Spectra(filtered_be),
+        backend = MsBackendMgf::MsBackendMgf(),
+        file = mgf_file,
+        map = map
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

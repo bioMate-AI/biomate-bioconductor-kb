@@ -41,65 +41,46 @@ process BIOC_METACCA {
     library(metaCCA)
     library(jsonlite)
 
-    # --- Mychunk1 [] ---
-    # Key functions: data
-    library(metaCCA)
-    data( package = 'metaCCA' )
-    # --- Mychunk4 [] ---
-    # Key functions: estimateSyy
-    # Estimating phenotypic correlation structure of study 1
-    S_YY_study1 = estimateSyy( S_XY = S_XY_full_study1 )
-    # Estimating phenotypic correlation structure of study 2
-    S_YY_study2 = estimateSyy( S_XY = S_XY_full_study2 )
-    # --- Mychunk6 [] ---
+    # --- Single-SNP Multi-Trait Association Analysis [] ---
     # Key functions: metaCcaGp, metaCcaPlusGp
-    # Default single-SNP--multi-trait meta-analysis of 2 studies
-    # Association analysis according to metaCCA algorithm
-    metaCCA_res1 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-                              std_info = c( 0, 0 ),
-    # --- Mychunk8 [] ---
-    # Key functions: metaCcaGp
-    # Single-SNP--multi-trait meta-analysis of 2 studies
-    # and one selected SNP
-    # metaCCA
-    metaCCA_res2 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-    # --- Mychunk9 [] ---
-    # Key functions: metaCcaPlusGp
-    # metaCCA+
-    metaCCApl_res2 = metaCcaPlusGp( nr_studies = 2,
-                                    S_XY = list( S_XY_study1, S_XY_study2 ),
-                                    std_info = c( 0, 0 ),
-                                    S_YY = list( S_YY_study1, S_YY_study2 ),
-    # --- Mychunk11 [] ---
-    # Key functions: metaCcaGp
-    # Multi-SNP--multi-trait meta-analysis of 2 studies
-    # metaCCA
-    metaCCA_res3 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-                              std_info = c( 0, 0 ),
-    # --- Mychunk12 [] ---
-    # Key functions: metaCcaPlusGp
-    # metaCCA+
-    metaCCApl_res3 = metaCcaPlusGp( nr_studies = 2,
-                                    S_XY = list( S_XY_study1, S_XY_study2 ),
-                                    std_info = c( 0, 0 ),
-                                    S_YY = list( S_YY_study1, S_YY_study2 ),
-    # --- Mychunk14 [] ---
-    # Key functions: metaCcaGp
-    # metaCCA
-    metaCCA_res4 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-                              std_info = c( 0, 0 ),
-                              S_YY = list( S_YY_study1, S_YY_study2 ),
-    # --- Mychunk15 [] ---
-    # Key functions: metaCcaPlusGp
-    # metaCCA+
-    metaCCApl_res4 = metaCcaPlusGp( nr_studies = 2,
-                                    S_XY = list( S_XY_study1, S_XY_study2 ),
-                                    std_info = c( 0, 0 ),
-                                    S_YY = list( S_YY_study1, S_YY_study2 ),
+    metaCCA_res1 <- metaCcaGp(
+        nr_studies = 2,
+        S_XY = list(S_XY_study1, S_XY_study2),
+        std_info = c(0, 0),
+        S_YY = list(S_YY_study1, S_YY_study2),
+        N = c(N1, N2)
+    )
+    metaCCApl_res1 <- metaCcaPlusGp(
+        nr_studies = 2,
+        S_XY = list(S_XY_study1, S_XY_study2),
+        std_info = c(0, 0),
+        S_YY = list(S_YY_study1, S_YY_study2),
+        N = c(N1, N2)
+    )
+
+
+    # --- Multi-SNP Multi-Trait Association Analysis [] ---
+    # Key functions: metaCcaGp, metaCcaPlusGp
+    metaCCA_res3 <- metaCcaGp(
+        nr_studies = 2,
+        S_XY = list(S_XY_study1, S_XY_study2),
+        std_info = c(0, 0),
+        S_YY = list(S_YY_study1, S_YY_study2),
+        N = c(N1, N2),
+        analysis_type = 2,
+        SNP_id = c("rs10", "rs80", "rs140", "rs170", "rs172"),
+        S_XX = list(S_XX_study1, S_XX_study2)
+    )
+    metaCCApl_res3 <- metaCcaPlusGp(
+        nr_studies = 2,
+        S_XY = list(S_XY_study1, S_XY_study2),
+        std_info = c(0, 0),
+        S_YY = list(S_YY_study1, S_YY_study2),
+        N = c(N1, N2),
+        analysis_type = 2,
+        SNP_id = c("rs10", "rs80", "rs140", "rs170", "rs172"),
+        S_XX = list(S_XX_study1, S_XX_study2)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

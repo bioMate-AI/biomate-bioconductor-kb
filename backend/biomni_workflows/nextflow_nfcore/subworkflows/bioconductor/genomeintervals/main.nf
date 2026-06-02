@@ -41,65 +41,69 @@ process BIOC_GENOMEINTERVALS {
     library(genomeIntervals)
     library(jsonlite)
 
-    # --- Classes [] ---
-    # Key functions: data
-    library( genomeIntervals )
-    data("gen_ints")
-    i
-    # --- Ends [] ---
-    # Key functions: closed
-    i[,1]
-    i[,2]
-    closed(i)
-    closed(i)[2,2] <- FALSE
-    # --- closed [] ---
-    # Key functions: closed
-    i2 <- i
-    closed(i2) <- c( TRUE, FALSE )
-    i2
-    # --- seqnames [] ---
-    # Key functions: seqnames, strand
-    seqnames(i)
-    strand(i)
-    strand(i)[2] <- "-"
-    # --- Annotation [] ---
-    # Key functions: annotation
-    annotation(i)
-    annotation(i)$myannot = rep( c("my", "annot"), length=nrow(i) )
-    annotation(i[2:3,])
-    # --- Intervaloverlap [] ---
-    # Key functions: interval_overlap
-    interval_overlap( from=i, to=j )
-    # --- Setoperations [] ---
-    # Key functions: interval_intersection, interval_complement
-    interval_intersection(i,j)
-    interval_complement(j[1:2,])
-    # --- Distance [] ---
+    # --- Annotation Management [] ---
+    # Key functions: annotation, annotation<-
+    intervals <- new(
+        "Genome_intervals_stranded",
+        matrix(c(1, 100, 200, 500), ncol = 2),
+        closed = TRUE,
+        annotation = data.frame(
+            seq_name = factor(c("chr01", "chr02")),
+            inter_base = FALSE,
+            strand = factor(c("+", "-"), levels = c("+", "-"))
+        )
+    )
+    annotation(intervals)$myannot <- rep(
+        c("my", "annot"),
+        length = nrow(intervals)
+    )
+    subset_annot <- annotation(intervals[1, ])
+    val <- intervals$myannot
+
+
+    # --- Interval Overlap and Set Operations [] ---
+    # Key functions: interval_overlap, interval_intersection, interval_complement
+    i <- new(
+        "Genome_intervals_stranded",
+        matrix(c(1, 100, 200, 500), ncol = 2),
+        closed = TRUE,
+        annotation = data.frame(
+            seq_name = factor(c("chr01", "chr01")),
+            inter_base = FALSE,
+            strand = factor(c("+", "+"), levels = c("+", "-"))
+        )
+    )
+    j <- i
+    overlap_result <- interval_overlap(from = i, to = j)
+    intersect_result <- interval_intersection(i, j)
+    complement_result <- interval_complement(j[1, ])
+
+
+    # --- Distance Calculation [] ---
     # Key functions: distance_to_nearest
-    distance_to_nearest(i,j)
-    # --- Inter Base [] ---
-    # Key functions: inter_base
-    k
-    inter_base(k)
-    k[inter_base(k),]
-    # --- Intervaloverlap.Inter Base [] ---
-    # Key functions: interval_overlap
-    interval_overlap(j,k)
-    # --- Distance.Inter Base [] ---
-    # Key functions: distance_to_nearest
-    distance_to_nearest(j,k)
-    # --- Setoperations.Inter Base [] ---
-    # Key functions: interval_union, interval_intersection, interval_complement
-    interval_union(k)
-    interval_intersection(k,j)
-    interval_complement(k[1:2,])
-    # --- Loadgff [] ---
-    # Key functions: packages, path, readGff3, getGffAttribute
-    libPath <- installed.packages()["genomeIntervals", "LibPath"]
-    filePath <- file.path(
-            libPath,
-            "genomeIntervals",
-            "example_files"
+    i <- new(
+        "Genome_intervals_stranded",
+        matrix(c(1, 100, 200, 500), ncol = 2),
+        closed = TRUE,
+        annotation = data.frame(
+            seq_name = factor(c("chr01", "chr01")),
+            inter_base = FALSE,
+            strand = factor(c("+", "+"), levels = c("+", "-"))
+        )
+    )
+    j <- i
+    dist_result <- distance_to_nearest(i, j)
+
+
+    # --- GFF File Parsing [] ---
+    # Key functions: readGff3, getGffAttribute
+    gff_file <- system.file(
+        "example_files",
+        "sgd_simple.gff",
+        package = "genomeIntervals"
+    )
+    gff <- readGff3(gff_file, isRightOpen = FALSE, quiet = TRUE)
+    idpa <- getGffAttribute(gff, c("ID", "Parent"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

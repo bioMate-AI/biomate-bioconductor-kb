@@ -41,36 +41,86 @@ process BIOC_DISTINCT {
     library(distinct)
     library(jsonlite)
 
-    # --- visualize colData [] ---
-    # Key functions: colData
-    colData(Kang_subset)
-    # --- col Data [] ---
-    # Key functions: colData
-    colData(Kang_subset)$stim = relevel(colData(Kang_subset)$stim, "stim")
-    levels(colData(Kang_subset)$stim)
-    res_2 = log2_FC(res = res,
-    # --- top_results [] ---
+    # --- Differential Distribution Testing [Testing] ---
+    # Key functions: distinct_test
+    samples = Kang_subset@metadata$experiment_info$sample_id
+    group = Kang_subset@metadata$experiment_info$stim
+    design = model.matrix(~group)
+    rownames(design) = samples
+    res = distinct_test(
+        x = Kang_subset, 
+        name_assays_expression = "logcounts",
+        name_cluster = "cell",
+        name_sample = "sample_id",
+        design = design,
+        column_to_test = 2,
+        min_non_zero_cells = 20,
+        n_cores = 2
+    )
+
+    # --- Differential Testing with Batch Correction [Testing] ---
+    # Key functions: distinct_test
+    samples = Kang_subset@metadata$experiment_info$sample_id
+    group = Kang_subset@metadata$experiment_info$stim
+    batch = factor(c("A", "B", "C", "A", "B", "C"))
+    design_batch = model.matrix(~group + batch)
+    rownames(design_batch) = samples
+    res_batches = distinct_test(
+        x = Kang_subset, 
+        name_assays_expression = "logcounts",
+        name_cluster = "cell",
+        name_sample = "sample_id",
+        design = design_batch,
+        column_to_test = 2,
+        min_non_zero_cells = 20,
+        n_cores = 2
+    )
+
+    # --- Fold Change Estimation [Analysis] ---
+    # Key functions: log2_FC
+    res_fc = log2_FC(
+        res = res,
+        x = Kang_subset, 
+        name_assays_expression = "cpm",
+        name_group = "stim",
+        name_cluster = "cell"
+    )
+
+    # --- Results Filtering and Selection [Filtering] ---
     # Key functions: top_results
-    top_results(res, cluster = "Dendritic cells")
-    # --- plot densitied [] ---
-    # Key functions: plot_densities
-    plot_densities(x = Kang_subset,
-    # --- plot densitied group level [] ---
-    # Key functions: plot_densities
-    plot_densities(x = Kang_subset,
-    # --- plot_cdfs [] ---
-    # Key functions: plot_cdfs
-    plot_cdfs(x = Kang_subset,
-    # --- plot Expression [] ---
-    # Key functions: plotExpression, guides, theme
-    genes = as.character(res$gene[sel_cluster & sel_genes])
-    library(scater)
-    plotExpression(Kang_subset[,sel_column],
-    # --- UpsetR plot [] ---
-    # Key functions: upset
-    library(UpSetR)
-    res_by_cluster = split( ifelse(res$p_adj.glb < 0.01, 1, 0), res$cluster_id)
-    upset(data.frame(do.call(cbind, res_by_cluster)), nsets = 10, nintersects = 20)
+    top_all = top_results(res_fc)
+    top_dendritic = top_results(
+        res_fc, 
+        cluster = "Dendritic cells", 
+        sort_by = "log2FC"
+    )
+    top_down = top_results(
+        res_fc, 
+        up_down = "down",
+        cluster = "Dendritic cells"
+    )
+
+    # --- Density and CDF Visualization [Visualisation] ---
+    # Key functions: plot_densities, plot_cdfs
+    dens_plot = plot_densities(
+        x = Kang_subset,
+        gene = "ISG15",
+        cluster = "Dendritic cells",
+        name_assays_expression = "logcounts",
+        name_cluster = "cell",
+        name_sample = "sample_id",
+        name_group = "stim"
+    )
+    cdf_plot = plot_cdfs(
+        x = Kang_subset,
+        gene = "ISG15",
+        cluster = "Dendritic cells",
+        name_assays_expression = "logcounts",
+        name_cluster = "cell",
+        name_sample = "sample_id",
+        name_group = "stim"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

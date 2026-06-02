@@ -42,20 +42,29 @@ process BIOC_REPVIZ {
     library(RepViz)
     library(jsonlite)
 
-    # --- input BAM [] ---
-    # Key functions: kable
-    BAM_table <- read.table(system.file("extdata","BAM_input.csv", package = "RepViz"), sep = ",")
-    colnames(BAM_table) <- c("bam file","group")
-    knitr::kable(BAM_table)
-    # --- input BED [] ---
-    # Key functions: kable
-    BED_table <- read.table(system.file("extdata","BED_input.csv", package = "RepViz"), sep = ",")
-    colnames(BED_table) <- c("bed file","Legend")
-    knitr::kable(BED_table)
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, RepViz
-    region <- GRanges("chr12:110938000-110940000")
-    RepViz::RepViz(region = region,
+    # --- Genomic Region Definition [] ---
+    # Key functions: GRanges
+    region <- GenomicRanges::GRanges(
+        seqnames = "chr12",
+        ranges = IRanges::IRanges(
+            start = 110938000,
+            end = 110940000
+        )
+    )
+
+
+    # --- Visualization [] ---
+    # Key functions: RepViz
+    RepViz::RepViz(
+        region = region,
+        genome = "hg19",
+        BAM = bam_file,
+        BED = bed_file,
+        avgTrack = TRUE,
+        geneTrack = TRUE,
+        verbose = FALSE,
+        cex = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

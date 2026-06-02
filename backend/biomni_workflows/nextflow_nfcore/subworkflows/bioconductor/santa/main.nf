@@ -38,85 +38,44 @@ process BIOC_SANTA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SANTA)
     library(BinGraph)
     library(DistGraph)
     library(Knet)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: set, output
-    {hook-printfun, echo=FALSE} library(knitr, quietly=TRUE) library(formatR, quietly=TRUE) knit_hooks$set(printfun = function(before, options, envir) {     if (before) return()     txt = capture.output(dump(options$printfun, '', envir = envir))     ## reformat if tidy=TRUE     if (options$tidy)         txt = tidy.source(text=txt, output=FALSE,                           width.cutoff=30L, keep.comment=TRUE,                           keep.blank.line=FALSE)$text.tidy     paste(c('\n
-    # --- Code Block 2 [] ---
-    # Key functions: game
-    # generate the simulated network
-    require(SANTA, quietly=TRUE)
-    require(igraph, quietly=TRUE)
-    set.seed(1) # for reproducibility
-    g <- barabasi.game(n=500, power=1, m=1, directed=FALSE)
-    # --- Code Block 3 [] ---
-    # Key functions: DistGraph
-    # measure the distance between pairs of vertices in g
-    dist.method <- "shortest.paths"
-    D <- DistGraph(g, dist.method=dist.method, verbose=FALSE)
-    # --- Code Block 4 [] ---
-    # Key functions: BinGraph
-    # place the distances into discreet bins
+    # --- Spatial Binning [] ---
+    # Key functions: DistGraph, BinGraph
+    g <- igraph::make_ring(50)
+    igraph::V(g)$name <- as.character(1:50)
+    D <- DistGraph(g, dist.method="shortest.paths", verbose=FALSE)
     B <- BinGraph(D, verbose=FALSE)
-    # --- Code Block 5 [] ---
-    # Key functions: array
-    cluster.size <- 5
-    s.to.use <- c(10, 20, 50, 100, 500)
-    n.trials <- 10
-    pvalues <- array(0, dim=c(n.trials, length(s.to.use)),
-        dimnames=list(NULL, as.character(s.to.use)))
-    # --- Code Block 6 [] ---
-    # Key functions: empty, edges, attribute
-    # create the network
-    n.nodes <- 12
-    edges <- c(1,2, 1,3, 1,4, 2,3, 2,4, 3,4, 1,5, 5,6,
-               2,7, 7,8, 4,9, 9,10, 3,11, 11,12)
-    weights1 <- weights2 <- rep(0, n.nodes)
-    # --- Code Block 8 [] ---
-    # Key functions: attribute
-    # obtain the GO term associations from org.Sc.sgd.db package
-    library(org.Sc.sgd.db, quietly=TRUE)
-    xx <- as.list(org.Sc.sgdGO2ALLORFS)
-    go.terms <- c("GO:0000082", "GO:0003682", "GO:0007265",
-                  "GO:0040008", "GO:0090329")
-    # --- Code Block 9 [] ---
+
+
+    # --- Gene Set Clustering Analysis [] ---
     # Key functions: Knet
-    results <- list()
-    for (name in network.names) {
-        results[[name]] <- Knet(networks[[name]], nperm=10,
-            vertex.attr=go.terms, edge.attr="distance", verbose=FALSE)
-        results[[name]] <- sapply(results[[name]],
-    # --- Code Block 10 [] ---
-    # Key functions: data
-    # load igraph objects
-    data(g.bandyopadhyay.treated)
-    data(g.bandyopadhyay.untreated)
-    networks <- list(
-        treated=g.bandyopadhyay.treated,
-    # --- Code Block 12 [] ---
+    g <- igraph::make_ring(50)
+    igraph::V(g)$name <- as.character(1:50)
+    igraph::V(g)$phenotype <- rnorm(50)
+    res <- Knet(g, nperm=100, dist.method="shortest.paths",
+                vertex.attr="phenotype", verbose=FALSE)
+    p_val <- res$pval
+
+
+    # --- Differential Clustering Analysis [] ---
     # Key functions: Knet
-    results <- sapply(networks, function(g) Knet(g, nperm=10,
-        dist.method="shortest.paths", vertex.attr="rdds",
-        edge.attr="distance"), simplify=FALSE)
+    g1 <- igraph::make_ring(50)
+    igraph::V(g1)$name <- as.character(1:50)
+    igraph::V(g1)$phenotype <- rnorm(50)
+    g2 <- igraph::make_ring(50)
+    igraph::V(g2)$name <- as.character(1:50)
+    igraph::V(g2)$phenotype <- rnorm(50)
+    networks <- list(net1=g1, net2=g2)
+    results <- sapply(networks, function(g) {
+        Knet(g, nperm=50, dist.method="shortest.paths",
+             vertex.attr="phenotype", verbose=FALSE)
+    }, simplify=FALSE)
     p.values <- sapply(results, function(res) res$pval)
-    p.values
-    # --- Code Block 13 [] ---
-    # Key functions: data
-    # laod igraph object
-    data(g.srivas.high)
-    data(g.srivas.untreated)
-    networks <- list(
-        high=g.srivas.high,
-    # --- Code Block 15 [] ---
-    # Key functions: Knet
-    p.values <- sapply(networks, function(g)
-           Knet(g, nperm=10, dist.method="shortest.paths",
-           vertex.attr="dsbr", edge.attr="distance")$pval)
-    p.values
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

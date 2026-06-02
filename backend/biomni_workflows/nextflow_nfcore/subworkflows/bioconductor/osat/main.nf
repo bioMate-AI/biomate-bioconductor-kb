@@ -38,77 +38,46 @@ process BIOC_OSAT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(OSAT)
     library(MSA)
     library(jsonlite)
 
-    # --- Initialize [] ---
-    # Key functions: path
-    library(OSAT)
-    inPath <- system.file('extdata', package='OSAT')
-    pheno <- read.table(file.path(inPath, 'samples.txt'),
+    # --- Sample Setup [Sample Setup] ---
+    # Key functions: setup.sample
+    inPath <- system.file('extdata', package='osat')
+    pheno <- read.table(file.path(inPath, 'samples.txt'), 
                         header=TRUE, sep="\t", colClasses="factor")
-    # --- Tbl1 [] ---
-    # Key functions: xtable
-    library(xtable)
-    print(xtable(summary(pheno), caption="Example Data", label = "tbl:tbl1"), table.placement = "tbp",caption.placement = "top")
-    # --- Pheno2 [] ---
-    # Key functions: with, frame
-    ## with(pheno, as.data.frame(table(SampleType, Race, AgeGrp)))
-    # --- Tbl2 [] ---
-    # Key functions: xtable, with, frame
-    print(xtable(with(pheno, as.data.frame(table(SampleType, Race, AgeGrp))), caption="Data distribution", label = "tbl:tbl2"), table.placement = "tbp",
-    caption.placement = "top")
-    # --- Gs [] ---
-    # Key functions: sample
-    gs <- setup.sample(pheno, optimal=c("SampleType", "Race", "AgeGrp"))
-    # --- Container [] ---
-    # Key functions: container
-    gc <- setup.container(IlluminaBeadChip96Plate, 6, batch='plates')
-    # --- Gsetup [] ---
-    # Key functions: setup
-    set.seed(123)    # to create reproducible result
-    # demonstration only. nSim=5000 or more are commonly used.
-    gSetup <- create.optimized.setup(sample=gs, container=gc, nSim=1000)
-    # --- Csvsetup [] ---
-    # Key functions: csv, setup
-    write.csv(get.experiment.setup(gSetup),
-              file="gSetup.csv", row.names=FALSE)
-    # --- Csvmsa [] ---
-    # Key functions: MSA, csv
+    gs <- setup.sample(pheno, 
+                       optimal=c("SampleType", "Race", "AgeGrp"),
+                       strata=c("SampleType"))
+
+    # --- Container Setup [Container Setup] ---
+    # Key functions: setup.container
+    gc <- setup.container(IlluminaBeadChip96Plate, 
+                          n=6, 
+                          batch='plates')
+
+    # --- Optimization and Assignment [Optimization and Assignment] ---
+    # Key functions: create.optimized.setup, get.experiment.setup
+    gSetup <- create.optimized.setup(sample=gs, 
+                                     container=gc, 
+                                     nSim=1000)
+    assignment <- get.experiment.setup(gSetup)
+    write.csv(assignment, file="gSetup.csv", row.names=FALSE)
+
+    # --- Quality Control and Evaluation [Quality Control and Evaluation] ---
+    # Key functions: QC, multi.chisq.test
+    QC(gSetup)
+    assignment <- get.experiment.setup(gSetup)
+    multi.chisq.test(assignment, 
+                     grpVar='plates', 
+                     varList=c("SampleType", "Race", "AgeGrp"))
+
+    # --- Mapping to MSA Plate [Mapping to MSA Plate] ---
+    # Key functions: map.to.MSA
     out <- map.to.MSA(gSetup, MSA4.plate)
-    write.csv(out, "MSAsetup.csv", row.names = FALSE)
-    # --- Optblock [] ---
-    # Key functions: sample, setup
-    gs2 <- setup.sample(pheno,  strata=c("SampleType"),
-              optimal=c("SampleType", "Race", "AgeGrp") )
-    set.seed(123)    # to create reproducible result
-    # demonstration only. nSim=5000 or more are commonly used.
-    gSetup2 <- create.optimized.setup("optimal.block",
-    # --- Random [] ---
-    # Key functions: getLayout, runif
-    set.seed(397)        # an unfortunate choice
-    c1 <- getLayout(gc)  # available wells
-    c1 <- c1[order(runif(nrow(c1))),] # shuffle randomly
-    randomSetup <- cbind(pheno, c1[1:nrow(pheno), ])
-         # create a sample assignment
-    # --- Random2 [] ---
-    # Key functions: test
-    multi.chisq.test(randomSetup, grpVar='plates',
-          varList=c("SampleType", "Race", "AgeGrp"))
-    # --- Gsnew [] ---
-    # Key functions: sample
-    gs <- setup.sample(pheno, optimal=c("SampleType", "Race", "AgeGrp"),
-               strata=c("SampleType"))
-    gs
-    # --- Gcnew [] ---
-    # Key functions: container
-    gc <- setup.container(IlluminaBeadChip96Plate, 6,
-              batch='plates')
-    gc
-    # --- setup [] ---
-    # Key functions: setup
-    gSetup0 <- create.experiment.setup(gs, gc)
-    myAssignment <- get.experiment.setup(gSetup0)
+    write.csv(out, "MSAsetup.csv", row.names=FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

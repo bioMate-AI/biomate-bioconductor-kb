@@ -41,67 +41,57 @@ process BIOC_SCREENR {
     library(ScreenR)
     library(jsonlite)
 
-    # --- tibble [] ---
-    # Key functions: tibble
-    data(count_table)
-    data(annotation_table)
-    colnames(data) <- c(
-    # --- Create Object [] ---
-    # Key functions: create_screenr_object
-    groups <- factor(c(
-    palette <- c("#66c2a5", "#fc8d62", rep("#8da0cb", 3), rep("#e78ac3", 3),
-    rep("#a6d854", 3), rep("#ffd92f", 3))
-    # --- Removing all zero rows [] ---
-    # Key functions: remove_all_zero_row
-    object <- remove_all_zero_row(object)
-    # --- normalize_data [] ---
-    # Key functions: normalize_data, compute_data_table
+    # --- Normalisation and Quality Control [] ---
+    # Key functions: normalize_data, compute_data_table, plot_mapped_reads, plot_barcode_lost
     object <- normalize_data(object)
     object <- compute_data_table(object)
-    # --- plot mapped reads [] ---
-    # Key functions: plot_mapped_reads, coord_flip, scale_y_continuous, theme, ggtitle
-    plot <- plot_mapped_reads(object, palette) +
-    ggplot2::coord_flip() +
-    ggplot2::scale_y_continuous(labels = scales::comma) +
-    # --- plot mapped reads distribution boxplot [] ---
-    # Key functions: plot_mapped_reads_distribution, coord_flip, theme
-    plot <- plot_mapped_reads_distribution(
-    coord_flip() +
-    theme(legend.position = "none")
-    # --- plot mapped reads distribution density [] ---
-    # Key functions: plot_mapped_reads_distribution, theme
-    plot <- plot_mapped_reads_distribution(
-    ggplot2::theme(legend.position = "none")
-    # --- plot barcode lost [] ---
-    # Key functions: plot_barcode_lost, coord_flip
-    plot <- plot_barcode_lost(screenR_Object = object, palette = palette) +
-    ggplot2::coord_flip()
-    # --- plot barcode lost for gene [] ---
-    # Key functions: plot_barcode_lost_for_gene
-    plot <- plot_barcode_lost_for_gene(object,
-    samples = c("Time4_TRT_C", "Time4_CTRL_C")
-    # --- Plot MDS Sample [] ---
-    # Key functions: plot_mds
-    plot_mds(screenR_Object = object)
-    # --- Plot MDS Treatment [] ---
-    # Key functions: get_data_table, distinct, plot_mds
-    group_table <- get_data_table(object)   %>%
-    select(Sample, Day, Treatment) %>%
-    distinct()
-    # --- Plot MDS Day [] ---
-    # Key functions: plot_mds
-    plot_mds(
-    groups = factor(x = group_day, levels = unique(group_day))
-    # --- plot_zscore_distribution [] ---
-    # Key functions: plot_zscore_distribution
-    data_with_measure_TRT <- list(
-    Time3 = compute_metrics(
-    Time4 = compute_metrics(
-    # --- plot_trend [] ---
-    # Key functions: plot_trend
-    plot_trend(screenR_Object = object,
-    group_var = c("Time1", "Time2", "TRT"))
-    plot_trend(screenR_Object = object,
+    palette <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3")
+    p1 <- plot_mapped_reads(object, palette)
+    p2 <- plot_barcode_lost(screenR_Object = object, palette = palette)
+
+
+    # --- Dimensionality Reduction [] ---
+    # Key functions: plot_mds, get_data_table
+    p_mds1 <- plot_mds(screenR_Object = object)
+    group_table <- get_data_table(object)
+    group_treatment <- group_table$Treatment
+    p_mds2 <- plot_mds(
+        screenR_Object = object,
+        groups = factor(x = group_treatment, levels = unique(group_treatment))
+    )
+
+
+    # --- Statistical Screening and Hit Identification [] ---
+    # Key functions: compute_metrics, find_zscore_hit, find_camera_hit, find_roast_hit
+    metrics_t3 <- compute_metrics(
+        object, control = "CTRL", treatment = "TRT", day = "Time3"
+    )
+    z_hits <- find_zscore_hit(
+        table_treate_vs_control = metrics_t3,
+        number_barcode = 6, metric = "median"
+    )
+    groups <- factor(c("T1", "T1", "T2", "T2"))
+    matrix_model <- model.matrix(~ groups)
+    colnames(matrix_model) <- unique(groups)
+    cam_hits <- find_camera_hit(
+        screenR_Object = object, matrix_model = matrix_model,
+        contrast = "Time3_TRT"
+    )
+
+
+    # --- Candidate Prioritisation and Visualisation [] ---
+    # Key functions: find_common_hit, plot_common_hit, plot_trend
+    common_hits <- find_common_hit(
+        z_hits, cam_hits, roast_hits, common_in = 2
+    )
+    p_venn <- plot_common_hit(
+        hit_zscore = z_hits, hit_camera = cam_hits,
+        roast_hits, show_elements = FALSE, show_percentage = TRUE
+    )
+    p_trend <- plot_trend(
+        screenR_Object = object, genes = common_hits[1],
+        nrow = 2, ncol = 2, group_var = c("Time1", "Time2", "TRT")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

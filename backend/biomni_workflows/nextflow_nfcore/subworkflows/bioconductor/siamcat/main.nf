@@ -41,29 +41,49 @@ process BIOC_SIAMCAT {
     library(SIAMCAT)
     library(jsonlite)
 
-    # --- clean metadata 1 [] ---
-    # Key functions: group_by, ungroup
-    select(sampleID, subjectID, study_condition, disease_subtype,
-    mutate(visit=str_extract(sampleID, '_[0-9]+$')) %>%
-    mutate(visit=str_remove(visit, '_')) %>%
-    # --- curated Metagenomic Data [] ---
-    # Key functions: curatedMetagenomicData
-    feat <- curatedMetagenomicData(x=x, dryrun=FALSE)
-    # --- group_by [] ---
-    # Key functions: group_by, ungroup
-    meta.nielsen <- read_tsv(paste0(data.loc, 'meta_Nielsen.tsv'))
-    filter(Group %in% c('CTR', 'UC')) %>%
-    group_by(Individual_ID) %>%
-    # --- conf assoc plot [] ---
-    # Key functions: ggplot, geom_point, xlab, ylab, theme_classic
+    # --- Feature Filtering [] ---
+    # Key functions: filter.features
+    sc.obj <- filter.features(
+        sc.obj,
+        cutoff = 1e-04,
+        filter.method = "abundance"
+    )
+    sc.obj <- filter.features(
+        sc.obj,
+        cutoff = 0.05,
+        filter.method = "prevalence",
+        feature.type = "filtered"
+    )
+
+
+    # --- Association Testing [] ---
+    # Key functions: check.associations, association.plot
+    sc.obj <- check.associations(
+        sc.obj,
+        log.n0 = 1e-06,
+        alpha = 0.1
+    )
+    association.plot(
+        sc.obj,
+        fn.plot = "./association_plot_nielsen.pdf",
+        panels = c("fc")
+    )
+
+
+    # --- Confounder Analysis [] ---
+    # Key functions: check.confounders
+    check.confounders(
+        sc.obj,
+        fn.plot = "./confounders_nielsen.pdf"
+    )
+
+
+    # --- Feature Extraction [] ---
+    # Key functions: get.filt_feat.matrix, label, meta, associations
+    feat.dnk <- get.filt_feat.matrix(sc.obj)
+    label.dnk <- label(sc.obj)$label
+    meta.data <- meta(sc.obj)
     assoc.sp <- associations(sc.obj)
-    assoc.sp$species <- rownames(assoc.sp)
-    assoc.sp_dnk <- associations(sc.obj.full)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: meta, str_detect, ggplot, geom_boxplot, geom_jitter
-    feat.dnk <- get.filt_feat.matrix(sc.obj.full)
-    label.dnk <- label(sc.obj.full)$label
-    country <- meta(sc.obj.full)$Country
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

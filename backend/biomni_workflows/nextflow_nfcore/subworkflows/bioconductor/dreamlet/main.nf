@@ -38,26 +38,29 @@ process BIOC_DREAMLET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(dreamlet)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, perCellQCMetrics, isOutlier
-    library(dreamlet)
-    library(muscat)
-    library(ExperimentHub)
-    # --- aggregate To Pseudo Bulk [] ---
-    # Key functions: aggregateToPseudoBulk
-    sce$id <- paste0(sce$StimStatus, sce$ind)
-    pb <- aggregateToPseudoBulk(sce,
-    # --- metadata [] ---
-    # Key functions: metadata
-    metadata(pb)$aggr_means
-    # --- plot Var Part [] ---
-    # Key functions: plotVarPart
-    res.proc <- processAssays(pb, form, min.count = 5)
+    # --- Assay Normalization [] ---
+    # Key functions: processAssays
+    form <- ~ StimStatus + value1 + value2
+    res.proc <- processAssays(
+        pb,
+        form,
+        min.count = 5
+    )
+
+
+    # --- Variance Partitioning [] ---
+    # Key functions: fitVarPart, plotVarPart
     vp.lst <- fitVarPart(res.proc, form)
     plotVarPart(vp.lst, label.angle = 60)
+
+
+    # --- Differential Expression [] ---
+    # Key functions: dreamlet
+    res.dl <- dreamlet(res.proc, form)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

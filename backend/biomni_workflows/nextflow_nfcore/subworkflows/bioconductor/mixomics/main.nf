@@ -38,22 +38,58 @@ process BIOC_MIXOMICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(mixOmics)
     library(X11)
     library(jsonlite)
 
-    # --- Html document analysis [] ---
-    # Key functions: html_document, img, write_lines, plotIndiv, plotVar, biplot, plotLoadings, detectCores
-    set.seed(33) # For reproducibility with this handbook, remove otherwise
-    train <- sample(1:nrow(X), 50)    # Randomly select 50 samples in training
-    test <- setdiff(1:nrow(X), train) # Rest is part of the test set
-    # --- Network and co-expression analysis [] ---
-    # Key functions: X11, network
-    If facing margin issues, use either X11() or save the plot using the
-    network(final.mint.splsda.stem, comp = 1,
-    color.node = c(color.mixo(1), color.mixo(2)),
-    # --- Visualization and reporting [] ---
-    # Key functions: kable
-    knitr::kable(extr.stab.spls2.liver.comp1[21:40], caption = 'Stability measure (occurence of selection) of the bottom 20 variables from X selected with sPLS2 across repeated 10-fold subsampling on component 1.', longtable = TRUE)
+    # --- Principal Component Analysis ---
+    # Key functions: pca, color.mixo, plotVar, biplot
+    data(liver.toxicity)
+    X <- liver.toxicity$gene
+    final.pca.multi <- pca(X, ncomp = 3, center = TRUE, scale = TRUE)
+    col.var <- rep(color.mixo(1), ncol(X))
+    names(col.var) <- colnames(X)
+    plotVar(final.pca.multi, comp = c(1, 2), var.names = FALSE,
+            col = list(col.var), cex = 3,
+            title = 'Liver Toxicity PCA')
+    biplot(final.pca.multi, group = liver.toxicity$treatment$Dose,
+           legend.title = 'Dose')
+
+    # --- Sparse PCA Tuning and Fitting ---
+    # Key functions: tune.spca, spca, plotIndiv, plotLoadings
+    grid.keepX <- c(seq(5, 30, 5))
+    tune.spca.result <- tune.spca(X, ncomp = 2, folds = 3,
+                                  test.keepX = grid.keepX,
+                                  nrepeat = 2)
+    keepX.select <- tune.spca.result$choice.keepX[1:2]
+    final.spca.multi <- spca(X, ncomp = 2, keepX = keepX.select)
+    plotIndiv(final.spca.multi, comp = c(1, 2), ind.names = TRUE,
+              group = liver.toxicity$treatment$Dose,
+              title = 'sPCA comp 1 - 2')
+    plotLoadings(final.spca.multi, comp = 2)
+
+    # --- PLS Performance Evaluation ---
+    # Key functions: pls, perf
+    y <- liver.toxicity$clinic[, "ALB.g.dL."]
+    tune.pls1.liver <- pls(X = X, Y = y, ncomp = 3, mode = 'regression')
+    Q2.pls1.liver <- perf(tune.pls1.liver, validation = 'Mfold',
+                          folds = 5, nrepeat = 2)
+    plot(Q2.pls1.liver, criterion = 'Q2')
+
+    # --- Sparse PLS Tuning and Fitting ---
+    # Key functions: tune.spls, spls, selectVar
+    list.keepX <- c(5:10, seq(15, 30, 5))
+    tune.spls1.MAE <- tune.spls(X, y, ncomp = 2,
+                                test.keepX = list.keepX,
+                                validation = 'Mfold', folds = 5,
+                                nrepeat = 2, progressBar = FALSE,
+                                measure = 'MAE')
+    choice.ncomp <- tune.spls1.MAE$choice.ncomp$ncomp
+    choice.keepX <- tune.spls1.MAE$choice.keepX[1:choice.ncomp]
+    spls1.liver <- spls(X, y, ncomp = choice.ncomp,
+                        keepX = choice.keepX, mode = "regression")
+    selected.vars <- selectVar(spls1.liver, comp = 1)$X$name
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,56 @@ process BIOC_UMI4CATS {
     library(UMI4Cats)
     library(jsonlite)
 
-    # --- Sample metadata inspection [] ---
-    # Key functions: include_graphics, downloadUMI4CexampleData, digestGenome, contactsUMI4C, statsUMI4C, separate, tempdir, demultiplexFastq
+    # --- Demultiplexing and Processing Contacts [] ---
+    # Key functions: demultiplexFastq, contactsUMI4C
+    demultiplexFastq(
+        fastq = fastq,
+        barcodes = barcodes,
+        out_path = out_path
+    )
+    contactsUMI4C(
+        fastq_dir = raw_dir,
+        wk_dir = file.path(path, "CIITA"),
+        file_pattern = "ctrl_hi24_CIITA",
+        bait_seq = "GGACAAGCTCCCTGCAACTCA",
+        bait_pad = "GGACTTGCA",
+        res_enz = "GATC",
+        cut_pos = 0,
+        digested_genome = hg19_dpnii,
+        bowtie_index = index_path,
+        ref_gen = refgen,
+        sel_seqname = "chr16",
+        threads = 2,
+        numb_reads = 1e6
+    )
+
+
+    # --- Object Construction and Visualization [] ---
+    # Key functions: makeUMI4C, plotUMI4C
+    umi <- makeUMI4C(
+        colData = colData,
+        viewpoint_name = "CIITA",
+        grouping = "condition",
+        bait_expansion = 2e6
+    )
+    plotUMI4C(umi, grouping=NULL)
+
+
+    # --- Interaction Calling and Differential Testing [] ---
+    # Key functions: makeWindowFragments, callInteractions, getSignInteractions, fisherUMI4C, waldUMI4C
     win_frags <- makeWindowFragments(umi, n_frags=8)
-    gr <-  callInteractions(umi4c = umi,
-    all <- plotInteractionsUMI4C(umi, gr, grouping = NULL, significant=FALSE, xlim=c(10.75e6, 11.1e6)) # Plot all regions
+    gr <- callInteractions(umi4c = umi,
+                           design = ~condition,
+                           query_regions = win_frags,
+                           padj_threshold = 0.01,
+                           zscore_threshold=2)
+    inter <- getSignInteractions(gr)
+    umi_fisher <- fisherUMI4C(umi, query_regions = inter,
+                              filter_low = 20,
+                              grouping="condition")
+    umi_wald <- waldUMI4C(umi4c=umi,
+                          query_regions = inter,
+                          design=~condition)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,37 +38,35 @@ process BIOC_MISSMETHYL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(missMethyl)
     library(DGEList)
     library(RUVadj)
     library(RUVfit)
     library(SWAN)
     library(jsonlite)
 
-    # --- Create DGEList count object [] ---
-    # Key functions: DGEList, gsameth, topGSA
-    hallmark <- readRDS(url("http://bioinf.wehi.edu.au/MSigDB/v7.1/Hs.h.all.v7.1.entrez.rds"))
-    gsa <- gsameth(sig.cpg=sigCpGs, all.cpg=rownames(top), collection=hallmark)
-    topGSA(gsa, n=10)
-    # --- Filter by row sum threshold [] ---
-    # Key functions: detectionP, rowSums, calcNormFactors
-    isexpr <- rowSums(cpm(y)>1) >= 20
-    hasannot <- rowSums(is.na(y$genes))==0
-    dim(y)
-    # --- Get top DE genes table (limma) [] ---
-    # Key functions: topTable, lmFit, eBayes, makeContrasts
-    design2 <- model.matrix(~0+group+id)
-    fitvar.contr <- varFit(Mval, design=design2, coef=c(1,2))
-    contr <- makeContrasts(groupcancer-groupnormal,levels=colnames(design2))
-    # --- MDS plot of sample distances [] ---
-    # Key functions: plotMDS
-    par(mfrow=c(1,1))
-    plotMDS(Mval, labels=targets$Sample_Name, col=as.integer(factor(targets$status)))
-    legend("topleft",legend=c("Cancer","Normal"),pch=16,cex=1.2,col=1:2)
-    # --- Annotation analysis [] ---
-    # Key functions: annotation, preprocessRaw, SWAN, densityByProbeType, getMeth, getUnmeth, getBeta, stripchart
-    library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-    gst <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection="GO",
-    topGSA(gst, n=10)
+    # --- RUV Adjustment for Unwanted Variation [] ---
+    # Key functions: getINCs, RUVfit, RUVadj
+    grp <- factor(targets$status, labels = c(0, 1))
+    INCs <- getINCs(rgSet)
+    Mc <- rbind(M, INCs)
+    ctl1 <- rownames(Mc) %in% rownames(INCs)
+    rfit1 <- RUVfit(Y = Mc, X = grp, ctl = ctl1)
+    rfit2 <- RUVadj(Y = Mc, fit = rfit1)
+
+
+    # --- Adjusted Value Extraction and Visualization [] ---
+    # Key functions: topRUV, RUVfit, getAdj
+    top1 <- topRUV(rfit2, num = Inf, p.BH = 1)
+    ctl2 <- rownames(M) %in% rownames(top1[top1$p.BH_X1.1 > 0.5, ])
+    rfit3 <- RUVfit(Y = M, X = grp, ctl = ctl2)
+    Madj <- getAdj(M, rfit3)
+
+
+    # --- Differential Variability Analysis [] ---
+    # Key functions: varFit, topVar
+    fitvar <- varFit(Mval, design = design, coef = c(1, 4))
+    topDV <- topVar(fitvar, coef = 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

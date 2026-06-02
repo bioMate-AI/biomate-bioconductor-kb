@@ -41,13 +41,26 @@ process BIOC_NETZOOR {
     library(netZooR)
     library(jsonlite)
 
-    # --- fig=TRUE [] ---
-    # Key functions: condorCoreEnrich
-    core_stats <- condorCoreEnrich(test_nodes=c("Alice","Mary"),
-    # --- fig=TRUE [] ---
+    # --- Community Detection [] ---
+    # Key functions: condorCluster
+    condor.object <- condorCluster(condor.object, project = FALSE)
+
+
+    # --- Modularity and Coreness Analysis [] ---
+    # Key functions: condorQscore, condorCoreEnrich
+    condor.object <- condorQscore(condor.object)
+    q_women <- condor.object$qscores$red.qscore
+    core_stats <- condorCoreEnrich(
+        test_nodes = c("Alice", "Mary"),
+        q = q_women,
+        perm = TRUE,
+        plot.hist = TRUE
+    )
+
+
+    # --- Community Heatmap Visualisation [] ---
     # Key functions: condorPlotHeatmap
     condorPlotHeatmap(condor.object)
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

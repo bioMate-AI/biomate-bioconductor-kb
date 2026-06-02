@@ -38,23 +38,56 @@ process BIOC_NUCLER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(nucleR)
     library(GRanges)
     library(jsonlite)
 
-    # --- Compute genomic coverage [] ---
-    # Key functions: syntheticNucMap, coverage, controlCorrection, ggplot, reduce, GRanges, plotPeaks
-    red_calls <- reduce(nuc_calls)
-    red_class <- GRanges(red_calls, isFuzzy=width(red_calls) > 140)
-    plotPeaks(red_calls, htseq_fft, threshold="25%")
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_line, xlab, ylab, mkEntry, filterFFT, facet_grid
-    tiling_fft <- filterFFT(tiling_raw, pcKeepComp=0.01)
-    htseq_raw <- as.vector(cover_trim[[1]])[i]
-    htseq_fft <- filterFFT(htseq_raw, pcKeepComp=0.02)
-    # --- ProcessTilingArray analysis [] ---
-    # Key functions: processTilingArray, readBAM, processReads, filterFFT, peakDetection, plotPeaks, syntheticNucMap
-    reads_pair <- processReads(nucleosome_htseq, type="paired", fragmentLen=200)
-    reads_trim <- processReads(nucleosome_htseq, type="paired", fragmentLen=200,
+    # --- Read Processing [] ---
+    # Key functions: processReads
+    reads_pair <- processReads(
+        nucleosome_htseq,
+        type = "paired",
+        fragmentLen = 200
+    )
+    reads_trim <- processReads(
+        nucleosome_htseq,
+        type = "paired",
+        fragmentLen = 200,
+        trim = 40
+    )
+
+
+    # --- Coverage Calculation [] ---
+    # Key functions: coverage.rpm
+    cover_pair <- coverage.rpm(reads_pair)
+    cover_trim <- coverage.rpm(reads_trim)
+
+
+    # --- Noise Filtering [] ---
+    # Key functions: filterFFT
+    tiling_fft <- filterFFT(
+        nucleosome_tiling,
+        pcKeepComp = 0.01
+    )
+    htseq_fft <- filterFFT(
+        as.vector(cover_trim[[1]]),
+        pcKeepComp = 0.02
+    )
+
+
+    # --- Peak Detection [] ---
+    # Key functions: peakDetection, plotPeaks
+    peaks <- peakDetection(
+        htseq_fft,
+        threshold = "25%",
+        score = FALSE
+    )
+    plotPeaks(
+        peaks,
+        htseq_fft,
+        threshold = "25%",
+        ylab = "coverage"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

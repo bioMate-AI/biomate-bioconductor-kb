@@ -38,65 +38,35 @@ process BIOC_FFPE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ffpe)
     library(CATplot)
     library(jsonlite)
 
-    # --- Foo [] ---
-    # Key functions: packageDescription
-    options(keep.source = TRUE)
-    options(width = 60)
-    options(eps = FALSE)
-    foo <- packageDescription("ffpe")
-    # --- Sortediqrplot [] ---
-    # Key functions: sortedIqrPlot
-    library(ffpe)
-    library(ffpeExampleData)
-    data(lumibatch.GSE17565)
-    sortedIqrPlot(lumibatch.GSE17565,dolog2=TRUE)
-    # --- Sampleqc [] ---
+    # --- Sample Filtering [] ---
     # Key functions: sampleQC
-    QC <- sampleQC(lumibatch.GSE17565,xaxis="index",cor.to="pseudochip",QCmeasure="IQR")
-    # --- Dotchart [] ---
-    # Key functions: frame, dotchart, ifelse
-    QCvsRNA <- data.frame(inputRNA.ng=lumibatch.GSE17565$inputRNA.ng,
-                          rejectQC=QC$rejectQC)
-    QCvsRNA <- QCvsRNA[order(QCvsRNA$rejectQC,-QCvsRNA$inputRNA.ng),]
-    par(mgp=c(4,2,0))
-    dotchart(log10(QCvsRNA$inputRNA.ng),
-    # --- Sampleqc2 [] ---
-    # Key functions: sampleQC
-    QC <- sampleQC(lumibatch.GSE17565,xaxis="index",cor.to="pseudochip",QCmeasure=log10(lumibatch.GSE17565$inputRNA.ng),labelnote="log10(RNA concentration)")
-    # --- Process Rep [] ---
-    # Key functions: lumiT, lumiN
-    ##replicate 1
-    lumibatch.rep1 <- lumibatch.QC[,lumibatch.QC$replicate==1]
-    lumbiatch.rep1 <- lumiT(lumibatch.rep1,"log2")
-    lumbiatch.rep1 <- lumiN(lumibatch.rep1,"quantile")
-    ##replicate 2
-    # --- Keepsamples [] ---
-    # Key functions: intersect, omit, equal
-    available.samples <- intersect(lumibatch.rep1$source,lumibatch.rep2$source)
-    lumibatch.rep1 <- lumibatch.rep1[,na.omit(match(available.samples,lumibatch.rep1$source))]
-    lumibatch.rep2 <- lumibatch.rep2[,na.omit(match(available.samples,lumibatch.rep2$source))]
-    all.equal(lumibatch.rep1$source,lumibatch.rep2$source)
-    # --- Repcor [] ---
-    # Key functions: exprs, any
-    probe.var <- apply(exprs(lumibatch.rep1),1,var)
-    rowCors = function(x, y) {  ##rowCors function borrowed from the arrayMagic Bioconductor package
-      sqr = function(x) x*x
-      if(!is.matrix(x)||!is.matrix(y)||any(dim(x)!=dim(y)))
-        stop("Please supply two matrices of equal size.")
-    # --- Ttest [] ---
-    # Key functions: rowttests, exprs, factor
-    library(genefilter)
-    ttests.rep1 <- rowttests(exprs(lumibatch.rep1),fac=factor(lumibatch.rep1$cell.type))
-    ttests.rep2 <- rowttests(exprs(lumibatch.rep2),fac=factor(lumibatch.rep2$cell.type))
-    pvals.rep1 <- ttests.rep1$p.value;names(pvals.rep1) <- rownames(ttests.rep1)
-    pvals.rep2 <- ttests.rep2$p.value;names(pvals.rep2) <- rownames(ttests.rep2)
-    # --- Catplot [] ---
+    data(lumibatch.GSE17565, package = "ffpeExampleData")
+    QC <- sampleQC(
+        lumibatch.GSE17565, 
+        xaxis = "index", 
+        cor.to = "pseudochip", 
+        QCmeasure = "IQR"
+    )
+    lumibatch.QC <- lumibatch.GSE17565[, !QC$rejectQC]
+
+
+    # --- Concordance Analysis [] ---
     # Key functions: CATplot
-    x <- CATplot(pvals.rep1,pvals.rep2,maxrank=1000,xlab="Size of top-ranked gene lists",ylab="Concordance")
-    legend("topleft",lty=1:2,legend=c("Actual concordance","Concordance expected by chance"), bty="n")
+    pvals.rep1 <- runif(1000, 0, 1)
+    pvals.rep2 <- runif(1000, 0, 1)
+    names(pvals.rep1) <- paste0("gene", 1:1000)
+    names(pvals.rep2) <- paste0("gene", 1:1000)
+    x <- CATplot(
+        pvals.rep1, 
+        pvals.rep2, 
+        maxrank = 1000, 
+        xlab = "Size of top-ranked gene lists", 
+        ylab = "Concordance"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

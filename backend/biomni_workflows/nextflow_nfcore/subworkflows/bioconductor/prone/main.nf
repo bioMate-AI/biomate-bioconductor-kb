@@ -41,11 +41,72 @@ process BIOC_PRONE {
     library(PRONE)
     library(jsonlite)
 
-    # --- load real tmt [] ---
-    # Key functions: normalize_se, remove_reference_samples, specify_comparisons, run_DE, apply_thresholds
+    # --- Normalisation [normalize_se, remove_reference_samples] ---
+    # Key functions: normalize_se, remove_reference_samples
     data("tuberculosis_TMT_se")
-    se_norm <- normalize_se(se, c("IRS_on_RobNorm", "IRS_on_Median",
+    se <- tuberculosis_TMT_se
+    se_norm <- normalize_se(
+        se,
+        c("IRS_on_RobNorm", "IRS_on_Median", "IRS_on_LoessF", "IRS_on_Quantile"),
+        combination_pattern = "_on_"
+    )
     se_norm <- remove_reference_samples(se_norm)
+
+    # --- Differential Expression Analysis [run_DE] ---
+    # Key functions: run_DE
+    comparisons <- c("PTB-HC", "TBL-HC", "TBL-PTB", "Rx-PTB")
+    de_res <- run_DE(
+        se = se_norm,
+        comparisons = comparisons,
+        DE_method = "limma",
+        logFC = TRUE,
+        logFC_up = 1,
+        logFC_down = -1,
+        p_adj = TRUE,
+        alpha = 0.05,
+        trend = TRUE,
+        robust = TRUE
+    )
+
+    # --- Thresholding and Filtering [apply_thresholds] ---
+    # Key functions: apply_thresholds
+    new_de_res <- apply_thresholds(
+        de_res = de_res,
+        logFC = TRUE,
+        logFC_up = 0,
+        logFC_down = 0,
+        p_adj = TRUE,
+        alpha = 0.05
+    )
+
+    # --- Visualisation of DE Results [plot_overview_DE_bar, plot_overview_DE_tile, plot_volcano_DE] ---
+    # Key functions: plot_overview_DE_bar, plot_overview_DE_tile, plot_volcano_DE
+    plot_overview_DE_bar(
+        de_res,
+        comparisons = comparisons,
+        plot_type = "facet_regulation"
+    )
+    plot_overview_DE_tile(de_res)
+    plot_volcano_DE(
+        de_res,
+        comparisons = comparisons[1],
+        facet_norm = TRUE
+    )
+
+    # --- Consensus and Enrichment Analysis [extract_consensus_DE_candidates, plot_intersection_enrichment] ---
+    # Key functions: extract_consensus_DE_candidates, plot_intersection_enrichment
+    consensus_candidates <- extract_consensus_DE_candidates(
+        de_res, comparisons = comparisons, norm_thr = 0.8
+    )
+    enrich_results <- plot_intersection_enrichment(
+        se, de_res,
+        comparison = "PTB-HC",
+        ain = c("IRS_on_Median", "IRS_on_RobNorm"),
+        id_column = "Gene.Names",
+        organism = "hsapiens",
+        source = "KEGG"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

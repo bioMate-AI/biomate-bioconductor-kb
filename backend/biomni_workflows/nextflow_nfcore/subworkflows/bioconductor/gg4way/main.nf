@@ -38,36 +38,65 @@ process BIOC_GG4WAY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(gg4way)
     library(DESeq)
     library(DESeqDataSet)
     library(SE2DGEList)
     library(jsonlite)
 
-    # --- Create DESeqDataSet [] ---
-    # Key functions: DESeqDataSet, counts, all, DESeq
-    library("DESeq2")
-    DESeqDataSet(design = ~ cell + dex)
-    counts() |>
-    # --- Filter lowly expressed genes [] ---
-    # Key functions: SE2DGEList, filterByExpr, calcNormFactors, voom, lmFit
-    library("edgeR")
-    library("limma")
-    SE2DGEList()
-    # --- Calculate normalization factors (TMM) [] ---
-    # Key functions: calcNormFactors, estimateDisp, glmQLFit, set_names, map
-    library("purrr")
-    calcNormFactors() |>
-    estimateDisp() |>
-    # --- Extract differential expression results [] ---
-    # Key functions: map, results, lfcShrink, gg4way
-    list("N61311 vs N052611" = c("cell", "N61311", "N052611"),
-    "N061011 vs N052611" = c("cell", "N061011", "N052611")) |>
-    map(~ dds |>
-    # --- Feature metadata inspection [] ---
-    # Key functions: install_github, rowData, gg4way, getTotals, pull, getShared, xlab, ylab
-    list("N61311 vs N052611" = c("cell", "N61311", "N052611"),
-    "N061011 vs N052611" = c("cell", "N061011", "N052611")) |>
-    map(~ results(dds, contrast = .x)) |>
+    # --- Data Preparation and Conversion [SE2DGEList] ---
+    # Key functions: SE2DGEList
+    dge <- se |>
+        SE2DGEList()
+    design <- model.matrix(~ 0 + cell + dex, data = dge$samples)
+    colnames(design) <- gsub("cell", "", colnames(design))
+    contr.matrix <- limma::makeContrasts(
+        N61311 - N052611,
+        N061011 - N052611,
+        levels = c("N052611", "N061011", "N080611", "N61311", "dexuntrt")
+    )
+    keep <- edgeR::filterByExpr(dge, design)
+    dge <- dge[keep, ]
+
+    # --- Four-way Comparison Plotting [gg4way] ---
+    # Key functions: gg4way
+    efit <- dge |>
+        edgeR::calcNormFactors() |>
+        limma::voom(design) |>
+        limma::lmFit(design) |>
+        limma::contrasts.fit(contrasts = contr.matrix) |>
+        limma::eBayes()
+    p1 <- efit |>
+        gg4way(
+            x = "N61311 vs N052611",
+            y = "N061011 vs N052611",
+            label = c("PSG5", "ERAP2")
+        )
+
+    # --- Extracting Plot Statistics and Shared Genes [getTotals, getShared, getCor] ---
+    # Key functions: getTotals, getShared, getCor
+    textTable <- p1 |>
+        getTotals()
+    sharedGenes <- p1 |>
+        getShared()
+    correlationVal <- p1 |>
+        getCor()
+
+    # --- DESeq2 Integration and Plotting [gg4way] ---
+    # Key functions: gg4way
+    ddsSE <- DESeq2::DESeqDataSet(se, design = ~ cell + dex)
+    keep <- apply(DESeq2::counts(ddsSE), 1, function(gene) all(gene != 0))
+    dds <- DESeq2::DESeq(ddsSE[keep, ])
+    contrast_list <- list(
+        "N61311 vs N052611" = c("cell", "N61311", "N052611"),
+        "N061011 vs N052611" = c("cell", "N061011", "N052611")
+    )
+    res_list <- lapply(contrast_list, function(x) {
+        DESeq2::results(dds, contrast = x)
+    })
+    p2 <- res_list |>
+        gg4way(x = "N61311 vs N052611", y = "N061011 vs N052611")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

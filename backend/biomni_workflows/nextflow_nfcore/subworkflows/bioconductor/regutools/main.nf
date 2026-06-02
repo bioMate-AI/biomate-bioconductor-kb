@@ -38,100 +38,66 @@ process BIOC_REGUTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(regutools)
     library(GRanges)
     library(IRanges)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Vignettesetup [] ---
-    # Key functions: time
-    ## For links
-    library("BiocStyle")
-    ## Track time spent on making the vignette
-    startTime <- Sys.time()
-    ## Bib setup
-    # --- 'Connect Db' [] ---
-    # Key functions: connect_database, regulondb
-    library("regutools")
-    ## Other packages used
-    library("Biostrings")
-    ## Connect to the RegulonDB database
-    regulondb_conn <- connect_database()
-    # --- 'List Datasets' [] ---
-    # Key functions: list_datasets
-    list_datasets(e_coli_regulondb)
-    # --- 'List Attr' [] ---
-    # Key functions: list_attributes
-    head(list_attributes(e_coli_regulondb, "GENE"), 8)
-    # --- 'Get Dataset' [] ---
-    # Key functions: get_dataset
-    get_dataset(
+    # --- Gene and Dataset Querying [] ---
+    # Key functions: list_datasets, list_attributes, get_dataset
+    datasets <- list_datasets(e_coli_regulondb)
+    gene_attrs <- list_attributes(e_coli_regulondb, "GENE")
+    gene_data <- get_dataset(
         regulondb = e_coli_regulondb,
         dataset = "GENE",
         attributes = c("posleft", "posright", "strand", "name"),
         filters = list("name" = c("araC", "crp", "lacI"))
-    # --- 'Get Dataset Interval' [] ---
-    # Key functions: get_dataset
-    get_dataset(
-        e_coli_regulondb,
-        attributes = c("posright", "name"),
-        filters = list("posright" = c(1, 5000)),
-        interval = "posright",
-    # --- 'Get Dataset Df' [] ---
-    # Key functions: get_dataset, slotNames
-    res <- get_dataset(
-        regulondb = e_coli_regulondb,
-        dataset = "GENE",
-        attributes = c("posleft", "posright", "strand", "name"),
-        filters = list("name" = c("araC", "crp", "lacI"))
-    # --- 'Convert Granges' [] ---
-    # Key functions: convert_to_granges
-    convert_to_granges(res)
-    # --- 'Get Dataset Granges' [] ---
-    # Key functions: get_dataset
-    get_dataset(
-        regulondb = e_coli_regulondb,
-        dataset = "GENE",
-        attributes = c("posleft", "posright", "strand", "name"),
-        filters = list("name" = c("araC", "crp", "lacI")),
-    # --- 'Dnastring Res' [] ---
-    # Key functions: get_dataset, convert_to_biostrings, mcols
-    res_dnastring <- get_dataset(
+    )
+
+
+    # --- Genomic Range and Sequence Conversion [] ---
+    # Key functions: convert_to_granges, convert_to_biostrings, get_dataset
+    gene_granges <- convert_to_granges(gene_data)
+    seq_data <- get_dataset(
         regulondb = e_coli_regulondb,
         dataset = "GENE",
         attributes = c("posleft", "posright", "strand", "name", "dna_sequence"),
         filters = list("name" = c("araC", "crp", "lacI"))
-    # --- 'Product Seq' [] ---
-    # Key functions: get_dataset, convert_to_biostrings, mcols
-    res_prodstring <- get_dataset(
-        regulondb = e_coli_regulondb,
-        dataset = "GENE",
-        attributes = c("posleft", "posright", "strand", "name", "product_sequence"),
-        filters = list("name" = c("araC", "crp", "lacI"))
-    # --- 'Partial Match' [] ---
-    # Key functions: get_dataset
-    get_dataset(
+    )
+    dna_strings <- convert_to_biostrings(seq_data, seq_type = "DNA")
+
+
+    # --- Regulatory Network Analysis [] ---
+    # Key functions: get_gene_regulators, get_regulatory_network, get_regulatory_summary
+    regulators <- get_gene_regulators(
+        e_coli_regulondb, 
+        genes = c("araC", "fis", "crp")
+    )
+    reg_network <- get_regulatory_network(e_coli_regulondb)
+    reg_summary <- get_regulatory_summary(
         e_coli_regulondb,
-        attributes = c("posright", "name"),
-        filters = list("name" = "ara"),
-        partialmatch = "name",
-    # --- 'Position Interval' [] ---
-    # Key functions: get_dataset
-    get_dataset(
+        gene_regulators = c("araC", "modB")
+    )
+
+
+    # --- Transcription Factor Binding Sites and Visualization [] ---
+    # Key functions: get_binding_sites, get_dna_objects, plot_dna_objects
+    tf_binding <- get_binding_sites(
         e_coli_regulondb,
-        attributes = c("name", "strand", "posright", "product_name"),
-        dataset = "GENE",
-        filters = list(posright = c("2000", "4000000")),
-    # --- 'Genomic Elements' [] ---
-    # Key functions: get_dna_objects
-    get_dna_objects(e_coli_regulondb)
-    # --- 'Especific Ranges' [] ---
-    # Key functions: GRanges, IRanges, get_dna_objects
-    grange <- GenomicRanges::GRanges(
+        transcription_factor = "AraC",
+        output_format = "Biostrings"
+    )
+    grange_region <- GenomicRanges::GRanges(
         "chr",
         IRanges::IRanges(5000, 10000)
     )
-    get_dna_objects(e_coli_regulondb, grange)
+    dna_objects <- get_dna_objects(e_coli_regulondb, grange_region)
+    plot_dna_objects(
+        e_coli_regulondb,
+        grange_region,
+        elements = c("gene", "promoter")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

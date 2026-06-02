@@ -38,80 +38,39 @@ process BIOC_EPISTACK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(epistack)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- plot Epistack [] ---
-    # Key functions: plotEpistack
-    plotEpistack(
-    ylim = c(0, 1), zlim = c(0, 1),
-    x_labels = c("-2.5kb", "TSS", "+2.5kb"),
-    # --- add Bins [] ---
-    # Key functions: addBins, plotEpistack
-    stackepi <- addBins(stackepi, nbins = 5)
-    plotEpistack(
-    ylim = c(0, 1), zlim = c(0, 1),
-    # --- plot Epistack [] ---
-    # Key functions: plotEpistack
-    plotEpistack(
-    ylim = c(0, 1), zlim = c(0, 1),
-    x_labels = c("-2.5kb", "TSS", "+2.5kb"),
-    # --- plot Average Profile [] ---
-    # Key functions: plotAverageProfile
-    plotAverageProfile(
-    ylim = c(0, 1),
-    x_labels = c("-2.5kb", "TSS", "+2.5kb"),
-    # --- plot Stack Profile [] ---
-    # Key functions: plotStackProfile
-    plotStackProfile(
-    x_labels = c("-2.5kb", "TSS", "+2.5kb"),
-    zlim = c(0, 1)
-    # --- plot Average Profile [] ---
+    # --- Profile Visualization [] ---
     # Key functions: plotAverageProfile, plotStackProfile, plotStackProfileLegend
-    layout(matrix(1:3, ncol = 1), heights = c(1.5, 3, 0.5))
-    old_par <- par(mar = c(2.5, 4, 0.6, 0.6))
     plotAverageProfile(
-    # --- union [] ---
-    # Key functions: union, double, ifelse, mcols
-    merged_peaks <- GenomicRanges::union(peaks[[1]], peaks[[2]])
-    scores_rep1 <- double(length(merged_peaks))
-    scores_rep1[findOverlaps(peaks[[1]], merged_peaks, select = "first")] <- peaks[[1]]$score
-    # --- Resize genomic intervals [] ---
-    # Key functions: normalizeToMatrix, resize
-    library(EnrichedHeatmap)
-    coverage_matrices <- lapply(
-    function(x) {
-    # --- ready to plot [] ---
-    # Key functions: SummarizedExperiment
-    merged_peaks <- SummarizedExperiment(
-    # --- plot Epistack [] ---
+        stackepi, assay = "DNAme",
+        x_labels = c("-2.5kb", "TSS", "+2.5kb"), ylim = c(0, 1)
+    )
+    plotStackProfile(
+        stackepi, assay = "DNAme",
+        x_labels = c("-2.5kb", "TSS", "+2.5kb"), zlim = c(0, 1),
+        palette = hcl.colors
+    )
+    plotStackProfileLegend(
+        zlim = c(0, 1),
+        palette = hcl.colors
+    )
+
+
+    # --- Peak Score Visualization [] ---
     # Key functions: plotEpistack
     plotEpistack(
-    assays = c("rep1", "rep2", "input"),
-    tints = c("dodgerblue", "firebrick1", "grey"),
-    # --- peak plot bin [] ---
-    # Key functions: rowRanges, plotEpistack
-    rowRanges(merged_peaks)$bin <- rowRanges(merged_peaks)$peak_type
-    plotEpistack(
-    assays = c("rep1", "rep2", "input"),
-    # --- peak plot bin2 [] ---
-    # Key functions: rowRanges, plotEpistack
-    merged_peaks <- merged_peaks[order(
-    rowRanges(merged_peaks)$bin, rowRanges(merged_peaks)$mean_scores,
-    decreasing = c(FALSE, TRUE), method = "radix"
-    # --- example2 tss [] ---
-    # Key functions: promoters
-    load(
-    system.file("extdata", "chr21_test_data.RData",
-    tss <- promoters(genes, upstream = 0, downstream = 1)
-    # --- expression data [] ---
-    # Key functions: addMetricAndArrangeGRanges
-    expr <- data.frame(
-    gene_id = names(rpkm),
-    epidata <- addMetricAndArrangeGRanges(
-    # --- add Bins [] ---
-    # Key functions: addBins
-    epidata <- addBins(epidata, nbins = 5)
+        merged_peaks,
+        assays = c("rep1", "rep2", "input"),
+        tints = c("dodgerblue", "firebrick1", "grey"),
+        titles = c("Rep1", "Rep2" , "Input"),
+        x_labels = xlabs,
+        zlim = c(0, 4), ylim = c(0, 4),
+        metric_col = "mean_scores", metric_title = "Peak score",
+        metric_label = "score"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,6 +38,7 @@ process BIOC_RNAEDITR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(rnaEditr)
     library(AddMetaData)
     library(AllCloseByRegions)
     library(AnnotateResults)
@@ -46,37 +47,49 @@ process BIOC_RNAEDITR {
     library(TransformToGR)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(rnaedit_df)
-    # --- Createeditingtable [] ---
-    # Key functions: CreateEditingTable
-    ---------------------------------------------------------------------
-    rnaedit2_df <- CreateEditingTable(
-      rnaEditMatrix = rnaedit_df
-    )
-    # --- Transformtogr [] ---
-    # Key functions: TransformToGR
-    ---------------------------------------------------------------------
-    # If input is gene symbol
-    inputGenes_gr <- TransformToGR(
-      # input a character vector of gene symbols
-      genes_char = c("PHACTR4", "CCR5", "METTL7A"),
-    # --- Transformtogr [] ---
-    # Key functions: TransformToGR, AddMetaData
-    ---------------------------------------------------------------------
-    # If input is region ranges
-    inputRegions_gr <- TransformToGR(
-      # input a character vector of region ranges.
-      genes_char = c("chr22:18555686-18573797", "chr22:36883233-36908148"),
-    # --- Annotateresults [] ---
-    # Key functions: AnnotateResults, TestAssociations, AllCloseByRegions
-    ---------------------------------------------------------------------
+    # --- Annotation and Region Identification [] ---
+    # Key functions: AnnotateResults, TransformToGR, AllCloseByRegions
     tumor_annot_df <- AnnotateResults(
-      # the output dataset from function TestAssociations().
-      results_df = tumor_region_df,
-      # close-by regions which is a output of AllCloseByRegions().
+        results_df = tumor_single_df,
+        closeByRegions_gr = NULL,
+        inputRegions_gr = NULL,
+        genome = "hg19",
+        analysis = "site-specific"
+    )
+    inputGenes_gr <- TransformToGR(
+        genes_char = c("PHACTR4", "CCR5", "METTL7A"),
+        type = "symbol",
+        genome = "hg19"
+    )
+    closeByRegions_gr <- AllCloseByRegions(
+        regions_gr = inputGenes_gr,
+        rnaEditMatrix = rnaedit_df,
+        maxGap = 50,
+        minSites = 3
+    )
+
+
+    # --- Co-editing Analysis and Summarization [] ---
+    # Key functions: AllCoeditedRegions, PlotEditingCorrelations, SummarizeAllRegions
+    closeByCoeditedRegions_gr <- AllCoeditedRegions(
+        regions_gr = closeByRegions_gr,
+        rnaEditMatrix = rnaedit_df,
+        output = "GRanges",
+        rDropThresh_num = 0.4,
+        minPairCorr = 0.1,
+        minSites = 3,
+        method = "spearman",
+        returnAllSites = FALSE
+    )
+    PlotEditingCorrelations(
+        region_gr = closeByCoeditedRegions_gr[1],
+        rnaEditMatrix = rnaedit_df
+    )
+    summarizedRegions_df <- SummarizeAllRegions(
+        regions_gr = closeByCoeditedRegions_gr,
+        rnaEditMatrix = rnaedit_df,
+        selectMethod = MedianSites
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

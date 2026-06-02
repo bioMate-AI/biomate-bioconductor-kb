@@ -41,13 +41,27 @@ process BIOC_GDR {
     library(gDR)
     library(jsonlite)
 
-    # --- Prepare Input [] ---
+    # --- Input Preparation and Normalisation [] ---
     # Key functions: prepare_input, create_and_normalize_SE
-    ---------------------------------------------------------------------
-    inl <- prepare_input(imported_data)
-    detected_data_types <- names(inl$exps)
-    detected_data_types
-    se <- create_and_normalize_SE(
+    inl <- gDR::prepare_input(imported_data)
+    se <- gDR::create_and_normalize_SE(
+        inl$df_list[["single-agent"]],
+        data_type = "single-agent",
+        nested_confounders = inl$nested_confounders
+    )
+
+
+    # --- Dose Response Curve Fitting [] ---
+    # Key functions: average_SE, fit_SE
+    se_avg <- gDR::average_SE(se, data_type = "single-agent")
+    se_fit <- gDR::fit_SE(se_avg, data_type = "single-agent")
+
+
+    # --- Pipeline Execution [] ---
+    # Key functions: runDrugResponseProcessingPipeline, convert_se_assay_to_dt
+    mae <- gDR::runDrugResponseProcessingPipeline(imported_data)
+    se_metrics <- mae[["single-agent"]]
+    metrics_dt <- gDR::convert_se_assay_to_dt(se_metrics, "Metrics")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

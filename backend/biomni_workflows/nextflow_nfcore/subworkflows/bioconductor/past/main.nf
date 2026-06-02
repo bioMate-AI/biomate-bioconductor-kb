@@ -41,23 +41,44 @@ process BIOC_PAST {
     library(PAST)
     library(jsonlite)
 
-    # --- loading gwas data [] ---
-    # Key functions: load_GWAS_data
-    gwas_data <- load_GWAS_data(demo_association_file,
-    # --- loading ld data [] ---
-    # Key functions: load_LD
-    LD <- load_LD(demo_LD_file)
-    # --- assigning SNPs [] ---
+    # --- SNP Gene Assignment [] ---
     # Key functions: assign_SNPs_to_genes
-    genes <-assign_SNPs_to_genes(gwas_data,
-    c("gene"),
-    # --- find_pathway_significance [] ---
+    demo_genes_file <- system.file("extdata", "genes.gff",
+                                  package = "PAST", mustWork = TRUE)
+    genes <- assign_SNPs_to_genes(
+        gwas_data,
+        LD,
+        demo_genes_file,
+        c("gene"),
+        1000,
+        0.8,
+        2
+    )
+
+
+    # --- Pathway Significance Analysis [] ---
     # Key functions: find_pathway_significance
-    rugplots_data <- find_pathway_significance(genes,
-    # --- plot_pathways [] ---
-    # Key functions: plot_pathways, tempdir
-    plot_pathways(rugplots_data,
-    tempdir())
+    demo_pathways_file <- system.file("extdata", "pathways.txt.xz",
+                                      package = "PAST", mustWork = TRUE)
+    rugplots_data <- find_pathway_significance(
+        genes,
+        demo_pathways_file,
+        5,
+        "increasing",
+        1000,
+        2
+    )
+
+
+    # --- Pathway Visualisation [] ---
+    # Key functions: plot_pathways
+    plot_pathways(
+        rugplots_data,
+        "pvalue",
+        0.02,
+        "increasing",
+        tempdir()
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,9 +41,38 @@ process BIOC_ERCCDASHBOARD {
     library(erccdashboard)
     library(jsonlite)
 
-    # --- run Dashboard [] ---
+    # --- Load and Prepare Input Data [Data Preparation] ---
+    # Key functions: data
+    data(SEQC.Example)
+    exTable <- MET.CTL.countDat
+    filenameRoot <- "RatTox"
+    sample1Name <- "MET"
+    sample2Name <- "CTL"
+
+    # --- Run ERCC Analysis Dashboard [Analysis] ---
     # Key functions: runDashboard
-    exDat <- runDashboard(datType="count", isNorm = FALSE,
+    exDat <- runDashboard(
+        datType = "count",
+        isNorm = FALSE,
+        exTable = exTable,
+        filenameRoot = filenameRoot,
+        sample1Name = sample1Name,
+        sample2Name = sample2Name,
+        erccmix = "RatioPair",
+        erccdilution = 1/100,
+        spikeVol = 1,
+        totalRNAmass = 0.500,
+        choseFDR = 0.1
+    )
+
+    # --- Evaluate and Visualise Results [Validation] ---
+    # Key functions: summary
+    summary(exDat)
+    dynRange <- exDat$Figures$dynRangePlot
+    rocCurve <- exDat$Figures$rocPlot
+    lodrPlot <- exDat$Figures$lodrERCCPlot
+    maPlot <- exDat$Figures$maPlot
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

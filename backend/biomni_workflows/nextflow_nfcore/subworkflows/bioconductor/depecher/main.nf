@@ -41,10 +41,43 @@ process BIOC_DEPECHER {
     library(DepecheR)
     library(jsonlite)
 
-    # --- d Violins [] ---
+    # --- Color Plotting of Clusters [] ---
+    # Key functions: dColorPlot
+    dColorPlot(
+        colorData = testDataDepeche$clusterVector,
+        xYData = testDataSNE$Y,
+        colorScale = "dark_rainbow",
+        plotName = "Cluster"
+    )
+    dColorPlot(
+        colorData = testData[2],
+        xYData = testDataSNE$Y
+    )
+
+
+    # --- Statistical Analysis of Clusters [] ---
+    # Key functions: dWilcox, dResidualPlot
+    dWilcoxResult <- dWilcox(
+        xYData = testDataSNE$Y,
+        idsVector = testData$ids,
+        groupVector = testData$label,
+        clusterVector = testDataDepeche$clusterVector
+    )
+    dResidualPlot(
+        xYData = testDataSNE$Y,
+        groupVector = testData$label,
+        clusterVector = testDataDepeche$clusterVector
+    )
+
+
+    # --- Cluster Visualization with Violins [] ---
     # Key functions: dViolins
-    dViolins(testDataDepeche$clusterVector, inDataFrame = testData,
-    sessionInfo()
+    dViolins(
+        testDataDepeche$clusterVector,
+        inDataFrame = testData,
+        plotClusters = 3,
+        plotElements = testDataDepeche$essenceElementList
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

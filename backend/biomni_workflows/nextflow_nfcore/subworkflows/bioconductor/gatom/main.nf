@@ -38,88 +38,52 @@ process BIOC_GATOM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(gatom)
     library(E)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("networkEx")
-    data("met.kegg.dbEx")
-    data("org.Mm.eg.gatom.annoEx")
-    # --- Makemetabolicgraph [] ---
-    # Key functions: makeMetabolicGraph
-    ---------------------------------------------------------------------
-    g <- makeMetabolicGraph(network=networkEx,
-                            topology="atoms",
-                            org.gatom.anno=org.Mm.eg.gatom.annoEx,
-                            gene.de=gene.de.rawEx,
-    # --- Rnc Solver [] ---
-    # Key functions: rnc_solver
-    ---------------------------------------------------------------------
+    # --- Graph Scoring [] ---
+    # Key functions: scoreGraph
+    gs <- scoreGraph(
+        g = g,
+        k.gene = 25,
+        k.met = 25
+    )
+
+
+    # --- Subgraph Optimization [] ---
+    # Key functions: rnc_solver, solve_mwcsp
     solver <- rnc_solver()
-    # --- Createshinycyjswidget [] ---
-    # Key functions: createShinyCyJSWidget
-    ---------------------------------------------------------------------
-    createShinyCyJSWidget(m)
-    # --- Write Graph [] ---
-    # Key functions: write_graph, path, tempdir
-    ---------------------------------------------------------------------
-    write_graph(m, file = file.path(tempdir(), "M0.vs.M1.graphml"), format = "graphml")
-    # --- Savemoduletodot [] ---
-    # Key functions: saveModuleToDot, path, tempdir
-    ---------------------------------------------------------------------
-    saveModuleToDot(m, file = file.path(tempdir(), "M0.vs.M1.dot"), name = "M0.vs.M1")
-    # --- Readrds [] ---
-    # Key functions: url
-    ---------------------------------------------------------------------
-    network.combined <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.combined.rds"))
-    met.combined.db <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.combined.db.rds"))
-    org.Mm.eg.gatom.anno <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/org.Mm.eg.gatom.anno.rds"))
-    # --- Fread [] ---
-    # Key functions: fread
-    ---------------------------------------------------------------------
-    gene2reaction.extra <- fread("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/gene2reaction.combined.mmu.eg.tsv", colClasses="character")
-    # --- Makemetabolicgraph [] ---
-    # Key functions: makeMetabolicGraph, scoreGraph, rnc_solver, solve_mwcsp
-    ---------------------------------------------------------------------
-    cg <- makeMetabolicGraph(network=network.combined,
-                             topology="atoms",
-                             org.gatom.anno=org.Mm.eg.gatom.anno,
-                             gene.de=gene.de.raw,
-    # --- Readrds [] ---
-    # Key functions: url
-    ---------------------------------------------------------------------
-    network <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.kegg.rds"))
-    met.db <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.kegg.db.rds"))
-    # --- Makemetabolicgraph [] ---
-    # Key functions: makeMetabolicGraph, scoreGraph, rnc_solver, solve_mwcsp
-    ---------------------------------------------------------------------
-    kg <- makeMetabolicGraph(network=network,
-                            topology="atoms",
-                            org.gatom.anno=org.Mm.eg.gatom.anno,
-                            gene.de=gene.de.raw,
-    # --- Readrds [] ---
-    # Key functions: url
-    ---------------------------------------------------------------------
-    network.rhea <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.rhea.rds"))
-    met.rhea.db <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.rhea.db.rds"))
-    # --- Fread [] ---
-    # Key functions: fread
-    ---------------------------------------------------------------------
-    gene2reaction.extra <- fread("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/gene2reaction.rhea.mmu.eg.tsv", colClasses="character")
-    # --- Makemetabolicgraph [] ---
-    # Key functions: makeMetabolicGraph, scoreGraph, rnc_solver, solve_mwcsp
-    ---------------------------------------------------------------------
-    rg <- makeMetabolicGraph(network=network.rhea,
-                             topology="atoms",
-                             org.gatom.anno=org.Mm.eg.gatom.anno,
-                             gene.de=gene.de.raw,
-    # --- Readrds [] ---
-    # Key functions: url
-    ---------------------------------------------------------------------
-    network.lipids <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/network.rhea.lipids.rds"))
-    met.lipids.db <- readRDS(url("http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/met.lipids.db.rds"))
+    res <- solve_mwcsp(
+        solver = solver,
+        g = gs
+    )
+    m <- res$graph
+
+
+    # --- Module Export and Visualization [] ---
+    # Key functions: saveModuleToHtml, saveModuleToPdf, saveModuleToDot, createShinyCyJSWidget
+    html_path <- file.path(tempdir(), "M0.vs.M1.html")
+    pdf_path <- file.path(tempdir(), "M0.vs.M1.pdf")
+    dot_path <- file.path(tempdir(), "M0.vs.M1.dot")
+    saveModuleToHtml(
+        module = m,
+        file = html_path,
+        name = "M0.vs.M1"
+    )
+    saveModuleToDot(
+        module = m,
+        file = dot_path,
+        name = "M0.vs.M1"
+    )
+    saveModuleToPdf(
+        module = m,
+        file = pdf_path,
+        name = "M0.vs.M1",
+        n_iter = 100,
+        force = 1e-5
+    )
+    widget <- createShinyCyJSWidget(m)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

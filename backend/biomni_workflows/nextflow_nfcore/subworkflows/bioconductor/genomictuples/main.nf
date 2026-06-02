@@ -38,21 +38,44 @@ process BIOC_GENOMICTUPLES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GenomicTuples)
     library(GTuples)
     library(GTuplesList)
     library(Seqinfo)
     library(jsonlite)
 
-    # --- Find overlapping genomic intervals [] ---
-    # Key functions: GTuples, findOverlaps
-    gt2 <- GTuples(seqnames = c('chr1', 'chr1', 'chr1', 'chr1', 'chr2'),
-    tuples = matrix(c(10L, 10L, 10L, 10L, 10L, 20L, 20L, 20L, 25L,
-    strand = c('+', '-', '*', '+', '+'))
-    # --- Sequence names check [] ---
-    # Key functions: Seqinfo, GTuples, seqnames, tuples, strand, split, window, start
-    gt3 <- GTuples(seqnames = c('chr1', 'chr1', 'chr1', 'chr1', 'chr2', 'chr1',
-    tuples = matrix(c(10L, 10L, 10L, 10L, 10L, 5L, 10L, 20L, 20L,
-    strand = c('+', '-', '*', '+', '+', '+', '+'))
+    # --- Tuple Property Extraction [] ---
+    # Key functions: tuples, size, IPD, shift
+    gt_tuples <- tuples(gt3)
+    gt_size <- size(gt3)
+    gt_ipd <- IPD(gt3)
+    gt_seqnames <- seqnames(gt3)
+    gt_mcols <- mcols(gt3)
+    gt_subset <- gt3[2:3, "GC"]
+    gt_shifted <- shift(gt3, 500)
+
+
+    # --- Genomic Tuples List Operations [] ---
+    # Key functions: GTuplesList, size, IPD, shift, isEmpty
+    gtl3 <- GTuplesList(A = gt3[1:5], B = gt3[6:10])
+    gtl_size <- size(gtl3)
+    gtl_ipd <- IPD(gtl3)
+    gtl_shifted <- shift(gtl3, IntegerList(A = 300L, B = 500L))
+    gtl_empty <- isEmpty(gtl3)
+    gtl_gr <- as(gtl3, "GRangesList")
+
+
+    # --- Overlap and Intersection Analysis [] ---
+    # Key functions: GTuples, findOverlaps, as
+    gt1 <- GTuples(
+        seqnames = c('chr1', 'chr1', 'chr1', 'chr2'),
+        tuples = matrix(c(10L, 10L, 10L, 10L), ncol = 1),
+        strand = c('+', '-', '*', '+')
+    )
+    overlaps_any <- findOverlaps(gt1, gt1, type = 'any')
+    overlaps_start <- findOverlaps(gt1, gt1, type = 'start')
+    overlaps_end <- findOverlaps(gt1, gt1, type = 'end')
+    gr1 <- as(gt1, "GRanges")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

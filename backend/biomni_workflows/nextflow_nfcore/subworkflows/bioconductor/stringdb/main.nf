@@ -41,69 +41,42 @@ process BIOC_STRINGDB {
     library(STRINGdb)
     library(jsonlite)
 
-    # --- Help [] ---
-    # Key functions: methods
-    STRINGdb$methods()              # To list all the methods available.
-    STRINGdb$help("get_graph")      # To visualize their documentation.
-    # --- Load Data [] ---
-    # Key functions: data
-    data(diff_exp_example1)
-    head(diff_exp_example1)
-    # --- Map [] ---
-    # Key functions: map
-    example1_mapped <- string_db$map( diff_exp_example1, "gene", removeUnmappedRows = TRUE )
-    # --- Plot Network [] ---
-    # Key functions: getOption, plot_network
-    getOption("SweaveHooks")[["fig"]]()
-    string_db$plot_network( hits )
-    # --- Add Diff Exp Color [] ---
-    # Key functions: add_diff_exp_color
-    # filter by p-value and add a color column
-    # (i.e. green down-regulated gened and red for up-regulated genes)
-    example1_mapped_pval05 <- string_db$add_diff_exp_color( subset(example1_mapped, pvalue<0.05),
-                                                                logFcColStr="logFC" )
-    # --- Post Payload [] ---
-    # Key functions: post_payload
-    # post payload information to the STRING server
-    payload_id <- string_db$post_payload( example1_mapped_pval05$STRING_id,
-                                            colors=example1_mapped_pval05$color )
-    # --- Plot Halo Network [] ---
-    # Key functions: getOption, plot_network
-    getOption("SweaveHooks")[["fig"]]()
-    # display a STRING network png with the "halo"
-    string_db$plot_network( hits, payload_id=payload_id )
-    # --- Enrichment [] ---
-    # Key functions: get_enrichment
-    enrichment <- string_db$get_enrichment( hits )
-    head(enrichment, n=20)
-    # --- Enrichment [] ---
-    # Key functions: get_annotations
-    annotations <- string_db$get_annotations( hits )
-    head(annotations, n=20)
-    # --- Clustering1 [] ---
-    # Key functions: get_clusters
-    # get clusters
-    clustersList <- string_db$get_clusters(example1_mapped$STRING_id[1:600])
-    # --- Clustering2 [] ---
-    # Key functions: getOption, plot_network
-    getOption("SweaveHooks")[["fig"]]()
-    # plot first 4 clusters
-    par(mfrow=c(2,2))
-    for(i in seq(1:4)){
-     string_db$plot_network(clustersList[[i]])
-    # --- Proteins [] ---
-    # Key functions: get_proteins
-    string_proteins <- string_db$get_proteins()
-    # --- Atmtp [] ---
-    # Key functions: mp
-    tp53 = string_db$mp( "tp53" )
-    atm = string_db$mp( "atm" )
-    # --- Neighbors [] ---
-    # Key functions: get_neighbors
-    string_db$get_neighbors( c(tp53, atm) )
-    # --- Interactions [] ---
-    # Key functions: get_interactions
-    string_db$get_interactions( c(tp53, atm) )
+    # --- Network Visualization [] ---
+    # Key functions: STRINGdb$add_diff_exp_color, STRINGdb$post_payload, STRINGdb$plot_network
+    example1_mapped_pval05 <- string_db$add_diff_exp_color(
+        subset(example1_mapped, pvalue < 0.05),
+        logFcColStr = "logFC"
+    )
+    payload_id <- string_db$post_payload(
+        example1_mapped_pval05$STRING_id,
+        colors = example1_mapped_pval05$color
+    )
+    string_db$plot_network(hits, payload_id = payload_id)
+
+
+    # --- Functional Enrichment [] ---
+    # Key functions: STRINGdb$get_enrichment, STRINGdb$get_annotations
+    enrichment <- string_db$get_enrichment(hits)
+    annotations <- string_db$get_annotations(hits)
+
+
+    # --- Network Clustering [] ---
+    # Key functions: STRINGdb$get_clusters, STRINGdb$plot_network
+    clustersList <- string_db$get_clusters(
+        example1_mapped$STRING_id[1:600]
+    )
+    for (i in seq_len(min(4, length(clustersList)))) {
+        string_db$plot_network(clustersList[[i]])
+    }
+
+
+    # --- Protein Interactions [] ---
+    # Key functions: STRINGdb$mp, STRINGdb$get_neighbors, STRINGdb$get_interactions, STRINGdb$get_paralogs
+    tp53 <- string_db$mp("tp53")
+    atm <- string_db$mp("atm")
+    neighbors <- string_db$get_neighbors(c(tp53, atm))
+    interactions <- string_db$get_interactions(c(tp53, atm))
+    paralogs <- string_db$get_paralogs(tp53)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

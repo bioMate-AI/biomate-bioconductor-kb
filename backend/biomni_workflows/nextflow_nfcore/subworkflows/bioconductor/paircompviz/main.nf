@@ -41,67 +41,47 @@ process BIOC_PAIRCOMPVIZ {
     library(paircompviz)
     library(jsonlite)
 
-    # --- Test [] ---
-    # Key functions: test
-    pairwise.t.test(cholesterol$response, cholesterol$trt)
-    # --- Cholesterolhasse [] ---
+    # --- Pairwise Comparison and Compression ---
     # Key functions: paircomp
-    paircomp(obj=cholesterol$response, grouping=cholesterol$trt, test="t")
-    # --- Bonfer [] ---
+    pc_res <- paircomp(
+        InsectSprays$count,
+        InsectSprays$spray,
+        test = "t",
+        compress = TRUE,
+        p.adjust.method = "bonferroni"
+    )
+
+    # --- Pairwise Comparison with Tukey HSD ---
     # Key functions: paircomp
-    paircomp(InsectSprays$count, InsectSprays$spray, test="t",
-               compress=TRUE, p.adjust.method="bonferroni")
-    # --- Tukeyhasse [] ---
-    # Key functions: glht, cld, aov, mcp, paircomp
-    library(rpart)       # for car90 dataset
-      library(multcomp)    # for glht() and cld() functions
-      aovR <- aov(Price ~ Type, data = car90)
-      glhtR <- glht(aovR, linfct = mcp(Type = "Tukey"))
-      paircomp(glhtR, compress=FALSE)
-    # --- Tukeycld [] ---
-    # Key functions: cld
-    cldR <- cld(glhtR)
-      par(mar=c(4, 3, 5, 1))
-      plot(cldR)
-    # --- Nocompress [] ---
-    # Key functions: paircomp
-    paircomp(InsectSprays$count, InsectSprays$spray, test="t",
-               compress=FALSE)
-    # --- Compress [] ---
-    # Key functions: paircomp
-    paircomp(InsectSprays$count, InsectSprays$spray, test="t",
-               compress=TRUE)
-    # --- Data [] ---
-    # Key functions: test
-    data("brokentrans")
-      tapply(brokentrans$x, brokentrans$g, mean)
-      pairwise.t.test(brokentrans$x, brokentrans$g, pool.sd=FALSE)
-    # --- Csv [] ---
-    # Key functions: csv, element, omit, factor, mapvalues, levels
-    library(plyr)
-      experiment <- read.csv("result.csv")
-      experiment[!is.element(experiment$error, c("broken", "ok")), "error"] <- NA
-      experiment <- na.omit(experiment)
-      experiment$error <- factor(experiment$error)
-    # --- Frame [] ---
-    # Key functions: frame, xtable, cast
-    library(reshape)
-      ttt <- as.data.frame(table(experiment[, c("test", "error")]) )
-      print(xtable(cast(ttt, test~error)), floating=FALSE, include.rownames=FALSE)
-    # --- Colnames [] ---
-    # Key functions: xtable
-    ttt <- experiment[experiment$error == 'broken', ]
-      ttt$X <- NULL
-      ttt$error <- NULL
-      colnames(ttt) <- c('package', 'dataset', 'obj', 'grouping', 'levels', 'test')
-      print(xtable(ttt), floating=FALSE, include.rownames=FALSE)
-    # --- Customhasse [] ---
-    # Key functions: transReduct, hasse
-    # create adjacency matrix
-      e <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0,
-                    1, 0, 0, 0, 0, 0, 0, 0,
-                    1, 1, 0, 0, 0, 0, 0, 0,
-                    1, 0, 0, 0, 0, 0, 0, 0,
+    aov_res <- aov(Price ~ Type, data = rpart::car90)
+    glht_res <- multcomp::glht(
+        aov_res,
+        linfct = multcomp::mcp(Type = "Tukey")
+    )
+    pc_tukey <- paircomp(glht_res, compress = FALSE)
+
+    # --- Transitive Reduction of Adjacency Matrix ---
+    # Key functions: transReduct
+    adj_matrix <- matrix(c(
+        0, 0, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 0, 0,
+        1, 1, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 0, 0, 0,
+        1, 1, 1, 1, 1, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    ), nrow = 8)
+    reduced_matrix <- transReduct(adj_matrix)
+
+    # --- Hasse Diagram Visualization ---
+    # Key functions: hasse
+    hasse(
+        reduced_matrix,
+        v = LETTERS[1:8],
+        main = "Hasse Diagram of Pairwise Comparisons"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

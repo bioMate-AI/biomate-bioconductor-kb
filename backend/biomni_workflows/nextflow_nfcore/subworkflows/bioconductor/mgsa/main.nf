@@ -41,36 +41,48 @@ process BIOC_MGSA {
     library(mgsa)
     library(jsonlite)
 
-    # --- Loadex [] ---
-    # Key functions: data
-    library(mgsa)
+    # --- Model Fitting [] ---
+    # Key functions: mgsa, new
     data("example")
-    example_go
-    example_o
-    # --- Fitex [] ---
-    # Key functions: mgsa
-    set.seed(0)
-    fit = mgsa(example_o, example_go)
-    fit
-    # --- Setsresults [] ---
-    # Key functions: setsResults
-    res = setsResults(fit)
-    subset(res, estimate > 0.5)
-    # --- Readgaf [] ---
-    # Key functions: readGAF
-    readGAF(
-    	system.file(
-    		"example_files/gene_association_head.sgd",
-    		package="mgsa"
-    	)
-    # --- Mgsa Custom Set [] ---
-    # Key functions: mgsa
-    mgsa( c("A", "B"), list(set1=LETTERS[1:3], set2=LETTERS[2:5]) )
-    # --- Mgsa Custom Set [] ---
-    # Key functions: new, mgsa
-    myset = new( "MgsaSets", sets=list(set1=LETTERS[1:3], set2=LETTERS[2:5]) )
-    mgsa(c("A", "B"), myset)
-    mgsa(c("B", "C"), myset)
+    fit_example <- mgsa(
+        o = example_o,
+        sets = example_go
+    )
+    custom_sets <- new(
+        "MgsaSets",
+        sets = list(set1 = LETTERS[1:3], set2 = LETTERS[2:5])
+    )
+    fit_custom <- mgsa(
+        o = c("A", "B"),
+        sets = custom_sets
+    )
+
+
+    # --- Result Extraction [] ---
+    # Key functions: mgsa, setsResults
+    data("example")
+    fit <- mgsa(
+        o = example_o,
+        sets = example_go
+    )
+    res <- setsResults(fit)
+    high_est_sets <- subset(
+        res,
+        estimate > 0.5
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: mgsa, plot
+    data("example")
+    fit <- mgsa(
+        o = example_o,
+        sets = example_go
+    )
+    plot(
+        fit,
+        main = "MGSA Posterior Probabilities"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

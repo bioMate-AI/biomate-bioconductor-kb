@@ -41,40 +41,53 @@ process BIOC_DADA2 {
     library(dada2)
     library(jsonlite)
 
-    # --- plot Quality Profile [] ---
-    # Key functions: plotQualityProfile
-    plotQualityProfile(fnF1) # Forward
-    plotQualityProfile(fnR1) # Reverse
-    # --- filter And Trim [] ---
+    # --- Filtering and Trimming [] ---
     # Key functions: filterAndTrim
-    filterAndTrim(fwd=fnF1, filt=filtF1, rev=fnR1, filt.rev=filtR1,
-    trimLeft=10, truncLen=c(240, 200),
-    # --- derep Fastq [] ---
-    # Key functions: derepFastq
-    derepF1 <- derepFastq(filtF1, verbose=TRUE)
-    derepR1 <- derepFastq(filtR1, verbose=TRUE)
-    # --- learn Errors [] ---
-    # Key functions: learnErrors
-    errF <- learnErrors(derepF1, multithread=FALSE) # multithreading is available on many functions
+    fnF1 <- system.file("extdata", "sam1F.fastq.gz", package="dada2")
+    fnR1 <- system.file("extdata", "sam1R.fastq.gz", package="dada2")
+    filtF1 <- tempfile(fileext=".fastq.gz")
+    filtR1 <- tempfile(fileext=".fastq.gz")
+    filterAndTrim(
+        fwd=fnF1, filt=filtF1, rev=fnR1, filt.rev=filtR1,
+        trimLeft=10, truncLen=c(240, 200),
+        maxN=0, maxEE=2, compress=TRUE, verbose=TRUE
+    )
+
+
+    # --- Error Rate Learning [] ---
+    # Key functions: derepFastq, learnErrors
+    fnF1 <- system.file("extdata", "sam1F.fastq.gz", package="dada2")
+    derepF1 <- derepFastq(fnF1, verbose=TRUE)
+    errF <- learnErrors(derepF1, multithread=FALSE)
+
+
+    # --- Sample Inference and Merging [] ---
+    # Key functions: derepFastq, dada, mergePairs
+    fnF1 <- system.file("extdata", "sam1F.fastq.gz", package="dada2")
+    fnR1 <- system.file("extdata", "sam1R.fastq.gz", package="dada2")
+    derepF1 <- derepFastq(fnF1, verbose=TRUE)
+    derepR1 <- derepFastq(fnR1, verbose=TRUE)
+    errF <- learnErrors(derepF1, multithread=FALSE)
     errR <- learnErrors(derepR1, multithread=FALSE)
-    # --- dada [] ---
-    # Key functions: dada
     dadaF1 <- dada(derepF1, err=errF, multithread=FALSE)
     dadaR1 <- dada(derepR1, err=errR, multithread=FALSE)
-    print(dadaF1)
-    # --- merge Pairs [] ---
-    # Key functions: mergePairs
-    merger1 <- mergePairs(dadaF1, derepF1, dadaR1, derepR1, verbose=TRUE)
-    # --- tempfile [] ---
-    # Key functions: tempfile, filterAndTrim, derepFastq, dada, mergePairs
-    fnF2 <- system.file("extdata", "sam2F.fastq.gz", package="dada2")
-    fnR2 <- system.file("extdata", "sam2R.fastq.gz", package="dada2")
-    filtF2 <- tempfile(fileext=".fastq.gz")
-    # --- make Sequence Table [] ---
-    # Key functions: makeSequenceTable
-    seqtab <- makeSequenceTable(list(merger1, merger2))
-    seqtab.nochim <- removeBimeraDenovo(seqtab, verbose=TRUE)
-    dim(seqtab.nochim)
+    merger1 <- mergePairs(
+        dadaF1, derepF1, dadaR1, derepR1, verbose=TRUE
+    )
+
+
+    # --- Sequence Table Construction and Chimera Removal [] ---
+    # Key functions: makeSequenceTable, removeBimeraDenovo
+    mock_merger <- data.frame(
+        sequence = c("ACTG", "TGCA"),
+        abundance = c(10, 20),
+        forward = c(1, 2),
+        reverse = c(1, 2)
+    )
+    seqtab <- makeSequenceTable(list(mock_merger))
+    seqtab.nochim <- removeBimeraDenovo(
+        seqtab, multithread=FALSE, verbose=TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

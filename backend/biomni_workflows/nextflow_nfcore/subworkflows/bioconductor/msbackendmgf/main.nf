@@ -38,39 +38,59 @@ process BIOC_MSBACKENDMGF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MsBackendMgf)
     library(Spectra)
     library(jsonlite)
 
-    # --- dir [] ---
-    # Key functions: dir
-    library(Spectra)
-    library(MsBackendMgf)
+    # --- Spectra Import ---
+    # Key functions: MsBackendMgf, Spectra, spectraVariables
     fls <- dir(system.file("extdata", package = "MsBackendMgf"),
-    # --- Spectra [] ---
-    # Key functions: Spectra
-    sps <- Spectra(fls, source = MsBackendMgf())
-    # --- spectra Variables [] ---
-    # Key functions: spectraVariables
-    spectraVariables(sps)
-    # --- spectra Variable Mapping [] ---
-    # Key functions: spectraVariableMapping
-    spectraVariableMapping(MsBackendMgf())
-    # --- Spectra [] ---
-    # Key functions: Spectra
-    sps <- Spectra(fls, source = MsBackendMgf(), mapping = map)
-    # --- intensity [] ---
-    # Key functions: intensity
-    mz(sps)
-    intensity(sps)
-    # --- tempfile [] ---
-    # Key functions: tempfile, export
-    fl <- tempfile()
-    export(sps, backend = MsBackendMgf(), file = fl, mapping = map)
-    # --- export [] ---
-    # Key functions: export, selectSpectraVariables
-    readLines(fl)[1:12]
-    export(sps, backend = MsBackendMgf(), file = fl)
-    readLines(fl)[1:12]
+               full.names = TRUE, pattern = "mgf$")
+    sps <- Spectra::Spectra(fls, source = MsBackendMgf())
+    sps_vars <- Spectra::spectraVariables(sps)
+    rtime_vals <- sps$rtime
+
+    # --- Custom Variable Mapping ---
+    # Key functions: spectraVariableMapping, MsBackendMgf, Spectra
+    fls <- dir(system.file("extdata", package = "MsBackendMgf"),
+               full.names = TRUE, pattern = "mgf$")
+    custom_map <- c(spectrumName = "TITLE",
+                    spectraVariableMapping(MsBackendMgf()))
+    sps_mapped <- Spectra::Spectra(fls, source = MsBackendMgf(),
+                                  mapping = custom_map)
+    spec_names <- sps_mapped$spectrumName
+
+    # --- Spectra Data Extraction ---
+    # Key functions: mz, intensity, Spectra
+    fls <- dir(system.file("extdata", package = "MsBackendMgf"),
+               full.names = TRUE, pattern = "mgf$")
+    sps <- Spectra::Spectra(fls, source = MsBackendMgf())
+    mz_list <- Spectra::mz(sps)
+    int_list <- Spectra::intensity(sps)
+
+    # --- Spectra Export ---
+    # Key functions: export, MsBackendMgf, Spectra
+    fls <- dir(system.file("extdata", package = "MsBackendMgf"),
+               full.names = TRUE, pattern = "mgf$")
+    sps <- Spectra::Spectra(fls, source = MsBackendMgf())
+    sps$new_variable <- "A"
+    out_file <- tempfile(fileext = ".mgf")
+    Spectra::export(sps, backend = MsBackendMgf(), file = out_file)
+
+    # --- Subsetting and Exporting ---
+    # Key functions: selectSpectraVariables, export, MsBackendMgf
+    fls <- dir(system.file("extdata", package = "MsBackendMgf"),
+               full.names = TRUE, pattern = "mgf$")
+    sps <- Spectra::Spectra(fls, source = MsBackendMgf())
+    sps_ex <- Spectra::selectSpectraVariables(
+        sps, 
+        c("mz", "intensity", "rtime", "acquisitionNum", 
+          "precursorMz", "precursorCharge")
+    )
+    out_file_sub <- tempfile(fileext = ".mgf")
+    Spectra::export(sps_ex, backend = MsBackendMgf(), 
+                    file = out_file_sub, exportTitle = FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

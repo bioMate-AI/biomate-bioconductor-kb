@@ -41,46 +41,54 @@ process BIOC_SCREPERTOIRE {
     library(scRepertoire)
     library(jsonlite)
 
-    # --- Clonalquant [] ---
-    # Key functions: clonalQuant
-    ---------------------------------------------------------------------
-    clonalQuant(combined.TCR,
-                cloneCall="gene",
-                group.by = "Type",
-                scale = TRUE)
-    # --- Clonalabundance [] ---
-    # Key functions: clonalAbundance
-    ---------------------------------------------------------------------
-    clonalAbundance(combined.TCR,
-                    cloneCall = "gene",
-                    scale = TRUE)
-    # --- Clonalcompare [] ---
-    # Key functions: clonalCompare
-    ---------------------------------------------------------------------
-    clonalCompare(combined.TCR,
-                  clones = c("CVVSDNTGGFKTIF_CASSVRRERANTGELFF", "NA_CASSVRRERANTGELFF"),
-                  relabel.clones = TRUE,
-                  samples = c("P17B", "P17L"),
-    # --- Positionalentropy [] ---
-    # Key functions: positionalEntropy
-    ---------------------------------------------------------------------
-    positionalEntropy(combined.TCR,
-                      chain = "TRB",
-                      aa.length = 20)
-    # --- Clonaldiversity [] ---
-    # Key functions: clonalDiversity
-    ---------------------------------------------------------------------
-    #Return only a subset of metrics
-    clonalDiversity(combined.TCR,
-                    metrics = c("shannon", "ACE"),
-                    cloneCall = "gene",
-    # --- Subset [] ---
-    # Key functions: getCirclize, hue_pal, levels, chordDiagram
-    ---------------------------------------------------------------------
-    subset <- subset(scRep_example, Type == "L")
-    circles <- getCirclize(subset, group.by = "ident", proportion = TRUE)
-    grid.cols <- scales::hue_pal()(length(unique(subset@active.ident)))
-    names(grid.cols) <- levels(subset@active.ident)
+    # --- Clonal Quantification and Abundance [] ---
+    # Key functions: clonalQuant, clonalAbundance, clonalLength
+    quant <- clonalQuant(
+        combined.TCR, cloneCall="strict", chain = "both", scale = TRUE
+    )
+    abundance <- clonalAbundance(
+        combined.TCR, cloneCall = "gene", scale = TRUE
+    )
+    len <- clonalLength(
+        combined.TCR, cloneCall="aa", chain = "both"
+    )
+
+
+    # --- Clonal Comparison and Dynamics [] ---
+    # Key functions: clonalCompare, clonalScatter
+    comp <- clonalCompare(
+        combined.TCR, top.clones = 10, 
+        samples = c("P17B", "P17L"), cloneCall="aa", graph = "alluvial"
+    )
+    scat <- clonalScatter(
+        combined.TCR, cloneCall ="gene", x.axis = "P18B", y.axis = "P18L",
+        dot.size = "total", graph = "proportion"
+    )
+
+
+    # --- Clonal Homeostasis and Proportion [] ---
+    # Key functions: clonalHomeostasis, clonalProportion
+    homeo <- clonalHomeostasis(
+        combined.TCR, cloneCall = "gene",
+        cloneSize = c(Rare = 0.001, Small = 0.01, Medium = 0.1, Large = 0.3)
+    )
+    prop <- clonalProportion(
+        combined.TCR, cloneCall = "nt",
+        clonalSplit = c(1, 5, 10, 100, 1000)
+    )
+
+
+    # --- Gene Usage and Diversity Analysis [] ---
+    # Key functions: vizGenes, percentAA, positionalEntropy, percentGenes
+    vgenes <- vizGenes(
+        combined.TCR, x.axis = "TRBV", plot = "barplot", scale = TRUE
+    )
+    pct_aa <- percentAA(
+        combined.TCR, chain = "TRB", aa.length = 20
+    )
+    entropy <- positionalEntropy(
+        combined.TCR, chain = "TRB", aa.length = 20
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

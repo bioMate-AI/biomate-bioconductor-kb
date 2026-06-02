@@ -38,39 +38,69 @@ process BIOC_MSQUALITY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MsQuality)
     library(DataFrame)
     library(MsExperiment)
     library(Spectra)
     library(jsonlite)
 
-    # --- Spectra [] ---
-    # Key functions: Spectra
-    fls <- dir(system.file("sciex", package = "msdata"), full.names = TRUE)
-    sps_sciex <- Spectra(fls, backend = MsBackendMzR())
-    # --- Ms Experiment [] ---
-    # Key functions: MsExperiment, DataFrame, sampleData, experimentFiles, spectra
-    lmse <- MsExperiment()
-    sd <- DataFrame(sample_id = c("QC1", "QC2"),
-    sample_name = c("QC Pool", "QC Pool"),
-    # --- combine sps rplc sps hilic [] ---
+    # --- Load and Prepare Spectra Data [Quality Control] ---
     # Key functions: qualityMetrics
+    data("Lee2019", package = "MsQuality")
     sps_comb <- c(sps_rplc, sps_hilic)
-    qualityMetrics(sps_comb)
-    # --- calculate Metrics [] ---
-    # Key functions: calculateMetrics
-    sps_comb_subset <- sps_comb[grep("Sample.1_", sps_comb$dataOrigin), ]
-    metrics_sps_Q1 <- calculateMetrics(object = sps_comb_subset,
-    metrics = qualityMetrics(sps_comb_subset), filterEmptySpectra = FALSE,
-    # --- metrics rplc hilic lee2019 [] ---
-    # Key functions: calculateMetrics
-    metrics_sps <- c("chromatographyDuration", "ticQuantileRtFraction", "rtOverMsQuarters",
-    metrics_rplc_msexp <- calculateMetrics(object = msexp_rplc_subset,
-    metrics = qualityMetrics(msexp_rplc_subset), filterEmptySpectra = TRUE,
-    # --- paged table metrics [] ---
-    # Key functions: paged_table, plotMetric
-    print("metrics_rplc_msexp")
-    rmarkdown::paged_table(as.data.frame(metrics_rplc_msexp))
-    print("metrics_hilic_msexp")
+    avail_metrics <- qualityMetrics(sps_comb)
+    sps_comb_subset <- sps_comb[
+        grep("Sample.1_", sps_comb$dataOrigin), 
+    ]
+
+    # --- Calculate Spectra Quality Metrics [Quality Control] ---
+    # Key functions: calculateMetrics, qualityMetrics
+    metrics_sps_Q1 <- calculateMetrics(
+        object = sps_comb_subset,
+        metrics = qualityMetrics(sps_comb_subset),
+        filterEmptySpectra = FALSE,
+        relativeTo = "Q1",
+        msLevel = 1L
+    )
+    metrics_sps_previous <- calculateMetrics(
+        object = sps_comb_subset,
+        metrics = qualityMetrics(sps_comb_subset),
+        filterEmptySpectra = FALSE,
+        relativeTo = "previous",
+        msLevel = 1L
+    )
+
+    # --- Calculate MsExperiment Quality Metrics [Quality Control] ---
+    # Key functions: calculateMetrics, qualityMetrics
+    msexp_rplc_subset <- msexp_rplc[1:20]
+    msexp_hilic_subset <- msexp_hilic[1:20]
+    metrics_rplc_msexp <- calculateMetrics(
+        object = msexp_rplc_subset,
+        metrics = qualityMetrics(msexp_rplc_subset),
+        filterEmptySpectra = TRUE,
+        relativeTo = "Q1",
+        msLevel = 1L
+    )
+    metrics_hilic_msexp <- calculateMetrics(
+        object = msexp_hilic_subset,
+        metrics = qualityMetrics(msexp_hilic_subset),
+        filterEmptySpectra = TRUE,
+        relativeTo = "Q1",
+        msLevel = 1L
+    )
+
+    # --- Quality Control Visualization [Visualisation] ---
+    # Key functions: plotMetric
+    metrics_msexp <- rbind(metrics_rplc_msexp, metrics_hilic_msexp)
+    plotMetric(
+        qc = metrics_msexp, 
+        metric = "numberSpectra"
+    )
+    plotMetric(
+        qc = metrics_msexp, 
+        metric = "ticQuartileToQuartileLogRatio"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

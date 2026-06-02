@@ -41,42 +41,30 @@ process BIOC_FLOWCLUST {
     library(flowClust)
     library(jsonlite)
 
-    # --- flow Clust [] ---
-    # Key functions: flowClust
-    data(rituximab)
-    summary(rituximab)
-    flowClust(
-    # --- criterion [] ---
-    # Key functions: criterion
-    criterion(res2, "BIC")
-    summary(res2[[3]])
-    # --- rule Outliers [] ---
-    # Key functions: ruleOutliers
-    ruleOutliers(res2[[3]]) <- list(level = 0.95)
-    summary(res2[[3]])
-    # --- flow Clust [] ---
-    # Key functions: flowClust
-    flowClust(
-    varNames = c("FL1.H", "FL3.H"),
-    min = c(0, 0),
-    # --- tmix Filter [] ---
-    # Key functions: tmixFilter
+    # --- Outlier Identification [] ---
+    # Key functions: ruleOutliers<-, summary
+    ruleOutliers(res2[[2]]) <- list(level = 0.95)
+    ruleOutliers(res2[[2]]) <- list(z.cutoff = 0.6)
+    summary(res2[[2]])
+
+
+    # --- Clustering Visualisation [] ---
+    # Key functions: plot, density
+    plot(res2[[2]], data = rituximab2, level = 0.8, z.cutoff = 0)
+    res2.den <- density(res2[[2]], data = rituximab2)
+    plot(res2.den, type = "image")
+
+
+    # --- Gating and Subsetting [] ---
+    # Key functions: tmixFilter, filter, Subset, split
     s2filter <- tmixFilter("s2filter", c("FL1.H", "FL3.H"), K = 3, B = 100)
     res2f <- filter(rituximab2, s2filter)
-    # --- split [] ---
-    # Key functions: split
-    Subset(rituximab2, res2f)
-    split(rituximab2, res2f, population = list(sc1 = 1:2, sc2 = 3))
-    # --- rectangle Gate [] ---
-    # Key functions: rectangleGate, tmixFilter
-    rectangleGate(
-    "FL1.H" = c(0, 400),
-    "FL3.H" = c(0, 800)
-    # --- flow Clust2 Prior [] ---
-    # Key functions: flowClust2Prior, flowClust
-    set.seed(100)
-    library(flowStats)
-    prior <- flowClust2Prior(res2[[2]], kappa = 1, Nt = 5000)
+    subset_data <- Subset(rituximab2, res2f)
+    split_data <- split(
+        rituximab2,
+        res2f,
+        population = list(sc1 = 1:2, sc2 = 3)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,19 +38,49 @@ process BIOC_GMOVIZ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(gmoviz)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, getCoverage, gmovizInitialise, getFeatures, featureDiagram, insertionDiagram
-    ideogram_1 <- GRanges(seqnames = c("chrA", "chrB", "chrC"),
-    ranges = IRanges(start = rep(0, 3), end = rep(1000, 3)))
-    ideogram_2 <- data.frame(chr = c("chrA", "chrB", "chrC"),
-    # --- IdeogramData analysis [] ---
-    # Key functions: getIdeogramData, gmovizInitialise, getCoverage, getLabels, getFeatures, drawFeatureTrack, featureDiagram, drawScatterplotTrack
-    gmovizInitialise(fly_ideogram_chr4_only, space_between_sectors = 25,
-    drawScatterplotTrack(numeric_data, track_height = 0.14, yaxis_increment = 12)
-    drawFeatureTrack(features, feature_label_cutoff = 80000, track_height = 0.15)
+    # --- Coverage Calculation [] ---
+    # Key functions: getCoverage
+    chr4_coverage <- getCoverage(
+        regions_of_interest = "chr4",
+        bam_file = pasillaBamSubset::untreated3_chr4(),
+        window_size = 350,
+        smoothing_window_size = 400
+    )
+
+
+    # --- Circular Visualization Initialization [] ---
+    # Key functions: gmovizInitialise
+    gmovizInitialise(
+        ideogram_data = fly_ideogram,
+        coverage_rectangle = "chr4",
+        coverage_data = chr4_coverage,
+        xaxis_spacing = 30,
+        space_between_sectors = 25,
+        start_degree = 78,
+        sector_label_size = 1,
+        track_height = 0.15
+    )
+
+
+    # --- Label Annotation [] ---
+    # Key functions: getLabels, gmovizInitialise
+    labels_from_file <- getLabels(
+        gff_file = system.file("extdata", "example.gff3", package = "gmoviz"),
+        colour_code = TRUE
+    )
+    gmovizInitialise(
+        fly_ideogram,
+        label_data = labels_from_file,
+        label_colour = labels_from_file$colour,
+        space_between_sectors = 25,
+        start_degree = 78,
+        sector_label_size = 1,
+        xaxis_spacing = 30
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

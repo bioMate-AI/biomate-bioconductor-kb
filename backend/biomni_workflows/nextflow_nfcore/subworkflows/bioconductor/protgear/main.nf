@@ -41,21 +41,91 @@ process BIOC_PROTGEAR {
     library(protGear)
     library(jsonlite)
 
-    # --- Principal component analysis [] ---
-    # Key functions: prcomp, get_pca_var, fviz_pca_ind, fviz_pca_biplot, theme_minimal
-    res_pca <- prcomp( norm_df, scale = TRUE)
-    var <- get_pca_var(res_pca)
-    p1 <- fviz_pca_ind(res_pca,
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: sym, ggplot, geom_violin, ylab, theme_minimal, ggtitle, gather, geom_boxplot
-    less_20 <- rlang::sym(paste0("CV <= ",cv_cut_off, "_perc"))
-    gt_20 <- rlang::sym(paste0("CV > ",cv_cut_off, "_perc"))
-    less_20_per <-  rlang::sym(paste0("% CV <=",cv_cut_off))
-    # --- Table formatting and display [] ---
-    # Key functions: array_vars, visualize_slide, visualize_slide_2d, map, set_names, ldply, plot_FB, plot_bg
-    dataCV_best2 <- purrr::map(.x=dataCV, .f=best_CV_estimation , slide_id="iden",lab_replicates=3,
-    dataCV_best2 <- set_names(dataCV_best2, purrr::map(filenames, name_of_files))
-    dataCV_sample_best2 <- purrr::map(.x=dataCV_best2, .f=cv_by_sample_estimation ,
+    # --- Data Loading and Background Extraction [] ---
+    # Key functions: read_array_files, name_of_files, extract_bg
+    filenames <- list.files(
+        file.path(genepix_vars$paths[[1]]),
+        pattern = "*.txt$|*.gpr$",
+        full.names = FALSE
+    )
+    data_path <- paste0(genepix_vars$paths[[1]], "/")
+    data_files <- purrr::map(
+        .x = filenames,
+        .f = read_array_files,
+        data_path = data_path,
+        genepix_vars = genepix_vars
+    )
+    names(data_files) <- purrr::map_chr(filenames, name_of_files)
+    dfs <- names(data_files)
+    allData_bg <- purrr::map(
+        .x = dfs,
+        .f = extract_bg,
+        data_files = data_files,
+        genepix_vars = genepix_vars
+    )
+    names(allData_bg) <- purrr::map_chr(filenames, name_of_files)
+    allData_bg_df <- plyr::ldply(allData_bg)
+
+
+    # --- Background Correction and Buffer Spot Analysis [] ---
+    # Key functions: merge_sampleID, buffer_spots, plot_buffer
+    sample_ID_merged_dfs <- purrr::map(
+        .x = dfs,
+        .f = merge_sampleID,
+        data_files = data_files,
+        genepix_vars = genepix_vars,
+        method = "subtract_local"
+    )
+    names(sample_ID_merged_dfs) <- purrr::map_chr(filenames, name_of_files)
+    buffer_transp <- purrr::map(
+        .x = sample_ID_merged_dfs,
+        .f = buffer_spots,
+        buffer_spot = "buffer"
+    )
+    names(buffer_transp) <- purrr::map_chr(filenames, name_of_files)
+    buffers <- plyr::ldply(buffer_transp)
+    plot_buffer(
+        buffers,
+        buffer_names = "antigen",
+        buffer_mfi = "FMedianBG_correct",
+        slide_id = ".id"
+    )
+
+
+    # --- Coefficient of Variation Estimation [] ---
+    # Key functions: cv_estimation, cv_by_sample_estimation
+    dataCV <- purrr::map(
+        .x = sample_ID_merged_dfs,
+        .f = cv_estimation,
+        lab_replicates = 3,
+        cv_cut_off = 20,
+        sampleID_var = "sampleID",
+        antigen_var = "antigen",
+        replicate_var = "replicate",
+        mfi_var = "FMedianBG_correct"
+    )
+    names(dataCV) <- purrr::map_chr(filenames, name_of_files)
+    dataCV_sample <- purrr::map(
+        .x = dataCV,
+        .f = cv_by_sample_estimation,
+        cv_variable = "cvCat_all",
+        lab_replicates = 3
+    )
+    names(dataCV_sample) <- purrr::map_chr(filenames, name_of_files)
+    all_cv_sample <- plyr::ldply(dataCV_sample)
+
+
+    # --- Replicate Selection and Best CV Estimation [] ---
+    # Key functions: best_CV_estimation, name_of_files
+    dataCV_best2 <- purrr::map(
+        .x = dataCV,
+        .f = best_CV_estimation,
+        slide_id = "iden",
+        lab_replicates = 3,
+        cv_cut_off = 20
+    )
+    names(dataCV_best2) <- purrr::map_chr(filenames, name_of_files)
+    best2_df <- plyr::ldply(dataCV_best2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

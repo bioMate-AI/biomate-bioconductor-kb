@@ -38,36 +38,69 @@ process BIOC_DEARSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(dearseq)
     library(DGEList)
     library(Meta)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Fetch GEO dataset [] ---
-    # Key functions: getGEO, Meta
-    library(GEOquery)
-    GSE107991_metadata <- GEOquery::getGEO("GSE107991", GSEMatrix = FALSE)
-    get_info <- function(i){
-    # --- London [] ---
-    # Key functions: getGEOSuppFiles, read_excel
-    library(readxl)
-    GEOquery::getGEOSuppFiles('GSE107991',
-    London <- readxl::read_excel("GSE107991/GSE107991_edgeR_normalized_Berry_London.xlsx")
-    # --- LR ST echo [] ---
-    # Key functions: SummarizedExperiment, dear_seq
-    library(dearseq)
-    library(SummarizedExperiment)
-    col_data <- data.frame("Status" = infos_df$Status)
-    # --- London raw [] ---
-    # Key functions: getGEOSuppFiles, read_excel, SummarizedExperiment, ifelse, DGEList
-    library(readxl)
-    library(edgeR)
-    GEOquery::getGEOSuppFiles('GSE107991',
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: SummarizedExperiment, dgsa_seq
-    library(dearseq)
-    library(SummarizedExperiment)
-    library(BiocSet)
+    # --- Asymptotic Differential Expression [] ---
+    # Key functions: dear_seq
+    res_dearseq <- dearseq::dear_seq(
+        object = se,
+        variables2test = "Status",
+        which_test = "asymptotic",
+        preprocessed = FALSE
+    )
+    res_summary <- summary(res_dearseq)
+
+
+    # --- Permutation Differential Expression [] ---
+    # Key functions: dear_seq
+    res_perm <- dearseq::dear_seq(
+        object = se,
+        variables2test = "Status",
+        which_test = "permutation",
+        preprocessed = FALSE,
+        n_perm = 100
+    )
+    res_perm_summary <- summary(res_perm)
+
+
+    # --- Gene Set Association Analysis [] ---
+    # Key functions: dgsa_seq
+    gs <- list(
+        set1 = paste0("Gene", 1:10),
+        set2 = paste0("Gene", 11:20)
+    )
+    res_dgsa <- dearseq::dgsa_seq(
+        object = se,
+        variables2test = "Status",
+        genesets = gs,
+        which_test = "permutation",
+        n_perm = 100,
+        preprocessed = FALSE
+    )
+    dgsa_pvals <- res_dgsa$pvals
+
+
+    # --- Visualisation [] ---
+    # Key functions: spaghettiPlot1GS
+    SummarizedExperiment::colData(se)[["Indiv"]] <- factor(rep(1:5, each = 2))
+    SummarizedExperiment::colData(se)[["Time"]] <- rep(1:2, 5)
+    SummarizedExperiment::colData(se)[["sample"]] <- colnames(se)
+    gs <- list(set1 = paste0("Gene", 1:10))
+    p <- dearseq::spaghettiPlot1GS(
+        gs_index = 1,
+        gmt = gs,
+        expr_mat = SummarizedExperiment::assay(se),
+        design = SummarizedExperiment::colData(se),
+        var_time = Time,
+        var_indiv = Indiv,
+        sampleIdColname = "sample",
+        var_group = Status,
+        loess_span = 1.5
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

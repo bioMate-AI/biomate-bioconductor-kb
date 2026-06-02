@@ -41,12 +41,26 @@ process BIOC_RNAMODR_ALKANILINESEQ {
     library(RNAmodR.AlkAnilineSeq)
     library(jsonlite)
 
-    # --- plot Compare By Coord [] ---
-    # Key functions: plotCompareByCoord
+    # --- Modification Detection and Extraction [] ---
+    # Key functions: modifications
+    mod <- modifications(msaas)
+    coord <- mod[[1L]]
+    alias <- data.frame(
+        tx_id = c(1L, 3L, 5L, 6L, 7L, 8L, 10L, 11L),
+        name = c("18S rRNA", "tF(GAA)B", "tG(GCC)B", "tT(AGT)B",
+                 "tQ(TTG)B", "tC(GCA)B", "tS(CGA)C", "tV(AAC)E1"),
+        stringsAsFactors = FALSE
+    )
+
+
+    # --- Visualization of Modification Data [] ---
+    # Key functions: plotCompareByCoord, plotData
     plotCompareByCoord(msaas, coord, score = "scoreSR", alias = alias,
-    # --- plot Data [] ---
-    # Key functions: plotData
+                       normalize = TRUE)
+    plotCompareByCoord(msaas, coord[1L], score = "scoreSR", alias = alias)
     plotData(msaas, "1", from = 1550L, to = 1600L)
+    plotData(msaas[1L:2L], "1", from = 1550L, to = 1600L,
+             showSequenceData = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

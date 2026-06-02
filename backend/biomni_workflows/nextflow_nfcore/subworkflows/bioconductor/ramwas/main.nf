@@ -41,11 +41,66 @@ process BIOC_RAMWAS {
     library(ramwas)
     library(jsonlite)
 
-    # --- PanderOptions analysis [] ---
-    # Key functions: panderOptions, ramwas0createArtificialData, ramwas1scanBams, ramwas2collectqc, ramwas3normalizedCoverage, plotPCvalues, plotPCvectors, close
-    eigenvalues = fm.load(paste0(pfull$dirpca, "/eigenvalues"));
-    eigenvectors = fm.open(
-    filenamebase = paste0(pfull$dirpca, "/eigenvectors"),
+    # --- Alignment Scanning and Quality Control [] ---
+    # Key functions: ramwas1scanBams, ramwas2collectqc, parameterPreprocess
+    ramwas1scanBams(param)
+    ramwas2collectqc(param)
+    pfull <- parameterPreprocess(param)
+    qc <- readRDS(paste0(pfull$dirrqc, "/BAM007.qc.rds"))
+
+
+    # --- Coverage Normalisation and Fragment Size Estimation [] ---
+    # Key functions: ramwas3normalizedCoverage, plotFragmentSizeDistributionEstimate
+    ramwas3normalizedCoverage(param)
+    pfull <- parameterPreprocess(param)
+    qc <- readRDS(paste0(pfull$dirqc, "/summary_total/qclist.rds"))
+    frdata <- qc$total$hist.isolated.dist1
+    estimate <- as.double(readLines(
+        con = paste0(pfull$dirproject, "/Fragment_size_distribution.txt")
+    ))
+    plotFragmentSizeDistributionEstimate(frdata, estimate)
+
+
+    # --- Principal Component Analysis [] ---
+    # Key functions: ramwas4PCA, plotPCvalues, plotPCvectors
+    ramwas4PCA(param)
+    pfull <- parameterPreprocess(param)
+    eigenvalues <- fm.load(paste0(pfull$dirpca, "/eigenvalues"))
+    eigenvectors <- fm.open(
+        filenamebase = paste0(pfull$dirpca, "/eigenvectors"),
+        readonly = TRUE
+    )
+    plotPCvalues(eigenvalues)
+    plotPCvectors(eigenvectors[, 1], 1)
+    close(eigenvectors)
+
+
+    # --- Association Analysis and Visualisation [] ---
+    # Key functions: ramwas5MWAS, getMWASandLocations, qqPlotFast, manPlotPrepare, manPlotFast
+    ramwas5MWAS(param)
+    mwas <- getMWASandLocations(param)
+    qqPlotFast(mwas$`p-value`)
+    man <- manPlotPrepare(
+        pvalues = mwas$`p-value`,
+        chr = mwas$chr,
+        pos = mwas$start,
+        chrmargins = 0
+    )
+    manPlotFast(man)
+
+
+    # --- Cross Validation and Prediction [] ---
+    # Key functions: ramwas7riskScoreCV, plotPrediction, plotCVcors
+    ramwas7riskScoreCV(param)
+    pfull <- parameterPreprocess(param)
+    cv <- readRDS(paste0(pfull$dircv, "/rds/CpGs=000050_alpha=0.000000.rds"))
+    plotPrediction(
+        param = pfull,
+        outcome = cv$outcome,
+        forecast = cv$forecast,
+        cpgs2use = 50,
+        main = "Prediction success"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

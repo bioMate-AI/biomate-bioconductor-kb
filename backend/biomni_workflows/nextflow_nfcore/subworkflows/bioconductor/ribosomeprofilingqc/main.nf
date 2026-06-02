@@ -38,25 +38,44 @@ process BIOC_RIBOSOMEPROFILINGQC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ribosomeProfilingQC)
     library(BamFile)
     library(DGEList)
     library(jsonlite)
 
-    # --- Import genomic data file [] ---
-    # Key functions: scanBamHeader, import, mcols, with, seqlevelsStyle, DGEList, calcNormFactors, estimateDisp
-    bamfilename <- system.file("extdata", "RPF.WT.1.bam",
-    bamHeader <- Rsamtools::scanBamHeader(bamfilename)
-    (chromsomeNameStyle <- GenomeInfoDb::seqlevelsStyle(names(bamHeader[[1]]$targets)))
-    # --- Linear model fit (limma) [] ---
-    # Key functions: lmFit, eBayes, topTable
-    library(limma)
-    gp <- c("KD", "KD", "CTL", "CTL") ## sample groups: KD:knockdown; CTL:Control
-    TE.log2 <- log2(TE$TE + 1)
-    # --- BAM file connection [] ---
-    # Key functions: makeTxDbFromGFF, prepareCDS, BamFile, estimatePsite, readsEndPlot, getPsiteCoordinates, summaryReadsLength, strandPlot
+    # --- P-site Estimation and Read Length Analysis [] ---
+    # Key functions: estimatePsite, getPsiteCoordinates, summaryReadsLength
+    psite_val <- estimatePsite(
+        bamfile, CDS, BSgenome.Drerio.UCSC.danRer10::Drerio
+    )
+    pc <- getPsiteCoordinates(bamfile, bestpsite = 13)
+    readsLen <- summaryReadsLength(pc)
+    pc.sub <- pc[pc$qwidth %in% c(28, 29)]
+
+
+    # --- Quality Control and Strand Distribution [] ---
+    # Key functions: strandPlot, readsDistribution
+    strandPlot(pc.sub, CDS)
+    pc.sub <- readsDistribution(pc.sub, txdb, las=2)
+
+
+    # --- Metagene Analysis and Reading Frame Assignment [] ---
+    # Key functions: coverageDepth, metaPlot, assignReadingFrame, plotFrameDensity
     cvgs.utr5 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="utr5")
     cvgs.CDS <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="cds")
     cvgs.utr3 <- coverageDepth(RPFs = bamfilename, gtf = txdb, region="utr3")
+    metaPlot(cvgs.utr5, cvgs.CDS, cvgs.utr3, sample=1)
+    pc.sub <- assignReadingFrame(pc.sub, CDS)
+    plotFrameDensity(pc.sub)
+
+
+    # --- Ribosome Protected Fragment Counting [] ---
+    # Key functions: countReads
+    path <- system.file("extdata", package="ribosomeProfilingQC")
+    RPFs <- dir(path, "RPF.*?\\.[12].bam$", full.names=TRUE)
+    gtf <- file.path(path, "Danio_rerio.GRCz10.91.chr1.gtf.gz")
+    cnts <- countReads(RPFs, gtf=gtf, level="gene",
+                       bestpsite=13, readsLen=c(28,29))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

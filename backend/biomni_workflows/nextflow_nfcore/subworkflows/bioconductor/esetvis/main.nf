@@ -41,16 +41,35 @@ process BIOC_ESETVIS {
     library(esetVis)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: featureNames, rowSums, fData, pData
-    library(ALL)
-    data(ALL)
-    library("hgu95av2.db")
-    # --- FvarMetadata analysis [] ---
-    # Key functions: fvarMetadata, pander, esetSpectralMap, colorRampPalette, getGeneSetsForPlot, sample, esetLda, esetPlotWrapper
-    retainedFeatures <- sample(featureNames(ALL), size = floor(nrow(ALL)/5))
-    outputEsetLda <- esetLda(eset = ALL[retainedFeatures, ], ldaVar = "BT",
-    title = paste("Acute lymphoblastic leukemia dataset \n",
+    # --- Sample Annotation Mapping [] ---
+    # Key functions: esetSpectralMap
+    map_annotated <- esetSpectralMap(
+        eset = ALL,
+        title = "Sample Annotation Map",
+        colorVar = "BT",
+        shapeVar = "sex",
+        sizeVar = "age",
+        sizeRange = c(0.1, 6),
+        alphaVar = "remissionType",
+        topSamples = 0,
+        topGenes = 0,
+        cloudGenes = TRUE
+    )
+
+
+    # --- Gene Cloud and Outlier Labeling [] ---
+    # Key functions: esetSpectralMap
+    map_outliers <- esetSpectralMap(
+        eset = ALL,
+        title = "Label Outlying Samples and Genes",
+        colorVar = "BT",
+        shapeVar = "sex",
+        sizeVar = "age",
+        topGenes = 10,
+        topGenesVar = "SYMBOL",
+        topSamples = 15,
+        topSamplesVar = "cod"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

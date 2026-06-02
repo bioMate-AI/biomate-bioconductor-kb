@@ -41,55 +41,34 @@ process BIOC_DEGRAPH {
     library(DEGraph)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
+    # --- Data Loading and ID Mapping [Data Loading and ID Mapping] ---
+    # Key functions: translateGeneID2KEGGID
     data("Loi2008_DEGraphVignette", package="DEGraph")
-    classData <- classLoi2008
     exprData <- exprLoi2008
-    annData <- annLoi2008
+    classData <- classLoi2008
     grList <- grListKEGG
-    # --- Ttests [] ---
-    # Key functions: test, unlist
-    ## Individual t-test p-values
-    X1 <- t(exprData[, classData==0])
-    X2 <- t(exprData[, classData==1])
-    ttpv <- c()
-    tts <- c()
-    # --- Mvtests [] ---
-    # Key functions: testOneGraph, results
+    keggIDs <- translateGeneID2KEGGID(rownames(exprData))
+
+    # --- Pathway-Based Multivariate Testing [Pathway-Based Multivariate Testing] ---
+    # Key functions: testOneGraph
     prop <- 0.2
-    ## Multivariate tests
-    resList <- NULL
-    for (ii in seq(along=grList)) {
-      gr <- grList[[ii]]
-    # --- Path1 [] ---
-    # Key functions: translateKEGGID2GeneID, nodes, plotValuedGraph, stext, signif
-    gIdx <- fSignif[1]
-    gr <- graphList[[gIdx]]
-    mm <- match(translateKEGGID2GeneID(nodes(gr)), rownames(annData))
-    dn <- annData[mm, "NCBI.gene.symbol"]
-    res <- plotValuedGraph(gr, values=shift, nodeLabels=dn, qMax=0.95, colorPalette=pal, height=40, lwd=1, cex=0.3, verbose=verbose)
-    # --- Path2 [] ---
-    # Key functions: translateKEGGID2GeneID, nodes, plotValuedGraph, stext, signif
-    gIdx <- fSignif[5]
-    gr <- graphList[[gIdx]]
-    mm <- match(translateKEGGID2GeneID(nodes(gr)), rownames(annData))
-    dn <- annData[mm, "NCBI.gene.symbol"]
-    res <- plotValuedGraph(gr, values=shift, nodeLabels=dn, qMax=0.95, colorPalette=pal, height=40, lwd=1, cex=0.3, verbose=verbose)
-    # --- Showpath1 [] ---
-    # Key functions: translateKEGGID2GeneID, nodes, plotValuedGraph, stext, signif
-    gIdx <- fSignif[1]
-    gr <- graphList[[gIdx]]
-    mm <- match(translateKEGGID2GeneID(nodes(gr)), rownames(annData))
-    dn <- annData[mm, "NCBI.gene.symbol"]
-    res <- plotValuedGraph(gr, values=shift, nodeLabels=dn, qMax=0.95, colorPalette=pal, height=40, lwd=1, cex=0.3, verbose=verbose)
-    # --- Showpath2 [] ---
-    # Key functions: translateKEGGID2GeneID, nodes, plotValuedGraph, stext, signif
-    gIdx <- fSignif[5]
-    gr <- graphList[[gIdx]]
-    mm <- match(translateKEGGID2GeneID(nodes(gr)), rownames(annData))
-    dn <- annData[mm, "NCBI.gene.symbol"]
-    res <- plotValuedGraph(gr, values=shift, nodeLabels=dn, qMax=0.95, colorPalette=pal, height=40, lwd=1, cex=0.3, verbose=verbose)
+    resList <- list()
+    for (ii in seq_along(grList)) {
+        gr <- grList[[ii]]
+        res <- testOneGraph(gr, exprData, classData, prop=prop)
+        resList[[names(grList)[ii]]] <- res
+    }
+
+    # --- Pathway Visualization [Pathway Visualization] ---
+    # Key functions: plotValuedGraph, translateKEGGID2GeneID, translateGeneID2KEGGID
+    gr <- grList[[1]]
+    geneSymbols <- translateKEGGID2GeneID(nodes(gr))
+    values <- rowMeans(exprData[, classData == 1]) -
+        rowMeans(exprData[, classData == 0])
+    names(values) <- translateGeneID2KEGGID(rownames(exprData))
+    res <- plotValuedGraph(gr, values=values, nodeLabels=geneSymbols,
+        qMax=0.95, height=40, lwd=1, cex=0.3)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

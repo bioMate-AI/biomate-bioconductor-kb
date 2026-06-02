@@ -41,21 +41,80 @@ process BIOC_SPARROW {
     library(sparrow)
     library(jsonlite)
 
-    # --- Linear model fit (limma) [] ---
-    # Key functions: lmFit, topTable
-    fit <- lmFit(vm, vm$design) %>%
-    contrasts.fit(cm) %>%
-    tt <- topTable(fit, 'BvH', n=Inf, sort.by='none')
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: inner_join, ggplot, geom_boxplot, geom_jitter, facet_grid
-    inner_join(select(vm.bh$targets, sample_id=Sample_ID, subtype=PAM50subtype),
-    filter(name %in% head(unique(all.scores$name), 5))
-    ggplot(some.scores, aes(subtype, score)) +
-    # --- Theme set analysis [] ---
-    # Key functions: theme_set, exampleExpressionSet, getMSigGeneSetDb, geneSets, seas, logFC, inner_join, arrange
-    select(entrez_id, logFC, t, pval=P.Value, padj=adj.P.Val) %>%
-    inner_join(lfc, by='entrez_id', suffix=c('.tt', '.mg'))
-    all.equal(comp$t.tt, comp$t.mg)
+    # --- Data Preparation ---
+    # Key functions: exampleExpressionSet
+    vm <- sparrow::exampleExpressionSet(
+        dataset = "tumor-subtype",
+        do.voom = TRUE
+    )
+    design <- vm$design
+    contrast_matrix <- limma::makeContrasts(
+        BvH = Basal - Her2,
+        levels = design
+    )
+
+    # --- Gene Set Database Construction ---
+    # Key functions: getMSigGeneSetDb, geneSets
+    gdb <- sparrow::getMSigGeneSetDb(
+        collection = c("h", "c2"),
+        species = "human",
+        id.type = "entrez"
+    )
+    gs_df <- sparrow::geneSets(gdb)
+    head_gs <- head(gs_df, 10)
+
+    # --- Gene Set Enrichment Analysis ---
+    # Key functions: seas, logFC, result
+    mg <- sparrow::seas(
+        x = vm,
+        gsdb = gdb,
+        methods = c("camera", "fry", "ora"),
+        design = vm$design,
+        contrast = contrast_matrix[, "BvH"],
+        feature.max.padj = 0.05,
+        feature.min.logFC = 1,
+        inter.gene.cor = 0.01,
+        feature.bias = "size"
+    )
+    lfc_stats <- sparrow::logFC(mg)
+    camera_res <- sparrow::result(mg, "camera")
+
+    # --- Single Sample Gene Set Scoring ---
+    # Key functions: scoreSingleSamples, result, geneSets
+    sig_res <- sparrow::result(mg, "camera")
+    sig_names <- sig_res$name[sig_res$padj < 0.05]
+    gdb_sub <- gdb[sparrow::geneSets(gdb)$name %in% sig_names]
+    vm_sub <- vm[, vm$targets$PAM50subtype %in% c("Basal", "Her2")]
+    scores <- sparrow::scoreSingleSamples(
+        gdb_sub,
+        vm_sub,
+        methods = c("ewm", "ssgsea", "zscore"),
+        ssgsea.norm = TRUE,
+        unscale = FALSE,
+        uncenter = FALSE,
+        as.dt = TRUE
+    )
+
+    # --- Visualisation ---
+    # Key functions: mgheatmap, geneSets
+    gs_sub <- sparrow::geneSets(gdb_sub)
+    gdb_plot <- gdb_sub[sparrow::geneSets(gdb_sub)$name %in% head(gs_sub$name, 2)]
+    col_anno <- ComplexHeatmap::HeatmapAnnotation(
+        df = vm_sub$targets[, "PAM50subtype", drop = FALSE],
+        col = list(PAM50subtype = c(Basal = "gray", Her2 = "black"))
+    )
+    sparrow::mgheatmap(
+        vm_sub,
+        gdb_plot,
+        aggregate.by = "none",
+        split = TRUE,
+        show_row_names = FALSE,
+        show_column_names = FALSE,
+        recenter = TRUE,
+        top_annotation = col_anno,
+        zlim = c(-3, 3)
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

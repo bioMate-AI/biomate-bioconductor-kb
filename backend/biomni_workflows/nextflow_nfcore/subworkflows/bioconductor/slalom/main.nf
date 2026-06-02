@@ -38,20 +38,37 @@ process BIOC_SLALOM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(slalom)
     library(GeneSetCollection)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: logcounts, SingleCellExperiment
-    rdsfile <- system.file("extdata", "sim_N_20_v3.rds", package = "slalom")
-    sim <- readRDS(rdsfile)
-    sce <- SingleCellExperiment::SingleCellExperiment(
-    # --- Gmt analysis [] ---
-    # Key functions: getGmt, newSlalomModel, initSlalom, trainSlalom, GeneSetCollection, setName, plotLoadings
-    genesets <- GSEABase::GeneSetCollection(
-    lapply(genesets, function(x) {
-    GSEABase::setName(x) <- gsub("REACTOME_", "", GSEABase::setName(x))
+    # --- Gene Set Loading Analysis [] ---
+    # Key functions: plotTerms, plotLoadings
+    terms_plot <- plotTerms(m)
+    loadings_plot <- plotLoadings(m, "CELL_CYCLE")
+    loadings_matrix <- m@W
+    top_genes <- head(order(loadings_matrix[, "CELL_CYCLE"],
+        decreasing = TRUE), 10)
+
+
+    # --- Identify Top Terms [] ---
+    # Key functions: topTerms
+    top_terms_df <- topTerms(m)
+    significant_terms <- top_terms_df[top_terms_df$relevance > 0.5, ]
+    ordered_terms <- significant_terms[order(
+        significant_terms$relevance,
+        decreasing = TRUE
+    ), ]
+
+
+    # --- Integrate Results [] ---
+    # Key functions: addResultsToSingleCellExperiment
+    sce <- addResultsToSingleCellExperiment(sce, m)
+    reduced_dim_slalom <- SingleCellExperiment::reducedDim(
+        sce,
+        "slalom"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,28 +41,68 @@ process BIOC_STRANDCHECKR {
     library(strandCheckR)
     library(jsonlite)
 
-    # --- get Strand From Bam File [] ---
+    # --- Read Strand Information from BAM ---
     # Key functions: getStrandFromBamFile
-    library(strandCheckR)
     files <- system.file(
-    "extdata",c("s1.sorted.bam","s2.sorted.bam"),package = "strandCheckR"
-    # --- transcripts [] ---
-    # Key functions: transcripts, intersectWithFeature
-    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-    annot <- transcripts(TxDb.Hsapiens.UCSC.hg38.knownGene)
-    win$Seq <- paste0("chr",win$Seq)
-    # --- plot Hist [] ---
-    # Key functions: plotHist
+        "extdata", c("s1.sorted.bam", "s2.sorted.bam"),
+        package = "strandCheckR"
+    )
+    win <- getStrandFromBamFile(files, sequences = "10")
+    win$File <- basename(as.character(win$File))
+    sorted_win <- win[order((win$NbPos + win$NbNeg), decreasing = TRUE), ]
+
+    # --- Annotate Windows with Genomic Features ---
+    # Key functions: intersectWithFeature
+    annot <- GenomicRanges::GRanges(
+        seqnames = "chr10",
+        ranges = IRanges::IRanges(start = 1, end = 100000)
+    )
+    win$Seq <- paste0("chr", win$Seq)
+    win_annot <- intersectWithFeature(
+        windows = win,
+        annotation = annot,
+        overlapCol = "OverlapTranscript"
+    )
+
+    # --- Visualize Strand Proportion Histograms ---
+    # Key functions: plotHist, plotWin
+    win$OverlapTranscript <- "Transcript"
     plotHist(
-    windows = win, groupBy = c("File","OverlapTranscript"),
-    # --- plot Win [] ---
-    # Key functions: plotWin
+        windows = win,
+        groupBy = c("File", "OverlapTranscript"),
+        normalizeBy = "File",
+        scales = "free_y"
+    )
     plotWin(win, groupBy = "File")
-    # --- plot Hist [] ---
-    # Key functions: plotHist, ggtitle
+
+    # --- Filter Double-Stranded DNA Contamination ---
+    # Key functions: filterDNA
+    files <- system.file(
+        "extdata", c("s1.sorted.bam", "s2.sorted.bam"),
+        package = "strandCheckR"
+    )
+    win2 <- filterDNA(
+        file = files[2],
+        sequences = "10",
+        destination = tempfile(fileext = ".bam"),
+        threshold = 0.7,
+        getWin = TRUE
+    )
     win2$File <- basename(as.character(win2$File))
-    win2$File <- factor(win2$File,levels = c("s2.sorted.bam","s2.filter.bam"))
-    library(ggplot2)
+
+    # --- Compare Before and After Filtering ---
+    # Key functions: plotHist
+    win2$File <- factor(
+        win2$File,
+        levels = c("s2.sorted.bam", "s2.filter.bam")
+    )
+    plotHist(
+        win2,
+        groupBy = "File",
+        normalizeBy = "File",
+        scales = "free_y"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

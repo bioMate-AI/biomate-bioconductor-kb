@@ -38,71 +38,46 @@ process BIOC_RIFI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(rifi)
     library(TI_fit)
     library(TUgether)
     library(jsonlite)
 
-    # --- rifi_wrapper [] ---
-    # Key functions: rifi_wrapper
-    library(rifi)
-    data(example_input_e_coli)
-    Path = gzfile(system.file("extdata", "gff_e_coli.gff3.gz", package = "rifi"))
-    # --- check_input [] ---
-    # Key functions: check_input
-    probe <- check_input(inp = example_input_minimal, thrsh = 0)
-    # --- make_df [] ---
-    # Key functions: make_df
-    make_df(
-    head(rowRanges(probe))
-    # --- segment_pos [] ---
-    # Key functions: segment_pos
-    probe <- segment_pos(inp = probe, dista = 300)
-    head(rowRanges(probe))
-    # --- finding PDD [] ---
-    # Key functions: finding_PDD
-    finding_PDD(
-    head(rowRanges(probe))
-    # --- finding TI [] ---
-    # Key functions: finding_TI
-    finding_TI(
-    head(rowRanges(probe))
-    # --- rifi preprocess [] ---
-    # Key functions: rifi_preprocess
-    rifi_preprocess(
-    head(rowRanges(preprocess_minimal))
-    # --- TI fit [] ---
-    # Key functions: TI_fit
-    TI_fit(inp = preprocess_minimal,
-    k = seq(0, 1, by = 0.5),
-    decay = c(0.05, 0.1, 0.2, 0.5, 0.6),
-    # --- plot nls2 [] ---
-    # Key functions: plot_nls2_function
-    plot_nls2_function(inp = probe_df)
-    # --- plot nls2 function [] ---
-    # Key functions: plot_nls2_function
-    plot_nls2_function(inp = probe_df)
-    # --- make_pen [] ---
-    # Key functions: make_pen
-    data(fit_minimal)
-    make_pen(
-    pen_HL <- make_pen(
-    # --- viz pen obj [] ---
-    # Key functions: viz_pen_obj
-    viz_pen_obj(obj = pen_delay, top_i = 10)
-    # --- rifi fragmentation [] ---
-    # Key functions: rifi_fragmentation
+    # --- Transcription Profiling and Fitting [] ---
+    # Key functions: rifi_preprocess, rifi_fit
+    data(preprocess_minimal)
+    fit_minimal <- rifi_fit(
+        inp = preprocess_minimal,
+        cores = 2,
+        viz = FALSE,
+        restr = 0.2,
+        decay = seq(.08, 0.11, by = .02),
+        delay = seq(0, 10, by = .1),
+        k = seq(0.1, 1, 0.2),
+        bg = 0.2,
+        TI_k = seq(0, 1, by = 0.5),
+        TI_decay = c(0.05, 0.1, 0.2, 0.5, 0.6),
+        TI = seq(0, 1, by = 0.5),
+        TI_delay = seq(0, 2, by = 0.5),
+        TI_rest_delay = seq(0, 2, by = 0.5),
+        TI_bg = 0
+    )
+
+
+    # --- Fragmentation and Statistical Analysis [] ---
+    # Key functions: rifi_fragmentation, rifi_stats
     data(penalties_minimal)
-    rifi_fragmentation(
-    # --- fragment_delay [] ---
-    # Key functions: fragment_delay
-    data(fragmentation_minimal)
-    data(penalties_minimal)
-    probe_df <- fragment_delay(
-    # --- fragment HL [] ---
-    # Key functions: fragment_HL
-    data(fragmentation_minimal)
-    data(penalties_minimal)
-    probe_df <- fragment_HL(
+    fragmentation_minimal <- rifi_fragmentation(
+        inp = penalties_minimal,
+        cores = 2
+    )
+    Path <- gzfile(system.file("extdata", "gff_e_coli.gff3.gz",
+                               package = "rifi"))
+    stats_minimal <- rifi_stats(
+        inp = fragmentation_minimal,
+        dista = 300,
+        path = Path
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

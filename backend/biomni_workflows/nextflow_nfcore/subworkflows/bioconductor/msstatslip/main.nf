@@ -38,13 +38,85 @@ process BIOC_MSSTATSLIP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MSstatsLiP)
     library(ResistanceBarcodePlotLiP)
     library(jsonlite)
 
-    # --- Barplot of protease resistance of aSynuclein (monomer [] ---
-    # Key functions: ResistanceBarcodePlotLiP
-    ResistanceBarcodePlotLiP(Accessibility,
-    ResistanceBarcodePlotLiP(Accessibility,
+    # --- Data Import and Formatting [Data Import and Formatting] ---
+    # Key functions: SpectronauttoMSstatsLiPFormat
+    MSstatsLiP_data <- SpectronauttoMSstatsLiPFormat(
+        LiPRawData,
+        "../inst/extdata/ExampleFastaFile.fasta",
+        TrPRawData,
+        use_log_file = FALSE,
+        append = FALSE
+    )
+
+    # --- Data Summarization and Quality Control [Data Summarization and Quality Control] ---
+    # Key functions: dataSummarizationLiP, trypticHistogramLiP, correlationPlotLiP, dataProcessPlotsLiP
+    MSstatsLiP_Summarized <- dataSummarizationLiP(
+        MSstatsLiP_data,
+        MBimpute = FALSE,
+        use_log_file = FALSE,
+        append = FALSE
+    )
+    trypticHistogramLiP(
+        MSstatsLiP_Summarized,
+        "../inst/extdata/ExampleFastaFile.fasta",
+        color_scale = "bright",
+        address = FALSE
+    )
+    correlationPlotLiP(MSstatsLiP_Summarized, address = FALSE)
+    dataProcessPlotsLiP(
+        MSstatsLiP_Summarized,
+        type = "QCPLOT",
+        which.Peptide = "allonly",
+        address = FALSE
+    )
+
+    # --- Dimensionality Reduction [Dimensionality Reduction] ---
+    # Key functions: PCAPlotLiP
+    PCAPlotLiP(
+        MSstatsLiP_Summarized,
+        bar.plot = FALSE,
+        protein.pca = FALSE,
+        comparison.pca = TRUE,
+        which.comparison = c("Ctrl", "Osmo"),
+        address = FALSE
+    )
+
+    # --- Differential Abundance Analysis [Differential Abundance Analysis] ---
+    # Key functions: groupComparisonLiP
+    MSstatsLiP_model <- groupComparisonLiP(
+        MSstatsLiP_Summarized,
+        fasta = "../inst/extdata/ExampleFastaFile.fasta",
+        use_log_file = FALSE,
+        append = FALSE
+    )
+
+    # --- Visualization of Differential Results [Visualization of Differential Results] ---
+    # Key functions: groupComparisonPlotsLiP, StructuralBarcodePlotLiP
+    groupComparisonPlotsLiP(
+        MSstatsLiP_model,
+        type = "VolcanoPlot",
+        address = FALSE
+    )
+    StructuralBarcodePlotLiP(
+        MSstatsLiP_model,
+        "../inst/extdata/ExampleFastaFile.fasta",
+        model_type = "Adjusted",
+        which.prot = c("P53858"),
+        address = FALSE
+    )
+
+    # --- Proteolytic Resistance Analysis [Proteolytic Resistance Analysis] ---
+    # Key functions: calculateProteolyticResistance
+    Accessibility <- calculateProteolyticResistance(
+        MSstatsLiP_Summarized,
+        "../inst/extdata/ExampleFastaFile.fasta",
+        differential_analysis = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

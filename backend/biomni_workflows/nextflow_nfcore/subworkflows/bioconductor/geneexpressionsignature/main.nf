@@ -38,43 +38,55 @@ process BIOC_GENEEXPRESSIONSIGNATURE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GeneExpressionSignature)
     library(RankMerging)
     library(ScoreGSEA)
     library(ScorePGSEA)
     library(jsonlite)
 
-    # --- Fetch GEO dataset [] ---
-    # Key functions: getGEO, getRLs
-    GSM118720 <- getGEO('GSM118720')
-    GSM118721 <- getGEO('GSM118721')
-    if (require(GEOquery)){
-    # --- show [] ---
-    # Key functions: show, exprs
+    # --- Rank Merging [] ---
+    # Key functions: RankMerging
     data(exampleSet)
-    show(exampleSet)
-    exprs(exampleSet)[c(1:10), c(1:3)]
-    # --- Rank Merging [] ---
-    # Key functions: RankMerging, show
+    MergingSet <- RankMerging(
+        exampleSet,
+        "Spearman",
+        weighted = TRUE
+    )
+
+
+    # --- GSEA Scoring [] ---
+    # Key functions: RankMerging, ScoreGSEA
+    data(exampleSet)
     MergingSet <- RankMerging(exampleSet, "Spearman", weighted = TRUE)
-    show(MergingSet)
-    # --- Score G S E A [] ---
-    # Key functions: ScoreGSEA
-    ds <- ScoreGSEA(MergingSet, 250, "avg")
-    # --- Rank Merging [] ---
-    # Key functions: RankMerging, show
+    ds_gsea <- ScoreGSEA(
+        MergingSet,
+        SignatureLength = 250,
+        ScoringDistance = "avg"
+    )
+
+
+    # --- PGSEA Scoring [] ---
+    # Key functions: RankMerging, ScorePGSEA
+    data(exampleSet)
     MergingSet <- RankMerging(exampleSet, "Spearman", weighted = TRUE)
-    show(MergingSet)
-    # --- Score G S E A [] ---
-    # Key functions: ScoreGSEA
-    ds <- ScoreGSEA(MergingSet,250,"avg")
-    # --- Score P G S E A [] ---
-    # Key functions: ScorePGSEA
-    ds <- ScorePGSEA(MergingSet,250,"avg")
-    # --- apcluster [] ---
-    # Key functions: apcluster, show
-    if (require(apcluster)){
-    library(apcluster)
-    clusterResult <- apcluster(1 - ds)
+    ds_pgsea <- ScorePGSEA(
+        MergingSet,
+        SignatureLength = 250,
+        ScoringDistance = "avg"
+    )
+
+
+    # --- Signature Distance Calculation [] ---
+    # Key functions: SignatureDistance
+    data(exampleSet)
+    sig_dist <- SignatureDistance(
+        exampleSet,
+        SignatureLength = 250,
+        MergingDistance = "Spearman",
+        ScoringMethod = "GSEA",
+        ScoringDistance = "avg",
+        weighted = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

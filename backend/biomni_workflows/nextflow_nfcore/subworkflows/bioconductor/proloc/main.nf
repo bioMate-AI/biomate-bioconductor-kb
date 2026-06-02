@@ -41,16 +41,48 @@ process BIOC_PROLOC {
     library(pRoloc)
     library(jsonlite)
 
-    # --- Normalize protein intensities [] ---
-    # Key functions: quantify, normalise, processingData
-    data(itraqdata)
-    itraqdata <- quantify(itraqdata, method = "trap",
-    head(exprs(itraqdata), n = 3)
-    # --- Expression matrix extraction [] ---
-    # Key functions: setStockcol, dir, readMSnSet, readMSnSet2, getEcols, grepEcols, exprs, getMarkers
-    f1 <- dir(system.file("extdata", package = "pRolocdata"),
-    exprsCsv <- read.csv(f1)
-    f2 <- dir(system.file("extdata", package = "pRolocdata"),
+    # --- Normalisation and Preprocessing [] ---
+    # Key functions: normalise
+    data(tan2009r1, package = "pRolocdata")
+    tan_norm <- normalise(tan2009r1, method = "sum")
+
+
+    # --- Marker Profiling and Clustering [] ---
+    # Key functions: mrkHClust, getMarkerClasses, mrkConsProfiles, plotConsProfiles
+    data(tan2009r1, package = "pRolocdata")
+    hc <- mrkHClust(tan2009r1, plot = FALSE)
+    mm <- getMarkerClasses(tan2009r1)
+    m_order <- levels(factor(mm))[order.dendrogram(hc)]
+    fmat <- mrkConsProfiles(tan2009r1)
+    plotConsProfiles(fmat, order = m_order)
+
+
+    # --- Dimensionality Reduction and Visualisation [] ---
+    # Key functions: plot2D, addLegend, FeaturesOfInterest, highlightOnPlot
+    data(tan2009r1, package = "pRolocdata")
+    plot2D(tan2009r1, fcol = "markers.orig")
+    addLegend(tan2009r1, fcol = "markers.orig", where = "bottomright")
+    foi1 <- FeaturesOfInterest(description = "Feats of interest 1",
+                               fnames = featureNames(tan2009r1)[1:10])
+    highlightOnPlot(tan2009r1, foi1, col = "black", lwd = 2)
+
+
+    # --- Quality Control and Organelle Separation [] ---
+    # Key functions: QSep, levelPlot
+    data(hyperLOPIT2015, package = "pRolocdata")
+    hlq <- QSep(hyperLOPIT2015)
+    levelPlot(hlq)
+    plot(hlq)
+
+
+    # --- Unsupervised Clustering [] ---
+    # Key functions: MLearn, kmeansI, hclustI, pamI
+    data(tan2009r1, package = "pRolocdata")
+    kcl <- MLearn(~ ., tan2009r1, kmeansI, centers = 5)
+    plot(kcl, exprs(tan2009r1))
+    hcl <- MLearn(~ ., tan2009r1, hclustI(distFun = dist,
+                                          cutParm = list(k = 5)))
+    plot(hcl, labels = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

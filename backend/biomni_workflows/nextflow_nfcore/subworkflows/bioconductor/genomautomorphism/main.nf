@@ -38,66 +38,55 @@ process BIOC_GENOMAUTOMORPHISM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GenomAutomorphism)
     library(DNAStringSet)
     library(jsonlite)
 
-    # --- base2int [] ---
-    # Key functions: base2int
-    base2int("ACGT", group = "Z4", cube = "ACGT")
-    # --- codon_coord [] ---
-    # Key functions: codon_coord
-    codons <- codon_coord(
-    # --- D N A String Set [] ---
-    # Key functions: DNAStringSet
+    # --- Sequence Coordinate Mapping [Sequence Representation] ---
+    # Key functions: base2int, base_coord, codon_coord
     x0 <- c("ACG", "TGC")
-    x1 <- DNAStringSet(x0)
-    # --- base_coord [] ---
-    # Key functions: base_coord
+    x1 <- Biostrings::DNAStringSet(x0)
     x2 <- base_coord(x1, cube = "ACGT")
-    x2. <- base_coord(x1, cube = "TGCA")
-    # --- codon_coord [] ---
-    # Key functions: codon_coord
     x3 <- codon_coord(codon = x2, group = "Z64")
-    x3. <- codon_coord(codon = x2., group = "Z64")
-    # --- automorphisms [] ---
+    b_int <- base2int("ACGT", group = "Z4", cube = "ACGT")
+
+    # --- Automorphism Computation [Automorphism Analysis] ---
     # Key functions: automorphisms
+    data(covid_aln, package = "GenomAutomorphism")
     autm <- automorphisms(
-    cube = c("ACGT", "TGCA"),
-    cube_alt = c("CATG", "GTAC"),
-    # --- automorphism By Ranges [] ---
+        seqs = covid_aln,
+        group = "Z64",
+        cube = c("ACGT", "TGCA"),
+        cube_alt = c("CATG", "GTAC"),
+        start = 1,
+        end = 750,
+        verbose = FALSE
+    )
+
+    # --- Genomic Range Aggregation [Genomic Ranges] ---
     # Key functions: automorphismByRanges
-    aut_range <- automorphismByRanges(autm)
-    # --- aut 1 [] ---
-    # Key functions: automorphisms
-    covid_autm <- automorphisms(
-    cube = c("ACGT", "TGCA"),
-    cube_alt = c("CATG", "GTAC"),
-    # --- range 2 [] ---
-    # Key functions: automorphismByRanges
+    data(covid_autm, package = "GenomAutomorphism")
     aut_range <- automorphismByRanges(covid_autm)
-    # --- width [] ---
-    # Key functions: width
-    data.frame(aut_range[idx])
-    width(aut_range[ idx ])
-    # --- automorphism_bycoef [] ---
-    # Key functions: automorphism_bycoef
+    idx <- which(aut_range$cube == "Trnl")
+    trnl_ranges <- aut_range[idx]
+    trnl_widths <- BiocGenerics::width(trnl_ranges)
+
+    # --- Mutation Probability Estimation [Probability Analysis] ---
+    # Key functions: automorphism_bycoef, automorphism_prob
+    data(covid_autm, package = "GenomAutomorphism")
     autby_coef <- automorphism_bycoef(covid_autm)
-    # --- barplot 2 [] ---
-    # Key functions: automorphism_prob
-    post_prob <- automorphism_prob(autby_coef)
-    names(counts) <- post_prob$Codon
-    par(family = "serif", cex.axis = 2, font = 2, las = 1,
-    # --- conserved regions [] ---
+    filtered_coef <- autby_coef[autby_coef$autm != 1 & autby_coef$autm != -1]
+    post_prob <- automorphism_prob(filtered_coef)
+    high_prob <- post_prob[post_prob$Posterior_Probability > 0.003, ]
+
+    # --- Conserved Regions Identification [Conservation Analysis] ---
     # Key functions: conserved_regions
+    data(covid_autm, package = "GenomAutomorphism")
     conserv <- conserved_regions(covid_autm)
-    # --- conserved_regions [] ---
-    # Key functions: conserved_regions
-    conserv_unique <- conserved_regions(covid_autm, output = "unique")
-    # --- aut 2 [] ---
-    # Key functions: automorphisms
-    autm_z125 <- automorphisms(
-    cube = c("ACGT", "TGCA"),
-    cube_alt = c("CATG", "GTAC"),
+    conserv_uniq <- conserved_regions(covid_autm, output = "unique")
+    data(autm_3d, package = "GenomAutomorphism")
+    conserv_3d <- conserved_regions(autm_3d)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

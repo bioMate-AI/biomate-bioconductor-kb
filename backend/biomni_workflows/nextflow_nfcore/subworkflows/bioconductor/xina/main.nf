@@ -41,42 +41,55 @@ process BIOC_XINA {
     library(XINA)
     library(jsonlite)
 
-    # --- example random dataset [] ---
+    # --- Data Preparation [Data Preparation] ---
     # Key functions: make_random_xina_data
     random_data_info <- make_random_xina_data()
-    # --- XINA clustering [] ---
+    data_files <- paste(
+        random_data_info$conditions,
+        ".csv",
+        sep=""
+    )
+    data_column <- random_data_info$time_points
+
+    # --- Clustering Analysis [Clustering Analysis] ---
     # Key functions: xina_clustering
-    clustering_result <- xina_clustering(data_files, data_column=data_column, nClusters=20)
-    # --- XINA with k [] ---
-    # Key functions: xina_clustering
-    clustering_result_km <- xina_clustering(data_files, data_column=data_column, nClusters=20, chosen_model='kmeans')
-    # --- XINA clustering plot [] ---
-    # Key functions: theme, plot_clusters
-    library(ggplot2)
-    theme1 <- theme(title=element_text(size=8, face='bold'),
-    axis.text.x = element_text(size=7),
-    # --- XINA condition composition [] ---
-    # Key functions: theme, plot_condition_compositions
-    theme2 <- theme(legend.key.size = unit(0.3, "cm"),
-    legend.text=element_text(size=5),
-    title=element_text(size=7, face='bold'))
-    # --- XINA comigration search [] ---
+    clustering_result <- xina_clustering(
+        file_list=data_files,
+        data_column=data_column,
+        nClusters=20
+    )
+    clustering_result_km <- xina_clustering(
+        file_list=data_files,
+        data_column=data_column,
+        nClusters=20,
+        chosen_model="kmeans"
+    )
+
+    # --- Cluster Visualization [Cluster Visualization] ---
+    # Key functions: plot_clusters
+    plot_clusters(
+        clustering_result
+    )
+
+    # --- Condition Composition Analysis [Condition Composition Analysis] ---
+    # Key functions: plot_condition_compositions
+    condition_composition <- plot_condition_compositions(
+        clustering_result
+    )
+
+    # --- Comigration Search [Comigration Search] ---
     # Key functions: alluvial_enriched
     classes <- as.vector(clustering_result$condition)
-    all_cor <- alluvial_enriched(clustering_result, classes)
-    head(all_cor)
-    # --- XINA comigration search with comigration size filter [] ---
-    # Key functions: alluvial_enriched
-    cor_bigger_than_5 <- alluvial_enriched(clustering_result, classes, comigration_size=5)
-    head(cor_bigger_than_5)
-    # --- STRING DB set up [] ---
-    # Key functions: xina_analysis
-    library(STRINGdb)
-    string_db <- STRINGdb$new( version="10", species=9606, score_threshold=0, input_directory="" )
-    xina_result <- xina_analysis(clustering_result, string_db)
-    # --- plotting PPI networks of all the clusters [] ---
-    # Key functions: xina_plot_all
-    xina_plot_all(xina_result, clustering_result)
+    all_cor <- alluvial_enriched(
+        clustering_result,
+        classes
+    )
+    cor_filtered <- alluvial_enriched(
+        clustering_result,
+        classes,
+        comigration_size=5
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

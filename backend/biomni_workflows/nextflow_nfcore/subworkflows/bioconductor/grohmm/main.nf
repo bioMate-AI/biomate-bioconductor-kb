@@ -38,105 +38,62 @@ process BIOC_GROHMM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(groHMM)
     library(GRanges)
     library(IRanges)
     library(NROW)
     library(Position)
     library(jsonlite)
 
-    # --- Install Grohmm [] ---
-    # Key functions: requireNamespace, packages
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("groHMM")
-    ##
-    # --- Use Grohmm [] ---
-    # Key functions: getCores
-    library(groHMM)
-    options(mc.cores=getCores(4))
-    # --- Load Data [] ---
-    # Key functions: readGAlignments
-    S0mR1 <- as(readGAlignments(system.file("extdata", "S0mR1.bam",
-            package="groHMM")), "GRanges")
-    S0mR2 <- as(readGAlignments(system.file("extdata", "S0mR1.bam",
-            package="groHMM")), "GRanges") # Use R1 as R2
-    S40mR1 <- as(readGAlignments(system.file("extdata", "S40mR1.bam",
-    # --- Write Wiggle Files [] ---
-    # Key functions: writeWiggle, seqinfo, NROW
-    ## writeWiggle(reads=S0m, file="S0m_Plus.wig", fileType="wig", strand="+",
-    ##         reverse=FALSE)
-    ## writeWiggle(reads=S0m, file="S0m_Minus.wig", fileType="wig", strand="-",
-    ##         reverse=TRUE)
-    ##
-    # --- Transcript Calling [] ---
-    # Key functions: detectTranscripts
-    Sall <- sort(c(S0m, S40m))
-    # hmmResult <- detectTranscripts(Sall, LtProbB=-200, UTS=5,
-    #                   threshold=1)
-    # Load hmmResult from the saved previous run
-    load(system.file("extdata", "Vignette.RData", package="groHMM"))
-    # --- Use Ucsc Genes [] ---
-    # Key functions: makeTxDbFromUCSC, saveDb, loadDb, transcripts, seqlevels
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    kgdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    library(GenomicFeatures)
-    # For refseq annotations:
-    # rgdb <- makeTxDbFromUCSC(genome="hg19", tablename="refGene")
-    # --- Make Consensus Annotations [] ---
-    # Key functions: makeConsensusAnnotations, getOption, select, unlist, mcols
-    # Collapse overlapping annotations
-    kgConsensus <- makeConsensusAnnotations(kgChr7, keytype="gene_id",
-            mc.cores=getOption("mc.cores"))
-    library(org.Hs.eg.db)
-    map <- select(org.Hs.eg.db,
-    # --- Evaluation Of Transcript Calling [] ---
-    # Key functions: evaluateHMMInAnnotations
-    e <- evaluateHMMInAnnotations(txHMM, kgConsensus)
-    e$eval
-    # --- Tuning Hmm [] ---
-    # Key functions: frame, windowAnalysis, mclapply, detectTranscripts
-    tune <- data.frame(LtProbB=c(rep(-100,3), rep(-200,3), rep(-300,3)),
-               UTS=rep(c(5,10,15), 3))
-    Fp <- windowAnalysis(Sall, strand="+", windowSize=50)
-    Fm <- windowAnalysis(Sall, strand="-", windowSize=50)
-    # evals <- mclapply(seq_len(9), function(x) {
-    # --- Expressed Genes [] ---
-    # Key functions: limitToXkb, countOverlaps, width, getExpressedAnnotations
-    getExpressedAnnotations <- function(features, reads) {
-         fLimit <- limitToXkb(features)
-         count <- countOverlaps(fLimit, reads)
-         features <- features[count!=0,]
-         return(features[(quantile(width(features), .05) < width(features))
-    # --- get Tx Density [] ---
-    # Key functions: getTxDensity, getOption
-    td <- getTxDensity(txHMM, conExpressed, mc.cores=getOption("mc.cores"))
-    u <- par("usr")
-    lines(c(u[1], 0, 0, 1000, 1000, u[2]), c(0,0,u[4]-.04,u[4]-.04,0,0),
-          col="red")
-    legend("topright", lty=c(1,1), col=c(2,1), c("ideal", "groHMM"))
-    # --- Fig2 [] ---
-    # Key functions: getTxDensity, getOption
-    td <- getTxDensity(txHMM, conExpressed, mc.cores=getOption("mc.cores"))
-    u <- par("usr")
-    lines(c(u[1], 0, 0, 1000, 1000, u[2]), c(0,0,u[4]-.04,u[4]-.04,0,0),
-          col="red")
-    legend("topright", lty=c(1,1), col=c(2,1), c("ideal", "groHMM"))
-    # --- Non Mammalian [] ---
-    # Key functions: GRanges, IRanges, makeConsensusAnnotations, getOption
-    ## # mysql --user=genome --host=genome-mysql.cse.ucsc.edu ce10 -e \
-    ## #  "select chrom, txStart, txEnd, name, exonCount, strand, name2 from refGene \
-    ## #   where chrom not like chrom!='chrM' and cdsStart != cdsEnd" | tail -n +1 > refgene.bed
-    ##
-    ## # G <- read.table("refgene.bed", header=TRUE, stringsAsFactors=FALSE, sep="\t")
-    # --- Repairing Called Transcripts [] ---
-    # Key functions: breakTranscriptsOnGenes, combineTranscripts
-    bPlus <- breakTranscriptsOnGenes(txHMM, kgConsensus, strand="+")
-    bMinus <- breakTranscriptsOnGenes(txHMM, kgConsensus, strand="-")
-    txBroken <- c(bPlus, bMinus)
-    txFinal <- combineTranscripts(txBroken, kgConsensus)
-    # --- Plottxdensity Final [] ---
-    # Key functions: getTxDensity, getOption
-    ## tdFinal <- getTxDensity(txFinal, conExpressed, mc.cores=getOption("mc.cores"))
+    # --- Read Alignment and Window Analysis [Quality Control] ---
+    # Key functions: readBAM, windowAnalysis
+    alignments <- readBAM(file = "groseq_alignments.bam")
+    window_size <- 50
+    windows <- windowAnalysis(
+        reads = alignments,
+        windowSize = window_size,
+        stepSize = window_size
+    )
+
+    # --- HMM Training and Transcript Detection [De Novo Assembly] ---
+    # Key functions: runHMM
+    hmm_results <- runHMM(
+        reads = alignments,
+        LtProbB = -200,
+        UTS = 5,
+        size = 50
+    )
+    predicted_transcripts <- hmm_results$transcripts
+
+    # --- Transcript Evaluation [Validation] ---
+    # Key functions: evaluateHMM, getTxDensity
+    evaluation <- evaluateHMM(
+        txHMM = predicted_transcripts,
+        annotation = reference_annotation
+    )
+    tx_density <- getTxDensity(
+        txHMM = predicted_transcripts,
+        conExpressed = reference_annotation,
+        mc.cores = 1
+    )
+
+    # --- Transcription Limit Detection [Characterisation] ---
+    # Key functions: limitDetect
+    transcription_limits <- limitDetect(
+        map = alignments,
+        features = predicted_transcripts,
+        limit = 0.5,
+        mc.cores = 1
+    )
+
+    # --- Consensus Annotation Creation [Annotation] ---
+    # Key functions: makeConsensusAnnotations
+    annotations_list <- GRangesList(rep1 = tx_rep1, rep2 = tx_rep2)
+    consensus_annotations <- makeConsensusAnnotations(
+        exons = annotations_list,
+        minOverlap = 100
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

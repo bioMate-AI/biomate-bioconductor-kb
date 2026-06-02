@@ -38,42 +38,59 @@ process BIOC_RJMCMCNUCLEOSOMES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RJMCMCNucleosomes)
     library(GRanges)
     library(GRangesList)
     library(jsonlite)
 
-    # --- synthetic Nuc Reads From Dist [] ---
-    # Key functions: syntheticNucReadsFromDist
-    library(nucleoSim)
-    sample <- nucleoSim::syntheticNucReadsFromDist(wp.num=val.num,
-    plot(sample)
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, segmentation
-    library(GenomicRanges)
-    sampleGRanges <- GRanges(seqnames = sample$dataIP$chr,
-    ranges = IRanges(start = sample$dataIP$start,
-    # --- rjmcmc [] ---
+    # --- Nucleosome Positioning with RJMCMC [] ---
     # Key functions: rjmcmc
-    resultSegment01 <- rjmcmc(reads  = segment01, nbrIterations = 100000,
-    # --- merge All R D S Files From Directory [] ---
-    # Key functions: mergeAllRDSFilesFromDirectory
+    segment01 <- sampleSegmented[[1]]
+    resultSegment01 <- rjmcmc(
+        reads = segment01,
+        nbrIterations = 1000,
+        lambda = 3,
+        kMax = 30,
+        minInterval = 100,
+        maxInterval = 200,
+        minReads = 5,
+        vSeed = 1921
+    )
+
+
+    # --- Merging and Post-Treatment [] ---
+    # Key functions: mergeAllRDSFilesFromDirectory, postTreatment
     directory <- system.file("extdata", "demo_vignette",
+                             package = "RJMCMCNucleosomes")
     resultsAllMerged <- mergeAllRDSFilesFromDirectory(directory)
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, postTreatment
-    reads <- GRanges(sample$dataIP)
-    resultsPostTreatment <- postTreatment(reads = reads,
-    chrLength = max(start(reads), end(reads)) + 1000)
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, GRangesList, plotNucleosomes
-    reads <-GRanges(sample$dataIP)
-    resultsBeforeAndAfter <- list(Sample = c(sample$wp$nucleopos,
-    resultsBeforeAndAfter <- GRangesList(Sample = GRanges(
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, seqnames, rjmcmcCHR
-    data(syntheticNucleosomeReads)
-    nrow(syntheticNucleosomeReads$dataIP)
-    sampleGRanges <- GRanges(syntheticNucleosomeReads$dataIP)
+    reads <- GenomicRanges::GRanges(
+        seqnames = rep("chr_SYNTHETIC", 10),
+        ranges = IRanges::IRanges(
+            start = seq(10000, 11000, length.out=10),
+            width = 100
+        ),
+        strand = "*"
+    )
+    resultsPostTreatment <- postTreatment(
+        reads = reads,
+        resultRJMCMC = resultsAllMerged,
+        extendingSize = 15,
+        chrLength = 15000
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: plotNucleosomes
+    resultsBeforeAndAfter <- GenomicRanges::GRangesList(
+        Sample = resultsPostTreatment,
+        BeforePostTreatment = resultsAllMerged$mu,
+        AfterPostTreatment = resultsPostTreatment
+    )
+    plotNucleosomes(
+        nucleosomePositions = resultsBeforeAndAfter,
+        reads = reads,
+        names = c("Sample", "RJMCMC", "After Post-Treatment")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

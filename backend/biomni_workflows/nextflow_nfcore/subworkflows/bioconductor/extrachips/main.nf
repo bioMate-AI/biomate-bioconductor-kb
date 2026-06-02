@@ -38,25 +38,58 @@ process BIOC_EXTRACHIPS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(extraChIPs)
     library(BamFileList)
     library(GRanges)
     library(GRangesList)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, resize, colToRanges
-    mutate(
-    centre = glue("{seqnames}:{centre}:{strand}") %>%
-    GRanges(seqinfo = sq) %>%
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: as_tibble, ggplot, geom_point, geom_smooth, geom_label_repel
-    as_tibble() %>%
-    mutate(`FDR < 0.05` = FDR < 0.05) %>%
-    ggplot(aes(logCPM, logFC)) +
-    # --- Genomic ranges list construction [] ---
-    # Key functions: theme_set, setNames, tibble, split, here, BamFileList, defineSeqinfo, importPeaks
-    consensus_e2 <- makeConsensus(peaks[accessions$E2], p = 2/3, var = "score")
-    consensus_e2dht <- makeConsensus(peaks[accessions$E2DHT], p = 2/3, var = "score")
+    # --- Consensus Peak Generation [] ---
+    # Key functions: makeConsensus
+    data("peaks", package = "extraChIPs")
+    accessions <- list(
+        E2 = c("SRR8315180", "SRR8315181", "SRR8315182"),
+        E2DHT = c("SRR8315183", "SRR8315184", "SRR8315185")
+    )
+    consensus_e2 <- makeConsensus(
+        peaks[accessions$E2],
+        p = 2/3,
+        var = "score"
+    )
+    consensus_e2dht <- makeConsensus(
+        peaks[accessions$E2DHT],
+        p = 2/3,
+        var = "score"
+    )
+
+
+    # --- Quality Control and Visualization [] ---
+    # Key functions: plotAssayDensities, plotAssayPCA
+    data("se", package = "extraChIPs")
+    density_plot <- plotAssayDensities(
+        se,
+        assay = "counts",
+        colour = "treat",
+        trans = "log1p"
+    )
+    pca_plot <- plotAssayPCA(
+        se,
+        assay = "counts",
+        colour = "treat"
+    )
+
+
+    # --- Differential Binding Analysis [] ---
+    # Key functions: fitAssayDiff
+    data("se", package = "extraChIPs")
+    X <- model.matrix(~treat, data = SummarizedExperiment::colData(se))
+    tmm_res <- fitAssayDiff(
+        se,
+        design = X,
+        norm = "TMM",
+        asRanges = TRUE,
+        fc = 1.2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

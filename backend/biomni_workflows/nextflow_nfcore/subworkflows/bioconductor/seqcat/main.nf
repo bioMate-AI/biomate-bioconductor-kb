@@ -41,62 +41,56 @@ process BIOC_SEQCAT {
     library(seqCAT)
     library(jsonlite)
 
-    # --- Create an SNV profile [] ---
-    # Key functions: create_profile
-    library("seqCAT")
+    # --- Profile Creation [SNV Profile Generation] ---
+    # Key functions: create_profile, create_profiles, write_profile
     vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
     hct116 <- create_profile(vcf, "HCT116")
-    # --- Create a filtered SNV profile [] ---
-    # Key functions: create_profile
     rko <- create_profile(vcf, "RKO", min_depth = 15, filter_gd = FALSE)
-    # --- Filter an SNV profile [] ---
-    # Key functions: filter_variants, filter_duplicates
+    vcf_dir <- system.file("extdata", package = "seqCAT")
+    profiles <- create_profiles(vcf_dir, pattern = "example")
+    write_profile(hct116, "hct116.profile.txt")
+
+    # --- Profile Filtering [Variant and Duplicate Filtering] ---
+    # Key functions: create_profile, filter_variants, filter_duplicates
+    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
+    rko <- create_profile(vcf, "RKO", min_depth = 15, filter_gd = FALSE)
     rko_filtered <- filter_variants(rko, min_depth = 20)
     rko_deduplicated <- filter_duplicates(rko, filter_pd = TRUE)
-    # --- Create multiple profiles [] ---
-    # Key functions: create_profiles
-    vcf_dir <- system.file("extdata", package = "seqCAT")
-    profiles <- create_profiles(vcf_dir, pattern = "sample1")
-    # --- List COSMIC [] ---
-    # Key functions: list_cosmic
-    file <- system.file("extdata", "subset_CosmicCLP_MutantExport.tsv.gz",
-    cell_lines <- list_cosmic(file)
-    head(cell_lines)
-    # --- Read COSMIC [] ---
-    # Key functions: read_cosmic
-    cosmic <- read_cosmic(file, "HCT116")
-    head(cosmic)
-    # --- Write profile to disk [] ---
-    # Key functions: write_profile
-    write_profile(hct116, "hct116.profile.txt")
-    # --- Write profile to disk (BED) [] ---
-    # Key functions: write_profile
-    write_profile(hct116, "hct116.profile.bed")
-    # --- Write multiple profiles to disk (GTF) [] ---
-    # Key functions: write_profiles
-    write_profiles(profiles, format = "GTF", directory = "./")
-    # --- Read profile from disk [] ---
-    # Key functions: read_profile
-    hct116 <- read_profile("hct116.profile.txt")
-    # --- Read multiple profiles (GTF) [] ---
-    # Key functions: read_profiles
-    profile_list <- read_profiles(profile_dir = "./", pattern = ".gtf")
-    head(profile_list[[1]])
-    # --- Compare profiles [] ---
-    # Key functions: compare_profiles
+
+    # --- Profile Comparison [Pairwise and Database Comparisons] ---
+    # Key functions: create_profile, read_cosmic, compare_profiles, compare_many
+    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
+    hct116 <- create_profile(vcf, "HCT116")
+    rko <- create_profile(vcf, "RKO")
     hct116_rko <- compare_profiles(hct116, rko)
-    head(hct116_rko)
-    # --- Compare profiles (union) [] ---
-    # Key functions: compare_profiles
-    hct116_rko_union <- compare_profiles(hct116, rko, mode = "union")
-    head(hct116_rko_union)
-    # --- Compare with COSMIC [] ---
-    # Key functions: compare_profiles
+    cosmic_file <- system.file(
+        "extdata", "subset_CosmicCLP_MutantExport.tsv.gz", package = "seqCAT"
+    )
+    cosmic <- read_cosmic(cosmic_file, "HCT116")
     hct116_cosmic <- compare_profiles(hct116, cosmic)
-    head(hct116_cosmic)
-    # --- Calculate similarities [] ---
-    # Key functions: calculate_similarity
+    many_comparisons <- compare_many(list(hct116, rko))
+
+    # --- Similarity Analysis [Statistical Similarity Calculation] ---
+    # Key functions: create_profile, compare_profiles, calculate_similarity
+    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
+    hct116 <- create_profile(vcf, "HCT116")
+    rko <- create_profile(vcf, "RKO")
+    hke3 <- create_profile(vcf, "HKE3")
+    hct116_rko <- compare_profiles(hct116, rko)
+    hct116_hke3 <- compare_profiles(hct116, hke3)
     similarity <- calculate_similarity(hct116_rko)
+    similarities <- calculate_similarity(hct116_hke3, similarity, b = 10)
+
+    # --- Visualization [Impact and Heatmap Plotting] ---
+    # Key functions: create_profile, compare_profiles, compare_many, plot_impacts, plot_heatmap
+    vcf <- system.file("extdata", "example.vcf.gz", package = "seqCAT")
+    hct116 <- create_profile(vcf, "HCT116")
+    rko <- create_profile(vcf, "RKO")
+    hct116_rko <- compare_profiles(hct116, rko)
+    impacts <- plot_impacts(hct116_rko)
+    many <- compare_many(list(hct116, rko))
+    heatmap <- plot_heatmap(many[[1]])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

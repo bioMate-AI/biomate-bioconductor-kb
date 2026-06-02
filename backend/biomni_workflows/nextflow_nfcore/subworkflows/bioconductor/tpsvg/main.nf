@@ -38,19 +38,34 @@ process BIOC_TPSVG {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tpSVG)
     library(Visium_humanDLPFC)
     library(jsonlite)
 
-    # --- Log-normalize count data [] ---
-    # Key functions: Visium_humanDLPFC, logNormCounts, rowData
-    spe <- Visium_humanDLPFC()
-    spe <- spe[, colData(spe)$in_tissue == 1]
-    spe <- logNormCounts(spe)
-    # --- Feature metadata inspection [] ---
-    # Key functions: install_github, tpSVG, rowData, seqFISH_mouseEmbryo, session_info
-    set.seed(1)
-    spe_poisson  <- tpSVG(
-    offset = log(spe$total)   # Natural log library size
+    # --- Spatial Gene Detection [] ---
+    # Key functions: tpSVG
+    spe_poisson <- tpSVG(
+        spe_subset,
+        family = poisson(),
+        assay_name = "counts",
+        offset = log(spe_subset$total)
+    )
+    res_poisson <- rowData(spe_poisson)
+
+
+    # --- Covariate Adjusted Detection [] ---
+    # Key functions: tpSVG
+    idx_complete <- complete.cases(spe_subset$ground_truth)
+    spe_filtered <- spe_subset[, idx_complete]
+    x_cov <- spe_filtered$ground_truth
+    spe_cov <- tpSVG(
+        spe_filtered,
+        X = x_cov,
+        family = poisson(),
+        assay_name = "counts",
+        offset = log(spe_filtered$total)
+    )
+    res_cov <- rowData(spe_cov)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

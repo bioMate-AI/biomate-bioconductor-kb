@@ -41,45 +41,40 @@ process BIOC_SEVENC {
     library(sevenC)
     library(jsonlite)
 
-    # --- Predloops [] ---
-    # Key functions: predLoops
-    ---------------------------------------------------------------------
-    # predict looping interactions among all motif pairs
-    loops <- predLoops(gi)
-    # --- Preparecispairs [] ---
-    # Key functions: prepareCisPairs
-    ---------------------------------------------------------------------
-    gi <- prepareCisPairs(motifs, maxDist = 10^6)
-    gi
-    # --- Addcovcor [] ---
+    # --- Compute Signal Correlation [] ---
     # Key functions: addCovCor
-    ---------------------------------------------------------------------
-    # add ChIP-seq coverage and compute correaltion at motif pairs
     gi <- addCovCor(gi)
-    # --- Predloops [] ---
+
+
+    # --- Predict Loops [] ---
     # Key functions: predLoops
-    ---------------------------------------------------------------------
     loops <- predLoops(gi)
-    loops
-    # --- Addinteractionsupport [] ---
-    # Key functions: addInteractionSupport
-    ---------------------------------------------------------------------
-    # add known loops
+
+
+    # --- Integrate Interaction Support [] ---
+    # Key functions: parseLoopsRao, addInteractionSupport
+    knownLoopFile <- system.file(
+        "extdata",
+        "GM12878_HiCCUPS.chr22_1-30000000.loop.txt",
+        package = "sevenC"
+    )
+    knownLoops <- parseLoopsRao(knownLoopFile)
     gi <- addInteractionSupport(gi, knownLoops)
-    # --- Glm [] ---
-    # Key functions: glm, mcols, binomial
-    ---------------------------------------------------------------------
+
+
+    # --- Custom Model Fitting [] ---
+    # Key functions: predLoops
     fit <- glm(
-      formula = loop ~ cor_chip + dist + strandOrientation,
-      data = mcols(gi),
-      family = binomial()
-    # --- Predloops [] ---
-    # Key functions: predLoops, coef
-    ---------------------------------------------------------------------
-    # add predict loops
+        formula = loop ~ cor_chip + dist + strandOrientation,
+        data = mcols(gi),
+        family = binomial()
+    )
     gi <- predLoops(
-      gi,
-      formula = loop ~ cor_chip + dist + strandOrientation,
+        gi,
+        formula = loop ~ cor_chip + dist + strandOrientation,
+        betas = coef(fit),
+        cutoff = NULL
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

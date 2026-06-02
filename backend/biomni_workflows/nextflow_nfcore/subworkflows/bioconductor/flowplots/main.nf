@@ -38,115 +38,64 @@ process BIOC_FLOWPLOTS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(flowPlots)
     library(Group)
     library(GroupListBoxplot)
     library(jsonlite)
 
-    # --- Profbp [] ---
-    # Key functions: makeDataList
+    # --- Profile and Marginal Data Computation [] ---
+    # Key functions: computeProfileData, profileData<-, computeMarginalData, marginalData<-
+    byVarNames = c("stim", "concGroup", "cell")
+    profileData = computeProfileData(
+        stackedDataObject, byVarNames, "id", "percentAll", "group"
+    )
+    profileData(stackedDataObject) = profileData
+    marginalData = computeMarginalData(
+        stackedDataObject, byVarNames, "id", "percentAll", "group"
+    )
+    marginalData(stackedDataObject) = marginalData
+
+
+    # --- Polyfunctional Degree Data Computation [] ---
+    # Key functions: computePFDData, pfdData<-, computePFDPartsData, pfdPartsData<-
+    byVarNames = c("stim", "concGroup", "cell")
+    pfdData = computePFDData(
+        stackedDataObject, byVarNames, "id", "percentAll", "group"
+    )
+    pfdData(stackedDataObject) = pfdData
+    pfdPartsData = computePFDPartsData(
+        stackedDataObject, byVarNames, "id", "percentAll", "group"
+    )
+    pfdPartsData(stackedDataObject) = pfdPartsData
+
+
+    # --- Data Preparation for Visualization [] ---
+    # Key functions: makeDataList, makeTernaryData, makeBarplotData
     data(profileDF)
-    profileDataSubset = subset(profileDF, stim=="LPS" & concGroup==3 & cell=="mDC")
-    profileDataSubset[1:3,]
-    # Use data helper function, makeDataList()
-    groupDataList = makeDataList(profileDataSubset ,"group", 1:16)
-    # --- Grouplistboxplot [] ---
-    # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="",
-       ylabel="Percent of All Cells", boxOutliers=FALSE,
-       xAxisLabels=xTickLabels, xMtext="Marker Category",
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
-    # --- Margbp [] ---
-    # Key functions: makeDataList
-    data(marginalDF)
-    marginalDataSubset = subset(marginalDF, stim=="LPS" & concGroup==3 & cell=="mDC")
-    marginalDataSubset[1:3,]
-    # Use data helper function, makeDataList()
-    groupDataList = makeDataList(marginalDataSubset ,"group", 1:5)
-    # --- Grouplistboxplot [] ---
-    # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="Cytokine",
-       ylabel="Percent of All Cells", boxOutliers=FALSE,
-       xAxisLabels=c("TNFa","IL6","IL12","IFNa","AnyMarker"),
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
-    # --- Pfdbp [] ---
-    # Key functions: makeDataList
+    profileDataSubset = subset(
+        profileDF, stim == "LPS" & concGroup == 3 & cell == "mDC"
+    )
+    groupDataList = makeDataList(profileDataSubset, "group", 1:16)
+    ternaryData = makeTernaryData(profileDataSubset, 1, 2, 3:4)
+    barplotData = makeBarplotData(
+        profileDataSubset, 1:16, groupVariableName = "group"
+    )
+
+
+    # --- PFD Group Statistics and Legend Generation [] ---
+    # Key functions: computePFDGroupStatsList, legendPFDStatsGroupNames
     data(pfdDF)
-    pfdDataSubset = subset(pfdDF, stim=="LPS" & concGroup==3 & cell=="mDC")
-    pfdDataSubset[1:3,]
-    # Use data helper function, makeDataList()
-    groupDataList = makeDataList(pfdDataSubset ,"group", 1:4)
-    # --- Grouplistboxplot [] ---
-    # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="Cytokine",
-       ylabel="Percent of Reactive Cells", boxOutliers=FALSE,
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
-       testTitleCEX=.8, nCEX=.8, pCEX=.8, legendColor=c(2,4), legendCEX=.7)
-    # --- make Data List [] ---
-    # Key functions: makeDataList
-    data(pfdPartsList)
-    # Look at the composition percentages for the case where PFD=1
-    pfdEq1PartsDataSubset = subset(pfdPartsList[[1]], stim=="LPS" & concGroup==3 & cell=="mDC")
-    pfdEq1PartsDataSubset[1:3,]
-    # Use data helper function, makeDataList()
-    # --- Grouplistboxplot [] ---
-    # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="Cytokine",
-       ylabel="Percent of Cells With PFD=1", boxOutliers=FALSE,
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
-       testTitleCEX=.8, nCEX=.8, pCEX=.8, legendColor=c(2,4), legendCEX=.7)
-    # --- make Data List [] ---
-    # Key functions: makeDataList
-    # Look at the composition percentages for the case where PFD=2
-    pfdEq2PartsDataSubset = subset(pfdPartsList[[2]], stim=="LPS" & concGroup==3 & cell=="mDC")
-    pfdEq2PartsDataSubset[1:3,]
-    # Use data helper function, makeDataList()
-    groupDataList = makeDataList(pfdEq2PartsDataSubset, "group", 1:6)
-    # --- Grouplistboxplot [] ---
-    # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="Cytokine",
-       ylabel="Percent of Cells With PFD=2", boxOutliers=FALSE,
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
-       testTitleCEX=.8, nCEX=.8, pCEX=.8, legendColor=c(2,4), legendCEX=.7)
-    # --- make Data List [] ---
-    # Key functions: makeDataList
-    # Look at the composition percentages for the case where PFD=3
-    pfdEq3PartsDataSubset = subset(pfdPartsList[[3]], stim=="LPS" & concGroup==3 & cell=="mDC")
-    pfdEq3PartsDataSubset[1:3,]
-    # Use data helper function, makeDataList()
-    groupDataList = makeDataList(pfdEq3PartsDataSubset, "group", 1:4)
-    # --- Grouplistboxplot [] ---
-    # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="Cytokine",
-       ylabel="Percent of Cells With PFD=3", boxOutliers=FALSE,
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
-       testTitleCEX=.8, nCEX=.8, pCEX=.8, legendColor=c(2,4), legendCEX=.7)
-    # --- Ternplot [] ---
-    # Key functions: makeTernaryData, computePFDGroupStatsList, legendPFDStatsGroupNames
-    data(pfdDF)
-    pfdDataSubset = subset(pfdDF, stim=="LPS" & concGroup==3 & cell=="mDC")
-    # Use data helper function, makeTernaryData()
-    ternaryData = makeTernaryData(pfdDataSubset, 1, 2, 3:4)
-    colnames(ternaryData) = c("PFD1", "PFD2", "PFD3-4")
-    # --- Ternaryplot [] ---
-    # Key functions: ternaryplot, grid_legend, Group, gpar
-    # Load the package, vcd, for the ternaryplot() fcn
-    library(vcd)
-    ternaryplot(ternaryData, cex=.5, col=as.numeric(pfdDataSubset$group)*2,
-       main="TERNARY PLOT OF PFD DATA,
-    Stimulation = LPS, Concentration Group = 3, Cell = mDC")
-    # --- Barplot [] ---
-    # Key functions: makeBarplotData, gray
-    data(profileDF)
-    profileDataSubset = subset(profileDF, stim=="LPS" & concGroup==3 & cell=="mDC")
-    profileColumns = 1:16
-    # Use data helper function, makeBarplotData()
-    barplotData = makeBarplotData(profileDataSubset, profileColumns, groupVariableName="group")
+    pfdDataSubset = subset(
+        pfdDF, stim == "LPS" & concGroup == 3 & cell == "mDC"
+    )
+    adultPFDData = subset(pfdDataSubset, group == "adult", select = PFD1:PFD4)
+    neoPFDData = subset(pfdDataSubset, group == "neonate", select = PFD1:PFD4)
+    groupPFDDataList = list(adultPFDData, neoPFDData)
+    pfdGroupStatsList = computePFDGroupStatsList(
+        groupPFDDataList, pfdValues = 1:4, numDigitsMean = 3, numDigitsSD = 2
+    )
+    groupNames = c("Adults", "Neonates")
+    legendNames = legendPFDStatsGroupNames(pfdGroupStatsList, groupNames)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

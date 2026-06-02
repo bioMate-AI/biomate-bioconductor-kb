@@ -41,28 +41,23 @@ process BIOC_RNASENSE {
     library(RNAsense)
     library(jsonlite)
 
-    # --- get F C [] ---
-    # Key functions: getFC
-    resultFC <- getFC(dataset = mydata,
-    head(resultFC)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, aes, xlab
-    library(ggplot2)
-    ggplot(subset(resultFC, FCdetect!="none"),
-    aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) +
-    # --- get Switch [] ---
-    # Key functions: getSwitch
+    # --- Fold Change and Switch Analysis [] ---
+    # Key functions: getFC, getSwitch
+    analyzeConditions <- c("WT", "MZsox")
+    resultFC <- getFC(dataset = mydata, 
+                      myanalyzeConditions = analyzeConditions, 
+                      cores = 1, 
+                      mytimes = times)
     resultSwitch <- getSwitch(dataset = mydata,
-    head(resultSwitch)
-    # --- combine Results [] ---
-    # Key functions: combineResults
+                              experimentStepDetection = "WT",
+                              cores = 1,
+                              mytimes = times)
+
+
+    # --- Results Combination and Visualization [] ---
+    # Key functions: combineResults, plotSSGS, outputGeneTables
     resultCombined <- combineResults(resultSwitch, resultFC)
-    head(resultCombined)
-    # --- plot S S G S [] ---
-    # Key functions: plotSSGS
     plotSSGS(resultCombined, times[-length(times)])
-    # --- output Gene Tables [] ---
-    # Key functions: outputGeneTables
     outputGeneTables(resultCombined)
 
     # --- Save outputs ---

@@ -41,11 +41,58 @@ process BIOC_PROTEOMM {
     library(ProteoMM)
     library(jsonlite)
 
-    # --- Distribution of p [] ---
-    # Key functions: plot_volcano_wLab
-    hs_presAbs = peptideLevel_PresAbsDE(subset_presAbs$sub_unique_mm_list[[2]],
-    plot_volcano_wLab(hs_presAbs$FC, hs_presAbs$BH_P_val, hs_presAbs$GeneID,
-    sessionInfo()
+    # --- Data Preparation and Log Transformation [Data Preparation] ---
+    # Key functions: make_intencities, convert_log2, make_meta
+    data("hs_peptides")
+    intsCols <- 8:13
+    metaCols <- 1:7
+    m_logInts <- make_intencities(hs_peptides, intsCols)
+    m_logInts <- convert_log2(m_logInts)
+    m_prot.info <- make_meta(hs_peptides, metaCols)
+    grps <- as.factor(c('CG','CG','CG', 'mCG','mCG','mCG'))
+
+    # --- Eigen-based Normalization [Normalization] ---
+    # Key functions: eig_norm1, eig_norm2
+    hs_m_ints_eig1 <- eig_norm1(
+        m = m_logInts,
+        treatment = grps,
+        prot.info = m_prot.info
+    )
+    hs_m_ints_eig1$h.c <- 2
+    hs_m_ints_norm <- eig_norm2(rv = hs_m_ints_eig1)
+    hs_prot.info <- hs_m_ints_norm$normalized[, 1:7]
+    hs_norm_m <- hs_m_ints_norm$normalized[, 8:13]
+
+    # --- Model-Based Imputation [Imputation] ---
+    # Key functions: MBimpute
+    imp_hs <- MBimpute(
+        hs_norm_m,
+        grps,
+        prot.info = hs_prot.info,
+        pr_ppos = 3,
+        my.pi = 0.05,
+        compute_pi = FALSE
+    )
+
+    # --- Peptide Trend Visualization [Visualisation] ---
+    # Key functions: plot_3_pep_trends_NOfile
+    mylabs <- c('CG','CG','CG', 'mCG','mCG','mCG')
+    prot_to_plot <- 'Prot32'
+    gene_to_plot <- 'Gene32'
+    plot_3_pep_trends_NOfile(
+        as.matrix(hs_m_ints_eig1$m),
+        hs_m_ints_eig1$prot.info,
+        as.matrix(hs_norm_m),
+        hs_prot.info,
+        imp_hs$y_imputed,
+        imp_hs$imp_prot.info,
+        prot_to_plot,
+        3,
+        gene_to_plot,
+        4,
+        mylabs
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

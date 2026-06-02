@@ -41,11 +41,46 @@ process BIOC_KNOWYOURCG {
     library(knowYourCG)
     library(jsonlite)
 
-    # --- Feature metadata inspection [] ---
-    # Key functions: sesameDataCache, getDBs, testEnrichment, listDBGroups, rowData, buildGeneDBs, testGO, testProbeProximity
-    query <- names(sesameData_getProbesByGene("Dnmt3a", "MM285"))
-    dbs <- c("KYCG.MM285.chromHMM.20210210","KYCG.HM450.TFBSconsensus.20211013",
-    results <- testEnrichment(query,databases=dbs,
+    # --- Enrichment Testing [] ---
+    # Key functions: testEnrichment
+    enrichment_results <- testEnrichment(
+        query = query_probes,
+        databases = selected_dbs,
+        platform = "MM285"
+    )
+    significant_hits <- enrichment_results[enrichment_results$FDR < 0.05, ]
+
+
+    # --- Gene-Centric Enrichment Analysis [] ---
+    # Key functions: buildGeneDBs, testEnrichment
+    gene_dbs <- buildGeneDBs(
+        query = query_probes,
+        max_distance = 100000,
+        platform = "MM285"
+    )
+    gene_enrichment <- testEnrichment(
+        query = query_probes,
+        databases = gene_dbs,
+        platform = "MM285",
+        include_genes = TRUE
+    )
+
+
+    # --- Gene Ontology Testing [] ---
+    # Key functions: testGO
+    go_results <- testGO(
+        query = query_probes,
+        platform = "MM285",
+        organism = "mmusculus"
+    )
+    top_go_terms <- go_results$result
+
+
+    # --- Probe Proximity Analysis [] ---
+    # Key functions: testProbeProximity
+    proximity_results <- testProbeProximity(
+        probeIDs = query_probes
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

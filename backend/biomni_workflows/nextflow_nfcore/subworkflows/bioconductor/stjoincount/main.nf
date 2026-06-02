@@ -41,11 +41,37 @@ process BIOC_STJOINCOUNT {
     library(stJoincount)
     library(jsonlite)
 
-    # --- "install" [] ---
-    # Key functions: dataPrepFromSeurat, dataPrepFromSpE, resolutionCalc, rasterizeEachCluster
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("stJoincount")
+    # --- Resolution Calculation [] ---
+    # Key functions: resolutionCalc
+    fpath <- system.file("extdata", "dataframe.rda", package="stjoincount")
+    load(fpath)
+    resolutionList <- resolutionCalc(humanBC)
+
+
+    # --- Rasterization and Integration [] ---
+    # Key functions: rasterizeEachCluster, mosaicIntPlot
+    fpath <- system.file("extdata", "dataframe.rda", package="stjoincount")
+    load(fpath)
+    mosaicIntegration <- rasterizeEachCluster(humanBC)
+    mosaicIntPlot(humanBC, mosaicIntegration)
+
+
+    # --- Join Count Analysis [] ---
+    # Key functions: rasterizeEachCluster, joincountAnalysis
+    fpath <- system.file("extdata", "dataframe.rda", package="stjoincount")
+    load(fpath)
+    mosaicIntegration <- rasterizeEachCluster(humanBC)
+    joincount.result <- joincountAnalysis(mosaicIntegration)
+
+
+    # --- Z-score Matrix and Visualization [] ---
+    # Key functions: rasterizeEachCluster, joincountAnalysis, zscoreMatrix, zscorePlot
+    fpath <- system.file("extdata", "dataframe.rda", package="stjoincount")
+    load(fpath)
+    mosaicIntegration <- rasterizeEachCluster(humanBC)
+    joincount.result <- joincountAnalysis(mosaicIntegration)
+    matrix <- zscoreMatrix(humanBC, joincount.result)
+    zscorePlot(matrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

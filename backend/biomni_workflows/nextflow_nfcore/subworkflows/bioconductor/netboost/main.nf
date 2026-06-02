@@ -41,20 +41,22 @@ process BIOC_NETBOOST {
     library(netboost)
     library(jsonlite)
 
-    # --- netboost [] ---
-    # Key functions: netboost
-    results <- netboost(datan = tcga_aml_meth_rna_chr18, stepno = 20L,
-    # --- nb_plot_dendro [] ---
+    # --- Dendrogram Visualisation [] ---
     # Key functions: nb_plot_dendro
-    set.seed(123)
-    nb_plot_dendro(nb_summary = results, labels = FALSE, colorsrandom = TRUE)
-    # --- nb_transfer [] ---
-    # Key functions: nb_transfer, all
-    ME_transfer <- nb_transfer(nb_summary = results,
-    all(round(results$MEs, 10) == round(ME_transfer, 10))
-    # --- robust netboost run [] ---
-    # Key functions: netboost
-    results <- netboost(datan = tcga_aml_meth_rna_chr18,cores=10L,
+    nb_plot_dendro(
+        nb_summary = results,
+        labels = FALSE,
+        colorsrandom = TRUE
+    )
+
+
+    # --- Module Eigenvalue Transfer [] ---
+    # Key functions: nb_transfer
+    ME_transfer <- nb_transfer(
+        nb_summary = results,
+        new_data = tcga_aml_meth_rna_chr18,
+        scale = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

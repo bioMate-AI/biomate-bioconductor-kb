@@ -38,6 +38,7 @@ process BIOC_PARTCNV {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(partCNV)
     library(CreateSeuratObject)
     library(DimPlot)
     library(FindVariableFeatures)
@@ -48,44 +49,38 @@ process BIOC_PARTCNV {
     library(ScaleData)
     library(jsonlite)
 
-    # --- Normalize Data [] ---
-    # Key functions: NormalizeData
-    library(Seurat)
-    Seurat_obj <- NormalizeData(Your_SeuratObj, normalization.method = "LogNormalize", scale.factor = 10000)
-    # --- Get Cyto Location [] ---
-    # Key functions: GetCytoLocation
-    res <- GetCytoLocation(cyto_feature = "chr20(q11.1-q13.1)")
-    # --- Get Expr Count Cyto [] ---
+    # --- Expression Count Processing [] ---
     # Key functions: GetExprCountCyto
-    GEout <- GetExprCountCyto(cytoloc_output = res, Counts = as.matrix(SimData), normalization = TRUE, qt_cutoff = 0.99)
-    # --- part C N V [] ---
+    data(SimData, package = "partCNV")
+    GEout <- GetExprCountCyto(cytoloc_output = res,
+                              Counts = as.matrix(SimData),
+                              normalization = TRUE,
+                              qt_cutoff = 0.99)
+
+
+    # --- CNV Detection via partCNV [] ---
     # Key functions: partCNV
     pcout <- partCNV(int_counts = GEout$ProcessedCount,
-    # --- PCA dimensionality reduction [] ---
-    # Key functions: CreateSeuratObject, NormalizeData, FindVariableFeatures, ScaleData, RunPCA
-    library(Seurat)
-    sim_seurat <- CreateSeuratObject(counts = SimData)
-    sim_seurat <- NormalizeData(sim_seurat, normalization.method = "LogNormalize", scale.factor = 10000)
-    # --- Cluster UMAP/tSNE plot [] ---
-    # Key functions: DimPlot
-    library(ggplot2)
-    DimPlot(sim_seurat, reduction = "umap", group = "partCNV_label") + ggtitle(paste0("partCNV (", signif(p1,2)*100, "%)"))
-    # --- Get Cyto Location [] ---
-    # Key functions: GetCytoLocation, GetExprCountCyto
-    res <- GetCytoLocation(cyto_feature = "chr20(q11.1-q13.1)")
-    GEout <- GetExprCountCyto(cytoloc_output = res, Counts = as.matrix(SimData), normalization = TRUE, qt_cutoff = 0.99)
-    # --- part C N V H [] ---
+                     cyto_type = "del",
+                     cyto_p = 0.40)
+    p1 <- sum(pcout == 1) / length(pcout)
+
+
+    # --- CNV Detection via partCNVH [] ---
     # Key functions: partCNVH
     pcHout <- partCNVH(int_counts = GEout$ProcessedCount,
-    # --- PCA dimensionality reduction [] ---
-    # Key functions: CreateSeuratObject, NormalizeData, FindVariableFeatures, ScaleData, RunPCA
-    library(Seurat)
-    sim_seurat <- CreateSeuratObject(counts = SimData)
-    sim_seurat <- NormalizeData(sim_seurat, normalization.method = "LogNormalize", scale.factor = 10000)
-    # --- Cluster UMAP/tSNE plot [] ---
-    # Key functions: DimPlot
-    library(ggplot2)
-    DimPlot(sim_seurat, reduction = "umap", group = "partCNVH_label") + ggtitle(paste0("partCNVH (", signif(p2,2)*100, "%)"))
+                       cyto_type = "del",
+                       cyto_p = 0.40)
+    p2 <- sum(pcHout$EMHMMlabel == 1) / length(pcHout$EMHMMlabel)
+
+
+    # --- Seurat Integration and Visualization [] ---
+    # Key functions: partCNV
+    sim_seurat <- Seurat::CreateSeuratObject(counts = SimData)
+    sim_seurat <- Seurat::NormalizeData(sim_seurat)
+    sim_seurat <- Seurat::AddMetaData(object = sim_seurat,
+                                      metadata = pcout,
+                                      col.name = "partCNV_label")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

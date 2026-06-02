@@ -41,16 +41,64 @@ process BIOC_IMCRTOOLS {
     library(imcRtools)
     library(jsonlite)
 
-    # --- K-means clustering [] ---
-    # Key functions: kmeans, plotSpatial, scale_color_brewer, scale_edge_color_brewer
-    set.seed(22)
-    cur_cluster <- kmeans(pancreasSCE$aggregatedNeighbors, centers = 3)
-    pancreasSCE$clustered_neighbors <- factor(cur_cluster$cluster)
-    # --- Assay data access [] ---
-    # Key functions: show_cpout_features, readImagefromTXT, readSCEfromTXT, plotSpotHeatmap, binAcrossPixels, assay, assignPrelim, estCutoffs
+    # --- Spillover Analysis [] ---
+    # Key functions: readSCEfromTXT, binAcrossPixels, plotSpotHeatmap
+    spill_path <- system.file("extdata/spillover", package = "imcRtools")
+    sce_spill <- readSCEfromTXT(spill_path)
+    sce_binned <- binAcrossPixels(sce_spill, bin_size = 5)
+    heatmap_plot <- plotSpotHeatmap(sce_binned, log = FALSE, threshold = 200)
+
+
+    # --- Spillover Correction [] ---
+    # Key functions: filterPixels, computeSpillmat
+    spill_path <- system.file("extdata/spillover", package = "imcRtools")
+    sce_spill <- readSCEfromTXT(spill_path)
+    sce_spill$bc_id <- "191Ir"
+    sce_spill$sample_mass <- 191
+    sce_filtered <- filterPixels(sce_spill)
+    sce_corrected <- computeSpillmat(sce_filtered)
+    spill_matrix <- metadata(sce_corrected)$spillover_matrix
+
+
+    # --- Spatial Graph Construction [] ---
+    # Key functions: buildSpatialGraph
+    data("pancreasSCE", package = "cytomapper")
     pancreasSCE <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb",
-    colPairNames(pancreasSCE)
-    pancreasSCE <- aggregateNeighbors(pancreasSCE,
+                                     type = "expansion", threshold = 20)
+    pancreasSCE <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb",
+                                     type = "knn", k = 5)
+    pancreasSCE <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb",
+                                     type = "delaunay")
+
+
+    # --- Spatial Visualization [] ---
+    # Key functions: plotSpatial
+    data("pancreasSCE", package = "cytomapper")
+    pancreas_g <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb",
+                                    type = "knn", k = 5)
+    spatial_plot <- plotSpatial(pancreas_g,
+                                img_id = "ImageNb",
+                                node_color_by = "CellType",
+                                node_size_by = "Area",
+                                draw_edges = TRUE,
+                                colPairName = "knn_interaction_graph",
+                                directed = FALSE,
+                                scales = "free")
+
+
+    # --- Neighborhood Aggregation [] ---
+    # Key functions: aggregateNeighbors
+    data("pancreasSCE", package = "cytomapper")
+    pancreas_g <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb",
+                                    type = "knn", k = 5)
+    pancreas_g <- aggregateNeighbors(pancreas_g,
+                                     colPairName = "knn_interaction_graph",
+                                     aggregate_by = "metadata",
+                                     count_by = "CellType")
+    pancreas_g <- aggregateNeighbors(pancreas_g,
+                                     colPairName = "knn_interaction_graph",
+                                     aggregate_by = "expression",
+                                     assay_type = "exprs")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

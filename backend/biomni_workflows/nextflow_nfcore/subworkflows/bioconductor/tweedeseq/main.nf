@@ -38,83 +38,40 @@ process BIOC_TWEEDESEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tweeDEseq)
     library(MAplot)
     library(Vplot)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: exprs, pData
-    data(pickrell)
-    countsNigerian <- exprs(pickrell.eset)
-    dim(countsNigerian)
-    countsNigerian[1:5, 1:5]
-    genderNigerian <- pData(pickrell.eset)[,"gender"]
-    # --- Normalizecounts [] ---
-    # Key functions: normalizeCounts
-    ## countsNigerianNorm <- normalizeCounts(countsNigerian, genderNigerian)
-    # --- Data [] ---
-    # Key functions: exprs
-    data(pickrellNorm)
-    countsNigerianNorm <- exprs(pickrellNorm.eset)
-    # --- Filtercounts [] ---
-    # Key functions: filterCounts
-    countsNigerianNorm <- filterCounts(countsNigerianNorm)
-    dim(countsNigerianNorm)
-    # --- Testshapept [] ---
-    # Key functions: testShapePT
-    testShapePT(thetahat, a=0)
-    # --- Data [] ---
-    # Key functions: data
-    data(genderGenes)
-    data(hkGenes)
-    length(XiEgenes)
-    length(msYgenes)
-    length(hkGenes)
-    # --- Goftest [] ---
-    # Key functions: gofTest
-    chi2gof <- gofTest(countsNigerianNorm[geneSubset, ], a=0)
-    # --- Gof [] ---
-    # Key functions: qqchisq
-    par(mfrow=c(1,2), mar=c(4, 5, 3, 4))
-    qq <- qqchisq(chi2gof, main="Chi2 Q-Q Plot", ylim = c(0, 60))
-    qq <- qqchisq(chi2gof, normal=TRUE, ylim = c(-5, 7))
-    # --- Secretin [] ---
-    # Key functions: unlist, compareCountDist
-    par(mfrow=c(1,2), mar=c(4, 5, 3, 2))
-    xf <- unlist(countsNigerianNorm["ENSG00000070031", genderNigerian=="female"])
-    compareCountDist(xf, main="Female samples")
-    xm <- unlist(countsNigerianNorm["ENSG00000070031", genderNigerian=="male"])
-    compareCountDist(xm, main="Male samples")
-    # --- Tweede [] ---
+    # --- Count Distribution Comparison [] ---
+    # Key functions: compareCountDist
+    counts_matrix <- matrix(rnbinom(1000, mu = 10, size = 1), nrow = 10)
+    rownames(counts_matrix) <- paste0("GENE", 1:10)
+    gender <- rep(c("female", "male"), each = 50)
+    xf <- unlist(counts_matrix["GENE1", gender == "female"])
+    xm <- unlist(counts_matrix["GENE1", gender == "male"])
+    compareCountDist(xf, main = "Female samples")
+    compareCountDist(xm, main = "Male samples")
+
+
+    # --- Differential Expression Analysis [] ---
     # Key functions: tweeDE
-    resPT <- tweeDE(countsNigerianNorm[geneSubset, ], group = genderNigerian)
-    # --- Data [] ---
-    # Key functions: data, merge
-    data(annotEnsembl63)
-    head(annotEnsembl63)
-    deGenes <- merge(deGenes, annotEnsembl63, by="row.names", sort=FALSE)
-    # --- Tabdegenes [] ---
-    # Key functions: xtable
-    library(xtable)
-    deGenes$Description <- gsub(" \\[.+$", "", deGenes$Description)
-    xtab <- xtable(deGenes[, c("Symbol", "Chr", "log2fc", "pval.adjust", "Description")],
-                   caption="Differentially expressed genes between female and male Nigerian individuals found by tweeDEseq.",
-                   label="tab:deGenes", align="|l|c|c|r|l|p{7cm}|", digits=c(0, 0, 0, 2, -2, 0))
-    # --- Manvplots [] ---
+    counts_matrix <- matrix(rnbinom(1000, mu = 10, size = 1), nrow = 10)
+    rownames(counts_matrix) <- paste0("GENE", 1:10)
+    group <- factor(rep(c("A", "B"), each = 50))
+    resPT <- tweeDE(counts_matrix, group = group, mc.cores = 1)
+
+
+    # --- Visualization of DE Results [] ---
     # Key functions: MAplot, Vplot
-    hl <- list(list(genes=msYgenes, pch=21, col="blue", bg="blue", cex=0.7),
-               list(genes=XiEgenes, pch=21, col="skyblue", bg="skyblue", cex=0.7),
-               list(genes=deGenes, pch=1, col="red", lwd=2, cex=1.5)
-              )
-    par(mfrow=c(1,2), mar=c(4, 5, 3, 2))
-    # --- Glmpt [] ---
-    # Key functions: glmPT
-    mod <- glmPT(countsNigerianNorm["ENSG00000070031",] ~ genderNigerian)
-    mod
-    summary(mod)
-    # --- Tweedeglm [] ---
-    # Key functions: tweeDEglm
-    resPTglm <- tweeDEglm( ~ genderNigerian, counts = countsNigerianNorm[geneSubset,])
+    hl <- list(
+        list(genes = c("GENE1", "GENE2"), pch = 21, col = "blue", bg = "blue"),
+        list(genes = c("GENE3"), pch = 1, col = "red", lwd = 2, cex = 1.5)
+    )
+    MAplot(resPT, cex = 0.7, log2fc.cutoff = log2(1.5), highlight = hl,
+           main = "MA-plot")
+    Vplot(resPT, cex = 0.7, highlight = hl, log2fc.cutoff = log2(1.5),
+          pval.adjust.cutoff = 0.05, main = "Volcano plot")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

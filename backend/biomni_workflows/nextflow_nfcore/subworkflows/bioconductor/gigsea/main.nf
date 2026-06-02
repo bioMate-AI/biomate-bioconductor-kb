@@ -41,60 +41,86 @@ process BIOC_GIGSEA {
     library(GIGSEA)
     library(jsonlite)
 
-    # --- Rungigsea [] ---
-    # Key functions: runGIGSEA
-    ---------------------------------------------------------------------
-    # runGIGSEA( MetaXcan="software/MetaXcan.py" ,
-    # model_db_path="eQTL/DGN-WB_0.5.db",
-    # covariance="reference/covariance.DGN-WB_0.5.txt.gz",
-    # gwas_folder="data/GWAS_summary", gwas_file_pattern="heart.sumstats",
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(heart.metaXcan)
-    head(heart.metaXcan)
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    gene = heart.metaXcan$gene_name
-    # extract the imputed Z-score of differential gene expression, which follows
-    # the normal distribution
+    # --- Data Alignment and Intersection [] ---
+    # Key functions: orderedIntersect
+    data(heart.metaXcan, package="GIGSEA")
+    data(MSigDB.KEGG.Pathway, package="GIGSEA")
+    gene <- heart.metaXcan$gene_name
     fc <- heart.metaXcan$zscore
-    # --- Data [] ---
-    # Key functions: data, class
-    ---------------------------------------------------------------------
-    # load data
-    data(MSigDB.KEGG.Pathway)
-    # MSigDB.KEGG.Pathway is a list comprising two components: net and annot
-    class(MSigDB.KEGG.Pathway)
-    # --- Readlines [] ---
-    # Key functions: term, geneset, value, gmt2geneSet
-    ---------------------------------------------------------------------
-    # downlaod the gmt file
-    gmt <- readLines( paste0('http://amp.pharm.mssm.edu/CREEDS/download/',
-                            'single_drug_perturbations-v1.0.gmt') )
-    # obtain the index of up-regulated and down-regulated gene sets
-    # --- Orderedintersect [] ---
-    # Key functions: orderedIntersect, all, time, permutationSimpleLm, permutationSimpleLmMatrix
-    ---------------------------------------------------------------------
-    # take MSigDB.KEGG.Pathway as an example
+    weights <- (heart.metaXcan$n_snps_used /
+                heart.metaXcan$n_snps_in_model) *
+               heart.metaXcan$pred_perf_r2
+    expr_data <- data.frame(gene, fc, weights)
     net <- MSigDB.KEGG.Pathway$net
-    # intersect the permuted genes with the gene sets of interest
-    data2 <- orderedIntersect( x = data , by.x = data$gene , by.y = rownames(net) )
-    # --- Time [] ---
-    # Key functions: time, permutationMultipleLm, permutationMultipleLmMatrix
-    ---------------------------------------------------------------------
-    # MGSEA.res1 uses the weighted multiple linear regression model
-    system.time( MGSEA.res1 <- permutationMultipleLm( fc=data2$fc , net=net2 ,
-                                  weights=data2$weights , num=1000 ) )
-    # MGSEA.res2 used the matrix solution
-    # --- Data [] ---
-    # Key functions: frame, weightedGSEA
-    ---------------------------------------------------------------------
-    # import packages and prepare data as above
-    library(GIGSEA)
-    # prepare the dataset
-    data(heart.metaXcan)
+    data_aligned <- orderedIntersect(x=expr_data, by.x=expr_data$gene,
+                                     by.y=rownames(net))
+    net_aligned <- orderedIntersect(x=net, by.x=rownames(net),
+                                    by.y=expr_data$gene)
+
+
+    # --- Single Gene Set Enrichment Analysis [] ---
+    # Key functions: permutationSimpleLm, permutationSimpleLmMatrix
+    data(heart.metaXcan, package="GIGSEA")
+    data(MSigDB.KEGG.Pathway, package="GIGSEA")
+    gene <- heart.metaXcan$gene_name
+    fc <- heart.metaXcan$zscore
+    weights <- (heart.metaXcan$n_snps_used /
+                heart.metaXcan$n_snps_in_model) *
+               heart.metaXcan$pred_perf_r2
+    expr_data <- data.frame(gene, fc, weights)
+    net <- MSigDB.KEGG.Pathway$net
+    data_aligned <- orderedIntersect(x=expr_data, by.x=expr_data$gene,
+                                     by.y=rownames(net))
+    net_aligned <- orderedIntersect(x=net, by.x=rownames(net),
+                                    by.y=expr_data$gene)
+    sgsea_res_slow <- permutationSimpleLm(fc=data_aligned$fc,
+                                          net=net_aligned,
+                                          weights=data_aligned$weights,
+                                          num=10)
+    sgsea_res_fast <- permutationSimpleLmMatrix(fc=data_aligned$fc,
+                                                net=net_aligned,
+                                                weights=data_aligned$weights,
+                                                num=10)
+
+
+    # --- Multiple Gene Set Enrichment Analysis [] ---
+    # Key functions: permutationMultipleLm, permutationMultipleLmMatrix
+    data(heart.metaXcan, package="GIGSEA")
+    data(MSigDB.KEGG.Pathway, package="GIGSEA")
+    gene <- heart.metaXcan$gene_name
+    fc <- heart.metaXcan$zscore
+    weights <- (heart.metaXcan$n_snps_used /
+                heart.metaXcan$n_snps_in_model) *
+               heart.metaXcan$pred_perf_r2
+    expr_data <- data.frame(gene, fc, weights)
+    net <- MSigDB.KEGG.Pathway$net
+    data_aligned <- orderedIntersect(x=expr_data, by.x=expr_data$gene,
+                                     by.y=rownames(net))
+    net_aligned <- orderedIntersect(x=net, by.x=rownames(net),
+                                    by.y=expr_data$gene)
+    mgsea_res_slow <- permutationMultipleLm(fc=data_aligned$fc,
+                                            net=net_aligned,
+                                            weights=data_aligned$weights,
+                                            num=10)
+    mgsea_res_fast <- permutationMultipleLmMatrix(fc=data_aligned$fc,
+                                                  net=net_aligned,
+                                                  weights=data_aligned$weights,
+                                                  num=10)
+
+
+    # --- One-step Weighted GSEA [] ---
+    # Key functions: weightedGSEA
+    data(heart.metaXcan, package="GIGSEA")
+    gene <- heart.metaXcan$gene_name
+    fc <- heart.metaXcan$zscore
+    weights <- (heart.metaXcan$n_snps_used /
+                heart.metaXcan$n_snps_in_model) *
+               heart.metaXcan$pred_perf_r2
+    expr_data <- data.frame(gene, fc, weights)
+    weightedGSEA(expr_data, geneCol="gene", fcCol="fc",
+                 weightCol="weights",
+                 geneSet=c("MSigDB.KEGG.Pathway"),
+                 permutationNum=10, outputDir="./GIGSEA_output")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

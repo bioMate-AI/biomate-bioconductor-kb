@@ -38,54 +38,30 @@ process BIOC_GUITAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Guitar)
     library(GuitarPlot)
     library(jsonlite)
 
-    # --- label=quick plot [] ---
-    # Key functions: GuitarPlot
-    count <- GuitarPlot(txGenomeVer = "mm10",
-    # --- Guitar coordiantes [] ---
-    # Key functions: loadDb, makeGuitarTxdb, getTxdb
-    txdb_file <- system.file("extdata", "mm10_toy.sqlite",
-    txdb <- loadDb(txdb_file)
-    guitarTxdb <- makeGuitarTxdb(txdb = txdb, txPrimaryOnly = FALSE)
-    # --- label=example [] ---
-    # Key functions: GuitarPlot
-    GuitarPlot(txTxdb =  txdb,
-    # --- label=parameter 1 [] ---
+    # --- Genomic Feature Distribution Plotting [] ---
     # Key functions: GuitarPlot
     GuitarPlot(txTxdb = txdb,
-    # --- label=parameter 2 [] ---
-    # Key functions: GuitarPlot
-    GuitarPlot(txTxdb = txdb,
-    # --- label=mm10 example [] ---
-    # Key functions: loadDb, GuitarPlot
-    stBedFiles <- list(system.file("extdata", "m6A_mm10_exomePeak_1000peaks_bed12.bed",
-    system.file("extdata", "m6A_mm10_exomePeak_1000peaks_bed6.bed",
-    txdb_file <- system.file("extdata", "mm10_toy.sqlite",
-    # --- label=GuitarTxdb [] ---
-    # Key functions: makeGuitarTxdb
-    guitarTxdb <- makeGuitarTxdb(txdb = txdb,
-    txMrnaComponentProp = c(0.1,0.15,0.6,0.05,0.1),
-    txLncrnaComponentProp = c(0.2,0.6,0.2),
-    # --- label=Check [] ---
-    # Key functions: GuitarPlot
-    gcl <- list(guitarTxdb$tx$tx)
-    GuitarPlot(txTxdb  = txdb,
-    pltTxType =  c("tx"),
-    # --- label=tx comp [] ---
-    # Key functions: GuitarPlot
-    type <- paste(mcols(GuitarCoords)$componentType,mcols(GuitarCoords)$txType)
-    key <- unique(type)
-    landmark <- list(1,2,3,4,5,6,7,8,9,10,11)
-    # --- label=mrna comp [] ---
-    # Key functions: GuitarPlot
-    GuitarPlot(txTxdb  = txdb ,
-    pltTxType =  c("mrna"),
-    # --- label=comp [] ---
-    # Key functions: GuitarPlot
-    GuitarPlot(txTxdb  = txdb ,
-    pltTxType =  c("ncrna"),
+               stBedFiles = stBedFiles,
+               headOrtail = TRUE,
+               enableCI = FALSE,
+               mapFilterTranscript = TRUE,
+               pltTxType = c("mrna"),
+               stGroupName = c("BED12", "BED6"))
+
+
+    # --- Feature Point Sampling [] ---
+    # Key functions: samplePoints
+    sitesPoints <- samplePoints(stGRangeLists,
+                                stSampleNum = 10,
+                                stAmblguity = 5,
+                                pltTxType = c("mrna"),
+                                stSampleModle = "Equidistance",
+                                mapFilterTranscript = FALSE,
+                                guitarTxdb = guitarTxdb)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

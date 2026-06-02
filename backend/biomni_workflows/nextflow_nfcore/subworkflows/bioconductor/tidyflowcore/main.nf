@@ -38,15 +38,53 @@ process BIOC_TIDYFLOWCORE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tidyFlowCore)
     library(Bodenmiller_BCR_XL_flowSet)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Valid analysis [] ---
-    # Key functions: valid, Bodenmiller_BCR_XL_flowSet, knit, diff, session_info, PrintBibliography
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("tidyFlowCore")
+    # --- Data Transformation [tidyFlowCore] ---
+    # Key functions: mutate, across, ends_with
+    bcr_flowset <- HDCytoData::Bodenmiller_BCR_XL_flowSet()
+    transformed_flowset <- bcr_flowset |>
+        dplyr::mutate(dplyr::across(
+            -dplyr::ends_with("_id"),
+            \(.x) asinh(.x / 5)
+        ))
+
+    # --- Cell Population Profiling [tidyFlowCore] ---
+    # Key functions: count
+    population_counts <- bcr_flowset |>
+        dplyr::count(.tidyFlowCore_identifier, population_id)
+
+    # --- Marker Expression Summarisation [tidyFlowCore] ---
+    # Key functions: ungroup, group_by, summarize, select
+    population_stats <- bcr_flowset |>
+        dplyr::ungroup() |>
+        dplyr::group_by(population_id) |>
+        dplyr::summarize(
+            mean_hladr = mean(`HLA-DR(Yb174)Dd`),
+            mean_cd20 = mean(`CD20(Sm147)Dd`)
+        ) |>
+        dplyr::select(population_id, mean_hladr, mean_cd20)
+
+    # --- Single-Cell Visualisation [tidyFlowCore] ---
+    # Key functions: mutate, ungroup, across
+    plot_data <- bcr_flowset |>
+        dplyr::mutate(dplyr::across(
+            -dplyr::ends_with("_id"),
+            \(.x) asinh(.x / 5)
+        )) |>
+        dplyr::ungroup()
+
+    p <- ggplot2::ggplot(
+        plot_data,
+        ggplot2::aes(x = `CD20(Sm147)Dd`, y = `CD4(Nd145)Dd`)
+    ) +
+        ggplot2::geom_point(size = 0.1, alpha = 0.1) +
+        ggplot2::facet_wrap(ggplot2::vars(population_id)) +
+        ggplot2::labs(x = "CD20 (arcsinh)", y = "CD4 (arcsinh)")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

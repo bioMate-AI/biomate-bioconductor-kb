@@ -38,21 +38,74 @@ process BIOC_TOAST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TOAST)
     library(ChooseMarker)
     library(GetPrior)
     library(MDeconv)
     library(jsonlite)
 
-    # --- Create experimental design matrix [] ---
+    # --- Feature Selection ---
+    # Key functions: findRefinx
+    data("RA_100samples")
+    Y_raw <- RA_100samples$Y_raw
+    Blood_ref <- RA_100samples$Blood_ref
+    refinx <- findRefinx(Y_raw, nmarker = 1000, sortBy = "var")
+    Y <- Y_raw[refinx, ]
+    Ref <- as.matrix(Blood_ref[refinx, ])
+
+    # --- Reference-Free Deconvolution ---
+    # Key functions: csDeconv, assignCellType
+    data("RA_100samples")
+    Y_raw <- RA_100samples$Y_raw
+    outRF1 <- csDeconv(Y_raw, K = 6, TotalIter = 10, bound_negative = TRUE)
+    mock_ref <- matrix(runif(nrow(outRF1$estProp) * 6), ncol = 6)
+    estProp_aligned <- assignCellType(
+        input = outRF1$estProp,
+        reference = mock_ref
+    )
+
+    # --- Marker-Based Deconvolution ---
+    # Key functions: ChooseMarker, GetPrior, MDeconv
+    data("CBS_PBMC_array")
+    CBS_mix <- CBS_PBMC_array$mixed_all
+    LM_5 <- CBS_PBMC_array$LM_5
+    CellType <- list(Bcells = 1, CD8T = 2, CD4T = 3, NK = 4, Monocytes = 5)
+    myMarker <- ChooseMarker(
+        LM_5, CellType, nMarkCT = 20,
+        chooseSig = TRUE, verbose = FALSE
+    )
+    thisprior <- GetPrior("human pbmc")
+    resCBS <- MDeconv(
+        CBS_mix, myMarker, alpha = "human pbmc",
+        epsilon = 1e-3, verbose = FALSE
+    )
+
+    # --- Cell-Type-Specific Differential Expression ---
     # Key functions: makeDesign, fitModel, csTest
+    data("RA_100samples")
+    Y_raw <- RA_100samples$Y_raw
+    Pheno <- RA_100samples$Pheno
+    design <- data.frame(disease = as.factor(Pheno$disease))
+    Prop <- matrix(runif(ncol(Y_raw) * 6), ncol = 6)
+    colnames(Prop) <- paste0("CellType", 1:6)
     Design_out <- makeDesign(design, Prop)
     fitted_model <- fitModel(Design_out, Y_raw)
-    res_table <- csTest(fitted_model, coef = "age",
-    # --- Refinx analysis [] ---
-    # Key functions: findRefinx, epidish, myRefFreeCellMix, assignCellType, csDeconv, choose, ChooseMarker, MDeconv
-    refinx <- findRefinx(Y_raw, nmarker = 1000, sortBy = "cv")
-    InitNames <- rownames(Y_raw)[refinx]
-    csDeconv(Y_raw, K = 6, nMarker = 1000,
+    res_table <- csTest(fitted_model, coef = "disease", cell_type = "CellType1")
+
+    # --- Hierarchical Differential Expression ---
+    # Key functions: cedar
+    data("RA_100samples")
+    Y_raw <- RA_100samples$Y_raw
+    Pheno <- RA_100samples$Pheno
+    design <- data.frame(disease = as.factor(Pheno$disease))
+    Prop <- matrix(runif(ncol(Y_raw) * 6), ncol = 6)
+    colnames(Prop) <- paste0("CellType", 1:6)
+    res_cedar <- cedar(
+        Y_raw = Y_raw, prop = Prop, design.1 = design,
+        factor.to.test = "disease", cutoff.tree = c("pval", 0.05),
+        cutoff.prior.prob = c("pval", 0.05)
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

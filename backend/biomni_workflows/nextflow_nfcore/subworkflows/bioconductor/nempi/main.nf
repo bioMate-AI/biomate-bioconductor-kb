@@ -41,11 +41,43 @@ process BIOC_NEMPI {
     library(nempi)
     library(jsonlite)
 
-    # --- palette [] ---
-    # Key functions: palette
-    knitr::opts_chunk$set(message=FALSE, out.width="125%", fig.align="center",
-    paltmp <- palette()
-    palette(paltmp)
+    # --- Supervised Perturbation Classification [] ---
+    # Key functions: classpi
+    # Classify unlabelled cells using supervised machine learning methods
+    # such as Support Vector Machines, Neural Networks, or Random Forests.
+    res_svm <- classpi(data, method = "svm")
+    res_nnet <- classpi(data, method = "nnet")
+    res_rf <- classpi(data, method = "randomForest")
+
+
+    # --- Model Performance Evaluation [] ---
+    # Key functions: pifit
+    # Evaluate the accuracy of the inferred perturbation profiles
+    # against a ground truth simulation or known benchmark.
+    fit_nempi <- pifit(res_nempi, simmini, data)
+    fit_svm <- pifit(res_svm, simmini, data, propagate = FALSE)
+    
+    # Collect Area Under the Curve (AUC) metrics for comparison
+    auc_results <- list(
+        nempi = fit_nempi$auc,
+        svm = fit_svm$auc
+    )
+
+
+    # --- Visualisation of Inferred Profiles [] ---
+    # Key functions: plot
+    # Visualise the inferred perturbation matrix and network structure
+    # using custom color gradients for the heatmaps and barplots.
+    col_grad <- rgb(
+        seq(0, 1, length.out = 10),
+        seq(1, 0, length.out = 10),
+        seq(1, 0, length.out = 10)
+    )
+    plot(
+        res_nempi,
+        heatlist = list(col = "RdBu"),
+        barlist = list(col = col_grad)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
