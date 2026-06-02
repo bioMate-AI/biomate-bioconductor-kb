@@ -1,6 +1,14 @@
 // nf-core/rnaseq — user-facing parameter stub
 // Full pipeline: FASTQ → trimming → alignment → quantification → QC
 // These are the parameters users set when launching this workflow.
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, FASTQ format check, strandedness detection
+// * 2. Trimming & QC — adapter trimming (Trim Galore), FastQC read quality
+// * 3. Alignment — STAR / HISAT2 / Salmon pseudo-alignment
+// * 4. Quantification — gene/transcript counts (RSEM, Salmon), TPM/FPKM matrix
+// * 5. Differential expression — DESeq2 size-factor normalisation, PCA, sample distance
+// * 6. Report — MultiQC HTML, counts matrix TSV, alignment statistics
 
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2,strandedness)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCz11 | BDGP6 | Rnor_6.0 | R64-1-1

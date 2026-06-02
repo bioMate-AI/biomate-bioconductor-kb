@@ -1,5 +1,12 @@
 // nf-core/fetchngs — user-facing parameter stub
 // Download sequencing data from SRA/ENA/DDBJ/GEO/SynBio
+//
+// Pipeline phases:
+// * 1. Input validation — accession ID format check (SRR/ERR/DRR/GSM)
+// * 2. Metadata fetch — SRA/ENA metadata retrieval, sample annotation
+// * 3. FASTQ download — sratools prefetch + fasterq-dump / FTP / Aspera
+// * 4. Samplesheet generation — nf-core-compatible samplesheet CSV creation
+// * 5. Report — MultiQC, download summary, samplesheet output
 
 params.input             = null          // File of SRA/ENA/DDBJ/GEO accession IDs (one per line)
 params.nf_core_pipeline  = null          // nf-core pipeline to auto-generate samplesheet for

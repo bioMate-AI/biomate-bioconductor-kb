@@ -1,5 +1,13 @@
 // nf-core/atacseq — user-facing parameter stub
 // ATAC-seq: FASTQ → trimming → alignment → peak calling → annotation → QC
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, FASTQ format check
+// * 2. Trimming & QC — adapter trimming (Trim Galore), FastQC
+// * 3. Alignment — BWA / Bowtie2, mitochondrial read removal, deduplication
+// * 4. Peak calling — MACS2 broad/narrow peaks, consensus peak set
+// * 5. Annotation — ChIPseeker peak-to-gene, TSS enrichment, fragment size
+// * 6. Report — MultiQC, peak BED, bigWig signal tracks
 
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2,replicate)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6

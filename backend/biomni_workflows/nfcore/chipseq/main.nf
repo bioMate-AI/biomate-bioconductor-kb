@@ -1,5 +1,13 @@
 // nf-core/chipseq — user-facing parameter stub
 // ChIP-seq: FASTQ → alignment → peak calling → annotation → QC
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, antibody / control pairing check
+// * 2. Trimming & QC — adapter trimming (Trim Galore), FastQC
+// * 3. Alignment — BWA / Bowtie2, duplicate marking, blacklist filtering
+// * 4. Peak calling — MACS2 broad/narrow peaks, IDR reproducibility
+// * 5. Annotation — ChIPseeker peak-to-gene annotation, motif enrichment
+// * 6. Report — MultiQC, FRiP score, peak BED, bigWig signal tracks
 
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2,antibody,control)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6

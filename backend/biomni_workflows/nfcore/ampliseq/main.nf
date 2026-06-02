@@ -1,5 +1,13 @@
 // nf-core/ampliseq — user-facing parameter stub
 // Amplicon sequencing: 16S/ITS/other amplicons → OTU/ASV table → diversity analysis
+//
+// Pipeline phases:
+// * 1. Input validation — samplesheet QC, primer sequence check
+// * 2. Trimming & QC — primer removal (Cutadapt), DADA2 quality profiling
+// * 3. Denoising — DADA2 error learning, ASV inference, chimera removal
+// * 4. Taxonomy — QIIME2 classifier, SILVA / UNITE database assignment
+// * 5. Diversity — alpha rarefaction, beta diversity (UniFrac, Bray-Curtis)
+// * 6. Report — MultiQC, ASV table TSV, taxonomy barplot
 
 params.input             = null          // Samplesheet CSV or FASTQ directory
 params.FW_primer         = null          // Forward primer sequence (e.g. GTGYCAGCMGCCGCGGTAA for 515F)
