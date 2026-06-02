@@ -333,7 +333,7 @@ def register_bioc_chains(db_path: Path = _DB_PATH) -> int:
                   (name, display_name, domain, description, steps, connections,
                    required_inputs, expected_outputs, example_queries, tags,
                    source, usage_count, success_rate, created_at, updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?, 'curated', 0, 0.0, ?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?, 'bioc_reactive', 0, 0.0, ?,?)
                 ON CONFLICT(name) DO UPDATE SET
                   display_name    = excluded.display_name,
                   domain          = excluded.domain,
