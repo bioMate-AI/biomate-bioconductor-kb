@@ -41,65 +41,60 @@ process BIOC_CODEX {
     library(CODEX)
     library(jsonlite)
 
-    # --- Install1 [] ---
-    # Key functions: requireNamespace, packages
-    ## ## try http:// if https:// URLs are not supported
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("CODEX")
-    # --- Install2 [] ---
-    # Key functions: packages, install_github
-    ## install.packages("devtools")
-    ## library(devtools)
-    ## install_github("yuchaojiang/CODEX/package")
-    # --- Bambedobj1 [] ---
-    # Key functions: files, path, getbambed
-    library(CODEX)
-    library(WES.1KG.WUGSC) # Load Toy data from the 1000 Genomes Project.
+    # --- BAM and BED Parsing [Data Preparation] ---
+    # Key functions: getbambed
     dirPath <- system.file("extdata", package = "WES.1KG.WUGSC")
-    bamFile <- list.files(dirPath, pattern = '*.bam$')
+    bamFile <- list.files(dirPath, pattern = "*.bam$")
     bamdir <- file.path(dirPath, bamFile)
-    # --- Coverageobj1 [] ---
-    # Key functions: getcoverage
+    sampname <- as.matrix(read.table(file.path(dirPath, "sampname")))
+    bedFile <- file.path(dirPath, "chr22_400_to_500.bed")
+    chr <- 22
+    bambedObj <- getbambed(
+        bamdir = bamdir, bedFile = bedFile,
+        sampname = sampname, projectname = "CODEX_demo", chr = chr
+    )
+
+    # --- Coverage and Genomic Features [Feature Extraction] ---
+    # Key functions: getcoverage, getgc, getmapp
     coverageObj <- getcoverage(bambedObj, mapqthres = 20)
-    Y <- coverageObj$Y; readlength <- coverageObj$readlength
-    # --- Gcmapp1 [] ---
-    # Key functions: getgc, getmapp
+    Y <- coverageObj$Y
+    ref <- bambedObj$ref
+    chr <- bambedObj$chr
     gc <- getgc(chr, ref)
     mapp <- getmapp(chr, ref)
-    # --- Qcobj1 [] ---
+
+    # --- Quality Control [Filtering] ---
     # Key functions: qc
-    qcObj <- qc(Y, sampname, chr, ref, mapp, gc, cov_thresh = c(20, 4000),
-        length_thresh = c(20, 2000), mapp_thresh = 0.9, gc_thresh = c(20, 80))
-    Y_qc <- qcObj$Y_qc; sampname_qc <- qcObj$sampname_qc; gc_qc <- qcObj$gc_qc
-    mapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat
-    write.table(qcmat, file = paste(projectname, '_', chr, '_qcmat', '.txt', sep=''),
-    # --- Normobj1 [] ---
+    sampname <- bambedObj$sampname
+    qcObj <- qc(
+        Y = Y, sampname = sampname, chr = chr, ref = ref,
+        mapp = mapp, gc = gc, cov_thresh = c(20, 4000),
+        length_thresh = c(20, 2000), mapp_thresh = 0.9,
+        gc_thresh = c(20, 80)
+    )
+    Y_qc <- qcObj$Y_qc
+    sampname_qc <- qcObj$sampname_qc
+    gc_qc <- qcObj$gc_qc
+    mapp_qc <- qcObj$mapp_qc
+    ref_qc <- qcObj$ref_qc
+
+    # --- Normalization [Normalization] ---
     # Key functions: normalize
     normObj <- normalize(Y_qc, gc_qc, K = 1:9)
-    Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
-    RSS <- normObj$RSS; K <- normObj$K
-    # --- Normobj2 [] ---
-    # Key functions: normalize2
-    ## normObj <- normalize2(Y_qc, gc_qc, K = 1:9, normal_index=seq(1,45,2))
-    ## Yhat <- normObj$Yhat; AIC <- normObj$AIC; BIC <- normObj$BIC
-    ## RSS <- normObj$RSS; K <- normObj$K
-    # --- Choiceofk [] ---
-    # Key functions: choiceofK
-    ## choiceofK(AIC, BIC, RSS, K, filename = paste(projectname, "_", chr,
-    ##     "_choiceofK", ".pdf", sep = ""))
-    # --- Segment1 [] ---
+    Yhat <- normObj$Yhat
+    AIC <- normObj$AIC
+    BIC <- normObj$BIC
+    K <- normObj$K
+
+    # --- CNV Segmentation [Segmentation] ---
     # Key functions: segment
-    optK = K[which.max(BIC)]
-    finalcall <- segment(Y_qc, Yhat, optK = optK, K = K, sampname_qc,
-        ref_qc, chr, lmax = 200, mode = "integer")
-    finalcall
-    # --- Segment2 [] ---
-    # Key functions: image
-    ## write.table(finalcall, file = paste(projectname, '_', chr, '_', optK,
-    ##             '_CODEX_frac.txt', sep=''), sep='\t', quote=FALSE, row.names=FALSE)
-    ## save.image(file = paste(projectname, '_', chr, '_image', '.rda', sep=''),
-    ##      compress='xz')
+    optK <- K[which.max(BIC)]
+    finalcall <- segment(
+        Y_qc = Y_qc, Yhat = Yhat, optK = optK, K = K,
+        sampname_qc = sampname_qc, ref_qc = ref_qc,
+        chr = chr, lmax = 200, mode = "integer"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

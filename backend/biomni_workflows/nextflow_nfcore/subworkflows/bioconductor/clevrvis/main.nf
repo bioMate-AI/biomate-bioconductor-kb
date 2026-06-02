@@ -41,11 +41,39 @@ process BIOC_CLEVRVIS {
     library(clevRvis)
     library(jsonlite)
 
-    # --- Table formatting and display [] ---
-    # Key functions: createSeaObject, sharkPlot, extSharkPlot, dolphinPlot, combinedPlot, plaicePlot, exploreTrees, kable
-    library(knitr)
-    kable(data.frame(Clone=c("clone A","clone B","clone C","clone D","clone E"),
-    Parent=c("normal cell","clone A","clone B","clone C",
+    # --- Shark Plot Visualization [] ---
+    # Key functions: sharkPlot, extSharkPlot
+    sharkPlot(seaObject_tp, showLegend = TRUE,
+              main = "Example Shark plot")
+    extSharkPlot(seaObject_tp, timepoints = timepoints,
+                 showLegend = TRUE,
+                 main = "Example Extended Shark plot")
+
+
+    # --- Dolphin Plot Visualization [] ---
+    # Key functions: dolphinPlot
+    annotsTable <- data.frame(
+        x = c(50, 75), y = c(15, 50),
+        col = c("black", "white"),
+        lab = c("Annotation clone 5", "Annotation clone 2")
+    )
+    dolphinPlot(seaObject_tp, showLegend = TRUE,
+                main = "Example Dolphin Plot",
+                vlines = timepoints, vlab = timepoints,
+                vlabSize = 2, ylab = "Cancer cell fraction",
+                annotations = annotsTable, pos = "bottom",
+                separateIndependentClones = TRUE)
+
+
+    # --- Combined and Plaice Plot Visualization [] ---
+    # Key functions: combinedPlot, plaicePlot
+    combinedPlot(seaObject_tp, showLegend = TRUE, vlines = timepoints,
+                 vlab = timepoints, vlabSize = 2,
+                 ylab = "Cancer cell fraction",
+                 separateIndependentClones = TRUE)
+    plaicePlot(seaObject_tp, showLegend = TRUE, vlines = timepoints,
+               vlab = timepoints, vlabSize = 4, ylab = TRUE,
+               separateIndependentClones = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

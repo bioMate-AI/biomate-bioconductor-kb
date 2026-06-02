@@ -41,31 +41,53 @@ process BIOC_CLUSTALL {
     library(ClustAll)
     library(jsonlite)
 
-    # --- create ClustAllObject [] ---
-    # Key functions: createClustAll
-    obj_noNA <- createClustAll(data = data_use, nImputation = NULL,
-    # --- run ClustAll [] ---
+    # --- Clustering Execution [] ---
     # Key functions: runClustAll
-    obj_noNA1 <- runClustAll(Object = obj_noNA, threads = 2, simplify = FALSE)
-    # --- plot J A C C A R D [] ---
-    # Key functions: plotJACCARD
-    plotJACCARD(Object = obj_noNA1, stratification_similarity = 0.9, paint = TRUE)
-    # --- explore representative clusters [] ---
-    # Key functions: resStratification
-    resStratification(Object = obj_noNA1, population = 0.05,
-    # --- plot S A N K E Y [] ---
-    # Key functions: plotSANKEY
-    plotSANKEY(Object = obj_noNA1, clusters = c("cuts_c_9","cuts_a_28"),
-    # --- export stratifications [] ---
-    # Key functions: cluster2data
-    df <- cluster2data(Object = obj_noNA1,
-    stratificationName = c("cuts_c_9","cuts_a_28","cuts_c_4"))
-    head(df,3)
-    # --- validate stratifications [] ---
+    obj_noNA1 <- runClustAll(
+        Object = obj_noNA,
+        threads = 2,
+        simplify = FALSE
+    )
+
+
+    # --- Stratification Exploration [] ---
+    # Key functions: resStratification, plotJACCARD
+    plotJACCARD(
+        Object = obj_noNA1,
+        stratification_similarity = 0.9,
+        paint = TRUE
+    )
+    strat_res <- resStratification(
+        Object = obj_noNA1,
+        population = 0.05,
+        stratification_similarity = 0.9,
+        all = FALSE
+    )
+
+
+    # --- Visualization and Export [] ---
+    # Key functions: plotSANKEY, cluster2data
+    plotSANKEY(
+        Object = obj_noNA1,
+        clusters = c("cuts_c_9", "cuts_a_28"),
+        validationData = FALSE
+    )
+    df <- cluster2data(
+        Object = obj_noNA1,
+        stratificationName = c("cuts_c_9", "cuts_a_28", "cuts_c_4")
+    )
+
+
+    # --- Stratification Validation [] ---
     # Key functions: validateStratification
-    validateStratification(obj_noNA1, "cuts_a_28")
-    validateStratification(obj_noNA1, "cuts_c_9")
-    validateStratification(obj_noNA1, "cuts_c_4")
+    val_a28 <- validateStratification(
+        obj_noNA1, 
+        "cuts_a_28"
+    )
+    val_c9 <- validateStratification(
+        obj_noNA1, 
+        "cuts_c_9"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

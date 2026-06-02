@@ -38,55 +38,95 @@ process BIOC_COMETHDMR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(coMethDMR)
     library(AnnotateResults)
     library(CoMethAllRegions)
     library(CpGsInfoOneRegion)
     library(GetResiduals)
     library(jsonlite)
 
-    # --- Co Meth All Regions [] ---
-    # Key functions: CoMethAllRegions
-    system.time(
-    coMeth_ls <- CoMethAllRegions(
-    # --- lmmTestAllRegions 1 [] ---
-    # Key functions: lmmTestAllRegions
-    out_df <- lmmTestAllRegions(
-    # --- Annotate Results [] ---
-    # Key functions: AnnotateResults
-    system.time(
-    outAnno_df <- AnnotateResults(
-    # --- Cp Gs Info One Region [] ---
-    # Key functions: CpGsInfoOneRegion
-    outCpGs_df <- CpGsInfoOneRegion(
-    # --- CpGsInfoOneRegion 2 [] ---
-    # Key functions: CpGsInfoOneRegion
-    CpGsInfoOneRegion(
-    gene_ls <- readRDS(
-    system.file(
-    # --- Get Residuals [] ---
+    # --- Adjusting for Covariates [GetResiduals] ---
     # Key functions: GetResiduals
-    resid_mat <- GetResiduals(
-    covariates_char = c("age.brain", "sex", "slide")
-    # --- CoMethAllRegions 2 [] ---
-    # Key functions: CoMethAllRegions
-    Cgi_ls <- readRDS(
-    system.file(
-    coMeth_ls <- CoMethAllRegions(
-    # --- CoMethAllRegions 3 [] ---
-    # Key functions: CoMethAllRegions
-    coMeth_ls <- CoMethAllRegions(
-    # --- CoMethAllRegions 4 [] ---
-    # Key functions: CoMethAllRegions
-    coMethData_df <- CoMethAllRegions(
-    # --- lmmTestAllRegions 2 [] ---
-    # Key functions: lmmTestAllRegions
-    lmmTestAllRegions(
     data(betasChr22_df)
-    # --- find and test regions [] ---
-    # Key functions: CoMethAllRegions, lmmTestAllRegions, AnnotateResults
+    data(pheno_df)
+    resid_mat <- GetResiduals(
+        dnam = betasChr22_df,
+        betaToM = TRUE,
+        pheno_df = pheno_df,
+        covariates_char = c("age.brain", "sex", "slide")
+    )
+
+    # --- Defining Genomic Regions [CloseBySingleRegion, OrderCpGsByLocation, NameRegion] ---
+    # Key functions: CloseBySingleRegion, OrderCpGsByLocation, NameRegion
+    ARFGAP3_CpGs_char <- c(
+        "cg00079563", "cg01029450", "cg02351223", "cg04527868", "cg09861871",
+        "cg26529516", "cg00539564", "cg05288033", "cg09367092", "cg10648908"
+    )
+    gene3_200 <- CloseBySingleRegion(
+        CpGs_char = ARFGAP3_CpGs_char,
+        arrayType = "450k",
+        maxGap = 200,
+        minCpGs = 3
+    )
+    CpGsOrdered_ls <- lapply(
+        gene3_200,
+        OrderCpGsByLocation,
+        arrayType = "450k",
+        output = "dataframe"
+    )
+    names(gene3_200) <- lapply(CpGsOrdered_ls, NameRegion)
+
+    # --- Identifying Co-methylated Regions [CoMethAllRegions] ---
+    # Key functions: CoMethAllRegions
+    data(betasChr22_df)
+    CpGisland_ls <- readRDS(
+        system.file(
+            "extdata", "CpGislandsChr22_ex.rds",
+            package = "coMethDMR", mustWork = TRUE
+        )
+    )
     coMeth_ls <- CoMethAllRegions(
-    results <- lmmTestAllRegions(
-    AnnotateResults(lmmRes_df = results, arrayType = "450k")
+        dnam = betasChr22_df,
+        betaToM = TRUE,
+        method = "pearson",
+        CpGs_ls = CpGisland_ls,
+        arrayType = "450k",
+        returnAllCpGs = FALSE,
+        output = "CpGs",
+        nCores_int = 1
+    )
+
+    # --- Testing Association with Phenotype [lmmTestAllRegions] ---
+    # Key functions: lmmTestAllRegions
+    data(betasChr22_df)
+    data(pheno_df)
+    out_df <- lmmTestAllRegions(
+        betas = betasChr22_df,
+        region_ls = coMeth_ls,
+        pheno_df = pheno_df,
+        contPheno_char = "stage",
+        covariates_char = NULL,
+        modelType = "randCoef",
+        arrayType = "450k"
+    )
+
+    # --- Annotating Results and Extracting Region Info [AnnotateResults, CpGsInfoOneRegion] ---
+    # Key functions: AnnotateResults, CpGsInfoOneRegion
+    data(betasChr22_df)
+    data(pheno_df)
+    outAnno_df <- AnnotateResults(
+        lmmRes_df = out_df,
+        arrayType = "450k"
+    )
+    outCpGs_df <- CpGsInfoOneRegion(
+        regionName_char = "chr22:18268062-18268249",
+        betas_df = betasChr22_df,
+        pheno_df = pheno_df,
+        contPheno_char = "stage",
+        covariates_char = NULL,
+        arrayType = "450k"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

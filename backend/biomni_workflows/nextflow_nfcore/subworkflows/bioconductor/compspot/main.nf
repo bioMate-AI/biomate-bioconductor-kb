@@ -41,17 +41,29 @@ process BIOC_COMPSPOT {
     library(compSPOT)
     library(jsonlite)
 
-    # --- find_hotspots [] ---
-    # Key functions: find_hotspots
-    significant_spots <- find_hotspots(data = compSPOT_example_mutations,
-    # --- compare_groups [] ---
+    # --- Group Comparison [] ---
     # Key functions: compare_groups
     hotspots <- subset(significant_spots[[1]], type == "Hotspot")
-    group_comp <- compare_groups(data = compSPOT_example_mutations,
-    # --- compare_features [] ---
+    group_comp <- compare_groups(
+        data = compSPOT_example_mutations,
+        regions = hotspots,
+        pval = 0.05,
+        threshold = 0.2,
+        name1 = "High-Risk",
+        name2 = "Low-Risk",
+        include_genes = TRUE
+    )
+    group_results <- group_comp[[1]]
+
+
+    # --- Feature Association [] ---
     # Key functions: compare_features
     features <- c("AGE", "SEX", "SMOKING_HISTORY", "TUMOR_VOLUME", "KI_67")
-    feature_example <- compare_features(data = compSPOT_example_mutations,
+    feature_example <- compare_features(
+        data = compSPOT_example_mutations,
+        regions = compSPOT_example_regions,
+        feature = features
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

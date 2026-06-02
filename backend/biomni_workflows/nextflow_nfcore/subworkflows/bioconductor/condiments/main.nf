@@ -41,83 +41,55 @@ process BIOC_CONDIMENTS {
     library(condiments)
     library(jsonlite)
 
-    # --- Packages [] ---
-    # Key functions: set
-    --------------------------------------------------
-    library(knitr)
-    opts_chunk$set(
-      fig.pos = "!h", out.extra = "",
-      fig.align = "center"
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+    # --- Imbalance Score Calculation [Imbalance Score] ---
+    # Key functions: imbalance_score
     data("toy_dataset", package = "condiments")
     df <- toy_dataset$sd
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point, scale_color_brewer
-    ---------------------------------------------------------------------
-    p <- ggplot(df, aes(x = Dim1, y = Dim2, col = conditions)) +
-      geom_point() +
-      scale_color_brewer(type = "qual")
-    p
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point, geom_path, scale_color_brewer, facet_wrap, guides
-    ---------------------------------------------------------------------
-    p <- ggplot(df, aes(x = Dim1, y = Dim2, col = conditions)) +
-      geom_point(alpha = .5) +
-      geom_point(data = toy_dataset$mst, size = 2) +
-      geom_path(data = toy_dataset$mst, aes(group = lineages), size = 1.5) +
-    # --- Imbalance Score [] ---
-    # Key functions: imbalance_score, select
-    ---------------------------------------------------------------------
-    scores <- imbalance_score(Object = df %>% select(Dim1, Dim2) %>% as.matrix(),
-                              conditions = df$conditions)
+    rd <- as.matrix(df[, c("Dim1", "Dim2")])
+    scores <- imbalance_score(
+        Object = rd,
+        conditions = df$conditions
+    )
     df$scores <- scores$scores
     df$scaled_scores <- scores$scaled_scores
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point, scale_color_viridis_c
-    ---------------------------------------------------------------------
-    ggplot(df, aes(x = Dim1, y = Dim2, col = scores)) +
-      geom_point() +
-      scale_color_viridis_c(option = "C")
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point
-    ---------------------------------------------------------------------
-    ggplot(df, aes(x = Dim1, y = Dim2, col = cl)) +
-      geom_point()
-    # --- Matrix [] ---
-    # Key functions: slingshot, topologyTest
-    ---------------------------------------------------------------------
+
+    # --- Differential Topology Testing [Topology Test] ---
+    # Key functions: topologyTest
+    data("toy_dataset", package = "condiments")
+    df <- toy_dataset$sd
     rd <- as.matrix(df[, c("Dim1", "Dim2")])
-    sds <- slingshot(rd, df$cl)
-    ## Takes ~1m30s to run
-    top_res <- topologyTest(sds = sds, conditions = df$conditions)
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point, geom_path, slingCurves, arrange
-    ---------------------------------------------------------------------
-    ggplot(df, aes(x = Dim1, y = Dim2, col = cl)) +
-      geom_point() +
-      geom_path(data =  slingCurves(sds, as.df = TRUE) %>% arrange(Order),
-                aes(group = Lineage), col = "black", size = 2)
-    # --- Slingpseudotime [] ---
-    # Key functions: slingPseudotime, frame, mutate, pivot_longer, starts_with
-    ---------------------------------------------------------------------
-    psts <- slingPseudotime(sds) %>%
-      as.data.frame() %>%
-      mutate(cells = rownames(.),
-             conditions = df$conditions) %>%
-    # --- Progressiontest [] ---
+    sds <- slingshot::slingshot(rd, df$cl)
+    top_res <- topologyTest(
+        sds = sds,
+        conditions = df$conditions
+    )
+
+    # --- Differential Progression Testing [Progression Test] ---
     # Key functions: progressionTest
-    ---------------------------------------------------------------------
-    prog_res <- progressionTest(sds, conditions = df$conditions, global = TRUE, lineages = TRUE)
-    knitr::kable(prog_res)
-    # --- Slingcurveweights [] ---
-    # Key functions: slingCurveWeights, ggplot, aes, geom_density, scale_fill_brewer, labs
-    ---------------------------------------------------------------------
-    df$weight_1 <- slingCurveWeights(sds, as.probs = TRUE)[, 1]
-    ggplot(df, aes(x = weight_1, fill = conditions)) +
-      geom_density(alpha = .5) +
-      scale_fill_brewer(type = "qual") +
+    data("toy_dataset", package = "condiments")
+    df <- toy_dataset$sd
+    rd <- as.matrix(df[, c("Dim1", "Dim2")])
+    sds <- slingshot::slingshot(rd, df$cl)
+    prog_res <- progressionTest(
+        sds = sds,
+        conditions = df$conditions,
+        global = TRUE,
+        lineages = TRUE
+    )
+
+    # --- Differential Fate Selection Testing [Fate Selection Test] ---
+    # Key functions: fateSelectionTest
+    data("toy_dataset", package = "condiments")
+    df <- toy_dataset$sd
+    rd <- as.matrix(df[, c("Dim1", "Dim2")])
+    sds <- slingshot::slingshot(rd, df$cl)
+    dif_res <- fateSelectionTest(
+        sds = sds,
+        conditions = df$conditions,
+        global = FALSE,
+        pairwise = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

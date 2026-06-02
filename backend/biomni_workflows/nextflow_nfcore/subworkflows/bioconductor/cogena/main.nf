@@ -38,14 +38,81 @@ process BIOC_COGENA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cogena)
     library(Enrichment)
     library(jsonlite)
 
-    # --- Load all analysis [] ---
-    # Key functions: load_all, coExp, Enrichment, clEnrich, heatmapCluster, heatmapPEI, clEnrich_one, heatmapCmap
-    genecl_result <- coExp(DEexprs, nClust=nClust, clMethods=clMethods,
-    Enrichment (Pathway) analysis for the co-expressed genes
-    clen_res <- clEnrich(genecl_result, annofile=annofile, sampleLabel=sampleLabel)
+    # --- Cluster Enrichment Analysis [] ---
+    # Key functions: clEnrich, summary
+    annofile <- system.file(
+        "extdata",
+        "c2.cp.kegg.v7.01.symbols.gmt.xz",
+        package = "cogena"
+    )
+    sampleLabel <- factor(sampleLabel, levels = c("ct", "Psoriasis"))
+    clen_res <- clEnrich(
+        genecl_result,
+        annofile = annofile,
+        sampleLabel = sampleLabel
+    )
+    summary(clen_res)
+
+
+    # --- Visualization of Clusters and Enrichment [] ---
+    # Key functions: heatmapCluster, heatmapPEI, enrichment
+    enrichment.table <- enrichment(clen_res, "pam", "10")
+    heatmapCluster(
+        clen_res,
+        "pam",
+        "10",
+        maintitle = "Psoriasis"
+    )
+    heatmapPEI(
+        clen_res,
+        "pam",
+        "10",
+        printGS = FALSE,
+        maintitle = "Pathway analysis for Psoriasis"
+    )
+
+
+    # --- Cluster Gene Extraction [] ---
+    # Key functions: geneInCluster, geneExpInCluster, corInCluster
+    geneC <- geneInCluster(clen_res, "pam", "10", "4")
+    gec <- geneExpInCluster(clen_res, "pam", "10")
+    cluster_corr <- corInCluster(clen_res, "pam", "10", "10")
+
+
+    # --- Drug Repositioning Analysis [] ---
+    # Key functions: clEnrich_one, heatmapCmap, heatmapPEI
+    cmap_annofile <- system.file(
+        "extdata",
+        "CmapDn100.gmt.xz",
+        package = "cogena"
+    )
+    cmap_res <- clEnrich_one(
+        genecl_result,
+        "pam",
+        "10",
+        annofile = cmap_annofile,
+        sampleLabel = sampleLabel
+    )
+    heatmapPEI(
+        cmap_res,
+        "pam",
+        "10",
+        printGS = FALSE,
+        orderMethod = "7",
+        maintitle = "Drug repositioning for Psoriasis"
+    )
+    heatmapCmap(
+        cmap_res,
+        "pam",
+        "10",
+        printGS = FALSE,
+        orderMethod = "7",
+        maintitle = "Drug repositioning for Psoriasis"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
