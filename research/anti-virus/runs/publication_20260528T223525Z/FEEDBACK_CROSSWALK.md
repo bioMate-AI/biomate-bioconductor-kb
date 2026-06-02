@@ -2,7 +2,7 @@
 
 Maps `research/anti-virus/feedback_review/` recommendations to run `publication_20260528T223525Z`.
 
-**Updated:** 2026-05-28 (post Plan A full GP completion)
+**Updated:** 2026-06-03 (post multitool merge, ZINC150, GROMACS MD, Plan B spec)
 
 ---
 
@@ -29,7 +29,7 @@ Maps `research/anti-virus/feedback_review/` recommendations to run `publication_
 | Full GP epitopeprediction | MHCnuggets Batch | **Done** | `plan_a_epitope/PLAN_A_FULL_GP.tsv` — **45,160 rows, 113 binders (0.25%)** |
 | Cross-species conservation | ANDV/SNV/PUUV | **Done** | **54** conserved 9-mers, **195** cross-species peptides |
 | Conserved + binder overlap | Ideal dual candidates | **0/54** | Conservation and MHC binders occupy different GP regions |
-| Multi-tool meta (NetMHC, MixMHC, IEDB) | 4-tool consensus | **Blocked / pending** | NetMHC tarball not on S3 |
+| Multi-tool meta (NetMHC, MixMHC, IEDB) | 4-tool consensus | **Partial** | MHCnuggets + MHCflurry merged (`PLAN_A_FULL_GP_MULTITOOL.tsv`); NetMHC/MixMHC pending |
 | Conformational epitope prediction | ≥5 epitopes | **Not started** | — |
 | Immunogen designs (population coverage) | 75–85% | **Not started** | — |
 
@@ -60,11 +60,11 @@ Maps `research/anti-virus/feedback_review/` recommendations to run `publication_
 
 | Item | Target | Status | Result |
 |------|--------|--------|--------|
-| Replace 6-compound demo library | ≥500 compounds | **Partial** | ZINC600 on S3; ZINC150 screen **in flight** |
-| Ensemble docking (7 conformers) | Sprint exists | **Partial** | 6 conformers × 3 demo SMILES only |
-| GROMACS MD (3 trajectories) | Week 1 plan | **Partial** | Machinery validated; production run incomplete |
-| ≥3 compounds Kd < 5 µM | Success criterion | **Not met** | Best demo scores ~−4 to −5 kcal/mol |
-| REINVENT4 docking_gnina | Generative | **Pending** | Prior run: 0 retained |
+| Replace 6-compound demo library | ≥500 compounds | **Done (ZINC150)** | 145 docked; best −6.267 kcal/mol |
+| Ensemble docking (7 conformers) | Sprint exists | **Partial** | Top-5 done (1/5 improved); top-15 failed |
+| GROMACS MD (3 trajectories) | Week 1 plan | **Partial** | INH-01 MD complete; MM-GBSA ΔG null |
+| ≥3 compounds Kd < 5 µM | Success criterion | **Not met** | Vina scores ~−5 to −6 kcal/mol; no MM-GBSA ΔG |
+| REINVENT4 docking_gnina | Generative | **Done (0 retained)** | `06_reinvent4/` — filters removed all |
 
 ---
 
@@ -72,19 +72,22 @@ Maps `research/anti-virus/feedback_review/` recommendations to run `publication_
 
 | Scenario | Description | Progress |
 |----------|-------------|----------|
-| **A** Full 8-week implementation | $16.5K, positive papers | ~40% — real data runs done; manuscript + inhibitor leads pending |
-| **B** Phase 1 + Weeks 1–3 compute | $5K | Largely done for vaccine/Plan B; inhibitor ensemble incomplete |
+| **A** Full 8-week implementation | $16.5K, positive papers | ~65% — Plan A/B compute done; inhibitor MM-GBSA + manuscripts pending |
+| **B** Phase 1 + Weeks 1–3 compute | $5K | Done for vaccine/Plan B compute; inhibitor MD partial |
 | **C** Manuscript revision only | $0 | Not started |
 
 ---
 
 ## Immediate next actions
 
-1. ~~**Update wet-lab package**~~ — done (`wet_lab_package/`)
-2. **ZINC150 ADMET → Vina** — running (`zinc150_launcher.log`, outdir `.../20260528T235300Z/`)
-3. ~~**Manuscript Phase 1**~~ — draft **v1.1** at `docs/MANUSCRIPT_PLAN_A_VACCINE_v1_1.md`
-4. **NetMHCpan** upload + multitool comparison (feedback §4)
-5. **Fresh inhibitor pipeline run dir** for ZINC600 pharmacophore (cannot append to completed manifest)
+1. ~~**Update wet-lab package**~~ — done; re-run with ZINC150 docking JSON for Track C
+2. ~~**ZINC150 ADMET → Vina**~~ — done (`zinc150_screen/`)
+3. ~~**Manuscript Phase 1 (Plan A)**~~ — draft v1.1 at `docs/MANUSCRIPT_PLAN_A_VACCINE_v1_1.md`
+4. **Plan A figures** — regenerate from full GP multitool TSV
+5. **Plan B wet-lab spec** — done (`plan_b_wet_lab/PLAN_B_WET_LAB_SPEC.md`)
+6. **MM-GBSA** — rebuild ECR v1.2.0, re-run standalone Batch job
+7. NetMHCpan upload + 4-tool comparison (optional)
+8. Manuscript author/refs/outbreak framing (Phase 1 feedback)
 
 ---
 

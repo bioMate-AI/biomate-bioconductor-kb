@@ -2,6 +2,10 @@
 
 Real-data production run launched from `launch_andv_publication_campaign.py`.
 
+> **2026-06-03 update:** Three-track status consolidated in [`docs/20260603_ANDV_THREE_TRACKS_STATUS_AND_PLAN.md`](../../../docs/20260603_ANDV_THREE_TRACKS_STATUS_AND_PLAN.md). Plan B wet-lab spec added; inhibitor manifest backfilled; Plan A figures regen from full GP multitool TSV.
+
+> **2026-06-02 update:** GROMACS inh01 MD complete (CPU); HPC Batch queue repaired; MM-GBSA standalone job ran but ΔG_bind null (container MPI). See [`SESSION_20260602_GROMACS_HPC_INFRA.md`](SESSION_20260602_GROMACS_HPC_INFRA.md).
+
 ## Real inputs (not demo)
 
 | Asset | Source | Size |
@@ -15,56 +19,67 @@ Real-data production run launched from `launch_andv_publication_campaign.py`.
 
 S3 prefix: `s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/`
 
-## Batch jobs submitted
+## Track status (2026-06-03)
 
-| Track | run_id | Status |
-|-------|--------|--------|
-| Plan A epitope (mhcnuggets) | `5eda51b4-70b5-4405-9083-f4ab1746da14` | **Succeeded** — 45,160 rows, **113 binders** |
-| Plan B codon opt | `839ff0f7-5146-4e25-8ba8-01e202401a6d` | **Done** (Batch work-dir; driver exited early) |
-| Plan B RNA2D retry | `9b615452-8e7c-4e52-bc19-9a04c923250b` | **Done** — MFE −182.7 kcal/mol |
-| Plan B LNP | `d065b268-51be-4b78-8b5e-63be4bc7459b` | **Done** |
-| ZINC150 ADMET+Vina | retry in `zinc150_screen_retry.log` | In flight |
+| Track | Compute | Consolidated | Publication | Wet lab |
+|-------|---------|--------------|-------------|---------|
+| **Plan A** | Done | Yes | v1.1 draft + figures | **Ready** — `wet_lab_package/` |
+| **Plan B** | Done | Spec in `plan_b_wet_lab/` | v1.0 draft | Spec ready; LNP pKa caveat |
+| **Inhibitor** | MD done; MM-GBSA blocked | Manifest updated | v1.0 draft stale | Shortlist (computational); hold synthesis |
 
-## Completed local computation (publication-ready now)
-
-### Plan B — real ANDV GP (Q9E006, 3414 nt)
+## Plan A — completed
 
 | Step | Status | Key metric |
 |------|--------|------------|
-| Codon optimization | **Done** (Batch work-dir) | **737 / 1138 codons modified (64.76%)** |
-| RNA2D (5′ 500 nt) | Retry in flight (`9b615452`, RNA alphabet fix) | — |
-| LNP formulation | **Done** | Endosomal escape **0.202**; liver tissue score **0.85**; EE **20%** |
+| Full GP MHCnuggets | **Done** | 45,160 rows; **113 binders** |
+| MHCflurry merge | **Done** | 604 unique binder peptides (multitool TSV) |
+| Cross-species conservation | **Done** | 54 conserved 9-mers; 10 overlap with binders |
+| Wet-lab package | **Done** | MB-01…15 + XSP-01…15 |
 
-Artifacts: `plan_b_codon/`, `plan_b_lnp/`
+Artifacts: `plan_a_epitope/PLAN_A_FULL_GP_MULTITOOL.tsv`, `wet_lab_package/WET_LAB_CANDIDATES.md`
 
-### Cross-species conservation (full GP)
+## Plan B — completed
 
-- Method: BioPython pairwise alignment + k-mer mapping on **4518** 8–11-mers from full Q9E006
-- **195** cross-species peptides (ANDV/SNV/PUUV); **54** unique 9-mers
-- GP identity: ANDV vs SNV **78.0%**; ANDV vs PUUV **66.9%**
-- Artifact: `cross_species_conservation_full_gp.json`
+| Step | Status | Key metric |
+|------|--------|------------|
+| Codon optimization | **Done** | **737 / 1138 codons (64.76%)** |
+| RNA2D (5′ 500 nt) | **Done** | MFE **−182.7 kcal/mol** |
+| LNP formulation | **Done** | EE 20%; endosomal escape 0.202 |
+| P0 mRNA QC (ANDV) | **Done** | overall_pass: true |
+| P0 spike (12819) | **Done** | overall_pass: true |
+| NP-PK (12867) | **Done** | t½ 1.9 h; stealth POOR |
 
-### Wet-lab peptide order list
+Artifacts: `plan_b_codon/`, `plan_b_lnp/`, `plan_b_p0/`, `plan_b_np_pk/`, **`plan_b_wet_lab/PLAN_B_WET_LAB_SPEC.md`**
 
-See `wet_lab_package/WET_LAB_CANDIDATES.md` — top conserved 9-mers including **ESSCNFDLH** (GP pos 61, triple-species).
+## Inhibitor — publication campaign
 
-**Recommended synthesis batch (15 peptides):** XSP-01 … XSP-15 in wet-lab package.
+| Step | Status | Key metric |
+|------|--------|------------|
+| ZINC150 ADMET + Vina | **Done** | 145 ligands; best **−6.267 kcal/mol** |
+| Ensemble top-5 | **Done** | 1/5 improved vs rigid |
+| GROMACS INH-01 MD | **Done** | RMSD ~0.41 nm (run `28fd9a07`) |
+| MM-GBSA | **Blocked** | ΔG null — ECR v1.2.0 rebuild pending |
 
-Assays: peptide–MHC binding (DimerX/ELISA) → IFN-γ ELISpot with ANDV-immune PBMC.
+Artifacts: `zinc150_screen/`, `andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/`
 
-## Pending (Batch in flight)
+## Wet-lab quick links
 
-- Full GP MHC binding scores (8 alleles × ~1129 9-mers per allele)
-- ANDV GP codon optimization metrics (CAI, rare codons) on real 3414 nt
-- RNA secondary structure (5′ UTR-proximal window)
-- LNP formulation ranking for mRNA cargo
-- Pharmacophore filter → ADMET → Vina on 600-compound library
+- **Plan A peptides:** `wet_lab_package/WET_LAB_CANDIDATES.md`
+- **Plan B mRNA/LNP:** `plan_b_wet_lab/PLAN_B_WET_LAB_SPEC.md`
+- **Inhibitor compounds:** Track C in `wet_lab_package/` (post ZINC150 rebuild)
 
-Re-poll:
+Re-assemble wet-lab package:
 
 ```bash
 python3 research/anti-virus/scripts/assemble_wet_lab_candidates.py \
   --publication-run research/anti-virus/runs/publication_20260528T223525Z \
   --conservation-json research/anti-virus/runs/publication_20260528T223525Z/cross_species_conservation_full_gp.json \
-  --epitope-tsv s3://.../predictions/PLAN_A_FULL_GP.tsv  # after Plan A completes
+  --epitope-tsv research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_FULL_GP_MULTITOOL.tsv \
+  --docking-json research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json
+```
+
+Regenerate Plan A figures:
+
+```bash
+python3 research/anti-virus/scripts/generate_manuscript_plan_a_figures.py
 ```

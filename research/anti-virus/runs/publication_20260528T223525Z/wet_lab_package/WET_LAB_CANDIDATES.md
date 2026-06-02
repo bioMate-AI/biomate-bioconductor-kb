@@ -1,12 +1,12 @@
 # ANDV Wet-Lab Candidate Package
 
-Generated: 2026-05-29T07:02:58.708900+00:00
+Generated: 2026-06-02T01:44:02.946029+00:00
 
 ## Summary
 - Cross-species conserved 9-mers (full GP): **54**
 - MHC binders (epitope run): **922** (20 unique peptides)
 - Conserved ∩ binder overlap: **10**
-- Docking hits: **0**
+- Docking hits: **20**
 
 ## Track A — MHC-validated binders (synthesize first)
 
@@ -47,3 +47,23 @@ Generated: 2026-05-29T07:02:58.708900+00:00
 | XSP-13 | LTKTLVIGQ | 446 | pending | MEDIUM |
 | XSP-14 | TKTLVIGQC | 447 | pending | MEDIUM |
 | XSP-15 | KTLVIGQCI | 448 | yes | HIGH |
+
+## Track C — ZINC library docking hits (9P3I top pocket)
+
+| ID | SMILES (truncated) | Vina (kcal/mol) | Receptor | Priority |
+|----|-------------------|-----------------|----------|----------|
+| INH-01 | `N=C(N)NC(=O)c1nccnc1N` | **-6.267** | 9P3I | HIGH |
+| INH-02 | `CNC1=NC(N)=C2NCCN=C2N1` | **-5.881** | 9P3I | HIGH |
+| INH-03 | `Nc1oc2c(N)[n+]([O-])n(O)c2c1O` | **-5.678** | 9P3I | HIGH |
+| INH-04 | `O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O` | **-5.603** | 9P3I | HIGH |
+| INH-05 | `C[C@]12NCCN3CCN(CCN1)[C@@H]32` | **-5.599** | 9P3I | HIGH |
+| INH-06 | `N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1` | **-5.56** | 9P3I | MEDIUM |
+| INH-07 | `NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O` | **-5.554** | 9P3I | MEDIUM |
+| INH-08 | `CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2` | **-5.531** | 9P3I | MEDIUM |
+| INH-09 | `NC(=O)CC(O)(CC(N)=O)C(N)=O` | **-5.489** | 9P3I | MEDIUM |
+| INH-10 | `O=C1NC(=O)c2[nH]c(=O)c(O)nc21` | **-5.425** | 9P3I | MEDIUM |
+| INH-11 | `C[C@]12NCCN[C@@]1(C)NCCN2` | **-5.422** | 9P3I | MEDIUM |
+| INH-12 | `O=C1CN2C(=O)CCN[C@H]2CN1` | **-5.4** | 9P3I | MEDIUM |
+| INH-13 | `O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O` | **-5.389** | 9P3I | MEDIUM |
+| INH-14 | `O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO` | **-5.297** | 9P3I | MEDIUM |
+| INH-15 | `OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O` | **-5.273** | 9P3I | MEDIUM |

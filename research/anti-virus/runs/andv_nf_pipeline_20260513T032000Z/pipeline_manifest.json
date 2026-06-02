@@ -89,6 +89,46 @@
       ]
     },
     {
+      "key": "gromacs_mmgbsa_inh01",
+      "title": "GROMACS MD + MM-GBSA (INH-01 top ZINC hit)",
+      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
+      "run_id": "28fd9a07-a31d-4ba8-a8e1-e49dc8abb777",
+      "status": "partial",
+      "status_detail": "MD succeeded (CPU, ~500k steps); MM-GBSA delta_g_bind null (MPI/libmpi in container v1.1.0)",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01",
+      "s3_outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d64daac1",
+      "ligand_smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "md_metrics": {
+        "protein_backbone_rmsd_mean_nm": 0.4068,
+        "n_frames_analyzed": 101,
+        "trajectory_s3": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d64daac1/md/trajectory.xtc"
+      },
+      "mmgbsa": {
+        "delta_g_bind_kcal_mol": null,
+        "blocking_issue": "gmx_MMPBSA requires OpenMPI; fixed in ambertools-gromacs-nf Dockerfile v1.2.0",
+        "standalone_batch_job": "0e36bdcf (SUCCEEDED, null delta_g)"
+      },
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/mmgbsa/binding_summary.json",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/report.html"
+      ]
+    },
+    {
+      "key": "gromacs_mmgbsa_aspirin",
+      "title": "GROMACS MD + MM-GBSA (aspirin control)",
+      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
+      "run_id": "80ab94a6-d287-4603-95f8-9728c219a454",
+      "status": "partial",
+      "status_detail": "Prep/EM complete; production MD aborted (SIGTERM May 29)",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin",
+      "s3_outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/7c679af2",
+      "downloaded_files": [
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/minimized.gro",
+        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/complex.gro"
+      ]
+    },
+    {
       "key": "reinvent4",
       "title": "REINVENT4 generative lead design",
       "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/main.nf",
@@ -109,65 +149,9 @@
         "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/top_compounds.csv",
         "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/validated_input.json"
       ]
-    },
-    {
-      "key": "gromacs_mmgbsa_aspirin",
-      "title": "GROMACS MD + MM-GBSA",
-      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
-      "run_id": "0d4ae83e-55de-4741-b545-6a5ea75bfe4e",
-      "status": "failed",
-      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin",
-      "downloaded_files": [
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/em.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/em_potential.xvg",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/minimized.gro",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/report.html",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/timeline.html",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/complex.gro",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/complex.top",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/ligand.frcmod",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/ligand_gaff2.mol2",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/ligand_prep.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/posres.itp",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/receptor_for_md.pdb",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/receptor_trim_meta.json",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/setup.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_aspirin/system_size_report.json"
-      ]
-    },
-    {
-      "key": "gromacs_mmgbsa_inh01",
-      "title": "GROMACS MD + MM-GBSA",
-      "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
-      "run_id": "33193f6f-486a-424e-802e-cbf5ca2f7528",
-      "status": "failed",
-      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01",
-      "downloaded_files": [
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/em.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/em_potential.xvg",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/minimized.gro",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt.gro",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/npt_density.xvg",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/nvt.gro",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/nvt.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/nvt_temp.xvg",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/report.html",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/timeline.html",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/complex.gro",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/complex.top",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/ligand.frcmod",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/ligand_gaff2.mol2",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/ligand_prep.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/posres.itp",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/receptor_for_md.pdb",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/receptor_trim_meta.json",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/setup.log",
-        "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/system_size_report.json"
-      ]
     }
   ],
-  "resumed_at": "2026-05-31T16:14:26.781488+00:00",
-  "manifest_resynced_utc": "2026-05-09T12:00:00+00:00",
-  "manifest_resync_note": "reinvent4 step artifacts existed under 06_reinvent4/ with status succeeded but pipeline_manifest.json had not been updated; entry backfilled from 06_reinvent4/status.json. GROMACS (step 5) was not completed for this run."
+  "resumed_at": "2026-05-14T03:00:24.243882+00:00",
+  "manifest_resynced_utc": "2026-06-03T00:00:00+00:00",
+  "manifest_resync_note": "Backfilled gromacs_mmgbsa_inh01 (28fd9a07 MD complete, MM-GBSA pending ECR v1.2.0) and gromacs_mmgbsa_aspirin (prep only). REINVENT4 backfilled 2026-05-09."
 }
