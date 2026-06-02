@@ -12,7 +12,7 @@
 |-------|---------------|-------------------|----------------|
 | **Plan A** (epitope) | Yes | Almost — figures regen + manuscript polish | **Yes** — peptide order list |
 | **Plan B** (mRNA/LNP) | Partial | Draft exists; needs unified bundle | **Spec now in** `plan_b_wet_lab/PLAN_B_WET_LAB_SPEC.md` |
-| **Inhibitor** | Partial (manifest backfilled) | Docking OK; MD ΔG blocked on MM-GBSA | Shortlist in `wet_lab_package/` (computational only) |
+| **Inhibitor** | Partial (manifest updated) | Docking + MD + MM-GBSA OK | Shortlist; INH-01 medchem gate |
 
 ---
 
@@ -79,20 +79,22 @@
 | Ensemble top-5 | Done | 1/5 improved vs rigid |
 | Ensemble top-15 | Failed | Polling artifact; 0/15 improved |
 | GROMACS INH-01 MD | **Done** | Run `28fd9a07`; RMSD ~0.41 nm |
-| MM-GBSA | **Failed** | `delta_g_bind_kcal_mol: null`; libmpi missing in ECR v1.1.0 |
+| MM-GBSA | **Done** | **ΔG_bind −10.49 ± 0.46 kcal/mol** (19 frames, GB igb=2; job `ffc49896`) |
 | Aspirin GROMACS | Partial | Prep/EM only |
 
 ### Fixes applied (2026-06-03)
 
 - `pipeline_manifest.json` backfilled with GROMACS steps  
-- `ambertools-gromacs-nf` Dockerfile **v1.2.0**: `openmpi`, `mpi4py`, `gmx_mmpbsa` with import smoke test  
+- `ambertools-gromacs-nf` Dockerfile **v1.2.0**: `openmpi`, `mpi4py`, `gmx_mmpbsa` — **pushed to ECR**  
+- MM-GBSA standalone Batch job **`ffc49896`**: INH-01 **ΔG_bind −10.49 kcal/mol**  
+- `gromacs_protein_md` `MM_GBSA` process: index groups, frame range, ΔTOTAL parser  
 - Wet-lab shortlist rebuilt from ZINC150 Vina JSON (Track C in `wet_lab_package/`)
 
 ### Remaining (priority)
 
-1. **Build & push ECR image v1.2.0** → re-run MM-GBSA (`run_mmgbsa_standalone_batch.sh`)
-2. Update inhibitor manuscript with ZINC150 + MD (ΔG only after MM-GBSA)
-3. Aspirin control MD (optional benchmark)
+1. Update inhibitor manuscript with ZINC150 + MD + MM-GBSA numbers  
+2. Medchem ADMET review for INH-01 before synthesis order  
+3. Aspirin control MD (optional benchmark)  
 4. Retry top-15 ensemble with fixed polling
 
 ---
@@ -105,10 +107,10 @@
 | 2 | Plan B wet-lab spec | Agent | Done |
 | 3 | Refresh `PUBLICATION_STATUS.md`, `FEEDBACK_CROSSWALK.md` | Agent | Done |
 | 4 | Backfill inhibitor manifest | Agent | Done |
-| 5 | ECR Dockerfile v1.2.0 (OpenMPI) | Agent | Done — **push + Batch job pending** |
-| 6 | Regenerate Plan A figures (full GP) | Agent | Run script |
-| 7 | Rebuild wet-lab package (ZINC150 hits) | Agent | Run script |
-| 8 | Submit MM-GBSA Batch job | Agent | Submitted `2c015b0d` — **needs ECR v1.2.0 push** (Docker daemon N/A locally) |
+| 5 | ECR Dockerfile v1.2.0 (OpenMPI) | Agent | Done — pushed to ECR |
+| 6 | Regenerate Plan A figures (full GP) | Agent | Done |
+| 7 | Rebuild wet-lab package (ZINC150 hits) | Agent | Done |
+| 8 | Submit MM-GBSA Batch job | Agent | Done — `ffc49896`, ΔG −10.49 kcal/mol |
 
 ### ECR rebuild commands
 

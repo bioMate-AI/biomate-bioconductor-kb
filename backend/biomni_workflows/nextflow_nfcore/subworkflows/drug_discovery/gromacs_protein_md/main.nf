@@ -69,8 +69,8 @@ params.dt                   = 0.002      // ps (2 fs timestep)
 params.nstxout_compressed   = 5000       // write trajectory frame every 10 ps
 
 // MM-GBSA
-params.mmgbsa_startframe    = 500        // skip first N frames (equilibration buffer)
-params.mmgbsa_endframe      = -1         // -1 = all frames
+params.mmgbsa_startframe    = 10         // skip equilibration frames
+params.mmgbsa_endframe      = 100        // explicit end (avoid -1 on short trajectories)
 params.mmgbsa_interval      = 5          // analyse every Nth frame
 
 // Resources
@@ -1193,9 +1193,23 @@ process MM_GBSA {
     cat > rerun.mdp << 'MDP_EOF'
 integrator = md
 nsteps     = 0
+continuation = yes
 MDP_EOF
-    gmx grompp -f rerun.mdp -c ${final_gro} -p ${top} -o rerun.tpr -maxwarn 10 2>/dev/null || \
-        cp ${top} rerun.tpr 2>/dev/null || true
+    gmx grompp -f rerun.mdp -c ${final_gro} -p ${top} -o rerun.tpr -maxwarn 10
+
+    printf "q\\n" | gmx make_ndx -f ${final_gro} -o index.ndx
+    python3 << 'PYGROUPS'
+groups = []
+for line in open('index.ndx'):
+    s = line.strip()
+    if s.startswith('[') and s.endswith(']'):
+        groups.append(s[1:-1].strip())
+prot = groups.index('Protein')
+lig = groups.index('LIG')
+open('groups.env', 'w').write(f'export REC_G={prot}\\nexport LIG_G={lig}\\n')
+print(f'Using receptor group {prot} (Protein) and ligand group {lig} (LIG)')
+PYGROUPS
+    source groups.env
 
     # gmx_MMPBSA input file
     cat > mmgbsa.in << 'MMPBSA_IN_EOF'
@@ -1212,12 +1226,12 @@ MDP_EOF
 /
 MMPBSA_IN_EOF
 
-    # Determine receptor and ligand mask from topology
-    # Default: receptor = protein, ligand = last non-water/ion residue
     gmx_MMPBSA \
         -O \
         -i mmgbsa.in \
         -cs rerun.tpr \
+        -ci index.ndx \
+        -cg "\$REC_G" "\$LIG_G" \
         -ct ${trajectory} \
         -cp ${top} \
         -o FINAL_RESULTS_MMPBSA.dat \
@@ -1237,11 +1251,12 @@ dat_file = 'FINAL_RESULTS_MMPBSA.dat'
 if os.path.exists(dat_file):
     with open(dat_file) as f:
         for line in f:
-            m = re.search(r'DELTA TOTAL\\s+([-\\d.]+)\\s+\\+/-\\s+([\\d.]+)', line)
-            if m:
-                dg_bind = float(m.group(1))
-                dg_err  = float(m.group(2))
-                break
+            if 'ΔTOTAL' in line or 'DELTA TOTAL' in line:
+                nums = re.findall(r'[-]?\d+\.\d+', line)
+                if len(nums) >= 2:
+                    dg_bind = float(nums[0])
+                    dg_err  = float(nums[-1])
+                    break
 
 # -- Parse per-residue decomposition from FINAL_RESULTS_MMPBSA.csv --
 rows = []

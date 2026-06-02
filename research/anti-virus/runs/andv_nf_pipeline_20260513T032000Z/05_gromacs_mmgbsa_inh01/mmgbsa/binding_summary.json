@@ -1,0 +1,11 @@
+{
+  "delta_g_bind_kcal_mol": -10.49,
+  "standard_error_kcal_mol": 0.46,
+  "ki_estimate_nM": 20.39,
+  "tool": "gmx_mmpbsa",
+  "gb_model": "igb2",
+  "batch_job_id": "ffc49896-2e5e-47ab-b139-894421aa5500",
+  "n_frames": 19,
+  "interpretation": "strong binder",
+  "timestamp": "2026-06-02T19:55:38.364054Z"
+}
