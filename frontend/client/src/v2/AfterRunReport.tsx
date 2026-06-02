@@ -285,10 +285,20 @@ function FailedRunSection({
 // Data hooks — each tab fetches its own endpoint, gracefully tolerating 404s.
 // ---------------------------------------------------------------------------
 
+interface FindingsKeyResult {
+  // Backend findings endpoint uses `metric` (canonical name) + `value` +
+  // `interpretation` (one-sentence context). Older clients sometimes used
+  // `label`; keep the alias for back-compat.
+  metric?: string;
+  label?: string;
+  value?: string;
+  interpretation?: string;
+}
+
 interface FindingsData {
   status: string;
   summary?: string;
-  key_results?: Array<{ label?: string; value?: string } | string>;
+  key_results?: Array<FindingsKeyResult | string>;
   caveats?: string[];
   next_steps?: string[];
   reportMd?: string;
@@ -603,7 +613,11 @@ function buildFullReportMarkdown(args: {
         if (typeof k === "string") {
           lines.push(`- ${k}`);
         } else {
-          lines.push(`- **${k.label ?? ""}**: ${k.value ?? ""}`);
+          // Backend uses `metric`; older payloads used `label`. Fall back gracefully.
+          const name = k.metric ?? k.label ?? "(unnamed)";
+          const val = k.value ?? "";
+          const interp = k.interpretation ? `  \n    _${k.interpretation}_` : "";
+          lines.push(`- **${name}**: ${val}${interp}`);
         }
       }
       lines.push("");
