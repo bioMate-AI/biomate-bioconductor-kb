@@ -41,43 +41,31 @@ process BIOC_DINOR {
     library(dinoR)
     library(jsonlite)
 
-    # --- assays [] ---
-    # Key functions: assays
-    assays(NomeData)[["reads"]][1, 1]
-    # --- fragment classification [] ---
-    # Key functions: footprintCalc
-    NomeData <- footprintCalc(NomeData)
-    # --- fragment classification example [] ---
-    # Key functions: assays
-    assays(NomeData)[["footprints"]][[1, 1]][1:10]
-    # --- fragment class counts [] ---
-    # Key functions: footprintQuant, assays
-    NomeData <- footprintQuant(NomeData)
-    assays(NomeData)[7:12]
-    # --- di N O Me Test [] ---
+    # --- Footprint Classification and Quantification [] ---
+    # Key functions: footprintCalc, footprintQuant
+    NomeData = footprintCalc(NomeData)
+    NomeData = footprintQuant(NomeData)
+
+
+    # --- Differential Nucleosome Occupancy [] ---
     # Key functions: diNOMeTest
-    res <- diNOMeTest(NomeData,
-    WTsamples = c("WT_1", "WT_2"),
-    KOsamples = c("AdnpKO_1", "AdnpKO_2")
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: group_by, summarize, ggplot, geom_bar, facet_grid
-    group_by(contrasts, motif, regulated) %>%
-    summarize(n = n()) %>%
-    ggplot(aes(x = motif, y = n, fill = regulated)) +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, facet_grid, theme_bw, scale_color_manual
-    ggplot(res, aes(y = logFC, x = logCPM, col = regulated)) +
-    geom_point() +
-    facet_grid(~contrasts) +
-    # --- footprint Perc [] ---
+    res = diNOMeTest(NomeData,
+                     WTsamples = c("WT_1", "WT_2"),
+                     KOsamples = c("AdnpKO_1", "AdnpKO_2"))
+
+
+    # --- Footprint Percentage Heatmap [] ---
     # Key functions: footprintPerc, fpPercHeatmap
-    footprint_percentages <- footprintPerc(NomeData)
+    footprint_percentages = footprintPerc(NomeData)
     fpPercHeatmap(footprint_percentages)
-    # --- compare Footprints [] ---
+
+
+    # --- Footprint Comparison [] ---
     # Key functions: compareFootprints
     compareFootprints(footprint_percentages, res,
-    WTsamples = c("WT_1", "WT_2"),
-    KOsamples = c("AdnpKO_1", "AdnpKO_2"), plotcols =
+                      WTsamples = c("WT_1", "WT_2"),
+                      KOsamples = c("AdnpKO_1", "AdnpKO_2"),
+                      plotcols = c("#f03b20", "#a8ddb5", "#bdbdbd"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

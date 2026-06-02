@@ -38,42 +38,31 @@ process BIOC_DESCAN2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DEScan2)
     library(DGEList)
     library(RUVs)
     library(jsonlite)
 
-    # --- find Peaks [] ---
-    # Key functions: findPeaks
-    peaksGRL <- DEScan2::findPeaks(files=bam.files[1], filetype="bam", genomeName="mm9",
-    # --- Define Final Regions [] ---
-    # Key functions: finalRegions
-    peaks.file <- system.file(
-    file.path("extdata","peaks","RData","peaksGRL_all_files.rds"),
-    peaksGRL <- readRDS(peaks.file)
-    # --- count Final Regions [] ---
-    # Key functions: countFinalRegions, assay, rowRanges
-    bam.path <- system.file(file.path("extdata","bam"), package="DEScan2")
-    finalRegions <- DEScan2::countFinalRegions(regionsGRanges=regionsGR,
+    # --- Count Matrix Generation [] ---
+    # Key functions: countFinalRegions
+    finalRegions <- DEScan2::countFinalRegions(
+        regionsGRanges = regionsGR,
+        readsFilePath = bam.path,
+        fileType = "bam",
+        minCarriers = 1,
+        genomeName = "mm9",
+        onlyStdChrs = TRUE,
+        saveFlag = FALSE,
+        verbose = FALSE
+    )
+
+
+    # --- Peak Filtering [] ---
+    # Key functions: countFinalRegions
     counts <- SummarizedExperiment::assay(finalRegions)
-    # --- Normalize Data [] ---
-    # Key functions: betweenLaneNormalization
-    library("RColorBrewer")
-    colors <- brewer.pal(3, "Set2")
-    set <- EDASeq::betweenLaneNormalization(counts, which = "upper")
-    # --- Plot PCA [] ---
-    # Key functions: plotRLE, plotPCA
-    EDASeq::plotRLE(set, outline=FALSE, ylim=c(-4, 4),
-    EDASeq::plotPCA(set, col=colors[trt], main="No Normalization PCA",
-    # --- Plot PCA [] ---
-    # Key functions: RUVs, plotRLE, plotPCA
-    s <- RUVSeq::RUVs(set, cIdx=rownames(set), scIdx=groups, k=k)
-    EDASeq::plotRLE(s$normalizedCounts, outline=FALSE, ylim=c(-4, 4),
-    EDASeq::plotPCA(s$normalizedCounts, col=colors[trt], main="Normalized PCA",
-    # --- Differential Enrichment Analysis [] ---
-    # Key functions: DGEList, estimateDisp, glmQLFit, makeContrasts, glmQLFTest
-    design <- model.matrix(~0 + trt + s$W)
-    colnames(design) <- c(levels(trt), paste0("W", 1:k))
-    y <- edgeR::DGEList(counts=counts, group=trt)
+    regions <- SummarizedExperiment::rowRanges(finalRegions)
+    keep <- regions$`k-carriers` >= 4 & rowSums(counts) > 0
+    filtered_counts <- counts[keep, ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

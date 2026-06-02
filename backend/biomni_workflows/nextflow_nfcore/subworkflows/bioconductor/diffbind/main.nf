@@ -41,32 +41,31 @@ process BIOC_DIFFBIND {
     library(DiffBind)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: data
-    data(tamoxifen_greylist)
-    names(tamoxifen.greylist)
-    tamoxifen.greylist$master
-    # --- Data normalization [] ---
-    # Key functions: dba, blacklist, count, normalize, contrast, analyze, null, report
-    ## tamoxifen <- dba(sampleSheet="tamoxifen.csv") %>%
-    ##   dba.blacklist() %>%
-    ##   dba.count()     %>%
-    ##   dba.normalize() %>%
-    ##   dba.contrast()  %>%
-    # --- Analyze analysis [] ---
-    # Key functions: analyze, report, csv, path, dba, count, show, cbind
-    deseq <- dba(dbs.all,mask=dbs.all$masks$DESeq2, minOverlap = 1)
-    binding <- dba.peakset(deseq, bRetrieve=TRUE)
-    dba.plotHeatmap(deseq, maxSites=nrow(binding),  bLog=FALSE,
-                    correlations=FALSE,minval=-5, maxval=5, cexCol=1.3,
-                    colScheme = hmap, main = "DESeq2 Differentially Bound Sites",
-    # --- Visualization and reporting [] ---
-    # Key functions: plotPCA, plotMA, normalize, analyze, show, dba, contrast
-    par(mfrow=c(2,1))
-    parallelFactor <- dba.normalize(parallelFactor, norm=DBA_NORM_LIB,
-                                    spikein = parallelFactor.peaks)
-    parallelFactor <- dba.analyze(parallelFactor)
-    dba.plotMA(parallelFactor, sub="LIB CTCF", bSmooth=FALSE, dotSize=1.5)
+    # --- Normalization and Blacklist Filtering [] ---
+    # Key functions: dba.blacklist, dba.normalize
+    tamoxifen <- DiffBind::dba.blacklist(
+        tamoxifen,
+        blacklist = DiffBind::DBA_BLACKLIST_HG19,
+        greylist = FALSE
+    )
+    tamoxifen <- DiffBind::dba.normalize(tamoxifen)
+
+
+    # --- Differential Binding Analysis [] ---
+    # Key functions: dba.contrast, dba.analyze, dba.report
+    tamoxifen <- DiffBind::dba.contrast(
+        tamoxifen,
+        design = "~Tissue + Condition"
+    )
+    tamoxifen <- DiffBind::dba.analyze(tamoxifen)
+    report <- DiffBind::dba.report(tamoxifen)
+
+
+    # --- Visualization of Binding Affinity [] ---
+    # Key functions: dba.plotPCA, dba.plotMA, dba.plotVolcano
+    DiffBind::dba.plotPCA(tamoxifen, label = DiffBind::DBA_TISSUE)
+    DiffBind::dba.plotMA(tamoxifen)
+    DiffBind::dba.plotVolcano(tamoxifen)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

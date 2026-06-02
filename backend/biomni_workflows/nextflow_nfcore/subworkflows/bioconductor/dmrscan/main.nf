@@ -41,9 +41,27 @@ process BIOC_DMRSCAN {
     library(DMRScan)
     library(jsonlite)
 
-    # --- make Cp Gregions [] ---
-    # Key functions: makeCpGregions
-    regions <- makeCpGregions(observations  = observations, chr = pos[,1], pos = pos[,2],
+    # --- Threshold Estimation [] ---
+    # Key functions: estimateWindowThreshold
+    window.sizes <- 3:7
+    n.CpG        <- sum(sapply(regions, length))
+    window.thresholds.importancSampling <- estimateWindowThreshold(nProbe = n.CpG, 
+                                                                   windowSize = window.sizes, 
+                                                                   method = "sampling", 
+                                                                   mcmc = 10000)
+    window.thresholds.siegmund <- estimateWindowThreshold(nProbe = n.CpG, 
+                                                          windowSize = window.sizes, 
+                                                          method = "siegmund")
+
+
+    # --- DMR Scanning [] ---
+    # Key functions: dmrscan
+    dmrscan.results.sampling <- dmrscan(observations = regions, 
+                                        windowSize = window.sizes, 
+                                        windowThreshold = window.thresholds.importancSampling)
+    dmrscan.results.siegmund <- dmrscan(observations = regions, 
+                                        windowSize = window.sizes, 
+                                        windowThreshold = window.thresholds.siegmund)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

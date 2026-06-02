@@ -38,64 +38,53 @@ process BIOC_DERFINDERPLOT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(derfinderPlot)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- 'installDer' [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("derfinderPlot")
-    # --- 'phenoData' [] ---
-    # Key functions: kable
-    library("knitr")
-    pheno <- subset(brainspanPheno, structure_acronym == "A1C")
-    p <- pheno[, -which(colnames(pheno) %in% c(
-    # --- 'getData' [] ---
-    # Key functions: rawFiles
-    files <- rawFiles(system.file("extdata", "A1C", package = "derfinderData"),
-    names(files) <- gsub(".bw", "", names(files))
-    system.time(fullCov <- fullCoverage(files = files, chrs = "chr21"))
-    # --- 'getDataWindows' [] ---
-    # Key functions: foo
-    foo <- function() {
-    load(system.file("extdata", "fullCov", "fullCovA1C.RData",
-    return(fullCovA1C)
-    # --- 'models' [] ---
-    # Key functions: sampleDepth, makeModels
-    sampleDepths <- sampleDepth(collapseFullCoverage(fullCov), 1)
-    models <- makeModels(sampleDepths,
-    adjustvars = pheno[, c("gender")]
-    # --- 'plotOverview' [] ---
-    # Key functions: plotOverview
-    plotOverview(regions = regions, annotation = results$annotation, type = "qval")
-    # --- 'regionData' [] ---
-    # Key functions: annotateRegions, getRegionCoverage
-    annoRegs <- annotateRegions(regions, genomicState$fullGenome)
-    regionCov <- getRegionCoverage(fullCov, regions)
-    # --- 'vennRegions' [] ---
+    # --- Coverage Visualization [] ---
+    # Key functions: plotRegionCoverage
+    derfinderPlot::plotRegionCoverage(
+        regions = regions,
+        regionCoverage = regionCov,
+        groupInfo = pheno$group,
+        nearestAnnotation = results$annotation,
+        annotatedRegions = annoRegs,
+        whichRegions = 1:10,
+        txdb = txdb,
+        scalefac = 1,
+        ask = FALSE,
+        verbose = FALSE
+    )
+
+
+    # --- Cluster Visualization [] ---
+    # Key functions: plotCluster
+    derfinderPlot::plotCluster(
+        idx = 1,
+        regions = regions,
+        annotation = results$annotation,
+        coverageInfo = fullCov$chr21,
+        txdb = txdb,
+        groupInfo = pheno$group,
+        titleUse = "pval"
+    )
+
+
+    # --- Venn Diagram Analysis [] ---
     # Key functions: vennRegions
-    venn <- vennRegions(annoRegs)
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("derfinderPlot.Rmd", "BiocStyle::html_document"))
-    library("knitr")
-    # --- unlink [] ---
-    # Key functions: unlink
-    unlink("chr21", recursive = TRUE)
-    # --- diff [] ---
-    # Key functions: diff
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
-    # --- session_info [] ---
-    # Key functions: session_info
-    library("sessioninfo")
-    options(width = 120)
-    session_info()
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
-    PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
+    venn <- derfinderPlot::vennRegions(
+        annotatedRegions = annoRegs
+    )
+
+
+    # --- Overview Plotting [] ---
+    # Key functions: plotOverview
+    derfinderPlot::plotOverview(
+        regions = regions,
+        annotation = results$annotation,
+        type = "qval"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

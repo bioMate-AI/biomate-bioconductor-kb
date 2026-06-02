@@ -38,50 +38,27 @@ process BIOC_DNAFUSION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DNAfusion)
     library(ALK_sequence)
     library(EML4_ALK_analysis)
     library(EML4_ALK_detection)
     library(EML4_sequence)
     library(jsonlite)
 
-    # --- EML4 ALK detection2 [] ---
-    # Key functions: EML4_ALK_detection
-    H3122_result <- EML4_ALK_detection(file = H3122_bam,
-    head(H3122_result)
-    # --- EML4 ALK detection3 [] ---
-    # Key functions: EML4_ALK_detection
-    HCC827_result <- EML4_ALK_detection(file = HCC827_bam,
-    # --- EML4 sequence [] ---
-    # Key functions: EML4_sequence
-    EML4_sequence(H3122_result, genome = "hg38", basepairs = 20)
-    EML4_sequence(HCC827_result, genome = "hg38", basepairs = 20)
-    # --- ALK sequence [] ---
-    # Key functions: ALK_sequence
-    ALK_sequence(H3122_result, genome = "hg38", basepairs = 20)
-    ALK_sequence(HCC827_result, genome = "hg38", basepairs = 20)
-    # --- break_position [] ---
-    # Key functions: break_position
-    break_position(H3122_result, genome = "hg38", gene = "EML4")
-    break_position(HCC827_result, genome = "hg38", gene = "EML4")
-    # --- break position depth [] ---
-    # Key functions: break_position_depth
-    break_position_depth(H3122_bam, H3122_result, genome = "hg38", gene = "EML4")
-    break_position_depth(HCC827_bam, HCC827_result, genome = "hg38", gene = "EML4")
-    # --- EML4 ALK analysis results [] ---
-    # Key functions: EML4_ALK_analysis
-    H3122_results <- EML4_ALK_analysis(file = H3122_bam,
-    HCC827_results <- EML4_ALK_analysis(file = HCC827_bam,
-    # --- introns ALK EML4 results [] ---
-    # Key functions: introns_ALK_EML4
-    introns_ALK_EML4(file=H3122_bam,genome="hg38")
-    introns_ALK_EML4(file=HCC827_bam,genome="hg38")
-    # --- ifind variants results [] ---
-    # Key functions: find_variants
-    find_variants(file=H3122_bam,genome="hg38")
-    find_variants(file=HCC827_bam,genome="hg38")
-    # --- session_info [] ---
-    # Key functions: session_info
-    sessioninfo::session_info(
+    # --- Sequence Extraction and Breakpoint Analysis [] ---
+    # Key functions: EML4_sequence, ALK_sequence, break_position, break_position_depth
+    eml4_seq <- EML4_sequence(H3122_result, genome = "hg38", basepairs = 20)
+    alk_seq <- ALK_sequence(H3122_result, genome = "hg38", basepairs = 20)
+    bp_eml4 <- break_position(H3122_result, genome = "hg38", gene = "EML4")
+    bp_depth <- break_position_depth(H3122_bam, H3122_result, genome = "hg38", gene = "EML4")
+
+
+    # --- Comprehensive Fusion Analysis [] ---
+    # Key functions: EML4_ALK_analysis, introns_ALK_EML4, find_variants
+    H3122_results <- EML4_ALK_analysis(file = H3122_bam, genome = "hg38", 
+                                        mates = 2, basepairs = 20)
+    intron_res <- introns_ALK_EML4(file=H3122_bam, genome="hg38")
+    variants <- find_variants(file=H3122_bam, genome="hg38")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

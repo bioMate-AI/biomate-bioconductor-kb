@@ -38,77 +38,76 @@ process BIOC_DMRCALLER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DMRcaller)
     library(GRanges)
     library(GRangesList)
     library(jsonlite)
 
-    # --- save Bismark [] ---
-    # Key functions: saveBismark, readBismark, GRangesList
-    saveBismark(methylationDataList[["WT"]],
-    saveBismark(methylationDataList[["met1-3"]],
-    methylationDataWT <- readBismark("chr3test_a_thaliana_wt.CX_report")
-    # --- pool Methylation Datasets [] ---
-    # Key functions: poolMethylationDatasets, poolTwoMethylationDatasets
-    methylationDataAll <- poolMethylationDatasets(methylationDataList)
-    methylationDataAll <- poolTwoMethylationDatasets(methylationDataList[[1]],
-    # --- read pool data [] ---
-    # Key functions: readBismarkPool
-    methylationDataAll <- readBismarkPool(c(file_wt, file_met13))
-    # --- plot Methylation Profile From Data [] ---
-    # Key functions: plotMethylationProfileFromData
-    par(mar=c(4, 4, 3, 1)+0.1)
-    plotMethylationProfileFromData(methylationDataList[["WT"]],
-    conditionsNames = c("WT","met1-3"),
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, computeMethylationProfile, GRangesList, plotMethylationProfile
-    regions <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(1,1E6))
-    profileCGWT <- computeMethylationProfile(methylationDataList[["WT"]],
-    profileCGMet13 <- computeMethylationProfile(methylationDataList[["met1-3"]],
-    # --- plot Methylation Data Coverage [] ---
-    # Key functions: plotMethylationDataCoverage
-    par(mar=c(4, 4, 3, 1)+0.1)
-    plotMethylationDataCoverage(methylationDataList[["WT"]],
-    breaks = c(1,5,10,15),
-    # --- compute Methylation Data Coverage [] ---
-    # Key functions: computeMethylationDataCoverage
-    coverageCGWT <- computeMethylationDataCoverage(methylationDataList[["WT"]],
-    breaks = c(1,5,10,15))
-    # --- compute DMRs CG noise filter [] ---
-    # Key functions: GRanges, computeDMRs
+    # --- De Novo DMR Detection [] ---
+    # Key functions: computeDMRs
     chr_local <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(5E5,6E5))
     DMRsNoiseFilterCG <- computeDMRs(methylationDataList[["WT"]],
-    print(DMRsNoiseFilterCG)
-    # --- compute DMRs CG neighbourhood [] ---
-    # Key functions: computeDMRs
+                          methylationDataList[["met1-3"]],
+                          regions = chr_local,
+                          context = "CG",
+                          method = "noise_filter",
+                          windowSize = 100,
+                          kernelFunction = "triangular",
+                          test = "score",
+                          pValueThreshold = 0.01,
+                          minCytosinesCount = 4,
+                          minProportionDifference = 0.4,
+                          minGap = 0,
+                          minSize = 50,
+                          minReadsPerCytosine = 4,
+                          cores = 1)
     DMRsNeighbourhoodCG <- computeDMRs(methylationDataList[["WT"]],
-    print(DMRsNeighbourhoodCG)
-    # --- compute DMRs CG bins [] ---
-    # Key functions: computeDMRs
-    DMRsBinsCG <- computeDMRs(methylationDataList[["WT"]],
-    print(DMRsBinsCG)
-    # --- compute DMRs CG GE [] ---
+                                       methylationDataList[["met1-3"]],
+                                       regions = chr_local,
+                                       context = "CG",
+                                       method = "neighbourhood",
+                                       test = "score",
+                                       pValueThreshold = 0.01,
+                                       minCytosinesCount = 4,
+                                       minProportionDifference = 0.4,
+                                       minGap = 200,
+                                       minSize = 1,
+                                       minReadsPerCytosine = 4,
+                                       cores = 1)
+
+
+    # --- Targeted DMR Filtering and Annotation [] ---
     # Key functions: filterDMRs
     data(GEs)
     genes <- GEs[which(GEs$type == "gene")]
     DMRsGenesCG <- filterDMRs(methylationDataList[["WT"]],
-    # --- merge DMRs CG noise filter [] ---
-    # Key functions: mergeDMRsIteratively
+                              methylationDataList[["met1-3"]],
+                              potentialDMRs = genes[overlapsAny(genes, chr_local)],
+                              context = "CG",
+                              test = "score",
+                              pValueThreshold = 0.01,
+                              minCytosinesCount = 4,
+                              minProportionDifference = 0.4,
+                              minReadsPerCytosine = 3,
+                              cores = 1)
+
+
+    # --- DMR Merging and Downstream Analysis [] ---
+    # Key functions: mergeDMRsIteratively, analyseReadsInsideRegionsForCondition
     DMRsNoiseFilterCGMerged <- mergeDMRsIteratively(DMRsNoiseFilterCG,
-    print(DMRsNoiseFilterCGMerged)
-    # --- DMR distribution [] ---
-    # Key functions: computeOverlapProfile, plotOverlapProfile
-    hotspots <- computeOverlapProfile(DMRsNoiseFilterCGMerged, chr_local,
-    plotOverlapProfile(GRangesList("Chr3"=hotspots))
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, plotLocalMethylationProfile
-    chr3Reg <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(510000,530000))
-    DMRsCGList <- list("noise filter" = DMRsNoiseFilterCGMerged,
-    par(cex=0.9)
-    # --- computing biological replicates [] ---
-    # Key functions: computeDMRsReplicates
-    library(betareg)
-    condition <- c("a", "a", "b", "b")
-    DMRsReplicatesBins <- computeDMRsReplicates(methylationData = methylationData,
+                                                    minGap = 200,
+                                                    respectSigns = TRUE,
+                                                    methylationDataList[["WT"]],
+                                                    methylationDataList[["met1-3"]],
+                                                    context = "CG",
+                                                    minProportionDifference = 0.4,
+                                                    minReadsPerCytosine = 4,
+                                                    pValueThreshold = 0.01,
+                                                    test="score")
+    DMRsNoiseFilterCGreadsCHH <- analyseReadsInsideRegionsForCondition(
+                                  DMRsNoiseFilterCGMerged,
+                                  methylationDataList[["WT"]], context = "CHH",
+                                  label = "WT")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

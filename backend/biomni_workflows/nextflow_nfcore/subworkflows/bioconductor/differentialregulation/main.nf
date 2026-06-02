@@ -41,26 +41,51 @@ process BIOC_DIFFERENTIALREGULATION {
     library(DifferentialRegulation)
     library(jsonlite)
 
-    # --- plot_pi [] ---
-    # Key functions: plot_pi
-    plot_pi(results,
-    plot_pi(results,
-    # --- plot pi USA [] ---
-    # Key functions: plot_pi
-    plot_pi(results,
-    plot_pi(results,
-    # --- plot_traceplot [] ---
-    # Key functions: plot_traceplot
-    plot_traceplot(results,
-    plot_traceplot(results,
-    # --- plot_bulk_pi [] ---
-    # Key functions: plot_bulk_pi
-    plot_bulk_pi(results,
-    plot_bulk_pi(results,
-    # --- plot_bulk_traceplot [] ---
-    # Key functions: plot_bulk_traceplot
-    plot_bulk_traceplot(results,
-    plot_bulk_traceplot(results,
+    # --- Pseudo-bulk Count Computation [] ---
+    # Key functions: compute_PB_counts
+    design = data.frame(sample = sample_ids,
+                        group = c(rep("3 mon", 3), rep("6 mon", 3)))
+    sce$cell_type = rep("neuron", ncol(sce))
+    PB_counts = compute_PB_counts(sce = sce,
+                                  EC_list = EC_list,
+                                  design = design,
+                                  sample_col_name = "sample",
+                                  group_col_name = "group",
+                                  sce_cluster_name = "cell_type")
+
+
+    # --- Differential Regulation Analysis [] ---
+    # Key functions: DifferentialRegulation
+    results = DifferentialRegulation(PB_counts,
+                                     n_cores = 2,
+                                     traceplot = TRUE)
+
+
+    # --- Visualisation [] ---
+    # Key functions: plot_pi, plot_traceplot
+    gene_id = results$Differential_results$Gene_id[1]
+    cluster_id = results$Differential_results$Cluster_id[1]
+    plot_pi(results, type = "US", gene_id = gene_id, cluster_id = cluster_id)
+    plot_pi(results, type = "USA", gene_id = gene_id, cluster_id = cluster_id)
+    plot_traceplot(results, gene_id = gene_id, cluster_id = cluster_id)
+
+
+    # --- Bulk Data Analysis [] ---
+    # Key functions: load_bulk_US, load_bulk_EC, DifferentialRegulation_bulk
+    sample_ids_bulk = paste0("sample", seq_len(6))
+    quant_files = file.path(data_dir, "salmon", sample_ids_bulk, "quant.sf")
+    equiv_classes_files = file.path(data_dir, "salmon", sample_ids_bulk,
+                                    "aux_info/eq_classes.txt.gz")
+    SE = load_bulk_US(quant_files, sample_ids_bulk)
+    EC_list_bulk = load_bulk_EC(path_to_eq_classes = equiv_classes_files,
+                                 n_cores = 2)
+    design_bulk = data.frame(sample = sample_ids_bulk,
+                             group = rep(c("A", "B"), each = 3))
+    results_bulk = DifferentialRegulation_bulk(SE = SE,
+                                                EC_list = EC_list_bulk,
+                                                design = design_bulk,
+                                                n_cores = 2,
+                                                traceplot = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
