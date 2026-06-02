@@ -65,6 +65,7 @@ process BIOC_SPKTOOLS {
     sv <- as.numeric(vtmp[,2][-nrow(vtmp)])
     bin <- c("Low", "Med", "High")
     bins <- bin[spkSlopeOut$breaks[2,]]
+    tab1 <- data.frame(NominalConc=2^spkSlopeOut$breaks[1,],
     # --- Xtable [] ---
     # Key functions: xtable
     library(xtable)

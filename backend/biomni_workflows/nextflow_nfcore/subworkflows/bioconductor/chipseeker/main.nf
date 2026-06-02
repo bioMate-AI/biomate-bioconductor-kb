@@ -72,6 +72,9 @@ process BIOC_CHIPSEEKER {
     peakHeatmap(files[[4]],TxDb = txdb,nbin = 800,upstream=3000, downstream=3000) +
       scale_fill_distiller(palette = "RdYlGn")
     
+    peakHeatmap(peak = files[[4]],
+                TxDb = txdb,
+                upstream = rel(0.2),
     # --- Average Profile of ChIP peaks binding to TSS region [] ---
     # Key functions: plotAvgProf, Region, plotAvgProf2
     plotAvgProf(tagMatrix, xlim=c(-3000, 3000),
@@ -153,6 +156,8 @@ process BIOC_CHIPSEEKER {
     plotAvgProf(tagMatrixList, xlim=c(-3000, 3000), conf=0.95,resample=500, facet="row")
     
     ## normal method
+    plotPeakProf2(files, upstream = 3000, downstream = 3000, conf = 0.95,
+                  by = "gene", type = "start_site", TxDb = txdb,
     # --- Peak heatmaps [] ---
     # Key functions: tagHeatmap
     tagHeatmap(tagMatrixList)

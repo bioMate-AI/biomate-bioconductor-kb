@@ -41,56 +41,11 @@ process BIOC_VENNDETAIL {
     library(VennDetail)
     library(jsonlite)
 
-
-    # --- Load [] ---
-    # Key functions: venndetail
-    library(VennDetail)
-    data(T2DM)
-    ven <- venndetail(list(Cortex = T2DM$Cortex$Entrez, SCN = T2DM$SCN$Entrez,
-                        Glom = T2DM$Glom$Entrez))
-
-    # --- Fig1 [] ---
-    # Key functions: vennpie
-    ##traditional venn diagram
-    plot(ven)
-    ##Venn-Pie format
-    plot(ven, type = "vennpie")
-
-    # --- Fig3 [] ---
-    # Key functions: upset, detail, getSet
-    ##Upset format
-    plot(ven, type = "upset")
-    ## List the subsets name
-    detail(ven) 
-    head(getSet(ven, subset = c("Shared", "SCN")), 10)
-
-    # --- Result [] ---
-    # Key functions: result, name, vennpie, lightgrey
-    ## long format: the first column lists the subsets name, and the second column
-    ## shows the genes included in the subsets
-    head(result(ven))
-    ## wide format: the first column lists all the genes, the following columns
-    ## display the groups name (three tissues) and the last column is the total 
-    ## number of the gene shared by groups.
-    head(result(ven, wide = TRUE))
-    vennpie(ven, any = 1, revcolor = "lightgrey")
-
-    # --- Fig5 [] ---
-    # Key functions: vennpie, sample, venndetail
-    vennpie(ven, log = TRUE)
+    # --- Venndetail analysis [] ---
+    # Key functions: venndetail, detail, vennpie, sample, dplot
     set.seed(123)
     A <- sample(1:1000, 400, replace = FALSE)
     B <- sample(1:1000, 600, replace = FALSE)
-    C <- sample(1:1000, 350, replace = FALSE)
-    D <- sample(1:1000, 550, replace = FALSE)
-    E <- sample(1:1000, 450, replace = FALSE)
-    venn <- venndetail(list(A = A, B = B, C= C, D = D, E = E))
-    vennpie(venn, min = 4)
-
-    # --- Getfeature [] ---
-    # Key functions: getFeature, dplot
-    head(getFeature(ven, subset = "Shared", rlist = T2DM))
-    dplot(ven, order = TRUE, textsize = 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

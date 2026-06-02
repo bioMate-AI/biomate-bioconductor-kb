@@ -57,6 +57,7 @@ process BIOC_DEQMS {
     # Key functions: VarianceBoxplot, VarianceScatterplot, unzip, query, peptideProfilePlot, Residualplot, heatscatter
     VarianceScatterplot(fit3, xlab="log2(PSM count)")
     abline(h = log(limma.prior),col="green",lwd=3 )
+    legend("topright",legend=c("DEqMS prior variance","Limma prior variance"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

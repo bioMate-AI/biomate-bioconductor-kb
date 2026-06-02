@@ -44,11 +44,17 @@ process BIOC_TDBASEDUFEADV {
     # --- List [] ---
     # Key functions: prepareTensorfromList, aperm, PrepareSummarizedExperimentTensor, array
     ---------------------------------------------------------------------
+    Multi <- list(
+      BLCA.rnaseq[seq_len(100), 1 + seq_len(1000)],
+      BRCA.rnaseq[seq_len(100), 1 + seq_len(1000)],
+      CESC.rnaseq[seq_len(100), 1 + seq_len(1000)],
     # --- Setenrichrsite [] ---
     # Key functions: setEnrichrSite, enrichr, plotEnrich
     ---------------------------------------------------------------------
     setEnrichrSite("Enrichr")
     websiteLive <- TRUE
+    dbs <- c(
+      "GO_Molecular_Function_2015", "GO_Cellular_Component_2015",
     # --- Enrichdgn [] ---
     # Key functions: enrichDGN, dotplot, ggtitle
     ---------------------------------------------------------------------

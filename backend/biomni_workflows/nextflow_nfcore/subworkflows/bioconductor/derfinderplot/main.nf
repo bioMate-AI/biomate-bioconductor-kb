@@ -43,20 +43,29 @@ process BIOC_DERFINDERPLOT {
 
     # --- 'installDer' [] ---
     # Key functions: valid
-
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("derfinderPlot")
     # --- 'phenoData' [] ---
     # Key functions: kable
     library("knitr")
     pheno <- subset(brainspanPheno, structure_acronym == "A1C")
+    p <- pheno[, -which(colnames(pheno) %in% c(
     # --- 'getData' [] ---
     # Key functions: rawFiles
-
+    files <- rawFiles(system.file("extdata", "A1C", package = "derfinderData"),
+    names(files) <- gsub(".bw", "", names(files))
+    system.time(fullCov <- fullCoverage(files = files, chrs = "chr21"))
     # --- 'getDataWindows' [] ---
     # Key functions: foo
-
+    foo <- function() {
+    load(system.file("extdata", "fullCov", "fullCovA1C.RData",
+    return(fullCovA1C)
     # --- 'models' [] ---
     # Key functions: sampleDepth, makeModels
     sampleDepths <- sampleDepth(collapseFullCoverage(fullCov), 1)
+    models <- makeModels(sampleDepths,
+    adjustvars = pheno[, c("gender")]
     # --- 'plotOverview' [] ---
     # Key functions: plotOverview
     plotOverview(regions = regions, annotation = results$annotation, type = "qval")

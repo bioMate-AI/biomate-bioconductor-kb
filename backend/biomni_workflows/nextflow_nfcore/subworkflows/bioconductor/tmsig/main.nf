@@ -43,7 +43,9 @@ process BIOC_TMSIG {
 
     # --- Define comparison contrasts [] ---
     # Key functions: makeContrasts, lmFit, with, topTable
-
+    group <- rep(c("ctrl", "treat1", "treat2"),
+    design <- model.matrix(~ 0 + group) # design matrix
+    contrasts <- makeContrasts(
     # --- ReadGMT analysis [] ---
     # Key functions: readGMT, filterSets, lengths, sparseIncidence, tcrossprod, crossprod, similarity, clusterSets
     setSizes <- lengths(geneSetsFilt)

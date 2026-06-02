@@ -44,7 +44,9 @@ process BIOC_RIBOSOMEPROFILINGQC {
 
     # --- Import genomic data file [] ---
     # Key functions: scanBamHeader, import, mcols, with, seqlevelsStyle, DGEList, calcNormFactors, estimateDisp
-
+    bamfilename <- system.file("extdata", "RPF.WT.1.bam",
+    bamHeader <- Rsamtools::scanBamHeader(bamfilename)
+    (chromsomeNameStyle <- GenomeInfoDb::seqlevelsStyle(names(bamHeader[[1]]$targets)))
     # --- Linear model fit (limma) [] ---
     # Key functions: lmFit, eBayes, topTable
     library(limma)

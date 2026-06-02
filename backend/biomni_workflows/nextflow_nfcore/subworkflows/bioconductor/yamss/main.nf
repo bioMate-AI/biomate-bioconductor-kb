@@ -38,26 +38,14 @@ process BIOC_YAMSS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(yamss)
+    library(DataFrame)
     library(jsonlite)
 
-
-    # --- Dependencies [] ---
-    # Key functions: find.package, list.files, rep, DataFrame, readMSdata, bakedpi, mtbls2, mzML
+    # --- Data Frame [] ---
+    # Key functions: DataFrame, readMSdata, bakedpi, slicepi
     library(yamss)
     library(mtbls2)
-
-    ## -----------------------------------------------------------------------------
     filepath <- file.path(find.package("mtbls2"), "mzML")
-    files <- list.files(filepath, pattern = "MSpos-Ex1", recursive = TRUE, full.names = TRUE)
-    classes <- rep(c("wild-type", "mutant"), each = 4)
-
-    ## -----------------------------------------------------------------------------
-    colData <- DataFrame(sampClasses = classes, ionmode = "pos")
-    cmsRaw <- readMSdata(files = files, colData = colData, mzsubset = c(500,520), verbose = TRUE)
-    cmsRaw
-
-    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

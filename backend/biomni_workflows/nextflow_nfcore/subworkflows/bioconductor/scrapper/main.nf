@@ -62,6 +62,8 @@ process BIOC_SCRAPPER {
     ---------------------------------------------------------------------
     sce.t <- TasicBrainData()
     common <- intersect(rownames(sce.z), rownames(sce.t))
+    combined <- cbind(
+        DelayedArray(assay(sce.t))[common,],
     # --- Computernaqcmetrics [] ---
     # Key functions: computeRnaQcMetrics, suggestRnaQcThresholds, filterRnaQcMetrics, centerSizeFactors, normalizeCounts, modelGeneVariances
     ---------------------------------------------------------------------
@@ -87,6 +89,9 @@ process BIOC_SCRAPPER {
     # Key functions: DelayedArray, assay, altExp
     ---------------------------------------------------------------------
     rna.counts <- DelayedArray(assay(sce.s))
+    adt.counts <- DelayedArray(rbind(
+        assay(altExp(sce.s, "adt1")),
+        assay(altExp(sce.s, "adt2"))
     # --- Grepl [] ---
     # Key functions: computeRnaQcMetrics, suggestRnaQcThresholds, filterRnaQcMetrics, computeAdtQcMetrics
     ---------------------------------------------------------------------

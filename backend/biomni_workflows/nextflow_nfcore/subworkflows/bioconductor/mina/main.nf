@@ -41,75 +41,11 @@ process BIOC_MINA {
     library(mina)
     library(jsonlite)
 
-
-    # --- Import Data [] ---
-    # Key functions: new, mina
-    library(mina)
-        # maize_asv2 and maize_des2 are subset of maize_asv and maize_des
-        maize <- new("mina", tab = maize_asv2, des = maize_des2)
-    head(maize_des)
-
-    # --- Show Data 2 [] ---
-    # Key functions: fit_tabs
-    maize_asv[1:6, 1:6]
-    maize <- fit_tabs(maize)
-
-    # --- Raref Data [] ---
-    # Key functions: norm_tab, total, raref
-    # check available normalization methods
-        ? norm_tab_method_list
-        # normalized by total sum
-        maize <- norm_tab(maize, method = "total")
-        # normalized by rarefaction
-        maize <- norm_tab(maize, method = "raref", depth = 5000)
-        # normalized by rarefaction and bootstrap 9 times
-        maize <- norm_tab(maize, method = "raref", depth = 5000, multi = 9)
-    # normalized by total sum
-        maize_asv_norm <- norm_tab(maize_asv2, method = "total")
-        # normalized by rarefaction
-        maize_asv_norm <- norm_tab(maize_asv2, method = "raref", depth = 5000)
-        # normalized by rarefaction and bootstrap 99 times
-        maize_asv_norm <- norm_tab(maize_asv2, method = "raref", depth = 5000,
-                                   multi = 9)
-
-    # --- Com Dis [] ---
-    # Key functions: fit_tabs, com_dis, bray, tina, com_r2, dis, get_r2, Host_genotype
-    # check available dissimilarity parameters
-        ? com_dis_list
-        # tidy the norm tab, intial tab and des tab
-        maize <- fit_tabs(maize)
-        # community dissimilarity calculation, Bray-Curtis used in example
-        maize <- com_dis(maize, method = "bray")
-        # TINA dissimilarity in Schmidt_et_al_2016
-        # maize <- com_dis(maize, method = "tina")
-    # get the unexplained variance ratio of quantitative table according to the
-        # group information indicated in descriptive table.
-        com_r2(maize, group = c("Compartment", "Soil", "Host_genotype"))
-        # use tables as input
-        maize_dis <- dis(maize)
-        get_r2(maize_dis, maize_des, group = c("Compartment", "Soil", "Host_genotype"))
-
-    # --- Pcoa [] ---
-    # Key functions: dmr, com_plot, Sample_ID, pcoa_plot, Host_genotype
-    # dimensionality reduction
-        maize <- dmr(maize)
-        # plot the community beta-diversity
-        # separate samples from different conditions by color, plot PCo1 and PCo2
-        p1 <- com_plot(maize, match = "Sample_ID", color = "Compartment")
-        # plot PCo3 and PCo4
-        p2 <- com_plot(maize, match = "Sample_ID", d1 = 3, d2 = 4, color =
-                        "Compartment")
-        # in addition, separate samples from different soil type by shape
-    # --- Adj [] ---
-    # Key functions: adj, pearson, spearman
-    # check available adjacency matrix
-        ? adj_method_list
-        # Pearson and Spearman correlation
-        maize <- adj(maize, method = "pearson")
-        # Pearson and Spearman correlation with significance test
-        maize <- adj(maize, method = "spearman", sig = TRUE)
-    # Pearson and Spearman correlation
-        asv_adj <- adj(maize_asv_norm, method = "pearson")
+    # --- Tabs analysis [] ---
+    # Key functions: new, fit_tabs, norm_tab, com_dis, tina, com_r2, dis, get_r2
+    maize_asv_norm <- norm_tab(maize_asv2, method = "total")
+    maize_asv_norm <- norm_tab(maize_asv2, method = "raref", depth = 5000)
+    maize_asv_norm <- norm_tab(maize_asv2, method = "raref", depth = 5000,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

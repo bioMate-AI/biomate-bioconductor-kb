@@ -41,14 +41,11 @@ process BIOC_SATURN {
     library(satuRn)
     library(jsonlite)
 
-
-    # --- Warning=false [] ---
-    # Key functions: colData, plotDTU, VISp.L5_IT_VISp_Hsd11b1_Endou, ALM.L5_IT_ALM_Tnc, model
-    group1 <- colnames(sumExp)[colData(sumExp)$group == 
-                                 "VISp.L5_IT_VISp_Hsd11b1_Endou"]
-    group2 <- colnames(sumExp)[colData(sumExp)$group == 
-                                 "ALM.L5_IT_ALM_Tnc"]
-
+    # --- row Data [] ---
+    # Key functions: rowData, split
+    pvals <- rowData(sumExp)[["fitDTUResult_Contrast1"]]$empirical_pval
+    geneID <- factor(rowData(sumExp)$gene_id)
+    geneSplit <- split(seq(along = geneID), geneID)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

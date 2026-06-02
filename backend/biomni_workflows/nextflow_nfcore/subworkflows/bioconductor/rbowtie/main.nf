@@ -53,6 +53,7 @@ process BIOC_RBOWTIE {
     # Key functions: bowtie, strtrim
     readsFiles <- system.file(package="Rbowtie", "samples", "reads", "reads.fastq")
     samFiles <- file.path(tempdir(), "alignments.sam")
+    bowtie(sequences=readsFiles,
     # --- Splice Map [] ---
     # Key functions: SpliceMap, strtrim
     readsFiles <- system.file(package="Rbowtie", "samples", "reads", "reads.fastq")

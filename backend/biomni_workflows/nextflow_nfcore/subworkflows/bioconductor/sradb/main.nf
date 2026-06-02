@@ -76,6 +76,7 @@ process BIOC_SRADB {
       sql <- sprintf("select count(*) from %s",tableName)
       return(dbGetQuery(conn,sql)[1,1])
     }
+    do.call(rbind,sapply(sra_tables[c(2,4,5,11,12)],
     # --- Dbgetquery [] ---
     # Key functions: dbGetQuery, count
     rs <- dbGetQuery(sra_con, paste( "SELECT study_type AS StudyType,
@@ -91,6 +92,8 @@ process BIOC_SRADB {
     rs <- getSRA( search_terms = "breast cancer",
     	out_types = c('run','study'), sra_con )
     dim(rs)
+    rs <- getSRA( search_terms = "breast cancer",
+    	out_types = c("submission", "study", "sample",
     # --- Listsrafile [] ---
     # Key functions: listSRAfile
     rs = listSRAfile( c("SRX000122"), sra_con, fileType = 'sra' )

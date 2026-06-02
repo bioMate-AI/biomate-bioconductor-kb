@@ -103,6 +103,8 @@ process BIOC_BATCHELOR {
     ---------------------------------------------------------------------
     # Removing the 'unclassified' cluster, which makes no sense:
     not.unclass <- sce2$broad_type!="Unclassified"
+    clust.out <- clusterMNN(sce1, sce2[,not.unclass],
+        subset.row=chosen.hvgs,
     # --- Metadata [] ---
     # Key functions: metadata, split
     ---------------------------------------------------------------------

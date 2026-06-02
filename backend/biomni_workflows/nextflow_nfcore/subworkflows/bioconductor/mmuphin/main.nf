@@ -43,11 +43,14 @@ process BIOC_MMUPHIN {
 
     # --- Slice coverage by threshold [] ---
     # Key functions: arrange, slice, ggplot, geom_bar, coord_flip
-
+    loading <- data.frame(feature = rownames(fit_continuous$consensus_loadings),
+    arrange(-abs(loading1)) %>%
+    slice(1:20) %>%
     # --- Custom ggplot2 visualization [] ---
     # Key functions: arrange, ggplot, geom_bar, coord_flip, geom_point, geom_line, geom_errorbar, vegdist
     data("vaginal_abd", "vaginal_meta")
     D_vaginal <- vegdist(t(vaginal_abd))
+    fit_discrete_vag <- discrete_discover(D = D_vaginal,
     # --- Adjust batch analysis [] ---
     # Key functions: adjust_batch, vegdist, adonis2, lm_meta, discrete_discover, continuous_discover
     control_meta <- subset(CRC_meta, study_condition == "control")

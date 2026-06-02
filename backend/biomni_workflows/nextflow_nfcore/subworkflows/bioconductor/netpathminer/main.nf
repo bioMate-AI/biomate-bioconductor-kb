@@ -50,7 +50,7 @@ process BIOC_NETPATHMINER {
     plotPaths(ranked.p, graph, path.clusters=p.class)
     # --- fig=TRUE [] ---
     # Key functions: plotAllNetworks
-
+    plotAllNetworks(ranked.p, metabolic.net = graph, reaction.net = rgraph,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

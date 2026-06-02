@@ -51,6 +51,8 @@ process BIOC_SPLICINGGRAPHS {
     options(width=90)
     .precomputed_results_path <- "precomputed_results"
     .loadPrecomputed <- function(objname)
+    {
+        filename <- paste0(objname, ".rda")
     # --- Isactiveseq [] ---
     # Key functions: isActiveSeq
     isActiveSeq(txdb)[1:25]
@@ -70,6 +72,7 @@ process BIOC_SPLICINGGRAPHS {
     ## 'sg@.bubbles_cache'.
     sg_with_bubbles <- .loadPrecomputed("sg_with_bubbles")
     sg@.bubbles_cache <- sg_with_bubbles@.bubbles_cache
+    ## Replace NAs with FALSE in circularity flag (because having the flag set
     # --- Seqnames Sg [] ---
     # Key functions: seqnames, strand
     seqnames(sg)[1:20]

@@ -41,66 +41,10 @@ process BIOC_SPIKY {
     library(spiky)
     library(jsonlite)
 
-
-    # --- Eval = False [] ---
-    # Key functions: requireNamespace, install, show, generate_spike_fasta, spiky, extdata, example.spike.bam
-    #  #To install this package, start R (version "3.6" or later) and enter:
-    #    #if (!requireNamespace("BiocManager", quietly = TRUE))
-    #    #  install.packages("BiocManager")
-    #    #
-    #    #BiocManager::install("spiky")
-    #  
-    #  library(spiky)
-
-    ## -----------------------------------------------------------------------------
+    # --- Data [] ---
+    # Key functions: data
+    ---------------------------------------------------------------------
     data(spike)
-
-    ## -----------------------------------------------------------------------------
-    sb <- system.file("extdata", "example.spike.bam", package="spiky",              mustWork=TRUE)
-    outFasta <- paste(system.file("extdata", package="spiky", mustWork=TRUE),"/spike_contigs.fa",sep="")
-    show(generate_spike_fasta(sb, spike=spike,fa=outFasta))
-
-    # --- Eval=true [] ---
-    # Key functions: scan_genomic_contigs, scan_spike_contigs, scan_genomic_bedpe, scan_spike_bedpe, extdata, example_chr21.bam, spiky, example.spike.bam
-    genomic_bam_path <- system.file("extdata", "example_chr21.bam", package="spiky", mustWork=TRUE)
-    genomic_coverage <- scan_genomic_contigs(genomic_bam_path,spike=spike)
-    spike_bam_path <- system.file("extdata", "example.spike.bam", package="spiky", mustWork=TRUE)
-    spikes_coverage <- scan_spike_contigs(spike_bam_path,spike=spike)
-
-
-    ## -----------------------------------------------------------------------------
-    genomic_bedpe_path <- system.file("extdata", "example_chr21_bedpe.bed.gz", package="spiky", mustWork=TRUE)
-    genomic_coverage <- scan_genomic_bedpe(genomic_bedpe_path,genome="hg38")
-    spike_bedpe_path <- system.file("extdata", "example_spike_bedpe.bed.gz", package="spiky", mustWork=TRUE)
-    spikes_coverage <- scan_spike_bedpe(spike_bedpe_path,spike=spike)
-
-    # --- Eval=true [] ---
-    # Key functions: methylation_specificity
-    ##Calculate methylation specificity
-    methyl_spec <- methylation_specificity(spikes_coverage,spike=spike)
-    print(methyl_spec)
-
-    # --- Eval=true [] ---
-    # Key functions: model_glm_pmol, summary
-    ## Build the Gaussian generalized linear model on the spike-in control data
-    gaussian_glm <- model_glm_pmol(spikes_coverage,spike=spike)
-    summary(gaussian_glm)
-
-    # --- Eval=true [] ---
-    # Key functions: available.packages, predict_pmol
-    # Predict pmol concentration
-    # To select a genome other than hg38, use BSgenome::available.packages() to find valid BSgenome name
-    #library("BSgenome.Hsapiens.UCSC.hg38")
-    sample_data_pmol <- predict_pmol(gaussian_glm, genomic_coverage,bsgenome="BSgenome.Hsapiens.UCSC.hg38",ret="df")
-    head(sample_data_pmol,n=1)
-
-    # --- Eval=true [] ---
-    # Key functions: bin_pmol, sessionInfo
-    sample_binned_data <- bin_pmol(sample_data_pmol)
-    head(sample_binned_data,n=1)
-
-    ## -----------------------------------------------------------------------------
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

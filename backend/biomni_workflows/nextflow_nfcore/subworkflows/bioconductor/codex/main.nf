@@ -73,6 +73,7 @@ process BIOC_CODEX {
         length_thresh = c(20, 2000), mapp_thresh = 0.9, gc_thresh = c(20, 80))
     Y_qc <- qcObj$Y_qc; sampname_qc <- qcObj$sampname_qc; gc_qc <- qcObj$gc_qc
     mapp_qc <- qcObj$mapp_qc; ref_qc <- qcObj$ref_qc; qcmat <- qcObj$qcmat
+    write.table(qcmat, file = paste(projectname, '_', chr, '_qcmat', '.txt', sep=''),
     # --- Normobj1 [] ---
     # Key functions: normalize
     normObj <- normalize(Y_qc, gc_qc, K = 1:9)

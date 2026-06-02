@@ -62,6 +62,7 @@ process BIOC_METHODICAL {
     # Subset mcrpc_transcript_counts for protein-coding transcripts
     mcrpc_transcript_counts <- mcrpc_transcript_counts[transcript_tss_chr11$ID, ]
     # Create a DESeqDataSet from Kallisto counts.
+    mcrpc_transcript_counts_dds <- DESeqDataSetFromMatrix(countData = mcrpc_transcript_counts,
     # --- Intersect [] ---
     # Key functions: intersect, bpparam, time, calculateMethSiteTranscriptCors
     ---------------------------------------------------------------------

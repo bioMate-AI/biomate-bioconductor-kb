@@ -41,54 +41,10 @@ process BIOC_PIRAT {
     library(Pirat)
     library(jsonlite)
 
-
-    # --- Load Data [] ---
-    # Key functions: my_pipeline_llkimpute
-    library(Pirat)
-    library(utils)
-    data(subbouyssie)
-    imp.res <- my_pipeline_llkimpute(subbouyssie)
-
-    # --- Test1 [] ---
-    # Key functions: pirat
-    head(imp.res$data.imputed[ ,seq(5)])
-    imp.res$params
-
-    # --- Correlations [] ---
-    # Key functions: plot_pep_correlations, pipeline_llkimpute
+    # --- plot_pep_correlations [] ---
+    # Key functions: plot_pep_correlations
     data(ropers)
     plot_pep_correlations(ropers, titlename = "Ropers2021")
-    data(subropers)
-    imp.res = pipeline_llkimpute(subropers, extension = "2")
-
-    # --- Impute4 [] ---
-    # Key functions: colSums, rowSums, my_pipeline_llkimpute
-    mask.sing.pg = colSums(subropers$adj) == 1
-    mask.sing.pep = rowSums(subropers$adj[, mask.sing.pg]) >= 1
-    imp.res$data.imputed[, mask.sing.pep]
-    imp.res = my_pipeline_llkimpute(subropers, extension = "S")
-
-    # --- Impute2 [] ---
-    # Key functions: colSums, rowSums, my_pipeline_llkimpute
-    mask.sing.pg = colSums(subropers$adj) == 1
-    mask.sing.pep = rowSums(subropers$adj[, mask.sing.pg]) >= 1
-    imp.res$data.imputed[, mask.sing.pep]
-    imp.res = my_pipeline_llkimpute(subropers,
-        extension = "T",
-        rna.cond.mask = seq(nrow(subropers$peptides_ab)),
-        pep.cond.mask = seq(nrow(subropers$peptides_ab)),
-        max.pg.size.pirat.t = 1)
-
-    # --- Data Imputed3 [] ---
-    # Key functions: colSums, rowSums, my_pipeline_llkimpute, rep
-    mask.sing.pg = colSums(subropers$adj) == 1
-    mask.sing.pep = rowSums(subropers$adj[, mask.sing.pg]) >= 1
-    imp.res$data.imputed[, mask.sing.pep]
-    imp.res = my_pipeline_llkimpute(subropers,
-                                 extension = "T",
-                                 rna.cond.mask = rep(seq(6), each = 3),
-                                 pep.cond.mask = rep(seq(6), each = 3),
-                                 max.pg.size.pirat.t = 1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

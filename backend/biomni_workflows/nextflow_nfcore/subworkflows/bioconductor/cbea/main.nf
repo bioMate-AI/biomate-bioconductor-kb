@@ -38,54 +38,14 @@ process BIOC_CBEA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(CBEA)
+    library(PrintBibliography)
     library(jsonlite)
 
-
-    # --- Vignette Setup [] ---
-    # Key functions: Sys.time, citation, rmarkdown, sessioninfo, testthat, phyloseq, tidyverse, mixtools
-    ## Track time spent on making the vignette
-    startTime <- Sys.time()
-
-    ## Bib setup
-    library("RefManageR")
-
-    ## Write bibliography information
-    # --- Load Data [] ---
-    # Key functions: hmp_gingival
-    data("hmp_gingival")
-    abun <- hmp_gingival$data
-    metab_sets <- hmp_gingival$set
-    abun # this is a TreeSummarizedExperiment object
-    metab_sets
-
-    # --- Run Cbea [] ---
-    # Key functions: cbea, cdf, mnorm
-    results <- cbea(abun, set = metab_sets, abund_values = "16SrRNA",
-                  output = "cdf", distr = "mnorm", adj = TRUE, thresh = 0.05, n_perm = 10)
-    results
-    names(results)
-
-    # --- Results Obj 2 [] ---
-    # Key functions: str, tidy, glance, fit_comparison, fit_diagnostic
-    str(results$R)
-    tidy(results)
-    glance(results, "fit_comparison")
-    glance(results, "fit_diagnostic")
-
-    # --- Check Backend [] ---
-    # Key functions: registered, citation
-    BiocParallel::registered()
-    ## Citation info
-    citation("CBEA")
-
-    # --- Reproduce1 [] ---
-    # Key functions: Sys.time, diff
-    ## Date the vignette was generated
-    Sys.time()
-    ## Processing time in seconds
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
+    # --- Valid analysis [] ---
+    # Key functions: valid, cbea, tidy, glance, registered, knit, diff, session_info
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("CBEA")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

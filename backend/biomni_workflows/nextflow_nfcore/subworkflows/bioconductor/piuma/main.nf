@@ -54,6 +54,7 @@ process BIOC_PIUMA {
     # Key functions: SummarizedExperiment, makeTDAobjFromSE
     data("vascEC_meta")
     data("vascEC_norm")
+    dataSE <- SummarizedExperiment(assays=as.matrix(t(vascEC_norm)),
     # --- Custom ggplot2 visualization [] ---
     # Key functions: dfToDistance, dfToProjection, getComp, ggplot, geom_point
     set.seed(1)
@@ -61,7 +62,9 @@ process BIOC_PIUMA {
     calculate the projections (lenses)
     # --- mapper Core [] ---
     # Key functions: mapperCore, getDfMapper
-
+    TDA_obj <- mapperCore(TDA_obj,
+    number of clusters (nodes)
+    dim(getDfMapper(TDA_obj))
     # --- jaccard Matrix [] ---
     # Key functions: jaccardMatrix
     TDA_obj <- jaccardMatrix(TDA_obj)

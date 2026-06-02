@@ -62,6 +62,7 @@ process BIOC_GG4WAY {
     # Key functions: map, results, lfcShrink, gg4way
     list("N61311 vs N052611" = c("cell", "N61311", "N052611"),
     "N061011 vs N052611" = c("cell", "N061011", "N052611")) |>
+    map(~ dds |>
     # --- Feature metadata inspection [] ---
     # Key functions: install_github, rowData, gg4way, getTotals, pull, getShared, xlab, ylab
     list("N61311 vs N052611" = c("cell", "N61311", "N052611"),

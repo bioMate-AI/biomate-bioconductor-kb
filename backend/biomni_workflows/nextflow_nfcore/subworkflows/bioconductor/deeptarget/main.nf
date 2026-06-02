@@ -46,17 +46,23 @@ process BIOC_DEEPTARGET {
 
     # --- Computing a correlation between the every gene crispr KO vs each drug response for all interesting drugs [] ---
     # Key functions: computeCor
-
+    for (i in 1:nrow(sec.prism.f)){
+    DRS <- as.data.frame(sec.prism.f[i,])
+    DRS <- t(DRS)
     # --- section.cap="Predicting Similarity Across Known Targeted Genes and All Genes" [] ---
     # Key functions: PredTarget, PredMaxSim
     DrugTarcomputeCor <- PredTarget(List.sim,metadata)
     DrugGeneMaxSim <- PredMaxSim(List.sim,metadata)
     # --- Calculating Drug KO Similarities in cell lines with low primary target [] ---
     # Key functions: computeCor
-
+    for (i in 1:nrow(Pred.d.f)){
+    DRS.L= sec.prism.f.f[i,Low.Exp.G[[unlist(Pred.d.f[i,3])]]]
+    DRS.L <- t(as.data.frame(DRS.L))
     # --- Finding a primary target [] ---
     # Key functions: plotCor
     plotCor(DOI,GOI,Pred.d,sec.prism.f,KO.GES,plot=TRUE)
+    correlation of MDM2 with drug AMG-232 (Correlation value: 0.54
+    DRS <- as.data.frame(sec.prism.f[5,])
     # --- Predicting whether the drug specifically targets the wild [] ---
     # Key functions: DMB, form
     Pred.d.f <- Pred.d[,c(1:3,12:15)]

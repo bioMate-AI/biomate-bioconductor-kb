@@ -45,6 +45,9 @@ process BIOC_BUMPYMATRIX {
     # Key functions: DataFrame, rnorm, sample
     ---------------------------------------------------------------------
     library(S4Vectors)
+    df <- DataFrame(
+        x=rnorm(10000), y=rnorm(10000),
+        gene=paste0("GENE_", sample(100, 10000, replace=TRUE)),
     # --- Splitasbumpymatrix [] ---
     # Key functions: splitAsBumpyMatrix
     ---------------------------------------------------------------------

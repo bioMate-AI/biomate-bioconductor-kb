@@ -89,6 +89,7 @@ process BIOC_QUASR {
     # Key functions: scanFaIndex, makeTxDbFromGFF, promoters
     library(txdbmaker)
     chrLen <- scanFaIndex(genomeFile)
+    chrominfo <- data.frame(chrom = as.character(seqnames(chrLen)),
     # --- ChIP qCount [] ---
     # Key functions: qCount
     cnt <- qCount(proj1, promRegSel)
@@ -99,7 +100,9 @@ process BIOC_QUASR {
     library(Gviz)
     # --- ChIP qProfile [] ---
     # Key functions: qProfile
-
+    prS <- qProfile(proj1, tssRegions, upstream = 3000, downstream = 3000,
+    prO <- qProfile(proj1, tssRegions, upstream = 3000, downstream = 3000,
+    lapply(prS, "[", , 1:10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

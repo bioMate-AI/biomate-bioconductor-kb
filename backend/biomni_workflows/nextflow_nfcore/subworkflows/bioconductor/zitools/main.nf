@@ -71,7 +71,9 @@ process BIOC_ZITOOLS {
     MissingValueHeatmap(Zi2, xlab = "Sample")
     # --- plot PCA [] ---
     # Key functions: geom_point, xlim, ylim, xlab, ylab
-
+    print(ggplot(df_PCA, aes(x = PC1, y = PC2, color = group))+
+    geom_point()+
+    xlim(-200,100)+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

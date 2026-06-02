@@ -92,13 +92,18 @@ process BIOC_KEGGGRAPH {
     mapkGsub
     # --- Makeattr [] ---
     # Key functions: nodes, missing
-
+    makeAttr <- function(graph, default, valNodeList) {
+      tmp <- nodes(graph)
+      x <- rep(default, length(tmp)); names(x) <- tmp
+      if(!missing(valNodeList)) {
+        stopifnot(is.list(valNodeList))
     # --- Subsetplot [] ---
     # Key functions: edges, inEdges, translateKEGGID2GeneID, mget
     outs <- sapply(edges(mapkGsub), length) > 0
     ins <- sapply(inEdges(mapkGsub), length) > 0
     ios <- outs | ins
     ## translate the KEGG IDs into Gene Symbol
+    if(require(org.Hs.eg.db)) {
     # --- Mergedemo [] ---
     # Key functions: parseKGML2Graph, mergeGraphs
     wntKGML <- system.file("extdata/hsa04310.xml",package="KEGGgraph")

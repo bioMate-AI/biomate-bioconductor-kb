@@ -49,6 +49,7 @@ process BIOC_ASSIGN {
     # --- optimize G F R N [] ---
     # Key functions: optimizeGFRN
     combat.data <- ComBat.step2(testData, pcaPlots = TRUE)
+    optimization_results <- optimizeGFRN(combat.data, corData,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

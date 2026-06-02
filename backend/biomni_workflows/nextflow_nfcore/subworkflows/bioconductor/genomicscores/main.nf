@@ -48,9 +48,13 @@ process BIOC_GENOMICSCORES {
     # --- score [] ---
     # Key functions: score, populations, defaultPopulation
     ppsco <- score(phylop, gwcgr)
+    plot(pcsco, ppsco, xlab="phastCons", ylab="phyloP",
+    populations(phast)
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, gscores
     par(mar=c(4, 5, 3, 1))
+    barplot(xtab, horiz=TRUE, col=c("red", "royalblue", "gray"),
+    par(xpd=TRUE)
     # --- split [] ---
     # Key functions: split, elementNROWS
     x <- split(loc$PHASTCONS, loc$LOCATION)

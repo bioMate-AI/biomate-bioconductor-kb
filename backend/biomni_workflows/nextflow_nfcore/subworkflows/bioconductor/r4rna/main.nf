@@ -56,6 +56,7 @@ process BIOC_R4RNA {
     transat$col <- col <- colourByValue(transat, log = TRUE)
     message("Coloured encoded in 'col' column of transat structure")
     plotDoubleHelix(transat, known, line = TRUE, arrow = TRUE)
+    legend("topright", legend = attr(col, "legend"), fill = attr(col, "fill"),
     # --- Plotoverlaphelix [] ---
     # Key functions: plotOverlapHelix
     plotOverlapHelix(transat, known, line = TRUE, arrow = TRUE, scale = FALSE)

@@ -68,13 +68,21 @@ process BIOC_HAPFABIA {
     annot <- simu[["annot"]]
     # --- Callhapfabia [] ---
     # Key functions: hapFabia
-
+    hapRes <- hapFabia(fileName="dataSim1fabia",prefixPath="",
+       sparseMatrixPostfix="_mat",
+       annotPostfix="_annot.txt",individualsPostfix="_individuals.txt",
+       labelsA=NULL,pRange="",individuals=0,lowerBP=0,upperBP=0.15,
+       p=10,iter=1,quant=0.01,eps=1e-5,alpha=0.03,cyc=50,non_negative=1,
     # --- Secondexampledata [] ---
     # Key functions: simulateIBDsegmentsFabia
     simulateIBDsegmentsFabia(minruns=2,maxruns=2)
     # --- Secondexamplecallhapfabia [] ---
     # Key functions: hapFabia
-
+    hapRes <- hapFabia(fileName="dataSim2fabia",prefixPath="",
+       sparseMatrixPostfix="_mat",
+       annotPostfix="_annot.txt",individualsPostfix="_individuals.txt",
+       labelsA=NULL,pRange="",individuals=0,lowerBP=0,upperBP=0.15,
+       p=10,iter=1,quant=0.01,eps=1e-5,alpha=0.03,cyc=50,non_negative=1,
     # --- Histograms [] ---
     # Key functions: histL
     data(res)

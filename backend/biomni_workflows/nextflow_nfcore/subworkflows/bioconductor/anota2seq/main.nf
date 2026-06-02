@@ -43,7 +43,8 @@ process BIOC_ANOTA2SEQ {
 
     # --- anota2seq Data Set From Matrix [] ---
     # Key functions: anota2seqDataSetFromMatrix, anota2seqRun
-
+    ads <- anota2seqDataSetFromMatrix(
+    ads <- anota2seqRun(ads)
     # --- anota2seq Plot F C [] ---
     # Key functions: anota2seqPlotFC
     anota2seqPlotFC(ads, selContrast = 1, plotToFile = FALSE)
@@ -54,23 +55,25 @@ process BIOC_ANOTA2SEQ {
     selContrast = 1)[, c("apvEff", "apvRvmPAdj", "singleRegMode")])
     # --- initialize object from matrix [] ---
     # Key functions: anota2seqDataSetFromMatrix
-
+    ads <- anota2seqDataSetFromMatrix(
     # --- prepare SE [] ---
     # Key functions: SummarizedExperiment
     library(SummarizedExperiment)
     countData <- as.matrix(cbind(anota2seq_data_P[1:1000,],anota2seq_data_T[1:1000,]))
+    anot <- data.frame(
     # --- initialize object from SE [] ---
     # Key functions: anota2seqDataSetFromSE
-
+    adsFromSE <- anota2seqDataSetFromSE(
+    assayNum = 1, # Position of the count data in assays(mySummarizedExperiment)
     # --- assess model assumptions [] ---
     # Key functions: anota2seqPerformQC
-
+    ads <- anota2seqPerformQC(Anota2seqDataSet = ads,
     # --- assess model assumptions echoFALSE [] ---
     # Key functions: anota2seqPerformQC
-
+    ads <- anota2seqPerformQC(Anota2seqDataSet = ads,
     # --- assess model assumptions2 [] ---
     # Key functions: anota2seqResidOutlierTest
-
+    anota2seqResidOutlierTest(ads, residFitPlot = FALSE,
     # --- assess model assumptions2 echoFALSE [] ---
     # Key functions: anota2seqResidOutlierTest
     ads <- anota2seqResidOutlierTest(ads, residFitPlot = FALSE, generateSingleGenePlots = TRUE, nGraphs = 12)
@@ -82,14 +85,15 @@ process BIOC_ANOTA2SEQ {
     analysis = c("translation", "buffering"))
     # --- analysis translation and buffering echoFALSE [] ---
     # Key functions: anota2seqAnalyze
-
+    ads <- anota2seqAnalyze(Anota2seqDataSet = ads,
+    analysis = c("translation", "buffering"),
     # --- anota2seq Plot Pvalues [] ---
     # Key functions: anota2seqPlotPvalues
     par(mfrow = c(1, 2))
     anota2seqPlotPvalues(ads, selContrast = 1, plotToFile = FALSE)
     # --- selSigGenes translation buffering [] ---
     # Key functions: anota2seqSelSigGenes
-
+    ads <- anota2seqSelSigGenes(Anota2seqDataSet = ads,
     # --- singleGeneRegressions translation [] ---
     # Key functions: anota2seqPlotGenes
     anota2seqPlotGenes(ads, selContrast = 1, analysis = "translation", plotToFile = FALSE)

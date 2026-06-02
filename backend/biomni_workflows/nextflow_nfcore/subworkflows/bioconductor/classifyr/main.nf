@@ -55,10 +55,16 @@ process BIOC_CLASSIFYR {
     # Key functions: DataFrame, mcols, frame, crossValidate, performancePlot
     -----------------------------------------------------------------------------------------------------------------------
     measurementsDF <- DataFrame(measurements)
+    mcols(measurementsDF) <- data.frame(
+      assay = rep(c("assay_1", "assay_2"), times = c(10, 1990)),
+      feature = colnames(measurementsDF)
     # --- List [] ---
     # Key functions: frame, crossValidate, performancePlot
     -----------------------------------------------------------------------------------------------------------------------
     # Assigns first 10 variables to dataset_1, and the rest to dataset_2
+    measurementsList <- list(
+      (measurements |> as.data.frame())[1:10],
+      (measurements |> as.data.frame())[11:2000]
     # --- Modellingparams [] ---
     # Key functions: ModellingParams
     -----------------------------------------------------------------------------------------------------------------------

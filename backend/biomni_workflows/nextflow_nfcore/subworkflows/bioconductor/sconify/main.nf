@@ -56,6 +56,7 @@ process BIOC_SCONIFY {
     # Compare to a coin toss distribution
     # Flips a coin k number of times, n repetitions, and returns the vector
     # containing the per-k percent heads
+    KFlip <- function(k, n) {
     # --- Tsnevis [] ---
     # Key functions: TsneVis, IgM
     ---------------------------------------------------------------------

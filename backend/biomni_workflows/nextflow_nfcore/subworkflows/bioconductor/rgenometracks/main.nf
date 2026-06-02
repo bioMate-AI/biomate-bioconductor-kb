@@ -41,31 +41,13 @@ process BIOC_RGENOMETRACKS {
     library(rGenomeTracks)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
-
-    # --- Eval=false [] ---
-    # Key functions: AnnotationHub, query, track_hic_matrix, rGenomeTracksData, log1p, extdata, tad_classification.bed, rGenomeTracks
-    #  # Download h5 example
-    #  ah <- AnnotationHub()
-    #  query(ah, "rGenomeTracksData")
-    #  h5_dir <-  ah[["AH95901"]]
-    #  
-    #   # Create HiC track from HiC matrix
-    #   h5 <- track_hic_matrix(
-    #     file = h5_dir, depth = 250000, min_value = 5, max_value = 200,
-    #     transform = "log1p", show_masked_bins = FALSE
-    #   )
-    #  
-
-    ## -----------------------------------------------------------------------------
-     # Load other examples
-     tads_dir <- system.file("extdata", "tad_classification.bed", package = "rGenomeTracks")
+    # --- Files [] ---
+    # Key functions: files, bed
+    ---------------------------------------------------------------------
+    dirs <- list.files(system.file("extdata", package = "rGenomeTracks"), full.names = TRUE)
+    # filter only bed files (without bedgraphs or narrowpeaks)
+    bed_dirs <- grep(
+      dirs,  pattern = ".bed(?!graph)", perl = TRUE, value = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

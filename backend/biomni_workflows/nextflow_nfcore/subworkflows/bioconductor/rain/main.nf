@@ -57,6 +57,8 @@ process BIOC_RAIN {
     results <- rain(t(menetRNASeqMouseLiver), deltat=4, period=24, nr.series=2,
                     peak.border=c(0.3, 0.7), verbose=FALSE)
     best <- order(results$pVal)[1:10]
+    xyplot(as.matrix(menetRNASeqMouseLiver
+                [best, (0:5 * 2 + rep(c(1, 2), each = 6))])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

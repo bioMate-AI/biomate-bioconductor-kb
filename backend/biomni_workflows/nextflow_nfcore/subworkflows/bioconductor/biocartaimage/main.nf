@@ -49,9 +49,13 @@ process BIOC_BIOCARTAIMAGE {
     # --- crop = NULL [] ---
     # Key functions: pointsGrob
     grid.newpage()
+    grob2 = mark_gene(grob, "1387", function(x, y) {
+    pos = pos_by_polygon(x, y, where = "left")
     # --- crop = NULL [] ---
     # Key functions: pushViewport, popViewport
     grid.newpage()
+    grob4 = mark_gene(grob, "1387", function(x, y) {
+    pos = pos_by_polygon(x, y)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

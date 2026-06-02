@@ -41,13 +41,11 @@ process BIOC_COMAPR {
     library(comapr)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
+    # --- register [] ---
+    # Key functions: register, bpparam, correctGT, mcols
+    if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+    BiocManager::install("comapr")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

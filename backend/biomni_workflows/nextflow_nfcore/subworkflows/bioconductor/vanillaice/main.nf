@@ -82,6 +82,7 @@ process BIOC_VANILLAICE {
     ## A directory to keep parsed files
     ##
     parsedDir <- tempdir()
+    views <- ArrayViews(rowRanges=fgr, sourcePaths=files,
     # --- Fread [] ---
     # Key functions: fread
     ## read the first file

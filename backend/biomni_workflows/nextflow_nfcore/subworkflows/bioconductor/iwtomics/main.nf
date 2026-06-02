@@ -43,7 +43,8 @@ process BIOC_IWTOMICS {
 
     # --- ETn two samples test [] ---
     # Key functions: adjusted_pval
-
+    ETn_test=IWTomicsTest(ETn_example,
+    adjusted_pval(ETn_test)
     # --- ETn test plot scale 10kb [] ---
     # Key functions: adjusted_pval, plotTest
     adjusted_pval(ETn_test,scale_threshold=10)
@@ -61,9 +62,12 @@ process BIOC_IWTOMICS {
     # --- adjusted_pval [] ---
     # Key functions: adjusted_pval
     set.seed(16)
+    result_rep1=IWTomicsTest(regionsFeatures,
+    adjusted_pval(result_rep1)
     # --- not fully computable p [] ---
     # Key functions: adjusted_pval
-
+    result_warning=IWTomicsTest(regionsFeatures_center,
+    adjusted_pval(result_warning)
     # --- two samples test [] ---
     # Key functions: plotTest
     plotTest(result2_mean,alpha=0.05,id_features_subset='ftr1')
@@ -77,7 +81,9 @@ process BIOC_IWTOMICS {
     plotSummary(result1_mu1,alpha=0.05,groupby='feature',align_lab='Center')
     # --- plot Summary [] ---
     # Key functions: plotSummary
-
+    result_many=IWTomicsTest(regionsFeatures,
+    id_region1=c('elem1','elem2','elem3',
+    id_region2=c(rep('control',3),
     # --- curve alignment scale [] ---
     # Key functions: lengthFeatures, features
     data(regionsFeatures_scale)
@@ -85,7 +91,9 @@ process BIOC_IWTOMICS {
     features(regionsFeatures_scale)[['ftr1']][['elem1']][,1]
     # --- curve alignment scale [] ---
     # Key functions: adjusted_pval, plotSummary
-
+    result=IWTomicsTest(regionsFeatures_scale_smooth,
+    id_region1=c('elem1','elem2','elem3'),
+    id_region2=c('control','control','control'),
     # --- change resolution [] ---
     # Key functions: lengthFeatures
     lengthFeatures(regionsFeatures)
@@ -93,7 +101,8 @@ process BIOC_IWTOMICS {
     resolution=c(4000,1000))
     # --- selection of relevant scale [] ---
     # Key functions: plotTest
-
+    result_scale=IWTomicsTest(regionsFeatures_center,
+    plotTest(result_scale,alpha=0.05,scale_threshold=8)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

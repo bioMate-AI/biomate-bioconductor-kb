@@ -41,63 +41,11 @@ process BIOC_QUBIC {
     library(QUBIC)
     library(jsonlite)
 
-
-    # --- Comment=na [] ---
-    # Key functions: citation
-    citation("QUBIC")
-
-    # --- Random [] ---
-    # Key functions: rnorm, qudiscretize, cond, gene
-    library(QUBIC)
-    set.seed(1)
-    # Create a random matrix
-    test <- matrix(rnorm(10000), 100, 100)
-    colnames(test) <- paste("cond", 1:100, sep = "_")
-    rownames(test) <- paste("gene", 1:100, sep = "_")
-
-    # Discretization
-    matrix1 <- test[1:7, 1:4]
-    matrix1
-
-    matrix2 <- qudiscretize(matrix1)
-    matrix2
-
-    # Fill bicluster blocks
-
-    # --- Yeast [] ---
-    # Key functions: qudiscretize, system.time, biclust, BCQU, summary
-    library(QUBIC)
-    data(BicatYeast)
-
-    # Discretization
-    matrix1 <- BicatYeast[1:7, 1:4]
-    matrix1
-
-    matrix2 <- qudiscretize(matrix1)
-    matrix2
-
-    # QUBIC
-    x <- BicatYeast
-    system.time(res <- biclust::biclust(x, method = BCQU()))
-
-    summary(res)
-
-    # --- Ecoli [] ---
-    # Key functions: qudiscretize, biclust, BCQU, system.time, ecoli
-    library(QUBIC)
-    library(QUBICdata)
-    data("ecoli", package = "QUBICdata")
-
-    # Discretization
-    matrix1 <- ecoli[1:7, 1:4]
-    matrix1
-
-    matrix2 <- qudiscretize(matrix1)
-    matrix2
-
-    # QUBIC
-    res <- biclust::biclust(ecoli, method = BCQU(), r = 1, q = 0.06, c = 0.95, o = 100, 
-        f = 0.25, k = max(ncol(ecoli)%/%20, 2))
+    # --- Qudiscretize analysis [] ---
+    # Key functions: qudiscretize, runif, biclust, colorRampPalette, quheatmap, qunetwork, qgraph, showinfo
+    net <- qunetwork(ecoli, res, number = c(4, 8), group = c(4, 8), method = "spearman")
+    if (requireNamespace("qgraph", quietly = TRUE))
+    qgraph::qgraph(net[[1]], groups = net[[2]], legend.cex = 0.5, layout = "spring",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

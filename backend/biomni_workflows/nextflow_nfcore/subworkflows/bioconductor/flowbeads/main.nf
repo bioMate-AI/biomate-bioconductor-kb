@@ -46,6 +46,9 @@ process BIOC_FLOWBEADS {
     # Key functions: xtable, Fluorochromes
     library(xtable)
     data(dakomef)
+    print(xtable(dakomef,
+                 caption=
+                 "
     # --- Loadbeads [] ---
     # Key functions: BeadFlowFrame
     ## beads1 <- BeadFlowFrame(fcs.filename=system.file('extdata', 'beads1.fcs', package='flowBeads'),
@@ -81,6 +84,9 @@ process BIOC_FLOWBEADS {
     # Key functions: getTransformFunction, getMEFtransform, fun
     old.par <- par(no.readonly=T)
     par(mfrow=c(1,2))
+    plot(getTransformFunction(beads1)(beads1.mean.fi.APC),
+         getTransformFunction(beads2)(beads2.mean.fi.APC),
+         xlim=c(0,5),
     # --- Tomef [] ---
     # Key functions: toMEF
     ## toMEF(gbeads1, flow.data)

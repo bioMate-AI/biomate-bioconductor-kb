@@ -118,6 +118,7 @@ process BIOC_STAGER {
     ### regular DEXSeq analysis
     sampleData <- pData(esetProstate)
     geneForEachTx <- tx2gene[match(rownames(exprs(esetProstate)),tx2gene[,1]),2]
+    dxd <- DEXSeqDataSet(countData = exprs(esetProstate),
     # --- Matrix [] ---
     # Key functions: dimnames, fData
     ---------------------------------------------------------------------

@@ -41,50 +41,11 @@ process BIOC_LOCI2PATH {
     library(loci2path)
     library(jsonlite)
 
-
-    # --- Query Region [] ---
-    # Key functions: read.table, makeGRangesFromDataFrame, extdata, loci2path, chr, start, end
-    require(GenomicRanges)
-    bed.file <- system.file("extdata", "query/Psoriasis.BED", package = "loci2path")
-    query.bed <- read.table(bed.file, header=FALSE)
-    colnames(query.bed) <- c("chr","start","end")
-    query.gr <- makeGRangesFromDataFrame(query.bed)
-
-    # --- Eset [] ---
-    # Key functions: read.table, GRanges, Rle, IRanges, eqtlSet, extdata, loci2path, brain
-    library(loci2path)
-    library(GenomicRanges)
-    brain.file <- system.file("extdata", "eqtl/brain.gtex.txt", 
-                           package="loci2path")
-    tab <- read.table(brain.file, stringsAsFactors=FALSE, header=TRUE)
-    snp.gr <- GRanges(seqnames=Rle(tab$snp.chr), 
-      ranges=IRanges(start=tab$snp.pos, 
-      width=1))
-    brain.eset <- eqtlSet(tissue="brain",
-      eqtlId=tab$snp.id,
-      eqtlRange=snp.gr,
-      gene=as.character(tab$gene.entrez.id))
-    brain.eset
-
-    skin.file <- system.file("extdata", "eqtl/skin.gtex.txt", package="loci2path")
-
-    # --- Esetlist [] ---
-    # Key functions: read.delim, read.table, extdata, loci2path
+    # --- gene Set [] ---
+    # Key functions: geneSet, resultTable, coveredGene, getMat, getWordcloud
     eset.list <- list(Brain=brain.eset, Skin=skin.eset, Blood=blood.eset)
-    eset.list
-
-    ## -----------------------------------------------------------------------------
-    biocarta.link.file <- system.file("extdata", "geneSet/biocarta.txt", 
-                                   package="loci2path")
-    biocarta.set.file <- system.file("extdata", "geneSet/biocarta.set.txt", 
-                                  package="loci2path")
-
-    biocarta.link <- read.delim(biocarta.link.file, header=FALSE, 
-                             stringsAsFactors=FALSE)
-    set.geneid <- read.table(biocarta.set.file, stringsAsFactors=FALSE)
-    set.geneid <- strsplit(set.geneid[,1], split=",")
-    names(set.geneid) <- biocarta.link[,1]
-
+    biocarta.link.file <- system.file("extdata", "geneSet/biocarta.txt",
+    biocarta.set.file <- system.file("extdata", "geneSet/biocarta.set.txt",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

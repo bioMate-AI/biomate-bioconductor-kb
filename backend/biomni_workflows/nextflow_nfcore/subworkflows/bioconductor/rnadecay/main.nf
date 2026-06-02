@@ -59,6 +59,8 @@ process BIOC_RNADECAY {
     ---------------------------------------------------------------------
     mean_RPM <- data.frame("geneID" = rownames(RPMs))
     SE_RPM <- data.frame("geneID" = rownames(RPMs))
+    for(g in treatment){
+      for(t in tdecay){
     # --- Rep [] ---
     # Key functions: rep
     ---------------------------------------------------------------------
@@ -67,6 +69,9 @@ process BIOC_RNADECAY {
     # Key functions: frame, rowMeans, cols
     ---------------------------------------------------------------------
     mT0norm <- data.frame(row.names = rownames(RPMs)[filt1])
+    for(g in treatment){
+      mean_T0reps <- rowMeans(RPMs[filt1, cols(df=RPMs, patterns=c(g, "00"))])
+      for(r in reps){
     # --- Colmeans [] ---
     # Key functions: colMeans
     ---------------------------------------------------------------------
@@ -107,18 +112,23 @@ process BIOC_RNADECAY {
     # Key functions: mclapply, getOption, here
     ---------------------------------------------------------------------
     ####### To run all genes in parallel use:
+    # parallel::mclapply(ids, FUN = mod_optimization,
+    #                    data = decay_data, group = groups, mod = mods,
+    #                    alpha_bounds = a_bounds, beta_bounds = b_bounds,
     # --- Sample [] ---
     # Key functions: sample, time, mod_optimization
     ---------------------------------------------------------------------
     test_ids <- sample(ids, 1) # NOTE: that everytime this line is run it generates a different random sampling, therefore the gene modeled below will be different each time this code is run. To test the exact gene shown in the vignette make a new character vector of the gene id reported below and pass it to the gene argument of mod_optimization using lapply instead of passing 'test_ids' as we do here.
     test_ids
     a <- proc.time()[3]
+    models <- lapply(X = test_ids, # alternatively use `ids` here to complete the entire sample data set, but be prepared to wait ~ 10 h. These gene IDs will get passed one at time to the "gene" argument of mod_optimization() and return a list of the results data frame.
     # --- Pdf [] ---
     # Key functions: ggplot, geom_histogram, aes, coord_cartesian
     ---------------------------------------------------------------------
     library(ggplot2)
     pdf(paste0(wrdir,"/distributions of stats.pdf"))
     p <- ggplot(results)
+    print(p+geom_histogram(aes(x = sigma2), bins = 300)+
     # --- Delim [] ---
     # Key functions: delim
     ---------------------------------------------------------------------

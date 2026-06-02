@@ -57,6 +57,7 @@ process BIOC_HICONTACTS {
     ## Square matrix
     plotMatrix(hic, use.scores = 'balanced', limits = c(-4, -1))
     ## Horizontal matrix
+    plotMatrix(
     # --- Hicontactsdata [] ---
     # Key functions: HiContactsData, import, makeGInteractionsFromGRangesPairs, plotMatrix
     ---------------------------------------------------------------------
@@ -70,6 +71,7 @@ process BIOC_HICONTACTS {
     aggr_centros <- HiContacts::aggregate(
         hic, targets = loops, BPPARAM = BiocParallel::SerialParam()
     )
+    plotMatrix(
     # --- Hicontactsdata [] ---
     # Key functions: HiContactsData, import, autocorrelate, scores, plotMatrix
     ---------------------------------------------------------------------
@@ -82,6 +84,8 @@ process BIOC_HICONTACTS {
     ---------------------------------------------------------------------
     hic <- import(mcool_file, format = 'mcool', focus = 'chr18:20000000-35000000', resolution = 40000)
     detrended_hic <- detrend(hic)
+    patchwork::wrap_plots(
+        plotMatrix(detrended_hic, use.scores = 'expected', scale = 'log10', limits = c(-3, -1), dpi = 120),
     # --- Hicontactsdata [] ---
     # Key functions: HiContactsData, import
     ---------------------------------------------------------------------
@@ -101,6 +105,8 @@ process BIOC_HICONTACTS {
     ---------------------------------------------------------------------
     hic_1_despeckled <- despeckle(hic_1)
     hic_1_despeckled5 <- despeckle(hic_1, focal.size = 5)
+    p <- patchwork::wrap_plots(
+        plotMatrix(hic_1, use.scores = 'balanced', scale = 'log10', limits = c(-4, -1)),
     # --- Hicontactsdata [] ---
     # Key functions: HiContactsData, import, getCompartments, export, coverage, metadata, topologicalFeatures
     ---------------------------------------------------------------------

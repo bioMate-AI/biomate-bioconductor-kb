@@ -38,80 +38,16 @@ process BIOC_BIONERO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BioNERO)
+    library(PC_correction)
+    library(SFT_fit)
+    library(ZKfiltering)
     library(jsonlite)
 
-
-    # --- Data Loading Soybean [] ---
-    # Key functions: colData, replace_na, remove_nonexp
-    data(zma.se)
-
-    # Take a quick look at the data
-    zma.se
-    SummarizedExperiment::colData(zma.se)
-    exp_filt <- replace_na(zma.se)
-    sum(is.na(zma.se))
-    exp_filt <- remove_nonexp(exp_filt, method = "median", min_exp = 10)
-    dim(exp_filt)
-
-    # --- Filter By Variance [] ---
-    # Key functions: filter_by_variance, ZKfiltering, pearson, PC_correction
-    exp_filt <- filter_by_variance(exp_filt, n = 2000)
-    dim(exp_filt)
-    exp_filt <- ZKfiltering(exp_filt, cor_method = "pearson")
-    dim(exp_filt)
-    exp_filt <- PC_correction(exp_filt)
-
-    # --- Exp Preprocess [] ---
-    # Key functions: exp_preprocess, identical, plot_heatmap, expression, samplecor, expr
-    final_exp <- exp_preprocess(
-        zma.se, min_exp = 10, variance_filter = TRUE, n = 2000
-    )
-    identical(dim(exp_filt), dim(final_exp))
-
-    # Take a look at the final data
-    final_exp
-    # This object is no longer necessary
-    rm(exp_filt)
-    # Heatmap of sample correlations
+    # --- Sample metadata inspection [] ---
+    # Key functions: colData, replace_na, remove_nonexp, filter_by_variance, ZKfiltering, PC_correction, exp_preprocess, plot_heatmap
     p <- plot_heatmap(final_exp, type = "samplecor", show_rownames = FALSE)
-    p
-
-    # Heatmap of gene expression (here, only the first 50 genes)
+    Heatmap of gene expression (here, only the first 50 genes)
     p <- plot_heatmap(
-        final_exp[1:50, ], type = "expr", show_rownames = FALSE, show_colnames = FALSE
-    )
-    p
-
-    # --- Pcaplot [] ---
-    # Key functions: plot_PCA, SFT_fit, pearson
-    plot_PCA(final_exp)
-    sft <- SFT_fit(final_exp, net_type = "signed hybrid", cor_method = "pearson")
-    sft$power
-    power <- sft$power
-    sft$plot
-
-    # --- Exp2net [] ---
-    # Key functions: exp2gcn, pearson, plot_dendro_and_colors, plot_eigengene_network
-    net <- exp2gcn(
-        final_exp, net_type = "signed hybrid", SFTpower = power, 
-        cor_method = "pearson"
-    )
-    names(net)
-    # Dendro and colors
-    plot_dendro_and_colors(net)
-    # Eigengene networks
-    plot_eigengene_network(net)
-
-    # --- Genes Per Module [] ---
-    # Key functions: plot_ngenes_per_module, module_stability, module_trait_cor, plot_module_trait_cor
-    plot_ngenes_per_module(net)
-    module_stability(final_exp, net, nRuns = 5)
-    MEtrait <- module_trait_cor(exp = final_exp, MEs = net$MEs)
-    head(MEtrait)
-
-    ## ----plot-module-trait-cor, fig.width = 5, fig.height = 5---------------------
-    plot_module_trait_cor(MEtrait)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

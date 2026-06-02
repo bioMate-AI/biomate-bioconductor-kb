@@ -64,6 +64,10 @@ process BIOC_TDBASEDUFE {
     # --- Preparesummarizedexperimenttensorsquare [] ---
     # Key functions: PrepareSummarizedExperimentTensorSquare, convertSquare, computeHosvdSqure
     ---------------------------------------------------------------------
+    Z <- PrepareSummarizedExperimentTensorSquare(
+        sample=matrix(colnames(CLL_data$Drugs),1),
+        feature=list(Drugs=rownames(CLL_data$Drugs),
+        Methylation=rownames(CLL_data$Methylation),
     # --- Table [] ---
     # Key functions: attr
     ---------------------------------------------------------------------

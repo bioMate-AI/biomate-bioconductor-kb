@@ -41,23 +41,13 @@ process BIOC_SELECTKSIGS {
     library(selectKSigs)
     library(jsonlite)
 
-
-    # --- Include=false [] ---
-    # Key functions: cv_PMSignature, gather, group_by, mutate, which.min, geom_rect, free
-    set.seed(5)
-    results <- cv_PMSignature(G, Kfold = 3, nRep = 3, Klimit = 7)
-    print(results)
-
-    ## -----------------------------------------------------------------------------
+    # --- Seq Len [] ---
+    # Key functions: gather, group_by, mutate, ggplot, geom_point
+    ---------------------------------------------------------------------
     results$Kvalue <- seq_len(nrow(results)) + 1
-    results_df <- gather(results, Method, value, -Kvalue) %>% 
+    results_df <- gather(results, Method, value, -Kvalue) %>%
       group_by(Method) %>%
       mutate(xmin = which.min(value) + 1 - 0.1,
-             xmax = which.min(value) + 1 + 0.1)
-
-    ggplot(results_df) +
-      geom_point(aes(x = Kvalue, y = value, color = Method), size = 2) +
-      facet_wrap(~ Method, scales = "free") + 
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

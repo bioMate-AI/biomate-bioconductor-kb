@@ -50,10 +50,16 @@ process BIOC_FACTDESIGN {
     # Key functions: exprs
     par(mfrow=c(2,2))
     par(las=2)
+    for (i in c("34371_at","37325_at","33744_at","39792_at")){
+    	expvals <- 2^exprs(estrogen)[i,]
+    	plot(expvals,axes=F,cex=1.5,
     # --- Moreplots [] ---
     # Key functions: exprs
     par(mfrow=c(2,2))
     par(las=2)
+    for (i in c("32536_at","40446_at","32901_s_at","31826_at")){
+    	expvals <- exprs(estrogen)[i,]
+    	plot(expvals,axes=F,cex=1.5,
     # --- Outliers [] ---
     # Key functions: outlierPair, exprs, pData, madOutPair
     op1 <- outlierPair(exprs(estrogen)["728_at",],INDEX=pData(estrogen),p=.05)

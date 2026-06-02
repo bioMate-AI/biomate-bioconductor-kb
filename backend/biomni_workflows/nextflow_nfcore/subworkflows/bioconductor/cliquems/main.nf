@@ -41,43 +41,10 @@ process BIOC_CLIQUEMS {
     library(cliqueMS)
     library(jsonlite)
 
-
-    # --- Anclique [] ---
-    # Key functions: createanClique, show
+    # --- show [] ---
+    # Key functions: show
     ex.anClique <- createanClique(mzData)
     show(ex.anClique)
-
-    # --- Cliquefind [] ---
-    # Key functions: getCliques, show
-    set.seed(2)
-    ex.cliqueGroups <- getCliques(mzData, filter = TRUE)
-    show(ex.cliqueGroups)
-
-    # --- Isotopes [] ---
-    # Key functions: getIsotopes, show
-    ex.Isotopes <- getIsotopes(ex.cliqueGroups, ppm = 10)
-    show(ex.Isotopes)
-
-    # --- Positive [] ---
-    # Key functions: cliquems
-    data(positive.adinfo)
-    head(positive.adinfo)
-    data(negative.adinfo)
-    head(negative.adinfo)
-
-    # --- Adducts [] ---
-    # Key functions: getAnnotation, show, positive
-    ex.Adducts <- getAnnotation(ex.Isotopes, ppm = 10,
-        adinfo = positive.adinfo, polarity = "positive",
-        normalizeScore = TRUE)
-    show(ex.Adducts)
-
-    # --- Peaklist [] ---
-    # Key functions: getlistofCliques, getPeaklistanClique, an1, mass1, an2, mass2, an3, mass3
-    features.clique6 <- getlistofCliques(ex.Adducts)[[6]]
-    head(getPeaklistanClique(ex.Adducts)[features.clique6,
-        c("an1","mass1","an2", "mass2", "an3", "mass3", "an4", "mass4", "an5",
-        "mass5")], n = 10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

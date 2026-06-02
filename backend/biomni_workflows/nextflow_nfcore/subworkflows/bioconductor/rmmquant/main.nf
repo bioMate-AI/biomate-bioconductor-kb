@@ -45,7 +45,9 @@ process BIOC_RMMQUANT {
 
     # --- Create DESeqDataSet from count matrix [] ---
     # Key functions: RmmquantRun, DESeqDataSetFromMatrix, DESeq, lfcShrink
-
+    output   <- RmmquantRun(genomicRanges=gr, readsFiles=bamFiles,
+    coldata <- data.frame(condition=factor(c(rep("control", 3), rep("KO", 3)),
+    levels=c("control", "KO")),
     # --- Assay listing [] ---
     # Key functions: RmmquantRun, assays, getBamFileList, genes
     dir <- system.file("extdata", package="Rmmquant", mustWork = TRUE)

@@ -46,6 +46,8 @@ process BIOC_ENMIX {
     # --- Sample metadata inspection [] ---
     # Key functions: readidat, QCinfo, preprocessENmix, rcp, qcfilter, colData, plotCtrl, AnnotatedDataFrame
     library(ENmix)
+    rgSet <- readidat(path = "directory path for idat files",
+    system("wget https://webdata.illumina.com/downloads/productfiles/humanmethylation450/humanmethylation450_15017482_v1-2.csv")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

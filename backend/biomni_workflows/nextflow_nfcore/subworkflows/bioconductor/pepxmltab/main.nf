@@ -54,6 +54,7 @@ process BIOC_PEPXMLTAB {
     pepxml <- system.file("extdata/pepxml", "Myrimatch.pepXML",
             package="pepXMLTab")
     tttt <- pepXML2tab(pepxml)
+    passed <- PSMfilter(tttt, pepFDR=0.01, scorecolumn='mvh', hitrank=1,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -44,6 +44,10 @@ process BIOC_OMICSPCA {
     # --- Descriptor [] ---
     # Key functions: descriptor
     ---------------------------------------------------------------------
+    descriptor(name = multi_assay,
+    factors = c(
+    "H2az",
+    "H3k4me1","H3k9ac"),
     # --- Chart Correlation [] ---
     # Key functions: chart_correlation
     ---------------------------------------------------------------------
@@ -55,12 +59,15 @@ process BIOC_OMICSPCA {
     ---------------------------------------------------------------------
     # selecting top 40 TSS groups according to their contribution on
     # PC 1 and PC 2 using the argument "select.ind"
+    selected <- analyse_individuals(name = PCAlist,
+    Assay = "H3k4me1",
     # --- Example [] ---
     # Key functions: example
     ---------------------------------------------------------------------
     # The TSSs used in this example (each row) are obtained by combining
     # many neighboring TSSs together. The combinations should be uncombined
     # to find the corresponding annotations.
+    names  <- gsub(";",",",paste(as.character(selected$data$name),
     # --- Plot Integrated Density [] ---
     # Key functions: plot_integrated_density, functions, densityplot
     ---------------------------------------------------------------------
@@ -101,6 +108,7 @@ process BIOC_OMICSPCA {
     bp <- cluster_boxplot(name = multi_assay,
     Assay = "H2az", clusterobject = clustered_data,
     clustercolumn = 5)
+    bp <- bp+xlab("Cell lines") + ylab(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

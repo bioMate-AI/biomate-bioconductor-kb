@@ -61,6 +61,9 @@ process BIOC_NANOMETHVIZ {
     # Key functions: file
     ---------------------------------------------------------------------
     # loading saved results from previous bsseq analysis
+    bsseq_dmr <- read.table(
+        system.file(package = "NanoMethViz", "dmr_subset.tsv.gz"),
+        sep = "\t",
     # --- Plot Gene Methylation [] ---
     # Key functions: plot_gene
     ---------------------------------------------------------------------
@@ -69,6 +72,9 @@ process BIOC_NANOMETHVIZ {
     # Key functions: ModBamResult, ModBamFiles, frame, plot_gene
     ---------------------------------------------------------------------
     # construct with a ModBamFiles object as the methylation data
+    mbr <- ModBamResult(
+        methy = ModBamFiles(
+            samples = "sample1",
     # --- Convert Exons to Genes [] ---
     # Key functions: exons_to_genes, exons, bsseq_to_edger
     ---------------------------------------------------------------------
@@ -85,6 +91,8 @@ process BIOC_NANOMETHVIZ {
     ---------------------------------------------------------------------
     anno <- anno %>%
         as.data.frame() %>%
+        dplyr::rename(
+            chr = "seqnames",
     # --- Process Exon Annotations [] ---
     # Key functions: exons, exons_to_genes, mutate, plot_gene
     ---------------------------------------------------------------------

@@ -43,10 +43,14 @@ process BIOC_NETACTIVITY {
 
     # --- Custom ggplot2 visualization [] ---
     # Key functions: gather, assay, ggplot, geom_boxplot
-
+    rbind(assay(vst[1:5, ]) %>%
+    data.frame() %>%
+    mutate(Gene = rownames(.)) %>%
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_boxplot, theme_bw, ylab
-
+    data.frame(Expression = as.vector(assay(scores["GO:1990440", ])),
+    ggplot(aes(x = Treatment, y = Expression, col = Treatment)) +
+    geom_boxplot() +
     # --- Custom ggplot2 visualization [] ---
     # Key functions: rowData, ggplot, geom_bar, theme_bw, ylab
     weights <- rowData(scores)["GO:1990440", ]$Weights_SYMBOL[[1]]

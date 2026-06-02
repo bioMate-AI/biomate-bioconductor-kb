@@ -43,7 +43,8 @@ process BIOC_QUANTRO {
 
     # --- Phenotype data inspection [] ---
     # Key functions: getBeta, pData, matdensity, matboxplot, quantro, registerDoParallel, quantroPlot
-
+    matdensity(p, groupFactor = pd$CellType, xlab = " ", ylab = "density",
+    legend('top', c("NeuN_neg", "NeuN_pos"), col = c(1, 2), lty = 1, lwd = 3)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -47,7 +47,9 @@ process BIOC_FLOWGATE {
     gs <- GatingSet(fs)
     # --- Compensate data [] ---
     # Key functions: compensation, compensate
-
+    path_to_comp <- system.file("extdata",
+    comp_matrix <- read.table(path_to_comp,
+    comp <- compensation(comp_matrix)
     # --- Acquisition [] ---
     # Key functions: spillover, compensation, compensate
     spillover(some_new_fs[[3]])
@@ -55,10 +57,14 @@ process BIOC_FLOWGATE {
     comp <- compensation(comp_matrix)
     # --- create import function [] ---
     # Key functions: GatingSet, compensation, compensate
-
+    import_gs <- function(path, pattern, compensation_matrix){
+    fs <- read.flowSet(path = path,
+    gs <- GatingSet(fs)
     # --- functional import [] ---
     # Key functions: import_gs, markernames
-
+    path_to_fcs <- system.file("extdata",
+    path_to_comp<- system.file("extdata",
+    comp_matrix <- read.table(path_to_comp,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,41 +41,13 @@ process BIOC_M6ABOOST {
     library(m6Aboost)
     library(jsonlite)
 
-
-    # --- Eval=true [] ---
-    # Key functions: events, truncationAssignment, CtoTAssignment, truncation_positive.bw, truncation_negative.bw, C2T_positive.bw, C2T_negative.bw
-    ## truncationAssignment allows to assign the number of truncation events
-    ## The input should be a GRanges object with the peaks and bigWig files
-    ## with the truncation events (separated per strand)
-    truncationBw_p <- file.path(testpath, "truncation_positive.bw")
-    truncationBw_n <- file.path(testpath, "truncation_negative.bw")
-
-    test <- truncationAssignment(test, 
-        bw_positive=truncationBw_p,
-        bw_negative=truncationBw_n,
-        sampleName = "WT1")
-
-    ## CtoTAssignment allows to assign the number of C-to-T transitions
-    ctotBw_p <- file.path(testpath, "C2T_positive.bw")
-    ctotBw_n <- file.path(testpath, "C2T_negative.bw")
-    # --- Eval=false [] ---
+    # --- Preparingdata [] ---
     # Key functions: preparingData
-    #  ## E.g. for two replicates, this can be calculated as
-    #  peak$WTmean <- (peak$WT1 + peak$WT2)/2
-
-    ## -----------------------------------------------------------------------------
+    ---------------------------------------------------------------------
     ## Extract the features for the m6Aboost prediction
-    test <- preparingData(test, test_gff3, colname_reads="WTmean", 
+    test <- preparingData(test, test_gff3, colname_reads="WTmean",
         colname_C2T="CtoTmean")
     test
-
-    # --- Warning=false [] ---
-    # Key functions: m6Aboost
-    ## Note that since the test data set contains only a tiny fraction of the real 
-    ## data, and a part of the test data belongs to the training set. Here for 
-    ## preventing the unnecessary value change, we set the normalization to FALSE. 
-    out <- m6Aboost(test, "BSgenome.Mmusculus.UCSC.mm10", normalization = FALSE)
-    out
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

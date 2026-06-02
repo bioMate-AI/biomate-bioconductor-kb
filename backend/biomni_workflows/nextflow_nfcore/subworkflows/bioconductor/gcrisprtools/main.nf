@@ -41,28 +41,11 @@ process BIOC_GCRISPRTOOLS {
     library(gCrisprTools)
     library(jsonlite)
 
-
-    # --- Contrastbarchart [] ---
-    # Key functions: ct.contrastBarchart
-    ct.contrastBarchart(regularized, background = FALSE, statistic = 'best.p')
-
-    # --- Contrast Interaction [] ---
-    # Key functions: model.matrix, pData, makeContrasts, gCrisprTools, ann
+    # --- contrast interaction [] ---
+    # Key functions: makeContrasts, voom, lmFit, eBayes
     library(Biobase)
     library(limma)
     library(gCrisprTools)
-
-    #Create a complex model design; removing the replicate term for clarity
-    data("es", package = "gCrisprTools")
-    data("ann", package = "gCrisprTools")
-
-    design <- model.matrix(~ 0 + TREATMENT_NAME, pData(es))
-    colnames(design) <- gsub('TREATMENT_NAME', '', colnames(design))
-    contrasts <-makeContrasts(ControlTime = ControlExpansion - ControlReference,
-                              DeathOverTime = DeathExpansion - ControlReference,
-                              Interaction = DeathExpansion - ControlExpansion, 
-                              levels = design)
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

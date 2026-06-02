@@ -43,7 +43,9 @@ process BIOC_DFPLYR {
 
     # --- "install" [] ---
     # Key functions: valid
-
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("DFplyr")
     # --- "pipe" [] ---
     # Key functions: pull
     mutate(d, newvar = cyl + hp) %>%

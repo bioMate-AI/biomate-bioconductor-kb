@@ -41,24 +41,11 @@ process BIOC_GENOMICDISTRIBUTIONS {
     library(GenomicDistributions)
     library(jsonlite)
 
-
-    # --- Build Features [] ---
-    # Key functions: shift, rnorm, calcFeatureDist, plotFeatureDist, calcPartitionsRef, plotPartitions, hg19
-    featureExample = GenomicRanges::shift(query, round(rnorm(length(query), 0,1000)))
-
-    ## ----distance-to-features-plot, fig.cap="Feature distance plot. Distribution of query regions relative to arbitrary features", fig.small=TRUE----
-    fdd = calcFeatureDist(query, featureExample)
-    plotFeatureDist(fdd)
-
-    ## ----percentage-partition-plot, fig.cap="Partition distribution plot. Percentage distribution of query regions across genomic features", fig.small=TRUE----
-    gp = calcPartitionsRef(query, "hg19")
-    plotPartitions(gp)
-
-    ## ----multiple-percentage-partition-plot, fig.cap="Partition distribution plot for multiple query region sets.", fig.small=TRUE----
-    gp2 = calcPartitionsRef(queryList, "hg19")
-    plotPartitions(gp2)
-
-    ## ----multiple-raw-partition-plot, fig.cap="Raw partition distribution plot for multiple regionsets", fig.small=TRUE----
+    # --- ChromBins analysis [] ---
+    # Key functions: install_github, plotChromBins, plotFeatureDist, plotPartitions, plotExpectedPartitions, plotCumulativePartitions, plotSummarySignal, plotNeighborDist
+    exampleCellMatrixFile = system.file("extdata", "example_cell_matrix.txt", package="GenomicDistributions")
+    cellMatrix = data.table::fread(exampleCellMatrixFile)
+    op = calcSummarySignal(query, cellMatrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

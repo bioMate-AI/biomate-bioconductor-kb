@@ -43,7 +43,9 @@ process BIOC_SUITOR {
 
     # --- suitor [] ---
     # Key functions: suitor
-
+    v1 <- c("min.value", "min.rank", "max.rank", "k.fold", "em.eps", "max.iter",
+    v2 <- c("Minimum value of matrix before factorizing", "Minimum rank",
+    "0 or 1 to print info (0=no printing)")
     # --- suitor Extract W H [] ---
     # Key functions: suitorExtractWH, get_known_signatures, plot_96_profile
     v1 <- c("min.value", "n.starts", "print")

@@ -41,52 +41,11 @@ process BIOC_CYTOVIEWER {
     library(cytoviewer)
     library(jsonlite)
 
-
-    # --- Dataset [] ---
-    # Key functions: pancreasImages, pancreasMasks, pancreasSCE
-    # Load example datasets 
+    # --- Cytoviewer analysis [] ---
+    # Key functions: install_github, cytoviewer, runApp, loadImages, mcols, channelNames, measureObjects
     library(cytomapper)
-    data("pancreasImages")
-    data("pancreasMasks")
-    data("pancreasSCE")
-
-    pancreasImages
-    pancreasMasks 
-    pancreasSCE
-
-    # --- Cytoviewer [] ---
-    # Key functions: cytoviewer, interactive, runApp
-    # Use cytoviewer with images, masks and object
-    app <- cytoviewer(image = pancreasImages, 
-                      mask = pancreasMasks, 
-                      object = pancreasSCE, 
-                      img_id = "ImageNb", 
-                      cell_id = "CellNb")
-
-    if (interactive()) {
-
-      shiny::runApp(app, launch.browser = TRUE)
-
-      }
-
-    ## ----read-in-images-----------------------------------------------------------
-    library(cytomapper)
-
-    # --- Measure Objects [] ---
-    # Key functions: measureObjects, cytoviewer, interactive, object_id
-    cur_sce <- measureObjects(image = cur_images, 
-                              mask = cur_masks, 
-                              img_id = "ImageNb")
-    cur_sce
-
-    ## ----cytoviewer-manual--------------------------------------------------------
-    # Use cytoviewer with images, masks and object
-    app_1 <- cytoviewer(image = cur_images, 
-                      mask = cur_masks, 
-                      object = cur_sce, 
-                      img_id = "ImageNb", 
-                      cell_id = "object_id")
-
+    data_path <- system.file("extdata", package = "cytomapper")
+    cur_images <- loadImages(data_path, pattern = "_imc.tiff")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

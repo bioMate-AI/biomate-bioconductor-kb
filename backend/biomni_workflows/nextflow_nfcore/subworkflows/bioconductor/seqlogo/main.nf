@@ -43,7 +43,9 @@ process BIOC_SEQLOGO {
 
     # --- markdown [] ---
     # Key functions: markdown, latex
-
+    knitr::opts_chunk$set(
+    out_type <- knitr::opts_knit$get("rmarkdown.pandoc.to")
+    if (is.null(out_type))
     # --- make P W M [] ---
     # Key functions: makePWM
     mFile <- system.file("extdata/pwm1", package="seqLogo")

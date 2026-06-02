@@ -38,6 +38,7 @@ process BIOC_BASILISK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BasiliskEnvironment)
     library(basilisk)
     library(jsonlite)
 
@@ -66,7 +67,21 @@ process BIOC_BASILISK {
 
     # --- Error=false [] ---
     # Key functions: getwd, file.exists, getCondaDir, getCondaBinary, conda_install, windows
+    if (.Platform$OS.type != "windows") {
+    library(reticulate)
 
+    # In this case, we'll use reticulate directly to construct our conda
+    # environment; though we'll cheat a little and use basilisk's conda
+    # installation, otherwise reticulate will try to install its own miniconda.
+    tmp2 <- file.path(getwd(), "basilisk-vignette-test2")
+    if (!file.exists(tmp2)) {
+        conda.bin <- file.path(
+            basilisk.utils::getCondaDir(), 
+            basilisk.utils::getCondaBinary()
+        )
+        conda_install(tmp2, 
+            packages=c("scipy==1.9.1"), 
+            python_version="3.10", 
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

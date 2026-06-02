@@ -38,7 +38,7 @@ process BIOC_GWASCAT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(gwascat)
+    library(IRanges)
     library(jsonlite)
 
 

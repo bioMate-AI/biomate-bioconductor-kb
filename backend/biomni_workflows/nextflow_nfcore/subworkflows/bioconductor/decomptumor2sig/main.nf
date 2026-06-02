@@ -46,6 +46,8 @@ process BIOC_DECOMPTUMOR2SIG {
     ---------------------------------------------------------------------
     # load example signatures for breast cancer genomes from Nik-Zainal et al
     # (PMID: 22608084) in the format produced by pmsignature (PMID: 26630308)
+    pmsigdata <- system.file("extdata",
+              "Nik-Zainal_PMID_22608084-pmsignature-Param.Rdata",
     # --- Isalexandrovset [] ---
     # Key functions: isAlexandrovSet, isSignatureSet, isShiraishiSet, sameSignatureFormat
     ---------------------------------------------------------------------
@@ -72,6 +74,8 @@ process BIOC_DECOMPTUMOR2SIG {
     ---------------------------------------------------------------------
     # get breast cancer genomes from Nik-Zainal et al (PMID: 22608084)
     # in the format produced by pmsignature (PMID: 26630308)
+    pmsigdata <- system.file("extdata",
+                             "Nik-Zainal_PMID_22608084-pmsignature-G.Rdata",
     # --- Readalexandrovsignatures [] ---
     # Key functions: readAlexandrovSignatures, plotMutationDistribution
     ---------------------------------------------------------------------
@@ -119,6 +123,8 @@ process BIOC_DECOMPTUMOR2SIG {
     ---------------------------------------------------------------------
     # get 4 Shiraishi signatures from 21 breast cancers from
     # Nik-Zainal et al (PMID: 22608084)
+    sigfiles <- system.file("extdata",
+                     paste0("Nik-Zainal_PMID_22608084-pmsignature-sig",1:4,".tsv"),
     # --- Determinesignaturedistances [] ---
     # Key functions: determineSignatureDistances
     ---------------------------------------------------------------------

@@ -49,6 +49,8 @@ process BIOC_MIXOMICS {
     # --- Network and co-expression analysis [] ---
     # Key functions: X11, network
     If facing margin issues, use either X11() or save the plot using the
+    network(final.mint.splsda.stem, comp = 1,
+    color.node = c(color.mixo(1), color.mixo(2)),
     # --- Visualization and reporting [] ---
     # Key functions: kable
     knitr::kable(extr.stab.spls2.liver.comp1[21:40], caption = 'Stability measure (occurence of selection) of the bottom 20 variables from X selected with sPLS2 across repeated 10-fold subsampling on component 1.', longtable = TRUE)

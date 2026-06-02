@@ -45,6 +45,8 @@ process BIOC_MONALISA {
     # --- get Matrix Set [] ---
     # Key functions: getMatrixSet, toPWM, getSeq, findMotifHits
     get PFMs (vertebrate TFs from Jaspar)
+    pfms <- getMatrixSet(JASPAR2020, list(matrixtype = "PFM",
+    randomly sample 300 PFMs for illustration purposes (for quick runtime)
     # --- rand Lasso Stab Sel [] ---
     # Key functions: randLassoStabSel, RNGkind
     randLassoStabSel() is stochastic, so if we run with parallelization

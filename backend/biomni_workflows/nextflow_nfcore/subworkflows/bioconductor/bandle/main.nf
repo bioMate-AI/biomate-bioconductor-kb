@@ -44,6 +44,8 @@ process BIOC_BANDLE {
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: bandleJoint, pheatmap
     par(mfrow = c(1, 2), oma = c(6,2,2,2))
+    barplot(table(alloc1), col = getStockcol()[2],
+    barplot(table(alloc2), col = getStockcol()[2],
     # --- Stockcol analysis [] ---
     # Key functions: setStockcol, plot2D, addLegend, sim_dynamic, fitGPmaternPC, plotGPmatern, prior_pred_dir, bandle
     mycols <- c(getStockcol()[seq(getMarkerClasses(res_control[[1]]))], "grey")

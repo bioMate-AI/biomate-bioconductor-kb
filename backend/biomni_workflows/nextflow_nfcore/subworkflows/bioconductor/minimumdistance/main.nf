@@ -115,7 +115,11 @@ process BIOC_MINIMUMDISTANCE {
                                   parsedPath=parsedPath(views))
     # --- Pedigree List [] ---
     # Key functions: ParentOffspringList, ParentOffspring, parsedPath, pedigreeName
-
+    ped_list <- ParentOffspringList(pedigrees=list(
+                                      ParentOffspring(id = "hapmap", father="12287_03",
+                                                      mother="12287_02",
+                                                      offspring="12287_01",
+                                                      parsedPath=parsedPath(views)),
     # --- Sample Data [] ---
     # Key functions: csv, path, setNames
     sample_info <- read.csv(file.path(extdir, "sample_data.csv"), stringsAsFactors=FALSE)

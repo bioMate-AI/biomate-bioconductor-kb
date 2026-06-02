@@ -90,12 +90,15 @@ process BIOC_FLOWTIME {
     ---------------------------------------------------------------------
     autoplot(data[c(1, 8, 16, 24, 32)], "FSC.A","SSC.A") +
       geom_gate(yeast)
+    #invisible(capture.output(
+      # we have to use this to prevent summary from printing
     # --- Autoplot [] ---
     # Key functions: autoplot, Subset, gate_singlet, geom_gate
     ---------------------------------------------------------------------
     autoplot(Subset(data.1frame, yeast), "FSC-A", "FSC-H")
     library(flowStats)
     chnl <- c("FSC-A", "FSC-H")
+    singlets <- gate_singlet(x = Subset(data.1frame, yeast), area = "FSC.A",
     # --- Autoplot [] ---
     # Key functions: autoplot, geom_gate, facet_wrap, Subset
     ---------------------------------------------------------------------

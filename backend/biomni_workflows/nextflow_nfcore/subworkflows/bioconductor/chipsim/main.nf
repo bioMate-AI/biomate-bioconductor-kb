@@ -55,7 +55,11 @@ process BIOC_CHIPSIM {
     }
     # --- Output [] ---
     # Key functions: readSequence
-
+    dfReads <- function(readPos, readNames, sequence, readLen, ...){
+    	## create vector to hold read sequences and qualities
+    	readSeq <- character(sum(sapply(readPos, sapply, length)))
+    	readQual <- character(sum(sapply(readPos, sapply, length)))
+    	idx <- 1
     # --- Simulation [] ---
     # Key functions: defaultFunctions, simChIP, defaultControl
     myFunctions <- defaultFunctions()
@@ -72,10 +76,18 @@ process BIOC_CHIPSIM {
     ## 		ylab="Density", type='l')
     # --- Bgemission [] ---
     # Key functions: rgamma
-
+    backgroundFeature <- function(start, length=1000, shape=1, scale=20){
+    	 weight <- rgamma(1, shape=1, scale=20)
+    	 params <- list(start = start, length = length, weight = weight)
+    	 class(params) <- c("Background", "SimulatedFeature")
+    	 params
     # --- Bindingemission [] ---
     # Key functions: rpareto1
-
+    bindingFeature <- function(start, length=500, shape=1, scale=20, enrichment=5, r=1.5){
+    	 stopifnot(r > 1)
+    	 avgWeight <- shape * scale * enrichment
+    	 lowerBound <- ((r - 1) * avgWeight)
+    	 weight <- actuar::rpareto1(1, r, lowerBound)
     # --- Features1 1 [] ---
     # Key functions: makeFeatures
     set.seed(1)
@@ -85,6 +97,10 @@ process BIOC_CHIPSIM {
     # --- Sapply [] ---
     # Key functions: density
     bindIdx <- sapply(features, inherits, "Binding")
+     plot(density(sapply(features[!bindIdx], "[[", "weight")),
+    		 xlim=c(0,max(sapply(features, "[[", "weight"))), xlab="Sampling weight", main="")
+     lines(density(sapply(features[bindIdx], "[[", "weight")), col=2)
+     legend("topright", legend=c("Background", "Binding"), col=1:2, lty=1)
     # --- Features1 2 [] ---
     # Key functions: placeFeatures
     set.seed(1)
@@ -103,7 +119,11 @@ process BIOC_CHIPSIM {
     readLoc <- sample(44000:64000, 1e3, prob=dens[44000:64000], replace=TRUE)
     # --- Reconcilefeatures [] ---
     # Key functions: any, inherits
-
+    reconcileFeatures.TFExperiment <- function(features, ...){
+    		bindIdx <- sapply(features, inherits, "Binding")
+    		if(any(bindIdx))
+    			bindLength <- features[[min(which(bindIdx))]]$length
+    		else bindLength <- 1
     # --- Features2 [] ---
     # Key functions: placeFeatures
     set.seed(1)

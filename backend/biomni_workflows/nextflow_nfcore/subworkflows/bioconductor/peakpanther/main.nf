@@ -41,80 +41,9 @@ process BIOC_PEAKPANTHER {
     library(peakPantheR)
     library(jsonlite)
 
-
-    # --- Biocstyle [] ---
+    # --- markdown [] ---
     # Key functions: markdown
     BiocStyle::markdown()
-
-    # --- Eval = False [] ---
-    # Key functions: requireNamespace, install, faahKO
-    #  if (!requireNamespace("BiocManager", quietly = TRUE))
-    #      install.packages("BiocManager")
-    #  
-    #  BiocManager::install("faahKO")
-
-    ## -----------------------------------------------------------------------------
-    library(faahKO)
-    ## file paths
-    input_spectraPaths  <- c(system.file('cdf/KO/ko15.CDF', package = "faahKO"),
-                            system.file('cdf/KO/ko16.CDF', package = "faahKO"),
-                            system.file('cdf/KO/ko18.CDF', package = "faahKO"))
-    input_spectraPaths
-
-    # --- Results = "asis" [] ---
-    # Key functions: vector, pandoc.table, cpdID, cpdName, rtMin, rtMax, mzMin, mzMax
-    # use pandoc for improved readability
-    input_targetFeatTable <- data.frame(matrix(vector(), 2, 8, dimnames=list(c(), 
-                            c("cpdID", "cpdName", "rtMin", "rt", "rtMax", "mzMin", 
-                            "mz", "mzMax"))), stringsAsFactors=FALSE)
-    input_targetFeatTable[1,] <- c("ID-1", "Cpd 1", 3310., 3344.888, 3390., 522.194778, 
-                                    522.2, 522.205222)
-    input_targetFeatTable[2,] <- c("ID-2", "Cpd 2", 3280., 3385.577, 3440., 496.195038,
-                                    496.2, 496.204962)
-    input_targetFeatTable[,c(1,3:8)] <- sapply(input_targetFeatTable[,c(1,3:8)], 
-                                                as.numeric)
-    rownames(input_targetFeatTable) <- NULL
-    pander::pandoc.table(input_targetFeatTable, digits = 9)
-
-    # --- Results = "asis" [] ---
-    # Key functions: vector, pandoc.table, cpdID, cpdName, rtMin, rtMax, mzMin, mzMax
-    # use pandoc for improved readability
-    input_targetFeatTable <- data.frame(matrix(vector(), 2, 8, dimnames=list(c(),
-                            c("cpdID", "cpdName", "rtMin", "rt", "rtMax", "mzMin",
-                            "mz", "mzMax"))), stringsAsFactors=FALSE)
-    input_targetFeatTable[1,] <- c("ID-1", "Cpd 1", 3310., 3344.888, 3390.,
-                                    522.194778, 522.2, 522.205222)
-    input_targetFeatTable[2,] <- c("ID-2", "Cpd 2", 3280., 3385.577, 3440.,
-                                    496.195038, 496.2, 496.204962)
-    input_targetFeatTable[,3:8] <- sapply(input_targetFeatTable[,3:8], as.numeric)
-    rownames(input_targetFeatTable) <- NULL
-    pander::pandoc.table(input_targetFeatTable, digits = 9)
-
-    # --- Results = "asis" [] ---
-    # Key functions: vector, pandoc.table, filepath, testcol1, testcol2, faahKO
-    # use pandoc for improved readability
-    input_spectraMeta <- data.frame(matrix(vector(), 3, 3,
-                            dimnames=list(c(),c("filepath","testcol1","testcol2"))),
-                            stringsAsFactors=FALSE)
-    input_spectraMeta[1,] <- c(system.file('cdf/KO/ko15.CDF', package = "faahKO"),
-                                "c", 3)
-    input_spectraMeta[2,] <- c(system.file('cdf/KO/ko16.CDF', package = "faahKO"),
-                                "d", 4)
-    input_spectraMeta[3,] <- c(system.file('cdf/KO/ko18.CDF', package = "faahKO"),
-                                "e", 5)
-    rownames(input_spectraMeta) <- NULL
-    pander::pandoc.table(input_spectraMeta, digits = 0)
-
-    # --- Results = "asis" [] ---
-    # Key functions: vector, pandoc.table, testcol1, testcol2
-    # use pandoc for improved readability
-    input_featMeta <- data.frame(matrix(vector(), 2, 2,
-                        dimnames=list(c(),c("testcol1","testcol2"))),
-                        stringsAsFactors=FALSE)
-    input_featMeta[1,] <- c("a", 1)
-    input_featMeta[2,] <- c("b", 2)
-    rownames(input_featMeta) <- NULL
-    pander::pandoc.table(input_featMeta, digits = 0)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

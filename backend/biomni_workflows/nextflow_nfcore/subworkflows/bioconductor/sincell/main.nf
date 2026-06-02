@@ -48,10 +48,12 @@ process BIOC_SINCELL {
     # Key functions: detectGenes, differentialGeneTest
     HSMM <- detectGenes(HSMM, min_expr = 0.1)
     expressed_genes <- row.names(subset(fData(HSMM), num_cells_expressed >= 50))
+    diff_test_res <- differentialGeneTest(HSMM[expressed_genes,],
     # --- change geneIDs [] ---
     # Key functions: getBM
     GeneEnsemblID<-rownames(EMlog)
     head(GeneEnsemblID)
+    GeneEnsemblID <- sapply( strsplit(GeneEnsemblID, split=".",fixed=TRUE),"[",1)
     # --- initialize sincellObject [] ---
     # Key functions: sc_InitializingSincellObject
     SO<-sc_InitializingSincellObject(EMlog)
@@ -80,10 +82,12 @@ process BIOC_SINCELL {
     Non-metric Multidimensional Scaling (nonmetric-MDS).
     # --- color by marker [] ---
     # Key functions: sc_marker2color
-
+    colorSCsByMarker<-sc_marker2color(SO, marker=myMarker, color.minimum="yellow3",
     # --- using rgl package [] ---
     # Key functions: plot3d
     library(rgl)
+    plot3d(t(cellsLowDimensionalSpace_nonmetricMDS),
+    plot3d(t(cellsLowDimensionalSpace_ICA),
     # --- ICA 2dim [] ---
     # Key functions: sc_DimensionalityReductionObj
     Independent Component Analysis (ICA)
@@ -102,6 +106,7 @@ process BIOC_SINCELL {
     # Key functions: sc_GraphBuilderObj
     help(sc_GraphBuilderObj)
     Minimum Spanning Tree (MST)
+    SO<- sc_GraphBuilderObj(SO, graph.algorithm="MST",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

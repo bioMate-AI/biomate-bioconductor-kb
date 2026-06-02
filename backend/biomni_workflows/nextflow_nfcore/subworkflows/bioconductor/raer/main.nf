@@ -38,21 +38,14 @@ process BIOC_RAER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(raer)
+    library(FilterParam)
     library(jsonlite)
 
-
-    # --- Pileup Cells [] ---
-    # Key functions: tempdir, FilterParam, pileup_cells, sc_edits
+    # --- Filter Param [] ---
+    # Key functions: FilterParam, pileup_cells, read_sparray, calc_edit_frequency
     outdir <- file.path(tempdir(), "sc_edits")
     cbs <- colnames(sce)
-
     params <- FilterParam(
-        min_mapq = 255, # required alignment MAPQ score
-        library_type = "fr-second-strand", # library type
-        min_variant_reads = 1
-    )
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

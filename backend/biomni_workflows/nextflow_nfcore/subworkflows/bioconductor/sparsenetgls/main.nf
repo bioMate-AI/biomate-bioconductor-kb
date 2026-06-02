@@ -48,13 +48,17 @@ process BIOC_SPARSENETGLS {
     library(sparsenetgls)
     # --- example 2: Use the sparsenetgls and convertbeta function [] ---
     # Key functions: sparsenetgls, diag
-
+    fitgls <- sparsenetgls(databand_Y, databand_X, nlambda=10,
+    q <- dim(databand_X)[2]
+    betagls <- matrix(nrow=nlambda, ncol=q+1)
     # --- example 3 [] ---
     # Key functions: plotsngls
     plotsngls(fitgls,ith_lambda=5)
     # --- example 4 [] ---
     # Key functions: sparsenetgls
-
+    fitgls_g <- sparsenetgls(databand_Y, databand_X, nlambda=10, ndist=5,
+    fitgls_l <- sparsenetgls(databand_Y, databand_X, nlambda=10, ndist=5,
+    fitgls_m <- sparsenetgls(databand_Y, databand_X, nlambda=10, ndist=5,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

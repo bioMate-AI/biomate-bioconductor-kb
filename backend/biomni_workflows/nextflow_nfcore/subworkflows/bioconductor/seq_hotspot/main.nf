@@ -51,7 +51,8 @@ process BIOC_SEQ_HOTSPOT {
     head(fw_bins)
     # --- com_hotspot [] ---
     # Key functions: com_hotspot
-
+    com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps, data = mutation_data,
+    head(com_bins)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

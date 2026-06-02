@@ -44,9 +44,17 @@ process BIOC_RGRAPH2JS {
     # --- Tab1 [] ---
     # Key functions: xtable
     library(xtable)
+    print(
+        xtable(
+            a35,
+            caption="3x5 Signed Weighted Adjacency Matrix",
     # --- Tab2 [] ---
     # Key functions: xtable
     library(xtable)
+    print(
+        xtable(
+            a1515,
+            caption="15x15 Adjacency matrix",
     # --- <Simpleexample [] ---
     # Key functions: path, tempdir, graph2js
     outputDir <- file.path(tempdir(), "RGraph2js_simpleExample")
@@ -80,6 +88,9 @@ process BIOC_RGRAPH2JS {
     # Key functions: frame, cos, sin
     r <- 100
     sector <- 2*pi/5
+    n.prop <- data.frame(
+        x=c(r*cos(1*sector), r*cos(2*sector), r*cos(3*sector),
+            r*cos(4*sector), r*cos(5*sector)),
     # --- Fixednodes3 [] ---
     # Key functions: path, tempdir, graph2js
     outputDir <- file.path(tempdir(), "RGraph2js_fixedNodes")
@@ -87,6 +98,10 @@ process BIOC_RGRAPH2JS {
     # --- Categories2 [] ---
     # Key functions: frame, rbinom, rainbow
     numnodes <- 5
+    nodesProp <- data.frame(leading.nodes.1=rbinom(numnodes, 1, 1/2),
+                            leading.nodes.2=rbinom(numnodes, 1, 1/2),
+                            leading.nodes.3=rbinom(numnodes, 1, 1/2),
+                            leading.nodes.4=rbinom(numnodes, 1, 1/2),
     # --- Categories3 [] ---
     # Key functions: path, tempdir, graph2js
     outputDir <- file.path(tempdir(), "RGraph2js_timeData")
@@ -112,6 +127,8 @@ process BIOC_RGRAPH2JS {
     opts <- getDefaultOptions()
     opts$displayBarPlotsInsideNodes <- FALSE
     opts$barplotInNodeTooltips <- TRUE
+    g <- graph2js(a35,
+                  opts=opts,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

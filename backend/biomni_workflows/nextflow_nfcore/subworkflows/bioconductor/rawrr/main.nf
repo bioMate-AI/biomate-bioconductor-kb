@@ -48,7 +48,9 @@ process BIOC_RAWRR {
     EH4547 <- normalizePath(eh[["EH4547"]])
     # --- InstallRawFileReaderDLLs analysis [] ---
     # Key functions: include_graphics, installRawFileReaderDLLs, installRawrrExe, readFileHeader, readSpectrum, makeAccessor, maxIonTime, readChromatogram
-
+    iRTmz <- c(487.2571, 547.2984, 622.8539, 636.8695, 644.8230, 669.8384, 683.8282,
+    names(iRTmz) <- c("LGGNEQVTR", "YILAGVENSK", "GTFIIDPGGVIR", "GTFIIDPAAVIR",
+    C <- rawrr::readChromatogram(rawfile, mass = iRTmz, tol = 10, type = "xic", filter = "ms")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

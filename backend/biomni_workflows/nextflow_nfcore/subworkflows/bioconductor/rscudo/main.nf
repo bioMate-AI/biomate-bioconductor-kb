@@ -95,12 +95,14 @@ process BIOC_RSCUDO {
     trainData <- exprs(ALLB[, inTrain])
     virtControl <- rowMeans(trainData)
     trainDataNorm <- trainData / virtControl
+    pVals <- apply(trainDataNorm, 1, function(x) {
     # --- Makepsockcluster [] ---
     # Key functions: makePSOCKcluster, registerDoParallel, scudoModel, trainControl, train, stopCluster, scudoClassify, confusionMatrix
     ---------------------------------------------------------------------
     cl <- parallel::makePSOCKcluster(2)
     doParallel::registerDoParallel(cl)
     model <- scudoModel(nTop = (2:6)*20, nBottom = (2:6)*20, N = 0.25)
+    control <- caret::trainControl(method = "cv", number = 5,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

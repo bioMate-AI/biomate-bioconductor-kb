@@ -57,12 +57,24 @@ process BIOC_MOLECULEEXPERIMENT {
     # --- Frame [] ---
     # Key functions: frame, runif
     ---------------------------------------------------------------------
+    moleculesDf <- data.frame(
+      sample_id = rep(c("sample1", "sample2"), times = c(30, 20)),
+      features = rep(c("gene1", "gene2"), times = c(20, 30)),
+      x_coords = runif(50),
     # --- Frame [] ---
     # Key functions: frame
     ---------------------------------------------------------------------
+    boundariesDf <- data.frame(
+      sample_id = rep(c("sample1", "sample2"), times = c(16, 6)),
+      cell_id = rep(
+        c(
     # --- Dataframetomelist [] ---
     # Key functions: dataframeToMEList
     ---------------------------------------------------------------------
+    moleculesMEList <- dataframeToMEList(moleculesDf,
+      dfType = "molecules",
+      assayName = "detected",
+      sampleCol = "sample_id",
     # --- Moleculeexperiment [] ---
     # Key functions: MoleculeExperiment
     ---------------------------------------------------------------------

@@ -48,7 +48,9 @@ process BIOC_CCFINDR {
     plot_tree(tree, cex = 0.8, show.node.label = TRUE)
     # --- Filter cells analysis [] ---
     # Key functions: filter_cells, filter_genes, optimal_rank, ranks, feature_map, cell_map, visualize_clusters
-
+    feature_map(sb, markers = markers, rank = 5, max.per.cluster = 4, gene.name = rowData(sb)[,2],
+    cell_type <- c('B_cell','CD8+_T','CD4+_T','Monocytes','NK')
+    colnames(basis(sb)[ranks(sb) == 5][[1]]) <- cell_type
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

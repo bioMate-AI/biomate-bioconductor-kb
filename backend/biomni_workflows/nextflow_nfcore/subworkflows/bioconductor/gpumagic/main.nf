@@ -46,6 +46,8 @@ process BIOC_GPUMAGIC {
     ---------------------------------------------------------------------
     #The kernel code
     src="
+    kernel void vecAdd(global double* A, global double* B, global double* res){
+    uint id=get_global_id(0);
     # --- Vecadd [] ---
     # Key functions: vecAdd, get_global_id, gpuMatrix, gpuEmptMatrix, kernel, download
     ---------------------------------------------------------------------

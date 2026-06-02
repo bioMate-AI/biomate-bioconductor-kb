@@ -74,6 +74,7 @@ process BIOC_MOTIFSTACK {
     markerLine <- new("marker", type="line", start=2, stop=7, gp=gpar(lwd=2, col="red"))
     markerText <- new("marker", type="text", start=c(1, 5),
                       label=c("*", "core"), gp=gpar(cex=2, col="red"))
+    motif <- new("pcm", mat=as.matrix(pcm), name="bin_SOLEXA",
     # --- Seqlogoxaxis [] ---
     # Key functions: int
     plot(motif, xaxis=paste0("pos", seq.int(7)+10))
@@ -83,9 +84,14 @@ process BIOC_MOTIFSTACK {
     protein<-read.table(file.path(find.package("motifStack"),"extdata","cap.txt"))
     protein<-t(protein[,1:20])
     motif<-pcm2pfm(protein)
+    motif<-new("pfm", mat=motif, name="CAP",
     # --- Affinitylogo [] ---
     # Key functions: new, gpar
     library(motifStack)
+    motif<-matrix(
+      c(
+        .846, .631, .593, .000, .000, .000, .434, .410, 1.00, .655, .284, .000, .000, .771, .640, .961,
+        .625, .679, .773, 1.00, 1.00, .000, .573, .238, .397, 1.00, 1.00, .000, .298, 1.00, 1.00, .996,
     # --- Logostack [] ---
     # Key functions: importMatrix, path, package, motifStack
     library(motifStack)

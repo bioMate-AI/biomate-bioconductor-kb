@@ -41,24 +41,11 @@ process BIOC_OMICSMLREPOR {
     library(OmicsMLRepoR)
     library(jsonlite)
 
-
-    # --- Debug Needed [] ---
-    # Key functions: tree_filter, filter, returnSamples, getLongMetaTb, disease, relative_abundance, short, treatment_name
+    # --- tree_filter [] ---
+    # Key functions: tree_filter, returnSamples, getLongMetaTb, getShortMetaTb
     cmd_sub <- tree_filter(cmd, target_condition, "Alzheimer's disease")
-
-    ## -----------------------------------------------------------------------------
-    cmd_dat <- cmd %>%
-        tree_filter(col = "disease", "Type 2 Diabetes Mellitus") %>%
-        filter(sex == "Female") %>%
-        filter(age_group == "Elderly") %>%
-        returnSamples("relative_abundance", rownames = "short")
-
-    ## -----------------------------------------------------------------------------
-    cbio_sub <- cbio %>%
-        getLongMetaTb("treatment_name", "<;>") %>%
-        filter(treatment_name == "Fluorouracil") %>%
-        filter(age_at_diagnosis > 50) %>%
-        filter(sex == "Female") %>%
+    tree_filter(col = "disease", "Type 2 Diabetes Mellitus") %>%
+    filter(sex == "Female") %>%
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -49,6 +49,9 @@ process BIOC_GMAPR {
     # Key functions: requireNamespace, packages, path
     ## library(gmapR)
     ##
+    ## if (!suppressWarnings(require(BSgenome.Dmelanogaster.UCSC.dm3))) {
+    ##   if (!requireNamespace("BiocManager", quietly=TRUE))
+    ##       install.packages("BiocManager")
     # --- Get Tp53 Coordinates [] ---
     # Key functions: transcripts, strand
     library("org.Hs.eg.db")
@@ -74,6 +77,10 @@ process BIOC_GMAPR {
     # --- Create Gsnapparam [] ---
     # Key functions: GsnapParam
     ##specify how GSNAP should behave using a GsnapParam object
+    gsnapParam <- GsnapParam(genome=gmapGenome,
+                             unique_only=FALSE,
+                             suboptimal_levels=2L,
+                             npaths=10L,
     # --- Align With Gsnap [] ---
     # Key functions: gsnap, dm3
     ## gsnapOutput <- gsnap(input_a=fastqs["H1993.first"],
@@ -100,10 +107,18 @@ process BIOC_GMAPR {
     ## mapq <- 13L
     # --- Create Gmapgenomepackge [] ---
     # Key functions: makeGmapGenomePackage
-
+    ## makeGmapGenomePackage(gmapGenome=gmapGenome,
+    ##                       version="1.0.0",
+    ##                       maintainer="<your.name@somewhere.com>",
+    ##                       author="Your Name",
+    ##                       destDir="myDestDir",
     # --- Create Hg19 Gmapgenome [] ---
     # Key functions: requireNamespace, packages, GmapGenome
-
+    ## if (!suppressWarnings(require(BSgenome.Hsapiens.UCSC.hg19))) {
+    ##   if (!requireNamespace("BiocManager", quietly=TRUE))
+    ##       install.packages("BiocManager")
+    ##   BiocManager::install("BSgenome.Hsapiens.UCSC.hg19")
+    ##   library(BSgenome.Hsapiens.UCSC.hg19)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

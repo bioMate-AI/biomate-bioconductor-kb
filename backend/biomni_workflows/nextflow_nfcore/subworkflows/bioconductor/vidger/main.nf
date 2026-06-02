@@ -52,6 +52,8 @@ process BIOC_VIDGER {
     ---------------------------------------------------------------------
     # Extract data frame from visualization
     data("df.cuff")
+    tmp <- vsScatterPlot(
+       x = "hESC", y = "iPS", data = df.cuff, d.factor = NULL,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

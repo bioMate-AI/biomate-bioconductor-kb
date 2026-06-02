@@ -50,6 +50,9 @@ process BIOC_BINDINGSITEFINDER {
     # Key functions: frame, factor
     ---------------------------------------------------------------------
     # make the meta table
+    meta = data.frame(
+      id = c(1:4),
+      condition = factor(rep("WT", 4)),
     # --- Files [] ---
     # Key functions: files
     ---------------------------------------------------------------------
@@ -84,9 +87,17 @@ process BIOC_BINDINGSITEFINDER {
     # --- Function [] ---
     # Key functions: pureClipGlobalFilter, makeBindingSites, calculateSignalToFlankScore, customBSFind
     ---------------------------------------------------------------------
+    customBSFind <- function(object) {
+        this.obj = pureClipGlobalFilter(object)
+        this.obj = makeBindingSites(this.obj, bsSize = 9)
+        this.obj = calculateSignalToFlankScore(this.obj)
     # --- Function [] ---
     # Key functions: pureClipGlobalFilter, makeBindingSites, reproducibilityFilter, annotateWithScore, getRanges, calculateSignalToFlankScore
     ---------------------------------------------------------------------
+    noAnnotationBSFind <- function(object) {
+        this.obj = pureClipGlobalFilter(object)
+        this.obj = makeBindingSites(this.obj, bsSize = 9)
+        this.obj = reproducibilityFilter(this.obj)
     # --- Clipcoverage [] ---
     # Key functions: clipCoverage
     ---------------------------------------------------------------------

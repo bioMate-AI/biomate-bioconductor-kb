@@ -71,10 +71,18 @@ process BIOC_OMICREXPOSOME {
     merge(hit, lab, by="exposure")
     # --- Gexp Plot Qq [] ---
     # Key functions: arrange, plotAssociation, ggtitle
-
+    gridExtra::grid.arrange(
+        plotAssociation(gexp, rid="Ben_p", type="qq") +
+            ggplot2::ggtitle("Transcriptome - Pb Association"),
+        plotAssociation(gexp, rid="BPA_p", type="qq") +
+            ggplot2::ggtitle("Transcriptome - THM Association"),
     # --- Gexp Plot Volcano [] ---
     # Key functions: arrange, plotAssociation, ggtitle
-
+    gridExtra::grid.arrange(
+        plotAssociation(gexp, rid="Ben_p", type="volcano", tPV=-log10(1e-04)) +
+            ggplot2::ggtitle("Transcriptome - Pb Association"),
+        plotAssociation(gexp, rid="BPA_p", type="volcano", tPV=-log10(1e-04)) +
+            ggplot2::ggtitle("Transcriptome - THM Association"),
     # --- Prot Data [] ---
     # Key functions: data
     data("brge_prot", package="brgedata")
@@ -91,7 +99,11 @@ process BIOC_OMICREXPOSOME {
     tableHits(prot, th=0.001)
     # --- Prot Plot Volcano [] ---
     # Key functions: arrange, plotAssociation, ggtitle, geom_hline
-
+    gridExtra::grid.arrange(
+        plotAssociation(prot, rid="Ben_p", type="protein") +
+            ggplot2::ggtitle("Proteome - Cd Association") +
+            ggplot2::geom_hline(yintercept = 1, color = "LightPink"),
+        plotAssociation(prot, rid="NO2_p", type="protein") +
     # --- Missing Exp [] ---
     # Key functions: plotMissings
     library(rexposome)

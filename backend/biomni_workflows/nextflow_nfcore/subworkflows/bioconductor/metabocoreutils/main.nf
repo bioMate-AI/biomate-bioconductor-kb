@@ -85,6 +85,10 @@ process BIOC_METABOCOREUTILS {
     # --- Table [] ---
     # Key functions: file
     ---------------------------------------------------------------------
+    rti <- read.table(system.file("retentionIndex",
+                                  "rti.txt",
+                                  package = "MetaboCoreUtils"),
+                      header = TRUE,
     # --- Indexrtime [] ---
     # Key functions: indexRtime
     ---------------------------------------------------------------------
@@ -114,6 +118,8 @@ process BIOC_METABOCOREUTILS {
     ---------------------------------------------------------------------
     #' Fit linear models explaining observed abundances by injection index.
     #' Linear models are fitted row-wise to data of QC samples.
+    qc_lm <- fit_lm(y ~ injection_index,
+                    data = sdata[qc_index, , drop = FALSE],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

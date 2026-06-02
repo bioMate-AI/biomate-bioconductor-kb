@@ -43,7 +43,9 @@ process BIOC_PWMENRICH {
 
     # --- plot Motif Scores [] ---
     # Key functions: plotMotifScores
-
+    ids = c("bcd_FlyReg_FBgn0000166",
+    names(sel.pwms) = c("bcd", "gt", "Kr")
+    scores = motifScores(sequence, sel.pwms, raw.scores=TRUE)
     # --- register Cores P W M Enrich [] ---
     # Key functions: registerCoresPWMEnrich
     registerCoresPWMEnrich(4)
@@ -53,6 +55,8 @@ process BIOC_PWMENRICH {
     # --- group Report [] ---
     # Key functions: groupReport
     library(PWMEnrich.Dmelanogaster.background)
+    motifs.denovo = readMotifs(system.file(package="PWMEnrich",
+    genomic.acgt = getBackgroundFrequencies("dm3")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -69,6 +69,7 @@ process BIOC_CFDNAPRO {
     # Key functions: callMode, plotModeSummary
     order <- c("cohort_1", "cohort_2", "cohort_3", "cohort_4")
     callMode(data_path) %>%
+    plotModeSummary(order=order,
     # --- interpeak distance [] ---
     # Key functions: callPeakDistance, plotPeakDistance, labs, theme
     order <- c("cohort_1", "cohort_2", "cohort_4", "cohort_3")

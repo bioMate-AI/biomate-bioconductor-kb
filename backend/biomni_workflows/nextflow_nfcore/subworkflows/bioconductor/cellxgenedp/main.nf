@@ -49,12 +49,18 @@ process BIOC_CELLXGENEDP {
     # --- african american female [] ---
     # Key functions: datasets, facets_filter, summarise, left_join, collections
     datasets(db) |>
+    filter(
+    facets_filter(assay, "ontology_term_id", "EFO:0009922"),
     # --- left_join [] ---
     # Key functions: left_join, files
-
+    left_join(
+    african_american_female |> select(dataset_id),
+    files(db),
     # --- local file from dataset id [] ---
     # Key functions: files_download
-
+    filter(
+    files_download(dry.run = FALSE)
+    basename(local_file)
     # --- read H5 A D [] ---
     # Key functions: readH5AD, colData, as_tibble, count
     h5ad <- readH5AD(local_file, use_hdf5 = TRUE, reader = "R")

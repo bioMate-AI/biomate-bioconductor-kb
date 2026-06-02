@@ -68,6 +68,7 @@ process BIOC_PHYLOPROFILE {
     #' Load built-in data
     #' If input data is in other format (e.g. fasta, OrthoXML, or wide matrix),
     #' see ?createLongMatrix
+    rawInput <- system.file(
     # --- Data [] ---
     # Key functions: getInputTaxaID, getInputTaxaName
     ---------------------------------------------------------------------

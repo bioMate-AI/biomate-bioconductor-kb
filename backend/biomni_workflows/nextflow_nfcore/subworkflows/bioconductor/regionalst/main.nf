@@ -55,6 +55,7 @@ process BIOC_REGIONALST {
     # Key functions: readVisium, spatialPreprocess, assays, createCARDObject, CARD_deconvolution, metadata, mySpatialPreprocess, GetOneRadiusEntropy_withProp
     thisID1 <- S4Vectors::metadata(example_sce)$selectCenters$selectID[1]
     thisRadius1 <- S4Vectors::metadata(example_sce)$selectCenters$selectRadius[1]
+    OutRegRes1 <- RegionalST::FindRegionalCells(example_sce,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

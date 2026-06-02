@@ -41,45 +41,11 @@ process BIOC_CRISPRSCORE {
     library(crisprScore)
     library(jsonlite)
 
-
-    # --- Warnings=false [] ---
-    # Key functions: crisprscore
-    library(crisprScore)
-
-    ## -----------------------------------------------------------------------------
+    # --- Data [] ---
+    # Key functions: data
+    ---------------------------------------------------------------------
     data(scoringMethodsInfo)
     print(scoringMethodsInfo)
-
-    # --- Eval=true [] ---
-    # Key functions: getRuleSet1Scores
-    flank5 <- "ACCT" #4bp
-    spacer <- "ATCGATGCTGATGCTAGATA" #20bp
-    pam    <- "AGG" #3bp 
-    flank3 <- "TTG" #3bp
-    input  <- paste0(flank5, spacer, pam, flank3) 
-    results <- getRuleSet1Scores(input)
-
-    # --- Eval=true [] ---
-    # Key functions: getCRISPRscanScores
-    flank5 <- "ACCTAA" #6bp
-    spacer <- "ATCGATGCTGATGCTAGATA" #20bp
-    pam    <- "AGG" #3bp 
-    flank3 <- "TTGAAT" #6bp
-    input  <- paste0(flank5, spacer, pam, flank3) 
-    results <- getCRISPRscanScores(input)
-
-    # --- Eval=true [] ---
-    # Key functions: getCRISPRaterScores
-    spacer <- "ATCGATGCTGATGCTAGATA" #20bp
-    results <- getCRISPRaterScores(spacer)
-
-    # --- Eval=true [] ---
-    # Key functions: crisprscore
-    head(tssExampleCrispri)
-
-    # --- Eval=true [] ---
-    # Key functions: crisprscore
-    head(sgrnaExampleCrispri)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

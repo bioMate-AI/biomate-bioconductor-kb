@@ -52,9 +52,12 @@ process BIOC_PROLOCGUI {
     # --- p Roloc Vis [] ---
     # Key functions: pRolocVis
     data("hyperLOPIT2015ms2psm")
+    pRolocVis(hyperLOPIT2015ms2psm, app = "aggregate", fcol = "markers",
     # --- Combine peptide features to proteins [] ---
     # Key functions: combineFeatures, pRolocVis
-
+    hl <- combineFeatures(hyperLOPIT2015ms2psm,
+    groupBy = fData(hyperLOPIT2015ms2psm)$Sequence,
+    pRolocVis(hyperLOPIT2015ms2psm, app = "aggregate", fcol = "markers",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

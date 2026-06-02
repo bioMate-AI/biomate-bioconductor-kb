@@ -78,7 +78,11 @@ process BIOC_GENECLASSIFIERS {
     resultsUAMS70
     # --- Frame [] ---
     # Key functions: frame, getScores, getClassifications
-
+    data.frame(
+        "score_EMC92"  = getScores( resultsEMC92 ),
+        "class_EMC92"  = getClassifications( resultsEMC92 ),
+        "score_UAMS70" = getScores( resultsUAMS70 ),
+        "class_UAMS70" = getClassifications( resultsUAMS70 )
     # --- Runclassifier [] ---
     # Key functions: runClassifier, getScores, getDecisionBoundaries, getClassifier
     resultsEMC92.reWeighted <- runClassifier(

@@ -61,6 +61,9 @@ process BIOC_FLOWFP {
     # Key functions: flowFP, flowFPPlex, nRecursions, append
     fp <- flowFP (fs1, param=c("SS Log", "FL3 Log"), nRecursions=8)
     plex <- flowFPPlex()
+    for (levels in 8:5) {
+    	nRecursions(fp) <- levels
+    	plex <- append (plex, fp)
     # --- Qc1 [] ---
     # Key functions: flowFP
     fp1 <- flowFP (fs1, parameters=c("SS Log", "FL3 Log"), name="self model: fs1", nRecursions=5)

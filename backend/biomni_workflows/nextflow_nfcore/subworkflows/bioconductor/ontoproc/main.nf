@@ -41,31 +41,10 @@ process BIOC_ONTOPROC {
     library(ontoProc)
     library(jsonlite)
 
-
-    # --- Getcl [] ---
-    # Key functions: owl2cache, setup_entities2
-    library(ontoProc)
-    clont_path = owl2cache(url="http://purl.obolibrary.org/obo/cl.owl")
-    cle = setup_entities2(clont_path)
-    cle
-
-    # --- Lkcl [] ---
-    # Key functions: onto_plot2, CL_0000492, CL_0001054, CL_0000236, CL_0000625, CL_0000576, CL_0000623, CL_0000451
-    sel = c("CL_0000492", "CL_0001054", "CL_0000236", 
-    "CL_0000625", "CL_0000576", 
-    "CL_0000623", "CL_0000451", "CL_0000556")
+    # --- onto_plot2 [] ---
+    # Key functions: onto_plot2
+    sel = c("CL_0000492", "CL_0001054", "CL_0000236",
     onto_plot2(cle, sel)
-
-    # --- Gethp [] ---
-    # Key functions: owl2cache, setup_entities2, onto_plot2
-    hpont_path = owl2cache(url="http://purl.obolibrary.org/obo/hp.owl")
-    hpents = setup_entities2(hpont_path)
-    kp = grep("UBER", names(hpents$name), value=TRUE)[21:30]
-    onto_plot2(hpents, kp)
-
-    # --- Lkta [] ---
-    # Key functions: ontoproc
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

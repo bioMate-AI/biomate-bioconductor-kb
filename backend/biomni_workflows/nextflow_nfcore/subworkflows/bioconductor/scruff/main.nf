@@ -38,59 +38,14 @@ process BIOC_SCRUFF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(scruff)
+    library(TENxBrainData)
     library(jsonlite)
 
-
-    # --- Load Files1 [] ---
-    # Key functions: extdata, vandenBrink_1h1_L001_R1_001.fastq.gz, scruff, vandenBrink_1h1_L001_R2_001.fastq.gz, GRCm38_MT.fa, GRCm38_MT.gtf
-    # Run scruff on example dataset
-    # NOTE: Requires Rsubread index and TxDb objects for the reference genome.
-    # For generation of these files, please refer to the Stepwise Tutorial.
-
-    library(scruff)
-
-    # Get the paths to example FASTQ, FASTA, and GTF files.
-    # Please note that because the following files are included in
-    # scruff R package, we use system.file() function to extract the paths
-    # to these files. If the user is running scruff on real data, the
-
-    # --- Buildindex1 [] ---
-    # Key functions: buildindex, GRCm38_MT
-    # Create index files for GRCm38_MT.
-    # For details, please refer to Rsubread user manual.
-    # Specify the basename for Rsubread index
-    indexBase <- "GRCm38_MT"
-    Rsubread::buildindex(basename = indexBase,
-        reference = fasta,
-        indexSplit = FALSE)
-
-    # --- Qc1 [] ---
-    # Key functions: qcplots, scruff
-    data(sceExample, package = "scruff")
-    qc <- qcplots(sceExample)
-
-    # --- Loadfiles2 [] ---
-    # Key functions: extdata, vandenBrink_1h1_L001_R1_001.fastq.gz, scruff, vandenBrink_1h1_L001_R2_001.fastq.gz
-    library(scruff)
-
-    # Get the paths to example FASTQ files.
-    # Please note that because the following files are included in
-    # scruff R package, we use system.file() function to extract the paths
-    # to these files. If the user is running scruff on real data, the
-    # paths to the input FASTQ, FASTA, and GTF files should be provided,
-    # and there is no need to call system.file() function. For example,
-    # v1h1R1 <- "/PATH/TO/vandenBrink_1h1_L001_R1_001.fastq.gz"
-    # fasta <- "/Path/TO/GRCm38_MT.fa"
-
-    # --- Differential Expression [] ---
-    # Key functions: demultiplex, scruff, example
-    data(barcodeExample, package = "scruff")
-    # --- Qc2 [] ---
-    # Key functions: qcplots, scruff
-    data(sceExample, package = "scruff")
-    qc <- qcplots(sceExample)
-    qc
+    # --- Sample metadata inspection [] ---
+    # Key functions: buildindex, scruff, qcplots, demultiplex, alignRsubread, countUMI, rview, gview
+    g1 <- rview(bamExample, chr = "MT", start = start, end = end)
+    g2 <- gview(gtf, chr = "MT", start = start, end = end)
+    g <- ggbio::tracks(g1, g2, heights = c(4, 1), xlab = "chr MT")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

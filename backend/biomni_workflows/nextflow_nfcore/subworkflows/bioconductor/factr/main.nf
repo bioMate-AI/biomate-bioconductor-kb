@@ -49,6 +49,8 @@ process BIOC_FACTR {
     # --- ViewTranscripts analysis [] ---
     # Key functions: viewTranscripts, tempfile, importFASTA, predictDomains, export
     tmp <- tempfile()
+    download.file("ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/GRCm38.primary_assembly.genome.fa.gz",
+    Mmusculus <- importFASTA(paste0(tmp, "/GRCm38.primary_assembly.genome.fa.gz"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

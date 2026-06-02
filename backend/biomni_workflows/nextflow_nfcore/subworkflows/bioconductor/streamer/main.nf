@@ -47,6 +47,10 @@ process BIOC_STREAMER {
     # --- Baminput Class [] ---
     # Key functions: setRefClass, methods, msg, yield
     .BamInput <-
+        setRefClass("BamInput",
+        contains="Producer",
+        fields=list(
+            file="character",
     # --- Baminput Constructor [] ---
     # Key functions: scanBamHeader, new
     BamInput <- function(file, ranges,...)
@@ -57,13 +61,24 @@ process BIOC_STREAMER {
     # --- Countgoverlap Class [] ---
     # Key functions: setRefClass, methods, msg, yield, callSuper
     .CountGOverlap <-
+        setRefClass("CountGOverlap",
+        contains="Consumer",
+        fields=list(ranges="GRanges",
+                    mode="character",
     # --- Bam File And Ranges [] ---
     # Key functions: GRanges, Rle, IRanges, strand
     galn_file <- system.file("extdata", "ex1.bam", package="Rsamtools")
     gr <-
+        GRanges(seqnames =
+                Rle(c("seq2", "seq2", "seq2", "seq1"), c(1, 3, 2, 4)),
+                ranges = IRanges(rep(10,1), width = 1:10,
     # --- Overlap Counter [] ---
     # Key functions: Stream, levels, seqnames, yield
-
+    overlapCounter <- function(pr, cs) {
+        s <- Stream(pr, cs)
+        len <- length(levels(seqnames(pr$ranges)))
+        lst <- vector("list", len)
+        for(i in 1:len) {
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

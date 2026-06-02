@@ -43,7 +43,9 @@ process BIOC_CRISPRVARIANTS {
 
     # --- plot Variants [] ---
     # Key functions: plotVariants, mutationEfficiency, consensusSeqs, reverseComplement
-
+    p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 8,
+    row.ht.ratio = c(1,8), col.wdth.ratio = c(4,2),
+    plotAlignments.args = list(line.weight = 0.5, ins.size = 2,
     # --- plot Freq Heatmap [] ---
     # Key functions: plotFreqHeatmap
     p <- plotFreqHeatmap(gol, top.n = 3)

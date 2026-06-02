@@ -58,6 +58,8 @@ process BIOC_NEBULOSA {
     # --- Feature metadata inspection [] ---
     # Key functions: BiocFileCache, bfcrpath, untar, read10xCounts, rowData, colSums, logcounts, modelGeneVar
     bfc <- BiocFileCache(ask = FALSE)
+    data_file <- bfcrpath(bfc, file.path(
+    untar(data_file, exdir = tempdir())
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

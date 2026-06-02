@@ -41,86 +41,11 @@ process BIOC_UMI4CATS {
     library(UMI4Cats)
     library(jsonlite)
 
-
-    # --- Logo [] ---
-    # Key functions: include_graphics
-    knitr::include_graphics("../man/figures/UMI4Cats.png", dpi = 800)
-
-    # --- Load [] ---
-    # Key functions: include_graphics, downloadUMI4CexampleData, DpnII, digestGenome
-    library(UMI4Cats)
-
-    ## ----umi4cats-scheme, echo=FALSE, eval=TRUE, fig.cap="Overview of the different functions included in the UMI4Cats package to analyze UMI-4C data."----
-    knitr::include_graphics("figures/scheme.png", dpi = 400)
-
-    ## ----processing-quick-start, eval=FALSE---------------------------------------
-    #  ## 0) Download example data -------------------------------
-    #  path <- downloadUMI4CexampleData()
-    #  
-    #  ## 1) Generate Digested genome ----------------------------
-    #  # The selected RE in this case is DpnII (|GATC), so the cut_pos is 0, and the res_enz "GATC".
-    # --- Demultiplex [] ---
-    # Key functions: downloadUMI4CexampleData, tempdir, demultiplexFastq, fastq, ctrl_hi24_CIITA_R1.fastq.gz
-    ## Input files
-    path <- downloadUMI4CexampleData(reduced=TRUE)
-    fastq <- file.path(path, "CIITA", "fastq", "ctrl_hi24_CIITA_R1.fastq.gz")
-
-    ## Barcode info
-    barcodes <- data.frame(
-        sample = c("CIITA"),
-        barcode = c("GGACAAGCTCCCTGCAACTCA")
-    )
-
-    ## Output path
-    out_path <- tempdir()
-
-    ## Demultiplex baits inside FastQ file
-    # --- Digest [] ---
-    # Key functions: digestGenome, chr, tempdir, dpnII, chr16
-    library(BSgenome.Hsapiens.UCSC.hg19)
-    refgen <- BSgenome.Hsapiens.UCSC.hg19
-
-    hg19_dpnii <- digestGenome(
-        res_enz = "GATC",
-        cut_pos = 0,
-        name_RE = "dpnII",
-        ref_gen = refgen,
-        sel_chr = "chr16", # Select bait's chr (chr16) to make example faster
-        out_path = file.path(tempdir(), "digested_genome/")
-    )
-
-    hg19_dpnii
-
-    ## ----read-scheme, echo=FALSE, eval=TRUE, fig.cap="Schematic of a UMI-4C read detailing the different elements that need to be used as input for processing the data."----
-
-    # --- Processing [] ---
-    # Key functions: downloadUMI4CexampleData, contactsUMI4C, fastq, ref_genome, ucsc.hg19.chr16, ctrl_hi24_CIITA
-    ## Use reduced example to make vignette faster
-    ## If you want to download the full dataset, set reduced = FALSE or remove
-    ## the reduce argument.
-    ## The reduced example is already downloaded in the demultiplexFastq chunk.
-
-    # path <- downloadUMI4CexampleData(reduced=TRUE)
-    raw_dir <- file.path(path, "CIITA", "fastq")
-    index_path <- file.path(path, "ref_genome", "ucsc.hg19.chr16")
-
-    ## Run main function to process UMI-4C contacts
-    # --- Stats [] ---
-    # Key functions: statsUMI4C, read.delim, list.files, extdata, logs, stats_summary.txt, count
-    # Using the full dataset included in the package
-    statsUMI4C(wk_dir = system.file("extdata", "CIITA",
-        package = "UMI4Cats"
-    ))
-
-    # Read stats table
-    stats <- read.delim(system.file("extdata", "CIITA", "logs", "stats_summary.txt",
-        package = "UMI4Cats"
-    ))
-
-    knitr::kable(stats)
-
-    ## ----make-umi4c---------------------------------------------------------------
-    # Load sample processed file paths
+    # --- Sample metadata inspection [] ---
+    # Key functions: include_graphics, downloadUMI4CexampleData, digestGenome, contactsUMI4C, statsUMI4C, separate, tempdir, demultiplexFastq
+    win_frags <- makeWindowFragments(umi, n_frags=8)
+    gr <-  callInteractions(umi4c = umi,
+    all <- plotInteractionsUMI4C(umi, gr, grouping = NULL, significant=FALSE, xlim=c(10.75e6, 11.1e6)) # Plot all regions
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

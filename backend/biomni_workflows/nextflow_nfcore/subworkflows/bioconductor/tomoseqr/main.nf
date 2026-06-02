@@ -49,6 +49,10 @@ process BIOC_TOMOSEQR {
     # --- estimate3d Expressions [] ---
     # Key functions: estimate3dExpressions
     ---------------------------------------------------------------------
+    tomoObj <- estimate3dExpressions(
+        testx,
+        testy,
+        testz,
     # --- Findaxialgenes [] ---
     # Key functions: findAxialGenes
     ---------------------------------------------------------------------

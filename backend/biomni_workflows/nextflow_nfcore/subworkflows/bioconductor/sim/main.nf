@@ -55,7 +55,11 @@ process BIOC_SIM {
     sum(colnames(expr.data.s) == colnames(acgh.data.s))
     # --- Data [] ---
     # Key functions: data
-
+    assemble.data(dep.data = acgh.data,
+                  indep.data = expr.data,
+                  dep.ann = colnames(acgh.data)[1:4],
+                  indep.ann = colnames(expr.data)[1:4],
+                  dep.id = "ID",
     # --- Analysis [] ---
     # Key functions: analysis
     integrated.analysis(samples = samples,
@@ -81,6 +85,10 @@ process BIOC_SIM {
     # --- Heatmap [] ---
     # Key functions: heatmap, pal, rainbow
     library(RColorBrewer)
+    sim.plot.zscore.heatmap(input.regions="8q",
+                            method="full",
+                            significance=0.005,
+                            z.threshold=3,
     # --- Features [] ---
     # Key functions: features
     table.dep <- tabulate.top.dep.features(input.regions = "8q",

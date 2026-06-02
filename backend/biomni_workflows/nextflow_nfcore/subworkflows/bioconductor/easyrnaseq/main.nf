@@ -48,30 +48,31 @@ process BIOC_EASYRNASEQ {
     vDir <- vignetteData()
     # --- Annot Param [] ---
     # Key functions: AnnotParam
-
+    annotParam <- AnnotParam(
     # --- create synthetic transcripts [] ---
     # Key functions: createSyntheticTranscripts
     annotParam <- createSyntheticTranscripts(annotParam,verbose=FALSE)
     # --- create synthetic transcripts as gI [] ---
     # Key functions: createSyntheticTranscripts
-
+    gI <- createSyntheticTranscripts(
     # --- data unit test [] ---
     # Key functions: dir
     THIS IS A subset of the data (chr 19 only) used to speed up
     data(RobinsonDelhomme2014)
+    lapply(RobinsonDelhomme2014[1:6,"Filename"],function(f){
     # --- Bam Param [] ---
     # Key functions: BamParam
-
+    bamParam <- BamParam(paired = TRUE,
     # --- get Bam File List [] ---
     # Key functions: getBamFileList
     bamFiles <- getBamFileList(dir(".","*\\.bam$"),
     dir(".","*\\.bai$"))
     # --- Rna Seq Param [] ---
     # Key functions: RnaSeqParam
-
+    rnaSeqParam <- RnaSeqParam(annotParam = annotParam,
     # --- simple R N A Seq [] ---
     # Key functions: simpleRNASeq
-
+    sexp1 <- simpleRNASeq(bamFiles=bamFiles,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

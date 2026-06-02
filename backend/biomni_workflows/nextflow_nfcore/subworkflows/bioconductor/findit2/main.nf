@@ -43,7 +43,9 @@ process BIOC_FINDIT2 {
 
     # --- "install" [] ---
     # Key functions: valid
-
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("FindIT2")
     # --- "start" [] ---
     # Key functions: seqlevels, genes
     library(FindIT2)
@@ -55,7 +57,9 @@ process BIOC_FINDIT2 {
     ChIP_peak_GR <- loadPeakFile(ChIP_peak_path)
     # --- "mm nearestgene" [] ---
     # Key functions: mm_nearestGene, plot_annoDistance, getAssocPairNumber, plot_peakGeneAlias_summary
-
+    mmAnno_nearestgene <- mm_nearestGene(peak_GR = ChIP_peak_GR,
+    plot_annoDistance(mmAnno = mmAnno_nearestgene)
+    getAssocPairNumber(mmAnno = mmAnno_nearestgene)
     # --- "mm geneBound" [] ---
     # Key functions: mm_geneBound
     genes_Chr5 <- names(all_geneSet[seqnames(all_geneSet) == "Chr5"])
@@ -63,13 +67,18 @@ process BIOC_FINDIT2 {
     genes_Chr5_Anno <- unique(mmAnno_nearestgene$gene_id)
     # --- "mm geneScan" [] ---
     # Key functions: mm_geneScan, getAssocPairNumber, plot_peakGeneAlias_summary
-
+    mmAnno_geneScan <- mm_geneScan(peak_GR = ChIP_peak_GR,
+    getAssocPairNumber(mmAnno_geneScan)
+    getAssocPairNumber(mmAnno_geneScan, output_type = "feature_id")
     # --- "calcRP TFHit" [] ---
     # Key functions: calcRP_TFHit, metadata
-
+    fullRP_hit <- calcRP_TFHit(mmAnno = mmAnno_geneScan,
+    peakRP_gene <- metadata(fullRP_hit)$peakRP_gene
     # --- "calcRP bw" [] ---
     # Key functions: calcRP_coverage
     bwFile <- system.file("extdata", "E50h_sampleChr5.bw", package = "FindIT2")
+    RP_df <- calcRP_coverage(bwFile = bwFile,
+    head(RP_df)
     # --- "calcRP region" [] ---
     # Key functions: loadPeakFile, mm_geneScan, calcRP_region, assays
     data("ATAC_normCount")
@@ -78,21 +87,29 @@ process BIOC_FINDIT2 {
     # --- "findITarget" [] ---
     # Key functions: integrate_ChIP_RNA
     data("RNADiff_LEC2_GR")
+    integrate_ChIP_RNA(result_geneRP = peakRP_gene,
     # --- "prepare for findIT" [] ---
     # Key functions: mm_geneBound, loadPeakFile
-
+    related_peaks <- mm_geneBound(peak_GR = ATAC_peak_GR,
+    input_feature_id <- unique(related_peaks$feature_id)
+    TF_GR_database_path <- system.file("extdata", "TF_GR_database.bed.gz", package = "FindIT2")
     # --- "findIT enrichWilcox" [] ---
     # Key functions: findIT_enrichWilcox
-
+    findIT_enrichWilcox(input_feature_id = input_feature_id,
     # --- "findIT enrichFisher" [] ---
     # Key functions: findIT_enrichFisher, jaccard_findIT_enrichFisher, diag
-
+    findIT_enrichFisher(input_feature_id = input_feature_id,
+    jaccard_findIT_enrichFisher(input_feature_id = input_feature_id,
+    diag(enrichAll_jaccard) <- 1
     # --- "findIT TTPair" [] ---
     # Key functions: findIT_TTPair, jaccard_findIT_TTpair, diag
     result_TTpair <- findIT_TTPair(input_genes = input_genes,
     gene_background = names(all_geneSet))
+    jaccard_findIT_TTpair(input_genes = input_genes,
     # --- "findIT TFHit" [] ---
     # Key functions: findIT_TFHit, findIT_regionRP, assays, heatmap, metadata
+    set.seed(20160806)
+    result_TFHit <- findIT_TFHit(input_genes = input_genes,
     set.seed(20160806)
 
     # --- Save outputs ---

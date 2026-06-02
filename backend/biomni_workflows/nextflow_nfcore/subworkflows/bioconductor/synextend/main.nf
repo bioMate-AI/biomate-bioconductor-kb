@@ -48,24 +48,31 @@ process BIOC_SYNEXTEND {
     # --- build synteny object [] ---
     # Key functions: FindSynteny
     library(SynExtend)
+    DBPATH <- system.file("extdata",
+    Syn <- FindSynteny(dbFile = DBPATH)
     # --- generate genecalls [] ---
     # Key functions: gffToDataFrame
-
+    GC <- gffToDataFrame(GFF = system.file("extdata",
+    GeneCalls <- get(data("Endosymbionts_GeneCalls", package = "SynExtend"))
     # --- show rtracklayer [] ---
     # Key functions: import
-
+    X01 <- rtracklayer::import(system.file("extdata",
+    class(X01)
+    print(X01)
     # --- generate initial links [] ---
     # Key functions: NucleotideOverlap
-
+    Links <- NucleotideOverlap(SyntenyObject = Syn,
     # --- Pair Summaries [] ---
     # Key functions: PairSummaries
-
+    LinkedPairs1 <- PairSummaries(SyntenyLinks = Links,
     # --- pairsummariesoperations [] ---
     # Key functions: DisjointSet
-
+    SingleLinkageClusters <- DisjointSet(Pairs = LinkedPairs1,
     # --- Extract By [] ---
     # Key functions: ExtractBy
-
+    Sets <- ExtractBy(x = LinkedPairs1,
+    head(Sets)
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

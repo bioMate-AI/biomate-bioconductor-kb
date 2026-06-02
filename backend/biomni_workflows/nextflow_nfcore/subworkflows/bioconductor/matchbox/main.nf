@@ -56,7 +56,11 @@ process BIOC_MATCHBOX {
     PIbyRefEqualRanks <- calcHypPI(data=data)
     # --- Fig1 [] ---
     # Key functions: plotCat
-
+    plotCat(catData = catHigh2LowWithRefByEqualRanks,
+    	preComputedPI=PIbyRefEqualRanks03,
+    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30, col=c("red", "blue"),
+    	main="CAT curves for decreasing t-statistics",
+    	where="center", legend=TRUE, legCex=1, ncol=1,
     # --- Fig2 [] ---
     # Key functions: plotCat
     plotCat(catData = catHigh2LowWithRefByEqualStats,
@@ -66,10 +70,18 @@ process BIOC_MATCHBOX {
     	plotLayout = layout(matrix(1:2, ncol = 2), widths = c(2,1)))
     # --- Fig3 [] ---
     # Key functions: plotCat
-
+    plotCat(catData = catHigh2LowNoRefByEqualRanks,
+    	preComputedPI=PIbyRefEqualRanks,
+    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30,
+    	main="CAT curves for decreasing t-statistics",
+    	where="center", legend=TRUE, legCex=1, ncol=1,
     # --- Fig4 [] ---
     # Key functions: plotCat
-
+    plotCat(catData = catHigh2LowNoRefByEqualRanks,
+    	preComputedPI=PIbyRefEqualRanksNoExpectedProp,
+    	cex=1.2, lwd=1.2, cexPts=1.2, spacePts=30,
+    	main="CAT curves for decreasing t-statistics",
+    	where="center", legend=TRUE, legCex=1, ncol=1,
     # --- Sessioinfo [] ---
     # Key functions: toLatex
     toLatex(sessionInfo())

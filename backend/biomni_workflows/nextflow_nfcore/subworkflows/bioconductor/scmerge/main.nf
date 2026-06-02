@@ -73,32 +73,60 @@ process BIOC_SCMERGE {
       shape_by = "batch")
     # --- Unsupervised Prop1 [] ---
     # Key functions: scMerge
-
+    scMerge_unsupervised_all <- scMerge(
+      sce_combine = example_sce,
+      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+      kmeansK = c(3, 3),
+      assay_name = "scMerge_unsupervised_all",
     # --- Unsupervised Prop1 Plotting [] ---
     # Key functions: runPCA, plotPCA
     scMerge_unsupervised_all = runPCA(scMerge_unsupervised_all,
                                       exprs_values = "scMerge_unsupervised_all")
+    scater::plotPCA(
+      scMerge_unsupervised_all,
+      colour_by = "cellTypes",
     # --- Supervised [] ---
     # Key functions: scMerge
-
+    scMerge_supervised <- scMerge(
+      sce_combine = example_sce,
+      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+      kmeansK = c(3, 3),
+      assay_name = "scMerge_supervised",
     # --- Supervised Plotting [] ---
     # Key functions: runPCA, plotPCA
     scMerge_supervised = runPCA(scMerge_supervised,
                                 exprs_values = "scMerge_supervised")
+    scater::plotPCA(
+      scMerge_supervised,
+      colour_by = "cellTypes",
     # --- Semi Supervised1 [] ---
     # Key functions: scMerge
-
+    scMerge_semisupervised1 <- scMerge(
+      sce_combine = example_sce,
+      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+      kmeansK = c(3,3),
+      assay_name = "scMerge_semisupervised1",
     # --- Semi Supervised1 Plotting [] ---
     # Key functions: runPCA, plotPCA
     scMerge_semisupervised1 = runPCA(scMerge_semisupervised1,
                                      exprs_values = "scMerge_semisupervised1")
+    scater::plotPCA(
+      scMerge_semisupervised1,
+      colour_by = "cellTypes",
     # --- Semi Supervised2 [] ---
     # Key functions: scMerge
-
+    scMerge_semisupervised2 <- scMerge(
+      sce_combine = example_sce,
+      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+      kmeansK = c(3, 3),
+      assay_name = "scMerge_semisupervised2",
     # --- Semi Supervised2 Plotting [] ---
     # Key functions: runPCA, plotPCA
     scMerge_semisupervised2 = runPCA(scMerge_semisupervised2,
                                      exprs_values = "scMerge_semisupervised2")
+    scater::plotPCA(
+      scMerge_semisupervised2,
+      colour_by = "cellTypes",
     # --- Segindex2 [] ---
     # Key functions: data
     ## SEG list in ensemblGene ID
@@ -109,6 +137,10 @@ process BIOC_SCMERGE {
     # --- Computation Fast [] ---
     # Key functions: scMerge, IrlbaParam
     library(BiocSingular)
+    scMerge_fast <- scMerge(
+      sce_combine = example_sce,
+      ctl = segList_ensemblGeneID$mouse$mouse_scSEG,
+      kmeansK = c(3, 3),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

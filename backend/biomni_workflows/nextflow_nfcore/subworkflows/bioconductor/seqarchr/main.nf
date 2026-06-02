@@ -43,7 +43,9 @@ process BIOC_SEQARCHR {
 
     # --- Prepare data from FASTA analysis [] ---
     # Key functions: prepare_data_from_FASTA, get_one_hot_encoded_seqs, viz_seqs_acgt_mat, seqArchR, get_clBasVec_k, get_clBasVec_m, viz_bas_vec
-
+    inputFname <- system.file("extdata", "example_data.fa.gz",
+    inputSeqsMat <- seqArchR::prepare_data_from_FASTA(fasta_fname = inputFname,
+    inputSeqsRaw <- seqArchR::prepare_data_from_FASTA(fasta_fname = inputFname,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

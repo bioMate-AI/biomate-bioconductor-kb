@@ -48,21 +48,25 @@ process BIOC_GWENA {
     ncol(kuehne_expr)
     # --- data input SummarizedExperiment [] ---
     # Key functions: SummarizedExperiment, metadata
-
+    se_kuehne <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(expr = t(kuehne_expr)),
+    colData = S4Vectors::DataFrame(kuehne_traits)
     # --- filter_low_var [] ---
     # Key functions: filter_low_var
     kuehne_expr_filtered <- filter_low_var(kuehne_expr, pct = 0.7, type = "median")
     ncol(kuehne_expr_filtered)
     # --- build_net [] ---
     # Key functions: build_net
-
+    net <- build_net(kuehne_expr_filtered, cor_func = "spearman",
+    Fit of the power law to data ($R^2$) :
     # --- modules detection [] ---
     # Key functions: detect_modules
-
+    modules <- detect_modules(kuehne_expr_filtered,
     # --- bipartite graph merge [] ---
     # Key functions: plot_modules_merge
     length(unique(modules$modules_premerge))
     length(unique(modules$modules))
+    layout_mod_merge <- plot_modules_merge(
     # --- plot modules gene distribution [] ---
     # Key functions: ggplot, aes, ylab, xlab
     ggplot2::ggplot(data.frame(modules$modules %>% stack),
@@ -79,15 +83,20 @@ process BIOC_GWENA {
     # Key functions: associate_phenotype, colData, plot_modules_phenotype
     phenotype_association <- associate_phenotype(
     kuehne_traits %>% dplyr::select(Condition, Age, Slide))
+    phenotype_association <- associate_phenotype(
     # --- build_graph_from_sq_mat [] ---
     # Key functions: build_graph_from_sq_mat, plot_module
     graph <- build_graph_from_sq_mat(net$network[module_example, module_example])
+    layout_mod_2 <- plot_module(graph, upper_weight_th = 0.999995,
     # --- get_sub_clusters [] ---
     # Key functions: get_sub_clusters, plot_module
     sub_clusters <- get_sub_clusters(net_mod_2)
+    layout_mod_2_sub_clust <- plot_module(graph, upper_weight_th = 0.999995,
     # --- condition comparison [] ---
     # Key functions: compare_conditions
-
+    samples_by_cond <- lapply(kuehne_traits$Condition %>% unique, function(cond){
+    dplyr::filter(Condition == cond) %>%
+    dplyr::select(Slide, Exp)
     # --- plot comparison stats [] ---
     # Key functions: plot_comparison_stats
     plot_comparison_stats(comparison$result$young$old$p.values)

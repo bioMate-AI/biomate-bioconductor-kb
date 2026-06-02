@@ -61,6 +61,7 @@ process BIOC_RBIOPAXPARSER {
     ## splitComplexMolecules=TRUE, verbose=TRUE)
     ## pw_1_graph = pathway2RegulatoryGraph(biopax, pwid1,
     ## splitComplexMolecules=TRUE, verbose=TRUE)
+    ## pw_2_adj = pathway2AdjacancyMatrix(biopax, pwid2, expandSubpathways=TRUE,
     # --- Layoutgraphs [] ---
     # Key functions: layoutRegulatoryGraph
     ## pw_1_graph_laidout = layoutRegulatoryGraph(pw_1_graph)
@@ -88,12 +89,17 @@ process BIOC_RBIOPAXPARSER {
     # --- Createbiopax1 [] ---
     # Key functions: createBiopax, addPhysicalEntity, addPhysicalEntityParticipant, addBiochemicalReaction
     biopax = createBiopax()
+    for(i in LETTERS[1:5]) {
+    	biopax = addPhysicalEntity(biopax, class="protein",
+    		NAME=paste("protein",i,sep="_"),
+    		id=paste("proteinid",i,sep="_"))
     # --- Createbiopax2 [] ---
     # Key functions: addControl
     biopax = addControl(biopax, CONTROL_TYPE="ACTIVATION",
     	CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_B"),id="control_1")
     biopax = addControl(biopax, CONTROL_TYPE="INHIBITION",
     	CONTROLLER="PEPid_A", CONTROLLED=c("BCRid_C"),id="control_2")
+    biopax = addControl(biopax, CONTROL_TYPE="ACTIVATION",
     # --- Createbiopax3 [] ---
     # Key functions: addPathway, mergePathways
     biopax = addPathway(biopax, NAME="pw1",
@@ -107,6 +113,7 @@ process BIOC_RBIOPAXPARSER {
     ## 	splitComplexMolecules=TRUE, verbose=TRUE)
     ## pw2_graph = pathway2RegulatoryGraph(biopax, "pwid2",
     ## 	splitComplexMolecules=TRUE, verbose=TRUE)
+    ## pw3_graph = pathway2RegulatoryGraph(biopax, "pwid3",
     # --- Createbiopax5 [] ---
     # Key functions: plotRegulatoryGraph, layoutRegulatoryGraph
     ## plotRegulatoryGraph(layoutRegulatoryGraph(pw1_graph))

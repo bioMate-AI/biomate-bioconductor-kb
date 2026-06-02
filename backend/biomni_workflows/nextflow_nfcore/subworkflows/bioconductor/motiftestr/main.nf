@@ -93,6 +93,7 @@ process BIOC_MOTIFTESTR {
         subset(fdr < 0.05) |>
         rownames()
     A <- plotMatchPos(bm_all[topMotifs], binwidth = 10, se = FALSE)
+    B <- plotMatchPos(
     # --- Plot Abs Pos [] ---
     # Key functions: plotMatchPos, scale_fill_viridis_c, plot_annotation, theme
     topMotifs <- res_abs |>
@@ -110,10 +111,14 @@ process BIOC_MOTIFTESTR {
       overlapsAny(ar_er_peaks, zr75_enh), "enhancer", "other"
     )
     chr1 <- GRanges(sq)[1]
+    bg_ranges <- GRangesList(
     # --- Rm Ranges [] ---
     # Key functions: makeRMRanges, splitAsList
     data("hg19_mask")
     set.seed(305)
+    rm_ranges <- makeRMRanges(
+      splitAsList(ar_er_peaks, ar_er_peaks$feature),
+      bg_ranges, exclude = hg19_mask,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

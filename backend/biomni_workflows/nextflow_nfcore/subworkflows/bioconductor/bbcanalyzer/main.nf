@@ -43,10 +43,18 @@ process BIOC_BBCANALYZER {
 
     # --- Example2 [] ---
     # Key functions: analyzeBasesPlotOnly
-
+    ## analyzeBasesPlotOnly(sample_names=sample_file,
+    ##             vcf_input=system.file("extdata",package="BBCAnalyzer"),
+    ##             output="",
+    ##             known_file=system.file("extdata","dbsnp_138.part.vcf.gz",package="BBCAnalyzer"),
+    ##             output_list=output_list,
     # --- Example3 [] ---
     # Key functions: analyzeBases
-
+    ## output<-analyzeBases(
+    ##             sample_names=system.file("extdata","SampleNames_small.txt",package="BBCAnalyzer"),
+    ##             bam_input=system.file("extdata",package="BBCAnalyzer"),
+    ##             target_regions=system.file("extdata","targetRegions_small.txt",package="BBCAnalyzer"),
+    ##             vcf_input="",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -59,6 +59,7 @@ process BIOC_DOSER {
     counts <- hmel.dat$readcounts
     colData <- S4Vectors::DataFrame(Treatment=as.factor(reps),
     row.names=colnames(hmel.dat$readcounts))
+    rowData <- S4Vectors::DataFrame(annotation = annotxn,
     # --- Coldata [] ---
     # Key functions: colData, getLibsizes3
     ---------------------------------------------------------------------

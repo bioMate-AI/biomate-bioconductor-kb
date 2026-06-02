@@ -41,17 +41,13 @@ process BIOC_PVCA {
     library(pvca)
     library(jsonlite)
 
-
     # --- Example [] ---
     # Key functions: pvcaBatchAssess
     library(golubEsets)
     library(pvca)
-
     data(Golub_Merge)
     pct_threshold <- 0.6
     batch.factors <- c("ALL.AML", "BM.PB", "Source")
-
-    pvcaObj <- pvcaBatchAssess (Golub_Merge, batch.factors, pct_threshold)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

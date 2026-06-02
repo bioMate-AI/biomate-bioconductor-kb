@@ -66,6 +66,8 @@ process BIOC_MGNIFYR {
     # --- plot Reduced Dim [] ---
     # Key functions: plotReducedDim
     mae[[1]] <- transformAssay(mae[[1]], method = "relabundance")
+    mae[[1]] <- runMDS(
+    plotReducedDim(
     # --- fetch data1 [] ---
     # Key functions: getData
     publications <- getData(mg, type = "publications")

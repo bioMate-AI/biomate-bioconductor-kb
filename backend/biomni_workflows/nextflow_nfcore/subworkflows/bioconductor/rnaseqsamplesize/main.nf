@@ -46,14 +46,15 @@ process BIOC_RNASEQSAMPLESIZE {
     example(sample_size)
     # --- est_power_distribution [] ---
     # Key functions: est_power_distribution
-
+    est_power_distribution(n=65,f=0.01,rho=2,
     # --- sample_size_distribution [] ---
     # Key functions: sample_size_distribution
-
+    sample_size_distribution(power=0.8,f=0.01,distributionObject="TCGA_READ",
     # --- est_count_dispersion [] ---
     # Key functions: est_count_dispersion, est_power_distribution
     dataMatrixDistribution<-est_count_dispersion(dataMatrix,
     group=c(rep(0,5),rep(1,5)))
+    est_power_distribution(n=65,f=0.01,rho=2,
     # --- download_study [] ---
     # Key functions: download_study, plot_mappedReads_percent, plot_gene_counts_range
     library(recount)

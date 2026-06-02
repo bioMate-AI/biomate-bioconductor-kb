@@ -45,7 +45,7 @@ process BIOC_SANTA {
 
     # --- Code Block 1 [] ---
     # Key functions: set, output
-
+    {hook-printfun, echo=FALSE} library(knitr, quietly=TRUE) library(formatR, quietly=TRUE) knit_hooks$set(printfun = function(before, options, envir) {     if (before) return()     txt = capture.output(dump(options$printfun, '', envir = envir))     ## reformat if tidy=TRUE     if (options$tidy)         txt = tidy.source(text=txt, output=FALSE,                           width.cutoff=30L, keep.comment=TRUE,                           keep.blank.line=FALSE)$text.tidy     paste(c('\n
     # --- Code Block 2 [] ---
     # Key functions: game
     # generate the simulated network
@@ -86,11 +86,17 @@ process BIOC_SANTA {
     # --- Code Block 9 [] ---
     # Key functions: Knet
     results <- list()
+    for (name in network.names) {
+        results[[name]] <- Knet(networks[[name]], nperm=10,
+            vertex.attr=go.terms, edge.attr="distance", verbose=FALSE)
+        results[[name]] <- sapply(results[[name]],
     # --- Code Block 10 [] ---
     # Key functions: data
     # load igraph objects
     data(g.bandyopadhyay.treated)
     data(g.bandyopadhyay.untreated)
+    networks <- list(
+        treated=g.bandyopadhyay.treated,
     # --- Code Block 12 [] ---
     # Key functions: Knet
     results <- sapply(networks, function(g) Knet(g, nperm=10,
@@ -103,6 +109,8 @@ process BIOC_SANTA {
     # laod igraph object
     data(g.srivas.high)
     data(g.srivas.untreated)
+    networks <- list(
+        high=g.srivas.high,
     # --- Code Block 15 [] ---
     # Key functions: Knet
     p.values <- sapply(networks, function(g)

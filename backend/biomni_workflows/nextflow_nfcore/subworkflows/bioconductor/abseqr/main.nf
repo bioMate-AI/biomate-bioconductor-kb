@@ -38,85 +38,14 @@ process BIOC_ABSEQR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(abseqR)
+    library(SerialParam)
     library(jsonlite)
 
-
-    # --- Abseq R Vignette Helper Functions [] ---
-    # Key functions: function, Biocpkg, file.exists, rasterGrob, as.raster, readPNG, include_graphics, normalizePath
-    sabseqR <- function() { return(Biocpkg("abseqR")); }
-    #sabseqR <- function() { return("`abseqR`"); }
-    sabseqPy <- function() { return("[abseqPy](https://github.com/malhamdoosh/abseqPy)"); }
-    sabseq <- function() { return("`AbSeq`"); }
-    # --- Abseq R Abseq Report Compare Argument [] ---
-    # Key functions: abseqReport, name, report, refined_comparison
-    # Example of 1 comparison
-    # Analyze all samples, but only compare PCR1 with PCR2
-    pcr1.pcr2 <- abseqReport(dataPath,
-                             compare = c("PCR1, PCR2"),
-                             report = 0)
-
-    # Example of 2 comparisons
-    # Analyze all samples. In addition, compare:
-    #  * PCR1 with PCR2
-    #  * PCR2 with PCR3
-    # compare = c("PCR1,PCR2")
-    names(pcr1.pcr2)
-
-    # compare = c("PCR1, PCR2", "PCR2 ,PCR3")
-    names(multiComparison)
-    # recall that samples is a named list where each element's name
-    # is the sample's own name (see names(samples))
-
-    # use report = 3 if the results should be collated in a HTML document
-    pcr1.pcr3 <- samples[["PCR1"]] + samples[["PCR3"]]
-
-    # --- Abseq R Plot Path Setup [] ---
-    # Key functions: read_png, auxiliary, PCR1_vs_PCR2_vs_PCR3, annot, PCR1_all_clones_len_dist.png, abundance, PCR1_igv_align_quality_bitscore_hm_static.png, PCR1_igv_gaps_dist.png
-    # [s]ingle sample [dir]ectory
-    sdir <- file.path(dataPath, "auxiliary", "PCR1")
-    # [m]ulti sample [dir]ectory
-    mdir <- file.path(dataPath, "auxiliary", "PCR1_vs_PCR2_vs_PCR3")
-
-    ## ----seq-len, fig.cap="Sequence length distribution of PCR1. Histogram of (merged) sequence lengths.", echo=FALSE, out.width="100%"----
-    read_png(file.path(sdir, "annot", "PCR1_all_clones_len_dist.png"))
-
-    ## ----align-qual, fig.cap="Bitscore vs V germline alignment length in PCR1. Heatmap of bitscore vs alignment length shows percentage of sequences in a given value range.", echo=FALSE, out.width="100%"----
-    read_png(file.path(sdir, "abundance", "PCR1_igv_align_quality_bitscore_hm_static.png"))
-    read_png(file.path(sdir, "abundance", "PCR1_igv_gaps_dist.png"))
-    read_png(file.path(sdir, "abundance", "PCR1_igv_dist_family_level.png"))
-    read_png(file.path(sdir, "abundance", "PCR1_vjassoc.png"))
-
-    ## ----prod-summ, fig.cap="Productivity rate of sequences in PCR1. This plot shows the percentage of productive and unproductive sequences, the reason for unproductive sequences are colour coded.", echo=FALSE, out.width="100%"----
-    read_png(file.path(sdir, "productivity", "PCR1_productivity.png"))
-
-    # --- Frameshift [] ---
-    # Key functions: read_png, productivity, PCR1_vjframe_dist.png, PCR1_stopcodon_region_outframe.png, PCR1_fr3_mismatches_dist.png, PCR1_fr3_gaps_dist.png, PCR1_fr3_gaps_dist_out_of_frame.png
-    read_png(file.path(sdir, "productivity", "PCR1_vjframe_dist.png"))
-    read_png(file.path(sdir, "productivity", "PCR1_stopcodon_region_outframe.png"))
-    read_png(file.path(sdir, "productivity", "PCR1_fr3_mismatches_dist.png"))
-    read_png(file.path(sdir, "productivity", "PCR1_fr3_gaps_dist.png"))
-
-    ## ----gaps-out, fig.cap="Proportion of indels in out-of-frame sequences of PCR1.", echo=FALSE, out.width="100%"----
-    read_png(file.path(sdir, "productivity", "PCR1_fr3_gaps_dist_out_of_frame.png"))
-
-    # --- Duplication [] ---
-    # Key functions: read_png, diversity, PCR1_cdr_duplication.png, PCR1_cdr_rarefaction.png, PCR1_cdr_recapture.png, spectratypes, PCR1_cdr3_spectratype_no_outliers.png
-    read_png(file.path(sdir, "diversity", "PCR1_cdr_duplication.png"))
-    read_png(file.path(sdir, "diversity", "PCR1_cdr_rarefaction.png"))
-    read_png(file.path(sdir, "diversity", "PCR1_cdr_recapture.png"))
-    read_png(file.path(sdir, "diversity", "spectratypes", "PCR1_cdr3_spectratype_no_outliers.png"))
-
-    # --- Comp [] ---
-    # Key functions: rasterGrob, as.raster, readPNG, grid.arrange, diversity, composition_logos, PCR1_cumulative_logo.png, PCR1_cumulative_logo_scaled.png
+    # --- NormalizePath analysis [] ---
+    # Key functions: include_graphics, normalizePath, read_png, tempdir, SerialParam, bpparam, abseqReport, report
     unscaled <- file.path(sdir, "diversity", "composition_logos", "CDR3", "PCR1_cumulative_logo.png")
     scaled <- file.path(sdir, "diversity", "composition_logos", "CDR3", "PCR1_cumulative_logo_scaled.png")
     img1 <-  rasterGrob(as.raster(readPNG(unscaled)), interpolate = TRUE)
-    img2 <- rasterGrob(as.raster(readPNG(scaled)), interpolate = TRUE)
-    grid.arrange(img1, img2, ncol = 2)
-    read_png(file.path(mdir, "clonotype_analysis", "PCR1_PCR2_PCR3_top10Clonotypes.png"))
-    read_png(file.path(mdir, "clonotype_analysis", "PCR1_PCR2_PCR3_cdr3_clonotypeIntersection.png"))
-    read_png(file.path(mdir, "clonotype_analysis", "PCR1_vs_PCR2_clone_scatter.png"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

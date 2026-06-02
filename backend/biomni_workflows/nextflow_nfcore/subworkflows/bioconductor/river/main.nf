@@ -41,37 +41,11 @@ process BIOC_RIVER {
     library(RIVER)
     library(jsonlite)
 
-
-    # --- Ulta Quick [] ---
-    # Key functions: getData, exprs, features, unlist, status, extdata, simulation_RIVER.gz
+    # --- Retrieve data from repository [] ---
+    # Key functions: getData, evaRIVER
     library("RIVER")
-
-    ## -----------------------------------------------------------------------------
-    filename <- system.file("extdata", "simulation_RIVER.gz", 
-                           package="RIVER")
+    filename <- system.file("extdata", "simulation_RIVER.gz",
     dataInput <- getData(filename) # import experimental data
-
-    ## -----------------------------------------------------------------------------
-    print(dataInput)
-    Feat <- t(Biobase::exprs(dataInput)) # genomic features (G)
-    Out <- as.numeric(unlist(dataInput$Outlier))-1 # outlier status (E)
-
-    ## -----------------------------------------------------------------------------
-    head(Feat)
-    head(Out)
-
-    # --- Eval=false [] ---
-    # Key functions: requireNamespace, install, session_info
-    #  ## try http:// if https:// URLs are not supported
-    #  if (!requireNamespace("BiocManager", quietly=TRUE))
-    #      install.packages("BiocManager")
-    #  BiocManager::install("RIVER")
-
-    ## ---------------------------------------------------------------------------------------------------------------------
-    ## Session info
-    library('devtools')
-    options(width=120)
-    session_info()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

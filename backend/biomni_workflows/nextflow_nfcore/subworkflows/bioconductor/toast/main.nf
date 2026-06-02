@@ -47,10 +47,12 @@ process BIOC_TOAST {
     # Key functions: makeDesign, fitModel, csTest
     Design_out <- makeDesign(design, Prop)
     fitted_model <- fitModel(Design_out, Y_raw)
+    res_table <- csTest(fitted_model, coef = "age",
     # --- Refinx analysis [] ---
     # Key functions: findRefinx, epidish, myRefFreeCellMix, assignCellType, csDeconv, choose, ChooseMarker, MDeconv
     refinx <- findRefinx(Y_raw, nmarker = 1000, sortBy = "cv")
     InitNames <- rownames(Y_raw)[refinx]
+    csDeconv(Y_raw, K = 6, nMarker = 1000,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

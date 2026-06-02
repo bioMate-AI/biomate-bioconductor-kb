@@ -65,6 +65,7 @@ process BIOC_KARYOPLOTER {
       kp <- plotKaryotype(genome="hg19", plot.type=2, chromosomes=c("chr1", "chr2", "chr3"))
       kpDataBackground(kp, data.panel = 1, r0=0, r1=0.45)
       kpAxis(kp, ymin=-1, ymax=1, r0=0.05, r1=0.4, col="gray50", cex=0.5)
+      kpPoints(kp, chr=rand.data$chr, x=rand.data$start, y=rand.data$y,
     # --- Create Karyotype Plot [] ---
     # Key functions: plotKaryotype
     ---------------------------------------------------------------------

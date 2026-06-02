@@ -41,46 +41,11 @@ process BIOC_METMASHR {
     library(MetMashR)
     library(jsonlite)
 
-
-    # --- Eval=true [] ---
-    # Key functions: suppressPackageStartupMessages
-    suppressPackageStartupMessages({
-        # load the packages
-        library(struct)
-        library(MetMashR)
-        library(metabolomicsWorkbenchR)
-        library(ggplot2)
-    })
-
-    # --- Include=false [] ---
-    # Key functions: readRDS, annotation_table, setClass, mwb_source, annotation_database, metabolomicsWorkbenchR
-    AN <- readRDS(
-        system.file("extdata/AN000465_subset.rds", package = "MetMashR")
-    )
-
-    ## -----------------------------------------------------------------------------
-    AT <- annotation_table(data = AN, id_column = NULL)
-
-    ## -----------------------------------------------------------------------------
-    # --- Eval=true [] ---
-    # Key functions: setMethod, function, do_query, readRDS, read_database, mwb_source, study, analysis_id
-
-    # --- Eval=true [] ---
-    # Key functions: mwb_refmet_database, rds_database, cached, pubchem_cid_cache.rds, pubchem_smiles_cache.rds
-    refmet <- mwb_refmet_database()
-
-    pubchem_cid_cache <- rds_database(
-        source = file.path(
-            system.file("cached", package = "MetMashR"),
-            "pubchem_cid_cache.rds"
-        )
-    )
-    pubchem_smile_cache <- rds_database(
-        source = file.path(
-            system.file("cached", package = "MetMashR"),
-            "pubchem_smiles_cache.rds"
-        )
-    )
+    # --- set_struct_obj [] ---
+    # Key functions: set_struct_obj, drop_empty_columns, show, set_obj_method
+    set_struct_obj(
+    params = character(0),
+    outputs = c(updated = "annotation_source"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

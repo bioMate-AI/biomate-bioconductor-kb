@@ -54,6 +54,8 @@ process BIOC_AFFYCORETOOLS {
     # --- make Images [] ---
     # Key functions: makeImages, HTMLReport, publish, finish
     d.f <- topTable(fit2, 2)
+    out <- makeImages(df = d.f, eset = eset, grp.factor = pd$type, design = design,
+    htab <- HTMLReport("afile3", "My cool results, affycoretools style")
     # --- Linear model fit (limma) [] ---
     # Key functions: lmFit, eBayes
     grps <- factor(apply(pd[,1:2], 1, paste, collapse = "_"))
@@ -62,14 +64,18 @@ process BIOC_AFFYCORETOOLS {
     # --- H T M L Report [] ---
     # Key functions: HTMLReport, makeImages, publish, finish
     out <- lapply(1:3, function(x) topTable(fit2, x))
+    htab <- lapply(1:3, function(x){
+    tmp <- HTMLReport(gsub("_", " ", colnames(contrast)[x]), colnames(contrast)[x], "./reports")
     # --- kable [] ---
     # Key functions: kable
     d.f <- data.frame(Comparison =  sapply(htab, function(x) XML::saveXML(Link(x))),
     "Number significant" = sapply(out, nrow), check.names = FALSE)
+    kable(d.f, caption = "Number of significant genes.",
     # --- make Venn [] ---
     # Key functions: makeVenn, vennInLine
     collist <- list(1:2)
     venn <- makeVenn(fit2, contrast, design, collist = collist, adj.meth = "none")
+    cap <- list(paste("A Venn diagram. Note that the first sentence is bolded",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

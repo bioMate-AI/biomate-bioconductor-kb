@@ -38,6 +38,7 @@ process BIOC_SINGLECELLEXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(AsetX)
     library(SingleCellExperiment)
     library(jsonlite)
 
@@ -57,6 +58,8 @@ process BIOC_SINGLECELLEXPERIMENT {
     }
 
     # Function in package B:
+    BsetX <- function(sce) {
+        int_colData(sce)$X <- sample(LETTERS, ncol(sce), replace=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

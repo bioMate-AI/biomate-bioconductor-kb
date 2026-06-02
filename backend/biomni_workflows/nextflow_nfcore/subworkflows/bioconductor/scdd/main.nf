@@ -55,13 +55,17 @@ process BIOC_SCDD {
     head(RES)
     # --- main engine perm [] ---
     # Key functions: scDD
-
+    scDatExSim <- scDD(scDatExSim, prior_param=prior_param,
     # --- simulate Set [] ---
     # Key functions: simulateSet
-
+    SD <- simulateSet(scDatEx, numSamples=numSamples,
+    nEE=nEE, nEP=nEP, sd.range=c(2,2), modeFC=4, plots=FALSE,
+    library(SingleCellExperiment)
     # --- Create SingleCellExperiment object [] ---
     # Key functions: SingleCellExperiment, show
-
+    sce <- SingleCellExperiment(assays=list(normcounts=cbind(scDatExList$C1,
+    colData=data.frame(condition))
+    show(sce)
     # --- load exdat3e [] ---
     # Key functions: show
     data(scDatEx)

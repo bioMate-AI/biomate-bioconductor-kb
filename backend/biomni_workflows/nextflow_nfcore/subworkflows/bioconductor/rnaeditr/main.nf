@@ -60,13 +60,23 @@ process BIOC_RNAEDITR {
     # Key functions: TransformToGR
     ---------------------------------------------------------------------
     # If input is gene symbol
+    inputGenes_gr <- TransformToGR(
+      # input a character vector of gene symbols
+      genes_char = c("PHACTR4", "CCR5", "METTL7A"),
     # --- Transformtogr [] ---
     # Key functions: TransformToGR, AddMetaData
     ---------------------------------------------------------------------
     # If input is region ranges
+    inputRegions_gr <- TransformToGR(
+      # input a character vector of region ranges.
+      genes_char = c("chr22:18555686-18573797", "chr22:36883233-36908148"),
     # --- Annotateresults [] ---
     # Key functions: AnnotateResults, TestAssociations, AllCloseByRegions
     ---------------------------------------------------------------------
+    tumor_annot_df <- AnnotateResults(
+      # the output dataset from function TestAssociations().
+      results_df = tumor_region_df,
+      # close-by regions which is a output of AllCloseByRegions().
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

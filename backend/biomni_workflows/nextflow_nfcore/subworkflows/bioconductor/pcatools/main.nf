@@ -94,8 +94,35 @@ process BIOC_PCATOOLS {
         hline = 0, vline = c(-25, 0, 25),
         legendPosition = 'top', legendLabSize = 16, legendIconSize = 8.0)
 
+      biplot(p,
+    biplot(p,
+        colby = 'ER', colkey = c('ER+' = 'forestgreen', 'ER-' = 'purple'),
+        # ellipse config
+          ellipse = TRUE,
+          ellipseType = 't',
+
     # --- Ex12a [] ---
     # Key functions: biplot, scale_colour_gradient
+    biplot(p,
+        lab = NULL,
+        colby = 'ER', colkey = c('ER+'='royalblue', 'ER-'='red3'),
+        hline = c(-25, 0, 25), vline = c(-25, 0, 25),
+        vlineType = c('dotdash', 'solid', 'dashed'),
+        gridlines.major = FALSE, gridlines.minor = FALSE,
+        pointSize = 5,
+        legendPosition = 'left', legendLabSize = 14, legendIconSize = 8.0,
+        shape = 'Grade', shapekey = c('Grade 1'=15, 'Grade 2'=17, 'Grade 3'=8),
+        drawConnectors = FALSE,
+    biplot(p,
+        # loadings parameters
+          showLoadings = TRUE,
+          lengthLoadingsArrowsFactor = 1.5,
+          sizeLoadingsNames = 4,
+          colLoadingsNames = 'red4',
+        # other parameters
+          lab = NULL,
+          colby = 'ER', colkey = c('ER+'='royalblue', 'ER-'='red3'),
+          hline = 0, vline = c(-25, 0, 25),
 
     # --- Ex14 [] ---
     # Key functions: pairsplot, getComponents, unit, plotloadings
@@ -118,6 +145,7 @@ process BIOC_PCATOOLS {
         title = 'Pairs plot', titleLabSize = 22,
         axisLabSize = 14, plotaxes = TRUE,
         margingaps = unit(c(0.1, 0.1, 0.1, 0.1), 'cm'))
+    plotloadings(p,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

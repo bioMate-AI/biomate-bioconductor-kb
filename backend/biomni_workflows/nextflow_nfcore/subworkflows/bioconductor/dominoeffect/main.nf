@@ -41,38 +41,12 @@ process BIOC_DOMINOEFFECT {
     library(DominoEffect)
     library(jsonlite)
 
-
-    # --- Eval=false [] ---
-    # Key functions: install
-    #  if (!require("BiocManager"))
-    #      install.packages("BiocManager")
-    #  BiocManager::install("DominoEffect")
-
-    ## -----------------------------------------------------------------------------
-    library(DominoEffect)
-
-    ## -----------------------------------------------------------------------------
+    # --- Data [] ---
+    # Key functions: data
+    ---------------------------------------------------------------------
     data("TestData", package = "DominoEffect")
     data("SnpData", package = "DominoEffect")
     data("DominoData", package = "DominoEffect")
-
-    # --- Eval = False [] ---
-    # Key functions: DominoEffect
-    #  hotspot_mutations <- DominoEffect(mutation_dataset, gene_data, snp_data, min_n_muts, MAF_thresh, flanking_region, poisson.thr, percentage.thr, ratio.thr, approach, write_to_file)
-
-    ## -----------------------------------------------------------------------------
-    min_n_muts <- 5
-
-    ## -----------------------------------------------------------------------------
-    MAF.thr <- 0.01
-
-    ## -----------------------------------------------------------------------------
-    flanking_region <- c(200, 300)
-    flanking_region <- c(300)
-
-    ## -----------------------------------------------------------------------------
-    poisson.thr <- 0.01
-
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

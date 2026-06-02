@@ -96,6 +96,10 @@ process BIOC_GENOMEINTERVALS {
     # --- Loadgff [] ---
     # Key functions: packages, path, readGff3, getGffAttribute
     libPath <- installed.packages()["genomeIntervals", "LibPath"]
+    filePath <- file.path(
+            libPath,
+            "genomeIntervals",
+            "example_files"
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -69,6 +69,8 @@ process BIOC_POGOS {
     library(ontoProc)
     cc = getOnto("chebi_full")
     library(ontologyPlot)
+    onto_plot(cc,
+      c("CHEBI:134109", "CHEBI:61115", "CHEBI:75603", "CHEBI:37699",
     # --- Lkmo [] ---
     # Key functions: onto_plot
     onto_plot(cc, c("CHEBI:134109", "CHEBI:61115", "CHEBI:75603", "CHEBI:37699",
@@ -90,6 +92,10 @@ process BIOC_POGOS {
     # --- Lkefo [] ---
     # Key functions: getOnto, onto_plot
     ee = getOnto("efoOnto")
+    onto_plot(ee, c("UBERON:0000474", "UBERON:0000079",
+      "UBERON:0000990", "UBERON:0000995", "UBERON:0003982",
+      "UBERON:0000310", "UBERON:0002107", "UBERON:0001264",
+      "UBERON:0002113", "UBERON:0001007", "UBERON:0002530",
     # --- Lkcom [] ---
     # Key functions: getOnto, datatable, frame
     chl = getOnto("chebi_full")

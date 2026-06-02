@@ -41,63 +41,11 @@ process BIOC_BIODB {
     library(biodb)
     library(jsonlite)
 
-
-    # --- Results='hide' [] ---
-    # Key functions: newInst, getFactory, createConn, extdata, chebi_extract.tsv
-    mybiodb <- biodb::newInst()
-
-    ## -----------------------------------------------------------------------------
-    compUrl <- system.file("extdata", "chebi_extract.tsv", package='biodb')
-    compdb <- mybiodb$getFactory()$createConn('comp.csv.file', url=compUrl)
-
-    # --- Comp Table [] ---
-    # Key functions: read.table, vapply, function, getEntry, getFieldsAsJson, getFieldNames, getEntryFields, getFieldValue
-    compDf <- read.table(compUrl, sep="\t", header=TRUE, quote="")
-    # Prevent RMarkdown from interpreting @ character as a reference:
-    compDf$smiles <- vapply(compDf$smiles, function(s) paste0('`', s, '`'), FUN.VALUE='')
-    knitr::kable(head(compDf), "pipe", caption="Excerpt from compound database TSV file.")
-
-    ## -----------------------------------------------------------------------------
-    entries <- compdb$getEntry(c('1018', '1549', '64679'))
-    entries
-
-    ## -----------------------------------------------------------------------------
-
-    # --- Entry Table [] ---
-    # Key functions: vapply, function, entriesToDataframe, pipe
-    # Prevent RMarkdown from interpreting @ character as a reference:
-    entryDf$smiles <- vapply(entryDf$smiles, function(s) paste0('`', s, '`'), FUN.VALUE='')
-    knitr::kable(entryDf, "pipe", caption="Values of one entry of the compound database.")
-
-    ## -----------------------------------------------------------------------------
-    entriesDf <- mybiodb$entriesToDataframe(entries)
-
-    # --- Entries Table [] ---
-    # Key functions: vapply, function, searchForEntries, getEntryFields, getFieldNames, isSearchableByField, getSearchableFields, read.table
-    # Prevent RMarkdown from interpreting @ character as a reference:
-    entriesDf$smiles <- vapply(entriesDf$smiles, function(s) paste0('`', s, '`'), FUN.VALUE='')
-    knitr::kable(entriesDf, "pipe", caption="Values of a set of entries from the compound database.")
-
-    ## -----------------------------------------------------------------------------
-    compdb$searchForEntries(list(name='deoxyguanosine'))
-
-    ## -----------------------------------------------------------------------------
-    compdb$searchForEntries(list(name='guanosine', monoisotopic.mass=list(value=283.0917, delta=0.1)))
-
-    # --- Mzdf Table [] ---
-    # Key functions: annotateMzValues, pipe
-    knitr::kable(mzdf, "pipe", caption="Input M/Z values.")
-
-    ## -----------------------------------------------------------------------------
-    annotMz <- compdb$annotateMzValues(mzdf, mz.tol=1e-3, ms.mode='neg')
-
-    # --- Annot Mz Table [] ---
-    # Key functions: getFactory, createConn, pipe, extdata, massbank_extract_lcms_3.tsv
-    knitr::kable(annotMz, "pipe", caption="Annotation output.")
-
-    ## -----------------------------------------------------------------------------
-    massUrl <- system.file("extdata", "massbank_extract_lcms_3.tsv", package='biodb')
-    massDb <- mybiodb$getFactory()$createConn('mass.csv.file', url=massUrl)
+    # --- Table formatting and display [] ---
+    # Key functions: kable
+    knitr::kable(head(annotMzRt), "pipe", caption="Results of annotation of an M/Z and RT input file with an LCMS database.")
+    msmsUrl <- system.file("extdata", "massbank_extract_msms.tsv", package='biodb')
+    msmsdb <- mybiodb$getFactory()$createConn('mass.csv.file', url=msmsUrl)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

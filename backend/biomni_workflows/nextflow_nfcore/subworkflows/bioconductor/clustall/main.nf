@@ -43,7 +43,7 @@ process BIOC_CLUSTALL {
 
     # --- create ClustAllObject [] ---
     # Key functions: createClustAll
-
+    obj_noNA <- createClustAll(data = data_use, nImputation = NULL,
     # --- run ClustAll [] ---
     # Key functions: runClustAll
     obj_noNA1 <- runClustAll(Object = obj_noNA, threads = 2, simplify = FALSE)
@@ -52,10 +52,10 @@ process BIOC_CLUSTALL {
     plotJACCARD(Object = obj_noNA1, stratification_similarity = 0.9, paint = TRUE)
     # --- explore representative clusters [] ---
     # Key functions: resStratification
-
+    resStratification(Object = obj_noNA1, population = 0.05,
     # --- plot S A N K E Y [] ---
     # Key functions: plotSANKEY
-
+    plotSANKEY(Object = obj_noNA1, clusters = c("cuts_c_9","cuts_a_28"),
     # --- export stratifications [] ---
     # Key functions: cluster2data
     df <- cluster2data(Object = obj_noNA1,

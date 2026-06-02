@@ -62,6 +62,7 @@ process BIOC_GRENITS {
     chain2 <- read.chain(output.folder,2)
     gamma1 <- colMeans(chain1$gamma)
     gamma2 <- colMeans(chain2$gamma)
+    plot(x = gamma1, y = gamma2, xlab = "chain1", ylab = "chain2",
     # --- Network [] ---
     # Key functions: network, interaction
     library(network)

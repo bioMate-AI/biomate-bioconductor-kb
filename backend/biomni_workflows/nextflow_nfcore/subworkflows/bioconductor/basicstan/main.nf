@@ -38,34 +38,17 @@ process BIOC_BASICSTAN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BASiCS_MCMC)
+    library(BASiCS_ShowFit)
     library(BASiCStan)
+    library(Stan2BASiCS)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-        collapse = TRUE,
-        comment = "#>"
-    )
-
-    # --- Basics [] ---
-    # Key functions: BASiCS_MCMC, BASiCStan, BASiCS_ShowFit, sampling
+    # --- B A Si C S_ M C M C [] ---
+    # Key functions: BASiCS_MCMC, BASiCStan, BASiCS_ShowFit, Stan2BASiCS
     amwg_fit <- BASiCS_MCMC(
-        sce,
-        N = 200,
-        Thin = 10,
-        Burn = 100,
-        Regression = TRUE
-    )
     stan_fit <- BASiCStan(sce, Method = "sampling", iter = 10)
-
-    ## -----------------------------------------------------------------------------
     BASiCS_ShowFit(amwg_fit)
-    BASiCS_ShowFit(stan_fit)
-
-    ## -----------------------------------------------------------------------------
-    stan_obj <- BASiCStan(sce, ReturnBASiCS = FALSE, Method = "sampling", iter = 10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

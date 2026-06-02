@@ -48,6 +48,7 @@ process BIOC_INSPECT {
     # Key functions: quantifyExpressionsFromBAMs, rep, newINSPEcT, inHeatmap, ratesFirstGuess, modelRates, plotGene, chisqmodel
     totalAnnTabPCR <- system.file(package = 'INSPEcT', 'totalAnnTabPCR.csv')
     nascentAnnTabPCR <- system.file(package = 'INSPEcT', 'nascentAnnTabPCR.csv')
+    inspectFromPCR(totalAnnTabPCR, nascentAnnTabPCR, labeling_time=1/6,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

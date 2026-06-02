@@ -48,22 +48,30 @@ process BIOC_DOMINOSIGNAL {
     pbmc <- BiocFileCache::bfcrpath(bfc, pbmc_url)
     # --- Create Regulon List [] ---
     # Key functions: create_regulon_list_scenic
-
+    colnames(regulons) <- c(
+    regulon_list <- create_regulon_list_scenic(regulons = regulons)
     # --- Load CellPhoneDB Database [] ---
     # Key functions: create_rl_map_cellphonedb
-
+    complexes <- read.csv(
+    paste0(
+    genes <- read.csv(
     # --- Appending interactions [] ---
     # Key functions: rbind, kable
-
+    col_int_df <- data.frame(
+    rl_map_append <- rbind(col_int_df, rl_map)
+    knitr::kable(head(rl_map_append))
     # --- Create Domino [] ---
     # Key functions: create_domino
-
+    pbmc_dom <- create_domino(
+    features: TF activation scores (AUC matrix)
     # --- Build Domino [] ---
     # Key functions: build_domino
-
+    pbmc_dom <- build_domino(
     # --- Build Domino All Significant Interactions [] ---
     # Key functions: build_domino, feat_heatmap, signaling_network, gene_network
-
+    pbmc_dom_all <- build_domino(
+    feat_heatmap(pbmc_dom,
+    row_names_gp = grid::gpar(fontsize = 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -46,21 +46,29 @@ process BIOC_CYTOPIPELINEGUI {
     # --- Cyto Pipeline [] ---
     # Key functions: CytoPipeline
     rawDataDir <- system.file("extdata", package = "CytoPipeline")
+    sampleFiles <- file.path(rawDataDir, list.files(rawDataDir,
+    workDir <- suppressMessages(base::tempdir())
     # --- flowframe viz [] ---
     # Key functions: CytoPipelineCheckApp
-
+    if (interactive()) {
+    CytoPipelineGUI::CytoPipelineCheckApp(dir = workDir)
     # --- workflow viz prog [] ---
     # Key functions: plotSelectedWorkflow
-
+    CytoPipelineGUI::plotSelectedWorkflow(
     # --- flowframe viz prog [] ---
     # Key functions: plotSelectedFlowFrame, plotDiffFlowFrame
-
+    p1 <- CytoPipelineGUI::plotSelectedFlowFrame(
+    p2 <- CytoPipelineGUI::plotSelectedFlowFrame(
+    p3 <- CytoPipelineGUI::plotDiffFlowFrame(
     # --- scale transform viz [] ---
     # Key functions: ScaleTransformApp
-
+    if (interactive()){
+    CytoPipelineGUI::ScaleTransformApp(dir = workDir)
     # --- scale transform viz prog [] ---
     # Key functions: buildCytoPipelineFromCache, getCytoPipelineFlowFrame, plotScaleTransformedChannel
-
+    pipL <- CytoPipeline::buildCytoPipelineFromCache(
+    ff <- CytoPipeline::getCytoPipelineFlowFrame(
+    p1 <- plotScaleTransformedChannel(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

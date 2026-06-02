@@ -49,6 +49,8 @@ process BIOC_SWFDR {
     # --- Dhist [] ---
     # Key functions: p_hist
     par(mfrow=c(1,3), las=1, mar=c(3,4,2,1))
+    p_hist <- function(p, breaks=20, freq=F, ylim=c(0, 7.2), ...) {
+    hist(p, breaks=breaks, freq=freq, ylim=ylim, xlab="", ...)
     # --- Dqs [] ---
     # Key functions: qvalue, hit_counts
     library(qvalue)

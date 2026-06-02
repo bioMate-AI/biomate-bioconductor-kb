@@ -50,13 +50,18 @@ process BIOC_QPGRAPH {
                    include.x=FALSE)
     # --- Frame [] ---
     # Key functions: frame
-
+    annot <- data.frame(chr=as.character(sim.eqtl$genes[, "chr"]),
+                        start=sim.eqtl$genes[, "location"],
+                        end=sim.eqtl$genes[, "location"],
+                        strand=rep("+", nrow(sim.eqtl$genes)),
+                        row.names=rownames(sim.eqtl$genes),
     # --- Lapply [] ---
     # Key functions: Seqinfo, nchr
     pMap <- lapply(map, function(x) x * 5)
     class(pMap) <- "map"
     annot$start <- floor(annot$start * 5)
     annot$end <- floor(annot$end * 5)
+    genome <- Seqinfo(seqnames=names(map), seqlengths=rep(100 * 5, nchr(pMap)),
     # --- Eqtlnetworkestimationparam [] ---
     # Key functions: eQTLnetworkEstimationParam
     param <- eQTLnetworkEstimationParam(cross, physicalMap=pMap,
@@ -90,6 +95,7 @@ process BIOC_QPGRAPH {
     library(graph)
     grid.newpage()
     pushViewport(viewport(layout=grid.layout(3, 3)))
+    for (i in 1:3) {
     # --- Info [] ---
     # Key functions: toLatex
     toLatex(sessionInfo())

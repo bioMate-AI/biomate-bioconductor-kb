@@ -91,6 +91,8 @@ process BIOC_DROPLETUTILS {
     ---------------------------------------------------------------------
     colors <- ifelse(demux$Confident, "black",
         ifelse(demux$Doublet, "red", "grey"))
+    plot(demux$LogFC, demux$LogFC2, col=colors,
+        xlab="Log-fold change between best and second HTO",
     # --- Swappeddrops [] ---
     # Key functions: swappedDrops
     ---------------------------------------------------------------------

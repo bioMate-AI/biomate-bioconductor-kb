@@ -38,7 +38,11 @@ process BIOC_GSEABASE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GSEABase)
+    library(GeneColorSet)
+    library(GeneSet)
+    library(GeneSetCollection)
+    library(HTMLReport)
+    library(annotate)
     library(jsonlite)
 
 

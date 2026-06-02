@@ -47,10 +47,12 @@ process BIOC_RAREVARIANTVIS {
     chromosomes=c("19"))
     # --- rare Variant Vis [] ---
     # Key functions: rareVariantVis
-
+    rareVariantVis("RareVariants_CoriellIndex_S1.txt",
     # --- multiple Vis [] ---
     # Key functions: multipleVis
-
+    inputFiles = c("RareVariants_CoriellIndex_S1.txt",
+    sampleNames = c("CoriellIndex_S1", "Coriell_S2");
+    multipleVis(inputFiles, "CorielSamples.html", sampleNames, "19")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

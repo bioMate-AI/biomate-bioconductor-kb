@@ -75,6 +75,7 @@ process BIOC_SIGCHECK {
     p5 <- sigCheck(check,
                   scoreMethod="High",threshold=.5,
                   plotTrainingKM=F)@survivalPval
+    p66 <- sigCheck(check,
     # --- Sigchecksurvivalclass [] ---
     # Key functions: sigCheck
     check <- sigCheck(check, scoreMethod="classifier")

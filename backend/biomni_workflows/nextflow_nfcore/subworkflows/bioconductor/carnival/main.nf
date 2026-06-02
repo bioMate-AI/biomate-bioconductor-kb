@@ -61,6 +61,7 @@ process BIOC_CARNIVAL {
                             package = "CARNIVAL"))
     load(file = system.file("toy_measurements_ex1.RData",
                             package = "CARNIVAL"))
+    load(file = system.file("toy_network_ex1.RData",
     # --- Code Block 8 [] ---
     # Key functions: runFromLpCarnival, defaultLpSolveCarnivalOptions
     lpFilename <- "toy_files_vignettes/lpFile_t18_01_53d28_04_2021n4.lp"

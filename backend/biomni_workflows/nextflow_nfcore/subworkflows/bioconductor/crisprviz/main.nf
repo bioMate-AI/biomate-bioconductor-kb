@@ -58,13 +58,22 @@ process BIOC_CRISPRVIZ {
     ---------------------------------------------------------------------
     from <- min(start(krasGeneModel$transcripts))
     to <- max(end(krasGeneModel$transcripts))
+    plotGuideSet(krasGuideSet[1:4],
+                 geneModel=krasGeneModel,
     # --- Querytxobject [] ---
     # Key functions: queryTxObject, start, end, plotGuideSet
     ---------------------------------------------------------------------
     # new window range around target exon
+    targetExon <- queryTxObject(krasGeneModel,
+                                featureType="cds",
+                                queryColumn="exon_id",
     # --- Plotguideset [] ---
     # Key functions: plotGuideSet
     ---------------------------------------------------------------------
+    plotGuideSet(krasGuideSet,
+                 geneModel=krasGeneModel,
+                 targetGene="KRAS",
+                 from=from,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -75,12 +84,15 @@ process BIOC_CRISPRVIZ {
     ---------------------------------------------------------------------
     from <- min(start(mmp7GuideSet))
     to <- max(end(mmp7GuideSet))
+    plotGuideSet(mmp7GuideSet,
+                 geneModel=mmp7GeneModel,
     # --- Removerepeats [] ---
     # Key functions: removeRepeats, plotGuideSet
     ---------------------------------------------------------------------
     filteredGuideSet <- crisprDesign::removeRepeats(mmp7GuideSet,
                                                     gr.repeats=repeats)
     filteredGuideSet <- filteredGuideSet[!filteredGuideSet$hasSNP]
+    plotGuideSet(filteredGuideSet,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -89,12 +101,17 @@ process BIOC_CRISPRVIZ {
     # --- Plotguideset [] ---
     # Key functions: plotGuideSet
     ---------------------------------------------------------------------
+    plotGuideSet(filteredGuideSet,
+                 geneModel=mmp7GeneModel,
+                 targetGene="MMP7",
+                 guideStacking="dense",
     # --- Findoverlaps [] ---
     # Key functions: findOverlaps, queryHits, plotGuideSet
     ---------------------------------------------------------------------
     # filter GuideSet for gRNAs overlapping DNase track
     overlaps <- findOverlaps(filteredGuideSet, dnase, ignore.strand=TRUE)
     finalGuideSet <- filteredGuideSet[queryHits(overlaps)]
+    plotGuideSet(finalGuideSet,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------

@@ -44,6 +44,8 @@ process BIOC_GENOMICDATACOMMONS {
     # --- Extract differential expression results [] ---
     # Key functions: expand, results, cases, ids, missing
     cases() |>
+    GenomicDataCommons::filter(~ project.project_id == 'TCGA-COAD' &
+    GenomicDataCommons::results(size = 4) |>
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_bar, theme
     res = files() |> facet('type') |> aggregations()
@@ -51,7 +53,9 @@ process BIOC_GENOMICDATACOMMONS {
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
     # --- Markdown analysis [] ---
     # Key functions: markdown, status, files, manifest, default_fields, facet, aggregations, transfer
-
+    resp = cases() |> filter(~ project.project_id=='TCGA-BRCA' &
+    GenomicDataCommons::select(c(default_fields(cases()),'samples.sample_type')) |>
+    response_all()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

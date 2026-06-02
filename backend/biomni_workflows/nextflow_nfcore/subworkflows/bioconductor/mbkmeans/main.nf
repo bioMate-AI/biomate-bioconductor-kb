@@ -38,7 +38,9 @@ process BIOC_MBKMEANS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(mbkmeans)
+    library(TENxPBMCData)
+    library(scater)
+    library(SingleCellExperiment)
     library(jsonlite)
 
 

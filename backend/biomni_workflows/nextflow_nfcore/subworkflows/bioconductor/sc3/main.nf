@@ -50,6 +50,9 @@ process BIOC_SC3 {
     # Key functions: SingleCellExperiment, rowData
     ---------------------------------------------------------------------
     # create a SingleCellExperiment object
+    sce <- SingleCellExperiment(
+        assays = list(
+            counts = as.matrix(yan),
     # --- Runpca [] ---
     # Key functions: runPCA, plotPCA
     ---------------------------------------------------------------------
@@ -68,6 +71,9 @@ process BIOC_SC3 {
     # Key functions: runPCA, plotPCA
     ---------------------------------------------------------------------
     sce <- runPCA(sce)
+    plotPCA(
+        sce,
+        colour_by = "sc3_3_clusters",
     # --- Rowdata [] ---
     # Key functions: rowData
     ---------------------------------------------------------------------

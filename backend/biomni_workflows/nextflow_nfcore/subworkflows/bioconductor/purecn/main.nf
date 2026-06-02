@@ -43,10 +43,14 @@ process BIOC_PURECN {
 
     # --- Import genomic data file [] ---
     # Key functions: import, preprocessIntervals, calculateTangentNormal, callMutationBurden
-
+    reference.file <- system.file("extdata", "ex2_reference.fa",
+    bed.file <- system.file("extdata", "ex2_intervals.bed",
+    mappability.file <- system.file("extdata", "ex2_mappability.bigWig",
     # --- UlateBamCoverageByInterval analysis [] ---
     # Key functions: calculateBamCoverageByInterval, correctCoverageBias, createNormalDatabase, calculateMappingBiasVcf, browserSession, genome, track, export
-
+    bam.file <- system.file("extdata", "ex1.bam", package="PureCN",
+    interval.file <- system.file("extdata", "ex1_intervals.txt",
+    calculateBamCoverageByInterval(bam.file = bam.file,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

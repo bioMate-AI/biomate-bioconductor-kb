@@ -54,6 +54,7 @@ process BIOC_FILTERFFPE {
     dupChim <- readLines(dupChimFile)
     readsToFilter <- c(artifactReads, dupChim)
     destination <- paste0(outFolder, "/example.FilterFFPE.bam")
+    filterBamByReadNames(file = file, readsToFilter = readsToFilter,
     # --- Ffpereadfilter [] ---
     # Key functions: tempdir, FFPEReadFilter
     # Perform finding and filtering with one function

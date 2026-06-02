@@ -56,6 +56,8 @@ process BIOC_ASGSCA {
     ObservedVar=colnames(QCAHS)
     ObservedVar
     #Define the vector of the latent variables names
+    LatentVar=c("CETP","APOC3","ABCA1","FABP-2","APOA1","APOE","HL","LPL","MTP","PON1","PON2","PCSK9",
+    "PGC","ADIPO","PPARg2","TNFa","eNOS","a23AR","b1AR","b2AR","b3AR","ACE","AGT","AGTR1","LEPR",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

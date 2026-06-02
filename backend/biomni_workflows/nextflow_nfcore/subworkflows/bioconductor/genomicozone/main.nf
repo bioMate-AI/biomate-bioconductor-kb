@@ -46,6 +46,9 @@ process BIOC_GENOMICOZONE {
     # Key functions: GOZDataSet, GenomicOZone
     ---------------------------------------------------------------------
     # Create an input object also checking for data format, consistency, and completeness
+    GOZ.ds <- GOZDataSet(data = data,
+                         colData = colData,
+                         design = design,
     # --- Extract Genes [] ---
     # Key functions: extract_genes, extract_zones, extract_outstanding_zones, extract_zone_expression
     ---------------------------------------------------------------------

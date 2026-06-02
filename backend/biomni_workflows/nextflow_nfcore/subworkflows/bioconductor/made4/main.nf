@@ -41,61 +41,10 @@ process BIOC_MADE4 {
     library(made4)
     library(jsonlite)
 
-
-    # --- Eval=false [] ---
-    # Key functions: requireNamespace, install, made4, overview, ord, coa
-    #  if (!requireNamespace("BiocManager", quietly=TRUE))
-    #      install.packages("BiocManager")
-    #  BiocManager::install("made4")
-
-    ## -----------------------------------------------------------------------------
-     library(made4)
-     library(ade4)
-     data(khan)
-
-    ## -----------------------------------------------------------------------------
-    overview(k.data, labels=k.class)
+    # --- Overview analysis [] ---
+    # Key functions: overview, plotarrays, plotgenes, topgenes, do3d, include_graphics, cia
     overview(k.data, classvec=k.class, labels=k.class)
-
-    ## -----------------------------------------------------------------------------
     k.coa<- ord(k.data, type="coa")
-
-    # --- Output Coa [] ---
-    # Key functions: summary, grey3
-    names(k.coa)
-    summary(k.coa$ord)
-    k.class
-    plot(k.coa, classvec=k.class, genecol="grey3")
-
-    # --- Plotarrays [] ---
-    # Key functions: plotarrays, ord, plotgenes, red
-    plotarrays(k.coa, arraylabels=k.class)
-    k.coa2<-ord(k.data, classvec=k.class)
-    plot(k.coa2)
-    plotgenes(k.coa, n=5, col="red")
-
-    # --- Plotgenescmd [] ---
-    # Key functions: plotgenes, red, topgenes, neg
-    gene.symbs<- khan$annotation$Symbol 
-    gene.symbs[1:4]
-    plotgenes(k.coa, n=10, col="red", genelabels=gene.symbs)
-    topgenes(k.coa, labels=gene.symbs, end="neg")
-
-    # --- Do3d [] ---
-    # Key functions: do3d, include_graphics, html3D.png, bga, coa
-    do3d(k.coa$ord$co, classvec=k.class, cex.symbols=3)
-    knitr::include_graphics("html3D.png")
-    k.bga<-bga(k.data, type="coa", classvec=k.class)
-
-    # --- Bgaplot [] ---
-    # Key functions: between.graph, axes, cia, G1_Ross_1375.txt, G5_Affy_1517.txt
-    plot(k.bga, genelabels=gene.symbs) # Use the gene symbols earlier
-    between.graph(k.bga, ax=1)  # Show the separation on the first axes(ax)
-    # Example data are "G1_Ross_1375.txt" and "G5_Affy_1517.txt"
-    data(NCI60)
-    coin <- cia(NCI60$Ross, NCI60$Affy)
-    names(coin)
-    coin$coinertia$RV
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

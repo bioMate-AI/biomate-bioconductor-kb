@@ -54,6 +54,10 @@ process BIOC_SASER {
     # --- Frame [] ---
     # Key functions: frame
     ---------------------------------------------------------------------
+    targets <- data.frame(
+      row.names = paste0('Sample',c(1:12)),
+      bam = BAMFiles,
+      f1 = rep("A",12),
     # --- Maketxdbfromgff [] ---
     # Key functions: makeTxDbFromGFF, binGenome
     ---------------------------------------------------------------------
@@ -62,6 +66,10 @@ process BIOC_SASER {
     # --- Bamtoasplicounts [] ---
     # Key functions: BamtoAspliCounts, MulticoreParam
     ---------------------------------------------------------------------
+    ASpliSE <- BamtoAspliCounts(
+                        features = features,
+                        targets = targets,
+                        minReadLength = 100,
     # --- Convertaspli [] ---
     # Key functions: convertASpli
     ---------------------------------------------------------------------
@@ -110,6 +118,7 @@ process BIOC_SASER {
     SEbins <- calculateOffsets(SEbins,
                                 method = "AS",
                                 aggregation = "locus")
+    SEjunctions <- calculateOffsets(SEjunctions,
     # --- Filterbyexpr [] ---
     # Key functions: filterByExpr
     ---------------------------------------------------------------------

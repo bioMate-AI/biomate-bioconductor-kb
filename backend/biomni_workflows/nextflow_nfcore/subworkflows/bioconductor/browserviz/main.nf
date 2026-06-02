@@ -44,9 +44,12 @@ process BIOC_BROWSERVIZ {
     # --- to J S O N [] ---
     # Key functions: toJSON
     library(jsonlite)
+    msg <- toJSON(list(cmd="setBrowserWindowTitle",
     # --- Browser Viz [] ---
     # Key functions: BrowserViz, displayHTMLInDiv
     library(BrowserViz)
+    browserVizBrowserFile <- system.file(package="BrowserViz", "browserCode",
+    if(BrowserViz::webBrowserAvailableForTesting()){
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

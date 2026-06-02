@@ -50,6 +50,7 @@ process BIOC_PROJECTR {
     # Key functions: projectR, scale_colour_manual, ggplot, geom_point
     data(p.ESepiGen4c1l)
     library(ggplot2)
+    PCA2ESepi <- projectR(data = p.ESepiGen4c1l$mRNA.Seq,loadings=pc.RNAseq6l3c3t,
     # --- Custom ggplot2 visualization [] ---
     # Key functions: correlateR, unlist, ggplot, geom_tile, scale_fill_viridis
     data("p.RNAseq6l3c3t")

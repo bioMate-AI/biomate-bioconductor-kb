@@ -72,6 +72,9 @@ process BIOC_DISCORDANT {
     # Key functions: discordantRun
     ---------------------------------------------------------------------
     # Between -omics
+    btwn_result <- discordantRun(v1 = btwn_vectors$v1,
+                                 v2 = btwn_vectors$v2,
+                                 x = TCGA_GBM_miRNA_microarray,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

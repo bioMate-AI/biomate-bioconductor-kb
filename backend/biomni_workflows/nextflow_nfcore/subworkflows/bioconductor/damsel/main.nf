@@ -47,7 +47,9 @@ process BIOC_DAMSEL {
     plotCountsDistribution(counts.df, constant = 1)
     # --- Plot counts for individual gene [] ---
     # Key functions: plotCounts, makeDGE
-
+    plotCounts(counts.df,
+    dge <- makeDGE(counts.df)
+    head(dge)
     # --- MDS plot of sample distances [] ---
     # Key functions: plotMDS, testDmRegions, group_by, summarise
     group <- dge$samples$group %>% as.character()

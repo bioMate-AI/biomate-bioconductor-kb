@@ -45,6 +45,7 @@ process BIOC_TFUTILS {
     # Key functions: geom_segment, ggplot, geom_point, myf, xlab
     library(ggplot2)
     myf = function(a=38077296, b=38078938)
+    geom_segment(aes(x=a, xend=b, y=2.85, yend=2.85,
     # --- Table formatting and display [] ---
     # Key functions: upset, include_graphics, kable, register, rowRanges, scanTabix, directHitsInCISBP
     suppressPackageStartupMessages({library(UpSetR)})

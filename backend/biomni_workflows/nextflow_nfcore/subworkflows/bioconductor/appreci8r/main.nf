@@ -41,79 +41,13 @@ process BIOC_APPRECI8R {
     library(appreci8R)
     library(jsonlite)
 
-
-    # --- 4 [] ---
-    # Key functions: read.table, filterTarget, extdata, appreci8R
-    output_folder<-""
-    target<-data.frame(chr = c("2","4","12","17","21","X"),
-                       start = c(25469500,106196950,12046280,7579470,36164400,15838363),
-                       end = c(25469510,106196960,12046350,7579475,36164410,15838366))
-    target
-    caller_folder <- system.file("extdata", package = "appreci8R")
-
-    #Input data Sample1:
-    read.table(paste(caller_folder, "/Sample1.rawMutations.vcf", sep=""),
-               header = FALSE, sep = "\t", stringsAsFactors = FALSE)
-
-    # --- 5 [] ---
-    # Key functions: normalize, sample2
+    # --- 10 [] ---
+    # Key functions: finalFiltration
     output_folder <- ""
-    caller_name <- ""
-    sample1 <- data.frame(SampleID = c("Sample1","Sample1","Sample1"),
-                          Chr = c("2","17","X"),
-                          Pos = c(25469502,7579472,15838366),
-                          Ref = c("CAG","G","C"),
-                          Alt = c("TAT","C","T,A"),
-                          stringsAsFactors = FALSE)
-    # --- 6 [] ---
-    # Key functions: GRanges, IRanges, annotate, coding, spliceSite, nonsynonymous, frameshift, nonsense
-    library(GenomicRanges)
-    output_folder <- ""
-    caller_name <- ""
-    input <- GRanges(seqnames = c("2","X","4","21"),
-                     ranges = IRanges(start = c (25469504,15838366,106196951,36164405),
-                                      end = c (25469504,15838366,106196951,36164405)),
-                     SampleID = c("Sample1","Sample1","Sample2","Sample2"),
-                     Ref = c("G","C","A","G"),
-                     Alt = c("T","A","G","T"))
-    #Input:
-
-    # --- 7 [] ---
-    # Key functions: GRangesList, combineOutput
-    output_folder <- ""
-    caller_name <- ""
-
-    #Input:
-    gatk <- annotated[c(1,3),]
-    varscan <- annotated[c(2,3),]
-    annotated<-GRangesList()
-    annotated[[1]]<-gatk
-    annotated[[2]]<-varscan
-    annotated
-
-    # --- 8 [] ---
-    # Key functions: evaluateCovAndBQ, extdata, appreci8R
-    output_folder <- ""
-    bam_folder <- system.file("extdata", package = "appreci8R")
-    bam_folder <- paste(bam_folder, "/", sep="")
-
-    #Input:
-    combined
-
-    filtered<-evaluateCovAndBQ(output_folder, combined, bam_folder, bq_diff = 20,
-                               vaf = 0.001)
-    filtered
-
-    # --- 9 [] ---
-    # Key functions: determineCharacteristics
-    output_folder <- ""
-
     #Input:
     filtered
-
-    characteristics <- determineCharacteristics(output_folder, filtered,
-                                                predict = "Provean")
     characteristics
+    combined
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

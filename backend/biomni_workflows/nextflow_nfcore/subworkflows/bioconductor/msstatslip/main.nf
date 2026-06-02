@@ -38,45 +38,13 @@ process BIOC_MSSTATSLIP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MSstatsLiP)
+    library(ResistanceBarcodePlotLiP)
     library(jsonlite)
 
-
-    # --- Include=true [] ---
-    # Key functions: SpectronauttoMSstatsLiPFormat
-    library(MSstatsLiP)
-    library(tidyverse)
-    library(data.table)
-
-    ## -----------------------------------------------------------------------------
-    ## Read in raw data files
-    head(LiPRawData)
-    head(TrPRawData)
-
-    ## -----------------------------------------------------------------------------
-    ## Run converter
-    MSstatsLiP_data <- SpectronauttoMSstatsLiPFormat(LiPRawData, 
-                                          "../inst/extdata/ExampleFastaFile.fasta", 
-                                          TrPRawData, use_log_file = FALSE, 
-                                          append = FALSE)
-
-    # --- Calculate Accessibility [] ---
-    # Key functions: calculateProteolyticResistance, aSynuclein, ResistanceBarcodePlotLiP
-    Accessibility = calculateProteolyticResistance(MSstatsLiP_Summarized, 
-                                                   "../inst/extdata/ExampleFastaFile.fasta", 
-                                                   differential_analysis = TRUE)
-
-    Accessibility$RunLevelData
-
-
-    ## ----Barplot of protease resistance of aSynuclein (monomer - M and fibril - F), message=FALSE, warning=FALSE, fig.height=2, fig.width=10,echo=TRUE,include=TRUE----
-
+    # --- Barplot of protease resistance of aSynuclein (monomer [] ---
+    # Key functions: ResistanceBarcodePlotLiP
     ResistanceBarcodePlotLiP(Accessibility,
-                             "../inst/extdata/ExampleFastaFile.fasta",
-                             which.prot = "P14164",
-                             which.condition = "Osmo",
-                             address = FALSE)
-
+    ResistanceBarcodePlotLiP(Accessibility,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

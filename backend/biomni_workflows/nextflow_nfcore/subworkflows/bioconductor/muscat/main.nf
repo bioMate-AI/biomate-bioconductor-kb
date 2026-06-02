@@ -62,7 +62,9 @@ process BIOC_MUSCAT {
     plotReducedDim(sce, dimred = dr, colour_by = col) +
     # --- Assay listing [] ---
     # Key functions: assays, split, unlist, sample, aggregateData, assayNames, mmDS, arrange
-
+    plotExpression(sce[, sce$cluster_id == "B cells"],
+    features = tbl_fil$`B cells`$gene[seq_len(6)],
+    guides(fill = guide_legend(override.aes = list(size = 5, alpha = 1))) +
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

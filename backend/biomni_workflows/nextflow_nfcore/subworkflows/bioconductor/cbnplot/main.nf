@@ -48,7 +48,9 @@ process BIOC_CBNPLOT {
     library(org.Hs.eg.db)
     # --- Bngeneplot analysis [] ---
     # Key functions: bngeneplot, evcent, bnpathplot, bnpathplotCustom, bngeneplotCustom
-
+    bnpathplotCustom(results = pway, exp = counts, expRow="ENTREZID",
+    bngeneplotCustom(results = pway, exp = counts, expRow="ENTREZID",
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

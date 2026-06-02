@@ -55,6 +55,7 @@ process BIOC_SPILLR {
     # Key functions: plotDiagnostics, plot_grid
     ps <- spillR::plotDiagnostics(sce_spillr, "Yb173Di")
     x_lim <- c(0, 7)
+    plot_grid(ps[[1]] + xlim(x_lim),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

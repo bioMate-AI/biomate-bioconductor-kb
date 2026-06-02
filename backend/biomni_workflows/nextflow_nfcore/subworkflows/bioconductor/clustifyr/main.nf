@@ -44,22 +44,32 @@ process BIOC_CLUSTIFYR {
     # --- "Run clustifyr()" [] ---
     # Key functions: clustify, cor_to_call, call_to_metadata
     Calculate correlation coefficients for each cluster (spearman by default)
+    res <- clustify(
+    input = pbmc_matrix, # matrix of normalized scRNA-seq counts (or SCE/Seurat object)
     # --- "Create correlation heatmap" [] ---
     # Key functions: plot_cor_heatmap
     Create heatmap of correlation coefficients using clustifyr() output
     plot_cor_heatmap(cor_mat = res)
     # --- "Overlay corr coefficients on UMAP" [] ---
     # Key functions: plot_cor, plot_grid
-
+    corr_umaps <- plot_cor(
+    cor_mat = res, # matrix of correlation coefficients from clustifyr()
+    data_to_plot = colnames(res)[1:2], # name of cell type(s) to plot correlation coefficients
     # --- "Label clusters" [] ---
     # Key functions: plot_best_call, ggtitle, plot_dims, plot_grid
-
+    clustifyr_types <- plot_best_call(
+    cor_mat = res, # matrix of correlation coefficients from clustifyr()
+    ggtitle("clustifyr cell types")
     # --- "clustifyr with gene lists" [] ---
     # Key functions: clustify_lists, plot_cor_heatmap, cor_to_call, call_to_metadata, sce_pbmc
-
+    list_res <- clustify_lists(
+    plot_cor_heatmap(
+    cor_mat = list_res, # matrix of correlation coefficients from clustify_lists()
     # --- "average" [] ---
     # Key functions: average_clusters, object_ref, seurat_ref
-
+    new_ref_matrix <- average_clusters(
+    head(new_ref_matrix)
+    new_ref_matrix_sce <- object_ref(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

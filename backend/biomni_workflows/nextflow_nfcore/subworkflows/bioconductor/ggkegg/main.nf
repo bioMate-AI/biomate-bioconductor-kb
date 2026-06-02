@@ -41,62 +41,11 @@ process BIOC_GGKEGG {
     library(ggkegg)
     library(jsonlite)
 
-
-    # --- Pathway1 [] ---
-    # Key functions: pathway, hsa04110
-    library(ggkegg)
-    library(tidygraph)
-    library(dplyr)
-    graph <- ggkegg::pathway("hsa04110", use_cache=TRUE)
-    graph
-
-    # --- Pathway1 1 [] ---
-    # Key functions: mutate, centrality_degree, centrality_betweenness, activate, filter, arrange, desc, as_tibble
-    graph |> 
-        mutate(degree=centrality_degree(mode="all"),
-            betweenness=centrality_betweenness()) |> 
-        activate(nodes) |>
-        filter(type=="gene") |>
-        arrange(desc(degree)) |>
-        as_tibble() |>
-        relocate(degree, betweenness)
-
-    # --- Plot Pathway1 [] ---
-    # Key functions: mutate, vapply, ggraph, geom_edge_parallel, arrow, unit, circle, geom_node_rect
-
-    # --- Plot Pathway2 [] ---
-    # Key functions: mutate, ggraph, geom_edge_parallel, arrow, unit, circle, geom_node_point, geom_node_text
-    graph |> mutate(x=NULL, y=NULL) |>
-    ggraph(layout="nicely")+
-        geom_edge_parallel(aes(color=subtype_name),
-            arrow=arrow(length=unit(1,"mm"), type="closed"),
-            end_cap=circle(0.1,"cm"),
-            start_cap=circle(0.1,"cm"))+
-        geom_node_point(aes(filter=type == "gene"),
-                      color="black")+
-        geom_node_point(aes(filter=type == "group"),
-                      color="tomato")+
-
-    # --- Convert [] ---
-    # Key functions: activate, mutate, convert_id, filter, as_tibble, relocate, hsa, gene
-    graph |>
-        activate(nodes) |>
-        mutate(hsa=convert_id("hsa")) |>
-        filter(type == "gene") |>
-        as_tibble() |>
-        relocate(hsa)
-
-    # --- Highlight [] ---
-    # Key functions: activate, mutate, highlight_set_nodes, ggraph, geom_node_rect, geom_node_text, geom_edge_parallel, arrow
-    graph |>
-        activate(nodes) |>
-        mutate(highlight=highlight_set_nodes("hsa:7157")) |>
-        ggraph(layout="manual", x=x, y=y)+
-        geom_node_rect(aes(fill=I(bgcolor),
-                          filter=type == "gene"), color="black")+
-        geom_node_rect(aes(fill="tomato", filter=highlight), color="black")+
-        geom_node_text(aes(label=showname,
-                          filter=type == "gene"), size=2)+
+    # --- Pathway analysis [] ---
+    # Key functions: pathway, activate, arrange, as_tibble, relocate, ggraph, geom_edge_parallel, geom_node_rect
+    graph <- graph |> mutate(showname=strsplit(graphics_name, ",") |>
+    vapply("[", 1, FUN.VALUE="a"))
+    ggraph(graph, layout="manual", x=x, y=y)+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

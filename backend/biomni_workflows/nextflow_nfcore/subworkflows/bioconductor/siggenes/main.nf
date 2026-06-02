@@ -63,20 +63,32 @@ process BIOC_SIGGENES {
     ebam(find.out, which.a0 = 2)
     # --- Function [] ---
     # Key functions: factor, rowttests, exclude, qt
-
+    t.stat <- function(data, cl){
+        require(genefilter) ||
+            stop("genefilter required.")
+        cl <- as.factor(cl)
+        row.out <- rowttests(data, cl)
     # --- Sam [] ---
     # Key functions: sam
     sam(golub, golub.cl, method = t.stat)
     # --- Function [] ---
     # Key functions: factor, rowttests
-
+    t.find <- function(data, cl, B = 50){
+        require(genefilter)
+        z.fun <- function(data, cl){
+            cl <- as.factor(cl)
+            out <- rowttests(data, cl)
     # --- a0 [] ---
     # Key functions: a0
     t.out <- find.a0(golub, golub.cl, method = t.find, B = 100, rand =123)
     t.out
     # --- Function [] ---
     # Key functions: factor, rowttests, denspr, dt
-
+    t.ebam<-function(data, cl){
+        require(genefilter)
+        cl <- as.factor(cl)
+        out <- rowttests(data, cl)
+        z <- -out$statistic
     # --- Ebam [] ---
     # Key functions: ebam
     ebam(golub, golub.cl, method = t.ebam)

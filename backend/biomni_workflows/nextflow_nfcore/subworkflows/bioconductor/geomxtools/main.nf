@@ -43,7 +43,9 @@ process BIOC_GEOMXTOOLS {
 
     # --- unzip [] ---
     # Key functions: unzip, isS4
-
+    datadir <- system.file("extdata", "DSP_NGS_Example_Data",
+    DCCFiles <- dir(datadir, pattern=".dcc$", full.names=TRUE)
+    PKCFiles <- unzip(zipfile = file.path(datadir,  "/pkcs.zip"))
     # --- assay Data [] ---
     # Key functions: assayData, pData, fData, featureType, annotation
     assayData(demoData)[["exprs"]][1:3, 1:3]
@@ -75,7 +77,9 @@ process BIOC_GEOMXTOOLS {
     head(protocolData(demoData)[["QCFlags"]])
     # --- normalize [] ---
     # Key functions: normalize, assayDataElement
-
+    target_demoData <- normalize(target_demoData , norm_method="quant",
+    target_demoData <- normalize(target_demoData , norm_method="neg", fromElt="exprs",  toElt="neg_norm")
+    target_demoData <- normalize(target_demoData , norm_method="hk", fromElt="exprs", toElt="hk_norm")
     # --- negative Control Subset [] ---
     # Key functions: negativeControlSubset, munge
     neg_set <- negativeControlSubset(demoData)
@@ -84,6 +88,8 @@ process BIOC_GEOMXTOOLS {
     # --- assay Data Apply [] ---
     # Key functions: assayDataApply, transform, assayDataElementNames
     thresh <- assayDataApply(negativeControlSubset(demoData), 2, max)
+    transform(demoData,
+    negCtrlZeroed = sweep(exprs, 2, thresh),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -64,6 +64,8 @@ process BIOC_PADMA {
     # --- omics Contrib [] ---
     # Key functions: omicsContrib, padma
     omicsContrib(run_padma, max_dim = 10, ggplot = FALSE)
+    padma(mae, pathway_name = D4GDI, verbose = FALSE,
+    base_ids = sampleMap(mae)$primary[1:10],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

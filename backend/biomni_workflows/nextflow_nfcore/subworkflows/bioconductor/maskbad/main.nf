@@ -52,6 +52,7 @@ process BIOC_MASKBAD {
     rownames(exmask[[1]]) <-apply(exmask[[1]][,c("x","y")],1,
                                   function(x)paste(x[1],x[2],sep="."))
     ## filtering for probes around the choosen cutoff
+    probesToSee = rownames(exmask[[1]][exmask[[1]]$quality.score<0.03
     # --- Err [] ---
     # Key functions: overlapExprExtMasks
     overlapExSeq <- overlapExprExtMasks(exmask$probes[,1:3],
@@ -72,11 +73,15 @@ process BIOC_MASKBAD {
     plot(overlapTests$testCutoff[[1]],overlapTests$ksBoot,col="lightgrey",
          main="Kolmogorov-Smirnov Test",xlab="Quality score cutoff",
          ylab="p value (Kolmogorov-Smirnov Test)",ylim=c(0,1),pch=16,xaxt="n",cex=1.5)
+    axis(1,at=seq(1,length(unique(overlapTests$testCutoff[[2]])),2),
+         labels=signif(unique(overlapTests$testCutoff[[2]]),2)[seq(1,length(unique(overlapTests$testCutoff[[2]])),2)],
     # --- Figwil2 [] ---
     # Key functions: value, signif
     plot(overlapTests$testCutoff[[1]],overlapTests$wilcoxonBoot,col="lightgrey",
          main="Wilcoxon Rank Sum Test",xlab="Quality score cutoff",
          ylab="p value (Wilcoxon Rank Sum Test)",ylim=c(0,1),pch=16,xaxt="n",cex=1.5)
+    axis(1,at=seq(1,length(unique(overlapTests$testCutoff[[2]])),2),
+         labels=signif(unique(overlapTests$testCutoff[[2]]),2)[seq(1,length(unique(overlapTests$testCutoff[[2]])),2)],
     # --- Affbs [] ---
     # Key functions: prepareMaskedAffybatch
     affyBatchAfterMasking <-

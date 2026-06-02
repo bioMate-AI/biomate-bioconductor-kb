@@ -50,6 +50,7 @@ process BIOC_TIDYSBML {
     # Key functions: useEnsembl, getBM
     library(biomaRt)
     mart <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+    df_mart_uniprot <- getBM( attributes = c("uniprot_gn_id", "uniprot_gn_symbol",   "description"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

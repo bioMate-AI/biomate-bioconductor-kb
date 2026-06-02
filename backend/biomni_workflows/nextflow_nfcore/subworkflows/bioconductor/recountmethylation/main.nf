@@ -68,6 +68,7 @@ process BIOC_RECOUNTMETHYLATION {
     df <- as.data.frame(table(gene.regionv)) # get group frequencies
     ggplot(df, aes(x = gene.regionv, y = Freq, fill = gene.regionv)) + theme_bw() +
       geom_bar( stat = "identity") + xlab("Gene group") + ylab("Num. probes") +
+      theme(legend.position = "none",
     # --- Utr [] ---
     # Key functions: UTR, TSS1500, TSS200, ifelse, frame
     ---------------------------------------------------------------------

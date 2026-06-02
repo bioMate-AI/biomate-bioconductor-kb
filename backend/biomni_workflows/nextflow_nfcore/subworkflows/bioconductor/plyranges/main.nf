@@ -53,7 +53,9 @@ process BIOC_PLYRANGES {
     left_df$ymax <- c(3,6, 3)
     # --- as_granges [] ---
     # Key functions: as_granges, join_overlap_inner, group_by, summarise, group_by_overlaps
-
+    intensities <- data.frame(seqnames = "VI",
+    start = c(3320:3321,3330:3331,3341:3342),
+    as_granges()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

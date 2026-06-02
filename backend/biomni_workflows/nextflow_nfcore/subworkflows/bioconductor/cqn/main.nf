@@ -83,6 +83,7 @@ process BIOC_CQN {
     plot(A.std, M.std, cex = 0.5, pch = 16, xlab = "A", ylab = "M",
          main = "Standard RPKM", ylim = c(-4,4), xlim = c(0,12),
          col = alpha("black", 0.25))
+    plot(A.cqn, M.cqn, cex = 0.5, pch = 16, xlab = "A", ylab = "M",
     # --- Edgerconstructor [] ---
     # Key functions: DGEList
     library(edgeR)

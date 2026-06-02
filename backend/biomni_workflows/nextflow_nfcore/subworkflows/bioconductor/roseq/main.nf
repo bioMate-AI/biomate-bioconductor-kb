@@ -41,38 +41,9 @@ process BIOC_ROSEQ {
     library(ROSeq)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set
-    knitr::opts_chunk$set(
-        collapse = TRUE,
-        comment = "#>"
-    )
-
-    # --- Data [] ---
-    # Key functions: roseq
-    samples<-list()
-    samples$count<-ROSeq::L_Tung_single$NA19098_NA19101_count
-    samples$group<-ROSeq::L_Tung_single$NA19098_NA19101_group
-    samples$count[1:5,1:5]
-
-    # --- Preprocesing [] ---
-    # Key functions: function, colSums, voom, TMMnormalization
-    gene_names<-rownames(samples$count)
-    samples$count<-apply(samples$count,2,function(x) as.numeric(x))
-    rownames(samples$count)<-gene_names
-    samples$count<-samples$count[,colSums(samples$count> 0) > 2000]
-    gkeep<-apply(samples$count,1,function(x) sum(x>2)>=3)
-    samples$count<-samples$count[gkeep,]
-    samples$count<-limma::voom(ROSeq::TMMnormalization(samples$count))
-
-    # --- Main [] ---
+    # --- R O Seq [] ---
     # Key functions: ROSeq
     output<-ROSeq(countData=samples$count$E, condition = samples$group, numCores=1)
-
-    # --- Output [] ---
-    # Key functions: roseq
-    output[1:5,]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

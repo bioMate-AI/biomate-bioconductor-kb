@@ -44,9 +44,17 @@ process BIOC_MOSBI {
     # --- Function [] ---
     # Key functions: colhistogram
     ---------------------------------------------------------------------
+    z_score <- function(x, margin = 2) {
+        z_fun <- function(y) {
+            (y - mean(y, na.rm = TRUE)) / sd(y, na.rm = TRUE)
+        }
     # --- Bicluster Network [] ---
     # Key functions: bicluster_network
     ---------------------------------------------------------------------
+    bic_net <- mosbi::bicluster_network(all_bics, # List of biclusters
+        data_matrix, # Data matrix
+        n_randomizations = 5,
+        # Number of randomizations for the
     # --- Heatmap [] ---
     # Key functions: heatmap, get_adjacency
     ---------------------------------------------------------------------
@@ -59,6 +67,9 @@ process BIOC_MOSBI {
     # Key functions: pal
     ---------------------------------------------------------------------
     # Prepare groups for plotting
+    samples <- vapply(
+        strsplit(colnames(data_matrix), "\\."),
+        function(x) {
     # --- Get Louvain Communities [] ---
     # Key functions: get_louvain_communities
     ---------------------------------------------------------------------
@@ -69,6 +80,10 @@ process BIOC_MOSBI {
     # --- Ensemble Biclusters [] ---
     # Key functions: ensemble_biclusters
     ---------------------------------------------------------------------
+    ensemble_bicluster_list <- mosbi::ensemble_biclusters(coms, all_bics,
+        data_matrix,
+        row_threshold = .1,
+        col_threshold = .1
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

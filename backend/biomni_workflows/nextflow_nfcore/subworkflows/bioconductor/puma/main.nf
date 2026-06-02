@@ -51,6 +51,8 @@ process BIOC_PUMA {
     ## library(oligo)
     ## estrogenFilenames<-list.celfiles()
     ## oligo.estrogen<-read.celfiles(celFiles)
+    ## pData(oligo.estrogen) <- data.frame(
+    ##     "estrogen"=c("absent","absent","present","present"
     # --- Show analysis [] ---
     # Key functions: show, mmgmos, rma, reslts, PMmmgmos, gmoExon, igmoExon, pumaPCA
     ## cel.path<-"cel.path"  ## for example  cel.path<-"/home/gao/celData"

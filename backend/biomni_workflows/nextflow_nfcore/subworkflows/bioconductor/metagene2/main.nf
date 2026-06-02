@@ -63,9 +63,12 @@ process BIOC_METAGENE2 {
     # Key functions: get_demo_regions
     regions_grl <- get_demo_regions()
     lapply(regions_grl, length)
+    mg <- metagene2$new(regions = regions_grl,
     # --- group region metadata [] ---
     # Key functions: unlist
     regions_gr <- unlist(get_demo_regions())
+    demo_metadata = data.frame(BedName=names(regions_gr),
+    EvenStart=ifelse((start(regions_gr) %% 2) == 0, "Even", "Odd"),
     # --- get_demo_metagene [] ---
     # Key functions: get_demo_metagene
     mg <- get_demo_metagene()
@@ -80,6 +83,7 @@ process BIOC_METAGENE2 {
     # Key functions: plot_metagene
     mg1 <- metagene2$new(bam_files = get_demo_bam_files(),
     regions = get_demo_regions()[1])
+    mg2 <- metagene2$new(bam_files = get_demo_bam_files(),
     # --- metagene heatmap default order [] ---
     # Key functions: get_demo_metagene, metagene2_heatmap
     mg <- get_demo_metagene()

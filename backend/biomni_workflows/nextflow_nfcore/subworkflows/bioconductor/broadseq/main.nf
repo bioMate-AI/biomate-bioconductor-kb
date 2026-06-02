@@ -41,109 +41,11 @@ process BIOC_BROADSEQ {
     library(broadSeq)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set, assays, ggdensity, geom_vline, scale_x_log10, rowSums, counts, count
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
-    )
+    # --- assays [] ---
+    # Key functions: assays, geom_vline
     assays(se)[["counts"]][,5] %>% ggpubr::ggdensity(y = "count")+
-        ggplot2::geom_vline(xintercept = 10)+ggplot2::scale_x_log10()
-
-    keep <- (assays(se)[["counts"]] >= 3) %>% rowSums() >= 5 
-    # smallest Group Size is 5
-    table(keep)
-    se <- broadSeq::normalizeEdgerCPM(se ,method = "none",cpm.log = TRUE )
-    ## The normalized values are added with the assay name "logCPM"
-    SummarizedExperiment::assayNames(se)
-
-    # --- Warning=false [] ---
-    # Key functions: normalizeEdgerCPM, assayNames, assays, counts, logCPM, transformDESeq2, vst, normTransform
-    se <- broadSeq::normalizeEdgerCPM(se , method = "TMM", cpm.log = FALSE )
-    ## The normalized values are added with the assay name "TMM"
-    SummarizedExperiment::assayNames(se)
-
-    ## -----------------------------------------------------------------------------
-    assays(se)[["counts"]][1:5,1:5]
-    assays(se)[["TMM"]][1:5,1:5]
-    assays(se)[["logCPM"]][1:5,1:5]
-    se <- broadSeq::transformDESeq2(se,method = "vst"  )
-
-    ## -----------------------------------------------------------------------------
-    se <- broadSeq::transformDESeq2(se, method = "normTransform"  )
-    #  se <- broadSeq::transformDESeq2(se, method = "rlog")
-
-    ## -----------------------------------------------------------------------------
-    SummarizedExperiment::assayNames(se)
-
-    # --- Warning=false [] ---
-    # Key functions: sampleAssay_plot, rremove, ggarrange, counts, stage, x.text, vst, logCPM
-    p <- broadSeq::sampleAssay_plot(se[, se$species=="Mouse" ], 
-                               assayName = "counts", fill = "stage", 
-                               yscale = "log2")+ rremove("x.text")
-
-    p1 <- broadSeq::sampleAssay_plot(se[, se$species=="Mouse"], 
-                               assayName = "vst", fill = "stage")+ rremove("x.text")
-
-    p2 <- broadSeq::sampleAssay_plot(se[, se$species=="Mouse"], 
-                               assayName = "TMM", fill = "stage", 
-                               yscale = "log10")+ rremove("x.text")
-    jco <- broadSeq::genes_plot(se[,se$species == "Mouse"], 
-                         features = c("Shh"), facet.by = "symbol", assayName =  "logCPM",
-                         x = "stage",  fill="stage", add="dotplot", xlab = "", 
-                         title = "Journal of Clinical Oncology", palette = "jco") 
-
-    npg <- broadSeq::genes_plot(se[,se$species == "Mouse"], 
-                         features = c("Shh"), facet.by = "symbol",assayName =  "logCPM",
-                         x = "stage", fill="stage", add="dotplot", xlab = "",
-                         title = "Nature Publishing Group", palette = "npg") 
-
-
-    # --- Warning=false [] ---
-    # Key functions: readRDS, colData, extdata, rat_vole_mouseSE_salmon.rds, broadSeq, rowData
-    se <- readRDS(system.file("extdata","rat_vole_mouseSE_salmon.rds", package = "broadSeq"))
-
-    # To reduce the run time, subset of the data used here
-    se <- se[,colData(se)$species == "Mouse"]
-    head(rownames(se))
-    head(rowData(se))
-    head(colData(se))
-    table(colData(se)$stage)
-
-    # --- Warning=false [] ---
-    # Key functions: use_NOIseq, stage, genes_plot, filter, rotate_x_text, ggscatter, scale_x_log10, scale_y_log10
-    result_Noiseq <- 
-        use_NOIseq(se = se, 
-               colData_id = "stage", control = "Bud", treatment = "Cap",
-               rank = TRUE, 
-               r = 10) # r is an argument of NOISeq::noiseqbio
-
-    head(result_Noiseq)
-    pg <- broadSeq::genes_plot(se, x = "stage", assayName =  "counts",  
-               features = result_Noiseq %>% dplyr::filter(rank <5) %>% rownames(),
-               fill="stage", facet.by = "symbol",
-               palette="jco", add = "dotplot")+rotate_x_text()
-
-    pg_sc <- ggscatter(result_Noiseq, x="Bud_mean", y="Cap_mean",color = "prob")+ 
-        scale_x_log10()+scale_y_log10()
-
-    pg+pg_sc
-    # limma 
-    ?use_limma_trend(se, colData_id, control, treatment, rank = FALSE, ...)
-    ?use_limma_voom(se, colData_id, control, treatment, rank = FALSE, ...)
-
-
-    # --- Warning=false [] ---
-    # Key functions: use_multDE, stage, select, ends_with, dist, hclust, rank
-    # First define a named list of functions
-    funs <- list(limma_trend = use_limma_trend, limma_voom = use_limma_voom,
-                 edgeR_exact = use_edgeR_exact, edgeR_glm = use_edgeR_GLM,
-                 deseq2 = use_deseq2, 
-                 DELocal = use_DELocal, noiseq = use_NOIseq, 
-                 EBSeq = use_EBSeq) 
-
-
+    ggplot2::geom_vline(xintercept = 10)+ggplot2::scale_x_log10()
+    keep <- (assays(se)[["counts"]] >= 3) %>% rowSums() >= 5
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

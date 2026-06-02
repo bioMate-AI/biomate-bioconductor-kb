@@ -58,10 +58,12 @@ process BIOC_RIFICOMPARATIVE {
     head(df_comb_minimal, 5)
     # --- make pen HL [] ---
     # Key functions: make_pen
-
+    pen_HL <- make_pen(
+    logs = as.numeric(rep(NA, 8))
     # --- make pen int [] ---
     # Key functions: make_pen
-
+    pen_int <- make_pen(
+    logs = as.numeric(rep(NA, 8))
     # --- penalties [] ---
     # Key functions: penalties
     data(df_comb_minimal)
@@ -69,7 +71,8 @@ process BIOC_RIFICOMPARATIVE {
     pen_HL <- penalties(df_comb_minimal)[[2]]
     # --- fragment_inty [] ---
     # Key functions: fragment_inty
-
+    fragment_inty(
+    head(fragment_int, 5)
     # --- t test function HL [] ---
     # Key functions: statistics
     data(fragment_int)
@@ -84,6 +87,7 @@ process BIOC_RIFICOMPARATIVE {
     # Key functions: adjusting_HLToInt
     data(stats_df_comb_minimal)
     data(annot_g)
+    df_adjusting_HLToInt <- adjusting_HLToInt(data = stats_df_comb_minimal,
     # --- figures_fun [] ---
     # Key functions: figures_fun
     data(data_combined_minimal)
@@ -91,7 +95,9 @@ process BIOC_RIFICOMPARATIVE {
     data(differential_expression)
     # --- gff3 preprocess [] ---
     # Key functions: gff3_preprocess
-
+    gff3_preprocess(path = gzfile(
+    system.file("extdata", "gff_synechocystis_6803.gff.gz", package = "rifiComparative")
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

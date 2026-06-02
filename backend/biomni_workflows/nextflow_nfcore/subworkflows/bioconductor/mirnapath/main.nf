@@ -46,6 +46,8 @@ process BIOC_MIRNAPATH {
     ## Start with miRNA data from this package
     data(mirnaobj);
     ## Write a file as example of required input
+    write.table(mirnaobj@mirnaTable, file="mirnaTable.txt",
+        quote=FALSE, row.names=FALSE, col.names=TRUE, na="",
     # --- Filtermirnapath [] ---
     # Key functions: filtermirnapath
     mirnaobj <- filtermirnapath( mirnaobj, pvalue=0.05,
@@ -55,6 +57,8 @@ process BIOC_MIRNAPATH {
     ## Again we load data from the package
     data(mirnaobj);
     ## Write a file as example of required miRNA-gene input
+    write.table(mirnaobj@mirnaGene, file="mirnaGene.txt",
+        quote=FALSE, row.names=FALSE, col.names=TRUE, na="",
     # --- Loadmirnatogene [] ---
     # Key functions: loadmirnatogene
     ## Load the miRNA to gene associations
@@ -67,6 +71,8 @@ process BIOC_MIRNAPATH {
     ## Again we load data from the package
     data(mirnaobj);
     ## Write a file as example of required input
+    write.table(mirnaobj@mirnaPathways, file="mirnaPathways.txt",
+        quote=FALSE, row.names=FALSE, col.names=TRUE, na="",
     # --- Loadmirnapathways [] ---
     # Key functions: loadmirnapathways
     ## Load the gene to pathway associations

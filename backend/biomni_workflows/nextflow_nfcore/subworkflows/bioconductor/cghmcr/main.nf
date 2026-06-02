@@ -51,7 +51,11 @@ process BIOC_CGHMCR {
     arrayFiles
     # --- Maimages [] ---
     # Key functions: maimages
-
+    rawData <- read.maimages(arrayFiles, source = "agilent", columns =
+        list(R = "rMedianSignal", G = "gMedianSignal", Rb = "rBGMedianSignal",
+        Gb = "gBGMedianSignal"), annotation = c("Row", "Col", "ControlType",
+        "ProbeName", "GeneName", "SystematicName", "PositionX", "PositionY",
+        "gIsFeatNonUnifOL", "rIsFeatNonUnifOL", "gIsBGNonUnifOL", "rIsBGNonUnifOL",
     # --- Normalizewithinarrays [] ---
     # Key functions: normalizeWithinArrays, backgroundCorrect
     ma <- normalizeWithinArrays(backgroundCorrect(rawData, method = "minimum"), method = "loess")

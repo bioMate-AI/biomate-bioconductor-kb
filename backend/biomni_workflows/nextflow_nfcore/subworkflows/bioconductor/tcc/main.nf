@@ -67,6 +67,9 @@ process BIOC_TCC {
     # Key functions: filterLowCountGenes, factor, getNormalizedData, getResult, AUC, sca, simulateReadCounts, calcAUCValue
     set.seed(1000)
     library(TCC)
+    tcc <- simulateReadCounts(Ngene = 10000, PDEG = 0.34,
+                   DEG.assign = c(0.1, 0.3, 0.05, 0.1, 0.05, 0.21, 0.09, 0.1),
+                   DEG.foldchange = c(3.1, 13, 2, 1.5, 9, 5.6, 4, 2),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

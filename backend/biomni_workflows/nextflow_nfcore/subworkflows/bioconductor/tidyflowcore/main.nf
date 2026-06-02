@@ -38,50 +38,15 @@ process BIOC_TIDYFLOWCORE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(tidyFlowCore)
+    library(Bodenmiller_BCR_XL_flowSet)
+    library(PrintBibliography)
     library(jsonlite)
 
-
-    # --- Vignette Setup [] ---
-    # Key functions: Sys.time, citation, rmarkdown, sessioninfo, testthat, dplyr, tidyFlowCore
-    ## Track vignette build time
-    startTime <- Sys.time()
-
-    ## Bib setup
-    library(RefManageR)
-
-    ## Write bibliography information
-    # --- "citation" [] ---
-    # Key functions: citation, tidyFlowCore
-    citation("tidyFlowCore")
-
-    # --- Example [] ---
-    # Key functions: Bodenmiller_BCR_XL_flowSet
-    # read data from the HDCytoData package
-    bcr_flowset <- HDCytoData::Bodenmiller_BCR_XL_flowSet()
-
-    # --- Eval = False [] ---
-    # Key functions: arcsinhTransform, transformList, transform, mutate, across, ends_with, asinh, fsApply
-    #  ?HDCytoData::Bodenmiller_BCR_XL_flowSet
-
-    ## -----------------------------------------------------------------------------
-    asinh_transformation <- flowCore::arcsinhTransform(a = 0, b = 1/5, c = 0)
-    transformation_list <- 
-      flowCore::transformList(
-        colnames(bcr_flowset), 
-        asinh_transformation
-      )
-
-    # --- Reproduce1 [] ---
-    # Key functions: Sys.time
-    ## Date the vignette was generated
-    Sys.time()
-
-    # --- Reproduce2 [] ---
-    # Key functions: diff, Sys.time
-    ## Processing time in seconds
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
+    # --- Valid analysis [] ---
+    # Key functions: valid, Bodenmiller_BCR_XL_flowSet, knit, diff, session_info, PrintBibliography
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+    BiocManager::install("tidyFlowCore")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -50,6 +50,10 @@ process BIOC_SEQPATTERN {
     # --- Granges [] ---
     # Key functions: GRanges, IRanges, seqlengths, promoters, getSeq
     # create GRanges of dominant TSS position with associated metadata
+    zebrafishPromotersTSS <- GRanges(seqnames = zebrafishPromoters24h$chr,
+                ranges = IRanges(start = zebrafishPromoters24h$dominantTSS,
+                end = zebrafishPromoters24h$dominantTSS),
+                strand = zebrafishPromoters24h$strand,
     # --- Plotpatterndensitymap [] ---
     # Key functions: plotPatternDensityMap
     ## plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq,
@@ -66,6 +70,10 @@ process BIOC_SEQPATTERN {
     # --- Plotpatterndensitymap [] ---
     # Key functions: plotPatternDensityMap
     ## # plot density of TATA-box consensus sequence in pink
+    ## plotPatternDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq,
+    ##             patterns = c("TATAWAWR", "YWTWTATA"),
+    ##             seqOrder = order(zebrafishPromotersTSSflank$interquantileWidth),
+    ##             flankUp = 200, flankDown = 200, nBin = c(400, 10000),
     # --- Plotmotifdensitymap [] ---
     # Key functions: plotMotifDensityMap
     ## plotMotifDensityMap(regionsSeq = zebrafishPromotersTSSflankSeq,
@@ -84,6 +92,7 @@ process BIOC_SEQPATTERN {
     ## sIdx <- zebrafishPromotersTSSflank$interquantileWidth <= 9
     ## bIdx <- zebrafishPromotersTSSflank$interquantileWidth > 9
     ## # plot average motif occurrence profile for sharp promoters
+    ## plotMotifOccurrenceAverage(regionsSeq = zebrafishPromotersTSSflankSeq[sIdx],
     # --- Motifscanhits [] ---
     # Key functions: motifScanHits
     motifOccurrence <- motifScanHits(regionsSeq =

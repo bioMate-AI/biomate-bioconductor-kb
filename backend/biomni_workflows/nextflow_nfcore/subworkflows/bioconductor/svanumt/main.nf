@@ -41,50 +41,11 @@ process BIOC_SVANUMT {
     library(svaNUMT)
     library(jsonlite)
 
-
-    # --- Input [] ---
-    # Key functions: readVcf, breakpointRanges, extdata, chr1_numt_pe_HS25.sv.vcf, svaNUMT
+    # --- Read VCF variant file [] ---
+    # Key functions: readVcf, breakpointRanges
     library(StructuralVariantAnnotation)
     library(VariantAnnotation)
     library(svaNUMT)
-
-    vcf <- readVcf(system.file("extdata", "chr1_numt_pe_HS25.sv.vcf", package = "svaNUMT"))
-    gr <- breakpointRanges(vcf)
-
-    # --- Include=true [] ---
-    # Key functions: read_table, GRanges, numtDetect, GRangesList, extdata, numtS.txt, svaNUMT, bin
-    library(readr)
-    numtS <- read_table(system.file("extdata", "numtS.txt", package = "svaNUMT"), 
-        col_names = FALSE)
-    colnames(numtS) <- c("bin", "seqnames", "start", "end", "name", "score", "strand")
-    numtS <- `seqlevelsStyle<-`(GRanges(numtS), "NCBI")
-
-    library(BSgenome.Hsapiens.UCSC.hg19)
-    genome <- BSgenome.Hsapiens.UCSC.hg19
-    genomeMT <- genome$chrMT
-
-    ## -----------------------------------------------------------------------------
-    NUMT <- numtDetect(gr, numtS, genomeMT, max_ins_dist = 20)
-
-    ## -----------------------------------------------------------------------------
-    GRangesList(NU=NUMT$MT$NU$`1`[[1]], MT=NUMT$MT$MT$`1`[[1]])
-
-    # --- Include=true [] ---
-    # Key functions: seqlevelsStyle, breakpointgr2pairs, circos.initializeWithIdeogram, circos.genomicLink, first, chr1, chrM, p15.4
-    library(circlize)
-    numt_chr_prefix <- c(NUMT$MT$NU$`1`[[2]], NUMT$MT$MT$`1`[[2]])
-    GenomeInfoDb::seqlevelsStyle(numt_chr_prefix) <- "UCSC"
-    pairs <- breakpointgr2pairs(numt_chr_prefix)
-    pairs
-
-    ## -----------------------------------------------------------------------------
-    circos.initializeWithIdeogram(
-        data.frame(V1=c("chr1", "chrM"),
-                   V2=c(1791073,1),
-                   V3=c(1791093,16571),
-                   V4=c("p15.4",NA),
-                   V5=c("gpos50",NA)),  sector.width = c(0.2, 0.8))
-    #circos.initializeWithIdeogram()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

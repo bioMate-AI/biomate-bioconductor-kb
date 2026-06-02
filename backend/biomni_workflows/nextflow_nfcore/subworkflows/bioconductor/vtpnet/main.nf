@@ -46,6 +46,8 @@ process BIOC_VTPNET {
     #
     # tags formatted for display
     #
+    diseaseTags = c("Ankylosing\\\nspondylitis", "Asthma",
+          "Celiac\\\ndisease", "Crohn's\\\ndisease",
     # --- Dog1 [] ---
     # Key functions: edges, subGraph, flat
     library(Rgraphviz)

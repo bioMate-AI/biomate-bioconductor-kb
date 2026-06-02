@@ -56,7 +56,11 @@ process BIOC_OPOSSOM {
     env$indata <- opossom.tissues.eset
     # --- Frame [] ---
     # Key functions: frame
-
+    group.info <- data.frame(
+                      group.labels = c(rep("Homeostasis", 2),
+                                           "Endocrine",
+                                           "Digestion",
+                                           "Exocrine",
     # --- Expressionset [] ---
     # Key functions: ExpressionSet, AnnotatedDataFrame
     opossom.tissues.eset = ExpressionSet(assayData=opossom.tissues,

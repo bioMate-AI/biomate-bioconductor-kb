@@ -49,6 +49,7 @@ process BIOC_DREAMLET {
     # --- aggregate To Pseudo Bulk [] ---
     # Key functions: aggregateToPseudoBulk
     sce$id <- paste0(sce$StimStatus, sce$ind)
+    pb <- aggregateToPseudoBulk(sce,
     # --- metadata [] ---
     # Key functions: metadata
     metadata(pb)$aggr_means

@@ -45,9 +45,11 @@ process BIOC_GA4GHCLIENT {
     # Key functions: searchDatasets, searchVariantSets, searchVariants
     datasets <- searchDatasets(host, nrows = 1)
     variantSets <- searchVariantSets(host, datasetId, nrows = 1)
+    variants <- searchVariants(host, variantSetId, referenceName = "1",
     # --- datatable [] ---
     # Key functions: datatable
-
+    variants.df <- searchVariants(host, variantSetId, referenceName = "1",
+    DT::datatable(as.data.frame(variants.df), options = list(scrollX = TRUE))
     # --- search Reference Sets [] ---
     # Key functions: searchReferenceSets, genes, seqlevelsStyle
     referenceSets <- searchReferenceSets(host, nrows = 1)
@@ -57,9 +59,11 @@ process BIOC_GA4GHCLIENT {
     # Key functions: datatable, seqlevelsStyle, locateVariants, CodingVariants
     variants.scn1a <- searchVariantsByGRanges(host, variantSetId, gr, asVCF = FALSE)
     DT::datatable(as.data.frame(variants.scn1a[[1]]), options = list(scrollX = TRUE))
+    variants.scn1a.gr <- makeGRangesFromDataFrame(variants.scn1a[[1]],
     # --- search Call Sets [] ---
     # Key functions: searchCallSets, searchVariants
     callSetIds <- searchCallSets(host, variantSetId, nrows = 5)$id
+    vcf <- searchVariants(host, variantSetId, referenceName = "1",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

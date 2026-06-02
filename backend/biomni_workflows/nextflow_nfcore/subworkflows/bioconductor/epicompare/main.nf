@@ -41,24 +41,11 @@ process BIOC_EPICOMPARE {
     library(EpiCompare)
     library(jsonlite)
 
-
-    # --- Setup Vignette [] ---
-    # Key functions: encode_H3K27ac, CnT_H3K27ac, CnR_H3K27ac, hg19_blacklist, CnT_H3K27ac_picard, CnR_H3K27ac_picard
+    # --- Epi Compare [] ---
+    # Key functions: EpiCompare
     library(EpiCompare)
-
-    ## -----------------------------------------------------------------------------
     data("encode_H3K27ac") # ENCODE ChIP-seq
     data("CnT_H3K27ac") # CUT&Tag
-    data("CnR_H3K27ac") # CUT&Run
-    data("hg19_blacklist") # hg19 genome blacklist 
-    data("CnT_H3K27ac_picard") # CUT&Tag Picard summary output
-    data("CnR_H3K27ac_picard") # CUT&Run Picard summary output
-
-    ## -----------------------------------------------------------------------------
-    peaklist <- list(CnT_H3K27ac, CnR_H3K27ac) # create list of peakfiles 
-    names(peaklist) <- c("CnT", "CnR") # set names 
-
-    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

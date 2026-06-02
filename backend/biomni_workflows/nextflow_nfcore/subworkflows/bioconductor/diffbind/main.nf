@@ -57,6 +57,9 @@ process BIOC_DIFFBIND {
     # Key functions: analyze, report, csv, path, dba, count, show, cbind
     deseq <- dba(dbs.all,mask=dbs.all$masks$DESeq2, minOverlap = 1)
     binding <- dba.peakset(deseq, bRetrieve=TRUE)
+    dba.plotHeatmap(deseq, maxSites=nrow(binding),  bLog=FALSE,
+                    correlations=FALSE,minval=-5, maxval=5, cexCol=1.3,
+                    colScheme = hmap, main = "DESeq2 Differentially Bound Sites",
     # --- Visualization and reporting [] ---
     # Key functions: plotPCA, plotMA, normalize, analyze, show, dba, contrast
     par(mfrow=c(2,1))

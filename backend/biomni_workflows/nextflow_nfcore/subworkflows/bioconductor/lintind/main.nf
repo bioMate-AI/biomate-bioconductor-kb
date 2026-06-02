@@ -38,35 +38,19 @@ process BIOC_LINTIND {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(LinTInd)
+    library(BuildTree)
+    library(FindIndel)
+    library(IndelForm)
+    library(IndelIdents)
+    library(IndelPlot)
+    library(PlotTree)
+    library(TagProcess)
     library(jsonlite)
 
-
-    # --- Indel Idents [] ---
-    # Key functions: IndelIdents, umi.num
-    cellsinfo<-IndelIdents(scarinfo,method.use="umi.num",cln=1)
-
-    # --- Indel Plot [] ---
-    # Key functions: IndelPlot
-    IndelPlot(cellsinfo = cellsinfo)
-
-    # --- Tag Process [] ---
-    # Key functions: TagProcess
-    tag<-TagProcess(cellsinfo$info,Cells=celltype)
-
-    # --- Tag Dist [] ---
-    # Key functions: TagDist
-    tag_dist=TagDist(tag,method = "Jaccard")
-    tag_dist
-
-    # --- Build Tree [] ---
-    # Key functions: BuildTree
-    treeinfo<-BuildTree(tag)
-
-    # --- Plot Tree [] ---
-    # Key functions: PlotTree
-    plotinfo<-PlotTree(treeinfo = treeinfo,data.extract = "TRUE",annotation = "TRUE")
-    plotinfo$p
+    # --- Indel analysis [] ---
+    # Key functions: FindIndel, IndelForm, IndelIdents, IndelPlot, TagProcess, BuildTree, PlotTree
+    scarinfo<-FindIndel(data=data,scarfull=ref,scar=cutsite,indel.coverage="All",type="test",cln=1)
+    scarinfo<-IndelForm(scarinfo,cln=1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

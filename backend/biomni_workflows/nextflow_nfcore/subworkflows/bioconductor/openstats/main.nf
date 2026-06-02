@@ -47,33 +47,52 @@ process BIOC_OPENSTATS {
     # --- R hide003 [] ---
     # Key functions: OpenStatsList
     library(OpenStats)
+    fileCon <- system.file("extdata", "test_continuous.csv",
+    test_Cont <- OpenStatsList(
     # --- R hide005 [] ---
     # Key functions: OpenStatsList
     library(OpenStats)
+    df <- read.csv(system.file("extdata", "test_continuous.csv",
+    OpenStatsList <- OpenStatsList(
     # --- R hide01021 [] ---
     # Key functions: OpenStatsList, OpenStatsAnalysis
     library(OpenStats)
+    fileCon <- system.file("extdata", "test_continuous.csv",
+    test_Cont <- OpenStatsList(
     # --- R hide010 [] ---
     # Key functions: OpenStatsList, OpenStatsAnalysis
     library(OpenStats)
+    fileCon <- system.file("extdata", "test_continuous.csv",
+    test_Cont <- OpenStatsList(
     # --- R hide010m2 [] ---
     # Key functions: OpenStatsList, OpenStatsAnalysis, OpenStatsComplementarySplit
     library(OpenStats)
+    fileCon <- system.file("extdata", "test_continuous.csv",
+    test_Cont <- OpenStatsList(
     # --- R hide01020 [] ---
     # Key functions: OpenStatsList, OpenStatsAnalysis
     library(OpenStats)
+    fileCon <- system.file("extdata", "test_continuous.csv",
+    test_Cont <- OpenStatsList(
     # --- R hide0102 [] ---
     # Key functions: OpenStatsList, OpenStatsAnalysis
     library(OpenStats)
+    fileCat <- system.file("extdata", "test_categorical.csv",
+    test_Cat <- OpenStatsList(
     # --- R hide013 [] ---
     # Key functions: OpenStatsList, OpenStatsAnalysis
     library(OpenStats)
+    fileCon <- system.file("extdata", "test_continuous.csv",
+    test_Cont <- OpenStatsList(
     # --- R hide015 [] ---
     # Key functions: strtrim, OpenStatsReport
-
+    strtrim(
+    OpenStatsReport(
     # --- R hide017 [] ---
     # Key functions: OpenStatsList
     library(OpenStats)
+    file <- system.file("extdata", "test_continuous.csv",
+    OpenStatsList <- OpenStatsList(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

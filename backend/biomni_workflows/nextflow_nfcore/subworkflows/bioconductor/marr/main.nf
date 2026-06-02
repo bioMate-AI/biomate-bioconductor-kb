@@ -47,6 +47,8 @@ process BIOC_MARR {
     # --- Marr output [] ---
     # Key functions: Marr, MarrFeaturesfiltered, MarrSamplepairsfiltered
     library(marr)
+    Marr_output<- Marr(msprepCOPD, pSamplepairs =
+    Head of reproducible sample pairs per metabolite (feature)
     # --- Marr Filter Data [] ---
     # Key functions: MarrFilterData
     MarrFilterData(Marr_output, by = "features")

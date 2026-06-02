@@ -38,46 +38,15 @@ process BIOC_CLUSTERFOLDSIMILARITY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ClusterFoldSimilarity)
+    library(CreateSeuratObject)
+    library(MuraroPancreasData)
     library(jsonlite)
 
-
-    # --- Construct [] ---
-    # Key functions: MuraroPancreasData, colData, make.names, unlist, function, CreateSeuratObject, counts
+    # --- Muraro Pancreas Data [] ---
+    # Key functions: MuraroPancreasData, colData, CreateSeuratObject
     library(Seurat)
     library(scRNAseq)
     library(dplyr)
-    # Human pancreatic single cell data 1
-    pancreasMuraro <- scRNAseq::MuraroPancreasData(ensembl=FALSE)
-    pancreasMuraro <- pancreasMuraro[,rownames(colData(pancreasMuraro)[!is.na(colData(pancreasMuraro)$label),])]
-    colData(pancreasMuraro)$cell.type <- colData(pancreasMuraro)$label
-    rownames(pancreasMuraro) <- make.names(unlist(lapply(strsplit(rownames(pancreasMuraro), split="__"), function(x)x[[1]])), unique = TRUE)
-    singlecell1Seurat <- CreateSeuratObject(counts=counts(pancreasMuraro), meta.data=as.data.frame(colData(pancreasMuraro)))
-
-    # --- Results='hide' [] ---
-    # Key functions: function, NormalizeData, FindVariableFeatures, ScaleData, VariableFeatures, RunPCA, FindNeighbors, FindClusters
-    # Create a list with the unprocessed single-cell datasets
-    singlecellObjectList <- list(singlecell1Seurat, singlecell2Seurat)
-    # Apply the same processing to each dataset and return a list of single-cell analysis
-    singlecellObjectList <- lapply(X=singlecellObjectList, FUN=function(scObject){
-    scObject <- NormalizeData(scObject)
-    scObject <- FindVariableFeatures(scObject, selection.method="vst", nfeatures=2000)
-    scObject <- ScaleData(scObject, features=VariableFeatures(scObject))
-    scObject <- RunPCA(scObject, features=VariableFeatures(object=scObject))
-    scObject <- FindNeighbors(scObject, dims=seq(16))
-    scObject <- FindClusters(scObject, resolution=0.4)
-    })
-
-    # --- Results='hide' [] ---
-    # Key functions: NormalizeData, FindVariableFeatures, ScaleData, VariableFeatures, RunPCA, FindNeighbors, FindClusters, vst
-    scObject <- singlecellObjectList[[3]]
-    scObject <- NormalizeData(scObject)
-    scObject <- FindVariableFeatures(scObject, selection.method="vst", nfeatures=2000)
-    scObject <- ScaleData(scObject, features=VariableFeatures(scObject))
-    scObject <- RunPCA(scObject, features=VariableFeatures(object=scObject))
-    scObject <- FindNeighbors(scObject, dims=seq(16))
-    scObject <- FindClusters(scObject, resolution=0.4)
-    singlecellObjectList[[3]] <- scObject
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

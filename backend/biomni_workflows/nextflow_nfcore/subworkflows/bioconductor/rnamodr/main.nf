@@ -46,7 +46,9 @@ process BIOC_RNAMODR {
 
     # --- Custom ggplot2 visualization [] ---
     # Key functions: melt, ggplot
-
+    plotData <- lapply(stats,function(set){
+    ans <- lapply(lapply(lapply(set,"[[","used_distro"),"[[","chr1"),"[[","1")
+    names <- unique(unlist(lapply(ans,names), use.names = FALSE))
     # --- Sequence information check [] ---
     # Key functions: GFF3File, End5SequenceData, bamfiles, ranges, sequences, seqinfo, ModInosine, sequenceData
     names(seqdata) # matches the transcript names as returned by a TxDb object

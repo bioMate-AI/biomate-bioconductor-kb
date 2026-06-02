@@ -60,6 +60,10 @@ process BIOC_SCTHI {
     # --- Scthi Plotpairs [] ---
     # Key functions: scTHI_plotPairs
     ---------------------------------------------------------------------
+    scTHI_plotPairs(
+    scTHIresult = H3K27.result,
+    cexPoint = 0.8,
+    interactionToplot = "THY1_ITGAX:ITGB2"
     # --- Tme Plot [] ---
     # Key functions: TME_plot
     ---------------------------------------------------------------------

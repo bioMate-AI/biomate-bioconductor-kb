@@ -83,17 +83,22 @@ process BIOC_REDER {
     # Key functions: subg
     gt3 <- subg(g=hs.inter, dat=deg.t3, refcol=1)
     gt3 <- att.setv(g=gt3, from="Symbol", to="nodeLabel")
+    gt3 <- att.setv(g=gt3, from="logFC.t3", to="nodeColor",
     # --- label='Workflow 1: Extract another subgraph and set attributes' [] ---
     # Key functions: subg
     gt6 <- subg(g=hs.inter, dat=deg.t6, refcol=1)
     gt6 <- att.setv(g=gt6, from="Symbol", to="nodeLabel")
+    gt6 <- att.setv(g=gt6, from="logFC.t6", to="nodeColor",
     # --- label='=Workflow 1: Extract another subgraph and set attributes' [] ---
     # Key functions: subg
     gt12 <- subg(g=hs.inter, dat=deg.t12, refcol=1)
     gt12 <- att.setv(g=gt12, from="Symbol", to="nodeLabel")
+    gt12 <- att.setv(g=gt12, from="logFC.t12", to="nodeColor",
     # --- label='Workflow 1: Send subgraphs to the RedeR application' [] ---
     # Key functions: addGraphToRedeR
-
+    N1 <- addGraphToRedeR(gt3, gcoord=c(10,25), gscale=20,
+    N2 <- addGraphToRedeR(gt6, gcoord=c(20,70), gscale=50,
+    N3 <- addGraphToRedeR(gt12, gcoord=c(70,55), gscale=80,
     # --- label='Workflow 1: Nest sub [] ---
     # Key functions: nestNodes
     N4 <- nestNodes(nodes=V(gt3)$name, parent=N2, theme='th2')

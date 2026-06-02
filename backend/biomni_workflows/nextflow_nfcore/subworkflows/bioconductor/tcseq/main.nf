@@ -69,6 +69,7 @@ process BIOC_TCSEQ {
     data("experiment")
     #Counts table
     data("countsTable")
+    tca <- TCA(design = experiment, genomicFeature = genomicIntervals,
     # --- Counts [] ---
     # Key functions: counts
     ## counts(tca) <- countsTable

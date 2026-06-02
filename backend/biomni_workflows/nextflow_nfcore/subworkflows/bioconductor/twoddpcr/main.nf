@@ -77,6 +77,7 @@ process BIOC_TWODDPCR {
     bioradLmSummary <- summary(lm(x ~ Cluster, data=mtConcentrations))
     kmLmSummary <- summary(lm(x ~ kmeans, data=mtConcentrations))
     kmMahRainLmSummary <- summary(lm(x ~ kmeansMahRain, data=mtConcentrations))
+    knitr::kable(c("Cluster"=bioradLmSummary$r.squared,
     # --- Removedropletclasses [] ---
     # Key functions: removeDropletClasses, call
     ---------------------------------------------------------------------
@@ -90,6 +91,10 @@ process BIOC_TWODDPCR {
     # --- Gridclassify [] ---
     # Key functions: gridClassify, dropletPlot
     ---------------------------------------------------------------------
+    plate <- gridClassify(plate,
+                          ch1NNThreshold=6500, ch2NNThreshold=2110,
+                          ch1NPThreshold=5765, ch2NPThreshold=5150,
+                          ch1PNThreshold=8550, ch2PNThreshold=2450,
     # --- Sdrain [] ---
     # Key functions: sdRain, dropletPlot
     ---------------------------------------------------------------------

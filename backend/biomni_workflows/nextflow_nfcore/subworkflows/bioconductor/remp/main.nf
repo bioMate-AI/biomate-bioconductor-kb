@@ -45,6 +45,9 @@ process BIOC_REMP {
     # Key functions: set
     library(knitr)
     options(width=72)
+    listing <- function(x, options) {
+      paste("\\begin{lstlisting}[basicstyle=\\ttfamily,breaklines=true]\n",
+        x, "\\end{lstlisting}\n", sep = "")
     # --- Bioconductorremprelease [] ---
     # Key functions: requireNamespace, packages
     ## if (!requireNamespace("BiocManager", quietly=TRUE))
@@ -63,6 +66,10 @@ process BIOC_REMP {
     # --- Remparcel [] ---
     # Key functions: initREMP
     data(Alu.hg19.demo)
+    remparcel <- initREMP(arrayType = "450k",
+                         REtype = "Alu",
+                         annotation.source = "AH",
+                         genome = "hg19",
     # --- Saveparcel [] ---
     # Key functions: saveParcel
     saveParcel(remparcel)
@@ -107,6 +114,10 @@ process BIOC_REMP {
     # --- Remprofile [] ---
     # Key functions: remprofile, details, rempAggregate
     # Use Alu.hg19.demo for demonstration
+    remp.res <- remprofile(GM12878_450k,
+                           REtype = "Alu",
+                           annotation.source = "AH",
+                           genome = "hg19",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

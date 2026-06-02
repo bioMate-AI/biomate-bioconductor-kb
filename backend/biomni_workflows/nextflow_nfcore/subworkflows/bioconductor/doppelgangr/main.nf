@@ -46,7 +46,9 @@ process BIOC_DOPPELGANGR {
     results1 <- doppelgangR(testesets, phenoFinder.args=NULL)
     # --- doppelgang R [] ---
     # Key functions: doppelgangR, ExpressionSet
-
+    results1 <- doppelgangR(testesets,
+    outlierFinder.expr.args = list(bonf.prob = 1.0, transFun = atanh,
+    mat <- matrix(1:4, ncol=2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

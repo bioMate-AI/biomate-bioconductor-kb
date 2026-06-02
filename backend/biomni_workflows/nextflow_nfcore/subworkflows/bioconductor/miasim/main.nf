@@ -51,13 +51,17 @@ process BIOC_MIASIM {
     # --- simulate Ricker [] ---
     # Key functions: simulateRicker, simulateHubbell, simulateHubbellRates, simulateSOI, simulateStochasticLogistic
     tse_ricker <- simulateRicker(n_species=4, A = A_normal, t_end=100, norm = FALSE)
+    tse_hubbell <- simulateHubbell(n_species = 8,
+    params_hubbell <- simulateHubbellRates(x0 = c(0,5,10),
     # --- simulate Consumer Resource [] ---
     # Key functions: simulateConsumerResource
     tse_crm <- simulateConsumerResource(n_species = 2,
     E = randomE(n_species = 2, n_resources = 4))
     # --- simulate G L V [] ---
     # Key functions: simulateGLV, plotAbundanceDensity, plotSeries
-
+    tse_glv <- simulateGLV(n_species = 4,
+    library(miaViz)
+    p1 <- plotAbundanceDensity(tse_hubbell, assay.type = "counts")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -48,6 +48,7 @@ process BIOC_PROBAMR {
     CDSfasta <- system.file("extdata", "coding_seq.fasta", package="proBAMr")
     pepfasta <- system.file("extdata", "pro_seq.fasta", package="proBAMr")
     annotation_path <- tempdir()
+    PrepareAnnotationGENCODE(gtfFile, CDSfasta, pepfasta,
     # --- Psmstab [] ---
     # Key functions: file
     passedPSM <- read.table(system.file("extdata", "passedPSM.tab",
@@ -59,6 +60,7 @@ process BIOC_PROBAMR {
     load(system.file("extdata/GENCODE", "proseq.RData", package="proBAMr"))
     load(system.file("extdata/GENCODE", "procodingseq.RData", package="proBAMr"))
     options(stringsAsFactors=FALSE)
+    passedPSM <- read.table(system.file("extdata", "passedPSM.tab",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -65,6 +65,10 @@ process BIOC_SNPEDIAR {
     # --- Function [] ---
     # Key functions: unlist
     ---------------------------------------------------------------------
+    findPMID <- function (x) {
+        x <- unlist (strsplit (x, split = "\n"))
+        x <- grep ("PMID=", x, value = TRUE)
+        x
     # --- Getpages [] ---
     # Key functions: getPages
     ---------------------------------------------------------------------

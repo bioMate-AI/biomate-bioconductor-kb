@@ -41,33 +41,10 @@ process BIOC_MESKIT {
     library(MesKit)
     library(jsonlite)
 
-
-    # --- Warning=false [] ---
-    # Key functions: mathScore
-    # calculate MATH score of each sample
-    mathScore(maf, patient.id = 'V402')
-
-    # --- Warning = False [] ---
-    # Key functions: mutTrunkBranch
-    mutClass <- mutTrunkBranch(phyloTree, CT = TRUE, plot = TRUE)
-    names(mutClass)
-
-    # --- Warning = False [] ---
-    # Key functions: meskit
-    mutClass$mutTrunkBranch.res
-    mutClass$mutTrunkBranch.plot
-
-    # --- Warning = False [] ---
-    # Key functions: triMatrix, plotMutSigProfile
-    trimatrix_V402 <- triMatrix(phyloTree, level = 5)
-    # Visualize the 96 trinucleodide mutational profile
-    plotMutSigProfile(trimatrix_V402)[[1]]
-
-    # --- Warning = False [] ---
-    # Key functions: Heatmap
-    # Below plot shows cosine similarities between the mutational profile of each group and COSMIC signatures
-    library(ComplexHeatmap)
-    ComplexHeatmap::Heatmap(fit_V402$V402$cosine.similarity, name = "Cosine similarity")
+    # --- Getphylotree [] ---
+    # Key functions: getPhyloTree
+    ---------------------------------------------------------------------
+    phyloTree <- getPhyloTree(maf, patient.id = "V402", method = "NJ", min.vaf = 0.06)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -64,7 +64,7 @@ process BIOC_FLOWCUT {
     res_flowCut <- flowCut(flowCutData[[4]], FileID=7, AllowFlaggedRerun = FALSE, Plot ="All")
     # --- label=AllowFlaggedRerun UseOnlyWorstChannels Image 2 [] ---
     # Key functions: flowCut
-
+    res_flowCut <- flowCut(flowCutData[[4]], FileID=8, AllowFlaggedRerun = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

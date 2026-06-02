@@ -43,14 +43,18 @@ process BIOC_RCM {
 
     # --- add Orth Projection [] ---
     # Key functions: addOrthProjection
-
+    tmpPlot = plot(ZellerRCM2, taxNum = 10, samColour = "Diagnosis",
+    addOrthProjection(tmpPlot, species = "Alloprevotella tannerae",
+    sample = c(-1.2,1.5))
     # --- plot Resp Fun [] ---
     # Key functions: plotRespFun
-
+    plotRespFun(ZellerRCM2constrNonParam, taxa = NULL ,subdivisions = 50L,
+    yLocVar = c(-30, -50,-75,-62.5,-30,-62.5,-70,-50,-30)*0.225,
     # --- taxa_names [] ---
     # Key functions: taxa_names, plotRespFun
     FusoSpecies = grep("Fusobacterium",value = TRUE,
     taxa_names(ZellerRCM2constrNonParam$physeq))
+    plotRespFun(ZellerRCM2constrNonParam, Dim = 1, taxa = FusoSpecies,
     # --- residual Plot [] ---
     # Key functions: residualPlot
     residualPlot(ZellerRCM2constr, whichTaxa = "response", numTaxa = 6)

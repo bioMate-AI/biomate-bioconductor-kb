@@ -56,12 +56,14 @@ process BIOC_FLOWCLEAN {
     synPerturbed.cl <- transform(synPerturbed.c, lgcl)
     p1 <- xyplot(`<V705-A>` ~ `Time`, data=synPerturbed.cl,
                  abs=TRUE, smooth=FALSE, alpha=0.5, xlim=c(0, 100))
+    p2 <- xyplot(`GoodVsBad` ~ `Time`, data=synPerturbed.cl,
     # --- Fig1 [] ---
     # Key functions: estimateLogicle, unname, parameters, transform, xyplot, rectangleGate
     lgcl <- estimateLogicle(synPerturbed.c, unname(parameters(synPerturbed.c)$name[5:16]))
     synPerturbed.cl <- transform(synPerturbed.c, lgcl)
     p1 <- xyplot(`<V705-A>` ~ `Time`, data=synPerturbed.cl,
                  abs=TRUE, smooth=FALSE, alpha=0.5, xlim=c(0, 100))
+    p2 <- xyplot(`GoodVsBad` ~ `Time`, data=synPerturbed.cl,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

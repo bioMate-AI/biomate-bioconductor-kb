@@ -48,6 +48,7 @@ process BIOC_SCGPS {
     # named it as day2)
     library(scGPS)
     day2 <- day_2_cardio_cell_sample
+    mixedpop1 <- new_scGPS_object(ExpressionMatrix = day2$dat2_counts,
     # --- Prediction [] ---
     # Key functions: colData, training, bootstrap_prediction
     # select a subpopulation
@@ -61,6 +62,7 @@ process BIOC_SCGPS {
     sum_pred_lda <- summary_prediction_lda(LSOLDA_dat = LSOLDA_dat, nPredSubpop = 4)
     # summary results Lasso to show the percent of cells
     # classified as cells belonging
+    sum_pred_lasso <- summary_prediction_lasso(LSOLDA_dat = LSOLDA_dat,
     # --- Core [] ---
     # Key functions: frame, new_scGPS_object, CORE_clustering, unname, unlist
     # find clustering information in an expresion data using CORE

@@ -51,13 +51,22 @@ process BIOC_RRVGO {
     ---------------------------------------------------------------------
     library(rrvgo)
     go_analysis <- read.delim(system.file("extdata/example.txt", package="rrvgo"))
+    simMatrix <- calculateSimMatrix(go_analysis$ID,
+                                    orgdb="org.Hs.eg.db",
     # --- Setnames [] ---
     # Key functions: setNames, reduceSimMatrix
     ---------------------------------------------------------------------
     scores <- setNames(-log10(go_analysis$qvalue), go_analysis$ID)
+    reducedTerms <- reduceSimMatrix(simMatrix,
+                                    scores,
+                                    threshold=0.7,
     # --- Heatmapplot [] ---
     # Key functions: heatmapPlot
     ---------------------------------------------------------------------
+    heatmapPlot(simMatrix,
+                reducedTerms,
+                annotateParent=TRUE,
+                annotationLabel="parentTerm",
     # --- Scatterplot [] ---
     # Key functions: scatterPlot
     ---------------------------------------------------------------------

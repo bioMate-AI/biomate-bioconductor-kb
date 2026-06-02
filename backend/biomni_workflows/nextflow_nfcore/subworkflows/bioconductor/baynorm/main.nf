@@ -52,14 +52,19 @@ process BIOC_BAYNORM {
     rse <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=EXAMPLE_DATA_list$inputdata))
     # --- intro bayNorm [] ---
     # Key functions: bayNorm
-
+    bayNorm_3D<-bayNorm(
+    Return 2D matrix normalized data (MAP of posterior):
+    Return 2D matrix normalized data (mean of posterior):
     # --- intro bayNorm sup [] ---
     # Key functions: bayNorm_sup
     Now if you want to generate 2D matrix (MAP) using the same prior
+    bayNorm_2D<-bayNorm_sup(
+    (mean of posterior) using the same prior
     # --- DE fun [] ---
     # Key functions: SCnorm_runMAST, foreach, rowMeans
     library(MAST)
     library(reshape2)
+    SCnorm_runMAST3 <- function(Data, NumCells) {
     # --- DE run [] ---
     # Key functions: SCnorm_runMAST3
     DE_out<-SCnorm_runMAST3(Data=bayNorm_3D$Bay_out, NumCells=c(15,15))

@@ -47,14 +47,21 @@ process BIOC_COMPLEXHEATMAP {
     m = matrix(rnorm(1000*10), nr = 1000)
     hc = hclust(dist(m))
     group = cutree(hc, k = 6)
+    Heatmap(m, cluster_rows = cluster_within_group(t(m), group),
     # --- Matrix [] ---
     # Key functions: rnorm, Heatmap, unit, draw, decorate_column_dend, yaxis
     ---------------------------------------------------------------------
     m = matrix(rnorm(100), 10)
+    ht = Heatmap(m, name = "foo",
+    	row_dend_width = unit(4, "cm"),
+    	column_dend_height = unit(4, "cm")
     # --- Hclust [] ---
     # Key functions: hclust, dist, rnorm, Heatmap, rowAnnotation, anno_points, anno_barplot
     ---------------------------------------------------------------------
     hc = hclust(dist(matrix(rnorm(100), 10)))
+    Heatmap(matrix(nc = 0, nr = 10), cluster_rows = hc,
+    	right_annotation = rowAnnotation(
+    		foo = anno_points(1:10),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

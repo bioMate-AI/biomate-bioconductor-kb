@@ -43,10 +43,14 @@ process BIOC_SEQARCHRPLUS {
 
     # --- Data import and preprocessing [] ---
     # Key functions: readDNAStringSet
-
+    raw_seqs <- Biostrings::readDNAStringSet(
+    filepath = system.file("extdata",
+    2. Clustering information (arbitrary order/unordered)
     # --- Curate clusters analysis [] ---
     # Key functions: curate_clusters, per_cluster_seqlogos, iqw_tpm_plots, order_clusters_iqw, seqs_acgt_image, readDNAStringSet, plot_motif_heatmaps, per_cluster_annotations
     Get larger flank FASTA sequences (larger than those used for seqArchR)
+    use_seqs <- Biostrings::readDNAStringSet(filepath = system.file("extdata",
+    plot_motif_heatmaps(sname = "RAL28_10_to_12h", seqs = use_seqs,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

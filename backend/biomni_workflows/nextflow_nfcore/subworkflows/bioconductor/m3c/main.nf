@@ -41,22 +41,10 @@ process BIOC_M3C {
     library(M3C)
     library(jsonlite)
 
-
-    # --- Results='hide' [] ---
-    # Key functions: M3C, for, suppressWarnings
-    # for vignette
-    res <- M3C(mydata, des = desx, removeplots = TRUE, iters=25, 
-               objective='PAC', fsize=8, lthick=1, dotsize=1.25)
-
-    ## -----------------------------------------------------------------------------
-    res$scores
-
-    ## -----------------------------------------------------------------------------
-    for (k in seq(2,10)){
-      myresults <- res$realdataresults[[k]]$ordered_annotation
-      chifit <- suppressWarnings(chisq.test(table(myresults[c('consensuscluster','class')])))
-      print(chifit$p.value)
-    }
+    # --- Featurefilter [] ---
+    # Key functions: featurefilter
+    ---------------------------------------------------------------------
+      filtered_results <- featurefilter(mydata, percentile=10, method='MAD', topN=5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

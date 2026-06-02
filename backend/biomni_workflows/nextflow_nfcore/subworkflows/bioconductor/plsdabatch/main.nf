@@ -50,6 +50,7 @@ process BIOC_PLSDABATCH {
     # Key functions: Scatter_Density, box_plot, density_plot, partVar_plot
     ad.OTU.name <- selectVar(ad.pca.before, comp = 1)$name[1]
     ad.OTU_batch <- data.frame(value = ad.clr[,ad.OTU.name], batch = ad.batch)
+    box_plot(df = ad.OTU_batch, title = paste(ad.OTU.name, '(AD data)'),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

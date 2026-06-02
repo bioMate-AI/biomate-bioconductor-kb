@@ -51,9 +51,11 @@ process BIOC_PCAEXPLORER {
     # Key functions: DESeq, results, mapIds, topGOtable
     dds_airway <- DESeq(dds_airway)
     res_airway <- results(dds_airway)
+    res_airway$symbol <- mapIds(org.Hs.eg.db,
     # --- Principal component analysis [] ---
     # Key functions: prcomp, pcascree
     pcaobj_airway <- prcomp(t(assay(rld_airway)))
+    pcascree(pcaobj_airway,type="pev",
     # --- ID mapping annotation [] ---
     # Key functions: install_github, pcaExplorer, mapIds, get_annotation_orgdb, get_annotation, rlogTransformation, pcaplot, pcaplot3d
     dds_simu <- makeExampleDESeqDataSet_multifac(betaSD_condition = 3,betaSD_tissue = 0.5)

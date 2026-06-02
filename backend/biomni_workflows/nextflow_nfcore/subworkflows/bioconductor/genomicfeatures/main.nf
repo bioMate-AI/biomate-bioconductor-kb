@@ -39,6 +39,7 @@ process BIOC_GENOMICFEATURES {
     """
     #!/usr/bin/env Rscript
     library(GenomicFeatures)
+    library(BSgenome.Hsapiens.UCSC.hg19)
     library(jsonlite)
 
 

@@ -53,9 +53,12 @@ process BIOC_MASTR {
     # --- MSigDB gene sets [] ---
     # Key functions: get_gsc_sig
     data("msigdb_gobp_nk")
+    MSig <- get_gsc_sig(
     # --- set Names [] ---
     # Key functions: setNames, setName, gsc_plot
     gsn <- setNames(names(MSig), LETTERS[seq_along(MSig)])
+    for (i in seq_along(MSig)) {
+    setName(MSig[[i]]) <- LETTERS[i]
     # --- merge MSigDB [] ---
     # Key functions: merge_markers, setName
     MSig <- merge_markers(MSig)
@@ -68,6 +71,8 @@ process BIOC_MASTR {
     # --- Gene Set [] ---
     # Key functions: GeneSet
     data("nk_markers")
+    nk_m <- GeneSet(nk_markers$HGNC_Symbol,
+    geneIdType = SymbolIdentifier(),
     # --- integrate markers [] ---
     # Key functions: GeneSetCollection, merge_markers, gsc_plot
     gsc <- GeneSetCollection(c(nk_m, LM, MSig)) ## add Panglao if you run it
@@ -75,7 +80,9 @@ process BIOC_MASTR {
     gsc_plot(gsc)
     # --- process_data [] ---
     # Key functions: process_data, attributes
-
+    proc_data <- process_data(
+    markers = geneIds(Markers),
+    attributes(proc_data)
     # --- select_sig [] ---
     # Key functions: select_sig
     set.seed(123)
@@ -83,19 +90,27 @@ process BIOC_MASTR {
     head(sig_ct)
     # --- markers for cell type [] ---
     # Key functions: mapIds, geneIds, intersect
-
+    deg_up <- mapIds(
+    geneIds(sig_ct[["UP"]]),
+    deg_up <- na.omit(deg_up)
     # --- PCA on sig [] ---
     # Key functions: pca_matrix_plot, plot_annotation
-
+    pca_matrix_plot(proc_data,
+    patchwork::plot_annotation("Intersected UP DEGs")
+    pca_matrix_plot(proc_data,
     # --- bg data filtration [] ---
     # Key functions: rowSums
     keep <- rowSums(bg_mat > 1, na.rm = TRUE) > 2
     # --- remove bg in customized [] ---
     # Key functions: remove_bg_exp_mat
-
+    m_ccl <- remove_bg_exp_mat(
+    markers = geneIds(Markers),
+    gene_id = c("ENSEMBL", "SYMBOL")
     # --- ccle construction [] ---
     # Key functions: pivot_longer
-
+    ccle <- data.frame(ccle_crc_5$counts,
+    gene_name = rownames(ccle_crc_5),
+    tidyr::pivot_longer(-c(gene_name, primary_disease),
     # --- ccle to wide mat [] ---
     # Key functions: ccle_2_wide
     ccle <- ccle_2_wide(ccle = ccle)

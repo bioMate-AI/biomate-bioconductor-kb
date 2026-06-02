@@ -57,12 +57,24 @@ process BIOC_PROMISE {
     # --- Extract Sampgeneset To A Data Frame [] ---
     # Key functions: unlist, geneIds, setName, frame
     GS.data<-NULL
+    for (i in 1:length(sampGeneSet)){
+        tt<-sampGeneSet[i][[1]]
+        this.name<-unlist(geneIds(tt))
+        this.set<-setName(tt)
     # --- Promise Without Gsea [] ---
     # Key functions: PROMISE
-
+    test1 <- PROMISE(exprSet=sampExprSet,
+                     geneSet=NULL,
+                     promise.pattern=phPatt,
+                     strat.var=NULL,
+                     proj0=FALSE,
     # --- Promise With Gsea [] ---
     # Key functions: PROMISE
-
+    test2 <- PROMISE(exprSet=sampExprSet,
+                     geneSet=sampGeneSet,
+                     promise.pattern=phPatt,
+                     strat.var=NULL,
+                     proj0=FALSE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

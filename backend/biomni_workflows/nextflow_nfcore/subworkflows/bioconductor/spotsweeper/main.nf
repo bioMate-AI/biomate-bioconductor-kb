@@ -53,20 +53,28 @@ process BIOC_SPOTSWEEPER {
     spe <- scuttle::addPerCellQCMetrics(spe, subsets = list(Mito = is.mito))
     # --- example local outliers [] ---
     # Key functions: localOutliers
-
+    spe <- localOutliers(spe,
+    spe <- localOutliers(spe,
+    spe <- localOutliers(spe,
     # --- local outlier plot [] ---
     # Key functions: plotQC, ggtitle, ggarrange
     library(escheR)
     library(ggpubr)
+    p1 <- plotQC(spe,
     # --- artifact QC plots [] ---
     # Key functions: plotQC, ggtitle, ggarrange
-
+    p1 <- plotQC(spe,
+    ggtitle("Library Size")
+    p2 <- plotQC(spe,
     # --- find Artifacts [] ---
     # Key functions: findArtifacts
-
+    spe <- findArtifacts(spe,
+    colnames(colData(spe))
     # --- artifact visualization [] ---
     # Key functions: plotQC, ggtitle
-
+    plotQC(spe,
+    ggtitle("Hangnail artifact")
+    utils::sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

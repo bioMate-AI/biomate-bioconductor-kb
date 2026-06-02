@@ -41,87 +41,11 @@ process BIOC_KEBABS {
     library(kebabs)
     library(jsonlite)
 
-
     # --- Init [] ---
-    # Key functions: set, packageDescription, substr, kebabs
+    # Key functions: packageDescription
     options(width=70)
     options(useFancyQuotes=FALSE)
     knitr::opts_knit$set(width=70)
-    set.seed(0)
-    library(kebabs)
-    kebabsVersion <- packageDescription("kebabs")$Version
-    kebabsDateRaw <- packageDescription("kebabs")$Date
-    kebabsDateYear <- as.numeric(substr(kebabsDateRaw, 1, 4))
-    kebabsDateMonth <- as.numeric(substr(kebabsDateRaw, 6, 7))
-    kebabsDateDay <- as.numeric(substr(kebabsDateRaw, 9, 10))
-    kebabsDate <- paste(month.name[kebabsDateMonth], " ",
-                         kebabsDateDay, ", ",
-                         kebabsDateYear, sep="")
-
-    # --- Eval=false [] ---
-    # Key functions: help
-    #  help(kebabs)
-
-    ## -------------------------------------------------------------------
-    data(TFBS)
-
-    ## -------------------------------------------------------------------
-    enhancerFB
-    length(enhancerFB)
-
-    # --- Eval=false [] ---
-    # Key functions: spectrumKernel, mismatchKernel, gappyPairKernel
-    #  ?kbsvm
-
-    ## -------------------------------------------------------------------
-    specK2 <- spectrumKernel(k=2)
-
-    ## -------------------------------------------------------------------
-    specK2 <- spectrumKernel(k=2, normalized=FALSE)
-
-    ## -------------------------------------------------------------------
-    mismK3M1 <- mismatchKernel(k=3, m=1)
-
-    ## -------------------------------------------------------------------
-    gappyK1M2 <- gappyPairKernel(k=1, m=2)
-
-    ## -------------------------------------------------------------------
-
-    # --- Eval=false [] ---
-    # Key functions: linearKernel, annotationMetadata, gappyPairKernel
-    #  km <- linearKernel(erK2)
-    #  km
-    #  kma <- linearKernel(erK2a)
-    #  kma
-
-    ## -------------------------------------------------------------------
-    data(CCoil)
-    ccseq
-    ccannot[1:3]
-    head(yCC)
-    yCC <- as.numeric(yCC)
-    ## delete annotation metadata
-    annotationMetadata(ccseq) <- NULL
-    annotationMetadata(ccseq)
-    gappy <- gappyPairKernel(k=1, m=10)
-
-    # --- Eval=false [] ---
-    # Key functions: heatmap, spectrumKernel, specK2, getKernelMatrix
-    #  heatmap(km, symm=TRUE)
-
-    ## -------------------------------------------------------------------
-    specK2 <- spectrumKernel(k=2)
-    km <- specK2(x=enhancerFB)
-    km[1:3, 1:3]
-
-    ## -------------------------------------------------------------------
-    km <- getKernelMatrix(specK2, x=enhancerFB, selx=c(1, 4, 25, 137, 300))
-    km
-
-    ## -------------------------------------------------------------------
-    seqs1 <- enhancerFB[1:200]
-    seqs2 <- enhancerFB[201:500]
-    km <- getKernelMatrix(specK2, x=seqs1, y=seqs2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

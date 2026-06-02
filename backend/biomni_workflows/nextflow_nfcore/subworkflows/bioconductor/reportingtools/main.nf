@@ -85,6 +85,10 @@ process BIOC_REPORTINGTOOLS {
     # --- Addplotlink [] ---
     # Key functions: off, hwriteImage
     ## imagename <- c()
+    ## for (i in 1:nrow(my.df)){
+    ## 	imagename[i] <- paste0("plot", i, ".png")
+    ## 	png(filename = paste0("reports/", imagename[i]))
+    ## 	plot(my.df$RPKM[i], ylab="RPKM", xlab = my.df$EGID[i], main = "RPKM Plot", col = "blue")
     # --- Multipletables [] ---
     # Key functions: frame, HTMLReport, publish, finish
     ## df2 <- data.frame(x = 1:5, y = 11:15)
@@ -96,6 +100,9 @@ process BIOC_REPORTINGTOOLS {
     # Key functions: rnorm, frame
     ## set.seed(123)
     ## my.mat <- matrix(rnorm(20), nrow=5)
+    ## makeDF <- function(object, ...){
+    ## 	df <- as.data.frame(object[-2,])
+    ## 	names(df) <- paste0("New ", 1:4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

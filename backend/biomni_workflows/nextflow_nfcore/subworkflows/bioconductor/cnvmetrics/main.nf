@@ -45,6 +45,8 @@ process BIOC_CNVMETRICS {
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, processSim, GRangesList
     require(GenomicRanges)
+    sampleRef <- GRanges(seqnames=c(rep("chr1", 4), rep("chr2", 3), rep("chr3", 6)),
+    ranges=IRanges(start=c(1905048, 4554832, 31686841, 32686222,
     # --- GRangesListFromDataFrame analysis [] ---
     # Key functions: include_graphics, makeGRangesListFromDataFrame, calculateOverlapMetric, plotMetric, all, calculateLog2ratioMetric
     The stage identifying the state (tumor vs metastasis) of the sample

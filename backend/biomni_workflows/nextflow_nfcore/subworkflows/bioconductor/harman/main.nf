@@ -50,6 +50,7 @@ process BIOC_HARMAN {
     # Key functions: prcomp, rainbow
     Dilution.loess <- normalize(Dilution.log, method="loess")
     Dilution.qnt <- normalize(Dilution.log, method="quantiles")
+    pca <- function(exprs, pc_x=1, pc_y=2, cols, ...) {
     # --- affydata reconstruct [] ---
     # Key functions: exprs, detach
     exprs(Dilution.loess.hm) <- reconstructData(loess.hm)
@@ -59,9 +60,12 @@ process BIOC_HARMAN {
     # Key functions: preprocessSWAN, preprocessIllumina, detectionP, rowSums
     rgSet <- read.metharray.exp(targets=targets)
     mSetSw <- preprocessSWAN(rgSet)
+    mSet <- preprocessIllumina(rgSet, bg.correct=TRUE, normalize="controls",
     # --- p Data [] ---
     # Key functions: pData, mdsPlot
     par(mfrow=c(1, 1))
+    cancer_by_gender_factor <- as.factor(paste(pData(mSetSw)$sex,
+    pData(mSetSw)$status)
     # --- shift Betas [] ---
     # Key functions: shiftBetas, beta2m
     par(mfrow=c(2,2))
@@ -70,6 +74,8 @@ process BIOC_HARMAN {
     # --- myplot [] ---
     # Key functions: myplot
     slide_cols <- rep(brewer.pal(9, "Set1"), times=5)[as.factor(episcope$pd$array_num)]
+    myplot <- function(probe) {
+    plot(episcope$original[probe, ],
     # --- Linear model fit (limma) [] ---
     # Key functions: lmFit, eBayes
     fit_hm <- lmFit(ms_hm, design)

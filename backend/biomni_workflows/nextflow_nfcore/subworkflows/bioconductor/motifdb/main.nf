@@ -48,6 +48,8 @@ process BIOC_MOTIFDB {
     # --- query CTCF human [] ---
     # Key functions: query
     library(MotifDb)
+    motifs <- query(MotifDb, andStrings=c("CTCF", "hsapiens"),
+    orStrings=c("jaspar2018", "hocomocov11-core-A"),
     # --- use seqLogo [] ---
     # Key functions: seqLogo
     library(seqLogo)

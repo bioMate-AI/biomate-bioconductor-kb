@@ -90,6 +90,8 @@ process BIOC_HELP {
     x2 <- quantileNormalize(x,y,num.bins=20,num.steps=1,mode="discrete")
     d2 <- density(x2)
     plot(c(min(d2$x), max(d2$x)), c(0, 20), type="p", cex=0, ylab="Density (by bin)", xlab="", main="")
+    for (i in 1:20) {
+    d <- density(x2[which(y==i)])
     # --- Which [] ---
     # Key functions: getFeatures, getSamples
     rand <- which(getFeatures(pairs, "TYPE")=="RAND")

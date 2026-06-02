@@ -41,66 +41,10 @@ process BIOC_MAGRENE {
     library(magrene)
     library(jsonlite)
 
-
-    # --- Intro Motifs [] ---
-    # Key functions: include_graphics, motifs_vignette.png
-    knitr::include_graphics("motifs_vignette.png")
-    data(gma_grn)
-    head(gma_grn)
-
-    data(gma_ppi)
-    head(gma_ppi)
-
-    data(gma_paralogs)
-    head(gma_paralogs)
-
-    # --- Filtering [] ---
-    # Key functions: find_ppi_v
-    # Include only WGD-derived paralogs
-    paralogs <- gma_paralogs[gma_paralogs$type == "WGD", 1:2]
-
-    # Keep only the top 30k edges of the GRN, remove "Weight" variable
-    grn <- gma_grn[1:30000, 1:2]
-    # Find PPI V motifs
-    ppi_v <- find_ppi_v(gma_ppi, paralogs)
-    head(ppi_v)
-
-    # --- V [] ---
-    # Key functions: find_v, find_lambda
-    # Find V motifs
-    v <- find_v(grn, paralogs)
-    head(v)
-    lambda <- find_lambda(grn, paralogs)
-    head(lambda)
-
-    # --- Delta [] ---
-    # Key functions: find_delta, find_bifan
-    # Find delta motifs from lambda motifs
+    # --- Ppi v analysis [] ---
+    # Key functions: include_graphics, find_ppi_v, find_v, find_lambda, find_delta, find_bifan, generate_nulls, calculate_Z
     delta <- find_delta(edgelist_ppi = gma_ppi, lambda_vec = lambda)
     head(delta)
-    # Find bifans from lambda motifs
-    bifan <- find_bifan(paralogs = paralogs, lambda_vec = lambda)
-    head(bifan)
-
-    # --- Count [] ---
-    # Key functions: generate_nulls
-    count_df <- data.frame(
-        Motif = c("PPI V", "V", "Lambda", "Delta", "Bifan"),
-        Count = c(
-            length(ppi_v), length(v), length(lambda), length(delta), length(bifan)
-        )
-    )
-
-    count_df
-    generate_nulls(grn, paralogs, gma_ppi, n = 5)
-
-    # --- Calculate Z [] ---
-    # Key functions: calculate_Z, sd_similarity, summary
-    # Load null distros
-    data(nulls)
-    head(nulls)
-
-    # Create list of observed frequencies
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

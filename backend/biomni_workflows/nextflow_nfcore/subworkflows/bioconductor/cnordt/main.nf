@@ -61,10 +61,18 @@ process BIOC_CNORDT {
     verbose=FALSE, boolUpdates=10, maxTime=30, lowerB=0.8, upperB=10)
     # --- Plotdata [] ---
     # Key functions: cutAndPlotResultsDT
-
+    cutAndPlotResultsDT(
+    	model=model,
+    	CNOlist=CNOlistPB,
+    	bString=opt1$bString,
+    	plotPDF=FALSE,
     # --- Writeres [] ---
     # Key functions: writeScaffold, writeNetwork
-
+    writeScaffold(
+    	modelComprExpanded=model,
+    	optimResT1=opt1,
+    	optimResT2=NA,
+    	modelOriginal=modelPB,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

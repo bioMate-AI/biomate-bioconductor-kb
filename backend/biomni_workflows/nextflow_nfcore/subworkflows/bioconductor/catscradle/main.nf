@@ -58,6 +58,7 @@ process BIOC_CATSCRADLE {
     # Key functions: pheatmap
     library(pheatmap,quietly=TRUE)
     averageExpMatrix = getAverageExpressionMatrix(exSeuratObj,STranspose,layer='data')
+    averageExpMatrix = tagRowAndColNames(averageExpMatrix,
     # --- [CC7] [] ---
     # Key functions: geom_point, ggtitle
     hallmark = getExample('hallmark')
@@ -75,7 +76,9 @@ process BIOC_CATSCRADLE {
     geom_histogram() +
     # --- [CC11] [] ---
     # Key functions: geom_point, scale_color_gradient, ggtitle
-
+    meanZDF	 = meanZPerClusterOnUMAP(exSeuratObj,
+    h = ggplot(meanZDF,aes(x=umap_1,y=umap_2,color=EntericGliaCells)) +
+    geom_point() +
     # --- [CC12] [] ---
     # Key functions: geom_point, scale_color_gradient, ggtitle
     k = ggplot(TDiff,aes(x=umap_1,y=umap_2,color=TDiff)) +
@@ -83,7 +86,9 @@ process BIOC_CATSCRADLE {
     scale_color_gradient(low='green',high='red') +
     # --- [CC13] [] ---
     # Key functions: geom_point, ggtitle
-
+    geneSet = intersect(colnames(STranspose),
+    geometricallyNearbyGenes = getNearbyGenes(STranspose,geneSet,radius=0.2,metric='umap')
+    theGeometricGenesThemselves = names(geometricallyNearbyGenes)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

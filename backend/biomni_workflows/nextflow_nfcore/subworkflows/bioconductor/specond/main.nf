@@ -83,6 +83,9 @@ process BIOC_SPECOND {
     # Key functions: createParameterMatrix, SpeCond
     param.detection2=createParameterMatrix(param.detection, mlk.1=10)
     param.detection2
+    generalResult2=SpeCond(Mexp, param.detection=param.detection2,
+      multitest.correction.method="BY", prefix.file="E2",
+      print.hist.pv=TRUE, fit1=generalResult$fit1, fit2=NULL,
     # --- Fitprior [] ---
     # Key functions: fitPrior
     param.detection
@@ -108,6 +111,7 @@ process BIOC_SPECOND {
     writeSpeCondResult(specificResult$L.specific.result,file.name.profile=
       "Example_specific_profile.txt", file.specific.gene="Example_list_specific_gene.txt",
       file.name.unique.profile="Example_specific_unique_profile.txt")
+    writeUniqueProfileSpecificResult(L.specific.result=specificResult$L.specific.result,
     # --- Data [] ---
     # Key functions: data
     data(simulatedSpeCondData)
@@ -117,6 +121,7 @@ process BIOC_SPECOND {
       multitest.correction.method="BY", prefix.file="S1", print.hist.pv=TRUE,
       fit1=NULL, fit2=NULL, specificOutlierStep1=NULL)
     specificResult_S1=generalResult_S1$specificResult
+    getFullHtmlSpeCondResult(L.specific.result=specificResult_S1$L.specific.result,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

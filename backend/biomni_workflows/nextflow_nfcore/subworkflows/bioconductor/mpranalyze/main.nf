@@ -38,61 +38,14 @@ process BIOC_MPRANALYZE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(MPRAnalyze)
+    library(MpraObject)
     library(jsonlite)
 
-
-    # --- Load And Examine Data [] ---
-    # Key functions: summary
-    library(MPRAnalyze)
-    data("ChrEpi")
-    summary(ce.colAnnot)
-    head(ce.colAnnot)
-
-    # --- Init Object [] ---
-    # Key functions: MpraObject
-    obj <- MpraObject(dnaCounts = ce.dnaCounts, rnaCounts = ce.rnaCounts, 
-                      dnaAnnot = ce.colAnnot, rnaAnnot = ce.colAnnot, 
-                      controls = ce.control)
-
-    # --- Library Size Estimation [] ---
-    # Key functions: method, estimateDepthFactors, batch, condition, dna, rna, both
-    ## If the library factors are different for the DNA and RNA data, separate 
-    ## estimation of these factors is needed. We can also change the estimation 
-    ## method (Upper quartile by default)
+    # --- MpraObject analysis [] ---
+    # Key functions: MpraObject, method, estimateDepthFactors, analyzeQuantification, getAlpha, analyzeComparative, testLrt
+    method (Upper quartile by default)
     obj <- estimateDepthFactors(obj, lib.factor = c("batch", "condition"),
-                                which.lib = "dna", 
-                                depth.estimator = "uq")
     obj <- estimateDepthFactors(obj, lib.factor = c("condition"),
-                                which.lib = "rna", 
-                                depth.estimator = "uq")
-
-    # --- Quant Model Fit [] ---
-    # Key functions: analyzeQuantification
-    obj <- analyzeQuantification(obj = obj, 
-                                  dnaDesign = ~ batch + condition,
-                                  rnaDesign = ~ condition)
-
-    # --- Quant Extract And Viz [] ---
-    # Key functions: getAlpha, condition
-    ##extract alpha values from the fitted model
-    alpha <- getAlpha(obj, by.factor = "condition")
-
-    ##visualize the estimates
-    boxplot(alpha)
-
-    # --- Quant Test And Viz [] ---
-    # Key functions: testEmpirical, summary, par
-    ## test 
-    res.epi <- testEmpirical(obj = obj, 
-                                   statistic = alpha$MT)
-    summary(res.epi)
-
-    res.chr <- testEmpirical(obj = obj,
-                                   statistic = alpha$WT)
-    par(mfrow=c(2,2))
-
-    hist(res.epi$pval.mad, main="episomal, all")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -105,9 +105,17 @@ process BIOC_ISEEU {
     # --- Isee [] ---
     # Key functions: iSEE, AggregatedDotPlot, runApp
     ---------------------------------------------------------------------
+    app <- iSEE(
+        sce,
+        initial = list(
+            AggregatedDotPlot(
     # --- Isee [] ---
     # Key functions: iSEE, MarkdownBoard, runApp
     ---------------------------------------------------------------------
+    app <- iSEE(
+        sce,
+        initial = list(
+            MarkdownBoard(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

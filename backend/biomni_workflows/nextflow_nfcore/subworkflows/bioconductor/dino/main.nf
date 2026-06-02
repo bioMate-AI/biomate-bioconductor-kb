@@ -59,6 +59,8 @@ process BIOC_DINO {
     # --- Seurat clustering [] ---
     # Key functions: SeuratFromDino, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors
     pbmcSmall_Seurat <- SeuratFromDino(pbmcSmall_Norm, doNorm = FALSE)
+    pbmcSmall_Seurat <- FindVariableFeatures(pbmcSmall_Seurat,
+    pbmcSmall_Seurat <- ScaleData(pbmcSmall_Seurat,
     # --- Create SingleCellExperiment object [] ---
     # Key functions: SingleCellExperiment, Dino_SCE
     library(SingleCellExperiment)
