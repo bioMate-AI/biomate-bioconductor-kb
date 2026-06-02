@@ -38,32 +38,50 @@ process BIOC_BANKSY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Banksy)
     library(ARI)
     library(HarmonyMatrix)
     library(jsonlite)
 
-    # --- run Banksy P C A [] ---
-    # Key functions: runBanksyPCA
-    spe <- runBanksyPCA(spe, use_agf = use_agf, lambda = lambda, npcs = npcs, seed = SEED)
-    # --- Harmony Matrix [] ---
-    # Key functions: HarmonyMatrix, reducedDim
-    set.seed(SEED)
-    harmony_embedding <- HarmonyMatrix(
-    data_mat = reducedDim(spe, "PCA_M1_lam0.2"),
-    # --- run Banksy U M A P [] ---
-    # Key functions: runBanksyUMAP
-    spe <- runBanksyUMAP(spe, use_agf = TRUE, lambda = lambda, npcs = npcs)
-    spe <- runBanksyUMAP(spe, dimred = "Harmony_BANKSY")
-    # --- plot_grid [] ---
-    # Key functions: plot_grid, plotReducedDim, theme, guides
-    plot_grid(
-    plotReducedDim(spe, "UMAP_M1_lam0.2",
-    theme(legend.position = "none"),
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: clusterNames, ARI, ggplot, geom_point
-    cnm <- clusterNames(spe)[2]
-    spatial_plots <- lapply(sample_names, function(snm) {
-    ari <- aricode::ARI(x$clust_annotation, colData(x)[, cnm])
+    # --- Neighborhood Feature Computation [banksy] ---
+    # Key functions: computeBanksy
+    spe <- computeBanksy(
+        spe,
+        assay_name = "normcounts",
+        compute_agf = TRUE,
+        k_geom = 18
+    )
+
+    # --- Dimensionality Reduction [banksy] ---
+    # Key functions: runBanksyPCA, runBanksyUMAP
+    spe <- runBanksyPCA(
+        spe,
+        use_agf = TRUE,
+        lambda = 0.2,
+        npcs = 20,
+        seed = 1000
+    )
+    spe <- runBanksyUMAP(
+        spe,
+        use_agf = TRUE,
+        lambda = 0.2,
+        npcs = 20
+    )
+
+    # --- Spatial Clustering [banksy] ---
+    # Key functions: clusterBanksy, connectClusters, clusterNames
+    spe <- clusterBanksy(
+        spe,
+        dimred = "PCA_M1_lam0.2",
+        resolution = 0.55,
+        seed = 1000
+    )
+    spe <- connectClusters(
+        spe,
+        map_to = "clust_annotation"
+    )
+    cnms <- clusterNames(spe)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

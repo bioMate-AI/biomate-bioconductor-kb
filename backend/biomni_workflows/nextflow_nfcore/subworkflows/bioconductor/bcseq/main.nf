@@ -41,11 +41,47 @@ process BIOC_BCSEQ {
     library(bcSeq)
     library(jsonlite)
 
-    # --- BcSeq hamming analysis [] ---
-    # Key functions: bcSeq_hamming, bcSeq_edit, rep, sourceCpp, toLatex
-    bases     <- c(rep('A', 4), rep('C',4), rep('G',4), rep('T',4))
-    Barcodes  <- rep(NA, numOfBars*2)
-    for (i in 1:numOfBars){
+    # --- Barcode Alignment and Counting [bcSeq] ---
+    # Key functions: bcSeq
+    bcSeq(
+        barcodeFile = "./libFile.fasta",
+        readFile = "./readFile.fastq",
+        outFile = "./count.csv",
+        misMatch = 2,
+        gap = 1,
+        ext = 1,
+        countOnly = TRUE
+    )
+
+    # --- Custom Penalty Alignment [bcSeq] ---
+    # Key functions: bcSeq
+    customizeP <- function(max_pen, prob, pen_val) {
+        prob * (1 - log(2) + log(1 + max_pen / (max_pen + pen_val)))
+    }
+    bcSeq(
+        barcodeFile = "./libFile.fasta",
+        readFile = "./readFile.fastq",
+        outFile = "./count_custom.csv",
+        misMatch = 2,
+        gap = 1,
+        ext = 1,
+        user_pen = customizeP
+    )
+
+    # --- Parallelized Barcode Quantification [bcSeq] ---
+    # Key functions: bcSeq
+    bcSeq(
+        barcodeFile = "./libFile.fasta",
+        readFile = "./readFile.fastq",
+        outFile = "./count_parallel.csv",
+        misMatch = 3,
+        gap = 2,
+        ext = 1,
+        numThread = 4,
+        show_progress = FALSE,
+        quiet = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

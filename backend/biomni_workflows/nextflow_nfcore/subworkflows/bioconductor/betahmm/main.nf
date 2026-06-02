@@ -38,36 +38,72 @@ process BIOC_BETAHMM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(betaHMM)
     library(AUC)
     library(jsonlite)
 
-    # --- Estimate Model Parameters [] ---
+    # --- BetaHMM Model Fitting [Model Fitting] ---
     # Key functions: betaHMM
-    betaHMM_out <- betaHMM(pca_methylation_data,
-    treatment_group = c("Benign","Tumour"))
-    # --- Extract Model Parameters [] ---
-    # Key functions: phi
-    A(betaHMM_out)
-    phi(betaHMM_out)
-    head(hidden_states(betaHMM_out)[["chr 7"]])
-    # --- Identify DMCs [] ---
-    # Key functions: dmc_identification, assay
+    data(pca_methylation_data)
+    data(annotation_data)
+    betaHMM_out <- betaHMM(
+        pca_methylation_data,
+        annotation_data,
+        M = 3,
+        N = 4,
+        R = 2,
+        parallel_process = FALSE,
+        seed = 321,
+        treatment_group = c("Benign", "Tumour")
+    )
+
+    # --- Model Parameter Extraction [Parameter Extraction] ---
+    # Key functions: A, phi, hidden_states, summary
+    trans_matrix <- A(betaHMM_out)
+    shape_params <- phi(betaHMM_out)
+    states_chr7 <- hidden_states(betaHMM_out)[["chr 7"]]
+    model_summary <- summary(betaHMM_out)
+
+    # --- Differentially Methylated CpG Identification [DMC Identification] ---
+    # Key functions: dmc_identification, assay, AUC, plot
     dmc_out <- dmc_identification(betaHMM_out)
     dmc_df <- assay(dmc_out)
-    head(dmc_df)
-    # --- A U C [] ---
-    # Key functions: AUC
+    dmc_summary <- summary(dmc_out)
     AUC_chr <- AUC(dmc_out)
-    plot(betaHMM_out, chromosome = "7", what = "fitted density", AUC = AUC_chr)
-    # --- Identify DMRs [] ---
-    # Key functions: dmr_identification, assay
+    plot(
+        betaHMM_out,
+        chromosome = "7",
+        what = "fitted density",
+        AUC = AUC_chr
+    )
+    plot(
+        betaHMM_out,
+        chromosome = "7",
+        what = "uncertainty",
+        uncertainty_threshold = 0.2
+    )
+
+    # --- Differentially Methylated Region Identification [DMR Identification] ---
+    # Key functions: dmr_identification, assay, plot
     dmr_out <- dmr_identification(dmc_out, parallel_process = FALSE)
     dmr_df <- assay(dmr_out)
-    head(dmr_df)
-    # --- Identify Thresholds [] ---
-    # Key functions: threshold_identification, threshold
-    threshold_out <- threshold_identification(pca_methylation_data[,1:5],
-    threshold(threshold_out)
+    dmr_summary <- summary(dmr_out)
+    plot(dmc_out, start_CpG = "cg17750844", end_CpG = 15)
+
+    # --- Threshold Identification [Threshold Identification] ---
+    # Key functions: threshold_identification, threshold, plot
+    threshold_out <- threshold_identification(
+        pca_methylation_data[, 1:5],
+        package_workflow = FALSE,
+        annotation_file = annotation_data,
+        M = 3,
+        N = 4,
+        parameter_estimation_only = FALSE,
+        seed = 321
+    )
+    thresh_val <- threshold(threshold_out)
+    plot(threshold_out, plot_threshold = TRUE, what = "fitted density")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

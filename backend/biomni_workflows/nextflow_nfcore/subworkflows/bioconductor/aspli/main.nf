@@ -38,22 +38,76 @@ process BIOC_ASPLI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ASpli)
     library(Date)
     library(jsonlite)
 
-    # --- AspliExampleGTF analysis [] ---
-    # Key functions: aspliExampleGTF, makeTxDbFromGFF, binGenome, aspliExampleBamList, frame, gbCounts, jCounts, gbDUreport
-    ## BAMFiles <- c("path_to_bams/CT_time1_rep1.BAM", "path_to_bams/CT_time1_rep2.BAM",
-    ##               "path_to_bams/CT_time2_rep1.BAM", "path_to_bams/CT_time2_rep2.BAM",
-    ##               "path_to_bams/TR_time1_rep1.BAM", "path_to_bams/TR_time1_rep2.BAM",
-    ##               "path_to_bams/TR_time2_rep1.BAM", "path_to_bams/TR_time2_rep2.BAM")
-    ## (targets <- data.frame( bam = BAMFiles,
-    # --- Feature annotation [] ---
-    # Key functions: frame, genes, binGenome
-    ## symbols       <- data.frame( row.names = genes( aTxDb ),
-    ##                              symbol = paste( 'This is symbol of gene:',
-    ##                                              genes( aTxDb ) ) )
-    ## features      <- binGenome( aTxDb, geneSymbols = symbols )
+    # --- Genome Feature Extraction [Genome Annotation] ---
+    # Key functions: aspliExampleGTF, binGenome
+    gtfFileName <- aspliExampleGTF()
+    genomeTxDb  <- txdbmaker::makeTxDbFromGFF(gtfFileName)
+    features    <- binGenome(genomeTxDb)
+
+    # --- Read and Junction Counting [Quantification] ---
+    # Key functions: aspliExampleBamList, gbCounts, jCounts
+    BAMFiles <- aspliExampleBamList()
+    targets  <- data.frame(
+        row.names = paste0("Sample", seq_len(6)),
+        bam = BAMFiles[1:6],
+        f1  = c("control", "control", "control", "treatment", "treatment", "treatment"),
+        stringsAsFactors = FALSE
+    )
+    gbcounts <- gbCounts(
+        features = features,
+        targets = targets,
+        minReadLength = 100,
+        maxISize = 50000
+    )
+    asd <- jCounts(
+        counts = gbcounts,
+        features = features,
+        minReadLength = 100
+    )
+
+    # --- Differential Splicing Analysis [Differential Expression] ---
+    # Key functions: gbDUreport, jDUreport
+    gb <- gbDUreport(
+        gbcounts,
+        contrast = c(-1, 1)
+    )
+    jdur <- jDUreport(
+        asd,
+        contrast = c(-1, 1)
+    )
+
+    # --- Splicing Report and Signal Integration [Integration] ---
+    # Key functions: splicingReport, integrateSignals
+    sr <- splicingReport(
+        gb,
+        jdur,
+        counts = gbcounts
+    )
+    is <- integrateSignals(
+        sr,
+        asd
+    )
+
+    # --- Exporting Integrated Signals [Export] ---
+    # Key functions: exportIntegratedSignals
+    mBAMs <- data.frame(
+        bam = sub("_[012]", "", targets$bam[c(1, 4)]),
+        condition = c("control", "treatment")
+    )
+    exportIntegratedSignals(
+        is,
+        sr = sr,
+        output.dir = "aspliExample",
+        counts = gbcounts,
+        features = features,
+        asd = asd,
+        mergedBams = mBAMs
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

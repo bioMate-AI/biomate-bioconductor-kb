@@ -41,79 +41,35 @@ process BIOC_AFFYCONTAM {
     library(affyContam)
     library(jsonlite)
 
-    # --- Lkd [] ---
-    # Key functions: image
-    library(affydata)
-    data(Dilution)
-    image(Dilution[,1])
-    # --- Dodef [] ---
+    # --- Circular Contamination Simulation [setCircRegion] ---
     # Key functions: setCircRegion
-    library(affyContam)
-    dilc = setCircRegion(Dilution, chip=1)
-    # --- Getl [] ---
-    # Key functions: data
-    ## library(affyMvout)
-    ## library(affy)
-    ## library(SpikeIn)
-    ## data(SpikeIn133)
-    ## library(mdqc)
-    # --- Doperm [] ---
-    # Key functions: rma, exprs, featureNames
-    ## s12 = SpikeIn133[,1:12]
-    ## s12rma = rma(s12)
-    ## mads = apply(exprs(s12rma),1,mad)
-    ## kp = which(mads > quantile(mads,.95))
-    ## kppn = featureNames(s12rma)[kp]
-    # --- Cod [] ---
-    # Key functions: exprs, lmFit, eBayes, contFun
-    ## fullrun = function( abatch, arma, contFun, filtpn, targpn, chips=1, ... ) {
-    ## # assess detectability in original data
-    ##  dvec = (1:ncol(exprs(abatch)))
-    ##  des = model.matrix(~dvec)
-    ##  af1 = lmFit( arma[filtpn,], des, method="robust", maxit=300 )
-    # --- Ddd [] ---
-    # Key functions: fullrun
-    ## ff = fullrun( s12, s12rma, setCircRegion, kppn, mostmr, chips=1:2 )
-    # --- Scr [] ---
-    # Key functions: annotation, grid
-    ## scr.40 = function (x, chip = 1, center = c(150, 150), rad = 75, vals = 30,
-    ##     valgen = NULL)
-    ## {
-    ##     cdfname = paste(annotation(x), "cdf", sep = "")
-    ##     require(cdfname, character.only = TRUE, quietly = TRUE)
-    # --- Scr2 [] ---
-    # Key functions: annotation, grid
-    ## scr.20k = function (x, chip = 1, center = c(500, 500), rad = 75, vals = 30000,
-    ##     valgen = NULL)
-    ## {
-    ##     cdfname = paste(annotation(x), "cdf", sep = "")
-    ##     require(cdfname, character.only = TRUE, quietly = TRUE)
-    # --- Dov [] ---
-    # Key functions: getCircRegion, setCircRegion
-    ## incvarCircRegion = function(x, chip=1, center=c(150,500), rad=100, fac=3) {
-    ##  tmp = fac*getCircRegion(x, chip, center, rad)
-    ##  setCircRegion(x, chip, center, rad, vals=tmp)
-    ## }
-    # --- Dov [] ---
-    # Key functions: getRectRegion, setRectRegion
-    ## incvarRectRegion = function(x, chip=1, xinds=350:700, yinds=1:700, fac=3) {
-    ##  tmp = fac*getRectRegion(x, chip, xinds, yinds)
-    ##  setRectRegion(x, chip, xinds, yinds, vals=tmp)
-    ## }
-    # --- Compo [] ---
-    # Key functions: 40, 20k, incvarCircRegion, incvarRectRegion, image, off
-    ## tryout = scr.40(s12)
-    ## tryout = scr.20k(tryout)
-    ## tryout = incvarCircRegion(tryout)
-    ## fin = incvarRectRegion(tryout)
-    ## png(file="lkcomp.png")
-    # --- Doruns [] ---
-    # Key functions: fullrun
-    ## d1b = fullrun( s12, s12rma, scr.40, kppn, mostmr, chips=1 )
-    ## save(d1b, file="d1b.rda")
-    ## d2b = fullrun( s12, s12rma, scr.40, kppn, mostmr, chips=1:2 )
-    ## save(d2b, file="d2b.rda")
-    ## d3b = fullrun( s12, s12rma, scr.40, kppn, mostmr, chips=c(1:2,11) )
+    data(Dilution, package = "affydata")
+    dilc_circ <- setCircRegion(
+        Dilution,
+        chip = 1,
+        center = c(250, 250),
+        rad = 80,
+        val = 8000
+    )
+
+    # --- Rectangular Contamination Simulation [setRectRegion] ---
+    # Key functions: setRectRegion
+    data(Dilution, package = "affydata")
+    dilc_rect <- setRectRegion(
+        Dilution,
+        chip = 2,
+        x = 50:150,
+        y = 100:200,
+        val = 12000
+    )
+
+    # --- Spatial Artifact Visualization [image] ---
+    # Key functions: image
+    image(Dilution[, 1])
+    image(dilc_circ[, 1])
+    image(Dilution[, 2])
+    image(dilc_rect[, 2])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
