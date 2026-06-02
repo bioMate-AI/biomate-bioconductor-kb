@@ -110,7 +110,14 @@ process SMILES_VALIDATION {
     path "structure.sdf",           emit: sdf
 
     script:
-    def smiles        = params.smiles
+    // Mock-mode substitution at process level. params mutation in workflow{}
+    // does NOT propagate to GString interpolation here — Groovy resolves
+    // `${smiles}` to the value at process script construction, after the
+    // workflow body but before the task starts. Doing the swap here works.
+    def _raw_smiles = params.smiles
+    def smiles = (params.mock_mode && (_raw_smiles == null || _raw_smiles.toString() in ['null', 'None', '']))
+        ? 'CC(=O)Oc1ccccc1C(=O)O'
+        : _raw_smiles
     def compound_name = params.compound_name
     """
     set -euo pipefail
@@ -891,12 +898,7 @@ PYEOF
 workflow {
     if (!params.smiles && !params.mock_mode) error "params.smiles is required (SMILES string of drug candidate)"
     if (params.mock_mode) {
-        log.info "MOCK MODE: using aspirin SMILES for CI testing"
-        // Note: Nextflow params come in as strings; null becomes 'null' (truthy),
-        // so '?:' alone doesn't substitute. Check explicitly.
-        if (!params.smiles || params.smiles in ['null', 'None', '']) {
-            params.smiles = 'CC(=O)Oc1ccccc1C(=O)O'
-        }
+        log.info "MOCK MODE: SMILES_VALIDATION process will substitute aspirin SMILES (params mutation doesn't propagate to GString interpolation)"
     }
 
     // Step 1: Validate and standardize SMILES
