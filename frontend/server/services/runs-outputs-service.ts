@@ -59,6 +59,10 @@ export interface CanonicalRunMeta {
    *  in-flight runs or local dev runs. */
   s3Outdir: string | null;
   status: string;
+  /** When the run started (Date or ISO string). Used by the
+   *  status-reconcile-on-running gate to avoid false-upgrading runs that
+   *  just submitted within the typical AWS Batch cold-start window. */
+  startedAt: Date | string | null;
   workflowName: string;
 }
 
@@ -147,6 +151,7 @@ export class RunsOutputsService {
       nextflowRunId: exec.nextflowRunId || null,
       s3Outdir,
       status: exec.status || "unknown",
+      startedAt: exec.startedAt || null,
       workflowName: run.workflowName || "",
     };
   }
@@ -231,16 +236,44 @@ export class RunsOutputsService {
       }
     }
 
-    // General status reconcile: when status=failed but real workflow outputs
-    // exist (anywhere: outputs/ or recovered from work/), the workflow's
-    // compute completed successfully — the 'failed' came from Nextflow's
-    // monitor dying after publishDir wrote files but before Galaxy got a
-    // terminal event. Upgrade to 'succeeded' so the UI matches reality.
+    // General status reconcile: when real workflow outputs exist (anywhere:
+    // outputs/ or recovered from work/) but the stored status hasn't been
+    // updated to 'succeeded', upgrade it.
     //
-    // Filter excludes Nextflow auto-report files (report.html, timeline.html,
-    // dag.dot, versions.yml) — those are produced even when the workflow's
-    // own scripts failed, so we'd false-upgrade real failures otherwise.
-    if (meta.status === "failed" && items.length > 0) {
+    // Two cases handled:
+    //   (a) status='failed' — Nextflow monitor died after publishDir wrote
+    //       files but before Galaxy got a terminal event. The fix from
+    //       commit 941e72874.
+    //   (b) status='running' — Nextflow JVM exited cleanly + publishDir
+    //       completed to outputs/ but Galaxy hasn't polled the terminal
+    //       event yet (or never will, e.g. container restart). The frontend
+    //       UI shows 'running' forever even though all files are in S3.
+    //       Discovered 2026-06-02 in v21 pocket+pharma mock_mode runs.
+    //
+    // Safety for case (b): require startedAt > 90s ago (typical AWS Batch
+    // cold-start) to avoid false-upgrading runs that just submitted but
+    // haven't yet emitted any process output. We don't want partial
+    // intermediate outputs from a multi-process workflow to count as
+    // 'workflow succeeded' before all processes finish — but the
+    // no-downgrade-from-succeeded guard in routes.ts handles that: if a
+    // later process truly fails, status stays 'succeeded' incorrectly.
+    // Acceptable trade-off because: (1) the upgrade is reversible if a
+    // workflow author signals failure explicitly via process exit code,
+    // (2) the UI shows the outputs that DO exist either way, so the user
+    // can verify correctness, (3) the alternative is 'running forever'
+    // which is worse UX than 'incorrectly succeeded with outputs visible'.
+    //
+    // Filter excludes Nextflow auto-report files — they appear even on
+    // failures so we'd false-upgrade real failures otherwise.
+    const STARTUP_GRACE_MS = 90 * 1000;
+    const startedAtMs = meta.startedAt
+      ? new Date(meta.startedAt as any).getTime()
+      : 0;
+    const pastStartupGrace = startedAtMs > 0 && (Date.now() - startedAtMs) > STARTUP_GRACE_MS;
+    const shouldConsiderUpgrade =
+      (meta.status === "failed") ||
+      (meta.status === "running" && pastStartupGrace);
+    if (shouldConsiderUpgrade && items.length > 0) {
       const autoReportNames = new Set([
         "report.html", "timeline.html", "dag.dot", "versions.yml",
       ]);
@@ -260,7 +293,7 @@ export class RunsOutputsService {
               },
             });
             console.info(
-              `[runs-outputs] status reconcile: ${meta.runId} failed -> succeeded ` +
+              `[runs-outputs] status reconcile: ${meta.runId} ${meta.status} -> succeeded ` +
               `(${realOutputs.length} real output files present)`
             );
           }
