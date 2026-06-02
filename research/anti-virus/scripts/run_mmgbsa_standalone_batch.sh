@@ -65,10 +65,11 @@ from datetime import datetime
 dg_bind = dg_err = None
 if os.path.exists('FINAL_RESULTS_MMPBSA.dat'):
     for line in open('FINAL_RESULTS_MMPBSA.dat'):
-        m = re.search(r'(?:DELTA TOTAL|ΔTOTAL)\s+([-\d.]+)\s+[+/-]\s+([\d.]+)', line)
-        if m:
-            dg_bind, dg_err = float(m.group(1)), float(m.group(2))
-            break
+        if 'ΔTOTAL' in line or 'DELTA TOTAL' in line:
+            nums = re.findall(r'[-]?\d+\.\d+', line)
+            if len(nums) >= 2:
+                dg_bind, dg_err = float(nums[0]), float(nums[-1])
+                break
 rows = []
 if os.path.exists('FINAL_RESULTS_MMPBSA.csv'):
     rows = list(csv.DictReader(open('FINAL_RESULTS_MMPBSA.csv')))

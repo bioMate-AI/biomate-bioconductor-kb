@@ -6,14 +6,6 @@
   "gb_model": "igb2",
   "batch_job_id": "ffc49896-2e5e-47ab-b139-894421aa5500",
   "n_frames": 19,
-  "trajectory_analysis": {
-    "tool": "gromacs",
-    "n_frames_analyzed": 101,
-    "n_residues": 268,
-    "protein_backbone_rmsd_mean_nm": 0.4068,
-    "protein_backbone_rmsd_max_nm": 0.7024,
-    "mean_rmsf_nm": 0.1395
-  },
   "interpretation": "strong binder",
-  "timestamp": "2026-06-02T19:54:16.202005Z"
+  "timestamp": "2026-06-02T19:54:16Z"
 }
