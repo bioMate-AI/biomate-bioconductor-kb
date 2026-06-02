@@ -41,54 +41,44 @@ process BIOC_BUMPHUNTER {
     library(bumphunter)
     library(jsonlite)
 
-    # --- Clustermakerdata [] ---
-    # Key functions: unlist
-    pos <- list(pos1=seq(1,1000,35),
-                pos2=seq(2001,3000,35),
-                pos3=seq(1,1000,50))
-    chr <- rep(paste0("chr",c(1,1,2)), times = sapply(pos,length))
-    pos <- unlist(pos, use.names=FALSE)
-    # --- Clustermaker [] ---
-    # Key functions: clusterMaker
-    cl <- clusterMaker(chr, pos, maxGap = 300)
-    table(cl)
-    # --- Simulatedbumps [] ---
-    # Key functions: split, scale
+    # --- Segment Detection [] ---
+    # Key functions: getSegments
     Indexes <- split(seq_along(cl), cl)
     beta1 <- rep(0, length(pos))
-    for(i in seq(along=Indexes)){
+    for (i in seq_along(Indexes)) {
         ind <- Indexes[[i]]
         x <- pos[ind]
-    # --- Getsegments [] ---
-    # Key functions: getSegments
-    segs <- getSegments(beta1, cl, cutoff=0.05)
-    # --- Regionfinder [] ---
+        z <- scale(x, median(x), max(x) / 12)
+        beta1[ind] <- i * (-1)^(i + 1) * pmax(1 - abs(z)^3, 0)^3
+    }
+    segs <- getSegments(beta1, cl, cutoff = 0.05)
+
+
+    # --- Region Finding [] ---
     # Key functions: regionFinder
-    tab <- regionFinder(beta1, chr, pos, cl, cutoff=0.05)
-    tab
-    # --- Simulationofreps [] ---
-    # Key functions: sin, rnorm
-    beta0 <- 3*sin(2*pi*pos/720)
-    X <- cbind(rep(1,20), rep(c(0,1), each=10))
-    error <- matrix(rnorm(20*length(beta1), 0, 1), ncol=20)
-    y <- t(X[,1])%x%beta0 + t(X[,2])%x%beta1 + error
-    # --- Bumphunter [] ---
+    tab <- regionFinder(
+        beta1 = beta1,
+        chr = chr,
+        pos = pos,
+        cl = cl,
+        cutoff = 0.05
+    )
+
+
+    # --- Bump Hunting Analysis [] ---
     # Key functions: bumphunter
-    tab <- bumphunter(y, X, chr, pos, cl, cutoff=.5)
-    tab
-    names(tab)
-    tab$table
-    # --- Load Foreach [] ---
-    # Key functions: registerDoParallel
-    library(doParallel)
-    registerDoParallel(cores = 2)
-    # --- Parallel Bumphunter [] ---
-    # Key functions: bumphunter
-    tab <- bumphunter(y, X, chr, pos, cl, cutoff=.5, B=250, verbose = TRUE)
-    tab
-    # --- Closeconnetions [] ---
-    # Key functions: foreachCleanup
-    bumphunter:::foreachCleanup()
+    beta0 <- 3 * sin(2 * pi * pos / 720)
+    X <- cbind(rep(1, 20), rep(c(0, 1), each = 10))
+    error <- matrix(rnorm(20 * length(beta1), 0, 1), ncol = 20)
+    y <- t(X[, 1]) %x% beta0 + t(X[, 2]) %x% beta1 + error
+    tab_bumps <- bumphunter(
+        object = y,
+        design = X,
+        chr = chr,
+        pos = pos,
+        cluster = cl,
+        cutoff = 0.5
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

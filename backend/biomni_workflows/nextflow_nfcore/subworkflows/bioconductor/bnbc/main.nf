@@ -38,24 +38,33 @@ process BIOC_BNBC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(bnbc)
     library(ContactGroup)
     library(jsonlite)
 
-    # --- Contact Group [] ---
-    # Key functions: ContactGroup
-    cgEx <- ContactGroup(rowData=rowData(cgEx),
-    contacts=contacts(cgEx),
-    colData=colData(cgEx))
-    # --- data to bnbc [] ---
-    # Key functions: ContactGroup
-    MatsList <- lapply(upper.mats.list, function(M) {
-    M[lower.tri(M)] <- M[upper.tri(M)]
-    cg <- ContactGroup(rowData = LociData, contacts = MatsList, colData = SampleData)
-    # --- band [] ---
-    # Key functions: band
-    mat.1 <- contacts(cgEx)[[1]]
-    b1 <- band(mat=mat.1, band.no=2)
-    band(mat=mat.1, band.no=2) <- b1 + 1
+    # --- Log CPM Transformation [] ---
+    # Key functions: logCPM
+    cgEx.cpm <- logCPM(cgEx)
+
+
+    # --- Smoothing [] ---
+    # Key functions: boxSmoother
+    cgEx.smooth <- boxSmoother(
+        cgEx.cpm,
+        h = 5
+    )
+
+
+    # --- Normalisation [] ---
+    # Key functions: bnbc
+    cgEx.bnbc <- bnbc(
+        cgEx.smooth,
+        batch = colData(cgEx.smooth)$Batch,
+        threshold = 1e7,
+        step = 4e4,
+        nbands = 11,
+        verbose = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

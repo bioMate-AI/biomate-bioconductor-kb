@@ -38,62 +38,62 @@ process BIOC_BAYESSPACE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BayesSpace)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- read Visium [] ---
-    # Key functions: readVisium
-    sce <- readVisium("path/to/spaceranger/outs/")
-    # --- get R D S [] ---
-    # Key functions: getRDS
-    melanoma <- getRDS(dataset="2018_thrane_melanoma", sample="ST_mel1_rep2")
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment
-    library(Matrix)
-    rowData <- read.csv("path/to/rowData.csv", stringsAsFactors=FALSE)
-    colData <- read.csv("path/to/colData.csv", stringsAsFactors=FALSE, row.names=1)
-    # --- spatial Preprocess [] ---
-    # Key functions: spatialPreprocess
-    set.seed(102)
-    melanoma <- spatialPreprocess(melanoma, platform="ST",
-    # --- tuning q [] ---
-    # Key functions: qTune, qPlot
-    melanoma <- qTune(melanoma, qs=seq(2, 10), platform="ST", d=7, cores=2)
-    qPlot(melanoma)
-    # --- spatial Cluster [] ---
-    # Key functions: spatialCluster
-    set.seed(149)
-    melanoma <- spatialCluster(melanoma, q=4, platform="ST", d=7,
-    # --- cluster Plot [] ---
-    # Key functions: clusterPlot
-    clusterPlot(melanoma)
-    # --- cluster.plot.customize [] ---
-    # Key functions: clusterPlot, theme_bw, xlab, ylab, labs
-    clusterPlot(melanoma, palette=c("purple", "red", "blue", "yellow"), color="black") +
-    theme_bw() +
-    xlab("Column") +
-    # --- cluster Plot [] ---
-    # Key functions: clusterPlot
-    clusterPlot(melanoma.enhanced)
-    # --- enhanced.logcount [] ---
-    # Key functions: logcounts
-    logcounts(melanoma.enhanced)[markers, 1:5]
-    # --- row Data [] ---
-    # Key functions: rowData
-    rowData(melanoma.enhanced)[markers, ]
-    # --- feature Plot [] ---
-    # Key functions: featurePlot
-    featurePlot(melanoma.enhanced, "PMEL")
-    # --- enhanced.markers [] ---
-    # Key functions: wrap_plots
-    enhanced.plots <- purrr::map(markers, function(x) featurePlot(melanoma.enhanced, x))
-    patchwork::wrap_plots(enhanced.plots, ncol=2)
-    # --- compare.resolution [] ---
-    # Key functions: wrap_plots
-    spot.plots <- purrr::map(markers, function(x) featurePlot(melanoma, x))
-    patchwork::wrap_plots(c(enhanced.plots, spot.plots), ncol=4)
-    # --- mcmc Chain [] ---
-    # Key functions: mcmcChain
+    # --- Parameter Tuning and Clustering [] ---
+    # Key functions: qTune, spatialCluster
+    melanoma <- qTune(
+        melanoma,
+        qs=seq(2, 10),
+        platform="ST",
+        d=7,
+        cores=1
+    )
+    melanoma <- spatialCluster(
+        melanoma,
+        q=4,
+        platform="ST",
+        d=7,
+        init.method="mclust",
+        model="t",
+        gamma=2,
+        nrep=100,
+        burn.in=10,
+        save.chain=TRUE
+    )
+
+
+    # --- Spatial Resolution Enhancement [] ---
+    # Key functions: spatialEnhance, enhanceFeatures
+    melanoma_enhanced <- spatialEnhance(
+        melanoma,
+        q=4,
+        platform="ST",
+        d=7,
+        model="t",
+        gamma=2,
+        jitter.prior=0.3,
+        jitter.scale=3.5,
+        nrep=100,
+        burn.in=10,
+        save.chain=TRUE,
+        cores=1
+    )
+    markers <- c("PMEL", "CD2")
+    melanoma_enhanced <- enhanceFeatures(
+        melanoma_enhanced,
+        melanoma,
+        feature_names=markers,
+        nrounds=0
+    )
+
+
+    # --- Visualization and Diagnostics [] ---
+    # Key functions: clusterPlot, featurePlot, mcmcChain
+    p1 <- clusterPlot(melanoma_enhanced)
+    p2 <- featurePlot(melanoma_enhanced, "PMEL")
     chain <- mcmcChain(melanoma)
 
     # --- Save outputs ---

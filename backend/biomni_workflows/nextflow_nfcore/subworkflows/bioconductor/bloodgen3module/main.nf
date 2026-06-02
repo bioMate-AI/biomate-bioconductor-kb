@@ -38,24 +38,47 @@ process BIOC_BLOODGEN3MODULE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BloodGen3Module)
     library(Groupcomparison)
     library(Groupcomparisonlimma)
     library(jsonlite)
 
-    # --- group comparison analysis using t [] ---
-    # Key functions: Groupcomparison
-    Group_df <- Groupcomparison(GSE13015,
-    # --- group comparison analysis using limma statistical analysis [] ---
-    # Key functions: Groupcomparisonlimma
-    Group_limma <- Groupcomparisonlimma(GSE13015,
-    # --- grid visulization after running group comparison analysis [] ---
+    # --- Grid Visualisation [] ---
     # Key functions: gridplot
-    gridplot(Group_df,
-    filename= tempfile())
-    # --- fingerprint visualization [] ---
+    gridplot(
+        Group_df,
+        cutoff = 15,
+        Ref_group = "Control",
+        filename = tempfile()
+    )
+
+
+    # --- Individual Single Sample Analysis [] ---
+    # Key functions: Individualcomparison
+    Individual_df <- Individualcomparison(
+        GSE13015,
+        sample_info = NULL,
+        FC = 1.5,
+        DIFF = 10,
+        Group_column = "Group_test",
+        Ref_group = "Control",
+        SummarizedExperiment = TRUE
+    )
+
+
+    # --- Fingerprint Visualisation [] ---
     # Key functions: fingerprintplot
-    fingerprintplot(Individual_df,
-    filename = tempfile() ,
+    fingerprintplot(
+        Individual_df,
+        sample_info = NULL,
+        cutoff = 15,
+        rowSplit = TRUE,
+        Group_column = "Group_test",
+        show_ref_group = FALSE,
+        Ref_group = "Control",
+        Aggregate = "A28",
+        filename = tempfile()
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

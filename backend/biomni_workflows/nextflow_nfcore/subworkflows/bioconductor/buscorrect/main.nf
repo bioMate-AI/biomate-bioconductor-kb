@@ -38,6 +38,7 @@ process BIOC_BUSCORRECT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BUScorrect)
     library(BIC_BUS)
     library(BUSgibbs)
     library(DataFrame)
@@ -46,16 +47,35 @@ process BIOC_BUSCORRECT {
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: DataFrame, SummarizedExperiment
-    require(SummarizedExperiment)
-    B <- length(BUSexample_data)
-    n_vec <- sapply(1:B, function(b){
-    # --- BUSgibbs analysis [] ---
-    # Key functions: BUSgibbs, Subtypes, location_batch_effects, scale_batch_effects, subtype_effects, postprob_DE_thr_fun, estimate_IG_indicators, IG_index
-    thr0 <- postprob_DE_thr_fun(BUSfits, fdr_threshold=0.01)
-    est_L <- estimate_IG_indicators(BUSfits, postprob_DE_threshold=thr0)
+    # --- Subtype and Batch Effect Estimation [] ---
+    # Key functions: Subtypes, location_batch_effects, scale_batch_effects, subtype_effects
+    est_subtypes <- Subtypes(BUSfits)
+    est_loc_batch <- location_batch_effects(BUSfits)
+    est_scale_batch <- scale_batch_effects(BUSfits)
+    est_sub_effects <- subtype_effects(BUSfits)
+
+
+    # --- Intrinsic Gene Identification [] ---
+    # Key functions: postprob_DE_thr_fun, estimate_IG_indicators, IG_index, postprob_DE
+    thr0 <- postprob_DE_thr_fun(BUSfits, fdr_threshold = 0.01)
+    est_L <- estimate_IG_indicators(BUSfits, postprob_DE_threshold = thr0)
     intrinsic_gene_indices <- IG_index(est_L)
+    postprob_DE_matr <- postprob_DE(BUSfits)
+
+
+    # --- Data Adjustment and Visualization [] ---
+    # Key functions: adjusted_values, visualize_data
+    adjusted_data <- adjusted_values(BUSfits, BUSexample_data)
+    visualize_data(
+        BUSexample_data,
+        title_name = "original expression values",
+        gene_ind_set = 1:100
+    )
+    visualize_data(
+        adjusted_data,
+        title_name = "adjusted expression values",
+        gene_ind_set = 1:100
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

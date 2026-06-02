@@ -38,19 +38,66 @@ process BIOC_BLACKSHEEPR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(blacksheepr)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: SummarizedExperiment
-    suppressPackageStartupMessages(library(SummarizedExperiment))
-    blacksheep_SE <- SummarizedExperiment(
-    assays=list(counts=as.matrix(phosphotable)),
-    # --- Deva analysis [] ---
-    # Key functions: deva, deva_results, comparison_groupings, make_outlier_table, count_outliers, outlier_analysis, outlier_heatmap, make_comparison_columns
-    plottable <- comptable[do.call(order, c(decreasing = TRUE,
-    data.frame(comptable[,1:ncol(comptable)]))),]
-    hm1 <- outlier_heatmap(outlier_analysis_out = outlier_analysis_out,
+    # --- Grouping and Outlier Table Creation [] ---
+    # Key functions: comparison_groupings, make_outlier_table
+    groupings <- comparison_groupings(comptable)
+    reftable_out <- make_outlier_table(
+        phosphotable,
+        analyze_negative_outliers = FALSE
+    )
+    outliertab <- reftable_out$outliertab
+
+
+    # --- Outlier Counting [] ---
+    # Key functions: count_outliers
+    count_outliers_out <- count_outliers(
+        groupings = groupings,
+        outliertab = outliertab,
+        aggregate_features = TRUE,
+        feature_delineator = "-"
+    )
+    grouptablist <- count_outliers_out$grouptablist
+    fractiontab <- count_outliers_out$fractiontab
+
+
+    # --- Outlier Analysis [] ---
+    # Key functions: outlier_analysis
+    outlier_analysis_out <- outlier_analysis(
+        grouptablist = grouptablist,
+        fraction_table = fractiontab,
+        fraction_samples_cutoff = 0.3
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: outlier_heatmap
+    hm1 <- outlier_heatmap(
+        outlier_analysis_out = outlier_analysis_out,
+        counttab = fractiontab,
+        metatable = comptable,
+        fdrcutoffvalue = 0.1
+    )
+
+
+    # --- High-level DEVA Pipeline [] ---
+    # Key functions: deva, deva_results
+    deva_out <- deva(
+        se = blacksheep_SE,
+        analyze_negative_outliers = FALSE,
+        aggregate_features = TRUE,
+        feature_delineator = "-",
+        fraction_samples_cutoff = 0.3,
+        fdrcutoffvalue = 0.1
+    )
+    subanalysis_Her2 <- deva_results(
+        deva_out,
+        ID = "Her2",
+        type = "table"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

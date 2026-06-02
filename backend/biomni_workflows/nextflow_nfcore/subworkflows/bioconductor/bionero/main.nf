@@ -38,16 +38,45 @@ process BIOC_BIONERO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BioNERO)
     library(PC_correction)
     library(SFT_fit)
     library(ZKfiltering)
     library(jsonlite)
 
-    # --- Sample metadata inspection [] ---
-    # Key functions: colData, replace_na, remove_nonexp, filter_by_variance, ZKfiltering, PC_correction, exp_preprocess, plot_heatmap
-    p <- plot_heatmap(final_exp, type = "samplecor", show_rownames = FALSE)
-    Heatmap of gene expression (here, only the first 50 genes)
-    p <- plot_heatmap(
+    # --- Network Construction [] ---
+    # Key functions: SFT_fit, exp2gcn
+    sft <- SFT_fit(
+        exp_filt, net_type = "signed hybrid",
+        cor_method = "pearson"
+    )
+    net <- exp2gcn(
+        exp_filt, net_type = "signed hybrid",
+        SFTpower = sft$power, cor_method = "pearson"
+    )
+
+
+    # --- Module-Trait Association and Visualization [] ---
+    # Key functions: module_trait_cor, plot_module_trait_cor, plot_expression_profile
+    MEtrait <- module_trait_cor(exp = exp_filt, MEs = net$MEs)
+    plot_module_trait_cor(MEtrait)
+    plot_expression_profile(
+        exp = exp_filt, net = net,
+        plot_module = TRUE, modulename = "yellow"
+    )
+
+
+    # --- Network Export and Visualization [] ---
+    # Key functions: get_hubs_gcn, get_edge_list, plot_gcn
+    hubs <- get_hubs_gcn(exp_filt, net)
+    edges <- get_edge_list(
+        net, module = "midnightblue",
+        filter = TRUE, method = "min_cor", rcutoff = 0.7
+    )
+    plot_gcn(
+        edgelist_gcn = edges, net = net,
+        color_by = "module", hubs = hubs
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

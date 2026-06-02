@@ -38,6 +38,7 @@ process BIOC_CELLSCORE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CellScore)
     library(BoxplotCellScore)
     library(PcaStandards)
     library(PlotCosineSimHeatmap)
@@ -45,45 +46,35 @@ process BIOC_CELLSCORE {
     library(ScatterplotCellScoreComponents)
     library(jsonlite)
 
-    # --- label='HeatmapCode' [] ---
-    # Key functions: PlotCosineSimHeatmap
-    PlotCosineSimHeatmap(cs.sel, "piPS", width=10, height=10, x=-10, y=3)
-    # --- label='PcaCode' [] ---
+    # --- On-Off Visualization [] ---
+    # Key functions: BarplotOnOff
+    barplot.out <- BarplotOnOff(eset, group.OnOff$scores)
+
+
+    # --- Cosine Similarity Scoring [] ---
+    # Key functions: CosineSimScore, PlotCosineSimHeatmap
+    cs <- CosineSimScore(eset, cell.change, iqr.cutoff = 0.1)
+    PlotCosineSimHeatmap(cs$cosine.general.groups, "general groups",
+                         width = 20, height = 20, x = -20, y = 3)
+    PlotCosineSimHeatmap(cs$cosine.subgroups, "subgroups",
+                         width = 14, height = 14, x = -14, y = 3)
+
+
+    # --- Standards PCA [] ---
     # Key functions: PcaStandards
     PcaStandards(cs$pdataSub$general_cell_type, "General Cell Type",
-    # --- label='Pca' [] ---
-    # Key functions: PcaStandards
-    PcaStandards(cs$pdataSub$general_cell_type, "General Cell Type",
-    # --- label='ScatterplotCode' [] ---
-    # Key functions: ScatterplotCellScoreComponents
+                 cs$esetSub.IQR)
+
+
+    # --- CellScore Calculation and Evaluation [] ---
+    # Key functions: CellScore, ScatterplotCellScoreComponents, BoxplotCellScore, RugplotCellScore
+    cellscore <- CellScore(data = eset, transitions = cell.change,
+                           scores.onoff = individ.OnOff$scores,
+                           scores.cosine = cs$cosine.samples)
     ScatterplotCellScoreComponents(cellscore, cell.change, FALSE)
-    # --- label='Scatterplot' [] ---
-    # Key functions: ScatterplotCellScoreComponents
-    ScatterplotCellScoreComponents(cellscore, cell.change, FALSE)
-    # --- label='Boxplot' [] ---
-    # Key functions: BoxplotCellScore
     BoxplotCellScore(cellscore, cell.change)
-    # --- label='RugplotCode' [] ---
-    # Key functions: RugplotCellScore
-    RugplotCellScore(cellscore, cell.change, secondary.property)
-    # --- label='Rugplot' [] ---
-    # Key functions: RugplotCellScore
-    RugplotCellScore(cellscore, cell.change, secondary.property)
-    # --- label='ReportFig1' [] ---
-    # Key functions: scatterplotDonorTargetTest
-    mat <- matrix(c(1,1,2,2), nrow=1, ncol=4, byrow=TRUE)
-    layout(mat)
-    scatterplotDonorTargetTest(test.data, cellscore, FALSE)
-    # --- label='ReportFig2' [] ---
-    # Key functions: rugplotDonorTargetTest
-    mat <- matrix(c(1,1,1,2,2,2), nrow=2, ncol=3, byrow=TRUE)
-    layout(mat)
-    rugplotDonorTargetTest(test.data, cellscore)
-    # --- label='ReportFig3' [] ---
-    # Key functions: assayDataElement, heatmapOnOffMarkers
-    mat <- matrix(c(1,1,1,1,1,1), nrow=2, ncol=3, byrow=TRUE)
-    layout(mat)
-    calls <- assayDataElement(eset, "calls")
+    RugplotCellScore(cellscore, cell.change,
+                     "transition_induction_method")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

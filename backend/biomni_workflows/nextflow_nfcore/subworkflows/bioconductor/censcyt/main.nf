@@ -41,48 +41,51 @@ process BIOC_CENSCYT {
     library(censcyt)
     library(jsonlite)
 
-    # --- Simulate Covariate Data [] ---
-    # Key functions: rexp, pmin, ifelse
-    set.seed(1234)
-    X_true <- rexp(nr_samples)
-    C <- rexp(nr_samples)
-    # --- Simulate Multicluster Data [] ---
-    # Key functions: runif, simulate_multicluster
-    sizes <- round(runif(nr_samples,1e3,1e4))
-    alphas <- runif(nr_clusters,1,10)
-    simulation_output <- simulate_multicluster(alphas = alphas,
-    # --- Visualize Simulated Data [] ---
-    # Key functions: ifelse, pivot_longer, ggplot, geom_point, facet_wrap
-    is_diff_cluster <- ifelse(is.na(simulation_output$row_data$paired),FALSE,TRUE)
-    proportion <- as.data.frame(t(apply(assay(d_counts),2,function(x)x/sum(x))))
-    names(proportion) <- paste0("Nr: ",names(proportion), " - ",
-    # --- Create Model Formula [] ---
+    # --- Formula and Contrast Creation [] ---
     # Key functions: createFormula
-    da_formula <- createFormula(experiment_info = experiment_info,
-    contrast <- matrix(c(0,1))
-    # --- differential testing [] ---
+    da_formula <- createFormula(
+        experiment_info = experiment_info,
+        cols_fixed = "X_obs",
+        cols_random = "sample_id",
+        event_indicator = "Event_ind"
+    )
+    contrast <- matrix(c(0, 1))
+
+
+    # --- Differential Abundance Testing [] ---
     # Key functions: testDA_censoredGLMM
-    test with 50 repetitions with method risk set imputation (rs)
-    da_out <- testDA_censoredGLMM(d_counts = d_counts,
-    BPPARAM=BiocParallel::MulticoreParam(workers = 1))
-    # --- Extract Top Results [] ---
+    da_out <- testDA_censoredGLMM(
+        d_counts = d_counts,
+        formula = da_formula,
+        contrast = contrast,
+        mi_reps = 30,
+        imputation_method = "km",
+        verbose = TRUE,
+        BPPARAM = BiocParallel::SerialParam()
+    )
+
+
+    # --- Results Evaluation [] ---
     # Key functions: topTable
-    topTable(da_out)
-    which(!is.na(simulation_output$row_data$paired))
-    # --- Simulate Data for Wrapper [] ---
-    # Key functions: sinh
-    Function to create expression data (one sample)
-    fcs_sim <- function(n = 2000, mean = 0, sd = 1, ncol = 10, cof = 5) {
-    d <- matrix(sinh(rnorm(n*ncol, mean, sd)) * cof,ncol=ncol)
-    # --- Run Censcyt Wrapper [] ---
+    results_table <- topTable(da_out)
+
+
+    # --- Wrapper Pipeline Execution [] ---
     # Key functions: censcyt
-    out_DA <- censcyt(d_input,
-    BPPARAM=BiocParallel::MulticoreParam(workers = 1))
-    # --- Visualize Wrapper Results [] ---
-    # Key functions: topTable, plotHeatmap
-    topTable(out_DA, format_vals = TRUE)
-    plotHeatmap(out_DA,
-    sample_order = order(X_true))
+    out_DA <- censcyt(
+        d_input,
+        experiment_info,
+        marker_info,
+        formula = da_formula,
+        contrast = contrast,
+        meta_clustering = TRUE,
+        meta_k = 10,
+        seed_clustering = 123,
+        verbose = FALSE,
+        mi_reps = 10,
+        imputation_method = "km",
+        BPPARAM = BiocParallel::SerialParam()
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

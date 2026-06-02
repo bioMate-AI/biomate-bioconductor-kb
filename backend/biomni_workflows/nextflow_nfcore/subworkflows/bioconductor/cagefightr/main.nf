@@ -38,15 +38,72 @@ process BIOC_CAGEFIGHTR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CAGEfightR)
     library(BigWigFileList)
     library(SeqinfoForUCSCGenome)
     library(jsonlite)
 
-    # --- BigWigFileList analysis [] ---
-    # Key functions: install_github, BigWigFileList, SeqinfoForUCSCGenome, quantifyCTSSs, quickTSSs, quickEnhancers, assignTxType, rowRanges
-    CAGEclusters <- combineClusters(object1=exampleUnidirectional,
-    CAGEclusters <- subsetBySupport(CAGEclusters,
-    cluster_track <- trackClusters(CAGEclusters, name="Clusters", col=NA)
+    # --- Annotation and Filtering [] ---
+    # Key functions: assignTxType, combineClusters, subsetBySupport
+    txdb <- TxDb.Mmusculus.UCSC.mm9.knownGene::TxDb.Mmusculus.UCSC.mm9.knownGene
+    TSSs <- assignTxType(TSSs, txModels = txdb)
+    enhancers <- assignTxType(enhancers, txModels = txdb)
+    enhancers <- subset(enhancers, txType %in% c("intergenic", "intron"))
+    SummarizedExperiment::rowRanges(TSSs)$clusterType <- "TSS"
+    SummarizedExperiment::rowRanges(enhancers)$clusterType <- "enhancer"
+    RSE <- combineClusters(TSSs, enhancers, removeIfOverlapping = "object1")
+    RSE <- subsetBySupport(
+        RSE,
+        inputAssay = "counts",
+        outputColumn = "support",
+        unexpressed = 0,
+        minSamples = 1
+    )
+
+
+    # --- Expression Normalization and Pooling [] ---
+    # Key functions: calcTPM, calcPooled, calcSupport
+    data(exampleCTSSs, package = "CAGEfightR")
+    exampleCTSSs <- calcTPM(
+        exampleCTSSs,
+        inputAssay = "counts",
+        outputAssay = "TPM",
+        outputColumn = "subsetTags"
+    )
+    exampleCTSSs <- calcPooled(exampleCTSSs, inputAssay = "TPM")
+    exampleCTSSs <- calcSupport(
+        exampleCTSSs,
+        inputAssay = "counts",
+        outputColumn = "support",
+        unexpressed = 0
+    )
+
+
+    # --- Unidirectional and Bidirectional Clustering [] ---
+    # Key functions: clusterUnidirectionally, clusterBidirectionally, calcBidirectionality
+    simple_TCs <- clusterUnidirectionally(
+        exampleCTSSs,
+        pooledCutoff = 0,
+        mergeDist = 20
+    )
+    BCs <- clusterBidirectionally(exampleCTSSs, balanceThreshold = 0.95)
+    BCs <- calcBidirectionality(BCs, samples = exampleCTSSs)
+
+
+    # --- Gene-Level Quantification and Linkage [] ---
+    # Key functions: quickGenes, findLinks
+    gene_level <- quickGenes(RSE, geneModels = txdb)
+    SummarizedExperiment::rowRanges(RSE)$clusterType <- factor(
+        SummarizedExperiment::rowRanges(RSE)$clusterType,
+        levels = c("TSS", "enhancer")
+    )
+    links <- findLinks(
+        RSE,
+        inputAssay = "counts",
+        maxDist = 5000,
+        directional = "clusterType",
+        method = "kendall"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,100 +38,39 @@ process BIOC_BATCHELOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(batchelor)
     library(NoCorrectParam)
     library(TasicBrainData)
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- Zeiselbraindata [] ---
-    # Key functions: ZeiselBrainData, TasicBrainData
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce1 <- ZeiselBrainData()
-    sce1
-    sce2 <- TasicBrainData()
-    # --- Addpercellqc [] ---
-    # Key functions: addPerCellQC, quickPerCellQC, colData
-    ---------------------------------------------------------------------
-    library(scuttle)
-    sce1 <- addPerCellQC(sce1, subsets=list(Mito=grep("mt-", rownames(sce1))))
-    qc1 <- quickPerCellQC(colData(sce1), sub.fields="subsets_Mito_percent")
-    sce1 <- sce1[,!qc1$discard]
-    # --- Intersect [] ---
-    # Key functions: intersect
-    ---------------------------------------------------------------------
-    universe <- intersect(rownames(sce1), rownames(sce2))
-    sce1 <- sce1[universe,]
-    sce2 <- sce2[universe,]
-    # --- Multibatchnorm [] ---
-    # Key functions: multiBatchNorm
-    ---------------------------------------------------------------------
-    out <- multiBatchNorm(sce1, sce2)
-    sce1 <- out[[1]]
-    sce2 <- out[[2]]
-    # --- Modelgenevar [] ---
-    # Key functions: modelGeneVar, combineVar, getTopHVGs
-    ---------------------------------------------------------------------
-    library(scran)
-    dec1 <- modelGeneVar(sce1)
-    dec2 <- modelGeneVar(sce2)
-    combined.dec <- combineVar(dec1, dec2)
-    # --- Correctexperiments [] ---
-    # Key functions: correctExperiments, NoCorrectParam, runPCA, runTSNE, plotTSNE
-    ---------------------------------------------------------------------
-    combined <- correctExperiments(A=sce1, B=sce2, PARAM=NoCorrectParam())
-    library(scater)
-    set.seed(100)
-    combined <- runPCA(combined, subset_row=chosen.hvgs)
-    # --- Rle [] ---
-    # Key functions: rle
-    ---------------------------------------------------------------------
-    rle(f.out$batch)
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    cor.exp <- assay(f.out)[1,]
-    hist(cor.exp, xlab="Corrected expression for gene 1", col="grey80")
-    # --- Head [] ---
-    # Key functions: mnnCorrect
-    ---------------------------------------------------------------------
-    # Using fewer genes as it is much, much slower.
-    fewer.hvgs <- head(order(combined.dec$bio, decreasing=TRUE), 100)
-    classic.out <- mnnCorrect(sce1, sce2, subset.row=fewer.hvgs)
-    # --- Clustermnn [] ---
+    # --- Multi-Batch PCA and MNN Correction [] ---
+    # Key functions: fastMNN, multiBatchPCA
+    f_out <- fastMNN(
+        A=sce1_norm,
+        B=sce2_norm,
+        subset.row=chosen_hvgs
+    )
+    corrected_dims <- SingleCellExperiment::reducedDim(
+        f_out,
+        "corrected"
+    )
+
+
+    # --- Alternative Batch Correction [] ---
+    # Key functions: rescaleBatches, regressBatches
+    rescale_out <- rescaleBatches(sce1_norm, sce2_norm)
+    regress_out <- regressBatches(sce1_norm, sce2_norm)
+
+
+    # --- Cluster-based MNN Correction [] ---
     # Key functions: clusterMNN
-    ---------------------------------------------------------------------
-    # Removing the 'unclassified' cluster, which makes no sense:
-    not.unclass <- sce2$broad_type!="Unclassified"
-    clust.out <- clusterMNN(sce1, sce2[,not.unclass],
-        subset.row=chosen.hvgs,
-    # --- Metadata [] ---
-    # Key functions: metadata, split
-    ---------------------------------------------------------------------
-    clust.info <- metadata(clust.out)$cluster
-    split(clust.info$cluster, clust.info$meta)
-    # --- Rescalebatches [] ---
-    # Key functions: rescaleBatches
-    ---------------------------------------------------------------------
-    rescale.out <- rescaleBatches(sce1, sce2)
-    rescale.out
-    # --- Runpca [] ---
-    # Key functions: runPCA, plotPCA
-    ---------------------------------------------------------------------
-    rescale.out <- runPCA(rescale.out, subset_row=chosen.hvgs,
-        exprs_values="corrected")
-    plotPCA(rescale.out, colour_by="batch")
-    # --- Regressbatches [] ---
-    # Key functions: regressBatches, assay
-    ---------------------------------------------------------------------
-    regress.out <- regressBatches(sce1, sce2)
-    assay(regress.out)
-    # --- List [] ---
-    # Key functions: rescaleBatches
-    ---------------------------------------------------------------------
-    # Pretend the first X cells in each batch are controls.
-    restrict <- list(1:100, 1:200)
-    rescale.out <- rescaleBatches(sce1, sce2, restrict=restrict)
+    clust_out <- clusterMNN(
+        sce1_norm,
+        sce2_norm,
+        subset.row=chosen_hvgs,
+        clusters=list(sce1_norm$celltype, sce2_norm$celltype)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
