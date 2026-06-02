@@ -17,13 +17,14 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
 import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
 import { CtfQualityChart } from "./viewers/ctf-quality-chart";
+import { InteractiveLauncher } from "./interactive-launcher";
 // 3Dmol.js loaded dynamically inside InlineStructureViewer so the structure
 // path doesn't pull ~700 KB into the main bundle.
 
@@ -58,10 +59,12 @@ const DENSITY_EXTS = new Set(['mrc', 'map', 'mrcs', 'rec']);
 const CRYO_BINARY_EXTS = new Set(['cs', 'csg']);
 const HTML_EXTS    = new Set(['html', 'htm']);
 const TEXT_EXTS    = new Set(['log', 'txt', 'sh', 'py', 'out', 'err']);
+// R serialised objects — binary, open in RStudio
+const R_EXTS       = new Set(['rds', 'rdata']);
 
 type ViewerKind =
   | 'image' | 'table' | 'sequence' | 'vcf' | 'annotation'
-  | 'structure' | 'density' | 'html' | 'text' | 'download';
+  | 'structure' | 'density' | 'r-object' | 'html' | 'text' | 'download';
 
 function resolveViewer(ext: string): ViewerKind {
   const e = ext.toLowerCase().replace(/^\./, '');
@@ -72,6 +75,7 @@ function resolveViewer(ext: string): ViewerKind {
   if (ANNOT_EXTS.has(e))   return 'annotation';
   if (STRUCT_EXTS.has(e))  return 'structure';
   if (DENSITY_EXTS.has(e))      return 'density';
+  if (R_EXTS.has(e))            return 'r-object';
   if (CRYO_BINARY_EXTS.has(e))  return 'download';
   if (HTML_EXTS.has(e))         return 'html';
   if (TEXT_EXTS.has(e))         return 'text';
@@ -84,8 +88,9 @@ const TEXT_VIEWERS: ViewerKind[] = ['table', 'sequence', 'vcf', 'annotation', 's
 /**
  * Viewers that fetch their own data — StepOutputPreview skips the blob/text
  * fetch entirely and hands the URL to the viewer component directly.
+ * 'r-object' is also here because RDS/RData are binary and need no preview fetch.
  */
-const SELF_FETCHING: ViewerKind[] = ['density'];
+const SELF_FETCHING: ViewerKind[] = ['density', 'r-object'];
 
 // ---------------------------------------------------------------------------
 // STAR / RELION format parser
@@ -366,6 +371,34 @@ function DensityPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   );
 }
 
+/** R object viewer — RDS/RData files are binary; offer RStudio launch instead of inline preview. */
+function RObjectPreview({ file, onClose }: StepOutputPreviewProps) {
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+
+  return (
+    <div className="mt-2 border rounded-md bg-background p-3">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        R serialised object ({file.extension.toUpperCase()}) — open in RStudio to load and explore.
+      </p>
+      <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => setLauncherOpen(true)}>
+        <Laptop className="h-3.5 w-3.5" />
+        Open in RStudio
+      </Button>
+      <InteractiveLauncher open={launcherOpen} onOpenChange={setLauncherOpen} outputs={[output]} />
+    </div>
+  );
+}
+
 /** Detect special CryoEM JSON report filenames and render dedicated chart viewers */
 function resolveCryoChartViewer(fileName: string): 'fsc-curve' | 'motion-histogram' | 'ctf-quality' | null {
   const n = fileName.toLowerCase();
@@ -411,8 +444,13 @@ export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewPro
   const viewer = resolveViewer(ext);
 
   // Route density files to a separate component (avoids hook-after-conditional).
-  if (SELF_FETCHING.includes(viewer)) {
+  if (viewer === 'density') {
     return <DensityPreview runId={runId} file={file} onClose={onClose} />;
+  }
+
+  // R object files — binary, no inline preview; offer RStudio launch instead.
+  if (viewer === 'r-object') {
+    return <RObjectPreview runId={runId} file={file} onClose={onClose} />;
   }
 
   // Route special CryoEM JSON reports to dedicated chart viewers.
@@ -432,6 +470,7 @@ function FetchingPreview({
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rstudioOpen, setRstudioOpen] = useState(false);
 
   const needsText = TEXT_VIEWERS.includes(viewer);
   const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
@@ -497,6 +536,30 @@ function FetchingPreview({
       )}
       {!loading && !error && content && (
         <ViewerContent viewer={viewer} content={content} file={file} ext={ext} />
+      )}
+
+      {/* Secondary action: open tabular outputs directly in RStudio */}
+      {viewer === 'table' && !loading && !error && (
+        <div className="mt-2 pt-2 border-t flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-7 text-xs"
+            onClick={() => setRstudioOpen(true)}
+          >
+            <Laptop className="h-3.5 w-3.5" />
+            Analyze in RStudio
+          </Button>
+          <span className="text-[10px] text-muted-foreground">Opens with this file pre-loaded</span>
+        </div>
+      )}
+
+      {viewer === 'table' && (
+        <InteractiveLauncher
+          open={rstudioOpen}
+          onOpenChange={setRstudioOpen}
+          outputs={[{ id: file.path, name: file.name, size: 0, type: file.extension }]}
+        />
       )}
     </div>
   );

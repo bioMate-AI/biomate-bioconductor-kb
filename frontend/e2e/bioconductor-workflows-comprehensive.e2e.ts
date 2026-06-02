@@ -147,44 +147,74 @@ function assert(rec: SuiteRecord, name: string, condition: boolean, note?: strin
 
 async function registerUser(page: Page, label: string): Promise<void> {
   const email = `e2e_bc_${label}_${Date.now()}@biomate.test`;
-  await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
+
+  // Navigate to BASE_URL first so the browser context is on the right origin.
+  // This is required before page.evaluate can make same-origin fetch calls AND
+  // for extraHTTPHeaders (including the rate-limit bypass token) to be active.
   await page.context().clearCookies();
-  await page.addInitScript(() => {
-    try { localStorage.clear(); sessionStorage.clear(); } catch {}
-  });
+  await page.goto(BASE_URL);
+  await page.waitForLoadState("domcontentloaded");
 
-  const resp = await page.request.post(`${BASE_URL}/api/auth/register`, {
-    headers: { "Content-Type": "application/json", "x-e2e-test-token": E2E_TOKEN },
-    data: { fullName: `BC E2E ${label}`, email, password: "TestPass123!", termsAccepted: true },
-  });
+  // Use page.evaluate (browser fetch) — identical to helpers.ts setupTestUser pattern.
+  // This is the ONLY pattern that bypasses the registration rate limiter because:
+  //   1. The fetch runs inside the browser context with credentials: "include"
+  //      so Set-Cookie response headers are stored in the browser's own cookie jar
+  //   2. extraHTTPHeaders (X-E2E-Test-Token) injected by Playwright into all
+  //      browser-initiated requests satisfy rate-limit.ts isE2ERequest() check
+  // DO NOT use page.request.post() — it uses a separate cookie jar that doesn't
+  // propagate to page navigations, and its headers don't satisfy the rate-limit bypass.
+  const result = await page.evaluate(
+    async ({ baseUrl, email, password, name, token }: {
+      baseUrl: string; email: string; password: string; name: string; token: string;
+    }) => {
+      try {
+        const r = await fetch(`${baseUrl}/api/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-E2E-Test-Token": token,
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            terms_accepted: true,
+          }),
+        });
+        const body = await r.json().catch(() => ({}));
+        return { ok: r.ok, status: r.status, body };
+      } catch (e: any) {
+        return { ok: false, status: 0, body: {}, error: String(e) };
+      }
+    },
+    { baseUrl: BASE_URL, email, password: "TestPass123!", name: `BC E2E ${label}`, token: E2E_TOKEN }
+  );
 
-  if (resp.ok()) {
-    const data = await resp.json().catch(() => ({}));
-    if (data?.token) {
-      await page.context().addCookies([{
-        name: "biomate_token", value: data.token, domain: BASE_DOMAIN,
-        path: "/", httpOnly: true, secure: BASE_URL.startsWith("https"), sameSite: "Strict",
-      }]);
-    }
+  if (!result.ok) {
+    console.warn(`[registerUser:${label}] registration failed (${result.status}) — body: ${JSON.stringify(result.body)}`);
+    // Fallback: user may have been created in a prior partial run — try logging in
+    await page.evaluate(
+      async ({ baseUrl, email, password, token }: {
+        baseUrl: string; email: string; password: string; token: string;
+      }) => {
+        await fetch(`${baseUrl}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-E2E-Test-Token": token },
+          credentials: "include",
+          body: JSON.stringify({ email, password }),
+        });
+      },
+      { baseUrl: BASE_URL, email, password: "TestPass123!", token: E2E_TOKEN }
+    );
   } else {
-    console.warn(`[registerUser:${label}] registration failed (${resp.status()}) — falling back`);
-    // Fallback: try form login in case rate-limited (same email won't exist, but handles re-use)
-    await page.goto(`${BASE_URL}/register`).catch(() => {});
-    await page.waitForLoadState("load");
-    try {
-      await page.waitForSelector("#name,#fullName", { state: "visible", timeout: 8000 });
-      await page.fill("#name,#fullName", `BC E2E ${label}`).catch(() => {});
-      await page.fill("#email", email);
-      await page.fill("#password", "TestPass123!");
-      await page.fill("#confirmPassword", "TestPass123!").catch(() => {});
-      await page.click("#terms").catch(() => {});
-      await page.click('button[type="submit"]');
-      await page.waitForTimeout(2000);
-    } catch { /* already logged in or form differs */ }
+    console.log(`[registerUser:${label}] registered ok (${result.status})`);
   }
 
+  // Navigate to app root so auth-context.tsx reads /api/auth/me with the new cookie
   await page.goto(BASE_URL);
   await page.waitForLoadState("load");
+
   // Dismiss onboarding modals
   for (let i = 0; i < 4; i++) {
     const skip = page.locator('button:has-text("Skip"), button:has-text("Dismiss"), button:has-text("Maybe later")').first();
@@ -192,12 +222,13 @@ async function registerUser(page: Page, label: string): Promise<void> {
       await skip.click({ force: true }); await page.waitForTimeout(400);
     } else break;
   }
-  await page.waitForSelector("textarea", { state: "visible", timeout: 20_000 }).catch(() => {});
+  // Use data-testid="chat-input" (the actual textarea in chat-input.tsx) with textarea fallback
+  await page.waitForSelector('[data-testid="chat-input"], textarea', { state: "visible", timeout: 20_000 }).catch(() => {});
   await page.waitForTimeout(600);
 }
 
 async function sendChat(page: Page, text: string, timeoutMs = 120_000): Promise<boolean> {
-  const ta = page.locator("textarea").first();
+  const ta = page.locator('[data-testid="chat-input"], textarea').first();
   await expect(ta).toBeVisible({ timeout: 10_000 });
   await ta.fill(text);
   await ta.press("Enter");

@@ -2368,6 +2368,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  app.get("/api/auth/config", (req, res) => {
+    res.json({
+      requireInviteCode: process.env.REQUIRE_INVITE_CODE === 'true',
+    });
+  });
+
   // ============================================================================
   // S3 File Management API
   // ============================================================================

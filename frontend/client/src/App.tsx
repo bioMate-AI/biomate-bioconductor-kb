@@ -17,7 +17,7 @@ import { ToolIntroductionDialog } from "@/components/tool-introduction-dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { chatHistoryService } from "@/lib/chat-history";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import { PanelLeft, Plus, FlaskConical, MessageCircle } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
@@ -105,14 +105,29 @@ function RootRoute({
 }: any) {
   const { isAuthenticated, isLoading } = useAuth()
   const [, setLocation] = useLocation()
+  const search = useSearch()
   // All hooks must run before any conditional return (rules of hooks).
   // useUiFlavor must be called every render — moving it after the early
   // return below caused "Rendered more hooks than during the previous render"
   // when isLoading flipped true→false.
   const uiFlavor = useUiFlavor()
+  const handledSessionParam = useRef(false)
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) setLocation('/login')
   }, [isAuthenticated, isLoading, setLocation])
+
+  // Handle ?session=<chatSessionId> — emitted by the "Open" button in the
+  // Workflow Runs dialog. Once auth is ready, load the session and strip the param.
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || handledSessionParam.current) return
+    const sessionId = new URLSearchParams(search).get('session')
+    if (sessionId) {
+      handledSessionParam.current = true
+      onChatSelect(sessionId)
+      window.history.replaceState(null, '', '/')
+    }
+  }, [isLoading, isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
   if (isLoading || !isAuthenticated) return null
 
   // v2 chrome — gated behind ?ui=v2 / localStorage.biomate_ui = 'v2'.

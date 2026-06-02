@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { SettingsDialog } from "./settings-dialog"
-import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
 import { projectService } from "@/lib/projects"
@@ -182,7 +181,6 @@ export function AppSidebar({
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [toolCategoriesExpanded, setToolCategoriesExpanded] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [showStarredDialog, setShowStarredDialog] = useState(false)
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [runningCount, setRunningCount] = useState<number>(0);
   useEffect(() => {
@@ -451,10 +449,6 @@ export function AppSidebar({
 
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
-      <StarredWorkflowsDialog open={showStarredDialog} onOpenChange={setShowStarredDialog}
-        onWorkflowSelect={(workflow) => console.log('Selected starred workflow:', workflow)}
-      />
-      
       <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}&runAgain=${encodeURIComponent(row.runId)}`); } }} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
