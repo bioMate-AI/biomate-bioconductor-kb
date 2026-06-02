@@ -1,20 +1,20 @@
 {
-  "assembled_at": "2026-05-29T07:02:58.708900+00:00",
+  "assembled_at": "2026-06-02T01:44:02.946029+00:00",
   "data_sources": {
     "uniprot_accessions": {
       "ANDV": "Q9E006",
       "SNV": "Q89905",
       "PUUV": "P27312"
     },
-    "epitope_tsv": "research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_FULL_GP_MULTITOOL.tsv",
-    "docking_json": "research/anti-virus/science_sprint/runs/20260529T053215Z/track_inh_ensemble/ensemble_results.json"
+    "epitope_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_FULL_GP_MULTITOOL.tsv",
+    "docking_json": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
   },
   "summary": {
     "conserved_9mers_full_gp": 54,
     "mhc_binders": 922,
     "mhc_binder_unique_peptides": 20,
     "conserved_binder_overlap": 10,
-    "docking_hits": 0,
+    "docking_hits": 20,
     "top_vaccine_candidates": 54
   },
   "conservation_track": [
@@ -521,7 +521,168 @@
       "wet_lab_assay": "Peptide-MHC binding (DimerX) \u2192 ELISpot"
     }
   ],
-  "inhibitor_docking_track": [],
+  "inhibitor_docking_track": [
+    {
+      "id": "INH-01",
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "score_kcal_mol": -6.267,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-02",
+      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+      "score_kcal_mol": -5.881,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-03",
+      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "score_kcal_mol": -5.678,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-04",
+      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.603,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-05",
+      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "score_kcal_mol": -5.599,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-06",
+      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "score_kcal_mol": -5.56,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-07",
+      "smiles": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.554,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-08",
+      "smiles": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "score_kcal_mol": -5.531,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-09",
+      "smiles": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "score_kcal_mol": -5.489,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-10",
+      "smiles": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "score_kcal_mol": -5.425,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-11",
+      "smiles": "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "score_kcal_mol": -5.422,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-12",
+      "smiles": "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "score_kcal_mol": -5.4,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-13",
+      "smiles": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.389,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-14",
+      "smiles": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "score_kcal_mol": -5.297,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-15",
+      "smiles": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.273,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-16",
+      "smiles": "OC[C@@]1(O)OC[C@@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.249,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-17",
+      "smiles": "O=C(O)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "score_kcal_mol": -5.23,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-18",
+      "smiles": "CC1(C)CN(O)[C@@H](C(N)=O)CN1",
+      "score_kcal_mol": -5.224,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-19",
+      "smiles": "O=c1[nH]cnc2[nH][nH]c(=O)c12",
+      "score_kcal_mol": -5.215,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    },
+    {
+      "id": "INH-20",
+      "smiles": "N[C@@H]1NCN[C@H]2NCN[C@@H]12",
+      "score_kcal_mol": -5.213,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay"
+    }
+  ],
   "vaccine_peptide_candidates": [
     {
       "id": "XSP-01",
@@ -1726,5 +1887,126 @@
       "tool": "mhcnuggets"
     }
   ],
-  "inhibitor_docking_hits": []
+  "inhibitor_docking_hits": [
+    {
+      "compound": "N=C(N)NC(=O)c1nccnc1N",
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "score_kcal_mol": -6.267,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CNC1=NC(N)=C2NCCN=C2N1",
+      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+      "score_kcal_mol": -5.881,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "score_kcal_mol": -5.678,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[",
+      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.603,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "score_kcal_mol": -5.599,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "score_kcal_mol": -5.56,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@",
+      "smiles": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.554,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "smiles": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "score_kcal_mol": -5.531,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "smiles": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "score_kcal_mol": -5.489,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "smiles": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "score_kcal_mol": -5.425,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "smiles": "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "score_kcal_mol": -5.422,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "smiles": "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "score_kcal_mol": -5.4,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C",
+      "smiles": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.389,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "smiles": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "score_kcal_mol": -5.297,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@",
+      "smiles": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.273,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "OC[C@@]1(O)OC[C@@H](O)[C@H](O)[C@H]1O",
+      "smiles": "OC[C@@]1(O)OC[C@@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.249,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "smiles": "O=C(O)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "score_kcal_mol": -5.23,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CC1(C)CN(O)[C@@H](C(N)=O)CN1",
+      "smiles": "CC1(C)CN(O)[C@@H](C(N)=O)CN1",
+      "score_kcal_mol": -5.224,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=c1[nH]cnc2[nH][nH]c(=O)c12",
+      "smiles": "O=c1[nH]cnc2[nH][nH]c(=O)c12",
+      "score_kcal_mol": -5.215,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "N[C@@H]1NCN[C@H]2NCN[C@@H]12",
+      "smiles": "N[C@@H]1NCN[C@H]2NCN[C@@H]12",
+      "score_kcal_mol": -5.213,
+      "receptor": "9P3I"
+    }
+  ]
 }

@@ -2,6 +2,7 @@
 """Generate Plan A (epitope) manuscript figures v1. See docs/MANUSCRIPT_FIGURES_V1_PLAN.md."""
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 from collections import defaultdict
@@ -19,16 +20,9 @@ AA_ORDER = list("ACDEFGHIKLMNPQRSTVWY")
 AA_SET = frozenset(AA_ORDER)
 
 ROOT = Path(__file__).resolve().parents[3]
+PUBLICATION_RUN = ROOT / "research" / "anti-virus" / "runs" / "publication_20260528T223525Z"
 OUT = ROOT / "research" / "anti-virus" / "runs" / "manuscript_figures_v1" / "plan_a"
-TSV = (
-    ROOT
-    / "research"
-    / "anti-virus"
-    / "runs"
-    / "plan_a_epitope_a44876b7_s3_mirror"
-    / "predictions"
-    / "PLAN_A_SMOKE_GP.tsv"
-)
+TSV = PUBLICATION_RUN / "plan_a_epitope" / "PLAN_A_FULL_GP_MULTITOOL.tsv"
 SPRINT_TSV = (
     ROOT
     / "research"
@@ -48,16 +42,7 @@ STRUCTURAL_PATCHES = (
     / "track_plan_a_structural_epitopes"
     / "structural_epitope_patches.json"
 )
-CROSS_SPECIES = (
-    ROOT
-    / "research"
-    / "anti-virus"
-    / "science_sprint"
-    / "runs"
-    / "20260527T180210Z"
-    / "track_plan_a_cross_species"
-    / "cross_species_conservation.json"
-)
+CROSS_SPECIES = PUBLICATION_RUN / "cross_species_conservation_full_gp.json"
 MULTIQC_DATA = (
     ROOT
     / "research"
@@ -69,7 +54,7 @@ MULTIQC_DATA = (
 )
 MULTIQC_BINDING = MULTIQC_DATA / "multiqc_binding_affinity_distribution.txt"
 MULTIQC_LENGTH = MULTIQC_DATA / "multiqc_binder_length_distribution.txt"
-SAMPLE_ID = "PLAN_A_SMOKE_GP"
+SAMPLE_ID = "PLAN_A_FULL_GP"
 
 
 def style_axes(ax) -> None:
@@ -448,6 +433,23 @@ def fig_sequence_profile(rows: list[dict[str, str]]) -> int:
 
 
 def main() -> None:
+    global TSV, CROSS_SPECIES, OUT, SAMPLE_ID
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument(
+        "--tsv",
+        type=Path,
+        default=TSV,
+        help="Epitope prediction TSV (default: publication full-GP multitool merge)",
+    )
+    ap.add_argument("--cross-species-json", type=Path, default=CROSS_SPECIES)
+    ap.add_argument("--out-dir", type=Path, default=OUT)
+    ap.add_argument("--sample-id", type=str, default=SAMPLE_ID)
+    args = ap.parse_args()
+    TSV = args.tsv.resolve()
+    CROSS_SPECIES = args.cross_species_json.resolve()
+    OUT = args.out_dir.resolve()
+    SAMPLE_ID = args.sample_id
+
     OUT.mkdir(parents=True, exist_ok=True)
     meta: dict = {
         "tsv": str(TSV),
