@@ -1127,3 +1127,76 @@ async def record_chain_run(request: RecordChainRunRequest) -> Dict[str, Any]:
     except Exception as exc:
         log.warning("record_chain_run failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── v2: Bioconductor chain suggestion ─────────────────────────────────────────
+
+class ChainSuggestRequest(BaseModel):
+    workflow_name: str          # name of the completed workflow
+    output_extensions: List[str] = []   # file extensions of its outputs
+    domain: Optional[str] = None        # optional domain hint
+
+
+@router.post("/api/v2/bioc/chain-suggest", summary="[v2] Suggest Bioconductor downstream chains for a completed run")
+async def suggest_bioc_chain(request: ChainSuggestRequest) -> Dict[str, Any]:
+    """
+    Given a completed workflow name and its output file extensions, return
+    ranked Bioconductor pipeline chain suggestions from BIOC_CHAIN_TEMPLATES.
+
+    Used by the AI assistant to propose a follow-up chain after a run finishes.
+    """
+    try:
+        from galaxy.ai.bioc_chain_templates import suggest_chains_for_run
+        chains = suggest_chains_for_run(request.workflow_name, request.output_extensions)
+
+        # If domain hint provided, boost matching domain chains
+        if request.domain and chains:
+            chains.sort(key=lambda c: (0 if c["domain"] == request.domain else 1))
+
+        return {
+            "workflow_name": request.workflow_name,
+            "suggestions": [
+                {
+                    "name": c["name"],
+                    "display_name": c["display_name"],
+                    "domain": c["domain"],
+                    "description": c["description"],
+                    "steps": c["steps"],
+                    "connections": c["connections"],
+                    "required_inputs": c.get("required_inputs", []),
+                    "example_queries": c.get("example_queries", []),
+                }
+                for c in chains[:3]  # top 3
+            ],
+            "total": len(chains),
+        }
+    except Exception as exc:
+        log.warning("suggest_bioc_chain failed: %s", exc)
+        return {"workflow_name": request.workflow_name, "suggestions": [], "total": 0, "error": str(exc)}
+
+
+@router.get("/api/v2/bioc/chain-templates", summary="[v2] List all Bioconductor pipeline chain templates")
+async def list_bioc_chain_templates(domain: Optional[str] = None) -> Dict[str, Any]:
+    """Return all BIOC_CHAIN_TEMPLATES, optionally filtered by domain."""
+    try:
+        from galaxy.ai.bioc_chain_templates import BIOC_CHAIN_TEMPLATES
+        templates = BIOC_CHAIN_TEMPLATES
+        if domain:
+            templates = [t for t in templates if t["domain"] == domain]
+        return {
+            "templates": [
+                {
+                    "name": t["name"],
+                    "display_name": t["display_name"],
+                    "domain": t["domain"],
+                    "description": t["description"],
+                    "steps": t["steps"],
+                    "tags": t.get("tags", []),
+                }
+                for t in templates
+            ],
+            "total": len(templates),
+        }
+    except Exception as exc:
+        log.warning("list_bioc_chain_templates failed: %s", exc)
+        return {"templates": [], "total": 0, "error": str(exc)}
