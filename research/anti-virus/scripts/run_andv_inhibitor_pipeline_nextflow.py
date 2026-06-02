@@ -692,7 +692,9 @@ def main() -> None:
             params,
             args.user_id,
             workflow_domain=spec.workflow_domain,
-            profile="gpu_batch" if spec.key == "gromacs_mmgbsa" else "aws",
+            profile="aws" if (spec.key == "gromacs_mmgbsa" and not args.gromacs_gpu) else (
+                "gpu_batch" if spec.key == "gromacs_mmgbsa" else "aws"
+            ),
             compute_config=(
                 {"gpu_batch_queue": args.gpu_batch_queue}
                 if spec.key == "gromacs_mmgbsa"

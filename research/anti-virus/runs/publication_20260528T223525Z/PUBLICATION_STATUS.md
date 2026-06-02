@@ -35,7 +35,7 @@ S3 prefix: `s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528
 |------|--------|------------|
 | Full GP MHCnuggets | **Done** | 45,160 rows; **113 binders** |
 | MHCflurry merge | **Done** | 604 unique binder peptides (multitool TSV) |
-| Cross-species conservation | **Done** | 54 conserved 9-mers; 10 overlap with binders |
+| Cross-species conservation | **Done** | 54 conserved 9-mers; **18 overlap** with multitool binder 9-mers |
 | Wet-lab package | **Done** | MB-01…15 + XSP-01…15 |
 
 Artifacts: `plan_a_epitope/PLAN_A_FULL_GP_MULTITOOL.tsv`, `wet_lab_package/WET_LAB_CANDIDATES.md`

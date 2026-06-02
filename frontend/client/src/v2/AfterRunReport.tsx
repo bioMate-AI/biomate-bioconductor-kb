@@ -33,6 +33,16 @@ interface AfterRunReportProps {
   nextflowOutputDir?: string;
   logTail?: string[];
   failedSteps?: string[];
+  /** Inline autofix summary from currentRun.execution.nextflowStatus.autofix —
+   *  if state === 'failed' here, the run only "failed" after exhausting fix
+   *  attempts; the FailedRunSection should make that visible. */
+  autofix?: {
+    state?: 'idle' | 'analyzing' | 'fixing' | 'restarting' | 'succeeded' | 'failed';
+    source?: 'auto' | 'manual' | 'unknown';
+    active?: boolean;
+    message?: string;
+    totalAttempts?: number;
+  };
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
@@ -57,6 +67,7 @@ export function AfterRunReport({
   nextflowOutputDir,
   logTail,
   failedSteps,
+  autofix,
   onContinueAnalysis,
 }: AfterRunReportProps) {
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
@@ -157,6 +168,8 @@ export function AfterRunReport({
           errorMessage={errorMessage}
           failedSteps={failedSteps}
           logTail={logTail}
+          autofix={autofix}
+          invocationId={invocationId}
           runId={runId}
           parameters={parameters}
         />
@@ -197,11 +210,21 @@ export function AfterRunReport({
 // log tail, plus a Run-again-with-edits CTA that fires a CustomEvent.
 // ---------------------------------------------------------------------------
 
+interface AutofixSummary {
+  state?: 'idle' | 'analyzing' | 'fixing' | 'restarting' | 'succeeded' | 'failed';
+  source?: 'auto' | 'manual' | 'unknown';
+  active?: boolean;
+  message?: string;
+  totalAttempts?: number;
+}
+
 function FailedRunSection({
   status,
   errorMessage,
   failedSteps,
   logTail,
+  autofix,
+  invocationId,
   runId,
   parameters,
 }: {
@@ -209,12 +232,32 @@ function FailedRunSection({
   errorMessage?: string;
   failedSteps?: string[];
   logTail?: string[];
+  autofix?: AutofixSummary;
+  invocationId?: string;
   runId: string;
   parameters?: Record<string, unknown>;
 }) {
   const cancelled = status === 'cancelled';
   const tail = (logTail || []).slice(-20);
   const totalLines = logTail?.length || 0;
+
+  // Detailed per-attempt history (lazy-fetched only when user expands).
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (!historyOpen || history !== null || !invocationId) return;
+    fetch(`/api/galaxy/workflows/_/invocations/${invocationId}/autofix3/sessions`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        const arr = Array.isArray(d) ? d : (d.sessions || d.attempts || []);
+        setHistory(arr);
+      })
+      .catch(() => setHistory([]));
+  }, [historyOpen, history, invocationId]);
+
+  const autofixTried = !!(autofix && (autofix.totalAttempts || (autofix.state && autofix.state !== 'idle')));
+  const autofixExhausted = autofix?.state === 'failed' && (autofix.totalAttempts || 0) > 0;
 
   const handleRunAgain = () => {
     // PM must-fix #3 — explicit CTA. Wire-up to the existing run-again-with-
@@ -251,6 +294,71 @@ function FailedRunSection({
           ↻ Run again with edits
         </button>
       </div>
+
+      {/* Autofix narrative — most informative signal first. Distinguishes
+          "failed after 15 fix attempts" (autofix exhausted) from "failed on
+          first attempt with no autofix run" (autofix never ran). */}
+      {autofixTried && (
+        <div style={styles.autofixBox} data-testid="afterrun-autofix-summary">
+          <div style={styles.autofixHead}>
+            <span style={styles.autofixLabel}>Auto-fix</span>
+            <span style={{
+              ...styles.autofixState,
+              color: autofix?.state === 'failed' ? 'oklch(0.40 0.18 25)'
+                   : autofix?.state === 'succeeded' ? 'oklch(0.35 0.13 145)'
+                   : 'oklch(0.40 0.12 245)',
+            }}>
+              {autofix?.state ?? 'unknown'}
+            </span>
+            {(autofix?.totalAttempts ?? 0) > 0 && (
+              <span style={styles.autofixAttempts}>
+                {autofix?.totalAttempts} attempt{(autofix?.totalAttempts ?? 0) === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          {autofixExhausted ? (
+            <p style={styles.autofixMsg}>
+              BioMate auto-fix tried <strong>{autofix?.totalAttempts}</strong> remediation{(autofix?.totalAttempts ?? 0) === 1 ? '' : 's'} and could not recover the run. See the underlying error and log tail below for the final failure.
+            </p>
+          ) : autofix?.state === 'succeeded' ? (
+            <p style={styles.autofixMsg}>
+              Auto-fix recovered the run after {autofix.totalAttempts ?? 0} attempt(s). This is unusual if you're seeing this section — the run should be marked completed.
+            </p>
+          ) : autofix?.message ? (
+            <p style={styles.autofixMsg}>{autofix.message}</p>
+          ) : null}
+          {invocationId && (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((v) => !v)}
+              style={styles.autofixToggle}
+              data-testid="afterrun-autofix-toggle"
+            >
+              {historyOpen ? '▾ Hide attempt history' : '▸ Show attempt history'}
+            </button>
+          )}
+          {historyOpen && (
+            <div style={{ marginTop: 6 }}>
+              {history === null ? (
+                <span style={styles.empty}>Loading attempts…</span>
+              ) : history.length === 0 ? (
+                <span style={styles.empty}>No detailed attempt history recorded.</span>
+              ) : (
+                <ol style={styles.autofixHistList}>
+                  {history.map((h: any, i: number) => (
+                    <li key={i} style={styles.autofixHistItem}>
+                      <strong>#{(h.attempt ?? i + 1)}</strong>
+                      {h.issue_type && <span> · {h.issue_type}</span>}
+                      {h.fix_summary && <span> — {h.fix_summary}</span>}
+                      {h.result && <span style={{ marginLeft: 6, opacity: 0.7 }}>[{h.result}]</span>}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {errorMessage && (
         <pre style={styles.errorBlock} data-testid="afterrun-error-message">
@@ -752,6 +860,17 @@ const styles: Record<string, React.CSSProperties> = {
   failedStepList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 3 },
   failedStepItem: { fontSize: 12, fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "white", borderRadius: 4, color: "oklch(0.22 0.01 260)" },
   logTailBlock: { fontSize: 11, fontFamily: "ui-monospace, monospace", background: "oklch(0.18 0.01 260)", color: "oklch(0.92 0.005 240)", padding: 10, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto", margin: 0 },
+
+  // Autofix narrative (inside FailedRunSection)
+  autofixBox: { padding: "8px 10px", margin: "0 0 8px", background: "white", borderRadius: 6, border: "1px solid oklch(0.92 0.04 245)" },
+  autofixHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
+  autofixLabel: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.48 0.012 260)", fontWeight: 700 },
+  autofixState: { fontSize: 11.5, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: "oklch(0.96 0.012 260)" },
+  autofixAttempts: { fontSize: 11, color: "oklch(0.48 0.012 260)", marginLeft: "auto" },
+  autofixMsg: { fontSize: 12.5, margin: "4px 0 6px", lineHeight: 1.45, color: "oklch(0.30 0.01 260)" },
+  autofixToggle: { fontSize: 11, border: "none", background: "transparent", color: "oklch(0.40 0.12 245)", cursor: "pointer", padding: 0 },
+  autofixHistList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 3 },
+  autofixHistItem: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", padding: "3px 8px", background: "oklch(0.98 0.005 260)", borderRadius: 4 },
 
   // Download-UX toast (PM must-fix #4)
   toast: { fontSize: 11, padding: "3px 8px", background: "oklch(0.92 0.04 145)", color: "oklch(0.30 0.13 145)", borderRadius: 12, marginRight: 8 },

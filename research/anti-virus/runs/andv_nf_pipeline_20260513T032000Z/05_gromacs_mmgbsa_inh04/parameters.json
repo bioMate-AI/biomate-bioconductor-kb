@@ -1,0 +1,12 @@
+{
+  "receptor": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
+  "ligand": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+  "use_aws": true,
+  "n_steps": 500000,
+  "gpu": false,
+  "gpu_queue": "galaxy-cloud-queue-gpu",
+  "auto_trim_receptor": true,
+  "trim_pad": 10.0,
+  "box_center": "[173.607, 208.847, 174.042]",
+  "box_size": "[22.0, 22.0, 22.0]"
+}

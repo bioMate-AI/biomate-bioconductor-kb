@@ -15,6 +15,7 @@
 | CDS (input) | 3414 nt — reverse-translated human codon table |
 | Local FASTA | `assets/andv_gp_cds_reverse_translated.fasta` |
 | Optimized CDS (Batch) | `s3://biomate-nextflow-work/nextflow/outputs/plan_b_andv_gp/20260528T223525Z/codon/` |
+| **Local optimized FASTA** | `plan_b_codon/andv_gp_optimized_cds.fasta` (regenerate: `scripts/fetch_plan_b_optimized_cds.py`) |
 
 ### Codon optimization results
 
@@ -22,7 +23,7 @@
 - Batch run: `839ff0f7-5146-4e25-8ba8-01e202401a6d`
 - CAI (P0 validation): **1.0** (threshold ≥ 0.9) — PASS
 
-**Action for CRO:** Pull `optimized_sequence.txt` from S3 codon outdir; verify ORF integrity before IVT.
+**Action for CRO:** Use `plan_b_codon/andv_gp_optimized_cds.fasta` (3414 nt, human codon table) or regenerate via `research/anti-virus/scripts/fetch_plan_b_optimized_cds.py`.
 
 ---
 

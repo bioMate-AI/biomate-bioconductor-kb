@@ -1206,8 +1206,8 @@ for line in open('index.ndx'):
         groups.append(s[1:-1].strip())
 prot = groups.index('Protein')
 lig = groups.index('LIG')
-open('groups.env', 'w').write(f'export REC_G={prot}\\nexport LIG_G={lig}\\n')
-print(f'Using receptor group {prot} (Protein) and ligand group {lig} (LIG)')
+open('groups.env', 'w').write('export REC_G=%d\\nexport LIG_G=%d\\n' % (prot, lig))
+print('Using receptor group %d (Protein) and ligand group %d (LIG)' % (prot, lig))
 PYGROUPS
     source groups.env
 
@@ -1251,8 +1251,8 @@ dat_file = 'FINAL_RESULTS_MMPBSA.dat'
 if os.path.exists(dat_file):
     with open(dat_file) as f:
         for line in f:
-            if 'ΔTOTAL' in line or 'DELTA TOTAL' in line:
-                nums = re.findall(r'[-]?\d+\.\d+', line)
+            if 'DTOTAL' in line.replace('\u0394', 'D') or 'DELTA TOTAL' in line:
+                nums = re.findall(r'[-]?\\d+\\.\\d+', line)
                 if len(nums) >= 2:
                     dg_bind = float(nums[0])
                     dg_err  = float(nums[-1])
@@ -1314,7 +1314,7 @@ summary = {
 with open('binding_summary.json', 'w') as jf:
     json.dump(summary, jf, indent=2)
 
-print(f'MM-GBSA complete: dGbind = {dg_bind} kcal/mol')
+print('MM-GBSA complete: dGbind = %s kcal/mol' % dg_bind)
 PYEOF
     """
 }

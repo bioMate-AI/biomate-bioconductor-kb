@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "run_id": "bd329b45-49d0-4333-bb3a-99262dc1f75b",
+  "invocation_id": "69438c88-f661-43b7-821c-6b1f92a53671",
+  "status": "running",
+  "outputs": {
+    "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/52c8c8bf"
+  },
+  "runtime": {
+    "mode": "host",
+    "image": null,
+    "entry": null,
+    "required_modules": [
+      "parmed",
+      "rdkit"
+    ],
+    "missing_modules": [],
+    "host_arch": "arm64",
+    "image_arch": null,
+    "cross_arch_allowed": "false"
+  },
+  "message": "Nextflow workflow started (run_id: bd329b45-49d0-4333-bb3a-99262dc1f75b)"
+}
