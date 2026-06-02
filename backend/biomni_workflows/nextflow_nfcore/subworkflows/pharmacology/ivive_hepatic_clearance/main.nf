@@ -36,6 +36,7 @@ params.species       = 'human'
 params.scaling_model = 'well_stirred'
 // Optional: SMILES string(s) for compound identification in output
 params.smiles        = ''
+params.mock_mode     = false   // CI smoke testing only — bypasses required-input guards. NEVER set true in production unless explicitly requested by the user.
 
 process IVIVE_HEPATIC_CLEARANCE {
     tag "$meta.id"
@@ -55,6 +56,12 @@ process IVIVE_HEPATIC_CLEARANCE {
     path "versions.yml",                                emit: versions
 
     script:
+    // Mock-mode: substitute aspirin SMILES (params.smiles defaults to ''
+    // which would produce empty PARAM_SMILES and downstream failure).
+    def _raw_smiles_iv = params.smiles
+    def _smiles_iv_eff = (params.mock_mode && (_raw_smiles_iv == null || _raw_smiles_iv.toString() in ['', 'null', 'None']))
+        ? 'CC(=O)Oc1ccccc1C(=O)O'
+        : _raw_smiles_iv
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     export PARAM_CLINT_IN_VITRO="${params.clint_in_vitro}"
@@ -63,7 +70,7 @@ process IVIVE_HEPATIC_CLEARANCE {
     export PARAM_FU_INC="${params.fu_inc}"
     export PARAM_SPECIES="${params.species}"
     export PARAM_SCALING_MODEL="${params.scaling_model}"
-    export PARAM_SMILES="${params.smiles?.toString()?.replace('"', '\\"') ?: ''}"
+    export PARAM_SMILES="${_smiles_iv_eff?.toString()?.replace('"', '\\"') ?: ''}"
 
     python3 << 'PYEOF'
 import json
