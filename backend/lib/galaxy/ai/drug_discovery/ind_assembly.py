@@ -258,6 +258,143 @@ def _call_vllm_regulatory_llm(
     )
 
 
+def _call_frontier_regulatory_llm(
+    system: str, user_prompt: str,
+    max_new_tokens: int = 512, temperature: float = 0.3,
+) -> str:
+    """Call a frontier model (GPT-5 / Sonnet 4.6 / Gemini etc.) directly.
+
+    Active when REGULATORY_LLM_FRONTIER_MODEL is set. Picks the SDK
+    based on a prefix match on the model name, so a single env var
+    selects everything:
+      gpt-* / o-*       → OpenAI
+      claude-*          → Anthropic
+      gemini-*          → Google Generative AI
+
+    This is the **primary** regulatory-LLM path until our fine-tuned
+    Qwen3-8B + LoRA runs in production on Modal/vLLM. From the
+    2026-05-29 n=100 eval:
+        GPT-5             90.0% macro
+        GPT-5-mini        87.4%
+        Claude Sonnet 4.6 87.1%
+        Claude Opus 4.8   85.9%
+    Per-IND-paragraph cost: ~$0.02–0.05 (vs ~$0.0007 once vLLM is up).
+
+    Returns "" on any failure (caller falls through to the next backend).
+    """
+    model = os.environ.get("REGULATORY_LLM_FRONTIER_MODEL", "").strip()
+    if not model:
+        return ""
+    timeout_s = int(os.environ.get("REGULATORY_LLM_TIMEOUT_S", "90"))
+    try:
+        if model.startswith(("gpt-", "o1", "o3")):
+            return _call_openai_frontier(model, system, user_prompt, max_new_tokens, temperature, timeout_s)
+        if model.startswith("claude-"):
+            return _call_anthropic_frontier(model, system, user_prompt, max_new_tokens, temperature, timeout_s)
+        if model.startswith("gemini-"):
+            return _call_gemini_frontier(model, system, user_prompt, max_new_tokens, temperature, timeout_s)
+        log.warning("[frontier] unknown REGULATORY_LLM_FRONTIER_MODEL=%r — supported prefixes: gpt-/o1-/o3-/claude-/gemini-", model)
+        return ""
+    except Exception as exc:
+        log.warning("[frontier] %s call failed: %s", model, exc)
+        return ""
+
+
+def _call_openai_frontier(
+    model: str, system: str, user_prompt: str,
+    max_new_tokens: int, temperature: float, timeout_s: int,
+) -> str:
+    """OpenAI chat completions. gpt-5* needs max_completion_tokens; classic
+    models use max_tokens. gpt-5* also rejects temperature."""
+    import json as _json, urllib.request
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return ""
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+    if model.startswith(("gpt-5", "o1", "o3")):
+        payload["max_completion_tokens"] = max(max_new_tokens * 6, 2400)
+    else:
+        payload["max_tokens"] = max_new_tokens
+        payload["temperature"] = temperature
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        body = _json.loads(resp.read().decode("utf-8"))
+    return body["choices"][0]["message"]["content"].strip()
+
+
+def _call_anthropic_frontier(
+    model: str, system: str, user_prompt: str,
+    max_new_tokens: int, temperature: float, timeout_s: int,
+) -> str:
+    """Anthropic Messages API. claude-opus-4-8+ deprecates temperature."""
+    import json as _json, urllib.request
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return ""
+    payload = {
+        "model": model,
+        "system": system,
+        "messages": [{"role": "user", "content": user_prompt}],
+        "max_tokens": max_new_tokens,
+    }
+    if "opus-4-8" not in model:
+        payload["temperature"] = temperature
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        body = _json.loads(resp.read().decode("utf-8"))
+    return "".join(b.get("text", "") for b in body.get("content", []) if b.get("type") == "text").strip()
+
+
+def _call_gemini_frontier(
+    model: str, system: str, user_prompt: str,
+    max_new_tokens: int, temperature: float, timeout_s: int,
+) -> str:
+    """Gemini generateContent (Google AI Studio)."""
+    import json as _json, urllib.request
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+    if not api_key:
+        return ""
+    payload = {
+        "system_instruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": max_new_tokens,
+            "temperature": temperature,
+            "topP": 0.9,
+        },
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    req = urllib.request.Request(
+        url, data=_json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        body = _json.loads(resp.read().decode("utf-8"))
+    parts = body.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    return "".join(p.get("text", "") for p in parts).strip()
+
+
 def _call_local_regulatory_llm(
     section_type: str,
     system: str,
@@ -273,15 +410,25 @@ def _call_local_regulatory_llm(
     Qwen3 uses /no_think mode: direct prose without chain-of-thought.
 
     Backend selection (in priority order):
-      1. Modal serverless GPU when MODAL_REGULATORY_LLM_ENDPOINT is set
-         (cheapest — scales to zero when idle; see
-         docs/20260601_MODAL_REGULATORY_LLM_DEPLOY.md)
-      2. vLLM HTTP server when VLLM_BASE_URL is set (dedicated ASG —
+      1. Frontier model (GPT-5 / Sonnet 4.6 / Gemini) when
+         REGULATORY_LLM_FRONTIER_MODEL is set. **Current production
+         primary** — 87–90% on the 9-checker eval, ships today, no infra.
+      2. Modal serverless GPU when MODAL_REGULATORY_LLM_ENDPOINT is set
+         (~$5–60/mo; see docs/20260601_MODAL_REGULATORY_LLM_DEPLOY.md)
+      3. vLLM HTTP server when VLLM_BASE_URL is set (dedicated ASG —
          see docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md)
-      3. Phase-0 direct HF transformers path below
-    Both 1 and 2 hit the same OpenAI-compatible /v1/chat/completions
-    surface; the helper differs only in env-var + auth handling.
+      4. Phase-0 direct HF transformers path below
+    Switching backends = setting one env var; the rest of the code path
+    is unchanged. When BioMate v6 (Qwen3-8B + LoRA) is proven on Modal,
+    drop REGULATORY_LLM_FRONTIER_MODEL to flip the priority.
     """
+    if os.environ.get("REGULATORY_LLM_FRONTIER_MODEL"):
+        out = _call_frontier_regulatory_llm(
+            system, user_prompt, max_new_tokens, temperature,
+        )
+        if out:
+            return out
+        # Fall through if the API errored or the env value was bogus.
     if os.environ.get("MODAL_REGULATORY_LLM_ENDPOINT"):
         out = _call_openai_compat_regulatory_llm(
             base_url=os.environ["MODAL_REGULATORY_LLM_ENDPOINT"],
