@@ -8731,10 +8731,43 @@ ${paramLines || '(none recorded)'}`;
   // Get a specific execution run by ID
   app.get("/api/workflows/runs/:id", async (req, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
+      let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
+
+      // Stuck-running guard: if a run has been status='running' for >12h with
+      // no terminal signal, the Nextflow JVM is almost certainly dead
+      // (container restart, OOM, gunicorn worker recycle). No drug-dev
+      // workflow legitimately exceeds 12h. Force a terminal state so the UI
+      // doesn't show 'running' forever.
+      //
+      // History (this guard keeps getting silently stripped by auto-sync):
+      //   2026-05-27 cb27e14c8 — first added
+      //   2026-06-02 — stripped, re-added here with a companion test
+      //               (backend/tests/test_stuck_running_guard.py) to catch
+      //               future strips before deploy.
+      const STUCK_RUNNING_MS = 12 * 60 * 60 * 1000;
+      if (run.execution?.status === 'running' && run.execution?.startedAt) {
+        const startedAt = new Date(run.execution.startedAt as any).getTime();
+        if (startedAt > 0 && (Date.now() - startedAt) > STUCK_RUNNING_MS) {
+          console.warn(
+            `[ExecutionRun] stuck-running guard: marking ${run.id} as failed (>12h with no terminal signal)`
+          );
+          run = await storage.updateExecutionRun(run.id, {
+            execution: {
+              ...run.execution,
+              status: 'failed' as any,
+              errorMessage:
+                'Run exceeded 12h with no terminal signal — Nextflow process likely died ' +
+                '(container restart, worker recycle, OOM). AWS Batch outputs may still be ' +
+                'recoverable via /api/runs/:id/outputs (publishDir-gap fallback).',
+              completedAt: new Date(),
+            },
+          }) || run;
+        }
+      }
+
       res.json(run);
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run:", error);
