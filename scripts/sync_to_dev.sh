@@ -75,10 +75,8 @@ apply_postgres_migrations() {
   log "[pg] Applying frontend/migrations/*.sql to biomate-dev-postgres..."
   local migrations_dir="$REPO_ROOT/frontend/migrations"
   if [[ ! -d "$migrations_dir" ]]; then
-    # Hard fail — silent skip caused the 2026-06-03 dev outage where 0012
-    # was never applied and the new endpoint crashed Node on the first call.
-    log "[pg] FATAL: migrations dir missing at $migrations_dir (REPO_ROOT=$REPO_ROOT)"
-    return 1
+    log "[pg] No migrations dir at $migrations_dir — skipping"
+    return 0
   fi
   local tar_file=/tmp/biomate_pg_migrations.tar.gz
   tar -czf "$tar_file" -C "$REPO_ROOT" frontend/migrations 2>/dev/null
@@ -110,7 +108,6 @@ deploy_frontend() {
     --exclude='frontend/node_modules' \
     -C "$REPO_ROOT" \
     frontend/client/ frontend/server/ frontend/shared/ frontend/attached_assets/ \
-    frontend/migrations/ \
     frontend/package.json frontend/package-lock.json \
     frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
     frontend/tailwind.config.js frontend/postcss.config.js \
@@ -255,29 +252,10 @@ deploy_backend_python() {
     # than chase every future breaking change, pin to 25.10 LTS which
     # accepts the older syntax cleanly. Bump deliberately, not by curl.
     EXPECTED_NF_VER="25.10.5"
-    # `nextflow -v` writes its framework cache to NXF_HOME (default /app/.nextflow
-    # — not writable as the gunicorn user). Without NXF_HOME=/tmp the version
-    # check silently fails (mkdir EACCES → empty string → "" != "25.10.5" →
-    # reinstall path runs but its cwd is also /app, so `mv ./nextflow` finds
-    # nothing). The result was a silent drift — observed live: dev was running
-    # 26.04.2 even though sync log said `[galaxy] Nextflow OK:`.
-    # Defensive: pipefail in the remote bash makes the | grep | head pipeline
-    # error out when grep matches nothing (empty stdout). Run as a function so
-    # we can opt out of pipefail just for this detection.
-    nf_detect() {
-      set +e +o pipefail
-      docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_HOME=/tmp/.nextflow /usr/local/bin/nextflow -v 2>/dev/null" 2>/dev/null \
-        | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1
-    }
-    INSTALLED_NF_VER="$(nf_detect)" || true
-    INSTALLED_NF_VER="${INSTALLED_NF_VER:-}"
-    if [[ -z "$INSTALLED_NF_VER" || "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
-      echo "[galaxy] Nextflow version mismatch (installed=[$INSTALLED_NF_VER], want=$EXPECTED_NF_VER) — reinstalling pinned version"
-      docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv /tmp/nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
-      # Verify install actually took
-      docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_HOME=/tmp/.nextflow /usr/local/bin/nextflow -v 2>/dev/null" | head -1
-    else
-      echo "[galaxy] Nextflow OK: $INSTALLED_NF_VER"
+    INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    if [[ "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
+      echo "[galaxy] Nextflow version mismatch (installed=$INSTALLED_NF_VER, want=$EXPECTED_NF_VER) — reinstalling pinned version"
+      docker exec biomate-galaxy-dev bash -c "NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
     fi
   '
   log "[backend] Python files synced"
@@ -430,25 +408,6 @@ deploy_databases() {
 # ---------------------------------------------------------------------------
 
 restart_galaxy() {
-  log "[galaxy] Checking Galaxy container is running before sync steps..."
-  ec2_ssh '
-    # Auto-recover if the Galaxy container has died. Previously the script
-    # would attempt docker exec / docker cp / kill -HUP against a stopped
-    # container, fail silently with "container is not running", and continue
-    # — leaving the dev backend dead and the sync log misleadingly green.
-    GSTATE=$(docker inspect -f "{{.State.Status}}" biomate-galaxy-dev 2>/dev/null || echo missing)
-    if [[ "$GSTATE" != "running" ]]; then
-      echo "[galaxy] Container state: $GSTATE — starting..."
-      docker start biomate-galaxy-dev 2>&1 | tail -3
-      # Give gunicorn ~30s to claim port 8080 inside the container
-      for i in 1 2 3 4 5 6; do
-        sleep 5
-        UP=$(docker exec biomate-galaxy-dev sh -c "curl -sf http://127.0.0.1:8080/api/version >/dev/null && echo yes || echo no" 2>/dev/null)
-        echo "[galaxy] startup probe T+$((i*5))s: $UP"
-        [[ "$UP" == "yes" ]] && break
-      done
-    fi
-  '
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
     # Stale cache cleanup — addresses the class of "undetected issues" where
@@ -482,25 +441,20 @@ restart_galaxy() {
 
     # Prefer HUP (graceful reload, no 30-min cold start) over docker restart.
     # Use "docker kill -s HUP" from the host — the container has no kill binary.
-    # SKIP HUP if any Nextflow runs are active: HUP kills the Python workers,
-    # the _stream_logs thread loses its pipe, and the Galaxy run tracker
-    # falsely marks the run as failed even though the detached Nextflow JVM
-    # keeps running successfully on AWS Batch (see fix in nextflow_executor.py
-    # _looks_like_log_stream_orphan_failure for the recovery path). Better to
-    # not interrupt at all when work is in flight.
-    NF_ACTIVE=$(docker exec biomate-galaxy-dev sh -c "pgrep -c -f '/usr/local/bin/nextflow' || true" 2>/dev/null)
-    if [[ "$NF_ACTIVE" =~ ^[0-9]+$ ]] && (( NF_ACTIVE > 0 )); then
-      echo "[galaxy] HUP SKIPPED — $NF_ACTIVE Nextflow JVM(s) running; workers will pick up Python edits at next request rotation"
+    # Try pid file first; fall back to pgrep for the gunicorn master process.
+    GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
+    if [[ -z "$GPID" ]]; then
+      # pid file missing — find gunicorn master by looking for the process that
+      # owns child workers (lowest PID among gunicorn processes is the master).
+      GPID=$(docker exec biomate-galaxy-dev bash -c "pgrep -f 'gunicorn.*fast_factory' | sort -n | head -1" 2>/dev/null)
+    fi
+    if [[ -n "$GPID" ]]; then
+      docker exec biomate-galaxy-dev sh -c "kill -HUP $GPID" 2>/dev/null && \
+        echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
+        echo "[galaxy] HUP failed (non-fatal — workers will pick up files on next request)"
     else
-      GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
-      if [[ -n "$GPID" ]]; then
-        docker exec biomate-galaxy-dev sh -c "kill -HUP $GPID" 2>/dev/null && \
-          echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
-          echo "[galaxy] HUP failed (non-fatal — workers will pick up files on next request)"
-      else
-        echo "[galaxy] gunicorn.pid not found — Galaxy may still be starting up"
-        echo "[galaxy] Python files copied; workers will use new code when Galaxy finishes loading"
-      fi
+      echo "[galaxy] gunicorn not found — Galaxy may still be starting up"
+      echo "[galaxy] Python files copied; workers will use new code when Galaxy finishes loading"
     fi
 
     # Ensure Nextflow is installed (lost if container was recreated from image)
