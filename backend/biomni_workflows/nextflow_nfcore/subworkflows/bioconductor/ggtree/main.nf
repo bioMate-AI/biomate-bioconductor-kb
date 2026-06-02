@@ -76,7 +76,11 @@ process BIOC_GGTREE {
       "geom_rootpoint", "annotate root node with symbolic point",
       "geom_segment2", "modified version of geom_segment, with subsetting supported",
       "geom_strip", "annotate associated taxa with bar and (optional) text label",
-      "geom_taxalink", "associate two related taxa by linking them with a curve",
+      "geom_taxalink", "associate two related taxa by linking them with a curve"
+    ), ncol=2, byrow=TRUE)
+    geoms <- as.data.frame(geoms)
+    colnames(geoms) <- c("Geom", "Description")
+    knitr::kable(geoms, caption = "ggtree geom layers.", booktabs = T)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
