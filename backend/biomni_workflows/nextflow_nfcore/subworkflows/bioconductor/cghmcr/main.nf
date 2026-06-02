@@ -38,69 +38,34 @@ process BIOC_CGHMCR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cghMCR)
     library(CNSeg)
     library(MCR)
     library(SGOL)
     library(jsonlite)
 
-    # --- Files [] ---
-    # Key functions: files
-    require("limma")
-    arrayFiles  <- list.files(system.file("sampleData", package = "cghMCR"),
-         full.names = TRUE, pattern = "TCGA")
-    arrayFiles
-    # --- Maimages [] ---
-    # Key functions: maimages
-    rawData <- read.maimages(arrayFiles, source = "agilent", columns =
-        list(R = "rMedianSignal", G = "gMedianSignal", Rb = "rBGMedianSignal",
-        Gb = "gBGMedianSignal"), annotation = c("Row", "Col", "ControlType",
-        "ProbeName", "GeneName", "SystematicName", "PositionX", "PositionY",
-        "gIsFeatNonUnifOL", "rIsFeatNonUnifOL", "gIsBGNonUnifOL", "rIsBGNonUnifOL",
-    # --- Normalizewithinarrays [] ---
-    # Key functions: normalizeWithinArrays, backgroundCorrect
-    ma <- normalizeWithinArrays(backgroundCorrect(rawData, method = "minimum"), method = "loess")
-    # --- Gsub [] ---
-    # Key functions: chr
-    chrom <- gsub("chr([0-9XY]+):.*", "\\1", ma$genes[, "SystematicName"])
-    dropMe <- c(which(!chrom %in% c(1:22, "X", "Y")), which(ma$genes[, "ControlType"] != 0))
-    # --- Data [] ---
-    # Key functions: data
-    require(CNTools, quietly = TRUE)
-    data("sampleData", package = "CNTools")
-    head(sampleData)
-    # --- Data [] ---
-    # Key functions: getRS, CNSeg, element, sample
-    data(geneInfo)
-    data(sampleData, package = "CNTools")
-    set.seed(1234)
-    convertedData <- getRS(CNSeg(sampleData[which(is.element(sampleData[, "ID"], sample(unique(sampleData[, "ID"]), 20))), ]), by = "gene", imput = FALSE,
-    XY = FALSE, geneMap = geneInfo, what = "median")
-    # --- Sgol [] ---
-    # Key functions: SGOL
-    require(cghMCR, quietly = TRUE)
-    SGOLScores <- SGOL(convertedData, threshold = c(-0.2, 0.2), method = sum)
-    plot(SGOLScores)
-    # --- Which [] ---
-    # Key functions: unlist, gol
-    GOIGains <- SGOLScores[which(as.numeric(unlist(gol(SGOLScores[, "gains"]))) >
-         20), "gains"]
-    GOILosses <- SGOLScores[which(as.numeric(unlist(gol(SGOLScores[, "losses"]))) <
-         -20), "losses"]
-    head(gol(GOIGains))
-    # --- Cghmcr [] ---
-    # Key functions: cghMCR, MCR
-    cghmcr <- cghMCR(segData, gapAllowed = 500, alteredLow = 0.9,
-     alteredHigh = 0.9, recurrence = 100)
-    mcrs <- MCR(cghmcr)
-    # --- Head [] ---
-    # Key functions: cbind
-    head(cbind(mcrs[, c("chromosome", "status", "mcr.start", "mcr.end",
-                         "samples")]))
-    # --- Mergemcrprobes [] ---
-    # Key functions: mergeMCRProbes, frame
-    mcrs <- mergeMCRProbes(mcrs[mcrs[, "chromosome"] == "7", ], as.data.frame(segData[["data"]]))
-    head(cbind(mcrs[, c("chromosome", "status", "mcr.start", "mcr.end",
-                         "probes")]))
+    # --- MCR Initialization [] ---
+    # Key functions: cghMCR
+    cghmcr_obj <- cghMCR(segData, gapAllowed = 500,
+                         alteredLow = 0.9, alteredHigh = 0.9,
+                         recurrence = 100)
+
+
+    # --- MCR Identification [] ---
+    # Key functions: MCR
+    mcrs <- MCR(cghmcr_obj)
+    mcr_summary <- mcrs[, c("chromosome", "status", "mcr.start",
+                            "mcr.end", "samples")]
+
+
+    # --- MCR Probe Merging [] ---
+    # Key functions: mergeMCRProbes
+    mcrs_chr7 <- mcrs[mcrs[, "chromosome"] == "7", ]
+    merged_probes <- mergeMCRProbes(mcrs_chr7,
+                                    as.data.frame(segData[["data"]]))
+    mcr_probes_summary <- merged_probes[, c("chromosome", "status",
+                                            "mcr.start", "mcr.end",
+                                            "probes")]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

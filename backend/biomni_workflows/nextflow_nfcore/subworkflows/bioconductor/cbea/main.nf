@@ -38,14 +38,35 @@ process BIOC_CBEA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CBEA)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- Valid analysis [] ---
-    # Key functions: valid, cbea, tidy, glance, registered, knit, diff, session_info
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("CBEA")
+    # --- Load and Prepare Input Data [Data Preparation] ---
+    # Key functions: hmp_gingival
+    data("hmp_gingival", package = "CBEA")
+    abun <- hmp_gingival$data
+    metab_sets <- hmp_gingival$set
+
+    # --- Run Competitive Balance Exploratory Analysis [Analysis] ---
+    # Key functions: cbea
+    results <- cbea(
+        obj = abun,
+        set = metab_sets,
+        abund_values = "16SrRNA",
+        output = "cdf",
+        distr = "mnorm",
+        adj = TRUE,
+        thresh = 0.05,
+        n_perm = 10
+    )
+
+    # --- Extract and Tidy Analysis Results [Post-processing] ---
+    # Key functions: tidy, glance
+    tidy_results <- tidy(results)
+    fit_comparison <- glance(results, "fit_comparison")
+    fit_diagnostic <- glance(results, "fit_diagnostic")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

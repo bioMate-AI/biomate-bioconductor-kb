@@ -41,69 +41,56 @@ process BIOC_BUBBLETREE {
     library(BubbleTree)
     library(jsonlite)
 
-    # --- Load [] ---
-    # Key functions: new, makeRBD, btpredict, drawBTree
-    ---------------------------------------------------------------------
-    # load sample files
-    load(system.file("data", "cnv.gr.rda", package="BubbleTree"))
-    load(system.file("data", "snp.gr.rda", package="BubbleTree"))
-    # load annotations
-    # --- Load [] ---
-    # Key functions: new, trackBTree, drawBTree
-    ---------------------------------------------------------------------
-    load(system.file("data", "allCall.lst.RData", package="BubbleTree"))
-    btreeplotter <- new("BTreePlotter", max.ploidy=5, max.size=10)
-    sample <- allCall.lst[["sam10"]]
-    rbd1 <- sample@rbd
-    # --- Load [] ---
-    # Key functions: new, trackBTree, drawBTree, drawBubbles
-    ---------------------------------------------------------------------
-    load(system.file("data", "allCall.lst.RData", package="BubbleTree"))
-    btreeplotter <- new("BTreePlotter", max.ploidy=5, max.size=10)
-    sample <- allCall.lst[["sam12"]]
-    rbd1 <- sample@rbd
-    # --- Load [] ---
-    # Key functions: new, trackBTree, drawBTree
-    ---------------------------------------------------------------------
-    load(system.file("data", "allCall.lst.RData", package="BubbleTree"))
-    btreeplotter <- new("BTreePlotter", max.ploidy=5, max.size=10)
-    sample <- allCall.lst[["sam12"]]
-    rbd1 <- sample@rbd
-    # --- Load [] ---
-    # Key functions: new, loadRBD, ifelse
-    ---------------------------------------------------------------------
-    load(system.file("data", "allRBD.lst.RData", package="BubbleTree"))
-    btreepredictor <- new("BTreePredictor")
-    btreepredictor@config$cutree.h <- 0.15
-    high.ploidy <- rep(TRUE, length(allRBD.lst))
-    # --- Info [] ---
-    # Key functions: info
-    ---------------------------------------------------------------------
-    cat(info(btreepredictor), "\n")
-    names(allCall.lst) <- names(allRBD.lst)
-    results <- list()
-    for (name in names(allCall.lst)) {
-    # --- Load [] ---
-    # Key functions: btcompare, new, drawBTree, labs, s
-    ---------------------------------------------------------------------
-    load(system.file("data", "allCall.lst.RData", package="BubbleTree"))
-    load(system.file("data", "cancer.genes.minus2.rda", package="BubbleTree"))
-    load(system.file("data", "vol.genes.rda", package="BubbleTree"))
-    load(system.file("data", "gene.uni.clean.gr.rda", package="BubbleTree"))
-    # --- Load [] ---
-    # Key functions: new, ifelse, xyTrack, labs, bafTrack
-    ---------------------------------------------------------------------
-    load(system.file("data", "allCall.lst.RData", package="BubbleTree"))
-    load(system.file("data", "centromere.dat.rda", package="BubbleTree"))
-    load(system.file("data", "all.somatic.lst.RData", package="BubbleTree"))
-    load(system.file("data", "allHetero.lst.RData", package="BubbleTree"))
-    # --- Load [] ---
-    # Key functions: new, trackBTree, drawBTree, null, labs
-    ---------------------------------------------------------------------
-    load(system.file("data", "allCall.lst.RData", package="BubbleTree"))
-    btp <- new("BTreePlotter", max.ploidy=5, max.size=10)
-    nn1 <- "HCC11.Primary.Tumor"
-    nn2 <- "HCC11.Recurrent.Tumor"
+    # --- RBD Object Creation [RBD Initialization] ---
+    # Key functions: makeRBD
+    cnv_file <- system.file("data", "cnv.gr.rda", package = "BubbleTree")
+    snp_file <- system.file("data", "snp.gr.rda", package = "BubbleTree")
+    load(cnv_file)
+    load(snp_file)
+    r_obj <- new("RBD", unimodal.kurtosis = -0.1)
+    rbd_data <- makeRBD(r_obj, snp.gr, cnv.gr)
+
+    # --- Purity and Ploidy Prediction [Prediction] ---
+    # Key functions: btpredict, info
+    predictor <- new("BTreePredictor",
+                     rbd = rbd_data,
+                     max.ploidy = 6,
+                     prev.grid = seq(0.2, 1, by = 0.01))
+    pred_res <- btpredict(predictor)
+    purity_ploidy <- info(pred_res)
+
+    # --- Clonal Architecture Visualization [Visualization] ---
+    # Key functions: drawBTree, trackBTree
+    plotter <- new("BTreePlotter", max.ploidy = 5, max.size = 10)
+    arrows <- trackBTree(plotter,
+                         pred_res@rbd,
+                         pred_res@rbd.adj,
+                         min.srcSize = 0.01,
+                         min.trtSize = 0.01)
+    btree_plot <- drawBTree(plotter, pred_res@rbd) + arrows
+
+    # --- Genomic Annotation and Feature Plotting [Annotation] ---
+    # Key functions: btcompare, annoByGenesAndCyto, drawFeatures, drawBTree
+    load(system.file("data", "cancer.genes.minus2.rda", package = "BubbleTree"))
+    load(system.file("data", "vol.genes.rda", package = "BubbleTree"))
+    load(system.file("data", "gene.uni.clean.gr.rda", package = "BubbleTree"))
+    load(system.file("data", "cyto.gr.rda", package = "BubbleTree"))
+    annotator <- new("Annotate")
+    comm <- btcompare(vol.genes, cancer.genes.minus2)
+    out_df <- pred_res@result$dist
+    ann_res <- annoByGenesAndCyto(annotator,
+                                  as.character(out_df$seqnames),
+                                  as.numeric(out_df$start),
+                                  as.numeric(out_df$end),
+                                  comm$comm,
+                                  gene.uni.clean.gr = gene.uni.clean.gr,
+                                  cyto.gr = cyto.gr)
+    out_df$cyto <- ann_res$cyto
+    out_df$genes <- ann_res$ann
+    plotter_ann <- new("BTreePlotter", branch.col = "gray50")
+    btree_annotated <- drawBTree(plotter_ann, pred_res@rbd.adj) +
+        drawFeatures(plotter_ann, out_df)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,46 +41,47 @@ process BIOC_CGEN {
     library(CGEN)
     library(jsonlite)
 
-    # --- Load Data [] ---
-    # Key functions: data
-    data(Xdata, package="CGEN")
-    Xdata[1:5, ]
-    # --- logistic [] ---
-    # Key functions: logistic
-    mainVars <- c("oral.years", "n.children", "age.group_1",
-                  "age.group_2", "age.group_3", "age.group_5")
-    fit <- snp.logistic(Xdata, "case.control", "BRCA.status",
-                         main.vars=mainVars,
-                         int.vars=c("oral.years", "n.children"),
-    # --- Wald Test [] ---
-    # Key functions: getWaldTest
-    getWaldTest(fit, c("BRCA.status", "BRCA.status:oral.years", "BRCA.status:n.children"))
-    # --- Getmatchedsets [] ---
-    # Key functions: ifelse, daisy, getMatchedSets
-    library("cluster")
+    # --- Hardy-Weinberg Equilibrium Testing [snphwe] ---
+    # Key functions: snphwe
+    n_AA <- c(120, 150, 90)
+    n_AB <- c(50, 40, 60)
+    n_BB <- c(10, 5, 15)
+    hwe_pvals <- snphwe(n_AA, n_AB, n_BB)
+    valid_snps <- hwe_pvals >= 0.001
+
+    # --- Case-Control Matching [getMatchedSets] ---
+    # Key functions: getMatchedSets
+    Xdata <- data.frame(
+        case.control = rbinom(100, 1, 0.5),
+        ethnic.group = sample(1:3, 100, replace = TRUE),
+        age.group_1 = sample(1:4, 100, replace = TRUE),
+        gynSurgery.history = rbinom(100, 1, 0.2),
+        BRCA.history = rbinom(100, 1, 0.1)
+    )
     size <- ifelse(Xdata$ethnic.group == 3, 3, 4)
-    d <- daisy(Xdata[,c("age.group_1","gynSurgery.history","BRCA.history")])
-    mx <- getMatchedSets(d, CC=TRUE, NN=TRUE, ccs.var = Xdata$case.control,
-    	  strata.var = Xdata$ethnic.group, size = size, fixed = TRUE)
-    # --- Xdata [] ---
-    # Key functions: cbind
-    mx$CC[1:10]
-    mx$tblCC
-    Xdata <- cbind(Xdata, CCStrat = mx$CC, NNStrat = mx$NN)
-    Xdata[1:5,]
-    # --- matched [] ---
-    # Key functions: matched
-    intVars <- ~ oral.years + n.children
-    snpVars <- ~ BRCA.status
-    fit <- snp.matched(Xdata, "case.control", snp.vars=snpVars,
-                         main.vars=intVars, int.vars=intVars,
-                         cc.var="CCStrat", nn.var="NNStrat")
-    # --- Summary Table 2 [] ---
-    # Key functions: getSummary
-    getSummary(fit, method = c("CLR", "CCL"))
-    # --- Wald Test 2 [] ---
-    # Key functions: getWaldTest
-    getWaldTest(fit$HCL, c( "BRCA.status" , "BRCA.status:oral.years" , "BRCA.status:n.children"))
+    d <- cluster::daisy(Xdata[, c("age.group_1", "gynSurgery.history", "BRCA.history")])
+    mx <- getMatchedSets(d, CC = TRUE, NN = TRUE, ccs.var = Xdata$case.control,
+                         strata.var = Xdata$ethnic.group, size = size, fixed = TRUE)
+    Xdata$CCStrat <- mx$CC
+    Xdata$NNStrat <- mx$NN
+
+    # --- Gene-Environment Interaction Analysis [logistic.nci] ---
+    # Key functions: logistic.nci
+    study_data <- data.frame(
+        case_control = rbinom(500, 1, 0.5),
+        exposure = rbinom(500, 1, 0.4),
+        snp_allele = rbinom(500, 2, 0.3),
+        age = rnorm(500, mean = 45, sd = 12)
+    )
+    fit_res <- logistic.nci(study_data, response.var = "case_control",
+                            exposure.var = "exposure", genetic.var = "snp_allele",
+                            extra.var = "age")
+
+    # --- Additive Interaction Testing [additive.test] ---
+    # Key functions: additive.test
+    add_test <- additive.test(study_data, response.var = "case_control",
+                              exposure.var = "exposure", genetic.var = "snp_allele")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

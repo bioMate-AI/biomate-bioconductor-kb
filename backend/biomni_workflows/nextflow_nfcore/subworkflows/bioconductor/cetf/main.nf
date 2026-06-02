@@ -38,15 +38,57 @@ process BIOC_CETF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CeTF)
     library(PCIT)
     library(SmearPlot)
     library(jsonlite)
 
-    # --- Assay data access [] ---
-    # Key functions: assay, expDiff, normExp, PCIT, histPlot, densityPlot, setdiff, runAnalysis
-    genes <- unique(c(as.character(NetworkData(out, "network1")[, "gene1"]),
-    as.character(NetworkData(out, "network1")[, "gene2"])))
-    enrich <- getEnrich(genes = genes, organismDB = org.Hs.eg.db,
+    # --- PCIT Analysis [] ---
+    # Key functions: PCIT
+    PCIT_input_untrt <- PCIT_input[, grep("_untrt", colnames(PCIT_input))]
+    PCIT_input_trt <- PCIT_input[, grep("_trt", colnames(PCIT_input))]
+    PCIT_out_untrt <- PCIT(PCIT_input_untrt, tolType = "mean")
+    PCIT_out_trt <- PCIT(PCIT_input_trt, tolType = "mean")
+
+
+    # --- Regulatory Impact Factor Analysis [] ---
+    # Key functions: RIF
+    TFs_subset <- rownames(PCIT_input)[rownames(PCIT_input) %in% TFs]
+    Target <- setdiff(rownames(PCIT_input), TFs_subset)
+    RIF_input <- PCIT_input[c(Target, TFs_subset), ]
+    RIF_out <- RIF(input = RIF_input,
+                   nta = length(Target),
+                   ntf = length(TFs_subset),
+                   nSamples1 = 4,
+                   nSamples2 = 4)
+
+
+    # --- Integrated Analysis Pipeline [] ---
+    # Key functions: runAnalysis
+    out <- runAnalysis(mat = counts,
+                       conditions = c("untrt", "trt"),
+                       lfc = 5,
+                       padj = 0.05,
+                       TFs = TFs,
+                       nSamples1 = 4,
+                       nSamples2 = 4,
+                       tolType = "mean",
+                       diffMethod = "Reverter",
+                       data.type = "counts")
+
+
+    # --- Network and Diagnostic Visualisation [] ---
+    # Key functions: histPlot, densityPlot, SmearPlot, netConditionsPlot
+    histPlot(PCIT_out_trt$adj_sig)
+    densityPlot(mat1 = PCIT_out_trt$adj_raw,
+                mat2 = PCIT_out_trt$adj_sig,
+                threshold = 0.5)
+    SmearPlot(object = out,
+              diffMethod = 'Reverter',
+              lfc = 1.5,
+              conditions = c('untrt', 'trt'),
+              type = "DE")
+    netConditionsPlot(out)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

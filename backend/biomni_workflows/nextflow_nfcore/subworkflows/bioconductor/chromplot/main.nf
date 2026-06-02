@@ -41,81 +41,109 @@ process BIOC_CHROMPLOT {
     library(chromPlot)
     library(jsonlite)
 
-    # --- Creategraphminus1 [] ---
+    # --- Genomic Annotation Mapping [] ---
     # Key functions: chromPlot
-    library("chromPlot")
     data(hg_gap)
-    head(hg_gap)
-    chromPlot(gaps=hg_gap)
-    # --- Creategraph0 [] ---
-    # Key functions: transcripts
-    library("TxDb.Hsapiens.UCSC.hg19.knownGene")
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    library(GenomicFeatures)
-    txgr <- transcripts(txdb)
-    txgr
-    # --- Creategraph0 Plot [] ---
-    # Key functions: chromPlot
-    chromPlot(gaps=hg_gap, annot1=txgr)
-    # --- Creategraph1 [] ---
-    # Key functions: data
-    data(hg_cytoBandIdeo)
-    head(hg_cytoBandIdeo)
-    # --- Creategraph2 [] ---
-    # Key functions: chromPlot
-    chromPlot(bands=hg_cytoBandIdeo, gaps=hg_gap, chr=c("1", "2", "3", "4", "5",
-    "6"), figCols=6)
-    # --- Creategraph3 [] ---
-    # Key functions: file
-    data_file1       <- system.file("extdata", "hg19_refGeneChr19-21.txt",
-    package = "chromPlot")
-    refGeneHg        <- read.table(data_file1, sep="\t", header=TRUE,
-    stringsAsFactors=FALSE)
+    data_file1 <- system.file(
+        "extdata", "hg19_refGeneChr19-21.txt",
+        package = "chromPlot"
+    )
+    refGeneHg <- read.table(
+        data_file1, sep = "\t", header = TRUE,
+        stringsAsFactors = FALSE
+    )
     refGeneHg$Colors <- "red"
-    # --- Creategraph4 [] ---
+    chromPlot(
+        gaps = hg_gap,
+        bands = refGeneHg,
+        chr = c(19, 20, 21),
+        figCols = 3
+    )
+
+
+    # --- Multi-Track Genomic Feature Visualization [] ---
     # Key functions: chromPlot
-    chromPlot(gaps=hg_gap, bands=refGeneHg, chr=c(19, 20, 21), figCols=3)
-    # --- Creategraph5 [] ---
-    # Key functions: ifelse
-    data_file2 <- system.file("extdata", "Fst_CEU-YRI-W200Chr19-21.bed", package
-    = "chromPlot")
-    fst  <- read.table(data_file2, sep="\t", stringsAsFactors=FALSE, header=TRUE)
-    head(fst)
-    fst$Colors <-
-    # --- Creategraph6 [] ---
+    data(mm10_gap)
+    data(mm10_cytoBandIdeo)
+    data_file4 <- system.file(
+        "extdata", "mm10_refGeneChr2-11-17-19.txt",
+        package = "chromPlot"
+    )
+    ref_mm10 <- read.table(
+        data_file4, sep = "\t", stringsAsFactors = FALSE,
+        header = TRUE
+    )
+    data_file5 <- system.file(
+        "extdata", "arrayChr17-19.txt",
+        package = "chromPlot"
+    )
+    array <- read.table(
+        data_file5, sep = "\t", header = TRUE,
+        stringsAsFactors = FALSE
+    )
+    chromPlot(
+        gaps = mm10_gap,
+        bands = mm10_cytoBandIdeo,
+        annot1 = ref_mm10,
+        annot2 = array,
+        chr = c("17", "18", "19"),
+        figCols = 3
+    )
+
+
+    # --- Statistical Data Plotting [] ---
     # Key functions: chromPlot
-    chromPlot(gaps=hg_gap, chr=c(19, 20, 21), bands=fst, figCols=3)
-    # --- Creategraph7 [] ---
-    # Key functions: ifelse
-    fst$Group <-
-    ifelse(fst$win.FST >= 0     & fst$win.FST < 0.025, "Fst 0-0.025",
-    ifelse(fst$win.FST >= 0.025 & fst$win.FST < 0.05,  "Fst 0.025-0.05",
-    ifelse(fst$win.FST >= 0.05  & fst$win.FST < 0.075, "Fst 0.05-0.075",
-    ifelse(fst$win.FST >= 0.075 & fst$win.FST < 0.1,   "Fst 0.075-0.1",
-    # --- Creategraph8 [] ---
+    data(hg_gap)
+    data(hg_cytoBandIdeo)
+    data_file2 <- system.file(
+        "extdata", "Fst_CEU-YRI-W200Chr19-21.bed",
+        package = "chromPlot"
+    )
+    fst <- read.table(
+        data_file2, sep = "\t", stringsAsFactors = FALSE,
+        header = TRUE
+    )
+    chromPlot(
+        bands = hg_cytoBandIdeo,
+        gaps = hg_gap,
+        stat = fst,
+        statCol = "win.FST",
+        statName = "win.FST",
+        statTyp = "p",
+        chr = c(19:21),
+        figCols = 3,
+        statSumm = "mean"
+    )
+
+
+    # --- QTL Mapping Integration [] ---
     # Key functions: chromPlot
-    chromPlot(gaps=hg_gap, chr=c(19, 20, 21), bands=fst, figCols=3)
-    # --- Creategraph9 [] ---
-    # Key functions: file
-    data_file3 <- system.file("extdata", "sinteny_Hg-mm10Chr19-21.txt", package =
-    "chromPlot")
-    sinteny    <- read.table(data_file3, sep="\t", stringsAsFactors=FALSE,
-    header=TRUE)
-    head(sinteny)
-    # --- Creategraph10 [] ---
-    # Key functions: chromPlot
-    chromPlot(gaps=hg_gap, bands=sinteny, chr=c(19:21), figCols=3)
-    # --- Creategraph12 [] ---
-    # Key functions: chromPlot
-    chromPlot(gaps=hg_gap, bands=hg_cytoBandIdeo, annot1=refGeneHg, chr=c(19:21),
-    figCols=3)
-    # --- Creategraph13 [] ---
-    # Key functions: file
-    data_file4 <-system.file("extdata", "mm10_refGeneChr2-11-17-19.txt", package= "chromPlot")
-    ref_mm10   <-read.table(data_file4, sep="\t", stringsAsFactors=FALSE, header
-    =TRUE)
-    data_file5 <- system.file("extdata", "arrayChr17-19.txt", package = "chromPlot")
-    array      <- read.table(data_file5, sep="\t", header=TRUE, stringsAsFactors=FALSE)
+    data(mm10_gap)
+    data(mm10_cytoBandIdeo)
+    data_file4 <- system.file(
+        "extdata", "mm10_refGeneChr2-11-17-19.txt",
+        package = "chromPlot"
+    )
+    ref_mm10 <- read.table(
+        data_file4, sep = "\t", stringsAsFactors = FALSE,
+        header = TRUE
+    )
+    QTLs <- data.frame(
+        Chrom = c(2, 17, 18),
+        Start = c(1000000, 2000000, 3000000),
+        End = c(1500000, 2500000, 3500000),
+        LOD = c(3.5, 4.2, 2.1)
+    )
+    chromPlot(
+        gaps = mm10_gap,
+        bands = mm10_cytoBandIdeo,
+        annot1 = ref_mm10,
+        stat = QTLs,
+        statCol = "LOD",
+        statTyp = "l",
+        chr = c(2, 17, 18),
+        figCols = 3
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

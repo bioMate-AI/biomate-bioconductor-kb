@@ -41,14 +41,56 @@ process BIOC_BREW3R_R {
     library(BREW3R.r)
     library(jsonlite)
 
-    # --- get GRanges [] ---
-    # Key functions: import
-    input_gr_to_extend <- rtracklayer::import(input_gtf_file_to_extend)
-    input_gr_template <- rtracklayer::import(input_gtf_file_template)
-    # --- extend_granges [] ---
+    # --- Data Loading and Preparation [import, subset] ---
+    # Key functions: import, subset
+    input_gtf_to_extend <- system.file(
+        "extdata/chr19.gencode.vM25.annotation.gtf.gz",
+        package = "BREW3R.r",
+        mustWork = TRUE
+    )
+    input_gtf_template <- system.file(
+        "extdata/chr19.mm10.ncbiRefSeq.gtf.gz",
+        package = "BREW3R.r",
+        mustWork = TRUE
+    )
+    input_gr_to_extend <- rtracklayer::import(input_gtf_to_extend)
+    input_gr_template <- rtracklayer::import(input_gtf_template)
+    input_gr_CDS <- subset(input_gr_to_extend, type == "CDS")
+
+    # --- Transcript Extension [extend_granges] ---
     # Key functions: extend_granges
-    library(BREW3R.r)
     new_gr_exons <- extend_granges(
+        input_gr_to_extend = input_gr_to_extend,
+        input_gr_to_overlap = input_gr_template
+    )
+
+    # --- Visualization [subset, start, end, strand] ---
+    # Key functions: subset, start, end, strand
+    my_gene_name <- "Btrc"
+    gene_before <- subset(
+        input_gr_to_extend,
+        type == "exon" & gene_name == my_gene_name
+    )
+    gene_to_overlap <- subset(
+        input_gr_template,
+        type == "exon" & gene_name == my_gene_name
+    )
+    gene_after <- subset(
+        new_gr_exons,
+        type == "exon" & gene_name == my_gene_name
+    )
+    code <- (runValue(strand(gene_after[1])) == "+") + 1
+    plot(
+        1, type = "n", xlab = "", ylab = "", axes = FALSE,
+        xlim = c(min(start(gene_after)) - 1, max(end(gene_after))),
+        ylim = c(0, 4)
+    )
+    axis(2, at = 1:3, labels = c("new gtf", "template", "original"))
+    arrows(
+        x0 = start(gene_before) - 1, x1 = end(gene_before),
+        y0 = 3, col = "blue", code = code
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

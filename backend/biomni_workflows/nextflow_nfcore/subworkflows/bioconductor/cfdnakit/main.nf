@@ -41,46 +41,39 @@ process BIOC_CFDNAKIT {
     library(cfdnakit)
     library(jsonlite)
 
-    # --- read a bam file and splited into 1000 KB non [] ---
-    # Key functions: read_bamfile
-    library(cfdnakit)
-    sample_bamfile <- system.file("extdata",
-    plasma_SampleBam <- read_bamfile(sample_bamfile,
-    # --- plot fragment length distribution [] ---
-    # Key functions: plot_fragment_dist
-    plot_fragment_dist(list("Plasma.Sample"=plasma_SampleBam))
-    # --- plot fragment length distribution comparing to a healthy cfDNA [] ---
-    # Key functions: plot_fragment_dist
-    comparing_list <- list("Healthy.cfDNA"=control_bins,
+    # --- Fragment Length Distribution Analysis [] ---
+    # Key functions: plot_fragment_dist, plot_sl_ratio
+    control_rds <- system.file("extdata", "BH01_CHR15.SampleBam.rds",
+                               package = "cfdnakit")
+    control_bins <- readRDS(control_rds)
+    comparing_list <- list("Healthy.cfDNA" = control_bins,
+                           "Patient.1" = plasma_SampleBam)
     plot_fragment_dist(comparing_list)
-    # --- getting fragment length profile [] ---
-    # Key functions: get_fragment_profile
-    get_fragment_profile(sample_bins,
-    # --- plot_sl_ratio [] ---
-    # Key functions: plot_sl_ratio
-    system.file("extdata",
-    patient.SampleFragment <- readRDS(patient.SampleFragment.file)
-    plot_sl_ratio(patient.SampleFragment)
-    # --- Reading PoN samples [] ---
-    # Key functions: get_zscore_profile
-    get_zscore_profile(patient.SampleFragment,
-    # --- Reading PoN samples and plot scaled value [] ---
-    # Key functions: segmentByPSCB, plot_transformed_sl
+    plot_sl_ratio(sample_profile)
+
+
+    # --- Z-score Profiling and Segmentation [] ---
+    # Key functions: get_zscore_profile, segmentByPSCB, plot_transformed_sl
+    PoN_rdsfile <- system.file("extdata", "ex.PoN.rds",
+                               package = "cfdnakit")
+    PoN.profiles <- readRDS(PoN_rdsfile)
+    sample_zscore <- get_zscore_profile(sample_profile,
+                                        PoN.profiles)
     sample_zscore_segment <- segmentByPSCB(sample_zscore)
-    plot_transformed_sl(sample_zscore,sample_zscore_segment)
-    # --- cnv calling and plot distance matrix [] ---
-    # Key functions: call_cnv, plot_distance_matrix
-    sample_cnv <- call_cnv(sample_zscore_segment,sample_zscore)
+    plot_transformed_sl(sample_zscore, sample_zscore_segment)
+
+
+    # --- CNV Calling and Solution Evaluation [] ---
+    # Key functions: call_cnv, plot_distance_matrix, get_solution_table, plot_cnv_solution
+    sample_cnv <- call_cnv(sample_zscore_segment, sample_zscore)
     plot_distance_matrix(sample_cnv)
-    # --- get and print solution table [] ---
-    # Key functions: get_solution_table
     solution_table <- get_solution_table(sample_cnv)
-    # --- plot_cnv_solution [] ---
-    # Key functions: plot_cnv_solution
-    plot_cnv_solution(sample_cnv,selected_solution = 1)
-    # --- calculate CES score [] ---
+    plot_cnv_solution(sample_cnv, selected_solution = 1)
+
+
+    # --- Cancer Effect Size Calculation [] ---
     # Key functions: calculate_CES_score
-    calculate_CES_score(sample_zscore_segment)
+    ces_score <- calculate_CES_score(sample_zscore_segment)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
