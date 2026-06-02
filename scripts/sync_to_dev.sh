@@ -588,6 +588,9 @@ do_sync() {
   local local_db_mtime=$(stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
   [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
 
+  # Diagnostic: log which layers will run (makes silent skips visible in the log)
+  log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db marketing=$do_marketing"
+
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
   # HUP Galaxy when either backend Python OR workflow .nf files change.

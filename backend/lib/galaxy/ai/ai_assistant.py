@@ -3547,7 +3547,8 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     match_type == "medium_confidence"              # always verify borderline
                     or _top2_gap < 8.0                            # close race even at high_confidence
                 )
-                # User named an nf-core slug explicitly and search ranked it #1 — trust search.
+                # User named an nf-core slug explicitly — trust the explicit name over
+                # semantic search ranking and LLM verify.
                 _explicit_slug = self.workflow_search._extract_explicit_pipeline_slug(user_intent)
                 if _explicit_slug:
                     _top_slug = self.workflow_search._normalise_pipeline_slug(
@@ -3561,6 +3562,36 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             _explicit_slug,
                             search_results[0].name,
                         )
+                    else:
+                        # Explicit slug is NOT at position 0 — scan the rest and promote it.
+                        # Without promotion the LLM verify step can override to a semantically
+                        # similar but wrong workflow (e.g. Bioconductor DESeq2 when the user
+                        # explicitly names nf-core/differentialabundance).
+                        _matched_idx = None
+                        for _scan_idx, _scan_r in enumerate(search_results[1:], start=1):
+                            _scan_slug = self.workflow_search._normalise_pipeline_slug(
+                                _scan_r.name.split("/")[-1]
+                            )
+                            if _scan_slug == _explicit_slug:
+                                _matched_idx = _scan_idx
+                                break
+                        if _matched_idx is not None:
+                            search_results = (
+                                [search_results[_matched_idx]]
+                                + [r for i, r in enumerate(search_results) if i != _matched_idx]
+                            )
+                            best_match = search_results[0]
+                            score = best_match.score
+                            match_type = best_match.match_type
+                            executable_nextflow_match = self._pick_best_executable_nextflow_match(
+                                search_results
+                            )
+                            _needs_verify = False
+                            log.info(
+                                "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
+                                "explicit slug %r found at position %d, promoted to #1: %s",
+                                _explicit_slug, _matched_idx, search_results[0].name,
+                            )
                 # Plan B: trust retrieval when codon/mRNA intent matches a codon subworkflow top hit.
                 # LLM verify has overridden #1 → mhcquant/epitopeprediction when the query
                 # mentions vaccine/ANDV context.
