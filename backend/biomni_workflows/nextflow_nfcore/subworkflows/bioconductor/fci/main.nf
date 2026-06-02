@@ -41,36 +41,28 @@ process BIOC_FCI {
     library(fCI)
     library(jsonlite)
 
-    # --- Frame [] ---
-    # Key functions: frame, sample, normalization
-    ---------------------------------------------------------------------
-    fci.data=data.frame(matrix(sample(3:100, 1043*6, replace=TRUE), 1043,6))
-    fci.data=total.library.size.normalization(fci.data)
-    # --- Package [] ---
-    # Key functions: package, new, targets
-    ---------------------------------------------------------------------
-    pkg.path=path.package('fCI')
-    filename=paste(pkg.path, "/extdata/Supp_Dataset_part_2.txt", sep="")
-    if(file.exists(filename)){
-      fci=new("NPCI")
-    # --- Targets [] ---
-    # Key functions: targets
-    ---------------------------------------------------------------------
-      Diff.Expr.Genes=show.targets(fci)
-      head(Diff.Expr.Genes)
-    # --- Figures [] ---
+    # --- Target Identification [] ---
+    # Key functions: NPCI, find.fci.targets, setfCI
+    fci_obj <- new("NPCI")
+    fci_obj <- setfCI(
+        fci_obj, 
+        7:8, 
+        11:12, 
+        seq(from = 1.1, to = 3, by = 0.1), 
+        TRUE
+    )
+    targets <- find.fci.targets(fci_obj, c(1, 2, 3), c(4, 5, 6), norm_trim)
+
+
+    # --- Differential Expression Calling [] ---
+    # Key functions: fCI.call.by.index, show.targets
+    diff_expr_genes <- show.targets(targets)
+    diff_expr_index <- fCI.call.by.index(c(1, 2, 3), c(4, 5, 6), norm_trim)
+
+
+    # --- Visualization [] ---
     # Key functions: figures
-    ---------------------------------------------------------------------
-      figures(fci)
-    # --- Targets [] ---
-    # Key functions: targets
-    ---------------------------------------------------------------------
-      fci=find.fci.targets(fci, c(1,2), 5, filename)
-    # --- Csv [] ---
-    # Key functions: csv
-    ---------------------------------------------------------------------
-    proteogenomic.data=read.csv(filename2, sep="\t")
-    head(proteogenomic.data)
+    figures(targets)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,17 +41,75 @@ process BIOC_MBECS {
     library(MBECS)
     library(jsonlite)
 
-    # --- to String [] ---
-    # Key functions: toString, packageDescription
-    pkg_dependencies <- data.frame("Package"=c("phyloseq","magrittr","cluster",
-    for( pkg in 1:length(pkg_dependencies$Package) ) {
-    toString(utils::packageVersion(eval(pkg_dependencies$Package[pkg])))
-    # --- Usage prelimreport [] ---
-    # Key functions: mbecReportPrelim
-    mbecReportPrelim(input.obj=mbec.obj, model.vars=c("batch","group"),
-    # --- Usage postreport [] ---
-    # Key functions: mbecReportPost
-    mbecReportPost(input.obj=mbec.obj, model.vars=c("batch","group"),
+    # --- Batch Effect Correction [] ---
+    # Key functions: mbecCorrection, mbecRunCorrections
+    mbec.obj <- mbecCorrection(
+        mbec.obj,
+        model.vars = c("batch", "group"),
+        method = "bat",
+        type = "clr"
+    )
+    mbec.obj <- mbecRunCorrections(
+        mbec.obj,
+        model.vars = c("batch", "group"),
+        method = c("ruv3", "rbe", "bmc", "pn", "svd"),
+        type = "clr"
+    )
+
+
+    # --- Exploratory Data Analysis and Visualisation [] ---
+    # Key functions: mbecRLE, mbecPCA, mbecBox, mbecHeat
+    rle.plot <- mbecRLE(
+        input.obj = mbec.obj,
+        model.vars = c("batch", "group"),
+        type = "clr",
+        return.data = FALSE
+    )
+    pca.plot <- mbecPCA(
+        input.obj = mbec.obj,
+        model.vars = c("batch", "group"),
+        type = "clr",
+        pca.axes = c(1, 2),
+        return.data = FALSE
+    )
+    box.plot <- mbecBox(
+        input.obj = mbec.obj,
+        method = "TOP",
+        n = 2,
+        model.var = "batch",
+        type = "clr",
+        return.data = FALSE
+    )
+    heat.plot <- mbecHeat(
+        input.obj = mbec.obj,
+        method = "TOP",
+        n = 10,
+        model.vars = c("batch", "group"),
+        center = TRUE,
+        scale = TRUE,
+        type = "clr",
+        return.data = FALSE
+    )
+
+
+    # --- Variance Assessment [] ---
+    # Key functions: mbecModelVariance, mbecVarianceStatsPlot, mbecPVCAStatsPlot
+    lm.variance <- mbecModelVariance(
+        input.obj = mbec.obj,
+        model.vars = c("batch", "group"),
+        method = "lm",
+        type = "cor",
+        label = "svd"
+    )
+    lm.plot <- mbecVarianceStatsPlot(lm.variance)
+    pvca.variance <- mbecModelVariance(
+        input.obj = mbec.obj,
+        model.vars = c("batch", "group"),
+        method = "pvca",
+        type = "cor",
+        label = "rbe"
+    )
+    pvca.plot <- mbecPVCAStatsPlot(pvca.variance)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

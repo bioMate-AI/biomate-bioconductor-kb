@@ -41,11 +41,74 @@ process BIOC_MOANIN {
     library(moanin)
     library(jsonlite)
 
-    # --- splines_kmeans [] ---
-    # Key functions: splines_kmeans, plot_splines_data, splines_kmeans_score_and_label
-    kmeans_clusters <- splines_kmeans(moaninObject[1:500,], n_clusters=3,
-    plot_splines_data(
+    # --- Contrast Construction [] ---
+    # Key functions: create_timepoints_contrasts
+    preContrasts <- create_timepoints_contrasts(
+        moaninObject, "Preflowering", "Control"
+    )
+    postContrasts <- create_timepoints_contrasts(
+        moaninObject, "Postflowering", "Control"
+    )
+    preGroupDiffContrasts <- create_timepoints_contrasts(
+        moaninObject, "Preflowering", "Control",
+        type = "group_and_timepoint_diff"
+    )
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: DE_timepoints, DE_timecourse, estimate_log_fold_change
+    weeklyPre <- DE_timepoints(
+        moaninObject[1:500, ],
+        contrasts = c(preContrasts, postContrasts),
+        use_voom_weights = TRUE
+    )
+    timecourseContrasts <- c(
+        "Preflowering-Control",
+        "Postflowering-Control"
+    )
+    splinePre <- DE_timecourse(
+        moaninObject[1:500, ],
+        contrasts = timecourseContrasts,
+        use_voom_weights = TRUE
+    )
+    log_fold_change_timepoints <- estimate_log_fold_change(
+        moaninObject[1:500, ],
+        contrasts = timecourseContrasts,
+        method = "sum"
+    )
+
+
+    # --- Timecourse Clustering [] ---
+    # Key functions: splines_kmeans, splines_kmeans_score_and_label
+    kmeans_clusters <- splines_kmeans(
+        moaninObject[1:500, ],
+        n_clusters = 3,
+        random_seed = 42,
+        n_init = 20
+    )
     scores_and_labels <- splines_kmeans_score_and_label(
+        object = moaninObject,
+        data = preData[1:500, ],
+        kmeans_clusters = kmeans_clusters
+    )
+
+
+    # --- Visualization [] ---
+    # Key functions: plot_splines_data
+    whSig <- which(splinePre[, "Preflowering-Control_qval"] < 0.05)
+    deGenes <- order(
+        abs(log_fold_change_timepoints)[whSig, "Preflowering-Control"],
+        decreasing = TRUE
+    )[1:10]
+    plot_splines_data(
+        moaninObject[whSig, ][deGenes, ],
+        smooth = TRUE
+    )
+    plot_splines_data(
+        data = kmeans_clusters$centroids,
+        moaninObject,
+        smooth = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

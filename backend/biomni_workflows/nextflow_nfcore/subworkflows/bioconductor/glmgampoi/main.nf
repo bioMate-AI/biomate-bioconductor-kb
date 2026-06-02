@@ -38,81 +38,31 @@ process BIOC_GLMGAMPOI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(glmGamPoi)
     library(Kang18_8vs8)
     library(jsonlite)
 
-
-    # --- Include = False [] ---
-    # Key functions: set, rnbinom, glm_gp
-    knitr::opts_chunk$set(
-      collapse = TRUE,
-      comment = "#>"
+    # --- Differential Expression Testing [] ---
+    # Key functions: test_de
+    de_res <- test_de(
+        fit,
+        contrast = `stimstim` + `cellCD4 T cells:stimstim`,
+        pseudobulk_by = paste0(stim, "-", ind)
     )
-    set.seed(2)
-
-    ## -----------------------------------------------------------------------------
-    library(glmGamPoi)
-
-    ## -----------------------------------------------------------------------------
-    # overdispersion = 1/size
-    counts <- rnbinom(n = 10, mu = 5, size = 1/0.7)
-
-    # design = ~ 1 means that an intercept-only model is fit
-    fit <- glm_gp(counts, design = ~ 1)
-
-    # --- Warning=false [] ---
-    # Key functions: TENxPBMCData, rowSums2, assay, sample, glm_gp, pbmc4k
-    library(SummarizedExperiment)
-    library(DelayedMatrixStats)
-
-    ## -----------------------------------------------------------------------------
-    # The full dataset with 33,000 genes and 4340 cells
-    # The first time this is run, it will download the data
-    pbmcs <- TENxPBMCData::TENxPBMCData("pbmc4k")
-
-    # I want genes where at least some counts are non-zero
-    non_empty_rows <- which(rowSums2(assay(pbmcs)) > 0)
-    pbmcs_subset <- pbmcs[sample(non_empty_rows, 300), ]
-    pbmcs_subset
-
-    ## -----------------------------------------------------------------------------
-    fit <- glm_gp(pbmcs_subset, on_disk = FALSE)
-
-    # --- Warning=false [] ---
-    # Key functions: assay, mark, glm_gp, suppressMessages, DESeqDataSetFromMatrix, estimateSizeFactors, poscounts
-    # Explicitly realize count matrix in memory so that it is a fair comparison
-    pbmcs_subset <- as.matrix(assay(pbmcs_subset))
-    model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
+    de_res$lfc <- ifelse(
+        abs(de_res$lfc) > 20,
+        sign(de_res$lfc) * Inf,
+        de_res$lfc
+    )
 
 
-    bench::mark(
-      glmGamPoi_in_memory = {
-        glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
-      }, glmGamPoi_on_disk = {
-        glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
-      }, DESeq2 = suppressMessages({
-        dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset,
-                            colData = data.frame(name = seq_len(4340)),
-                            design = ~ 1)
-        dds <- DESeq2::estimateSizeFactors(dds, "poscounts")
-
-    # --- Coefficient Comparison [] ---
-    # Key functions: par, abline, assay, glmGamPoi, edgeR
-    par(mfrow = c(2, 4), cex.main = 2, cex.lab = 1.5)
-    plot(fit$Beta[,1], coef(dds)[,1] / log2(exp(1)), pch = 16, 
-         main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "DESeq2")
-    abline(0,1)
-    plot(fit$Beta[,1], edgeR_fit$unshrunk.coefficients[,1], pch = 16,
-         main = "Beta Coefficients", xlab = "glmGamPoi", ylab = "edgeR")
-    abline(0,1)
-
-    plot(fit$Mu[,1], assay(dds, "mu")[,1], pch = 16, log="xy",
-         main = "Gene Mean", xlab = "glmGamPoi", ylab = "DESeq2")
-    abline(0,1)
-    plot(fit$Mu[,1], edgeR_fit$fitted.values[,1], pch = 16, log="xy",
-         main = "Gene Mean", xlab = "glmGamPoi", ylab = "edgeR")
-    abline(0,1)
-
+    # --- Marker Gene Identification [] ---
+    # Key functions: test_de
+    marker_genes <- test_de(
+        fit,
+        contrast = `cellCD4 T cells` - `cellB cells`,
+        sort_by = pval
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

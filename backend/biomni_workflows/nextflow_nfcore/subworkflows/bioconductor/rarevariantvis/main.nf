@@ -41,18 +41,24 @@ process BIOC_RAREVARIANTVIS {
     library(RareVariantVis)
     library(jsonlite)
 
-    # --- chromosome Vis [] ---
-    # Key functions: chromosomeVis
-    chromosomeVis(sample=sample, sv_sample=sv_sample,
-    chromosomes=c("19"))
-    # --- rare Variant Vis [] ---
-    # Key functions: rareVariantVis
-    rareVariantVis("RareVariants_CoriellIndex_S1.txt",
-    # --- multiple Vis [] ---
-    # Key functions: multipleVis
-    inputFiles = c("RareVariants_CoriellIndex_S1.txt",
-    sampleNames = c("CoriellIndex_S1", "Coriell_S2");
-    multipleVis(inputFiles, "CorielSamples.html", sampleNames, "19")
+    # --- Multiple Chromosome Visualization [] ---
+    # Key functions: multipleChromosomesVis
+    multipleChromosomesVis(
+        sampleId = "sample1",
+        chromosomes = c("chr1", "chr2", "chr3"),
+        outputDir = tempdir()
+    )
+
+
+    # --- Moving Average Smoothing [] ---
+    # Key functions: movingAverage
+    positions <- seq(1, 100000, by = 100)
+    values <- runif(length(positions))
+    ma_res <- movingAverage(
+        positions = positions,
+        values = values,
+        windowSize = 10000
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

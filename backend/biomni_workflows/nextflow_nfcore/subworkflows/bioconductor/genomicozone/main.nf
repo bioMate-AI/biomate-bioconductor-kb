@@ -42,20 +42,32 @@ process BIOC_GENOMICOZONE {
     library(GenomicOZone)
     library(jsonlite)
 
-    # --- Gozdataset [] ---
-    # Key functions: GOZDataSet, GenomicOZone
-    ---------------------------------------------------------------------
-    # Create an input object also checking for data format, consistency, and completeness
-    GOZ.ds <- GOZDataSet(data = data,
-                         colData = colData,
-                         design = design,
-    # --- Extract Genes [] ---
+    # --- Outstanding Zone Analysis [] ---
+    # Key functions: GenomicOZone
+    GOZ.ds <- GenomicOZone(GOZ.ds)
+
+
+    # --- Feature Extraction [] ---
     # Key functions: extract_genes, extract_zones, extract_outstanding_zones, extract_zone_expression
-    ---------------------------------------------------------------------
-    # Extract gene/zone GRanges object
     Gene.GRanges <- extract_genes(GOZ.ds)
-    head(Gene.GRanges)
     Zone.GRanges <- extract_zones(GOZ.ds)
+    OZone.GRanges <- extract_outstanding_zones(
+        GOZ.ds,
+        alpha = 0.05,
+        min.effect.size = 0.36
+    )
+    Zone.exp.mat <- extract_zone_expression(GOZ.ds)
+
+
+    # --- Visualization [] ---
+    # Key functions: plot_genome, plot_chromosomes, plot_zones
+    plot_genome(GOZ.ds, plot.file = "genome.pdf",
+        alpha = 0.05, min.effect.size = 0.36)
+    plot_chromosomes(GOZ.ds, plot.file = "chromosomes.pdf",
+        alpha = 0.05, min.effect.size = 0.36)
+    plot_zones(GOZ.ds, plot.file = "zones.pdf",
+        plot.all.zones = FALSE,
+        alpha = 0.05, min.effect.size = 0.36)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

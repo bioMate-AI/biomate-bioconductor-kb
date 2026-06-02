@@ -38,29 +38,53 @@ process BIOC_PCAEXPLORER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pcaExplorer)
     library(DESeq)
     library(DESeqDataSet)
     library(jsonlite)
 
-    # --- Create DESeqDataSet [] ---
-    # Key functions: DESeqDataSet, rlogTransformation
-    library("airway")
-    library("DESeq2")
-    data("airway", package = "airway")
-    # --- Run DESeq2 differential expression [] ---
-    # Key functions: DESeq, results, mapIds, topGOtable
-    dds_airway <- DESeq(dds_airway)
-    res_airway <- results(dds_airway)
-    res_airway$symbol <- mapIds(org.Hs.eg.db,
-    # --- Principal component analysis [] ---
-    # Key functions: prcomp, pcascree
+    # --- Principal Component Visualization [] ---
+    # Key functions: pcaplot, pcascree
+    pcaplot(
+        rld_airway,
+        intgroup = c("cell", "dex"),
+        ntop = 1000,
+        pcX = 1,
+        pcY = 2,
+        title = "airway dataset PCA"
+    )
     pcaobj_airway <- prcomp(t(assay(rld_airway)))
-    pcascree(pcaobj_airway,type="pev",
-    # --- ID mapping annotation [] ---
-    # Key functions: install_github, pcaExplorer, mapIds, get_annotation_orgdb, get_annotation, rlogTransformation, pcaplot, pcaplot3d
-    dds_simu <- makeExampleDESeqDataSet_multifac(betaSD_condition = 3,betaSD_tissue = 0.5)
-    dds2_simu <- makeExampleDESeqDataSet_multifac(betaSD_condition = 0.5,betaSD_tissue = 2)
-    rld_simu <- rlogTransformation(dds_simu)
+    pcascree(
+        pcaobj_airway,
+        type = "pev",
+        title = "Proportion of explained variance"
+    )
+
+
+    # --- PC Correlation and Loadings Analysis [] ---
+    # Key functions: correlatePCs, plotPCcorrs, hi_loadings
+    res_pcairway <- correlatePCs(
+        pcaobj_airway,
+        colData(dds_airway)
+    )
+    plotPCcorrs(res_pcairway)
+    hi_genes <- hi_loadings(
+        pcaobj_airway,
+        topN = 10,
+        exprTable = counts(dds_airway)
+    )
+
+
+    # --- Gene-level PCA Visualization [] ---
+    # Key functions: genespca
+    genespca(
+        rld_airway,
+        ntop = 100,
+        choices = c(1, 2),
+        alpha = 0.7,
+        varname.size = 5,
+        annotation = annotation_airway
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,84 +38,19 @@ process BIOC_GENERXCLUSTER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(geneRxCluster)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Chromos [] ---
-    # Key functions: structure
-    chr.lens <- structure(c(247249719L, 242951149L, 199501827L,
-        191273063L, 180857866L, 170899992L, 158821424L, 146274826L,
-        140273252L, 135374737L, 134452384L, 132349534L, 114142980L,
-        106368585L, 100338915L, 88827254L, 78774742L, 76117153L,
-        63811651L, 62435964L, 46944323L, 49691432L, 154913754L,
-    # --- Chr Samples [] ---
-    # Key functions: factor, sample
-    set.seed(13245)
-    chr.names <- names(chr.lens)
-    chr.factor <- factor(chr.names,chr.names)
-    chrs <- sample(chr.factor,40000,repl=TRUE,
-    	       prob=chr.lens)
-    # --- Grp Samp [] ---
-    # Key functions: rbinom
-    df$grp <-
-        rbinom(40000, 1, 0.5)==1
-    # --- Null Run [] ---
-    # Key functions: gRxCluster, frame
-    require(geneRxCluster,quietly=TRUE)
-    null.results <-
-        gRxCluster(df$chromo,df$pos,df$grp,15L:30L,nperm=100L)
-    as.data.frame(null.results)[,c(-4,-5)]
-    # --- Grxsmry [] ---
+    # --- Result Summarisation [] ---
     # Key functions: gRxSummary
-    gRxSummary( null.results )
-    # --- Sim True [] ---
-    # Key functions: sample
-    clump.chrs <- sample(chr.factor,30,repl=TRUE,
-    		 prob=chr.lens)
-    # --- Sapply [] ---
-    # Key functions: pos
-    clump.chr.pos.bound <-
-        sapply(chr.lens[clump.chrs], function(y) sample.pos(1,y))
-    # --- Rep [] ---
-    # Key functions: rep
-    clump.site.ns <- rep(c(15,25,40),each=10)
-    # --- Lapply [] ---
-    # Key functions: sample
-    clump.sites <-
-        lapply(seq_along(clump.chrs),
-    	   function(x) {
-    	       chromo <- clump.chrs[x]
-    	       n <- clump.site.ns[x]
-    # --- Rep [] ---
-    # Key functions: rep
-    clump.grps <- rep(0:1,15)==1
-    # --- Frame [] ---
-    # Key functions: frame, unlist
-    df2 <- data.frame(
-        chromo=rep(clump.chrs,clump.site.ns),
-        pos=unlist(clump.sites),
-        grp=rep(clump.grps,clump.site.ns)
-        )
-    # --- Alt Clumps [] ---
-    # Key functions: gRxCluster, gRxSummary
-    alt.results <-
-        gRxCluster(df3$chromo,df3$pos,df3$grp,
-    	       15L:30L, nperm=100L)
-    gRxSummary(alt.results)
-    # --- Torf Disc [] ---
-    # Key functions: GRanges, IRanges
-    df2.GRanges <-
-        GRanges(seqnames=df2$chromo,IRanges(start=df2$pos,width=1),
-    	    clump=rep(1:30,clump.site.ns))
-    # --- Subjecthits [] ---
-    # Key functions: subjectHits, findOverlaps
-    clumps.found <- subjectHits(findOverlaps(alt.results,df2.GRanges))
-    # --- Matrix [] ---
-    # Key functions: factor
-    matrix(
-        table(factor(df2.GRanges$clump[ clumps.found ],1:30)),
-        nrow=10,dimnames=list(clump=NULL,site.ns=c(15,25,40)))
+    summary_df <- gRxSummary(cluster_res)
+
+
+    # --- Visualisation [] ---
+    # Key functions: gRxPlot
+    gRxPlot(cluster_res)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

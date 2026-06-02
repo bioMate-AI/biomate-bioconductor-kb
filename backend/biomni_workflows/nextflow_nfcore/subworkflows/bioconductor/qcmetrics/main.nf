@@ -38,25 +38,29 @@ process BIOC_QCMETRICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(qcmetrics)
     library(QcMetric)
     library(QcMetrics)
     library(jsonlite)
 
-    # --- Combine peptide features to proteins [] ---
-    # Key functions: fData, combineFeatures
-    fData(psm)$modseq <- ## pep seq + PTM
-    paste(fData(psm)$Peptide_Sequence,
-    fData(psm)$Variable_Modifications, sep = "+")
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: qcdata, ggplot, geom_jitter, geom_boxplot
-    plot(qcinc) <- function(object) {
-    inc <- qcdata(object, "inc")
-    tr <- qcdata(object, "tr")
-    # --- Object metadata inspection [] ---
-    # Key functions: QcMetric, qcdata, show, status, QcMetrics, metadata, mdata, rtime
-    qcReport(n15qcm, reportname = "n15qcreport",
-    title = expinfo(experimentData(psm))["title"],
-    author = expinfo(experimentData(psm))["contact"],
+    # --- QC Metrics Container and Metadata [] ---
+    # Key functions: QcMetrics, metadata<-, mdata
+    qcm <- QcMetrics(qcdata = list(qc))
+    metadata(qcm) <- list(
+        author = "Workflow Runner",
+        lab = "Bioinformatics Core"
+    )
+    meta_info <- mdata(qcm)
+
+
+    # --- Proteomics QC Integration [] ---
+    # Key functions: QcMetric, qcdata<-, plot<-
+    qc1 <- QcMetric(name = "Chromatogram")
+    qcdata(qc1, "x") <- rtime(exp)
+    qcdata(qc1, "y") <- precursorIntensity(exp)
+    plot(qc1) <- function(object, ...) {
+        plot(qcdata(object, "x"), qcdata(object, "y"), type = "l")
+    }
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

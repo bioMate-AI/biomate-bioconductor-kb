@@ -38,84 +38,24 @@ process BIOC_MIQC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(miQC)
     library(BuettnerESCData)
     library(SingleCellExperiment)
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- Zeiselbraindata [] ---
-    # Key functions: ZeiselBrainData
-    ---------------------------------------------------------------------
-    sce <- ZeiselBrainData()
-    sce
-    # --- Addpercellqc [] ---
-    # Key functions: addPerCellQC, colData
-    ---------------------------------------------------------------------
-    sce <- addPerCellQC(sce, subsets = feature_ctrls)
-    head(colData(sce))
-    # --- Plotmetrics [] ---
-    # Key functions: plotMetrics
-    ---------------------------------------------------------------------
-    plotMetrics(sce)
-    # --- Mixturemodel [] ---
-    # Key functions: mixtureModel
-    ---------------------------------------------------------------------
-    model <- mixtureModel(sce)
-    # --- Parameters [] ---
-    # Key functions: parameters, posterior
-    ---------------------------------------------------------------------
-    parameters(model)
-    head(posterior(model))
-    # --- Plotmodel [] ---
-    # Key functions: plotModel
-    ---------------------------------------------------------------------
-    plotModel(sce, model)
-    # --- Plotfiltering [] ---
-    # Key functions: plotFiltering
-    ---------------------------------------------------------------------
-    plotFiltering(sce, model)
-    # --- Filtercells [] ---
-    # Key functions: filterCells
-    ---------------------------------------------------------------------
-    sce <- filterCells(sce, model)
-    sce
-    # --- Zeiselbraindata [] ---
-    # Key functions: ZeiselBrainData, addPerCellQC, mixtureModel, plotModel, plotFiltering
-    ---------------------------------------------------------------------
-    sce <- ZeiselBrainData()
-    sce <- addPerCellQC(sce, subsets = feature_ctrls)
-    model2 <- mixtureModel(sce, model_type = "spline")
-    plotModel(sce, model2)
-    # --- Mixturemodel [] ---
-    # Key functions: mixtureModel, plotModel, plotFiltering, get1DCutoff
-    ---------------------------------------------------------------------
-    model4 <- mixtureModel(sce, model_type = "one_dimensional")
-    plotModel(sce, model4)
-    plotFiltering(sce, model4)
-    get1DCutoff(sce, model4)
-    # --- Plotfiltering [] ---
-    # Key functions: plotFiltering
-    ---------------------------------------------------------------------
-    plotFiltering(sce, model4, posterior_cutoff = 0.9)
-    # --- Data [] ---
-    # Key functions: SingleCellExperiment, mixtureModel, plotFiltering
-    ---------------------------------------------------------------------
-    data("hgsoc_metrics")
-    sce <- SingleCellExperiment(colData = metrics)
-    model <- mixtureModel(sce)
-    plotFiltering(sce, model, posterior_cutoff = 0.6, enforce_left_cutoff = FALSE,
-    # --- Plotfiltering [] ---
-    # Key functions: plotFiltering
-    ---------------------------------------------------------------------
-    plotFiltering(sce, model, posterior_cutoff = 0.6, enforce_left_cutoff = FALSE,
-                    keep_all_below_boundary = TRUE)
-    # --- Buettnerescdata [] ---
-    # Key functions: BuettnerESCData, rowData, addPerCellQC, plotMetrics
-    ---------------------------------------------------------------------
-    sce <- BuettnerESCData()
-    mt_genes <- grepl("^mt-", rowData(sce)$AssociatedGeneName)
-    feature_ctrls <- list(mito = rownames(sce)[mt_genes])
-    sce <- addPerCellQC(sce, subsets = feature_ctrls)
+    # --- Mixture Model Fitting [] ---
+    # Key functions: mixtureModel, parameters
+    model <- mixtureModel(sce, model_type = "spline")
+    model_params <- parameters(model)
+    model_poly <- mixtureModel(sce, model_type = "polynomial")
+
+
+    # --- Filtering Visualization and Cell Filtering [] ---
+    # Key functions: plotModel, plotFiltering, filterCells
+    model_plot <- plotModel(sce, model)
+    filter_plot <- plotFiltering(sce, model, posterior_cutoff = 0.9)
+    sce_filtered <- filterCells(sce, model)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

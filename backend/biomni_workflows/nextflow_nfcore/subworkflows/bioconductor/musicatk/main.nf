@@ -41,76 +41,54 @@ process BIOC_MUSICATK {
     library(musicatk)
     library(jsonlite)
 
-    # --- Extract Variants [] ---
-    # Key functions: extract_variants_from_maf_file, extract_variants_from_vcf_file, files, glob2rx, extract_variants
-    # Extract variants from a MAF File
-    lusc_maf <- system.file("extdata", "public_TCGA.LUSC.maf", package = "musicatk")
-    lusc.variants <- extract_variants_from_maf_file(maf_file = lusc_maf)
-    # Extract variants from an individual VCF file
-    luad_vcf <- system.file("extdata", "public_LUAD_TCGA-97-7938.vcf",
-    # --- Select Genome [] ---
-    # Key functions: select_genome
-    g <- select_genome("hg38")
-    # --- Create Musica [] ---
-    # Key functions: create_musica_from_variants
-    musica <- create_musica_from_variants(x = variants, genome = g)
-    # --- Build Tables [] ---
-    # Key functions: build_standard_table
+    # --- Count Table Construction [] ---
+    # Key functions: build_standard_table, annotate_transcript_strand, build_custom_table
     build_standard_table(musica, g = g, table_name = "SBS96")
-    # --- Combine Tables [] ---
-    # Key functions: build_standard_table, tables, combine_count_tables
-    data(dbs_musica)
-    build_standard_table(dbs_musica, g, "SBS96", overwrite = TRUE)
-    build_standard_table(dbs_musica, g, "DBS78", overwrite = TRUE)
-    # Subset SBS table to DBS samples so they cam be combined
-    count_tables <- tables(dbs_musica)
-    # --- Create Musica From Counts [] ---
-    # Key functions: csv, create_musica_from_counts
-    luad_count_table_path <- system.file("extdata", "luad_tcga_count_table.csv",
-      package = "musicatk"
+    annotate_transcript_strand(musica, "19", build_table = FALSE)
+    build_custom_table(
+        musica = musica, variant_annotation = "Transcript_Strand",
+        name = "Transcript_Strand",
+        description = "A table of transcript strand of variants",
+        data_factor = c("T", "U"), overwrite = TRUE
     )
-    luad_count_table <- as.matrix(read.csv(luad_count_table_path))
-    musica_from_counts <- create_musica_from_counts(luad_count_table, "SBS96")
-    # --- Discover Sigs [] ---
-    # Key functions: discover_signatures
-    discover_signatures(
-      musica = musica, modality = "SBS96", num_signatures = 3,
-      algorithm = "nmf", model_id = "ex_result", nstart = 10
-    )
-    # --- Result Accessors [] ---
-    # Key functions: exposures, signatures
-    # Extract the exposure matrix
-    expos <- exposures(musica, "result", "SBS96", "ex_result")
-    expos[1:3, 1:3]
-    # Extract the signature matrix
-    sigs <- signatures(musica, "result", "SBS96", "ex_result")
-    # --- Compare K Vals [] ---
-    # Key functions: compare_k_vals
+
+
+    # --- Signature Discovery and Evaluation [] ---
+    # Key functions: compare_k_vals, discover_signatures, exposures, signatures
     k_comparison <- compare_k_vals(musica, "SBS96",
-      reps = 5, min_k = 2, max_k = 4,
-      algorithm = "nmf"
+        reps = 5, min_k = 2, max_k = 4, algorithm = "nmf"
     )
-    # --- Plot Sigs [] ---
-    # Key functions: plot_signatures
+    discover_signatures(
+        musica = musica, modality = "SBS96", num_signatures = 3,
+        algorithm = "nmf", model_id = "ex_result", nstart = 10
+    )
+    expos <- exposures(musica, "result", "SBS96", "ex_result")
+    sigs <- signatures(musica, "result", "SBS96", "ex_result")
+
+
+    # --- Signature Prediction and Comparison [] ---
+    # Key functions: predict_exposure, get_model, compare_results
+    data("cosmic_v2_sigs")
+    predict_exposure(
+        musica = musica, modality = "SBS96",
+        signature_res = cosmic_v2_sigs, model_id = "ex_pred_result",
+        signatures_to_use = c(1, 4, 7, 13), algorithm = "lda"
+    )
+    model <- get_model(musica, "result", "SBS96", "ex_result")
+    predict_exposure(
+        musica = musica, modality = "SBS96",
+        signature_res = model, algorithm = "lda",
+        model_id = "pred_our_sigs"
+    )
+    compare_results(musica, "ex_pred_result", "pred_our_sigs", 0.60)
+
+
+    # --- Visualization and Dimensionality Reduction [] ---
+    # Key functions: plot_signatures, plot_exposures, create_umap, plot_umap
     plot_signatures(musica, model_id = "ex_result", modality = "SBS96")
-    # --- Name Sigs [] ---
-    # Key functions: name_signatures, plot_signatures
-    name_signatures(musica, "ex_result", c("Smoking", "APOBEC", "UV"))
-    plot_signatures(musica, model_id = "ex_result", modality = "SBS96")
-    # --- Exposures Raw [] ---
-    # Key functions: plot_exposures
     plot_exposures(musica, "ex_result", plot_type = "bar")
-    # --- Exposures Prop [] ---
-    # Key functions: plot_exposures
-    plot_exposures(musica, "ex_result", plot_type = "bar", proportional = TRUE)
-    # --- Sample Counts [] ---
-    # Key functions: sample_names, plot_sample_counts
-    samples <- sample_names(musica)
-    plot_sample_counts(musica, sample_names = samples[c(3, 4, 5)],
-                       modality = "SBS96")
-    # --- Compare Cosmic [] ---
-    # Key functions: compare_cosmic_v2
-    compare_cosmic_v2(musica, "ex_result", threshold = 0.75)
+    create_umap(musica, "ex_result")
+    plot_umap(musica, "ex_result")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

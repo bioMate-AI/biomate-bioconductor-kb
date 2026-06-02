@@ -38,6 +38,7 @@ process BIOC_SESAME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(sesame)
     library(KYCG_buildGeneDBs)
     library(KYCG_getDBs)
     library(KYCG_listDBGroups)
@@ -45,16 +46,44 @@ process BIOC_SESAME {
     library(KYCG_plotLollipop)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: sesameDataGet, ggplot, geom_line, labs, theme
+    # --- Data Initialization and Caching [Data Prep] ---
+    # Key functions: sesameDataCache, sesameDataGet
+    sesameDataCache()
     se <- sesameDataGet("MM285.10.SE.tissue")
-    library(tibble)
-    df_plot <- as.data.frame(t(assay(se)[
-    # --- Table formatting and display [] ---
-    # Key functions: sesameDataCache, KYCG_getDBs, testEnrichment, KYCG_plotEnrichAll, kable, rowData, KYCG_listDBGroups, KYCG_buildGeneDBs
-    df <- rowData(sesameDataGet('MM285.tissueSignature'))
+
+    # --- Query Preparation and Annotation [Annotation] ---
+    # Key functions: sesameDataGet, sesameData_getTxnGRanges, sesameData_annoProbes
+    df <- SummarizedExperiment::rowData(
+        sesameDataGet('MM285.tissueSignature')
+    )
+    query <- df$Probe_ID[df$branch == "fetal_liver" & df$type == "Hypo"]
     regs <- sesameData_getTxnGRanges("mm10", merge2gene = TRUE)
-    genes <- sesameData_annoProbes(query, regs, platform="MM285", return_ov_features=TRUE)
+    genes <- sesameData_annoProbes(
+        query, regs, platform = "MM285", return_ov_features = TRUE
+    )
+
+    # --- Enrichment Testing [Enrichment] ---
+    # Key functions: KYCG_getDBs, testEnrichment
+    query_pgc <- KYCG_getDBs("MM285.designGroup")[["PGCMeth"]]
+    results_pgc <- testEnrichment(query_pgc, platform = "MM285")
+
+    # --- Set Enrichment Analysis [Enrichment] ---
+    # Key functions: KYCG_getDBs, testEnrichmentSEA
+    query_tss <- KYCG_getDBs("KYCG.MM285.designGroup")[["TSS"]]
+    db_tss <- KYCG_getDBs("MM285.seqContextN", "distToTSS")
+    res_sea <- testEnrichmentSEA(query_tss, db_tss, prepPlot = TRUE)
+
+    # --- Visualization of Enrichment Results [Visualisation] ---
+    # Key functions: sesameData_getProbesByGene, KYCG_buildGeneDBs, testEnrichment, KYCG_plotLollipop
+    query_gene <- names(sesameData_getProbesByGene("Dnmt3a", "MM285"))
+    db_gene <- KYCG_buildGeneDBs(
+        query_gene, max_distance = 100000, platform = "MM285"
+    )
+    results_gene <- testEnrichment(
+        query_gene, db_gene, platform = "MM285"
+    )
+    KYCG_plotLollipop(results_gene, label = "gene_name")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,95 +38,62 @@ process BIOC_NANOMETHVIZ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(NanoMethViz)
     library(ModBamFiles)
     library(ModBamResult)
     library(NanoMethResult)
     library(jsonlite)
 
-    # --- Import Exon Annotations [] ---
-    # Key functions: get_exons_mm10
-    ---------------------------------------------------------------------
-    # helper function extracts exons from TxDb package
+    # --- Data Import and Tabix Conversion ---
+    # Key functions: create_tabix_file, methy_col_names
+    methy_calls <- system.file(
+        package = "NanoMethViz",
+        c("sample1_nanopolish.tsv.gz", "sample2_nanopolish.tsv.gz")
+    )
+    methy_tabix <- file.path(tempdir(), "methy_data.bgz")
+    samples <- c("sample1", "sample2")
+    create_tabix_file(methy_calls, methy_tabix, samples)
+    methy_cols <- methy_col_names()
+
+    # --- Object Construction ---
+    # Key functions: NanoMethResult, get_exons_mm10
+    methy <- system.file(package = "NanoMethViz", "methy_subset.tsv.bgz")
     exon_tibble <- get_exons_mm10()
-    head(exon_tibble)
-    # --- Construct NanoMethResult Object [] ---
-    # Key functions: NanoMethResult
-    ---------------------------------------------------------------------
+    sample_anno <- data.frame(
+        sample = c("B6Cast_Prom_1_bl6", "B6Cast_Prom_1_cast"),
+        group = c("bl6", "cast"),
+        stringsAsFactors = FALSE
+    )
     nmr <- NanoMethResult(methy, sample_anno, exon_tibble)
-    # --- Plot Gene Methylation [] ---
-    # Key functions: plot_gene
-    ---------------------------------------------------------------------
-    plot_gene(nmr, "Peg3")
-    # --- Export Data [] ---
-    # Key functions: file
-    ---------------------------------------------------------------------
-    # loading saved results from previous bsseq analysis
+
+    # --- Format Conversion for Differential Methylation ---
+    # Key functions: load_example_nanomethresult, methy_to_bsseq, exons_to_genes, bsseq_to_edger
+    nmr <- load_example_nanomethresult()
+    bss <- methy_to_bsseq(nmr)
+    gene_regions <- exons_to_genes(NanoMethViz::exons(nmr))
+    edger_mat <- bsseq_to_edger(bss, gene_regions)
+
+    # --- Dimensionality Reduction and QC ---
+    # Key functions: load_example_nanomethresult, methy_to_bsseq, exons_to_genes, bsseq_to_log_methy_ratio, plot_mds
+    nmr <- load_example_nanomethresult()
+    bss <- methy_to_bsseq(nmr)
+    gene_anno <- exons_to_genes(NanoMethViz::exons(nmr))
+    lmr <- bsseq_to_log_methy_ratio(bss, regions = gene_anno)
+    mds_plot <- plot_mds(lmr)
+    pca_plot <- plot_pca(lmr)
+
+    # --- Methylation Profile Visualisation ---
+    # Key functions: load_example_nanomethresult, plot_gene
+    nmr <- load_example_nanomethresult()
     bsseq_dmr <- read.table(
         system.file(package = "NanoMethViz", "dmr_subset.tsv.gz"),
         sep = "\t",
-    # --- Plot Gene Methylation [] ---
-    # Key functions: plot_gene
-    ---------------------------------------------------------------------
-    plot_gene(nmr, "Peg3", anno_regions = bsseq_dmr)
-    # --- Import ModBAM Data [] ---
-    # Key functions: ModBamResult, ModBamFiles, frame, plot_gene
-    ---------------------------------------------------------------------
-    # construct with a ModBamFiles object as the methylation data
-    mbr <- ModBamResult(
-        methy = ModBamFiles(
-            samples = "sample1",
-    # --- Convert Exons to Genes [] ---
-    # Key functions: exons_to_genes, exons, bsseq_to_edger
-    ---------------------------------------------------------------------
-    gene_regions <- exons_to_genes(NanoMethViz::exons(nmr))
-    edger_mat <- bsseq_to_edger(bss, gene_regions)
-    edger_mat
-    # --- Import Methylation Data [] ---
-    # Key functions: import
-    ---------------------------------------------------------------------
-    anno <- rtracklayer::import(system.file(package = "NanoMethViz", "c_elegans.gtf.gz"))
-    head(anno)
-    # --- Frame [] ---
-    # Key functions: frame, rename, select
-    ---------------------------------------------------------------------
-    anno <- anno %>%
-        as.data.frame() %>%
-        dplyr::rename(
-            chr = "seqnames",
-    # --- Process Exon Annotations [] ---
-    # Key functions: exons, exons_to_genes, mutate, plot_gene
-    ---------------------------------------------------------------------
-    new_exons <- NanoMethViz::exons(nmr) %>%
-        exons_to_genes() %>%
-        mutate(transcript_id = gene_id)
-    NanoMethViz::exons(nmr) <- new_exons
-    # --- Convert Exons to Genes [] ---
-    # Key functions: exons_to_genes, exons, bsseq_to_log_methy_ratio
-    ---------------------------------------------------------------------
-    # create gene annotation from exon annotation
-    gene_anno <- exons_to_genes(NanoMethViz::exons(nmr))
-    # create log-methylation-ratio matrix
-    lmr <- bsseq_to_log_methy_ratio(bss, regions = gene_anno)
-    # --- Perform Dimensionality Reduction [] ---
-    # Key functions: plot_mds, ggtitle, plot_pca
-    ---------------------------------------------------------------------
-    plot_mds(lmr) +
-        ggtitle("MDS Plot")
-    plot_pca(lmr) +
-        ggtitle("PCA Plot")
-    # --- Gsub [] ---
-    # Key functions: _, plot_mds, ggtitle, scale_colour_brewer
-    ---------------------------------------------------------------------
-    new_labels <- gsub("B6Cast_Prom_", "", colnames(lmr))
-    new_labels <- gsub("(\\d)_(.*)", "\\2 \\1", new_labels)
-    groups <- gsub(" \\d", "", new_labels)
-    plot_mds(lmr, labels = new_labels, groups = groups) +
-    # --- Perform Dimensionality Reduction [] ---
-    # Key functions: plot_mds, ggtitle, scale_colour_brewer
-    ---------------------------------------------------------------------
-    plot_mds(lmr, labels = NULL, groups = groups) +
-        ggtitle("MDS Plot") +
-        scale_colour_brewer(palette = "Set1")
+        header = TRUE,
+        stringsAsFactors = FALSE
+    )
+    plot_gene(nmr, "Peg3", anno_regions = bsseq_dmr, heatmap = TRUE)
+    plot_gene(nmr, "Peg3", anno_regions = bsseq_dmr, spaghetti = TRUE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

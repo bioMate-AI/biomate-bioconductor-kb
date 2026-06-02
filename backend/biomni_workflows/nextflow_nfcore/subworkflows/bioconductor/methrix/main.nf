@@ -38,86 +38,52 @@ process BIOC_METHRIX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(methrix)
     library(GRanges)
     library(jsonlite)
 
-    # --- Files [] ---
-    # Key functions: files, frame
-    ---------------------------------------------------------------------
-    #Example bedgraph files
-    bdg_files <- list.files(
-      path = system.file('extdata', package = 'methrix'),
-      pattern = "*bedGraph\\.gz$",
-    # --- Data [] ---
-    # Key functions: get_matrix
-    ---------------------------------------------------------------------
-    #Example data bundled, same as the previously generated meth
-    data("methrix_data")
-    #Coverage matrix
-    coverage_mat <- methrix::get_matrix(m = methrix_data, type = "C")
-    # --- Get Matrix [] ---
-    # Key functions: get_matrix
-    ---------------------------------------------------------------------
-    #Methylation matrix
-    meth_mat <- methrix::get_matrix(m = methrix_data, type = "M")
-    head(meth_mat)
-    # --- Coverage Filter [] ---
-    # Key functions: coverage_filter
-    ---------------------------------------------------------------------
-    #e.g; Retain all loci which are covered at-least in two sample by 3 or more reads
-    methrix::coverage_filter(m = methrix_data, cov_thr = 3, min_samples = 2)
-    # --- Subset Methrix [] ---
-    # Key functions: subset_methrix
-    ---------------------------------------------------------------------
-    #Retain sites only from chromosme chr21
-    methrix::subset_methrix(m = methrix_data, contigs = "chr21")
-    # --- Granges [] ---
-    # Key functions: GRanges, subset_methrix
-    ---------------------------------------------------------------------
-    #e.g; Retain sites only in TP53 loci
-    target_loci <- GenomicRanges::GRanges("chr21:27867971-27868103")
-    print(target_loci)
-    methrix::subset_methrix(m = methrix_data, regions = target_loci)
-    # --- Subset Methrix [] ---
-    # Key functions: subset_methrix
-    ---------------------------------------------------------------------
-    methrix::subset_methrix(m = methrix_data, samples = "C1")
-    #Or you could use [] operator to subset by index
-    methrix_data[,1]
-    # --- Get Stats [] ---
-    # Key functions: get_stats
-    ---------------------------------------------------------------------
-    meth_stats <- get_stats(m = methrix_data)
-    print(meth_stats)
-    # --- Plot Stats [] ---
-    # Key functions: plot_stats
-    ---------------------------------------------------------------------
-    #Draw mean coverage per sample
-    plot_stats(plot_dat = meth_stats, what = "C", stat = "mean")
-    #Draw mean methylation per sample
-    plot_stats(plot_dat = meth_stats, what = "M", stat = "mean")
-    # --- Methrix Pca [] ---
-    # Key functions: methrix_pca, plot_pca
-    ---------------------------------------------------------------------
-    mpca <- methrix_pca(m = methrix_data, do_plot = FALSE)
-    #Plot PCA results
-    plot_pca(pca_res = mpca, show_labels = TRUE)
-    #Color code by an annotation
-    # --- Plot Violin [] ---
-    # Key functions: plot_violin
-    ---------------------------------------------------------------------
-    #Violin plots
+    # --- Quality Control and Filtering [] ---
+    # Key functions: remove_uncovered, remove_snps, coverage_filter
+    meth_filtered <- methrix::remove_uncovered(m = meth)
+    meth_snps_filtered <- methrix::remove_snps(m = meth_filtered)
+    meth_cov_filtered <- methrix::coverage_filter(
+        m = meth_snps_filtered,
+        cov_thr = 3,
+        min_samples = 2
+    )
+
+
+    # --- Subsetting and Matrix Extraction [] ---
+    # Key functions: subset_methrix, get_matrix
+    meth_sub <- methrix::subset_methrix(
+        m = methrix_data,
+        contigs = "chr21"
+    )
+    meth_mat <- methrix::get_matrix(
+        m = meth_sub,
+        type = "M",
+        add_loci = TRUE,
+        in_granges = TRUE
+    )
+
+
+    # --- Statistical Summary and Visualization [] ---
+    # Key functions: get_stats, plot_stats, plot_violin, plot_coverage
+    meth_stats <- methrix::get_stats(m = methrix_data)
+    methrix::plot_stats(plot_dat = meth_stats, what = "C", stat = "mean")
     methrix::plot_violin(m = methrix_data)
-    # --- Plot Coverage [] ---
-    # Key functions: plot_coverage
-    ---------------------------------------------------------------------
     methrix::plot_coverage(m = methrix_data, type = "dens")
-    # --- methrix2bsseq [] ---
-    # Key functions: methrix2bsseq
-    ---------------------------------------------------------------------
-    library(bsseq)
+
+
+    # --- Dimensionality Reduction and Conversion [] ---
+    # Key functions: methrix_pca, plot_pca, methrix2bsseq
+    mpca <- methrix::methrix_pca(m = methrix_data, do_plot = FALSE)
+    methrix::plot_pca(
+        pca_res = mpca,
+        m = methrix_data,
+        col_anno = "Condition"
+    )
     bs_seq <- methrix::methrix2bsseq(m = methrix_data)
-    bs_seq
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

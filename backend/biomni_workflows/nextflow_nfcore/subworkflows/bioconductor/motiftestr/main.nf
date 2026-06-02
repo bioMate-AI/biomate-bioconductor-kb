@@ -38,87 +38,65 @@ process BIOC_MOTIFTESTR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(motifTestR)
     library(GRanges)
     library(GRangesList)
     library(jsonlite)
 
-    # --- Load Packages [] ---
-    # Key functions: theme_set, theme_bw
-    library(motifTestR)
-    library(extraChIPs)
-    library(rtracklayer)
-    library(BSgenome.Hsapiens.UCSC.hg19)
-    library(parallel)
-    # --- Load Example Peaks [] ---
-    # Key functions: seqinfo
-    data("ar_er_peaks")
-    ar_er_peaks
-    sq <- seqinfo(ar_er_peaks)
-    # --- Test Seq [] ---
-    # Key functions: getSeq
-    test_seq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, ar_er_peaks)
-    names(test_seq) <- as.character(ar_er_peaks)
-    # --- Ex Pwm [] ---
-    # Key functions: data
-    data("ex_pfm")
-    names(ex_pfm)
-    ex_pfm$ESR1
-    # --- Match Esr1 [] ---
-    # Key functions: getPwmMatches
-    score_thresh <- "70%"
-    getPwmMatches(ex_pfm$ESR1, test_seq, min_score = score_thresh)
-    # --- Best Match Esr1 [] ---
-    # Key functions: getPwmMatches
-    getPwmMatches(ex_pfm$ESR1, test_seq, min_score = score_thresh, best_only = TRUE)
-    # --- Bm All [] ---
-    # Key functions: getPwmMatches
+    # --- Motif Matching and Counting [Motif Analysis] ---
+    # Key functions: getPwmMatches, countPwmMatches
     bm_all <- getPwmMatches(
-      ex_pfm, test_seq, min_score = score_thresh, best_only = TRUE, break_ties = "all",
-      mc.cores = cores
+        ex_pfm, test_seq, min_score = "70%",
+        best_only = TRUE, break_ties = "all", mc.cores = 1
     )
-    # --- Count Pwm Matches [] ---
-    # Key functions: countPwmMatches
-    countPwmMatches(ex_pfm, test_seq, min_score = score_thresh, mc.cores = cores)
-    # --- Test Motif Pos [] ---
-    # Key functions: testMotifPos
-    res_pos <- testMotifPos(bm_all, mc.cores = cores)
-    head(res_pos)
-    # --- Test Motif Pos Abs [] ---
-    # Key functions: testMotifPos
-    res_abs <- testMotifPos(bm_all, abs = TRUE, mc.cores = cores)
-    head(res_abs)
-    # --- Plot Pos [] ---
-    # Key functions: plotMatchPos, geom_smooth, facet_wrap, plot_annotation, theme
-    topMotifs <- res_pos |>
-        subset(fdr < 0.05) |>
-        rownames()
-    A <- plotMatchPos(bm_all[topMotifs], binwidth = 10, se = FALSE)
-    B <- plotMatchPos(
-    # --- Plot Abs Pos [] ---
-    # Key functions: plotMatchPos, scale_fill_viridis_c, plot_annotation, theme
-    topMotifs <- res_abs |>
-        subset(fdr < 0.05) |>
-        rownames()
-    A <- plotMatchPos(bm_all[topMotifs], abs = TRUE, type = "heatmap") +
-      scale_fill_viridis_c()
-    # --- Zr75 Enh [] ---
-    # Key functions: overlapsAny
-    data("zr75_enh")
-    mean(overlapsAny(ar_er_peaks, zr75_enh))
-    # --- Define Bg Ranges [] ---
-    # Key functions: ifelse, overlapsAny, GRanges, GRangesList, setdiff
+    match_counts <- countPwmMatches(
+        ex_pfm, test_seq, min_score = "70%", mc.cores = 1
+    )
+
+    # --- Motif Position Analysis [Spatial Distribution] ---
+    # Key functions: testMotifPos, plotMatchPos
+    res_pos <- testMotifPos(bm_all, mc.cores = 1)
+    res_abs <- testMotifPos(bm_all, abs = TRUE, mc.cores = 1)
+    top_motifs <- rownames(subset(res_pos, fdr < 0.05))
+    pos_plot <- plotMatchPos(
+        bm_all[top_motifs], binwidth = 10, se = FALSE
+    )
+
+    # --- Background Range Generation [Sequence Control] ---
+    # Key functions: makeRMRanges
     ar_er_peaks$feature <- ifelse(
-      overlapsAny(ar_er_peaks, zr75_enh), "enhancer", "other"
+        overlapsAny(ar_er_peaks, zr75_enh), "enhancer", "other"
     )
-    chr1 <- GRanges(sq)[1]
     bg_ranges <- GRangesList(
-    # --- Rm Ranges [] ---
-    # Key functions: makeRMRanges, splitAsList
-    data("hg19_mask")
-    set.seed(305)
+        enhancer = zr75_enh,
+        other = GenomicRanges::setdiff(
+            GRanges(seqinfo(ar_er_peaks))[1], zr75_enh
+        )
+    )
     rm_ranges <- makeRMRanges(
-      splitAsList(ar_er_peaks, ar_er_peaks$feature),
-      bg_ranges, exclude = hg19_mask,
+        splitAsList(ar_er_peaks, ar_er_peaks$feature),
+        bg_ranges, exclude = hg19_mask, n_iter = 100
+    )
+
+    # --- Motif Enrichment Testing [Statistical Enrichment] ---
+    # Key functions: testMotifEnrich
+    rm_seq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, rm_ranges)
+    mcols(rm_seq) <- mcols(rm_ranges)
+    enrich_res <- testMotifEnrich(
+        ex_pfm, test_seq, rm_seq, min_score = "70%",
+        model = "quasi", mc.cores = 1
+    )
+
+    # --- Motif Clustering and Overlaps [Motif Grouping] ---
+    # Key functions: clusterMotifs, plotOverlaps
+    cl <- clusterMotifs(ex_pfm, plot = FALSE, labels = NULL)
+    ex_cl <- split(ex_pfm, cl)
+    matches_list <- lapply(
+        getPwmMatches(ex_pfm, test_seq, min_score = "70%", mc.cores = 1),
+        function(x) x$seq
+    )
+    overlap_plot <- plotOverlaps(matches_list, type = "upset")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

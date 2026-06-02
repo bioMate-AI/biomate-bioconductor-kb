@@ -38,59 +38,90 @@ process BIOC_DEGCRE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DegCre)
     library(GRanges)
     library(jsonlite)
 
-    # --- demo DegCre default [] ---
+    # --- Initial Association Mapping [degcre] ---
     # Key functions: runDegCre
-    subDegGR <- DexNR3C1$DegGR[which(seqnames(DexNR3C1$DegGR)=="chr1")]
-    subCreGR <- DexNR3C1$CreGR[which(seqnames(DexNR3C1$CreGR)=="chr1")]
-    myDegCreResList <- runDegCre(DegGR=subDegGR,
-    # --- demo Alpha opt [] ---
+    data(DexNR3C1, package = "degcre")
+    subDegGR <- DexNR3C1$DegGR[which(seqnames(DexNR3C1$DegGR) == "chr1")]
+    subCreGR <- DexNR3C1$CreGR[which(seqnames(DexNR3C1$CreGR) == "chr1")]
+    myDegCreResList <- runDegCre(
+        DegGR = subDegGR,
+        DegP = subDegGR$pVal,
+        DegLfc = subDegGR$logFC,
+        CreGR = subCreGR,
+        CreP = subCreGR$pVal,
+        CreLfc = subCreGR$logFC,
+        reqEffectDirConcord = TRUE,
+        verbose = FALSE
+    )
+
+    # --- Parameter Optimization [degcre] ---
     # Key functions: optimizeAlphaDegCre
-    alphaOptList <- optimizeAlphaDegCre(DegGR=subDegGR,
-    bestAlphaId <- which.max(alphaOptList$alphaPRMat[,4])
-    # --- demo assoc dist plot [] ---
-    # Key functions: plotDegCreAssocProbVsDist
-    par(mai=c(0.8,1.6,0.4,0.1))
-    par(mgp=c(1.7,0.5,0))
-    par(cex.axis=1)
-    # --- demo plot bin algorithm [] ---
-    # Key functions: plotDegCreBinHeuristic
-    par(mai=c(0.8,0.6,0.4,0.1))
-    par(mgp=c(1.7,0.5,0))
-    par(cex.axis=1)
-    # --- demo plot PR curve [] ---
-    # Key functions: degCrePRAUC
-    par(mai=c(0.8,0.6,0.4,0.1))
-    par(mgp=c(1.7,0.5,0))
-    par(cex.axis=1)
-    # --- demo expect associations [] ---
-    # Key functions: getExpectAssocPerDEG
-    expectAssocPerDegDf <- getExpectAssocPerDEG(degCreResList=bestDegCreResList,
-    # --- demo plot expect hist [] ---
-    # Key functions: plotExpectedAssocsPerDeg
-    par(mai=c(0.8,0.6,0.4,0.1))
-    par(mgp=c(1.7,0.5,0))
-    par(cex.axis=1)
-    # --- plot Browser Deg Cre [] ---
+    alphaOptList <- optimizeAlphaDegCre(
+        DegGR = subDegGR,
+        DegP = subDegGR$pVal,
+        DegLfc = subDegGR$logFC,
+        CreGR = subCreGR,
+        CreP = subCreGR$pVal,
+        CreLfc = subCreGR$logFC,
+        reqEffectDirConcord = TRUE,
+        verbose = FALSE
+    )
+    bestAlphaId <- which.max(alphaOptList$alphaPRMat[, 4])
+    bestDegCreResList <- alphaOptList$degCreResListsByAlpha[[bestAlphaId]]
+
+    # --- Association Filtering and Conversion [degcre] ---
+    # Key functions: getExpectAssocPerDEG, convertdegCreResListToGInteraction, convertDegCreDataFrame
+    expectAssocPerDegDf <- getExpectAssocPerDEG(
+        degCreResList = bestDegCreResList,
+        geneNameColName = "GeneSymb",
+        assocAlpha = 0.05
+    )
+    degCreGInter <- convertdegCreResListToGInteraction(
+        degCreResList = bestDegCreResList,
+        assocAlpha = 0.05
+    )
+    degCreDf <- convertDegCreDataFrame(
+        degCreResList = bestDegCreResList,
+        assocAlpha = 0.05
+    )
+
+    # --- Diagnostic and Performance Plotting [degcre] ---
+    # Key functions: plotDegCreAssocProbVsDist, plotDegCreBinHeuristic, degCrePRAUC, plotExpectedAssocsPerDeg
+    binStats <- plotDegCreAssocProbVsDist(
+        degCreResList = bestDegCreResList,
+        assocProbFDRThresh = 0.05
+    )
+    plotDegCreBinHeuristic(degCreResList = bestDegCreResList)
+    degCrePRAUC(degCreResList = bestDegCreResList)
+    plotExpectedAssocsPerDeg(expectAssocPerDegDf = expectAssocPerDegDf)
+
+    # --- Genomic Browser Visualization [degcre] ---
     # Key functions: plotBrowserDegCre
-    browserOuts <- plotBrowserDegCre(degCreResList=bestDegCreResList,
-    # --- demo zoom browser [] ---
-    # Key functions: GRanges
-    zoomGR <- GRanges(seqnames="chr1",
-    ranges=IRanges(start=7900e3,end=8400e3))
-    # --- plot browser2 [] ---
-    # Key functions: plotBrowserDegCre
-    zoomBrowserOuts <- plotBrowserDegCre(degCreResList=bestDegCreResList,
-    # --- plot browser3 [] ---
-    # Key functions: plotBrowserDegCre
-    highLightBrowserOuts <- plotBrowserDegCre(degCreResList=bestDegCreResList,
-    # --- demo convert to DataFrame [] ---
-    # Key functions: convertDegCreDataFrame
-    degCreDf <- convertDegCreDataFrame(degCreResList=bestDegCreResList,
-    head(degCreDf)
-    sessionInfo()
+    zoomGR <- GenomicRanges::GRanges(
+        seqnames = "chr1",
+        ranges = IRanges::IRanges(start = 7900e3, end = 8400e3)
+    )
+    geneHighDf <- data.frame(
+        gene = bestDegCreResList$DegGR$GeneSymb,
+        col = "gray"
+    )
+    geneHighDf[which(geneHighDf$gene == "ERRFI1"), 2] <- "black"
+    highLightBrowserOuts <- plotBrowserDegCre(
+        degCreResList = bestDegCreResList,
+        plotRegionGR = zoomGR,
+        CreSignalName = "NR3C1",
+        geneNameColName = "GeneSymb",
+        geneHighlightDf = geneHighDf,
+        panelTitleFontSize = 8,
+        geneLabelFontsize = 10,
+        plotXbegin = 0.9,
+        plotWidth = 5
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

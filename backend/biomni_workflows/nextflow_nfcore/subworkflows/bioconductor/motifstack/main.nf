@@ -38,105 +38,58 @@ process BIOC_MOTIFSTACK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(motifStack)
     library(DNAmotifToRNAmotif)
     library(jsonlite)
 
-    # --- Checkplatform [] ---
-    # Key functions: set
-    library(knitr)
-    library(motifStack)
-    library(MotifDb)
-    library(ade4)
-    library(ggplot2)
-    # --- Importmatrix [] ---
-    # Key functions: importMatrix, getMatrixSet
-    library(motifStack)
-    library(JASPAR2020)
-    motifs <- importMatrix(getMatrixSet(JASPAR2020,
-                                        list(species="Mus musculus")))
-    plot(motifs[[1]])
-    # --- Importfromfiles [] ---
-    # Key functions: importMatrix
-    RUNX1 <- importMatrix(system.file("extdata", "MA0002.1.jaspar",
-                                      package = "motifStack",
-                                      mustWork = TRUE))[[1]]
-    plot(RUNX1)
-    # --- Dnaseqlogo [] ---
-    # Key functions: path, package, new
-    library(motifStack)
-    pcm <- read.table(file.path(find.package("motifStack"),
-                                "extdata", "bin_SOLEXA.pcm"))
-    pcm <- pcm[,3:ncol(pcm)]
-    rownames(pcm) <- c("A","C","G","T")
-    # --- Seqlogomarkers [] ---
-    # Key functions: new, gpar
-    markerRect <- new("marker", type="rect", start=6, stop=7, gp=gpar(lty=2, fill=NA, col="orange"))
-    markerLine <- new("marker", type="line", start=2, stop=7, gp=gpar(lwd=2, col="red"))
-    markerText <- new("marker", type="text", start=c(1, 5),
-                      label=c("*", "core"), gp=gpar(cex=2, col="red"))
-    motif <- new("pcm", mat=as.matrix(pcm), name="bin_SOLEXA",
-    # --- Seqlogoxaxis [] ---
-    # Key functions: int
-    plot(motif, xaxis=paste0("pos", seq.int(7)+10))
-    # --- Aaseqlogo [] ---
-    # Key functions: path, package, pcm2pfm, new, colorset
-    library(motifStack)
-    protein<-read.table(file.path(find.package("motifStack"),"extdata","cap.txt"))
-    protein<-t(protein[,1:20])
-    motif<-pcm2pfm(protein)
-    motif<-new("pfm", mat=motif, name="CAP",
-    # --- Affinitylogo [] ---
-    # Key functions: new, gpar
-    library(motifStack)
-    motif<-matrix(
-      c(
-        .846, .631, .593, .000, .000, .000, .434, .410, 1.00, .655, .284, .000, .000, .771, .640, .961,
-        .625, .679, .773, 1.00, 1.00, .000, .573, .238, .397, 1.00, 1.00, .000, .298, 1.00, 1.00, .996,
-    # --- Logostack [] ---
-    # Key functions: importMatrix, path, package, motifStack
-    library(motifStack)
-    #####Input#####
-    motifs<-importMatrix(dir(file.path(find.package("motifStack"),
-                                       "extdata"),"pcm$",
-                             full.names = TRUE))
-    # --- Rnalogostack [] ---
-    # Key functions: DNAmotifToRNAmotif, motifStack
-    rnaMotifs <- DNAmotifToRNAmotif(motifs)
-    names(rnaMotifs)
-    motifStack(rnaMotifs, layout = "stack",
-               reorder=FALSE) ## we can also use reorder=FALSE to keep the order of input.
-    # --- Logostack2 [] ---
-    # Key functions: motifStack
-    motif2 <- motif
-    motif2$mat <- motif$mat[, 5:12]
-    motif2$name <- "logo2"
-    psamMotifs <- list(motif, motif2)
-    motifStack(psamMotifs)
-    # --- Treestack [] ---
-    # Key functions: motifStack
-    ## plot stacks with hierarchical tree
-    motifStack(motifs, layout="tree")
-    # --- Radialstack [] ---
-    # Key functions: query, sample
-    ## When the number of motifs is too much to be shown in a vertical stack,
-    ## motifStack can draw them in a radial style.
-    ## random sample from MotifDb
-    library("MotifDb")
-    matrix.fly <- query(MotifDb, "Dmelanogaster")
-    # --- Motifcloud [] ---
-    # Key functions: pal, new, clusterMotifs
-    ## assign groups for motifs
-    groups <- rep(paste("group",1:5,sep=""), each=10)
-    names(groups) <- names(pfms)
-    ## assign group colors
-    group.col <- brewer.pal(5, "Set3")
-    # --- Motifradialphylog [] ---
-    # Key functions: signatures, sigColor, plotMotifStackWithRadialPhylog
-    ## get the signatures from object of motifSignature
-    sig <- signatures(motifSig)
-    ## set the inner-circle color for each signature
-    gpCol <- sigColor(motifSig)
-    ## plot the logo stack with radial style.
+    # --- Motif Import and Object Construction [Importing] ---
+    # Key functions: importMatrix, pcm2pfm
+    pcm_file <- system.file("extdata", "bin_SOLEXA.pcm",
+                            package = "motifStack")
+    pcm_data <- read.table(pcm_file)
+    pcm_data <- pcm_data[, 3:ncol(pcm_data)]
+    rownames(pcm_data) <- c("A", "C", "G", "T")
+    motif_pcm <- new("pcm", mat = as.matrix(pcm_data), name = "bin_SOLEXA")
+    motif_pfm <- pcm2pfm(pcm_data)
+    motif_pfm_obj <- new("pfm", mat = motif_pfm, name = "bin_SOLEXA")
+
+    # --- Single Motif Customization and Plotting [Visualisation] ---
+    # Key functions: colorset, plot
+    markerRect <- new("marker", type = "rect", start = 6, stop = 7,
+                      gp = grid::gpar(lty = 2, fill = NA, col = "orange"))
+    markerLine <- new("marker", type = "line", start = 2, stop = 7,
+                      gp = grid::gpar(lwd = 2, col = "red"))
+    motif_pcm@markers <- c(markerRect, markerLine)
+    motif_pcm@color <- colorset(colorScheme = "basepairing")
+    plot(motif_pcm, ic.scale = FALSE, ylab = "probability", font = "serif")
+
+    # --- Motif Stack Visualization [Visualisation] ---
+    # Key functions: importMatrix, DNAmotifToRNAmotif, motifStack
+    motif_files <- dir(system.file("extdata", package = "motifStack"),
+                       pattern = "pcm$", full.names = TRUE)
+    motifs_list <- importMatrix(motif_files)
+    rna_motifs <- DNAmotifToRNAmotif(motifs_list)
+    motifStack(rna_motifs, layout = "stack", reorder = FALSE)
+
+    # --- Radial Motif Tree Visualization [Visualisation] ---
+    # Key functions: trimMotif, motifStack
+    trimmed_motifs <- lapply(motifs_list, trimMotif, t = 0.4)
+    formatted_motifs <- mapply(trimmed_motifs, names(trimmed_motifs),
+                               FUN = function(.ele, .name) {
+                                   new("pfm", mat = .ele, name = .name)
+                               }, SIMPLIFY = FALSE)
+    motifStack(formatted_motifs, layout = "radialPhylog",
+               circle = 0.3, cleaves = 0.2, clabel.leaves = 0.5,
+               circle.motif = 1.2, angle = 350)
+
+    # --- Motif Clustering and Signature Analysis [Analysis] ---
+    # Key functions: clusterMotifs, motifSignature
+    hc <- clusterMotifs(formatted_motifs)
+    phylog <- ade4::hclust2phylog(hc)
+    ordered_motifs <- formatted_motifs[names(phylog$leaves)]
+    motif_sig <- motifSignature(ordered_motifs, phylog,
+                                cutoffPval = 0.0001, min.freq = 1)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

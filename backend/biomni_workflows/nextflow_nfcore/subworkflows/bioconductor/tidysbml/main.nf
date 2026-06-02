@@ -41,16 +41,39 @@ process BIOC_TIDYSBML {
     library(tidysbml)
     library(jsonlite)
 
-    # --- sbml_as_list [] ---
-    # Key functions: sbml_as_list, as_dfs, as_df
-    if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-    BiocManager::install("tidysbml")
-    # --- Query BioMart annotation [] ---
-    # Key functions: useEnsembl, getBM
-    library(biomaRt)
-    mart <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
-    df_mart_uniprot <- getBM( attributes = c("uniprot_gn_id", "uniprot_gn_symbol",   "description"),
+    # --- SBML to Data Frames Conversion [] ---
+    # Key functions: as_dfs, sbml_as_list
+    sbml_file <- system.file(
+        "extdata", "R-HSA-8937144.sbml",
+        package = "tidysbml"
+    )
+    list_of_dfs_from_file <- as_dfs(
+        sbml_file,
+        type = "file"
+    )
+    sbml_list <- sbml_as_list(sbml_file)
+    list_of_dfs_from_list <- as_dfs(
+        sbml_list,
+        type = "list"
+    )
+
+
+    # --- Component Extraction and Tidy Data Frame Creation [] ---
+    # Key functions: sbml_as_list, as_df
+    sbml_file <- system.file(
+        "extdata", "R-HSA-8937144.sbml",
+        package = "tidysbml"
+    )
+    list_species <- sbml_as_list(
+        sbml_file,
+        component = "species"
+    )
+    df_species <- as_df(list_species)
+    list_react <- sbml_as_list(
+        sbml_file,
+        component = "reactions"
+    )
+    dfs_reactions <- as_df(list_react)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

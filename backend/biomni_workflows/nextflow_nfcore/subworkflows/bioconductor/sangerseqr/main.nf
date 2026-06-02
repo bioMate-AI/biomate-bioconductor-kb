@@ -41,52 +41,36 @@ process BIOC_SANGERSEQR {
     library(sangerseqR)
     library(jsonlite)
 
-    # --- Abif [] ---
-    # Key functions: abif
-    ---------------------------------------------------------------------
-    hetab1 <- read.abif(system.file("extdata",
-                                    "heterozygous.ab1",
-                                    package="sangerseqR"))
-    str(hetab1, list.len=20)
-    # --- Scf [] ---
-    # Key functions: scf
-    ---------------------------------------------------------------------
-    homoscf <- read.scf(system.file("extdata",
-                                    "homozygous.scf",
-                                    package="sangerseqR"))
-    str(homoscf)
-    # --- Sangerseq [] ---
-    # Key functions: sangerseq, readsangerseq
-    ---------------------------------------------------------------------
-    #from a sequence file object
-    homosangerseq <- sangerseq(homoscf)
-    #directly from the file
-    hetsangerseq <- readsangerseq(system.file("extdata",
-    # --- Primaryseq [] ---
-    # Key functions: primarySeq, reverseComplement
-    ---------------------------------------------------------------------
-    #default is to return a DNAString object
-    Seq1 <- primarySeq(homosangerseq)
-    reverseComplement(Seq1)
-    #can return as string
-    # --- Makebasecalls [] ---
-    # Key functions: makeBaseCalls
-    ---------------------------------------------------------------------
-    hetcalls <- makeBaseCalls(hetsangerseq, ratio=0.33)
-    hetcalls
-    # --- Subseq [] ---
-    # Key functions: subseq, primarySeq, setAllelePhase
-    ---------------------------------------------------------------------
-    ref <- subseq(primarySeq(homosangerseq, string=TRUE), start=30, width=500)
-    hetseqalleles <- setAllelePhase(hetcalls, ref, trim5=50, trim3=300)
-    hetseqalleles
-    # --- Pairwisealignment [] ---
-    # Key functions: pairwiseAlignment, primarySeq, secondarySeq, writePairwiseAlignments
-    ---------------------------------------------------------------------
-    pa <- pairwiseAlignment(primarySeq(hetseqalleles)[1:400],
-                            secondarySeq(hetseqalleles)[1:400],
-                            type="global-local")
-    writePairwiseAlignments(pa)
+    # --- Base Calling [] ---
+    # Key functions: makeBaseCalls, primarySeq, secondarySeq
+    het_calls <- makeBaseCalls(het_sanger, ratio=0.33)
+    p_seq <- primarySeq(het_calls, string=TRUE)
+    s_seq <- secondarySeq(het_calls, string=TRUE)
+
+
+    # --- Chromatogram Visualisation [] ---
+    # Key functions: chromatogram
+    chromatogram(het_sanger, width=80, height=3, trim5=50, trim3=100,
+                 showcalls="both")
+    chromatogram(het_calls, width=80, height=3, trim5=50, trim3=100,
+                 showcalls="both")
+
+
+    # --- Allele Phasing [] ---
+    # Key functions: setAllelePhase, primarySeq
+    ref_seq <- Biostrings::subseq(primarySeq(homo_sanger, string=TRUE),
+                                  start=30, width=500)
+    het_alleles <- setAllelePhase(het_calls, ref_seq, trim5=50, trim3=300)
+
+
+    # --- Sequence Alignment [] ---
+    # Key functions: primarySeq, secondarySeq
+    pa <- Biostrings::pairwiseAlignment(
+        primarySeq(het_alleles)[1:400],
+        secondarySeq(het_alleles)[1:400],
+        type="global-local"
+    )
+    Biostrings::writePairwiseAlignments(pa)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

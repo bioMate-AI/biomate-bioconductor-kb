@@ -44,24 +44,30 @@ process BIOC_GENOMICFILES {
     library(ScanBamParam)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges
-    gr <- GRanges("chr14", IRanges(c(19100000, 106000000), width=1e7))
-    # --- Count overlapping genomic regions [] ---
-    # Key functions: unlist, requireNamespace, countOverlaps, BamFile
-    FUN <- function(file, gr, YIELD, MAP, REDUCE, tiles, ...) {
-    requireNamespace("GenomicAlignments") ## for BamFile, readGAlignments()
-    requireNamespace("GenomicFiles") ## for reduceByYield()
-    # --- Compute genomic coverage [] ---
-    # Key functions: requireNamespace, ScanBamParam, coverage
-    MAP = function(range, file, ...) {
-    requireNamespace("GenomicAlignments")  ## for ScanBamParam() and coverage()
-    GenomicAlignments::coverage(
-    # --- Sequence level inspection [] ---
-    # Key functions: requireNamespace, pileup, reduceByFile, xtabs, reduceByRange, GenomicFiles, include_graphics, bam2R
-    MAP = function(range, file, ...) {
-    requireNamespace("GenomicAlignments") ## for ScanBamParam() and coverage()
-    param = Rsamtools::ScanBamParam(which=range)
+    # --- File-by-File Reduction [] ---
+    # Key functions: reduceByFile
+    MAP <- function(range, file, ...) {
+        requireNamespace("Rsamtools")
+        Rsamtools::pileup(file,
+            scanBamParam = Rsamtools::ScanBamParam(which = range)
+        )
+    }
+    se <- reduceByFile(gr, fls, MAP, summarize = TRUE)
+
+
+    # --- Range-by-Range Reduction [] ---
+    # Key functions: reduceByRange
+    MAP <- function(range, file, ...) {
+        requireNamespace("Rsamtools")
+        Rsamtools::pileup(file,
+            scanBamParam = Rsamtools::ScanBamParam(which = range)
+        )
+    }
+    REDUCE <- function(mapped, ...) {
+        cmb <- do.call(rbind, mapped)
+        xtabs(count ~ pos + nucleotide, cmb)
+    }
+    lst <- reduceByRange(gr, fls, MAP, REDUCE, iterate = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

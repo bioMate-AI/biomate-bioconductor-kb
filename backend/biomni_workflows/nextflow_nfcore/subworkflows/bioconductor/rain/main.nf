@@ -41,24 +41,32 @@ process BIOC_RAIN {
     library(rain)
     library(jsonlite)
 
-    # --- Rain [] ---
+    # --- Rhythmicity Analysis [] ---
     # Key functions: rain
-    require(rain)
-    rainresult <- rain(measure, period=24,
-                    deltat=2, peak.border=c(0.1,0.9),
-                    verbose=FALSE
+    data("menetRNASeqMouseLiver", package = "rain")
+    rain_results <- rain(
+        x = t(menetRNASeqMouseLiver[1:100, ]),
+        deltat = 4,
+        period = 24,
+        nr.series = 2,
+        peak.border = c(0.3, 0.7),
+        verbose = FALSE
     )
-    # --- Data [] ---
-    # Key functions: data
-    data(menetRNASeqMouseLiver)
-    colnames(menetRNASeqMouseLiver)
-    # --- Rain [] ---
-    # Key functions: rain, xyplot
-    results <- rain(t(menetRNASeqMouseLiver), deltat=4, period=24, nr.series=2,
-                    peak.border=c(0.3, 0.7), verbose=FALSE)
-    best <- order(results$pVal)[1:10]
-    xyplot(as.matrix(menetRNASeqMouseLiver
-                [best, (0:5 * 2 + rep(c(1, 2), each = 6))])
+
+
+    # --- Significance Filtering [] ---
+    # Key functions: rain
+    data("menetRNASeqMouseLiver", package = "rain")
+    rain_results <- rain(
+        x = t(menetRNASeqMouseLiver[1:100, ]),
+        deltat = 4,
+        period = 24,
+        nr.series = 2,
+        verbose = FALSE
+    )
+    p_values <- rain_results$pVal
+    ordered_indices <- order(p_values)
+    top_rhythmic_genes <- rain_results[ordered_indices[1:10], ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,66 +41,49 @@ process BIOC_LEA {
     library(LEA)
     library(jsonlite)
 
-    # --- Numeric [] ---
-    # Key functions: sample, lfmm
-    ---------------------------------------------------------------------
-    # creation of a genotype matrix  with missing genotypes
-    dat = as.numeric(tutorial.R)
-    dat[sample(1:length(dat), 100)] <-  9
-    dat <- matrix(dat, nrow = 50, ncol = 400)
-    # --- Min [] ---
-    # Key functions: entropy, impute, lfmm
-    ---------------------------------------------------------------------
-    # select the run with the lowest cross-entropy value
-    best = which.min(cross.entropy(project.missing, K = 4))
-    # Impute the missing genotypes
-    impute(project.missing, "genoM.lfmm",
-    # --- Pvalues [] ---
-    # Key functions: pvalues
-    ---------------------------------------------------------------------
-    # compute adjusted p-values
-    p = lfmm.pvalues(project, K = 6)
-    pvalues = p$pvalues
-    # --- Data [] ---
-    # Key functions: lfmm2
-    ---------------------------------------------------------------------
-    # load simulated data
-    data("offset_example")
-    # 200 diploid individuals genotyped at 510 SNP
-    Y <- offset_example$geno
-    # --- Matrix [] ---
-    # Key functions: rnorm, sample, runif
-    ---------------------------------------------------------------------
-    # Simulate non-null effect sizes for 10 target loci
-    #individuals
-    n = 100
-    #loci
-    # --- Tcrossprod [] ---
-    # Key functions: tcrossprod, rnorm
-    ---------------------------------------------------------------------
-    # Simulate a matrix containing haploid genotypes
-    Y <-  tcrossprod(as.matrix(X), B) +
-          tcrossprod(U, V) +
-          matrix(rnorm(n*L, sd = .5), nrow = n)
-    # --- Lfmm2 [] ---
-    # Key functions: lfmm2
-    ---------------------------------------------------------------------
-    # Fitting an LFMM with K = 3 factors
-    mod <- lfmm2(input = Y, env = X, K = 3)
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+    # --- Principal Component Analysis [] ---
+    # Key functions: pca, tracy.widom
+    pc <- pca("genotypes.lfmm", scale = TRUE)
+    tw <- tracy.widom(pc)
+    plot(tw$percentage, pch = 19, col = "darkblue", cex = 0.8)
+
+
+    # --- Population Structure Inference [] ---
+    # Key functions: snmf, cross.entropy, barchart, snmf.pvalues
+    project <- snmf("genotypes.geno", K = 1:5, entropy = TRUE,
+                    repetitions = 5, project = "new")
+    best <- which.min(cross.entropy(project, K = 4))
+    bp <- barchart(project, K = 4, run = best, border = NA, space = 0)
+    p <- snmf.pvalues(project, entropy = TRUE, ploidy = 2, K = 4)
+
+
+    # --- Missing Genotype Imputation [] ---
+    # Key functions: snmf, impute, read.lfmm
+    project.missing <- snmf("genoM.lfmm", K = 4, entropy = TRUE,
+                            repetitions = 5, project = "new")
+    best <- which.min(cross.entropy(project.missing, K = 4))
+    impute(project.missing, "genoM.lfmm", method = "mode", K = 4,
+           run = best)
+    dat.imp <- read.lfmm("genoM.lfmm_imputed.lfmm")
+
+
+    # --- Latent Factor Mixed Models [] ---
+    # Key functions: lfmm, lfmm.pvalues
+    project <- lfmm("genotypes.lfmm", "gradients.env", K = 6,
+                    repetitions = 5, project = "new")
+    p <- lfmm.pvalues(project, K = 6)
+    pvalues <- p$pvalues
+    hist(pvalues, col = "lightblue")
+
+
+    # --- Association Testing with LFMM2 [] ---
+    # Key functions: lfmm2, lfmm2.test
     data("offset_example")
     Y <- offset_example$geno
     X <- offset_example$env
-    X.pred <- offset_example$env.pred
-    # --- Gap [] ---
-    # Key functions: gap
-    ---------------------------------------------------------------------
-    g.gap.scaled <- genetic.gap(input = Y,
-                               env = X,
-                               pred.env = X.pred,
-                               scale = TRUE,
+    mod.lfmm2 <- lfmm2(input = Y, env = X, K = 2)
+    pv <- lfmm2.test(object = mod.lfmm2, input = Y, env = X, full = TRUE)
+    plot(-log10(pv$pvalues), col = "grey", cex = 0.5, pch = 19)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

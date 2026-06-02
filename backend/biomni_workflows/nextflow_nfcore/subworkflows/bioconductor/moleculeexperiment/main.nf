@@ -41,93 +41,79 @@ process BIOC_MOLECULEEXPERIMENT {
     library(MoleculeExperiment)
     library(jsonlite)
 
-    # --- Ggplot Me [] ---
-    # Key functions: ggplot_me, geom_polygon_me, geom_point_me, coord_cartesian
-    ---------------------------------------------------------------------
-    ggplot_me() +
-      geom_polygon_me(me, assayName = "cell", fill = "grey") +
-      geom_point_me(me) +
-      # zoom in to selected patch area
-    # --- Countmolecules [] ---
-    # Key functions: countMolecules
-    ---------------------------------------------------------------------
-    # transform ME to SPE object
-    spe <- countMolecules(me)
-    spe
-    # --- Frame [] ---
-    # Key functions: frame, runif
-    ---------------------------------------------------------------------
-    moleculesDf <- data.frame(
-      sample_id = rep(c("sample1", "sample2"), times = c(30, 20)),
-      features = rep(c("gene1", "gene2"), times = c(20, 30)),
-      x_coords = runif(50),
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    boundariesDf <- data.frame(
-      sample_id = rep(c("sample1", "sample2"), times = c(16, 6)),
-      cell_id = rep(
-        c(
-    # --- Dataframetomelist [] ---
-    # Key functions: dataframeToMEList
-    ---------------------------------------------------------------------
-    moleculesMEList <- dataframeToMEList(moleculesDf,
-      dfType = "molecules",
-      assayName = "detected",
-      sampleCol = "sample_id",
-    # --- Moleculeexperiment [] ---
-    # Key functions: MoleculeExperiment
-    ---------------------------------------------------------------------
-    toyME <- MoleculeExperiment(
-      molecules = moleculesMEList,
-      boundaries = boundariesMEList
+    # --- Import Spatial Transcriptomics Data [Data Loading] ---
+    # Key functions: readXenium, readCosmx, readMerscope
+    repo_xenium <- system.file("extdata", package = "MoleculeExperiment")
+    repo_xenium <- paste0(repo_xenium, "/xenium_V1_FF_Mouse_Brain")
+    me_xenium <- readXenium(
+        repo_xenium,
+        keepCols = "essential",
+        addBoundaries = "cell"
     )
-    # --- Ggplot Me [] ---
-    # Key functions: ggplot_me, geom_polygon_me, geom_point_me, theme_classic
-    ---------------------------------------------------------------------
-    ggplot_me() +
-      geom_polygon_me(toyME, assayName = "cell", byFill = "segment_id", colour = "black", alpha = 0.3) +
-      geom_polygon_me(toyME, assayName = "BIDcell_segmentation", fill = NA, colour = "red" ) +
-      geom_point_me(toyME, assayName = "detected", byColour = "feature_id", size = 1) +
-    # --- Showmolecules [] ---
-    # Key functions: showMolecules
-    ---------------------------------------------------------------------
-    showMolecules(me)
-    # --- Showboundaries [] ---
-    # Key functions: showBoundaries
-    ---------------------------------------------------------------------
-    showBoundaries(me)
-    # --- Molecules [] ---
-    # Key functions: molecules
-    ---------------------------------------------------------------------
-    molecules(me, assayName = "detected", flatten = TRUE)
-    # --- Boundaries [] ---
-    # Key functions: boundaries
-    ---------------------------------------------------------------------
-    boundaries(me, assayName = "cell", flatten = TRUE)
-    # --- Features [] ---
-    # Key functions: features
-    ---------------------------------------------------------------------
-    # get features in sample 1
-    features(me, assayName = "detected")[[1]]
-    # --- Segmentids [] ---
-    # Key functions: segmentIDs
-    ---------------------------------------------------------------------
-    segmentIDs(me, "cell")
-    # --- Ggplot Me [] ---
-    # Key functions: ggplot_me, geom_polygon_me, geom_point_me, coord_cartesian
-    ---------------------------------------------------------------------
-    ggplot_me() +
-      # add cell segments and colour by cell id
-      geom_polygon_me(me, byFill = "segment_id", colour = "black", alpha = 0.1) +
-      # add molecule points and colour by feature name
-    # --- Extent [] ---
-    # Key functions: extent, subset_by_extent, ggplot_me, geom_polygon_me, geom_point_me, ggtitle
-    ---------------------------------------------------------------------
-    new_extent = extent(meMerscope, "detected") - c(0, 100, 0, 0)
-    # new_extent = c(xmin = 924, xmax = 950, ymin = 26290, ymax = 26330)
-    new_extent
-    me_sub = subset_by_extent(meMerscope, new_extent)
+    repo_cosmx <- system.file("extdata", package = "MoleculeExperiment")
+    repo_cosmx <- paste0(repo_cosmx, "/nanostring_Lung9_Rep1")
+    me_cosmx <- readCosmx(
+        repo_cosmx,
+        keepCols = "essential",
+        addBoundaries = "cell"
+    )
+
+    # --- Custom Object Construction [Data Processing] ---
+    # Key functions: dataframeToMEList, MoleculeExperiment
+    molecules_df <- data.frame(
+        sample_id = rep(c("sample1", "sample2"), times = c(30, 20)),
+        features = rep(c("gene1", "gene2"), times = c(20, 30)),
+        x_coords = runif(50),
+        y_coords = runif(50)
+    )
+    mol_list <- dataframeToMEList(
+        molecules_df,
+        dfType = "molecules",
+        assayName = "detected",
+        sampleCol = "sample_id",
+        factorCol = "features",
+        xCol = "x_coords",
+        yCol = "y_coords"
+    )
+    toy_me <- MoleculeExperiment(molecules = mol_list)
+
+    # --- Segmentation Mask Integration [Boundary Processing] ---
+    # Key functions: readSegMask, boundaries<-, extent
+    repo_dir <- system.file("extdata", package = "MoleculeExperiment")
+    seg_mask <- paste0(repo_dir, "/BIDcell_segmask.tif")
+    boundaries(toy_me, "BIDcell_segmentation") <- readSegMask(
+        extent(toy_me, assayName = "detected"),
+        path = seg_mask,
+        assayName = "BIDcell_segmentation",
+        sample_id = "sample1",
+        background_value = 0
+    )
+
+    # --- Feature and Boundary Extraction [Data Extraction] ---
+    # Key functions: molecules, boundaries, features, segmentIDs
+    mol_flat <- molecules(me_xenium, assayName = "detected", flatten = TRUE)
+    bound_flat <- boundaries(me_xenium, assayName = "cell", flatten = TRUE)
+    feats <- features(me_xenium, assayName = "detected")[[1]]
+    seg_ids <- segmentIDs(me_xenium, "cell")
+
+    # --- Molecule Quantification [Quantification] ---
+    # Key functions: countMolecules
+    spe <- countMolecules(me_xenium)
+
+    # --- Spatial Visualization [Visualisation] ---
+    # Key functions: ggplot_me, geom_polygon_me, geom_point_me
+    p <- ggplot_me() +
+        geom_polygon_me(
+            me_xenium,
+            assayName = "cell",
+            fill = "grey"
+        ) +
+        geom_point_me(
+            me_xenium,
+            byColour = "feature_id",
+            selectFeatures = c("Nrn1", "Slc17a7")
+        )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

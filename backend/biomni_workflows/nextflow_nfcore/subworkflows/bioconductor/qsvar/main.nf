@@ -38,77 +38,83 @@ process BIOC_QSVAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(qsvaR)
     library(BiocFileCache)
     library(DEqual)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- "install" [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("qsvaR")
-    # --- "Download demo dataset" [] ---
-    # Key functions: BiocFileCache, bfcrpath
-    bfc <- BiocFileCache::BiocFileCache()
-    rse_file <- BiocFileCache::bfcrpath(
-    load(rse_file, verbose = TRUE)
-    # --- "Get Degraded Transcripts" [] ---
+    # --- Identify Degraded Transcripts [] ---
     # Key functions: getDegTx
-    DegTx <- getDegTx(rse_tx, type = "cell_component")
-    dim(DegTx)
-    # --- "getPCs demo" [] ---
-    # Key functions: getPCs
-    pcTx <- getPCs(rse_tx = DegTx, assayname = "tpm")
-    # --- "k qsvs demo" [] ---
-    # Key functions: k_qsvs
-    mod <- model.matrix(~ Dx + Age + Sex + Race + Region,
-    data = colData(rse_tx)
-    random seed with the set.seed() function. Internally, we are using
-    # --- "get qsvs demo" [] ---
-    # Key functions: get_qsvs
-    qsvs <- get_qsvs(qsvPCs = pcTx, k = k)
-    dim(qsvs)
-    # --- "wrapper function" [] ---
+    DegTx <- getDegTx(
+        rse_tx = rse_tx,
+        type = "cell_component"
+    )
+    deg_summary <- list(
+        dimensions = dim(DegTx),
+        features = head(rownames(DegTx))
+    )
+
+    # --- Calculate Quality Surrogate Variables [] ---
+    # Key functions: getPCs, k_qsvs, get_qsvs
+    pcTx <- getPCs(
+        rse_tx = DegTx,
+        assayname = "tpm"
+    )
+    mod <- model.matrix(
+        ~ Dx + Age + Sex + Race + Region,
+        data = colData(rse_tx)
+    )
+    k <- k_qsvs(
+        rse_tx = DegTx,
+        mod = mod,
+        assayname = "tpm"
+    )
+    qsvs <- get_qsvs(
+        qsvPCs = pcTx,
+        k = k
+    )
+
+    # --- Wrapper Quality Surrogate Variable Analysis [] ---
     # Key functions: qSVA
-    random seed with the set.seed() function. Internally, we are using
-    sva::num.sv() which needs a random seed to ensure reproducibility of the
-    set.seed(20230621)
-    # --- "perform DE" [] ---
-    # Key functions: lmFit, eBayes, topTable
-    rse_tx <- rse_tx[rowData(rse_tx)$passExprsCut, ]
+    mod <- model.matrix(
+        ~ Dx + Age + Sex + Race + Region,
+        data = colData(rse_tx)
+    )
+    qsvs_wrapper <- qSVA(
+        rse_tx = rse_tx,
+        type = "cell_component",
+        mod = mod,
+        assayname = "tpm"
+    )
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: assays, rowData
+    rse_tx_filtered <- rse_tx[rowData(rse_tx)$passExprsCut, ]
     mod_qSVA <- cbind(mod, qsvs)
-    txExprs <- log2(assays(rse_tx)$tpm + 1)
-    # --- "perform DE without qSVs" [] ---
-    # Key functions: lmFit, eBayes, topTable
-    txExprs_noqsv <- log2(assays(rse_tx)$tpm + 1)
-    fitTx_noqsv <- lmFit(txExprs_noqsv, mod)
-    eBTx_noqsv <- eBayes(fitTx_noqsv)
-    # --- "Generate DEqual without qSVs" [] ---
+    txExprs <- log2(assays(rse_tx_filtered)$tpm + 1)
+    fitTx <- limma::lmFit(txExprs, mod_qSVA)
+    eBTx <- limma::eBayes(fitTx)
+    sigTx <- limma::topTable(
+        eBTx,
+        coef = 2,
+        p.value = 1,
+        number = nrow(rse_tx_filtered)
+    )
+
+    # --- Quality Control and Evaluation [] ---
     # Key functions: DEqual
-    Generate a DEqual() plot using the model results without qSVs
+    DE_noqsv <- data.frame(
+        t = sigTx_noqsv$t,
+        row.names = rownames(sigTx_noqsv)
+    )
+    DE_qsv <- data.frame(
+        t = sigTx$t,
+        row.names = rownames(sigTx)
+    )
     DEqual(DE_noqsv)
-    # --- "Generate DEqual with qSVs" [] ---
-    # Key functions: DEqual
-    Generate a DEqual() plot using the model results with qSVs
-    DEqual(DE)
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("Intro_qsvaR.Rmd", "BiocStyle::html_document"))
-    library("knitr")
-    # --- diff [] ---
-    # Key functions: diff
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
-    # --- session_info [] ---
-    # Key functions: session_info
-    library("sessioninfo")
-    options(width = 120)
-    session_info()
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
-    PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
+    DEqual(DE_qsv)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

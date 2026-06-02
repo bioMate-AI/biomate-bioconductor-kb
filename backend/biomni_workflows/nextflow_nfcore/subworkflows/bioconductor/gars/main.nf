@@ -38,6 +38,7 @@ process BIOC_GARS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GARS)
     library(AllPop)
     library(FitScore)
     library(GARS_GA)
@@ -46,24 +47,75 @@ process BIOC_GARS {
     library(MatrixFeatures)
     library(jsonlite)
 
-    # --- chu 2 [] ---
+    # --- Genetic Algorithm Feature Selection [] ---
     # Key functions: GARS_GA
-    set.seed(123)
     res_GA <- GARS_GA(data=datanorm,
-    classes = colData(datanorm),
-    # --- chu 2 bis [] ---
+                     classes = SummarizedExperiment::colData(datanorm),
+                     chr.num = 100,
+                     chr.len = 8,
+                     generat = 20,
+                     co.rate = 0.8,
+                     mut.rate = 0.1,
+                     n.elit = 10,
+                     type.sel = "RW",
+                     type.co = "one.p",
+                     type.one.p.co = "II.quart",
+                     n.gen.conv = 150,
+                     plots="no",
+                     verbose="no")
+
+
+    # --- Fitness and Feature Usage Analysis [] ---
     # Key functions: FitScore, GARS_PlotFitnessEvolution, AllPop, GARS_PlotFeaturesUsage
     fitness_scores <- FitScore(res_GA)
     GARS_PlotFitnessEvolution(fitness_scores)
     Allfeat_names <- rownames(datanorm)
-    # --- chu 3 [] ---
-    # Key functions: MatrixFeatures
+    Allpopulations <- AllPop(res_GA)
+    GARS_PlotFeaturesUsage(Allpopulations,
+                           Allfeat_names,
+                           nFeat = 10)
+
+
+    # --- Feature Extraction and Classification [] ---
+    # Key functions: MatrixFeatures, DaMiR.MDSplot, DaMiR.Clustplot, DaMiR.EnsembleLearning
     data_reduced_GARS <- MatrixFeatures(res_GA)
     data_reduced_DaMiR <- as.data.frame(data_reduced_GARS)
-    classes_DaMiR <- as.data.frame(colData(datanorm))
-    # --- to Latex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    classes_DaMiR <- as.data.frame(SummarizedExperiment::colData(datanorm))
+    colnames(classes_DaMiR) <- "class"
+    rownames(classes_DaMiR) <- rownames(data_reduced_DaMiR)
+    DaMiRseq::DaMiR.MDSplot(data_reduced_DaMiR, classes_DaMiR)
+    DaMiRseq::DaMiR.Clustplot(data_reduced_DaMiR, classes_DaMiR)
+    Classification.res <- DaMiRseq::DaMiR.EnsembleLearning(
+        data_reduced_DaMiR,
+        as.factor(classes_DaMiR$class),
+        iter=5
+    )
+
+
+    # --- Feature Size Optimization [] ---
+    # Key functions: GARS_GA, FitScore, MatrixFeatures
+    populs <- list()
+    k <- 1
+    for (ik in c(7, 8, 9)) {
+        populs[[k]] <- GARS_GA(data=datanorm,
+                              classes = SummarizedExperiment::colData(datanorm),
+                              chr.num = 50,
+                              chr.len = ik,
+                              generat = 10,
+                              co.rate = 0.8,
+                              mut.rate = 0.1,
+                              n.elit = 5,
+                              type.sel = "RW",
+                              type.co = "one.p",
+                              type.one.p.co = "II.quart",
+                              n.gen.conv = 100,
+                              plots = "no",
+                              verbose="no")
+        k <- k + 1
+    }
+    max_fit <- sapply(populs, function(x) max(FitScore(x)))
+    best_popul <- populs[[which.max(max_fit)]]
+    best_features <- MatrixFeatures(best_popul)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

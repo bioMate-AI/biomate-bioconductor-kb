@@ -38,48 +38,56 @@ process BIOC_SSPATHS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ssPATHS)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Summarizedexperiment [] ---
-    # Key functions: SummarizedExperiment, colData
-    tcga_se <- SummarizedExperiment(t(tcga_expr_df[ , -(1:4)]),
-                                    colData=tcga_expr_df[ , 2:4])
+    # --- Data Preparation [get_hypoxia_genes] ---
+    # Key functions: get_hypoxia_genes
+    data(tcga_expr_df)
+    tcga_se <- SummarizedExperiment::SummarizedExperiment(
+        t(tcga_expr_df[, -(1:4)]),
+        colData = tcga_expr_df[, 2:4]
+    )
     colnames(tcga_se) <- tcga_expr_df$tcga_id
-    colData(tcga_se)$sample_id <- tcga_expr_df$tcga_id
-    # --- Get Hypoxia Genes [] ---
-    # Key functions: get_hypoxia_genes, intersect
+    SummarizedExperiment::colData(tcga_se)$sample_id <- tcga_expr_df$tcga_id
+    SummarizedExperiment::colData(tcga_se)$Y <- ifelse(
+        SummarizedExperiment::colData(tcga_se)$is_normal, 0, 1
+    )
     hypoxia_gene_ids <- get_hypoxia_genes()
     hypoxia_gene_ids <- intersect(hypoxia_gene_ids, rownames(tcga_se))
-    # --- Coldata [] ---
-    # Key functions: colData, ifelse
-    colData(tcga_se)$Y <- ifelse(colData(tcga_se)$is_normal, 0, 1)
-    # --- Get Gene Weights [] ---
+
+    # --- Gene Weight Estimation [get_gene_weights] ---
     # Key functions: get_gene_weights
-    res <- get_gene_weights(tcga_se, hypoxia_gene_ids, unidirectional=TRUE)
+    res <- get_gene_weights(
+        tcga_se,
+        hypoxia_gene_ids,
+        unidirectional = TRUE
+    )
     gene_weights <- res[[1]]
     sample_scores <- res[[2]]
-    # --- Get Classification Accuracy [] ---
+
+    # --- Model Evaluation [get_classification_accuracy] ---
     # Key functions: get_classification_accuracy
-    training_res <- get_classification_accuracy(sample_scores, positive_val=1)
-    # plot the ROC curve
-    plot(training_res[[4]], col="blue", ylim=c(0, 1))
-    roc_text <- paste("AUC:", round(training_res$auc_roc,3))
-    legend(0.1,0.8, roc_text,
-    # --- Data [] ---
-    # Key functions: SummarizedExperiment, colData, get_new_samp_score
+    training_res <- get_classification_accuracy(
+        sample_scores,
+        positive_val = 1
+    )
+    roc_perf <- training_res[[4]]
+    pr_perf <- training_res[[3]]
+    auc_roc_val <- training_res$auc_roc
+    auc_pr_val <- training_res$auc_pr
+
+    # --- New Sample Scoring [get_new_samp_score] ---
+    # Key functions: get_new_samp_score
     data(new_samp_df)
-    new_samp_se <- SummarizedExperiment(t(new_samp_df[ , -(1)]),
-                                        colData=new_samp_df[ , 1, drop=FALSE])
-    colnames(colData(new_samp_se)) <- "sample_id"
+    new_samp_se <- SummarizedExperiment::SummarizedExperiment(
+        t(new_samp_df[, -1]),
+        colData = new_samp_df[, 1, drop = FALSE]
+    )
+    colnames(SummarizedExperiment::colData(new_samp_se)) <- "sample_id"
     new_score_df <- get_new_samp_score(gene_weights, new_samp_se)
-    # --- Function [] ---
-    # Key functions: ggplot, aes, geom_boxplot, theme
-    plot_scores <- function(hif_scores){
-        # format the sample IDS
-        hif_scores$sample_type <- substr(hif_scores$sample_id, 1,
-                                      nchar((hif_scores$sample_id))-2)
-        colnames(hif_scores)[2] <- "pathway_score"
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

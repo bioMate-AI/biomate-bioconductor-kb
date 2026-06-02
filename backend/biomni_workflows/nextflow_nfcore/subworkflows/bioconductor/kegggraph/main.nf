@@ -38,93 +38,35 @@ process BIOC_KEGGGRAPH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(KEGGgraph)
     library(KEGGpathway2Graph)
     library(KEGGpathway2reactionGraph)
     library(jsonlite)
 
-    # --- Remoteretrieval [] ---
-    # Key functions: tempfile, retrieveKGML
-    tmp <- tempfile()
-    retrieveKGML("04115", organism="mcf", destfile=tmp, method="auto", quiet=TRUE)
-    # --- Parsemapk [] ---
-    # Key functions: parseKGML2Graph
-    mapkG <- parseKGML2Graph(mapkKGML,expandGenes=TRUE)
-    mapkG
-    # --- Parsemapk2 [] ---
-    # Key functions: parseKGML, KEGGpathway2Graph
-    mapkpathway <- parseKGML(mapkKGML)
-    mapkpathway
-    mapkG2 <- KEGGpathway2Graph(mapkpathway, expandGenes=TRUE)
-    mapkG2
-    # --- Nodeandedge [] ---
-    # Key functions: nodes, edges
+    # --- Extracting Node and Edge Data [] ---
+    # Key functions: getKEGGnodeData, getKEGGedgeData, translateKEGGID2GeneID
     mapkNodes <- nodes(mapkG)
-    nodes(mapkG)[1:3]
     mapkEdges <- edges(mapkG)
-    edges(mapkG)[1]
-    # --- Keggnodedata [] ---
-    # Key functions: getKEGGnodeData
-    mapkGnodedata <- getKEGGnodeData(mapkG)
-    mapkGnodedata[[2]]
-    # --- Keggnodedataalt [] ---
-    # Key functions: getKEGGnodeData
-    getKEGGnodeData(mapkG, 'hsa:5924')
-    # --- Keggedgedata [] ---
-    # Key functions: getKEGGedgeData
-    mapkGedgedata <- getKEGGedgeData(mapkG)
-    mapkGedgedata[[4]]
-    # --- Keggedgedataalt [] ---
-    # Key functions: getKEGGedgeData
-    getKEGGedgeData(mapkG,'hsa:627~hsa:4915')
-    # --- Inout [] ---
-    # Key functions: edges, inEdges
-    mapkGoutdegrees <- sapply(edges(mapkG), length)
-    mapkGindegrees <- sapply(inEdges(mapkG), length)
-    topouts <- sort(mapkGoutdegrees, decreasing=T)
-    topins <- sort(mapkGindegrees, decreasing=T)
-    topouts[1:3]
-    # --- Subsetprepare [] ---
-    # Key functions: sample, nodes, subGraph
-    library(Rgraphviz)
-    set.seed(123)
-    randomNodes <- sample(nodes(mapkG), 25)
-    mapkGsub <- subGraph(randomNodes, mapkG)
-    mapkGsub
-    # --- Makeattr [] ---
-    # Key functions: nodes, missing
-    makeAttr <- function(graph, default, valNodeList) {
-      tmp <- nodes(graph)
-      x <- rep(default, length(tmp)); names(x) <- tmp
-      if(!missing(valNodeList)) {
-        stopifnot(is.list(valNodeList))
-    # --- Subsetplot [] ---
-    # Key functions: edges, inEdges, translateKEGGID2GeneID, mget
-    outs <- sapply(edges(mapkGsub), length) > 0
-    ins <- sapply(inEdges(mapkGsub), length) > 0
-    ios <- outs | ins
-    ## translate the KEGG IDs into Gene Symbol
-    if(require(org.Hs.eg.db)) {
-    # --- Mergedemo [] ---
-    # Key functions: parseKGML2Graph, mergeGraphs
-    wntKGML <- system.file("extdata/hsa04310.xml",package="KEGGgraph")
+    node_data <- getKEGGnodeData(mapkG)
+    edge_data <- getKEGGedgeData(mapkG)
+    gene_ids <- translateKEGGID2GeneID(mapkNodes[1:5])
+
+
+    # --- Graph Merging and Subgraphing [] ---
+    # Key functions: mergeGraphs, subGraphByNodeType, parseKGMLexpandMaps
+    wntKGML <- system.file("extdata/hsa04310.xml", package="KEGGgraph")
     wntG <- parseKGML2Graph(wntKGML)
-    graphs <- list(mapk=mapkG, wnt=wntG)
-    merged <- mergeGraphs(graphs)
-    merged
-    # --- Bcc [] ---
-    # Key functions: centrality
-    library(RBGL)
-    bcc <- brandes.betweenness.centrality(mapkG)
-    rbccs <- bcc$relative.betweenness.centrality.vertices[1L,]
-    toprbccs <- sort(rbccs,decreasing=TRUE)[1:4]
-    toprbccs
-    # --- Bccplot [] ---
-    # Key functions: inEdges, edges, unname
-    toprbccName <- names(toprbccs)
-    toprin <- sapply(toprbccName, function(x) inEdges(mapkG)[x])
-    toprout <- sapply(toprbccName, function(x) edges(mapkG)[x])
-    toprSubnodes <- unique(unname(c(unlist(toprin), unlist(toprout), toprbccName)))
-    toprSub <- subGraph(toprSubnodes, mapkG)
+    merged_graph <- mergeGraphs(list(mapk=mapkG, wnt=wntG))
+    mapkGall <- parseKGML2Graph(mapkKGML, genesOnly=FALSE)
+    gene_subgraph <- subGraphByNodeType(mapkGall, "gene")
+
+
+    # --- Pathway Reaction Graph Analysis [] ---
+    # Key functions: getReactions, KEGGpathway2reactionGraph
+    mapfile <- system.file("extdata/map00260.xml", package="KEGGgraph")
+    map_pathway <- parseKGML(mapfile)
+    reactions_list <- getReactions(map_pathway)
+    chemicalGraph <- KEGGpathway2reactionGraph(map_pathway)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

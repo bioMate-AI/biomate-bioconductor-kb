@@ -41,10 +41,19 @@ process BIOC_ISOCORRECTORGUI {
     library(IsoCorrectoRGUI)
     library(jsonlite)
 
-    # --- kable [] ---
-    # Key functions: kable
-    fileExample[is.na(fileExample)] <- ""
-    knitr::kable(
+    # --- GUI Activation [] ---
+    # Key functions: IsoCorrectoRGUI
+    IsoCorrectoRGUI()
+
+
+    # --- Programmatic Correction Execution [] ---
+    # Key functions: IsoCorrection
+    results <- IsoCorrectoR::IsoCorrection(
+        measurementFile = "measurement.csv",
+        elementFile = "element.csv",
+        moleculeFile = "molecule.csv",
+        FileFormat = "csv"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

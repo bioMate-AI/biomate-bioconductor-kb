@@ -38,77 +38,68 @@ process BIOC_VARIANTANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(VariantAnnotation)
     library(GRanges)
     library(ScanVcfParam)
     library(TabixFile)
     library(jsonlite)
 
-    # --- Import VCF Data [] ---
-    # Key functions: readVcf
-    library(VariantAnnotation)
+    # --- VCF Parsing and Inspection ---
+    # Key functions: readVcf, header, samples, geno, rowRanges
     fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
     vcf <- readVcf(fl, "hg19")
-    # --- Extract VCF Sample Names [] ---
-    # Key functions: samples, geno
-    samples(header(vcf))
-    geno(header(vcf))
-    # --- Extract Fixed VCF Fields [] ---
-    # Key functions: ref, qual
-    ref(vcf)[1:5]
-    qual(vcf)[1:5]
-    # --- Access genotype data from VCF [] ---
-    # Key functions: geno
-    geno(vcf)
-    sapply(geno(vcf), class)
-    # --- Query dbSNP Annotations [] ---
-    # Key functions: snpsBySeqname, mcols
-    library(SNPlocs.Hsapiens.dbSNP144.GRCh37)
-    vcf_rsids <- names(rowRanges(vcf))
-    chr22snps <- snpsBySeqname(SNPlocs.Hsapiens.dbSNP144.GRCh37, "22")
-    # --- Access INFO field from VCF [] ---
-    # Key functions: info
-    info(header(vcf))[c("VT", "LDAF", "RSQ"),]
-    # --- examine ggplot2 [] ---
-    # Key functions: ggplot, geom_density, scale_x_continuous, scale_y_continuous, theme
-    library(ggplot2)
-    ggplot(metrics, aes(x=RSQ, fill=in_dbSNP)) +
-    geom_density(alpha=0.5) +
-    # --- Define Genomic Regions for Subsetting [] ---
-    # Key functions: GRanges
-    rng <- GRanges(seqnames="22", ranges=IRanges(
-    start=c(50301422, 50989541),
-    end=c(50312106, 51001328),
-    # --- Import VCF Subset via Tabix [] ---
-    # Key functions: TabixFile, readVcf
+    vcf_hdr <- header(vcf)
+    vcf_samples <- samples(vcf_hdr)
+    vcf_geno <- geno(vcf)
+    vcf_ranges <- rowRanges(vcf)
+
+    # --- Targeted Genomic Subsetting ---
+    # Key functions: ScanVcfParam, TabixFile, readVcf, scanVcfHeader
+    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
+    rng <- GenomicRanges::GRanges(
+        seqnames="22",
+        ranges=IRanges::IRanges(
+            start=c(50301422, 50989541),
+            end=c(50312106, 51001328)
+        )
+    )
+    svp <- ScanVcfParam(info="LDAF", geno="GT", which=rng)
     tab <- TabixFile(fl)
-    vcf_rng <- readVcf(tab, "hg19", param=rng)
-    head(rowRanges(vcf_rng), 3)
-    # --- Inspect VCF Header [] ---
-    # Key functions: scanVcfHeader
-    hdr <- scanVcfHeader(fl)
-    head(info(hdr), 3)
-    head(geno(hdr), 3)
-    # --- Define VCF Import Parameters [] ---
-    # Key functions: ScanVcfParam, readVcf
-    svp <- ScanVcfParam(info="LDAF", geno="GT")
-    vcf1 <- readVcf(fl, "hg19", svp)
-    names(geno(vcf1))
-    # --- subset ScanVcfParam new [] ---
-    # Key functions: ScanVcfParam
-    svp_all <- ScanVcfParam(info="LDAF", geno="GT", which=rng)
-    # --- Harmonize Chromosome Names [] ---
-    # Key functions: seqlevels, rowRanges, locateVariants
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    seqlevels(vcf) <- "chr22"
+    vcf_subset <- readVcf(tab, "hg19", param=svp)
+    hdr_info <- scanVcfHeader(fl)
+
+    # --- Variant Localization ---
+    # Key functions: locateVariants, CodingVariants
+    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
+    vcf <- readVcf(fl, "hg19")
+    GenomeInfoDb::seqlevels(vcf) <- "chr22"
     rd <- rowRanges(vcf)
-    # --- Locate variants in genomic features [] ---
-    # Key functions: locateVariants
-    allvar <- locateVariants(rd, txdb, AllVariants())
-    # --- Group Variants by Gene [] ---
-    # Key functions: split
-    splt <- split(mcols(loc)$GENEID, mcols(loc)$QUERYID)
-    table(sapply(splt, function(x) length(unique(x)) > 1))
-    splt <- split(mcols(loc)$QUERYID, mcols(loc)$GENEID)
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    loc <- locateVariants(rd, txdb, CodingVariants())
+
+    # --- Coding Effect Prediction ---
+    # Key functions: predictCoding
+    fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
+    vcf <- readVcf(fl, "hg19")
+    GenomeInfoDb::seqlevels(vcf) <- "chr22"
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    seq_source <- BSgenome.Hsapiens.UCSC.hg19::Hsapiens
+    coding <- predictCoding(vcf, txdb, seqSource=seq_source)
+
+    # --- Genotype Conversion ---
+    # Key functions: genotypeToSnpMatrix
+    fl <- system.file("extdata", "gl_chr1.vcf", package="VariantAnnotation")
+    vcf_gl <- readVcf(fl, "hg19")
+    res_uncertain <- genotypeToSnpMatrix(vcf_gl, uncertain=TRUE)
+    res_certain <- genotypeToSnpMatrix(vcf_gl, uncertain=FALSE)
+
+    # --- VCF Export ---
+    # Key functions: writeVcf
+    fl <- system.file("extdata", "ex2.vcf", package="VariantAnnotation")
+    vcf_in <- readVcf(fl, "hg19")
+    out_file <- tempfile(fileext=".vcf")
+    writeVcf(vcf_in, out_file)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,75 +41,45 @@ process BIOC_FACTDESIGN {
     library(factDesign)
     library(jsonlite)
 
-    # --- Phenodata [] ---
-    # Key functions: pData
-    data(estrogen)
-    estrogen
-    pData(estrogen)
-    # --- Fcplots [] ---
-    # Key functions: exprs
-    par(mfrow=c(2,2))
-    par(las=2)
-    for (i in c("34371_at","37325_at","33744_at","39792_at")){
-    	expvals <- 2^exprs(estrogen)[i,]
-    	plot(expvals,axes=F,cex=1.5,
-    # --- Moreplots [] ---
-    # Key functions: exprs
-    par(mfrow=c(2,2))
-    par(las=2)
-    for (i in c("32536_at","40446_at","32901_s_at","31826_at")){
-    	expvals <- exprs(estrogen)[i,]
-    	plot(expvals,axes=F,cex=1.5,
-    # --- Outliers [] ---
-    # Key functions: outlierPair, exprs, pData, madOutPair
-    op1 <- outlierPair(exprs(estrogen)["728_at",],INDEX=pData(estrogen),p=.05)
-    print(op1)
-    madOutPair(exprs(estrogen)["728_at",],op1[[3]])
-    par(mfrow=c(2,2))
-    par(las=2)
-    # --- Lm [] ---
-    # Key functions: lm, esApply
+    # --- Linear Modeling [] ---
+    # Key functions: esApply
+    data(estrogen, package = "factDesign")
     lm.full <- function(y) lm(y ~ ES + TIME + ES:TIME)
     lm.time <- function(y) lm(y ~ TIME)
     lm.f <- esApply(estrogen, 1, lm.full)
     lm.t <- esApply(estrogen, 1, lm.time)
-    lm.f[[1]]
-    # --- Comparemodels [] ---
-    # Key functions: anova, rawp2adjp
-    Fpvals <- rep(0,length(lm.f))
-    for(i in 1:length(lm.f)){
-      Fpvals[i]<-anova(lm.t[[i]],lm.f[[i]])$P[2]
-    }
-    library(multtest)
-    # --- Maines [] ---
-    # Key functions: coef, par2lambda, contrastTest
-    betaNames <- names(coef(lm.f[[1]]))
-    lambda <- par2lambda(betaNames,c("ESP"),c(1))
-    mainES <- function(x) contrastTest(x,lambda,p=0.05)[[1]]
-    mainESgenes <- sapply(lm.f.Fsub,FUN=mainES)
-    sum(mainESgenes=="REJECT")
-    # --- Eshm1 [] ---
-    # Key functions: heatmap, exprs, colors
-    heatmap(exprs(estrogen.Fsub)[mainESgenes=="REJECT",],Colv=NA,col=cm.colors(256))
-    # --- Eshm2 [] ---
-    # Key functions: heatmap, exprs, colors
-    heatmap(exprs(estrogen.Fsub)[mainESgenes=="FAIL TO REJECT",],Colv=NA,col=cm.colors(256))
-    # --- Effectsize [] ---
-    # Key functions: par2lambda, findFC, unlist, heatmap
-    lambdaNum <- par2lambda(betaNames,list(c("(Intercept)","ESP")),list(c(1,1)))
-    lambdaDenom <-  par2lambda(betaNames,list(c("(Intercept)")),list(c(1)))
-    FCval <- findFC(lm.f.Fsub[["32901_s_at"]],lambdaNum,lambdaDenom,logbase=2)
-    print(FCval)
-    FCvals <- lapply(lm.f.Fsub,FUN=findFC,lambdaNum,lambdaDenom,logbase=2)
-    # --- Performct [] ---
+
+
+    # --- Contrast Testing [] ---
     # Key functions: par2lambda, contrastTest
-    lambdaEST <- par2lambda(betaNames,list(c("ESP","ESP:TIME48h")),list(c(1,1)))
-    ESTcontrast <- function(x) contrastTest(x,lambdaEST,p=.10)[[1]]
-    ESTgenes <- sapply(lm.f.Fsub,FUN=ESTcontrast)
-    sum(ESTgenes=="REJECT")
-    # --- Esthm1 [] ---
-    # Key functions: heatmap, exprs, colors
-    heatmap(exprs(estrogen.Fsub)[mainESgenes=="REJECT" & ESTgenes=="REJECT",],Colv=NA,col=cm.colors(256))
+    data(estrogen, package = "factDesign")
+    lm.full <- function(y) lm(y ~ ES + TIME + ES:TIME)
+    lm.f <- esApply(estrogen, 1, lm.full)
+    betaNames <- names(coef(lm.f[[1]]))
+    lambda <- par2lambda(betaNames, c("ESP"), c(1))
+    mainES <- function(x) contrastTest(x, lambda, p = 0.05)[[1]]
+    mainESgenes <- sapply(lm.f, FUN = mainES)
+
+
+    # --- Fold Change Estimation [] ---
+    # Key functions: par2lambda, findFC
+    data(estrogen, package = "factDesign")
+    lm.full <- function(y) lm(y ~ ES + TIME + ES:TIME)
+    lm.f <- esApply(estrogen, 1, lm.full)
+    betaNames <- names(coef(lm.f[[1]]))
+    lambdaNum <- par2lambda(
+        betaNames,
+        list(c("(Intercept)", "ESP")),
+        list(c(1, 1))
+    )
+    lambdaDenom <- par2lambda(betaNames, list(c("(Intercept)")), list(c(1)))
+    FCvals <- lapply(
+        lm.f,
+        FUN = findFC,
+        lambdaNum,
+        lambdaDenom,
+        logbase = 2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

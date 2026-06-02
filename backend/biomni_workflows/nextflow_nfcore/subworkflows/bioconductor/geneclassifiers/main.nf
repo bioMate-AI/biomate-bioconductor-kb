@@ -41,55 +41,58 @@ process BIOC_GENECLASSIFIERS {
     library(geneClassifiers)
     library(jsonlite)
 
-    # --- Showclassifierlist [] ---
-    # Key functions: showClassifierList
-    showClassifierList()
-    # --- Getclassifier [] ---
-    # Key functions: getClassifier
-    EMC92Classifier<-getClassifier("EMC92")
-    EMC92Classifier
-    HM19Classifier<-getClassifier("HM19")
-    HM19Classifier
-    # --- Getweights [] ---
-    # Key functions: getWeights
-    getWeights(EMC92Classifier)[1:10]
-    # --- Getdecisionboundaries [] ---
-    # Key functions: getDecisionBoundaries
-    getDecisionBoundaries(HM19Classifier)
-    # --- Geteventchain [] ---
-    # Key functions: getEventChain
-    getEventChain(EMC92Classifier)
-    # --- Data [] ---
-    # Key functions: preproc, experimentData
-    library(Biobase)
-    data(exampleMAS5)
-    class(exampleMAS5) #an object of class ExpressionSet
-    dim(exampleMAS5)
-    preproc(experimentData(exampleMAS5))
-    # --- Setnormalizationmethod [] ---
+    # --- Querying Classifiers [Querying] ---
+    # Key functions: showClassifierList, getClassifier, getWeights, getDecisionBoundaries, getEventChain
+    classifiers <- showClassifierList()
+    emc92 <- getClassifier("EMC92")
+    hm19 <- getClassifier("HM19")
+    emc92_weights <- getWeights(emc92)[1:10]
+    hm19_boundaries <- getDecisionBoundaries(hm19)
+    emc92_events <- getEventChain(emc92)
+
+    # --- Data Normalization [Normalization] ---
     # Key functions: setNormalizationMethod
-    fixedData <- setNormalizationMethod( exampleMAS5, method="MAS5.0", targetValue = 500 )
-    fixedData
-    # --- Runclassifier [] ---
+    data(exampleMAS5, package = "geneClassifiers")
+    fixedData <- setNormalizationMethod(
+        exampleMAS5,
+        method = "MAS5.0",
+        targetValue = 500
+    )
+
+    # --- Running Classifiers [Classification] ---
     # Key functions: runClassifier
-    resultsEMC92  <- runClassifier( "EMC92" , fixedData )
-    resultsUAMS70 <- runClassifier( "UAMS70", fixedData )
-    resultsEMC92
-    resultsUAMS70
-    # --- Frame [] ---
-    # Key functions: frame, getScores, getClassifications
-    data.frame(
-        "score_EMC92"  = getScores( resultsEMC92 ),
-        "class_EMC92"  = getClassifications( resultsEMC92 ),
-        "score_UAMS70" = getScores( resultsUAMS70 ),
-        "class_UAMS70" = getClassifications( resultsUAMS70 )
-    # --- Runclassifier [] ---
+    resultsEMC92 <- runClassifier("EMC92", fixedData)
+    resultsUAMS70 <- runClassifier("UAMS70", fixedData)
+
+    # --- Extracting Results [Extraction] ---
+    # Key functions: getScores, getClassifications
+    results_df <- data.frame(
+        "score_EMC92"  = getScores(resultsEMC92),
+        "class_EMC92"  = getClassifications(resultsEMC92),
+        "score_UAMS70" = getScores(resultsUAMS70),
+        "class_UAMS70" = getClassifications(resultsUAMS70)
+    )
+
+    # --- Reweighted Classification and Visualization [Visualization] ---
     # Key functions: runClassifier, getScores, getDecisionBoundaries, getClassifier
     resultsEMC92.reWeighted <- runClassifier(
-        "EMC92" ,
-        fixedData[1:70,] ,
-        allow.reweighted=TRUE
+        "EMC92",
+        fixedData[1:70, ],
+        allow.reweighted = TRUE
     )
+    plot(
+        x = getScores(resultsEMC92),
+        y = getScores(resultsEMC92.reWeighted),
+        xlab = "complete",
+        ylab = "reweighted",
+        main = "EMC92 scores"
+    )
+    abline(
+        v = getDecisionBoundaries(getClassifier(resultsEMC92)),
+        h = getDecisionBoundaries(getClassifier(resultsEMC92.reWeighted)),
+        col = "red"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

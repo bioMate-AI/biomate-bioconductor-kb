@@ -41,44 +41,83 @@ process BIOC_PANOMIR {
     library(PanomiR)
     library(jsonlite)
 
-    # --- pathway Summary [] ---
+    # --- Pathway Summary Statistics [pathwaySummary] ---
     # Key functions: pathwaySummary
-    library(PanomiR)
     data("path_gene_table")
     data("miniTestsPanomiR")
-    # --- differential Pathway Analysis [] ---
+    summaries <- pathwaySummary(
+        geneCounts = miniTestsPanomiR$mini_LIHC_Exp,
+        pathways = path_gene_table,
+        method = "x2",
+        zNormalize = TRUE,
+        id = "ENSEMBL"
+    )
+    head(summaries)[, 1:2]
+
+    # --- Differential Pathway Analysis [differentialPathwayAnalysis] ---
     # Key functions: differentialPathwayAnalysis
+    data("path_gene_table")
+    data("miniTestsPanomiR")
     output0 <- differentialPathwayAnalysis(
-    head(de.paths,3)
-    # --- mapping Pathways Clusters [] ---
+        geneCounts = miniTestsPanomiR$mini_LIHC_Exp,
+        pathways = path_gene_table,
+        covariates = miniTestsPanomiR$mini_LIHC_Cov,
+        condition = "shortLetterCode"
+    )
+    de.paths <- output0$DEP
+
+    # --- Pathway Clustering and Mapping [mappingPathwaysClusters] ---
     # Key functions: mappingPathwaysClusters
-    set.seed(2)
+    data("miniTestsPanomiR")
+    mock_de_paths <- data.frame(
+        Pathway = colnames(miniTestsPanomiR$miniPCXN)[1:10],
+        p.val = runif(10, 0, 0.05)
+    )
     pathwayClustsLIHC <- mappingPathwaysClusters(
-    head(pathwayClustsLIHC$Clustering)
-    # --- prioritize Micro R N A [] ---
+        pcxn = miniTestsPanomiR$miniPCXN,
+        dePathways = mock_de_paths,
+        topPathways = 10,
+        outDir = ".",
+        plot = FALSE,
+        subplot = FALSE,
+        prefix = "",
+        clusteringFunction = "cluster_louvain",
+        correlationCutOff = 0.1
+    )
+
+    # --- MicroRNA Prioritization [prioritizeMicroRNA] ---
     # Key functions: prioritizeMicroRNA
-    set.seed(1)
-    output2 <- prioritizeMicroRNA(enriches0 = miniTestsPanomiR$miniEnrich,
-    method = c("aggInv"),
-    # --- customized mir [] ---
-    # Key functions: miRNAPathwayEnrichment
+    data("miniTestsPanomiR")
+    output2 <- prioritizeMicroRNA(
+        enriches0 = miniTestsPanomiR$miniEnrich,
+        pathClust = miniTestsPanomiR$miniPathClusts$Clustering,
+        topClust = 1,
+        sampRate = 50,
+        method = c("aggInv"),
+        outDir = "Output/",
+        dataDir = "outData/",
+        saveSampling = FALSE,
+        runJackKnife = FALSE,
+        numCores = 1,
+        prefix = "outmiR",
+        saveCSV = FALSE
+    )
+
+    # --- Custom miRNA Pathway Enrichment [miRNAPathwayEnrichment, reportEnrichment] ---
+    # Key functions: miRNAPathwayEnrichment, reportEnrichment
     data("msigdb_c2")
     data("targetScan_03")
-    customeTableEnrich <- miRNAPathwayEnrichment(mirSets = targetScan_03,
-    # --- customized mir2 [] ---
-    # Key functions: miRNAPathwayEnrichment
-    data("msigdb_c2")
-    data("targetScan_03")
-    tempEnrich <-miRNAPathwayEnrichment(targetScan_03[1:30],msigdb_c2[1:30])
-    # --- customized gsc [] ---
+    tempEnrich <- miRNAPathwayEnrichment(
+        targetScan_03[1:30],
+        msigdb_c2[1:30]
+    )
+    enrichReport <- reportEnrichment(tempEnrich)
+
+    # --- Gene Set Collection Conversion [tableFromGSC] ---
     # Key functions: tableFromGSC
     data("gscExample")
-    newPathGeneTable <-tableFromGSC(gscExample)
-    # --- customized gsc2 [] ---
-    # Key functions: getGmt, tableFromGSC
-    library(GSEABase)
-    yourGeneSetCollection <- getGmt("YOUR GMT FILE")
-    newPathGeneTable      <- tableFromGSC(yourGeneSetCollection)
+    newPathGeneTable <- tableFromGSC(gscExample)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,47 +38,68 @@ process BIOC_TEKRABBER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TEKRABber)
     library(DECorrInputs)
     library(DEgeneTE)
     library(jsonlite)
 
-    # --- search species name [] ---
-    # Key functions: useEnsembl, listDatasets
-    ensembl <- biomaRt::useEnsembl(biomart = "genes")
-    biomaRt::listDatasets(ensembl)
-    # --- create input files [] ---
+    # --- Ortholog Scaling and Normalisation ---
+    # Key functions: orthologScale
+    data(speciesCounts)
+    data(hg38_panTro6_rmsk)
+    hmGeneSample <- speciesCounts$hmGene[1:100, ]
+    chimpGeneSample <- speciesCounts$chimpGene[1:100, ]
+    fetchData <- orthologScale(
+        speciesRef = "hsapiens",
+        speciesCompare = "ptroglodytes",
+        geneCountRef = hmGeneSample,
+        geneCountCompare = chimpGeneSample,
+        teCountRef = speciesCounts$hmTE,
+        teCountCompare = speciesCounts$chimpTE,
+        rmsk = hg38_panTro6_rmsk
+    )
+
+    # --- Input Preparation for DE and Correlation ---
     # Key functions: DECorrInputs
-    inputBundle <- DECorrInputs(fetchData)
-    # --- DE analysis (two species) [] ---
+    data(fetchDataHmChimp)
+    inputBundle <- DECorrInputs(fetchDataHmChimp)
+    geneInputDESeq2 <- inputBundle$geneInputDESeq2
+    teInputDESeq2 <- inputBundle$teInputDESeq2
+    geneInputCorr <- inputBundle$geneInputCorr
+    teInputCorr <- inputBundle$teInputCorr
+
+    # --- Differential Expression Analysis ---
     # Key functions: DEgeneTE
+    data(fetchDataHmChimp)
+    inputBundle <- DECorrInputs(fetchDataHmChimp)
+    numSamples <- ncol(inputBundle$geneInputDESeq2)
     meta <- data.frame(
-    species = c(rep("human", ncol(hmGene) - 1),
-    rep("chimpanzee", ncol(chimpGene) - 1))
-    # --- correlation (two species) [] ---
-    # Key functions: corrOrthologTE
-    hmCorrResult <- corrOrthologTE(
-    geneInput = hmchimpDE$geneCorrInputRef[c(1:200),],
-    chimpCorrResult <- corrOrthologTE(
-    # --- app visualize (two species) [] ---
-    # Key functions: install_github, appTEKRABber
-    remotes::install_github('rstudio/gridlayout')
-    library(plotly)
-    library(bslib)
-    # --- DE analysis (same species) [] ---
-    # Key functions: DEgeneTE
-    metaExp <- data.frame(experiment = c(rep("control", 5), rep("treatment", 5)))
-    rownames(metaExp) <- colnames(geneInputDE)
-    metaExp$experiment <- factor(
-    # --- correlation (same species) [] ---
-    # Key functions: corrOrthologTE
-    controlCorr <- corrOrthologTE(
-    geneInput = resultDE$geneCorrInputRef[c(1:200),],
-    treatmentCorr <- corrOrthologTE(
-    # --- app visualize (same species) [] ---
-    # Key functions: install_github, appTEKRABber
-    remotes::install_github('rstudio/gridlayout')
-    appTEKRABber(
-    sessionInfo()
+        species = c(
+            rep("human", numSamples / 2),
+            rep("chimpanzee", numSamples / 2)
+        )
+    )
+    meta$species <- factor(meta$species, levels = c("human", "chimpanzee"))
+    rownames(meta) <- colnames(inputBundle$geneInputDESeq2)
+    hmchimpDE <- DEgeneTE(
+        geneTable = inputBundle$geneInputDESeq2,
+        teTable = inputBundle$teInputDESeq2,
+        metadata = meta,
+        expDesign = TRUE
+    )
+
+    # --- Gene and TE Correlation Analysis ---
+    # Key functions: corrGeneTE
+    data(fetchDataHmChimp)
+    inputBundle <- DECorrInputs(fetchDataHmChimp)
+    hmCorrResult <- corrGeneTE(
+        geneInput = inputBundle$geneInputCorr,
+        teInput = inputBundle$teInputCorr,
+        corrMethod = "pearson",
+        padjMethod = "fdr",
+        clusterNum = 2
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,78 @@ process BIOC_GGMANH {
     library(ggmanh)
     library(jsonlite)
 
-    # --- Manhattan plot analysis [] ---
-    # Key functions: manhattan_plot, rbind, manhattan_data_preprocess, binned_manhattan_plot, binned_manhattan_preprocess, seqOpen, seqClose, gds_annotate
-    manhattan_plot(simdata, chromosome = 5, pval.colname = "P.value", chr.colname = "chromosome", pos.colname = "position")
-    binned_manhattan_plot(simdata, pval.colname = "P.value", chr.colname = "chromosome", pos.colname = "position")
-    binned_manhattan_plot(
+    # --- Data Preprocessing [Data Preprocessing] ---
+    # Key functions: manhattan_data_preprocess
+    simdata <- data.frame(
+        "chromosome" = factor(sample(c(1:22, "X"), size = 1000, replace = TRUE),
+                              levels = c(1:22, "X")),
+        "position" = sample(1:100000000, size = 1000),
+        "P.value" = rbeta(1000, shape1 = 5, shape2 = 1)^7
+    )
+    mpdata <- manhattan_data_preprocess(
+        x = simdata,
+        pval.colname = "P.value",
+        chr.colname = "chromosome",
+        pos.colname = "position"
+    )
+
+    # --- Genome-wide Manhattan Plotting [Visualisation] ---
+    # Key functions: manhattan_plot
+    mpdata$label <- ""
+    sig_idx <- mpdata$P.value < 5e-5
+    mpdata$label[sig_idx] <- sprintf("Label: %i", seq_len(sum(sig_idx)))
+    g_manh <- manhattan_plot(
+        x = mpdata,
+        pval.colname = "P.value",
+        chr.colname = "chromosome",
+        pos.colname = "position",
+        plot.title = "Simulated GWAS Manhattan Plot",
+        rescale = TRUE,
+        label.colname = "label"
+    )
+
+    # --- Chromosome Zoom Visualization [Visualisation] ---
+    # Key functions: manhattan_plot
+    g_chr5 <- manhattan_plot(
+        x = mpdata,
+        chromosome = 5,
+        pval.colname = "P.value",
+        chr.colname = "chromosome",
+        pos.colname = "position",
+        plot.title = "Chromosome 5 Zoom"
+    )
+
+    # --- Binned Data Preprocessing [Data Preprocessing] ---
+    # Key functions: binned_manhattan_preprocess
+    mpdata_binned <- binned_manhattan_preprocess(
+        x = mpdata,
+        pval.colname = "P.value",
+        chr.colname = "chromosome",
+        pos.colname = "position",
+        bins.x = 7,
+        bins.y = 100,
+        chr.gap.scaling = 0.5,
+        show.message = FALSE,
+        summarise.expression.list = list(
+            max_log10p ~ max(-log10(P.value)),
+            signif ~ ifelse(max(P.value) < 5e-8, "Significant", "Not")
+        )
+    )
+
+    # --- Binned Manhattan Plotting [Visualisation] ---
+    # Key functions: binned_manhattan_plot
+    g_binned <- binned_manhattan_plot(
+        x = mpdata_binned,
+        pval.colname = "P.value",
+        chr.colname = "chromosome",
+        pos.colname = "position",
+        bins.x = 7,
+        bins.y = 100,
+        bin.outline = TRUE,
+        show.legend = FALSE,
+        plot.title = "Binned Manhattan Plot"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,27 +41,75 @@ process BIOC_MIASIM {
     library(miaSim)
     library(jsonlite)
 
-    # --- Anormal [] ---
-    # Key functions: powerlawA
+    # --- Interaction Matrix Generation [Simulation] ---
+    # Key functions: powerlawA, randomA, randomE
+    A_normal <- powerlawA(n_species = 10, alpha = 3)
+    A_uniform <- randomA(
+        n_species = 10,
+        diagonal = -0.4,
+        connectance = 0.5,
+        interactions = runif(n = 100, min = -0.8, max = 0.8)
+    )
+    E_matrix <- randomE(n_species = 5, n_resources = 10)
+
+    # --- Lotka-Volterra and Ricker Simulation [Simulation] ---
+    # Key functions: powerlawA, simulateGLV, simulateRicker
     A_normal <- powerlawA(n_species = 4, alpha = 3)
-    # --- Auniform [] ---
-    # Key functions: randomA
-    A_uniform <- randomA(n_species = 10,
-    interactions = runif(n = 10^2, min = -0.8, max = 0.8))
-    # --- simulate Ricker [] ---
-    # Key functions: simulateRicker, simulateHubbell, simulateHubbellRates, simulateSOI, simulateStochasticLogistic
-    tse_ricker <- simulateRicker(n_species=4, A = A_normal, t_end=100, norm = FALSE)
-    tse_hubbell <- simulateHubbell(n_species = 8,
-    params_hubbell <- simulateHubbellRates(x0 = c(0,5,10),
-    # --- simulate Consumer Resource [] ---
-    # Key functions: simulateConsumerResource
-    tse_crm <- simulateConsumerResource(n_species = 2,
-    E = randomE(n_species = 2, n_resources = 4))
-    # --- simulate G L V [] ---
-    # Key functions: simulateGLV, plotAbundanceDensity, plotSeries
-    tse_glv <- simulateGLV(n_species = 4,
-    library(miaViz)
-    p1 <- plotAbundanceDensity(tse_hubbell, assay.type = "counts")
+    tse_glv <- simulateGLV(
+        n_species = 4,
+        A = A_normal,
+        t_start = 0,
+        t_store = 1000,
+        stochastic = FALSE,
+        norm = FALSE
+    )
+    tse_ricker <- simulateRicker(
+        n_species = 4,
+        A = A_normal,
+        t_end = 100,
+        norm = FALSE
+    )
+
+    # --- Hubbell Neutral Model Simulation [Simulation] ---
+    # Key functions: simulateHubbell, simulateHubbellRates
+    tse_hubbell <- simulateHubbell(
+        n_species = 8,
+        M = 10,
+        carrying_capacity = 1000,
+        k_events = 50,
+        migration_p = 0.02,
+        t_end = 100
+    )
+    params_hubbell <- simulateHubbellRates(
+        x0 = c(0, 5, 10),
+        migration_p = 0.1,
+        metacommunity_probability = NULL,
+        k_events = 1,
+        growth_rates = NULL,
+        norm = FALSE,
+        t_end = 1000
+    )
+
+    # --- Stochastic Logistic and Consumer-Resource Simulation [Simulation] ---
+    # Key functions: powerlawA, randomE, simulateStochasticLogistic, simulateConsumerResource, simulateSOI
+    A_normal <- powerlawA(n_species = 4, alpha = 3)
+    E_matrix <- randomE(n_species = 2, n_resources = 4)
+    tse_logistic <- simulateStochasticLogistic(n_species = 5)
+    tse_crm <- simulateConsumerResource(
+        n_species = 2,
+        n_resources = 4,
+        E = E_matrix
+    )
+    tse_soi <- simulateSOI(
+        n_species = 4,
+        carrying_capacity = 1000,
+        A = A_normal,
+        k_events = 5,
+        x0 = NULL,
+        t_end = 150,
+        norm = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,62 +38,50 @@ process BIOC_RIBOPROFILING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RiboProfiling)
     library(BamFile)
     library(jsonlite)
 
-    # --- Import library noEcho [] ---
-    # Key functions: BamFile, riboSeqFromBAM
-    library(RiboProfiling)
-    listInputBam <- c(
-    BamFile("http://genomique.info/data/public/RiboProfiling/ctrl.bam"),
-    # --- ribo Seq From B A M [] ---
-    # Key functions: riboSeqFromBAM
-    myFileCtrl <- system.file("extdata", "ctrl_sample.bam", package="RiboProfiling")
-    myFileNutlin2h <- system.file("extdata", "nutlin2h_sample.bam", package="RiboProfiling")
-    listeInputBam <- c(myFileCtrl, myFileNutlin2h)
-    # --- GAlignments from BAM [] ---
-    # Key functions: readGAlignments, BamFile
-    aln <- readGAlignments(
-    BamFile("http://genomique.info/data/public/RiboProfiling/ctrl.bam")
-    # --- Hist quick [] ---
-    # Key functions: histMatchLength
-    data(ctrlGAlignments)
-    matchLenDistr <- histMatchLength(aln, 0)
-    # --- CovAroundTSS quick [] ---
+    # --- Transcription Start Site Coverage [] ---
     # Key functions: readsToStartOrEnd, aroundPromoter, readStartCov, plotSummarizedCov
-    alnGRanges <- readsToStartOrEnd(aln, what="start")
+    data(ctrlGAlignments, package="RiboProfiling")
+    alnGRanges <- readsToStartOrEnd(ctrlGAlignments, what="start")
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
     oneBinRanges <- aroundPromoter(txdb, alnGRanges, percBestExpressed=0.001)
-    readStartCov(
-    # --- TSS Cov [] ---
-    # Key functions: readsToStartOrEnd, renameSeqlevels, aroundPromoter, readStartCov
-    (faster processing of the object)
-    alnGRanges <- readsToStartOrEnd(aln, what="start")
-    of the alignment files ("chr" particle)
-    # --- CountReads echo [] ---
-    # Key functions: cdsBy, exonsBy, orfRelativePos, countShiftReads, countsPlot
-    alnGRanges <- alnGRanges[which(!is.na(match(alnGRanges$score,30:33)))]
-    cds <- cdsBy(txdb, by="tx", use.names=TRUE)
-    exonGRanges <- exonsBy(txdb, by="tx", use.names=TRUE)
-    # --- cds By [] ---
-    # Key functions: cdsBy, exonsBy, orfRelativePos, countShiftReads, countsPlot
+    listPromoterCov <- readStartCov(
+        alnGRanges,
+        oneBinRanges,
+        matchSize=c(29:32),
+        fixedInterval=c(-20, 20),
+        renameChr="aroundTSS",
+        charPerc="perc"
+    )
+    plotSummarizedCov(listPromoterCov)
+
+
+    # --- Feature Counting and Codon Analysis [] ---
+    # Key functions: countShiftReads, countsPlot, codonInfo, codonPCA
+    data(ctrlGAlignments, package="RiboProfiling")
+    alnGRanges <- readsToStartOrEnd(ctrlGAlignments, what="start")
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
     cds <- GenomicFeatures::cdsBy(txdb, by="tx", use.names=TRUE)
     exonGRanges <- GenomicFeatures::exonsBy(txdb, by="tx", use.names=TRUE)
-    cdsPosTransc <- orfRelativePos(cds, exonGRanges)
-    # --- CodonAnalysis echo [] ---
-    # Key functions: cdsBy, codonInfo
-    cds <- cdsBy(txdb, use.names=TRUE)
+    data("cdsPosTransc", package="RiboProfiling")
+    countsDataCtrl1 <- countShiftReads(
+        exonGRanges[names(cdsPosTransc)],
+        cdsPosTransc,
+        alnGRanges,
+        -14
+    )
+    listReadsCodon <- countsDataCtrl1[[2]]
     orfCoord <- cds[names(cds) %in% names(listReadsCodon)]
+    genomeSeq <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     codonData <- codonInfo(listReadsCodon, genomeSeq, orfCoord)
-    # --- cds By [] ---
-    # Key functions: cdsBy, codonInfo
-    cds <- GenomicFeatures::cdsBy(txdb, use.names=TRUE)
-    orfCoord <- cds[names(cds) %in% names(listReadsCodon)]
-    codonData <- codonInfo(listReadsCodon, genomeSeq, orfCoord)
-    # --- codon P C A [] ---
-    # Key functions: codonPCA
+    codonCovMatrix <- codonData[[2]]
     nbrReadsGene <- apply(codonCovMatrix, 1, sum)
-    ixExpGenes <- which(nbrReadsGene >= 50)
+    codonCovMatrix <- codonCovMatrix[which(nbrReadsGene >= 50), ]
     codonCovMatrixTransp <- t(codonCovMatrix)
+    listPCACodonCoverage <- codonPCA(codonCovMatrixTransp, "codonCoverage")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

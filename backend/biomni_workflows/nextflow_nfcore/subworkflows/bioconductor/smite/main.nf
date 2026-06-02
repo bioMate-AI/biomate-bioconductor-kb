@@ -41,9 +41,63 @@ process BIOC_SMITE {
     library(SMITE)
     library(jsonlite)
 
-    # --- score Pval [] ---
-    # Key functions: scorePval
-    test_annotation <- scorePval(test_annotation, weights=c(methylation_promoter=.3,
+    # --- Expression Annotation and Normalisation [] ---
+    # Key functions: annotateExpression, normalizePval, plotDensityPval
+    test_annotation <- annotateExpression(
+        pvalue_annotation = test_annotation,
+        expr_data = expression_curated,
+        effect_col = 1,
+        pval_col = 2
+    )
+    density_plot <- plotDensityPval(
+        pvalue_annotation = test_annotation,
+        ref = "expression"
+    )
+    test_annotation <- normalizePval(
+        test_annotation,
+        ref = "expression",
+        method = "rescale"
+    )
+
+
+    # --- P-value Scoring and Comparison [] ---
+    # Key functions: scorePval, plotCompareScores
+    test_annotation <- scorePval(
+        test_annotation,
+        weights = c(
+            methylation_promoter = 0.3,
+            methylation_body = 0.1,
+            expression = 0.3,
+            methylation_h3k4me1 = 0.3
+        )
+    )
+    compare_plot <- plotCompareScores(
+        test_annotation,
+        x_name = "expression",
+        y_name = "methylation_promoter"
+    )
+
+
+    # --- Functional Enrichment and Network Visualisation [] ---
+    # Key functions: searchGOseq, plotModule
+    go_results <- searchGOseq(
+        test_annotation,
+        search_string = "cell cycle"
+    )
+    module_plot_1 <- plotModule(
+        test_annotation,
+        which_network = 6,
+        layout = "fr",
+        label_scale = TRUE,
+        compare_plot = FALSE
+    )
+    module_plot_2 <- plotModule(
+        test_annotation,
+        which_network = c(4, 6),
+        layout = "fr",
+        label_scale = TRUE,
+        compare_plot = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

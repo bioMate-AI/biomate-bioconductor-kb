@@ -38,20 +38,59 @@ process BIOC_INTERACCIRCOS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(interacCircos)
     library(Circos)
     library(CircosBackground)
     library(jsonlite)
 
-    # --- screenshot.force = FALSE [] ---
-    # Key functions: Circos
-    library(interacCircos)
-    Circos(zoom = TRUE,genome=list("Example1"=100,"Example2"=200,
-    "Example3"=300),genomeFillColor = c("red","blue","green"),
-    # --- screenshot.force = FALSE [] ---
-    # Key functions: Circos, CircosBackground
-    library(interacCircos)
-    Circos(moduleList=CircosSnp('SNP01', minRadius =150,
-    CircosBackground('BG01',minRadius = 145,maxRadius = 200),
+    # --- Histogram Visualization [] ---
+    # Key functions: Circos, CircosHistogram
+    hist_track <- CircosHistogram(
+        "HISTOGRAM01",
+        data = histogramExample,
+        fillColor = "#ff7f0e",
+        maxRadius = 210,
+        minRadius = 175,
+        animationDisplay = TRUE
+    )
+    circos_hist <- Circos(
+        moduleList = hist_track,
+        genome = list(
+            "2L" = 23011544, "2R" = 21146708, "3L" = 24543557,
+            "3R" = 27905053, "X" = 22422827, "4" = 1351857
+        ),
+        outerRadius = 220,
+        width = 700,
+        height = 550
+    )
+
+
+    # --- SNP and Background Visualization [] ---
+    # Key functions: Circos, CircosSnp, CircosBackground
+    snp_track <- CircosSnp(
+        "SNP01",
+        minRadius = 150,
+        maxRadius = 190,
+        data = snpExample,
+        SNPFillColor = "#9ACD32",
+        circleSize = 2,
+        SNPAxisColor = "#B8B8B8",
+        SNPAxisWidth = 0.5,
+        animationDisplay = TRUE,
+        animationTime = 2000,
+        animationDelay = 0,
+        animationType = "linear"
+    )
+    bg_track <- CircosBackground(
+        "BG01",
+        minRadius = 145,
+        maxRadius = 200
+    )
+    circos_snp <- Circos(
+        moduleList = snp_track + bg_track,
+        width = 700,
+        height = 550
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

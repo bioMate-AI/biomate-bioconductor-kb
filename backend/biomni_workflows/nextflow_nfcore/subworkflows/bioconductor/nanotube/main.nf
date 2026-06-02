@@ -41,15 +41,72 @@ process BIOC_NANOTUBE {
     library(NanoTube)
     library(jsonlite)
 
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: pheatmap
-    pheatmap::pheatmap(t(leading.edge$Autoimmune.retinopathy),
-    color = c("white", "black"))
-    # --- Table formatting and display [] ---
-    # Key functions: processNanostringData, runLimmaAnalysis, makeDiffExprFile, deVolcano, limmaToFGSEA, kable, ruv_rle, nanostringPCA
-    deVolcano(limmaResults, plotContrast = "Autoimmune.retinopathy",
-    geom_hline(yintercept = 2, linetype = "dashed", colour = "darkred") +
-    geom_vline(xintercept = 0.5, linetype = "dashed", colour = "darkred") +
+    # --- Data Processing and Normalization [processNanostringData] ---
+    # Key functions: processNanostringData
+    example_data <- system.file("extdata", "GSE117751_RAW", package = "NanoTube")
+    sample_info <- system.file("extdata", 
+                               "GSE117751_sample_data.csv", 
+                               package = "NanoTube")
+    dat <- processNanostringData(
+        nsFiles = example_data,
+        sampleTab = sample_info,
+        idCol = "RCC_Name",
+        groupCol = "Sample_Diagnosis",
+        normalization = "nSolver",
+        bgType = "t.test",
+        bgPVal = 0.01
+    )
+
+    # --- Differential Expression Analysis [runLimmaAnalysis, makeDiffExprFile] ---
+    # Key functions: runLimmaAnalysis, makeDiffExprFile
+    limmaResults <- runLimmaAnalysis(dat, base.group = "None")
+    limmaStats <- makeDiffExprFile(
+        limmaResults, 
+        filename = NULL, 
+        returns = "stats"
+    )
+    limmaStats <- as.data.frame(limmaStats)
+    limmaTab <- head(limmaStats[order(
+        limmaStats$`p-val (Autoimmune.retinopathy)`, 
+        decreasing = FALSE
+    ), 1:4])
+
+    # --- Volcano Plot Visualisation [deVolcano] ---
+    # Key functions: deVolcano
+    deVolcano(
+        limmaResults, 
+        plotContrast = "Autoimmune.retinopathy"
+    )
+
+    # --- Gene Set Enrichment Analysis [limmaToFGSEA] ---
+    # Key functions: limmaToFGSEA
+    data("ExamplePathways")
+    fgseaResults <- limmaToFGSEA(
+        limmaResults, 
+        gene.sets = ExamplePathways
+    )
+    fgseaTab <- head(fgseaResults$Autoimmune.retinopathy[
+        order(fgseaResults$Autoimmune.retinopathy$pval, 
+              decreasing = FALSE),
+    ])
+
+    # --- Alternative Normalization with RUV [processNanostringData] ---
+    # Key functions: processNanostringData
+    sample_info_reps <- system.file("extdata", 
+                                    "GSE117751_sample_data_replicates.csv", 
+                                    package = "NanoTube")
+    datRUVIII <- processNanostringData(
+        nsFiles = example_data,
+        sampleTab = sample_info_reps,
+        idCol = "RCC_Name",
+        replicateCol = "Replicate_ID",
+        groupCol = "Sample_Diagnosis",
+        normalization = "RUVIII",
+        bgType = "t.test",
+        bgPVal = 0.01,
+        n.unwanted = 1
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,110 +38,35 @@ process BIOC_DCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(dce)
     library(TCGAsplitAssays)
     library(jsonlite)
 
-    # --- Plot Grid [] ---
-    # Key functions: plot_grid, plot_network
-    ---------------------------------------------------------------------
-    graph_mt <- graph_wt
-    graph_mt["A", "B"] <- 2.5 # dysregulation happens here!
-    graph_mt
-    cowplot::plot_grid(
-    # --- Simulate Data [] ---
-    # Key functions: simulate_data
-    ---------------------------------------------------------------------
-    X_wt <- simulate_data(graph_wt)
-    X_mt <- simulate_data(graph_mt)
-    X_wt %>%
-      head
-    # --- Dce [] ---
-    # Key functions: dce
-    ---------------------------------------------------------------------
-    res <- dce(graph_wt, X_wt, X_mt)
-    res %>%
-      as.data.frame %>%
-      drop_na
-    # --- Plot [] ---
-    # Key functions: ggtitle
-    ---------------------------------------------------------------------
-    plot(res) +
-      ggtitle("Differential Causal Effects between WT and MT condition")
-    # --- Simulate Data [] ---
-    # Key functions: simulate_data, dce, arrange
-    ---------------------------------------------------------------------
-    # simulate gene expression data for both networks
-    X_wt <- simulate_data(graph_wt)
-    X_mt <- simulate_data(graph_mt)
-    # compute DCEs
-    # --- Trueeffects [] ---
-    # Key functions: trueEffects, frame, inner_join, rename, ggplot
-    ---------------------------------------------------------------------
-    # compute ground truth DCEs
-    dce_gt <- trueEffects(graph_mt) - trueEffects(graph_wt)
-    dce_gt_ind <- which(dce_gt != 0, arr.ind = TRUE)
-    # create plot
-    # --- Curatedtcgadata [] ---
-    # Key functions: curatedTCGAData
-    ---------------------------------------------------------------------
-    brca <- curatedTCGAData(
-      diseaseCode = "BRCA",
-      assays = c("RNASeq2*"),
-      version = "2.0.1",
-    # --- Sampletables [] ---
-    # Key functions: sampleTables, filter
-    ---------------------------------------------------------------------
-    sampleTables(brca)
-    data(sampleTypes, package = "TCGAutils")
-    sampleTypes %>%
-      dplyr::filter(Code %in% c("01", "06", "11"))
-    # --- Tcgasplitassays [] ---
-    # Key functions: TCGAsplitAssays, assay
-    ---------------------------------------------------------------------
-    # split assays
-    brca_split <- TCGAsplitAssays(brca, c("01", "11"))
-    # only retain matching samples
-    brca_matched <- as(brca_split, "MatchedAssayExperiment")
-    # --- Get Pathways [] ---
+    # --- Pathway Retrieval [] ---
     # Key functions: get_pathways
-    ---------------------------------------------------------------------
     pathways <- get_pathways(pathway_list = list(kegg = c("Breast cancer")))
     brca_pathway <- pathways[[1]]$graph
-    # --- Intersect [] ---
-    # Key functions: intersect, nodes, glue
-    ---------------------------------------------------------------------
-    shared_genes <- intersect(nodes(brca_pathway), rownames(brca_wt))
-    glue::glue(
-      "Covered nodes: {length(shared_genes)}/{length(nodes(brca_pathway))}"
+
+
+    # --- Differential Causal Effect Estimation [] ---
+    # Key functions: dce
+    res <- dce::dce(graph_wt, X_wt, X_mt)
+    df_dce <- as.data.frame(res)
+
+
+    # --- Ground Truth Evaluation [] ---
+    # Key functions: trueEffects
+    dce_gt <- trueEffects(graph_mt) - trueEffects(graph_wt)
+    dce_gt_ind <- which(dce_gt != 0, arr.ind = TRUE)
+
+
+    # --- Network Visualisation [] ---
+    # Key functions: plot_network
+    plot_network(
+        as(graph_wt, "matrix"),
+        labelsize = 0,
+        arrow_size = 0.01
     )
-    # --- Arrange [] ---
-    # Key functions: arrange, desc
-    ---------------------------------------------------------------------
-    res %>%
-      as.data.frame %>%
-      drop_na %>%
-      arrange(desc(abs(dce))) %>%
-    # --- Dce [] ---
-    # Key functions: dce, qplot, geom_abline, xlab, ylab, plot_network, ggtitle
-    ---------------------------------------------------------------------
-    res <- dce(graph_mt, X_wt, X_mt, deconfounding = FALSE)
-    qplot(truth[truth != 0], res$dce[truth != 0]) +
-      geom_abline(color = "red", linetype = "dashed") +
-      xlab("true DCE") +
-    # --- Sample [] ---
-    # Key functions: sample, runif, dce
-    ---------------------------------------------------------------------
-    batch <- sample(c(0, 1), replace = TRUE, nrow(X_wt))
-    bX_wt <- apply(X_wt, 2, function(x) x + max(x) * runif(1) * batch)
-    bX_mt <- apply(X_mt, 2, function(x) x + max(x) * runif(1) * batch)
-    res_without_deconf <- dce(graph_mt, bX_wt, bX_mt, deconfounding = FALSE)
-    # --- Dce [] ---
-    # Key functions: dce, plot_grid, plot_network, ggtitle, qplot, geom_abline, xlab
-    ---------------------------------------------------------------------
-    res_with_deconf <- dce(graph_mt, bX_wt, bX_mt, deconfounding = 1)
-    cowplot::plot_grid(
-      plot_network(
-        graph_wt,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

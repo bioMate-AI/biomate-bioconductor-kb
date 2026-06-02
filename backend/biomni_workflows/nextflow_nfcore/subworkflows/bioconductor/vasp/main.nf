@@ -41,19 +41,38 @@ process BIOC_VASP {
     library(VaSP)
     library(jsonlite)
 
-    # --- splice Plot [] ---
-    # Key functions: splicePlot
-    splicePlot(rice.bg,gene='MSTRG.183',samples = sampleNames(rice.bg)[c(1,3,5)],
-    # --- get Depth [] ---
-    # Key functions: getDepth, plotBedgraph, labelgenome
+    # --- Genome-wide Splicing Quantification [] ---
+    # Key functions: spliceGenome
+    data(rice.bg)
+    splice <- spliceGenome(rice.bg, gene.select = NA, intron.select = NA)
+    scores <- splice$score
+    introns <- splice$intron
+
+
+    # --- Bimodal Splicing Feature Discovery [] ---
+    # Key functions: BMfinder, spliceGene
+    data(rice.bg)
+    score <- spliceGene(rice.bg, gene = "MSTRG.183", junc.type = "score")
+    gss <- BMfinder(score, cores = 1)
+
+
+    # --- Read Depth Extraction [] ---
+    # Key functions: getDepth
     path <- system.file("extdata", package = "VaSP")
     bam_files <- list.files(path, "*.bam$")
-    depth <- getDepth(file.path(path, bam_files[1]), "Chr1", start = 1171800,
-    # --- get Geneinfo [] ---
-    # Key functions: getGeneinfo, plotGenes
-    unique(geneIDs(rice.bg))
-    gene_id <- c("MSTRG.181", "MSTRG.182", "MSTRG.183")
-    geneinfo <- getGeneinfo(genes = gene_id, rice.bg)
+    depth <- getDepth(
+        file.path(path, bam_files[1]), 
+        "Chr1", 
+        start = 1171800, 
+        end = 1179400
+    )
+
+
+    # --- Gene Structure Information Retrieval [] ---
+    # Key functions: getGeneinfo
+    data(rice.bg)
+    gene_ids <- c("MSTRG.181", "MSTRG.182", "MSTRG.183")
+    geneinfo <- getGeneinfo(genes = gene_ids, rice.bg)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

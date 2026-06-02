@@ -38,43 +38,26 @@ process BIOC_MEAT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MEAT)
     library(BMIQcalibration)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Methylation matrix presentation table [] ---
-    # Key functions: kable
-    kable(head(GSE121961),
-    # --- Phenotype table presentation table [] ---
-    # Key functions: kable
-    kable(GSE121961_pheno,
-    # --- Data formatting [] ---
-    # Key functions: SummarizedExperiment
-    library(SummarizedExperiment)
-    GSE121961_SE <- SummarizedExperiment(assays=list(beta=GSE121961),
-    # --- Data cleaning [] ---
-    # Key functions: clean_beta
-    GSE121961_SE_clean <- clean_beta(SE = GSE121961_SE,
-    # --- Data cleaning table [] ---
-    # Key functions: kable
-    kable(head(assays(GSE121961_SE_clean)$beta),
-    # --- Data calibration [] ---
+    # --- Data Calibration [] ---
     # Key functions: BMIQcalibration
-    GSE121961_SE_calibrated <- BMIQcalibration(SE = GSE121961_SE_clean,
-    # --- Data calibration table [] ---
-    # Key functions: kable
-    kable(head(assays(GSE121961_SE_calibrated)$beta),
-    # --- DNA methylation profile distribution before and after calibration [] ---
-    # Key functions: densityPlot
-    data("gold.mean.MEAT2.0", envir = environment())
-    GSE121961_SE_clean_with_gold_mean <- cbind(assays(GSE121961_SE_clean)$beta,
-    GSE121961_SE_calibrated_with_gold_mean <- cbind(assays(GSE121961_SE_calibrated)$beta,
-    # --- Epigenetic age estimation with phenotypes [] ---
+    GSE121961_SE_calibrated <- BMIQcalibration(
+        SE = GSE121961_SE_clean,
+        version = "MEAT2.0"
+    )
+
+
+    # --- Epigenetic Age Estimation [] ---
     # Key functions: epiage_estimation
-    GSE121961_SE_epiage <- epiage_estimation(SE = GSE121961_SE_calibrated,
-    # --- Epigenetic age estimation with phenotypes table [] ---
-    # Key functions: kable
-    kable(colData(GSE121961_SE_epiage),
+    GSE121961_SE_epiage <- epiage_estimation(
+        SE = GSE121961_SE_calibrated,
+        age_col_name = "Age",
+        version = "MEAT2.0"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

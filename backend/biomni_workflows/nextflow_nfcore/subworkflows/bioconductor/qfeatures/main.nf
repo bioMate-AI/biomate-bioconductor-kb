@@ -41,20 +41,36 @@ process BIOC_QFEATURES {
     library(QFeatures)
     library(jsonlite)
 
-    # --- read Q Features [] ---
-    # Key functions: readQFeatures, colData, filterFeatures, rowDataNames, selectRowData
-    library("QFeatures")
-    cptac <- readQFeatures(x, quantCols = i, name = "peptides", fnames = "Sequence")
-    cptac$group <- rep(c("6A", "6B"), each = 3)
-    # --- count Unique Features [] ---
-    # Key functions: countUniqueFeatures, colData
-    cptac <- countUniqueFeatures(cptac,
-    colData(cptac)
-    # --- assay [] ---
-    # Key functions: assay, addAssay, logTransform
-    data(se_na2)
-    x <- assay(impute(se_na2, "zero"))
-    suppressPackageStartupMessages(library("gplots"))
+    # --- Missing Value Handling and Imputation [] ---
+    # Key functions: zeroIsNA, nNA, filterNA
+    cptac <- zeroIsNA(cptac, i = seq_along(cptac))
+    na_stats <- nNA(cptac, i = seq_along(cptac))
+    cptac <- filterNA(cptac, i = seq_along(cptac), pNA = 0)
+
+
+    # --- Transformation and Normalisation [] ---
+    # Key functions: logTransform, normalize, addAssay
+    cptac <- addAssay(
+        cptac,
+        logTransform(cptac[[1]]),
+        name = "peptides_log"
+    )
+    cptac <- addAssay(
+        cptac,
+        normalize(cptac[["peptides_log"]], method = "center.median"),
+        name = "peptides_norm"
+    )
+
+
+    # --- Feature Aggregation [] ---
+    # Key functions: aggregateFeatures, longFormat
+    cptac <- aggregateFeatures(
+        cptac,
+        i = "peptides_norm",
+        fcol = "Proteins",
+        name = "proteins"
+    )
+    df_long <- as.data.frame(longFormat(cptac))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

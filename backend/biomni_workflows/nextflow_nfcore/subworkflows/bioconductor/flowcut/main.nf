@@ -41,30 +41,60 @@ process BIOC_FLOWCUT {
     library(flowCut)
     library(jsonlite)
 
-    # --- label=SimpleExample Image [] ---
+    # --- Quality Control and Outlier Detection ---
     # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[1]], FileID = 1, Plot = "All")
-    # --- label=MaxValleyHgt0p01 Image [] ---
+    data(flowCutData)
+    res_flowCut <- flowCut(
+        flowCutData[[1]],
+        FileID = 1,
+        Plot = "All"
+    )
+
+    # --- Stringent Outlier Filtering ---
     # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[2]], FileID=2, Plot ="All", AllowFlaggedRerun = FALSE, MaxValleyHgt = 0.01)
-    # --- label=MaxValleyHgt0p1 Image [] ---
+    data(flowCutData)
+    res_flowCut_stringent <- flowCut(
+        flowCutData[[2]],
+        FileID = 2,
+        Plot = "All",
+        AllowFlaggedRerun = FALSE,
+        MaxValleyHgt = 0.01
+    )
+
+    # --- Flagged Rerun Optimization ---
     # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[2]], FileID=3, Plot ="All", MaxValleyHgt = 0.1)
-    # --- label=MaxPercCut0p15 Image [] ---
+    data(flowCutData)
+    res_flowCut_rerun <- flowCut(
+        flowCutData[[4]],
+        FileID = 8,
+        AllowFlaggedRerun = TRUE,
+        UseOnlyWorstChannels = TRUE,
+        Plot = "All"
+    )
+
+    # --- Custom Gate Line Force Filtering ---
     # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[3]], FileID=4, Plot ="All", AllowFlaggedRerun = FALSE, MaxPercCut = 0.15)
-    # --- label=MaxPercCut0p3 Image [] ---
+    data(flowCutData)
+    res_flowCut_gate <- flowCut(
+        flowCutData[[3]],
+        FileID = 6,
+        Plot = "All",
+        GateLineForce = 44
+    )
+
+    # --- Extraction of Quality Metrics ---
     # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[3]], FileID=5, Plot ="All", MaxPercCut = 0.3)
-    # --- label=GateLineForce 44 Image [] ---
-    # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[3]], FileID=6, Plot ="All", GateLineForce=44)
-    # --- label=AllowFlaggedRerun UseOnlyWorstChannels Image 1 [] ---
-    # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[4]], FileID=7, AllowFlaggedRerun = FALSE, Plot ="All")
-    # --- label=AllowFlaggedRerun UseOnlyWorstChannels Image 2 [] ---
-    # Key functions: flowCut
-    res_flowCut <- flowCut(flowCutData[[4]], FileID=8, AllowFlaggedRerun = TRUE,
+    data(flowCutData)
+    res_flowCut_metrics <- flowCut(
+        flowCutData[[3]],
+        FileID = 4,
+        Plot = "None",
+        AllowFlaggedRerun = FALSE,
+        MaxPercCut = 0.15
+    )
+    metrics_summary <- res_flowCut_metrics$data
+    pct_removed <- metrics_summary["% of events removed", ]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,69 +41,33 @@ process BIOC_DROPLETUTILS {
     library(DropletUtils)
     library(jsonlite)
 
-    # --- Example [] ---
-    # Key functions: example, files
-    ---------------------------------------------------------------------
-    # To generate the files.
-    example(write10xCounts, echo=FALSE)
-    dir.name <- tmpdir
-    list.files(dir.name)
-    # --- read10x Counts [] ---
-    # Key functions: read10xCounts
-    ---------------------------------------------------------------------
-    sce <- read10xCounts(dir.name)
-    sce
-    # --- Class [] ---
-    # Key functions: counts
-    ---------------------------------------------------------------------
-    class(counts(sce))
-    # --- read10x Mol Info [] ---
-    # Key functions: read10xMolInfo
-    ---------------------------------------------------------------------
-    mol.info <- read10xMolInfo(mol.info.file)
-    mol.info
-    # --- Barcoderanks [] ---
-    # Key functions: barcodeRanks, metadata
-    ---------------------------------------------------------------------
+    # --- Barcode Rank Analysis [] ---
+    # Key functions: barcodeRanks
     br.out <- barcodeRanks(my.counts)
-    # Making a plot.
-    plot(br.out$rank, br.out$total, log="xy", xlab="Rank", ylab="Total")
-    o <- order(br.out$rank)
-    # --- Plot [] ---
-    # Key functions: ifelse
-    ---------------------------------------------------------------------
-    plot(e.out$Total, -e.out$LogProb, col=ifelse(is.cell, "red", "black"),
-        xlab="Total UMI count", ylab="-Log Probability")
-    # --- Emptydrops [] ---
+    knee_val <- metadata(br.out)$knee
+    inf_val <- metadata(br.out)$inflection
+
+
+    # --- Empty Droplet Detection [] ---
     # Key functions: emptyDrops
-    ---------------------------------------------------------------------
-    hto.calls <- emptyDrops(y, lower=500)
+    e.out <- emptyDrops(my.counts)
+    is.cell <- e.out$FDR <= 0.01
+
+
+    # --- Multiplet Demultiplexing [] ---
+    # Key functions: emptyDrops, hashedDrops
+    hto.calls <- emptyDrops(y, lower = 500)
     has.cell <- hto.calls$FDR <= 0.001
-    summary(has.cell)
-    # --- Hasheddrops [] ---
-    # Key functions: hashedDrops, metadata
-    ---------------------------------------------------------------------
-    demux <- hashedDrops(y[,which(has.cell)],
-        ambient=metadata(hto.calls)$ambient)
-    demux
-    # --- Ifelse [] ---
-    # Key functions: ifelse
-    ---------------------------------------------------------------------
-    colors <- ifelse(demux$Confident, "black",
-        ifelse(demux$Doublet, "red", "grey"))
-    plot(demux$LogFC, demux$LogFC2, col=colors,
-        xlab="Log-fold change between best and second HTO",
-    # --- Swappeddrops [] ---
-    # Key functions: swappedDrops
-    ---------------------------------------------------------------------
-    s.out <- swappedDrops(mult.mol.info, min.frac=0.9)
-    length(s.out$cleaned)
-    class(s.out$cleaned[[1]])
-    # --- Chimericdrops [] ---
-    # Key functions: chimericDrops
-    ---------------------------------------------------------------------
+    demux <- hashedDrops(
+        y[, which(has.cell)],
+        ambient = metadata(hto.calls)$ambient
+    )
+
+
+    # --- Swapped Molecule Filtering [] ---
+    # Key functions: swappedDrops, chimericDrops
+    s.out <- swappedDrops(mult.mol.info, min.frac = 0.9)
     out <- chimericDrops(mult.mol.info[1])
-    class(out)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

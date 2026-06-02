@@ -38,31 +38,51 @@ process BIOC_REGIONREPORT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(regionReport)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- 'Findregions' [] ---
-    # Key functions: unlist
-    ## Load bumphunter
-    library("bumphunter")
-    ## Create data from the vignette
-    pos <- list(
-        pos1 = seq(1, 1000, 35),
-    # --- 'Buildgranges' [] ---
-    # Key functions: GRanges, IRanges, seqlengths, getChromInfoFromUCSC
-    library("GenomicRanges")
-    ## Build GRanges with sequence lengths
-    regions <- GRanges(
-        seqnames = tab$table$chr,
-        IRanges(start = tab$table$start, end = tab$table$end),
-    # --- 'Reproducibility' [] ---
-    # Key functions: time, session_info
-    ## Date generated:
-    Sys.time()
-    ## Time spent making this page:
-    proc.time()
-    ## R and packages info:
+    # --- Differential Expression Report with DESeq2 [] ---
+    # Key functions: deseq2Report
+    counts <- matrix(rnbinom(100, mu = 10, size = 10), ncol = 4)
+    coldata <- data.frame(group = factor(c("A", "A", "B", "B")))
+    dds <- DESeq2::DESeqDataSetFromMatrix(
+        countData = counts,
+        colData = coldata,
+        design = ~ group
+    )
+    dds <- DESeq2::DESeq(dds)
+    regionreport::deseq2Report(
+        dds = dds,
+        project = "DESeq2 Analysis Report",
+        outdir = "deseq2_report",
+        output = "index"
+    )
+
+
+    # --- Differential Expression Report with edgeR [] ---
+    # Key functions: edgeReport
+    counts <- matrix(rnbinom(100, mu = 10, size = 10), ncol = 4)
+    group <- factor(c("A", "A", "B", "B"))
+    dge <- edgeR::DGEList(counts = counts, group = group)
+    dge <- edgeR::calcNormFactors(dge)
+    regionreport::edgeReport(
+        dge = dge,
+        project = "edgeR Analysis Report",
+        outdir = "edger_report",
+        output = "index"
+    )
+
+
+    # --- Derfinder Coverage Report [] ---
+    # Key functions: derfinderReport
+    regionreport::derfinderReport(
+        prefix = "derfinder_results",
+        outdir = "derfinder_report",
+        project = "Derfinder Analysis Report",
+        browse = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,21 +41,29 @@ process BIOC_GENOMICDATACOMMONS {
     library(GenomicDataCommons)
     library(jsonlite)
 
-    # --- Extract differential expression results [] ---
-    # Key functions: expand, results, cases, ids, missing
-    cases() |>
-    GenomicDataCommons::filter(~ project.project_id == 'TCGA-COAD' &
-    GenomicDataCommons::results(size = 4) |>
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_bar, theme
-    res = files() |> facet('type') |> aggregations()
-    ggplot(res$type,aes(x = key,y = doc_count)) + geom_bar(stat='identity') +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    # --- Markdown analysis [] ---
-    # Key functions: markdown, status, files, manifest, default_fields, facet, aggregations, transfer
-    resp = cases() |> filter(~ project.project_id=='TCGA-BRCA' &
-    GenomicDataCommons::select(c(default_fields(cases()),'samples.sample_type')) |>
-    response_all()
+    # --- Downloading GDC Data [] ---
+    # Key functions: gdcdata
+    fnames <- gdcdata(
+        manifest_df$id[1:2],
+        progress = FALSE
+    )
+
+
+    # --- Clinical Data Retrieval [] ---
+    # Key functions: cases, results, ids, gdc_clinical
+    case_ids <- cases() |>
+        results(size = 10) |>
+        ids()
+    clindat <- gdc_clinical(case_ids)
+    main_clin <- clindat[["main"]]
+
+
+    # --- Aggregation and Faceting [] ---
+    # Key functions: cases, facet, aggregations
+    res <- cases() |>
+        facet("project.project_id") |>
+        aggregations()
+    proj_counts <- res$project.project_id
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

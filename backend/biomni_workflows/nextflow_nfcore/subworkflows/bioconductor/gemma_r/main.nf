@@ -41,33 +41,32 @@ process BIOC_GEMMA_R {
     library(gemma.R)
     library(jsonlite)
 
-    # --- get_datasets_by_ids [] ---
-    # Key functions: get_datasets_by_ids
-    get_datasets_by_ids("GSE46416") %>%
-    select(experiment.shortName, experiment.name,
-    # --- get_dataset_object [] ---
+    # --- Expression Data Acquisition [] ---
     # Key functions: get_dataset_object
-    dat <- get_dataset_object("GSE46416",
-    dat[[1]]$disease %>% unique()
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: assay, pheatmap, get_dataset_samples, gemma_kable, get_genes
-    manicExpr <- assay(manic, "counts")
-    pheatmap(col =viridis(10),border_color = NA,angle_col = 45,fontsize = 7)
-    get_dataset_samples('GSE46416') %>% make_design('text') %>% select(-factorValues) %>%  head %>%
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: arrange, ggplot, aes, geom_point, geom_hline
-    de <- get_differential_expression_values("GSE46416",readableContrasts = TRUE)[[1]]
-    filter(de, diffexpr == "Up") %>%
-    arrange(`contrast_bipolar disorder has_modifier manic phase_pvalue`) %>%
-    # --- get_dataset_annotations [] ---
-    # Key functions: get_dataset_annotations
-    try({
-    get_dataset_annotations(c("GSE35974", "GSE46416"))
-    # --- get_dataset_annotations [] ---
-    # Key functions: get_dataset_annotations, get_gene_locations
-    lapply(c("GSE35974", "GSE12649"), function(dataset) {
-    get_dataset_annotations(dataset) %>%
-    mutate(experiment.shortName = dataset) %>%
+    dat <- gemma.R::get_dataset_object("GSE46416", type = "se")
+    manic <- dat[[1]][, dat[[1]]$disease == "reference subject role"]
+    manic_expr <- SummarizedExperiment::assay(manic, "counts")
+
+
+    # --- Sample and Platform Annotation [] ---
+    # Key functions: get_dataset_samples, make_design, get_platform_annotations
+    samples <- gemma.R::get_dataset_samples("GSE46416")
+    design <- gemma.R::make_design(samples, "text")
+    platform_annot <- gemma.R::get_platform_annotations("GPL96")
+
+
+    # --- Gene and Probe Mapping [] ---
+    # Key functions: get_genes, get_gene_probes
+    genes <- gemma.R::get_genes("Eno2")
+    probes <- gemma.R::get_gene_probes(2026)
+
+
+    # --- Differential Expression Retrieval [] ---
+    # Key functions: get_differential_expression_values, get_dataset_differential_expression_analyses
+    dif_exp <- gemma.R::get_differential_expression_values("GSE46416")
+    contrasts <- gemma.R::get_dataset_differential_expression_analyses(
+        "GSE46416"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,36 +38,54 @@ process BIOC_SCTHI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scTHI)
     library(TME_plot)
     library(jsonlite)
 
-    # --- Scthi Plotresult [] ---
-    # Key functions: scTHI_plotResult
-    ---------------------------------------------------------------------
-    scTHI_plotResult(scTHIresult = H3K27.result,
-                    cexNames = 0.7,
-                    plotType = "score")
-    # --- Scthi Runtsne [] ---
-    # Key functions: scTHI_runTsne
-    ---------------------------------------------------------------------
-    H3K27.result <- scTHI_runTsne(scTHIresult = H3K27.result)
-    # --- Scthi Plotcluster [] ---
-    # Key functions: scTHI_plotCluster
-    ---------------------------------------------------------------------
-    scTHI_plotCluster(scTHIresult = H3K27.result,
-                    cexPoint = 0.8,
-                    legendPos = "bottomleft")
-    # --- Scthi Plotpairs [] ---
-    # Key functions: scTHI_plotPairs
-    ---------------------------------------------------------------------
+    # --- Interaction Visualization [] ---
+    # Key functions: scTHI_plotResult, scTHI_plotPairs
+    scTHI_plotResult(
+        scTHIresult = H3K27.result,
+        cexNames = 0.7,
+        plotType = "score"
+    )
+    scTHI_plotResult(
+        scTHIresult = H3K27.result,
+        cexNames = 0.7,
+        plotType = "pair"
+    )
     scTHI_plotPairs(
-    scTHIresult = H3K27.result,
-    cexPoint = 0.8,
-    interactionToplot = "THY1_ITGAX:ITGB2"
-    # --- Tme Plot [] ---
-    # Key functions: TME_plot
-    ---------------------------------------------------------------------
-    TME_plot(tsneData = H3K27.result$tsneData, Class, cexPoint = 0.8)
+        scTHIresult = H3K27.result,
+        cexPoint = 0.8,
+        interactionToplot = "THY1_ITGAX:ITGB2"
+    )
+
+
+    # --- Dimensionality Reduction and Clustering [] ---
+    # Key functions: scTHI_runTsne, scTHI_plotCluster
+    H3K27.result <- scTHI_runTsne(
+        scTHIresult = H3K27.result
+    )
+    scTHI_plotCluster(
+        scTHIresult = H3K27.result,
+        cexPoint = 0.8,
+        legendPos = "bottomleft"
+    )
+
+
+    # --- Microenvironment Classification [] ---
+    # Key functions: TME_classification, TME_plot
+    Tme.cells <- rownames(H3K27.meta)[which(H3K27.meta$Type != "Malignant")]
+    H3K27.tme <- H3K27[, Tme.cells]
+    Class <- TME_classification(
+        expMat = H3K27.tme,
+        minLenGeneSet = 10
+    )
+    TME_plot(
+        tsneData = H3K27.result$tsneData,
+        Class = Class,
+        cexPoint = 0.8
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,77 +38,62 @@ process BIOC_GRAPHITE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(graphite)
     library(Do)
     library(jsonlite)
 
-    # --- Base1 [] ---
-    # Key functions: pathways
-    humanReactome <- pathways("hsapiens", "reactome")
-    names(humanReactome)[1:10]
-    p <- humanReactome[["ABC-family proteins mediated transport"]]
-    p
-    # --- Base2 [] ---
-    # Key functions: pathwayTitle
-    p <- humanReactome[[21]]
-    pathwayTitle(p)
-    # --- Base5 [] ---
-    # Key functions: nodes, edges
-    head(nodes(p), which = "mixed")
-    head(edges(p), which = "mixed")
-    # --- Graph1 [] ---
-    # Key functions: pathwayGraph
-    g <- pathwayGraph(p)
-    g
-    # --- Graph3 [] ---
-    # Key functions: pathwayGraph
-    g <- pathwayGraph(p, which = "mixed")
-    g
-    # --- Ident1 [] ---
+    # --- Identifier Conversion [] ---
     # Key functions: convertIdentifiers, nodes
+    humanReactome <- pathways("hsapiens", "reactome")
+    p <- humanReactome[[1]]
     pSymbol <- convertIdentifiers(p, "SYMBOL")
-    pSymbol
-    head(nodes(pSymbol))
-    # --- Ident2 [] ---
-    # Key functions: convertIdentifiers
     reactomeSymbol <- convertIdentifiers(humanReactome[1:5], "SYMBOL")
-    # --- Spia1 [] ---
-    # Key functions: mapIds, na, pathways
-    library(SPIA)
-    data(colorectalcancer)
-    library(hgu133plus2.db)
-    top$ENTREZ <- mapIds(hgu133plus2.db,
-                         top$ID, "ENTREZID", "PROBEID", multiVals = "first")
-    # --- Unlink [] ---
-    # Key functions: unlink
-    unlink("keggExSPIA.RData")
-    # --- Tg1 [] ---
-    # Key functions: pathways, convertIdentifiers, runTopologyGSA
-    library(topologyGSA)
-    data(examples)
-    colnames(y1) <- paste("SYMBOL", colnames(y1), sep = ":")
-    colnames(y2) <- paste("SYMBOL", colnames(y2), sep = ":")
+    symbol_nodes <- head(nodes(pSymbol))
+
+
+    # --- Graph Conversion [] ---
+    # Key functions: pathwayGraph
+    humanReactome <- pathways("hsapiens", "reactome")
+    p <- humanReactome[[1]]
+    g_default <- pathwayGraph(p)
+    g_mixed <- pathwayGraph(p, which = "mixed")
+
+
+    # --- SPIA Pathway Analysis [] ---
+    # Key functions: pathways, convertIdentifiers, prepareSPIA, runSPIA
     kegg <- pathways("hsapiens", "kegg")
-    # --- Bldp [] ---
-    # Key functions: frame, buildPathway
-    edges <- data.frame(src_type = "ENTREZID", src="672",
-                        dest_type = "ENTREZID", dest="7157",
-                        direction="undirected", type="binding")
+    kegg <- convertIdentifiers(kegg, "ENTREZID")
+    kegg_subset <- kegg[1:2]
+    prepareSPIA(kegg_subset, "keggEx")
+    de_genes <- c("ENTREZID:672" = 2.5, "ENTREZID:7157" = -1.8)
+    all_genes <- c("ENTREZID:672", "ENTREZID:7157", "ENTREZID:100")
+    res <- runSPIA(de = de_genes, all = all_genes, "keggEx")
+
+
+    # --- Topology-Based Pathway Analysis [] ---
+    # Key functions: pathways, convertIdentifiers, nodes, runTopologyGSA
+    kegg <- pathways("hsapiens", "kegg")
+    p <- convertIdentifiers(kegg[[1]], "SYMBOL")
+    genes <- head(nodes(p))
+    y1 <- matrix(rnorm(50), nrow = 10, ncol = length(genes))
+    y2 <- matrix(rnorm(50), nrow = 10, ncol = length(genes))
+    colnames(y1) <- paste("SYMBOL", genes, sep = ":")
+    colnames(y2) <- paste("SYMBOL", genes, sep = ":")
+    res_gsa <- runTopologyGSA(p, "var", y1, y2, 0.05)
+
+
+    # --- Custom Pathway Construction [] ---
+    # Key functions: buildPathway
+    edges <- data.frame(src_type = "ENTREZID", src = "672",
+                        dest_type = "ENTREZID", dest = "7157",
+                        direction = "undirected", type = "binding")
+    edgemix <- data.frame(src_type = "CHEBI", src = "77750",
+                          dest_type = "ENTREZID", dest = "7157",
+                          direction = "undirected",
+                          type = "biochemicalReaction")
     pathway <- buildPathway("#1", "example", "hsapiens", "database",
-                            proteinEdges = edges)
-    # --- Bldp2 [] ---
-    # Key functions: frame, buildPathway
-    edges <- data.frame(src_type = "ENTREZID", src="672",
-                        dest_type = "ENTREZID", dest="7157",
-                        direction="undirected", type="binding")
-    edgemix <- data.frame(src_type = "CHEBI", src="77750",
-                        dest_type = "ENTREZID", dest="7157",
-    # --- Para2 [] ---
-    # Key functions: pathways, Do, convertIdentifiers
-    ## original <- pathways("hsapiens", "reactome")
-    ##
-    ## # Do (will exploit parallelism)
-    ## converted <- convertIdentifiers(original, "SYMBOL")
-    ##
+                            proteinEdges = edges,
+                            mixedEdges = edgemix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

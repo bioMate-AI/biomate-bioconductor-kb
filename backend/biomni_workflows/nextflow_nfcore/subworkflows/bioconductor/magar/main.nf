@@ -41,34 +41,46 @@ process BIOC_MAGAR {
     library(MAGAR)
     library(jsonlite)
 
-    # --- qtl Set Option [] ---
-    # Key functions: qtlSetOption
-    rnb.set <- load.rnb.set("rnb_set_dir")
-    data.loc <- list(idat.dir=rnb.set,geno.dir=plink.dir)
-    qtlSetOption(geno.data.type="plink",
-    # --- call methQTL [] ---
-    # Key functions: qtlSetOption
-    imp.data <- loadMethQTLInput(system.file("extdata","reduced_methQTL",package="MAGAR"))
-    qtlSetOption(standard.deviation.gauss=100,
-    meth.qtl.res <- doMethQTL(imp.data,default.options=FALSE,p.val.cutoff=0.05)
-    # --- qtl Plot S N P Cp G Interaction [] ---
+    # --- methQTL Analysis [] ---
+    # Key functions: loadMethQTLInput, doMethQTL
+    imp.data <- loadMethQTLInput(
+        system.file("extdata", "reduced_methQTL", package = "magar")
+    )
+    meth.qtl.res <- doMethQTL(
+        imp.data,
+        default.options = FALSE,
+        p.val.cutoff = 0.05
+    )
+
+
+    # --- Result Extraction [] ---
+    # Key functions: getResult, getAnno
+    result.table <- getResult(meth.qtl.res)
+    anno.meth <- getAnno(meth.qtl.res, "meth")
+    anno.geno <- getAnno(meth.qtl.res, "geno")
+
+
+    # --- Visualisation [] ---
     # Key functions: qtlPlotSNPCpGInteraction, qtlDistanceScatterplot
-    result.table <- result.table[order(result.table$P.value,decreasing=FALSE),]
-    qtlPlotSNPCpGInteraction(imp.data,result.table$CpG[1],result.table$SNP[1])
+    sorted.results <- result.table[order(result.table$P.value), ]
+    qtlPlotSNPCpGInteraction(
+        imp.data,
+        sorted.results$CpG[1],
+        sorted.results$SNP[1]
+    )
     qtlDistanceScatterplot(meth.qtl.res)
-    # --- qtl Base Substitution Enrichment [] ---
-    # Key functions: qtlBaseSubstitutionEnrichment
+
+
+    # --- Interpretation and Comparison [] ---
+    # Key functions: qtlBaseSubstitutionEnrichment, loadMethQTLResult, qtlVennPlot, qtlUpsetPlot, getSpecificQTL
     res <- qtlBaseSubstitutionEnrichment(meth.qtl.res)
-    # --- qtl Venn Plot [] ---
-    # Key functions: qtlVennPlot, qtlUpsetPlot
-    meth.qtl.res.2 <- loadMethQTLResult(system.file("extdata","MethQTLResult_chr18",package="MAGAR"))
-    meth.qtl.list <- list(First=meth.qtl.res,Second=meth.qtl.res.2)
-    qtlVennPlot(meth.qtl.list,out.folder=getwd())
-    # --- qtl Set Option [] ---
-    # Key functions: qtlSetOption
-    qtlSetOption(cluster.config = c(h_vmem="60G",mem_free="20G"))
-    qtlSetOption(rscript.path = "/usr/bin/Rscript")
-    meth.qtl.res <- doMethQTL(meth.qtl = imp.data,
+    meth.qtl.res.2 <- loadMethQTLResult(
+        system.file("extdata", "MethQTLResult_chr18", package = "magar")
+    )
+    meth.qtl.list <- list(First = meth.qtl.res, Second = meth.qtl.res.2)
+    qtlVennPlot(meth.qtl.list, out.folder = tempdir())
+    qtlUpsetPlot(meth.qtl.list, type = "cor.block")
+    spec.first <- getSpecificQTL(meth.qtl.list$First, meth.qtl.list[-1])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

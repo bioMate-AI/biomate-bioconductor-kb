@@ -38,48 +38,42 @@ process BIOC_PIUMA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(PIUMA)
     library(Anchoring)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- cbind [] ---
-    # Key functions: cbind
-    library(PIUMA)
-    library(ggplot2)
-    data(vascEC_norm)
-    # --- make T D Aobj [] ---
-    # Key functions: makeTDAobj
-    TDA_obj <- makeTDAobj(df_TDA, c("stage","zone"))
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: SummarizedExperiment, makeTDAobjFromSE
-    data("vascEC_meta")
-    data("vascEC_norm")
-    dataSE <- SummarizedExperiment(assays=as.matrix(t(vascEC_norm)),
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: dfToDistance, dfToProjection, getComp, ggplot, geom_point
-    set.seed(1)
+    # --- Dimensionality Reduction and Projection [] ---
+    # Key functions: dfToDistance, dfToProjection, getOutcomeFact, getComp
     TDA_obj <- dfToDistance(TDA_obj, distMethod = "euclidean")
-    calculate the projections (lenses)
-    # --- mapper Core [] ---
+    TDA_obj <- dfToProjection(TDA_obj, "UMAP", nComp = 2,
+                              umapNNeigh = 25, umapMinDist = 0.3,
+                              showPlot = FALSE)
+    df_plot <- as.data.frame(cbind(getOutcomeFact(TDA_obj),
+                                   getComp(TDA_obj)),
+                             stringAsFactor = TRUE)
+
+
+    # --- Topological Data Analysis [] ---
     # Key functions: mapperCore, getDfMapper
-    TDA_obj <- mapperCore(TDA_obj,
-    number of clusters (nodes)
-    dim(getDfMapper(TDA_obj))
-    # --- jaccard Matrix [] ---
-    # Key functions: jaccardMatrix
+    TDA_obj <- mapperCore(TDA_obj, nBins = 15, overlap = 0.3,
+                          clustMeth = "kmeans")
+    mapper_df <- getDfMapper(TDA_obj)
+
+
+    # --- Jaccard Similarity Analysis [] ---
+    # Key functions: jaccardMatrix, getJacc
     TDA_obj <- jaccardMatrix(TDA_obj)
-    head(round(getJacc(TDA_obj)[1:5,1:5],3))
-    round(getJacc(TDA_obj)["node_102_cl_1","node_117_cl_1"],3)
-    # --- tda Df Enrichment [] ---
-    # Key functions: tdaDfEnrichment, getOutcome
+    jacc_mat <- getJacc(TDA_obj)
+
+
+    # --- Enrichment and Network Analysis [] ---
+    # Key functions: tdaDfEnrichment, checkNetEntropy, checkScaleFreeModel
     TDA_obj <- tdaDfEnrichment(TDA_obj,
-    cbind(getScaledData(TDA_obj),
-    getOutcome(TDA_obj)))
-    # --- Anchoring [] ---
-    # Key functions: Anchoring, checkNetEntropy, checkScaleFreeModel
-    Anchoring (supervised)
-    entropy <-  checkNetEntropy(getNodeDataMat(TDA_obj)[, "zone"])
-    Scale free network (unsupervised)
+                               cbind(getScaledData(TDA_obj),
+                                     getOutcome(TDA_obj)))
+    entropy <- checkNetEntropy(getNodeDataMat(TDA_obj)[, "zone"])
+    netModel <- checkScaleFreeModel(TDA_obj, showPlot = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

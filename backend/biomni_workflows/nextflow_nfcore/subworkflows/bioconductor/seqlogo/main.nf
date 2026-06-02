@@ -41,28 +41,34 @@ process BIOC_SEQLOGO {
     library(seqLogo)
     library(jsonlite)
 
-    # --- markdown [] ---
-    # Key functions: markdown, latex
-    knitr::opts_chunk$set(
-    out_type <- knitr::opts_knit$get("rmarkdown.pandoc.to")
-    if (is.null(out_type))
-    # --- make P W M [] ---
-    # Key functions: makePWM
-    mFile <- system.file("extdata/pwm1", package="seqLogo")
-    m <- read.table(mFile)
-    p <- makePWM(m)
-    # --- slot Names [] ---
-    # Key functions: slotNames, pwm, consensus
-    slotNames(p)
-    pwm(p)
-    ic(p)
-    # --- seq Logo [] ---
+    # --- PWM Slot Extraction [] ---
+    # Key functions: pwm, ic, consensus
+    pwm_matrix <- pwm(p)
+    info_content <- ic(p)
+    consensus_seq <- consensus(p)
+    pwm_dim <- dim(pwm_matrix)
+    ic_length <- length(info_content)
+
+
+    # --- Sequence Logo Generation [] ---
     # Key functions: seqLogo
+    png("seqlogo_default.png", width=800, height=400)
+    seqLogo(p)
+    dev.off()
+    png("seqlogo_no_scale.png", width=800, height=400)
     seqLogo(p, ic.scale=FALSE)
-    # --- make P W M [] ---
-    # Key functions: makePWM, seqLogo
-    r <- makePWM(m, alphabet="RNA")
+    dev.off()
+
+
+    # --- Custom Sequence Logo Styling [] ---
+    # Key functions: seqLogo
+    custom_colors <- c(A="#4daf4a", C="#377eb8", G="#ffd92f", T="#e41a1c")
+    png("seqlogo_custom.png", width=800, height=400)
+    seqLogo(p, fill=custom_colors, ic.scale=FALSE)
+    dev.off()
+    png("seqlogo_rna.png", width=800, height=400)
     seqLogo(r, ic.scale=FALSE)
+    dev.off()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

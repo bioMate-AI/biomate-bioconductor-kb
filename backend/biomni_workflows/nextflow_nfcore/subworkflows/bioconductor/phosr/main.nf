@@ -38,6 +38,7 @@ process BIOC_PHOSR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(PhosR)
     library(GeneSymbol)
     library(Overrepresentation)
     library(PhosphoExperiment)
@@ -48,99 +49,37 @@ process BIOC_PHOSR {
     library(Site)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: PhosphoExperiment
-    ---------------------------------------------------------------------
-    data("phospho_L6_ratio")
-    ppe <- PhosphoExperiment(assays = list(Quantification = as.matrix(phospho.L6.ratio)))
-    class(ppe)
-    # --- Genesymbol [] ---
-    # Key functions: GeneSymbol, Residue, Site
-    ---------------------------------------------------------------------
-    GeneSymbol(ppe) <- sapply(strsplit(rownames(ppe), ";"), "[[", 2)
-    Residue(ppe) <- gsub("[0-9]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3))
-    Site(ppe) <- as.numeric(gsub("[A-Z]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3)))
-    Sequence(ppe) <- sapply(strsplit(rownames(ppe), ";"), "[[", 4)
-    # --- Phosphoexperiment [] ---
-    # Key functions: PhosphoExperiment
-    ---------------------------------------------------------------------
-    ppe <- PhosphoExperiment(assays = list(Quantification = as.matrix(phospho.L6.ratio)),
-                      Site = as.numeric(gsub("[A-Z]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3))),
-                      GeneSymbol = sapply(strsplit(rownames(ppe), ";"), "[[", 2),
-                      Residue = gsub("[0-9]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3)),
-    # --- Data [] ---
-    # Key functions: data, class
-    ---------------------------------------------------------------------
-    data("phospho.cells.Ins.pe")
-    ppe <- phospho.cells.Ins.pe
-    class(ppe)
-    # --- Selectgrps [] ---
-    # Key functions: selectGrps
-    ---------------------------------------------------------------------
-    ppe_filtered <- selectGrps(ppe, grps, 0.5, n=1)
-    dim(ppe_filtered)
-    # --- Replicates [] ---
-    # Key functions: replicates, selectGrps
-    ---------------------------------------------------------------------
-    # In cases where you have fewer replicates ( e.g.,triplicates), you may want to
-    # select phosphosites quantified in 70% of replicates.
-    ppe_filtered_v1 <- selectGrps(ppe, grps, 0.7, n=1)
-    dim(ppe_filtered_v1)
-    # --- Medianscaling [] ---
-    # Key functions: medianScaling
-    ---------------------------------------------------------------------
-    ppe_imputed_scaled <- medianScaling(ppe_imputed, scale = FALSE, assay = "imputed")
-    # --- Plotqc [] ---
-    # Key functions: plotQC, assay, ggarrange
-    ---------------------------------------------------------------------
-    p1 = plotQC(SummarizedExperiment::assay(ppe_filtered,"Quantification"),
-        labels=colnames(ppe_filtered),
-        panel = "quantify", grps = grps)
-    p2 = plotQC(SummarizedExperiment::assay(ppe_imputed_scaled,"scaled"),
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("phospho_L6_ratio_pe")
-    data("SPSs")
-    ppe <- phospho.L6.ratio.pe
-    ppe
-    # --- Sum [] ---
-    # Key functions: na, assay
-    ---------------------------------------------------------------------
-    sum(is.na(SummarizedExperiment::assay(ppe,"Quantification")))
-    # --- Plotqc [] ---
-    # Key functions: plotQC, assay, ggtitle
-    ---------------------------------------------------------------------
-    plotQC(SummarizedExperiment::assay(ppe,"Quantification"), panel = "dendrogram",
-        grps=grps, labels = colnames(ppe)) +
-        ggplot2::ggtitle("Before batch correction")
-    # --- Which [] ---
-    # Key functions: RUVphospho
-    ---------------------------------------------------------------------
-    # phosphoproteomics data normalisation and batch correction using RUV
-    ctl = which(sites %in% SPSs)
-    ppe = RUVphospho(ppe, M = design, k = 3, ctl = ctl)
-    # --- Plotqc [] ---
-    # Key functions: plotQC, assay, ggarrange
-    ---------------------------------------------------------------------
-    # plot after batch correction
-    p1 = plotQC(SummarizedExperiment::assay(ppe, "Quantification"), grps=grps,
-        labels = colnames(ppe), panel = "dendrogram" )
-    p2 = plotQC(SummarizedExperiment::assay(ppe, "normalised"), grps=grps,
-    # --- Plotqc [] ---
-    # Key functions: plotQC, assay, ggtitle, ggarrange
-    ---------------------------------------------------------------------
-    # plot after batch correction
-    p1 = plotQC(SummarizedExperiment::assay(ppe, "Quantification"), panel = "pca",
-        grps=grps, labels = colnames(ppe)) +
-        ggplot2::ggtitle("Before Batch correction")
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("phospho_L6_ratio_pe")
-    data("phospho.liver.Ins.TC.ratio.RUV.pe")
-    data("phospho.cells.Ins.pe")
-    ppe1 <- phospho.L6.ratio.pe
+    # --- Imputation of Missing Values [] ---
+    # Key functions: scImpute, sc2Impute
+    grps <- gsub("_[0-9]+", "", colnames(ppe_filtered))
+    ppe_imputed <- scImpute(ppe_filtered, percent = 0.5, grps = grps)
+    ppe_imputed <- sc2Impute(ppe_imputed, reg = 0.6)
+
+
+    # --- Normalisation [] ---
+    # Key functions: medianScaling, RUVphospho
+    ppe_norm <- medianScaling(ppe_imputed)
+    ctl <- seq_len(nrow(ppe_norm))
+    ppe_normalized <- RUVphospho(
+        ppe_norm,
+        M = ppe_norm,
+        k = 1,
+        ctl = ctl
+    )
+
+
+    # --- Kinase Activity Profiling [] ---
+    # Key functions: kinaseSubstrateScore, directSubstratePredict
+    mat <- assay(ppe_normalized, "Quantification")
+    scores <- kinaseSubstrateScore(mat, kinaseSubstrateRelation)
+    predictions <- directSubstratePredict(mat, kinaseSubstrateRelation)
+
+
+    # --- Clustering and Pathway Analysis [] ---
+    # Key functions: clue, clueMember
+    mat_clust <- assay(ppe_normalized, "Quantification")
+    clue_res <- clue(mat_clust, cval = 5, repeatNum = 10)
+    best_clust <- clueMember(clue_res)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,44 +41,36 @@ process BIOC_GENESELECTMMD {
     library(GeneSelectMMD)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: gsMMD
-    library(GeneSelectMMD)
-      library(ALL)
-      data(ALL)
-      eSet1 <- ALL[1:100, ALL$BT == "B3" | ALL$BT == "T2"]
-      mem.str <- as.character(eSet1$BT)
-    # --- Data [] ---
-    # Key functions: exprs, default
-    ##   library(GeneSelectMMD)
-    ##   library(ALL)
-    ##   data(ALL)
-    ##   eSet1 <- ALL[1:100, ALL$BT == "B3" | ALL$BT == "T2"]
-    ##   mat <- exprs(eSet1)
-    # --- Data [] ---
-    # Key functions: test
-    ##   library(GeneSelectMMD)
-    ##   library(ALL)
-    ##   data(ALL)
-    ##   eSet1 <- ALL[1:100, ALL$BT == "B3" | ALL$BT == "T2"]
-    ##
-    # --- Data [] ---
-    # Key functions: exprs
-    ##   library(GeneSelectMMD)
-    ##   library(ALL)
-    ##   data(ALL)
-    ##   eSet1 <- ALL[1:100, ALL$BT == "B3" | ALL$BT == "T2"]
-    ##   mat <- exprs(eSet1)
-    # --- Round [] ---
+    # --- Gene Selection with Custom Initialization [] ---
+    # Key functions: gsMMD2.default
+    memIni <- rep(2, nrow(mat))
+    memIni[1:10] <- 1
+    memIni[11:20] <- 3
+    obj_gsMMD2 <- gsMMD2.default(
+        mat,
+        memSubjects,
+        memIni = memIni,
+        transformFlag = TRUE,
+        transformMethod = "boxcox",
+        scaleFlag = TRUE,
+        quiet = TRUE
+    )
+
+
+    # --- Error Rate Estimation [] ---
     # Key functions: errRates
-    print(round(errRates(obj.gsMMD), 3))
-    # --- Plothistdensity [] ---
-    # Key functions: plotHistDensity, density
-    plotHistDensity(obj.gsMMD, plotFlag = "case",
-          mytitle = "Histogram of gene expression levels for T2\nimposed with estimated density (case)",
-          plotComponent = TRUE,
-          x.legend = c(0.8, 3),
-          y.legend = c(0.3, 0.4),
+    err_rates <- errRates(obj_gsMMD)
+
+
+    # --- Density Visualisation [] ---
+    # Key functions: plotHistDensity
+    plotHistDensity(
+        obj_gsMMD,
+        plotFlag = "case",
+        mytitle = "Estimated Density",
+        plotComponent = TRUE,
+        numPoints = 500
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,30 +38,55 @@ process BIOC_MSA2DIST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MSA2dist)
     library(DNAString)
     library(DNAStringSet)
     library(jsonlite)
 
-    # --- Compute distance matrix [] ---
-    # Key functions: bionj, dist
-    ---------------------------------------------------------------------
-    ## create and plot bionj tree
-    aa.dist.bionj <- ape::bionj(as.dist(aa.dist$distSTRING))
-    plot(aa.dist.bionj)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: select, gather, ggplot, aes, geom_line, factor, geom_point
-    ---------------------------------------------------------------------
-    print(hiv.xy |> dplyr::select(Codon,SynMean,NonSynMean,IndelMean) |>
-        tidyr::gather(variable, values, -Codon) |>
-        ggplot2::ggplot(aes(x=Codon, y=values)) +
-        ggplot2::geom_line(aes(colour=factor(variable))) +
-    # --- DNAString analysis [] ---
-    # Key functions: data, DNAString, DNAStringSet, dnastring2aln, aln2dnastring, dnastring2dnabin, dnabin2dnastring, cds2aa
-    ---------------------------------------------------------------------
-    ## use frame 2 and shorten to circumvent multiple of three error
-    cds1 <- Biostrings::DNAString("-ATGCAACATTGC-")
-    cds2 <- Biostrings::DNAString("-ATG---CATTGC-")
-    cds1.cds2.aln <- c(Biostrings::DNAStringSet(cds1),
+    # --- Sequence Conversion and Translation [Sequence Processing] ---
+    # Key functions: dnabin2dnastring, cds2aa, aastring2aln, aln2aastring
+    # Convert DNA bin to DNA string set and translate to amino acids
+    dna_seqs <- ape::woodmouse |> dnabin2dnastring()
+    aa_seqs <- dna_seqs |> cds2aa(shorten = TRUE)
+    # Convert AA string set to alignment format
+    aa_aln <- aa_seqs |> aastring2aln()
+    # Convert back to AA string set
+    aa_seqs_restored <- aa_aln |> aln2aastring()
+
+    # --- Amino Acid Distance Calculation [Distance Estimation] ---
+    # Key functions: cds2aa, aastring2dist, granthamMatrix
+    # Translate HIV CDS sequences to amino acids
+    hiv_aa <- msa2dist::hiv |> cds2aa()
+    # Calculate pairwise AA distances using Grantham's matrix
+    aa_dist_grantham <- hiv_aa |> aastring2dist(score = granthamMatrix())
+    # Extract distance matrix and sites used
+    dist_matrix <- aa_dist_grantham$distSTRING
+    sites_used <- aa_dist_grantham$sitesUsed
+    # Calculate pairwise AA distances using custom AAMatrix
+    aa_dist_custom <- hiv_aa |> aastring2dist(score = msa2dist::AAMatrix)
+
+    # --- DNA Distance Calculation [Distance Estimation] ---
+    # Key functions: dnastring2dist
+    # Calculate pairwise DNA distances using K80 model
+    dna_dist_k80 <- msa2dist::hiv |> dnastring2dist(model = "K80")
+    # Calculate pairwise DNA distances using IUPAC model with multi-threading
+    dna_dist_iupac <- msa2dist::hiv |>
+        dnastring2dist(model = "IUPAC", threads = 2)
+    # Extract distance matrices
+    k80_matrix <- dna_dist_k80$distSTRING
+    iupac_matrix <- dna_dist_iupac$distSTRING
+
+    # --- Codon-based Ka/Ks Calculation [Evolutionary Analysis] ---
+    # Key functions: dnastring2kaks, indices2kaks
+    # Calculate Ka/Ks using the MYN model
+    kaks_myn <- msa2dist::hiv |> dnastring2kaks(model = "MYN")
+    # Calculate Ka/Ks using the YN model with multi-threading
+    kaks_yn <- msa2dist::hiv |> dnastring2kaks(model = "YN", threads = 2)
+    # Calculate Ka/Ks for specific pairwise indices
+    pair_indices <- list(c(2, 3), c(5, 7, 9))
+    kaks_indices <- msa2dist::hiv |>
+        indices2kaks(pair_indices, model = "MYN")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

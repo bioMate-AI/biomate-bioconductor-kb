@@ -41,70 +41,55 @@ process BIOC_FUSESOM {
     library(FuseSOM)
     library(jsonlite)
 
-    # --- Knitr Options [] ---
-    # Key functions: set
-    --------------
-    library(knitr)
-    opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    # load in the data
-    data("risom_dat")
-    # define the markers of interest
-    risomMarkers <- c('CD45','SMA','CK7','CK5','VIM','CD31','PanKRT','ECAD',
-    # --- Runfusesom [] ---
-    # Key functions: runFuseSOM
-    ---------------------------------------------------------------------
-    risomRes <- runFuseSOM(data = risom_dat, markers = risomMarkers,
-                            numClusters = 23)
-    # --- Markerheatmap [] ---
+    # --- Cluster Visualization [] ---
     # Key functions: markerHeatmap
-    ---------------------------------------------------------------------
-    risomHeat <- FuseSOM::markerHeatmap(data = risom_dat, markers = risomMarkers,
-                                clusters = risomRes$clusters, clusterMarkers = TRUE)
-    # --- Estimatenumcluster [] ---
+    risomHeat <- markerHeatmap(
+        data = risom_dat,
+        markers = risomMarkers,
+        clusters = risomRes$clusters,
+        clusterMarkers = TRUE
+    )
+
+
+    # --- Cluster Number Estimation [] ---
     # Key functions: estimateNumCluster
-    ---------------------------------------------------------------------
-    # lets estimate the number of clusters using all the methods
-    # original clustering has 23 clusters so we will set kseq from 2:25
-    # we pass it the som model generated in the previous step
-    risomKest <- estimateNumCluster(data = risomRes$model, kSeq = 2:25,
-    # --- Optiplot [] ---
+    risomKest <- estimateNumCluster(
+        data = risomRes$model,
+        kSeq = 2:25,
+        method = c("Discriminant", "Distance")
+    )
+    best_discriminant <- risomKest$Discriminant
+
+
+    # --- Optimization Plotting [] ---
     # Key functions: optiPlot
-    ---------------------------------------------------------------------
-    # what is the best number of clusters determined by the discriminant method?
-    # optimal number of clusters according to the discriminant method is 7
-    risomKest$Discriminant
-    # we can plot the results using the optiplot function
-    # --- Runfusesom [] ---
-    # Key functions: runFuseSOM, colData, metadata
-    ---------------------------------------------------------------------
-    risomRessce <- runFuseSOM(sce, markers = risomMarkers, assay = 'counts',
-                          numClusters = 23, verbose = FALSE)
-    colnames(colData(risomRessce))
-    names(metadata(risomRessce))
-    # --- Coldata [] ---
-    # Key functions: colData, markerHeatmap
-    ---------------------------------------------------------------------
-    data <- risom_dat[, risomMarkers] # get the original data used
-    clusters <- colData(risomRessce)$clusters # extract the clusters from the sce object
-    # generate the heatmap
-    risomHeatsce <- markerHeatmap(data = risom_dat, markers = risomMarkers,
-    # --- Estimatenumcluster [] ---
-    # Key functions: estimateNumCluster, metadata
-    ---------------------------------------------------------------------
-    # lets estimate the number of clusters using all the methods
-    # original clustering has 23 clusters so we will set kseq from 2:25
-    # now we pass it a singlecellexperiment object instead of the som model as before
-    # this will return a singelcellexperiment object where the metatdata contains the
-    # --- Metadata [] ---
-    # Key functions: metadata, optiPlot
-    ---------------------------------------------------------------------
-    # what is the best number of clusters determined by the discriminant method?
-    # optimal number of clusters according to the discriminant method is 8
-    metadata(risomRessce)$clusterEstimation$Discriminant
-    # we can plot the results using the optiplot function
+    pSlope <- optiPlot(risomKest, method = 'slope')
+    pJump <- optiPlot(risomKest, method = 'jump')
+    pWcd <- optiPlot(risomKest, method = 'wcd')
+    pGap <- optiPlot(risomKest, method = 'gap')
+    pSil <- optiPlot(risomKest, method = 'silhouette')
+
+
+    # --- SingleCellExperiment Integration [] ---
+    # Key functions: runFuseSOM, estimateNumCluster, optiPlot
+    colDat <- risom_dat[, setdiff(colnames(risom_dat), risomMarkers)]
+    sce <- SingleCellExperiment::SingleCellExperiment(
+        assays = list(counts = t(risom_dat)),
+        colData = colDat
+    )
+    risomRessce <- runFuseSOM(
+        sce,
+        markers = risomMarkers,
+        assay = 'counts',
+        numClusters = 23,
+        verbose = FALSE
+    )
+    risomRessce <- estimateNumCluster(
+        data = risomRessce,
+        kSeq = 2:25,
+        method = c("Discriminant", "Distance")
+    )
+    pSlopeSce <- optiPlot(risomRessce, method = 'slope')
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

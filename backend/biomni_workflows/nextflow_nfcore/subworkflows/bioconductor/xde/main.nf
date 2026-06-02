@@ -41,77 +41,49 @@ process BIOC_XDE {
     library(XDE)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data, class
-    library(XDE)
-    data(expressionSetList)
+    # --- Parameter Configuration [] ---
+    # Key functions: XdeParameter
+    data(expressionSetList, package = "XDE")
     xlist <- expressionSetList
-    class(xlist)
-    # --- Covariate [] ---
-    # Key functions: all, varLabels
-    stopifnot(all(sapply(xlist, function(x, label){ label %in% varLabels(x)}, label="adenoVsquamous")))
-    # --- Empiricalstart [] ---
-    # Key functions: new, empiricalStart, firstMcmc
-    ## params <- new("XdeParameter", esetList=xlist, phenotypeLabel="adenoVsquamous", one.delta=FALSE)
-    ## empirical <- empiricalStart(xlist, phenotypeLabel="adenoVsquamous")
-    ## firstMcmc(params) <- empirical
-    # --- Burnin [] ---
-    # Key functions: iterations, burnin, xde
-    ## iterations(params) <- 3
-    ## burnin(params) <- TRUE
-    ## fit <- xde(params, xlist)
-    # --- Moreiterations [] ---
-    # Key functions: iterations, xde
-    ## iterations(params) <- 2
-    ## fit2 <- xde(params, xlist, fit)
-    # --- Firstmcmc [] ---
-    # Key functions: firstMcmc, lastMcmc, xde
-    ## firstMcmc(params) <- lastMcmc(fit)
-    ## seed(params) <- seed(fit)
-    ## fit2 <- xde(params, xlist)
-    # --- Runmoreiterations [] ---
-    # Key functions: burnin, iterations, output, thin, directory, xde
-    ## burnin(params) <- FALSE
-    ## iterations(params) <- 2000
-    ## output(params)[c("potential", "acceptance",
-    ## 		 "diffExpressed",
-    ## 		 "nu", ##"DDelta",
-    # --- Savexmcmc [] ---
-    # Key functions: calculatePosteriorAvg, calculateBayesianEffectSize, q
-    ## ##this function should work
-    ## postAvg <- calculatePosteriorAvg(xmcmc, NCONC=2, NDIFF=1)
-    ## save(postAvg, file="~/madman/Rpacks/XDE/inst/logFiles/postAvg.rda")
-    ## ##put browser in .standardizedDelta to fix tau2R, ...
-    ## BES <- calculateBayesianEffectSize(xmcmc)
-    # --- Loadobject [] ---
-    # Key functions: data
-    data(xmcmc, package="XDE")
-    # --- Savedparams [] ---
+    params <- new("XdeParameter",
+                  esetList = xlist,
+                  phenotypeLabel = "adenoVsquamous")
+
+
+    # --- MCMC Log Extraction [] ---
     # Key functions: output
-    output(xmcmc)[2:22][output(xmcmc)[2:22] == 1]
-    # --- Extractc2 [] ---
-    # Key functions: file
-    pathToLogFiles <- system.file("logFiles", package="XDE")
+    data(xmcmc, package = "XDE")
+    pathToLogFiles <- system.file("logFiles", package = "XDE")
     xmcmc@directory <- pathToLogFiles
     c2 <- xmcmc$c2
-    # --- ts [] ---
-    # Key functions: ts
-    par(las=1)
-    plot.ts(c2, ylab="c2", xlab="iterations", plot.type="single")
-    # --- Retrievelogs [] ---
-    # Key functions: output, getLogs, eval
-    getLogs <- function(object){
-    	params <- output(object)[output(object) == 1]
-    	params <- params[!(names(params) %in% c("nu", "phi", "DDelta", "delta", "sigma2", "diffExpressed"))]
-    	names(params)
-    }
-    # --- Bayesianeffectsize [] ---
-    # Key functions: bayesianEffectSize, calculateBayesianEffectSize
-    ## bayesianEffectSize(xmcmc) <- calculateBayesianEffectSize(xmcmc)
-    # --- Bes [] ---
-    # Key functions: path
+    active_params <- output(xmcmc)[2:22]
+    active_params <- active_params[active_params == 1]
+
+
+    # --- Posterior Probability Analysis [] ---
+    # Key functions: symbolsInteresting
+    pathToLogFiles <- system.file("logFiles", package = "XDE")
+    load(file.path(pathToLogFiles, "postAvg.rda"))
+    op.conc <- symbolsInteresting(
+        rankingStatistic = postAvg[, "concordant"]
+    )
+    op.disc <- symbolsInteresting(
+        rankingStatistic = postAvg[, "discordant"]
+    )
+
+
+    # --- Visualisation of Concordant and Discordant Expression [] ---
+    # Key functions: symbolsInteresting
+    pathToLogFiles <- system.file("logFiles", package = "XDE")
     load(file.path(pathToLogFiles, "BES.rda"))
     load(file.path(pathToLogFiles, "postAvg.rda"))
+    op.conc <- symbolsInteresting(rankingStatistic = postAvg[, "concordant"])
+    graphics:::pairs(BES[op.conc$order, ],
+                     pch = op.conc$pch,
+                     col = op.conc$col,
+                     bg = op.conc$bg,
+                     upper.panel = NULL,
+                     cex = op.conc$cex)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

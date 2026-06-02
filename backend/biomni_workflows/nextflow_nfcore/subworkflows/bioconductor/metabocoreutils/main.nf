@@ -41,85 +41,57 @@ process BIOC_METABOCOREUTILS {
     library(MetaboCoreUtils)
     library(jsonlite)
 
-    # --- Adductnames [] ---
-    # Key functions: adductNames
-    ---------------------------------------------------------------------
-    adductNames()
-    # --- formula2mz [] ---
-    # Key functions: formula2mz
-    ---------------------------------------------------------------------
-    formula2mz(c("C6H12O6", "C8H10N4O2"), adduct = c("[M+H]+", "[M+Na]+"))
-    # --- Standardizeformula [] ---
-    # Key functions: standardizeFormula
-    ---------------------------------------------------------------------
-    frml <- "Na3C4"
-    frml <- standardizeFormula(frml)
-    frml
-    # --- Addelements [] ---
-    # Key functions: addElements
-    ---------------------------------------------------------------------
-    frml <- addElements(frml, "H2O")
-    frml
-    # --- Subtractelements [] ---
-    # Key functions: subtractElements
-    ---------------------------------------------------------------------
-    frml <- subtractElements(frml, "H")
-    frml
-    # --- Countelements [] ---
-    # Key functions: countElements
-    ---------------------------------------------------------------------
-    countElements(frml)
-    # --- Adductformula [] ---
-    # Key functions: adductFormula
-    ---------------------------------------------------------------------
-    adductFormula(c("C6H12O6", "C8H10N4O2"), adduct = c("[M+H]+", "[M+Na]+"))
-    # --- Calculatemass [] ---
-    # Key functions: calculateMass
-    ---------------------------------------------------------------------
-    calculateMass(c("C6H12O6", "[13C3]C3H12O6"))
-    # --- Calculaterkmd [] ---
-    # Key functions: calculateRkmd, isRkmd
-    ---------------------------------------------------------------------
-    lipid_rkmd <- calculateRkmd(lipid_masses)
-    isRkmd(lipid_rkmd)
-    # --- Table [] ---
-    # Key functions: file
-    ---------------------------------------------------------------------
-    rti <- read.table(system.file("retentionIndex",
-                                  "rti.txt",
-                                  package = "MetaboCoreUtils"),
-                      header = TRUE,
-    # --- Indexrtime [] ---
-    # Key functions: indexRtime
-    ---------------------------------------------------------------------
-    rtime$rindex_r <- indexRtime(rtime$rtime, rti)
-    # --- Frame [] ---
-    # Key functions: frame, correctRindex
-    ---------------------------------------------------------------------
-    ref <- data.frame(rindex = c(1709.8765, 553.7975),
-                      refindex = c(1700, 550))
-    rtime$rindex_cor <- correctRindex(rtime$rindex_r, ref)
-    # --- Table [] ---
-    # Key functions: file
-    ---------------------------------------------------------------------
-    vals <- read.table(system.file("txt", "feature_values.txt",
-                                   package = "MetaboCoreUtils"), sep = "\t")
-    vals <- as.matrix(vals)
-    head(vals)
-    # --- Frame [] ---
-    # Key functions: frame
-    ---------------------------------------------------------------------
-    #' Define a data frame with the injection index
-    sdata <- data.frame(injection_index = seq_len(ncol(vals)))
-    #' Identify columns representing QC samples
-    qc_index <- grep("^POOL", colnames(vals))
-    # --- Fit Lm [] ---
+    # --- Chemical Formula Manipulation [] ---
+    # Key functions: standardizeFormula, addElements, subtractElements, countElements, calculateMass
+    raw_formula <- "Na3C4"
+    std_formula <- standardizeFormula(raw_formula)
+    added_formula <- addElements(std_formula, "H2O")
+    final_formula <- subtractElements(added_formula, "H")
+    element_counts <- countElements(final_formula)
+    exact_masses <- calculateMass(c(final_formula, "C6H12O6"))
+
+
+    # --- Kendrick Mass Defect Analysis [] ---
+    # Key functions: calculateKmd, calculateRkmd, isRkmd
+    lipid_masses <- c(760.5851, 762.6007, 762.5280)
+    kmd_values <- calculateKmd(lipid_masses)
+    rkmd_values <- calculateRkmd(lipid_masses)
+    rkmd_status <- isRkmd(rkmd_values)
+
+
+    # --- Retention Time Indexing and Correction [] ---
+    # Key functions: indexRtime, correctRindex
+    rti_data <- data.frame(
+        rt = c(100, 200, 300, 400),
+        rindex = c(1000, 2000, 3000, 4000)
+    )
+    rtime_data <- data.frame(
+        rtime = c(150, 250, 350)
+    )
+    indexed_rtime <- indexRtime(rtime_data$rtime, rti_data)
+    ref_data <- data.frame(
+        rindex = c(1500, 2500),
+        refindex = c(1490, 2510)
+    )
+    corrected_rindex <- correctRindex(indexed_rtime, ref_data)
+
+
+    # --- Quality Control Signal Drift Modeling [] ---
     # Key functions: fit_lm
-    ---------------------------------------------------------------------
-    #' Fit linear models explaining observed abundances by injection index.
-    #' Linear models are fitted row-wise to data of QC samples.
-    qc_lm <- fit_lm(y ~ injection_index,
-                    data = sdata[qc_index, , drop = FALSE],
+    vals_matrix <- matrix(
+        runif(100, min = 10, max = 1000),
+        nrow = 10,
+        ncol = 10
+    )
+    colnames(vals_matrix) <- c(paste0("POOL_", 1:5), paste0("SAMP_", 1:5))
+    sdata <- data.frame(injection_index = seq_len(ncol(vals_matrix)))
+    qc_index <- grep("^POOL", colnames(vals_matrix))
+    qc_models <- fit_lm(
+        y ~ injection_index,
+        data = sdata[qc_index, , drop = FALSE],
+        y = log2(vals_matrix[, qc_index]),
+        minVals = 3
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

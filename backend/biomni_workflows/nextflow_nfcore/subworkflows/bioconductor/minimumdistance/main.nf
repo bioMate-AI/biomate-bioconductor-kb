@@ -38,6 +38,7 @@ process BIOC_MINIMUMDISTANCE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MinimumDistance)
     library(ArrayViews)
     library(CopyNumScanParams)
     library(DNAcopyParam)
@@ -50,90 +51,45 @@ process BIOC_MINIMUMDISTANCE {
     library(MinDistParam)
     library(jsonlite)
 
-    # --- Registerbackend [] ---
-    # Key functions: registerDoSEQ
-    library(oligoClasses)
-    library(VanillaICE)
-    library(SummarizedExperiment)
-    library(MinimumDistance)
-    foreach::registerDoSEQ()
-    # --- Featureannotation [] ---
-    # Key functions: fread, path, GRanges, IRanges
-    library(data.table)
-    extdir <- system.file("extdata", package="VanillaICE")
-    features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
-    fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
-                   isSnp=features[["Intensity Only"]]==0)
-    # --- Seqinfo [] ---
-    # Key functions: seqlevels, seqinfo
-    library(BSgenome.Hsapiens.UCSC.hg18)
-    sl <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)
-    seqlevels(fgr) <- sl[sl %in% seqlevels(fgr)]
-    seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
-    fgr <- sort(fgr)
-    # --- Sourcefiles [] ---
-    # Key functions: files
-    files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
-    # --- Arrayviews [] ---
-    # Key functions: create, ArrayViews, show
-    ##
-    ## Where to keep parsed files
-    ##
-    parsedDir <- "ParsedFiles"
-    if(!file.exists(parsedDir)) dir.create(parsedDir)
-    # --- Fread [] ---
-    # Key functions: fread
-    ## read the first file
-    dat <- fread(files[1], skip="[Data]")
-    head(dat,n=3)
-    # --- Scan Params [] ---
-    # Key functions: CopyNumScanParams
-    scan_params <- CopyNumScanParams(index_genome=index_genome,
-                                     select=select_columns,
-                                     cnvar="Log R Ratio",
-                                     bafvar="B Allele Freq",
-                                     gtvar=c("Allele1 - AB", "Allele2 - AB"))
-    # --- Parsesourcefile [] ---
-    # Key functions: parsedPath, parseSourceFile
-    parsedPath(views)
-    parseSourceFile(views[, 1], scan_params)
-    # --- List Parsed Files [] ---
-    # Key functions: files, parsedPath
-    head(list.files(parsedPath(views)), n=3)
-    # --- Views [] ---
-    # Key functions: lrr, baf, genotypes
-    lrr(views)[1:2, 2:4]
-    ## or
-    lrr(views[1:2, 2:4])
-    ## B allele frequencies
-    baf(views[1:2, 2:4])
-    # --- Pedigree Hapmap [] ---
-    # Key functions: ParentOffspring, parsedPath
-    ped_hapmap <- ParentOffspring(id = "hapmap", father="12287_03",
-                                  mother="12287_02",
-                                  offspring="12287_01",
-                                  parsedPath=parsedPath(views))
-    # --- Pedigree List [] ---
-    # Key functions: ParentOffspringList, ParentOffspring, parsedPath, pedigreeName
-    ped_list <- ParentOffspringList(pedigrees=list(
-                                      ParentOffspring(id = "hapmap", father="12287_03",
-                                                      mother="12287_02",
-                                                      offspring="12287_01",
-                                                      parsedPath=parsedPath(views)),
-    # --- Sample Data [] ---
-    # Key functions: csv, path, setNames
-    sample_info <- read.csv(file.path(extdir, "sample_data.csv"), stringsAsFactors=FALSE)
-    ind_id <- setNames(gsub(" ", "", sample_info$IndividualID), sample_info$File)
-    colnames(views) <- ind_id[gsub(".txt", "", colnames(views))]
-    # --- Mindistexperiment [] ---
-    # Key functions: MinDistExperiment
-    me <- MinDistExperiment(views, pedigree=ped_list[[2]])
-    colnames(me)
-    me
-    # --- Param Class [] ---
-    # Key functions: MinDistParam, show
-    params <- MinDistParam()
-    show(params)
+    # --- Parsing Source Files [] ---
+    # Key functions: parseSourceFile, parsedPath
+    parsed_path <- parsedPath(views)
+    invisible(sapply(
+        views,
+        parseSourceFile,
+        param = scan_params
+    ))
+    parsed_files <- list.files(parsed_path)
+
+
+    # --- Pedigree Construction and Experiment Setup [] ---
+    # Key functions: ParentOffspring, ParentOffspringList, MinDistExperiment
+    ped_list <- ParentOffspringList(pedigrees = list(
+        ParentOffspring(
+            id = "hapmap",
+            father = "12287_03",
+            mother = "12287_02",
+            offspring = "12287_01",
+            parsedPath = parsedPath(views)
+        )
+    ))
+    me <- MinDistExperiment(views, pedigree = ped_list[[1]])
+
+
+    # --- Minimum Distance Segmentation [] ---
+    # Key functions: DNAcopyParam, MinDistParam, segment2, MAP2
+    segment_params <- DNAcopyParam(alpha = 0.01)
+    params <- MinDistParam(dnacopy = segment_params)
+    mdgr <- segment2(me, params)
+    md_g <- MAP2(me, mdgr, params)
+
+
+    # --- CNV Filtering and De Novo Detection [] ---
+    # Key functions: FilterParamMD, cnvFilter, denovoHemizygous, denovoHomozygous
+    filter_param <- FilterParamMD(state = c("220", "221", "223"))
+    cnvs <- cnvFilter(md_g, filter_param)
+    denovo_hemi <- denovoHemizygous(md_g)
+    denovo_homo <- denovoHomozygous(md_g)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

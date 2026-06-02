@@ -41,55 +41,63 @@ process BIOC_FLOWFP {
     library(flowFP)
     library(jsonlite)
 
-    # --- Model [] ---
-    # Key functions: flowFPModel, show
-    mod <-  flowFPModel(fs1, name="CD45/SS Model", parameters=c(2,5), nRecursions=7)
-    show(mod)
-    # --- Fingerprint [] ---
-    # Key functions: flowFP, show
-    fp <- flowFP (fs1, mod)
+    # --- Fingerprint Generation [] ---
+    # Key functions: flowFP, show, plot
+    data(fs1)
+    mod <- flowFPModel(
+        fs1, 
+        name="CD45/SS Model", 
+        parameters=c(2, 5), 
+        nRecursions=7
+    )
+    fp <- flowFP(fs1, mod)
     show(fp)
-    plot (fp, type="stack")
-    # --- Plex1 [] ---
-    # Key functions: flowFPModel, flowFP, flowFPPlex
+    plot(fp, type="stack")
+
+
+    # --- Fingerprint Plexing [] ---
+    # Key functions: flowFPModel, flowFP, flowFPPlex, plot
+    data(fs1)
     data(fs2)
-    mod1 <-  flowFPModel(fs1, name="CD45/SS Model vs fs1", parameters=c("SS Log", "FL3 Log"), nRecursions=7)
-    mod2 <-  flowFPModel(fs2, name="CD45/SS Model vs fs2", parameters=c("SS Log", "FL3 Log"), nRecursions=7)
-    fp1_1 <- flowFP (fs1, mod1)
-    fp1_2 <- flowFP (fs1, mod2)
-    # --- Plex2 [] ---
-    # Key functions: flowFP, flowFPPlex, nRecursions, append
-    fp <- flowFP (fs1, param=c("SS Log", "FL3 Log"), nRecursions=8)
+    mod1 <- flowFPModel(
+        fs1, 
+        name="Model 1", 
+        parameters=c("SS Log", "FL3 Log"), 
+        nRecursions=7
+    )
+    mod2 <- flowFPModel(
+        fs2, 
+        name="Model 2", 
+        parameters=c("SS Log", "FL3 Log"), 
+        nRecursions=7
+    )
+    fp1_1 <- flowFP(fs1, mod1)
+    fp1_2 <- flowFP(fs1, mod2)
+    plex <- flowFPPlex(c(fp1_1, fp1_2))
+    plot(plex, type="grid", vert_scale=10)
+
+
+    # --- Multi-resolution Analysis [] ---
+    # Key functions: flowFP, flowFPPlex, nRecursions<-, append, plot
+    data(fs1)
+    fp <- flowFP(fs1, param=c("SS Log", "FL3 Log"), nRecursions=8)
     plex <- flowFPPlex()
     for (levels in 8:5) {
-    	nRecursions(fp) <- levels
-    	plex <- append (plex, fp)
-    # --- Qc1 [] ---
-    # Key functions: flowFP
-    fp1 <- flowFP (fs1, parameters=c("SS Log", "FL3 Log"), name="self model: fs1", nRecursions=5)
-    plot (fp1, type="qc", main="Gate QC for Sample fs1")
-    # --- Qc2 [] ---
-    # Key functions: flowFP
-    fp2 <- flowFP (fs2, parameters=c("SS Log", "FL3 Log"), name="self model: fs2", nRecursions=5)
-    plot (fp2, type="qc", main="Gate QC for Sample fs2")
-    # --- Subsample [] ---
-    # Key functions: phenoData, factor, exprs, sample, flowFP
-    phenoData(fs2)$Tube <- factor(1:7)   #$
-    for (i in 1:7) {
-    	exprs(fs2[[i]]) = exprs(fs2[[i]])[sample(1:nrow(fs2[[i]]),size=2500),]
+        nRecursions(fp) <- levels
+        plex <- append(plex, fp)
     }
-    fp2 <- flowFP (fs2, param=c(2,5), nRec=5)
-    # --- Fvizfigure [] ---
-    # Key functions: xyplot
-    xyplot (`FL3 Log` ~ `SS Log` | Tube, data=fs2)
-    # --- Plot [] ---
-    # Key functions: object
-    plot(trellis.last.object())
-    # --- Qc4 [] ---
-    # Key functions: flowFP
+    plot(plex, type="tangle", transformation="norm")
+
+
+    # --- Quality Control and Visualization [] ---
+    # Key functions: flowFP, plot
     data(plate)
-    fp <- flowFP (plate, parameters=c("SSC-H","FL3-H","FL4-H"), nRecursions=5)
-    plot (fp, type='plate')
+    fp <- flowFP(
+        plate, 
+        parameters=c("SSC-H", "FL3-H", "FL4-H"), 
+        nRecursions=5
+    )
+    plot(fp, type="plate")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

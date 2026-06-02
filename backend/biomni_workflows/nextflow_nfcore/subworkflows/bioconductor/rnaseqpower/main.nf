@@ -41,18 +41,17 @@ process BIOC_RNASEQPOWER {
     library(RNASeqPower)
     library(jsonlite)
 
-    # --- Premable [] ---
-    # Key functions: dimnames
-    options(width=60, continue=" ")
-    options(SweaveHooks=list(fig=function() par(mar=c(5.1, 4.1, .3, 1.1))))
-    latex.list <- function(mat, digits=2, label= TRUE, ...) {
-        dname <- dimnames(mat)
-        if (length(dname[[2]]) & label)
-    # --- Rnapower [] ---
+    # --- Sample Size Estimation [] ---
     # Key functions: rnapower
-    library(RNASeqPower)
-    rnapower(depth=20, cv=.4, effect=c(1.25, 1.5, 1.75, 2),
-            alpha= .05, power=c(.8, .9))
+    target_power <- 0.8
+    n_required <- rnapower(depth = 20, cv = 0.4, effect = 2,
+                           alpha = 0.05, power = target_power)
+
+
+    # --- Effect Size and Depth Analysis [] ---
+    # Key functions: rnapower
+    detectable_effect <- rnapower(depth = c(5, 10, 20, 50), cv = 0.4,
+                                  alpha = 0.05, power = 0.8, n = 3)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

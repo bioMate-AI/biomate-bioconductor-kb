@@ -41,23 +41,43 @@ process BIOC_SURVCLUST {
     library(survClust)
     library(jsonlite)
 
-    # --- Apply [] ---
-    # Key functions: test, adjust
-    ---------------------------------------------------------------------
-    mut_k4_test <- apply(uvm_dat[[1]],2,function(x) fisher.test(x,k4)$p.value)
-    head(sort(p.adjust(mut_k4_test)))
-    # --- Function [] ---
-    # Key functions: cv_survclust
-    ---------------------------------------------------------------------
-    #function to do cross validation
-    sim_cvrounds<-function(kk){
-        this.fold<-3
-        fit<-list()
-    # --- Apply [] ---
-    # Key functions: test, adjust
-    ---------------------------------------------------------------------
-    mut_k4_test <- apply(uvm_mut_dat[[1]],2,function(x) fisher.test(x,k4)$p.value)
-    head(sort(p.adjust(mut_k4_test)))
+    # --- Clustering Statistics Evaluation [] ---
+    # Key functions: getStats, plotStats
+    ss_stats <- getStats(
+        cvfit = uvm_survClust_cv.fit,
+        kk = 7,
+        cvr = 10
+    )
+    plotStats(
+        stats = ss_stats,
+        k_range = 2:7
+    )
+
+
+    # --- Consensus Voting [] ---
+    # Key functions: cv_voting, getDist
+    dist_matrix <- getDist(
+        data = uvm_dat,
+        survdata = uvm_survdat
+    )
+    k4_labels <- cv_voting(
+        cvfit = uvm_survClust_cv.fit,
+        dist = dist_matrix,
+        pick_k = 4
+    )
+
+
+    # --- Mutation Association Analysis [] ---
+    # Key functions: cv_voting
+    mut_data <- uvm_dat[[1]]
+    mut_pvals <- apply(
+        X = mut_data,
+        MARGIN = 2,
+        FUN = function(x) {
+            fisher.test(x, k4_labels)$p.value
+        }
+    )
+    adjusted_pvals <- p.adjust(mut_pvals, method = "BH")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

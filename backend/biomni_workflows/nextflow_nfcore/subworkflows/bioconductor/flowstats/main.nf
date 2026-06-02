@@ -38,97 +38,59 @@ process BIOC_FLOWSTATS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(flowStats)
     library(GatingSet)
     library(Subset)
     library(jsonlite)
 
-    # --- Loadgvhd [] ---
-    # Key functions: data
-    library(flowCore)
-    library(flowStats)
-    library(flowWorkspace)
-    library(ggcyto)
-    data(ITN)
-    # --- Transform [] ---
-    # Key functions: GatingSet, trans_new, transformerList, transform
-    require(scales)
-    gs <- GatingSet(ITN)
-    trans.func <- asinh
-    inv.func <- sinh
-    trans.obj <- trans_new("myAsinh", trans.func, inv.func)
-    # --- Lymphgate [] ---
-    # Key functions: lymphGate, gs_cyto_data, gs_pop_add, recompute
-    lg <- lymphGate(gs_cyto_data(gs), channels=c("CD3", "SSC"),
-                    preselection="CD4", filterId="TCells",
-                    scale=2.5)
-    gs_pop_add(gs, lg)
-    recompute(gs)
-    # --- Lymphgateplot [] ---
-    # Key functions: ggcyto, aes, geom_hex, geom_gate
-    ggcyto(gs, aes(x = CD3, y = SSC)) + geom_hex(bins = 32) + geom_gate("TCells")
-    # --- Variation [] ---
-    # Key functions: gs_pop_get_data, ggplot, ggcyto
-    require(ggridges)
-    require(gridExtra)
-    pars <- colnames(gs)[c(3,4,5,7)]
-    data <- gs_pop_get_data(gs, "TCells")
-    plots <- lapply(pars, function(par)
-    # --- Quad Gate [] ---
-    # Key functions: quadrantGate, gs_pop_get_data, gs_pop_add, recompute
-    qgate <- quadrantGate(gs_pop_get_data(gs, "TCells"), stains=c("CD4", "CD8"),
-                          filterId="CD4CD8", sd=3)
-    gs_pop_add(gs, qgate, parent = "TCells")
-    recompute(gs)
-    # --- Quad Gate Norm [] ---
-    # Key functions: normalize
-    gs <- normalize(gs, populations=c("CD4+CD8+", "CD4+CD8-", "CD4-CD8+", "CD4-CD8-"),
-                         dims=c("CD4", "CD8"), minCountThreshold = 50)
-    # --- Variation Norm [] ---
-    # Key functions: gs_pop_get_data, ggplot, ggcyto, aes, geom_density_ridges, theme
-    data <- gs_pop_get_data(gs, "TCells")
-    plots <- lapply(pars, function(par)
-      as.ggplot(ggcyto(data, aes(x = !!par, fill = GroupID)) +
-        geom_density_ridges(mapping = aes(y = name), alpha = 0.4) +
-        theme(axis.title.y = element_blank(),
-    # --- Quad Gate Norm Plot [] ---
-    # Key functions: ggcyto, gs_pop_get_data, aes, geom_hex, geom_gate, gs_pop_get_gate
-    ggcyto(gs_pop_get_data(gs, "TCells"), aes(x=CD4, y=CD8)) +
-      geom_hex(bins=32) +
-      geom_gate(gs_pop_get_gate(gs, "CD4-CD8-")) +
-      geom_gate(gs_pop_get_gate(gs, "CD4-CD8+")) +
-      geom_gate(gs_pop_get_gate(gs, "CD4+CD8-")) +
-    # --- Rangegate [] ---
-    # Key functions: rangeGate, gs_cyto_data, gs_pop_add, recompute
-    CD69rg <- rangeGate(gs_cyto_data(gs), stain="CD69",
-                        alpha=0.75, filterId="CD4+CD8-CD69", sd=2.5)
-    gs_pop_add(gs, CD69rg, parent="CD4+CD8-")
-    # gs_pop_add(gs, CD69rg, parent="CD4+CD8-", name = "CD4+CD8-CD69-", negated=TRUE)
-    recompute(gs)
-    # --- Rangegateplot [] ---
-    # Key functions: ggcyto, gs_pop_get_data, aes, geom_density_ridges, theme, element_blank, geom_vline, facet_null
-    ggcyto(gs_pop_get_data(gs, "CD4+CD8-"), aes(x=CD69, fill = GroupID)) +
-        geom_density_ridges(mapping = aes(y = name), alpha = 0.4) +
-        theme(axis.title.y = element_blank(),
-              axis.text.y = element_blank(),
-              axis.ticks.y = element_blank()) +
-    # --- Rangegate Norm [] ---
-    # Key functions: normalize
-    gs <- normalize(gs, populations=c("CD4+CD8-CD69"),
-                         dims=c("CD69"), minCountThreshold = 50)
-    # --- Rangegate Norm Plot [] ---
-    # Key functions: ggcyto, gs_pop_get_data, aes, geom_density_ridges, theme, element_blank, geom_vline, facet_null
-    ggcyto(gs_pop_get_data(gs, "CD4+CD8-"), aes(x=CD69, fill = GroupID)) +
-        geom_density_ridges(mapping = aes(y = name), alpha = 0.4) +
-        theme(axis.title.y = element_blank(),
-              axis.text.y = element_blank(),
-              axis.ticks.y = element_blank()) +
-    # --- Createdata [] ---
-    # Key functions: gs_cyto_data
-    dat <- gs_cyto_data(gs)
-    # --- Rawdata [] ---
-    # Key functions: autoplot, ggtitle
-    autoplot(dat, "CD4", "CD8") +
-      ggtitle("Experimental Dataset")
+    # --- Quadrant Gating and Normalization [] ---
+    # Key functions: quadrantGate, normalize
+    tcells_data <- flowWorkspace::gs_pop_get_data(gs, "TCells")
+    qgate <- quadrantGate(
+        tcells_data,
+        stains = c("CD4", "CD8"),
+        filterId = "CD4CD8",
+        sd = 3
+    )
+    flowWorkspace::gs_pop_add(gs, qgate, parent = "TCells")
+    flowWorkspace::recompute(gs)
+    gs <- normalize(
+        gs,
+        populations = c("CD4+CD8+", "CD4+CD8-", "CD4-CD8+", "CD4-CD8-"),
+        dims = c("CD4", "CD8"),
+        minCountThreshold = 50
+    )
+
+
+    # --- Range Gating [] ---
+    # Key functions: rangeGate
+    CD69rg <- rangeGate(
+        flowWorkspace::gs_cyto_data(gs),
+        stain = "CD69",
+        alpha = 0.75,
+        filterId = "CD4+CD8-CD69",
+        sd = 2.5
+    )
+    flowWorkspace::gs_pop_add(gs, CD69rg, parent = "CD4+CD8-")
+    flowWorkspace::recompute(gs)
+
+
+    # --- Binning and Chi-Square Statistics [] ---
+    # Key functions: proBin, binByRef, calcPearsonChi
+    dat <- flowWorkspace::gs_cyto_data(gs)
+    datComb <- as(dat, "flowFrame")
+    subCount <- nrow(flowCore::exprs(datComb)) / length(dat)
+    sf <- flowCore::sampleFilter(filterId = "mySampleFilter", size = subCount)
+    fres <- flowCore::filter(datComb, sf)
+    ctrlData <- flowCore::Subset(datComb, fres)
+    ctrlData <- ctrlData[, -ncol(ctrlData)]
+    refBins <- proBin(ctrlData, subCount * 0.05, channels = c("CD4", "CD8"))
+    sampBins <- flowCore::fsApply(dat, function(x) {
+        binByRef(refBins, x)
+    })
+    pearsonStat <- lapply(sampBins, function(x) {
+        calcPearsonChi(refBins, x)
+    })
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

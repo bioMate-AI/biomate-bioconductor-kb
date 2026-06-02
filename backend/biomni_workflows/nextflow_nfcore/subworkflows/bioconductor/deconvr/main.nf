@@ -38,28 +38,59 @@ process BIOC_DECONVR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(deconvR)
     library(BSmeth2Probe)
     library(jsonlite)
 
-    # --- output.lines=10 [] ---
-    # Key functions: findSignatures
-    extended_matrix <- findSignatures(samples = samples,
-    head(extended_matrix)
-    # --- output.lines=10 [] ---
-    # Key functions: BSmeth2Probe, deconvolute
-    mapped_WGBS_data <- BSmeth2Probe(probe_id_locations = IlluminaMethEpicB5ProbeIDs,
-    head(mapped_WGBS_data)
-    deconvolution <- deconvolute(reference = HumanCellTypeMethAtlas,
-    # --- output.lines=10 [] ---
+    # --- Cell Mixture Simulation [] ---
+    # Key functions: simulateCellMix
+    data("HumanCellTypeMethAtlas")
+    simulated_data <- simulateCellMix(
+        numberOfSamples = 3,
+        reference = HumanCellTypeMethAtlas
+    )
+    samples <- simulated_data$simulated
+    proportions <- simulated_data$proportions
+
+    # --- Probe Mapping [] ---
+    # Key functions: BSmeth2Probe
+    data("IlluminaMethEpicB5ProbeIDs")
+    load(system.file("extdata", "WGBS_GRanges.rda", package = "deconvR"))
+    mapped_WGBS_data <- BSmeth2Probe(
+        probe_id_locations = IlluminaMethEpicB5ProbeIDs,
+        WGBS_data = WGBS_GRanges,
+        multipleMapping = TRUE,
+        cutoff = 10
+    )
+
+    # --- Signature Identification [] ---
     # Key functions: simulateCellMix, findSignatures
     data("HumanCellTypeMethAtlas")
-    exampleSamples <- simulateCellMix(1,reference = HumanCellTypeMethAtlas)$simulated
-    exampleMeta <- data.table("Experiment_accession" = "example_sample",
-    # --- output.lines=10 [] ---
-    # Key functions: simulateCellMix, findSignatures, stopCluster
+    samples <- simulateCellMix(3, reference = HumanCellTypeMethAtlas)$simulated
+    sampleMeta <- data.table::data.table(
+        "Experiment_accession" = colnames(samples)[-1],
+        "Biosample_term_name" = "new cell type"
+    )
+    extended_matrix <- findSignatures(
+        samples = samples,
+        sampleMeta = sampleMeta,
+        atlas = HumanCellTypeMethAtlas,
+        IDs = "IDs"
+    )
+
+    # --- Cell Type Deconvolution [] ---
+    # Key functions: simulateCellMix, deconvolute
     data("HumanCellTypeMethAtlas")
-    exampleSamples <- simulateCellMix(1,reference = HumanCellTypeMethAtlas)$simulated
-    exampleMeta <- data.table("Experiment_accession" = "example_sample",
+    simulated_bulk <- simulateCellMix(
+        numberOfSamples = 1,
+        reference = HumanCellTypeMethAtlas
+    )$simulated
+    deconvolution <- deconvolute(
+        reference = HumanCellTypeMethAtlas,
+        bulk = simulated_bulk
+    )
+    proportions <- deconvolution$proportions
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

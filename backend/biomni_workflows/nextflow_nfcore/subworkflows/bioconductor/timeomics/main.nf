@@ -41,97 +41,87 @@ process BIOC_TIMEOMICS {
     library(timeOmics)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("timeOmics.simdata")
-    sim.data <- timeOmics.simdata$sim
-    dim(sim.data)
-    head(sim.data[,1:6])
-    # --- Function [] ---
-    # Key functions: unlist, frame
-    ---------------------------------------------------------------------
-    remove.low.cv <- function(X, cutoff = 0.5){
-      # var.coef
-      cv <- unlist(lapply(as.data.frame(X),
-                          function(x) abs(sd(x)/mean(x))))
-    # --- Frame [] ---
-    # Key functions: frame, rownames_to_column, mutate, pivot_longer, ggplot, aes, geom_line
-    ---------------------------------------------------------------------
-    # gather data
-    data.gathered <- modelled.data %>% as.data.frame() %>%
-      rownames_to_column("time") %>%
-      mutate(time = as.numeric(time)) %>%
-    # --- Pca [] ---
-    # Key functions: pca, getNcomp
-    ---------------------------------------------------------------------
-    # run pca
-    pca.res <- pca(X = profile.filtered, ncomp = 5, scale=FALSE, center=FALSE)
-    # tuning ncomp
-    pca.ncomp <- getNcomp(pca.res, max.ncomp = 5, X = profile.filtered,
-    # --- Pca [] ---
-    # Key functions: pca
-    ---------------------------------------------------------------------
-    # final model
-    pca.res <- pca(X = profile.filtered, ncomp = 2, scale = FALSE, center=FALSE)
-    # --- Getcluster [] ---
-    # Key functions: getCluster
-    ---------------------------------------------------------------------
-    # extract cluster
-    pca.cluster <- getCluster(pca.res)
-    head(pca.cluster)
-    # --- Plotindiv [] ---
-    # Key functions: plotIndiv
-    ---------------------------------------------------------------------
-    plotIndiv(pca.res)
-    # --- Plotvar [] ---
-    # Key functions: plotVar
-    ---------------------------------------------------------------------
-    plotVar(pca.res)
-    # --- Plotloadings [] ---
-    # Key functions: plotLoadings
-    ---------------------------------------------------------------------
-    plotLoadings(pca.res)
-    # --- Plotlong [] ---
-    # Key functions: plotLong
-    ---------------------------------------------------------------------
-    plotLong(pca.res, scale = FALSE, center = FALSE,
-             title = "PCA longitudinal clustering")
-    # --- Spca [] ---
-    # Key functions: spca
-    ---------------------------------------------------------------------
-    tune.spca.res <- tuneCluster.spca(X = profile.filtered, ncomp = 2,
-                                      test.keepX = c(2:10))
-    # selected features in each component
-    tune.spca.res$choice.keepX
-    # --- Spca [] ---
-    # Key functions: spca, plotLong
-    ---------------------------------------------------------------------
-    # final model
-    spca.res <- spca(X = profile.filtered, ncomp = 2,
-                     keepX = tune.spca.res$choice.keepX, scale = FALSE)
+    # --- Longitudinal PCA [] ---
+    # Key functions: pca, getNcomp, getCluster, plotLong
+    pca.res <- pca(
+        X = profile.filtered, ncomp = 5,
+        scale = FALSE, center = FALSE
+    )
+    pca.ncomp <- getNcomp(
+        pca.res, max.ncomp = 5, X = profile.filtered,
+        scale = FALSE, center = FALSE
+    )
+    pca.final <- pca(
+        X = profile.filtered, ncomp = pca.ncomp$choice.ncomp,
+        scale = FALSE, center = FALSE
+    )
+    pca.cluster <- getCluster(pca.final)
+    plotLong(pca.final, scale = FALSE, center = FALSE)
+
+
+    # --- Sparse PCA Feature Selection [] ---
+    # Key functions: tuneCluster.spca, spca, getCluster, plotLong
+    tune.spca.res <- tuneCluster.spca(
+        X = profile.filtered, ncomp = 2,
+        test.keepX = c(2:10)
+    )
+    spca.res <- spca(
+        X = profile.filtered, ncomp = 2,
+        keepX = tune.spca.res$choice.keepX, scale = FALSE
+    )
+    spca.cluster <- getCluster(spca.res)
     plotLong(spca.res)
-    # --- Pls [] ---
-    # Key functions: pls, getNcomp
-    ---------------------------------------------------------------------
-    X <- profile.filtered
+
+
+    # --- Partial Least Squares Integration [] ---
+    # Key functions: pls, getNcomp, getCluster, plotLong
     Y <- timeOmics.simdata$Y
-    pls.res <- pls(X,Y, ncomp = 5, scale = FALSE)
-    pls.ncomp <- getNcomp(pls.res, max.ncomp = 5, X=X, Y=Y, scale = FALSE)
-    # --- Pls [] ---
-    # Key functions: pls, getCluster, plotLong
-    ---------------------------------------------------------------------
-    # final model
-    pls.res <- pls(X,Y, ncomp = 2, scale = FALSE)
-    # info cluster
-    head(getCluster(pls.res))
-    # --- Spls [] ---
-    # Key functions: spls, getCluster, plotLong
-    ---------------------------------------------------------------------
-    tune.spls <- tuneCluster.spls(X, Y, ncomp = 2, test.keepX = c(4:10), test.keepY <- c(2,4,6))
-    # selected features in each component on block X
-    tune.spls$choice.keepX
-    # selected features in each component on block Y
+    pls.res <- pls(profile.filtered, Y, ncomp = 5, scale = FALSE)
+    pls.ncomp <- getNcomp(
+        pls.res, max.ncomp = 5, X = profile.filtered,
+        Y = Y, scale = FALSE
+    )
+    pls.final <- pls(
+        profile.filtered, Y, ncomp = pls.ncomp$choice.ncomp,
+        scale = FALSE
+    )
+    pls.cluster <- getCluster(pls.final)
+    plotLong(pls.final, title = "PLS longitudinal clustering")
+
+
+    # --- Sparse PLS Integration [] ---
+    # Key functions: tuneCluster.spls, spls, getCluster, plotLong
+    Y <- timeOmics.simdata$Y
+    tune.spls <- tuneCluster.spls(
+        profile.filtered, Y, ncomp = 2,
+        test.keepX = c(4:10), test.keepY = c(2,4,6)
+    )
+    spls.res <- spls(
+        profile.filtered, Y, ncomp = 2, scale = FALSE,
+        keepX = tune.spls$choice.keepX, keepY = tune.spls$choice.keepY
+    )
+    spls.cluster <- getCluster(spls.res)
+    plotLong(spls.res, title = "sPLS clustering")
+
+
+    # --- Multi-Omics Block PLS [] ---
+    # Key functions: block.pls, getNcomp, getCluster, plotLong
+    X_list <- list("X" = profile.filtered, "Z" = timeOmics.simdata$Z)
+    Y_mat <- as.matrix(timeOmics.simdata$Y)
+    block.pls.res <- block.pls(
+        X = X_list, Y = Y_mat, ncomp = 5,
+        scale = FALSE, mode = "canonical"
+    )
+    block.ncomp <- getNcomp(
+        block.pls.res, X = X_list, Y = Y_mat,
+        scale = FALSE, mode = "canonical"
+    )
+    block.final <- block.pls(
+        X = X_list, Y = Y_mat, ncomp = block.ncomp$choice.ncomp,
+        scale = FALSE, mode = "canonical"
+    )
+    block.cluster <- getCluster(block.final)
+    plotLong(block.final)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

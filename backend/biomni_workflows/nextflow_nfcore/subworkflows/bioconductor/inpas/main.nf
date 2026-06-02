@@ -38,58 +38,99 @@ process BIOC_INPAS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(InPAS)
     library(GRanges)
     library(jsonlite)
 
-    # --- plan [] ---
-    # Key functions: plan, setup_sqlitedb, dbConnect, dbListTables, dbReadTable
-    plan(sequential)
-    data_dir <- system.file("extdata", package = "InPAS")
-    bedgraphs <- c(file.path(data_dir, "Baf3.extract.bedgraph"),
-    # --- extract annotation [] ---
-    # Key functions: loadDb, seqnames, set_globals, extract_UTR3Anno
-    samplefile <- system.file("extdata",
-    TxDb <- loadDb(samplefile)
-    seqnames <- seqnames(BSgenome.Hsapiens.UCSC.hg19)
-    # --- set_globals [] ---
-    # Key functions: set_globals, parse_TxDb
-    set_globals(genome = BSgenome.Mmusculus.UCSC.mm10,
-    outdir = tempdir(),
-    lockfile = tempfile())
-    # --- assemble_all Cov [] ---
-    # Key functions: assemble_allCov
-    coverage <- list()
-    for (i in seq_along(bedgraphs)){
-    coverage[[tags[i]]] <- get_ssRleCov(bedgraph = bedgraphs[i],
-    # --- coverage QC [] ---
-    # Key functions: plan, run_coverageQC
-    if (.Platform$OS.type == "windows")
-    plan(multisession)
-    plan(multicore)
-    # --- search CPs [] ---
+    # --- Database Setup [Database Setup] ---
+    # Key functions: setup_sqlitedb
+    metadata <- data.frame(
+        tag = c("Baf3", "UM15"),
+        condition = c("Baf3", "UM15"),
+        bedgraph_file = c("Baf3.extract.bedgraph", "UM15.extract.bedgraph")
+    )
+    write.table(metadata, file = "metadata.txt", sep = "\t",
+                quote = FALSE, row.names = FALSE)
+    sqlite_db <- setup_sqlitedb(metadata = "metadata.txt",
+                                outdir = tempdir())
+
+    # --- Annotation Extraction [Annotation Extraction] ---
+    # Key functions: set_globals, extract_UTR3Anno, getInPASTxDb, getInPASEnsDb, getInPASGenome
+    set_globals(genome = BSgenome.Hsapiens.UCSC.hg19,
+                TxDb = TxDb,
+                EnsDb = EnsDb.Hsapiens.v86,
+                outdir = tempdir(),
+                chr2exclude = c("chrM", "chrMT"),
+                lockfile = tempfile())
+    utr3_anno <- extract_UTR3Anno(sqlite_db = sqlite_db,
+                                  TxDb = getInPASTxDb(),
+                                  edb = getInPASEnsDb(),
+                                  genome = getInPASGenome(),
+                                  outdir = getInPASOutputDirectory(),
+                                  chr2exclude = getChr2Exclude())
+
+    # --- Coverage Assembly and QC [Coverage Assembly and QC] ---
+    # Key functions: get_ssRleCov, assemble_allCov, run_coverageQC
+    coverage_list <- lapply(seq_along(bedgraphs), function(i) {
+        get_ssRleCov(bedgraph = bedgraphs[i],
+                     tag = tags[i],
+                     genome = genome,
+                     sqlite_db = sqlite_db,
+                     outdir = outdir,
+                     chr2exclude = getChr2Exclude())
+    })
+    coverage <- assemble_allCov(sqlite_db = sqlite_db,
+                                seqname = "chr6",
+                                outdir = outdir,
+                                genome = getInPASGenome())
+    run_coverageQC(sqlite_db = sqlite_db,
+                   TxDb = getInPASTxDb(),
+                   edb = getInPASEnsDb(),
+                   genome = getInPASGenome(),
+                   chr2exclude = getChr2Exclude(),
+                   which = GRanges("chr6", IRanges(98013000, 140678000)))
+
+    # --- Cleavage Site Search [Cleavage Site Search] ---
     # Key functions: setup_CPsSearch, search_CPs
-    data(classifier)
-    prepared_data <- setup_CPsSearch(sqlite_db,
-    genome = getInPASGenome(),
-    # --- estimate PDUI [] ---
+    prepared_data <- setup_CPsSearch(sqlite_db = sqlite_db,
+                                     genome = getInPASGenome(),
+                                     chr.utr3 = utr3.mm10$chr6,
+                                     seqname = "chr6",
+                                     background = "10K",
+                                     TxDb = getInPASTxDb(),
+                                     hugeData = TRUE,
+                                     outdir = outdir,
+                                     silence = TRUE,
+                                     coverage_threshold = 5)
+    CPsites <- search_CPs(seqname = "chr6",
+                          sqlite_db = sqlite_db,
+                          genome = getInPASGenome(),
+                          MINSIZE = 10,
+                          window_size = 100,
+                          search_point_START = 50,
+                          search_point_END = NA,
+                          cutEnd = 0,
+                          filter.last = TRUE,
+                          adjust_distal_polyA_end = TRUE,
+                          long_coverage_threshold = 2,
+                          PolyA_PWM = NA,
+                          classifier = classifier,
+                          classifier_cutoff = 0.8,
+                          shift_range = 50,
+                          step = 5,
+                          outdir = outdir,
+                          silence = TRUE)
+
+    # --- PDUI Estimation [PDUI Estimation] ---
     # Key functions: get_regionCov, get_UTR3eSet
     utr3_cds_cov <- get_regionCov(chr.utr3 = utr3.mm10[["chr6"]],
-    eSet <- get_UTR3eSet(sqlite_db,
-    # --- dPDUI test [] ---
-    # Key functions: test_dPDUI
-    test_out <- test_dPDUI(eset = eSet,
-    # --- filter dPDUI [] ---
-    # Key functions: filter_testOut
-    filter_out <- filter_testOut(res = test_out,
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GRanges, get_usage4plot, plot_utr3Usage
-    gr <- GRanges("chr6", IRanges(128846245, 128850081), strand = "-")
-    names(gr) <- "128846245-128850081"
-    data4plot <- get_usage4plot(gr,
-    # --- setup GSEA [] ---
-    # Key functions: setup_GSEA
-    setup_GSEA(eset = test_out,
-    groupList= list(Baf3 = "Baf3", UM15 ="UM15"),
+                                  sqlite_db = sqlite_db,
+                                  outdir = outdir,
+                                  phmm = FALSE)
+    eSet <- get_UTR3eSet(sqlite_db = sqlite_db,
+                         normalize = "none",
+                         singleSample = FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

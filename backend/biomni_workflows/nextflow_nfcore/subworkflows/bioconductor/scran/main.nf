@@ -38,105 +38,65 @@ process BIOC_SCRAN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scran)
     library(GrunPancreasData)
     library(jsonlite)
 
-    # --- Grunpancreasdata [] ---
-    # Key functions: GrunPancreasData
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce <- GrunPancreasData()
-    sce
-    # --- Percellqcmetrics [] ---
-    # Key functions: perCellQCMetrics, quickPerCellQC
-    ---------------------------------------------------------------------
-    library(scuttle)
-    qcstats <- perCellQCMetrics(sce)
-    qcfilter <- quickPerCellQC(qcstats, percent_subsets="altexps_ERCC_percent")
-    sce <- sce[,!qcfilter$discard]
-    # --- Quickcluster [] ---
-    # Key functions: quickCluster, computeSumFactors, sizeFactors, logNormCounts
-    ---------------------------------------------------------------------
-    library(scran)
+    # --- Normalisation ---
+    # Key functions: quickCluster, computeSumFactors
     clusters <- quickCluster(sce)
-    sce <- computeSumFactors(sce, clusters=clusters)
-    summary(sizeFactors(sce))
-    # --- Modelgenevar [] ---
-    # Key functions: modelGeneVar, curve, metadata, trend
-    ---------------------------------------------------------------------
+    sce <- computeSumFactors(sce, clusters = clusters)
+    sf <- sizeFactors(sce)
+    summary_sf <- summary(sf)
+
+    # --- Variance Modelling ---
+    # Key functions: modelGeneVar, modelGeneVarWithSpikes, getTopHVGs
     dec <- modelGeneVar(sce)
-    plot(dec$mean, dec$total, xlab="Mean log-expression", ylab="Variance")
-    curve(metadata(dec)$trend(x), col="blue", add=TRUE)
-    # --- Modelgenevarwithspikes [] ---
-    # Key functions: modelGeneVarWithSpikes, metadata, curve, trend
-    ---------------------------------------------------------------------
-    dec2 <- modelGeneVarWithSpikes(sce, 'ERCC')
-    plot(dec2$mean, dec2$total, xlab="Mean log-expression", ylab="Variance")
-    points(metadata(dec2)$mean, metadata(dec2)$var, col="red")
-    curve(metadata(dec2)$trend(x), col="blue", add=TRUE)
-    # --- Gettophvgs [] ---
-    # Key functions: getTopHVGs
-    ---------------------------------------------------------------------
-    # Get the top 10% of genes.
-    top.hvgs <- getTopHVGs(dec, prop=0.1)
-    # Get the top 2000 genes.
-    top.hvgs2 <- getTopHVGs(dec, n=2000)
-    # --- Fixedpca [] ---
-    # Key functions: fixedPCA, reducedDimNames
-    ---------------------------------------------------------------------
-    sce <- fixedPCA(sce, subset.row=top.hvgs)
-    reducedDimNames(sce)
-    # --- Denoisepca [] ---
-    # Key functions: denoisePCA, getTopHVGs, reducedDim
-    ---------------------------------------------------------------------
-    sced <- denoisePCA(sce, dec2, subset.row=getTopHVGs(dec2, prop=0.1))
-    ncol(reducedDim(sced, "PCA"))
-    # --- Getclusteredpcs [] ---
-    # Key functions: getClusteredPCs, reducedDim, metadata
-    ---------------------------------------------------------------------
+    dec2 <- modelGeneVarWithSpikes(sce, "ERCC")
+    dec3 <- modelGeneVar(sce, block = sce$donor, density.weights = FALSE)
+    top.hvgs <- getTopHVGs(dec, prop = 0.1)
+    top.hvgs2 <- getTopHVGs(dec, n = 2000)
+    top.hvgs3 <- getTopHVGs(dec, var.threshold = 0)
+
+    # --- Dimensionality Reduction ---
+    # Key functions: fixedPCA, denoisePCA, getClusteredPCs
+    sce <- fixedPCA(sce, subset.row = top.hvgs)
+    sced <- denoisePCA(sce, dec2, subset.row = getTopHVGs(dec2, prop = 0.1))
     output <- getClusteredPCs(reducedDim(sce))
     npcs <- metadata(output)$chosen
-    reducedDim(sce, "PCAsub") <- reducedDim(sce, "PCA")[,1:npcs,drop=FALSE]
-    npcs
-    # --- Getclusteredpcs [] ---
-    # Key functions: getClusteredPCs, buildSNNGraph, cluster_walktrap, colLabels, factor
-    ---------------------------------------------------------------------
-    # In this case, using the PCs that we chose from getClusteredPCs().
-    g <- buildSNNGraph(sce, use.dimred="PCAsub")
+    reducedDim(sce, "PCAsub") <- reducedDim(sce, "PCA")[, 1:npcs, drop = FALSE]
+
+    # --- Graph-based Clustering ---
+    # Key functions: buildSNNGraph, bootstrapStability, quickSubCluster
+    g <- buildSNNGraph(sce, use.dimred = "PCAsub")
     cluster <- igraph::cluster_walktrap(g)$membership
-    # Assigning to the 'colLabels' of the 'sce'.
-    # --- Runtsne [] ---
-    # Key functions: runTSNE, plotTSNE
-    ---------------------------------------------------------------------
-    library(scater)
-    sce <- runTSNE(sce, dimred="PCAsub")
-    plotTSNE(sce, colour_by="label", text_by="label")
-    # --- Pairwisemodularity [] ---
-    # Key functions: pairwiseModularity, pheatmap, colors
-    ---------------------------------------------------------------------
-    library(bluster)
-    ratio <- pairwiseModularity(g, cluster, as.ratio=TRUE)
-    library(pheatmap)
-    pheatmap(log10(ratio+1), cluster_cols=FALSE, cluster_rows=FALSE,
-    # --- Bootstrapstability [] ---
-    # Key functions: bootstrapStability, buildSNNGraph, cluster_walktrap, pheatmap, colorRampPalette
-    ---------------------------------------------------------------------
-    ass.prob <- bootstrapStability(sce, FUN=function(x) {
-        g <- buildSNNGraph(x, use.dimred="PCAsub")
-        igraph::cluster_walktrap(g)$membership
-    }, clusters=sce$cluster)
-    # --- Quicksubcluster [] ---
-    # Key functions: quickSubCluster, colLabels, metadata
-    ---------------------------------------------------------------------
-    subout <- quickSubCluster(sce, groups=colLabels(sce))
-    table(metadata(subout)$subcluster) # formatted as '<parent>.<subcluster>'
-    # --- Collabels [] ---
-    # Key functions: colLabels, scoreMarkers
-    ---------------------------------------------------------------------
-    # Uses clustering information from 'colLabels(sce)' by default:
+    colLabels(sce) <- factor(cluster)
+    ass.prob <- bootstrapStability(sce, FUN = function(x) {
+        g_sub <- buildSNNGraph(x, use.dimred = "PCAsub")
+        igraph::cluster_walktrap(g_sub)$membership
+    }, clusters = colLabels(sce))
+    subout <- quickSubCluster(sce, groups = colLabels(sce))
+
+    # --- Marker Gene Detection ---
+    # Key functions: scoreMarkers
     markers <- scoreMarkers(sce)
-    markers
-    colnames(markers[[1]])
+    markers_full <- scoreMarkers(sce, full.stats = TRUE)
+    top_marker_stats <- markers[[1]][
+        order(markers[[1]]$mean.AUC, decreasing = TRUE),
+        1:4
+    ]
+    cohen_stats <- markers_full[[1]]$full.logFC.cohen
+
+    # --- Gene Correlation Analysis ---
+    # Key functions: correlatePairs, correlateGenes, convertTo
+    of.interest <- top.hvgs[1:200]
+    cor.pairs <- correlatePairs(sce, subset.row = of.interest)
+    cor.pairs2 <- correlatePairs(
+        sce, subset.row = of.interest, block = sce$donor
+    )
+    cor.genes <- correlateGenes(cor.pairs)
+    y <- convertTo(sce, type = "edgeR")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

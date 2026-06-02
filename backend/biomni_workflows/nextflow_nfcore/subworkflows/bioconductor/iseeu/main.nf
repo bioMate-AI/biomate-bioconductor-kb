@@ -38,6 +38,7 @@ process BIOC_ISEEU {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(iSEEu)
     library(AggregatedDotPlot)
     library(DGEList)
     library(DynamicMarkerTable)
@@ -50,72 +51,40 @@ process BIOC_ISEEU {
     library(VolcanoPlot)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: DGEList, assay, colData, filterByExpr, calcNormFactors
-    ---------------------------------------------------------------------
-    library(airway)
-    data(airway)
-    library(edgeR)
-    y <- DGEList(assay(airway), samples=colData(airway))
-    # --- Maplot [] ---
-    # Key functions: MAPlot, iSEE
-    ---------------------------------------------------------------------
-    ma.panel <- MAPlot(PanelWidth=6L)
-    app <- iSEE(airway, initial=list(ma.panel))
-    # --- Volcanoplot [] ---
-    # Key functions: VolcanoPlot, iSEE
-    ---------------------------------------------------------------------
-    vol.panel <- VolcanoPlot(PanelWidth=6L)
-    app <- iSEE(airway, initial=list(vol.panel))
-    # --- Matrix [] ---
-    # Key functions: estimateDisp, glmQLFit, glmQLFTest, topTags, rowData
-    ---------------------------------------------------------------------
-    # Creating another comparison, this time by blocking on the cell line
-    design.alt <- model.matrix(~cell + dex, y$samples)
-    y.alt <- estimateDisp(y, design.alt)
-    fit.alt <- glmQLFit(y.alt, design.alt)
-    # --- Reprocessedallendata [] ---
-    # Key functions: ReprocessedAllenData, logNormCounts, runPCA, runTSNE
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce <- ReprocessedAllenData(assays="tophat_counts")
-    library(scater)
-    sce <- logNormCounts(sce, exprs_values="tophat_counts")
-    # --- Dynamicreduceddimensionplot [] ---
+    # --- Comparison of Log Fold Changes [] ---
+    # Key functions: LogFCLogFCPlot, iSEE
+    lfc_panel <- LogFCLogFCPlot(
+        PanelWidth = 6L,
+        YAxis = "alt.logFC",
+        YPValueField = "alt.PValue"
+    )
+    app_lfc <- iSEE(airway, initial = list(lfc_panel))
+
+
+    # --- Dynamic Dimension Reduction [] ---
     # Key functions: DynamicReducedDimensionPlot, ReducedDimensionPlot, iSEE
-    ---------------------------------------------------------------------
-    # Receives a selection from a reduced dimension plot.
-    dyn.panel <- DynamicReducedDimensionPlot(Type="UMAP", Assay="logcounts",
-        ColumnSelectionSource="ReducedDimensionPlot1", PanelWidth=6L)
-    # NOTE: users do not have to manually create this, just
-    # --- Dynamicmarkertable [] ---
-    # Key functions: DynamicMarkerTable, iSEE
-    ---------------------------------------------------------------------
-    diff.panel <- DynamicMarkerTable(PanelWidth=8L, Assay="logcounts",
-        ColumnSelectionSource="ReducedDimensionPlot1",)
-    # Recycling the reduced dimension panel above, adding a saved selection to
-    # compare to the active selection.
-    # --- Setfeaturesetcommands [] ---
-    # Key functions: setFeatureSetCommands, createGeneSetCommands, FeatureSetTable, VolcanoPlot, iSEE
-    ---------------------------------------------------------------------
-    setFeatureSetCommands(createGeneSetCommands(identifier="ENSEMBL"))
-    gset.tab <- FeatureSetTable(Selected="GO:0002576",
-        Search="platelet", PanelWidth=6L)
-    # This volcano plot will highlight the genes in the selected gene set.
-    # --- Isee [] ---
-    # Key functions: iSEE, AggregatedDotPlot, runApp
-    ---------------------------------------------------------------------
-    app <- iSEE(
-        sce,
-        initial = list(
-            AggregatedDotPlot(
-    # --- Isee [] ---
-    # Key functions: iSEE, MarkdownBoard, runApp
-    ---------------------------------------------------------------------
-    app <- iSEE(
-        sce,
-        initial = list(
-            MarkdownBoard(
+    dyn_panel <- DynamicReducedDimensionPlot(
+        Type = "UMAP",
+        Assay = "logcounts",
+        ColumnSelectionSource = "ReducedDimensionPlot1",
+        PanelWidth = 6L
+    )
+    red_panel <- ReducedDimensionPlot(
+        PanelId = 1L,
+        PanelWidth = 6L
+    )
+    app_dyn <- iSEE(sce, initial = list(red_panel, dyn_panel))
+
+
+    # --- Gene Set Enrichment Exploration [] ---
+    # Key functions: FeatureSetTable, createGeneSetCommands, setFeatureSetCommands, iSEE
+    setFeatureSetCommands(createGeneSetCommands(identifier = "ENSEMBL"))
+    gset_tab <- FeatureSetTable(
+        Selected = "GO:0002576",
+        Search = "platelet",
+        PanelWidth = 6L
+    )
+    app_gset <- iSEE(airway, initial = list(gset_tab))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,100 +41,41 @@ process BIOC_LPNET {
     library(lpNet)
     library(jsonlite)
 
-    # --- Data1 [] ---
-    # Key functions: rnorm
-    n <- 5 # number of genes
-    K <- 7 # number of perturbation experiments
-    obs <- matrix(rnorm(n*K), nrow=n, ncol=K)
-    delta <- apply(obs, 1, mean)
-    delta_type <- "perGene"
-    # --- Lp [] ---
-    # Key functions: doILP, getEdgeAnnot, getAdja
-    res1 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,
-                  annot=getEdgeAnnot(n), delta_type)
+    # --- Network Inference via ILP [] ---
+    # Key functions: doILP, getAdja, getEdgeAnnot
+    res1 <- doILP(obs, delta, lambda = 1, b, n, K, T_ = NULL,
+                  annot = annot, delta_type)
     adja1 <- getAdja(res1, n)
-    # --- Lp Pos [] ---
-    # Key functions: doILP, getEdgeAnnot, getAdja
-    res2 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,
-                  annot=getEdgeAnnot(n,allpos=TRUE), delta_type,
-                  all.pos=TRUE)
-    adja2 <- getAdja(res2,n)
-    # --- Data Ts [] ---
-    # Key functions: array, rnorm
-    T_ <- 4 # number of time points
-    obs_ts <- array(rnorm(n*K*T_), c(n,K,T_))
-    # --- Lp Ts [] ---
-    # Key functions: doILP, getEdgeAnnot, getAdja
-    res1 <- doILP(obs_ts, delta, lambda=1, b, n, K, T_,
-                  annot=getEdgeAnnot(n), delta_type,
-                  flag_time_series=TRUE)
-    adja1 <- getAdja(res1, n)
-    # --- Loocv [] ---
-    # Key functions: loocv, getEdgeAnnot
-    times <- 5 # number of times the removed observation is sampled
-    annot_node <- seq(1,n) # annotation of the nodes
-    loocv_res <- loocv(kfold=NULL, times, obs, delta, lambda=1,
-                       b, n, K, T_=NULL, annot=getEdgeAnnot(n),
-                       annot_node, active_mu, active_sd,
-    # --- Loocv [] ---
-    # Key functions: getSampleAdjaMAD
-    adja_loocv <- getSampleAdjaMAD(loocv_res$edges_all, n,
-                                   annot_node)
-    # --- Rangelambda [] ---
-    # Key functions: calcRangeLambda, loocv, getEdgeAnnot, getSampleAdjaMAD
-    lambda <- calcRangeLambda(obs, delta, delta_type)
-    MSE <- Inf
-    for (lamd in lambda) {
-      loocv_res <- loocv(kfold=NULL, times, obs, delta, lambda=lamd,
-                         b, n, K, T_=NULL, annot=getEdgeAnnot(n),
-    # --- Foldcv [] ---
-    # Key functions: kfoldCV, getEdgeAnnot, getSampleAdjaMAD
-    kfold <- 5
-    MSE <- Inf
-    for (lamd in lambda) {
-      kcv_res <- kfoldCV(kfold, times, obs, delta, lambda=lamd,
-                         b, n, K, T_=NULL, annot=getEdgeAnnot(n),
-    # --- Prior1 [] ---
-    # Key functions: doILP, getEdgeAnnot, getAdja
-    res3 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,
-                  annot=getEdgeAnnot(n), delta_type,
-                  sourceNode=1, sinkNode=5)
-    adja3 <- getAdja(res3,n)
-    # --- Prior2 [] ---
-    # Key functions: doILP, getEdgeAnnot, getAdja
+    res_pos <- doILP(obs, delta, lambda = 1, b, n, K, T_ = NULL,
+                     annot = getEdgeAnnot(n, allpos = TRUE), delta_type,
+                     all.pos = TRUE)
+    adja_pos <- getAdja(res_pos, n)
+
+
+    # --- Cross Validation and Parameter Tuning [] ---
+    # Key functions: calcRangeLambda, loocv, getSampleAdjaMAD
+    times <- 5
+    annot_node <- seq(1, n)
+    active_mu <- 1.1
+    inactive_mu <- 0.9
+    active_sd <- 0.01
+    inactive_sd <- 0.01
+    mu_type <- "single"
+    lambda_range <- calcRangeLambda(obs, delta, delta_type)
+    loocv_res <- loocv(kfold = NULL, times, obs, delta, 
+                       lambda = lambda_range[1], b, n, K, T_ = NULL, 
+                       annot = annot, annot_node, active_mu, active_sd,
+                       inactive_mu, inactive_sd, mu_type, delta_type)
+    adja_loocv <- getSampleAdjaMAD(loocv_res$edges_all, n, annot_node)
+
+
+    # --- Network Inference with Prior Knowledge [] ---
+    # Key functions: doILP, getAdja
     prior <- list(c("w+_1_2", 1, ">", 1))
-    res4 <- doILP(obs,delta, lambda=1, b, n, K, T_=NULL,
-                  annot=getEdgeAnnot(n), delta_type,
-                  prior=prior)
-    adja4 <- getAdja(res4, n)
-    # --- Prior3 [] ---
-    # Key functions: doILP, getEdgeAnnot, getAdja
-    prior <- list(c("w+_1_2", 1/0.9, ">", 1))
-    res5 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,
-                  annot=getEdgeAnnot(n), delta_type,
-                  prior=prior)
-    adja5 <- getAdja(res5, n)
-    # --- Prior4 [] ---
-    # Key functions: parseKGML2Graph
-    library("KEGGgraph")
-    toyKGML <- system.file("extdata/kgml-ed-toy.xml", package="KEGGgraph")
-    toyGraph <- parseKGML2Graph(toyKGML, genesOnly=FALSE)
-    adja <- as(toyGraph,"matrix")
-    entries <- which(adja!=0, arr.ind=TRUE)
-    # --- Sahindata [] ---
-    # Key functions: summarizeRepl
-    data("SahinRNAi2008")
-    dataStim <- dat.normalized[dat.normalized[ ,17] == 1,-17]
-    dataUnstim <- dat.normalized[dat.normalized[ ,17] == 0,-17]
-    # summarize replicates; transpose: rows=genes, cols=experiments
-    dataSt <- t(summarizeRepl(dataStim, type=mean))
-    # --- Sahindata Parameter [] ---
-    # Key functions: getEdgeAnnot
-    n <- 16 # number of genes
-    K <- 16 # number of experiments
-    annot <- getEdgeAnnot(n)
-    # perturbation vector;       kd of:
-    b <- c(0,rep(1,15),          # erbb1
+    res_prior <- doILP(obs, delta, lambda = 1, b, n, K, T_ = NULL,
+                       annot = annot, delta_type, prior = prior,
+                       sourceNode = 1, sinkNode = 5)
+    adja_prior <- getAdja(res_prior, n)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

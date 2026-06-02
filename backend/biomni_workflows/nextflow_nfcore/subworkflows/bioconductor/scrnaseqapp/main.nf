@@ -41,17 +41,26 @@ process BIOC_SCRNASEQAPP {
     library(scRNAseqApp)
     library(jsonlite)
 
-    # --- Scrnaseqapp [] ---
-    # Key functions: scRNAseqApp
-    ---------------------------------------------------------------------
-    scRNAseqApp(app_path = publish_folder)
-    # --- Createappconfig [] ---
-    # Key functions: createAppConfig, createDataSet, path
-    ---------------------------------------------------------------------
-    library(Seurat)
+    # --- Dataset Configuration and Creation [] ---
+    # Key functions: createAppConfig, createDataSet
     appconf <- createAppConfig(
-                title="pbmc_small_test",
-                destinationFolder = "pbmc_small_test",
+        title = "pbmc_small_test",
+        destinationFolder = "pbmc_small_test",
+        species = "Homo sapiens",
+        doi = "10.1038/nbt.3192",
+        datatype = "scRNAseq",
+        abstract = "Put the description of the data here."
+    )
+    createDataSet(
+        appconf,
+        pbmc_small,
+        datafolder = file.path(publish_folder, "data")
+    )
+
+
+    # --- Application Launching [] ---
+    # Key functions: scRNAseqApp
+    scRNAseqApp(app_path = publish_folder)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

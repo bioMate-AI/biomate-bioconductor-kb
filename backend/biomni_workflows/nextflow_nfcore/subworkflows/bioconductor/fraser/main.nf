@@ -44,63 +44,72 @@ process BIOC_FRASER {
     library(IRanges)
     library(jsonlite)
 
-    # --- register [] ---
-    # Key functions: register
-    library(BiocParallel)
-    register(SerialParam())
-    # --- quick fraser guide [] ---
-    # Key functions: createTestFraserSettings, countRNAData, calculatePSIValues, filterExpressionAndVariability, annotateRangesWithTxDb
-    library(FRASER)
-    fds <- createTestFraserSettings()
-    fds <- countRNAData(fds)
-    # --- sampleData Table [] ---
-    # Key functions: fread
-    sampleTable <- fread(system.file(
-    head(sampleTable)
-    # --- FRASER setting example1 [] ---
-    # Key functions: FraserDataSet
-    bamFiles <- system.file(sampleTable[,bamFile], package="FRASER", mustWork=TRUE)
-    settings <- FraserDataSet(colData=sampleTable, workingDir="FRASER_output")
-    # --- FRASER setting example2 [] ---
-    # Key functions: createTestFraserSettings
-    settings <- createTestFraserSettings()
-    # --- parallelize example [] ---
-    # Key functions: register
-    if(.Platform$OS.type == "unix") {
-    register(MulticoreParam(workers=min(10, multicoreWorkers())))
-    register(SnowParam(workers=min(10, multicoreWorkers())))
-    # --- count R N A Data [] ---
-    # Key functions: countRNAData
-    fds <- countRNAData(settings)
-    # --- create fds with counts [] ---
-    # Key functions: fread, FraserDataSet
-    sampleTable <- fread(system.file("extdata", "sampleTable_countTable.tsv",
-    head(sampleTable)
-    junctionCts   <- fread(system.file("extdata", "raw_junction_counts.tsv.gz",
-    # --- calculate psi/jaccard values [] ---
-    # Key functions: calculatePSIValues
+    # --- Splicing Metric Calculation and Filtering [] ---
+    # Key functions: calculatePSIValues, filterExpressionAndVariability, plotFilterExpression
     fds <- calculatePSIValues(fds)
-    # --- filter junctions [] ---
-    # Key functions: filterExpressionAndVariability, plotFilterExpression
-    fds <- filterExpressionAndVariability(fds, minDeltaPsi=0, filter=FALSE)
+    fds <- filterExpressionAndVariability(
+        fds,
+        minExpressionInOneSample=20,
+        minDeltaPsi=0.0,
+        filter=TRUE
+    )
     plotFilterExpression(fds, bins=100)
-    # --- sample covariation [] ---
-    # Key functions: plotCountCorHeatmap
-    plotCountCorHeatmap(fds, type="jaccard", logit=TRUE, normalized=FALSE)
-    # --- intron sample correlation [] ---
-    # Key functions: plotCountCorHeatmap
-    plotCountCorHeatmap(fds, type="jaccard", logit=TRUE, normalized=FALSE,
-    # --- F R A S E R [] ---
-    # Key functions: FRASER
-    fds <- FRASER(fds, q=c(jaccard=3))
-    # --- covariation after fitting [] ---
-    # Key functions: plotCountCorHeatmap
-    plotCountCorHeatmap(fds, type="jaccard", normalized=TRUE, logit=TRUE)
-    # --- Extract differential expression results [] ---
-    # Key functions: annotateRangesWithTxDb, annotateRanges, results
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(org.Hs.eg.db)
-    fds <- annotateRangesWithTxDb(fds, txdb=txdb, orgDb=orgDb)
+
+
+    # --- Hyperparameter Optimization [] ---
+    # Key functions: optimHyperParams, bestQ
+    fds <- optimHyperParams(
+        fds,
+        type="jaccard",
+        plot=FALSE
+    )
+    opt_q <- bestQ(fds, type="jaccard")
+
+
+    # --- Model Fitting and Confounder Correction [] ---
+    # Key functions: FRASER, fit, plotCountCorHeatmap
+    fds <- FRASER(fds, q=c(jaccard=2))
+    fds <- fit(
+        fds,
+        q=3,
+        type="jaccard",
+        implementation="PCA-BB-Decoder",
+        iterations=2
+    )
+    plotCountCorHeatmap(
+        fds,
+        type="jaccard",
+        logit=TRUE,
+        normalized=TRUE
+    )
+
+
+    # --- Annotation and Splicing Analysis [] ---
+    # Key functions: annotateRangesWithTxDb, calculatePadjValues, results
+    fds <- annotateRangesWithTxDb(
+        fds,
+        txdb=txdb,
+        orgDb=orgDb
+    )
+    fds <- calculatePadjValues(
+        fds,
+        type="jaccard",
+        geneLevel=TRUE
+    )
+    res <- results(fds, aggregate=TRUE, all=TRUE)
+
+
+    # --- Visualization and Export [] ---
+    # Key functions: plotVolcano, saveFraserDataSet, workingDir, name
+    plotVolcano(
+        fds,
+        sampleID="sample1",
+        type="jaccard",
+        aggregate=TRUE
+    )
+    workingDir(fds) <- "FRASER_output"
+    name(fds) <- "ExampleAnalysis"
+    saveFraserDataSet(fds, dir=workingDir(fds), name=name(fds))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

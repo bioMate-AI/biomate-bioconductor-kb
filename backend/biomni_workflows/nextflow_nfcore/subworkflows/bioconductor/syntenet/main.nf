@@ -38,73 +38,76 @@ process BIOC_SYNTENET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(syntenet)
     library(Annotation)
     library(jsonlite)
 
-    # --- Annotation [] ---
-    # Key functions: Annotation
-    data(proteomes)
-    head(proteomes)
-    Annotation (ranges)
-    # --- fasta2 A A String Setlist [] ---
-    # Key functions: fasta2AAStringSetlist
+    # --- Input Processing and Validation [process_input] ---
+    # Key functions: fasta2AAStringSetlist, gff2GRangesList, check_input, process_input
     fasta_dir <- system.file("extdata", "sequences", package = "syntenet")
-    dir(fasta_dir) # see the contents of the directory
-    aastringsetlist <- fasta2AAStringSetlist(fasta_dir)
-    # --- gff2 G Ranges List [] ---
-    # Key functions: gff2GRangesList
     gff_dir <- system.file("extdata", "annotation", package = "syntenet")
-    dir(gff_dir) # see the contents of the directory
+    aastringsetlist <- fasta2AAStringSetlist(fasta_dir)
     grangeslist <- gff2GRangesList(gff_dir)
-    # --- check_input [] ---
-    # Key functions: check_input
+    data(proteomes)
+    data(annotation)
     check_input(proteomes, annotation)
-    # --- process_input [] ---
-    # Key functions: process_input
     pdata <- process_input(proteomes, annotation)
-    # --- run_diamond [] ---
-    # Key functions: run_diamond
-    data(blast_list)
-    if(diamond_is_installed()) {
+
+    # --- Synteny Network Inference [infer_syntenet] ---
+    # Key functions: run_diamond, infer_syntenet, create_species_id_table
+    data(proteomes)
+    data(annotation)
+    pdata <- process_input(proteomes, annotation)
     blast_list <- run_diamond(seq = pdata$seq)
-    # --- infer_syntenet [] ---
-    # Key functions: infer_syntenet
     net <- infer_syntenet(blast_list, pdata$annotation)
-    head(net)
-    # --- create species id table [] ---
-    # Key functions: create_species_id_table
     id_table <- create_species_id_table(names(proteomes))
-    # --- cluster_network [] ---
-    # Key functions: cluster_network
+
+    # --- Network Clustering and Profiling [cluster_network] ---
+    # Key functions: cluster_network, phylogenomic_profile, find_GS_clusters
     data(network)
-    head(network)
     clusters <- cluster_network(network)
-    # --- phylogenomic profile [] ---
-    # Key functions: phylogenomic_profile
     profiles <- phylogenomic_profile(clusters)
-    head(profiles)
-    # --- set Names [] ---
-    # Key functions: setNames, plot_profiles
-    species_order <- setNames(
-    c(
-    c(
-    # --- find GS clusters [] ---
-    # Key functions: find_GS_clusters
+    species_order <- c("vra", "van", "pvu", "gma", "cca", "tpr")
+    species_annotation <- data.frame(
+        Species = species_order,
+        Family = rep("Fabaceae", 6)
+    )
     gs_clusters <- find_GS_clusters(profiles, species_annotation)
-    head(gs_clusters)
-    nrow(gs_clusters)
-    # --- plot_profiles [] ---
-    # Key functions: plot_profiles
-    idx <- rownames(profiles) %in% gs_clusters$Cluster
-    plot_profiles(
-    # --- plot_network [] ---
-    # Key functions: plot_network
-    plot_network(network, clusters, cluster_id = id)
-    genes <- unique(c(network$node1, network$node2))
-    gene_df <- data.frame(
-    # --- binarize_and_transpose [] ---
-    # Key functions: binarize_and_transpose
+
+    # --- Visualization of Profiles and Networks [plot_profiles] ---
+    # Key functions: plot_profiles, plot_network
+    data(network)
+    clusters <- cluster_network(network)
+    profiles <- phylogenomic_profile(clusters)
+    species_order <- c("vra", "van", "pvu", "gma", "cca", "tpr")
+    species_annotation <- data.frame(
+        Species = species_order,
+        Family = rep("Fabaceae", 6)
+    )
+    plot_profiles(profiles, species_annotation, cluster_species = species_order)
+    plot_network(network, clusters, cluster_id = clusters$Cluster[1:5])
+
+    # --- Phylogeny Reconstruction [infer_microsynteny_phylogeny] ---
+    # Key functions: binarize_and_transpose, infer_microsynteny_phylogeny
+    data(network)
+    clusters <- cluster_network(network)
+    profiles <- phylogenomic_profile(clusters)
     bt_mat <- binarize_and_transpose(profiles)
+    included <- rownames(bt_mat)[1:min(5, nrow(bt_mat))]
+    bt_mat <- bt_mat[rownames(bt_mat) %in% included, ]
+    bt_mat <- bt_mat[, colSums(bt_mat) != length(included)]
+    phylo <- infer_microsynteny_phylogeny(bt_mat, threads = 1)
+
+    # --- Intraspecies Synteny Detection [intraspecies_synteny] ---
+    # Key functions: intraspecies_synteny, parse_collinearity
+    data(scerevisiae_annot)
+    data(scerevisiae_diamond)
+    intra_syn <- intraspecies_synteny(
+        scerevisiae_diamond, 
+        scerevisiae_annot
+    )
+    scerevisiae_syn <- parse_collinearity(intra_syn)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

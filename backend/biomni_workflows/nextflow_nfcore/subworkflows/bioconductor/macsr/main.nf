@@ -38,23 +38,49 @@ process BIOC_MACSR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MACSr)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Experimenthub [] ---
-    # Key functions: ExperimentHub, query
-    ---------------------------------------------------------------------
-    eh <- ExperimentHub::ExperimentHub()
-    eh <- AnnotationHub::query(eh, "MACSdata")
-    CHIP <- eh[["EH4558"]]
-    CTRL <- eh[["EH4563"]]
-    # --- Callpeak [] ---
-    # Key functions: callpeak, tempdir
-    ---------------------------------------------------------------------
-    cp1 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
-                    name = "run_callpeak_narrow0", outdir = tempdir(),
-                    cutoff_analysis = TRUE)
-    cp2 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
+    # --- Broad Peak Calling [] ---
+    # Key functions: callpeak
+    cp_broad <- MACSr::callpeak(
+        tfile = CHIP,
+        cfile = CTRL,
+        gsize = 5.2e7,
+        store_bdg = TRUE,
+        name = "broad_peaks",
+        outdir = tempdir(),
+        broad = TRUE
+    )
+    broad_files <- cp_broad$outputs
+    broad_args <- cp_broad$arguments
+
+
+    # --- Cutoff Analysis [] ---
+    # Key functions: callpeak
+    cp_cutoff <- MACSr::callpeak(
+        tfile = CHIP,
+        cfile = CTRL,
+        gsize = 5.2e7,
+        store_bdg = TRUE,
+        name = "cutoff_analysis",
+        outdir = tempdir(),
+        cutoff_analysis = TRUE
+    )
+    cutoff_log <- cp_cutoff$log
+
+
+    # --- Fragment Size Prediction [] ---
+    # Key functions: predictd
+    pred_d <- MACSr::predictd(
+        ifile = CHIP,
+        gsize = 5.2e7,
+        dmin = 80,
+        dmax = 250,
+        outdir = tempdir()
+    )
+    pred_log <- pred_d$log
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

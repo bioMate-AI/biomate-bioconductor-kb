@@ -41,24 +41,41 @@ process BIOC_RSUBREAD {
     library(Rsubread)
     library(jsonlite)
 
-    # --- Frame [] ---
-    # Key functions: frame, featureCounts
-    ann <- data.frame(
-    GeneID=c("gene1","gene1","gene2","gene2"),
-    Chr="chr_dummy",
-    Start=c(100,1000,3000,5000),
-    End=c(500,1800,4000,5500),
-    # --- Featurecounts [] ---
+    # --- Read Alignment [] ---
+    # Key functions: align
+    reads1 <- system.file("extdata", "reads1.txt.gz", package = "Rsubread")
+    reads2 <- system.file("extdata", "reads2.txt.gz", package = "Rsubread")
+    align.stat <- align(
+        index = "reference_index",
+        readfile1 = reads1,
+        readfile2 = reads2,
+        output_file = "alignResultsPE.BAM",
+        phredOffset = 64
+    )
+
+
+    # --- Feature Counting [] ---
     # Key functions: featureCounts
-    fc_PE <- featureCounts("alignResultsPE.BAM",annot.ext=ann,isPairedEnd=TRUE)
-    fc_PE
-    # --- Qualityscores [] ---
-    # Key functions: qualityScores
-    x <- qualityScores(filename=reads,offset=64,nreads=1000)
-      x[1:10,1:10]
-    # --- Propmapped [] ---
-    # Key functions: propmapped
-    propmapped("alignResults.BAM")
+    ann <- data.frame(
+        GeneID = c("gene1", "gene1", "gene2", "gene2"),
+        Chr = "chr_dummy",
+        Start = c(100, 1000, 3000, 5000),
+        End = c(500, 1800, 4000, 5500),
+        Strand = c("+", "+", "-", "-"),
+        stringsAsFactors = FALSE
+    )
+    fc_PE <- featureCounts(
+        "alignResultsPE.BAM",
+        annot.ext = ann,
+        isPairedEnd = TRUE
+    )
+
+
+    # --- Quality Assessment [] ---
+    # Key functions: qualityScores, propmapped
+    reads <- system.file("extdata", "reads.txt.gz", package = "Rsubread")
+    qs <- qualityScores(filename = reads, offset = 64, nreads = 1000)
+    pm <- propmapped("alignResultsPE.BAM")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

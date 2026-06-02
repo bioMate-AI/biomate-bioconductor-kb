@@ -38,72 +38,83 @@ process BIOC_MICROSTASIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(microSTASIS)
     library(PrintBibliography)
     library(TreeSummarizedExperiment)
     library(jsonlite)
 
-    # --- "install" [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("microSTASIS")
-    # --- "pairedTimes" [] ---
-    # Key functions: pairedTimes
-    times <- pairedTimes(data = clr, sequential = TRUE, common = "_0_")
-    # --- "makeObject" [] ---
-    # Key functions: TreeSummarizedExperiment, altExp, assayNames
-    ID_common_time <- rownames(clr)
-    samples <- 1:dim(clr)[1]
-    metadata <- data.frame(samples, stringr::str_split(ID_common_time, "_",
-    # --- "pairedTimesTSE" [] ---
-    # Key functions: pairedTimes
-    TSE_times <- pairedTimes(data = both_tse, sequential = TRUE, assay = "counts",
-    TSE_altExp_times <- pairedTimes(data = both_tse, sequential = TRUE,
-    # --- "iterativeClustering" [] ---
-    # Key functions: iterativeClustering
-    mS <- iterativeClustering(pairedTimes = times, common = "_")
-    # --- "iterativeClusteringTSE" [] ---
-    # Key functions: iterativeClustering
-    mS_TSE <- iterativeClustering(pairedTimes = TSE_times, common = "_")
-    # --- "visualization" [] ---
-    # Key functions: mSpreviz, plotmSscatter, plotmSheatmap
-    results <- mSpreviz(results = mS, times = times)
-    plotmSscatter(results = results, order = "median", times = c("t1_t25", "t25_t26"),
-    plotmSheatmap(results = results, order = "mean", times = c("t1_t25", "t25_t26"),
-    # --- "CV" [] ---
-    # Key functions: bpmapply
-    cv_klist_k2 <- BiocParallel::bpmapply(iterativeClusteringCV, name = names(times),
-    k = rep(2L, 3),
-    MoreArgs = list(pairedTimes = times,
-    # --- "error" [] ---
-    # Key functions: mSerrorCV
-    MAE_t1_t25 <- mSerrorCV(pairedTime = times$t1_t25, CVklist = cv_klist_k2[[1]],
-    # --- "error viz" [] ---
-    # Key functions: mSpreviz, plotmSheatmap
-    MAE <- mSpreviz(results = list(MAE_t1_t25), times = list(t1_t25 = times$t1_t25))
-    plotmSheatmap(results = MAE, times = c("t1_t25", "t25_t26"), label = TRUE,
-    # --- "lines" [] ---
-    # Key functions: plotmSlinesCV
-    plotmSlinesCV(pairedTime = times$t1_t25, CVklist = cv_klist_k2[[1]], k = 2L)
-    # --- "metadata" [] ---
+    # --- Iterative Clustering [] ---
+    # Key functions: iterativeClustering, mSpreviz
+    mS <- iterativeClustering(
+        pairedTimes = times,
+        common = "_"
+    )
+    results <- mSpreviz(
+        results = mS,
+        times = times
+    )
+
+
+    # --- Stability Visualization [] ---
+    # Key functions: plotmSscatter, plotmSheatmap
+    plotmSscatter(
+        results = results,
+        order = "median",
+        times = c("t1_t25", "t25_t26"),
+        gridLines = TRUE,
+        sideScale = 0.2
+    )
+    plotmSheatmap(
+        results = results,
+        order = "mean",
+        times = c("t1_t25", "t25_t26"),
+        label = TRUE
+    )
+
+
+    # --- Cross Validation [] ---
+    # Key functions: iterativeClusteringCV, mSerrorCV, plotmSlinesCV
+    cv_klist_k2 <- BiocParallel::bpmapply(
+        iterativeClusteringCV,
+        name = names(times),
+        k = rep(2L, 3),
+        MoreArgs = list(
+            pairedTimes = times,
+            results = mS,
+            common = "_0_"
+        )
+    )
+    MAE_t1_t25 <- mSerrorCV(
+        pairedTime = times$t1_t25,
+        CVklist = cv_klist_k2[[1]],
+        k = 2L
+    )
+    plotmSlinesCV(
+        pairedTime = times$t1_t25,
+        CVklist = cv_klist_k2[[1]],
+        k = 2L
+    )
+
+
+    # --- Metadata Group Dynamics [] ---
     # Key functions: mSmetadataGroups, plotmSdynamics
-    metadata <- data.frame(Sample = rownames(clr), age = c(rep("youth", 65),
-    rep("old", 131-65)))
-    group <- mSmetadataGroups(metadata = metadata, samples = metadata$Sample,
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("microSTASIS.Rmd", "BiocStyle::html_document"))
-    library("knitr")
-    # --- diff [] ---
-    # Key functions: diff
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
-    # --- session_info [] ---
-    # Key functions: session_info
-    library("sessioninfo")
-    options(width = 120)
-    session_info()
+    metadata <- data.frame(
+        Sample = rownames(clr),
+        age = c(rep("youth", 65), rep("old", 131 - 65))
+    )
+    group <- mSmetadataGroups(
+        metadata = metadata,
+        samples = metadata$Sample,
+        common = "_0_",
+        individuals = results$individual,
+        variable = "age"
+    )
+    plotmSdynamics(
+        results,
+        groups = group,
+        points = TRUE,
+        linetype = 0
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

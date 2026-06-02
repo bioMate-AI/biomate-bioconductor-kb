@@ -41,25 +41,22 @@ process BIOC_RNAMODR_ML {
     library(RNAmodR.ML)
     library(jsonlite)
 
-    # --- plot R O C [] ---
-    # Key functions: plotROC, setMethod, find_mod_example, setClass
+    # --- Machine Learning Model Integration [] ---
+    # Key functions: setMLModel, useModel
+    model <- ranger::ranger(labels ~ ., data.frame(trainingData))
+    setClass("ModifierMLexample",
+             contains = c("ModifierMLranger"),
+             prototype = list(model = model))
+    mlmodel <- new("ModifierMLexample")
+    setMLModel(me) <- mlmodel
+
+
+    # --- Prediction and Evaluation [] ---
+    # Key functions: plotROC, plotDataByCoord, modifications
+    me <- aggregate(me, force = TRUE)
     plotROC(me, dmod)
-    setMethod(
-    signature = signature(x = "ModMLExample"),
-    # --- plot Data By Coord [] ---
-    # Key functions: plotDataByCoord, unlist, trainingData, ranger
-    plotDataByCoord(sequenceData(me),mod[["4"]][1])
-    nonValidMod <- mod[c("1","4")]
-    nonValidMod <- unlist(nonValidMod)
-    # --- plot R O C [] ---
-    # Key functions: plotROC, setMethod, find_mod_example, modify
-    plotROC(me2, dmod, score="score")
-    setMethod(
-    signature = signature(x = "ModMLExample"),
-    # --- plot R O C [] ---
-    # Key functions: plotROC
-    plotROC(mse, dmod, score= "score",
-    plot.args = list(avg = "threshold", spread.estimate = "stderror"))
+    mod <- modifications(me)
+    plotDataByCoord(sequenceData(me), mod[[1]][1])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

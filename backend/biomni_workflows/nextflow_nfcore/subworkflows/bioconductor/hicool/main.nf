@@ -42,18 +42,28 @@ process BIOC_HICOOL {
     library(HiCool)
     library(jsonlite)
 
-    # --- Hicool [] ---
-    # Key functions: HiCool, HiContactsData
-    ---------------------------------------------------------------------
-    library(HiCool)
+    # --- Hi-C Processing and Contact Map Generation [Hi-C Processing] ---
+    # Key functions: HiCool
     hcf <- HiCool(
-        r1 = HiContactsData::HiContactsData(sample = 'yeast_wt', format = 'fastq_R1'),
-        r2 = HiContactsData::HiContactsData(sample = 'yeast_wt', format = 'fastq_R2'),
-    # --- Metadata [] ---
+        r1 = HiContactsData::HiContactsData(sample = "yeast_wt", format = "fastq_R1"),
+        r2 = HiContactsData::HiContactsData(sample = "yeast_wt", format = "fastq_R2"),
+        restriction = "DpnII,HinfI",
+        resolutions = c(4000, 8000, 16000),
+        genome = "R64-1-1",
+        output = "./HiCool/"
+    )
+
+    # --- Contact Map File Retrieval [File Retrieval] ---
+    # Key functions: pairsFile, coolFiles, mcoolFile
+    pf <- pairsFile(hcf)
+    cf <- coolFiles(hcf)
+    mcf <- mcoolFile(hcf)
+
+    # --- Quality Control and Metadata Extraction [QC and Metadata] ---
     # Key functions: metadata
-    ---------------------------------------------------------------------
-    hcf
-    S4Vectors::metadata(hcf)
+    meta_info <- S4Vectors::metadata(hcf)
+    qc_summary <- meta_info$stats
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

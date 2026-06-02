@@ -38,43 +38,26 @@ process BIOC_SPOTSWEEPER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SpotSweeper)
     library(Visium_humanDLPFC)
     library(jsonlite)
 
-    # --- Visium_human D L P F C [] ---
-    # Key functions: Visium_humanDLPFC
-    library(SpotSweeper)
-    spe <- STexampleData::Visium_humanDLPFC()
-    colnames(colData(spe))
-    # --- Add per-cell QC metrics [] ---
-    # Key functions: addPerCellQCMetrics
-    rownames(spe) <- rowData(spe)$gene_name
-    is.mito <- rownames(spe)[grepl("^MT-", rownames(spe))]
-    spe <- scuttle::addPerCellQCMetrics(spe, subsets = list(Mito = is.mito))
-    # --- example local outliers [] ---
-    # Key functions: localOutliers
-    spe <- localOutliers(spe,
-    spe <- localOutliers(spe,
-    spe <- localOutliers(spe,
-    # --- local outlier plot [] ---
-    # Key functions: plotQC, ggtitle, ggarrange
-    library(escheR)
-    library(ggpubr)
-    p1 <- plotQC(spe,
-    # --- artifact QC plots [] ---
-    # Key functions: plotQC, ggtitle, ggarrange
-    p1 <- plotQC(spe,
-    ggtitle("Library Size")
-    p2 <- plotQC(spe,
-    # --- find Artifacts [] ---
+    # --- Spatial Artifact Identification [] ---
     # Key functions: findArtifacts
-    spe <- findArtifacts(spe,
-    colnames(colData(spe))
-    # --- artifact visualization [] ---
-    # Key functions: plotQC, ggtitle
-    plotQC(spe,
-    ggtitle("Hangnail artifact")
-    utils::sessionInfo()
+    spe <- findArtifacts(
+        spe,
+        mito_percent = "expr_chrM_ratio",
+        mito_sum = "expr_chrM",
+        n_rings = 5,
+        name = "artifact"
+    )
+
+
+    # --- Quality Control Visualization [] ---
+    # Key functions: plotQC
+    p1 <- plotQC(spe, metric = "sum_log", outliers = "sum_outliers")
+    p2 <- plotQC(spe, metric = "detected_log", outliers = "detected_outliers")
+    p3 <- plotQC(spe, metric = "expr_chrM_ratio", outliers = "artifact")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

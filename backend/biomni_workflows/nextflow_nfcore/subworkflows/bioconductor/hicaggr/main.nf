@@ -38,24 +38,59 @@ process BIOC_HICAGGR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HicAggR)
     library(Aggregation)
     library(OrientateMatrix)
     library(jsonlite)
 
-    # --- Aggregation [] ---
-    # Key functions: Aggregation
-    ---------------------------------------------------------------------
-    aggreg.mtx <- Aggregation(
-            ctrlMatrices=interactions_RFmatrix_ctrl.lst,
-            aggFun="mean"
+    # --- Normalisation and Expected Calculation [] ---
+    # Key functions: BalanceHiC, OverExpectedHiC
+    HiC_Ctrl.cmx_lst <- BalanceHiC(HiC_Ctrl.cmx_lst)
+    HiC_HS.cmx_lst <- BalanceHiC(HiC_HS.cmx_lst)
+    HiC_Ctrl.cmx_lst <- OverExpectedHiC(HiC_Ctrl.cmx_lst)
+    HiC_HS.cmx_lst <- OverExpectedHiC(HiC_HS.cmx_lst)
+
+
+    # --- Feature Indexing [] ---
+    # Key functions: IndexFeatures
+    data("Beaf32_Peaks.gnr")
+    data("TSS_Peaks.gnr")
+    data("TADs_Domains.gnr")
+    seqlengths.num <- c("2L" = 23513712, "2R" = 25286936)
+    chromSizes <- data.frame(
+        seqnames = names(seqlengths.num),
+        seqlengths = seqlengths.num
     )
-    # --- Orientatematrix [] ---
-    # Key functions: OrientateMatrix, Aggregation
-    ---------------------------------------------------------------------
-    oriented_interactions_RFmatrix_ctrl.lst <-
-        OrientateMatrix(interactions_RFmatrix_ctrl.lst)
-    orientedAggreg.mtx <- Aggregation(
-            ctrlMatrices=oriented_interactions_RFmatrix_ctrl.lst,
+    anchors_Index.gnr <- IndexFeatures(
+        gRangeList = list(Beaf = Beaf32_Peaks.gnr),
+        genomicConstraint = TADs_Domains.gnr,
+        chromSizes = chromSizes,
+        binSize = 5000,
+        metadataColName = "score",
+        method = "max"
+    )
+    baits_Index.gnr <- IndexFeatures(
+        gRangeList = list(Tss = TSS_Peaks.gnr),
+        genomicConstraint = TADs_Domains.gnr,
+        chromSizes = chromSizes,
+        binSize = 5000,
+        metadataColName = "score",
+        method = "max"
+    )
+
+
+    # --- Interaction Pair Search [] ---
+    # Key functions: SearchPairs
+    non_Overlaps.ndx <- match(
+        baits_Index.gnr$bin,
+        anchors_Index.gnr$bin,
+        nomatch = 0L
+    ) == 0L
+    baits_Index.gnr <- baits_Index.gnr[non_Overlaps.ndx, ]
+    interactions.gni <- SearchPairs(
+        indexAnchor = anchors_Index.gnr,
+        indexBait = baits_Index.gnr
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,89 +41,69 @@ process BIOC_REGIONER {
     library(regioneR)
     library(jsonlite)
 
-    # --- Createrandomregions [] ---
-    # Key functions: createRandomRegions, numOverlaps, randomizeRegions
-    ---------------------------------------------------------------------
-      A <- createRandomRegions(nregions=50, length.mean=5000000, length.sd=3000000)
-      B <- c(A[1:25], createRandomRegions(nregions=25, length.mean=500000, length.sd=30000))
-      numOverlaps(A, B, count.once=TRUE)
-      numOverlaps(randomizeRegions(A), B, count.once=TRUE)
-    # --- Overlappermtest [] ---
-    # Key functions: overlapPermTest
-    ---------------------------------------------------------------------
-      pt <- overlapPermTest(A=A, B=B, ntimes=50)
-      pt
-    # --- Togranges [] ---
-    # Key functions: toGRanges
-    ---------------------------------------------------------------------
-      special <- toGRanges(system.file("extdata", "my.special.genes.txt", package="regioneR"))
-      all.genes <- toGRanges(system.file("extdata", "all.genes.txt", package="regioneR"))
-      altered <- toGRanges(system.file("extdata", "my.altered.regions.txt", package="regioneR"))
-      length(special)
-    # --- Numoverlaps [] ---
-    # Key functions: numOverlaps
-    ---------------------------------------------------------------------
-      numOverlaps(special, altered)
-    # --- Resampleregions [] ---
-    # Key functions: resampleRegions
-    ---------------------------------------------------------------------
-      random.RS <- resampleRegions(special, universe=all.genes)
-      random.RS
-    # --- Resampleregions [] ---
-    # Key functions: resampleRegions, numOverlaps
-    ---------------------------------------------------------------------
-      random.RS <- resampleRegions(special, universe=all.genes)
-      numOverlaps(random.RS, altered)
-      random.RS <- resampleRegions(special, universe=all.genes)
-      numOverlaps(random.RS, altered)
-    # --- Permtest [] ---
-    # Key functions: permTest
-    ---------------------------------------------------------------------
-      pt <- permTest(A=special, ntimes=50, randomize.function=resampleRegions, universe=all.genes,
-      evaluate.function=numOverlaps, B=altered, verbose=FALSE)
-    # --- Togranges [] ---
-    # Key functions: toGRanges, frame
-    ---------------------------------------------------------------------
-      A <- toGRanges(data.frame(chr=c("chr1", "chr1", "chr1"), start=c(20000, 50000, 100000), end=c(22000, 70000, 400000)))
-    # --- Randomizeregions [] ---
-    # Key functions: randomizeRegions
-    ---------------------------------------------------------------------
-      randomizeRegions(A, genome="hg19")
-    # --- Circularrandomizeregions [] ---
-    # Key functions: circularRandomizeRegions
-    ---------------------------------------------------------------------
-    circularRandomizeRegions(A, genome="hg19", mask=NA)
-    # --- Function [] ---
-    # Key functions: toGRanges, getSeq, alphabetFrequency, width
-    ---------------------------------------------------------------------
-    gcContent <- function(A, bsgenome, ...) {
-    A <- toGRanges(A)
-    reg.seqs <- getSeq(bsgenome, A)
-    base.frequency <- alphabetFrequency(reg.seqs)
-    # --- Function [] ---
-    # Key functions: toGRanges, mcols, sample
-    ---------------------------------------------------------------------
-    permuteRegionsMetadata <- function(A, ...) {
-    A <- toGRanges(A)
-    mcols(A)[,1] <- mcols(A)[sample(length(A)),1]
-    return(A)
-    # --- Createrandomregions [] ---
-    # Key functions: createRandomRegions, overlapPermTest
-    ---------------------------------------------------------------------
-    A <- createRandomRegions(nregions=50, length.mean=5000000, length.sd=3000000)
-    B <- c(A[1:25], createRandomRegions(nregions=25, length.mean=500000, length.sd=30000))
-    #Without mc.set.seed=FALSE
-    set.seed(123)
-    # --- Frame [] ---
-    # Key functions: frame, toGRanges
-    ---------------------------------------------------------------------
-    A <- data.frame(chr=1, start=c(1,15,24), end=c(10,20,30),  x=c(1,2,3), y=c("a","b","c"))
-    B <- toGRanges(A)
-    B
-    # --- Todataframe [] ---
-    # Key functions: toDataframe
-    ---------------------------------------------------------------------
-    toDataframe(B)
+    # --- Genome and Chromosome Filtering [] ---
+    # Key functions: getGenome, filterChromosomes, createRandomRegions
+    hg19_genome <- getGenome("hg19")
+    autosomal_genome <- filterChromosomes(
+        hg19_genome,
+        organism = "hg",
+        chr.type = "autosomal"
+    )
+    random_regions <- createRandomRegions(
+        nregions = 100,
+        length.mean = 50000,
+        genome = autosomal_genome
+    )
+
+
+    # --- Overlap Permutation Testing [] ---
+    # Key functions: overlapPermTest, numOverlaps, randomizeRegions
+    region_a <- createRandomRegions(
+        nregions = 50,
+        length.mean = 5000000,
+        length.sd = 3000000
+    )
+    region_b <- randomizeRegions(region_a)
+    overlap_count <- numOverlaps(region_a, region_b, count.once = TRUE)
+    pt_results <- overlapPermTest(
+        A = region_a,
+        B = region_b,
+        ntimes = 50,
+        verbose = FALSE
+    )
+
+
+    # --- Custom Resampling and Permutation Testing [] ---
+    # Key functions: permTest, resampleRegions, numOverlaps
+    special_regions <- createRandomRegions(nregions = 30, length.mean = 10000)
+    all_genes <- createRandomRegions(nregions = 500, length.mean = 20000)
+    altered_regions <- createRandomRegions(nregions = 40, length.mean = 15000)
+    pt_resample <- permTest(
+        A = special_regions,
+        ntimes = 50,
+        randomize.function = resampleRegions,
+        universe = all_genes,
+        evaluate.function = numOverlaps,
+        B = altered_regions,
+        verbose = FALSE
+    )
+
+
+    # --- Local Z-Score Analysis [] ---
+    # Key functions: localZScore, permTest, randomizeRegions, plot
+    reg_a <- createRandomRegions(nregions = 20, length.mean = 10000)
+    reg_b <- createRandomRegions(nregions = 20, length.mean = 10000)
+    pt_res <- permTest(
+        A = reg_a, ntimes = 20,
+        randomize.function = randomizeRegions,
+        evaluate.function = numOverlaps, B = reg_b,
+        verbose = FALSE
+    )
+    lz_score <- localZScore(
+        A = reg_a, pt = pt_res,
+        window = 50000, step = 5000, B = reg_b
+    )
+    plot(lz_score)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

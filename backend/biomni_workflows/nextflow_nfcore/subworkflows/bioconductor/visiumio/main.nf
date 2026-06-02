@@ -38,32 +38,36 @@ process BIOC_VISIUMIO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(VisiumIO)
     library(TENxVisiumHD)
     library(TENxVisiumList)
     library(jsonlite)
 
-    # --- Import Visium Data [] ---
+    # --- Multi-Sample Visium Configuration [] ---
+    # Key functions: TENxVisiumList
+    vlist_config <- TENxVisiumList(
+        sampleFolders = sample_dirs,
+        sample_ids = basename(sample_dirs),
+        processing = "raw",
+        images = "lowres"
+    )
+
+
+    # --- Spatial Data Import [] ---
     # Key functions: import
-    ---------------------------------------------------------------------
-    import(vis)
-    # --- Import Multiple Visium Datasets [] ---
-    # Key functions: dirs, path, TENxVisiumList
-    ---------------------------------------------------------------------
-    sample_dirs <- list.dirs(
-        system.file(
-            file.path("extdata", "10xVisium"), package = "VisiumIO"
-        ),
-    # --- Import Visium Data [] ---
-    # Key functions: import
-    ---------------------------------------------------------------------
-    import(vlist)
-    # --- Import Visium HD Data [] ---
+    spe_single <- import(vis_config)
+    spe_multi <- import(vlist_config)
+
+
+    # --- High-Definition Visium Import [] ---
     # Key functions: TENxVisiumHD, import
-    ---------------------------------------------------------------------
-    TENxVisiumHD(
-        spacerangerOut = visfold, images = "lowres", bin_size = "002",
+    hd_config <- TENxVisiumHD(
+        spacerangerOut = visfold,
+        images = "lowres",
+        bin_size = "002",
         format = "h5"
-    ) |> import()
+    )
+    spe_hd <- import(hd_config)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

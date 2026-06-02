@@ -38,109 +38,112 @@ process BIOC_MOSDEF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(mosdef)
     library(DESeq)
     library(DESeqDataSet)
     library(FoldChange)
     library(jsonlite)
 
-    # --- Loaddata [] ---
-    # Key functions: DESeqDataSet
-    suppressPackageStartupMessages({
-      library("macrophage")
-      library("DESeq2")
-      library("org.Hs.eg.db")
-    })
-    # --- Processdata [] ---
-    # Key functions: rowSums, counts, DESeq, results
-    keep <- rowSums(counts(dds_macrophage) >= 10) >= 6
-    dds_macrophage <- dds_macrophage[keep, ]
-    dds_macrophage <- DESeq(dds_macrophage)
-    res_macrophage_IFNg_vs_naive <- results(dds_macrophage,
-                                            contrast = c("condition", "IFNg", "naive"),
-    # --- Addsymbols [] ---
-    # Key functions: mapIds
-    res_macrophage_IFNg_vs_naive$symbol <-
-      AnnotationDbi::mapIds(org.Hs.eg.db,
-                            keys = row.names(res_macrophage_IFNg_vs_naive),
-                            column = "SYMBOL",
-                            keytype = "ENSEMBL",
-    # --- Checkfunctions [] ---
-    # Key functions: mosdef_de_container_check, mosdef_res_check
-    mosdef_de_container_check(dds_macrophage)
-    mosdef_res_check(res_macrophage_IFNg_vs_naive)
-    # --- Runtopgo [] ---
-    # Key functions: run_topGO
-    library("topGO")
-    res_enrich_macrophage_topGO <- run_topGO(
-      de_container = dds_macrophage,
-      res_de = res_macrophage_IFNg_vs_naive,
-      ontology = "BP",
-    # --- Rungoseq [] ---
-    # Key functions: run_goseq, of
-    goseq_macrophage <- run_goseq(
-      de_container = dds_macrophage,
-      res_de = res_macrophage_IFNg_vs_naive,
-      mapping = "org.Hs.eg.db",
-      testCats = "GO:BP" # which categories to test of ("GO:BP, "GO:MF", "GO:CC")
-    # --- Resultsclupro [] ---
-    # Key functions: data
-    data(res_enrich_macrophage_cluPro, package = "mosdef")
-    # --- Topgoalt [] ---
-    # Key functions: deresult_to_df, run_topGO
-    res_subset <- deresult_to_df(res_macrophage_IFNg_vs_naive)[1:100, ]
-    myde <- res_subset$id
-    myassayed <- rownames(res_macrophage_IFNg_vs_naive)
-    ## Here keys are Ensembl not symbols
-    res_enrich_macrophage_topGO_vec <- run_topGO(
-    # --- Geneplot [] ---
-    # Key functions: gene_plot
-    gene_plot(
-      de_container = dds_macrophage,
-      gene = "ENSG00000125347",
-      intgroup = "condition"
+    # --- Functional Enrichment [] ---
+    # Key functions: run_topGO, run_goseq
+    res_enrich_topGO <- run_topGO(
+        de_container = dds_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        ontology = "BP",
+        mapping = "org.Hs.eg.db",
+        FDR_threshold = 0.05,
+        gene_id = "symbol",
+        de_type = "up_and_down",
+        add_gene_to_terms = TRUE,
+        topGO_method2 = "elim",
+        min_counts = 20,
+        top_de = 700,
+        verbose = FALSE
     )
-    # --- Volcanoplot [] ---
-    # Key functions: de_volcano
-    volcPlot <- de_volcano(
-      res_de = res_macrophage_IFNg_vs_naive,
-      mapping = "org.Hs.eg.db",
-      logfc_cutoff = 1,
-      FDR = 0.05,
-    # --- Volcanocustom [] ---
-    # Key functions: ggtitle, ylab, xlab, FoldChange
-    library("ggplot2")
-    volcPlot +
-      ggtitle("macrophage Volcano") +
-      ylab("-log10 PValue") +
-      xlab("Log 2 FoldChange (Cutoff 1/-1)")
-    # --- Volcanogo [] ---
+    res_enrich_goseq <- run_goseq(
+        de_container = dds_macrophage,
+        res_de = res_macrophage_IFNg_vs_naive,
+        mapping = "org.Hs.eg.db",
+        testCats = "GO:BP"
+    )
+
+
+    # --- Differential Expression Visualization [] ---
+    # Key functions: gene_plot, de_volcano, plot_ma
+    g_plot <- gene_plot(
+        de_container = dds_macrophage,
+        gene = "ENSG00000125347",
+        intgroup = "condition"
+    )
+    volc_plot <- de_volcano(
+        res_de = res_macrophage_IFNg_vs_naive,
+        mapping = "org.Hs.eg.db",
+        logfc_cutoff = 1,
+        FDR = 0.05,
+        labeled_genes = 25
+    )
+    ma_plot <- plot_ma(
+        res_de = res_macrophage_IFNg_vs_naive,
+        FDR = 0.05,
+        hlines = 1
+    )
+
+
+    # --- GO-Term Volcano Visualization [] ---
     # Key functions: go_volcano
-    Volc_GO <- go_volcano(
-      res_de = res_macrophage_IFNg_vs_naive,
-      res_enrich = res_enrich_macrophage_topGO,
-      term_index = 1,
-      logfc_cutoff = 1,
-    # --- Maplot [] ---
-    # Key functions: plot_ma
-    maplot <- plot_ma(
-      res_de = res_macrophage_IFNg_vs_naive,
-      FDR = 0.05,
-      hlines = 1
+    volc_go <- go_volcano(
+        res_de = res_macrophage_IFNg_vs_naive,
+        res_enrich = res_enrich_topGO,
+        term_index = 1,
+        logfc_cutoff = 1,
+        FDR = 0.05,
+        mapping = "org.Hs.eg.db",
+        n_overlaps = 50,
+        col_to_use = "symbol",
+        enrich_col = "genes",
+        down_col = "black",
+        up_col = "black",
+        highlight_col = "tomato"
     )
-    # --- Maplotannotated [] ---
-    # Key functions: plot_ma
-    maplot_genes <- plot_ma(
-      res_de = res_macrophage_IFNg_vs_naive,
-      FDR = 0.1,
-      add_rug = FALSE,
-      intgenes = c(
-    # --- Runbuttonifier [] ---
-    # Key functions: deresult_to_df, buttonifier
-    # creating a smaller subset for visualization purposes and to keep the main res_de
-    res_subset <- deresult_to_df(res_macrophage_IFNg_vs_naive, FDR = 0.05)[1:100, ]
-    buttonifier(
-      df = res_subset,
-      col_to_use = "symbol",
+
+
+    # --- Interactive Table Generation [] ---
+    # Key functions: deresult_to_df, buttonifier, de_table_painter
+    res_subset <- deresult_to_df(
+        res_de = res_macrophage_IFNg_vs_naive,
+        FDR = 0.05
+    )[1:100, ]
+    res_buttons <- buttonifier(
+        df = res_subset,
+        col_to_use = "symbol",
+        create_buttons_to = c("GC", "NCBI", "HPA"),
+        ens_col = "id",
+        ens_species = "Homo_sapiens",
+        output_format = "DF"
+    )
+    painted_table <- de_table_painter(
+        res_df = res_buttons,
+        rounding_digits = 3,
+        signif_digits = 5
+    )
+
+
+    # --- Database Link Integration [] ---
+    # Key functions: create_link_ENSEMBL, create_link_GeneCards, create_link_PubMed, create_link_NCBI, create_link_GO
+    res_subset <- deresult_to_df(
+        res_de = res_macrophage_IFNg_vs_naive,
+        FDR = 0.05
+    )[1:100, ]
+    res_subset$ensembl_link <- create_link_ENSEMBL(
+        unlinked_vector = row.names(res_subset),
+        species = "Homo_sapiens"
+    )
+    res_subset$symbol_GC <- create_link_GeneCards(res_subset$symbol)
+    res_subset$symbol_PubMed <- create_link_PubMed(res_subset$symbol)
+    res_subset$symbol_NCBI <- create_link_NCBI(res_subset$symbol)
+    res_enrich_topGO$GO.ID <- create_link_GO(
+        unlinked_vector = res_enrich_topGO$GO.ID
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

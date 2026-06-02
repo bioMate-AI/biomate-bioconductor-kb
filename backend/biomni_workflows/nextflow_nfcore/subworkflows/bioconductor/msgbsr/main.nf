@@ -38,61 +38,27 @@ process BIOC_MSGBSR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(msgbsR)
     library(DataFrame)
     library(GRanges)
     library(jsonlite)
 
-    # --- Load The Example Data [] ---
-    # Key functions: rawCounts, assay
-    library(msgbsR)
-    library(GenomicRanges)
-    library(SummarizedExperiment)
-    my_path <- system.file("extdata", package = "msgbsR")
-    se <- rawCounts(bamFilepath = my_path)
-    # --- Insert Metadata [] ---
-    # Key functions: colData, DataFrame, assay
-    colData(se) <- DataFrame(Group = c(rep("Control", 3), rep("Experimental", 3)),
-                             row.names = colnames(assay(se)))
-    # --- Extract Cut Sites [] ---
-    # Key functions: rowRanges, start, ifelse, strand, end
-    cutSites <- rowRanges(se)
-    # # Adjust the cut sites to overlap recognition site on each strand
-    start(cutSites) <- ifelse(test = strand(cutSites) == '+',
-                              yes = start(cutSites) - 1, no = start(cutSites) - 2)
-    end(cutSites) <- ifelse(test = strand(cutSites) == '+',
-    # --- Run Checkcuts With Bsgenome [] ---
-    # Key functions: checkCuts
-    library(BSgenome.Rnorvegicus.UCSC.rn6)
-    correctCuts <- checkCuts(cutSites = cutSites, genome = "rn6", seq = "CCGG")
-    # --- Filter Out Incorrect Cuts [] ---
-    # Key functions: subsetByOverlaps, assay
-    se <- subsetByOverlaps(se, correctCuts)
-    dim(assay(se))
-    # --- Plot Counts Per Cut Sites [] ---
+    # --- Count Visualization [] ---
     # Key functions: plotCounts
-    plotCounts(se = se, cateogory = "Group")
-    # --- Fig1 [] ---
-    # Key functions: plotCounts
-    plotCounts(se = se, cateogory = "Group")
-    # --- Differential Methylation [] ---
-    # Key functions: diffMeth
-    top <- diffMeth(se = se, cateogory = "Group",
-                    condition1 = "Control", condition2 = "Experimental",
-                    cpmThreshold = 1, thresholdSamples = 1)
-    # --- Chr20 Length [] ---
-    # Key functions: seqlengths
-    ratChr <- seqlengths(BSgenome.Rnorvegicus.UCSC.rn6)["chr20"]
-    # --- Top Sites [] ---
-    # Key functions: GRanges
-    my_cuts <- GRanges(top$site[which(top$FDR < 0.05)])
-    # --- Circos Plot [] ---
+    msgbsR::plotCounts(
+        se = adjusted_se,
+        category = "Group"
+    )
+
+
+    # --- Genomic Distribution Visualization [] ---
     # Key functions: plotCircos
-    plotCircos(cutSites = my_cuts, seqlengths = ratChr,
-               cutSite.colour = "red", seqlengths.colour = "blue")
-    # --- Fig2 [] ---
-    # Key functions: plotCircos
-    plotCircos(cutSites = my_cuts, seqlengths = ratChr,
-               cutSite.colour = "red", seqlengths.colour = "blue")
+    msgbsR::plotCircos(
+        cutSites = my_cuts,
+        seqlengths = ratChr,
+        cutSite.colour = "red",
+        seqlengths.colour = "blue"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

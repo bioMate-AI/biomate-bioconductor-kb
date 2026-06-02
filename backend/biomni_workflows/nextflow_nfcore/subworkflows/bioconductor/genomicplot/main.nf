@@ -41,11 +41,75 @@ process BIOC_GENOMICPLOT {
     library(GenomicPlot)
     library(jsonlite)
 
-    # --- LoadDb analysis [] ---
-    # Key functions: install_github, loadDb, setImportParams, plot_5parts_metagene, plot_region, plot_locus, plot_peak_annotation, plot_bam_correlation
-    gtffile <- system.file("extdata", "gencode.v19.annotation_chr19.gtf",
-    centerfile <- system.file("extdata", "test_chip_peak_chr19.bed",
-    names(centerfile) <- c("SummitPeak")
+    # --- Metagene Plotting [] ---
+    # Key functions: plot_5parts_metagene
+    plot_5parts_metagene(
+        queryFiles = queryfiles,
+        gFeatures_list = list("metagene" = gf5_meta),
+        inputFiles = inputfiles,
+        scale = FALSE,
+        verbose = FALSE,
+        transform = NA,
+        smooth = TRUE,
+        stranded = TRUE,
+        outPrefix = "metagene_plot",
+        importParams = bamimportParams,
+        heatmap = TRUE,
+        rmOutlier = 0,
+        nc = 2
+    )
+
+
+    # --- Region Plotting [] ---
+    # Key functions: plot_region
+    plot_region(
+        queryFiles = queryfiles,
+        centerFiles = centerfiles,
+        inputFiles = inputfiles,
+        nbins = 100,
+        heatmap = TRUE,
+        scale = FALSE,
+        regionName = "narrowPeak",
+        importParams = bamimportParams,
+        verbose = FALSE,
+        fiveP = -500,
+        threeP = 500,
+        smooth = TRUE,
+        transform = NA,
+        stranded = TRUE,
+        outPrefix = "region_plot",
+        Ylab = "Coverage/base/peak",
+        rmOutlier = 0,
+        nc = 2
+    )
+
+
+    # --- Peak Annotation [] ---
+    # Key functions: plot_peak_annotation
+    pa <- plot_peak_annotation(
+        peakFile = centerfile,
+        gtfFile = gtffile,
+        importParams = bamimportParams,
+        fiveP = -2000,
+        dsTSS = 300,
+        threeP = 1000,
+        simple = FALSE,
+        verbose = FALSE,
+        outPrefix = "annotation_plot"
+    )
+
+
+    # --- Correlation and Overlap Analysis [] ---
+    # Key functions: plot_bam_correlation, plot_overlap_bed
+    plot_bam_correlation(
+        bamFiles = bamQueryFiles, binSize = 100000,
+        outPrefix = "correlation_plot",
+        importParams = bamimportParams, nc = 2, verbose = FALSE
+    )
+    plot_overlap_bed(
+        bedList = queryFiles, importParams = bamimportParams,
+        pairOnly = FALSE, stranded = FALSE, outPrefix = "overlap_plot"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

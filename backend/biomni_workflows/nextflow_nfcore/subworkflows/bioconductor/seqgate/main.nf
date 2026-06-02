@@ -38,20 +38,41 @@ process BIOC_SEQGATE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SeqGate)
     library(DataFrame)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: DataFrame, SummarizedExperiment
-    rowData <- DataFrame(row.names=rownames(data_MiTF_1000genes))
-    colData <- DataFrame(Conditions=cond)
-    counts_strub <- SummarizedExperiment(
-    # --- Assay data access [] ---
-    # Key functions: applySeqGate, assay, metadata
-    keptGenes <- assay(counts_strub[rowData(counts_strub)$onFilter == TRUE,])
-    head(keptGenes)
-    dim(keptGenes)
+    # --- Basic Filtering [] ---
+    # Key functions: applySeqGate
+    counts_strub <- applySeqGate(
+        counts_strub,
+        assayName = "counts",
+        colName = "Conditions"
+    )
+
+
+    # --- Custom Filtering [] ---
+    # Key functions: applySeqGate
+    counts_strub_custom <- applySeqGate(
+        counts_strub,
+        assayName = "counts",
+        colName = "Conditions",
+        prop0 = 1/3,
+        percentile = 0.8,
+        propUpThresh = 0.5
+    )
+
+
+    # --- Feature Extraction [] ---
+    # Key functions: assay, rowData, metadata
+    kept_genes <- assay(
+        counts_strub[rowData(counts_strub)$onFilter == TRUE, ]
+    )
+    filtered_out <- assay(
+        counts_strub[rowData(counts_strub)$onFilter == FALSE, ]
+    )
+    gate_threshold <- metadata(counts_strub)$threshold
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

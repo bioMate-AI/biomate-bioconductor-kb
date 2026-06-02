@@ -41,32 +41,30 @@ process BIOC_RBIOFORMATS {
     library(RBioFormats)
     library(jsonlite)
 
-    # --- get Class Def [] ---
-    # Key functions: getClassDef
-    getClassDef("AnnotatedImage")
-    # --- metadata [] ---
-    # Key functions: metadata
-    meta <- metadata(img)
-    # --- read_xml [] ---
-    # Key functions: read_xml
-    library("xml2")
-    omexml <- read.omexml(f)
-    read_xml(omexml)
-    # --- mock File [] ---
-    # Key functions: mockFile, display
-    f <- mockFile(sizeX = 256, sizeY = 256)
-    img <- read.image(f)
-    library("EBImage")
-    # --- set Names [] ---
-    # Key functions: setNames
-    types <- c("int8", "uint8", "int16", "uint16", "int32", "uint32", "float", "double")
-    ranges <- sapply(types, function(t) {
-    minmax <- FormatTools$defaultMinMax(FormatTools$pixelTypeFromString(t))
-    # --- read Bin [] ---
-    # Key functions: readBin, setNames
-    sapply(types, function(t) {
-    img <- read.image(mockFile(sizeX = 65536, sizeY = 11, pixelType = t), normalize = FALSE)
-    if (typeof(img)=="raw")
+    # --- Metadata Extraction [] ---
+    # Key functions: read.metadata, metadata, coreMetadata
+    img_file <- system.file("images", "nuclei.tif", package = "EBImage")
+    meta_direct <- read.metadata(img_file)
+    img <- read.image(img_file)
+    meta_from_img <- metadata(img)
+    core_meta <- coreMetadata(img)
+
+
+    # --- OME-XML Metadata Parsing [] ---
+    # Key functions: read.omexml
+    img_file <- system.file("images", "nuclei.tif", package = "EBImage")
+    xml_data <- read.omexml(img_file)
+
+
+    # --- Mock Image Generation and Validation [] ---
+    # Key functions: mockFile, read.image
+    mock_path <- mockFile(
+        sizeX = 256,
+        sizeY = 256,
+        pixelType = "uint16"
+    )
+    mock_img <- read.image(mock_path)
+    mock_dims <- dim(mock_img)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

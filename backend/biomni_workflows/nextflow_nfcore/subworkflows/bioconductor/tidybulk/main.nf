@@ -38,71 +38,54 @@ process BIOC_TIDYBULK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tidybulk)
     library(DGEList)
     library(jsonlite)
 
-    # --- row Data [] ---
-    # Key functions: rowData
-    rowData(se_mini)$gene_name = rownames(se_mini)
-    se_mini.aggr = se_mini |> aggregate_duplicates(.transcript = gene_name)
-    # --- normalise long [] ---
-    # Key functions: DGEList, filterByExpr, calcNormFactors
-    library(edgeR)
-    dgList <- DGEList(count_m=x,group=group)
-    keep <- filterByExpr(dgList)
-    # --- plot normalise [] ---
-    # Key functions: ggplot, geom_density, scale_x_log10
-    ggplot(aes(count_scaled + 1, group=.sample, color=`Cell.type`)) +
-    geom_density() +
-    scale_x_log10() +
-    # --- filter variable long [] ---
-    # Key functions: rowMeans
-    library(edgeR)
-    s <- rowMeans((x-rowMeans(x))^2)
-    o <- order(s,decreasing=TRUE)
-    # --- reduce_dimensions [] ---
-    # Key functions: reduce_dimensions
-    reduce_dimensions(method="MDS", .dims = 3)
-    # --- pivot_sample [] ---
-    # Key functions: pivot_sample, ggpairs
-    se_mini.norm.MDS |> pivot_sample()  |> select(contains("Dim"), everything())
-    pivot_sample() |>
-    GGally::ggpairs(columns = 9:11, ggplot2::aes(colour=`Cell.type`))
-    # --- reduce_dimensions [] ---
-    # Key functions: reduce_dimensions
-    reduce_dimensions(method="PCA", .dims = 3)
-    # --- pivot_sample [] ---
-    # Key functions: pivot_sample, ggpairs
-    se_mini.norm.PCA |> pivot_sample() |> select(contains("PC"), everything())
-    pivot_sample() |>
-    GGally::ggpairs(columns = 11:13, ggplot2::aes(colour=`Cell.type`))
-    # --- identify_abundant [] ---
-    # Key functions: identify_abundant, reduce_dimensions
-    identify_abundant() |>
-    reduce_dimensions(
-    # --- rotate_dimensions [] ---
-    # Key functions: rotate_dimensions
-    rotate_dimensions(`Dim1`, `Dim2`, rotation_degrees = 45, action="get")
-    # --- plot rotate 1 [] ---
-    # Key functions: ggplot, geom_point
-    ggplot(aes(x=`Dim1`, y=`Dim2`, color=`Cell.type` )) +
-    geom_point() +
-    # --- plot rotate 2 [] ---
-    # Key functions: pivot_sample, ggplot, geom_point
-    pivot_sample() |>
-    ggplot(aes(x=`Dim1_rotated_45`, y=`Dim2_rotated_45`, color=`Cell.type` )) +
-    geom_point() +
-    # --- test_differential_abundance [] ---
+    # --- Dimensionality Reduction [] ---
+    # Key functions: keep_variable, reduce_dimensions
+    se_variable <- keep_variable(se_scaled)
+    se_mds <- reduce_dimensions(se_variable, method = "MDS", .dims = 3)
+    se_pca <- reduce_dimensions(se_variable, method = "PCA", .dims = 3)
+
+
+    # --- Differential Abundance Testing [] ---
     # Key functions: test_differential_abundance
-    test_differential_abundance( ~ condition, action="get")
-    # --- identify_abundant [] ---
-    # Key functions: identify_abundant, test_differential_abundance
-    identify_abundant(factor_of_interest = condition) |>
-    test_differential_abundance(
-    .contrasts = c( "conditionTRUE - conditionFALSE"),
-    # --- deconvolve_cellularity [] ---
-    # Key functions: deconvolve_cellularity
-    deconvolve_cellularity(action="get", cores=1, prefix = "cibersort__")
+    se_de <- test_differential_abundance(
+        se_mini, 
+        ~ condition, 
+        action = "get"
+    )
+
+
+    # --- Batch Effect Adjustment and Deconvolution [] ---
+    # Key functions: adjust_abundance, deconvolve_cellularity
+    se_adjusted <- adjust_abundance(
+        se_scaled, 
+        .factor_unwanted = time, 
+        .factor_of_interest = condition, 
+        method = "combat"
+    )
+    se_deconvolved <- deconvolve_cellularity(
+        se_mini, 
+        action = "get", 
+        cores = 1, 
+        prefix = "cibersort__"
+    )
+
+
+    # --- Clustering and Redundancy Removal [] ---
+    # Key functions: cluster_elements, remove_redundancy
+    se_clustered <- cluster_elements(
+        se_mds, 
+        method = "kmeans", 
+        centers = 2, 
+        action = "get"
+    )
+    se_non_redundant <- remove_redundancy(
+        se_mds, 
+        method = "correlation"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

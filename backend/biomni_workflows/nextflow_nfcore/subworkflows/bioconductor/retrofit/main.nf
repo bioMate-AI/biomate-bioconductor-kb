@@ -41,44 +41,32 @@ process BIOC_RETROFIT {
     library(retrofit)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    data("vignetteColonData")
-    X = vignetteColonData$a3_x
-    # --- Decompose [] ---
-    # Key functions: decompose
-    result = retrofit::decompose(X, L=L, iterations=iterations, verbose=TRUE)
-    H   = result$h
-    W   = result$w
-    Th  = result$th
-    # --- Annotate With Sc [] ---
+    # --- Correlation Annotation [] ---
     # Key functions: annotateWithCorrelations
-    K = ncol(sc_ref) # number of cell types
-    result    = annotateWithCorrelations(sc_ref, K, W, H)
-    H_sc      = result$h
-    W_sc      = result$w
-    H_sc_prop = result$h_prop
-    # --- Visualize Correlation Matrix Between The Sc Reference And W [] ---
-    # Key functions: corrplot, colorRampPalette
-    W_norm <- W
-    for(i in 1:nrow(W)){
-        W_norm[i,]=W[i,]/sum(W[i,])
-    }
-    corrplot::corrplot(stats::cor(sc_ref, W_norm),
-    # --- Annotate With Marker [] ---
+    sc_ref <- vignetteColonData$sc_ref
+    K <- ncol(sc_ref)
+    annot_corr <- retrofit::annotateWithCorrelations(
+        sc_ref,
+        K = K,
+        W = W,
+        H = H
+    )
+    H_sc <- annot_corr$h
+    W_sc <- annot_corr$w
+
+
+    # --- Marker Annotation [] ---
     # Key functions: annotateWithMarkers
-    K = length(marker_ref) # number of cell types
-    result      = retrofit::annotateWithMarkers(marker_ref, K, W, H)
-    H_mark      = result$h
-    W_mark      = result$w
-    H_mark_prop = result$h_prop
-    # --- Visualize Correlation Matrix Marker [] ---
-    # Key functions: corrplot, colorRampPalette
-    corrplot::corrplot(gene_sums,
-                       is.corr=FALSE,
-                       mar=c(0,0,1,0),
-                       col=colorRampPalette(c("white", "deepskyblue", "blue4"))(100),
-                       main="Marker-based Mapping Matrix")
+    marker_ref <- vignetteColonData$marker_ref
+    K_mark <- length(marker_ref)
+    annot_mark <- retrofit::annotateWithMarkers(
+        marker_ref,
+        K = K_mark,
+        W = W,
+        H = H
+    )
+    H_mark <- annot_mark$h
+    W_mark <- annot_mark$w
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

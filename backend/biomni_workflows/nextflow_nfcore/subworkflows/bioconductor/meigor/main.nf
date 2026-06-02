@@ -38,14 +38,87 @@ process BIOC_MEIGOR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MEIGOR)
     library(MEIGO)
     library(jsonlite)
 
-    # --- Ex3 analysis [] ---
-    # Key functions: ex3, MEIGO, plotCNOlist, plotModel, getLBodeContObjFunction, preprocessing
-    problem<-list(f="ex3",x_L=rep(0,6),x_U=c(rep(1,4),16,16),
-    opts<-list(ndiverse=10, local_solver='SOLNP', local_tol=3)
-    Results<-MEIGO(problem,opts,algorithm="multistart",k1,k2,k3,k4)
+    # --- Model Calibration with Non-linear Constraints [] ---
+    # Key functions: MEIGO
+    ex2 <- function(x) {
+        F <- -x[1] - x[2]
+        g <- rep(0, 2)
+        g[1] <- x[2] - 2 * x[1]^4 + 8 * x[1]^3 - 8 * x[1]^2
+        g[2] <- x[2] - 4 * x[1]^4 + 32 * x[1]^3 - 88 * x[1]^2 + 96 * x[1]
+        return(list(F = F, g = g))
+    }
+    problem <- list(
+        f = "ex2", x_L = rep(0, 2), x_U = c(3, 4),
+        c_L = rep(-Inf, 2), c_U = c(2, 36)
+    )
+    opts <- list(
+        maxeval = 750, local_solver = "DHC",
+        local_n1 = 2, local_n2 = 3
+    )
+    Results <- MEIGO(problem, opts, algorithm = "ESS")
+
+
+    # --- Mixed-Integer Parameter Estimation [] ---
+    # Key functions: MEIGO
+    ex4 <- function(x) {
+        F <- x[2]^2 + x[3]^2 + 2.0 * x[1]^2 + x[4]^2 -
+            5.0 * x[2] - 5.0 * x[3] - 21.0 * x[1] + 7.0 * x[4]
+        g <- rep(0, 3)
+        g[1] <- x[2]^2 + x[3]^2 + x[1]^2 + x[4]^2 + x[2] - x[3] + x[1] - x[4]
+        g[2] <- x[2]^2 + 2.0 * x[3]^2 + x[1]^2 + 2.0 * x[4]^2 - x[2] - x[4]
+        g[3] <- 2.0 * x[2]^2 + x[3]^2 + x[1]^2 + 2.0 * x[2] - x[3] - x[4]
+        return(list(F = F, g = g))
+    }
+    problem <- list(
+        f = "ex4", x_L = rep(0, 4), x_U = rep(10, 4),
+        x_0 = c(3, 4, 5, 1), int_var = 3,
+        c_L = rep(-Inf, 3), c_U = c(8, 10, 5)
+    )
+    opts <- list(maxtime = 2)
+    Results <- MEIGO(problem, opts, algorithm = "ESS")
+
+
+    # --- Global Optimization of Biological Pathways [] ---
+    # Key functions: MEIGO
+    rosen10 <- function(x) {
+        f <- 0
+        n <- length(x)
+        for (i in 1:(n - 1)) {
+            f <- f + 100 * (x[i]^2 - x[i + 1])^2 + (x[i] - 1)^2
+        }
+        return(f)
+    }
+    problem <- list(f = "rosen10", x_L = rep(-5, 10), x_U = rep(1, 10))
+    opts <- list(
+        maxeval = 2000, maxtime = 100, use_local = 1,
+        aggr = 0, local_search_type = 1, decomp = 1, maxdist = 0.5
+    )
+    Results <- MEIGO(problem, opts, algorithm = "VNS")
+
+
+    # --- Cooperative Parallel Parameter Estimation [] ---
+    # Key functions: MEIGO
+    rosen10 <- function(x) {
+        f <- 0
+        n <- length(x)
+        for (i in 1:(n - 1)) {
+            f <- f + 100 * (x[i]^2 - x[i + 1])^2 + (x[i] - 1)^2
+        }
+        return(f)
+    }
+    problem <- list(f = rosen10, x_L = rep(-100, 10), x_U = rep(100, 10))
+    opts <- list()
+    opts[[1]] <- list(local_balance = 0, dim_refset = 10, local_n2 = 0)
+    opts[[2]] <- list(local_balance = 0.25, dim_refset = 15, local_n2 = 5)
+    opts$hosts <- c("localhost", "localhost")
+    opts$ce_niter <- 2
+    opts$ce_type <- "SOCKS"
+    opts$ce_isparallel <- TRUE
+    Results <- MEIGO(problem, opts, algorithm = "CeSSR")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

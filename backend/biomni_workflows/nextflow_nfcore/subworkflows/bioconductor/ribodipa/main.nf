@@ -41,12 +41,44 @@ process BIOC_RIBODIPA {
     library(RiboDiPA)
     library(jsonlite)
 
-    # --- plot Track [] ---
-    # Key functions: plotTrack
-    plotTrack(data = data.psite, genes.list = c("YDR050C", "YDR064W"),
-    # --- plot Test [] ---
-    # Key functions: plotTest
-    plotTest(result = result.pst, genes.list = NULL, threshold = 0.05)
+    # --- Differential Pattern Analysis [] ---
+    # Key functions: RiboDiPA
+    bfc <- BiocFileCache::BiocFileCache()
+    file_names <- c("WT1.bam", "WT2.bam", "MUT1.bam", "MUT2.bam", "eg.gtf")
+    url <- "https://github.com/jipingw/RiboDiPA-data/raw/master/"
+    bam_path <- BiocFileCache::bfcrpath(bfc, paste0(url, file_names))
+    classlabel <- data.frame(
+        condition = c("mutant", "mutant", "wildtype", "wildtype"),
+        comparison = c(2, 2, 1, 1)
+    )
+    rownames(classlabel) <- c("mutant1", "mutant2", "wildtype1", "wildtype2")
+    result_wrp <- RiboDiPA(
+        bam_path[1:4], 
+        bam_path[5], 
+        classlabel, 
+        cores = 2
+    )
+    top_genes <- head(result_wrp$gene[order(result_wrp$gene$qvalue), ])
+
+
+    # --- Visualization of Ribosome Tracks [] ---
+    # Key functions: plotTrack, plotTest
+    bfc <- BiocFileCache::BiocFileCache()
+    file_names <- c("WT1.bam", "WT2.bam", "MUT1.bam", "MUT2.bam", "eg.gtf")
+    url <- "https://github.com/jipingw/RiboDiPA-data/raw/master/"
+    bam_path <- BiocFileCache::bfcrpath(bfc, paste0(url, file_names))
+    data_psite <- psiteMapping(
+        bam_file_list = bam_path[1:4], 
+        gtf_file = bam_path[5], 
+        psite.mapping = "auto", 
+        cores = 2
+    )
+    plotTrack(
+        data = data_psite, 
+        genes.list = c("YDR050C", "YDR064W"),
+        replicates = NULL, 
+        exons = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

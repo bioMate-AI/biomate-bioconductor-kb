@@ -46,72 +46,23 @@ process BIOC_SPLICINGGRAPHS {
     library(SplicingGraphs)
     library(jsonlite)
 
-    # --- Settings [] ---
-    # Key functions: path, env, emptyenv, updateObject
-    options(width=90)
-    .precomputed_results_path <- "precomputed_results"
-    .loadPrecomputed <- function(objname)
-    {
-        filename <- paste0(objname, ".rda")
-    # --- Isactiveseq [] ---
-    # Key functions: isActiveSeq
-    isActiveSeq(txdb)[1:25]
-    # --- Keep Chr14 Only [] ---
-    # Key functions: isActiveSeq
-    isActiveSeq(txdb)[-match("chr14", names(isActiveSeq(txdb)))] <- FALSE
-    names(which(isActiveSeq(txdb)))
-    # --- Splicinggraphs Constructor [] ---
-    # Key functions: SplicingGraphs
-    library(SplicingGraphs)
-    sg <- SplicingGraphs(txdb)  # should take between 5 and 10 sec on
-                                # a modern laptop
-    sg
-    # --- Load Sg With Bubbles [] ---
-    # Key functions: loadPrecomputed, flag, FALSE, isCircular
-    ## We load a precomputed 'sg' that contains all the bubbles in
-    ## 'sg@.bubbles_cache'.
-    sg_with_bubbles <- .loadPrecomputed("sg_with_bubbles")
-    sg@.bubbles_cache <- sg_with_bubbles@.bubbles_cache
-    ## Replace NAs with FALSE in circularity flag (because having the flag set
-    # --- Seqnames Sg [] ---
-    # Key functions: seqnames, strand
-    seqnames(sg)[1:20]
-    strand(sg)[1:20]
-    table(strand(sg))
-    # --- Elementnrows Sg [] ---
-    # Key functions: elementNROWS
-    elementNROWS(sg)[1:20]
-    # --- Mcols Sg Double Bracket 3183 [] ---
-    # Key functions: mcols
-    mcols(sg[["3183"]])$txpath
-    # --- Txpath Sg 3183 [] ---
-    # Key functions: txpath
-    txpath(sg[["3183"]])
-    # --- Plottranscripts Sg 3183 [] ---
-    # Key functions: plotTranscripts
-    ## plotTranscripts(sg[["3183"]])
-    # --- Plottranscripts Sg 3183 As Pdf [] ---
-    # Key functions: plotTranscripts, off
-    pdf("3183-transcripts.pdf", width=6, height=3)
-    plotTranscripts(sg[["3183"]])
-    dev.off()
-    # --- Unlist Sg [] ---
-    # Key functions: unlist
-    ex_by_tx <- unlist(sg)
-    head(names(ex_by_tx))
-    # --- Single Bracket Subsetting [] ---
-    # Key functions: strand
-    sg[strand(sg) == "-"]
-    sg[1:20]
-    tail(sg)  # equivalent to 'sg[tail(seq_along(sg))]'
-    sg["3183"]
-    # --- Sgedgesbygene Sg [] ---
-    # Key functions: sgedgesByGene
+    # --- Splicing Graph Feature Extraction [] ---
+    # Key functions: sgedges, sgnodes, sgedgesByGene
+    edges_3183 <- sgedges(sg["3183"])
+    nodes_3183 <- sgnodes(sg["3183"])
     edges_by_gene <- sgedgesByGene(sg)
-    # --- Plot Sg 3183 [] ---
-    # Key functions: sgraph
-    ## plot(sg["3183"])
-    ## plot(sgraph(sg["3183"], tx_id.as.edge.label=TRUE))
+
+
+    # --- Alternative Splicing Event Detection [] ---
+    # Key functions: bubbles
+    as_bubbles <- bubbles(sg["7597"])
+    codes <- as_bubbles$AScode
+
+
+    # --- Read Assignment and Counting [] ---
+    # Key functions: countReads, sgedgesByTranscript
+    sg_counts <- countReads(sg)
+    edges_by_tx <- sgedgesByTranscript(sg["3183"], with.hits.mcols = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

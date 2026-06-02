@@ -41,22 +41,31 @@ process BIOC_CTSV {
     library(CTSV)
     library(jsonlite)
 
-    # --- "install" [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("CTSV", version = "devel")
-    # --- assay [] ---
-    # Key functions: assay
-    data("CTSVexample_data", package="CTSV")
-    Y <- assay(spe)
-    dim(Y)
-    # --- Run CTSV [] ---
+    # --- Spatial Data Preparation [Data Preparation] ---
+    # Key functions: CTSVexample_data
+    data("CTSVexample_data", package = "CTSV")
+    spe <- CTSVexample_data[[1]]
+    W <- CTSVexample_data[[2]]
+    spatial_coords <- SpatialExperiment::spatialCoords(spe)
+    expression_data <- SummarizedExperiment::assay(spe)
+
+    # --- Cell-Type-Specific SV Gene Detection [Analysis] ---
     # Key functions: CTSV
-    result <- CTSV(spe,W,num_core = 8)
-    # --- sv Gene [] ---
+    result <- CTSV(
+        spe = spe,
+        W = W,
+        num_core = 2,
+        B = 10
+    )
+
+    # --- SV Gene Filtering and Identification [Filtering] ---
     # Key functions: svGene
-    re <- svGene(result$qval,0.05)
+    sv_results <- svGene(
+        qval = result$qval,
+        thre = 0.05
+    )
+    sv_genes_by_celltype <- sv_results$SVGene
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

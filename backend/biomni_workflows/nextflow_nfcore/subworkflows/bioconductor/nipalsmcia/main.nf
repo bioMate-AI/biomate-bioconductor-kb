@@ -41,11 +41,73 @@ process BIOC_NIPALSMCIA {
     library(nipalsMCIA)
     library(jsonlite)
 
-    # --- Simple mae analysis [] ---
-    # Key functions: install_github, simple_mae, nipals_multiblock, slotNames, projection_plot, get_metadata_colors, global_scores_heatmap, block_weights_heatmap
-    meta_colors = c("blue", "grey", "yellow") can use color names
-    meta_colors = c("#00204DFF", "#7C7B78FF", "#FFEA46FF") can use hex codes
-    meta_colors <- get_metadata_colors(mcia_results, color_col = 1,
+    # --- Multi-block MCIA Analysis [] ---
+    # Key functions: nipals_multiblock
+    mcia_results <- nipals_multiblock(
+        data_blocks_mae,
+        col_preproc_method = "colprofile",
+        num_PCs = 10,
+        tol = 1e-12,
+        plots = "none"
+    )
+
+
+    # --- Global Projection and Visualization [] ---
+    # Key functions: get_metadata_colors, projection_plot, global_scores_heatmap
+    meta_colors <- get_metadata_colors(
+        mcia_results,
+        color_col = 1,
+        color_pal_params = list(option = "E")
+    )
+    projection_plot(
+        mcia_results,
+        projection = "global",
+        orders = c(1, 2),
+        color_col = "cancerType",
+        color_pal = meta_colors,
+        legend_loc = "bottomleft"
+    )
+    global_scores_heatmap(
+        mcia_results = mcia_results,
+        color_col = "cancerType",
+        color_pal = meta_colors
+    )
+
+
+    # --- Block Weights and Loadings Analysis [] ---
+    # Key functions: block_weights_heatmap, get_colors, vis_load_plot
+    block_weights_heatmap(mcia_results)
+    colors_omics <- get_colors(mcia_results)
+    vis_load_plot(
+        mcia_results,
+        axes = c(1, 4),
+        color_pal = colors_omics
+    )
+
+
+    # --- Feature Ordering and Extraction [] ---
+    # Key functions: vis_load_ord, ord_loadings
+    all_pos_1_vis <- vis_load_ord(
+        mcia_results,
+        omic = "all",
+        factor = 1,
+        absolute = FALSE,
+        descending = TRUE
+    )
+    mrna_pos_1 <- ord_loadings(
+        mcia_results,
+        omic = "mrna",
+        factor = 1,
+        absolute = FALSE,
+        descending = TRUE
+    )
+    prot_abs_2 <- ord_loadings(
+        mcia_results,
+        omic = "prot",
+        factor = 2,
+        absolute = TRUE,
+        descending = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

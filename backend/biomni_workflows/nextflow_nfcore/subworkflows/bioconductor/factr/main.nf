@@ -38,19 +38,62 @@ process BIOC_FACTR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(factR)
     library(AnnotationHub)
     library(jsonlite)
 
-    # --- Access AnnotationHub resources [] ---
-    # Key functions: AnnotationHub, query
-    library(AnnotationHub)
-    ah <- AnnotationHub()
-    query(ah, c('Mus musculus', 'gencode', 'gff'))
-    # --- ViewTranscripts analysis [] ---
-    # Key functions: viewTranscripts, tempfile, importFASTA, predictDomains, export
-    tmp <- tempfile()
-    download.file("ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/GRCm38.primary_assembly.genome.fa.gz",
-    Mmusculus <- importFASTA(paste0(tmp, "/GRCm38.primary_assembly.genome.fa.gz"))
+    # --- Reference Matching and Filtering [] ---
+    # Key functions: matchGeneInfo, subsetNewTranscripts
+    gtf_path <- system.file(
+        "extdata",
+        "sc_merged_sample.gtf.gz",
+        package = "factR"
+    )
+    custom.gtf <- importGTF(gtf_path)
+    custom_matched <- matchGeneInfo(custom.gtf, custom.gtf)
+    custom_new <- subsetNewTranscripts(
+        custom_matched,
+        custom.gtf,
+        refine.by = "intron"
+    )
+
+
+    # --- CDS Construction [] ---
+    # Key functions: buildCDS, viewTranscripts
+    gtf_path <- system.file(
+        "extdata",
+        "sc_merged_sample.gtf.gz",
+        package = "factR"
+    )
+    custom.gtf <- importGTF(gtf_path)
+    custom_new_CDS <- buildCDS(
+        custom.gtf,
+        custom.gtf,
+        BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+    )
+    cds_plot <- viewTranscripts(custom_new_CDS, "Zfr", rescale_introns = TRUE)
+
+
+    # --- Functional Prediction [] ---
+    # Key functions: predictNMD, predictDomains
+    gtf_path <- system.file(
+        "extdata",
+        "sc_merged_sample.gtf.gz",
+        package = "factR"
+    )
+    custom.gtf <- importGTF(gtf_path)
+    custom_new_CDS <- buildCDS(
+        custom.gtf,
+        custom.gtf,
+        BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+    )
+    nmd_pred <- predictNMD(custom_new_CDS, gene_name == "Zfr")
+    dom_pred <- predictDomains(
+        custom_new_CDS,
+        BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10,
+        gene_name == "Zfr",
+        progress_bar = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

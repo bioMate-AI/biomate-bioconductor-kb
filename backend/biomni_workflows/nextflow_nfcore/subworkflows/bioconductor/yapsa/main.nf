@@ -38,18 +38,39 @@ process BIOC_YAPSA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(YAPSA)
     library(LCD)
     library(LCD_complex_cutoff)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums
-    rowSums(lymphomaNature2013_COSMICExposures_df)
-    # --- Table formatting and display [] ---
-    # Key functions: kable, translate_to_hg19, attribute_nucleotide_exchanges, annotate_intermut_dist_cohort, trellis_rainfall_plot, LCD, make_subgroups_df, LCD_complex_cutoff
-    Alex_signatures_path <- paste0("https://ftp.sanger.ac.uk/pub/cancer/",
-    AlexInitialArtif_sig_df <- read.csv(Alex_signatures_path,header=TRUE,sep="\t")
-    kable(AlexInitialArtif_sig_df[c(1:9),c(1:4)])
+    # --- Genomic Rainfall Visualization [] ---
+    # Key functions: trellis_rainfall_plot
+    data("exchange_colour_vector")
+    choice_PID <- "4121361"
+    PID_df <- subset(lymphoma_annotated, PID == choice_PID)
+    PID_df$col <- exchange_colour_vector[PID_df$change]
+    trellis_rainfall_plot(PID_df, in_point_size = grid::unit(0.5, "mm"))
+
+
+    # --- Reference Signature Preparation [] ---
+    # Key functions: AlexCosmicValid_sig_df
+    data(AlexCosmicValid_sig_df)
+    Alex_COSMIC_rownames <- paste(AlexCosmicValid_sig_df[, 1],
+                                  AlexCosmicValid_sig_df[, 2], sep = " ")
+    COSMIC_select_ind <- grep("Signature", names(AlexCosmicValid_sig_df))
+    signatures_df <- AlexCosmicValid_sig_df[, COSMIC_select_ind]
+    rownames(signatures_df) <- Alex_COSMIC_rownames
+    colnames(signatures_df) <- gsub("Signature\\.", "AC",
+                                    colnames(signatures_df))
+
+
+    # --- Signature Attribution via LCD [] ---
+    # Key functions: LCD
+    mut_matrix <- matrix(runif(96 * 10, min = 0, max = 100), nrow = 96)
+    rownames(mut_matrix) <- rownames(signatures_df)[1:96]
+    colnames(mut_matrix) <- paste0("Sample_", 1:10)
+    lcd_results <- LCD(in_mutation_sub_df = mut_matrix,
+                       in_signatures_df = signatures_df[1:96, ])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

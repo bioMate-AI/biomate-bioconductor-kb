@@ -38,20 +38,91 @@ process BIOC_SYSTEMPIPETOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(systemPipeTools)
     library(GLMplot)
     library(MAplot)
     library(MDSplot)
     library(PCAplot)
     library(jsonlite)
 
-    # --- Volcano plot of DE results [] ---
-    # Key functions: volcanoplot
-    volcanoplot(degseqDF, comparison = "M12-A12", filter = c(Fold = 1, FDR = 20),
-    # --- ReadComp analysis [] ---
-    # Key functions: readComp, showDT, exploreDDS, exploreDDSplot, hclustplot, heatMaplot, run_DESeq2, filterDEGs
+    # --- Hierarchical Clustering and Sample Heatmaps [] ---
+    # Key functions: exploreDDS, hclustplot, heatMaplot
     targetspath <- system.file("extdata", "targets.txt", package = "systemPipeR")
     targets <- read.delim(targetspath, comment = "#")
-    cmp <- systemPipeR::readComp(file = targetspath, format = "matrix",
+    cmp <- systemPipeR::readComp(
+        file = targetspath, format = "matrix", delim = "-"
+    )
+    countMatrixPath <- system.file(
+        "extdata", "countDFeByg.xls", package = "systemPipeR"
+    )
+    countMatrix <- read.delim(countMatrixPath, row.names = 1)
+    exploredds <- exploreDDS(
+        countMatrix, targets, cmp = cmp[[1]],
+        preFilter = NULL, transformationMethod = "rlog"
+    )
+    hclustplot(exploredds, method = "spearman")
+    heatMaplot(exploredds, clust = "samples", plotly = FALSE)
+
+
+    # --- Dimensionality Reduction [] ---
+    # Key functions: exploreDDS, PCAplot, MDSplot, tSNEplot
+    targetspath <- system.file("extdata", "targets.txt", package = "systemPipeR")
+    targets <- read.delim(targetspath, comment = "#")
+    cmp <- systemPipeR::readComp(
+        file = targetspath, format = "matrix", delim = "-"
+    )
+    countMatrixPath <- system.file(
+        "extdata", "countDFeByg.xls", package = "systemPipeR"
+    )
+    countMatrix <- read.delim(countMatrixPath, row.names = 1)
+    exploredds <- exploreDDS(
+        countMatrix, targets, cmp = cmp[[1]],
+        preFilter = NULL, transformationMethod = "rlog"
+    )
+    PCAplot(exploredds, plotly = FALSE)
+    MDSplot(exploredds, plotly = FALSE)
+    tSNEplot(countMatrix, targets, perplexity = 5)
+
+
+    # --- Differential Expression Visualization [] ---
+    # Key functions: exploreDDS, heatMaplot, MAplot, volcanoplot, GLMplot
+    targetspath <- system.file("extdata", "targets.txt", package = "systemPipeR")
+    targets <- read.delim(targetspath, comment = "#")
+    cmp <- systemPipeR::readComp(
+        file = targetspath, format = "matrix", delim = "-"
+    )
+    countMatrixPath <- system.file(
+        "extdata", "countDFeByg.xls", package = "systemPipeR"
+    )
+    countMatrix <- read.delim(countMatrixPath, row.names = 1)
+    exploredds <- exploreDDS(
+        countMatrix, targets, cmp = cmp[[1]],
+        preFilter = NULL, transformationMethod = "rlog"
+    )
+    exploredds_raw <- exploreDDS(
+        countMatrix, targets, cmp = cmp[[1]],
+        preFilter = NULL, transformationMethod = "raw"
+    )
+    GLMplot(exploredds_raw, plotly = FALSE)
+    degseqDF <- systemPipeR::run_DESeq2(
+        countDF = countMatrix, targets = targets,
+        cmp = cmp[[1]], independent = FALSE
+    )
+    DEG_list <- systemPipeR::filterDEGs(
+        degDF = degseqDF, filter = c(Fold = 2, FDR = 10)
+    )
+    heatMaplot(
+        exploredds, clust = "ind",
+        DEGlist = unique(as.character(unlist(DEG_list[[1]])))
+    )
+    MAplot(
+        degseqDF, comparison = "M12-A12",
+        filter = c(Fold = 1, FDR = 20), genes = "ATCG00280"
+    )
+    volcanoplot(
+        degseqDF, comparison = "M12-A12",
+        filter = c(Fold = 1, FDR = 20), genes = "ATCG00280"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

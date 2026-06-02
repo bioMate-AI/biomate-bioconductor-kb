@@ -41,34 +41,20 @@ process BIOC_REBET {
     library(REBET)
     library(jsonlite)
 
-    # --- Geno File [] ---
-    # Key functions: file
-    genofile  <- system.file("sampleData", "geno_impute.txt.gz", package="REBET")
-    subfile   <- system.file("sampleData", "subjects.txt.gz", package="REBET")
-    phenofile <- system.file("sampleData", "pheno.txt.gz", package="REBET")
-    # --- Sub Regions [] ---
-    # Key functions: rbind
-    subRegions <- rbind(c(87654800, 87661050),
-                        c(87661051, 87668870),
-                        c(87668871, 87671945),
-                        c(87671946, 87673200))
-    rownames(subRegions) <- paste("SR", 1:4, sep="")
-    # --- Initialize [] ---
-    # Key functions: rep
-    upper.n <- 100
-    G       <- matrix(data=NA, nrow=nrow(data), ncol=upper.n)
-    snps    <- rep("", upper.n)
-    locs    <- rep(NA, upper.n)
-    # --- Read Geno File [] ---
-    # Key functions: gzfile, na, any
-    index <- 0
-    fid   <- gzfile(genofile, "r")
-    while(1) {
-      vec <- scan(fid, what="character", sep=" ", quiet=TRUE, nlines=1)
-      if (!length(vec)) break
-    # --- Call Rebet [] ---
+    # --- Subregion Mapping [] ---
     # Key functions: rebet
-    ret <- rebet(Y, G, E, covariates=X)
+    E <- rep("", index)
+    for (i in 1:nrow(subRegions)) {
+        tmp <- (locs >= subRegions[i, 1]) & (locs <= subRegions[i, 2])
+        tmp[is.na(tmp)] <- FALSE
+        if (any(tmp)) E[tmp] <- rownames(subRegions)[i]
+    }
+
+
+    # --- Association Testing [] ---
+    # Key functions: rebet
+    res <- rebet(pheno = pheno, G = G, snps = snps, locs = locs,
+        subRegions = subRegions)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

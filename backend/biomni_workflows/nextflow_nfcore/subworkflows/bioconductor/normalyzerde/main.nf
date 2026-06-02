@@ -38,57 +38,64 @@ process BIOC_NORMALYZERDE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(NormalyzerDE)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: tempdir, normalyzer
-    library(NormalyzerDE)
+    # --- Input Data Preparation ---
+    # Key functions: system.file
+    designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
+    dataFp <- system.file(package="NormalyzerDE", "extdata", "tiny_data.tsv")
+    designMatrix <- read.table(designFp, sep="\t", header=TRUE)
+    dataMatrix <- read.table(dataFp, sep="\t", header=TRUE)
+    sampleNames <- as.character(designMatrix$sample)
+    dataOnly <- dataMatrix[, sampleNames]
+    annotOnly <- dataMatrix[, !(colnames(dataMatrix) %in% sampleNames)]
+
+    # --- Normalization Evaluation ---
+    # Key functions: normalyzer
     outDir <- tempdir()
     designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
     dataFp <- system.file(package="NormalyzerDE", "extdata", "tiny_data.tsv")
-    normalyzer(jobName="vignette_run", designPath=designFp, dataPath=dataFp,
-    # --- Code Block 4 [] ---
+    normalyzer(
+        jobName="vignette_run",
+        designPath=designFp,
+        dataPath=dataFp,
+        outputDir=outDir
+    )
+
+    # --- Differential Expression Analysis ---
     # Key functions: normalyzerDE
-    normMatrixPath <- paste(outDir, "vignette_run/CycLoess-normalized.txt", sep="/")
-    normalyzerDE("vignette_run",
-                 comparisons=c("4-5"),
-                 designPath=designFp,
-                 dataPath=normMatrixPath,
-    # --- Code Block 7 [] ---
-    # Key functions: SummarizedExperiment, normalyzer
-    dataMatrix <- read.table(dataFp, sep="\t", header = TRUE)
-    designMatrix <- read.table(designFp, sep="\t", header = TRUE)
-    designMatrix$sample <- as.character(designMatrix$sample)
-    dataOnly <- dataMatrix[, designMatrix$sample]
-    annotOnly <- dataMatrix[, !(colnames(dataMatrix) %in% designMatrix$sample)]
-    # --- Code Block 10 [] ---
-    # Key functions: csv
-    fullDf <- read.csv(dataFp, sep="\t")
-    designDf <- read.csv(designFp, sep="\t")
-    head(fullDf, 1)
-    # --- Code Block 11 [] ---
-    # Key functions: typeof
-    sampleNames <- as.character(designDf$sample)
-    typeof(sampleNames)
-    # --- Code Block 13 [] ---
-    # Key functions: normalizeCyclicLoess
-    performCyclicLoessNormalization <- function(rawMatrix) {
+    outDir <- tempdir()
+    designFp <- system.file(package="NormalyzerDE", "extdata", "tiny_design.tsv")
+    normMatrixPath <- file.path(outDir, "vignette_run", "CycLoess-normalized.txt")
+    normalyzerDE(
+        jobName="vignette_run",
+        comparisons=c("4-5"),
+        designPath=designFp,
+        dataPath=normMatrixPath,
+        outputDir=outDir
+    )
+
+    # --- Retention Time Segmentation Normalization ---
+    # Key functions: getRTNormalizedMatrix
+    dataMat <- matrix(runif(1000), ncol=10)
+    colnames(dataMat) <- paste0("Sample", 1:10)
+    retentionTimes <- runif(100, min=1, max=30)
+    performCyclicLoess <- function(rawMatrix) {
         log2Matrix <- log2(rawMatrix)
         normMatrix <- limma::normalizeCyclicLoess(log2Matrix, method="fast")
         colnames(normMatrix) <- colnames(rawMatrix)
-        normMatrix
-    # --- Code Block 14 [] ---
-    # Key functions: getRTNormalizedMatrix
-    rtNormMat <- getRTNormalizedMatrix(dataMat,
-                                       retentionTimes,
-                                       performCyclicLoessNormalization,
-                                       stepSizeMinutes=1,
-                                       windowMinCount=100)
-    # --- Code Block 15 [] ---
-    # Key functions: performCyclicLoessNormalization
-    globalNormMat <- performCyclicLoessNormalization(dataMat)
-    dim(rtNormMat)
+        return(normMatrix)
+    }
+    rtNormMat <- getRTNormalizedMatrix(
+        dataMat,
+        retentionTimes,
+        performCyclicLoess,
+        stepSizeMinutes=1,
+        windowMinCount=10
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,88 +38,81 @@ process BIOC_GSREG {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GSReg)
     library(DIRAC)
     library(EVA)
     library(SEVA)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data, class
-    library(GSBenchMark)
-    data(diracpathways)
-    class(diracpathways)
-    names(diracpathways)[1:5]
-    class(diracpathways[[1]])
-    # --- Data [] ---
-    # Key functions: data
-    data(GSBenchMarkDatasets)
-    print(GSBenchMark.Dataset.names)
-    # --- Time [] ---
-    # Key functions: time, DIRAC
-    Nperm = 10
-    system.time({DIRACperm =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,phenotypes,Nperm=Nperm)})
-    system.time({DIRACAn =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,phenotypes)})
-    # --- Plot [] ---
-    # Key functions: pnorm
-    plot(x=abs(DIRACAn$zscores),y=DIRACperm$pvalues,xlab="|Z-score|",
-         ylab="p-value",col="red1",main="DIRAC p-value comparisons")
-    zscorelin <- seq(min(abs(DIRACAn$zscores)),max(abs(DIRACAn$zscores)),by = 0.1)
-    pvaltheoretic = (1-pnorm(zscorelin))*2
-    lines(x=zscorelin,y=pvaltheoretic,type="l",pch=50,lty=5,col="darkblue")
-    # --- Time [] ---
-    # Key functions: time, EVA, factor
-    #Calculating the variance for the pathways
-    #Calculate how much it takes to calculate the statistics and their p-value for all pathways
-    system.time({VarAnKendallV = GSReg.GeneSets.EVA(geneexpres=exprsdata,
-      pathways=diracpathways, phenotypes=as.factor(phenotypes)) })
-    names(VarAnKendallV)[[1]]
-    # --- Vector [] ---
-    # Key functions: EVA, sample
-    Nperm = 10;
-    VarAnPerm = vector(mode="list",length=Nperm)
-    for( i in seq_len(Nperm))
-    {
-      VarAnPerm[[i]] = GSReg.GeneSets.EVA(geneexpres=exprsdata, pathways=diracpathways,
-    # --- Plot [] ---
-    # Key functions: pnorm
-    plot(x=abs(zscore),y=pvaluesperm,xlab="|Z-score|",
-      ylab="p-value",col="red1",main="p-value comparisons")
-     zscorelin = seq(0,6,0.1);
-     pvaltheoretic = (1-pnorm(zscorelin))*2
-     lines(x=zscorelin,y=pvaltheoretic,type="l",pch=50,lty=5,col="darkblue")
-    # --- Plot [] ---
-    # Key functions: lm, test
-    plot(x=DIRACAn$pvalues,y=pvalustat,xlab ="DIRAC",
-            ylab="EVA",main=sprintf("P-value Comparison corr=%2.2g",cor(x=DIRACAn$pvalues,y=pvalustat)))
-    lmfit = lm(pvalustat~DIRACAn$pvalues-1)
-    abline(lmfit)
-    cor.test(x=DIRACAn$pvalues,y=pvalustat)
-    # --- Plot [] ---
-    # Key functions: lm
-    plot(x=DIRACAn$pvalues,y=pvalustat,xlab ="DIRAC",
-            ylab="EVA",main=sprintf("P-value Comparison corr=%2.2g",cor(x=DIRACAn$pvalues,y=pvalustat)))
-      lmfit = lm(pvalustat~DIRACAn$pvalues-1)
-    abline(lmfit)
-    # --- Dirac [] ---
-    # Key functions: DIRAC
-    ## DIRACAn =GSReg.GeneSets.DIRAC(exprsdata,diracpathways,phenotypes,Nperm=1000)
-    # --- Data [] ---
-    # Key functions: overlapJunction
-    require('Homo.sapiens')
-    require('org.Hs.eg.db')
-    require('GenomicRanges')
-    data(juncExprsSimulated)
-    overlapMat <- GSReg.overlapJunction(juncExprs =  junc.RPM.Simulated,
-    # --- Data [] ---
-    # Key functions: SEVA
-    data(juncExprsSimulated)
-    SEVAjunc <- GSReg.SEVA(juncExprs = junc.RPM.Simulated,
-                           phenoVect = phenotypes,
-                           geneexpr = geneExrsGSReg)
-    print(sapply(SEVAjunc,function(x) x$pvalue))
-    # --- Sessioinfo [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    # --- Differential Regulation Analysis ---
+    # Key functions: GSReg.GeneSets.DIR
+    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    rownames(control_matrix) <- paste0("Gene", 1:100)
+    rownames(disease_matrix) <- paste0("Gene", 1:100)
+    pathway_list <- list(
+        Pathway1 = paste0("Gene", 1:10),
+        Pathway2 = paste0("Gene", 11:20)
+    )
+    dir_results <- GSReg.GeneSets.DIR(
+        exprs1 = control_matrix,
+        exprs2 = disease_matrix,
+        pathways = pathway_list,
+        minSize = 2,
+        maxSize = 100
+    )
+
+    # --- Expression Variation Analysis ---
+    # Key functions: GSReg.GeneSets.EVA
+    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    rownames(control_matrix) <- paste0("Gene", 1:100)
+    rownames(disease_matrix) <- paste0("Gene", 1:100)
+    pathway_list <- list(
+        Pathway1 = paste0("Gene", 1:10),
+        Pathway2 = paste0("Gene", 11:20)
+    )
+    eva_results <- GSReg.GeneSets.EVA(
+        exprs1 = control_matrix,
+        exprs2 = disease_matrix,
+        pathways = pathway_list,
+        minSize = 2,
+        maxSize = 100
+    )
+
+    # --- Single Gene Set Analysis ---
+    # Key functions: GSReg.DIR, GSReg.EVA
+    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    rownames(control_matrix) <- paste0("Gene", 1:100)
+    rownames(disease_matrix) <- paste0("Gene", 1:100)
+    gene_set <- paste0("Gene", 1:15)
+    single_dir <- GSReg.DIR(
+        exprs1 = control_matrix[gene_set, ],
+        exprs2 = disease_matrix[gene_set, ]
+    )
+    single_eva <- GSReg.EVA(
+        exprs1 = control_matrix[gene_set, ],
+        exprs2 = disease_matrix[gene_set, ]
+    )
+
+    # --- Significance Testing via Permutations ---
+    # Key functions: GSReg.GeneSets.DIR
+    control_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    disease_matrix <- matrix(rnorm(1000), nrow = 100, ncol = 10)
+    rownames(control_matrix) <- paste0("Gene", 1:100)
+    rownames(disease_matrix) <- paste0("Gene", 1:100)
+    pathway_list <- list(
+        Pathway1 = paste0("Gene", 1:10),
+        Pathway2 = paste0("Gene", 11:20)
+    )
+    dir_perm_results <- GSReg.GeneSets.DIR(
+        exprs1 = control_matrix,
+        exprs2 = disease_matrix,
+        pathways = pathway_list,
+        nperm = 100
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

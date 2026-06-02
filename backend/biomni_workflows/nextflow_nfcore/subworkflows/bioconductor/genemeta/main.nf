@@ -38,78 +38,72 @@ process BIOC_GENEMETA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GeneMeta)
     library(CountPlot)
     library(DL)
     library(IDRplot)
     library(jsonlite)
 
-    # --- Splitting [] ---
-    # Key functions: pData, sample
-    set.seed(1609)
-    thestatus  <- pData(Nevins)[,"ER.status"]
-    group1     <- which(thestatus=="pos")
-    group2     <- which(thestatus=="neg")
-    rrr        <- c(sample(group1, floor(length(group1)/2)),
-    # --- Phenodata [] ---
-    # Key functions: pData, levels
-    #obtain classes
-    Split1.ER<-pData(Split1)[,"ER.status"]
-    levels(Split1.ER) <- c(0,1)
-    Split1.ER<- as.numeric(as.character(Split1.ER))
-    Split2.ER<-pData(Split2)[,"ER.status"]
-    # --- Calcd [] ---
+    # --- Data Preparation and Splitting [Biobase] ---
+    # Key functions: pData
+    data(Nevins)
+    thestatus <- Biobase::pData(Nevins)[, "ER.status"]
+    group1 <- which(thestatus == "pos")
+    group2 <- which(thestatus == "neg")
+    rrr <- c(sample(group1, floor(length(group1) / 2)),
+             sample(group2, ceiling(length(group2) / 2)))
+    Split1 <- Nevins[, rrr]
+    Split2 <- Nevins[, -rrr]
+    Split1.ER <- as.numeric(Biobase::pData(Split1)[, "ER.status"]) - 1
+    Split2.ER <- as.numeric(Biobase::pData(Split2)[, "ER.status"]) - 1
+
+    # --- Effect Size Estimation [genemeta] ---
     # Key functions: getdF, dstar, sigmad
-    #calculate d for Split1
-    d.Split1     <- getdF(Split1, Split1.ER)
-    #adjust d value
-    d.adj.Split1    <- dstar(d.Split1, length(Split1.ER))
-    var.d.adj.Spli1 <- sigmad(d.adj.Split1, sum(Split1.ER==0), sum(Split1.ER==1))
-    # --- Grapics [] ---
-    # Key functions: qchisq, qqplot
-    ########### graphics ################
-    num.studies<-2
-    #quantiles of the chisq distribution
-    chisqq <- qchisq(seq(0, .9999, .001), df=num.studies-1)
-    tmp<-quantile(my.Q, seq(0, .9999, .001))
-    # --- Femmodel [] ---
-    # Key functions: tau2
-    muFEM = mu.tau2(mymns, myvars)
-     sdFEM = var.tau2(myvars)
-     ZFEM = muFEM/sqrt(sdFEM)
-    # --- Qnormplotfem [] ---
-    # Key functions: qqnorm, qqline
-    qqnorm(ZFEM,pch="*")
-     qqline(ZFEM,col="red")
-    # --- Estimatedeffects [] ---
-    # Key functions: DL, tau2, mu
-    my.tau2.DL<-tau2.DL(my.Q, num.studies, my.weights=1/myvars)
-    #obtain new variances s^2+tau^2
+    d.Split1 <- getdF(Split1, Split1.ER)
+    d.adj.Split1 <- dstar(d.Split1, length(Split1.ER))
+    var.d.adj.Split1 <- sigmad(d.adj.Split1,
+                               sum(Split1.ER == 0),
+                               sum(Split1.ER == 1))
+    d.Split2 <- getdF(Split2, Split2.ER)
+    d.adj.Split2 <- dstar(d.Split2, length(Split2.ER))
+    var.d.adj.Split2 <- sigmad(d.adj.Split2,
+                               sum(Split2.ER == 0),
+                               sum(Split2.ER == 1))
+
+    # --- Heterogeneity Testing [genemeta] ---
+    # Key functions: f.Q
+    mymns <- cbind(d.adj.Split1, d.adj.Split2)
+    myvars <- cbind(var.d.adj.Split1, var.d.adj.Split2)
+    my.Q <- f.Q(mymns, myvars)
+
+    # --- Fixed and Random Effects Modeling [genemeta] ---
+    # Key functions: mu.tau2, var.tau2, tau2.DL
+    muFEM <- mu.tau2(mymns, myvars)
+    sdFEM <- var.tau2(myvars)
+    ZFEM <- muFEM / sqrt(sdFEM)
+    my.tau2.DL <- tau2.DL(my.Q, 2, my.weights = 1 / myvars)
     myvarsDL <- myvars + my.tau2.DL
-    #compute
     muREM <- mu.tau2(mymns, myvarsDL)
-    # --- Claculationallinone [] ---
-    # Key functions: pData, levels, zScores
-    esets     <- list(Split1,Split2,Nevins)
-    data.ER   <-pData(Nevins)[,"ER.status"]
-    levels(data.ER) <- c(0,1)
-    data.ER<- as.numeric(as.character(data.ER))
-    classes   <- list(Split1.ER,Split2.ER,data.ER)
-    # --- Idrplot [] ---
-    # Key functions: IDRplot
-    IDRplot(theScores,Combine=1:2,colPos="blue", colNeg="red")
-    # --- Calculationallinone [] ---
-    # Key functions: zScoreFDR
-    ScoresFDR <- zScoreFDR(esets, classes, useREM=FALSE, nperm=50,CombineExp=1:2)
-    # --- Bb2 [] ---
-    # Key functions: pal
-    theNewC <- brewer.pal(3,"Set2")
-    # --- Thefdrplots [] ---
-    # Key functions: CountPlot
-    #par(mfrow=c(2,2))
-    #CountPlot(ScoresFDR,Score="FDR",kindof="neg",cols=c("red",theNewC),
-    #	main="Negative FDR", xlab="FDR threshold", ylab="Number of genes",CombineExp=1:2)
-    #CountPlot(ScoresFDR,Score="FDR",cols=c("red",theNewC),kindof="pos",
-    #main="Positive FDR", xlab="FDR threshold", ylab="Number of genes",Combine=1:2)
+    varREM <- var.tau2(myvarsDL)
+    ZREM <- muREM / sqrt(varREM)
+
+    # --- Multi-study Integration and Z-Scores [genemeta] ---
+    # Key functions: zScores, IDRplot
+    esets <- list(Split1, Split2, Nevins)
+    data.ER <- as.numeric(Biobase::pData(Nevins)[, "ER.status"]) - 1
+    classes <- list(Split1.ER, Split2.ER, data.ER)
+    theScores <- zScores(esets, classes, useREM = FALSE, CombineExp = 1:2)
+    IDRplot(theScores, Combine = 1:2, colPos = "blue", colNeg = "red")
+
+    # --- False Discovery Rate and Visualization [genemeta] ---
+    # Key functions: zScoreFDR, CountPlot
+    ScoresFDR <- zScoreFDR(esets, classes, useREM = FALSE,
+                           nperm = 50, CombineExp = 1:2)
+    CountPlot(ScoresFDR, Score = "FDR", kindof = "two.sided",
+              cols = c("red", "blue", "green", "orange"),
+              main = "two sided FDR", xlab = "FDR threshold",
+              ylab = "Number of genes", CombineExp = 3)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

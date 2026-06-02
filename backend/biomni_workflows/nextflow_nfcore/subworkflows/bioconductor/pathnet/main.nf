@@ -41,54 +41,32 @@ process BIOC_PATHNET {
     library(PathNet)
     library(jsonlite)
 
-    # --- Install Packages [] ---
-    # Key functions: requireNamespace, packages
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install("PathNet")
-    ## BiocManager::install("PathNetData")
-    # --- Import Package And Show Disease Progression [] ---
-    # Key functions: data
-    library("PathNet")
-    library("PathNetData")
-    data(disease_progression)
-    head(disease_progression)
-    # --- Show Brain Regions [] ---
-    # Key functions: data
-    data(brain_regions)
-    head(brain_regions)
-    # --- Show Adjacency Matrix [] ---
-    # Key functions: data
-    data(A)
-    # Load genes from direct evidence
-    gene_ID <- brain_regions[,1]
-    # Construct adjacency matrix
-    A <- A [rownames(A) %in% gene_ID, rownames(A) %in% gene_ID]
-    # --- Show Pathway [] ---
-    # Key functions: data
-    data(pathway)
-    pathway[965:975,]
-    # --- Show Custom Loading [] ---
-    # Key functions: file
-    # We use system.file to locate the directory with the
-    # example text files from the PathNetData Package
-    current <- getwd()
-    setwd(system.file(dir="extdata", package="PathNetData"))
-    # Begin loading datasets from the text files
-    # --- Enrichment Analysis [] ---
+    # --- Custom Background Enrichment [] ---
     # Key functions: PathNet
-    # Note we use a subset of evidence and a small number of
-    # permutations for demonstration purposes
-    results <- PathNet(Enrichment_Analysis = TRUE,
-            DirectEvidence_info = brain_regions[1:2000,],
-            Adjacency = A,
-    # --- Contextual Analysis [] ---
+    data(A_matrix, package = "pathnet")
+    data(pathway, package = "pathnet")
+    data(brain_diseases, package = "pathnet")
+    custom_bg <- as.character(brain_diseases$Gene[1:1000])
+    results_custom <- PathNet(
+        enrichment_results = brain_diseases,
+        pathway = pathway,
+        adjacency_matrix = A_matrix,
+        typeofValue = "pvalue",
+        background = custom_bg,
+        enrichment_threshold = 0.01,
+        n_permutations = 50
+    )
+
+
+    # --- Significance Filtering and Ordering [] ---
     # Key functions: PathNet
-    # Perform a contextual analysis with pathway enrichment
-    # Note we use a subset of evidence and a small number of
-    # permutations for demonstration purposes
-    results <- PathNet(Enrichment_Analysis = FALSE,
-            Contextual_Analysis= TRUE,
+    pathway_results <- results_pvalue$enrichment_results
+    significant_pathways <- pathway_results[
+        pathway_results[, 5] < 0.05, 
+    ]
+    ordered_pathways <- significant_pathways[
+        order(significant_pathways[, 5]), 
+    ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

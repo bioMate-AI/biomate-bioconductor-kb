@@ -38,41 +38,62 @@ process BIOC_SYNERGYFINDER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(synergyfinder)
     library(PlotSensitivitySynergy)
     library(ReshapeData)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("mathews_screening_data")
-    head(mathews_screening_data)
-    # --- Reshapedata [] ---
-    # Key functions: ReshapeData
-    ---------------------------------------------------------------------
-    res <- ReshapeData(
-      data = mathews_screening_data,
-      data_type = "viability",
-      impute = TRUE,
-    # --- Plotsensitivitysynergy [] ---
-    # Key functions: PlotSensitivitySynergy
-    ---------------------------------------------------------------------
+    # --- Synergy Calculation [] ---
+    # Key functions: CalculateSynergy
+    res <- CalculateSynergy(
+        data = res,
+        method = c("ZIP", "HSA", "Bliss", "Loewe"),
+        Emin = NA,
+        Emax = NA,
+        correct_baseline = "non"
+    )
+
+
+    # --- Sensitivity Analysis [] ---
+    # Key functions: CalculateSensitivity
+    res <- CalculateSensitivity(
+        data = res,
+        correct_baseline = "non"
+    )
+
+
+    # --- Dose-Response and Synergy Heatmap Visualization [] ---
+    # Key functions: PlotDoseResponseCurve, Plot2DrugHeatmap
+    PlotDoseResponseCurve(
+        data = res,
+        plot_block = 1,
+        drug_index = 1,
+        plot_new = FALSE,
+        record_plot = FALSE
+    )
+    Plot2DrugHeatmap(
+        data = res,
+        plot_block = 1,
+        drugs = c(1, 2),
+        plot_value = "ZIP_synergy",
+        dynamic = FALSE
+    )
+
+
+    # --- Advanced Synergy and Sensitivity Visualization [] ---
+    # Key functions: PlotBarometer, PlotSensitivitySynergy
+    PlotBarometer(
+        data = res,
+        plot_block = 1,
+        plot_concs = c(9.7656, 50),
+        needle_text_offset = 2.5
+    )
     PlotSensitivitySynergy(
-      data = res,
-      plot_synergy = "ZIP",
-      show_labels = TRUE,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("ONEIL_screening_data")
-    head(ONEIL_screening_data)
-    # --- Reshapedata [] ---
-    # Key functions: ReshapeData
-    ---------------------------------------------------------------------
-    res <- ReshapeData(
-      data = NCATS_screening_data,
-      data_type = "inhibition",
-      impute = TRUE,
+        data = res,
+        plot_synergy = "ZIP",
+        show_labels = TRUE,
+        dynamic = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

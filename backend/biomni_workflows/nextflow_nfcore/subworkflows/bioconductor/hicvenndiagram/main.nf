@@ -41,16 +41,28 @@ process BIOC_HICVENNDIAGRAM {
     library(hicVennDiagram)
     library(jsonlite)
 
-    # --- venn Count [] ---
-    # Key functions: vennCount, upsetPlot
-    file_folder <- system.file("extdata",
+    # --- Interactive Venn Visualisation [] ---
+    # Key functions: vennCount, vennPlot, browseVenn
+    file_folder <- system.file(
+        "extdata", package = "hicVennDiagram", mustWork = TRUE
+    )
     file_list <- dir(file_folder, pattern = ".bedpe", full.names = TRUE)
     names(file_list) <- sub(".bedpe", "", basename(file_list))
-    # --- chippeakanno findOverlapsOfPeaks [] ---
-    # Key functions: toGRanges, findOverlapsOfPeaks, vennTable, overlappingPeaksToVennTable
-    library(ChIPpeakAnno)
-    bed <- system.file("extdata", "MACS_output.bed", package="ChIPpeakAnno")
-    gr1 <- toGRanges(bed, format="BED", header=FALSE)
+    venn <- vennCount(file_list)
+    p_venn <- vennPlot(venn)
+    browseVenn(p_venn)
+
+
+    # --- Venn Table Generation [] ---
+    # Key functions: vennTable
+    comb <- matrix(c(1, 0, 1, 1), nrow = 2)
+    cnts <- c(100, 200)
+    vc <- matrix(c(1, 0, 100, 1, 1, 200), nrow = 2, byrow = TRUE)
+    v_table <- vennTable(
+        combinations = comb,
+        counts = cnts,
+        vennCounts = vc
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

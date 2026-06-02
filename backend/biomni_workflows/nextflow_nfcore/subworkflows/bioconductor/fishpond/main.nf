@@ -41,90 +41,43 @@ process BIOC_FISHPOND {
     library(fishpond)
     library(jsonlite)
 
-    # --- Labelkeep [] ---
-    # Key functions: labelKeep, swish
-    ---------------------------------------------------------------------
-    y <- labelKeep(y)
-    y <- swish(y, x="allele", pair="sample", fast=1)
-    # --- Mcols [] ---
-    # Key functions: mcols
-    ---------------------------------------------------------------------
-    mcols(y)[1:2,c("stat","qvalue")]
-    # --- Hist [] ---
-    # Key functions: mcols
-    ---------------------------------------------------------------------
-    hist(mcols(y)[-c(1:6),"pvalue"])
-    # --- Plotinfreps [] ---
-    # Key functions: plotInfReps
-    ---------------------------------------------------------------------
-    plotInfReps(y, idx=1, x="allele", cov="condition",
-                xaxis=FALSE, legend=TRUE, legendPos="bottomright")
-    # --- Labelkeep [] ---
-    # Key functions: labelKeep, swish
-    ---------------------------------------------------------------------
-    y <- labelKeep(y)
-    y <- swish(y, x="allele", pair="sample", cov="time", cor="pearson")
-    # --- Mcols [] ---
-    # Key functions: mcols
-    ---------------------------------------------------------------------
-    mcols(y)[1:2,c("stat","qvalue")]
-    # --- Computeinfrv [] ---
-    # Key functions: computeInfRV
-    ---------------------------------------------------------------------
-    y <- computeInfRV(y)
-    # --- Cut [] ---
-    # Key functions: cut
-    ---------------------------------------------------------------------
-    y$time_bins <- cut(y$time,breaks=c(0,.25,.75,1),
-                       include.lowest=TRUE, labels=FALSE)
-    y$time_bins <- paste0("time-",y$time_bins)
-    table(y$time_bins[ y$allele == "a2" ])
-    # --- Grep [] ---
-    # Key functions: assayNames, assay
-    ---------------------------------------------------------------------
-    reps <- grep("infRep", assayNames(y), value=TRUE)
-    for (k in reps) {
-      assay(y,k)[1,21:40] <- assay(y,k)[1,c(31:40,21:30)]
-    }
-    # --- Which [] ---
-    # Key functions: equal, covariate
-    ---------------------------------------------------------------------
-    pc <- 5 # a pseudocount
-    idx1 <- which(y$allele == "a1")
-    idx2 <- which(y$allele == "a2")
-    # the sample must be aligned
-    # --- Grep [] ---
-    # Key functions: assayNames, assays, abind
-    ---------------------------------------------------------------------
-    reps <- grep("infRep", assayNames(y), value=TRUE)
-    nreps <- length(reps)
-    infReps <- assays(y)[reps]
-    infRepsArray <- abind::abind(as.list(infReps), along=3)
-    # --- Function [] ---
-    # Key functions: lmFit
-    ---------------------------------------------------------------------
-    computeStat <- function(k, design, name) {
-      fit <- limma::lmFit(lfcArray[,,k], design)
-      tstats <- fit$coef/fit$stdev.unscaled/fit$sigma
-      tstats[,name]
-    # --- Rowmeans [] ---
-    # Key functions: rowMeans, computeStat
-    ---------------------------------------------------------------------
-    stat <- rowMeans(sapply(1:nreps, \(k) computeStat(k, design, "groupB:cov")))
-    # --- Nrow [] ---
-    # Key functions: sample, rowMeans
-    ---------------------------------------------------------------------
-    n <- nrow(design)
-    nperms <- 100
-    nulls <- matrix(nrow=nrow(y), ncol=nperms)
-    set.seed(1)
-    # --- Emppvals [] ---
-    # Key functions: empPvals, qvalue, frame
-    ---------------------------------------------------------------------
-    pvalue <- qvalue::empPvals(abs(stat), abs(nulls))
-    q_res <- qvalue::qvalue(pvalue)
-    locfdr <- q_res$lfdr
-    qvalue <- q_res$qvalues
+    # --- Two-Group Differential Analysis [] ---
+    # Key functions: swish
+    y <- swish(y, x = "allele", pair = "sample", fast = 1)
+    res_stats <- mcols(y)[, c("stat", "pvalue", "qvalue")]
+    sig_results <- res_stats[which(res_stats$qvalue < 0.05), ]
+
+
+    # --- Visualization of Inferential Replicates [] ---
+    # Key functions: plotInfReps, plotAllelicHeatmap
+    idx <- 1:2
+    plotInfReps(y, idx = idx[1], x = "allele", cov = "sample")
+    dat <- data.frame(
+        minusLogQ = -log10(mcols(y)$qvalue[idx]),
+        row.names = rownames(y)[idx]
+    )
+    plotAllelicHeatmap(y, idx = idx, annotation_row = dat)
+
+
+    # --- Interaction and Covariate Analysis [] ---
+    # Key functions: makeSimSwishData, labelKeep, swish
+    y_int <- makeSimSwishData(diffAI = TRUE, n = 12)
+    y_int <- labelKeep(y_int)
+    y_int <- swish(
+        y_int, x = "allele", pair = "sample",
+        cov = "condition", interaction = TRUE
+    )
+
+
+    # --- Dynamic Time-Course Analysis [] ---
+    # Key functions: makeSimSwishData, labelKeep, swish, computeInfRV
+    y_dyn <- makeSimSwishData(dynamicAI = TRUE)
+    y_dyn <- labelKeep(y_dyn)
+    y_dyn <- swish(
+        y_dyn, x = "allele", pair = "sample",
+        cov = "time", cor = "pearson"
+    )
+    y_dyn <- computeInfRV(y_dyn)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

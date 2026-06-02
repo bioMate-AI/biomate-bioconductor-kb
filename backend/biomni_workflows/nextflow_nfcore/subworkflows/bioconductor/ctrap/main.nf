@@ -41,45 +41,54 @@ process BIOC_CTRAP {
     library(cTRAP)
     library(jsonlite)
 
-    # --- load ENCODE samples [] ---
-    # Key functions: loadENCODEsamples, prepareENCODEgeneExpression
-    ENCODEmetadata <- downloadENCODEknockdownMetadata(cellLine, gene)
-    table(ENCODEmetadata$`Experiment target`)
-    length(unique(ENCODEmetadata$`Experiment target`))
-    # --- differential gene expression [] ---
-    # Key functions: rowSums, performDifferentialExpression
-    filter <- rowSums(counts[ , -c(1, 2)] >= minReads) >= minSamples
-    counts$gene_id <- convertGeneIdentifiers(counts$gene_id)
-    diffExpr <- performDifferentialExpression(counts)
-    # --- CMap metadata conditions [] ---
-    # Key functions: loadCMapData, getCMapConditions
-    Load CMap metadata (automatically downloaded if not found)
-    cmapMetadata <- loadCMapData("cmapMetadata.txt", type="metadata")
-    getCMapConditions(cmapMetadata)
-    # --- CMap knockdown perturbations [] ---
-    # Key functions: filterCMapMetadata, prepareCMapPerturbations
-    cmapMetadataKD <- filterCMapMetadata(
-    cmapPerturbationsKD <- prepareCMapPerturbations(
-    # --- CMap small molecule perturbations [] ---
-    # Key functions: filterCMapMetadata, prepareCMapPerturbations
-    cmapMetadataCompounds <- filterCMapMetadata(
-    cmapPerturbationsCompounds <- prepareCMapPerturbations(
-    # --- compare knockdown [] ---
+    # --- Rank Similar Perturbations [] ---
     # Key functions: rankSimilarPerturbations
-    compareKD <- rankSimilarPerturbations(diffExprStat, cmapPerturbationsKD)
-    # --- compare small molecules [] ---
-    # Key functions: rankSimilarPerturbations
-    compareCompounds <- rankSimilarPerturbations(diffExprStat,
-    # --- perturbation info [] ---
-    # Key functions: attr
-    EIF4G1knockdown <- grep("EIF4G1", compareKD[[1]], value=TRUE)
-    print(compareKD, EIF4G1knockdown)
-    Information on the top 10 most similar compound perturbations (based on
-    # --- drug set enrichment analysis [] ---
+    compareKD <- rankSimilarPerturbations(
+        diffExprStat,
+        cmapPerturbationsKD
+    )
+    compareCompounds <- rankSimilarPerturbations(
+        diffExprStat,
+        cmapPerturbationsCompounds
+    )
+    plot(compareKD, "spearman", n=c(10, 3))
+    kd_table <- as.table(compareKD)
+
+
+    # --- Predict Targeting Drugs [] ---
+    # Key functions: listExpressionDrugSensitivityAssociation, loadExpressionDrugSensitivityAssociation, predictTargetingDrugs
+    ctrp <- listExpressionDrugSensitivityAssociation()[[2]]
+    assoc <- loadExpressionDrugSensitivityAssociation(ctrp)
+    predicted <- predictTargetingDrugs(diffExprStat, assoc)
+    plot(predicted, method="rankProduct")
+    plot(predicted, predicted[[1, 1]], method="spearman")
+
+
+    # --- Compare Drug Predictions and Perturbations [] ---
+    # Key functions: plotTargetingDrugsVSsimilarPerturbations
+    plotTargetingDrugsVSsimilarPerturbations(
+        predicted,
+        compareCompounds,
+        column="spearman_rank"
+    )
+    plotTargetingDrugsVSsimilarPerturbations(
+        predicted,
+        compareCompounds,
+        column="spearman_rank",
+        labelBy="target"
+    )
+
+
+    # --- Drug Set Enrichment Analysis [] ---
     # Key functions: loadDrugDescriptors, prepareDrugSets, analyseDrugSetEnrichment, plotDrugSetEnrichment
     descriptors <- loadDrugDescriptors("CMap", "2D")
-    drugSets    <- prepareDrugSets(descriptors)
-    dsea        <- analyseDrugSetEnrichment(drugSets, predicted)
+    drugSets <- prepareDrugSets(descriptors)
+    dsea <- analyseDrugSetEnrichment(drugSets, predicted)
+    plotDrugSetEnrichment(
+        drugSets,
+        predicted,
+        selectedSets=head(dsea$descriptor, 6)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

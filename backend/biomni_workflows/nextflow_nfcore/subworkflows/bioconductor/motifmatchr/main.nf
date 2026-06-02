@@ -38,32 +38,85 @@ process BIOC_MOTIFMATCHR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(motifmatchr)
     library(Date)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Find Motif Matches [] ---
-    # Key functions: matchMotifs, SummarizedExperiment, equal, motifMatches
-    ---------------------------------------------------------------------
-    # using peaks
-    motif_ix_peaks <- matchMotifs(example_motifs, peaks, genome = "hg19")
-    # using SummarizedExperiment
-    example_SummarizedExperiment <-
-    # --- Find Motif Matches [] ---
+    # --- Motif Matching with SummarizedExperiment [] ---
+    # Key functions: matchMotifs, motifMatches
+    data(example_motifs, package = "motifmatchr")
+    peaks <- GenomicRanges::GRanges(
+        seqnames = c("chr1", "chr2", "chr2"),
+        ranges = IRanges::IRanges(
+            start = c(76585873, 42772928, 100183786),
+            width = 500
+        )
+    )
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1, ncol = 4, nrow = 3)),
+        rowRanges = peaks
+    )
+    motif_ix_se <- matchMotifs(example_motifs, se, genome = "hg19")
+    matches_se <- motifMatches(motif_ix_se)
+
+
+    # --- Motif Matching with Custom Background Frequencies [] ---
     # Key functions: matchMotifs
-    ---------------------------------------------------------------------
-    motif_ix <- matchMotifs(example_motifs, peaks, genome = "hg19", bg = "even")
-    # --- Find Motif Matches [] ---
+    data(example_motifs, package = "motifmatchr")
+    peaks <- GenomicRanges::GRanges(
+        seqnames = c("chr1", "chr2", "chr2"),
+        ranges = IRanges::IRanges(
+            start = c(76585873, 42772928, 100183786),
+            width = 500
+        )
+    )
+    bg_custom <- c("A" = 0.2, "C" = 0.3, "G" = 0.3, "T" = 0.2)
+    motif_ix_bg <- matchMotifs(
+        example_motifs,
+        peaks,
+        genome = "hg19",
+        bg = bg_custom
+    )
+
+
+    # --- Extracting Motif Scores and Counts [] ---
     # Key functions: matchMotifs, motifMatches, motifScores, motifCounts
-    ---------------------------------------------------------------------
-    motif_ix <- matchMotifs(example_motifs, peaks, genome = "hg19")
-    print(motif_ix)
-    head(motifMatches(motif_ix))
-    motif_ix_scores <- matchMotifs(example_motifs, peaks,
-    # --- Date [] ---
-    # Key functions: Date
-    ---------------------------------------------------------------------
-    Sys.Date()
+    data(example_motifs, package = "motifmatchr")
+    peaks <- GenomicRanges::GRanges(
+        seqnames = c("chr1", "chr2", "chr2"),
+        ranges = IRanges::IRanges(
+            start = c(76585873, 42772928, 100183786),
+            width = 500
+        )
+    )
+    motif_ix_scores <- matchMotifs(
+        example_motifs,
+        peaks,
+        genome = "hg19",
+        out = "scores"
+    )
+    m_matches <- motifMatches(motif_ix_scores)
+    m_scores <- motifScores(motif_ix_scores)
+    m_counts <- motifCounts(motif_ix_scores)
+
+
+    # --- Extracting Genomic Positions of Motif Matches [] ---
+    # Key functions: matchMotifs
+    data(example_motifs, package = "motifmatchr")
+    peaks <- GenomicRanges::GRanges(
+        seqnames = c("chr1", "chr2", "chr2"),
+        ranges = IRanges::IRanges(
+            start = c(76585873, 42772928, 100183786),
+            width = 500
+        )
+    )
+    motif_pos <- matchMotifs(
+        example_motifs,
+        peaks,
+        genome = "hg19",
+        out = "positions"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

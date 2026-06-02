@@ -38,38 +38,48 @@ process BIOC_GRENITS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GRENITS)
     library(Time)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
+    # --- Network Inference [Network Inference] ---
+    # Key functions: LinearNet
     data(Athaliana_ODE)
-    dim(Athaliana_ODE)
-    # --- Ts [] ---
-    # Key functions: ts, Time
-    # Load A. thaliana circadian clock ODE generated data
-    plot.ts( t(Athaliana_ODE), plot.type = "single", col = 1:5,  xlim = c(0,65),
-    	main = "Circadian Clock Network \n ODE simulated data",
-    	 xlab = "Time (h)",  ylab = "Expression")
-    legend("topright", rownames(Athaliana_ODE), lty = 1, col = 1:5)
-    # --- Output [] ---
-    # Key functions: output
-    # Analyse raw results, place analysis plots and files in output.folder
+    output.folder <- file.path(tempdir(), "Example_LinearNet")
+    LinearNet(
+        output.folder = output.folder,
+        data = Athaliana_ODE
+    )
+
+    # --- Statistical Analysis [Statistical Analysis] ---
+    # Key functions: analyse.output
+    output.folder <- file.path(tempdir(), "Example_LinearNet")
     analyse.output(output.folder)
-    # --- Chain [] ---
-    # Key functions: chain, colMeans
-    chain1 <- read.chain(output.folder,1)
-    chain2 <- read.chain(output.folder,2)
+
+    # --- Convergence Diagnostics [Convergence Diagnostics] ---
+    # Key functions: read.chain
+    output.folder <- file.path(tempdir(), "Example_LinearNet")
+    chain1 <- read.chain(output.folder, 1)
+    chain2 <- read.chain(output.folder, 2)
     gamma1 <- colMeans(chain1$gamma)
     gamma2 <- colMeans(chain2$gamma)
-    plot(x = gamma1, y = gamma2, xlab = "chain1", ylab = "chain2",
-    # --- Network [] ---
-    # Key functions: network, interaction
-    library(network)
-    inferred.net <- network(inferred.net)
-    par(mfrow = c(1,2), cex = 1.76, cex.lab = 1.3, cex.main = 1.4)
-    # Plot cut off
-    prob.vec <- sort(as.vector(as.matrix(prob.mat)), T)
+    plot(
+        x = gamma1, y = gamma2,
+        xlab = "chain1", ylab = "chain2",
+        main = "Convergence plot for link probabilities",
+        xlim = c(0, 1), ylim = c(0, 1)
+    )
+
+    # --- Network Probability Extraction [Network Probability Extraction] ---
+    # Key functions: analyse.output
+    output.folder <- file.path(tempdir(), "Example_LinearNet")
+    prob.file <- file.path(output.folder, "NetworkProbability_Matrix.txt")
+    prob.mat <- read.table(prob.file)
+    inferred.net <- 1 * (prob.mat > 0.8)
+    prob.list.file <- file.path(output.folder, "NetworkProbability_List.txt")
+    prob.list <- read.table(prob.list.file, header = TRUE)
+    above.threshold <- prob.list[prob.list[, 3] > 0.8, ]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,14 +38,22 @@ process BIOC_QCKITFASTQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(qckitfastq)
     library(GC_content)
     library(jsonlite)
 
-    # --- Table formatting and display [] ---
-    # Key functions: kable, fastqq, read_length, plot_read_length, per_base_quality, plot_per_base_quality, per_read_quality, plot_per_read_quality
-    if(.Platform$OS.type != "windows") {
-    infile2 <- system.file("extdata", "test.fq.gz", package = "qckitfastq")
-    ac_sorted <- adapter_content(infile2)
+    # --- GC Content and Base Composition [] ---
+    # Key functions: GC_content, read_content, plot_GC_content
+    gc_df <- GC_content(infile)
+    rc <- read_content(fseq)
+    plot_GC_content(gc_df)
+
+
+    # --- Overrepresented Sequences and Adapters [] ---
+    # Key functions: overrep_reads, overrep_kmer, adapter_content
+    overrep <- overrep_reads(infile)
+    overkm <- overrep_kmer(infile, 7)
+    ac_sorted <- adapter_content(infile)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

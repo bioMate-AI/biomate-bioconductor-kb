@@ -41,16 +41,56 @@ process BIOC_SEQARCHRPLUS {
     library(seqArchRplus)
     library(jsonlite)
 
-    # --- Data import and preprocessing [] ---
-    # Key functions: readDNAStringSet
-    raw_seqs <- Biostrings::readDNAStringSet(
-    filepath = system.file("extdata",
-    2. Clustering information (arbitrary order/unordered)
-    # --- Curate clusters analysis [] ---
-    # Key functions: curate_clusters, per_cluster_seqlogos, iqw_tpm_plots, order_clusters_iqw, seqs_acgt_image, readDNAStringSet, plot_motif_heatmaps, per_cluster_annotations
-    Get larger flank FASTA sequences (larger than those used for seqArchR)
-    use_seqs <- Biostrings::readDNAStringSet(filepath = system.file("extdata",
-    plot_motif_heatmaps(sname = "RAL28_10_to_12h", seqs = use_seqs,
+    # --- Cluster Reassignment and Refinement [] ---
+    # Key functions: curate_clusters
+    seqArchR_curated_clusts <- curate_clusters(
+        sname = "RAL28_10_to_12h",
+        use_aggl = "complete",
+        use_dist = "euclid",
+        seqArchR_result = seqArchR_result,
+        iter = 5,
+        regularize = TRUE,
+        topn = 50,
+        use_cutk = 5,
+        need_change = list(c(2)),
+        change_to = list(c(1)),
+        final = FALSE,
+        dir_path = NULL
+    )
+
+
+    # --- Final Cluster Curation [] ---
+    # Key functions: curate_clusters
+    seqArchR_curated_clusts <- curate_clusters(
+        sname = "RAL28_10_to_12h",
+        use_aggl = "complete",
+        use_dist = "euclid",
+        seqArchR_result = seqArchR_result,
+        iter = 5,
+        pos_lab = NULL,
+        regularize = FALSE,
+        topn = 50,
+        use_cutk = 5,
+        need_change = list(c(2)),
+        change_to = list(c(1)),
+        final = TRUE,
+        dir_path = NULL
+    )
+
+
+    # --- Sequence Logo Generation [] ---
+    # Key functions: per_cluster_seqlogos
+    seqlogos_oneplot_pl <- per_cluster_seqlogos(
+        sname = "RAL28_10_to_12h",
+        seqs = raw_seqs,
+        clusts = unord_clusts,
+        pos_lab = -45:45,
+        bits_yax = "auto",
+        strand_sep = FALSE,
+        one_plot = TRUE,
+        txt_size = 12,
+        dir_path = NULL
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

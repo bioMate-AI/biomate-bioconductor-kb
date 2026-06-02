@@ -41,11 +41,31 @@ process BIOC_RMASSBANK {
     library(RMassBank)
     library(jsonlite)
 
-    # --- fig=TRUE [] ---
-    # Key functions: msmsWorkflow
-    storedW <- msmsWorkflow(storedW, mode="pH", steps=4)
-    (no graph displayed here)
-    w <- msmsWorkflow(w, mode="pH", steps=4, archivename =
+    # --- MSMS Workflow Execution [] ---
+    # Key functions: msmsWorkflow, loadMsmsWorkspace
+    w <- msmsWorkflow(w, mode = "pH", steps = c(1:3), archivename = "pH_narcotics")
+    storedW <- loadMsmsWorkspace(
+        system.file("results/pH_narcotics_RF.RData", package = "RMassBankData")
+    )
+    storedW <- msmsWorkflow(storedW, mode = "pH", steps = 4)
+    w@rc <- storedW@parent@rc
+    w@rc.ms1 <- storedW@parent@rc.ms1
+    w <- msmsWorkflow(
+        w, mode = "pH", steps = 4, archivename = "pH_narcotics",
+        newRecalibration = FALSE
+    )
+    w <- msmsWorkflow(w, mode = "pH", steps = c(5:8), archivename = "pH_narcotics")
+
+
+    # --- MassBank Record Generation [] ---
+    # Key functions: newMbWorkspace, resetInfolists, loadInfolists, mbWorkflow
+    mb <- newMbWorkspace(w)
+    mb <- resetInfolists(mb)
+    mb <- loadInfolists(
+        mb,
+        system.file("infolists", package = "RMassBankData")
+    )
+    mb <- mbWorkflow(mb)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

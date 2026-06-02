@@ -41,26 +41,29 @@ process BIOC_METAPHOR {
     library(MetaPhOR)
     library(jsonlite)
 
-    # --- Csv [] ---
-    # Key functions: csv
-    ---------------------------------------------------------------------
-    exdegs <- read.csv(system.file("extdata/exampledegs.csv",
-                                    package = "MetaPhOR"),
-                                    header = TRUE)
-    # --- Bubbleplot [] ---
+    # --- Enrichment Visualization [] ---
     # Key functions: bubblePlot
-    ---------------------------------------------------------------------
-    pval <- bubblePlot(scorelist = brca,
-                        labeltext = "Pval",
-                        labelsize = .85)
-    plot(pval)
-    # --- Csv [] ---
-    # Key functions: csv, metaHeatmap
-    ---------------------------------------------------------------------
-    ##read in two additional sets of scores,
-    ##run in the same manner as brca for comparison
-    ovca <- read.csv(system.file("extdata/OVCA_Scores.csv", package = "MetaPhOR"),
-                    header = TRUE,
+    pval_plot <- bubblePlot(
+        scorelist = brca,
+        labeltext = "Pval",
+        labelsize = 0.85
+    )
+    logfc_plot <- bubblePlot(
+        scorelist = brca,
+        labeltext = "LogFC",
+        labelsize = 0.85
+    )
+
+
+    # --- Comparative Heatmap Generation [] ---
+    # Key functions: metaHeatmap
+    all_scores <- list(brca, ovca, prad)
+    names_list <- c("BRCA", "OVCA", "PRAD")
+    metaHeatmap(
+        scorelist = all_scores,
+        samplenames = names_list,
+        pvalcut = 0.05
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,55 +41,55 @@ process BIOC_PHILR {
     library(philr)
     library(jsonlite)
 
-    # --- Rowdata [] ---
-    # Key functions: rowData, taxonomyRanks, balance
-    ---------------------------------------------------------------------
-    # Extract taxonomy table from the TreeSE object
-    tax <- rowData(tse)[,taxonomyRanks(tse)]
-    # Get name balances
-    name.balance(tree, tax, 'n1')
-    # --- Factor [] ---
-    # Key functions: factor, colData
-    ---------------------------------------------------------------------
-    human.samples <- factor(colData(tse)$SampleType %in% c("Feces", "Mock", "Skin", "Tongue"))
-    # --- Dist [] ---
-    # Key functions: dist, frame, cmdscale
-    ---------------------------------------------------------------------
-    # Distances between samples based on philr transformed data
-    gp.dist <- dist(gp.philr, method="euclidean")
-    # Calculate MDS for the distance matrix
-    d <- as.data.frame(cmdscale(gp.dist))
-    # --- Factor [] ---
-    # Key functions: factor, ggplot, aes, geom_point, labs
-    ---------------------------------------------------------------------
-    # Add some metadata for the visualization
-    d$SampleType <- factor(metadata$SampleType)
-    # Create a plot
-    ggplot(data = d,
-    # --- Matrix [] ---
-    # Key functions: coefficients
-    ---------------------------------------------------------------------
-    top.coords <- as.matrix(coefficients(glmmod, s=0.2526))
-    top.coords <- rownames(top.coords)[which(top.coords != 0)]
-    (top.coords <- top.coords[2:length(top.coords)]) # remove the intercept as a coordinate
-    # --- Sapply [] ---
-    # Key functions: balance
-    ---------------------------------------------------------------------
-    tc.names <- sapply(top.coords, function(x) name.balance(tree, tax, x))
-    tc.names
-    # --- Balance [] ---
-    # Key functions: balance
-    ---------------------------------------------------------------------
-    votes <- name.balance(tree, tax, 'n730', return.votes = c('up', 'down'))
-    votes[[c('up.votes', 'Family')]]   # Numerator at Family Level
-    votes[[c('down.votes', 'Family')]] # Denominator at Family Level
-    # --- Convert To Long [] ---
-    # Key functions: convert_to_long, filter, ggplot, aes, geom_boxplot, facet_grid, labs, theme_bw
-    ---------------------------------------------------------------------
-    gp.philr.long <- convert_to_long(gp.philr, human.samples) %>%
-      filter(coord %in% top.coords)
-    ggplot(gp.philr.long, aes(x=labels, y=value)) +
-      geom_boxplot(fill='lightgrey') +
+    # --- Phylogenetic Isometric Log-Ratio Transformation ---
+    # Key functions: philr
+    gp.philr <- philr(
+        tse,
+        abund_values = "counts.shifted",
+        part.weights = "enorm.x.gm.counts",
+        ilr.weights = "blw.sqrt"
+    )
+
+    # --- Taxonomic Balance Annotation ---
+    # Key functions: name.balance, name.to.nn
+    tax <- rowData(tse)[, taxonomyRanks(tse)]
+    tree <- rowTree(tse)
+    bal.name <- name.balance(tree, tax, "n1")
+    top.coords <- c("n16", "n730")
+    tc.nn <- name.to.nn(tree, top.coords)
+    votes <- name.balance(
+        tree, tax, "n730",
+        return.votes = c("up", "down")
+    )
+
+    # --- Data Reshaping for Downstream Analysis ---
+    # Key functions: convert_to_long
+    human.samples <- factor(
+        colData(tse)$SampleType %in%
+        c("Feces", "Mock", "Skin", "Tongue")
+    )
+    gp.philr.long <- convert_to_long(gp.philr, human.samples)
+    top.coords <- c("n16", "n730")
+    gp.philr.long.filtered <- gp.philr.long[
+        gp.philr.long$coord %in% top.coords,
+    ]
+
+    # --- Phylogenetic Balance Visualization ---
+    # Key functions: geom_balance, annotate_balance, name.to.nn
+    tree <- rowTree(tse)
+    tc.nn <- name.to.nn(tree, c("n16", "n730"))
+    p <- ggtree(tree, layout = "fan") +
+        geom_balance(node = tc.nn[1], fill = "#a6cee3", alpha = 0.6) +
+        geom_balance(node = tc.nn[2], fill = "#1f78b4", alpha = 0.6)
+    p <- annotate_balance(
+        tree, "n16", p = p, labels = c("n16+", "n16-"),
+        offset.text = 0.15, bar = FALSE
+    )
+    p <- annotate_balance(
+        tree, "n730", p = p, labels = c("n730+", "n730-"),
+        offset.text = 0.15, bar = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

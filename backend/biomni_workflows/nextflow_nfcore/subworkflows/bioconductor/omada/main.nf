@@ -41,55 +41,34 @@ process BIOC_OMADA {
     library(omada)
     library(jsonlite)
 
-    # --- Feasibility Analysis [] ---
-    # Key functions: feasibilityAnalysis, feasibilityAnalysisDataBased, get_average_stabilities_per_k, get_max_stability, get_average_stability, get_generated_dataset
-    # Selecting dimensions and number of clusters
-    new.dataset.analysis <- feasibilityAnalysis(classes = 4, samples = 50,
-                                                features = 15)
-    # Basing the simulation on an existing dataset and selecting the number of clusters
-    existing.dataset.analysis <- feasibilityAnalysisDataBased(data = toy_genes,
-    # --- Omada [] ---
-    # Key functions: k, omada, get_partition_agreement_scores, get_feature_selection_scores, get_feature_selection_optimal_features, get_feature_selection_optimal_number_of_features, get_cluster_voting_scores, get_cluster_voting_memberships
-    # Running the whole cascade of tools inputting an expression dataset
-    # and the upper k (number of clusters) to be investigated
-    omada.analysis <- omada(toy_genes, method.upper.k = 6)
-    # Extract results
-    pa.scores <- get_partition_agreement_scores(omada.analysis)
-    # --- Method Selection [] ---
+    # --- Clustering Method Selection [] ---
     # Key functions: clusteringMethodSelection, get_partition_agreement_scores, plot_partition_agreement
-    # Selecting the upper k limit and number of comparisons
-    method.results <- clusteringMethodSelection(toy_genes, method.upper.k = 3,
+    method.results <- clusteringMethodSelection(toy_genes, method.upper.k = 3, 
                                                 number.of.comparisons = 2)
-    # Extract results
     pa.scores <- get_partition_agreement_scores(method.results)
-    # --- Partition Agreement [] ---
-    # Key functions: partitionAgreement, get_agreement_scores
-    # Selecting algorithms, measures and number of clusters
-    agreement.results <- partitionAgreement(toy_genes, algorithm.1 = "spectral",
-                                            measure.1 = "rbfdot",
-                                            algorithm.2 = "kmeans",
-                                            measure.2 = "Lloyd",
+    plot_partition_agreement(method.results)
+
+
     # --- Feature Selection [] ---
     # Key functions: featureSelection, get_average_feature_k_stabilities, get_optimal_features, plot_average_stabilities
-    # Selecting minimum and maximum number of clusters and feature step
-    feature.selection.results <-  featureSelection(toy_genes, min.k = 3, max.k = 6,
-                                                   step = 3)
-    # Extract results
-    feature.selection.scores <- get_average_feature_k_stabilities(feature.selection.results)
-    # --- Cluster Voting [] ---
-    # Key functions: clusterVoting, get_internal_metric_scores, get_cluster_memberships_k, get_metric_votes_k, get_vote_frequencies_k, plot_vote_frequencies
-    # Selecting minimum and maximum number of clusters and algorithm to be used
-    cluster.voting.results <- clusterVoting(toy_genes, 4,8,"sc")
-    # Extract results
-    internal.metric.scores <- get_internal_metric_scores(cluster.voting.results)
-    cluster.memberships.k <- get_cluster_memberships_k(cluster.voting.results)
-    # --- Optimal Clustering [] ---
-    # Key functions: clusters, optimalClustering, get_optimal_memberships, get_optimal_stability_score, get_optimal_parameter_used
-    # Running the clustering with specific number of clusters(k) and algorithm
+    feature.selection.results <- featureSelection(toy_genes, min.k = 3, 
+                                                   max.k = 6, step = 3)
+    feature.selection.scores <- get_average_feature_k_stabilities(
+        feature.selection.results
+    )
+    optimal.features <- get_optimal_features(feature.selection.results)
+    plot_average_stabilities(feature.selection.results)
+
+
+    # --- Cluster Voting and Optimal Clustering [] ---
+    # Key functions: clusterVoting, get_internal_metric_scores, optimalClustering, get_optimal_memberships, plot_vote_frequencies
+    cluster.voting.results <- clusterVoting(toy_genes, 4, 8, "sc")
+    internal.metric.scores <- get_internal_metric_scores(
+        cluster.voting.results
+    )
+    plot_vote_frequencies(cluster.voting.results)
     sample.memberships <- optimalClustering(toy_genes, 4, "spectral")
-    # Extract results
     memberships <- get_optimal_memberships(sample.memberships)
-    optimal.stability <- get_optimal_stability_score(sample.memberships)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

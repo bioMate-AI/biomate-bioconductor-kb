@@ -41,31 +41,79 @@ process BIOC_SYNLET {
     library(synlet)
     library(jsonlite)
 
-    # --- z Factor [] ---
-    # Key functions: zFactor
-    res <- zFactor(example_dt, negativeCon = "scrambled control si1", positiveCon = "PLK1 si1")
-    head(res)
-    # --- plate Heatmap [] ---
+    # --- Plate Visualization [] ---
     # Key functions: plateHeatmap, scatterPlot
+    data(example_dt)
     plateHeatmap(example_dt)
-    scatterPlot(example_dt, controlOnly = FALSE, control_name = c("PLK1 si1", "scrambled control si1", "lipid only"))
-    # --- z Factor [] ---
-    # Key functions: zFactor
-    zF_mean <- zFactor(example_dt, negativeCon = "scrambled control si1", positiveCon = "PLK1 si1")
-    zF_med <- zFactor(example_dt, negativeCon = "scrambled control si1", positiveCon = "PLK1 si1", useMean = FALSE)
-    # --- si R N A Plot [] ---
-    # Key functions: siRNAPlot
-    siRNAPlot("AAK1", example_dt,
-    controlsiRNA = c("lipid only", "scrambled control si1"),
-    normMethod = c("PLATE", "lipid only", "scrambled control si1"))
-    # --- t test [] ---
-    # Key functions: tTest
+    scatterPlot(example_dt,
+                controlOnly = FALSE,
+                control_name = c("PLK1 si1",
+                                 "scrambled control si1",
+                                 "lipid only"))
+
+
+    # --- B-Score Normalisation and Statistical Testing [] ---
+    # Key functions: bScore, tTest
+    data(example_dt)
+    bscore_res <- sapply(unique(example_dt$MASTER_PLATE)[1],
+                         bScore,
+                         example_dt,
+                         treatment = "treatment",
+                         control = "control",
+                         simplify = FALSE)
     t_res <- tTest(bscore_res$P001, 3, 3)
-    head(t_res)
-    # --- rsa Hits [] ---
+
+
+    # --- Hit Selection via MAD and Rank Product [] ---
+    # Key functions: madSelect, rankProdHits
+    data(example_dt)
+    mad_res <- sapply(unique(example_dt$MASTER_PLATE),
+                      madSelect,
+                      example_dt,
+                      control = "control",
+                      treatment = "treatment",
+                      simplify = FALSE)
+    rp_res <- sapply(unique(example_dt$MASTER_PLATE),
+                     rankProdHits,
+                     example_dt,
+                     control = "control",
+                     treatment = "treatment",
+                     simplify = FALSE)
+
+
+    # --- Redundant siRNA Activity Analysis [] ---
     # Key functions: rsaHits
-    rsaHits(example_dt, treatment = "treatment", control = "control",
-    sessionInfo()
+    data(example_dt)
+    rsa_res <- rsaHits(example_dt,
+                       treatment = "treatment",
+                       control = "control",
+                       normMethod = "PLATE",
+                       LB = 0.2,
+                       UB = 0.8,
+                       revHits = FALSE,
+                       Bonferroni = FALSE,
+                       outputFile = "RSAhits.csv")
+
+
+    # --- Gene-level Visualization [] ---
+    # Key functions: siRNAPlot, zFactor
+    data(example_dt)
+    zF_mean <- zFactor(example_dt,
+                       negativeCon = "scrambled control si1",
+                       positiveCon = "PLK1 si1")
+    zF_med <- zFactor(example_dt,
+                      negativeCon = "scrambled control si1",
+                      positiveCon = "PLK1 si1",
+                      useMean = FALSE)
+    siRNAPlot("AAK1",
+              example_dt,
+              controlsiRNA = c("lipid only", "scrambled control si1"),
+              FILEPATH = ".",
+              zPrimeMed = zF_med,
+              zPrimeMean = zF_mean,
+              treatment = "treatment",
+              control = "control",
+              normMethod = c("PLATE", "lipid only", "scrambled control si1"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

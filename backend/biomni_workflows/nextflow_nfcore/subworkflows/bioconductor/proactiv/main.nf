@@ -41,16 +41,29 @@ process BIOC_PROACTIV {
     library(proActiv)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: rowData, ggplot, geom_bar, xlab, ggtitle, as_tibble, labs, geom_point
-    majorPromoter <- as_tibble(rdata) %>% group_by(geneId) %>%
-    mutate(promoterCount = n()) %>% filter(HepG2.class == 'Major')
-    pdata3 <- data.frame(proActiv = majorPromoter$HepG2.mean,
-    # --- Table formatting and display [] ---
-    # Key functions: proActiv, loadDb, kable, getAlternativePromoters, show, boxplotPromoters, assays
-    gtf.file <- system.file('extdata/vignette/annotation/gencode.v34.annotation.subset.gtf.gz',
-    promoterAnnotation.gencode.v34.subset <- preparePromoterAnnotation(file = gtf.file,
-    txdb.file <- system.file('extdata/vignette/annotation/gencode.v34.annotation.subset.sqlite',
+    # --- Filtering Results [] ---
+    # Key functions: assays
+    promoter_counts <- assays(result)$promoterCounts
+    result_filtered <- result[complete.cases(promoter_counts), ]
+
+
+    # --- Alternative Promoter Identification [] ---
+    # Key functions: getAlternativePromoters, rowData
+    alternativePromoters <- getAlternativePromoters(
+        result = result_filtered,
+        referenceCondition = "A549"
+    )
+    alt_metadata <- rowData(alternativePromoters)
+
+
+    # --- Promoter Visualization [] ---
+    # Key functions: boxplotPromoters
+    plots <- boxplotPromoters(
+        result = result_filtered,
+        geneId = "ENSG00000076864.19"
+    )
+    plot_absolute <- plots[[1]]
+    plot_relative <- plots[[3]]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

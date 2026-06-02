@@ -38,87 +38,47 @@ process BIOC_SCREENCOUNTER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(screenCounter)
     library(DataFrame)
     library(jsonlite)
 
-    # --- Matrixofsinglebarcodes [] ---
-    # Key functions: matrixOfSingleBarcodes, assay
-    ---------------------------------------------------------------------
-    library(screenCounter)
-    out <- matrixOfSingleBarcodes(single.fq,
-        flank5="GTAC", flank3="CATG", choices=known)
-    out
-    # --- Matrixofcombobarcodes [] ---
+    # --- Combo Barcode Counting [] ---
     # Key functions: matrixOfComboBarcodes
-    ---------------------------------------------------------------------
-    out <- matrixOfComboBarcodes(combo.fq,
+    combo.fq <- tempfile(fileext=".fastq")
+    known1 <- c("AAAA", "CCCC", "GGGG", "TTTT")
+    known2 <- c("ATTA", "CGGC", "GCCG", "TAAT")
+    out <- matrixOfComboBarcodes(
+        combo.fq,
         template="GTACNNNNCATGNNNNGTAC",
-        choices=list(first=known1, second=known2))
-    out
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    assay(out)
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    rowData(out)
-    # --- Grid [] ---
-    # Key functions: grid, DataFrame, sample
-    ---------------------------------------------------------------------
-    choices <- expand.grid(known.pool1, known.pool2)
-    choices <- DataFrame(barcode1=choices[,1], barcode2=choices[,2])
-    choices <- choices[sample(nrow(choices), nrow(choices)*0.9),]
-    # --- Matrixofdualbarcodes [] ---
+        choices=list(first=known1, second=known2)
+    )
+    counts <- assay(out)
+    meta <- rowData(out)
+
+
+    # --- Dual Barcode Counting [] ---
     # Key functions: matrixOfDualBarcodes
-    ---------------------------------------------------------------------
-    out <- matrixOfDualBarcodes(list(c(tmp1, tmp2)),
+    choices <- DataFrame(
+        barcode1=c("AGAGAGAGA", "CTCTCTCTC"), 
+        barcode2=c("ATATATATA", "CGCGCGCGC")
+    )
+    out <- matrixOfDualBarcodes(
+        list(c("tmp1.fastq", "tmp2.fastq")), 
         choices=choices,
         template=c("CAGCTACGTACGNNNNNNNNNCCAGCTCGATCG",
-                   "TGGGCAGCGACANNNNNNNNNACACGAGGGTAT"))
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    assay(out)
-    # --- Coldata [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    colData(out)
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    rowData(out)
-    # --- Grid [] ---
-    # Key functions: grid, DataFrame, sample
-    ---------------------------------------------------------------------
-    choices <- expand.grid(known.pool1, known.pool2)
-    choices <- DataFrame(barcode1=choices[,1], barcode2=choices[,2])
-    choices <- choices[sample(nrow(choices), nrow(choices)*0.9),]
-    # --- Matrixofdualbarcodessingleend [] ---
-    # Key functions: matrixOfDualBarcodesSingleEnd
-    ---------------------------------------------------------------------
-    out <- matrixOfDualBarcodesSingleEnd(tmp, choices=choices,
-        template="CAGCTACGTACGNNNNNNNNNCCAGCTCGATCGNNNNNNNNNACACGAGGGTAT")
-    out
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    assay(out)
-    # --- Coldata [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    colData(out)
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    rowData(out)
-    # --- Lapply [] ---
-    # Key functions: sample
-    ---------------------------------------------------------------------
-    # Mocking up a 8-bp random variable region.
-    N <- 1000
-    randomized <- lapply(1:N, function(i) {
-        paste(sample(c("A", "C", "G", "T"), 8, replace=TRUE), collapse="")
+                   "TGGGCAGCGACANNNNNNNNNACACGAGGGTAT")
+    )
+    counts <- assay(out)
+
+
+    # --- Random Barcode Counting [] ---
+    # Key functions: matrixOfRandomBarcodes
+    single.fq <- tempfile(fileext=".fastq")
+    out <- matrixOfRandomBarcodes(
+        single.fq,
+        template="CCCAGTNNNNNNNNGGGATAC"
+    )
+    counts <- assay(out)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,15 +41,73 @@ process BIOC_MSSTATSPTM {
     library(MSstatsPTM)
     library(jsonlite)
 
-    # --- data Process Plots P T M [] ---
+    # --- Data Summarization [] ---
+    # Key functions: dataSummarizationPTM
+    MSstatsPTM.summary <- dataSummarizationPTM(
+        raw.input = msstats_format_tmt,
+        verbose = FALSE,
+        use_log_file = FALSE,
+        append = FALSE
+    )
+
+
+    # --- Quality Control Visualization [] ---
     # Key functions: dataProcessPlotsPTM
-    dataProcessPlotsPTM(MSstatsPTM.summary,
-    # --- group Comparison Plots P T M [] ---
+    dataProcessPlotsPTM(
+        data = MSstatsPTM.summary,
+        type = "QCPLOT",
+        which.PTM = "allonly",
+        address = FALSE
+    )
+    dataProcessPlotsPTM(
+        data = MSstatsPTM.summary,
+        type = "ProfilePlot",
+        which.Protein = "Q9Y6C9",
+        address = FALSE
+    )
+
+
+    # --- Differential Abundance Analysis [] ---
+    # Key functions: groupComparisonPTM
+    comparison <- matrix(c(-1, 0, 1, 0), nrow = 1)
+    row.names(comparison) <- "CCCP-Ctrl"
+    colnames(comparison) <- c("CCCP", "Combo", "Ctrl", "USP30_OE")
+    MSstatsPTM.model <- groupComparisonPTM(
+        data = MSstatsPTM.summary,
+        data.type = "LabelFree",
+        contrast.matrix = comparison,
+        use_log_file = FALSE,
+        append = FALSE,
+        verbose = FALSE
+    )
+
+
+    # --- Result Visualization [] ---
     # Key functions: groupComparisonPlotsPTM
-    groupComparisonPlotsPTM(data = MSstatsPTM.model,
-    # --- sample size plot [] ---
-    # Key functions: designSampleSizePlots
-    MSstats::designSampleSizePlots(sample_size)
+    groupComparisonPlotsPTM(
+        data = MSstatsPTM.model,
+        type = "VolcanoPlot",
+        FCcutoff = 2,
+        logBase.pvalue = 2,
+        address = FALSE
+    )
+    groupComparisonPlotsPTM(
+        data = MSstatsPTM.model,
+        type = "Heatmap",
+        which.PTM = 1:30,
+        address = FALSE
+    )
+
+
+    # --- Experimental Design and Sample Size Calculation [] ---
+    # Key functions: designSampleSizePTM
+    sample_size <- designSampleSizePTM(
+        data = MSstatsPTM.model,
+        desiredFC = c(2.0, 2.75),
+        FDR = 0.05,
+        numSample = TRUE,
+        power = 0.8
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

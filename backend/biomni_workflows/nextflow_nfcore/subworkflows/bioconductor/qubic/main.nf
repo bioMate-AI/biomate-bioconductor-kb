@@ -41,11 +41,42 @@ process BIOC_QUBIC {
     library(QUBIC)
     library(jsonlite)
 
-    # --- Qudiscretize analysis [] ---
-    # Key functions: qudiscretize, runif, biclust, colorRampPalette, quheatmap, qunetwork, qgraph, showinfo
-    net <- qunetwork(ecoli, res, number = c(4, 8), group = c(4, 8), method = "spearman")
-    if (requireNamespace("qgraph", quietly = TRUE))
-    qgraph::qgraph(net[[1]], groups = net[[2]], legend.cex = 0.5, layout = "spring",
+    # --- Biclustering [] ---
+    # Key functions: BCQU
+    biclust_results <- biclust::biclust(
+        test_matrix,
+        method = BCQU(),
+        r = 1,
+        q = 0.06,
+        c = 0.95,
+        o = 100,
+        f = 0.25
+    )
+
+
+    # --- Heatmap Visualisation [] ---
+    # Key functions: quheatmap
+    palette_colors <- colorRampPalette(
+        c("#D73027", "#FC8D59", "#FEE090", "#FFFFBF", "#4575B4")
+    )(100)
+    quheatmap(
+        test_matrix,
+        biclust_results,
+        number = c(1, 2),
+        col = palette_colors,
+        showlabel = TRUE
+    )
+
+
+    # --- Network Construction [] ---
+    # Key functions: qunetwork
+    biclust_net <- qunetwork(
+        test_matrix,
+        biclust_results,
+        number = c(1, 2),
+        group = c(1, 2),
+        method = "spearman"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

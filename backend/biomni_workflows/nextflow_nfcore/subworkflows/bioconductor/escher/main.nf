@@ -38,14 +38,24 @@ process BIOC_ESCHER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(escheR)
     library(Visium_humanDLPFC)
     library(jsonlite)
 
-    # --- Color scale styling [] ---
-    # Key functions: install_github, Visium_humanDLPFC, make_escheR, add_fill, add_ground, add_symbol, scale_fill_gradient, fivenum
-    plot_list <- unique(spe$sample_id) |> # Create a list of sample names
-    lapply(FUN = function(.sample_id){ # Iterate over all samples
-    make_escheR(spe_single) |>
+    # --- Adding Spatial Fill and Ground Layers [] ---
+    # Key functions: make_escheR, add_fill, add_ground
+    p <- make_escheR(spe)
+    p1 <- add_fill(p, var = "cell_count")
+    p2 <- add_ground(p1, var = "ground_truth", stroke = 0.5)
+
+
+    # --- Multi-layer Spatial Annotation [] ---
+    # Key functions: make_escheR, add_fill, add_ground, add_symbol
+    spe$counts_MOBP <- counts(spe)[1, ]
+    p <- make_escheR(spe)
+    p <- add_fill(p, var = "counts_MOBP")
+    p <- add_ground(p, var = "ground_truth", stroke = 0.5)
+    p <- add_symbol(p, var = "ground_truth", size = 0.2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

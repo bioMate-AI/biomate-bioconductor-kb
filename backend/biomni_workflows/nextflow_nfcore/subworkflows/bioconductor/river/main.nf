@@ -41,11 +41,30 @@ process BIOC_RIVER {
     library(RIVER)
     library(jsonlite)
 
-    # --- Retrieve data from repository [] ---
-    # Key functions: getData, evaRIVER
-    library("RIVER")
-    filename <- system.file("extdata", "simulation_RIVER.gz",
-    dataInput <- getData(filename) # import experimental data
+    # --- Model Evaluation [] ---
+    # Key functions: evaRIVER
+    evaROC <- evaRIVER(
+        dataInput,
+        pseudoc = 50,
+        theta_init = matrix(c(.99, .01, .3, .7), nrow=2),
+        costs = c(100, 10, 1, .1, .01, 1e-3, 1e-4),
+        verbose = FALSE
+    )
+
+
+    # --- Posterior Probability Estimation and Visualization [] ---
+    # Key functions: appRIVER, plotPosteriors
+    postprobs <- appRIVER(
+        dataInput,
+        pseudoc = 50,
+        theta_init = matrix(c(.99, .01, .3, .7), nrow=2),
+        costs = c(100, 10, 1, .1, .01, 1e-3, 1e-4),
+        verbose = FALSE
+    )
+    plotPosteriors(
+        postprobs,
+        outliers = as.numeric(unlist(dataInput$Outlier)) - 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,19 +38,21 @@ process BIOC_METHYLAID {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MethylAid)
     library(BatchJobsParam)
     library(jsonlite)
 
-    # --- Fetch GEO dataset [] ---
-    # Key functions: getGEO, pData
-    library(GEOquery)
-    gse <- getGEO("GSE42861")
-    targets <- pData(phenoData(gse[[1]]))
-    # --- Summarize analysis [] ---
-    # Key functions: summarize, visualize, BatchJobsParam, combine
-    library(BiocParallel)
-    conffile <- system.file("scripts/config.R", package="MethylAid")
-    BPPARAM <- BatchJobsParam(workers = 10,
+    # --- Combining Summarized Data [] ---
+    # Key functions: combine
+    combined_data <- MethylAid::combine(
+        exampleData,
+        exampleData
+    )
+
+
+    # --- Interactive Visualization [] ---
+    # Key functions: visualize
+    MethylAid::visualize(combined_data)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

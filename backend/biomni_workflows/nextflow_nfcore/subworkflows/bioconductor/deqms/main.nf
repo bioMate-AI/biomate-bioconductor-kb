@@ -38,26 +38,53 @@ process BIOC_DEQMS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DEqMS)
     library(Residualplot)
     library(VarianceBoxplot)
     library(VarianceScatterplot)
     library(jsonlite)
 
-    # --- Linear model fit (limma) [] ---
-    # Key functions: lmFit, eBayes, makeContrasts
-    protein.matrix = log2(as.matrix(df.LFQ.filter))
-    class = as.factor(c("H","H","H","L","L","L"))
-    design = model.matrix(~0+class) # fitting without intercept
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, theme_bw, xlab, ylab, volcanoplot
-    library(ggrepel)
-    DEqMS.results$log.sca.pval = -log10(DEqMS.results$sca.P.Value)
-    ggplot(DEqMS.results, aes(x = logFC, y =log.sca.pval )) +
-    # --- VarianceBoxplot analysis [] ---
-    # Key functions: VarianceBoxplot, VarianceScatterplot, unzip, query, peptideProfilePlot, Residualplot, heatscatter
-    VarianceScatterplot(fit3, xlab="log2(PSM count)")
-    abline(h = log(limma.prior),col="green",lwd=3 )
-    legend("topright",legend=c("DEqMS prior variance","Limma prior variance"),
+    # --- Data Normalization and Filtering [Data Preparation] ---
+    # Key functions: equalMedianNormalization
+    dat_filtered <- dat[rowSums(is.na(dat)) == 0, ]
+    dat_log <- log2(dat_filtered)
+    dat_norm <- equalMedianNormalization(dat_log)
+
+    # --- Linear Modeling and Contrasts [Differential Expression] ---
+    # Key functions: lmFit, contrasts.fit, makeContrasts, eBayes
+    design <- model.matrix(~0 + cond)
+    colnames(design) <- gsub("cond", "", colnames(design))
+    contrast <- limma::makeContrasts(
+        contrasts = "treat-ctrl",
+        levels = design
+    )
+    fit1 <- limma::lmFit(dat_norm, design)
+    fit2 <- limma::contrasts.fit(fit1, contrasts = contrast)
+    fit3 <- limma::eBayes(fit2)
+
+    # --- DEqMS Spectral Count Correction [Statistical Modeling] ---
+    # Key functions: spectraCounteBayes
+    fit3$count <- psm_count_table[rownames(fit3$coefficients), "count"]
+    fit4 <- spectraCounteBayes(fit3)
+
+    # --- Variance Diagnostic Plotting [Visualisation] ---
+    # Key functions: VarianceBoxplot, VarianceScatterplot
+    pdf("deqms_variance_diagnostics.pdf")
+    VarianceBoxplot(fit4, n = 30, main = "PSM Count vs Variance")
+    VarianceScatterplot(fit4, main = "Protein Variance Scatterplot")
+    dev.off()
+
+    # --- Differential Expression Results [Output Generation] ---
+    # Key functions: outputResult
+    deqms_results <- outputResult(fit4, coef_col = 1)
+    write.table(
+        deqms_results,
+        file = "DEqMS_results.txt",
+        sep = "\t",
+        row.names = FALSE,
+        quote = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

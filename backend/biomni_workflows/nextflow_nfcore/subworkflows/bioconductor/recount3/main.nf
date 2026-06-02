@@ -41,69 +41,31 @@ process BIOC_RECOUNT3 {
     library(recount3)
     library(jsonlite)
 
-    # --- cleanbib [] ---
-    # Key functions: cleanbib, cite_options
-    startTime <- Sys.time()
-    library("knitcitations")
-    cleanbib()
-    # --- 'install' [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("recount3")
-    # --- 'quick example' [] ---
-    # Key functions: available_projects, create_rse
-    human_projects <- available_projects()
-    proj_info <- subset(
-    Create a RangedSummarizedExperiment (RSE) object at the gene level
-    # --- "interactive display" [] ---
-    # Key functions: display, create_rse
-    proj_info_interactive <- interactiveDisplayBase::display(human_projects)
-    stopifnot(nrow(proj_info_interactive) == 1)
-    rse_gene_interactive <- create_rse(proj_info_interactive)
-    # --- "tranform counts" [] ---
-    # Key functions: assay
-    base-pair coverage counts using transform_counts().
-    For RPKM, TPM or read outputs, check the details in transform_counts().
-    assay(rse_gene_SRP009615, "counts") <- transform_counts(rse_gene_SRP009615)
-    # --- "human projects" [] ---
-    # Key functions: available_projects
-    human_projects <- available_projects()
-    dim(human_projects)
-    head(human_projects)
-    # --- "select interactively" [] ---
-    # Key functions: display
-    selected_study <- interactiveDisplayBase::display(human_projects)
-    # --- "annotations" [] ---
-    # Key functions: annotation_options
-    annotation_options("human")
-    annotation_options("mouse")
-    # --- "rse gencode v26" [] ---
-    # Key functions: create_rse
-    rse_gene_SRP009615 <- create_rse(project_info)
-    # --- "metadata rse" [] ---
-    # Key functions: metadata
-    metadata(rse_gene_SRP009615)
-    # --- "row ranges" [] ---
-    # Key functions: rowRanges
-    dim(rse_gene_SRP009615)
-    rowRanges(rse_gene_SRP009615)
-    # --- "expand attributes" [] ---
-    # Key functions: expand_sra_attributes, colData
-    expand_sra_attributes(rse_gene_SRP009615)
-    colData(rse_gene_SRP009615_expanded)[, ncol(colData(rse_gene_SRP009615)):ncol(colData(rse_gene_SRP009615_expanded))]
-    # --- "raw counts" [] ---
-    # Key functions: assayNames
-    assayNames(rse_gene_SRP009615)
-    # --- "scaling counts" [] ---
-    # Key functions: assay
-    base-pair coverage counts using transform_counts().
-    For RPKM, TPM or read outputs, check the details in transform_counts().
-    assay(rse_gene_SRP009615, "counts") <- transform_counts(rse_gene_SRP009615)
-    # --- "rse exon" [] ---
-    # Key functions: create_rse
-    rse_exon_SRP009615 <- create_rse(
-    dim(rse_exon_SRP009615)
+    # --- Data Retrieval [] ---
+    # Key functions: create_rse, annotation_options
+    ann_opts <- annotation_options(organism = "human")
+    rse_gene_SRP009615 <- create_rse(
+        project_info,
+        type = "gene",
+        annotation = ann_opts[1]
+    )
+
+
+    # --- Metadata Expansion [] ---
+    # Key functions: expand_sra_attributes
+    rse_expanded <- expand_sra_attributes(rse_gene_SRP009615)
+    sra_cols <- colnames(colData(rse_expanded))
+    meta_info <- metadata(rse_expanded)
+    row_ranges <- rowRanges(rse_expanded)
+
+
+    # --- Count Transformation [] ---
+    # Key functions: transform_counts
+    counts_transformed <- transform_counts(
+        rse_gene_SRP009615,
+        round = TRUE
+    )
+    assay(rse_gene_SRP009615, "counts") <- counts_transformed
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

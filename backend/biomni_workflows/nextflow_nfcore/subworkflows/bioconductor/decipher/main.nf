@@ -38,6 +38,7 @@ process BIOC_DECIPHER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DECIPHER)
     library(AdjustAlignment)
     library(AlignDB)
     library(AlignProfiles)
@@ -50,91 +51,55 @@ process BIOC_DECIPHER {
     library(RNAStringSet)
     library(jsonlite)
 
-    # --- Expr0 [] ---
-    # Key functions: setNames
-    library(DECIPHER)
-    N0 <- ceiling(2^seq(1, 17))
-    N1 <- ceiling(2^seq(1, 12))
-    N2 <- ceiling(2^seq(1, 13))
-    N3 <- ceiling(2^seq(1, 16))
-    # --- Expr1 [] ---
-    # Key functions: readDNAStringSet
-    library(DECIPHER)
-    # specify the path to your sequence file:
-    fas <- "<<path to FASTA file>>"
-    # OR find the example sequence file used in this tutorial:
-    fas <- system.file("extdata", "50S_ribosomal_protein_L2.fas", package="DECIPHER")
-    # --- Expr2 [] ---
-    # Key functions: AlignTranslation, BrowseSeqs, AlignSeqs, writeXStringSet
-    ## AA <- AlignTranslation(dna, type="AAStringSet") # align the translation
-    ## BrowseSeqs(AA, highlight=1) # view the alignment
-    ##
-    ## DNA <- AlignSeqs(dna) # align the sequences directly without translation
-    ## DNA <- AlignTranslation(dna) # align the translation then reverse translate
-    # --- Expr3 [] ---
-    # Key functions: getGeneticCode, AlignTranslation
-    ## # using a mixture of standard and non-standard genetic codes
-    ## gC1 <- getGeneticCode(id_or_name2="1", full.search=FALSE, as.data.frame=FALSE)
-    ## # Mollicutes use an alternative genetic code
-    ## gC2 <- getGeneticCode(id_or_name2="4", full.search=FALSE, as.data.frame=FALSE)
-    ## w <- grep("Mycoplasma|Ureaplasma", names(dna))
-    # --- Expr4 [] ---
+    # --- Multiple Sequence Alignment [] ---
     # Key functions: AlignSeqs
-    ## u_dna <- unique(dna) # the unique input sequences
-    ## index <- match(dna, u_dna) # de-replication index
-    ##
-    ## U_DNA <- AlignSeqs(u_dna) # align the sequences directly without translation
-    ## DNA <- U_DNA[index]
-    # --- Expr5 [] ---
-    # Key functions: readDNAStringSet, RemoveGaps, RNAStringSet, readRNAStringSet, AlignSeqs
-    ## # database containing 16S ribosomal RNA sequences
-    ## fas <- system.file("extdata", "Bacteria_175seqs.fas", package="DECIPHER")
-    ## dna <- readDNAStringSet(fas)
-    ## rna <- RemoveGaps(RNAStringSet(dna))
-    ## # or if starting with DNA sequences, convert to RNA with:
-    # --- Expr6 [] ---
-    # Key functions: AlignTranslation, AlignProfiles
-    ## half <- floor(length(dna)/2)
-    ## dna1 <- dna[1:half] # first half
-    ## dna2 <- dna[(half + 1):length(dna)] # second half
-    ##
-    ## AA1 <- AlignTranslation(dna1, type="AAStringSet")
-    # --- Expr7 [] ---
-    # Key functions: dbConnect, dbDriver, Seqs2DB, AlignDB, SearchDB, BrowseDB, dbDisconnect
-    ## # Align DNA sequences stored in separate tables:
-    ## dbConn <- dbConnect(dbDriver("SQLite"), ":memory:")
-    ## Seqs2DB(AA1, "DNAStringSet", dbConn, "AA1", tblName="AA1")
-    ## Seqs2DB(AA2, "DNAStringSet", dbConn, "AA2", tblName="AA2")
-    ## AlignDB(dbConn, tblName=c("AA1", "AA2"), add2tbl="AA",
-    # --- Expr8 [] ---
-    # Key functions: width, attr
-    ## # form a chained guide tree
-    ## gT <- lapply(order(width(dna), decreasing=TRUE),
-    ## 	function(x) {
-    ## 		attr(x, "height") <- 0
-    ## 		attr(x, "label") <- names(dna)[x]
-    # --- Expr9 [] ---
-    # Key functions: BrowseSeqs
-    ## BrowseSeqs(DNA, highlight=0)
-    # --- Expr10 [] ---
-    # Key functions: AdjustAlignment
-    ## DNA_adjusted <- AdjustAlignment(DNA)
-    # --- Expr11 [] ---
-    # Key functions: StaggerAlignment
-    ## DNA_staggered <- StaggerAlignment(DNA)
-    # --- Expr12 [] ---
-    # Key functions: FindSynteny, AlignSynteny, unlist
-    ## db <- system.file("extdata", "Influenza.sqlite", package="DECIPHER")
-    ## synteny <- FindSynteny(db, verbose=FALSE)
-    ## synteny # an object of class `Synteny`
-    ## InfluenzaA <- AlignSynteny(synteny, db, verbose=FALSE)
-    ## unlist(InfluenzaA[[1]])
-    # --- Expr13 [] ---
-    # Key functions: pairs
-    ## pairs(synteny, boxBlocks=TRUE) # scatterplot matrix
-    # --- Sessinfo [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo(), locale=FALSE)
+    aligned_dna <- AlignSeqs(
+        dna_oriented,
+        guideTree = NULL,
+        gapOpening = -18,
+        gapExtension = -2,
+        verbose = FALSE
+    )
+
+
+    # --- Distance Matrix Computation [] ---
+    # Key functions: DistanceMatrix
+    dist_matrix <- DistanceMatrix(
+        aligned_dna,
+        correction = "Jukes-Cantor",
+        processors = 1,
+        verbose = FALSE
+    )
+
+
+    # --- Sequence Clustering and Tree Construction [] ---
+    # Key functions: IdClusters, TreeLine
+    clusters <- IdClusters(
+        dist_matrix,
+        method = "NJ",
+        cutoff = 0.05,
+        processors = 1,
+        verbose = FALSE
+    )
+    tree <- TreeLine(
+        myDistMatrix = dist_matrix,
+        method = "NJ",
+        showPlot = FALSE,
+        verbose = FALSE
+    )
+
+
+    # --- Alignment Visualization and Export [] ---
+    # Key functions: BrowseSeqs, writeXStringSet
+    BrowseSeqs(
+        aligned_dna,
+        htmlFile = "aligned_sequences.html",
+        openURL = FALSE
+    )
+    writeXStringSet(
+        aligned_dna,
+        filepath = "aligned_sequences.fasta"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

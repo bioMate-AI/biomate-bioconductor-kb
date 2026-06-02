@@ -41,24 +41,30 @@ process BIOC_IGC {
     library(iGC)
     library(jsonlite)
 
-    # --- Create Gene Exp [] ---
-    # Key functions: create_gene_exp
-    ---------------------------------------------------------------------
-    gene_exp <- create_gene_exp(sample_desc, progress = FALSE)
-    # --- Function [] ---
-    # Key functions: fread, create_gene_cna
-    ---------------------------------------------------------------------
-    my_cna_reader <- function(cna_filepath) {
-      cna <- data.table::fread(cna_filepath, sep = '\t', header = TRUE)
-      cna[, .(Chromosome, Start, End, Segment_Mean)]
-    }
-    # --- Find Cna Driven Gene [] ---
+    # --- Gene Expression and Copy Number Profile Extraction [] ---
+    # Key functions: create_gene_exp, create_gene_cna
+    gene_exp <- create_gene_exp(
+        sample_desc = sample_desc,
+        progress = FALSE
+    )
+    gene_cna <- create_gene_cna(
+        sample_desc = sample_desc,
+        gain_threshold = 0.263,
+        loss_threshold = -0.322,
+        progress = FALSE
+    )
+
+
+    # --- CNA Driven Gene Identification [] ---
     # Key functions: find_cna_driven_gene
-    ---------------------------------------------------------------------
     cna_driven_genes <- find_cna_driven_gene(
-      gene_cna, gene_exp,
-      gain_prop = 0.15, loss_prop = 0.15,
-      progress = FALSE, parallel = FALSE
+        gene_cna = gene_cna,
+        gene_exp = gene_exp,
+        gain_prop = 0.15,
+        loss_prop = 0.15,
+        progress = FALSE,
+        parallel = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

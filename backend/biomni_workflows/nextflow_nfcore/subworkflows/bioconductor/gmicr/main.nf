@@ -38,6 +38,7 @@ process BIOC_GMICR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GmicR)
     library(Auto_WGCNA)
     library(Data_Prep)
     library(GO_Module_NameR)
@@ -47,42 +48,38 @@ process BIOC_GMICR {
     library(Query_Prep)
     library(jsonlite)
 
-    # --- clearing environment and loading data [] ---
-    # Key functions: remove
-    remove(list = ls())
-    library(GmicR)
-    sample_dat_dir<-system.file("extdata", "sample_dat.Rdata",
-    # --- module detection [] ---
-    # Key functions: Auto_WGCNA
-    library(GmicR)
-    GMIC_Builder<-Auto_WGCNA(sample_dat,
-    # --- GO module annotations [] ---
-    # Key functions: Query_Prep
-    GMIC_Builder<-Query_Prep(GMIC_Builder,
-    head(GMIC_Builder$Query)
-    # --- GO enrichment [] ---
-    # Key functions: GSEAGO_Builder
-    GMIC_Builder<-GSEAGO_Builder(GMIC_Builder,
-    # --- GO module names [] ---
-    # Key functions: GO_Module_NameR
-    GMIC_Builder<-GO_Module_NameR(GMIC_Builder)
-    # --- discretizing data [] ---
+    # --- Functional Enrichment and Annotation [] ---
+    # Key functions: Query_Prep, GSEAGO_Builder, GO_Module_NameR
+    GMIC_Builder <- Query_Prep(
+        GMIC_Builder,
+        calculate_intramodularConnectivity = TRUE,
+        Find_hubs = TRUE
+    )
+    GMIC_Builder <- GSEAGO_Builder(
+        GMIC_Builder,
+        species = "Homo sapiens",
+        ontology = "BP",
+        no_cores = 1
+    )
+    GMIC_Builder <- GO_Module_NameR(GMIC_Builder)
+
+
+    # --- Data Discretization and Signature Integration [] ---
     # Key functions: Data_Prep
-    GMIC_Builder_disc<-Data_Prep(GMIC_Builder,
-    head(GMIC_Builder_disc$disc_data[sample(seq(1,64),4)])
-    # --- make Cluster [] ---
-    # Key functions: makeCluster, bn_tabu_gen, stopCluster
-    cl<-parallel::makeCluster(1)
-    GMIC_net<-bn_tabu_gen(GMIC_Builder_disc,
-    parallel::stopCluster(cl) # stop cluster
-    # --- detecting inverse relationships [] ---
+    GMIC_Builder_disc <- Data_Prep(
+        GMIC_Builder,
+        xCell_Signatures = file_dir,
+        ibreaks = 10,
+        Remove_ME0 = TRUE
+    )
+
+
+    # --- Network Relationship Detection [] ---
     # Key functions: InverseARCs
-    GMIC_Final<-InverseARCs(GMIC_net, threshold = -0.3)
-    # --- Visualizing network [] ---
-    # Key functions: Gmic_viz
-    GMIC_Final_dir<-system.file("extdata", "GMIC_Final.Rdata",
-    load(GMIC_Final_dir)
-    if(interactive()){
+    GMIC_Final <- InverseARCs(
+        GMIC_net,
+        threshold = -0.3
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

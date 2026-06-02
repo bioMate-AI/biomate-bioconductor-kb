@@ -41,73 +41,36 @@ process BIOC_SPATIALEXPERIMENT {
     library(SpatialExperiment)
     library(jsonlite)
 
-    # --- Head [] ---
-    # Key functions: spatialCoords
-    ---------------------------------------------------------------------
-    head(spatialCoords(spe))
-    # --- Spatialcoordsnames [] ---
-    # Key functions: spatialCoordsNames
-    ---------------------------------------------------------------------
-    spatialCoordsNames(spe)
-    # --- Imgdata [] ---
-    # Key functions: imgData
-    ---------------------------------------------------------------------
-    imgData(spe)
-    # --- Getimg [] ---
-    # Key functions: getImg, imgData
-    ---------------------------------------------------------------------
-    (spi <- getImg(spe))
-    identical(spi, imgData(spe)$data[[1]])
-    # --- Imgdata [] ---
-    # Key functions: imgData, rmvImg
-    ---------------------------------------------------------------------
-    imgData(spe <- rmvImg(spe, "section1", "pomeranian"))
-    # --- Matrix [] ---
-    # Key functions: SpatialExperiment
-    ---------------------------------------------------------------------
-    xy <- as.matrix(cd[, c("x", "y")])
-    spe2 <- SpatialExperiment(
-        assay = y,
-        colData = cd["z"],
-    # --- Spatialexperiment [] ---
-    # Key functions: SpatialExperiment, isEmpty, spatialCoords
-    ---------------------------------------------------------------------
-    spe <- SpatialExperiment(
-        assays = y)
-    isEmpty(spatialCoords(spe))
-    # --- Coldata [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    sub <- spe10x[, colData(spe10x)$in_tissue]
-    sum(colData(spe10x)$in_tissue) == ncol(sub)
-    # --- Getimg [] ---
-    # Key functions: getImg, rotateImg, raster
-    ---------------------------------------------------------------------
-    # extract first image
-    spi <- getImg(spe10x)
-    # apply counter-/clockwise rotation
-    spi1 <- rotateImg(spi, -90)
-    # --- Rotateimg [] ---
-    # Key functions: rotateImg, imgRaster
-    ---------------------------------------------------------------------
-    # specify sample & image identifier
-    sid <- "section1"
-    iid <- "lowres"
-    # counter-clockwise rotation
-    # --- Getimg [] ---
-    # Key functions: getImg, mirrorImg, raster
-    ---------------------------------------------------------------------
-    # extract first image
-    spi <- getImg(spe10x)
-    # mirror horizontally/vertically
-    spi1 <- mirrorImg(spi, "h")
-    # --- Mirrorimg [] ---
-    # Key functions: mirrorImg, imgRaster
-    ---------------------------------------------------------------------
-    # specify sample & image identifier
-    sid <- "section2"
-    iid <- "lowres"
-    # mirror horizontally
+    # --- Data Loading [] ---
+    # Key functions: read10xVisium
+    dir <- system.file(
+        file.path("extdata", "10xVisium"),
+        package = "SpatialExperiment"
+    )
+    sample_ids <- c("section1", "section2")
+    samples <- file.path(dir, sample_ids, "outs")
+    spe10x <- read10xVisium(
+        samples = samples,
+        sample_ids = sample_ids,
+        type = "sparse",
+        data = "raw",
+        images = "lowres",
+        load = FALSE
+    )
+
+
+    # --- Image Manipulation [] ---
+    # Key functions: addImg, imgRaster, rmvImg
+    spe <- addImg(
+        spe,
+        sample_id = "section1",
+        image_id = "pomeranian",
+        imageSource = "https://i.redd.it/3pw5uah7xo041.jpg",
+        scaleFactor = NA_real_,
+        load = TRUE
+    )
+    img <- imgRaster(spe, sample_id = "section1", image_id = "pomeranian")
+    spe <- rmvImg(spe, "section1", "pomeranian")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

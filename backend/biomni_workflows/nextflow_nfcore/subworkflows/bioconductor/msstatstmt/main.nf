@@ -38,61 +38,51 @@ process BIOC_MSSTATSTMT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MSstatsTMT)
     library(MaxQtoMSstatsTMTFormat)
     library(OpenMStoMSstatsTMTFormat)
     library(PDtoMSstatsTMTFormat)
     library(SpectroMinetoMSstatsTMTFormat)
     library(jsonlite)
 
-    # --- Delim [] ---
-    # Key functions: delim, csv, PDtoMSstatsTMTFormat
-    ---------------------------------------------------------------------
-    # read in PD PSM sheet
-    # raw.pd <- read.delim("161117_SILAC_HeLa_UPS1_TMT10_5Mixtures_3TechRep_UPSdB_Multiconsensus_PD22_Intensity_PSMs.txt")
-    head(raw.pd)
-    # Read in annotation including condition and biological replicates per run and channel.
-    # --- Table [] ---
-    # Key functions: csv, MaxQtoMSstatsTMTFormat
-    ---------------------------------------------------------------------
-    # Read in MaxQuant files
-    # proteinGroups <- read.table("proteinGroups.txt", sep="\t", header=TRUE)
-    # evidence <- read.table("evidence.txt", sep="\t", header=TRUE)
-    # Users should make this annotation file. It is not the output from MaxQuant.
-    # --- Csv [] ---
-    # Key functions: csv, SpectroMinetoMSstatsTMTFormat
-    ---------------------------------------------------------------------
-    # Read in SpectroMine PSM report
-    # raw.mine <- read.csv('20180831_095547_CID-OT-MS3-Short_PSM Report_20180831_103118.xls', sep="\t")
-    # Users should make this annotation file. It is not the output from SpectroMine
-    # annotation.mine <- read.csv(file="Mine_Annotation.csv", header=TRUE)
-    # --- Csv [] ---
-    # Key functions: csv, OpenMStoMSstatsTMTFormat
-    ---------------------------------------------------------------------
-    # read in MSstatsTMT report from OpenMS
-    # raw.om <- read.csv("OpenMS_20200222/20200225_MSstatsTMT_OpenMS_Export.csv")
-    head(raw.om)
-    # the function only requries one input file
-    # --- Dataprocessplotstmt [] ---
+    # --- Protein Summarization [] ---
+    # Key functions: proteinSummarization
+    quant_msstats <- proteinSummarization(
+        input_pd,
+        method = "msstats",
+        global_norm = TRUE,
+        reference_norm = TRUE,
+        remove_norm_channel = TRUE,
+        remove_empty_channel = TRUE
+    )
+
+
+    # --- Quality Control Visualization [] ---
     # Key functions: dataProcessPlotsTMT
-    ---------------------------------------------------------------------
-    ## Quality control plot
-    # dataProcessPlotsTMT(data=quant.msstats,
-                         # type='QCPlot',
-                         # width = 21, # adjust the figure width since there are 15 TMT runs.
-    # --- Conditions [] ---
-    # Key functions: conditions
-    ---------------------------------------------------------------------
-    # Show test result
-    # Label : which comparison is used
-    # log2FC : estimated log2 fold change between two conditions (the contrast)
-    # adj.pvalue : adjusted p value
-    # --- Levels [] ---
-    # Key functions: levels
-    ---------------------------------------------------------------------
-    # Check the conditions in the protein level data
-    levels(quant.msstats$ProteinLevelData$Condition)
-    # Only compare condition 0.125 and 1
-    comparison<-matrix(c(-1,0,0,1),nrow=1)
+    dataProcessPlotsTMT(
+        data = quant_msstats,
+        type = "ProfilePlot",
+        width = 21,
+        height = 7
+    )
+    dataProcessPlotsTMT(
+        data = quant_msstats,
+        type = "QCPlot",
+        width = 21,
+        height = 7
+    )
+
+
+    # --- Differential Abundance Analysis [] ---
+    # Key functions: groupComparisonTMT
+    comparison_matrix <- matrix(c(-1, 0, 0, 1), nrow = 1)
+    row.names(comparison_matrix) <- "1-0.125"
+    colnames(comparison_matrix) <- c("0.125", "0.5", "0.667", "1")
+    test_contrast <- groupComparisonTMT(
+        data = quant_msstats,
+        contrast.matrix = comparison_matrix,
+        moderated = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

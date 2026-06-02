@@ -38,24 +38,27 @@ process BIOC_METHYLIMP2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(methyLImp2)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- generate artificial NAs [] ---
-    # Key functions: generateMissingData
-    with_missing_data <- generateMissingData(beta, lambda = 3.5)
-    # --- construct SE [] ---
-    # Key functions: SummarizedExperiment
-    data(beta_meta)
-    beta_SE <- SummarizedExperiment(assays = SimpleList(beta = t(beta_with_nas)),
-    # --- user annotation example [] ---
-    # Key functions: kable
-    data(custom_anno_example)
-    knitr::kable(custom_anno_example)
-    # --- evaluate performance [] ---
+    # --- Methylation Imputation [] ---
+    # Key functions: methyLImp2
+    beta_SE_imputed <- methyLImp2::methyLImp2(
+        input = beta_SE,
+        type = "EPIC",
+        BPPARAM = BiocParallel::SnowParam(exportglobals = FALSE),
+        minibatch_frac = 0.5
+    )
+
+
+    # --- Performance Evaluation [] ---
     # Key functions: evaluatePerformance
-    performance <- evaluatePerformance(beta, t(assays(beta_SE_imputed)[[1]]),
-    print(performance)
+    performance <- methyLImp2::evaluatePerformance(
+        beta,
+        t(SummarizedExperiment::assays(beta_SE_imputed)[[1]]),
+        na_positions
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

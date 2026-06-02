@@ -41,11 +41,49 @@ process BIOC_ICETEA {
     library(icetea)
     library(jsonlite)
 
-    # --- NewCapSet analysis [] ---
-    # Key functions: newCapSet, demultiplexFASTQ, mapCaps, filterDuplicates, detectTSS, sampleInfo, buildindex, splitBAM_byIndex
-    csfit <- fitDiffTSS(cs, groups = rep(c("wt","mut"), each = 2), normalization = "windowTMM",
-    save(csfit, file = "diffTSS_fit.Rdata")
-    de_tss <- detectDiffTSS(csfit, testGroup = "mut", contGroup = "wt",
+    # --- Demultiplexing Fastq Files [] ---
+    # Key functions: demultiplexFASTQ
+    dir.create("splitting")
+    cs <- demultiplexFASTQ(cs,
+                           max_mismatch = 1,
+                           outdir = "splitting",
+                           ncores = 1)
+
+
+    # --- PCR Duplicate Filtering [] ---
+    # Key functions: exampleCSobject, filterDuplicates
+    cs <- exampleCSobject()
+    dir.create("removedup")
+    cs <- filterDuplicates(cs, outdir = "removedup")
+
+
+    # --- Transcription Start Site Detection [] ---
+    # Key functions: exampleCSobject, detectTSS, exportTSS
+    cs <- exampleCSobject()
+    dir.create("tssCalling")
+    cs <- detectTSS(cs,
+                    groups = c("wt", "wt", "mut", "mut"),
+                    outfile_prefix = "tssCalling/testTSS",
+                    restrictChr = "X",
+                    ncores = 1)
+    exportTSS(cs, merged = TRUE, outfile_prefix = "tssCalling/testTSS")
+
+
+    # --- TSS Quality Control and Annotation [] ---
+    # Key functions: plotReadStats, plotTSSprecision, annotateTSS
+    cs <- exampleCSobject()
+    plotReadStats(cs, plotValue = "numbers", plotType = "dodge")
+    plotReadStats(cs, plotValue = "proportions", plotType = "stack")
+    tssfile <- system.file("extdata", "testTSS_merged.bed", package = "icetea")
+    txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene::TxDb.Dmelanogaster.UCSC.dm6.ensGene
+    transcripts <- GenomicFeatures::transcripts(txdb)
+    plotTSSprecision(reference = transcripts,
+                     detectedTSS = tssfile,
+                     sampleNames = "testsample")
+    outdf <- annotateTSS(tssBED = tssfile,
+                         txdb = txdb,
+                         plotValue = "number",
+                         outFile = NULL)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

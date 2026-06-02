@@ -41,29 +41,20 @@ process BIOC_FLOWCLEAN {
     library(flowClean)
     library(jsonlite)
 
-    # --- Data1 [] ---
-    # Key functions: data
-    data(synPerturbed)
-    synPerturbed
-    # --- Cleancall [] ---
-    # Key functions: clean
-    synPerturbed.c <- clean(synPerturbed, vectMarkers=c(5:16),
-                       filePrefixWithDir="sample_out", ext="fcs", diagnostic=TRUE)
-    synPerturbed.c
-    # --- estimate Logicle [] ---
-    # Key functions: estimateLogicle, unname, parameters, transform, xyplot, rectangleGate
-    lgcl <- estimateLogicle(synPerturbed.c, unname(parameters(synPerturbed.c)$name[5:16]))
+    # --- Logicle Transformation [] ---
+    # Key functions: estimateLogicle, transform
+    lgcl <- estimateLogicle(
+        synPerturbed.c,
+        unname(parameters(synPerturbed.c)$name[5:16])
+    )
     synPerturbed.cl <- transform(synPerturbed.c, lgcl)
-    p1 <- xyplot(`<V705-A>` ~ `Time`, data=synPerturbed.cl,
-                 abs=TRUE, smooth=FALSE, alpha=0.5, xlim=c(0, 100))
-    p2 <- xyplot(`GoodVsBad` ~ `Time`, data=synPerturbed.cl,
-    # --- Fig1 [] ---
-    # Key functions: estimateLogicle, unname, parameters, transform, xyplot, rectangleGate
-    lgcl <- estimateLogicle(synPerturbed.c, unname(parameters(synPerturbed.c)$name[5:16]))
-    synPerturbed.cl <- transform(synPerturbed.c, lgcl)
-    p1 <- xyplot(`<V705-A>` ~ `Time`, data=synPerturbed.cl,
-                 abs=TRUE, smooth=FALSE, alpha=0.5, xlim=c(0, 100))
-    p2 <- xyplot(`GoodVsBad` ~ `Time`, data=synPerturbed.cl,
+
+
+    # --- Gating and Subsetting [] ---
+    # Key functions: rectangleGate, filter, Subset
+    rg <- rectangleGate(filterId = "gvb", list("GoodVsBad" = c(0, 9999)))
+    idx <- filter(synPerturbed.cl, rg)
+    synPerturbed.clean <- Subset(synPerturbed.cl, idx)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

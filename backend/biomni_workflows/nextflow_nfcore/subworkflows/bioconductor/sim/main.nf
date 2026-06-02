@@ -41,63 +41,25 @@ process BIOC_SIM {
     library(SIM)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    data(expr.data)
-    data(acgh.data)
-    data(samples)
-    # --- Ncol [] ---
-    # Key functions: cbind
-    acgh.data.only <- acgh.data[, 5:ncol(acgh.data)]
-    expr.data.only <- expr.data[, 5:ncol(expr.data)]
-    acgh.data.s <- acgh.data.only[, order(colnames(acgh.data.only))]
-    expr.data.s <- expr.data.only[, order(colnames(expr.data.only))]
-    sum(colnames(expr.data.s) == colnames(acgh.data.s))
-    # --- Data [] ---
-    # Key functions: data
-    assemble.data(dep.data = acgh.data,
-                  indep.data = expr.data,
-                  dep.ann = colnames(acgh.data)[1:4],
-                  indep.ann = colnames(expr.data)[1:4],
-                  dep.id = "ID",
-    # --- Analysis [] ---
-    # Key functions: analysis
-    integrated.analysis(samples = samples,
-                        input.regions = "8q",
-                        zscores = TRUE,
-                        method = "full",
-                        run.name = "chr8q")
-    # --- Genome [] ---
-    # Key functions: genome
-    sim.plot.pvals.on.genome(input.regions = "8q",
-                             adjust.method = "BY",
-                             run.name = "chr8q")
-    # --- Pvals [] ---
-    # Key functions: pvals
-    tabulate.pvals(input.regions = "8q",
-                   adjust.method = "BY",
-                   bins = c(0.001, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.2, 1),
-                   significance.idx=8,
-                   run.name = "chr8q")
-    # --- Region [] ---
-    # Key functions: region
-    sim.plot.pvals.on.region(input.regions = "8q", adjust.method = "BY", run.name = "chr8q")
-    # --- Heatmap [] ---
-    # Key functions: heatmap, pal, rainbow
-    library(RColorBrewer)
-    sim.plot.zscore.heatmap(input.regions="8q",
-                            method="full",
-                            significance=0.005,
-                            z.threshold=3,
-    # --- Features [] ---
-    # Key functions: features
-    table.dep <- tabulate.top.dep.features(input.regions = "8q",
-                                           adjust.method = "BY",
-                                           run.name = "chr8q")
-    head(table.dep[["8q"]])
-    # --- Tolatex [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    # --- Integrated Association Analysis [] ---
+    # Key functions: integrated.analysis
+    results <- SIM::integrated.analysis(
+        data = assembled,
+        method = "pearson",
+        p.adjust.method = "BY"
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: sim.plot.zscore, sim.plot.pvals
+    SIM::sim.plot.zscore(
+        sim.list = results,
+        main = "Z-scores of Association"
+    )
+    SIM::sim.plot.pvals(
+        sim.list = results,
+        main = "P-values of Association"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

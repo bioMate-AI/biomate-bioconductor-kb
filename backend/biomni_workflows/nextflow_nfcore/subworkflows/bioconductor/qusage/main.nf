@@ -41,77 +41,49 @@ process BIOC_QUSAGE {
     library(qusage)
     library(jsonlite)
 
-    # --- Labelssimple [] ---
-    # Key functions: rep
-    labels = c(rep("t0",17),rep("t1",17))
-    labels
-    # --- Qssimple [] ---
-    # Key functions: qusage
-    qs.results = qusage(eset, labels, contrast, ISG.geneSet)
-    # --- Pvalsimple [] ---
-    # Key functions: pVal
-    pdf.pVal(qs.results)
-    # --- Plotsimple [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    plot(qs.results, xlab="Gene Set Activation")
-    # --- gmt [] ---
-    # Key functions: gmt
-    ##   MSIG.geneSets = read.gmt("c2.cp.kegg.v4.0.symbols.gmt")
-    # --- qusage [] ---
-    # Key functions: qusage, numPathways
-    summary(MSIG.geneSets[1:5])
-      MSIG.geneSets[2]
-      qs.results.msig = qusage(eset, labels, contrast, MSIG.geneSets)
-      numPathways(qs.results.msig)
-    # --- Multihypcorr [] ---
-    # Key functions: pVal, adjust
-    p.vals = pdf.pVal(qs.results.msig)
-      head(p.vals)
-      q.vals = p.adjust(p.vals, method="fdr")
-      head(q.vals)
-    # --- Qstable [] ---
-    # Key functions: qsTable
-    qsTable(qs.results.msig, number=10)
-    # --- Plotcis [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    par(mar=c(10,4,1,2))
-    plot(qs.results.msig)
-    # --- Twowayrun [] ---
-    # Key functions: qusage
-    sx.results  = qusage(eset, twoWay.labels, "sx.t1-sx.t0",
-                           MSIG.geneSets, pairVector=pairs)
-      asx.results = qusage(eset, twoWay.labels, "asx.t1-asx.t0",
-                           MSIG.geneSets, pairVector=pairs)
-    # --- Twocurvepval [] ---
-    # Key functions: pVal
-    p.vals = twoCurve.pVal(sx.results,asx.results)
-      head(p.vals)
-    # --- Twowaycomplex [] ---
-    # Key functions: qusage, pVal
-    asx.vs.sx = qusage(eset, twoWay.labels, "(sx.t1-sx.t0) - (asx.t1-asx.t0)",
-                       MSIG.geneSets, pairVector=pairs)
-      p.vals = pdf.pVal(asx.vs.sx)
-      head(p.vals)
-    # --- Twowaydensitycurvescode [] ---
-    # Key functions: plotDensityCurves
-    plotDensityCurves(asx.results,path.index=125,xlim=c(-0.2,0.5),
-                        col=3,main="CYTOSOLIC DNA SENSING")
-      plotDensityCurves(sx.results,path.index=125,col=2,add=T)
-      plotDensityCurves(asx.vs.sx, path.index=125,col=1,add=T, lwd=3)
-      legend("topleft", legend=c("asx","sx","asx-sx"),lty=1,col=c(2:3,1),
-    # --- Twowaydensitycurves [] ---
-    # Key functions: getOption, plotDensityCurves
-    getOption("SweaveHooks")[["fig"]]()
-      plotDensityCurves(asx.results,path.index=125,xlim=c(-0.2,0.5),
-                        col=3,main="CYTOSOLIC DNA SENSING")
-      plotDensityCurves(sx.results,path.index=125,col=2,add=T)
-      plotDensityCurves(asx.vs.sx, path.index=125,col=1,add=T, lwd=3)
-    # --- Plotgsd [] ---
-    # Key functions: getOption, plotGeneSetDistributions
-    getOption("SweaveHooks")[["fig"]]()
-    plotGeneSetDistributions(sx.results,asx.results,path.index=125)
+    # --- Gene Set Enrichment Analysis ---
+    # Key functions: qusage, pdf.pVal, qsTable
+    labels <- c(rep("t0", 17), rep("t1", 17))
+    contrast <- "t1-t0"
+    qs.results <- qusage(eset, labels, contrast, ISG.geneSet)
+    p.vals <- pdf.pVal(qs.results)
+    q.vals <- p.adjust(p.vals, method = "fdr")
+    res.table <- qsTable(qs.results, number = 10)
+
+    # --- Linear Mixed Modeling ---
+    # Key functions: qgen, qsTable
+    fixedeffects <- ~Hours + Condition + Condition * Hours + Age + Gender
+    qusage.result.random <- qgen(
+        eset.full,
+        flu.meta,
+        fixed = fixedeffects,
+        contrast.factor = "Condition",
+        contrast = "sx77 - sx0",
+        geneSets = ISG.geneSet,
+        random = ~1 | Subject,
+        design.sampleid = "SampleID"
+    )
+    res.table.random <- qsTable(qusage.result.random)
+
+    # --- Meta-Analysis and PDF Combination ---
+    # Key functions: qusage, combinePDFs, pdf.pVal
+    qs.results.list <- lapply(c("GSE59635", "GSE59654"), function(n) {
+        eset <- fluVaccine$esets[[n]]
+        phenoData <- fluVaccine$phenoData[[n]]
+        labels <- paste(phenoData$responder, phenoData$bloodDrawDay, sep = ".")
+        qusage(eset, labels, "(high.d7-high.d0)-(low.d7-low.d0)",
+               BTM.geneSets, pairVector = phenoData$subjectId, n.points = 2^14)
+    })
+    combined <- combinePDFs(qs.results.list)
+    combined.pvals <- pdf.pVal(combined)
+
+    # --- Visualisation of Pathway Activation ---
+    # Key functions: plotDensityCurves, plotGeneSetDistributions, calcBayesCI, plotCIsGenes
+    plotDensityCurves(qs.results, path.index = 1:5, col = 1:5, lwd = 2)
+    plotGeneSetDistributions(qs.results)
+    ci.vals <- calcBayesCI(qs.results, low = 0.001)
+    plotCIsGenes(qs.results, path.index = 1)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

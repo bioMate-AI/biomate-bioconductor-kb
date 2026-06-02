@@ -38,53 +38,22 @@ process BIOC_NEWWAVE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(NewWave)
     library(Rtsne)
     library(jsonlite)
 
-    # --- Newsplatparams [] ---
-    # Key functions: newSplatParams, splatSimulateGroups
-    ---------------------------------------------------------------------
-    params <- newSplatParams()
-    N=500
-    set.seed(1234)
-    data <- splatSimulateGroups(params,batchCells=c(N/2,N/2),
-    # --- Coldata [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    colData(data)
-    # --- Factor [] ---
-    # Key functions: factor
-    ---------------------------------------------------------------------
-    data$Batch <- as.factor(data$Batch)
-    # --- Prcomp Irlba [] ---
-    # Key functions: prcomp_irlba, counts, frame, Rtsne
-    ---------------------------------------------------------------------
-    pca <- prcomp_irlba(t(counts(data)),n=10)
-    plot_data <-data.frame(Rtsne(pca$x)$Y)
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point
-    ---------------------------------------------------------------------
-    ggplot(plot_data, aes(x=X1,y=X2,col=group, shape=batch))+ geom_point()
-    # --- Newwave [] ---
+    # --- Latent Space Extraction [] ---
     # Key functions: newWave
-    ---------------------------------------------------------------------
-    res <- newWave(data,X = "~Batch", K=10, verbose = TRUE)
-    # --- Reduceddim [] ---
-    # Key functions: reducedDim, frame, Rtsne
-    ---------------------------------------------------------------------
-    latent <- reducedDim(res)
-    tsne_latent <- data.frame(Rtsne(latent)$Y)
+    latent <- SingleCellExperiment::reducedDim(res)
+    tsne_latent <- data.frame(Rtsne::Rtsne(latent)$Y)
     tsne_latent$batch <- data$Batch
     tsne_latent$group <- data$Group
-    # --- Ggplot [] ---
-    # Key functions: ggplot, aes, geom_point
-    ---------------------------------------------------------------------
-    ggplot(tsne_latent, aes(x=X1,y=X2,col=group, shape=batch))+ geom_point()
-    # --- Kmeans [] ---
-    # Key functions: kmeans, adjustedRandIndex
-    ---------------------------------------------------------------------
+
+
+    # --- Clustering and Evaluation [] ---
+    # Key functions: newWave
     cluster <- kmeans(latent, 10)
-    adjustedRandIndex(cluster$cluster, data$Group)
+    ari <- mclust::adjustedRandIndex(cluster$cluster, data$Group)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

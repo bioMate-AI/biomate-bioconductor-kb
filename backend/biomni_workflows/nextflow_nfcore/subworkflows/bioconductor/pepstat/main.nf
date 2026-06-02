@@ -41,11 +41,27 @@ process BIOC_PEPSTAT {
     library(pepStat)
     library(jsonlite)
 
-    # --- PeptideSet analysis [] ---
-    # Key functions: makePeptideSet, plotArrayImage, plotArrayResiduals, create_db, summarizePeptides, normalizeArray, slidingMean, makeCalls
-    mapFile <- system.file("extdata/mapping.csv", package = "pepDat")
-    dirToParse <- system.file("extdata/gpr_samples", package = "pepDat")
-    pSet <- makePeptideSet(files = NULL, path = dirToParse,
+    # --- Peptide Summarisation and Normalisation [] ---
+    # Key functions: summarizePeptides, normalizeArray, slidingMean
+    psSet <- summarizePeptides(
+        pSet,
+        summary = "mean",
+        position = pep_custom
+    )
+    pnSet <- normalizeArray(psSet)
+    psmSet <- slidingMean(pnSet, width = 9)
+
+
+    # --- Statistical Calling and Summary [] ---
+    # Key functions: makeCalls, restab
+    calls <- makeCalls(
+        psmSet,
+        freq = TRUE,
+        group = "treatment",
+        cutoff = 0.1,
+        method = "FDR"
+    )
+    summary_tab <- restab(psmSet, calls)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

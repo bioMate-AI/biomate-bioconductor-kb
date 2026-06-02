@@ -38,111 +38,61 @@ process BIOC_MSA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(msa)
     library(DNAMultipleAlignment)
     library(IRanges)
     library(jsonlite)
 
+    # --- Alignment Masking [] ---
+    # Key functions: colmask, unmasked
+    masked_aln <- aln_default
+    col_mask <- IRanges::IRanges(start=1, end=100)
+    BiocGenerics::colmask(masked_aln) <- col_mask
+    unmasked_seqs <- Biostrings::unmasked(masked_aln)
 
-    # --- Load Package To Determine Version [] ---
-    # Key functions: packageDescription, substr, msa, readAAStringSet, examples, exampleAA.fasta, complete
-    options(width=65)
-    set.seed(0)
-    library(msa)
-    library(seqinr)
-    msaVersion <- packageDescription("msa")$Version
-    msaDateRaw <- packageDescription("msa")$Date
-    msaDateYear <- as.numeric(substr(msaDateRaw, 1, 4))
-    msaDateMonth <- as.numeric(substr(msaDateRaw, 6, 7))
-    msaDateDay <- as.numeric(substr(msaDateRaw, 9, 10))
-    msaDate <- paste(month.name[msaDateMonth], " ",
-    mySequenceFile <- system.file("examples", "exampleAA.fasta", package="msa")
-    mySequences <- readAAStringSet(mySequenceFile)
-    mySequences
-    myFirstAlignment <- msa(mySequences)
-    myFirstAlignment
-    print(myFirstAlignment, show="complete")
 
-    # --- Visualize Pdf [] ---
-    # Key functions: msaPrettyPrint, asis, none, msa, complete, IRanges, colmask
-    msaPrettyPrint(myFirstAlignment, y=c(164, 213), output="asis",
-                   showNames="none", showLogo="none", askForOverwrite=FALSE)
-    myClustalWAlignment <- msa(mySequences, "ClustalW")
-    myClustalWAlignment
-    myClustalOmegaAlignment <- msa(mySequences, "ClustalOmega")
-    myClustalOmegaAlignment
-    myMuscleAlignment <- msa(mySequences, "Muscle")
-    myMuscleAlignment
-    print(myFirstAlignment)
-    print(myFirstAlignment, show="complete")
-    print(myFirstAlignment, showConsensus=FALSE, halfNrow=3)
-    print(myFirstAlignment, showNames=FALSE, show="complete")
-    myMaskedAlignment <- myFirstAlignment
-    colM <- IRanges(start=1, end=100)
-    colmask(myMaskedAlignment) <- colM
-    myMaskedAlignment
+    # --- Consensus Sequence Generation [] ---
+    # Key functions: consensusMatrix, msaConsensusSequence
+    con_mat <- Biostrings::consensusMatrix(aln_default)
+    con_seq_default <- msaConsensusSequence(aln_default)
+    con_seq_custom <- msaConsensusSequence(
+        aln_default,
+        type="upperlower",
+        thresh=c(40, 20)
+    )
 
-    # --- Unmasked Example [] ---
-    # Key functions: unmasked, consensusMatrix, function, getOption, for, substr, printSplitString, msaConsensusSequence
-    unmasked(myMaskedAlignment)
-    conMat <- consensusMatrix(myFirstAlignment)
-    dim(conMat)
-    conMat[, 101:110]
-    conMat <- consensusMatrix(myMaskedAlignment)
-    conMat[, 95:104]
-    printSplitString <- function(x, width=getOption("width") - 1)
-    {
-        starts <- seq(from=1, to=nchar(x), by=width)
 
-        for (i in 1:length(starts))
-            cat(substr(x, starts[i], starts[i] + width - 1), "\n")
-    }
+    # --- Conservation Scoring [] ---
+    # Key functions: msaConservationScore
+    data(BLOSUM62, package="pwalign")
+    scores_default <- msaConservationScore(aln_default, BLOSUM62)
+    scores_custom <- msaConservationScore(
+        aln_default,
+        BLOSUM62,
+        gapVsGap=0,
+        type="upperlower",
+        thresh=c(40, 20)
+    )
 
-    printSplitString(msaConsensusSequence(myFirstAlignment))
 
-    # --- Consensus Example4 [] ---
-    # Key functions: printSplitString, msaConsensusSequence, upperlower, msaConservationScore
-    printSplitString(msaConsensusSequence(myFirstAlignment, type="upperlower",
-                                          thresh=c(40, 20)))
-    printSplitString(msaConsensusSequence(myMaskedAlignment, type="upperlower",
-                                          thresh=c(40, 20)))
-    library(pwalign)  # for the BLOSUM62 matrix
-    data(BLOSUM62)
-    msaConservationScore(myFirstAlignment, BLOSUM62)
-    msaConservationScore(myFirstAlignment, BLOSUM62, gapVsGap=0,
-                         type="upperlower", thresh=c(40, 20))
+    # --- Format Conversion for Phylogeny [] ---
+    # Key functions: msaConvert
+    seqinr_aln <- msaConvert(aln_default, type="seqinr::alignment")
+    dist_mat <- seqinr::dist.alignment(seqinr_aln, "identity")
+    tree <- ape::nj(dist_mat)
+    bios_aln <- msaConvert(aln_default, type="bios2mds::align")
 
-    # --- Conservation Example3 [] ---
-    # Key functions: msaConservationScore, upperlower, readAAStringSet, msa, msaConvert, dist.alignment, HBA1_Homo_sapiens
-    msaConservationScore(myMaskedAlignment, BLOSUM62, gapVsGap=0,
-                         type="upperlower", thresh=c(40, 20))
-    hemoSeq <- readAAStringSet(system.file("examples/HemoglobinAA.fasta",
-                                           package="msa"))
-    hemoAln <- msa(hemoSeq)
-    hemoAln
-    hemoAln2 <- msaConvert(hemoAln, type="seqinr::alignment")
-    library(seqinr)
 
-    d <- dist.alignment(hemoAln2, "identity")
-    as.matrix(d)[2:5, "HBA1_Homo_sapiens", drop=FALSE]
-    library(ape)
-
-    hemoTree <- nj(d)
-    plot(hemoTree, main="Phylogenetic Tree of Hemoglobin Alpha Sequences")
-
-    # --- Hemoglobin3 [] ---
-    # Key functions: msaConvert, str, msaPrettyPrint, asis, none, top, rasmol, similar
-    hemoAln3 <- msaConvert(hemoAln, type="bios2mds::align")
-    str(hemoAln3)
-    hemoAln4 <- as(hemoAln, "BStringSet")
-    hemoAln4
-    msaPrettyPrint(myFirstAlignment, output="asis", y=c(164, 213),
-                   subset=c(1:6), showNames="none", showLogo="none",
-                   consensusColor="ColdHot", showLegend=FALSE,
-                   askForOverwrite=FALSE)
-    msaPrettyPrint(myFirstAlignment, output="asis", y=c(164, 213),
-                   subset=c(1:6), showNames="none", showLogo="top",
-                   logoColors="rasmol", shadingMode="similar",
-                   showLegend=FALSE, askForOverwrite=FALSE)
+    # --- Alignment Visualization [] ---
+    # Key functions: msaPrettyPrint
+    msaPrettyPrint(
+        aln_default,
+        y=c(164, 213),
+        output="pdf",
+        showNames="none",
+        showLogo="none",
+        askForOverwrite=FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

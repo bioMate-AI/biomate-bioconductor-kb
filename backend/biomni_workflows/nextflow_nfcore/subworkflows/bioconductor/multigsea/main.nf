@@ -41,16 +41,43 @@ process BIOC_MULTIGSEA {
     library(multiGSEA)
     library(jsonlite)
 
-    # --- Slice coverage by threshold [] ---
-    # Key functions: arrange, slice
-    (here: transcriptome), feature IDs, log2FCs, and p-values
-    knitr::kable(
-    dplyr::arrange(Symbol) %>%
-    # --- Table formatting and display [] ---
-    # Key functions: install_github, kable, initOmicsDataStructure, getMultiOmicsFeatures, multiGSEA, extractPvalues, msigdbr, unstack
-    omics_data <- initOmicsDataStructure(layer = c(
-    omics_data$transcriptome <- rankFeatures(
-    names(omics_data$transcriptome) <- transcriptome$Symbol
+    # --- Pathway Feature Retrieval [] ---
+    # Key functions: getMultiOmicsFeatures
+    databases <- c("kegg", "reactome")
+    layers <- c("transcriptome", "proteome", "metabolome")
+    pathways <- getMultiOmicsFeatures(
+        dbs = databases,
+        layer = layers,
+        returnTranscriptome = "SYMBOL",
+        returnProteome = "SYMBOL",
+        returnMetabolome = "HMDB",
+        useLocal = FALSE
+    )
+
+
+    # --- Multi-Omics Enrichment Analysis [] ---
+    # Key functions: multiGSEA
+    enrichment_scores <- multiGSEA(
+        pathways = pathways,
+        omicsData = omics_data
+    )
+
+
+    # --- P-value Extraction and Combination [] ---
+    # Key functions: extractPvalues, combinePvalues
+    df <- extractPvalues(
+        enrichmentScores = enrichment_scores,
+        pathwayNames = names(pathways[[1]])
+    )
+    df$combined_pval <- combinePvalues(df)
+    df$combined_padj <- p.adjust(
+        df$combined_pval,
+        method = "BH"
+    )
+    results <- cbind(
+        data.frame(pathway = names(pathways[[1]])),
+        df
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

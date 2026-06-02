@@ -41,40 +41,56 @@ process BIOC_DISCORDANT {
     library(discordant)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    # Load data
+    # --- Outlier Filtering [Data Preprocessing] ---
+    # Key functions: splitMADOutlier
+    data(TCGA_Breast_miRNASeq)
+    mat.filtered <- splitMADOutlier(
+        TCGA_Breast_miRNASeq,
+        filter0 = TRUE,
+        threshold = 4
+    )
+
+    # --- Correlation Vector Generation [Feature Extraction] ---
+    # Key functions: createVectors
     data(TCGA_GBM_miRNA_microarray)
     data(TCGA_GBM_transcript_microarray)
-    # --- Data [] ---
-    # Key functions: splitMADOutlier
-    ---------------------------------------------------------------------
-    data(TCGA_Breast_miRNASeq)
-    mat.filtered <- splitMADOutlier(TCGA_Breast_miRNASeq,
-                                    filter0 = TRUE,
-                                    threshold = 4)
-    # --- Discordantrun [] ---
+    groups <- c(rep(1, 10), rep(2, 20))
+    btwn_vectors <- createVectors(
+        x = TCGA_GBM_miRNA_microarray,
+        y = TCGA_GBM_transcript_microarray,
+        groups = groups
+    )
+
+    # --- Discordance Analysis [Differential Association] ---
     # Key functions: discordantRun
-    ---------------------------------------------------------------------
-    # Within -omics
-    wthn_result <- discordantRun(v1 = wthn_vectors$v1,
-                                 v2 = wthn_vectors$v2,
-                                 x = TCGA_GBM_transcript_microarray)
-    # --- Data [] ---
+    btwn_result <- discordantRun(
+        v1 = btwn_vectors$v1,
+        v2 = btwn_vectors$v2,
+        x = TCGA_GBM_miRNA_microarray,
+        y = TCGA_GBM_transcript_microarray
+    )
+    prob_matrix <- btwn_result$probMatrix
+    class_matrix <- btwn_result$classMatrix
+
+    # --- Subsampled Discordance Analysis [Robust Estimation] ---
     # Key functions: createVectors, discordantRun
-    ---------------------------------------------------------------------
-    # Load Data
     data(TCGA_Breast_miRNASeq_voom)
     data(TCGA_Breast_RNASeq_voom)
-    # Prepare groups
-    # --- Discordantrun [] ---
-    # Key functions: discordantRun
-    ---------------------------------------------------------------------
-    # Between -omics
-    btwn_result <- discordantRun(v1 = btwn_vectors$v1,
-                                 v2 = btwn_vectors$v2,
-                                 x = TCGA_GBM_miRNA_microarray,
+    groups_sub <- c(rep(1, 15), rep(2, 42))
+    sub_vectors <- createVectors(
+        x = TCGA_Breast_miRNASeq_voom,
+        y = TCGA_Breast_RNASeq_voom,
+        groups = groups_sub
+    )
+    sub_result <- discordantRun(
+        v1 = sub_vectors$v1,
+        v2 = sub_vectors$v2,
+        x = TCGA_Breast_miRNASeq_voom,
+        y = TCGA_Breast_RNASeq_voom,
+        components = 3,
+        subsampling = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

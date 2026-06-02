@@ -38,17 +38,28 @@ process BIOC_DOPPELGANGR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(doppelgangR)
     library(ExpressionSet)
     library(jsonlite)
 
-    # --- doppelgang R [] ---
+    # --- Doppelganger Detection [] ---
     # Key functions: doppelgangR
-    results1 <- doppelgangR(testesets, phenoFinder.args=NULL)
-    # --- doppelgang R [] ---
-    # Key functions: doppelgangR, ExpressionSet
-    results1 <- doppelgangR(testesets,
-    outlierFinder.expr.args = list(bonf.prob = 1.0, transFun = atanh,
-    mat <- matrix(1:4, ncol=2)
+    results <- doppelgangr::doppelgangR(
+        testesets,
+        phenoFinder.args = NULL,
+        outlierFinder.expr.args = list(
+            bonf.prob = 1.0,
+            transFun = atanh,
+            tail = "upper"
+        )
+    )
+
+
+    # --- Quality Control Visualization [] ---
+    # Key functions: summary, plot
+    summary(results)
+    plot(results)
+    plot(results, plot.pair=c("DatasetA", "DatasetA"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

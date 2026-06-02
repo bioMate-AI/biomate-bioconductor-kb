@@ -41,11 +41,19 @@ process BIOC_RFASTP {
     library(Rfastp)
     library(jsonlite)
 
-    # --- rfastp [] ---
-    # Key functions: rfastp, catfastq, qcSummary, curvePlot, trimSummary
-    umi_json_report <- rfastp(read1 = pe_read1, read2 = pe_read2,
-    outputFastq = paste0(outputPrefix, '_umi2'), umi = TRUE, umiLoc = "read1",
-    clipr_json_report <- rfastp(read1 = se_read1,
+    # --- Summary Statistics Extraction [] ---
+    # Key functions: qcSummary, trimSummary
+    qc_stats <- Rfastp::qcSummary(se_json_report)
+    trim_stats <- Rfastp::trimSummary(se_json_report)
+
+
+    # --- Quality Visualization [] ---
+    # Key functions: curvePlot
+    p1 <- Rfastp::curvePlot(se_json_report)
+    p2 <- Rfastp::curvePlot(
+        se_json_report,
+        curve = "content_curves"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

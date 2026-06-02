@@ -41,66 +41,33 @@ process BIOC_WIGGLEPLOTR {
     library(wiggleplotr)
     library(jsonlite)
 
-    # --- Plottranscripts [] ---
-    # Key functions: plotTranscripts
-    ---------------------------------------------------------------------
-    plotTranscripts(ncoa7_exons, ncoa7_cdss, ncoa7_metadata, rescale_introns = FALSE)
-    # --- Data Frame [] ---
-    # Key functions: data_frame, factor, mutate, frame
-    ---------------------------------------------------------------------
-    sample_data = dplyr::data_frame(
-      sample_id = c("aipt_A", "aipt_C", "bima_A", "bima_C"),
-      condition = factor(c("Naive", "LPS", "Naive", "LPS"), levels = c("Naive", "LPS")),
-      scaling_factor = 1)
-    # --- Mutate [] ---
-    # Key functions: mutate
-    ---------------------------------------------------------------------
-    track_data = dplyr::mutate(sample_data, track_id = condition, colour_group = condition)
-    # --- Plotcoverage [] ---
+    # --- Coverage Plotting [] ---
     # Key functions: plotCoverage, getGenotypePalette
-    ---------------------------------------------------------------------
-    plotCoverage(ncoa7_exons[selected_transcripts], ncoa7_cdss[selected_transcripts],
-                 ncoa7_metadata, track_data,
-                 heights = c(2,1), fill_palette = getGenotypePalette(), mean_only = FALSE, alpha = 0.5)
-    # --- Mutate [] ---
-    # Key functions: mutate, plotCoverage, getGenotypePalette
-    ---------------------------------------------------------------------
-    track_data = dplyr::mutate(sample_data, track_id = "RNA-seq", colour_group = condition)
-    plotCoverage(ncoa7_exons[selected_transcripts], ncoa7_cdss[selected_transcripts],
-                ncoa7_metadata, track_data,
-                 heights = c(2,1), fill_palette = getGenotypePalette(), coverage_type = "line")
-    # --- Plottranscriptsfromensembldb [] ---
+    track_data <- data.frame(
+        sample_id = c("S1", "S2"),
+        condition = factor(c("Ctrl", "Trt")),
+        scaling_factor = c(1, 1),
+        bigWig = c("s1.bw", "s2.bw"),
+        track_id = c("Ctrl", "Trt"),
+        colour_group = c("Ctrl", "Trt")
+    )
+    p2 <- plotCoverage(
+        exons,
+        cdss,
+        tx_meta,
+        track_data,
+        heights = c(2, 1),
+        fill_palette = getGenotypePalette()
+    )
+
+
+    # --- Database Integration [] ---
     # Key functions: plotTranscriptsFromEnsembldb
-    ---------------------------------------------------------------------
-    library("ensembldb")
-    library("EnsDb.Hsapiens.v86")
-    plotTranscriptsFromEnsembldb(EnsDb.Hsapiens.v86, gene_names = "NCOA7",
-                                 transcript_ids = c("ENST00000438495", "ENST00000392477"))
-    # --- Plottranscriptsfromucsc [] ---
-    # Key functions: plotTranscriptsFromUCSC
-    ---------------------------------------------------------------------
-    #Load OrgDb and TxDb objects with UCSC gene annotations
-    require("org.Hs.eg.db")
-    require("TxDb.Hsapiens.UCSC.hg38.knownGene")
-    plotTranscriptsFromUCSC(orgdb = org.Hs.eg.db, txdb = TxDb.Hsapiens.UCSC.hg38.knownGene,
-    # --- Usemart [] ---
-    # Key functions: useMart, useDataset
-    ---------------------------------------------------------------------
-    ensembl_mart = useMart("ENSEMBL_MART_ENSEMBL", host = "jan2020.archive.ensembl.org")
-    ensembl_dataset = useDataset("hsapiens_gene_ensembl",mart=ensembl_mart)
-    ensembl_dataset
-    # --- Listattributes [] ---
-    # Key functions: listAttributes
-    ---------------------------------------------------------------------
-    attributes = listAttributes(ensembl_dataset)
-    head(attributes)
-    # --- Rename [] ---
-    # Key functions: rename
-    ---------------------------------------------------------------------
-    data = dplyr::rename(data,
-                         transcript_id = ensembl_transcript_id,
-                         gene_id = ensembl_gene_id,
-                         gene_name = external_gene_name)
+    p3 <- plotTranscriptsFromEnsembldb(
+        ensdb = "mock_ensdb",
+        gene_names = "NCOA7",
+        transcript_ids = c("ENST00000438495")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

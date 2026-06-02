@@ -41,21 +41,57 @@ process BIOC_QMTOOLS {
     library(qmtools)
     library(jsonlite)
 
-    # --- Hierarchical clustering [] ---
-    # Key functions: rowData, hclust
-    rts <- rowData(se)$rtmed
-    fit <- hclust(dist(rts, "manhattan"))
-    plot(as.dendrogram(fit), leaflab = "none")
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: imputeIntensity, assay, ggplot, geom_point
-    se <- imputeIntensity(faahko_se, i = "raw", name = "knn", method = "knn")
-    m <- assay(faahko_se, "raw")
-    knn_scaled <- as.data.frame(
-    # --- Feature metadata inspection [] ---
-    # Key functions: plotMiss, normalizeIntensity, plotBox, reduceFeatures, plotReduced, clusterFeatures, rowData, plotRTgroup
-    se <- normalizeIntensity(se, i = "knn", name = "knn_vsn", method = "vsn")
-    p1 <- plotBox(se, i = "knn", group = g, log2 = TRUE) # before normalization
-    p2 <- plotBox(se, i = "knn_vsn", group = g) # after normalization
+    # --- Intensity Imputation [] ---
+    # Key functions: imputeIntensity
+    se_imputed <- imputeIntensity(
+        se_filtered, i = "raw",
+        name = "knn", method = "knn"
+    )
+
+
+    # --- Intensity Normalization [] ---
+    # Key functions: normalizeIntensity, plotBox
+    se_norm <- normalizeIntensity(
+        se_imputed, i = "knn",
+        name = "knn_vsn", method = "vsn"
+    )
+    p1 <- plotBox(se_norm, i = "knn", group = g, log2 = TRUE)
+    p2 <- plotBox(se_norm, i = "knn_vsn", group = g)
+
+
+    # --- Dimensionality Reduction [] ---
+    # Key functions: reduceFeatures, plotReduced
+    m_pca <- reduceFeatures(
+        se_norm, i = "knn_vsn",
+        method = "pca", ncomp = 2
+    )
+    m_plsda <- reduceFeatures(
+        se_norm, i = "knn_vsn",
+        method = "plsda", ncomp = 2, y = g
+    )
+    p_pca <- plotReduced(m_pca, group = g)
+    p_plsda <- plotReduced(m_plsda, label = TRUE, ellipse = TRUE)
+
+
+    # --- Feature Clustering [] ---
+    # Key functions: clusterFeatures, plotRTgroup
+    se_clust <- clusterFeatures(
+        se_norm, i = "knn_vsn",
+        rtime_var = "rtmed",
+        rt_cut = 10, cor_cut = 0.7,
+        cor_grouping = "louvain"
+    )
+    plotRTgroup(se_clust, i = "knn_vsn", group = "FG.22")
+
+
+    # --- Differential Abundance Analysis [] ---
+    # Key functions: compareSamples
+    fit <- compareSamples(
+        se_clust, i = "knn_vsn",
+        group = "sample_group",
+        class1 = "WT", class2 = "KO"
+    )
+    head(fit, 5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

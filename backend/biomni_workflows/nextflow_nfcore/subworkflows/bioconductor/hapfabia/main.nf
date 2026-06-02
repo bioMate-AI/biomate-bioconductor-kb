@@ -38,85 +38,54 @@ process BIOC_HAPFABIA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(hapFabia)
     library(SNVs)
     library(jsonlite)
 
-    # --- Makevcffile [] ---
-    # Key functions: write
-    data(chr1ASW1000G)
-    write(chr1ASW1000G,file="chr1ASW1000G.vcf")
-    # --- Createpipeline [] ---
-    # Key functions: makePipelineFile
-    makePipelineFile(fileName="chr1ASW1000G",shiftSize=500,
-                     intervalSize=1000,haplotypes=TRUE)
-    # --- Listfiles [] ---
-    # Key functions: files
-    list.files(pattern="chr1")
-    # --- Showresultsummary [] ---
-    # Key functions: SNVs
-    print("Number IBD segments:")
-    print(anaRes$noIBDsegments)
-    print("Statistics on IBD segment length in SNVs (all SNVs in the IBD segment):")
-    print(anaRes$avIBDsegmentLengthSNVS)
-    print("Statistics on IBD segment length in bp:")
-    # --- Createdata [] ---
-    # Key functions: write
-    data(simu)
-    namesL <- simu[["namesL"]]
-    haploN <- simu[["haploN"]]
-    snvs <- simu[["snvs"]]
-    annot <- simu[["annot"]]
-    # --- Callhapfabia [] ---
+    # --- Haplotype Biclustering [] ---
     # Key functions: hapFabia
-    hapRes <- hapFabia(fileName="dataSim1fabia",prefixPath="",
-       sparseMatrixPostfix="_mat",
-       annotPostfix="_annot.txt",individualsPostfix="_individuals.txt",
-       labelsA=NULL,pRange="",individuals=0,lowerBP=0,upperBP=0.15,
-       p=10,iter=1,quant=0.01,eps=1e-5,alpha=0.03,cyc=50,non_negative=1,
-    # --- Secondexampledata [] ---
+    hapRes <- hapFabia(
+        fileName = "dataSim1fabia",
+        prefixPath = "",
+        sparseMatrixPostfix = "_mat",
+        annotPostfix = "_annot.txt",
+        individualsPostfix = "_individuals.txt",
+        p = 10,
+        iter = 1,
+        quant = 0.01,
+        eps = 1e-5,
+        alpha = 0.03,
+        cyc = 50,
+        non_negative = 1,
+        write_file = 0,
+        norm = 0,
+        lap = 100.0,
+        IBDsegmentLength = 10
+    )
+
+
+    # --- Simulation of IBD Segments [] ---
     # Key functions: simulateIBDsegmentsFabia
-    simulateIBDsegmentsFabia(minruns=2,maxruns=2)
-    # --- Secondexamplecallhapfabia [] ---
-    # Key functions: hapFabia
-    hapRes <- hapFabia(fileName="dataSim2fabia",prefixPath="",
-       sparseMatrixPostfix="_mat",
-       annotPostfix="_annot.txt",individualsPostfix="_individuals.txt",
-       labelsA=NULL,pRange="",individuals=0,lowerBP=0,upperBP=0.15,
-       p=10,iter=1,quant=0.01,eps=1e-5,alpha=0.03,cyc=50,non_negative=1,
-    # --- Histograms [] ---
-    # Key functions: histL
-    data(res)
-    h1 <- histL(res,n=1,p=0.9,w=NULL,intervv=50,off=0)
-    print(h1$counts)
-    h1 <- histL(res,n=1,p=NULL,w=0.5,intervv=50,off=0)
-    print(h1$counts)
-    # --- Plotlhistp [] ---
-    # Key functions: plotL
-    data(res)
-    plotL(res,n=1,p=0.95,w=NULL,type="histogram",intervv=50,off=0,t="p",cex=1)
-    # --- Plotlpointsp [] ---
-    # Key functions: plotL
-    data(res)
-    plotL(res,n=1,p=0.95,w=NULL,type="points",intervv=50,off=0,t="p",cex=1)
-    # --- Plotlpointsw [] ---
-    # Key functions: plotL
-    data(res)
-    plotL(res,n=1,p=NULL,w=0.5,type="histogram",intervv=50,off=0,t="p",cex=1)
-    # --- Plotlsmoothp [] ---
-    # Key functions: plotL
-    data(res)
-    plotL(res,n=1,p=0.95,w=NULL,type="smooth",intervv=50,off=0,t="p",cex=1)
-    # --- Plotlsmoothw [] ---
-    # Key functions: plotL
-    data(res)
-    plotL(res,n=1,p=NULL,w=0.5,type="smooth",intervv=50,off=0,t="p",cex=1)
-    # --- Toplz [] ---
-    # Key functions: topLZ
-    data(res)
-    topLZ(res,n=1,LZ="L",indices=TRUE,p=0.95,w=NULL)
-    topLZ(res,n=1,LZ="L",indices=TRUE,p=NULL,w=0.95)
-    topLZ(res,n=1,LZ="Z",indices=TRUE,p=0.95,w=NULL)
-    topLZ(res,n=1,LZ="Z",indices=TRUE,p=NULL,w=0.4)
+    sim_res <- simulateIBDsegmentsFabia(
+        minruns = 2,
+        maxruns = 2
+    )
+
+
+    # --- Visualisation and Plotting [] ---
+    # Key functions: histL, plotL
+    h1 <- histL(res, n = 1, p = 0.9, w = NULL, intervv = 50, off = 0)
+    plotL(
+        res,
+        n = 1,
+        p = 0.95,
+        w = NULL,
+        type = "histogram",
+        intervv = 50,
+        off = 0,
+        t = "p",
+        cex = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,31 +41,27 @@ process BIOC_GSVA {
     library(GSVA)
     library(jsonlite)
 
-    # --- gsva Param [] ---
+    # --- GSVA Parameter Configuration [] ---
     # Key functions: gsvaParam
-    library(GSVA)
-    X <- matrix(rnorm(p*n), nrow=p,
-    dimnames=list(paste0("g", 1:p), paste0("s", 1:n)))
-    # --- color Ramp Palette [] ---
-    # Key functions: colorRampPalette, heatmap
-    library(RColorBrewer)
-    subtypeOrder <- c("Proneural", "Neural", "Classical", "Mesenchymal")
-    sampleOrderBySubtype <- sort(match(gbm_es$subtype, subtypeOrder),
-    # --- Empirical Bayes moderation (limma) [] ---
-    # Key functions: geneSetSizes, eBayes, decideTests
-    gssizes <- geneSetSizes(leukemia_es)
-    plot(sqrt(gssizes), sqrt(fit$sigma), xlab="Sqrt(gene sets sizes)",
-    ylab="Sqrt(standard deviation)", las=1, pch=".", cex=3)
-    # --- Get top DE genes table (limma) [] ---
-    # Key functions: topTable
-    tt <- topTable(fit, coef=2, n=Inf)
-    DEpwys <- rownames(tt)[tt$adj.P.Val <= 0.01]
-    plot(tt$logFC, -log10(tt$P.Value), pch=".", cex=4, col=grey(0.75),
-    # --- Hierarchical clustering [] ---
-    # Key functions: exprs, hclust, heatmap
-    DEpwys_es <- exprs(leukemia_es[DEpwys, ])
-    colorLegend <- c("darkred", "darkblue")
-    names(colorLegend) <- c("ALL", "MLL")
+    expr_matrix <- matrix(rnorm(1000), nrow=100, ncol=10,
+                          dimnames=list(paste0("g", 1:100), paste0("s", 1:10)))
+    gsva_params <- gsvaParam(expr_matrix, gsc,
+                             minSize=2, maxSize=500,
+                             kcdf="Gaussian")
+
+
+    # --- GSVA Enrichment Calculation [] ---
+    # Key functions: gsva
+    gsva_results <- gsva(gsva_params, verbose=FALSE)
+    enrichment_scores <- as.matrix(gsva_results)
+
+
+    # --- SSGSEA Enrichment Calculation [] ---
+    # Key functions: ssgseaParam, gsva
+    ssgsea_params <- ssgseaParam(expr_matrix, gsc,
+                                 minSize=2, maxSize=500,
+                                 normalization=TRUE)
+    ssgsea_results <- gsva(ssgsea_params, verbose=FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,70 +38,44 @@ process BIOC_SCDD {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scDD)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- curve [] ---
-    # Key functions: curve, polygon
-    interesting DD patterns (illustration purposes only)
-    par(mfrow=c(2,2), tcl=-0.5, mai=c(0.4,0.4,0.5,0.3))
-    x <- seq(0, 6, by=0.05)
-    # --- sc D D [] ---
-    # Key functions: scDD
-    scDatExSim <- scDD(scDatExSim, prior_param=prior_param, testZeroes=FALSE)
-    # --- Extract differential expression results [] ---
-    # Key functions: results
-    RES <- results(scDatExSim)
-    head(RES)
-    # --- main engine perm [] ---
-    # Key functions: scDD
-    scDatExSim <- scDD(scDatExSim, prior_param=prior_param,
-    # --- simulate Set [] ---
-    # Key functions: simulateSet
-    SD <- simulateSet(scDatEx, numSamples=numSamples,
-    nEE=nEE, nEP=nEP, sd.range=c(2,2), modeFC=4, plots=FALSE,
-    library(SingleCellExperiment)
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, show
-    sce <- SingleCellExperiment(assays=list(normcounts=cbind(scDatExList$C1,
-    colData=data.frame(condition))
-    show(sce)
-    # --- load exdat3e [] ---
-    # Key functions: show
+    # --- Data Preprocessing [preprocess] ---
+    # Key functions: preprocess
     data(scDatEx)
-    show(scDatEx)
-    # --- preprocess [] ---
-    # Key functions: preprocess, show
-    scDatEx <- preprocess(scDatEx, zero.thresh=0.9)
-    show(scDatEx)
-    # --- show [] ---
-    # Key functions: show
-    scDatEx.scran <- preprocess(scDatEx, zero.thresh=0.5, scran_norm=TRUE)
-    show(scDatEx.scran)
-    # --- plot DE [] ---
+    scDatEx_filtered <- preprocess(scDatEx, zero.thresh=0.9)
+    scDatEx_scran <- preprocess(scDatEx, zero.thresh=0.5, scran_norm=TRUE)
+
+    # --- Dataset Simulation [simulateSet] ---
+    # Key functions: simulateSet
+    data(scDatEx)
+    simulated_set <- simulateSet(scDatEx, numSamples=50, 
+                                 nDE=5, nDP=5, nDM=5, nDB=5, 
+                                 nEE=5, nEP=5, sd.range=c(2,2), 
+                                 modeFC=4, plots=FALSE, 
+                                 random.seed=816)
+
+    # --- Differential Distribution Analysis [scDD] ---
+    # Key functions: scDD, results
+    data(scDatExSim)
+    prior_param <- list(alpha=0.01, mu0=0, s0=0.01, a0=0.01, b0=0.01)
+    scDatExSim_analyzed <- scDD(scDatExSim, prior_param=prior_param, 
+                                testZeroes=FALSE, permutations=10)
+    res_table <- results(scDatExSim_analyzed)
+    partition_c1 <- results(scDatExSim_analyzed, type="Zhat.c1")
+
+    # --- Visualisation [sideViolin] ---
     # Key functions: sideViolin
-    de <- sideViolin(normcounts(scDatExSim)[1,], scDatExSim$condition,
-    title.gene=rownames(scDatExSim)[1])
-    # --- plot DP [] ---
-    # Key functions: sideViolin
-    dp <- sideViolin(normcounts(scDatExSim)[6,], scDatExSim$condition,
-    title.gene=rownames(scDatExSim)[6])
-    # --- plot DM [] ---
-    # Key functions: sideViolin
-    dm <- sideViolin(normcounts(scDatExSim)[11,], scDatExSim$condition,
-    title.gene=rownames(scDatExSim)[11])
-    # --- plot DB [] ---
-    # Key functions: sideViolin
-    db <- sideViolin(normcounts(scDatExSim)[16,], scDatExSim$condition,
-    title.gene=rownames(scDatExSim)[16])
-    # --- plot EP [] ---
-    # Key functions: sideViolin
-    ep <- sideViolin(normcounts(scDatExSim)[21,], scDatExSim$condition,
-    title.gene=rownames(scDatExSim)[21])
-    # --- plot EE [] ---
-    # Key functions: sideViolin
-    ee <- sideViolin(normcounts(scDatExSim)[26,], scDatExSim$condition,
-    title.gene=rownames(scDatExSim)[26])
+    data(scDatExSim)
+    de_violin <- sideViolin(SingleCellExperiment::normcounts(scDatExSim)[1,], 
+                            scDatExSim$condition, 
+                            title.gene=rownames(scDatExSim)[1])
+    dp_violin <- sideViolin(SingleCellExperiment::normcounts(scDatExSim)[6,], 
+                            scDatExSim$condition, 
+                            title.gene=rownames(scDatExSim)[6])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,30 +41,49 @@ process BIOC_SECHM {
     library(sechm)
     library(jsonlite)
 
-    # --- colors in object [] ---
-    # Key functions: metadata, sechm
-    metadata(SE)$hmcols <- c("darkred","white","darkblue")
-    sechm(SE, g, do.scale = TRUE)
-    # --- anno in object [] ---
-    # Key functions: metadata
-    metadata(SE)$default_view <- list(
-    # --- colors in options [] ---
-    # Key functions: setSechmOption, sechm, resetAllSechmOptions, metadata
-    setSechmOption("hmcols", value=c("white","grey","black"))
-    sechm(SE, g, do.scale = TRUE)
-    resetAllSechmOptions()
-    # --- sechm [] ---
+    # --- Heatmap Customization and Annotation [] ---
     # Key functions: sechm
-    sechm(SE, features=g) + sechm(SE, features=g)
-    # --- assays [] ---
-    # Key functions: assays, crossHm
-    assays(SE2)$logcpm <- jitter(assays(SE2)$logcpm, factor=1000)
-    crossHm(list(SE1=SE, SE2=SE2), g, do.scale = TRUE,
-    top_annotation=c("Condition","Time"))
-    # --- cross Hm [] ---
+    SummarizedExperiment::rowData(SE)$meanLogCPM <- rowMeans(
+        SummarizedExperiment::assays(SE)$logcpm
+    )
+    sechm(
+        SE,
+        features = g,
+        assayName = "logFC",
+        top_annotation = c("Condition", "Time"),
+        left_annotation = c("meanLogCPM"),
+        gaps_at = "Condition"
+    )
+
+
+    # --- Global Options Configuration [] ---
+    # Key functions: setSechmOption, resetAllSechmOptions
+    setSechmOption(
+        "hmcols",
+        value = c("white", "grey", "black")
+    )
+    sechm(
+        SE,
+        features = g,
+        do.scale = TRUE
+    )
+    resetAllSechmOptions()
+
+
+    # --- Comparative Heatmaps [] ---
     # Key functions: crossHm
-    crossHm(list(SE1=SE, SE2=SE2), g, do.scale = TRUE,
-    top_annotation=c("Condition","Time"), uniqueScale = TRUE)
+    SE2 <- SE
+    SummarizedExperiment::assays(SE2)$logcpm <- jitter(
+        SummarizedExperiment::assays(SE2)$logcpm,
+        factor = 1000
+    )
+    crossHm(
+        list(SE1 = SE, SE2 = SE2),
+        features = g,
+        do.scale = TRUE,
+        top_annotation = c("Condition", "Time"),
+        uniqueScale = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,50 +38,32 @@ process BIOC_TDBASEDUFE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TDbasedUFE)
     library(PrepareSummarizedExperimentTensor)
     library(PrepareSummarizedExperimentTensorSquare)
     library(jsonlite)
 
-    # --- Preparesummarizedexperimenttensor [] ---
-    # Key functions: PrepareSummarizedExperimentTensor, array, attr, computeHosvd
-    ---------------------------------------------------------------------
-    Z <- PrepareSummarizedExperimentTensor(matrix(samples$sample,c(3,2)),
-        rownames(txi$abundance),array(txi$counts,c(dim(txi$counts)[1],3,2)))
-    dim(attr(Z,"value"))
+    # --- Tensor Decomposition [] ---
+    # Key functions: computeHosvd
     HOSVD <- computeHosvd(Z)
-    # --- Selectsingularvaluevectorsmall [] ---
+
+
+    # --- Singular Value Selection [] ---
     # Key functions: selectSingularValueVectorSmall
-    ---------------------------------------------------------------------
-    input_all <- selectSingularValueVectorSmall(HOSVD,input_all= c(1,2)) #batch mode
-    # --- Selectfeature [] ---
+    input_all <- selectSingularValueVectorSmall(
+        HOSVD,
+        input_all = c(1, 2)
+    )
+
+
+    # --- Feature Selection [] ---
     # Key functions: selectFeature
-    ---------------------------------------------------------------------
-    index <- selectFeature(HOSVD,input_all)
-    # --- Head [] ---
+    index <- selectFeature(HOSVD, input_all)
+
+
+    # --- Feature Table Generation [] ---
     # Key functions: tableFeatures
-    ---------------------------------------------------------------------
-    head(tableFeatures(Z,index))
-    # --- Preparesummarizedexperimenttensorsquare [] ---
-    # Key functions: PrepareSummarizedExperimentTensorSquare, convertSquare, computeHosvdSqure
-    ---------------------------------------------------------------------
-    Z <- PrepareSummarizedExperimentTensorSquare(
-        sample=matrix(colnames(CLL_data$Drugs),1),
-        feature=list(Drugs=rownames(CLL_data$Drugs),
-        Methylation=rownames(CLL_data$Methylation),
-    # --- Table [] ---
-    # Key functions: attr
-    ---------------------------------------------------------------------
-    table(CLL_covariates[,1])
-    cond <- list(attr(Z,"sampleData")[[1]],attr(Z,"sampleData")[[1]],seq_len(4))
-    # --- Selectsingularvaluevectorlarge [] ---
-    # Key functions: selectSingularValueVectorLarge
-    ---------------------------------------------------------------------
-    input_all <- selectSingularValueVectorLarge(HOSVD,cond,input_all=c(8,1))
-    # --- Selectfeaturesquare [] ---
-    # Key functions: selectFeatureSquare
-    ---------------------------------------------------------------------
-    index <- selectFeatureSquare(HOSVD,input_all,CLL_data,
-        de=c(0.3,0.03,0.1,0.1),interact=FALSE) #for batch mode
+    feature_table <- tableFeatures(Z, index)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

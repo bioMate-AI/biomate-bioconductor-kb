@@ -41,21 +41,29 @@ process BIOC_METAGENOMESEQ {
     library(metagenomeSeq)
     library(jsonlite)
 
-    # --- plot Class Time Series [] ---
-    # Key functions: plotClassTimeSeries, plotTimeSeries
-    par(mfrow=c(3,1))
-    plotClassTimeSeries(res1,pch=21,bg=classInfo)
-    plotTimeSeries(res2)
-    # --- fit Time Series [] ---
+    # --- Time Series Analysis [] ---
     # Key functions: fitTimeSeries
-    set.seed(123)
-    classes = unique(fData(mouseData)[,"class"])
-    timeSeriesFits = lapply(classes,function(i){
-    # --- plot Class Time Series [] ---
+    res1 <- fitTimeSeries(
+        obj = obj,
+        feature = 1,
+        class = "class",
+        time = "time",
+        id = "sampleID",
+        B = 10,
+        norm = FALSE,
+        log = FALSE
+    )
+
+
+    # --- Time Series Visualization [] ---
     # Key functions: plotClassTimeSeries, plotTimeSeries
-    par(mfrow=c(2,1))
-    plotClassTimeSeries(res,pch=21,
-    bg=res$data$class,ylim=c(0,8))
+    classInfo <- factor(res1$data$class)
+    plotClassTimeSeries(
+        res1,
+        pch = 21,
+        bg = classInfo
+    )
+    plotTimeSeries(res1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

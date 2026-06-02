@@ -38,25 +38,28 @@ process BIOC_TRACKTABLES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tracktables)
     library(MakeIGVSession)
     library(jsonlite)
 
-    # --- dir [] ---
-    # Key functions: dir, cbind, merge
-    library(tracktables)
-    fileLocations <- system.file("extdata",package="tracktables")
-    bigwigs <- dir(fileLocations,pattern="*.bw",full.names=TRUE)
-    # --- Make I G V Session [] ---
-    # Key functions: MakeIGVSession
-    MakeIGVSession(SampleSheet,FileSheet,igvdirectory=getwd(),"Example","mm9")
-    # --- maketracktable [] ---
-    # Key functions: maketracktable
-    HTMLreport <- maketracktable(fileSheet=FileSheet,
-    basedirectory=getwd(),
-    # --- maketracktable WithColoursAndScales [] ---
-    # Key functions: igvParam, maketracktable
-    igvDisplayParams <- igvParam(bigwig.autoScale = "false",
-    HTMLreport <- maketracktable(FileSheet,SampleSheet,"IGVex2.html",getwd(),"mm9",
+    # --- Metadata Annotation [] ---
+    # Key functions: None
+    sample_sheet <- cbind(
+        as.vector(file_sheet[, "SampleName"]),
+        c("EBF", "H3K4me3", "H3K9ac", "RNAPol2"),
+        c("ProB", "ProB", "ProB", "ProB")
+    )
+    colnames(sample_sheet) <- c("SampleName", "Antibody", "Species")
+
+
+    # --- Tracktable Generation [] ---
+    # Key functions: makeTracktable
+    html_report <- makeTracktable(
+        df = file_sheet,
+        samplesheet = sample_sheet,
+        annotation = "hg19",
+        outputDir = "tracktables_html"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,24 +41,15 @@ process BIOC_RTCA {
     library(RTCA)
     library(jsonlite)
 
-    # --- Dataset [] ---
-    # Key functions: csv, frame, new, parseRTCA
-    ofile <-  system.file("extdata/testOutput.csv", package="RTCA")
-    pfile <- system.file("extdata/testOutputPhenoData.csv", package="RTCA")
-    pData <- read.csv(pfile, sep="\t", row.names="Well")
-    metaData <- data.frame(labelDescription=c(
-                             "Rack number",
-    # --- Smoothtransform [] ---
-    # Key functions: smoothTransform
+    # --- Data Transformation and Smoothing [] ---
+    # Key functions: smoothTransform, interpolationTransform
     xSmooth <- smoothTransform(x)
-    # --- Interpolationtranform [] ---
-    # Key functions: interpolationTransform
     xInter <- interpolationTransform(x)
-    # --- Derivtransform [] ---
-    # Key functions: derivativeTransform
+
+
+    # --- Derivative and Growth Rate Analysis [] ---
+    # Key functions: derivativeTransform, rgrTransform
     xDeriv <- derivativeTransform(x)
-    # --- Rgrtransform [] ---
-    # Key functions: rgrTransform
     xRgr <- rgrTransform(x)
 
     # --- Save outputs ---

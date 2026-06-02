@@ -38,82 +38,38 @@ process BIOC_RANKPROD {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RankProd)
     library(RP)
     library(RPadvance)
     library(RSadvance)
     library(RankProducts)
     library(jsonlite)
 
-    # --- Rep [] ---
-    # Key functions: rep
-    n <- 5
-    cl <- rep(1,5)
-    cl
-    # --- Rankproducts [] ---
-    # Key functions: RankProducts
-    RP.out <- RankProducts(arab.sub,arab.cl.sub, logged=TRUE,
-    na.rm=FALSE,plot=FALSE,  rand=123)
-    # --- Plotrp [] ---
-    # Key functions: plotRP
-    plotRP(RP.out, cutoff=0.05)
-    # --- Topgene [] ---
-    # Key functions: topGene
-    topGene(RP.out,cutoff=0.05,method="pfp",
-    logged=TRUE,logbase=2,gene.names=arab.gnames)
-    # --- Advance [] ---
-    # Key functions: advance, RPadvance
-    ##identify differentially expressed  genes
-    RP.adv.out <-  RP.advance(arab,arab.cl,arab.origin,
-    logged=TRUE,gene.names=arab.gnames,rand=123)
-    #The last command can also be written using the old syntax
-    #RP.adv.out <-  RPadvance(arab,arab.cl,arab.origin,
-    # --- Plotrp [] ---
-    # Key functions: plotRP
-    plotRP(RP.adv.out, cutoff=0.05)
-    # --- Topgene [] ---
-    # Key functions: topGene
-    topGene(RP.adv.out,cutoff=0.05,method="pfp",logged=TRUE,logbase=2,
-            gene.names=arab.gnames)
-    # --- Colnames [] ---
-    # Key functions: RankProducts, RP
-    refrs <- (1:8)*2-1
-    samps <- (1:8)*2
-    M <- lym.exp[,samps]-lym.exp[,refrs]
-    colnames(M)
-    cl <- c(rep(0,4),rep(1,4))
-    # --- Topgene [] ---
-    # Key functions: topGene
-    topGene(RP.out,cutoff=0.05,logged=TRUE,logbase=exp(1))
-    # --- Rankproducts [] ---
-    # Key functions: RankProducts
-    RS.apples<-RankProducts(apples.data.vsn, apples.cl,
-                            gene.names = rownames(apples.data.vsn),
-                            calculateProduct = FALSE, rand=123)
-    # --- Topgene [] ---
-    # Key functions: topGene
-    topGene(RS.apples,cutoff = 0.05, method = "pfp",
-            gene.names = rownames(apples.data.vsn))
-    selected <- which(RS.apples$pfp[,1]<= 0.05)
-    # --- Advance [] ---
-    # Key functions: advance, RSadvance, topGene
-    Rsum.adv.out <- RP.advance(arab,arab.cl2,arab.origin,calculateProduct=FALSE,
-    logged=TRUE,gene.names=arab.gnames,rand=123)
-    # also the old syntax can be used
-    #Rsum.adv.out <- RSadvance(arab,arab.cl2,arab.origin,
-    #logged=TRUE,gene.names=arab.gnames,rand=123)
-    # --- Topgene [] ---
-    # Key functions: topGene
-    topGene(Rsum.adv.out,num.gene=10,gene.names=arab.gnames)
-    # --- Plotrp [] ---
-    # Key functions: plotRP
-    plotRP(Rsum.adv.out,cutoff=0.05)
-    # --- Advance [] ---
-    # Key functions: advance, RPadvance
-    RP.adv.out <- RP.advance(arab,arab.cl2,arab.origin,calculateProduct=TRUE,
-    logged=TRUE,gene.names=arab.gnames,rand=123)
-    #  also the old syntax can be used
-    #RP.adv.out <- RPadvance(arab,arab.cl2,arab.origin,
-    #logged=TRUE,gene.names=arab.gnames,rand=123)
+    # --- Advanced Rank Product Analysis [] ---
+    # Key functions: RP.advance, topGene
+    data(arab)
+    RP.adv.out <- RP.advance(
+        arab, arab.cl, arab.origin,
+        logged = TRUE, gene.names = arab.gnames, rand = 123
+    )
+    top_genes <- topGene(
+        RP.adv.out, cutoff = 0.05, method = "pfp",
+        logged = TRUE, logbase = 2, gene.names = arab.gnames
+    )
+
+
+    # --- Rank Sum Analysis [] ---
+    # Key functions: RankProducts, topGene
+    data(Apples)
+    RS.apples <- RankProducts(
+        apples.data.vsn, apples.cl,
+        gene.names = rownames(apples.data.vsn),
+        calculateProduct = FALSE, rand = 123
+    )
+    top_apples <- topGene(
+        RS.apples, cutoff = 0.05, method = "pfp",
+        gene.names = rownames(apples.data.vsn)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,74 +38,30 @@ process BIOC_DERFINDER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(derfinder)
     library(DESeq)
     library(DESeqDataSetFromMatrix)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- 'installDer' [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("derfinder")
-    # --- 'ultraQuick' [] ---
-    # Key functions: rawFiles, fullCoverage, regionMatrix, DESeqDataSetFromMatrix
-    library("derfinder")
-    library("derfinderData")
-    library("GenomicRanges")
-    # --- 'locateAMYfiles' [] ---
-    # Key functions: rawFiles
-    files <- rawFiles(system.file("extdata", "AMY", package = "derfinderData"),
-    names(files) <- gsub(".bw", "", names(files))
-    # --- Load Raw Files [] ---
-    # Key functions: fullCoverage
-    fullCov <- fullCoverage(
-    totalMapped = rep(1, length(files)), targetSize = 1
-    # --- Load Data Windows [] ---
-    # Key functions: foo
-    foo <- function() {
-    load(system.file("extdata", "fullCov", "fullCovAMY.RData",
-    return(fullCovAMY)
-    # --- 'regionMatrix' [] ---
+    # --- Identify Expressed Regions [] ---
     # Key functions: regionMatrix
-    Get the region matrix of Expressed Regions (ERs)
-    regionMat <- regionMatrix(fullCov, cutoff = 30, L = 76, verbose = FALSE)
-    # --- Identify DERs using DESeq2 [] ---
-    # Key functions: DESeqDataSetFromMatrix, DESeq, mcols, results
-    library("DESeq2")
-    counts <- round(regionMat$chr21$coverageMatrix)
-    dse <- DESeqDataSetFromMatrix(counts, pheno, ~ group + gender)
-    # --- 'vennRegions' [] ---
-    # Key functions: annotateRegions, vennRegions
-    annoRegs <- annotateRegions(ers, genomicState$fullGenome, verbose = FALSE)
-    library("derfinderPlot")
-    venn <- vennRegions(annoRegs,
-    # --- 'nearestGene' [] ---
-    # Key functions: keepSeqlevels, annotateTranscripts, matchGenes, restoreSeqlevels
-    library("TxDb.Hsapiens.UCSC.hg19.knownGene")
-    txdb <- keepSeqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene, "chr21")
-    library("bumphunter")
-    # --- 'firstfive' [] ---
-    # Key functions: plotRegionCoverage
-    plotRegionCoverage(
-    annotatedRegions = annoRegs, whichRegions = seq_len(5), txdb = txdb,
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("derfinder-quickstart.Rmd", "BiocStyle::html_document"))
-    library("knitr")
-    # --- diff [] ---
-    # Key functions: diff
-    totalTime <- diff(c(startTime, Sys.time()))
-    round(totalTime, digits = 3)
-    # --- session_info [] ---
-    # Key functions: session_info
-    library("sessioninfo")
-    options(width = 120)
-    session_info()
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
-    PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
+    regionMat <- regionMatrix(
+        fullCov, cutoff = 30, L = 76, verbose = FALSE
+    )
+    ers <- regionMat$chr21$regions
+    covMat <- regionMat$chr21$coverageMatrix
+
+
+    # --- Genomic State Annotation [] ---
+    # Key functions: makeGenomicState, annotateRegions
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    gs <- makeGenomicState(txdb = txdb, chatter = FALSE)
+    annoRegs <- annotateRegions(
+        regions = ers,
+        genomicState = gs$fullGenome,
+        verbose = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

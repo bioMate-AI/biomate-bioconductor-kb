@@ -42,101 +42,45 @@ process BIOC_EXPERIMENTSUBSET {
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Matrix [] ---
-    # Key functions: rpois, SingleCellExperiment, ExperimentSubset
-    ---------------------------------------------------------------------
-    counts <- matrix(rpois(100, lambda = 10), ncol=10, nrow=10)
-    sce <- SingleCellExperiment(list(counts = counts))
-    es <- ExperimentSubset(sce)
-    es
-    # --- Matrix [] ---
-    # Key functions: rpois, ExperimentSubset
-    ---------------------------------------------------------------------
-    counts <- matrix(rpois(100, lambda = 10), ncol=10, nrow=10)
-    ExperimentSubset(list(counts = counts))
-    # --- Createsubset [] ---
-    # Key functions: createSubset
-    ---------------------------------------------------------------------
-    es <- createSubset(es,
-                       subsetName = "subset1",
-                       rows = c(1:2),
-                       cols = c(1:5),
-    # --- Assay [] ---
-    # Key functions: assay, setSubsetAssay
-    ---------------------------------------------------------------------
-    subset1Assay <- assay(es, "subset1")
-    subset1Assay[,] <- subset1Assay[,] + 1
-    es <- setSubsetAssay(es,
-                      subsetName = "subset1",
-    # --- Getsubsetassay [] ---
-    # Key functions: getSubsetAssay
-    ---------------------------------------------------------------------
-    #get assay from 'subset1'
-    getSubsetAssay(es, "subset1")
-    #get internal 'subset1Assay'
-    getSubsetAssay(es, "subset1Assay")
-    # --- Subsetsummary [] ---
-    # Key functions: subsetSummary
-    ---------------------------------------------------------------------
-    subsetSummary(es)
-    # --- Coldata [] ---
-    # Key functions: colData, subsetDim, subsetColData
-    ---------------------------------------------------------------------
-    #store colData to parent object
-    colData(es) <- cbind(colData(es), sampleID = seq(1:dim(es)[2]))
-    #store colData to 'subset1' using option 1
-    colData(es, subsetName = "subset1") <- cbind(
-    # --- Matrix [] ---
-    # Key functions: rpois, SingleCellExperiment, ExperimentSubset, createSubset, assay
-    ---------------------------------------------------------------------
-    #creating a dummy ES object
-    counts <- matrix(rpois(100, lambda = 10), ncol=10, nrow=10)
-    sce <- SingleCellExperiment(list(counts = counts))
-    es <- ExperimentSubset(sce)
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    #assay getter has parameters 'x' which is the input object, 'i' which can either
-    #be a assay name in the parent object, a subset name or a subset assay name
-    #getting 'counts' from parent es object
-    assay(
-    # --- Matrix [] ---
-    # Key functions: rpois, SingleCellExperiment, ExperimentSubset, subsetSummary
-    ---------------------------------------------------------------------
-    counts <- matrix(rpois(100, lambda = 10), ncol=10, nrow=10)
-    sce <- SingleCellExperiment(list(counts = counts))
-    es <- ExperimentSubset(sce)
-    subsetSummary(es)
-    # --- Createsubset [] ---
+    # --- Subset Creation [] ---
     # Key functions: createSubset, subsetSummary
-    ---------------------------------------------------------------------
-    es <- createSubset(es,
-                       subsetName = "subset1",
-                       rows = c(1:5),
-                       cols = c(1:5),
-    # --- Assay [] ---
-    # Key functions: assay
-    ---------------------------------------------------------------------
-    subset2Assay <- assay(es, "subset2")
-    subset2Assay[,] <- subset2Assay[,] + 1
-    # --- Setsubsetassay [] ---
-    # Key functions: setSubsetAssay, assay, subsetSummary
-    ---------------------------------------------------------------------
-    #approach 1
-    es <- setSubsetAssay(es,
-                      subsetName = "subset2",
-                      inputMatrix = subset2Assay,
-    # --- Altexp [] ---
-    # Key functions: altExp, SingleCellExperiment, assay
-    ---------------------------------------------------------------------
-    altExp(x = es,
-           e = "subset2_alt1",
-           subsetName = "subset2") <- SingleCellExperiment(assay = list(
-             counts = assay(es, "subset2")
-    # --- Subsetsummary [] ---
-    # Key functions: subsetSummary
-    ---------------------------------------------------------------------
-    subsetSummary(es)
+    es <- createSubset(
+        es,
+        subsetName = "subset1",
+        rows = 1:5,
+        cols = 1:5,
+        parentAssay = "counts"
+    )
+    es <- createSubset(
+        es,
+        subsetName = "subset2",
+        rows = 1:2,
+        cols = 1:5,
+        parentAssay = "subset1"
+    )
+    summary_info <- subsetSummary(es)
+
+
+    # --- Subset Assay Manipulation [] ---
+    # Key functions: setSubsetAssay, getSubsetAssay
+    subset1Assay <- SummarizedExperiment::assay(es, "subset1")
+    subset1Assay[,] <- subset1Assay[,] + 1
+    es <- setSubsetAssay(
+        es,
+        subsetName = "subset1",
+        inputMatrix = subset1Assay,
+        subsetAssayName = "subset1Assay"
+    )
+    res_assay <- getSubsetAssay(es, "subset1Assay")
+
+
+    # --- Metadata Management [] ---
+    # Key functions: subsetColData, subsetDim
+    subsetColData(es, "subset1") <- cbind(
+        subsetColData(es, "subset1"),
+        subsetSampleID = seq_len(subsetDim(es, "subset1")[2])
+    )
+    sub_col_data <- subsetColData(es, "subset1", parentColData = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

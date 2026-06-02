@@ -38,26 +38,50 @@ process BIOC_STRUCTTOOLBOX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(structToolbox)
     library(MTBLS)
     library(MTBLS79_DatasetExperiment)
     library(PCA)
     library(PLSDA)
     library(jsonlite)
 
-    # --- Quality control and filtering [] ---
-    # Key functions: filter_na_count, filter_by_name, rowSums, model_apply, predicted
-    ---------------------------------------------------------------------
-    # build model sequence
-    M2 = filter_na_count(
-      threshold=2,
-      factor_name='condition',
-    # --- Dataset analysis [] ---
-    # Key functions: dataset, iris_DatasetExperiment, MTBLS, MTBLS79_DatasetExperiment, pqn_norm, knn_impute, glog_transform, filter_smeta
-    ---------------------------------------------------------------------
-    # model sequence
-    MS = permutation_test(number_of_permutations = 20,factor_name = 'Class_num') *
-         kfold_xval(folds = 5,factor_name = 'Class_num') *
-         (mean_centre(mode='sample_meta') + PLSR(factor_name='Class_num', number_components = 2))
+    # --- Principal Component Analysis [] ---
+    # Key functions: PCA, mean_centre, model_apply, pca_scores_plot, chart_plot
+    M <- mean_centre() + PCA(number_components = 4)
+    M <- model_apply(M, D)
+    scores <- M[2]$scores
+    C <- pca_scores_plot(factor_name = 'class')
+    g1 <- chart_plot(C, M[2])
+
+
+    # --- Cross Validation [] ---
+    # Key functions: PLSDA, kfold_xval, run, balanced_accuracy
+    XCV <- kfold_xval(
+        folds = 5,
+        method = 'venetian',
+        factor_name = 'class'
+    ) * (mean_centre() + PLSDA(factor_name = 'class'))
+    XCV <- run(XCV, D, balanced_accuracy())
+    metric_res <- XCV$metric
+
+
+    # --- Batch Correction [] ---
+    # Key functions: as.DatasetExperiment, sb_corr, model_apply
+    data(MTBLS79, package = "pmp")
+    DE <- as.DatasetExperiment(MTBLS79)
+    DE$sample_meta$run_order <- seq_len(nrow(DE))
+    DE$sample_meta$Type <- factor(
+        ifelse(DE$sample_meta$Class == "QC", "QC", "Sample")
+    )
+    DE$sample_meta$Batch <- factor(DE$sample_meta$Batch)
+    M_corr <- sb_corr(
+        order_col = 'run_order',
+        batch_col = 'Batch',
+        qc_col = 'Type',
+        qc_label = 'QC',
+        spar_lim = c(0.6, 0.8)
+    )
+    M_corr <- model_apply(M_corr, DE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

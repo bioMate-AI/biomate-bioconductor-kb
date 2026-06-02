@@ -44,41 +44,48 @@ process BIOC_HTSFILTER {
     library(HTSFilter)
     library(jsonlite)
 
-    # --- p Data [] ---
-    # Key functions: pData
-    library(HTSFilter)
-    library(edgeR)
-    library(DESeq2)
-    # --- exprs [] ---
-    # Key functions: exprs, HTSFilter
-    mat <- exprs(sultan)
-    conds <- as.character(pData(sultan)$cell.line)
-    filter <- HTSFilter(mat, conds, s.min=1, s.max=200, s.len=25)
-    # --- Create DGEList count object [] ---
-    # Key functions: DGEList, calcNormFactors, estimateDisp, exactTest, HTSFilter
-    dge <- DGEList(counts=exprs(sultan), group=conds)
-    dge <- calcNormFactors(dge)
-    dge <- estimateDisp(dge)
-    # --- Create DGEList count object [] ---
-    # Key functions: DGEList, calcNormFactors, estimateDisp, glmFit, glmLRT
-    design <- model.matrix(~conds)
-    dge <- DGEList(counts=exprs(sultan), group=conds)
-    dge <- calcNormFactors(dge)
-    # --- Create DESeqDataSet from count matrix [] ---
-    # Key functions: DESeqDataSetFromMatrix, DESeq, HTSFilter, results
-    conds <- gsub(" ", ".", conds)
-    dds <- DESeqDataSetFromMatrix(countData = exprs(sultan),
-    colData = data.frame(cell.line = factor(conds)),
-    # --- new Seq Expression Set [] ---
-    # Key functions: newSeqExpressionSet
-    library(EDASeq)
-    ses <- newSeqExpressionSet(exprs(sultan),
-    phenoData=pData(sultan))
-    # --- H T S Filter [] ---
+    # --- Matrix Filtering [HTSFilter] ---
     # Key functions: HTSFilter
-    filter <- HTSFilter(counts(ses.norm), conds, s.len=25, norm="none",
-    head(filter$on)
-    table(filter$on)
+    filter_results <- HTSFilter(
+        x = mat,
+        conds = conds,
+        s.min = 1,
+        s.max = 200,
+        s.len = 25,
+        plot = FALSE
+    )
+    filtered_matrix <- filter_results$filteredData
+    removed_matrix <- filter_results$removedData
+
+    # --- EdgeR Exact Test Filtering [HTSFilter] ---
+    # Key functions: HTSFilter
+    filter_et <- HTSFilter(
+        x = et,
+        DGEList = dge,
+        s.len = 25,
+        plot = FALSE
+    )
+    filtered_et_data <- filter_et$filteredData
+
+    # --- EdgeR GLM Filtering [HTSFilter] ---
+    # Key functions: HTSFilter
+    filter_lrt <- HTSFilter(
+        x = lrt,
+        DGEGLM = fit,
+        s.len = 25,
+        plot = FALSE
+    )
+    filtered_lrt_data <- filter_lrt$filteredData
+
+    # --- DESeq2 Pipeline Filtering [HTSFilter] ---
+    # Key functions: HTSFilter
+    filter_dds <- HTSFilter(
+        x = dds,
+        s.len = 25,
+        plot = FALSE
+    )
+    filtered_dds_data <- filter_dds$filteredData
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

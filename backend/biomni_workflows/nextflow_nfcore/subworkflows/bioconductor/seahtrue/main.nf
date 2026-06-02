@@ -41,11 +41,38 @@ process BIOC_SEAHTRUE {
     library(seahtrue)
     library(jsonlite)
 
-    # --- revive_xfplate [] ---
-    # Key functions: revive_xfplate, glimpse, pluck, pull
-    suppressPackageStartupMessages({
-    library(dplyr)
-    library(seahtrue)
+    # --- Seahorse XF Plate Data Import ---
+    # Key functions: revive_xfplate
+    xlsx_file <- system.file(
+        "extdata", 
+        "20191219_SciRep_PBMCs_donor_A.xlsx",
+        package = "seahtrue"
+    )
+    seahorse_data <- seahtrue::revive_xfplate(xlsx_file)
+    print(names(seahorse_data))
+
+    # --- Metadata Extraction ---
+    # Key functions: revive_xfplate
+    assay_info <- purrr::pluck(seahorse_data, "assay_info", 1)
+    injection_info <- purrr::pluck(seahorse_data, "injection_info", 1)
+    cartridge_barcode <- dplyr::pull(assay_info, cartridge_barcode)
+    ksv_value <- dplyr::pull(assay_info, KSV)
+    f0_value <- dplyr::pull(assay_info, F0)
+
+    # --- Rate and Raw Data Retrieval ---
+    # Key functions: revive_xfplate
+    rate_data <- purrr::pluck(seahorse_data, "rate_data", 1)
+    raw_data <- purrr::pluck(seahorse_data, "raw_data", 1)
+    rate_summary <- dplyr::glimpse(rate_data)
+    raw_summary <- dplyr::glimpse(raw_data)
+
+    # --- Quality Control and Background Correction Verification ---
+    # Key functions: revive_xfplate
+    rate_data <- purrr::pluck(seahorse_data, "rate_data", 1)
+    bg_corrected <- attr(rate_data, "was_background_corrected")
+    start_time <- purrr::pluck(seahorse_data, "assay_info", 1) %>%
+        dplyr::pull(minutes_to_start_measurement_one)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

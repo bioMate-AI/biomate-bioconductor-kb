@@ -44,75 +44,49 @@ process BIOC_OUTRIDER {
     library(PEER_setNmax_iterations)
     library(jsonlite)
 
-    # --- bpparam [] ---
-    # Key functions: bpparam, bpworkers, register
-    suppressPackageStartupMessages({
-    library(OUTRIDER)
-    library(beeswarm)
-    # --- rnorm [] ---
-    # Key functions: rnorm, beeswarm
-    par.old <- par(no.readonly=TRUE)
-    par(mfrow=c(1,2), cex=1.2)
-    ylim <- c(80, 310)
-    # --- Extract differential expression results [] ---
-    # Key functions: OutriderDataSet, filterExpression, OUTRIDER, results, plotQQ
-    library(OUTRIDER)
-    ctsFile <- system.file('extdata', 'KremerNBaderSmall.tsv',
-    ctsTable <- read.table(ctsFile, check.names=FALSE)
-    # --- make Example Outrider Data Set [] ---
-    # Key functions: makeExampleOutriderDataSet, OutriderDataSet
-    odsSmall <- makeExampleOutriderDataSet(dataset="Kremer")
-    baseURL <- paste0("https://static-content.springer.com/esm/",
-    count_URL <- paste0(baseURL, "41467_2017_BFncomms15824_MOESM390_ESM.txt")
-    # --- db Connect [] ---
-    # Key functions: dbConnect, dbGetQuery, loadDb
-    try({
-    library(RMariaDB)
-    library(AnnotationDbi)
-    # --- filter Expression [] ---
-    # Key functions: filterExpression, plotFPKM, plotExpressedGenes
-    ods <- filterExpression(ods, txdb, mapping=map,
-    plotFPKM(ods)
-    plotExpressedGenes(ods)
-    # --- plotting between sample correlations [] ---
-    # Key functions: plotCountCorHeatmap, plotCountGeneSampleHeatmap
-    ods <- plotCountCorHeatmap(ods, colGroups=c("SEX", "RNA_HOX_GROUP"),
-    ods <- plotCountGeneSampleHeatmap(ods, colGroups=c("SEX", "RNA_HOX_GROUP"),
-    # --- controlling for confounders [] ---
-    # Key functions: estimateSizeFactors, controlForConfounders, plotCountCorHeatmap
+    # --- Confounder Correction [] ---
+    # Key functions: estimateSizeFactors, sampleExclusionMask, controlForConfounders, plotCountCorHeatmap
     ods <- estimateSizeFactors(ods)
-    ods <- controlForConfounders(ods, q=21, iterations=3)
-    ods <- plotCountCorHeatmap(ods, normalized=TRUE,
-    # --- find Encoding Dim [] ---
-    # Key functions: findEncodingDim, plotEncDimSearch
-    ods <- findEncodingDim(ods)
-    plotEncDimSearch(ods)
-    # --- sample Exclusion Mask [] ---
-    # Key functions: sampleExclusionMask
     sampleExclusionMask(ods) <- FALSE
-    sampleExclusionMask(ods[,"MUC1365"]) <- TRUE
-    sampleExclusionMask(ods)
-    # --- fit [] ---
-    # Key functions: fit
-    ods <- fit(ods)
-    hist(theta(ods))
-    # --- pValue computation [] ---
-    # Key functions: computePvalues
-    compute P-values (nominal and adjusted)
-    ods <- computePvalues(ods, alternative="two.sided", method="BY")
-    # --- zScore computation [] ---
-    # Key functions: computeZscores
+    ods <- controlForConfounders(
+        ods, 
+        q=21, 
+        iterations=3
+    )
+    ods <- plotCountCorHeatmap(
+        ods, 
+        normalized=TRUE
+    )
+
+
+    # --- Outlier Detection [] ---
+    # Key functions: computePvalues, computeZscores, results, aberrant
+    ods <- computePvalues(
+        ods, 
+        alternative="two.sided", 
+        method="BY"
+    )
     ods <- computeZscores(ods)
-    # --- Extract differential expression results [] ---
-    # Key functions: results
-    get results (default only significant, padj < 0.05)
-    res <- results(ods)
-    head(res)
-    # --- plot Aberrant Per Sample [] ---
-    # Key functions: plotAberrantPerSample
-    tail(sort(aberrant(ods, by="sample")))
-    tail(sort(aberrant(ods, by="gene", zScoreCutoff=1)))
+    res <- results(
+        ods, 
+        padjCutoff=0.05, 
+        zScoreCutoff=2
+    )
+    gene_aberrant <- aberrant(ods, by="gene")
+    sample_aberrant <- aberrant(ods, by="sample")
+
+
+    # --- Visualisation [] ---
+    # Key functions: plotAberrantPerSample, plotVolcano, plotExpressionRank, plotQQ, plotExpectedVsObservedCounts
     plotAberrantPerSample(ods, padjCutoff=0.05)
+    plotVolcano(ods, "MUC1344", basePlot=TRUE)
+    plotExpressionRank(ods, "TIMMDC1", basePlot=TRUE)
+    plotQQ(ods, "TIMMDC1")
+    plotExpectedVsObservedCounts(
+        ods, 
+        "TIMMDC1", 
+        basePlot=TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

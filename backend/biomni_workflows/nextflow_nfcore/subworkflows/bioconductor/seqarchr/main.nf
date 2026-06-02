@@ -41,11 +41,50 @@ process BIOC_SEQARCHR {
     library(seqArchR)
     library(jsonlite)
 
-    # --- Prepare data from FASTA analysis [] ---
-    # Key functions: prepare_data_from_FASTA, get_one_hot_encoded_seqs, viz_seqs_acgt_mat, seqArchR, get_clBasVec_k, get_clBasVec_m, viz_bas_vec
-    inputFname <- system.file("extdata", "example_data.fa.gz",
-    inputSeqsMat <- seqArchR::prepare_data_from_FASTA(fasta_fname = inputFname,
-    inputSeqsRaw <- seqArchR::prepare_data_from_FASTA(fasta_fname = inputFname,
+    # --- Configuration Setup [] ---
+    # Key functions: set_config
+    seqArchRconfig <- seqArchR::set_config(
+      parallelize = FALSE, n_cores = 1, n_runs = 10,
+      k_min = 1, k_max = 5, mod_sel_type = "stability",
+      bound = 10^-6, chunk_size = 100,
+      result_aggl = "ward.D", result_dist = "euclid",
+      flags = list(debug = FALSE, time = TRUE,
+                   verbose = TRUE, plot = FALSE)
+    )
+
+
+    # --- Sequence Architecture Discovery [] ---
+    # Key functions: seqArchR
+    seqArchRresult <- readRDS(system.file(
+      "extdata", "example_seqArchRresult.rds",
+      package = "seqArchR", mustWork = TRUE
+    ))
+
+
+    # --- Feature Extraction and Visualization [] ---
+    # Key functions: get_clBasVec_m, viz_bas_vec
+    seqArchRresult <- readRDS(system.file(
+      "extdata", "example_seqArchRresult.rds",
+      package = "seqArchR", mustWork = TRUE
+    ))
+    i2_bv <- seqArchR::get_clBasVec_m(seqArchRresult, iter = 2)
+    seqArchR::viz_bas_vec(
+      feat_mat = i2_bv, ptype = c("heatmap", "seqlogo"),
+      method = "bits", sinuc_or_dinuc = "dinuc"
+    )
+
+
+    # --- Sequence Clustering Visualization [] ---
+    # Key functions: viz_seqs_acgt_mat, seqs_str
+    seqArchRresult <- readRDS(system.file(
+      "extdata", "example_seqArchRresult.rds",
+      package = "seqArchR", mustWork = TRUE
+    ))
+    positions <- seq(1, 100)
+    seqArchR::viz_seqs_acgt_mat(
+      seqArchR::seqs_str(seqArchRresult, iter = 2, ord = TRUE),
+      pos_lab = positions
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,34 +41,32 @@ process BIOC_DRIVERNET {
     library(DriverNet)
     library(jsonlite)
 
-    # --- Preliminaries [] ---
-    # Key functions: data
-    library(DriverNet)
-    data(samplePatientMutationMatrix)
-    data(samplePatientOutlierMatrix)
-    data(sampleInfluenceGraph)
-    data(sampleGeneNames)
-    # --- Preliminaries [] ---
-    # Key functions: computeDrivers, drivers
-    # The main function to compute drivers
-    driversList = computeDrivers(samplePatientMutationMatrix,
-                  samplePatientOutlierMatrix,sampleInfluenceGraph,
-                  outputFolder=NULL, printToConsole=FALSE)
-    drivers(driversList)[1:10]
-    # --- Preliminaries [] ---
+    # --- Significance Testing [] ---
     # Key functions: computeRandomizedResult
-    # random permute the gene labels to compute p-values
-    randomDriversResult = computeRandomizedResult(
-      patMutMatrix=samplePatientMutationMatrix,
-      patOutMatrix=samplePatientOutlierMatrix,
-      influenceGraph=sampleInfluenceGraph,
-    # --- Preliminaries [] ---
+    randomDriversResult <- computeRandomizedResult(
+        patMutMatrix = samplePatientMutationMatrix,
+        patOutMatrix = samplePatientOutlierMatrix,
+        influenceGraph = sampleInfluenceGraph,
+        geneNameList = sampleGeneNames,
+        outputFolder = NULL,
+        printToConsole = FALSE,
+        numberOfRandomTests = 20,
+        weight = FALSE,
+        purturbGraph = FALSE,
+        purturbData = TRUE
+    )
+
+
+    # --- Result Summarization [] ---
     # Key functions: resultSummary
-    # Summarize the results
-    res = resultSummary(driversList, randomDriversResult,
-          samplePatientMutationMatrix,sampleInfluenceGraph,
-          outputFolder=NULL, printToConsole=FALSE)
-    res[1:2,]
+    res <- resultSummary(
+        driversList,
+        randomDriversResult,
+        samplePatientMutationMatrix,
+        sampleInfluenceGraph,
+        outputFolder = NULL,
+        printToConsole = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

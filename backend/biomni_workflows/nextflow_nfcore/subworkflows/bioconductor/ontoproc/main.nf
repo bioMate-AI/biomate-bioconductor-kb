@@ -41,10 +41,18 @@ process BIOC_ONTOPROC {
     library(ontoProc)
     library(jsonlite)
 
-    # --- onto_plot2 [] ---
+    # --- Cell Ontology Visualization [] ---
     # Key functions: onto_plot2
-    sel = c("CL_0000492", "CL_0001054", "CL_0000236",
+    sel <- c("CL_0000492", "CL_0001054", "CL_0000236", "CL_0000625")
     onto_plot2(cle, sel)
+
+
+    # --- Human Phenotype Ontology Processing [] ---
+    # Key functions: owl2cache, setup_entities2, onto_plot2
+    hpont_path <- owl2cache(url = "http://purl.obolibrary.org/obo/hp.owl")
+    hpents <- setup_entities2(hpont_path)
+    kp <- grep("UBER", names(hpents$name), value = TRUE)[21:30]
+    onto_plot2(hpents, kp)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

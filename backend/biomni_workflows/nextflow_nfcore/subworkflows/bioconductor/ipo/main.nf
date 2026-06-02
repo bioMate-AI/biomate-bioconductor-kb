@@ -41,19 +41,27 @@ process BIOC_IPO {
     library(IPO)
     library(jsonlite)
 
-    # --- optimize peak picking [] ---
-    # Key functions: optimizeXcmsSet
-    peakpickingParameters <- getDefaultXcmsSetStartingParams('matchedFilter')
-    setting levels for step to 0.2 and 0.3 (hence 0.25 is the center point)
-    peakpickingParameters$step <- c(0.2, 0.3)
-    # --- optimize retcor group [] ---
-    # Key functions: optimizeRetGroup
+    # --- Retention Time Correction and Grouping Optimization [] ---
+    # Key functions: getDefaultRetGroupStartingParams, optimizeRetGroup
+    optimizedXcmsSetObject <- resultPeakpicking$best_settings$xset
     retcorGroupParameters <- getDefaultRetGroupStartingParams()
-    time.RetGroup <- system.time({ # measuring time
-    optimizeRetGroup(xset = optimizedXcmsSetObject,
-    # --- write R Script [] ---
+    retcorGroupParameters$profStep <- 1
+    retcorGroupParameters$gapExtend <- 2.7
+    resultRetcorGroup <- optimizeRetGroup(
+        xset = optimizedXcmsSetObject,
+        params = retcorGroupParameters,
+        nSlaves = 1,
+        subdir = NULL,
+        plot = FALSE
+    )
+
+
+    # --- Exporting Optimized Parameters [] ---
     # Key functions: writeRScript
-    writeRScript(resultPeakpicking$best_settings$parameters,
+    writeRScript(
+        resultPeakpicking$best_settings$parameters,
+        resultRetcorGroup$best_settings
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

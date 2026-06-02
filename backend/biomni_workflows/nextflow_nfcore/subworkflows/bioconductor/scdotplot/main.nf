@@ -38,60 +38,63 @@ process BIOC_SCDOTPLOT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scDotPlot)
     library(DefaultAssay)
     library(FindAllMarkers)
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- Prepare Singlecellexperiment [] ---
-    # Key functions: ZeiselBrainData, logNormCounts
-    library(scRNAseq)
-    library(scuttle)
-    sce <- ZeiselBrainData()
-    sce <- sce |>
-        logNormCounts() |>
-    # --- Get Features Singlecellexperiment [] ---
-    # Key functions: scoreMarkers, map, frame, arrange, desc, slice
-    library(scran)
-    library(purrr)
-    library(dplyr)
-    library(AnnotationDbi)
-    features <- sce |>
-    # --- Sceplot1 [] ---
-    # Key functions: scDotPlot, pal_d3
-    library(scDotPlot)
-    library(ggsci)
-    sce |>
-        scDotPlot(features = features,
-                  group = "level2class",
-    # --- Sceplot2 [] ---
-    # Key functions: scDotPlot, pal_d3
-    sce |>
-        scDotPlot(scale = TRUE,
-                  features = features,
-                  group = "level2class",
-                  groupAnno = "level1class",
-    # --- Get Features Seurat [] ---
-    # Key functions: FindAllMarkers, group_by, slice, select, DefaultAssay, rownames_to_column
-    library(Seurat)
-    library(SeuratObject)
-    library(tibble)
-    data("pbmc_small")
-    features <- pbmc_small |>
-    # --- Seuratplot1 [] ---
-    # Key functions: scDotPlot, pal_d3
-    pbmc_small |>
-        scDotPlot(features = features,
-                  group = "RNA_snn_res.1",
-                  groupAnno = "RNA_snn_res.1",
-                  featureAnno = "cluster",
-    # --- Seuratplot2 [] ---
-    # Key functions: scDotPlot, pal_d3
-    pbmc_small |>
-        scDotPlot(scale = TRUE,
-                  features = features,
-                  group = "RNA_snn_res.1",
-                  groupAnno = "RNA_snn_res.1",
+    # --- Scaled SingleCellExperiment Dot Plot Visualization [] ---
+    # Key functions: scDotPlot
+    plot_sce_scaled <- scDotPlot(
+        object = sce,
+        scale = TRUE,
+        features = features,
+        group = "level2class",
+        groupAnno = "level1class",
+        featureAnno = "Marker",
+        groupLegends = FALSE,
+        annoColors = list(
+            "level1class" = ggsci::pal_d3()(7),
+            "Marker" = ggsci::pal_d3()(7)
+        ),
+        annoWidth = 0.02
+    )
+
+
+    # --- Seurat Dot Plot Visualization [] ---
+    # Key functions: scDotPlot
+    plot_seurat <- scDotPlot(
+        object = pbmc_small,
+        features = features,
+        group = "RNA_snn_res.1",
+        groupAnno = "RNA_snn_res.1",
+        featureAnno = "cluster",
+        annoColors = list(
+            "RNA_snn_res.1" = ggsci::pal_d3()(7),
+            "cluster" = ggsci::pal_d3()(7)
+        ),
+        groupLegends = FALSE,
+        annoWidth = 0.075
+    )
+
+
+    # --- Scaled Seurat Dot Plot Visualization [] ---
+    # Key functions: scDotPlot
+    plot_seurat_scaled <- scDotPlot(
+        object = pbmc_small,
+        scale = TRUE,
+        features = features,
+        group = "RNA_snn_res.1",
+        groupAnno = "RNA_snn_res.1",
+        featureAnno = "cluster",
+        annoColors = list(
+            "RNA_snn_res.1" = ggsci::pal_d3()(7),
+            "cluster" = ggsci::pal_d3()(7)
+        ),
+        groupLegends = FALSE,
+        annoWidth = 0.075
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,27 +38,33 @@ process BIOC_PEPSNMR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(PepsNMR)
     library(ReadFids)
     library(jsonlite)
 
-    # --- Read Fids [] ---
-    # Key functions: ReadFids
-    fidList <- ReadFids(file.path(path,dataset_name))
-    # --- cbind [] ---
-    # Key functions: cbind, kable
-    Steps <- c("Group Delay Correction",
-    StepsDescr <- c("Correct for the Bruker Group Delay.",
-    "Transform the FIDs into a spectrum and convert the frequency scale (Hz ->  ppm).",
-    # --- Read Fids [] ---
-    # Key functions: ReadFids
-    library(PepsNMRData)
-    str(FidData_HU)
-    str(FinalSpectra_HS)
-    # --- expression [] ---
-    # Key functions: expression
-    time <- as.numeric(colnames(Fid_data0))*1000
-    plot(time, Re(Fid_data0[spectrIndex,]),type="l", col = col1, xlab=
-    expression(paste("Time (", mu,"s)")), ylab = "Intensity",
+    # --- Solvent Suppression and Apodization [] ---
+    # Key functions: SolventSuppression, Apodization
+    SS.res <- SolventSuppression(
+        Fid_data.GDC,
+        returnSolvent = TRUE
+    )
+    Fid_data.SS <- SS.res[["Fid_data"]]
+    Fid_data.A <- Apodization(
+        Fid_data.SS,
+        Fid_info
+    )
+
+
+    # --- Fourier Transform and Zero Filling [] ---
+    # Key functions: ZeroFilling, FourierTransform
+    Fid_data.ZF <- ZeroFilling(
+        Fid_data.A,
+        fn = ncol(Fid_data.A)
+    )
+    RawSpect_data.FT <- FourierTransform(
+        Fid_data.ZF,
+        Fid_info
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

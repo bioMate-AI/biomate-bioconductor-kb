@@ -41,70 +41,35 @@ process BIOC_DOUBLETROUBLE {
     library(doubletrouble)
     library(jsonlite)
 
-    # --- valid [] ---
-    # Key functions: valid
-    if(!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("doubletrouble")
-    # --- process_input [] ---
-    # Key functions: process_input
-    library(syntenet)
-    pdata <- process_input(yeast_seq, yeast_annot)
-    names(pdata)
-    # --- run diamond intraspecies [] ---
-    # Key functions: run_diamond
+    # --- Gene Duplication Classification [] ---
+    # Key functions: classify_gene_pairs, classify_genes
     data(diamond_intra)
-    if(diamond_is_installed()) {
-    diamond_intra <- run_diamond(
-    # --- binary classification [] ---
-    # Key functions: classify_gene_pairs
-    c_binary <- classify_gene_pairs(
-    names(c_binary)
-    head(c_binary$Scerevisiae)
-    # --- expanded classification [] ---
-    # Key functions: classify_gene_pairs
-    c_standard <- classify_gene_pairs(
-    names(c_standard)
-    head(c_standard$Scerevisiae)
-    # --- blast interspecies [] ---
-    # Key functions: run_diamond
-    data(diamond_inter) # load pre-computed output in case DIAMOND is not installed
-    comparisons <- data.frame(
-    if(diamond_is_installed()) {
-    # --- full classification [] ---
-    # Key functions: classify_gene_pairs
-    c_extended <- classify_gene_pairs(
-    names(c_extended)
-    head(c_extended$Scerevisiae)
-    # --- classify_genes [] ---
-    # Key functions: classify_genes
-    c_genes <- classify_genes(c_full)
-    names(c_genes)
-    head(c_genes$Scerevisiae)
-    # --- kaks calculation [] ---
+    c_binary <- doubletrouble::classify_gene_pairs(
+        annotation = pdata$annotation,
+        blast_list = diamond_intra,
+        scheme = "binary"
+    )
+    c_genes <- doubletrouble::classify_genes(c_binary)
+
+
+    # --- Evolutionary Rate Calculation [] ---
     # Key functions: pairs2kaks
     data(cds_scerevisiae)
-    head(cds_scerevisiae)
     cds_list <- list(Scerevisiae = cds_scerevisiae)
-    # --- plot_ks_distro [] ---
-    # Key functions: plot_ks_distro
+    td_pairs <- c_binary$Scerevisiae[c_binary$Scerevisiae$type == "SD", ]
+    gene_pairs <- list(Scerevisiae = td_pairs[seq(1, min(5, nrow(td_pairs))), ])
+    kaks <- doubletrouble::pairs2kaks(gene_pairs, cds_list)
+
+
+    # --- Peak Detection and Age Classification [] ---
+    # Key functions: find_ks_peaks, plot_ks_peaks, split_pairs_by_peak
     data(gmax_ks)
-    head(gmax_ks)
-    plot_ks_distro(gmax_ks)
-    # --- find ks peaks [] ---
-    # Key functions: find_ks_peaks, plot_ks_peaks
-    peaks <- find_ks_peaks(gmax_ks$Ks, npeaks = c(2, 3), verbose = TRUE)
-    names(peaks)
-    str(peaks)
-    # --- find peaks explicit [] ---
-    # Key functions: find_ks_peaks, plot_ks_peaks
-    peaks <- find_ks_peaks(gmax_ks$Ks, npeaks = 2, max_ks = 1)
-    plot_ks_peaks(peaks)
-    # --- split by peak [] ---
-    # Key functions: split_pairs_by_peak, duplicates2counts, plot_duplicate_freqs, wrap_plots
-    head(gmax_ks)
-    pairs_age_group <- split_pairs_by_peak(gmax_ks[, c(1,2,3)], peaks)
-    names(pairs_age_group)
+    peaks <- doubletrouble::find_ks_peaks(gmax_ks$Ks, npeaks = 2, max_ks = 1)
+    doubletrouble::plot_ks_peaks(peaks)
+    pairs_age_group <- doubletrouble::split_pairs_by_peak(
+        gmax_ks[, c(1,2,3)],
+        peaks
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

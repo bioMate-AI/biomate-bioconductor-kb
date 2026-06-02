@@ -41,47 +41,29 @@ process BIOC_SSIZE {
     library(ssize)
     library(jsonlite)
 
-    # --- Nobs [] ---
-    # Key functions: nobs
-    library(ssize)
-    library(xtable)
-    library(gdata) # for nobs()
-    options(width=30)
-    # --- Data [] ---
-    # Key functions: data
-    # Load the example data
-    data(exp.sd)
-    # Use only the first 1000,
-    # so examples run faster
-    exp.sd <- exp.sd[1:1000]
-    # --- Sdplot [] ---
-    # Key functions: density
-    par(cex=2)
-    xlab <- c("Standard Deviation", "(for data on the log scale)")
-    hist(exp.sd,n=40, col="cyan", border="blue", main="", xlab=xlab, log="x")
-    dens <- density(exp.sd)
-    scaled.y <- dens$y*par("usr")[4]/max(dens$y)
-    # --- Cumnplot [] ---
-    # Key functions: ssize
-    all.size  <- ssize(sd=exp.sd, delta=log2(fold.change),
-                       sig.level=sig.level, power=power)
-    par(cex=1)
-    ssize.plot(all.size, lwd=2, col="magenta", xlim=c(1,20))
-    xmax <- par("usr")[2]-1;
-    # --- Cumpowerplot [] ---
-    # Key functions: pow, nobs
-    all.power <- pow(sd=exp.sd, n=n, delta=log2(fold.change),
-                     sig.level=sig.level)
-    par(cex=1)
-    power.plot(all.power, lwd=2, col="blue")
-    xmax <- par("usr")[2]-0.05; ymax <- par("usr")[4]-0.05
-    # --- Cumfoldchangeplot [] ---
-    # Key functions: delta, nobs
-    all.delta  <- delta(sd=exp.sd, power=power, n=n,
-                        sig.level=sig.level)
-    par(cex=1, mar=c(5.1,5.1,4,2))
-    delta.plot(all.delta, lwd=2, col="magenta", xlim=c(1,10),
-    	   ylab = paste("Proportion of Genes with ",
+    # --- Statistical Power Estimation [] ---
+    # Key functions: pow, power.plot
+    exp.sd <- runif(1000, 0.1, 1.5)
+    fold.change <- 2
+    sig.level <- 0.05
+    n <- 10
+    all.power <- pow(sd = exp.sd, n = n, delta = log2(fold.change),
+                     sig.level = sig.level)
+    power.plot(all.power, lwd = 2, col = "blue")
+    title("Power to Detect 2-Fold Change")
+
+
+    # --- Fold Change Estimation [] ---
+    # Key functions: delta, delta.plot
+    exp.sd <- runif(1000, 0.1, 1.5)
+    sig.level <- 0.05
+    power <- 0.8
+    n <- 10
+    all.delta <- delta(sd = exp.sd, power = power, n = n,
+                       sig.level = sig.level)
+    delta.plot(all.delta, lwd = 2, col = "magenta", xlim = c(1, 10),
+               ylab = "Proportion of Genes with Power >= 80%")
+    title("Fold Change to Achieve 80% Power")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

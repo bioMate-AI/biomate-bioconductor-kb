@@ -41,11 +41,71 @@ process BIOC_MNEM {
     library(mnem)
     library(jsonlite)
 
-    # --- components [] ---
-    # Key functions: components, palette
-    knitr::opts_chunk$set(message=FALSE, out.width="125%", fig.align="center",
-    components (left, blue) and penalized log likelihood (right, red)."
-    paltmp <- palette()
+    # --- Data Simulation [Simulation] ---
+    # Key functions: simData
+    simmini <- simData(
+        Sgenes = 3,
+        Egenes = 10,
+        Nems = 3,
+        mw = c(0.4, 0.3, 0.3),
+        nCells = 100,
+        uninform = 1,
+        multi = c(0.2, 0.1)
+    )
+    sim_data <- simmini$data
+    ones <- which(sim_data == 1)
+    zeros <- which(sim_data == 0)
+    sim_data[ones] <- rnorm(length(ones), 1, 0.5)
+    sim_data[zeros] <- rnorm(length(zeros), -1, 0.5)
+
+    # --- Model Selection [Inference] ---
+    # Key functions: mnemk
+    bestk <- mnemk(
+        sim_data,
+        ks = 1:3,
+        search = "greedy",
+        starts = 3,
+        parallel = NULL
+    )
+    best_model <- bestk$best
+    log_likelihoods <- bestk$lls
+    penalized_ics <- bestk$ics
+
+    # --- Mixture NEM Inference [Inference] ---
+    # Key functions: mnem
+    result_continuous <- mnem(
+        sim_data,
+        k = 3,
+        search = "greedy",
+        starts = 3,
+        method = "cont"
+    )
+    result_discrete <- mnem(
+        sim_data,
+        k = 3,
+        search = "greedy",
+        starts = 3,
+        method = "disc",
+        fpfn = c(0.1, 0.1)
+    )
+
+    # --- Model Evaluation and Diagnostics [Diagnostics] ---
+    # Key functions: getAffinity, fitacc, plotConvergence
+    post_probs <- getAffinity(
+        best_model$probs,
+        mw = best_model$mw
+    )
+    accuracy <- fitacc(
+        best_model,
+        simmini,
+        strict = TRUE
+    )
+    plotConvergence(
+        best_model,
+        cex.main = 0.7,
+        cex.lab = 0.7
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

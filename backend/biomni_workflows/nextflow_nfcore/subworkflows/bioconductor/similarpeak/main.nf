@@ -38,53 +38,26 @@ process BIOC_SIMILARPEAK {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(similaRpeak)
     library(GRanges)
     library(ScanBamParam)
     library(jsonlite)
 
-    # --- bam extract coverage [] ---
-    # Key functions: GRanges, ScanBamParam, readGAlignments, coverage
-    suppressMessages(library(GenomicAlignments))
-    suppressMessages(library(rtracklayer))
-    suppressMessages(library(Rsamtools))
-    # --- Compute genomic coverage [] ---
-    # Key functions: ScanBamParam, countBam, coverage
-    param <- ScanBamParam(flag = scanBamFlag(isUnmappedQuery=FALSE))
-    count01 <- countBam(bamFile01, param = param)$records
-    coveragesRPMRegion01 <- coverage(alignments01, weight=1000000/count01)[region]
-    # --- ratio area calculation [] ---
+    # --- Profile Loading [] ---
+    # Key functions: demoProfiles
+    data("demoProfiles", package = "similaRpeak")
+    profile1 <- demoProfiles$chr2.70360770.70361098$H3K27ac
+    profile2 <- demoProfiles$chr2.70360770.70361098$H3K4me1
+
+
+    # --- Similarity Metric Calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
-    # --- diff pos max calculation [] ---
-    # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
-    # --- ratio max max calculation [] ---
-    # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
-    # --- ratio intersect calculation [] ---
-    # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
-    # --- ratio normalized intersect calculation [] ---
-    # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
-    # --- spearman correlation calculation [] ---
-    # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
-    # --- similarity [] ---
-    # Key functions: similarity
-    metrics <- similarity(chr7Profiles$chr7.61968807.61969730$H3K27ac,
+    metrics <- similaRpeak::similarity(
+        profile1,
+        profile2
+    )
+    ratio_area <- metrics$metric$RATIO_AREA
+    diff_pos_max <- metrics$metric$DIFF_POS_MAX
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

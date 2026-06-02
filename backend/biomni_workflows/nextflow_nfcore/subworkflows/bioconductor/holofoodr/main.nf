@@ -38,17 +38,42 @@ process BIOC_HOLOFOODR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HoloFoodR)
     library(MgnifyClient)
     library(jsonlite)
 
-    # --- Retrieve data from repository [] ---
+    # --- Querying Database ---
+    # Key functions: doQuery
+    animals <- doQuery(
+        resource = "animals",
+        max.hits = 100
+    )
+    histological_animals <- animals[animals[["histological"]] == TRUE, ]
+    animal_accessions <- histological_animals[["accession"]]
+
+    # --- Retrieving Animal Metadata ---
     # Key functions: getData
-    animal_data <- getData(
-    # --- DoQuery analysis [] ---
-    # Key functions: doQuery, getResult, MgnifyClient, searchAnalysis, experiments, getMetaboLights
-    exps <- experiments(mae_metagenomic)
-    exps <- lapply(exps, function(x){
-    sample_id <- names(analysis_ids)[ match(colnames(x), analysis_ids) ]
+    animal_details <- getData(
+        accession.type = "animals",
+        accession = animal_accessions[1:10]
+    )
+    samples_df <- animal_details[["samples"]]
+    sample_accessions <- unique(samples_df[["accession"]])
+
+    # --- Fetching Multi-Omic Results ---
+    # Key functions: getResult
+    mae_results <- getResult(
+        accessions = sample_accessions[1:5]
+    )
+    experiment_names <- names(mae_results)
+
+    # --- Extracting Metagenomic Assays ---
+    # Key functions: getResult
+    metagenomic_mae <- getResult(
+        accessions = sample_accessions[1:3]
+    )
+    primary_assay <- metagenomic_mae[[1]]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

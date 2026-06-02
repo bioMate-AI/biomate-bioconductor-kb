@@ -38,25 +38,25 @@ process BIOC_ISEEHEX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(iSEEhex)
     library(ReducedDimensionHexPlot)
     library(ReducedDimensionPlot)
     library(ReprocessedAllenData)
     library(jsonlite)
 
-    # --- Reprocessedallendata [] ---
-    # Key functions: ReprocessedAllenData, logNormCounts, runPCA, runTSNE, rowData, rowMeans
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    # Example data ----
-    sce <- ReprocessedAllenData(assays="tophat_counts")
-    class(sce)
-    # --- List [] ---
-    # Key functions: ReducedDimensionPlot, ReducedDimensionHexPlot, iSEE
-    ---------------------------------------------------------------------
-    initialPanels <- list(
-        ReducedDimensionPlot(
-            ColorBy = "Feature name", ColorByFeatureName = "Cux2", PanelWidth = 6L),
-        ReducedDimensionHexPlot(
+    # --- Standard Plot Configuration [] ---
+    # Key functions: ReducedDimensionPlot
+    dim_panel <- ReducedDimensionPlot(
+        ColorBy = "Feature name",
+        ColorByFeatureName = "Cux2",
+        PanelWidth = 6L
+    )
+
+
+    # --- Interface Initialization [] ---
+    # Key functions: iSEE
+    initial_panels <- list(dim_panel, hex_panel)
+    app <- iSEE(se = sce, initial = initial_panels)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

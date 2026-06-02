@@ -41,22 +41,24 @@ process BIOC_PWMENRICH {
     library(PWMEnrich)
     library(jsonlite)
 
-    # --- plot Motif Scores [] ---
-    # Key functions: plotMotifScores
-    ids = c("bcd_FlyReg_FBgn0000166",
-    names(sel.pwms) = c("bcd", "gt", "Kr")
-    scores = motifScores(sequence, sel.pwms, raw.scores=TRUE)
-    # --- register Cores P W M Enrich [] ---
-    # Key functions: registerCoresPWMEnrich
-    registerCoresPWMEnrich(4)
-    # --- use Big Memory P W M Enrich [] ---
-    # Key functions: useBigMemoryPWMEnrich
-    useBigMemoryPWMEnrich(TRUE)
-    # --- group Report [] ---
-    # Key functions: groupReport
-    library(PWMEnrich.Dmelanogaster.background)
-    motifs.denovo = readMotifs(system.file(package="PWMEnrich",
-    genomic.acgt = getBackgroundFrequencies("dm3")
+    # --- Motif Scanning and Scoring [] ---
+    # Key functions: motifScores, plotMotifScores
+    sel.pwms <- PWMLogn.dm3.MotifDb.Dmel$pwms[c("Kr", "gt")]
+    scores <- motifScores(sequence, sel.pwms, raw.scores = TRUE)
+    plotMotifScores(scores, cols = c("green", "red"))
+
+
+    # --- Custom Background Generation [] ---
+    # Key functions: readMotifs, toPWM, makeBackground
+    motifs.denovo <- readMotifs(transfac_file, remove.acc = TRUE)
+    genomic.acgt <- getBackgroundFrequencies("dm3")
+    pwms.denovo <- toPWM(motifs.denovo, prior = genomic.acgt)
+    bg.denovo <- makeBackground(
+        pwms.denovo,
+        organism = "dm3",
+        type = "logn",
+        quick = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

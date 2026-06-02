@@ -41,10 +41,26 @@ process BIOC_ISOCORRECTOR {
     library(IsoCorrectoR)
     library(jsonlite)
 
-    # --- kable [] ---
-    # Key functions: kable
-    fileExample[is.na(fileExample)] <- ""
-    knitr::kable(
+    # --- Normal Resolution Isotope Correction [] ---
+    # Key functions: IsoCorrection
+    results <- IsoCorrection(
+        measurementFile = "measurement.csv",
+        elementFile = "element.csv",
+        moleculeFile = "molecule.csv",
+        FileFormat = "csv",
+        CorrectNA = TRUE
+    )
+
+
+    # --- High Resolution Isotope Correction [] ---
+    # Key functions: IsoCorrection
+    results_high <- IsoCorrection(
+        measurementFile = "measurement_high.csv",
+        elementFile = "element.csv",
+        moleculeFile = "molecule_high.csv",
+        FileFormat = "csv",
+        UltraHighRes = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

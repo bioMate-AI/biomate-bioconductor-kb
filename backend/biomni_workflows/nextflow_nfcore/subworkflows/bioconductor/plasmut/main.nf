@@ -41,36 +41,37 @@ process BIOC_PLASMUT {
     library(plasmut)
     library(jsonlite)
 
-    # --- data wrangling [] ---
-    # Key functions: tibble, unite, group_by, nest
-    p53 <- tibble(y=c(4, 0),
-    n=c(1000, 600),
-    analyte=c("plasma", "buffy coat"),
-    # --- importance_sampler [] ---
+    # --- Clinical Cohort Analysis [] ---
     # Key functions: importance_sampler
-    stats <- importance_sampler(dat$data[[1]], param.list)
-    Just the mutation-level summary statistics (marginal likelihoods and bayes factors)
-    importance_sampler(dat$data[[1]], param.list, save_montecarlo=FALSE)
-    # --- importance_sampler [] ---
-    # Key functions: importance_sampler, replicate, group_by, summarize
-    fun <- function(montecarlo.samples, data,
-    res <- importance_sampler(data, param.list,
-    mutate(montecarlo.samples=montecarlo.samples,
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, geom_line, scale_y_log10, theme_bw
-    mutate(prior.weight=factor(prior.weight)) %>%
-    ggplot(aes(montecarlo.samples, sd_bf)) +
-    geom_point(aes(color=prior.weight)) +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, theme_bw, ylab, xlab
-    mutate(prior.weight=factor(prior.weight)) %>%
-    filter(montecarlo.samples > 100) %>%
-    ggplot(aes(prior.weight, mean_bf)) +
-    # --- unite [] ---
-    # Key functions: unite, group_by
-    params <- list(ctdna = list(a = 1, b = 9),
-    ctc = list(a = 1, b = 10^3),
-    chip = list(a= 1, b = 9),
+    data(crcseq, package = "plasmut")
+    params <- list(
+        ctdna = list(a = 1, b = 9),
+        ctc = list(a = 1, b = 10^3),
+        chip = list(a = 1, b = 9),
+        montecarlo.samples = 1000,
+        prior.weight = 0.1
+    )
+    sample_data <- crcseq[crcseq$patient == "patient1", ]
+    results <- importance_sampler(sample_data, params)
+
+
+    # --- Prior Weight Tuning [] ---
+    # Key functions: importance_sampler
+    p53 <- data.frame(
+        y = c(4, 0),
+        n = c(1000, 600),
+        analyte = c("plasma", "buffy coat"),
+        mutation = "TP53",
+        sample_id = "id1"
+    )
+    params <- list(
+        ctc = list(a = 1, b = 10e3),
+        ctdna = list(a = 1, b = 9),
+        chip = list(a = 1, b = 9),
+        montecarlo.samples = 500,
+        prior.weight = 0.5
+    )
+    tuned_stats <- importance_sampler(p53, params)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

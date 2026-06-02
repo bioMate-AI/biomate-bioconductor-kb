@@ -41,83 +41,65 @@ process BIOC_CRISPRVIZ {
     library(crisprViz)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+    # --- Targeted Exon Visualization [] ---
+    # Key functions: queryTxObject, plotGuideSet
     data("krasGuideSet", package="crisprViz")
     data("krasGeneModel", package="crisprViz")
-    length(krasGuideSet) # number of candidate gRNAs
-    # --- Plotguideset [] ---
+    targetExon <- queryTxObject(
+        krasGeneModel,
+        featureType="cds",
+        queryColumn="exon_id",
+        queryValue="ENSE00000936617"
+    )
+    targetExon <- unique(targetExon)
+    plotGuideSet(
+        krasGuideSet,
+        geneModel=krasGeneModel,
+        targetGene="KRAS",
+        from=start(targetExon),
+        to=end(targetExon),
+        extend.left=20,
+        extend.right=20
+    )
+
+
+    # --- Genomic Annotation and Repeat Visualization [] ---
     # Key functions: plotGuideSet
-    ---------------------------------------------------------------------
-    plotGuideSet(krasGuideSet[1:4],
-                 geneModel=krasGeneModel,
-                 targetGene="KRAS")
-    # --- Min [] ---
-    # Key functions: start, end, plotGuideSet
-    ---------------------------------------------------------------------
-    from <- min(start(krasGeneModel$transcripts))
-    to <- max(end(krasGeneModel$transcripts))
-    plotGuideSet(krasGuideSet[1:4],
-                 geneModel=krasGeneModel,
-    # --- Querytxobject [] ---
-    # Key functions: queryTxObject, start, end, plotGuideSet
-    ---------------------------------------------------------------------
-    # new window range around target exon
-    targetExon <- queryTxObject(krasGeneModel,
-                                featureType="cds",
-                                queryColumn="exon_id",
-    # --- Plotguideset [] ---
-    # Key functions: plotGuideSet
-    ---------------------------------------------------------------------
-    plotGuideSet(krasGuideSet,
-                 geneModel=krasGeneModel,
-                 targetGene="KRAS",
-                 from=from,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("gpr21GuideSet", package="crisprViz")
-    data("gpr21GeneModel", package="crisprViz")
-    # --- Min [] ---
-    # Key functions: start, end, plotGuideSet
-    ---------------------------------------------------------------------
+    data("mmp7GuideSet", package="crisprViz")
+    data("mmp7GeneModel", package="crisprViz")
+    data("repeats", package="crisprViz")
     from <- min(start(mmp7GuideSet))
     to <- max(end(mmp7GuideSet))
-    plotGuideSet(mmp7GuideSet,
-                 geneModel=mmp7GeneModel,
-    # --- Removerepeats [] ---
-    # Key functions: removeRepeats, plotGuideSet
-    ---------------------------------------------------------------------
-    filteredGuideSet <- crisprDesign::removeRepeats(mmp7GuideSet,
-                                                    gr.repeats=repeats)
-    filteredGuideSet <- filteredGuideSet[!filteredGuideSet$hasSNP]
-    plotGuideSet(filteredGuideSet,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+    plotGuideSet(
+        mmp7GuideSet,
+        geneModel=mmp7GeneModel,
+        targetGene="MMP7",
+        guideStacking="dense",
+        annotations=list(Repeats=repeats),
+        pamSiteOnly=TRUE,
+        from=from,
+        to=to,
+        extend.left=600,
+        extend.right=100,
+        includeSNPTrack=TRUE
+    )
+
+
+    # --- Epigenetic Track Integration [] ---
+    # Key functions: plotGuideSet
+    data("mmp7GuideSet", package="crisprViz")
+    data("mmp7GeneModel", package="crisprViz")
     data("cage", package="crisprViz")
     data("dnase", package="crisprViz")
-    # --- Plotguideset [] ---
-    # Key functions: plotGuideSet
-    ---------------------------------------------------------------------
-    plotGuideSet(filteredGuideSet,
-                 geneModel=mmp7GeneModel,
-                 targetGene="MMP7",
-                 guideStacking="dense",
-    # --- Findoverlaps [] ---
-    # Key functions: findOverlaps, queryHits, plotGuideSet
-    ---------------------------------------------------------------------
-    # filter GuideSet for gRNAs overlapping DNase track
-    overlaps <- findOverlaps(filteredGuideSet, dnase, ignore.strand=TRUE)
-    finalGuideSet <- filteredGuideSet[queryHits(overlaps)]
-    plotGuideSet(finalGuideSet,
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data("cas9GuideSet", package="crisprViz")
-    data("cas12aGuideSet", package="crisprViz")
-    data("ltn1GeneModel", package="crisprViz")
+    plotGuideSet(
+        mmp7GuideSet,
+        geneModel=mmp7GeneModel,
+        targetGene="MMP7",
+        guideStacking="dense",
+        annotations=list(CAGE=cage, DNase=dnase),
+        pamSiteOnly=TRUE,
+        margin=0.4
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

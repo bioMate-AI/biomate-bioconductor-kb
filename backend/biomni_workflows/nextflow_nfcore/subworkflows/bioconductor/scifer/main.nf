@@ -41,35 +41,48 @@ process BIOC_SCIFER {
     library(scifer)
     library(jsonlite)
 
-    # --- fcs_processing [] ---
-    # Key functions: fcs_processing, fcs_plot
-    fcs_data <- fcs_processing(
-    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
+    # --- FCS Data Visualization [] ---
+    # Key functions: fcs_plot
     fcs_plot(fcs_data)
-    # --- check fcs noprobe [] ---
-    # Key functions: fcs_processing, fcs_plot
-    fcs_data <- fcs_processing(
-    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
-    fcs_plot(fcs_data)
-    # --- check fcs probe [] ---
-    # Key functions: fcs_processing, fcs_plot
-    fcs_data <- fcs_processing(
-    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
-    fcs_plot(fcs_data)
-    # --- check fcs probe compensated [] ---
-    # Key functions: fcs_processing, fcs_plot
-    fcs_data <- fcs_processing(
-    folder_path = system.file("/extdata/fcs_index_sorting", package = "scifer"),
-    fcs_plot(fcs_data)
-    # --- summarise_abi_file [] ---
-    # Key functions: summarise_abi_file
-    abi_seq <- sangerseqR::read.abif(
-    system.file("/extdata/sorted_sangerseq/E18_C1/A1_3_IgG_Inner.ab1",
-    Summarise using summarise_abi_file()
-    # --- bcr sequences [] ---
+
+
+    # --- Sanger Sequence Quality Control [] ---
     # Key functions: summarise_quality
     sf <- summarise_quality(
-    folder_sequences = system.file("extdata/sorted_sangerseq", package = "scifer"),
+        folder_sequences = system.file(
+            "extdata/sorted_sangerseq",
+            package = "scifer"
+        ),
+        secondary.peak.ratio = 0.33,
+        trim.cutoff = 0.01,
+        processor = 1
+    )
+
+
+    # --- Single ABI File Summary [] ---
+    # Key functions: summarise_abi_file
+    abi_seq <- sangerseqR::read.abif(
+        system.file(
+            "/extdata/sorted_sangerseq/E18_C1/A1_3_IgG_Inner.ab1",
+            package = "scifer"
+        )
+    )
+    summarised <- summarise_abi_file(abi_seq)
+
+
+    # --- IgBLAST Sequence Alignment [] ---
+    # Key functions: igblast
+    ighv_res <- igblast(
+        database = system.file(
+            "/extdata/test_fasta/KIMDB_rm",
+            package = "scifer"
+        ),
+        fasta = system.file(
+            "/extdata/test_fasta/test_igblast.txt",
+            package = "scifer"
+        ),
+        threads = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

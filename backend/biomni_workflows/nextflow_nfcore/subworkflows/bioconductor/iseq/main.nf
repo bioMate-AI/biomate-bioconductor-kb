@@ -41,41 +41,55 @@ process BIOC_ISEQ {
     library(iSeq)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    library(iSeq)
-    data(nrsf)
-    names(nrsf)
-    # --- Mergetag [] ---
-    # Key functions: mergetag
-    tagct = mergetag(chip=chip,control=mock,maxlen=80,minlen=10,ntagcut=10)
-    print(tagct[1:3,])
-    # --- Peakreg [] ---
+    # --- Bayesian Modeling with iSeq1 [] ---
+    # Key functions: iSeq1
+    res1 <- iSeq1(
+        Y = tagct22[, 1:4],
+        gap = 200,
+        burnin = 200,
+        sampling = 1000,
+        ctcut = 0.95,
+        a0 = 1, b0 = 1, a1 = 5, b1 = 1,
+        k0 = 3, mink = 0, maxk = 10,
+        normsd = 0.1, verbose = FALSE
+    )
+
+
+    # --- Peak Detection and Region Identification [] ---
     # Key functions: peakreg
-    tagct22 = tagct[tagct[,1]=="chr22",]  #chr22 data
-    reg0 = peakreg(chrpos=tagct22[,1:3],count=(tagct22[,5:6]-tagct22[,7:8]),
-                   pp=(tagct22[,4]>10),cutoff=0,method="ppcut",maxgap=200)
-    print(dim(reg0))
-    print(reg0[1:3,]) # each row contain the information for an enriched region
-    # --- Frame [] ---
-    # Key functions: frame
-    bed = data.frame(chr=reg2[,1],gstart=reg2[,6]-100,gend=reg2[,6]+100)
-    # --- Iseq2 [] ---
+    reg1 <- peakreg(
+        chrpos = tagct22[, 1:3],
+        count = (tagct22[, 5:6] - tagct22[, 7:8]),
+        pp = res1$pp,
+        cutoff = 0.5,
+        method = "ppcut",
+        maxgap = 200
+    )
+
+
+    # --- Hidden Markov Modeling with iSeq2 [] ---
     # Key functions: iSeq2
-    res2 = iSeq2(Y=tagct22[,1:4],gap=200, burnin=100,sampling=500,winsize=2,
-         ctcut=0.95,a0=1,b0=1,a1=5,b1=1,k=1.0,verbose=FALSE)
-    # --- Peakreg [] ---
-    # Key functions: peakreg
-    reg2 = peakreg(tagct22[,1:3],tagct22[,5:6],res2$pp,0.5,method="ppcut",maxgap=200)
-    print(dim(reg2))
-    print(reg2[1:3,])
-    # --- Table [] ---
-    # Key functions: iSeq1, iSeq2
-    tagctY = tagct[tagct[,1]=="chrY",]
-    print(table(tagctY[,4]))
-    res1 = iSeq1(Y=tagctY[,1:4],gap=200,burnin=1000,sampling=5000,ctcut=0.95,
-         a0=1,b0=1,a1=5,b1=1,k0=3,mink=0,maxk=10,normsd=0.5,verbose=FALSE)
-    res2 = iSeq2(Y=tagctY[,1:4],gap=200, burnin=1000,sampling=5000,winsize=2,ctcut=0.95,
+    res2 <- iSeq2(
+        Y = tagct22[, 1:4],
+        gap = 200,
+        burnin = 100,
+        sampling = 500,
+        winsize = 2,
+        ctcut = 0.95,
+        a0 = 1, b0 = 1, a1 = 5, b1 = 1,
+        k = 1.0, verbose = FALSE
+    )
+
+
+    # --- Visualization of Enriched Regions [] ---
+    # Key functions: plotreg
+    ID <- (reg1[1, 4]):(reg1[1, 5])
+    plotreg(
+        tagct22[ID, 2:3],
+        tagct22[ID, 5:6],
+        tagct22[ID, 7:8],
+        peak = reg1[1, 6]
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

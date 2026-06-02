@@ -41,18 +41,31 @@ process BIOC_SPLICINGFACTORY {
     library(SplicingFactory)
     library(jsonlite)
 
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums
-    tokeep <- rowSums(readcounts > 5) > 5
-    # --- calculate_diversity [] ---
+    # --- Gini Index Estimation [] ---
     # Key functions: calculate_diversity
-    laplace_entropy <- calculate_diversity(readcounts, genes,  method = "laplace",
-    head(assay(laplace_entropy)[, 1:5])
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: pivot_longer, drop_na, ggplot
-    library("tidyr")
-    library("ggplot2")
-    laplace_data <- cbind(assay(laplace_entropy),
+    gini_index <- calculate_diversity(
+        readcounts,
+        genes,
+        method = "gini",
+        verbose = TRUE
+    )
+
+
+    # --- Differential Diversity Analysis [] ---
+    # Key functions: calculate_difference
+    colData(laplace_entropy)$sample_type <- ifelse(
+        grepl("_N", laplace_entropy$samples),
+        "Normal",
+        "Tumor"
+    )
+    entropy_significance <- calculate_difference(
+        x = laplace_entropy,
+        samples = "sample_type",
+        control = "Normal",
+        method = "mean",
+        test = "wilcoxon",
+        verbose = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

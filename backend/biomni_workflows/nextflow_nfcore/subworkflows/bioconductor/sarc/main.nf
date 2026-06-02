@@ -38,82 +38,89 @@ process BIOC_SARC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SARC)
     library(TxDb)
     library(jsonlite)
 
-    # --- kable_styling [] ---
-    # Key functions: kable_styling, scroll_box
-    data("test_cnv")
-    head(test_cnv) %>%
-    kable_styling("striped", full_width=FALSE) %>%
-    # --- region Set [] ---
-    # Key functions: regionSet, regionSplit
-    SARC <- regionSet(cnv = test_cnv, test_cov)
-    SARC <- regionSplit(RE = SARC, #the raggedexpression object we made
-    cnv = metadata(SARC)[['CNVlist']][[1]],
-    # --- region Mean [] ---
-    # Key functions: regionMean
-    SARC <- regionMean(RE = SARC,
-    splitcov =  metadata(SARC)[[4]]) #list of cnv specific coverage
-    # --- region Quantiles [] ---
-    # Key functions: regionQuantiles
-    SARC <- regionQuantiles(RE = SARC,
-    cnv = metadata(SARC)[['CNVlist']][[2]], #new cnv file
-    meancov = metadata(SARC)[[5]], #list of cnv specific coverage + means
-    # --- prep Anova [] ---
-    # Key functions: prepAnova, anovaOnCNV, kable_styling, scroll_box
-    SARC <- prepAnova(RE = SARC,
-    start = metadata(SARC)[[2]],
-    end = metadata(SARC)[[3]],
-    # --- set up plot [] ---
-    # Key functions: TxDb, transcriptsBy, plotCovPrep, regionGrangeMake, addExonsGenes
-    library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-    library(Homo.sapiens) #load genome specific libraries from BioConductor
-    TxDb(Homo.sapiens) <- TxDb.Hsapiens.UCSC.hg38.knownGene
-    # --- plot CNVs [] ---
-    # Key functions: plotCNV
-    plotCNV(cnv = metadata(SARC)[['CNVlist']][[4]],
-    setup = metadata(SARC)[[12]],
-    # --- cnv Confidence [] ---
-    # Key functions: cnvConfidence, kable_styling, scroll_box
-    SARC <- cnvConfidence(RE = SARC, cnv = metadata(SARC)[['CNVlist']][[4]])
-    head(metadata(SARC)[['CNVlist']][[5]]) %>%
-    kable_styling("striped", full_width=FALSE) %>%
-    # --- check distribution of reads [] ---
-    # Key functions: setQDplot, seeDist
+    # --- Coverage Mean and Quantile Calculation [] ---
+    # Key functions: regionMean, regionQuantiles
+    SARC <- regionMean(
+        RE = SARC,
+        cnv = test_cnv,
+        splitcov = metadata(SARC)[[4]]
+    )
+    SARC <- regionQuantiles(
+        RE = SARC,
+        cnv = metadata(SARC)[["CNVlist"]][[2]],
+        meancov = metadata(SARC)[[5]],
+        q1 = 0.1,
+        q2 = 0.9
+    )
+
+
+    # --- Statistical Rarity Analysis [] ---
+    # Key functions: prepAnova, anovaOnCNV
+    SARC <- prepAnova(
+        RE = SARC,
+        start = metadata(SARC)[[2]],
+        end = metadata(SARC)[[3]],
+        cnv = metadata(SARC)[["CNVlist"]][[3]]
+    )
+    SARC <- anovaOnCNV(
+        RE = SARC,
+        cnv = metadata(SARC)[["CNVlist"]][[3]],
+        anovacov = metadata(SARC)[[8]]
+    )
+
+
+    # --- Genomic Annotation and Plot Setup [] ---
+    # Key functions: plotCovPrep, regionGrangeMake, addExonsGenes, setupCNVplot
+    SARC <- plotCovPrep(
+        RE = SARC,
+        cnv = metadata(SARC)[["CNVlist"]][[4]],
+        startlist = metadata(SARC)[[2]],
+        endlist = metadata(SARC)[[3]],
+        n1 = 0,
+        n2 = 0
+    )
+    SARC <- regionGrangeMake(RE = SARC, covprepped = metadata(SARC)[[9]])
+    SARC <- addExonsGenes(
+        RE = SARC,
+        covgranges = metadata(SARC)[[10]],
+        txdb = txdb,
+        txgene = txgene
+    )
+    SARC <- setupCNVplot(
+        RE = SARC,
+        namedgranges = metadata(SARC)[[11]],
+        covprepped = metadata(SARC)[[9]]
+    )
+
+
+    # --- CNV Confidence and Visualization [] ---
+    # Key functions: cnvConfidence, plotCNV, setQDplot, seeDist
+    SARC <- cnvConfidence(RE = SARC, cnv = metadata(SARC)[["CNVlist"]][[4]])
+    plotCNV(
+        cnv = metadata(SARC)[["CNVlist"]][[4]],
+        setup = metadata(SARC)[[12]],
+        FilteredCNV = 1
+    )
     SARC <- setQDplot(RE = SARC, meancov = metadata(SARC)[[5]])
-    seeDist(meanList = metadata(SARC)[[13]],
-    cnv = metadata(SARC)[['CNVlist']][[5]],
-    # --- exon numbers and gene names [] ---
-    # Key functions: pasteExonsGenes, metadata, kable_styling, scroll_box
-    SARC <- pasteExonsGenes(RE = SARC,
-    setup =  metadata(SARC)[[12]], #list of dataframes from the setupCNVplot function
-    cnv = metadata(SARC)[['CNVlist']][[5]]) #cnv file to add an extra column to
-    # --- ph Dunneton C N V [] ---
-    # Key functions: phDunnetonCNV, cnvConfidence
-    DNA <- phDunnetonCNV(RE = DNA,
-    cnv = metadata(SARC)[['CNVlist']][[4]],
-    anovacov = metadata(SARC)[[8]])
-    # --- expanded plotCNV [] ---
-    # Key functions: plotCNV, ggsave
-    data("test_cnv2")
-    library(ggplot2)
-    for (i in seq_len(nrow(test_cnv2))) {
-    # --- Tx Db [] ---
-    # Key functions: TxDb, transcriptsBy
-    require(TxDb.Mmusculus.UCSC.mm10.knownGene)
-    require(Mus.musculus) # load genome specific libraries from BioConductor
-    TxDb(Mus.musculus) <- TxDb.Mmusculus.UCSC.mm10.knownGene
-    # --- Compute genomic coverage [] ---
-    # Key functions: coverage
-    require(GenomicAlignments)
-    bam <- system.file("extdata", "test.bam", package="SARC")
-    coverage <- coverage(bam)
-    # --- cbind [] ---
-    # Key functions: cbind
-    load(system.file("extdata", "test_cov_raw.rda", package="SARC"))
-    load(system.file("extdata", "librarySizes.rda", package="SARC"))
-    normalised_counts <- t(t(test_cov[, 5:ncol(test_cov)]) / libsizes$PerMillion)
+    seeDist(
+        meanList = metadata(SARC)[[13]],
+        cnv = metadata(SARC)[["CNVlist"]][[5]],
+        sample = 1,
+        plotly = FALSE
+    )
+
+
+    # --- Exon and Gene Annotation Merging [] ---
+    # Key functions: pasteExonsGenes
+    SARC <- pasteExonsGenes(
+        RE = SARC,
+        setup = metadata(SARC)[[12]],
+        cnv = metadata(SARC)[["CNVlist"]][[5]]
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

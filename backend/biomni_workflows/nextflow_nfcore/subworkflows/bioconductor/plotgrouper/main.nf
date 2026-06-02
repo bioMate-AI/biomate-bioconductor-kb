@@ -41,9 +41,20 @@ process BIOC_PLOTGROUPER {
     library(plotGrouper)
     library(jsonlite)
 
-    # --- img [] ---
-    # Key functions: img
-    htmltools::img(src = knitr::image_uri("logo_small.png"),
+    # --- Interactive Visualization [] ---
+    # Key functions: runPlotGrouper
+    if (interactive()) {
+        runPlotGrouper()
+    }
+
+
+    # --- Session Export [] ---
+    # Key functions: runPlotGrouper
+    config <- list(
+        app_name = "plotGrouper",
+        status = "ready"
+    )
+    saveRDS(config, file = "plotgrouper_config.rds")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,63 +38,60 @@ process BIOC_VARIANTFILTERING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(VariantFiltering)
     library(BamViews)
     library(DataFrame)
     library(jsonlite)
 
-    # --- Unrelatedindividuals [] ---
-    # Key functions: unrelatedIndividuals
-    ## uind <- unrelatedIndividuals(vfpar)
-    # --- Displayedvariant [] ---
-    # Key functions: path, samples, BamViews, DataFrame, bamFiles
-    path2bams <- file.path(system.file("extdata", package="VariantFiltering"),
-                           paste0(samples(uind), ".subset.bam"))
-    bv <- BamViews(bamPaths=path2bams,
-                   bamSamples=DataFrame(row.names=samples(uind)))
-    bamFiles(uind) <- bv
-    # --- Samples [] ---
-    # Key functions: samples
-    samples(uind)
-    samples(uind) <- c("NA12891", "NA12892")
-    uind
-    uindSO2sam <- summary(uind, method="SOfull")
-    uindSO2sam[uindSO2sam$Level == 6, ]
-    # --- Resetsamples [] ---
-    # Key functions: resetSamples
-    uind <- resetSamples(uind)
-    uind
-    # --- Active [] ---
-    # Key functions: active, filters
-    active(filters(uind))
-    # --- Change [] ---
-    # Key functions: change, cutoffs, active, filters
-    change(cutoffs(uind), "SOterms") <- "UTR_variant"
-    active(filters(uind))["SOterms"] <- TRUE
-    summary(uind)
-    summary(uind, method="SOfull")
-    # --- Function [] ---
-    # Key functions: start, allVariants, filters, active
-    startLost <- function(x) {
-      mask <- start(allVariants(x, groupBy="nothing")$CDSLOC) == 1 &
-              as.character(allVariants(x, groupBy="nothing")$REFCODON) == "ATG" &
-              as.character(allVariants(x, groupBy="nothing")$VARCODON) != "ATG"
-      mask
-    # --- Active [] ---
-    # Key functions: active, filters, cutoffs, change
-    active(filters(uind)) <- FALSE
-    active(filters(uind))["maxMAF"] <- TRUE
-    cutoffs(uind)$maxMAF
-    cutoffs(uind)$maxMAF$popmask
-    cutoffs(uind)$maxMAF$maxvalue
-    # --- Filteredvariants [] ---
-    # Key functions: filteredVariants
-    filteredVariants(uind)
-    # --- Reportvariants [] ---
+    # --- Parameter Initialization [VariantFilteringParam] ---
+    # Key functions: VariantFilteringParam
+    vcf_file <- system.file(
+        "extdata", 
+        "CEU.exon.2010_03.genotypes.vcf.gz", 
+        package="VariantFiltering"
+    )
+    ped_file <- system.file(
+        "extdata", 
+        "CEU.exon.2010_03.ped", 
+        package="VariantFiltering"
+    )
+    param <- VariantFilteringParam(
+        vcfFilename=vcf_file,
+        pedFilename=ped_file
+    )
+
+    # --- Variant Filtering Execution [variantFiltering] ---
+    # Key functions: variantFiltering
+    vf_results <- variantFiltering(param)
+
+    # --- Filter Inspection and Adjustment [cutoffs, filters, active] ---
+    # Key functions: cutoffs, filters, active
+    current_cutoffs <- cutoffs(vf_results)
+    cutoffs(vf_results)$MAFs <- 0.05
+    active(filters(vf_results))["SOterms"] <- FALSE
+
+    # --- Variant Alignment Visualization [BamViews, bamFiles, plot] ---
+    # Key functions: BamViews, bamFiles, plot, samples
+    path2bams <- file.path(
+        system.file("extdata", package="VariantFiltering"),
+        paste0(samples(vf_results), ".subset.bam")
+    )
+    bv <- BamViews(
+        bamPaths=path2bams,
+        bamSamples=DataFrame(row.names=samples(vf_results))
+    )
+    bamFiles(vf_results) <- bv
+    plot(vf_results, what="rs6130959", sampleName="NA12892")
+
+    # --- Exporting Filtered Variants [reportVariants] ---
     # Key functions: reportVariants
-    ## reportVariants(uind, type="csv", file="uind.csv")
-    # --- Info [] ---
-    # Key functions: toLatex
-    toLatex(sessionInfo())
+    filtered_gr <- reportVariants(vf_results, type="GRanges")
+    reportVariants(
+        vf_results,
+        type="tsv",
+        file="filtered_variants.tsv"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

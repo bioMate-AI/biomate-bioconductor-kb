@@ -38,6 +38,7 @@ process BIOC_GAGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(gage)
     library(BamFileList)
     library(DESeq)
     library(DESeqDataSetFromMatrix)
@@ -46,111 +47,89 @@ process BIOC_GAGE {
     library(ScanBamParam)
     library(jsonlite)
 
-    # --- Synopsis0 [] ---
-    # Key functions: setup, requireNamespace, packages
-    ## ##step 0: setup (also need to map the reads outside R)
-    ## if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##     install.packages("BiocManager")
-    ## BiocManager::install(c("pathview", "gage", "gageData", "GenomicAlignments",
-    ##             "TxDb.Hsapiens.UCSC.hg19.knownGene"))
-    # --- Synopsis1 [] ---
-    # Key functions: exonsBy, files, BamFileList, scanBamFlag, ScanBamParam, summarizeOverlaps, assay
-    ## ##step 1: read counts
-    ## library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    ## exByGn <- exonsBy(TxDb.Hsapiens.UCSC.hg19.knownGene, "gene")
-    ## library(GenomicAlignments)
-    ## fls <- list.files("tophat_all/", pattern="bam$", full.names =T)
-    # --- Synopsis2 [] ---
-    # Key functions: rowSums, colSums
-    ## ##step 2: preprocessing
-    ## require(gageData) #demo only
-    ## data(hnrnp.cnts) #demo only
-    ## cnts=hnrnp.cnts
-    ## sel.rn=rowSums(cnts) != 0
-    # --- Synopsis3 [] ---
+    # --- KEGG Pathway Enrichment ---
     # Key functions: gage
-    ## ##step 3: gage
-    ## ##joint workflow with DEseq/edgeR/limma/Cufflinks merges around here
-    ## library(gage)
-    ## ref.idx=5:8
-    ## samp.idx=1:4
-    # --- Synopsis4 [] ---
-    # Key functions: rowMeans, na, pathview
-    ## ##step 4: pathview
-    ## cnts.d= cnts.norm[, samp.idx]-rowMeans(cnts.norm[, ref.idx])
-    ## sel <- cnts.kegg.p$greater[, "q.val"] < 0.1 &
-    ##          !is.na(cnts.kegg.p$greater[,"q.val"])
-    ## path.ids <- rownames(cnts.kegg.p$greater)[sel]
-    # --- Readcount [] ---
-    # Key functions: exonsBy, files, BamFileList, scanBamFlag, ScanBamParam, summarizeOverlaps
-    ## library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    ## exByGn <- exonsBy(TxDb.Hsapiens.UCSC.hg19.knownGene, "gene")
-    ## library(GenomicAlignments)
-    ## fls <- list.files("tophat_all/", pattern="bam$", full.names =T)
-    ## bamfls <- BamFileList(fls)
-    # --- Preprocessing [] ---
-    # Key functions: rowSums, colSums
-    require(gageData)
-    data(hnrnp.cnts)
-    cnts=hnrnp.cnts
-    dim(cnts)
-    sel.rn=rowSums(cnts) != 0
-    # --- Gage [] ---
-    # Key functions: gage
-    library(gage)
-    ref.idx=5:8
-    samp.idx=1:4
-    data(kegg.gs)
-    #knockdown and control samples are unpaired
-    # --- Pathview [] ---
-    # Key functions: rowMeans, pathways, na
-    #differential expression: log2 ratio or fold change, uppaired samples
-    cnts.d= cnts.norm[, samp.idx]-rowMeans(cnts.norm[, ref.idx])
-    #up-regulated pathways (top 3) visualized by pathview
+    ref.idx <- 5:8
+    samp.idx <- 1:4
+    cnts.kegg.p <- gage(
+        cnts.norm,
+        gsets = kegg.gs,
+        ref = ref.idx,
+        samp = samp.idx,
+        compare = "unpaired"
+    )
+
+    # --- Pathway Visualization ---
+    # Key functions: pathview
     sel <- cnts.kegg.p$greater[, "q.val"] < 0.1 &
-             !is.na(cnts.kegg.p$greater[,"q.val"])
-    # --- Goanalysis [] ---
+        !is.na(cnts.kegg.p$greater[, "q.val"])
+    path.ids <- rownames(cnts.kegg.p$greater)[sel]
+    path.ids2 <- substr(path.ids, 1, 8)
+    cnts.d <- cnts.norm[, samp.idx] - rowMeans(cnts.norm[, ref.idx])
+    pv.out.list <- sapply(
+        path.ids2[1:3],
+        function(pid) pathview(
+            gene.data = cnts.d,
+            pathway.id = pid,
+            species = "hsa"
+        )
+    )
+
+    # --- Gene Ontology Enrichment ---
     # Key functions: gage
-    library(gageData)
-    data(go.sets.hs)
-    data(go.subs.hs)
-    lapply(go.subs.hs, head)
-    #Molecular Function analysis is quicker, hence run as demo
-    # --- Goresults [] ---
+    ref.idx <- 5:8
+    samp.idx <- 1:4
+    cnts.mf.p <- gage(
+        cnts.norm,
+        gsets = go.sets.hs[go.subs.hs$MF],
+        ref = ref.idx,
+        samp = samp.idx,
+        compare = "unpaired"
+    )
+
+    # --- Gene-level Visualization ---
     # Key functions: geneData
-    for (gs in rownames(cnts.mf.p$less)[1:3]) {
-        outname = gsub(" |:|/", "_", substr(gs, 12, 100))
-        geneData(genes = go.sets.hs[[gs]], exprs = cnts.norm, ref = ref.idx,
-            samp = samp.idx, outname = outname, txt = T, heatmap = T,
-            limit = 3, scatterplot = T)
-    # --- Pergenescore [] ---
-    # Key functions: test, rowMeans, gage
-    cnts.t= apply(cnts.norm, 1, function(x) t.test(x[samp.idx], x[ref.idx],
-                  alternative = "two.sided", paired = F)$statistic)
-    cnts.meanfc= rowMeans(cnts.norm[, samp.idx]-cnts.norm[, ref.idx])
-    range(cnts.t)
-    range(cnts.meanfc)
-    # --- Deseq2 [] ---
-    # Key functions: DataFrame, factor, DESeqDataSetFromMatrix, DESeq, results
-    library(DESeq2)
-    grp.idx <- rep(c("knockdown", "control"), each=4)
-    coldat=DataFrame(grp=factor(grp.idx))
-    dds <- DESeqDataSetFromMatrix(cnts, colData=coldat, design = ~ grp)
-    dds <- DESeq(dds)
-    # --- Deseq2 [] ---
-    # Key functions: gage, na
-    require(gage)
-    data(kegg.gs)
-    fc.kegg.p <- gage(exp.fc, gsets = kegg.gs, ref = NULL, samp = NULL)
-    sel <- fc.kegg.p$greater[, "q.val"] < 0.1 &
-            !is.na(fc.kegg.p$greater[, "q.val"])
-    # --- Deseq [] ---
-    # Key functions: newCountDataSet, estimateSizeFactors, estimateDispersions, time, nbinomTest
-    ## library(DESeq)
-    ## grp.idx <- rep(c("knockdown", "control"), each=4)
-    ## cds <- newCountDataSet(cnts, grp.idx)
-    ## cds = estimateSizeFactors(cds)
-    ## cds = estimateDispersions(cds)
+    ref.idx <- 5:8
+    samp.idx <- 1:4
+    top.gs <- rownames(cnts.mf.p$less)[1:3]
+    for (gs in top.gs) {
+        outname <- gsub(" |:|/", "_", substr(gs, 12, 100))
+        geneData(
+            genes = go.sets.hs[[gs]],
+            exprs = cnts.norm,
+            ref = ref.idx,
+            samp = samp.idx,
+            outname = outname,
+            txt = TRUE,
+            heatmap = TRUE,
+            limit = 3,
+            scatterplot = TRUE
+        )
+    }
+
+    # --- Enrichment Analysis with Custom Statistics ---
+    # Key functions: gage
+    ref.idx <- 5:8
+    samp.idx <- 1:4
+    cnts.t <- apply(cnts.norm, 1, function(x) {
+        t.test(x[samp.idx], x[ref.idx], paired = FALSE)$statistic
+    })
+    cnts.meanfc <- rowMeans(
+        cnts.norm[, samp.idx] - cnts.norm[, ref.idx]
+    )
+    cnts.t.kegg.p <- gage(
+        cnts.t,
+        gsets = kegg.gs,
+        ref = NULL,
+        samp = NULL
+    )
+    cnts.meanfc.kegg.p <- gage(
+        cnts.meanfc,
+        gsets = kegg.gs,
+        ref = NULL,
+        samp = NULL
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

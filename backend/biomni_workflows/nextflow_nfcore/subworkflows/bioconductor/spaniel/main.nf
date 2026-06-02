@@ -41,24 +41,52 @@ process BIOC_SPANIEL {
     library(Spaniel)
     library(jsonlite)
 
-    # --- create Visium S C E [] ---
+    # --- Create Visium SCE [Data Loading] ---
     # Key functions: createVisiumSCE
-    pathToTenXOuts <- file.path(system.file(package = "Spaniel"), "extdata/outs")
-    sce <- createVisiumSCE(tenXDir=pathToTenXOuts,
-    # --- col Data [] ---
-    # Key functions: colData
-    colData(sce)[, c("Barcode", "pixel_x", "pixel_y")]
-    # --- image dimensions [] ---
-    # Key functions: metadata
-    metadata(sce)$ImgDims
-    # --- spaniel Plot [] ---
+    pathToTenXOuts <- file.path(
+        system.file(package = "Spaniel"), 
+        "extdata/outs"
+    )
+    sce <- createVisiumSCE(
+        tenXDir = pathToTenXOuts, 
+        resolution = "Low"
+    )
+
+    # --- Quality Control Plotting [QC] ---
     # Key functions: spanielPlot
-    spanielPlot(object = sce,
-    # --- Log-normalize count data [] ---
-    # Key functions: logNormCounts, spanielPlot, runPCA, runUMAP, buildSNNGraph
-    sce <- logNormCounts(sce)
-    p2 <- spanielPlot(object = sce,
-    library(scran)
+    filter <- sce$detected > 0
+    p1 <- spanielPlot(
+        object = sce,
+        plotType = "NoGenes", 
+        showFilter = filter, 
+        techType = "Visium", 
+        ptSizeMax = 3
+    )
+    sce <- sce[, filter]
+
+    # --- Gene Expression Visualisation [Visualisation] ---
+    # Key functions: spanielPlot
+    p2 <- spanielPlot(
+        object = sce,
+        plotType = "Gene", 
+        gene = "ENSMUSG00000024843",
+        techType = "Visium", 
+        ptSizeMax = 3
+    )
+
+    # --- Spatial Cluster Visualisation [Visualisation] ---
+    # Key functions: spanielPlot
+    sce$clust <- factor(rep(1:2, length.out = ncol(sce)))
+    p3 <- spanielPlot(
+        object = sce,
+        plotType = "Cluster", 
+        clusterRes = "clust",
+        showFilter = NULL, 
+        techType = "Visium", 
+        ptSizeMax = 1, 
+        customTitle = "Section A"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

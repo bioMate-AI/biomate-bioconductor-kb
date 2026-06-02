@@ -41,22 +41,46 @@ process BIOC_PAIREDGSEA {
     library(pairedGSEA)
     library(jsonlite)
 
-    # --- col Data [] ---
-    # Key functions: colData
-    SummarizedExperiment::colData(example_se)
-    # --- all [] ---
-    # Key functions: all, colData
-    all(colnames(example_se) %in%
-    SummarizedExperiment::colData(example_se)[[sample_col]])
-    # --- paired_diff [] ---
+    # --- Differential Expression and Splicing Analysis [paired_diff] ---
     # Key functions: paired_diff
-    set.seed(500) # For reproducible results
+    data("example_se")
     diff_results <- paired_diff(
-    store_results = FALSE # Set to TRUE (recommended)  if you want
-    # --- prepare_msigdb [] ---
-    # Key functions: prepare_msigdb, paired_ora
-    gene_sets <- pairedGSEA::prepare_msigdb(
-    ora <- paired_ora(
+        object = example_se,
+        metadata = NULL,
+        group_col = "group_nr",
+        sample_col = "id",
+        baseline = 1,
+        case = 2,
+        experiment_title = "TGFb treatment for 12h",
+        store_results = FALSE
+    )
+
+    # --- Gene Set Preparation [prepare_msigdb] ---
+    # Key functions: prepare_msigdb
+    gene_sets <- prepare_msigdb(
+        species = "Homo sapiens",
+        category = "C5",
+        gene_id_type = "ensembl_gene"
+    )
+
+    # --- Over-representation Analysis [paired_ora] ---
+    # Key functions: paired_ora
+    ora_results <- paired_ora(
+        paired_diff_result = diff_results,
+        gene_sets = gene_sets,
+        experiment_title = NULL
+    )
+
+    # --- Visualization of GSEA Results [plot_ora] ---
+    # Key functions: plot_ora
+    plot_ora(
+        ora_results,
+        plotly = FALSE,
+        pattern = "Telomer",
+        cutoff = 0.05,
+        lines = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

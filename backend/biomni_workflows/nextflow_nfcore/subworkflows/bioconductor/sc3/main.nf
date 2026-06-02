@@ -38,85 +38,44 @@ process BIOC_SC3 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(SC3)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Knitr Options [] ---
-    # Key functions: set
-    --------------
-    library(knitr)
-    opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
-    # --- Singlecellexperiment [] ---
-    # Key functions: SingleCellExperiment, rowData
-    ---------------------------------------------------------------------
-    # create a SingleCellExperiment object
-    sce <- SingleCellExperiment(
-        assays = list(
-            counts = as.matrix(yan),
-    # --- Runpca [] ---
-    # Key functions: runPCA, plotPCA
-    ---------------------------------------------------------------------
-    sce <- runPCA(sce)
-    plotPCA(sce, colour_by = "cell_type1")
-    # --- Sc3 [] ---
+    # --- Single-Cell Clustering [] ---
     # Key functions: sc3
-    ---------------------------------------------------------------------
     sce <- sc3(sce, ks = 2:4, biology = TRUE)
-    # --- Coldata [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
     col_data <- colData(sce)
-    head(col_data[ , grep("sc3_", colnames(col_data))])
-    # --- Runpca [] ---
-    # Key functions: runPCA, plotPCA
-    ---------------------------------------------------------------------
-    sce <- runPCA(sce)
-    plotPCA(
-        sce,
-        colour_by = "sc3_3_clusters",
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    row_data <- rowData(sce)
-    head(row_data[ , grep("sc3_", colnames(row_data))])
-    # --- Sc3 Plot Silhouette [] ---
-    # Key functions: sc3_plot_silhouette
-    ---------------------------------------------------------------------
+    sc3_cols <- grep("sc3_", colnames(col_data), value = TRUE)
+    cluster_results <- col_data[, sc3_cols]
+
+
+    # --- Consensus and Stability Analysis [] ---
+    # Key functions: sc3_plot_consensus, sc3_plot_silhouette, sc3_plot_cluster_stability
+    sc3_plot_consensus(
+        sce, k = 3,
+        show_pdata = c("sc3_3_clusters", "sc3_3_log2_outlier_score")
+    )
     sc3_plot_silhouette(sce, k = 3)
-    # --- Sc3 Prepare [] ---
-    # Key functions: sc3_prepare, metadata
-    ---------------------------------------------------------------------
-    sce <- sc3_prepare(sce)
-    str(metadata(sce)$sc3)
-    # --- Sc3 Estimate K [] ---
-    # Key functions: sc3_estimate_k, metadata
-    ---------------------------------------------------------------------
-    sce <- sc3_estimate_k(sce)
-    str(metadata(sce)$sc3)
-    # --- Sc3 Calc Dists [] ---
-    # Key functions: sc3_calc_dists, metadata
-    ---------------------------------------------------------------------
-    sce <- sc3_calc_dists(sce)
-    names(metadata(sce)$sc3$distances)
-    # --- Sc3 Calc Transfs [] ---
-    # Key functions: sc3_calc_transfs, metadata
-    ---------------------------------------------------------------------
-    sce <- sc3_calc_transfs(sce)
-    names(metadata(sce)$sc3$transformations)
-    # --- Metadata [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    metadata(sce)$sc3$distances
-    # --- Sc3 Kmeans [] ---
-    # Key functions: sc3_kmeans, metadata
-    ---------------------------------------------------------------------
-    sce <- sc3_kmeans(sce, ks = 2:4)
-    names(metadata(sce)$sc3$kmeans)
-    # --- Coldata [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    col_data <- colData(sce)
-    head(col_data[ , grep("sc3_", colnames(col_data))])
+    sc3_plot_cluster_stability(sce, k = 3)
+
+
+    # --- Biological Feature Analysis [] ---
+    # Key functions: sc3_calc_biology, sc3_plot_de_genes, sc3_plot_markers
+    sce <- sc3_calc_biology(sce, ks = 2:4)
+    sc3_plot_de_genes(
+        sce, k = 3,
+        show_pdata = c("sc3_3_clusters", "sc3_3_log2_outlier_score")
+    )
+    sc3_plot_markers(sce, k = 3)
+
+
+    # --- Hybrid SVM Clustering for Large Datasets [] ---
+    # Key functions: sc3_run_svm, sc3_calc_biology
+    sce <- sc3(sce, ks = 2:4, biology = TRUE, svm_num_cells = 50)
+    sce <- sc3_run_svm(sce, ks = 2:4)
+    metadata(sce)$sc3$svm_train_inds <- NULL
+    sce <- sc3_calc_biology(sce, ks = 2:4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

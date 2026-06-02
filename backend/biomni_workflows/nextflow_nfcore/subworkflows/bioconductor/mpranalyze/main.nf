@@ -38,14 +38,54 @@ process BIOC_MPRANALYZE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MPRAnalyze)
     library(MpraObject)
     library(jsonlite)
 
-    # --- MpraObject analysis [] ---
-    # Key functions: MpraObject, method, estimateDepthFactors, analyzeQuantification, getAlpha, analyzeComparative, testLrt
-    method (Upper quartile by default)
-    obj <- estimateDepthFactors(obj, lib.factor = c("batch", "condition"),
-    obj <- estimateDepthFactors(obj, lib.factor = c("condition"),
+    # --- Depth Factor Estimation [] ---
+    # Key functions: estimateDepthFactors
+    obj <- estimateDepthFactors(
+        obj = obj,
+        lib.factor = c("batch", "condition"),
+        which.lib = "both",
+        depth.estimator = "uq"
+    )
+
+
+    # --- Quantification Analysis [] ---
+    # Key functions: analyzeQuantification, getAlpha
+    obj <- analyzeQuantification(
+        obj = obj,
+        dnaDesign = ~ batch + condition,
+        rnaDesign = ~ condition
+    )
+    alpha <- getAlpha(
+        obj = obj,
+        by.factor = "condition"
+    )
+
+
+    # --- Empirical Testing [] ---
+    # Key functions: testEmpirical
+    res.epi <- testEmpirical(
+        obj = obj,
+        statistic = alpha$MT
+    )
+    res.chr <- testEmpirical(
+        obj = obj,
+        statistic = alpha$WT
+    )
+
+
+    # --- Comparative Analysis [] ---
+    # Key functions: analyzeComparative, testLrt
+    obj <- analyzeComparative(
+        obj = obj,
+        dnaDesign = ~ barcode + batch + condition,
+        rnaDesign = ~ condition,
+        reducedDesign = ~ 1
+    )
+    res <- testLrt(obj = obj)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

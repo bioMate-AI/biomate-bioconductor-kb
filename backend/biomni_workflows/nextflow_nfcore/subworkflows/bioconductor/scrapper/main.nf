@@ -38,67 +38,62 @@ process BIOC_SCRAPPER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scrapper)
     library(DelayedArray)
     library(StoeckiusHashingData)
     library(TasicBrainData)
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- Zeiselbraindata [] ---
-    # Key functions: ZeiselBrainData
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce.z <- ZeiselBrainData()
-    sce.z
-    # --- Delayedarray [] ---
-    # Key functions: DelayedArray, assay, computeRnaQcMetrics, suggestRnaQcThresholds
-    ---------------------------------------------------------------------
-    # Wrapping it in a DelayedArray to avoid making unnecessary copies when we
-    # do the various subsetting steps.
-    library(DelayedArray)
-    counts <- DelayedArray(assay(sce.z))
-    # --- Tasicbraindata [] ---
-    # Key functions: TasicBrainData, intersect, DelayedArray, assay
-    ---------------------------------------------------------------------
-    sce.t <- TasicBrainData()
-    common <- intersect(rownames(sce.z), rownames(sce.t))
-    combined <- cbind(
-        DelayedArray(assay(sce.t))[common,],
-    # --- Computernaqcmetrics [] ---
-    # Key functions: computeRnaQcMetrics, suggestRnaQcThresholds, filterRnaQcMetrics, centerSizeFactors, normalizeCounts, modelGeneVariances
-    ---------------------------------------------------------------------
-    # No mitochondrial genes in the combined set, so we'll just skip it.
-    library(scrapper)
-    rna.qc.metrics <- computeRnaQcMetrics(combined, subsets=list(), num.threads=nthreads)
-    rna.qc.thresholds <- suggestRnaQcThresholds(rna.qc.metrics, block=block)
-    # --- Plot [] ---
-    # Key functions: factor
-    ---------------------------------------------------------------------
-    plot(tsne.out[,1], tsne.out[,2], pch=16, col=factor(filtered.block))
-    # --- Aggregateacrosscells [] ---
-    # Key functions: aggregateAcrossCells
-    ---------------------------------------------------------------------
-    aggregates <- aggregateAcrossCells(filtered, list(cluster=clust.out$membership, dataset=filtered.block))
-    # --- Stoeckiushashingdata [] ---
-    # Key functions: StoeckiusHashingData
-    ---------------------------------------------------------------------
-    sce.s <- StoeckiusHashingData(mode=c("human", "adt1", "adt2"))
-    sce.s <- sce.s[,1:5000]
-    sce.s
-    # --- Delayedarray [] ---
-    # Key functions: DelayedArray, assay, altExp
-    ---------------------------------------------------------------------
-    rna.counts <- DelayedArray(assay(sce.s))
-    adt.counts <- DelayedArray(rbind(
-        assay(altExp(sce.s, "adt1")),
-        assay(altExp(sce.s, "adt2"))
-    # --- Grepl [] ---
-    # Key functions: computeRnaQcMetrics, suggestRnaQcThresholds, filterRnaQcMetrics, computeAdtQcMetrics
-    ---------------------------------------------------------------------
-    # QC in both modalities, only keeping the cells that pass in both.
-    library(scrapper)
-    is.mito <- grepl("^MT-", rownames(rna.counts))
-    rna.qc.metrics <- computeRnaQcMetrics(rna.counts, subsets=list(MT=is.mito), num.threads=nthreads)
+    # --- Normalisation and Feature Selection [] ---
+    # Key functions: centerSizeFactors, normalizeCounts, modelGeneVariances, chooseHighlyVariableGenes
+    size.factors <- centerSizeFactors(rna.qc.metrics$sum[rna.qc.filter])
+    normalized <- normalizeCounts(filtered, size.factors)
+    gene.var <- modelGeneVariances(normalized, num.threads = 2)
+    top.hvgs <- chooseHighlyVariableGenes(gene.var$statistics$residuals)
+
+
+    # --- Dimensionality Reduction and Clustering [] ---
+    # Key functions: runPca, runUmap, runTsne, buildSnnGraph, clusterGraph
+    pca <- runPca(normalized[top.hvgs, ], num.threads = 2)
+    umap.out <- runUmap(pca$components, num.threads = 2)
+    tsne.out <- runTsne(pca$components, num.threads = 2)
+    snn.graph <- buildSnnGraph(pca$components, num.threads = 2)
+    clust.out <- clusterGraph(snn.graph)
+
+
+    # --- Marker Gene Detection [] ---
+    # Key functions: scoreMarkers
+    markers <- scoreMarkers(
+        normalized,
+        groups = clust.out$membership,
+        num.threads = 2
+    )
+    top.markers <- lapply(markers$auc, function(x) {
+        head(rownames(x)[order(x$median, decreasing = TRUE)], 10)
+    })
+
+
+    # --- Batch Correction [] ---
+    # Key functions: correctMnn
+    corrected <- correctMnn(
+        pca$components,
+        block = filtered.block,
+        num.threads = 2
+    )
+    corrected.umap <- runUmap(corrected$corrected, num.threads = 2)
+
+
+    # --- Multi-modal Integration [] ---
+    # Key functions: computeAdtQcMetrics, computeClrm1Factors, scaleByNeighbors
+    adt.qc.metrics <- computeAdtQcMetrics(adt.counts, num.threads = 2)
+    adt.size.factors <- computeClrm1Factors(adt.counts, num.threads = 2)
+    adt.size.factors <- centerSizeFactors(adt.size.factors)
+    adt.normalized <- normalizeCounts(adt.counts, adt.size.factors)
+    combined <- scaleByNeighbors(
+        list(pca$components, as.matrix(adt.normalized)),
+        num.threads = 2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

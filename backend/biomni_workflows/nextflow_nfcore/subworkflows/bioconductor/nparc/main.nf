@@ -38,79 +38,54 @@ process BIOC_NPARC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(NPARC)
     library(NPARCfit)
     library(NPARCtest)
     library(SerialParam)
     library(jsonlite)
 
-    # --- count curves per protein [] ---
-    # Key functions: group_by
-    group_by(dataset, uniqueID) %>%
-    mutate(n = n()) %>%
-    group_by(dataset) %>%
-    # --- plot stk4 [] ---
-    # Key functions: ggplot, geom_point, theme_bw, ggtitle, scale_color_manual
-    stk4_plot_orig <- ggplot(stk4, aes(x = temperature, y = relAbundance)) +
-    geom_point(aes(shape = factor(replicate), color = factor(compoundConcentration)), size = 2) +
-    theme_bw() +
-    # --- augment null stk4 [] ---
-    # Key functions: augment
-    nullPredictions <- broom::augment(nullFit)
-    # --- fit alternative stk4 [] ---
-    # Key functions: group_by, augment, rename
-    group_by(compoundConcentration) %>%
-    do({
-    fit = NPARC:::fitSingleSigmoid(x = .$temperature, y = .$relAbundance, start=c(Pl = 0, a = 550, b = 10))
-    # --- add alternative resids stk4 [] ---
-    # Key functions: left_join, distinct
-    left_join(alternativePredictions,
-    by = c("relAbundance", "temperature",
-    distinct()
-    # --- plot Fig 2 A B [] ---
-    # Key functions: geom_line, aes
-    geom_line(data = distinct(stk4, temperature, compoundConcentration, alternativePrediction),
-    aes(y = alternativePrediction, color = factor(compoundConcentration)))
-    print(stk4_plot)
-    # --- compute rss stk4 [] ---
-    # Key functions: summarise, SerialParam
-    summarise(rssNull = sum(nullResiduals^2),
-    rssAlternative = sum(alternativeResiduals^2))
-    kable(rssPerModel, digits = 4)
-    # --- fit all proteins [] ---
+    # --- Non-parametric Curve Fitting [] ---
     # Key functions: NPARCfit
-    fits <- NPARCfit(x = df$temperature,
-    str(fits, 1)
-    # --- plot stk4 results [] ---
-    # Key functions: geom_line, aes
-    stk4Predictions <- filter(fits$predictions, modelType == "alternative", id == "STK4_IPI00011488")
-    geom_line(data = filter(stk4Predictions, modelType == "alternative"),
-    aes(x = x, y = .fitted, color = factor(group))) +
-    # --- N P A R Ctest [] ---
+    BPPARAM <- BiocParallel::SerialParam(progressbar = FALSE)
+    fits <- NPARCfit(
+        x = df$temperature,
+        y = df$relAbundance,
+        id = df$uniqueID,
+        groupsNull = NULL,
+        groupsAlt = df$compoundConcentration,
+        BPPARAM = BPPARAM,
+        returnModels = FALSE
+    )
+    metrics <- fits$metrics
+    predictions <- fits$predictions
+
+
+    # --- Statistical Significance Testing [] ---
     # Key functions: NPARCtest
-    fStats <- NPARCtest(modelMetrics, dfType = "theoretical")
-    # --- plotF DOFiid [] ---
-    # Key functions: distinct
-    filter(!is.na(pAdj)) %>%
-    distinct(nFittedNull, nFittedAlt, nCoeffsNull, nCoeffsAlt, df1, df2) %>%
-    kable()
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_density, geom_line, theme_bw, xlim
-    ggplot(filter(fStats, !is.na(pAdj))) +
-    geom_density(aes(x = fStat), fill = "steelblue", alpha = 0.5) +
-    geom_line(aes(x = fStat, y = df(fStat, df1 = df1, df2 = df2)), color = "darkred", size = 1.5) +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_histogram, geom_line, theme_bw
-    ggplot(filter(fStats, !is.na(pAdj))) +
-    geom_histogram(aes(x = pVal, y = ..density..), fill = "steelblue", alpha = 0.5, boundary = 0, bins = 30) +
-    geom_line(aes(x = pVal, y = dunif(pVal)), color = "darkred", size = 1.5) +
-    # --- N P A R Ctest [] ---
-    # Key functions: NPARCtest
-    fStats <- NPARCtest(modelMetrics, dfType = "empirical")
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_density, geom_line, theme_bw, xlim
-    ggplot(filter(fStats, !is.na(pAdj))) +
-    geom_density(aes(x = fStat), fill = "steelblue", alpha = 0.5) +
-    geom_line(aes(x = fStat, y = df(fStat, df1 = df1, df2 = df2)), color = "darkred", size = 1.5) +
+    fStats_theo <- NPARCtest(metrics, dfType = "theoretical")
+    fStats_emp <- NPARCtest(metrics, dfType = "empirical")
+    significant_proteins <- fStats_emp %>%
+        dplyr::filter(!is.na(pAdj)) %>%
+        dplyr::filter(pAdj < 0.05) %>%
+        dplyr::arrange(pAdj)
+
+
+    # --- Visualisation of Response Curves [] ---
+    # Key functions: NPARCfit
+    stk4_predictions <- dplyr::filter(
+        predictions,
+        id == "STK4_IPI00011488"
+    )
+    stk4_plot <- ggplot2::ggplot(stk4_predictions) +
+        ggplot2::geom_line(
+            ggplot2::aes(x = x, y = .fitted, color = factor(group))
+        ) +
+        ggplot2::theme_bw() +
+        ggplot2::labs(
+            title = "STK4 Response Curves",
+            x = "Temperature",
+            y = "Relative Abundance"
+        )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,103 +41,31 @@ process BIOC_STABMAP {
     library(StabMap)
     library(jsonlite)
 
-    # --- Upsetsamples [] ---
-    # Key functions: upsetSamples, colData, experiments
-    ---------------------------------------------------------------------
-    mae
-    upsetSamples(mae)
-    head(colData(mae))
-    dim(experiments(mae)[["rna"]])
-    # --- Experiments [] ---
-    # Key functions: experiments, logNormCounts, modelGeneVar
-    ---------------------------------------------------------------------
-    sce.rna <- experiments(mae)[["rna"]]
-    # Normalisation
-    sce.rna <- logNormCounts(sce.rna)
-    # Feature selection
-    # --- Dim [] ---
-    # Key functions: experiments, logNormCounts, modelGeneVar
-    ---------------------------------------------------------------------
-    dim(experiments(mae)[["atac"]])
-    sce.atac <- experiments(mae)[["atac"]]
-    # Normalise
-    sce.atac <- logNormCounts(sce.atac)
-    # --- Setnames [] ---
-    # Key functions: setNames, sample
-    ---------------------------------------------------------------------
-    dataType <- setNames(
-      sample(c("RNA", "Multiome"), ncol(logcounts_all),
-        prob = c(0.5, 0.5), replace = TRUE
-      ),
-    # --- Mosaicdataupset [] ---
-    # Key functions: mosaicDataUpSet
-    ---------------------------------------------------------------------
-    mosaicDataUpSet(assay_list, plot = FALSE)
-    # --- Mosaicdatatopology [] ---
-    # Key functions: mosaicDataTopology
-    ---------------------------------------------------------------------
-    mdt <- mosaicDataTopology(assay_list)
-    mdt
-    plot(mdt)
-    # --- Stabmap [] ---
+    # --- Stabilized Mosaic Integration [] ---
     # Key functions: stabMap
-    ---------------------------------------------------------------------
-    stab <- stabMap(assay_list,
-      reference_list = c("Multiome"),
-      plot = FALSE
+    stab <- stabMap(
+        assay_list,
+        reference_list = c("Multiome"),
+        plot = FALSE
     )
-    # --- Calculateumap [] ---
-    # Key functions: calculateUMAP, factor
-    ---------------------------------------------------------------------
-    stab_umap <- calculateUMAP(t(stab))
-    dim(stab_umap)
-    plot(stab_umap, pch = 16, cex = 0.3, col = factor(dataType[rownames(stab)]))
-    # --- Imputeembedding [] ---
+
+
+    # --- Embedding Imputation [] ---
     # Key functions: imputeEmbedding
-    ---------------------------------------------------------------------
     imp <- imputeEmbedding(
-      assay_list,
-      stab,
-      reference = colnames(assay_list[["Multiome"]]),
-    # --- Coldata [] ---
-    # Key functions: colData, experiments
-    ---------------------------------------------------------------------
-    annotation <- "celltype"
-    referenceLabels <- colData(
-      experiments(mae)[["rna"]]
-    )[colnames(assay_list$Multiome), annotation]
-    # --- Classifyembedding [] ---
-    # Key functions: classifyEmbedding
-    ---------------------------------------------------------------------
-    knn_out <- classifyEmbedding(
-      stab,
-      referenceLabels,
+        assay_list,
+        stab,
+        reference = colnames(assay_list[["Multiome"]]),
+        query = colnames(assay_list[["RNA"]])
     )
-    # --- Coldata [] ---
-    # Key functions: colData, experiments
-    ---------------------------------------------------------------------
-    # Extract query labels
-    queryLabels <- colData(
-      experiments(mae)[["rna"]]
-    )[colnames(assay_list$RNA), annotation]
-    # --- Colnames [] ---
-    # Key functions: frame, ggplot, aes, geom_point, ggtitle, arrange
-    ---------------------------------------------------------------------
-    # Extract reference and query cells from UMAP embedding
-    stab_umap_ref <- stab_umap[colnames(assay_list$Multiome), ]
-    stab_umap_query <- stab_umap[colnames(assay_list$RNA), ]
-    # Create UMAP for reference cells
-    # --- Setnames [] ---
-    # Key functions: setNames, sample
-    ---------------------------------------------------------------------
-    dataTypeIndirect <- setNames(
-      sample(c("RNA", "Multiome", "ATAC"), ncol(logcounts_all),
-        prob = c(0.3, 0.3, 0.3), replace = TRUE
-      ),
-    # --- Mosaicdataupset [] ---
-    # Key functions: mosaicDataUpSet
-    ---------------------------------------------------------------------
-    mosaicDataUpSet(assay_list_indirect, plot = FALSE)
+
+
+    # --- Cell Type Classification [] ---
+    # Key functions: classifyEmbedding
+    knn_out <- classifyEmbedding(
+        stab,
+        referenceLabels
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

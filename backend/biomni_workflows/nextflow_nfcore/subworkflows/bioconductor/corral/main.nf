@@ -41,53 +41,49 @@ process BIOC_CORRAL {
     library(corral)
     library(jsonlite)
 
-    # --- Table [] ---
-    # Key functions: colData
-    ---------------------------------------------------------------------
-    zm4eq.sce
-    table(colData(zm4eq.sce)$phenoid)
-    # --- Corral [] ---
-    # Key functions: corral
-    ---------------------------------------------------------------------
-    zm4eq.sce <- corral(inp = zm4eq.sce,
-                        whichmat = 'counts')
-    zm4eq.sce
-    # --- Plot Embedding Sce [] ---
+    # --- Visualization of SCE Embedding [] ---
     # Key functions: plot_embedding_sce
-    ---------------------------------------------------------------------
-    plot_embedding_sce(sce = zm4eq.sce,
-                       which_embedding = 'corral',
-                       plot_title = 'corral on Zhengmix4eq',
-                       color_attr = 'phenoid',
-    # --- Runumap [] ---
-    # Key functions: runUMAP, runTSNE, plot_embedding_sce, arrange
-    ---------------------------------------------------------------------
-    library(scater)
-    library(gridExtra) # so we can arrange the plots side by side
-    zm4eq.sce <- runUMAP(zm4eq.sce,
-                         dimred = 'corral',
-    # --- Assay [] ---
-    # Key functions: assay, corral
-    ---------------------------------------------------------------------
-    zm4eq.countmat <- assay(zm4eq.sce,'counts')
-    zm4eq.countcorral <- corral(zm4eq.countmat)
-    # --- Plot Embedding [] ---
-    # Key functions: plot_embedding
-    ---------------------------------------------------------------------
-    celltype_vec <- zm4eq.sce$phenoid
-    plot_embedding(embedding = zm4eq.countcorral$v,
-                   plot_title = 'corral on Zhengmix4eq',
-                   color_vec = celltype_vec,
-    # --- Corral [] ---
+    plot_embedding_sce(
+        sce = zm4eq.sce,
+        which_embedding = "corral",
+        plot_title = "corral on Zhengmix4eq",
+        color_attr = "phenoid",
+        color_title = "cell type",
+        saveplot = FALSE
+    )
+
+
+    # --- Correspondence Analysis on Matrix with Smoothing [] ---
     # Key functions: corral
-    ---------------------------------------------------------------------
-    zm8eq.corral <- corral(zm8eq, fullout = TRUE)
-    zm8eq.corralsmooth <- corral(zm8eq, fullout = TRUE, smooth = TRUE)
-    # --- Rowdata [] ---
-    # Key functions: rowData, biplot_corral
-    ---------------------------------------------------------------------
-    gene_names <- rowData(zm4eq.sce)$symbol
-    biplot_corral(corral_obj = zm4eq.countcorral, color_vec = celltype_vec, text_vec = gene_names)
+    zm4eq.countmat <- SingleCellExperiment::assay(zm4eq.sce, "counts")
+    zm4eq.countcorral <- corral(
+        inp = zm4eq.countmat,
+        fullout = TRUE,
+        smooth = TRUE
+    )
+
+
+    # --- Visualization of Matrix Embedding [] ---
+    # Key functions: plot_embedding
+    celltype_vec <- zm4eq.sce$phenoid
+    plot_embedding(
+        embedding = zm4eq.countcorral$v,
+        plot_title = "corral on Zhengmix4eq",
+        color_vec = celltype_vec,
+        color_title = "cell type",
+        saveplot = FALSE
+    )
+
+
+    # --- Biplot Visualization [] ---
+    # Key functions: biplot_corral
+    gene_names <- SummarizedExperiment::rowData(zm4eq.sce)$symbol
+    celltype_vec <- zm4eq.sce$phenoid
+    biplot_corral(
+        corral_obj = zm4eq.countcorral,
+        color_vec = celltype_vec,
+        text_vec = gene_names
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

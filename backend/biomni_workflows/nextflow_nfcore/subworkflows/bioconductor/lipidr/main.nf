@@ -41,44 +41,67 @@ process BIOC_LIPIDR {
     library(lipidr)
     library(jsonlite)
 
-    # --- Rowdata [] ---
-    # Key functions: rowData, colData
-    ---------------------------------------------------------------------
-    d_subset = d[1:10, 1:10]
-    rowData(d_subset)
-    colData(d)
-    # --- Rowdata [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    lipid_classes = rowData(d)$Class %in% c("Cer", "PC", "LPC")
-    groups = d$BileAcid != "DCA"
-    d = d[lipid_classes, groups]
-    #QC sample subset
-    # --- Summarize Transitions [] ---
-    # Key functions: summarize_transitions
-    ---------------------------------------------------------------------
-    d_summarized = summarize_transitions(d, method = "average")
-    # --- Mva [] ---
-    # Key functions: mva, plot_mva
-    ---------------------------------------------------------------------
-    mvaresults = mva(d_normalized, method = "OPLS-DA", group_col = "Diet", groups=c("HighFat", "Normal"))
-    plot_mva(mvaresults, color_by="group")
-    # --- Top Lipids [] ---
-    # Key functions: top_lipids
-    ---------------------------------------------------------------------
-    top_lipids(mvaresults, top.n=10)
-    # --- De Analysis [] ---
-    # Key functions: de_analysis, significant_molecules
-    ---------------------------------------------------------------------
-    de_results = de_analysis(
-      data=d_normalized,
-      HighFat_water - NormalDiet_water,
-      measure="Area"
-    # --- Lsea [] ---
-    # Key functions: lsea, significant_lipidsets
-    ---------------------------------------------------------------------
-    enrich_results = lsea(de_results, rank.by = "logFC")
-    significant_lipidsets(enrich_results)
+    # --- Data Import and Annotation ---
+    # Key functions: read_skyline, add_sample_annotation
+    datadir <- system.file("extdata", package = "lipidr")
+    filelist <- list.files(datadir, "data.csv", full.names = TRUE)
+    d <- read_skyline(filelist)
+    clinical_file <- system.file("extdata", "clin.csv", package = "lipidr")
+    d <- add_sample_annotation(d, clinical_file)
+    lipid_classes <- rowData(d)$Class %in% c("Cer", "PC", "LPC")
+    groups <- d$BileAcid != "DCA"
+    d <- d[lipid_classes, groups]
+
+    # --- Quality Control and Visualization ---
+    # Key functions: plot_samples, plot_molecules, plot_lipidclass
+    d_qc <- d[, d$group == "QC"]
+    plot_samples(d, type = "tic", log = TRUE)
+    plot_molecules(d_qc, "sd", measure = "Retention Time", log = FALSE)
+    plot_molecules(d_qc, "cv", measure = "Area")
+    plot_lipidclass(d, "boxplot")
+
+    # --- Normalization and Summarization ---
+    # Key functions: summarize_transitions, normalize_pqn, plot_samples
+    d_summarized <- summarize_transitions(d, method = "average")
+    d_normalized <- normalize_pqn(
+        d_summarized,
+        measure = "Area",
+        exclude = "blank",
+        log = TRUE
+    )
+    plot_samples(d_normalized, "boxplot")
+
+    # --- Multivariate Analysis ---
+    # Key functions: mva, plot_mva, top_lipids
+    mva_pca <- mva(d_normalized, measure = "Area", method = "PCA")
+    plot_mva(mva_pca, color_by = "group", components = c(1, 2))
+    mva_opls <- mva(
+        d_normalized,
+        method = "OPLS-DA",
+        group_col = "Diet",
+        groups = c("HighFat", "Normal")
+    )
+    plot_mva(mva_opls, color_by = "group")
+    top_lipids(mva_opls, top.n = 10)
+
+    # --- Differential Expression Analysis ---
+    # Key functions: de_analysis, significant_molecules, plot_results_volcano
+    de_results <- de_analysis(
+        data = d_normalized,
+        HighFat_water - NormalDiet_water,
+        measure = "Area"
+    )
+    sig_mols <- significant_molecules(de_results)
+    plot_results_volcano(de_results, show.labels = FALSE)
+
+    # --- Lipid Set Enrichment Analysis ---
+    # Key functions: lsea, significant_lipidsets, plot_enrichment, plot_chain_distribution
+    enrich_results <- lsea(de_results, rank.by = "logFC")
+    sig_sets <- significant_lipidsets(enrich_results)
+    plot_enrichment(de_results, sig_sets, annotation = "class")
+    plot_enrichment(de_results, sig_sets, annotation = "unsat")
+    plot_chain_distribution(de_results)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

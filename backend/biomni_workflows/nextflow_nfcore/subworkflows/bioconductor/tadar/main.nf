@@ -38,24 +38,38 @@ process BIOC_TADAR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tadar)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: rnorm, GRanges
-    set.seed(230704)
-    simulate_dar <- function(n, mean) {
-    vapply(
-    # --- Define comparison contrasts [] ---
-    # Key functions: makeContrasts
-    vcf <- system.file("extdata", "chr1.vcf.bgz", package="tadar")
-    data("chr1_genes")
-    data("chr1_tt")
-    # --- ReadGenotypes analysis [] ---
-    # Key functions: include_graphics, readGenotypes, countAlleles, filterLoci, countsToProps, dar, merge, assignFeatureDar
-    plotDarECDF(dar = gr, dar_val = "origin", highlight = "25") +
-    scale_colour_manual(values = c("TRUE" = "red", "FALSE" = "grey")) +
-    theme_bw()
+    # --- Allele Counting [] ---
+    # Key functions: countAlleles
+    counts <- countAlleles(
+        genotypes = genotypes,
+        groups = groups
+    )
+
+
+    # --- Locus Filtering [] ---
+    # Key functions: filterLoci
+    counts_filt <- filterLoci(
+        counts = counts
+    )
+    counts_filt_strict <- filterLoci(
+        counts = counts,
+        filter = n_missing == 0
+    )
+
+
+    # --- Proportion Estimation and Contrast Definition [] ---
+    # Key functions: countsToProps, makeContrasts
+    props <- countsToProps(
+        counts = counts_filt
+    )
+    contrasts <- makeContrasts(
+        group1v2 = group1 - group2,
+        levels = names(groups)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

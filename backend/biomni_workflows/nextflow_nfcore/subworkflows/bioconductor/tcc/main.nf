@@ -38,38 +38,39 @@ process BIOC_TCC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TCC)
     library(AUC)
     library(DESeqDataSetFromMatrix)
     library(DGEList)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: data, DGEList, calcNormFactors, estimateDisp, glmQLFit, factor, frame, formula
-    design <- model.matrix(~ as.factor(tcc$group$group))
-    d <- DGEList(counts = tcc$count, group = tcc$group$group)
-    d <- calcNormFactors(d)
-    d$samples$norm.factors <- d$samples$norm.factors /
-                              mean(d$samples$norm.factors)
-    # --- Quality control and filtering [] ---
-    # Key functions: rowSums
-    filter <- as.logical(rowSums(hypoData) > 0)
-    dim(hypoData[filter, ])
-    tcc <- new("TCC", hypoData[filter, ], group)
-    dim(tcc$count)
-    # --- Data normalization [] ---
-    # Key functions: calcNormFactors, estimateDE, getResult, frame, getNormalizedData, calcAUCValue
-    tcc <- calcNormFactors(tcc, "tmm", "edger", iteration = 3,
-                           FDR = 0.1, floorPDEG = 0.05)
-    xy <- plot(tcc)
-    isnot.na <- as.logical(xy[, 1] != min(xy[, 1]))
-    median.nonDEG <- median(xy[(tcc$simulation$trueDEG == 0) & isnot.na, 2])
-    # --- FilterLowCountGenes analysis [] ---
-    # Key functions: filterLowCountGenes, factor, getNormalizedData, getResult, AUC, sca, simulateReadCounts, calcAUCValue
-    set.seed(1000)
-    library(TCC)
-    tcc <- simulateReadCounts(Ngene = 10000, PDEG = 0.34,
-                   DEG.assign = c(0.1, 0.3, 0.05, 0.1, 0.05, 0.21, 0.09, 0.1),
-                   DEG.foldchange = c(3.1, 13, 2, 1.5, 9, 5.6, 4, 2),
+    # --- Robust Normalization [] ---
+    # Key functions: calcNormFactors
+    tcc <- calcNormFactors(
+        tcc,
+        norm.method = "tmm",
+        test.method = "edger",
+        iteration = 3,
+        FDR = 0.1,
+        floorPDEG = 0.05
+    )
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: estimateDE
+    tcc <- estimateDE(
+        tcc,
+        test.method = "edger",
+        FDR = 0.1
+    )
+
+
+    # --- Result Extraction and Sorting [] ---
+    # Key functions: getResult
+    result <- getResult(
+        tcc,
+        sort = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

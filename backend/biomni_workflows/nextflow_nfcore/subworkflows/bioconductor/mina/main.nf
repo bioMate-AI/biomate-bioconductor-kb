@@ -41,11 +41,44 @@ process BIOC_MINA {
     library(mina)
     library(jsonlite)
 
-    # --- Tabs analysis [] ---
-    # Key functions: new, fit_tabs, norm_tab, com_dis, tina, com_r2, dis, get_r2
-    maize_asv_norm <- norm_tab(maize_asv2, method = "total")
-    maize_asv_norm <- norm_tab(maize_asv2, method = "raref", depth = 5000)
-    maize_asv_norm <- norm_tab(maize_asv2, method = "raref", depth = 5000,
+    # --- Community Dissimilarity and Variance Analysis [] ---
+    # Key functions: com_dis, com_r2, get_r2, dis
+    maize <- fit_tabs(maize)
+    maize <- com_dis(maize, method = "bray")
+    r2_res <- com_r2(
+        maize,
+        group = c("Compartment", "Soil", "Host_genotype")
+    )
+    maize_dis <- dis(maize)
+    r2_manual <- get_r2(
+        maize_dis,
+        maize_des2,
+        group = c("Compartment", "Soil")
+    )
+
+
+    # --- Dimensionality Reduction and Visualization [] ---
+    # Key functions: dmr, com_plot, pcoa_plot
+    maize <- dmr(maize)
+    p1 <- com_plot(maize, match = "Sample_ID", color = "Compartment")
+    p2 <- com_plot(
+        maize, match = "Sample_ID", d1 = 3, d2 = 4,
+        color = "Compartment"
+    )
+    maize_dmr <- dmr(maize_dis, k = 4)
+    p3 <- pcoa_plot(
+        maize_dmr, maize_des2, match = "Sample_ID",
+        d1 = 3, d2 = 4, color = "Host_genotype"
+    )
+
+
+    # --- Network Adjacency and Clustering [] ---
+    # Key functions: adj, net_cls, net_cls_tab, cls_tab, com_dis
+    maize <- adj(maize, method = "spearman", sig = TRUE)
+    maize <- net_cls(maize, method = "mcl", cutoff = 0.6)
+    maize <- net_cls_tab(maize)
+    maize_cls_tab <- cls_tab(maize)
+    maize_cls_dis <- com_dis(maize_cls_tab, method = "bray")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

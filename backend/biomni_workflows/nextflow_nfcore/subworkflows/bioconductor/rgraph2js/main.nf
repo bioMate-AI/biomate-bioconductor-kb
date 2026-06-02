@@ -41,94 +41,48 @@ process BIOC_RGRAPH2JS {
     library(RGraph2js)
     library(jsonlite)
 
-    # --- Tab1 [] ---
-    # Key functions: xtable
-    library(xtable)
-    print(
-        xtable(
-            a35,
-            caption="3x5 Signed Weighted Adjacency Matrix",
-    # --- Tab2 [] ---
-    # Key functions: xtable
-    library(xtable)
-    print(
-        xtable(
-            a1515,
-            caption="15x15 Adjacency matrix",
-    # --- <Simpleexample [] ---
-    # Key functions: path, tempdir, graph2js
-    outputDir <- file.path(tempdir(), "RGraph2js_simpleExample")
-    g <- graph2js(a1515, outputDir=outputDir)
-    # --- Visualappearanceexample [] ---
-    # Key functions: frame
-    edgesGlobal <- list(width=2, color="#0000ff")
-    edgesProp <- data.frame(from=c("D", "D", "B"),
-                            to=c("E", "B", "E"),
-                            width=c(5, 5, 5))
-    # --- Visualappearanceexample [] ---
-    # Key functions: getEdgesDataFrame
-    getEdgesDataFrame(a1515)
-    # --- Visualappearanceexample [] ---
-    # Key functions: frame
-    nodesGlobal <- list(color="#ebebeb")
-    nodesProp <- data.frame(shape=c("triangle", "lozenge", "rect"),
-                            color=c("#ff0000", "#0000ff", "#ffff00"))
-    rownames(nodesProp) <- c("C", "E", "G")
-    # --- Visualappearanceexample [] ---
-    # Key functions: getNodesDataFrame
-    getNodesDataFrame(A=a1515, nGlobal=nodesGlobal, nProp=nodesProp)
-    # --- <Visualappearanceexample [] ---
-    # Key functions: path, tempdir, graph2js
-    outputDir <- file.path(tempdir(), "RGraph2js_visualAppearance")
-    g <- graph2js(a1515,
-                  nodesGlobal=nodesGlobal, edgesGlobal=edgesGlobal,
-                  nodesProp=nodesProp, edgesProp=edgesProp,
-                  outputDir=outputDir, file="index.html")
-    # --- Fixednodes2 [] ---
-    # Key functions: frame, cos, sin
+    # --- Layout Configuration [] ---
+    # Key functions: graph2js
+    v <- c(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0)
+    a35 <- matrix(v, 3, 5)
+    colnames(a35) <- LETTERS[1:5]
+    rownames(a35) <- LETTERS[1:3]
     r <- 100
-    sector <- 2*pi/5
-    n.prop <- data.frame(
+    sector <- 2 * pi / 5
+    n_prop <- data.frame(
         x=c(r*cos(1*sector), r*cos(2*sector), r*cos(3*sector),
             r*cos(4*sector), r*cos(5*sector)),
-    # --- Fixednodes3 [] ---
-    # Key functions: path, tempdir, graph2js
-    outputDir <- file.path(tempdir(), "RGraph2js_fixedNodes")
-    g <- graph2js(a35, nodesProp=n.prop, outputDir=outputDir)
-    # --- Categories2 [] ---
-    # Key functions: frame, rbinom, rainbow
+        y=c(r*sin(1*sector), r*sin(2*sector), r*sin(3*sector),
+            r*sin(4*sector), r*sin(5*sector)),
+        fixed=c(TRUE, TRUE, TRUE, TRUE, TRUE)
+    )
+    rownames(n_prop) <- c("A", "B", "C", "D", "E")
+    out_dir <- file.path(tempdir(), "RGraph2js_fixedNodes")
+    g <- graph2js(a35, nodesProp=n_prop, outputDir=out_dir)
+
+
+    # --- Visual Customization [] ---
+    # Key functions: graph2js, getDefaultOptions
+    v <- c(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0)
+    a35 <- matrix(v, 3, 5)
+    colnames(a35) <- LETTERS[1:5]
+    rownames(a35) <- LETTERS[1:3]
     numnodes <- 5
-    nodesProp <- data.frame(leading.nodes.1=rbinom(numnodes, 1, 1/2),
-                            leading.nodes.2=rbinom(numnodes, 1, 1/2),
-                            leading.nodes.3=rbinom(numnodes, 1, 1/2),
-                            leading.nodes.4=rbinom(numnodes, 1, 1/2),
-    # --- Categories3 [] ---
-    # Key functions: path, tempdir, graph2js
-    outputDir <- file.path(tempdir(), "RGraph2js_timeData")
-    g <- graph2js(a35,
-                  nodesProp=nodesProp,
-                  outputDir=outputDir)
-    # --- Barplot2 [] ---
-    # Key functions: runif, rainbow
-    numnodes <- 5
-    innerValues <- matrix(runif(numnodes * 8), numnodes, 8)
-    rownames(innerValues) <- LETTERS[1:5]
-    innerColors <- matrix(rainbow(numnodes * 8), numnodes, 8)
-    rownames(innerColors) <- LETTERS[1:5]
-    # --- Barplot3 [] ---
-    # Key functions: path, tempdir, graph2js
-    outputDir <- file.path(tempdir(), "RGraph2js_barplots")
-    g <- graph2js(a35,
-                  innerValues=innerValues,
-                  innerColors=innerColors,
-                  outputDir=outputDir)
-    # --- Barplots4 [] ---
-    # Key functions: getDefaultOptions, graph2js
+    inner_values <- matrix(runif(numnodes * 8), numnodes, 8)
+    rownames(inner_values) <- LETTERS[1:5]
+    inner_colors <- matrix(rainbow(numnodes * 8), numnodes, 8)
+    rownames(inner_colors) <- LETTERS[1:5]
     opts <- getDefaultOptions()
     opts$displayBarPlotsInsideNodes <- FALSE
     opts$barplotInNodeTooltips <- TRUE
-    g <- graph2js(a35,
-                  opts=opts,
+    out_dir <- file.path(tempdir(), "RGraph2js_barplots")
+    g <- graph2js(
+        a35,
+        opts=opts,
+        innerValues=inner_values,
+        innerColors=inner_colors,
+        outputDir=out_dir
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

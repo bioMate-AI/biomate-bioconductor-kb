@@ -38,34 +38,50 @@ process BIOC_MUTATIONALPATTERNS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MutationalPatterns)
     library(GRanges)
     library(GRangesList)
     library(IRanges)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: GRanges, seqlevelsStyle, useEnsembl, getBM, reduce, IRanges, GRangesList, import
-    repli_file <- system.file("extdata/ReplicationDirectionRegions.bed",
-    repli_strand <- read.table(repli_file, header = TRUE)
-    repli_strand_granges <- GRanges(
-    # --- Quality control and filtering [] ---
-    # Key functions: seqnames, plot_rainfall
-    chromosomes <- seqnames(get(ref_genome))[1:22]
-    plot_rainfall(grl[[1]],
-    title = names(grl[1]),
-    # --- Read vcfs as granges analysis [] ---
-    # Key functions: read_vcfs_as_granges, get_mut_type, mutations_from_vcf, mut_type, mut_context, type_context, mut_type_occurrences, plot_spectrum
-    mut_mat_s_rep <- mut_matrix_stranded(grl, ref_genome, repli_strand_granges,
-    strand_counts_rep <- strand_occurrences(mut_mat_s_rep, by = tissue)
-    strand_bias_rep <- strand_bias_test(strand_counts_rep)
-    # --- Variant calling and annotation [] ---
-    # Key functions: mut_matrix, extract_signatures, fit_to_signatures, rename_nmf_signatures, plot_contribution_heatmap, lengthen_mut_matrix
-    mut_mat_region <- mut_matrix(grl_region, ref_genome)
-    nmf_res_region <- extract_signatures(mut_mat_region, rank = 2, nrun = 10, single_core = TRUE)
-    nmf_res_region <- rename_nmf_signatures(nmf_res_region,
-    # --- Feature annotation [] ---
-    # Key functions: genes
-    genes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    # --- Mutational Profile and Spectrum Analysis [] ---
+    # Key functions: mut_type_occurrences, plot_spectrum, mut_matrix
+    ref_genome <- "BSgenome.Hsapiens.UCSC.hg19"
+    type_occurrences <- mut_type_occurrences(snv_grl, ref_genome)
+    p1 <- plot_spectrum(type_occurrences, CT = TRUE, legend = TRUE)
+    mut_mat <- mut_matrix(vcf_list = snv_grl, ref_genome = ref_genome)
+
+
+    # --- Indel and Doublet Base Substitution Contexts [] ---
+    # Key functions: get_indel_context, count_indel_contexts, get_dbs_context, count_dbs_contexts
+    ref_genome <- "BSgenome.Hsapiens.UCSC.hg19"
+    indel_grl_context <- get_indel_context(indel_grl, ref_genome)
+    indel_counts <- count_indel_contexts(indel_grl_context)
+    dbs_grl_context <- get_dbs_context(dbs_grl)
+    dbs_counts <- count_dbs_contexts(dbs_grl_context)
+
+
+    # --- Signature Extraction and De Novo NMF [] ---
+    # Key functions: extract_signatures, get_known_signatures, rename_nmf_signatures
+    mut_mat_pseudo <- mut_mat + 0.0001
+    nmf_res <- extract_signatures(
+        mut_mat_pseudo, rank = 2, nrun = 10, single_core = TRUE
+    )
+    signatures <- get_known_signatures()
+    nmf_res <- rename_nmf_signatures(nmf_res, signatures, cutoff = 0.85)
+
+
+    # --- Signature Contribution and Visualization [] ---
+    # Key functions: plot_contribution, plot_contribution_heatmap, cluster_signatures
+    contrib_plot <- plot_contribution(
+        nmf_res$contribution, nmf_res$signature, mode = "relative"
+    )
+    heatmap_plot <- plot_contribution_heatmap(
+        nmf_res$contribution, cluster_samples = TRUE, cluster_sigs = TRUE
+    )
+    hclust_signatures <- cluster_signatures(
+        nmf_res$signatures, method = "average"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

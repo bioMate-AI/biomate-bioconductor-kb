@@ -38,55 +38,49 @@ process BIOC_RRHO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(RRHO)
     library(Nominal)
     library(RRHOComparison)
     library(Vectorize)
     library(jsonlite)
 
-    # --- Nominal [] ---
-    # Key functions: Nominal, levelplot
-    # Examine Nominal (-log) pvalues
-      lattice::levelplot(RRHO.example$hypermat)
-    # Note: If lattice is available try:
-    # levelplot(RRHO.example$hypermat)
-    # --- Pvalrrho [] ---
-    # Key functions: pvalRRHO, the, Vectorize
-    # FWER corrected pvalues using 50 random permutations:
+    # --- Significance Testing and FWER Correction [] ---
+    # Key functions: RRHO, pvalRRHO
+    list.length <- 100
+    list.names <- paste('Gene', 1:list.length, sep='')
+    gene.list1 <- data.frame(list.names, sample(100))
+    gene.list2 <- data.frame(list.names, sample(100))
+    RRHO.example <- RRHO(
+        gene.list1, gene.list2,
+        BY=TRUE, alternative='enrichment'
+    )
     pval.testing <- pvalRRHO(RRHO.example, 50)
-    pval.testing$pval
-    # The sampling distribution of the minimum
-    # of the (-log) nominal p-values:
-    # --- Levelplot [] ---
-    # Key functions: levelplot
-    # Examine B-Y corrected pvalues
-    # Note: probably nothing will be rejected in this
-    # example as the data is generated from the null.
-      lattice::levelplot(RRHO.example$hypermat.by)
-    # --- Rhyper [] ---
-    # Key functions: rhyper, pmin, phyper
-    m<- 100 ; n<- 100; k<- 50
-    data<- rhyper(1000, m, n, k)
-    pvals<- pmin(phyper(data,m,n,k, lower.tail=TRUE),
-                 phyper(data,m,n,k, lower.tail=FALSE))
-    alpha<- 0.05
-    # --- Function [] ---
-    # Key functions: phyper
-    getPval<- function(count,m,n,k){
-      the.mean<- k*m/(m+n)
-      if(count<the.mean){
-        lower<- count
-        upper<- 2*the.mean-count
-    # --- Frame [] ---
-    # Key functions: frame, runif, RRHOComparison
-    size<- 500
-    list1<- data.frame(
-      GeneIdentifier=paste('gen',1:size, sep=''),
-      RankingVal=-log(runif(size)))
-    list2<- data.frame(
-    # --- Levelplot [] ---
-    # Key functions: levelplot
-    ## The standard RRHO map between list1 and list 3.
-    lattice::levelplot(rrho.comparison$hypermat1)
+    xs <- seq(0, 10, length=100)
+    ecdf_vals <- Vectorize(pval.testing$FUN.ecdf)(xs)
+
+
+    # --- Multi-List Comparison [] ---
+    # Key functions: RRHOComparison
+    size <- 500
+    list1 <- data.frame(
+        GeneIdentifier=paste('gen', 1:size, sep=''),
+        RankingVal=-log(runif(size))
+    )
+    list2 <- data.frame(
+        GeneIdentifier=paste('gen', 1:size, sep=''),
+        RankingVal=-log(runif(size))
+    )
+    list3 <- data.frame(
+        GeneIdentifier=paste('gen', 1:size, sep=''),
+        RankingVal=-log(runif(size))
+    )
+    rrho.comparison <- RRHOComparison(
+        list1, list2, list3,
+        stepsize=10,
+        labels=c("list1", "list2", "list3"),
+        plots=FALSE,
+        outputdir=tempdir()
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,16 +41,52 @@ process BIOC_PURECN {
     library(PureCN)
     library(jsonlite)
 
-    # --- Import genomic data file [] ---
-    # Key functions: import, preprocessIntervals, calculateTangentNormal, callMutationBurden
-    reference.file <- system.file("extdata", "ex2_reference.fa",
-    bed.file <- system.file("extdata", "ex2_intervals.bed",
-    mappability.file <- system.file("extdata", "ex2_mappability.bigWig",
-    # --- UlateBamCoverageByInterval analysis [] ---
-    # Key functions: calculateBamCoverageByInterval, correctCoverageBias, createNormalDatabase, calculateMappingBiasVcf, browserSession, genome, track, export
-    bam.file <- system.file("extdata", "ex1.bam", package="PureCN",
-    interval.file <- system.file("extdata", "ex1_intervals.txt",
-    calculateBamCoverageByInterval(bam.file = bam.file,
+    # --- Coverage Calculation and Bias Correction [] ---
+    # Key functions: calculateBamCoverageByInterval, correctCoverageBias
+    calculateBamCoverageByInterval(
+        bam.file = bam.file,
+        interval.file = interval.file,
+        output.file = "ex1_coverage.txt"
+    )
+    correctCoverageBias(
+        "ex1_coverage.txt",
+        interval.file,
+        output.file = "example_normal_loess.txt.gz",
+        plot.bias = FALSE
+    )
+
+
+    # --- Normal Database Creation [] ---
+    # Key functions: createNormalDatabase, calculateTangentNormal
+    normalDB <- createNormalDatabase(normal.coverage.files)
+    pool <- calculateTangentNormal(
+        tumor.coverage.file,
+        normalDB
+    )
+
+
+    # --- Copy Number and Purity Estimation [] ---
+    # Key functions: runAbsoluteCN
+    ret <- runAbsoluteCN(
+        normal.coverage.file = pool,
+        tumor.coverage.file = tumor.coverage.file,
+        vcf.file = vcf.file,
+        genome = "hg19",
+        sampleid = "Sample1",
+        interval.file = interval.file,
+        normalDB = normalDB,
+        args.filterIntervals = list(min.total.counts = 50),
+        post.optimize = FALSE,
+        plot.cnv = FALSE,
+        verbose = FALSE
+    )
+
+
+    # --- Somatic Variant and Alteration Calling [] ---
+    # Key functions: predictSomatic, callAlterations, callLOH
+    somatic <- predictSomatic(ret)
+    gene.calls <- callAlterations(ret)
+    loh <- callLOH(ret)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,54 +38,54 @@ process BIOC_SCUTTLE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scuttle)
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- Zeiselbraindata [] ---
-    # Key functions: ZeiselBrainData, quickPerCellQC
-    ---------------------------------------------------------------------
-    library(scRNAseq)
-    sce <- ZeiselBrainData()
-    library(scuttle)
-    sce <- quickPerCellQC(sce, subsets=list(Mito=grep("mt-", rownames(sce))),
-    # --- Aggregateacrosscells [] ---
-    # Key functions: aggregateAcrossCells, assay, colData
-    ---------------------------------------------------------------------
-    library(scuttle)
-    agg.sce <- aggregateAcrossCells(sce, ids=sce$level1class)
-    head(assay(agg.sce))
-    colData(agg.sce)[,c("ids", "ncells")]
-    # --- Lognormcounts [] ---
-    # Key functions: logNormCounts, sumCountsAcrossFeatures
-    ---------------------------------------------------------------------
-    sce <- logNormCounts(sce)
-    agg.feat <- sumCountsAcrossFeatures(sce,
-        ids=list(GeneSet1=1:10, GeneSet2=11:50, GeneSet3=1:100),
-        average=TRUE, exprs_values="logcounts")
-    # --- Summarizeassaybygroup [] ---
-    # Key functions: summarizeAssayByGroup, colData, assay
-    ---------------------------------------------------------------------
-    agg.n <- summarizeAssayByGroup(sce, statistics="prop.detected",
-        ids=colData(sce)[,c("level1class", "tissue")])
-    head(assay(agg.n))
-    # --- Zeiselbraindata [] ---
-    # Key functions: ZeiselBrainData, uniquifyFeatureNames, rowData
-    ---------------------------------------------------------------------
-    # Original row names are Ensembl IDs.
-    sce.ens <- ZeiselBrainData(ensembl=TRUE)
-    head(rownames(sce.ens))
-    # Replacing with guaranteed unique and non-missing symbols:
-    # --- Makepercelldf [] ---
-    # Key functions: makePerCellDF
-    ---------------------------------------------------------------------
-    out <- makePerCellDF(sce, features="Tspan12")
-    colnames(out)
-    # --- Makeperfeaturedf [] ---
-    # Key functions: makePerFeatureDF
-    ---------------------------------------------------------------------
-    out2 <- makePerFeatureDF(sce, cells=c("1772063062_D05",
-        "1772063061_D01", "1772060240_F02", "1772062114_F05"))
-    colnames(out2)
+    # --- Normalization [] ---
+    # Key functions: logNormCounts
+    sce <- logNormCounts(
+        sce
+    )
+
+
+    # --- Aggregation and Summarization [] ---
+    # Key functions: aggregateAcrossCells, summarizeAssayByGroup
+    agg.sce <- aggregateAcrossCells(
+        sce,
+        ids = colData(sce)[, c("level1class", "tissue")]
+    )
+    agg.n <- summarizeAssayByGroup(
+        sce,
+        statistics = "prop.detected",
+        ids = colData(sce)[, c("level1class", "tissue")]
+    )
+
+
+    # --- Feature Aggregation and Renaming [] ---
+    # Key functions: sumCountsAcrossFeatures, uniquifyFeatureNames
+    rownames(sce) <- uniquifyFeatureNames(
+        rownames(sce),
+        rowData(sce)$originalName
+    )
+    agg.feat <- sumCountsAcrossFeatures(
+        sce,
+        ids = list(GeneSet1 = 1:10, GeneSet2 = 11:50),
+        average = TRUE,
+        exprs_values = "logcounts"
+    )
+
+
+    # --- Data Frame Conversion [] ---
+    # Key functions: makePerCellDF, makePerFeatureDF
+    cell_df <- makePerCellDF(
+        sce,
+        features = "Tspan12"
+    )
+    feat_df <- makePerFeatureDF(
+        sce,
+        cells = head(colnames(sce), 4)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

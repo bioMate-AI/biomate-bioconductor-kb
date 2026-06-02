@@ -38,28 +38,40 @@ process BIOC_TDBASEDUFEADV {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(TDbasedUFEadv)
     library(PrepareSummarizedExperimentTensor)
     library(jsonlite)
 
-    # --- List [] ---
-    # Key functions: prepareTensorfromList, aperm, PrepareSummarizedExperimentTensor, array
-    ---------------------------------------------------------------------
-    Multi <- list(
-      BLCA.rnaseq[seq_len(100), 1 + seq_len(1000)],
-      BRCA.rnaseq[seq_len(100), 1 + seq_len(1000)],
-      CESC.rnaseq[seq_len(100), 1 + seq_len(1000)],
-    # --- Setenrichrsite [] ---
-    # Key functions: setEnrichrSite, enrichr, plotEnrich
-    ---------------------------------------------------------------------
-    setEnrichrSite("Enrichr")
-    websiteLive <- TRUE
-    dbs <- c(
-      "GO_Molecular_Function_2015", "GO_Cellular_Component_2015",
-    # --- Enrichdgn [] ---
-    # Key functions: enrichDGN, dotplot, ggtitle
-    ---------------------------------------------------------------------
-    edo <- enrichDGN(entrez)
-    dotplot(edo, showCategory=30) + ggtitle("dotplot for ORA")
+    # --- Tensor Construction [tdbasedufeadv] ---
+    # Key functions: prepareTensorfromList, prepareCondTCGA, PrepareSummarizedExperimentTensor
+    Z_raw <- prepareTensorfromList(Multi, 10L)
+    Z_raw <- aperm(Z_raw, c(2, 1, 3))
+    cond_data <- prepareCondTCGA(
+        Multi_sample, Clinical,
+        ID_column_of_Multi_sample, ID_column_of_Clinical
+    )
+    Z <- PrepareSummarizedExperimentTensor(
+        feature = colnames(Multi[[1]]),
+        sample = array("", 1), value = Z_raw,
+        sampleData = cond_data
+    )
+
+    # --- Tensor Decomposition [tdbasedufeadv] ---
+    # Key functions: computeHosvd
+    HOSVD <- computeHosvd(Z)
+    singular_values <- HOSVD$d
+    core_tensor <- HOSVD$g
+    u_matrices <- HOSVD$u
+
+    # --- Feature Selection [tdbasedufeadv] ---
+    # Key functions: selectFeatureProj, tableFeatures
+    cond <- attr(Z, "sampleData")
+    index <- selectFeatureProj(
+        HOSVD, Multi, cond,
+        de = 1e-3, input_all = 3
+    )
+    feature_table <- tableFeatures(Z, index)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

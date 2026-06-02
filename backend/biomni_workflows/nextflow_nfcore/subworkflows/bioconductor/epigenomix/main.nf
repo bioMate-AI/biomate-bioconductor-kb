@@ -38,92 +38,50 @@ process BIOC_EPIGENOMIX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(epigenomix)
     library(ExpressionSet)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Gedata [] ---
-    # Key functions: pData
-    library(epigenomix)
-    data(eSet)
-    pData(eSet)
-    # --- Rnaseqimport [] ---
-    # Key functions: data
-    data(fpkm)
-    head(fpkm[c(-2,-8), ])
-    # --- Rnaseqtoeset [] ---
-    # Key functions: ExpressionSet, pData, factor, fData
-    mat <- log2(as.matrix(fpkm[, c("CEBPA_WT", "CEBPA_KO")]))
-    rownames(mat) <- fpkm$tss_id
-    eSet.seq <- ExpressionSet(mat)
-    pData(eSet.seq)$CEBPA <- factor(c("wt", "ko"))
-    fData(eSet.seq)$chr <- fpkm$chr
-    # --- Chipdata [] ---
-    # Key functions: data
-    data(mappedReads)
-    names(mappedReads)
-    # --- Probetotranscript [] ---
-    # Key functions: fData, featureNames
-    probeToTrans <- fData(eSet)$transcript
-    probeToTrans <- strsplit(probeToTrans, ",")
-    names(probeToTrans) <- featureNames(eSet)
-    # --- Transcripttotss [] ---
-    # Key functions: data
-    data(transToTSS)
-    head(transToTSS)
-    # --- Biomart [] ---
-    # Key functions: unlist, useMart, getBM
-    ## library("biomaRt")
-    ## transcripts <- unique(unlist(probeToTrans))
-    ## mart <- useMart("ENSEMBL_MART_ENSEMBL",dataset="mmusculus_gene_ensembl", host="www.ensembl.org")
-    ## transToTSS <- getBM(attributes=c("ensembl_transcript_id",
-    ##     "chromosome_name", "transcript_start",
-    # --- Datamatching [] ---
-    # Key functions: matchProbeToPromoter
-    promoters <- matchProbeToPromoter(probeToTrans,
-        transToTSS, promWidth=6000, mode="union")
-    promoters[["10345616"]]
-    # --- Makechipseqset [] ---
-    # Key functions: summarizeReads, chipVals
-    chipSetRaw <- summarizeReads(mappedReads, promoters, summarize="add")
-    chipSetRaw
-    head(chipVals(chipSetRaw))
-    # --- Makechipseqset Rna [] ---
-    # Key functions: GRanges, fData, IRanges, featureNames, resize, split, elementMetadata
-    promoters.seq <- GRanges(seqnames=fData(eSet.seq)$chr,
-                            ranges=IRanges(start=fData(eSet.seq)$tss, width=1),
-                            probe=featureNames(eSet.seq))
-    promoters.seq <- resize(promoters.seq, width=3000, fix="center")
-    promoters.seq <- split(promoters.seq, elementMetadata(promoters.seq)$probe)
-    # --- Makechipseqset [] ---
-    # Key functions: summarizeReads, chipVals
-    chipSetRaw.seq <- summarizeReads(mappedReads, promoters.seq, summarize="add")
-    chipSetRaw.seq
-    head(chipVals(chipSetRaw.seq))
-    # --- Normalizedata [] ---
-    # Key functions: normalize
+    # --- Normalization [] ---
+    # Key functions: normalize, chipVals
     chipSet <- normalize(chipSetRaw, method="quantile")
-    # --- Normalizationplot [] ---
-    # Key functions: chipVals
-    par(mfrow=c(1,2))
-    plot(chipVals(chipSetRaw)[,1], chipVals(chipSetRaw)[,2],
-         xlim=c(1,600), ylim=c(1,600), main="Raw")
-    plot(chipVals(chipSet)[,1], chipVals(chipSet)[,2],
-         xlim=c(1,600), ylim=c(1,600), main="Quantile")
-    # --- Integratedata [] ---
-    # Key functions: factor, colData, integrateData
-    eSet$CEBPA
-    colnames(chipSet)
+    raw_vals <- chipVals(chipSetRaw)
+    norm_vals <- chipVals(chipSet)
+
+
+    # --- Data Integration [] ---
+    # Key functions: integrateData
     chipSet$CEBPA <- factor(c("wt", "ko"))
-    colData(chipSet)
-    intData <- integrateData(eSet, chipSet,
-    # --- Mlmixmodel1 [] ---
-    # Key functions: mlMixModel
-    mlmm = mlMixModel(intData[,"z"],
-        normNull=c(2, 3), expNeg=1, expPos=4,
+    intData <- integrateData(
+        eSet, chipSet, factor="CEBPA", reference="wt"
+    )
+
+
+    # --- Mixture Model Fitting [] ---
+    # Key functions: mlMixModel, bayesMixModel
+    mlmm <- mlMixModel(
+        intData[, "z"], normNull=c(2, 3), expNeg=1, expPos=4,
         sdNormNullInit=c(0.5, 1), rateExpNegInit=0.5, rateExpPosInit=0.5,
-        pi=rep(1/4, 4))
+        pi=rep(1/4, 4)
+    )
+    bayesmm <- bayesMixModel(
+        intData[, "z"], normNull=c(2, 3), expNeg=1, expPos=4,
+        sdNormNullInit=c(0.5, 1), rateExpNegInit=0.5, rateExpPosInit=0.5,
+        shapeNorm0=c(10, 10), scaleNorm0=c(10, 10), shapeExpNeg0=0.01,
+        scaleExpNeg0=0.01, shapeExpPos0=0.01, scaleExpPos0=0.01,
+        pi=rep(1/4, 4), sdAlpha=1, itb=2000, nmc=8000, thin=5
+    )
+
+
+    # --- Model Visualization and Classification [] ---
+    # Key functions: plotComponents, plotClassification, classification
+    plotComponents(mlmm, xlim=c(-2, 2), ylim=c(0, 3))
+    plotClassification(bayesmm, method="mode")
+    class_mlmm <- classification(mlmm, method="maxDens")
+    class_bayes <- classification(bayesmm, method="mode")
+    comp_table <- table(class_mlmm, class_bayes)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

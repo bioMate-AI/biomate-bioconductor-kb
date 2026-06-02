@@ -41,87 +41,49 @@ process BIOC_SSNAPPY {
     library(sSNAPPY)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: setequal, datatable
-    data(logCPM_example)
-    data(metadata_example)
-    # check if samples included in the logCPM matrix and metadata dataframe are identical
-    setequal(colnames(logCPM_example), metadata_example$sample)
-    # View sample metadata
-    # --- Ssfc [] ---
-    # Key functions: levels, weight_ss_fc
-    # Check that the baseline level of the treatment column is the control
-    levels(metadata_example$treatment)[1]
-    #compute weighted single sample logFCs
-    weightedFC <- weight_ss_fc(logCPM_example, metadata = metadata_example,
-                               groupBy  = "patient", sampleColumn = "sample",
-    # --- Lowess [] ---
-    # Key functions: frame, mutate, ggplot, aes, geom_point, geom_smooth, labs
-    logCPM_example %>%
-        as.data.frame() %>%
-        mutate(
-            sd = apply(., 1, sd),
-            mean = apply(., 1, mean)
-    # --- Retrieve Topology [] ---
+    # --- Pathway Topology Retrieval [] ---
     # Key functions: retrieve_topology
-    gsTopology <- retrieve_topology(database = "kegg", species = "hsapiens")
-    head(names(gsTopology))
-    # --- Gstopology Sub [] ---
-    # Key functions: retrieve_topology
-    gsTopology_sub <- retrieve_topology(
-      database = "kegg",
-      species = "hsapiens",
-      keyword = "metabolism")
-    head(names(gsTopology_sub))
-    # --- Gstopology Mult [] ---
-    # Key functions: retrieve_topology
-    gsTopology_mult <- retrieve_topology(
-      database = c("kegg", "reactome"),
-      species = "hsapiens",
-      keyword = c("metabolism", "estrogen"))
-    names(gsTopology_mult)
-    # --- Permutedscore [] ---
-    # Key functions: generate_permuted_scores
-    set.seed(123)
+    gsTopology <- retrieve_topology(
+        database = "kegg",
+        species = "hsapiens"
+    )
+
+
+    # --- Perturbation Scoring [] ---
+    # Key functions: raw_gene_pert, pathway_pert
+    genePertScore <- raw_gene_pert(
+        weightedFC$weighted_logFC,
+        gsTopology
+    )
+    pathwayPertScore <- pathway_pert(
+        genePertScore,
+        weightedFC$weighted_logFC
+    )
+
+
+    # --- Permutation and Normalisation [] ---
+    # Key functions: generate_permuted_scores, normalise_by_permu
     permutedScore <- generate_permuted_scores(
-      expreMatrix  = logCPM_example,
-      gsTopology = gsTopology,
-      weight = weightedFC$weight
-    # --- Normalisedscores [] ---
-    # Key functions: normalise_by_permu
-    normalisedScores <- normalise_by_permu(permutedScore, pathwayPertScore, sortBy = "pvalue")
-    # --- Dt Indi [] ---
-    # Key functions: filter
-    normalisedScores %>%
-        dplyr::filter(adjPvalue < 0.05)
-    # --- Fit [] ---
-    # Key functions: left_join, split, lm, frame
-    fit <- normalisedScores %>%
-        left_join(metadata_example) %>%
-        split(f = .$gs_name) %>%
-        lapply(function(x)lm(robustZ ~ 0 + treatment, data = x)) %>%
-        lapply(summary)
-    # --- Treat Sig Dt [] ---
-    # Key functions: filter, mutate_at, vars, mutate_if, mutate, ifelse, select
-    treat_sig %>%
-        dplyr::filter(FDR < 0.05) %>%
-        mutate_at(vars(c("Treatment", "gs_name")), as.factor) %>%
-        mutate_if(is.numeric, sprintf, fmt = '%#.4f') %>%
-        mutate(Direction = ifelse(Estimate < 0, "Inhibited", "Activation")) %>%
-    # --- Annotation Df [] ---
-    # Key functions: filter, mutate, cut, select, left_join
-    annotation_df <- normalisedScores %>%
-        dplyr::filter(gs_name == "kegg.Proteoglycans in cancer") %>%
-        mutate(
-            `Z Range` = cut(
-                robustZ, breaks = seq(-2, 2, length.out = 6), include.lowest = TRUE
-    # --- Top500 Fc [] ---
-    # Key functions: str_detect, ifelse
-    meanFC <- weightedFC$weighted_logFC %>%
-        .[, str_detect(colnames(.), "E2", negate = TRUE)] %>%
-        apply(1, mean )
-    top500_gene <- meanFC %>%
-        abs() %>%
+        expreMatrix = logCPM_example,
+        gsTopology = gsTopology,
+        weight = weightedFC$weight
+    )
+    normalisedScores <- normalise_by_permu(
+        permutedScore,
+        pathwayPertScore,
+        sortBy = "pvalue"
+    )
+
+
+    # --- Visualisation of Gene Contribution [] ---
+    # Key functions: plot_gene_contribution
+    plot_gene_contribution(
+        genePertMatr = genePertScore$`kegg.Proteoglycans in cancer`,
+        filterBy = "mean",
+        topGene = 10,
+        color = rev(colorspace::divergex_hcl(100, palette = "RdBu")),
+        breaks = seq(-0.001, 0.001, length.out = 100)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

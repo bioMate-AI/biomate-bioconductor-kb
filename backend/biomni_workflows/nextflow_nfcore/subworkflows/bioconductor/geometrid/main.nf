@@ -38,59 +38,104 @@ process BIOC_GEOMETRID {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(geomeTriD)
     library(GRanges)
     library(jsonlite)
 
-    # --- Load saved R data object [] ---
-    # Key functions: view3dStructure, threeJsViewer
-    library(geomeTriD)
-    obj <- readRDS(system.file("extdata", "4DNFI1UEG1HD.chr21.FLAMINGO.res.rds",
-    head(obj, n = 2)
-    # --- Load saved R data object [] ---
-    # Key functions: GRanges, mdsPlot
-    library(trackViewer)
-    library(InteractionSet)
-    gi_nij <- readRDS(system.file("extdata", "nij.chr6.51120000.53200000.gi.rds",
-    # --- mget [] ---
-    # Key functions: mget, unlist, mdsPlot
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(org.Hs.eg.db)
-    feature.gr <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    # --- Load saved R data object [] ---
+    # --- Multidimensional Scaling Projection [] ---
     # Key functions: mdsPlot
+    gi_nij <- readRDS(system.file("extdata", "nij.chr6.51120000.53200000.gi.rds",
+      package = "geomeTriD"
+    ))
+    range_chr6 <- GenomicRanges::GRanges(
+      "chr6",
+      IRanges::IRanges(51120000, 53200000)
+    )
+    mds_res <- mdsPlot(
+      gi_nij,
+      range = range_chr6,
+      k = 3,
+      render = "none"
+    )
+
+
+    # --- Integrating Genomic Signals and Features [] ---
+    # Key functions: mdsPlot
+    gi_nij <- readRDS(system.file("extdata", "nij.chr6.51120000.53200000.gi.rds",
+      package = "geomeTriD"
+    ))
+    range_chr6 <- GenomicRanges::GRanges(
+      "chr6",
+      IRanges::IRanges(51120000, 53200000)
+    )
     ctcf <- readRDS(system.file("extdata", "ctcf.sample.rds",
-    if (interactive()) { ## not run to reduce the package size.
-    mdsPlot(gi_nij,
-    # --- mds Plot [] ---
-    # Key functions: mdsPlot, threeJsViewer
-    set.seed(1)
-    randomSig <- randomSig[sort(sample(seq_along(randomSig), 50))]
-    randomSig$score <- randomSig$score * 2 * runif(50)
-    # --- clear3d [] ---
-    # Key functions: clear3d, rglViewer, rglwidget, toggleWidget, asRow
-    library(rgl)
-    library(manipulateWidget)
-    rgl::clear3d() # Remove the earlier display
-    # --- extract Backbone Positions [] ---
-    # Key functions: extractBackbonePositions, create3dGenomicSignals, width, threeJsViewer
+      package = "trackViewer"
+    ))
+    feature_gr <- GenomicRanges::GRanges(
+      seqnames = "chr6",
+      ranges = IRanges::IRanges(start = 51120000, end = 53200000),
+      col = 2,
+      type = "gene"
+    )
+    objs <- mdsPlot(
+      gi_nij,
+      range = range_chr6,
+      feature.gr = feature_gr,
+      genomicSigs = list(ctcf = ctcf),
+      reverseGenomicSigs = TRUE,
+      k = 3,
+      render = "none"
+    )
+
+
+    # --- 3D Genomic Signal Generation [] ---
+    # Key functions: extractBackbonePositions, create3dGenomicSignals, threeJsViewer
+    gi_nij <- readRDS(system.file("extdata", "nij.chr6.51120000.53200000.gi.rds",
+      package = "geomeTriD"
+    ))
+    range_chr6 <- GenomicRanges::GRanges(
+      "chr6",
+      IRanges::IRanges(51120000, 53200000)
+    )
+    objs <- mdsPlot(gi_nij, range = range_chr6, k = 3, render = "none")
     xyz <- extractBackbonePositions(objs)
-    gi.subset <- gi_nij[distance(first(gi_nij), second(gi_nij))>50000]
+    gi_subset <- gi_nij[InteractionSet::distance(
+      InteractionSet::first(gi_nij),
+      InteractionSet::second(gi_nij)
+    ) > 50000]
     hic <- create3dGenomicSignals(
-    # --- Load saved R data object [] ---
-    # Key functions: GRanges, mget, unlist
+      gi_subset,
+      xyz,
+      name = "segment",
+      tag = "hic",
+      color = c("green", "darkred"),
+      topN = 3,
+      lwd.maxGenomicSigs = 3,
+      alpha = 0.5
+    )
+    threeJsViewer(c(objs, hic))
+
+
+    # --- Loop Bouquet Plotting [] ---
+    # Key functions: loopBouquetPlot
     gi_chr2 <- readRDS(system.file("extdata", "gi.rds", package = "trackViewer"))
-    range_chr2 <- GRanges("chr2", IRanges(234300000, 235000000))
-    gene_hg19 <- suppressMessages(genes(TxDb.Hsapiens.UCSC.hg19.knownGene))
-    # --- distance [] ---
-    # Key functions: distance, regions, start, end
-    keep <- distance(first(gi_nij), second(gi_nij)) > 5e5 & gi_nij$score > 35
-    reg <- regions(gi_nij)
-    wr <- floor(width(reg) / 4)
-    # --- Create GenomicRanges object [] ---
-    # Key functions: threeJsViewer, view3dCells, GRanges
-    threeJsViewer(cellobjs)
-    if (interactive()) {
-    view3dCells(cells,
+    range_chr2 <- GenomicRanges::GRanges(
+      "chr2",
+      IRanges::IRanges(234300000, 235000000)
+    )
+    feature_gr_chr2 <- GenomicRanges::GRanges(
+      seqnames = "chr2",
+      ranges = IRanges::IRanges(start = 234300000, end = 235000000),
+      col = 2,
+      type = "gene",
+      pch = 11,
+      label = "GeneA"
+    )
+    geomeTriD::loopBouquetPlot(
+      gi_chr2,
+      range_chr2,
+      feature_gr_chr2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

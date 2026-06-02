@@ -41,79 +41,35 @@ process BIOC_HUBMAPR {
     library(HuBMAPR)
     library(jsonlite)
 
-    # --- 'datasets' [] ---
-    # Key functions: datasets, object_size
-    system.time({
-    datasets_df <- datasets()
-    object_size(datasets_df)
-    # --- 'plot' [] ---
-    # Key functions: group_by, ggplot, aes, geom_histogram, scale_fill_manual
-    select(organ, dataset_type) |>
-    group_by(organ) |>
-    mutate(count = n()) |>
-    # --- 'cols' [] ---
-    # Key functions: datasets_default_columns
-    as = "tibble" (default)
-    datasets_col_tbl <- datasets_default_columns(as = "tibble")
-    datasets_col_char <- datasets_default_columns(as = "character")
-    # --- 'summary cols' [] ---
-    # Key functions: bind_cols
-    tbl <- bind_cols(
-    dataset = datasets_default_columns(as = "character"),
-    sample = c(samples_default_columns(as = "character"), rep(NA, 7)),
-    # --- 'datasets filter' [] ---
-    # Key functions: count
-    Example from datasets()
-    filter(organ == 'Small Intestine') |>
-    count()
-    # --- 'derived using left join' [] ---
-    # Key functions: donors, left_join, rename, samples
-    donors_df <- donors()
-    filter(Sex == "Female",
-    head(1)
-    # --- '* detail()' [] ---
-    # Key functions: pull, dataset_detail, unnest_longer, unnest_wider
-    filter(dataset_type == "Auto-fluorescence",
-    organ == "Kidney (Right)") |>
-    head(1) |>
-    # --- 'metadata' [] ---
-    # Key functions: dataset_metadata, sample_metadata, donor_metadata
-    dataset_metadata("993bb1d6fa02e2755fd69613bb9d6e08")
-    sample_metadata("8ecdbdc3e2d04898e2563d666658b6a9")
-    donor_metadata("b2c75c96558c18c9e13ba31629f541b6")
-    # --- 'dataset derived' [] ---
-    # Key functions: dataset_derived
-    dataset_derived(uuid = dataset_uuid_1)
-    dataset_derived(uuid = dataset_uuid_2) |> glimpse()
-    # --- 'derived using sample derived' [] ---
-    # Key functions: pull, sample_derived
-    filter(last_modified_timestamp >= "2023-01-01" &
-    organ == "Kidney (Left)") |>
-    head(1) |>
-    # --- 'provenance' [] ---
-    # Key functions: uuid_provenance
-    uuid_provenance(dataset_uuid)
-    uuid_provenance(sample_uuid)
-    uuid_provenance(donor_uuid)
-    # --- 'collection datasets' [] ---
-    # Key functions: collections, pull, collection_data
-    collections_df <- collections()
-    filter(last_modified_timestamp >= "2023-01-01") |>
-    head(1) |>
-    # --- 'publication data' [] ---
-    # Key functions: publications, pull, publication_data
-    publications_df <- publications()
-    filter(publication_venue == "Nature") |>
-    head(1) |>
-    # --- 'information' [] ---
-    # Key functions: collection_information, publication_information
-    collection_information(uuid = collection_uuid)
-    publication_information(uuid = publication_uuid)
-    # --- 'author' [] ---
-    # Key functions: dataset_contributors, collection_contacts, collection_contributors, publication_authors
-    dataset_contributors(uuid = dataset_uuid)
-    collection_contacts(uuid = collection_uuid)
-    collection_contributors(uuid = collection_uuid)
+    # --- Metadata and Schema Inspection [] ---
+    # Key functions: datasets_default_columns, organ, dataset_metadata, sample_metadata, donor_metadata
+    default_cols <- datasets_default_columns(as = "character")
+    organs_list <- organ()
+    ds_meta <- dataset_metadata("993bb1d6fa02e2755fd69613bb9d6e08")
+    sm_meta <- sample_metadata("8ecdbdc3e2d04898e2563d666658b6a9")
+    dn_meta <- donor_metadata("b2c75c96558c18c9e13ba31629f541b6")
+
+
+    # --- Entity Detail and Provenance Tracking [] ---
+    # Key functions: dataset_detail, uuid_provenance, dataset_derived, sample_derived
+    target_uuid <- "3e4c568d9ce8df9d73b8cddcf8d0fec3"
+    detail_info <- dataset_detail(uuid = target_uuid)
+    provenance_info <- uuid_provenance(uuid = target_uuid)
+    derived_datasets <- dataset_derived(uuid = target_uuid)
+    derived_samples <- sample_derived(
+        uuid = "35e16f13caab262f446836f63cf4ad42",
+        entity_type = "Sample"
+    )
+
+
+    # --- Collection and Publication Data Association [] ---
+    # Key functions: collection_data, publication_data, collection_information, publication_information
+    coll_uuid <- "8ecdbdc3e2d04898e2563d666658b6a9"
+    pub_uuid <- "b2c75c96558c18c9e13ba31629f541b6"
+    coll_data <- collection_data(uuid = coll_uuid)
+    pub_data <- publication_data(uuid = pub_uuid, entity_type = "Dataset")
+    coll_info <- collection_information(uuid = coll_uuid)
+    pub_info <- publication_information(uuid = pub_uuid)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

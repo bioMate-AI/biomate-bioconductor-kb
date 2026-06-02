@@ -41,53 +41,45 @@ process BIOC_TRAJECTORYGEOMETRY {
     library(TrajectoryGeometry)
     library(jsonlite)
 
-    # --- Colorramppalette [] ---
-    # Key functions: colorRampPalette, pal
-    ---------------------------------------------------------------------
-    #load packages
-    library(TrajectoryGeometry)
-    library(RColorBrewer)
-    library(dplyr)
-    # --- Na [] ---
-    # Key functions: na
-    ---------------------------------------------------------------------
-    #filter matrices
-    chol_attributes = single_cell_matrix[!is.na(chol_pseudo_time),]
-    hep_attributes = single_cell_matrix[!is.na(hep_pseudo_time),]
-    #filter pseudotime values
-    # --- Samplepath [] ---
-    # Key functions: samplePath
-    ---------------------------------------------------------------------
-    cholPath = samplePath(chol_attributes, chol_pseudo_time_normalised)
-    hepPath = samplePath(hep_attributes, hep_pseudo_time_normalised)
-    # --- Testpathfordirectionality [] ---
-    # Key functions: testPathForDirectionality
-    ---------------------------------------------------------------------
-    cholAnswerPermutation = testPathForDirectionality(cholPath[,1:3],
-        randomizationParams = c('byPermutation','permuteWithinColumns'),
+    # --- Path Sampling and Directionality Testing [] ---
+    # Key functions: samplePath, testPathForDirectionality
+    chol_path <- samplePath(chol_attr, chol_pt_norm)
+    chol_perm <- testPathForDirectionality(
+        chol_path[, 1:3],
+        randomizationParams = c("byPermutation", "permuteWithinColumns"),
         statistic = "mean",
-        N = 100)
-    # --- Plotpathprojectioncenterandcircle [] ---
-    # Key functions: plotPathProjectionCenterAndCircle, cut
-    ---------------------------------------------------------------------
-    plotPathProjectionCenterAndCircle(path=cholPath[,1:3],
-        projection=cholAnswerPermutation$sphericalData$projections,
-        center=cholAnswerPermutation$sphericalData$center,
-        radius=cholAnswerPermutation$sphericalData$distance,
-    # --- Analysesinglecelltrajectory [] ---
-    # Key functions: analyseSingleCellTrajectory
-    ---------------------------------------------------------------------
-    chol_answers = analyseSingleCellTrajectory(attributes = chol_attributes[,1:3],
-        pseudotime = chol_pseudo_time_normalised,
-        randomizationParams = c('byPermutation','permuteWithinColumns'),
+        N = 100
+    )
+
+
+    # --- Trajectory Analysis and Visualization [] ---
+    # Key functions: analyseSingleCellTrajectory, visualiseTrajectoryStats
+    chol_ans <- analyseSingleCellTrajectory(
+        attributes = chol_attr[, 1:3],
+        pseudotime = chol_pt_norm,
+        randomizationParams = c("byPermutation", "permuteWithinColumns"),
         statistic = "mean",
-    # --- Analysebranchpoint [] ---
-    # Key functions: analyseBranchPoint
-    ---------------------------------------------------------------------
-    chol_branch_point_results = analyseBranchPoint(chol_attributes[,1:3],
-                                            chol_pseudo_time,
-                                            randomizationParams = c("byPermutation",
-                                                            "permuteWithinColumns"),
+        nSamples = 100,
+        N = 1
+    )
+    chol_dist <- visualiseTrajectoryStats(chol_ans, "distance")
+    plot_dist <- chol_dist$plot
+
+
+    # --- Branch Point Analysis [] ---
+    # Key functions: analyseBranchPoint, visualiseBranchPointStats
+    chol_bp <- analyseBranchPoint(
+        chol_attr[, 1:3],
+        chol_pt,
+        randomizationParams = c("byPermutation", "permuteWithinColumns"),
+        statistic = "mean",
+        start = 0,
+        stop = 50,
+        step = 5,
+        nSamples = 100,
+        N = 1
+    )
+    bp_stats <- visualiseBranchPointStats(chol_bp)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

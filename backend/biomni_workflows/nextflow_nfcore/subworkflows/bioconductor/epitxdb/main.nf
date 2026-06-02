@@ -38,18 +38,21 @@ process BIOC_EPITXDB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(EpiTxDb)
     library(DataFrame)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Granges [] ---
-    # Key functions: GRanges, IRanges, DataFrame, makeEpiTxDbFromGRanges, frame, metadata
-    ---------------------------------------------------------------------
-    gr <- GRanges(seqnames = "test",
-                  ranges = IRanges::IRanges(1,1),
-                  strand = "+",
-                  DataFrame(mod_id = 1L,
+    # --- Database Querying [] ---
+    # Key functions: modifications, modificationsBy
+    mods <- modifications(etdb)
+    mods_by_tx <- modificationsBy(etdb, by = "tx")
+
+
+    # --- Metadata Retrieval [] ---
+    # Key functions: metadata
+    meta_info <- metadata(etdb)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,21 +41,32 @@ process BIOC_SNIFTER {
     library(snifter)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: fitsne, ggplot, aes, geom_point, scale_colour_discrete
-    fit <- fitsne(counts, random_state = 42L)
-    ggplot() +
-    aes(fit[, 1], fit[, 2], colour = label) +
-    # --- sample [] ---
-    # Key functions: sample, setdiff, fitsne
-    test_ind <- sample(nrow(counts), nrow(counts) / 2)
-    train_ind <- setdiff(seq_len(nrow(counts)), test_ind)
-    embedding <- fitsne(train_mat, random_state = 42L)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: project, ggplot, geom_point, aes, scale_colour_discrete
-    new_coords <- project(embedding, new = test_mat, old = train_mat)
-    ggplot() +
-    geom_point(
+    # --- Model Training and Embedding [] ---
+    # Key functions: fitsne
+    embedding <- fitsne(
+        train_mat,
+        random_state = 42L,
+        perplexity = 30
+    )
+    train_coords <- data.frame(
+        tSNE1 = embedding[, 1],
+        tSNE2 = embedding[, 2],
+        Label = train_label
+    )
+
+
+    # --- Out-of-sample Projection [] ---
+    # Key functions: project
+    new_coords <- project(
+        embedding,
+        new = test_mat,
+        old = train_mat
+    )
+    projected_df <- data.frame(
+        tSNE1 = new_coords[, 1],
+        tSNE2 = new_coords[, 2],
+        Label = test_label
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -45,79 +45,49 @@ process BIOC_SAMSPECTRAL {
     library(SamSPECTRAL)
     library(jsonlite)
 
-    # --- F Example [] ---
-    # Key functions: SamSPECTRAL
-    library(SamSPECTRAL)
-    set.seed(4)
-    data(small_data)
-    full <- small
-    L <- SamSPECTRAL(full,dimension=c(1,2,3),normal.sigma = 200,
-    # --- F Example [] ---
-    # Key functions: na
-    ## Computing the frequency:
-    plot(full, pch='.', col= L)
-    frequency <- c()
-    minimum.frequency <- 0.01
-    ## components smaller than this threshould
-    # --- Readfiles2 [] ---
-    # Key functions: data
-    data(small_data)
-    full <- small
-    # --- F Sampling [] ---
+    # --- Community Building [] ---
     # Key functions: Building_Communities
-    ## Sample the data and build the communities
-    society <-
-        Building_Communities(full,m, space.length, community.weakness.threshold)
-    plot(full[society$representatives, ], pch=20)
-    # --- F Small [] ---
-    # Key functions: Conductance_Calculation, Civilized_Spectral_Clustering
-    normal.sigma <- 10
-    ## Compute conductance between communities
-    conductance <- Conductance_Calculation(full, normal.sigma, space.length,
-                                           society, precision)
-    ## Compute the eigenspace:
-    # --- F Large [] ---
-    # Key functions: Conductance_Calculation, Civilized_Spectral_Clustering
-    normal.sigma <- 1000
-    ## Compute conductance between communities
-    conductance <- Conductance_Calculation(full, normal.sigma, space.length, society, precision)
-    ## Compute the eigenspace:
-    if (run.live){
-    # --- F Appropriate [] ---
-    # Key functions: Conductance_Calculation, Civilized_Spectral_Clustering
+    data(small_data)
+    full <- small
+    m <- 3000
+    space.length <- 1
+    community.weakness.threshold <- 1
+    society <- Building_Communities(
+        full, m, space.length,
+        community.weakness.threshold
+    )
+
+
+    # --- Conductance Calculation [] ---
+    # Key functions: Conductance_Calculation
     normal.sigma <- 250
-    ## Compute conductance between communities
-    conductance <- Conductance_Calculation(full, normal.sigma, space.length,
-                                           society, precision)
-    ## Compute the eigenspace:
-    # --- F Lines [] ---
+    precision <- 6
+    conductance <- Conductance_Calculation(
+        full, normal.sigma, space.length,
+        society, precision
+    )
+
+
+    # --- Civilized Spectral Clustering [] ---
     # Key functions: Civilized_Spectral_Clustering
-    ## Fitting two lines:
-    clust_result.250 <-
-        Civilized_Spectral_Clustering(full, maximum.number.of.clusters,
-                                      society, conductance,stabilizer=1,
-                                      eigenvalues.num=50)
-    # --- F Line [] ---
-    # Key functions: Civilized_Spectral_Clustering
-    ## Fitting one line:
-    clust_result.250 <-
-        Civilized_Spectral_Clustering(full, maximum.number.of.clusters,
-                                      society, conductance,stabilizer=1,
-                                      eigenvalues.num=50, one.line=TRUE)
-    # --- F Sep1 [] ---
+    maximum.number.of.clusters <- 30
+    clust_result <- Civilized_Spectral_Clustering(
+        full, maximum.number.of.clusters,
+        society, conductance, stabilizer = 1,
+        eigenvalues.num = 50
+    )
+    eigen.values <- clust_result@eigen.space$values
+
+
+    # --- Cluster Connecting and Post-processing [] ---
     # Key functions: Connecting
-    ## Extracting labels:
-    labels.for_num.of.clusters <- clust_result.250@labels.for_num.of.clusters
-    number.of.clusters <- clust_result.250@number.of.clusters
-    L33 <- labels.for_num.of.clusters[[number.of.clusters]]
-    ## Setting septation factor:
-    # --- F Sep2 [] ---
-    # Key functions: Connecting
-    ## Setting septation factor:
+    labels.for_num.of.clusters <- clust_result@labels.for_num.of.clusters
+    number.of.clusters <- clust_result@number.of.clusters
     separation.factor <- 0.5
-    ## post-possesing:
-    component.of <-
-        Connecting(full, society, conductance, number.of.clusters,
+    component.of <- Connecting(
+        full, society, conductance, number.of.clusters,
+        labels.for_num.of.clusters, separation.factor
+    )$label
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

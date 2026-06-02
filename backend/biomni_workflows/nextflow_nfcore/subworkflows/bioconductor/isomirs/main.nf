@@ -38,45 +38,36 @@ process BIOC_ISOMIRS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(isomiRs)
     library(IsomirDataSeqFromFiles)
     library(jsonlite)
 
-    # --- Isomir Data Seq From Files [] ---
-    # Key functions: IsomirDataSeqFromFiles
-    ids <- IsomirDataSeqFromFiles(fn_list, design=de)
-    # --- iso Counts [] ---
-    # Key functions: isoCounts, isoPlot
-    ids <- isoCounts(mirData)
-    isoPlot(ids, type="all")
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: pheatmap
-    library(pheatmap)
-    ids = isoNorm(ids, formula = ~ condition)
-    pheatmap(counts(ids, norm=TRUE)[1:100,],
-    # --- MA plot of DE results [] ---
-    # Key functions: isoDE, plotMA
+    # --- Normalization and Annotation [] ---
+    # Key functions: isoNorm, isoAnnotate
+    ids <- isoNorm(ids, formula = ~ condition)
+    annotated_ids <- isoAnnotate(ids)
+    norm_counts <- counts(ids, norm=TRUE)
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: isoDE
     dds <- isoDE(ids, formula=~condition)
-    library(DESeq2)
-    plotMA(dds)
-    # --- col Data [] ---
-    # Key functions: colData
-    dds = DESeqDataSetFromMatrix(counts(ids),
-    colData(ids), design = ~condition)
-    # --- Gene Ontology enrichment analysis [] ---
-    # Key functions: enrichGO, isoPlotNet
-    library(org.Mm.eg.db)
-    library(clusterProfiler)
+    dds_iso5 <- isoDE(ids, formula=~condition, ref=TRUE, iso5=TRUE)
+
+
+    # --- Target Prediction and Network Analysis [] ---
+    # Key functions: findTargets, mirna2targetscan, isoNetwork, isoPlotNet
     data(isoExample)
-    # --- find Targets [] ---
-    # Key functions: findTargets
-    mirna_ma <- data.frame(gene = names(gene_ex_rse)[1:20],
-    mir = names(mirna_ex_rse))
+    mirna_ma <- data.frame(
+        gene = names(gene_ex_rse)[1:20],
+        mir = names(mirna_ex_rse)
+    )
     ma_ex <- findTargets(mirna_ex_rse, gene_ex_rse, mirna_ma)
-    # --- mirna2targetscan [] ---
-    # Key functions: mirna2targetscan
-    library(targetscan.Hs.eg.db)
-    mirna_ma <- mirna2targetscan(c("hsa-miR-34c-5p"))
-    head(mirna_ma)
+    net_data <- isoNetwork(
+        mirna_ex_rse, gene_ex_rse, target = ma_ex,
+        summarize = "group"
+    )
+    isoPlotNet(net_data, minGenes = 4)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

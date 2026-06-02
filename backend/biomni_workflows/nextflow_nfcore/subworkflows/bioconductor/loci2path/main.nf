@@ -41,11 +41,70 @@ process BIOC_LOCI2PATH {
     library(loci2path)
     library(jsonlite)
 
-    # --- gene Set [] ---
-    # Key functions: geneSet, resultTable, coveredGene, getMat, getWordcloud
-    eset.list <- list(Brain=brain.eset, Skin=skin.eset, Blood=blood.eset)
-    biocarta.link.file <- system.file("extdata", "geneSet/biocarta.txt",
-    biocarta.set.file <- system.file("extdata", "geneSet/biocarta.set.txt",
+    # --- Gene Set Construction [] ---
+    # Key functions: geneSet
+    biocarta.link.file <- system.file(
+        "extdata", "geneSet/biocarta.txt", 
+        package="loci2path"
+    )
+    biocarta.set.file <- system.file(
+        "extdata", "geneSet/biocarta.set.txt", 
+        package="loci2path"
+    )
+    biocarta.link <- read.delim(
+        biocarta.link.file, 
+        header=FALSE, 
+        stringsAsFactors=FALSE
+    )
+    set.geneid <- read.table(biocarta.set.file, stringsAsFactors=FALSE)
+    set.geneid <- strsplit(set.geneid[,1], split=",")
+    names(set.geneid) <- biocarta.link[,1]
+    biocarta <- geneSet(
+        numGene=31847,
+        description=biocarta.link[,2],
+        geneSetList=set.geneid
+    )
+
+
+    # --- Pathway Enrichment Query [] ---
+    # Key functions: query, resultTable, coveredGene
+    bed.file <- system.file(
+        "extdata", "query/Psoriasis.BED", 
+        package="loci2path"
+    )
+    query.bed <- read.table(bed.file, header=FALSE)
+    colnames(query.bed) <- c("chr", "start", "end")
+    query.gr <- GenomicRanges::makeGRangesFromDataFrame(query.bed)
+    res.esetlist <- query(
+        query.gr=query.gr, 
+        loci=eset.list, 
+        path=biocarta,
+        parallel=FALSE
+    )  
+    result <- resultTable(res.esetlist)
+    genes.covered <- coveredGene(res.esetlist)
+
+
+    # --- Tissue Specificity Analysis [] ---
+    # Key functions: getTissueDegree, query
+    tissue.degree <- getTissueDegree(res.esetlist, eset.list)
+    gene.map <- tissue.degree$gene.tissue.map
+    gene.deg <- tissue.degree$gene.tissue.degree
+    mean.deg <- tissue.degree$mean.tissue.degree
+    res.tissue <- data.frame(
+        resultTable(res.esetlist),
+        t.degree=mean.deg
+    )
+    gr.tissue <- query(query.gr, loci=eset.list)
+
+
+    # --- Visualisation and Reporting [] ---
+    # Key functions: getMat, getHeatmap, getWordcloud, getPval, getPathDescription
+    mat <- getMat(res.esetlist, test.method="gene")
+    heatmap.para <- getHeatmap(res.esetlist)
+    wc <- getWordcloud(res.esetlist)
+    pval <- getPval(res.esetlist, test.method="gene")
+    description <- getPathDescription(res.esetlist, biocarta)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

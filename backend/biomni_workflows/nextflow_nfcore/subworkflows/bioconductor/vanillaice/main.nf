@@ -38,6 +38,7 @@ process BIOC_VANILLAICE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(VanillaICE)
     library(ArrayViews)
     library(CopyNumScanParams)
     library(EmissionParam)
@@ -49,83 +50,27 @@ process BIOC_VANILLAICE {
     library(SnpGRanges)
     library(jsonlite)
 
-    # --- Example Data [] ---
-    # Key functions: registerDoSEQ, files
-    library(VanillaICE)
-    library(foreach)
-    registerDoSEQ()
-    extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
-    files <- list.files(extdir, pattern="FinalReport")
-    # --- Annotation File [] ---
-    # Key functions: files
-    list.files(extdir, pattern="SNP_info")
-    # --- Featureannotation [] ---
-    # Key functions: fread, path, GRanges, IRanges, SnpGRanges
-    require(data.table)
-    features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
-    fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
-                   isSnp=features[["Intensity Only"]]==0)
-    fgr <- SnpGRanges(fgr)
-    # --- Seqinfo [] ---
-    # Key functions: seqlevels, seqinfo
-    library(BSgenome.Hsapiens.UCSC.hg18)
-    sl <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)
-    seqlevels(fgr) <- sl[sl %in% seqlevels(fgr)]
-    seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
-    fgr <- sort(fgr)
-    # --- Sourcefiles [] ---
-    # Key functions: files
-    files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
-    # --- Arrayviews [] ---
-    # Key functions: tempdir, ArrayViews, lrrFile, path, fileName
-    ##
-    ## A directory to keep parsed files
-    ##
-    parsedDir <- tempdir()
-    views <- ArrayViews(rowRanges=fgr, sourcePaths=files,
-    # --- Fread [] ---
-    # Key functions: fread
-    ## read the first file
-    dat <- fread(files[1], skip="[Data]")
-    head(dat,n=3)
-    # --- Scan Params [] ---
-    # Key functions: CopyNumScanParams
-    scan_params <- CopyNumScanParams(index_genome=index_genome,
-                                     select=select_columns,
-                                     cnvar="Log R Ratio",
-                                     bafvar="B Allele Freq",
-                                     gtvar=c("Allele1 - AB", "Allele2 - AB"))
-    # --- Applyparsesourcefile [] ---
-    # Key functions: parseSourceFile
-    parseSourceFile(views, scan_params)
-    # --- List Parsed Files [] ---
-    # Key functions: files, parsedPath
-    head(list.files(parsedPath(views)), n=3)
-    # --- Views [] ---
-    # Key functions: lrr, baf, genotypes
-    lrr(views)[1:2, ]
-    ## or
-    lrr(views[1:2, ])
-    ## B allele frequencies
-    baf(views[1:2, ])
-    # --- Snparrayexperiment [] ---
-    # Key functions: SnpExperiment, show
+    # --- SnpExperiment Construction and HMM Fitting [] ---
+    # Key functions: SnpExperiment, EmissionParam, hmm2
     snp_exp <- SnpExperiment(views[, 4:5])
-    show(snp_exp)
-    # --- Emission Param [] ---
-    # Key functions: EmissionParam
-    param <- EmissionParam()
-    # --- Temper [] ---
-    # Key functions: EmissionParam, show
     param <- EmissionParam(temper=0.5)
-    show(param)
-    # --- Hmm [] ---
-    # Key functions: hmm2, show
     fit <- hmm2(snp_exp, param)
-    show(fit)
-    length(fit)
-    ## HMM object for the first sample
-    fit[[1]]
+
+
+    # --- CNV Filtering [] ---
+    # Key functions: FilterParam, cnvFilter
+    select_cnv <- FilterParam(state=c("1", "2", "5", "6"), seqnames="chr22")
+    cnvs <- cnvFilter(fit, select_cnv)
+
+
+    # --- Visualization [] ---
+    # Key functions: HmmTrellisParam, xyplotList, viewports, xygrid
+    trellis_param <- HmmTrellisParam()
+    cnvList <- split(cnvs, cnvs$id)
+    figList <- xyplotList(cnvList, snp_exp, trellis_param)
+    fig1 <- figList[[1]][[1]]
+    vps <- viewports()
+    xygrid(fig1, vps, cnvList[[1]][1])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

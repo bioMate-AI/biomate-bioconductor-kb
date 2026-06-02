@@ -38,109 +38,70 @@ process BIOC_GSEALM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GSEAlm)
     library(CooksDPerGene)
     library(D)
     library(GSNormalize)
     library(jsonlite)
 
-    # --- Load Libs [] ---
-    # Key functions: pal
-    library("annotate")
-    library("GOstats")
-    library("graph")
-    #require("Rgraphviz", quietly=TRUE)
-    #library("Rgraphviz")
-    # --- Dataset Load And Initial Filtering [] ---
-    # Key functions: intersect, factor, nsFilter
-    data(ALL)
-    ### Some filtering;
-    ### see explanation below code
-    bcellIdx <- grep("^B", as.character(ALL$BT))
-    bcrOrNegIdx <- which(as.character(ALL$mol.biol)
-    # --- Chromosomemapping [] ---
-    # Key functions: mget, featureNames, all, na, unlist, makeChrBandGraph
-    minBandSize = 5
-    haveMAP = sapply(mget(featureNames(esetASub), hgu95av2MAP),
-                     function(x) !all(is.na(x)))
-    workingEset = esetASub[haveMAP, ]
-    entrezUniv = unlist(mget(featureNames(workingEset), hgu95av2ENTREZID))
-    # --- Lmphen [] ---
-    # Key functions: lmPerGene, rowttests, relevel
-    lmPhen <- lmPerGene(workingEset,~mol.biol)
-    ##fit the t-tests model
-    tobsChr <- rowttests(workingEset,"mol.biol")
-    ## fit it via the linear-model interface
-    lmEsts = lmPhen$tstat[2,]
-    # --- Simpleresboxplot [] ---
-    # Key functions: getResidPerGene, resplot, exprs
+    # --- Chromosome Mapping and Incidence Matrix ---
+    # Key functions: makeChrBandGraph, makeChrBandInciMat
+    minBandSize <- 5
+    haveMAP <- sapply(mget(featureNames(esetASub), hgu95av2MAP),
+                      function(x) !all(is.na(x)))
+    workingEset <- esetASub[haveMAP, ]
+    entrezUniv <- unlist(mget(featureNames(workingEset), hgu95av2ENTREZID))
+    AgraphChr <- makeChrBandGraph("hgu95av2.db", univ = entrezUniv)
+    AmatChr <- makeChrBandInciMat(AgraphChr)
+    AmatChr3 <- AmatChr[rowSums(AmatChr) >= minBandSize, ]
+    egIds <- sapply(featureNames(workingEset),
+                    function(x) hgu95av2ENTREZID[[x]])
+    idx <- match(egIds, colnames(AmatChr))
+    AmatChr3 <- AmatChr3[, idx]
+    colnames(AmatChr3) <- featureNames(workingEset)
+
+    # --- Linear Modeling Per Gene ---
+    # Key functions: lmPerGene
+    workingEset$mol.biol <- relevel(workingEset$mol.biol, ref = "NEG")
+    lmPhen <- lmPerGene(workingEset, ~mol.biol)
+    lmEsts <- lmPhen$tstat[2, ]
+    lmExpand <- lmPerGene(workingEset, ~mol.biol + sex + kinet)
+    lmExpandTees <- t(lmExpand$tstat[2:4, ])
+
+    # --- Residual Analysis and Diagnostics ---
+    # Key functions: getResidPerGene, resplot
     lmPhenRes <- getResidPerGene(lmPhen)
-    resplot(resmat=exprs(lmPhenRes),fac=workingEset$mol,cex.main=.7,cex.axis=.6,
-    horiz=TRUE,lims=c(-5,5),xname="",col=5,cex=.3)
-    # --- Gsea Resids [] ---
-    # Key functions: GSNormalize, exprs, rowSums, sweep
-    ## now we are going to aggregate residuals over chromosome bands
-    stdrAchr=GSNormalize(exprs(lmPhenRes),AmatChr3)
-    #rAchr =  AmatChr3 %*% exprs(lmPhenRes)
-    #rAsqrSums = sqrt(rowSums(AmatChr3))
-    #stdrAchr = sweep(rAchr, 1, rAsqrSums, FUN="/")
-    # --- Raexchrhmap [] ---
-    # Key functions: ifelse, dist, leaves
-    # brColors <- ifelse(colnames(stdrAchr) %in% branch1,"brown", "grey")
-    # molColors <- ifelse(workingEset$mol=="BCR/ABL","brown", "grey")
-    kinetColors <- ifelse(workingEset$kinet=="hyperd.","brown", "grey")
-     onecor=function(x) as.dist(1-cor(t(x))) # To get correlation-based heatmap
-    ### In the heatmap we only use the lowest-level bands, or "leaves" of the graph
-    # --- Fakehmap [] ---
-    # Key functions: rexp, sample, sweep, rnorm, heatmap
-    colbase=rexp(79,rate=3)*sample(c(-1,1),size=79,replace=T)
-    randres=sweep(matrix(rnorm(length(ChrLeaves)*79),ncol=79),2,colbase)
-    heatmap(randres, scale="row",col = HMcols,
-              ColSideColors=kinetColors,keep.dendro=TRUE,distfun=onecor,
-              ,labRow=FALSE,xlab="Sample",ylab="Chromosome band")
-    # --- p Data [] ---
-    # Key functions: pData, na
-    sampleIDs=rownames(pData(workingEset))
-    imputeEset=workingEset
-    imputeEset$sex[is.na(workingEset$sex)] <- 'M'
-    imputeEset$kinet[is.na(workingEset$kinet)] <- 'dyploid'
-    ### This is the questionable sample; try once as diploid
-    # --- lm Per Gene [] ---
-    # Key functions: lmPerGene, getResidPerGene, GSNormalize, exprs
-    lmExpand <- lmPerGene(workingEset,~mol.biol+sex+kinet)
-    lmExpandRes <- getResidPerGene(lmExpand,type="extStudent")
-    lmExpandTees <- t(lmExpand$tstat[2:4,])
-    lmExpandBandTees<-GSNormalize(lmExpandTees,AmatChr3)
-    GSresidExpand=GSNormalize(exprs(lmExpandRes),AmatChr3)
-    # --- ifelse [] ---
-    # Key functions: ifelse, heatmap
-    kinetColors2 <- ifelse(lmExpandRes$kinet=="hyperd.","brown", "grey")
-    bandHeatmapExp=heatmap(GSresidExpand[ChrLeaves,], scale="row",col = HMcols,
-              ColSideColors=kinetColors2,keep.dendro=TRUE,distfun=onecor,
-              labRow=FALSE,xlab="Sample",ylab="Chromosome band")
-    # --- gsealm Perm [] ---
+    resplot(resmat = exprs(lmPhenRes), fac = workingEset$mol,
+            cex.main = 0.7, cex.axis = 0.6, horiz = TRUE,
+            lims = c(-5, 5), xname = "", col = 5, cex = 0.3)
+    lmExpandRes <- getResidPerGene(lmExpand, type = "extStudent")
+
+    # --- Gene Set Normalization ---
+    # Key functions: GSNormalize
+    lmExpandBandTees <- GSNormalize(lmExpandTees, AmatChr3)
+    GSresidExpand <- GSNormalize(exprs(lmExpandRes), AmatChr3)
+
+    # --- Permutation-Based Inference ---
     # Key functions: gsealmPerm
-    pvalsExpand=gsealmPerm(workingEset[LeafGenes,],~mol.biol+sex+kinet,AmatChr3[ChrLeaves,LeafGenes],nperm=nperm,removeShift=TRUE)
-    pvalsExpand[pvalsExpand[,1]<flagp,1]
-    pvalsExpand[pvalsExpand[,2]<flagp,2]
-    # --- gsealm Perm [] ---
-    # Key functions: gsealmPerm, browser
-    chrNames=c(as.character(1:22),"X")
-    pvalsHyper=gsealmPerm(workingEset,~kinet+mol.biol+sex,AmatChr3[chrNames,],nperm=nperm)
-    pvalsHyper[pvalsHyper[,2]<flagp,2] ### over-expressed list for hyperdiploids
-    # browser()
-    # oldflags=c(table(pvals[,1]<flagp)[2],table(pvals[,2]<flagp)[2])
-    # --- Hyperdiploidheatmap [] ---
-    # Key functions: heatmap
-    GSChromeResid=GSresidExpand[chrNames,]
-    hyperHmap=heatmap(GSChromeResid[pvalsHyper[,2]<0.1,lmExpandRes$kinet=="hyperd."],
-    scale="row",col = HMcols,keep.dendro=TRUE,distfun=onecor,xlab="Sample ID",ylab="Chromosome")
-    # --- Cooksdplot [] ---
-    # Key functions: CooksDPerGene, GSNormalize, col, D, na
-    cookie1=CooksDPerGene(lmPhen)
-    cookie3=CooksDPerGene(lmExpand)
-    BandCooks1=GSNormalize(cookie1,AmatChr3,fun2=identity)
-    BandCooks3=GSNormalize(cookie3,AmatChr3,fun2=identity)
-    BandCooks1Base=BandCooks1[ChrLeaves,]
+    nperm <- 125
+    flagp <- 0.01
+    AgraphChr3 <- subGraph(c("ORGANISM:Homo sapiens", rownames(AmatChr3)),
+                           AgraphChr)
+    ChrLeaves <- leaves(AgraphChr3, "out")
+    ChrLeaves <- ChrLeaves[ChrLeaves %in% rownames(AmatChr3)]
+    LeafGenes <- which(colSums(AmatChr3[ChrLeaves, ]) > 0)
+    pvalsExpand <- gsealmPerm(workingEset[LeafGenes, ],
+                              ~mol.biol + sex + kinet,
+                              AmatChr3[ChrLeaves, LeafGenes],
+                              nperm = nperm, removeShift = TRUE)
+
+    # --- Influence Diagnostics ---
+    # Key functions: CooksDPerGene, GSNormalize
+    cookie1 <- CooksDPerGene(lmPhen)
+    cookie3 <- CooksDPerGene(lmExpand)
+    BandCooks1 <- GSNormalize(cookie1, AmatChr3, fun2 = identity)
+    BandCooks3 <- GSNormalize(cookie3, AmatChr3, fun2 = identity)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

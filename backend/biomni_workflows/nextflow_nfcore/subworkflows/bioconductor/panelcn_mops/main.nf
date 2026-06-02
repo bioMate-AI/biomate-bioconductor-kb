@@ -41,24 +41,61 @@ process BIOC_PANELCN_MOPS {
     library(panelcn.mops)
     library(jsonlite)
 
-    # --- Colnames [] ---
-    # Key functions: elementMetadata, createResultTable
-    ------------------------------------------------------
+    # --- Get Genomic Windows [getWindows] ---
+    # Key functions: getWindows
+    bed <- system.file("extdata/Genes_part.bed", package = "panelcn.mops")
+    countWindows <- getWindows(bed)
+
+    # --- Count BAM Files [countBamListInGRanges] ---
+    # Key functions: countBamListInGRanges
+    testbam <- "SAMPLE1.bam"
+    test <- countBamListInGRanges(
+        countWindows = countWindows,
+        bam.files = testbam,
+        read.width = 150
+    )
+
+    # --- Run CNV Detection [runPanelcnMops] ---
+    # Key functions: runPanelcnMops
+    data(panelcn.mops)
+    resultlist <- runPanelcnMops(
+        input = test,
+        control = control,
+        countWindows = countWindows
+    )
+
+    # --- Create Result Table [createResultTable] ---
+    # Key functions: createResultTable, integerCopyNumber
+    data(panelcn.mops)
+    XandCB <- test
+    elementMetadata(XandCB) <- cbind(
+        elementMetadata(XandCB),
+        elementMetadata(control)
+    )
+    selectedGenes <- "ATM"
     sampleNames <- colnames(elementMetadata(test))
-    resulttable <- createResultTable(resultlist = resultlist, XandCB = XandCB,
-                                        countWindows = countWindows,
-                                        selectedGenes = selectedGenes,
-    # --- Integercopynumber [] ---
-    # Key functions: integerCopyNumber
-    ------------------------------------------------------
-    integerCopyNumber(resultlist[[1]])[1:5]
-    # --- Colnames [] ---
-    # Key functions: elementMetadata, createResultTable
-    ------------------------------------------------------
+    resulttable <- createResultTable(
+        resultlist = resultlist,
+        XandCB = XandCB,
+        countWindows = countWindows,
+        selectedGenes = selectedGenes,
+        sampleNames = sampleNames
+    )
+    icn <- integerCopyNumber(resultlist[[1]])
+
+    # --- Visualise Results [plotBoxplot] ---
+    # Key functions: plotBoxplot
+    data(panelcn.mops)
     sampleNames <- colnames(elementMetadata(test))
-    resulttable <- createResultTable(resultlist = resultlist, XandCB = XandCB,
-                                        countWindows = countWindows,
-                                        selectedGenes = selectedGenes,
+    selectedGenes <- "ATM"
+    plotBoxplot(
+        result = resultlist[[1]],
+        sampleName = sampleNames[1],
+        countWindows = countWindows,
+        selectedGenes = selectedGenes,
+        showGene = 1
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

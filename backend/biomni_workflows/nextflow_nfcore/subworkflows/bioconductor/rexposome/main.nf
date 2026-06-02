@@ -41,27 +41,23 @@ process BIOC_REXPOSOME {
     library(rexposome)
     library(jsonlite)
 
-    # --- Quality control and filtering [] ---
-    # Key functions: pData, levels, factor, exwas, formula
-    strat_variable <- "sex"
-    formula <- cbmi ~ 1
-    family <- "gaussian"
-    strat_ex <- lapply(levels(as.factor(pData(exp)[[strat_variable]])), function(i){
-          mask <- pData(exp)[[strat_variable]]==i
-    # --- Path analysis [] ---
-    # Key functions: path, package, readExposome, csv, loadExposome, sampleNames, exposureNames, fData
-    path <- file.path(path.package("rexposome"), "extdata")
-    description <- file.path(path, "description.csv")
-    phenotype <- file.path(path, "phenotypes.csv")
-    exposures <- file.path(path, "exposures.csv")
-    # --- Clustering and classification [] ---
-    # Key functions: hclust, dist
-    hclust_data <- function(data, ...) {
-        hclust(d = dist(x = data), ...)
-    }
-    # --- Visualization and reporting [] ---
-    # Key functions: plotPCA
-    plotPCA(exp_pca, set = "samples", phenotype = "sex")
+    # --- Imputation and Standardization [] ---
+    # Key functions: imputation, standardize
+    exp_imp <- rexposome::imputation(exp)
+    exp_std <- rexposome::standardize(
+        exp_imp,
+        method = "normal"
+    )
+
+
+    # --- Dimension Reduction and Association [] ---
+    # Key functions: pca, exwas
+    exp_pca <- rexposome::pca(exp_std, pca = TRUE)
+    fl_ew <- rexposome::exwas(
+        exp_imp,
+        formula = blood_pre ~ sex + age,
+        family = "gaussian"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

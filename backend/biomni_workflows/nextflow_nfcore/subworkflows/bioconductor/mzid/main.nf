@@ -41,15 +41,19 @@ process BIOC_MZID {
     library(mzID)
     library(jsonlite)
 
-    # --- mz I D [] ---
-    # Key functions: mzID
-    exampleFiles <- list.files(system.file('extdata', package = 'mzID'),
-    mzResults <- mzID(exampleFiles[5])
-    # --- flatten [] ---
+    # --- Extracting Peptide and Evidence Data [] ---
+    # Key functions: peptides, evidence
+    pep_info <- peptides(mzResults)
+    ev_info <- evidence(mzResults)
+    pep_sequences <- pep_info$sequence
+    pep_lengths <- nchar(pep_sequences)
+
+
+    # --- Flattening and Exporting Results [] ---
     # Key functions: flatten
     flatResults <- flatten(mzResults)
-    names(flatResults)
-    nrow(flatResults)
+    num_psms <- length(mzResults)
+    col_names <- names(flatResults)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

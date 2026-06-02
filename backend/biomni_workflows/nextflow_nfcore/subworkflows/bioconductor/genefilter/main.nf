@@ -38,34 +38,54 @@ process BIOC_GENEFILTER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(genefilter)
     library(Aggregate)
     library(jsonlite)
 
-    # --- var Labels [] ---
-    # Key functions: varLabels
-    library("Biobase")
-    library("genefilter")
-    data(sample.ExpressionSet)
-    # --- filterfun [] ---
-    # Key functions: filterfun, genefilter
-    ffun_combined <- filterfun(f1, f2)
-    wh3 <- genefilter(exprs(sample.ExpressionSet), ffun_combined)
-    sum(wh3)
-    # --- selectfun [] ---
-    # Key functions: selectfun, scale, Aggregate
-    knnCV <- function(x, selectfun, cov, Agg, pselect = 0.01, scale=FALSE) {
-    nc <- ncol(x)
-    outvals <- rep(NA, nc)
-    # --- ttest [] ---
+    # --- Differential Expression Filtering [] ---
     # Key functions: ttest, filterfun, genefilter
-    gfun <- function(expr, cov, p=0.05) {
-    f2 <- ttest(cov, p=p)
-    ffun <- filterfun(f2)
-    # --- genescale [] ---
-    # Key functions: genescale, new, knnCV
-    library("class")
-    geneData <- genescale(exprs(sample.ExpressionSet)[1:75,], 1)
+    expr_matrix <- Biobase::exprs(Biobase::sample.ExpressionSet)
+    group_cov <- Biobase::sample.ExpressionSet$type
+    f2 <- ttest(group_cov, p = 0.1)
+    ffun_ttest <- filterfun(f2)
+    selected_ttest <- genefilter(expr_matrix, ffun_ttest)
+    filtered_ttest_expr <- expr_matrix[selected_ttest, ]
+
+
+    # --- Combined Multi-criteria Filtering [] ---
+    # Key functions: kOverA, ttest, filterfun, genefilter
+    expr_matrix <- Biobase::exprs(Biobase::sample.ExpressionSet)
+    group_cov <- Biobase::sample.ExpressionSet$type
+    f1 <- kOverA(5, 200)
+    f2 <- ttest(group_cov, p = 0.1)
+    ffun_combined <- filterfun(f1, f2)
+    selected_combined <- genefilter(expr_matrix, ffun_combined)
+    filtered_combined_expr <- expr_matrix[selected_combined, ]
+
+
+    # --- Gene Scaling and Normalization [] ---
+    # Key functions: genescale
+    expr_matrix <- Biobase::exprs(Biobase::sample.ExpressionSet)[1:75, ]
+    scaled_genes <- genescale(expr_matrix, 1)
+
+
+    # --- Feature Selection Aggregation [] ---
+    # Key functions: aggregator, aggenv
     Agg <- new("aggregator")
+    selected_features <- c("AFFX-MurIL2_at", "AFFX-MurIL10_at")
+    for (gene in selected_features) {
+        Aggregate(gene, Agg)
+    }
+    agg_counts <- sort(sapply(aggenv(Agg), c), decreasing = TRUE)
+
+
+    # --- Fast Row-wise Statistics [] ---
+    # Key functions: rowttests, rowSds, rowVars
+    expr_matrix <- Biobase::exprs(Biobase::sample.ExpressionSet)
+    group_cov <- Biobase::sample.ExpressionSet$type
+    ttest_results <- rowttests(expr_matrix, group_cov)
+    row_sds <- rowSds(expr_matrix)
+    row_vars <- rowVars(expr_matrix)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

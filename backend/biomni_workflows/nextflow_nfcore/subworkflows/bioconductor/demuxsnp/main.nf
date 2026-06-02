@@ -38,92 +38,54 @@ process BIOC_DEMUXSNP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(demuxSNP)
     library(HTODemux)
     library(Heatmap)
     library(Seurat)
     library(jsonlite)
 
-    # --- Structure [] ---
-    # Key functions: structure, viridis
-    ---------------------------------------------------------------------
-    colors <- structure(viridis(n = 3), names = c("-1", "0", "1"))
-    # --- Data [] ---
-    # Key functions: data, class
-    ---------------------------------------------------------------------
-    data(multiplexed_scrnaseq_sce,
-         commonvariants_1kgenomes_subset,
-         vartrix_consensus_snps,
-         package = "demuxSNP")
-    # --- Logcounts [] ---
-    # Key functions: logcounts, counts, Seurat, HTODemux, factor
-    ---------------------------------------------------------------------
-    logcounts(multiplexed_scrnaseq_sce) <- counts(multiplexed_scrnaseq_sce)
-    seurat <- as.Seurat(multiplexed_scrnaseq_sce)
-    seurat <- HTODemux(seurat)
-    seurat$hash.ID <- factor(as.character(seurat$hash.ID))
-    # --- Dittoplot [] ---
-    # Key functions: dittoPlot
-    ---------------------------------------------------------------------
-    dittoPlot(seurat, "nCount_HTO", group.by = "hash.ID")
-    dittoPlot(seurat, "nCount_RNA", group.by = "hash.ID")
-    # --- Common Genes [] ---
+    # --- Gene Selection [] ---
     # Key functions: common_genes
-    ---------------------------------------------------------------------
-    top_genes <- common_genes(sce = multiplexed_scrnaseq_sce, n = 100)
-    top_genes[1:10]
-    # --- Genome [] ---
-    # Key functions: genome, subset_vcf
-    ---------------------------------------------------------------------
+    top_genes <- common_genes(
+        sce = multiplexed_scrnaseq_sce,
+        n = 100
+    )
+
+    # --- VCF Subsetting [] ---
+    # Key functions: subset_vcf
     ensdb <- EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
-    genome(commonvariants_1kgenomes_subset)[1] == genome(ensdb)[1]
-    new_vcf <- subset_vcf(commonvariants_1kgenomes_subset, top_genes = top_genes, ensdb)
-    commonvariants_1kgenomes_subset
-    # --- High Conf Calls [] ---
+    new_vcf <- subset_vcf(
+        vcf = commonvariants_1kgenomes_subset,
+        top_genes = top_genes,
+        ensdb = ensdb
+    )
+
+    # --- High Confidence Call Identification [] ---
     # Key functions: high_conf_calls
-    ---------------------------------------------------------------------
-    multiplexed_scrnaseq_sce <- high_conf_calls(multiplexed_scrnaseq_sce)
-    table(multiplexed_scrnaseq_sce$train)
-    table(multiplexed_scrnaseq_sce$predict)
-    table(multiplexed_scrnaseq_sce$labels)
-    # --- Dim [] ---
-    # Key functions: add_snps, altExp
-    ---------------------------------------------------------------------
-    dim(vartrix_consensus_snps)
-    multiplexed_scrnaseq_sce <- add_snps(multiplexed_scrnaseq_sce, vartrix_consensus_snps, thresh = 0.95)
-    altExp(multiplexed_scrnaseq_sce, "SNP")
-    # --- Heatmap [] ---
-    # Key functions: Heatmap, counts, altExp, draw, unit
-    ---------------------------------------------------------------------
-    hm <- Heatmap(counts(altExp(multiplexed_scrnaseq_sce, "SNP")),
-        column_split = multiplexed_scrnaseq_sce$seurat,
-        cluster_rows = FALSE,
-        show_column_names = FALSE,
-    # --- Droplevels [] ---
-    # Key functions: droplevels
-    ---------------------------------------------------------------------
-    sce_test <- multiplexed_scrnaseq_sce[, multiplexed_scrnaseq_sce$train == TRUE]
-    sce_test$knn <- NULL
-    #sce_test$labels <- droplevels(sce_test$labels)
-    sce_test
-    # --- Reassign Centroid [] ---
+    multiplexed_scrnaseq_sce <- high_conf_calls(
+        multiplexed_scrnaseq_sce
+    )
+
+    # --- SNP Matrix Integration [] ---
+    # Key functions: add_snps
+    multiplexed_scrnaseq_sce <- add_snps(
+        multiplexed_scrnaseq_sce,
+        vartrix_consensus_snps,
+        thresh = 0.95
+    )
+
+    # --- Centroid Reassignment [] ---
     # Key functions: reassign_centroid
-    ---------------------------------------------------------------------
-    sce_test$knn <- reassign_centroid(sce_test, train_cells = sce_test$train2, predict_cells = sce_test$test, min_cells = 5)
-    table(sce_test$labels[sce_test$test == TRUE], sce_test$knn[sce_test$test == TRUE])
-    # --- Which [] ---
-    # Key functions: reassign_centroid
-    ---------------------------------------------------------------------
-    sce_test$labels2[which(sce_test$labels2 == "Hashtag5")[1:25]] <- "Hashtag2"
-    table(sce_test$labels, sce_test$labels2)
-    sce_test$knn <- reassign_centroid(sce_test,
-        train_cells = sce_test$train,
-    # --- Heatmap [] ---
-    # Key functions: Heatmap, counts, altExp, draw, unit
-    ---------------------------------------------------------------------
-    hm <- Heatmap(counts(altExp(sce_test, "SNP"))[, sce_test$knn == "Hashtag6"],
-        column_split = sce_test$labels[sce_test$knn == "Hashtag6"],
-        cluster_rows = FALSE,
-        show_column_names = FALSE,
+    multiplexed_scrnaseq_sce$labels <- as.character(
+        multiplexed_scrnaseq_sce$labels
+    )
+    multiplexed_scrnaseq_sce$knn <- reassign_centroid(
+        multiplexed_scrnaseq_sce,
+        train_cells = multiplexed_scrnaseq_sce$train,
+        predict_cells = multiplexed_scrnaseq_sce$predict,
+        min_cells = 5
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

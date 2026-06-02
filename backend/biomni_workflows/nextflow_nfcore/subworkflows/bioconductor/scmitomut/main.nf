@@ -41,27 +41,53 @@ process BIOC_SCMITOMUT {
     library(scMitoMut)
     library(jsonlite)
 
-    # --- Open H5 File [] ---
-    # Key functions: open_h5_file, h5ls
-    ---------------------------------------------------------------------
-    ## Open the h5 file as a scMitoMut object
-    x <- open_h5_file(f_h5)
-    str(x)
-    ## Show what's in the h5 file
-    # --- Filter Loc [] ---
+    # --- Cell Subsetting [] ---
+    # Key functions: subset_cell
+    f_ann <- system.file(
+        "extdata",
+        "mini_dataset_cell_ann.csv",
+        package = "scMitoMut"
+    )
+    cell_ann <- read.csv(f_ann, row.names = 1)
+    x <- subset_cell(x, rownames(cell_ann))
+
+
+    # --- Model Fitting [] ---
+    # Key functions: run_model_fit
+    run_model_fit(x, mc.cores = 1)
+
+
+    # --- Mutation Filtering [] ---
     # Key functions: filter_loc
-    ---------------------------------------------------------------------
-    ## Filter mutation
     x <- filter_loc(
-      mtmutObj = x,
-      min_cell = 2,
-    # --- Export Df [] ---
+        mtmutObj = x,
+        min_cell = 2,
+        model = "bb",
+        p_threshold = 0.01,
+        p_adj_method = "fdr"
+    )
+
+
+    # --- Visualization [] ---
+    # Key functions: plot_heatmap
+    colors <- c("Cancer Epi" = "#f28482", Blood = "#f6bd60")
+    ann_colors <- list("SeuratCellTypes" = colors)
+    plot_heatmap(
+        x,
+        cell_ann = cell_ann,
+        ann_colors = ann_colors,
+        type = "binary",
+        percent_interp = 0.2,
+        n_interp = 3
+    )
+
+
+    # --- Data Export [] ---
     # Key functions: export_df, export_af, export_pval, export_binary
-    ---------------------------------------------------------------------
-    ## Export the mutation data as data.frame
     m_df <- export_df(x)
-    m_df[1:10, ]
-    ## Export allele frequency data as data.matrix
+    m_af <- export_af(x)
+    m_pval <- export_pval(x)
+    m_bin <- export_binary(x)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,27 +41,66 @@ process BIOC_PADOG {
     library(PADOG)
     library(jsonlite)
 
-    # --- Fig1 [] ---
-    # Key functions: experimentData, notes, exprs, pData
-    library(PADOG)
-    set = "GSE9348"
-    data(list = set, package = "KEGGdzPathwaysGEO")
-    #write a function to extract required info into a list
-    getdataaslist = function(x) {
-    # --- Padog [] ---
-    # Key functions: padog, equal
-    #you can control the number of cores to use via argument 'ncr'
-    myr2 = padog(
-        esetm = dlist$dat.m,
-        group = dlist$ano$Group,
-        paired = dlist$design == "Paired",
-    # --- Function [] ---
-    # Key functions: getdataaslist, value, filteranot, unlist
-    randFun = function(dseed, mname = "myRand") {
-        #a helper function to pass additional variables to your method
-        getdataaslist = getdataaslist
-        return(function(set, mygslist, minsize) {#your method function
-            set.seed(dseed)
+    # --- Data Extraction and Preparation ---
+    # Key functions: exprs, pData, annotation
+    exp_matrix <- Biobase::exprs(eset)
+    group_info <- Biobase::pData(eset)$Group
+    block_info <- Biobase::pData(eset)$Block
+    annotation_pkg <- paste0(Biobase::annotation(eset), ".db")
+    target_gs <- Biobase::notes(Biobase::experimentData(eset))$targetGeneSets
+
+    # --- Pathway Analysis with PADOG ---
+    # Key functions: padog
+    padog_results <- padog(
+        esetm = exp_matrix,
+        group = group_info,
+        paired = FALSE,
+        block = block_info,
+        targetgs = target_gs,
+        annotation = annotation_pkg,
+        gslist = "KEGGRESTpathway",
+        organism = "hsa",
+        verbose = FALSE,
+        Nmin = 3,
+        NI = 50,
+        plots = FALSE
+    )
+
+    # --- Comparison with GSEA ---
+    # Key functions: compGseapre
+    gsea_comparison <- compGseapre(
+        esetm = exp_matrix,
+        group = group_info,
+        paired = FALSE,
+        block = block_info,
+        targetgs = target_gs,
+        annotation = annotation_pkg,
+        gslist = "KEGGRESTpathway",
+        organism = "hsa",
+        verbose = FALSE,
+        Nmin = 3,
+        NI = 50
+    )
+
+    # --- Pathway Visualisation and Filtering ---
+    # Key functions: padog
+    top_pathways <- padog_results[order(padog_results$padog), ]
+    significant_pathways <- top_pathways[top_pathways$padog < 0.05, ]
+    padog_with_plots <- padog(
+        esetm = exp_matrix,
+        group = group_info,
+        paired = FALSE,
+        block = block_info,
+        targetgs = target_gs,
+        annotation = annotation_pkg,
+        gslist = "KEGGRESTpathway",
+        organism = "hsa",
+        verbose = FALSE,
+        Nmin = 3,
+        NI = 50,
+        plots = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

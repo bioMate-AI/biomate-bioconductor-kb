@@ -41,26 +41,21 @@ process BIOC_IDR2D {
     library(idr2d)
     library(jsonlite)
 
-    # --- Withtags [] ---
-    # Key functions: withTags, thead, tr, th, datatable
-    ---------------------------------------------------------------------
-    library(DT)
-    header <- htmltools::withTags(table(
-      class = 'display',
-      thead(
-    # --- Datatable [] ---
-    # Key functions: datatable, formatRound
-    ---------------------------------------------------------------------
-    datatable(rep2_df[seq_len(min(nrow(rep2_df), 1000)), ], container = header,
-              rownames = FALSE, options = list(searching = FALSE)) %>%
-      formatRound("value", 3)
-    # --- Withtags [] ---
-    # Key functions: withTags, thead, tr, th, select, datatable
-    ---------------------------------------------------------------------
-    chr <- start <- end <- rank <- rep_rank <- value <- rep_value <- idr <- NULL
-    header <- htmltools::withTags(table(
-      class = 'display',
-      thead(
+    # --- Distribution Visualisation [] ---
+    # Key functions: draw_idr_distribution_histogram
+    hist_plot <- draw_idr_distribution_histogram(
+        idr_df = rep1_idr_df
+    )
+
+
+    # --- Rank Scatterplot Visualisation [] ---
+    # Key functions: draw_rank_idr_scatterplot, draw_value_idr_scatterplot
+    rank_plot <- draw_rank_idr_scatterplot(
+        idr_df = rep1_idr_df
+    )
+    val_plot <- draw_value_idr_scatterplot(
+        idr_df = rep1_idr_df
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,61 +38,43 @@ process BIOC_OPENSTATS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(OpenStats)
     library(OpenStatsAnalysis)
     library(OpenStatsComplementarySplit)
     library(OpenStatsList)
     library(OpenStatsReport)
     library(jsonlite)
 
-    # --- R hide003 [] ---
-    # Key functions: OpenStatsList
-    library(OpenStats)
-    fileCon <- system.file("extdata", "test_continuous.csv",
-    test_Cont <- OpenStatsList(
-    # --- R hide005 [] ---
-    # Key functions: OpenStatsList
-    library(OpenStats)
-    df <- read.csv(system.file("extdata", "test_continuous.csv",
-    OpenStatsList <- OpenStatsList(
-    # --- R hide01021 [] ---
-    # Key functions: OpenStatsList, OpenStatsAnalysis
-    library(OpenStats)
-    fileCon <- system.file("extdata", "test_continuous.csv",
-    test_Cont <- OpenStatsList(
-    # --- R hide010 [] ---
-    # Key functions: OpenStatsList, OpenStatsAnalysis
-    library(OpenStats)
-    fileCon <- system.file("extdata", "test_continuous.csv",
-    test_Cont <- OpenStatsList(
-    # --- R hide010m2 [] ---
-    # Key functions: OpenStatsList, OpenStatsAnalysis, OpenStatsComplementarySplit
-    library(OpenStats)
-    fileCon <- system.file("extdata", "test_continuous.csv",
-    test_Cont <- OpenStatsList(
-    # --- R hide01020 [] ---
-    # Key functions: OpenStatsList, OpenStatsAnalysis
-    library(OpenStats)
-    fileCon <- system.file("extdata", "test_continuous.csv",
-    test_Cont <- OpenStatsList(
-    # --- R hide0102 [] ---
-    # Key functions: OpenStatsList, OpenStatsAnalysis
-    library(OpenStats)
-    fileCat <- system.file("extdata", "test_categorical.csv",
-    test_Cat <- OpenStatsList(
-    # --- R hide013 [] ---
-    # Key functions: OpenStatsList, OpenStatsAnalysis
-    library(OpenStats)
-    fileCon <- system.file("extdata", "test_continuous.csv",
-    test_Cont <- OpenStatsList(
-    # --- R hide015 [] ---
-    # Key functions: strtrim, OpenStatsReport
-    strtrim(
-    OpenStatsReport(
-    # --- R hide017 [] ---
-    # Key functions: OpenStatsList
-    library(OpenStats)
-    file <- system.file("extdata", "test_continuous.csv",
-    OpenStatsList <- OpenStatsList(
+    # --- Exploratory Data Plotting [] ---
+    # Key functions: plot
+    p <- plot(test_Cont, vars = c("Sex", "Genotype", "data_point"),
+        ask = FALSE)
+    cat_plot <- p$Categorical
+    cont_plot <- p$Continuous
+
+
+    # --- Linear Mixed Model Analysis [] ---
+    # Key functions: OpenStatsAnalysis, OpenStatsComplementarySplit
+    MM_result <- OpenStatsAnalysis(
+        OpenStatsList = test_Cont,
+        method = "MM",
+        MM_fixed = data_point ~ Genotype + Weight,
+        debug = FALSE
+    )
+    Spliteffect <- OpenStatsComplementarySplit(
+        object = MM_result,
+        variables = "Sex"
+    )
+
+
+    # --- Reference Range Analysis [] ---
+    # Key functions: OpenStatsAnalysis
+    RR_result <- OpenStatsAnalysis(
+        OpenStatsList = test_Cont,
+        method = "RR",
+        RR_formula = data_point ~ Genotype + Sex,
+        debug = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

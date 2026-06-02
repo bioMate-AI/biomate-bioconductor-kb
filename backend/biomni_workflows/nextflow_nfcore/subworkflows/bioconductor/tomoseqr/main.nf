@@ -41,23 +41,31 @@ process BIOC_TOMOSEQR {
     library(tomoseqr)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(testx, testy, testz)
-    head(testx)
-    # --- estimate3d Expressions [] ---
+    # --- 3D Expression Reconstruction [] ---
     # Key functions: estimate3dExpressions
-    ---------------------------------------------------------------------
     tomoObj <- estimate3dExpressions(
         testx,
         testy,
         testz,
-    # --- Findaxialgenes [] ---
-    # Key functions: findAxialGenes
-    ---------------------------------------------------------------------
-    axialGeneTable <- findAxialGenes(testx)
-    print(axialGeneTable)
+        mask = mask,
+        query = common_genes
+    )
+
+
+    # --- Targeted Gene Profiling [] ---
+    # Key functions: findAxialGenes, estimate3dExpressions
+    specific_genes <- c("gene1", "gene2", "gene3")
+    axial_subset <- findAxialGenes(
+        testx,
+        genes = specific_genes
+    )
+    tomo_subset <- estimate3dExpressions(
+        testx,
+        testy,
+        testz,
+        mask = mask,
+        query = specific_genes
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

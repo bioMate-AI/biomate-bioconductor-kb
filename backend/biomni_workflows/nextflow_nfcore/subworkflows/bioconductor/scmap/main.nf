@@ -38,58 +38,53 @@ process BIOC_SCMAP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scmap)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Singlecellexperiment [] ---
-    # Key functions: SingleCellExperiment, logcounts, normcounts, rowData
-    ---------------------------------------------------------------------
-    sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
-    logcounts(sce) <- log2(normcounts(sce) + 1)
-    # use gene names as feature symbols
-    rowData(sce)$feature_symbol <- rownames(sce)
-    # --- Selectfeatures [] ---
-    # Key functions: selectFeatures
-    ---------------------------------------------------------------------
-    sce <- selectFeatures(sce, suppress_plot = FALSE)
-    # --- Table [] ---
-    # Key functions: rowData
-    ---------------------------------------------------------------------
-    table(rowData(sce)$scmap_features)
-    # --- Indexcluster [] ---
+    # --- Cluster Indexing [] ---
     # Key functions: indexCluster
-    ---------------------------------------------------------------------
-    sce <- indexCluster(sce)
-    # --- Head [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    head(metadata(sce)$scmap_cluster_index)
-    # --- Scmapcluster [] ---
-    # Key functions: scmapCluster, metadata
-    ---------------------------------------------------------------------
+    sce <- indexCluster(
+        sce,
+        cluster_col = "cell_type1"
+    )
+    cluster_index <- metadata(sce)$scmap_cluster_index
+
+
+    # --- Cluster Projection [] ---
+    # Key functions: scmapCluster
     scmapCluster_results <- scmapCluster(
-      projection = sce,
-      index_list = list(
-        yan = metadata(sce)$scmap_cluster_index
-    # --- Dim [] ---
-    # Key functions: metadata
-    ---------------------------------------------------------------------
-    dim(metadata(sce)$scmap_cell_index$subclusters)
-    metadata(sce)$scmap_cell_index$subclusters[1:5,1:5]
-    # --- Scmapcell [] ---
-    # Key functions: scmapCell, metadata
-    ---------------------------------------------------------------------
+        projection = query_sce,
+        index_list = list(
+            reference = metadata(ref_sce)$scmap_cluster_index
+        )
+    )
+    predicted_labels <- scmapCluster_results$scmap_cluster_labs
+
+
+    # --- Cell Indexing [] ---
+    # Key functions: indexCell
+    sce <- indexCell(
+        sce,
+        number_of_centroids = 100
+    )
+    cell_index <- metadata(sce)$scmap_cell_index
+
+
+    # --- Cell Projection and Mapping [] ---
+    # Key functions: scmapCell, scmapCell2Cluster
     scmapCell_results <- scmapCell(
-      sce,
-      list(
-        yan = metadata(sce)$scmap_cell_index
-    # --- scmap Cell2 Cluster [] ---
-    # Key functions: scmapCell2Cluster, colData
-    ---------------------------------------------------------------------
+        projection = query_sce,
+        index_list = list(
+            reference = metadata(ref_sce)$scmap_cell_index
+        )
+    )
     scmapCell_clusters <- scmapCell2Cluster(
-      scmapCell_results,
-      list(
-        as.character(colData(sce)$cell_type1)
+        scmapCell_results,
+        list(
+            as.character(colData(ref_sce)$cell_type1)
+        )
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

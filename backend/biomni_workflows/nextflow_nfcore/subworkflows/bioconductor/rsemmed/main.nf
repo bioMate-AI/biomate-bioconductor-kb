@@ -41,90 +41,73 @@ process BIOC_RSEMMED {
     library(rsemmed)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    library(rsemmed)
-    data(g_small)
-    # --- Find Nodes [] ---
-    # Key functions: find_nodes
-    ---------------------------------------------------------------------
-    nodes_sickle <- find_nodes(g_small, pattern = "sickle")
-    nodes_sickle
-    # --- Disease [] ---
-    # Key functions: disease, find_nodes
-    ---------------------------------------------------------------------
-    ## malaria OR disease (dsyn)
-    find_nodes(g_small, pattern = "malaria", semtypes = "dsyn")
-    ## malaria AND disease (dsyn)
-    find_nodes(g_small, pattern = "malaria") %>%
-    # --- Find Nodes [] ---
-    # Key functions: find_nodes
-    ---------------------------------------------------------------------
-    find_nodes(g_small, names = "sickle trait")
-    find_nodes(g_small, names = "SICKLE trait")
-    # --- Find Paths [] ---
+    # --- Path Finding [] ---
     # Key functions: find_paths
-    ---------------------------------------------------------------------
-    paths <- find_paths(graph = g_small, from = nodes_sickle, to = nodes_malaria)
-    # --- Lengths [] ---
-    # Key functions: lengths
-    ---------------------------------------------------------------------
-    lengths(paths)
-    # --- Get Edge Features [] ---
-    # Key functions: get_edge_features
-    ---------------------------------------------------------------------
+    data(g_small)
+    nodes_sickle <- find_nodes(g_small, pattern = "sickle")[c(1, 3, 5)]
+    nodes_malaria <- find_nodes(g_small, pattern = "malaria")
+    paths <- find_paths(
+        graph = g_small,
+        from = nodes_sickle,
+        to = nodes_malaria
+    )
+    path_lengths <- lengths(paths)
+
+
+    # --- Edge Weighting and Customization [] ---
+    # Key functions: get_edge_features, make_edge_weights, find_paths
+    data(g_small)
     e_feat <- get_edge_features(g_small)
-    head(e_feat)
-    # --- Make Edge Weights [] ---
-    # Key functions: make_edge_weights, find_paths, find_nodes
-    ---------------------------------------------------------------------
-    w <- make_edge_weights(g_small, e_feat, node_semtypes_out = c("humn", "popg"))
-    paths_subset_reweight <- find_paths(
+    w <- make_edge_weights(
+        g_small,
+        e_feat,
+        node_semtypes_out = c("humn", "popg")
+    )
+    paths_reweight <- find_paths(
         graph = g_small,
         from = find_nodes(g_small, names = "sickle trait"),
-    # --- Nodes [] ---
-    # Key functions: nodes, get_middle_nodes, make_edge_weights, find_paths, find_nodes
-    ---------------------------------------------------------------------
-    ## Obtain the middle nodes (2nd node on the path)
-    out_names <- get_middle_nodes(g_small, paths_subset)
-    ## Readjust weights
-    w <- make_edge_weights(g_small, e_feat,
-    # --- Get Middle Nodes [] ---
-    # Key functions: get_middle_nodes
-    ---------------------------------------------------------------------
-    get_middle_nodes(g_small, paths, collapse = FALSE)
-    # --- Make Edge Weights [] ---
-    # Key functions: make_edge_weights, find_paths, find_nodes
-    ---------------------------------------------------------------------
-    w <- make_edge_weights(g_small, e_feat,
-        node_semtypes_out = c("humn", "popg"),
-        node_semtypes_in = c("gngm", "aapp")
+        to = find_nodes(g_small, names = "Malaria, Cerebral"),
+        weights = w
     )
-    # --- Summarize Semtypes [] ---
-    # Key functions: summarize_semtypes
-    ---------------------------------------------------------------------
-    ## Reweighted paths from "sickle trait" to "Malaria, Cerebral"
-    semtype_summary <- summarize_semtypes(g_small, paths_subset_reweight)
-    semtype_summary
-    semtype_summary$semtypes[[1]]
-    # --- Summarize Predicates [] ---
-    # Key functions: summarize_predicates
-    ---------------------------------------------------------------------
-    edge_summary <- summarize_predicates(g_small, paths)
-    edge_summary
-    edge_summary$predicates[[1]]
-    # --- Grow Nodes [] ---
-    # Key functions: grow_nodes
-    ---------------------------------------------------------------------
-    nodes_sickle_trait <- nodes_sickle[2:3]
-    nodes_sickle_trait
-    nbrs_sickle_trait <- grow_nodes(g_small, nodes_sickle_trait)
-    nbrs_sickle_trait
-    # --- Summarize Semtypes [] ---
-    # Key functions: summarize_semtypes
-    ---------------------------------------------------------------------
-    nbrs_sickle_trait_summ <- summarize_semtypes(g_small, nbrs_sickle_trait, is_path = FALSE)
+
+
+    # --- Path Refinement and Middle Node Filtering [] ---
+    # Key functions: get_middle_nodes, make_edge_weights, find_paths
+    data(g_small)
+    e_feat <- get_edge_features(g_small)
+    paths_subset <- find_paths(
+        graph = g_small,
+        from = find_nodes(g_small, names = "sickle trait"),
+        to = find_nodes(g_small, names = "Malaria, Cerebral")
+    )[[1]]
+    out_names <- get_middle_nodes(g_small, paths_subset)
+    w_refined <- make_edge_weights(
+        g_small,
+        e_feat,
+        node_names_out = out_names,
+        node_semtypes_out = c("humn", "popg")
+    )
+    paths_refined <- find_paths(
+        graph = g_small,
+        from = find_nodes(g_small, pattern = "sickle trait"),
+        to = find_nodes(g_small, pattern = "Malaria, Cerebral"),
+        weights = w_refined
+    )[[1]]
+
+
+    # --- Path Summarization and Visualization [] ---
+    # Key functions: summarize_semtypes, summarize_predicates, text_path, plot_path
+    data(g_small)
+    paths_subset <- find_paths(
+        graph = g_small,
+        from = find_nodes(g_small, names = "sickle trait"),
+        to = find_nodes(g_small, names = "Malaria, Cerebral")
+    )[[1]]
+    semtype_summary <- summarize_semtypes(g_small, paths_subset)
+    edge_summary <- summarize_predicates(g_small, paths_subset)
+    this_path <- paths_subset[[1]]
+    tp_text <- text_path(g_small, this_path)
+    plot_path(g_small, this_path)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

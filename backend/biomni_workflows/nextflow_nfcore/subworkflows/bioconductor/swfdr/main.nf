@@ -41,47 +41,37 @@ process BIOC_SWFDR {
     library(swfdr)
     library(jsonlite)
 
-    # --- rbind [] ---
-    # Key functions: rbind
-    dataset1 <- matrix(c(rnorm(3*N, 0, 1), rnorm(3*N, 2, 1)), ncol=6)
-    head(dataset1, 3)
-    D1 <- data.frame(p=dataset_p(dataset1), truth=1)
-    # --- Dhist [] ---
-    # Key functions: p_hist
-    par(mfrow=c(1,3), las=1, mar=c(3,4,2,1))
-    p_hist <- function(p, breaks=20, freq=F, ylim=c(0, 7.2), ...) {
-    hist(p, breaks=breaks, freq=freq, ylim=ylim, xlab="", ...)
-    # --- Dqs [] ---
-    # Key functions: qvalue, hit_counts
-    library(qvalue)
-    D0q <- qvalue(D0$p)
-    D1q <- qvalue(D1$p)
-    # --- DX pi0 [] ---
+    # --- Pi0 Estimation with Study Covariates ---
     # Key functions: lm_pi0
-    D2_lm_pi0 <- lm_pi0(D2$p, X=D2$truth)
-    names(D2_lm_pi0)
-    # --- D2 lm q [] ---
+    gwas_data <- swfdr::BMI_GIANT_GWAS_sample
+    gwas_clean <- na.omit(gwas_data)
+    pi0_fit <- lm_pi0(
+        p = gwas_clean$p,
+        X = gwas_clean[, c("N", "Freq_MAF_Hapmap")]
+    )
+    pi0_estimates <- pi0_fit$pi0
+
+    # --- FDR Control and Q-value Calculation ---
     # Key functions: lm_qvalue
-    D2_lm_q <- lm_qvalue(D2$p, X=D2$truth)
-    # --- D2 noisy lm q [] ---
+    gwas_data <- swfdr::BMI_GIANT_GWAS_sample
+    gwas_clean <- na.omit(gwas_data)
+    qval_fit <- lm_qvalue(
+        p = gwas_clean$p,
+        X = gwas_clean[, c("N", "Freq_MAF_Hapmap")]
+    )
+    q_values <- qval_fit$qvalues
+
+    # --- Spline Smoothed FDR Estimation ---
     # Key functions: lm_qvalue
-    D2_noisy_lm_q <- lm_qvalue(D2_noisy$p, X=D2_noisy$truth.noisy)
-    # --- D2calls noisy [] ---
-    # Key functions: confusion_matrix
-    confusion_matrix(D2$truth, D2_noisy_lm_q)
-    confusion_matrix(D2$truth, D2_noisy_lm_q, threshold=0.1)
-    # --- GWAS pi0 [] ---
-    # Key functions: lm_pi0
-    GWAS_lm_pi0 <- lm_pi0(GWAS$p, X=GWAS[, c("N", "Freq_MAF_Hapmap")])
-    # --- GWAS lm qvalue [] ---
-    # Key functions: lm_qvalue
-    GWAS_lm_qvalue <- lm_qvalue(GWAS$p, X=GWAS[, c("N", "Freq_MAF_Hapmap")])
-    # --- GWAS lm qvalue 0 [] ---
-    # Key functions: lm_qvalue
-    GWAS_lm_qvalue_0 <- lm_qvalue(GWAS$p)
-    # --- GWAS lm qvalue spline [] ---
-    # Key functions: lm_qvalue
-    GWAS_lm_qvalue_smooth <- lm_qvalue(GWAS$p, smoothing="smooth.spline")
+    gwas_data <- swfdr::BMI_GIANT_GWAS_sample
+    gwas_clean <- na.omit(gwas_data)
+    qval_smooth <- lm_qvalue(
+        p = gwas_clean$p,
+        X = gwas_clean[, c("N", "Freq_MAF_Hapmap")],
+        smoothing = "smooth.spline"
+    )
+    pi0_smooth <- qval_smooth$pi0
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

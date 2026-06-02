@@ -38,103 +38,77 @@ process BIOC_STAGER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(stageR)
     library(DEXSeqDataSet)
     library(DGEList)
     library(TestResults)
     library(jsonlite)
 
-    # --- Pdata [] ---
-    # Key functions: pData, factor
-    ---------------------------------------------------------------------
-    pData(eset)$Time #typo. Will do it ourself
-    time <- factor(rep(c("mo2","w2"),each=4),levels=c("w2","mo2"))
-    pData(eset)$protocol
-    treat <- factor(c("control","control","SNL","SNL","control","control","SNL","SNL"),levels=c("control","SNL"))
-    # --- Rowsums [] ---
-    # Key functions: rowSums, cpm, exprs, DGEList, calcNormFactors
-    ---------------------------------------------------------------------
-    cpmOffset <- 2
-    keep <- rowSums(cpm(exprs(eset))>cpmOffset)>=2 #2cpm in 2 samples
-    dge <- DGEList(exprs(eset)[keep,])
-    colnames(dge) = rownames(design)
-    # --- Voom [] ---
-    # Key functions: voom, lmFit, makeContrasts, fit, eBayes, decideTests, TestResults, colSums
-    ---------------------------------------------------------------------
-    ## regular analysis
-    voomObj <- voom(dge,design,plot=TRUE)
-    fit <- lmFit(voomObj,design)
-    contrast.matrix <- makeContrasts(treatSNL, treatSNL+timeMo2xTreatSNL, timeMo2xTreatSNL, levels=design)
-    # --- Nrow [] ---
-    # Key functions: topTableF
-    ---------------------------------------------------------------------
-    alpha <- 0.05
-    nGenes <- nrow(dge)
-    tableF <- topTableF(fit2, number=nGenes, sort.by="none") #screening hypothesis
-    pScreen <- tableF$P.Value
-    # --- Sapply [] ---
-    # Key functions: topTable, dimnames, stageR
-    ---------------------------------------------------------------------
-    pConfirmation <- sapply(1:3,function(i) topTable(fit2, coef=i, number=nGenes, sort.by="none")$P.Value)
-    dimnames(pConfirmation) <- list(rownames(fit2),c("t1","t2","t1t2"))
-    stageRObj <- stageR(pScreen=pScreen, pConfirmation=pConfirmation, pScreenAdjusted=FALSE)
-    # --- Stagewiseadjustment [] ---
+    # --- Stage-wise Object Creation ---
+    # Key functions: stageR
+    pScreen <- runif(100)
+    names(pScreen) <- paste0("gene", 1:100)
+    pConfirmation <- matrix(runif(300), ncol=3)
+    dimnames(pConfirmation) <- list(
+        paste0("gene", 1:100),
+        c("t1", "t2", "t3")
+    )
+    stageRObj <- stageR(
+        pScreen = pScreen,
+        pConfirmation = pConfirmation,
+        pScreenAdjusted = FALSE
+    )
+
+    # --- Stage-wise Adjustment ---
     # Key functions: stageWiseAdjustment
-    ---------------------------------------------------------------------
-    stageRObj <- stageWiseAdjustment(object=stageRObj, method="none", alpha=0.05)
-    # --- Head [] ---
-    # Key functions: getAdjustedPValues
-    ---------------------------------------------------------------------
-    head(getAdjustedPValues(stageRObj, onlySignificantGenes=FALSE, order=FALSE))
-    head(getAdjustedPValues(stageRObj, onlySignificantGenes=TRUE, order=TRUE))
-    # --- Getresults [] ---
-    # Key functions: getResults, colSums
-    ---------------------------------------------------------------------
+    stageRObj <- stageWiseAdjustment(
+        object = stageRObj,
+        method = "none",
+        alpha = 0.05
+    )
+
+    # --- Results Extraction ---
+    # Key functions: getAdjustedPValues, getResults
+    adjP <- getAdjustedPValues(
+        stageRObj,
+        onlySignificantGenes = FALSE,
+        order = FALSE
+    )
     res <- getResults(stageRObj)
-    head(res)
-    colSums(res) #stage-wise analysis results
-    # --- Stager [] ---
-    # Key functions: stageR, stageWiseAdjustment, getResults, colSums
-    ---------------------------------------------------------------------
-    stageRObj <- stageR(pScreen=pScreen, pConfirmation=pConfirmation, pScreenAdjusted=FALSE)
-    adjustedPSW <- stageWiseAdjustment(object=stageRObj, method="user", alpha=0.05, adjustment=c(1,1,1))
-    res <- getResults(adjustedPSW)
-    colSums(res)
-    # --- Data [] ---
-    # Key functions: pData, fData
-    ---------------------------------------------------------------------
-    data("esetProstate", package="stageR") #from stageR package
-    head(pData(esetProstate))
-    head(fData(esetProstate))
-    # --- Fdata [] ---
-    # Key functions: fData
-    ---------------------------------------------------------------------
-    tx2gene <- fData(esetProstate)
-    colnames(tx2gene) <- c("transcript","gene")
-    barplot(table(table(tx2gene$gene)), main="Distribution of number of tx per gene")
-    #the dataset contains
-    # --- Pdata [] ---
-    # Key functions: pData, exprs, DEXSeqDataSet, estimateSizeFactors, estimateDispersions
-    ---------------------------------------------------------------------
-    ### regular DEXSeq analysis
-    sampleData <- pData(esetProstate)
-    geneForEachTx <- tx2gene[match(rownames(exprs(esetProstate)),tx2gene[,1]),2]
-    dxd <- DEXSeqDataSet(countData = exprs(esetProstate),
-    # --- Matrix [] ---
-    # Key functions: dimnames, fData
-    ---------------------------------------------------------------------
-    pConfirmation <- matrix(dxr$pvalue,ncol=1)
-    dimnames(pConfirmation) <- list(c(dxr$featureID),c("transcript"))
-    pScreen <- qvalDxr
-    tx2gene <- fData(esetProstate)
-    # --- Stagertx [] ---
-    # Key functions: stageRTx, stageWiseAdjustment
-    ---------------------------------------------------------------------
-    stageRObj <- stageRTx(pScreen=pScreen, pConfirmation=pConfirmation, pScreenAdjusted=TRUE, tx2gene=tx2gene)
-    stageRObj <- stageWiseAdjustment(object=stageRObj, method="dtu", alpha=0.05)
-    # --- Head [] ---
-    # Key functions: getSignificantGenes
-    ---------------------------------------------------------------------
-    head(getSignificantGenes(stageRObj))
+    summary_results <- colSums(res)
+
+    # --- Transcript-level Stage-wise Object Creation ---
+    # Key functions: stageRTx
+    pScreenTx <- runif(50)
+    names(pScreenTx) <- paste0("gene", 1:50)
+    pConfirmationTx <- matrix(runif(150), ncol=1)
+    dimnames(pConfirmationTx) <- list(paste0("tx", 1:150), "transcript")
+    tx2gene <- data.frame(
+        transcript = paste0("tx", 1:150),
+        gene = rep(paste0("gene", 1:50), each=3)
+    )
+    stageRObjTx <- stageRTx(
+        pScreen = pScreenTx,
+        pConfirmation = pConfirmationTx,
+        pScreenAdjusted = TRUE,
+        tx2gene = tx2gene
+    )
+
+    # --- Transcript-level Stage-wise Adjustment and Significance ---
+    # Key functions: stageWiseAdjustment, getSignificantGenes, getSignificantTx, getAdjustedPValues
+    stageRObjTx <- stageWiseAdjustment(
+        object = stageRObjTx,
+        method = "dtu",
+        alpha = 0.05
+    )
+    sigGenes <- getSignificantGenes(stageRObjTx)
+    sigTx <- getSignificantTx(stageRObjTx)
+    padjTx <- getAdjustedPValues(
+        stageRObjTx,
+        order = TRUE,
+        onlySignificantGenes = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

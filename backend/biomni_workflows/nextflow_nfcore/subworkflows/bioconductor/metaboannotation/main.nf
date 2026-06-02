@@ -38,6 +38,7 @@ process BIOC_METABOANNOTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MetaboAnnotation)
     library(CompareSpectraParam)
     library(Mass2MzParam)
     library(Mass2MzRtParam)
@@ -47,86 +48,38 @@ process BIOC_METABOANNOTATION {
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Mass2 Mz Param [] ---
-    # Key functions: Mass2MzParam, matchValues
-    ---------------------------------------------------------------------
-    parm <- Mass2MzParam(adducts = c("[M+H]+", "[M+Na]+"),
-                               tolerance = 0.005, ppm = 0)
-    matched_features <- matchValues(ms1_features[1:100, ], target_df, parm)
-    matched_features
-    # --- Head [] ---
-    # Key functions: query, target
-    ---------------------------------------------------------------------
-    head(query(matched_features))
-    head(target(matched_features))
-    # --- Whichquery [] ---
-    # Key functions: whichQuery, whichTarget
-    ---------------------------------------------------------------------
-    whichQuery(matched_features)
-    whichTarget(matched_features)
-    # --- Matcheddata [] ---
-    # Key functions: matchedData
-    ---------------------------------------------------------------------
-    matchedData(matched_features)
-    # --- Mass2 Mz Rt Param [] ---
-    # Key functions: Mass2MzRtParam, matchValues
-    ---------------------------------------------------------------------
+    # --- MS1 Feature Matching with Retention Time [] ---
+    # Key functions: Mass2MzRtParam, matchValues, whichQuery, whichTarget
+    ms1_subset <- data.frame(mz = c(120.08, 150.12), rtime = c(10, 20))
+    target_df <- data.frame(exactmass = c(119.07, 149.11), rtime = c(12, 22))
     parm <- Mass2MzRtParam(adducts = c("[M+H]+", "[M+Na]+"),
                            tolerance = 0.005, ppm = 0,
                            toleranceRt = 10)
     matched_features <- matchValues(ms1_subset, target_df, param = parm,
-    # --- Matcheddata [] ---
-    # Key functions: matchedData, whichQuery
-    ---------------------------------------------------------------------
-    matchedData(matched_features)[whichQuery(matched_features), ]
-    # --- Prepare_Feature_Data_Container [] ---
-    # Key functions: SummarizedExperiment, rnorm
-    ---------------------------------------------------------------------
-    library(SummarizedExperiment)
-    se <- SummarizedExperiment(
-        assays = matrix(rnorm(nrow(ms1_features) * 4), ncol = 4,
-                        dimnames = list(NULL, c("A", "B", "C", "D"))),
-    # --- Mass2 Mz Param [] ---
-    # Key functions: Mass2MzParam, matchValues
-    ---------------------------------------------------------------------
-    parm <- Mass2MzParam(adducts = c("[M+H]+", "[M+Na]+"),
-                         tolerance = 0.005, ppm = 0)
-    matched_features <- matchValues(se, target_df, param = parm)
-    matched_features
-    # --- Colnames [] ---
-    # Key functions: matchedData
-    ---------------------------------------------------------------------
-    colnames(matched_features)
-    matchedData(matched_features)
-    # --- Whichquery [] ---
-    # Key functions: whichQuery, query
-    ---------------------------------------------------------------------
-    matched_sub <- matched_features[whichQuery(matched_features)]
-    MetaboAnnotation::query(matched_sub)
-    # --- Match_Features_To_Reference_Database [] ---
-    # Key functions: matchValues
-    ---------------------------------------------------------------------
-    matched_qf <- matchValues(qf, target_df, param = parm, queryAssay = "features")
-    matched_qf
-    # --- Colnames [] ---
-    # Key functions: matchedData
-    ---------------------------------------------------------------------
-    colnames(matched_qf)
-    matchedData(matched_qf)
-    # --- Comparespectraparam [] ---
-    # Key functions: CompareSpectraParam, matchSpectra
-    ---------------------------------------------------------------------
+                                    rtColname = "rtime")
+    q_idx <- whichQuery(matched_features)
+    t_idx <- whichTarget(matched_features)
+
+
+    # --- MS2 Spectra Matching [] ---
+    # Key functions: CompareSpectraParam, matchSpectra, spectraVariables, spectraData
     csp <- CompareSpectraParam(requirePrecursor = TRUE, ppm = 10)
     mtches <- matchSpectra(pest_ms2, minimb, param = csp)
-    mtches
-    # --- Spectravariables [] ---
-    # Key functions: spectraVariables
-    ---------------------------------------------------------------------
-    spectraVariables(mtches)
-    # --- Query [] ---
-    # Key functions: query
-    ---------------------------------------------------------------------
-    query(mtches)$.original_query_index
+    spec_vars <- spectraVariables(mtches)
+    mtches_df <- spectraData(mtches,
+                             columns = c("spectrum_id", "score",
+                                         "target_compound_name"))
+
+
+    # --- Visualisation and Processing of Matched Spectra [] ---
+    # Key functions: addProcessing, plotSpectraMirror
+    scale_int <- function(x, ...) {
+        x[, "intensity"] <- x[, "intensity"] / max(x[, "intensity"],
+                                                   na.rm = TRUE)
+        x
+    }
+    mtches_scaled <- addProcessing(mtches, scale_int)
+    plotSpectraMirror(mtches_scaled[2])
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

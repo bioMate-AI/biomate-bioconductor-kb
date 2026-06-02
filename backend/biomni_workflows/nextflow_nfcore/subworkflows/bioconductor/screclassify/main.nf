@@ -41,54 +41,48 @@ process BIOC_SCRECLASSIFY {
     library(scReClassify)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: packages, install_github
-    if (!("devtools" %in% rownames(installed.packages())))
-        install.packages("devtools")
-    library(devtools)
-    devtools::install_github("SydneyBioX/scReClassify")
-    # --- Code Block 5 [] ---
-    # Key functions: reducedDim, matPCs
-    reducedDim(dat, "matPCs") <- matPCs(dat, assay = "logNorm", 0.7)
-    # --- Code Block 7 [] ---
+    # --- Dimension Reduction ---
+    # Key functions: matPCs, reducedDim
+    reducedDim(dat, "matPCs") <- matPCs(
+        dat,
+        assay = "logNorm",
+        percent = 0.7
+    )
+    pcs_matrix <- reducedDim(dat, "matPCs")
+
+    # --- Noise Simulation ---
     # Key functions: noisyCls, reducedDim
-    cls.noisy02 <- noisyCls(t(reducedDim(dat, "matPCs")), rho=0.2, lab)
-    # --- Code Block 8 [] ---
-    # Key functions: noisyCls, reducedDim
-    cls.noisy03 <- noisyCls(t(reducedDim(dat, "matPCs")), rho=0.3, lab)
-    # --- Code Block 9 [] ---
-    # Key functions: noisyCls, reducedDim
-    cls.noisy04 <- noisyCls(t(reducedDim(dat, "matPCs")), rho=0.4, lab)
-    # --- Code Block 10 [] ---
-    # Key functions: noisyCls, reducedDim
-    cls.noisy05 <- noisyCls(t(reducedDim(dat, "matPCs")), rho=0.5, lab)
-    # --- Code Block 11 [] ---
-    # Key functions: multiAdaSampling, adjustedRandIndex
-    ###################################
-    # SVM
-    ###################################
-    base <- "svm"
-    set.seed(1)
-    # --- Code Block 13 [] ---
-    # Key functions: reducedDim, matPCs, multiAdaSampling
-    # PCA procedure
-    reducedDim(dat, "matPCs") <- matPCs(dat, assay = "logNorm", 0.7)
-    # run scReClassify
-    set.seed(1)
-    cellTypes.reclassify <- multiAdaSampling(dat, cellTypes,
-    # --- Code Block 14 [] ---
-    # Key functions: datatable
-    # check examples
+    pcs_transposed <- t(reducedDim(dat, "matPCs"))
+    cls.noisy02 <- noisyCls(
+        pcs_transposed,
+        rho = 0.2,
+        lab = cellTypes
+    )
+    cls.noisy05 <- noisyCls(
+        pcs_transposed,
+        rho = 0.5,
+        lab = cellTypes
+    )
+
+    # --- Cell Type Reclassification ---
+    # Key functions: multiAdaSampling
+    cellTypes.reclassify <- multiAdaSampling(
+        dat,
+        cellTypes = cellTypes,
+        assay = "logNorm",
+        classifier = "svm",
+        percent = 0.8,
+        L = 10
+    )
+
+    # --- Reclassification Evaluation ---
+    # Key functions: multiAdaSampling
     idx <- which(cellTypes.reclassify$final != cellTypes)
-    cbind(original=cellTypes[idx], reclassify=cellTypes.reclassify$final[idx]) %>%
-        DT::datatable()
-    # --- Code Block 15 [] ---
-    # Key functions: assay, rainbow
-    mat <- assay(dat, "logNorm")
-    c1 <- mat[, which(cellTypes=="Endothelial Cell")]
-    c2 <- mat[, which(cellTypes=="Erythrocyte")]
-    c3 <- mat[, which(cellTypes=="Hepatoblast")]
-    c4 <- mat[, which(cellTypes=="Macrophage")]
+    reclass_results <- data.frame(
+        original = cellTypes[idx],
+        reclassify = cellTypes.reclassify$final[idx]
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

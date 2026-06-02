@@ -41,64 +41,59 @@ process BIOC_MSPREP {
     library(MSPrep)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(msquant)
-    colnames(msquant)[3]
-    # --- Mssummarize [] ---
-    # Key functions: msSummarize
-    ---------------------------------------------------------------------
-    summarizedDF <- msSummarize(msquant,
-                                cvMax = 0.50,
-                                minPropPresent = 1/3,
-                                compVars = c("mz", "rt"),
-    # --- Msfilter [] ---
+    # --- Filtering [] ---
     # Key functions: msFilter
-    ---------------------------------------------------------------------
-    filteredDF <- msFilter(summarizedDF,
-                           filterPercent = 0.8,
-                           compVars = c("mz", "rt"),
-                           sampleVars = c("spike", "batch", "subject_id"),
-    # --- Msimpute [] ---
+    filteredDF <- msFilter(
+        summarizedDF,
+        filterPercent = 0.8,
+        compVars = c("mz", "rt"),
+        sampleVars = c("spike", "batch", "subject_id"),
+        separator = "_"
+    )
+
+
+    # --- Imputation [] ---
     # Key functions: msImpute
-    ---------------------------------------------------------------------
-    imputedDF <- msImpute(filteredDF,
-                          imputeMethod = "knn",
-                          compVars = c("mz", "rt"),
-                          sampleVars = c("spike", "batch", "subject_id"),
-    # --- Data [] ---
-    # Key functions: msSummarize
-    ---------------------------------------------------------------------
-    data(COPD_131)
-    summarizedSE131 <- msSummarize(COPD_131,
-                                   cvMax = 0.5,
-                                   minPropPresent = 1/3,
-    # --- Msfilter [] ---
-    # Key functions: msFilter
-    ---------------------------------------------------------------------
-    filteredSE131 <- msFilter(summarizedSE131,
-                              filterPercent = 0.8)
-    # --- Msimpute [] ---
-    # Key functions: msImpute
-    ---------------------------------------------------------------------
-    imputedSE131 <- msImpute(filteredSE131,
-                             imputeMethod = "bpca",
-                             nPcs = 3,
-                             missingValue = 0)
-    # --- Msnormalize [] ---
+    imputedDF <- msImpute(
+        filteredDF,
+        imputeMethod = "knn",
+        compVars = c("mz", "rt"),
+        sampleVars = c("spike", "batch", "subject_id"),
+        separator = "_",
+        returnToSE = FALSE,
+        missingValue = 0
+    )
+
+
+    # --- Normalisation [] ---
     # Key functions: msNormalize
-    ---------------------------------------------------------------------
-    normalizedSe131 <- msNormalize(imputedSE131,
-                                   normalizeMethod = "median",
-                                   transform = "none")
-    # --- Msprepare [] ---
+    normalizedDF <- msNormalize(
+        imputedDF,
+        normalizeMethod = "quantile + ComBat",
+        transform = "log10",
+        compVars = c("mz", "rt"),
+        sampleVars = c("spike", "batch", "subject_id"),
+        covariatesOfInterest = c("spike"),
+        separator = "_"
+    )
+
+
+    # --- Pipeline Execution [] ---
     # Key functions: msPrepare
-    ---------------------------------------------------------------------
-    preparedSE <- msPrepare(COPD_131,
-                            cvMax = 0.5,
-                            minPropPresent = 1/3,
-                            compVars = c("Mass", "Retention.Time",
+    preparedDF <- msPrepare(
+        msquant,
+        minPropPresent = 1/3,
+        missingValue = 1,
+        filterPercent = 0.8,
+        imputeMethod = "knn",
+        normalizeMethod = "quantile + ComBat",
+        transform = "log10",
+        covariatesOfInterest = c("spike"),
+        compVars = c("mz", "rt"),
+        sampleVars = c("spike", "batch", "replicate", "subject_id"),
+        colExtraText = "Neutral_Operator_Dif_Pos_",
+        separator = "_"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

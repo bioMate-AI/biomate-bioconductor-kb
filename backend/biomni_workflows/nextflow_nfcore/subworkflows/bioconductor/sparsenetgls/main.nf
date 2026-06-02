@@ -41,24 +41,78 @@ process BIOC_SPARSENETGLS {
     library(sparsenetgls)
     library(jsonlite)
 
-    # --- example 1: assess estimated result from a GGM [] ---
-    # Key functions: solve, mvrnorm, sparsenetgls, array
-    library(MASS)
-    library(Matrix)
-    library(sparsenetgls)
-    # --- example 2: Use the sparsenetgls and convertbeta function [] ---
-    # Key functions: sparsenetgls, diag
-    fitgls <- sparsenetgls(databand_Y, databand_X, nlambda=10,
+    # --- Coefficient Conversion and Selection [] ---
+    # Key functions: convertbeta
     q <- dim(databand_X)[2]
-    betagls <- matrix(nrow=nlambda, ncol=q+1)
-    # --- example 3 [] ---
-    # Key functions: plotsngls
-    plotsngls(fitgls,ith_lambda=5)
-    # --- example 4 [] ---
+    nlambda <- 10
+    betagls <- matrix(nrow = nlambda, ncol = q + 1)
+    for (i in seq_len(nlambda)) {
+        betagls[i, ] <- convertbeta(
+            Y = databand_Y,
+            X = databand_X,
+            q = q + 1,
+            beta0 = fitgls$beta[, i]
+        )$betaconv
+    }
+    ndist <- max(fitgls$power) - 1
+    tr_gamma <- matrix(nrow = 10, ncol = ndist - 1)
+    for (j in seq_len(ndist - 1)) {
+        for (i in seq_len(nlambda)) {
+            tr_gamma[i, j] <- sum(diag(fitgls$covBeta[, , j, i]))
+        }
+    }
+    select_lambda_dist <- which(tr_gamma == min(tr_gamma), arr.ind = TRUE)
+    betagls_select <- betagls[select_lambda_dist[1], ]
+
+
+    # --- Model Selection via Information Criteria [] ---
     # Key functions: sparsenetgls
-    fitgls_g <- sparsenetgls(databand_Y, databand_X, nlambda=10, ndist=5,
-    fitgls_l <- sparsenetgls(databand_Y, databand_X, nlambda=10, ndist=5,
-    fitgls_m <- sparsenetgls(databand_Y, databand_X, nlambda=10, ndist=5,
+    select_lambda_dist2 <- which(
+        fitgls$bic == min(fitgls$bic, na.rm = TRUE),
+        arr.ind = TRUE
+    )
+    select_lambda_dist3 <- which(
+        fitgls$aic == min(fitgls$aic, na.rm = TRUE),
+        arr.ind = TRUE
+    )
+    ndist <- max(fitgls$power) - 1
+    varbeta_bic <- diag(fitgls$covBeta[, , ndist, select_lambda_dist2[1]])
+    varbeta_aic <- diag(fitgls$covBeta[, , ndist, select_lambda_dist3[1]])
+
+
+    # --- Performance Assessment and ROC Analysis [] ---
+    # Key functions: path_result_for_roc, plot_roc
+    omega <- fitgls$PREC_seq
+    omega_est <- array(dim = c(50, 50, 10))
+    for (i in seq_len(10)) {
+        omega_est[, , i] <- as.matrix(omega[[i]])
+    }
+    roc_path_result <- path_result_for_roc(
+        PREC_for_graph = prec,
+        OMEGA_path = omega_est,
+        pathnumber = 10
+    )
+    plot_roc(
+        result_assessment = roc_path_result,
+        group = FALSE,
+        ngroup = 0,
+        est_names = "glasso estimation"
+    )
+
+
+    # --- Visualization of Network Estimates [] ---
+    # Key functions: plotsngls, sparsenetgls
+    plotsngls(
+        fitgls,
+        ith_lambda = 5
+    )
+    fitgls_elastic <- sparsenetgls(
+        responsedata = databand_Y,
+        predictdata = databand_X,
+        nlambda = 10,
+        ndist = 5,
+        method = "elastic"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

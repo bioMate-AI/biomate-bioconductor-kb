@@ -41,26 +41,50 @@ process BIOC_METASEQR2 {
     library(metaseqR2)
     library(jsonlite)
 
-    # --- ifelse [] ---
-    # Key functions: ifelse, buildAnnotationDatabase
-    library(metaseqR2)
-    buildDir <- file.path(tempdir(),"test_anndb")
-    dir.create(buildDir)
-    # --- load Annotation [] ---
+    # --- Annotation Loading [] ---
     # Key functions: loadAnnotation
-    genes <- loadAnnotation(genome="mm10",refdb="ensembl",level="gene",type="gene",
-    utrs <- loadAnnotation(genome="mm10",refdb="ensembl",level="gene",type="utr",
-    sumEx <- loadAnnotation(genome="mm10",refdb="ensembl",level="gene",type="exon",
-    # --- build Custom Annotation [] ---
+    myDb <- file.path(tempdir(), "test_anndb", "testann.sqlite")
+    genes <- loadAnnotation(
+        genome = "mm10",
+        refdb = "ensembl",
+        level = "gene",
+        type = "gene",
+        db = myDb
+    )
+    sumExons <- loadAnnotation(
+        genome = "mm10",
+        refdb = "ensembl",
+        level = "gene",
+        type = "exon",
+        summarized = TRUE,
+        db = myDb
+    )
+
+
+    # --- Custom Annotation Building [] ---
     # Key functions: buildCustomAnnotation, loadAnnotation
-    customDir <- file.path(tempdir(),"test_custom")
-    dir.create(customDir)
-    if (.Platform$OS.type == "unix" && !grepl("^darwin",R.version$os)) {
-    # --- build Annotation Database [] ---
-    # Key functions: buildAnnotationDatabase
-    organisms <- list(
-    sources <- c("ensembl","ucsc","refseq")
-    buildAnnotationDatabase(organisms,sources,forceDownload=FALSE,rc=0.5)
+    myDb <- file.path(tempdir(), "test_anndb", "testann.sqlite")
+    gtfFile <- system.file("extdata", "test.gtf", package = "metaseqr2")
+    chromInfo <- data.frame(
+        size = c(100000, 200000),
+        row.names = c("chr1", "chr2")
+    )
+    buildCustomAnnotation(
+        gtfFile = gtfFile,
+        metadata = list(
+            organism = "custom_org",
+            source = "custom_source",
+            chromInfo = chromInfo
+        ),
+        db = myDb
+    )
+    customGenes <- loadAnnotation(
+        genome = "custom_org",
+        refdb = "custom_source",
+        level = "gene",
+        type = "gene",
+        db = myDb
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,101 +38,35 @@ process BIOC_RANDROTATION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(randRotation)
     library(ComBat)
     library(jsonlite)
 
-    # --- Initbatchrandrot [] ---
-    # Key functions: initBatchRandrot
-    ---------------------------------------------------------------------
-    rr <- initBatchRandrot(Y = edata, X = mod1, coef.h = 2, batch = pdata$batch)
-    # --- Function [] ---
-    # Key functions: ComBat, lmFit, eBayes
-    ---------------------------------------------------------------------
-    statistic <- function(Y, batch, mod){
-      # (I) Batch effect correction with "Combat" from the "sva" package
-      Y <- sva::ComBat(dat = Y, batch = batch, mod = mod)
-      # (II) Linear model fit
-    # --- Pfdr [] ---
-    # Key functions: pFdr, qqunif
-    ---------------------------------------------------------------------
+    # --- Random Rotation and Statistical Testing [] ---
+    # Key functions: rotateStat, pFdr
+    statistic <- function(Y, batch, mod) {
+        Y <- sva::ComBat(dat = Y, batch = batch, mod = mod)
+        fit1 <- limma::lmFit(Y, design = mod)
+        fit1 <- limma::eBayes(fit1)
+        abs(fit1$t[, 2])
+    }
+    rs1 <- rotateStat(
+        initialised.obj = rr, R = 10, statistic = statistic,
+        batch = pdata$batch, mod = mod1
+    )
     p.vals <- pFdr(rs1)
-    hist(p.vals, col = "lightgreen");abline(h = 100, col = "blue", lty = 2)
-    qqunif(p.vals)
-    # --- Combat [] ---
-    # Key functions: ComBat, lmFit, eBayes, topTable, qqunif
-    ---------------------------------------------------------------------
-    library(limma)
-    library(sva)
-    edata.combat <- ComBat(dat = edata, batch = pdata$batch, mod = mod1)
-    fit1 <- lmFit(edata.combat, mod1)
-    # --- Matrix [] ---
-    # Key functions: initRandrot, coef, fit, coefs, randrot
-    ---------------------------------------------------------------------
-    # Specification of the full model
-    mod1 <- model.matrix(~1+phenotype, pdata)
-    # We select "phenotype" as the coefficient associated with H0
-    # All other coefficients are considered as "determined" coefficients
-    # --- Coefs [] ---
-    # Key functions: coefs, randrot
-    ---------------------------------------------------------------------
-    coef11 <- coefs(edata, mod1)
-    coef12 <- coefs(randrot(rr), mod1)
-    head(cbind(coef11, coef12))
-    # --- Lmfit [] ---
-    # Key functions: lmFit, eBayes, topTable, qqunif
-    ---------------------------------------------------------------------
-    # Linear model fit
-    fit0 <- lmFit(edata, mod1)
-    fit0 <- eBayes(fit0)
-    # P values for phenotype coefficient
-    # --- Combat [] ---
-    # Key functions: ComBat
-    ---------------------------------------------------------------------
-    library(sva)
-    edata.combat = ComBat(edata, batch = pdata$batch, mod = mod1)
-    # --- Lmfit [] ---
-    # Key functions: lmFit, eBayes, topTable, qqunif
-    ---------------------------------------------------------------------
-    # Linear model fit
-    fit1 <- lmFit(edata.combat, mod1)
-    fit1 <- eBayes(fit1)
-    # P value for phenotype coefficient
-    # --- Initbatchrandrot [] ---
-    # Key functions: initBatchRandrot
-    ---------------------------------------------------------------------
-    init1 <- initBatchRandrot(edata, mod1, coef.h = 2, batch = pdata$batch)
-    # --- Function [] ---
-    # Key functions: ComBat, lmFit, eBayes
-    ---------------------------------------------------------------------
-    statistic <- function(Y, batch, mod, coef){
-      Y.tmp <- sva::ComBat(dat = Y, batch = batch, mod = mod)
-      fit1 <- limma::lmFit(Y.tmp, mod)
-      fit1 <- limma::eBayes(fit1)
-    # --- Pfdr [] ---
-    # Key functions: pFdr, qqunif
-    ---------------------------------------------------------------------
-    p.rot <- pFdr(res1)
-    head(p.rot)
-    hist(p.rot, freq = FALSE, col = "lightgreen", breaks = seq(0,1,0.1))
-    abline(1,0, col = "blue", lty = 2)
-    # --- Plot [] ---
-    # Key functions: density
-    ---------------------------------------------------------------------
-    plot(density(log(p.rot/p0)), col = "salmon", "Log p ratios",
-         panel.first = abline(v=0, col = "grey"),
-         xlim = range(log(c(p.rot/p0, p.combat/p0))))
-    lines(density(log(p.combat/p0)), col = "blue")
-    # --- Pfdr [] ---
-    # Key functions: pFdr, matplot
-    ---------------------------------------------------------------------
-    fdr.q  <- pFdr(res1, "fdr.q")
-    fdr.qu <- pFdr(res1, "fdr.qu")
-    fdr.BH <- pFdr(res1, "BH")
-    FDRs <- cbind(fdr.q, fdr.qu, fdr.BH)
-    # --- Contrastmodel [] ---
-    # Key functions: contrastModel
-    ---------------------------------------------------------------------
-    mod.cont <- contrastModel(X = mod.groups, C = contrasts1)
+
+
+    # --- Null Hypothesis Model Rotation [] ---
+    # Key functions: initRandrot, randrot
+    mod1 <- model.matrix(~1 + phenotype, pdata)
+    rr <- initRandrot(Y = edata, X = mod1, coef.h = 2)
+    coefs <- function(Y, mod) {
+        t(coef(lm.fit(x = mod, y = t(Y))))
+    }
+    mod0 <- model.matrix(~1, pdata)
+    coef01 <- coefs(edata, mod0)
+    coef02 <- coefs(randrot(rr), mod0)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

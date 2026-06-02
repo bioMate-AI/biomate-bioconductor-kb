@@ -41,11 +41,50 @@ process BIOC_GGKEGG {
     library(ggkegg)
     library(jsonlite)
 
-    # --- Pathway analysis [] ---
-    # Key functions: pathway, activate, arrange, as_tibble, relocate, ggraph, geom_edge_parallel, geom_node_rect
-    graph <- graph |> mutate(showname=strsplit(graphics_name, ",") |>
-    vapply("[", 1, FUN.VALUE="a"))
-    ggraph(graph, layout="manual", x=x, y=y)+
+    # --- Pathway Retrieval and Parsing [] ---
+    # Key functions: pathway
+    graph <- ggkegg::pathway("hsa04110", use_cache = TRUE)
+    graph <- graph |>
+        tidygraph::mutate(
+            degree = tidygraph::centrality_degree(mode = "all"),
+            betweenness = tidygraph::centrality_betweenness()
+        ) |>
+        tidygraph::activate(nodes) |>
+        tidygraph::filter(type == "gene") |>
+        tidygraph::arrange(dplyr::desc(degree))
+
+    # --- ID Conversion and Node Filtering [] ---
+    # Key functions: convert_id
+    converted_graph <- graph |>
+        tidygraph::activate(nodes) |>
+        tidygraph::mutate(hsa = ggkegg::convert_id("hsa")) |>
+        tidygraph::filter(type == "gene") |>
+        tidygraph::as_tibble() |>
+        dplyr::relocate(hsa)
+
+    # --- Node Highlighting and Overlay [] ---
+    # Key functions: highlight_set_nodes, overlay_raw_map
+    highlighted <- graph |>
+        tidygraph::activate(nodes) |>
+        tidygraph::mutate(
+            highlight = ggkegg::highlight_set_nodes("hsa:7157")
+        )
+    p_high <- ggraph::ggraph(highlighted, layout = "manual", x = x, y = y) +
+        ggraph::geom_node_rect(
+            aes(fill = "tomato", filter = highlight),
+            color = "black"
+        ) +
+        ggkegg::overlay_raw_map() +
+        ggplot2::theme_void()
+
+    # --- Module Analysis and Visualization [] ---
+    # Key functions: module, module_text, plot_module_text, obtain_sequential_module_definition, plot_module_blocks
+    mod <- ggkegg::module("M00002", use_cache = TRUE)
+    text_df <- ggkegg::module_text(mod)
+    p_text <- ggkegg::plot_module_text(text_df)
+    seq_def <- ggkegg::obtain_sequential_module_definition(mod)
+    p_blocks <- ggkegg::plot_module_blocks(seq_def)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,37 +38,53 @@ process BIOC_MLSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MLSeq)
     library(DataFrame)
     library(jsonlite)
 
-    # --- define class labels [] ---
-    # Key functions: DataFrame
-    class <- DataFrame(condition = factor(rep(c("N","T"), c(29, 29))))
-    # --- data splitting [] ---
-    # Key functions: sample, DataFrame
-    library(DESeq2)
-    set.seed(2128)
+    # --- Data Preparation [Data Preparation] ---
+    # Key functions: DataFrame, DESeqDataSetFromMatrix
+    filepath <- system.file("extdata/cervical.txt", package = "MLSeq")
+    cervical <- read.table(filepath, header = TRUE)
+    class_lbls <- DataFrame(condition = factor(rep(c("N", "T"), c(29, 29))))
     vars <- sort(apply(cervical, 1, var, na.rm = TRUE), decreasing = TRUE)
-    # --- mwe limitations on continuous classifiers [] ---
-    # Key functions: classify, show
-    fit <- classify(data = data.trainS4, method = "svmRadial",
-    control = trainControl(method = "repeatedcv", number = 2,
-    show(fit)
-    # --- Optimizing model parameters example [] ---
-    # Key functions: show
-    set.seed(2128)
-    fit.svm <- classify(data = data.trainS4, method = "svmRadial",
-    control = trainControl(method = "repeatedcv", number = 5,
-    # --- fitted model svm figure [] ---
-    # Key functions: cairo_pdf
-    cairo_pdf(filename = "fitted_model_svm_figure.pdf", height = 5.5)
-    plot(fit.svm)
-    dev.off()
-    # --- Get reference alleles from VCF [] ---
-    # Key functions: discreteControl, classify, show, method, ref
-    venn.plot <- venn.diagram(
-    x = list(voomNSC = genes.vnsc, NSC = genes.pam, PLDA = genes.plda, PLDA2 = genes.plda2),
-    fill = c("khaki1", "skyblue", "tomato3", "darkolivegreen3"),
+    data_sub <- cervical[names(vars)[1:100], ]
+    nTest <- ceiling(ncol(data_sub) * 0.3)
+    ind <- 1:nTest
+    data.train <- as.matrix(data_sub[, -ind] + 1)
+    data.test <- as.matrix(data_sub[, ind] + 1)
+    classtr <- DataFrame(condition = class_lbls[-ind, ])
+    classts <- DataFrame(condition = class_lbls[ind, ])
+    data.trainS4 <- DESeqDataSetFromMatrix(countData = data.train,
+                                           colData = classtr,
+                                           design = formula(~condition))
+    data.testS4 <- DESeqDataSetFromMatrix(countData = data.test,
+                                          colData = classts,
+                                          design = formula(~condition))
+
+    # --- Model Training [Model Training] ---
+    # Key functions: classify, discreteControl, voomControl
+    ctrl.discrete <- discreteControl(method = "repeatedcv", number = 5,
+                                     repeats = 2, tuneLength = 10)
+    ctrl.voom <- voomControl(method = "repeatedcv", number = 5,
+                             repeats = 2, tuneLength = 10)
+    fit.plda <- classify(data = data.trainS4, method = "PLDA",
+                         normalize = "deseq", ref = "T",
+                         control = ctrl.discrete)
+    fit.voomDLDA <- classify(data = data.trainS4, method = "voomDLDA",
+                             normalize = "deseq", ref = "T",
+                             control = ctrl.voom)
+
+    # --- Model Prediction and Evaluation [Model Prediction and Evaluation] ---
+    # Key functions: predict, trained, selectedGenes
+    pred.plda <- predict(fit.plda, data.testS4)
+    pred.voomDLDA <- predict(fit.voomDLDA, data.testS4)
+    trained_plda <- trained(fit.plda)
+    genes_plda <- selectedGenes(fit.plda)
+    actual <- data.testS4$condition
+    acc_plda <- sum(diag(table(pred.plda, actual))) / length(actual)
+    acc_voom <- sum(diag(table(pred.voomDLDA, actual))) / length(actual)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

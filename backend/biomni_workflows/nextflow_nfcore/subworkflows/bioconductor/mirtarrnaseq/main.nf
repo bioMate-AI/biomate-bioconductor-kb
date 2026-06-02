@@ -41,21 +41,47 @@ process BIOC_MIRTARRNASEQ {
     library(mirTarRnaSeq)
     library(jsonlite)
 
-    # --- run Models [] ---
-    # Key functions: runModels, criterion, melt
-    blaGaus <- runModels(Combine,
-    family = glm_gaussian(),
-    Plot the regression relationship for the mRNA and miRNAs (BHLF1 is the EBV
-    # --- run Models [] ---
-    # Key functions: runModels, melt
-    blaPois <- runModels(Combine,
-    family = glm_poisson(),
-    par(oma=c(2,2,2,2))
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_density, xlim, ggtitle
-    bindM <- rbind(PM, BM, GM, ZpM, ZNBM)
-    p2 <- ggplot(data = bindM, aes(x = value, group = variable,
-    geom_density(adjust = 1.5, alpha = .3) +
+    # --- Combining Expression Data and Gene Variation [] ---
+    # Key functions: combiner, geneVari
+    miRNA_select <- c("ebv-mir-BART9-5p", "ebv-mir-BART6-3p")
+    Combine <- combiner(DiffExp, miRNAExp, miRNA_select)
+    geneVariant <- geneVari(Combine, miRNA_select)
+
+
+    # --- Single Model Association Analysis [] ---
+    # Key functions: runModel, modelTermPvalues, glm_poisson
+    j <- runModel(
+        `LMP-1` ~ `ebv-mir-BART9-5p`,
+        Combine,
+        model = glm_poisson(),
+        scale = 100
+    )
+    pvals <- modelTermPvalues(j)
+
+
+    # --- Multi-Model Regression and Evaluation [] ---
+    # Key functions: runModels, glm_gaussian, modelData
+    blaGaus <- runModels(
+        Combine,
+        geneVariant,
+        miRNA_select,
+        family = glm_gaussian(),
+        scale = 100
+    )
+    model_data <- modelData(blaGaus[["all_models"]][[1]])
+
+
+    # --- Multi-Model Selection and Interaction [] ---
+    # Key functions: runModels, glm_multi, modelModelName
+    MultiModel <- runModels(
+        Combine,
+        geneVariant,
+        miRNA_select,
+        family = glm_multi(),
+        mode = "multi",
+        scale = 10
+    )
+    model_names <- lapply(MultiModel$all_models, modelModelName)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

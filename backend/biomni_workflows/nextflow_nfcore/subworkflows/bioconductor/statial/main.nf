@@ -38,35 +38,64 @@ process BIOC_STATIAL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Statial)
     library(Kontextual)
     library(jsonlite)
 
-    # --- get Cluster Tree [] ---
-    # Key functions: getClusterTree
-    kerenTree <- treekoR::getClusterTree(t(assay(kerenSCE, "intensities")),
-    treekorParents = getParentPhylo(kerenTree)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: assay, colData, arrange, ggplot, geom_point
-    p53Pos <- assay(kerenSCE)["p53", ] > -0.300460
-    colData() |>
-    as.data.frame() |>
-    # --- Kontextual [] ---
+    # --- Spatial Context Evaluation [] ---
     # Key functions: Kontextual
-    p53_Kontextual <- Kontextual(
-    parent = c("p53_Tumour", "Tumour"),
-    # --- kontext Curve [] ---
+    keren_kontextual <- Kontextual(
+        cells = kerenSCE,
+        parentDf = parent_df,
+        r = 100,
+        cores = 1
+    )
+
+
+    # --- Spatial Context Curves [] ---
     # Key functions: kontextCurve, kontextPlot
     curves <- kontextCurve(
-    parent = c("p53_Tumour", "Tumour"),
-    rs = seq(50, 510, 50),
-    # --- parent Combinations [] ---
-    # Key functions: parentCombinations
-    parentDf <- parentCombinations(
-    # --- get Marker Means [] ---
-    # Key functions: getMarkerMeans, colTest, getProp, crossValidate
-    cellTypeRegionMeans <- getMarkerMeans(kerenSCE,
-    survivalResults <- colTest(cellTypeRegionMeans[names(kerenSurv), ], kerenSurv, type = "survival")
-    head(survivalResults)
+        cells = kerenSCE,
+        from = "Immune",
+        to = "p53_Tumour",
+        parent = c("p53_Tumour", "Tumour"),
+        rs = seq(50, 510, 50),
+        image = "6",
+        cellType = "cellTypeNew",
+        cores = 1
+    )
+    curve_plot <- kontextPlot(curves)
+
+
+    # --- Matrix Preparation [] ---
+    # Key functions: prepMatrix
+    kontext_mat <- prepMatrix(keren_kontextual)
+    image_ids <- unique(kerenSCE$imageID)
+    kontext_mat <- kontext_mat[image_ids, ]
+    kontext_mat[is.na(kontext_mat)] <- 0
+
+
+    # --- Cell State Changes [] ---
+    # Key functions: getDistances, getAbundances, calcStateChanges
+    kerenSCE <- getDistances(
+        kerenSCE,
+        maxDist = 200,
+        nCores = 1
+    )
+    kerenSCE <- getAbundances(
+        kerenSCE,
+        r = 200,
+        nCores = 1
+    )
+    state_changes <- calcStateChanges(
+        cells = kerenSCE,
+        type = "distances",
+        image = "6",
+        from = "Keratin_Tumour",
+        to = "Macrophages",
+        marker = "p53",
+        nCores = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

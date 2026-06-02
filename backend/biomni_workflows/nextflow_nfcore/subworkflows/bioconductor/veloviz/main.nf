@@ -41,19 +41,27 @@ process BIOC_VELOVIZ {
     library(veloviz)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
-    data(vel)
-    curr <- vel$current #observed current transcriptional state
-    proj <- vel$projected #predicted future transcriptional state
-    # --- Buildveloviz [] ---
+    # --- Velocity Graph Construction [] ---
     # Key functions: buildVeloviz
-    ---------------------------------------------------------------------
-    veloviz <-  veloviz::buildVeloviz(curr = curr, proj = proj,
-                             normalize.depth = TRUE,
-                             use.ods.genes = FALSE,
-                             pca = TRUE, nPCs = 3,
+    veloviz_obj <- buildVeloviz(
+        curr = curr_filtered,
+        proj = proj_filtered,
+        normalize.depth = TRUE,
+        use.ods.genes = FALSE,
+        pca = FALSE,
+        k = 5,
+        similarity.threshold = -1,
+        verbose = FALSE
+    )
+
+
+    # --- Embedding Projection [] ---
+    # Key functions: buildVeloviz
+    emb_coords <- veloviz_obj$fdg_coords
+    plot_data <- data.frame(
+        X = emb_coords[, 1],
+        Y = emb_coords[, 2]
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

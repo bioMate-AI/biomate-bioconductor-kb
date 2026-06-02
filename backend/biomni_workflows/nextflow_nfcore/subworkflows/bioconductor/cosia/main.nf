@@ -38,40 +38,35 @@ process BIOC_COSIA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CoSIA)
     library(CoSIAn)
     library(jsonlite)
 
-    # --- getTissues 1 [] ---
-    # Key functions: getTissues
-    CoSIA::getTissues("d_rerio")
-    # --- getTissues 2 [] ---
-    # Key functions: getTissues
-    CoSIA::getTissues(c("m_musculus", "r_norvegicus"))
-    # --- Co S I An [] ---
+    # --- Initialize Cross-Species Analysis [] ---
     # Key functions: CoSIAn
-    CoSIAn_Obj <- CoSIA::CoSIAn(
-    gene_set = unique(monogenic_kid_sample$Gene),
-    o_species = c(
-    # --- get Conversion [] ---
-    # Key functions: getConversion
-    CoSIAn_Obj_convert <- CoSIA::getConversion(CoSIAn_Obj)
-    head(CoSIA::viewCoSIAn(CoSIAn_Obj_convert, "converted_id"))
-    # --- use2 1 [] ---
-    # Key functions: getGEx
-    CoSIAn_Obj_gex <- CoSIA::getGEx(CoSIAn_Obj_convert)
-    head(CoSIA::viewCoSIAn(CoSIAn_Obj_gex, "gex"), 5)
-    # --- plot Species G Ex [] ---
-    # Key functions: plotSpeciesGEx
-    CoSIAn_Obj_gexplot <- CoSIA::plotSpeciesGEx(CoSIAn_Obj_gex, "adult mammalian kidney", "ENSG00000136463")
-    # --- get G Ex Metrics [] ---
-    # Key functions: getGExMetrics, plotCVGEx
-    CoSIAn_Obj_CV <- CoSIA::getGExMetrics(CoSIAn_Obj_convert)
-    CoSIAn_Obj_CVplot <- CoSIA::plotCVGEx(CoSIAn_Obj_CV)
-    # --- Co S I An [] ---
-    # Key functions: CoSIAn, getConversion, getGExMetrics, plotDSGEx
-    CoSIAn_Obj_DS <- CoSIA::CoSIAn(
-    gene_set = unique(monogenic_kid_sample$Gene),
-    o_species = c("h_sapiens", "r_norvegicus"),
+    cosian_obj <- CoSIA::CoSIAn(
+        gene_set = c("PKD1", "PKD2", "UMOD", "HNF1B"),
+        i_species = "h_sapiens",
+        o_species = c("h_sapiens", "r_norvegicus"),
+        input_id = "Symbol",
+        output_ids = "Ensembl_id",
+        map_species = c("h_sapiens", "r_norvegicus"),
+        map_tissues = c("adult mammalian kidney", "heart"),
+        mapping_tool = "annotationDBI",
+        ortholog_database = "HomoloGene",
+        metric_type = "CV_Species"
+    )
+
+
+    # --- Convert Identifiers and Map Orthologs [] ---
+    # Key functions: getConversion, viewCoSIAn
+    cosian_converted <- CoSIA::getConversion(
+        CoSIAn_obj = cosian_obj
+    )
+    mapped_ids <- CoSIA::viewCoSIAn(
+        CoSIAn_obj = cosian_converted,
+        slot_name = "converted_id"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

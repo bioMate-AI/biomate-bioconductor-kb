@@ -38,6 +38,7 @@ process BIOC_VARIANTTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(VariantTools)
     library(GRanges)
     library(IRanges)
     library(LungCancerBamFiles)
@@ -48,71 +49,44 @@ process BIOC_VARIANTTOOLS {
     library(VariantQAFilters)
     library(jsonlite)
 
-    # --- Callvariants [] ---
-    # Key functions: LungCancerBamFiles, requireNamespace, exonsOnTP53Genome, TallyVariantsParam, TP53Genome
-    library(VariantTools)
-    bams <- LungCancerLines::LungCancerBamFiles()
-    bam <- bams$H1993
-    if (requireNamespace("gmapR", quietly=TRUE)) {
-        p53 <- gmapR:::exonsOnTP53Genome("TP53")
-    # --- Callvariants Postfilter [] ---
-    # Key functions: postFilterVariants
-    pf.variants <- postFilterVariants(called.variants)
-    # --- Callvariants Exonic [] ---
-    # Key functions: subsetByOverlaps
-    subsetByOverlaps(called.variants, p53, ignore.strand = TRUE)
-    # --- Tallyvariants [] ---
-    # Key functions: requireNamespace, tallyVariants
-    if (requireNamespace("gmapR", quietly=TRUE)) {
-        tallies_H1993 <- tallyVariants(bam, tally.param)
-    }
-    # --- Qavariants [] ---
-    # Key functions: qaVariants, softFilterMatrix
-    qa.variants <- qaVariants(tallies_H1993)
-    summary(softFilterMatrix(qa.variants))
-    # --- Callvariants [] ---
-    # Key functions: callVariants
-    called.variants <- callVariants(qa.variants)
-    # --- Variantqafilters [] ---
-    # Key functions: VariantQAFilters
+    # --- Quality Assessment [] ---
+    # Key functions: qaVariants, VariantQAFilters, softFilterMatrix
+    qa.variants <- qaVariants(tallies)
     qa.filters <- VariantQAFilters()
-    # --- Variantqafilters Subset [] ---
-    # Key functions: subsetByFilter
-    qa.variants <- subsetByFilter(tallies_H1993, qa.filters)
-    # --- Variantqafilters Fisherstrandp [] ---
-    # Key functions: VariantQAFilters
-    qa.filters.custom <- VariantQAFilters(fisher.strand.p.value = 1e-4)
-    summary(qa.filters.custom, tallies_H1993)
-    # --- Variantqafilters Compare [] ---
-    # Key functions: eval
-    fs.original <- eval(qa.filters["fisherStrand"], tallies_H1993)
-    fs.custom <- eval(qa.filters.custom["fisherStrand"], tallies_H1993)
-    tallies_H1993[fs.original != fs.custom]
-    # --- Variantqafilters Mask [] ---
-    # Key functions: requireNamespace, GRanges, IRanges, tallyVariants
-    if (requireNamespace("gmapR", quietly=TRUE)) {
-        tally.param@mask <- GRanges("TP53", IRanges(1010000, width=10000))
-        tallies_masked <- tallyVariants(bam, tally.param)
-    }
-    # --- Variantcallingfilters [] ---
-    # Key functions: VariantCallingFilters
+    qa.summary <- summary(softFilterMatrix(qa.variants))
+
+
+    # --- Variant Calling [] ---
+    # Key functions: VariantCallingFilters, callVariants
     calling.filters <- VariantCallingFilters()
-    summary(calling.filters, qa.variants)
-    # --- Post Filter [] ---
-    # Key functions: VariantPostFilters
-    post.filters <- VariantPostFilters()
-    summary(post.filters, qa.variants)
-    # --- Post Filter Whitelist [] ---
-    # Key functions: VariantPostFilters
-    post.filters <- VariantPostFilters(whitelist = called.variants)
-    summary(post.filters, qa.variants)
-    # --- Callsomaticmutations [] ---
-    # Key functions: requireNamespace, callSampleSpecificVariants
-    if (requireNamespace("gmapR", quietly=TRUE)) {
-        tally.param@bamTallyParam@indels <- FALSE
-        somatic <- callSampleSpecificVariants(bams$H1993, bams$H2073,
-                                              tally.param)
-    } else {
+    called.variants <- callVariants(qa.variants, calling.filters)
+
+
+    # --- Somatic Mutation Calling [] ---
+    # Key functions: callSampleSpecificVariants
+    somatic <- callSampleSpecificVariants(
+        case_bam,
+        control_bam,
+        tally.param
+    )
+
+
+    # --- Wildtype Calling [] ---
+    # Key functions: isIndel, VariantCallingFilters, callWildtype
+    called.snvs <- called.variants[!isIndel(called.variants)]
+    wildtype <- callWildtype(
+        bam_file,
+        called.snvs,
+        VariantCallingFilters(),
+        power = 0.85
+    )
+
+
+    # --- VCF Export [] ---
+    # Key functions: sampleNames, mcols, asVCF
+    sampleNames(called.variants) <- "Sample_1"
+    mcols(called.variants) <- NULL
+    vcf <- asVCF(called.variants)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

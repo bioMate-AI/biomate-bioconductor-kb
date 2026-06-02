@@ -38,45 +38,42 @@ process BIOC_MGNIFYR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MGnifyR)
     library(MgnifyClient)
     library(jsonlite)
 
-    # --- Mgnify Client [] ---
-    # Key functions: MgnifyClient
-    mg <- MgnifyClient(useCache = TRUE)
-    # --- convert to analyses1 [] ---
-    # Key functions: searchAnalysis
-    analyses_accessions <- searchAnalysis(mg, "samples", samples$accession)
-    # --- get metadata1 [] ---
+    # --- Metadata Retrieval [] ---
     # Key functions: getMetadata
-    analyses_metadata <- getMetadata(mg, analyses_accessions)
-    # --- get mae1 [] ---
-    # Key functions: getResult
-    mae <- getResult(mg, accession = analyses_accessions)
-    # --- calculate diversity [] ---
-    # Key functions: plotColData
-    library(mia)
-    mae[[1]] <- estimateDiversity(mae[[1]], index = "shannon")
-    library(scater)
-    # --- plot abundance [] ---
-    # Key functions: altExps, getTopFeatures, plotAbundance
-    altExps(mae[[1]]) <- splitByRanks(mae[[1]])
-    library(miaViz)
-    top_taxa <- getTopFeatures(altExp(mae[[1]], "Phylum"), 10)
-    # --- plot Reduced Dim [] ---
-    # Key functions: plotReducedDim
-    mae[[1]] <- transformAssay(mae[[1]], method = "relabundance")
-    mae[[1]] <- runMDS(
-    plotReducedDim(
-    # --- fetch data1 [] ---
-    # Key functions: getData
-    publications <- getData(mg, type = "publications")
-    # --- get download urls1 [] ---
-    # Key functions: searchFile
-    dl_urls <- searchFile(mg, analyses_accessions, type = "analyses")
-    # --- download file1 [] ---
-    # Key functions: getFile
-    cached_location <- getFile(mg, file_url)
+    mg <- MgnifyClient(useCache = TRUE)
+    analyses_metadata <- getMetadata(
+        client = mg,
+        accession = analyses_accessions
+    )
+
+
+    # --- Fetching Microbiome Data [] ---
+    # Key functions: getMicrobiomeData
+    mg <- MgnifyClient(useCache = TRUE)
+    mae <- getMicrobiomeData(
+        client = mg,
+        accession = analyses_accessions
+    )
+
+
+    # --- Download URL Retrieval and File Download [] ---
+    # Key functions: searchFile, getFile
+    mg <- MgnifyClient(useCache = TRUE)
+    dl_urls <- searchFile(
+        client = mg,
+        accession = "MGYS00005058"
+    )
+    target_urls <- dl_urls[
+        dl_urls$attributes.description.label == "Predicted alpha tmRNA",
+    ]
+    cached_location <- getFile(
+        client = mg,
+        url = target_urls$links.self[1]
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

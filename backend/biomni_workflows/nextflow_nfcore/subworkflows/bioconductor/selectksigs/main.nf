@@ -41,13 +41,19 @@ process BIOC_SELECTKSIGS {
     library(selectKSigs)
     library(jsonlite)
 
-    # --- Seq Len [] ---
-    # Key functions: gather, group_by, mutate, ggplot, geom_point
-    ---------------------------------------------------------------------
+    # --- Cross Validation for Signature Number [] ---
+    # Key functions: cv_PMSignature
+    inputFile <- system.file("extdata/esophageal.mp.txt.gz", package="HiLDA")
+    G <- HiLDA::hildaReadMPFile(inputFile, numBases=5, trDir=TRUE)
+    results <- cv_PMSignature(G, Kfold = 3, nRep = 2, Klimit = 5)
+
+
+    # --- Model Selection and Evaluation [] ---
+    # Key functions: cv_PMSignature
+    load(system.file("extdata/sample.rdata", package = "selectKSigs"))
     results$Kvalue <- seq_len(nrow(results)) + 1
-    results_df <- gather(results, Method, value, -Kvalue) %>%
-      group_by(Method) %>%
-      mutate(xmin = which.min(value) + 1 - 0.1,
+    min_val <- min(results$cv, na.rm = TRUE)
+    best_k <- results$Kvalue[which.min(results$cv)]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

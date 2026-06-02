@@ -42,38 +42,24 @@ process BIOC_GOTHIC {
     library(GOTHiChicup)
     library(jsonlite)
 
-    # --- Package Vignettes.Snw:31 33 [] ---
-    # Key functions: data
-    ## library(GOTHiC)
-    ## data(lymphoid_chr20_paired_filtered)
-    # --- Package Vignettes.Snw:79 84 [] ---
-    # Key functions: files, pairReads
-    ## dirPath = system.file("extdata", package="HiCDataLymphoblast")
-    ## fileName1 = list.files(dirPath, full.names=TRUE)[1]
-    ## fileName2 = list.files(dirPath, full.names=TRUE)[2]
-    ## paired = pairReads(fileName1, fileName2, sampleName="lymphoid_chr20",
-    ## DUPLICATETHRESHOLD = 1, fileType="Table")
-    # --- Package Vignettes.Snw:91 96 [] ---
-    # Key functions: mapReadsToRestrictionSites
-    ## data(lymphoid_chr20_paired_filtered)
-    ## mapped=mapReadsToRestrictionSites(filtered, sampleName="lymphoid_chr20",
-    ## BSgenomeName="BSgenome.Hsapiens.UCSC.hg18",
-    ## genome=BSgenome.Hsapiens.UCSC.hg18,
-    ## restrictionSite="A^AGCTT", enzyme="HindIII", parallel=FALSE, cores=1)
-    # --- Package Vignettes.Snw:103 111 [] ---
-    # Key functions: files, GOTHiC
-    ## dirPath = system.file("extdata", package="HiCDataLymphoblast")
-    ## fileName1 = list.files(dirPath, full.names=TRUE)[1]
-    ## fileName2 = list.files(dirPath, full.names=TRUE)[2]
-    ## binom=GOTHiC(fileName1,fileName2, sampleName="lymphoid_chr20",
-    ## res=1000000, BSgenomeName="BSgenome.Hsapiens.UCSC.hg18",
-    # --- Package Vignettes.Snw:114 119 [] ---
-    # Key functions: files, GOTHiChicup
-    ## dirPath <- system.file("extdata", package="HiCDataLymphoblast")
-    ## fileName <- list.files(dirPath, full.names=TRUE)[4]
-    ## restrictionFile <- list.files(dirPath, full.names=TRUE)[3]
-    ## binom=GOTHiChicup(fileName, sampleName='lymphoid_chr20', res=1000000,
-    ## restrictionFile, cistrans='all', parallel=FALSE, cores=NULL)
+    # --- Hi-C Interaction Detection [] ---
+    # Key functions: gothic
+    interactions <- gothic(
+        sample = "sample_mapped.bam",
+        res = 1000000,
+        organism = "hg19",
+        chromosomes = c("chr21", "chr22")
+    )
+
+    # --- High Resolution Interaction Detection [] ---
+    # Key functions: gothic
+    high_res_interactions <- gothic(
+        sample = "sample_mapped.bam",
+        res = 100000,
+        organism = "hg19",
+        chromosomes = "chr22"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

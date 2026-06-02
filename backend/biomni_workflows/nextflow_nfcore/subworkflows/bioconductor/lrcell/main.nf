@@ -44,16 +44,54 @@ process BIOC_LRCELL {
     library(LRcell_gene_enriched_scores)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, query, get_markergenes
-    library(ExperimentHub)
-    eh <- ExperimentHub::ExperimentHub()  ## use ExperimentHub to download data
-    eh <- query(eh, "LRcellTypeMarkers")
-    # --- LRcell analysis [] ---
-    # Key functions: LRcell, plot_manhattan_enrich, LRcellCore, LRcell_gene_enriched_scores, get_markergenes
-    res <- LRcellCore(gene.p = example_gene_pvals,
-    res$cell_type <- unlist(lapply(strsplit(res$ID, '\\.'), '[', 2))
-    head(subset(res, select=-lead_genes))
+    # --- Marker Gene Identification [] ---
+    # Key functions: LRcell_gene_enriched_scores, get_markergenes
+    sim_expr <- matrix(
+        c(3, 0, 2, 8, 10, 6, 1, 0, 0, 2,
+          7, 5, 8, 1, 0, 5, 2, 3, 2, 1,
+          8, 10, 6, 7, 8, 9, 5, 8, 6, 8),
+        nrow = 3, byrow = TRUE
+    )
+    rownames(sim_expr) <- paste0("gene", 1:3)
+    colnames(sim_expr) <- paste0("cell", 1:10)
+    sim_annot <- c(rep("celltype1", 3), rep("celltype2", 3), rep("celltype3", 4))
+    names(sim_annot) <- colnames(sim_expr)
+    enriched_res <- LRcell_gene_enriched_scores(
+        expr = sim_expr, annot = sim_annot, parallel = FALSE
+    )
+    marker_res <- get_markergenes(
+        enriched.g = enriched_res, method = "LR", topn = 1
+    )
+
+    # --- Standard Cell Type Enrichment [] ---
+    # Key functions: LRcell
+    data("example_gene_pvals")
+    res <- LRcell(
+        gene.p = example_gene_pvals,
+        marker.g = NULL,
+        species = "mouse",
+        region = "FC",
+        method = "LiR"
+    )
+    FC_res <- res$FC
+    sub_FC_res <- subset(FC_res, select = -lead_genes)
+
+    # --- Visualization of Enrichment Results [] ---
+    # Key functions: plot_manhattan_enrich
+    data("example_gene_pvals")
+    res <- LRcell(
+        gene.p = example_gene_pvals,
+        marker.g = NULL,
+        species = "mouse",
+        region = "FC",
+        method = "LiR"
+    )
+    plot_manhattan_enrich(
+        res$FC,
+        sig.cutoff = 0.05,
+        label.topn = 5
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

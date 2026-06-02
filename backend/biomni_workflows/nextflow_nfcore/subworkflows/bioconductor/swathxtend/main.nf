@@ -41,51 +41,21 @@ process BIOC_SWATHXTEND {
     library(SwathXtend)
     library(jsonlite)
 
-    # --- Cleanlib [] ---
-    # Key functions: cleanLib
-    ## Lib2 <- cleanLib(Lib2, intensity.cutoff = 5, conf.cutoff = 0.99,
-    ## 			nomod = FALSE, nomc = FALSE)
-    ## Lib3 <- cleanLib(Lib3, intensity.cutoff = 5, conf.cutoff = 0.99,
-    ## 			nomod = FALSE, nomc = FALSE)
-    # --- Plotrtcor [] ---
-    # Key functions: plotRTCor
-    plotRTCor(Lib2, Lib3, "Lib2", "Lib3")
-    # --- Plotrtresd [] ---
-    # Key functions: plotRTResd
-    plotRTResd(Lib2, Lib3)
-    # --- Plotriicor [] ---
-    # Key functions: plotRIICor
-    plotRIICor(Lib2, Lib3)
-    # --- Buildspectralibpair [] ---
-    # Key functions: buildSpectraLibPair
-    ## Lib2_3.hydro <- buildSpectraLibPair(libfiles[1], libfiles[2], hydro,
-    ## 				clean=T,
-    ## 				nomc=T, nomod=T, plot=F,
-    ## 				method="hydro",
-    ## 				outputFormat = "peakview",
-    # --- Outputlib [] ---
-    # Key functions: outputLib
-    ## outputLib(Lib2_3, filename="Lib2_3.txt", format="peakview")
-    # --- Readworkbook [] ---
-    # Key functions: readWorkbook
-    fdr.seed = readWorkbook(fswaths[1], sheet='FDR')
-    fdr.ext = readWorkbook(fswaths[2], sheet='FDR')
-    # --- Crit [] ---
-    # Key functions: crit
-    fdr.seed = fdr.crit(fdr.seed)
-    fdr.ext = fdr.crit(fdr.ext)
-    head(fdr.ext[,c(1:2,ncol(fdr.ext))])
-    # --- Readworkbook [] ---
-    # Key functions: readWorkbook
-    ## swa.seed = readWorkbook(fswaths[1], 2)
-    ## swa.ext = readWorkbook(fswaths[2], 2)
-    # --- Accuracy [] ---
-    # Key functions: accuracy
-    ## fdr.seed = fdr.seed[fdr.seed$nfdr.pass > 0,]
-    ## fdr.ext = fdr.ext[fdr.ext$nfdr.pass > 0,]
-    ##
-    ## res = quantification.accuracy(swa.seed[fdr.seed$nfdr.pass >= 1,],
-    ## 	swa.ext[fdr.ext$nfdr.pass >= 1,], method="cv")[[1]]
+    # --- Quality Control Assessment [] ---
+    # Key functions: checkQuality
+    qc_results <- checkQuality(
+        lib1 = lib2_data,
+        lib2 = lib3_data
+    )
+
+
+    # --- Library Comparison Visualization [] ---
+    # Key functions: plotAll
+    plotAll(
+        lib1 = lib2_data,
+        lib2 = lib3_data,
+        file = "library_comparison_plots.xlsx"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

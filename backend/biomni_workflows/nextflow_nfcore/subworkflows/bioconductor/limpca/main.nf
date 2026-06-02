@@ -38,76 +38,73 @@ process BIOC_LIMPCA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(limpca)
     library(Anova)
     library(jsonlite)
 
-    # --- Data Importation [] ---
-    # Key functions: plotDesign
-    data("trout")
-    cat("\n Nb of Responses :  ", ncol(trout$outcomes), "\n ")
-    cat("\nResponses :\n", colnames(trout$outcomes), "\n ")
     # --- Exploratory PCA [] ---
     # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot
+    data("trout")
     resPCA <- limpca::pcaBySvd(trout$outcomes)
     limpca::pcaScreePlot(resPCA, nPC = 8)
     limpca::pcaScorePlot(
-    # --- Transformation [] ---
-    # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot
+        resPcaBySvd = resPCA, axes = c(1, 2),
+        title = "Score plot of original data ",
+        design = trout$design, color = "Aquarium",
+        points_labs_rn = TRUE
+    )
+
+
+    # --- Data Preprocessing and Outlier Removal [] ---
+    # Key functions: pcaBySvd, pcaScorePlot
+    data("trout")
+    trout_log <- trout
     trout_log$outcomes <- as.matrix(log10(trout$outcomes))
-    resPCA1 <- limpca::pcaBySvd(trout_log$outcomes)
-    limpca::pcaScreePlot(resPCA1, nPC = 8)
-    # --- new PCA [] ---
-    # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot
+    outliers <- match(
+        c("D72EPA2.1", "D28EPA2.2"), 
+        rownames(trout_log$outcomes)
+    )
+    trout_clean <- trout_log
+    trout_clean$outcomes <- trout_log$outcomes[-outliers, ]
+    trout_clean$design <- trout_log$design[-outliers, ]
     resPCA2 <- limpca::pcaBySvd(trout_clean$outcomes)
-    limpca::pcaScreePlot(resPCA2, nPC = 8)
     limpca::pcaScorePlot(
-    # --- Mean aggregation [] ---
-    # Key functions: aggregate
-    mean_outcomes <- matrix(0, nrow = 24, ncol = 15)
-    mean_design <- matrix(0, nrow = 24, ncol = 3)
-    y <- list(
-    # --- Centering and Scaling [] ---
-    # Key functions: scale
-    mean_outcomes <- scale(mean_outcomes, center = TRUE, scale = TRUE)
-    trout_mean <- list(
-    rm(
-    # --- Design [] ---
-    # Key functions: pander, plotDesign
-    pander(head(trout_mean$design))
-    limpca::plotDesign(
-    # --- Lineplot [] ---
-    # Key functions: plotLine, theme
-    limpca::plotLine(trout_mean$outcomes,
-    rows = c(1, 24),
-    ggplot2::theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    # --- pca By Svd [] ---
-    # Key functions: pcaBySvd, pcaScreePlot, pcaScorePlot, pcaLoading1dPlot, theme
-    resPCA_mean <- limpca::pcaBySvd(trout_mean$outcomes)
-    pcaScreePlot(resPCA_mean, nPC = 6)
+        resPcaBySvd = resPCA2, axes = c(1, 2),
+        title = "Score plot without outliers",
+        design = trout_clean$design, color = "Aquarium",
+        drawShapes = "polygon", points_labs_rn = FALSE
+    )
+
+
+    # --- Aggregated PCA and Loadings [] ---
+    # Key functions: plotLine, pcaBySvd, pcaScorePlot, pcaLoading1dPlot, pcaLoading2dPlot
+    data("trout")
+    trout_mean_outcomes <- scale(
+        trout$outcomes[1:24, ], 
+        center = TRUE, 
+        scale = TRUE
+    )
+    trout_mean_design <- trout$design[1:24, 1:3]
+    limpca::plotLine(
+        trout_mean_outcomes, rows = c(1, 24),
+        xaxis_type = "character", type = "s"
+    )
+    resPCA_mean <- limpca::pcaBySvd(trout_mean_outcomes)
     limpca::pcaScorePlot(
-    # --- Scatterplot Matrix [] ---
-    # Key functions: plotScatterM
-    limpca::plotScatterM(
-    Y = trout_mean$outcomes, cols = c(1:15),
-    vec.colorup = c("CadetBlue4", "pink", "orange"),
-    # --- lmp Model Matrix [] ---
-    # Key functions: lmpModelMatrix, pander
-    resLmpModelMatrix <- limpca::lmpModelMatrix(trout_mean)
-    pander::pander(head(resLmpModelMatrix$modelMatrix))
-    # --- lmp Effect Matrices [] ---
-    # Key functions: lmpEffectMatrices
-    resLmpEffectMatrices <- lmpEffectMatrices(resLmpModelMatrix)
-    # --- Bootstrap [] ---
-    # Key functions: lmpBootstrapTests, pander
-    resLmpBootstrapTests <- lmpBootstrapTests(
-    pander::pander(t(resLmpBootstrapTests$resultsTable))
-    # --- ASCA PCA [] ---
-    # Key functions: lmpPcaEffects
-    resASCA <- lmpPcaEffects(
-    combineEffects = list(c(
-    # --- ASCA Contrib [] ---
-    # Key functions: lmpContributions
-    resLmpContributions <- lmpContributions(resASCA)
+        resPcaBySvd = resPCA_mean, axes = c(1, 2),
+        title = "PCA score plot by Exposure and Day",
+        design = trout_mean_design, shape = "Exposure", color = "Day",
+        points_labs_rn = FALSE
+    )
+    limpca::pcaLoading1dPlot(
+        resPcaBySvd = resPCA_mean, axes = c(1, 2),
+        title = "PCA loadings plot trout", xlab = " ",
+        ylab = "Expression", xaxis_type = "character", type = "s"
+    )
+    limpca::pcaLoading2dPlot(
+        resPcaBySvd = resPCA_mean, axes = c(1, 2),
+        title = "PCA loadings plot trout", addRownames = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

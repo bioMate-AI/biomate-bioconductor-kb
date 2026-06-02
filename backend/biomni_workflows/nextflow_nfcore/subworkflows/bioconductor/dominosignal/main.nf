@@ -38,40 +38,42 @@ process BIOC_DOMINOSIGNAL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(dominoSignal)
     library(BiocFileCache)
     library(jsonlite)
 
-    # --- Load saved R data object [] ---
-    # Key functions: BiocFileCache, bfcrpath, untar
-    bfc <- BiocFileCache::BiocFileCache(ask = FALSE)
-    pbmc_url <- paste0(data_url, "/pbmc3k_sce.rds")
-    pbmc <- BiocFileCache::bfcrpath(bfc, pbmc_url)
-    # --- Create Regulon List [] ---
-    # Key functions: create_regulon_list_scenic
-    colnames(regulons) <- c(
-    regulon_list <- create_regulon_list_scenic(regulons = regulons)
-    # --- Load CellPhoneDB Database [] ---
-    # Key functions: create_rl_map_cellphonedb
-    complexes <- read.csv(
-    paste0(
-    genes <- read.csv(
-    # --- Appending interactions [] ---
-    # Key functions: rbind, kable
-    col_int_df <- data.frame(
-    rl_map_append <- rbind(col_int_df, rl_map)
-    knitr::kable(head(rl_map_append))
-    # --- Create Domino [] ---
+    # --- Domino Object Construction [] ---
     # Key functions: create_domino
     pbmc_dom <- create_domino(
-    features: TF activation scores (AUC matrix)
-    # --- Build Domino [] ---
+        rl_map = rl_map,
+        features = auc_in,
+        counts = counts,
+        z_scores = z_scores,
+        clusters = clusters,
+        tf_targets = regulon_list,
+        use_clusters = TRUE,
+        use_complexes = TRUE,
+        remove_rec_dropout = FALSE
+    )
+
+
+    # --- Network Building [] ---
     # Key functions: build_domino
     pbmc_dom <- build_domino(
-    # --- Build Domino All Significant Interactions [] ---
-    # Key functions: build_domino, feat_heatmap, signaling_network, gene_network
-    pbmc_dom_all <- build_domino(
-    feat_heatmap(pbmc_dom,
-    row_names_gp = grid::gpar(fontsize = 4)
+        dom = pbmc_dom,
+        min_tf_pval = .001,
+        max_tf_per_clust = 25,
+        max_rec_per_tf = 25,
+        rec_tf_cor_threshold = .25,
+        min_rec_percentage = 0.1
+    )
+
+
+    # --- Signaling Network Visualisation [] ---
+    # Key functions: feat_heatmap, signaling_network, gene_network
+    feat_heatmap(pbmc_dom, norm = TRUE, bool = FALSE, use_raster = FALSE)
+    signaling_network(pbmc_dom, edge_weight = 0.5, max_thresh = 3)
+    gene_network(pbmc_dom, clust = "dendritic_cell", layout = "grid")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

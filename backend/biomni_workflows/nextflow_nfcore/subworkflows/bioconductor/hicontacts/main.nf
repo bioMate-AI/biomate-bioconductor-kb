@@ -38,109 +38,74 @@ process BIOC_HICONTACTS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HiContacts)
     library(GRanges)
     library(HiContactsData)
     library(P)
     library(SerialParam)
     library(jsonlite)
 
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import
-    ---------------------------------------------------------------------
-    library(dplyr)
-    library(ggplot2)
-    library(HiCExperiment)
-    library(HiContacts)
-    # --- Plotmatrix [] ---
-    # Key functions: plotMatrix, refocus
-    ---------------------------------------------------------------------
-    ## Square matrix
-    plotMatrix(hic, use.scores = 'balanced', limits = c(-4, -1))
-    ## Horizontal matrix
-    plotMatrix(
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import, makeGInteractionsFromGRangesPairs, plotMatrix
-    ---------------------------------------------------------------------
-    mcool_file <- HiContactsData('yeast_wt', format = 'mcool')
-    loops <- system.file("extdata", 'S288C-loops.bedpe', package = 'HiCExperiment') |>
-        import() |>
-        makeGInteractionsFromGRangesPairs()
-    # --- Aggregate [] ---
-    # Key functions: aggregate, SerialParam, plotMatrix, bgrColors
-    ---------------------------------------------------------------------
-    aggr_centros <- HiContacts::aggregate(
-        hic, targets = loops, BPPARAM = BiocParallel::SerialParam()
+    # --- Matrix Detrending and Autocorrelation [] ---
+    # Key functions: autocorrelate, detrend, plotMatrix
+    mcool_file <- HiContactsData::HiContactsData("mESCs", format = "mcool")
+    hic <- import(
+        mcool_file, format = "mcool", focus = "chr2",
+        resolution = 160000
     )
-    plotMatrix(
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import, autocorrelate, scores, plotMatrix
-    ---------------------------------------------------------------------
-    mcool_file <- HiContactsData('mESCs', format = 'mcool')
-    hic <- import(mcool_file, format = 'mcool', focus = 'chr2', resolution = 160000)
-    hic <- autocorrelate(hic)
-    scores(hic)
-    # --- Import [] ---
-    # Key functions: import, detrend, wrap_plots, plotMatrix
-    ---------------------------------------------------------------------
-    hic <- import(mcool_file, format = 'mcool', focus = 'chr18:20000000-35000000', resolution = 40000)
-    detrended_hic <- detrend(hic)
-    patchwork::wrap_plots(
-        plotMatrix(detrended_hic, use.scores = 'expected', scale = 'log10', limits = c(-3, -1), dpi = 120),
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import
-    ---------------------------------------------------------------------
-    mcool_file_1 <- HiContactsData('yeast_eco1', format = 'mcool')
-    mcool_file_2 <- HiContactsData('yeast_wt', format = 'mcool')
-    hic_1 <- import(mcool_file_1, format = 'mcool', focus = 'II:1-300000', resolution = 2000)
-    hic_2 <- import(mcool_file_2, format = 'mcool', focus = 'II:1-300000', resolution = 2000)
-    # --- Import [] ---
-    # Key functions: import, divide, wrap_plots, plotMatrix, bwrColors
-    ---------------------------------------------------------------------
-    hic_1 <- import(mcool_file_1, format = 'mcool', focus = 'II', resolution = 2000)
-    hic_2 <- import(mcool_file_2, format = 'mcool', focus = 'II', resolution = 2000)
+    hic_auto <- autocorrelate(hic)
+    hic_detrend <- detrend(hic)
+    p_auto <- plotMatrix(
+        hic_auto, use.scores = "autocorrelated",
+        limits = c(-1, 1), scale = "linear"
+    )
+
+
+    # --- Matrix Operations [] ---
+    # Key functions: merge, divide
+    mcool_1 <- HiContactsData::HiContactsData("yeast_eco1", format = "mcool")
+    mcool_2 <- HiContactsData::HiContactsData("yeast_wt", format = "mcool")
+    hic_1 <- import(mcool_1, format = "mcool", focus = "II", resolution = 2000)
+    hic_2 <- import(mcool_2, format = "mcool", focus = "II", resolution = 2000)
+    merged_hic <- merge(hic_1, hic_2)
     div_hic <- divide(hic_1, by = hic_2)
-    div_hic
-    # --- Despeckle [] ---
-    # Key functions: despeckle, wrap_plots, plotMatrix
-    ---------------------------------------------------------------------
-    hic_1_despeckled <- despeckle(hic_1)
-    hic_1_despeckled5 <- despeckle(hic_1, focal.size = 5)
-    p <- patchwork::wrap_plots(
-        plotMatrix(hic_1, use.scores = 'balanced', scale = 'log10', limits = c(-4, -1)),
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import, getCompartments, export, coverage, metadata, topologicalFeatures
-    ---------------------------------------------------------------------
-    mcool_file <- HiContactsData('yeast_wt', format = 'mcool')
-    hic <- import(mcool_file, format = 'mcool', resolution = 16000)
-    # - Get compartments
-    hic <- getCompartments(hic, chromosomes = c('XV', 'XVI'))
-    # --- Refocus [] ---
-    # Key functions: refocus, zoom, getDiamondInsulation, getBorders, export, coverage, metadata, topologicalFeatures
-    ---------------------------------------------------------------------
-    # - Compute insulation score
-    hic <- refocus(hic, 'II:1-300000') |>
-        zoom(resolution = 1000) |>
-        getDiamondInsulation(window_size = 8000) |>
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import, virtual4C, GRanges, plot4C, aes
-    ---------------------------------------------------------------------
-    mcool_file <- HiContactsData('mESCs', format = 'mcool')
-    hic <- import(mcool_file, format = 'mcool', focus = 'chr18:20000000-35000000', resolution = 40000)
-    v4C <- virtual4C(hic, viewpoint = GRanges('chr18:31000000-31050000'))
-    plot4C(v4C, ggplot2::aes(x = center, y = score))
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import, cisTransRatio
-    ---------------------------------------------------------------------
-    mcool_file <- HiContactsData('yeast_wt', format = 'mcool')
-    hic <- import(mcool_file, format = 'mcool', resolution = 1000)
-    cisTransRatio(hic)
-    # --- Hicontactsdata [] ---
-    # Key functions: HiContactsData, import, distanceLaw, plotPs, aes, pairsFile, plotPsSlope, P
-    ---------------------------------------------------------------------
-    # Without a pairs file
-    mcool_file <- HiContactsData('yeast_wt', format = 'mcool')
-    hic <- import(mcool_file, format = 'mcool', resolution = 1000)
-    ps <- distanceLaw(hic)
+
+
+    # --- Compartment and Saddle Analysis [] ---
+    # Key functions: getCompartments, topologicalFeatures, plotSaddle
+    mcool_file <- HiContactsData::HiContactsData("yeast_wt", format = "mcool")
+    hic <- import(mcool_file, format = "mcool", resolution = 16000)
+    hic <- getCompartments(hic, chromosomes = c("XV", "XVI"))
+    comp_A <- topologicalFeatures(hic, "compartments")[
+        topologicalFeatures(hic, "compartments")$compartment == "A"
+    ]
+    p_saddle <- plotSaddle(hic)
+
+
+    # --- Insulation and Border Detection [] ---
+    # Key functions: zoom, getDiamondInsulation, getBorders, topologicalFeatures
+    mcool_file <- HiContactsData::HiContactsData("yeast_wt", format = "mcool")
+    hic <- import(mcool_file, format = "mcool", resolution = 16000)
+    hic_borders <- getBorders(
+        getDiamondInsulation(
+            zoom(hic, resolution = 1000),
+            window_size = 8000
+        )
+    )
+    borders <- topologicalFeatures(hic_borders, "borders")
+
+
+    # --- Virtual 4C Analysis [] ---
+    # Key functions: virtual4C, plot4C
+    mcool_file <- HiContactsData::HiContactsData("mESCs", format = "mcool")
+    hic <- import(
+        mcool_file, format = "mcool",
+        focus = "chr18:20000000-35000000", resolution = 40000
+    )
+    v4C <- virtual4C(
+        hic,
+        viewpoint = GenomicRanges::GRanges("chr18:31000000-31050000")
+    )
+    p_4c <- plot4C(v4C, ggplot2::aes(x = center, y = score))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

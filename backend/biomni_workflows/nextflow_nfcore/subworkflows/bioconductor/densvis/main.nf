@@ -38,34 +38,34 @@ process BIOC_DENSVIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(densvis)
     library(Rtsne)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, aes, geom_point, scale_colour_discrete, ggtitle
-    data <- data.frame(
-    x = c(rnorm(1000, 5), rnorm(1000, 0, 0.2)),
-    y = c(rnorm(1000, 5), rnorm(1000, 0, 0.2)),
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: densne, ggplot, aes, geom_point, scale_colour_discrete
-    fit1 <- densne(data[, 1:2], dens_frac = 0.5, dens_lambda = 0.5)
-    ggplot() +
-    aes(fit1[, 1], fit1[, 2], colour = data$class) +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: Rtsne, ggplot, aes, geom_point, scale_colour_discrete
-    fit2 <- Rtsne(data[, 1:2])
-    ggplot() +
-    aes(fit2$Y[, 1], fit2$Y[, 2], colour = data$class) +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: densmap, ggplot, aes, geom_point, scale_colour_discrete
-    fit1 <- densmap(data[, 1:2], dens_frac = 0.5, dens_lambda = 0.5)
-    ggplot() +
-    aes(fit1[, 1], fit1[, 2], colour = data$class) +
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: umap, ggplot, aes, geom_point, scale_colour_discrete
-    fit2 <- umap(data[, 1:2])
-    ggplot() +
-    aes(fit2[, 1], fit2[, 2], colour = data$class) +
+    # --- Density-preserving UMAP Dimensionality Reduction [] ---
+    # Key functions: densmap
+    data_matrix <- matrix(rnorm(2000), ncol = 20)
+    umap_res <- densmap(
+        data_matrix,
+        dens_frac = 0.5,
+        dens_lambda = 0.5,
+        n_neighbors = 15
+    )
+
+
+    # --- Parameter Tuning for Density Preservation [] ---
+    # Key functions: densne, densmap
+    data_matrix <- matrix(rnorm(2000), ncol = 20)
+    tsne_tuned <- densne(
+        data_matrix,
+        dens_frac = 0.2,
+        dens_lambda = 0.8
+    )
+    umap_tuned <- densmap(
+        data_matrix,
+        dens_frac = 0.8,
+        dens_lambda = 0.2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

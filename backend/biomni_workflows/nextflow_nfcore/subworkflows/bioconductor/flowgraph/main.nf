@@ -41,11 +41,58 @@ process BIOC_FLOWGRAPH {
     library(flowGraph)
     library(jsonlite)
 
-    # --- evaluate=FALSE [] ---
-    # Key functions: flowGraphSubset
-    data(fg_data_pos2)
-    fg <- flowGraphSubset(fg_data_pos2$count, meta=fg_data_pos2$meta, no_cores=no_cores,
-    summary_pars=flowGraphSubset_summary_pars(),
+    # --- Feature Manipulation [] ---
+    # Key functions: fg_get_feature_desc, fg_add_feature, fg_rm_feature
+    mc <- fg_get_feature(fg, type = "node", feature = "count")
+    fg <- fg_add_feature(
+        fg,
+        type = "node",
+        feature = "count_copy",
+        m = mc
+    )
+    feat_desc <- fg_get_feature_desc(fg)
+    fg <- fg_rm_feature(fg, type = "node", feature = "count_copy")
+
+
+    # --- Statistical Testing [] ---
+    # Key functions: fg_summary, fg_get_summary_desc, fg_get_summary
+    fg <- fg_summary(
+        fg,
+        no_cores = 1,
+        class = "class",
+        label1 = "control",
+        node_features = "count",
+        edge_features = "NONE",
+        overwrite = FALSE,
+        test_name = "t",
+        diminish = FALSE
+    )
+    sum_desc <- fg_get_summary_desc(fg)
+    fg_sum <- fg_get_summary(
+        fg,
+        type = "node",
+        summary_meta = list(
+            feature = "count",
+            test_name = "t",
+            class = "class",
+            label1 = "control",
+            label2 = "exp"
+        )
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: fg_plot, plot_gr, fg_plot_qq, fg_plot_box
+    gr <- fg_plot(fg, index = 1, p_thres = 0.01, show_bgedges = TRUE)
+    plot_gr(gr, interactive = FALSE)
+    fg_plot_qq(fg, type = "node", index = 1, logged = TRUE)
+    fg_plot_box(
+        fg,
+        type = "node",
+        summary_meta = NULL,
+        index = 1,
+        node_edge = "A+"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

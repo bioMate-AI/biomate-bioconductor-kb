@@ -38,54 +38,45 @@ process BIOC_PLYINTERACTIONS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(plyinteractions)
     library(DNAStringSet)
     library(HiContactsData)
     library(jsonlite)
 
-    # --- Hi Contacts Data [] ---
-    # Key functions: HiContactsData, set_names, as_ginteractions
-    library(tidyverse)
-    library(plyinteractions)
-    pairs_file <- HiContactsData::HiContactsData('mESCs', 'pairs.gz')
-    # --- D N A String Set [] ---
-    # Key functions: DNAStringSet, bplapply, matchPattern
-    library(GenomicRanges)
-    library(Biostrings)
-    library(plyranges)
-    # --- annotate [] ---
-    # Key functions: annotate
-    plyinteractions::annotate(fragments, by = "binID") |>
-    mutate(n_fragments = binID.2 - binID.1, group = paste0(strand1, strand2))
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: group_by, count, as_tibble, ggplot, geom_line
-    head(n = 1e6) |>
-    group_by(strand1, strand2, n_fragments) |>
-    count() |>
-    # --- arrange [] ---
-    # Key functions: arrange, group_by, ungroup, slice_head, rename
-    filter(n_fragments <= 50) |>
-    arrange(n_fragments) |>
-    group_by(n_fragments) |>
-    # --- mcols [] ---
-    # Key functions: mcols, as_tibble, count
-    mutate(threshold = left_join(as_tibble(mcols(annotated_pairs)), filters)$threshold) |>
-    mutate(type = case_when(
-    group %in% c('--', '++') & n_fragments < threshold ~ "excluded",
-    # --- Ps1 [] ---
-    # Key functions: group_by, count, as_tibble, ggplot
-    mutate(s = abs(end2 - start1)) |>
-    group_by(s) |>
-    count(name = "n") |>
-    # --- Ps3 [] ---
-    # Key functions: coef, lead, group_by, count
-    Calculate distance breaks evenly spaced on a log scale (base 1.1)
-    x <- 1.1^(1:200-1)
-    lmc <- coef(lm(c(1,1161443398)~c(x[1], x[200])))
-    # --- Ps4 [] ---
-    # Key functions: ggplot, geom_line, scale_x_log10, scale_y_log10, annotation_logticks
-    ggplot(dat, aes(x = binned_s, y = Ps)) +
-    geom_line() +
-    scale_x_log10(limits = c(1e3, 1e8)) +    ## This changes x axis to log scale
+    # --- Annotate Interactions [] ---
+    # Key functions: annotate, mutate
+    fragments <- GenomicRanges::GRanges(
+        seqnames = "chr1",
+        ranges = IRanges::IRanges(start = seq(1, 1000, by = 100), width = 99),
+        binID = 1:10
+    )
+    annotated_pairs <- pairs |> 
+        plyinteractions::annotate(fragments, by = "binID") |> 
+        mutate(
+            n_fragments = binID.2 - binID.1, 
+            group = paste0(strand1, strand2)
+        )
+
+
+    # --- Filter Interactions [] ---
+    # Key functions: filter, mutate
+    filtered_pairs <- annotated_pairs |>
+        mutate(type = case_when(
+            group %in% c('--', '++') & n_fragments < 5 ~ "excluded",
+            group == '+-' & n_fragments < 5 ~ "uncut",
+            .default = "kept"
+        )) |>
+        filter(type == "kept")
+
+
+    # --- Calculate Interaction Frequency [] ---
+    # Key functions: mutate, group_by
+    dat <- filtered_pairs |> 
+        mutate(s = abs(end2 - start1)) |> 
+        group_by(s) |> 
+        count(name = "n") |>
+        as_tibble() |> 
+        mutate(Ps = n / sum(n))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

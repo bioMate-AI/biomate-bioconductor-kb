@@ -38,23 +38,30 @@ process BIOC_HIREEWAS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HIREewas)
     library(HIRE)
     library(jsonlite)
 
-    # --- data preparation1 [] ---
-    # Key functions: rgamma, rbeta, sample
-    set.seed(123)
-    rDirichlet <- function(alpha_vec){
-    num <- length(alpha_vec)
-    # --- H I R E [] ---
+    # --- Cell-Type-Specific Association Analysis [] ---
     # Key functions: HIRE
-    library(HIREewas)
-    ret_list <- HIRE(Ometh, X, num_celltype=K, tol=10^(-5), num_iter=1000, alpha=0.01)
-    # --- risk Cp Gpattern [] ---
+    ret_list <- HIRE(
+        Ometh = Ometh,
+        X = X,
+        num_celltype = 3,
+        tol = 1e-05,
+        num_iter = 1000,
+        alpha = 0.01
+    )
+
+    # --- Association Pattern Visualization [] ---
     # Key functions: riskCpGpattern
-    class(ret_list)
-    head(ret_list$mu_t)
-    head(ret_list$beta_t)
+    p_subset <- ret_list$pvalues[1:100, c(5, 4, 6)]
+    riskCpGpattern(
+        p_subset,
+        main_title = "Detected association pattern with age",
+        hc_row_ind = FALSE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

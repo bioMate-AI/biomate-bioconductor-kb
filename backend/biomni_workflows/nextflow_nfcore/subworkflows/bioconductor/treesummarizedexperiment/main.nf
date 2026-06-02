@@ -41,26 +41,29 @@ process BIOC_TREESUMMARIZEDEXPERIMENT {
     library(TreeSummarizedExperiment)
     library(jsonlite)
 
-    # --- ggtree [] ---
-    # Key functions: ggtree, geom_text2
-    library(ggtree)
-    library(ggplot2)
-    ggtree(row_tree, size = 2, branch.length = "none") +
-    # --- ggtree [] ---
-    # Key functions: ggtree, geom_text2, ylim, xlim, all
-    ggtree(col_tree, size = 2, branch.length = "none") +
-    geom_text2(aes(label = node), color = "darkblue",
-    geom_text2(aes(label = label), color = "darkorange",
-    # --- to Tree [] ---
-    # Key functions: toTree, ggtree, geom_text2, geom_point2, changeTree
-    (taxa <- rowData(both_tse))
-    taxa_tree <- toTree(data = taxa)
-    ggtree(taxa_tree)+
-    # --- ggtree [] ---
-    # Key functions: ggtree, geom_text2, convertNode, findDescendant
-    data("tinyTree")
-    ggtree(tinyTree, branch.length = "none") +
-    geom_text2(aes(label = label), hjust = -0.1, size = 5.5) +
+    # --- Tree Accessors and Replacement [] ---
+    # Key functions: rowTree, colTree, rowTree<-
+    r_tree <- rowTree(both_tse)
+    c_tree <- colTree(both_tse)
+    new_tse <- both_tse
+    rowTree(new_tse) <- new_tree
+
+
+    # --- Link and Reference Sequence Access [] ---
+    # Key functions: rowLinks, colLinks, referenceSeq<-, referenceSeq
+    r_link <- rowLinks(both_tse)
+    c_link <- colLinks(both_tse)
+    referenceSeq(both_tse) <- refSeq
+    ref_seq <- referenceSeq(both_tse)
+
+
+    # --- Node-based Subsetting [] ---
+    # Key functions: subsetByNode
+    node_tse <- subsetByNode(
+        x = both_tse,
+        rowNode = "t3",
+        colNode = c("sample1", "sample2")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,31 +41,29 @@ process BIOC_MAPREDICTDSC {
     library(maPredictDSC)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    library(maPredictDSC)
-    library(LungCancerACvsSCCGEO)
-    data(LungCancerACvsSCCGEO)
-    anoLC
-    gsLC
-    # --- Predictdsc [] ---
-    # Key functions: predictDSC
-    modlist=predictDSC(ano=anoLC,
-    celfile.path=system.file("extdata/lungcancer",package="LungCancerACvsSCCGEO"),
-    annotation="hgu133plus2.db", preprocs=c("rma"),
-    filters=c("mttest","ttest"),classifiers=c("LDA","kNN"),
-    CVP=2,NF=4, NR=1,FCT=1.0)
-    # --- Sort [] ---
-    # Key functions: unlist
-    trainingAUC=sort(unlist(lapply(modlist,"[[","best_AUC")),decreasing=TRUE)
-    cbind(trainingAUC)
-    # --- Function [] ---
-    # Key functions: perfDSC, frame
-    perF=function(out){
-    perfDSC(pred=out$predictions,gs=gsLC)
+    # --- Individual Model Performance Evaluation ---
+    # Key functions: perfDSC
+    evaluate_performance <- function(model_output) {
+        perfDSC(pred = model_output$predictions, gs = gsLC)
     }
-    testPerf=t(data.frame(lapply(modlist,perF)))
-    testPerf=testPerf[order(testPerf[,"AUC"],decreasing=TRUE),]
+    test_perf <- t(data.frame(
+        lapply(modlist, evaluate_performance)
+    ))
+    ordered_perf <- test_perf[
+        order(test_perf[, "AUC"], decreasing = TRUE),
+    ]
+
+    # --- Ensemble Model Aggregation ---
+    # Key functions: aggregateDSC, perfDSC
+    best_models <- names(training_auc)[1:2]
+    aggregated_predictions <- aggregateDSC(
+        modlist[best_models]
+    )
+    ensemble_performance <- perfDSC(
+        pred = aggregated_predictions,
+        gs = gsLC
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

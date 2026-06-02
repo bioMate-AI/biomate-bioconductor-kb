@@ -41,69 +41,28 @@ process BIOC_MIRNAPATH {
     library(miRNApath)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: loadmirnapath
-    ## Start with miRNA data from this package
-    data(mirnaobj);
-    ## Write a file as example of required input
-    write.table(mirnaobj@mirnaTable, file="mirnaTable.txt",
-        quote=FALSE, row.names=FALSE, col.names=TRUE, na="",
-    # --- Filtermirnapath [] ---
-    # Key functions: filtermirnapath
-    mirnaobj <- filtermirnapath( mirnaobj, pvalue=0.05,
-        expression=NA, foldchange=NA );
-    # --- Data [] ---
-    # Key functions: frame
-    ## Again we load data from the package
-    data(mirnaobj);
-    ## Write a file as example of required miRNA-gene input
-    write.table(mirnaobj@mirnaGene, file="mirnaGene.txt",
-        quote=FALSE, row.names=FALSE, col.names=TRUE, na="",
-    # --- Loadmirnatogene [] ---
-    # Key functions: loadmirnatogene
-    ## Load the miRNA to gene associations
-    mirnaobj <- loadmirnatogene( mirnafile="mirnaGene.txt",
-        mirnaobj=mirnaobj, mirnacol="miRNA Name",
-        genecol="Entrez Gene ID",
-        columns=c(assayidcol="ASSAYID") );
-    # --- Data [] ---
-    # Key functions: data
-    ## Again we load data from the package
-    data(mirnaobj);
-    ## Write a file as example of required input
-    write.table(mirnaobj@mirnaPathways, file="mirnaPathways.txt",
-        quote=FALSE, row.names=FALSE, col.names=TRUE, na="",
-    # --- Loadmirnapathways [] ---
-    # Key functions: loadmirnapathways
-    ## Load the gene to pathway associations
-    mirnaobj <- loadmirnapathways( mirnaobj=mirnaobj,
-        pathwayfile="mirnaPathways.txt",
-        pathwaycol="Pathway Name", genecol="Entrez Gene ID");
-    ## Display summary, noting the number of pathways reported
-    # --- Unique [] ---
-    # Key functions: runEnrichment
-    Groups = unique(mirnaobj@mirnaTable[,
-    	mirnaobj@columns["groupcol"] ]);
-    mirnaobj <- runEnrichment( mirnaobj=mirnaobj, Composite=TRUE,
-       groups=Groups[grep("^AD.+(UP|DOWN)",Groups)], permutations=0 );
-    # --- Mirnatable [] ---
+    # --- Pathway Matrix Extraction [] ---
     # Key functions: mirnaTable
-    finaltable <- mirnaTable( mirnaobj, groups=NULL, format="Tall",
-       Significance=0.1, pvalueTypes=c("pvalues","permpvalues"),
-       maxStringLength=42 );
-    ## Display only the first few rows of the best P-values...
-    finaltable[sort(finaltable[,"pvalues"], index.return=TRUE)$ix,][1:5,];
-    # --- Heatmap [] ---
-    # Key functions: mirnaTable, na
-    ## Example which calls heatmap function on the resulting data
-    widetable <- mirnaTable( mirnaobj, groups=NULL, format="Wide",
-        Significance=0.3, na.char=NA, pvalueTypes=c("pvalues") );
-    ## Assign 1 to NA values, assuming they're all equally
-    ## non-significant
-    # --- Newpage [] ---
-    # Key functions: newpage
-    ## grid.newpage()
-    ##
+    pathwaycol <- mirnaobj@columns["pathwaycol"]
+    pathwayidcol <- mirnaobj@columns["pathwayidcol"]
+    rownames(widetable) <- apply(
+        widetable[, c(pathwaycol, pathwayidcol)],
+        1,
+        function(i) paste(i, collapse = "-")
+    )
+    wt <- as.matrix(widetable[3:dim(widetable)[2]], mode = "numeric")
+
+
+    # --- Pathway Filtering and Heatmap Visualization [] ---
+    # Key functions: mirnaTable
+    pathwaySubset <- apply(wt, 1, function(i) length(i[i < 0.2]) > 1)
+    wt_sub <- wt[pathwaySubset, ]
+    heatmap(
+        log2(wt_sub),
+        scale = "row",
+        cexRow = 0.9,
+        margins = c(15, 12)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

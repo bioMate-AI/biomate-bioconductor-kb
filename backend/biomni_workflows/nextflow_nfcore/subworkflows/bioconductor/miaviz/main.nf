@@ -41,19 +41,55 @@ process BIOC_MIAVIZ {
     library(miaViz)
     library(jsonlite)
 
-    # --- plot Row Tree [] ---
+    # --- Prevalence and Feature Analysis [] ---
+    # Key functions: plotFeaturePrevalence, plotPrevalentAbundance, plotPrevalence
+    p_feat <- plotFeaturePrevalence(GlobalPatterns, rank = "Phylum",
+                                    detections = c(0, 0.001, 0.01, 0.1, 0.2))
+    p_prev_abund <- plotPrevalentAbundance(GlobalPatterns, rank = "Family",
+                                           colour_by = "Phylum")
+    p_prev <- plotPrevalence(GlobalPatterns,
+                             rank = "Phylum",
+                             detections = c(0.01, 0.1, 1, 2, 5, 10, 20)/100,
+                             prevalences = seq(0.1, 1, 0.1))
+
+
+    # --- Phylogenetic Tree Visualization [] ---
     # Key functions: plotRowTree
-    plotRowTree(altExp(GlobalPatterns,"Genus")[top_taxa,],
-    # --- plot Row Tree [] ---
-    # Key functions: plotRowTree, plotColGraph, altExp, metadata
-    plotRowTree(altExp(GlobalPatterns,"Genus")[top_taxa,],
+    genus_se <- mia::agglomerateByRank(GlobalPatterns, "Genus")
+    genus_se <- scater::addPerFeatureQC(genus_se)
+    SummarizedExperiment::rowData(genus_se)$log_mean <- log(
+        SummarizedExperiment::rowData(genus_se)$mean
+    )
+    SummarizedExperiment::rowData(genus_se)$detected <- (
+        SummarizedExperiment::rowData(genus_se)$detected / 100
+    )
+    top_taxa <- mia::getTop(genus_se, method = "mean", top = 100L,
+                            assay.type = "counts")
+    p_tree <- plotRowTree(genus_se[top_taxa, ],
+                          tip_colour_by = "log_mean",
+                          tip_size_by = "detected",
+                          show_label = TRUE)
+
+
+    # --- Column Graph Visualization [] ---
+    # Key functions: plotColGraph
     data(col_graph)
-    plotColGraph(col_graph,
-    # --- transform Assay [] ---
-    # Key functions: transformAssay, runMDS, plotReducedDim
-    library(miaTime)
-    data(hitchip1006, package = "miaTime")
-    tse <- transformAssay(tse, method = "relabundance")
+    genus_se <- mia::agglomerateByRank(GlobalPatterns, "Genus")
+    p_graph <- plotColGraph(col_graph,
+                            genus_se,
+                            colour_by = "SampleType",
+                            edge_colour_by = "weight",
+                            edge_width_by = "weight",
+                            show_label = TRUE)
+
+
+    # --- Metadata and Model Fit Visualization [] ---
+    # Key functions: plotColTile, plotDMNFit
+    data(dmn_se, package = "mia")
+    p_tile <- plotColTile(GlobalPatterns,
+                          x = "SampleType",
+                          y = "Primer")
+    p_dmn <- plotDMNFit(dmn_se, type = "laplace")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

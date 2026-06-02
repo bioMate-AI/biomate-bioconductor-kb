@@ -38,58 +38,41 @@ process BIOC_OMICSVIEWER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(omicsViewer)
     library(NS)
     library(jsonlite)
 
-    # --- Simple Pipeline [] ---
-    # Key functions: delim, path
-    library(omicsViewer)
-    library(Biobase)
-    packdir <- system.file("extdata", package = "omicsViewer")
-    # reading expression
-    expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
-    # --- Dend [] ---
-    # Key functions: hclust, dist, dendrogram, attr
-    # euclidean distance + complete linkage
-    hcl <- hclust(dist(expr))
-    dend <- as.dendrogram(hcl)
-    # correlation distance + ward.D linkage
-    hcl2 <- hclust(as.dist(1-cor(t(expr), use= "pair")), method = "ward.D")
-    # --- Simple Pipeline Continue [] ---
-    # Key functions: delim, path, read_gmt, gsAnnotIdList
-    # reading feature data
-    fd <- read.delim(file.path(packdir, "featureGeneral.tsv"), stringsAsFactors = FALSE)
-    # reading phenotype data
-    pd <- read.delim(file.path(packdir, "sampleGeneral.tsv"), stringsAsFactors = FALSE)
-    #  reading other datasets
-    # --- Add More Cols [] ---
-    # Key functions: exprs, correlationAnalysis, extendMetaData, omicsViewer
-    expr <- exprs(d)
+    # --- Data Preparation [] ---
+    # Key functions: prepOmicsViewer
+    expr <- matrix(runif(100), 10, 10)
+    rownames(expr) <- paste0("G", 1:10)
+    colnames(expr) <- paste0("S", 1:10)
+    pd <- data.frame(Origin = rep(c("RE", "ME"), each = 5),
+                     row.names = colnames(expr))
+    fd <- data.frame(Protein.ID = paste0("P", 1:10),
+                     row.names = rownames(expr))
+    tests <- rbind(c("Origin", "RE", "ME"))
+    d <- prepOmicsViewer(expr = expr, pData = pd, fData = fd,
+                         PCA = TRUE, pca.fillNA = TRUE,
+                         t.test = tests, ttest.fillNA = FALSE,
+                         SummarizedExperiment = FALSE)
+
+
+    # --- Correlation Analysis [] ---
+    # Key functions: correlationAnalysis, extendMetaData
+    expr <- matrix(runif(100), 10, 10)
+    rownames(expr) <- paste0("G", 1:10)
+    colnames(expr) <- paste0("S", 1:10)
+    pd <- data.frame(Origin = rep(c("RE", "ME"), each = 5),
+                     row.names = colnames(expr))
+    fd <- data.frame(Protein.ID = paste0("P", 1:10),
+                     row.names = rownames(expr))
+    d <- prepOmicsViewer(expr = expr, pData = pd, fData = fd,
+                         PCA = TRUE, SummarizedExperiment = FALSE)
+    drugData <- data.frame(DrugA = runif(10), DrugB = runif(10),
+                           row.names = colnames(expr))
     drugcor <- correlationAnalysis(expr, pheno = drugData[, 1:2])
     d <- extendMetaData(d, drugcor, where = "fData")
-    # saveRDS(d, file = "dtest.RDS")
-    ##  to open the viewer
-    # --- Write Extension 1 [] ---
-    # Key functions: NS, tagList, verbatimTextOutput
-    library(omicsViewer)
-    ctxt <- function(x) paste(
-      x[1:min(10, length(x))], collapse = ";"
-    )
-    ### extra tab 1 -- feature selected ###
-    # --- Write Extension 2 [] ---
-    # Key functions: NS, tagList, verbatimTextOutput, ns, renderText, ctxt
-    ### continue from above : extra tab 2 -- sample selected ###
-    exampleCustomeUI_2 <- function(id) {
-      ns <- NS(id)
-      tagList(
-        verbatimTextOutput(ns("txt"))
-    # --- Write Extension 3 [] ---
-    # Key functions: NS, tagList, triselector_ui, ns, reactive, fdata
-    selector_example_ui <- function(id) {
-      ns <- NS(id)
-      tagList(
-        # select variable
-        omicsViewer:::triselector_ui(ns("selector_id"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,23 +38,36 @@ process BIOC_PEPXMLTAB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(pepXMLTab)
     library(PSMfilter)
     library(jsonlite)
 
-    # --- Peptab [] ---
-    # Key functions: pepXML2tab
-    #MyriMatch example
-    pepxml <- system.file("extdata/pepxml", "Myrimatch.pepXML",
-        package="pepXMLTab")
-    tttt <- pepXML2tab(pepxml)
-    tttt[1:2,]
-    # --- Filter [] ---
+    # --- Peptide Spectrum Match Filtering [] ---
+    # Key functions: PSMfilter
+    passed_psm <- PSMfilter(
+        pep_tab,
+        pepFDR = 0.01,
+        scorecolumn = "mvh",
+        hitrank = 1,
+        minpeplen = 6,
+        decoyprefix = "rev_"
+    )
+
+
+    # --- Mascot pepXML Parsing and Filtering [] ---
     # Key functions: pepXML2tab, PSMfilter
-    ## MyriMatch example
-    pepxml <- system.file("extdata/pepxml", "Myrimatch.pepXML",
-            package="pepXMLTab")
-    tttt <- pepXML2tab(pepxml)
-    passed <- PSMfilter(tttt, pepFDR=0.01, scorecolumn='mvh', hitrank=1,
+    mascot_xml <- system.file(
+        "extdata/pepxml",
+        "Mascot.pepXML",
+        package = "pepXMLTab"
+    )
+    mascot_tab <- pepXML2tab(mascot_xml)
+    mascot_passed <- PSMfilter(
+        mascot_tab,
+        pepFDR = 0.05,
+        scorecolumn = "ion",
+        hitrank = 1
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,30 +38,31 @@ process BIOC_MAPFX {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(MAPFX)
     library(MapfxFFC)
     library(MapfxMPC)
     library(jsonlite)
 
-    # --- kable [] ---
-    # Key functions: kable
-    library(knitr)
-    df <- data.frame(
-    Filenam = c("p1_a12.fcs", "p2_d08.fcs", "p3_g1.fcs"), #should be the same as the GUID in the FCS files
-    # --- MapfxMPC impu example [] ---
-    # Key functions: MapfxMPC
-    data(ord.fcs.raw.meta.df.out_mpc)
-    data(ord.fcs.raw.mt_mpc)
-    dir.create(file.path(tempdir(), "MPC_impu_Output"))
-    # --- mapfxNorm MPC [] ---
-    # Key functions: MapfxMPC
-    data(ord.fcs.raw.meta.df.out_mpc)
-    data(ord.fcs.raw.mt_mpc)
-    dir.create(file.path(tempdir(), "MPC_NOimpu_Output"))
-    # --- mapfxNorm FFC [] ---
+    # --- FFC Normalisation [] ---
     # Key functions: MapfxFFC
     data(ord.fcs.raw.meta.df.out_ffc)
     data(ord.fcs.raw.mt_ffc)
-    dir.create(file.path(tempdir(), "FFCnorm_Output"))
+    MapfxFFC_obj <- MapfxFFC(
+        runVignette = TRUE,
+        runVignette_meta = ord.fcs.raw.meta.df.out_ffc,
+        runVignette_rawInten = ord.fcs.raw.mt_ffc,
+        FCSpath = NULL,
+        Outpath = file.path(tempdir(), "FFCnorm_Output"),
+        protein.v = c("CD3", "CD4", "CD8", "CD45"),
+        protein.upper.quantile = 0.9,
+        protein.lower.quantile = 0.1,
+        protein.min.quantile = 0.01,
+        plots.bkc.protein = TRUE,
+        plots.initM = TRUE,
+        plots.rmBatchEffect = TRUE,
+        cluster.analysis.protein = TRUE,
+        plots.cluster.analysis.protein = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

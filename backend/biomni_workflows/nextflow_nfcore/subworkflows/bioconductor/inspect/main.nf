@@ -41,14 +41,47 @@ process BIOC_INSPECT {
     library(INSPEcT)
     library(jsonlite)
 
-    # --- MA plot of DE results [] ---
-    # Key functions: plotMA
-    plotMA(diffrates, rate='synthesis', padj=1e-3)
-    # --- QuantifyExpressionsFromBAMs analysis [] ---
-    # Key functions: quantifyExpressionsFromBAMs, rep, newINSPEcT, inHeatmap, ratesFirstGuess, modelRates, plotGene, chisqmodel
-    totalAnnTabPCR <- system.file(package = 'INSPEcT', 'totalAnnTabPCR.csv')
-    nascentAnnTabPCR <- system.file(package = 'INSPEcT', 'nascentAnnTabPCR.csv')
-    inspectFromPCR(totalAnnTabPCR, nascentAnnTabPCR, labeling_time=1/6,
+    # --- Object Initialization [] ---
+    # Key functions: newINSPEcT, ratesFirstGuess, ratesFirstGuessVar
+    tpts <- c(0,1/6,1/3,1/2,1,1.5,2,4,8,12,16)
+    tL <- 1/6
+    nascentInspObj <- newINSPEcT(
+        tpts = tpts,
+        labeling_time = tL,
+        nascentExpressions = nasExp_DESeq2,
+        matureExpressions = matExp_DESeq2
+    )
+    first_guess_syn <- ratesFirstGuess(nascentInspObj, 'synthesis')
+    first_guess_deg <- ratesFirstGuess(nascentInspObj, 'degradation')
+
+
+    # --- Rate Modeling [] ---
+    # Key functions: modelRates, modelRatesNF, viewModelRates
+    nascentInspObj10 <- nascentInspObj[1:10]
+    nascentInspObj10 <- modelRates(nascentInspObj10)
+    modelled_synthesis <- viewModelRates(nascentInspObj10, 'synthesis')
+    nascentInspObj10NF <- modelRatesNF(nascentInspObj[1:10])
+
+
+    # --- Quality Control and Filtering [] ---
+    # Key functions: chisqmodel, featureNames, ratePvals, geneClass
+    chisq <- chisqmodel(nascentInspObj10)
+    discard <- which(chisq > 1e-2)
+    discarded_features <- featureNames(nascentInspObj10)[discard]
+    nascentInspObj_reduced <- nascentInspObj10[-discard]
+    pvals <- ratePvals(nascentInspObj10)
+    classes <- geneClass(nascentInspObj10)
+
+
+    # --- Visualization and Downstream Analysis [] ---
+    # Key functions: inHeatmap, plotGene, calculateRatePvals
+    inHeatmap(nascentInspObj10, type='model', clustering=FALSE)
+    plotGene(nascentInspObj10, ix="101206")
+    matureInspObj10 <- calculateRatePvals(
+        nascentInspObj10, 
+        p_goodness_of_fit = 0.2, 
+        p_variability = c(0.01, 0.01, 0.05)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

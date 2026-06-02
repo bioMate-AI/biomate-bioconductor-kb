@@ -41,76 +41,117 @@ process BIOC_PAA {
     library(PAA)
     library(jsonlite)
 
-    # --- Targets [] ---
-    # Key functions: files
-    targets <- read.table(file=list.files(system.file("extdata", package="PAA"),
-     pattern = "^targets", full.names = TRUE), header=TRUE)
-    print(targets[1:3,])
-    # --- Loadgpr [] ---
-    # Key functions: files, loadGPR
-    gpr <- system.file("extdata", package="PAA")
-    targets <- list.files(system.file("extdata", package="PAA"),
-       pattern = "dummy_targets", full.names=TRUE)
-    dummy.elist <- loadGPR(gpr.path=gpr, targets.path=targets,
-       array.type="ProtoArray")
-    # --- Plotarray1 [] ---
-    # Key functions: plotArray
-    plotArray(elist=elist, idx=3, data.type="bg", log=FALSE, normalized=FALSE,
-      aggregation="min", colpal="topo.colors")
-    # --- Plotarray2 [] ---
-    # Key functions: plotArray
-    plotArray(elist=elist, idx=3, data.type="fg", log=FALSE, normalized=FALSE,
-      aggregation="min", colpal="topo.colors")
-    # --- Batchfilter [] ---
-    # Key functions: batchFilter
-    lot1 <- elist$targets[elist$targets$Batch=='Batch1','ArrayID']
-    lot2 <- elist$targets[elist$targets$Batch=='Batch2','ArrayID']
-    elist.bF <- batchFilter(elist=elist, lot1=lot1, lot2=lot2, log=FALSE,
-     p.thresh=0.001, fold.thresh=3)
-    # --- Batchfilteranova [] ---
-    # Key functions: anova
-    elist.bF.a <- batchFilter.anova(elist=elist, log=FALSE, p.thresh=0.001,
-     fold.thresh=3)
-    elist <- elist.bF
-    # --- Plotnormmethods [] ---
-    # Key functions: plotNormMethods
-    ## plotNormMethods(elist=elist)
-    # --- Plotmaplots [] ---
-    # Key functions: plotMAPlots
-    plotMAPlots(elist=elist, idx=10)
-    # --- Normalizearrays [] ---
-    # Key functions: normalizeArrays
-    elist <- normalizeArrays(elist=elist, method="cyclicloess",
-    cyclicloess.method="fast")
-    # --- Batchadjust [] ---
-    # Key functions: batchAdjust
-    elist <- batchAdjust(elist=elist, log=TRUE)
-    # --- Plotarray3 [] ---
-    # Key functions: plotArray
-    plotArray(elist=elist, idx=3, data.type="fg", log=TRUE, normalized=TRUE,
-      aggregation="min", colpal="topo.colors")
-    # --- Volcanoplot1 [] ---
-    # Key functions: volcanoPlot
-    c1 <- paste(rep("AD",20), 1:20, sep="")
-    c2 <- paste(rep("NDC",20), 1:20, sep="")
-    #volcanoPlot(elist=elist.unlog, group1=c1, group2=c2, method="tTest",
-    volcanoPlot(elist=elist, group1=c1, group2=c2, log=TRUE, method="tTest",
-    p.thresh=0.01, fold.thresh=2)
-    # --- Volcanoplot2 [] ---
-    # Key functions: mMsMatrix, volcanoPlot
-    ## mMs.matrix1 <- mMs.matrix2 <- mMsMatrix(x=20, y=20)
-    ## volcanoPlot(elist=elist.unlog, group1=c1, group2=c2, log=FALSE, method="mMs",
-    ## p.thresh=0.01, fold.thresh=2, mMs.matrix1=mMs.matrix1,
-    ## mMs.matrix2=mMs.matrix2, above=1500, between=400)
-    # --- Pvalueplot1 [] ---
-    # Key functions: pvaluePlot
-    pvaluePlot(elist=elist, group1=c1, group2=c2, log=TRUE, method="tTest")
-    # --- Pvalueplot2 [] ---
-    # Key functions: mMsMatrix, pvaluePlot
-    ## mMs.matrix1 <- mMs.matrix2 <- mMsMatrix(x=20, y=20)
-    ## pvaluePlot(elist=elist.unlog, group1=c1, group2=c2, log=FALSE, method="mMs",
-    ## mMs.matrix1=mMs.matrix1, mMs.matrix2=mMs.matrix2, above=1500,
-    ## between=400)
+    # --- Background Correction and Normalization [] ---
+    # Key functions: backgroundCorrect, normalizeArrays, plotArray
+    elist <- backgroundCorrect(
+        elist,
+        method = "normexp",
+        normexp.method = "saddle"
+    )
+    elist <- normalizeArrays(
+        elist = elist,
+        method = "cyclicloess",
+        cyclicloess.method = "fast"
+    )
+    plotArray(
+        elist = elist,
+        idx = 3,
+        data.type = "fg",
+        log = TRUE,
+        normalized = TRUE,
+        aggregation = "min",
+        colpal = "topo.colors"
+    )
+
+
+    # --- Batch Effect Filtering and Adjustment [] ---
+    # Key functions: batchFilter, batchAdjust, plotMAPlots
+    lot1 <- elist$targets[elist$targets$Batch == "Batch1", "ArrayID"]
+    lot2 <- elist$targets[elist$targets$Batch == "Batch2", "ArrayID"]
+    elist_filtered <- batchFilter(
+        elist = elist,
+        lot1 = lot1,
+        lot2 = lot2,
+        log = FALSE,
+        p.thresh = 0.001,
+        fold.thresh = 3
+    )
+    elist <- batchAdjust(elist = elist_filtered, log = TRUE)
+    plotMAPlots(elist = elist, idx = 10)
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: volcanoPlot, pvaluePlot
+    c1 <- paste(rep("AD", 20), 1:20, sep = "")
+    c2 <- paste(rep("NDC", 20), 1:20, sep = "")
+    volcanoPlot(
+        elist = elist,
+        group1 = c1,
+        group2 = c2,
+        log = TRUE,
+        method = "tTest",
+        p.thresh = 0.01,
+        fold.thresh = 2
+    )
+    pvaluePlot(
+        elist = elist,
+        group1 = c1,
+        group2 = c2,
+        log = TRUE,
+        method = "tTest",
+        adjust = TRUE
+    )
+
+
+    # --- Feature Preselection [] ---
+    # Key functions: mMsMatrix, preselect
+    c1 <- paste(rep("AD", 20), 1:20, sep = "")
+    c2 <- paste(rep("NDC", 20), 1:20, sep = "")
+    elist_unlog <- elist
+    elist_unlog$E <- 2^(elist$E)
+    mMs_mat <- mMsMatrix(x = 20, y = 20)
+    pre_sel <- preselect(
+        elist = elist_unlog,
+        columns1 = c1,
+        columns2 = c2,
+        label1 = "AD",
+        label2 = "NDC",
+        log = FALSE,
+        discard.threshold = 0.5,
+        fold.thresh = 1.5,
+        discard.features = TRUE,
+        mMs.above = 1500,
+        mMs.between = 400,
+        mMs.matrix1 = mMs_mat,
+        mMs.matrix2 = mMs_mat,
+        method = "mMs"
+    )
+    elist_selected <- elist[-pre_sel$discard, ]
+
+
+    # --- Feature Visualization [] ---
+    # Key functions: plotFeatures, plotFeaturesHeatmap, printFeatures
+    cwd <- system.file(package = "PAA")
+    load(paste0(cwd, "/extdata/selectFeaturesResultsFreq.RData"))
+    plotFeatures(
+        features = selectFeatures.results$features,
+        elist = elist,
+        n1 = 20,
+        n2 = 20,
+        group1 = "AD",
+        group2 = "NDC"
+    )
+    plotFeaturesHeatmap(
+        features = selectFeatures.results$features,
+        elist = elist,
+        n1 = 20,
+        n2 = 20,
+        description = TRUE
+    )
+    features_df <- printFeatures(
+        features = selectFeatures.results$features,
+        elist = elist
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

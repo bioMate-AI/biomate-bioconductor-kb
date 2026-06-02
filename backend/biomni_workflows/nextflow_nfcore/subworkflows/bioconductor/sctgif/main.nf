@@ -38,30 +38,27 @@ process BIOC_SCTGIF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scTGIF)
     library(GeneSet)
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Gene Set [] ---
-    # Key functions: GeneSet
-    m_df = msigdbr(species = "Mus musculus",
-    category = "H")[, c("gs_name", "entrez_gene")]
-    hallmark = unique(m_df$gs_name)
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, reducedDims
-    sce <- SingleCellExperiment(assays = list(counts = DistalLungEpithelium))
-    reducedDims(sce) <- SimpleList(PCA=pca.DistalLungEpithelium)
-    # --- col Sums [] ---
-    # Key functions: colSums, normcounts
-    CPMED <- function(input){
-    libsize <- colSums(input)
-    median(libsize) * t(t(input) / libsize)
-    # --- setting T G I F [] ---
-    # Key functions: settingTGIF
-    settingTGIF(sce, gmt, reducedDimNames="PCA", assayNames="normcounts")
-    # --- calc T G I F [] ---
+    # --- Calculate TGIF Scores [] ---
     # Key functions: calcTGIF
-    calcTGIF(sce, ndim=3)
+    sce <- calcTGIF(
+        sce,
+        ndim = 3
+    )
+
+
+    # --- Generate HTML Report [] ---
+    # Key functions: reportTGIF
+    reportTGIF(
+        sce,
+        html.open = FALSE,
+        title = "scTGIF Report for DistalLungEpithelium dataset",
+        author = "Koki Tsuyuzaki"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

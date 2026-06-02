@@ -38,106 +38,79 @@ process BIOC_PHENSTAT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(PhenStat)
     library(PhenList)
     library(PhenStatReport)
     library(TFDataset)
     library(WhatIsNew)
     library(jsonlite)
 
-    # --- R Hide 000 [] ---
-    # Key functions: setenv, compactPDF
-    #Sys.setenv(R_GSCMD = "C:\\Program Files\\gs\\gs9.21\\bin\\gswin64.exe")
-    #tools::compactPDF(paths = 'C:\\Users\\hamedhm\\Google Drive\\At work\\ Publications. Shared with Terry and Jeremy\\PhenStat changes\\PhenStat_2.8.0\\PhenStat\\inst\\doc',gs_quality = "ebook")
-    suppressPackageStartupMessages(library(PhenStat))
-    # --- R Hide 001 [] ---
-    # Key functions: WhatIsNew
-    PhenStat:::WhatIsNew()
-    # --- R Hide002 [] ---
-    # Key functions: file
-    library(PhenStat)
-    dataset1 <- system.file("extdata", "test1.csv", package = "PhenStat")
-    dataset2 <- system.file("extdata", "test1.txt", package = "PhenStat")
-    # --- R Hide003 [] ---
-    # Key functions: PhenList, csv
-    # Default behaviour with messages
-    library(PhenStat)
-    dataset1 <- system.file("extdata", "test1.csv", package = "PhenStat")
-    test <- PhenList(dataset = read.csv(dataset1, na.strings = '-'),
-                     testGenotype = "Sparc/Sparc")
-    # --- R Hide004 [] ---
-    # Key functions: PhenList, csv
-    library(PhenStat)
-    dataset1 <- system.file("extdata", "test3.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(dataset1,na.strings = '-'),
-                     dataset.clean=TRUE,
-                     dataset.values.female=1,
-    # --- R Hide005 [] ---
-    # Key functions: PhenList, csv, getDataset
-    library(PhenStat)
-    dataset1 <- system.file("extdata", "test3.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(dataset1,na.strings = '-'),
-                     dataset.clean=TRUE,
-                     dataset.values.female=1,
-    # --- R Hide006 [] ---
-    # Key functions: PhenList, csv, testGenotype, refGenotype
-    library(PhenStat)
-    dataset2 <- system.file("extdata", "test2.csv", package="PhenStat")
-    test2 <- PhenList(dataset=read.csv(dataset2,na.strings = '-'),
-                      testGenotype="Arid4a/Arid4a",
-                      dataset.colname.weight="Weight.Value")
-    # --- R Hide007 [] ---
-    # Key functions: PhenList, csv, PhenStatReport
-    ## file <- system.file("extdata", "test1.csv", package = "PhenStat")
-    ## test = PhenStat:::PhenList(dataset = read.csv(file, na.strings = '-'),
-    ##                            testGenotype = "Sparc/Sparc")
-    ## PhenStatReport(test,
-    ##                depVariable = 'Bone.Area',
-    # --- R Hide008 [] ---
-    # Key functions: PhenList, csv, testDataset, analysisResults, finalModel
-    library(PhenStat)
-    dataset1 <- system.file("extdata", "test1.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(dataset1,na.strings = '-'),
-                     testGenotype="Sparc/Sparc",
-                     outputMessages=FALSE)
-    # --- R Hide009 [] ---
-    # Key functions: testFinalModel, classificationTag
-    PhenStat:::testFinalModel(result)
-    PhenStat:::classificationTag(result)
-    # --- R Hide010 [] ---
-    # Key functions: PhenList, csv, TFDataset, testDataset
-    file <- system.file("extdata", "test7_TFE.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(file,na.strings = '-'),
-                     testGenotype="het",
-                     refGenotype = "WT",
-                     dataset.colname.sex="sex",
-    # --- R Hide011 [] ---
-    # Key functions: PhenList, csv, testDataset
-    library(PhenStat)
-    file <- system.file("extdata", "test1.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(file,na.strings = '-'),
-                     testGenotype="Sparc/Sparc")
-    # RR method is called
-    # --- R Hide012 [] ---
-    # Key functions: PhenList, csv, testDataset, getVariable, method
-    library(PhenStat)
-    dataset_cat <- system.file("extdata", "test_categorical.csv", package="PhenStat")
-    test_cat <- PhenList(read.csv(dataset_cat,na.strings = '-'),testGenotype="Aff3/Aff3")
-    result_cat <- testDataset(test_cat,
-                              depVariable="Thoracic.Processes",
-    # --- R Hide013 [] ---
-    # Key functions: PhenList, csv, testDataset
-    library(PhenStat)
-    dataset1 <- system.file("extdata", "test1.csv", package="PhenStat")
-    # MM framework
-    test <- PhenList(dataset=read.csv(dataset1,na.strings = '-'),
-                     testGenotype="Sparc/Sparc",outputMessages=FALSE)
-    # --- R Hide014 [] ---
-    # Key functions: PhenList, csv, testDataset
-    library(PhenStat)
-    dataset_cat <- system.file("extdata", "test_categorical.csv", package="PhenStat")
-    test2 <- PhenList(dataset=read.csv(dataset_cat,na.strings = '-'),
-                      testGenotype="Aff3/Aff3",outputMessages=FALSE)
-    result2 <- testDataset(test2,
+    # --- Mixed Model Statistical Analysis [] ---
+    # Key functions: PhenList, testDataset
+    dataset_path <- system.file("extdata", "test1.csv", package = "PhenStat")
+    raw_data <- read.csv(dataset_path, na.strings = "-")
+    pheno_data <- PhenList(
+        dataset = raw_data,
+        testGenotype = "Sparc/Sparc",
+        outputMessages = FALSE
+    )
+    result <- testDataset(
+        pheno_data,
+        depVariable = "Bone.Area",
+        equation = "withoutWeight"
+    )
+
+
+    # --- Time Fixed Effect Analysis [] ---
+    # Key functions: PhenList, TFDataset, testDataset
+    file_path <- system.file("extdata", "test7_TFE.csv", package = "PhenStat")
+    raw_data <- read.csv(file_path, na.strings = "-")
+    test_list <- PhenList(
+        dataset = raw_data,
+        testGenotype = "het",
+        refGenotype = "WT",
+        dataset.colname.sex = "sex",
+        dataset.colname.genotype = "Genotype",
+        dataset.values.female = "f",
+        dataset.values.male = "m",
+        dataset.colname.weight = "body.weight",
+        dataset.colname.batch = "Date_of_procedure_start"
+    )
+    test_tf <- TFDataset(test_list, depVariable = "Cholesterol")
+    result_tf <- testDataset(test_tf, depVariable = "Cholesterol", method = "TF")
+
+
+    # --- Reference Range Framework [] ---
+    # Key functions: PhenList, testDataset
+    dataset_path <- system.file("extdata", "test1.csv", package = "PhenStat")
+    raw_data <- read.csv(dataset_path, na.strings = "-")
+    pheno_data <- PhenList(
+        dataset = raw_data,
+        testGenotype = "Sparc/Sparc",
+        outputMessages = FALSE
+    )
+    result_rr <- testDataset(
+        pheno_data,
+        depVariable = "Lean.Mass",
+        method = "RR"
+    )
+
+
+    # --- Categorical Association Testing [] ---
+    # Key functions: PhenList, testDataset
+    cat_path <- system.file("extdata", "test_categorical.csv", package = "PhenStat")
+    raw_cat <- read.csv(cat_path, na.strings = "-")
+    test_cat <- PhenList(
+        dataset = raw_cat,
+        testGenotype = "Aff3/Aff3",
+        outputMessages = FALSE
+    )
+    result_cat <- testDataset(
+        test_cat,
+        depVariable = "Thoracic.Processes",
+        method = "FE",
+        outputMessages = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

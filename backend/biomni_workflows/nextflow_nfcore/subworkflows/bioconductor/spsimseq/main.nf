@@ -41,21 +41,29 @@ process BIOC_SPSIMSEQ {
     library(SPsimSeq)
     library(jsonlite)
 
-    # --- heatscatter [] ---
-    # Key functions: heatscatter, ifelse, loess
-    par(mfrow=c(1,3), mar=c(4,4,4,1))
-    heatscatter(rowMeans(Y0.log.cpm), rowCVs(Y0.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
-    heatscatter(rowMeans(Y1.log.cpm), rowCVs(Y1.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
-    # --- col Data [] ---
-    # Key functions: colData, rowData
-    class(sim.data.sc1)
-    head(counts(sim.data.sc1)[, seq_len(5)])
-    colData(sim.data.sc1)
-    # --- heatscatter [] ---
-    # Key functions: heatscatter, ifelse, loess
-    par(mfrow=c(1,3), mar=c(4,4,4,1))
-    heatscatter(rowMeans(Y0.log.cpm), rowCVs(Y0.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
-    heatscatter(rowMeans(Y1.log.cpm), rowCVs(Y1.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
+    # --- Density Evaluation [] ---
+    # Key functions: evaluateDensities
+    gene_dens <- evaluateDensities(
+        sim_data_bulk,
+        newData = rownames(zhang.counts)[1]
+    )
+
+
+    # --- Single-Cell RNA-seq Simulation [] ---
+    # Key functions: SPsimSeq
+    sim_data_sc <- SPsimSeq(
+        n.sim = 1,
+        s.data = scNGP.data,
+        group = scNGP.data$characteristics..treatment,
+        n.genes = 4000,
+        batch.config = 1,
+        group.config = c(0.5, 0.5),
+        tot.samples = 100,
+        pDE = 0.1,
+        lfc.thrld = 0.5,
+        model.zero.prob = TRUE,
+        result.format = "SCE"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

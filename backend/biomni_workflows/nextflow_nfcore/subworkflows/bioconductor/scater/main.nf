@@ -38,26 +38,44 @@ process BIOC_SCATER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(scater)
     library(ZeiselBrainData)
     library(jsonlite)
 
-    # --- Log-normalize count data [] ---
-    # Key functions: plotHighestExprs, logNormCounts, getVarianceExplained, plotExplanatoryVariables
-    plotHighestExprs(example_sce, exprs_values = "counts")
+    # --- Normalisation and Variance Explanation [] ---
+    # Key functions: logNormCounts, getVarianceExplained, plotExplanatoryVariables
     example_sce <- logNormCounts(example_sce)
     vars <- getVarianceExplained(example_sce,
-    # --- Run PCA [] ---
-    # Key functions: plotExpression, runPCA, runTSNE, runUMAP, plotPCA
-    plotExpression(example_sce, rownames(example_sce)[1:6])
-    example_sce <- runPCA(example_sce)
-    str(reducedDim(example_sce, "PCA"))
-    # --- PCA plot of sample distances [] ---
-    # Key functions: plotPCA
-    plotPCA(example_sce, colour_by="Mog")
-    # --- ZeiselBrainData analysis [] ---
-    # Key functions: ZeiselBrainData, addPerCellQC, plotColData, plotExpression, plotReducedDim, plotTSNE
-    plotColData(example_sce, x = "sum", y="subsets_Mito_percent",
-    other_fields="tissue") + facet_wrap(~tissue)
+        variables=c("tissue", "total mRNA mol", "sex", "age"))
+    var_plot <- plotExplanatoryVariables(vars)
+
+
+    # --- Dimensionality Reduction [] ---
+    # Key functions: runPCA, runTSNE, runUMAP
+    example_sce <- runPCA(example_sce, ncomponents=20)
+    example_sce <- runTSNE(example_sce, perplexity=10,
+        dimred="PCA", n_dimred=10)
+    example_sce <- runUMAP(example_sce)
+
+
+    # --- Reduced Dimension Visualisation [] ---
+    # Key functions: plotPCA, plotTSNE, plotReducedDim
+    pca_plot <- plotPCA(example_sce, colour_by="Mog")
+    tsne_plot <- plotTSNE(example_sce, colour_by="Snap25")
+    reduced_plot <- plotReducedDim(example_sce, dimred="PCA",
+        colour_by="level1class")
+
+
+    # --- Gene Expression Visualisation [] ---
+    # Key functions: plotExpression, ggcells, ggfeatures
+    expr_plot <- plotExpression(example_sce,
+        rownames(example_sce)[1:6], x="level1class",
+        colour_by="tissue")
+    cell_plot <- ggcells(example_sce,
+        mapping=ggplot2::aes(x=level1class, y=Snap25))
+    colnames(example_sce) <- make.names(colnames(example_sce))
+    feat_plot <- ggfeatures(example_sce,
+        mapping=ggplot2::aes(x=featureType, y=X1772062111_E06))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

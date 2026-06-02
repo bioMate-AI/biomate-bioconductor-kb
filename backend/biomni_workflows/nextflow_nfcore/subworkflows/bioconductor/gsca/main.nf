@@ -43,41 +43,66 @@ process BIOC_GSCA {
     library(GSCAplot)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    library(GSCA)
-    data(Oct4ESC_TG)
-    head(Oct4ESC_TG[[1]]) ##Show some positive target genes of Oct4
-    head(Oct4ESC_TG[[2]]) ##Show some negative target genes of Oct4
-    # --- Frame [] ---
-    # Key functions: frame
-    Octpattern <- data.frame(
-          gsname=c("TF","TG"),
-          acttype="High",
-          cotype="Norm",
-          cutoff=0.1,
-    # --- Gsca [] ---
+    # --- Gene Set Co-expression Analysis [] ---
     # Key functions: GSCA
-    displayoct <- Octoutput <- GSCA(Octgenedata,Octpattern,"moe4302",Pval.co=0.05,directory=NULL)
-    displayoct[[1]]$SampleType <- substr(displayoct[[1]]$SampleType,1,25)
-    head(displayoct[[1]]) ## Partial results of the ranking table
-    # --- Gscaplot [] ---
+    Octoutput <- GSCA(
+        Octgenedata,
+        Octpattern,
+        "moe4302",
+        Pval.co = 0.05,
+        directory = NULL
+    )
+    displayoct <- Octoutput
+    displayoct[[1]]$SampleType <- substr(
+        displayoct[[1]]$SampleType, 1, 25
+    )
+
+
+    # --- Visualization [] ---
     # Key functions: GSCAplot
-    GSCAplot(Octoutput,N=5,plotfile=NULL,Title="GSCA plot of Oct4 in ESC")
-    # --- Data [] ---
-    # Key functions: activated
-    data(STAT1_TG) ### Note, only activated (+) STAT1 target genes were found
-    # --- Gsca [] ---
-    # Key functions: GSCA
-    Statoutput <- GSCA(Statgenedata,Statpattern,"hgu133a",Pval.co=0.05,directory=NULL)
-    head(Statoutput[[1]])
-    # --- Tabsearch [] ---
+    GSCAplot(
+        Octoutput,
+        N = 5,
+        plotfile = NULL,
+        Title = "GSCA plot of Oct4 in ESC"
+    )
+
+
+    # --- GEO Dataset Search [] ---
     # Key functions: tabSearch
-    GSE7123out <- tabSearch("GSE7123","hgu133a")
-    GSE7123out
-    # --- Gscaeda [] ---
+    GSE7123out <- tabSearch(
+        "GSE7123",
+        "hgu133a"
+    )
+
+
+    # --- Exploratory Data Analysis [] ---
     # Key functions: GSCAeda
-    GSE7123followup <- GSCAeda(Statgenedata,Statpattern,"hgu133a",GSE7123out,Pval.co=0.05,Ordering="Average",Title=NULL,outputdir=NULL)
+    data(STAT1_TG)
+    Statgenenum <- length(STAT1_TG)
+    Statgenedata <- data.frame(
+        gsname = c("TF", rep("TG", Statgenenum)),
+        gene = c(6772, STAT1_TG),
+        weight = 1,
+        stringsAsFactors = FALSE
+    )
+    Statpattern <- data.frame(
+        gsname = c("TF", "TG"),
+        acttype = "High",
+        cotype = "Norm",
+        cutoff = 0.1,
+        stringsAsFactors = FALSE
+    )
+    GSE7123followup <- GSCAeda(
+        Statgenedata,
+        Statpattern,
+        "hgu133a",
+        GSE7123out,
+        Pval.co = 0.05,
+        Ordering = "Average",
+        Title = NULL,
+        outputdir = NULL
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,38 +38,32 @@ process BIOC_HELLORANGES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HelloRanges)
     library(R_bedtools_intersect)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: import, time, pintersect, findOverlapPairs, unname, coverage
-    genome <- import("hg19.genome")
-    exons <- import("exons.bed", genome=genome)
-    gwas <- import("gwas.bed", genome=genome)
-    hesc.chromHmm <- import("hesc.chromHmm.bed", genome=genome)
-    # --- Quality control and filtering [] ---
-    # Key functions: bedtools_complement, setdiff, seqinfo, unstrand
-    bedtools_complement("-i exons.bed -g hg19.genome")
-    ## or without HelloRanges:
-    setdiff(as(seqinfo(exons), "GRanges"), unstrand(exons))
-    # --- Read alignment and quantification [] ---
-    # Key functions: bedtools_makewindows, unlist, eval, R_bedtools_intersect, countOverlaps, tileGenome, seqinfo
-    code <- bedtools_makewindows("-g hg19.genome -w 500000")
-    code
-    windows <- unlist(eval(code))
-    R_bedtools_intersect(windows, exons, c=TRUE)
-    ## or
-    # --- Bedtools intersect analysis [] ---
-    # Key functions: bedtools_intersect, eval, mcols, browserSession, genome, export, bedtools_merge, lengths
-    code <- bedtools_jaccard(
-        paste("-a fHeart-DS16621.hotspot.twopass.fdr0.05.merge.bed",
-              "-b fHeart-DS15839.hotspot.twopass.fdr0.05.merge.bed"))
-    heart_heart <- eval(code)
-    code <- bedtools_jaccard(
-    # --- Feature annotation [] ---
-    # Key functions: exons
-    ## library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    ## exons <- exons(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    # --- Computing Genomic Complement [] ---
+    # Key functions: bedtools_complement
+    complement_code <- bedtools_complement(
+        "-i exons.bed -g hg19.genome"
+    )
+    complement_ranges <- eval(complement_code)
+
+
+    # --- Calculating Genome Coverage [] ---
+    # Key functions: bedtools_genomecov
+    cov_code <- bedtools_genomecov(
+        "-i exons.bed -g hg19.genome"
+    )
+    cov_results <- eval(cov_code)
+
+
+    # --- Intersecting Genomic Intervals [] ---
+    # Key functions: bedtools_intersect
+    intersect_code <- bedtools_intersect(
+        "-a peaks.bed -b exons.bed -u"
+    )
+    intersect_ranges <- eval(intersect_code)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

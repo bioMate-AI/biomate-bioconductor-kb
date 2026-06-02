@@ -38,55 +38,38 @@ process BIOC_TIGRE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(tigre)
     library(GPPlot)
     library(GPRankTargets)
     library(jsonlite)
 
-    # --- Processdata [] ---
-    # Key functions: processData
-    ## drosophila_gpsim_fragment <-
-    ##   processData(drosophila_mmgmos_fragment,
-    ##               experiments=rep(1:3, each=12))
-    # --- Data [] ---
-    # Key functions: data
-    data(drosophila_gpsim_fragment)
-    # --- Gpplot [] ---
-    # Key functions: GPPlot, getAnnMap, annotation
-    ## GPPlot(st_models[[1]], nameMapping=getAnnMap("FLYBASE",
-    ##                         annotation(drosophila_gpsim_fragment)))
-    ## GPPlot(mt_model, nameMapping=getAnnMap("FLYBASE",
-    ##                   annotation(drosophila_gpsim_fragment)))
-    ## GPPlot(nt_model, nameMapping=getAnnMap("FLYBASE",
-    # --- Gpranktargets [] ---
-    # Key functions: GPRankTargets, scores
-    ## Rank the targets, filtering weakly expressed genes with average
-    ## expression z-score below 1.8
-    scores <- GPRankTargets(drosophila_gpsim_fragment, TF=twi,
-                            testTargets=targetProbes,
-                            options=list(quiet=TRUE),
-    # --- Generatemodels [] ---
-    # Key functions: generateModels, show
-    topmodel <- generateModels(drosophila_gpsim_fragment,
-                               scores[1])
-    show(topmodel)
-    # --- Gpranktargets [] ---
-    # Key functions: GPRankTargets, scores
-    ## Rank the targets, filtering weakly expressed genes with average
-    ## expression z-score below 1.8
-    scores <- GPRankTargets(drosophila_gpsim_fragment, TF=twi,
-                            knownTargets=targetProbes[1],
-                            testTargets=targetProbes[2:3],
-    # --- Processrawdata [] ---
-    # Key functions: processRawData
-    ## procData <- processRawData(data, times=c(...),
-    ##                            experiments=c(...))
-    # --- Scores [] ---
-    # Key functions: scores
-    ## export.scores(scores, datasetName='Drosophila',
-    ##               experimentSet='GPSIM/GPDISIM',
-    ##               database='database.sqlite',
-    ##               preprocData=drosophila_gpsim_fragment,
-    ##               models=models,
+    # --- GP Model Fitting [] ---
+    # Key functions: experimentalAllModels
+    gp_models <- experimentalAllModels(
+        dataset,
+        distrib = "normal",
+        clonelog = TRUE
+    )
+
+
+    # --- Target Ranking and Scoring [] ---
+    # Key functions: rankResults
+    ranked_results <- rankResults(
+        gp_models,
+        bootstrap = FALSE
+    )
+    top_targets <- ranked_results[1:10, ]
+
+
+    # --- Visualization of GP Fits [] ---
+    # Key functions: plotGP
+    target_gene <- rownames(top_targets)[1]
+    plotGP(
+        gp_models,
+        target_gene,
+        col = "red",
+        main = paste("GP Fit for Target:", target_gene)
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

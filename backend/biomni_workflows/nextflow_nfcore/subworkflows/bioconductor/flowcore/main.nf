@@ -41,20 +41,35 @@ process BIOC_FLOWCORE {
     library(flowCore)
     library(jsonlite)
 
-    # --- Data import and loading [] ---
-    # Key functions: compensate, getData, fsApply, gs_pop_add, recompute
-    if(require(openCyto)){
-    thisData <- getData(gs, "nonDebris") #get parent data
-    singlet_gate <- fsApply(thisData,
-    # --- Quality control and filtering [] ---
-    # Key functions: phenoData, pData
-    phenoData(fs)$Filename <- fsApply(fs,keyword, "$FIL")
-    pData(phenoData(fs))
-    # --- Keyword analysis [] ---
-    # Key functions: keyword, sample, sampleNames, fsApply, autoplot, spillover, compensate, estimateLogicle
-    qg <- quadGate("B710-A" = 2000, "R780-A" = 3000)
-    gs_pop_add(gs, qg, parent="CD3", names = c("CD8", "DPT", "CD4", "DNT"))
-    gs_pop_get_children(gs[[1]], "CD3")
+    # --- Spillover Compensation [] ---
+    # Key functions: spillover, compensate, fsApply
+    comp_list <- spillover(x)
+    comp <- comp_list[[1]]
+    x_comp <- compensate(x, comp)
+    comp_fs <- fsApply(fs, function(f) spillover(f)[[1]], simplify = FALSE)
+    fs_comp <- compensate(fs, comp_fs)
+
+
+    # --- Data Transformation [] ---
+    # Key functions: truncateTransform, transformList, transform
+    aTrans <- truncateTransform("truncate at 1", a = 1)
+    myTrans <- transformList("FL1-H", aTrans)
+    fs_transformed <- transform(fs, myTrans)
+
+
+    # --- Gating and Subsetting [] ---
+    # Key functions: rectangleGate, filter, Subset, split
+    rectGate <- rectangleGate(
+        filterId = "Fluorescence Region",
+        "FL1-H" = c(0, 12),
+        "FL2-H" = c(0, 12)
+    )
+    result <- filter(fs[[1]], rectGate)
+    smaller <- Subset(fs, rectGate)
+    split_list <- split(
+        smaller[[1]],
+        kmeansFilter("FSC-H" = c("Low", "Medium", "High"), filterId = "myKMeans")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

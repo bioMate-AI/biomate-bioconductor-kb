@@ -41,21 +41,79 @@ process BIOC_DEPINFER {
     library(DepInfeR)
     library(jsonlite)
 
-    # --- pivot_wider [] ---
-    # Key functions: pivot_wider, remove_rownames, column_to_rownames, processTarget
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("DepInfeR")
-    # --- Analysis of variance (ANOVA) [] ---
-    # Key functions: rename, anova
-    select(-missing_value_perc) %>%
-    rename(cancer_type = TCGA.classification) %>%
-    filter(rownames(mutation_GDSC) %in% colnames(importanceTab))
-    # --- gdsc t [] ---
-    # Key functions: diffImportance, rownames_to_column, gather, group_by, arrange
-    testRes <- diffImportance(importanceTab, cell_anno_final)
-    filter(mutName == "cancer_type") %>%
-    filter(p.adj < 0.05, FC > 0.1)
+    # --- Target Matrix Processing [Target Matrix Processing] ---
+    # Key functions: processTarget
+    data(targetsGDSC, package = "depinfer")
+    targetsGDSC$targetName <- ifelse(
+        targetsGDSC$targetName == "BCR", "BCR/ABL",
+        targetsGDSC$targetName
+    )
+    high_conf <- targetsGDSC[
+        targetsGDSC$targetClassification == "High confidence",
+    ]
+    targetMatrix <- reshape2::acast(
+        high_conf, drugID ~ targetName, value.var = "Kd"
+    )
+    ProcessTargetResults <- processTarget(
+        targetMatrix,
+        KdAsInput = TRUE,
+        removeCorrelated = TRUE
+    )
+    targetInput <- ProcessTargetResults$targetMatrix
+
+    # --- Response Matrix Preparation [Response Matrix Preparation] ---
+    # Key functions: processTarget
+    data(drug_response_GDSC, package = "depinfer")
+    resp_sub <- drug_response_GDSC[
+        drug_response_GDSC$`Drug Id` %in% rownames(targetInput),
+    ]
+    responseMatrix <- reshape2::acast(
+        resp_sub, `Drug Id` ~ `Cell line name`, value.var = "AUC"
+    )
+    responseMatrix <- responseMatrix[
+        , colSums(is.na(responseMatrix)) <= 24
+    ]
+    impRes <- missForest::missForest(t(responseMatrix))
+    responseMatrix_imputed <- t(impRes$ximp)
+    responseInput <- t(scale(t(responseMatrix_imputed)))
+
+    # --- Dependency Inference [Dependency Inference] ---
+    # Key functions: runLASSORegression
+    overlappedDrugs <- intersect(
+        rownames(responseInput),
+        rownames(targetInput)
+    )
+    targetInput <- targetInput[overlappedDrugs, ]
+    responseInput <- responseInput[overlappedDrugs, ]
+    param <- BiocParallel::MulticoreParam(workers = 2, RNGseed = 333)
+    result <- runLASSORegression(
+        TargetMatrix = targetInput,
+        ResponseMatrix = responseInput,
+        repeats = 3,
+        BPPARAM = param
+    )
+
+    # --- Dependency Visualization [Dependency Visualization] ---
+    # Key functions: runLASSORegression
+    data(mutation_GDSC, package = "depinfer")
+    useTar <- rowSums(result$coefMat != 0) > 0
+    importanceTab <- result$coefMat[useTar, ]
+    colnames(importanceTab) <- gsub("-", ".", colnames(importanceTab))
+    plotTab <- scale(t(importanceTab), center = FALSE, scale = TRUE)
+    mutation_GDSC$TCGA.classification[
+        mutation_GDSC$TCGA.classification == "BRCA"
+    ] <- "BRCAHer-"
+    mutation_GDSC$TCGA.classification <- factor(
+        mutation_GDSC$TCGA.classification,
+        levels = c("ALL", "AML", "DLBC", "BRCAHer-", "BRCAHer+")
+    )
+    pheatmap::pheatmap(
+        plotTab,
+        clustering_method = "ward.D2",
+        scale = "none",
+        fontsize = 9
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

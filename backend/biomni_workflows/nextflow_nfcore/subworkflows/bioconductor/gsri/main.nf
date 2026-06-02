@@ -38,102 +38,54 @@ process BIOC_GSRI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GSRI)
     library(F)
     library(GeneSet)
     library(Lkeys)
     library(jsonlite)
 
-    # --- Preparepdfcdffig [] ---
-    # Key functions: dunif, dexp, punif, pexp
-    x <- seq(0, 1, len=50)
-    r <- 0.2
-    rate <- 10
-    d0 <- dunif(x)
-    d1 <- dexp(x, rate)
-    # --- Pdffig [] ---
-    # Key functions: getOption, expression, italic, rho
-    getOption("SweaveHooks")[["fig"]]()
-    plot(x, d, type="n", xaxt="n", yaxt="n", ylim=c(0, max(d)), xlab=expression(paste("p-value ", italic(p))), ylab=expression(paste("probability density ", rho(p))), cex.lab=cex)
-    lines(c(0, 1), rep(1-r, 2), lwd=2, col="darkgray")
-    lines(x, d, lwd=2)
-    axis(1, at=seq(0, 1, len=5), labels=c(0, NA, 0.5, NA, 1), cex.axis=cex)
-    # --- Cdffig [] ---
-    # Key functions: getOption, expression, italic, F
-    getOption("SweaveHooks")[["fig"]]()
-    plot(x, c, type="n", xaxt="n", yaxt="n", xlim=c(0, 1), ylim=c(0, 1), xlab=expression(paste("p-value ", italic(p))), ylab=expression(paste("cumulative density ", F(p))), cex.lab=cex)
-    lines(c(0, 1), c(r, 1), lwd=2, col="darkgray")
-    lines(x, c, lwd=2)
-    axis(1, at=seq(0, 1, len=5), labels=c(0, NA, 0.5, NA, 1), cex.axis=cex)
-    # --- Extractdata [] ---
-    # Key functions: exprs, pData, phenoData
-    library(Biobase)
-    data(sample.ExpressionSet)
+    # --- GSRI with Gene Set Collections [] ---
+    # Key functions: gsri
+    data(sample.ExpressionSet, package="Biobase")
     eset <- sample.ExpressionSet
-    eset
-    exprs <- exprs(eset)
-    # --- Gsriallprobes [] ---
-    # Key functions: gsri
-    library(GSRI)
-    gAllProbes <- gsri(eset, phenotypes$type)
-    gAllProbes
-    # --- Gsriallgenesset [] ---
-    # Key functions: GeneSet, geneIds
-    library(GSEABase)
-    gs <- GeneSet(eset, setName="allGenes")
-    ind <- grep("^AFFX", geneIds(gs), invert=TRUE)
-    gsAllGenes <- gs[ind]
-    gsAllGenes
-    # --- Gsriallgenes [] ---
-    # Key functions: gsri
-    gAllGenesType <- gsri(eset, phenotypes$type, gsAllGenes, name="allGenesType")
-    gAllGenesSex <- gsri(exprs, phenotypes$sex, gsAllGenes, name="allGenesSex")
-    gAllGenesType
-    gAllGenesSex
-    # --- Gsrichr17 [] ---
-    # Key functions: getBroadSets, gsri
-    gsChr17 <- getBroadSets(system.file("extdata", "c1chr17.xml", package="GSRI"))
-    gsChr17
-    gChr17 <- gsri(eset, phenotypes$type, gsChr17)
-    gChr17
-    # --- Gsricol5 [] ---
-    # Key functions: getGmt, gsri, sortGsri, tempfile, export
-    gmt <- getGmt(system.file("extdata", "c1c10.gmt", package="GSRI"))
-    gCol5 <- gsri(eset, phenotypes$type, gmt)
-    gCol5
-    gCol5Sort <- sortGsri(gCol5, c("nRegGenes", "pRegGenes"))
-    summary(gCol5Sort)
-    # --- Gsriscoreftest [] ---
-    # Key functions: cut, gsri
-    phenotypes$class <- cut(phenotypes$score, seq(0, 1, length.out=4), label=c("low", "medium", "high"))
-    summary(phenotypes$class)
-    g3 <- gsri(eset, phenotypes$class, gsChr17, test=rowF)
-    g3
-    # --- Gsriallgenesargs [] ---
-    # Key functions: gsri
-    g3arg2 <- gsri(eset, phenotypes$class, gsChr17, test=rowF, name="chr17_2", nBoot=50, alpha=0.1, grenander=FALSE)
-    g3arg2
-    # --- Limmatest [] ---
-    # Key functions: lmFit, eBayes, gsri
-    library(limma)
-    limmaTest <- function(exprs, groups, id, index, testArgs) {
-        design <- cbind(offset=1, diff=groups)
-        fit <- lmFit(exprs[ ,index], design)
-        fit <- eBayes(fit)
-    # --- Plot1 [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    plot(g3)
-    # --- Plot2 [] ---
-    # Key functions: getOption
-    getOption("SweaveHooks")[["fig"]]()
-    plot(gCol5, 5, ecdf=list(type="o"), plot=list(xlab="p", main="GSRI results: chr9"), reg=list(col="lightblue", lty=1, lwd=1.5), gsri=list(col="darkblue"))
-    # --- Weights [] ---
-    # Key functions: exprs, Lkeys, factor, toTable
-    library(hgu95av2.db)
-    gNames <- rownames(exprs(eset))
-    ind <- Lkeys(hgu95av2GO) %in% gNames
-    evidence <- factor(toTable(hgu95av2GO)[ind,"Evidence"])
-    summary(evidence)
+    groups <- Biobase::pData(eset)$type
+    gmt_file <- system.file("extdata", "c1c10.gmt", package="GSRI")
+    gmt <- GSEABase::getGmt(gmt_file)
+    g_multi <- GSRI::gsri(eset, groups, gmt)
+
+
+    # --- Sorting and Exporting Results [] ---
+    # Key functions: sortGsri, export
+    data(sample.ExpressionSet, package="Biobase")
+    eset <- sample.ExpressionSet
+    groups <- Biobase::pData(eset)$type
+    gmt_file <- system.file("extdata", "c1c10.gmt", package="GSRI")
+    gmt <- GSEABase::getGmt(gmt_file)
+    g_multi <- GSRI::gsri(eset, groups, gmt)
+    g_sorted <- GSRI::sortGsri(g_multi, by = c("nRegGenes", "pRegGenes"))
+    export_file <- tempfile(fileext = ".txt")
+    GSRI::export(g_sorted, export_file)
+
+
+    # --- Custom Statistical Testing [] ---
+    # Key functions: gsri, rowF
+    data(sample.ExpressionSet, package="Biobase")
+    eset <- sample.ExpressionSet
+    scores <- Biobase::pData(eset)$score
+    classes <- cut(scores, seq(0, 1, length.out=4), label=c("low", "med", "high"))
+    gmt_file <- system.file("extdata", "c1c10.gmt", package="GSRI")
+    gmt <- GSEABase::getGmt(gmt_file)
+    g_custom <- GSRI::gsri(eset, classes, gmt, test = GSRI::rowF, nBoot = 50,
+        alpha = 0.1, grenander = FALSE)
+
+
+    # --- Visualization of GSRI Results [] ---
+    # Key functions: gsri, plot
+    data(sample.ExpressionSet, package="Biobase")
+    eset <- sample.ExpressionSet
+    groups <- Biobase::pData(eset)$type
+    g_res <- GSRI::gsri(eset, groups)
+    plot(g_res)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

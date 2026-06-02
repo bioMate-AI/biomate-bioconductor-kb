@@ -41,46 +41,62 @@ process BIOC_PODCALL {
     library(PoDCall)
     library(jsonlite)
 
-    # --- install_github [] ---
-    # Key functions: install_github, install_local
-    if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-    BiocManager::install("PoDCall")
-    # --- import Amplitude Data [] ---
-    # Key functions: importAmplitudeData
-    path <- system.file("extdata", "Amplitudes/", package="PoDCall")
-    dataList <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    str(dataList)
-    # --- import Sample Sheet [] ---
-    # Key functions: importSampleSheet
-    path <- system.file("extdata", "Sample_names.csv", package="PoDCall")
+    # --- Data Import [Importing ddPCR amplitude data and sample sheets] ---
+    # Key functions: importAmplitudeData, importSampleSheet
+    path_amp <- system.file("extdata", "Amplitudes/", package = "PoDCall")
+    path_ss <- system.file("extdata", "Sample_names.csv", package = "PoDCall")
     well_id <- c("A04", "B04", "D04")
-    sampleSheet <- importSampleSheet(sampleSheet=path, well_id=well_id,
-    # --- import Amplitude Data [] ---
-    # Key functions: importAmplitudeData, podcallThresholds
-    path <- system.file("extdata", "Amplitudes/", package="PoDCall")
-    ampData <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    thresholdTable <- podcallThresholds(plateData=ampData)
-    # --- import Amplitude Data [] ---
-    # Key functions: importAmplitudeData, podcallChannelPlot
-    path <- system.file("extdata", "Amplitudes/", package="PoDCall")
-    ampData <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    data("thrTable")
-    # --- import Amplitude Data [] ---
-    # Key functions: importAmplitudeData, podcallScatterplot
-    path <- system.file("extdata", "Amplitudes/", package="PoDCall")
-    ampData <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    well_id <- names(ampData)[1] # First well in list
-    # --- import Amplitude Data [] ---
-    # Key functions: importAmplitudeData, podcallHistogram
-    path <- system.file("extdata", "Amplitudes/", package="PoDCall")
-    ampData <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    well_id <- names(ampData)[1] # First well in list
-    # --- import Amplitude Data [] ---
-    # Key functions: importAmplitudeData, podcallMultiplot
-    path <- system.file("extdata", "Amplitudes/", package="PoDCall")
-    ampData <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    podcallMultiplot(plateData=ampData,
+    ampData <- importAmplitudeData(dataDirectory = path_amp, skipLines = 0)
+    sampleSheet <- importSampleSheet(
+        sampleSheet = path_ss,
+        well_id = well_id,
+        software = "QuantaSoft"
+    )
+
+    # --- Threshold Estimation [Calculating thresholds and concentrations] ---
+    # Key functions: podcallThresholds, podcallDdpcr
+    path_amp <- system.file("extdata", "Amplitudes/", package = "PoDCall")
+    ampData <- importAmplitudeData(dataDirectory = path_amp, skipLines = 0)
+    thresholdTable <- podcallThresholds(plateData = ampData)
+
+    # --- Single Well Visualization [Plotting channel amplitudes and scatterplots] ---
+    # Key functions: podcallChannelPlot, podcallScatterplot
+    path_amp <- system.file("extdata", "Amplitudes/", package = "PoDCall")
+    ampData <- importAmplitudeData(dataDirectory = path_amp, skipLines = 0)
+    data("thrTable", package = "PoDCall")
+    well_id <- names(ampData)[1]
+    podcallChannelPlot(
+        channelData = ampData[[well_id]][, 1],
+        thr = thrTable[well_id, "thr_target"],
+        channel = 1,
+        plotId = paste0(well_id, ", Ch1")
+    )
+    podcallScatterplot(
+        channelData = ampData[[well_id]][, 1],
+        thr = thrTable[well_id, "thr_target"],
+        channel = 1,
+        plotId = paste0(well_id, ", Ch1")
+    )
+
+    # --- Distribution and Multi-well Analysis [Plotting histograms and multi-well comparisons] ---
+    # Key functions: podcallHistogram, podcallMultiplot
+    path_amp <- system.file("extdata", "Amplitudes/", package = "PoDCall")
+    ampData <- importAmplitudeData(dataDirectory = path_amp, skipLines = 0)
+    data("thrTable", package = "PoDCall")
+    well_id <- names(ampData)[1]
+    podcallHistogram(
+        channelData = ampData[[well_id]][, 1],
+        thr = thrTable[well_id, "thr_target"],
+        channel = 1,
+        plotId = paste0(well_id, ", Ch1")
+    )
+    podcallMultiplot(
+        plateData = ampData,
+        thresholds = thrTable[names(ampData), ],
+        channel = "target",
+        colCh = 1
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

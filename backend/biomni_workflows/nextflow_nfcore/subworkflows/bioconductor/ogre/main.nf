@@ -38,20 +38,32 @@ process BIOC_OGRE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(OGRE)
     library(AnnotationHub)
     library(OGREDataSet)
     library(OGREDataSetFromDir)
     library(jsonlite)
 
-    # --- Access AnnotationHub resources [] ---
-    # Key functions: AnnotationHub, query
-    aH <- AnnotationHub()
-    q <- query(aH, c("GRanges","Homo sapiens", "CpG"))
-    # --- Object metadata inspection [] ---
-    # Key functions: OGREDataSetFromDir, loadAnnotations, fOverlaps, sumPlot, metadata, gvizPlot, summarizeOverlap, plotHist
-    myQueryFolder <- file.path(system.file('extdata', package = 'OGRE'),"query")
-    mySubjectFolder <- file.path(system.file('extdata', package = 'OGRE'),"subject")
-    myOGRE <- OGREDataSetFromDir(queryFolder=myQueryFolder,
+    # --- Overlap Calculation [] ---
+    # Key functions: fOverlaps, summarizeOverlap
+    myOGRE <- fOverlaps(myOGRE)
+    myOGRE <- summarizeOverlap(myOGRE)
+    detail_dt <- metadata(myOGRE)$detailDT
+
+
+    # --- Visualization [] ---
+    # Key functions: sumPlot, plotHist, covPlot, gvizPlot
+    myOGRE <- sumPlot(myOGRE)
+    myOGRE <- plotHist(myOGRE)
+    myOGRE <- covPlot(myOGRE)
+    myOGRE <- gvizPlot(
+        myOGRE, "ENSG00000142168",
+        showPlot = FALSE,
+        trackRegionLabels = setNames(
+            c("name", "name"),
+            c("genes", "CGI")
+        )
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

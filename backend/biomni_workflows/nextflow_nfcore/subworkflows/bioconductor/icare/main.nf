@@ -41,44 +41,54 @@ process BIOC_ICARE {
     library(iCARE)
     library(jsonlite)
 
-    # --- Load Data [] ---
-    # Key functions: data
-    data("bc_data", package="iCARE")
-    # --- Model 1A [] ---
-    # Key functions: computeAbsoluteRisk
-    res_snps_miss = computeAbsoluteRisk(model.snp.info = bc_72_snps,
-                          model.disease.incidence.rates = bc_inc,
-                          model.competing.incidence.rates = mort_inc,
-                          apply.age.start = 50,
-                          apply.age.interval.length = 30,
-    # --- Summary 1A [] ---
-    # Key functions: density
-    summary(res_snps_miss$risk)
-    summary(res_snps_miss$refs.risk)
-    plot(density(res_snps_miss$risk), lwd=2,
-      main="SNP-only Risk Stratification: Ages 50-80",
-      xlab="Absolute Risk of Breast Cancer")
-    # --- Model 1B [] ---
-    # Key functions: computeAbsoluteRisk
-    res_snps_dat = computeAbsoluteRisk(model.snp.info = bc_72_snps,
-                                    model.disease.incidence.rates = bc_inc,
-                                    model.competing.incidence.rates = mort_inc,
-                                    apply.age.start = 50,
-                                    apply.age.interval.length = 30,
-    # --- Plot 1B [] ---
-    # Key functions: density
-    plot(density(res_snps_dat$refs.risk), lwd=2,
-       main="Referent SNP-only Risk Distribution: Ages 50-80",
-       xlab="Absolute Risk of Breast Cancer")
-    abline(v=res_snps_dat$risk, col="red")
-    legend("topright", legend="New Profiles", col="red", lwd=1)
-    # --- Fit 2 [] ---
-    # Key functions: computeAbsoluteRisk
-    res_covs_snps = computeAbsoluteRisk(model.formula=bc_model_formula,
-                                             model.cov.info=bc_model_cov_info,
-                                             model.snp.info=bc_72_snps,
-                                             model.log.RR=bc_model_log_or,
-                                             model.ref.dataset=ref_cov_dat,
+    # --- Absolute Risk Estimation with Split Intervals [] ---
+    # Key functions: computeAbsoluteRiskSplitInterval
+    cov_info <- list(
+        list(name = "age", type = "continuous"),
+        list(name = "bmi", type = "continuous")
+    )
+    snp_info <- data.frame(
+        snp.name = c("rs1", "rs2"),
+        or = c(1.2, 1.1),
+        freq = c(0.2, 0.3)
+    )
+    res_split <- computeAbsoluteRiskSplitInterval(
+        model.formula = disease ~ age + bmi,
+        model.cov.info = cov_info,
+        model.snp.info = snp_info,
+        model.log.or = c(0.1, 0.2),
+        model.ref.dataset = data.frame(age = c(30, 40), bmi = c(22, 25)),
+        model.disease.incidence.rates = data.frame(
+            age = c(30, 40), rate = c(0.001, 0.002)
+        ),
+        model.competing.incidence.rates = data.frame(
+            age = c(30, 40), rate = c(0.0005, 0.001)
+        ),
+        apply.age.start = 30,
+        apply.age.interval.length = 20,
+        apply.cov.profile = data.frame(age = c(35), bmi = c(24)),
+        apply.snp.profile = data.frame(rs1 = c(1), rs2 = c(0)),
+        interval.cutpoints = c(30, 40, 50)
+    )
+
+
+    # --- Model Validation [] ---
+    # Key functions: modelValidation
+    val_data <- data.frame(
+        disease = c(1, 0, 1, 0),
+        age_start = c(30, 35, 40, 45),
+        age_end = c(50, 55, 60, 65),
+        follow_up = c(20, 20, 20, 20)
+    )
+    pred_risk <- c(0.05, 0.02, 0.08, 0.01)
+    validation_results <- modelValidation(
+        study.data = val_data,
+        outcome.name = "disease",
+        risk.prediction = pred_risk,
+        follow.up.time = "follow_up",
+        age.start = "age_start",
+        age.end = "age_end"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,19 +41,29 @@ process BIOC_VIDGER {
     library(vidger)
     library(jsonlite)
 
-    # --- Vsdegmatrix [] ---
-    # Key functions: vsDEGMatrix
-    ---------------------------------------------------------------------
-    vsDEGMatrix(data = df.deseq, d.factor = "condition", type = "deseq",
-        grey.scale = TRUE
-    )
-    # --- Data [] ---
+    # --- Pairwise Scatter Visualization [] ---
     # Key functions: vsScatterPlot
-    ---------------------------------------------------------------------
-    # Extract data frame from visualization
-    data("df.cuff")
-    tmp <- vsScatterPlot(
-       x = "hESC", y = "iPS", data = df.cuff, d.factor = NULL,
+    scatter_plot <- vsScatterPlot(
+        x = "WM",
+        y = "MM",
+        data = df.edger,
+        type = "edger",
+        d.factor = NULL,
+        title = TRUE,
+        grid = TRUE
+    )
+
+
+    # --- Multi-sample Scatter Matrix [] ---
+    # Key functions: vsScatterMatrix
+    scatter_matrix <- vsScatterMatrix(
+        data = df.cuff,
+        d.factor = NULL,
+        type = "cuffdiff",
+        comp = NULL,
+        title = TRUE,
+        grid = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

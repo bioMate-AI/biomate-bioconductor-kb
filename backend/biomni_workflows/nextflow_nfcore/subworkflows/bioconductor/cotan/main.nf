@@ -43,92 +43,44 @@ process BIOC_COTAN {
     library(GDIPlot)
     library(jsonlite)
 
-    # --- Setlogginglevel [] ---
-    # Key functions: setLoggingLevel, setLoggingFile, path, canUseTorch
-    ---------------------------------------------------------------------
-    outDir <- dataDir
-    # Log-level 2 was chosen to showcase better how the package works
-    # In normal usage a level of 0 or 1 is more appropriate
-    setLoggingLevel(2L)
-    # --- Cotan [] ---
-    # Key functions: COTAN, initializeMetaDataset, logThis, getMetadataElement, datasetTags
-    ---------------------------------------------------------------------
-    cond <- "mouse_cortex_E17.5"
-    obj <- COTAN(raw = sample.dataset)
-    obj <- initializeMetaDataset(obj,
-                                 GEO = GEO,
-    # --- Plot [] ---
-    # Key functions: ECDPlot
-    ---------------------------------------------------------------------
-    plot(ECDPlot(obj))
-    # --- Plot [] ---
-    # Key functions: cellSizePlot
-    ---------------------------------------------------------------------
-    plot(cellSizePlot(obj))
-    # --- Plot [] ---
-    # Key functions: genesSizePlot
-    ---------------------------------------------------------------------
-    plot(genesSizePlot(obj))
-    # --- Plot [] ---
-    # Key functions: scatterPlot
-    ---------------------------------------------------------------------
-    plot(scatterPlot(obj))
-    # --- Addelementtometadataset [] ---
-    # Key functions: addElementToMetaDataset, getCells, getCellsSize, dropGenesCells, cellSizePlot
-    ---------------------------------------------------------------------
-    cellsSizeThr <- 6000L
-    obj <- addElementToMetaDataset(obj, "Cells size threshold", cellsSizeThr)
-    cells_to_rem <- getCells(obj)[getCellsSize(obj) > cellsSizeThr]
+    # --- Quality Control Visualization [] ---
+    # Key functions: ECDPlot, cellSizePlot, genesSizePlot, scatterPlot
+    p_ecd <- ECDPlot(obj)
+    p_cell <- cellSizePlot(obj)
+    p_gene <- genesSizePlot(obj)
+    p_scat <- scatterPlot(obj)
+
+
+    # --- Size and Expression Filtering [] ---
+    # Key functions: addElementToMetaDataset, getCells, getCellsSize, dropGenesCells, getNumExpressedGenes
+    obj <- addElementToMetaDataset(obj, "Cells size threshold", 6000L)
+    cells_to_rem <- getCells(obj)[getCellsSize(obj) > 6000L]
     obj <- dropGenesCells(obj, cells = cells_to_rem)
-    # --- Addelementtometadataset [] ---
-    # Key functions: addElementToMetaDataset, getCells, getNumExpressedGenes, dropGenesCells, genesSizePlot
-    ---------------------------------------------------------------------
-    genesSizeHighThr <- 3000L
-    obj <- addElementToMetaDataset(obj, "Num genes high threshold",
-                                   genesSizeHighThr)
-    cells_to_rem <- getCells(obj)[getNumExpressedGenes(obj) > genesSizeHighThr]
-    # --- Addelementtometadataset [] ---
-    # Key functions: addElementToMetaDataset, dropGenesCells, mitochondrialPercentagePlot
-    ---------------------------------------------------------------------
-    mitPercThr <- 1.0
-    obj <- addElementToMetaDataset(obj, "Mitoc. perc. threshold", mitPercThr)
-    cells_to_rem <- rownames(mitSizes)[mitSizes[["mit.percentage"]] > mitPercThr]
+    obj <- addElementToMetaDataset(obj, "Num genes high threshold", 3000L)
+    cells_to_rem2 <- getCells(obj)[getNumExpressedGenes(obj) > 3000L]
+    obj <- dropGenesCells(obj, cells = cells_to_rem2)
+
+
+    # --- Mitochondrial Quality Control [] ---
+    # Key functions: mitochondrialPercentagePlot, addElementToMetaDataset, dropGenesCells, getGenes
+    mit_res <- mitochondrialPercentagePlot(obj, genePrefix = "^Mt")
+    mit_sizes <- mit_res[[2]]
+    obj <- addElementToMetaDataset(obj, "Mitoc. perc. threshold", 1.0)
+    cells_to_rem <- rownames(mit_sizes)[mit_sizes[["mit.percentage"]] > 1.0]
     obj <- dropGenesCells(obj, cells = cells_to_rem)
-    # --- Getgenes [] ---
-    # Key functions: getGenes, getCells, getCellsSize, dropGenesCells
-    ---------------------------------------------------------------------
     genes_to_rem <- getGenes(obj)[grep("^Mt", getGenes(obj))]
-    cells_to_rem <- getCells(obj)[which(getCellsSize(obj) == 0L)]
-    obj <- dropGenesCells(obj, genes_to_rem, cells_to_rem)
-    # --- Logthis [] ---
-    # Key functions: logThis, getNumCells
-    ---------------------------------------------------------------------
-    logThis(paste("n cells", getNumCells(obj)), logLevel = 1L)
-    # --- Addelementtometadataset [] ---
-    # Key functions: addElementToMetaDataset, clean, cleanPlots
-    ---------------------------------------------------------------------
+    obj <- dropGenesCells(obj, genes = genes_to_rem)
+
+
+    # --- Data Cleaning and Normalisation [] ---
+    # Key functions: addElementToMetaDataset, clean, cleanPlots, dropGenesCells
     obj <- addElementToMetaDataset(obj, "Num drop B group", 0L)
     obj <- clean(obj)
-    c(pcaCellsPlot, pcaCellsData, genesPlot,
-      UDEPlot, nuPlot, zoomedNuPlot) %<-% cleanPlots(obj)
-    # --- Addelementtometadataset [] ---
-    # Key functions: addElementToMetaDataset, getCells, getNu, dropGenesCells
-    ---------------------------------------------------------------------
-    UDELowThr <- 0.30
-    obj <- addElementToMetaDataset(obj, "Low UDE cells' threshold", UDELowThr)
-    obj <- addElementToMetaDataset(obj, "Num drop B group", 2L)
-    cells_to_rem <- getCells(obj)[getNu(obj) < UDELowThr]
-    # --- Clean [] ---
-    # Key functions: clean, cleanPlots
-    ---------------------------------------------------------------------
+    plots_res <- cleanPlots(obj)
+    pca_data <- plots_res[[2]]
+    cells_to_rem <- rownames(pca_data)[pca_data[["groups"]] == "B"]
+    obj <- dropGenesCells(obj, cells = cells_to_rem)
     obj <- clean(obj)
-    c(pcaCellsPlot, pcaCellsData, genesPlot,
-      UDEPlot, nuPlot, zoomedNuPlot) %<-% cleanPlots(obj)
-    plot(pcaCellsPlot)
-    # --- Plot [] ---
-    # Key functions: scatterPlot
-    ---------------------------------------------------------------------
-    plot(scatterPlot(obj))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

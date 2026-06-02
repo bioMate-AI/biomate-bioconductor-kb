@@ -38,27 +38,54 @@ process BIOC_HUMMINGBIRD {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(hummingbird)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- sampleDataset creatingSE [] ---
-    # Key functions: SummarizedExperiment
+    # --- Data Preparation [SummarizedExperiment] ---
+    # Key functions: SummarizedExperiment, GPos
+    pos_vec <- pos[, 1]
     assaysControl <- list(normM = normM, normUM = normUM)
     assaysCase <- list(abnormM = abnormM, abnormUM = abnormUM)
-    exampleSEControl <- SummarizedExperiment(assaysControl,
-    # --- sampleDataset pos [] ---
-    # Key functions: rowRanges
-    rowRanges(exampleSEControl)
-    rowRanges(exampleSECase)
-    # --- hummingbird em [] ---
+    exampleSEControl <- SummarizedExperiment(
+        assays = assaysControl, 
+        rowRanges = GPos("chr29", pos_vec)
+    )
+    exampleSECase <- SummarizedExperiment(
+        assays = assaysCase, 
+        rowRanges = GPos("chr29", pos_vec)
+    )
+
+    # --- Expectation-Maximization Estimation [EM Algorithm] ---
     # Key functions: hummingbirdEM
-    emInfo <- hummingbirdEM(experimentInfoControl = exampleSEControl,
-    # --- hummingbird postAdjustment [] ---
+    emInfo <- hummingbirdEM(
+        experimentInfoControl = exampleSEControl, 
+        experimentInfoCase = exampleSECase, 
+        binSize = 40
+    )
+
+    # --- DMR Detection and Post-Adjustment [Post-processing] ---
     # Key functions: hummingbirdPostAdjustment
     postAdjInfo <- hummingbirdPostAdjustment(
-    # --- hummingbird graph [] ---
+        experimentInfoControl = exampleSEControl, 
+        experimentInfoCase = exampleSECase, 
+        emInfo = emInfo, 
+        minCpGs = 10, 
+        minLength = 100, 
+        maxGap = 300
+    )
+    dmrs <- postAdjInfo$DMRs
+
+    # --- Visualization of Methylation Profiles [Visualisation] ---
     # Key functions: hummingbirdGraph
-    hummingbirdGraph(experimentInfoControl = exampleSEControl,
+    hummingbirdGraph(
+        experimentInfoControl = exampleSEControl, 
+        experimentInfoCase = exampleSECase, 
+        postAdjInfoDMRs = postAdjInfo$DMRs, 
+        coord1 = 107991, 
+        coord2 = 108350
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

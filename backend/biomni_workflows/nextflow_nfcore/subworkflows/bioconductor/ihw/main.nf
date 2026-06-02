@@ -38,24 +38,52 @@ process BIOC_IHW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(IHW)
     library(DESeqDataSet)
     library(jsonlite)
 
-    # --- Create DESeqDataSet [] ---
-    # Key functions: DESeqDataSet
-    library("DESeq2")
-    library("dplyr")
-    data("airway", package = "airway")
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: ggplot, geom_point, facet_grid, geom_histogram, facet_wrap
-    library("ggplot2")
-    gg <- ggplot(as.data.frame(ihwRes), aes(x = pvalue, y = adj_pvalue, col = group)) +
-    geom_point(size = 0.25) + scale_colour_hue(l = 70, c = 150, drop = FALSE)
-    # --- Ihw analysis [] ---
-    # Key functions: ihw, nbins, nfolds, weights, tibble, rejections, qplot
-    sim <- tibble(
-    X = runif(100000, min = 0, max = 2.5),         # covariate
-    H = rbinom(length(X), size = 1, prob = 0.1),   # hypothesis true or false
+    # --- Covariate Stratification [groups_by_filter] ---
+    # Key functions: groups_by_filter
+    de_results <- data.frame(
+        pvalue = runif(1000),
+        baseMean = rexp(1000, rate = 0.01),
+        log2FoldChange = rnorm(1000)
+    )
+    de_results$baseMeanGroup <- groups_by_filter(
+        de_results$baseMean,
+        8
+    )
+    de_results$lfcGroup <- groups_by_filter(
+        abs(de_results$log2FoldChange),
+        8
+    )
+
+    # --- Independent Hypothesis Weighting [ihw] ---
+    # Key functions: ihw, rejections, adj_pvalues
+    ihw_res <- ihw(
+        pvalue ~ baseMean,
+        data = de_results,
+        alpha = 0.1,
+        adjustment_type = "bh"
+    )
+    total_rejections <- rejections(ihw_res)
+    adjusted_pvals <- adj_pvalues(ihw_res)
+
+    # --- Model Diagnostics and Extraction [weights, nbins, nfolds] ---
+    # Key functions: weights, nbins, nfolds
+    ihw_weights <- weights(ihw_res)
+    level_weights <- weights(ihw_res, levels_only = TRUE)
+    num_bins <- nbins(ihw_res)
+    num_folds <- nfolds(ihw_res)
+
+    # --- Decision Boundary and Weight Visualization [plot] ---
+    # Key functions: plot
+    weight_plot <- plot(ihw_res)
+    boundary_plot <- plot(
+        ihw_res,
+        what = "decisionboundary"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

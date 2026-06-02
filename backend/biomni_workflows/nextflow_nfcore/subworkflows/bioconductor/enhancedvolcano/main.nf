@@ -44,21 +44,24 @@ process BIOC_ENHANCEDVOLCANO {
     library(EnhancedVolcano)
     library(jsonlite)
 
-    # --- Create DESeqDataSet [] ---
-    # Key functions: mapIds, DESeqDataSet, DESeq, results, lfcShrink, DESeqDataSetFromMatrix, mcols, EnhancedVolcano
-    library("pasilla")
-    pasCts <- system.file("extdata", "pasilla_gene_counts.tsv",
-    pasAnno <- system.file("extdata", "pasilla_sample_annotation.csv",
-    # --- Enhanced volcano plot [] ---
-    # Key functions: EnhancedVolcano, ifelse
-    p1 <- EnhancedVolcano(res,
-    lab = rownames(res),
-    selectLab = rownames(res)[which(names(keyvals) %in% c('high', 'low'))],
-    # --- Coord cartesian analysis [] ---
-    # Key functions: install_github, coord_cartesian, scale_x_continuous
-    ggplot2::coord_cartesian(xlim=c(-6, 6)) +
-    ggplot2::scale_x_continuous(
-    breaks=seq(-6,6, 1))
+    # --- Customized Volcano Plot with Connectors [] ---
+    # Key functions: EnhancedVolcano
+    EnhancedVolcano(
+        res,
+        lab = rownames(res),
+        x = "log2FoldChange",
+        y = "pvalue",
+        selectLab = c("VCAM1", "KCTD12", "ADAM12", "CXCL12"),
+        xlab = bquote(~Log[2]~ "fold change"),
+        pCutoff = 10e-14,
+        FCcutoff = 2.0,
+        pointSize = 4.0,
+        labSize = 6.0,
+        boxedLabels = TRUE,
+        drawConnectors = TRUE,
+        widthConnectors = 1.0,
+        colConnectors = "black"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

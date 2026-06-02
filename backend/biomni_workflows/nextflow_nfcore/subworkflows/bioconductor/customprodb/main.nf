@@ -38,6 +38,7 @@ process BIOC_CUSTOMPRODB {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(customProDB)
     library(Bed2Range)
     library(InputVcf)
     library(JunctionType)
@@ -50,103 +51,72 @@ process BIOC_CUSTOMPRODB {
     library(PrepareAnnotationEnsembl)
     library(jsonlite)
 
-    # --- Dbsnpversion [] ---
-    # Key functions: browserSession, genome, trackNames
-    ## library('rtracklayer')
-    ## session <- browserSession()
-    ## genome(session) <- 'hg19'
-    ## dbsnps <- trackNames(session)[grep('snp', trackNames(session), fixed=T)]
-    ## dbsnps
-    # --- Prepareannoref [] ---
-    # Key functions: tempdir, PrepareAnnotationRefseq
-    ## transcript_ids <- c("NM_001126112", "NM_033360", "NR_073499", "NM_004448",
-    ## 			"NM_000179", "NR_029605", "NM_004333", "NM_001127511")
-    ## pepfasta <- system.file("extdata", "refseq_pro_seq.fasta",
-    ## 				package="customProDB")
-    ## CDSfasta <- system.file("extdata", "refseq_coding_seq.fasta",
-    # --- Prepareannoensembl [] ---
-    # Key functions: useMart, tempdir, PrepareAnnotationEnsembl
-    ## ensembl <- useMart("ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl",
-    ##     host="may2015.archive.ensembl.org", path="/biomart/martservice",
-    ##     archive=FALSE)
-    ## annotation_path <- tempdir()
-    ## transcript_ids <- c("ENST00000234420", "ENST00000269305", "ENST00000445888",
-    # --- Calculate [] ---
-    # Key functions: calculateRPKM
-    load(system.file("extdata/refseq", "exon_anno.RData", package="customProDB"))
-    bamFile <- system.file("extdata/bams", "test1_sort.bam", package="customProDB")
-    load(system.file("extdata/refseq", "ids.RData", package="customProDB"))
-    RPKM <- calculateRPKM(bamFile, exon, proteincodingonly=TRUE, ids)
-    # --- Ouputpro [] ---
-    # Key functions: tempdir, Outputproseq
-    load(system.file("extdata/refseq", "proseq.RData", package="customProDB"))
-    outf1 <- paste(tempdir(), '/test_rpkm.fasta', sep='')
-    Outputproseq(RPKM, 1, proteinseq, outf1, ids)
-    # --- Inpvcf [] ---
-    # Key functions: InputVcf
-    # single sample
-    vcffile <- system.file("extdata/vcfs", "test1.vcf", package="customProDB")
-    vcf <- InputVcf(vcffile)
-    length(vcf)
-    vcf[[1]][1:3]
-    # --- Inpvcfm [] ---
-    # Key functions: InputVcf
-    # multiple samples in one VCF file
-    vcffile <- system.file("extdata", "test_mul.vcf", package="customProDB")
-    vcfs <- InputVcf(vcffile)
-    # --- Location [] ---
-    # Key functions: values, loadDb, Varlocation
-    table(values(vcf[[1]])[['INDEL']])
-    index <- which(values(vcf[[1]])[['INDEL']]==TRUE)
-    indelvcf <- vcf[[1]][index]
-    index <- which(values(vcf[[1]])[['INDEL']]==FALSE)
-    SNVvcf <- vcf[[1]][index]
-    # --- Poscoding [] ---
-    # Key functions: Positionincoding
-    load(system.file("extdata/refseq", "exon_anno.RData", package="customProDB"))
-    load(system.file("extdata/refseq", "dbsnpinCoding.RData", package="customProDB"))
-    load(system.file("extdata/refseq", "cosmic.RData", package="customProDB"))
-    postable_snv <- Positionincoding(SNVvcf, exon, dbsnpinCoding, COSMIC=cosmic)
-    postable_snv
-    # --- Aavar [] ---
-    # Key functions: aaVariation
-    load(system.file("extdata/refseq", "procodingseq.RData", package="customProDB"))
-    txlist <- unique(postable_snv[, 'txid'])
-    codingseq <- procodingseq[procodingseq[, 'tx_id'] %in% txlist,]
-    mtab <- aaVariation (postable_snv, codingseq)
-    mtab
-    # --- Outvarpro [] ---
-    # Key functions: tempdir, OutputVarproseq
-    outfile <-  paste(tempdir(), '/test_snv.fasta', sep='')
-    load(system.file("extdata/refseq", "proseq.RData", package="customProDB"))
-    OutputVarproseq(mtab, proteinseq, outfile, ids)
-    # --- Outabber [] ---
-    # Key functions: tempdir, Outputaberrant
-    txlist_indel <- unique(postable_indel[, 'txid'])
-    codingseq_indel <- procodingseq[procodingseq[, 'tx_id'] %in% txlist_indel, ]
-    outfile <-  paste(tempdir(), '/test_indel.fasta', sep='')
-    Outputaberrant(postable_indel, coding=codingseq_indel, proteinseq=proteinseq,
-    			outfile=outfile, ids=ids)
-    # --- Junctype [] ---
-    # Key functions: Bed2Range, JunctionType
-    bedfile <- system.file("extdata/beds", "junctions1.bed", package="customProDB")
-    jun <-  Bed2Range(bedfile,skip=1,covfilter=5)
-    jun
-    load(system.file("extdata/refseq", "splicemax.RData", package="customProDB"))
-    load(system.file("extdata/refseq", "ids.RData", package="customProDB"))
-    # --- Novjunc [] ---
-    # Key functions: tempdir, OutputNovelJun
-    outf_junc <- paste(tempdir(), '/test_junc.fasta',sep='')
-    library('BSgenome.Hsapiens.UCSC.hg19')
-    OutputNovelJun <- OutputNovelJun(junction_type, Hsapiens, outf_junc,
-            proteinseq)
-    # --- Sharedpro [] ---
-    # Key functions: files, calculateRPKM
-    path <- system.file("extdata/bams", package="customProDB")
-    bamFile<- paste(path, '/', list.files(path,pattern="*bam$"), sep='')
-    rpkms <- sapply(bamFile, function(x)
-    			calculateRPKM(x, exon, proteincodingonly=TRUE, ids))
-    #colnames(rpkms) <- c('1', '2', '3')
+    # --- Variant Processing and Annotation [] ---
+    # Key functions: InputVcf, Varlocation, Positionincoding
+    vcf_file <- system.file("extdata/vcfs", "test1.vcf", package="customProDB")
+    vcf <- InputVcf(vcf_file)
+    is_indel <- values(vcf[[1]])[['INDEL']]
+    snv_vcf <- vcf[[1]][which(!is_indel)]
+    txdb_file <- system.file("extdata/refseq", "txdb.sqlite", package="customProDB")
+    txdb <- AnnotationDbi::loadDb(txdb_file)
+    ids_file <- system.file("extdata/refseq", "ids.RData", package="customProDB")
+    load(ids_file)
+    snv_loc <- Varlocation(snv_vcf, txdb, ids)
+    exon_file <- system.file("extdata/refseq", "exon_anno.RData", package="customProDB")
+    load(exon_file)
+    dbsnp_file <- system.file("extdata/refseq", "dbsnpinCoding.RData", package="customProDB")
+    load(dbsnp_file)
+    cosmic_file <- system.file("extdata/refseq", "cosmic.RData", package="customProDB")
+    load(cosmic_file)
+    postable_snv <- Positionincoding(snv_vcf, exon, dbsnpinCoding, COSMIC=cosmic)
+
+
+    # --- Translation of Variants to Protein Sequences [] ---
+    # Key functions: aaVariation, OutputVarproseq, Outputaberrant
+    procoding_file <- system.file("extdata/refseq", "procodingseq.RData", package="customProDB")
+    load(procoding_file)
+    txlist <- unique(postable_snv[, "txid"])
+    codingseq <- procodingseq[procodingseq[, "tx_id"] %in% txlist, ]
+    mtab <- aaVariation(postable_snv, codingseq)
+    pro_file <- system.file("extdata/refseq", "proseq.RData", package="customProDB")
+    load(pro_file)
+    ids_file <- system.file("extdata/refseq", "ids.RData", package="customProDB")
+    load(ids_file)
+    out_snv <- tempfile(fileext=".fasta")
+    OutputVarproseq(mtab, proteinseq, out_snv, ids)
+
+
+    # --- Junction Analysis and Novel Junction Translation [] ---
+    # Key functions: Bed2Range, JunctionType, OutputNovelJun
+    bed_file <- system.file("extdata/beds", "junctions1.bed", package="customProDB")
+    jun <- Bed2Range(bed_file, skip=1, covfilter=5)
+    splicemax_file <- system.file("extdata/refseq", "splicemax.RData", package="customProDB")
+    load(splicemax_file)
+    ids_file <- system.file("extdata/refseq", "ids.RData", package="customProDB")
+    load(ids_file)
+    txdb_file <- system.file("extdata/refseq", "txdb.sqlite", package="customProDB")
+    txdb <- AnnotationDbi::loadDb(txdb_file)
+    junction_type <- JunctionType(jun, splicemax, txdb, ids)
+    pro_file <- system.file("extdata/refseq", "proseq.RData", package="customProDB")
+    load(pro_file)
+    out_junc <- tempfile(fileext=".fasta")
+    hg19 <- BSgenome::getBSgenome("BSgenome.Hsapiens.UCSC.hg19")
+    OutputNovelJun(junction_type, hg19, out_junc, proteinseq)
+
+
+    # --- Integrated Pipeline Execution [] ---
+    # Key functions: easyRun
+    bam_file <- system.file("extdata/bams", "test1_sort.bam", package="customProDB")
+    vcf_file <- system.file("extdata/vcfs", "test1.vcf", package="customProDB")
+    bed_file <- system.file("extdata", "junctions.bed", package="customProDB")
+    anno_path <- system.file("extdata/refseq", package="customProDB")
+    out_dir <- tempdir()
+    easyRun(
+        bamFile=bam_file, RPKM=NULL, vcffile=vcf_file,
+        annotation_path=anno_path, outfile_path=out_dir,
+        outfile_name="test_run", rpkm_cutoff=1, INDEL=TRUE,
+        lablersid=TRUE, COSMIC=TRUE, nov_junction=FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

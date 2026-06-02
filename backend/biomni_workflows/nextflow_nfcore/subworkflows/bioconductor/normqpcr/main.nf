@@ -38,91 +38,62 @@ process BIOC_NORMQPCR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(NormqPCR)
     library(ComputeNRQs)
     library(jsonlite)
 
-    # --- path [] ---
-    # Key functions: path, qPCR, exprs
-    library(ReadqPCR) # load the ReadqPCR library
-    library(NormqPCR)
-    path <- system.file("exData", package = "NormqPCR")
-    qPCR.example.techReps <- file.path(path, "qPCR.techReps.txt")
-    qPCRBatch.qPCR.techReps <- read.qPCR(qPCR.example.techReps)
-    # --- Combine Read.Qpcr.Tech.Reps [] ---
-    # Key functions: combineTechReps
-    combinedTechReps <- combineTechReps(qPCRBatch.qPCR.techReps)
-    combinedTechReps
-    # --- Taqman Read [] ---
-    # Key functions: path, taqman
-    path <- system.file("exData", package = "NormqPCR")
-    taqman.example <- file.path(path, "/example.txt")
-    qPCRBatch.taqman <- read.taqman(taqman.example)
-    # --- Taqman Detector Example [] ---
-    # Key functions: exprs
-    exprs(qPCRBatch.taqman)["Ccl20.Rn00570287_m1",]
-    # --- Replace Above Cutoff [] ---
-    # Key functions: replaceAboveCutOff, exprs
-    qPCRBatch.taqman.replaced <- replaceAboveCutOff(qPCRBatch.taqman,
-                                                    newVal = NA, cutOff = 35)
-    exprs(qPCRBatch.taqman.replaced)["Ccl20.Rn00570287_m1",]
-    # --- Replace Nas With 40 [] ---
-    # Key functions: replaceNAs, exprs
-    qPCRBatch.taqman.replaced <- replaceNAs(qPCRBatch.taqman, newNA = 40)
-    exprs(qPCRBatch.taqman.replaced)["Ccl20.Rn00570287_m1",]
-    # --- Construct Contrast Matrix [] ---
-    # Key functions: sampleNames
-    sampleNames(qPCRBatch.taqman)
-    a <- c(0,0,1,1,0,0,1,1) # one for each sample type, with 1 representing
-    b <- c(1,1,0,0,1,1,0,0) # position of sample type in samplenames vector
-    contM <- cbind(a,b)
-    colnames(contM) <- c("case","control") # set the names of each sample type
-    # --- Replace 3 Or More Nas With All Nas [] ---
-    # Key functions: makeAllNewVal
-    qPCRBatch.taqman.replaced <- makeAllNewVal(qPCRBatch.taqman, contM,
-                                               sMaxM, newVal=NA)
-    # --- Ccl20 Is Now All Nas [] ---
-    # Key functions: exprs
-    exprs(qPCRBatch.taqman.replaced)["Ccl20.Rn00570287_m1",]
-    # --- Normqpcr [] ---
-    # Key functions: exprs
-    options(width = 68)
-    data(geNorm)
-    str(exprs(geNorm.qPCRBatch))
-    # --- Genorm [] ---
-    # Key functions: factor, selectHKs, featureNames
-    tissue <- as.factor(c(rep("BM", 9),  rep("FIB", 20), rep("LEU", 13),
-                        rep("NB", 34), rep("POOL", 9)))
-    res.BM <- selectHKs(geNorm.qPCRBatch[,tissue == "BM"], method = "geNorm",
-                        Symbols = featureNames(geNorm.qPCRBatch),
-                        minNrHK = 2, log = FALSE)
-    # --- Table3 [] ---
-    # Key functions: frame
-    ranks <- data.frame(c(1, 1:9), res.BM$ranking, res.POOL$ranking,
-                        res.FIB$ranking, res.LEU$ranking,
-                        res.NB$ranking)
-    names(ranks) <- c("rank", "BM", "POOL", "FIB", "LEU", "NB")
-    ranks
-    # --- Fig2 [] ---
-    # Key functions: pal, matplot
-    library(RColorBrewer)
-    mypalette <- brewer.pal(5, "Set1")
-    matplot(cbind(res.BM$meanM, res.POOL$meanM, res.FIB$meanM,
-                  res.LEU$meanM, res.NB$meanM), type = "b",
-            ylab = "Average expression stability M",
-    # --- pal [] ---
-    # Key functions: pal, 3
-    mypalette <- brewer.pal(8, "YlGnBu")
-    barplot(cbind(res.POOL$variation, res.LEU$variation, res.NB$variation,
-                  res.FIB$variation, res.BM$variation), beside = TRUE,
-            col = mypalette, space = c(0, 2),
-            names.arg = c("POOL", "LEU", "NB", "FIB", "BM"),
-    # --- Normfinder [] ---
-    # Key functions: pData, stabMeasureRho, al
+    # --- Stability Analysis with NormFinder [] ---
+    # Key functions: stabMeasureRho, selectHKs, featureNames
     data(Colon)
-    Colon
-    Class <- pData(Colon)[,"Classification"]
+    Class <- pData(Colon)[, "Classification"]
     res.Colon <- stabMeasureRho(Colon, group = Class, log = FALSE)
-    sort(res.Colon) # see Table 3 in Andersen et al (2004)
+    sorted.Colon <- sort(res.Colon)
+    hk.NormFinder <- selectHKs(Colon, group = Class, log = FALSE,
+                               trace = FALSE,
+                               Symbols = featureNames(Colon),
+                               minNrHKs = 12,
+                               method = "NormFinder")
+
+
+    # --- Delta Cq Normalisation [] ---
+    # Key functions: deltaCq, exprs, featureNames
+    data(geNorm)
+    hkg <- featureNames(geNorm.qPCRBatch)[1]
+    qPCRBatch.norm <- deltaCq(qPCRBatch = geNorm.qPCRBatch,
+                              hkgs = hkg,
+                              calc = "arith")
+    norm.exprs <- exprs(qPCRBatch.norm)
+
+
+    # --- Delta Delta Cq Analysis [] ---
+    # Key functions: deltaDeltaCq, sampleNames, featureNames
+    data(geNorm)
+    hkg <- featureNames(geNorm.qPCRBatch)[1]
+    samples <- sampleNames(geNorm.qPCRBatch)
+    contM <- cbind(rep(c(1, 0), length.out = length(samples)),
+                   rep(c(0, 1), length.out = length(samples)))
+    colnames(contM) <- c("interestingPhenotype", "wildTypePhenotype")
+    rownames(contM) <- samples
+    ddCq.res <- deltaDeltaCq(qPCRBatch = geNorm.qPCRBatch,
+                             maxNACase = 5, maxNAControl = 5,
+                             hkg = hkg, contrastM = contM,
+                             case = "interestingPhenotype",
+                             control = "wildTypePhenotype",
+                             statCalc = "geom", hkgCalc = "arith")
+
+
+    # --- Relative Quantification with Efficiencies [] ---
+    # Key functions: combineTechRepsWithSD, ComputeNRQs, effs<-, se.effs<-
+    data(geNorm)
+    Cq.data1 <- combineTechRepsWithSD(geNorm.qPCRBatch)
+    effs.matrix <- matrix(1.9, nrow = nrow(Cq.data1), ncol = 1)
+    se.effs.matrix <- matrix(0.05, nrow = nrow(Cq.data1), ncol = 1)
+    rownames(effs.matrix) <- featureNames(Cq.data1)
+    rownames(se.effs.matrix) <- featureNames(Cq.data1)
+    effs(Cq.data1) <- effs.matrix
+    se.effs(Cq.data1) <- se.effs.matrix
+    res <- ComputeNRQs(Cq.data1, hkgs = featureNames(Cq.data1)[1:2])
+    nrqs <- exprs(res)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

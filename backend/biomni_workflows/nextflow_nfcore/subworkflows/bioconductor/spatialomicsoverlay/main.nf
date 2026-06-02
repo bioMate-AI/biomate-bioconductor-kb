@@ -41,68 +41,47 @@ process BIOC_SPATIALOMICSOVERLAY {
     library(SpatialOmicsOverlay)
     library(jsonlite)
 
-    # --- download Mouse Brain Image [] ---
-    # Key functions: downloadMouseBrainImage
-    tifFile <- downloadMouseBrainImage()
-    # --- Read in Data [] ---
-    # Key functions: readSpatialOverlay
-    muBrainLW <- system.file("extdata", "muBrain_LabWorksheet.txt",
-    muBrain <- readSpatialOverlay(ometiff = tifFile, annots = muBrainLW,
-    slideName = "D5761 (3)", image = FALSE,
-    # --- object accessors [] ---
-    # Key functions: slideName
-    head(sampNames(muBrain))
-    slideName(muBrain)
-    head(meta(overlay(muBrain)))
-    # --- plot w/o image Sample ID [] ---
-    # Key functions: plotSpatialOverlay
-    plotSpatialOverlay(overlay = muBrain, hiRes = FALSE, legend = FALSE)
-    # --- add plotting factors [] ---
-    # Key functions: readLabWorksheet, addPlottingFactor
-    muBrainAnnots <- readLabWorksheet(lw = muBrainLW, slideName = "D5761 (3)")
-    muBrainGeomxSet <- readRDS(unzip(system.file("extdata", "muBrain_GxT.zip",
-    muBrain <- addPlottingFactor(overlay = muBrain, annots = muBrainAnnots,
-    # --- customizable ggplot [] ---
-    # Key functions: plotSpatialOverlay, scale_color_viridis, labs
-    plotSpatialOverlay(overlay = muBrain, hiRes = FALSE, colorBy = "Calm1",
-    viridis::scale_color_viridis()+
-    ggplot2::labs(title = "Calm1 Expression in Mouse Brain")
-    # --- check Valid Res [] ---
-    # Key functions: checkValidRes, addImageOmeTiff, showImage
-    checkValidRes(ometiff = tifFile)
-    muBrain <- addImageOmeTiff(overlay = muBrain, ometiff = tifFile, res = res)
-    showImage(muBrain)
-    # --- plot with image [] ---
-    # Key functions: plotSpatialOverlay
-    plotSpatialOverlay(overlay = muBrain, colorBy = "segment", corner = "topcenter",
-    # --- fluorLegend in plotSpatialOverlay [] ---
-    # Key functions: plotSpatialOverlay
-    plotSpatialOverlay(overlay = muBrain, colorBy = "segment", corner = "topcenter",
-    # --- fluorLegend function [] ---
-    # Key functions: plotSpatialOverlay, fluorLegend, ggdraw, draw_plot
-    library(cowplot)
-    gp <- plotSpatialOverlay(overlay = muBrain, colorBy = "segment",
-    legend <- fluorLegend(muBrain, nrow = 2, textSize = 4,
-    # --- flip Y [] ---
-    # Key functions: flipY, plotSpatialOverlay
+    # --- Plotting Factor Annotation [] ---
+    # Key functions: addPlottingFactor
+    muBrain <- addPlottingFactor(
+        overlay = muBrain,
+        annots = muBrainAnnots,
+        plottingFactor = "segment"
+    )
+
+
+    # --- Image Integration [] ---
+    # Key functions: addImageOmeTiff, checkValidRes
+    res <- checkValidRes(ometiff = tifFile)
+    muBrain <- addImageOmeTiff(
+        overlay = muBrain,
+        ometiff = tifFile,
+        res = 8
+    )
+
+
+    # --- Spatial Visualization [] ---
+    # Key functions: plotSpatialOverlay, fluorLegend
+    gp <- plotSpatialOverlay(
+        overlay = muBrain,
+        colorBy = "segment",
+        corner = "topcenter",
+        scaleBarWidth = 0.5,
+        textDistance = 130,
+        scaleBarColor = "cyan"
+    )
+    legend <- fluorLegend(muBrain, nrow = 2, textSize = 4)
+
+
+    # --- Image Transformation and Cropping [] ---
+    # Key functions: flipY, cropTissue, cropSamples
     muBrain <- flipY(muBrain)
-    plotSpatialOverlay(overlay = muBrain, colorBy = "segment", scaleBar = FALSE)
-    plotSpatialOverlay(overlay = flipX(muBrain), colorBy = "segment", scaleBar = FALSE)
-    # --- crop Tissue [] ---
-    # Key functions: cropTissue, plotSpatialOverlay, scale_fill_viridis
     muBrain <- cropTissue(overlay = muBrain, buffer = 0.05)
-    plotSpatialOverlay(overlay = muBrain, colorBy = "ROILabel", legend = FALSE, scaleBar = FALSE)+
-    viridis::scale_fill_viridis(option = "C")
-    # --- crop Samples [] ---
-    # Key functions: cropSamples, plotSpatialOverlay, scale_fill_gradient2
-    muBrainAnnots$slide.name == slideName(muBrain)]
-    muBrainCrop <- cropSamples(overlay = muBrain, sampleIDs = samps, sampsOnly = TRUE)
-    plotSpatialOverlay(overlay = muBrainCrop, colorBy = "Calm1", scaleBar = TRUE,
-    # --- add4 Channel Image [] ---
-    # Key functions: add4ChannelImage, fluor, changeImageColoring, changeColoringIntensity, recolor
-    chan4 <- add4ChannelImage(overlay = muBrain)
-    fluor(chan4)
-    chan4 <- changeImageColoring(overlay = chan4, color = "#32a8a4", dye = "FITC")
+    muBrainCrop <- cropSamples(
+        overlay = muBrain,
+        sampleIDs = samps,
+        sampsOnly = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

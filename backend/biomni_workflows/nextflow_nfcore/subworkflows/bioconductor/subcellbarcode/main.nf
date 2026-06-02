@@ -41,27 +41,65 @@ process BIOC_SUBCELLBARCODE {
     library(SubCellBarCode)
     library(jsonlite)
 
-    # --- load Data [] ---
-    # Key functions: loadData
-    df <- loadData(protein.data = hcc827Ctrl)
-    # --- convert2symbol [] ---
-    # Key functions: convert2symbol
-    df <- convert2symbol(df = df, id = "UNIPROT")
-    # --- svm Classification [] ---
-    # Key functions: svmClassification
-    set.seed(4)
-    cls <- svmClassification(markerProteins = r.markers,
-    # --- plot Barcode [] ---
-    # Key functions: plotBarcode
-    plotBarcode(sampleClassification = cls.df, protein = "NLRP4",
-    # --- plot Multiple Protein [] ---
-    # Key functions: plotMultipleProtein
-    26S proteasome complex (26s proteasome regulatory complex)
-    proteasome26s <- c("PSMA7", "PSMC3","PSMA4", "PSMB4",
-    plotMultipleProtein(sampleClassification = cls.df, proteinList = proteasome26s)
-    # --- sankey Plot [] ---
-    # Key functions: sankeyPlot
-    sankeyPlot(sampleCls1 = cls.df, sampleCls2 = hcc827GEFClass)
+    # --- Dimensionality Reduction [] ---
+    # Key functions: tsneVisualization
+    tsne.map <- tsneVisualization(
+        protein.data = df_sub,
+        markerProteins = r.markers,
+        dims = 2,
+        theta = 0.5,
+        perplexity = 60
+    )
+
+
+    # --- Subcellular Classification [] ---
+    # Key functions: svmClassification, computeThresholdCompartment, applyThresholdCompartment, computeThresholdNeighborhood, applyThresholdNeighborhood, mergeCls
+    cls <- svmClassification(
+        markerProteins = r.markers,
+        protein.data = df_sub,
+        markerprot.df = markerProteins
+    )
+    test.A <- cls[[1]]$svm.test.prob.out
+    test.B <- cls[[2]]$svm.test.prob.out
+    all.A <- cls[[1]]$all.prot.pred
+    all.B <- cls[[2]]$all.prot.pred
+    t.c.df <- computeThresholdCompartment(test.repA = test.A, test.repB = test.B)
+    c.cls.df <- applyThresholdCompartment(
+        all.repA = all.A,
+        all.repB = all.B,
+        threshold.df = t.c.df
+    )
+    t.n.df <- computeThresholdNeighborhood(test.repA = test.A, test.repB = test.B)
+    n.cls.df <- applyThresholdNeighborhood(
+        all.repA = all.A,
+        all.repB = all.B,
+        threshold.df = t.n.df
+    )
+    cls.df <- mergeCls(compartmentCls = c.cls.df, neighborhoodCls = n.cls.df)
+
+
+    # --- Relocation Analysis [] ---
+    # Key functions: plotBarcode, plotMultipleProtein, candidateRelocatedProteins
+    plotBarcode(
+        sampleClassification = cls.df,
+        protein = "NLRP4",
+        s1PSM = hcc827CtrlPSMCount
+    )
+    proteasome26s <- c("PSMA7", "PSMC3", "PSMA4", "PSMB4")
+    plotMultipleProtein(
+        sampleClassification = cls.df,
+        proteinList = proteasome26s
+    )
+    candidate.df <- candidateRelocatedProteins(
+        sampleCls1 = cls.df,
+        s1PSM = hcc827CtrlPSMCount,
+        s1Quant = hcc827Ctrl,
+        sampleCls2 = hcc827GEFClass,
+        s2PSM = hcc827GefPSMCount,
+        s2Quant = hcc827GEF,
+        min.psm = 2,
+        pearson.cor = 0.8
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

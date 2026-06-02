@@ -41,47 +41,24 @@ process BIOC_MULTIMED {
     library(MultiMed)
     library(jsonlite)
 
-    # --- Simsingmed [] ---
-    # Key functions: rnorm
-    set.seed(20183)
-    alpha <- 0.2
-    beta <- 0.2
-    gamma <- 0.4
-    n <- 100
-    # --- Testsingmed [] ---
+    # --- Mediation Analysis [] ---
     # Key functions: medTest
-    medTest(E, M, Y, nperm = 500)
-    # --- Simmultmed [] ---
-    # Key functions: seed, rep
-    set.seed(380184)
-    alpha <- c(rep(0, 6), rep(0.3, 2), rep(0, 2))
-    beta <- c(rep(0, 6), rep(0, 2), rep(0.3, 2))
-    gamma <- 0.6
-    alpha
-    # --- Simmultmed2 [] ---
-    # Key functions: rnorm
-    K <- length(alpha)
-    ## exposure:
-    E <- rnorm(n, 0, sd = sqrt(sigma2E))
-    ## mediator:
-    M <- matrix(0, nrow = n, ncol = K)
-    # --- Testmultmed [] ---
+    meds_results <- medTest(
+        E = NavyAdenoma$Fish,
+        M = NavyAdenoma[, 6:154],
+        Y = NavyAdenoma$Adenoma,
+        Z = NavyAdenoma[, 2:5],
+        nperm = 500,
+        w = w,
+        useWeightsZ = FALSE
+    )
+
+
+    # --- Significant Mediator Identification [] ---
     # Key functions: medTest
-    medTest(E, M, Y, nperm = 500)
-    # --- Getweights [] ---
-    # Key functions: rep
-    prev <- 0.228
-    p <- sum(NavyAdenoma$Adenoma==1)/nrow(NavyAdenoma)
-    p
-    w <- rep(NA, nrow(NavyAdenoma))
-    w[NavyAdenoma$Adenoma == 1] <- prev/p
-    # --- Medfish [] ---
-    # Key functions: medTest
-    set.seed(840218)
-    medsFish <- medTest(E=NavyAdenoma$Fish,
-                        M=NavyAdenoma[, 6:154],
-                        Y=NavyAdenoma$Adenoma,
-                        Z=NavyAdenoma[, 2:5],
+    rownames(meds_results) <- colnames(NavyAdenoma[, -c(1:5, 154)])
+    top_mediators <- meds_results[order(meds_results[, "p"]), ]
+    best_mediator <- top_mediators[1, , drop = FALSE]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

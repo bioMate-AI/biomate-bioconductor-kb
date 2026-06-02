@@ -38,16 +38,57 @@ process BIOC_HICBRICKS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(HiCBricks)
     library(Brick_add_ranges)
     library(Brick_get_ranges)
     library(Brick_vizart_plot_heatmap)
     library(jsonlite)
 
-    # --- Load BrickContainer analysis [] ---
-    # Key functions: load_BrickContainer, Brick_vizart_plot_heatmap, Brick_add_ranges, Brick_get_ranges
-    BrickContainer_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
-    My_BrickContainer <- load_BrickContainer(project_dir = BrickContainer_dir)
-    Brick_vizart_plot_heatmap(File = file.path(tempdir(),
+    # --- Load Hi-C Matrix Data [] ---
+    # Key functions: load_BrickContainer, Brick_load_matrix
+    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
+    my_brick <- load_BrickContainer(project_dir = brick_dir)
+    example_dir <- system.file("extdata", package = "HiCBricks")
+    matrix_file <- file.path(example_dir,
+        "Sexton2012_yaffetanay_CisTrans_100000_corrected_chr2L.txt.gz")
+    Brick_load_matrix(Brick = my_brick,
+        chr1 = "chr2L", chr2 = "chr2L",
+        resolution = 100000, matrix_file = matrix_file,
+        delim = " ", remove_prior = TRUE)
+
+
+    # --- Query Genomic Ranges and Metadata [] ---
+    # Key functions: load_BrickContainer, Brick_get_bintable, Brick_get_ranges, Brick_return_region_position
+    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
+    my_brick <- load_BrickContainer(project_dir = brick_dir)
+    bin_table <- Brick_get_bintable(my_brick, resolution = 100000)
+    chr3r_ranges <- Brick_get_ranges(Brick = my_brick,
+        rangekey = "Bintable", chr = "chr3R", resolution = 100000)
+    region_pos <- Brick_return_region_position(Brick = my_brick,
+        region = "chr2L:5000000:10000000", resolution = 100000)
+
+
+    # --- Extract Matrix Values by Distance [] ---
+    # Key functions: load_BrickContainer, Brick_get_values_by_distance
+    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
+    my_brick <- load_BrickContainer(project_dir = brick_dir)
+    failsafe_median <- function(x) {
+        x[is.nan(x) | is.infinite(x) | is.na(x)] <- 0
+        return(median(log10(x + 1)))
+    }
+    dist_values <- Brick_get_values_by_distance(Brick = my_brick,
+        chr = "chr2L", distance = 4, resolution = 100000,
+        FUN = failsafe_median)
+
+
+    # --- Extract Sub-Matrix for Region [] ---
+    # Key functions: load_BrickContainer, Brick_get_matrix_within_coords
+    brick_dir <- file.path(tempdir(), "HiCBricks_vignette_test")
+    my_brick <- load_BrickContainer(project_dir = brick_dir)
+    sub_matrix <- Brick_get_matrix_within_coords(Brick = my_brick,
+        x_coords = "chr2L:5000000:10000000",
+        y_coords = "chr2L:5000000:10000000",
+        resolution = 100000, force = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

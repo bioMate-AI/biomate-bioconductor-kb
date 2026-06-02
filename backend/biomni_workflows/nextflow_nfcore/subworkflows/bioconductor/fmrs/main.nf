@@ -41,40 +41,39 @@ process BIOC_FMRS {
     library(fmrs)
     library(jsonlite)
 
-    # --- Code Block 2 [] ---
-    # Key functions: gendata
-    dat <- fmrs.gendata(nObs = nObs, nComp = nComp, nCov = nCov,
-                         coeff = c(coeff1, coeff2), dispersion = dispersion,
-                         mixProp = mixProp, rho = rho, umax = umax,
-                         disFamily = "lnorm")
-    # --- Code Block 3 [] ---
-    # Key functions: mle, rnorm
-    res.mle <- fmrs.mle(y = dat$y, x = dat$x, delta = dat$delta,
-                       nComp = nComp, disFamily = "lnorm",
-                       initCoeff = rnorm(nComp*nCov+nComp),
-                       initDispersion = rep(1, nComp),
-                       initmixProp = rep(1/nComp, nComp))
-    # --- Code Block 5 [] ---
-    # Key functions: tunsel, coefficients, dispersion, mixProp
-    res.lam <- fmrs.tunsel(y = dat$y, x = dat$x, delta = dat$delta,
-                          nComp = nComp, disFamily = "lnorm",
-                          initCoeff = c(coefficients(res.mle)),
-                          initDispersion = dispersion(res.mle),
-                          initmixProp = mixProp(res.mle),
-    # --- Code Block 7 [] ---
-    # Key functions: varsel, ncomp, coefficients, dispersion, mixProp
-    res.var <- fmrs.varsel(y = dat$y, x = dat$x, delta = dat$delta,
-                          nComp = ncomp(res.mle), disFamily = "lnorm",
-                          initCoeff=c(coefficients(res.mle)),
-                          initDispersion = dispersion(res.mle),
-                          initmixProp = mixProp(res.mle),
-    # --- Code Block 9 [] ---
-    # Key functions: 1, namespace
-    ## R version 4.4.1 (2024-06-14)
-    ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.1 LTS
-    ##
-    ## Matrix products: default
+    # --- Maximum Likelihood Estimation [] ---
+    # Key functions: fmrs.mle
+    res.mle <- fmrs.mle(
+        y = dat$y, x = dat$x, delta = dat$delta,
+        nComp = 2, disFamily = "lnorm",
+        initCoeff = rnorm(8),
+        initDispersion = rep(1, 2),
+        initmixProp = rep(1/2, 2)
+    )
+
+
+    # --- Tuning Parameter Selection [] ---
+    # Key functions: fmrs.tunsel, coefficients, dispersion, mixProp
+    res.lam <- fmrs.tunsel(
+        y = dat$y, x = dat$x, delta = dat$delta,
+        nComp = 2, disFamily = "lnorm",
+        initCoeff = c(coefficients(res.mle)),
+        initDispersion = dispersion(res.mle),
+        initmixProp = mixProp(res.mle),
+        penFamily = "LASSO"
+    )
+
+
+    # --- Variable Selection [] ---
+    # Key functions: fmrs.varsel, ncomp, coefficients, dispersion, mixProp
+    res.var <- fmrs.varsel(
+        y = dat$y, x = dat$x, delta = dat$delta,
+        nComp = ncomp(res.mle), disFamily = "lnorm",
+        initCoeff = c(coefficients(res.mle)),
+        initDispersion = dispersion(res.mle),
+        initmixProp = mixProp(res.mle),
+        penFamily = "LASSO"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

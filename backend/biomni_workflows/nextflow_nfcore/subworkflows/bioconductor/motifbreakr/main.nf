@@ -41,43 +41,47 @@ process BIOC_MOTIFBREAKR {
     library(motifbreakR)
     library(jsonlite)
 
-    # --- plot M B [] ---
-    # Key functions: plotMB
-    variants <- snps.from.rsid(rsid = pca.snps,
-    motifbreakr.results <- motifbreakR(snpList = variants, pwmList = MotifDb, threshold = 0.9)
-    plotMB(results = motifbreakr.results, rsid = "rs7837328", effect = "strong")
-    # --- kable [] ---
-    # Key functions: kable
-    knitr::kable(table(mcols(MotifDb)$organism, mcols(MotifDb)$dataSource), format = "html", table.attr="class=\"table table-striped table-hover\"")
-    # --- motifbreak R [] ---
+    # --- Variant Import from VCF [] ---
+    # Key functions: variants.from.file
+    vcf_file <- system.file("extdata", "chek2.vcf.gz", package = "motifbreakR")
+    snps_indel <- variants.from.file(
+        file = vcf_file,
+        search.genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19,
+        format = "vcf"
+    )
+
+
+    # --- Motif Disruption Analysis [] ---
     # Key functions: motifbreakR
-    results <- motifbreakR(snpList = snps.mb[1:12], filterp = TRUE,
-    pwmList = subset(MotifDb,
-    dataSource %in% c("HOCOMOCOv11-core-A", "HOCOMOCOv11-core-B", "HOCOMOCOv11-core-C")),
-    # --- calculate Pvalue [] ---
+    data("motifbreakR_motif", package = "motifbreakR")
+    results <- motifbreakR(
+        snpList = snps_mb,
+        filterp = TRUE,
+        pwmList = motifbreakR_motif[1:10],
+        threshold = 1e-4,
+        method = "ic",
+        bkg = c(A = 0.25, C = 0.25, G = 0.25, T = 0.25),
+        BPPARAM = BiocParallel::SerialParam()
+    )
+
+
+    # --- P-Value Estimation [] ---
     # Key functions: calculatePvalue
-    rs1006140 <- calculatePvalue(rs1006140, granularity = 1e-6)
-    # --- registered [] ---
-    # Key functions: registered, bpparam
-    BiocParallel::registered()
-    BiocParallel::bpparam()
-    # --- plot M B [] ---
+    results_p <- calculatePvalue(
+        results = results,
+        BPPARAM = BiocParallel::SerialParam()
+    )
+    strong_disruptions <- results_p[results_p$effect == "strong"]
+
+
+    # --- Visualisation [] ---
     # Key functions: plotMB
-    plotMB(results = results, rsid = "rs1006140", effect = "strong", altAllele = "G")
-    plotMB(results = results, rsid = "rs1006140", effect = "strong", altAllele = "C")
-    # --- shiny_motifbreak R [] ---
-    # Key functions: shiny_motifbreakR, runApp
-    app <- shiny_motifbreakR()
-    shiny::runApp(app)
-    # --- find Supporting Remap Peaks [] ---
-    # Key functions: findSupportingRemapPeaks
-    results <- findSupportingRemapPeaks(results,
-    # --- export M Btable [] ---
-    # Key functions: exportMBtable
-    exportMBtable(results, file = "mb_test_output.tsv", format = "tsv")
-    # --- export M Bbed [] ---
-    # Key functions: exportMBbed
-    exportMBbed(results, file = "mb_test_output.bed", color = "effect_size")
+    plotMB(
+        results = results,
+        rsid = "rs1006140",
+        effect = "strong",
+        altAllele = "G"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

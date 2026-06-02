@@ -38,6 +38,7 @@ process BIOC_GWASTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GWASTools)
     library(BAFfromGenotypes)
     library(GdsGenotypeReader)
     library(GdsIntensityReader)
@@ -47,20 +48,31 @@ process BIOC_GWASTOOLS {
     library(ScanAnnotationDataFrame)
     library(jsonlite)
 
-    # --- Annotation [] ---
-    # Key functions: annotation, ScanAnnotationDataFrame, varLabels, pData, varMetadata
-    ---------------------------------------------------------------------
-    # Load the scan annotation (simple data frame)
-    data(affy_scan_annot)
-    # Create a ScanAnnotationDataFrame
-    scanAnnot <- ScanAnnotationDataFrame(affy_scan_annot)
-    # --- Intensitydata [] ---
-    # Key functions: IntensityData, GdsIntensityReader, GenotypeData, GdsGenotypeReader, BAFfromGenotypes, close, created, SNPs
-    ---------------------------------------------------------------------
-    bl.file <- "tmp.bl.gds"
-    xyData <- IntensityData(GdsIntensityReader(xy.file),
-                            snpAnnot=snpAnnot)
-    genoData <- GenotypeData(GdsGenotypeReader(geno.file),
+    # --- Genotype Data File Creation [] ---
+    # Key functions: createDataFile
+    diag.geno <- createDataFile(path = path,
+                                filename = "tmp.geno.gds",
+                                file.type = "gds",
+                                variables = "genotype",
+                                snp.annotation = snp.annotation,
+                                scan.annotation = scan.annotation,
+                                sep.type = "\t",
+                                col.nums = col.nums,
+                                verbose = FALSE)
+
+
+    # --- Genotype Data Verification [] ---
+    # Key functions: GdsGenotypeReader, getGenotype, checkGenotypeFile
+    genofile <- GdsGenotypeReader("tmp.geno.gds")
+    genos <- getGenotype(genofile, snp = c(1, 5), scan = c(1, 3))
+    close(genofile)
+    check.geno <- checkGenotypeFile(path = path,
+                                    filename = "tmp.geno.gds",
+                                    file.type = "gds",
+                                    snp.annotation = snp.annotation,
+                                    scan.annotation = scan.annotation,
+                                    check.scan.index = 1:3,
+                                    verbose = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

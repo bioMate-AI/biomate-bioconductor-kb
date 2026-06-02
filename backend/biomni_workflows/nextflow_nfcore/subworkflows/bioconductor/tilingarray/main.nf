@@ -41,51 +41,19 @@ process BIOC_TILINGARRAY {
     library(tilingArray)
     library(jsonlite)
 
-    # --- Defgendata [] ---
-    # Key functions: sample
-    genData = function(lenx, nrSeg, nrRep=1, stddev=0.1) {
-      x  = matrix(as.numeric(NA), nrow=lenx, ncol=nrRep)
-      cp = sort(sample(1:floor(lenx/15), nrSeg-1) * 15)
-      cpb = c(1, cp, lenx+1)
-      s  = 0
-    # --- Plotdata [] ---
-    # Key functions: genData
-    set.seed(4711)
-    lenx = 1000
-    nrSeg = 10
-    gd = genData(lenx, nrSeg)
-    plot(gd$x, pch=".")
-    # --- Findsegments [] ---
-    # Key functions: segment
-    maxseg = 12
-    maxk = 500
-    seg  = segment(gd$x, maxk=maxk, maxseg=maxseg)
-    seg
-    seg@breakpoints[nrSeg+(-1:1)]
-    # --- Testcp [] ---
-    # Key functions: genData, segment
-    for(i in 1:20){
-      gd  = genData(lenx, nrSeg)
-      seg = segment(gd$x, maxk=maxk, maxseg=maxseg)
-      stopifnot(seg@breakpoints[[nrSeg]][, "estimate"] == gd$cp)
-    }
-    # --- Modelselect1 [] ---
-    # Key functions: genData, segment
-    nrSeg = 22
-    gd = genData(lenx, nrSeg, nrRep=2, stddev=1/3)
-    s = segment(gd$x, maxk=lenx, maxseg=as.integer(nrSeg * 2.5))
-    # --- Plotsimseg [] ---
-    # Key functions: row
-    par(mai=c(1,1,0.1,0.01))
-    plot(row(gd$x), gd$x, pch=".")
-    # --- Penllsim [] ---
-    # Key functions: plotPenLL
-    par(mai=c(1,1,0.1,0.01))
-    plotPenLL(s)
-    # --- Printmaxima [] ---
+    # --- Model Selection [] ---
     # Key functions: logLik
-    which.max(logLik(s, penalty="AIC"))
-    which.max(logLik(s, penalty="BIC"))
+    aic_val <- logLik(seg, penalty = "AIC")
+    bic_val <- logLik(seg, penalty = "BIC")
+    best_aic <- which.max(aic_val)
+    best_bic <- which.max(bic_val)
+
+
+    # --- Visualisation of Penalised Likelihood [] ---
+    # Key functions: plotPenLL
+    png("penalised_likelihood.png", width = 800, height = 600)
+    plotPenLL(seg)
+    dev.off()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

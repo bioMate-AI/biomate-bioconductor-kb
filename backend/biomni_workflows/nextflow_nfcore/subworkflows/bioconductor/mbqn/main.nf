@@ -41,30 +41,42 @@ process BIOC_MBQN {
     library(MBQN)
     library(jsonlite)
 
-    # --- mbqn Simu Data [] ---
-    # Key functions: mbqnSimuData, mbqnSimuDistortion
-    library("MBQN")
-    set.seed(1234)
-    mtx <- mbqnSimuData("omics.dep")
-    # --- mbqn Boxplot [] ---
+    # --- Feature Detection [] ---
+    # Key functions: mbqnGetNRIfeatures
+    res <- mbqnGetNRIfeatures(
+        mtx.mod,
+        low_thr = 0.5
+    )
+
+
+    # --- Quantile Normalization [] ---
+    # Key functions: mbqn, mbqnNRI
+    qn.mtx <- mbqn(
+        mtx.mod,
+        FUN = NULL,
+        verbose = FALSE
+    )
+    mbqn.mtx <- mbqn(
+        mtx.mod,
+        FUN = "median",
+        verbose = FALSE
+    )
+    qn.nri.mtx <- mbqnNRI(
+        mtx.mod,
+        FUN = "median",
+        low_thr = 0.5,
+        verbose = FALSE
+    )
+
+
+    # --- Visualisation and Quality Control [] ---
     # Key functions: mbqnBoxplot
-    plot.new()
-    mbqnBoxplot(mtx, irow = 1, main = "Unnormalized")
-    # --- mbqn Simu Data [] ---
-    # Key functions: mbqnSimuData
-    library("MBQN")
-    set.seed(1234)
-    mtx <- mbqnSimuData("omics.dep")
-    # --- mbqn Simu Data [] ---
-    # Key functions: mbqnSimuData, mbqnGetNRIfeatures
-    plot.new()
-    mtx <- mbqnSimuData("omics.dep", show.fig = FALSE)
-    mod.mtx <- mbqnSimuDistortion(mtx, s.mean = 0.05, s.scale = 0.01)
-    # --- matplot [] ---
-    # Key functions: matplot
-    plot.new()
-    matplot(t(rbind(feature1 = feature1,
-    mod.feature1 = (feature1mod-mean(feature1mod))/25+mean(feature1),
+    mbqnBoxplot(
+        mbqn.mtx,
+        irow = res$ip,
+        vals = data.frame(QN = qn.mtx[res$ip, ]),
+        main = "Normalized"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

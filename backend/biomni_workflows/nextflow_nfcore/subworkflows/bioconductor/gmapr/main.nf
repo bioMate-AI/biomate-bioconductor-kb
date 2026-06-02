@@ -38,6 +38,7 @@ process BIOC_GMAPR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(gmapR)
     library(BamTallyParam)
     library(GmapGenome)
     library(GsnapParam)
@@ -45,80 +46,24 @@ process BIOC_GMAPR {
     library(TP53Genome)
     library(jsonlite)
 
-    # --- Create Gmapgenome [] ---
-    # Key functions: requireNamespace, packages, path
-    ## library(gmapR)
-    ##
-    ## if (!suppressWarnings(require(BSgenome.Dmelanogaster.UCSC.dm3))) {
-    ##   if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##       install.packages("BiocManager")
-    # --- Get Tp53 Coordinates [] ---
-    # Key functions: transcripts, strand
-    library("org.Hs.eg.db")
-    library("TxDb.Hsapiens.UCSC.hg19.knownGene")
-    eg <- org.Hs.eg.db::org.Hs.egSYMBOL2EG[["TP53"]]
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    tx <- transcripts(txdb, filter = list(gene_id = eg))
-    # --- Get Tp53 Seq [] ---
-    # Key functions: getSeq, GmapGenome
-    library("BSgenome.Hsapiens.UCSC.hg19")
-    library("gmapR")
-    p53Seq <- getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, roi,
-                     as.character = FALSE)
-    names(p53Seq) <- "TP53"
-    # --- Set Tp53 Splicesites [] ---
-    # Key functions: subsetRegion, exonsBy, spliceSites
-    exons <- gmapR:::subsetRegion(exonsBy(txdb), roi, "TP53")
+    # --- Splice Site Annotation [] ---
+    # Key functions: spliceSites<-
     spliceSites(gmapGenome, "knownGene") <- exons
-    # --- Get Lung Cancer Fastqs [] ---
-    # Key functions: LungCancerFastqFiles
-    library("LungCancerLines")
-    fastqs <- LungCancerFastqFiles()
-    # --- Create Gsnapparam [] ---
+
+
+    # --- Alignment Parameter Configuration [] ---
     # Key functions: GsnapParam
-    ##specify how GSNAP should behave using a GsnapParam object
-    gsnapParam <- GsnapParam(genome=gmapGenome,
-                             unique_only=FALSE,
-                             suboptimal_levels=2L,
-                             npaths=10L,
-    # --- Align With Gsnap [] ---
-    # Key functions: gsnap, dm3
-    ## gsnapOutput <- gsnap(input_a=fastqs["H1993.first"],
-    ##                      input_b=fastqs["H1993.last"],
-    ##                      params=gsnapParam)
-    ##
-    ## ##gsnapOutput
-    # --- Get Gsnap Bam Files [] ---
-    # Key functions: path
-    ## ##> dir(path(gsnapOutput), full.names=TRUE, pattern="\\.bam$")
-    ## ##[1] "/local/Rtmporwsvr/file1cbc73503e9.1.nomapping.bam"
-    ## ##[2] "/local/Rtmporwsvr/file1cbc73503e9.1.unpaired_mult.bam"
-    ## ##[3] "/local/Rtmporwsvr/file1cbc73503e9.1.unpaired_transloc.bam"
-    ## ##[4] "/local/Rtmporwsvr/file1cbc73503e9.1.unpaired_uniq.bam"
-    # --- Tp53Genome Accessor [] ---
-    # Key functions: TP53Genome
-    genome <- TP53Genome()
-    # --- Run Bamtally [] ---
-    # Key functions: BamTallyParam, bam_tally, variantSummary
-    ## bam_file <- system.file("extdata/H1993.analyzed.bam",
-    ##                         package="LungCancerLines", mustWork=TRUE)
-    ## breaks <- c(0L, 15L, 60L, 75L)
-    ## bqual <- 56L
-    ## mapq <- 13L
-    # --- Create Gmapgenomepackge [] ---
-    # Key functions: makeGmapGenomePackage
-    ## makeGmapGenomePackage(gmapGenome=gmapGenome,
-    ##                       version="1.0.0",
-    ##                       maintainer="<your.name@somewhere.com>",
-    ##                       author="Your Name",
-    ##                       destDir="myDestDir",
-    # --- Create Hg19 Gmapgenome [] ---
-    # Key functions: requireNamespace, packages, GmapGenome
-    ## if (!suppressWarnings(require(BSgenome.Hsapiens.UCSC.hg19))) {
-    ##   if (!requireNamespace("BiocManager", quietly=TRUE))
-    ##       install.packages("BiocManager")
-    ##   BiocManager::install("BSgenome.Hsapiens.UCSC.hg19")
-    ##   library(BSgenome.Hsapiens.UCSC.hg19)
+    gsnapParam <- GsnapParam(
+        genome = gmapGenome,
+        unique_only = FALSE,
+        suboptimal_levels = 2L,
+        npaths = 10L,
+        novelsplicing = TRUE,
+        splicing = "knownGene",
+        indel_penalty = 1L,
+        distant_splice_penalty = 1L,
+        clip_overlap = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

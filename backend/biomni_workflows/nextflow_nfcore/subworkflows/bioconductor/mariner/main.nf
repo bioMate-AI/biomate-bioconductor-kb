@@ -38,20 +38,70 @@ process BIOC_MARINER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(mariner)
     library(GInteractions)
     library(GRanges)
     library(jsonlite)
 
-    # --- Create GenomicRanges object [] ---
-    # Key functions: GInteractions, GRanges, snapToBins
-    gi <- GInteractions(
-    anchor1 = c(
-    GRanges("chr1:1-15"),
-    # --- As ginteractions analysis [] ---
-    # Key functions: install_github, as_ginteractions, seqnames1, start1, end1, seqnames2, start2, binPairs
-    binned <- binPairs(x=gi, binSize = 1e3, pos1='center', pos2='center')
-    library(InteractionSet)
-    width(binned) |> lapply(unique)
+    # --- Merging and Clustering Pairs [] ---
+    # Key functions: mergePairs, getPairClusters, subsetBySource, sources
+    bedpeFiles <- c(
+        marinerData::FS_5kbLoops.txt(),
+        marinerData::WT_5kbLoops.txt()
+    )
+    names(bedpeFiles) <- c("FS", "WT")
+    giList <- lapply(
+        lapply(bedpeFiles, read.table, header = TRUE),
+        as_ginteractions
+    )
+    mgi <- mergePairs(
+        x = giList,
+        radius = 10e3,
+        column = "APScoreAvg",
+        selectMax = TRUE
+    )
+    clusters <- getPairClusters(mgi[12772])
+    unique_sources <- subsetBySource(mgi)
+
+
+    # --- Hi-C Pixel and Matrix Extraction [] ---
+    # Key functions: pullHicPixels, pullHicMatrices, pixelsToMatrices
+    hicFiles <- c(
+        marinerData::LEUK_HEK_PJA27_inter_30.hic(),
+        marinerData::LEUK_HEK_PJA30_inter_30.hic()
+    )
+    names(hicFiles) <- c("FS", "WT")
+    GenomeInfoDb::seqlevelsStyle(mgi) <- "ENSEMBL"
+    binned_100k <- binPairs(x = mgi, binSize = 100e3)
+    imat <- pullHicPixels(
+        x = binned_100k[1:1000],
+        files = hicFiles,
+        binSize = 100e3
+    )
+    regions <- pixelsToMatrices(x = binned_100k[1:1000], buffer = 1)
+    iarr <- pullHicMatrices(x = regions, files = hicFiles, binSize = 100e3)
+
+
+    # --- Matrix Aggregation and Visualisation [] ---
+    # Key functions: aggHicMatrices, plotMatrix
+    agg_interact <- aggHicMatrices(x = iarr, by = "interactions")
+    agg_files <- aggHicMatrices(x = iarr, by = "files")
+    agg_total <- aggHicMatrices(x = iarr)
+    plotMatrix(data = agg_total)
+
+
+    # --- Loop Enrichment Analysis [] ---
+    # Key functions: selectCenterPixel, selectTopLeft, selectBottomRight, calcLoopEnrichment
+    buffer <- 10
+    fg <- selectCenterPixel(mhDist = 0:1, buffer = buffer)
+    bg <- selectTopLeft(n = 2, buffer = buffer) +
+        selectBottomRight(n = 2, buffer = buffer)
+    enrich <- calcLoopEnrichment(
+        x = binned_100k[1:1000],
+        files = hicFiles,
+        fg = fg,
+        bg = bg
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

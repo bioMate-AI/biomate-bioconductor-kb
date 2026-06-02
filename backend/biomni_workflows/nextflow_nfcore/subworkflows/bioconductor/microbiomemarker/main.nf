@@ -41,21 +41,75 @@ process BIOC_MICROBIOMEMARKER {
     library(microbiomeMarker)
     library(jsonlite)
 
-    # --- Data import and preprocessing [] ---
-    # Key functions: import_dada2
-    seq_tab <- readRDS(
-    system.file(
-    tax_tab <- readRDS(
-    # --- Subset taxa by criteria [] ---
-    # Key functions: subset_taxa, run_lefse, run_sl, marker_table
-    set.seed(2021)
+    # --- Normalisation [] ---
+    # Key functions: normalize, norm_tss
+    data(enterotypes_arumugam, package = "microbiomeMarker")
+    ps_norm_tss <- norm_tss(enterotypes_arumugam)
+    ps_norm_cpm <- normalize(enterotypes_arumugam, method = "CPM")
+
+
+    # --- LEfSe Marker Discovery [] ---
+    # Key functions: run_lefse, marker_table
+    data(kostic_crc, package = "microbiomeMarker")
+    kostic_sub <- phyloseq::subset_taxa(
+        kostic_crc,
+        Phylum %in% c("Firmicutes")
+    )
+    mm_lefse <- run_lefse(
+        kostic_sub,
+        wilcoxon_cutoff = 0.01,
+        group = "DIAGNOSIS",
+        kw_cutoff = 0.01,
+        multigrp_strat = TRUE,
+        lda_cutoff = 4
+    )
+    lefse_markers <- marker_table(mm_lefse)
+
+
+    # --- Differential Abundance Analysis [] ---
+    # Key functions: run_edger, run_limma_voom, marker_table
+    data(pediatric_ibd, package = "microbiomeMarker")
+    mm_edger <- run_edger(
+        pediatric_ibd,
+        group = "Class",
+        pvalue_cutoff = 0.1,
+        p_adjust = "fdr"
+    )
+    mm_limma <- run_limma_voom(
+        pediatric_ibd,
+        group = "Class",
+        pvalue_cutoff = 0.1,
+        p_adjust = "fdr"
+    )
+    edger_markers <- marker_table(mm_edger)
+
+
+    # --- Machine Learning Marker Selection [] ---
+    # Key functions: run_sl, marker_table
+    data(enterotypes_arumugam, package = "microbiomeMarker")
     ps_small <- phyloseq::subset_taxa(
-    Phylum %in% c("Firmicutes", "Bacteroidetes")
-    # --- Data normalization [] ---
-    # Key functions: install_github, import_qiime2, norm_tss, normalize, run_lefse, run_test_two_groups, subset_samples, run_test_multiple_groups
-    pht <- run_posthoc_test(ps, group = "Enterotype")
-    markers <- marker_table(mg_anova)$feature
-    extract_posthoc_res(pht, "p__Bacteroidetes|g__Bacteroides")[[1]]
+        enterotypes_arumugam,
+        Phylum %in% c("Firmicutes", "Bacteroidetes")
+    )
+    mm_lr <- run_sl(
+        ps_small,
+        group = "Gender",
+        nfolds = 2,
+        nrepeats = 1,
+        taxa_rank = "Genus",
+        top_n = 15,
+        norm = "TSS",
+        method = "LR"
+    )
+    sl_markers <- marker_table(mm_lr)
+
+
+    # --- Visualisation [] ---
+    # Key functions: plot_abundance, plot_heatmap, plot_ef_bar, plot_ef_dot
+    p_abundance <- plot_abundance(mm_lefse, group = "DIAGNOSIS")
+    p_heatmap <- plot_heatmap(mm_edger, transform = "log10p", group = "Class")
+    p_ef_bar <- plot_ef_bar(mm_lefse)
+    p_ef_dot <- plot_ef_dot(mm_lefse)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

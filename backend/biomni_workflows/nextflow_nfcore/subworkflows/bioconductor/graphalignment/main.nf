@@ -38,6 +38,7 @@ process BIOC_GRAPHALIGNMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(GraphAlignment)
     library(AlignNetworks)
     library(AlignedPairs)
     library(AnalyzeAlignment)
@@ -48,66 +49,47 @@ process BIOC_GRAPHALIGNMENT {
     library(InitialAlignment)
     library(jsonlite)
 
-    # --- Vignette [] ---
-    # Key functions: edit
-    ## vignette(all=FALSE)
-    ## edit(vignette("GraphAlignment"))
-    # --- Generateexample [] ---
-    # Key functions: GenerateExample
-    library(GraphAlignment)
-    ex<-GenerateExample(dimA=22, dimB=22, filling=.5,
-        covariance=.6, symmetric=TRUE, numOrths=10, correlated=seq(1,18))
-    # --- Initialalignment [] ---
-    # Key functions: InitialAlignment
-    pinitial<-InitialAlignment(psize=34, r=ex$r, mode="reciprocal")
-    # --- Computelinkparameters [] ---
-    # Key functions: ComputeLinkParameters
-    linkParams<-ComputeLinkParameters(ex$a, ex$b, pinitial, lookupLink)
-    # --- Alignnetworks [] ---
-    # Key functions: AlignNetworks
-    al<-AlignNetworks(A=ex$a, B=ex$b, R=ex$r, P=pinitial,
-        linkScore=linkParams$ls,
-        selfLinkScore=linkParams$ls,
-        nodeScore1=nodeParams$s1, nodeScore0=nodeParams$s0,
-        lookupLink=lookupLink, lookupNode=lookupNode,
-    # --- Computescores [] ---
-    # Key functions: ComputeScores
-    ComputeScores(A=ex$a, B=ex$b, R=ex$r, P=al,
-        linkScore=linkParams$ls,
-        selfLinkScore=linkParams$ls,
-        nodeScore1=nodeParams$s1, nodeScore0=nodeParams$s0,
-        lookupLink=lookupLink, lookupNode=lookupNode,
-    # --- Analyzealignment [] ---
-    # Key functions: AnalyzeAlignment
-    AnalyzeAlignment(A=ex$a, B=ex$b, R=ex$r, P=al, lookupNode,
-        epsilon=.5)
-    # --- Generateexample [] ---
-    # Key functions: GenerateExample, InitialAlignment, ComputeLinkParameters
-    ex<-GenerateExample(30, 30, filling=1, covariance=.95,
-        numOrths=20, symmetric=FALSE)
-    a=ex$a;b=ex$b
-    a[a>.5]=1;a[a<=.5]=0
-    b[b>.5]=1;b[b<=.5]=0
-    # --- Alignedpairs [] ---
-    # Key functions: AlignedPairs
-    AlignedPairs(A, B, p0);
-    # --- Alignnetworks [] ---
-    # Key functions: AlignNetworks
-    al <- AlignNetworks(A, B, R, p0, linkParams$ls, linkParams$lsSelf, nodeParams$s1, nodeParams$s0, lookupLink, lookupNode, bStart = 0.001, bEnd = 1000, maxNumSteps = 100, clamp = TRUE);
-    # --- Computelinkparameters [] ---
+    # --- Parameter Estimation [] ---
     # Key functions: ComputeLinkParameters, ComputeNodeParameters
-    linkParams <- ComputeLinkParameters(A, B, al, lookupLink);
-    nodeParams <- ComputeNodeParameters(dim(A)[1], dim(B)[1], R, al, lookupNode);
-    # --- Alignnetworks [] ---
+    lookupLink <- seq(-2, 2, 0.5)
+    lookupNode <- c(-0.5, 0.5, 1.5)
+    linkParams <- ComputeLinkParameters(
+        ex$a, ex$b, pinitial, lookupLink
+    )
+    nodeParams <- ComputeNodeParameters(
+        dimA = 22, dimB = 22, ex$r,
+        pinitial, lookupNode
+    )
+
+
+    # --- Network Alignment [] ---
     # Key functions: AlignNetworks
-    al == AlignNetworks(A, B, R, al, linkParams$ls, linkParams$lsSelf, nodeParams$s1, nodeParams$s0, lookupLink, lookupNode, bStart = 0.001, bEnd = 1000, maxNumSteps = 100, clamp = TRUE);
-    # --- Alignedpairs [] ---
-    # Key functions: AlignedPairs
-    al;
-    AlignedPairs(A, B, al);
-    # --- Computescores [] ---
-    # Key functions: ComputeScores
-    ComputeScores(A, B, R, al, linkParams$ls, linkParams$lsSelf, nodeParams$s1, nodeParams$s0, lookupLink, lookupNode, symmetric = TRUE, clamp = TRUE);
+    al <- AlignNetworks(
+        A = ex$a, B = ex$b, R = ex$r, P = pinitial,
+        linkScore = linkParams$ls,
+        selfLinkScore = linkParams$ls,
+        nodeScore1 = nodeParams$s1, nodeScore0 = nodeParams$s0,
+        lookupLink = lookupLink, lookupNode = lookupNode,
+        bStart = 0.1, bEnd = 30,
+        maxNumSteps = 50
+    )
+
+
+    # --- Alignment Evaluation [] ---
+    # Key functions: ComputeScores, AnalyzeAlignment, AlignedPairs
+    scores <- ComputeScores(
+        A = ex$a, B = ex$b, R = ex$r, P = al,
+        linkScore = linkParams$ls,
+        selfLinkScore = linkParams$ls,
+        nodeScore1 = nodeParams$s1, nodeScore0 = nodeParams$s0,
+        lookupLink = lookupLink, lookupNode = lookupNode,
+        symmetric = TRUE
+    )
+    analysis <- AnalyzeAlignment(
+        A = ex$a, B = ex$b, R = ex$r, P = al,
+        lookupNode = lookupNode, epsilon = 0.5
+    )
+    pairs <- AlignedPairs(ex$a, ex$b, al)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

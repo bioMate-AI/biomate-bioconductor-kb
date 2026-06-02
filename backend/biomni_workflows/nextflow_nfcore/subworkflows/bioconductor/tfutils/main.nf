@@ -41,16 +41,12 @@ process BIOC_TFUTILS {
     library(TFutils)
     library(jsonlite)
 
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: geom_segment, ggplot, geom_point, myf, xlab
-    library(ggplot2)
-    myf = function(a=38077296, b=38078938)
-    geom_segment(aes(x=a, xend=b, y=2.85, yend=2.85,
-    # --- Table formatting and display [] ---
-    # Key functions: upset, include_graphics, kable, register, rowRanges, scanTabix, directHitsInCISBP
-    suppressPackageStartupMessages({library(UpSetR)})
-    allhg = keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")
-    activesym = unique(unlist(list(TFs_GO@HGNCmap[,2], TFs_HOCO@HGNCmap[,2], TFs_MSIG@HGNCmap[,2], TFs_CISBP@HGNCmap[,2])))
+    # --- Target and Trait Association Analysis [] ---
+    # Key functions: topTraitsOfTargets, directHitsInCISBP
+    data(cisbpTFcat)
+    load(system.file("legacy/ebicat37.rda", package="gwascat"))
+    direct_hits <- directHitsInCISBP("Rheumatoid arthritis", ebicat37)
+    top_traits <- topTraitsOfTargets("MTF1", TFutils::tftColl, ebicat37)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

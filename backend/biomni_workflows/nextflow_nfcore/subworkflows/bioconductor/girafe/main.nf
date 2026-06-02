@@ -38,71 +38,52 @@ process BIOC_GIRAFE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(girafe)
     library(AlignedGenomeIntervals)
     library(jsonlite)
 
-    # --- Loadreads [] ---
-    # Key functions: readFastq
-    ra23.wa  <- readFastq(dirPath=exDir, pattern=
-                          "aravinSRNA_23_plus_adapter_excerpt.fastq")
-    # --- Trimadapter [] ---
-    # Key functions: trimAdapter, show
-    adapter <- "CTGTAGGCACCATCAAT"
-    ra23.na  <- trimAdapter(ra23.wa, adapter)
-    show(ra23.na)
-    # --- Readaligned [] ---
-    # Key functions: readAligned, show
-    exA   <- readAligned(dirPath=exDir, type="Bowtie",
-       pattern="aravinSRNA_23_no_adapter_excerpt_mm9_unmasked.bwtmap")
-    show(exA)
-    # --- Convertaligned [] ---
-    # Key functions: organism
+    # --- Genome Interval Conversion [] ---
+    # Key functions: AlignedGenomeIntervals, organism
+    exDir <- system.file("extdata", package="girafe")
+    exA <- ShortRead::readAligned(
+        dirPath=exDir,
+        type="Bowtie",
+        pattern="aravinSRNA_23_no_adapter_excerpt_mm9_unmasked.bwtmap"
+    )
     exAI <- as(exA, "AlignedGenomeIntervals")
     organism(exAI) <- "Mm"
-    # --- Tabchromosomes [] ---
-    # Key functions: seqnames
-    table(seqnames(exAI))
-    # --- Showsubset [] ---
-    # Key functions: detail, seqnames
-    detail(exAI[seqnames(exAI)=="chrMT"])
-    # --- Setuptoy [] ---
-    # Key functions: AlignedGenomeIntervals, detail
-    D <- AlignedGenomeIntervals(
-         start=c(1,3,4,5,8,10,11), end=c(5,5,6,8,9,11,13),
-         chromosome=rep(c("chr1","chr2","chr3"), c(2,2,3)),
-         strand=c("-","-","+","+","+","+","+"),
-         sequence=c("ACATT","ACA","CGT","GTAA","AG","CT","TTT"),
-    # --- Showreducedata [] ---
-    # Key functions: seqnames, matches, detail
-    S <- exAI[seqnames(exAI)=="chrX" & matches(exAI)==1L & exAI[,1]>1e8]
-    detail(S)
-    # --- Reduceexample3 [] ---
-    # Key functions: seqnames, matches, detail, reduce
-    S2 <- exAI[seqnames(exAI)=="chr11" & matches(exAI)==1L & exAI[,1]>8e7]
-    detail(S2)
-    detail(reduce(S2, method="exact"))
-    # --- Exampleperwindow [] ---
+
+
+    # --- Interval Reduction [] ---
+    # Key functions: reduce, detail
+    S <- exAI[seqnames(exAI) == "chrX" & matches(exAI) == 1L & exAI[, 1] > 1e8]
+    S_reduced <- reduce(S)
+    detail(S_reduced)
+
+
+    # --- Window-based Coverage Analysis [] ---
     # Key functions: perWindow
-    exPX  <- perWindow(exAI, chr="chrX", winsize=1e5, step=0.5e5)
-    head(exPX[order(exPX$n.overlap, decreasing=TRUE),])
-    # --- Exportbed [] ---
-    # Key functions: export
-    ## export(exAI, con="export.bed",
-    ##        format="bed", name="example_reads",
-    ##        description="Example reads",
-    ##        color="100,100,255", visibility="pack")
-    # --- Getintervaloverlap [] ---
+    exPX <- perWindow(exAI, chr="chrX", winsize=1e5, step=0.5e5)
+    top_windows <- exPX[order(exPX$n.overlap, decreasing=TRUE), ]
+
+
+    # --- Genomic Feature Overlap [] ---
     # Key functions: interval_overlap
+    exDir <- system.file("extdata", package="girafe")
+    load(file.path(exDir, "mgi_gi.RData"))
     exOv <- interval_overlap(exAI, mgi.gi)
-    # --- Tableoverlap [] ---
-    # Key functions: listLen
-    table(listLen(exOv))
-    # --- list Len [] ---
-    # Key functions: listLen
-    mgi.gi$ID[exOv[[which.max(listLen(exOv))]]]
-    # --- Computetabov [] ---
-    # Key functions: unlist
-    (tabOv <- table(as.character(mgi.gi$type)[unlist(exOv)]))
+    tabOv <- table(as.character(mgi.gi$type)[unlist(exOv)])
+
+
+    # --- Genomic Interval Visualization [] ---
+    # Key functions: plot
+    exDir <- system.file("extdata", package="girafe")
+    load(file.path(exDir, "mgi_gi.RData"))
+    plot(
+        exAI, mgi.gi, chr="chrX",
+        start=50400000, end=50410000,
+        show="minus"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

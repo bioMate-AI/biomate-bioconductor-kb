@@ -38,54 +38,69 @@ process BIOC_IGGENEUSAGE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(IgGeneUsage)
     library(DGU)
     library(LOO)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data, kable
-    ---------------------------------------------------------------------
-    data("d_zibb_3", package = "IgGeneUsage")
-    knitr::kable(head(d_zibb_3))
-    # --- Dgu [] ---
-    # Key functions: DGU, chain, run, level, rate, step
-    ---------------------------------------------------------------------
-    M <- DGU(ud = d_zibb_3, # input data
-             mcmc_warmup = 300, # how many MCMC warm-ups per chain (default: 500)
-             mcmc_steps = 1500, # how many MCMC steps per chain (default: 1,500)
-             mcmc_chains = 3, # how many MCMC chain to run (default: 4)
-    # --- Check Hmc Diagnostics [] ---
-    # Key functions: check_hmc_diagnostics
-    ---------------------------------------------------------------------
-    rstan::check_hmc_diagnostics(M$fit)
-    # --- Kable [] ---
-    # Key functions: kable
-    ---------------------------------------------------------------------
-    kable(x = head(M$dgu), row.names = FALSE, digits = 2)
-    # --- Loo [] ---
-    # Key functions: LOO, chain, run, level, rate, step
-    ---------------------------------------------------------------------
-    L <- LOO(ud = d_zibb_3, # input data
-             mcmc_warmup = 500, # how many MCMC warm-ups per chain (default: 500)
-             mcmc_steps = 1000, # how many MCMC steps per chain (default: 1,500)
-             mcmc_chains = 1, # how many MCMC chain to run (default: 4)
-    # --- Call [] ---
-    # Key functions: call
-    ---------------------------------------------------------------------
-    L_gu <- do.call(rbind, lapply(X = L, FUN = function(x){return(x$gu)}))
-    L_dgu <- do.call(rbind, lapply(X = L, FUN = function(x){return(x$dgu)}))
-    # --- Data [] ---
-    # Key functions: data, kable
-    ---------------------------------------------------------------------
-    data("d_zibb_4", package = "IgGeneUsage")
-    knitr::kable(head(d_zibb_4))
-    # --- Dgu [] ---
-    # Key functions: DGU, chain, run, level, rate, step
-    ---------------------------------------------------------------------
-    M <- DGU(ud = d_zibb_4, # input data
-             mcmc_warmup = 500, # how many MCMC warm-ups per chain (default: 500)
-             mcmc_steps = 1500, # how many MCMC steps per chain (default: 1,500)
-             mcmc_chains = 2, # how many MCMC chain to run (default: 4)
+    # --- Differential Gene Usage Analysis [] ---
+    # Key functions: DGU
+    M <- IgGeneUsage::DGU(ud = d_zibb_3,
+                          mcmc_warmup = 300,
+                          mcmc_steps = 1500,
+                          mcmc_chains = 3,
+                          mcmc_cores = 1,
+                          hdi_lvl = 0.95,
+                          adapt_delta = 0.8,
+                          max_treedepth = 10)
+
+
+    # --- Posterior Predictive Checks [] ---
+    # Key functions: DGU
+    ppc_rep <- M$ppc$ppc_rep
+    ppc_plot <- ggplot2::ggplot(data = ppc_rep) +
+        ggplot2::facet_wrap(facets = ~individual_id, ncol = 5) +
+        ggplot2::geom_abline(intercept = 0, slope = 1,
+                             linetype = "dashed", col = "darkgray") +
+        ggplot2::geom_errorbar(ggplot2::aes(x = observed_count,
+                                            y = ppc_mean_count,
+                                            ymin = ppc_L_count,
+                                            ymax = ppc_H_count),
+                               col = "darkgray") +
+        ggplot2::geom_point(ggplot2::aes(x = observed_count,
+                                         y = ppc_mean_count),
+                            size = 1) +
+        ggplot2::theme_bw(base_size = 11) +
+        ggplot2::xlab(label = "Observed usage [counts]") +
+        ggplot2::ylab(label = "PPC usage [counts]")
+
+
+    # --- Extract and Visualise DGU Statistics [] ---
+    # Key functions: DGU
+    stats <- M$dgu
+    stats <- stats[order(abs(stats$es_mean), decreasing = FALSE), ]
+    stats$gene_fac <- factor(x = stats$gene_name,
+                             levels = unique(stats$gene_name))
+    promising_genes <- stats$gene_name[stats$pmax >= 0.95]
+    
+    gu_plot <- ggplot2::ggplot(data = M$gu) +
+        ggplot2::geom_errorbar(ggplot2::aes(x = gene_name,
+                                            y = prob_mean,
+                                            ymin = prob_L,
+                                            ymax = prob_H,
+                                            col = condition),
+                               width = 0.1,
+                               position = ggplot2::position_dodge(width = 0.4)) +
+        ggplot2::geom_point(ggplot2::aes(x = gene_name,
+                                         y = prob_mean,
+                                         col = condition),
+                            size = 1,
+                            position = ggplot2::position_dodge(width = 0.4)) +
+        ggplot2::theme_bw(base_size = 11) +
+        ggplot2::ylab(label = "GU [probability]") +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
+                                                           hjust = 1,
+                                                           vjust = 0.4))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

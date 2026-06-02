@@ -41,11 +41,24 @@ process BIOC_FENR {
     library(fenr)
     library(jsonlite)
 
-    # --- Fetch go analysis [] ---
-    # Key functions: include_graphics, fetch_go, fetch_go_species, prepare_for_enrichment, functional_enrichment, fetch_terms_for_example, enrichment_interactive, setNames
-    go <- fetch_go(species = "sgd")
-    go_terms <- prepare_for_enrichment(go$terms, go$mapping, exmpl_all,
-    enr <- functional_enrichment(exmpl_all, exmpl_sel, go_terms)
+    # --- Functional Enrichment [] ---
+    # Key functions: functional_enrichment
+    data(exmpl_all, exmpl_sel, package = "fenr")
+    enr <- functional_enrichment(
+        exmpl_all, 
+        exmpl_sel, 
+        go_terms
+    )
+    enr_top <- head(enr, 10)
+
+
+    # --- Custom GO Mapping [] ---
+    # Key functions: prepare_for_enrichment
+    data(go, package = "fenr")
+    go2gene <- split(
+        go$mapping$gene_symbol, 
+        go$mapping$term_id
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
