@@ -51,12 +51,10 @@ process BIOC_TRACKTABLES {
     MakeIGVSession(SampleSheet,FileSheet,igvdirectory=getwd(),"Example","mm9")
     # --- maketracktable [] ---
     # Key functions: maketracktable
-    HTMLreport <- maketracktable(fileSheet=FileSheet,
-    basedirectory=getwd(),
+
     # --- maketracktable WithColoursAndScales [] ---
     # Key functions: igvParam, maketracktable
-    igvDisplayParams <- igvParam(bigwig.autoScale = "false",
-    HTMLreport <- maketracktable(FileSheet,SampleSheet,"IGVex2.html",getwd(),"mm9",
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

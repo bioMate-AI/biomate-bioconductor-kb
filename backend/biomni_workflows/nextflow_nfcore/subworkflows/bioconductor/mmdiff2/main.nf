@@ -38,15 +38,74 @@ process BIOC_MMDIFF2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DBAmmd)
-    library(Samples)
+    library(MMDiff2)
     library(jsonlite)
 
-    # --- DBAmmd analysis [] ---
-    # Key functions: DBAmmd, setRegions, getPeakReads, estimateFragmentCenters, compHists, plotPeak, query, compDists
+
+    # --- Dataload [] ---
+    # Key functions: extdata, DBAmmd, setRegions, getPeakReads
+    # load data packages
+    library('MMDiffBamSubset')
+
+    # create metaData:
+
+    ExperimentData <- list(genome = 'BSgenome.Mmusculus.UCSC.mm9',
+                        dataDir = system.file("extdata", package="MMDiffBamSubset"),
+                        sampleSheet="Cfp1.csv")
+
+    MetaData <- list('ExpData' = ExperimentData)
+    data('Cfp1-Peaks')
+    MMD <- DBAmmd(MetaData)
+    MMD <- setRegions(MMD,Peaks)
+    MMD <- getPeakReads(MMD)
+
+    # --- Frag C [] ---
+    # Key functions: estimateFragmentCenters, compHists
+    MMD <- estimateFragmentCenters(MMD)
+    MMD <- compHists(MMD, bin.length=20, whichPos="Center")
+
+    # --- Peakplot1 [] ---
+    # Key functions: plotPeak, query
+    plotPeak(MMD, Peak.id='241', plot.input = FALSE, whichPos="Center")
+    library('MotifDb')
+    motifs <- query(query(MotifDb, 'Mmusculus'), 'E2F')
+
+    # --- Peakplot2 [] ---
+    # Key functions: plotPeak
+    plotPeak(MMD, Peak.id='241', NormMethod=NULL,plot.input = FALSE,whichPos="Center",
+      Motifs=motifs,Motifcutoff="80%")
+    data("mm9-Genes")
+    names(GR) <- GR$tx_name
+    GR <- list(UCSCKnownGenes = GR)
+    plotPeak(MMD, Peak.id='241', NormMethod=NULL,plot.input = FALSE,
+             whichPos="Center",Motifs=motifs, anno=GR)
+
+    # --- Dists [] ---
+    # Key functions: compDists, setContrast
+    MMD <- compDists(MMD, dist.method = "MMD", run.parallel = FALSE)
+    MMD <- setContrast(MMD,contrast='byCondition')
+
+    # --- Contrast2 [] ---
+    # Key functions: Samples, setContrast, compPvals, plotDists, reportResults, plotPeak, plotDISTS4Peak
+    group1 <- Samples(MMD)$Condition=='1'
+    names(group1) <- Samples(MMD)$SampleID
+    group2 <- Samples(MMD)$Condition=='2'
+    names(group2) <-  Samples(MMD)$SampleID
+
+    contrast <- list(group1=group1,
+                     group2=group2,
+                     name1='WT,REsc',
+                     name2='Null')
+
     MMD <- compPvals(MMD,dist.method='MMD')
+
+    ## --------------------------------------------------------------------------
     plotDists(MMD, dist.method='MMD',whichContrast=1,
-    res <- reportResults(MMD)
+                              diff.method='MMD.locfit',
+                              bUsePval=FALSE, th=0.1,
+                              title=NULL, what=3,
+                              xlim=NULL,ylim=NULL,Peak.IDs=NULL,
+                              withLegend=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

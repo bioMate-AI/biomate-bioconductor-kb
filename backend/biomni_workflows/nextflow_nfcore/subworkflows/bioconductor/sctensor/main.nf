@@ -63,7 +63,6 @@ process BIOC_SCTENSOR {
     # --- Other2 [] ---
     # Key functions: dbGetQuery
     suppressPackageStartupMessages(library("RSQLite"))
-    dbGetQuery(dbconn(LRBase.Hsa.eg.db),
     # --- Create SingleCellExperiment object [] ---
     # Key functions: SingleCellExperiment, reducedDims
     data(GermMale)

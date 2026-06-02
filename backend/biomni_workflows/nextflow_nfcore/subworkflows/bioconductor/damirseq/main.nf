@@ -48,9 +48,7 @@ process BIOC_DAMIRSEQ {
     colData(SE)
     # --- chu 5 [] ---
     # Key functions: assay
-    data_norm <- DaMiR.normalization(SE, minCounts=10, fSample=0.7,
-    print(data_norm)
-    assay(data_norm)[c(1:5), c(1:5, 21:25)]
+
     # --- chu 10 [] ---
     # Key functions: assay
     data_adjust<-DaMiR.SVadjust(data_filt, sv, n.sv=4)

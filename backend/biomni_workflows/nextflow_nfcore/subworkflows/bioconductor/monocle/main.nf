@@ -39,10 +39,6 @@ process BIOC_MONOCLE {
     """
     #!/usr/bin/env Rscript
     library(monocle)
-    library(Biobase)
-    library(knitr)
-    library(reshape2)
-    library(ggplot2)
     library(jsonlite)
 
 

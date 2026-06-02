@@ -51,10 +51,6 @@ process BIOC_SCHOT {
     # --- Schot Buildfrommatrix [] ---
     # Key functions: scHOT_buildFromMatrix
     ---------------------------------------------------------------------
-    scHOT_traj <- scHOT_buildFromMatrix(
-      mat = liver_branch_hep[,first_branch_cells],
-      cellData = list(pseudotime = liver_pseudotime_hep[first_branch_cells]),
-      positionType = "trajectory",
     # --- Plotexpression [] ---
     # Key functions: plotExpression
     ---------------------------------------------------------------------
@@ -63,10 +59,6 @@ process BIOC_SCHOT {
     # --- Schot [] ---
     # Key functions: scHOT
     ---------------------------------------------------------------------
-    scHOT_traj_wrap = scHOT(scHOT_traj,
-                            testingScaffold = gene_to_test,
-                            higherOrderFunction = matrixStats::weightedVar,
-                            higherOrderFunctionType = "weighted",
     # --- Slot [] ---
     # Key functions: slot, plotHigherOrderSequence, plotOrderedExpression, facet_wrap
     ---------------------------------------------------------------------
@@ -84,9 +76,6 @@ process BIOC_SCHOT {
     # Key functions: scHOT_setWeightMatrix
     ---------------------------------------------------------------------
     scHOT_traj@weightMatrix
-    scHOT_traj <- scHOT_setWeightMatrix(scHOT_traj,
-                                        positionType = "trajectory",
-                                        positionColData = c("pseudotime"),
     # --- Schot Calculateglobalhigherorderfunction [] ---
     # Key functions: scHOT_calculateGlobalHigherOrderFunction, slot, assay
     ---------------------------------------------------------------------

@@ -111,8 +111,6 @@ process BIOC_METHYLKIT {
     ---------------------------------------------------------------------
     # read the shores and flanking regions and name the flanks as shores
     # and CpG islands as CpGi
-    cpg.obj=readFeatureFlank(system.file("extdata", "cpgi.hg18.bed.txt",
-                                            package = "methylKit"),
     # --- Regioncounts [] ---
     # Key functions: regionCounts
     ---------------------------------------------------------------------

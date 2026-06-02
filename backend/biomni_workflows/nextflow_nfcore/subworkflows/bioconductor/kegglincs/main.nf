@@ -85,8 +85,7 @@ process BIOC_KEGGLINCS {
     p53_L1000_summary <- path_genes_by_cell_type(p53_KEGG_mappings, get_KOs = TRUE)
     # --- avoid poor map render [] ---
     # Key functions: path_genes_by_cell_type
-    p53_L1000_summary <- path_genes_by_cell_type(p53_KEGG_mappings, get_KOs = TRUE,
-    knitr::kable(tail(p53_L1000_summary))
+
     # --- overlap_info [] ---
     # Key functions: overlap_info
     p53_PC3_data <- overlap_info(p53_KGML, p53_KEGG_mappings, "PC3")

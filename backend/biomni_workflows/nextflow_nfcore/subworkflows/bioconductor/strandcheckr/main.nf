@@ -44,8 +44,6 @@ process BIOC_STRANDCHECKR {
     # --- get Strand From Bam File [] ---
     # Key functions: getStrandFromBamFile
     library(strandCheckR)
-    files <- system.file(
-    "extdata",c("s1.sorted.bam","s2.sorted.bam"),package = "strandCheckR"
     # --- transcripts [] ---
     # Key functions: transcripts, intersectWithFeature
     library(TxDb.Hsapiens.UCSC.hg38.knownGene)
@@ -53,8 +51,7 @@ process BIOC_STRANDCHECKR {
     win$Seq <- paste0("chr",win$Seq)
     # --- plot Hist [] ---
     # Key functions: plotHist
-    plotHist(
-    windows = win, groupBy = c("File","OverlapTranscript"),
+
     # --- plot Win [] ---
     # Key functions: plotWin
     plotWin(win, groupBy = "File")

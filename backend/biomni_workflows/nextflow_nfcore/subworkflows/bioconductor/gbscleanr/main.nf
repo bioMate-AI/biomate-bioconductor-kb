@@ -38,16 +38,81 @@ process BIOC_GBSCLEANR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Position)
+    library(GBScleanR)
     library(jsonlite)
 
-    # --- GbsrVCF2GDS analysis [] ---
-    # Key functions: gbsrVCF2GDS, loadGDS, nsam, nmar, getChromosome, Position, getPosition, getAllele
-    ---------------------------------------------------------------------
-    # As always the first step of breeding scheme would be "pairing" cross(es) of
+
+    # --- Warning=false [] ---
+    # Key functions: tempfile, gbsrVCF2GDS, loadGDS, extdata, sample.vcf, sample
+    library("GBScleanR")
+
+    ## -----------------------------------------------------------------------------
+    vcf_fn <- system.file("extdata", "sample.vcf", package = "GBScleanR")
+    gds_fn <- tempfile("sample", fileext = ".gds")
+
+    ## -----------------------------------------------------------------------------
+    # `force = TRUE` allow the function to over write the GDS file,
+    # even if a GDS file exists at `out_fn`.
+    gbsrVCF2GDS(vcf_fn = vcf_fn, out_fn = gds_fn, force = TRUE, verbose = FALSE)
+
+    ## -----------------------------------------------------------------------------
+    gds <- loadGDS(gds_fn, verbose = FALSE)
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Eval=false [] ---
+    # Key functions: setParents, cross, initScheme, addScheme, pairing, selfing, sibling
+    # # Do not run.
+    # gds <- setParents(gds,
+    #                   parents = c("p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"))
+    # # Member IDs will be 1, 2, 3, 4, 5, 6, 7, and 8
+    # # for p1, p2, p3, p4, p5, p6, p7, and p8, respectively.
+
+    ## -----------------------------------------------------------------------------
+    # As always the first step of breeding scheme would be "pairing" cross(es) of 
     # parents, never be "selfing" and a "sibling" cross,
     # the argument `crosstype` in initScheme() was deprecated on the update on April 6, 2023.
     # gds <- initScheme(gds, crosstype = "pairing", mating = matrix(1:2, 2))
+    gds <- initScheme(gds, mating = rbind(1, 2))
+    gds <- addScheme(gds, crosstype = "selfing")
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Eval=false [] ---
+    # Key functions: estGeno, getGenotype, getHaplotype, parents
+    # # Following codes do the same.
+    # 
+    # # Do nut run
+    # # These are examples to show the case to set "iter = 1" or "optim = FALSE".
+    # gds <- estGeno(gds, iter = 1)
+    # gds <- estGeno(gds, optim = FALSE)
+
+    ## -----------------------------------------------------------------------------
+    est_geno <- getGenotype(gds, node = "cor")
+
+    ## -----------------------------------------------------------------------------
+    parent_geno <- getGenotype(gds, node = "parents")
+
+    ## -----------------------------------------------------------------------------
+    est_hap <- getHaplotype(gds)
+
+    # --- Eval = False [] ---
+    # Key functions: for, nsam, plotReadRatio, plotDosage, closeGDS, raw, filt
+    # for(i in seq_len(nsam(gds))){
+    # plotReadRatio(x = gds, coord = c(3, 4), ind = i, node = "raw")
+    # }
+
+    ## -----------------------------------------------------------------------------
+    plotReadRatio(x = gds, coord = c(3, 4), ind = 3, node = "filt", size = 2)
+
+    ## -----------------------------------------------------------------------------
+    plotDosage(x = gds, coord = c(3, 4), ind = 3, node = "raw", size = 2)
+
+    ## -----------------------------------------------------------------------------
+    plotDosage(x = gds, coord = c(3, 4), ind = 3, node = "filt", size = 2)
+
+    ## -----------------------------------------------------------------------------
+    closeGDS(gds)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

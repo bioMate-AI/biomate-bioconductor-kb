@@ -49,9 +49,6 @@ process BIOC_CGEN {
     # Key functions: logistic
     mainVars <- c("oral.years", "n.children", "age.group_1",
                   "age.group_2", "age.group_3", "age.group_5")
-    fit <- snp.logistic(Xdata, "case.control", "BRCA.status",
-                         main.vars=mainVars,
-                         int.vars=c("oral.years", "n.children"),
     # --- Wald Test [] ---
     # Key functions: getWaldTest
     getWaldTest(fit, c("BRCA.status", "BRCA.status:oral.years", "BRCA.status:n.children"))

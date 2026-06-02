@@ -44,10 +44,6 @@ process BIOC_CAMUTQC {
     # --- Mutfiltercom [] ---
     # Key functions: mutFilterCom
     ---------------------------------------------------------------------
-    MAFCom_tmb <- mutFilterCom(MAFdat, panel="WES", assay="Customized", report=FALSE, TMB=TRUE,
-                               bedFile=system.file("extdata/bed/panel_hg38",
-                                                   "Pan-cancer-hg38.rds", package="CaMutQC"),
-                               PONfile=system.file("extdata", "PON_test.txt", package="CaMutQC"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

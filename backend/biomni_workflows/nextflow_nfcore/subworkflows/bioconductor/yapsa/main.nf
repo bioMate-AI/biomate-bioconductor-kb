@@ -47,9 +47,7 @@ process BIOC_YAPSA {
     rowSums(lymphomaNature2013_COSMICExposures_df)
     # --- Table formatting and display [] ---
     # Key functions: kable, translate_to_hg19, attribute_nucleotide_exchanges, annotate_intermut_dist_cohort, trellis_rainfall_plot, LCD, make_subgroups_df, LCD_complex_cutoff
-    Alex_signatures_path <- paste0("https://ftp.sanger.ac.uk/pub/cancer/",
-    AlexInitialArtif_sig_df <- read.csv(Alex_signatures_path,header=TRUE,sep="\t")
-    kable(AlexInitialArtif_sig_df[c(1:9),c(1:4)])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

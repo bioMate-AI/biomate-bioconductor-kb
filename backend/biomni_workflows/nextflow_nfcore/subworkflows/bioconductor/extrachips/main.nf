@@ -45,9 +45,7 @@ process BIOC_EXTRACHIPS {
 
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, resize, colToRanges
-    mutate(
-    centre = glue("{seqnames}:{centre}:{strand}") %>%
-    GRanges(seqinfo = sq) %>%
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: as_tibble, ggplot, geom_point, geom_smooth, geom_label_repel
     as_tibble() %>%

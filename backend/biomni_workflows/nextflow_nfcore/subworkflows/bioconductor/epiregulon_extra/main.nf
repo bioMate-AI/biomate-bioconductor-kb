@@ -44,27 +44,19 @@ process BIOC_EPIREGULON_EXTRA {
     # --- find Differential Activity [] ---
     # Key functions: findDifferentialActivity
     library(epiregulon.extra)
-    markers <- findDifferentialActivity(
-    markers.sig <- getSigGenes(markers, topgenes = 5)
     # --- plot Bubble [] ---
     # Key functions: plotBubble, plotActivityViolin
-    plotBubble(
-    tf = c("NKX2-1", "GATA6", "FOXA1", "FOXA2"),
-    plotBubble(
+
     # --- regulon Enrich [] ---
     # Key functions: regulonEnrich, enrichPlot
     msigdb.hs <- msigdb::getMsigdb(org = 'hs', id = 'SYM', version = '7.4')
     msigdb.hs <- msigdb.hs[unlist(lapply(msigdb.hs, function(x) {GSEABase::bcCategory(GSEABase::collectionType(x)) %in% c("c6", "h")}))]
-    gs.list <- do.call(rbind, lapply(names(msigdb.hs), function(x) {
     # --- plot gsea network [] ---
     # Key functions: plotGseaNetwork
-    plotGseaNetwork(
-    tf = names(enrichresults),
+
     # --- differential networks [] ---
     # Key functions: plotDiffNetwork
-    plotDiffNetwork(regulon,
-    tf = c("GATA6"),
-    clusters = c("C1", "C5"),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

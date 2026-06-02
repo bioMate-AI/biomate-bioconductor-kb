@@ -58,10 +58,6 @@ process BIOC_MSNID {
     # --- Xtable [] ---
     # Key functions: xtable, align
     x <- x %>%
-        `[`(sel_idx,) %>%
-        xtable()
-    align(x) <- "lp{1.8in}p{1.8in}p{1.8in}"
-    print(x,
     # --- Map Mod Sites [] ---
     # Key functions: map_mod_sites, psms, distinct
     m <- map_mod_sites(m, fst,
@@ -72,10 +68,6 @@ process BIOC_MSNID {
     # --- Xtable [] ---
     # Key functions: xtable, align
     x <- x %>%
-        `[`(sel_idx,) %>%
-        xtable()
-    align(x) <- "lp{1.8in}p{3.6in}"
-    print(x,
     # --- Fetch Conversion Table [] ---
     # Key functions: fetch_conversion_table
     conv_tab <- fetch_conversion_table("Homo sapiens", "UNIPROT", "SYMBOL")
@@ -88,17 +80,9 @@ process BIOC_MSNID {
     # --- Readaastringset [] ---
     # Key functions: readAAStringSet, map_mod_sites, psms, distinct
     fst <- readAAStringSet(fst_path_2)
-    m <- map_mod_sites(m, fst,
-                       accession_col = "accession",
-                       peptide_mod_col = "peptide_mod",
-                       mod_char = "*",
     # --- Xtable [] ---
     # Key functions: xtable, align
     x <- x %>%
-        `[`(sel_idx,) %>%
-        xtable()
-    align(x) <- "lp{1.8in}p{3.6in}"
-    print(x,
     # --- Unlink [] ---
     # Key functions: unlink
     unlink(".Rcache", recursive=TRUE)

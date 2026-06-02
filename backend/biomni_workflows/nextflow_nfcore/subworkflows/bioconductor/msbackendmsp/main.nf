@@ -38,14 +38,27 @@ process BIOC_MSBACKENDMSP {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Spectra)
+    library(MsBackendMsp)
     library(jsonlite)
 
-    # --- spectra Variables [] ---
-    # Key functions: spectraVariables, spectraVariableMapping, Spectra, tempfile, export
+
+    # --- Spectravars [] ---
+    # Key functions: spectraVariables, spectraVariableMapping, MsBackendMsp, readLines, extdata, minimona.msp
     spectraVariables(sp)
+
+    ## -----------------------------------------------------------------------------
+    sp$msLevel
+    sp$name
+    sp$adduct
+
+    ## -----------------------------------------------------------------------------
     spectraVariableMapping(MsBackendMsp())
+
+    ## -----------------------------------------------------------------------------
     mona <- system.file("extdata", "minimona.msp", package = "MsBackendMsp")
+    head(readLines(mona))
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

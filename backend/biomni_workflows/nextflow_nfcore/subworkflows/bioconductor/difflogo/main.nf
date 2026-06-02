@@ -54,7 +54,6 @@ process BIOC_DIFFLOGO {
     motif_folder = "extdata/pwm"
     motif_names_dna = c("H1-hESC", "MCF7", "HeLa-S3", "HepG2", "HUVEC")
     motifs_dna = list()
-    for (name in motif_names_dna) {
     # --- Plotsequencelogo [] ---
     # Key functions: seqLogo
     ## plot classic sequence logo

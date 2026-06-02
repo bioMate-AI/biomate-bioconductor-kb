@@ -45,9 +45,6 @@ process BIOC_METABOLOMICSWORKBENCHR {
     # Key functions: do_query
     ---------------------------------------------------------------------
     # search for all studies with "Diabetes" in the title and return a summary
-    df = do_query(
-        context = 'study',
-        input_item = 'study_title',
     # --- Context Inputs [] ---
     # Key functions: context_inputs
     ---------------------------------------------------------------------
@@ -56,10 +53,6 @@ process BIOC_METABOLOMICSWORKBENCHR {
     # --- Do Query [] ---
     # Key functions: do_query
     ---------------------------------------------------------------------
-    df = do_query(
-      context = 'study',
-      input_item = 'ignored',
-      input_value = 'ignored',
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

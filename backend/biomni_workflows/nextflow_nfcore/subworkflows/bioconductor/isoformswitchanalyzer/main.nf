@@ -54,7 +54,6 @@ process BIOC_ISOFORMSWITCHANALYZER {
     ### load example data
     data("exampleSwitchList")
     ### Subset for quick runtime
-    exampleSwitchList <- subsetSwitchAnalyzeRlist(
     # --- Extractswitchsummary [] ---
     # Key functions: extractSwitchSummary
     ---------------------------------------------------------------------
@@ -73,10 +72,6 @@ process BIOC_ISOFORMSWITCHANALYZER {
     # --- Subset [] ---
     # Key functions: extractTopSwitches
     ---------------------------------------------------------------------
-    subset(
-        extractTopSwitches(
-            exampleSwitchListAnalyzed,
-            filterForConsequences = TRUE,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -88,15 +83,10 @@ process BIOC_ISOFORMSWITCHANALYZER {
     ---------------------------------------------------------------------
     exampleSwitchList
     ### Subset
-    subsetSwitchAnalyzeRlist(
-        exampleSwitchList,
     # --- Frame [] ---
     # Key functions: frame, importRdata
     ---------------------------------------------------------------------
     ### Make design matrix
-    myDesign <- data.frame(
-        sampleID = colnames(salmonQuant$abundance)[-1],
-        condition = gsub('_.*', '', colnames(salmonQuant$abundance)[-1])
     # --- Importsalmondata [] ---
     # Key functions: importSalmonData
     ---------------------------------------------------------------------
@@ -108,37 +98,24 @@ process BIOC_ISOFORMSWITCHANALYZER {
     # Key functions: preFilter
     ---------------------------------------------------------------------
     data("exampleSwitchList")
-    exampleSwitchListFiltered <- preFilter(
-        switchAnalyzeRlist = exampleSwitchList,
-        geneExpressionCutoff = 1,
     # --- Extractsequence [] ---
     # Key functions: extractSequence
     ---------------------------------------------------------------------
     ### This example relies on the example data from the 'Analyzing Open Reading Frames' section above
-    exampleSwitchListAnalyzed <- extractSequence(
-        exampleSwitchListAnalyzed,
-        pathToOutput = '<insert_path>',
     # --- Analyzealternativesplicing [] ---
     # Key functions: analyzeAlternativeSplicing, retentions
     ---------------------------------------------------------------------
     ### This example relies on the example data from the 'Importing External Sequence Analysis' section above
-    exampleSwitchListAnalyzed <- analyzeAlternativeSplicing(
-        switchAnalyzeRlist = exampleSwitchListAnalyzed,
-        quiet=TRUE
     # --- Data [] ---
     # Key functions: subsetSwitchAnalyzeRlist, genes, extractTopSwitches
     ---------------------------------------------------------------------
     ### Load already analyzed data
     data("exampleSwitchListAnalyzed")
     ### Let's reduce the switchAnalyzeRlist to only one condition
-    exampleSwitchListAnalyzedSubset <- subsetSwitchAnalyzeRlist(
     # --- Extracttopswitches [] ---
     # Key functions: extractTopSwitches
     ---------------------------------------------------------------------
     ### Extract data.frame with all switching isoforms
-    switchingIso <- extractTopSwitches(
-        exampleSwitchListAnalyzedSubset,
-        filterForConsequences = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

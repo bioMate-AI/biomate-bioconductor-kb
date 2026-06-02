@@ -65,8 +65,6 @@ process BIOC_RTPCA {
     ---------------------------------------------------------------------
     string_ppi_cs_950_df <- string_ppi_df %>%
         filter(combined_score >= 950 )
-    vehTPCA <- runTPCA(
-        objList = trData,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -75,10 +73,6 @@ process BIOC_RTPCA {
     # --- Runtpca [] ---
     # Key functions: runTPCA
     ---------------------------------------------------------------------
-    vehComplexTPCA <- runTPCA(
-        objList = trData,
-        complexAnno = ori_et_al_complexes_df,
-        minCount = 2
     # --- Plotppiroc [] ---
     # Key functions: plotPPiRoc
     ---------------------------------------------------------------------
@@ -91,9 +85,6 @@ process BIOC_RTPCA {
     # Key functions: runDiffTPCA
     ---------------------------------------------------------------------
     diffTPCA <-
-        runDiffTPCA(
-            objList = trData[1:2],
-            contrastList = trData[3:4],
     # --- Plotdifftpcavolcano [] ---
     # Key functions: plotDiffTpcaVolcano
     ---------------------------------------------------------------------

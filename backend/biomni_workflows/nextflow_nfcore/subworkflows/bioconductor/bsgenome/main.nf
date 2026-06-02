@@ -38,7 +38,7 @@ process BIOC_BSGENOME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAString)
+    library(BSgenome)
     library(jsonlite)
 
 
@@ -82,45 +82,11 @@ process BIOC_BSGENOME {
     ce2dict0 <- readDNAStringSet(ce2dict0_file, "fasta")
     ce2dict0
     writeHits <- function(seqname, matches, strand, file="", append=FALSE)
-    {
-        if (file.exists(file) && !append)
-            warning("existing file ", file, " will be overwritten with 'append=FALSE'")
-        if (!file.exists(file) && append)
-            warning("new file ", file, " will have no header with 'append=TRUE'")
-        hits <- data.frame(seqname=rep.int(seqname, length(matches)),
-                           start=start(matches),
-                           end=end(matches),
-                           strand=rep.int(strand, length(matches)),
-    runAnalysis1(ce2dict0, outfile="ce2dict0_ana1.txt")
-    hits1 <- read.table("ce2dict0_ana1.txt", header=TRUE)
-    nrow(hits1)
-    table(hits1$seqname)
-    hits1_table <- table(hits1$patternID)
-    hits1_table
-
     # --- C7 [] ---
     # Key functions: pattern, function, seqlengths, plot.new, plot.window, axis, for, match
     hits1_table[hits1_table == max(hits1_table)] # pattern(s) with more hits
     setdiff(names(ce2dict0), hits1$patternID) # pattern(s) with no hits
     plotGenomeHits <- function(bsgenome, seqnames, hits)
-    {
-        chrlengths <- seqlengths(bsgenome)[seqnames]
-        XMAX <- max(chrlengths)
-        YMAX <- length(seqnames)
-        plot.new()
-        plot.window(c(1, XMAX), c(0, YMAX))
-        axis(1)
-        axis(2, at=seq_len(length(seqnames)), labels=rev(seqnames), tick=FALSE, las=1)
-        ## Plot the chromosomes
-    library(hgu95av2probe)
-    tmpseq <- DNAStringSet(hgu95av2probe$sequence)
-    someStats <- function(v)
-    {
-        GC <- DNAString("GC")
-        CG <- DNAString("CG")
-        sapply(seq_len(length(v)),
-               function(i) {
-
     # --- F3 [] ---
     # Key functions: active, masks, alphabetFrequency, unmasked, gaps, width
     active(masks(chrY)) <- FALSE
@@ -158,7 +124,6 @@ process BIOC_BSGENOME {
     alphabetFrequency(gaps(chr2))
     runOneStrandAnalysis <- function(dict0, bsgenome, seqnames, strand,
                                      outfile="", append=FALSE)
-    {
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

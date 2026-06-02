@@ -59,9 +59,7 @@ process BIOC_SEQCAT {
     profiles <- create_profiles(vcf_dir, pattern = "sample1")
     # --- List COSMIC [] ---
     # Key functions: list_cosmic
-    file <- system.file("extdata", "subset_CosmicCLP_MutantExport.tsv.gz",
-    cell_lines <- list_cosmic(file)
-    head(cell_lines)
+
     # --- Read COSMIC [] ---
     # Key functions: read_cosmic
     cosmic <- read_cosmic(file, "HCT116")

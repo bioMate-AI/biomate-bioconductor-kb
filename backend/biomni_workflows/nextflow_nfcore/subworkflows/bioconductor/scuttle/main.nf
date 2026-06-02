@@ -47,7 +47,6 @@ process BIOC_SCUTTLE {
     library(scRNAseq)
     sce <- ZeiselBrainData()
     library(scuttle)
-    sce <- quickPerCellQC(sce, subsets=list(Mito=grep("mt-", rownames(sce))),
     # --- Aggregateacrosscells [] ---
     # Key functions: aggregateAcrossCells, assay, colData
     ---------------------------------------------------------------------

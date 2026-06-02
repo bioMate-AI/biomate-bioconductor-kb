@@ -41,10 +41,23 @@ process BIOC_NEMPI {
     library(nempi)
     library(jsonlite)
 
-    # --- palette [] ---
-    # Key functions: palette
+
+    # --- Global Options [] ---
+    # Key functions: set, palette, center, blue, brown
     knitr::opts_chunk$set(message=FALSE, out.width="125%", fig.align="center",
+                          strip.white=TRUE, warning=FALSE, tidy=TRUE,
+                          #out.extra='style="display:block; margin:auto;"',
+                          fig.height = 4, fig.width = 8, error=FALSE)
+    fig.cap0 <- "Heatmap of the simulated log odds. Effects are blue and no effects
+    are red. Rows denote the observed E-genes and columns the samples annoted by
+    P-genes. Each P-gene
+    has been perturbed in many cells. The E-genes are annotated as how they are
+    attached in the ground truth. E.g. E-genes named '1' are attached to S-gene
+    '1' in the ground truth."
+    fig.cap1 <- "Heatmap of the probabilsitic perturbation matrix."
     paltmp <- palette()
+    paltmp[3] <- "blue"
+    paltmp[4] <- "brown"
     palette(paltmp)
 
     # --- Save outputs ---

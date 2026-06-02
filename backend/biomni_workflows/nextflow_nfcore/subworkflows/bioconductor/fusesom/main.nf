@@ -52,7 +52,6 @@ process BIOC_FUSESOM {
     # load in the data
     data("risom_dat")
     # define the markers of interest
-    risomMarkers <- c('CD45','SMA','CK7','CK5','VIM','CD31','PanKRT','ECAD',
     # --- Runfusesom [] ---
     # Key functions: runFuseSOM
     ---------------------------------------------------------------------
@@ -69,7 +68,6 @@ process BIOC_FUSESOM {
     # lets estimate the number of clusters using all the methods
     # original clustering has 23 clusters so we will set kseq from 2:25
     # we pass it the som model generated in the previous step
-    risomKest <- estimateNumCluster(data = risomRes$model, kSeq = 2:25,
     # --- Optiplot [] ---
     # Key functions: optiPlot
     ---------------------------------------------------------------------
@@ -90,7 +88,6 @@ process BIOC_FUSESOM {
     data <- risom_dat[, risomMarkers] # get the original data used
     clusters <- colData(risomRessce)$clusters # extract the clusters from the sce object
     # generate the heatmap
-    risomHeatsce <- markerHeatmap(data = risom_dat, markers = risomMarkers,
     # --- Estimatenumcluster [] ---
     # Key functions: estimateNumCluster, metadata
     ---------------------------------------------------------------------

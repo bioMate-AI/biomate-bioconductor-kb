@@ -67,8 +67,6 @@ process BIOC_HTSFILTER {
     # --- Create DESeqDataSet from count matrix [] ---
     # Key functions: DESeqDataSetFromMatrix, DESeq, HTSFilter, results
     conds <- gsub(" ", ".", conds)
-    dds <- DESeqDataSetFromMatrix(countData = exprs(sultan),
-    colData = data.frame(cell.line = factor(conds)),
     # --- new Seq Expression Set [] ---
     # Key functions: newSeqExpressionSet
     library(EDASeq)
@@ -76,9 +74,7 @@ process BIOC_HTSFILTER {
     phenoData=pData(sultan))
     # --- H T S Filter [] ---
     # Key functions: HTSFilter
-    filter <- HTSFilter(counts(ses.norm), conds, s.len=25, norm="none",
-    head(filter$on)
-    table(filter$on)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

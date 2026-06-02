@@ -41,11 +41,24 @@ process BIOC_GENOMICINTERACTIONNODES {
     library(GenomicInteractionNodes)
     library(jsonlite)
 
-    # --- Import genomic data file [] ---
-    # Key functions: import, detectNodes, annotateNodes, enrichmentAnalysis
+
+    # --- Quick Start [] ---
+    # Key functions: import, detectNodes, extdata, bedpe
+    ## load library
     library(GenomicInteractionNodes)
     library(rtracklayer)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene) ## for human hg19
+    library(org.Hs.eg.db) ## used to convert gene_id to gene_symbol
+    library(GO.db) ## used for enrichment analysis
+
+    ## import the interactions from bedpe file
+    p <- system.file("extdata", "WT.2.bedpe",
+                     package = "GenomicInteractionNodes")
+    #### please try to replace the connection to your file path
+    interactions <- import(con=p, format="bedpe")
+
+    ## define the nodes
+    nodes <- detectNodes(interactions)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

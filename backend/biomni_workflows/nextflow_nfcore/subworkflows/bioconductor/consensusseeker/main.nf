@@ -45,7 +45,6 @@ process BIOC_CONSENSUSSEEKER {
     # Key functions: import, ranges
     library(rtracklayer)
     library(GenomicRanges)
-    file_narrowPeak <- system.file("extdata",
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, stat_smooth, ylab, ggtitle
     library(ggplot2)
@@ -55,7 +54,6 @@ process BIOC_CONSENSUSSEEKER {
     # Key functions: include_graphics, Seqinfo, readNarrowPeakFile, findConsensusPeakRegions
     data(A549_FOSL2_01_NarrowPeaks_partial) ; data(A549_FOSL2_01_Peaks_partial)
     data(A549_FOXA1_01_NarrowPeaks_partial) ; data(A549_FOXA1_01_Peaks_partial)
-    names(A549_FOSL2_01_NarrowPeaks_partial) <- rep("FOSL2",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

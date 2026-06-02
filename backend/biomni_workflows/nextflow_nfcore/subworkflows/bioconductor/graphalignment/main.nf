@@ -65,18 +65,10 @@ process BIOC_GRAPHALIGNMENT {
     linkParams<-ComputeLinkParameters(ex$a, ex$b, pinitial, lookupLink)
     # --- Alignnetworks [] ---
     # Key functions: AlignNetworks
-    al<-AlignNetworks(A=ex$a, B=ex$b, R=ex$r, P=pinitial,
-        linkScore=linkParams$ls,
-        selfLinkScore=linkParams$ls,
-        nodeScore1=nodeParams$s1, nodeScore0=nodeParams$s0,
-        lookupLink=lookupLink, lookupNode=lookupNode,
+
     # --- Computescores [] ---
     # Key functions: ComputeScores
-    ComputeScores(A=ex$a, B=ex$b, R=ex$r, P=al,
-        linkScore=linkParams$ls,
-        selfLinkScore=linkParams$ls,
-        nodeScore1=nodeParams$s1, nodeScore0=nodeParams$s0,
-        lookupLink=lookupLink, lookupNode=lookupNode,
+
     # --- Analyzealignment [] ---
     # Key functions: AnalyzeAlignment
     AnalyzeAlignment(A=ex$a, B=ex$b, R=ex$r, P=al, lookupNode,

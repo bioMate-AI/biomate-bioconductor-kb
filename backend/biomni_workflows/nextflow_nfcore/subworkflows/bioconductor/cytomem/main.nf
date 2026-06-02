@@ -44,12 +44,10 @@ process BIOC_CYTOMEM {
 
     # --- M E M [] ---
     # Key functions: MEM
-    MEM(
-    str(MEM_values)
+
     # --- M E M_ R M S D [] ---
     # Key functions: MEM_RMSD
     data(MEM_matrix)
-    MEM_RMSD(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

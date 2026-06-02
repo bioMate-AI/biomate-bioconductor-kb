@@ -96,10 +96,6 @@ process BIOC_TWEEDESEQ {
     # --- Tabdegenes [] ---
     # Key functions: xtable
     library(xtable)
-    deGenes$Description <- gsub(" \\[.+$", "", deGenes$Description)
-    xtab <- xtable(deGenes[, c("Symbol", "Chr", "log2fc", "pval.adjust", "Description")],
-                   caption="Differentially expressed genes between female and male Nigerian individuals found by tweeDEseq.",
-                   label="tab:deGenes", align="|l|c|c|r|l|p{7cm}|", digits=c(0, 0, 0, 2, -2, 0))
     # --- Manvplots [] ---
     # Key functions: MAplot, Vplot
     hl <- list(list(genes=msYgenes, pch=21, col="blue", bg="blue", cex=0.7),

@@ -38,14 +38,104 @@ process BIOC_FAMAGG {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(FAData)
+    library(FamAgg)
     library(jsonlite)
 
-    # --- FAData analysis [] ---
-    # Key functions: FAData, switchPlotfun, plotPed, buildPed, any, findFounders, getCommonAncestor, getChildren
-    Perform the analysis (no strata etc) separately for each family.
-    giFam <- genealogicalIndexTest(fad, trait = tcancer, nsim = nsim,
-    head(result(giFam))
+
+    # --- Libraries [] ---
+    # Key functions: FAData, pedigree, father, age, famid, fatherid, motherid, sex
+    library(FamAgg)
+
+    data(minnbreast)
+    ## Subsetting to only few families of the whole data set.
+    mbsub <- minnbreast[minnbreast$famid %in% 4:14, ]
+    mbped <- mbsub[, c("famid", "id", "fatherid", "motherid", "sex")]
+    ## Renaming column names.
+    colnames(mbped) <- c("family", "id", "father", "mother", "sex")
+    ## Defining the optional argument age.
+    endage <- mbsub$endage
+    ## Extract the pedigree information from family "4"...
+    nrow(family(fad, family = 4))
+
+    head(family(fad, family = 4))
+
+    ## ...which is the same as extracting the family pedigree
+    ## for an individual of this family.
+    head(family(fad, id = 3))
+
+    ## Note that IDs are internally always converted to character,
+
+    # --- Subsetting [] ---
+    # Key functions: switchPlotfun, plotPed, ks2paint
+    ## Subset the object to a single family.
+    fam4 <- fad[fad$family == "4", ]
+    table(fam4$family)
+    switchPlotfun("ks2paint")
+    ## By supplying device="plot", we specify that we wish to visualize the
+    ## pedigree in an R plot. This is the default for "ks2paint", anyway.
+    plotPed(fad, id = 3, device = "plot")
+
+    # --- Build Ped [] ---
+    # Key functions: buildPed, plotPed, findFounders
+    ## Build the pedigree for individual 3.
+    fullPed <- buildPed(fad, id = "3")
+    nrow(fullPed)
+
+    ## ----buildPed-prune, message = FALSE------------------------------------------
+    ## Find the subpedigree for individuals 21, 22 and 17.
+    buildPed(fad, id = c(21, 22, 17), prune = TRUE)
+
+    ## ----plotPed-3ids, message=FALSE, fig.align='center', warning = FALSE---------
+    plotPed(fad, id = c(21, 22, 17), prune = TRUE)
+    ## Find founders for family 4.
+    findFounders(fad, "4")
+
+    # --- Get Common Ancestors [] ---
+    # Key functions: getCommonAncestor, getChildren, getAncestors, getSiblings, trait, affectedIndividuals, function, findFounders
+    ## Find the closest common ancestor.
+    getCommonAncestor(fad, id = c(21, 22, 17))
+
+    ## ----getChildren-and-others, message = FALSE----------------------------------
+    ## Get the children of ID 4.
+    getChildren(fad, id = "4", max.generations = 1)
+
+    ## Get the offsprings.
+    getChildren(fad, id = "4")
+
+    ## Get all individuals sharing kinship with individual 4.
+    shareKinship(fad, id = "4")
+
+    # --- Share Kinship Rm [] ---
+    # Key functions: shareKinship, estimateGenerations
+    ## Get all individuals sharing kinship with individual 4, but only with kinship
+    ## higher than 0.125 (exclude first cousins, grand children, great grand
+    ## parents etc, i.e. everybody with kinship 0.125 or lower)
+    shareKinship(fad, id = "4", rmKinship = 0.125)
+    ## Estimate generation levels for all families.
+    estimateGenerations(fad)[1:3]
+
+    # --- Generations From [] ---
+    # Key functions: generationsFrom, plotPed, trait, affectedIndividuals, phenotypedIndividuals
+    gens <- generationsFrom(fad, id = "4")
+
+    ## ----plotPed-with-generations, message=FALSE, fig.align='center', warning = FALSE----
+    plotPed(fad, family = 4, label2 = gens)
+
+    ## ----set-trait, results='hide', message=FALSE---------------------------------
+    ## Extract the cancer trait information.
+    tcancer <- mbsub$cancer
+    names(tcancer) <- mbsub$id
+    ## Set the trait.
+    ## Extract the trait information.
+    head(trait(fad))
+
+    ## We can also extract the IDs of the affected individuals.
+    head(affectedIndividuals(fad))
+
+    ## Or the IDs of the phenotyped individuals.
+    head(phenotypedIndividuals(fad))
+
+    ## ----plotPed-with-trait, message=FALSE, fig.align='center', warning = FALSE----
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

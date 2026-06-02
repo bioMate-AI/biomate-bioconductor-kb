@@ -54,7 +54,6 @@ process BIOC_CLUSTEREXPERIMENT {
     # Key functions: buildSNNGraph, cluster_walktrap
     library(scran)
     library(igraph)
-    SNN_wrap <- function(inputMatrix, k, steps = 4, ...) {
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

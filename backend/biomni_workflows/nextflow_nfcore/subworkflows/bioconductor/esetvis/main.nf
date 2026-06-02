@@ -49,8 +49,6 @@ process BIOC_ESETVIS {
     # --- FvarMetadata analysis [] ---
     # Key functions: fvarMetadata, pander, esetSpectralMap, colorRampPalette, getGeneSetsForPlot, sample, esetLda, esetPlotWrapper
     retainedFeatures <- sample(featureNames(ALL), size = floor(nrow(ALL)/5))
-    outputEsetLda <- esetLda(eset = ALL[retainedFeatures, ], ldaVar = "BT",
-    title = paste("Acute lymphoblastic leukemia dataset \n",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

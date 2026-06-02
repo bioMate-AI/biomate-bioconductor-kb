@@ -46,9 +46,7 @@ process BIOC_SPATIALOMICSOVERLAY {
     tifFile <- downloadMouseBrainImage()
     # --- Read in Data [] ---
     # Key functions: readSpatialOverlay
-    muBrainLW <- system.file("extdata", "muBrain_LabWorksheet.txt",
-    muBrain <- readSpatialOverlay(ometiff = tifFile, annots = muBrainLW,
-    slideName = "D5761 (3)", image = FALSE,
+
     # --- object accessors [] ---
     # Key functions: slideName
     head(sampNames(muBrain))
@@ -60,13 +58,9 @@ process BIOC_SPATIALOMICSOVERLAY {
     # --- add plotting factors [] ---
     # Key functions: readLabWorksheet, addPlottingFactor
     muBrainAnnots <- readLabWorksheet(lw = muBrainLW, slideName = "D5761 (3)")
-    muBrainGeomxSet <- readRDS(unzip(system.file("extdata", "muBrain_GxT.zip",
-    muBrain <- addPlottingFactor(overlay = muBrain, annots = muBrainAnnots,
     # --- customizable ggplot [] ---
     # Key functions: plotSpatialOverlay, scale_color_viridis, labs
-    plotSpatialOverlay(overlay = muBrain, hiRes = FALSE, colorBy = "Calm1",
-    viridis::scale_color_viridis()+
-    ggplot2::labs(title = "Calm1 Expression in Mouse Brain")
+
     # --- check Valid Res [] ---
     # Key functions: checkValidRes, addImageOmeTiff, showImage
     checkValidRes(ometiff = tifFile)
@@ -74,15 +68,13 @@ process BIOC_SPATIALOMICSOVERLAY {
     showImage(muBrain)
     # --- plot with image [] ---
     # Key functions: plotSpatialOverlay
-    plotSpatialOverlay(overlay = muBrain, colorBy = "segment", corner = "topcenter",
+
     # --- fluorLegend in plotSpatialOverlay [] ---
     # Key functions: plotSpatialOverlay
-    plotSpatialOverlay(overlay = muBrain, colorBy = "segment", corner = "topcenter",
+
     # --- fluorLegend function [] ---
     # Key functions: plotSpatialOverlay, fluorLegend, ggdraw, draw_plot
     library(cowplot)
-    gp <- plotSpatialOverlay(overlay = muBrain, colorBy = "segment",
-    legend <- fluorLegend(muBrain, nrow = 2, textSize = 4,
     # --- flip Y [] ---
     # Key functions: flipY, plotSpatialOverlay
     muBrain <- flipY(muBrain)
@@ -97,7 +89,6 @@ process BIOC_SPATIALOMICSOVERLAY {
     # Key functions: cropSamples, plotSpatialOverlay, scale_fill_gradient2
     muBrainAnnots$slide.name == slideName(muBrain)]
     muBrainCrop <- cropSamples(overlay = muBrain, sampleIDs = samps, sampsOnly = TRUE)
-    plotSpatialOverlay(overlay = muBrainCrop, colorBy = "Calm1", scaleBar = TRUE,
     # --- add4 Channel Image [] ---
     # Key functions: add4ChannelImage, fluor, changeImageColoring, changeColoringIntensity, recolor
     chan4 <- add4ChannelImage(overlay = muBrain)

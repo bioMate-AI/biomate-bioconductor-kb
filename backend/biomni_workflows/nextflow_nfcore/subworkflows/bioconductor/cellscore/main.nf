@@ -50,10 +50,10 @@ process BIOC_CELLSCORE {
     PlotCosineSimHeatmap(cs.sel, "piPS", width=10, height=10, x=-10, y=3)
     # --- label='PcaCode' [] ---
     # Key functions: PcaStandards
-    PcaStandards(cs$pdataSub$general_cell_type, "General Cell Type",
+
     # --- label='Pca' [] ---
     # Key functions: PcaStandards
-    PcaStandards(cs$pdataSub$general_cell_type, "General Cell Type",
+
     # --- label='ScatterplotCode' [] ---
     # Key functions: ScatterplotCellScoreComponents
     ScatterplotCellScoreComponents(cellscore, cell.change, FALSE)

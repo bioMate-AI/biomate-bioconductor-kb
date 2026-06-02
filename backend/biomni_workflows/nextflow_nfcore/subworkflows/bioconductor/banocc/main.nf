@@ -50,31 +50,18 @@ process BIOC_BANOCC {
     # --- Input Hyperparameters [] ---
     # Key functions: run_banocc, diag
     p <- ncol(compositions_null)
-    b_fit_hp <- banocc::run_banocc(C = compositions_null,
-                                   compiled_banocc_model = compiled_banocc_model,
-                                   n = rep(0, p),
-                                   L = 10 * diag(p),
     # --- Sampling Sampling [] ---
     # Key functions: run_banocc
-    b_fit_sampling <- banocc::run_banocc(C = compositions_null,
-                                         compiled_banocc_model = compiled_banocc_model,
-                                         chains = 2,
-                                         iter = 11,
-                                         warmup = 5,
+
     # --- Sampling Init [] ---
     # Key functions: diag, runif, run_banocc
-    init <- list(list(m = rep(0, p),
-                      O = diag(p),
-                      lambda = 0.02),
-                 list(m = runif(p),
-                      O = 10 * diag(p),
+
     # --- Output Ci [] ---
     # Key functions: get_banocc_output
     # Get 90% credible intervals
     b_out_90 <- banocc::get_banocc_output(banoccfit=b_fit,
                                           conf_alpha = 0.1)
     # Get 99% credible intervals
-    b_out_99 <- banocc::get_banocc_output(banoccfit=b_fit,
     # --- Eval Convergence [] ---
     # Key functions: get_banocc_output
     # Default is to evaluate convergence
@@ -88,7 +75,6 @@ process BIOC_BANOCC {
     b_out_min_width <- banocc::get_banocc_output(banoccfit=b_fit,
                                                  get_min_width = TRUE)
     # Get the scaled neighborhood criterion
-    b_out_snc <- banocc::get_banocc_output(banoccfit=b_fit,
     # --- Traceplot [] ---
     # Key functions: traceplot
     # The inverse covariances of feature 1 with all other features

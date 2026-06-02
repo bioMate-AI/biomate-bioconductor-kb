@@ -90,8 +90,6 @@ process BIOC_BIOVIZBASE {
     library(GenomicRanges)
     set.seed(1)
     N <- 500
-    gr <- GRanges(seqnames =
-                  sample(c("chr1", "chr2", "chr3", "chrX", "chrY"),
     # --- Addstepping Gr [] ---
     # Key functions: addStepping, GRanges, IRanges
     head(addStepping(gr))

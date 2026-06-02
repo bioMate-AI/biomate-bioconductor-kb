@@ -60,16 +60,9 @@ process BIOC_SIGFUGE {
     # Key functions: GRanges, Rle, IRanges, strand, path
     library(Rsamtools)
     library(prebsdata)
-    geneAnnot <- GRanges(seqnames=Rle("20", 9),
-                ranges=IRanges(
-                    start=c(49551405,49552685,49557402,49558568,49562274,
     # --- Function [] ---
     # Key functions: colSums, ApplyPileupsParam, PileupFiles, applyPileups
-    calcInfo <- function(x) {
-        info <- apply(x[["seq"]], 2, function(y) {
-            y <- y[c("A", "C", "G", "T"), , drop=FALSE]
-            cvg <- colSums(y)
-        })
+
     # --- Data [] ---
     # Key functions: data
     data(geneAnnot)
@@ -95,8 +88,6 @@ process BIOC_SIGFUGE {
     ## exp.data <- mdata[,-which(norm$flag == 1)]
     ## labels <- labels[-which(norm$flag == 1)]
     ##
-    ## SFfigure(exp.data, locusname=genename, annot=geneAnnot,
-    ##            data.labels=labels, flag=0, lplots=2,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

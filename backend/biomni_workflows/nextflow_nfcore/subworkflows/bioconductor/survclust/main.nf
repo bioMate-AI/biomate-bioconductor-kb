@@ -50,9 +50,6 @@ process BIOC_SURVCLUST {
     # Key functions: cv_survclust
     ---------------------------------------------------------------------
     #function to do cross validation
-    sim_cvrounds<-function(kk){
-        this.fold<-3
-        fit<-list()
     # --- Apply [] ---
     # Key functions: test, adjust
     ---------------------------------------------------------------------

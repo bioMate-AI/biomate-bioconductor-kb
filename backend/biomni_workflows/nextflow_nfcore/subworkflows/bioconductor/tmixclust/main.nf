@@ -55,9 +55,7 @@ process BIOC_TMIXCLUST {
     generate_TMixClust_report(cluster_obj)
     # --- plot_time_series_df [] ---
     # Key functions: plot_time_series_df
-    yeast_data_file = system.file("extdata", "yeast_time_series.txt",
-    yeast_data = get_time_series_df(yeast_data_file)
-    plot_time_series_df(yeast_data)
+
     # --- to Latex [] ---
     # Key functions: toLatex
     toLatex(sessionInfo())

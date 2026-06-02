@@ -38,13 +38,23 @@ process BIOC_RHDF5CLIENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(HSDSArray)
+    library(rhdf5client)
     library(jsonlite)
 
-    # --- H S D S Array [] ---
-    # Key functions: HSDSArray
+
+    # --- Lkdela3 [] ---
+    # Key functions: check_hsds, HSDSArray, URL_hsds
     if (check_hsds()) {
-    da <- HSDSArray(URL_hsds(), 'hsds',
+     da <- HSDSArray(URL_hsds(), 'hsds', 
+          '/shared/bioconductor/patelGBMSC.h5', '/assay001')
+     da
+    }
+
+    # --- Lkdel3 [] ---
+    # Key functions: check_hsds
+    if (check_hsds()) {
+     apply(da[,1:4],2,sum)
+    }
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -57,10 +57,6 @@ process BIOC_SCCLASSIFY {
     # --- Predict Scclassify [] ---
     # Key functions: predict_scClassify
     ---------------------------------------------------------------------
-    pred_res <- predict_scClassify(exprsMat_test = exprsMat_wang_subset,
-                                   trainRes = trainClassExample_xin,
-                                   cellTypes_test = wang_cellTypes,
-                                   algorithm = "WKNN",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

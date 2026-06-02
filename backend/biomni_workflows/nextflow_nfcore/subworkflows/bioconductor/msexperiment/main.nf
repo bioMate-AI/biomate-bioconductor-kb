@@ -60,15 +60,13 @@ process BIOC_MSEXPERIMENT {
     msexp <- MsExperiment()
     # --- make exp fls [] ---
     # Key functions: MsExperimentFiles
-    msfls <- MsExperimentFiles(mzmls = fls,
+
     # --- add exp fls [] ---
     # Key functions: experimentFiles
     experimentFiles(msexp) <- msfls
     # --- add sample data [] ---
     # Key functions: sampleData
-    sampleData(msexp) <- DataFrame(
-    mzmls = basename(experimentFiles(msexp)[["mzmls"]]),
-    sampleData(msexp)
+
     # --- Spectra [] ---
     # Key functions: Spectra
     sp <- Spectra(experimentFiles(msexp)[["mzmls"]])
@@ -97,13 +95,10 @@ process BIOC_MSEXPERIMENT {
     # --- make exp2 [] ---
     # Key functions: MsExperiment, DataFrame, sampleData
     lmse <- MsExperiment()
-    sd <- DataFrame(sample_id = c("QC1", "QC2"),
-    sample_name = c("QC Pool", "QC Pool"),
     # --- add fls2 [] ---
     # Key functions: experimentFiles
     fls <- dir(system.file("sciex", package = "msdata"), full.names = TRUE)
     basename(fls)
-    experimentFiles(lmse) <- MsExperimentFiles(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -46,10 +46,6 @@ process BIOC_CHROMDRAW {
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, Rle, IRanges
     library(GenomicRanges)
-    exampleData <- GRanges(seqnames =Rle(c("ACK1"), c(4)),ranges =
-    IRanges(start = c(0, 6700000,0,12400000),
-            end = c(6700000,12400000,0,17000000),
-            names = c("A","B","CENTROMERE","C")),
     # --- frame [] ---
     # Key functions: frame
     name <- c("yellow", "red");

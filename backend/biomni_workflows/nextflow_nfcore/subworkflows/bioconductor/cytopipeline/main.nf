@@ -44,14 +44,10 @@ process BIOC_CYTOPIPELINE {
 
     # --- Custom ggplot2 visualization [] ---
     # Key functions: reshape, ggplot, geom_point, ggtitle
-    myGGPlot <- function(DF, title){
-    stepNames = colnames(DF)
-    rowNames = rownames(DF)
+
     # --- CytoPipeline analysis [] ---
     # Key functions: include_graphics, CytoPipeline, addProcessingStep, CytoProcessingStep, execute, getCytoPipelineObjectInfos, getCytoPipelineFlowFrame, ggplotEvents
-    sampleFiles <- file.path(rawDataDir, list.files(rawDataDir,
-    pipL_PeacoQC <- CytoPipeline(experimentName = experimentName,
-    addProcessingStep(pipL_PeacoQC,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

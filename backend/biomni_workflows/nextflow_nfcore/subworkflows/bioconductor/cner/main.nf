@@ -53,9 +53,7 @@ process BIOC_CNER {
     genome(mySession) <- "hg38"
     # --- ReadAxt analysis [] ---
     # Key functions: readAxt, matchDistribution, syntenicDotplot, readBed, CNE, ceScan, CNE12, CNE21
-    bedDanRer10Fn <- file.path(system.file("extdata", package="CNEr"),
-    danRer10Filter <- readBed(bedDanRer10Fn)
-    bedHg38Fn <- file.path(system.file("extdata", package="CNEr"),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

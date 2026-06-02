@@ -41,10 +41,20 @@ process BIOC_SCMULTISIM {
     library(scMultiSim)
     library(jsonlite)
 
-    # --- Load all analysis [] ---
-    # Key functions: load_all, scmultisim_help, sim_true_counts, plot_cell_loc, gen_clutter, colSums
-    plot_cell_loc(results_1, show.arrows = T, .cell.pop = as.character(results$grid$final_types))
-    plot_cell_loc(results_3, show.arrows = T, .cell.pop = as.character(results$grid$final_types))
+
+    # --- "setup" [] ---
+    # Key functions: set, load_all, scmultisim_help, cci
+    require("knitr")
+    opts_chunk$set(fig.width=4, fig.height=3)
+
+    # devtools::load_all(".")
+
+    ## ----help-cci-----------------------------------------------------------------
+    library(scMultiSim)
+
+    scmultisim_help("cci")
+
+    ## ----cci-network--------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,10 +41,35 @@ process BIOC_ADAPT {
     library(ADAPT)
     library(jsonlite)
 
-    # --- adapt [] ---
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+
+    # --- Load Data [] ---
+    # Key functions: adapt
+    library(ADAPT)
+    data(ecc_saliva)
+
+    # --- Adapt [] ---
     # Key functions: adapt
     saliva_output_noadjust <- adapt(input_data=ecc_saliva, cond.var="CaseStatus", base.cond="Control")
     saliva_output_adjust <- adapt(input_data=ecc_saliva, cond.var="CaseStatus", base.cond="Control", adj.var="Site")
+
+    # --- Getsummary [] ---
+    # Key functions: summary
+    DAtaxa_result <- summary(saliva_output_noadjust, select="da")
+
+    # --- Printtable [] ---
+    # Key functions: adapt
+    head(DAtaxa_result)
+
+    # --- Volcano [] ---
+    # Key functions: adapt
+    plot(saliva_output_noadjust, n.label=5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

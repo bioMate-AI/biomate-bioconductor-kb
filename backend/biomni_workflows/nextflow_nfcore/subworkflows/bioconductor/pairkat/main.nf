@@ -56,9 +56,6 @@ process BIOC_PAIRKAT {
     # Key functions: SummarizedExperiment
     ---------------------------------------------------------------------
     smokers <-
-      SummarizedExperiment::SummarizedExperiment(
-        assays = list(metabolomics = metabolome),
-        rowData = pathways,
     # --- Head [] ---
     # Key functions: keggList
     ---------------------------------------------------------------------
@@ -66,10 +63,6 @@ process BIOC_PAIRKAT {
     # --- Gathernetworks [] ---
     # Key functions: GatherNetworks
     ---------------------------------------------------------------------
-    networks <- GatherNetworks(
-      SE = smokers,
-      keggID = "kegg_id",
-      species = "hsa",
     # --- Arrange [] ---
     # Key functions: arrange
     ---------------------------------------------------------------------

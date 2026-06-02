@@ -52,9 +52,6 @@ process BIOC_CLUSTERPROFILER {
     # Entrez gene ID
     head(gene)
     
-    ggo <- groupGO(gene     = gene,
-                   OrgDb    = org.Hs.eg.db,
-                   ont      = "CC",
     # --- GO over-representation analysis [] ---
     # Key functions: enrichGO, bitr
     ego <- enrichGO(gene          = gene,
@@ -67,8 +64,6 @@ process BIOC_CLUSTERPROFILER {
             readable      = TRUE)
     head(ego)
     
-    gene.df <- bitr(gene, fromType = "ENTREZID",
-            toType = c("ENSEMBL", "SYMBOL"),
     # --- GO Gene Set Enrichment Analysis [] ---
     # Key functions: gseGO
     ego3 <- gseGO(geneList     = geneList,

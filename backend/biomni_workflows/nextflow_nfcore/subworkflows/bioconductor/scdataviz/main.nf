@@ -41,11 +41,69 @@ process BIOC_SCDATAVIZ {
     library(scDataviz)
     library(jsonlite)
 
-    # --- Phenotype data inspection [] ---
-    # Key functions: install_github, processFCS, pData, pca, biplot, reducedDim, performUMAP, findElbowPoint
-    clusters <- unique(metadata(sce)[['Cluster_PCA']])
-    markers <- sample(rownames(sce), 5)
-    markerExpressionPerCluster(sce,
+
+    # --- Load [] ---
+    # Key functions: load, pca, assay, metadata, biplot
+    load(system.file('extdata/', 'complosome.rdata', package = 'scDataviz'))
+    library(PCAtools)
+      p <- pca(assay(sce, 'scaled'), metadata = metadata(sce))
+
+    # --- Add Pcadim [] ---
+    # Key functions: reducedDim, performUMAP
+    reducedDim(sce, 'PCA') <- p$rotated
+    sce <- performUMAP(sce)
+
+    # --- Elbow Horn [] ---
+    # Key functions: findElbowPoint, parallelPCA, assay, performUMAP
+    elbow <- findElbowPoint(p$variance)
+      horn <- parallelPCA(assay(sce, 'scaled'))
+
+      elbow
+      horn$n
+    sce <- performUMAP(sce, reducedDim = 'PCA', dims = c(1:5))
+
+    # --- Ex2 [] ---
+    # Key functions: contourPlot, plot_grid, sample, markerExpression
+    ggout1 <- contourPlot(sce,
+        reducedDim = 'UMAP',
+        bins = 150,
+        subtitle = 'UMAP performed on expression values',
+        legendLabSize = 18,
+        axisLabSize = 22,
+        titleLabSize = 22,
+        subtitleLabSize = 18,
+        captionLabSize = 18)
+
+    markers <- sample(rownames(sce), 6)
+      markers
+
+    # --- Metadata Plot [] ---
+    # Key functions: metadata, metadataPlot, plot_grid
+    head(metadata(sce))
+
+      levels(metadata(sce)$group)
+
+      levels(metadata(sce)$treatment)
+    ggout1 <- metadataPlot(sce,
+        colby = 'group',
+        colkey = c(Healthy = 'royalblue', Disease = 'red2'),
+        title = 'Disease status',
+        subtitle = 'UMAP performed on expression values',
+        legendLabSize = 16,
+        axisLabSize = 20,
+        titleLabSize = 20,
+        subtitleLabSize = 16,
+        captionLabSize = 16)
+
+    # --- Ex5 [] ---
+    # Key functions: clusKNN, plotClusters, plot_grid, metadata, sample, markerExpressionPerCluster
+    sce <- clusKNN(sce,
+        k.param = 20,
+        prune.SNN = 1/15,
+        resolution = 0.01,
+        algorithm = 2,
+        verbose = FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

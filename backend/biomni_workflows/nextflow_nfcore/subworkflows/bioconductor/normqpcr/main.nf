@@ -106,16 +106,9 @@ process BIOC_NORMQPCR {
     # Key functions: pal, matplot
     library(RColorBrewer)
     mypalette <- brewer.pal(5, "Set1")
-    matplot(cbind(res.BM$meanM, res.POOL$meanM, res.FIB$meanM,
-                  res.LEU$meanM, res.NB$meanM), type = "b",
-            ylab = "Average expression stability M",
     # --- pal [] ---
     # Key functions: pal, 3
     mypalette <- brewer.pal(8, "YlGnBu")
-    barplot(cbind(res.POOL$variation, res.LEU$variation, res.NB$variation,
-                  res.FIB$variation, res.BM$variation), beside = TRUE,
-            col = mypalette, space = c(0, 2),
-            names.arg = c("POOL", "LEU", "NB", "FIB", "BM"),
     # --- Normfinder [] ---
     # Key functions: pData, stabMeasureRho, al
     data(Colon)

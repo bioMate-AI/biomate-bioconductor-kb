@@ -72,7 +72,6 @@ process BIOC_AIMS {
     library(hgu133a.db)
     data(vdx)
     hgu133a.entrez <- as.character(as.list(hgu133aENTREZID)[featureNames(vdx)])
-    vdx.subtypes <- applyAIMS(vdx,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -47,7 +47,6 @@ process BIOC_GEDI {
     # Key functions: DESeqDataSet, useMart, getBM
     library("biomaRt")
     useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl")
-    anns <- getBM(
     # --- Filter by row sum threshold [] ---
     # Key functions: rowSums
     keep <- rowSums(counts(dds_macrophage) >= 10) >= 6
@@ -55,12 +54,9 @@ process BIOC_GEDI {
     # Key functions: DESeq, results
     dds_macrophage <- DESeq(dds_macrophage)
     Set a log2 fold change threshold of 1 and a significance level (alpha) of 0.05
-    res_macrophage_IFNg_vs_naive <- results(dds_macrophage,
     # --- KEGG pathway enrichment [] ---
     # Key functions: enrichKEGG, enrichPathway
     library("clusterProfiler")
-    genes <- anns$entrezgene_id[match(rownames(res_macrophage_IFNg_vs_naive),
-    res_enrich <- enrichKEGG(genes,
     # --- Feature metadata inspection [] ---
     # Key functions: deseqresult2df, rowData, topGOtable, GeDi, include_graphics
     data("macrophage_Reactome_example", package = "GeDi")

@@ -45,14 +45,10 @@ process BIOC_QSVAR {
 
     # --- "install" [] ---
     # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("qsvaR")
+
     # --- "Download demo dataset" [] ---
     # Key functions: BiocFileCache, bfcrpath
     bfc <- BiocFileCache::BiocFileCache()
-    rse_file <- BiocFileCache::bfcrpath(
-    load(rse_file, verbose = TRUE)
     # --- "Get Degraded Transcripts" [] ---
     # Key functions: getDegTx
     DegTx <- getDegTx(rse_tx, type = "cell_component")
@@ -62,9 +58,7 @@ process BIOC_QSVAR {
     pcTx <- getPCs(rse_tx = DegTx, assayname = "tpm")
     # --- "k qsvs demo" [] ---
     # Key functions: k_qsvs
-    mod <- model.matrix(~ Dx + Age + Sex + Race + Region,
-    data = colData(rse_tx)
-    random seed with the set.seed() function. Internally, we are using
+
     # --- "get qsvs demo" [] ---
     # Key functions: get_qsvs
     qsvs <- get_qsvs(qsvPCs = pcTx, k = k)

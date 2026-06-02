@@ -45,7 +45,6 @@ process BIOC_MSBACKENDMGF {
     # Key functions: dir
     library(Spectra)
     library(MsBackendMgf)
-    fls <- dir(system.file("extdata", package = "MsBackendMgf"),
     # --- Spectra [] ---
     # Key functions: Spectra
     sps <- Spectra(fls, source = MsBackendMgf())

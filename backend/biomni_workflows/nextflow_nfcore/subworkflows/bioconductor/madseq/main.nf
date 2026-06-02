@@ -41,12 +41,24 @@ process BIOC_MADSEQ {
     library(MADSEQ)
     library(jsonlite)
 
-    # --- Normalizecoverage [] ---
-    # Key functions: normalizeCoverage
-    ---------------------------------------------------------------------
-    ## normalize coverage data
-    ## set plot=FALSE here because similar plot will show in the following example
-    normalizeCoverage(aneuploidy_cov,writeToFile=TRUE, destination=".",plot=FALSE)
+
+    # --- Eval=false [] ---
+    # Key functions: suppressMessages, extdata, aneuploidy.bam, aneuploidy.vcf.gz, normal.bam, target.bed
+    #  system.file("extdata","aneuploidy.bam",package="MADSEQ")
+    #  system.file("extdata","aneuploidy.vcf.gz",package="MADSEQ")
+
+    ## -----------------------------------------------------------------------------
+    ## load the package
+    suppressMessages(library("MADSEQ"))
+
+    ## get path to the location of example data
+    aneuploidy_bam = system.file("extdata","aneuploidy.bam",package="MADSEQ")
+    normal_bam = system.file("extdata","normal.bam",package="MADSEQ")
+    target = system.file("extdata","target.bed",package="MADSEQ")
+
+    ## Note: for your own data, just specify the path to the location 
+    ## of your file using character.
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

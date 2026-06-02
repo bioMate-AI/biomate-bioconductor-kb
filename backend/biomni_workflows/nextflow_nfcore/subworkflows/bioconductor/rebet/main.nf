@@ -63,9 +63,6 @@ process BIOC_REBET {
     # Key functions: gzfile, na, any
     index <- 0
     fid   <- gzfile(genofile, "r")
-    while(1) {
-      vec <- scan(fid, what="character", sep=" ", quiet=TRUE, nlines=1)
-      if (!length(vec)) break
     # --- Call Rebet [] ---
     # Key functions: rebet
     ret <- rebet(Y, G, E, covariates=X)

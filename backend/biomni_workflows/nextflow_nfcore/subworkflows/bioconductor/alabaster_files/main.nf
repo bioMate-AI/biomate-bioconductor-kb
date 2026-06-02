@@ -60,8 +60,6 @@ process BIOC_ALABASTER_FILES {
     ---------------------------------------------------------------------
     df <- DataFrame(Sample=LETTERS[1:4])
     # Adding a column of assorted wrapper files:
-    df$File <- list(
-        wrapped.bam,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

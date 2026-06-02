@@ -50,17 +50,9 @@ process BIOC_SYNERGYFINDER {
     # --- Reshapedata [] ---
     # Key functions: ReshapeData
     ---------------------------------------------------------------------
-    res <- ReshapeData(
-      data = mathews_screening_data,
-      data_type = "viability",
-      impute = TRUE,
     # --- Plotsensitivitysynergy [] ---
     # Key functions: PlotSensitivitySynergy
     ---------------------------------------------------------------------
-    PlotSensitivitySynergy(
-      data = res,
-      plot_synergy = "ZIP",
-      show_labels = TRUE,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -69,10 +61,6 @@ process BIOC_SYNERGYFINDER {
     # --- Reshapedata [] ---
     # Key functions: ReshapeData
     ---------------------------------------------------------------------
-    res <- ReshapeData(
-      data = NCATS_screening_data,
-      data_type = "inhibition",
-      impute = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

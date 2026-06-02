@@ -38,23 +38,131 @@ process BIOC_MAGECKFLUTE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BarView)
-    library(ConsistencyView)
-    library(DensityView)
-    library(EnrichedView)
-    library(FluteMLE)
-    library(FluteRRA)
-    library(HeatmapView)
-    library(MAView)
-    library(MapRatesView)
-    library(RankView)
+    library(MAGeCKFlute)
     library(jsonlite)
 
-    # --- FluteRRA analysis [] ---
-    # Key functions: FluteRRA, FluteMLE, BarView, MapRatesView, RankView, EnrichedView, HeatmapView, DensityView
-    gdata_cc$Entrez = TransGeneID(gdata_cc$Gene, "symbol", "entrez", organism = "mmu")
-    genedata = gdata_cc[, c("Entrez", "Control","Treatment")]
-    arrangePathview(genedata, pathways = "mmu04630", organism = "mmu", sub = NULL)
+
+    # --- Check Count Summary [] ---
+    # Key functions: read.delim, extdata, BarView, MapRatesView, melt, scale_fill_manual, value, variable
+    file4 = file.path(system.file("extdata", package = "MAGeCKFlute"),
+                      "testdata/countsummary.txt")
+    countsummary = read.delim(file4, check.names = FALSE)
+    head(countsummary)
+    # Gini index
+    BarView(countsummary, x = "Label", y = "GiniIndex",
+            ylab = "Gini index", main = "Evenness of sgRNA reads")
+
+    # Missed sgRNAs
+    countsummary$Missed = log10(countsummary$Zerocounts)
+    BarView(countsummary, x = "Label", y = "Missed", fill = "#394E80",
+            ylab = "Log10 missed gRNAs", main = "Missed sgRNAs")
+
+    # Read mapping
+    file1 = file.path(system.file("extdata", package = "MAGeCKFlute"),
+                      "testdata/rra.gene_summary.txt")
+    gdata = ReadRRA(file1)
+    head(gdata)
+
+    # --- Mmu2hsa [] ---
+    # Key functions: TransGeneID, symbol, mmu, hsa, ScatterView, VolcanoView, volcano, rank
+    gdata$HumanGene = TransGeneID(gdata$id, fromType = "symbol", toType = "symbol",
+                                  fromOrg = "mmu", toOrg = "hsa")
+    sdata$HumanGene = TransGeneID(sdata$Gene, fromType = "symbol", toType = "symbol",
+                                  fromOrg = "mmu", toOrg = "hsa")
+    gdata$LogFDR = -log10(gdata$FDR)
+    p1 = ScatterView(gdata, x = "Score", y = "LogFDR", label = "id", 
+                     model = "volcano", top = 5)
+    print(p1)
+
+    # Or
+    p2 = VolcanoView(gdata, x = "Score", y = "FDR", Label = "id")
+    print(p2)
+    gdata$Rank = rank(gdata$Score)
+    p1 = ScatterView(gdata, x = "Rank", y = "Score", label = "id", 
+                     top = 5, auto_cut_y = TRUE, ylab = "Log2FC", 
+                     groups = c("top", "bottom"))
+    print(p1)
+
+    # --- Rankrra2 [] ---
+    # Key functions: RankView, sample, ScatterView, CutoffCalling, top, bottom, sgRankView
+    geneList= gdata$Score
+    names(geneList) = gdata$id
+    p2 = RankView(geneList, top = 5, bottom = 10)
+    print(p2)
+    RankView(geneList, top = 0, bottom = 0, genelist = c("Pbrm1", "Arid2", "Brd7"))
+    gdata$RandomIndex = sample(1:nrow(gdata), nrow(gdata))
+    gdata = gdata[order(-gdata$Score), ]
+    gg = gdata[gdata$Score>0, ]
+    p1 = ScatterView(gg, x = "RandomIndex", y = "Score", label = "id",
+                     y_cut = CutoffCalling(gdata$Score,2), 
+                     groups = "top", top = 5, ylab = "Log2FC")
+    p1
+    gg = gdata[gdata$Score<0, ]
+    # --- Enrich Rra [] ---
+    # Key functions: EnrichAnalyzer, EnrichedView, rnorm, HeatmapView, rep, BatchRemove
+    geneList= gdata$Score
+    names(geneList) = gdata$id
+    enrich_pos = EnrichAnalyzer(geneList = geneList[geneList>0.5], 
+                                method = "HGT", type = "KEGG")
+    enrich_neg = EnrichAnalyzer(geneList = geneList[geneList< -0.5], 
+                                method = "HGT", type = "KEGG")
+    EnrichedView(enrich_pos, mode = 1, top = 5, bottom = 0)
+    EnrichedView(enrich_pos, mode = 2, top = 5, bottom = 0)
+    EnrichedView(enrich_neg, mode = 2, top = 0, bottom = 5)
+    ##Before batch removal
+    edata = matrix(c(rnorm(2000, 5), rnorm(2000, 8)), 1000)
+    colnames(edata) = paste0("s", 1:4)
+    HeatmapView(cor(edata))
+
+    ## After batch removal
+    batchMat = data.frame(sample = colnames(edata), batch = rep(1:2, each = 2))
+    edata1 = BatchRemove(edata, batchMat)
+    head(edata1$data)
+    print(edata1$p)
+
+    # --- Read Beta [] ---
+    # Key functions: ReadBeta, extdata, TransGeneID, NormalizeBeta, Pmel1_Ctrl, symbol, mmu, hsa
+    file3 = file.path(system.file("extdata", package = "MAGeCKFlute"),
+                      "testdata/mle.gene_summary.txt")
+    # Read and visualize the file format
+    gdata = ReadBeta(file3)
+    head(gdata)
+    ctrlname = "Pmel1_Ctrl"
+    treatname = "Pmel1"
+    gdata$HumanGene = TransGeneID(gdata$Gene, fromType = "symbol", toType = "symbol",
+                                  fromOrg = "mmu", toOrg = "hsa")
+
+    gdata_cc = NormalizeBeta(gdata, id = "HumanGene", samples=c(ctrlname, treatname), 
+                             method="cell_cycle")
+    head(gdata_cc)
+    DensityView(gdata_cc, samples=c(ctrlname, treatname))
+    ConsistencyView(gdata_cc, ctrlname, treatname)
+
+    # Another option MAView
+    MAView(gdata_cc, ctrlname, treatname)
+
+    # --- Selection2 [] ---
+    # Key functions: rowMeans, ScatterView, top, bottom, rank, RankView, Pmel1_Ctrl, ninesquare
+    gdata_cc$Control = rowMeans(gdata_cc[,ctrlname, drop = FALSE])
+    gdata_cc$Treatment = rowMeans(gdata_cc[,treatname, drop = FALSE])
+
+    p1 = ScatterView(gdata_cc, "Control", "Treatment", label = "Gene", 
+                     auto_cut_diag = TRUE, display_cut = TRUE, 
+                     groups = c("top", "bottom"),
+                     toplabels = c("Pbrm1", "Brd7", "Arid2", "Jak1", "Stat1", "B2m"))
+    print(p1)
+    gdata_cc$Diff = gdata_cc$Treatment - gdata_cc$Control
+    gdata_cc$Rank = rank(gdata_cc$Diff)
+    p1 = ScatterView(gdata_cc, x = "Rank", y =  "Diff", label = "Gene", 
+                     top = 5, auto_cut_y = TRUE, groups = c("top", "bottom"))
+    print(p1)
+
+    # Or
+    rankdata = gdata_cc$Treatment - gdata_cc$Control
+    names(rankdata) = gdata_cc$Gene
+    RankView(rankdata)
+    p1 = ScatterView(gdata_cc, x="Pmel1_Ctrl", y="Pmel1", label = "Gene", 
+                     model = "ninesquare", top = 5, display_cut = TRUE, force = 2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

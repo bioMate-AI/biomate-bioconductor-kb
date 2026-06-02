@@ -50,8 +50,6 @@ process BIOC_WIDGETTOOLS {
     label1 <- label(wName = "label1", wValue = "File Name: ", wEnv = PWEnv)
     entry1 <- entryBox(wName = "entry1", wValue = "Feed me using browse",
                        wEnv = PWEnv)
-    browse2Entry1 <- function(){
-        tempValue <- tclvalue(tkgetOpenFile())
     # --- Wname [] ---
     # Key functions: wName
     wName(label1)

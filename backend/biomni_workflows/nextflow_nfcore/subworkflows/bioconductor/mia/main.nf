@@ -39,7 +39,6 @@ process BIOC_MIA {
     """
     #!/usr/bin/env Rscript
     library(mia)
-    library("mia")
     library(jsonlite)
 
 

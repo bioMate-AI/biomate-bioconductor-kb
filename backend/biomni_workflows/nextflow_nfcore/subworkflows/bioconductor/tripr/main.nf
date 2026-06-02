@@ -38,11 +38,38 @@ process BIOC_TRIPR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PrintBibliography)
+    library(tripr)
     library(jsonlite)
 
-    # --- Print Bibliography [] ---
-    # Key functions: PrintBibliography
+
+    # --- Vignette Setup [] ---
+    # Key functions: Sys.time, citation, ggplot2, golem, plotly
+    ## For links
+    library("BiocStyle")
+    ## Track time spent on making the vignette
+    #startTime <- Sys.time()
+    ## Bib setup
+    library("RefManageR")
+    ## Write bibliography information
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+        comment = "#>",
+        error = FALSE,
+        warning = FALSE,
+        message = FALSE,
+        crop = NULL
+    )
+
+    # --- 'citation' [] ---
+    # Key functions: citation, tripr
+    ## Citation info
+    citation("tripr")
+
+    # --- Vignette Biblio [] ---
+    # Key functions: PrintBibliography, to.doc, html
+    ## Print bibliography
     PrintBibliography(bib, .opts = list(hyperlink = "to.doc", style = "html"))
 
     # --- Save outputs ---

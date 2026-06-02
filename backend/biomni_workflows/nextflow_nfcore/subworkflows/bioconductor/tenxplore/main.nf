@@ -41,11 +41,24 @@ process BIOC_TENXPLORE {
     library(tenXplore)
     library(jsonlite)
 
-    # --- cell Type To G O [] ---
+
+    # --- Setupp [] ---
+    # Key functions: suppressWarnings, suppressPackageStartupMessages
+    suppressWarnings({
+    suppressPackageStartupMessages({
+    library(tenXplore)
+    library(org.Mm.eg.db)
+    library(org.Hs.eg.db)
+    })
+    })
+
+    # --- Doont [] ---
     # Key functions: cellTypeToGO, cellTypeToGenes
     library(ontoProc)
     data(allGOterms)
     cellTypeToGO("serotonergic neuron", gotab=allGOterms)
+    cellTypeToGenes("serotonergic neuron", gotab=allGOterms, orgDb=org.Mm.eg.db)
+    cellTypeToGenes("serotonergic neuron", gotab=allGOterms, orgDb=org.Hs.eg.db)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

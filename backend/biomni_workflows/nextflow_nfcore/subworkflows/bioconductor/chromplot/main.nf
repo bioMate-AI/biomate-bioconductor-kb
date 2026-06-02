@@ -88,10 +88,6 @@ process BIOC_CHROMPLOT {
     # --- Creategraph7 [] ---
     # Key functions: ifelse
     fst$Group <-
-    ifelse(fst$win.FST >= 0     & fst$win.FST < 0.025, "Fst 0-0.025",
-    ifelse(fst$win.FST >= 0.025 & fst$win.FST < 0.05,  "Fst 0.025-0.05",
-    ifelse(fst$win.FST >= 0.05  & fst$win.FST < 0.075, "Fst 0.05-0.075",
-    ifelse(fst$win.FST >= 0.075 & fst$win.FST < 0.1,   "Fst 0.075-0.1",
     # --- Creategraph8 [] ---
     # Key functions: chromPlot
     chromPlot(gaps=hg_gap, chr=c(19, 20, 21), bands=fst, figCols=3)

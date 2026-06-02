@@ -95,8 +95,6 @@ process BIOC_OMNIPATHR {
 
     ## ----intercell-filter---------------------------------------------------------------------------------------
     icn <- intercell_network()
-    icn_hc <- filter_intercell_network(
-
     # --- GO [] ---
     # Key functions: go_ontology_download, relations_table_to_graph, ontology_ensure_name
     go <- go_ontology_download()

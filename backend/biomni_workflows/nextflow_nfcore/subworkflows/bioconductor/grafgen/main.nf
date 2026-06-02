@@ -41,11 +41,42 @@ process BIOC_GRAFGEN {
     library(GrafGen)
     library(jsonlite)
 
-    # --- crop=NULL [] ---
-    # Key functions: createApp, runApp
+
+    # --- Eval=false [] ---
+    # Key functions: requireNamespace, install, grafGen, extdata, data.vcf.gz
+    #      if (!requireNamespace("BiocManager", quietly = TRUE))
+    #          install.packages("BiocManager")
+    #      BiocManager::install("GrafGen")
+
+    ## -----------------------------------------------------------------------------
+    library(GrafGen)
+
+    ## -----------------------------------------------------------------------------
+        dir <- system.file("extdata", package="GrafGen", mustWork=TRUE)
+        geno.file <- paste0(dir, .Platform$file.sep, "data.vcf.gz")
+        print(geno.file)
+
+    ## -----------------------------------------------------------------------------
+    ret <- grafGen(geno.file, print=0)
+    ret$table[seq_len(5), ]
+
+    # --- Crop=null [] ---
+    # Key functions: interactive, interactiveReferencePlot, createApp, runApp
     plot(ret)
+
+    ## -----------------------------------------------------------------------------
     if (interactive()) interactiveReferencePlot()
+
+    ## -----------------------------------------------------------------------------
     tmp <- createApp(ret)
+    if (interactive()) {
+        reference_results <- tmp$reference_results
+        user_results      <- tmp$user_results
+        user_metadata     <- tmp$user_metadata
+        shiny::runApp(tmp$app)
+    }
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

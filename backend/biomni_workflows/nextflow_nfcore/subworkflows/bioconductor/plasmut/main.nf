@@ -43,9 +43,7 @@ process BIOC_PLASMUT {
 
     # --- data wrangling [] ---
     # Key functions: tibble, unite, group_by, nest
-    p53 <- tibble(y=c(4, 0),
-    n=c(1000, 600),
-    analyte=c("plasma", "buffy coat"),
+
     # --- importance_sampler [] ---
     # Key functions: importance_sampler
     stats <- importance_sampler(dat$data[[1]], param.list)
@@ -53,9 +51,7 @@ process BIOC_PLASMUT {
     importance_sampler(dat$data[[1]], param.list, save_montecarlo=FALSE)
     # --- importance_sampler [] ---
     # Key functions: importance_sampler, replicate, group_by, summarize
-    fun <- function(montecarlo.samples, data,
-    res <- importance_sampler(data, param.list,
-    mutate(montecarlo.samples=montecarlo.samples,
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_point, geom_line, scale_y_log10, theme_bw
     mutate(prior.weight=factor(prior.weight)) %>%
@@ -68,9 +64,7 @@ process BIOC_PLASMUT {
     ggplot(aes(prior.weight, mean_bf)) +
     # --- unite [] ---
     # Key functions: unite, group_by
-    params <- list(ctdna = list(a = 1, b = 9),
-    ctc = list(a = 1, b = 10^3),
-    chip = list(a= 1, b = 9),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -52,16 +52,14 @@ process BIOC_GETDEE2 {
     colData(x)[1:7]
     # --- get D E E2 [] ---
     # Key functions: getDEE2
-    x <- getDEE2("celegans",c("SRR363798","SRR363799","SRR3581689","SRR3581692"),
+
     # --- list_bundles [] ---
     # Key functions: list_bundles, query_bundles, getDEE2_bundle, assays
     bundles <- list_bundles("athaliana")
     head(bundles)
-    query_bundles(species="athaliana",query="SRP058781",
     # --- get D E E2_bundle [] ---
     # Key functions: getDEE2_bundle, assays
-    x <- getDEE2_bundle("drerio", "GSE106677",
-    assays(x)$counts[1:6,1:4]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

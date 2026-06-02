@@ -38,8 +38,6 @@ process BIOC_RCISTARGET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GeneSet)
-    library(Stangle)
     library(RcisTarget)
     library(jsonlite)
 

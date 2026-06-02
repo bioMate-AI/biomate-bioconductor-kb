@@ -54,8 +54,6 @@ process BIOC_QUANTISEQR {
     # --- Table formatting and display [] ---
     # Key functions: kable, run_quantiseq, quantiplot, getGEOSuppFiles, signif
     read.table("GSE107572_tpm_PBMC_RNAseq.txt", header = TRUE)
-    tpminfo_GSE107572 <- getGEOSuppFiles("GSE107572",
-    baseDir = tempdir(),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

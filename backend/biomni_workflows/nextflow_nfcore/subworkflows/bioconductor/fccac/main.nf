@@ -41,10 +41,17 @@ process BIOC_FCCAC {
     library(fCCAC)
     library(jsonlite)
 
-    # --- Heatmapplot [] ---
-    # Key functions: heatmapfCCAC
+
+    # --- F Ccacexample [] ---
+    # Key functions: al., setwd, tempdir, windows, unix, chr21_H3K4me3_1.bw, chr21_H3K4me3_2.bw, chr21_H3K4me3_3.bw
+    options(width=50);
+    if (.Platform$OS.type == "windows") { print("...rtracklayer is unable to read bigWig format files in Windows...") }
+
+    # --- Heatmap Plot [] ---
+    # Key functions: heatmapfCCAC, windows, unix
     options(width=50)
     if (.Platform$OS.type == "windows") { print("...rtracklayer is unable to read bigWig format files in Windows...") }
+
     if (.Platform$OS.type == "unix" ){ heatmapfCCAC(fc) }
 
     # --- Save outputs ---

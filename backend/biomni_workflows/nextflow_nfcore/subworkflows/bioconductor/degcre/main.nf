@@ -45,11 +45,9 @@ process BIOC_DEGCRE {
     # Key functions: runDegCre
     subDegGR <- DexNR3C1$DegGR[which(seqnames(DexNR3C1$DegGR)=="chr1")]
     subCreGR <- DexNR3C1$CreGR[which(seqnames(DexNR3C1$CreGR)=="chr1")]
-    myDegCreResList <- runDegCre(DegGR=subDegGR,
     # --- demo Alpha opt [] ---
     # Key functions: optimizeAlphaDegCre
-    alphaOptList <- optimizeAlphaDegCre(DegGR=subDegGR,
-    bestAlphaId <- which.max(alphaOptList$alphaPRMat[,4])
+
     # --- demo assoc dist plot [] ---
     # Key functions: plotDegCreAssocProbVsDist
     par(mai=c(0.8,1.6,0.4,0.1))
@@ -67,7 +65,7 @@ process BIOC_DEGCRE {
     par(cex.axis=1)
     # --- demo expect associations [] ---
     # Key functions: getExpectAssocPerDEG
-    expectAssocPerDegDf <- getExpectAssocPerDEG(degCreResList=bestDegCreResList,
+
     # --- demo plot expect hist [] ---
     # Key functions: plotExpectedAssocsPerDeg
     par(mai=c(0.8,0.6,0.4,0.1))
@@ -75,22 +73,20 @@ process BIOC_DEGCRE {
     par(cex.axis=1)
     # --- plot Browser Deg Cre [] ---
     # Key functions: plotBrowserDegCre
-    browserOuts <- plotBrowserDegCre(degCreResList=bestDegCreResList,
+
     # --- demo zoom browser [] ---
     # Key functions: GRanges
     zoomGR <- GRanges(seqnames="chr1",
     ranges=IRanges(start=7900e3,end=8400e3))
     # --- plot browser2 [] ---
     # Key functions: plotBrowserDegCre
-    zoomBrowserOuts <- plotBrowserDegCre(degCreResList=bestDegCreResList,
+
     # --- plot browser3 [] ---
     # Key functions: plotBrowserDegCre
-    highLightBrowserOuts <- plotBrowserDegCre(degCreResList=bestDegCreResList,
+
     # --- demo convert to DataFrame [] ---
     # Key functions: convertDegCreDataFrame
-    degCreDf <- convertDegCreDataFrame(degCreResList=bestDegCreResList,
-    head(degCreDf)
-    sessionInfo()
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

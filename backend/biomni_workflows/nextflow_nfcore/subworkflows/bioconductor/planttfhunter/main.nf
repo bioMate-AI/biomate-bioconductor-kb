@@ -48,8 +48,6 @@ process BIOC_PLANTTFHUNTER {
     # --- identifying tfs [] ---
     # Key functions: annotate_pfam
     data(gsu_annotation)
-    if(hmmer_is_installed()) {
-    gsu_annotation <- annotate_pfam(gsu)
     # --- classifying tfs [] ---
     # Key functions: classify_tfs
     gsu_families <- classify_tfs(gsu_annotation)
@@ -58,8 +56,6 @@ process BIOC_PLANTTFHUNTER {
     # --- get tf counts [] ---
     # Key functions: get_tf_counts, assay, colData
     data(tf_counts)
-    if(hmmer_is_installed()) {
-    tf_counts <- get_tf_counts(proteomes, species_metadata)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

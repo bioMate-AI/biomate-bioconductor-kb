@@ -38,15 +38,129 @@ process BIOC_CAGEFIGHTR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BigWigFileList)
-    library(SeqinfoForUCSCGenome)
+    library(CAGEfightR)
     library(jsonlite)
 
-    # --- BigWigFileList analysis [] ---
-    # Key functions: install_github, BigWigFileList, SeqinfoForUCSCGenome, quantifyCTSSs, quickTSSs, quickEnhancers, assignTxType, rowRanges
-    CAGEclusters <- combineClusters(object1=exampleUnidirectional,
-    CAGEclusters <- subsetBySupport(CAGEclusters,
-    cluster_track <- trackClusters(CAGEclusters, name="Clusters", col=NA)
+
+    # --- Citation [] ---
+    # Key functions: citation, BigWigFileList, exampleDesign, extdata, SeqinfoForUCSCGenome, quantifyCTSSs, mm9, quickTSSs
+    citation("CAGEfightR")
+    # Load the example data
+    data("exampleDesign")
+    head(exampleDesign)
+
+    # Locate files on your harddrive
+    bw_plus <- system.file("extdata", 
+                           exampleDesign$BigWigPlus, 
+                           package = "CAGEfightR")
+    # --- Quick Links [] ---
+    # Key functions: rowRanges, findLinks, enhancer, counts, clusterType, kendall, assay, calcTPM
+    # Set TSSs as reference points
+    rowRanges(RSE)$clusterType <- factor(rowRanges(RSE)$clusterType,
+                                         levels=c("TSS", "enhancer"))
+
+    # Find pairs and calculate kendall correlation between them
+    links <- findLinks(RSE, 
+                       inputAssay="counts", 
+                       maxDist=5000, 
+                       directional="clusterType",
+                       method="kendall")
+    data(exampleCTSSs)
+    exampleCTSSs
+    head(assay(exampleCTSSs))
+    rowRanges(exampleCTSSs)
+    exampleCTSSs <- calcTPM(exampleCTSSs, inputAssay="counts", outputAssay="TPM", outputColumn="subsetTags")
+    # Library sizes
+    colData(exampleCTSSs)
+
+    # TPM values
+    head(assay(exampleCTSSs, "TPM"))
+
+    # --- Naive Tc [] ---
+    # Key functions: clusterUnidirectionally, clusterBidirectionally, calcBidirectionality, quantifyClusters, rowRanges, counts, subsetBySupport
+    simple_TCs <- clusterUnidirectionally(exampleCTSSs, 
+                                         pooledCutoff=0, 
+                                         mergeDist=20)
+    # Use a higher cutoff for clustering
+    higher_TCs <- clusterUnidirectionally(exampleCTSSs, 
+                                         pooledCutoff=0.1, 
+                                         mergeDist=20)
+
+    # Use CTSSs pre-filtered on support. 
+    prefiltered_TCs <- clusterUnidirectionally(supportedCTSSs, 
+                                         pooledCutoff=0, 
+                                         mergeDist=20)
+    simple_TCs
+    BCs <- clusterBidirectionally(exampleCTSSs, balanceThreshold=0.95)
+    BCs
+    # Calculate number of bidirectional samples
+    BCs <- calcBidirectionality(BCs, samples=exampleCTSSs)
+
+    # Summarize
+    table(BCs$bidirectionality)
+
+    # --- Support On Tpm [] ---
+    # Key functions: calcTPM, subsetBySupport, totalTags, assignTxID, txID, rowRanges, assignTxType, txType
+    # Calculate TPM using pre-calculated total tags:
+    exampleUnidirectional <- calcTPM(exampleUnidirectional, 
+                                     totalTags = "totalTags")
+
+    # Only TSSs expressed at more than 1 TPM in more than 2 samples
+    exampleUnidirectional <- subsetBySupport(exampleUnidirectional,
+                                             inputAssay="TPM",
+                                             unexpressed=1,
+                                             minSamples=2)
+    library(TxDb.Mmusculus.UCSC.mm9.knownGene)
+    txdb <- TxDb.Mmusculus.UCSC.mm9.knownGene
+    txdb
+    exampleUnidirectional <- assignTxID(exampleUnidirectional,
+                                        txModels=txdb,
+                                        outputColumn="txID")
+    rowRanges(exampleUnidirectional)[5:6]
+    exampleUnidirectional <- assignTxType(exampleUnidirectional,
+                                          txModels=txdb,
+                                          outputColumn="txType")
+    # --- Naive Links [] ---
+    # Key functions: findLinks, kendall, rowRanges, colData, combineClusters, calcTPM, enhancer, object1
+    library(InteractionSet)
+    TC_pairs <- findLinks(exampleUnidirectional, 
+                          inputAssay="TPM", 
+                          maxDist=10000, 
+                          method="kendall")
+
+    TC_pairs
+    # Mark the type of cluster
+    rowRanges(exampleUnidirectional)$clusterType <- "TSS"
+    rowRanges(exampleBidirectional)$clusterType <- "enhancer"
+
+    # Merge the dataset
+    colData(exampleBidirectional) <- colData(exampleUnidirectional)
+    SE <- combineClusters(object1=exampleUnidirectional, 
+                          object2=exampleBidirectional,
+                          removeIfOverlapping="object1")
+
+    # --- Row Data [] ---
+    # Key functions: rowData, calcComposition, rowRanges, composition, geneID, exampleCTSSs, exampleUnidirectional, exampleBidirectional
+    rowData(genelevel)
+    # Remove TSSs not belonging to any genes
+    intragenicTSSs <- subset(exampleUnidirectional, !is.na(geneID))
+
+    # Calculate composition: 
+    # The number of samples expressing TSSs above 10% of the total gene expression.
+    intragenicTSSs <- calcComposition(intragenicTSSs,
+                                      outputColumn="composition",
+                                      unexpressed=0.1,
+                                      genes="geneID")
+
+    # Remove TSSs with a composition score less than 3
+    intragenicTSSs <- subset(intragenicTSSs, composition > 2)
+    library(Gviz)
+
+    data("exampleCTSSs")
+    data("exampleUnidirectional")
+    data("exampleBidirectional")
+    # Calculate pooled CTSSs
+    exampleCTSSs <- calcTPM(exampleCTSSs, totalTags="totalTags")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

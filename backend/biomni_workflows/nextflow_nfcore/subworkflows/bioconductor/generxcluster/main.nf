@@ -44,11 +44,7 @@ process BIOC_GENERXCLUSTER {
 
     # --- Chromos [] ---
     # Key functions: structure
-    chr.lens <- structure(c(247249719L, 242951149L, 199501827L,
-        191273063L, 180857866L, 170899992L, 158821424L, 146274826L,
-        140273252L, 135374737L, 134452384L, 132349534L, 114142980L,
-        106368585L, 100338915L, 88827254L, 78774742L, 76117153L,
-        63811651L, 62435964L, 46944323L, 49691432L, 154913754L,
+
     # --- Chr Samples [] ---
     # Key functions: factor, sample
     set.seed(13245)
@@ -83,10 +79,6 @@ process BIOC_GENERXCLUSTER {
     # --- Lapply [] ---
     # Key functions: sample
     clump.sites <-
-        lapply(seq_along(clump.chrs),
-    	   function(x) {
-    	       chromo <- clump.chrs[x]
-    	       n <- clump.site.ns[x]
     # --- Rep [] ---
     # Key functions: rep
     clump.grps <- rep(0:1,15)==1

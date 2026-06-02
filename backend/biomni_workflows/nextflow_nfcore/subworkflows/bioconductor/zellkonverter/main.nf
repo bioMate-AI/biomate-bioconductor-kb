@@ -48,8 +48,6 @@ process BIOC_ZELLKONVERTER {
     # --- read H5 A D [] ---
     # Key functions: readH5AD
     library(zellkonverter)
-    example_h5ad <- system.file(
-    readH5AD(example_h5ad)
     # --- Zeisel Brain Data [] ---
     # Key functions: ZeiselBrainData, tempfile, writeH5AD
     library(scRNAseq)

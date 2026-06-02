@@ -50,16 +50,13 @@ process BIOC_CENSCYT {
     # Key functions: runif, simulate_multicluster
     sizes <- round(runif(nr_samples,1e3,1e4))
     alphas <- runif(nr_clusters,1,10)
-    simulation_output <- simulate_multicluster(alphas = alphas,
     # --- Visualize Simulated Data [] ---
     # Key functions: ifelse, pivot_longer, ggplot, geom_point, facet_wrap
     is_diff_cluster <- ifelse(is.na(simulation_output$row_data$paired),FALSE,TRUE)
     proportion <- as.data.frame(t(apply(assay(d_counts),2,function(x)x/sum(x))))
-    names(proportion) <- paste0("Nr: ",names(proportion), " - ",
     # --- Create Model Formula [] ---
     # Key functions: createFormula
-    da_formula <- createFormula(experiment_info = experiment_info,
-    contrast <- matrix(c(0,1))
+
     # --- differential testing [] ---
     # Key functions: testDA_censoredGLMM
     test with 50 repetitions with method risk set imputation (rs)
@@ -72,8 +69,6 @@ process BIOC_CENSCYT {
     # --- Simulate Data for Wrapper [] ---
     # Key functions: sinh
     Function to create expression data (one sample)
-    fcs_sim <- function(n = 2000, mean = 0, sd = 1, ncol = 10, cof = 5) {
-    d <- matrix(sinh(rnorm(n*ncol, mean, sd)) * cof,ncol=ncol)
     # --- Run Censcyt Wrapper [] ---
     # Key functions: censcyt
     out_DA <- censcyt(d_input,

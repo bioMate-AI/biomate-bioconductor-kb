@@ -55,38 +55,19 @@ process BIOC_DDCT {
     warningFile <- savedir(paste("warning.output",sho,".txt",sep=""))
     # --- Plot Level [] ---
     # Key functions: assayData, null, factor
-    for(KindOfPlot in TheKindOfPlot){
-    if(KindOfPlot=="level"){
-      EE1 <- assayData(result)$exprs
-      FF1 <- assayData(result)$level.err
-      theTitle <- "Level"
+
     # --- Korrelation [] ---
     # Key functions: null, pData, assayData, combn
     A <- name.referenz.gene
-    if (length(A) > 1) {
-     if (!is.null(names.of.the.samples.REMAIN.in.cor)){
-       corRed <- (rownames(pData(result)) %in% names.of.the.samples.REMAIN.in.cor)
-     }else{
     # --- Ttest [] ---
     # Key functions: getDir
-    myFoldChange <- function(x){
-      x <- as.numeric(x)
-      if(length(x) == 2 ){
-        resu <- 2^(x[1]-x[2])
-      }else if( length(x) == 1  ){
+
     # --- Boxplotshousekkepinggenes [] ---
     # Key functions: null, pData, assayData, levels, factor
-    if(perform.ttest){
-     if (!is.null(names.of.the.samples.REMAIN.in.ttest)){
-       ttestRed <- (rownames(pData(result)) %in% names.of.the.samples.REMAIN.in.ttest)
-     }else{
-       ttestRed <- !(rownames(pData(result)) %in% names.of.the.samples.NOT.in.ttest)
+
     # --- Hh [] ---
     # Key functions: unlist, delim
-    if(file.exists(warningFile)){
-      bart   <- unlist(read.delim(warningFile,as.is=TRUE,header=FALSE))
-      fehler <- sapply(bart, function(y) gsub("simpleWarning in withCallingHandlers\\(\\{: ","",y))
-    }
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

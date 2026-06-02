@@ -54,7 +54,6 @@ process BIOC_MACSR {
     cp1 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
                     name = "run_callpeak_narrow0", outdir = tempdir(),
                     cutoff_analysis = TRUE)
-    cp2 <- callpeak(CHIP, CTRL, gsize = 5.2e7, store_bdg = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

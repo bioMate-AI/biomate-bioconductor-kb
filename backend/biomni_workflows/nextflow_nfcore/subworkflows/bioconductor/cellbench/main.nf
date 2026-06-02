@@ -41,10 +41,77 @@ process BIOC_CELLBENCH {
     library(CellBench)
     library(jsonlite)
 
-    # --- result = 'hide' [] ---
-    # Key functions: plus_two, partial, fn_arg_seq
+
+    # --- Include = False [] ---
+    # Key functions: runif, function, pearson, kendall
+    library(CellBench)
+    library(dplyr)
+    library(purrr)
+
+    ## -----------------------------------------------------------------------------
+    library(CellBench)
+    datasets <- list(
+        random_mat1 = matrix(runif(100), 10, 10),
+        random_mat2 = matrix(runif(100), 10, 10)
+    )
+
+    cor_method <- list(
+        pearson = function(x) { cor(x, method = "pearson") },
+        kendall = function(x) { cor(x, method = "kendall") }
+    )
+
+    # --- Eval = False [] ---
+    # Key functions: mutate, unlist
+    #  # this code will fail
+    #  res %>%
+    #      mutate(exp_result = exp(result))
+
+    ## -----------------------------------------------------------------------------
+    res %>%
+        mutate(exp_result = lapply(result, exp)) %>%
+        mutate(sum_of_exp = unlist(lapply(exp_result, sum)))
+
+    ## -----------------------------------------------------------------------------
+    library(tibble)
+
+    # --- Result = 'hide' [] ---
+    # Key functions: function
+    # a numeric literal
+    1
+
+    # a character literal
+    "a"
+
+    # a function literal
+    function(x) { print(x) }
+
+    # --- Result = 'hide' [] ---
+    # Key functions: function
+    # assigning numeric literal
+    x <- 1
+
+    # assigning character literal
+    x <- "a"
+
+    # assigning function literal
+    f <- function(x) { print(x) }
+
+    # --- Result = 'hide' [] ---
+    # Key functions: function
+    # assigning numeric literal
+    x <- 1
+    y <- x # y = 1
+
+    # assigning character literal
+    x <- "a"
+    y <- x # y = "a"
+
+    # assigning function literal
     f <- function(x) { print(x) }
     g <- f # g = function(x) { print(x) }
+
+    ## -----------------------------------------------------------------------------
+    # function to add two things
     plus <- function(x, y) { x + y }
 
     # --- Save outputs ---

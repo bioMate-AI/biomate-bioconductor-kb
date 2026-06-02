@@ -49,9 +49,7 @@ process BIOC_COSIA {
     CoSIA::getTissues(c("m_musculus", "r_norvegicus"))
     # --- Co S I An [] ---
     # Key functions: CoSIAn
-    CoSIAn_Obj <- CoSIA::CoSIAn(
-    gene_set = unique(monogenic_kid_sample$Gene),
-    o_species = c(
+
     # --- get Conversion [] ---
     # Key functions: getConversion
     CoSIAn_Obj_convert <- CoSIA::getConversion(CoSIAn_Obj)
@@ -69,9 +67,7 @@ process BIOC_COSIA {
     CoSIAn_Obj_CVplot <- CoSIA::plotCVGEx(CoSIAn_Obj_CV)
     # --- Co S I An [] ---
     # Key functions: CoSIAn, getConversion, getGExMetrics, plotDSGEx
-    CoSIAn_Obj_DS <- CoSIA::CoSIAn(
-    gene_set = unique(monogenic_kid_sample$Gene),
-    o_species = c("h_sapiens", "r_norvegicus"),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

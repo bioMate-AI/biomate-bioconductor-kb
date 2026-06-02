@@ -45,12 +45,9 @@ process BIOC_MAGAR {
     # Key functions: qtlSetOption
     rnb.set <- load.rnb.set("rnb_set_dir")
     data.loc <- list(idat.dir=rnb.set,geno.dir=plink.dir)
-    qtlSetOption(geno.data.type="plink",
     # --- call methQTL [] ---
     # Key functions: qtlSetOption
     imp.data <- loadMethQTLInput(system.file("extdata","reduced_methQTL",package="MAGAR"))
-    qtlSetOption(standard.deviation.gauss=100,
-    meth.qtl.res <- doMethQTL(imp.data,default.options=FALSE,p.val.cutoff=0.05)
     # --- qtl Plot S N P Cp G Interaction [] ---
     # Key functions: qtlPlotSNPCpGInteraction, qtlDistanceScatterplot
     result.table <- result.table[order(result.table$P.value,decreasing=FALSE),]
@@ -68,7 +65,6 @@ process BIOC_MAGAR {
     # Key functions: qtlSetOption
     qtlSetOption(cluster.config = c(h_vmem="60G",mem_free="20G"))
     qtlSetOption(rscript.path = "/usr/bin/Rscript")
-    meth.qtl.res <- doMethQTL(meth.qtl = imp.data,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

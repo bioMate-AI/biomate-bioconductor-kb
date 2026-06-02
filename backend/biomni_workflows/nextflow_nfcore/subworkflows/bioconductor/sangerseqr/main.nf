@@ -61,7 +61,6 @@ process BIOC_SANGERSEQR {
     #from a sequence file object
     homosangerseq <- sangerseq(homoscf)
     #directly from the file
-    hetsangerseq <- readsangerseq(system.file("extdata",
     # --- Primaryseq [] ---
     # Key functions: primarySeq, reverseComplement
     ---------------------------------------------------------------------

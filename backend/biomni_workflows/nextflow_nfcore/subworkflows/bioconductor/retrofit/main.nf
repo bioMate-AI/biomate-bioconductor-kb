@@ -64,7 +64,6 @@ process BIOC_RETROFIT {
     for(i in 1:nrow(W)){
         W_norm[i,]=W[i,]/sum(W[i,])
     }
-    corrplot::corrplot(stats::cor(sc_ref, W_norm),
     # --- Annotate With Marker [] ---
     # Key functions: annotateWithMarkers
     K = length(marker_ref) # number of cell types

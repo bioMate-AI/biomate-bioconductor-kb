@@ -48,19 +48,14 @@ process BIOC_METASEQR2 {
     dir.create(buildDir)
     # --- load Annotation [] ---
     # Key functions: loadAnnotation
-    genes <- loadAnnotation(genome="mm10",refdb="ensembl",level="gene",type="gene",
-    utrs <- loadAnnotation(genome="mm10",refdb="ensembl",level="gene",type="utr",
-    sumEx <- loadAnnotation(genome="mm10",refdb="ensembl",level="gene",type="exon",
+
     # --- build Custom Annotation [] ---
     # Key functions: buildCustomAnnotation, loadAnnotation
     customDir <- file.path(tempdir(),"test_custom")
     dir.create(customDir)
-    if (.Platform$OS.type == "unix" && !grepl("^darwin",R.version$os)) {
     # --- build Annotation Database [] ---
     # Key functions: buildAnnotationDatabase
-    organisms <- list(
-    sources <- c("ensembl","ucsc","refseq")
-    buildAnnotationDatabase(organisms,sources,forceDownload=FALSE,rc=0.5)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

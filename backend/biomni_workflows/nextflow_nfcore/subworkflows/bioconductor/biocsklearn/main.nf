@@ -41,11 +41,40 @@ process BIOC_BIOCSKLEARN {
     library(BiocSklearn)
     library(jsonlite)
 
-    # --- example [] ---
-    # Key functions: example
+
+    # --- Dsetup [] ---
+    # Key functions: suppressPackageStartupMessages, example, import, numpy
     suppressPackageStartupMessages({
     library(BiocSklearn)
     library(BiocStyle)
+    example(skPCA) # to ensure you can build from scratch, otherwise import("numpy") fails
+    })
+
+    # --- Doimp [] ---
+    # Key functions: import, genfromtxt, numpy
+    library(BiocSklearn)
+    np = reticulate::import("numpy", convert=FALSE, delay_load=TRUE)
+    irloc = system.file("csv/iris.csv", package="BiocSklearn")
+    irismat = np$genfromtxt(irloc, delimiter=',')
+
+    # --- Dota [] ---
+    # Key functions: take
+    np$take(irismat, 0:2, 0L )
+
+    # --- Dor [] ---
+    # Key functions: prcomp, data.matrix
+    fullpc = prcomp(data.matrix(iris[,1:4]))$x
+
+    # --- Dopc1 [] ---
+    # Key functions: skPCA, data.matrix
+    ppca = skPCA(data.matrix(iris[,1:4]))
+    ppca
+
+    # --- Lk1 [] ---
+    # Key functions: getTransformed
+    tx = getTransformed(ppca)
+    dim(tx)
+    head(tx)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

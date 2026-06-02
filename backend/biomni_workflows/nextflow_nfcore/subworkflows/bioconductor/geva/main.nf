@@ -48,9 +48,7 @@ process BIOC_GEVA {
     ginput <- geva.merge.input(dt1, dt2)
     # --- Table formatting and display [] ---
     # Key functions: load_all, groupsets, factors, kable
-    factors(ginput) <- c('g1', 'g1', 'g1',
-    Example with GEVAInput (using factor class)
-    factors(ginput) <- factor(c('g1', 'g1', 'g1',
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

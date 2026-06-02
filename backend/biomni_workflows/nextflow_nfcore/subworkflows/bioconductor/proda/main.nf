@@ -48,14 +48,10 @@ process BIOC_PRODA {
     fit <- proDA(syn_dataset$Y, design = syn_dataset$groups)
     # --- median_normalization [] ---
     # Key functions: median_normalization, dist_approx
-    boxplot(abundance_matrix,
-    normalized_abundance_matrix <- median_normalization(abundance_matrix)
-    da <- dist_approx(normalized_abundance_matrix)
+
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: pheatmap, proDA
     install.packages("pheatmap")
-    sel <- c(1:3,  # CG1407
-    plot_mat <- as.matrix(da$mean)[sel, sel]
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: pheatmap, test_diff
     install.packages("pheatmap")

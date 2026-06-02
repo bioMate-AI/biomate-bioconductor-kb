@@ -41,13 +41,32 @@ process BIOC_DELOCAL {
     library(DELocal)
     library(jsonlite)
 
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+
     # --- Example [] ---
-    # Key functions: frame
-    ----------------------------------
+    # Key functions: read.table, extdata, tooth_RNASeq_counts.txt
     library(DELocal)
-    count_matrix <- as.matrix(read.table(file = system.file("extdata",
-                                                  "tooth_RNASeq_counts.txt",
+    count_matrix <- as.matrix(read.table(file = system.file("extdata", 
+                                                  "tooth_RNASeq_counts.txt", 
                                                   package = "DELocal")))
+    colData <- data.frame(condition=gsub("\\..*",x=colnames(count_matrix),
+                                         replacement = ""))
+
+    # --- Eval=true [] ---
+    # Key functions: useMart, getBM, ensembl_gene_id, start_position, chromosome_name, ENSEMBL_MART_ENSEMBL, mmusculus_gene_ensembl, www.ensembl.org
+    library(biomaRt)
+    gene_attributes <- c("ensembl_gene_id", "start_position", "chromosome_name")
+    ensembl_ms_mart <- useMart(biomart="ENSEMBL_MART_ENSEMBL",
+                               dataset="mmusculus_gene_ensembl", host="www.ensembl.org")
+    gene_location_sample <- getBM(attributes=gene_attributes, mart=ensembl_ms_mart,
+                           verbose = FALSE)
+    rownames(gene_location_sample) <- gene_location_sample$ensembl_gene_id
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

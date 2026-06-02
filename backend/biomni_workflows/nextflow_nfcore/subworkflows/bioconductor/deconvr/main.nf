@@ -43,23 +43,18 @@ process BIOC_DECONVR {
 
     # --- output.lines=10 [] ---
     # Key functions: findSignatures
-    extended_matrix <- findSignatures(samples = samples,
-    head(extended_matrix)
+
     # --- output.lines=10 [] ---
     # Key functions: BSmeth2Probe, deconvolute
-    mapped_WGBS_data <- BSmeth2Probe(probe_id_locations = IlluminaMethEpicB5ProbeIDs,
-    head(mapped_WGBS_data)
-    deconvolution <- deconvolute(reference = HumanCellTypeMethAtlas,
+
     # --- output.lines=10 [] ---
     # Key functions: simulateCellMix, findSignatures
     data("HumanCellTypeMethAtlas")
     exampleSamples <- simulateCellMix(1,reference = HumanCellTypeMethAtlas)$simulated
-    exampleMeta <- data.table("Experiment_accession" = "example_sample",
     # --- output.lines=10 [] ---
     # Key functions: simulateCellMix, findSignatures, stopCluster
     data("HumanCellTypeMethAtlas")
     exampleSamples <- simulateCellMix(1,reference = HumanCellTypeMethAtlas)$simulated
-    exampleMeta <- data.table("Experiment_accession" = "example_sample",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

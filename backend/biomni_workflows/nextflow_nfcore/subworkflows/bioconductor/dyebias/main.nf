@@ -66,11 +66,7 @@ process BIOC_DYEBIAS {
       maInfo(gnames)$reporterId <- as.character(maInfo(gnames)$reporterId)
     # --- Dyebias Vignette.Rnw:292 305 [] ---
     # Key functions: GenePix, maInfo
-    data.raw <- read.GenePix(fnames = maInfo(targets)$filename,
-                               path = datadir,
-                               name.Gf = "GenePix:F532 Median",
-                               name.Gb ="GenePix:B532 Median",
-                               name.Rf = "GenePix:F635 Median",
+
     # --- Dyebias Vignette.Rnw:314 322 [] ---
     # Key functions: maW, maLayout
     maW(data.raw)[ maW(data.raw) == 0] <- 1
@@ -83,7 +79,6 @@ process BIOC_DYEBIAS {
       data <- read.table(normalized.data.file, sep="\t", as.is=T, header=T, skip=1)
       names(data) <- c("reporterId", "X13685041", "X13685040" , "X13685153" ,"X13685151" ,"X13685042")
       ## get rid of overly long gene names:
-      data$reporterId <- sub(pattern="ebi.ac.uk:MIAMExpress:Reporter:A-MEXP-1165\\.(P[0-9]+) .*",
     # --- Dyebias Vignette.Rnw:368 371 [] ---
     # Key functions: maM
     maM(data.norm)[,c(3,4)] <- -1 *maM(data.norm)[,c(3,4)]
@@ -103,11 +98,7 @@ process BIOC_DYEBIAS {
       summary(estimator.subset)
     # --- Dyebias Vignette.Rnw:474 484 [] ---
     # Key functions: maW
-    application.subset <- ((maW(data.norm)==1)
-                             & dyebias.application.subset(data.raw=data.raw,
-                                    min.SNR=1.5,
-                                    maxA=15,
-                                    use.background=TRUE)
+
     # --- Dyebias Vignette.Rnw:489 495 [] ---
     # Key functions: correction
     correction <- dyebias.apply.correction(data.norm=data.norm,
@@ -118,10 +109,6 @@ process BIOC_DYEBIAS {
     # --- Dyebias Vignette.Rnw:543 566 [] ---
     # Key functions: rgplot
     layout(matrix(1:2, nrow=1,ncol=2))
-      dyebias.rgplot(data=data.norm,
-                     slide=3,
-                     iGSDBs=iGSDBs.estimated,
-                     application.subset=application.subset,
     # --- Dyebias Vignette.Rnw:727 778 [] ---
     # Key functions: geo2marray, maA, maRf
     ##

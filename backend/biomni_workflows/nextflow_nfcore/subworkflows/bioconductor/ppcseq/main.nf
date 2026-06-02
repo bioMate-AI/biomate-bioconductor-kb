@@ -41,11 +41,25 @@ process BIOC_PPCSEQ {
     library(ppcseq)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+
+    # --- Eval=false [] ---
+    # Key functions: requireNamespace, install, ppcseq, counts
+    #  if(!requireNamespace("BiocManager", quietly = TRUE))
+    #    install.packages("BiocManager")
+    #  BiocManager::install("ppcseq")
+
+    ## -----------------------------------------------------------------------------
     data("counts")
     counts
+
+    # --- Warning=false [] ---
+    # Key functions: Sys.info, mutate, identify_outliers
+    # Import libraries
+
+    if(Sys.info()[['sysname']] == "Linux")
+    counts.ppc = 
+    	counts %>%
+    	mutate(is_significant = FDR < 0.0001) %>%
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

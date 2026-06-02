@@ -38,14 +38,57 @@ process BIOC_TRANSMOGR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ScanVcfParam)
+    library(transmogR)
     library(jsonlite)
 
-    # --- Sequence information check [] ---
-    # Key functions: getSeq, seqinfo, genome, ScanVcfParam, rowRanges, splitAsList, upsetVarByCol, defineRegions
+
+    # --- Chr1 [] ---
+    # Key functions: getSeq, chr1
+    chr1 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, "chr1")
+    chr1 <- as(chr1, "DNAStringSet")
+    names(chr1) <- "chr1"
+    chr1
+
+    # --- Var [] ---
+    # Key functions: seqinfo, genome, ScanVcfParam, GRanges, rowRanges, readVcf, transmogR
+    sq <- seqinfo(chr1)
+    genome(sq) <- "GRCh38"
+    vcf <- system.file("extdata/1000GP_subset.vcf.gz", package = "transmogR")
+    vcf_param <- ScanVcfParam(fixed = "ALT", info = NA, which = GRanges(sq))
+    var <- rowRanges(readVcf(vcf, param = vcf_param))
+    seqinfo(var) <- sq
+    var
+
+    # --- Gtf [] ---
+    # Key functions: import.gff, GRanges, seqinfo, splitAsList, upsetVarByCol, defineRegions, granges, overlapsByVar
     f <- system.file("extdata/gencode.v44.subset.gtf.gz", package = "transmogR")
     gtf <- import.gff(f, which = GRanges(sq))
     seqinfo(gtf) <- sq
+    gtf
+
+    ## ----gtf-split----------------------------------------------------------------
+    gtf <- splitAsList(gtf, gtf$type)
+
+    ## ----upset-var, fig.cap = "Included variants which overlap exonic sequences, summarised by unique gene ids"----
+    upsetVarByCol(gtf$exon, var, mcol = "gene_id")
+
+    ## ----overlaps-by-var----------------------------------------------------------
+    regions <- defineRegions(gtf$gene, gtf$transcript, gtf$exon, proximal = 0)
+    regions$exon <- granges(gtf$exon)
+    overlapsByVar(regions, var)
+
+    # --- Sj [] ---
+    # Key functions: sjFromExons, chopMC, transcript_id, transcript_name, gene_id, gene_name
+    ec <- c("transcript_id", "transcript_name", "gene_id", "gene_name")
+    sj <- sjFromExons(gtf$exon, extra_cols = ec)
+    sj
+
+    ## ----chop-sj------------------------------------------------------------------
+    chopMC(sj)
+
+    ## ----sj-as-gi-----------------------------------------------------------------
+    sj <- sjFromExons(gtf$exon, extra_cols = ec, as = "GInteractions")
+    subset(sj, transcript_name == "DDX11L17-201")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

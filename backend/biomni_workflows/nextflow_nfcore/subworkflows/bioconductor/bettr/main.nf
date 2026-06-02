@@ -98,8 +98,6 @@ process BIOC_BETTR {
     ---------------------------------------------------------------------
     ## Assign a higher weight to one of the collapsed metric classes
     metadata(duo2018)$bettrInfo$initialWeights["Class_ARI"] <- 0.55
-    prepData <- bettrGetReady(
-        bettrSE = duo2018, idCol = "method",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -49,9 +49,7 @@ process BIOC_PHENOMIS {
     sampleMap.ls <- list()
     # --- Assay data access [] ---
     # Key functions: assay, colData, inspecting, annotating_parameters, kable, writing, sampleNames, pData
-    sacurine.se <- annotating(sacurine.se,
-    param.ls = list(query.type = "mz",
-    knitr::kable(rowData(sacurine.se)[!is.na(rowData(sacurine.se)[, "localMS.accession"]), grep("localMS.", colnames(rowData(sacurine.se)), fixed = TRUE)])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

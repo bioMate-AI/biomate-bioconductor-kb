@@ -43,23 +43,19 @@ process BIOC_COMPCODER {
 
     # --- summarize Synthetic Data Set [] ---
     # Key functions: summarizeSyntheticDataSet
-    summarizeSyntheticDataSet(data.set = "B_625_625_5spc_repl1.rds",
+
     # --- run Diff Exp [] ---
     # Key functions: runDiffExp
-    runDiffExp(data.file = "B_625_625_5spc_repl1.rds",
-    runDiffExp(data.file = "B_625_625_5spc_repl1.rds",
-    runDiffExp(data.file = "B_625_625_5spc_repl1.rds", result.extent = "ttest",
+
     # --- run Comparison G U I [] ---
     # Key functions: runComparisonGUI
-    runComparisonGUI(input.directories = ".",
+
     # --- generate Code H T M Ls [] ---
     # Key functions: generateCodeHTMLs
     generateCodeHTMLs("B_625_625_5spc_repl1_ttest.rds", ".")
     # --- run Comparison [] ---
     # Key functions: runComparison
-    file.table <- data.frame(input.files = c("B_625_625_5spc_repl1_voom.limma.rds",
-    parameters <- list(incl.nbr.samples = NULL, incl.replicates = NULL,
-    comparisons = c("auc", "fdr", "tpr", "ma", "correlation"))
+
     # --- comp Data [] ---
     # Key functions: compData, check_compData
     count.matrix <- matrix(round(1000*runif(4000)), 1000, 4)

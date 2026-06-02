@@ -67,11 +67,6 @@ process BIOC_FLOWVIZ {
     recGate1<-rectangleGate("FL4-H"=c(3.3,5.3),"FL2-H"=c(2.5,5))
     recGate2<-rectangleGate("FL4-H"=c(4,6),"FL2-H"=c(6,8))
     filters1<-filters(list(recGate1,recGate2))
-    xyplot(`FL2-H` ~ `FL4-H`
-    	   ,data=GvHD[[1]]
-           ,filter=filters1
-    print(plot(trellis.last.object()))
-
     # --- Non Smooth Scatter Outline2 [] ---
     # Key functions: xyplot, trellis.last.object, norm2Filter, filter, curv2Filter
     xyplot(`SSC-H` ~ `FSC-H` | Visit, data=GvHD, filter=rgate2,

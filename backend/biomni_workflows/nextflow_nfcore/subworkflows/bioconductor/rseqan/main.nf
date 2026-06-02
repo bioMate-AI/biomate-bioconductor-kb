@@ -41,8 +41,9 @@ process BIOC_RSEQAN {
     library(RSeqAn)
     library(jsonlite)
 
-    # --- ps r [] ---
-    # Key functions: pattern_search
+
+    # --- Ps R [] ---
+    # Key functions: pattern_search, tutorial
     pattern_search("This is an awesome tutorial to get to know SeqAn!", "tutorial")
 
     # --- Save outputs ---

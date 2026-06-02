@@ -75,7 +75,6 @@ process BIOC_FINDIPS {
     fun <- function(x, y){
       kruskal.test(x, y)$p.value
     }
-    kruskal.test1 <- getdrop1ranks(X, y,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

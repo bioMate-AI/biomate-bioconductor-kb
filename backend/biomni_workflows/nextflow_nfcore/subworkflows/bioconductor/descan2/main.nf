@@ -44,17 +44,13 @@ process BIOC_DESCAN2 {
 
     # --- find Peaks [] ---
     # Key functions: findPeaks
-    peaksGRL <- DEScan2::findPeaks(files=bam.files[1], filetype="bam", genomeName="mm9",
+
     # --- Define Final Regions [] ---
     # Key functions: finalRegions
-    peaks.file <- system.file(
-    file.path("extdata","peaks","RData","peaksGRL_all_files.rds"),
-    peaksGRL <- readRDS(peaks.file)
+
     # --- count Final Regions [] ---
     # Key functions: countFinalRegions, assay, rowRanges
     bam.path <- system.file(file.path("extdata","bam"), package="DEScan2")
-    finalRegions <- DEScan2::countFinalRegions(regionsGRanges=regionsGR,
-    counts <- SummarizedExperiment::assay(finalRegions)
     # --- Normalize Data [] ---
     # Key functions: betweenLaneNormalization
     library("RColorBrewer")
@@ -62,13 +58,10 @@ process BIOC_DESCAN2 {
     set <- EDASeq::betweenLaneNormalization(counts, which = "upper")
     # --- Plot PCA [] ---
     # Key functions: plotRLE, plotPCA
-    EDASeq::plotRLE(set, outline=FALSE, ylim=c(-4, 4),
-    EDASeq::plotPCA(set, col=colors[trt], main="No Normalization PCA",
+
     # --- Plot PCA [] ---
     # Key functions: RUVs, plotRLE, plotPCA
     s <- RUVSeq::RUVs(set, cIdx=rownames(set), scIdx=groups, k=k)
-    EDASeq::plotRLE(s$normalizedCounts, outline=FALSE, ylim=c(-4, 4),
-    EDASeq::plotPCA(s$normalizedCounts, col=colors[trt], main="Normalized PCA",
     # --- Differential Enrichment Analysis [] ---
     # Key functions: DGEList, estimateDisp, glmQLFit, makeContrasts, glmQLFTest
     design <- model.matrix(~0 + trt + s$W)

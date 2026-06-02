@@ -41,11 +41,79 @@ process BIOC_CELLNOPTR {
     library(CellNOptR)
     library(jsonlite)
 
-    # --- Preprocessing analysis [] ---
-    # Key functions: install_github, preprocessing, gaBinaryT1, cutAndPlot, dir, readMIDAS, makeCNOlist, plotCNOlistPDF
-    Option 1: copy the SIF and MIDAS files (followed by readMIDAS, makeCNOlist and readSIF)
+
+    # --- Directory [] ---
+    # Key functions: dir, file.copy, getwd, readMIDAS, makeCNOlist, CNOlist
+    cpfile <- dir(system.file("ToyModel", package="CellNOptR"), full=TRUE)
+    file.copy(from=cpfile, to=getwd(), overwrite=TRUE)
+    dataToy <- readMIDAS("ToyDataMMB.csv", verbose=FALSE)
+    CNOlistToy <- makeCNOlist(dataToy, subfield=FALSE, verbose=FALSE)
+    data(CNOlistToy,package="CellNOptR", verbose=FALSE)
+    CNOlistToy = CNOlist("ToyDataMMB.csv")
+    CNOlistToy
+
+    # --- Plot Cno [] ---
+    # Key functions: readSIF, checkSignals, plotModel
+    plot(CNOlistToy)
+    pknmodel<-readSIF("ToyPKNMMB.sif")
+    data(ToyModel,package="CellNOptR")
+    checkSignals(CNOlistToy,pknmodel)
+    plotModel(pknmodel, CNOlistToy)
+
+    # --- Nonc [] ---
+    # Key functions: indexFinder, findNONC, cutNONC, compressModel, expandGates, preprocessing, residualError
+    indicesToy<-indexFinder(CNOlistToy,pknmodel,verbose=TRUE)
+    ToyNCNOindices<-findNONC(pknmodel,indicesToy,verbose=TRUE)
+    ToyNCNOcut<-cutNONC(pknmodel,ToyNCNOindices)
+    indicesToyNCNOcut<-indexFinder(CNOlistToy,ToyNCNOcut)
+    ToyNCNOcutComp<-compressModel(ToyNCNOcut,indicesToyNCNOcut)
+    indicesToyNCNOcutComp<-indexFinder(CNOlistToy,ToyNCNOcutComp)
+    model <- expandGates(ToyNCNOcutComp, maxInputsPerGate=3)
+    model <- preprocessing(CNOlistToy, pknmodel, expansion=TRUE,
+        compression=TRUE, cutNONC=TRUE, verbose=FALSE)
+    resECNOlistToy <- residualError(CNOlistToy)
+
+    # --- Initbs [] ---
+    # Key functions: rep, gaBinaryT1, cutAndPlot, plotFit, plotModel
+    initBstring <- rep(1,length(model$reacID))
+    ToyT1opt <- gaBinaryT1(CNOlist=CNOlistToy, model=model,
+        initBstring=initBstring, verbose=FALSE)
+    cutAndPlot(model=model, bStrings=list(ToyT1opt$bString),
+        CNOlist=CNOlistToy,plotPDF=TRUE)
+    plotFit(optRes=ToyT1opt)
+    plotModel(model, CNOlistToy, bString=ToyT1opt$bString)
+
+    # --- Plot Model Toy2 [] ---
+    # Key functions: mapBack, plotModel, unlink, testToy, readMIDAS, makeCNOlist, readSIF
+    bs = mapBack(model, pknmodel, ToyT1opt$bString)
+    plotModel(pknmodel, CNOlistToy, bs, compressed=model$speciesCompressed)
+    unlink("testToy",recursive=TRUE)
+    dataToy <- readMIDAS("ToyDataMMB.csv")
+    CNOlistToy <- makeCNOlist(dataToy,subfield=FALSE)
+    pknmodel <- readSIF("ToyPKNMMB.sif")
+    unlink("Toy",recursive=TRUE)
+    unlink("ToyDataMMB.csv")
+    unlink("ToyPKNMMB.sif")
+    unlink("Toy1Step",recursive=TRUE)
+    unlink("ToyModelMMB2.sif")
+
+    # --- Get Dream [] ---
+    # Key functions: files, dir, file.copy, getwd, CNOlist, preprocessing, gaBinaryT1, cutAndPlot
+    #Option 1: copy the SIF and MIDAS files (followed by readMIDAS, makeCNOlist and readSIF)
     cpfile<-dir(system.file("DREAMModel",package="CellNOptR"),full=TRUE)
     file.copy(from=cpfile,to=getwd(),overwrite=TRUE)
+    #Option 2: load the CNOlist and model objects
+    data(CNOlistDREAM,package="CellNOptR")
+    data(DreamModel,package="CellNOptR")
+    data(CNOlistToy2,package="CellNOptR")
+    data(ToyModel2,package="CellNOptR")
+    pknmodel = ToyModel2
+    cnolist = CNOlist(CNOlistToy2)
+    plot(cnolist)
+    model = preprocessing(cnolist, pknmodel, verbose=FALSE)
+    T1opt <- gaBinaryT1(cnolist, model, stallGenMax=10, maxTime=60, verbose=FALSE)
+    sim <- cutAndPlot(model=model, bStrings=list(T1opt$bString),
+        CNOlist=cnolist, plotPDF=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

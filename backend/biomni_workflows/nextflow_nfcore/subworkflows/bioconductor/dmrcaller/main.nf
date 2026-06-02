@@ -44,31 +44,22 @@ process BIOC_DMRCALLER {
 
     # --- save Bismark [] ---
     # Key functions: saveBismark, readBismark, GRangesList
-    saveBismark(methylationDataList[["WT"]],
-    saveBismark(methylationDataList[["met1-3"]],
-    methylationDataWT <- readBismark("chr3test_a_thaliana_wt.CX_report")
+
     # --- pool Methylation Datasets [] ---
     # Key functions: poolMethylationDatasets, poolTwoMethylationDatasets
     methylationDataAll <- poolMethylationDatasets(methylationDataList)
-    methylationDataAll <- poolTwoMethylationDatasets(methylationDataList[[1]],
     # --- read pool data [] ---
     # Key functions: readBismarkPool
     methylationDataAll <- readBismarkPool(c(file_wt, file_met13))
     # --- plot Methylation Profile From Data [] ---
     # Key functions: plotMethylationProfileFromData
     par(mar=c(4, 4, 3, 1)+0.1)
-    plotMethylationProfileFromData(methylationDataList[["WT"]],
-    conditionsNames = c("WT","met1-3"),
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, computeMethylationProfile, GRangesList, plotMethylationProfile
     regions <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(1,1E6))
-    profileCGWT <- computeMethylationProfile(methylationDataList[["WT"]],
-    profileCGMet13 <- computeMethylationProfile(methylationDataList[["met1-3"]],
     # --- plot Methylation Data Coverage [] ---
     # Key functions: plotMethylationDataCoverage
     par(mar=c(4, 4, 3, 1)+0.1)
-    plotMethylationDataCoverage(methylationDataList[["WT"]],
-    breaks = c(1,5,10,15),
     # --- compute Methylation Data Coverage [] ---
     # Key functions: computeMethylationDataCoverage
     coverageCGWT <- computeMethylationDataCoverage(methylationDataList[["WT"]],
@@ -76,39 +67,29 @@ process BIOC_DMRCALLER {
     # --- compute DMRs CG noise filter [] ---
     # Key functions: GRanges, computeDMRs
     chr_local <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(5E5,6E5))
-    DMRsNoiseFilterCG <- computeDMRs(methylationDataList[["WT"]],
-    print(DMRsNoiseFilterCG)
     # --- compute DMRs CG neighbourhood [] ---
     # Key functions: computeDMRs
-    DMRsNeighbourhoodCG <- computeDMRs(methylationDataList[["WT"]],
-    print(DMRsNeighbourhoodCG)
+
     # --- compute DMRs CG bins [] ---
     # Key functions: computeDMRs
-    DMRsBinsCG <- computeDMRs(methylationDataList[["WT"]],
-    print(DMRsBinsCG)
+
     # --- compute DMRs CG GE [] ---
     # Key functions: filterDMRs
     data(GEs)
     genes <- GEs[which(GEs$type == "gene")]
-    DMRsGenesCG <- filterDMRs(methylationDataList[["WT"]],
     # --- merge DMRs CG noise filter [] ---
     # Key functions: mergeDMRsIteratively
-    DMRsNoiseFilterCGMerged <- mergeDMRsIteratively(DMRsNoiseFilterCG,
-    print(DMRsNoiseFilterCGMerged)
+
     # --- DMR distribution [] ---
     # Key functions: computeOverlapProfile, plotOverlapProfile
-    hotspots <- computeOverlapProfile(DMRsNoiseFilterCGMerged, chr_local,
-    plotOverlapProfile(GRangesList("Chr3"=hotspots))
+
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, plotLocalMethylationProfile
     chr3Reg <- GRanges(seqnames = Rle("Chr3"), ranges = IRanges(510000,530000))
-    DMRsCGList <- list("noise filter" = DMRsNoiseFilterCGMerged,
-    par(cex=0.9)
     # --- computing biological replicates [] ---
     # Key functions: computeDMRsReplicates
     library(betareg)
     condition <- c("a", "a", "b", "b")
-    DMRsReplicatesBins <- computeDMRsReplicates(methylationData = methylationData,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

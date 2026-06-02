@@ -73,9 +73,6 @@ process BIOC_LPNET {
     # Key functions: loocv, getEdgeAnnot
     times <- 5 # number of times the removed observation is sampled
     annot_node <- seq(1,n) # annotation of the nodes
-    loocv_res <- loocv(kfold=NULL, times, obs, delta, lambda=1,
-                       b, n, K, T_=NULL, annot=getEdgeAnnot(n),
-                       annot_node, active_mu, active_sd,
     # --- Loocv [] ---
     # Key functions: getSampleAdjaMAD
     adja_loocv <- getSampleAdjaMAD(loocv_res$edges_all, n,
@@ -84,16 +81,10 @@ process BIOC_LPNET {
     # Key functions: calcRangeLambda, loocv, getEdgeAnnot, getSampleAdjaMAD
     lambda <- calcRangeLambda(obs, delta, delta_type)
     MSE <- Inf
-    for (lamd in lambda) {
-      loocv_res <- loocv(kfold=NULL, times, obs, delta, lambda=lamd,
-                         b, n, K, T_=NULL, annot=getEdgeAnnot(n),
     # --- Foldcv [] ---
     # Key functions: kfoldCV, getEdgeAnnot, getSampleAdjaMAD
     kfold <- 5
     MSE <- Inf
-    for (lamd in lambda) {
-      kcv_res <- kfoldCV(kfold, times, obs, delta, lambda=lamd,
-                         b, n, K, T_=NULL, annot=getEdgeAnnot(n),
     # --- Prior1 [] ---
     # Key functions: doILP, getEdgeAnnot, getAdja
     res3 <- doILP(obs, delta, lambda=1, b, n, K, T_=NULL,
@@ -134,7 +125,6 @@ process BIOC_LPNET {
     K <- 16 # number of experiments
     annot <- getEdgeAnnot(n)
     # perturbation vector;       kd of:
-    b <- c(0,rep(1,15),          # erbb1
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

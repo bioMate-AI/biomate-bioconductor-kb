@@ -45,7 +45,6 @@ process BIOC_VSN {
     # Key functions: ggplot, coord_fixed, meanSdPlot
     library("ggplot2")
     allpositive = (rowSums(exprs(kidney) <= 0) == 0)
-    df1 = data.frame(log2(exprs(kidney)[allpositive, ]),
     # --- Expression matrix extraction [] ---
     # Key functions: smoothScatter, phenoData, assayData, matplot, array, exprs, coefficients, coef
     mai = par("mai"); mai[3]=0; par(mai)

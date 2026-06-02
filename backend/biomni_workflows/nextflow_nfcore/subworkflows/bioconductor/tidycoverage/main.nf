@@ -74,10 +74,6 @@ process BIOC_TIDYCOVERAGE {
     # --- Coverageexperiment [] ---
     # Key functions: CoverageExperiment, import, assay
     ---------------------------------------------------------------------
-    CE2 <- CoverageExperiment(
-        tracks = import(bw_file, as = "Rle"),
-        features = import(bed_file),
-        width = 3000,
     # --- Coarsen [] ---
     # Key functions: coarsen
     ---------------------------------------------------------------------
@@ -92,9 +88,6 @@ process BIOC_TIDYCOVERAGE {
     # Key functions: BigWigFileList, GRanges, CoverageExperiment, width
     ---------------------------------------------------------------------
     # ~~~~~~~~~~~~~~~ Import coverage tracks into a named list ~~~~~~~~~~~~~~~ #
-    tracks <- list(
-        Scc1 = system.file("extdata", "Scc1.bw", package = "tidyCoverage"),
-        RNA_fwd = system.file("extdata", "RNA.fwd.bw", package = "tidyCoverage"),
     # --- Coarsen [] ---
     # Key functions: coarsen, expand, ggplot, aes, geom_col, facet_grid, scale_x_continuous
     ---------------------------------------------------------------------
@@ -116,16 +109,12 @@ process BIOC_TIDYCOVERAGE {
     # Key functions: CoverageExperiment, import, coarsen, aggregate, as_tibble
     ---------------------------------------------------------------------
     # Coarsen `CoverageExperiment` with `window = ...` then per-bin `aggregate`:
-    CoverageExperiment(
-        tracks = import(bw_file, as = "Rle"), features = import(bed_file),
-        width = 3000
     # --- List [] ---
     # Key functions: map, CoverageExperiment, aggregate
     ---------------------------------------------------------------------
     library(purrr)
     library(plyranges)
     # ~~~~~~~~~~~~~~~ Import genomic features into a named list ~~~~~~~~~~~~~~~ #
-    features <- list(
     # --- As Tibble [] ---
     # Key functions: as_tibble, ggplot, geom_aggrcoverage
     ---------------------------------------------------------------------

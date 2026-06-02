@@ -49,12 +49,10 @@ process BIOC_DEWSEQ {
     annotationData <- fread(annotationFile, sep = "\t")
     # --- create colData [] ---
     # Key functions: rep
-    colData <- data.frame(
-    row.names = colnames(countData)[-1], # since the first column is unique_id
-    type      = factor(
+
     # --- D E Seq Data Set From Sliding Windows [] ---
     # Key functions: DESeqDataSetFromSlidingWindows
-    ddw <- DESeqDataSetFromSlidingWindows(countData  = countData,
+
     # --- estimate size factors [] ---
     # Key functions: estimateSizeFactors, sizeFactors
     ddw <- estimateSizeFactors(ddw)
@@ -65,8 +63,6 @@ process BIOC_DEWSEQ {
     # --- filter Counts [] ---
     # Key functions: filterCounts
     maxCountFile <- file.path(system.file('extdata',package='DEWSeq'),'SLBP_K562_w50s20_max_counts.txt.gz')
-    ddw <- filterCounts( object = ddw,maxCountFile = maxCountFile,
-    dim(ddw)
     # --- filter for mRNAs [] ---
     # Key functions: estimateSizeFactors, sizeFactors
     ddw_mRNAs <- ddw[ rowData(ddw)[,"gene_type"] == "protein_coding", ]
@@ -76,29 +72,21 @@ process BIOC_DEWSEQ {
     # Key functions: estimateDispersions, nbinomWaldTest, results, pull, estimateSizeFactors
     ddw_tmp <- estimateDispersions(ddw_tmp, fitType = "local", quiet = TRUE)
     ddw_tmp <- nbinomWaldTest(ddw_tmp)
-    ddw_tmp_results <- results(ddw_tmp,contrast = c("type", "IP", "SMI"),
     # --- parametric dispersion [] ---
     # Key functions: estimateDispersions
     parametric_ddw  <- estimateDispersions(ddw, fitType="parametric")
-    if(decide_fit){
-    local_ddw  <- estimateDispersions(ddw, fitType="local")
     # --- plot parametric fit [] ---
     # Key functions: plotDispEsts
     plotDispEsts(parametric_ddw, main="Parametric fit")
     # --- plot local fit [] ---
     # Key functions: plotDispEsts
-    if(decide_fit){
-    plotDispEsts(local_ddw, main="Local fit")
+
     # --- rep [] ---
     # Key functions: rep
     parametricResid <- na.omit(with(mcols(parametric_ddw),abs(log(dispGeneEst)-log(dispFit))))
-    if(decide_fit){
-    localResid <- na.omit(with(mcols(local_ddw),abs(log(dispGeneEst)-log(dispFit))))
     # --- plot residual histograms [] ---
     # Key functions: ggplot, scale_fill_manual, geom_histogram
-    if(decide_fit){
-    ggplot(residDf, aes(x = residuals, fill = fitType)) +
-    scale_fill_manual(values = c("darkred", "darkblue")) +
+
     # --- estimate dispersions and wald test [] ---
     # Key functions: estimateDispersions, nbinomWaldTest
     ddw <- estimateDispersions(ddw, fitType = "local", quiet = TRUE)

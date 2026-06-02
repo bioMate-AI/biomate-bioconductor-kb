@@ -41,13 +41,13 @@ process BIOC_GEOTCGADATA {
     library(GeoTcgaData)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: countToFpkm
-    ---------------------------------------------------------------------
-    data(gene_cov)
-    lung_squ_count2 <- matrix(c(1,2,3,4,5,6,7,8,9),ncol=3)
-    rownames(lung_squ_count2) <- c("DISC1","TCOF1","SPPL3")
-    colnames(lung_squ_count2) <- c("sample1","sample2","sample3")
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+        collapse = TRUE,
+        comment = "#>"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

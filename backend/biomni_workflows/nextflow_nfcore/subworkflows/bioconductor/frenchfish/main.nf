@@ -44,7 +44,6 @@ process BIOC_FRENCHFISH {
     # --- correct autocounts [] ---
     # Key functions: getAutomaticCountsEstimates
     set.seed(366)
-    corrected_automatic_counts <- getAutomaticCountsEstimates(automatic_counts,
     # --- readin manualcounts [] ---
     # Key functions: cbind
     manual_counts <- cbind(red = round(runif(20,0,5), 0),
@@ -52,7 +51,7 @@ process BIOC_FRENCHFISH {
     blue = round(runif(20,0,5), 0))
     # --- correct manualcounts [] ---
     # Key functions: getManualCountsEstimates
-    corrected_manual_counts <- getManualCountsEstimates(manual_counts,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

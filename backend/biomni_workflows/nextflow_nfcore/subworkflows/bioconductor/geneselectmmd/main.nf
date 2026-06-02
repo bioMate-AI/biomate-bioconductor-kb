@@ -74,11 +74,7 @@ process BIOC_GENESELECTMMD {
     print(round(errRates(obj.gsMMD), 3))
     # --- Plothistdensity [] ---
     # Key functions: plotHistDensity, density
-    plotHistDensity(obj.gsMMD, plotFlag = "case",
-          mytitle = "Histogram of gene expression levels for T2\nimposed with estimated density (case)",
-          plotComponent = TRUE,
-          x.legend = c(0.8, 3),
-          y.legend = c(0.3, 0.4),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

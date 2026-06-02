@@ -41,11 +41,24 @@ process BIOC_MNEM {
     library(mnem)
     library(jsonlite)
 
-    # --- components [] ---
-    # Key functions: components, palette
+
+    # --- Global Options [] ---
+    # Key functions: set, center
     knitr::opts_chunk$set(message=FALSE, out.width="125%", fig.align="center",
-    components (left, blue) and penalized log likelihood (right, red)."
-    paltmp <- palette()
+                          strip.white=TRUE, warning=FALSE, tidy=TRUE,
+                          #out.extra='style="display:block; margin:auto;"',
+                          fig.height = 4, fig.width = 8, error=FALSE)
+    fig.cap0 <- "Heatmap of the simulated log odds. Effects are blue and no effects
+    are red. Rows denote the observed E-genes and columns the S-genes. Each S-gene
+    has been perturbed in many cells. The E-genes are annotated as how they are
+    attached in the ground truth. E.g. E-genes named '1' are attached to S-gene
+    '1' in the ground truth."
+    fig.cap01 <- "Mixture NEM result for the simulated data. On top we show
+    the cell assignment percentages for hard clustering and the mixture weights.
+    The large circular vertices depict the S-genes, the small ones the
+    responsibility for the best fitting cell, the diamonds the number of assigned
+    cells and the boxes the number of assigned E-genes."
+    fig.cap0em <- "EM Convergence. Convergence plot for the different starts of the
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -44,9 +44,7 @@ process BIOC_MSNBASE {
 
     # --- Filter by row sum threshold [] ---
     # Key functions: sampleNames, rowSums, ggplot, geom_boxplot
-    dfr <- cbind(expand.grid("feature" = featureNames(incompdiss),
-    "reporters" = sub("iTRAQ5\\.", "",
-    sampleNames(incompdiss)),
+
     # --- Merge overlapping ranges [] ---
     # Key functions: reduce
     iddf2 <- reduce(iddf, key = "spectrumID")
@@ -62,9 +60,7 @@ process BIOC_MSNBASE {
     geom_density() +
     # --- ReadMSData analysis [] ---
     # Key functions: readMSData, writeMSData, peaksCount, rtime, chromatogram, PXDataset, pxget, openMSfile
-    quantFile <- dir(system.file(package = "MSnbase", dir = "extdata"),
-    identFile <- dir(system.file(package = "MSnbase", dir = "extdata"),
-    msexp <- readMSData(quantFile, verbose = FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

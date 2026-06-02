@@ -44,13 +44,10 @@ process BIOC_BLACKSHEEPR {
     # --- Create SummarizedExperiment [] ---
     # Key functions: SummarizedExperiment
     suppressPackageStartupMessages(library(SummarizedExperiment))
-    blacksheep_SE <- SummarizedExperiment(
-    assays=list(counts=as.matrix(phosphotable)),
     # --- Deva analysis [] ---
     # Key functions: deva, deva_results, comparison_groupings, make_outlier_table, count_outliers, outlier_analysis, outlier_heatmap, make_comparison_columns
     plottable <- comptable[do.call(order, c(decreasing = TRUE,
     data.frame(comptable[,1:ncol(comptable)]))),]
-    hm1 <- outlier_heatmap(outlier_analysis_out = outlier_analysis_out,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

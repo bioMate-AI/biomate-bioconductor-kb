@@ -88,12 +88,9 @@ process BIOC_DRAWPROTEINS {
     # Key functions: draw_canvas, draw_chains
     data("five_rel_data")
     p <- draw_canvas(five_rel_data)
-    p <- draw_chains(p, five_rel_data,
     # --- draw_canvas [] ---
     # Key functions: draw_canvas, draw_chains, draw_phospho
     p <- draw_canvas(five_rel_data)
-    p <- draw_chains(p, five_rel_data,
-    p <- draw_phospho(p, five_rel_data, size = 10, fill = "red")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

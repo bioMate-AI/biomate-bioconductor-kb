@@ -55,10 +55,6 @@ process BIOC_IGC {
     # --- Find Cna Driven Gene [] ---
     # Key functions: find_cna_driven_gene
     ---------------------------------------------------------------------
-    cna_driven_genes <- find_cna_driven_gene(
-      gene_cna, gene_exp,
-      gain_prop = 0.15, loss_prop = 0.15,
-      progress = FALSE, parallel = FALSE
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -51,44 +51,31 @@ process BIOC_REGIONERELOADED {
     # Key functions: toGRanges, frame
     ---------------------------------------------------------------------
     AlienGenome <-
-      toGRanges(data.frame(
-        chr = c("AlChr1", "AlChr2", "AlChr3", "AlChr4"),
-        start = c(rep(1, 4)),
     # --- Createrandomregions [] ---
     # Key functions: createRandomRegions
     ---------------------------------------------------------------------
     gnm <- AlienGenome
     nreg=100
     regA <-
-      createRandomRegions(
     # --- Seq [] ---
     # Key functions: similarRegionSet
     ---------------------------------------------------------------------
     vectorPerc <- seq(0.1, 0.9, 0.1)
     RsetA <-
-      similarRegionSet(
-        GR = regA,
     # --- Seq [] ---
     # Key functions: sample, similarRegionSet
     ---------------------------------------------------------------------
     vectorPerc2 <- seq(0.2, 0.8, 0.2)
     regAB <- c(sample(regA, nreg / 2), sample(regB, nreg / 2))
     RsetAB <-
-      similarRegionSet(
     # --- Createrandomregions [] ---
     # Key functions: createRandomRegions, subtractRegions
     ---------------------------------------------------------------------
     reg_no_A <-
-      createRandomRegions(
-        nregions = nreg,
-        length.mean = 100,
     # --- Sample [] ---
     # Key functions: sample, toGRanges, frame, seqnames, start
     ---------------------------------------------------------------------
     dst <- sample(c(-300,300),length(regA),replace = TRUE)
-    regD <- regioneR::toGRanges(
-                        data.frame(
-                          chr=as.vector(GenomeInfoDb::seqnames(regA)),
     # --- Data [] ---
     # Key functions: getParameters
     ---------------------------------------------------------------------

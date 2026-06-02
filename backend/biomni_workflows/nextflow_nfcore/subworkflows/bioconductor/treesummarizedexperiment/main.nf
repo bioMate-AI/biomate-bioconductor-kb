@@ -49,8 +49,6 @@ process BIOC_TREESUMMARIZEDEXPERIMENT {
     # --- ggtree [] ---
     # Key functions: ggtree, geom_text2, ylim, xlim, all
     ggtree(col_tree, size = 2, branch.length = "none") +
-    geom_text2(aes(label = node), color = "darkblue",
-    geom_text2(aes(label = label), color = "darkorange",
     # --- to Tree [] ---
     # Key functions: toTree, ggtree, geom_text2, geom_point2, changeTree
     (taxa <- rowData(both_tse))

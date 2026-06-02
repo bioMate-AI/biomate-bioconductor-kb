@@ -51,14 +51,10 @@ process BIOC_TEKRABBER {
     inputBundle <- DECorrInputs(fetchData)
     # --- DE analysis (two species) [] ---
     # Key functions: DEgeneTE
-    meta <- data.frame(
-    species = c(rep("human", ncol(hmGene) - 1),
-    rep("chimpanzee", ncol(chimpGene) - 1))
+
     # --- correlation (two species) [] ---
     # Key functions: corrOrthologTE
-    hmCorrResult <- corrOrthologTE(
-    geneInput = hmchimpDE$geneCorrInputRef[c(1:200),],
-    chimpCorrResult <- corrOrthologTE(
+
     # --- app visualize (two species) [] ---
     # Key functions: install_github, appTEKRABber
     remotes::install_github('rstudio/gridlayout')
@@ -68,17 +64,12 @@ process BIOC_TEKRABBER {
     # Key functions: DEgeneTE
     metaExp <- data.frame(experiment = c(rep("control", 5), rep("treatment", 5)))
     rownames(metaExp) <- colnames(geneInputDE)
-    metaExp$experiment <- factor(
     # --- correlation (same species) [] ---
     # Key functions: corrOrthologTE
-    controlCorr <- corrOrthologTE(
-    geneInput = resultDE$geneCorrInputRef[c(1:200),],
-    treatmentCorr <- corrOrthologTE(
+
     # --- app visualize (same species) [] ---
     # Key functions: install_github, appTEKRABber
     remotes::install_github('rstudio/gridlayout')
-    appTEKRABber(
-    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

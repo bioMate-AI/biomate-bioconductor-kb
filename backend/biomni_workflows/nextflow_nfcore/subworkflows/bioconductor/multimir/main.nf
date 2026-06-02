@@ -68,21 +68,17 @@ process BIOC_MULTIMIR {
     nrow(example2@data)
     # --- Example3 part1 [] ---
     # Key functions: get_multimir
-    example3 <- get_multimir(org     = "mmu",
-    names(example3)
-    table(example3@data$type)
+
     # --- Example4 part1 [] ---
     # Key functions: get_multimir
-    example4 <- get_multimir(org     = 'hsa',
-    target  = c('AKT2', 'CERS6', 'S1PR3', 'SULF2'),
+
     # --- Example5 part2 [] ---
     # Key functions: get_multimir
-    example5 <- get_multimir(org     = "hsa",
+
     # --- Example5 part4 [] ---
     # Key functions: keys
     mykeys <- keys(example5, keytype = mykeytype)
     mykeys <- mykeys[grep("bladder", mykeys, ignore.case = TRUE)]
-    result <- select(example5, keytype = "disease_drug", keys = mykeys,
     # --- columns [] ---
     # Key functions: columns, keytypes, keys
     columns(example4)
@@ -93,8 +89,7 @@ process BIOC_MULTIMIR {
     direct2 <- search_multimir(query = "describe diana_microt")
     # --- Direct query2 [] ---
     # Key functions: search_multimir
-    ON (m.mature_mirna_uid=i.mature_mirna_uid and
-    direct3 <- search_multimir(query = qry)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

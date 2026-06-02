@@ -45,14 +45,10 @@ process BIOC_GENOMICTUPLES {
 
     # --- Find overlapping genomic intervals [] ---
     # Key functions: GTuples, findOverlaps
-    gt2 <- GTuples(seqnames = c('chr1', 'chr1', 'chr1', 'chr1', 'chr2'),
-    tuples = matrix(c(10L, 10L, 10L, 10L, 10L, 20L, 20L, 20L, 25L,
-    strand = c('+', '-', '*', '+', '+'))
+
     # --- Sequence names check [] ---
     # Key functions: Seqinfo, GTuples, seqnames, tuples, strand, split, window, start
-    gt3 <- GTuples(seqnames = c('chr1', 'chr1', 'chr1', 'chr1', 'chr2', 'chr1',
-    tuples = matrix(c(10L, 10L, 10L, 10L, 10L, 5L, 10L, 20L, 20L,
-    strand = c('+', '-', '*', '+', '+', '+', '+'))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

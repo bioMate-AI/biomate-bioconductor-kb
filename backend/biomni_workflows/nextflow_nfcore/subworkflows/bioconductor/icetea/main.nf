@@ -41,11 +41,56 @@ process BIOC_ICETEA {
     library(icetea)
     library(jsonlite)
 
-    # --- NewCapSet analysis [] ---
-    # Key functions: newCapSet, demultiplexFASTQ, mapCaps, filterDuplicates, detectTSS, sampleInfo, buildindex, splitBAM_byIndex
-    csfit <- fitDiffTSS(cs, groups = rep(c("wt","mut"), each = 2), normalization = "windowTMM",
-    save(csfit, file = "diffTSS_fit.Rdata")
-    de_tss <- detectDiffTSS(csfit, testGroup = "mut", contGroup = "wt",
+
+    # --- Make Cs [] ---
+    # Key functions: raw, newCapSet, embryo1, embryo2, embryo3, embryo4, extdata, icetea
+    # provide demultiplexing barcodes as strings
+    idxlist <- c("CAAGTG", "TTAGCC", "GTGGAA", "TGTGAG")
+
+    # provide corresponding sample names
+    fnames <- c("embryo1", "embryo2", "embryo3", "embryo4")
+
+    # `dir` contains example data provided with this package
+    dir <- system.file("extdata", package = "icetea")
+
+    ## CapSet object from raw (multiplexed) fastq files
+
+    # --- Sampleinfo [] ---
+    # Key functions: sampleInfo, list.files, icetea
+    si <- sampleInfo(cs)
+    dir <- system.file("extdata/bam", package = "icetea")
+    si$mapped_file <- list.files(dir, pattern = ".bam$", full.names = TRUE)
+    sampleInfo(cs) <- si
+
+    # --- Cs2 [] ---
+    # Key functions: newCapSet, list.files, icetea
+    dir <- system.file("extdata/filtered_bam", package = "icetea")
+    cs2 <- newCapSet(expMethod = 'MAPCap',
+                     filtered_file = list.files(dir, pattern = ".bam$", full.names = TRUE),
+                     sampleNames = fnames)
+
+    # --- Demultiplex [] ---
+    # Key functions: dir.create, demultiplexFASTQ, splitting
+    # demultiplex fastq and trim the barcodes
+    dir.create("splitting")
+    cs <- demultiplexFASTQ(cs, max_mismatch = 1, outdir = "splitting", ncores = 10)
+
+    # --- Filterdups [] ---
+    # Key functions: object, exampleCSobject, dir.create, filterDuplicates, removedup
+    # load a previously saved CapSet object (or create new one)
+    cs <- exampleCSobject()
+    # filter PCR duplicates and save output in a new directory
+    dir.create("removedup")
+    cs <- filterDuplicates(cs, outdir = "removedup")
+
+    # --- Get Tss [] ---
+    # Key functions: dir.create, detectTSS, exportTSS, tssCalling, mut
+    # detect TSS
+    dir.create("tssCalling")
+    cs <- detectTSS(cs, groups = c("wt", "wt", "mut", "mut"),
+                     outfile_prefix = "tssCalling/testTSS", restrictChr = "X", ncores = 1)
+    # export the detected TSS bed files
+    exportTSS(cs, merged = TRUE, outfile_prefix = "tssCalling/testTSS")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

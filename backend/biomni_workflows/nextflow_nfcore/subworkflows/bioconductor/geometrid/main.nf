@@ -44,13 +44,10 @@ process BIOC_GEOMETRID {
     # --- Load saved R data object [] ---
     # Key functions: view3dStructure, threeJsViewer
     library(geomeTriD)
-    obj <- readRDS(system.file("extdata", "4DNFI1UEG1HD.chr21.FLAMINGO.res.rds",
-    head(obj, n = 2)
     # --- Load saved R data object [] ---
     # Key functions: GRanges, mdsPlot
     library(trackViewer)
     library(InteractionSet)
-    gi_nij <- readRDS(system.file("extdata", "nij.chr6.51120000.53200000.gi.rds",
     # --- mget [] ---
     # Key functions: mget, unlist, mdsPlot
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -58,9 +55,7 @@ process BIOC_GEOMETRID {
     feature.gr <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
     # --- Load saved R data object [] ---
     # Key functions: mdsPlot
-    ctcf <- readRDS(system.file("extdata", "ctcf.sample.rds",
-    if (interactive()) { ## not run to reduce the package size.
-    mdsPlot(gi_nij,
+
     # --- mds Plot [] ---
     # Key functions: mdsPlot, threeJsViewer
     set.seed(1)
@@ -75,7 +70,6 @@ process BIOC_GEOMETRID {
     # Key functions: extractBackbonePositions, create3dGenomicSignals, width, threeJsViewer
     xyz <- extractBackbonePositions(objs)
     gi.subset <- gi_nij[distance(first(gi_nij), second(gi_nij))>50000]
-    hic <- create3dGenomicSignals(
     # --- Load saved R data object [] ---
     # Key functions: GRanges, mget, unlist
     gi_chr2 <- readRDS(system.file("extdata", "gi.rds", package = "trackViewer"))
@@ -89,8 +83,6 @@ process BIOC_GEOMETRID {
     # --- Create GenomicRanges object [] ---
     # Key functions: threeJsViewer, view3dCells, GRanges
     threeJsViewer(cellobjs)
-    if (interactive()) {
-    view3dCells(cells,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

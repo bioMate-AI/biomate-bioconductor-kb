@@ -71,7 +71,6 @@ process BIOC_MILOR {
     rownames(thy.design) <- thy.design$Sample
     contrast.1 <- c("Age1wk - Age4wk") # the syntax is <VariableName><ConditionLevel> - <VariableName><ControlLevel>
     # we need to use the ~ 0 + Variable expression here so that we have all of the levels of our variable as separate columns in our model matrix
-    da_results <- testNhoods(thy.milo, design = ~ 0 + Age, design.df = thy.design, model.contrasts = contrast.1,
     # --- Testnhoods [] ---
     # Key functions: testNhoods
     ---------------------------------------------------------------------

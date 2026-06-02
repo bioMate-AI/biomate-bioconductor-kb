@@ -77,8 +77,6 @@ process BIOC_EPIGENOMIX {
     ## library("biomaRt")
     ## transcripts <- unique(unlist(probeToTrans))
     ## mart <- useMart("ENSEMBL_MART_ENSEMBL",dataset="mmusculus_gene_ensembl", host="www.ensembl.org")
-    ## transToTSS <- getBM(attributes=c("ensembl_transcript_id",
-    ##     "chromosome_name", "transcript_start",
     # --- Datamatching [] ---
     # Key functions: matchProbeToPromoter
     promoters <- matchProbeToPromoter(probeToTrans,
@@ -117,7 +115,6 @@ process BIOC_EPIGENOMIX {
     colnames(chipSet)
     chipSet$CEBPA <- factor(c("wt", "ko"))
     colData(chipSet)
-    intData <- integrateData(eSet, chipSet,
     # --- Mlmixmodel1 [] ---
     # Key functions: mlMixModel
     mlmm = mlMixModel(intData[,"z"],

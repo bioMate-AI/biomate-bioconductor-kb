@@ -51,10 +51,6 @@ process BIOC_TIMEOMICS {
     # --- Function [] ---
     # Key functions: unlist, frame
     ---------------------------------------------------------------------
-    remove.low.cv <- function(X, cutoff = 0.5){
-      # var.coef
-      cv <- unlist(lapply(as.data.frame(X),
-                          function(x) abs(sd(x)/mean(x))))
     # --- Frame [] ---
     # Key functions: frame, rownames_to_column, mutate, pivot_longer, ggplot, aes, geom_line
     ---------------------------------------------------------------------
@@ -68,7 +64,6 @@ process BIOC_TIMEOMICS {
     # run pca
     pca.res <- pca(X = profile.filtered, ncomp = 5, scale=FALSE, center=FALSE)
     # tuning ncomp
-    pca.ncomp <- getNcomp(pca.res, max.ncomp = 5, X = profile.filtered,
     # --- Pca [] ---
     # Key functions: pca
     ---------------------------------------------------------------------

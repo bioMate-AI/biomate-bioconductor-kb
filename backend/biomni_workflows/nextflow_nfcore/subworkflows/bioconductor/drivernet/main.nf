@@ -58,10 +58,6 @@ process BIOC_DRIVERNET {
     # --- Preliminaries [] ---
     # Key functions: computeRandomizedResult
     # random permute the gene labels to compute p-values
-    randomDriversResult = computeRandomizedResult(
-      patMutMatrix=samplePatientMutationMatrix,
-      patOutMatrix=samplePatientOutlierMatrix,
-      influenceGraph=sampleInfluenceGraph,
     # --- Preliminaries [] ---
     # Key functions: resultSummary
     # Summarize the results

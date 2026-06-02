@@ -71,7 +71,6 @@ process BIOC_TIDYSPATIALEXPERIMENT {
     spe |>
         filter(sample_id == "section1" & in_tissue) |>
         # Add a column with the sum of feature counts per cell
-        mutate(count_sum = purrr::map_int(.cell, ~
     # --- Join Features [] ---
     # Key functions: join_features
     ---------------------------------------------------------------------

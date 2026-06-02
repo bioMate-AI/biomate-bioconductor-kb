@@ -41,13 +41,104 @@ process BIOC_COSNET {
     library(COSNet)
     library(jsonlite)
 
-    # --- ColSums analysis [] ---
-    # Key functions: data, colSums, validation, classes, unlist, strat, set, COSNet
+
+    # --- A1 [] ---
+    # Key functions: cosnet
+    library(COSNet);
+    library(bionetdata)
+    data(Yeast.STRING.data)
+    dim(Yeast.STRING.data)
+    rownames(Yeast.STRING.data)[1:10]
+    data(Yeast.STRING.FunCat)
+    dim(Yeast.STRING.FunCat)
+    rownames(Yeast.STRING.FunCat)[1:10]
+    colnames(Yeast.STRING.FunCat)[1:10]
+
+    # --- A3 [] ---
+    # Key functions: colSums, cosnet.cross.validation
     ## excluding the dummy "00" root
     to.be.excl <- which(colnames(Yeast.STRING.FunCat) == "00")
     Yeast.STRING.FunCat <- Yeast.STRING.FunCat[, -to.be.excl]
     ## choosing the first 35 classes
-    labeling <- Yeast.STRING.FunCat[, 1:35]
+    labeling <- Yeast.STRING.FunCat[, 1:35] 
+    ## number of positive labels
+    colSums(labeling)       
+    Yeast.STRING.FunCat[Yeast.STRING.FunCat == 0] <- -1
+    out <- cosnet.cross.validation(labeling, Yeast.STRING.data, 5, cost=0)
+
+    # --- A5 [] ---
+    # Key functions: cosnet.cross.validation
+    out.r <- cosnet.cross.validation(labeling, Yeast.STRING.data, 5, cost=0.0001)
+    predictions <- out$predictions
+    scores <- out$scores;
+    labels <- out$labels;
+    predictions.r <- out.r$predictions
+    scores.r <- out.r$scores;
+    labels.r <- out.r$labels;
+
+    # --- A7 [] ---
+    # Key functions: F.measure.single.over.classes, AUC.single.over.classes, precision.at.multiple.recall.level.over.classes, read.table, unlist, function, substr
+    library(PerfMeas);
+    ## computing F-score 
+    Fs <- F.measure.single.over.classes(labels, predictions);
+    ## Average F-score 
+    Fs$average[4]
+    Fs.r <- F.measure.single.over.classes(labels.r, predictions.r);
+    # Average F-score for the regularized version of COSNet
+    Fs.r$average[4]
+    ## Computing AUC
+    labels[labels <= 0] <- 0;
+    ## reading similarity network W
+    W <- 
+    as.matrix(read.table(file=paste(sep="", "http://frasca.di.unimi.it/",
+     "cosnetdata/u.sum.fly.txt"), sep=" "))
+    ## reading GO annotations
+    GO.ann.sel <- 
+    as.matrix(read.table(file=paste(sep="", "http://frasca.di.unimi.it/",
+    "cosnetdata/GO.ann.fly.15.5.13.3_300.txt"), sep = " ",))
+    GO.classes <- colnames(GO.ann.sel)
+    ## changing "." to ":"
+
+    # --- A9 [] ---
+    # Key functions: find.division.strat, set, function, COSNet, as.vector, AUC.single, precision.at.recall.level
+    n<-nrow(W);
+    ## selecting some classes to be predicted
+    classes <- c("GO:0009605", "GO:0022414", "GO:0032504",
+                "GO:0002376", "GO:0009888", "GO:0065003");
+    labels <- GO.ann.sel[, classes]
+    ## for COSNet negative labels must be -1
+    labels[labels <= 0] <- -1;
+    ## Determining a random partition for the class GO:0009605 in 3 folds
+    ##    ensuring that each fold has a similar proportion of positives 
+    folds <- find.division.strat(labels[, 1], 1:n, 3)
+    library(PerfMeas);
+    ## last predicted term
+    term.ind <- 6;
+    scores <- res[[term.ind]]$scores;
+    test.genes <- names(scores);
+    test.labels <- as.vector(GO.ann.sel[test.genes, term.ind]);
+    pos.labels <- sum(test.labels > 0)
+    pos.labels
+    alpha <- res[[term.ind]]$alpha
+    gamma <- res[[term.ind]]$c
+
+    # --- A11 [] ---
+    # Key functions: as.vector, find.division.strat, labels
+    library(bionetdata);
+    ## similarity matrix DD.chem.data
+    data(DD.chem.data); 
+    ## label matrix DrugBank.Cat
+    data(DrugBank.Cat);
+    n <- nrow(DD.chem.data);
+    drugs <- rownames(DD.chem.data);
+    drug.category <- c("Cephalosporins");
+    labels <- as.vector(DrugBank.Cat[, drug.category]);
+    names(labels) <- rownames(DrugBank.Cat);
+    ## Determining a random partition in 5 folds ensuring that each 
+    ##    fold has a similar proportion of positives
+    folds <- find.division.strat(labels, 1:n, 5)
+    labels[labels <= 0] <- -1;
+    ## hiding the test labels (the fold of index 1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

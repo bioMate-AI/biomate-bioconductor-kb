@@ -41,11 +41,50 @@ process BIOC_FITHIC {
     library(FitHiC)
     library(jsonlite)
 
-    # --- Table formatting and display [] ---
-    # Key functions: FitHiC, kable
+
+    # --- Run [] ---
+    # Key functions: getwd, FitHiC, extdata, Duan_yeast_EcoRI, hide
     library("FitHiC")
     fragsfile <- system.file("extdata", "fragmentLists/Duan_yeast_EcoRI.gz",
+        package = "FitHiC")
     intersfile <- system.file("extdata", "contactCounts/Duan_yeast_EcoRI.gz",
+        package = "FitHiC")
+    outdir <- file.path(getwd(), "Duan_yeast_EcoRI")
+    FitHiC(fragsfile, intersfile, outdir, libname="Duan_yeast_EcoRI",
+        distUpThres=250000, distLowThres=10000)
+
+    ## ----run-visual, echo=FALSE, message=FALSE, warning=FALSE, results="hide"-----
+    library("FitHiC")
+    fragsfile <- system.file("extdata", "fragmentLists/Duan_yeast_EcoRI.gz",
+        package = "FitHiC")
+    intersfile <- system.file("extdata", "contactCounts/Duan_yeast_EcoRI.gz",
+        package = "FitHiC")
+
+    # --- Fragsfile [] ---
+    # Key functions: read.table, gzfile, extdata, crrrr
+    fragsfile <- system.file("extdata",
+        "fragmentLists/Dixon_hESC_HindIII_hg18_w40000_chr1.gz", package = "FitHiC")
+    data <- read.table(gzfile(fragsfile), header=FALSE,
+        col.names=c("Chromosome Name", "Column 2", "Mid Point", "Hit Count",
+        "Column 5"))
+    knitr::kable(head(data, n=6L), align = "crrrr", caption="FRAGSFILE")
+
+    # --- Intersfile [] ---
+    # Key functions: read.table, gzfile, extdata, crcrr
+    intersfile <- system.file("extdata",
+        "contactCounts/Dixon_hESC_HindIII_hg18_w40000_chr1.gz", package = "FitHiC")
+    data <- read.table(gzfile(intersfile), header=FALSE,
+        col.names=c("Chromosome1 Name", "Mid Point 1", "Chromosome2 Name",
+        "Mid Point 2", "Hit Count"))
+    knitr::kable(head(data, n=6L), align = "crcrr", caption="INTERSFILE")
+
+    # --- Biasfile [] ---
+    # Key functions: read.table, gzfile, extdata, crr
+    biasfile <- system.file("extdata",
+        "biasPerLocus/Dixon_hESC_HindIII_hg18_w40000_chr1.gz", package = "FitHiC")
+    data <- read.table(gzfile(biasfile), header=FALSE,
+        col.names=c("Chromosome Name", "Mid Point", "Bias"))
+    knitr::kable(head(data, n=6L), align = "crr", caption="BIASFILE")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

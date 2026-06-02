@@ -41,11 +41,69 @@ process BIOC_BACON {
     library(bacon)
     library(jsonlite)
 
-    # --- Rnormmix analysis [] ---
-    # Key functions: rnormmix, bacon, estimates, inflation, bias, traces, runif, replicate
+
+    # --- Generatedata1 [] ---
+    # Key functions: rnormmix, bacon, estimates, inflation, bias, traces
+    y <- rnormmix(5000, c(0.9, 0.2, 1.3, 1, 4, 1))
+    bc <- bacon(y)
+    bc
+    estimates(bc)
+    inflation(bc)
+    bias(bc)
+    traces(bc, burnin=FALSE)
+
+    # --- Gsoutput2 [] ---
+    # Key functions: posteriors, fit
+    posteriors(bc)
+    fit(bc, n=100)
+    plot(bc, type="hist")
+
+    # --- Plotqq1 [] ---
+    # Key functions: runif, for, rnormmix, replicate, rchisq, register, MulticoreParam, bacon
+    plot(bc, type="qq")
+    set.seed(12345)
+    biases <- runif(6, -0.2, 0.2)
+    inflations <- runif(6, 1, 1.3)
+    es <- matrix(nrow=5000, ncol=6)
+    for(i in 1:6)
+        es[,i] <- rnormmix(5000, c(0.9, biases[i], inflations[i], 0, 4, 1), shuffle=FALSE)
+    se <- replicate(6, 0.8*sqrt(4/rchisq(5000,df=4)))
+    colnames(es) <- colnames(se) <- LETTERS[1:ncol(se)]
+    rownames(es) <- rownames(se) <- 1:5000
+    head(rownames(es))
+    library(BiocParallel)
+    register(MulticoreParam(1, log=TRUE))
+    bc <- bacon(NULL, es, se)
+    bc
+    knitr::kable(estimates(bc))
+    inflation(bc)
+    bias(bc)
+    knitr::kable(tstat(bc)[1:5,])
+    knitr::kable(pval(bc)[1:5,])
+
+    # --- Gsoutput4 [] ---
+    # Key functions: traces, posteriors, fit
+    traces(bc, burnin=FALSE, index=3)
+    posteriors(bc, index=3)
+    fit(bc, n=100, index=3)
+
+    # --- Plothist2 [] ---
+    # Key functions: meta, pval, topTable
+    plot(bc, type="hist")
+    plot(bc, type="qq")
+    bcm <- meta(bc)
+    head(pval(bcm))
+    print(topTable(bcm))
+
+    # --- Plotqq3 [] ---
+    # Key functions: rnormmix
+    plot(bcm, type="qq")
+    zs <- rnormmix(5000, c(0.9, 0.2, 1.3, 1, 4, 1))
     zs <- cbind(zs, matrix(zs, nrow=5000, ncol=9))
     colnames(zs) <- c(paste0("A", 1:10))
     rownames(zs) <- 1:5000
+    head(rownames(zs))
+    head(colnames(zs))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

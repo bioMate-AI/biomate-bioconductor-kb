@@ -61,9 +61,6 @@ process BIOC_ATACSEQTFEA {
     # Key functions: expandBindingSites, count5ends
     ---------------------------------------------------------------------
     # prepare the counting region
-    exbs <- expandBindingSites(bindingSites=bindingSites,
-                               proximal=40,
-                               distal=40,
     # --- Colnames [] ---
     # Key functions: eventsFilter
     ---------------------------------------------------------------------

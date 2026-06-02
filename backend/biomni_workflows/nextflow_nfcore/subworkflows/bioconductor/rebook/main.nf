@@ -41,12 +41,53 @@ process BIOC_REBOOK {
     library(rebook)
     library(jsonlite)
 
-    # --- Link [] ---
-    # Key functions: link
-    ---------------------------------------------------------------------
+
+    # --- Results="asis" [] ---
+    # Key functions: extractCached, godzilla
+    extractCached(example, chunk="godzilla-1954", object="godzilla")
+
+    ## -----------------------------------------------------------------------------
+    godzilla
+
+    # --- Results="asis" [] ---
+    # Key functions: extractCached, godzilla, ghidorah
+    extractCached(example, chunk="ghidorah-1964", object=c("godzilla", "ghidorah"))
+
+    ## -----------------------------------------------------------------------------
+    godzilla
+    ghidorah
+
+    # --- Results="asis" [] ---
+    # Key functions: extractCached, godzilla
+    extractCached(example, chunk="godzilla-2014", object="godzilla")
+
+    ## -----------------------------------------------------------------------------
+    godzilla
+
+    # --- Results="asis" [] ---
+    # Key functions: extractCached, link, mechagodzilla, godzilla, installation
+    extractCached(example, chunk="godzilla-2014", object=c("mechagodzilla", "godzilla"))
+
+    ## -----------------------------------------------------------------------------
+    godzilla
+    mechagodzilla
+
+    ## -----------------------------------------------------------------------------
     link("installation", "OSCA.intro")
     link("some-comments-on-experimental-design", "OSCA.intro")
     link("fig:sce-structure", "OSCA.intro")
+
+    # --- Results="asis" [] ---
+    # Key functions: extractFromPackage, clustering
+    extractFromPackage("lun-416b.Rmd", chunk="clustering", 
+        objects='sce.416b', package="OSCA.workflows")
+
+    ## -----------------------------------------------------------------------------
+    sce.416b
+
+    # --- Results="asis" [] ---
+    # Key functions: prettySessionInfo
+    prettySessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,7 +38,7 @@ process BIOC_GLMGAMPOI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Kang18_8vs8)
+    library(glmGamPoi)
     library(jsonlite)
 
 
@@ -84,17 +84,6 @@ process BIOC_GLMGAMPOI {
     pbmcs_subset <- as.matrix(assay(pbmcs_subset))
     model_matrix <- matrix(1, nrow = ncol(pbmcs_subset))
 
-
-    bench::mark(
-      glmGamPoi_in_memory = {
-        glm_gp(pbmcs_subset, design = model_matrix, on_disk = FALSE)
-      }, glmGamPoi_on_disk = {
-        glm_gp(pbmcs_subset, design = model_matrix, on_disk = TRUE)
-      }, DESeq2 = suppressMessages({
-        dds <- DESeq2::DESeqDataSetFromMatrix(pbmcs_subset,
-                            colData = data.frame(name = seq_len(4340)),
-                            design = ~ 1)
-        dds <- DESeq2::estimateSizeFactors(dds, "poscounts")
 
     # --- Coefficient Comparison [] ---
     # Key functions: par, abline, assay, glmGamPoi, edgeR

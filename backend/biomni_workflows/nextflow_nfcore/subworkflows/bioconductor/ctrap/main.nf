@@ -58,23 +58,20 @@ process BIOC_CTRAP {
     getCMapConditions(cmapMetadata)
     # --- CMap knockdown perturbations [] ---
     # Key functions: filterCMapMetadata, prepareCMapPerturbations
-    cmapMetadataKD <- filterCMapMetadata(
-    cmapPerturbationsKD <- prepareCMapPerturbations(
+
     # --- CMap small molecule perturbations [] ---
     # Key functions: filterCMapMetadata, prepareCMapPerturbations
-    cmapMetadataCompounds <- filterCMapMetadata(
-    cmapPerturbationsCompounds <- prepareCMapPerturbations(
+
     # --- compare knockdown [] ---
     # Key functions: rankSimilarPerturbations
     compareKD <- rankSimilarPerturbations(diffExprStat, cmapPerturbationsKD)
     # --- compare small molecules [] ---
     # Key functions: rankSimilarPerturbations
-    compareCompounds <- rankSimilarPerturbations(diffExprStat,
+
     # --- perturbation info [] ---
     # Key functions: attr
     EIF4G1knockdown <- grep("EIF4G1", compareKD[[1]], value=TRUE)
     print(compareKD, EIF4G1knockdown)
-    Information on the top 10 most similar compound perturbations (based on
     # --- drug set enrichment analysis [] ---
     # Key functions: loadDrugDescriptors, prepareDrugSets, analyseDrugSetEnrichment, plotDrugSetEnrichment
     descriptors <- loadDrugDescriptors("CMap", "2D")

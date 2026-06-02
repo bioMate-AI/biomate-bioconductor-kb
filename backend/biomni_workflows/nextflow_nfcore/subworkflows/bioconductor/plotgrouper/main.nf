@@ -41,9 +41,16 @@ process BIOC_PLOTGROUPER {
     library(plotGrouper)
     library(jsonlite)
 
-    # --- img [] ---
-    # Key functions: img
-    htmltools::img(src = knitr::image_uri("logo_small.png"),
+
+    # --- Logo [] ---
+    # Key functions: img, image_uri, logo_small.png
+    htmltools::img(src = knitr::image_uri("logo_small.png"), 
+                   alt = 'logo', 
+                   style = 'position:absolute; 
+                   top:0; 
+                   right:0; 
+                   padding:10px; 
+                   width:150px')
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

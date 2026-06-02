@@ -64,9 +64,7 @@ process BIOC_BUGSIGDBR {
     efo <- getOntology("efo")
     # --- subset By Ontology [] ---
     # Key functions: subsetByOntology
-    sdf <- subsetByOntology(bsdb,
-    dim(sdf)
-    table(sdf[,"Condition"])
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

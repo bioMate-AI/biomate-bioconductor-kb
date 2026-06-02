@@ -44,8 +44,6 @@ process BIOC_RIBOPROFILING {
     # --- Import library noEcho [] ---
     # Key functions: BamFile, riboSeqFromBAM
     library(RiboProfiling)
-    listInputBam <- c(
-    BamFile("http://genomique.info/data/public/RiboProfiling/ctrl.bam"),
     # --- ribo Seq From B A M [] ---
     # Key functions: riboSeqFromBAM
     myFileCtrl <- system.file("extdata", "ctrl_sample.bam", package="RiboProfiling")
@@ -53,8 +51,7 @@ process BIOC_RIBOPROFILING {
     listeInputBam <- c(myFileCtrl, myFileNutlin2h)
     # --- GAlignments from BAM [] ---
     # Key functions: readGAlignments, BamFile
-    aln <- readGAlignments(
-    BamFile("http://genomique.info/data/public/RiboProfiling/ctrl.bam")
+
     # --- Hist quick [] ---
     # Key functions: histMatchLength
     data(ctrlGAlignments)
@@ -63,7 +60,6 @@ process BIOC_RIBOPROFILING {
     # Key functions: readsToStartOrEnd, aroundPromoter, readStartCov, plotSummarizedCov
     alnGRanges <- readsToStartOrEnd(aln, what="start")
     oneBinRanges <- aroundPromoter(txdb, alnGRanges, percBestExpressed=0.001)
-    readStartCov(
     # --- TSS Cov [] ---
     # Key functions: readsToStartOrEnd, renameSeqlevels, aroundPromoter, readStartCov
     (faster processing of the object)

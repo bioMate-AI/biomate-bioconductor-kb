@@ -48,9 +48,7 @@ process BIOC_AWST {
     ggplot(df, aes(x = PC1, y = PC2, color = dex, shape = cell)) +
     # --- Valid analysis [] ---
     # Key functions: valid, rowMeans, awst, gene_filter, knit, diff, session_info, PrintBibliography
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("awst")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

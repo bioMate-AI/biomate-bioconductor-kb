@@ -43,7 +43,7 @@ process BIOC_RNAMODR_ALKANILINESEQ {
 
     # --- plot Compare By Coord [] ---
     # Key functions: plotCompareByCoord
-    plotCompareByCoord(msaas, coord, score = "scoreSR", alias = alias,
+
     # --- plot Data [] ---
     # Key functions: plotData
     plotData(msaas, "1", from = 1550L, to = 1600L)

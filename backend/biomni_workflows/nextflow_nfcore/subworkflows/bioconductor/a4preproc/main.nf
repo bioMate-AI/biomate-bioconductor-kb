@@ -41,11 +41,14 @@ process BIOC_A4PREPROC {
     library(a4Preproc)
     library(jsonlite)
 
-    # --- add Gene Info [] ---
-    # Key functions: addGeneInfo
+
+    # --- Add Gene Info [] ---
+    # Key functions: addGeneInfo, fData, featureData
     library(ALL)
     data(ALL)
     a4ALL <- addGeneInfo(eset = ALL)
+    print(head(fData(a4ALL)))
+    print(head(featureData(a4ALL)))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

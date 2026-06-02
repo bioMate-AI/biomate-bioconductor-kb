@@ -53,8 +53,6 @@ process BIOC_IGVR {
     # --- simple data.frame [] ---
     # Key functions: getGenomicRegion, DataFrameAnnotationTrack, displayTrack
     loc <- getGenomicRegion(igv)
-    tbl.bed <- data.frame(chrom=loc$chrom, start=loc$start + 2000, end=loc$end-2000,
-    track <- DataFrameAnnotationTrack("simple bed", tbl.bed, color="random")
     # --- get Genomic Region [] ---
     # Key functions: getGenomicRegion, with, sample, DataFrameQuantitativeTrack
     loc <- getGenomicRegion(igv)

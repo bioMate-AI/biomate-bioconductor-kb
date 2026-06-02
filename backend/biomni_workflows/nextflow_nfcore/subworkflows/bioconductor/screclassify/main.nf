@@ -75,7 +75,6 @@ process BIOC_SCRECLASSIFY {
     reducedDim(dat, "matPCs") <- matPCs(dat, assay = "logNorm", 0.7)
     # run scReClassify
     set.seed(1)
-    cellTypes.reclassify <- multiAdaSampling(dat, cellTypes,
     # --- Code Block 14 [] ---
     # Key functions: datatable
     # check examples

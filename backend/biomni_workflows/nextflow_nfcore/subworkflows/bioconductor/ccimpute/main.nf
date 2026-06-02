@@ -41,8 +41,17 @@ process BIOC_CCIMPUTE {
     library(ccImpute)
     library(jsonlite)
 
-    # --- session_info [] ---
-    # Key functions: session_info
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+        collapse = TRUE,
+        comment = "#>"
+    )
+
+    # --- Reproduce3 [] ---
+    # Key functions: session_info, sessioninfo
+    ## Session info
     library("sessioninfo")
     options(width = 120)
     session_info()

@@ -41,11 +41,56 @@ process BIOC_PEPSTAT {
     library(pepStat)
     library(jsonlite)
 
-    # --- PeptideSet analysis [] ---
-    # Key functions: makePeptideSet, plotArrayImage, plotArrayResiduals, create_db, summarizePeptides, normalizeArray, slidingMean, makeCalls
+
+    # --- Include=false [] ---
+    # Key functions: set, makePeptideSet, plotArrayImage, plotArrayResiduals, create_db, pepDat, empty
+    library(knitr)
+    opts_chunk$set(tidy=FALSE)
+
+    ## ----loading-libraries, message=FALSE-----------------------------------------
+    library(pepDat)
+    library(pepStat)
+
+    ## ----read-data----------------------------------------------------------------
     mapFile <- system.file("extdata/mapping.csv", package = "pepDat")
     dirToParse <- system.file("extdata/gpr_samples", package = "pepDat")
-    pSet <- makePeptideSet(files = NULL, path = dirToParse,
+
+    # --- Summarize Peptide Set [] ---
+    # Key functions: summarizePeptides
+    psSet <- summarizePeptides(pSet, summary = "mean", position = pep_custom)
+
+    # --- Normalize Array [] ---
+    # Key functions: normalizeArray
+    pnSet <- normalizeArray(psSet)
+
+    # --- Sliding Mean [] ---
+    # Key functions: slidingMean
+    psmSet <- slidingMean(pnSet, width = 9)
+
+    ## ----slidingMean-splitbyclade-------------------------------------------------
+    psmSetAg <- slidingMean(pnSet, width = 9, split.by.clade = FALSE)
+
+    # --- Make Calls [] ---
+    # Key functions: makeCalls, treatment
+    calls <- makeCalls(psmSet, freq = TRUE, group = "treatment",
+                         cutoff = .1, method = "FDR", verbose = TRUE)
+
+    ## ----makeCalls-aggregate------------------------------------------------------
+    callsAg <- makeCalls(psmSetAg, freq = TRUE, group = "treatment",
+                         cutoff = .1, method = "FDR")
+
+    # --- Restab [] ---
+    # Key functions: restab, plot_inter, plot_clade
+    summary <- restab(psmSet, calls)
+    head(summary)
+
+    ## ----plot-inter, fig.height=4, message=FALSE----------------------------------
+    library(Pviz)
+    summaryAg <- restab(psmSetAg, callsAg)
+    plot_inter(summaryAg)
+
+    ## ----plot-clade, fig.height=4-------------------------------------------------
+    plot_clade(summary, clade=c("A", "M", "CRF01"), from = 300, to = 520)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

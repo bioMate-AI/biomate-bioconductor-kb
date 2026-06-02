@@ -55,8 +55,7 @@ process BIOC_FRASER {
     fds <- countRNAData(fds)
     # --- sampleData Table [] ---
     # Key functions: fread
-    sampleTable <- fread(system.file(
-    head(sampleTable)
+
     # --- FRASER setting example1 [] ---
     # Key functions: FraserDataSet
     bamFiles <- system.file(sampleTable[,bamFile], package="FRASER", mustWork=TRUE)
@@ -66,17 +65,13 @@ process BIOC_FRASER {
     settings <- createTestFraserSettings()
     # --- parallelize example [] ---
     # Key functions: register
-    if(.Platform$OS.type == "unix") {
-    register(MulticoreParam(workers=min(10, multicoreWorkers())))
-    register(SnowParam(workers=min(10, multicoreWorkers())))
+
     # --- count R N A Data [] ---
     # Key functions: countRNAData
     fds <- countRNAData(settings)
     # --- create fds with counts [] ---
     # Key functions: fread, FraserDataSet
-    sampleTable <- fread(system.file("extdata", "sampleTable_countTable.tsv",
-    head(sampleTable)
-    junctionCts   <- fread(system.file("extdata", "raw_junction_counts.tsv.gz",
+
     # --- calculate psi/jaccard values [] ---
     # Key functions: calculatePSIValues
     fds <- calculatePSIValues(fds)
@@ -89,7 +84,7 @@ process BIOC_FRASER {
     plotCountCorHeatmap(fds, type="jaccard", logit=TRUE, normalized=FALSE)
     # --- intron sample correlation [] ---
     # Key functions: plotCountCorHeatmap
-    plotCountCorHeatmap(fds, type="jaccard", logit=TRUE, normalized=FALSE,
+
     # --- F R A S E R [] ---
     # Key functions: FRASER
     fds <- FRASER(fds, q=c(jaccard=3))

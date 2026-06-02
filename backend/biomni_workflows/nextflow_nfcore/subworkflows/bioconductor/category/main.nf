@@ -98,8 +98,6 @@ process BIOC_CATEGORY {
     v1 = ttperm(exprs(eS), eS$mol.biol, B=NPERM)
     permDm <- matrix(0.0, nrow=length(v1$perms[[1]]$statistic),
                      ncol=length(v1$perms))
-    for (j in 1:ncol(permDm)) {
-        permDm[ , j] <- v1$perms[[j]]$statistic
     # --- Gethighnames [] ---
     # Key functions: getPathNames
     getPathNames(highC)[1:5]

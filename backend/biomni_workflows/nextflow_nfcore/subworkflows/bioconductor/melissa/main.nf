@@ -47,7 +47,7 @@ process BIOC_MELISSA {
     binarise_files(indir = "path_to_met_files_dir")
     # --- melissa data obj [] ---
     # Key functions: create_melissa_data_obj
-    melissa_data <- create_melissa_data_obj(met_dir = "path_to_bin_met_dir",
+
     # --- filter regions by coverage [] ---
     # Key functions: filter_by_cpg_coverage
     melissa_data <- filter_by_cpg_coverage(melissa_data, min_cpgcov = 10)

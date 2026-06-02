@@ -45,9 +45,6 @@ process BIOC_CONDIMENTS {
     # Key functions: set
     --------------------------------------------------
     library(knitr)
-    opts_chunk$set(
-      fig.pos = "!h", out.extra = "",
-      fig.align = "center"
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------

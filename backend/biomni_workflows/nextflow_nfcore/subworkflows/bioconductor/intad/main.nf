@@ -62,11 +62,10 @@ process BIOC_INTAD {
     loopEag <- findCorFromLoops(inTadSig,method = "spearman")
     # --- plot Correlation [] ---
     # Key functions: plotCorrelation
-    plotCorrelation(inTadSig, cID, "GABRA5",
+
     # --- plot Cor Across Ref [] ---
     # Key functions: plotCorAcrossRef
-    plotCorAcrossRef(inTadSig,corData,
-    targetRegion = GRanges("chr15:25000000-28000000"),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,66 @@ process BIOC_CLEANUPRNASEQ {
     library(CleanUpRNAseq)
     library(jsonlite)
 
-    # --- EnsDbFromGtf analysis [] ---
-    # Key functions: tempdir, ensDbFromGtf, get_saf, create_summarizedcounts, salmon_tximport, plot_assignment_stat, plot_sample_corr, plot_expr_distr
+
+    # --- Load Package [] ---
+    # Key functions: suppressPackageStartupMessages, load_all, ggplotify, patchwork, ensembldb, utils
+    suppressPackageStartupMessages({
+      library("CleanUpRNAseq")
+      #devtools::load_all("../../CleanUpRNAseq")
+      library("ggplotify")
+      library("patchwork")
+      library("ensembldb")
+      library("utils")
+    })
+
+    # --- Create Ensdb [] ---
+    # Key functions: getOption, tempdir, ensDbFromGtf, timeout, extdata, example.gtf.gz, Homo_Sapiens
+    options(timeout = max(3000, getOption("timeout")))
     tmp_dir <- tempdir()
-    in_dir <- system.file("extdata", package = "CleanUpRNAseq")
-    gtf.gz <- dir(in_dir, ".gtf.gz$", full.name = TRUE)
+    gtf <- system.file("extdata", "example.gtf.gz",
+                        package = "CleanUpRNAseq")
+
+    hs_ensdb_sqlite <-
+    # --- Prepare Saf [] ---
+    # Key functions: get_saf, extdata
+    bam_file <- system.file("extdata", "K084CD7PCD1N.srt.bam",
+        package = "CleanUpRNAseq"
+    )
+    saf_list <- get_saf(
+        ensdb_sqlite = hs_ensdb_sqlite,
+        bamfile = bam_file,
+        mitochondrial_genome = "MT"
+    )
+
+    # --- Load Data [] ---
+    # Key functions: tempdir, dir, basename, gunzip, create_summarizedcounts, capture.output, summarize_reads, tempfile
+    tmp_dir <- tempdir()
+     in_dir <- system.file("extdata", package = "CleanUpRNAseq")
+     gtf.gz <- dir(in_dir, ".gtf.gz$", full.name = TRUE)
+     gtf <- file.path(tmp_dir, gsub("\\.gz", "", basename(gtf.gz)))
+     R.utils::gunzip(gtf.gz, destname= gtf,
+                     overwrite = TRUE, remove = FALSE)
+
+     in_dir <- system.file("extdata", package = "CleanUpRNAseq")
+     BAM_file <- dir(in_dir, ".bam$", full.name = TRUE)
+     salmon_quant_file <- dir(in_dir, ".sf$", full.name = TRUE)
+
+    # --- Plot Assignment Stat [] ---
+    # Key functions: read.delim, tempdir, create_summarizedcounts, set_feature_counts, set_salmon_quant, set_salmon_quant_opposite, plot_assignment_stat, wrap_plots
+    data("feature_counts_list")
+    data("salmon_quant")
+    data("intergenic_GC")
+    data("gene_GC")
+
+    lib_strand <- 0
+    col_data_f <- system.file("extdata", "example.colData.txt",
+                              package = "CleanUpRNAseq")
+    col_data <- read.delim(col_data_f, as.is = TRUE)
+    ## create fake bam files
+
+    # --- Plot Sample Corr [] ---
+    # Key functions: plot_sample_corr
+    plot_sample_corr(SummarizedCounts = sc)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

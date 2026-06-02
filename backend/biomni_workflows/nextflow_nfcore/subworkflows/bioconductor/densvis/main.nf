@@ -43,9 +43,7 @@ process BIOC_DENSVIS {
 
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, aes, geom_point, scale_colour_discrete, ggtitle
-    data <- data.frame(
-    x = c(rnorm(1000, 5), rnorm(1000, 0, 0.2)),
-    y = c(rnorm(1000, 5), rnorm(1000, 0, 0.2)),
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: densne, ggplot, aes, geom_point, scale_colour_discrete
     fit1 <- densne(data[, 1:2], dens_frac = 0.5, dens_lambda = 0.5)

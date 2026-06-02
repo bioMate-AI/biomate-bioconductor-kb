@@ -50,7 +50,6 @@ process BIOC_METHYLAID {
     # Key functions: summarize, visualize, BatchJobsParam, combine
     library(BiocParallel)
     conffile <- system.file("scripts/config.R", package="MethylAid")
-    BPPARAM <- BatchJobsParam(workers = 10,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

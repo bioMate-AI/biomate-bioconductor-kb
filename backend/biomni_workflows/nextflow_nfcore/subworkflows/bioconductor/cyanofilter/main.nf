@@ -41,11 +41,58 @@ process BIOC_CYANOFILTER {
     library(cyanoFilter)
     library(jsonlite)
 
-    # --- Table formatting and display [] ---
-    # Key functions: str_extract, kable, retain, noNA, ggpairsDens, noNeg, lnTrans, cellMargin
-    metafile <- metafile %>% dplyr::mutate(Sample.ID2 =
-    stringr::str_extract(metafile$Sample.ID, "BS*[4-5]")
+
+    # --- Data And Preprocessing [] ---
+    # Key functions: select, extdata, cyanoFilter
+    metadata <- system.file("extdata", "2019-03-25_Rstarted.csv", 
+      package = "cyanoFilter", 
+      mustWork = TRUE)
+    metafile <- read.csv(metadata, skip = 7, stringsAsFactors = FALSE, 
+      check.names = TRUE)
+    #columns containing dilution, $\mu l$ and id information
+    metafile <- metafile %>% 
+    # --- Metafile1 [] ---
+    # Key functions: mutate, str_extract, str_detect
+    #extract the part of the Sample.ID that corresponds to BS4 or BS5
+    metafile <- metafile %>% dplyr::mutate(Sample.ID2 = 
+                                             stringr::str_extract(metafile$Sample.ID, "BS*[4-5]")
+                                           )
+    #clean up the Cells.muL column
     names(metafile)[which(stringr::str_detect(names(metafile), "Cells."))] <- "CellspML"
+
+    # --- Metafile2 [] ---
+    # Key functions: mutate, goodFcs
+    metafile <- metafile %>% mutate(Status = cyanoFilter::goodFcs(metafile = metafile, 
+                                                                  col_cpml = "CellspML", 
+                                            mxd_cellpML = 1000, 
+                                            mnd_cellpML = 50)
+                                    )
+    knitr::kable(metafile)
+
+    # --- Metafile3 [] ---
+    # Key functions: group_by, nest, unlist, map, function, retain, maxi
+    broken <- metafile %>% group_by(Sample.ID2) %>% nest()
+    metafile$Retained <- unlist(map(broken$data, function(.x) {
+      retain(meta_files = .x, make_decision = "maxi",
+      Status = "Status",
+      CellspML = "CellspML")
+     })
+    )
+    knitr::kable(metafile)
+
+    # --- Reading [] ---
+    # Key functions: read.FCS, extdata, B4_18_1.fcs, cyanoFilter
+    flowfile_path <- system.file("extdata", "B4_18_1.fcs", package = "cyanoFilter",
+      mustWork = TRUE)
+    flowfile <- read.FCS(flowfile_path, alter.names = TRUE,
+      transformation = FALSE, emptyValue = FALSE,
+      dataset = 1)
+    flowfile
+
+    # --- Remove Na [] ---
+    # Key functions: noNA, ggpairsDens
+    flowfile_nona <- noNA(x = flowfile)
+    ggpairsDens(flowfile_nona, notToPlot = "TIME")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

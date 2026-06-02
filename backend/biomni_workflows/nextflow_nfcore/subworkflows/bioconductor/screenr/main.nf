@@ -45,12 +45,9 @@ process BIOC_SCREENR {
     # Key functions: tibble
     data(count_table)
     data(annotation_table)
-    colnames(data) <- c(
     # --- Create Object [] ---
     # Key functions: create_screenr_object
-    groups <- factor(c(
-    palette <- c("#66c2a5", "#fc8d62", rep("#8da0cb", 3), rep("#e78ac3", 3),
-    rep("#a6d854", 3), rep("#ffd92f", 3))
+
     # --- Removing all zero rows [] ---
     # Key functions: remove_all_zero_row
     object <- remove_all_zero_row(object)
@@ -65,21 +62,17 @@ process BIOC_SCREENR {
     ggplot2::scale_y_continuous(labels = scales::comma) +
     # --- plot mapped reads distribution boxplot [] ---
     # Key functions: plot_mapped_reads_distribution, coord_flip, theme
-    plot <- plot_mapped_reads_distribution(
-    coord_flip() +
-    theme(legend.position = "none")
+
     # --- plot mapped reads distribution density [] ---
     # Key functions: plot_mapped_reads_distribution, theme
-    plot <- plot_mapped_reads_distribution(
-    ggplot2::theme(legend.position = "none")
+
     # --- plot barcode lost [] ---
     # Key functions: plot_barcode_lost, coord_flip
     plot <- plot_barcode_lost(screenR_Object = object, palette = palette) +
     ggplot2::coord_flip()
     # --- plot barcode lost for gene [] ---
     # Key functions: plot_barcode_lost_for_gene
-    plot <- plot_barcode_lost_for_gene(object,
-    samples = c("Time4_TRT_C", "Time4_CTRL_C")
+
     # --- Plot MDS Sample [] ---
     # Key functions: plot_mds
     plot_mds(screenR_Object = object)
@@ -90,18 +83,14 @@ process BIOC_SCREENR {
     distinct()
     # --- Plot MDS Day [] ---
     # Key functions: plot_mds
-    plot_mds(
-    groups = factor(x = group_day, levels = unique(group_day))
+
     # --- plot_zscore_distribution [] ---
     # Key functions: plot_zscore_distribution
-    data_with_measure_TRT <- list(
-    Time3 = compute_metrics(
-    Time4 = compute_metrics(
+
     # --- plot_trend [] ---
     # Key functions: plot_trend
     plot_trend(screenR_Object = object,
     group_var = c("Time1", "Time2", "TRT"))
-    plot_trend(screenR_Object = object,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

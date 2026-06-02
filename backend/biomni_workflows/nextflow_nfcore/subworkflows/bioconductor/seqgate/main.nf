@@ -46,7 +46,6 @@ process BIOC_SEQGATE {
     # Key functions: DataFrame, SummarizedExperiment
     rowData <- DataFrame(row.names=rownames(data_MiTF_1000genes))
     colData <- DataFrame(Conditions=cond)
-    counts_strub <- SummarizedExperiment(
     # --- Assay data access [] ---
     # Key functions: applySeqGate, assay, metadata
     keptGenes <- assay(counts_strub[rowData(counts_strub)$onFilter == TRUE,])

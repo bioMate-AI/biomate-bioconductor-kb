@@ -94,11 +94,7 @@ process BIOC_RSVSIM {
     show(weightsRepeats)
     # --- Weightsexample [] ---
     # Key functions: frame, simulateSV
-    ## weightsRepeats = data.frame(
-    ##   NAHR = c(0,0,3,1,0,0,0),
-    ##   NHR = c(1.04,0.62,1.16,0,2.06,0,0),
-    ##   TEI = c(1.66,0.25,0,0,0,0,0),
-    ##   VNTR = c(0,0,0,0,0,1,0),
+
     # --- Bpmutationsexample [] ---
     # Key functions: simulateSV, metadata
     sim = simulateSV(output=NA, genome=genome, dels=1, sizeDels=5, bpFlankSize=10,

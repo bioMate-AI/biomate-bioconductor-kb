@@ -41,10 +41,18 @@ process BIOC_SEMISUP {
     library(semisup)
     library(jsonlite)
 
-    # --- Mixtura [] ---
-    # Key functions: mixtura
-    -------------------------------------------------
-    fit <- mixtura(y,z)
+
+    # --- Results='hide' [] ---
+    # Key functions: semisup
+    class <- round(fit$posterior)
+
+    # --- Results='hide' [] ---
+    # Key functions: semisup
+    fit$estim1
+
+    # --- Results='hide' [] ---
+    # Key functions: semisup
+    fit$estim0
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

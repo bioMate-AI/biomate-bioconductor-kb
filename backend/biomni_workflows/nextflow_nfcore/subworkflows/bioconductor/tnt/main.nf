@@ -48,10 +48,6 @@ process BIOC_TNT {
     # --- Granges [] ---
     # Key functions: GRanges, IRanges, BlockTrack
     ---------------------------------------------------------------------
-    gr <- GenomicRanges::GRanges("chr7",
-        ranges = IRanges(
-            start = c(26549019L, 26564119L, 26585667L, 26591772L, 26594192L, 26623835L,
-                      26659284L, 26721294L, 26821518L, 26991322L),
     # --- Tntgenome [] ---
     # Key functions: TnTGenome
     ---------------------------------------------------------------------

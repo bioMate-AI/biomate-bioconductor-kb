@@ -51,27 +51,24 @@ process BIOC_AMARETTO {
     # Key functions: tempfile, AMARETTO_Download
     library(AMARETTO)
     TargetDirectory <- tempfile()# data download directory
-    DataSetDirectories <- AMARETTO_Download(CancerSite = CancerSite,
     # --- Preprocess Multi-Omics Data [] ---
     # Key functions: AMARETTO_Preprocess
     load("../inst/extdata/MethylStates.rda")
-    ProcessedData <- AMARETTO_Preprocess(DataSetDirectories = DataSetDirectories,
     # --- Initialize AMARETTO Model [] ---
     # Key functions: AMARETTO_Initialize
-    AMARETTOinit <- AMARETTO_Initialize(ProcessedData = ProcessedDataLIHC,
+
     # --- Run AMARETTO Model [] ---
     # Key functions: AMARETTO_Run
     AMARETTOresults <- AMARETTO_Run(AMARETTOinit = AMARETTOinit)
     # --- Evaluate Test Set [] ---
     # Key functions: AMARETTO_EvaluateTestSet
-    AMARETTOtestReport <- AMARETTO_EvaluateTestSet(
+
     # --- Visualize AMARETTO Module [] ---
     # Key functions: AMARETTO_VisualizeModule
-    AMARETTO_VisualizeModule(AMARETTOinit = AMARETTOinit,
+
     # --- Generate HTML Report [] ---
     # Key functions: AMARETTO_HTMLreport
     gmt_file<-system.file("templates/H.C2CP.genesets.gmt",package="AMARETTO")
-    AMARETTO_HTMLreport(AMARETTOinit = AMARETTOinit,,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

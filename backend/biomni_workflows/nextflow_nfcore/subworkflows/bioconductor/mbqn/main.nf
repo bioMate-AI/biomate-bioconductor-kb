@@ -63,8 +63,6 @@ process BIOC_MBQN {
     # --- matplot [] ---
     # Key functions: matplot
     plot.new()
-    matplot(t(rbind(feature1 = feature1,
-    mod.feature1 = (feature1mod-mean(feature1mod))/25+mean(feature1),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -47,11 +47,9 @@ process BIOC_EPIREGULON {
     # --- calculate P2 G [] ---
     # Key functions: calculateP2G
     set.seed(1010)
-    p2g <- calculateP2G(peakMatrix = PeakMatrix,
     # --- add T F Motif Info [] ---
     # Key functions: addTFMotifInfo
-    overlap <- addTFMotifInfo(grl = grl, p2g = p2g,
-    head(overlap)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -48,7 +48,7 @@ process BIOC_BECLEAR {
     knitr::kable(ex.samples[1:10,], caption = 'Some entries from the example sample annotation')
     # --- calc Batch Effects [] ---
     # Key functions: calcBatchEffects
-    batchEffect <- calcBatchEffects(
+
     # --- calc Summary [] ---
     # Key functions: calcSummary
     summary <- calcSummary(medians = mdifs, pvalues = pvals)
@@ -62,7 +62,7 @@ process BIOC_BECLEAR {
     result <- correctBatchEffect(data = ex.data, samples = ex.samples)
     # --- make Boxplot [] ---
     # Key functions: makeBoxplot
-    makeBoxplot(ex.data, ex.samples, score,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -47,7 +47,6 @@ process BIOC_HYBRIDMTEST {
     data(correlation.data)
     Y<-exprs(correlation.data)
     x<-pData(correlation.data)
-    test.specs<-cbind.data.frame(label=c("pearson","spearman","shapiro"),
     # --- Loadcomparisondata [] ---
     # Key functions: exprs, pData, frame
     library(HybridMTest)

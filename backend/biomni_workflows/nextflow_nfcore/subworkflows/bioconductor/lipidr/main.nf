@@ -70,10 +70,6 @@ process BIOC_LIPIDR {
     # --- De Analysis [] ---
     # Key functions: de_analysis, significant_molecules
     ---------------------------------------------------------------------
-    de_results = de_analysis(
-      data=d_normalized,
-      HighFat_water - NormalDiet_water,
-      measure="Area"
     # --- Lsea [] ---
     # Key functions: lsea, significant_lipidsets
     ---------------------------------------------------------------------

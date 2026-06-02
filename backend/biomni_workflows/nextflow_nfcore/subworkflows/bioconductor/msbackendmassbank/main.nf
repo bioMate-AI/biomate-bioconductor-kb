@@ -45,7 +45,6 @@ process BIOC_MSBACKENDMASSBANK {
     # Key functions: dir
     library(Spectra)
     library(MsBackendMassbank)
-    fls <- dir(system.file("extdata", package = "MsBackendMassbank"),
     # --- Spectra [] ---
     # Key functions: Spectra
     sps <- Spectra(fls[1],
@@ -69,12 +68,9 @@ process BIOC_MSBACKENDMASSBANK {
     # --- db Connect [] ---
     # Key functions: dbConnect
     library(RMariaDB)
-    con <- dbConnect(MariaDB(), host = "localhost", user = "massbank",
     # --- db Connect [] ---
     # Key functions: dbConnect, Spectra, spectraVariables, compareSpectra
     library(RSQLite)
-    con <- dbConnect(SQLite(), system.file("sql", "minimassbank.sqlite",
-    mb <- Spectra(con, source = MsBackendMassbankSql())
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,16 @@ process BIOC_MULTISCAN {
     library(multiscan)
     library(jsonlite)
 
-    # --- Data [] ---
+
+    # --- Fitted [] ---
     # Key functions: multiscan
-    data(murine)
-    fit<-multiscan(murine)
-    fit
+    plot(fit)
+
+    # --- Sdres [] ---
+    # Key functions: par
+    op<-par(mfrow=c(2,2))
+    plot(fit,residual=TRUE)
+    par(op)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -45,7 +45,6 @@ process BIOC_DMRCATE {
     # Key functions: ExperimentHub, colData
     library(ExperimentHub)
     eh <- ExperimentHub()
-    tcell <- FlowSorted.Blood.EPIC[,colData(FlowSorted.Blood.EPIC)$CD4T==100 |
     # --- Functional normalization of methylation [] ---
     # Key functions: detectionP, preprocessFunnorm, getM
     detP <- detectionP(tcell)

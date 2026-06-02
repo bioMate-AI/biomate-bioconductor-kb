@@ -47,7 +47,6 @@ process BIOC_WEAVER {
     testDocPath <- system.file("extdata/doc1.Rnw", package="weaver")
     curDir <- getwd()
     setwd(tempdir())
-    z <- capture.output(Sweave(testDocPath, driver=weaver()),
     # --- Another [] ---
     # Key functions: tempdir, output, Sweave, weaver, tempfile
     testDocPath <- system.file("extdata/doc2.Rnw", package="weaver")

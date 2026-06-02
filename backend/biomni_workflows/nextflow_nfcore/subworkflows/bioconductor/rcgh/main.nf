@@ -44,8 +44,6 @@ process BIOC_RCGH {
     # --- read Affy Cyto Scan [] ---
     # Key functions: readAffyCytoScan
     library(rCGH)
-    filePath <- system.file("extdata",
-    cgh <- readAffyCytoScan(filePath, sampleName = "CSc-Example",
     # --- set Info [] ---
     # Key functions: setInfo
     setInfo(cgh, "item1") <- 35

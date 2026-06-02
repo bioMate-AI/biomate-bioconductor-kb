@@ -82,7 +82,6 @@ process BIOC_WIGGLEPLOTR {
     #Load OrgDb and TxDb objects with UCSC gene annotations
     require("org.Hs.eg.db")
     require("TxDb.Hsapiens.UCSC.hg38.knownGene")
-    plotTranscriptsFromUCSC(orgdb = org.Hs.eg.db, txdb = TxDb.Hsapiens.UCSC.hg38.knownGene,
     # --- Usemart [] ---
     # Key functions: useMart, useDataset
     ---------------------------------------------------------------------

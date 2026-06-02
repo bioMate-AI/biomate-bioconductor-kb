@@ -68,12 +68,10 @@ process BIOC_PLOTGARDENER {
     # Key functions: pageCreate, plotHicSquare
     pageCreate(width = 3.25, height = 3.25, default.units = "inches")
     data("IMR90_HiC_10kb")
-    hicPlot <- plotHicSquare(
     # --- page Create [] ---
     # Key functions: pageCreate, plotHicSquare, annoHeatmapLegend, annoGenomeLabel
     pageCreate(width = 3.25, height = 3.25, default.units = "inches")
     data("IMR90_HiC_10kb")
-    hicPlot <- plotHicSquare(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

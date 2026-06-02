@@ -43,11 +43,7 @@ process BIOC_OMICSPRINT {
 
     # --- Toydata [] ---
     # Key functions: sample, rbinom, swap
-    swap <- function(x, frac=0.05) {
-        n <- length(x)
-        k <- floor(n*frac)
-        x1 <- sample(1:n,k)
-        x2 <- sample(1:n,k) ##could be overlapping
+
     # --- Allelesharing [] ---
     # Key functions: alleleSharing
     data <- alleleSharing(x, verbose=TRUE)

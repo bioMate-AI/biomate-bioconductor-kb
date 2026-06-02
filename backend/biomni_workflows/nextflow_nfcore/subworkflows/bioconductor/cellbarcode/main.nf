@@ -65,9 +65,7 @@ process BIOC_CELLBARCODE {
     bc_plot_seqQc(qc_noFilter[1])
     # --- filter low quality seq [] ---
     # Key functions: bc_seq_filter, bc_plot_seqQc
-    fq_filter <- bc_seq_filter(
-    bc_plot_seqQc(bc_seq_qc(fq_filter))
-    pattern <- "([ACGA]{12})CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT"
+
     # --- extract barcode no UMI [] ---
     # Key functions: bc_extract
     pattern <- "CTCGAGGTCATCGAAGTATC([ACGT]+)CCGTAGCAAGCTCGAGAGTAGACCTACT"
@@ -80,12 +78,10 @@ process BIOC_CELLBARCODE {
     pattern_type = c(UMI = 1, barcode = 2))
     # --- correct barcodde with UMI [] ---
     # Key functions: bc_cure_umi
-    bc_obj_umi_sub <- bc_cure_umi(
+
     # --- correct barcodde with count [] ---
     # Key functions: bc_cure_depth, bc_cure_umi
     bc_obj_umi_sub <- bc_cure_depth(bc_obj_umi_sub, depth = 3, isUpdate = FALSE)
-    bc_obj_umi_sub <- bc_cure_umi(
-    bc_obj_umi_sub <- bc_cure_depth(bc_obj_umi_sub, depth = 3, isUpdate = TRUE)
     # --- correct barcodde clustering [] ---
     # Key functions: bc_cure_cluster
     bc_cure_cluster(bc_obj_umi_sub)

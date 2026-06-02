@@ -43,11 +43,10 @@ process BIOC_ANVILWORKFLOW {
 
     # --- Terra [] ---
     # Key functions: Terra
-    resp <- AnVIL::Terra()$deleteWorkspace(workspaceNamespace = billingProjectName,
-    rm(resp)
+
     # --- get Output [] ---
     # Key functions: getOutput
-    out <- getOutput(workspaceName = "Bioconductor-Workflow-DESeq2",
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

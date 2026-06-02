@@ -69,17 +69,9 @@ process BIOC_CRISPRBASE {
     # --- Crisprnuclease [] ---
     # Key functions: CrisprNuclease, Cas9
     ---------------------------------------------------------------------
-    SpCas9 <- CrisprNuclease("SpCas9",
-                             targetType="DNA",
-                             pams=c("(3/3)NGG", "(3/3)NAG", "(3/3)NGA"),
-                             weights=c(1, 0.2593, 0.0694),
     # --- Crisprnuclease [] ---
     # Key functions: CrisprNuclease, TTTV, Cas12a
     ---------------------------------------------------------------------
-    AsCas12a <- CrisprNuclease("AsCas12a",
-                               targetType="DNA",
-                               pams="TTTV(18/23)",
-                               metadata=list(description="Wildtype Acidaminococcus
     # --- Data [] ---
     # Key functions: cutSites
     ---------------------------------------------------------------------
@@ -93,7 +85,6 @@ process BIOC_CRISPRBASE {
     chr      <- rep("chr7",2)
     pam_site <- rep(200,2)
     strand   <- c("+", "-")
-    gr_pam <- getPamRanges(seqnames=chr,
     # --- Getpamranges [] ---
     # Key functions: getPamRanges, getProtospacerRanges, getTargetRanges
     ---------------------------------------------------------------------
@@ -105,9 +96,6 @@ process BIOC_CRISPRBASE {
     # Key functions: BaseEditor, metadata
     ---------------------------------------------------------------------
     data(SpCas9, package="crisprBase")
-    BE4max <- BaseEditor(SpCas9,
-                         baseEditorName="BE4max",
-                         editingStrand="original",
     # --- Ploteditingweights [] ---
     # Key functions: plotEditingWeights
     ---------------------------------------------------------------------
@@ -115,17 +103,9 @@ process BIOC_CRISPRBASE {
     # --- Crisprnickase [] ---
     # Key functions: CrisprNickase, Cas9
     ---------------------------------------------------------------------
-    Cas9D10A <- CrisprNickase("Cas9D10A",
-                               nickingStrand="opposite",
-                               pams=c("(3)NGG", "(3)NAG", "(3)NGA"),
-                               weights=c(1, 0.2593, 0.0694),
     # --- Crisprnuclease [] ---
     # Key functions: CrisprNuclease
     ---------------------------------------------------------------------
-    CasRx <- CrisprNuclease("CasRx",
-                            targetType="RNA",
-                            pams="N",
-                            metadata=list(description="CasRx nuclease"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

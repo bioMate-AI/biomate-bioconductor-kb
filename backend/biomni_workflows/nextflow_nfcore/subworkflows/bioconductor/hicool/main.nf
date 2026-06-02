@@ -46,9 +46,6 @@ process BIOC_HICOOL {
     # Key functions: HiCool, HiContactsData
     ---------------------------------------------------------------------
     library(HiCool)
-    hcf <- HiCool(
-        r1 = HiContactsData::HiContactsData(sample = 'yeast_wt', format = 'fastq_R1'),
-        r2 = HiContactsData::HiContactsData(sample = 'yeast_wt', format = 'fastq_R2'),
     # --- Metadata [] ---
     # Key functions: metadata
     ---------------------------------------------------------------------

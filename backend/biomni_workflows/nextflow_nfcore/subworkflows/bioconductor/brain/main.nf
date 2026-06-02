@@ -75,7 +75,6 @@ process BIOC_BRAIN {
     headr <- expression(paste(C[50], H[71], N[13],O[12]))
     #with default options
     res <- useBRAIN(aC= angiotensineII)
-    plot(res$masses,res$isoDistr,xlab="mass",ylab="abundances", type="h",
     # --- Brain Vignette.Rnw:177 192 [] ---
     # Key functions: expression, useBRAIN
     #human dynein heavy chain
@@ -100,8 +99,6 @@ process BIOC_BRAIN {
     ## nrPeaks = 1000
     ## howMany <- nrow(tabUniprot)
     ## dfUniprot <- data.frame()
-    ## for (idx in 1:howMany){
-    ##   seq <- as.character(tabUniprot[idx,"Sequence"])
     # --- Brain Vignette.Rnw:295 297 [] ---
     # Key functions: file
     uniprotBRAIN <- read.table(system.file("extdata", "uniprotBRAIN.txt", package="BRAIN"))
@@ -128,14 +125,9 @@ process BIOC_BRAIN {
     cffLm <- lmod$coefficients[2]
     expected <- icptLm + cffLm * uniprot10to5$mostAbundantPeakMass
     residuals <- uniprot10to5$monoMass - expected
-    hist <- hist(residuals, seq(floor(min(residuals)),ceiling(max(residuals)), by=0.1),
     # --- Brain Vignette.Rnw:371 396 [] ---
     # Key functions: useBRAIN2, time, replicate
-    benchmarkRCL <- function(aC, nrPeaks){
-      print("Benchmarking correctness of approximations of results:")
-      resNoRCL <-  useBRAIN2(aC = aC, nrPeaks = nrPeaks)$iso
-      resRCL   <-  useBRAIN2(aC = aC, nrPeaks = nrPeaks, approxParam = 10)$iso
-      print(c('max error: ', max(abs(resNoRCL - resRCL))))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

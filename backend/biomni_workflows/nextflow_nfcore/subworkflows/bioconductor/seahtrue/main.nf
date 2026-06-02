@@ -41,11 +41,32 @@ process BIOC_SEAHTRUE {
     library(seahtrue)
     library(jsonlite)
 
-    # --- revive_xfplate [] ---
-    # Key functions: revive_xfplate, glimpse, pluck, pull
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+      #rmarkdown.html_vignette.check_title = FALSE
+    )
+
+    # --- Load Packages [] ---
+    # Key functions: suppressPackageStartupMessages, revive_output_donor_A.rda, seahtrue
     suppressPackageStartupMessages({
-    library(dplyr)
-    library(seahtrue)
+      library(dplyr)
+      library(seahtrue)
+      #library(ggplot2)
+    })
+
+
+
+    ## -----------------------------------------------------------------------------
+
+    # data_file_path <- 
+    #   system.file("data", 
+    #               "revive_output_donor_A.rda", 
+    #               package = "seahtrue")
+    # 
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

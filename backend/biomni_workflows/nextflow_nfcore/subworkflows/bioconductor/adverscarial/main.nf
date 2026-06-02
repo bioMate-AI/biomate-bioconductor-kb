@@ -53,12 +53,10 @@ process BIOC_ADVERSCARIAL {
     cellTypes <- rowData(lfile)$cell_type
     # --- M Classifier [] ---
     # Key functions: MClassifier
-    for ( cell_type in unique(cellTypes)){
-    resClassif <- MClassifier(matPbmc, cellTypes, cell_type)
-    print(paste0("Expected: ", cell_type, ", predicted: ", resClassif[1]))
+
     # --- search min change attack [] ---
     # Key functions: advSingleGene
-    genesMinChange <- advSingleGene(matPbmc, cellTypes, "DC",
+
     # --- run min change attack [] ---
     # Key functions: advModifications
     matAdver <- advModifications(matPbmc, names(genesMinChange@values)[1], cellTypes, "DC")
@@ -67,7 +65,7 @@ process BIOC_ADVERSCARIAL {
     resClassif <- MClassifier(matAdver, cellTypes, "DC")
     # --- search max change attack [] ---
     # Key functions: advMaxChange
-    genesMaxChange <- advMaxChange(matPbmc, cellTypes, "Memory CD4 T", MClassifier,
+
     # --- run max change attack [] ---
     # Key functions: advModifications
     matMaxAdver <- advModifications(matPbmc, genesMaxChange@values, cellTypes, "Memory CD4 T")

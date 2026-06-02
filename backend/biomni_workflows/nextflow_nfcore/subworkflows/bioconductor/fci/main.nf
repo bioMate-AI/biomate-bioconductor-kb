@@ -51,8 +51,6 @@ process BIOC_FCI {
     ---------------------------------------------------------------------
     pkg.path=path.package('fCI')
     filename=paste(pkg.path, "/extdata/Supp_Dataset_part_2.txt", sep="")
-    if(file.exists(filename)){
-      fci=new("NPCI")
     # --- Targets [] ---
     # Key functions: targets
     ---------------------------------------------------------------------

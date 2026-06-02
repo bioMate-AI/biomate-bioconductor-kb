@@ -50,10 +50,6 @@ process BIOC_VELOVIZ {
     # --- Buildveloviz [] ---
     # Key functions: buildVeloviz
     ---------------------------------------------------------------------
-    veloviz <-  veloviz::buildVeloviz(curr = curr, proj = proj,
-                             normalize.depth = TRUE,
-                             use.ods.genes = FALSE,
-                             pca = TRUE, nPCs = 3,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

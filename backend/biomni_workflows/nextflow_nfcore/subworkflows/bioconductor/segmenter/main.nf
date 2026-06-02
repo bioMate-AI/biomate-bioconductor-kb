@@ -38,14 +38,104 @@ process BIOC_SEGMENTER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AnnotationTrack)
+    library(segmenter)
     library(jsonlite)
 
-    # --- Gene annotation retrieval [] ---
-    # Key functions: install_github, learn_model, tempdir, binarize_bam, segment, compare_models, emission, transition
-    binarize_bam(inputdir,
-    example_binaries <- list.files(outputdir, pattern = '*_binary.txt')
-    readLines(file.path(outputdir, example_binaries[1]), n = 3)
+
+    # --- Include = False [] ---
+    # Key functions: set, learn_model, show
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>",
+      message = FALSE
+    )
+    # locate input and annotation files
+    inputdir <- system.file('extdata/SAMPLEDATA_HG18',
+                            package = 'segmenter')
+    coordsdir <- system.file('extdata/COORDS',
+                             package = 'chromhmmData')
+    anchorsdir <- system.file('extdata/ANCHORFILES',
+                              package = 'chromhmmData')
+    chromsizefile <- system.file('extdata/CHROMSIZES',
+                                 'hg18.txt',
+                                 package = 'chromhmmData')
+    # run command
+    # --- Genomic Annotations [] ---
+    # Key functions: list.files, readLines, tempdir, extdata, bamsignals, binarize_bam
+    # coordinates
+    coordsdir <- system.file('extdata/COORDS',
+                             package = 'chromhmmData')
+
+    list.files(file.path(coordsdir, 'hg18'))
+
+    # anchors
+    anchorsdir <- system.file('extdata/ANCHORFILES',
+                              package = 'chromhmmData')
+
+    # a table to assign marker and cell names to the bam files
+    cellmarkfiletable <- system.file('extdata',
+                                     'cell_mark_table.tsv',
+                                     package = 'segmenter')
+
+    readLines(cellmarkfiletable, n = 3)
+    # locate input and output
+    inputdir <- system.file("extdata", package = "bamsignals")
+    outputdir <- tempdir()
+    # run command
+
+    # --- Input Bins [] ---
+    # Key functions: list.files, learn_model, show, emission
+    # locate input and output files
+    inputdir <- system.file('extdata/SAMPLEDATA_HG18',
+                            package = 'segmenter')
+
+    list.files(inputdir)
+    # run command
+    # --- Subset [] ---
+    # Key functions: segment, function, learn_model, compare_models
+    # subset the segment slot
+    segment(obj, cell = 'K562')
+    # relearn the models with 3 to 8 states
+    # --- Plot Comparison [] ---
+    # Key functions: par, compare_models, emission, transition, plot_heatmap, overlap
+    # compare models plots
+    par(mfrow = c(1, 2))
+    compare_models(objs,
+                   plot = TRUE,
+                   xlab = 'Model', ylab = 'State Correlation')
+    compare_models(objs, type = 'likelihood',
+                   plot = TRUE,
+                   xlab = 'Model', ylab = 'Likelihood')
+    # access object slots
+    emission(obj)
+    transition(obj)
+    # emission and transition plots
+    h1 <- plot_heatmap(obj,
+                       row_labels = paste('S', 1:3),
+                       name = 'Emission')
+
+    # --- Visulaizing Overlap [] ---
+    # Key functions: plot_heatmap, TSS, TES, segment
+    # overlap enrichment plots
+    plot_heatmap(obj,
+                 type = 'overlap',
+                 column_labels = c('Genome', 'CpG', 'Exon', 'Gene',
+                                   'TES', 'TSS', 'TSS2kb', 'laminB1lads'),
+                 show_heatmap_legend = FALSE)
+    # genomic locations enrichment
+    TSS(obj)
+    TES(obj)
+    # genomic locations enrichment plots
+    h1 <- plot_heatmap(obj,
+                       type = 'TSS',
+                       show_heatmap_legend = FALSE)
+    h2 <- plot_heatmap(obj,
+                       type = 'TES',
+                       show_heatmap_legend = FALSE)
+
+    h1 + h2
+    # get segments
+    segment(obj)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

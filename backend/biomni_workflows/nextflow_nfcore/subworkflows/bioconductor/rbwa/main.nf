@@ -41,10 +41,47 @@ process BIOC_RBWA {
     library(Rbwa)
     library(jsonlite)
 
-    # --- Bwa build index analysis [] ---
-    # Key functions: tempdir, bwa_build_index, bwa_aln, bwa_sam, strtrim, xa2multi, bwa_mem
+
+    # --- Build Index [] ---
+    # Key functions: tempdir, bwa_build_index, list.files, chr12
+    dir <- tempdir()
+    fasta <- system.file(package="Rbwa",
+                         "fasta/chr12.fa")
+    index_prefix <- file.path(dir, "chr12")
+    bwa_build_index(fasta,
+                    index_prefix=index_prefix)
+    list.files(dir)
+
+    # --- Bwa Aln [] ---
+    # Key functions: bwa_aln, output.sai
+    fastq <- system.file(package="Rbwa",
+                         "fastq/sequences.fastq")
+    bwa_aln(index_prefix=index_prefix,
+            fastq_files=fastq,
+            sai_files=file.path(dir, "output.sai"))
+
+    # --- Bwa Aln2 [] ---
+    # Key functions: bwa_aln, output.sai
+    bwa_aln(index_prefix=index_prefix,
+            fastq_files=fastq,
+            sai_files=file.path(dir, "output.sai"),
+            n=3, k=3, l=13)
+
+    # --- Bwa Sam [] ---
+    # Key functions: bwa_sam, output.sai, output.sam
+    bwa_sam(index_prefix=index_prefix,
+            fastq_files=fastq,
+            sai_files=file.path(dir, "output.sai"),
+            sam_file=file.path(dir, "output.sam"))
+
+    # --- Reading1 [] ---
+    # Key functions: strtrim, readLines, output.sam
+    strtrim(readLines(file.path(dir, "output.sam")), 65)
+
+    # --- Bwa Sam Multi [] ---
+    # Key functions: xa2multi, strtrim, readLines, output.sam, output.multi.sam
     xa2multi(file.path(dir, "output.sam"),
-    file.path(dir, "output.multi.sam"))
+             file.path(dir, "output.multi.sam"))
     strtrim(readLines(file.path(dir, "output.multi.sam")), 65)
 
     # --- Save outputs ---

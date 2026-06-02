@@ -49,7 +49,6 @@ process BIOC_CARDELINO {
     # Key functions: load_cellSNP_vcf, plot_tree, clone_id, prob_heatmap, assign_cells_to_clones, heat_matrix, scale_fill_gradient2, ggtitle
     AD_file <- system.file("extdata", "passed_ad.mtx", package = "cardelino")
     DP_file <- system.file("extdata", "passed_dp.mtx", package = "cardelino")
-    id_file <- system.file("extdata", "passed_variant_names.txt",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

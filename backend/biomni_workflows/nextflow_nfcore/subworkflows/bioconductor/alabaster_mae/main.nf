@@ -47,7 +47,6 @@ process BIOC_ALABASTER_MAE {
     library(SummarizedExperiment)
     rna.counts <- matrix(rpois(60, 10), ncol=6)
     colnames(rna.counts) <- c("disease1", "disease2", "disease3", "control1", "control2", "control3")
-    rownames(rna.counts) <- c("ENSMUSG00000000001", "ENSMUSG00000000003", "ENSMUSG00000000028",
     # --- Readobject [] ---
     # Key functions: readObject
     ---------------------------------------------------------------------

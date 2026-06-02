@@ -43,11 +43,7 @@ process BIOC_CRISPRSEEK {
 
     # --- Offtargetanalysis [] ---
     # Key functions: offTargetAnalysis
-    results <- offTargetAnalysis(inputFilePath, findgRNAsWithREcutOnly = TRUE,
-    REpatternFile = REpatternFile, findPairedgRNAOnly = TRUE,
-    BSgenomeName = Hsapiens, chromToSearch ="chrX", min.gap = 0, max.gap = 20,
-    txdb = TxDb.Hsapiens.UCSC.hg19.knownGene, orgAnn = org.Hs.egSYMBOL,
-    max.mismatch = 0,overlap.gRNA.positions = c(17, 18),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

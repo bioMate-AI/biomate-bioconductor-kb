@@ -49,31 +49,16 @@ process BIOC_MSPREP {
     # --- Mssummarize [] ---
     # Key functions: msSummarize
     ---------------------------------------------------------------------
-    summarizedDF <- msSummarize(msquant,
-                                cvMax = 0.50,
-                                minPropPresent = 1/3,
-                                compVars = c("mz", "rt"),
     # --- Msfilter [] ---
     # Key functions: msFilter
     ---------------------------------------------------------------------
-    filteredDF <- msFilter(summarizedDF,
-                           filterPercent = 0.8,
-                           compVars = c("mz", "rt"),
-                           sampleVars = c("spike", "batch", "subject_id"),
     # --- Msimpute [] ---
     # Key functions: msImpute
     ---------------------------------------------------------------------
-    imputedDF <- msImpute(filteredDF,
-                          imputeMethod = "knn",
-                          compVars = c("mz", "rt"),
-                          sampleVars = c("spike", "batch", "subject_id"),
     # --- Data [] ---
     # Key functions: msSummarize
     ---------------------------------------------------------------------
     data(COPD_131)
-    summarizedSE131 <- msSummarize(COPD_131,
-                                   cvMax = 0.5,
-                                   minPropPresent = 1/3,
     # --- Msfilter [] ---
     # Key functions: msFilter
     ---------------------------------------------------------------------
@@ -95,10 +80,6 @@ process BIOC_MSPREP {
     # --- Msprepare [] ---
     # Key functions: msPrepare
     ---------------------------------------------------------------------
-    preparedSE <- msPrepare(COPD_131,
-                            cvMax = 0.5,
-                            minPropPresent = 1/3,
-                            compVars = c("Mass", "Retention.Time",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

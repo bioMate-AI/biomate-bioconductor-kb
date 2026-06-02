@@ -47,8 +47,7 @@ process BIOC_DADA2 {
     plotQualityProfile(fnR1) # Reverse
     # --- filter And Trim [] ---
     # Key functions: filterAndTrim
-    filterAndTrim(fwd=fnF1, filt=filtF1, rev=fnR1, filt.rev=filtR1,
-    trimLeft=10, truncLen=c(240, 200),
+
     # --- derep Fastq [] ---
     # Key functions: derepFastq
     derepF1 <- derepFastq(filtF1, verbose=TRUE)

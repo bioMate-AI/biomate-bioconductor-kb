@@ -41,11 +41,57 @@ process BIOC_RQC {
     library(Rqc)
     library(jsonlite)
 
-    # --- Rqc analysis [] ---
-    # Key functions: rqc, rqcQA, rqcReadQualityBoxPlot, rqcReadQualityPlot, rqcCycleAverageQualityPlot, rqcReadFrequencyPlot, rqcFileHeatmap, rqcReadWidthPlot
-    df <- rqcCycleAverageQualityCalc(qa)
-    cycle <- as.numeric(levels(df$cycle))[df$cycle]
-    plot(cycle, df$quality, col = df$filename, xlab='Cycle', ylab='Quality Score')
+
+    # --- File Loc [] ---
+    # Key functions: rqc
+    folder <- system.file(package="ShortRead", "extdata/E-MTAB-1147")
+
+    # --- Example [] ---
+    # Key functions: list.files, rqcQA, perFileInformation, rqcReadQualityBoxPlot, rqcReadQualityPlot, rqcCycleAverageQualityPlot, fastq.gz
+    fastqDir <- system.file(package="ShortRead", "extdata/E-MTAB-1147")
+    files <- list.files(fastqDir, "fastq.gz", full.names=TRUE)
+    qa <- rqcQA(files, workers=1)
+
+    ## -----------------------------------------------------------------------------
+    knitr::kable(perFileInformation(qa))
+
+    ## ----read-mean-dist-----------------------------------------------------------
+    rqcReadQualityBoxPlot(qa)
+
+    # --- Readfrequency [] ---
+    # Key functions: rqcReadFrequencyPlot, rqcFileHeatmap, rqcReadWidthPlot, rqcCycleGCPlot, rqcCycleQualityPlot
+    rqcReadFrequencyPlot(qa)
+
+    ## ----heatmap-reads------------------------------------------------------------
+    rqcFileHeatmap(qa[[1]])
+
+    ## ----read-width-plot----------------------------------------------------------
+    rqcReadWidthPlot(qa)
+
+    ## ----cycle-gc-plot------------------------------------------------------------
+    rqcCycleGCPlot(qa)
+
+    # --- Biplot [] ---
+    # Key functions: rqcCycleAverageQualityPcaPlot, rqcCycleQualityBoxPlot, rqcCycleBaseCallsPlot, rqcCycleBaseCallsLinePlot
+    rqcCycleAverageQualityPcaPlot(qa)
+
+    ## ----cycle-quality-boxplots---------------------------------------------------
+    rqcCycleQualityBoxPlot(qa)
+
+    ## ----cycle-basecall-plots-----------------------------------------------------
+    rqcCycleBaseCallsPlot(qa)
+
+    ## ----cycle-basecall-lineplots-------------------------------------------------
+    rqcCycleBaseCallsLinePlot(qa)
+
+    # --- Input [] ---
+    # Key functions: list.files, fastq.gz
+    fastqDir <- system.file(package="ShortRead", "extdata/E-MTAB-1147")
+    files <- list.files(fastqDir, "fastq.gz", full.names=TRUE)
+
+    # --- Rqc Qa [] ---
+    # Key functions: rqcQA
+    qa <- rqcQA(files, workers=1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,11 +43,7 @@ process BIOC_IMMAN {
 
     # --- Code Block 3 [] ---
     # Key functions: IMMAN
-    output = IMMAN(ProteinLists, fileNames=NULL, Species_IDs,
-                  identityU, substitutionMatrix,
-                  gapOpening, gapExtension, BestHit,
-                  coverage, NetworkShrinkage,
-                  score_threshold, STRINGversion,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

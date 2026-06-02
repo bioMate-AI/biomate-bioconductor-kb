@@ -100,10 +100,6 @@ process BIOC_BISEQ {
     # --- Clustersites [] ---
     # Key functions: clusterSites, colData
     rrbs.small <- rrbs[1:1000,]
-    rrbs.clust.unlim <- clusterSites(object = rrbs.small,
-                                     groups = colData(rrbs)$group,
-                                     perc.samples = 4/5,
-                                     min.sites = 20,
     # --- Head [] ---
     # Key functions: rowRanges
     head(rowRanges(rrbs.clust.unlim))

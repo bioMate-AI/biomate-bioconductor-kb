@@ -51,11 +51,7 @@ process BIOC_GSCA {
     head(Oct4ESC_TG[[2]]) ##Show some negative target genes of Oct4
     # --- Frame [] ---
     # Key functions: frame
-    Octpattern <- data.frame(
-          gsname=c("TF","TG"),
-          acttype="High",
-          cotype="Norm",
-          cutoff=0.1,
+
     # --- Gsca [] ---
     # Key functions: GSCA
     displayoct <- Octoutput <- GSCA(Octgenedata,Octpattern,"moe4302",Pval.co=0.05,directory=NULL)

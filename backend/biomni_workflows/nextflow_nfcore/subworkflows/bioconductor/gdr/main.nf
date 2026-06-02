@@ -47,7 +47,6 @@ process BIOC_GDR {
     inl <- prepare_input(imported_data)
     detected_data_types <- names(inl$exps)
     detected_data_types
-    se <- create_and_normalize_SE(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

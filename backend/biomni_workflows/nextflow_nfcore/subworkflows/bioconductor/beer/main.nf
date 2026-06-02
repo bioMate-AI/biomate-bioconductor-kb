@@ -43,17 +43,13 @@ process BIOC_BEER {
 
     # --- run Edge R [] ---
     # Key functions: runEdgeR
-    edgeR_out <- runEdgeR(sim_data,
-    assay.names = c(logfc = "edgeR_logfc",
+
     # --- edgeR hits [] ---
     # Key functions: assay, colSums
-    assay(edgeR_out, "edgeR_hits") <- apply(
-    assay(edgeR_out, "edgeR_logpval"), 2,
-    function(sample){
+
     # --- brew [] ---
     # Key functions: brew
-    assay_locations <- c(
-    beer_out <- brew(edgeR_out, assay.names = assay_locations)
+
     # --- assay [] ---
     # Key functions: assay, colSums
     was_run <- matrix(rep(beer_out$group != "beads", each = nrow(beer_out)),
@@ -61,29 +57,19 @@ process BIOC_BEER {
     are_se <- was_run & is.na(assay(beer_out, "beer_prob"))
     # --- Custom ggplot2 visualization [] ---
     # Key functions: dbeta, dgamma, ggplot, facet_wrap
-    data.frame(x = c(seq(0, 1, by = 0.01),
-    seq(0, 0.1, by = 0.001),
-    1 + seq(0, 49, by = 0.5)),
+
     # --- edgeR beadsRR [] ---
     # Key functions: runEdgeR, assay, colSums
-    edgeR_beadsRR <- runEdgeR(sim_data, beadsRR = TRUE,
-    assay.names = c(logfc = "edgeR_logfc",
-    assay(edgeR_beadsRR, "edgeR_hits") <- apply(
+
     # --- beer beadsRR [] ---
     # Key functions: brew, assay, colSums
-    beer_beadsRR <- brew(edgeR_beadsRR, beadsRR = TRUE,
-    was_run <- matrix(rep(beer_beadsRR$group != "beads", each = nrow(beer_beadsRR)),
-    nrow = nrow(beer_beadsRR))
+
     # --- edgeR beadsRR only [] ---
     # Key functions: beadsRR, assay, colSums
-    edgeR_beadsRR <- beadsRR(sim_data, method = "edgeR",
-    assay.names = c(logfc = "edgeR_logfc",
-    assay(edgeR_beadsRR, "edgeR_hits") <- apply(
+
     # --- beer beadsRR only [] ---
     # Key functions: beadsRR, assay, colSums
-    beer_beadsRR <- beadsRR(edgeR_beadsRR, method = "beer",
-    was_run <- matrix(rep(beer_beadsRR$group == "beads", each = nrow(beer_beadsRR)),
-    nrow = nrow(beer_beadsRR))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

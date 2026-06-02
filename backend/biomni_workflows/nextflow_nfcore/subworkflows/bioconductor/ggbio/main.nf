@@ -186,15 +186,6 @@ process BIOC_GGBIO {
     grl <- split(crc.gr, values(crc.gr)$individual)
     ## need "unit", load grid
     library(grid)
-    crc.lst <- lapply(grl, function(gr.cur){
-      print(unique(as.character(values(gr.cur)$individual)))
-      cols <- RColorBrewer::brewer.pal(3, "Set2")[2:1]
-      names(cols) <- c("interchromosomal", "intrachromosomal")
-      p <- ggbio() + circle(gr.cur, geom = "link", linked.to = "to.gr",
-                             aes(color = rearrangements)) +
-                      circle(hg19sub, geom = "ideo",
-                             color = "gray70", fill = "gray70") +
-                      scale_color_manual(values = cols)  +
     # --- Introduction [] ---
     # Key functions: transformDfToGr, keepSeqlevels, seqlengths, data
     snp <- read.table(system.file("extdata", "plink.assoc.sub.txt", package = "biovizBase"),

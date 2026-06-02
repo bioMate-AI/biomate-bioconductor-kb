@@ -60,13 +60,9 @@ process BIOC_RBIOFORMATS {
     # --- set Names [] ---
     # Key functions: setNames
     types <- c("int8", "uint8", "int16", "uint16", "int32", "uint32", "float", "double")
-    ranges <- sapply(types, function(t) {
-    minmax <- FormatTools$defaultMinMax(FormatTools$pixelTypeFromString(t))
     # --- read Bin [] ---
     # Key functions: readBin, setNames
-    sapply(types, function(t) {
-    img <- read.image(mockFile(sizeX = 65536, sizeY = 11, pixelType = t), normalize = FALSE)
-    if (typeof(img)=="raw")
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

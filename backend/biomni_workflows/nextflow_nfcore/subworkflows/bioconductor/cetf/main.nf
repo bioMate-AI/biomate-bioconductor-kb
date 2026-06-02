@@ -38,15 +38,107 @@ process BIOC_CETF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PCIT)
-    library(SmearPlot)
+    library(CeTF)
     library(jsonlite)
 
-    # --- Assay data access [] ---
-    # Key functions: assay, expDiff, normExp, PCIT, histPlot, densityPlot, setdiff, runAnalysis
-    genes <- unique(c(as.character(NetworkData(out, "network1")[, "gene1"]),
-    as.character(NetworkData(out, "network1")[, "gene2"])))
-    enrich <- getEnrich(genes = genes, organismDB = org.Hs.eg.db,
+
+    # --- Pcit [] ---
+    # Key functions: colData, assay, conditions, rep, expDiff, function, normExp, PCIT
+    # Loading packages
+    library(CeTF)
+    library(airway)
+    library(kableExtra)
+    library(knitr)
+
+    # Loading airway data
+    data("airway")
+
+    # Creating a variable with annotation data
+    # Example for trt condition
+    histPlot(PCIT_out_trt$adj_sig)
+    # Example for trt condition
+    densityPlot(mat1 = PCIT_out_trt$adj_raw, 
+               mat2 = PCIT_out_trt$adj_sig, 
+               threshold = 0.5)
+
+    # --- Rif [] ---
+    # Key functions: colData, assay, conditions, rep, expDiff, function, normExp, Factors
+    # Loading packages
+    library(CeTF)
+    library(airway)
+    library(kableExtra)
+    library(knitr)
+
+    # Loading airway data
+    data("airway")
+
+    # Creating a variable with annotation data
+    # Loading packages
+    library(airway)
+    library(CeTF)
+
+    # Loading airway data
+    data("airway")
+
+    # Creating a variable with annotation data
+    anno <- as.data.frame(colData(airway))
+
+
+    # --- Smear Plot Tf [] ---
+    # Key functions: output, SmearPlot, netConditionsPlot, NetworkData, getGroupGO, network1, gene1, gene2
+    # Using the runAnalysis output (CeTF class object)
+    SmearPlot(object = out,
+              diffMethod = 'Reverter',
+              lfc = 1.5,
+              conditions = c('untrt', 'trt'),
+              TF = 'ENSG00000185917',
+              label = TRUE, 
+              type = "TF")
+    # Using the runAnalysis output (CeTF class object)
+    netConditionsPlot(out)
+    # Loading Homo sapiens annotation package
+    library(org.Hs.eg.db)
+
+    # Accessing the network for condition 1
+    genes <- unique(c(as.character(NetworkData(out, "network1")[, "gene1"]), 
+                      as.character(NetworkData(out, "network1")[, "gene2"])))
+
+    # Performing getGroupGO analysis
+    # --- Net Gotfplot1 [] ---
+    # Key functions: netGOTFPlot, NetworkData, mutate, across, everything, network1, annotation, keytfs
+    library(dplyr)
+
+    # Subsetting only the first 12 Ontologies with more counts
+    t1 <- head(cond1$results, 12)
+
+    # Subsetting the network for the conditions to make available only the 12 nodes subsetted
+    t2 <- subset(cond1$netGO, cond1$netGO$gene1 %in% as.character(t1[, "ID"]))
+
+    # generating the GO plot grouping by pathways
+    # --- Rifplot2 [] ---
+    # Key functions: RIFPlot, darkblue, NetworkData, getEnrich, network1, gene1, gene2, heatPlot
+    RIFPlot(object = out,
+            color  = "darkblue",
+            type   = "DE")
+    # Selecting the genes related to the network for condition 1
+    genes <- unique(c(as.character(NetworkData(out, "network1")[, "gene1"]), 
+                      as.character(NetworkData(out, "network1")[, "gene2"])))
+
+    # Performing enrichment analysis
+    cond1 <- getEnrich(genes = genes, organismDB = org.Hs.eg.db, 
+                      keyType = 'ENSEMBL', ont = 'BP', fdrMethod = "BH", 
+                      fdrThr = 0.05, minGSSize = 5, maxGSSize = 500)
+    heatPlot(res = cond1$results,
+             diff = getDE(out, "all"))
+
+    # --- Circle [] ---
+    # Key functions: enrichPlot, circle, bar, dot
+    enrichPlot(res = cond1$results,
+               type = "circle")
+    enrichPlot(res = cond1$results,
+               type = "bar")
+    enrichPlot(res = cond1$results,
+               type = "dot")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

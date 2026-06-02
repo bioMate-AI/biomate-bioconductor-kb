@@ -44,11 +44,9 @@ process BIOC_DOSCHEDA {
     # --- new [] ---
     # Key functions: new, setParameters
     library(Doscheda)
-    channelNames <- c("Abundance..F1..126..Control..REP_1",
-    ex <- new('ChemoProtSet')
     # --- set Data [] ---
     # Key functions: setData
-    ex<- setData(x = ex, dataFrame = Doscheda::doschedaData,
+
     # --- remove Peptides [] ---
     # Key functions: removePeptides
     ex <- removePeptides(ex,removePeps = FALSE)
@@ -58,17 +56,13 @@ process BIOC_DOSCHEDA {
     ex <- fitModel(ex)
     # --- run Doscheda [] ---
     # Key functions: runDoscheda
-    channelNames <- c("Abundance..F1..126..Control..REP_1",
-    ex <- runDoscheda(dataFrame = doschedaData, dataChannels = channelNames,
-    runDoscheda()
+
     # --- replicate Plot [] ---
     # Key functions: replicatePlot
     replicatePlot(ex,conc = 0, repIndex1 = 1, repIndex2 = 2)
     # --- new [] ---
     # Key functions: new, setParameters, setData, removePeptides, runNormalisation
-    channelNames <- c("Abundance..F1..126..Control..REP_1",
-    ex <- new('ChemoProtSet')
-    ex<- setParameters(x = ex,chansVal = 6, repsVal = 2,dataTypeStr = 'intensity',
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

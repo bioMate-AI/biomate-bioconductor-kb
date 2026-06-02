@@ -54,8 +54,6 @@ process BIOC_CYDAR {
     ---------------------------------------------------------------------
     library(ncdfFlow)
     collected.exprs <- list()
-    for (i in seq_along(conditions)) {
-        stuff <- list(combined[sample.id==i,,drop=FALSE])
     # --- Poolcells [] ---
     # Key functions: poolCells
     ---------------------------------------------------------------------

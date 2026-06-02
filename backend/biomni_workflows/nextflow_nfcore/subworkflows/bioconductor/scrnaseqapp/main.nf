@@ -49,9 +49,6 @@ process BIOC_SCRNASEQAPP {
     # Key functions: createAppConfig, createDataSet, path
     ---------------------------------------------------------------------
     library(Seurat)
-    appconf <- createAppConfig(
-                title="pbmc_small_test",
-                destinationFolder = "pbmc_small_test",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

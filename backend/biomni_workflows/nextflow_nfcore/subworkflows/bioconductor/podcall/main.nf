@@ -55,7 +55,6 @@ process BIOC_PODCALL {
     # Key functions: importSampleSheet
     path <- system.file("extdata", "Sample_names.csv", package="PoDCall")
     well_id <- c("A04", "B04", "D04")
-    sampleSheet <- importSampleSheet(sampleSheet=path, well_id=well_id,
     # --- import Amplitude Data [] ---
     # Key functions: importAmplitudeData, podcallThresholds
     path <- system.file("extdata", "Amplitudes/", package="PoDCall")
@@ -80,7 +79,6 @@ process BIOC_PODCALL {
     # Key functions: importAmplitudeData, podcallMultiplot
     path <- system.file("extdata", "Amplitudes/", package="PoDCall")
     ampData <- importAmplitudeData(dataDirectory=path, skipLines=0)
-    podcallMultiplot(plateData=ampData,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

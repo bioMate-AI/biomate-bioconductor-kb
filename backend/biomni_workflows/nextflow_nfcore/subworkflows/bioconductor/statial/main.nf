@@ -43,8 +43,7 @@ process BIOC_STATIAL {
 
     # --- get Cluster Tree [] ---
     # Key functions: getClusterTree
-    kerenTree <- treekoR::getClusterTree(t(assay(kerenSCE, "intensities")),
-    treekorParents = getParentPhylo(kerenTree)
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: assay, colData, arrange, ggplot, geom_point
     p53Pos <- assay(kerenSCE)["p53", ] > -0.300460
@@ -52,21 +51,16 @@ process BIOC_STATIAL {
     as.data.frame() |>
     # --- Kontextual [] ---
     # Key functions: Kontextual
-    p53_Kontextual <- Kontextual(
-    parent = c("p53_Tumour", "Tumour"),
+
     # --- kontext Curve [] ---
     # Key functions: kontextCurve, kontextPlot
-    curves <- kontextCurve(
-    parent = c("p53_Tumour", "Tumour"),
-    rs = seq(50, 510, 50),
+
     # --- parent Combinations [] ---
     # Key functions: parentCombinations
-    parentDf <- parentCombinations(
+
     # --- get Marker Means [] ---
     # Key functions: getMarkerMeans, colTest, getProp, crossValidate
-    cellTypeRegionMeans <- getMarkerMeans(kerenSCE,
-    survivalResults <- colTest(cellTypeRegionMeans[names(kerenSurv), ], kerenSurv, type = "survival")
-    head(survivalResults)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

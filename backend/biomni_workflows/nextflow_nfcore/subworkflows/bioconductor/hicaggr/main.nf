@@ -54,8 +54,6 @@ process BIOC_HICAGGR {
     ---------------------------------------------------------------------
     oriented_interactions_RFmatrix_ctrl.lst <-
         OrientateMatrix(interactions_RFmatrix_ctrl.lst)
-    orientedAggreg.mtx <- Aggregation(
-            ctrlMatrices=oriented_interactions_RFmatrix_ctrl.lst,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

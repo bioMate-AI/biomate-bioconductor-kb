@@ -57,8 +57,7 @@ process BIOC_MAPREDICTDSC {
     CVP=2,NF=4, NR=1,FCT=1.0)
     # --- Sort [] ---
     # Key functions: unlist
-    trainingAUC=sort(unlist(lapply(modlist,"[[","best_AUC")),decreasing=TRUE)
-    cbind(trainingAUC)
+
     # --- Function [] ---
     # Key functions: perfDSC, frame
     perF=function(out){

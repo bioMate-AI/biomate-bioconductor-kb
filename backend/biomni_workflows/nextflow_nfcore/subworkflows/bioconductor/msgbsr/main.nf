@@ -59,7 +59,6 @@ process BIOC_MSGBSR {
     # # Adjust the cut sites to overlap recognition site on each strand
     start(cutSites) <- ifelse(test = strand(cutSites) == '+',
                               yes = start(cutSites) - 1, no = start(cutSites) - 2)
-    end(cutSites) <- ifelse(test = strand(cutSites) == '+',
     # --- Run Checkcuts With Bsgenome [] ---
     # Key functions: checkCuts
     library(BSgenome.Rnorvegicus.UCSC.rn6)

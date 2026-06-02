@@ -43,11 +43,7 @@ process BIOC_TILINGARRAY {
 
     # --- Defgendata [] ---
     # Key functions: sample
-    genData = function(lenx, nrSeg, nrRep=1, stddev=0.1) {
-      x  = matrix(as.numeric(NA), nrow=lenx, ncol=nrRep)
-      cp = sort(sample(1:floor(lenx/15), nrSeg-1) * 15)
-      cpb = c(1, cp, lenx+1)
-      s  = 0
+
     # --- Plotdata [] ---
     # Key functions: genData
     set.seed(4711)

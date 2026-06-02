@@ -41,10 +41,41 @@ process BIOC_CCPLOTR {
     library(CCPlotR)
     library(jsonlite)
 
-    # --- Cc heatmap analysis [] ---
-    # Key functions: cc_heatmap, cc_dotplot, cc_network, cc_circos, cc_arrow, cc_sigmoid, show_col
-    cc_circos(toy_data, option = "B", n_top_ints = 10, cex = 0.75)
-    cc_circos(toy_data, option = "C", n_top_ints = 15, exp_df = toy_exp, cell_cols = c(`B` = "hotpink", `NK` = "orange", `CD8 T` = "cornflowerblue"), palette = "PuRd", cex = 0.75)
+
+    # --- Include=false [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+        collapse = TRUE,
+        comment = "#>"
+    )
+
+    # --- Preview Data [] ---
+    # Key functions: ccplotr
+    library(CCPlotR)
+    data(toy_data, toy_exp, package = 'CCPlotR')
+    head(toy_data)
+    head(toy_exp)
+
+    # --- Heatmaps [] ---
+    # Key functions: cc_heatmap
+    cc_heatmap(toy_data)
+    cc_heatmap(toy_data, option = "B", n_top_ints = 10)
+    cc_heatmap(toy_data, option = "CellPhoneDB")
+
+    # --- Dotplots [] ---
+    # Key functions: cc_dotplot
+    cc_dotplot(toy_data)
+    cc_dotplot(toy_data, option = "B", n_top_ints = 10)
+    cc_dotplot(toy_data, option = "Liana", n_top_ints = 15)
+
+    # --- Network [] ---
+    # Key functions: cc_network, orange, cornflowerblue, hotpink
+    cc_network(toy_data)
+    cc_network(toy_data, colours = c("orange", "cornflowerblue", "hotpink"), option = "B")
+
+    # --- Circos1 [] ---
+    # Key functions: cc_circos
+    cc_circos(toy_data)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

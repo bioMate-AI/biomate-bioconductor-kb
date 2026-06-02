@@ -48,9 +48,6 @@ process BIOC_STRUCTTOOLBOX {
     # Key functions: filter_na_count, filter_by_name, rowSums, model_apply, predicted
     ---------------------------------------------------------------------
     # build model sequence
-    M2 = filter_na_count(
-      threshold=2,
-      factor_name='condition',
     # --- Dataset analysis [] ---
     # Key functions: dataset, iris_DatasetExperiment, MTBLS, MTBLS79_DatasetExperiment, pqn_norm, knn_impute, glog_transform, filter_smeta
     ---------------------------------------------------------------------

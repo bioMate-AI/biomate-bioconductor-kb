@@ -48,10 +48,6 @@ process BIOC_PGCA {
     # --- Pgcadict [] ---
     # Key functions: pgcaDict
     -------------------------------------------------------------------------------------------------------------
-    dict <- pgcaDict(
-        BET2007_v339,
-        BET2047_v339,
-        col.mapping=c(gene.symbol="Gene_Symbol")
     # --- Subset [] ---
     # Key functions: subset
     -------------------------------------------------------------------------------------------------------------
@@ -68,10 +64,6 @@ process BIOC_PGCA {
     # --- Pgcadict [] ---
     # Key functions: pgcaDict
     -------------------------------------------------------------------------------------------------------------
-    dict.from.files <- pgcaDict(
-        system.file("extdata", "BET1947_v339.txt", package="pgca"),
-        system.file("extdata", "BET2007_v339.txt", package="pgca"),
-        system.file("extdata", "BET2047_v339.txt", package="pgca"),
     # --- Subset [] ---
     # Key functions: subset
     -------------------------------------------------------------------------------------------------------------

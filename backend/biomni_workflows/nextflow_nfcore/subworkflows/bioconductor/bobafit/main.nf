@@ -45,7 +45,7 @@ process BIOC_BOBAFIT {
 
     # --- compute Normal Chromosomes [] ---
     # Key functions: computeNormalChromosomes
-    chr_list <- computeNormalChromosomes(segments = TCGA_BRCA_CN_segments,
+
     # --- D Rrefit [] ---
     # Key functions: DRrefit
     results <- DRrefit (segments_chort = TCGA_BRCA_CN_segments, chrlist = chr_list)
@@ -63,20 +63,19 @@ process BIOC_BOBAFIT {
     knitr::kable(results$report[1,])
     # --- DRrefit plot [] ---
     # Key functions: DRrefit_plot
-    DRrefit_plot(corrected_segments = corrected_segments,
-    DRrefit_plot(corrected_segments = corrected_segments,
+
     # --- DRrefit plot 1 [] ---
     # Key functions: DRrefit_plot
-    DRrefit_plot(corrected_segments = seg,
+
     # --- DRrefit plot 2 [] ---
     # Key functions: DRrefit_plot
-    DRrefit_plot(corrected_segments = seg,
+
     # --- Plot Chr Cluster [] ---
     # Key functions: PlotChrCluster
-    Cluster <- PlotChrCluster(segs = TCGA_BRCA_CN_segments,
+
     # --- PlotChrCluster test [] ---
     # Key functions: PlotChrCluster
-    Cluster <- PlotChrCluster(segs = test,
+
     # --- Call report PlotChrCluster 3 [] ---
     # Key functions: kable
     knitr::kable(head(Cluster$report))

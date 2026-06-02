@@ -48,7 +48,6 @@ process BIOC_LIONESSR {
     data(OSdata)
     rowData <- DataFrame(row.names = rownames(exp), gene = rownames(exp))
     colData <- DataFrame(row.names = targets$sample, sample = as.character(targets$sample), mets = targets$mets)
-    se <- SummarizedExperiment(assays = list(counts = as.matrix(exp)),
     # --- Apply [] ---
     # Key functions: assay
     ---------------------------------------------------------------------

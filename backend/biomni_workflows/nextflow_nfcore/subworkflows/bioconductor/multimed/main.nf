@@ -78,10 +78,6 @@ process BIOC_MULTIMED {
     # --- Medfish [] ---
     # Key functions: medTest
     set.seed(840218)
-    medsFish <- medTest(E=NavyAdenoma$Fish,
-                        M=NavyAdenoma[, 6:154],
-                        Y=NavyAdenoma$Adenoma,
-                        Z=NavyAdenoma[, 2:5],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

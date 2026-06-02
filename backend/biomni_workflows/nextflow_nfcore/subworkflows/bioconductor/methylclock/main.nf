@@ -86,8 +86,6 @@ process BIOC_METHYLCLOCK {
     # --- attr [] ---
     # Key functions: attr
     cell <- attr(age.gse19711, "cell_proportion")
-    mod.cell <- glm(disease ~ ageAcc.Levine + cell, data=age.gse19711,
-    summary(mod.cell)
     # --- get geo 109446 [] ---
     # Key functions: getGEO
     dd <- GEOquery::getGEO("GSE109446")
@@ -101,7 +99,7 @@ process BIOC_METHYLCLOCK {
     plotCorClocks(age.gse)
     # --- plot D N Am Age [] ---
     # Key functions: plotDNAmAge
-    plotDNAmAge(ga.progress$Knight, progress_vars$EGA,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

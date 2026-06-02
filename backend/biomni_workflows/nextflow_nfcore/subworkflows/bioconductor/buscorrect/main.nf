@@ -50,7 +50,6 @@ process BIOC_BUSCORRECT {
     # Key functions: DataFrame, SummarizedExperiment
     require(SummarizedExperiment)
     B <- length(BUSexample_data)
-    n_vec <- sapply(1:B, function(b){
     # --- BUSgibbs analysis [] ---
     # Key functions: BUSgibbs, Subtypes, location_batch_effects, scale_batch_effects, subtype_effects, postprob_DE_thr_fun, estimate_IG_indicators, IG_index
     thr0 <- postprob_DE_thr_fun(BUSfits, fdr_threshold=0.01)

@@ -55,10 +55,6 @@ process BIOC_TREEKOR {
     # --- Testtree [] ---
     # Key functions: testTree
     ---------------------------------------------------------------------
-    tested_tree <- testTree(phylo=clust_tree$clust_tree,
-                          clusters=clusters,
-                          samples=samples,
-                          classes=classes,
     # --- Gettreeresults [] ---
     # Key functions: getTreeResults
     ---------------------------------------------------------------------
@@ -76,7 +72,6 @@ process BIOC_TREEKOR {
     clust_tree <- getClusterTree(exprs,
                                  clusters,
                                  hierarchy_method="average")
-    tested_tree <- testTree(clust_tree$clust_tree,
     # --- Getcellprop [] ---
     # Key functions: getCellProp
     ---------------------------------------------------------------------
@@ -87,10 +82,6 @@ process BIOC_TREEKOR {
     # --- Getcellgmeans [] ---
     # Key functions: getCellGMeans
     ---------------------------------------------------------------------
-    means_df <- getCellGMeans(clust_tree$clust_tree,
-                              exprs=exprs,
-                              clusters=clusters,
-                              samples=samples,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

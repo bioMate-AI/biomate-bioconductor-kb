@@ -44,17 +44,9 @@ process BIOC_TERNARYNET {
     # --- Integer [] ---
     # Key functions: frame, parallelFit
     library(ternarynet)
-    i_exp <- as.integer(c(0,0,0, 0,0,0, 0,0,0, 0,0,0,
-                            1,1,1, 1,1,1, 1,1,1, 1,1,1,
-                            2,2,2, 2,2,2, 2,2,2, 2,2,2,
-                            3,3,3, 3,3,3, 3,3,3, 3,3,3,
     # --- Parallelfit [] ---
     # Key functions: parallelFit
-    results <- parallelFit(indata,
-                            max_parents=1,
-                            n_cycles=10,
-                            n_write=10,
-                            T_lo=0.001,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -59,7 +59,6 @@ process BIOC_GGTREESPACE {
     # Key functions: rtree, fastBM, colorRampPalette, ggtreespace, geom_tippoint
     tr <- rtree(15)
     td <- fastBM(tr, nsim = 2, bounds = c(0, Inf))
-    col <- colorRampPalette(c(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

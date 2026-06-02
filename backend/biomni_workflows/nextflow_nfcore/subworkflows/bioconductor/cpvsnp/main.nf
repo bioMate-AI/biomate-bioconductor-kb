@@ -83,14 +83,11 @@ process BIOC_CPVSNP {
     ## library(ReportingTools)
     ## report <- HTMLReport (shortName = "cpvSNP_glossiResult",
     ##         title = "GLOSSI Results", reportDirectory = "./reports")
-    ## publish(geneSets, report, annotation.db = "org.Hs.eg",
     # --- Hapmap [] ---
     # Key functions: plink, element, geneIds, ld
     ## download.file(
     ##     url="http://hapmap.ncbi.nlm.nih.gov/genotypes/hapmap3_r3/plink_format/hapmap3_r3_b36_fwd.consensus.qc.poly.ped.gz",
     ##     destfile="hapmap3_r3_b36_fwd.consensus.qc.poly.ped.gz")
-    ## download.file(
-    ##     url="http://hapmap.ncbi.nlm.nih.gov/genotypes/hapmap3_r3/plink_format/hapmap3_r3_b36_fwd.consensus.qc.poly.map.gz",
     # --- Vegas [] ---
     # Key functions: vegas, unlist, simulatedStats, pValue, degreesOfFreedom, statistic
     ## ldMat <- geneSetAnalysis[["ldMat"]]

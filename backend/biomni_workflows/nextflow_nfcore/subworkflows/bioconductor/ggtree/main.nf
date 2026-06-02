@@ -62,25 +62,7 @@ process BIOC_GGTREE {
 
     # --- Geoms [] ---
     # Key functions: and, geom_balance, geom_cladelabel, geom_cladelabel2, geom_hilight, geom_hilight_encircle, geom_label2, geom_nodelab
-    geoms <- matrix(c(
-      "geom_balance", "highlights the two direct descendant clades of an internal node",
-      "geom_cladelabel", "annotate a clade with bar and text label",
-      "geom_cladelabel2", "annotate a clade with bar and text label for unrooted layout",
-      "geom_hilight", "highlight a clade with rectangle",
-      "geom_hilight_encircle", "highlight a clade with xspline for unrooted layout",
-      "geom_label2", "modified version of geom_label, with subsetting supported",
-      "geom_nodelab", "layer for node labels, which can be text or image",
-      "geom_nodepoint", "annotate internal nodes with symbolic points",
-      "geom_point2", "modified version of geom_point, with subsetting supported",
-      "geom_range", "bar layer to present uncertainty of evolutionary inference",
-      "geom_rootpoint", "annotate root node with symbolic point",
-      "geom_segment2", "modified version of geom_segment, with subsetting supported",
-      "geom_strip", "annotate associated taxa with bar and (optional) text label",
-      "geom_taxalink", "associate two related taxa by linking them with a curve"
-    ), ncol=2, byrow=TRUE)
-    geoms <- as.data.frame(geoms)
-    colnames(geoms) <- c("Geom", "Description")
-    knitr::kable(geoms, caption = "ggtree geom layers.", booktabs = T)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

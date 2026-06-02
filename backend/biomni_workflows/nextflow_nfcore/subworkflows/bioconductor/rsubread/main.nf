@@ -43,11 +43,7 @@ process BIOC_RSUBREAD {
 
     # --- Frame [] ---
     # Key functions: frame, featureCounts
-    ann <- data.frame(
-    GeneID=c("gene1","gene1","gene2","gene2"),
-    Chr="chr_dummy",
-    Start=c(100,1000,3000,5000),
-    End=c(500,1800,4000,5500),
+
     # --- Featurecounts [] ---
     # Key functions: featureCounts
     fc_PE <- featureCounts("alignResultsPE.BAM",annot.ext=ann,isPairedEnd=TRUE)

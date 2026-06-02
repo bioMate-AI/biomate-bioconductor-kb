@@ -56,28 +56,18 @@ process BIOC_TRICYCLE {
     # --- assay [] ---
     # Key functions: assay
     top2a.idx <- which(rowData(neurosphere_example)$Gene == 'Top2a')
-    fit.l <- fit_periodic_loess(neurosphere_example$tricyclePosition,
-    assay(neurosphere_example, 'logcounts')[top2a.idx,],
     # --- estimate_ Schwabe_stage [] ---
     # Key functions: estimate_Schwabe_stage, plotReducedDim, labs, theme_bw
-    neurosphere_example <- estimate_Schwabe_stage(neurosphere_example,
-    scater::plotReducedDim(neurosphere_example, dimred = "tricycleEmbedding",
-    labs(x = "Projected PC1", y = "Projected PC2",
+
     # --- plot_ccposition_den [] ---
     # Key functions: plot_ccposition_den, theme_bw
-    plot_ccposition_den(neurosphere_example$tricyclePosition,
-    theme_bw(base_size = 14)
-    plot_ccposition_den(neurosphere_example$tricyclePosition,
+
     # --- plot_emb_circle_scale [] ---
     # Key functions: plot_emb_circle_scale, theme_bw, circle_scale_legend, plot_grid
     library(cowplot)
-    p <- plot_emb_circle_scale(neurosphere_example, dimred = 1,
-    theme_bw(base_size = 14)
     # --- estimate_cycle_position [] ---
     # Key functions: estimate_cycle_position
     set.seed(100)
-    gocc_sce.o <- run_pca_cc_genes(neurosphere_example,
-    new.ref <- attr(reducedDim(gocc_sce.o, 'PCA'), 'rotation')[, seq_len(2)]
     # --- qplot [] ---
     # Key functions: qplot, labs, theme_bw
     cor(neurosphere_example$tricyclePosition, new_sce$tricyclePosition)

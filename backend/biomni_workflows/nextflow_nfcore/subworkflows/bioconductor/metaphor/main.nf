@@ -59,8 +59,6 @@ process BIOC_METAPHOR {
     ---------------------------------------------------------------------
     ##read in two additional sets of scores,
     ##run in the same manner as brca for comparison
-    ovca <- read.csv(system.file("extdata/OVCA_Scores.csv", package = "MetaPhOR"),
-                    header = TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

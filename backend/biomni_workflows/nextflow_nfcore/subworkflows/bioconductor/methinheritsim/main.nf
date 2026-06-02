@@ -43,13 +43,10 @@ process BIOC_METHINHERITSIM {
 
     # --- run Sim [] ---
     # Key functions: runSim
-    runSim(methData = samplesForChrSynthetic,  # The dataset use for generate
-    vNbSample = c(3, 6), # The number of controls (= number of cases) in
-    vpDiff = c(0.9),   # Mean proportion of samples with
+
     # --- unlink [] ---
     # Key functions: unlink
-    if (dir.exists(temp_dir)) {
-    unlink(temp_dir, recursive = TRUE, force = FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

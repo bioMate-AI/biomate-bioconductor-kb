@@ -38,9 +38,6 @@ process BIOC_GEOQUERY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Columns)
-    library(GSMList)
-    library(Table)
     library(GEOquery)
     library(jsonlite)
 

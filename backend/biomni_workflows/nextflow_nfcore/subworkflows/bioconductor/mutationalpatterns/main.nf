@@ -45,24 +45,17 @@ process BIOC_MUTATIONALPATTERNS {
 
     # --- Data import and loading [] ---
     # Key functions: GRanges, seqlevelsStyle, useEnsembl, getBM, reduce, IRanges, GRangesList, import
-    repli_file <- system.file("extdata/ReplicationDirectionRegions.bed",
-    repli_strand <- read.table(repli_file, header = TRUE)
-    repli_strand_granges <- GRanges(
+
     # --- Quality control and filtering [] ---
     # Key functions: seqnames, plot_rainfall
     chromosomes <- seqnames(get(ref_genome))[1:22]
-    plot_rainfall(grl[[1]],
-    title = names(grl[1]),
     # --- Read vcfs as granges analysis [] ---
     # Key functions: read_vcfs_as_granges, get_mut_type, mutations_from_vcf, mut_type, mut_context, type_context, mut_type_occurrences, plot_spectrum
-    mut_mat_s_rep <- mut_matrix_stranded(grl, ref_genome, repli_strand_granges,
-    strand_counts_rep <- strand_occurrences(mut_mat_s_rep, by = tissue)
-    strand_bias_rep <- strand_bias_test(strand_counts_rep)
+
     # --- Variant calling and annotation [] ---
     # Key functions: mut_matrix, extract_signatures, fit_to_signatures, rename_nmf_signatures, plot_contribution_heatmap, lengthen_mut_matrix
     mut_mat_region <- mut_matrix(grl_region, ref_genome)
     nmf_res_region <- extract_signatures(mut_mat_region, rank = 2, nrun = 10, single_core = TRUE)
-    nmf_res_region <- rename_nmf_signatures(nmf_res_region,
     # --- Feature annotation [] ---
     # Key functions: genes
     genes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)

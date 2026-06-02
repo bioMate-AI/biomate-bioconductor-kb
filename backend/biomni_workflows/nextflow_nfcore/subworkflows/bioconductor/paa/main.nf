@@ -93,9 +93,6 @@ process BIOC_PAA {
     # Key functions: volcanoPlot
     c1 <- paste(rep("AD",20), 1:20, sep="")
     c2 <- paste(rep("NDC",20), 1:20, sep="")
-    #volcanoPlot(elist=elist.unlog, group1=c1, group2=c2, method="tTest",
-    volcanoPlot(elist=elist, group1=c1, group2=c2, log=TRUE, method="tTest",
-    p.thresh=0.01, fold.thresh=2)
     # --- Volcanoplot2 [] ---
     # Key functions: mMsMatrix, volcanoPlot
     ## mMs.matrix1 <- mMs.matrix2 <- mMsMatrix(x=20, y=20)

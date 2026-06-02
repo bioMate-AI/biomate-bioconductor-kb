@@ -41,9 +41,44 @@ process BIOC_ERCCDASHBOARD {
     library(erccdashboard)
     library(jsonlite)
 
-    # --- run Dashboard [] ---
-    # Key functions: runDashboard
+
+    # --- Load Example Data [] ---
+    # Key functions: erccdashboard
+    data(SEQC.Example)
+
+    # --- Define Input Data [] ---
+    # Key functions: volume, mass, rate, count, array
+    datType = "count" # "count" for RNA-Seq data, "array" for microarray data
+    isNorm = FALSE # flag to indicate if input expression measures are already
+                   # normalized, default is FALSE 
+    exTable = MET.CTL.countDat # the expression measure table
+    filenameRoot = "RatTox" # user defined filename prefix for results files
+    sample1Name = "MET" # name for sample 1 in the experiment
+    sample2Name = "CTL" # name for sample 2 in the experiment
+    erccmix = "RatioPair" # name of ERCC mixture design, "RatioPair" is default
+    erccdilution = 1/100 # dilution factor used for Ambion spike-in mixtures
+    spikeVol = 1 # volume (in microliters) of diluted spike-in mixture added to
+
+    # --- Inspect Rat Count [] ---
+    # Key functions: erccdashboard
+    head(MET.CTL.countDat)
+
+    # --- Run Dashboard Ratcount [] ---
+    # Key functions: runDashboard, count
     exDat <- runDashboard(datType="count", isNorm = FALSE,
+                           exTable=MET.CTL.countDat,
+                           filenameRoot="RatTox", sample1Name="MET",
+                           sample2Name="CTL", erccmix="RatioPair",
+                           erccdilution=1/100, spikeVol=1,
+                           totalRNAmass=0.500, choseFDR=0.1)
+
+    # --- Initialize Data [] ---
+    # Key functions: summary
+    summary(exDat)
+
+    # --- Rat Plot A [] ---
+    # Key functions: erccdashboard
+    exDat$Figures$dynRangePlot
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

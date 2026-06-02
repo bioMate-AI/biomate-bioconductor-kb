@@ -62,8 +62,6 @@ process BIOC_SIMFFPE {
     ## Simulate reads of the first three sequences of the reference genome
     sourceSeq <- reference[1:3]
     outFile1 <- paste0(tempdir(), "/sim1")
-    readSimFFPE(sourceSeq, referencePath, PhredScoreProfile2, outFile1,
-                overWrite = TRUE, coverage = 80, readLen = 150,
     # --- Targetreadsimffpe [] ---
     # Key functions: tempdir, targetReadSimFFPE
     outFile3 <- paste0(tempdir(), "/sim3")

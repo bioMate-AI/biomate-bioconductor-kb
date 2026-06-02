@@ -49,9 +49,7 @@ process BIOC_AGGREGATEBIOVAR {
     cells_secretory$Genotype <- as.factor(cells_secretory$Genotype)
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: assay, pheatmap, counts, colData, ggplot, geom_jitter
-    scPHeatmap <- function(sumExp, subjectVar, gtVar, logSample = 1:100, ...) {
-    orderSumExp <- sumExp[, order(sumExp[[subjectVar]])]
-    sumExpCounts <- as.matrix(
+
     # --- Sample metadata inspection [] ---
     # Key functions: colData, distinct, intersect, assays, counts, countsBySubject, subjectMetaData, summarizedCounts
     SummarizedExperiment::colData(x = small_airway) %>% tibble::as_tibble() %>%

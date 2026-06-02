@@ -51,9 +51,7 @@ process BIOC_LRCELL {
     eh <- query(eh, "LRcellTypeMarkers")
     # --- LRcell analysis [] ---
     # Key functions: LRcell, plot_manhattan_enrich, LRcellCore, LRcell_gene_enriched_scores, get_markergenes
-    res <- LRcellCore(gene.p = example_gene_pvals,
-    res$cell_type <- unlist(lapply(strsplit(res$ID, '\\.'), '[', 2))
-    head(subset(res, select=-lead_genes))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

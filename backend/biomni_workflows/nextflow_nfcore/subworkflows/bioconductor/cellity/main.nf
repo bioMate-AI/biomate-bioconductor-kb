@@ -41,13 +41,61 @@ process BIOC_CELLITY {
     library(cellity)
     library(jsonlite)
 
-    # --- Knitr Options [] ---
-    # Key functions: render, set, theme_set, theme_bw
-    -----------------------------
-    ## To render an HTML version that works nicely with github and web pages, do:
-    ## rmarkdown::render("vignettes/vignette.Rmd", "all")
-    library(knitr)
-    opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
+
+    # --- Eval=true [] ---
+    # Key functions: normalise_by_factor, colSums
+    library(cellity)
+    data(sample_counts)
+    data(sample_stats)
+    sample_counts_nm <- normalise_by_factor(sample_counts, colSums(sample_counts))
+
+    # --- Eval=true [] ---
+    # Key functions: extract_features, requireNamespace, install, org.Hs.eg.db, extra_human_genes, feature_info, human
+    sample_features <- extract_features(sample_counts_nm, sample_stats)
+    # --- Eval=true [] ---
+    # Key functions: assess_cell_quality_PCA
+    sample_features_all <- sample_features[[1]]
+    sample_qual_pca <- assess_cell_quality_PCA(sample_features_all)
+    data(training_mES_features)
+    training_mES_features_all <- training_mES_features[[1]]
+    training_quality_PCA_allF <- assess_cell_quality_PCA(
+      training_mES_features_all, file = "./training_quality_PCA_allF.pdf")
+
+    # --- Eval=true [] ---
+    # Key functions: requireNamespace, confusionMatrix, caret, assess_cell_quality_PCA
+    if (requireNamespace("caret", quietly = TRUE)) {
+      library(caret)
+      data(training_mES_labels)
+      lvs <- c("0", "1")
+      truth <- factor(training_mES_labels[,2],levels = rev(lvs))
+      pred <- factor(training_quality_PCA_allF[,2], levels = rev(lvs))
+      confusionMatrix(pred, truth)
+    }
+    training_mES_features_common <- training_mES_features[[2]]
+    training_quality_PCA_commonF <- assess_cell_quality_PCA(
+      training_mES_features_common, file = "./training_quality_PCA_commonF.pdf")
+
+    # --- Eval=true [] ---
+    # Key functions: requireNamespace, confusionMatrix, caret
+    if (requireNamespace("caret", quietly = TRUE)) {
+      pred <- factor(training_quality_PCA_commonF[,2], levels = rev(lvs))
+      confusionMatrix(pred, truth)
+    }
+    data(mES1_features)
+    data(mES1_labels)
+
+    # --- Eval=true [] ---
+    # Key functions: assess_cell_quality_SVM, requireNamespace, confusionMatrix, caret
+    data(param_mES_all)
+    mES1_features_all <- mES1_features[[1]]
+    mES1_quality_SVM <- assess_cell_quality_SVM(
+      training_mES_features_all, training_mES_labels[,2], param_mES_all, 
+      mES1_features_all)
+    if (requireNamespace("caret", quietly = TRUE)) {
+      truth <- factor(mES1_labels[,2],levels = rev(lvs))
+      pred <- factor(mES1_quality_SVM[,2], levels = rev(lvs))
+      confusionMatrix(pred, truth)
+    }
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

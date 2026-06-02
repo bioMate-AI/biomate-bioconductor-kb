@@ -45,33 +45,25 @@ process BIOC_PATHLINKR {
     # Key functions: eruption
     data("exampleDESeqResults")
     knitr::kable(head(exampleDESeqResults[[1]]))
-    eruption(
     # --- ppi Build Network [] ---
     # Key functions: ppiBuildNetwork, ppiPlotNetwork
-    exNetwork <- ppiBuildNetwork(
-    ppiPlotNetwork(
-    title=names(exampleDESeqResults)[1],
+
     # --- ppi Enrich Network [] ---
     # Key functions: ppiEnrichNetwork
-    exNetworkPathways <- ppiEnrichNetwork(
-    geneUniverse = rownames(exampleDESeqResults[[1]])
+
     # --- ppi Extract Subnetwork [] ---
     # Key functions: ppiExtractSubnetwork, ppiPlotNetwork
-    exSubnetwork <- ppiExtractSubnetwork(
-    ppiPlotNetwork(
+
     # --- sigora enrichment [] ---
     # Key functions: pathwayEnrichment
-    enrichedResultsSigora <- pathwayEnrichment(
-    head(enrichedResultsSigora)
+
     # --- hallmark enrichment [] ---
     # Key functions: pathwayEnrichment
-    enrichedResultsHm <- pathwayEnrichment(
-    head(enrichedResultsHm)
+
     # --- pathway network I [] ---
     # Key functions: getPathwayDistances, pathnetFoundation, pathnetCreate
     data("sigoraDatabase")
     pathwayDistancesJaccard <- getPathwayDistances(pathwayData = sigoraDatabase)
-    startingPathways <- pathnetFoundation(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

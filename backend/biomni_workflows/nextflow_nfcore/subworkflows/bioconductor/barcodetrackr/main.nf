@@ -47,7 +47,6 @@ process BIOC_BARCODETRACKR {
       read.delim(row.names = 1) -> wu_dataframe
     system.file("extdata", "/WuC_etal_appdata/sample_metadata_ZJ31.txt", package = "barcodetrackR") %>%
       read.delim() -> wu_metadata
-    wu_SE <- create_SE(your_data = wu_dataframe,
     # --- Estimate Threshold [] ---
     # Key functions: estimate_barcode_threshold
     my_thresh <- estimate_barcode_threshold(capture_efficiency = 0.4,
@@ -91,10 +90,6 @@ process BIOC_BARCODETRACKR {
     # --- Cor Plot 4 [] ---
     # Key functions: cor_plot
     belderbos_wk_samples_PB <- c("wk9_U", "wk14_U", "wk20_U", "wk22_U")
-    cor_plot(your_SE = belderbos_SE[,belderbos_wk_samples_PB],
-             method_corr = "pearson",
-             plot_type = "number",
-             assay = "proportions",
     # --- Dist Plot 1 [] ---
     # Key functions: dist_plot
     dist_plot(wu_SE[,wu_cor_plot_sample_selection],
@@ -103,11 +98,7 @@ process BIOC_BARCODETRACKR {
               assay = "logs")
     # --- Dist Plot 2 [] ---
     # Key functions: dist_plot
-    dist_plot(wu_SE[,wu_cor_plot_sample_selection],
-              dist_method =  "cosine",
-              plot_type = "color",
-              assay = "logs",
-              color_pal = "Greens",
+
     # --- Barcode Ggheatmap Wu Se 1 [] ---
     # Key functions: barcode_ggheatmap
     barcode_ggheatmap(your_SE = wu_SE[,wu_cor_plot_sample_selection],
@@ -117,25 +108,13 @@ process BIOC_BARCODETRACKR {
                       cellnote_size = 4)
     # --- Barcode Ggheatmap Six Se [] ---
     # Key functions: barcode_ggheatmap
-    six_celltype_order <- c("m13_TCELLS", "m36_TCELLS", "m43_TCELLS",
-                            "m55_TCELLS","m13_BCELLS", "m36_BCELLS",
-                            "m43_BCELLS", "m55_BCELLS", "m13_NKCELLS",
-                            "m36_NKCELLS", "m43_NKCELLS","m55_NKCELLS",
-                            "m13_GRANULOCYTES", "m36_GRANULOCYTES",
+
     # --- Barcode Ggheatmap Stat Wu Se [] ---
     # Key functions: barcode_ggheatmap_stat
     wu_CD16_NK_order <- colnames(wu_SE)[17:20]
-    barcode_ggheatmap_stat(your_SE = wu_SE[,wu_CD16_NK_order],
-                           sample_size = rep(40000,length(wu_CD16_NK_order)),
-                           stat_test = "chi-squared",
-                           stat_option = "subsequent",
     # --- Barcode Stat Test Wu Se [] ---
     # Key functions: barcode_stat_test
     sample_size <- rep(40000,length(wu_CD16_NK_order))
-    wu_CD16_NK_statistics <- barcode_stat_test(your_SE = wu_SE[,wu_CD16_NK_order],
-                                               sample_size = sample_size,
-                                               stat_test = "chi-squared",
-                                               stat_option = "subsequent",
     # --- Binary Heat Map [] ---
     # Key functions: barcode_binary_heatmap
     barcode_binary_heatmap(your_SE = belderbos_SE[,belderbos_wk_samples_PB],

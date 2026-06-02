@@ -43,29 +43,25 @@ process BIOC_EPIMUTACIONS {
 
     # --- epimutations [] ---
     # Key functions: epimutations
-    epi_mvo <- epimutations(case_samples,
+
     # --- annotate_epimutations [] ---
     # Key functions: annotate_epimutations
     rst_mvo <- annotate_epimutations(epi_mvo, omim = TRUE)
     # --- annot relIsland [] ---
     # Key functions: column_spec
-    kableExtra::kable(
-    rst_mvo[ c(27,32) ,c("epi_id", "cpg_ids", "Relation_to_Island")],
-    column_spec(1:3, width = "4cm")
+
     # --- column_spec [] ---
     # Key functions: column_spec
-    kableExtra::kable(
-    rst_mvo[ c(4,8,22) , c("epi_id", "OMIM_ACC", "OMIM_DESC")],
-    column_spec(1:3, width = "4cm")
+
     # --- plot_epimutations [] ---
     # Key functions: plot_epimutations
     plot_epimutations(as.data.frame(epi_mvo[1,]), methy)
     # --- plot mvo genes annot [] ---
     # Key functions: plot_epimutations
-    p <- plot_epimutations(as.data.frame(epi_mvo[1,]),
+
     # --- plot mvo regulation [] ---
     # Key functions: plot_epimutations
-    p <- plot_epimutations(as.data.frame(epi_mvo[1,]),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

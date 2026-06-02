@@ -41,11 +41,31 @@ process BIOC_NIPALSMCIA {
     library(nipalsMCIA)
     library(jsonlite)
 
-    # --- Simple mae analysis [] ---
-    # Key functions: install_github, simple_mae, nipals_multiblock, slotNames, projection_plot, get_metadata_colors, global_scores_heatmap, block_weights_heatmap
-    meta_colors = c("blue", "grey", "yellow") can use color names
-    meta_colors = c("#00204DFF", "#7C7B78FF", "#FFEA46FF") can use hex codes
-    meta_colors <- get_metadata_colors(mcia_results, color_col = 1,
+
+    # --- Include = False [] ---
+    # Key functions: fgseaMultilevel, hide
+    # # Apply scientific notation to min_pval
+    geneset_report[[1]]$min_pval <- sprintf("%.2e", geneset_report[[1]]$min_pval)
+
+    ## ----part-2-genesets----------------------------------------------------------
+    geneset_report[[1]]
+
+    ## ----part-2-gsea-for-factor-3, echo = TRUE, message = FALSE, warning = FALSE, results = "hide"----
+    # re-running GSEA
+    factor3_paths <- fgseaMultilevel(pathways, stats = mrna_gfscores[, 3],
+                                     nPermSimple = 10000, minSize = 15,
+                                     nproc = 2, maxSize = 500)
+
+    # --- Include=false [] ---
+    # Key functions: function, vapply, character, str_replace_all, substr
+    # Order by adjusted p value
+    factor3_paths <- factor3_paths[order(factor3_paths$padj), ]
+
+    # Apply scientific notation to padj
+    to_sci <- function(x) return(sprintf("%.2e", x))
+    factor3_paths$padj <- vapply(factor3_paths$padj, to_sci, character(1))
+
+    # Clean up pathway name
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

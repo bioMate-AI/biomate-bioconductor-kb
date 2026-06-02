@@ -52,22 +52,17 @@ process BIOC_CEPO {
     upset(fromList(res_name), nsets = 3)
     # --- plot Densities [] ---
     # Key functions: plotDensities
-    plotDensities(x = cellbench,
+
     # --- wrap_plots [] ---
     # Key functions: wrap_plots
     cepo_genes = Cepo::topGenes(ds_res_batches$average, n = 3)
-    markersPlot = lapply(cepo_genes, function(x) {
-    pp = lapply(x, function(gene) {
     # --- Fast GSEA analysis [] ---
     # Key functions: getGeneSets, fgsea
     library(escape)
     library(fgsea)
-    hallmarkList <- getGeneSets(species = "Homo sapiens",
     # --- Snow Param [] ---
     # Key functions: SnowParam, MulticoreParam, setAutoBPPARAM
     library(BiocParallel)
-    BPPARAM = if (.Platform$OS.type == "windows") {
-    BiocParallel::SnowParam(workers = 2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -53,7 +53,6 @@ process BIOC_TRANSCRIPTR {
     # create a range of gap distances to test
     # from 0 bp to 10000 bp with the step of 100 bp
     gd <- seq(from = 0, to = 10000, by = 100)
-    estimateGapDistance(object = tds, annot = knownGene.genes, filter.annot = TRUE,
     # --- Detecttranscripts [] ---
     # Key functions: detectTranscripts
     ---------------------------------------------------------------------

@@ -46,12 +46,9 @@ process BIOC_SLALOM {
     # Key functions: logcounts, SingleCellExperiment
     rdsfile <- system.file("extdata", "sim_N_20_v3.rds", package = "slalom")
     sim <- readRDS(rdsfile)
-    sce <- SingleCellExperiment::SingleCellExperiment(
     # --- Gmt analysis [] ---
     # Key functions: getGmt, newSlalomModel, initSlalom, trainSlalom, GeneSetCollection, setName, plotLoadings
-    genesets <- GSEABase::GeneSetCollection(
-    lapply(genesets, function(x) {
-    GSEABase::setName(x) <- gsub("REACTOME_", "", GSEABase::setName(x))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,9 +43,7 @@ process BIOC_TXCUTR {
 
     # --- "install" [] ---
     # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("txcutr")
+
     # --- "txdb sgd" [] ---
     # Key functions: seqlevels, transcriptLengths
     library(GenomicFeatures)

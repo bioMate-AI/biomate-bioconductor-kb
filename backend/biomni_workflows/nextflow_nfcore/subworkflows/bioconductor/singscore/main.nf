@@ -38,7 +38,7 @@ process BIOC_SINGSCORE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SnowParam)
+    library(singscore)
     library(jsonlite)
 
 

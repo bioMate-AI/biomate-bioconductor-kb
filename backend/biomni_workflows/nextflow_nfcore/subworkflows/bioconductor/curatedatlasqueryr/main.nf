@@ -57,15 +57,11 @@ process BIOC_CURATEDATLASQUERYR {
     ---------------------------------------------------------------------
     single_cell_counts =
         metadata |>
-        dplyr::filter(
-            ethnicity == "African" &
     # --- Filter [] ---
     # Key functions: filter, str_like, get_seurat
     ---------------------------------------------------------------------
     single_cell_counts_seurat =
         metadata |>
-        dplyr::filter(
-            ethnicity == "African" &
     # --- save H D F5 Summarized Experiment [] ---
     # Key functions: saveHDF5SummarizedExperiment
     ---------------------------------------------------------------------

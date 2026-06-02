@@ -48,17 +48,13 @@ process BIOC_NULLRANGES {
     # Key functions: AnnotationHub, trim
     suppressPackageStartupMessages(library(AnnotationHub))
     ah <- AnnotationHub()
-    suppressWarnings({
     # --- segment Density [] ---
     # Key functions: segmentDensity, plotSegment
     set.seed(5)
     plyranges::filter(width(exclude) >= 500)
-    seg_cbs <- segmentDensity(g, n = 3, L_s = L_s,
     # --- segment Density [] ---
     # Key functions: segmentDensity, plotSegment, DHSA549Hg38
-    seg_hmm <- segmentDensity(g, n = 3, L_s = L_s,
-    plots <- lapply(c("ranges","barplot","boxplot"), function(t) {
-    plotSegment(seg_hmm, exclude, type = t)
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_histogram, geom_vline
     suppressPackageStartupMessages(library(ggplot2))
@@ -67,13 +63,9 @@ process BIOC_NULLRANGES {
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, IRanges, seqlengths
     set.seed(1)
-    gr <- GRanges(
-    seqnames=sort(sample(c("chr1","chr2"), n, TRUE)),
     # --- boot Ranges [] ---
     # Key functions: bootRanges, plotGRanges
     set.seed(1)
-    gr_prime <- bootRanges(gr, blockLength = 25, seg = seg,
-    plotGRanges(gr_prime)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

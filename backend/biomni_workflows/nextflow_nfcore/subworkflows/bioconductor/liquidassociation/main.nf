@@ -99,8 +99,6 @@ process BIOC_LIQUIDASSOCIATION {
     num<-choose(ncol(bigtriplet),3)
     pick<-t(combn(1:ncol(bigtriplet),3))
     GLAout<-matrix(0, nrow=100, 3)
-    for ( i in 1:100){
-    	dat1<-bigtriplet[,pick[i,]]
     # --- Hypothesistesting [] ---
     # Key functions: na, full, getsGLA
     whtrip<-1

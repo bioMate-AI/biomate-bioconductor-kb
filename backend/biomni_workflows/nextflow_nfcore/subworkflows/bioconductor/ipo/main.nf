@@ -49,11 +49,9 @@ process BIOC_IPO {
     # --- optimize retcor group [] ---
     # Key functions: optimizeRetGroup
     retcorGroupParameters <- getDefaultRetGroupStartingParams()
-    time.RetGroup <- system.time({ # measuring time
-    optimizeRetGroup(xset = optimizedXcmsSetObject,
     # --- write R Script [] ---
     # Key functions: writeRScript
-    writeRScript(resultPeakpicking$best_settings$parameters,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

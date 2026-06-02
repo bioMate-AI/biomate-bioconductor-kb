@@ -76,9 +76,6 @@ process BIOC_MSSTATSTMT {
     # Key functions: dataProcessPlotsTMT
     ---------------------------------------------------------------------
     ## Quality control plot
-    # dataProcessPlotsTMT(data=quant.msstats,
-                         # type='QCPlot',
-                         # width = 21, # adjust the figure width since there are 15 TMT runs.
     # --- Conditions [] ---
     # Key functions: conditions
     ---------------------------------------------------------------------

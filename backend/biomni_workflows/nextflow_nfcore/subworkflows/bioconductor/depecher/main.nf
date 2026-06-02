@@ -41,9 +41,24 @@ process BIOC_DEPECHER {
     library(DepecheR)
     library(jsonlite)
 
-    # --- d Violins [] ---
-    # Key functions: dViolins
-    dViolins(testDataDepeche$clusterVector, inDataFrame = testData,
+
+    # --- Eval = False [] ---
+    # Key functions: requireNamespace, install, str
+    #  if(!requireNamespace("BiocManager", quietly = TRUE))
+    #      install.packages("BiocManager")
+    #  BiocManager::install("DepecheR")
+
+    ## -----------------------------------------------------------------------------
+    library(DepecheR)
+    data('testData')
+    str(testData)
+
+    # --- Eval [] ---
+    # Key functions: dViolins, sessionInfo
+    dViolins(testDataDepeche$clusterVector, inDataFrame = testData, 
+             plotClusters = 3, plotElements = testDataDepeche$essenceElementList)
+
+    ## -----------------------------------------------------------------------------
     sessionInfo()
 
     # --- Save outputs ---

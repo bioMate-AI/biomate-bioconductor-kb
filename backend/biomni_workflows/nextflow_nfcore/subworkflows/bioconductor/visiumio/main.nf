@@ -49,10 +49,6 @@ process BIOC_VISIUMIO {
     # --- Import Multiple Visium Datasets [] ---
     # Key functions: dirs, path, TENxVisiumList
     ---------------------------------------------------------------------
-    sample_dirs <- list.dirs(
-        system.file(
-            file.path("extdata", "10xVisium"), package = "VisiumIO"
-        ),
     # --- Import Visium Data [] ---
     # Key functions: import
     ---------------------------------------------------------------------

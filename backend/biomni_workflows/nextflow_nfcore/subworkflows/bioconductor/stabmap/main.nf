@@ -65,10 +65,6 @@ process BIOC_STABMAP {
     # --- Setnames [] ---
     # Key functions: setNames, sample
     ---------------------------------------------------------------------
-    dataType <- setNames(
-      sample(c("RNA", "Multiome"), ncol(logcounts_all),
-        prob = c(0.5, 0.5), replace = TRUE
-      ),
     # --- Mosaicdataupset [] ---
     # Key functions: mosaicDataUpSet
     ---------------------------------------------------------------------
@@ -95,10 +91,6 @@ process BIOC_STABMAP {
     # --- Imputeembedding [] ---
     # Key functions: imputeEmbedding
     ---------------------------------------------------------------------
-    imp <- imputeEmbedding(
-      assay_list,
-      stab,
-      reference = colnames(assay_list[["Multiome"]]),
     # --- Coldata [] ---
     # Key functions: colData, experiments
     ---------------------------------------------------------------------
@@ -130,10 +122,6 @@ process BIOC_STABMAP {
     # --- Setnames [] ---
     # Key functions: setNames, sample
     ---------------------------------------------------------------------
-    dataTypeIndirect <- setNames(
-      sample(c("RNA", "Multiome", "ATAC"), ncol(logcounts_all),
-        prob = c(0.3, 0.3, 0.3), replace = TRUE
-      ),
     # --- Mosaicdataupset [] ---
     # Key functions: mosaicDataUpSet
     ---------------------------------------------------------------------

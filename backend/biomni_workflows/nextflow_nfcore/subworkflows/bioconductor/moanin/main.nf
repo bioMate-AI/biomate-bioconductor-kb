@@ -41,11 +41,24 @@ process BIOC_MOANIN {
     library(moanin)
     library(jsonlite)
 
-    # --- splines_kmeans [] ---
+
+    # --- Clustering [] ---
     # Key functions: splines_kmeans, plot_splines_data, splines_kmeans_score_and_label
+    # First fit the kmeans clusters
     kmeans_clusters <- splines_kmeans(moaninObject[1:500,], n_clusters=3,
+        random_seed=42, 
+        n_init=20)
+
+    ## -----------------------------------------------------------------------------
     plot_splines_data(
+        data=kmeans_clusters$centroids, moaninObject,
+        smooth=TRUE)
+
+    ## -----------------------------------------------------------------------------
     scores_and_labels <- splines_kmeans_score_and_label(
+        object=moaninObject,data=preData[1:2000,], kmeans_clusters=kmeans_clusters)
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

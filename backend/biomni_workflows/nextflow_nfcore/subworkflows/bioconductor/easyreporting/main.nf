@@ -58,9 +58,6 @@ process BIOC_EASYREPORTING {
     # Key functions: mkdTitle, mkdCodeChunkCommented, applyEdgeRExample
     ---------------------------------------------------------------------
     mkdTitle(bioEr, "Differential Expression Analysis")
-    mkdCodeChunkCommented(bioEr,
-        code="degList <- applyEdgeRExample(counts=geneCounts,
-                        samples=colnames(geneCounts), contrast='Pleura - Broth')",
     # --- Mkdtitle [] ---
     # Key functions: mkdTitle, mkdCodeChunkComplete, plotMD
     ---------------------------------------------------------------------

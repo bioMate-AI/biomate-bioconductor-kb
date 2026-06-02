@@ -46,11 +46,7 @@ process BIOC_ICARE {
     data("bc_data", package="iCARE")
     # --- Model 1A [] ---
     # Key functions: computeAbsoluteRisk
-    res_snps_miss = computeAbsoluteRisk(model.snp.info = bc_72_snps,
-                          model.disease.incidence.rates = bc_inc,
-                          model.competing.incidence.rates = mort_inc,
-                          apply.age.start = 50,
-                          apply.age.interval.length = 30,
+
     # --- Summary 1A [] ---
     # Key functions: density
     summary(res_snps_miss$risk)
@@ -60,11 +56,7 @@ process BIOC_ICARE {
       xlab="Absolute Risk of Breast Cancer")
     # --- Model 1B [] ---
     # Key functions: computeAbsoluteRisk
-    res_snps_dat = computeAbsoluteRisk(model.snp.info = bc_72_snps,
-                                    model.disease.incidence.rates = bc_inc,
-                                    model.competing.incidence.rates = mort_inc,
-                                    apply.age.start = 50,
-                                    apply.age.interval.length = 30,
+
     # --- Plot 1B [] ---
     # Key functions: density
     plot(density(res_snps_dat$refs.risk), lwd=2,
@@ -74,11 +66,7 @@ process BIOC_ICARE {
     legend("topright", legend="New Profiles", col="red", lwd=1)
     # --- Fit 2 [] ---
     # Key functions: computeAbsoluteRisk
-    res_covs_snps = computeAbsoluteRisk(model.formula=bc_model_formula,
-                                             model.cov.info=bc_model_cov_info,
-                                             model.snp.info=bc_72_snps,
-                                             model.log.RR=bc_model_log_or,
-                                             model.ref.dataset=ref_cov_dat,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

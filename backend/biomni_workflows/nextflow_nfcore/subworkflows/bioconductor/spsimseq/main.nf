@@ -44,8 +44,6 @@ process BIOC_SPSIMSEQ {
     # --- heatscatter [] ---
     # Key functions: heatscatter, ifelse, loess
     par(mfrow=c(1,3), mar=c(4,4,4,1))
-    heatscatter(rowMeans(Y0.log.cpm), rowCVs(Y0.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
-    heatscatter(rowMeans(Y1.log.cpm), rowCVs(Y1.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
     # --- col Data [] ---
     # Key functions: colData, rowData
     class(sim.data.sc1)
@@ -54,8 +52,6 @@ process BIOC_SPSIMSEQ {
     # --- heatscatter [] ---
     # Key functions: heatscatter, ifelse, loess
     par(mfrow=c(1,3), mar=c(4,4,4,1))
-    heatscatter(rowMeans(Y0.log.cpm), rowCVs(Y0.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
-    heatscatter(rowMeans(Y1.log.cpm), rowCVs(Y1.log.cpm), ylim=c(0, 6), xlim=c(0, 16),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

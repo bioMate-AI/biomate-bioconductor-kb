@@ -43,10 +43,10 @@ process BIOC_MSSTATSPTM {
 
     # --- data Process Plots P T M [] ---
     # Key functions: dataProcessPlotsPTM
-    dataProcessPlotsPTM(MSstatsPTM.summary,
+
     # --- group Comparison Plots P T M [] ---
     # Key functions: groupComparisonPlotsPTM
-    groupComparisonPlotsPTM(data = MSstatsPTM.model,
+
     # --- sample size plot [] ---
     # Key functions: designSampleSizePlots
     MSstats::designSampleSizePlots(sample_size)

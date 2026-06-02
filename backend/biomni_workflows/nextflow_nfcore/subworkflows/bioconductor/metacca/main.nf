@@ -55,51 +55,27 @@ process BIOC_METACCA {
     # Key functions: metaCcaGp, metaCcaPlusGp
     # Default single-SNP--multi-trait meta-analysis of 2 studies
     # Association analysis according to metaCCA algorithm
-    metaCCA_res1 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-                              std_info = c( 0, 0 ),
     # --- Mychunk8 [] ---
     # Key functions: metaCcaGp
     # Single-SNP--multi-trait meta-analysis of 2 studies
     # and one selected SNP
     # metaCCA
-    metaCCA_res2 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
     # --- Mychunk9 [] ---
     # Key functions: metaCcaPlusGp
     # metaCCA+
-    metaCCApl_res2 = metaCcaPlusGp( nr_studies = 2,
-                                    S_XY = list( S_XY_study1, S_XY_study2 ),
-                                    std_info = c( 0, 0 ),
-                                    S_YY = list( S_YY_study1, S_YY_study2 ),
     # --- Mychunk11 [] ---
     # Key functions: metaCcaGp
     # Multi-SNP--multi-trait meta-analysis of 2 studies
     # metaCCA
-    metaCCA_res3 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-                              std_info = c( 0, 0 ),
     # --- Mychunk12 [] ---
     # Key functions: metaCcaPlusGp
     # metaCCA+
-    metaCCApl_res3 = metaCcaPlusGp( nr_studies = 2,
-                                    S_XY = list( S_XY_study1, S_XY_study2 ),
-                                    std_info = c( 0, 0 ),
-                                    S_YY = list( S_YY_study1, S_YY_study2 ),
     # --- Mychunk14 [] ---
     # Key functions: metaCcaGp
     # metaCCA
-    metaCCA_res4 = metaCcaGp( nr_studies = 2,
-                              S_XY = list( S_XY_study1, S_XY_study2 ),
-                              std_info = c( 0, 0 ),
-                              S_YY = list( S_YY_study1, S_YY_study2 ),
     # --- Mychunk15 [] ---
     # Key functions: metaCcaPlusGp
     # metaCCA+
-    metaCCApl_res4 = metaCcaPlusGp( nr_studies = 2,
-                                    S_XY = list( S_XY_study1, S_XY_study2 ),
-                                    std_info = c( 0, 0 ),
-                                    S_YY = list( S_YY_study1, S_YY_study2 ),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

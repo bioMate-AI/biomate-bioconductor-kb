@@ -51,7 +51,7 @@ process BIOC_BALLGOWN {
     pData(bg) = data.frame(id=sampleNames(bg), group=rep(c(1,0), each=10))
     # --- plot Transcripts [] ---
     # Key functions: plotTranscripts
-    plotTranscripts(gene='XLOC_000454', gown=bg, samples='sample12',
+
     # --- plot Means [] ---
     # Key functions: plotMeans
     plotMeans('XLOC_000454', bg, groupvar='group', meas='FPKM', colorby='transcript')
@@ -68,7 +68,6 @@ process BIOC_BALLGOWN {
     # --- stattest [] ---
     # Key functions: stattest
     agg = collapseTranscripts(gene='XLOC_000454', gown=bg, k=2, method='kmeans')
-    stattest(gowntable=agg$tab, pData=pData(bg), feature='transcript_cluster',
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

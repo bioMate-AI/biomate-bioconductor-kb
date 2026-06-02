@@ -45,12 +45,9 @@ process BIOC_BRANCHPOINTER {
     # Key functions: useMart, makeBranchpointWindowForSNP
     library(biomaRt)
     mart <- useMart("ENSEMBL_MART_SNP", dataset="hsapiens_snp",host="www.ensembl.org")
-    querySNP <- makeBranchpointWindowForSNP(c("rs587776767","rs786205083"),
     # --- GtfToExons analysis [] ---
     # Key functions: gtfToExons, readQueryFile, makeBranchpointWindowForExons, predictBranchpoints, plotBranchpointWindow, predictionsToSummary
-    queryIntronFromGTF <- makeBranchpointWindowForExons("ENSE00000939171.1",
-    head(queryIntronFromGTF)
-    queryIntronFromGTF <- makeBranchpointWindowForExons(c("ENSE00000939171.1",
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

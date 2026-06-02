@@ -62,7 +62,6 @@ process BIOC_FLOWSPECS {
     fullPanelTrans <- arcTrans(fullPanelUnmix, transNames =
                                 colnames(fullPanelUnmix)[6:18])
     par(mfrow=c(1,2))
-    hist(exprs(fullPanelUnmix)[,7], main = "Pre transformation",
     # --- Onevsallplot [] ---
     # Key functions: oneVsAllPlot
     ---------------------------------------------------------------------

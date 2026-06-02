@@ -49,13 +49,9 @@ process BIOC_A4CLASSIF {
     # --- Get top DE genes table (limma) [] ---
     # Key functions: lassoClass, topTable
     resultLasso <- lassoClass(object = ALL, groups = "BTtype")
-    plot(resultLasso,
-    topTable(resultLasso, n = 15)
     # --- Get top DE genes table (limma) [] ---
     # Key functions: pamClass, topTable, confusionMatrix
     resultPam <- pamClass(object = ALL, groups = "BTtype")
-    plot(resultPam,
-    topTable(resultPam, n = 15)
     # --- Get top DE genes table (limma) [] ---
     # Key functions: rfClass, topTable
     ALLSubset <- ALL[sample.int(n = nrow(ALL), size = 100, replace = FALSE), ]

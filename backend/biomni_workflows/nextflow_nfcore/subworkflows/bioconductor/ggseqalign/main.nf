@@ -38,14 +38,63 @@ process BIOC_GGSEQALIGN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DNAStringSet)
+    library(ggseqalign)
     library(jsonlite)
 
-    # --- ReadDNAStringSet analysis [] ---
-    # Key functions: readDNAStringSet, replaceLetterAt, replaceAt, plot_sequence_alignment, theme, valid, install_git, alignment_table
-    if (!requireNamespace("BiocManager", quietly=TRUE))
-    install.packages("BiocManager")
-    BiocManager::install(version = "devel")
+
+    # --- Showcase [] ---
+    # Key functions: set, readDNAStringSet, extdata, dm3_upstream2000.fa.gz
+    ### This chunk dynamically creates fig:showcase but is hidden in the vignette.
+    # It is meant to give an initial impression of a real use case without 
+    # presenting overwhelming code at the start. This chunk is recreated in 
+    # 'ggplot-mod' in its entirety aside from the global figure output setting.
+
+    library(Biostrings)
+    library(ggseqalign)
+    library(ggplot2)
+
+    knitr::opts_chunk$set(fig.dim = c(6, 4))
+
+    dna <- readDNAStringSet(system.file("extdata", "dm3_upstream2000.fa.gz",
+        package = "Biostrings"
+    ))
+
+
+    # --- Noisefig [] ---
+    # Key functions: readDNAStringSet, substr, extdata, dm3_upstream2000.fa.gz, reference
+    # load
+    dna <- Biostrings::readDNAStringSet(system.file("extdata",
+        "dm3_upstream2000.fa.gz",
+        package = "Biostrings"
+    ))
+    q <- as(
+        c(substr(dna[[1]], 100, 300)),
+        "DNAStringSet"
+    )
+    s <- as(
+        c(substr(dna[[2]], 100, 300)),
+        "DNAStringSet"
+    )
+    names(q) <- c("noisy alignment")
+    names(s) <- "reference"
+
+    # --- Noisefignolab [] ---
+    # Key functions: plot_sequence_alignment, alignment_table, element_text, readDNAStringSet, extdata, dm3_upstream2000.fa.gz
+    plot_sequence_alignment(alignment_table(q, s), hide_mismatches = TRUE) +
+        theme(text = element_text(size = 15))
+
+    ## ----ggplot-mod, fig.cap="Styling with ggplot2. In this example, text size was increased, axis labels were added, x-axis text rotated and the color scheme changed.", warning=FALSE----
+    library(ggseqalign)
+    library(ggplot2)
+    library(Biostrings)
+
+    dna <- readDNAStringSet(system.file("extdata", "dm3_upstream2000.fa.gz",
+        package = "Biostrings"
+    ))
+
+    q <- dna[2:4]
+    s <- dna[5]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

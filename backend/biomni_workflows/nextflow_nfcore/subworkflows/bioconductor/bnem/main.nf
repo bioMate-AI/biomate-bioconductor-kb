@@ -41,11 +41,76 @@ process BIOC_BNEM {
     library(bnem)
     library(jsonlite)
 
-    # --- optmimum [] ---
-    # Key functions: optmimum
+
+    # --- Global Options [] ---
+    # Key functions: set, logics, truth, GTN, optmimum, pattern, PKN, center
     knitr::opts_chunk$set(message=FALSE, out.width="125%", fig.align="center",
+                          strip.white=TRUE, warning=FALSE, #tidy=TRUE,
+                          #out.extra='style="display:block; margin:auto;"',
+                          fig.height = 4, fig.width = 8, error=FALSE)
+    fig.cap0 <- "PKN and GTN. The prior knowledge network without any logics 
     (PKN, left) and the ground truth (GTN, right). Red 'tee' arrows depict
-    fig.cap1 <- "GTN and greedy optimum. The GTN (left) and the greedy
+    repression the others activation of 
+    the child. The stimulated S-genes are diamond shaped. Blue diamond edges 
+    in the PKN depict the existence of activation and repression in one arrow."
+    fig.cap1 <- "GTN and greedy optimum. The GTN (left) and the greedy 
+    optmimum (right)."
+    fig.cap2 <- "Expected and observed data. The expected data pattern 
+    (bottom row) of S-gene S1 and the observed data patterns of the 
+    E-genes attached to S1."
+    fig.cap3 <- "BCR signalling. The PKN (left) and the greedy optimum 
+
+    # --- Eval=false [] ---
+    # Key functions: requireNamespace, install, simBoolGtn, addNoise, bnem
+    #  if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    #    install.packages("BiocManager")
+    #  }
+    #  BiocManager::install("bnem")
+
+    ## -----------------------------------------------------------------------------
+    library(bnem)
+
+    ## -----------------------------------------------------------------------------
+    set.seed(9247)
+    sim <- simBoolGtn(Sgenes = 10, maxEdges = 10, keepsif = TRUE, negation=0.1,
+                      layer=1)
+    fc <- addNoise(sim,sd=1)
+    expression <- sim$expression
+    CNOlist <- sim$CNOlist
+
+    # --- Eval = False [] ---
+    # Key functions: bnem, simBoolGtn, addNoise, exhaustive
+    #  ## exhaustive search:
+    #  exhaustive <- bnem(search = "exhaustive",
+    #                     parallel = parallel,
+    #                     CNOlist=CNOlist,
+    #                     fc=fc,
+    #                     expression=expression,
+    #                     model=model
+    #                     )
+
+    ## -----------------------------------------------------------------------------
+    set.seed(9247)
+    sim <- simBoolGtn(Sgenes = 4, maxEdges = 50, dag = FALSE,
+                      negation = 0, allstim = TRUE,frac=0.1)
+    fc <- addNoise(sim,sd=1)
+    expression <- sim$expression
+
+    # --- Eval = False [] ---
+    # Key functions: findResiduals, numeric, for
+    #  residuals <- findResiduals(resString3, CNOlist, model, fc, verbose = FALSE)
+    #  ## verbose = TRUE plots the residuals matrices
+
+    ## -----------------------------------------------------------------------------
+    data(bcr)
+    ## head(fc)
+    fc <- bcr$fc
+    expression <- bcr$expression
+
+    ## -----------------------------------------------------------------------------
+    library(CellNOptR)
+    negation <- FALSE # what happens if we allow negation?
+    sifMatrix <- numeric()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

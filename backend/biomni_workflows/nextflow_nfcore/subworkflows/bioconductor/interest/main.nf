@@ -44,13 +44,9 @@ process BIOC_INTEREST {
     # --- reference build [] ---
     # Key functions: normalizePath, referencePrepare
     suppressMessages(library("IntEREst"))
-    exonDat<- cbind(tmpEx[,3], ".",
-    tmpEx[,c(7,4,5)], ".", tmpEx[,6], ".",paste("ID=exon",
     # --- annotate u12 [] ---
     # Key functions: annotateU12
     ind<- u12$gene_name %in% c("RHBDD2", "YBX2")
-    annotateU12(pwmU12U2=list(pwmU12db[[1]][,11:17],pwmU12db[[2]],
-    pwmSsIndex=list(indexDonU12=1, indexBpU12=1, indexAccU12=3,
     # --- normalize Path [] ---
     # Key functions: normalizePath, interest, readInterestResults
     outDir<- file.path(tempdir(),"interestFolder")
@@ -59,33 +55,21 @@ process BIOC_INTEREST {
     # --- get Annotation [] ---
     # Key functions: getAnnotation, exactTestInterest, rowData, Fraction
     getAnnotation(mdsChr22Obj)
-    test<- exactTestInterest(mdsChr22Obj,
-    sampleAnnoCol="test_ctrl", sampleAnnotation=c("ctrl","test"),
     # --- get Annotation [] ---
     # Key functions: getAnnotation, qlfInterest
     group <- getAnnotation(mdsChr22Obj)[,"type"]
-    qlfRes<- qlfInterest(x=mdsChr22Obj,
-    design=model.matrix(~group), silent=TRUE,
     # --- u12 Boxplot [] ---
     # Key functions: u12Boxplot
     par(mar=c(7,4,2,1))
-    u12Boxplot(mdsChr22Obj, sampleAnnoCol="type",
-    col=rep(c("orange", "yellow"),3) ,	lasNames=3,
     # --- u12BoxplotNb object [] ---
     # Key functions: u12BoxplotNb
     par(mar=c(2,4,1,1))
-    u12BoxplotNb(mdsChr22Obj, sampleAnnoCol="type", lasNames=1,
-    boxplotNames=c(), outline=FALSE, plotLegend=TRUE,
     # --- u12 Density Plot Intron [] ---
     # Key functions: u12DensityPlotIntron, lfc
-    u12DensityPlotIntron(mdsChr22Obj,
-    type= c("U12", "U2Up", "U2Dn", "U2UpDn", "U2Rand"),
-    sampleAnnotation=c("ctrl","test"), intExCol="int_ex",
+
     # --- add Annotation [] ---
     # Key functions: addAnnotation, deseqInterest
     mdsChr22RefIntRetSpObj<- cbind(mdsChr22Obj, mdsChr22IntSpObj)
-    mdsChr22RefIntRetSpObj<- addAnnotation(x=mdsChr22RefIntRetSpObj,
-    sampleAnnotation=c(rep("intron",16), rep("exon",16))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

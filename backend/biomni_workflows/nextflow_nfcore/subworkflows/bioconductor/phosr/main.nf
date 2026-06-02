@@ -57,17 +57,9 @@ process BIOC_PHOSR {
     # --- Genesymbol [] ---
     # Key functions: GeneSymbol, Residue, Site
     ---------------------------------------------------------------------
-    GeneSymbol(ppe) <- sapply(strsplit(rownames(ppe), ";"), "[[", 2)
-    Residue(ppe) <- gsub("[0-9]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3))
-    Site(ppe) <- as.numeric(gsub("[A-Z]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3)))
-    Sequence(ppe) <- sapply(strsplit(rownames(ppe), ";"), "[[", 4)
     # --- Phosphoexperiment [] ---
     # Key functions: PhosphoExperiment
     ---------------------------------------------------------------------
-    ppe <- PhosphoExperiment(assays = list(Quantification = as.matrix(phospho.L6.ratio)),
-                      Site = as.numeric(gsub("[A-Z]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3))),
-                      GeneSymbol = sapply(strsplit(rownames(ppe), ";"), "[[", 2),
-                      Residue = gsub("[0-9]","", sapply(strsplit(rownames(ppe), ";"), "[[", 3)),
     # --- Data [] ---
     # Key functions: data, class
     ---------------------------------------------------------------------
@@ -96,7 +88,6 @@ process BIOC_PHOSR {
     p1 = plotQC(SummarizedExperiment::assay(ppe_filtered,"Quantification"),
         labels=colnames(ppe_filtered),
         panel = "quantify", grps = grps)
-    p2 = plotQC(SummarizedExperiment::assay(ppe_imputed_scaled,"scaled"),
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -126,7 +117,6 @@ process BIOC_PHOSR {
     # plot after batch correction
     p1 = plotQC(SummarizedExperiment::assay(ppe, "Quantification"), grps=grps,
         labels = colnames(ppe), panel = "dendrogram" )
-    p2 = plotQC(SummarizedExperiment::assay(ppe, "normalised"), grps=grps,
     # --- Plotqc [] ---
     # Key functions: plotQC, assay, ggtitle, ggarrange
     ---------------------------------------------------------------------

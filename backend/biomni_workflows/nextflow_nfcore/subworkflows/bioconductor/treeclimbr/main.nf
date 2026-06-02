@@ -43,14 +43,10 @@ process BIOC_TREECLIMBR {
 
     # --- Data import and preprocessing [] ---
     # Key functions: joinNode, unlist, ggtree, aes, geom_text2
-    da_lse <- readRDS(system.file("extdata", "da_sim_100_30_18de.rds",
-    nds <- joinNode(tree = rowTree(da_lse),
-    node = rownames(da_lse)[rowData(da_lse)$Signal])
+
     # --- ShowNode analysis [] ---
     # Key functions: showNode, aggTSE, runDA, nodeResult, getCand, geom_point2, labs, theme
-    ds_res <- runDS(SE = ds_se, tree = colTree(ds_tse), option = "glmQL",
-    design = model.matrix(~ group, data = colData(ds_se)),
-    contrast = c(0, 1), filter_min_count = 0,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

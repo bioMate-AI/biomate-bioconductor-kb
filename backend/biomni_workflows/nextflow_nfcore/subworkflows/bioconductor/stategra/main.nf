@@ -61,7 +61,6 @@ process BIOC_STATEGRA {
     discoRes <- omicsCompAnalysis(Input=list(B1, B2), Names=c("expr", "mirna"),
                                   method="DISCOSCA", Rcommon=2, Rspecific=c(2, 2),
                                   center=TRUE, scale=TRUE, weight=TRUE)
-    jiveRes <- omicsCompAnalysis(Input=list(B1, B2), Names=c("expr", "mirna"),
     # --- Slotnames [] ---
     # Key functions: slotNames
     ---------------------------------------------------------------------
@@ -78,22 +77,17 @@ process BIOC_STATEGRA {
     ---------------------------------------------------------------------
     # Scatterplot of scores variables associated to common components
     # DISCO-SCA
-    plotRes(object=discoRes, comps=c(1, 2), what="scores", type="common",
-            combined=FALSE, block=NULL, color="classname", shape=NULL, labels=NULL,
     # --- Plotres [] ---
     # Key functions: plotRes, g_legend, arrange, arrangeGrob, theme
     ---------------------------------------------------------------------
     # O2PLS
     # Scatterplot of scores variables associated to common components
     # Associated to first block
-    p1 <- plotRes(object=o2plsRes, comps=c(1, 2), what="scores", type="common",
     # --- Plotres [] ---
     # Key functions: plotRes, arrange, arrangeGrob, theme
     ---------------------------------------------------------------------
     # Loadings plot for common components
     # Separately for each block
-    p1 <- plotRes(object=discoRes, comps=c(1, 2), what="loadings", type="common",
-                  combined=FALSE, block="expr", color="classname", shape=NULL,
     # --- Createomicsexpressionset [] ---
     # Key functions: createOmicsExpressionSet
     ---------------------------------------------------------------------
@@ -105,23 +99,12 @@ process BIOC_STATEGRA {
     # Key functions: bioDistclass, exprs
     ---------------------------------------------------------------------
     # Create Gene-gene distance computed through mRNA data
-    bioDistmRNA <- bioDistclass(name="mRNAbymRNA",
-                                distance=cor(t(exprs(mRNA.ds)),
-                                             method="spearman"),
     # --- Biomap [] ---
     # Key functions: bioMap
     ---------------------------------------------------------------------
-    MAP.SYMBOL <- bioMap(name = "Symbol-miRNA",
-                         metadata = list(type_v1="Gene", type_v2="miRNA",
-                                         source_database="targetscan.Hs.eg.db",
-                                         data_extraction="July2014"),
     # --- Biodist [] ---
     # Key functions: bioDist
     ---------------------------------------------------------------------
-    bioDistmiRNA <- bioDist(referenceFeatures=rownames(Block1),
-                            reference="Var1",
-                            mapping=MAP.SYMBOL,
-                            surrogateData=miRNA.ds,
     # --- Biodistw [] ---
     # Key functions: bioDistW
     ---------------------------------------------------------------------

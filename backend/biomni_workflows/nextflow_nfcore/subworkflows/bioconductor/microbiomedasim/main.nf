@@ -44,18 +44,12 @@ process BIOC_MICROBIOMEDASIM {
     # --- mvrnorm_sim [] ---
     # Key functions: mvrnorm_sim
     require(microbiomeDASim)
-    triv_ex <- mvrnorm_sim(n_control=10, n_treat=10, control_mean=2,
-    sigma=1, num_timepoints=2, t_interval=c(1, 2), rho=0.8,
     # --- mean_trend [] ---
     # Key functions: mean_trend, mvrnorm_sim
-    true_mean <- mean_trend(timepoints=1:10, form="L_up", beta=0.5, IP=5,
-    hockey_sim <- mvrnorm_sim(n_control=10, n_treat=10, control_mean=2, sigma=1,
-    num_timepoints=10, t_interval=c(0, 9), rho=0.8,
+
     # --- gen_norm_microbiome [] ---
     # Key functions: gen_norm_microbiome
-    bug_gen <- gen_norm_microbiome(features=6, diff_abun_features=3, n_control=30,
-    num_timepoints=4, t_interval=c(0, 3),
-    func_form="M", beta=c(4, 3), IP=c(2, 3.3, 6),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

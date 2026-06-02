@@ -60,30 +60,21 @@ process BIOC_ATACSEQQC {
     # Key functions: scanBam, BamFile, ScanBamParam, unlist
     ---------------------------------------------------------------------
     ## bamfile tags to be read in
-    possibleTag <- list("integer"=c("AM", "AS", "CM", "CP", "FI", "H0", "H1", "H2",
-                                    "HI", "IH", "MQ", "NH", "NM", "OP", "PQ", "SM",
-                                    "TC", "UQ"),
     # --- Transcripts [] ---
     # Key functions: transcripts, PTscore
     ---------------------------------------------------------------------
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     txs <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
     pt <- PTscore(gal1, txs)
-    plot(pt$log2meanCoverage, pt$PT_score,
     # --- Nfrscore [] ---
     # Key functions: NFRscore
     ---------------------------------------------------------------------
     nfr <- NFRscore(gal1, txs)
-    plot(nfr$log2meanCoverage, nfr$NFR_score,
-         xlab="log2 mean coverage",
-         ylab="Nucleosome Free Regions score",
     # --- Tssescore [] ---
     # Key functions: TSSEscore
     ---------------------------------------------------------------------
     tsse <- TSSEscore(gal1, txs)
     tsse$TSSEscore
-    plot(100*(-9:10-.5), tsse$values, type="b",
-         xlab="distance to TSS",
     # --- Seqnames [] ---
     # Key functions: seqnames, splitGAlignmentsByCut
     ---------------------------------------------------------------------
@@ -97,7 +88,6 @@ process BIOC_ATACSEQQC {
     ## rescale the nucleosome-free and nucleosome signals to 0~1
     range01 <- function(x){(x-min(x))/(max(x)-min(x))}
     out <- apply(out, 2, range01)
-    matplot(out, type="l", xaxt="n",
     # --- Query [] ---
     # Key functions: query, factorFootprints
     ---------------------------------------------------------------------

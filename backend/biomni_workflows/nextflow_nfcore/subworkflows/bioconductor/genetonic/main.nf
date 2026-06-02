@@ -53,17 +53,12 @@ process BIOC_GENETONIC {
     # Key functions: rowSums, estimateSizeFactors, gene_plot, geneinfo_to_html
     head(mosdef::deresult_to_df(res_macrophage_IFNg_vs_naive))
     dds_macrophage <- estimateSizeFactors(dds_macrophage)
-    mosdef::gene_plot(dds_macrophage,
     # --- Variance-stabilizing transformation (VST) [] ---
     # Key functions: vst, gs_scores, gs_scoresheat
     vst_macrophage <- vst(dds_macrophage)
-    scores_mat <- gs_scores(
-    gs_scoresheat(scores_mat,
     # --- Run DESeq2 differential expression [] ---
     # Key functions: DESeq, results
     dds_macrophage <- DESeq(dds_macrophage)
-    res_macrophage_IFNg_vs_naive <- results(dds_macrophage,
-    contrast = c("condition", "IFNg", "naive"),
     # --- Feature metadata inspection [] ---
     # Key functions: GeneTonic, example, deresult_to_df, rowData, run_topGO, shake_topGOtableResult, get_annotation_orgdb, get_aggrscores
     library("AnnotationDbi")

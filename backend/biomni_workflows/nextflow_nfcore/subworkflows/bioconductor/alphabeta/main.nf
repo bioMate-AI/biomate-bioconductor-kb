@@ -38,13 +38,45 @@ process BIOC_ALPHABETA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ABneutral)
+    library(AlphaBeta)
     library(jsonlite)
 
-    # --- output.lines=5 [] ---
-    # Key functions: ABneutral
-    output.data.dir <- paste0(getwd())
-    output <- ABneutral(
+
+    # --- Include=false [] ---
+    # Key functions: readRDS, output.rds
+    rFile <- system.file("extdata/dm","output.rds", package="AlphaBeta")
+    output <- readRDS(rFile )
+
+    ## ---------------------------------------------------------------------------------------------------------------------
+    head(output$Pdata)
+
+    # --- Include=false [] ---
+    # Key functions: readRDS, outputSoma.rds
+    TrFile <- system.file("extdata/soma","outputSoma.rds", package="AlphaBeta")
+    outputTree <- readRDS(TrFile)
+
+    ## ---------------------------------------------------------------------------------------------------------------------
+    head(outputTree$Pdata)
+
+    # --- Output Lines=5 [] ---
+    # Key functions: getwd, ABneutral, ABneutral_CG_global_estimates
+    # output directory
+    output.data.dir <- paste0(getwd()) 
+
+    # --- Output Lines=5 [] ---
+    # Key functions: summary
+    summary(output)
+
+    # --- Output Lines=5 [] ---
+    # Key functions: alphabeta
+    head(output$pedigree)
+
+    # --- Eval=true [] ---
+    # Key functions: dget, ABneutralSOMA_CG_global_estimates.Rdata
+    ABfilesoma <- system.file("extdata/models/", 
+                          "ABneutralSOMA_CG_global_estimates.Rdata", 
+                          package = "AlphaBeta")
+    outputABneutralSOMA <- dget(ABfilesoma)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
