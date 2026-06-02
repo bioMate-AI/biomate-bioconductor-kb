@@ -41,31 +41,40 @@ process BIOC_CELLXGENEDP {
     library(cellxgenedp)
     library(jsonlite)
 
-    # --- facets [] ---
-    # Key functions: facets
-    facets(db, "assay")
-    facets(db, "self_reported_ethnicity")
-    facets(db, "sex")
-    # --- african american female [] ---
-    # Key functions: datasets, facets_filter, summarise, left_join, collections
-    datasets(db) |>
-    filter(
-    facets_filter(assay, "ontology_term_id", "EFO:0009922"),
-    # --- left_join [] ---
-    # Key functions: left_join, files
-    left_join(
-    african_american_female |> select(dataset_id),
-    files(db),
-    # --- local file from dataset id [] ---
+    # --- Facet Filtering [] ---
+    # Key functions: facets, facets_filter
+    assay_facets <- facets(cxg_db, "assay")
+    sex_facets <- facets(cxg_db, "sex")
+    filtered_datasets <- datasets(cxg_db) |>
+        dplyr::filter(
+            facets_filter(assay, "ontology_term_id", "EFO:0009922"),
+            facets_filter(sex, "label", "female")
+        )
+
+
+    # --- Metadata Retrieval [] ---
+    # Key functions: publisher_metadata, authors, links
+    pub_meta <- publisher_metadata(cxg_db)
+    col_authors <- authors(cxg_db)
+    col_links <- links(cxg_db)
+
+
+    # --- File Download [] ---
     # Key functions: files_download
-    filter(
-    files_download(dry.run = FALSE)
-    basename(local_file)
-    # --- read H5 A D [] ---
-    # Key functions: readH5AD, colData, as_tibble, count
-    h5ad <- readH5AD(local_file, use_hdf5 = TRUE, reader = "R")
-    colData(h5ad) |>
-    as_tibble() |>
+    selected_files <- dplyr::left_join(
+        filtered_datasets |> dplyr::select(dataset_id),
+        files(cxg_db),
+        by = "dataset_id"
+    )
+    local_file <- selected_files |>
+        dplyr::filter(filetype == "H5AD") |>
+        dplyr::slice(1) |>
+        files_download(dry.run = FALSE)
+
+
+    # --- H5AD Reading [] ---
+    # Key functions: readH5AD
+    h5ad_sce <- readH5AD(local_file, use_hdf5 = TRUE, reader = "R")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,16 +41,51 @@ process BIOC_CELLMIXS {
     library(CellMixS)
     library(jsonlite)
 
-    # --- Log-normalize count data [] ---
-    # Key functions: reducedDimNames, cms, logNormCounts, removeBatchEffect, assay
-    reducedDimNames(sce20)
-    sce20 <- cms(sce20, k = 30, group = "batch",
-    sce20 <- scater::logNormCounts(sce20)
-    # --- VisGroup analysis [] ---
-    # Key functions: visGroup, plot_grid, cms, visHist, map, bind_cols, visMetric, visOverview
-    (Important: List names need to correspond to batch levels! See ?ldfDiff)
-    sce_pre_list <- list("1" = sce20[,sce20$batch == "1"],
+    # --- Cell-Specific Mixing Score [] ---
+    # Key functions: cms
+    sce50 <- cms(sce50, k = 30, group = "batch", res_name = "unaligned",
+                 n_dim = 3, cell_min = 4)
+    sim_list <- lapply(c("batch0", "batch20"), function(name) {
+        sce <- sim_list[[name]]
+        cms(sce, k = 30, group = "batch", res_name = "unaligned",
+            n_dim = 3, cell_min = 4)
+    })
+
+
+    # --- Metric Visualization [] ---
+    # Key functions: visHist, visMetric, visOverview, visCluster
+    p_hist <- visHist(sce50)
+    metric_plot <- visMetric(sce20, metric_var = "cms_smooth.unaligned")
+    sce20[["celltype"]] <- as.factor(rep(c("CD4+", "CD8+"),
+                                         length.out = ncol(sce20)))
+    overview_plot <- visOverview(sce20, "batch", other_var = "celltype")
+    cluster_plot <- visCluster(sce20, metric_var = "cms.unaligned",
+                               cluster_var = "celltype")
+
+
+    # --- Local Density Factor Difference [] ---
+    # Key functions: ldfDiff, visIntegration
+    sce_pre_list <- list("1" = sce20[, sce20$batch == "1"],
+                         "2" = sce20[, sce20$batch == "2"],
+                         "3" = sce20[, sce20$batch == "3"])
     sce20 <- ldfDiff(sce_pre_list, sce_combined = sce20,
+                     group = "batch", k = 70, dim_red = "PCA",
+                     dim_combined = "MNN", assay_pre = "counts",
+                     n_dim = 3, res_name = "MNN")
+    vis_ldf <- visIntegration(sce20, metric = "diff_ldf",
+                              metric_name = "ldfDiff")
+
+
+    # --- Integration Evaluation [] ---
+    # Key functions: evalIntegration, visOverview
+    sce50 <- evalIntegration(metrics = c("isi", "entropy"), sce50,
+                             group = "batch", k = 30, n_dim = 2,
+                             cell_min = 4,
+                             res_name = c("weighted_isi", "entropy"))
+    vis_eval <- visOverview(sce50, "batch",
+                            metric = c("cms_smooth.unaligned",
+                                       "weighted_isi", "entropy"),
+                            prefix = FALSE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

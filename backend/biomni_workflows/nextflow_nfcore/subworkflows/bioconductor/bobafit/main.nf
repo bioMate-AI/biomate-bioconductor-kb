@@ -38,49 +38,38 @@ process BIOC_BOBAFIT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BOBaFIT)
     library(DRrefit)
     library(DRrefit_plot)
     library(PlotChrCluster)
     library(jsonlite)
 
-    # --- compute Normal Chromosomes [] ---
-    # Key functions: computeNormalChromosomes
-    chr_list <- computeNormalChromosomes(segments = TCGA_BRCA_CN_segments,
-    # --- D Rrefit [] ---
+    # --- Copy Number Refitting [] ---
     # Key functions: DRrefit
-    results <- DRrefit (segments_chort = TCGA_BRCA_CN_segments, chrlist = chr_list)
-    # --- DRrefit test [] ---
-    # Key functions: DRrefit
-    library(dplyr)
-    samples <- TCGA_BRCA_CN_segments$ID %>% unique()
-    test <- TCGA_BRCA_CN_segments %>% filter(ID %in% sample_test)
-    # --- Call segments DRrefit 1 [] ---
-    # Key functions: kable
-    table <- results$corrected_segments[1,] %>% select(chr,start,end, ID, arm, chrarm,CN,CN_corrected)
-    knitr::kable(table,digits = 3)
-    # --- Call report DRrefit 2 [] ---
-    # Key functions: kable
-    knitr::kable(results$report[1,])
-    # --- DRrefit plot [] ---
+    results <- DRrefit(
+        segments_chort = TCGA_BRCA_CN_segments,
+        chrlist = chr_list
+    )
+    corrected_segments <- results$corrected_segments
+    report <- results$report
+
+
+    # --- Visualisation [] ---
     # Key functions: DRrefit_plot
-    DRrefit_plot(corrected_segments = corrected_segments,
-    DRrefit_plot(corrected_segments = corrected_segments,
-    # --- DRrefit plot 1 [] ---
-    # Key functions: DRrefit_plot
-    DRrefit_plot(corrected_segments = seg,
-    # --- DRrefit plot 2 [] ---
-    # Key functions: DRrefit_plot
-    DRrefit_plot(corrected_segments = seg,
-    # --- Plot Chr Cluster [] ---
+    DRrefit_plot(
+        corrected_segments = corrected_segments,
+        DRrefit_report = report,
+        plot_viewer = TRUE
+    )
+
+
+    # --- Chromosome Clustering [] ---
     # Key functions: PlotChrCluster
-    Cluster <- PlotChrCluster(segs = TCGA_BRCA_CN_segments,
-    # --- PlotChrCluster test [] ---
-    # Key functions: PlotChrCluster
-    Cluster <- PlotChrCluster(segs = test,
-    # --- Call report PlotChrCluster 3 [] ---
-    # Key functions: kable
-    knitr::kable(head(Cluster$report))
-    knitr::kable(head(Cluster$plot_tables$`01428281-1653-4839-b5cf-167bc62eb147`))
+    Cluster <- PlotChrCluster(
+        segs = TCGA_BRCA_CN_segments,
+        clust_method = "ward.D2",
+        plot_output = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

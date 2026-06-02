@@ -41,11 +41,40 @@ process BIOC_BNEM {
     library(bnem)
     library(jsonlite)
 
-    # --- optmimum [] ---
-    # Key functions: optmimum
-    knitr::opts_chunk$set(message=FALSE, out.width="125%", fig.align="center",
-    (PKN, left) and the ground truth (GTN, right). Red 'tee' arrows depict
-    fig.cap1 <- "GTN and greedy optimum. The GTN (left) and the greedy
+    # --- Network Inference [] ---
+    # Key functions: bnem
+    greedy <- bnem(
+        search = "greedy",
+        fc = fc,
+        expression = sim$expression,
+        CNOlist = sim$CNOlist,
+        model = sim$model,
+        parallel = NULL,
+        initBstring = NULL,
+        draw = FALSE,
+        verbose = FALSE,
+        maxSteps = Inf,
+        method = "s"
+    )
+
+
+    # --- Validation and Visualisation [] ---
+    # Key functions: validateGraph
+    fitinfo <- validateGraph(
+        sim$CNOlist,
+        fc = fc,
+        expression = sim$expression,
+        model = sim$model,
+        bString = greedy$bString,
+        Sgene = 4,
+        Egenes = 1000,
+        cexRow = 0.8,
+        cexCol = 0.7,
+        xrot = 45,
+        Colv = TRUE,
+        Rowv = TRUE,
+        dendrogram = "both"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

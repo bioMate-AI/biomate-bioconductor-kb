@@ -38,58 +38,31 @@ process BIOC_BIOCTHIS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(biocthis)
     library(PrintBibliography)
     library(jsonlite)
 
-    # --- "install" [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("biocthis")
-    # --- 'create example pkg' [] ---
-    # Key functions: biocthis_example_pkg
-    pkgdir <- biocthis_example_pkg("biocthispkg", use_git = TRUE)
-    # --- 'create dev' [] ---
-    # Key functions: use_bioc_pkg_templates
-    biocthis::use_bioc_pkg_templates()
-    # --- 'bioc badges' [] ---
-    # Key functions: use_bioc_badges
-    biocthis::use_bioc_badges()
-    # --- 'style code' [] ---
-    # Key functions: style_pkg
-    styler::style_pkg(pkgdir, transformers = biocthis::bioc_style())
-    # --- 'bioc citation' [] ---
-    # Key functions: use_bioc_citation
-    biocthis::use_bioc_citation()
-    # --- 'bioc description' [] ---
-    # Key functions: use_bioc_description
+    # --- Configuration and Metadata Setup [] ---
+    # Key functions: use_bioc_description, use_bioc_citation, use_bioc_news_md
     biocthis::use_bioc_description()
-    # --- 'bioc github action' [] ---
-    # Key functions: use_bioc_github_action
-    biocthis::use_bioc_github_action()
-    # --- 'bioc issue template' [] ---
-    # Key functions: use_bioc_issue_template
-    biocthis::use_bioc_issue_template()
-    # --- 'bioc news' [] ---
-    # Key functions: use_bioc_news_md
+    biocthis::use_bioc_citation()
     biocthis::use_bioc_news_md()
-    # --- "bioc pkgdown css" [] ---
-    # Key functions: use_bioc_pkgdown_css
-    biocthis::use_bioc_pkgdown_css()
-    # --- 'bioc readme rmd' [] ---
-    # Key functions: use_bioc_readme_rmd
-    biocthis::use_bioc_readme_rmd()
-    # --- 'bioc support' [] ---
-    # Key functions: use_bioc_support
+
+
+    # --- Continuous Integration and Community Setup [] ---
+    # Key functions: use_bioc_github_action, use_bioc_issue_template, use_bioc_feature_request_template, use_bioc_support
+    biocthis::use_bioc_github_action()
+    biocthis::use_bioc_issue_template()
+    biocthis::use_bioc_feature_request_template()
     biocthis::use_bioc_support()
-    # --- 'bioc vignette' [] ---
-    # Key functions: use_bioc_vignette
+
+
+    # --- Documentation and Styling [] ---
+    # Key functions: use_bioc_badges, use_bioc_pkgdown_css, use_bioc_readme_rmd, use_bioc_vignette
+    biocthis::use_bioc_badges()
+    biocthis::use_bioc_pkgdown_css()
+    biocthis::use_bioc_readme_rmd()
     biocthis::use_bioc_vignette("biocthispkg", "Introduction to biocthispkg")
-    # --- knit [] ---
-    # Key functions: knit
-    library("rmarkdown")
-    system.time(render("biocthis.Rmd", "BiocStyle::html_document"))
-    library("knitr")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

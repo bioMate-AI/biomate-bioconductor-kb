@@ -41,11 +41,28 @@ process BIOC_BIOSIGNER {
     library(biosigner)
     library(jsonlite)
 
-    # --- Phenotype data inspection [] ---
-    # Key functions: attach, view, with, biosign, setdiff, predict, sweep, pData
-    with(sampleMetadata,
-    plot(age, bmi, cex = 1.5, col = ifelse(type == "T1", "blue", "red"), pch = 16))
-    legend("topleft", cex = 1.5, legend = paste0("T", 1:2),
+    # --- Signature Extraction and Visualization [] ---
+    # Key functions: getSignatureLs, plot
+    sig_features <- getSignatureLs(diaSign)[["complete"]]
+    plot(diaSign, typeC = "boxplot")
+    plot(diaSign, typeC = "tier")
+
+
+    # --- Prediction and Performance Evaluation [] ---
+    # Key functions: predict, getAccuracyMN
+    predictions <- predict(diaSign)
+    accuracy <- getAccuracyMN(diaSign)
+
+
+    # --- Multi-Assay and SummarizedExperiment Integration [] ---
+    # Key functions: biosign, getBiosign
+    data(diaplasma)
+    dia.se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diaplasma = t(diaplasma$dataMatrix[1:20, 1:50])),
+        colData = diaplasma$sampleMetadata[1:20, ]
+    )
+    dia.se <- biosign(dia.se, "type", bootI = 5)
+    dia_models <- getBiosign(dia.se)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

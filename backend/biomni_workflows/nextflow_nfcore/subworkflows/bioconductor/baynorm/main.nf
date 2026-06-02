@@ -38,6 +38,7 @@ process BIOC_BAYNORM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(bayNorm)
     library(BetaFun)
     library(SCnorm_runMAST)
     library(SCnorm_runMAST3)
@@ -45,31 +46,29 @@ process BIOC_BAYNORM {
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Create SummarizedExperiment [] ---
-    # Key functions: SummarizedExperiment, SingleCellExperiment, BetaFun
-    data('EXAMPLE_DATA_list')
-    rse <- SummarizedExperiment::SummarizedExperiment(assays=SimpleList(counts=EXAMPLE_DATA_list$inputdata[,seq(1,30)]))
-    rse <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=EXAMPLE_DATA_list$inputdata))
-    # --- intro bayNorm [] ---
+    # --- Bayesian Normalization (3D Array) [] ---
     # Key functions: bayNorm
-    bayNorm_3D<-bayNorm(
-    Return 2D matrix normalized data (MAP of posterior):
-    Return 2D matrix normalized data (mean of posterior):
-    # --- intro bayNorm sup [] ---
+    bayNorm_3D <- bayNorm(
+        Data=rse,
+        BETA_vec=beta_vector,
+        mode_version=FALSE,
+        mean_version=FALSE,
+        S=20,
+        verbose=FALSE,
+        parallel=FALSE
+    )
+
+
+    # --- Bayesian Normalization (2D Matrix) [] ---
     # Key functions: bayNorm_sup
-    Now if you want to generate 2D matrix (MAP) using the same prior
-    bayNorm_2D<-bayNorm_sup(
-    (mean of posterior) using the same prior
-    # --- DE fun [] ---
-    # Key functions: SCnorm_runMAST, foreach, rowMeans
-    library(MAST)
-    library(reshape2)
-    SCnorm_runMAST3 <- function(Data, NumCells) {
-    # --- DE run [] ---
-    # Key functions: SCnorm_runMAST3
-    DE_out<-SCnorm_runMAST3(Data=bayNorm_3D$Bay_out, NumCells=c(15,15))
-    med_pvals<-apply(DE_out,1,median)
-    DE_genes<-names(which(med_pvals<0.05))
+    bayNorm_2D_mean <- bayNorm_sup(
+        Data=rse,
+        PRIORS=bayNorm_3D$PRIORS,
+        input_params=bayNorm_3D$input_params,
+        mode_version=FALSE,
+        mean_version=TRUE,
+        verbose=FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

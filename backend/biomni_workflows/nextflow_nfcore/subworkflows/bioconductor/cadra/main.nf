@@ -41,22 +41,28 @@ process BIOC_CADRA {
     library(CaDrA)
     library(jsonlite)
 
-    # --- set.up [] ---
-    # Key functions: load_all
-    knitr::opts_chunk$set(message=FALSE, collapse = TRUE, comment="")
-    library(devtools)
-    load_all()
-    # --- candidate_search [] ---
-    # Key functions: candidate_search
-    candidate_search_res <- CaDrA::candidate_search(
-    # --- topn_best [] ---
-    # Key functions: topn_best, meta_plot, CaDrA
-    topn_best_meta <- CaDrA::topn_best(topn_list = candidate_search_res)
+    # --- Permutation Testing [] ---
+    # Key functions: CaDrA
+    perm_res <- CaDrA::CaDrA(
+        FS = sim_FS,
+        input_score = sim_Scores,
+        method = "ks_pval",
+        method_alternative = "less",
+        weights = NULL,
+        search_method = "both",
+        top_N = 7,
+        max_size = 10,
+        n_perm = 100,
+        perm_alternative = "one.sided",
+        plot = FALSE,
+        ncores = 2
+    )
+
+
+    # --- Visualization [] ---
+    # Key functions: meta_plot, permutation_plot
     CaDrA::meta_plot(topn_best_list = topn_best_meta)
-    set.seed(123)
-    # --- ks.permutation.plot [] ---
-    # Key functions: permutation_plot
-    permutation_plot(perm_res = perm_res)
+    CaDrA::permutation_plot(perm_res = perm_res)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
