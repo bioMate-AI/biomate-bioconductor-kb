@@ -39,15 +39,49 @@ process BIOC_BASILISK {
     """
     #!/usr/bin/env Rscript
     library(BasiliskEnvironment)
+    library(basilisk)
     library(jsonlite)
 
-    # --- Basiliskenvironment [] ---
-    # Key functions: BasiliskEnvironment
-    ---------------------------------------------------------------------
-    library(basilisk)
-    my_env <- BasiliskEnvironment(envname="my_env_name",
-        pkgname="ClientPackage",
-        packages=c("pandas==1.4.3", "scikit-learn==1.1.1")
+
+    # --- Eval=false [] ---
+    # Key functions: setDefaultClusterOptions, createLocalBasiliskEnv, sequential, windows
+    #  parallel:::setDefaultClusterOptions(setup_strategy = "sequential")
+
+    ## -----------------------------------------------------------------------------
+    if (.Platform$OS.type != "windows") {
+    tmp <- createLocalBasiliskEnv("basilisk-vignette-test",
+        packages=c("scikit-learn=1.1.1", "numpy=1.22.1"))
+    }
+
+    # --- Error=false [] ---
+    # Key functions: rnorm, basiliskRun, function, import, TruncatedSVD, fit, windows, sklearn.decomposition
+    if (.Platform$OS.type != "windows") {
+    x <- matrix(rnorm(1000), ncol=10)
+    basiliskRun(env=tmp, fun=function(mat) {
+        module <- reticulate::import("sklearn.decomposition")
+        runner <- module$TruncatedSVD()
+        output <- runner$fit(mat) 
+        output$singular_values_
+    }, mat = x, testload="scipy.optimize")
+    }
+
+    # --- Error=false [] ---
+    # Key functions: getwd, file.exists, getCondaDir, getCondaBinary, conda_install, windows
+    if (.Platform$OS.type != "windows") {
+    library(reticulate)
+
+    # In this case, we'll use reticulate directly to construct our conda
+    # environment; though we'll cheat a little and use basilisk's conda
+    # installation, otherwise reticulate will try to install its own miniconda.
+    tmp2 <- file.path(getwd(), "basilisk-vignette-test2")
+    if (!file.exists(tmp2)) {
+        conda.bin <- file.path(
+            basilisk.utils::getCondaDir(), 
+            basilisk.utils::getCondaBinary()
+        )
+        conda_install(tmp2, 
+            packages=c("scipy==1.9.1"), 
+            python_version="3.10", 
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

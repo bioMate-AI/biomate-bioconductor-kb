@@ -39,12 +39,26 @@ process BIOC_MIA {
     """
     #!/usr/bin/env Rscript
     library(mia)
+    library("mia")
     library(jsonlite)
 
-    # --- taxonomy Ranks [] ---
-    # Key functions: taxonomyRanks, rowData, agglomerateByRank, rowTree
+
+    # --- Eval=false [] ---
+    # Key functions: requireNamespace, install, rowData, mia
+    #  if (!requireNamespace("BiocManager", quietly = TRUE))
+    #      install.packages("BiocManager")
+    #  BiocManager::install("mia")
+
+    ## ----load-packages, message=FALSE, warning=FALSE------------------------------
     library("mia")
+
+    ## -----------------------------------------------------------------------------
     data(GlobalPatterns, package = "mia")
+    tse <- GlobalPatterns
+    tse
+
+    ## -----------------------------------------------------------------------------
+    # print the available taxonomic ranks
     colnames(rowData(tse))
 
     # --- Save outputs ---

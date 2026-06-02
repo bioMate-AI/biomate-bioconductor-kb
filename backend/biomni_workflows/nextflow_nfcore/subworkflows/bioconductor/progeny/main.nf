@@ -41,11 +41,28 @@ process BIOC_PROGENY {
     library(progeny)
     library(jsonlite)
 
-    # --- w dist [] ---
-    # Key functions: group_by, slice_min, ggplot, geom_density, theme
-    group_by(pathway) %>%
-    slice_min(order_by = p.value, n = 200)
+
+    # --- Model [] ---
+    # Key functions: progeny
+    model <- progeny::model_human_full
+    head(model)
+
+    # --- W Dist [] ---
+    # Key functions: group_by, slice_min, element_text, none
+    # Get top 100 significant genes per pathway
+    model_100 <- model %>%
+      group_by(pathway) %>%
+      slice_min(order_by = p.value, n = 200)
+
+    # Plot
     ggplot(data=model_100, aes(x=weight, color=pathway, fill=pathway)) +
+      geom_density() +
+      theme(text = element_text(size=12)) +
+      facet_wrap(~ pathway, scales='free') +
+      xlab('scores') +
+      ylab('densities') +
+      theme_bw() +
+      theme(legend.position = "none")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

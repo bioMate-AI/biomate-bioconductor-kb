@@ -40,13 +40,87 @@ process BIOC_RCISTARGET {
     #!/usr/bin/env Rscript
     library(GeneSet)
     library(Stangle)
+    library(RcisTarget)
     library(jsonlite)
 
-    # --- ImportRankings analysis [] ---
-    # Key functions: importRankings, cisTarget, calcAUC, addMotifAnnotation, addSignificantGenes, Stangle, GeneSet, lengths
+
+    # --- Libraries [] ---
+    # Key functions: suppressPackageStartupMessages, citation, textVersion
+    suppressPackageStartupMessages({
     library(RcisTarget)
-    geneList1 <- read.table(file.path(system.file('examples', package='RcisTarget'), "hypoxiaGeneSet.txt"), stringsAsFactors=FALSE)[,1]
-    geneLists <- list(geneListName=geneList1)
+    library(RcisTarget.hg19.motifDBs.cisbpOnly.500bp) 
+    library(DT)
+    library(data.table)
+    #require(visNetwork)
+    })
+    print(citation("RcisTarget")[1], style="textVersion")
+
+    # --- Gene Sets [] ---
+    # Key functions: GeneSet, gene1, gene2, gene3, geneSetName, read.table, hypoxiaGeneSet.txt
+    library(RcisTarget)
+    geneSet1 <- c("gene1", "gene2", "gene3")
+    geneLists <- list(geneSetName=geneSet1)
+    # or: 
+    # geneLists <- GSEABase::GeneSet(geneSet1, setName="geneSetName")
+    txtFile <- paste(file.path(system.file('examples', package='RcisTarget')),
+                     "hypoxiaGeneSet.txt", sep="/")
+    geneLists <- list(hypoxia=read.table(txtFile, stringsAsFactors=FALSE)[,1])
+    head(geneLists$hypoxia)
+
+    # --- Load Annot [] ---
+    # Key functions: showLogo
+    # mouse:
+    # data(motifAnnotations_mgi)
+
+    # human:
+    data(motifAnnotations_hgnc)
+    motifAnnotations[199:202,]
+    showLogo(motifAnnotations[(directAnnotation==TRUE) & keptInRanking 
+                                   & (TF %in% c("HIF1A", "HIF2A", "EPAS1")), ])
+
+    # --- Load Databases Cisbp Only [] ---
+    # Key functions: calcAUC
+    library(RcisTarget.hg19.motifDBs.cisbpOnly.500bp)
+    # Rankings
+    data(hg19_500bpUpstream_motifRanking_cispbOnly)
+    motifRankings <- hg19_500bpUpstream_motifRanking_cispbOnly
+    motifRankings
+
+    # Annotations
+    data(hg19_motifAnnotation_cisbpOnly) 
+    motifAnnotations <- hg19_motifAnnotation_cisbpOnly
+    motifs_AUC <- calcAUC(geneLists, motifRankings, nCores=1)
+
+    # --- Auchistogram [] ---
+    # Key functions: getAUC, abline, hypoxia, darkred, red, addMotifAnnotation, class, TF_lowConf
+    auc <- getAUC(motifs_AUC)["hypoxia",]
+    hist(auc, main="hypoxia", xlab="AUC histogram",
+         breaks=100, col="#ff000050", border="darkred")
+    nes3 <- (3*sd(auc)) + mean(auc)
+    abline(v=nes3, col="red")
+    motifEnrichmentTable <- addMotifAnnotation(motifs_AUC, nesThreshold=3,
+         motifAnnot=motifAnnotations,
+         highlightTFs=list(hypoxia=c("HIF1A", "EPAS1")))
+
+    ## -----------------------------------------------------------------------------
+    class(motifEnrichmentTable)
+    dim(motifEnrichmentTable)
+    head(motifEnrichmentTable[,-"TF_lowConf", with=FALSE])
+
+    # --- Add Significant Genes [] ---
+    # Key functions: addSignificantGenes, sample, par, getSignificantGenes, hypoxia, none, aprox
+    motifEnrichmentTable_wGenes <- addSignificantGenes(motifEnrichmentTable,
+                          rankings=motifRankings, 
+                          geneSets=geneLists)
+    dim(motifEnrichmentTable_wGenes)
+    geneSetName <- "hypoxia"
+    selectedMotifs <- c(sample(motifEnrichmentTable$motif, 2))
+    par(mfrow=c(2,2))
+    getSignificantGenes(geneLists[[geneSetName]], 
+                        rankings=motifRankings,
+                        signifRankingNames=selectedMotifs,
+                        plotCurve=TRUE, maxRank=5000, genesFormat="none",
+                        method="aprox")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

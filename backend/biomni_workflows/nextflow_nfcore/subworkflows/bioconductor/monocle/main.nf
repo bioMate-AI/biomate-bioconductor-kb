@@ -39,15 +39,23 @@ process BIOC_MONOCLE {
     """
     #!/usr/bin/env Rscript
     library(monocle)
-    library(jsonlite)
-
-    # --- Package Loads [] ---
-    # Key functions: set
     library(Biobase)
     library(knitr)
     library(reshape2)
     library(ggplot2)
-    knitr::opts_chunk$set(autodep=TRUE, cache=FALSE, warning=FALSE, dev='png', dpi=600)
+    library(jsonlite)
+
+
+    # --- Include=false [] ---
+    # Key functions: set
+    library(knitr)
+    opts_chunk$set(
+    #concordance=TRUE
+    )
+
+    # --- Gene Pairwise Kinetic Plot [] ---
+    # Key functions: monocle
+    plot(1:10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

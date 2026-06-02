@@ -42,11 +42,24 @@ process BIOC_SINGLECELLEXPERIMENT {
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, int_colData, AsetX
+
+    # --- Construct [] ---
+    # Key functions: rpois, SingleCellExperiment, function, int_colData, runif, sample
     library(SingleCellExperiment)
     counts <- matrix(rpois(100, lambda = 10), ncol=10, nrow=10)
     sce <- SingleCellExperiment(assays = list(counts = counts))
+    sce
+
+    ## -----------------------------------------------------------------------------
+    # Function in package A:
+    AsetX <- function(sce) {
+        int_colData(sce)$X <- runif(ncol(sce))
+        sce
+    }
+
+    # Function in package B:
+    BsetX <- function(sce) {
+        int_colData(sce)$X <- sample(LETTERS, ncol(sce), replace=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

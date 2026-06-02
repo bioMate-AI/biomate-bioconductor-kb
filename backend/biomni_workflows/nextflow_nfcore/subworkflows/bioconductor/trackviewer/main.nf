@@ -41,11 +41,97 @@ process BIOC_TRACKVIEWER {
     library(trackViewer)
     library(jsonlite)
 
-    # --- OptimizeStyle analysis [] ---
-    # Key functions: optimizeStyle, browseTracks, setTrackViewerStyleParam, setTrackXscaleParam, viewTracks, setTrackYaxisParam, setTrackStyleParam, start
+
+    # --- Browse Track [] ---
+    # Key functions: browseTracks, setTrackViewerStyleParam, setTrackXscaleParam, viewTracks, xaxis, margin, draw, position
+    browseTracks(trackList, gr=gr)
+    setTrackViewerStyleParam(viewerStyle, "xaxis", FALSE)
+    setTrackViewerStyleParam(viewerStyle, "margin", c(.01, .05, .01, .01))
+    setTrackXscaleParam(trackList[[1]], "draw", TRUE)
+    setTrackXscaleParam(trackList[[1]], "gp", list(cex=0.8))
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+    setTrackXscaleParam(trackList[[1]], attr="position", 
+                        value=list(x=122929700, y=3, label=200))
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+
+    # --- View Tracks Yaxis [] ---
+    # Key functions: setTrackViewerStyleParam, for, setTrackYaxisParam, setTrackStyleParam, viewTracks, margin, main, ylim
+    setTrackViewerStyleParam(viewerStyle, "margin", c(.01, .05, .01, .05))
+    for(i in 1:2){
+        setTrackYaxisParam(trackList[[i]], "main", FALSE)
+    }
+    ## Adjust the limit of y-axis
+    setTrackStyleParam(trackList[[1]], "ylim", c(0, 25))
+    setTrackStyleParam(trackList[[2]], "ylim", c(-25, 0))
+    ## The y-axis tick labels can be turn off/on by setting the 'label' to FALSE/TRUE
+    #setTrackYaxisParam(trackList[[1]], 'label', TRUE)
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+    ## change the 
+    setTrackYaxisParam(trackList[[1]], "gp", list(cex=.8, col="green"))
+    setTrackYaxisParam(trackList[[2]], "gp", list(cex=.8, col="blue"))
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+
+    # --- View Tracks Ylab [] ---
+    # Key functions: setTrackStyleParam, viewTracks, ylabgp, green, blue, marginBottom, ylabpos, bottomleft
     setTrackStyleParam(trackList[[1]], "ylabgp", list(cex=.8, col="green"))
+    ## set cex to avoid automatic adjust
     setTrackStyleParam(trackList[[2]], "ylabgp", list(cex=.8, col="blue"))
     setTrackStyleParam(trackList[[2]], "marginBottom", .2)
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+    setTrackStyleParam(trackList[[1]], "ylabpos", "bottomleft")
+    setTrackStyleParam(trackList[[2]], "ylabpos", "topright")
+    setTrackStyleParam(trackList[[2]], "marginTop", .2)
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+
+    # --- View Tracks Ylab Ups Down [] ---
+    # Key functions: setTrackStyleParam, unname, unlist, GRangesList, function, start, end, viewTracks
+    trackListN <- trackList
+    setTrackStyleParam(trackListN[[3]], "ylabpos", "upstream")
+    setTrackStyleParam(trackListN[[4]], "ylabpos", "downstream")
+    ## set cex to avoid automatic adjust
+    setTrackStyleParam(trackListN[[3]], "ylabgp", list(cex=.6))
+    setTrackStyleParam(trackListN[[4]], "ylabgp", list(cex=.6))
+    gr1 <- range(unname(unlist(GRangesList(sapply(trs, function(.ele) .ele$dat)))))
+    start(gr1) <- start(gr1) - 2000
+    end(gr1) <- end(gr1) + 2000
+    viewTracks(trackListN, gr=gr1, viewerStyle=viewerStyle)
+    setTrackStyleParam(trackList[[1]], "color", c("green", "black"))
+    setTrackStyleParam(trackList[[2]], "color", c("black", "blue"))
+    for(i in 3:length(trackList)) 
+        setTrackStyleParam(trackList[[i]], "color", "black")
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+
+    # --- View Tracks Height [] ---
+    # Key functions: setTrackStyleParam, for, viewTracks, height, rep, cpsf160, fox2
+    trackListH <- trackList
+    setTrackStyleParam(trackListH[[1]], "height", .1)
+    setTrackStyleParam(trackListH[[2]], "height", .44)
+    for(i in 3:length(trackListH)){
+        setTrackStyleParam(trackListH[[i]], "height", 
+                           (1-(0.1+0.44))/(length(trackListH)-2))
+    }
+    viewTracks(trackListH, gr=gr, viewerStyle=viewerStyle)
+    names(trackList) <- c("cpsf160", "fox2", rep("HSPA8", 5))
+    viewTracks(trackList, gr=gr, viewerStyle=viewerStyle)
+
+    # --- View Tracks Paired [] ---
+    # Key functions: importScore, strand, setTrackStyleParam, viewTracks, trackList, color, black, red
+    cpsf160 <- importScore(file.path(extdata, "cpsf160.repA_-.wig"),
+                           file.path(extdata, "cpsf160.repB_-.wig"),
+                           format="WIG")
+    strand(cpsf160$dat) <- strand(cpsf160$dat2) <- "-"
+    setTrackStyleParam(cpsf160, "color", c("black", "red"))
+    viewTracks(trackList(trs, cpsf160), gr=gr, viewerStyle=viewerStyle)
+    viewerStyleF <- viewerStyle
+    setTrackViewerStyleParam(viewerStyleF, "flip", TRUE)
+    setTrackViewerStyleParam(viewerStyleF, "xaxis", TRUE)
+    setTrackViewerStyleParam(viewerStyleF, "margin", c(.1, .05, .01, .01))
+    vp <- viewTracks(trackList, gr=gr, viewerStyle=viewerStyleF)
+    addGuideLine(c(122929767, 122929969), vp=vp)
+    addArrowMark(list(x=122929650,
+                      y=2),
+                 label="label",
+                 col="blue",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

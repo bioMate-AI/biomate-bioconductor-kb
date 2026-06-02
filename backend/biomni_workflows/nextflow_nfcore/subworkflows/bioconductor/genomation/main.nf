@@ -41,11 +41,92 @@ process BIOC_GENOMATION {
     library(genomation)
     library(jsonlite)
 
-    # --- ReadGeneric analysis [] ---
-    # Key functions: readGeneric, heatMatrix, plotMeta, multiHeatMatrix, plotGeneAnnotation, query
-    sml = ScoreMatrixList(bam.files, ctcf.peaks, bin.num=50, type='bam')
+
+    # --- Setup2 [] ---
+    # Key functions: set, getwd, list.files, read.table
+    library(knitr)
+    opts_chunk$set(root.dir=getwd(),fig.align='center',
+                   fig.path='Figures', 
+                   dev='png',
+                   fig.show='hold', 
+                   cache=FALSE)
+    library(genomation)
+    library(genomationData)
+    library(GenomicRanges)
+    set.seed=10
+    list.files(system.file('extdata',package='genomationData'))
     sampleInfo = read.table(system.file('extdata/SamplesInfo.txt',
-    names(sml) = sampleInfo$sampleName[match(names(sml),sampleInfo$fileName)]
+                                        package='genomationData'),header=TRUE, sep='\t')
+    sampleInfo[1:5,1:5]
+
+    # --- Read Generic1 [] ---
+    # Key functions: readGeneric, genomation
+    library(genomation)
+    tab.file1=system.file("extdata/tab1.bed", package = "genomation")
+    readGeneric(tab.file1, header=TRUE)
+    readGeneric(tab.file1, header=TRUE, keep.all.metadata=TRUE)
+
+    readGeneric(tab.file1, header=TRUE, meta.col = list(CpGnum=4))
+    readGeneric(tab.file1, header=TRUE, keep.all.metadata=TRUE)
+
+    # --- Read Generic4 [] ---
+    # Key functions: readGeneric, genomation, gffToGRanges, readFeatureFlank
+    tab.file2=system.file("extdata/tab2.bed", package = "genomation")
+    readGeneric(tab.file2, chr=3, start=2, end=1)
+    gff.file=system.file("extdata/chr21.refseq.hg19.gtf", package = "genomation")
+    gff = gffToGRanges(gff.file)
+    head(gff)
+    # reading genes stored as a BED files
+    cpgi.file = system.file("extdata/chr21.CpGi.hg19.bed", package = "genomation")
+    cpgi.flanks = readFeatureFlank(cpgi.file)
+    head(cpgi.flanks$flanks)
+
+    # --- Score Matrix Example [] ---
+    # Key functions: ScoreMatrix, ScoreMatrixList, read.table, list.files, match, basename, readBroadPeak
+    data(cage)
+    data(promoters)
+    sm = ScoreMatrix(target=cage, windows=promoters)
+    sm
+    data(promoters)
+    data(cpgi)
+    data(cage)
+
+    cage$tpm = NULL
+    targets = list(cage=cage, cpgi=cpgi)
+    sm = ScoreMatrixList(targets=targets, windows=promoters, bin.num=50)
+    sm
+    library(genomationData)
+    genomationDataPath = system.file('extdata',package='genomationData')
+    sampleInfo = read.table(file.path(genomationDataPath, 'SamplesInfo.txt'), 
+                            header=TRUE, sep='\t', stringsAsFactors=FALSE)
+
+    peak.files=list.files(genomationDataPath, full.names=TRUE, pattern='broadPeak')
+    names(peak.files) = sampleInfo$sampleName[match(basename(peak.files),sampleInfo$fileName)]
+
+
+    # --- Read All Peaks Annotation [] ---
+    # Key functions: annotateWithFeature, readTranscriptFeatures, genomation, annotateWithGeneParts
+    data(cpgi)
+    peak.annot = annotateWithFeature(ctcf.peaks, cpgi, intersect.chr=TRUE)
+    peak.annot
+    bed.file=system.file("extdata/chr21.refseq.hg19.bed", package = "genomation")
+    gene.parts = readTranscriptFeatures(bed.file)
+    ctcf.annot=annotateWithGeneParts(ctcf.peaks, gene.parts, intersect.chr=TRUE)
+    ctcf.annot
+
+    # --- Annotate Target List [] ---
+    # Key functions: GRangesList, annotateWithGeneParts, list.files, readBroadPeak, seqnames, resize
+    peaks = GRangesList(lapply(peak.files, readGeneric))
+    names(peaks) = names(peak.files)
+    annot.list = annotateWithGeneParts(peaks, gene.parts, intersect.chr=TRUE)
+    genomationDataPath = system.file('extdata',package='genomationData')
+    bam.files = list.files(genomationDataPath, full.names=TRUE, pattern='bam$')
+    bam.files = bam.files[!grepl('Cage', bam.files)]
+    ctcf.peaks = readBroadPeak(file.path(genomationDataPath, 
+                                         'wgEncodeBroadHistoneH1hescCtcfStdPk.broadPeak.gz'))
+    ctcf.peaks = ctcf.peaks[seqnames(ctcf.peaks) == 'chr21']
+    ctcf.peaks = ctcf.peaks[order(-ctcf.peaks$signalValue)]
+    ctcf.peaks = resize(ctcf.peaks, width=1000, fix='center')
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

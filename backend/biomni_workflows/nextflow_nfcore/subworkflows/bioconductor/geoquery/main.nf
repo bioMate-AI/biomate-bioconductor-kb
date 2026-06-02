@@ -41,13 +41,36 @@ process BIOC_GEOQUERY {
     library(Columns)
     library(GSMList)
     library(Table)
+    library(GEOquery)
     library(jsonlite)
 
-    # --- Fetch GEO dataset [] ---
-    # Key functions: getGEO, Table, Columns, GSMList, show
+
+    # --- Pre [] ---
+    # Key functions: set
+    library(knitr)
+    opts_chunk$set(warning=FALSE,message=FALSE,cache=FALSE)
+
+    # --- Load Library [] ---
+    # Key functions: getGEO
     library(GEOquery)
-    gds <- getGEO("GDS507")
+
+    ## -----------------------------------------------------------------------------
+    # If you have network access, the more typical way to do this
+    # would be to use this:
+    # gds <- getGEO("GDS507")
     gds <- getGEO(filename=system.file("extdata/GDS507.soft.gz",package="GEOquery"))
+
+    ## -----------------------------------------------------------------------------
+    # If you have network access, the more typical way to do this
+    # would be to use this:
+    # gds <- getGEO("GSM11805")
+    gsm <- getGEO(filename=system.file("extdata/GSM11805.txt.gz",package="GEOquery"))
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Citation [] ---
+    # Key functions: citation
+    citation("GEOquery")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,9 +41,37 @@ process BIOC_ORGANISMDBI {
     library(OrganismDbi)
     library(jsonlite)
 
-    # --- Transcript annotation retrieval [] ---
-    # Key functions: include_graphics, columns, keytypes, transcripts, transcriptsBy, tempfile, makeOrganismPackage
+
+    # --- Figure [] ---
+    # Key functions: include_graphics
     knitr::include_graphics("relationships-between-annotation-packages.png")
+
+    # --- Columns [] ---
+    # Key functions: columns
+    library(Homo.sapiens)
+    columns(Homo.sapiens)
+
+    # --- Keys1 [] ---
+    # Key functions: keytypes
+    keytypes(Homo.sapiens)
+
+    # --- Keys2 [] ---
+    # Key functions: keys
+    head(keys(Homo.sapiens, keytype = "ENTREZID"))
+
+    # --- Select [] ---
+    # Key functions: keys, select
+    k <- head(keys(Homo.sapiens, keytype = "ENTREZID"), n = 3)
+    select(
+      Homo.sapiens,
+      keys = k,
+      columns = c("TXNAME", "SYMBOL"),
+      keytype = "ENTREZID"
+    )
+
+    # --- Transcripts [] ---
+    # Key functions: transcripts
+    transcripts(Homo.sapiens, columns = c("TXNAME", "SYMBOL"))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,61 @@ process BIOC_ENRICHEDHEATMAP {
     library(EnrichedHeatmap)
     library(jsonlite)
 
-    # --- Enriched Heatmap [] ---
-    # Key functions: EnrichedHeatmap
-    mat1_smoothed = normalizeToMatrix(H3K4me3, tss, value_column = "coverage",
+
+    # --- Eval = False [] ---
+    # Key functions: load, promoters, normalizeToMatrix, extdata, chr21_test_data.RData, coverage
+    #  library(EnrichedHeatmap)
+
+    ## -------------------------------------------------------------------------------------------------
+    set.seed(123)
+    load(system.file("extdata", "chr21_test_data.RData", package = "EnrichedHeatmap"))
+    ls()
+
+    ## -------------------------------------------------------------------------------------------------
+    tss = promoters(genes, upstream = 0, downstream = 1)
+    tss[1:5]
+    H3K4me3[1:5]
+
+    ## -------------------------------------------------------------------------------------------------
+    mat1 = normalizeToMatrix(H3K4me3, tss, value_column = "coverage", 
+        extend = 5000, mean_mode = "w0", w = 50)
+
+    # --- Smooth [] ---
+    # Key functions: normalizeToMatrix, EnrichedHeatmap, coverage, H3K4me3_smoothed, smoothed, unsmoothed
+    mat1_smoothed = normalizeToMatrix(H3K4me3, tss, value_column = "coverage", 
+        extend = 5000, mean_mode = "w0", w = 50, background = 0, smooth = TRUE)
     EnrichedHeatmap(mat1_smoothed, col = col_fun, name = "H3K4me3_smoothed",
+        column_title = "smoothed") +
     EnrichedHeatmap(mat1, col = col_fun, name = "H3K4me3", column_title = "unsmoothed")
+
+    # --- Extension [] ---
+    # Key functions: normalizeToMatrix, EnrichedHeatmap, meth, absolute, methylation
+    mat3 = normalizeToMatrix(meth, cgi, value_column = "meth", mean_mode = "absolute",
+        extend = c(0, 5000), w = 50, background = NA, smooth = TRUE, target_ratio = 0.5)
+    EnrichedHeatmap(mat3, col = meth_col_fun, name = "methylation", 
+        column_title = "methylation near CGI")
+    mat3 = normalizeToMatrix(meth, cgi, value_column = "meth", mean_mode = "absolute",
+        extend = c(5000, 0), w = 50, background = NA, smooth = TRUE, target_ratio = 0.5)
+    EnrichedHeatmap(mat3, col = meth_col_fun, name = "methylation", 
+        column_title = "methylation near CGI")
+
+    # --- Eval = False [] ---
+    # Key functions: attr, normalizeToMatrix, attributes, upstream_index, target_index, downstream_index, extend, coverage
+    #  attr(mat, "upstream_index")
+    #  attr(mat, "target_index")
+    #  attr(mat, "downstream_index")
+    #  attr(mat, "extend")
+
+    ## -------------------------------------------------------------------------------------------------
+    mat1 = normalizeToMatrix(H3K4me3, tss, value_column = "coverage", 
+        extend = 5000, mean_mode = "w0", w = 50)
+    mat2 = mat1
+    attributes(mat2) = NULL
+    dim(mat2) = dim(mat1)
+    mat2[1:4, 1:4]
+
+    ## -------------------------------------------------------------------------------------------------
+    attr(mat2, "upstream_index") = 1:100
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

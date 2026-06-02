@@ -43,11 +43,52 @@ process BIOC_SHORTREAD {
     library(SolexaPath)
     library(jsonlite)
 
-    # --- FastqSampler analysis [] ---
-    # Key functions: FastqSampler, FastqStreamer, yield, countFastq, encoding, dir, open, trimTailw
-    sampler <- FastqSampler('E-MTAB-1147/fastq/ERR127302_1.fastq.gz', 20000)
-    set.seed(123); ERR127302_1 <- yield(sampler)
-    sampler <- FastqSampler('E-MTAB-1147/fastq/ERR127302_2.fastq.gz', 20000)
+
+    # --- Count Fastq [] ---
+    # Key functions: countFastq, extdata, ERR127302_1_subset.fastq.gz
+    fl <- system.file(package="ShortRead", "extdata", "E-MTAB-1147",
+                      "ERR127302_1_subset.fastq.gz")
+    countFastq(fl)
+
+    # --- Read Fastq [] ---
+    # Key functions: readFastq
+    fq <- readFastq(fl)
+
+    # --- Short Read Q [] ---
+    # Key functions: sread, quality
+    fq
+    fq[1:5]
+    head(sread(fq), 3)
+    head(quality(fq), 3)
+
+    # --- Encoding [] ---
+    # Key functions: encoding, quality, dir, browseURL, report, load, function, open
+    encoding(quality(fq))
+
+    ## ----qa-files1, eval=FALSE----------------------------------------------------
+    #  fls <- dir("/path/to", "*fastq$", full=TRUE)
+
+    ## ----qa-qa, eval=FALSE--------------------------------------------------------
+    #  qaSummary <- qa(fls, type="fastq")
+
+    ## ----qa-view, eval=FALSE------------------------------------------------------
+    #  browseURL(report(qaSummary))
+
+    # --- Export [] ---
+    # Key functions: SolexaPath, analysisPath, readLines, extdata, s_2_export.txt
+    ## location of file
+    exptPath <- system.file("extdata", package="ShortRead")
+    sp <- SolexaPath(exptPath)
+    pattern <- "s_2_export.txt"
+    fl <- file.path(analysisPath(sp), pattern)
+    strsplit(readLines(fl, n=1), "\t")
+    length(readLines(fl))
+
+    # --- Col Classes [] ---
+    # Key functions: rep, read, quality
+    colClasses <- rep(list(NULL), 21)
+    colClasses[9:10] <- c("DNAString", "BString")
+    names(colClasses)[9:10] <- c("read", "quality")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

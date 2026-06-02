@@ -41,11 +41,75 @@ process BIOC_GENOMICINTERACTIONS {
     library(GenomicInteractions)
     library(jsonlite)
 
-    # --- Name analysis [] ---
-    # Key functions: name, description, anchorOne, anchorTwo, strand, subsetByFeatures, annotateInteractions, annotationFeatures
+
+    # --- Load Data [] ---
+    # Key functions: makeGenomicInteractionsFromFile, chiapet.tool, k562, name, description, interactionCounts
+    chiapet.data = system.file("extdata/k562.rep1.cluster.pet3+.txt", 
+                               package="GenomicInteractions")
+
+    k562.rep1 = makeGenomicInteractionsFromFile(chiapet.data, 
+                                    type="chiapet.tool", 
+                                    experiment_name="k562", 
+                                    description="k562 pol2 8wg16")
+    name(k562.rep1)
+    description(k562.rep1) = "PolII-8wg16 Chia-PET for K562"
+    head(interactionCounts(k562.rep1))
+    head((k562.rep1)$fdr)
+    hist(-log10(k562.rep1$p.value))
+
+    # --- Anchor Access [] ---
+    # Key functions: anchorOne, anchorTwo, is.trans, calculateDistances, midpoint
+    anchorOne(k562.rep1)
+    anchorTwo(k562.rep1)
+    sprintf("Percentage of trans-chromosomal interactions %.2f", 
+            100*sum(is.trans(k562.rep1))/length(k562.rep1))
+    head(calculateDistances(k562.rep1, method="midpoint"))
+
+    # --- Subsetting [] ---
+    # Key functions: sample, is.cis, calculateDistances, midpoint, as.vector, seqnames, anchorOne, anchorTwo
+    k562.rep1[1:10] # first interactions in the dataset
+    k562.rep1[sample(length(k562.rep1), 100)] # 100 interactions subsample
+    k562.cis = k562.rep1[is.cis(k562.rep1)]
+    head(calculateDistances(k562.cis, method="midpoint"))
+    k562.short = k562.cis[calculateDistances(k562.cis) < 1e6] # subset shorter interactions
+    hist(calculateDistances(k562.short))
+    chrom = c("chr17", "chr18")
+    sub = as.vector(seqnames(anchorOne(k562.rep1)) %in% chrom & seqnames(anchorTwo(k562.rep1)) %in% chrom)
+    k562.rep1 = k562.rep1[sub]
+
+    # --- Load Trascripts [] ---
+    # Key functions: hg19.refseq.transcripts, promoters, unlist, strand, ifelse, relist, subsetByFeatures
+    data("hg19.refseq.transcripts")
+    refseq.transcripts = hg19.refseq.transcripts
     refseq.promoters = promoters(refseq.transcripts, upstream=2500, downstream=2500)
-    refseq.transcripts.ul = unlist(refseq.transcripts)
-    strand(refseq.transcripts.ul) = ifelse(strand(refseq.transcripts.ul) == "+", "-", "+")
+    # unlist object so "strand" is one vector
+    refseq.transcripts.ul = unlist(refseq.transcripts) 
+    # terminators can be called as promoters with the strand reversed
+    strand(refseq.transcripts.ul) = ifelse(strand(refseq.transcripts.ul) == "+", "-", "+") 
+    refseq.terminators.ul = promoters(refseq.transcripts.ul, upstream=1000, downstream=1000) 
+    # change back to original strand
+    strand(refseq.terminators.ul) = ifelse(strand(refseq.terminators.ul) == "+", "-", "+") 
+    # `relist' maintains the original names and structure of the list
+    refseq.terminators = relist(refseq.terminators.ul, refseq.transcripts)
+    subsetByFeatures(k562.rep1, unlist(refseq.promoters))
+
+    # --- Annotation [] ---
+    # Key functions: annotateInteractions, annotationFeatures, anchorOne, anchorTwo, promoter, categoriseInteractions
+    annotation.features = list(promoter=refseq.promoters, 
+                               terminator=refseq.terminators, 
+                               gene.body=refseq.transcripts)
+    annotateInteractions(k562.rep1, annotation.features)
+    annotationFeatures(k562.rep1)
+    p.one = anchorOne(k562.rep1)$node.class == "promoter"
+    p.two = anchorTwo(k562.rep1)$node.class == "promoter"
+    k562.rep1[p.one|p.two]
+    categoriseInteractions(k562.rep1)
+
+    # --- Is Interaction Type [] ---
+    # Key functions: isInteractionType, terminator, gene.body, plotInteractionAnnotations, promoter
+    k562.rep1[isInteractionType(k562.rep1, "terminator", "gene.body")]
+    plotInteractionAnnotations(k562.rep1, other=5)
+    plotInteractionAnnotations(k562.rep1, other=5, viewpoints="promoter")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
