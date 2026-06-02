@@ -63,6 +63,35 @@
     .bm-field textarea { resize: vertical; min-height: 120px; }
     .bm-form-submit { margin-top: .5rem; }
     .bm-form-note { font-size: .8rem; color: var(--text-faint); margin-top: .75rem; }
+
+    /* Success state */
+    #cf-success { display: none; text-align: center; padding: 2.5rem 1.5rem; }
+    #cf-success .cf-success-icon {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #d1fae5; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    #cf-success .cf-success-icon svg { width: 28px; height: 28px; stroke: #059669; }
+    #cf-success h3 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: .5rem; }
+    #cf-success p { font-size: .92rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Error banner */
+    #cf-error {
+      display: none; background: #fef2f2; border: 1px solid #fca5a5;
+      border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1rem;
+      font-size: .88rem; color: #b91c1c;
+    }
+
+    /* Button spinner */
+    .cf-spinner {
+      display: none; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      border-radius: 50%; animation: cf-spin .7s linear infinite;
+      margin-right: .5rem; vertical-align: middle;
+    }
+    @keyframes cf-spin { to { transform: rotate(360deg); } }
+    .cf-loading .cf-spinner { display: inline-block; }
+    .cf-loading .bm-btn-arrow { display: none; }
   </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
@@ -72,7 +101,6 @@
     gtag('js', new Date());
     gtag('config', 'G-65JDDPEDQ5');
   </script>
-
 </head>
 <body>
 
@@ -118,7 +146,25 @@
     <!-- Right: form -->
     <div class="bm-contact-form bm-anim-up-d1">
       <h2>Send us a message</h2>
-      <form action="mailto:contact@biomate.ai" method="post" enctype="text/plain">
+
+      <!-- Success confirmation (shown after submit) -->
+      <div id="cf-success">
+        <div class="cf-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h3>Message sent!</h3>
+        <p>Thanks for reaching out. A member of our team will get back to you within one business day.</p>
+      </div>
+
+      <!-- Error banner -->
+      <div id="cf-error">
+        Something went wrong — please try again or email us directly at <a href="mailto:contact@biomate.ai" style="color:inherit;text-decoration:underline;">contact@biomate.ai</a>.
+      </div>
+
+      <!-- Contact form (Formspree: xlgvqqvz) -->
+      <form id="cf-form" novalidate>
         <div class="bm-form-row">
           <div class="bm-field">
             <label for="cf-name">Name</label>
@@ -149,10 +195,11 @@
         </div>
         <div class="bm-field">
           <label for="cf-message">Message</label>
-          <textarea id="cf-message" name="message" placeholder="Tell us what you're working on or what you'd like to know…"></textarea>
+          <textarea id="cf-message" name="message" placeholder="Tell us what you're working on or what you'd like to know&#8230;"></textarea>
         </div>
         <div class="bm-form-submit">
-          <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg" style="width:100%;justify-content:center;">
+          <button type="submit" id="cf-submit" class="bm-btn bm-btn-primary bm-btn-lg" style="width:100%;justify-content:center;">
+            <span class="cf-spinner"></span>
             Send message <span class="bm-btn-arrow">&rarr;</span>
           </button>
         </div>
@@ -165,6 +212,51 @@
   <div id="bm-foot"></div>
   <script src="shell.js"></script>
   <script>renderShell({ active: 'contact', cta: false });</script>
+  <script>
+    (function () {
+      var FORMSPREE_ENDPOINT = 'https://formspree.io/f/xlgvqqvz';
+      var form   = document.getElementById('cf-form');
+      var btn    = document.getElementById('cf-submit');
+      var errEl  = document.getElementById('cf-error');
+      var succEl = document.getElementById('cf-success');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        btn.classList.add('cf-loading');
+        btn.disabled = true;
+        errEl.style.display = 'none';
+
+        var data = {
+          name:         form.querySelector('[name=name]').value,
+          email:        form.querySelector('[name=email]').value,
+          organization: form.querySelector('[name=organization]').value,
+          topic:        form.querySelector('[name=topic]').value,
+          message:      form.querySelector('[name=message]').value
+        };
+
+        fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+        .then(function (res) {
+          if (res.ok) {
+            form.style.display = 'none';
+            succEl.style.display = 'block';
+          } else {
+            throw new Error('server');
+          }
+        })
+        .catch(function () {
+          errEl.style.display = 'block';
+          btn.classList.remove('cf-loading');
+          btn.disabled = false;
+        });
+      });
+    }());
+  </script>
 
 </body>
 </html>
