@@ -38,8 +38,8 @@ services:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 120s
+      retries: 6
+      start_period: 900s
     networks: [biomate-deploy-net]
 
   frontend-deploy:
