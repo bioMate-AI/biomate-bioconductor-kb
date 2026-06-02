@@ -51,6 +51,22 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Intro Video */}
+      <section className="py-16 border-b">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative w-full rounded-xl overflow-hidden border shadow-md bg-black"
+               style={{ paddingBottom: "56.25%" }}>
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src="https://www.youtube.com/embed/bpG0IWrwN5g?mute=1&rel=0"
+              title="BioMate — The AI Lab Platform for Life Sciences"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Mission Section */}
       <section className="py-24 border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
