@@ -327,9 +327,16 @@ _NF_LOG_FAILURE_MARKERS = (
 _NF_LOG_EXCEPTION_RE = re.compile(
     r'(?:'
     r'Caused by:\s*\w'
-    r'|(?:^|\s)(?:ERROR|WARN)\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
+    # ERROR-level lines from nextflow / groovy are failures. WARN lines are NOT —
+    # they are routinely emitted for benign config drift (e.g. "Unrecognized config
+    # option 'process.environment.BIOMATE_USER_ID'" or "There's no process matching
+    # config selector: CRYODRGN_TRAIN" which fires on every tier 0 drug-dev workflow
+    # because the shared nextflow.config has cryo-EM selectors). Treating them as
+    # failures triggered premature status="failed" on every run while Phase A was
+    # still executing on Batch — see screenshots at frontend/e2e/screenshots/tier0-audit/.
+    r'|(?:^|\s)ERROR\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
     r'|nextflow\.exception\.\w+'
-    r'|org\.codehaus\.groovy'
+    r'|org\.codehaus\.groovy\.runtime'
     r'|groovy\.lang\.\w+Exception'
     r'|Stack trace:'
     r'|\tat groovy\.'
