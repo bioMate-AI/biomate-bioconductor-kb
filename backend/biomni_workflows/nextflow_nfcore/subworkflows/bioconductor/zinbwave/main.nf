@@ -38,6 +38,7 @@ process BIOC_ZINBWAVE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(zinbwave)
     library(DESeq)
     library(DESeqDataSet)
     library(DGEList)
@@ -47,29 +48,43 @@ process BIOC_ZINBWAVE {
     library(Rtsne)
     library(jsonlite)
 
-    # --- Connect to BioMart [] ---
-    # Key functions: useMart, useDataset, getBM, DGEList, calcNormFactors, estimateDisp, glmFit, glmWeightedF
-    mart <- useMart("ensembl")
-    mart <- useDataset("hsapiens_gene_ensembl", mart = mart)
-    bm <- getBM(attributes=c('hgnc_symbol', 'start_position',
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums
-    filter <- rowSums(assay(fluidigm)>5)>5
-    table(filter)
-    # --- Construct kNN graph for clustering [] ---
-    # Key functions: FindNeighbors, FindClusters
-    seu <- FindNeighbors(seu, reduction = "zinbwave",
-    seu <- FindClusters(object = seu)
-    # --- Custom ggplot2 visualization [] ---
-    # Key functions: reducedDim, ggplot, scale_color_brewer, Rtsne, zinbsurf
-    fluidigm_surf <- zinbsurf(fluidigm, K = 2, epsilon = 1000,
-    W2 <- reducedDim(fluidigm_surf)
-    data.frame(W2, bio=colData(fluidigm)$Biological_Condition,
-    # --- Assay data access [] ---
-    # Key functions: register, ReprocessedFluidigmData, assay, assayNames, zinbwave, rowData, zinbFit
-    assay(fluidigm) %>% log1p %>% rowVars -> vars
-    names(vars) <- rownames(fluidigm)
-    vars <- sort(vars, decreasing = TRUE)
+    # --- Covariate Adjustment [] ---
+    # Key functions: zinbwave, reducedDim
+    fluidigm_cov <- zinbwave(
+        fluidigm, 
+        K = 2, 
+        X = "~Coverage_Type", 
+        epsilon = 1000
+    )
+    W_cov <- reducedDim(fluidigm_cov)
+
+
+    # --- Observational Weights Calculation [] ---
+    # Key functions: zinbFit, zinbwave
+    zinb_model <- zinbFit(
+        fluidigm, 
+        K = 2, 
+        epsilon = 1000
+    )
+    fluidigm_weighted <- zinbwave(
+        fluidigm, 
+        fitted_model = zinb_model, 
+        K = 2, 
+        epsilon = 1000, 
+        observationalWeights = TRUE
+    )
+    weights <- assay(fluidigm_weighted, "weights")
+
+
+    # --- Surface Approximation [] ---
+    # Key functions: zinbsurf, reducedDim
+    fluidigm_surf <- zinbsurf(
+        fluidigm, 
+        K = 2, 
+        epsilon = 1000, 
+        prop_fit = 0.5
+    )
+    W_surf <- reducedDim(fluidigm_surf)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

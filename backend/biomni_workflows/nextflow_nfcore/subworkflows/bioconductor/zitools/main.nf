@@ -38,42 +38,31 @@ process BIOC_ZITOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(zitools)
     library(DESeq)
     library(MissingValueHeatmap)
     library(jsonlite)
 
-    # --- Dataset [] ---
-    # Key functions: sample_data
-    data("peerj32")
-    sample_data(phyloseq)$time <- factor(sample_data(phyloseq)$time)
-    # --- zi Main [] ---
-    # Key functions: ziMain
-    Zi <- ziMain(phyloseq)
-    print(Zi)
-    mean(Zi)
-    # --- resample_deinflatedcounts [] ---
-    # Key functions: resample_deinflatedcounts
-    Zi <- resample_deinflatedcounts(Zi)
-    boxplot(log2p(Zi), xlab = "samples", ylab = "log2(count+1)",
-    main = paste("Iteration", i))
-    # --- Run DESeq2 differential expression [] ---
-    # Key functions: zi2deseq2, DESeq
+    # --- Resampling and De-inflation [] ---
+    # Key functions: resample_deinflatedcounts, deinflatedcounts
+    Zi_resampled <- resample_deinflatedcounts(Zi)
+    deinflated_mat <- deinflatedcounts(Zi_resampled)
+    deinflated_mat[deinflated_mat > 500] <- 500
+    deinflatedcounts(Zi_resampled) <- deinflated_mat
+
+
+    # --- Differential Abundance Preparation [] ---
+    # Key functions: zi2deseq2
     DDS <- zi2deseq2(Zi, ~time)
     DDS$Subject <- relevel(DDS$time, ref = "1")
-    DDS <-  DESeq(DDS, test = "Wald", fitType = "local", sfType = "poscounts")
-    # --- rownames_to_column [] ---
-    # Key functions: rownames_to_column, arrange
-    result_df<- cbind(as(result, "data.frame"),
-    as(tax_table(phyloseq)[rownames(result), ], "matrix"))
-    rownames_to_column(var = "OTU") %>%
-    # --- Missing Value Heatmap [] ---
-    # Key functions: MissingValueHeatmap
-    MissingValueHeatmap(Zi2, xlab = "Sample")
-    # --- plot PCA [] ---
-    # Key functions: geom_point, xlim, ylim, xlab, ylab
-    print(ggplot(df_PCA, aes(x = PC1, y = PC2, color = group))+
-    geom_point()+
-    xlim(-200,100)+
+
+
+    # --- Phyloseq Conversion and Heatmap [] ---
+    # Key functions: zi2phyloseq, MissingValueHeatmap
+    new_phyloseq <- zi2phyloseq(Zi)
+    png("missing_value_heatmap.png", width = 800, height = 600)
+    MissingValueHeatmap(Zi, xlab = "Sample")
+    dev.off()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
