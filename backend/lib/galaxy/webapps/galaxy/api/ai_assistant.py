@@ -614,6 +614,40 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
             }
             idx += 1
         if steps:
+            # Strategy 1b: single-process stubs that embed R sections as sub-steps.
+            # Bioconductor stubs have one Nextflow process wrapping an R script.
+            # The R script uses `# --- Section name [] ---` markers to document
+            # logical sub-operations.  When exactly one process is found, check
+            # whether the script body contains ≥2 such markers and, if so, replace
+            # the single coarse step with the finer-grained R sections.  This
+            # produces a meaningful step list (e.g. 7 DESeq2 steps) instead of one
+            # opaque "Bioc Deseq2" entry.
+            if len(steps) == 1:
+                _r_sec_re = re.compile(
+                    r'#\s*---\s*([A-Za-z][^[#\n]{2,60}?)\s*(?:\[\]|(?:\[.*?\]))?\s*---'
+                )
+                _R_SEC_SKIP = re.compile(
+                    r'(?i)^(save\s+output|versions?\.yml|write\s+output|output\s+file|cleanup|done)$'
+                )
+                r_sections = [m.group(1).strip() for m in _r_sec_re.finditer(content)]
+                r_sections = [
+                    s for s in r_sections
+                    if s and len(s) <= 60 and not _R_SEC_SKIP.match(s)
+                ]
+                if len(r_sections) >= 2:
+                    steps = {}
+                    for r_idx, section_name in enumerate(r_sections):
+                        tool_id = re.sub(r'[^A-Za-z0-9]+', '_', section_name.upper()).strip('_')
+                        steps[str(r_idx)] = {
+                            "id": str(r_idx),
+                            "name": section_name,
+                            "tool_id": tool_id,
+                            "annotation": section_name,
+                            "description": "",
+                            "type": "tool",
+                            "parameters": {},
+                            "inputs": {},
+                        }
             _enrich_steps_with_phase_info(steps, content, nf_filename)
             return steps
 
