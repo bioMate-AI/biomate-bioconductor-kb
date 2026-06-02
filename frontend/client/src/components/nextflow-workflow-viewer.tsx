@@ -2213,13 +2213,13 @@ export function NextflowWorkflowViewer({
 
       {/* ── Scrollable panel body ─────────────────────────────────────────────── */}
       <div className="panel-body" data-tour="panel-body">
-          {/* Step-wise controls hint — helps users discover phase-level run controls */}
-          {status === 'idle' && phases.length > 0 && (
+          {/* Step-wise controls hint — only when real phase groups exist */}
+          {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
             <div
               data-testid="workflow-step-controls-hint"
               style={{ fontSize: 11, color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
             >
-              Click a phase to expand steps. Use each phase's Run button to execute individually once the workflow starts.
+              Click a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.
             </div>
           )}
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
