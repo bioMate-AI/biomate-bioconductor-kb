@@ -38,96 +38,39 @@ process BIOC_AGIMICRORNA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(AgiMicroRna)
     library(RleMicroRna)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    library("AgiMicroRna")
-    data(targets.micro)
-    print(targets.micro)
-    # --- Data [] ---
-    # Key functions: data, class
+    # --- Normalisation [] ---
+    # Key functions: tgsMicroRna, tgsNormalization
     data(dd.micro)
-    class(dd.micro)
-    dim(dd.micro)
-    # --- Qcplots [] ---
-    # Key functions: qcPlots
-    qcPlots(dd.micro,offset=5,
-            MeanSignal=TRUE,
-            ProcessedSignal=FALSE,
-            TotalProbeSignal=FALSE,
-            TotalGeneSignal=FALSE,
-    # --- Boxplot [] ---
-    # Key functions: boxplotMicroRna
-    boxplotMicroRna(log2(dd.micro$meanS),
-    	maintitle='log2 Mean Signal',
-    	colorfill= 'orange')
-    # --- Plotdensity [] ---
-    # Key functions: plotDensityMicroRna
-    plotDensityMicroRna(log2(dd.micro$meanS),
-    	maintitle='log2 Mean Signal')
-    # --- Ma [] ---
-    # Key functions: mvaMicroRna
-    ddaux=dd.micro
-    ddaux$G=log2(dd.micro$meanS)
-    mvaMicroRna(ddaux,
-    	maintitle='log2 Mean Signal',
-    	verbose=FALSE)
-    # --- Rle [] ---
-    # Key functions: RleMicroRna
-    RleMicroRna(log2(dd.micro$meanS),
-    	maintitle='log2 Mean Signal - RLE')
-    # --- Hclust [] ---
-    # Key functions: hierclusMicroRna
-    hierclusMicroRna(log2(dd.micro$meanS),targets.micro$GErep,
-    		methdis="euclidean",
-                    methclu="complete",
-    		sel=TRUE,100)
-    # --- Cvarray [] ---
-    # Key functions: cvArray
-    cvArray(dd.micro,
-            "MeanSignal",
-            targets.micro,
-    	verbose=TRUE)
-    # --- Tgsmicrorna [] ---
-    # Key functions: tgsMicroRna
-    ddTGS=tgsMicroRna(dd.micro,
-        half=TRUE,
-        makePLOT=FALSE,
-        verbose=FALSE)
-    # --- Tgsnormalization [] ---
-    # Key functions: tgsNormalization
-    ddNORM=tgsNormalization(ddTGS,
-                    "quantile",
-                    makePLOTpre=FALSE,
-                    makePLOTpost=FALSE,
-                    targets.micro,
-    # --- Rmamicrorna [] ---
-    # Key functions: rmaMicroRna
-    ## ddTGS.rma=rmaMicroRna(dd.micro,
-    ## 		normalize=TRUE,
-    ## 		background=TRUE)
-    ##
-    # --- Filtermicrorna [] ---
-    # Key functions: filterMicroRna
-    ddPROC=filterMicroRna(ddNORM,
-                        dd.micro,
-                        control=TRUE,
-                        IsGeneDetected=TRUE,
-                        wellaboveNEG=FALSE,
-    # --- Esetmicrorna [] ---
-    # Key functions: esetMicroRna
-    esetPROC=esetMicroRna(ddPROC,
-              targets.micro,
-              makePLOT=FALSE,
-    	  verbose=TRUE)
-    # --- Writeeset [] ---
-    # Key functions: writeEset
-    ## writeEset(esetPROC,
-    ##             ddPROC,
-    ##             targets.micro,
-    ## 	    verbose=TRUE)
+    data(targets.micro)
+    ddTGS <- tgsMicroRna(dd.micro, half=TRUE, makePLOT=FALSE,
+                         verbose=FALSE)
+    ddNORM <- tgsNormalization(ddTGS, "quantile", makePLOTpre=FALSE,
+                               makePLOTpost=FALSE, targets.micro,
+                               verbose=TRUE)
+
+
+    # --- Filtering and ExpressionSet Creation [] ---
+    # Key functions: filterMicroRna, esetMicroRna
+    ddPROC <- filterMicroRna(ddNORM, dd.micro, control=TRUE,
+                             IsGeneDetected=TRUE, wellaboveNEG=FALSE,
+                             limIsGeneDetected=75, limNEG=25,
+                             makePLOT=FALSE, targets.micro,
+                             verbose=TRUE, writeout=FALSE)
+    esetPROC <- esetMicroRna(ddPROC, targets.micro, makePLOT=FALSE,
+                             verbose=TRUE)
+
+
+    # --- Differential Expression [] ---
+    # Key functions: getDecideTests
+    design <- model.matrix(~ targets.micro$GErep)
+    fit <- limma::lmFit(Biobase::exprs(esetPROC), design)
+    fit2 <- limma::eBayes(fit)
+    DE <- getDecideTests(fit2, DEmethod="separate", MTestmethod="BH",
+                         PVcut=0.10, verbose=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

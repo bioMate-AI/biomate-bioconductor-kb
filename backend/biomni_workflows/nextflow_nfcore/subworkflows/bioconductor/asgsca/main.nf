@@ -38,26 +38,50 @@ process BIOC_ASGSCA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ASGSCA)
     library(GSCA)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: frame
-    library(ASGSCA)
-    data("QCAHS")
-    #Names of all the observed variables: the SNPs then the traits
-    colnames(QCAHS)
-    #Extract the variables of interest
-    # --- Gsca [] ---
+    # --- Model Estimation [] ---
     # Key functions: GSCA
-    GSCA(QCAHS1,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=FALSE,path=NULL,nperm=1000)
-    # --- Colnames [] ---
-    # Key functions: data
-    ObservedVar=colnames(QCAHS)
-    ObservedVar
-    #Define the vector of the latent variables names
-    LatentVar=c("CETP","APOC3","ABCA1","FABP-2","APOA1","APOE","HL","LPL","MTP","PON1","PON2","PCSK9",
-    "PGC","ADIPO","PPARg2","TNFa","eNOS","a23AR","b1AR","b2AR","b3AR","ACE","AGT","AGTR1","LEPR",
+    data("QCAHS")
+    data("W0")
+    data("B0")
+    LatentVar <- c("CETP", "APOC3", "ABCA1", "FABP-2", "APOA1", "APOE", "HL",
+                   "LPL", "MTP", "PON1", "PON2", "PCSK9", "PGC", "ADIPO",
+                   "PPARg2", "TNFa", "eNOS", "a23AR", "b1AR", "b2AR", "b3AR",
+                   "ACE", "AGT", "AGTR1", "LEPR", "Lipid metabolism",
+                   "Energy metabolism", "BP control")
+    res <- GSCA(QCAHS, W0, B0, latent.names = LatentVar, estim = TRUE,
+                path.test = FALSE, path = NULL, nperm = 100)
+
+
+    # --- Path Significance Testing [] ---
+    # Key functions: GSCA
+    data("QCAHS")
+    data("W0")
+    data("B0")
+    LatentVar <- c("CETP", "APOC3", "ABCA1", "FABP-2", "APOA1", "APOE", "HL",
+                   "LPL", "MTP", "PON1", "PON2", "PCSK9", "PGC", "ADIPO",
+                   "PPARg2", "TNFa", "eNOS", "a23AR", "b1AR", "b2AR", "b3AR",
+                   "ACE", "AGT", "AGTR1", "LEPR", "Lipid metabolism",
+                   "Energy metabolism", "BP control")
+    path0 <- matrix(c(2, 3, 5, 6), ncol = 2)
+    res_path <- GSCA(QCAHS, W0, B0, latent.names = LatentVar, estim = FALSE,
+                     path.test = TRUE, path = path0, nperm = 100)
+
+
+    # --- Association Filtering [] ---
+    # Key functions: GSCA
+    data("ResQCAHS")
+    indices <- which(ResQCAHS$pvalues < 0.05, arr.ind = TRUE)
+    ind.row <- indices[, 1]
+    ind.col <- indices[, 2]
+    Significant <- matrix(rep(0, nrow(indices) * 3), ncol = 3)
+    colnames(Significant) <- c("Gene", "Pathway", "pval")
+    Significant[, 1] <- rownames(ResQCAHS$pvalues)[ind.row]
+    Significant[, 2] <- colnames(ResQCAHS$pvalues)[ind.col]
+    Significant[, 3] <- ResQCAHS$pvalues[indices]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

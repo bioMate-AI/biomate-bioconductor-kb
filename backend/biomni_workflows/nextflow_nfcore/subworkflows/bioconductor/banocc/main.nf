@@ -41,63 +41,70 @@ process BIOC_BANOCC {
     library(banocc)
     library(jsonlite)
 
-    # --- Basic Run Banocc [] ---
-    # Key functions: stan_model, run_banocc, get_banocc_output
-    data(compositions_null)
-    compiled_banocc_model <- rstan::stan_model(model_code = banocc::banocc_model)
-    b_fit     <- banocc::run_banocc(C = compositions_null, compiled_banocc_model=compiled_banocc_model)
-    b_output <- banocc::get_banocc_output(banoccfit=b_fit)
-    # --- Input Hyperparameters [] ---
-    # Key functions: run_banocc, diag
-    p <- ncol(compositions_null)
-    b_fit_hp <- banocc::run_banocc(C = compositions_null,
-                                   compiled_banocc_model = compiled_banocc_model,
-                                   n = rep(0, p),
-                                   L = 10 * diag(p),
-    # --- Sampling Sampling [] ---
+    # --- Fitting with Custom Hyperparameters [] ---
     # Key functions: run_banocc
-    b_fit_sampling <- banocc::run_banocc(C = compositions_null,
-                                         compiled_banocc_model = compiled_banocc_model,
-                                         chains = 2,
-                                         iter = 11,
-                                         warmup = 5,
-    # --- Sampling Init [] ---
-    # Key functions: diag, runif, run_banocc
-    init <- list(list(m = rep(0, p),
-                      O = diag(p),
-                      lambda = 0.02),
-                 list(m = runif(p),
-                      O = 10 * diag(p),
-    # --- Output Ci [] ---
+    data(compositions_null)
+    p <- ncol(compositions_null)
+    compiled_banocc_model <- rstan::stan_model(
+        model_code = banocc::banocc_model
+    )
+    b_fit_hp <- banocc::run_banocc(
+        C = compositions_null,
+        compiled_banocc_model = compiled_banocc_model,
+        n = rep(0, p),
+        L = 10 * diag(p),
+        a = 0.5,
+        b = 0.01
+    )
+
+
+    # --- Advanced MCMC Sampling Configuration [] ---
+    # Key functions: run_banocc
+    data(compositions_null)
+    p <- ncol(compositions_null)
+    compiled_banocc_model <- rstan::stan_model(
+        model_code = banocc::banocc_model
+    )
+    init_list <- list(
+        list(m = rep(0, p), O = diag(p), lambda = 0.02),
+        list(m = rep(0.1, p), O = 10 * diag(p), lambda = 0.5)
+    )
+    b_fit_init <- banocc::run_banocc(
+        C = compositions_null,
+        compiled_banocc_model = compiled_banocc_model,
+        chains = 2,
+        init = init_list
+    )
+
+
+    # --- Posterior Inference and Credible Intervals [] ---
     # Key functions: get_banocc_output
-    # Get 90% credible intervals
-    b_out_90 <- banocc::get_banocc_output(banoccfit=b_fit,
-                                          conf_alpha = 0.1)
-    # Get 99% credible intervals
-    b_out_99 <- banocc::get_banocc_output(banoccfit=b_fit,
-    # --- Eval Convergence [] ---
+    b_out_90 <- banocc::get_banocc_output(
+        banoccfit = b_fit,
+        conf_alpha = 0.1
+    )
+    b_out_99 <- banocc::get_banocc_output(
+        banoccfit = b_fit,
+        conf_alpha = 0.01
+    )
+    b_out_snc <- banocc::get_banocc_output(
+        banoccfit = b_fit,
+        calc_snc = TRUE,
+        get_min_width = TRUE
+    )
+
+
+    # --- Convergence Evaluation [] ---
     # Key functions: get_banocc_output
-    # Default is to evaluate convergence
-    b_out_ec <- banocc::get_banocc_output(banoccfit=b_fit)
-    # This can be turned off using `eval_convergence`
-    b_out_nec <- banocc::get_banocc_output(banoccfit=b_fit,
-                                           eval_convergence = FALSE)
-    # --- Output Extra [] ---
-    # Key functions: get_banocc_output
-    # Get the smallest credible interval width that includes zero
-    b_out_min_width <- banocc::get_banocc_output(banoccfit=b_fit,
-                                                 get_min_width = TRUE)
-    # Get the scaled neighborhood criterion
-    b_out_snc <- banocc::get_banocc_output(banoccfit=b_fit,
-    # --- Traceplot [] ---
-    # Key functions: traceplot
-    # The inverse covariances of feature 1 with all other features
-    rstan::traceplot(b_fit$Fit, pars=paste0("O[1,", 2:9, "]"))
-    # --- Traceplot Warmup [] ---
-    # Key functions: traceplot
-    # The inverse covariances of feature 1 with all other features, including warmup
-    rstan::traceplot(b_fit$Fit, pars=paste0("O[1,", 2:9, "]"),
-                     inc_warmup=TRUE)
+    b_out_ec <- banocc::get_banocc_output(
+        banoccfit = b_fit,
+        eval_convergence = TRUE
+    )
+    b_out_nec <- banocc::get_banocc_output(
+        banoccfit = b_fit,
+        eval_convergence = FALSE
+    )
+    estimates_median <- b_out_nec$Estimates.median
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

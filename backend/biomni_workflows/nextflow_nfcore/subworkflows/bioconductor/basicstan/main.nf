@@ -44,11 +44,45 @@ process BIOC_BASICSTAN {
     library(Stan2BASiCS)
     library(jsonlite)
 
-    # --- B A Si C S_ M C M C [] ---
-    # Key functions: BASiCS_MCMC, BASiCStan, BASiCS_ShowFit, Stan2BASiCS
+    # --- Standard MCMC Estimation [] ---
+    # Key functions: BASiCS_MCMC
     amwg_fit <- BASiCS_MCMC(
-    stan_fit <- BASiCStan(sce, Method = "sampling", iter = 10)
+        sce,
+        N = 200,
+        Thin = 10,
+        Burn = 100,
+        Regression = TRUE
+    )
+
+
+    # --- Stan-based Parameter Estimation [] ---
+    # Key functions: BASiCStan
+    stan_fit <- BASiCStan(
+        sce,
+        Method = "sampling",
+        iter = 10,
+        warmup = 5,
+        chains = 1
+    )
+
+
+    # --- Model Fit Comparison [] ---
+    # Key functions: BASiCS_ShowFit
+    # Display diagnostic summaries for the standard MCMC fit
     BASiCS_ShowFit(amwg_fit)
+    # Display diagnostic summaries for the Stan-based fit
+    BASiCS_ShowFit(stan_fit)
+
+
+    # --- Raw Stan Object Extraction and Conversion [] ---
+    # Key functions: BASiCStan, Stan2BASiCS
+    stan_obj <- BASiCStan(
+        sce,
+        ReturnBASiCS = FALSE,
+        Method = "sampling",
+        iter = 10
+    )
+    converted_fit <- Stan2BASiCS(stan_obj)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

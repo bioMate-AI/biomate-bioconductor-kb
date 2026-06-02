@@ -41,21 +41,44 @@ process BIOC_BIOCARTAIMAGE {
     library(BioCartaImage)
     library(jsonlite)
 
-    # --- crop = NULL [] ---
-    # Key functions: pushViewport, popViewport
-    grid.newpage()
-    pushViewport(viewport(width = 0.7, height = 0.5))
-    grid.biocarta("h_RELAPathway", color = c("1387" = "yellow"))
-    # --- crop = NULL [] ---
-    # Key functions: pointsGrob
-    grid.newpage()
-    grob2 = mark_gene(grob, "1387", function(x, y) {
-    pos = pos_by_polygon(x, y, where = "left")
-    # --- crop = NULL [] ---
-    # Key functions: pushViewport, popViewport
-    grid.newpage()
-    grob4 = mark_gene(grob, "1387", function(x, y) {
-    pos = pos_by_polygon(x, y)
+    # --- Gene Querying [] ---
+    # Key functions: genes_in_pathway
+    genes_by_id <- genes_in_pathway("h_RELAPathway")
+    genes_by_obj <- genes_in_pathway(p_obj)
+
+
+    # --- Pathway Visualization [] ---
+    # Key functions: grid.biocarta
+    grid::grid.newpage()
+    grid.biocarta(
+        "h_RELAPathway",
+        color = c("1387" = "yellow")
+    )
+    grid::grid.newpage()
+    grid.biocarta(
+        "h_RELAPathway",
+        x = grid::unit(0.2, "npc"),
+        y = grid::unit(0.9, "npc"),
+        just = c("left", "top"),
+        color = c("1387" = "yellow"),
+        width = grid::unit(6, "cm")
+    )
+
+
+    # --- Advanced Gene Marking and Customization [] ---
+    # Key functions: biocartaGrob, mark_gene, pos_by_polygon
+    grob <- biocartaGrob("h_RELAPathway")
+    grid::grid.newpage()
+    grob_marked <- mark_gene(grob, "1387", function(x, y) {
+        pos <- pos_by_polygon(x, y, where = "left")
+        grid::pointsGrob(
+            pos[1], pos[2],
+            default.units = "native",
+            pch = 16,
+            gp = grid::gpar(col = "yellow")
+        )
+    })
+    grid::grid.draw(grob_marked)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

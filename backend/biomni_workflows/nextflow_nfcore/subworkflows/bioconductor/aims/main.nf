@@ -38,41 +38,42 @@ process BIOC_AIMS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(AIMS)
     library(ExpressionSet)
     library(jsonlite)
 
-    # --- Loadpackages [] ---
-    # Key functions: data
-    library(AIMS)
-    data(mcgillExample)
-    # --- Showmcgill [] ---
-    # Key functions: ExpressionSet
-    dim(mcgillExample$D)
-    ## convert the expression matrix to an ExpressionSet (Biobase)
-    mcgillExample$D <- ExpressionSet(assayData=mcgillExample$D)
-    head(mcgillExample$D[,1:5])
-    head(mcgillExample$EntrezID)
-    # --- Assignsubtypetomcgill [] ---
+    # --- Subtype Assignment [] ---
     # Key functions: applyAIMS
-    mcgill.subtypes <- applyAIMS(mcgillExample$D,
-                                 mcgillExample$EntrezID)
-    names(mcgill.subtypes)
-    head(mcgill.subtypes$cl)
-    head(mcgill.subtypes$prob)
-    # --- Assignesampleonesubtypemcgill [] ---
+    mcgill_subtypes <- applyAIMS(
+        eset_data,
+        entrez_ids
+    )
+    subtype_classes <- mcgill_subtypes$cl
+    subtype_probs <- mcgill_subtypes$prob
+
+
+    # --- Single Sample Classification [] ---
     # Key functions: applyAIMS
-    mcgill.first.sample.subtype <- applyAIMS(mcgillExample$D[,1,drop=FALSE],
-                                             mcgillExample$EntrezID)
-    names(mcgill.first.sample.subtype)
-    head(mcgill.first.sample.subtype$cl)
-    head(mcgill.first.sample.subtype$prob)
-    # --- Assignsubtypetovdx [] ---
-    # Key functions: featureNames, applyAIMS
-    library(breastCancerVDX)
-    library(hgu133a.db)
+    single_sample_eset <- eset_data[, 1, drop = FALSE]
+    single_subtype <- applyAIMS(
+        single_sample_eset,
+        entrez_ids
+    )
+    single_class <- single_subtype$cl
+    single_prob <- single_subtype$prob
+
+
+    # --- Cross Platform Subtyping [] ---
+    # Key functions: applyAIMS
     data(vdx)
-    hgu133a.entrez <- as.character(as.list(hgu133aENTREZID)[featureNames(vdx)])
-    vdx.subtypes <- applyAIMS(vdx,
+    vdx_entrez <- as.character(
+        as.list(hgu133aENTREZID)[featureNames(vdx)]
+    )
+    vdx_subtypes <- applyAIMS(
+        vdx,
+        vdx_entrez
+    )
+    vdx_classes <- vdx_subtypes$cl
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,27 +41,53 @@ process BIOC_BIGGR {
     library(BiGGR)
     library(jsonlite)
 
-    # --- Eq Ineq [] ---
-    # Key functions: tempfile, createLIMFromSBML
-    ##load lying-tunell data
-    data(lying.tunell.data)
-    ##set equality constraints
-    equation.vars <- c("R_GLCt1r", "R_L_LACt2r", "R_GLNtN1",
-                       "R_PYRt2r", "R_GLUDC", "R_G6PDH2r")
-    # --- Sample Flux Ensemble [] ---
-    # Key functions: frame, tempfile, createLIMFromSBML, sampleFluxEnsemble
-    ##specify the fluxes with uncertainty given as SD in a data frame
-    uncertain.vars <- data.frame(var=equation.vars[1:4],
-                                 value=equation.values[1:4],
-                                 sd=c(0.058,0.032,0.034,0.004))
-    uncertain.vars <- data.frame(var=c(equation.vars[c(1,2,3,4)]),
-    # --- Fig Tca [] ---
+    # --- LIM Constraint Formulation [] ---
+    # Key functions: createLIMFromSBML
+    maximize <- "R_ATPS4m - R_NDPK1m -R_HEX1 - R_PFK - R_PGK + R_PYK"
+    externals <- c("M_glc_DASH_D_e", "M_lac_DASH_L_e", "M_ala_DASH_L_e",
+                   "M_gln_DASH_L_e", "M_h2o_e", "M_co2_e", "M_o2_e")
+    data(lying.tunell.data, package="BiGGR")
+    equation.vars <- c("R_GLCt1r", "R_L_LACt2r", "R_GLNtN1", "R_PYRt2r")
+    equation.values <- as.character(lying.tunell.data[
+        c("glucose", "lactate", "glutamine", "pyruvate"), "median"])
+    eqns <- list(equation.vars, equation.values)
+    limfile.path <- tempfile()
+    createLIMFromSBML(sbml.model, maximize, equations=eqns,
+                      externals=externals, file.name=limfile.path)
+
+
+    # --- Flux Estimation [] ---
+    # Key functions: getRates
+    rates <- getRates(limfile.path)
+
+
+    # --- Flux Ensemble Sampling [] ---
+    # Key functions: createLIMFromSBML, sampleFluxEnsemble
+    uncertain.vars <- data.frame(
+        var=equation.vars,
+        value=as.numeric(equation.values),
+        sd=lying.tunell.data[c("glucose", "lactate", "glutamine",
+                               "pyruvate"), "sd"]
+    )
+    limfile.path.ens <- tempfile()
+    equations <- list(c("R_G6PDH2r", "R_GLUDC"),
+                      c("R_GLCt1r * 0.069", "R_GLCt1r * 0.32"))
+    createLIMFromSBML(sbml.model, maximize, externals=externals,
+                      file.name=limfile.path.ens, equations=equations)
+    ensemble <- sampleFluxEnsemble(limfile.path.ens, uncertain.vars,
+                                   x0=rates, iter=1000, burninlength=100,
+                                   outputlength=100, type="mirror", jmp=0.1)
+
+
+    # --- Network Visualization [] ---
     # Key functions: sbml2hyperdraw
-    relevant.species <- c("M_cit_m", "M_icit_m" , "M_akg_m",
-                          "M_succoa_m", "M_succ_m", "M_fum_m",
-                          "M_mal_DASH_L_m", "M_oaa_m")
-    relevant.reactions <- c("R_CSm", "R_ACONTm", "R_ICDHxm",
-                            "R_AKGDm", "R_SUCOAS1m", "R_SUCD1m",
+    relevant.species <- c("M_glc_DASH_D_c", "M_g6p_c", "M_f6p_c")
+    relevant.reactions <- c("R_HEX1", "R_PGI", "R_PFK")
+    hd <- sbml2hyperdraw(sbml.model, rates=rates,
+                         relevant.species=relevant.species,
+                         relevant.reactions=relevant.reactions,
+                         layoutType="dot", plt.margins=c(20, 0, 20, 80))
+    plot(hd)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

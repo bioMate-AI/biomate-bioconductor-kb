@@ -41,74 +41,76 @@ process BIOC_ATTRACT {
     library(attract)
     library(jsonlite)
 
-    # --- Filterdata [] ---
-    # Key functions: filterDataSet
-    ## library(attract)
-    ## filteredData <- filterDataSet(data, filterPerc=0.75)
-    # --- Loadlib [] ---
-    # Key functions: data
-    library(attract)
-    data(exprs.dat)
-    data(samp.info)
-    # --- Makeeset [] ---
-    # Key functions: new, env
-    loring.eset <- new("ExpressionSet")
-    loring.eset@assayData <- new.env()
-    assign("exprs", exprs.dat, loring.eset@assayData)
-    p.eset <- new("AnnotatedDataFrame", data=samp.info)
-    loring.eset@phenoData <- p.eset
-    # --- Findattractors [] ---
-    # Key functions: findAttractors
-    attractor.states <- findAttractors(loring.eset, "celltype",
-                                       annotation="illuminaHumanv1.db",
-                                       database="KEGG",analysis="microarray",
-                                       databaseGeneFormat=NULL, expressionSetGeneFormat=NULL)
-    # --- Exprssetgeneidoptions [] ---
-    # Key functions: columns
-    columns(illuminaHumanv1.db)
-    # --- Datasetidoptions [] ---
-    # Key functions: keytypes
-    keytypes(illuminaHumanv1.db)
-    # --- Findattractorscustom [] ---
-    # Key functions: findAttractors
-    ## MSigDBpath <- system.file("extdata","c4.cgn.v5.0.entrez.gmt",package="attract")
-    ## attractor.states.cutsom <- findAttractors(loring.eset, "celltype", annotation="illuminaHumanv1.db",database=MSigDBpath, analysis="microarray",databaseGeneFormat="ENTREZID", expressionSetGeneFormat="PROBEID")
-    # --- Showslots [] ---
-    # Key functions: slotNames
-    class(attractor.states)
-    slotNames(attractor.states)
-    # --- Removeflats [] ---
+    # --- Filtering Flat Genes [] ---
     # Key functions: removeFlatGenes
-    remove.these.genes <- removeFlatGenes(loring.eset, "celltype",
-                                          contrasts=NULL, limma.cutoff=0.05)
-    # --- Findsyne [] ---
+    remove.these.genes <- removeFlatGenes(
+        loring.eset,
+        "celltype",
+        contrasts = NULL,
+        limma.cutoff = 0.05
+    )
+
+
+    # --- Finding Attractor States [] ---
+    # Key functions: findAttractors
+    attractor.states <- findAttractors(
+        loring.eset,
+        "celltype",
+        annotation = "illuminaHumanv1.db",
+        database = "KEGG",
+        analysis = "microarray",
+        databaseGeneFormat = NULL,
+        expressionSetGeneFormat = NULL
+    )
+
+
+    # --- Finding Synexpression Groups [] ---
     # Key functions: findSynexprs
-    mapk.syn <- findSynexprs("04010", attractor.states, "celltype"
-                             , remove.these.genes)
-    # --- Showsynslots [] ---
-    # Key functions: slotNames
-    class(mapk.syn)
-    slotNames(mapk.syn)
-    # --- Findmultisyne [] ---
-    # Key functions: findSynexprs
-    top5.syn <- findSynexprs(attractor.states@rankedPathways[1:5,1],
-                             attractor.states, "celltype",
-                             removeGenes=remove.these.genes)
-    # --- Plotsyn [] ---
-    # Key functions: rainbow, plotsynexprs
-    par(mfrow=c(2,2))
+    mapk.syn <- findSynexprs(
+        "04010",
+        attractor.states,
+        "celltype",
+        remove.these.genes
+    )
+    top5.syn <- findSynexprs(
+        attractor.states@rankedPathways[1:5, 1],
+        attractor.states,
+        "celltype",
+        removeGenes = remove.these.genes
+    )
+
+
+    # --- Visualizing Synexpression Groups [] ---
+    # Key functions: plotsynexprs
     pretty.col <- rainbow(3)
-    for( i in 1:3 ){
-    	plotsynexprs(mapk.syn, tickMarks=c(6, 28, 47, 60),
-                   tickLabels=c("ESC", "PRO", "NSC", "TER"),
-    # --- Findcorrp [] ---
-    # Key functions: findCorrPartners
-    mapk.cor <- findCorrPartners(mapk.syn, loring.eset, remove.these.genes)
-    # --- Funce [] ---
-    # Key functions: calcFuncSynexprs
-    mapk.func <- calcFuncSynexprs(mapk.syn, attractor.states, "CC",
-                                  annotation="illuminaHumanv1.db"
-                                  ,analysis="microarray",expressionSetGeneFormat=NULL)
+    for (i in 1:3) {
+        plotsynexprs(
+            mapk.syn,
+            tickMarks = c(6, 28, 47, 60),
+            tickLabels = c("ESC", "PRO", "NSC", "TER"),
+            vertLines = c(12.5, 43.5, 51.5),
+            index = i,
+            main = paste("Synexpression Group ", i, sep = ""),
+            col = pretty.col[i]
+        )
+    }
+
+
+    # --- Functional Enrichment and Correlation [] ---
+    # Key functions: findCorrPartners, calcFuncSynexprs
+    mapk.cor <- findCorrPartners(
+        mapk.syn,
+        loring.eset,
+        remove.these.genes
+    )
+    mapk.func <- calcFuncSynexprs(
+        mapk.syn,
+        attractor.states,
+        "CC",
+        annotation = "illuminaHumanv1.db",
+        analysis = "microarray",
+        expressionSetGeneFormat = NULL
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

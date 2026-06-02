@@ -41,34 +41,61 @@ process BIOC_BALLGOWN {
     library(ballgown)
     library(jsonlite)
 
-    # --- structure [] ---
-    # Key functions: structure
-    structure(bg)$exon
-    structure(bg)$intron
-    structure(bg)$trans
-    # --- p Data [] ---
-    # Key functions: pData
-    pData(bg) = data.frame(id=sampleNames(bg), group=rep(c(1,0), each=10))
-    # --- plot Transcripts [] ---
-    # Key functions: plotTranscripts
-    plotTranscripts(gene='XLOC_000454', gown=bg, samples='sample12',
-    # --- plot Means [] ---
-    # Key functions: plotMeans
-    plotMeans('XLOC_000454', bg, groupvar='group', meas='FPKM', colorby='transcript')
-    # --- p Data [] ---
-    # Key functions: pData
-    pData(bg) = data.frame(pData(bg), time=rep(1:10, 2)) #dummy time covariate
-    timecourse_results = stattest(bg, feature='transcript', meas='FPKM', covariate='time', timecourse=TRUE)
-    # --- cluster Transcripts [] ---
-    # Key functions: clusterTranscripts
-    clusterTranscripts(gene='XLOC_000454', gown=bg, k=2, method='kmeans')
-    # --- plot Latent Transcripts [] ---
-    # Key functions: plotLatentTranscripts
-    plotLatentTranscripts(gene='XLOC_000454', gown=bg, k=2, method='kmeans', returncluster=FALSE)
-    # --- stattest [] ---
-    # Key functions: stattest
-    agg = collapseTranscripts(gene='XLOC_000454', gown=bg, k=2, method='kmeans')
-    stattest(gowntable=agg$tab, pData=pData(bg), feature='transcript_cluster',
+    # --- Expression Extraction [] ---
+    # Key functions: texpr, eexpr, iexpr, gexpr, structure
+    transcript_fpkm = texpr(bg, 'FPKM')
+    exon_mcov = eexpr(bg, 'mcov')
+    junction_rcount = iexpr(bg)
+    gene_expression = gexpr(bg)
+    exon_structure = structure(bg)$exon
+    intron_structure = structure(bg)$intron
+
+
+    # --- Differential Expression Analysis [] ---
+    # Key functions: stattest, pData
+    pData(bg) = data.frame(pData(bg), time=rep(1:10, 2))
+    stat_results = stattest(
+        bg, feature='transcript', meas='FPKM', covariate='group'
+    )
+    timecourse_results = stattest(
+        bg, feature='transcript', meas='FPKM', covariate='time', 
+        timecourse=TRUE
+    )
+    group_adj_results = stattest(
+        bg, feature='transcript', meas='FPKM', covariate='time', 
+        timecourse=TRUE, adjustvars='group'
+    )
+
+
+    # --- Transcript Clustering and Aggregation [] ---
+    # Key functions: clusterTranscripts, collapseTranscripts, stattest, pData
+    clustered = clusterTranscripts(
+        gene='XLOC_000454', gown=bg, k=2, method='kmeans'
+    )
+    agg = collapseTranscripts(
+        gene='XLOC_000454', gown=bg, k=2, method='kmeans'
+    )
+    cluster_results = stattest(
+        gowntable=agg$tab, pData=pData(bg), 
+        feature='transcript_cluster', covariate='group', 
+        libadjust=FALSE
+    )
+
+
+    # --- Visualisation [] ---
+    # Key functions: plotTranscripts, plotMeans, plotLatentTranscripts
+    plotTranscripts(
+        gene='XLOC_000454', gown=bg, samples='sample12', 
+        meas='FPKM', colorby='transcript'
+    )
+    plotMeans(
+        'XLOC_000454', bg, groupvar='group', meas='FPKM', 
+        colorby='transcript'
+    )
+    plotLatentTranscripts(
+        gene='XLOC_000454', gown=bg, k=2, method='kmeans', 
+        returncluster=FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
