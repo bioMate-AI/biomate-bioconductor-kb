@@ -41,15 +41,39 @@ process BIOC_BROWSERVIZ {
     library(BrowserViz)
     library(jsonlite)
 
-    # --- to J S O N [] ---
-    # Key functions: toJSON
-    library(jsonlite)
-    msg <- toJSON(list(cmd="setBrowserWindowTitle",
-    # --- Browser Viz [] ---
-    # Key functions: BrowserViz, displayHTMLInDiv
-    library(BrowserViz)
-    browserVizBrowserFile <- system.file(package="BrowserViz", "browserCode",
-    if(BrowserViz::webBrowserAvailableForTesting()){
+    # --- Querying Browser State [] ---
+    # Key functions: getBrowserWindowTitle, getBrowserWindowWidth, getBrowserWindowHeight
+    current_title <- getBrowserWindowTitle(bv)
+    window_width <- getBrowserWindowWidth(bv)
+    window_height <- getBrowserWindowHeight(bv)
+    dimensions <- list(
+        width = window_width,
+        height = window_height,
+        title = current_title
+    )
+
+
+    # --- Interactive Data Transmission [] ---
+    # Key functions: setBrowserWindowTitle, send
+    setBrowserWindowTitle(bv, "Updated Nextflow Analysis View")
+    custom_message <- list(
+        cmd = "displayData",
+        status = "request",
+        callback = "handleResponse",
+        payload = "Data payload from Nextflow pipeline"
+    )
+    response <- send(bv, custom_message)
+
+
+    # --- Session Termination [] ---
+    # Key functions: close, ready
+    close(bv)
+    connection_status <- "Closed successfully"
+    is_closed <- !ready(bv)
+    status_report <- list(
+        status = connection_status,
+        closed = is_closed
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

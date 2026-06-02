@@ -38,29 +38,54 @@ process BIOC_CARDINALIO {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CardinalIO)
     library(ImzMeta)
     library(jsonlite)
 
-    # --- example Imz M L File [] ---
-    # Key functions: exampleImzMLFile, parseImzML
-    path <- exampleImzMLFile("continuous")
-    p <- parseImzML(path, ibd=TRUE)
-    # --- tempfile [] ---
-    # Key functions: tempfile, writeImzML
-    path2 <- tempfile(fileext=".imzML")
-    writeImzML(p, file=path2)
-    # --- replicate [] ---
-    # Key functions: replicate
-    set.seed(2023)
+    # --- Extracting Spectra and Spatial Coordinates [] ---
+    # Key functions: as
+    e2 <- as(p, "ImzMeta")
+    positions <- p$run$spectrumList$positions
+    mz_arrays <- p$run$spectrumList$mzArrays
+    intensity_arrays <- p$run$spectrumList$intensityArrays
+    mz1 <- p$ibd$mz[[1L]]
+    int1 <- p$ibd$intensity[[1L]]
+
+
+    # --- Metadata Construction and Conversion [] ---
+    # Key functions: ImzMeta, as
+    meta <- ImzMeta(
+        spectrumType="MS1 spectrum",
+        spectrumRepresentation="profile",
+        instrumentModel="LTQ FT Ultra",
+        ionSource="electrospray ionization",
+        analyzer="ion trap",
+        detectorType="electron multiplier"
+    )
+    p2 <- as(meta, "ImzML")
+    file_desc2 <- p2$fileDescription
+
+
+    # --- Exporting Mass Spectrometry Imaging Datasets [] ---
+    # Key functions: writeImzML, ImzMeta
+    meta <- ImzMeta(
+        spectrumType="MS1 spectrum",
+        spectrumRepresentation="profile"
+    )
+    nx <- 3
+    ny <- 3
+    nmz <- 500
     mz <- seq(500, 510, length.out=nmz)
-    intensity <- replicate(nx * ny, rlnorm(nmz))
-    # --- Imz Meta [] ---
-    # Key functions: ImzMeta
-    meta <- ImzMeta(spectrumType="MS1 spectrum",
-    # --- tempfile [] ---
-    # Key functions: tempfile, writeImzML
+    intensity <- matrix(runif(nx * ny * nmz), nrow=nmz)
+    positions <- expand.grid(x=seq_len(nx), y=seq_len(ny))
     path3 <- tempfile(fileext=".imzML")
-    writeImzML(meta, file=path3, positions=positions, mz=mz, intensity=intensity)
+    writeImzML(
+        meta,
+        file=path3,
+        positions=positions,
+        mz=mz,
+        intensity=intensity
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

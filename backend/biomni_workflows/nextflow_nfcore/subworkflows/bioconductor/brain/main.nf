@@ -41,101 +41,29 @@ process BIOC_BRAIN {
     library(BRAIN)
     library(jsonlite)
 
-    # --- Brain Vignette.Rnw:67 76 [] ---
-    # Key functions: calculateMonoisotopicMass
-    #angiotensineII
-    angiotensineII <- list(C=50,H=71,N=13,O=12)
-    monoisotopicMassAngiotensineII <- calculateMonoisotopicMass(aC = angiotensineII)
-    monoisotopicMassAngiotensineII
-    #human dynein heavy chain
-    # --- Brain Vignette.Rnw:91 98 [] ---
-    # Key functions: calculateAverageMass
-    #angiotensineII
-    averageMassAngiotensineII <- calculateAverageMass(aC = angiotensineII)
-    averageMassAngiotensineII
-    #humandynein
-    averageMassHumandynein <- calculateAverageMass(aC = humandynein)
-    # --- Brain Vignette.Rnw:104 112 [] ---
-    # Key functions: calculateNrPeaks
-    #angiotensineII
-    nrPeaksAngiotensineII <- calculateNrPeaks(aC = angiotensineII)
-    nrPeaksAngiotensineII
-    #human dynein heavy chain
-    nrPeaksHumandynein <- calculateNrPeaks(aC = humandynein)
-    # --- Brain Vignette.Rnw:119 154 [] ---
-    # Key functions: calculateIsotopicProbabilities
-    #angiotensineII
-    #with default options
-    prob1 <- calculateIsotopicProbabilities(aC = angiotensineII)
-    print(length(prob1))
-    #with user defined number of requested aggregated isotopic variants
-    # --- Brain Vignette.Rnw:160 173 [] ---
-    # Key functions: expression, useBRAIN
-    #angiotensineII
-    headr <- expression(paste(C[50], H[71], N[13],O[12]))
-    #with default options
-    res <- useBRAIN(aC= angiotensineII)
-    plot(res$masses,res$isoDistr,xlab="mass",ylab="abundances", type="h",
-    # --- Brain Vignette.Rnw:177 192 [] ---
-    # Key functions: expression, useBRAIN
-    #human dynein heavy chain
-    headr <- expression(paste(C[23832], H[37816], N[6528],O[7031], S[170]))
-    res <- useBRAIN(aC=humandynein, stopOption="coverage", coverage=0.99)
-    plot(res$masses,res$isoDistr,xlab="mass",ylab="abundances", type="h",
-    xlim=c(min(res$masses)-1,max(res$masses)+1))
-    # --- Brain Vignette.Rnw:201 216 [] ---
+    # --- Isotopic Distribution Prediction [] ---
     # Key functions: useBRAIN
-    #with user defined number of requested aggregated isotopic variants
-    res <- useBRAIN(aC = angiotensineII, nrPeaks = 20)
-    plot(res$masses,res$isoDistr,xlab="mass",ylab="abundances", type="h",
-    xlim=c(min(res$masses)-1,max(res$masses)+1))
-    title(headr)
-    # --- Brain Vignette.Rnw:247 250 [] ---
-    # Key functions: na
-    ## AMINOS <- c("A", "R", "N", "D", "C", "E", "Q", "G", "H", "I", "L", "K",
-    ## "M", "F", "P", "S", "T", "W", "Y", "V")
-    ## !is.na(sum(match(seqVector, AMINOS)))
-    # --- Brain Vignette.Rnw:258 284 [] ---
-    # Key functions: frame, na
-    ## nrPeaks = 1000
-    ## howMany <- nrow(tabUniprot)
-    ## dfUniprot <- data.frame()
-    ## for (idx in 1:howMany){
-    ##   seq <- as.character(tabUniprot[idx,"Sequence"])
-    # --- Brain Vignette.Rnw:295 297 [] ---
-    # Key functions: file
-    uniprotBRAIN <- read.table(system.file("extdata", "uniprotBRAIN.txt", package="BRAIN"))
-    nrow(uniprotBRAIN)
-    # --- Brain Vignette.Rnw:310 317 [] ---
-    # Key functions: bwplot, cut
-    library(lattice)
-    mm <- uniprot10to5$monoMass
-    mmMin <- floor(min(mm)) - 1
-    mmMax <- ceiling(max(mm)) + 1
-    sq <- seq(from=0, to=mmMax, by=5000)
-    # --- Brain Vignette.Rnw:320 323 [] ---
-    # Key functions: bwplot, cut, monoMass
-    bw2 <- bwplot(cut(monoMass, sq) ~ (mostAbundantPeakMass - monoMass),
-    data=uniprot10to5,  ylab="monoMass (Da)", xlab="mostAbundantPeakMass - monoMass (Da)")
-    plot(bw2)
-    # --- Brain Vignette.Rnw:333 335 [] ---
-    # Key functions: lm
-    lmod <- lm(monoMass ~ mostAbundantPeakMass, data=uniprot10to5)
-    summary(lmod)
-    # --- Brain Vignette.Rnw:354 361 [] ---
-    # Key functions: model
-    icptLm <- lmod$coefficients[1]
-    cffLm <- lmod$coefficients[2]
-    expected <- icptLm + cffLm * uniprot10to5$mostAbundantPeakMass
-    residuals <- uniprot10to5$monoMass - expected
-    hist <- hist(residuals, seq(floor(min(residuals)),ceiling(max(residuals)), by=0.1),
-    # --- Brain Vignette.Rnw:371 396 [] ---
-    # Key functions: useBRAIN2, time, replicate
-    benchmarkRCL <- function(aC, nrPeaks){
-      print("Benchmarking correctness of approximations of results:")
-      resNoRCL <-  useBRAIN2(aC = aC, nrPeaks = nrPeaks)$iso
-      resRCL   <-  useBRAIN2(aC = aC, nrPeaks = nrPeaks, approxParam = 10)$iso
-      print(c('max error: ', max(abs(resNoRCL - resRCL))))
+    peptide_seq <- "ACDEFGHIKLMNPQRSTVWY"
+    brain_res <- useBRAIN(aSeq = peptide_seq)
+    iso_probabilities <- brain_res$isoDistribution
+
+
+    # --- Uniprot Data Processing [] ---
+    # Key functions: uniprotBRAIN
+    data(uniprotBRAIN, package = "brain")
+    uniprot_subset <- uniprotBRAIN[uniprotBRAIN$monoMass < 10^5, ]
+    target_sequences <- head(uniprot_subset$sequence, n = 10)
+
+
+    # --- High-Throughput Isotopic Modeling [] ---
+    # Key functions: useBRAIN
+    data(uniprotBRAIN, package = "brain")
+    uniprot_subset <- uniprotBRAIN[uniprotBRAIN$monoMass < 10^5, ]
+    target_sequences <- head(uniprot_subset$sequence, n = 5)
+    batch_distributions <- lapply(
+        target_sequences,
+        function(seq) useBRAIN(aSeq = seq)$isoDistribution
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

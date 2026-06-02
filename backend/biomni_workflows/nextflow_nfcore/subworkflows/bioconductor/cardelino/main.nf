@@ -41,15 +41,40 @@ process BIOC_CARDELINO {
     library(cardelino)
     library(jsonlite)
 
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: pheatmap
+    # --- De Novo Clone Inference [] ---
+    # Key functions: clone_id
+    assign_mtClones <- cardelino::clone_id(
+        A = AD,
+        D = DP,
+        Config = NULL,
+        n_clone = 3,
+        keep_base_clone = FALSE
+    )
+    cell_prob <- assign_mtClones$prob
+    config_prob <- assign_mtClones$Config_prob
+
+
+    # --- Clonal Visualization [] ---
+    # Key functions: vc_heatmap
     AF_mt <- as.matrix(AD / DP)
-    pheatmap::pheatmap(AF_mt)
-    # --- Load cellSNP vcf analysis [] ---
-    # Key functions: load_cellSNP_vcf, plot_tree, clone_id, prob_heatmap, assign_cells_to_clones, heat_matrix, scale_fill_gradient2, ggtitle
-    AD_file <- system.file("extdata", "passed_ad.mtx", package = "cardelino")
-    DP_file <- system.file("extdata", "passed_dp.mtx", package = "cardelino")
-    id_file <- system.file("extdata", "passed_variant_names.txt",
+    Config_mt <- assign_mtClones$Config_prob
+    Config_mt[Config_mt >= 0.5] <- 1
+    Config_mt[Config_mt < 0.5] <- 0
+    vc_plot <- cardelino::vc_heatmap(
+        AF_mt,
+        assign_mtClones$prob,
+        Config_mt,
+        show_legend = TRUE
+    )
+
+
+    # --- Clonal Configuration Analysis [] ---
+    # Key functions: heat_matrix
+    config_diff <- assign_mtClones$Config_prob - Config_mt
+    diff_plot <- cardelino::heat_matrix(t(config_diff)) +
+        ggplot2::scale_fill_gradient2() +
+        ggplot2::ggtitle("Changes of clonal Config") +
+        ggplot2::labs(x = "Clones", y = "Variants")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,16 +41,69 @@ process BIOC_BRANCHPOINTER {
     library(branchpointer)
     library(jsonlite)
 
-    # --- Connect to BioMart [] ---
-    # Key functions: useMart, makeBranchpointWindowForSNP
-    library(biomaRt)
-    mart <- useMart("ENSEMBL_MART_SNP", dataset="hsapiens_snp",host="www.ensembl.org")
-    querySNP <- makeBranchpointWindowForSNP(c("rs587776767","rs786205083"),
-    # --- GtfToExons analysis [] ---
-    # Key functions: gtfToExons, readQueryFile, makeBranchpointWindowForExons, predictBranchpoints, plotBranchpointWindow, predictionsToSummary
-    queryIntronFromGTF <- makeBranchpointWindowForExons("ENSE00000939171.1",
-    head(queryIntronFromGTF)
-    queryIntronFromGTF <- makeBranchpointWindowForExons(c("ENSE00000939171.1",
+    # --- Intron Query Preparation [] ---
+    # Key functions: readQueryFile, makeBranchpointWindowForExons
+    queryIntronFile <- system.file(
+        "extdata",
+        "intron_example.txt",
+        package = "branchpointer"
+    )
+    queryIntron <- readQueryFile(
+        queryIntronFile,
+        queryType = "region",
+        exons = exons
+    )
+    queryIntronFromGTF <- makeBranchpointWindowForExons(
+        c("ENSE00000939171.1", "ENSE00001814242.1"),
+        idType = "exon_id",
+        exons = exons
+    )
+
+
+    # --- SNP Query Preparation [] ---
+    # Key functions: readQueryFile
+    querySNPFile <- system.file(
+        "extdata",
+        "SNP_example.txt",
+        package = "branchpointer"
+    )
+    querySNP <- readQueryFile(
+        querySNPFile,
+        queryType = "SNP",
+        exons = exons,
+        filter = TRUE
+    )
+
+
+    # --- Branchpoint Prediction [] ---
+    # Key functions: predictBranchpoints
+    g <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
+    branchpointPredictionsIntron <- predictBranchpoints(
+        queryIntron,
+        queryType = "region",
+        BSgenome = g
+    )
+    branchpointPredictionsSNP <- predictBranchpoints(
+        querySNP,
+        queryType = "SNP",
+        BSgenome = g
+    )
+
+
+    # --- Prediction Summarisation and Visualisation [] ---
+    # Key functions: predictionsToSummary, plotBranchpointWindow
+    querySNPSummary <- predictionsToSummary(
+        querySNP,
+        branchpointPredictionsSNP
+    )
+    plotBranchpointWindow(
+        queryIntron$id[2],
+        branchpointPredictionsIntron,
+        probabilityCutoff = 0.52,
+        plotMutated = FALSE,
+        plotStructure = TRUE,
+        exons = exons
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,16 +41,61 @@ process BIOC_CBNPLOT {
     library(CBNplot)
     library(jsonlite)
 
-    # --- KEGG pathway enrichment [] ---
-    # Key functions: mappedkeys, enrichKEGG, setReadable
-    library(CBNplot)
-    library(bnlearn)
-    library(org.Hs.eg.db)
-    # --- Bngeneplot analysis [] ---
-    # Key functions: bngeneplot, evcent, bnpathplot, bnpathplotCustom, bngeneplotCustom
-    bnpathplotCustom(results = pway, exp = counts, expRow="ENTREZID",
-    bngeneplotCustom(results = pway, exp = counts, expRow="ENTREZID",
-    sessionInfo()
+    # --- Network Structure Extraction [] ---
+    # Key functions: bngeneplot
+    net_data <- bngeneplot(
+        results = pway,
+        exp = counts,
+        pathNum = 1,
+        returnNet = TRUE,
+        expRow = "ENTREZID"
+    )
+    network_structure <- net_data$str
+
+
+    # --- Pathway Network Plotting [] ---
+    # Key functions: bnpathplot
+    path_net <- bnpathplot(
+        results = pway,
+        exp = counts,
+        nCategory = 5,
+        shadowText = TRUE,
+        expRow = "ENTREZID"
+    )
+
+
+    # --- Custom Network Visualization [] ---
+    # Key functions: bnpathplotCustom, bngeneplotCustom
+    custom_path <- bnpathplotCustom(
+        results = pway,
+        exp = counts,
+        expRow = "ENTREZID",
+        fontFamily = "serif",
+        glowEdgeNum = 1,
+        hub = 1
+    )
+    custom_gene <- bngeneplotCustom(
+        results = pway,
+        exp = counts,
+        expRow = "ENTREZID",
+        pathNum = 1,
+        fontFamily = "sans",
+        glowEdgeNum = NULL,
+        hub = 1
+    )
+
+
+    # --- Network Centrality Analysis [] ---
+    # Key functions: bngeneplot
+    net_data <- bngeneplot(
+        results = pway,
+        exp = counts,
+        pathNum = 1,
+        returnNet = TRUE,
+        expRow = "ENTREZID"
+    )
+    g <- bnlearn::as.igraph(net_data$av)
+    centrality_scores <- igraph::evcent(g)$vector
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

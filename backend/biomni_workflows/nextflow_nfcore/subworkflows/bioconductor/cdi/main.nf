@@ -38,31 +38,71 @@ process BIOC_CDI {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(CDI)
     library(CDI_lineplot)
     library(jsonlite)
 
-    # --- kable [] ---
-    # Key functions: kable
+    # --- CDI Calculation [] ---
+    # Key functions: calculate_CDI
     data(one_batch_matrix_label_df, package = "CDI")
-    knitr::kable(head(one_batch_matrix_label_df[,c("KMeans_k2", "KMeans_k4", "Seurat_k2", "Seurat_k3")], 3))
-    # --- feature selection [] ---
-    # Key functions: feature_gene_selection, size_factor
-    feature_gene_indx <- feature_gene_selection(
-    one_batch_matrix_size_factor <- size_factor(X = one_batch_matrix)
-    # --- calculate cdi1 [] ---
-    # Key functions: calculate_CDI, CDI_lineplot, contingency_heatmap
-    start_time <- Sys.time()
+    data(one_batch_matrix_celltype, package = "CDI")
     CDI_return1 <- calculate_CDI(
-    end_time <- Sys.time()
-    # --- data label2 [] ---
-    # Key functions: kable
-    data(two_batch_matrix_label_df, package = "CDI")
-    knitr::kable(head(two_batch_matrix_label_df[,c("KMeans_k5", "KMeans_k6", "Seurat_k5", "Seurat_k6")], 3))
-    # --- feature selection2 [] ---
-    # Key functions: feature_gene_selection, size_factor, calculate_CDI, CDI_lineplot
-    feature_gene_indx <- feature_gene_selection(
-    two_batch_matrix_size_factor <- size_factor(two_batch_matrix)
-    start_time <- Sys.time()
+        X = sub_one_batch_matrix,
+        cand_lab_df = one_batch_matrix_label_df,
+        batch_label = NULL,
+        cell_size_factor = one_batch_matrix_size_factor
+    )
+    benchmark_return1 <- calculate_CDI(
+        X = sub_one_batch_matrix,
+        cand_lab_df = one_batch_matrix_celltype,
+        batch_label = NULL,
+        cell_size_factor = one_batch_matrix_size_factor
+    )
+
+
+    # --- Visualisation of CDI Curves [] ---
+    # Key functions: CDI_lineplot
+    CDI_lineplot(
+        cdi_dataframe = CDI_return1,
+        cdi_type = "CDI_BIC",
+        benchmark_celltype_cdi = benchmark_return1,
+        benchmark_celltype_ncluster = length(
+            unique(one_batch_matrix_celltype)
+        )
+    )
+
+
+    # --- Contingency Heatmap Analysis [] ---
+    # Key functions: contingency_heatmap
+    cand_names <- paste0(
+        "cluster",
+        seq_len(length(unique(one_batch_matrix_label_df$KMeans_k5)))
+    )
+    contingency_heatmap(
+        benchmark_label = one_batch_matrix_celltype,
+        candidate_label = one_batch_matrix_label_df$KMeans_k5,
+        rename_candidate_clusters = TRUE,
+        candidate_cluster_names = cand_names
+    )
+
+
+    # --- Multi-Batch Analysis [] ---
+    # Key functions: feature_gene_selection, size_factor, calculate_CDI
+    data(two_batch_matrix, package = "CDI")
+    data(two_batch_matrix_batch, package = "CDI")
+    f_idx <- feature_gene_selection(
+        X = two_batch_matrix,
+        batch_label = two_batch_matrix_batch,
+        method = "wds",
+        nfeature = 500
+    )
+    sf <- size_factor(two_batch_matrix)
+    CDI_return2 <- calculate_CDI(
+        X = two_batch_matrix[f_idx, ],
+        cand_lab_df = two_batch_matrix_label_df,
+        batch_label = two_batch_matrix_batch,
+        cell_size_factor = sf
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

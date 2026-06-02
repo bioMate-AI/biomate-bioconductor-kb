@@ -41,41 +41,50 @@ process BIOC_CARNIVAL {
     library(CARNIVAL)
     library(jsonlite)
 
-    # --- Code Block 3 [] ---
-    # Key functions: defaultLpSolveCarnivalOptions, create, runVanillaCarnival
-    library(CARNIVAL)
-    load(file = system.file("toy_perturbations_ex1.RData",
-                            package = "CARNIVAL"))
-    load(file = system.file("toy_measurements_ex1.RData",
-                            package = "CARNIVAL"))
-    # --- Code Block 5 [] ---
-    # Key functions: defaultLpSolveCarnivalOptions, create, frame
-    load(file = system.file("toy_measurements_ex2.RData",
-                            package="CARNIVAL"))
-    load(file = system.file("toy_network_ex2.RData",
-                            package="CARNIVAL"))
-    carnivalOptions <- defaultLpSolveCarnivalOptions()
-    # --- Code Block 7 [] ---
-    # Key functions: defaultLpSolveCarnivalOptions, create, generateLpFileCarnival
-    load(file = system.file("toy_perturbations_ex1.RData",
-                            package = "CARNIVAL"))
-    load(file = system.file("toy_measurements_ex1.RData",
-                            package = "CARNIVAL"))
-    load(file = system.file("toy_network_ex1.RData",
-    # --- Code Block 8 [] ---
+    # --- Vanilla CARNIVAL Execution [] ---
+    # Key functions: runVanillaCarnival, defaultLpSolveCarnivalOptions
+    net_file <- system.file("toy_network_ex1.RData", package = "CARNIVAL")
+    meas_file <- system.file("toy_measurements_ex1.RData", package = "CARNIVAL")
+    pert_file <- system.file("toy_perturbations_ex1.RData", package = "CARNIVAL")
+    load(net_file)
+    load(meas_file)
+    load(pert_file)
+    opts <- defaultLpSolveCarnivalOptions()
+    results <- runVanillaCarnival(
+        perturbations = toy_perturbations,
+        measurements = toy_measurements,
+        priorKnowledgeNetwork = toy_network,
+        carnivalOptions = opts
+    )
+
+
+    # --- LP File Generation [] ---
+    # Key functions: generateLpFileCarnival, defaultLpSolveCarnivalOptions
+    net_file <- system.file("toy_network_ex1.RData", package = "CARNIVAL")
+    meas_file <- system.file("toy_measurements_ex1.RData", package = "CARNIVAL")
+    pert_file <- system.file("toy_perturbations_ex1.RData", package = "CARNIVAL")
+    load(net_file)
+    load(meas_file)
+    load(pert_file)
+    opts <- defaultLpSolveCarnivalOptions()
+    lp_data <- generateLpFileCarnival(
+        perturbations = toy_perturbations,
+        measurements = toy_measurements,
+        priorKnowledgeNetwork = toy_network,
+        carnivalOptions = opts
+    )
+
+
+    # --- Run CARNIVAL from LP File [] ---
     # Key functions: runFromLpCarnival, defaultLpSolveCarnivalOptions
-    lpFilename <- "toy_files_vignettes/lpFile_t18_01_53d28_04_2021n4.lp"
-    parsedDataFile <- "toy_files_vignettes/parsedData_t18_01_53d28_04_2021n4.RData"
-    resultsFromLp <- runFromLpCarnival(lpFile = lpFilename,
-                                       parsedDataFile = parsedDataFile,
-                                       carnivalOptions = defaultLpSolveCarnivalOptions())
-    # --- Code Block 11 [] ---
-    # Key functions: 1, namespace
-    ## R version 4.4.1 (2024-06-14)
-    ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.1 LTS
-    ##
-    ## Matrix products: default
+    lpFilename <- "toy_lpFile.lp"
+    parsedDataFile <- "toy_parsedData.RData"
+    opts <- defaultLpSolveCarnivalOptions()
+    resultsFromLp <- runFromLpCarnival(
+        lpFile = lpFilename,
+        parsedDataFile = parsedDataFile,
+        carnivalOptions = opts
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

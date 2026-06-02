@@ -38,14 +38,44 @@ process BIOC_CARDINAL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(Cardinal)
     library(MassDataFrame)
     library(jsonlite)
 
-    # --- Phenotype data inspection [] ---
-    # Key functions: exampleImzMLFile, readMSIData, spectraData, spectra, intensity, pixelData, pData, runNames
-    mse_peaks2 <- as(mse_peaks2, "MSImagingExperiment")
-    mse_peaks2 <- summarizeFeatures(mse_peaks2)
-    plot(mse_peaks2, "mean", xlab="m/z", ylab="Intensity",
+    # --- Simulation of MS Imaging Data [] ---
+    # Key functions: simulateSpectra, MassDataFrame, PositionDataFrame, MSImagingExperiment, simulateImage
+    s <- simulateSpectra(n=9, npeaks=10, from=500, to=600)
+    coord_grid <- expand.grid(x=1:3, y=1:3)
+    run_fac <- factor(rep("run0", nrow(coord_grid)))
+    fdata <- MassDataFrame(mz=s$mz)
+    pdata <- PositionDataFrame(run=run_fac, coord=coord_grid)
+    mse_sim <- MSImagingExperiment(
+        spectraData=s$intensity,
+        featureData=fdata,
+        pixelData=pdata
+    )
+    mse_full <- simulateImage(preset=6, dim=c(32,32), baseline=0.5)
+
+
+    # --- Subsetting and Feature Selection [] ---
+    # Key functions: features, pixels, subsetFeatures, subsetPixels, convertMSImagingExperiment2Arrays
+    mse_full <- simulateImage(preset=6, dim=c(32,32), baseline=0.5)
+    fid <- features(mse_full, 1002 < mz, mz < 1004)
+    pid <- pixels(mse_full, x <= 3, y <= 3, run == "runA1")
+    mse_sub <- mse_full[fid, pid]
+    mse_sub2 <- subsetFeatures(mse_full, 1002 < mz, mz < 1004)
+    mse_sub3 <- subsetPixels(mse_full, x <= 3, y <= 3)
+    msa_sub <- convertMSImagingExperiment2Arrays(mse_full)
+
+
+    # --- Visualization and Image Generation [] ---
+    # Key functions: plot, image, convertMSImagingExperiment2Arrays
+    mse_full <- simulateImage(preset=6, dim=c(32,32), baseline=0.5)
+    msa_full <- convertMSImagingExperiment2Arrays(mse_full)
+    plot(msa_full, i=c(496, 1520), superpose=TRUE)
+    image(mse_full, mz=1003.3, tolerance=0.5, units="mz")
+    image(mse_full, mz=1003.3, smooth="gaussian", enhance="histogram")
+    image(mse_full, mz=c(1003.3, 1663.6), superpose=TRUE, scale=TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
