@@ -38,92 +38,66 @@ process BIOC_BINDINGSITEFINDER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BindingSiteFinder)
     library(BSFind)
     library(jsonlite)
 
-    # --- Load [] ---
-    # Key functions: files
-    ---------------------------------------------------------------------
-    load(list.files(files, pattern = ".rds$", full.names = TRUE)[1])
-    gns
-    # --- Frame [] ---
-    # Key functions: frame, factor
-    ---------------------------------------------------------------------
-    # make the meta table
-    meta = data.frame(
-      id = c(1:4),
-      condition = factor(rep("WT", 4)),
-    # --- Files [] ---
-    # Key functions: files
-    ---------------------------------------------------------------------
-    # Load GRanges with genes
-    geneFile <- list.files(files, pattern = "gns.rds$", full.names = TRUE)
-    load(geneFile)
-    gns
-    # --- Bsfind [] ---
-    # Key functions: BSFind
-    ---------------------------------------------------------------------
-    bdsOut = BSFind(object = bds, anno.genes = gns, anno.transcriptRegionList = regions,
-                  est.subsetChromosome = "chr22", veryQuiet = TRUE, est.maxBsWidth = 29)
-    # --- Getranges [] ---
-    # Key functions: getRanges
-    ---------------------------------------------------------------------
-    getRanges(bdsOut)
-    # --- Makebindingsites [] ---
+    # --- Binding Site Discovery [BSFind] ---
+    # Key functions: BSFind, getRanges
+    bdsOut <- BSFind(
+        object = bds,
+        anno.genes = gns,
+        anno.transcriptRegionList = regions,
+        est.subsetChromosome = "chr22",
+        veryQuiet = TRUE,
+        est.maxBsWidth = 29
+    )
+    finalRanges <- getRanges(bdsOut)
+
+    # --- Quality Control Diagnostics [QC] ---
+    # Key functions: processingStepsFlowChart, pureClipGlobalFilterPlot, estimateBsWidthPlot, duplicatedSitesPlot, mergeCrosslinkDiagnosticsPlot
+    processingStepsFlowChart(bdsOut)
+    pureClipGlobalFilterPlot(bdsOut)
+    estimateBsWidthPlot(bdsOut)
+    duplicatedSitesPlot(bdsOut)
+    mergeCrosslinkDiagnosticsPlot(bdsOut)
+
+    # --- Reproducibility Analysis [Reproducibility] ---
+    # Key functions: reproducibilityFilterPlot, reproducibilitySamplesPlot, reproducibilityScatterPlot, makeBsSummaryPlot
+    reproducibilityFilterPlot(bdsOut)
+    reproducibilitySamplesPlot(bdsOut)
+    reproducibilityScatterPlot(bdsOut)
+    makeBsSummaryPlot(bdsOut)
+
+    # --- Genomic Annotation Overlaps [Annotation] ---
+    # Key functions: geneOverlapsPlot, targetGeneSpectrumPlot, transcriptRegionOverlapsPlot, transcriptRegionSpectrumPlot
+    geneOverlapsPlot(bdsOut)
+    targetGeneSpectrumPlot(bdsOut)
+    transcriptRegionOverlapsPlot(bdsOut)
+    transcriptRegionSpectrumPlot(
+        bdsOut,
+        normalize = TRUE,
+        values = "percentage",
+        normalize.factor = "median"
+    )
+
+    # --- Binding Site Coverage Visualization [Coverage] ---
+    # Key functions: bindingSiteDefinednessPlot, bindingSiteCoveragePlot
+    bindingSiteDefinednessPlot(bdsOut, by = "transcript")
+    bindingSiteCoveragePlot(
+        bdsOut,
+        plotIdx = 8,
+        flankPos = 100,
+        autoscale = TRUE
+    )
+
+    # --- Binding Site Size Exploration [Sizing] ---
     # Key functions: makeBindingSites
-    ---------------------------------------------------------------------
-    # compute binding sites
     bds1 <- makeBindingSites(object = bds, bsSize = 3)
     bds2 <- makeBindingSites(object = bds, bsSize = 9)
     bds3 <- makeBindingSites(object = bds, bsSize = 19)
-    # --- Bsfind [] ---
-    # Key functions: BSFind
-    ---------------------------------------------------------------------
-    bdsManual = BSFind(object = bds, anno.genes = gns, anno.transcriptRegionList = regions, bsSize = 9, cutoff.geneWiseFilter = 0)
-    # --- Makebindingsites [] ---
-    # Key functions: makeBindingSites
-    ---------------------------------------------------------------------
-    bdsSimple = makeBindingSites(object = bds, bsSize = 9)
-    # --- Function [] ---
-    # Key functions: pureClipGlobalFilter, makeBindingSites, calculateSignalToFlankScore, customBSFind
-    ---------------------------------------------------------------------
-    customBSFind <- function(object) {
-        this.obj = pureClipGlobalFilter(object)
-        this.obj = makeBindingSites(this.obj, bsSize = 9)
-        this.obj = calculateSignalToFlankScore(this.obj)
-    # --- Function [] ---
-    # Key functions: pureClipGlobalFilter, makeBindingSites, reproducibilityFilter, annotateWithScore, getRanges, calculateSignalToFlankScore
-    ---------------------------------------------------------------------
-    noAnnotationBSFind <- function(object) {
-        this.obj = pureClipGlobalFilter(object)
-        this.obj = makeBindingSites(this.obj, bsSize = 9)
-        this.obj = reproducibilityFilter(this.obj)
-    # --- Clipcoverage [] ---
-    # Key functions: clipCoverage
-    ---------------------------------------------------------------------
-    cov = clipCoverage(bdsOut, ranges.merge = TRUE, samples.merge = FALSE, positions.merge = FALSE)
-    cov
-    # --- Makeexampledatasets [] ---
-    # Key functions: makeExampleDataSets
-    ---------------------------------------------------------------------
-    # make artifical data sets
-    myDataSets = makeExampleDataSets()
-    bds.wt = myDataSets$wt
-    bds.ko = myDataSets$ko
-    # --- Getranges [] ---
-    # Key functions: getRanges
-    ---------------------------------------------------------------------
-    bds.comb = bds.wt + bds.ko
-    getRanges(bds.comb)
-    # --- Filterbsbackground [] ---
-    # Key functions: filterBsBackground
-    ---------------------------------------------------------------------
-    bds.diff = filterBsBackground(bds.diff)
-    # --- Calculatebsfoldchange [] ---
-    # Key functions: calculateBsFoldChange, getRanges
-    ---------------------------------------------------------------------
-    bds.diff = calculateBsFoldChange(bds.diff)
-    getRanges(bds.diff)
+    bds4 <- makeBindingSites(object = bds, bsSize = 29)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

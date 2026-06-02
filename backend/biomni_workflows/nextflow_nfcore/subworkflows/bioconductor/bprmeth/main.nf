@@ -41,58 +41,63 @@ process BIOC_BPRMETH {
     library(BPRMeth)
     library(jsonlite)
 
-    # --- read met dt pipeline [] ---
-    # Key functions: read_met, read_anno, create_region_object
-    met_dt <- read_met(file = "met_file", type = "bulk_seq")
-    anno_dt <- read_anno(file = "anno_file")
-    met_region <- create_region_object(met_dt = met_dt, anno_dt = anno_dt)
-    # --- create_rbf_object [] ---
+    # --- Basis Function Definition [Basis Object Creation] ---
     # Key functions: create_rbf_object
+    met_region <- encode_met
+    met_data <- met_region$met
+    anno_data <- met_region$anno
     basis_profile <- create_rbf_object(M = 5)
     basis_mean <- create_rbf_object(M = 0)
-    # --- infer_profiles_vb [] ---
+    basis_cluster <- create_rbf_object(M = 3)
+
+    # --- Methylation Profile Inference [Profile Inference] ---
     # Key functions: infer_profiles_vb
-    fit_profiles <- infer_profiles_vb(X = met_region$met, model = "binomial",
-    fit_mean <- infer_profiles_vb(X = met_region$met, model = "binomial",
-    # --- plot_infer_profiles [] ---
+    met_region <- encode_met
+    fit_profiles <- infer_profiles_vb(
+        X = met_region$met, model = "binomial",
+        basis = basis_profile, is_parallel = FALSE
+    )
+    fit_mean <- infer_profiles_vb(
+        X = met_region$met, model = "binomial",
+        basis = basis_mean, is_parallel = FALSE
+    )
+
+    # --- Profile Visualisation [Visualisation] ---
     # Key functions: plot_infer_profiles
-    p <- plot_infer_profiles(region = 21, obj_prof = fit_profiles,
-    title = paste0("Gene ID ", gene_id))
-    print(p)
-    # --- predict_expr [] ---
-    # Key functions: predict_expr
-    set.seed(22)
-    pred_profile <- predict_expr(prof_obj = fit_profiles, expr = expr,
-    pred_mean <- predict_expr(prof_obj = fit_mean, expr = expr,
-    # --- plot_predicted_expr [] ---
-    # Key functions: plot_predicted_expr, plot_grid
-    g1 <- plot_predicted_expr(pred_obj = pred_profile,
-    g2 <- plot_predicted_expr(pred_obj = pred_mean,
-    g <- cowplot::plot_grid(g1, g2, ncol = 2, nrow = 1)
-    # --- create_rbf_object [] ---
-    # Key functions: create_rbf_object, cluster_profiles_vb
-    set.seed(12)
-    basis_obj <- create_rbf_object(M = 3)
-    cl_obj <- cluster_profiles_vb(X = met_region$met, K = K, model = "binomial",
-    # --- plot_cluster_profiles [] ---
-    # Key functions: plot_cluster_profiles
-    cluster_plot <- plot_cluster_profiles(cluster_obj = cl_obj)
-    print(cluster_plot)
-    # --- infer profiles beta [] ---
-    # Key functions: create_rbf_object, infer_profiles_mle, plot_infer_profiles
-    basis_obj <- create_rbf_object(M = 5)
-    beta_prof <- infer_profiles_mle(X = beta_data, model = "beta",
-    p <- plot_infer_profiles(region = 15, obj_prof = beta_prof,
-    # --- infer profiles bernoulli [] ---
-    # Key functions: create_rbf_object, infer_profiles_vb, plot_infer_profiles
-    basis_prof <- create_rbf_object(M = 5)
-    basis_mean <- create_rbf_object(M = 0)
-    bern_prof <- infer_profiles_vb(X = bernoulli_data, model = "bernoulli",
-    # --- cluster bernoulli [] ---
+    met_region <- encode_met
+    gene_id <- met_region$anno$id[21]
+    p_profile <- plot_infer_profiles(
+        region = 21, obj_prof = fit_profiles,
+        obj_mean = fit_mean, obs = met_region$met,
+        title = paste0("Gene ID ", gene_id)
+    )
+
+    # --- Gene Expression Prediction [Expression Prediction] ---
+    # Key functions: predict_expr, plot_predicted_expr
+    expr <- encode_expr
+    met_region <- encode_met
+    pred_profile <- predict_expr(
+        prof_obj = fit_profiles, expr = expr,
+        anno = met_region$anno, model_name = "svm",
+        fit_feature = "RMSE", cov_feature = TRUE,
+        is_summary = FALSE
+    )
+    g1 <- plot_predicted_expr(
+        pred_obj = pred_profile,
+        title = "Methylation profile"
+    )
+
+    # --- Methylation Profile Clustering [Clustering] ---
     # Key functions: cluster_profiles_vb, plot_cluster_profiles
-    cl_obj <- cluster_profiles_vb(X = bernoulli_data, K = 3, model = "bernoulli",
+    met_region <- encode_met
+    basis_obj <- create_rbf_object(M = 3)
+    cl_obj <- cluster_profiles_vb(
+        X = met_region$met, K = 4, model = "binomial",
+        alpha_0 = 0.5, beta_0 = 0.1,
+        basis = basis_obj, vb_max_iter = 20
+    )
     cluster_plot <- plot_cluster_profiles(cluster_obj = cl_obj)
-    print(cluster_plot)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

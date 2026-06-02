@@ -41,20 +41,58 @@ process BIOC_BBCANALYZER {
     library(BBCAnalyzer)
     library(jsonlite)
 
-    # --- Example2 [] ---
-    # Key functions: analyzeBasesPlotOnly
-    ## analyzeBasesPlotOnly(sample_names=sample_file,
-    ##             vcf_input=system.file("extdata",package="BBCAnalyzer"),
-    ##             output="",
-    ##             known_file=system.file("extdata","dbsnp_138.part.vcf.gz",package="BBCAnalyzer"),
-    ##             output_list=output_list,
-    # --- Example3 [] ---
+    # --- Base Analysis [analyzeBases] ---
     # Key functions: analyzeBases
-    ## output<-analyzeBases(
-    ##             sample_names=system.file("extdata","SampleNames_small.txt",package="BBCAnalyzer"),
-    ##             bam_input=system.file("extdata",package="BBCAnalyzer"),
-    ##             target_regions=system.file("extdata","targetRegions_small.txt",package="BBCAnalyzer"),
-    ##             vcf_input="",
+    ref_genome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+    output1 <- analyzeBases(
+        sample_names = system.file("extdata", "SampleNames.txt",
+            package = "BBCAnalyzer"),
+        bam_input = system.file("extdata", package = "BBCAnalyzer"),
+        target_regions = system.file("extdata", "targetRegions.txt",
+            package = "BBCAnalyzer"),
+        vcf_input = "",
+        output = tempdir(),
+        output_pictures = "",
+        known_file = system.file("extdata", "dbsnp_138.part.vcf.gz",
+            package = "BBCAnalyzer"),
+        genome = ref_genome,
+        MQ_threshold = 60,
+        BQ_threshold = 50,
+        frequency_threshold = 0.01,
+        qual_lower_bound = 58,
+        qual_upper_bound = 63,
+        marks = c(0.01),
+        relative = TRUE,
+        per_sample = TRUE
+    )
+
+    # --- Visualise Base Analysis [analyzeBasesPlot] ---
+    # Key functions: analyzeBasesPlot
+    analyzeBasesPlot(
+        output = output1,
+        output_pictures = tempdir(),
+        vcf_input = system.file("extdata", "Example_IonTorrent.vcf",
+            package = "BBCAnalyzer"),
+        vcf_names = "IonTorrent",
+        target_regions = system.file("extdata", "targetRegions.txt",
+            package = "BBCAnalyzer"),
+        colors = c("blue", "green", "red", "yellow", "purple", "orange"),
+        height = 10,
+        width = 10,
+        per_sample = TRUE,
+        relative = TRUE,
+        plots_per_page = 1
+    )
+
+    # --- Extract Analysis Results [analyzeBases] ---
+    # Key functions: analyzeBases
+    sample_1_freq <- output1[[1]][[1]]
+    sample_1_counts <- output1[[1]][[2]]
+    sample_2_freq <- output1[[2]][[1]]
+    sample_2_counts <- output1[[2]][[2]]
+    head(sample_1_freq)
+    head(sample_1_counts)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

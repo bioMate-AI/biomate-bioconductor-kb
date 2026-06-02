@@ -41,16 +41,52 @@ process BIOC_BIOMART {
     library(biomaRt)
     library(jsonlite)
 
-    # --- Query BioMart annotation [] ---
-    # Key functions: getBM
-    getBM(attributes = c('refsnp_id','allele','chrom_start','chrom_strand'),
-    filters = c('chr_name','start','end'),
-    values = list(8, 148350, 148420),
-    # --- UseEnsembl analysis [] ---
-    # Key functions: useEnsembl, listDatasets, searchDatasets, useDataset, listEnsemblArchives, listEnsembl, listEnsemblGenomes, useEnsemblGenomes
-    human <- useEnsembl("ensembl", dataset = "hsapiens_gene_ensembl")
-    mouse <- useEnsembl("ensembl", dataset = "mmusculus_gene_ensembl")
-    getLDS(attributes = c("hgnc_symbol","chromosome_name", "start_position"),
+    # --- Database Connection and Dataset Selection [] ---
+    # Key functions: useEnsembl, listDatasets, useDataset
+    ensembl <- useEnsembl(biomart = "genes")
+    datasets <- listDatasets(ensembl)
+    target_dataset <- "hsapiens_gene_ensembl"
+    ensembl <- useDataset(
+        dataset = target_dataset,
+        mart = ensembl
+    )
+
+    # --- Querying Gene Annotations [] ---
+    # Key functions: getBM, listFilters, listAttributes
+    affyids <- c("202763_at", "209310_s_at", "207500_at")
+    filters <- listFilters(ensembl)
+    attributes <- listAttributes(ensembl)
+    annot_data <- getBM(
+        attributes = c("affy_hg_u133_plus_2", "hgnc_symbol", "entrezgene_id"),
+        filters = "affy_hg_u133_plus_2",
+        values = affyids,
+        mart = ensembl
+    )
+
+    # --- Sequence Retrieval [] ---
+    # Key functions: getSequence
+    entrez_ids <- c("673", "837")
+    coding_sequences <- getSequence(
+        id = entrez_ids,
+        type = "entrezgene_id",
+        seqType = "coding_gene_flank",
+        upstream = 100,
+        mart = ensembl
+    )
+
+    # --- Cross-Species Homology Mapping [] ---
+    # Key functions: useEnsembl, getLDS
+    human_mart <- useEnsembl("ensembl", dataset = "hsapiens_gene_ensembl")
+    mouse_mart <- useEnsembl("ensembl", dataset = "mmusculus_gene_ensembl")
+    homology_map <- getLDS(
+        attributes = c("hgnc_symbol", "chromosome_name", "start_position"),
+        filters = "hgnc_symbol",
+        values = "TP53",
+        mart = human_mart,
+        attributesL = c("refseq_mrna", "chromosome_name", "start_position"),
+        martL = mouse_mart
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

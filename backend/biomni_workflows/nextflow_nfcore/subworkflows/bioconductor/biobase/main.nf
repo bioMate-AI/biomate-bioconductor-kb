@@ -41,86 +41,42 @@ process BIOC_BIOBASE {
     library(Biobase)
     library(jsonlite)
 
-    # --- Getclass [] ---
-    # Key functions: getClass
-    ---------------------------------------------------------------------
-    getClass("eSet")
-    # --- Getvalidity [] ---
-    # Key functions: getValidity, getClass
-    ---------------------------------------------------------------------
-    getValidity(getClass("eSet"))
-    # --- Getclass [] ---
-    # Key functions: getClass, getValidity
-    ---------------------------------------------------------------------
-    getClass("ExpressionSet")
-    getValidity(getClass("ExpressionSet"))
-    # --- Setclass [] ---
-    # Key functions: setClass
-    ---------------------------------------------------------------------
-    setClass("SwirlSet", contains="eSet")
-    # --- Setmethod [] ---
-    # Key functions: setMethod, assayDataNew, new, missing, any
-    ---------------------------------------------------------------------
-    setMethod("initialize", "SwirlSet",
-              function(.Object,
-                       assayData=assayDataNew(
-                       R=R, G=G, Rb=Rb, Gb=Gb),
-    # --- Setvalidity [] ---
-    # Key functions: setValidity, assayDataValidMembers, assayData
-    ---------------------------------------------------------------------
-    setValidity("SwirlSet", function(object) {
-        assayDataValidMembers(assayData(object), c("R", "G", "Rb", "Gb"))
-    })
-    # --- Data [] ---
-    # Key functions: classVersion, updateObject
-    ---------------------------------------------------------------------
+    # --- Data Loading and Inspection ---
+    # Key functions: exprs, pData, fData, annotation, storageMode
     data(sample.ExpressionSet)
-    classVersion(sample.ExpressionSet)
-    obj <- updateObject(sample.ExpressionSet)
-    # --- Iscurrent [] ---
-    # Key functions: isCurrent
-    ---------------------------------------------------------------------
-    isCurrent(sample.ExpressionSet)[c("eSet", "ExpressionSet")]
-    # --- Setclass [] ---
-    # Key functions: setClass, prototype, new, classVersion
-    ---------------------------------------------------------------------
-    setClass("MySet",
-             contains = "eSet",
-             prototype = prototype(new("VersionedBiobase",
-                                   versions=c(classVersion("eSet"), MySet="1.0.0"))))
-    # --- Setclass [] ---
-    # Key functions: setClass, prototype, new, classVersion, isCurrent
-    ---------------------------------------------------------------------
-     setClass("MySet",
-              contains = "eSet",
-              prototype = prototype(
-                  new("VersionedBiobase",
-    # --- Setmethod [] ---
-    # Key functions: setMethod, signature, updateObject, callNextMethod, isCurrent
-    ---------------------------------------------------------------------
-    setMethod("updateObject", signature(object="MySet"),
-              function(object, ..., verbose=FALSE) {
-                  if (verbose) message("updateObject(object = 'MySet')")
-                      object <- callNextMethod()
-    # --- Classversion [] ---
-    # Key functions: classVersion, updateObject
-    ---------------------------------------------------------------------
-    classVersion(updateObject(obj))
-    # --- Classversion [] ---
-    # Key functions: classVersion, new
-    ---------------------------------------------------------------------
-    classVersion(new("AnnotatedDataFrame"))
-    # --- Setclass [] ---
-    # Key functions: setClass, prototype, new, classVersion
-    ---------------------------------------------------------------------
-    setClass("SwirlSet", contains = "eSet",
-             prototype = prototype(
-                 new("VersionedBiobase",
-                     versions=c(classVersion("eSet"), SwirlSet="1.0.0"))))
-    # --- Classversion [] ---
-    # Key functions: classVersion, updateObject
-    ---------------------------------------------------------------------
-     classVersion(updateObject(obj))
+    expr_matrix <- exprs(sample.ExpressionSet)
+    pheno_df <- pData(sample.ExpressionSet)
+    feature_df <- fData(sample.ExpressionSet)
+    annot <- annotation(sample.ExpressionSet)
+    smode <- storageMode(sample.ExpressionSet)
+
+    # --- Expression Data Transformation ---
+    # Key functions: exprs, assayData, assayDataNew
+    data(sample.ExpressionSet)
+    raw_exprs <- exprs(sample.ExpressionSet)
+    log_exprs <- log2(raw_exprs + 1)
+    exprs(sample.ExpressionSet) <- log_exprs
+    adata <- assayData(sample.ExpressionSet)
+
+    # --- Metadata Manipulation ---
+    # Key functions: phenoData, varMetadata, AnnotatedDataFrame, pData
+    data(sample.ExpressionSet)
+    pdata_obj <- phenoData(sample.ExpressionSet)
+    var_meta <- varMetadata(pdata_obj)
+    new_pdata <- AnnotatedDataFrame(
+        data = pData(sample.ExpressionSet),
+        varMetadata = var_meta
+    )
+    phenoData(sample.ExpressionSet) <- new_pdata
+
+    # --- Object Versioning and Upgrades ---
+    # Key functions: classVersion, isCurrent, updateObject
+    data(sample.ExpressionSet)
+    c_version <- classVersion(sample.ExpressionSet)
+    current_status <- isCurrent(sample.ExpressionSet)
+    updated_obj <- updateObject(sample.ExpressionSet)
+    new_version <- classVersion(updated_obj)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,51 +38,81 @@ process BIOC_ATACSEQTFEA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ATACseqTFEA)
     library(ESvolcanoplot)
     library(GRanges)
     library(IRanges)
     library(jsonlite)
 
-    # --- Preparebindingsites [] ---
-    # Key functions: prepareBindingSites, GRanges, IRanges
-    ---------------------------------------------------------------------
-    # for test run, we use a subset of data within chr1:5000-100000
-    # for real data, use the merged peaklist as grange input.
-    # Drerio is the short-link of BSgenome.Drerio.UCSC.danRer10
+    # --- Prepare Binding Sites [ATACseqTFEA] ---
+    # Key functions: prepareBindingSites
+    motifs <- readRDS(system.file("extdata", "PWMatrixList.rds",
+                                   package="ATACseqTFEA"))
+    Drerio <- BSgenome.Drerio.UCSC.danRer10::Drerio
     seqlev <- "chr1"
-    # --- Esvolcanoplot [] ---
-    # Key functions: ESvolcanoplot, plotES, factorFootprints, getBindingSites, csv
-    ---------------------------------------------------------------------
-    TF <- "Tal1::Gata1"
-    ## volcanoplot
-    ESvolcanoplot(TFEAresults=res, TFnameToShow=TF)
-    ### plot enrichment score for one TF
-    # --- Expandbindingsites [] ---
-    # Key functions: expandBindingSites, count5ends
-    ---------------------------------------------------------------------
-    # prepare the counting region
-    exbs <- expandBindingSites(bindingSites=bindingSites,
-                               proximal=40,
-                               distal=40,
-    # --- Colnames [] ---
-    # Key functions: eventsFilter
-    ---------------------------------------------------------------------
-    colnames(counts)
+    bindingSites <- prepareBindingSites(
+        motifs, Drerio, seqlev,
+        grange = GenomicRanges::GRanges(
+            "chr1", 
+            IRanges::IRanges(5000, 100000)
+        ),
+        p.cutoff = 5e-05
+    )
+
+    # --- Direct TFEA Analysis [ATACseqTFEA] ---
+    # Key functions: TFEA
+    bamExp <- system.file("extdata",
+                          c("KD.shift.rep1.bam", "KD.shift.rep2.bam"),
+                          package="ATACseqTFEA")
+    bamCtl <- system.file("extdata",
+                          c("WT.shift.rep1.bam", "WT.shift.rep2.bam"),
+                          package="ATACseqTFEA")
+    res <- TFEA(
+        bamExp, bamCtl, 
+        bindingSites = bindingSites,
+        positive = 0, negative = 0
+    )
+
+    # --- Count 5' Ends and Filter [ATACseqTFEA] ---
+    # Key functions: expandBindingSites, count5ends, eventsFilter
+    exbs <- expandBindingSites(
+        bindingSites = bindingSites,
+        proximal = 40, distal = 40, gap = 10
+    )
+    counts <- count5ends(
+        bam = c(bamExp, bamCtl),
+        positive = 0L, negative = 0L,
+        bindingSites = bindingSites,
+        bindingSitesWithGap = exbs$bindingSitesWithGap,
+        bindingSitesWithProximal = exbs$bindingSitesWithProximal,
+        bindingSitesWithProximalAndGap = exbs$bindingSitesWithProximalAndGap,
+        bindingSitesWithDistal = exbs$bindingSitesWithDistal
+    )
     counts <- eventsFilter(counts, "proximalRegion>0")
-    # --- Countsnormalization [] ---
-    # Key functions: countsNormalization
-    ---------------------------------------------------------------------
-    counts <- countsNormalization(counts, proximal=40, distal=40)
-    # --- Getweightedbindingscore [] ---
-    # Key functions: getWeightedBindingScore
-    ---------------------------------------------------------------------
+
+    # --- Normalization and Differential Scoring [ATACseqTFEA] ---
+    # Key functions: countsNormalization, getWeightedBindingScore, DBscore
+    counts <- countsNormalization(counts, proximal = 40, distal = 40)
     counts <- getWeightedBindingScore(counts)
-    # --- Dotfea [] ---
-    # Key functions: doTFEA, plotES
-    ---------------------------------------------------------------------
-    res <- doTFEA(counts)
-    res
-    plotES(res, TF=TF, outfolder=NA) ## will show same figure as above one
+    design <- cbind(CTL = 1, EXPvsCTL = c(1, 1, 0, 0))
+    counts <- DBscore(counts, design = design, coef = "EXPvsCTL")
+
+    # --- Downstream TFEA and Visualization [ATACseqTFEA] ---
+    # Key functions: doTFEA, ESvolcanoplot, plotES, factorFootprints, getBindingSites
+    res_counts <- doTFEA(counts)
+    TF <- "Tal1::Gata1"
+    ESvolcanoplot(TFEAresults = res_counts, TFnameToShow = TF)
+    plotES(res_counts, TF = TF, outfolder = NA)
+    Drerio <- BSgenome.Drerio.UCSC.danRer10::Drerio
+    sigs <- factorFootprints(
+        c(bamCtl, bamExp),
+        pfm = as.matrix(motifs[[TF]]),
+        bindingSites = getBindingSites(res_counts, TF = TF),
+        seqlev = "chr1", genome = Drerio,
+        upstream = 100, downstream = 100,
+        group = rep(c("WT", "KD"), each = 2)
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,11 +41,72 @@ process BIOC_BOREALIS {
     library(borealis)
     library(jsonlite)
 
-    # --- plot Cp Gsite [] ---
+    # --- Differential Methylation Analysis [Differential Methylation] ---
+    # Key functions: runBorealis
+    outdir <- tempdir()
+    extdata <- system.file("extdata", "bismark", package = "borealis")
+    results <- runBorealis(
+        extdata,
+        nThreads = 2,
+        chrs = "chr14",
+        suffix = ".gz",
+        outprefix = file.path(outdir, "vignette_borealis_"),
+        modelOutPrefix = file.path(outdir, "vignette_CpG_model")
+    )
+
+    # --- Genomic Ranges Construction [Data Import] ---
+    # Key functions: runBorealis
+    borealis_in <- dir(outdir, pattern = "*DMLs.tsv")
+    listGRanges <- lapply(borealis_in, function(file) {
+        df <- read.table(
+            file.path(outdir, file),
+            header = TRUE,
+            stringsAsFactors = FALSE
+        )
+        gr <- GenomicRanges::makeGRangesFromDataFrame(
+            df,
+            start.field = "pos",
+            end.field = "pos.1",
+            seqnames.field = "chr",
+            keep.extra.columns = TRUE
+        )
+        gr$sampleID <- sub("_DMLs.tsv", "", file)
+        gr$pAdj <- p.adjust(gr$pVal, method = "BH")
+        return(gr)
+    })
+    combined_files <- Reduce(c, listGRanges)
+
+    # --- Outlier Detection [Outlier Detection] ---
+    # Key functions: runBorealis
+    combined_files_df <- data.frame(combined_files)
+    signif_only <- subset(combined_files_df, pVal <= 0.05)
+    signif_counts <- aggregate(
+        cbind(n = pVal) ~ sampleID,
+        data = signif_only,
+        FUN = length
+    )
+    sig_quantiles <- quantile(
+        signif_counts$n,
+        probs = c(0.025, 0.05, 0.95, 0.975, 0.999)
+    )
+    outliers <- subset(signif_counts, n >= sig_quantiles["99.9%"])
+
+    # --- Methylation Visualization [Visualisation] ---
     # Key functions: plotCpGsite
-    plotCpGsite("chr14:24780288", sampleOfInterest="patient_72",
-    modelFile=file.path(outdir,"vignette_CpG_model_chr14.csv"),
-    methCountFile=file.path(outdir,
+    plotCpGsite(
+        "chr14:24780288",
+        sampleOfInterest = "patient_72",
+        modelFile = file.path(outdir, "vignette_CpG_model_chr14.csv"),
+        methCountFile = file.path(
+            outdir,
+            "vignette_CpG_model_rawMethCount_chr14.tsv"
+        ),
+        totalCountFile = file.path(
+            outdir,
+            "vignette_CpG_model_rawTotalCount_chr14.tsv"
+        )
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -41,27 +41,51 @@ process BIOC_BIOTMLE {
     library(biotmle)
     library(jsonlite)
 
-    # --- col Data [] ---
+    # --- Data Preparation [biotmle] ---
     # Key functions: colData
-    colData(illuminaData) <- colData(illuminaData) %>%
-    mutate(age = as.numeric(age > median(age))) %>%
+    colData(illuminaData)$age <- as.numeric(
+        colData(illuminaData)$age > median(colData(illuminaData)$age)
+    )
     benz_idx <- which(names(colData(illuminaData)) %in% "benzene")
-    # --- biomarkerTMLE eval [] ---
+
+    # --- Biomarker TMLE Estimation [biotmle] ---
     # Key functions: biomarkertmle
-    biotmle_out <- biomarkertmle(se = illuminaData[1:20, ],
-    g_lib = c("SL.mean", "SL.glm"),
-    Q_lib = c("SL.bayesglm", "SL.ranger"),
-    # --- limmaTMLE eval [] ---
+    biotmle_out <- biomarkertmle(
+        se = illuminaData[1:20, ],
+        varInt = benz_idx,
+        g_lib = c("SL.mean", "SL.glm"),
+        Q_lib = c("SL.bayesglm", "SL.mean"),
+        cv_folds = 2
+    )
+
+    # --- Moderated Hypothesis Testing [biotmle] ---
     # Key functions: modtest_ic
-    modtmle_out <- modtest_ic(biotmle = biotmle_out)
-    # --- heatmap limma results [] ---
+    modtmle_out <- modtest_ic(
+        biotmle = biotmle_out
+    )
+
+    # --- Heatmap Visualization [biotmle] ---
     # Key functions: heatmap_ic
-    benz_idx <- which(names(colData(illuminaData)) %in% "benzene")
-    designVar <- as.data.frame(colData(illuminaData))[, benz_idx]
-    designVar <- as.numeric(designVar == max(designVar))
-    # --- volcano plot limma results [] ---
+    designVar <- as.numeric(
+        colData(illuminaData)$benzene == max(colData(illuminaData)$benzene)
+    )
+    heatmap_ic(
+        x = modtmle_out,
+        left.label = "none",
+        scale = TRUE,
+        clustering.method = "hierarchical",
+        row.dendrogram = TRUE,
+        design = designVar,
+        FDRcutoff = 1,
+        top = 10
+    )
+
+    # --- Volcano Plot Visualization [biotmle] ---
     # Key functions: volcano_ic
-    volcano_ic(biotmle = modtmle_out)
+    volcano_ic(
+        biotmle = modtmle_out
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

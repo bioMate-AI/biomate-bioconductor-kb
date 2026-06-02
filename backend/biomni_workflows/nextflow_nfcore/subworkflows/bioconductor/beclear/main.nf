@@ -41,28 +41,69 @@ process BIOC_BECLEAR {
     library(BEclear)
     library(jsonlite)
 
-    # --- kable [] ---
-    # Key functions: kable
-    data("BEclearData")
-    knitr::kable(ex.data[1:10,1:5], caption = 'Some entries from the example data-set')
-    knitr::kable(ex.samples[1:10,], caption = 'Some entries from the example sample annotation')
-    # --- calc Batch Effects [] ---
-    # Key functions: calcBatchEffects
+    # --- Batch Effect Detection [calcBatchEffects, calcSummary] ---
+    # Key functions: calcBatchEffects, calcSummary
+    data("BEclearData", package = "BEclear")
     batchEffect <- calcBatchEffects(
-    # --- calc Summary [] ---
-    # Key functions: calcSummary
+        data = ex.data,
+        samples = ex.samples,
+        adjusted = TRUE,
+        method = "fdr"
+    )
+    mdifs <- batchEffect$med
+    pvals <- batchEffect$pval
     summary <- calcSummary(medians = mdifs, pvalues = pvals)
-    knitr::kable(head(summary), caption = 'Summary over the batch affected gene-sample combination of the example data set')
-    # --- calc Score [] ---
+
+    # --- Batch Score Calculation [calcScore] ---
     # Key functions: calcScore
-    score <- calcScore(ex.data, ex.samples, summary, dir = getwd())
-    knitr::kable(score, caption = 'Batch scores of the example data-set')
-    # --- correct Batch Effect [] ---
+    score <- calcScore(
+        data = ex.data,
+        samples = ex.samples,
+        summary = summary,
+        dir = tempdir()
+    )
+
+    # --- Batch Effect Clearing [clearBEgenes] ---
+    # Key functions: clearBEgenes
+    cleared.data <- clearBEgenes(
+        data = ex.data,
+        samples = ex.samples,
+        summary = summary
+    )
+
+    # --- Missing Data Imputation [imputeMissingData, replaceOutsideValues] ---
+    # Key functions: imputeMissingData, replaceOutsideValues
+    corrected.data <- imputeMissingData(
+        data = cleared.data,
+        rowBlockSize = 60,
+        colBlockSize = 60,
+        epochs = 50,
+        outputFormat = "",
+        dir = tempdir()
+    )
+    corrected.data.valid <- replaceOutsideValues(data = corrected.data)
+
+    # --- One-step Batch Correction [correctBatchEffect] ---
     # Key functions: correctBatchEffect
-    result <- correctBatchEffect(data = ex.data, samples = ex.samples)
-    # --- make Boxplot [] ---
+    result <- correctBatchEffect(
+        data = ex.data,
+        samples = ex.samples
+    )
+
+    # --- Visualisation [makeBoxplot] ---
     # Key functions: makeBoxplot
-    makeBoxplot(ex.data, ex.samples, score,
+    makeBoxplot(
+        data = ex.data,
+        samples = ex.samples,
+        score = score,
+        bySamples = TRUE,
+        col = "standard",
+        main = "Example data",
+        xlab = "Batch",
+        ylab = "Beta value",
+        scoreCol = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

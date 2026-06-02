@@ -38,49 +38,58 @@ process BIOC_ADVERSCARIAL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(adverSCarial)
     library(MClassifier)
     library(jsonlite)
 
-    # --- min change attack [] ---
-    # Key functions: import
+    # --- Baseline Classification [Baseline Classification] ---
+    # Key functions: MClassifier
     pbmcPath <- system.file("extdata", "pbmc_short.loom", package="adverSCarial")
-    lfile <- import(pbmcPath, type="SingleCellLoomExperiment")
-    # --- extract matrix data [] ---
-    # Key functions: counts
-    matPbmc <- counts(lfile)
-    # --- row Data [] ---
-    # Key functions: rowData
-    cellTypes <- rowData(lfile)$cell_type
-    # --- M Classifier [] ---
-    # Key functions: MClassifier
-    for ( cell_type in unique(cellTypes)){
-    resClassif <- MClassifier(matPbmc, cellTypes, cell_type)
-    print(paste0("Expected: ", cell_type, ", predicted: ", resClassif[1]))
-    # --- search min change attack [] ---
-    # Key functions: advSingleGene
-    genesMinChange <- advSingleGene(matPbmc, cellTypes, "DC",
-    # --- run min change attack [] ---
-    # Key functions: advModifications
-    matAdver <- advModifications(matPbmc, names(genesMinChange@values)[1], cellTypes, "DC")
-    # --- verify the min change attack [] ---
-    # Key functions: MClassifier
-    resClassif <- MClassifier(matAdver, cellTypes, "DC")
-    # --- search max change attack [] ---
-    # Key functions: advMaxChange
-    genesMaxChange <- advMaxChange(matPbmc, cellTypes, "Memory CD4 T", MClassifier,
-    # --- run max change attack [] ---
-    # Key functions: advModifications
-    matMaxAdver <- advModifications(matPbmc, genesMaxChange@values, cellTypes, "Memory CD4 T")
-    # --- verify max change attack [] ---
-    # Key functions: MClassifier
-    resClassif <- MClassifier(matMaxAdver, cellTypes, "Memory CD4 T")
-    # --- adv C G D [] ---
-    # Key functions: advCGD
-    resCGD <- advCGD(as.data.frame(matPbmc), cellTypes,
-    genes=colnames(matPbmc)[ncol(matPbmc):1])
-    # --- M Classifier [] ---
-    # Key functions: MClassifier
-    MClassifier(modifiedMatrix, cellTypes, "Memory CD4 T")$prediction
+    lfile <- LoomExperiment::import(pbmcPath, type="SingleCellLoomExperiment")
+    matPbmc <- BiocGenerics::counts(lfile)
+    cellTypes <- SummarizedExperiment::rowData(lfile)$cell_type
+    resClassif <- MClassifier(matPbmc, cellTypes, "DC")
+
+    # --- Minimum Change Attack [Adversarial Attack] ---
+    # Key functions: advSingleGene, advModifications, MClassifier
+    markers <- c("IL7R", "CCR7", "CD14", "LYZ", "S100A4", "MS4A1", "CD8A")
+    genesMinChange <- advSingleGene(
+        matPbmc, cellTypes, "DC", MClassifier,
+        exclGenes = markers, advMethod = "perc99",
+        returnFirstFound = TRUE, changeType = "not_na",
+        firstDichot = 10
+    )
+    matAdver <- advModifications(
+        matPbmc, names(genesMinChange@values)[1],
+        cellTypes, "DC"
+    )
+    resClassifMin <- MClassifier(matAdver, cellTypes, "DC")
+
+    # --- Maximum Change Attack [Adversarial Attack] ---
+    # Key functions: advMaxChange, advModifications, MClassifier
+    markers <- c("IL7R", "CCR7", "CD14", "LYZ", "S100A4", "MS4A1", "CD8A")
+    genesMaxChange <- advMaxChange(
+        matPbmc, cellTypes, "Memory CD4 T", MClassifier,
+        exclGenes = markers, advMethod = "perc99"
+    )
+    matMaxAdver <- advModifications(
+        matPbmc, genesMaxChange@values,
+        cellTypes, "Memory CD4 T"
+    )
+    resClassifMax <- MClassifier(matMaxAdver, cellTypes, "Memory CD4 T")
+
+    # --- Coordinate Gradient Descent Attack [Adversarial Attack] ---
+    # Key functions: advCGD, MClassifier
+    resCGD <- advCGD(
+        as.data.frame(matPbmc), cellTypes,
+        "Memory CD4 T", MClassifier, alpha = 1, epsilon = 1,
+        genes = colnames(matPbmc)[ncol(matPbmc):1]
+    )
+    modifiedMatrix <- resCGD$expr
+    resClassifCGD <- MClassifier(
+        modifiedMatrix, cellTypes, "Memory CD4 T"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

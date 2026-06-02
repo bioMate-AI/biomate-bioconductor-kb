@@ -41,65 +41,70 @@ process BIOC_BETTR {
     library(bettr)
     library(jsonlite)
 
-    # --- Prepare Metrics Data [] ---
-    # Key functions: metrics, methods, frame
-    ---------------------------------------------------------------------
-    ## Data for two metrics (metric1, metric2) for three methods (M1, M2, M3)
-    df <- data.frame(Method = c("M1", "M2", "M3"),
-                     metric1 = c(1, 2, 3),
-                     metric2 = c(3, 1, 2))
-    # --- Assemble SummarizedExperiment [] ---
+    # --- Data Assembly [Data Assembly] ---
     # Key functions: assembleSE
-    ---------------------------------------------------------------------
-    se <- assembleSE(df = df, idCol = "Method", metricInfo = metricInfo,
-                     idInfo = idInfo)
-    se
-    # --- Run Interactive App [] ---
-    # Key functions: bettr
-    ---------------------------------------------------------------------
-    #  ## Alternative 1
-    #  bettr(bettrSE = se)
-    #
-    #  ## Alternative 2
-    # --- Csv [] ---
-    # Key functions: csv, tibble
-    ---------------------------------------------------------------------
+    df <- data.frame(
+        Method = c("M1", "M2", "M3"),
+        metric1 = c(1, 2, 3),
+        metric2 = c(3, 1, 2)
+    )
+    metricInfo <- data.frame(
+        Metric = c("metric1", "metric2"),
+        Group = c("G1", "G2")
+    )
+    idInfo <- data.frame(
+        Method = c("M1", "M2", "M3"),
+        Type = c("T1", "T1", "T2")
+    )
+    se <- assembleSE(
+        df = df,
+        idCol = "Method",
+        metricInfo = metricInfo,
+        idInfo = idInfo
+    )
+
+    # --- Advanced Assembly with Transformations [Data Assembly] ---
+    # Key functions: assembleSE
     res <- read.csv(system.file("extdata", "duo2018_results.csv",
                                 package = "bettr"))
-    dim(res)
-    tibble(res)
-    # --- Tibble [] ---
-    # Key functions: tibble, mutate
-    ---------------------------------------------------------------------
-    metricInfo <- tibble(Metric = colnames(res)[-1]) |>
-        mutate(Class = sub("_.*", "", Metric))
-    head(metricInfo)
-    table(metricInfo$Class)
-    # --- Assemble SummarizedExperiment [] ---
-    # Key functions: assembleSE
-    ---------------------------------------------------------------------
-    duo2018 <- assembleSE(df = res, idCol = "method", metricInfo = metricInfo,
-                          initialTransforms = initialTransforms,
-                          metricColors = metricColors, idColors = idColors)
-    duo2018
-    # --- Tibble [] ---
-    # Key functions: tibble, assay, colData, definitions, metadata
-    ---------------------------------------------------------------------
-    ## Display the whole performance table
-    tibble(assay(duo2018, "values"))
-    ## Showing the first metric, evaluated on all datasets
-    head(colData(duo2018), 12)
-    # --- Run Interactive App [] ---
-    # Key functions: bettr
-    ---------------------------------------------------------------------
-    #  bettr(bettrSE = duo2018, bstheme = "sandstone")
-    # --- Generate Programmatic Plots [] ---
-    # Key functions: metadata, bettrGetReady, makeHeatmap, makePolarPlot
-    ---------------------------------------------------------------------
-    ## Assign a higher weight to one of the collapsed metric classes
+    metricInfo <- data.frame(
+        Metric = colnames(res)[-1],
+        Class = sub("_.*", "", colnames(res)[-1])
+    )
+    initialTransforms <- lapply(
+        res[, grep("elapsed|nclust", colnames(res), value = TRUE)],
+        function(i) list(flip = TRUE, transform = '[0,1]')
+    )
+    duo2018 <- assembleSE(
+        df = res,
+        idCol = "method",
+        metricInfo = metricInfo,
+        initialTransforms = initialTransforms
+    )
+
+    # --- Data Preparation and Weighting [Data Preparation] ---
+    # Key functions: bettrGetReady
     metadata(duo2018)$bettrInfo$initialWeights["Class_ARI"] <- 0.55
     prepData <- bettrGetReady(
-        bettrSE = duo2018, idCol = "method",
+        bettrSE = duo2018,
+        idCol = "method",
+        scoreMethod = "weighted mean",
+        metricGrouping = "Class",
+        metricCollapseGroup = TRUE
+    )
+
+    # --- Performance Visualization [Visualisation] ---
+    # Key functions: makeHeatmap, makePolarPlot
+    heatmap_plot <- makeHeatmap(bettrList = prepData)
+    polar_plot <- makePolarPlot(bettrList = prepData)
+
+    # --- Interactive Dashboard Setup [Visualisation] ---
+    # Key functions: bettr
+    app <- bettr(
+        bettrSE = duo2018,
+        bstheme = "sandstone"
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

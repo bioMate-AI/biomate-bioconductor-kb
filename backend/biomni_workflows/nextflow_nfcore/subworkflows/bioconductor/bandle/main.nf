@@ -41,16 +41,73 @@ process BIOC_BANDLE {
     library(bandle)
     library(jsonlite)
 
-    # --- Plot hierarchical clustering heatmap [] ---
-    # Key functions: bandleJoint, pheatmap
-    par(mfrow = c(1, 2), oma = c(6,2,2,2))
-    barplot(table(alloc1), col = getStockcol()[2],
-    barplot(table(alloc2), col = getStockcol()[2],
-    # --- Stockcol analysis [] ---
-    # Key functions: setStockcol, plot2D, addLegend, sim_dynamic, fitGPmaternPC, plotGPmatern, prior_pred_dir, bandle
-    mycols <- c(getStockcol()[seq(getMarkerClasses(res_control[[1]]))], "grey")
-    names(mycols) <- c(getMarkerClasses(res_control[[1]]), "unknown")
-    res <- list(res_dl_control, res_dl_treatment)
+    # --- Gaussian Process Fitting [bandle] ---
+    # Key functions: fitGPmaternPC
+    K <- length(pRoloc::getMarkerClasses(lopitrep[[1]], fcol = "markers"))
+    pc_prior <- matrix(NA, ncol = 3, K)
+    pc_prior[seq.int(1:K), ] <- matrix(
+        rep(c(10, 60, 250), each = K),
+        ncol = 3
+    )
+    gpParams <- lapply(lopitrep, function(x) {
+        fitGPmaternPC(x, hyppar = pc_prior)
+    })
+
+    # --- Prior Specification [bandle] ---
+    # Key functions: prior_pred_dir
+    K <- length(pRoloc::getMarkerClasses(lopitrep[[1]], fcol = "markers"))
+    dirPrior <- diag(rep(1, K)) + matrix(0.001, nrow = K, ncol = K)
+    predDirPrior <- prior_pred_dir(
+        object = lopitrep[[1]],
+        dirPrior = dirPrior,
+        q = 15
+    )
+
+    # --- Differential Localization Analysis [bandle] ---
+    # Key functions: bandle
+    control <- lopitrep[1:3]
+    treatment <- lopitrep[4:6]
+    bandleres <- bandle(
+        objectCond1 = control,
+        objectCond2 = treatment,
+        numIter = 20,
+        burnin = 5L,
+        thin = 1L,
+        gpParams = gpParams,
+        pcPrior = pc_prior,
+        numChains = 1,
+        dirPrior = dirPrior
+    )
+
+    # --- Posterior Processing and Predictions [bandle] ---
+    # Key functions: bandleProcess, summaries, posteriorEstimates, bandlePredict, getPredictions
+    bandleres <- bandleProcess(bandleres)
+    res <- summaries(bandleres)
+    pe1 <- posteriorEstimates(res[[1]])
+    xx <- bandlePredict(control, treatment, params = bandleres, fcol = "markers")
+    res_control <- getPredictions(
+        xx[[1]][[1]],
+        fcol = "bandle.allocation",
+        scol = "bandle.probability",
+        mcol = "markers",
+        t = 0.99
+    )
+
+    # --- Differential Localisation Assessment [bandle] ---
+    # Key functions: binomialDiffLocProb, bootstrapdiffLocprob
+    bin_t <- binomialDiffLocProb(
+        params = bandleres,
+        top = 100,
+        nsample = 5000,
+        decreasing = TRUE
+    )
+    boot_t <- bootstrapdiffLocprob(
+        params = bandleres,
+        top = 100,
+        Bootsample = 5000,
+        decreasing = TRUE
+    )
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
