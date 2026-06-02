@@ -38,25 +38,23 @@ process BIOC_DESTINY {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(destiny)
     library(DPT)
     library(jsonlite)
 
-    # --- Code Block 1 [] ---
-    # Key functions: data
-    library(destiny)    # load destiny…
-    data(guo)           # …and sample data
-    library(gridExtra)  # Also we need grid.arrange
-    # --- Code Block 2 [] ---
-    # Key functions: graph_from_literal
-    par(mar = rep(0, 4))
-    graph <- igraph::graph_from_literal(
-        data - + 'transition probabilities' - + DiffusionMap,
-        'transition probabilities' - + DPT)
-    plot(
-    # --- Code Block 4 [] ---
-    # Key functions: DPT, sample
-    set.seed(4)
-    dpt_random <- DPT(dm, tips = sample(ncol(guo), 3L))
+    # --- Diffusion Pseudo Time Estimation [] ---
+    # Key functions: DPT, tips
+    data(guo, package = "destiny")
+    dm <- destiny::DiffusionMap(guo)
+    dpt <- destiny::DPT(dm)
+    dpt_tips <- destiny::tips(dpt)
+
+
+    # --- Transition Probabilities Extraction [] ---
+    # Key functions: DiffusionMap, transition_matrix
+    data(guo, package = "destiny")
+    dm <- destiny::DiffusionMap(guo)
+    trans_matrix <- destiny::transition_matrix(dm)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,79 +38,40 @@ process BIOC_DESPACE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DESpace)
     library(DESpace_test)
     library(ExperimentHub)
     library(FeaturePlot)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, fetch_data, sample
-    ehub <- ExperimentHub::ExperimentHub()
-    Download the full real data (about 2.1 GB in RAM) use:
-    spe_all <- spatialLIBD::fetch_data(type = "spe", eh = ehub)
-    # --- QC spots [] ---
-    # Key functions: addPerCellQC, colData
-    spe1 <- scuttle::addPerCellQC(spe1,)
-    spe1 <- spe1[, !(colData(spe1)$sum < 10 |             # library size
-    colData(spe1)$detected < 10 |         # number of expressed genes
-    # --- QC genes [] ---
-    # Key functions: eval, rowSums
-    for(i in seq_len(3)){
-    spe_i <- eval(parse(text = paste0("spe", i)))
-    qc_low_gene <- rowSums(assays(spe_i)$counts > 0) >= 20
-    # --- view LIBD layers [] ---
-    # Key functions: ggplot, aes, geom_point, theme_void, theme
-    CD <- as.data.frame(colData(spe3))
-    ggplot(CD,
-    aes(x=array_col,y=array_row,
-    # --- stLearn[r multi [] ---
-    # Key functions: colData
-    stLearn_results <- read.csv("stLearn_clusters.csv", sep = ',',
-    stLearn_results <- stLearn_results[match(rownames(colData(spe3)),
-    rownames(stLearn_results)), ]
-    # --- D E Space_test [] ---
-    # Key functions: DESpace_test
-    set.seed(123)
-    results <- DESpace_test(spe = spe3,
-    head(results$gene_results, 3)
-    # --- top SVGs expression plot [] ---
-    # Key functions: FeaturePlot
-    (feature <- results$gene_results$gene_id[seq_len(3)])
-    FeaturePlot(spe3, feature,
-    # --- expression plots all cluster [] ---
-    # Key functions: FeaturePlot
-    FeaturePlot(spe3, feature,
-    # --- individual cluster test [] ---
+    # --- Individual Cluster Testing [] ---
     # Key functions: individual_test
-    set.seed(123)
-    cluster_results <- individual_test(spe3,
-    # --- top results all [] ---
+    cluster_results <- DESpace::individual_test(
+        spe = spe3,
+        edgeR_y = results$estimated_y,
+        spatial_cluster = spatial_cluster
+    )
+
+
+    # --- Results Aggregation [] ---
     # Key functions: top_results
-    merge_res <- top_results(results$gene_results, cluster_results)
-    head(merge_res,3)
-    merge_res <- top_results(results$gene_results, cluster_results,
-    # --- top results WM [] ---
-    # Key functions: top_results
-    results_WM <- top_results(cluster_results = cluster_results,
-    head(results_WM, 3)
-    # --- top results high low [] ---
-    # Key functions: top_results
-    results_WM_both <- top_results(cluster_results = cluster_results,
-    # --- expression plots high low [] ---
+    merge_res <- DESpace::top_results(
+        results$gene_results,
+        cluster_results,
+        select = "FDR"
+    )
+
+
+    # --- Spatial Feature Visualization [] ---
     # Key functions: FeaturePlot
-    feature <- rownames(results_WM_both$high_genes)[seq_len(3)]
-    FeaturePlot(spe3, feature, spatial_cluster = spatial_cluster,
-    feature <- rownames(results_WM_both$low_genes)[seq_len(3)]
-    # --- view LIBD layers [multi] [] ---
-    # Key functions: ggplot, aes, geom_point, facet_wrap
-    set.seed(123)
-    a <- rownames(counts(spe1));
-    b <- rownames(counts(spe2));
-    # --- DESpace [multi] [] ---
-    # Key functions: DESpace_test
-    set.seed(123)
-    multi_results <- DESpace_test(spe = spe.combined,
-    head(multi_results$gene_results,3)
+    feature <- results$gene_results$gene_id[1:3]
+    DESpace::FeaturePlot(
+        spe = spe3,
+        feature = feature,
+        coordinates = coordinates,
+        ncol = 3,
+        title = TRUE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

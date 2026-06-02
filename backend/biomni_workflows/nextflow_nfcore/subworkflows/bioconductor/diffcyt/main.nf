@@ -41,64 +41,21 @@ process BIOC_DIFFCYT {
     library(diffcyt)
     library(jsonlite)
 
-    # --- Character [] ---
-    # Key functions: pData, factor, frame, setdiff
-    ---------------------------------------------------------------------
-    # Meta-data: experiment information
-    # check sample order
-    filenames <- as.character(pData(d_flowSet)$name)
-    # sample information
-    # --- Createcontrast [] ---
-    # Key functions: createContrast, frame
-    ---------------------------------------------------------------------
-    # Create contrast matrix
-    contrast <- createContrast(c(0, 1, rep(0, 7)))
-    # check
-    nrow(contrast) == ncol(design)
-    # --- Abundance [] ---
-    # Key functions: abundance, diffcyt, topTable, rate
-    ---------------------------------------------------------------------
-    # Test for differential abundance (DA) of clusters
-    # note: using default method 'diffcyt-DA-edgeR' and default parameters
-    # note: include random seed for reproducible clustering
-    out_DA <- diffcyt(
-    # --- Preparedata [] ---
-    # Key functions: prepareData
-    ---------------------------------------------------------------------
-    # Prepare data
-    d_se <- prepareData(d_flowSet, experiment_info, marker_info)
-    # --- Transformdata [] ---
-    # Key functions: transformData
-    ---------------------------------------------------------------------
-    # Transform data
-    d_se <- transformData(d_se)
-    # --- Generateclusters [] ---
-    # Key functions: generateClusters
-    ---------------------------------------------------------------------
-    # Generate clusters
-    # note: include random seed for reproducible clustering
-    d_se <- generateClusters(d_se, seed_clustering = 123)
-    # --- Calccounts [] ---
-    # Key functions: calcCounts, calcMedians
-    ---------------------------------------------------------------------
-    # Calculate cluster cell counts
-    d_counts <- calcCounts(d_se)
-    # Calculate cluster medians
-    d_medians <- calcMedians(d_se)
-    # --- Abundance [] ---
-    # Key functions: abundance, testDA_edgeR, topTable, rate
-    ---------------------------------------------------------------------
-    # Test for differential abundance (DA) of clusters
-    res_DA <- testDA_edgeR(d_counts, design, contrast)
-    # display table of results for top DA clusters
-    topTable(res_DA, format_vals = TRUE)
-    # --- Diffcyt [] ---
-    # Key functions: diffcyt, rowData, assay
-    ---------------------------------------------------------------------
-    # Output object from 'diffcyt()' wrapper function
-    names(out_DA)
-    dim(out_DA$d_se)
-    rowData(out_DA$d_se)
+    # --- Data Preparation and Transformation [] ---
+    # Key functions: prepareData, transformData, generateClusters
+    d_se <- diffcyt::prepareData(d_flowSet, experiment_info, marker_info)
+    d_se <- diffcyt::transformData(d_se)
+    d_se <- diffcyt::generateClusters(d_se, seed_clustering = 123)
+
+
+    # --- Feature Extraction and Differential Testing [] ---
+    # Key functions: calcCounts, calcMedians, testDA_edgeR, testDS_limma
+    d_counts <- diffcyt::calcCounts(d_se)
+    d_medians <- diffcyt::calcMedians(d_se)
+    res_DA <- diffcyt::testDA_edgeR(d_counts, design, contrast)
+    res_DS <- diffcyt::testDS_limma(
+        d_counts, d_medians, design, contrast, plot = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -48,44 +48,21 @@ process BIOC_DINO {
     library(SingleCellExperiment)
     library(jsonlite)
 
-    # --- Quick Start [] ---
-    # Key functions: Dino, SeuratFromDino
-    library(Dino)
-    Norm_Mat <- Dino(UMI_Mat)
-    Norm_Seurat <- SeuratFromDino(Norm_Mat, doNorm = FALSE, doLog = FALSE)
-    # --- normalize data [] ---
-    # Key functions: Dino
-    pbmcSmall_Norm <- Dino(pbmcSmall)
-    # --- Seurat clustering [] ---
-    # Key functions: SeuratFromDino, FindVariableFeatures, ScaleData, RunPCA, FindNeighbors
-    pbmcSmall_Seurat <- SeuratFromDino(pbmcSmall_Norm, doNorm = FALSE)
-    pbmcSmall_Seurat <- FindVariableFeatures(pbmcSmall_Seurat,
-    pbmcSmall_Seurat <- ScaleData(pbmcSmall_Seurat,
-    # --- Create SingleCellExperiment object [] ---
-    # Key functions: SingleCellExperiment, Dino_SCE
-    library(SingleCellExperiment)
-    pbmc_SCE <- SingleCellExperiment(assays = list("counts" = pbmcSmall))
-    pbmc_SCE <- Dino_SCE(pbmc_SCE)
-    # --- SinglleCellExperiment Background [] ---
-    # Key functions: SingleCellExperiment
-    library(SingleCellExperiment)
-    pbmc_SCE <- SingleCellExperiment(assays = list("counts" = pbmcSmall))
-    invisible(capture.output(pbmc_SCE <- Dino_SCE(pbmc_SCE)))
-    # --- Scran depths [] ---
-    # Key functions: calculateSumFactors, Dino
-    library(scran)
-    scranSizes <- calculateSumFactors(pbmcSmall)
-    pbmcSmall_SNorm <- Dino(pbmcSmall, nCores = 1, depth = log(scranSizes))
-    # --- Unimodal Simulation [] ---
-    # Key functions: theme, ggplot, theme_classic, geom_hex
-    library(ggplot2)
-    library(gridExtra)
-    library(ggpubr)
-    # --- Multimodal Simulation [] ---
-    # Key functions: plotSim_func
-    data("multimodalDat")
-    plotSim_func(multimodalDat, themeObj)
-    sessionInfo()
+    # --- Seurat Integration [] ---
+    # Key functions: SeuratFromDino
+    pbmcSmall_Seurat = SeuratFromDino(pbmcSmall_Norm, doNorm = FALSE)
+    pbmcSmall_Seurat = Seurat::FindVariableFeatures(pbmcSmall_Seurat,
+                                                    selection.method = "mvp")
+    pbmcSmall_Seurat = Seurat::ScaleData(pbmcSmall_Seurat,
+                                         features = rownames(pbmcSmall_Norm))
+
+
+    # --- SingleCellExperiment Integration [] ---
+    # Key functions: Dino_SCE
+    pbmc_SCE = SingleCellExperiment::SingleCellExperiment(
+        assays = list("counts" = pbmcSmall)
+    )
+    pbmc_SCE = Dino_SCE(pbmc_SCE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

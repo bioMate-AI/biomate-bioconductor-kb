@@ -41,52 +41,18 @@ process BIOC_DFPLYR {
     library(DFplyr)
     library(jsonlite)
 
-    # --- "install" [] ---
-    # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("DFplyr")
-    # --- "pipe" [] ---
-    # Key functions: pull
-    mutate(d, newvar = cyl + hp) %>%
-    pull(newvar)
-    # --- "mutate if" [] ---
-    # Key functions: mutate_if
-    mutate_if(d, is.numeric, ~ .^2)
-    # --- "mutate if granges" [] ---
-    # Key functions: mutate_if
-    mutate_if(d, ~ isa(., "GRanges"), BiocGenerics::start)
-    # --- "at mutate" [] ---
-    # Key functions: mutate_at
-    mutate_at(d, vars(starts_with("c")), ~ .^2)
-    # --- "at select" [] ---
-    # Key functions: select_at
-    select_at(d, vars(starts_with("gr")))
-    # --- "group by" [] ---
-    # Key functions: group_by
-    group_by(d, cyl, am)
-    # --- "rownames arrange" [] ---
-    # Key functions: arrange
-    arrange(d, desc(hp))
-    # --- "grouped slice" [] ---
-    # Key functions: group_by, slice
-    group_by(d, gear) %>%
-    slice(1:2)
-    # --- "rename2" [] ---
-    # Key functions: rename2
-    select(d, am, cyl) %>%
-    rename2(foo = am)
-    # --- "group tally" [] ---
-    # Key functions: group_by, tally
-    group_by(d, cyl, am) %>%
-    tally(gear)
-    # --- "count" [] ---
-    # Key functions: count
-    count(d, gear, am, cyl)
-    # --- session_info [] ---
-    # Key functions: session_info
-    options(width = 120)
-    sessioninfo::session_info()
+    # --- Column Selection and Renaming [] ---
+    # Key functions: select, rename2, select_at
+    d_selected <- DFplyr::select(d, am, cyl)
+    d_renamed <- DFplyr::rename2(d_selected, foo = am)
+    d_selected_at <- DFplyr::select_at(d, DFplyr::vars(starts_with("gr")))
+
+
+    # --- Grouping and Summarisation [] ---
+    # Key functions: group_by, tally, count
+    d_grouped <- DFplyr::group_by(d, cyl, am)
+    d_tally <- DFplyr::tally(d_grouped, gear)
+    d_count <- DFplyr::count(d, gear, am, cyl)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,27 +38,38 @@ process BIOC_DMRCATE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DMRcate)
     library(ExperimentHub)
     library(jsonlite)
 
-    # --- Access ExperimentHub data [] ---
-    # Key functions: ExperimentHub, colData
-    library(ExperimentHub)
-    eh <- ExperimentHub()
-    tcell <- FlowSorted.Blood.EPIC[,colData(FlowSorted.Blood.EPIC)$CD4T==100 |
-    # --- Functional normalization of methylation [] ---
-    # Key functions: detectionP, preprocessFunnorm, getM
-    detP <- detectionP(tcell)
-    remove <- apply(detP, 1, function (x) any(x > 0.01))
-    tcell <- preprocessFunnorm(tcell)
-    # --- assays [] ---
-    # Key functions: assays
+    # --- Probe Filtering and Normalisation [] ---
+    # Key functions: rmSNPandCH, ilogit2
+    tcellms.noSNPs <- rmSNPandCH(tcellms, dist=2, mafcut=0.05)
+    tcell$Replicate[tcell$Replicate==""] <- tcell$Sample_Name[tcell$Replicate==""]
     tcellms.noSNPs <- limma::avearrays(tcellms.noSNPs, tcell$Replicate)
     tcell <- tcell[,!duplicated(tcell$Replicate)]
     tcell <- tcell[rownames(tcellms.noSNPs),]
-    # --- dmrcate [] ---
-    # Key functions: dmrcate
+    colnames(tcellms.noSNPs) <- colnames(tcell)
+    assays(tcell)[["M"]] <- tcellms.noSNPs
+    assays(tcell)[["Beta"]] <- ilogit2(tcellms.noSNPs)
+
+
+    # --- CpG Annotation and DMR Detection [] ---
+    # Key functions: cpg.annotate, dmrcate, extractRanges
+    type <- factor(tcell$CellType)
+    design <- model.matrix(~type) 
+    myannotation <- cpg.annotate("array", tcell, arraytype = "EPICv1",
+                                 analysis.type="differential", design=design, coef=2)
     dmrcoutput <- dmrcate(myannotation, lambda=1000, C=2)
+    results.ranges <- extractRanges(dmrcoutput, genome = "hg19")
+
+
+    # --- Visualisation of Genomic Regions [] ---
+    # Key functions: DMR.plot
+    groups <- c(CD8T="magenta", CD4T="forestgreen")
+    cols <- groups[as.character(type)]
+    DMR.plot(ranges=results.ranges, dmr=1, CpGs=myannotation, what="Beta", 
+             arraytype = "EPICv1", phen.col=cols, genome="hg19")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

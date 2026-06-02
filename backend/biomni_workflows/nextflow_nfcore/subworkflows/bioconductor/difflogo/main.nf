@@ -41,60 +41,34 @@ process BIOC_DIFFLOGO {
     library(DiffLogo)
     library(jsonlite)
 
-    # --- Importmotifsfrommotifdb [] ---
-    # Key functions: values, reverseComplement
-    library(MotifDb)
-    ## import motifs
-    hitIndeces = grep ('CTCF', values (MotifDb)$geneSymbol, ignore.case=TRUE)
-    list    = as.list(MotifDb[hitIndeces])
-    sequenceCounts = as.numeric(values (MotifDb)$sequenceCount[hitIndeces])
-    # --- Importmotifsfromdifflogopackage [] ---
-    # Key functions: getPwmFromPwmFile, getPwmFromAlignmentFile, getPwmFromFastaFile
-    ## import five DNA motifs from matrix
-    motif_folder = "extdata/pwm"
-    motif_names_dna = c("H1-hESC", "MCF7", "HeLa-S3", "HepG2", "HUVEC")
-    motifs_dna = list()
-    for (name in motif_names_dna) {
-    # --- Plotsequencelogo [] ---
+    # --- Sequence Logo Plotting [] ---
     # Key functions: seqLogo
-    ## plot classic sequence logo
-    library(seqLogo)
-    seqLogo::seqLogo(pwm = pwm1)
-    # --- Plotcustomsequencelogo [] ---
-    # Key functions: seqLogo
-    ## plot custom sequence logo
-    par(mfrow=c(2,1), pin=c(3, 1), mar = c(2, 4, 1, 1))
+    pwm1 = motifs_dna[["H1-hESC"]]
+    pwm2 = motifs_dna[["MCF7"]]
     DiffLogo::seqLogo(pwm = pwm1)
     DiffLogo::seqLogo(pwm = pwm2, stackHeight = sumProbabilities)
-    par(mfrow=c(1,1), pin=c(1, 1), mar=c(5.1, 4.1, 4.1, 2.1))
-    # --- Plotdifflogo [] ---
-    # Key functions: diffLogoFromPwm, createDiffLogoObject, diffLogo, enrichDiffLogoObjectWithPvalues
-    ## plot DiffLogo
+
+
+    # --- Difference Logo Generation [] ---
+    # Key functions: diffLogoFromPwm, createDiffLogoObject, enrichDiffLogoObjectWithPvalues, diffLogo
     diffLogoFromPwm(pwm1 = pwm1, pwm2 = pwm2)
-    ## diffLogoFromPwm is a convenience function for
     diffLogoObj = createDiffLogoObject(pwm1 = pwm1, pwm2 = pwm2)
+    diffLogoObj = enrichDiffLogoObjectWithPvalues(diffLogoObj, 100, 100)
     diffLogo(diffLogoObj)
-    # --- Plotdifflogotable [] ---
-    # Key functions: motifs, diffLogoTable
-    ## plot table of difference logos for CTFC motifs (DNA)
-    diffLogoTable(PWMs = motifs_dna)
-    ## plot table of difference logos for E-Box motifs (DNA)
-    diffLogoTable(PWMs = motifs_dna2)
-    ## plot table of difference logos for F-Box motifs (ASN)
-    # --- Export [] ---
-    # Key functions: diffLogoFromPwm, off, diffLogoTable
-    ## parameters
-    widthToHeightRatio = 16/10;
-    size = length(motifs_dna) * 2
-    resolution = 300
-    width = size * widthToHeightRatio
-    # --- Alignment [] ---
-    # Key functions: multipleLocalPwmsAlignment, extendPwmsFromAlignmentVector, seqLogo
-    ## align pwms and than plot seqLogo of them
-    pwms = list(pwm_long, pwm_short)
+
+
+    # --- Difference Logo Table [] ---
+    # Key functions: diffLogoTable
+    sampleSizes_dna = c("H1-hESC" = 100, "MCF7" = 100)
+    diffLogoTable(PWMs = motifs_dna, sampleSizes = sampleSizes_dna)
+
+
+    # --- Motif Alignment [] ---
+    # Key functions: multipleLocalPwmsAlignment, extendPwmsFromAlignmentVector
+    pwms = list(pwm1, pwm2)
     multiple_pwms_alignment = multipleLocalPwmsAlignment(pwms)
-    aligned_pwms = extendPwmsFromAlignmentVector(pwms, multiple_pwms_alignment$alignment$vector)
-    ## seqLogo of aligned pwms
+    aligned_pwms = extendPwmsFromAlignmentVector(pwms,
+        multiple_pwms_alignment$alignment$vector)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

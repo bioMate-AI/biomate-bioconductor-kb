@@ -38,6 +38,7 @@ process BIOC_DESEQ2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(DESeq2)
     library(DESeq)
     library(DESeqDataSet)
     library(DESeqDataSetFromHTSeqCount)
@@ -45,39 +46,36 @@ process BIOC_DESEQ2 {
     library(DESeqDataSetFromTximport)
     library(jsonlite)
 
-    # --- Create DESeqDataSet from count matrix [] ---
-    # Key functions: DESeqDataSetFromMatrix, DESeq, resultsNames, results, lfcShrink, read_csv, tximport, DESeqDataSetFromTximport
-    files <- file.path(dir,"salmon", samples$run, "quant.sf.gz")
-    names(files) <- samples$run
-    tx2gene <- read_csv(file.path(dir, "tx2gene.gencode.v27.csv"))
-    # --- Filter by row sum threshold [] ---
-    # Key functions: rowSums, estimateSizeFactors, estimateDispersions, nbinomWaldTest
-    dds <- estimateSizeFactors(dds)
-    dds <- estimateDispersions(dds)
-    dds <- nbinomWaldTest(dds)
-    # --- Variance-stabilizing transformation (VST) [] ---
-    # Key functions: vst, rlog, normTransform, meanSdPlot
-    vsd <- vst(dds, blind=FALSE)
-    rld <- rlog(dds, blind=FALSE)
-    head(assay(vsd), 3)
-    # --- Run DESeq2 differential expression [] ---
-    # Key functions: DESeq, results, resultsNames, lfcShrink, metadata, design, plotMA, relevel
-    resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold=1)
-    plotMA(resApeT, ylim=c(-3,3), cex=.8)
-    abline(h=c(-1,1), col="dodgerblue", lwd=2)
-    # --- Compute distance matrix [] ---
-    # Key functions: dist
-    sampleDists <- dist(t(assay(vsd)))
-    # --- MA plot of DE results [] ---
-    # Key functions: plotMA, plotCounts, ggplot, geom_point, scale_y_log10, pheatmap, colorRampPalette, plotPCA
-    pcaData <- plotPCA(vsd, intgroup=c("condition", "type"), returnData=TRUE)
-    percentVar <- round(100 * attr(pcaData, "percentVar"))
-    ggplot(pcaData, aes(PC1, PC2, color=condition, shape=type)) +
-    # --- Object metadata inspection [] ---
-    # Key functions: all, mcols, register, identify, rnbinom, plotit, dispersionFunction, estimateDispersionsMAP
-    useForMedian <- mcols(ddsCustom)$dispGeneEst > 1e-7
-    medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],
-    dispersionFunction(ddsCustom) <- function(mu) medianDisp
+    # --- Differential Expression Analysis [] ---
+    # Key functions: DESeq, results
+    dds <- dds[rowSums(DESeq2::counts(dds) >= 10) >= 3, ]
+    dds <- DESeq2::DESeq(dds)
+    res <- DESeq2::results(dds, alpha = 0.05)
+
+
+    # --- Log Fold Change Shrinkage [] ---
+    # Key functions: lfcShrink
+    resLFC <- DESeq2::lfcShrink(
+        dds = dds,
+        coef = 2,
+        type = "apeglm"
+    )
+
+
+    # --- Variance Stabilization [] ---
+    # Key functions: vst, rlog
+    vsd <- DESeq2::vst(dds, blind = FALSE)
+    rld <- DESeq2::rlog(dds, blind = FALSE)
+
+
+    # --- Diagnostic Plotting [] ---
+    # Key functions: plotMA, plotCounts
+    DESeq2::plotMA(resLFC, ylim = c(-2, 2))
+    DESeq2::plotCounts(
+        dds = dds,
+        gene = which.min(res$padj),
+        intgroup = "condition"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

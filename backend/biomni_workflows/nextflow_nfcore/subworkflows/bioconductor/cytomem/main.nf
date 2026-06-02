@@ -38,18 +38,32 @@ process BIOC_CYTOMEM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(cytoMEM)
     library(MEM)
     library(MEM_RMSD)
     library(jsonlite)
 
-    # --- M E M [] ---
-    # Key functions: MEM
-    MEM(
-    str(MEM_values)
-    # --- M E M_ R M S D [] ---
+    # --- Heatmap Generation [] ---
+    # Key functions: build_heatmaps
+    build_heatmaps(
+        MEM_values,
+        cluster.MEM = "both",
+        cluster.medians = "none",
+        cluster.IQRs = "none",
+        display.thresh = 1,
+        output.files = FALSE,
+        labels = FALSE,
+        only.MEMheatmap = FALSE
+    )
+
+
+    # --- Root Mean Square Deviation Analysis [] ---
     # Key functions: MEM_RMSD
-    data(MEM_matrix)
-    MEM_RMSD(
+    rmsd_res <- MEM_RMSD(
+        MEM_values[[5]][[1]],
+        format = NULL,
+        output.matrix = FALSE
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
