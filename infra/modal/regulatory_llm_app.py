@@ -79,6 +79,36 @@ app = modal.App("biomate-regulatory-llm", image=image)
 
 
 # ---------------------------------------------------------------------------
+# Adapter discovery (pure function — unit-testable without booting vLLM)
+# ---------------------------------------------------------------------------
+
+def discover_adapters(adapters_dir: Path) -> list[dict]:
+    """Walk `adapters_dir/*/lora_adapter/` and return a list of valid adapters.
+
+    A directory counts as a valid adapter if:
+      * it has a `lora_adapter/` subdirectory
+      * that subdirectory contains `adapter_config.json`
+
+    Returns: [{"name": <dirname>, "path": <abs path to lora_adapter/>}, ...]
+    sorted by name. Empty list if `adapters_dir` doesn't exist or has no
+    valid entries.
+    """
+    if not adapters_dir.exists() or not adapters_dir.is_dir():
+        return []
+    out = []
+    for entry in sorted(adapters_dir.iterdir()):
+        if not entry.is_dir():
+            continue
+        lora_path = entry / "lora_adapter"
+        if not lora_path.is_dir():
+            continue
+        if not (lora_path / "adapter_config.json").exists():
+            continue
+        out.append({"name": entry.name, "path": str(lora_path)})
+    return out
+
+
+# ---------------------------------------------------------------------------
 # OpenAI-compatible chat completion server
 # ---------------------------------------------------------------------------
 #
@@ -120,20 +150,18 @@ class RegulatoryLLM:
         from vllm import AsyncEngineArgs, AsyncLLMEngine
         from vllm.lora.request import LoRARequest
 
-        # Glob adapter manifest from the volume.
-        lora_modules: list[LoRARequest] = []
-        if ADAPTERS_DIR.exists():
-            for entry in sorted(ADAPTERS_DIR.iterdir()):
-                lora_path = entry / "lora_adapter"
-                if lora_path.is_dir() and (lora_path / "adapter_config.json").exists():
-                    lora_modules.append(
-                        LoRARequest(
-                            lora_name=entry.name,
-                            lora_int_id=len(lora_modules) + 1,
-                            lora_local_path=str(lora_path),
-                        )
-                    )
-                    print(f"[regulatory_llm] adapter: {entry.name}")
+        # Glob adapter manifest from the volume (pure fn — testable).
+        discovered = discover_adapters(ADAPTERS_DIR)
+        lora_modules: list[LoRARequest] = [
+            LoRARequest(
+                lora_name=a["name"],
+                lora_int_id=i + 1,
+                lora_local_path=a["path"],
+            )
+            for i, a in enumerate(discovered)
+        ]
+        for a in discovered:
+            print(f"[regulatory_llm] adapter: {a['name']}")
         if not lora_modules:
             print(
                 "[regulatory_llm] WARNING: no LoRA adapters under "
