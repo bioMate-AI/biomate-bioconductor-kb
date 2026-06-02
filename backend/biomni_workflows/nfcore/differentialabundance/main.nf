@@ -1,12 +1,5 @@
 // nf-core/differentialabundance — user-facing parameter stub
 // Differential abundance: count matrix → normalisation → DE analysis → visualisation
-//
-// Pipeline phases:
-// * 1. Input validation — samplesheet QC, matrix format check, contrast file parse
-// * 2. Normalisation — DESeq2 / edgeR / limma size-factor correction + vst/rlog
-// * 3. Differential abundance — Wald/LRT test, LFC shrinkage, padj filtering
-// * 4. Visualisation — volcano plot, PCA, heatmap, MA plot, dispersion estimates
-// * 5. Report — MultiQC summary, results CSV, methods text
 
 params.input            = null          // Sample metadata CSV (sample, condition, replicate, ...)
 params.matrix           = null          // Count matrix (genes × samples TSV/CSV)
@@ -24,4 +17,74 @@ params.max_memory       = '64.GB'
 params.max_cpus         = 8
 params.max_time         = '72.h'
 
+// [Input Validation]
+process CHECK_SAMPLESHEET {
+    label 'process_low'
+    script:
+    """
+    check_samplesheet.py \\
+        --input ${params.input} \\
+        --matrix ${params.matrix} \\
+        --contrasts ${params.contrasts}
+    """
+}
 
+// [Input Validation]
+process CHECK_CONTRASTS {
+    label 'process_low'
+    script:
+    """
+    check_contrasts.py \\
+        --contrasts ${params.contrasts} \\
+        --gtf ${params.gtf} \\
+        --genome ${params.genome}
+    """
+}
+
+// [Normalisation]
+process DESEQ2_NORM {
+    label 'process_medium'
+    script:
+    """
+    deseq2_norm.R \\
+        --matrix ${params.matrix} \\
+        --transcript_length_matrix ${params.transcript_length_matrix} \\
+        --normalisation_method ${params.normalisation_method} \\
+        --study_type ${params.study_type} \\
+        --outdir ${params.outdir}
+    """
+}
+
+// [Differential Abundance]
+process DESEQ2_DE {
+    label 'process_medium'
+    script:
+    """
+    deseq2_de.R \\
+        --contrasts ${params.contrasts} \\
+        --differential_max_qval ${params.differential_max_qval} \\
+        --differential_min_fold_change ${params.differential_min_fold_change} \\
+        --outdir ${params.outdir}
+    """
+}
+
+// [Visualisation & Report]
+process PLOT_EXPLORATORY {
+    label 'process_low'
+    script:
+    """
+    plot_exploratory.R \\
+        --outdir ${params.outdir}
+    """
+}
+
+// [Visualisation & Report]
+process MULTIQC {
+    label 'process_low'
+    script:
+    """
+    multiqc . \\
+        --outdir ${params.outdir} \\
+        ${params.email ? "--email ${params.email}" : ''}
+    """
+}
