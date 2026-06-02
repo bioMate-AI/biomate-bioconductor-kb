@@ -1,8 +1,46 @@
 # Galaxy `/api/ai_assistant/generate_workflow` Slowness — Diagnostic Findings
 
-**Date:** 2026-06-01
-**Status:** Diagnosed (root cause identified), not yet patched
+**Date:** 2026-06-01 (updated 2026-06-02 with root cause + fix)
+**Status:** **RESOLVED on the affected dev box.** Local environment issue; no BioMate code change needed.
 **Trigger:** HT-1 E2E times out at 120 s; query returns no AI response
+
+## Resolution (2026-06-02)
+
+**Root cause:** `torch==2.11.0+cu130` wheel (CUDA 13.0 build) on a host with an
+NVIDIA GB10 GPU (Blackwell, sm_121). The CUDA wheel has no kernels for sm_121,
+and HuggingFace transformers' wrapped `BertModel.__call__` path triggers a
+CUDA-runtime check even when `device="cpu"` is forced. That check hangs
+indefinitely on this hardware/wheel combination — model loads succeed, direct
+layer-by-layer forward passes succeed, but the wrapped forward path through
+`model.encode()` hangs at the first batch, eventually hitting the gunicorn
+`--timeout 300` SIGKILL.
+
+**Fix (one minute on the affected box):**
+```bash
+backend/.venv/bin/pip install torch==2.11.0 \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --force-reinstall --no-deps
+```
+Swaps the CUDA wheel for the CPU-only build. No BioMate code change.
+
+**Verification after fix:**
+- `python -c "SentenceTransformer('BAAI/bge-small-en-v1.5').encode(['hi'])"` → 0.11 s
+- `/api/ai_assistant/generate_workflow` end-to-end: **160 s timeout → 7 s success**
+- Returns the correct workflow (`hts_plate_qc_hit_calling`) with BGE prefilter contributing
+
+**Scope:** local dev box only. Production / dev EC2 / AWS Batch use CPU-only
+or GPU-matched torch wheels and never had this hang. The routing benchmark
+result MRR=0.847 (memory: "Hybrid Workflow Search — BGE Dense Retrieval") was
+measured on a working box; that score is not at risk.
+
+**Note for future:** if `requirements.txt` is regenerated and ships
+`torch==2.x+cu130` again on this hardware, the hang returns. Pin to
+`torch==2.x+cpu` in the dev-box-specific requirements, or document the
+wheel-source flag in the local setup README.
+
+---
+
+## Original investigation (2026-06-01) — kept for reference
 
 ## Reproduction
 
