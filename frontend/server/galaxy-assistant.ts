@@ -5044,6 +5044,14 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     }
   }
 
+  // Module-scoped circuit breaker for the BioMNI dataset search backend.
+  // The /api/datasets/search route is not implemented on Galaxy (see
+  // backend/GALAXYCHAT_CONNECTION_ANALYSIS.md). Until it is, retrying on
+  // every chat turn produces 11s of wasted latency + log noise. After a
+  // single 404 we flip this flag and skip subsequent calls — until the
+  // process restarts (e.g. after the backend gains the route).
+  private static datasetSearchUnavailable = false;
+
   /**
    * Search for relevant datasets using BioMNI RAG
    */
@@ -5051,8 +5059,10 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     userMessage: string,
     keywords: string[]
   ): Promise<DatasetRecommendation[]> {
+    if (GalaxyAssistant.datasetSearchUnavailable) {
+      return [];
+    }
     try {
-      // Search BioMNI dataset catalog
       const datasetSearchResponse = await this.galaxyAPI.searchDatasets({
         query: keywords.join(' '),
         limit: 10,
@@ -5062,15 +5072,19 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
         return [];
       }
 
-      // Rank datasets by relevance
-      const rankedDatasets = await this.rankDatasetsByRelevance(
+      return await this.rankDatasetsByRelevance(
         userMessage,
         datasetSearchResponse.datasets
       );
-
-      return rankedDatasets;
-    } catch (error) {
-      console.error('[GalaxyAssistant] Dataset search failed:', error);
+    } catch (error: any) {
+      // Trip the breaker on the documented missing-route 404; keep other
+      // errors loud since they may indicate a transient outage worth seeing.
+      if (error?.status_code === 404 || error?.response?.status === 404) {
+        GalaxyAssistant.datasetSearchUnavailable = true;
+        console.warn('[GalaxyAssistant] /api/datasets/search 404 — circuit-breaker tripped; dataset search disabled until backend ships the route');
+      } else {
+        console.error('[GalaxyAssistant] Dataset search failed:', error);
+      }
       return [];
     }
   }
