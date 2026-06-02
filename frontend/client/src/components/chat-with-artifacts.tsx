@@ -1881,7 +1881,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             {/* v2 after-run 7-tab report — gated by ?afterrun=v2 flag, shown
                 above the v1 viewer when the run is completed. Phase 4 preview. */}
             {useAfterRunFlavor() === 'v2'
-              && (currentRun?.execution?.status === 'completed' || (currentRun?.execution?.status as string) === 'ok')
+              && (
+                currentRun?.execution?.status === 'completed'
+                || (currentRun?.execution?.status as string) === 'ok'
+                || currentRun?.execution?.status === 'failed'
+                || (currentRun?.execution?.status as string) === 'cancelled'
+              )
               && currentRun?.id && (
               <div className="border-b" style={{ background: 'oklch(0.985 0.003 240)' }}>
                 <AfterRunReport
@@ -1889,6 +1894,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   invocationId={currentRun.execution?.galaxyInvocationId || currentRun.id}
                   workflowName={panelWorkflow?.name}
                   parameters={extractSubmittedParams(currentRun)}
+                  executionStatus={(currentRun.execution as any)?.status}
+                  errorMessage={(currentRun.execution as any)?.errorMessage}
+                  nextflowOutputDir={(currentRun.execution as any)?.nextflowOutputDir}
+                  logTail={(currentRun.execution as any)?.nextflowStatus?.log_tail}
+                  failedSteps={
+                    ((currentRun.execution as any)?.nextflowStatus?.processes || [])
+                      .filter((p: any) => String(p.status || '').toUpperCase().includes('FAIL'))
+                      .map((p: any) => p.name || p.process || '')
+                  }
                   outputs={(() => {
                     // Prefer the structured outputDatasets if populated (Galaxy
                     // invocations). Nextflow-native runs leave that empty and
