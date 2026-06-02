@@ -37,7 +37,7 @@ RUN python3 -c "from mpi4py import MPI; import GMXMMPBSA" \
     && gmx_MMPBSA --version
 
 # ── PATH ─────────────────────────────────────────────────────────────────────
-ENV PATH="/opt/conda/bin:${PATH}"
+ENV PATH="/opt/aws-cli/bin:/opt/conda/bin:${PATH}"
 
 WORKDIR /data
 CMD ["bash"]
