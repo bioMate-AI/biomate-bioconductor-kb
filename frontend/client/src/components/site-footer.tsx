@@ -7,6 +7,7 @@ export function SiteFooter() {
   const footerLinks = {
     product: [
       // { name: "Pricing", href: "/pricing" }, // disabled until payment flow is fully tested
+      { name: "Tutorials", href: "/tutorials" },
       { name: "Security", href: "/privacy" }
     ],
     company: [

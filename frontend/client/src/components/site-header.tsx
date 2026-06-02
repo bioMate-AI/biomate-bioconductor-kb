@@ -44,6 +44,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
   const navigation = {
     main: [
       { name: "About", href: "/about" },
+      { name: "Tutorials", href: "/tutorials" },
       { name: "Pricing", href: "/pricing" },
       { name: "Blog", href: "/blog" },
     ],

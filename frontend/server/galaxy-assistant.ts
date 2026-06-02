@@ -2800,6 +2800,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
   private async _fetchCuratedChain(chainName: string): Promise<any | null> {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      // Fetch all chains (including bioc_reactive) so Tier 2 can resolve any named chain
       const res = await fetch(`${galaxyUrl}/api/workflow-chains`, {
         signal: AbortSignal.timeout(5000),
       });
@@ -3534,7 +3535,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     ];
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const res = await fetch(`${galaxyUrl}/api/workflow-chains`, {
+      // intent_hint=true excludes bioc_reactive chains (post-completion suggestions only)
+      // to prevent the classifier from mis-routing single-step requests into full chains
+      const res = await fetch(`${galaxyUrl}/api/workflow-chains?intent_hint=true`, {
         signal: AbortSignal.timeout(5000),
       });
       if (!res.ok) return fallback;
@@ -4104,8 +4107,12 @@ key_terms: up to 8 specific technical terms (tool names, assay types, organisms)
 needs_thinking: true only when the query requires multi-step reasoning, pipeline design,
   troubleshooting, or methodology comparison. false for simple workflow execution requests.
 
-chain_hint: if the query clearly maps to one of these curated workflow chains, return its name;
-  otherwise null.
+chain_hint: ONLY set if the user explicitly requests a named multi-step pipeline that spans ALL
+  the steps in that chain (e.g. "run the full drug discovery pipeline", "target-to-lead", "rare
+  disease multi-modal workup"). NEVER set if the user asks for a single analysis type (RNA-seq,
+  differential expression, ADMET screening) even if that step is part of a chain — a partial
+  request should go through normal workflow search (Tier 1), not chain escalation. Set null when
+  in doubt.
   Known chain names: [${chainHintList}]
 
 For MULTI-intent messages (parallel), respond with an "intents" array:
