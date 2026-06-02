@@ -38,32 +38,47 @@ process BIOC_A4CLASSIF {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(a4Classif)
     library(ROCcurve)
     library(jsonlite)
 
-    # --- add Gene Info [] ---
-    # Key functions: addGeneInfo
-    data(ALL, package = "ALL")
-    ALL <- addGeneInfo(ALL)
-    ALL$BTtype <- as.factor(substr(ALL$BT,0,1))
-    # --- Get top DE genes table (limma) [] ---
+    # --- Lasso Classification [] ---
     # Key functions: lassoClass, topTable
     resultLasso <- lassoClass(object = ALL, groups = "BTtype")
-    plot(resultLasso,
-    topTable(resultLasso, n = 15)
-    # --- Get top DE genes table (limma) [] ---
+    plot(
+        resultLasso,
+        label = TRUE,
+        main = "Lasso coefficients"
+    )
+    lassoTable <- topTable(resultLasso, n = 15)
+
+
+    # --- PAM Classification [] ---
     # Key functions: pamClass, topTable, confusionMatrix
     resultPam <- pamClass(object = ALL, groups = "BTtype")
-    plot(resultPam,
-    topTable(resultPam, n = 15)
-    # --- Get top DE genes table (limma) [] ---
+    plot(
+        resultPam,
+        main = "Pam misclassification error"
+    )
+    pamTable <- topTable(resultPam, n = 15)
+    confMat <- confusionMatrix(resultPam)
+
+
+    # --- Random Forest Classification [] ---
     # Key functions: rfClass, topTable
-    ALLSubset <- ALL[sample.int(n = nrow(ALL), size = 100, replace = FALSE), ]
+    ALLSubset <- ALL[sample.int(n = nrow(ALL), size = 100), ]
     resultRf <- rfClass(object = ALLSubset, groups = "BTtype")
     plot(resultRf)
-    # --- R O Ccurve [] ---
+    rfTable <- topTable(resultRf, n = 15)
+
+
+    # --- ROC Curve Analysis [] ---
     # Key functions: ROCcurve
-    ROCcurve(gene = "ABL1", object = ALL, groups = "BTtype")
+    ROCcurve(
+        gene = "ABL1",
+        object = ALL,
+        groups = "BTtype"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
