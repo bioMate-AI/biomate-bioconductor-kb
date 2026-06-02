@@ -58,9 +58,6 @@ process BIOC_SEQARRAY {
     # Key functions: cppFunction, CalcAlleleFreq, size, double
     ---------------------------------------------------------------------------------------------------
     library(Rcpp)
-    cppFunction("
-        double CalcAlleleFreq(IntegerVector x)
-        {
     # --- Seqapply [] ---
     # Key functions: seqApply
     ---------------------------------------------------------------------------------------------------
@@ -71,8 +68,6 @@ process BIOC_SEQARRAY {
     ---------------------------------------------------------------------------------------------------
     # covariance variable with an initial value
     s <- 0
-    seqBlockApply(file, "$dosage", function(x)
-        {
     # --- Seqparallelsetup [] ---
     # Key functions: seqParallelSetup, seqNumAllele, seqAlleleFreq
     ---------------------------------------------------------------------------------------------------
@@ -105,8 +100,6 @@ process BIOC_SEQARRAY {
     ---------------------------------------------------------------------------------------------------
     pop.code <- factor(seqGetData(file, "sample.annotation/Population"))
     head(pop.code)
-    popgroup <- list(
-        EastAsia = c("CHB", "JPT", "CHS", "CDX", "KHV", "CHD"),
     # --- Seqgetdata [] ---
     # Key functions: seqGetData
     ---------------------------------------------------------------------------------------------------

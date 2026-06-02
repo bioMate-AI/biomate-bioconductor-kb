@@ -41,11 +41,53 @@ process BIOC_NADFINDER {
     library(NADfinder)
     library(jsonlite)
 
-    # --- dir [] ---
-    # Key functions: dir
+
+    # --- Quick Start [] ---
+    # Key functions: dir, extdata
+    ## load the library
     library(NADfinder)
     library(SummarizedExperiment)
+    ## test bam files in the package
     path <- system.file("extdata", package = "NADfinder", lib.loc = NULL,
+                mustWork = TRUE)
+    bamFiles <- dir(path, ".bam$")
+
+    ## window size for tile of genome. Here we set it to a big window size,
+    ## ie., 50k because of the following two reasons:
+    ## 1. peaks of NADs are wide;
+    ## 2. data will be smoothed better with bigger window size.
+    ws <- 50000
+    ## step for tile of genome
+    step <- 5000
+
+    # --- Eval=false [] ---
+    # Key functions: tileCount, log2se
+    #  se <- tileCount(reads=file.path(path, bamFiles),
+    #                  genome=Mmusculus,
+    #                  windowSize=ws,
+    #                  step=step,
+    #                  mode = IntersectionNotStrict,
+    #                  dataOverSamples = FALSE)
+
+    ## -----------------------------------------------------------------------------
+    data(single.count)
+    se <- single.count
+
+    ## -----------------------------------------------------------------------------
+
+    ## Calculate ratios for peak calling. We use nucleoleus vs genomic DNA.
+    # --- Eval=false [] ---
+    # Key functions: tileCount, log2se
+    #  se <- tileCount(reads=file.path(path, f),
+    #                  genome=Mmusculus,
+    #                  windowSize=ws,
+    #                  step=step)
+
+    ## -----------------------------------------------------------------------------
+    data(triplicate.count)
+    se <- triplicate.count
+
+    ## Calculate ratios for nucleoloar vs genomic samples.
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,15 +43,13 @@ process BIOC_COMPSPOT {
 
     # --- find_hotspots [] ---
     # Key functions: find_hotspots
-    significant_spots <- find_hotspots(data = compSPOT_example_mutations,
+
     # --- compare_groups [] ---
     # Key functions: compare_groups
     hotspots <- subset(significant_spots[[1]], type == "Hotspot")
-    group_comp <- compare_groups(data = compSPOT_example_mutations,
     # --- compare_features [] ---
     # Key functions: compare_features
     features <- c("AGE", "SEX", "SMOKING_HISTORY", "TUMOR_VOLUME", "KI_67")
-    feature_example <- compare_features(data = compSPOT_example_mutations,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

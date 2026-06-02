@@ -41,13 +41,16 @@ process BIOC_SCATTERHATCH {
     library(scatterHatch)
     library(jsonlite)
 
-    # --- set [] ---
+
+    # --- Global Options [] ---
     # Key functions: set
-    --------------------------------------
     knitr::opts_chunk$set(
         collapse = TRUE,
         comment = "#>",
         fig.align   = 'center'
+    )
+
+    knitr::opts_chunk$set(out.extra = 'style="display:block; margin:auto;"')  # center
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -52,9 +52,6 @@ process BIOC_SCMITOMUT {
     # Key functions: filter_loc
     ---------------------------------------------------------------------
     ## Filter mutation
-    x <- filter_loc(
-      mtmutObj = x,
-      min_cell = 2,
     # --- Export Df [] ---
     # Key functions: export_df, export_af, export_pval, export_binary
     ---------------------------------------------------------------------

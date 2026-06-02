@@ -65,8 +65,6 @@ process BIOC_SYNTENET {
     # --- run_diamond [] ---
     # Key functions: run_diamond
     data(blast_list)
-    if(diamond_is_installed()) {
-    blast_list <- run_diamond(seq = pdata$seq)
     # --- infer_syntenet [] ---
     # Key functions: infer_syntenet
     net <- infer_syntenet(blast_list, pdata$annotation)
@@ -85,9 +83,7 @@ process BIOC_SYNTENET {
     head(profiles)
     # --- set Names [] ---
     # Key functions: setNames, plot_profiles
-    species_order <- setNames(
-    c(
-    c(
+
     # --- find GS clusters [] ---
     # Key functions: find_GS_clusters
     gs_clusters <- find_GS_clusters(profiles, species_annotation)
@@ -96,12 +92,10 @@ process BIOC_SYNTENET {
     # --- plot_profiles [] ---
     # Key functions: plot_profiles
     idx <- rownames(profiles) %in% gs_clusters$Cluster
-    plot_profiles(
     # --- plot_network [] ---
     # Key functions: plot_network
     plot_network(network, clusters, cluster_id = id)
     genes <- unique(c(network$node1, network$node2))
-    gene_df <- data.frame(
     # --- binarize_and_transpose [] ---
     # Key functions: binarize_and_transpose
     bt_mat <- binarize_and_transpose(profiles)

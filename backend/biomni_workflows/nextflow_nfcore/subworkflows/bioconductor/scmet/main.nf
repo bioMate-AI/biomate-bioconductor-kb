@@ -47,7 +47,6 @@ process BIOC_SCMET {
     plot(scmet_dt$theta_true$mu, scmet_dt$theta_true$gamma, pch = 20,
          xlab = expression(paste("Mean methylation ",  mu)),
          ylab = expression(paste("Overdsispersion ",  gamma)))
-    plot(scmet_dt$X[,2], scmet_dt$theta_true$mu, pch = 20,
     # --- Run Scmet Synthetic [] ---
     # Key functions: scmet
     # Run with seed for reproducibility

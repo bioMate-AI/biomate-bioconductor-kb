@@ -51,11 +51,7 @@ process BIOC_FLOWPLOTS {
     groupDataList = makeDataList(profileDataSubset ,"group", 1:16)
     # --- Grouplistboxplot [] ---
     # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="",
-       ylabel="Percent of All Cells", boxOutliers=FALSE,
-       xAxisLabels=xTickLabels, xMtext="Marker Category",
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
+
     # --- Margbp [] ---
     # Key functions: makeDataList
     data(marginalDF)
@@ -65,11 +61,7 @@ process BIOC_FLOWPLOTS {
     groupDataList = makeDataList(marginalDataSubset ,"group", 1:5)
     # --- Grouplistboxplot [] ---
     # Key functions: GroupListBoxplot
-    GroupListBoxplot(groupDataList, xlabel="Cytokine",
-       ylabel="Percent of All Cells", boxOutliers=FALSE,
-       xAxisLabels=c("TNFa","IL6","IL12","IFNa","AnyMarker"),
-       mainTitle="Stimulation = LPS, Concentration Group = 3, Cell = mDC",
-       legendGroupNames=c("Adults","Neonates"), pointColor=c(2,4),
+
     # --- Pfdbp [] ---
     # Key functions: makeDataList
     data(pfdDF)

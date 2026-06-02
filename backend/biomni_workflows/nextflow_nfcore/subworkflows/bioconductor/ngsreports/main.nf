@@ -41,11 +41,49 @@ process BIOC_NGSREPORTS {
     library(ngsReports)
     library(jsonlite)
 
-    # --- plot Summary [] ---
-    # Key functions: plotSummary, plotReadTotals, theme
+
+    # --- Results='hide' [] ---
+    # Key functions: readTotals, filter, pander
+    reads <- readTotals(fdl)
+
+    ## -----------------------------------------------------------------------------
+    library(dplyr)
+    library(pander)
+    reads %>%
+        dplyr::filter(grepl("R1", Filename)) %>% 
+        pander(
+            big.mark = ",",
+            caption = "Read totals from R1 libraries", 
+            justify = "lr"
+        )
+
+    # --- Plot Summary [] ---
+    # Key functions: plotSummary, plotReadTotals, element_rect, black
     plotSummary(fdl)
+
+    ## -----------------------------------------------------------------------------
     plotReadTotals(fdl)
+
+    ## -----------------------------------------------------------------------------
     plotReadTotals(fdl) +
+        theme(
+            legend.position = c(1, 1), 
+            legend.justification = c(1, 1),
+            legend.background = element_rect(colour = "black")
+        )
+
+    # --- Eval = False [] ---
+    # Key functions: overRep2Fasta, importNgsLogs, select, contains, pander, extdata, ngsReports, rmarkdown
+    #  overRep2Fasta(fdl, n = 10)
+
+    ## -----------------------------------------------------------------------------
+    fl <- c("Sample1.trimmomaticPE.txt")
+    trimmomaticLogs <- system.file("extdata", fl, package = "ngsReports")
+    df <- importNgsLogs(trimmomaticLogs)
+
+    ## -----------------------------------------------------------------------------
+    df %>%
+        dplyr::select("Filename", contains("Surviving"), "Dropped") %>%
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

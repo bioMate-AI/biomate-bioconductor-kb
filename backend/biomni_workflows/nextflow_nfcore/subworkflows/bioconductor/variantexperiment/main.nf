@@ -38,14 +38,78 @@ process BIOC_VARIANTEXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(GDSArray)
+    library(VariantExperiment)
     library(jsonlite)
 
-    # --- Assay listing [] ---
-    # Key functions: gdsExampleFileName, gdsnodes, GDSArray, makeVariantExperimentFromGDS, args, showAvailable, assays, assay
+
+    # --- Gdsarray [] ---
+    # Key functions: gdsExampleFileName, gdsnodes, GDSArray, seqgds, sample.id, makeVariantExperimentFromGDS, args, showAvailable
+    library(GDSArray)
+    file <- GDSArray::gdsExampleFileName("seqgds")
+    gdsnodes(file)
+    GDSArray(file, "genotype/data")
+    GDSArray(file, "sample.id")
+    ve <- makeVariantExperimentFromGDS(file)
+    ve
+    args(makeVariantExperimentFromGDS)
+    showAvailable(file)
+    assays(ve)
+    assay(ve, 1)
+    GDSArray(file, "genotype/data")  ## original GDSArray from GDS file before permutation
+
+    # --- Rrrd [] ---
+    # Key functions: rowRanges, rowData, colData, gdsfile, metadata
+    rowRanges(ve)
+    rowData(ve)
+    colData(ve)
+    gdsfile(ve)
+    metadata(ve)
+
+    # --- Make Variant Experiment From Vcf [] ---
+    # Key functions: seqExampleFileName, makeVariantExperimentFromVCF, tempfile, vcf, gdsfile, assay, rowData
+    vcf <- SeqArray::seqExampleFileName("vcf")
+    ve <- makeVariantExperimentFromVCF(vcf, out.dir = tempfile())
+    ve
+    gdsfile(ve)
+    assay(ve, 1)
+    rowData(ve)
+
+    # --- Sample Info [] ---
+    # Key functions: makeVariantExperimentFromVCF, colData, extdata, Example_sampleInfo.txt, rowData, seqExampleFileName, makeVariantExperimentFromGDS, gds
     sampleInfo <- system.file("extdata", "Example_sampleInfo.txt",
+                              package="VariantExperiment")
     vevcf <- makeVariantExperimentFromVCF(vcf, sample.info = sampleInfo)
     colData(vevcf)
+    vevcf1 <- makeVariantExperimentFromVCF(vcf, info.import=c("OR", "GP"))
+    rowData(vevcf1)
+    vevcf2 <- makeVariantExperimentFromVCF(vcf, start=101, count=1000)
+    vevcf2
+    gds <- SeqArray::seqExampleFileName("gds")
+    ve <- makeVariantExperimentFromGDS(gds)
+    ve
+
+    # --- Show Available1 [] ---
+    # Key functions: showAvailable, makeVariantExperimentFromGDS, rowData, colData, character, allele, snpgdsExampleFileName, snp.allele
+    showAvailable(gds)
+    ve3 <- makeVariantExperimentFromGDS(gds,
+                                        rowDataColumns = c("allele", "annotation/id"),
+                                        infoColumns = c("AC", "AN", "DP"),
+                                        rowDataOnDisk = TRUE,
+                                        colDataOnDisk = FALSE)
+    rowData(ve3)  ## DelayedDataFrame object 
+    colData(ve3)  ## DataFrame object
+
+    ## -----------------------------------------------------------------------------
+    # --- Col Data Extraction [] ---
+    # Key functions: colData, rowData, subsetByOverlaps, GRanges, tempfile, saveVariantExperiment
+    colData(ve)
+    ve[, as.logical(ve$family == "1328")]
+    rowData(ve)
+    ve[as.logical(rowData(ve)$REF == "T"),]
+    ve1 <- subsetByOverlaps(ve, GRanges("22:1-48958933"))
+    ve1
+    a <- tempfile()
+    ve2 <- saveVariantExperiment(ve1, dir=a, replace=TRUE, chunk_size = 30)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

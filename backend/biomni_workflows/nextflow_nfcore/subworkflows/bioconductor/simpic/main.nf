@@ -43,20 +43,16 @@ process BIOC_SIMPIC {
 
     # --- Load saved R data object [] ---
     # Key functions: simPICestimate, simPICsimulate
-    suppressPackageStartupMessages({
-    library(simPIC)
-    set.seed(12)
+
     # --- P I C_counting [] ---
     # Key functions: PIC_counting
-    pic_mat <- PIC_counting(
+
     # --- sim P I Cget [] ---
     # Key functions: simPICget
     simPICget(sim.params, "nPeaks")
     # --- sim P I Cgetparameters [] ---
     # Key functions: simPICgetparameters, setsimPICparameters
     Set multiple parameters at once (using a list)
-    sim.params <- setsimPICparameters(sim.params,
-    update = list(nPeaks = 8000, nCells = 500)
     # --- Load saved R data object [] ---
     # Key functions: typeof, newsimPICcount, simPICestimate
     count <- readRDS(system.file("extdata", "test.rds", package = "simPIC"))

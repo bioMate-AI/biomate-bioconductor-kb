@@ -50,11 +50,7 @@ process BIOC_ICHECK {
              labelVariable = "subjID",
     # --- R2 Plot Func [] ---
     # Key functions: R2PlotFunc, greenred
-    R2PlotFunc(
-             es=es.raw,
-             hybName = "Hybridization_Name",
-             arrayType = "GC",
-             GCid = c("128115", "Hela", "Brain"),
+
     # --- Table [] ---
     # Key functions: dims
     print(table(es.raw$Tissue_Descr, useNA="ifany"))
@@ -64,32 +60,16 @@ process BIOC_ICHECK {
     cat("No. of GC arrays=", length(pos.del), "\n")
     # --- R2 Plot Func [] ---
     # Key functions: R2PlotFunc, greenred
-    R2PlotFunc(
-             es=es.raw,
-             arrayType = c("replicates"),
-             GCid = c("128115", "Hela", "Brain"),
-             probs = seq(0, 1, 0.25),
+
     # --- Densityplots [] ---
     # Key functions: densityPlots
-    densityPlots(
-          es = es.raw,
-          requireLog2 = FALSE,
-          myxlab = "expression level",
-          datExtrFunc = exprs,
+
     # --- Quantileplot [] ---
     # Key functions: quantilePlot, exprs, n
-    quantilePlot(
-             dat=exprs(es.raw),
-             fileName,
-             probs = c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1),
-             plotOutPutFlag = FALSE,
+
     # --- plot Samplep95p05 [] ---
     # Key functions: plotSamplep95p05
-    plotSamplep95p05(
-             es=es.raw,
-             labelVariable = "memSubj",
-             requireLog2 = FALSE,
-             projectName = "test",
+
     # --- Quantile [] ---
     # Key functions: exprs
     p95<-quantile(exprs(es.raw), prob=0.95)
@@ -106,11 +86,7 @@ process BIOC_ICHECK {
          )
     # --- pca2 D Plot [] ---
     # Key functions: pca2DPlot, pcas
-    pca2DPlot(pcaObj=pcaObj,
-                   plot.dim = c(1,2),
-                   labelVariable = "memSubj",
-                   outFileName = "test_pca_raw.pdf",
-                   title = "Scatter plot of pcas (memSubj)",
+
     # --- Lumin [] ---
     # Key functions: lumiN
     tt <- es.raw
@@ -124,25 +100,13 @@ process BIOC_ICHECK {
          )
     # --- Lmfitwrapper [] ---
     # Key functions: lmFitWrapper, factor
-    res.limma=lmFitWrapper(
-      es=es.q,
-      formula=~as.factor(memSubj),
-      pos.var.interest = 1,
-      pvalAdjMethod="fdr",
+
     # --- Glmwrapper [] ---
     # Key functions: glmWrapper, factor
-    res.glm=glmWrapper(
-      es=es.q,
-      formula = xi~as.factor(memSubj),
-      pos.var.interest = 1,
-      family=gaussian,
+
     # --- Lkhrwrapper [] ---
     # Key functions: lkhrWrapper, factor
-    res.lkh=lkhrWrapper(
-      es=es.q,
-      formulaReduced = xi~as.factor(memSubj),
-      formulaFull = xi~as.factor(memSubj)+gender,
-      family=gaussian,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

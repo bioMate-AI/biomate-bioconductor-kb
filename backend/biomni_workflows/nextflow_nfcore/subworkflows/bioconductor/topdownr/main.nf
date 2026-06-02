@@ -44,13 +44,9 @@ process BIOC_TOPDOWNR {
     # --- Custom ggplot2 visualization [] ---
     # Key functions: colData, filterInjectionTime, ggplot, aes, geom_boxplot, scale, ranger
     injTimeBefore <- colData(myoglobin)
-    myoglobin <- filterInjectionTime(
-    maxDeviation = log2(3),
     # --- TopDownDataPath analysis [] ---
     # Key functions: topDownDataPath, readTopDownFiles, conditionData, assayData, filterCv, filterIntensity, aggregate, bestConditions
-    myoglobin <- readTopDownFiles(
-    path = topdownrdata::topDownDataPath("myoglobin"),
-    type = c("a", "b", "c", "x", "y", "z"),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

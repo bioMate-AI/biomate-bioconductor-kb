@@ -55,7 +55,6 @@ process BIOC_REPVIZ {
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, RepViz
     region <- GRanges("chr12:110938000-110940000")
-    RepViz::RepViz(region = region,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -49,7 +49,6 @@ process BIOC_HICDCPLUS {
     # Key functions: tempdir, construct_features
     hicfile_path<-system.file("extdata", "GSE63525_HMEC_combined_example.hic", package = "HiCDCPlus")
     outdir<-tempdir(check=TRUE)
-    construct_features(output_path=paste0(outdir,"/hg19_50kb_GATC"),
     # --- quickStart sig2 [] ---
     # Key functions: generate_bintolen_gi_list, add_hic_counts
     gi_list<-generate_bintolen_gi_list(
@@ -64,12 +63,9 @@ process BIOC_HICDCPLUS {
     # Key functions: construct_features, generate_bintolen_gi_list, add_hic_counts, expand_1D_features
     construct_features(output_path=paste0(outdir,"/hg38_50kb_GATC"),
     chrs=c("chr22"))
-    hicfile_paths<-c(
     # --- quickStart diff2 [] ---
     # Key functions: hicdcdiff
     Differential analysis using modified DESeq2 (see ?hicdcdiff)
-    hicdcdiff(input_paths=list(NSD2=c(paste0(outdir,'/GSE131651_NSD2_LOW_arima_example.txt.gz'),
-    paste0(outdir,'/GSE131651_NSD2_HIGH_arima_example.txt.gz')),
     # --- quickStart ice1 [] ---
     # Key functions: generate_binned_gi_list, add_hicpro_matrix_counts
     gi_list<-generate_binned_gi_list(50000,chrs=c("chr21","chr22"))
@@ -79,8 +75,7 @@ process BIOC_HICDCPLUS {
     tads<-gi_list_topdom(gi_list,chrs=c("chr22"),window.size = 10)
     # --- quickStart comp1 [] ---
     # Key functions: extract_hic_eigenvectors
-    extract_hic_eigenvectors(
-    hicfile=system.file("extdata", "eigenvector_example.hic", package = "HiCDCPlus"),
+
     # --- construct_features [] ---
     # Key functions: construct_features
     construct_features(output_path=paste0(outdir,"/hg19_50kb_GATC"),
@@ -88,8 +83,7 @@ process BIOC_HICDCPLUS {
     chrs=c("chr22"))
     # --- gi list uniform [] ---
     # Key functions: generate_binned_gi_list
-    gi_list<-generate_binned_gi_list(binsize=50000,chrs=c('chr22'),
-    head(gi_list)
+
     # --- gi list rebinned [] ---
     # Key functions: generate_df_gi_list
     df<-data.frame(chr='chr9',start=c(1,300,7867,103938))
@@ -98,12 +92,10 @@ process BIOC_HICDCPLUS {
     # Key functions: construct_features, generate_bintolen_gi_list
     construct_features(output_path=paste0(outdir,"/hg19_50kb_GATC"),
     chrs=c("chr22"))
-    gi_list<-generate_bintolen_gi_list(
     # --- custom features 2D [] ---
     # Key functions: generate_df_gi_list
     df<-data.frame(chr='chr9',start=seq(1e6,10e6,1e6))
     gi_list<-generate_df_gi_list(df,Dthreshold=500e3,chrs="chr9")
-    feats<-data.frame(chr='chr9',
     # --- custom features 1D [] ---
     # Key functions: generate_df_gi_list, add_1D_features
     df<-data.frame(chr='chr9',start=seq(1e6,10e6,1e6),end=seq(2e6,11e6,1e6))

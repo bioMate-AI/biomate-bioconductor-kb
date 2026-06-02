@@ -43,14 +43,10 @@ process BIOC_MICROBIOMEMARKER {
 
     # --- Data import and preprocessing [] ---
     # Key functions: import_dada2
-    seq_tab <- readRDS(
-    system.file(
-    tax_tab <- readRDS(
+
     # --- Subset taxa by criteria [] ---
     # Key functions: subset_taxa, run_lefse, run_sl, marker_table
     set.seed(2021)
-    ps_small <- phyloseq::subset_taxa(
-    Phylum %in% c("Firmicutes", "Bacteroidetes")
     # --- Data normalization [] ---
     # Key functions: install_github, import_qiime2, norm_tss, normalize, run_lefse, run_test_two_groups, subset_samples, run_test_multiple_groups
     pht <- run_posthoc_test(ps, group = "Enterotype")

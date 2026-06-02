@@ -47,7 +47,6 @@ process BIOC_GATEFINDER {
     library(flowCore)
     data(LPSData)
     targetpop <- (exprs(rawdata)[,34] > 3.5)
-    plot(exprs(rawdata)[ , c(2,34)], pch='.', col=targetpop+1,
     # --- exprs [] ---
     # Key functions: exprs, GateFinder
     x=exprs(rawdata)[ , prop.markers]

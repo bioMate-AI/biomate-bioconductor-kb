@@ -54,37 +54,25 @@ process BIOC_SIMILARPEAK {
     coveragesRPMRegion01 <- coverage(alignments01, weight=1000000/count01)[region]
     # --- ratio area calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
+
     # --- diff pos max calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
+
     # --- ratio max max calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
+
     # --- ratio intersect calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
+
     # --- ratio normalized intersect calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
+
     # --- spearman correlation calculation [] ---
     # Key functions: similarity
-    metrics <- similarity(demoProfiles$chr2.70360770.70361098$H3K27ac,
-    metrics <- similarity(demoProfiles$chr8.43092918.43093442$H3K27ac,
-    metrics <- similarity(demoProfiles$chr3.73159773.73160145$H3K27ac,
+
     # --- similarity [] ---
     # Key functions: similarity
-    metrics <- similarity(chr7Profiles$chr7.61968807.61969730$H3K27ac,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

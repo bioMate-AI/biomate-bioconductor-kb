@@ -49,24 +49,12 @@ process BIOC_RAGGEDEXPERIMENT {
     # --- Delim [] ---
     # Key functions: delim
     ---------------------------------------------------------------------
-    ASCAT_data_S1 <- read.delim(
-        system.file(
-            "extdata", "ASCAT_Sample1.txt",
-            package = "RaggedExperiment", mustWork = TRUE
     # --- Granges [] ---
     # Key functions: GRanges, Rle, IRanges, strand
     ---------------------------------------------------------------------
-    sample1_ex1 <- GRanges(
-        seqnames = Rle(paste0("chr", ASCAT_data_S1$chr)),
-        ranges = IRanges(start = ASCAT_data_S1$startpos, end = ASCAT_data_S1$endpos),
-        strand = Rle(strand("*")),
     # --- Makegrangesfromdataframe [] ---
     # Key functions: makeGRangesFromDataFrame
     ---------------------------------------------------------------------
-    sample1_ex2 <- makeGRangesFromDataFrame(
-        ASCAT_data_S1[,-c(1)],
-        ignore.strand=TRUE,
-        seqnames.field="chr",
     # --- Split [] ---
     # Key functions: split
     ---------------------------------------------------------------------
@@ -77,10 +65,6 @@ process BIOC_RAGGEDEXPERIMENT {
     # --- Makegrangeslistfromdataframe [] ---
     # Key functions: makeGRangesListFromDataFrame
     ---------------------------------------------------------------------
-    sample_list_GRanges_ex1 <- makeGRangesListFromDataFrame(
-        ASCAT_data_S1,
-        ignore.strand=TRUE,
-        seqnames.field="chr",
     # --- Grangeslist [] ---
     # Key functions: GRangesList
     ---------------------------------------------------------------------
@@ -92,9 +76,6 @@ process BIOC_RAGGEDEXPERIMENT {
     # Key functions: DataFrame, RaggedExperiment
     ---------------------------------------------------------------------
     colDat_1 = DataFrame(id = 1)
-    ragexp_1 <- RaggedExperiment(
-        sample1 = sample1_ex2,
-        colData = colDat_1
     # --- Raggedexperiment [] ---
     # Key functions: RaggedExperiment
     ---------------------------------------------------------------------
@@ -106,9 +87,6 @@ process BIOC_RAGGEDEXPERIMENT {
     # Key functions: DataFrame, RaggedExperiment
     ---------------------------------------------------------------------
     colDat_3 = DataFrame(id = 1:3)
-    ragexp_3 <- RaggedExperiment(
-        sample_list_GRanges_ex2,
-        colData = colDat_3
     # --- Raggedexperiment [] ---
     # Key functions: RaggedExperiment
     ---------------------------------------------------------------------

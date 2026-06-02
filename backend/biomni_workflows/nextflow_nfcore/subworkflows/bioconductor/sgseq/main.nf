@@ -51,7 +51,6 @@ process BIOC_SGSEQ {
     # Key functions: plotSpliceGraph, plotCoverage
     par(mfrow = c(5, 1), mar = c(1, 3, 1, 1))
     plotSpliceGraph(rowRanges(sgfc_pred), geneID = 1, toscale = "none", color_novel = "red")
-    for (j in 1:4) {
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

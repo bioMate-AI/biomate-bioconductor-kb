@@ -60,7 +60,6 @@ process BIOC_GROHMM {
             package="groHMM")), "GRanges")
     S0mR2 <- as(readGAlignments(system.file("extdata", "S0mR1.bam",
             package="groHMM")), "GRanges") # Use R1 as R2
-    S40mR1 <- as(readGAlignments(system.file("extdata", "S40mR1.bam",
     # --- Write Wiggle Files [] ---
     # Key functions: writeWiggle, seqinfo, NROW
     ## writeWiggle(reads=S0m, file="S0m_Plus.wig", fileType="wig", strand="+",
@@ -88,7 +87,6 @@ process BIOC_GROHMM {
     kgConsensus <- makeConsensusAnnotations(kgChr7, keytype="gene_id",
             mc.cores=getOption("mc.cores"))
     library(org.Hs.eg.db)
-    map <- select(org.Hs.eg.db,
     # --- Evaluation Of Transcript Calling [] ---
     # Key functions: evaluateHMMInAnnotations
     e <- evaluateHMMInAnnotations(txHMM, kgConsensus)
@@ -99,14 +97,9 @@ process BIOC_GROHMM {
                UTS=rep(c(5,10,15), 3))
     Fp <- windowAnalysis(Sall, strand="+", windowSize=50)
     Fm <- windowAnalysis(Sall, strand="-", windowSize=50)
-    # evals <- mclapply(seq_len(9), function(x) {
     # --- Expressed Genes [] ---
     # Key functions: limitToXkb, countOverlaps, width, getExpressedAnnotations
-    getExpressedAnnotations <- function(features, reads) {
-         fLimit <- limitToXkb(features)
-         count <- countOverlaps(fLimit, reads)
-         features <- features[count!=0,]
-         return(features[(quantile(width(features), .05) < width(features))
+
     # --- get Tx Density [] ---
     # Key functions: getTxDensity, getOption
     td <- getTxDensity(txHMM, conExpressed, mc.cores=getOption("mc.cores"))

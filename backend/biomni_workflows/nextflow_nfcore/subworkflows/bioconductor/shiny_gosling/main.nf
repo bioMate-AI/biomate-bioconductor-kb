@@ -45,17 +45,12 @@ process BIOC_SHINY_GOSLING {
     # Key functions: GRanges
     temp_file <- file.path(tempdir(), "data.gz")
     download.file(url, destfile = temp_file, method = "auto", mode = "wb")
-    df <- read.delim(
     # --- fluid Page [] ---
     # Key functions: fluidPage, use_gosling, goslingOutput, add_single_track, compose_view
-    ui <- fluidPage(
-    use_gosling(clear_files = FALSE),
-    goslingOutput("gosling_plot")
+
     # --- add_single_track [] ---
     # Key functions: add_single_track, compose_view, arrange_views, shinyApp, use_gosling
-    if (!dir.exists("data")) {
-    dir.create("data")
-    utils::write.csv(gr, "data/ChipSeqPeaks.csv", row.names = FALSE)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

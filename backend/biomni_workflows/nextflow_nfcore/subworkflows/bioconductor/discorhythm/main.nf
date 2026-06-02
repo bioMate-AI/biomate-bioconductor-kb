@@ -41,11 +41,30 @@ process BIOC_DISCORHYTHM {
     library(DiscoRhythm)
     library(jsonlite)
 
-    # --- DiscoGetSimu analysis [] ---
-    # Key functions: include_graphics, discoGetSimu, discoDFtoSE, discoCheckInput, discoInterCorOutliers, discoPCAoutliers, discoPCA, discoRepAnalysis
-    library(DiscoRhythm)
-    selectDataSE <- discoCheckInput(discoDFtoSE(indata))
-    CorRes <- discoInterCorOutliers(selectDataSE,cor_method,
+
+    # --- Interface [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics("IntroductionSS.jpg")
+
+    # --- Select Data [] ---
+    # Key functions: include_graphics, selectDataSS.jpg
+    knitr::include_graphics("selectDataSS.jpg")
+
+    # --- Cor Quality Control [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics("IntersampleCorrelationSS.jpg")
+
+    # --- PCA Quality Control [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics("PCASS.jpg")
+
+    # --- Filtering Summary [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics("FilteringSummarySS.jpg")
+
+    # --- Rep Analysis [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics("RowSelectionSS.jpg")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

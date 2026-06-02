@@ -41,10 +41,27 @@ process BIOC_FLOWPLOIDY {
     library(flowPloidy)
     library(jsonlite)
 
-    # --- ViewFlowChannels analysis [] ---
-    # Key functions: install_github, viewFlowChannels, batchFlowHist, browseFlowHist, tabulateFlowHist
-    batch1 <- batchFlowHist(flowPloidyFiles(), channel = "FL3.INT.LIN",
-    standards = c(1.11, 9.09))
+
+    # --- View Flow Channel [] ---
+    # Key functions: viewFlowChannels, flowPloidyFiles, viewFlowcChannels
+    viewFlowChannels(flowPloidyFiles()[1])
+    ## or viewFlowcChannels("my-flow-file.LMD")
+
+    # --- Batch Flow Hist [] ---
+    # Key functions: batchFlowHist, flowPloidyFiles
+    batch1 <- batchFlowHist(flowPloidyFiles(), channel = "FL3.INT.LIN")
+
+    # --- Tabulate Flow Hist [] ---
+    # Key functions: tabulateFlowHist
+    tabulateFlowHist(batch1)[1:4, ]
+
+    # --- Vac Channel [] ---
+    # Key functions: viewFlowChannels, fpVac
+    viewFlowChannels(fpVac())
+
+    # --- Read Vac [] ---
+    # Key functions: batchFlowHist, fpVac
+    vac <- batchFlowHist(fpVac(), channel = "FL2.A")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

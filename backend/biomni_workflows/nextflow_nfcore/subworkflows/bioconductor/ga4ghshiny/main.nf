@@ -46,15 +46,11 @@ process BIOC_GA4GHSHINY {
     library(org.Hs.eg.db)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(GA4GHshiny)
-    app(host = "http://1kgenomes.ga4gh.org/",
-        serverName = "Hosting Thousand Genomes Project",
     # --- Code Block 3 [] ---
     # Key functions: app
     library(org.Hs.eg.db)
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(GA4GHshiny)
-    app(host = "http://1kgenomes.ga4gh.org/",
-        serverName = "Hosting Thousand Genomes Project",
     # --- Code Block 4 [] ---
     # Key functions: 1, namespace
     ## R version 4.4.1 (2024-06-14)

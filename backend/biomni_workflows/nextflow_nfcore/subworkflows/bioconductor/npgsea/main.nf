@@ -59,8 +59,6 @@ process BIOC_NPGSEA {
     xData <- exprs(ALL)
     geneEids <- rownames(xData)
     set.seed(12345)
-    set1 <- GeneSet(geneIds=sample(geneEids,15, replace=FALSE),
-                 setName="set1",
     # --- Empirical Bayes moderation (limma) [] ---
     # Key functions: eBayes, lmFit, topTable, GeneSet
     model <- model.matrix(~mol.biol, ALL)
@@ -130,7 +128,6 @@ process BIOC_NPGSEA {
     ## library(ReportingTools)
     ## npgseaReport <- HTMLReport (shortName = "npGSEA",
     ##         title = "npGSEA Results", reportDirectory = "./reports")
-    ## publish(gsc, npgseaReport, annotation.db = "org.Hs.eg",
     # --- Sessinfo [] ---
     # Key functions: toLatex
     toLatex(sessionInfo())

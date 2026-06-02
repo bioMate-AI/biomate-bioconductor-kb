@@ -41,11 +41,58 @@ process BIOC_HIANNOTATOR {
     library(hiAnnotator)
     library(jsonlite)
 
-    # --- start Workers [] ---
-    # Key functions: startWorkers, registerDoSMP, getNearestFeature, registerDoMC, makeCluster
-    w <- startWorkers(2)
-    registerDoSMP(w)
-    getNearestFeature(..., parallel = TRUE)
+
+    # --- Eval = False [] ---
+    # Key functions: getUCSCtable, makeGRanges, getNearestFeature, refFlat
+    #  refflat <- getUCSCtable("refFlat", "RefSeq Genes")
+    #  genes <- makeGRanges(refflat)
+
+    ## -----------------------------------------------------------------------------
+    nearestGenes <- getNearestFeature(alldata.rd, genes.rd, "NearestGene")
+    head(nearestGenes)
+
+    # nearestGenes <- getNearestFeature(alldata.rd,genes.rd,"NearestGene", parallel=TRUE)
+
+    ## get nearest 5' genes
+    nearestGenes <- getNearestFeature(alldata.rd, genes.rd, "NearestGene", side = "5p") 
+    head(nearestGenes)
+
+    ## get nearest 3' genes
+    nearestGenes <- getNearestFeature(alldata.rd, genes.rd, "NearestGene", side = "3p")
+
+    # --- Eval=false [] ---
+    # Key functions: getFeatureCounts, getFeatureCountsBig, feature, getSitesInFeature
+    #  geneCounts <- getFeatureCounts(alldata.rd, genes.rd, "NumOfGene",
+    #                                 doInChunks = TRUE, chunkSize = 100)
+    #  head(geneCounts)
+    #  
+    #  geneCounts <- getFeatureCountsBig(alldata.rd, genes.rd, "NumOfGene")
+    #  head(geneCounts)
+
+    ## -----------------------------------------------------------------------------
+    ## Shows which feature(s) a position was found in.
+    InGenes <- getSitesInFeature(alldata.rd, genes.rd, "InGene")
+    head(InGenes)
+
+    ## Simply shows TRUE/FALSE 
+    InGenes <- getSitesInFeature(alldata.rd, genes.rd, "InGene", asBool = TRUE)
+    head(InGenes)
+
+    # --- Eval=true [] ---
+    # Key functions: doAnnotation, plotdisFeature, makeGRanges, within, virus, nearest, expr
+    res <- doAnnotation(annotType = "within", alldata.rd, genes.rd, "InGene", asBool = TRUE)
+    plotdisFeature(res, "virus", "InGene")
+
+    res <- doAnnotation(annotType = "nearest", alldata.rd, genes.rd, "NearestGene", side = '5p')
+    plotdisFeature(res, "virus", "X5pNearestGeneDist")
+
+    data(sites.ctrl)
+    sites$type <- "expr"
+    sites <- rbind(sites,sites.ctrl)
+    alldata.rd <- makeGRanges(sites, soloStart = TRUE)
+    res <- doAnnotation(annotType = "within", alldata.rd, genes.rd, "InGene", asBool = TRUE)
+    plotdisFeature(res, "virus", "InGene")
+    plotdisFeature(res, "virus", "InGene", typeRatio = TRUE)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

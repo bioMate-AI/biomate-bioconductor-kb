@@ -53,11 +53,7 @@ process BIOC_AGIMICRORNA {
     dim(dd.micro)
     # --- Qcplots [] ---
     # Key functions: qcPlots
-    qcPlots(dd.micro,offset=5,
-            MeanSignal=TRUE,
-            ProcessedSignal=FALSE,
-            TotalProbeSignal=FALSE,
-            TotalGeneSignal=FALSE,
+
     # --- Boxplot [] ---
     # Key functions: boxplotMicroRna
     boxplotMicroRna(log2(dd.micro$meanS),
@@ -98,11 +94,7 @@ process BIOC_AGIMICRORNA {
         verbose=FALSE)
     # --- Tgsnormalization [] ---
     # Key functions: tgsNormalization
-    ddNORM=tgsNormalization(ddTGS,
-                    "quantile",
-                    makePLOTpre=FALSE,
-                    makePLOTpost=FALSE,
-                    targets.micro,
+
     # --- Rmamicrorna [] ---
     # Key functions: rmaMicroRna
     ## ddTGS.rma=rmaMicroRna(dd.micro,
@@ -111,11 +103,7 @@ process BIOC_AGIMICRORNA {
     ##
     # --- Filtermicrorna [] ---
     # Key functions: filterMicroRna
-    ddPROC=filterMicroRna(ddNORM,
-                        dd.micro,
-                        control=TRUE,
-                        IsGeneDetected=TRUE,
-                        wellaboveNEG=FALSE,
+
     # --- Esetmicrorna [] ---
     # Key functions: esetMicroRna
     esetPROC=esetMicroRna(ddPROC,

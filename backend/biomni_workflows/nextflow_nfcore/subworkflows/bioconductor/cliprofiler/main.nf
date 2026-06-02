@@ -41,11 +41,60 @@ process BIOC_CLIPROFILER {
     library(cliProfiler)
     library(jsonlite)
 
-    # --- Load saved R data object [] ---
-    # Key functions: metaGeneProfile
+
+    # --- Initialize [] ---
+    # Key functions: readRDS, import.gff3, extdata, cliProfiler, test.rds, annotation_test.gff3
     library(cliProfiler)
+
+    ## -----------------------------------------------------------------------------
     testpath <- system.file("extdata", package = "cliProfiler")
+    ## loading the test GRanges object
     test <- readRDS(file.path(testpath, "test.rds"))
+    ## Show an example of GRanges object
+    test
+
+    ## -----------------------------------------------------------------------------
+    ## the path for the test gff3 file
+    test_gff3 <- file.path(testpath, "annotation_test.gff3")
+    ## the gff3 file can be loaded by import.gff3 function in rtracklayer package
+    shown_gff3 <- rtracklayer::import.gff3(test_gff3)
+    ## show the test gff3 file
+
+    # --- Eval=false [] ---
+    # Key functions: metaGeneProfile, intronProfile
+    #  metaGeneProfile(object = test, annotation = test_gff3, exlevel = 3,
+    #                  extranscript_support_level = c(4,5,6))
+
+    ## -----------------------------------------------------------------------------
+    meta <- metaGeneProfile(object = test, annotation = test_gff3, split = TRUE)
+    meta[[2]]
+
+    ## -----------------------------------------------------------------------------
+    intron <-  intronProfile(test, test_gff3)
+
+    ## -----------------------------------------------------------------------------
+    intron[[1]]
+
+    ## -----------------------------------------------------------------------------
+    intron[[2]]
+
+    # --- Results='hide' [] ---
+    # Key functions: import.gff3, windowProfile, exon
+    library(rtracklayer)
+    ## Extract all the exon annotation
+    test_anno <- rtracklayer::import.gff3(test_gff3)
+    test_anno <- test_anno[test_anno$type == "exon"]
+    ## Run the windowProfile
+    window_profile <- windowProfile(test, test_anno)
+
+    ## -----------------------------------------------------------------------------
+    window_profile[[1]]
+
+    ## -----------------------------------------------------------------------------
+    window_profile[[2]]
+
+    ## -----------------------------------------------------------------------------
+    ## Example for running the motifProfile
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

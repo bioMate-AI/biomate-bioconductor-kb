@@ -51,7 +51,6 @@ process BIOC_BSSEQ {
     # Key functions: BSseq
     M <- matrix(0:8, 3, 3)
     Cov <- matrix(1:9, 3, 3)
-    BStmp <- BSseq(chr = c("chr1", "chrX", "chr1"), pos = 1:3,
     # --- granges [] ---
     # Key functions: granges, orderBSseq
     granges(BStmp)
@@ -70,9 +69,7 @@ process BIOC_BSSEQ {
     collapseBSseq(BStmp, group = c("A", "A", "B"))
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, getCoverage
-    regions <- GRanges(seqnames = c("chr22", "chr22"),
-    ranges = IRanges(start = 1.5 * 10^7 + c(0,200000),
-    getCoverage(BS.chr22, regions = regions, what = "perRegionTotal")
+
     # --- get Coverage [] ---
     # Key functions: getCoverage
     getCoverage(BS.chr22, regions = regions, what = "perBase")

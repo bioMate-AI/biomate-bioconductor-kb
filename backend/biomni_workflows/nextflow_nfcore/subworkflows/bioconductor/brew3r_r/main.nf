@@ -48,7 +48,6 @@ process BIOC_BREW3R_R {
     # --- extend_granges [] ---
     # Key functions: extend_granges
     library(BREW3R.r)
-    new_gr_exons <- extend_granges(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

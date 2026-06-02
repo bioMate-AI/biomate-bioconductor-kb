@@ -41,11 +41,83 @@ process BIOC_SINGLECELLALLELEEXPERIMENT {
     library(SingleCellAlleleExperiment)
     library(jsonlite)
 
-    # --- plot Reduced Dim [] ---
-    # Key functions: plotReducedDim, ggtitle
+
+    # --- Warning=false [] ---
+    # Key functions: read_allele_counts, metadata, example_data, yes, knee_info
+    scae <- read_allele_counts(example_data_10k$dir,
+                               sample_names="example_data",
+                               filter_mode="yes",
+                               lookup_file=lookup,
+                               barcode_file=example_data_10k$barcodes,
+                               gene_file=example_data_10k$features,
+                               matrix_file=example_data_10k$matrix,
+                               log=TRUE)
+    scae
+
+    ## -----------------------------------------------------------------------------
+    metadata(scae)[["knee_info"]]
+
+    # --- Warning=false [] ---
+    # Key functions: metadata, scale_x_log10, scale_y_log10, annotation_logticks, geom_hline, knee_info, red, dodgerblue
+    knee_df <- metadata(scae)[["knee_info"]]$knee_df
+    knee_point <- metadata(scae)[["knee_info"]]$knee_point
+    inflection_point <- metadata(scae)[["knee_info"]]$inflection_point
+
+    ggplot(knee_df, aes(x=rank, y=total)) +
+           geom_point() +
+           geom_line(aes(y=fitted), color="red") +
+           scale_x_log10() +
+           scale_y_log10() +
+           annotation_logticks() +
+           labs(x="Barcode rank", y="Total UMI count") +
+           geom_hline(yintercept=S4Vectors::metadata(knee_df)$knee,
+                      color="dodgerblue", linetype="dashed") +
+           geom_hline(yintercept=S4Vectors::metadata(knee_df)$inflection,
+                      color="forestgreen", linetype="dashed") +
+
+    # --- Warning=false [] ---
+    # Key functions: read_allele_counts, rowData, example_data, custom
+    #  #this is the object used in the further workflow
+    #  scae <- read_allele_counts(example_data_10k$dir,
+    #                             sample_names="example_data",
+    #                             filter_mode="custom",
+    #                             lookup_file=lookup,
+    #                             barcode_file=example_data_10k$barcodes,
+    #                             gene_file=example_data_10k$features,
+    #                             matrix_file=example_data_10k$matrix,
+    #                             filter_threshold=282)
+    #  scae
+
+    ## -----------------------------------------------------------------------------
+    rowData(scae)
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Eval=false [] ---
+    # Key functions: runTSNE, reducedDimNames, PCA_f, TSNE_f
+    #  set.seed(18)
+    #  scae <- runTSNE(scae, dimred="PCA_f",  name="TSNE_f")
+
+    ## -----------------------------------------------------------------------------
+    reducedDimNames(scae)
+
+    # --- Fig3 [] ---
+    # Key functions: plotReducedDim, TSNE_g
+    tsne <- "TSNE_g"
+
     tsne_g_a  <- plotReducedDim(scae, dimred=tsne, colour_by="HLA-DRB1") +
-    ggtitle("HLA-DRB1 gene")
-    tsne_g_a1 <- plotReducedDim(scae, dimred=tsne, colour_by="DRB1*07:01:01:01") +
+                 ggtitle("HLA-DRB1 gene")
+
+    tsne_g_a1 <- plotReducedDim(scae, dimred=tsne, colour_by="DRB1*07:01:01:01") + 
+                 ggtitle("Allele DRB1*07:01:01:01")
+
+    tsne_g_a2 <- plotReducedDim(scae, dimred=tsne, colour_by="DRB1*13:01:01:01") + 
+                 ggtitle("Allele DRB1*13:01:01:01")
+
+    p2 <- tsne_g_a + tsne_g_a1 + tsne_g_a2
+    p2
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

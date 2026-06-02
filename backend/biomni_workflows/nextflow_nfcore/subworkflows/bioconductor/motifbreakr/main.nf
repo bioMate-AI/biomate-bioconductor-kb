@@ -43,17 +43,13 @@ process BIOC_MOTIFBREAKR {
 
     # --- plot M B [] ---
     # Key functions: plotMB
-    variants <- snps.from.rsid(rsid = pca.snps,
-    motifbreakr.results <- motifbreakR(snpList = variants, pwmList = MotifDb, threshold = 0.9)
-    plotMB(results = motifbreakr.results, rsid = "rs7837328", effect = "strong")
+
     # --- kable [] ---
     # Key functions: kable
     knitr::kable(table(mcols(MotifDb)$organism, mcols(MotifDb)$dataSource), format = "html", table.attr="class=\"table table-striped table-hover\"")
     # --- motifbreak R [] ---
     # Key functions: motifbreakR
-    results <- motifbreakR(snpList = snps.mb[1:12], filterp = TRUE,
-    pwmList = subset(MotifDb,
-    dataSource %in% c("HOCOMOCOv11-core-A", "HOCOMOCOv11-core-B", "HOCOMOCOv11-core-C")),
+
     # --- calculate Pvalue [] ---
     # Key functions: calculatePvalue
     rs1006140 <- calculatePvalue(rs1006140, granularity = 1e-6)
@@ -71,7 +67,7 @@ process BIOC_MOTIFBREAKR {
     shiny::runApp(app)
     # --- find Supporting Remap Peaks [] ---
     # Key functions: findSupportingRemapPeaks
-    results <- findSupportingRemapPeaks(results,
+
     # --- export M Btable [] ---
     # Key functions: exportMBtable
     exportMBtable(results, file = "mb_test_output.tsv", format = "tsv")

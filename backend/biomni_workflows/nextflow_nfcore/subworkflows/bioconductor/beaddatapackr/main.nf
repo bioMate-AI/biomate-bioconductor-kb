@@ -43,10 +43,10 @@ process BIOC_BEADDATAPACKR {
 
     # --- Compress [] ---
     # Key functions: compressBeadData
-    compressBeadData(txtFile = "example.txt", locsGrn = "example_Grn.locs",
+
     # --- Decompress [] ---
     # Key functions: decompressBeadData
-    decompressBeadData(inputFile = "example.bab", inputPath = tempPath,
+
     # --- read Compressed Data [] ---
     # Key functions: readCompressedData
     readCompressedData(inputFile = "example.bab", path = tempPath,

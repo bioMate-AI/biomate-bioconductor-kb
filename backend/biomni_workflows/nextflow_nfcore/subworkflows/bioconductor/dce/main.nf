@@ -47,7 +47,6 @@ process BIOC_DCE {
     graph_mt <- graph_wt
     graph_mt["A", "B"] <- 2.5 # dysregulation happens here!
     graph_mt
-    cowplot::plot_grid(
     # --- Simulate Data [] ---
     # Key functions: simulate_data
     ---------------------------------------------------------------------
@@ -84,10 +83,6 @@ process BIOC_DCE {
     # --- Curatedtcgadata [] ---
     # Key functions: curatedTCGAData
     ---------------------------------------------------------------------
-    brca <- curatedTCGAData(
-      diseaseCode = "BRCA",
-      assays = c("RNASeq2*"),
-      version = "2.0.1",
     # --- Sampletables [] ---
     # Key functions: sampleTables, filter
     ---------------------------------------------------------------------
@@ -139,9 +134,6 @@ process BIOC_DCE {
     # Key functions: dce, plot_grid, plot_network, ggtitle, qplot, geom_abline, xlab
     ---------------------------------------------------------------------
     res_with_deconf <- dce(graph_mt, bX_wt, bX_mt, deconfounding = 1)
-    cowplot::plot_grid(
-      plot_network(
-        graph_wt,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

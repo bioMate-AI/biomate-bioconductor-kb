@@ -41,9 +41,17 @@ process BIOC_INTERCELLAR {
     library(InterCellar)
     library(jsonlite)
 
-    # --- run_app [] ---
-    # Key functions: run_app
-    InterCellar::run_app( reproducible = TRUE )
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+        comment = "#>",
+        error = FALSE,
+        warning = FALSE,
+        message = FALSE,
+        crop = NULL
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

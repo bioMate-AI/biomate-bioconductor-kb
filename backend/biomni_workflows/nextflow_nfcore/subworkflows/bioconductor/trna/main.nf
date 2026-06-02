@@ -41,11 +41,39 @@ process BIOC_TRNA {
     library(tRNA)
     library(jsonlite)
 
-    # --- gett R N A Loop I Ds [] ---
-    # Key functions: gettRNALoopIDs, getLoopIndices
-    plots$length$layers <- plots$length$layers[c(-1L,-2L)]
-    plots$length + ggplot2::geom_boxplot()
-    head(plots$length$data)
+
+    # --- Eval=false [] ---
+    # Key functions: gettRNAstructureGRanges, gettRNAstructureSeqs, metadata, tRNA, anticodonLoop, tRNA_structures
+    #  library(tRNA)
+    #  library(Structstrings)
+    #  data("gr", package = "tRNA")
+
+    ## -----------------------------------------------------------------------------
+    # just get the coordinates of the anticodonloop
+    gettRNAstructureGRanges(gr, structure = "anticodonLoop")
+    gettRNAstructureSeqs(gr, joinFeatures = TRUE, structure = "anticodonLoop")
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Plot1 [] ---
+    # Key functions: trna
+    plots$length
+
+    # --- Plot2 [] ---
+    # Key functions: trna
+    plots$tRNAscan_score
+
+    # --- Plot3 [] ---
+    # Key functions: trna
+    plots$gc
+
+    # --- Plot4 [] ---
+    # Key functions: trna
+    plots$tRNAscan_intron
+
+    # --- Plot5 [] ---
+    # Key functions: trna
+    plots$variableLoop_length
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

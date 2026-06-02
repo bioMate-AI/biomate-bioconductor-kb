@@ -41,13 +41,87 @@ process BIOC_EASIER {
     library(easier)
     library(jsonlite)
 
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+    library(knitr)
+    table1 <- "
+    | Quantitative descriptor  | Descriptor conception  | Prior knowledge |
+    | -----------------------  | ----------------------------------- | ----------------------------------- |
+    | Pathway activity | @HOLLAND2020194431; @Schubert2018 | @HOLLAND2020194431; @Schubert2018 |
+    | Immune cell quantification | @Finotello2019 | @Finotello2019 |
+    | TF activity | @Garcia-Alonso01082019 | @Garcia-Alonso01082019 |
+    | Ligand-Receptor pairs | @LAPUENTESANTANA2021100293 | @Ramilowski2015; @Barretina2012 |
+    | Cell-cell interaction | @LAPUENTESANTANA2021100293 | @Ramilowski2015; @Barretina2012 |
+    Table: Quantitative descriptors of the TME
+
     # --- Table2 [] ---
-    # Key functions: activity, score, signature, resistance
-    ----
+    # Key functions: activity, score, signature, resistance, get_Mariathasan2018_PDL1_treatment, colData, metadata, assays
     table2 <- "
     | Hallmark of the immune response | Original study |
     |-------------------------------- | -------------- |
     | Cytolytic activity (CYT) | @ROONEY201548 |
+    | Roh immune score (Roh_IS) | @Roheaah3560 |
+    | Chemokine signature (chemokines) | @Messina2012 |
+    | Davoli immune signature (Davoli_IS) | @Davolieaaf8399 |
+    | IFNy signature (IFNy) | @Ayers2017 |
+    | Expanded immune signature (Ayers_expIS) | @Ayers2017 |
+    | T-cell inflamed signature (Tcell_inflamed) | @Ayers2017 |
+    dataset_mariathasan <- get_Mariathasan2018_PDL1_treatment()
+
+    # patient response
+    patient_ICBresponse <- colData(dataset_mariathasan)[["BOR"]]
+    names(patient_ICBresponse) <- colData(dataset_mariathasan)[["pat_id"]]
+
+    # tumor mutational burden
+    TMB <- colData(dataset_mariathasan)[["TMB"]]
+    names(TMB) <- colData(dataset_mariathasan)[["pat_id"]]
+
+    # --- Eval=true [] ---
+    # Key functions: compute_scores_immune_response, Roh_IS, chemokines, Davoli_IS, Ayers_expIS, Tcell_inflamed, compute_cell_fractions
+    hallmarks_of_immune_response <- c("CYT", "Roh_IS", "chemokines", "Davoli_IS", "IFNy", "Ayers_expIS", "Tcell_inflamed", "RIR", "TLS")
+    immune_response_scores <- compute_scores_immune_response(RNA_tpm = RNA_tpm, 
+                                                             selected_scores = hallmarks_of_immune_response)
+    head(immune_response_scores)
+    cell_fractions <- compute_cell_fractions(RNA_tpm = RNA_tpm)
+    head(cell_fractions)
+
+    # --- Eval=true [] ---
+    # Key functions: compute_pathway_activity, compute_TF_activity
+    pathway_activities <- compute_pathway_activity(RNA_counts = RNA_counts,
+                                                   remove_sig_genes_immune_response = TRUE)
+    head(pathway_activities)
+    tf_activities <- compute_TF_activity(RNA_tpm = RNA_tpm)
+    head(tf_activities[,1:5])
+
+    # --- Eval=true [] ---
+    # Key functions: compute_LR_pairs, pancan, compute_CC_pairs
+    lrpair_weights <- compute_LR_pairs(RNA_tpm = RNA_tpm,
+                                       cancer_type = "pancan")
+    head(lrpair_weights[,1:5])
+    ccpair_scores <- compute_CC_pairs(lrpairs = lrpair_weights, 
+                                      cancer_type = "pancan")
+    head(ccpair_scores[,1:5])
+
+    # --- Eval=true [] ---
+    # Key functions: predict_immune_response, assess_immune_response, weighted_average
+    predictions <- predict_immune_response(pathways = pathway_activities,
+                                           immunecells = cell_fractions,
+                                           tfs = tf_activities,
+                                           lrpairs = lrpair_weights,
+                                           ccpairs = ccpair_scores,
+                                           cancer_type = cancer_type, 
+                                           verbose = TRUE)
+    output_eval_with_resp <- assess_immune_response(predictions_immune_response = predictions,
+                                                    patient_response = patient_ICBresponse,
+                                                    RNA_tpm = RNA_tpm,
+                                                    TMB_values = TMB,
+                                                    easier_with_TMB = "weighted_average",
+                                                    weight_penalty = 0.5)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -106,9 +106,6 @@ process BIOC_GGCYTO {
     # Key functions: ggcyto_par_set, facet_wrap, scale_fill_gradientn, pal, labs_cyto, later
     ---------------------------------------------------------------------
     #put all the customized settings in one layer
-    mySettings <- ggcyto_par_set(limits = "instrument"
-                                 , facet = facet_wrap("name")
-                                 , hex_fill = scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")))
     # --- Class [] ---
     # Key functions: ggplot
     ---------------------------------------------------------------------

@@ -126,7 +126,6 @@ process BIOC_DART {
     # in the smaller Mainz data set, after training on the larger Wang/Minn data
     # set by DoDARTCLQ
     pred.mainz2.o <- PredActScore(res2.vdx$clq, mainz.data)
-    pred.mainz.o.score.report2 <- pred.mainz2.o$score[
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

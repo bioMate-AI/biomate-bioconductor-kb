@@ -47,22 +47,17 @@ process BIOC_CDI {
     knitr::kable(head(one_batch_matrix_label_df[,c("KMeans_k2", "KMeans_k4", "Seurat_k2", "Seurat_k3")], 3))
     # --- feature selection [] ---
     # Key functions: feature_gene_selection, size_factor
-    feature_gene_indx <- feature_gene_selection(
-    one_batch_matrix_size_factor <- size_factor(X = one_batch_matrix)
+
     # --- calculate cdi1 [] ---
     # Key functions: calculate_CDI, CDI_lineplot, contingency_heatmap
     start_time <- Sys.time()
-    CDI_return1 <- calculate_CDI(
-    end_time <- Sys.time()
     # --- data label2 [] ---
     # Key functions: kable
     data(two_batch_matrix_label_df, package = "CDI")
     knitr::kable(head(two_batch_matrix_label_df[,c("KMeans_k5", "KMeans_k6", "Seurat_k5", "Seurat_k6")], 3))
     # --- feature selection2 [] ---
     # Key functions: feature_gene_selection, size_factor, calculate_CDI, CDI_lineplot
-    feature_gene_indx <- feature_gene_selection(
-    two_batch_matrix_size_factor <- size_factor(two_batch_matrix)
-    start_time <- Sys.time()
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

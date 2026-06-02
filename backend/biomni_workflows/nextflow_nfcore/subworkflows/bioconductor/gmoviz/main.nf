@@ -45,12 +45,9 @@ process BIOC_GMOVIZ {
     # Key functions: GRanges, getCoverage, gmovizInitialise, getFeatures, featureDiagram, insertionDiagram
     ideogram_1 <- GRanges(seqnames = c("chrA", "chrB", "chrC"),
     ranges = IRanges(start = rep(0, 3), end = rep(1000, 3)))
-    ideogram_2 <- data.frame(chr = c("chrA", "chrB", "chrC"),
     # --- IdeogramData analysis [] ---
     # Key functions: getIdeogramData, gmovizInitialise, getCoverage, getLabels, getFeatures, drawFeatureTrack, featureDiagram, drawScatterplotTrack
-    gmovizInitialise(fly_ideogram_chr4_only, space_between_sectors = 25,
-    drawScatterplotTrack(numeric_data, track_height = 0.14, yaxis_increment = 12)
-    drawFeatureTrack(features, feature_label_cutoff = 80000, track_height = 0.15)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

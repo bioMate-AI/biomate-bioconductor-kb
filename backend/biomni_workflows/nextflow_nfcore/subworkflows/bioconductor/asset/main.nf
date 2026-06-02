@@ -45,17 +45,13 @@ process BIOC_ASSET {
     # Key functions: eval
     case    <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
     control <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
-    for (i in 1:nStudy) {
     # --- Generalized linear model [] ---
     # Key functions: eval, glm
     beta  <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
     sigma <- matrix(data=NA, nrow=nSNP, ncol=nStudy)
-    for (i in 1:nStudy) {
     # --- eval [] ---
     # Key functions: eval
-    for (i in 1:nStudy) {
-    temp <- eval(parse(text=paste("data", i, sep="")))
-    data <- rbind(data, temp)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

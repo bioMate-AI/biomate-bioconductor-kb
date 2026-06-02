@@ -103,7 +103,6 @@ process BIOC_MIQC {
     data("hgsoc_metrics")
     sce <- SingleCellExperiment(colData = metrics)
     model <- mixtureModel(sce)
-    plotFiltering(sce, model, posterior_cutoff = 0.6, enforce_left_cutoff = FALSE,
     # --- Plotfiltering [] ---
     # Key functions: plotFiltering
     ---------------------------------------------------------------------

@@ -50,7 +50,6 @@ process BIOC_RECOUNT {
     # Key functions: dist, colorRampPalette, pheatmap
     sampleDists <- dist(t(assay(rld)))
     sampleDistMatrix <- as.matrix(sampleDists)
-    rownames(sampleDistMatrix) <- apply(as.data.frame(colData(rld)[, intgroup]), 1,
     # --- 'MAplotalpha' [] ---
     # Key functions: plotMA, metadata
     MA plot with alpha used in DESeq2::results()
@@ -65,7 +64,6 @@ process BIOC_RECOUNT {
     # Key functions: plotMA
     nBest.actual <- min(nBest, nrow(head(res.df, n = nBest)))
     nBest.alpha <- head(res.df, n = nBest)$padj[nBest.actual]
-    plotMA(res, alpha = nBest.alpha * 1.00000000000001,
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_histogram, labs, xlab, xlim
     ggplot(res.df[!is.na(res.df$pvalue), ], aes(x = pvalue)) +
@@ -73,9 +71,7 @@ process BIOC_RECOUNT {
     labs(title='Histogram of unadjusted p-values') +
     # --- kable [] ---
     # Key functions: kable
-    pval_table <- lapply(c(1e-04, 0.001, 0.01, 0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,
-    0.6, 0.7, 0.8, 0.9, 1), function(x) {
-    data.frame('Cut' = x, 'Count' = sum(res.df$pvalue <= x, na.rm = TRUE))
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_histogram, labs, xlab, xlim
     ggplot(res.df[!is.na(res.df$padj), ], aes(x = padj)) +
@@ -83,19 +79,13 @@ process BIOC_RECOUNT {
     labs(title=paste('Histogram of', elementMetadata(res)$description[grep('adjusted', elementMetadata(res)$description)])) +
     # --- kable [] ---
     # Key functions: kable
-    padj_table <- lapply(c(1e-04, 0.001, 0.01, 0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,
-    0.6, 0.7, 0.8, 0.9, 1), function(x) {
-    data.frame('Cut' = x, 'Count' = sum(res.df$padj <= x, na.rm = TRUE))
+
     # --- 'topFeatures' [] ---
     # Key functions: datatable
-    if(!is.null(searchURL) & outputIsHTML) {
-    res.df$Feature <- paste0('<a href="', searchURL, res.df$Feature, '">',
-    for(i in which(colnames(res.df) %in% c('pvalue', 'padj'))) res.df[, i] <- format(res.df[, i], scientific = TRUE)
+
     # --- 'plotCounts' [] ---
     # Key functions: colData, droplevels, plotCounts
-    plotCounts_gg <- function(i, dds, intgroup) {
-    group <- if (length(intgroup) == 1) {
-    colData(dds)[[intgroup]]
+
     # --- diff [] ---
     # Key functions: diff
     totalTime <- diff(c(startTime, Sys.time()))

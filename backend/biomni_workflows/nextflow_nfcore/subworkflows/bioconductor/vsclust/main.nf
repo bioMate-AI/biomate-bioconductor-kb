@@ -51,10 +51,6 @@ process BIOC_VSCLUST {
     # --- Clustering [] ---
     # Key functions: clustering, runClustWrapper
     ---------------------------------------------------------------------
-    #### Run clustering (VSClust and standard fcm clustering
-    ClustOut <- runClustWrapper(statOut$dat,
-                                PreSetNumClustVSClust, NULL,
-                                VSClust=TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

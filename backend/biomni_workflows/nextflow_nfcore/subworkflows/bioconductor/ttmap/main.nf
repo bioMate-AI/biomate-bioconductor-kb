@@ -47,14 +47,11 @@ process BIOC_TTMAP {
     data(airway)
     airway <- airway[rowSums(assay(airway))>80,]
     assay(airway) <- log(assay(airway)+1,2)
-    experiment <- TTMap::make_matrices(airway,seq_len(4),seq_len(4)+4,
     # --- Part1 [] ---
     # Key functions: control_adjustment
     E=1
     Pw=1.1
     Bw=0
-    TTMAP_part1prime <-TTMap::control_adjustment(normal.pcl = experiment$CTRL,
-    tumor.pcl = experiment$TEST,
     # --- Part2 [] ---
     # Key functions: hyperrectangle_deviation_assessment
     TTMAP_part1_hda <- TTMap::hyperrectangle_deviation_assessment(x =

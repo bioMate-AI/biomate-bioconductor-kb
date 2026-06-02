@@ -78,7 +78,6 @@ process BIOC_PANR {
     ## options(cluster=makeCluster(4, "SOCK"))
     ## pan<-pvclustModule(pan, nboot=1000, metric="cosine", hclustMethod=
     ## "average", filter=TRUE, verbose=TRUE, r=c(5:12/7))
-    ## if(is(getOption("cluster"), "cluster")) {
     # --- Sigmodules [] ---
     # Key functions: sigModules
     ## inds<-sigModules(pan,pValCutoff=0.01, minSize=3,

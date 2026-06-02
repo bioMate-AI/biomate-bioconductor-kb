@@ -47,16 +47,12 @@ process BIOC_CNVRD2 {
     # --- 'fcgr3bSS' [] ---
     # Key functions: new, segmentSamples
     data(fcgr3bMXL)
-    objectCNVrd2 <- new("CNVrd2", windows = 1000, chr = "chr1",
-    genes = c(161592986, 161601753),
     # --- 'fcgr3b4CNs' [] ---
     # Key functions: new, groupCNVs
-    objectCluster <- new("clusteringCNVs",
-    copynumberGroups <- groupCNVs(Object = objectCluster)
+
     # --- 'fcgr3b3CNs' [] ---
     # Key functions: new, groupCNVs
-    objectCluster <- new("clusteringCNVs",
-    copynumberGroups <- groupCNVs(Object = objectCluster, rightLimit = 1.5)
+
     # --- 'fcgr3bdupSamples' [] ---
     # Key functions: plotCNVrd2
     duplicatedSamples <- rownames(allGroups[allGroups[, 2] > 2,])
@@ -68,16 +64,13 @@ process BIOC_CNVRD2 {
     europeanCCL3L1Groups <- groupCNVs(Object = objectClusterEuroCCL3L1)
     # --- warnings=FALSE [] ---
     # Key functions: identifyPolymorphicRegion
-    fcgr3PolymorphicRegion <- identifyPolymorphicRegion(Object = objectCNVrd2,
+
     # --- 'FCGR3polymorphc1' [] ---
     # Key functions: plotPolymorphicRegion
-    plotPolymorphicRegion(Object = objectCNVrd2, polymorphicRegionObject = fcgr3PolymorphicRegion,
-    xlim = c(161300000, 161800000), drawThresholds = TRUE,
+
     # --- 'FCGR3polymorphc2' [] ---
     # Key functions: plotPolymorphicRegion
-    plotPolymorphicRegion(Object = objectCNVrd2, polymorphicRegionObject = fcgr3PolymorphicRegion,
-    xlim = c(161300000, 161800000), sdThreshold = 0.05, drawThresholds = TRUE,
-    sessionInfo()
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

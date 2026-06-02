@@ -38,14 +38,62 @@ process BIOC_BASECALLQC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BCL2FastQparams)
+    library(basecallQC)
     library(jsonlite)
 
-    # --- Dir analysis [] ---
-    # Key functions: dir, BCL2FastQparams, validateBCLSheet, createBasemasks, createBCLcommand, basecallQC, baseCallMetrics, demultiplexMetrics
+
+    # --- Cleaning [] ---
+    # Key functions: dir, read.delim, extdata, basecallQC, config.ini, testSampleSheets, runParameters.xml, BCL2FastQparams
+    library(basecallQC)
+    fileLocations <- system.file("extdata",package="basecallQC")
+    config <- dir(fileLocations,pattern="config.ini",full.names=TRUE)
+    fileLocations <- system.file(file.path("extdata","testSampleSheets"),package="basecallQC")
+    runXML <- dir(fileLocations,pattern="runParameters.xml",full.names=TRUE)
+    sampleSheet <- dir(fileLocations,pattern="*\\.csv",full.names=TRUE)
+    # --- Updating [] ---
+    # Key functions: dir, read.delim, extdata, basecallQC, config.ini, testSampleSheets, runParameters.xml, BCL2FastQparams
+    library(basecallQC)
+    fileLocations <- system.file("extdata",package="basecallQC")
+    config <- dir(fileLocations,pattern="config.ini",full.names=TRUE)
+    fileLocations <- system.file(file.path("extdata","testSampleSheets"),package="basecallQC")
+    runXML <- dir(fileLocations,pattern="runParameters.xml",full.names=TRUE)
+    sampleSheet <- dir(fileLocations,pattern="*\\.csv",full.names=TRUE)
+    # --- Basemasks [] ---
+    # Key functions: dir, BCL2FastQparams, getwd, validateBCLSheet, createBasemasks, extdata, basecallQC, runParameters.xml
     fileLocations <- system.file("extdata",package="basecallQC")
     runXML <- dir(fileLocations,pattern="runParameters.xml",full.names=TRUE)
     config <- dir(fileLocations,pattern="config.ini",full.names=TRUE)
+    sampleSheet <- dir(fileLocations,pattern="*\\.csv",full.names=TRUE)
+    bcl2fastqparams <- BCL2FastQparams(runXML,config,runDir=getwd(),verbose=FALSE)
+    cleanedSampleSheet <- validateBCLSheet(sampleSheet,param=bcl2fastqparams)
+    baseMasks <- createBasemasks(cleanedSampleSheet,param=bcl2fastqparams)
+    baseMasks$index1Mask
+    toSubmit <- createBCLcommand(bcl2fastqparams,cleanedSampleSheet,baseMasks)
+    toSubmit
+
+    # --- Basecall Qcfor Metrics [] ---
+    # Key functions: dir, BCL2FastQparams, getwd, basecallQC, extdata, runParameters.xml, config.ini, baseCallMetrics
+    fileLocations <- system.file("extdata",package="basecallQC")
+    runXML <- dir(fileLocations,pattern="runParameters.xml",full.names=TRUE)
+    config <- dir(fileLocations,pattern="config.ini",full.names=TRUE)
+    sampleSheet <- dir(fileLocations,pattern="*\\.csv",full.names=TRUE)
+    outDir <- file.path(fileLocations,"Runs/161105_D00467_0205_AC9L0AANXX/C9L0AANXX/")
+    bcl2fastqparams <- BCL2FastQparams(runXML,config,runDir=getwd(),outDir,verbose=FALSE)
+    bclQC <- basecallQC(bcl2fastqparams,RunMetaData=NULL,sampleSheet)
+    bclMetrics <- baseCallMetrics(bcl2fastqparams)
+    head(bclMetrics[[1]])
+
+    # --- Demux Summary [] ---
+    # Key functions: demultiplexMetrics, class
+    demuxMetrics <- demultiplexMetrics(bcl2fastqparams)
+    head(demuxMetrics[[1]])
+    class(bclQC)
+
+    # --- Tables [] ---
+    # Key functions: summaryConvStatsTable, summaryDemuxTable, html, passFilterBar
+    summaryConvStatsTable(bclQC,output = "html")
+    summaryDemuxTable(bclQC,output = "html")
+    passFilterBar(bclQC,groupBy="Sample",metricToPlot = "Yield")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -54,21 +54,15 @@ process BIOC_PLYXP {
     airway$sizeFactor <- runif(8, .9, 1.1)
     # making scaled counts, then computing row means:
     airway |>
-      mutate(scaled_counts = counts / .cols$sizeFactor, #
     # --- Mutate [] ---
     # Key functions: mutate, rows, cols, map_dbl
     ---------------------------------------------------------------------
     airway |>
-      mutate(scaled_counts = counts / .cols$sizeFactor,
-             # You may expect a list when accessing other contexts
-             # from either the rows() or cols() contexts.
     # --- Group By [] ---
     # Key functions: group_by, rows, summarize, colSums, rowData, pull
     ---------------------------------------------------------------------
     summary <- airway |>
       group_by(rows(gene_biotype)) |>
-      summarize(col_sums = colSums(counts),
-                # may rename rows with .features
     # --- Mutate [] ---
     # Key functions: mutate
     ---------------------------------------------------------------------
@@ -82,7 +76,6 @@ process BIOC_PLYXP {
     se_simple
     # moving data to rownames and colnames
     se_simple |>
-      mutate(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

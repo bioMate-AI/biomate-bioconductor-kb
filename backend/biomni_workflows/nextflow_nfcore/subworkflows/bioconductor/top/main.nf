@@ -41,11 +41,60 @@ process BIOC_TOP {
     library(TOP)
     library(jsonlite)
 
-    # --- japan a [] ---
-    # Key functions: lst, map, map2
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+    library(BiocStyle)
+
+    # --- Warning = False [] ---
+    # Key functions: suppressPackageStartupMessages, theme_set
+    suppressPackageStartupMessages({
+      library(tidyverse)
+      library(survival)
+      library(dplyr)
+      library(survminer)
+      library(Biobase)
+      library(ggsci)
+      library(ggbeeswarm)
+      library(TOP)
+      library(curatedOvarianData)
+    })
+
+    theme_set(theme_bw())
+
+    # --- Eval = False [] ---
+    # Key functions: requireNamespace, install, GSE12418_eset, curatedOvarianData, GSE30009_eset
+    #  # Install the package from Bioconductor
+    #  if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    #    install.packages("BiocManager")
+    #  }
+    #  BiocManager::install("TOP")
+
+    ## -----------------------------------------------------------------------------
+    data("GSE12418_eset", package = "curatedOvarianData")
+    data("GSE30009_eset", package = "curatedOvarianData")
+
+    # --- Japan A [] ---
+    # Key functions: GSE32062.GPL6480_eset, GSE9891_eset, GSE32063_eset, TCGA.RNASeqV2_eset, metastasis, E.MTAB.386_eset
     data("GSE32062.GPL6480_eset")
+    japan_a <- GSE32062.GPL6480_eset
+
     data("GSE9891_eset")
+    tothill <- GSE9891_eset
+
     data("GSE32063_eset")
+    japan_b <- GSE32063_eset
+
+    data("TCGA.RNASeqV2_eset")
+    selection <- TCGA.RNASeqV2_eset$tumorstage %in% c(3, 4) & TCGA.RNASeqV2_eset$site_of_tumor_first_recurrence == "metastasis"
+    selection[is.na(selection)] <- FALSE
+    tcgarnaseq <- TCGA.RNASeqV2_eset[, selection]
+
+    data("E.MTAB.386_eset")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

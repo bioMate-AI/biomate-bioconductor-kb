@@ -49,9 +49,6 @@ process BIOC_OMICADE4 {
     # Key functions: dist, hclust
     layout(matrix(1:4, 1, 4))
     par(mar=c(2, 1, 0.1, 6))
-    for (df in NCI60_4arrays) {
-      d <- dist(t(df))
-      hcl <- hclust(d)
     # --- Mcia [] ---
     # Key functions: mcia
     mcoin <- mcia(NCI60_4arrays, cia.nf=10)

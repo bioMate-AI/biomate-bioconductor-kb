@@ -43,9 +43,7 @@ process BIOC_DEPINFER {
 
     # --- pivot_wider [] ---
     # Key functions: pivot_wider, remove_rownames, column_to_rownames, processTarget
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("DepInfeR")
+
     # --- Analysis of variance (ANOVA) [] ---
     # Key functions: rename, anova
     select(-missing_value_perc) %>%

@@ -41,13 +41,34 @@ process BIOC_CRISPRBWA {
     library(crisprBwa)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: runCrisprBwa
-    ---------------------------------------------------------------------
-    library(crisprBwa)
-    library(BSgenome.Hsapiens.UCSC.hg38)
-    data(SpCas9, package="crisprBase")
-    crisprNuclease <- SpCas9
+
+    # --- Eval=false [] ---
+    # Key functions: install, tempdir, bwa_build_index, devel, crisprBwa, chr12
+    #  if (!require("BiocManager", quietly = TRUE))
+    #      install.packages("BiocManager")
+    #  
+    #  BiocManager::install(version="devel")
+    #  BiocManager::install("crisprBwa")
+
+    ## -----------------------------------------------------------------------------
+    library(Rbwa)
+    fasta <- system.file(package="crisprBwa", "example/chr12.fa")
+    outdir <- tempdir()
+    index <- file.path(outdir, "chr12")
+    Rbwa::bwa_build_index(fasta,
+                          index_prefix=index)
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Eval=true [] ---
+    # Key functions: runBwa, sessionInfo
+    seeds <- c("GTAAGCGGAGTGT", "AACGGGGAGATTG")
+    runBwa(seeds,
+           n_mismatches=2,
+           bwa_index=index)
+
+    ## -----------------------------------------------------------------------------
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

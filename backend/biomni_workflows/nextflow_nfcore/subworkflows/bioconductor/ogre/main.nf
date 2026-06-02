@@ -51,7 +51,6 @@ process BIOC_OGRE {
     # Key functions: OGREDataSetFromDir, loadAnnotations, fOverlaps, sumPlot, metadata, gvizPlot, summarizeOverlap, plotHist
     myQueryFolder <- file.path(system.file('extdata', package = 'OGRE'),"query")
     mySubjectFolder <- file.path(system.file('extdata', package = 'OGRE'),"subject")
-    myOGRE <- OGREDataSetFromDir(queryFolder=myQueryFolder,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

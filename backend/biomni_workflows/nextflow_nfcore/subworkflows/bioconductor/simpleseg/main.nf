@@ -41,9 +41,54 @@ process BIOC_SIMPLESEG {
     library(simpleSeg)
     library(jsonlite)
 
-    # --- simple Seg [] ---
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+    library(BiocStyle)
+
+    # --- Eval = False [] ---
+    # Key functions: requireNamespace, install, dir, simpleSeg, extdata
+    # # Install the package from Bioconductor
+    # if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    #   install.packages("BiocManager")
+    # }
+    # 
+    # BiocManager::install("simpleSeg")
+
+    ## -----------------------------------------------------------------------------
+    # Get path to image directory
+    pathToImages <- system.file("extdata", package = "simpleSeg")
+
+    # Get directories of images
+
+    imageDirs <- dir(pathToImages, "Point", full.names = TRUE)
+    names(imageDirs) <- dir(pathToImages, "Point", full.names = FALSE)
+
+    # --- Parallel Example [] ---
     # Key functions: simpleSeg
     masks <- simpleSeg::simpleSeg(images,
+      nucleus = "HH3",
+      cores = 1
+    )
+
+    # --- Out Width = "400px" [] ---
+    # Key functions: measureObjects, normalizeCells, imageID, counts, norm, trim99, minMax
+    cellSCE <- cytomapper::measureObjects(masks, images, img_id = "imageID")
+
+    ## -----------------------------------------------------------------------------
+    # Transform and normalise the marker expression of each cell type.
+    # Use a square root transform, then trimmed the 99 quantile
+    cellSCE <- normalizeCells(cellSCE,
+      assayIn = "counts",
+      assayOut = "norm",
+      imageID = "imageID",
+      transformation = "sqrt",
+      method = c("trim99", "minMax")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

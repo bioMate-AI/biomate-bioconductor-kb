@@ -41,11 +41,65 @@ process BIOC_FEAST {
     library(FEAST)
     library(jsonlite)
 
-    # --- eval_ Cluster [] ---
-    # Key functions: eval_Cluster
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+
+    # --- Quick [] ---
+    # Key functions: process_Y, FEAST, Norm_Y, par, for
+    library(FEAST)
+    data(Yan)
+    k = length(unique(trueclass))
+    Y = process_Y(Y, thre = 2)
+    # The core function. 
+    ixs = FEAST(Y, k=k)
+    # look at the features
+    Ynorm = Norm_Y(Y)
+    par(mfrow = c(3,3))
+    # --- Load Data [] ---
+    # Key functions: feast
+    data(Yan)
+    dim(Y)
+    table(trueclass)
+
+    # --- Consensus [] ---
+    # Key functions: process_Y, Consensus, cal_F2
+    Y = process_Y(Y, thre = 2) # preprocess the data if needed
+    con_res = Consensus(Y, k=k)
+
+    ## ----gene-level, eval = TRUE, message=FALSE, results='hide', include = TRUE----
+    F_res = cal_F2(Y, con_res$cluster)
+    ixs = order(F_res$F_scores, decreasing = TRUE) # order the features
+
+    # --- Validation [] ---
+    # Key functions: for, TSCAN_Clust, SC3_Clust, toString, Norm_Y, cal_MSE
+    ## clustering step
+    tops = c(500, 1000, 2000)
+    cluster_res = NULL
+    for (top in tops){
+        tmp_ixs = ixs[1:top]
+        tmp_markers = rownames(Y)[tmp_ixs]
+        tmp_res = TSCAN_Clust(Y, k = k, input_markers = tmp_markers)
+        #tmp_res = SC3_Clust(Y, k = k, input_markers = tmp_markers)
+        cluster_res[[toString(top)]] = tmp_res
+    }
+
+    # --- Demo [] ---
+    # Key functions: TSCAN_Clust, which.min, eval_Cluster, process_Y, Consensus, Select_Model_short_TSCAN, Select_Model_short_SC3, Visual_Rslt
     original = TSCAN_Clust(Y, k=k)
     id = which.min(mse_res)
     eval_Cluster(original$cluster, trueclass)
+    eval_Cluster(cluster_res[[id]]$cluster, trueclass)
+
+    ## ----wraper-group, eval = TRUE, message=FALSE, results='hide', include = TRUE, fig.height=4.5, fig.width=8----
+    data(Yan)
+    Y = process_Y(Y, thre = 2) # preprocess the data if needed
+    con_res = Consensus(Y, k=k)
+    mod_res = Select_Model_short_TSCAN(Y, cluster = con_res$cluster, top = c(200, 500, 1000, 2000))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -43,14 +43,10 @@ process BIOC_DAGLOGO {
 
     # --- Connect to BioMart [] ---
     # Key functions: useMart, useDataset, fetchSequence
-    if(interactive()){
-    dat <- read.csv(system.file("extdata", "peptides4dagLogo.csv",
-    dat <- unique(cleanPeptides(dat, anchors = c("s", "t")))
+
     # --- PrepareProteome analysis [] ---
     # Key functions: unlist, prepareProteome, formatSequence, buildBackgroundModel, testDAU, addScheme, dagLogo
-    dat <- unlist(read.delim(system.file("extdata", "grB.txt", package = "dagLogo"),
-    proteome <- prepareProteome(fasta = system.file("extdata",
-    seq <- formatSequence(seq = dat, proteome = proteome, upstreamOffset = 14,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

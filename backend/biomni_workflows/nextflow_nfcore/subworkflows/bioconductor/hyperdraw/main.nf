@@ -61,7 +61,6 @@ process BIOC_HYPERDRAW {
     edgeData(testrabph, c("A", "R1"),
                         c("R1", "B"), "lwd") <- c("5", "3")
     edgeDataDefaults(testrabph, "color") <- "black"
-    edgeData(testrabph, c("A", "R1"),
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

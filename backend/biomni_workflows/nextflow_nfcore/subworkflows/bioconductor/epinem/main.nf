@@ -38,14 +38,34 @@ process BIOC_EPINEM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Background)
+    library(epiNEM)
     library(jsonlite)
 
-    # --- Background [] ---
-    # Key functions: Background, epiNEM
+
+    # --- Global Options [] ---
+    # Key functions: set, mutant, modulator, plot.epiScreen, HeatmapOP, scores, Background, epiNEM
     knitr::opts_chunk$set(message=FALSE)
     fig.cap1 <- "Toy example result for a double mutant (A,B) and one modulator
     (C)."
+    fig.cap2 <- "Distribution of inferred logics for each double knock-out."
+    fig.cap3 <- "Ranked modulators for one double knock-out."
+    fig.cap4 <- "Perfect binary effects matrix for each logic."
+    fig.cap5 <- ""
+    fig.cap6 <- "Global results for the van Wageningen data set. See the help pages
+    of plot.epiScreen() and HeatmapOP() for additional parameters."
+    fig.cap7 <- "Results for one double knock-out of the van Wageningen data set.
+    See ?plot.epiScreen for further parameters."
+    fig.cap8 <- "Global result for the Sameith data set."
+    fig.cap9 <- "Example for one knock-out of the Sameith data set."
+    fig.cap10 <- "Density of the string-db interaction scores (van Wageningen).
+    Background (turqoise) and inferred by epiNEM (pink)."
+
+    # --- Warning=false [] ---
+    # Key functions: epiAnno
+    epiAnno()
+
+    ## -----------------------------------------------------------------------------
+    data(sim)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

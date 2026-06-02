@@ -79,17 +79,9 @@ process BIOC_OMICSVIEWER {
     # --- Write Extension 2 [] ---
     # Key functions: NS, tagList, verbatimTextOutput, ns, renderText, ctxt
     ### continue from above : extra tab 2 -- sample selected ###
-    exampleCustomeUI_2 <- function(id) {
-      ns <- NS(id)
-      tagList(
-        verbatimTextOutput(ns("txt"))
     # --- Write Extension 3 [] ---
     # Key functions: NS, tagList, triselector_ui, ns, reactive, fdata
-    selector_example_ui <- function(id) {
-      ns <- NS(id)
-      tagList(
-        # select variable
-        omicsViewer:::triselector_ui(ns("selector_id"))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

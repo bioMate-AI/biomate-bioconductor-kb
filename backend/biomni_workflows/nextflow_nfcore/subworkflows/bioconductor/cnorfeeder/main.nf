@@ -106,10 +106,6 @@ process BIOC_CNORFEEDER {
     # --- Results4 [] ---
     # Key functions: parameters, createLBodeContPars, defaultParametersSSm, parEstimationLBode, plotLBodeFitness
     ## # set initial parameters (here parameters k and tau are optimised and n fixed to 3)
-    ## ode_parameters=createLBodeContPars(model, LB_n = 1, LB_k = 0,
-    ##                                    LB_tau = 0, UB_n = 3, UB_k = 1,
-    ##                                    UB_tau = 1, default_n = 3,
-    ##                                    default_k = 0.5, default_tau = 0.01,
     # --- Results5 [] ---
     # Key functions: fits, identifyMisfitIndices
     ## # Identifying the mis-fits (measurements with mse worse than 0.05)

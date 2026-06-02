@@ -45,9 +45,6 @@ process BIOC_IDR2D {
     # Key functions: withTags, thead, tr, th, datatable
     ---------------------------------------------------------------------
     library(DT)
-    header <- htmltools::withTags(table(
-      class = 'display',
-      thead(
     # --- Datatable [] ---
     # Key functions: datatable, formatRound
     ---------------------------------------------------------------------
@@ -58,9 +55,6 @@ process BIOC_IDR2D {
     # Key functions: withTags, thead, tr, th, select, datatable
     ---------------------------------------------------------------------
     chr <- start <- end <- rank <- rep_rank <- value <- rep_value <- idr <- NULL
-    header <- htmltools::withTags(table(
-      class = 'display',
-      thead(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

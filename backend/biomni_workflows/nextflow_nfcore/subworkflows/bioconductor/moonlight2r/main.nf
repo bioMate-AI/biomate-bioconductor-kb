@@ -41,10 +41,112 @@ process BIOC_MOONLIGHT2R {
     library(Moonlight2R)
     library(jsonlite)
 
-    # --- Kable [] ---
-    # Key functions: kable
-    ---------------------------------------------------------------------
+
+    # --- Eval = True [] ---
+    # Key functions: getDataGEO
+    data(DEGsmatrix)
+    data(dataFilt)
+    data(dataMAF)
+    data(GEO_TCGAtab)
+    data(LOC_transcription)
+    data(LOC_translation)
+    data(LOC_protein)
+    data(Oncogenic_mediators_mutation_summary)
+    data(DEG_Mutations_Annotations)
+    data(dataMethyl)
+    knitr::kable(GEO_TCGAtab, digits = 2,
+           caption = "Table with GEO data set matched to one
+           of the 18 given TCGA cancer types ",
+           row.names = TRUE)
+    dataFilt_GEO <- getDataGEO(GEOobject = "GSE20347", platform = "GPL571")
+
+    # --- Eval = True [] ---
+    # Key functions: getDataGEO, FEA, plotFEA
+    dataFilt_GEO <- getDataGEO(TCGAtumor = "ESCA")
+    data(DEGsmatrix)
+    data(DiseaseList)
+    data(EAGenes)
+    dataFEA <- FEA(DEGsmatrix = DEGsmatrix)
+    plotFEA(dataFEA = dataFEA, additionalFilename = "_exampleVignette", height = 10, width = 20)
+
+    # --- Eval = True [] ---
+    # Key functions: GRN, sample, FEA, URA, PRA, apoptosis
+    data(DEGsmatrix)
+    data(dataFilt)
+    dataGRN <- GRN(DEGsmatrix = DEGsmatrix, TFs = sample(rownames(DEGsmatrix), 100), normCounts = dataFilt,
+    	               nGenesPerm = 5, kNearest = 3, nBoot = 5, DiffGenes = TRUE)
+    data(dataGRN)
+    data(DEGsmatrix)
+    data(DiseaseList)
+    data(EAGenes)
+
+    dataFEA <- FEA(DEGsmatrix = DEGsmatrix)
+
+    BPselected <- dataFEA$Diseases.or.Functions.Annotation[1:5]
+    # --- Eval = True [] ---
+    # Key functions: GMA, dataMethyl, dataFilt, dataPRA, LUAD_sample_anno, GLS, plotNetworkHive
+    data("dataMethyl")
+    data("dataFilt")
+    data("dataPRA")
+    data("DEGsmatrix")
+    data("LUAD_sample_anno")
+    data("NCG")
+    data("EncodePromoters")
+    data("MetEvidenceDriver")
+
+    # Subset column names (sample names) in expression data to patient level
+    genes_query <- "BRCA1"
+    dataGLS <- GLS(genes = genes_query, 
+    	       query_string = "AND cancer AND driver",
+    	       max_records = 20)
+    head(dataGLS)
+
+    ## -----------------------------------------------------------------------------
     knitr::kable(LOC_transcription)
+
+    ## -----------------------------------------------------------------------------
+
+    # --- Eval = True [] ---
+    # Key functions: plotDMA, plotMoonlight, drivers, plotGMA, DEG_Methylation_Annotations, Oncogenic_mediators_methylation_summary, genelist
+    data(dataDMA)
+    data(DEG_Mutations_Annotations)
+    data(Oncogenic_mediators_mutation_summary)
+    plotDMA(DEG_Mutations_Annotations, 
+            Oncogenic_mediators_mutation_summary, 
+            type = 'complete', additionalFilename = "")
+    data(DEG_Mutations_Annotations)
+    data(Oncogenic_mediators_mutation_summary)
+    data(dataURA_plot)
+    plotMoonlight(DEG_Mutations_Annotations,
+            Oncogenic_mediators_mutation_summary, 
+            dataURA_plot, gene_type = "drivers", n = 50)
+    data("DEG_Methylation_Annotations")
+    data("Oncogenic_mediators_methylation_summary")
+    genes <- c("ACAN", "ACE2", "ADAM19", "AFAP1L1")
+    plotGMA(DEG_Methylation_Annotations = DEG_Methylation_Annotations,
+            Oncogenic_mediators_methylation_summary = Oncogenic_mediators_methylation_summary,
+            type = "genelist", genelist = genes,
+            additionalFilename = "./GMAresults/")
+
+    # --- Eval = True [] ---
+    # Key functions: plotMoonlightMet, DEG_Methylation_Annotations, Oncogenic_mediators_methylation_summary, dataURA_plot, plotMetExp, EpiMix_Results_Regular, dataMethyl, dataFilt
+    data("DEG_Methylation_Annotations")
+    data("Oncogenic_mediators_methylation_summary")
+    data("dataURA_plot")
+    genes <- c("ACAN", "ACE2", "ADAM19", "AFAP1L1")
+    plotMoonlightMet(DEG_Methylation_Annotations = DEG_Methylation_Annotations,
+                     Oncogenic_mediators_methylation_summary = Oncogenic_mediators_methylation_summary,
+                     dataURA = dataURA_plot,
+                     genes = genes,
+                     additionalFilename = "./GMAresults/")
+    data("EpiMix_Results_Regular")
+    data("dataMethyl")
+    data("dataFilt")
+
+    # Subset column names (sample names) in expression data to patient level
+    pattern <- "^(.{4}-.{2}-.{4}-.{2}).*"
+    colnames(dataFilt) <- sub(pattern, "\\1", colnames(dataFilt))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

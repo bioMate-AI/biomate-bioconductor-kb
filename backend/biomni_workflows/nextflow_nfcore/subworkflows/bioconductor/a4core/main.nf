@@ -41,9 +41,14 @@ process BIOC_A4CORE {
     library(a4Core)
     library(jsonlite)
 
-    # --- simulate Data [] ---
+
+    # --- Simulate Data [] ---
     # Key functions: simulateData
     eSet <- simulateData(
+    	nCols = 40, nRows = 1000, 
+    	nEffectRows = 5, nNoEffectCols = 5,
+    	betweenClassDifference = 1, withinClassSd = 0.5
+    )
     print(eSet)
 
     # --- Save outputs ---

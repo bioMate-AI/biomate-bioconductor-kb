@@ -47,15 +47,13 @@ process BIOC_METHYLIMP2 {
     # --- construct SE [] ---
     # Key functions: SummarizedExperiment
     data(beta_meta)
-    beta_SE <- SummarizedExperiment(assays = SimpleList(beta = t(beta_with_nas)),
     # --- user annotation example [] ---
     # Key functions: kable
     data(custom_anno_example)
     knitr::kable(custom_anno_example)
     # --- evaluate performance [] ---
     # Key functions: evaluatePerformance
-    performance <- evaluatePerformance(beta, t(assays(beta_SE_imputed)[[1]]),
-    print(performance)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

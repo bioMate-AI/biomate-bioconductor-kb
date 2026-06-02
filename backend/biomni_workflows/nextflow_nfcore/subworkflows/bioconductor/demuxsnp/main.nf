@@ -94,10 +94,6 @@ process BIOC_DEMUXSNP {
     # --- Heatmap [] ---
     # Key functions: Heatmap, counts, altExp, draw, unit
     ---------------------------------------------------------------------
-    hm <- Heatmap(counts(altExp(multiplexed_scrnaseq_sce, "SNP")),
-        column_split = multiplexed_scrnaseq_sce$seurat,
-        cluster_rows = FALSE,
-        show_column_names = FALSE,
     # --- Droplevels [] ---
     # Key functions: droplevels
     ---------------------------------------------------------------------
@@ -115,15 +111,9 @@ process BIOC_DEMUXSNP {
     ---------------------------------------------------------------------
     sce_test$labels2[which(sce_test$labels2 == "Hashtag5")[1:25]] <- "Hashtag2"
     table(sce_test$labels, sce_test$labels2)
-    sce_test$knn <- reassign_centroid(sce_test,
-        train_cells = sce_test$train,
     # --- Heatmap [] ---
     # Key functions: Heatmap, counts, altExp, draw, unit
     ---------------------------------------------------------------------
-    hm <- Heatmap(counts(altExp(sce_test, "SNP"))[, sce_test$knn == "Hashtag6"],
-        column_split = sce_test$labels[sce_test$knn == "Hashtag6"],
-        cluster_rows = FALSE,
-        show_column_names = FALSE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

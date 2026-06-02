@@ -62,8 +62,6 @@ process BIOC_XMAPBRIDGE {
     #Five levels of red, chosen by the RColorBrewer
     reds <- brewer.pal( 5, "Reds" )
     reds <- xmap.col( reds, alpha=0x55 )
-    for( i in 1:5 ) {
-      xmap.points( x, y / i, type="area", col=reds[i] )
     # --- Setenv [] ---
     # Key functions: setenv
     #put the environment variable back. Not strictly necessary, but why not?

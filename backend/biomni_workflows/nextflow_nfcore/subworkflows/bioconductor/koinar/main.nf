@@ -44,27 +44,19 @@ process BIOC_KOINAR {
 
     # --- Koina [] ---
     # Key functions: Koina
-    prosit2019 <- koinar::Koina(
+
     # --- predict With Koina Model [] ---
     # Key functions: predictWithKoinaModel
-    input <- data.frame(
-    peptide_sequences = c("LGGNEQVTR", "GAGSSEPVTGLDAK"),
-    collision_energies = c(25, 25),
+
     # --- Koina [] ---
     # Key functions: Koina
     pred_prosit <- prosit2019$predict((input))
-    ms2pip <- koinar::Koina(
-    pred_ms2pip <- ms2pip$predict(input)
     # --- xyplot [] ---
     # Key functions: xyplot
-    lattice::xyplot(intensities ~ mz | model * peptide_sequences,
-    group = grepl("y", annotation),
-    data = rbind(
+
     # --- Spectrum Similarity [] ---
     # Key functions: SpectrumSimilarity
-    sim <- OrgMassSpecR::SpectrumSimilarity(pred_prosit[pred_prosit$peptide_sequences == peptide_sequence, c("mz", "intensities")],
-    pred_ms2pip[pred_ms2pip$peptide_sequences == peptide_sequence, c("mz", "intensities")],
-    title(main = paste(peptide_sequence, "| Spectrum similarity", round(sim, 3)))
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

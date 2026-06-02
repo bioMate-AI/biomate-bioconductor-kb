@@ -91,9 +91,6 @@ process BIOC_XCORE {
     # Key functions: getInteractionMatrix
     ---------------------------------------------------------------------
     # construct molecular signatures matrix
-    molecular_signature <- getInteractionMatrix(
-      a = promoters_f5,
-      b = CTCF_hg38,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

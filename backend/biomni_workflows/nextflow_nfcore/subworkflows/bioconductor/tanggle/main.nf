@@ -41,11 +41,24 @@ process BIOC_TANGGLE {
     library(tanggle)
     library(jsonlite)
 
-    # --- ggsplitnet [] ---
-    # Key functions: ggsplitnet, geom_nodepoint, ggevonet
-    library(tanggle)
-    library(phangorn)
-    library(ggtree)
+
+    # --- Include = False [] ---
+    # Key functions: set, suppressPackageStartupMessages, requireNamespace, install, tanggle
+    knitr::opts_chunk$set(
+        collapse = TRUE,
+        comment = "#>"
+    )
+    suppressPackageStartupMessages({
+        library(tanggle, quietly=TRUE)
+        library(phangorn, quietly=TRUE)
+        library(ggtree, quietly=TRUE)
+    })
+
+    ## ----install-bioc, eval=FALSE-------------------------------------------------
+    #  if (!requireNamespace("BiocManager", quietly = TRUE))
+    #      install.packages("BiocManager")
+    #  
+    #  BiocManager::install("tanggle")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -52,9 +52,6 @@ process BIOC_EDGER {
     for(i in paste(files, ".gz", sep=""))
       R.utils::gunzip(i, overwrite=TRUE)
     
-    files <- c("GSM1545535_10_6_5_11.txt", "GSM1545536_9_6_5_11.txt",
-       "GSM1545538_purep53.txt", "GSM1545539_JMS8-2.txt",
-       "GSM1545540_JMS8-3.txt", "GSM1545541_JMS8-4.txt",
     # --- Organising sample information [] ---
     # Key functions: rep
     samplenames <- substring(colnames(x), 12, nchar(colnames(x)))
@@ -185,8 +182,6 @@ process BIOC_EDGER {
     basal.vs.lp.topgenes <- basal.vs.lp$ENTREZID[1:100]
     i <- which(v$genes$ENTREZID %in% basal.vs.lp.topgenes)
     mycol <- colorpanel(1000,"blue","white","red")
-    heatmap.2(lcpm[i,], scale="row",
-       labRow=v$genes$SYMBOL[i], labCol=group,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

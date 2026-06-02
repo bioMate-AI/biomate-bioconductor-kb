@@ -44,20 +44,12 @@ process BIOC_DIRECTOR {
     # --- Frame [] ---
     # Key functions: frame
     library(Director)
-    table1 <- data.frame(source=c("DrugX", "DrugX", "miR-B", "miR-B", "miR-B",
-            "miR-A", "miR-A", "transc1", "transc2", "transc3", "transc4"),
-        target=c("miR-B", "miR-A", "transc1", "transc2", "transc3", "transc2",
-            "transc4", "gene1", "gene2", "gene2", "gene3"),
     # --- Createlist [] ---
     # Key functions: createList
     tempList <- createList(table1)
     # --- Frame [] ---
     # Key functions: frame
-    List <- data.frame(source=c("DrugX", "DrugX",
-            "miR-B", "miR-B", "miR-B", "miR-A", "miR-A", "transc1",
-            "transc2", "transc3", "transc4"),
-        target=c("miR-B", "miR-A", "transc1", "transc2", "transc3",
-            "transc2", "transc4", "gene1", "gene2", "gene2", "gene3"),
+
     # --- Createlist [] ---
     # Key functions: createList
     tempList2 <- createList(List,ListFC)

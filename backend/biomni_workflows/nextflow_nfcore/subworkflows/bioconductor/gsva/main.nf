@@ -50,7 +50,6 @@ process BIOC_GSVA {
     # Key functions: colorRampPalette, heatmap
     library(RColorBrewer)
     subtypeOrder <- c("Proneural", "Neural", "Classical", "Mesenchymal")
-    sampleOrderBySubtype <- sort(match(gbm_es$subtype, subtypeOrder),
     # --- Empirical Bayes moderation (limma) [] ---
     # Key functions: geneSetSizes, eBayes, decideTests
     gssizes <- geneSetSizes(leukemia_es)
@@ -60,7 +59,6 @@ process BIOC_GSVA {
     # Key functions: topTable
     tt <- topTable(fit, coef=2, n=Inf)
     DEpwys <- rownames(tt)[tt$adj.P.Val <= 0.01]
-    plot(tt$logFC, -log10(tt$P.Value), pch=".", cex=4, col=grey(0.75),
     # --- Hierarchical clustering [] ---
     # Key functions: exprs, hclust, heatmap
     DEpwys_es <- exprs(leukemia_es[DEpwys, ])

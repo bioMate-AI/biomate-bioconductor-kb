@@ -58,10 +58,6 @@ process BIOC_PCAN {
     # --- Unique [] ---
     # Key functions: merge
     ---------------------------------------------------------------------
-    geneByHp <- unique(merge(
-        geneByTrait,
-        hpByTrait,
-        by="id"
     # --- Unstack [] ---
     # Key functions: unstack, computeHpIC
     ---------------------------------------------------------------------
@@ -77,10 +73,6 @@ process BIOC_PCAN {
     # --- Comparehpsets [] ---
     # Key functions: compareHPSets, SerialParam
     ---------------------------------------------------------------------
-    compMat <- compareHPSets(
-        hpSet1=genHp, hpSet2=hpOfInterest,
-        IC=ic,
-        ancestors=hp_ancestors,
     # --- Hpsetcompsummary [] ---
     # Key functions: hpSetCompSummary
     ---------------------------------------------------------------------
@@ -101,17 +93,12 @@ process BIOC_PCAN {
     # --- Hpgenelistcomp [] ---
     # Key functions: hpGeneListComp
     ---------------------------------------------------------------------
-    rPathRes <- hpGeneListComp(
-        geneList=hsEntrezByRPath[[candPath]],
-        ssMatByGene = hpMatByGene,
-        geneSSScore = resnSss
     # --- Which [] ---
     # Key functions: na
     ---------------------------------------------------------------------
     pathSss <- rPathRes$scores[which(!is.na(rPathRes$scores))]
     names(pathSss) <- geneDef[match(names(pathSss), geneDef$entrez), "symbol"]
     par(mar=c(7.1, 4.1, 4.1, 2.1))
-    barplot(
     # --- Which [] ---
     # Key functions: hpGeneHeatmap, colorRampPalette
     ---------------------------------------------------------------------
@@ -122,10 +109,6 @@ process BIOC_PCAN {
     # --- Unique [] ---
     # Key functions: hpGeneListComp
     ---------------------------------------------------------------------
-    neighbors <- unique(c(
-        hqStrNw$gene1[which(hqStrNw$gene2==genId)],
-        hqStrNw$gene2[which(hqStrNw$gene1==genId)],
-        genId
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

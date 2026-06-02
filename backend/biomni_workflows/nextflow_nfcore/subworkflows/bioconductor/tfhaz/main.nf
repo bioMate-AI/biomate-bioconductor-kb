@@ -41,9 +41,36 @@ process BIOC_TFHAZ {
     library(TFHAZ)
     library(jsonlite)
 
-    # --- n_zones_ P C A [] ---
-    # Key functions: n_zones_PCA
-    base_dense_21_w_10 is the output of dense_zones function (with
+
+    # --- Include=false [] ---
+    # Key functions: data_man
+    library(TFHAZ)
+    library(GenomicRanges)
+    library(IRanges)
+    library(S4Vectors)
+    data("data_man")
+
+    ## -----------------------------------------------------------------------------
+    # load and visualize the dataset:
+    data("Ishikawa")
+    dim(as.data.frame(Ishikawa))
+    head(Ishikawa)
+
+
+    ## -----------------------------------------------------------------------------
+    # calculate TF accumulation for the chromosome 21 for w=0
+
+    # --- PCA [] ---
+    # Key functions: function, n_zones_PCA, chr21, reg, base
+    # TF_dense_21_w_10 is the output of dense_zones function applied to the
+    # accumulation vector found with w=10, chr="chr21", acctype="TF".
+    # reg_dense_21_w_10 is the output of dense_zones function applied to the
+    # accumulation vector found with w=10, chr="chr21", acctype="reg".   
+    # base_dense_21_w_10 is the output of dense_zones function (with 
+    # threshold_step=21 in order to have 14 threshold values as in the other two
+    # inputs) applied to the accumulation vector found with w=10, chr="chr21",
+    # acctype="base".
+    # PCA
     n_zones_PCA(TF_dense_w_10, reg_dense_w_10, base_dense_w_10, chr = "chr21")
 
     # --- Save outputs ---

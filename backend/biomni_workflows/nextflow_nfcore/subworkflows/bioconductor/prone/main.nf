@@ -41,11 +41,33 @@ process BIOC_PRONE {
     library(PRONE)
     library(jsonlite)
 
-    # --- load real tmt [] ---
-    # Key functions: normalize_se, remove_reference_samples, specify_comparisons, run_DE, apply_thresholds
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>", message = TRUE, warning = FALSE,
+      fig.width=8,
+      fig.height =6
+    )
+
+    # --- Load Real Tmt [] ---
+    # Key functions: normalize_se, remove_reference_samples, specify_comparisons, tuberculosis_TMT_se, IRS_on_RobNorm, IRS_on_Median, IRS_on_LoessF, IRS_on_Quantile
     data("tuberculosis_TMT_se")
-    se_norm <- normalize_se(se, c("IRS_on_RobNorm", "IRS_on_Median",
+    se <- tuberculosis_TMT_se
+
+    ## -----------------------------------------------------------------------------
+    se_norm <- normalize_se(se, c("IRS_on_RobNorm", "IRS_on_Median", 
+                                  "IRS_on_LoessF", "IRS_on_Quantile"), 
+                            combination_pattern = "_on_")
+
+    ## -----------------------------------------------------------------------------
     se_norm <- remove_reference_samples(se_norm)
+
+    ## -----------------------------------------------------------------------------
+    comparisons <- specify_comparisons(se_norm, condition = "Group", 
+                                       sep = NULL, control = NULL)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

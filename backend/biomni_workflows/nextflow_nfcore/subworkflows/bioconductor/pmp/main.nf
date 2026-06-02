@@ -95,8 +95,6 @@ process BIOC_PMP {
     -----------------------------------------------
     opt_lambda <-
         processing_history(MTBLS79_glog)$glog_transformation$lambda_opt
-    glog_plot_optimised_lambda(df=MTBLS79_mv_imputed,
-        optimised_lambda=opt_lambda,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

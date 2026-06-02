@@ -75,7 +75,6 @@ process BIOC_GEWIST {
     m <- dim(GenoSet)[2]
     library(car)
     levene_pval <- NA
-    	for (i in 1: m) {
     # --- Gewist.Rnw:252 262 [] ---
     # Key functions: gewistLevene
     optimal_pval <- NA
@@ -88,8 +87,6 @@ process BIOC_GEWIST {
     SNPind <- which(levene_pval < optimal_pval)
      Reduced <- GenoSet[,SNPind]
      intPval <- NA
-     	for (j in 1: length(SNPind)) {
-     		intPval[j] <- summary(lm(Trait~ Reduced[,j] * COV ))$coef[4,4]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

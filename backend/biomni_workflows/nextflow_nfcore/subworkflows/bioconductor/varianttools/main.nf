@@ -53,8 +53,6 @@ process BIOC_VARIANTTOOLS {
     library(VariantTools)
     bams <- LungCancerLines::LungCancerBamFiles()
     bam <- bams$H1993
-    if (requireNamespace("gmapR", quietly=TRUE)) {
-        p53 <- gmapR:::exonsOnTP53Genome("TP53")
     # --- Callvariants Postfilter [] ---
     # Key functions: postFilterVariants
     pf.variants <- postFilterVariants(called.variants)
@@ -108,11 +106,7 @@ process BIOC_VARIANTTOOLS {
     summary(post.filters, qa.variants)
     # --- Callsomaticmutations [] ---
     # Key functions: requireNamespace, callSampleSpecificVariants
-    if (requireNamespace("gmapR", quietly=TRUE)) {
-        tally.param@bamTallyParam@indels <- FALSE
-        somatic <- callSampleSpecificVariants(bams$H1993, bams$H2073,
-                                              tally.param)
-    } else {
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

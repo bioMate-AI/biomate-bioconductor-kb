@@ -64,8 +64,7 @@ process BIOC_SYNLET {
     head(t_res)
     # --- rsa Hits [] ---
     # Key functions: rsaHits
-    rsaHits(example_dt, treatment = "treatment", control = "control",
-    sessionInfo()
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

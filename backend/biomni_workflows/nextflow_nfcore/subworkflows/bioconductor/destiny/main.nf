@@ -52,7 +52,6 @@ process BIOC_DESTINY {
     graph <- igraph::graph_from_literal(
         data - + 'transition probabilities' - + DiffusionMap,
         'transition probabilities' - + DPT)
-    plot(
     # --- Code Block 4 [] ---
     # Key functions: DPT, sample
     set.seed(4)

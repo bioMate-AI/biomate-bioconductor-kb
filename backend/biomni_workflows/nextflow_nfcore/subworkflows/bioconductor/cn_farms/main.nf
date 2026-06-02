@@ -47,7 +47,6 @@ process BIOC_CN_FARMS {
     summaryParam <- list()
     summaryParam$cyc <- c(10)
     callParam <- list(cores=cores, runtype=runtype)
-    slData <- slSummarization(normData,
     # --- Combinedata [] ---
     # Key functions: combineData, show
     combData <- combineData(slData, npData, runtype=runtype)
@@ -62,10 +61,6 @@ process BIOC_CN_FARMS {
     # --- Colnames [] ---
     # Key functions: assayData, sampleNames, dnaCopySf, fData
     colnames(assayData(mlData)$L_z) <- sampleNames(mlData)
-    segments <- dnaCopySf(
-    		x        =assayData(mlData)$L_z[, 1:10],
-    		chrom    =fData(mlData)$chrom,
-    		maploc   =fData(mlData)$start,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

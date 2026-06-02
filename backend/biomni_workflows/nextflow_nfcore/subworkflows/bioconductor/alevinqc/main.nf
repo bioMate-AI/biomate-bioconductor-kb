@@ -48,15 +48,12 @@ process BIOC_ALEVINQC {
     # --- tempdir [] ---
     # Key functions: tempdir, alevinQCReport
     outputDir <- tempdir()
-    alevinQCReport(baseDir = baseDir, sampleId = "testSample",
     # --- alevin Q C Shiny [] ---
     # Key functions: alevinQCShiny
     app <- alevinQCShiny(baseDir = baseDir, sampleId = "testSample")
     # --- run App [] ---
     # Key functions: runApp
     shiny::runApp(app)
-    if (interactive()) {
-    out <- shiny::runApp(app)
     # --- read Alevin Q C [] ---
     # Key functions: readAlevinQC
     alevin <- readAlevinQC(baseDir = baseDir)

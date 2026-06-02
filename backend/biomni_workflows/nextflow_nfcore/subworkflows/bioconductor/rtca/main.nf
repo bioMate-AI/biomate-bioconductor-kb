@@ -46,8 +46,6 @@ process BIOC_RTCA {
     ofile <-  system.file("extdata/testOutput.csv", package="RTCA")
     pfile <- system.file("extdata/testOutputPhenoData.csv", package="RTCA")
     pData <- read.csv(pfile, sep="\t", row.names="Well")
-    metaData <- data.frame(labelDescription=c(
-                             "Rack number",
     # --- Smoothtransform [] ---
     # Key functions: smoothTransform
     xSmooth <- smoothTransform(x)

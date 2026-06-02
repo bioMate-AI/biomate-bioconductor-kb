@@ -49,7 +49,6 @@ process BIOC_PROFILEPLYR {
     # Key functions: convertToEnrichedHeatmapMat, summarize
     EH_mat <- convertToEnrichedHeatmapMat(proplyrObject)
     the matrices of this list can be inputs for EnrichedHeatmap()
-    object_sumMat <- summarize(proplyrObject,
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_boxplot
     library(ggplot2)
@@ -57,25 +56,19 @@ process BIOC_PROFILEPLYR {
     geom_boxplot()
     # --- cluster Ranges [] ---
     # Key functions: clusterRanges
-    clusterRanges(proplyrObject,
-    this code prints heatmap (does not return), but heatmap not shown here to save space
+
     # --- cluster Ranges [] ---
     # Key functions: clusterRanges, rowRanges, params
     set.seed(0)
-    kmeans <- clusterRanges(proplyrObject,
-    rowRanges(kmeans)[1:3]
     # --- cluster Ranges [] ---
     # Key functions: clusterRanges
     set.seed(0)
-    kmeans <- clusterRanges(proplyrObject,
     # --- generate Enriched Heatmap [] ---
     # Key functions: generateEnrichedHeatmap
     generateEnrichedHeatmap(kmeans)
     # --- Bam Bigwig_to_chip Profile [] ---
     # Key functions: BamBigwig_to_chipProfile, annotateRanges, groupBy, generateEnrichedHeatmap
-    BamBigwig_to_chipProfile(signalFiles,
-    annotateRanges(TxDb = "mm10")  %>%
-    groupBy(group = gene_list_dataframe) %>% #subseting by our gene list
+
     # --- import_deep Tools Mat [] ---
     # Key functions: import_deepToolsMat, annotateRanges, groupBy, clusterRanges, generateEnrichedHeatmap
     NOTE: could also use BamBigwig_to_chipProfile() and as_profileplyr()

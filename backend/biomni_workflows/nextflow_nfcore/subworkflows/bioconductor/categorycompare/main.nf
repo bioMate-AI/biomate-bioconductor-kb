@@ -43,9 +43,7 @@ process BIOC_CATEGORYCOMPARE {
 
     # --- Linear model fit (limma) [] ---
     # Key functions: nsFilter, lmFit, makeContrasts, eBayes, topTable
-    e10 <- nsFilter(e10, remove.dupEntrez=TRUE, var.filter=FALSE,
-    e10$estrogen <- factor(e10$estrogen)
-    d10 <- model.matrix(~0 + e10$estrogen)
+
     # --- Phenotype data inspection [] ---
     # Key functions: pData, ReadAffy, new, fdr, ccEnrich, pvalueCutoff, ccCompare, createNetworkFromDataFrames
     list10 <- list(genes=g10, universe=gUniverse, annotation='org.Hs.eg.db')

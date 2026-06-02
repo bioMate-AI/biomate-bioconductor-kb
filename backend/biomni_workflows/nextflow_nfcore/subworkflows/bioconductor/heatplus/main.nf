@@ -52,7 +52,6 @@ process BIOC_HEATPLUS {
     design1 = model.matrix( ~ type, data=pData(exdat))
     lm1 = lmFit(exprs(exdat), design1)
     lm1 = eBayes(lm1)
-    geneID = rownames(topTable(lm1, coef=2, num=100, adjust="none",
     # --- Regheatmap1 [] ---
     # Key functions: regHeatmap, exprs
     require(Heatplus)

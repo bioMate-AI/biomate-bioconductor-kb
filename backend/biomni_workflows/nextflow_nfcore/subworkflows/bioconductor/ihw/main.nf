@@ -53,9 +53,7 @@ process BIOC_IHW {
     geom_point(size = 0.25) + scale_colour_hue(l = 70, c = 150, drop = FALSE)
     # --- Ihw analysis [] ---
     # Key functions: ihw, nbins, nfolds, weights, tibble, rejections, qplot
-    sim <- tibble(
-    X = runif(100000, min = 0, max = 2.5),         # covariate
-    H = rbinom(length(X), size = 1, prob = 0.1),   # hypothesis true or false
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

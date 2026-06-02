@@ -49,7 +49,6 @@ process BIOC_GENEMETA {
     thestatus  <- pData(Nevins)[,"ER.status"]
     group1     <- which(thestatus=="pos")
     group2     <- which(thestatus=="neg")
-    rrr        <- c(sample(group1, floor(length(group1)/2)),
     # --- Phenodata [] ---
     # Key functions: pData, levels
     #obtain classes

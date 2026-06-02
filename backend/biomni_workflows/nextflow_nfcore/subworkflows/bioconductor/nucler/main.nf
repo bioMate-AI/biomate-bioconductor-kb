@@ -54,7 +54,6 @@ process BIOC_NUCLER {
     # --- ProcessTilingArray analysis [] ---
     # Key functions: processTilingArray, readBAM, processReads, filterFFT, peakDetection, plotPeaks, syntheticNucMap
     reads_pair <- processReads(nucleosome_htseq, type="paired", fragmentLen=200)
-    reads_trim <- processReads(nucleosome_htseq, type="paired", fragmentLen=200,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

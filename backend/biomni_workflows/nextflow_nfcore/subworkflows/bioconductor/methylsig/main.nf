@@ -41,11 +41,52 @@ process BIOC_METHYLSIG {
     library(methylSig)
     library(jsonlite)
 
-    # --- filter by group coverage [] ---
-    # Key functions: pData
-    bsseq::pData(bs)
-    bs = filter_loci_by_group_coverage(
-    c('cancer' = 2, 'normal' = 2))
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+        collapse = TRUE,
+        comment = "#>"
+    )
+
+    # --- Read [] ---
+    # Key functions: read.bismark
+    files = c(
+        system.file('extdata', 'bis_cov1.cov', package='methylSig'),
+        system.file('extdata', 'bis_cov2.cov', package='methylSig')
+    )
+
+    # --- Filter By Coverage [] ---
+    # Key functions: filter_loci_by_coverage
+    # Load data for use in the rest of the vignette
+    data(BS.cancer.ex, package = 'bsseqData')
+    bs = BS.cancer.ex[1:10000]
+
+    bs = filter_loci_by_coverage(bs, min_count = 5, max_count = 500)
+
+    # --- Filter By Location [] ---
+    # Key functions: GRanges, IRanges, filter_loci_by_location
+    # Construct GRanges object
+    remove_gr = GenomicRanges::GRanges(
+        seqnames = c('chr21', 'chr21', 'chr21'),
+        ranges = IRanges::IRanges(
+            start = c(9411552, 9411784, 9412099),
+            end = c(9411552, 9411784, 9412099)
+        )
+    )
+
+    bs = filter_loci_by_location(bs = bs, gr = remove_gr)
+
+    # --- Tile By Windows [] ---
+    # Key functions: tile_by_windows
+    windowed_bs = tile_by_windows(bs = bs, win_size = 10000)
+
+    # --- Tile By Regions [] ---
+    # Key functions: tile_by_regions
+    # Collapsed promoters on chr21 and chr22
+    data(promoters_gr, package = 'methylSig')
+
+    promoters_bs = tile_by_regions(bs = bs, gr = promoters_gr)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

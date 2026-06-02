@@ -80,7 +80,6 @@ process BIOC_SNPRELATE {
     # Load data
     data(hapmap_geno)
     # Create a gds file
-    snpgdsCreateGeno("test.gds", genmat = hapmap_geno$genotype,
     # --- snpgds B E D2 G D S [] ---
     # Key functions: snpgdsBED2GDS, snpgdsSummary
     ---------------------------------------------------------------------

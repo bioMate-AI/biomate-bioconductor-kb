@@ -38,14 +38,57 @@ process BIOC_SPASIM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(PrintBibliography)
+    library(spaSim)
     library(jsonlite)
 
-    # --- Valid analysis [] ---
-    # Key functions: valid, install_github, simulate_background_cells, knit, diff, session_info, PrintBibliography
-    BiocManager::valid()
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
+
+    # --- Vignette Setup [] ---
+    # Key functions: Sys.time, citation, rmarkdown, sessioninfo, testthat, spaSim
+    ## Track time spent on making the vignette
+    startTime <- Sys.time()
+    ## Bib setup
+    library("RefManageR")
+    ## Write bibliography information
+    # --- "citation" [] ---
+    # Key functions: citation, simulate_background_cells, spaSim
+    ## Citation info
+    citation("spaSim")
+
+    ## -----------------------------------------------------------------------------
+    library(spaSim)
+
+    ## -----------------------------------------------------------------------------
+    set.seed(610)
+    # --- Eval=false [] ---
+    # Key functions: simulate_background_cells, simulate_mixing, simulate_clusters, simulate_immune_rings, simulate_double_rings, simulate_stripes, TIS, rep
+    #  set.seed(610)
+    #  bg_normal <- simulate_background_cells(n_cells = 5000,
+    #                                        width = 2000,
+    #                                        height = 2000,
+    #                                        method = "Even",
+    #                                        min_d = NULL,
+    #                                        jitter = 0.3,
+    #                                        Cell.Type = "Others")
+    #  head(bg_normal)
+    #  dim(bg_normal)[1]
+
+    # --- Reproduce1 [] ---
+    # Key functions: Sys.time
+    ## Date the vignette was generated
+    Sys.time()
+
+    # --- Reproduce2 [] ---
+    # Key functions: diff, Sys.time
+    ## Processing time in seconds
+    totalTime <- diff(c(startTime, Sys.time()))
+    round(totalTime, digits = 3)
+
+    # --- Reproduce3 [] ---
+    # Key functions: session_info, sessioninfo
+    ## Session info
+    library("sessioninfo")
+    options(width = 120)
+    session_info()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

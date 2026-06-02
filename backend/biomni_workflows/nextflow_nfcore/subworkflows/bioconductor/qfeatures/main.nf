@@ -48,8 +48,7 @@ process BIOC_QFEATURES {
     cptac$group <- rep(c("6A", "6B"), each = 3)
     # --- count Unique Features [] ---
     # Key functions: countUniqueFeatures, colData
-    cptac <- countUniqueFeatures(cptac,
-    colData(cptac)
+
     # --- assay [] ---
     # Key functions: assay, addAssay, logTransform
     data(se_na2)

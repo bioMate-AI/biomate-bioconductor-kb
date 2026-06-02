@@ -48,24 +48,22 @@ process BIOC_DISTINCT {
     # Key functions: colData
     colData(Kang_subset)$stim = relevel(colData(Kang_subset)$stim, "stim")
     levels(colData(Kang_subset)$stim)
-    res_2 = log2_FC(res = res,
     # --- top_results [] ---
     # Key functions: top_results
     top_results(res, cluster = "Dendritic cells")
     # --- plot densitied [] ---
     # Key functions: plot_densities
-    plot_densities(x = Kang_subset,
+
     # --- plot densitied group level [] ---
     # Key functions: plot_densities
-    plot_densities(x = Kang_subset,
+
     # --- plot_cdfs [] ---
     # Key functions: plot_cdfs
-    plot_cdfs(x = Kang_subset,
+
     # --- plot Expression [] ---
     # Key functions: plotExpression, guides, theme
     genes = as.character(res$gene[sel_cluster & sel_genes])
     library(scater)
-    plotExpression(Kang_subset[,sel_column],
     # --- UpsetR plot [] ---
     # Key functions: upset
     library(UpSetR)

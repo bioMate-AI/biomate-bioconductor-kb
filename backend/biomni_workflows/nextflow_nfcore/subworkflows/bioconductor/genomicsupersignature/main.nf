@@ -38,14 +38,27 @@ process BIOC_GENOMICSUPERSIGNATURE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(RAVindex)
+    library(GenomicSuperSignature)
     library(jsonlite)
 
-    # --- get Model [] ---
-    # Key functions: getModel, version, geneSets, RAVindex, metadata
+
+    # --- Load Model [] ---
+    # Key functions: getModel, version, geneSets, class, RAVindex, metadata
     RAVmodel <- getModel("C2", load=TRUE)
+
+    ## -----------------------------------------------------------------------------
+    RAVmodel
+
     version(RAVmodel)
     geneSets(RAVmodel)
+
+    ## -----------------------------------------------------------------------------
+    class(RAVindex(RAVmodel))
+    dim(RAVindex(RAVmodel))
+    RAVindex(RAVmodel)[1:4, 1:4]
+
+    ## -----------------------------------------------------------------------------
+    names(metadata(RAVmodel))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

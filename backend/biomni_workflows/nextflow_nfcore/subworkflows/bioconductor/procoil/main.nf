@@ -38,15 +38,60 @@ process BIOC_PROCOIL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(AAString)
-    library(AAStringSet)
+    library(procoil)
     library(jsonlite)
 
-    # --- Object metadata inspection [] ---
-    # Key functions: packageDescription, predict, readCCModel, bmp, attr, AAString, metadata, AAStringSet
+
+    # --- Load Package To Determine Version [] ---
+    # Key functions: set, packageDescription, substr, procoil, predict, abcdefgabcdefgabcdefgabcdefga
+    options(width=72)
+    knitr::opts_knit$set(width=72)
+    set.seed(0)
+    library(procoil, quietly=TRUE)
+    procoilVersion <- packageDescription("procoil")$Version
+    procoilDateRaw <- packageDescription("procoil")$Date
+    procoilDateYear <- as.numeric(substr(procoilDateRaw, 1, 4))
+    procoilDateMonth <- as.numeric(substr(procoilDateRaw, 6, 7))
+    procoilDateDay <- as.numeric(substr(procoilDateRaw, 9, 10))
+    # --- Display Result For Gcn4wild Type [] ---
+    # Key functions: procoil
+    GCN4wt
+    plot(GCN4wt)
+
+    # --- Predict Marcoil Example [] ---
+    # Key functions: predict
+    res <- predict(PrOCoilModel,
+    "MGECDQLLVFMITSRVLVLSTLIIMDSRQVYLENLRQFAENLRQNIENVHSFLENLRADLENLRQKFPGKWYSAMPGRHG",
+    "-------------------------------abcdefgabcdefgabcdefgabcdefgabcdefg--------------")
+    res
+
+    # --- Plot Result For Marcoil Example [] ---
+    # Key functions: rep, predict, GCN4_N16Y_L19T, GCN4_E22R_K27E, GCN4_V23K_K27E, abcdefgabcdefgabcdefgabcdefga
+    plot(res[1])
     GCN4mSeq <- c("GCN4wt"        ="MKQLEDKVEELLSKNYHLENEVARLKKLV",
+                  "GCN4_N16Y_L19T"="MKQLEDKVEELLSKYYHTENEVARLKKLV",
+                  "GCN4_E22R_K27E"="MKQLEDKVEELLSKNYHLENRVARLEKLV",
+                  "GCN4_V23K_K27E"="MKQLEDKVEELLSKNYHLENEKARLEKLV")
     GCN4mReg <- rep("abcdefgabcdefgabcdefgabcdefga", 4)
+
     GCN4mut <- predict(PrOCoilModel, GCN4mSeq, GCN4mReg)
+    GCN4mut
+
+    # --- Plot Gcn4mutation [] ---
+    # Key functions: heatmap
+    plot(GCN4mut[c(1, 2)])
+    plot(GCN4mut[c(1, 3)])
+    plot(GCN4mut[c(1, 4)])
+    heatmap(GCN4mut)
+
+    # --- Plot Result For Example With Heptad Irregularity [] ---
+    # Key functions: predict, defgabcdefgabcdabcdefga, rgb
+    plot(predict(PrOCoilModel,
+                 "LQDTLVRQERPIRKSIEDLRNTV",
+                 "defgabcdefgabcdabcdefga"))
+    plot(GCN4mut[c(1, 2)], legend=c("wild type", "mutant N16Y,L19T"),
+         col=c(rgb(0.7, 0, 0), rgb(0, 0, 0.8)), main="GCN4 Mutation Analysis",
+         shades=c(rgb(0.77, 0.85, 0.95), rgb(0.99, 0.84, 0.71)))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

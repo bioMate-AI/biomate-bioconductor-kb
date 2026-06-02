@@ -62,7 +62,6 @@ process BIOC_FFPE {
                           rejectQC=QC$rejectQC)
     QCvsRNA <- QCvsRNA[order(QCvsRNA$rejectQC,-QCvsRNA$inputRNA.ng),]
     par(mgp=c(4,2,0))
-    dotchart(log10(QCvsRNA$inputRNA.ng),
     # --- Sampleqc2 [] ---
     # Key functions: sampleQC
     QC <- sampleQC(lumibatch.GSE17565,xaxis="index",cor.to="pseudochip",QCmeasure=log10(lumibatch.GSE17565$inputRNA.ng),labelnote="log10(RNA concentration)")
@@ -82,10 +81,6 @@ process BIOC_FFPE {
     # --- Repcor [] ---
     # Key functions: exprs, any
     probe.var <- apply(exprs(lumibatch.rep1),1,var)
-    rowCors = function(x, y) {  ##rowCors function borrowed from the arrayMagic Bioconductor package
-      sqr = function(x) x*x
-      if(!is.matrix(x)||!is.matrix(y)||any(dim(x)!=dim(y)))
-        stop("Please supply two matrices of equal size.")
     # --- Ttest [] ---
     # Key functions: rowttests, exprs, factor
     library(genefilter)

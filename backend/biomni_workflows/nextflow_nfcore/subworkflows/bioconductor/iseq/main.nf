@@ -75,7 +75,6 @@ process BIOC_ISEQ {
     print(table(tagctY[,4]))
     res1 = iSeq1(Y=tagctY[,1:4],gap=200,burnin=1000,sampling=5000,ctcut=0.95,
          a0=1,b0=1,a1=5,b1=1,k0=3,mink=0,maxk=10,normsd=0.5,verbose=FALSE)
-    res2 = iSeq2(Y=tagctY[,1:4],gap=200, burnin=1000,sampling=5000,winsize=2,ctcut=0.95,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

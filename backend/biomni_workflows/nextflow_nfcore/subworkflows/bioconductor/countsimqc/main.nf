@@ -41,9 +41,47 @@ process BIOC_COUNTSIMQC {
     library(countsimQC)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    ---------------------------------------------------------------------
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(echo = TRUE,
+                          crop = NA)
+
+    # --- Warning = False [] ---
+    # Key functions: suppressPackageStartupMessages, function
+    suppressPackageStartupMessages({
+      library(countsimQC)
+      library(DESeq2)
+    })
+
+    data(countsimExample)
+    countsimExample
+    countsimExample <- lapply(countsimExample, function(cse) {
+      cse[seq_len(1500), ]
+    })
+
+    # --- Results = "hide" [] ---
+    # Key functions: tempdir, countsimQCReport, countsim_report.html, html_document
+    tempDir <- tempdir()
+    countsimQCReport(ddsList = countsimExample, outputFile = "countsim_report.html",
+                     outputDir = tempDir, outputFormat = "html_document", 
+                     showCode = FALSE, forceOverwrite = TRUE,
+                     savePlots = TRUE, description = "This is my test report.", 
+                     maxNForCorr = 25, maxNForDisp = Inf, 
+                     calculateStatistics = TRUE, subsampleSize = 25,
+                     kfrac = 0.01, kmin = 5, 
+                     permutationPvalues = FALSE, nPermutations = NULL)
+
+    # --- Warning = False [] ---
+    # Key functions: readRDS, dir.exists, dir.create, generateIndividualPlots, countsim_report_ggplots.rds, figures
+    ggplots <- readRDS(file.path(tempDir, "countsim_report_ggplots.rds"))
+    if (!dir.exists(file.path(tempDir, "figures"))) {
+      dir.create(file.path(tempDir, "figures"))
+    }
+    generateIndividualPlots(ggplots, device = "pdf", nDatasets = 3, 
+                            outputDir = file.path(tempDir, "figures"))
+
+    ## -----------------------------------------------------------------------------
     data(countsimExample_dfmat)
     names(countsimExample_dfmat)
     lapply(countsimExample_dfmat, class)

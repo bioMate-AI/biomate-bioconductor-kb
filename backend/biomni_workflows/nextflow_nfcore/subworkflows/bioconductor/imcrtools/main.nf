@@ -48,9 +48,7 @@ process BIOC_IMCRTOOLS {
     pancreasSCE$clustered_neighbors <- factor(cur_cluster$cluster)
     # --- Assay data access [] ---
     # Key functions: show_cpout_features, readImagefromTXT, readSCEfromTXT, plotSpotHeatmap, binAcrossPixels, assay, assignPrelim, estCutoffs
-    pancreasSCE <- buildSpatialGraph(pancreasSCE, img_id = "ImageNb",
-    colPairNames(pancreasSCE)
-    pancreasSCE <- aggregateNeighbors(pancreasSCE,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

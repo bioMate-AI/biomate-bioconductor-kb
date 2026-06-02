@@ -58,9 +58,6 @@ process BIOC_VELOCIRAPTOR {
     # Key functions: scvelo
     ---------------------------------------------------------------------
     library(velociraptor)
-    velo.out <- scvelo(
-      sce, subset.row=top.hvgs, assay.X="spliced",
-      scvelo.params=list(neighbors=list(n_neighbors=30L))
     # --- Embedvelocity [] ---
     # Key functions: embedVelocity, reducedDim, gridVectors, plotTSNE, geom_segment, aes, arrow
     ---------------------------------------------------------------------

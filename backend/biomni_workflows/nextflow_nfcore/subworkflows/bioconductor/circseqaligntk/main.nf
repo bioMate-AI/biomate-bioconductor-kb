@@ -50,7 +50,6 @@ process BIOC_CIRCSEQALIGNTK {
     # Key functions: build_index, align_reads
     ref_index <- build_index(input = genome_seq,
     output = file.path(ws, 'index'))
-    aln <- align_reads(input = trimmed_fq,
     # --- quick start  summary [] ---
     # Key functions: calc_coverage
     alncov <- calc_coverage(aln)
@@ -75,8 +74,7 @@ process BIOC_CIRCSEQALIGNTK {
     get_slot_contents(ref_index, 'cut_loc')
     # --- implementation  build ht2index [] ---
     # Key functions: build_index
-    ref_ht2index <- build_index(input = genome_seq,
-    output = file.path(ws, 'ht2index'),
+
     # --- implementation  align read [] ---
     # Key functions: align_reads
     fq <- system.file(package = 'CircSeqAlignTk', 'extdata', 'srna.fq.gz')
@@ -91,16 +89,13 @@ process BIOC_CIRCSEQALIGNTK {
     get_slot_contents(aln, 'stats')
     # --- implementation  align read  mismatch [] ---
     # Key functions: align_reads
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'),
+
     # --- implementation  align read  threads [] ---
     # Key functions: align_reads
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'),
+
     # --- implementation  align read  add params [] ---
     # Key functions: align_reads
-    aln <- align_reads(input = fq,
-    output = file.path(ws, 'align_results'),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

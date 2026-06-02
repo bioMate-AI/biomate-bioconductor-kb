@@ -47,7 +47,6 @@ process BIOC_ASPLI {
     ##               "path_to_bams/CT_time2_rep1.BAM", "path_to_bams/CT_time2_rep2.BAM",
     ##               "path_to_bams/TR_time1_rep1.BAM", "path_to_bams/TR_time1_rep2.BAM",
     ##               "path_to_bams/TR_time2_rep1.BAM", "path_to_bams/TR_time2_rep2.BAM")
-    ## (targets <- data.frame( bam = BAMFiles,
     # --- Feature annotation [] ---
     # Key functions: frame, genes, binGenome
     ## symbols       <- data.frame( row.names = genes( aTxDb ),

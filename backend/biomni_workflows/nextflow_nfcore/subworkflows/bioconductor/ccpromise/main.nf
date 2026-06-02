@@ -51,18 +51,10 @@ process BIOC_CCPROMISE {
     data(exmplPat)
     # --- Ccpromise At Gene Level [] ---
     # Key functions: CCPROMISE
-    test1 <- CCPROMISE(geneSet=exmplGeneSet,
-                  ESet=exmplESet,
-                  MSet=exmplMSet,
-                  promise.pattern=exmplPat,
-                  strat.var=NULL,
+
     # --- Promise At Probe Pair Level [] ---
     # Key functions: PrbPROMISE
-    test2 <- PrbPROMISE(geneSet=exmplGeneSet,
-                  ESet=exmplESet,
-                  MSet=exmplMSet,
-                  promise.pattern=exmplPat,
-                  strat.var=NULL,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

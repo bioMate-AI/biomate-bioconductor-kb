@@ -65,7 +65,6 @@ process BIOC_HELLORANGES {
         paste("-a fHeart-DS16621.hotspot.twopass.fdr0.05.merge.bed",
               "-b fHeart-DS15839.hotspot.twopass.fdr0.05.merge.bed"))
     heart_heart <- eval(code)
-    code <- bedtools_jaccard(
     # --- Feature annotation [] ---
     # Key functions: exons
     ## library(TxDb.Hsapiens.UCSC.hg19.knownGene)

@@ -89,8 +89,6 @@ process BIOC_STRINGDB {
     getOption("SweaveHooks")[["fig"]]()
     # plot first 4 clusters
     par(mfrow=c(2,2))
-    for(i in seq(1:4)){
-     string_db$plot_network(clustersList[[i]])
     # --- Proteins [] ---
     # Key functions: get_proteins
     string_proteins <- string_db$get_proteins()

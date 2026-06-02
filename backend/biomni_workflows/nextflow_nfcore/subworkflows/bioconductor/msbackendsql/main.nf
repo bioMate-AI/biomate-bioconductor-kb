@@ -38,14 +38,27 @@ process BIOC_MSBACKENDSQL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(Spectra)
+    library(MsBackendSql)
     library(jsonlite)
 
-    # --- warnings = FALSE [] ---
-    # Key functions: setBackend, spectraVariables, peaksData, reset, Spectra
+
+    # --- Warnings = False [] ---
+    # Key functions: setBackend, MsBackendOfflineSql, SQLite, tempfile, spectraVariables, peaksData, object.size
     sps2 <- setBackend(sps_mem, MsBackendOfflineSql(), drv = SQLite(),
-    dbname = tempfile())
+                       dbname = tempfile())
+    sps2
+
+    ## -----------------------------------------------------------------------------
     spectraVariables(sps)
+
+    ## -----------------------------------------------------------------------------
+    peaksData(sps)[[5]] |>
+    head()
+
+    ## -----------------------------------------------------------------------------
+    print(object.size(sps), units = "KB")
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

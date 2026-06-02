@@ -43,24 +43,19 @@ process BIOC_DIFFERENTIALREGULATION {
 
     # --- plot_pi [] ---
     # Key functions: plot_pi
-    plot_pi(results,
-    plot_pi(results,
+
     # --- plot pi USA [] ---
     # Key functions: plot_pi
-    plot_pi(results,
-    plot_pi(results,
+
     # --- plot_traceplot [] ---
     # Key functions: plot_traceplot
-    plot_traceplot(results,
-    plot_traceplot(results,
+
     # --- plot_bulk_pi [] ---
     # Key functions: plot_bulk_pi
-    plot_bulk_pi(results,
-    plot_bulk_pi(results,
+
     # --- plot_bulk_traceplot [] ---
     # Key functions: plot_bulk_traceplot
-    plot_bulk_traceplot(results,
-    plot_bulk_traceplot(results,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

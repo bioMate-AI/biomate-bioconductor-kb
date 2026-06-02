@@ -47,7 +47,6 @@ process BIOC_ADSPLIT {
     oldopt <- options(digits=3)
     on.exit( {options(oldopt)} )
     options(width=70)
-    if (interactive()) {
     # --- Data [] ---
     # Key functions: data
     library(golubEsets)

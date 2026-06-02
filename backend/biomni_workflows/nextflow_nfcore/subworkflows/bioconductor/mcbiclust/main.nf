@@ -95,8 +95,6 @@ process BIOC_MCBICLUST {
     ---------------------------------------------------------------------
     CCLE.names <- colnames(CCLE_small)[CCLE.samp.sort]
     fork.status <- ForkClassifier(pc1.vec, samp.num = length(CCLE.bic[[2]]))
-    CCLE.df <- data.frame(CCLE.name = CCLE.names,
-                          PC1 = pc1.vec,
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -124,16 +122,12 @@ process BIOC_MCBICLUST {
     # Key functions: MultiSampleSortPrep
     ---------------------------------------------------------------------
     CCLE.samp.multi.sort <- list()
-    multi.prep <- MultiSampleSortPrep(gem = CCLE_small,
-                                      av.corvec = average.corvec,
-                                      top.genes.num = 750,
     # --- List [] ---
     # Key functions: PC1VecFun
     ---------------------------------------------------------------------
     pc1.vec.multi <- list()
     pc1.vec.multi[[1]] <- PC1VecFun(top.gem =  multi.prep[[1]][[1]],
                          seed.sort = CCLE.samp.multi.sort[[1]], n = 10)
-    pc1.vec.multi[[2]] <- PC1VecFun(top.gem =  multi.prep[[1]][[2]],
     # --- List [] ---
     # Key functions: ThresholdBic, PC1Align
     ---------------------------------------------------------------------

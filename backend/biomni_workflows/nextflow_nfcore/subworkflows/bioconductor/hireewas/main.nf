@@ -44,8 +44,6 @@ process BIOC_HIREEWAS {
     # --- data preparation1 [] ---
     # Key functions: rgamma, rbeta, sample
     set.seed(123)
-    rDirichlet <- function(alpha_vec){
-    num <- length(alpha_vec)
     # --- H I R E [] ---
     # Key functions: HIRE
     library(HIREewas)

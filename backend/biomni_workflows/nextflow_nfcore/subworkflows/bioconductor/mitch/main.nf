@@ -41,11 +41,54 @@ process BIOC_MITCH {
     library(mitch)
     library(jsonlite)
 
-    # --- Annotation analysis [] ---
-    # Key functions: getAnnotation, stack, checkGeneSymbols, mitch_import, mitch_calc, mitch_plots, mitch_report
-    anno <- getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
+
+    # --- Lib [] ---
+    # Key functions: suppressPackageStartupMessages, mitch
+    suppressPackageStartupMessages({
+        library("mitch")
+        library("HGNChelper")
+        library("IlluminaHumanMethylation450kanno.ilmn12.hg19")
+        library("IlluminaHumanMethylationEPICanno.ilm10b4.hg19")
+    })
+
+    # --- Genesets Example [] ---
+    # Key functions: mitch
+    data(genesetsExample)
+    head(genesetsExample,3)
+
+    # --- Anno1 [] ---
+    # Key functions: getAnnotation, stack, UCSC_RefGene_Name, UCSC_RefGene_Group, Islands_Name, Relation_to_Island, gene, probe
+    anno <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
     myann <- data.frame(anno[,c("UCSC_RefGene_Name","UCSC_RefGene_Group","Islands_Name","Relation_to_Island")])
+    head(myann)
+    gp <- myann[,"UCSC_RefGene_Name",drop=FALSE]
     gp2 <- strsplit(gp$UCSC_RefGene_Name,";")
+    names(gp2) <- rownames(gp)
+    gp2 <- lapply(gp2,unique)
+    gt1 <- stack(gp2)
+    colnames(gt1) <- c("gene","probe")
+    gt1$probe <- as.character(gt1$probe)
+
+    # --- Genenames [] ---
+    # Key functions: getCurrentHumanMap, readRDS, checkGeneSymbols
+    #new.hgnc.table <- getCurrentHumanMap()
+    new.hgnc.table <- readRDS("../inst/extdata/new.hgnc.table.rds")
+    fix <- checkGeneSymbols(gt1$gene,map=new.hgnc.table)
+    fix2 <- fix[which(fix$x != fix$Suggested.Symbol),]
+    length(unique(fix2$x))
+    gt1$gene <- fix$Suggested.Symbol
+    head(gt1)
+
+    # --- Import1 [] ---
+    # Key functions: read.table
+    x <- read.table("https://ziemann-lab.net/public/gmea/dma3a.tsv",header=TRUE,row.names=1)
+    head(x)
+
+    # --- Import2 [] ---
+    # Key functions: mitch_import, limma
+    y <- mitch_import(x,DEtype="limma",geneTable=gt1)
+    head(y)
+    dim(y)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

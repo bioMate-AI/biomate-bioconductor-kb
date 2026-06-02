@@ -85,8 +85,6 @@ process BIOC_HDXMSQC {
     monoStat <- computeMonotoneStats(object = BRD4df_filtered_imputed,
                                      experiment = experiment,
                                      timepoints = timepoints)
-    out <- plotMonotoneStat(object = BRD4df_filtered_imputed,
-                                     experiment = experiment,
     # --- Code Block 13 [] ---
     # Key functions: imTimeOutlier, plotImTimeOutlier
     imTimeOut <- imTimeOutlier(object = BRD4df_filtered_imputed)
@@ -102,8 +100,6 @@ process BIOC_HDXMSQC {
     replicateVar <- replicateCorrelation(object = BRD4df_filtered_imputed,
                                          experiment = experiment,
                                          timepoints = timepoints)
-    replicateOut <- replicateOutlier(object = BRD4df_filtered_imputed,
-                                         experiment = experiment,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

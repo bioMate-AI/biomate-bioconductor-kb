@@ -44,8 +44,6 @@ process BIOC_RNAMODR_ML {
     # --- plot R O C [] ---
     # Key functions: plotROC, setMethod, find_mod_example, setClass
     plotROC(me, dmod)
-    setMethod(
-    signature = signature(x = "ModMLExample"),
     # --- plot Data By Coord [] ---
     # Key functions: plotDataByCoord, unlist, trainingData, ranger
     plotDataByCoord(sequenceData(me),mod[["4"]][1])
@@ -54,8 +52,6 @@ process BIOC_RNAMODR_ML {
     # --- plot R O C [] ---
     # Key functions: plotROC, setMethod, find_mod_example, modify
     plotROC(me2, dmod, score="score")
-    setMethod(
-    signature = signature(x = "ModMLExample"),
     # --- plot R O C [] ---
     # Key functions: plotROC
     plotROC(mse, dmod, score= "score",

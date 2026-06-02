@@ -117,8 +117,6 @@ process BIOC_SCREENCOUNTER {
     ---------------------------------------------------------------------
     # Mocking up a 8-bp random variable region.
     N <- 1000
-    randomized <- lapply(1:N, function(i) {
-        paste(sample(c("A", "C", "G", "T"), 8, replace=TRUE), collapse="")
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

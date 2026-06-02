@@ -65,7 +65,6 @@ process BIOC_EPISTASISGA {
     data(snp.annotations.mci)
     size3.combined.res <- combine.islands("size3_res", snp.annotations.mci,
                                           pp.list)
-    size4.combined.res <- combine.islands("size4_res", snp.annotations.mci,
     # --- Kable [] ---
     # Key functions: kable_styling, scroll_box
     ---------------------------------------------------------------------
@@ -77,16 +76,12 @@ process BIOC_EPISTASISGA {
     # Key functions: path, gadgets
     ---------------------------------------------------------------------
     #pre-process permuted data
-    preprocessed.lists <- lapply(seq_len(4), function(permutation){
-      exp.perm.file <- file.path("perm_data",
-                                 paste0("exposure.permute", permutation, ".rds"))
     # --- Lapply [] ---
     # Key functions: test
     ---------------------------------------------------------------------
     # chromosome size 3 results
     # function requires a list of vectors of
     # permutation based fitness scores
-    chrom3.perm.fs <- lapply(perm.res.list[[1]],
     # --- Vector [] ---
     # Key functions: path, test
     ---------------------------------------------------------------------

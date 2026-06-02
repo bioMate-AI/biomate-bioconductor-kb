@@ -41,11 +41,78 @@ process BIOC_KNOWYOURCG {
     library(knowYourCG)
     library(jsonlite)
 
-    # --- Feature metadata inspection [] ---
-    # Key functions: sesameDataCache, getDBs, testEnrichment, listDBGroups, rowData, buildGeneDBs, testGO, testProbeProximity
+
+    # --- Ky1 [] ---
+    # Key functions: sesameDataCache, genomeInfo.hg38, genomeInfo.mm10, probeIDSignature, getDBs
+    library(knowYourCG)
+    library(sesameData)
+    # --- Ky3 [] ---
+    # Key functions: testEnrichment, listDBGroups
+    dbs <- c("KYCG.MM285.chromHMM.20210210",
+             "KYCG.HM450.TFBSconsensus.20211013",
+             "KYCG.MM285.HMconsensus.20220116",
+             "KYCG.MM285.tissueSignature.20211211",
+             "KYCG.MM285.chromosome.mm10.20210630",
+             "KYCG.MM285.designGroup.20210210")
+    results_pgc <- testEnrichment(query,databases = dbs,platform="MM285")
+    head(results_pgc)
+    listDBGroups("MM285")
+
+    # --- Ky6 [] ---
+    # Key functions: getDBs, str
+    dbs <- getDBs("MM285.design")
+    str(dbs[["PGCMeth"]])
+
+    # --- Ky10 [] ---
+    # Key functions: rowData, sesameDataGet, testEnrichment, filter, select, fetal_brain, fetal_liver, B_cell
+    library(SummarizedExperiment)
+
+    ## prepare a query
+    df <- rowData(sesameDataGet('MM285.tissueSignature'))
+    query <- df$Probe_ID[df$branch == "fetal_brain" & df$type == "Hypo"]
+
+    results <- testEnrichment(query, "TFBS", platform="MM285")
+    results %>% dplyr::filter(overlap>10) %>% head
+
+    ## prepare another query
+    df <- rowData(sesameDataGet('MM285.tissueSignature'))
+    query <- df$Probe_ID[df$branch == "B_cell"]
+    head(query)
+
+    # --- Ky16 [] ---
+    # Key functions: sesameData_getProbesByGene, testEnrichment, buildGeneDBs, dbname, estimate, gene_name, overlap
+    library(knowYourCG)
+    library(sesameData)
+    library(SummarizedExperiment)
+    query <- names(sesameData_getProbesByGene("Dnmt3a", "MM285"))
+    results <- testEnrichment(query, 
+        buildGeneDBs(query, max_distance=100000, platform="MM285"),
+        platform="MM285")
+    main_stats <- c("dbname","estimate","gene_name","FDR", "nQ", "nD", "overlap")
+    results[,main_stats]
     query <- names(sesameData_getProbesByGene("Dnmt3a", "MM285"))
     dbs <- c("KYCG.MM285.chromHMM.20210210","KYCG.HM450.TFBSconsensus.20211013",
+             "KYCG.MM285.chromosome.mm10.20210630")
     results <- testEnrichment(query,databases=dbs,
+                              platform="MM285",include_genes=TRUE)
+    main_stats <- c("dbname","estimate","gene_name","FDR", "nQ", "nD", "overlap")
+    results[,main_stats] %>% 
+        head()
+
+    # --- Ky18 [] ---
+    # Key functions: rowData, sesameDataGet, testGO, fetal_liver, mmusculus, testProbeProximity, sessionInfo
+    library(gprofiler2)
+    df <- rowData(sesameDataGet('MM285.tissueSignature'))
+    query <- df$Probe_ID[df$branch == "fetal_liver" & df$type == "Hypo"]
+    res <- testGO(query, platform="MM285",organism = "mmusculus")
+    head(res$result)
+    df <- rowData(sesameDataGet('MM285.tissueSignature'))
+    probes <- df$Probe_ID[df$branch == "fetal_liver" & df$type == "Hypo"]
+    res <- testProbeProximity(probeIDs=probes)
+    head(res)
+
+    ## -----------------------------------------------------------------------------
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

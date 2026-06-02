@@ -71,18 +71,13 @@ process BIOC_RRHO {
     alpha<- 0.05
     # --- Function [] ---
     # Key functions: phyper
-    getPval<- function(count,m,n,k){
-      the.mean<- k*m/(m+n)
-      if(count<the.mean){
-        lower<- count
-        upper<- 2*the.mean-count
+
     # --- Frame [] ---
     # Key functions: frame, runif, RRHOComparison
     size<- 500
     list1<- data.frame(
       GeneIdentifier=paste('gen',1:size, sep=''),
       RankingVal=-log(runif(size)))
-    list2<- data.frame(
     # --- Levelplot [] ---
     # Key functions: levelplot
     ## The standard RRHO map between list1 and list 3.

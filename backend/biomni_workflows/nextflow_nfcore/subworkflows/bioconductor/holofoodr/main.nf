@@ -43,12 +43,10 @@ process BIOC_HOLOFOODR {
 
     # --- Retrieve data from repository [] ---
     # Key functions: getData
-    animal_data <- getData(
+
     # --- DoQuery analysis [] ---
     # Key functions: doQuery, getResult, MgnifyClient, searchAnalysis, experiments, getMetaboLights
     exps <- experiments(mae_metagenomic)
-    exps <- lapply(exps, function(x){
-    sample_id <- names(analysis_ids)[ match(colnames(x), analysis_ids) ]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

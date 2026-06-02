@@ -44,13 +44,9 @@ process BIOC_MULTIGSEA {
     # --- Slice coverage by threshold [] ---
     # Key functions: arrange, slice
     (here: transcriptome), feature IDs, log2FCs, and p-values
-    knitr::kable(
-    dplyr::arrange(Symbol) %>%
     # --- Table formatting and display [] ---
     # Key functions: install_github, kable, initOmicsDataStructure, getMultiOmicsFeatures, multiGSEA, extractPvalues, msigdbr, unstack
-    omics_data <- initOmicsDataStructure(layer = c(
-    omics_data$transcriptome <- rankFeatures(
-    names(omics_data$transcriptome) <- transcriptome$Symbol
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

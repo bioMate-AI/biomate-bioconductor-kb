@@ -38,8 +38,7 @@ process BIOC_DERFINDERHELPER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DataFrame)
-    library(PrintBibliography)
+    library(derfinderHelper)
     library(jsonlite)
 
 
@@ -57,23 +56,11 @@ process BIOC_DERFINDERHELPER {
     library("RefManageR")
 
     ## Write bibliography information
-    bib <- c(
-        derfinderHelper = citation("derfinderHelper")[1],
-        BiocStyle = citation("BiocStyle"),
-
     # --- 'create Data' [] ---
     # Key functions: suppressPackageStartupMessages, DataFrame, Rle, sample, rep, sample1, sample2, sample3
     ## Create some toy data
     suppressPackageStartupMessages(library("IRanges"))
     set.seed(20140923)
-    toyData <- DataFrame(
-        "sample1" = Rle(sample(0:10, 1000, TRUE)),
-        "sample2" = Rle(sample(0:10, 1000, TRUE)),
-        "sample3" = Rle(sample(0:10, 1000, TRUE)),
-        "sample4" = Rle(sample(0:10, 1000, TRUE)),
-        "sample5" = Rle(sample(0:15, 1000, TRUE)),
-        "sample6" = Rle(sample(0:15, 1000, TRUE)),
-
     # --- 'create Models' [] ---
     # Key functions: model.matrix
     ## Build the model matrices

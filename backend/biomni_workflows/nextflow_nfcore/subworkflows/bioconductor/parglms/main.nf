@@ -56,14 +56,10 @@ process BIOC_PARGLMS {
     waitForJobs(myr)
     # --- seqlevels Style [] ---
     # Key functions: seqlevelsStyle
-    litdec = function(grWithFDR) {
-    library(gQTLstats)
-    if (!exists("hmm878")) data(hmm878)
+
     # --- summary P G [] ---
     # Key functions: summaryPG
     prst$extractor = function(store,i) litdec(loadResult(store,i)[[1]])
-    p1 = parGLM( isGwasHit ~ hmmState, prst,
-    family=binomial, binit=rep(0,13), tol=.001,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -100,8 +100,6 @@ process BIOC_GRAPHITE {
     edges <- data.frame(src_type = "ENTREZID", src="672",
                         dest_type = "ENTREZID", dest="7157",
                         direction="undirected", type="binding")
-    edgemix <- data.frame(src_type = "CHEBI", src="77750",
-                        dest_type = "ENTREZID", dest="7157",
     # --- Para2 [] ---
     # Key functions: pathways, Do, convertIdentifiers
     ## original <- pathways("hsapiens", "reactome")

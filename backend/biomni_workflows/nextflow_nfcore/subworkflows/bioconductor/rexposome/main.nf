@@ -46,8 +46,6 @@ process BIOC_REXPOSOME {
     strat_variable <- "sex"
     formula <- cbmi ~ 1
     family <- "gaussian"
-    strat_ex <- lapply(levels(as.factor(pData(exp)[[strat_variable]])), function(i){
-          mask <- pData(exp)[[strat_variable]]==i
     # --- Path analysis [] ---
     # Key functions: path, package, readExposome, csv, loadExposome, sampleNames, exposureNames, fData
     path <- file.path(path.package("rexposome"), "extdata")

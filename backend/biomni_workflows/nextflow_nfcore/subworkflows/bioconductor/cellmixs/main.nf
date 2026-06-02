@@ -44,13 +44,9 @@ process BIOC_CELLMIXS {
     # --- Log-normalize count data [] ---
     # Key functions: reducedDimNames, cms, logNormCounts, removeBatchEffect, assay
     reducedDimNames(sce20)
-    sce20 <- cms(sce20, k = 30, group = "batch",
-    sce20 <- scater::logNormCounts(sce20)
     # --- VisGroup analysis [] ---
     # Key functions: visGroup, plot_grid, cms, visHist, map, bind_cols, visMetric, visOverview
     (Important: List names need to correspond to batch levels! See ?ldfDiff)
-    sce_pre_list <- list("1" = sce20[,sce20$batch == "1"],
-    sce20 <- ldfDiff(sce_pre_list, sce_combined = sce20,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

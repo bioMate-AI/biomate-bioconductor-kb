@@ -65,7 +65,6 @@ process BIOC_SEVENBRIDGES {
     #  install.packages("BiocManager")
     #  install.packages("readr")
     #
-    #  devtools::install_github(
     # --- Create Auth Object [] ---
     # Key functions: Auth
     ---------------------------------------------------------------------
@@ -121,9 +120,6 @@ process BIOC_SEVENBRIDGES {
     # Key functions: copy_app, project, app
     ---------------------------------------------------------------------
     #  # copy
-    #  a$copy_app(
-    #    id = "admin/sbg-public-data/rna-seq-alignment-star/5",
-    #    project = "RFranklin/api-testing", name = "new copy of star"
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

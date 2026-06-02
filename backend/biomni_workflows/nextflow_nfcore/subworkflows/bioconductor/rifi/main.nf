@@ -52,29 +52,23 @@ process BIOC_RIFI {
     probe <- check_input(inp = example_input_minimal, thrsh = 0)
     # --- make_df [] ---
     # Key functions: make_df
-    make_df(
-    head(rowRanges(probe))
+
     # --- segment_pos [] ---
     # Key functions: segment_pos
     probe <- segment_pos(inp = probe, dista = 300)
     head(rowRanges(probe))
     # --- finding PDD [] ---
     # Key functions: finding_PDD
-    finding_PDD(
-    head(rowRanges(probe))
+
     # --- finding TI [] ---
     # Key functions: finding_TI
-    finding_TI(
-    head(rowRanges(probe))
+
     # --- rifi preprocess [] ---
     # Key functions: rifi_preprocess
-    rifi_preprocess(
-    head(rowRanges(preprocess_minimal))
+
     # --- TI fit [] ---
     # Key functions: TI_fit
-    TI_fit(inp = preprocess_minimal,
-    k = seq(0, 1, by = 0.5),
-    decay = c(0.05, 0.1, 0.2, 0.5, 0.6),
+
     # --- plot nls2 [] ---
     # Key functions: plot_nls2_function
     plot_nls2_function(inp = probe_df)
@@ -84,25 +78,20 @@ process BIOC_RIFI {
     # --- make_pen [] ---
     # Key functions: make_pen
     data(fit_minimal)
-    make_pen(
-    pen_HL <- make_pen(
     # --- viz pen obj [] ---
     # Key functions: viz_pen_obj
     viz_pen_obj(obj = pen_delay, top_i = 10)
     # --- rifi fragmentation [] ---
     # Key functions: rifi_fragmentation
     data(penalties_minimal)
-    rifi_fragmentation(
     # --- fragment_delay [] ---
     # Key functions: fragment_delay
     data(fragmentation_minimal)
     data(penalties_minimal)
-    probe_df <- fragment_delay(
     # --- fragment HL [] ---
     # Key functions: fragment_HL
     data(fragmentation_minimal)
     data(penalties_minimal)
-    probe_df <- fragment_HL(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

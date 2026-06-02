@@ -41,9 +41,21 @@ process BIOC_SCCOMP {
     library(sccomp)
     library(jsonlite)
 
-    # --- As Tibble [] ---
-    # Key functions: as_tibble
-    ---------------------------------------------------------------------
+
+    # --- Eval = Instantiate::stan Cmdstan Exists() [] ---
+    # Key functions: sccomp_estimate, as_tibble
+    #  
+    #  res =
+    #      seurat_obj |>
+    #      sccomp_estimate(
+    #        formula_composition = ~ type + continuous_covariate,
+    #        .sample = sample, .cell_group = cell_group,
+    #        cores = 1, verbose=FALSE
+    #      )
+    #  
+    #  res
+
+    ## -----------------------------------------------------------------------------
     seurat_obj[[]] |> as_tibble()
 
     # --- Save outputs ---

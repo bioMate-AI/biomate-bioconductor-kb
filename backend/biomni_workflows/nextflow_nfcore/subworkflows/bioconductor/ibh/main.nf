@@ -71,7 +71,6 @@ process BIOC_IBH {
          "YBL072C", "YCL050C", "YCR009C"), list("YDR063W", "YDR074W",
          "YDR080W", "YDR247W", "YGR183C", "YHL033C"), list("YOL068C",
          "YOL015W", "YOL009C", "YOL004W", "YOR065W"))
-     ibhForMultipleGeneListsBioGRID(listofGeneList, organism = "yeast",
     # --- Ibhclusterevalexample [] ---
     # Key functions: exprs, dist, kmeans, ibhClusterEval
     require(yeastCC)

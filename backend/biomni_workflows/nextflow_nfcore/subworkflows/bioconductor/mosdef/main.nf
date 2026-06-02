@@ -55,15 +55,9 @@ process BIOC_MOSDEF {
     keep <- rowSums(counts(dds_macrophage) >= 10) >= 6
     dds_macrophage <- dds_macrophage[keep, ]
     dds_macrophage <- DESeq(dds_macrophage)
-    res_macrophage_IFNg_vs_naive <- results(dds_macrophage,
-                                            contrast = c("condition", "IFNg", "naive"),
     # --- Addsymbols [] ---
     # Key functions: mapIds
     res_macrophage_IFNg_vs_naive$symbol <-
-      AnnotationDbi::mapIds(org.Hs.eg.db,
-                            keys = row.names(res_macrophage_IFNg_vs_naive),
-                            column = "SYMBOL",
-                            keytype = "ENSEMBL",
     # --- Checkfunctions [] ---
     # Key functions: mosdef_de_container_check, mosdef_res_check
     mosdef_de_container_check(dds_macrophage)
@@ -71,17 +65,9 @@ process BIOC_MOSDEF {
     # --- Runtopgo [] ---
     # Key functions: run_topGO
     library("topGO")
-    res_enrich_macrophage_topGO <- run_topGO(
-      de_container = dds_macrophage,
-      res_de = res_macrophage_IFNg_vs_naive,
-      ontology = "BP",
     # --- Rungoseq [] ---
     # Key functions: run_goseq, of
-    goseq_macrophage <- run_goseq(
-      de_container = dds_macrophage,
-      res_de = res_macrophage_IFNg_vs_naive,
-      mapping = "org.Hs.eg.db",
-      testCats = "GO:BP" # which categories to test of ("GO:BP, "GO:MF", "GO:CC")
+
     # --- Resultsclupro [] ---
     # Key functions: data
     data(res_enrich_macrophage_cluPro, package = "mosdef")
@@ -91,7 +77,6 @@ process BIOC_MOSDEF {
     myde <- res_subset$id
     myassayed <- rownames(res_macrophage_IFNg_vs_naive)
     ## Here keys are Ensembl not symbols
-    res_enrich_macrophage_topGO_vec <- run_topGO(
     # --- Geneplot [] ---
     # Key functions: gene_plot
     gene_plot(
@@ -101,11 +86,7 @@ process BIOC_MOSDEF {
     )
     # --- Volcanoplot [] ---
     # Key functions: de_volcano
-    volcPlot <- de_volcano(
-      res_de = res_macrophage_IFNg_vs_naive,
-      mapping = "org.Hs.eg.db",
-      logfc_cutoff = 1,
-      FDR = 0.05,
+
     # --- Volcanocustom [] ---
     # Key functions: ggtitle, ylab, xlab, FoldChange
     library("ggplot2")
@@ -115,11 +96,7 @@ process BIOC_MOSDEF {
       xlab("Log 2 FoldChange (Cutoff 1/-1)")
     # --- Volcanogo [] ---
     # Key functions: go_volcano
-    Volc_GO <- go_volcano(
-      res_de = res_macrophage_IFNg_vs_naive,
-      res_enrich = res_enrich_macrophage_topGO,
-      term_index = 1,
-      logfc_cutoff = 1,
+
     # --- Maplot [] ---
     # Key functions: plot_ma
     maplot <- plot_ma(
@@ -129,18 +106,11 @@ process BIOC_MOSDEF {
     )
     # --- Maplotannotated [] ---
     # Key functions: plot_ma
-    maplot_genes <- plot_ma(
-      res_de = res_macrophage_IFNg_vs_naive,
-      FDR = 0.1,
-      add_rug = FALSE,
-      intgenes = c(
+
     # --- Runbuttonifier [] ---
     # Key functions: deresult_to_df, buttonifier
     # creating a smaller subset for visualization purposes and to keep the main res_de
     res_subset <- deresult_to_df(res_macrophage_IFNg_vs_naive, FDR = 0.05)[1:100, ]
-    buttonifier(
-      df = res_subset,
-      col_to_use = "symbol",
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

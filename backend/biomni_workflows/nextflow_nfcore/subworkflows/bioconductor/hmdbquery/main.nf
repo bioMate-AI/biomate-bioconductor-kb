@@ -41,11 +41,49 @@ process BIOC_HMDBQUERY {
     library(hmdbQuery)
     library(jsonlite)
 
-    # --- biospecimens [] ---
-    # Key functions: biospecimens, tissues
+
+    # --- Setu [] ---
+    # Key functions: suppressMessages, suppressPackageStartupMessages
+    suppressMessages({
+    suppressPackageStartupMessages({
+    library(hmdbQuery)
+    library(gwascat)
+    })
+    })
+
+    # --- Lk1 [] ---
+    # Key functions: HmdbEntry
+    library(hmdbQuery)
+    lk1 = HmdbEntry(prefix = "http://www.hmdb.ca/metabolites/", 
+           id = "HMDB0000001")
+
+    # --- Lk2 [] ---
+    # Key functions: hmdbquery
+    lk1
+
+    # --- Lkta [] ---
+    # Key functions: hmdbquery
+    data(hmdb_disease)
+    hmdb_disease
+
+    # --- Lkdis3 [] ---
+    # Key functions: diseases, unlist, pubmed, buildPubMedAbst, xmlRoot, references
+    d1 = diseases(lk1) # data.frame
+    pmids = unlist(d1["references", 5][[1]][2,])
+    library(annotate)
+    pm = pubmed(pmids[1])
+    ab = buildPubMedAbst(xmlRoot(pm)[[1]])
+    ab
+
+    # --- Lkdee [] ---
+    # Key functions: biospecimens, tissues, store, name, gene_name
     biospecimens(lk1)
     tissues(lk1)
     st = store(lk1)
+    head(names(st))
+    length(names(st))
+    st$protein_assoc["name",]
+    st$protein_assoc["gene_name",]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -44,10 +44,6 @@ process BIOC_GIGSEA {
     # --- Rungigsea [] ---
     # Key functions: runGIGSEA
     ---------------------------------------------------------------------
-    # runGIGSEA( MetaXcan="software/MetaXcan.py" ,
-    # model_db_path="eQTL/DGN-WB_0.5.db",
-    # covariance="reference/covariance.DGN-WB_0.5.txt.gz",
-    # gwas_folder="data/GWAS_summary", gwas_file_pattern="heart.sumstats",
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------

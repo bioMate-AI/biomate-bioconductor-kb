@@ -57,12 +57,10 @@ process BIOC_CYTOMDS {
     (chMarkers <- markerInfo$marker_name[chClass != "none"])
     # --- arcsinh Transform [] ---
     # Key functions: arcsinhTransform, transform, transformList
-    trans <- arcsinhTransform(
-    BCRXL_fs_trans <- transform(
-    transformList(chLabels, trans))
+
     # --- pairwise E M D Dist [] ---
     # Key functions: pairwiseEMDDist
-    pwDist <- pairwiseEMDDist(
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, geom_histogram, theme_bw
     distVec <- pwDist[upper.tri(pwDist)]
@@ -77,30 +75,25 @@ process BIOC_CYTOMDS {
     ggplotSampleMDS(mdsObj)
     # --- plotMDS colours shapes 1 2 [] ---
     # Key functions: ggplotSampleMDS
-    p12 <- ggplotSampleMDS(
-    projectionAxes = c(1,2),
+
     # --- plotMDS colours shapes 2 3 4 [] ---
     # Key functions: ggplotSampleMDS
-    p23 <- ggplotSampleMDS(
-    projectionAxes = c(2,3),
-    p34 <- ggplotSampleMDS(
+
     # --- ggplot Sample M D S Shepard [] ---
     # Key functions: ggplotSampleMDSShepard
     ggplotSampleMDSShepard(mdsObj)
     # --- compute Metric M D S [] ---
     # Key functions: computeMetricMDS, ggplotSampleMDS
     mdsObj2 <- CytoMDS::computeMetricMDS(pwDist, seed = 0, nDim = 2)
-    ggplotSampleMDS(mdsObj2,
-    projectionAxes = c(1,2),
     # --- ggplot Sample M D S Shepard [] ---
     # Key functions: ggplotSampleMDSShepard
     ggplotSampleMDSShepard(mdsObj3)
     # --- plotMDS medians [] ---
     # Key functions: channelSummaryStats
-    medians <- channelSummaryStats(BCRXL_fs_trans,
+
     # --- plotMDS biplot [] ---
     # Key functions: ggplotSampleMDS
-    ggplotSampleMDS(mdsObj,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

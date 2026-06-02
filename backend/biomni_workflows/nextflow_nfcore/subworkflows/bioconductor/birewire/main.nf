@@ -59,7 +59,6 @@ process BIOC_BIREWIRE {
     m.und<-get.adjacency(g.und,sparse=FALSE)
     step=100
     max=100*length(E(g.und))
-    scores.und<-birewire.analysis.undirected(m.und,step=step,
     # --- Rewire [] ---
     # Key functions: bipartite
     m2<-birewire.rewire.bipartite(BRCA_binary_matrix,verbose=FALSE)

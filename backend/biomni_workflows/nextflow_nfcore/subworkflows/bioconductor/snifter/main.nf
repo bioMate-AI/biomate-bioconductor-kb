@@ -55,7 +55,6 @@ process BIOC_SNIFTER {
     # Key functions: project, ggplot, geom_point, aes, scale_colour_discrete
     new_coords <- project(embedding, new = test_mat, old = train_mat)
     ggplot() +
-    geom_point(
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

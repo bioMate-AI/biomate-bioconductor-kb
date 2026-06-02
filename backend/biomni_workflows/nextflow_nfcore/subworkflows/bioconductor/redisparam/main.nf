@@ -41,9 +41,14 @@ process BIOC_REDISPARAM {
     library(RedisParam)
     library(jsonlite)
 
-    # --- Redisparam [] ---
-    # Key functions: RedisParam, bplapply, getpid, unlist
-    ---------------------------------------------------------------------
+
+    # --- Include = False [] ---
+    # Key functions: set, rpalive, RedisParam, bplapply, function, Sys.getpid, unlist
+    knitr::opts_chunk$set(
+        eval =  RedisParam::rpalive()
+    )
+
+    ## -----------------------------------------------------------------------------
     #  library(RedisParam)
     #  p <- RedisParam(workers = 5)
     #  result <- bplapply(1:7, function(i) Sys.getpid(), BPPARAM = p)

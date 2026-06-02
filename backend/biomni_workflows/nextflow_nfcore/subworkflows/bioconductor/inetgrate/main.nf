@@ -46,14 +46,13 @@ process BIOC_INETGRATE {
     tcgaAML <- downloaData(dataProject="TCGA-LAML", savePath=".")
     # --- i N E Tgrate [] ---
     # Key functions: iNETgrate
-    inetgrator <- iNETgrate(Data=toyRawAml, clinSettings=clinSettings,
+
     # --- clean All Data [] ---
     # Key functions: cleanAllData
-    cleanedToy <- cleanAllData(genExpr=toyRawAml$genExpr,
+
     # --- elect Genes [] ---
     # Key functions: electGenes
     data(toyCleanedAml)
-    elected <- electGenes(genExpr=cleaned$genExpr, dnam=cleaned$dnam,
     # --- computing eigenloci [] ---
     # Key functions: setNames, intersect, computEigenloci
     patientLabel <- setNames(as.character(cleaned$survival$Risk1),
@@ -61,18 +60,16 @@ process BIOC_INETGRATE {
     inBoth <- intersect(colnames(cleaned$dnam), names(patientLabel))
     # --- make Network [] ---
     # Key functions: makeNetwork
-    madeNet <- makeNetwork(genExpr=cleaned$genExpr, eigenloci=eigenloci,
-    print(madeNet$mu2modules[,1:5, drop=FALSE])
+
     # --- combining eigengenes [] ---
     # Key functions: computEigengenes
-    e1 <- computEigengenes(genExpr=cleaned$genExpr, eigenloci=eigenloci,
-    Label2="High", mus=c(0.6), combiningMu=NA,
+
     # --- analyze Survival [] ---
     # Key functions: analyzeSurvival
-    s1 <- analyzeSurvival(survival=cleaned$survival,
+
     # --- best Inetgrator [] ---
     # Key functions: bestInetgrator
-    inetgrator <- bestInetgrator(bestPvalues=s1$bestPvalues,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

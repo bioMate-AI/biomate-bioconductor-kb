@@ -74,7 +74,6 @@ process BIOC_METABOANNOTATION {
     parm <- Mass2MzRtParam(adducts = c("[M+H]+", "[M+Na]+"),
                            tolerance = 0.005, ppm = 0,
                            toleranceRt = 10)
-    matched_features <- matchValues(ms1_subset, target_df, param = parm,
     # --- Matcheddata [] ---
     # Key functions: matchedData, whichQuery
     ---------------------------------------------------------------------
@@ -83,9 +82,6 @@ process BIOC_METABOANNOTATION {
     # Key functions: SummarizedExperiment, rnorm
     ---------------------------------------------------------------------
     library(SummarizedExperiment)
-    se <- SummarizedExperiment(
-        assays = matrix(rnorm(nrow(ms1_features) * 4), ncol = 4,
-                        dimnames = list(NULL, c("A", "B", "C", "D"))),
     # --- Mass2 Mz Param [] ---
     # Key functions: Mass2MzParam, matchValues
     ---------------------------------------------------------------------

@@ -66,8 +66,7 @@ process BIOC_BETAHMM {
     head(dmr_df)
     # --- Identify Thresholds [] ---
     # Key functions: threshold_identification, threshold
-    threshold_out <- threshold_identification(pca_methylation_data[,1:5],
-    threshold(threshold_out)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

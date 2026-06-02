@@ -66,11 +66,7 @@ process BIOC_ALTCDFENVS {
       buildCdfEnv.biostrings(m, nrow.chip = 712, ncol.chip = 712)
     # --- Getseq [] ---
     # Key functions: getSequence, null
-    getSeq <- function(name) {
-      seq <- getSequence(id=name, type="hgnc_symbol",
-                         seqType="cdna", mart = mart)
-      targets <- seq$cdna
-      if (is.null(targets))
+
     # --- Matchaffyprobes [] ---
     # Key functions: matchAffyProbes
     m <- matchAffyProbes(hgu133aprobe, targets, "HG-U133A")

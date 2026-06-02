@@ -52,8 +52,7 @@ process BIOC_BPRMETH {
     basis_mean <- create_rbf_object(M = 0)
     # --- infer_profiles_vb [] ---
     # Key functions: infer_profiles_vb
-    fit_profiles <- infer_profiles_vb(X = met_region$met, model = "binomial",
-    fit_mean <- infer_profiles_vb(X = met_region$met, model = "binomial",
+
     # --- plot_infer_profiles [] ---
     # Key functions: plot_infer_profiles
     p <- plot_infer_profiles(region = 21, obj_prof = fit_profiles,
@@ -62,18 +61,13 @@ process BIOC_BPRMETH {
     # --- predict_expr [] ---
     # Key functions: predict_expr
     set.seed(22)
-    pred_profile <- predict_expr(prof_obj = fit_profiles, expr = expr,
-    pred_mean <- predict_expr(prof_obj = fit_mean, expr = expr,
     # --- plot_predicted_expr [] ---
     # Key functions: plot_predicted_expr, plot_grid
-    g1 <- plot_predicted_expr(pred_obj = pred_profile,
-    g2 <- plot_predicted_expr(pred_obj = pred_mean,
-    g <- cowplot::plot_grid(g1, g2, ncol = 2, nrow = 1)
+
     # --- create_rbf_object [] ---
     # Key functions: create_rbf_object, cluster_profiles_vb
     set.seed(12)
     basis_obj <- create_rbf_object(M = 3)
-    cl_obj <- cluster_profiles_vb(X = met_region$met, K = K, model = "binomial",
     # --- plot_cluster_profiles [] ---
     # Key functions: plot_cluster_profiles
     cluster_plot <- plot_cluster_profiles(cluster_obj = cl_obj)
@@ -81,18 +75,13 @@ process BIOC_BPRMETH {
     # --- infer profiles beta [] ---
     # Key functions: create_rbf_object, infer_profiles_mle, plot_infer_profiles
     basis_obj <- create_rbf_object(M = 5)
-    beta_prof <- infer_profiles_mle(X = beta_data, model = "beta",
-    p <- plot_infer_profiles(region = 15, obj_prof = beta_prof,
     # --- infer profiles bernoulli [] ---
     # Key functions: create_rbf_object, infer_profiles_vb, plot_infer_profiles
     basis_prof <- create_rbf_object(M = 5)
     basis_mean <- create_rbf_object(M = 0)
-    bern_prof <- infer_profiles_vb(X = bernoulli_data, model = "bernoulli",
     # --- cluster bernoulli [] ---
     # Key functions: cluster_profiles_vb, plot_cluster_profiles
-    cl_obj <- cluster_profiles_vb(X = bernoulli_data, K = 3, model = "bernoulli",
-    cluster_plot <- plot_cluster_profiles(cluster_obj = cl_obj)
-    print(cluster_plot)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

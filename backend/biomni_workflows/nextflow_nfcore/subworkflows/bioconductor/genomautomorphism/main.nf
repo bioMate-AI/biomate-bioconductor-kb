@@ -46,7 +46,7 @@ process BIOC_GENOMAUTOMORPHISM {
     base2int("ACGT", group = "Z4", cube = "ACGT")
     # --- codon_coord [] ---
     # Key functions: codon_coord
-    codons <- codon_coord(
+
     # --- D N A String Set [] ---
     # Key functions: DNAStringSet
     x0 <- c("ACG", "TGC")
@@ -61,17 +61,13 @@ process BIOC_GENOMAUTOMORPHISM {
     x3. <- codon_coord(codon = x2., group = "Z64")
     # --- automorphisms [] ---
     # Key functions: automorphisms
-    autm <- automorphisms(
-    cube = c("ACGT", "TGCA"),
-    cube_alt = c("CATG", "GTAC"),
+
     # --- automorphism By Ranges [] ---
     # Key functions: automorphismByRanges
     aut_range <- automorphismByRanges(autm)
     # --- aut 1 [] ---
     # Key functions: automorphisms
-    covid_autm <- automorphisms(
-    cube = c("ACGT", "TGCA"),
-    cube_alt = c("CATG", "GTAC"),
+
     # --- range 2 [] ---
     # Key functions: automorphismByRanges
     aut_range <- automorphismByRanges(covid_autm)
@@ -86,7 +82,6 @@ process BIOC_GENOMAUTOMORPHISM {
     # Key functions: automorphism_prob
     post_prob <- automorphism_prob(autby_coef)
     names(counts) <- post_prob$Codon
-    par(family = "serif", cex.axis = 2, font = 2, las = 1,
     # --- conserved regions [] ---
     # Key functions: conserved_regions
     conserv <- conserved_regions(covid_autm)
@@ -95,9 +90,7 @@ process BIOC_GENOMAUTOMORPHISM {
     conserv_unique <- conserved_regions(covid_autm, output = "unique")
     # --- aut 2 [] ---
     # Key functions: automorphisms
-    autm_z125 <- automorphisms(
-    cube = c("ACGT", "TGCA"),
-    cube_alt = c("CATG", "GTAC"),
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

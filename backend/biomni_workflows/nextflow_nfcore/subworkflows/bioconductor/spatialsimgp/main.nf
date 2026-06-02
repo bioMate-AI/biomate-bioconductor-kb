@@ -45,9 +45,6 @@ process BIOC_SPATIALSIMGP {
     # Key functions: Visium_mouseCoronal, colData, ifelse, spatialCoords
     ---------------------------------------------------------------------
     spe_demo <- Visium_mouseCoronal()
-    colData(spe_demo)$subset <- ifelse(
-       colData(spe_demo)$array_row > 20 &
-       colData(spe_demo)$array_row < 65 &
     # --- Frame [] ---
     # Key functions: frame, spatialCoords, counts, ggplot, aes, geom_point, coord_fixed
     ---------------------------------------------------------------------

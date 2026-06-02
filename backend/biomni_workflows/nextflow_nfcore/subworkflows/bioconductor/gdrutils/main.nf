@@ -85,9 +85,6 @@ process BIOC_GDRUTILS {
     # Key functions: validate_identifiers
     ---------------------------------------------------------------------
     # Example data.table
-    dt <- data.table::data.table(
-      Barcode = c("A1", "A2", "A3"),
-      Duration = c(24, 48, 72),
     # --- Validate Mae [] ---
     # Key functions: validate_MAE
     ---------------------------------------------------------------------

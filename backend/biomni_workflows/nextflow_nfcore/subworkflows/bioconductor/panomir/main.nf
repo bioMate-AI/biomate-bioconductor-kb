@@ -48,23 +48,17 @@ process BIOC_PANOMIR {
     data("miniTestsPanomiR")
     # --- differential Pathway Analysis [] ---
     # Key functions: differentialPathwayAnalysis
-    output0 <- differentialPathwayAnalysis(
-    head(de.paths,3)
+
     # --- mapping Pathways Clusters [] ---
     # Key functions: mappingPathwaysClusters
     set.seed(2)
-    pathwayClustsLIHC <- mappingPathwaysClusters(
-    head(pathwayClustsLIHC$Clustering)
     # --- prioritize Micro R N A [] ---
     # Key functions: prioritizeMicroRNA
     set.seed(1)
-    output2 <- prioritizeMicroRNA(enriches0 = miniTestsPanomiR$miniEnrich,
-    method = c("aggInv"),
     # --- customized mir [] ---
     # Key functions: miRNAPathwayEnrichment
     data("msigdb_c2")
     data("targetScan_03")
-    customeTableEnrich <- miRNAPathwayEnrichment(mirSets = targetScan_03,
     # --- customized mir2 [] ---
     # Key functions: miRNAPathwayEnrichment
     data("msigdb_c2")

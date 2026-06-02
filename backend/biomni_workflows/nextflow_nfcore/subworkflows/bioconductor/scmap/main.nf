@@ -67,10 +67,6 @@ process BIOC_SCMAP {
     # --- Scmapcluster [] ---
     # Key functions: scmapCluster, metadata
     ---------------------------------------------------------------------
-    scmapCluster_results <- scmapCluster(
-      projection = sce,
-      index_list = list(
-        yan = metadata(sce)$scmap_cluster_index
     # --- Dim [] ---
     # Key functions: metadata
     ---------------------------------------------------------------------
@@ -79,17 +75,9 @@ process BIOC_SCMAP {
     # --- Scmapcell [] ---
     # Key functions: scmapCell, metadata
     ---------------------------------------------------------------------
-    scmapCell_results <- scmapCell(
-      sce,
-      list(
-        yan = metadata(sce)$scmap_cell_index
     # --- scmap Cell2 Cluster [] ---
     # Key functions: scmapCell2Cluster, colData
     ---------------------------------------------------------------------
-    scmapCell_clusters <- scmapCell2Cluster(
-      scmapCell_results,
-      list(
-        as.character(colData(sce)$cell_type1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

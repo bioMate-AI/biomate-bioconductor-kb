@@ -69,17 +69,10 @@ process BIOC_SEVENC {
     # --- Glm [] ---
     # Key functions: glm, mcols, binomial
     ---------------------------------------------------------------------
-    fit <- glm(
-      formula = loop ~ cor_chip + dist + strandOrientation,
-      data = mcols(gi),
-      family = binomial()
     # --- Predloops [] ---
     # Key functions: predLoops, coef
     ---------------------------------------------------------------------
     # add predict loops
-    gi <- predLoops(
-      gi,
-      formula = loop ~ cor_chip + dist + strandOrientation,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

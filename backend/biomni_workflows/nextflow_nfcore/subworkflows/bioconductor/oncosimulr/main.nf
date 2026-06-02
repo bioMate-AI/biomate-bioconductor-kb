@@ -43,9 +43,7 @@ process BIOC_ONCOSIMULR {
 
     # --- Filter by row sum threshold [] ---
     # Key functions: rowSums
-    clonal_interf_per_time <- function(x) {
-    shannon <- apply(y, 1, OncoSimulR:::shannonI)
-    tot <- rowSums(y)
+
     # --- RNGkind analysis [] ---
     # Key functions: include_graphics, RNGkind, simOGraph, oncoSimulPop, samplePop, allFitnessEffects, allMutatorEffects, evalAllGenotypesFitAndMut
     evalAllGenotypes(afeT2, spPopSizes = c(100,10,10), currentTime = 49)[c(2,3), ]

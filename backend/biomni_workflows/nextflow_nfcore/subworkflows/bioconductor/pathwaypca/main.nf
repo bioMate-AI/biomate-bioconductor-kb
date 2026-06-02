@@ -46,8 +46,7 @@ process BIOC_PATHWAYPCA {
 
     # --- Data import and preprocessing [] ---
     # Key functions: url
-    ovCNV_aespcOut <- readRDS(
-    url(paste0(gitHubPath_char, "ovarian_copyNum_aespcOut.RDS"))
+
     # --- Custom ggplot2 visualization [] ---
     # Key functions: ggplot, theme_bw, aes, geom_col, geom_text, labs, theme_classic, geom_histogram
     ggplot(wp195gather_df, aes(x = protein, y = sampleID)) +
@@ -55,9 +54,7 @@ process BIOC_PATHWAYPCA {
     scale_fill_gradient2(low = "red", mid = "black", high = "green") +
     # --- DownloadPathwayArchive analysis [] ---
     # Key functions: downloadPathwayArchive, read_gmt, CreateOmics, AESPCA_pVals, getPathpVals, getPathPCLs, arrange, SubsetPathwayData
-    kidneyWP1559_df <- bind_cols(
-    getPathPCLs(kidney_aespcOut, "WP1559")$PCs %>% select(PC1 = V1)
-    mutate(direction = ifelse(PC1 > median(PC1), "High", "Low")) %>%
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

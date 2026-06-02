@@ -46,7 +46,7 @@ process BIOC_METHREG {
     png::readPNG("workflow_methReg.png") %>% grid::grid.raster()
     # --- plot interaction model [] ---
     # Key functions: plot_interaction_model
-    plots <- plot_interaction_model(
+
     # --- read P N G [] ---
     # Key functions: readPNG
     png::readPNG("scenarios.png")  %>% grid::grid.raster()

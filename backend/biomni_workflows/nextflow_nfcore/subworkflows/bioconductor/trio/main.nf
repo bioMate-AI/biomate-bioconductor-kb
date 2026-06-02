@@ -53,7 +53,6 @@ process BIOC_TRIO {
     trio.impu <- trio.prepare(trio.dat=trio.tmp, blocks=c(1,4,2,3), logic=TRUE)
     str(trio.impu, max=2)
     trio.impu$freq[1:7,]
-    sim <- trio.sim(freq=trio.impu$freq, interaction="1R and 5R", prev=.001, OR=2,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

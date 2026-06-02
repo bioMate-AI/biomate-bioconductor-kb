@@ -92,16 +92,11 @@ process BIOC_CITEFUSE {
     # Key functions: DEgenes, selectDEgenes, datatable, call, metadata
     ---------------------------------------------------------------------
     # DE will be performed for RNA if altExp_name = "none"
-    sce_citeseq <- DEgenes(sce_citeseq,
-                           altExp_name = "none",
-                           group = sce_citeseq$SNF_W_louvain,
     # --- Data [] ---
     # Key functions: normaliseExprs, ligandReceptorTest
     ---------------------------------------------------------------------
     data("lr_pair_subset", package = "CiteFuse")
     head(lr_pair_subset)
-    sce_citeseq <- normaliseExprs(sce = sce_citeseq,
-                                  altExp_name = "ADT",
     # --- Data [] ---
     # Key functions: data
     ---------------------------------------------------------------------
@@ -109,10 +104,6 @@ process BIOC_CITEFUSE {
     # --- Visualiseexprslist [] ---
     # Key functions: visualiseExprsList
     ---------------------------------------------------------------------
-    visualiseExprsList(sce_list = list(control = sce_citeseq,
-                                       ctcl = sce_ctcl_subset),
-                       plot = "boxplot",
-                       altExp_name = "none",
     # --- Degenescross [] ---
     # Key functions: DEgenesCross, selectDEgenes
     ---------------------------------------------------------------------

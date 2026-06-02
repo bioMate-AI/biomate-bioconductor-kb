@@ -52,11 +52,7 @@ process BIOC_FLOWBIN {
     fsApply(fs1, function(x){x@parameters@data[,'desc']})
     # --- Stagex [] ---
     # Key functions: new, show
-    aml.sample <- new('FlowSample',
-    				  			name='Example flowSample',
-                                tube.set=as.list(fs1@frames),
-                                control.tubes=c(1),
-                                bin.pars=c(1,2,5),
+
     # --- Examinetubes [] ---
     # Key functions: set, show, exprs
     data(amlsample)
@@ -77,10 +73,6 @@ process BIOC_FLOWBIN {
     # --- Stage2 [] ---
     # Key functions: checkQNorm
     qnorm.check <- checkQNorm(aml.sample, normed.sample, do.plot=F)
-    plot(qnorm.check$sd.before, type='l', lwd=2,
-    	 ylim=c(0, max(qnorm.check$sd.before)),
-    	 xlab='Tubes',
-    	 ylab='Standard deviation of bin densities',
     # --- Flowbinrun [] ---
     # Key functions: flowBin
     tube.combined <- flowBin(tube.list=aml.sample@tube.set,

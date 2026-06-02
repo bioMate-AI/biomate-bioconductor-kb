@@ -47,7 +47,6 @@ process BIOC_GENEEXPRESSIONSIGNATURE {
     # Key functions: getGEO, getRLs
     GSM118720 <- getGEO('GSM118720')
     GSM118721 <- getGEO('GSM118721')
-    if (require(GEOquery)){
     # --- show [] ---
     # Key functions: show, exprs
     data(exampleSet)
@@ -72,9 +71,7 @@ process BIOC_GENEEXPRESSIONSIGNATURE {
     ds <- ScorePGSEA(MergingSet,250,"avg")
     # --- apcluster [] ---
     # Key functions: apcluster, show
-    if (require(apcluster)){
-    library(apcluster)
-    clusterResult <- apcluster(1 - ds)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

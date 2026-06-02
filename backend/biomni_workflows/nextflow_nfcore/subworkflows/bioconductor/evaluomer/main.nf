@@ -41,11 +41,40 @@ process BIOC_EVALUOMER {
     library(evaluomeR)
     library(jsonlite)
 
-    # --- Assay data access [] ---
-    # Key functions: metricsCorrelations, assay, stability, kable_styling, scroll_box, diff, stabilityRange, qualityRange
-    stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4),
+
+    # --- Get Optimal Kvalue [] ---
+    # Key functions: stabilityRange, qualityRange, getOptimalKValue, kable_styling, scroll_box, striped, hover, condensed
+    stabilityData <- stabilityRange(data=ontMetrics, k.range=c(2,4), 
+                                    bs=20, getImages = FALSE, seed=100)
     qualityData <- qualityRange(data=ontMetrics, k.range=c(2,4),
+                                getImages = FALSE, seed=100)
+
     kOptTable <- getOptimalKValue(stabilityData, qualityData)
+
+    ## ----getOptimalKValue-table, results='asis', echo=FALSE-----------------------
+    data <- kOptTable
+    kable(data) %>%
+      kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>%
+      scroll_box(width = "100%", height = "150px")
+
+    ## ----getOptimalKValue-delimited, results='hide', eval=TRUE, echo=TRUE---------
+    kOptTable <- getOptimalKValue(stabilityData, qualityData, k.range=c(3,4))
+
+    # --- Plot Metrics Min Max [] ---
+    # Key functions: plotMetricsMinMax
+    plotMetricsMinMax(ontMetrics)
+
+    # --- Plot Metrics Boxplot [] ---
+    # Key functions: plotMetricsBoxplot
+    plotMetricsBoxplot(rnaMetrics)
+
+    # --- Plot Metrics Cluster [] ---
+    # Key functions: plotMetricsCluster
+    plotMetricsCluster(ontMetrics)
+
+    # --- Plot Metrics Violin [] ---
+    # Key functions: plotMetricsViolin
+    plotMetricsViolin(rnaMetrics)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -60,8 +60,6 @@ process BIOC_DEGRAPH {
     prop <- 0.2
     ## Multivariate tests
     resList <- NULL
-    for (ii in seq(along=grList)) {
-      gr <- grList[[ii]]
     # --- Path1 [] ---
     # Key functions: translateKEGGID2GeneID, nodes, plotValuedGraph, stext, signif
     gIdx <- fSignif[1]

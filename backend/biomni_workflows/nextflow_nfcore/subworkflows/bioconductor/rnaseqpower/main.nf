@@ -45,9 +45,6 @@ process BIOC_RNASEQPOWER {
     # Key functions: dimnames
     options(width=60, continue=" ")
     options(SweaveHooks=list(fig=function() par(mar=c(5.1, 4.1, .3, 1.1))))
-    latex.list <- function(mat, digits=2, label= TRUE, ...) {
-        dname <- dimnames(mat)
-        if (length(dname[[2]]) & label)
     # --- Rnapower [] ---
     # Key functions: rnapower
     library(RNASeqPower)

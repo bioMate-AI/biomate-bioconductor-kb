@@ -39,7 +39,6 @@ process BIOC_MZR {
     """
     #!/usr/bin/env Rscript
     library(mzR)
-    library(msdata)
     library(jsonlite)
 
 

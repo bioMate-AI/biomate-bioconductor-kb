@@ -41,11 +41,56 @@ process BIOC_INFINITYFLOW {
     library(infinityFlow)
     library(jsonlite)
 
-    # --- pipeline execution [] ---
-    # Key functions: infinity_flow
-    imputed_data <- infinity_flow(
-    head(list.files(path_to_fcs)) ## Input files
-    fcs_raw <- file.path(path_to_output, "FCS", "split")
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+    library(infinityFlow)
+    data(steady_state_lung)
+
+    # --- Load Example [] ---
+    # Key functions: tempdir, write.flowSet, list.files, infinity_flow_example, fcs
+    dir <- file.path(tempdir(), "infinity_flow_example")
+    print(dir)
+    input_dir <- file.path(dir, "fcs")
+    write.flowSet(steady_state_lung, outdir = input_dir) ## Omit this if you already have FCS files
+    list.files(input_dir)
+    data(steady_state_lung_annotation)
+    print(steady_state_lung_annotation)
+
+    # --- Backbone Specification Input [] ---
+    # Key functions: backbone_selection_file.csv
+    data(steady_state_lung_backbone_specification)
+    print(head(steady_state_lung_backbone_specification))
+    write.csv(steady_state_lung_backbone_specification, file = file.path(dir, "backbone_selection_file.csv"), row.names = FALSE)
+
+    # --- Inspect Input Directory [] ---
+    # Key functions: list.files, fcs
+    list.files(dir)
+    path_to_fcs <- file.path(dir, "fcs")
+    head(list.files(path_to_fcs, pattern = ".fcs"))
+
+    # --- Output Path Argument [] ---
+    # Key functions: output, list.files, backbone_selection_file.csv
+    path_to_output <- file.path(dir, "output")
+    list.files(dir)
+    backbone_selection_file <- file.path(dir, "backbone_selection_file.csv")
+    head(read.csv(backbone_selection_file))
+
+    # --- Targets And Isotypes Arguments [] ---
+    # Key functions: infinityflow
+    targets <- steady_state_lung_annotation$Infinity_target
+    names(targets) <- rownames(steady_state_lung_annotation)
+    isotypes <- steady_state_lung_annotation$Infinity_isotype
+    names(isotypes) <- rownames(steady_state_lung_annotation)
+    head(targets)
+    head(isotypes)
+    input_events_downsampling <- 1000
+    prediction_events_downsampling <- 500
+    cores = 1L
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

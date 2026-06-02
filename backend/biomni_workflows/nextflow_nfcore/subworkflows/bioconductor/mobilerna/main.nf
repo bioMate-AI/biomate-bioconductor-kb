@@ -50,9 +50,6 @@ process BIOC_MOBILERNA {
     # Key functions: RNAdistribution
     ---------------------------------------------------------------------
     # plot each replicate as a line, separately, and facet
-    sample_distribution_line <- RNAdistribution(sRNA_data,
-                                                style = "line",
-                                                overlap =  FALSE,
     # --- Rnafeatures [] ---
     # Key functions: RNAfeatures, plotRNAfeatures
     ---------------------------------------------------------------------

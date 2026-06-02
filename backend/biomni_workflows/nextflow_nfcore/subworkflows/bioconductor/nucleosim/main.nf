@@ -45,17 +45,13 @@ process BIOC_NUCLEOSIM {
     # Key functions: syntheticNucMapFromDist
     nuc.len          <- 147        ### Length of the nucleosome (default: 147)
     lin.len          <- 20         ### Length of the DNA linker (default: 20)
-    nucleosomeMap <- syntheticNucMapFromDist(wp.num=wp.num, wp.del=wp.del,
     # --- synthetic Nuc Reads From Dist [] ---
     # Key functions: syntheticNucReadsFromDist
     nuc.len          <- 147           ### Length of the nucleosome (default: 147)
     lin.len          <- 20            ### Length of the DNA linker (default: 20)
-    nucleosomeSample <- syntheticNucReadsFromDist(wp.num=wp.num, wp.del=wp.del,
     # --- synthetic Nuc Reads From Map [] ---
     # Key functions: syntheticNucReadsFromMap
     class(nucleosomeMap)
-    nucleosomeSampleFromMap <- syntheticNucReadsFromMap(nucleosomeMap,
-    head(nucleosomeSampleFromMap$dataIP, n = 2)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,16 +38,61 @@ process BIOC_IMMUNOCLUST {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ApplyToData)
+    library(immunoClust)
     library(jsonlite)
 
-    # --- Process analysis [] ---
-    # Key functions: data, process, ApplyToData, splom, clusters, mu, addLevel, move
+
+    # --- Stage1data [] ---
+    # Key functions: cell.process
+    data(dat.fcs)
+    dat.fcs
+    pars=c("FSC-A","SSC-A","FITC-A","PE-A","APC-A","APC-Cy7-A","Pacific Blue-A")
+    res.fcs <- cell.process(dat.fcs, parameters=pars)
+
+    # --- Stage1summary [] ---
+    # Key functions: summary, cell.process
+    summary(res.fcs)
+    res2 <- cell.process(dat.fcs, bias=0.25)
+    summary(res2)
+
+    # --- Stage1trans [] ---
+    # Key functions: trans.ApplyToData, splom
+    dat.transformed <- trans.ApplyToData(res.fcs, dat.fcs)
+    splom(res.fcs, dat.transformed, N=1000)
+
+    # --- Stage1plot [] ---
+    # Key functions: meta.process
+    plot(res.fcs, data=dat.transformed, subset=c(1,2))
+    data(dat.exp)
+    meta<-meta.process(dat.exp, meta.bias=0.3)
+
+    # --- Stage2plot1 [] ---
+    # Key functions: clusters, addLevel, move, unclassified, leucocytes
+    plot(meta, c(), plot.subset=c(1,2))
+    cls <- clusters(meta,c())
+    inc <- mu(meta,cls,1) > 20000 & mu(meta,cls,1) < 150000
+    addLevel(meta,c(1),"leucocytes") <- cls[inc]
+
+    cls <- clusters(meta,c(1))
+    sort(mu(meta,cls,2))
+    inc <- (mu(meta,cls,2)) < 40000
+    addLevel(meta,c(1,1), "ly") <- cls[inc]
+    addLevel(meta,c(1,2), "mo") <- c()
+    inc <- (mu(meta,cls,2)) > 100000
+
+    # --- Stage2plot2 [] ---
+    # Key functions: clusters, addLevel, unclassified
+    plot(meta, c(1))
     cls <- clusters(meta,c(1,1))
     sort(mu(meta,cls,7))   ## CD3 expression
     sort(mu(meta,cls,6))   ## CD4 expression
     inc <- mu(meta,cls,7) > 5 & mu(meta,cls,6) > 4
     addLevel(meta,c(1,1,1), "CD3+CD4+") <- cls[inc]
+    inc <- mu(meta,cls,7) > 5 & mu(meta,cls,6) < 4
+    addLevel(meta,c(1,1,2), "CD3+CD4-") <- cls[inc]
+    cls <- unclassified(meta,c(1,1))
+    inc <- (mu(meta,cls,4)) > 3
+    addLevel(meta,c(1,1,3), "CD19+") <- cls[inc]
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

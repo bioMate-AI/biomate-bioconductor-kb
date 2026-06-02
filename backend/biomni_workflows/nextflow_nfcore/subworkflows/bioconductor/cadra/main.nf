@@ -48,7 +48,7 @@ process BIOC_CADRA {
     load_all()
     # --- candidate_search [] ---
     # Key functions: candidate_search
-    candidate_search_res <- CaDrA::candidate_search(
+
     # --- topn_best [] ---
     # Key functions: topn_best, meta_plot, CaDrA
     topn_best_meta <- CaDrA::topn_best(topn_list = candidate_search_res)

@@ -49,9 +49,7 @@ process BIOC_CHIPSEQ {
     filter <- compose(chipseqFilter(), alignQualityFilter(15))
     # --- Create GenomicRanges object [] ---
     # Key functions: GenomicRangesList, GRanges
-    cstest <- GenomicRangesList(lapply(cstest, function(gd)
-    do.call(c, lapply(names(gd), function(chr)
-    starts <- c( pos[["-"]] - 23L, pos[["+"]])
+
     # --- estimate.mean.fraglen [] ---
     # Key functions: slice, viewSums, viewMaxs, resize
     fraglen <- estimate.mean.fraglen(cstest$ctcf, method="correlation")

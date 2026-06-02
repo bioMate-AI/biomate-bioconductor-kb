@@ -50,10 +50,6 @@ process BIOC_STRUCT {
     # --- Datasetexperiment [] ---
     # Key functions: DatasetExperiment, frame
     ---------------------------------------------------------------------
-    DE = DatasetExperiment(
-      data = iris[,1:4],
-      sample_meta=iris[,5,drop=FALSE],
-      variable_meta=data.frame('idx'=1:4,row.names=colnames(data)),
     # --- Iris Datasetexperiment [] ---
     # Key functions: iris_DatasetExperiment
     ---------------------------------------------------------------------
@@ -63,9 +59,6 @@ process BIOC_STRUCT {
     # Key functions: set_struct_obj
     ---------------------------------------------------------------------
     # mean centre object
-    mean_centre = set_struct_obj(
-      class_name = 'mean_centre',
-      struct_obj = 'model',
     # --- Mean Centre [] ---
     # Key functions: mean_centre, PCA
     ---------------------------------------------------------------------
@@ -77,9 +70,6 @@ process BIOC_STRUCT {
     # Key functions: set_obj_method, colMeans, int
     ---------------------------------------------------------------------
     # mean centre training
-    set_obj_method(
-      class_name = 'mean_centre',
-      method_name = 'model_train',
     # --- Mean Centre [] ---
     # Key functions: mean_centre, model_train, iris_DatasetExperiment, model_predict, colMeans
     ---------------------------------------------------------------------
@@ -91,9 +81,6 @@ process BIOC_STRUCT {
     # Key functions: set_obj_method, svd, frame
     ---------------------------------------------------------------------
     # PCA training
-    set_obj_method(
-      class_name = 'PCA',
-      method_name = 'model_train',
     # --- Model Apply [] ---
     # Key functions: model_apply
     ---------------------------------------------------------------------
@@ -136,9 +123,6 @@ process BIOC_STRUCT {
     # Key functions: set_struct_obj
     ---------------------------------------------------------------------
     # new chart object
-    set_struct_obj(
-      class_name = 'pca_scores_plot',
-      struct_obj = 'chart',
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

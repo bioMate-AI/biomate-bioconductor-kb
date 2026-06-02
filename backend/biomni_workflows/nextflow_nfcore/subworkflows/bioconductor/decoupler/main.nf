@@ -44,8 +44,6 @@ process BIOC_DECOUPLER {
     # --- Plot hierarchical clustering heatmap [] ---
     # Key functions: pheatmap, pivot_wider_profile
     filter(statistic=='consensus') %>%
-    pivot_wider_profile(id_cols = source, names_from = condition,
-    as.matrix()
     # --- Toy data analysis [] ---
     # Key functions: get_toy_data, run_fgsea, run_ulm, decouple, PrintBibliography
     res_gsea <- run_fgsea(mat, network, .source='source', .target='target', nproc=1, minsize = 0)

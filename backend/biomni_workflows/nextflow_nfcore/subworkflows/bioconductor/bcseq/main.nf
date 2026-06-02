@@ -41,11 +41,48 @@ process BIOC_BCSEQ {
     library(bcSeq)
     library(jsonlite)
 
-    # --- BcSeq hamming analysis [] ---
-    # Key functions: bcSeq_hamming, bcSeq_edit, rep, sourceCpp, toLatex
+
+    # --- Setup2 [] ---
+    # Key functions: bcseq
+    options(width=80)  # make the printing fit on the page
+    set.seed(1121)     # make the results repeatable
+    stdt<-date()
+
+    # --- Genlib [] ---
+    # Key functions: rep, for, sample, write
+    lFName    <- "./libFile.fasta"
     bases     <- c(rep('A', 4), rep('C',4), rep('G',4), rep('T',4))
+    numOfBars <- 7
     Barcodes  <- rep(NA, numOfBars*2)
     for (i in 1:numOfBars){
+        Barcodes[2*i-1] <- paste0(">barcode_ID: ", i)
+        Barcodes[2*i]   <- paste(sample(bases, length(bases)), collapse = '')
+    }
+    write(Barcodes, lFName)
+
+    # --- Gen Read [] ---
+    # Key functions: rep, for, sample, rawToChar, as.raw, write
+    rFName     <- "./readFile.fastq"
+    numOfReads <- 8
+    Reads      <- rep(NA, numOfReads*4)
+    # --- Default Align [] ---
+    # Key functions: bcseq
+    library(Matrix)
+    library(bcSeq)
+    ReadFile <- "./readFile.fastq"
+    BarFile  <- "./libFile.fasta"
+    outFile  <- "./count.csv"
+
+    # --- Cust Align2 [] ---
+    # Key functions: bcseq
+    outFile  <- "./count2.csv"
+
+    # --- Comtomize Pf [] ---
+    # Key functions: function
+    customizeP <- function(max_pen, prob, pen_val)
+    {
+        prob * (1 - log(2) + log(1 + max_pen / (max_pen + pen_val) ) )
+    }
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

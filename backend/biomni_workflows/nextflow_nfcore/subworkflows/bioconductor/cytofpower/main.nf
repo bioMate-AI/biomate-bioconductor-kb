@@ -41,10 +41,13 @@ process BIOC_CYTOFPOWER {
     library(CyTOFpower)
     library(jsonlite)
 
-    # --- Cy T O Fpower [] ---
-    # Key functions: CyTOFpower
-    library(CyTOFpower)
-    CyTOFpower()
+
+    # --- Include=false [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

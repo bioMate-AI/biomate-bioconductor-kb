@@ -47,12 +47,9 @@ process BIOC_DEARSEQ {
     # Key functions: getGEO, Meta
     library(GEOquery)
     GSE107991_metadata <- GEOquery::getGEO("GSE107991", GSEMatrix = FALSE)
-    get_info <- function(i){
     # --- London [] ---
     # Key functions: getGEOSuppFiles, read_excel
     library(readxl)
-    GEOquery::getGEOSuppFiles('GSE107991',
-    London <- readxl::read_excel("GSE107991/GSE107991_edgeR_normalized_Berry_London.xlsx")
     # --- LR ST echo [] ---
     # Key functions: SummarizedExperiment, dear_seq
     library(dearseq)
@@ -62,7 +59,6 @@ process BIOC_DEARSEQ {
     # Key functions: getGEOSuppFiles, read_excel, SummarizedExperiment, ifelse, DGEList
     library(readxl)
     library(edgeR)
-    GEOquery::getGEOSuppFiles('GSE107991',
     # --- Create SummarizedExperiment [] ---
     # Key functions: SummarizedExperiment, dgsa_seq
     library(dearseq)

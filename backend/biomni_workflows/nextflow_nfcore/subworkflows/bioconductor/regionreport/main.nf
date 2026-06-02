@@ -47,15 +47,10 @@ process BIOC_REGIONREPORT {
     ## Load bumphunter
     library("bumphunter")
     ## Create data from the vignette
-    pos <- list(
-        pos1 = seq(1, 1000, 35),
     # --- 'Buildgranges' [] ---
     # Key functions: GRanges, IRanges, seqlengths, getChromInfoFromUCSC
     library("GenomicRanges")
     ## Build GRanges with sequence lengths
-    regions <- GRanges(
-        seqnames = tab$table$chr,
-        IRanges(start = tab$table$start, end = tab$table$end),
     # --- 'Reproducibility' [] ---
     # Key functions: time, session_info
     ## Date generated:

@@ -41,13 +41,28 @@ process BIOC_GGSPAVIS {
     library(ggspavis)
     library(jsonlite)
 
-    # --- Addpercellqcmetrics [] ---
-    # Key functions: addPerCellQCMetrics, rowData, colData
-    ---------------------------------------------------------------------
-    # calculate QC metrics using scater
-    spe <- addPerCellQCMetrics(spe,
-      subsets = list(mito = grepl("(^MT-)|(^mt-)", rowData(spe)$gene_name)))
-    # apply QC thresholds
+
+    # --- Out Width="60%" [] ---
+    # Key functions: plotSpotQC, scatter, subsets_mito_percent
+    plotSpotQC(spe, plot_type = "scatter", 
+               x_metric = "subsets_mito_percent", y_metric = "sum", 
+               x_threshold = 30, y_threshold = 400)
+
+    # --- Warning=false [] ---
+    # Key functions: rowData, rowSums, counts, plotFeatureQC, sessionInfo, histogram, feature_sum, low_abundance
+    rowData(spe)$feature_sum <- rowSums(counts(spe))
+    rowData(spe)$low_abundance <- rowSums(counts(spe) > 0) < 20
+
+    p1 <- plotFeatureQC(spe, plot_type = "histogram", 
+                        x_metric = "feature_sum", annotate = "low_abundance")
+    p2 <- plotFeatureQC(spe, plot_type = "violin", 
+                        x_metric = "feature_sum", annotate = "low_abundance")
+
+    # display panels using patchwork
+    p1 | p2
+
+    ## -----------------------------------------------------------------------------
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

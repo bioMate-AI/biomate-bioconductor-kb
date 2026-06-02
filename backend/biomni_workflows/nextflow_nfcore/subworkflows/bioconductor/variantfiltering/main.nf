@@ -74,11 +74,7 @@ process BIOC_VARIANTFILTERING {
     summary(uind, method="SOfull")
     # --- Function [] ---
     # Key functions: start, allVariants, filters, active
-    startLost <- function(x) {
-      mask <- start(allVariants(x, groupBy="nothing")$CDSLOC) == 1 &
-              as.character(allVariants(x, groupBy="nothing")$REFCODON) == "ATG" &
-              as.character(allVariants(x, groupBy="nothing")$VARCODON) != "ATG"
-      mask
+
     # --- Active [] ---
     # Key functions: active, filters, cutoffs, change
     active(filters(uind)) <- FALSE

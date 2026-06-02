@@ -62,25 +62,14 @@ process BIOC_RUVNORMALIZE {
     kmres <- kmeans(Y[, ssd[1:nKeep], drop=FALSE], centers=2, nstart=200)
     # --- Uncorrectedplot [] ---
     # Key functions: svdPlot
-    svdResUncorr <- svdPlot(Y[, ssd[1:nKeep], drop=FALSE],
-                            annot=annot,
-                            labels=lab.and.region,
-                            svdRes=NULL,
-                            plAnnots=plAnnots,
+
     # --- Mc [] ---
     # Key functions: scale, kmeans, clScore
     ## Centering by region-lab
     YmeanCorr <- Y
-    for(rr in unique(lregions)){
-      for(ll in unique(llabs)){
-        YmeanCorr[(lregions==rr)&(llabs==ll),] <- scale(YmeanCorr[(lregions==rr)&(llabs==ll),],scale=FALSE)
     # --- Mcplot [] ---
     # Key functions: svdPlot
-    svdResMC <- svdPlot(YmeanCorr[, ssd[1:nKeep], drop=FALSE],
-                        annot=annot,
-                        labels=lab.and.region,
-                        svdRes=NULL,
-                        plAnnots=plAnnots,
+
     # --- Nsruv2 [] ---
     # Key functions: naiveRandRUV, kmeans, clScore
     ## Naive RUV-2 no shrinkage
@@ -90,11 +79,7 @@ process BIOC_RUVNORMALIZE {
     sdY <- apply(nsY, 2, sd)
     # --- svd Plot [] ---
     # Key functions: svdPlot
-    svdRes2ns <- svdPlot(nsY[, ssd[1:nKeep], drop=FALSE],
-                         annot=annot,
-                         labels=lab.and.region,
-                         svdRes=NULL,
-                         plAnnots=plAnnots,
+
     # --- Sruv2 [] ---
     # Key functions: naiveRandRUV, kmeans, clScore
     ## Naive RUV-2 + shrinkage
@@ -104,11 +89,7 @@ process BIOC_RUVNORMALIZE {
     sdY <- apply(nY, 2, sd)
     # --- svd Plot [] ---
     # Key functions: svdPlot
-    svdRes2 <- svdPlot(nY[, ssd[1:nKeep], drop=FALSE],
-                         annot=annot,
-                         labels=lab.and.region,
-                         svdRes=NULL,
-                         plAnnots=plAnnots,
+
     # --- Rep [] ---
     # Key functions: naiveReplicateRUV, kmeans, clScore
     ## Replicate-based
@@ -118,25 +99,13 @@ process BIOC_RUVNORMALIZE {
     kmresRep <- kmeans(sRes$cY[,ssd[1:nKeep],drop=FALSE],centers=2,nstart=200)
     # --- Repplot [] ---
     # Key functions: svdPlot
-    svdResRep <- svdPlot(sRes$cY[, ssd[1:nKeep], drop=FALSE],
-                         annot=annot,
-                         labels=lab.and.region,
-                         svdRes=NULL,
-                         plAnnots=plAnnots,
+
     # --- Rep Iter [] ---
     # Key functions: iterativeRUV
-    if (require(spams)){
-      ## Iterative replicate-based
-      cEps <- 1e-6
-      maxIter <- 30
-      p <- 20
+
     # --- Ridge Iter [] ---
     # Key functions: iterativeRUV
-    if (require(spams)){
-      ## Iterated ridge
-      paramXb <- list()
-      paramXb$K <- p
-      paramXb$D <- matrix(c(0.),nrow = 0,ncol=0)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -45,9 +45,6 @@ process BIOC_GLAD {
     # Key functions: profileCGH, glad
     data(snijders)
     profileCGH <- as.profileCGH(gm13330)
-    res <- glad(profileCGH, mediancenter=FALSE,
-                    smoothfunc="lawsglad", bandwidth=10, round=1.5,
-                    model="Gaussian", lkern="Exponential", qlambda=0.999,
     # --- Data [] ---
     # Key functions: plotProfile
     data(cytoband)
@@ -56,9 +53,6 @@ process BIOC_GLAD {
     # Key functions: profileCGH, daglad
     data(veltman)
     profileCGH <- as.profileCGH(P9)
-    profileCGH <- daglad(profileCGH, mediancenter=FALSE, normalrefcenter=FALSE, genomestep=FALSE,
-                         smoothfunc="lawsglad", lkern="Exponential", model="Gaussian",
-                         qlambda=0.999,  bandwidth=10, base=FALSE, round=1.5,
     # --- Plotprofile [] ---
     # Key functions: plotProfile
     plotProfile(profileCGH, Smoothing="Smoothing", Bkp=TRUE, plotband=FALSE, cytoband = cytoband)
@@ -68,9 +62,6 @@ process BIOC_GLAD {
     # Key functions: profileCGH, daglad
     data(veltman)
     profileCGH <- as.profileCGH(P9)
-    profileCGH <- daglad(profileCGH, mediancenter=FALSE, normalrefcenter=FALSE, genomestep=FALSE,
-                         smoothfunc="lawsglad", lkern="Exponential", model="Gaussian",
-                         qlambda=0.999,  bandwidth=10, base=FALSE, round=1.5,
     # --- Plotprofile [] ---
     # Key functions: plotProfile
     plotProfile(profileCGH, Smoothing="Smoothing", Bkp=TRUE, plotband=FALSE, cytoband = cytoband)
@@ -92,9 +83,6 @@ process BIOC_GLAD {
     # Key functions: profileCGH, glad
     data(snijders)
     profileCGH <- as.profileCGH(gm13330)
-    res <- glad(profileCGH, mediancenter=FALSE,
-                    smoothfunc="lawsglad", bandwidth=10, round=2,
-                    model="Gaussian", lkern="Exponential", qlambda=0.999,
     # --- Plotprofile [] ---
     # Key functions: plotProfile
     plotProfile(res, unit=3, Bkp=TRUE, labels=FALSE, Smoothing="Smoothing", plotband=FALSE, cytoband = cytoband)

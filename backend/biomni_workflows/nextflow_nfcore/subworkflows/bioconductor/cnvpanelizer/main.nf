@@ -38,21 +38,65 @@ process BIOC_CNVPANELIZER {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(BedToGenomicRanges)
-    library(BootList)
-    library(CombinedNormalizedCounts)
-    library(PlotBootstrapDistributions)
-    library(ReadCountsFromBam)
-    library(ReportTables)
-    library(RunCNVPanelizerShiny)
-    library(WriteListToXLSX)
+    library(CNVPanelizer)
     library(jsonlite)
 
-    # --- BedToGenomicRanges analysis [] ---
-    # Key functions: BedToGenomicRanges, elementMetadata, ReadCountsFromBam, CombinedNormalizedCounts, BootList, ReportTables, WriteListToXLSX, PlotBootstrapDistributions
-    dir.create(outputDirectory, recursive = TRUE)
-    reportTablesFilepath <- file.path(outputDirectory, "report_tables.xlsx")
-    WriteListToXLSX(reportTables, reportTablesFilepath)
+
+    # --- Loading Synthetic Data [] ---
+    # Key functions: row.names
+    data(sampleReadCounts)
+    data(referenceReadCounts)
+
+    # Gene names should be same size as row columns
+    # For real data this is a vector of the genes associated
+    # with each row/amplicon. For example Gene1, Gene1, Gene2, Gene2, Gene3, ...
+    geneNames <- row.names(referenceReadCounts)
+
+    # Not defined for synthetic data
+    # For real data this gives a unique name to each amplicon.
+
+    # --- Normalized Read Counts [] ---
+    # Key functions: CombinedNormalizedCounts, samples, reference
+    normalizedReadCounts <- CombinedNormalizedCounts(sampleReadCounts,
+                                                     referenceReadCounts,
+                                                     ampliconNames = ampliconNames)
+
+    # After normalization data sets need to be splitted again to perform bootstrap
+    samplesNormalizedReadCounts = normalizedReadCounts["samples"][[1]]
+    referenceNormalizedReadCounts = normalizedReadCounts["reference"][[1]]
+
+    # --- Number Of Replicates [] ---
+    # Key functions: cnvpanelizer
+    # Number of bootstrap replicates to be used
+    replicates <- 10000
+
+    # --- Boot List [] ---
+    # Key functions: BootList
+    # Perform the bootstrap based analysis
+    bootList <- BootList(geneNames,
+                         samplesNormalizedReadCounts,
+                         referenceNormalizedReadCounts,
+                         replicates = replicates)
+
+    # --- Background Noise [] ---
+    # Key functions: Background
+    # Estimate the background noise left after normalization
+    backgroundNoise <- Background(geneNames,
+                                  samplesNormalizedReadCounts,
+                                  referenceNormalizedReadCounts,
+                                  bootList,
+                                  replicates = replicates,
+                                  significanceLevel = 0.1,
+                                  robust = TRUE)
+
+    # --- Report Tables [] ---
+    # Key functions: ReportTables
+    # Build report tables
+    reportTables <- ReportTables(geneNames,
+                                 samplesNormalizedReadCounts,
+                                 referenceNormalizedReadCounts,
+                                 bootList,
+                                 backgroundNoise)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

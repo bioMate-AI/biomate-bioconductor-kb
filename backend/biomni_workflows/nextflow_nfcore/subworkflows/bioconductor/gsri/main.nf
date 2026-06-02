@@ -115,10 +115,6 @@ process BIOC_GSRI {
     # --- Limmatest [] ---
     # Key functions: lmFit, eBayes, gsri
     library(limma)
-    limmaTest <- function(exprs, groups, id, index, testArgs) {
-        design <- cbind(offset=1, diff=groups)
-        fit <- lmFit(exprs[ ,index], design)
-        fit <- eBayes(fit)
     # --- Plot1 [] ---
     # Key functions: getOption
     getOption("SweaveHooks")[["fig"]]()

@@ -67,7 +67,6 @@ process BIOC_COGAPS {
     # --- Cogaps Params [] ---
     # Key functions: CogapsParams
     library(CoGAPS)
-    pdac_params <- CogapsParams(nIterations=50000, # 50000 iterations
     # --- distributed params [] ---
     # Key functions: setDistributedParams
     pdac_params <- setDistributedParams(pdac_params, nSets=7)
@@ -90,12 +89,10 @@ process BIOC_COGAPS {
     pm <- patternMarkers(cogapsresult)
     # --- get hallmarks [] ---
     # Key functions: getPatternGeneSet
-    hallmark_ls <- list(
-    "HALLMARK_ALLOGRAFT_REJECTION" = c(
-    "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION" = c(
+
     # --- plot hallmarks [] ---
     # Key functions: plotPatternGeneSet
-    pl_pattern7 <- plotPatternGeneSet(
+
     # --- MANOVA variables [] ---
     # Key functions: MANOVA
     interestedVariables <- cbind(pdac_data@meta.data[["nCount_RNA"]], pdac_data@meta.data[["nFeature_RNA"]])

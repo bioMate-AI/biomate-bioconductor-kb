@@ -45,20 +45,19 @@ process BIOC_HUMMINGBIRD {
     # Key functions: SummarizedExperiment
     assaysControl <- list(normM = normM, normUM = normUM)
     assaysCase <- list(abnormM = abnormM, abnormUM = abnormUM)
-    exampleSEControl <- SummarizedExperiment(assaysControl,
     # --- sampleDataset pos [] ---
     # Key functions: rowRanges
     rowRanges(exampleSEControl)
     rowRanges(exampleSECase)
     # --- hummingbird em [] ---
     # Key functions: hummingbirdEM
-    emInfo <- hummingbirdEM(experimentInfoControl = exampleSEControl,
+
     # --- hummingbird postAdjustment [] ---
     # Key functions: hummingbirdPostAdjustment
-    postAdjInfo <- hummingbirdPostAdjustment(
+
     # --- hummingbird graph [] ---
     # Key functions: hummingbirdGraph
-    hummingbirdGraph(experimentInfoControl = exampleSEControl,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

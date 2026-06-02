@@ -43,12 +43,11 @@ process BIOC_VASP {
 
     # --- splice Plot [] ---
     # Key functions: splicePlot
-    splicePlot(rice.bg,gene='MSTRG.183',samples = sampleNames(rice.bg)[c(1,3,5)],
+
     # --- get Depth [] ---
     # Key functions: getDepth, plotBedgraph, labelgenome
     path <- system.file("extdata", package = "VaSP")
     bam_files <- list.files(path, "*.bam$")
-    depth <- getDepth(file.path(path, bam_files[1]), "Chr1", start = 1171800,
     # --- get Geneinfo [] ---
     # Key functions: getGeneinfo, plotGenes
     unique(geneIDs(rice.bg))

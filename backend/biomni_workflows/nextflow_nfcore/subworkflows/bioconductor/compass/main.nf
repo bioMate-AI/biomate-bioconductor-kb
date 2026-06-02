@@ -38,17 +38,26 @@ process BIOC_COMPASS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(COMPASSContainer)
-    library(FunctionalityScore)
-    library(PolyfunctionalityScore)
-    library(Posterior)
+    library(COMPASS)
     library(jsonlite)
 
-    # --- Rep len analysis [] ---
-    # Key functions: rep_len, replicate, rexp, setNames, COMPASSContainer, FunctionalityScore, PolyfunctionalityScore, Posterior
-    counts <- sapply(data, nrow) + round( rnorm(n, 1E4, 1E3) )
-    counts <- setNames( as.integer(counts), names(counts) )
-    head(counts)
+
+    # --- Citation [] ---
+    # Key functions: function, tryCatch, unlist, attr, unclass, cite_package, biotechnology, textVersion
+    cite_package <- function(...) {
+      tryCatch({
+        args <- unlist( list(...) )
+        cites <- lapply(args, citation)
+        txt <- sapply(cites, function(x) {
+          attr( unclass(x)[[1]], "textVersion" )
+        })
+        return(txt[order(txt)])
+      }, error=function(e) NULL
+      )
+    }
+    citations <- cite_package("COMPASS", "flowWorkspace", "openCyto", "base")
+    citations <- c("Lin, L. Finak, G. Ushey, K. Seshadri C. et al. COMPASS identifies T-cell subsets correlated with clinical outcomes. Nature biotechnology (2015). doi:10.1038/nbt.3187", citations[1:2],"Greg Finak, Andrew McDavid, Pratip Chattopadhyay, Maria Dominguez, Steve De Rosa, Mario Roederer, Raphael Gottardo. Mixture models for single-cell assays with applications to vaccine studies. Biostatistics 2014 Jan;15(1):87-101",citations[3:4])
+    invisible(lapply(citations, function(x) cat(x, "\n\n")))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

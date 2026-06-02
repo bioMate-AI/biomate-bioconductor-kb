@@ -79,16 +79,11 @@ process BIOC_PATHNET {
     # Key functions: PathNet
     # Note we use a subset of evidence and a small number of
     # permutations for demonstration purposes
-    results <- PathNet(Enrichment_Analysis = TRUE,
-            DirectEvidence_info = brain_regions[1:2000,],
-            Adjacency = A,
     # --- Contextual Analysis [] ---
     # Key functions: PathNet
     # Perform a contextual analysis with pathway enrichment
     # Note we use a subset of evidence and a small number of
     # permutations for demonstration purposes
-    results <- PathNet(Enrichment_Analysis = FALSE,
-            Contextual_Analysis= TRUE,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

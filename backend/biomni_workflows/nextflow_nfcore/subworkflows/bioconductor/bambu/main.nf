@@ -110,9 +110,6 @@ process BIOC_BAMBU {
     # Key functions: DEXSeqDataSet, assays, frame, colData, rowData, DEXSeq
     ---------------------------------------------------------------------
     library(DEXSeq)
-    dxd <- DEXSeqDataSet(countData = round(assays(se.multiSample)$counts),
-    sampleData = as.data.frame(colData(se.multiSample)),
-    design = ~sample + exon + condition:exon,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

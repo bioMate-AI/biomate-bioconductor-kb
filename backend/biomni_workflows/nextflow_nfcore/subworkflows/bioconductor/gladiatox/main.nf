@@ -41,9 +41,96 @@ process BIOC_GLADIATOX {
     library(GladiaTOX)
     library(jsonlite)
 
-    # --- fig=TRUE [] ---
-    # Key functions: gtoxPlotPlate
+
+    # --- Eval=true [] ---
+    # Key functions: getwd, glPlotPieLogo, sql, gladiatoxdb.sqlite, gtoxConf
+    # Load GladiaTOX package and setup an output directory
+    # Change outdir accordingly to the folder path you want the reports to be saved
+    library(GladiaTOX)
+    outdir <- getwd()
+    glPlotPieLogo()
+    sqlite_src <- file.path(system.file(package="GladiaTOX"), "sql",
+                            "gladiatoxdb.sqlite")
+    # sqlite database location
+    gtoxConf(   drvr = "SQLite",
+                host = NA,
+                user = NA,
+                pass = NULL,
+                db = sqlite_src)
+
+    # --- Eval=true [] ---
+    # Key functions: gtoxLoadAsid, load, extdata, data_for_vignette.rda
+    # List available studies
+    gtoxLoadAsid()
+    load(system.file("extdata", "data_for_vignette.rda", package="GladiaTOX"))
+    print(head(plate), row.names = FALSE)
+    print(head(chnmap, 7), row.names = FALSE)
+
+    # --- Eval=true [] ---
+    # Key functions: gtoxRun, gtoxLoadAeid, function, tryCatch, gtoxCalcVmad, asid
+    print(head(dat), row.names = FALSE)
+    ## Set study parameters
+    std.nm <- "SampleStudy" # study name
+    phs.nm <- "PhaseII" # study phase
+    # Run level 1 to level 3 functions
+    res <- gtoxRun(asid = asid, slvl = 1, elvl = 3, mc.cores = 2)
+    # Extract assay endpoints ids of the study
+    aeids <- gtoxLoadAeid(fld = "asid", val = asid)$aeid
+    # Compute Vehicle Median Absolute deviation
+    tmp <- mapply(function(xx){
+        tryCatch(gtoxCalcVmad(inputs = xx, aeid = xx, 
+        notes = "computed within study"), 
+        error = function(e) NULL)},
+        as.integer(aeids))
+
+    # --- Include=true [] ---
+    # Key functions: gtoxRun, gtoxReport, damage, gtoxLoadAcid, gtoxLoadApid, gtoxLoadData, asid, acnm
+    # Apply all functions from level 1 to level 6
+    res <- gtoxRun(asid = asid, slvl = 1, elvl = 6, mc.cores = 2)
+    ## QC report
+    gtoxReport(type = "qc", asid = asid, report_author = "report author",
+    report_title = "Vignette QC report", odir = outdir)
+    # Define assay component and extract assay component ID
+    acnm <- "DNA damage (pH2AX)_DNA damage (pH2AX)_4h"
+    acid <- gtoxLoadAcid(fld=c("asid", "acnm"), val=list(asid,acnm))[, acid]
+    # Extract assay plate ID corresponding to plate name S-000031351
+    apid <- gtoxLoadApid()[u_boxtrack == "S-000031351", apid]
+    # Load level 2 data (Raw data before normalization)
+    l2 <- gtoxLoadData(lvl = 2L, fld = "acid", val = acid)
     gtoxPlotPlate(dat = l2, apid = apid, id = acid)
+
+    # --- Eval=true [] ---
+    # Key functions: gtoxLoadAeid, gtoxLoadWaid, gtoxLoadData, acid, analysis_direction, apid, wllt, spid
+    # Extract assay endpoint ID
+    aeid <- gtoxLoadAeid(fld = c("acid", "analysis_direction"), 
+                            val = list(acid, "up"))[, aeid]
+    # Extract sample ID
+    spid <- gtoxLoadWaid(fld = c("apid", "wllt"), 
+                            val = list(apid, "c"))[,unique(spid)]
+    # Collect level 4 data (normalized data)
+    m4id <- gtoxLoadData(lvl = 4L, fld = c("spid", "aeid"), 
+                            val = list(spid, aeid))[, m4id]
+    gtoxPlotM4ID(m4id = m4id, lvl = 6, bline = "coff")
+    apid <- gtoxLoadApid()[u_boxtrack%in%"S-000030318", apid] # plate id
+    waids <- gtoxLoadWaid(fld="apid", val=apid)$waid #well ids
+    m0ids <- gtoxLoadData(lvl = 0, fld = "waid", val = waids)$m0id # raw data ids
+    gtoxSetWllq(ids = m0ids, wllq = 0, type = "mc") # set well quality to zero
+    ## Processing report
+    gtoxReport(type = "all", asid = asid, report_author = "report author",
+    report_title = "Vignette Processing report", odir = outdir)
+
+    # --- Eval=true [] ---
+    # Key functions: gtoxLoadAeid, damage, gtoxLoadData, asid, aenm, chromium, gtoxPlotM4ID, coff
+    ## Endpoint to plot
+    aeids <- gtoxLoadAeid(fld=c("asid", "aenm"),
+    val=list(asid, "DNA damage (pH2AX)_DNA damage (pH2AX)_24h_up"),
+    add.fld="asid")$aeid
+    ## level 4 id to plot
+    m4id <- gtoxLoadData(lvl=4L)[(aeid==aeids & grepl("chromium", spid))]$m4id[1]
+    gtoxPlotM4ID(m4id = m4id, lvl = 6, bline = "coff")
+    chnms <- c("mercury", "o-cresol", "p-cresol")
+    glPlotPie(asid, chnms = chnms)
+    glPlotToxInd(asid)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

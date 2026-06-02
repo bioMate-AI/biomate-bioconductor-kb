@@ -49,11 +49,7 @@ process BIOC_CHIPCOMP {
     design=confs$design
     # --- Frame [] ---
     # Key functions: frame, factor
-    conf=data.frame(
-    SampleID=1:4,
-    condition=c("Helas3","Helas3","K562","K562"),
-    factor=c("H3k27ac","H3k27ac","H3k27ac","H3k27ac"),
-    ipReads=system.file("extdata",c("Helas3.ip1.bed","Helas3.ip2.bed","K562.ip1.bed","K562.ip2.bed"),package="ChIPComp"),
+
     # --- Makecountset [] ---
     # Key functions: makeCountSet
     countSet=makeCountSet(conf,design,filetype="bed", species="hg19",binsize=1000)

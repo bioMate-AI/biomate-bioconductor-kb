@@ -75,9 +75,7 @@ process BIOC_VARIANTANNOTATION {
     geom_density(alpha=0.5) +
     # --- Define Genomic Regions for Subsetting [] ---
     # Key functions: GRanges
-    rng <- GRanges(seqnames="22", ranges=IRanges(
-    start=c(50301422, 50989541),
-    end=c(50312106, 51001328),
+
     # --- Import VCF Subset via Tabix [] ---
     # Key functions: TabixFile, readVcf
     tab <- TabixFile(fl)

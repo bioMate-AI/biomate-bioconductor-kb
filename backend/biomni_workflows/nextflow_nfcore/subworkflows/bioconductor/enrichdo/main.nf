@@ -41,11 +41,45 @@ process BIOC_ENRICHDO {
     library(EnrichDO)
     library(jsonlite)
 
-    # --- label=init [] ---
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+
+    # --- Label=init [] ---
     # Key functions: doEnrich, show
     demo.data=c(1636,351,102,2932,3077,348,4137,54209,5663,5328,23621,3416,3553)
     demo_result<-doEnrich(interestGenes=demo.data)
     show(demo_result)
+
+    # --- Eval=true [] ---
+    # Key functions: showDoTerms, doEnrich, fisherTest, holm
+    head(doterms)
+    showDoTerms(doterms)
+
+    ## -----------------------------------------------------------------------------
+    weighted_demo<-doEnrich(interestGenes=demo.data,
+                               test="fisherTest",
+                               method="holm",
+                               m=1,
+                               minGsize=10,
+                               maxGsize=2000,
+                               delta=0.05,
+                               penalize=TRUE)
+
+    ## -----------------------------------------------------------------------------
+    penalF_demo<-doEnrich(interestGenes=demo.data, penalize=FALSE)
+
+    # --- Eval=true [] ---
+    # Key functions: writeDoTerms, tempdir, doterms.txt
+    writeDoTerms(doterms,file=file.path(tempdir(), "doterms.txt"))
+
+    # --- Eval=true [] ---
+    # Key functions: writeResult, tempdir, result.txt
+    writeResult(EnrichResult = demo_result,file=file.path(tempdir(), "result.txt"), Q=1, P=1)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

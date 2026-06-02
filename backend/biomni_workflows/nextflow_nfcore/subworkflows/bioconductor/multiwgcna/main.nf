@@ -38,16 +38,67 @@ process BIOC_MULTIWGCNA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(ExperimentHub)
+    library(multiWGCNA)
     library(jsonlite)
 
-    # --- Load Microarray Data [] ---
-    # Key functions: ExperimentHub, query, colData, assays, 1, 2
-    ---------------------------------------------------------------------
-    # Download data from the ExperimentHub
-    library(ExperimentHub)
-    eh = ExperimentHub()
-    # Note: this requires the SummarizedExperiment package to be installed
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+
+    # --- Eval = False [] ---
+    # Key functions: networks, constructNetworks, signed, unsigned
+    #  # Construct the combined networks and all the sub-networks (EAE, WT, and each region)
+    #  # Same parameters as Tommasini and Fogel. BMC Bioinformatics
+    #  astrocyte_networks = constructNetworks(astrocyte_se, sampleTable, conditions1, conditions2,
+    #                                    networkType = "signed", TOMType = "unsigned",
+    #                                    power = 12, minModuleSize = 100, maxBlockSize = 25000,
+    #                                    reassignThreshold = 0, minKMEtoStay = 0, mergeCutHeight = 0,
+    #                                    numericLabels = TRUE, pamRespectsDendro = FALSE,
+    #                                    deepSplit = 4, verbose = 3)
+    #  
+
+    ## -----------------------------------------------------------------------------
+    # Load pre-computed astrocyte networks
+    astrocyte_networks = eh_query[["EH8222"]] 
+
+    # Check one of the WGCNA objects
+
+    # --- Eval = True [] ---
+    # Key functions: function, PreservationScoreDistribution, interest
+    # Load pre-computed results
+    data(permutationTestResults) 
+
+    # Remove outlier modules
+    permutationTestResultsFiltered = lapply(permutationTestResults, function(x) x[!x$is.outlier.module,])
+
+    # Extract the preservation score distribution
+    results$scores.summary = PreservationScoreDistribution(permutationTestResultsFiltered, 
+                                                           moduleOfInterestSize = 303 # The size of the module of interest (dM15)
+                                                           )
+
+    # Observed preservation score of dM15
+    observed.score = 9.16261490617938
+
+    # How many times did we observe a score lower than or equal to this observed score?
+
+    # --- Eval = True [] ---
+    # Key functions: geom_vline, scale_y_continuous, element_text, sessionInfo, black, white, red3, solid
+    # Plot on a histogram
+    ggplot(results$scores.summary, aes(x=z.summary)) + 
+          geom_histogram(color="black", fill="white", bins = 15)+
+          xlab("Preservation score")+
+          ylab("Frequency")+
+          geom_vline(xintercept=observed.score, color="red3", linetype="solid")+
+          scale_y_continuous(expand = c(0,0))+
+          theme_classic()+
+          theme(plot.title = element_text(hjust = 0.5))
+
+    ## -----------------------------------------------------------------------------
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

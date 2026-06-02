@@ -47,7 +47,6 @@ process BIOC_NUCPOS {
     HBA(inseq = inseq, species = "sc")
     for(i in 1:3) cat(substr(inseq, start = (i-1)*60+1,
         stop = (i-1)*60+60), "\n")
-    load(system.file("extdata", "INSEQ_DNAString.RData",
     # --- Nucpos Intro.Rnw:135 139 [] ---
     # Key functions: localHBA
     localHBA(inseq = inseq, species = "sc")

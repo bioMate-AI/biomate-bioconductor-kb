@@ -82,7 +82,6 @@ process BIOC_BUBBLETREE {
     cat(info(btreepredictor), "\n")
     names(allCall.lst) <- names(allRBD.lst)
     results <- list()
-    for (name in names(allCall.lst)) {
     # --- Load [] ---
     # Key functions: btcompare, new, drawBTree, labs, s
     ---------------------------------------------------------------------

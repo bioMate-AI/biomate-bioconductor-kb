@@ -41,10 +41,24 @@ process BIOC_WPPI {
     library(wppi)
     library(jsonlite)
 
-    # --- Score candidate genes from PPI analysis [] ---
-    # Key functions: score_candidate_genes_from_PPI, wppi_omnipath_data, wppi_data, wppi_hpo_data, graph_from_op, subgraph_op, vcount, weighted_adj
-    HPO_data <- wppi_hpo_data()
-    HPO_interest <- unique(dplyr::filter(HPO_data, grepl('Diabetes', Name))$Name)
+
+    # --- Workflow [] ---
+    # Key functions: score_candidate_genes_from_PPI
+    library(wppi)
+    # example gene set
+    genes_interest <- c(
+        'ERCC8', 'AKT3', 'NOL3', 'TTK',
+        'GFI1B', 'CDC25A', 'TPX2', 'SHE'
+    )
+    scores <- score_candidate_genes_from_PPI(genes_interest)
+    scores
+    # # A tibble: 295 x 3
+    #    score gene_symbol uniprot
+    #    <dbl> <chr>       <chr>
+    #  1 0.247 KNL1        Q8NG31
+    #  2 0.247 HTRA2       O43464
+    #  3 0.247 KAT6A       Q92794
+    #  4 0.247 BABAM1      Q9NWV8
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

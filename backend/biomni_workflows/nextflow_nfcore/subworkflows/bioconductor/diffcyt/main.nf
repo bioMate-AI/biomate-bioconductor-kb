@@ -61,7 +61,6 @@ process BIOC_DIFFCYT {
     # Test for differential abundance (DA) of clusters
     # note: using default method 'diffcyt-DA-edgeR' and default parameters
     # note: include random seed for reproducible clustering
-    out_DA <- diffcyt(
     # --- Preparedata [] ---
     # Key functions: prepareData
     ---------------------------------------------------------------------

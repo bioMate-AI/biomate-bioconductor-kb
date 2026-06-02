@@ -41,13 +41,22 @@ process BIOC_MSCOREUTILS {
     library(MsCoreUtils)
     library(jsonlite)
 
-    # --- Matrix [] ---
-    # Key functions: rnorm, robustSummary
-    ---------------------------------------------------------------------
+
+    # --- Block 1 [] ---
+    # Key functions: mscoreutils
+    library("MsCoreUtils")
+    ls(pos = "package:MsCoreUtils")
+
+    # --- Block 3 [] ---
+    # Key functions: rnorm
     x <- matrix(rnorm(30), nrow = 3)
     colnames(x) <- letters[1:10]
     rownames(x) <- LETTERS[1:3]
     x
+
+    # --- Block 5 [] ---
+    # Key functions: robustSummary
+    robustSummary(x)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

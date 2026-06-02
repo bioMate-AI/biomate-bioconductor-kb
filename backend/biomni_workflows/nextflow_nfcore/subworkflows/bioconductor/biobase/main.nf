@@ -61,10 +61,6 @@ process BIOC_BIOBASE {
     # --- Setmethod [] ---
     # Key functions: setMethod, assayDataNew, new, missing, any
     ---------------------------------------------------------------------
-    setMethod("initialize", "SwirlSet",
-              function(.Object,
-                       assayData=assayDataNew(
-                       R=R, G=G, Rb=Rb, Gb=Gb),
     # --- Setvalidity [] ---
     # Key functions: setValidity, assayDataValidMembers, assayData
     ---------------------------------------------------------------------
@@ -91,17 +87,9 @@ process BIOC_BIOBASE {
     # --- Setclass [] ---
     # Key functions: setClass, prototype, new, classVersion, isCurrent
     ---------------------------------------------------------------------
-     setClass("MySet",
-              contains = "eSet",
-              prototype = prototype(
-                  new("VersionedBiobase",
     # --- Setmethod [] ---
     # Key functions: setMethod, signature, updateObject, callNextMethod, isCurrent
     ---------------------------------------------------------------------
-    setMethod("updateObject", signature(object="MySet"),
-              function(object, ..., verbose=FALSE) {
-                  if (verbose) message("updateObject(object = 'MySet')")
-                      object <- callNextMethod()
     # --- Classversion [] ---
     # Key functions: classVersion, updateObject
     ---------------------------------------------------------------------

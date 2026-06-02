@@ -45,7 +45,7 @@ process BIOC_PROTEODISCO {
 
     # --- label = 'Export FASTA' [] ---
     # Key functions: exportProteoDiscography
-    ProteoDisco::exportProteoDiscography(
+
     # --- label = 'Logging options' [] ---
     # Key functions: clearLoggers, registerLogger
     ParallelLogger::clearLoggers()
@@ -55,7 +55,6 @@ process BIOC_PROTEODISCO {
     # Key functions: makeTxDbFromGFF, readDNAStringSet, generateProteoDiscography
     utils::download.file(URL.annotations, basename(URL.annotations))
     utils::download.file(URL.genome, basename(URL.genome))
-    TxDb <- GenomicFeatures::makeTxDbFromGFF(
     # --- label = 'Inspect example ProteoDiscrography (GRCh37)' [] ---
     # Key functions: melt, ggplot, geom_bar, scale_y_continuous
     library(ggplot2)
@@ -65,7 +64,6 @@ process BIOC_PROTEODISCO {
     # Key functions: DNAString, DataFrame
     testSeq1 <- Biostrings::DNAString('ATGACCGCGTCCTCCTCCAGCGACTATGGACAGACTTCCAAGATGAGCCCACGCGTCCCTCAGCAGGATTGGCTGTCTCAACCCCCAGCCAGGGTCACCATCAAAATGGAATGTAACCCTAGCCAGGTGAATGGCTCAAGGAACTCTCCTGATGAATGCAGTGTGGCCAAAGGCGGGAAGATGGTGGGCAGCCCAGACACCGTTGGGATGAACTACGGCAGCTACATGGAGGAGAAGCACATGCCACCCCCAAACATGACCACGAACGAGCGCAGAGTTATCGTGCCAGCAGATCCTACGCTATGGAGTACAGACCATGTGCGGCAGTGGCTGGAGTGGGCGGTGAAAGAATATGGCCTTCCAGACGTCAACATCTTGTTATTCCAGAACATCGATGGGAAGGAACTGTGCAAGATGACCAAGGACGACTTCCAGAGGCTCACCCCCAGCTACAACGCCGACATCCTTCTCTCACATCTCCACTACCTCAGAGAGACTCCTCTTCCACATTTGACTTCAGATGATGTTGATAAAGCCTTACAAAACTCTCCACGGTTAATGCATGCTAGAAACACAGGGGGTGCAGCTTTTATTTTCCCAAATACTTCAGTATATCCTGAAGCTACGCAAAGAATTACAACTAGGCCAGTCTCTTACAGATAA')
     testSeq2 <- Biostrings::DNAString('ATGATGAGTCTCCGGGGCTCTATGGGTTTCTGAATGTCATCGTCCACTCAGCCACTGGATTTAAGCAGAGTTCAAAAGCCCTTCAGCGGCCAGTAGCATCTGACTTTGAGCCTCAGGGTCTGAGTGAAGCCGCTCGTTGGAACTCCAAGGAAAACCTTCTCGCTGGACCCAGTGAAAATGACCCCAACCTTTTCGTTGCACTGTATGATTTTGTGGCCAGTGGAGATAACACTCTAAGCATAACTAAAGGTGAAAAGCTCCGGGTCTTAGGCTATAATCACAATGGGGAATGGTTTGAAGCCCAAACCAAAAATGGCCAAGGCTGGGTCCCAAGCAACTACATCACGCCAGTCAACAGTCTGGAGAAACACTCCTGGTACCATGGGCCTGTGTCCCGCAATGCCGCTGAGTATCTGCTGAGCAGCGGGATCAAT')
-    manualSeq <- S4Vectors::DataFrame(
     # --- label = 'View imported ProteoDiscography records' [] ---
     # Key functions: getDiscography
     getDiscography(ProteoDiscography.hg19)
@@ -81,9 +79,7 @@ process BIOC_PROTEODISCO {
     y <- ProteoDisco::mutantTranscripts(ProteoDiscography.hg19.subset)
     # --- label = 'Import splice [] ---
     # Key functions: read_tsv
-    files.Splicing <- c(
-    system.file('extdata', 'spliceJunctions_pyQUILTS_chr22.bed', package = 'ProteoDisco')
-    ProteoDiscography.hg19 <- ProteoDisco::importSpliceJunctions(
+
     # --- label = 'Check proteotypic fragments.' [] ---
     # Key functions: AAStringSetList, unlist, mutantTranscripts
     peptides.SwissProt <- base::textConnection(RCurl::getURL('https://www.uniprot.org/uniprot/?query=*&format=fasta&limit=100&fil=organism:%22Homo%20sapiens%20(Human)%20[9606]%22%20AND%20reviewed:yes')) %>%
@@ -93,10 +89,9 @@ process BIOC_PROTEODISCO {
     # Key functions: mutantTranscripts
     require(org.Hs.eg.db)
     x <- ProteoDisco::mutantTranscripts(ProteoDiscography.hg19)
-    geneSymbols <- unique(AnnotationDbi::select(
     # --- label = 'Export mutant proteins to FASTA' [] ---
     # Key functions: exportProteoDiscography
-    ProteoDisco::exportProteoDiscography(
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

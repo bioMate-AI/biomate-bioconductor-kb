@@ -53,15 +53,10 @@ process BIOC_SSNAPPY {
     # Check that the baseline level of the treatment column is the control
     levels(metadata_example$treatment)[1]
     #compute weighted single sample logFCs
-    weightedFC <- weight_ss_fc(logCPM_example, metadata = metadata_example,
-                               groupBy  = "patient", sampleColumn = "sample",
     # --- Lowess [] ---
     # Key functions: frame, mutate, ggplot, aes, geom_point, geom_smooth, labs
     logCPM_example %>%
         as.data.frame() %>%
-        mutate(
-            sd = apply(., 1, sd),
-            mean = apply(., 1, mean)
     # --- Retrieve Topology [] ---
     # Key functions: retrieve_topology
     gsTopology <- retrieve_topology(database = "kegg", species = "hsapiens")
@@ -83,10 +78,6 @@ process BIOC_SSNAPPY {
     # --- Permutedscore [] ---
     # Key functions: generate_permuted_scores
     set.seed(123)
-    permutedScore <- generate_permuted_scores(
-      expreMatrix  = logCPM_example,
-      gsTopology = gsTopology,
-      weight = weightedFC$weight
     # --- Normalisedscores [] ---
     # Key functions: normalise_by_permu
     normalisedScores <- normalise_by_permu(permutedScore, pathwayPertScore, sortBy = "pvalue")
@@ -112,9 +103,6 @@ process BIOC_SSNAPPY {
     # Key functions: filter, mutate, cut, select, left_join
     annotation_df <- normalisedScores %>%
         dplyr::filter(gs_name == "kegg.Proteoglycans in cancer") %>%
-        mutate(
-            `Z Range` = cut(
-                robustZ, breaks = seq(-2, 2, length.out = 6), include.lowest = TRUE
     # --- Top500 Fc [] ---
     # Key functions: str_detect, ifelse
     meanFC <- weightedFC$weighted_logFC %>%

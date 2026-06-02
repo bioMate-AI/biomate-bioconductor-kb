@@ -44,7 +44,6 @@ process BIOC_SCHEX {
     # --- UMAP embedding [] ---
     # Key functions: RunUMAP
     set.seed(10)
-    pbmc_small <- RunUMAP(pbmc_small,
     # --- plot_hexbin_density [] ---
     # Key functions: plot_hexbin_density
     plot_hexbin_density(pbmc.sce)
@@ -53,9 +52,7 @@ process BIOC_SCHEX {
     plot_hexbin_meta(pbmc.sce, col = "nCount_RNA", action = "median")
     # --- plot_hexbin_feature [] ---
     # Key functions: plot_hexbin_feature
-    schex::plot_hexbin_feature(pbmc.sce,
-    title = paste0("Mean of ", gene_id)
-    gg <- schex::plot_hexbin_feature(pbmc.sce,
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

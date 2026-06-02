@@ -53,7 +53,7 @@ process BIOC_SPECL {
     ii <- ((lapply(INPUT, function(x){ if(typeof(x) %in% c("character", "double")){paste(x, collapse = ', ')}else{NULL} } )))
     # --- specL::genSwathIonLib [] ---
     # Key functions: genSwathIonLib
-    specLibrary <- specL::genSwathIonLib(
+
     # --- slot Names [] ---
     # Key functions: slotNames
     slotNames(specLibrary@ionlibrary[[1]])

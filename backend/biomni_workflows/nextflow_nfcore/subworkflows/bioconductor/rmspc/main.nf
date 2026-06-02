@@ -41,11 +41,24 @@ process BIOC_RMSPC {
     library(rmspc)
     library(jsonlite)
 
-    # --- mspc [] ---
-    # Key functions: mspc
+
+    # --- Initialize [] ---
+    # Key functions: list.files, extdata, rmspc
     library(rmspc)
+
+    ## -----------------------------------------------------------------------------
     path <- system.file("extdata", package = "rmspc")
+
+    ## -----------------------------------------------------------------------------
     list.files(path)
+
+    ## -----------------------------------------------------------------------------
+    input1 <- paste0(path, "/rep1.bed")
+    input2 <- paste0(path, "/rep2.bed")
+    input <- c(input1, input2)
+    input
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

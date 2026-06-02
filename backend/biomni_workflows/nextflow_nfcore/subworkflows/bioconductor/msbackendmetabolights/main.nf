@@ -58,7 +58,6 @@ process BIOC_MSBACKENDMETABOLIGHTS {
     #' Get the assay files of the data set
     grep("^a_", all_files, value = TRUE)
     #' Read the assay file
-    a <- read.table(paste0(mtbls_ftp_path("MTBLS39"),
     # --- Spectra [] ---
     # Key functions: Spectra, MsBackendMetaboLights
     ---------------------------------------------------------------------

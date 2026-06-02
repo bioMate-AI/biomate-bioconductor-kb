@@ -67,8 +67,6 @@ process BIOC_MISSMETHYL {
     # --- Annotation analysis [] ---
     # Key functions: annotation, preprocessRaw, SWAN, densityByProbeType, getMeth, getUnmeth, getBeta, stripchart
     library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-    gst <- gometh(sig.cpg=sigCpGs, all.cpg=rownames(top), collection="GO",
-    topGSA(gst, n=10)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

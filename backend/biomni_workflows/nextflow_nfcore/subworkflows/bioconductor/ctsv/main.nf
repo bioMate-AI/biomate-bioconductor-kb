@@ -43,9 +43,7 @@ process BIOC_CTSV {
 
     # --- "install" [] ---
     # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("CTSV", version = "devel")
+
     # --- assay [] ---
     # Key functions: assay
     data("CTSVexample_data", package="CTSV")

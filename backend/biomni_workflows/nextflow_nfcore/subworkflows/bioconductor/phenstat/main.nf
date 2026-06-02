@@ -68,16 +68,10 @@ process BIOC_PHENSTAT {
     # Key functions: PhenList, csv
     library(PhenStat)
     dataset1 <- system.file("extdata", "test3.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(dataset1,na.strings = '-'),
-                     dataset.clean=TRUE,
-                     dataset.values.female=1,
     # --- R Hide005 [] ---
     # Key functions: PhenList, csv, getDataset
     library(PhenStat)
     dataset1 <- system.file("extdata", "test3.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(dataset1,na.strings = '-'),
-                     dataset.clean=TRUE,
-                     dataset.values.female=1,
     # --- R Hide006 [] ---
     # Key functions: PhenList, csv, testGenotype, refGenotype
     library(PhenStat)
@@ -90,8 +84,6 @@ process BIOC_PHENSTAT {
     ## file <- system.file("extdata", "test1.csv", package = "PhenStat")
     ## test = PhenStat:::PhenList(dataset = read.csv(file, na.strings = '-'),
     ##                            testGenotype = "Sparc/Sparc")
-    ## PhenStatReport(test,
-    ##                depVariable = 'Bone.Area',
     # --- R Hide008 [] ---
     # Key functions: PhenList, csv, testDataset, analysisResults, finalModel
     library(PhenStat)
@@ -106,10 +98,6 @@ process BIOC_PHENSTAT {
     # --- R Hide010 [] ---
     # Key functions: PhenList, csv, TFDataset, testDataset
     file <- system.file("extdata", "test7_TFE.csv", package="PhenStat")
-    test <- PhenList(dataset=read.csv(file,na.strings = '-'),
-                     testGenotype="het",
-                     refGenotype = "WT",
-                     dataset.colname.sex="sex",
     # --- R Hide011 [] ---
     # Key functions: PhenList, csv, testDataset
     library(PhenStat)
@@ -122,8 +110,6 @@ process BIOC_PHENSTAT {
     library(PhenStat)
     dataset_cat <- system.file("extdata", "test_categorical.csv", package="PhenStat")
     test_cat <- PhenList(read.csv(dataset_cat,na.strings = '-'),testGenotype="Aff3/Aff3")
-    result_cat <- testDataset(test_cat,
-                              depVariable="Thoracic.Processes",
     # --- R Hide013 [] ---
     # Key functions: PhenList, csv, testDataset
     library(PhenStat)
@@ -137,7 +123,6 @@ process BIOC_PHENSTAT {
     dataset_cat <- system.file("extdata", "test_categorical.csv", package="PhenStat")
     test2 <- PhenList(dataset=read.csv(dataset_cat,na.strings = '-'),
                       testGenotype="Aff3/Aff3",outputMessages=FALSE)
-    result2 <- testDataset(test2,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -56,9 +56,6 @@ process BIOC_BUMPHUNTER {
     # Key functions: split, scale
     Indexes <- split(seq_along(cl), cl)
     beta1 <- rep(0, length(pos))
-    for(i in seq(along=Indexes)){
-        ind <- Indexes[[i]]
-        x <- pos[ind]
     # --- Getsegments [] ---
     # Key functions: getSegments
     segs <- getSegments(beta1, cl, cutoff=0.05)

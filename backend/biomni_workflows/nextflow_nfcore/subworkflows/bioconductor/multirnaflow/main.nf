@@ -38,21 +38,124 @@ process BIOC_MULTIRNAFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DATAnormalization)
-    library(DATAplotExpressionGenes)
-    library(DATAprepSE)
-    library(DEanalysisGlobal)
-    library(DEplotVolcanoMA)
-    library(HCPCanalysis)
-    library(MFUZZanalysis)
-    library(PCAanalysis)
+    library(MultiRNAflow)
     library(jsonlite)
 
-    # --- Object metadata inspection [] ---
-    # Key functions: latex, DATAprepSE, DATAnormalization, metadata, assays, PCAanalysis, HCPCanalysis, MFUZZanalysis
-    Sub3bc3T <- RawCounts_Weger2021_MOUSEsub500[, seq_len(73)]
-    SelectTime <- grep("_t0_", colnames(Sub3bc3T))
-    SelectTime <- c(SelectTime, grep("_t1_", colnames(Sub3bc3T)))
+
+    # --- Style Sweave [] ---
+    # Key functions: latex, set, reshape2, ggplot2, ggrepel, ggalluvial, factoextra, plot3D
+    BiocStyle::latex(use.unsrturl=FALSE)
+    library(knitr)
+    opts_chunk$set(
+    concordance=TRUE
+    )
+    Cran.pck <- c("reshape2", "ggplot2", "ggrepel", "ggalluvial",
+                  "FactoMineR", "factoextra",
+                  "plot3D", "plot3Drgl", "ggplotify", "UpSetR", "gprofiler2")
+    Bioconductor.pck <- c("SummarizedExperiment", "S4Vectors", "DESeq2",
+                          "Mfuzz", "ComplexHeatmap")
+    data("RawCounts_Antoszewski2022_MOUSEsub500")
+    data("RawCounts_Leong2014_FISSIONsub500wt")
+    data("RawCounts_Schleiss2021_CLLsub500")
+    data("RawCounts_Weger2021_MOUSEsub500")
+    data("RawCounts_Leong2014_FISSIONsub500wt")
+    colnames(RawCounts_Leong2014_FISSIONsub500wt)
+    data("RawCounts_Leong2014_FISSIONsub500wt")
+    # --- Pcaleukemia [] ---
+    # Key functions: PCAanalysis, metadata, str, black, red, HCPCanalysis, MFUZZanalysis, hcpc
+    SEresPCALeuk500 <- PCAanalysis(SEresNorm=SEresNORMleuk500,
+                                   gene.deletion=NULL,
+                                   sample.deletion=NULL,
+                                   Plot.PCA=FALSE,
+                                   Mean.Accross.Time=FALSE,
+                                   Color.Group=NULL,
+                                   Cex.label=0.9, Cex.point=0.8, epsilon=0.2,
+                                   Phi=25, Theta=140,
+                                   motion3D=FALSE,
+                                   path.result=NULL, Name.folder.pca=NULL)
+    ## Save 'Results' of the metadata in an object
+    resleuk500 <- S4Vectors::metadata(SEresPCALeuk500)$Results
+
+    ## Save the results of normalization in an object
+    resPCALeuk500 <- resleuk500[[1]][[2]]
+    ###
+    names(S4Vectors::metadata(SEresPCALeuk500))
+    str(resleuk500, max.level=3, give.attr=FALSE)
+    names(resPCALeuk500)
+    print(resPCALeuk500$PCA_2DtemporalLinks)
+
+    # --- Profile Cllcolor [] ---
+    # Key functions: black, red, DEanalysisGlobal, Results_DEanalysis_sub500, rowData, metadata, DEplotVolcanoMA, str
+    colorLeuk <- data.frame(Name=c("NP", "P"), Col=c("black", "red"))
+    SEresDELeuk500 <- DEanalysisGlobal(SEres=SEresEVOleuk500,
+                                       pval.min=0.05,
+                                       pval.vect.t=NULL,
+                                       log.FC.min=1,
+                                       LRT.supp.info=FALSE,
+                                       Plot.DE.graph=FALSE,
+                                       path.result=NULL,
+                                       Name.folder.DE=NULL)
+
+    ## data("Results_DEanalysis_sub500")
+    DEsummaryLeuk <- SummarizedExperiment::rowData(SEresDELeuk500)
+    resDELeuk500 <- S4Vectors::metadata(SEresDELeuk500)$Results[[2]][[2]]
+    resGlossaryLeuk <- resDELeuk500$Glossary
+    print(resDELeuk500$DEplots_TimePerGroup$Alluvial.graph.Group_P)
+    print(resDELeuk500$DEplots_TimePerGroup$NumberDEgenes.acrossTime.perTemporalGroup.Group_P)
+    print(resDELeuk500$DEplots_TimePerGroup$NumberDEgenes_UpDownRegulated_perTimeperGroup)
+    print(resDELeuk500$DEplots_TimePerGroup$VennBarplot.withNumberUpRegulated.Group_P)
+    print(resDELeuk500$DEplots_TimePerGroup$AlluvialGraph_DE.1tmin_perGroup)
+    print(resDELeuk500$DEplots_GroupPerTime$NumberSpecificGenes_UpDownRegulated_perBiologicalCondition)
+
+    # --- Heatmapleukemia Res [] ---
+    # Key functions: metadata, str, GSEAQuickAnalysis, hsapiens, GSEApreprocessing, DATAprepSE, DATAnormalization, rle
+    ## Save 'Results' of the metadata in an object
+    resleuk500 <- S4Vectors::metadata(SEresHeatmapLeuk)$Results
+
+    ## Save the results of DEplotHeatmaps in an object
+    resHeatmapLeuk <- resleuk500[[2]][[4]]
+    ###
+    names(S4Vectors::metadata(SEresHeatmapLeuk))
+    str(resleuk500, max.level=3, give.attr=FALSE)
+    names(resHeatmapLeuk)
+    print(resHeatmapLeuk$Heatmap_Correlation)
+    print(resHeatmapLeuk$Heatmap_Zscore)
+    # --- Volcano Mamus1 [] ---
+    # Key functions: DEplotVolcanoMA, DEplotHeatmaps, GSEAQuickAnalysis, metadata, mmusculus, GSEApreprocessing, DATAprepSE, DATAnormalization
+    SEresVolcanoMAMus1 <- DEplotVolcanoMA(SEresDE=SEresDEMus1,
+                                          NbGene.plotted=2,
+                                          SizeLabel=3,
+                                          Display.plots=FALSE,
+                                          Save.plots=FALSE)
+    SEresVolcanoMAMus1 <- DEplotHeatmaps(SEresDE=SEresDEMus1,
+                                         ColumnsCriteria=2,#c(2,4),
+                                         Set.Operation="union",
+                                         NbGene.analysis=20,
+                                         SizeLabelRows=5,
+                                         SizeLabelCols=5,
+                                         Display.plots=FALSE,
+                                         Save.plots=FALSE)
+    # --- Normalization Mouse2 [] ---
+    # Key functions: DATAnormalization, vst, red, blue, orange, darkgreen, PCAanalysis, HCPCanalysis
+    SEresNormMus2 <- DATAnormalization(SEres=SEresPrepMus2,
+                                       Normalization="vst",
+                                       Blind.rlog.vst=FALSE,
+                                       Plot.Boxplot=FALSE,
+                                       Colored.By.Factors=TRUE,
+                                       Color.Group=NULL,
+                                       path.result=NULL)
+    colMus2 <- data.frame(Name=c("BmKo", "BmWt" ,"CrKo", "CrWt"),
+                          Col=c("red", "blue", "orange", "darkgreen"))
+    SEresPCAmus2 <- PCAanalysis(SEresNorm=SEresNormMus2,
+                                gene.deletion=NULL,
+                                sample.deletion=NULL,
+                                Plot.PCA=FALSE, motion3D=FALSE,
+                                Mean.Accross.Time=FALSE,
+                                Color.Group=NULL,
+                                Cex.label=0.6, Cex.point=0.7, epsilon=0.2,
+                                Phi=25, Theta=140,
+                                path.result=NULL,
+                                Name.folder.pca=NULL)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

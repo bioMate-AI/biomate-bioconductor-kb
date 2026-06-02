@@ -38,15 +38,100 @@ process BIOC_QTLEXPERIMENT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(DataFrame)
     library(QTLExperiment)
     library(jsonlite)
 
-    # --- Assay data access [] ---
-    # Key functions: mockSummaryStats, QTLExperiment, mockQTLE, sumstats2qtle, mockMASHR, mash2qtle, state_id, feature_id
+
+    # --- Mock Summary Statistics [] ---
+    # Key functions: mockSummaryStats, QTLExperiment, sample, gene_, state_
+    set.seed(42)
+    nStates <- 6
+    nQTL <- 40
+
+    mock_summary_stats <- mockSummaryStats(nStates=nStates, nQTL=nQTL)
+    mock_summary_stats$betas[1:5,1:5]
+    qtle <- QTLExperiment(
+        assays=list(
+            betas=mock_summary_stats$betas,
+            errors=mock_summary_stats$errors),
+        metadata=list(study="mock-example"))
+    qtle
     mock_summary_stats <- mockSummaryStats(nStates=nStates, nQTL=nQTL, names=FALSE)
+    mock_summary_stats$betas[1:5,1:5]
     qtle <- QTLExperiment(assays=list(betas=mock_summary_stats$betas,
-    feature_id=paste0("gene_", 1:nQTL),
+                                      errors=mock_summary_stats$errors),
+                          feature_id=paste0("gene_", 1:nQTL),
+                          variant_id=sample(1:1e6, nQTL),
+                          state_id=paste0("state_", LETTERS[1:nStates]),
+                          metadata=list(study="mock-example2"))
+
+    # --- Create Mock Qtle Wrapper [] ---
+    # Key functions: mockQTLE, sumstats2qtle, betas, extdata, lung, thyroid, spleen, blood
+    qtle <- mockQTLE(nStates=nStates, nQTL=nQTL)
+    qtle
+    input_path <- system.file("extdata", package="QTLExperiment")
+    state <- c("lung", "thyroid", "spleen", "blood")
+
+    input <- data.frame(
+        state=state, 
+        path=paste0(input_path, "/GTEx_tx_", state, ".tsv"))
+
+    # --- Show Dim [] ---
+    # Key functions: rowData
+    dim(qtle4)
+    colnames(qtle4)
+    head(rowData(qtle4))
+
+    # --- Show Bind Functions [] ---
+    # Key functions: state_id, feature_id, rowData, geneA, state1, state2
+    qtle4b <- qtle4
+    state_id(qtle4b) <- paste0(state_id(qtle4), "_b")
+    dim(cbind(qtle4, qtle4b))
+    qtle4b <- qtle4
+    feature_id(qtle4b) <- paste0(feature_id(qtle4), "_b")
+    dim(rbind(qtle4, qtle4b))
+    qtle.subset <- qtle[rowData(qtle)$feature_id == "geneA", ]
+    dim(qtle.subset)
+
+    qtle.subset <- qtle[, c("state1", "state2")]
+    dim(qtle.subset)
+
+    qtle.subset <- subset(qtle, , sample_size > 100)
+    dim(qtle.subset)
+
+    # --- Convenient Getters Setters [] ---
+    # Key functions: betas, assay, significant, pvalues, state_id, feature_id, variant_id
+    betas(qtle)[1:5,1:5]
+
+    betas(qtle) <- betas(qtle) * -1
+
+    betas(qtle)[1:5,1:5]
+    assay(qtle4, "significant") <- assay(qtle4, "pvalues") < 0.05
+
+    assay(qtle4, "significant")[1:5, 1:4]
+    state_id(qtle4)
+    feature_id(qtle4)[1:3]
+    variant_id(qtle4)[1:3]
+
+    # --- Special Setters [] ---
+    # Key functions: state_id, colData, betas, DataFrame, recover_qtle_ids, rowData, sample
+    state_id(qtle4) <- c("LUNG", "THYROID", "SPLEEN", "BLOOD")
+    head(colData(qtle4))
+    head(betas(qtle4))
+    new_colData <- DataFrame(list(some_info1=LETTERS[1:ncol(qtle4)],
+                                  some_info2=c(1:ncol(qtle4))))
+    colData(qtle4) <- new_colData
+    head(colData(qtle4))
+
+    qtle4 <- recover_qtle_ids(qtle4)
+    head(colData(qtle4))
+    rowData(qtle4)$variant_id <- sample(rowData(qtle4)$variant_id, nrow(qtle4))
+
+    head(rowData(qtle4))
+
+
+    qtle4 <- recover_qtle_ids(qtle4)
+    head(rowData(qtle4))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

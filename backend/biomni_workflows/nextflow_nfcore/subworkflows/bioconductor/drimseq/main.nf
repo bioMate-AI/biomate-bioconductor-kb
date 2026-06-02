@@ -48,9 +48,7 @@ process BIOC_DRIMSEQ {
     ggp <- plotProportions(d2, gene_id = top_gene_id2, group_variable = "group")
     # --- News analysis [] ---
     # Key functions: news, dmDSdata, dmFilter, dmPrecision, common_precision, plotPrecision, dmFit, dmTest
-    pasilla_samples2 <- data.frame(sample_id = pasilla_metadata$SampleName,
-    d2 <- dmDSdata(counts = pasilla_counts, samples = pasilla_samples2)
-    d2 <- d2[names(d2) %in% gene_id_subset, ]
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

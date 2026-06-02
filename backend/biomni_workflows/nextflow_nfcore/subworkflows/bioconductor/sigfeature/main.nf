@@ -41,11 +41,24 @@ process BIOC_SIGFEATURE {
     library(sigFeature)
     library(jsonlite)
 
-    # --- col Data [] ---
-    # Key functions: colData, sigFeaturePvalue, predict
+
+    # --- Cars [] ---
+    # Key functions: assays, colData, sigFeaturePvalue, unlist, sigFeature, skyblue
     library(sigFeature)
     library(SummarizedExperiment)
     data(ExampleRawData, package="sigFeature")
+    ExampleRawData   
+
+    ## -----------------------------------------------------------------------------
+    x  <- t(assays(ExampleRawData)$counts)
+    y  <- colData(ExampleRawData)$sampleLabels
+
+    ## -----------------------------------------------------------------------------
+    pvals <- sigFeaturePvalue(x,y)
+    hist(unlist(pvals),breaks=seq(0,0.08,0.0015),col="skyblue",
+        xlab="p value",ylab="Frequency",main="")
+
+    ## -----------------------------------------------------------------------------
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

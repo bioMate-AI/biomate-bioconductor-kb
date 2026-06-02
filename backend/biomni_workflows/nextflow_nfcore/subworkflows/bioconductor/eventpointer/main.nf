@@ -77,7 +77,6 @@ process BIOC_EVENTPOINTER {
     # Key functions: PrepareBam_EP
     PathToSamples <- system.file("extdata/bams", package = "SGSeq")
     PathToGTF<-paste(system.file("extdata",package="EventPointer"),"/FBXO31.gtf",sep="")
-    SG_RNASeq<-PrepareBam_EP(Samples=Samples,
     # --- tempdir [] ---
     # Key functions: tempdir, EventDetection
     data(SG_RNASeq)
@@ -98,7 +97,7 @@ process BIOC_EVENTPOINTER {
     EventPointer_RNASeq_IGV(Events,SG_RNASeq,EventsTxt,PathGTF)
     # --- GTFfGTF 2 [] ---
     # Key functions: EventDetection_transcriptome
-    EventXtrans <- EventDetection_transcriptome(inputFile = inputFile,
+
     # --- getbootstrapdata [] ---
     # Key functions: getbootstrapdata
     PathSamples<-system.file("extdata",package="EventPointer")
@@ -113,11 +112,9 @@ process BIOC_EVENTPOINTER {
     # Key functions: GetPSI_FromTranRef
     rownames(RNASeq) <- sapply(strsplit(rownames(RNASeq),"\\|"),function(X) return(X[1]))
     RNASeq<-as.matrix(RNASeq) #must be a matrix variable
-    PSIss_nb <- GetPSI_FromTranRef(PathsxTranscript = EventXtrans,
     # --- psi with bootstrap [] ---
     # Key functions: GetPSI_FromTranRef
     rownames(data_exp[[1]]) <- sapply(strsplit(rownames(data_exp[[1]]),"\\|"),function(X) return(X[1]))
-    PSIss <- GetPSI_FromTranRef(PathsxTranscript = EventXtrans,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

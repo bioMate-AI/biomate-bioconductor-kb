@@ -70,7 +70,6 @@ process BIOC_SURVCOMP {
         tt <- concordance.index(x=x, surv.time=y, surv.event=z, method="noether", na.rm=TRUE);
         return(c("cindex"=tt$c.index, "cindex.se"=tt$se, "lower"=tt$lower, "upper"=tt$upper)); },
         y=pData(transbig7g)[ ,"t.dmfs"], z=pData(transbig7g)[ ,"e.dmfs"]))
-    cindexall.vdx.small <- t(apply(X=exprs(vdx7g), MARGIN=1, function(x, y, z) {
     # --- Dindexsample [] ---
     # Key functions: exprs, index, pData
     dindexall.mainz.small <- t(apply(X=exprs(mainz7g), MARGIN=1, function(x, y, z) {
@@ -83,14 +82,11 @@ process BIOC_SURVCOMP {
         tt <- D.index(x=x, surv.time=y, surv.event=z, na.rm=TRUE);
         return(c("dindex"=tt$d.index, "dindex.se"=tt$se, "lower"=tt$lower, "upper"=tt$upper)); },
         y=pData(transbig7g)[ ,"t.dmfs"], z=pData(transbig7g)[ ,"e.dmfs"]))
-    dindexall.upp.small <- t(apply(X=exprs(upp7g), MARGIN=1, function(x, y, z) {
     # --- Showgeneexpressionrange [] ---
     # Key functions: exprs, frame
     tt <- list(mainz7g, transbig7g, upp7g, unt7g, vdx7g, nki7g)
     ttNames <- c("MAINZ","TRANSBIG","UPP","UNT","VDX","NKI")
     dataRange <- NULL
-    for(i in tt) {
-      rr <- range(exprs(i), na.rm=TRUE)
     # --- Datarangetable [] ---
     # Key functions: xtable
     print(xtable(dataRange), floating=FALSE)
@@ -106,24 +102,15 @@ process BIOC_SURVCOMP {
         tt <- hazard.ratio(x=x, surv.time=y, surv.event=z, na.rm=TRUE);
         return(c("hratio"=tt$hazard.ratio, "hratio.se"=tt$se, "lower"=tt$lower, "upper"=tt$upper)); },
         y=pData(transbig7g)[ ,"t.dmfs"], z=pData(transbig7g)[ ,"e.dmfs"]))
-    hratio.upp.small <- t(apply(X=rescale(exprs(upp7g), q=0.05, na.rm=TRUE), MARGIN=1, function(x, y, z) {
     # --- Combinecindices [] ---
     # Key functions: frame, est, qnorm
     tt <- as.data.frame(NULL)
-    for(i in 1:7){
-      tt <- rbind(
-        tt,combine.est(
-        x=cbind( cindexall.mainz.small[i,"cindex"],
     # --- Combinecindicesoutput [] ---
     # Key functions: xtable
     print(xtable(ccindex), floating=FALSE)
     # --- Combinedindices [] ---
     # Key functions: frame, est, qnorm
     tt <- as.data.frame(NULL)
-    for(i in 1:7){
-      tt <- rbind(
-        tt,combine.est(
-        x=cbind( dindexall.mainz.small[i,"dindex"],
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

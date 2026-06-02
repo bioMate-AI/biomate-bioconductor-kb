@@ -55,7 +55,6 @@ process BIOC_ILOREG {
     # Key functions: plot_grid, ClusteringScatterPlot, GeneScatterPlot, GeneHeatmap, RenameAllClusters, SelectKClusters, RenameCluster, mapvalues
     sce <- SelectKClusters(sce,K=5)
     custom_annotation <- plyr::mapvalues(metadata(sce)$iloreg$clustering.manual,c(1,2,3,4,5),LETTERS[1:5])
-    AnnotationScatterPlot(sce,
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

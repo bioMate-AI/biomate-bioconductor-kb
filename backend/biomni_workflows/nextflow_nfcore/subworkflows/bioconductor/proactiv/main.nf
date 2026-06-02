@@ -45,12 +45,9 @@ process BIOC_PROACTIV {
     # Key functions: rowData, ggplot, geom_bar, xlab, ggtitle, as_tibble, labs, geom_point
     majorPromoter <- as_tibble(rdata) %>% group_by(geneId) %>%
     mutate(promoterCount = n()) %>% filter(HepG2.class == 'Major')
-    pdata3 <- data.frame(proActiv = majorPromoter$HepG2.mean,
     # --- Table formatting and display [] ---
     # Key functions: proActiv, loadDb, kable, getAlternativePromoters, show, boxplotPromoters, assays
-    gtf.file <- system.file('extdata/vignette/annotation/gencode.v34.annotation.subset.gtf.gz',
-    promoterAnnotation.gencode.v34.subset <- preparePromoterAnnotation(file = gtf.file,
-    txdb.file <- system.file('extdata/vignette/annotation/gencode.v34.annotation.subset.sqlite',
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

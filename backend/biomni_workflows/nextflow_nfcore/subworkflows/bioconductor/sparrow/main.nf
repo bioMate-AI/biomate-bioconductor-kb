@@ -48,9 +48,7 @@ process BIOC_SPARROW {
     tt <- topTable(fit, 'BvH', n=Inf, sort.by='none')
     # --- Custom ggplot2 visualization [] ---
     # Key functions: inner_join, ggplot, geom_boxplot, geom_jitter, facet_grid
-    inner_join(select(vm.bh$targets, sample_id=Sample_ID, subtype=PAM50subtype),
-    filter(name %in% head(unique(all.scores$name), 5))
-    ggplot(some.scores, aes(subtype, score)) +
+
     # --- Theme set analysis [] ---
     # Key functions: theme_set, exampleExpressionSet, getMSigGeneSetDb, geneSets, seas, logFC, inner_join, arrange
     select(entrez_id, logFC, t, pval=P.Value, padj=adj.P.Val) %>%

@@ -47,7 +47,7 @@ process BIOC_SECHM {
     sechm(SE, g, do.scale = TRUE)
     # --- anno in object [] ---
     # Key functions: metadata
-    metadata(SE)$default_view <- list(
+
     # --- colors in options [] ---
     # Key functions: setSechmOption, sechm, resetAllSechmOptions, metadata
     setSechmOption("hmcols", value=c("white","grey","black"))

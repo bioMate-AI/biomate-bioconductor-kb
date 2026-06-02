@@ -41,7 +41,21 @@ process BIOC_SCSHAPES {
     library(scShapes)
     library(jsonlite)
 
-    # --- filter_counts [] ---
+
+    # --- Include = False [] ---
+    # Key functions: set
+    knitr::opts_chunk$set(
+      collapse = TRUE,
+      comment = "#>"
+    )
+
+    # --- Example [] ---
+    # Key functions: scshapes
+    # Loading and preparing data for input 
+
+    data(scData)
+
+    # --- Filtered [] ---
     # Key functions: filter_counts
     scData_filt <- filter_counts(scData$counts, perc.zero = 0.1)
 

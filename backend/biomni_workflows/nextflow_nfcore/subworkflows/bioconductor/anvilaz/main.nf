@@ -50,8 +50,7 @@ process BIOC_ANVILAZ {
     avworkspace_namespace()
     # --- avworkspace clone [] ---
     # Key functions: avworkspace_clone, avworkspaces
-    avworkspace_clone(
-    avworkspaces()
+
     # --- avnotebooks localize [] ---
     # Key functions: avnotebooks_localize
     avnotebooks_localize(destination = "./analyses")

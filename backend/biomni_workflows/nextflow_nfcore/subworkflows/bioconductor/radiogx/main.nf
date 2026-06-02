@@ -58,9 +58,7 @@ process BIOC_RADIOGX {
     radTypes <- radiationTypes(clevelandSmall)
     # --- molecular data slot accessors [] ---
     # Key functions: mDataNames
-    Get the list (equivalent to @molecularProfiles, except that it is robust to changes in RSet structure
-    str(molecularProfilesSlot(clevelandSmall), max.level=2)
-    mDataNames(clevelandSmall)
+
     # --- sample meta data [] ---
     # Key functions: phenoInfo
     phenoInf <- phenoInfo(clevelandSmall, 'cnv')

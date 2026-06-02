@@ -44,9 +44,7 @@ process BIOC_EASYLIFT {
 
     # --- Create GenomicRanges object [] ---
     # Key functions: GRanges, genome, package
-    gr <- GRanges(
-    seqname = Rle(
-    c("chr1", "chr2"),
+
     # --- easylift [] ---
     # Key functions: easylift
     easylift(gr, "hg38", chain)

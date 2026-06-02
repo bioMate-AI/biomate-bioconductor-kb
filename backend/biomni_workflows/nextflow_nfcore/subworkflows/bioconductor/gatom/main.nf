@@ -50,10 +50,6 @@ process BIOC_GATOM {
     # --- Makemetabolicgraph [] ---
     # Key functions: makeMetabolicGraph
     ---------------------------------------------------------------------
-    g <- makeMetabolicGraph(network=networkEx,
-                            topology="atoms",
-                            org.gatom.anno=org.Mm.eg.gatom.annoEx,
-                            gene.de=gene.de.rawEx,
     # --- Rnc Solver [] ---
     # Key functions: rnc_solver
     ---------------------------------------------------------------------
@@ -83,10 +79,6 @@ process BIOC_GATOM {
     # --- Makemetabolicgraph [] ---
     # Key functions: makeMetabolicGraph, scoreGraph, rnc_solver, solve_mwcsp
     ---------------------------------------------------------------------
-    cg <- makeMetabolicGraph(network=network.combined,
-                             topology="atoms",
-                             org.gatom.anno=org.Mm.eg.gatom.anno,
-                             gene.de=gene.de.raw,
     # --- Readrds [] ---
     # Key functions: url
     ---------------------------------------------------------------------
@@ -95,10 +87,6 @@ process BIOC_GATOM {
     # --- Makemetabolicgraph [] ---
     # Key functions: makeMetabolicGraph, scoreGraph, rnc_solver, solve_mwcsp
     ---------------------------------------------------------------------
-    kg <- makeMetabolicGraph(network=network,
-                            topology="atoms",
-                            org.gatom.anno=org.Mm.eg.gatom.anno,
-                            gene.de=gene.de.raw,
     # --- Readrds [] ---
     # Key functions: url
     ---------------------------------------------------------------------
@@ -111,10 +99,6 @@ process BIOC_GATOM {
     # --- Makemetabolicgraph [] ---
     # Key functions: makeMetabolicGraph, scoreGraph, rnc_solver, solve_mwcsp
     ---------------------------------------------------------------------
-    rg <- makeMetabolicGraph(network=network.rhea,
-                             topology="atoms",
-                             org.gatom.anno=org.Mm.eg.gatom.anno,
-                             gene.de=gene.de.raw,
     # --- Readrds [] ---
     # Key functions: url
     ---------------------------------------------------------------------

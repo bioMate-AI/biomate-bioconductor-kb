@@ -55,11 +55,7 @@ process BIOC_PECO {
     #> names(3): counts cpm cpm_quantNormed
     # --- Code Block 4 [] ---
     # Key functions: cycle_npreg_outsample
-    pred_top101genes <- cycle_npreg_outsample(
-        Y_test=sce_top101genes,
-        sigma_est=training_human$sigma[rownames(sce_top101genes),],
-        funs_est=training_human$cellcycle_function[rownames(sce_top101genes)],
-        method.trend="trendfilter",
+
     # --- Code Block 5 [] ---
     # Key functions: colData
     head(colData(pred_top101genes$Y)$cellcycle_peco)

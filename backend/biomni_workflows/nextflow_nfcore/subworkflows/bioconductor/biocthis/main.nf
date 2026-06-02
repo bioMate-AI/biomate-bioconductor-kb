@@ -43,9 +43,7 @@ process BIOC_BIOCTHIS {
 
     # --- "install" [] ---
     # Key functions: valid
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
-    BiocManager::install("biocthis")
+
     # --- 'create example pkg' [] ---
     # Key functions: biocthis_example_pkg
     pkgdir <- biocthis_example_pkg("biocthispkg", use_git = TRUE)

@@ -44,31 +44,18 @@ process BIOC_SPATIALCPIE {
     # --- Table [] ---
     # Key functions: file
     ---------------------------------------------------------------------
-    counts <- read.table(
-        system.file("extdata", "counts.tsv", package = "SpatialCPie"),
-        sep = "\t",
-        check.names = FALSE
     # --- Readjpeg [] ---
     # Key functions: readJPEG, parseSpotFile
     ---------------------------------------------------------------------
     tissue <- jpeg::readJPEG(
         system.file("extdata", "he_image.jpg", package = "SpatialCPie")
     )
-    spots <- parseSpotFile(
     # --- Dim [] ---
     # Key functions: rowSums, colSums, all
     ---------------------------------------------------------------------
-    repeat {
-        d <- dim(counts)
-        counts <- counts[rowSums(counts) >= 20, colSums(counts) >= 20]
-        if (all(dim(counts) == d)) {
     # --- Runcpie [] ---
     # Key functions: runCPie
     ---------------------------------------------------------------------
-    result <- runCPie(
-        counts,
-        image = tissue,
-        spotCoordinates = spots
     # --- Filter [] ---
     # Key functions: filter
     ---------------------------------------------------------------------
@@ -79,10 +66,6 @@ process BIOC_SPATIALCPIE {
     # --- Runcpie [] ---
     # Key functions: runCPie
     ---------------------------------------------------------------------
-    subclusterResult <- runCPie(
-        counts = counts[, subcluster],
-        image = tissue,
-        spotCoordinates = spots
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

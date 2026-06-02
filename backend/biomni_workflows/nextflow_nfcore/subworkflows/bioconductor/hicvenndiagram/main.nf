@@ -43,9 +43,7 @@ process BIOC_HICVENNDIAGRAM {
 
     # --- venn Count [] ---
     # Key functions: vennCount, upsetPlot
-    file_folder <- system.file("extdata",
-    file_list <- dir(file_folder, pattern = ".bedpe", full.names = TRUE)
-    names(file_list) <- sub(".bedpe", "", basename(file_list))
+
     # --- chippeakanno findOverlapsOfPeaks [] ---
     # Key functions: toGRanges, findOverlapsOfPeaks, vennTable, overlappingPeaksToVennTable
     library(ChIPpeakAnno)

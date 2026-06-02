@@ -103,10 +103,6 @@ process BIOC_FISHPOND {
     # --- Function [] ---
     # Key functions: lmFit
     ---------------------------------------------------------------------
-    computeStat <- function(k, design, name) {
-      fit <- limma::lmFit(lfcArray[,,k], design)
-      tstats <- fit$coef/fit$stdev.unscaled/fit$sigma
-      tstats[,name]
     # --- Rowmeans [] ---
     # Key functions: rowMeans, computeStat
     ---------------------------------------------------------------------

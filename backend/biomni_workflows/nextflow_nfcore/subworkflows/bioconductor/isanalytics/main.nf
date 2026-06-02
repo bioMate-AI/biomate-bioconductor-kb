@@ -44,8 +44,6 @@ process BIOC_ISANALYTICS {
     # --- path [] ---
     # Key functions: path
     library("RefManageR")
-    bib <- c(
-    R = citation(),
     # --- tribble [] ---
     # Key functions: tribble, set_af_columns_def, set_mandatory_IS_vars, tempdir, unzip
     options("ISAnalytics.reports" = FALSE)

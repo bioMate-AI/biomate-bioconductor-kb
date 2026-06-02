@@ -45,7 +45,7 @@ process BIOC_DUPLEXDISCOVERER {
 
     # --- run Duplex Discoverer [] ---
     # Key functions: runDuplexDiscoverer
-    result <- DuplexDiscovereR::runDuplexDiscoverer(
+
     # --- observe results2 [] ---
     # Key functions: dd_get_duplex_groups
     gi_clusters <- dd_get_duplex_groups(result)
@@ -69,8 +69,6 @@ process BIOC_DUPLEXDISCOVERER {
     # --- vis 1 [] ---
     # Key functions: GRanges, GeneRegionTrack, DuplexTrack, plotTracks
     library(Gviz)
-    plotrange <- GRanges(
-    ranges = IRanges(
     # --- sample [] ---
     # Key functions: sample
     clust_reads <- clust_reads[!is.na(clust_reads$dg_id)]
@@ -88,16 +86,13 @@ process BIOC_DUPLEXDISCOVERER {
     names(res_comp)
     # --- upset [] ---
     # Key functions: upset
-    if (!requireNamespace("UpSetR", quietly = TRUE)) {
-    stop("Install 'UpSetR' to use this function.")
-    library(UpSetR)
+
     # --- preproc ex1 [] ---
     # Key functions: runDuplexDiscoPreproc
     data("RNADuplexesSampleData")
-    new_star <- runDuplexDiscoPreproc(
     # --- preproc ex2 [] ---
     # Key functions: runDuplexDiscoPreproc
-    new_bedpe <- runDuplexDiscoPreproc(
+
     # --- preproc ex3 [] ---
     # Key functions: mcols, runDuplexDiscoPreproc
     mcols(RNADuplexSampleGI) <- mcols(RNADuplexSampleGI)["readname"]

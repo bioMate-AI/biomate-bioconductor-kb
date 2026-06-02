@@ -50,7 +50,6 @@ process BIOC_APEGLM {
     # Key functions: ifelse
     s.val <- svalue(fit$thresh)
     cols <- ifelse(s.val < .01, "red", "black")
-    plot(res$baseMean[keep],
     # --- apeglm [] ---
     # Key functions: apeglm
     plot(res$baseMean, fit.mle$map[,coef], log="x", xlab=xlab, ylab="log odds")

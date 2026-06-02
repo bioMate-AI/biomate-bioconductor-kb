@@ -67,8 +67,6 @@ process BIOC_VISSE {
     ---------------------------------------------------------------------
     library(igraph)
     #identify clusters - order based on cluster size and avg gene-set stats
-    grps = findMsigClusters(gs_ovnet,
-                            genesetStat = geneset_stats,
     # --- Plotmsigwordcloud [] ---
     # Key functions: plotMsigWordcloud
     ---------------------------------------------------------------------

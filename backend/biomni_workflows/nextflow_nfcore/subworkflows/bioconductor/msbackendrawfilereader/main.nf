@@ -48,9 +48,7 @@ process BIOC_MSBACKENDRAWFILEREADER {
     eh <- ExperimentHub::ExperimentHub()
     # --- InstallRawFileReaderDLLs analysis [] ---
     # Key functions: include_graphics, installRawFileReaderDLLs, installRawrrExe, query, normalizePath, backendInitialize, MsBackendRawFileReader, filterScan
-    .generate_mgf <- function(ext, pattern,  dir=tempdir(), ...){
-    mgf <- file.path(dir, paste0(sub("\\.raw", "", unique(basename(beRaw$dataOrigin))),
-    idx <- beRaw$scanType |> grepl(patter=pattern)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

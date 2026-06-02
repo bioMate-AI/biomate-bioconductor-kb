@@ -38,7 +38,7 @@ process BIOC_UCELL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    library(SmoothKNN)
+    library(UCell)
     library(jsonlite)
 
 

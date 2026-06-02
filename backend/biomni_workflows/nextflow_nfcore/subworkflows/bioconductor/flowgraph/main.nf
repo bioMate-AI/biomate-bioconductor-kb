@@ -41,11 +41,44 @@ process BIOC_FLOWGRAPH {
     library(flowGraph)
     library(jsonlite)
 
-    # --- evaluate=FALSE [] ---
-    # Key functions: flowGraphSubset
+
+    # --- Label=load Data [] ---
+    # Key functions: flowgraph
+    # data(fg_data_fca)
+    data(fg_data_pos2)
+    # data(fg_data_pos30)
+
+    # ?fg_data_fca
+    # ?fg_data_pos2
+    # ?fg_data_pos30
+
+    # --- Eval=false [] ---
+    # Key functions: fg_save, fg_load, show, fg_get_meta, fg_replace_meta, new_sample_id1
+    #  fg_save(fg, "path/to/user/specified/folder/directory") # save flowGraph object
+    #  fg <- fg_load("path/to/user/specified/folder/directory") # load flowGraph object
+
+    ## -----------------------------------------------------------------------------
+    show(fg)
+
+    ## -----------------------------------------------------------------------------
+    # get sample meta data
+    head(fg_get_meta(fg))
+
+    # modify sample meta data
+    meta_new <- fg_get_meta(fg)
+    meta_new$id[1] <- "new_sample_id1"
+    fg <- fg_replace_meta(fg, meta_new)
+
+
+    # --- Evaluate=false [] ---
+    # Key functions: flowGraphSubset, flowGraphSubset_summary_pars, flowGraphSubset_summary_adjust, sessionInfo
     data(fg_data_pos2)
     fg <- flowGraphSubset(fg_data_pos2$count, meta=fg_data_pos2$meta, no_cores=no_cores,
-    summary_pars=flowGraphSubset_summary_pars(),
+                     summary_pars=flowGraphSubset_summary_pars(),
+                     summary_adjust=flowGraphSubset_summary_adjust())
+
+    ## -----------------------------------------------------------------------------
+    sessionInfo()
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

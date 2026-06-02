@@ -46,8 +46,6 @@ process BIOC_CYTOKERNEL {
     # --- CytoK output [] ---
     # Key functions: CytoK, CytoKDEfeatures
     library(cytoKernel)
-    CytoK_output<- CytoK(cytoHDBMW,group_factor = rep(c(0, 1),
-    c(4, 4)),lowerRho=2,upperRho=12,gridRho=4,
     # --- Cyto K D E Data [] ---
     # Key functions: CytoKDEData
     CytoKDEData_HD<- CytoKDEData(CytoK_output, by = "features")

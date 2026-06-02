@@ -83,7 +83,6 @@ process BIOC_OSAT {
               optimal=c("SampleType", "Race", "AgeGrp") )
     set.seed(123)    # to create reproducible result
     # demonstration only. nSim=5000 or more are commonly used.
-    gSetup2 <- create.optimized.setup("optimal.block",
     # --- Random [] ---
     # Key functions: getLayout, runif
     set.seed(397)        # an unfortunate choice

@@ -48,7 +48,6 @@ process BIOC_DEGREPORT {
     # Key functions: DESeqDataSetFromMatrix, colData, DESeq, results
     library(DESeq2)
     idx <- c(1:10, 75:85)
-    dds <- DESeqDataSetFromMatrix(assays(humanGender)[[1]][1:1000, idx],
     # --- Heatmap of expression matrix [] ---
     # Key functions: HeatmapAnnotation, Heatmap, pheatmap
     library(ComplexHeatmap)

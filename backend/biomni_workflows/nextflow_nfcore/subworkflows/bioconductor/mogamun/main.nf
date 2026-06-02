@@ -54,7 +54,7 @@ process BIOC_MOGAMUN {
     mogamun_run(LoadedData = loadedData, ResultsDir = '.')
     # --- mogamun_postprocess [] ---
     # Key functions: mogamun_postprocess
-    mogamun_postprocess(
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

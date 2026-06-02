@@ -54,8 +54,7 @@ process BIOC_METHYLPIPE {
     sres <- mCsmoothing(H1.db, gr, Scorefun='sum', Nbins=50, plot=TRUE)
     # --- methstats [] ---
     # Key functions: methstats
-    stats.set <- BSdataSet(org=Hsapiens, group=c("C","C","E","E"), IMR_1=IMR90.db,
-    stats_res <- methstats(stats.set,chrom="chr20",mcClass='mCG', Nproc=1)
+
     # --- map B Sdata2 G Ranges [] ---
     # Key functions: mapBSdata2GRanges
     gr_file <- system.file('extdata', 'GR_chr20.Rdata', package='methylPipe')
@@ -75,11 +74,9 @@ process BIOC_METHYLPIPE {
     # Key functions: GElist, plotMeth
     library(TxDb.Hsapiens.UCSC.hg18.knownGene)
     gel <- GElist(gecIMR90=gec.IMR90[1:10], gecH1=gec.H1[1:10])
-    plotMeth(gel, colors=c("red","blue"), datatype=c("mC","mC"), yLim=c(.025, .025), brmeth=list(IMR90=IMR90.db, H1=H1.db),
     # --- find D M R [] ---
     # Key functions: findDMR
-    DMRs <- findDMR(object= H1.IMR90.set, Nproc=1, ROI=GR_chr20, MCClass='mCG',
-    head(DMRs)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

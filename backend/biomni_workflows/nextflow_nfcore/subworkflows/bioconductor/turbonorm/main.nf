@@ -72,7 +72,6 @@ process BIOC_TURBONORM {
     A=as.vector(MA$A),
     Array=factor(rep(labels, each=nrow(MA$A)), levels=rev(labels)))
     library(lattice)
-    print(xyplot(M~A|Array, xlab="", ylab="", data=data, type='g',
     # --- Code7 [] ---
     # Key functions: toLatex
     toLatex(sessionInfo())

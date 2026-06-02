@@ -56,18 +56,10 @@ process BIOC_FMRS {
                        initmixProp = rep(1/nComp, nComp))
     # --- Code Block 5 [] ---
     # Key functions: tunsel, coefficients, dispersion, mixProp
-    res.lam <- fmrs.tunsel(y = dat$y, x = dat$x, delta = dat$delta,
-                          nComp = nComp, disFamily = "lnorm",
-                          initCoeff = c(coefficients(res.mle)),
-                          initDispersion = dispersion(res.mle),
-                          initmixProp = mixProp(res.mle),
+
     # --- Code Block 7 [] ---
     # Key functions: varsel, ncomp, coefficients, dispersion, mixProp
-    res.var <- fmrs.varsel(y = dat$y, x = dat$x, delta = dat$delta,
-                          nComp = ncomp(res.mle), disFamily = "lnorm",
-                          initCoeff=c(coefficients(res.mle)),
-                          initDispersion = dispersion(res.mle),
-                          initmixProp = mixProp(res.mle),
+
     # --- Code Block 9 [] ---
     # Key functions: 1, namespace
     ## R version 4.4.1 (2024-06-14)

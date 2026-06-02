@@ -76,8 +76,6 @@ process BIOC_DESEQ2 {
     # --- Object metadata inspection [] ---
     # Key functions: all, mcols, register, identify, rnbinom, plotit, dispersionFunction, estimateDispersionsMAP
     useForMedian <- mcols(ddsCustom)$dispGeneEst > 1e-7
-    medianDisp <- median(mcols(ddsCustom)$dispGeneEst[useForMedian],
-    dispersionFunction(ddsCustom) <- function(mu) medianDisp
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

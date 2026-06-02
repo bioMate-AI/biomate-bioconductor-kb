@@ -41,7 +41,12 @@ process BIOC_SYSTEMPIPESHINY {
     library(systemPipeShiny)
     library(jsonlite)
 
-    # --- tempdir [] ---
+
+    # --- Logo [] ---
+    # Key functions: include_graphics
+    knitr::include_graphics(path = "../inst/app/www/img/logo.png")
+
+    # --- Spsinit Temp [] ---
     # Key functions: tempdir, spsInit
     sps_tmp_dir <- tempdir()
     spsInit(app_path = sps_tmp_dir, change_wd = FALSE, project_name = "SPSProject")

@@ -53,7 +53,6 @@ process BIOC_METAMS {
     ## data(threeStdsDB)        ## provides DB
     ##
     ## cdfdir <- system.file("extdata", package = "metaMSdata")
-    ## cdffiles <- list.files(cdfdir, pattern = "_GC_",
     # --- Rungc [] ---
     # Key functions: runGC
     ## result <- runGC(xset = GCset, settings = TSQXLS.GC, DB = DB)
@@ -85,8 +84,6 @@ process BIOC_METAMS {
     allSamples.msp.scaled <- lapply(allSamples.msp, treat.DB,
                                     isMSP = FALSE)
     allSam.matches <-
-        matchSamples2Samples(allSamples.msp.scaled,
-                             allSamples.msp,
     # --- Getfeatureinfo [] ---
     # Key functions: getFeatureInfo
     features.df <- getFeatureInfo(stdDB = DB, allMatches = allSam.matches,

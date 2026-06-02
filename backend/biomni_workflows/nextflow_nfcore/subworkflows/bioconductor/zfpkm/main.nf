@@ -41,11 +41,23 @@ process BIOC_ZFPKM {
     library(zFPKM)
     library(jsonlite)
 
-    # --- reproducible settings [] ---
-    # Key functions: tempfile, getGEO
+
+    # --- Reproducible Settings [] ---
+    # Key functions: set, function, center
     rm(list=ls())
     set.seed(8675309)
     options(stringsAsFactors=FALSE)
+    library(printr)
+
+    knitr::opts_chunk$set(message=FALSE, fig.align="center", fig.width=8, fig.height=6)
+
+    ## -----------------------------------------------------------------------------
+    library(dplyr)
+    library(GEOquery)
+    library(stringr)
+    library(SummarizedExperiment)
+    library(tidyr)
+
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
