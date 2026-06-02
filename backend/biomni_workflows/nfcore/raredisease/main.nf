@@ -25,3 +25,69 @@ params.email            = null
 params.max_memory       = '128.GB'
 params.max_cpus         = 16
 params.max_time         = '240.h'
+
+// [Input Validation]
+process VALIDATE_INPUT {
+    script: """
+    check_samplesheet.py --input ${params.input} \
+        --genome ${params.genome} \
+        --analysis_type ${params.analysis_type}
+    """
+}
+
+// [Preprocessing]
+process FASTQC_TRIMGALORE {
+    script: """
+    trim_galore \
+        --outdir ${params.outdir}
+    fastqc \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Alignment]
+process BWAMEM2_BQSR {
+    script: """
+    bwa-mem2 mem ${params.genome} \
+        --outdir ${params.outdir}
+    gatk BaseRecalibrator \
+        --reference ${params.genome} \
+        ${params.intervals ? "--intervals ${params.intervals}" : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Variant Calling]
+process VARIANT_CALLING {
+    script: """
+    gatk HaplotypeCaller \
+        --reference ${params.genome} \
+        ${params.tools ? "--tools ${params.tools}" : ''} \
+        ${params.skip_tools ? "--skip_tools ${params.skip_tools}" : ''} \
+        ${params.intervals ? "--intervals ${params.intervals}" : ''} \
+        ${params.analysis_type == 'wes' ? '--wes' : ''} \
+        ${params.variant_catalog ? "--variant_catalog ${params.variant_catalog}" : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Annotation]
+process VEP_ANNOTATE {
+    script: """
+    vep \
+        --genome ${params.genome} \
+        ${params.vep_cache ? "--cache ${params.vep_cache}" : ''} \
+        ${params.cadd_resources ? "--cadd_resources ${params.cadd_resources}" : ''} \
+        ${params.vcfanno_toml ? "--vcfanno_toml ${params.vcfanno_toml}" : ''} \
+        ${params.rank_results ? '--rank' : ''} \
+        --outdir ${params.outdir}
+    """
+}
+
+// [Report]
+process MULTIQC {
+    script: """
+    multiqc --outdir ${params.outdir} \
+        ${params.email ? "--email ${params.email}" : ''}
+    """
+}
