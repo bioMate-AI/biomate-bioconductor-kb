@@ -178,24 +178,31 @@ def _resolve_adapter_name(org_id: str | None = None) -> str:
     return _resolve_adapter_path(org_id=None).parent.name
 
 
-def _call_vllm_regulatory_llm(
-    system: str, user_prompt: str,
-    max_new_tokens: int = 512, temperature: float = 0.3,
-    org_id: str | None = None,
+def _call_openai_compat_regulatory_llm(
+    *,
+    base_url: str,
+    api_key_env: str,
+    system: str,
+    user_prompt: str,
+    max_new_tokens: int,
+    temperature: float,
+    org_id: str | None,
+    backend_label: str,
 ) -> str:
-    """
-    Call vLLM via its OpenAI-compatible HTTP endpoint. Active when
-    VLLM_BASE_URL env var is set. See
-    docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md.
+    """Shared client for OpenAI-compatible regulatory-LLM endpoints.
+
+    Both vLLM (on a dedicated ASG) and Modal (serverless GPU) speak the
+    same /v1/chat/completions shape; this helper centralizes the wire
+    code. Returns "" on any failure — the caller is expected to fall
+    back to the next backend in the chain.
     """
     import json as _json
     import urllib.error
     import urllib.request
 
-    base_url = os.environ.get("VLLM_BASE_URL", "").rstrip("/")
-    if not base_url:
+    base = base_url.rstrip("/")
+    if not base:
         return ""
-
     adapter_name = _resolve_adapter_name(org_id=org_id)
     payload = {
         "model": adapter_name,
@@ -210,22 +217,45 @@ def _call_vllm_regulatory_llm(
         "repetition_penalty": 1.1,
     }
     req = urllib.request.Request(
-        f"{base_url}/v1/chat/completions",
+        f"{base}/v1/chat/completions",
         data=_json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {os.environ.get('VLLM_API_KEY', 'EMPTY')}",
+            "Authorization": f"Bearer {os.environ.get(api_key_env, 'EMPTY')}",
         },
         method="POST",
     )
-    timeout_s = int(os.environ.get("VLLM_TIMEOUT_S", "60"))
+    # Cold starts on Modal can take ~10-15s; bump default timeout.
+    timeout_s = int(
+        os.environ.get(f"{backend_label.upper()}_TIMEOUT_S")
+        or os.environ.get("REGULATORY_LLM_TIMEOUT_S", "90")
+    )
     try:
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
             body = _json.loads(resp.read().decode("utf-8"))
             return body["choices"][0]["message"]["content"].strip()
     except Exception as exc:
-        log.warning("[vllm] %s call failed: %s", adapter_name, exc)
+        log.warning("[%s] %s call failed: %s", backend_label, adapter_name, exc)
         return ""
+
+
+def _call_vllm_regulatory_llm(
+    system: str, user_prompt: str,
+    max_new_tokens: int = 512, temperature: float = 0.3,
+    org_id: str | None = None,
+) -> str:
+    """
+    Call vLLM via its OpenAI-compatible HTTP endpoint. Active when
+    VLLM_BASE_URL env var is set. See
+    docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md.
+    """
+    return _call_openai_compat_regulatory_llm(
+        base_url=os.environ.get("VLLM_BASE_URL", ""),
+        api_key_env="VLLM_API_KEY",
+        system=system, user_prompt=user_prompt,
+        max_new_tokens=max_new_tokens, temperature=temperature,
+        org_id=org_id, backend_label="vllm",
+    )
 
 
 def _call_local_regulatory_llm(
@@ -242,10 +272,28 @@ def _call_local_regulatory_llm(
 
     Qwen3 uses /no_think mode: direct prose without chain-of-thought.
 
-    Backend selection: vLLM HTTP server when VLLM_BASE_URL is set
-    (Phase 1+ deployment per docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md);
-    otherwise the Phase-0 direct HF transformers path below.
+    Backend selection (in priority order):
+      1. Modal serverless GPU when MODAL_REGULATORY_LLM_ENDPOINT is set
+         (cheapest — scales to zero when idle; see
+         docs/20260601_MODAL_REGULATORY_LLM_DEPLOY.md)
+      2. vLLM HTTP server when VLLM_BASE_URL is set (dedicated ASG —
+         see docs/20260520_VLLM_SPOT_ONDEMAND_INFRA.md)
+      3. Phase-0 direct HF transformers path below
+    Both 1 and 2 hit the same OpenAI-compatible /v1/chat/completions
+    surface; the helper differs only in env-var + auth handling.
     """
+    if os.environ.get("MODAL_REGULATORY_LLM_ENDPOINT"):
+        out = _call_openai_compat_regulatory_llm(
+            base_url=os.environ["MODAL_REGULATORY_LLM_ENDPOINT"],
+            api_key_env="MODAL_REGULATORY_LLM_KEY",
+            system=system, user_prompt=user_prompt,
+            max_new_tokens=max_new_tokens, temperature=temperature,
+            org_id=org_id, backend_label="modal",
+        )
+        if out:
+            return out
+        # Fall through to vLLM / local on Modal failure (cold-start timeout,
+        # adapter not loaded, etc.) — graceful degradation.
     if os.environ.get("VLLM_BASE_URL"):
         return _call_vllm_regulatory_llm(
             system, user_prompt, max_new_tokens, temperature, org_id=org_id,
