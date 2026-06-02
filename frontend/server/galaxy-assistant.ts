@@ -4092,8 +4092,13 @@ Contrast with a Nextflow pipeline case where data is an accession or file path:
   "preferred_domains": ["transcriptomics"],
   "key_terms": ["RNA-seq", "differential expression", "nf-core/rnaseq"],
   "needs_thinking": false,
-  "chain_hint": "bulk_rnaseq_de_analysis"
+  "chain_hint": null
 }
+
+Note: chain_hint is null here even though this involves RNA-seq + DE, because the user did not
+explicitly ask for a named multi-step pipeline. BioMate will route this to the best single
+workflow (nf-core/rnaseq). Chain suggestions for downstream DE analysis come reactively after
+the run completes.
 
 Key rule: needsWorkflowGeneration: true when the user provides a file path, SRA/GEO accession, or any data reference that must be fetched and processed by a Nextflow pipeline. needsWorkflowGeneration: false when the user pastes the data inline (a short sequence, a few numbers, a small table) and BioMate can compute the answer directly without a pipeline.
 
