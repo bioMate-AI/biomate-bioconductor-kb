@@ -905,7 +905,8 @@ process PRODUCTION_MD {
         # AWS Batch / ECS injects GPUs via NVIDIA_VISIBLE_DEVICES + accelerator=1.
         # Do not pass -gpu_id on Batch — GROMACS picks the visible device.
         if [ -n "\${NVIDIA_VISIBLE_DEVICES:-}" ] && [ "\${NVIDIA_VISIBLE_DEVICES}" != "none" ]; then
-            GPU_FLAG="-nb gpu -pme gpu -bonded gpu"
+            # conda-forge GROMACS is OpenCL/CUDA hybrid; -bonded gpu needs CUDA build.
+            GPU_FLAG="-nb gpu -pme gpu"
             echo "Production MD: GPU via NVIDIA_VISIBLE_DEVICES=\${NVIDIA_VISIBLE_DEVICES}" | tee md_mdrun.log
         else
             GPU_COUNT=0
@@ -913,7 +914,7 @@ process PRODUCTION_MD {
                 GPU_COUNT=\$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | grep -c . || true)
             fi
             if [ "\${GPU_COUNT:-0}" -gt 0 ]; then
-                GPU_FLAG="-gpu_id 0 -nb gpu -pme gpu -bonded gpu"
+                GPU_FLAG="-gpu_id 0 -nb gpu -pme gpu"
                 echo "Production MD: using GPU acceleration (\${GPU_COUNT} device(s))" | tee md_mdrun.log
             else
                 echo "WARNING: GPU requested but no device visible; using CPU mdrun" | tee md_mdrun.log
