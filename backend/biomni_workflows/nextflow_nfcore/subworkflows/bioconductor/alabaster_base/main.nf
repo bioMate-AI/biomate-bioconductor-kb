@@ -38,73 +38,37 @@ process BIOC_ALABASTER_BASE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(alabaster.base)
     library(DataFrame)
     library(I)
     library(jsonlite)
 
-    # --- Dataframe [] ---
-    # Key functions: DataFrame
-    ---------------------------------------------------------------------
-    library(S4Vectors)
-    df <- DataFrame(X=1:10, Y=letters[1:10])
-    df
-    # --- Readobject [] ---
+    # --- Data Deserialization [] ---
     # Key functions: readObject
-    ---------------------------------------------------------------------
-    readObject(tmp)
-    # --- Validateobject [] ---
-    # Key functions: validateObject
-    ---------------------------------------------------------------------
-    validateObject(tmp)
-    # --- Dataframe [] ---
-    # Key functions: DataFrame, factor, I, runif, rnorm, tempfile, saveObject, files
-    ---------------------------------------------------------------------
-    # Creating a nested DF to be a little spicy:
-    df2 <- DataFrame(Z=factor(1:5), AA=I(DataFrame(B=runif(5), C=rnorm(5))))
     tmp <- tempfile()
-    meta2 <- saveObject(df2, tmp)
-    # --- Setmethod [] ---
-    # Key functions: setMethod, create, DataFrame, csv, path, write
-    ---------------------------------------------------------------------
-    library(Matrix)
-    setMethod("saveObject", "dgTMatrix", function(x, path, ...) {
-        # Create a directory to stash our contents.
-        dir.create(path)
-    # --- Function [] ---
-    # Key functions: path, sparseMatrix, registerReadObjectFunction
-    ---------------------------------------------------------------------
-    readSparseTripletMatrix <- function(path, metadata, ...) {
-        df <- read.table(file.path(path, "matrix.csv"), header=TRUE, sep=",")
-        dims <- readLines(file.path(path, "dimensions.txt"))
-        sparseMatrix(
-    # --- Sparsematrix [] ---
-    # Key functions: sparseMatrix, runif, tempfile, saveObject, files, readObject
-    ---------------------------------------------------------------------
-    x <- sparseMatrix(
-        i=c(1,2,3,5,6),
-        j=c(3,6,1,3,8),
-        x=runif(5),
-    # --- Setgeneric [] ---
-    # Key functions: setGeneric, standardGeneric, path, write, toJSON, setMethod, saveObject
-    ---------------------------------------------------------------------
-    setGeneric("appSaveObject", function(x, path, ...) {
-        ans <- standardGeneric("appSaveObject")
-        # File names with leading underscores are reserved for application-specific
-        # use, so they won't clash with anything produced by saveObject.
-    # --- Function [] ---
-    # Key functions: altSaveObjectFunction, exit, altSaveObject, DataFrame, factor, I, runif
-    ---------------------------------------------------------------------
-    # Create a friendly user-visible function to handle the generic override; this
-    # is reversed on function exit to avoid interfering with other applications.
-    saveForApplication <- function(x, path, ...) {
-        old <- altSaveObjectFunction(appSaveObject)
-    # --- Altreadobject [] ---
-    # Key functions: altReadObject, null, readObjectFile, fromJSON, path
-    ---------------------------------------------------------------------
-    # Defining the override for altReadObject().
-    appReadObject <- function(path, metadata=NULL, ...) {
-        if (is.null(metadata)) {
-            metadata <- readObjectFile(path)
+    df <- S4Vectors::DataFrame(X = 1:10, Y = letters[1:10])
+    saveObject(df, tmp)
+    roundtrip <- readObject(tmp)
+
+
+    # --- Object Validation [] ---
+    # Key functions: validateObject
+    tmp <- tempfile()
+    df <- S4Vectors::DataFrame(X = 1:10, Y = letters[1:10])
+    saveObject(df, tmp)
+    validateObject(tmp)
+
+
+    # --- Custom Serialization Overrides [] ---
+    # Key functions: altSaveObjectFunction, altSaveObject
+    appSaveObject <- function(x, path, ...) {
+        saveObject(x, path, ...)
+    }
+    old <- altSaveObjectFunction(appSaveObject)
+    df <- S4Vectors::DataFrame(X = 1:10, Y = letters[1:10])
+    tmp <- tempfile()
+    altSaveObject(df, tmp)
+    altSaveObjectFunction(old)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

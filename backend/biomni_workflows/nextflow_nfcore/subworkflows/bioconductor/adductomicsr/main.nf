@@ -41,35 +41,21 @@ process BIOC_ADDUCTOMICSR {
     library(adductomicsR)
     library(jsonlite)
 
-    # --- quiet=TRUE [] ---
-    # Key functions: query
-    eh  = suppressMessages(suppressWarnings(ExperimentHub::ExperimentHub()))
-    temp = suppressMessages(suppressWarnings(
-    AnnotationHub::query(eh, 'adductData')))
-    # --- quiet=TRUE [] ---
-    # Key functions: rtDevModelling
-    rtDevModelling(
-    MS2Dir = hubCache(temp),
-    runOrder =paste0(system.file("extdata",
-    # --- quiet=TRUE [] ---
-    # Key functions: specSimPepId
-    specSimPepId(
-    MS2Dir = hubCache(temp),
-    rtDevModels =paste0(hubCache(temp),'/rtDevModels.RData')
-    # --- quiet=TRUE [] ---
-    # Key functions: generateTargTable
-    generateTargTable(
-    allresultsFile=paste0(system.file("extdata",package =
-    csvDir=tempdir(check = FALSE)
-    # --- quiet=TRUE [] ---
+    # --- Adduct Quantification [] ---
     # Key functions: adductQuant
-    adductQuant(
-    targTable=paste0(system.file("extdata",
-    rtDevModels= paste0(hubCache(temp),'/rtDevModels.RData'),
-    # --- quiet=TRUE [] ---
-    # Key functions: filterAdductTable
-    filterAdductTable(
-    paste0(tempdir(check = FALSE),"/adductQuantif_peakList_", Sys.Date(), ".csv")
+    quantResults <- adductQuant(
+        mzxmlFiles = c("ORB35017.mzXML", "ORB35022.mzXML"),
+        targTable = targTable,
+        saveDir = tempdir()
+    )
+
+
+    # --- Spectral Similarity Validation [] ---
+    # Key functions: specSimVal
+    validated <- specSimVal(
+        quantResults = quantResults,
+        mzxmlFiles = c("ORB35017.mzXML", "ORB35022.mzXML")
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

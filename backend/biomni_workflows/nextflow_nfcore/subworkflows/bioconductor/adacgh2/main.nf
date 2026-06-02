@@ -38,110 +38,38 @@ process BIOC_ADACGH2 {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(ADaCGH2)
     library(CGHregions)
     library(jsonlite)
 
-    # --- Data [] ---
-    # Key functions: data
-    library(ADaCGH2)
-    data(inputEx)
-    summary(inputEx)
-    head(inputEx)
-    # --- Files [] ---
-    # Key functions: files, inputToADaCGH
-    fnameRdata <- list.files(path = system.file("data", package = "ADaCGH2"),
-                         full.names = TRUE, pattern = "inputEx.RData")
-    inputToADaCGH(ff.or.RAM = "RAM",
-                          RDatafilename = fnameRdata)
-    # --- Data [] ---
-    # Key functions: inputToADaCGH
-    data(inputEx) ## make inputEx available as a data frame with that name
-    inputToADaCGH(ff.or.RAM = "RAM",
-                          dataframe = inputEx)
-    # --- Files [] ---
-    # Key functions: files, inputToADaCGH
-    fnametxt <- list.files(path = system.file("data", package = "ADaCGH2"),
-                             full.names = TRUE, pattern = "inputEx.txt")
-    ##    You might want to adapt mc.cores to your hardware
-    tmp <- inputToADaCGH(ff.or.RAM = "RAM",
-                         textfilename = fnametxt,
-    # --- Psegmenthaarseg [] ---
+    # --- Parallel Segmentation [] ---
     # Key functions: pSegmentHaarSeg
-    ##    You might want to adapt mc.cores to your hardware
-    haar.RAM.fork <- pSegmentHaarSeg(cgh.dat, chrom.dat,
-                                       merging = "MAD",
-                                     typeParall = "fork",
-                                     mc.cores = 2)
-    # --- Pchromplot [] ---
+    haar.ff.fork <- pSegmentHaarSeg(
+        "cghData.RData",
+        "chromData.RData",
+        merging = "MAD",
+        typeParall = "fork",
+        mc.core = 2
+    )
+
+
+    # --- Genomic Visualization [] ---
     # Key functions: pChromPlot
-    ##    You might want to adapt mc.cores to your hardware
-    pChromPlot(haar.RAM.fork,
-               cghRDataName = cgh.dat,
-               chromRDataName = chrom.dat,
-               posRDataName = pos.dat,
-    # --- Mcparallel [] ---
-    # Key functions: mcparallel, inputToADaCGH, mccollect, inherits
-    ## mcparallel(inputToADaCGH(ff.or.RAM = "ff",
-    ##                                  RDatafilename = fnameRData),
-    ##                                  silent = FALSE)
-    ##   tableChromArray <- mccollect()
-    ##   if(inherits(tableChromArray, "try-error")) {
-    # --- Mcparallel [] ---
-    # Key functions: mcparallel, inputToADaCGH, collect, inherits
-    ## mcparallel(inputToADaCGH(ff.or.RAM = "ff",
-    ##                                  RDatafilename = fnameRdata),
-    ##            silent = FALSE)
-    ## tableChromArray <- collect()
-    ## if(inherits(tableChromArray, "try-error")) {
-    # --- Chunk0001 [] ---
-    # Key functions: inputToADaCGH
-    if(.Platform$OS.type != "windows") {
-    ## You might want to adapt mc.cores to your hardware
-    inputToADaCGH(ff.or.RAM = "ff",
-                  path = cuttedFile.dir,
-                  verbose = TRUE,
-    # --- Chunk0002 [] ---
-    # Key functions: pSegmentHaarSeg
-    if(.Platform$OS.type != "windows") {
-    ## You might want to adapt mc.cores to your hardware
-    haar.ff.fork <- pSegmentHaarSeg("cghData.RData",
-                                    "chromData.RData",
-                                     merging = "MAD",
-    # --- Chunk0003 [] ---
-    # Key functions: pChromPlot
-    if(.Platform$OS.type != "windows") {
-    save(haar.ff.fork, file = "haar.ff.fork.RData", compress = FALSE)
-    ##    You might want to adapt mc.cores to your hardware
-    pChromPlot(outRDataName = "haar.ff.fork.RData",
-               cghRDataName = "cghData.RData",
-    # --- Chunk0006 [] ---
-    # Key functions: readTargets, maimages, backgroundCorrect, normalizeWithinArrays
-    ## if(.Platform$OS.type != "windows") {
-    ##   require("limma")
-    ##   datadir <- system.file("testdata", package = "snapCGH")
-    ##   targets.limma <- readTargets("targets.txt", path = datadir)
-    ##   RG.limma <- read.maimages(targets.limma, path = datadir,
-    # --- Chunk0007 [] ---
-    # Key functions: files, inputToADaCGH
-    ## if(.Platform$OS.type != "windows") {
-    ## fclone <- list.files(path = system.file("testdata", package = "snapCGH"),
-    ##                      full.names = TRUE, pattern = "cloneinfo.txt")
-    ## fclone
-    ## tmp <- inputToADaCGH(MAList = MA.limma,
-    # --- Chunk0008 [] ---
-    # Key functions: inputToADaCGH
-    ## if(.Platform$OS.type != "windows") {
-    ## acloneinfo <- MA$genes
-    ## tmp <- inputToADaCGH(MAList = MA.limma,
-    ##                              cloneinfo = acloneinfo,
-    ##                              robjnames = c("cgh-ma.dat", "chrom-ma.dat",
-    # --- Chunk0009 [] ---
-    # Key functions: outputToCGHregions, CGHregions, omit
-    if(.Platform$OS.type != "windows") {
-    forcghr <- outputToCGHregions(haar.ff.cluster)
-    if(require(CGHregions)) {
-      regions1 <- CGHregions(na.omit(forcghr))
-      regions1
+    pChromPlot(
+        outRDataName = "haar.ff.fork.RData",
+        cghRDataName = "cghData.RData",
+        chromRDataName = "chromData.RData",
+        posRDataName = "posData.RData",
+        probenamesRDataName = "probeNames.RData",
+        imgheight = 350,
+        typeParall = "fork",
+        mc.cores = 2
+    )
+
+
+    # --- Region Conversion [] ---
+    # Key functions: outputToCGHregions
+    forcghr <- outputToCGHregions(haar.ff.fork)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

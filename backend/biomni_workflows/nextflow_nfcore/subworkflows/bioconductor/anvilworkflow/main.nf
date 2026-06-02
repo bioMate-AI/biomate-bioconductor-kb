@@ -38,16 +38,21 @@ process BIOC_ANVILWORKFLOW {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(AnVILWorkflow)
     library(Terra)
     library(jsonlite)
 
-    # --- Terra [] ---
-    # Key functions: Terra
-    resp <- AnVIL::Terra()$deleteWorkspace(workspaceNamespace = billingProjectName,
-    rm(resp)
-    # --- get Output [] ---
-    # Key functions: getOutput
-    out <- getOutput(workspaceName = "Bioconductor-Workflow-DESeq2",
+    # --- Input Configuration [] ---
+    # Key functions: inputs
+    wf_inputs <- anvilworkflow::inputs(wf)
+    wf_inputs$input_file <- "gs://my-bucket/data.fastq"
+    anvilworkflow::inputs(wf) <- wf_inputs
+
+
+    # --- Workflow Submission [] ---
+    # Key functions: submit, jobs
+    job <- anvilworkflow::submit(wf)
+    status <- anvilworkflow::jobs(wf)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

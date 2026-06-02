@@ -38,13 +38,57 @@ process BIOC_ALPHABETA {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(AlphaBeta)
     library(ABneutral)
     library(jsonlite)
 
-    # --- output.lines=5 [] ---
-    # Key functions: ABneutral
-    output.data.dir <- paste0(getwd())
-    output <- ABneutral(
+    # --- Selection Model Estimation [] ---
+    # Key functions: ABselectMM, ABselectUU
+    rFile <- system.file("extdata/dm", "output.rds", package = "AlphaBeta")
+    output <- readRDS(rFile)
+    pedigree <- output$Pdata
+    p0uu_in <- output$tmpp0
+    output.data.dir <- tempdir()
+    selectMM_out <- ABselectMM(
+        pedigree.data = pedigree,
+        p0uu = p0uu_in,
+        eqp = p0uu_in,
+        eqp.weight = 1,
+        Nstarts = 2,
+        out.dir = output.data.dir,
+        out.name = "ABselectMM_estimates"
+    )
+
+
+    # --- Null Model Estimation [] ---
+    # Key functions: ABnull
+    rFile <- system.file("extdata/dm", "output.rds", package = "AlphaBeta")
+    output <- readRDS(rFile)
+    pedigree <- output$Pdata
+    output.data.dir <- tempdir()
+    null_out <- ABnull(
+        pedigree.data = pedigree,
+        out.dir = output.data.dir,
+        out.name = "ABnull_estimates"
+    )
+
+
+    # --- Model Comparison [] ---
+    # Key functions: FtestRSS
+    file1 <- system.file(
+        "extdata/models/",
+        "ABneutral_CG_global_estimates.Rdata",
+        package = "AlphaBeta"
+    )
+    file2 <- system.file(
+        "extdata/models/",
+        "ABnull_CG_global_estimates.Rdata",
+        package = "AlphaBeta"
+    )
+    comparison <- FtestRSS(
+        pedigree.select = file1,
+        pedigree.null = file2
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

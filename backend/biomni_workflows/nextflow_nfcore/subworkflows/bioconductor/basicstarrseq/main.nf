@@ -38,30 +38,32 @@ process BIOC_BASICSTARRSEQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(BasicSTARRseq)
     library(STARRseqData)
     library(jsonlite)
 
-    # --- Basicstarrseq.Rnw:39 45 [] ---
+    # --- GRanges Conversion [] ---
     # Key functions: STARRseqData
-    starrseqFileName <- system.file("extdata", "smallSTARR.bam",
-                                    package="BasicSTARRseq")
-    inputFileName <- system.file("extdata", "smallInput.bam",
-                                 package="BasicSTARRseq")
-    STARRseqData(sample=starrseqFileName, control=inputFileName,
-    # --- Basicstarrseq.Rnw:48 50 [] ---
-    # Key functions: STARRseqData
-    STARRseqData(sample=starrseqFileName, control=inputFileName,
-                 pairedEnd=FALSE)
-    # --- Basicstarrseq.Rnw:53 57 [] ---
-    # Key functions: granges, readGAlignmentPairs, STARRseqData
-    starrseqGRanges <- granges(readGAlignmentPairs(starrseqFileName))
-    inputGRanges <- granges(readGAlignmentPairs(inputFileName))
-    data <- STARRseqData(sample=starrseqGRanges, control=inputGRanges)
-    data
-    # --- Basicstarrseq.Rnw:62 64 [] ---
+    starrseqFile <- system.file("extdata", "smallSTARR.bam",
+                                package="BasicSTARRseq")
+    inputFile <- system.file("extdata", "smallInput.bam",
+                             package="BasicSTARRseq")
+    starrseqGR <- GenomicAlignments::readGAlignmentPairs(starrseqFile)
+    inputGR <- GenomicAlignments::readGAlignmentPairs(inputFile)
+    data_gr <- STARRseqData(
+        sample=GenomicRanges::granges(starrseqGR),
+        control=GenomicRanges::granges(inputGR)
+    )
+
+
+    # --- Peak Calling [] ---
     # Key functions: getPeaks
-    peaks <- getPeaks(data)
-    peaks
+    peaks <- getPeaks(
+        starr_data,
+        minQuantile=0.9,
+        peakWidth=500,
+        maxPval=0.001
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

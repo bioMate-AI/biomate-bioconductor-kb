@@ -38,77 +38,24 @@ process BIOC_ARRAYMVOUT {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(arrayMvout)
     library(AffyRNAdeg)
     library(ArrayOutliers)
     library(NUSE)
     library(RLE)
     library(jsonlite)
 
-    # --- Dddd [] ---
+    # --- Outlier Detection on QA Data [] ---
     # Key functions: ArrayOutliers
-    library(arrayMvout)
-    data(maqcQA)
-    mm = ArrayOutliers(maqcQA[, 3:11], alpha=.01)
-    mm
-    # --- Dde [] ---
-    # Key functions: ArrayOutliers
-    data(itnQA)
-    ii = ArrayOutliers(itnQA, alpha=.01)
-    ii
-    # --- Doapan [] ---
-    # Key functions: sampleNames
-    ## library(arrayMvout)
-    ## library(MAQCsubset)
-    ## if (!exists("afxsub")) data(afxsub)
-    ## sn = sampleNames(afxsub)
-    ## if (nchar(sn)[1] > 6) {
-    # --- Lkadas [] ---
-    # Key functions: AffyRNAdeg, plotAffyRNAdeg
-    ## #afxsubDEG = AffyRNAdeg(afxsub)
-    ## #save(afxsubDEG, file="afxsubDEG.rda")
-    ## library(arrayMvout)
-    ## data(afxsubDEG)
-    ## plotAffyRNAdeg(afxsubDEG,
-    # --- Asdad [] ---
-    # Key functions: qc
-    ## #afxsubQC = qc(afxsub)
-    ## #save(afxsubQC, file="afxsubQC.rda")
-    ## data(afxsubQC)
-    ## plot(afxsubQC)
-    # --- Splm [] ---
-    # Key functions: fitPLM
-    ## library(affyPLM)
-    ## #if (file.exists("splm.rda")) load("splm.rda")
-    ## #if (!exists("splm")) splm = fitPLM(afxsub)
-    ## splm = fitPLM(afxsub)
-    ## #save(splm, file="splm.rda")
-    # --- Don [] ---
-    # Key functions: NUSE, RLE, image
-    ## png(file="doim.png")
-    ## par(mar=c(7,5,5,5),mfrow=c(2,2),las=2)
-    ## NUSE(splm, ylim=c(.85,1.3))
-    ## RLE(splm)
-    ## image(splm, which=2, type="sign.resid")
-    # --- Doao [] ---
-    # Key functions: ArrayOutliers
-    ## AO = ArrayOutliers(afxsub, alpha=0.05, qcOut=afxsubQC,
-    ##   plmOut=splm, degOut=afxsubDEG)
-    ## nrow(AO[["outl"]])
-    # --- Doz [] ---
-    # Key functions: mdqc
-    ## library(mdqc)
-    ## mdq = mdqc( AO[[3]], robust="MVE" )
-    ## mdq
-    # --- Doada [] ---
-    # Key functions: data
-    ## require(mvoutData)
-    ## data(s12c)
-    # --- Doaaaasdas [] ---
-    # Key functions: ArrayOutliers
-    ## aos12c = ArrayOutliers(s12c, alpha=0.05)
-    # --- Doma [] ---
-    # Key functions: mdqc
-    ## mdqc(aos12c[[3]], robust="MVE")
+    res_itn <- arrayMvout::ArrayOutliers(
+        itnQA,
+        alpha = 0.05
+    )
+
+
+    # --- Outlier Visualization [] ---
+    # Key functions: plot
+    plot(res_itn, choices = c(1, 3))
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

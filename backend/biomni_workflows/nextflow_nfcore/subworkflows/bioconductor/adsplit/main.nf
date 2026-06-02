@@ -41,51 +41,36 @@ process BIOC_ADSPLIT {
     library(adSplit)
     library(jsonlite)
 
-    # --- Exit [] ---
-    # Key functions: exit, interactive
-    library(golubEsets)
-    oldopt <- options(digits=3)
-    on.exit( {options(oldopt)} )
-    options(width=70)
-    if (interactive()) {
-    # --- Data [] ---
-    # Key functions: data
-    library(golubEsets)
-    data(Golub_Merge)
-    # --- Exprs [] ---
-    # Key functions: exprs, diana2means
-    e <- exprs(Golub_Merge)
-    vars <- apply(e, 1, var)
-    e <- e[vars > quantile(vars,0.9),]
-    diana2means(e)
-    diana2means(e, return.cut=TRUE)
-    # --- diana2means [] ---
-    # Key functions: diana2means
-    x <- diana2means(e, return.cut=TRUE)
-    x$cut
-    # --- Adsplit [] ---
+    # --- Annotation-Driven Splitting [] ---
     # Key functions: adSplit
-    adSplit(Golub_Merge, "GO:0006915", "hu6800")
-    # --- make E I D2 P R O B E Senv [] ---
-    # Key functions: makeEID2PROBESenv
-    EID2PSenv <- makeEID2PROBESenv(hu6800ENTREZID)
-    # --- Drawrandomps [] ---
-    # Key functions: drawRandomPS
-    drawRandomPS(10, EID2PSenv, ls(EID2PSenv))
-    # --- random Diana2means [] ---
-    # Key functions: randomDiana2means, exprs
-    scores <- randomDiana2means(20, exprs(Golub_Merge), "hu6800", ndraws = 1000)
-    # --- Adsplit [] ---
-    # Key functions: adSplit
-    glutamSplits <- adSplit(Golub_Merge, "KEGG:00251", "hu6800", B=1000)
-    # --- Data [] ---
-    # Key functions: data
-    data(golubKEGGSplits)
-    print(golubKEGGSplits)
-    summary(golubKEGGSplits$qvalues)
-    # --- Image [] ---
-    # Key functions: image
-    image(golubKEGGSplits, filter.fdr=0.3, outfile="splitSet.eps", res=300)
+    splits <- adSplit(
+        Golub_Merge,
+        "GO:0007165",
+        "hu6800",
+        max.probes = 7000
+    )
+
+
+    # --- Randomized Significance Testing [] ---
+    # Key functions: randomDiana2means
+    scores <- randomDiana2means(
+        20,
+        exprs(Golub_Merge),
+        "hu6800",
+        ndraws = 1000,
+        ignore.genes = 5
+    )
+
+
+    # --- Visualization of Splits [] ---
+    # Key functions: image, hist
+    hist(golubKEGGSplits)
+    image(
+        golubKEGGSplits,
+        filter.fdr = 0.3,
+        outfile = "splitSet.eps",
+        res = 300
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

@@ -38,76 +38,24 @@ process BIOC_ANNOTATIONTOOLS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(annotationTools)
     library(I)
     library(jsonlite)
 
-    # --- Csv [] ---
-    # Key functions: csv
-    ## annotation_HGU133Plus2<-read.csv('HG-U133_Plus_2_annot.csv',
-    ## 	colClasses='character',comment.char='#')
-    # --- Getgenesymbol [] ---
-    # Key functions: getGENESYMBOL
-    getGENESYMBOL(myPS,annotation_HGU133Plus2)
-    # --- Getgeneontology [] ---
-    # Key functions: getGENEONTOLOGY
-    getGENEONTOLOGY(myPS,annotation_HGU133Plus2)
-    # --- Ls [] ---
-    # Key functions: search
-    ls(grep('annotationTools',search()))
-    # --- Getgeneid [] ---
-    # Key functions: getGENEID, getHOMOLOG, csv, unlist, getPROBESET
-    ps_human<-'1053_at'
-    geneID_human<-getGENEID(ps_human,annotation_HGU133Plus2)
-    geneID_mouse<-getHOMOLOG(geneID_human,10090,homologene)
-    annotationFile<-system.file('extdata','Mouse430_2_annot_part.csv',
-    	package='annotationTools')
-    # --- Gethomolog [] ---
-    # Key functions: getHOMOLOG
-    getHOMOLOG(myGenes,10090,gene_orthologs,tableType="gene_orthologs")
-    # --- ps2ps [] ---
-    # Key functions: ps2ps
-    ## orthoTable<-ps2ps(annotation_HGU133Plus2,annotation_Mouse4302,homologene,10090)
-    # --- Csv [] ---
-    # Key functions: csv, delim, getGENEID, getHOMOLOG, unlist
-    ## annotation_HGU133Plus2<-read.csv('HG-U133_Plus_2_annot.csv',
-    ## 	colClasses='character',comment.char='#')
-    ## annotation_Mouse4302<-read.csv('Mouse430_2_annot.csv',
-    ## 	colClasses='character',comment.char='#')
-    ## homologene<-read.delim('homologene.data',header=F)
-    # --- Lapply [] ---
-    # Key functions: omit
-    ## ps_Mouse4302_2<-lapply(ps_Mouse4302_2,function(x) {unique(x)})
-    ## ps_Mouse4302_2<-lapply(ps_Mouse4302_2,function(x) {
-    ## 	if (length(x)>1) na.omit(x) else x})
-    ## gid_Mouse4302_1<-lapply(gid_Mouse4302_1,function(x) {unique(x)})
-    ## gid_Mouse4302_1<-lapply(gid_Mouse4302_1,function(x) {
-    # --- ps2ps [] ---
-    # Key functions: ps2ps
-    ## orthoTable<-ps2ps(annotation_HGU133Plus2,annotation_Mouse4302,homologene,10090)
-    ## write.table(orthoTable,file='HGU133Plus2_Mouse4302.txt',sep='\t',
-    ## 	col.names=T,row.names=F)
-    # --- Data [] ---
-    # Key functions: data
-    data(orthologs_example)
-    # --- Getorthologousprobesets [] ---
+    # --- Cross-Species Comparison Plotting [] ---
     # Key functions: getOrthologousProbesets
-    orthops<-getOrthologousProbesets(ps_mouse,table_human,ortho)
-    orthops[[1]]
-    # --- Frame [] ---
-    # Key functions: frame, I
-    table_human_absM<-data.frame(I(table_human[,1]),I(abs(table_human[,2])))
-    # --- Getorthologousprobesets [] ---
-    # Key functions: getOrthologousProbesets
-    orthops_maxAbsM<-getOrthologousProbesets(ps_mouse,table_human_absM,
-    	ortho,max,forceProbesetSelection=TRUE)
-    orthops_maxAbsM[[1]]
-    # --- Selectortho [] ---
-    # Key functions: frame, I, getOrthologousProbesets, unlist
-    table_human_absT<-data.frame(I(table_human[,1]),I(abs(table_human[,3])))
-    orthops_maxAbsT<-getOrthologousProbesets(ps_mouse,table_human_absT,
-    	ortho,max,forceProbesetSelection=TRUE)
-    orthops_maxAbsT_ind<-match(unlist(orthops_maxAbsT[[1]]),table_human[,1])
-    plot(table_mouse[selection,2],table_human[orthops_maxAbsM_ind,2],
+    orthops_maxAbsT_ind <- match(
+        unlist(orthops_maxAbsT[[1]]),
+        table_human[, 1]
+    )
+    plot(
+        table_mouse[selection, 2],
+        table_human[orthops_maxAbsT_ind, 2],
+        pch = 19,
+        col = "gray",
+        xlab = "log fold change in mouse",
+        ylab = "log fold change in human"
+    )
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {

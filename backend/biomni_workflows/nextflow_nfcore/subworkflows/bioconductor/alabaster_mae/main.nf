@@ -38,21 +38,29 @@ process BIOC_ALABASTER_MAE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
+    library(alabaster.mae)
     library(SummarizedExperiment)
     library(jsonlite)
 
-    # --- Matrix [] ---
-    # Key functions: rpois, SummarizedExperiment
-    ---------------------------------------------------------------------
-    library(SummarizedExperiment)
-    rna.counts <- matrix(rpois(60, 10), ncol=6)
-    colnames(rna.counts) <- c("disease1", "disease2", "disease3", "control1", "control2", "control3")
-    rownames(rna.counts) <- c("ENSMUSG00000000001", "ENSMUSG00000000003", "ENSMUSG00000000028",
-    # --- Readobject [] ---
+    # --- MultiAssayExperiment Deserialization [] ---
     # Key functions: readObject
-    ---------------------------------------------------------------------
+    rna.counts <- matrix(rpois(60, 10), ncol = 6)
+    colnames(rna.counts) <- paste0("S", 1:6)
+    rna.se <- SummarizedExperiment::SummarizedExperiment(
+        list(counts = rna.counts)
+    )
+    mapping <- S4Vectors::DataFrame(
+        assay = rep("rnaseq", 6),
+        primary = colnames(rna.se),
+        colname = colnames(rna.se)
+    )
+    mae <- MultiAssayExperiment::MultiAssayExperiment(
+        list(rnaseq = rna.se),
+        sampleMap = mapping
+    )
+    tmp <- tempfile()
+    saveObject(mae, tmp)
     roundtrip <- readObject(tmp)
-    class(roundtrip)
 
     # --- Save outputs ---
     if (exists("results_df") && is.data.frame(results_df)) {
