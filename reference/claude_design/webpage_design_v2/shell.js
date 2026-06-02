@@ -56,6 +56,7 @@
               ,{ label: 'Team',              href: 'team.html' }
               */
             ])}
+            ${link('tutorials', 'Tutorials', 'tutorials.html')}
             ${link('contact', 'Contact', 'contact.html')}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
@@ -118,6 +119,7 @@
               <h4>Company</h4>
               <ul>
                 <li><a href="about.html">About</a></li>
+                <li><a href="tutorials.html">Tutorials</a></li>
                 <li><a href="blog.html">Newsroom</a></li>
                 <li><a href="contact.html">Contact</a></li>
                 <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>

@@ -1,0 +1,147 @@
+<mxfile host="Electron" modified="2026-06-01T00:00:00.000Z" agent="draw.io" version="21.0.0">
+  <diagram id="dual-agent" name="Fig6 Dual-Agent LLM Cross-Validation Protocol">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="840" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="Dual-Agent LLM Cross-Validation Protocol for Knowledge Base Quality Assurance" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#1E3A5F;" vertex="1" parent="1">
+          <mxGeometry x="100" y="15" width="1200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ INPUT ═══ -->
+        <mxCell id="input-pkg" value="&lt;b&gt;Bioconductor Package&lt;/b&gt;&lt;br/&gt;Extracted workflow steps&lt;br/&gt;&lt;i&gt;(name, functions, sample code)&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A5F;fontColor=#ffffff;strokeColor=#1E3A5F;fontSize=11;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="520" y="75" width="360" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Dev / Test split -->
+        <mxCell id="split-lbl" value="Dev/Test Split (seed=42): 1 pkg/domain → calibration set; remainder → held-out test" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#9CA3AF;fontSize=9;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="165" width="540" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ AGENT A ═══ -->
+        <mxCell id="agentA-hdr" value="Expert Agent A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1D4ED8;fontColor=#ffffff;strokeColor=#1D4ED8;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="225" width="380" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="agentA-body" value="&lt;b&gt;Technical Specialist&lt;/b&gt;&lt;br/&gt;Focuses on: statistical rigor,&lt;br/&gt;computational correctness,&lt;br/&gt;function completeness&lt;br/&gt;&lt;br/&gt;Scores 4 criteria independently:&lt;br/&gt;• biologically_correct (0 / 0.5 / 1.0)&lt;br/&gt;• complete (0 / 0.5 / 1.0)&lt;br/&gt;• correctly_named (0 / 0.5 / 1.0)&lt;br/&gt;• granularity_ok (0 / 0.5 / 1.0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#1D4ED8;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="260" width="380" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ AGENT B ═══ -->
+        <mxCell id="agentB-hdr" value="Expert Agent B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#059669;fontColor=#ffffff;strokeColor=#059669;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="225" width="380" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="agentB-body" value="&lt;b&gt;Applied Practitioner&lt;/b&gt;&lt;br/&gt;Focuses on: biological completeness,&lt;br/&gt;usability, naming quality,&lt;br/&gt;workflow standard alignment&lt;br/&gt;&lt;br/&gt;Scores 4 criteria independently:&lt;br/&gt;• biologically_correct (0 / 0.5 / 1.0)&lt;br/&gt;• complete (0 / 0.5 / 1.0)&lt;br/&gt;• correctly_named (0 / 0.5 / 1.0)&lt;br/&gt;• granularity_ok (0 / 0.5 / 1.0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="260" width="380" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- arrows: input → agents -->
+        <mxCell id="e-in-A" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1D4ED8;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" source="input-pkg" target="agentA-hdr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-in-B" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#059669;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" source="input-pkg" target="agentB-hdr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Parallel label -->
+        <mxCell id="parallel-lbl" value="Run in parallel" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#6B7280;" vertex="1" parent="1">
+          <mxGeometry x="600" y="320" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="parallel-line" value="" style="endArrow=none;dashed=1;html=1;dashPattern=4 4;strokeColor=#9CA3AF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="340" as="sourcePoint" />
+            <mxPoint x="700" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══ AGREEMENT CHECK ═══ -->
+        <mxCell id="agreement" value="Agreement Check&lt;br/&gt;&lt;b&gt;|score_A − score_B| ≤ 0.30?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="525" y="490" width="350" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e-A-agree" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6B7280;exitX=0.5;exitY=1;entryX=0;entryY=0.5;" edge="1" source="agentA-body" target="agreement" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-B-agree" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6B7280;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" edge="1" source="agentB-body" target="agreement" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ AGREEMENT PATH: YES ═══ -->
+        <mxCell id="accept" value="&lt;b&gt;Step Accepted&lt;/b&gt;&lt;br/&gt;Mean score ≥ 0.75 → Correct&lt;br/&gt;Mean score &lt; 0.75 → Needs improvement" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#065F46;fontColor=#ffffff;strokeColor=#065F46;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="640" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agree-yes" value="YES (agree)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#065F46;fontColor=#065F46;fontStyle=1;" edge="1" source="agreement" target="accept" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="525" y="540" />
+              <mxPoint x="350" y="540" />
+              <mxPoint x="350" y="675" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══ DISAGREEMENT PATH: NO → MEDIATOR ═══ -->
+        <mxCell id="mediator-hdr" value="Mediator Agent (Third Reviewer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7C3AED;fontColor=#ffffff;strokeColor=#5B21B6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="625" width="380" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="mediator-body" value="Receives: Both agents' scores, criteria, per-step comments&lt;br/&gt;&lt;br/&gt;Classifies root cause of disagreement:&lt;br/&gt;• Naming convention difference&lt;br/&gt;• Biological completeness view&lt;br/&gt;• Granularity preference&lt;br/&gt;• Domain sub-specialisation mismatch&lt;br/&gt;&lt;br/&gt;Recommends one action per step:&lt;br/&gt;• &lt;b&gt;rename&lt;/b&gt; (213) · &lt;b&gt;add_functions&lt;/b&gt; (74)&lt;br/&gt;• &lt;b&gt;no_change&lt;/b&gt; (33) · &lt;b&gt;split&lt;/b&gt; (32) · &lt;b&gt;merge&lt;/b&gt; (25)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="820" y="660" width="380" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agree-no" value="NO (disagree &gt;0.30)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#7C3AED;fontColor=#7C3AED;fontStyle=1;" edge="1" source="agreement" target="mediator-hdr" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="875" y="540" />
+              <mxPoint x="1010" y="540" />
+              <mxPoint x="1010" y="625" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══ OUTCOMES FROM MEDIATOR ═══ -->
+        <mxCell id="rename-out" value="208 renames&lt;br/&gt;&lt;b&gt;applied to KB&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#065F46;fontColor=#ffffff;strokeColor=#065F46;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="740" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="flagged-out" value="131 items flagged&lt;br/&gt;for next cycle" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="810" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e-med-ren" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#065F46;" edge="1" source="mediator-body" target="rename-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-med-flag" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#059669;" edge="1" source="mediator-body" target="flagged-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ CALIBRATION BOX ═══ -->
+        <mxCell id="calib-hdr" value="Iterative Calibration (v2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D97706;fontColor=#ffffff;strokeColor=#D97706;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="755" width="320" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="calib-body" value="First-pass-as-prior revision protocol:&lt;br/&gt;v1 scores + mediator examples → v2 review&lt;br/&gt;1,204 criterion revisions&lt;br/&gt;&lt;b&gt;κ: 0.801 → 0.96 (overall)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="790" width="320" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="e-med-calib" value="calibrates rubric" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#D97706;fontStyle=2;fontSize=8;" edge="1" source="mediator-body" target="calib-hdr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ FINAL OUTPUT ═══ -->
+        <mxCell id="final-out" value="&lt;b&gt;Quality-Assured Knowledge Base&lt;/b&gt;&lt;br/&gt;90.0% step correctness | κ = 0.96 | 15,641 curated steps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A5F;fontColor=#ffffff;strokeColor=#1E3A5F;fontSize=12;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="380" y="890" width="640" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e-acc-final" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="accept" target="final-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ren-final" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="rename-out" target="final-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-calib-final" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="calib-body" target="final-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Gap identification note -->
+        <mxCell id="gap-note" value="+ 581 workflow gaps identified&lt;br/&gt;(augmentation roadmap)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#9CA3AF;fontSize=9;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="770" width="170" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

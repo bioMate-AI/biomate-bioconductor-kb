@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorials &mdash; BioMate AI</title>
+  <meta name="description" content="Step-by-step video tutorials for BioMate AI — CryoSPARC SPA, drug screening with auto-loop, IND report generation, and reproducible after-run reports for life science research." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <style>
+    .tut-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3rem 2.5rem;
+      margin-top: 3rem;
+    }
+    @media (max-width: 780px) {
+      .tut-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    }
+    .tut-card {}
+    .tut-embed {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,.10);
+      background: #000;
+    }
+    .tut-embed iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .tut-title {
+      margin: 1rem 0 .4rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--bm-ink);
+    }
+    .tut-desc {
+      font-size: .92rem;
+      line-height: 1.6;
+      color: var(--bm-ink-muted, #64748b);
+    }
+  </style>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-page-hero">
+    <div class="bm-page-hero-inner" style="max-width:780px;">
+      <span class="bm-eyebrow">BioMate AI</span>
+      <h1 class="bm-display" style="margin-top:1rem;font-size:clamp(2rem,5vw,3.2rem);">
+        Tutorials
+      </h1>
+      <p class="bm-lead" style="margin-top:1rem;max-width:620px;">
+        Watch BioMate in action — step-by-step demos for each key workflow.
+      </p>
+    </div>
+  </section>
+
+  <section class="bm-section">
+    <div class="bm-section-inner">
+
+      <div class="tut-grid">
+
+        <!-- 1 — Platform intro -->
+        <div class="tut-card">
+          <div class="tut-embed">
+            <iframe
+              src="https://www.youtube.com/embed/bpG0IWrwN5g?rel=0"
+              title="BioMate — The AI Lab Platform for Life Sciences"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+          <p class="tut-title">BioMate &mdash; The AI Lab Platform for Life Sciences</p>
+          <p class="tut-desc">An overview of BioMate &mdash; the AI-native lab platform that turns complex bioinformatics pipelines into a conversation. From raw data to publication-ready outputs, without writing code.</p>
+        </div>
+
+        <!-- 2 — CryoSPARC / workflow automation -->
+        <div class="tut-card">
+          <div class="tut-embed">
+            <iframe
+              src="https://www.youtube.com/embed/C4gQD-xbHnQ?rel=0"
+              title="BioMate AI · Multi-step Workflow Automation with Quality Control for Life Science"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+          <p class="tut-title">Multi-step Workflow Automation with Quality Control</p>
+          <p class="tut-desc">BioMate runs a CryoSPARC single-particle analysis end to end &mdash; 5 phases, 23 steps, live QC gates, auto-loop remediation, and per-step output previews, submitted to AWS Batch GPUs from a single chat message.</p>
+        </div>
+
+        <!-- 3 — After-run report -->
+        <div class="tut-card">
+          <div class="tut-embed">
+            <iframe
+              src="https://www.youtube.com/embed/F2DgmBa5gq8?rel=0"
+              title="BioMate AI · Report Generation after Life Science Workflow — Reproducibility in One Click"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+          <p class="tut-title">After Run Report &mdash; Reproducibility in One Click</p>
+          <p class="tut-desc">Every completed BioMate run generates a structured 7-tab report: Findings, Outputs, Methods, Parameters, Software, Citations, and QC Audit. Download as DOCX, Markdown, or LaTeX &mdash; manuscript-ready without copy-paste.</p>
+        </div>
+
+        <!-- 4 — IND report -->
+        <div class="tut-card">
+          <div class="tut-embed">
+            <iframe
+              src="https://www.youtube.com/embed/IDcICWmB0Oo?rel=0"
+              title="BioMate AI · IND Report — Automated Section 2.6 Nonclinical Dossier with 21 CFR Part 11 Sign-Off"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+          <p class="tut-title">IND Report &mdash; Automated Section 2.6 Nonclinical Dossier with 21&nbsp;CFR Part&nbsp;11 Sign-Off</p>
+          <p class="tut-desc">A five-step pipeline &mdash; ADMET profiling, PBPK modeling, lead prioritization, and LLM-generated regulatory prose &mdash; builds an IND-quality section 2.6 dossier. The live document panel updates in place as each step completes, with full 21&nbsp;CFR Part&nbsp;11 sign-and-freeze.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+
+  <script src="shell.js"></script>
+  <script>renderShell({ active: 'tutorials' });</script>
+</body>
+</html>

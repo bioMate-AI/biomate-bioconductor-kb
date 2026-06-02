@@ -1,0 +1,80 @@
+<mxfile host="Electron" modified="2026-06-01T00:00:00.000Z" agent="draw.io" version="21.0.0">
+  <diagram id="bioc-structure" name="Fig5 Bioconductor Structural Properties as Grounding Anchors">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="Bioconductor's Formal Structure as Grounding Anchors for LLM Extraction" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#1E3A5F;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Central LLM box -->
+        <mxCell id="llm-center" value="&lt;b&gt;LLM Extraction&lt;br/&gt;+ Generation&lt;/b&gt;&lt;br/&gt;&lt;font size=&apos;9&apos;&gt;Language understanding&lt;br/&gt;Step naming&lt;br/&gt;Disambiguation&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#7C3AED;fontColor=#ffffff;strokeColor=#5B21B6;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="540" y="300" width="220" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ PROPERTY 1: NAMESPACE ═══ -->
+        <mxCell id="ns-header" value="① NAMESPACE Exports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1D4ED8;fontColor=#ffffff;strokeColor=#1D4ED8;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ns-body" value="Every package lists ALL public functions:&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;export(DESeq, results, lfcShrink)&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;exportMethods(show, summary)&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Grounding role:&lt;/b&gt; Post-hoc validation — any&lt;br/&gt;function NOT in NAMESPACE is flagged&lt;br/&gt;as a hallucination candidate&lt;br/&gt;&lt;br/&gt;Coverage: &lt;b&gt;~96% TP rate&lt;/b&gt; vs. Bioc 3.20 registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#1D4ED8;fontSize=10;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="128" width="360" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ PROPERTY 2: S4 CLASS ═══ -->
+        <mxCell id="s4-header" value="② S4 Typed Class Hierarchies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#059669;fontColor=#ffffff;strokeColor=#059669;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s4-body" value="Typed object handoffs between steps:&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;SummarizedExperiment&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;  ↓ DESeqDataSet()&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;    ↓ DESeq()&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;      ↓ results() → DESeqResults&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Grounding role:&lt;/b&gt; Verify consecutive steps&lt;br/&gt;are type-compatible; flag ordering errors&lt;br/&gt;invisible to NAMESPACE check alone" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=10;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="408" width="360" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ PROPERTY 3: BiocViews ═══ -->
+        <mxCell id="bv-header" value="③ BiocViews Controlled Vocabulary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D97706;fontColor=#ffffff;strokeColor=#D97706;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="80" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bv-body" value="Hierarchical domain taxonomy (~200 terms):&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;Software&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;  └─ Transcriptomics&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;       └─ GeneExpression&lt;/font&gt;&lt;br/&gt;&lt;font face=&apos;Courier New&apos;&gt;             └─ DifferentialExpression&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Grounding role:&lt;/b&gt; Stable machine-readable&lt;br/&gt;domain classification — no LLM needed&lt;br/&gt;for package-level topic assignment&lt;br/&gt;&lt;br/&gt;Coverage: &lt;b&gt;94.7% EDAM mapping&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=10;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="980" y="128" width="360" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ PROPERTY 4: VIGNETTE ═══ -->
+        <mxCell id="vig-header" value="④ Standardized Vignette Structure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7C3AED;fontColor=#ffffff;strokeColor=#5B21B6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="400" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vig-body" value="R Markdown / Quarto with:&lt;br/&gt;  • Section headings → step labels&lt;br/&gt;  • Code chunks → function calls&lt;br/&gt;  • Expected outputs documented&lt;br/&gt;  • Reproducibility enforced by policy&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Grounding role:&lt;/b&gt; Step-boundary extraction&lt;br/&gt;tractable with heuristic parsers (4 heading&lt;br/&gt;patterns; 3 code-block patterns); sample code&lt;br/&gt;extracted directly from verified vignettes&lt;br/&gt;&lt;br/&gt;Coverage: &lt;b&gt;1,812 HTML + 13 external books&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;fontSize=10;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="980" y="448" width="360" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows from properties to LLM center -->
+        <mxCell id="e-ns-llm" value="validates&lt;br/&gt;function names" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1D4ED8;fontSize=8;fontStyle=2;exitX=1;exitY=0.5;entryX=0;entryY=0.2;" edge="1" source="ns-body" target="llm-center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-s4-llm" value="verifies type&lt;br/&gt;compatibility" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#059669;fontSize=8;fontStyle=2;exitX=1;exitY=0.5;entryX=0;entryY=0.8;" edge="1" source="s4-body" target="llm-center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-bv-llm" value="classifies&lt;br/&gt;domain" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#D97706;fontSize=8;fontStyle=2;exitX=0;exitY=0.5;entryX=1;entryY=0.2;" edge="1" source="bv-body" target="llm-center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-vig-llm" value="provides step&lt;br/&gt;templates" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#5B21B6;fontSize=8;fontStyle=2;exitX=0;exitY=0.5;entryX=1;entryY=0.8;" edge="1" source="vig-body" target="llm-center" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Output from LLM -->
+        <mxCell id="output" value="&lt;b&gt;Structure-Grounded Workflow Steps&lt;/b&gt;&lt;br/&gt;NAMESPACE-verified · Type-checked · Domain-classified · Executable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#065F46;fontColor=#ffffff;strokeColor=#065F46;fontSize=12;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="390" y="680" width="620" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-llm-out" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#5B21B6;strokeWidth=2;" edge="1" source="llm-center" target="output" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Key insight box -->
+        <mxCell id="insight" value="&lt;b&gt;Key insight:&lt;/b&gt; LLM handles language understanding (step naming, disambiguation);  &lt;br/&gt;Bioconductor's formal constraints handle verification (what cannot be hallucinated away)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="280" y="775" width="840" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,3069 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BioMate — Intro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="deck-stage.js"></script>
+<style>
+  :root {
+    /* BioMate brand palette — cream + navy (from logo) */
+    --bg:        #f6efde;        /* logo background cream */
+    --bg-2:      #ede4cd;        /* deeper cream */
+    --bg-3:      #e1d6b9;
+    --paper:     #fffaee;        /* lightest cream / cards */
+    --ink:       #14283a;        /* deep navy */
+    --ink-2:     #2a4661;
+    --muted:     #66798f;
+    --hair:      #d9cda8;        /* warm border */
+    --hair-2:    #c4b591;
+    --accent:    #2a5582;        /* logo navy primary */
+    --accent-2:  #1f4368;
+    --accent-tint: rgba(42,85,130,.10);
+    --warm:      #b78048;        /* logo gold/terracotta */
+    --warm-2:    #9c6a3e;
+    --leaf:      #5e8a36;        /* logo leaf green */
+    --leaf-2:    #486b27;
+    --warn:      #b78048;
+
+    --serif: "Instrument Serif", "Times New Roman", serif;
+    --sans:  "Inter", system-ui, sans-serif;
+    --mono:  "IBM Plex Sans", system-ui, sans-serif;
+  }
+
+  html, body { margin:0; padding:0; background:#0a0a0a; }
+
+  deck-stage { background: var(--bg); }
+
+  section {
+    width:1920px; height:1080px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.45;
+    letter-spacing: -0.005em;
+    position: relative;
+    overflow: hidden;
+    padding: 88px 120px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- shared chrome ---------- */
+  .chrome {
+    position:absolute; inset: 32px 64px auto 64px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .brand {
+    display:inline-flex; align-items:center;
+    text-decoration: none;
+  }
+  .brand img {
+    height: 56px;
+    width: auto;
+    display: block;
+    /* logo PNG has cream background baked in; mix-blend-mode hides any seam against slide bg */
+    }
+  .brand-credit {
+    height: 44px;
+    width: auto;
+    display: block;
+    }
+  .chrome .right { display:flex; gap:32px; align-items:center; }
+
+  .footer {
+    position:absolute; inset: auto 64px 36px 64px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* eyebrow + section label */
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display:inline-flex; align-items:center; gap:14px;
+  }
+  .eyebrow::before {
+    content:"";
+    width:28px; height:1px; background: var(--accent);
+  }
+
+  h1, h2, h3 { margin:0; font-weight: 400; }
+  .display {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 168px;
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+  }
+  .display em { font-style: italic; color: var(--accent); font-weight: 400; }
+
+  .h2 {
+    font-family: var(--serif);
+    font-size: 88px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .h2 em { font-style: italic; color: var(--accent); font-weight: 400; }
+
+  .h3 {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 1.02;
+    letter-spacing: -0.018em;
+  }
+
+  .lede {
+    font-family: var(--sans);
+    font-size: 32px;
+    line-height: 1.32;
+    letter-spacing: -0.005em;
+    color: var(--ink-2);
+    max-width: 1320px;
+  }
+
+  .body { font-size: 28px; line-height: 1.5; color: var(--ink-2); }
+  .small { font-size: 22px; color: var(--muted); }
+  .mono  { font-family: var(--sans); }
+
+  /* ---------- slide 1 — title ---------- */
+  .s-title {
+    padding: 0;
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+  }
+  .s-title .chrome {
+    position: static;
+    inset: auto;
+    margin: 32px 64px 0;
+    padding: 0;
+  }
+  .s-title .stage {
+    padding: 80px 120px 0;
+    display:flex; flex-direction:column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 40px;
+  }
+  .s-title .display { max-width: 100%; }
+  .s-title .sub {
+    font-family: var(--sans);
+    font-size: 36px;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    color: var(--ink-2);
+    max-width: 1300px;
+    margin: 0;
+  }
+  .s-title .pillars {
+    display:flex; gap: 48px; flex-wrap: wrap;
+    font-family: var(--sans);
+    font-size: 20px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-top: 8px;
+  }
+  .s-title .pillars span {
+    display:inline-flex; align-items:center; gap:12px;
+  }
+  .s-title .pillars span::before {
+    content:""; width:8px; height:8px; border-radius:50%;
+    background: var(--accent);
+  }
+  .s-title .credit {
+    margin: 0 120px;
+    padding: 32px 0 56px;
+    border-top: 1px solid var(--hair);
+    display:flex; justify-content:space-between; align-items:flex-end;
+  }
+  .s-title .credit .name {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 28px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .s-title .credit .name small {
+    display:block;
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .s-title .credit .meta {
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.7;
+  }
+
+  /* ---------- slide 2 — the problem ---------- */
+  .s-problem {
+    display:grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 64px;
+  }
+  .s-problem .head { display:flex; flex-direction:column; gap: 28px; }
+  .s-problem .cols {
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    align-items: stretch;
+  }
+  .pcol {
+    border-top: 1px solid var(--ink);
+    padding-top: 28px;
+    display:flex; flex-direction:column; gap: 18px;
+  }
+  .pcol .label {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .pcol .label .num {
+    font-family: var(--serif);
+    font-size: 38px;
+    color: var(--muted);
+    letter-spacing: 0;
+  }
+  .pcol .headline {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .pcol ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    display:flex; flex-direction:column; gap: 14px;
+  }
+  .pcol li {
+    font-size: 24px;
+    line-height: 1.4;
+    color: var(--ink-2);
+    padding-left: 18px;
+    position: relative;
+  }
+  .pcol li::before {
+    content:""; position:absolute; left:0; top: 0.65em;
+    width:8px; height:1px; background: var(--accent);
+  }
+  .s-problem .kicker {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 28px;
+    color: var(--ink-2);
+    line-height: 1.4;
+    border-left: 2px solid var(--accent);
+    padding-left: 28px;
+    max-width: 1400px;
+  }
+
+  /* ---------- slide 3 — solution ---------- */
+  .s-solution {
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 56px;
+  }
+  .s-solution .head { display:flex; flex-direction:column; gap: 28px; }
+  .s-solution .flow {
+    display:grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: stretch;
+    gap: 0;
+  }
+  .step {
+    display:flex; flex-direction:column; gap: 20px;
+    padding: 36px 36px 36px 0;
+  }
+  .step .step-label {
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display:flex; align-items:center; gap: 14px;
+  }
+  .step .step-label .dot {
+    width:36px; height:36px; border-radius:50%;
+    border: 1px solid var(--ink);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .step.active .step-label .dot {
+    background: var(--accent); color: var(--bg); border-color: var(--accent);
+  }
+  .step h3 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 36px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .step p {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .arrow {
+    align-self: center;
+    width: 56px;
+    color: var(--hair-2);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .arrow svg { width:100%; height: auto; }
+
+  .s-solution .kicker {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 28px;
+    color: var(--ink);
+    line-height: 1.4;
+    border-top: 1px solid var(--hair);
+    padding-top: 28px;
+  }
+  .s-solution .kicker em { color: var(--accent); }
+
+  /* ---------- slide — product ---------- */
+  .s-product {
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 48px;
+  }
+  .s-product .head { display:flex; flex-direction:column; gap: 18px; margin-top: 56px; }
+  .stack {
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    padding: 36px 36px 32px;
+    display:flex; flex-direction:column; gap: 20px;
+    position: relative;
+  }
+  .card .tag {
+    position: absolute;
+    top: -10px; left: 28px;
+    background: var(--bg);
+    padding: 0 12px;
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .card h3 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    padding-top: 6px;
+  }
+  .card .chips {
+    display:flex; flex-wrap: wrap; gap: 8px;
+  }
+  .chip {
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    padding: 6px 12px;
+    border: 1px solid var(--hair);
+    color: var(--ink-2);
+    background: var(--bg);
+    white-space: nowrap;
+  }
+  .chip.strong { border-color: var(--ink); color: var(--ink); }
+  .card .desc {
+    font-size: 23px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .s-product .strip {
+    grid-column: 1 / -1;
+    display:flex; gap: 48px; align-items:center;
+    border-top: 1px solid var(--hair);
+    padding-top: 24px;
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .s-product .strip .item {
+    display:flex; align-items:baseline; gap: 14px;
+  }
+  .s-product .strip .num {
+    font-family: var(--serif);
+    font-size: 48px;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  /* ---------- slide — differentiator ---------- */
+  .s-diff {
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 36px;
+  }
+  .s-diff .head { display:flex; flex-direction:column; gap: 18px; margin-top: 56px; }
+  .tiers {
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .tier {
+    border-top: 2px solid var(--ink);
+    padding-top: 32px;
+    display:flex; flex-direction:column; gap: 20px;
+    position: relative;
+  }
+  .tier .badge {
+    display:flex; align-items:center; gap: 14px;
+  }
+  .tier .badge .swatch {
+    width: 56px; height: 56px;
+    background: var(--ink);
+  }
+  .tier.gold   .badge .swatch { background: oklch(0.78 0.13 85); }
+  .tier.silver .badge .swatch { background: oklch(0.78 0.005 260); }
+  .tier.bronze .badge .swatch { background: oklch(0.55 0.08 50); }
+  .tier .badge .name {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .tier .sub {
+    font-family: var(--sans);
+    font-size: 19px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tier .sources {
+    font-size: 23px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .tier .quote {
+    margin-top: auto;
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1.35;
+    color: var(--ink);
+    border-left: 2px solid var(--accent);
+    padding-left: 18px;
+  }
+  .s-diff .strip {
+    display:flex; gap: 64px;
+    border-top: 1px solid var(--hair);
+    padding-top: 24px;
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .s-diff .strip .item {
+    display:flex; align-items:baseline; gap: 14px;
+  }
+  .s-diff .strip .num {
+    font-family: var(--serif);
+    font-size: 48px;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  /* ---------- slide 6 — traction ---------- */
+  .s-traction {
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 48px;
+  }
+  .s-traction .head { display:flex; flex-direction:column; gap: 24px; }
+  .twocol {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
+  .pane h3 {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .pane h3 .ct {
+    font-family: var(--serif);
+    font-size: 32px;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--accent);
+  }
+  .pane ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    display:flex; flex-direction:column; gap: 14px;
+  }
+  .pane li {
+    display:grid;
+    grid-template-columns: 22px 1fr;
+    gap: 14px;
+    align-items: start;
+    font-size: 25px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .pane li .ck {
+    color: var(--accent);
+    font-family: var(--sans);
+    font-size: 22px;
+    line-height: 1.4;
+  }
+  .pane li b {
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .s-traction .pilots {
+    border-top: 1px solid var(--hair);
+    padding-top: 24px;
+    display:flex; gap: 28px; align-items:center; flex-wrap: wrap;
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .s-traction .pilots .label { color: var(--muted); }
+  .s-traction .pilots .pill {
+    padding: 8px 16px;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    background: var(--paper);
+  }
+
+  /* ---------- slide — worked example ---------- */
+  .s-example {
+    display:grid;
+    grid-template-rows: auto 1fr;
+    gap: 48px;
+  }
+  .s-example .head { display:flex; flex-direction:column; gap: 20px; margin-top: 56px; }
+  .s-example .demo {
+    display:grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 36px;
+  }
+  .conv {
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    display:flex; flex-direction:column;
+  }
+  .conv .bar {
+    display:flex; align-items:center; gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .conv .bar .dots { display:flex; gap: 6px; margin-right: 8px; }
+  .conv .bar .dots i {
+    width:10px; height:10px; border-radius:50%;
+    background: var(--hair); display:block;
+  }
+  .conv .body-wrap {
+    padding: 28px 32px;
+    display:flex; flex-direction:column; gap: 22px;
+    flex: 1;
+  }
+  .msg { display:flex; gap: 14px; align-items: flex-start; }
+  .msg .who {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+    width: 70px;
+    padding-top: 6px;
+  }
+  .msg .bubble {
+    flex: 1;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .msg.user .bubble {
+    font-family: var(--serif);
+    font-size: 26px;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 18px;
+  }
+  .msg.bot .bubble { color: var(--ink-2); }
+  .msg.bot .bubble code {
+    font-family: var(--sans);
+    font-size: 16px;
+    background: var(--bg-2);
+    padding: 2px 8px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  .msg.bot .plan {
+    margin-top: 12px;
+    border: 1px solid var(--hair);
+    padding: 14px 18px;
+    display:grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px 16px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .msg.bot .plan .k { color: var(--muted); letter-spacing: 0.06em; }
+  .msg.bot .plan .v { color: var(--ink); }
+  .msg.bot .plan .qc {
+    font-size: 11px; padding: 2px 8px; border-radius: 2px;
+    background: oklch(0.78 0.13 85); color: oklch(0.25 0.05 85);
+    letter-spacing: 0.1em;
+  }
+  .conv .input {
+    border-top: 1px solid var(--hair);
+    padding: 18px 24px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    display:flex; align-items:center; gap: 12px;
+  }
+  .conv .input::before {
+    content: "›";
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--accent);
+  }
+  .conv .input .cursor {
+    display:inline-block; width: 8px; height: 16px;
+    background: var(--ink); margin-left: 2px;
+    animation: blink 1.1s steps(1) infinite;
+    vertical-align: middle;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .result {
+    display:flex; flex-direction:column; gap: 20px;
+  }
+  .result-card {
+    border: 1px solid var(--hair);
+    background: var(--paper);
+    padding: 24px 28px;
+    display:flex; flex-direction:column; gap: 14px;
+  }
+  .result-card .rh {
+    display:flex; justify-content:space-between; align-items:center;
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .result-card .rh .grade {
+    font-family: var(--sans);
+    font-size: 12px; letter-spacing: 0.14em;
+    padding: 4px 10px;
+    background: oklch(0.78 0.13 85);
+    color: oklch(0.25 0.05 85);
+  }
+  .result-card h4 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .result-card .rstats {
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .result-card .rstat {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .result-card .rstat b {
+    display:block;
+    font-family: var(--serif);
+    font-size: 28px;
+    color: var(--ink);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    margin-bottom: 2px;
+  }
+  .result-card .findings {
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .result-card .findings ul { margin: 4px 0 0; padding-left: 18px; }
+  .result-card .findings li { margin-bottom: 4px; }
+  .trail {
+    border: 1px solid var(--hair);
+    padding: 18px 24px;
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .trail .th {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .trail .row {
+    display:grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 14px;
+  }
+  .trail .row span:first-child { color: var(--accent); }
+  .trail .row span:last-child { color: var(--muted); }
+
+  /* ---------- slide — closing ---------- */
+  .s-close {
+    display:flex; flex-direction:column; justify-content:center; align-items:flex-start;
+    padding: 0 120px;
+  }
+  .s-close .display {
+    font-size: 156px;
+    line-height: 0.98;
+    max-width: 1500px;
+  }
+  .s-close .sub {
+    font-family: var(--sans);
+    font-size: 32px;
+    color: var(--ink-2);
+    margin-top: 48px;
+    max-width: 1100px;
+    line-height: 1.35;
+  }
+  .s-close .credit {
+    position:absolute; left:120px; right:120px; bottom: 88px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-top: 1px solid var(--hair);
+    padding-top: 28px;
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .s-close .credit .left {
+    display:flex; flex-direction: column; gap: 8px;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    text-transform: none;
+  }
+  .s-close .credit .left small {
+    display:block;
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .s-close .credit .left .mark {
+    width:18px; height:18px; border-radius:50%;
+    background: var(--accent);
+    box-shadow: inset 0 0 0 4px var(--bg);
+    outline: 1px solid var(--accent);
+  }
+
+  /* ---------- slide — END-TO-END PIPELINE ---------- */
+  .s-pipeline {
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 40px;
+  }
+  .s-pipeline .head { display:flex; flex-direction:column; gap: 20px; margin-top: 56px; }
+
+  .pipe {
+    position: relative;
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 20px;
+    padding: 24px 0 16px;
+  }
+  /* the rail line behind stages */
+  .pipe::before {
+    content:"";
+    position:absolute;
+    left: 0; right: 0;
+    top: 56px;
+    height: 1px;
+    background: var(--hair);
+  }
+  .pipe::after {
+    content:"";
+    position:absolute;
+    left: 0;
+    top: 56px;
+    height: 2px;
+    width: 0;
+    background: var(--accent);
+    transform-origin: left center;
+  }
+  .is-playing .pipe::after {
+    animation: rail-draw 8s cubic-bezier(.65,.05,.25,1) forwards;
+  }
+  @keyframes rail-draw {
+    from { width: 0; }
+    to   { width: 100%; }
+  }
+
+  .stage-card {
+    display:flex; flex-direction:column; gap: 14px;
+    align-items: flex-start;
+    position: relative;
+    opacity: 0.25;
+    transform: translateY(6px);
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .is-playing .stage-card { animation: stage-on .6s ease forwards; }
+  .is-playing .stage-card:nth-child(1) { animation-delay: 0.20s; }
+  .is-playing .stage-card:nth-child(2) { animation-delay: 1.50s; }
+  .is-playing .stage-card:nth-child(3) { animation-delay: 2.80s; }
+  .is-playing .stage-card:nth-child(4) { animation-delay: 4.10s; }
+  .is-playing .stage-card:nth-child(5) { animation-delay: 5.40s; }
+  .is-playing .stage-card:nth-child(6) { animation-delay: 6.70s; }
+  @keyframes stage-on {
+    from { opacity: 0.25; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* inter-stage flow chevron + data packet */
+  .stage-card:not(:last-child)::after {
+    content:"";
+    position: absolute;
+    right: -16px;
+    top: 50px;
+    width: 12px;
+    height: 12px;
+    border-top: 1.5px solid var(--hair-2);
+    border-right: 1.5px solid var(--hair-2);
+    transform: rotate(45deg);
+    opacity: 0.55;
+  }
+  .is-playing .stage-card:not(:last-child)::after {
+    animation: arrow-on .55s ease forwards;
+  }
+  .is-playing .stage-card:nth-child(1):not(:last-child)::after { animation-delay: 0.70s; }
+  .is-playing .stage-card:nth-child(2):not(:last-child)::after { animation-delay: 2.00s; }
+  .is-playing .stage-card:nth-child(3):not(:last-child)::after { animation-delay: 3.30s; }
+  .is-playing .stage-card:nth-child(4):not(:last-child)::after { animation-delay: 4.60s; }
+  .is-playing .stage-card:nth-child(5):not(:last-child)::after { animation-delay: 5.90s; }
+  @keyframes arrow-on {
+    from { border-color: var(--hair); opacity: 0.2; }
+    to   { border-color: var(--accent); opacity: 1; }
+  }
+
+  /* SVG draw-on for accent strokes in each stage figure */
+  .stage-card .viz svg .stroke-accent,
+  .stage-card .viz svg path.stroke,
+  .stage-card .viz svg line.stroke {
+    transition: stroke-dashoffset .8s ease;
+  }
+  .stage-card .viz svg .fill-accent {
+    transform-origin: center;
+    transition: opacity .4s ease;
+  }
+  .is-playing .stage-card .viz {
+    animation: viz-bloom 1.1s ease both;
+  }
+  .is-playing .stage-card:nth-child(1) .viz { animation-delay: 0.40s; }
+  .is-playing .stage-card:nth-child(2) .viz { animation-delay: 1.70s; }
+  .is-playing .stage-card:nth-child(3) .viz { animation-delay: 3.00s; }
+  .is-playing .stage-card:nth-child(4) .viz { animation-delay: 4.30s; }
+  .is-playing .stage-card:nth-child(5) .viz { animation-delay: 5.60s; }
+  .is-playing .stage-card:nth-child(6) .viz { animation-delay: 6.90s; }
+  @keyframes viz-bloom {
+    0%   { filter: blur(2px); opacity: 0; transform: translateY(4px); }
+    60%  { filter: blur(0); opacity: 1; transform: translateY(0); }
+    100% { filter: blur(0); opacity: 1; }
+  }
+
+  .stage-card .dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--hair-2);
+    margin-top: 8px;
+    position: relative;
+    z-index: 2;
+  }
+  .is-playing .stage-card .dot {
+    animation: dot-on .4s ease forwards;
+  }
+  @keyframes dot-on {
+    to { background: var(--accent); border-color: var(--accent); transform: scale(1.15); }
+  }
+  .stage-card .step-no {
+    font-family: var(--sans);
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .stage-card .step-name {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .stage-card .viz {
+    width: 100%;
+    height: 240px;
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    display:flex; align-items:center; justify-content:center;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+  .stage-card .viz svg { width: 100%; height: 100%; display:block; }
+  .stage-card .viz svg .stroke { stroke: var(--ink-2); fill: none; stroke-width: 1.8; }
+  .stage-card .viz svg .stroke-accent { stroke: var(--accent); fill: none; stroke-width: 2.4; }
+  .stage-card .viz svg .fill-soft { fill: var(--hair); }
+  .stage-card .viz svg .fill-accent { fill: var(--accent); }
+  .stage-card .viz svg text {
+    font-family: var(--sans);
+    font-size: 7.5px;
+    fill: var(--ink-2);
+  }
+  .stage-card .viz svg text.lbl {
+    fill: var(--muted);
+    letter-spacing: 0.1em;
+    font-size: 7.5px;
+    font-weight: 500;
+  }
+  .stage-card .viz svg text.big {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    fill: var(--ink);
+    letter-spacing: 0;
+  }
+  .stage-card .out {
+    font-family: var(--sans);
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+  }
+  .stage-card .out b {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .s-pipeline .summary {
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 32px;
+    align-items: end;
+    border-top: 1px solid var(--ink);
+    padding-top: 24px;
+  }
+  .s-pipeline .summary .item {
+    display:flex; flex-direction:column; gap: 4px;
+  }
+  .s-pipeline .summary .item .lbl {
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .s-pipeline .summary .item .v {
+    font-family: var(--serif);
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .s-pipeline .summary .item .v.accent { color: var(--accent); }
+  .s-pipeline .summary .item .timer { display:inline-flex; align-items: baseline; gap: 6px; }
+  .s-pipeline .summary .item .unit {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---------- slide — INSIDE BIOMATE (one workspace, every stage) ---------- */
+  .s-ui {
+    display:grid;
+    grid-template-rows: auto 1fr;
+    gap: 18px;
+  }
+  .s-ui .head { display:flex; flex-direction:column; gap: 8px; margin-top: 28px; }
+  .s-ui .h2 { font-size: 60px; }
+  .s-ui .sub-ui {
+    font-family: var(--sans);
+    font-size: 22px;
+    color: var(--ink-2);
+    max-width: 1400px;
+    letter-spacing: -0.005em;
+    line-height: 1.4;
+  }
+  .s-ui .sub-ui em { font-family: var(--sans); font-style: normal; color: var(--accent); font-weight: 500; }
+
+  .workspace {
+    background: var(--paper);
+    border: 1px solid var(--hair-2);
+    border-radius: 14px;
+    overflow: hidden;
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    box-shadow:
+      0 1px 0 rgba(20,40,58,0.04),
+      0 24px 60px -16px rgba(20,40,58,0.16),
+      0 60px 110px -50px rgba(20,40,58,0.18);
+    align-self: start;
+  }
+  .ws-rail {
+    background: var(--bg-2);
+    border-right: 1px solid var(--hair-2);
+    padding: 22px 18px 24px;
+    display:flex; flex-direction: column; gap: 2px;
+  }
+  .ws-brand {
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--serif);
+    font-size: 24px;
+    color: var(--ink);
+    margin-bottom: 12px;
+    padding: 0 8px;
+  }
+  .ws-brand .gly {
+    width: 22px; height: 22px;
+    border: 1.6px solid var(--accent);
+    border-radius: 50%;
+    position: relative;
+  }
+  .ws-brand .gly::before {
+    content:""; position:absolute; inset: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .ws-section {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 14px 10px 8px;
+  }
+  .ws-stage {
+    display:grid;
+    grid-template-columns: 22px 1fr 10px;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .ws-stage .n {
+    font-family: var(--sans);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .ws-stage .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--hair-2);
+    justify-self: end;
+  }
+  .ws-stage.done .dot { background: var(--leaf); }
+  .ws-stage.active {
+    background: var(--accent);
+    color: var(--paper);
+  }
+  .ws-stage.active .n { color: var(--paper); opacity: 0.7; }
+  .ws-stage.active .dot { background: var(--paper); box-shadow: 0 0 0 3px rgba(255,250,238,0.25); }
+
+  .ws-body {
+    padding: 24px 26px 22px;
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 18px;
+    min-width: 0;
+  }
+  .ws-tabs {
+    display:flex; align-items:flex-end; gap: 4px;
+    border-bottom: 1px solid var(--hair);
+    overflow: hidden;
+  }
+  .ws-tab {
+    display:inline-flex; align-items:center; gap: 8px;
+    padding: 11px 16px 10px;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  .ws-tab.open { color: var(--ink); border-bottom-color: var(--accent); }
+  .ws-tab .dotline {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--hair-2);
+  }
+  .ws-tab.open .dotline { background: var(--accent); }
+  .ws-tab .x {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.6;
+    margin-left: 2px;
+  }
+
+  .ws-views {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    position: relative;
+    align-items: start;
+  }
+  .ws-view {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: 1440 / 842;
+    box-shadow: 0 8px 18px -8px rgba(20,40,58,0.16);
+  }
+  .ws-view > img { width:100%; height:100%; object-fit: cover; object-position: top center; display:block; }
+  .ws-view .vtag {
+    position:absolute;
+    top: 12px; left: 12px;
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: rgba(20,40,58,0.85);
+    color: var(--paper);
+    padding: 5px 9px;
+    border-radius: 3px;
+  }
+  .ws-bridge {
+    position:absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 64px; height: 64px;
+    background: var(--accent);
+    color: var(--paper);
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    z-index: 3;
+    box-shadow:
+      0 0 0 8px var(--paper),
+      0 12px 22px -8px rgba(20,40,58,0.35);
+  }
+  .ws-bridge svg { width: 28px; height: 28px; }
+  .ws-bridge-cap {
+    position: absolute;
+    left: 50%;
+    bottom: -34px;
+    transform: translateX(-50%);
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* Single big IND view + Reg-LLM annotation callouts */
+  .workspace.ws-solo {
+    grid-template-columns: 1fr;
+    align-self: stretch;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+  }
+  .workspace.ws-solo .ws-body {
+    min-height: 0;
+    grid-template-rows: 1fr auto;
+    padding: 18px;
+    gap: 14px;
+    height: 100%;
+  }
+  .ws-stage-single {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    display: block;
+  }
+  .ws-view-big {
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px -10px rgba(20,40,58,0.22);
+  }
+  .ws-view-big > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+  }
+  .ws-view-big > iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 2400px;
+    height: 1000px;
+    border: 0;
+    display: block;
+    transform-origin: top left;
+  }
+  .ws-view-big > img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: top center;
+    display: block;
+  }
+  .ws-view-big .vtag {
+    position: absolute;
+    top: 14px; left: 14px;
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: rgba(20,40,58,0.88);
+    color: var(--paper);
+    padding: 6px 11px;
+    border-radius: 4px;
+    z-index: 4;
+  }
+
+  .anno {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: 280px;
+    pointer-events: none;
+  }
+  .anno-pin {
+    flex-shrink: 0;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow:
+      0 0 0 4px var(--paper),
+      0 0 0 5px var(--accent),
+      0 4px 14px rgba(20,40,58,0.3);
+    margin-top: 6px;
+    position: relative;
+  }
+  .anno-pin::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--paper);
+  }
+  .anno-text {
+    background: var(--paper);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.35;
+    color: var(--ink-2);
+    box-shadow: 0 8px 22px -8px rgba(20,40,58,0.28);
+  }
+  .anno-text b {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--accent);
+    margin-bottom: 3px;
+    letter-spacing: -0.005em;
+  }
+  .anno-text em {
+    font-style: normal;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  /* numbered pins on the IND surface */
+  .pin {
+    position: absolute;
+    z-index: 5;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--paper);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 0 4px var(--paper),
+      0 0 0 5px var(--accent),
+      0 6px 16px rgba(20,40,58,0.35);
+    pointer-events: none;
+  }
+
+  /* legend strip below the embed */
+  .reg-legend {
+    display: grid;
+    grid-template-columns: auto repeat(4, 1fr);
+    gap: 24px 28px;
+    align-items: stretch;
+    padding: 22px 26px;
+    background: var(--bg-2);
+    border: 1px solid var(--hair);
+    border-radius: 10px;
+    font-family: var(--sans);
+    color: var(--ink-2);
+    line-height: 1.35;
+  }
+  .reg-legend .reg-title {
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-right: 26px;
+    border-right: 1px solid var(--hair);
+    align-self: center;
+    max-width: 200px;
+    line-height: 1.2;
+  }
+  .reg-legend .reg-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 20px;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+  .reg-legend .reg-item b {
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+  }
+
+  /* on narrow workspaces, fall back to overlay style — keeps slide layout safe */
+  @media (max-width: 1600px) {
+    .anno { max-width: 220px; }
+    .anno-text { font-size: 12px; padding: 8px 10px; }
+  }
+
+  .ws-footer {
+    display:flex; align-items:center; gap: 28px; flex-wrap: wrap;
+    border-top: 1px solid var(--hair);
+    padding-top: 14px;
+  }
+  .ws-footer .crumb {
+    display:inline-flex; align-items: baseline; gap: 10px;
+    font-family: var(--sans);
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .ws-footer .crumb b {
+    color: var(--ink);
+    font-weight: 500;
+    font-family: var(--sans);
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 18px;
+  }
+  .ws-footer .crumb .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--leaf);
+    box-shadow: 0 0 0 0 rgba(94,138,54,0.6);
+    animation: livepulse 1.8s ease-in-out infinite;
+  }
+  @keyframes livepulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(94,138,54,0.5); }
+    50%      { box-shadow: 0 0 0 6px rgba(94,138,54,0); }
+  }
+  .ui-card {
+    margin: 0;
+    display:flex; flex-direction:column;
+    gap: 22px;
+  }
+  .ui-card .frame {
+    background: #ffffff;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(20, 40, 58, 0.04),
+      0 12px 30px -10px rgba(20, 40, 58, 0.18),
+      0 30px 60px -20px rgba(20, 40, 58, 0.12);
+    aspect-ratio: 1440 / 842;
+    position: relative;
+  }
+  .ui-card .frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+  }
+  .ui-card .cap {
+    margin: 0;
+    display:flex; flex-direction:column; gap: 14px;
+  }
+  .ui-card .cap-top {
+    display:grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 20px;
+  }
+  .ui-card .num {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .ui-card .cap-text { display:flex; flex-direction:column; gap: 4px; }
+  .ui-card .ttl {
+    font-family: var(--serif);
+    font-size: 36px;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    line-height: 1.05;
+  }
+  .ui-card .meta {
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .ui-card .cap-chips {
+    list-style: none;
+    margin: 0; padding: 0;
+    display:flex; flex-wrap: wrap; gap: 8px;
+  }
+  .ui-card .cap-chips li {
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    padding: 6px 12px;
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    border-radius: 4px;
+  }
+  .ui-card .frame .bar {
+    display:flex; align-items:center; gap: 10px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--bg-2);
+  }
+  .ui-card .frame .bar .dots { display:flex; gap: 5px; margin-right: 4px; }
+  .ui-card .frame .bar .dots i { width:8px; height:8px; border-radius:50%; background: var(--hair-2); display:block; }
+  .ui-card .frame .content {
+    flex: 1;
+    padding: 20px 22px;
+    display:flex; flex-direction:column; gap: 14px;
+    overflow: hidden;
+  }
+  .ui-card .cap {
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap: 12px;
+    padding-top: 4px;
+  }
+  .ui-card .cap .num {
+    font-family: var(--serif);
+    font-size: 30px;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .ui-card .cap .ttl {
+    font-family: var(--serif);
+    font-size: 26px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .ui-card .cap .meta {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* UI 1: conversation mock */
+  .ui-msg {
+    display:flex; gap: 10px; align-items: flex-start;
+  }
+  .ui-msg .w {
+    font-family: var(--sans);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    width: 42px; flex-shrink: 0;
+    padding-top: 4px;
+  }
+  .ui-msg .b {
+    flex: 1;
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .ui-msg.u .b {
+    font-family: var(--serif);
+    font-size: 17px;
+    color: var(--ink);
+    border-left: 2px solid var(--accent);
+    padding: 2px 0 2px 10px;
+    line-height: 1.25;
+  }
+  .ui-plan {
+    border: 1px solid var(--hair);
+    padding: 10px 12px;
+    display:grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 4px 10px;
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--ink);
+  }
+  .ui-plan .k { color: var(--muted); letter-spacing: 0.04em; }
+  .ui-plan .qc {
+    font-size: 9px;
+    padding: 1px 6px;
+    background: oklch(0.78 0.13 85);
+    color: oklch(0.25 0.05 85);
+    letter-spacing: 0.1em;
+  }
+  .ui-input {
+    margin-top: auto;
+    border-top: 1px solid var(--hair);
+    padding-top: 12px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--muted);
+    display:flex; align-items: center; gap: 8px;
+  }
+  .ui-input::before {
+    content: "›"; font-family: var(--serif); font-size: 18px; color: var(--accent);
+  }
+  .ui-input .cursor {
+    display:inline-block; width: 6px; height: 12px; background: var(--ink);
+    margin-left: 2px; animation: blink 1.1s steps(1) infinite;
+  }
+
+  /* UI 2: results dashboard */
+  .ui-res-head {
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 1px solid var(--hair);
+    padding-bottom: 12px;
+  }
+  .ui-res-head .ttl {
+    font-family: var(--serif);
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .ui-res-head .chip-g {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    padding: 4px 9px;
+    background: oklch(0.78 0.13 85);
+    color: oklch(0.25 0.05 85);
+  }
+  .ui-stat-grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .ui-stat {
+    padding: 12px 14px;
+    border: 1px solid var(--hair);
+  }
+  .ui-stat .l {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .ui-stat .v {
+    font-family: var(--serif);
+    font-size: 28px;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+  .ui-bars {
+    display:flex; flex-direction:column; gap: 6px;
+    border: 1px solid var(--hair);
+    padding: 12px 14px;
+  }
+  .ui-bars .h {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .ui-bar {
+    display:grid;
+    grid-template-columns: 80px 1fr auto;
+    align-items:center;
+    gap: 10px;
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .ui-bar .fill {
+    height: 5px;
+    background: var(--hair);
+    position: relative;
+  }
+  .ui-bar .fill i {
+    position:absolute; left:0; top:0; bottom:0;
+    background: var(--accent);
+  }
+
+  /* UI 3: submission doc */
+  .ui-doc {
+    flex: 1;
+    background: var(--bg);
+    padding: 16px 16px 0;
+    border: 1px solid var(--hair);
+    border-bottom: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .ui-doc::after {
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0; height: 60px;
+    background: linear-gradient(to bottom, transparent, var(--paper));
+  }
+  .ui-doc .docttl {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    border-bottom: 1px solid var(--hair);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .ui-doc .docttl small {
+    display:block;
+    font-family: var(--sans);
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .ui-doc .sec {
+    font-family: var(--sans);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .ui-doc p {
+    font-size: 9px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    margin: 0 0 8px;
+    font-family: var(--sans);
+  }
+  .ui-doc .cite {
+    border-left: 2px solid var(--accent);
+    padding-left: 8px;
+    font-family: var(--sans);
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .ui-doc .grid-mock {
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .ui-doc .grid-mock i {
+    height: 8px;
+    background: var(--hair);
+    display:block;
+  }
+
+  /* ---------- slide — BENCHMARKS ---------- */
+  .s-bench {
+    display:grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 24px;
+  }
+  .s-bench .head { display:flex; flex-direction:column; gap: 14px; margin-top: 40px; }
+
+  .bench-body {
+    display:grid;
+    grid-template-columns: 0.85fr 1.4fr;
+    gap: 56px;
+    align-items: stretch;
+  }
+
+  .bench-hero {
+    display:flex; flex-direction:column;
+    justify-content: center;
+    gap: 16px;
+    border-right: 1px solid var(--hair);
+    padding-right: 56px;
+  }
+  .bench-hero .l {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bench-hero .v {
+    font-family: var(--serif);
+    font-size: 140px;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: var(--accent);
+  }
+  .bench-hero .v sub {
+    font-size: 48px;
+    color: var(--ink-2);
+    margin-left: 6px;
+    vertical-align: baseline;
+    letter-spacing: -0.02em;
+  }
+  .bench-hero .v-label {
+    font-family: var(--sans);
+    font-size: 26px;
+    line-height: 1.35;
+    color: var(--ink-2);
+    letter-spacing: -0.005em;
+  }
+  .bench-hero .deltas {
+    margin-top: 16px;
+    display:flex; flex-direction:column; gap: 12px;
+  }
+  .bench-hero .delta {
+    display:flex; align-items: baseline; gap: 14px;
+    font-family: var(--sans);
+    font-size: 18px;
+    color: var(--ink-2);
+    letter-spacing: 0.04em;
+  }
+  .bench-hero .delta b {
+    font-family: var(--serif);
+    font-size: 34px;
+    color: var(--accent);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    min-width: 96px;
+  }
+  .bench-hero .delta span {
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+  }
+
+  .bench-chart {
+    display:flex; flex-direction:column;
+    gap: 14px;
+    padding-top: 8px;
+  }
+  .bench-chart .title {
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 12px;
+    margin-bottom: 10px;
+  }
+  .bench-chart .title b { color: var(--ink); }
+
+  .bar-row {
+    display:grid;
+    grid-template-columns: 320px 1fr 100px;
+    align-items: center;
+    gap: 16px;
+    padding: 3px 0;
+  }
+  .bar-row .who {
+    display:flex; flex-direction:column;
+    gap: 2px;
+  }
+  .bar-row .name {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .bar-row .org {
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bar-row .track {
+    height: 24px;
+    background: var(--bg-2);
+    position: relative;
+    border: 1px solid var(--hair);
+  }
+  .bar-row .fill {
+    position:absolute; left: 0; top: 0; bottom: 0;
+    background: var(--hair-2);
+  }
+  .bar-row .score {
+    font-family: var(--serif);
+    font-size: 30px;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    text-align: right;
+    line-height: 1;
+  }
+  .bar-row .score small {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    display:block;
+    margin-top: 2px;
+  }
+
+  .bar-row.us .name { color: var(--ink); font-weight: 500; }
+  .bar-row.us .org  { color: var(--accent); }
+  .bar-row.us .fill { background: var(--accent); }
+  .bar-row.us .score { color: var(--accent); }
+  .bar-row.us .track { border-color: var(--accent); }
+
+  .bench-foot {
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    border-top: 1px solid var(--hair);
+    padding-top: 16px;
+    margin-bottom: 64px;
+  }
+  .bench-foot .col {
+    display:flex; flex-direction:column; gap: 4px;
+  }
+  .bench-foot .lbl {
+    font-family: var(--sans);
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bench-foot .num {
+    font-family: var(--serif);
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    display:flex; align-items:baseline; gap: 8px;
+  }
+  .bench-foot .num .delta {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .bench-foot .sub {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+
+  /* slide number indicator */
+  .pageno {
+    font-family: var(--sans);
+    font-size: 17px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+  .pageno b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- slide — PROPRIETARY REG-LLM (closed loop) ---------- */
+  .s-reglm { display:grid; grid-template-rows: auto auto auto; gap: 22px; }
+  .s-reglm .head { display:flex; flex-direction:column; gap: 10px; margin-top: 28px; }
+  .s-reglm .h2 { font-size: 68px; }
+  .s-reglm .sub-rl { font-family: var(--sans); font-size: 26px; color: var(--ink-2); max-width: 1320px; line-height: 1.42; }
+  .s-reglm .sub-rl em { font-family: var(--sans); font-style: normal; color: var(--accent); font-weight: 500; }
+  .ll-loop { position: relative; padding: 8px 0 70px; }
+  .ll-row { display:grid; grid-template-columns: 1fr 48px 1fr 48px 1fr 48px 1fr; align-items: stretch; position: relative; z-index: 2; }
+  .station {
+    background: var(--paper);
+    border: 1px solid var(--hair-2);
+    border-radius: 12px;
+    padding: 22px 24px 24px;
+    display:flex; flex-direction:column; gap: 12px;
+    box-shadow: 0 1px 0 rgba(20,40,58,0.04), 0 14px 32px -16px rgba(20,40,58,0.16);
+    position: relative;
+    /* animation starting state */
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.55s ease-out, transform 0.55s ease-out;
+  }
+  .station .num { font-family: var(--sans); font-size: 15px; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+  .station .icon { width: 48px; height: 48px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--hair-2); display:flex; align-items:center; justify-content:center; color: var(--accent); }
+  .station .icon svg { width: 26px; height: 26px; }
+  .station h4 { font-family: var(--sans); font-weight: 600; font-size: 28px; line-height: 1.18; letter-spacing: -0.01em; color: var(--ink); margin: 0; }
+  .station p { font-family: var(--sans); font-size: 21px; line-height: 1.4; color: var(--ink-2); margin: 0; }
+  .arrow-cell {
+    display:flex; align-items:center; justify-content:center;
+    position: relative;
+    opacity: 0;
+    transition: opacity 0.5s ease-out;
+  }
+  .arrow-cell::before { content:""; height: 2px; width: calc(100% - 8px); background: repeating-linear-gradient(to right, var(--accent) 0 6px, transparent 6px 11px); opacity: 0.7; }
+  .arrow-cell::after { content:""; position: absolute; right: 6px; width: 10px; height: 10px; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); transform: rotate(45deg); }
+  .ll-arc { position: absolute; left: 0; right: 0; bottom: 0; height: 88px; width: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+  .ll-arc path {
+    fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 5; opacity: 0;
+    transition: opacity 0.8s ease-out;
+  }
+  .ll-arc polygon {
+    opacity: 0;
+    transition: opacity 0.8s ease-out;
+  }
+  .ll-arc-cap {
+    position: absolute; left: 50%; bottom: 32px; transform: translateX(-50%);
+    background: var(--bg); padding: 6px 18px;
+    font-family: var(--sans); font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); z-index: 2; border: 1px solid var(--hair-2); border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.6s ease-out;
+  }
+
+  /* Sequential entrance: triggered by .is-playing on .ll-loop */
+  .ll-loop.is-playing .station:nth-child(1) { transition-delay: 0.15s; opacity: 1; transform: none; }
+  .ll-loop.is-playing .arrow-cell:nth-child(2) { transition-delay: 1.10s; opacity: 1; }
+  .ll-loop.is-playing .station:nth-child(3) { transition-delay: 1.30s; opacity: 1; transform: none; }
+  .ll-loop.is-playing .arrow-cell:nth-child(4) { transition-delay: 2.25s; opacity: 1; }
+  .ll-loop.is-playing .station:nth-child(5) { transition-delay: 2.45s; opacity: 1; transform: none; }
+  .ll-loop.is-playing .arrow-cell:nth-child(6) { transition-delay: 3.40s; opacity: 1; }
+  .ll-loop.is-playing .station:nth-child(7) { transition-delay: 3.60s; opacity: 1; transform: none; }
+  .ll-loop.is-playing .ll-arc path { transition-delay: 4.50s; opacity: 0.85; }
+  .ll-loop.is-playing .ll-arc polygon { transition-delay: 4.50s; opacity: 1; }
+  .ll-loop.is-playing .ll-arc-cap { transition-delay: 4.90s; opacity: 1; }
+
+  /* arrow-cell selectors target only direct children of .ll-row */
+  .ll-improve { display:grid; grid-template-columns: 1fr 1fr 1fr 380px; gap: 36px; align-items: end; border-top: 1px solid var(--ink); padding-top: 16px; margin-bottom: 56px; }
+  .ll-improve .item { display:flex; flex-direction:column; gap: 4px; }
+  .ll-improve .lbl { font-family: var(--sans); font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .ll-improve .stat { display:flex; align-items: baseline; gap: 10px; font-family: var(--serif); color: var(--ink); font-size: 32px; line-height: 1.05; letter-spacing: -0.01em; }
+  .ll-improve .stat b { color: var(--accent); font-weight: 400; }
+  .ll-improve .stat .delta { font-family: var(--sans); font-size: 16px; color: var(--leaf-2); letter-spacing: 0.06em; }
+  .ll-improve .chart-wrap { display:flex; flex-direction:column; gap: 6px; }
+  .ll-improve .chart { height: 56px; position: relative; }
+  .ll-improve .chart svg { width:100%; height:100%; display:block; }
+
+</style>
+</head>
+<body>
+
+<deck-stage data-om-id="bda30008:7" style="--deck-rail-w: 188px;">
+
+  <!-- ===================== SLIDE 1 — TITLE ===================== -->
+  <section data-screen-label="01 Title" class="s-title" data-om-id="bda30008:8" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="0">
+    <div class="chrome" data-om-id="bda30008:9">
+      <a class="brand" href="#" data-om-id="bda30008:10"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:11"></a>
+      <div class="right" data-om-id="bda30008:12">
+        <span class="pageno" data-om-id="bda30008:13"><b data-om-id="bda30008:14">01</b> / 9</span>
+      </div>
+    </div>
+
+    <div class="stage" data-om-id="bda30008:15">
+      <h1 class="display" data-om-id="bda30008:16">A virtual lab<br data-om-id="bda30008:17">that <em data-om-id="bda30008:18">thinks.</em></h1>
+
+      <p class="sub" data-om-id="bda30008:19">An AI-powered computational platform for pharma, biotech, and life sciences — from question to defensible result.</p>
+
+      <div class="pillars" data-om-id="bda30008:20">
+        <span data-om-id="bda30008:21">Human–AI Collaboration</span>
+        <span data-om-id="bda30008:22">Automated Workflows</span>
+        <span data-om-id="bda30008:23">Evidence-Backed Results</span>
+      </div>
+    </div>
+
+    <div class="credit" data-om-id="bda30008:24">
+      <div class="name" data-om-id="bda30008:25">
+        Yaoyun Zhang, PhD
+        <small data-om-id="bda30008:26">Founder &amp; CEO · yaoyun.zhang@biomate.ai</small>
+      </div>
+      <div class="meta" data-om-id="bda30008:27">
+        BioMate Introduction<br data-om-id="bda30008:28">
+        <a href="https://www.biomate.ai" style="color:inherit; text-decoration:none;" data-om-id="bda30008:29">www.biomate.ai</a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===================== SLIDE 2 — THE PROBLEM ===================== -->
+  <section data-screen-label="02 Problem" class="s-problem" data-om-id="bda30008:30" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="1">
+    <div class="chrome" data-om-id="bda30008:31">
+      <a class="brand" href="#" data-om-id="bda30008:32"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:33"></a>
+      <div class="right" data-om-id="bda30008:34"><span class="pageno" data-om-id="bda30008:35"><b data-om-id="bda30008:36">02</b> / 9</span></div>
+    </div>
+
+    <div class="head" style="margin-top: 56px;" data-om-id="bda30008:37">
+      <h2 class="h2" data-om-id="bda30008:38">Computationally demanding work is a <em data-om-id="bda30008:39">bottleneck</em><br data-om-id="bda30008:40">at every stage of the pipeline.</h2>
+    </div>
+
+    <div class="cols" data-om-id="bda30008:41">
+      <div class="pcol" data-om-id="bda30008:42">
+        <div class="label" data-om-id="bda30008:43"><span data-om-id="bda30008:44">Speed</span><span class="num" data-om-id="bda30008:45">01</span></div>
+        <div class="headline" data-om-id="bda30008:46">Days &amp; weeks, not minutes.</div>
+        <ul data-om-id="bda30008:47">
+          <li data-om-id="bda30008:48">Bioinformatics analysis · <b data-om-id="bda30008:49">2–5 days</b> per study</li>
+          <li data-om-id="bda30008:50">ADMET / DMPK profiling · <b data-om-id="bda30008:51">2–8 weeks</b> via CRO</li>
+          <li data-om-id="bda30008:52">IND computational sections · <b data-om-id="bda30008:53">3–6 weeks</b> manual</li>
+        </ul>
+      </div>
+      <div class="pcol" data-om-id="bda30008:54">
+        <div class="label" data-om-id="bda30008:55"><span data-om-id="bda30008:56">Cost</span><span class="num" data-om-id="bda30008:57">02</span></div>
+        <div class="headline" data-om-id="bda30008:58">Six-figure overhead just to ask a question.</div>
+        <ul data-om-id="bda30008:59">
+          <li data-om-id="bda30008:60">Consulting · <b data-om-id="bda30008:61">$150–300</b>/hour</li>
+          <li data-om-id="bda30008:62">CRO analytical services · <b data-om-id="bda30008:63">$10K–100K</b>/project</li>
+          <li data-om-id="bda30008:64">In-house bioinformatician · <b data-om-id="bda30008:65">$150K–200K</b>/year</li>
+        </ul>
+      </div>
+      <div class="pcol" data-om-id="bda30008:66">
+        <div class="label" data-om-id="bda30008:67"><span data-om-id="bda30008:68">Quality</span><span class="num" data-om-id="bda30008:69">03</span></div>
+        <div class="headline" data-om-id="bda30008:70">Generic AI can’t be submitted.</div>
+        <ul data-om-id="bda30008:71">
+          <li data-om-id="bda30008:72">Generic AI hallucinates tool configurations</li>
+          <li data-om-id="bda30008:73">No validated QC standards · <b data-om-id="bda30008:74">indefensible</b> results</li>
+          <li data-om-id="bda30008:75">No audit trail · <b data-om-id="bda30008:76">not submission-ready</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="kicker" data-om-id="bda30008:77">Slow cycles. Six-figure overhead. Indefensible results. <em>Every bottleneck slows the next decision.</em></p>
+
+    <div class="footer" data-om-id="bda30008:79"><span data-om-id="bda30008:80">BioMate · www.biomate.ai</span></div>
+  </section>
+
+
+  <!-- ===================== SLIDE 3 — SOLUTION ===================== -->
+  <section data-screen-label="03 Solution" class="s-solution" data-om-id="bda30008:81" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="2">
+    <div class="chrome" data-om-id="bda30008:82">
+      <a class="brand" href="#" data-om-id="bda30008:83"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:84"></a>
+      <div class="right" data-om-id="bda30008:85"><span class="pageno" data-om-id="bda30008:86"><b data-om-id="bda30008:87">03</b> / 9</span></div>
+    </div>
+
+    <div class="head" style="margin-top: 56px;" data-om-id="bda30008:88">
+      <h2 class="h2" data-om-id="bda30008:89">Ask the question.<br data-om-id="bda30008:90">BioMate handles <em data-om-id="bda30008:91">everything in between.</em></h2>
+    </div>
+
+    <div class="flow" data-om-id="bda30008:92">
+      <div class="step active" data-om-id="bda30008:93">
+        <div class="step-label" data-om-id="bda30008:94"><span class="dot" data-om-id="bda30008:95">1</span><span data-om-id="bda30008:96">Ask</span></div>
+        <h3 data-om-id="bda30008:97">Plain language in.</h3>
+        <p data-om-id="bda30008:98">Describe your objective in conversation. BioMate maps it to the right validated workflow from 2,000+ on file.</p>
+      </div>
+      <div class="arrow" data-om-id="bda30008:99">
+        <svg viewBox="0 0 56 16" fill="none" stroke="currentColor" stroke-width="1" data-om-id="bda30008:100"><line x1="0" y1="8" x2="50" y2="8" data-om-id="bda30008:101"></line><polyline points="44,2 52,8 44,14" data-om-id="bda30008:102"></polyline></svg>
+      </div>
+      <div class="step active" data-om-id="bda30008:103">
+        <div class="step-label" data-om-id="bda30008:104"><span class="dot" data-om-id="bda30008:105">2</span><span data-om-id="bda30008:106">Confirm</span></div>
+        <h3 data-om-id="bda30008:107">Review &amp; approve.</h3>
+        <p data-om-id="bda30008:108">See the plan, adjust parameters, approve — all in one conversation. Nothing runs without your signoff.</p>
+      </div>
+      <div class="arrow" data-om-id="bda30008:109">
+        <svg viewBox="0 0 56 16" fill="none" stroke="currentColor" stroke-width="1" data-om-id="bda30008:110"><line x1="0" y1="8" x2="50" y2="8" data-om-id="bda30008:111"></line><polyline points="44,2 52,8 44,14" data-om-id="bda30008:112"></polyline></svg>
+      </div>
+      <div class="step active" data-om-id="bda30008:113">
+        <div class="step-label" data-om-id="bda30008:114"><span class="dot" data-om-id="bda30008:115">3</span><span data-om-id="bda30008:116">Results</span></div>
+        <h3 data-om-id="bda30008:117">Defensible out.</h3>
+        <p data-om-id="bda30008:118">QC-graded outputs, AI Findings summary, auto-generated Methods section, and a full audit trail — submission-ready.</p>
+      </div>
+    </div>
+
+    <p class="kicker" data-om-id="bda30008:119">Plain-language question in. <em>Defensible, audit-ready result</em> out &mdash; in minutes.</p>
+
+    <div class="footer" data-om-id="bda30008:121"><span data-om-id="bda30008:122">BioMate · www.biomate.ai</span></div>
+  </section>
+
+
+  <!-- ===================== SLIDE 4 — END-TO-END PIPELINE ===================== -->
+  <section data-screen-label="04 End-to-End" class="s-pipeline" data-om-id="bda30008:123" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="3">
+    <div class="chrome" data-om-id="bda30008:124">
+      <a class="brand" href="#" data-om-id="bda30008:125"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:126"></a>
+      <div class="right" data-om-id="bda30008:127"><span class="pageno" data-om-id="bda30008:128"><b data-om-id="bda30008:129">04</b> / 9</span></div>
+    </div>
+
+    <div class="head" data-om-id="bda30008:130">
+      <h2 class="h2" data-om-id="bda30008:131">All six stages. One conversation. <em data-om-id="bda30008:132">Minutes, not months.</em></h2>
+    </div>
+
+    <div class="pipe" data-om-id="bda30008:133">
+      <div class="stage-card" data-om-id="bda30008:134">
+        <div class="dot" data-om-id="bda30008:135"></div>
+        <div class="step-no" data-om-id="bda30008:136">Stage 01</div>
+        <div class="step-name" data-om-id="bda30008:137">Target<br data-om-id="bda30008:138">Discovery</div>
+        <div class="viz" data-om-id="bda30008:139">
+          <svg viewBox="0 0 120 70" data-om-id="bda30008:140">
+            <!-- layer label -->
+            <text x="2" y="6" class="lbl" data-om-id="bda30008:141">PATIENT · OMICS</text>
+            <!-- patient strip -->
+            <circle cx="22" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:142"></circle>
+            <circle cx="32" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:143"></circle>
+            <circle cx="42" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:144"></circle>
+            <circle cx="52" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:145"></circle>
+            <circle cx="62" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:146"></circle>
+            <circle cx="72" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:147"></circle>
+            <circle cx="82" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:148"></circle>
+            <circle cx="92" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:149"></circle>
+            <circle cx="102" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:150"></circle>
+            <circle cx="112" cy="11" r="1.6" class="fill-soft" data-om-id="bda30008:151"></circle>
+            <!-- patient→PPI light lines -->
+            <line x1="22" y1="13" x2="24" y2="34" class="stroke" opacity="0.25" data-om-id="bda30008:152"></line>
+            <line x1="42" y1="13" x2="40" y2="30" class="stroke" opacity="0.25" data-om-id="bda30008:153"></line>
+            <line x1="62" y1="13" x2="58" y2="36" class="stroke" opacity="0.25" data-om-id="bda30008:154"></line>
+            <line x1="82" y1="13" x2="78" y2="32" class="stroke" opacity="0.25" data-om-id="bda30008:155"></line>
+            <line x1="102" y1="13" x2="104" y2="36" class="stroke" opacity="0.25" data-om-id="bda30008:156"></line>
+            <!-- PPI label -->
+            <text x="2" y="29" class="lbl" data-om-id="bda30008:157">PPI · PATHWAY</text>
+            <!-- PPI edges -->
+            <line x1="24" y1="34" x2="40" y2="30" class="stroke" data-om-id="bda30008:158"></line>
+            <line x1="40" y1="30" x2="58" y2="36" class="stroke" data-om-id="bda30008:159"></line>
+            <line x1="58" y1="36" x2="78" y2="32" class="stroke" data-om-id="bda30008:160"></line>
+            <line x1="78" y1="32" x2="92" y2="38" class="stroke" data-om-id="bda30008:161"></line>
+            <line x1="92" y1="38" x2="104" y2="36" class="stroke-accent" data-om-id="bda30008:162"></line>
+            <line x1="24" y1="34" x2="58" y2="36" class="stroke" opacity="0.35" data-om-id="bda30008:163"></line>
+            <line x1="40" y1="30" x2="78" y2="32" class="stroke" opacity="0.35" data-om-id="bda30008:164"></line>
+            <line x1="58" y1="36" x2="92" y2="38" class="stroke" opacity="0.4" data-om-id="bda30008:165"></line>
+            <!-- PPI nodes -->
+            <circle cx="24" cy="34" r="2.4" class="fill-soft" data-om-id="bda30008:166"></circle>
+            <circle cx="40" cy="30" r="2.0" class="fill-soft" data-om-id="bda30008:167"></circle>
+            <circle cx="58" cy="36" r="2.6" class="fill-soft" data-om-id="bda30008:168"></circle>
+            <circle cx="78" cy="32" r="2.2" class="fill-soft" data-om-id="bda30008:169"></circle>
+            <circle cx="92" cy="38" r="2.4" class="fill-soft" data-om-id="bda30008:170"></circle>
+            <circle cx="104" cy="36" r="3.0" class="fill-accent" data-om-id="bda30008:171"></circle>
+            <!-- target ring -->
+            <circle cx="104" cy="36" r="5.5" class="stroke-accent" fill="none" data-om-id="bda30008:172"></circle>
+            <!-- druggability label -->
+            <text x="2" y="54" class="lbl" data-om-id="bda30008:173">DRUGGABILITY</text>
+            <!-- score bars -->
+            <rect x="22" y="58" width="10" height="4" class="fill-soft" opacity="0.7" data-om-id="bda30008:174"></rect>
+            <rect x="34" y="60" width="10" height="2" class="fill-soft" opacity="0.7" data-om-id="bda30008:175"></rect>
+            <rect x="46" y="57" width="10" height="5" class="fill-soft" opacity="0.7" data-om-id="bda30008:176"></rect>
+            <rect x="58" y="55" width="10" height="7" class="fill-soft" data-om-id="bda30008:177"></rect>
+            <rect x="70" y="59" width="10" height="3" class="fill-soft" opacity="0.7" data-om-id="bda30008:178"></rect>
+            <rect x="82" y="56" width="10" height="6" class="fill-soft" data-om-id="bda30008:179"></rect>
+            <rect x="94" y="58" width="10" height="4" class="fill-soft" opacity="0.7" data-om-id="bda30008:180"></rect>
+            <rect x="106" y="50" width="10" height="12" class="fill-accent" data-om-id="bda30008:181"></rect>
+          </svg>
+        </div>
+        <div class="out" data-om-id="bda30008:182">→ <b data-om-id="bda30008:183">Top target</b></div>
+      </div>
+
+      <div class="stage-card" data-om-id="bda30008:184">
+        <div class="dot" data-om-id="bda30008:185"></div>
+        <div class="step-no" data-om-id="bda30008:186">Stage 02</div>
+        <div class="step-name" data-om-id="bda30008:187">Hit<br data-om-id="bda30008:188">Discovery</div>
+        <div class="viz" data-om-id="bda30008:189">
+          <svg viewBox="0 0 120 70" data-om-id="bda30008:190">
+            <!-- candidate cloud (10K) -->
+            <g opacity="0.55" data-om-id="bda30008:191">
+              <circle cx="8" cy="4" r="0.6" class="fill-soft" data-om-id="bda30008:192"></circle><circle cx="14" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:193"></circle>
+              <circle cx="20" cy="5" r="0.6" class="fill-soft" data-om-id="bda30008:194"></circle><circle cx="26" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:195"></circle>
+              <circle cx="32" cy="4" r="0.6" class="fill-soft" data-om-id="bda30008:196"></circle><circle cx="38" cy="2" r="0.6" class="fill-soft" data-om-id="bda30008:197"></circle>
+              <circle cx="44" cy="4" r="0.6" class="fill-soft" data-om-id="bda30008:198"></circle><circle cx="50" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:199"></circle>
+              <circle cx="56" cy="5" r="0.6" class="fill-soft" data-om-id="bda30008:200"></circle><circle cx="62" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:201"></circle>
+              <circle cx="68" cy="4" r="0.6" class="fill-soft" data-om-id="bda30008:202"></circle><circle cx="74" cy="2" r="0.6" class="fill-soft" data-om-id="bda30008:203"></circle>
+              <circle cx="80" cy="4" r="0.6" class="fill-soft" data-om-id="bda30008:204"></circle><circle cx="86" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:205"></circle>
+              <circle cx="92" cy="5" r="0.6" class="fill-soft" data-om-id="bda30008:206"></circle><circle cx="98" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:207"></circle>
+              <circle cx="104" cy="4" r="0.6" class="fill-soft" data-om-id="bda30008:208"></circle><circle cx="110" cy="3" r="0.6" class="fill-soft" data-om-id="bda30008:209"></circle>
+              <circle cx="11" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:210"></circle><circle cx="23" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:211"></circle>
+              <circle cx="35" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:212"></circle><circle cx="47" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:213"></circle>
+              <circle cx="59" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:214"></circle><circle cx="71" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:215"></circle>
+              <circle cx="83" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:216"></circle><circle cx="95" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:217"></circle>
+              <circle cx="107" cy="7" r="0.6" class="fill-soft" data-om-id="bda30008:218"></circle>
+            </g>
+            <!-- funnel layers with labels -->
+            <polygon class="fill-soft" points="6,12 114,12 100,22 20,22" data-om-id="bda30008:219"></polygon>
+            <text x="60" y="19" text-anchor="middle" data-om-id="bda30008:220">10K virtual library</text>
+            <polygon class="fill-soft" points="20,24 100,24 86,34 34,34" data-om-id="bda30008:221"></polygon>
+            <text x="60" y="31" text-anchor="middle" data-om-id="bda30008:222">4.2K docked</text>
+            <polygon class="fill-soft" points="34,36 86,36 74,46 46,46" data-om-id="bda30008:223"></polygon>
+            <text x="60" y="43" text-anchor="middle" data-om-id="bda30008:224">820 ADMET-passing</text>
+            <polygon class="fill-soft" points="46,48 74,48 66,56 54,56" data-om-id="bda30008:225"></polygon>
+            <text x="60" y="54" text-anchor="middle" data-om-id="bda30008:226">180 similar</text>
+            <polygon class="fill-accent" points="54,58 66,58 62,66 58,66" data-om-id="bda30008:227"></polygon>
+            <text x="60" y="64" text-anchor="middle" fill="#fffaee" style="font-size:4.2px" data-om-id="bda30008:228">50</text>
+            <!-- side rail showing filter stages -->
+            <text x="116" y="20" text-anchor="end" class="lbl" transform="rotate(0)" data-om-id="bda30008:229">DOCK</text>
+            <text x="116" y="32" text-anchor="end" class="lbl" data-om-id="bda30008:230">ADMET</text>
+            <text x="116" y="44" text-anchor="end" class="lbl" data-om-id="bda30008:231">SIM</text>
+            <!-- emerging molecule sketch lower-left -->
+            <g transform="translate(8,58)" data-om-id="bda30008:232">
+              <line x1="0" y1="0" x2="4" y2="-3" class="stroke-accent" data-om-id="bda30008:233"></line>
+              <line x1="4" y1="-3" x2="8" y2="0" class="stroke-accent" data-om-id="bda30008:234"></line>
+              <line x1="8" y1="0" x2="12" y2="-3" class="stroke-accent" data-om-id="bda30008:235"></line>
+              <line x1="8" y1="0" x2="8" y2="4" class="stroke-accent" data-om-id="bda30008:236"></line>
+              <circle r="0.9" class="fill-accent" data-om-id="bda30008:237"></circle>
+              <circle cx="4" cy="-3" r="0.9" class="fill-accent" data-om-id="bda30008:238"></circle>
+              <circle cx="8" cy="0" r="0.9" class="fill-accent" data-om-id="bda30008:239"></circle>
+              <circle cx="12" cy="-3" r="0.9" class="fill-accent" data-om-id="bda30008:240"></circle>
+              <circle cx="8" cy="4" r="0.9" class="fill-accent" data-om-id="bda30008:241"></circle>
+            </g>
+          </svg>
+        </div>
+        <div class="out" data-om-id="bda30008:242">→ <b data-om-id="bda30008:243">50 hits</b></div>
+      </div>
+
+      <div class="stage-card" data-om-id="bda30008:244">
+        <div class="dot" data-om-id="bda30008:245"></div>
+        <div class="step-no" data-om-id="bda30008:246">Stage 03</div>
+        <div class="step-name" data-om-id="bda30008:247">ADMET &amp;<br data-om-id="bda30008:248">Lead Opt.</div>
+        <div class="viz" data-om-id="bda30008:249">
+          <svg viewBox="0 0 120 70" data-om-id="bda30008:250">
+            <text x="2" y="6" class="lbl" data-om-id="bda30008:251">PROPERTY RADAR</text>
+            <!-- radar group (6 axes) centered left -->
+            <g transform="translate(36,40)" data-om-id="bda30008:252">
+              <!-- rings -->
+              <polygon class="stroke" points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" opacity="0.25" data-om-id="bda30008:253"></polygon>
+              <polygon class="stroke" points="0,-17 14.7,-8.5 14.7,8.5 0,17 -14.7,8.5 -14.7,-8.5" opacity="0.25" data-om-id="bda30008:254"></polygon>
+              <polygon class="stroke" points="0,-9 7.8,-4.5 7.8,4.5 0,9 -7.8,4.5 -7.8,-4.5" opacity="0.25" data-om-id="bda30008:255"></polygon>
+              <!-- axes -->
+              <line x1="0" y1="-26" x2="0" y2="26" class="stroke" opacity="0.25" data-om-id="bda30008:256"></line>
+              <line x1="-22.5" y1="-13" x2="22.5" y2="13" class="stroke" opacity="0.25" data-om-id="bda30008:257"></line>
+              <line x1="-22.5" y1="13" x2="22.5" y2="-13" class="stroke" opacity="0.25" data-om-id="bda30008:258"></line>
+              <!-- lead A (baseline, soft) -->
+              <polygon class="fill-soft" points="0,-14 12,-7 17,9 0,19 -16,9 -13,-7" opacity="0.45" data-om-id="bda30008:259"></polygon>
+              <polygon class="stroke" points="0,-14 12,-7 17,9 0,19 -16,9 -13,-7" opacity="0.6" data-om-id="bda30008:260"></polygon>
+              <!-- lead B (optimized, accent) -->
+              <polygon class="fill-accent" points="0,-23 20,-12 19,11 0,22 -19,11 -17,-11" opacity="0.32" data-om-id="bda30008:261"></polygon>
+              <polygon class="stroke-accent" points="0,-23 20,-12 19,11 0,22 -19,11 -17,-11" data-om-id="bda30008:262"></polygon>
+              <circle class="fill-accent" cx="0" cy="-23" r="1.3" data-om-id="bda30008:263"></circle>
+              <circle class="fill-accent" cx="20" cy="-12" r="1.3" data-om-id="bda30008:264"></circle>
+              <circle class="fill-accent" cx="19" cy="11" r="1.3" data-om-id="bda30008:265"></circle>
+              <circle class="fill-accent" cx="0" cy="22" r="1.3" data-om-id="bda30008:266"></circle>
+              <circle class="fill-accent" cx="-19" cy="11" r="1.3" data-om-id="bda30008:267"></circle>
+              <circle class="fill-accent" cx="-17" cy="-11" r="1.3" data-om-id="bda30008:268"></circle>
+              <!-- axis labels -->
+              <text x="0" y="-28" text-anchor="middle" class="lbl" data-om-id="bda30008:269">Sol</text>
+              <text x="25" y="-13" class="lbl" data-om-id="bda30008:270">Perm</text>
+              <text x="25" y="16" class="lbl" data-om-id="bda30008:271">Met</text>
+              <text x="0" y="32" text-anchor="middle" class="lbl" data-om-id="bda30008:272">hERG</text>
+              <text x="-32" y="16" class="lbl" data-om-id="bda30008:273">CYP</text>
+              <text x="-32" y="-13" class="lbl" data-om-id="bda30008:274">PSA</text>
+            </g>
+            <!-- ranked compound bars (right) -->
+            <text x="72" y="14" class="lbl" data-om-id="bda30008:275">RANKED LEADS</text>
+            <g font-size="3.8" data-om-id="bda30008:276">
+              <rect x="72" y="18" width="38" height="2.6" class="fill-soft" opacity="0.4" data-om-id="bda30008:277"></rect>
+              <rect x="72" y="18" width="35" height="2.6" class="fill-accent" data-om-id="bda30008:278"></rect>
+              <text x="112" y="20.6" data-om-id="bda30008:279">L-7</text>
+              <rect x="72" y="24" width="38" height="2.6" class="fill-soft" opacity="0.4" data-om-id="bda30008:280"></rect>
+              <rect x="72" y="24" width="28" height="2.6" class="fill-soft" data-om-id="bda30008:281"></rect>
+              <text x="112" y="26.6" data-om-id="bda30008:282">L-3</text>
+              <rect x="72" y="30" width="38" height="2.6" class="fill-soft" opacity="0.4" data-om-id="bda30008:283"></rect>
+              <rect x="72" y="30" width="22" height="2.6" class="fill-soft" data-om-id="bda30008:284"></rect>
+              <text x="112" y="32.6" data-om-id="bda30008:285">L-1</text>
+              <rect x="72" y="36" width="38" height="2.6" class="fill-soft" opacity="0.4" data-om-id="bda30008:286"></rect>
+              <rect x="72" y="36" width="18" height="2.6" class="fill-soft" data-om-id="bda30008:287"></rect>
+              <text x="112" y="38.6" data-om-id="bda30008:288">L-2</text>
+              <rect x="72" y="42" width="38" height="2.6" class="fill-soft" opacity="0.4" data-om-id="bda30008:289"></rect>
+              <rect x="72" y="42" width="14" height="2.6" class="fill-soft" data-om-id="bda30008:290"></rect>
+              <text x="112" y="44.6" data-om-id="bda30008:291">L-5</text>
+            </g>
+            <!-- molecule sketch bottom -->
+            <g transform="translate(78,58)" data-om-id="bda30008:292">
+              <polygon class="stroke" points="0,-4 3.5,-2 3.5,2 0,4 -3.5,2 -3.5,-2" fill="none" data-om-id="bda30008:293"></polygon>
+              <line x1="3.5" y1="-2" x2="7" y2="-4" class="stroke" data-om-id="bda30008:294"></line>
+              <line x1="7" y1="-4" x2="10.5" y2="-2" class="stroke" data-om-id="bda30008:295"></line>
+              <line x1="10.5" y1="-2" x2="14" y2="-4" class="stroke" data-om-id="bda30008:296"></line>
+              <circle cx="14" cy="-4" r="1" class="fill-accent" data-om-id="bda30008:297"></circle>
+              <line x1="-3.5" y1="2" x2="-7" y2="4" class="stroke" data-om-id="bda30008:298"></line>
+              <circle cx="-7" cy="4" r="1" class="fill-soft" data-om-id="bda30008:299"></circle>
+              <line x1="0" y1="4" x2="0" y2="7" class="stroke" data-om-id="bda30008:300"></line>
+              <circle cx="0" cy="7" r="1" class="fill-soft" data-om-id="bda30008:301"></circle>
+            </g>
+          </svg>
+        </div>
+        <div class="out" data-om-id="bda30008:302">→ <b data-om-id="bda30008:303">Lead series</b></div>
+      </div>
+
+      <div class="stage-card" data-om-id="bda30008:304">
+        <div class="dot" data-om-id="bda30008:305"></div>
+        <div class="step-no" data-om-id="bda30008:306">Stage 04</div>
+        <div class="step-name" data-om-id="bda30008:307">Preclinical<br data-om-id="bda30008:308">DMPK</div>
+        <div class="viz" data-om-id="bda30008:309">
+          <svg viewBox="0 0 120 70" data-om-id="bda30008:310">
+            <text x="2" y="6" class="lbl" data-om-id="bda30008:311">PK · 3 DOSE GROUPS</text>
+            <!-- axes -->
+            <line class="stroke" x1="14" y1="60" x2="116" y2="60" data-om-id="bda30008:312"></line>
+            <line class="stroke" x1="14" y1="12" x2="14" y2="60" data-om-id="bda30008:313"></line>
+            <!-- grid -->
+            <line x1="14" y1="22" x2="116" y2="22" class="stroke" opacity="0.18" data-om-id="bda30008:314"></line>
+            <line x1="14" y1="35" x2="116" y2="35" class="stroke" opacity="0.18" data-om-id="bda30008:315"></line>
+            <line x1="14" y1="48" x2="116" y2="48" class="stroke" opacity="0.18" data-om-id="bda30008:316"></line>
+            <line x1="40" y1="12" x2="40" y2="60" class="stroke" opacity="0.18" data-om-id="bda30008:317"></line>
+            <line x1="66" y1="12" x2="66" y2="60" class="stroke" opacity="0.18" data-om-id="bda30008:318"></line>
+            <line x1="92" y1="12" x2="92" y2="60" class="stroke" opacity="0.18" data-om-id="bda30008:319"></line>
+            <!-- axis ticks -->
+            <text x="2" y="14" data-om-id="bda30008:320">C</text>
+            <text x="120" y="68" text-anchor="end" data-om-id="bda30008:321">t</text>
+            <!-- AUC shading for selected dose -->
+            <path d="M 14 60 Q 22 22 35 26 Q 50 32 70 42 Q 92 53 116 56 L 116 60 Z" class="fill-accent" opacity="0.16" data-om-id="bda30008:322"></path>
+            <!-- low dose -->
+            <path class="stroke" d="M 14 60 Q 22 42 35 44 Q 50 48 70 52 Q 92 56 116 58" opacity="0.55" data-om-id="bda30008:323"></path>
+            <text x="50" y="46" class="lbl" data-om-id="bda30008:324">low</text>
+            <!-- mid dose -->
+            <path class="stroke" d="M 14 60 Q 22 32 35 35 Q 50 40 70 47 Q 92 53 116 56" opacity="0.7" data-om-id="bda30008:325"></path>
+            <text x="50" y="36" class="lbl" data-om-id="bda30008:326">mid</text>
+            <!-- high (selected) -->
+            <path class="stroke-accent" d="M 14 60 Q 22 22 35 26 Q 50 32 70 42 Q 92 53 116 56" stroke-width="1.6" data-om-id="bda30008:327"></path>
+            <text x="50" y="26" class="lbl" fill="#2a5582" data-om-id="bda30008:328">high</text>
+            <!-- Cmax dot -->
+            <circle cx="32" cy="24" r="1.6" class="fill-accent" data-om-id="bda30008:329"></circle>
+            <line x1="32" y1="24" x2="32" y2="60" class="stroke-accent" stroke-dasharray="1.2 1.2" opacity="0.55" data-om-id="bda30008:330"></line>
+            <text x="34" y="22" data-om-id="bda30008:331">Cmax</text>
+            <!-- NOAEL dashed -->
+            <line x1="14" y1="16" x2="116" y2="16" class="stroke-accent" stroke-dasharray="2.2 2" opacity="0.7" data-om-id="bda30008:332"></line>
+            <text x="116" y="14" text-anchor="end" data-om-id="bda30008:333">NOAEL</text>
+          </svg>
+        </div>
+        <div class="out" data-om-id="bda30008:334">→ <b data-om-id="bda30008:335">PK profile</b></div>
+      </div>
+
+      <div class="stage-card" data-om-id="bda30008:336">
+        <div class="dot" data-om-id="bda30008:337"></div>
+        <div class="step-no" data-om-id="bda30008:338">Stage 05</div>
+        <div class="step-name" data-om-id="bda30008:339">Clinical<br data-om-id="bda30008:340">Pharmacology</div>
+        <div class="viz" data-om-id="bda30008:341">
+          <svg viewBox="0 0 120 70" data-om-id="bda30008:342">
+            <text x="2" y="6" class="lbl" data-om-id="bda30008:343">POP-PK · N=412</text>
+            <!-- left: pop PK with CI band -->
+            <line class="stroke" x1="6" y1="60" x2="64" y2="60" data-om-id="bda30008:344"></line>
+            <line class="stroke" x1="6" y1="12" x2="6" y2="60" data-om-id="bda30008:345"></line>
+            <line x1="6" y1="24" x2="64" y2="24" class="stroke" opacity="0.18" data-om-id="bda30008:346"></line>
+            <line x1="6" y1="42" x2="64" y2="42" class="stroke" opacity="0.18" data-om-id="bda30008:347"></line>
+            <!-- 90% CI band -->
+            <path d="M 6 60 Q 12 18 22 22 Q 34 30 46 38 Q 56 46 64 50 L 64 56 Q 56 50 46 44 Q 34 36 22 30 Q 12 26 6 60 Z" class="fill-accent" opacity="0.18" data-om-id="bda30008:348"></path>
+            <!-- spaghetti individuals -->
+            <path class="stroke" d="M 6 58 Q 12 28 22 30 Q 34 38 46 44 Q 56 50 64 53" opacity="0.35" data-om-id="bda30008:349"></path>
+            <path class="stroke" d="M 6 58 Q 12 16 22 19 Q 34 28 46 36 Q 56 46 64 50" opacity="0.35" data-om-id="bda30008:350"></path>
+            <path class="stroke" d="M 6 58 Q 12 23 22 26 Q 34 34 46 40 Q 56 48 64 51" opacity="0.35" data-om-id="bda30008:351"></path>
+            <path class="stroke" d="M 6 58 Q 12 31 22 32 Q 34 40 46 45 Q 56 51 64 54" opacity="0.35" data-om-id="bda30008:352"></path>
+            <!-- pop mean -->
+            <path class="stroke-accent" d="M 6 58 Q 12 22 22 25 Q 34 33 46 40 Q 56 47 64 51" stroke-width="1.6" data-om-id="bda30008:353"></path>
+            <text x="6" y="14" data-om-id="bda30008:354">log C</text>
+            <text x="60" y="68" data-om-id="bda30008:355">t</text>
+
+            <!-- right: forest plot of exposure by timepoint -->
+            <text x="70" y="14" class="lbl" data-om-id="bda30008:356">EXPOSURE</text>
+            <line x1="92" y1="18" x2="92" y2="64" class="stroke" stroke-dasharray="1 1" data-om-id="bda30008:357"></line>
+            <text x="70" y="22" data-om-id="bda30008:358">8w</text>
+            <line x1="80" y1="22" x2="100" y2="22" class="stroke" data-om-id="bda30008:359"></line>
+            <rect x="86" y="20.5" width="5" height="3" class="fill-accent" data-om-id="bda30008:360"></rect>
+            <text x="70" y="30" data-om-id="bda30008:361">12w</text>
+            <line x1="76" y1="30" x2="104" y2="30" class="stroke" data-om-id="bda30008:362"></line>
+            <rect x="88" y="28.5" width="5" height="3" class="fill-accent" data-om-id="bda30008:363"></rect>
+            <text x="70" y="38" data-om-id="bda30008:364">24w</text>
+            <line x1="82" y1="38" x2="102" y2="38" class="stroke" data-om-id="bda30008:365"></line>
+            <rect x="94" y="36.5" width="5" height="3" class="fill-accent" data-om-id="bda30008:366"></rect>
+            <text x="70" y="46" data-om-id="bda30008:367">36w</text>
+            <line x1="78" y1="46" x2="100" y2="46" class="stroke" data-om-id="bda30008:368"></line>
+            <rect x="92" y="44.5" width="5" height="3" class="fill-accent" data-om-id="bda30008:369"></rect>
+            <text x="70" y="54" data-om-id="bda30008:370">52w</text>
+            <line x1="84" y1="54" x2="106" y2="54" class="stroke" data-om-id="bda30008:371"></line>
+            <rect x="96" y="52.5" width="5" height="3" class="fill-accent" data-om-id="bda30008:372"></rect>
+            <text x="70" y="62" data-om-id="bda30008:373">EOS</text>
+            <line x1="88" y1="62" x2="110" y2="62" class="stroke" data-om-id="bda30008:374"></line>
+            <rect x="100" y="60.5" width="5" height="3" class="fill-accent" data-om-id="bda30008:375"></rect>
+          </svg>
+        </div>
+        <div class="out" data-om-id="bda30008:376">→ <b data-om-id="bda30008:377">Dose model</b></div>
+      </div>
+
+      <div class="stage-card" data-om-id="bda30008:378">
+        <div class="dot" data-om-id="bda30008:379"></div>
+        <div class="step-no" data-om-id="bda30008:380">Stage 06</div>
+        <div class="step-name" data-om-id="bda30008:381">IND §2.6.1<br data-om-id="bda30008:382">Narrative</div>
+        <div class="viz" data-om-id="bda30008:383">
+          <svg viewBox="0 0 120 70" data-om-id="bda30008:384">
+            <text x="2" y="6" class="lbl" data-om-id="bda30008:385">CTD MODULE 2.6</text>
+            <!-- document outline -->
+            <rect class="stroke" x="12" y="10" width="68" height="58" fill="none" data-om-id="bda30008:386"></rect>
+            <!-- doc header accent -->
+            <rect class="fill-accent" x="16" y="14" width="42" height="2.4" opacity="0.85" data-om-id="bda30008:387"></rect>
+            <text x="16" y="22" class="lbl" data-om-id="bda30008:388">§2.6.1</text>
+            <line x1="29" y1="21" x2="74" y2="21" class="stroke" opacity="0.55" data-om-id="bda30008:389"></line>
+            <circle cx="62" cy="21" r="0.9" class="fill-accent" data-om-id="bda30008:390"></circle>
+            <circle cx="66" cy="21" r="0.9" class="fill-accent" data-om-id="bda30008:391"></circle>
+            <text x="16" y="29" class="lbl" data-om-id="bda30008:392">§2.6.2</text>
+            <line x1="29" y1="28" x2="74" y2="28" class="stroke" opacity="0.55" data-om-id="bda30008:393"></line>
+            <circle cx="58" cy="28" r="0.9" class="fill-accent" data-om-id="bda30008:394"></circle>
+            <text x="16" y="36" class="lbl" data-om-id="bda30008:395">§2.6.3</text>
+            <line x1="29" y1="35" x2="74" y2="35" class="stroke" opacity="0.55" data-om-id="bda30008:396"></line>
+            <circle cx="65" cy="35" r="0.9" class="fill-accent" data-om-id="bda30008:397"></circle>
+            <circle cx="69" cy="35" r="0.9" class="fill-accent" data-om-id="bda30008:398"></circle>
+            <text x="16" y="43" class="lbl" data-om-id="bda30008:399">§2.6.4</text>
+            <line x1="29" y1="42" x2="74" y2="42" class="stroke" opacity="0.55" data-om-id="bda30008:400"></line>
+            <circle cx="60" cy="42" r="0.9" class="fill-accent" data-om-id="bda30008:401"></circle>
+            <text x="16" y="50" class="lbl" data-om-id="bda30008:402">§2.6.5</text>
+            <line x1="29" y1="49" x2="74" y2="49" class="stroke" opacity="0.55" data-om-id="bda30008:403"></line>
+            <circle cx="63" cy="49" r="0.9" class="fill-accent" data-om-id="bda30008:404"></circle>
+            <circle cx="67" cy="49" r="0.9" class="fill-accent" data-om-id="bda30008:405"></circle>
+            <text x="16" y="57" class="lbl" data-om-id="bda30008:406">§2.6.6</text>
+            <line x1="29" y1="56" x2="74" y2="56" class="stroke" opacity="0.55" data-om-id="bda30008:407"></line>
+            <circle cx="61" cy="56" r="0.9" class="fill-accent" data-om-id="bda30008:408"></circle>
+            <!-- signature line -->
+            <line x1="16" y1="63" x2="42" y2="63" class="stroke-accent" stroke-width="1.2" data-om-id="bda30008:409"></line>
+            <text x="16" y="67" class="lbl" data-om-id="bda30008:410">SIGNED</text>
+            <!-- QC stamp -->
+            <g transform="translate(98,22)" data-om-id="bda30008:411">
+              <circle r="10" class="stroke-accent" fill="none" stroke-width="1.4" data-om-id="bda30008:412"></circle>
+              <circle r="12" class="stroke-accent" fill="none" stroke-width="0.5" opacity="0.45" data-om-id="bda30008:413"></circle>
+              <text x="0" y="-1.2" text-anchor="middle" fill="#2a5582" style="font-size:4.5px; font-weight:600;" data-om-id="bda30008:414">QC</text>
+              <text x="0" y="4" text-anchor="middle" fill="#2a5582" style="font-size:3.4px;" data-om-id="bda30008:415">PASS</text>
+            </g>
+            <!-- region tags -->
+            <g font-size="3.4" data-om-id="bda30008:416">
+              <rect x="88" y="40" width="20" height="5.4" class="stroke" fill="none" data-om-id="bda30008:417"></rect>
+              <text x="98" y="43.8" text-anchor="middle" data-om-id="bda30008:418">FDA</text>
+              <rect x="88" y="47" width="20" height="5.4" class="stroke" fill="none" data-om-id="bda30008:419"></rect>
+              <text x="98" y="50.8" text-anchor="middle" data-om-id="bda30008:420">EMA</text>
+              <rect x="88" y="54" width="20" height="5.4" class="stroke" fill="none" data-om-id="bda30008:421"></rect>
+              <text x="98" y="57.8" text-anchor="middle" data-om-id="bda30008:422">NMPA</text>
+              <rect x="88" y="61" width="20" height="5.4" class="stroke" fill="none" data-om-id="bda30008:423"></rect>
+              <text x="98" y="64.8" text-anchor="middle" data-om-id="bda30008:424">PMDA</text>
+            </g>
+          </svg>
+        </div>
+        <div class="out" data-om-id="bda30008:425">→ <b data-om-id="bda30008:426">Submission</b></div>
+      </div>
+    </div>
+
+    <div class="summary" data-om-id="bda30008:427">
+      <div class="item" data-om-id="bda30008:428">
+        <span class="lbl" data-om-id="bda30008:429">Total runtime</span>
+        <span class="v timer" data-om-id="bda30008:430"><span class="accent" id="pipe-timer" data-om-id="bda30008:431">14:32</span></span>
+      </div>
+      <div class="item" data-om-id="bda30008:432">
+        <span class="lbl" data-om-id="bda30008:433">Stages automated</span>
+        <span class="v" data-om-id="bda30008:434">6 / 6</span>
+      </div>
+      <div class="item" data-om-id="bda30008:435">
+        <span class="lbl" data-om-id="bda30008:436">Workflows invoked</span>
+        <span class="v" data-om-id="bda30008:437">47</span>
+      </div>
+      <div class="item" data-om-id="bda30008:438">
+        <span class="lbl" data-om-id="bda30008:439">Audit trail</span>
+        <span class="v" data-om-id="bda30008:440">412 steps</span>
+      </div>
+    </div>
+
+    <div class="footer" data-om-id="bda30008:441"><span data-om-id="bda30008:442">BioMate · www.biomate.ai</span></div>
+  </section>
+
+
+  <!-- ===================== SLIDE 5 — INSIDE BIOMATE (UI) ===================== -->
+  <section data-screen-label="09 Reg-LLM" class="s-reglm" data-om-id="bda30008:684" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="8" data-deck-active="">
+    <div class="chrome" data-om-id="bda30008:685">
+      <a class="brand" href="#" data-om-id="bda30008:686"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:687"></a>
+      <div class="right" data-om-id="bda30008:688"><span class="pageno" data-om-id="bda30008:689"><b data-om-id="bda30008:690">05</b> / 9</span></div>
+    </div>
+
+    <div class="head" data-om-id="bda30008:691">
+      <h2 class="h2" data-om-id="bda30008:692">A regulatory writer that <em data-om-id="bda30008:693">learns from every redline.</em></h2>
+      <p class="sub-rl" data-om-id="bda30008:694">A closed loop: BioMate&rsquo;s in-house Reg-LLM drafts. Regulatory experts redline. <em>Every correction becomes training signal</em> &mdash; and a new model ships each week.</p>
+    </div>
+
+    <div class="ll-loop" data-om-id="bda30008:696">
+      <div class="ll-row" data-om-id="bda30008:697">
+        <!-- 01 Generate -->
+        <div class="station" data-om-id="bda30008:698">
+          <span class="num" data-om-id="bda30008:699">Step 01 · Generate</span>
+          <div class="icon" aria-hidden="true" data-om-id="bda30008:700">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-om-id="bda30008:701">
+              <rect x="5" y="3" width="14" height="18" rx="1.5" data-om-id="bda30008:702"></rect>
+              <line x1="8" y1="8" x2="16" y2="8" data-om-id="bda30008:703"></line>
+              <line x1="8" y1="12" x2="16" y2="12" data-om-id="bda30008:704"></line>
+              <line x1="8" y1="16" x2="13" y2="16" data-om-id="bda30008:705"></line>
+            </svg>
+          </div>
+          <h4>Reg-LLM drafts</h4>
+          <p>Cite-backed IND §2.6, §3.2, and clinical narratives across FDA, EMA, NMPA, PMDA.</p>
+        </div>
+        <div class="arrow-cell" data-om-id="bda30008:713"></div>
+
+        <!-- 02 Expert Review -->
+        <div class="station" data-om-id="bda30008:714">
+          <span class="num" data-om-id="bda30008:715">Step 02 · Human in the loop</span>
+          <div class="icon" aria-hidden="true" data-om-id="bda30008:716">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-om-id="bda30008:717">
+              <path d="M4 19 L4 16 L15 5 L18 8 L7 19 Z" data-om-id="bda30008:718"></path>
+              <line x1="13" y1="7" x2="16" y2="10" data-om-id="bda30008:719"></line>
+              <line x1="4" y1="22" x2="20" y2="22" data-om-id="bda30008:720"></line>
+            </svg>
+          </div>
+          <h4>Experts redline</h4>
+          <p>Regulatory writers and scientists fix drafts in place — every edit captures both the fix and the rationale.</p>
+        </div>
+        <div class="arrow-cell" data-om-id="bda30008:728"></div>
+
+        <!-- 03 Capture -->
+        <div class="station" data-om-id="bda30008:729">
+          <span class="num" data-om-id="bda30008:730">Step 03 · Capture</span>
+          <div class="icon" aria-hidden="true" data-om-id="bda30008:731">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-om-id="bda30008:732">
+              <ellipse cx="12" cy="5" rx="7" ry="2.4" data-om-id="bda30008:733"></ellipse>
+              <path d="M5 5 V11 C5 12.4 8.1 13.4 12 13.4 C15.9 13.4 19 12.4 19 11 V5" data-om-id="bda30008:734"></path>
+              <path d="M5 11 V17 C5 18.4 8.1 19.4 12 19.4 C15.9 19.4 19 18.4 19 17 V11" data-om-id="bda30008:735"></path>
+            </svg>
+          </div>
+          <h4>Pairs + rationale</h4>
+          <p>Each redline becomes a structured preference pair, tagged with rationale and citation diff.</p>
+        </div>
+        <div class="arrow-cell" data-om-id="bda30008:744"></div>
+
+        <!-- 04 Fine-tune -->
+        <div class="station" data-om-id="bda30008:745">
+          <span class="num" data-om-id="bda30008:746">Step 04 · Fine-tune</span>
+          <div class="icon" aria-hidden="true" data-om-id="bda30008:747">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-om-id="bda30008:748">
+              <path d="M20 12 A8 8 0 1 1 12 4 L16 4 L13 1" data-om-id="bda30008:749"></path>
+              <path d="M20 12 L20 8 L17 11" data-om-id="bda30008:750"></path>
+              <circle cx="12" cy="12" r="2.4" data-om-id="bda30008:751"></circle>
+            </svg>
+          </div>
+          <h4>Weekly fine-tune</h4>
+          <p>DPO + section-specific adapters. A held-out reg eval gates every release — only models that improve ship.</p>
+        </div>
+      </div>
+
+      <!-- closed-loop arc back from 04 to 01 -->
+      <svg class="ll-arc" viewBox="0 0 1680 132" preserveAspectRatio="none" data-om-id="bda30008:760">
+        <!-- start near bottom-center of station 04 (x ≈ 1500), arc down and back to bottom-center of station 01 (x ≈ 200) -->
+        <path d="M 1500 4 Q 1500 110 1300 118 L 380 118 Q 180 118 180 4" data-om-id="bda30008:761"></path>
+        <!-- arrowhead near top-left of station 01 -->
+        <polygon points="180,4 174,16 186,16" fill="#2a5582" data-om-id="bda30008:762"></polygon>
+      </svg>
+      <span class="ll-arc-cap" data-om-id="bda30008:763">Closed loop · ships each week</span>
+    </div>
+
+    <div class="ll-improve" data-om-id="bda30008:764">
+      <div class="item" data-om-id="bda30008:765">
+        <span class="lbl" data-om-id="bda30008:766">Expert edits / section</span>
+        <span class="stat" data-om-id="bda30008:767"><b data-om-id="bda30008:768">27</b> → <b data-om-id="bda30008:769">6</b> <span class="delta" data-om-id="bda30008:770">−78%</span></span>
+      </div>
+      <div class="item" data-om-id="bda30008:771">
+        <span class="lbl" data-om-id="bda30008:772">Time to signed packet</span>
+        <span class="stat" data-om-id="bda30008:773"><b data-om-id="bda30008:774">14 days</b> → <b data-om-id="bda30008:775">3 days</b> <span class="delta" data-om-id="bda30008:776">−79%</span></span>
+      </div>
+      <div class="item" data-om-id="bda30008:777">
+        <span class="lbl" data-om-id="bda30008:778">Reg-eval (held-out)</span>
+        <span class="stat" data-om-id="bda30008:779"><b data-om-id="bda30008:780">71%</b> → <b data-om-id="bda30008:781">94%</b> <span class="delta" data-om-id="bda30008:782">+23 pp</span></span>
+      </div>
+      <div class="item chart-wrap" data-om-id="bda30008:783">
+        <span class="lbl" data-om-id="bda30008:784">Reviewer edits per section · last 14 release cycles</span>
+        <div class="chart" data-om-id="bda30008:785">
+          <svg viewBox="0 0 420 80" preserveAspectRatio="none" data-om-id="bda30008:786">
+            <line x1="0" y1="78" x2="420" y2="78" stroke="#d9cda8" stroke-width="1" data-om-id="bda30008:787"></line>
+            <line x1="0" y1="60" x2="420" y2="60" stroke="#d9cda8" stroke-width="0.6" opacity="0.5" data-om-id="bda30008:788"></line>
+            <line x1="0" y1="40" x2="420" y2="40" stroke="#d9cda8" stroke-width="0.6" opacity="0.5" data-om-id="bda30008:789"></line>
+            <line x1="0" y1="20" x2="420" y2="20" stroke="#d9cda8" stroke-width="0.6" opacity="0.5" data-om-id="bda30008:790"></line>
+            <!-- envelope -->
+            <path d="M 0 8 Q 60 14 120 22 Q 180 32 240 44 Q 300 54 360 62 Q 400 66 420 68 L 420 78 L 0 78 Z" fill="#2a5582" fill-opacity="0.12" data-om-id="bda30008:791"></path>
+            <!-- mean edits/section over cycles, descending -->
+            <path d="M 0 8 Q 60 14 120 22 Q 180 32 240 44 Q 300 54 360 62 Q 400 66 420 68" stroke="#2a5582" stroke-width="2" fill="none" data-om-id="bda30008:792"></path>
+            <!-- cycle ticks -->
+            <g fill="#2a5582" data-om-id="bda30008:793">
+              <circle cx="0" cy="8" r="2.4" data-om-id="bda30008:794"></circle>
+              <circle cx="60" cy="14" r="2.4" data-om-id="bda30008:795"></circle>
+              <circle cx="120" cy="22" r="2.4" data-om-id="bda30008:796"></circle>
+              <circle cx="180" cy="32" r="2.4" data-om-id="bda30008:797"></circle>
+              <circle cx="240" cy="44" r="2.4" data-om-id="bda30008:798"></circle>
+              <circle cx="300" cy="54" r="2.4" data-om-id="bda30008:799"></circle>
+              <circle cx="360" cy="62" r="2.4" data-om-id="bda30008:800"></circle>
+              <circle cx="420" cy="68" r="2.4" data-om-id="bda30008:801"></circle>
+            </g>
+            <!-- labels -->
+            <g font-family="IBM Plex Mono, monospace" font-size="9" fill="#66798f" letter-spacing="0.08em" data-om-id="bda30008:802">
+              <text x="0" y="76" text-anchor="start" data-om-id="bda30008:803">v01</text>
+              <text x="420" y="76" text-anchor="end" data-om-id="bda30008:804">v14</text>
+              <text x="0" y="6" text-anchor="start" fill="#2a5582" data-om-id="bda30008:805">27 edits</text>
+              <text x="420" y="66" text-anchor="end" fill="#2a5582" data-om-id="bda30008:806">6 edits</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer" data-om-id="bda30008:807"><span data-om-id="bda30008:808">BioMate · www.biomate.ai</span></div>
+  </section><section data-screen-label="05 Inside" class="s-ui" style="padding: 64px 80px 64px;" data-om-id="bda30008:443" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="4">
+    <div class="chrome" data-om-id="bda30008:444">
+      <a class="brand" href="#" data-om-id="bda30008:445"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:446"></a>
+      <div class="right" data-om-id="bda30008:447"><span class="pageno" data-om-id="bda30008:448"><b data-om-id="bda30008:449">06</b> / 9</span></div>
+    </div>
+
+    <div class="head" data-om-id="bda30008:450">
+      <h2 class="h2" data-om-id="bda30008:451">Inside the IND Report. <em data-om-id="bda30008:452">Powered by our Reg-LLM.</em></h2>
+      <p class="sub-ui" data-om-id="bda30008:453">Every IND &sect;2.6 section drafted, cited, and region-tuned by BioMate&rsquo;s proprietary Reg-LLM &mdash; <em>trained on reviewer redlines</em>, gated by held-out evals.</p>
+    </div>
+
+    <div class="workspace ws-solo" data-om-id="bda30008:454">
+      <div class="ws-body" data-om-id="bda30008:455">
+        <div class="ws-stage-single" data-om-id="bda30008:456">
+          <div class="ws-view-big" data-om-id="bda30008:457">
+            <span class="vtag" data-om-id="bda30008:458">View · IND Report · CTD Module 2.6 Nonclinical</span>
+            <img src="images/ind-report-shot.png?v=5" alt="BioMate IND Report — §2.6 nonclinical, Reg-LLM authored." data-om-id="bda30008:459">
+          </div>
+        </div>
+
+        <div class="reg-legend" data-om-id="bda30008:460">
+          <span class="reg-title" data-om-id="bda30008:461">Powered by BioMate Reg-LLM</span>
+          <span class="reg-item" data-om-id="bda30008:462"><b data-om-id="bda30008:463">Drafted by Reg-LLM</b>§2.6.1–2.6.6 cite-backed · precision 0.94</span>
+          <span class="reg-item" data-om-id="bda30008:464"><b data-om-id="bda30008:465">Region-aware</b>FDA · EMA · NMPA · PMDA from one source</span>
+          <span class="reg-item" data-om-id="bda30008:466"><b data-om-id="bda30008:467">Continuous learning</b>Reviewer redlines flow back to training</span>
+          <span class="reg-item" data-om-id="bda30008:468"><b data-om-id="bda30008:469">Audit ledger</b>SHA-256 per draft · 21 CFR Part 11</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer" data-om-id="bda30008:470"><span data-om-id="bda30008:471">BioMate · www.biomate.ai</span></div>
+  </section>
+
+
+  <!-- ===================== SLIDE 6 — PRODUCT ===================== -->
+  <section data-screen-label="06 Product" class="s-product" data-om-id="bda30008:472" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="5">
+    <div class="chrome" data-om-id="bda30008:473">
+      <a class="brand" href="#" data-om-id="bda30008:474"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:475"></a>
+      <div class="right" data-om-id="bda30008:476"><span class="pageno" data-om-id="bda30008:477"><b data-om-id="bda30008:478">07</b> / 9</span></div>
+    </div>
+
+    <div class="head" style="margin-top: 56px;" data-om-id="bda30008:479">
+      <h2 class="h2" data-om-id="bda30008:480">Beyond the pipeline. <em>The full biomedical computation stack.</em></h2>
+    </div>
+
+    <div class="stack" data-om-id="bda30008:482">
+      <div class="card" data-om-id="bda30008:483">
+        <span class="tag" data-om-id="bda30008:484">Drug Discovery</span>
+        <h3 data-om-id="bda30008:485">End-to-end pipeline, all six stages.</h3>
+        <div class="chips" data-om-id="bda30008:486">
+          <span class="chip" data-om-id="bda30008:487">Target Discovery</span>
+          <span class="chip" data-om-id="bda30008:488">Hit Discovery</span>
+          <span class="chip" data-om-id="bda30008:489">ADMET &amp; Lead Opt.</span>
+          <span class="chip" data-om-id="bda30008:490">Preclinical DMPK</span>
+          <span class="chip" data-om-id="bda30008:491">Clinical Pharmacology</span>
+          <span class="chip" data-om-id="bda30008:492">Pharmacovigilance</span>
+        </div>
+        <div class="desc" data-om-id="bda30008:493">24 gap workflows · all passing. IND §2.6.1 computational narrative · complete and validated.</div>
+      </div>
+
+      <div class="card" data-om-id="bda30008:494">
+        <span class="tag" data-om-id="bda30008:495">Genomics &amp; Multi-omics</span>
+        <h3 data-om-id="bda30008:496">Sequencing &amp; molecular profiling.</h3>
+        <div class="chips" data-om-id="bda30008:497">
+          <span class="chip" data-om-id="bda30008:498">WGS</span>
+          <span class="chip" data-om-id="bda30008:499">WES</span>
+          <span class="chip" data-om-id="bda30008:500">RNA-seq</span>
+          <span class="chip" data-om-id="bda30008:501">scRNA-seq</span>
+          <span class="chip" data-om-id="bda30008:502">ATAC-seq</span>
+          <span class="chip" data-om-id="bda30008:503">ChIP-seq</span>
+          <span class="chip" data-om-id="bda30008:504">Proteomics</span>
+          <span class="chip" data-om-id="bda30008:505">Metabolomics</span>
+        </div>
+        <div class="desc" data-om-id="bda30008:506">GATK Best Practices, ENCODE4, and community standards baked into every run — no configuration drift.</div>
+      </div>
+
+      <div class="card" data-om-id="bda30008:507">
+        <span class="tag" data-om-id="bda30008:508">Structural Biology &amp; Regulatory</span>
+        <h3 data-om-id="bda30008:509">Structure to submission package.</h3>
+        <div class="chips" data-om-id="bda30008:510">
+          <span class="chip" data-om-id="bda30008:511">Cryo-EM SPA</span>
+          <span class="chip" data-om-id="bda30008:512">AlphaFold3</span>
+          <span class="chip" data-om-id="bda30008:513">Molecular Dynamics</span>
+          <span class="chip" data-om-id="bda30008:514">Docking</span>
+          <span class="chip strong" data-om-id="bda30008:515">IND §2.6.1</span>
+          <span class="chip strong" data-om-id="bda30008:516">21 CFR Part 11</span>
+        </div>
+        <div class="desc" data-om-id="bda30008:517">Structure prediction, pocket druggability, CRO submission packages — every output carries Gold/Silver/Bronze QC and a full audit trail.</div>
+      </div>
+
+      <div class="strip" data-om-id="bda30008:518">
+        <div class="item" data-om-id="bda30008:519"><span class="num" data-om-id="bda30008:520">2,000+</span><span data-om-id="bda30008:521">Validated workflows</span></div>
+        <div class="item" data-om-id="bda30008:522"><span class="num" data-om-id="bda30008:523">34</span><span data-om-id="bda30008:524">Domains</span></div>
+        <div class="item" data-om-id="bda30008:525"><span class="num" data-om-id="bda30008:526">32</span><span data-om-id="bda30008:527">Protocol-aware QC profiles</span></div>
+        <div class="item" style="margin-left:auto;" data-om-id="bda30008:528"><span data-om-id="bda30008:529">GPU-backed cloud · minutes, not days</span></div>
+      </div>
+    </div>
+
+    <div class="footer" data-om-id="bda30008:530"><span data-om-id="bda30008:531">BioMate · www.biomate.ai</span></div>
+  </section>
+
+
+  <!-- ===================== SLIDE 7 — DIFFERENTIATOR ===================== -->
+  <section data-screen-label="07 Differentiator" class="s-diff" data-om-id="bda30008:532" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="6">
+    <div class="chrome" data-om-id="bda30008:533">
+      <a class="brand" href="#" data-om-id="bda30008:534"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:535"></a>
+      <div class="right" data-om-id="bda30008:536"><span class="pageno" data-om-id="bda30008:537"><b data-om-id="bda30008:538">08</b> / 9</span></div>
+    </div>
+
+    <div class="head" style="margin-top: 56px;" data-om-id="bda30008:539">
+      <h2 class="h2" data-om-id="bda30008:540">The only platform where every QC decision is <em data-om-id="bda30008:541">citable.</em></h2>
+      <p class="lede" data-om-id="bda30008:542">Three named, sourced evidence tiers &mdash; <em>every threshold survives review.</em></p>
+    </div>
+
+    <div class="tiers" data-om-id="bda30008:543">
+      <div class="tier gold" data-om-id="bda30008:544">
+        <div class="badge" data-om-id="bda30008:545">
+          <div class="swatch" data-om-id="bda30008:546"></div>
+          <div data-om-id="bda30008:547">
+            <div class="sub" data-om-id="bda30008:548">Tier 01</div>
+            <div class="name" data-om-id="bda30008:549">Gold</div>
+          </div>
+        </div>
+        <div class="sub" style="color:var(--ink)" data-om-id="bda30008:550">Universally accepted consensus</div>
+        <div class="sources" data-om-id="bda30008:551">GATK Best Practices · FDA guidance · ICH guidelines</div>
+        <div class="quote" data-om-id="bda30008:552">“This threshold is the field standard.”</div>
+      </div>
+
+      <div class="tier silver" data-om-id="bda30008:553">
+        <div class="badge" data-om-id="bda30008:554">
+          <div class="swatch" data-om-id="bda30008:555"></div>
+          <div data-om-id="bda30008:556">
+            <div class="sub" data-om-id="bda30008:557">Tier 02</div>
+            <div class="name" data-om-id="bda30008:558">Silver</div>
+          </div>
+        </div>
+        <div class="sub" style="color:var(--ink)" data-om-id="bda30008:559">Community standard</div>
+        <div class="sources" data-om-id="bda30008:560">ENCODE4 · RELION guidelines · ISSX benchmarks</div>
+        <div class="quote" data-om-id="bda30008:561">“This threshold is widely adopted.”</div>
+      </div>
+
+      <div class="tier bronze" data-om-id="bda30008:562">
+        <div class="badge" data-om-id="bda30008:563">
+          <div class="swatch" data-om-id="bda30008:564"></div>
+          <div data-om-id="bda30008:565">
+            <div class="sub" data-om-id="bda30008:566">Tier 03</div>
+            <div class="name" data-om-id="bda30008:567">Bronze</div>
+          </div>
+        </div>
+        <div class="sub" style="color:var(--ink)" data-om-id="bda30008:568">Field heuristic, benchmark-cited</div>
+        <div class="sources" data-om-id="bda30008:569">Peer-reviewed benchmark literature</div>
+        <div class="quote" data-om-id="bda30008:570">“This threshold is the established convention.”</div>
+      </div>
+    </div>
+
+    <div class="strip" data-om-id="bda30008:571">
+      <div class="item" data-om-id="bda30008:572"><span class="num" data-om-id="bda30008:573">32</span><span data-om-id="bda30008:574">Named QC profiles</span></div>
+      <div class="item" data-om-id="bda30008:575"><span class="num" data-om-id="bda30008:576">96.4%</span><span data-om-id="bda30008:577">Auto-loop convergence in 3 iterations</span></div>
+      <div class="item" style="margin-left:auto;" data-om-id="bda30008:578"><span data-om-id="bda30008:579">Nature Methods publication in preparation</span></div>
+    </div>
+
+    <div class="footer" data-om-id="bda30008:580"><span data-om-id="bda30008:581">BioMate · www.biomate.ai</span></div>
+  </section>
+
+
+  <!-- ===================== SLIDE 8 — BENCHMARKS (commented out) =====================
+<!- - ===================== SLIDE 8 — BENCHMARKS ===================== - ->
+  <section data-screen-label="08 Benchmarks" class="s-bench" data-om-id="bda30008:582" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="7">
+    <div class="chrome" data-om-id="bda30008:583">
+      <a class="brand" href="#" data-om-id="bda30008:584"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:585"></a>
+      <div class="right" data-om-id="bda30008:586"><span class="pageno" data-om-id="bda30008:587"><b data-om-id="bda30008:588">08</b> / 9</span></div>
+    </div>
+
+    <div class="head" data-om-id="bda30008:589">
+      <h2 class="h2" data-om-id="bda30008:590">Above the academic SoTA.<br data-om-id="bda30008:591"><em data-om-id="bda30008:592">Above frontier models.</em></h2>
+    </div>
+
+    <div class="bench-body" data-om-id="bda30008:593">
+      <div class="bench-hero" data-om-id="bda30008:594">
+        <div class="l" data-om-id="bda30008:595">BioMate · BixBench</div>
+        <div class="v" data-om-id="bda30008:596">92.7<sub data-om-id="bda30008:597">%</sub></div>
+        <div class="v-label" data-om-id="bda30008:598">Pass@1 across 205 computational biology tasks.</div>
+        <div class="deltas" data-om-id="bda30008:599">
+          <div class="delta" data-om-id="bda30008:600"><b data-om-id="bda30008:601">+4.0</b><span data-om-id="bda30008:602">vs Stanford Biomni Lab</span></div>
+          <div class="delta" data-om-id="bda30008:603"><b data-om-id="bda30008:604">+17.6</b><span data-om-id="bda30008:605">vs OpenAI GPT-Rosalind</span></div>
+          <div class="delta" data-om-id="bda30008:606"><b data-om-id="bda30008:607">+37.7</b><span data-om-id="bda30008:608">vs Gemini 3.1 Pro</span></div>
+        </div>
+      </div>
+
+      <div class="bench-chart" data-om-id="bda30008:609">
+        <div class="title" data-om-id="bda30008:610"><span data-om-id="bda30008:611">BixBench · Pass@1 · N = 205</span><span data-om-id="bda30008:612">Higher is better</span></div>
+
+        <div class="bar-row us" data-om-id="bda30008:613">
+          <div class="who" data-om-id="bda30008:614"><div class="name" data-om-id="bda30008:615">BioMate</div><div class="org" data-om-id="bda30008:616">This work · May 2026</div></div>
+          <div class="track" data-om-id="bda30008:617"><div class="fill" style="width: 92.7%;" data-om-id="bda30008:618"></div></div>
+          <div class="score" data-om-id="bda30008:619">92.7%</div>
+        </div>
+        <div class="bar-row" data-om-id="bda30008:620">
+          <div class="who" data-om-id="bda30008:621"><div class="name" data-om-id="bda30008:622">Biomni Lab</div><div class="org" data-om-id="bda30008:623">Stanford · bioRxiv 2025</div></div>
+          <div class="track" data-om-id="bda30008:624"><div class="fill" style="width: 88.7%;" data-om-id="bda30008:625"></div></div>
+          <div class="score" data-om-id="bda30008:626">88.7%</div>
+        </div>
+        <div class="bar-row" data-om-id="bda30008:627">
+          <div class="who" data-om-id="bda30008:628"><div class="name" data-om-id="bda30008:629">GPT-Rosalind</div><div class="org" data-om-id="bda30008:630">OpenAI · Apr 2026 SoTA</div></div>
+          <div class="track" data-om-id="bda30008:631"><div class="fill" style="width: 75.1%;" data-om-id="bda30008:632"></div></div>
+          <div class="score" data-om-id="bda30008:633">75.1%</div>
+        </div>
+        <div class="bar-row" data-om-id="bda30008:634">
+          <div class="who" data-om-id="bda30008:635"><div class="name" data-om-id="bda30008:636">GPT-5.4</div><div class="org" data-om-id="bda30008:637">OpenAI</div></div>
+          <div class="track" data-om-id="bda30008:638"><div class="fill" style="width: 73.2%;" data-om-id="bda30008:639"></div></div>
+          <div class="score" data-om-id="bda30008:640">73.2%</div>
+        </div>
+        <div class="bar-row" data-om-id="bda30008:641">
+          <div class="who" data-om-id="bda30008:642"><div class="name" data-om-id="bda30008:643">Grok 4.2</div><div class="org" data-om-id="bda30008:644">xAI</div></div>
+          <div class="track" data-om-id="bda30008:645"><div class="fill" style="width: 69.8%;" data-om-id="bda30008:646"></div></div>
+          <div class="score" data-om-id="bda30008:647">69.8%</div>
+        </div>
+        <div class="bar-row" data-om-id="bda30008:648">
+          <div class="who" data-om-id="bda30008:649"><div class="name" data-om-id="bda30008:650">Gemini 3.1 Pro</div><div class="org" data-om-id="bda30008:651">Google</div></div>
+          <div class="track" data-om-id="bda30008:652"><div class="fill" style="width: 55.0%;" data-om-id="bda30008:653"></div></div>
+          <div class="score" data-om-id="bda30008:654">55.0%</div>
+        </div>
+        <div class="bar-row" data-om-id="bda30008:655">
+          <div class="who" data-om-id="bda30008:656"><div class="name" data-om-id="bda30008:657">GPT-4o</div><div class="org" data-om-id="bda30008:658">OpenAI · v1.5 paper baseline</div></div>
+          <div class="track" data-om-id="bda30008:659"><div class="fill" style="width: 36.1%;" data-om-id="bda30008:660"></div></div>
+          <div class="score" data-om-id="bda30008:661">36.1%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bench-foot" data-om-id="bda30008:662">
+      <div class="col" data-om-id="bda30008:663">
+        <span class="lbl" data-om-id="bda30008:664">BiomniEval1 · patient_gene</span>
+        <span class="num" data-om-id="bda30008:665">76.7%<span class="delta" data-om-id="bda30008:666">+63.4pp</span></span>
+        <span class="sub" data-om-id="bda30008:667">N = 30 · vs cached baseline</span>
+      </div>
+      <div class="col" data-om-id="bda30008:668">
+        <span class="lbl" data-om-id="bda30008:669">LAB-Bench · Cloning Scenarios</span>
+        <span class="num" data-om-id="bda30008:670">86.7%<span class="delta" data-om-id="bda30008:671">+26.7pp</span></span>
+        <span class="sub" data-om-id="bda30008:672">N = 30 · vs Claude 3.5 Sonnet SoTA</span>
+      </div>
+      <div class="col" data-om-id="bda30008:673">
+        <span class="lbl" data-om-id="bda30008:674">LAB-Bench · Protocol QA</span>
+        <span class="num" data-om-id="bda30008:675">70.0%<span class="delta" data-om-id="bda30008:676">+15.0pp</span></span>
+        <span class="sub" data-om-id="bda30008:677">N = 30 · vs Claude 3.5 Sonnet SoTA</span>
+      </div>
+      <div class="col" data-om-id="bda30008:678">
+        <span class="lbl" data-om-id="bda30008:679">SGI-Bench · Idea Generation</span>
+        <span class="num" data-om-id="bda30008:680">86.7%</span>
+        <span class="sub" data-om-id="bda30008:681">N = 30 · no public baseline</span>
+      </div>
+    </div>
+
+    <div class="footer" data-om-id="bda30008:682"><span data-om-id="bda30008:683">BioMate · www.biomate.ai</span></div>
+  </section>
+  ===================== END SLIDE 8 ===================== -->
+
+
+  <!-- ===================== SLIDE 9 — PROPRIETARY REG-LLM ===================== -->
+  
+
+
+  <!-- ===================== SLIDE 10 — CLOSING ===================== -->
+  <section data-screen-label="10 Closing" class="s-close" data-om-id="bda30008:809" data-om-validate="no_overflowing_text,no_overlapping_text,slide_sized_text" data-deck-slide="9" data-deck-last-visible="">
+    <div class="chrome" data-om-id="bda30008:810">
+      <a class="brand" href="#" data-om-id="bda30008:811"><img src="images/biomate-logo-trim.png" alt="BioMate" data-om-id="bda30008:812"></a>
+      <div class="right" data-om-id="bda30008:813"><span class="pageno" data-om-id="bda30008:814"><b data-om-id="bda30008:815">09</b> / 9</span></div>
+    </div>
+
+    <h1 class="display" data-om-id="bda30008:816">From question<br data-om-id="bda30008:817">to <em data-om-id="bda30008:818">defensible result.</em></h1>
+    <p class="sub" data-om-id="bda30008:819">A virtual lab that thinks &mdash; and <em>shows its work.</em></p>
+
+    <div style="margin-top:52px; display:flex; align-items:center; gap:40px;">
+      <a href="https://www.biomate.ai/register" style="display:inline-block;font-family:var(--sans);font-size:22px;font-weight:600;color:#fff;background:var(--accent);border-radius:10px;padding:20px 48px;text-decoration:none;letter-spacing:0.03em;">
+        Start Free Trial &rarr;
+      </a>
+      <span style="font-family:var(--sans);font-size:17px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">www.biomate.ai/register</span>
+    </div>
+
+    <div class="credit" data-om-id="bda30008:820">
+      <div class="left" data-om-id="bda30008:821">
+        Yaoyun Zhang, PhD
+        <small data-om-id="bda30008:822">Founder &amp; CEO · yaoyun.zhang@biomate.ai</small>
+      </div>
+      <div data-om-id="bda30008:823"><a href="https://www.biomate.ai" style="color:inherit; text-decoration:none;" data-om-id="bda30008:824">www.biomate.ai</a></div>
+    </div>
+  </section>
+
+
+</deck-stage>
+
+<script>
+  // Re-trigger pipeline animation each time the End-to-End slide becomes active
+  document.addEventListener('DOMContentLoaded', () => {
+    const stage = document.querySelector('deck-stage');
+    if (!stage) return;
+    const pipeSlide = document.querySelector('.s-pipeline');
+    if (!pipeSlide) return;
+
+    const play = () => {
+      pipeSlide.classList.remove('is-playing');
+      // force reflow so the animation restarts
+      void pipeSlide.offsetWidth;
+      pipeSlide.classList.add('is-playing');
+
+      // animate the timer
+      const t = pipeSlide.querySelector('#pipe-timer');
+      if (t) {
+        const start = performance.now();
+        const dur = 8000;
+        const finalSec = 14 * 60 + 32;
+        const tick = (now) => {
+          const p = Math.min(1, (now - start) / dur);
+          const eased = 1 - Math.pow(1 - p, 2);
+          const total = Math.round(finalSec * eased);
+          const m = Math.floor(total / 60).toString().padStart(2, '0');
+          const s = (total % 60).toString().padStart(2, '0');
+          t.textContent = `${m}:${s}`;
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+    };
+
+    stage.addEventListener('slidechange', (e) => {
+      if (e.detail.slide === pipeSlide) play();
+      else pipeSlide.classList.remove('is-playing');
+    });
+
+    // ===== Slide 8 (Reg-LLM loop): sequential entrance animation =====
+    const regSlide = document.querySelector('.s-reglm');
+    const regLoop = document.querySelector('.s-reglm .ll-loop');
+    const playRegLoop = () => {
+      if (!regLoop) return;
+      regLoop.classList.remove('is-playing');
+      void regLoop.offsetWidth;
+      regLoop.classList.add('is-playing');
+    };
+    if (regSlide) {
+      stage.addEventListener('slidechange', (e) => {
+        if (e.detail.slide === regSlide) playRegLoop();
+        else regLoop?.classList.remove('is-playing');
+      });
+      // also play on initial load if it happens to be the active slide
+      if (stage.querySelector('section.active') === regSlide) playRegLoop();
+    }
+
+    // ===== Slide 5: keep image-based IND shot, no scaling needed =====
+    const fitIndFrame = () => {};
+    fitIndFrame();
+    window.addEventListener('resize', fitIndFrame);
+    stage.addEventListener('slidechange', () => setTimeout(fitIndFrame, 50));
+    setTimeout(fitIndFrame, 300);
+    setTimeout(fitIndFrame, 1000);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,171 @@
+<mxfile host="Electron" modified="2026-06-01T00:00:00.000Z" agent="draw.io" version="21.0.0">
+  <diagram id="pipeline-overview" name="Fig1 BioMate-KB Extraction Pipeline">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="960" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══ TITLE ═══ -->
+        <mxCell id="title" value="BioMate-KB Extraction and Curation Pipeline" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#1E3A5F;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ INPUT ═══ -->
+        <mxCell id="input" value="&lt;b&gt;Bioconductor 3.20&lt;/b&gt;&lt;br/&gt;2,241 Packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A5F;fontColor=#ffffff;strokeColor=#1E3A5F;fontSize=13;fontStyle=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="400" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ PHASE 1 and PHASE 2 (parallel) ═══ -->
+        <mxCell id="phase1" value="&lt;b&gt;Phase 1: Vignette Parsing&lt;/b&gt;&lt;br/&gt;HTML, Rnw/Sweave, knitr formats&lt;br/&gt;&lt;font color=&apos;#1D4ED8&apos;&gt;1,812 packages&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#1D4ED8;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="120" y="210" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase2" value="&lt;b&gt;Phase 2: External Gap Filling&lt;/b&gt;&lt;br/&gt;yulab-smu.top books, microbiome sites&lt;br/&gt;&lt;font color=&apos;#1D4ED8&apos;&gt;13 stub packages → 257 steps&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#1D4ED8;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="940" y="210" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- arrows from input -->
+        <mxCell id="e-in-p1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1D4ED8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="input" target="phase1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-in-p2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1D4ED8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="input" target="phase2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Section extraction detail boxes -->
+        <mxCell id="sec-extract" value="Section heading extraction&lt;br/&gt;4 regex patterns (Quarto, knitr, Pandoc, bare)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#93C5FD;fontSize=9;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="320" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="code-extract" value="Code block extraction&lt;br/&gt;Function call tokenisation + NOISE filtering" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#93C5FD;fontSize=9;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="320" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p1-sec" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#93C5FD;" edge="1" source="phase1" target="sec-extract" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p1-code" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#93C5FD;" edge="1" source="phase1" target="code-extract" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ RAW STEPS ═══ -->
+        <mxCell id="raw" value="&lt;b&gt;28,485 Raw Workflow Steps&lt;/b&gt;&lt;br/&gt;50,959 function annotations | 1,970 packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="410" width="600" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p1-raw" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#D97706;exitX=0.5;exitY=1;entryX=0;entryY=0.5;" edge="1" source="sec-extract" target="raw" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p2-raw" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#D97706;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" edge="1" source="phase2" target="raw" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ VALIDATION ROW ═══ -->
+        <mxCell id="namespace-val" value="&lt;b&gt;NAMESPACE Validation&lt;/b&gt;&lt;br/&gt;Cross-reference exported functions&lt;br/&gt;vs. Bioconductor 3.20 source tarballs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#065F46;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="280" y="530" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="s4-val" value="&lt;b&gt;S4 Type Chain Verification&lt;/b&gt;&lt;br/&gt;Check typed object handoffs&lt;br/&gt;between consecutive steps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#065F46;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="840" y="530" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-raw-ns" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#065F46;" edge="1" source="raw" target="namespace-val" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-raw-s4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#065F46;" edge="1" source="raw" target="s4-val" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ 4-ROUND CURATION ═══ -->
+        <mxCell id="curation" value="&lt;b&gt;4-Round Quality Curation&lt;/b&gt;&lt;br/&gt;① Semantic consolidation  ② Noise removal  ③ Phase expansion  ④ Narrow-scope scoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="665" width="800" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ns-cur" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#5B21B6;" edge="1" source="namespace-val" target="curation" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-s4-cur" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#5B21B6;" edge="1" source="s4-val" target="curation" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ CURATED STEPS ═══ -->
+        <mxCell id="curated" value="&lt;b&gt;15,641 Curated Workflow Steps&lt;/b&gt;&lt;br/&gt;1,909 packages | 45.1% noise removed | 12,524 unique functions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#065F46;fontColor=#ffffff;strokeColor=#065F46;fontSize=12;fontStyle=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="350" y="795" width="700" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cur-curated" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#065F46;" edge="1" source="curation" target="curated" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ ENRICHMENT ROW ═══ -->
+        <mxCell id="edam" value="EDAM&lt;br/&gt;Ontology&lt;br/&gt;&lt;b&gt;94.7%&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="920" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="biocontainer" value="Biocontainer&lt;br/&gt;Images&lt;br/&gt;&lt;b&gt;98.8%&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="260" y="920" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="doi" value="Software&lt;br/&gt;DOIs&lt;br/&gt;&lt;b&gt;100%&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="440" y="920" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="nextflow" value="Nextflow&lt;br/&gt;Templates&lt;br/&gt;&lt;b&gt;DSL2&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="920" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="provenance" value="Provenance&lt;br/&gt;URL + git&lt;br/&gt;&lt;b&gt;commit&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="800" y="920" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="qualreview" value="Dual-Agent&lt;br/&gt;LLM Review&lt;br/&gt;&lt;b&gt;κ = 0.96&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="980" y="920" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- arrows from curated to enrichment -->
+        <mxCell id="e-c-edam" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;" edge="1" source="curated" target="edam" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-c-bc" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;" edge="1" source="curated" target="biocontainer" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-c-doi" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;" edge="1" source="curated" target="doi" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-c-nf" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;" edge="1" source="curated" target="nextflow" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-c-prov" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;" edge="1" source="curated" target="provenance" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-c-qr" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;" edge="1" source="curated" target="qualreview" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ OUTPUTS ═══ -->
+        <mxCell id="biomate-out" value="&lt;b&gt;BioMate AI Platform&lt;/b&gt;&lt;br/&gt;Natural language → NAMESPACE-verified&lt;br/&gt;Nextflow workflows" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A5F;fontColor=#ffffff;strokeColor=#1E3A5F;fontSize=11;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="200" y="1045" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="claude-out" value="&lt;b&gt;Claude Code Skill Bundle&lt;/b&gt;&lt;br/&gt;Top-100 packages as SKILL.md files&lt;br/&gt;CC-BY-4.0 / Apache-2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A5F;fontColor=#ffffff;strokeColor=#1E3A5F;fontSize=11;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1045" width="380" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-edam-bm" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="edam" target="biomate-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-bc-bm" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="biocontainer" target="biomate-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-nf-bm" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="nextflow" target="biomate-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-qr-cl" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1E3A5F;" edge="1" source="qualreview" target="claude-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Phase labels -->
+        <mxCell id="lbl-phase" value="EXTRACTION" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;fontSize=9;fontStyle=1;fontColor=#6B7280;" vertex="1" parent="1">
+          <mxGeometry x="30" y="210" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-valid" value="VALIDATION" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#6B7280;" vertex="1" parent="1">
+          <mxGeometry x="30" y="545" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-curation" value="CURATION" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#6B7280;" vertex="1" parent="1">
+          <mxGeometry x="30" y="680" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-enrich" value="ENRICHMENT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#6B7280;" vertex="1" parent="1">
+          <mxGeometry x="30" y="935" width="80" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
