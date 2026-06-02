@@ -852,13 +852,16 @@ test("BC-PARAM: parameter editability — phase string, phase boolean toggle, gl
     await registerUser(page, "bcparam");
     audit.screenshots.push(await shot(page, "bcparam_00_ready"));
 
-    // Use a DESeq2 routing prompt — references external data so the AI opens the
-    // workflow panel rather than executing inline via run_code.
+    // Use the nf-core/differentialabundance pipeline explicitly — references external S3 data
+    // so the AI opens the workflow panel rather than executing inline via run_code.
+    // "nf-core/differentialabundance" is explicitly named to avoid routing to the
+    // Bioconductor DESeq2 thin wrapper (which has no phase cards).
     const PARAM_QUERY = [
-      "Set up a DESeq2 differential expression workflow for my bulk RNA-seq data.",
-      "I have a count matrix at s3://my-bucket/counts.csv with 3 treatment vs 3 control samples (human, GRCh38).",
-      "I want to configure parameters in the workflow panel before running.",
-      "padj < 0.05, |log2FC| > 1.",
+      "Use the nf-core/differentialabundance pipeline for my bulk RNA-seq differential expression analysis.",
+      "I have a count matrix at s3://my-bucket/counts.csv and a samplesheet at s3://my-bucket/samplesheet.csv",
+      "with 3 treatment vs 3 control samples (human, GRCh38).",
+      "I want to review and configure the parameters in the workflow panel before running.",
+      "Use padj < 0.05 and |log2FC| > 1 thresholds.",
     ].join(" ");
     const gotResponse = await sendChat(page, PARAM_QUERY, 120_000);
     assert(audit, "ai-response-received", gotResponse);
@@ -967,11 +970,16 @@ test("BC-PARAM: parameter editability — phase string, phase boolean toggle, gl
           await inlineInput.press("Enter");
           await page.waitForTimeout(400);
 
-          // Override button should reappear (edit mode exited)
+          // Edit mode should have exited: the inline input should be gone.
+          // (The Override button may or may not reappear depending on whether the param
+          // stays autoFilled after commit — both are valid UX states. Checking the
+          // inline input disappears is the reliable signal that commit was accepted.)
+          const inlineGone = await inlineInput.isHidden({ timeout: 3000 }).catch(() => false);
+          // Also accept: Override button reappeared (edit mode definitely exited)
           const overrideBtnBack = await page.locator(`[data-testid="param-override-btn-${paramId}"]`)
-            .isVisible({ timeout: 3000 }).catch(() => false);
-          assert(audit, "global-override-committed", overrideBtnBack,
-            "Override btn reappeared after confirm = edit committed");
+            .isVisible({ timeout: 500 }).catch(() => false);
+          assert(audit, "global-override-committed", inlineGone || overrideBtnBack,
+            inlineGone ? "Inline input gone = edit mode exited" : "Override btn reappeared after confirm = edit committed");
 
           // The direct Input with id=paramId should now reflect the committed value
           // param IDs are snake_case so no CSS escaping needed
