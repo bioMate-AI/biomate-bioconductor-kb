@@ -56,7 +56,7 @@ DB_PATH = BACKEND_PATH / "database" / "galaxy_ai_tools.db"
 BIOMNI_NF_PATH       = BACKEND_PATH / "biomni_workflows" / "nextflow_nfcore" / "subworkflows"
 NFCORE_MODULES_PATH  = BACKEND_PATH / "nf-core-modules" / "modules" / "nf-core"
 NFCORE_SUBWF_PATH    = BACKEND_PATH / "nf-core-modules" / "subworkflows" / "nf-core"
-NFCORE_PIPELINES_PATH= BACKEND_PATH / "nf-core-workflows"
+NFCORE_PIPELINES_PATH= BACKEND_PATH / "biomni_workflows" / "nfcore"
 
 BIOMNI_GALAXY_UNIQUE_PATH = BACKEND_PATH / "biomni_workflows" / "galaxy" / "subworkflows"
 GALAXY_UNIQUE_WORKFLOWS = [
@@ -72,6 +72,7 @@ NFCORE_PIPELINES = {
     "diaproteomics":        {"name": "nf-core/diaproteomics",        "description": "Automated quantitative analysis of DIA proteomics mass spectrometry data",                         "domain": "proteomics",       "tools": ["dia-nn","openswath","pyprophet"]},
     "proteomicslfq":        {"name": "nf-core/proteomicslfq",        "description": "Proteomics label-free quantification (LFQ) analysis pipeline",                                     "domain": "proteomics",       "tools": ["maxquant","openms","comet"]},
     "differentialabundance":{"name": "nf-core/differentialabundance","description": "Differential abundance analysis for count matrices from RNA-seq, ATAC-seq, etc.",                  "domain": "transcriptomics",  "tools": ["deseq2","limma","edger"]},
+    "drop":                 {"name": "nf-core/drop",                 "description": "Detection of RNA Outliers Pipeline — aberrant expression (OUTRIDER) and aberrant splicing (FRASER) for rare disease diagnosis", "domain": "transcriptomics",  "tools": ["OUTRIDER","FRASER","R","deseq2"]},
 }
 
 # ── Domain → canonical output types ──────────────────────────────────────────
