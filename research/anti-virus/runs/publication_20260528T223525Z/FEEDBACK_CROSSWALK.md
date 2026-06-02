@@ -62,8 +62,8 @@ Maps `research/anti-virus/feedback_review/` recommendations to run `publication_
 |------|--------|--------|--------|
 | Replace 6-compound demo library | ≥500 compounds | **Done (ZINC150)** | 145 docked; best −6.267 kcal/mol |
 | Ensemble docking (7 conformers) | Sprint exists | **Partial** | Top-5 done (1/5 improved); top-15 failed |
-| GROMACS MD (3 trajectories) | Week 1 plan | **Partial** | INH-01 MD complete; MM-GBSA ΔG null |
-| ≥3 compounds Kd < 5 µM | Success criterion | **Not met** | Vina scores ~−5 to −6 kcal/mol; no MM-GBSA ΔG |
+| GROMACS MD (3 trajectories) | Week 1 plan | **Partial** | INH-01 MD + MM-GBSA complete (ΔG −10.49 kcal/mol) |
+| ≥3 compounds Kd < 5 µM | Success criterion | **Not met** | 1 compound MM-GBSA Ki ≈ 20 nM; need ≥3 |
 | REINVENT4 docking_gnina | Generative | **Done (0 retained)** | `06_reinvent4/` — filters removed all |
 
 ---
@@ -72,7 +72,7 @@ Maps `research/anti-virus/feedback_review/` recommendations to run `publication_
 
 | Scenario | Description | Progress |
 |----------|-------------|----------|
-| **A** Full 8-week implementation | $16.5K, positive papers | ~65% — Plan A/B compute done; inhibitor MM-GBSA + manuscripts pending |
+| **A** Full 8-week implementation | $16.5K, positive papers | ~70% — compute done; manuscripts + inhibitor medchem pending |
 | **B** Phase 1 + Weeks 1–3 compute | $5K | Done for vaccine/Plan B compute; inhibitor MD partial |
 | **C** Manuscript revision only | $0 | Not started |
 
@@ -85,7 +85,7 @@ Maps `research/anti-virus/feedback_review/` recommendations to run `publication_
 3. ~~**Manuscript Phase 1 (Plan A)**~~ — draft v1.1 at `docs/MANUSCRIPT_PLAN_A_VACCINE_v1_1.md`
 4. **Plan A figures** — regenerate from full GP multitool TSV
 5. **Plan B wet-lab spec** — done (`plan_b_wet_lab/PLAN_B_WET_LAB_SPEC.md`)
-6. **MM-GBSA** — rebuild ECR v1.2.0, re-run standalone Batch job
+6. ~~**MM-GBSA**~~ — ECR v1.2.0 pushed; INH-01 ΔG_bind −10.49 kcal/mol (job `ffc49896`)
 7. NetMHCpan upload + 4-tool comparison (optional)
 8. Manuscript author/refs/outbreak framing (Phase 1 feedback)
 

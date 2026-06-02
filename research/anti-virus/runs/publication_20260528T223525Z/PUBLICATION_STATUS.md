@@ -4,7 +4,9 @@ Real-data production run launched from `launch_andv_publication_campaign.py`.
 
 > **2026-06-03 update:** Three-track status consolidated in [`docs/20260603_ANDV_THREE_TRACKS_STATUS_AND_PLAN.md`](../../../docs/20260603_ANDV_THREE_TRACKS_STATUS_AND_PLAN.md). Plan B wet-lab spec added; inhibitor manifest backfilled; Plan A figures regen from full GP multitool TSV.
 
-> **2026-06-02 update:** GROMACS inh01 MD complete (CPU); HPC Batch queue repaired; MM-GBSA standalone job ran but ΔG_bind null (container MPI). See [`SESSION_20260602_GROMACS_HPC_INFRA.md`](SESSION_20260602_GROMACS_HPC_INFRA.md).
+> **2026-06-03 update (MM-GBSA):** ECR v1.2.0 pushed; INH-01 **ΔG_bind = −10.49 ± 0.46 kcal/mol** (Ki ≈ 20 nM, job `ffc49896`). See [`mmgbsa_binding_summary_local.json`](mmgbsa_binding_summary_local.json).
+
+> **2026-06-02 update:** GROMACS inh01 MD complete (CPU); HPC Batch queue repaired. See [`SESSION_20260602_GROMACS_HPC_INFRA.md`](SESSION_20260602_GROMACS_HPC_INFRA.md).
 
 ## Real inputs (not demo)
 
@@ -25,7 +27,7 @@ S3 prefix: `s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528
 |-------|---------|--------------|-------------|---------|
 | **Plan A** | Done | Yes | v1.1 draft + figures | **Ready** — `wet_lab_package/` |
 | **Plan B** | Done | Spec in `plan_b_wet_lab/` | v1.0 draft | Spec ready; LNP pKa caveat |
-| **Inhibitor** | MD done; MM-GBSA blocked | Manifest updated | v1.0 draft stale | Shortlist (computational); hold synthesis |
+| **Inhibitor** | MD + MM-GBSA done | Manifest updated | v1.0 draft stale | INH-01 cleared; medchem ADMET review |
 
 ## Plan A — completed
 
@@ -58,7 +60,7 @@ Artifacts: `plan_b_codon/`, `plan_b_lnp/`, `plan_b_p0/`, `plan_b_np_pk/`, **`pla
 | ZINC150 ADMET + Vina | **Done** | 145 ligands; best **−6.267 kcal/mol** |
 | Ensemble top-5 | **Done** | 1/5 improved vs rigid |
 | GROMACS INH-01 MD | **Done** | RMSD ~0.41 nm (run `28fd9a07`) |
-| MM-GBSA | **Blocked** | ΔG null — ECR v1.2.0 rebuild pending |
+| MM-GBSA | **Done** | **ΔG_bind −10.49 ± 0.46 kcal/mol** (19 frames; job `ffc49896`) |
 
 Artifacts: `zinc150_screen/`, `andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/`
 
