@@ -1903,6 +1903,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       .filter((p: any) => String(p.status || '').toUpperCase().includes('FAIL'))
                       .map((p: any) => p.name || p.process || '')
                   }
+                  autofix={(currentRun.execution as any)?.nextflowStatus?.autofix}
                   outputs={(() => {
                     // Prefer the structured outputDatasets if populated (Galaxy
                     // invocations). Nextflow-native runs leave that empty and

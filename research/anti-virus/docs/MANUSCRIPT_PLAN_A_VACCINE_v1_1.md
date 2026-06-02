@@ -77,7 +77,7 @@ Local mirror: `research/anti-virus/runs/publication_20260528T223525Z/plan_a_epit
 
 ### Full-length MHC class I predictions
 
-The merged table contains **45,160** peptide–allele rows for sample **PLAN_A_FULL_GP**. MHCnuggets classified **113** rows as binders (**110** unique peptide sequences). Binder counts by allele:
+The merged table contains **45,160** peptide–allele rows for sample **PLAN_A_FULL_GP**. MHCnuggets classified **113** rows as binders (**110** unique peptide sequences). A merged multitool export (`PLAN_A_FULL_GP_MULTITOOL.tsv`, MHCnuggets + MHCflurry) yields **604** unique binder-classified peptides across predictors — the superset used for wet-lab ranking (MB-01…20).
 
 | Allele | Binder calls |
 |--------|----------------|
@@ -94,7 +94,7 @@ Compared with the archived ninety-residue smoke run (**810** rows; **0** binders
 
 ### Cross-species conservation (ANDV / SNV / PUUV)
 
-Pairwise alignment of full GPC sequences gave **78.0%** identity (ANDV vs SNV) and **66.9%** (ANDV vs PUUV). K-mer mapping identified **195** cross-species peptides (8–11 mer) and **54** unique conserved 9-mers. The N-proximal epitope **ESSCNFDLH** (GP position 61), conserved across all three species, did **not** receive a positive binder call on any of the eight alleles (best rank 0.29 on B\*35:01), illustrating decoupling of **conservation** and **predicted MHC binding**.
+Pairwise alignment of full GPC sequences gave **78.0%** identity (ANDV vs SNV) and **66.9%** (ANDV vs PUUV). K-mer mapping identified **195** cross-species peptides (8–11 mer) and **54** unique conserved 9-mers. **Eighteen** conserved 9-mers share a 9-mer prefix with at least one multitool binder peptide (partial overlap between breadth and allele-specific tracks). The N-proximal epitope **ESSCNFDLH** (GP position 61), conserved across all three species, did **not** receive a positive binder call on any of the eight alleles (best rank 0.29 on B\*35:01), illustrating that high conservation alone does not guarantee MHC binding.
 
 ### Dual-track wet-lab nomination
 
@@ -124,7 +124,7 @@ Top binder-classified peptide–allele rows from `PLAN_A_FULL_GP.tsv` (publicati
 
 The central finding is that **full-length ANDV GP immunoinformatics yields actionable in silico binder calls** when allele coverage and sequence extent are expanded, overturning the smoke-fragment negative baseline. The **0.25%** binder rate is low in absolute terms—consistent with large viral glycoproteins and stringent thresholds—but **113** positive classifications provide concrete peptides for experimental MHC binding assays.
 
-Cross-species conservation nominates a complementary set enriched for pan-hantavirus breadth (e.g. **ESSCNFDLH**). Zero overlap between conserved 9-mers and binder calls suggests vaccine strategies may need **multivalent** designs combining allele-optimized T-cell epitopes and conserved regions for cross-reactivity testing.
+Cross-species conservation nominates a complementary set enriched for pan-hantavirus breadth (e.g. **ESSCNFDLH**). Partial overlap (**18** conserved 9-mers vs multitool binder prefixes) suggests vaccine strategies may combine allele-optimized T-cell epitopes with conserved regions for cross-reactivity testing rather than treating the tracks as disjoint.
 
 Limitations remain: MHCnuggets alone; no proteasomal processing or TAP modeling in this run; no structural exposure filtering; glycosylation not modeled. NetMHCpan and structure-guided epitope mapping are priority extensions (see `FEEDBACK_CROSSWALK.md`).
 

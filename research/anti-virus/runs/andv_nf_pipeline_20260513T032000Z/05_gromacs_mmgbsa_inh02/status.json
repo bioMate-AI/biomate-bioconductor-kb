@@ -1,0 +1,17 @@
+{
+  "run_id": "b44fd58c-bef9-40ad-aa2a-12f37c20aaff",
+  "invocation_id": "b7f157db-6b62-47ea-ad69-f9c0d2ba8ab3",
+  "status": "failed",
+  "returncode": -1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/74f53045",
+  "work_dir": "s3://biomate-nextflow-work/nextflow/work/parallel-inhibitor-20260513T032000Z/b44fd58c-bef9-40ad-aa2a-12f37c20aaff",
+  "log_tail": [],
+  "is_batch": true,
+  "s3_output_files": [],
+  "qc_report": null,
+  "qc_gates": [],
+  "started_at": 1780432283.9941328,
+  "completed_at": null,
+  "duration_s": 0,
+  "processes": []
+}
