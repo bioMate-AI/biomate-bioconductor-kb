@@ -117,6 +117,29 @@ RNA-seq alignment parameters, DESeq2 cutoffs for specific experimental designs).
       required: ['query'],
     },
   },
+  {
+    name: 'list_history',
+    description: `List the user's recent workflow runs (id, workflow name, status, params summary, output count).
+Use this when the user refers to a past run without naming it precisely: e.g. "do the same as last week's RNA-seq with PARP1 instead",
+"reuse my last ADMET parameters", "show me the variant call I ran on chr17". Returns up to N most recent runs (default 10).
+Cite a run back to the user using its 8-char id.
+Note: this surfaces RUNS (workflow executions), not raw uploaded files — separate UI lists those.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'How many recent runs to return (default 10, max 25)' },
+        workflow_filter: {
+          type: 'string',
+          description: 'Case-insensitive substring filter on workflowName (e.g. "rnaseq", "admet")',
+        },
+        status_filter: {
+          type: 'string',
+          enum: ['running', 'completed', 'failed', 'cancelled'],
+          description: 'Optional filter on execution status',
+        },
+      },
+    },
+  },
 ];
 
 /**
@@ -1413,6 +1436,7 @@ export class GalaxyAssistant {
           switch (name) {
             case 'run_code':    output = await this._toolRunCode(args); break;
             case 'read_file':   output = await this._toolReadFile(args, toolContext.context); break;
+            case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
             default:            output = { error: `Unknown tool: ${name}` };
           }
         } catch (e: any) { error = e.message; output = { error }; }
@@ -5999,6 +6023,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'query_domain_knowledge':
             output = await this._toolQueryKnowledge(block.input);
             break;
+          case 'list_history':
+            output = await this._toolListHistory(block.input, context);
+            break;
           default:
             output = { error: `Unknown tool: ${block.name}` };
         }
@@ -6180,6 +6207,89 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), domain, query };
+    }
+  }
+
+  // ── Galaxy History context (Connections 1 & 2) ──────────────────────────
+  // See docs/20260602_GALAXY_HISTORY_AGENT_CONTEXT_HANDOFF.md.
+  // These are intentionally simple — read from storage.getExecutionRuns, format
+  // for either the tool surface (C1) or prompt injection (C2). Non-fatal on
+  // any failure so the chat stream isn't broken by storage hiccups.
+
+  /** C1 — list_history tool handler. Returns recent runs scoped to context.userId. */
+  private async _toolListHistory(input: any, context: ChatContext): Promise<unknown> {
+    const limit = Math.min(Math.max(Number(input?.limit) || 10, 1), 25);
+    const wfFilter = (input?.workflow_filter || '').toString().toLowerCase();
+    const statusFilter = input?.status_filter as string | undefined;
+    const userId = context?.userId ? String(context.userId) : undefined;
+    if (!userId) {
+      return { runs: [], note: 'no userId in context — cannot list history' };
+    }
+    try {
+      const { storage } = await import('./storage');
+      let runs = await storage.getExecutionRuns(userId, undefined, undefined, 50);
+      if (wfFilter) {
+        runs = runs.filter(r => (r.workflowName || '').toLowerCase().includes(wfFilter));
+      }
+      if (statusFilter) {
+        runs = runs.filter(r => (r.execution?.status as any) === statusFilter);
+      }
+      runs = runs.slice(0, limit);
+      const formatted = runs.map(r => {
+        const e: any = r.execution || {};
+        const paramKeys = Object.keys(
+          (e.parameters as any) || (r.workflowDefinition as any)?.parameters || {}
+        );
+        return {
+          id: r.id.slice(0, 8),
+          fullId: r.id,
+          workflow: r.workflowName,
+          status: e.status,
+          startedAt: e.startedAt || r.createdAt,
+          completedAt: e.completedAt,
+          paramCount: paramKeys.length,
+          paramKeys: paramKeys.slice(0, 6),
+          outputCount: Object.keys((e.outputs as any) || {}).length,
+        };
+      });
+      return {
+        userId,
+        count: formatted.length,
+        filter: { workflow_filter: wfFilter || null, status_filter: statusFilter || null },
+        runs: formatted,
+        usage_hint:
+          'To reuse params: read the full row for an id; to reference outputs of a run, prefix file params with `run:<fullId>:` once chain-panel work merges.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err) };
+    }
+  }
+
+  /** C2 — recent-runs prompt block. Injected alongside P1/P2 memory blocks. */
+  private async _buildRecentRunsBlock(userId: string): Promise<string> {
+    try {
+      const { storage } = await import('./storage');
+      const runs = await storage
+        .getExecutionRuns(userId, undefined, undefined, 5)
+        .catch(() => []);
+      if (!runs?.length) return '';
+      const lines = runs.map(r => {
+        const e: any = r.execution || {};
+        const status = e.status || 'unknown';
+        const date = (e.startedAt || r.createdAt)
+          ? new Date(e.startedAt || r.createdAt).toISOString().slice(0, 10)
+          : 'recent';
+        const outs = Object.keys((e.outputs as any) || {}).length;
+        return `  • ${r.id.slice(0, 8)} · ${r.workflowName || 'unnamed'} · ${status} · ${date} · ${outs} outputs`;
+      });
+      return [
+        '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
+        ...lines,
+        '(call list_history for filtered/expanded details)',
+        '',
+      ].join('\n') + '\n';
+    } catch {
+      return '';
     }
   }
 
