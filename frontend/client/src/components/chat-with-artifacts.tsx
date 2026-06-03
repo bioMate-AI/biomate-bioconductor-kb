@@ -322,6 +322,44 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // v2 AfterRunReport's Run-again CTA fires a `biomate:run-again-with-edits`
+  // CustomEvent with { runId, parameters } in detail. Listen for it and reuse
+  // the same rerun flow the ?runAgain= URL path uses above.
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const ce = e as CustomEvent<{ runId?: string; parameters?: Record<string, unknown> }>
+      const runId = ce.detail?.runId
+      if (!runId) return
+      try {
+        const r = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}`, { credentials: 'include' })
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const run = await r.json()
+        const wf = run?.workflowDefinition
+        if (!wf) {
+          console.warn('[run-again-with-edits] run has no workflowDefinition; skipping')
+          return
+        }
+        // Prefer fresh params from the event (user may have edited), fall back
+        // to the run's prior submitted params extracted via the existing helper.
+        const eventParams = ce.detail?.parameters || {}
+        const priorParams = extractSubmittedParams(run)
+        const mergedParams = { ...priorParams, ...eventParams }
+        setPanelWorkflow(wf)
+        await handleRunWorkflow(
+          { ...wf, inline_parameters: { ...(wf.inline_parameters || {}), ...mergedParams } },
+          [],
+        )
+      } catch (err) {
+        console.warn('[run-again-with-edits] failed:', err)
+      }
+    }
+    window.addEventListener('biomate:run-again-with-edits', handler as EventListener)
+    return () => window.removeEventListener('biomate:run-again-with-edits', handler as EventListener)
+    // handleRunWorkflow identity changes each render but the closure captures
+    // current values via the wrapper; we register once for the component lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(840)
   const panelResizingRef = useRef(false)
