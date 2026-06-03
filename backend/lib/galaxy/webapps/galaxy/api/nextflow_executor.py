@@ -20,7 +20,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -329,8 +329,8 @@ _NF_LOG_WORKFLOW_STATS_RE = re.compile(
 
 def _parse_workflow_stats_from_log(
     log_full_text: str = "",
-    log_tail: list | str | None = None,
-) -> tuple[int, int] | None:
+    log_tail: Optional[Union[list, str]] = None,
+) -> Optional[Tuple[int, int]]:
     """Return (succeeded_count, failed_count) from the last WorkflowStats line in logs."""
     text_parts: list[str] = []
     if log_full_text:
@@ -350,7 +350,7 @@ def _parse_workflow_stats_from_log(
 
 def _log_indicates_nextflow_failure(
     log_full_text: str = "",
-    log_tail: list | str | None = None,
+    log_tail: Optional[Union[list, str]] = None,
 ) -> bool:
     """True when log content suggests failure despite a clean Nextflow exit code."""
     text_parts: list[str] = []
@@ -412,7 +412,7 @@ def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
 def _evaluate_workflow_trace_terminal(
     log_dir: Path,
     log_full_text: str,
-    log_tail: list[str] | None = None,
+    log_tail: Optional[List[str]] = None,
 ) -> tuple[bool, bool, int, int, int]:
     """Return (trace_done, trace_failed, completed_count, failed_count, total_count)."""
     trace_path = log_dir / "workflow-trace.txt"
@@ -490,7 +490,7 @@ def _apply_disk_timing_terminal_state(info: Dict[str, Any], run_id: str) -> Dict
     return merged
 
 
-def _non_pipeline_info_s3_outputs(s3_output_files: list | None) -> list:
+def _non_pipeline_info_s3_outputs(s3_output_files: Optional[list]) -> list:
     """Drop nf-core pipeline_info/ artifacts — they are written even when no tasks run."""
     kept: list = []
     for f in s3_output_files or []:
@@ -505,10 +505,10 @@ def _non_pipeline_info_s3_outputs(s3_output_files: list | None) -> list:
 def _looks_like_false_success(
     *,
     log_full_text: str = "",
-    log_tail: list | str | None = None,
+    log_tail: Optional[Union[list, str]] = None,
     total_steps: int = 0,
-    duration_s: int | None = None,
-    s3_output_files: list | None = None,
+    duration_s: Optional[int] = None,
+    s3_output_files: Optional[list] = None,
     workflow_domain: str = "",
     nextflow_path: str = "",
 ) -> bool:
@@ -531,10 +531,10 @@ def _looks_like_false_success(
 def _looks_like_false_failure(
     *,
     log_full_text: str = "",
-    log_tail: list | str | None = None,
-    returncode: int | None = None,
-    s3_output_files: list | None = None,
-    processes: list | None = None,
+    log_tail: Optional[Union[list, str]] = None,
+    returncode: Optional[int] = None,
+    s3_output_files: Optional[list] = None,
+    processes: Optional[list] = None,
 ) -> bool:
     """Nextflow exited non-zero but Batch tasks succeeded and real outputs were published."""
     if returncode == 0:
@@ -2480,7 +2480,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             pass
         with _runs_lock:
             _run_snap = dict(_runs.get(run_id) or {})
-        _duration_s: int | None = None
+        _duration_s: Optional[int] = None
         _started = _run_snap.get("started_at")
         if _started:
             _duration_s = int(_completed_at_now - _started)
@@ -3936,9 +3936,9 @@ def get_nextflow_status(
                 _disk_timing = _json.loads(_timing_path_fb.read_text())
             except Exception:
                 pass
-        _fb_started_at: float | None = _disk_timing.get("started_at")
-        _fb_completed_at: float | None = _disk_timing.get("completed_at")
-        _fb_duration_s: int | None = None
+        _fb_started_at: Optional[float] = _disk_timing.get("started_at")
+        _fb_completed_at: Optional[float] = _disk_timing.get("completed_at")
+        _fb_duration_s: Optional[int] = None
         if _fb_started_at:
             _end = _fb_completed_at if _fb_completed_at else time.time()
             _fb_duration_s = int(_end - _fb_started_at)
@@ -4041,7 +4041,7 @@ def get_nextflow_status(
 
             # Read S3 outdir from timing.json (written at run start with the actual S3 path).
             # Fallback: scan config file (legacy runs that predate timing.json outdir field).
-            _s3_outdir: str | None = _disk_timing.get("outdir") or None
+            _s3_outdir: Optional[str] = _disk_timing.get("outdir") or None
             if _s3_outdir and not _s3_outdir.startswith("s3://"):
                 _s3_outdir = None   # local path — not useful here
             if not _s3_outdir:
@@ -4297,10 +4297,10 @@ def get_nextflow_status(
     progress = {**progress, "processes": processes}
     work_dir = info.get("work_dir", "")
 
-    started_at: float | None = info.get("started_at")
-    completed_at: float | None = info.get("completed_at")
+    started_at: Optional[float] = info.get("started_at")
+    completed_at: Optional[float] = info.get("completed_at")
     now = time.time()
-    duration_s: int | None = None
+    duration_s: Optional[int] = None
     if started_at:
         end = completed_at if completed_at else now
         duration_s = int(end - started_at)
