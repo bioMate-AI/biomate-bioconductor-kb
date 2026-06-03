@@ -450,14 +450,25 @@ restart_galaxy() {
 
     # Prefer HUP (graceful reload, no 30-min cold start) over docker restart.
     # Use "docker kill -s HUP" from the host — the container has no kill binary.
-    GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
-    if [[ -n "$GPID" ]]; then
-      docker exec biomate-galaxy-dev sh -c "kill -HUP $GPID" 2>/dev/null && \
-        echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
-        echo "[galaxy] HUP failed (non-fatal — workers will pick up files on next request)"
+    # SKIP HUP if any Nextflow runs are active: HUP kills the Python workers,
+    # the _stream_logs thread loses its pipe, and the Galaxy run tracker
+    # falsely marks the run as failed even though the detached Nextflow JVM
+    # keeps running successfully on AWS Batch (see fix in nextflow_executor.py
+    # _looks_like_log_stream_orphan_failure for the recovery path). Better to
+    # not interrupt at all when work is in flight.
+    NF_ACTIVE=$(docker exec biomate-galaxy-dev sh -c "pgrep -c -f '/usr/local/bin/nextflow' || true" 2>/dev/null)
+    if [[ "$NF_ACTIVE" =~ ^[0-9]+$ ]] && (( NF_ACTIVE > 0 )); then
+      echo "[galaxy] HUP SKIPPED — $NF_ACTIVE Nextflow JVM(s) running; workers will pick up Python edits at next request rotation"
     else
-      echo "[galaxy] gunicorn.pid not found — Galaxy may still be starting up"
-      echo "[galaxy] Python files copied; workers will use new code when Galaxy finishes loading"
+      GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
+      if [[ -n "$GPID" ]]; then
+        docker exec biomate-galaxy-dev sh -c "kill -HUP $GPID" 2>/dev/null && \
+          echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
+          echo "[galaxy] HUP failed (non-fatal — workers will pick up files on next request)"
+      else
+        echo "[galaxy] gunicorn.pid not found — Galaxy may still be starting up"
+        echo "[galaxy] Python files copied; workers will use new code when Galaxy finishes loading"
+      fi
     fi
 
     # Ensure Nextflow is installed (lost if container was recreated from image)
