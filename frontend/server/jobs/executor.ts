@@ -93,7 +93,9 @@ async function runJob(jobId: string): Promise<void> {
   await db.execute(sql`UPDATE download_jobs SET state = 'running', started_at = now() WHERE id = ${jobId}`);
 
   const store: ArtifactStore = getArtifactStore();
-  let writeHandle: ArtifactWriteHandle | null = null;
+  // Cast `null` so TS treats this as the full union and doesn't narrow to
+  // literal `null` after the closure assignments (which it can't track).
+  let writeHandle = null as ArtifactWriteHandle | null;
   let lastFlushAt = 0;
   let pendingProgress: { p: number; eta?: number } | null = null;
 

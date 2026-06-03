@@ -1,0 +1,10 @@
+# Test EC2 TLS terminator. Reverse-proxies HTTPS to the frontend container
+# bound on host :3000. ACME HTTP-01 challenge uses :80. Caddy's automatic
+# HTTPS handles cert issuance + renewal; certs persist via the /data volume.
+test.stage-public.biomate.ai {
+    encode gzip
+    # Host networking: localhost from inside Caddy == host's 3000 == frontend
+    # container's published port. Caddy auto-sets X-Forwarded-Proto = https,
+    # which the Express app uses to bypass its own HTTP->HTTPS redirect.
+    reverse_proxy localhost:3000
+}

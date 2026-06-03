@@ -47,7 +47,9 @@ services:
     container_name: biomate-frontend-deploy
     pull_policy: always
     ports:
-      - "80:3000"
+      # Host :80 is owned by the standalone Caddy container (ACME HTTP-01
+      # challenge + redirect to :443). Frontend listens on :3000 only;
+      # Caddy reverse-proxies localhost:3000 -> internal Express server.
       - "3000:3000"
     env_file:
       - /opt/biomate/.env
