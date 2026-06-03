@@ -9,7 +9,10 @@
 # the vLLM version means rebuild + start-instance-refresh. No customer
 # downtime if the ASG min_size keeps at least one healthy node throughout.
 
-ARG VLLM_BASE_TAG=v0.6.4
+# v0.22 is the first release with native Qwen3ForCausalLM support; v0.6.4
+# fails at engine init with "Model architectures ['Qwen3ForCausalLM'] are
+# not supported". Verified on g6.xlarge L4 spot (2026-06-02).
+ARG VLLM_BASE_TAG=v0.22.0
 FROM vllm/vllm-openai:${VLLM_BASE_TAG}
 
 # AWS CLI v2 for spot-monitor: deregister from target group on interruption

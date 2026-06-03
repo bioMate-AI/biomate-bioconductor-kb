@@ -50,7 +50,9 @@ import modal
 # /v1/chat/completions surface as the ASG path. Pin to a known-good vLLM
 # release so cold-starts are deterministic.
 
-VLLM_TAG = "v0.6.4"
+# 0.22+ has native Qwen3ForCausalLM; 0.6.4 hits engine-init failure.
+# Verified 2026-06-02 on g6.xlarge L4 spot.
+VLLM_TAG = "v0.22.0"
 
 image = (
     modal.Image.from_registry(
