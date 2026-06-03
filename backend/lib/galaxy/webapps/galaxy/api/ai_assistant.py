@@ -5,6 +5,9 @@ RESTful API endpoints for the Galaxy AI Assistant functionality.
 Includes citation management, progressive tuning, and benchmark endpoints.
 """
 
+
+# Python 3.9 compat: PEP 604 union syntax in annotations below requires this.
+from __future__ import annotations
 import ast as _ast
 import json
 import logging
