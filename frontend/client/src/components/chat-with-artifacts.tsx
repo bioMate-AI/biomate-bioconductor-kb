@@ -86,6 +86,13 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
   const { tourNode, startTour } = useWorkflowTour()
   const { toast } = useToast()
+  // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
+  // inline call was conditional on JSX ancestors that mounted/unmounted per
+  // render, so React detected a different hook-call count between renders and
+  // threw "Rendered more hooks than the previous render" (error #310). Hooks
+  // must run unconditionally on every render — call at top and reference
+  // the value below.
+  const afterRunFlavor = useAfterRunFlavor()
   // Track run statuses to detect transitions (running→completed, running→failed).
   // We only fire a toast on the transition, not on every poll.
   const prevRunStatusesRef = useRef<Map<string, string>>(new Map())
@@ -1880,7 +1887,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
             {/* v2 after-run 7-tab report — gated by ?afterrun=v2 flag, shown
                 above the v1 viewer when the run is completed. Phase 4 preview. */}
-            {useAfterRunFlavor() === 'v2'
+            {afterRunFlavor === 'v2'
               && (
                 currentRun?.execution?.status === 'completed'
                 || (currentRun?.execution?.status as string) === 'ok'
