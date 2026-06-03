@@ -150,8 +150,12 @@ describe("C1 — list_history tool handler", () => {
     const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
     const out = await a._toolListHistory({ limit: 999 }, { userId: "u1" } as any);
     expect((out as any).count).toBe(25);
+    // limit=0 is treated as "not provided" → default 10
     const out2 = await a._toolListHistory({ limit: 0 }, { userId: "u1" } as any);
-    expect((out2 as any).count).toBe(1);
+    expect((out2 as any).count).toBe(10);
+    // negative number clamps to 1
+    const out3 = await a._toolListHistory({ limit: -5 }, { userId: "u1" } as any);
+    expect((out3 as any).count).toBe(1);
   });
 
   it("returns explanatory note when userId missing (no DB call)", async () => {
