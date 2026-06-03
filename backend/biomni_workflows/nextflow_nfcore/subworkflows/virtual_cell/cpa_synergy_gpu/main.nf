@@ -47,8 +47,8 @@ process CPA_SYNERGY_GPU {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/virtual-cell-gpu:1.0' \
-        : 'biomate/virtual-cell-gpu:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cpa-synergy-gpu-nf:1.0' \
+        : 'biomate/cpa-synergy-gpu-nf:latest'
 
     input:
     val(meta)
