@@ -509,3 +509,54 @@ export async function updateCompounds(
   }
   return resp.json();
 }
+
+// ---------------------------------------------------------------------------
+// A2/A3: Re-run with new params — ADMET + PBPK
+// ---------------------------------------------------------------------------
+
+export type AdmetRerunParams = {
+  herg_threshold_uM: number;
+  dili_score_max: number;
+  ames_panel: string[];
+  ro5_max_violations: number;
+};
+
+export type PbpkRerunParams = {
+  model: string;
+  reference_set_name: string;
+  ema_threshold_pct: number;
+  n_compartments: number;
+  include_efflux: boolean;
+};
+
+export function getAdmetParams(projectId: string): Promise<AdmetRerunParams> {
+  return getJson<AdmetRerunParams>(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/params/admet`,
+  );
+}
+
+export function getPbpkParams(projectId: string): Promise<PbpkRerunParams> {
+  return getJson<PbpkRerunParams>(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/params/pbpk`,
+  );
+}
+
+export function rerunAdmet(
+  projectId: string,
+  params: AdmetRerunParams,
+): Promise<{ status: string; result: unknown }> {
+  return postJson(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/rerun/admet`,
+    params,
+  );
+}
+
+export function rerunPbpk(
+  projectId: string,
+  params: PbpkRerunParams,
+): Promise<{ status: string; result: unknown }> {
+  return postJson(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/rerun/pbpk`,
+    params,
+  );
+}
