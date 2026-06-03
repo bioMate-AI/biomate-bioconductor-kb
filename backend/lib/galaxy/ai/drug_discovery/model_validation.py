@@ -221,7 +221,10 @@ class ModelValidationService:
 
         Args:
             drug_names: optional list of drug names to restrict validation to.
-                        If None, validates all 30 reference drugs.
+                        If None, validates all reference drugs in the set
+                        (107 in v2.0 — expanded 2026-06-03 from 30 to span
+                        CYP3A4/2D6/2C9/2C19/1A2/2B6 substrates, P-gp/BCRP/OATP
+                        transporters, and a wider MW/fu/F_oral range).
 
         Returns:
             ValidationReport with per-compound results and aggregate metrics.
@@ -288,7 +291,7 @@ class ModelValidationService:
 
         return ValidationReport(
             model_type="pbpk",
-            dataset_name="BioMate PBPK Reference Set v1.0 (30 marketed drugs)",
+            dataset_name=f"BioMate PBPK Reference Set v2.0 ({len(drugs)} marketed drugs)",
             n_reference_compounds=len(drugs),
             per_compound=per_compound,
             metrics=metrics,
