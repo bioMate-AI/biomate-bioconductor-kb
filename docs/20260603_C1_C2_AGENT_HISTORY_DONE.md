@@ -7,7 +7,7 @@
 
 ## TL;DR
 
-C1 and C2 from the Galaxy History handoff are implemented, tested (9/9), and pushed. C3 (chain-panel) remains the other session's responsibility — once merged, a small `list_run_outputs` follow-up tool sits naturally on top of this work.
+C1 and C2 from the Galaxy History handoff are implemented, tested (9/9), and pushed. **C3 does NOT need any UI work** — the `run:<runId>:datasets` virtual-history URI scheme is already live in `routes.ts:2898`. The remaining work for C3 is purely agent-side: a small `list_run_outputs(run_id)` tool and a one-paragraph prompt addendum so the LLM learns it can pass `run:<fullId>:outputs/variants.vcf` as a file param. ~50 LOC, same file. No UI panel needed.
 
 ## What the agent can now do
 
@@ -125,8 +125,11 @@ DATABASE_URL=postgres://test@localhost/test \
 
 ## What's NOT in this work (deliberate scope)
 
-- **C3 chain-panel infrastructure** — that's in the `feature/workflow-chain-panel-4a` worktree. Once merged, add a small `list_run_outputs(run_id)` tool here (~30 LOC) and a system-prompt addendum so the agent learns the `run:<runId>:outputs/...` URI scheme.
-- **No raw HDA / uploaded-file listing** — this surfaces RUNS, not uploads. Uploads are surfaced separately via session.uploadedDatasets (see routes.ts:3045). The handoff doc had noted these as candidate C1 surfaces; chose runs first because of higher information density and direct reuse value.
+- **C3 — no UI work, no chain panel.** Earlier handoff doc had referenced an in-flight `feature/workflow-chain-panel-4a` worktree as the C3 owner. That direction is dropped — no chain UI is being shipped. The good news: C3's functional goal (let the agent attach a prior run's output as a next workflow's input) can be done **entirely agent-side**. The `run:<runId>:datasets` virtual-history URI handler is already live at `routes.ts:2898-2950`. The remaining work is:
+  1. `list_run_outputs(run_id)` tool — handler reads outputs from a single ExecutionRun and returns the file list. ~30 LOC, identical pattern to `_toolListHistory`.
+  2. One-paragraph prompt addendum telling the LLM that file params accept `run:<fullId>:outputs/<filename>` URIs.
+  Total: ~50 LOC, same file. No UI changes.
+- **No raw HDA / uploaded-file listing** — this surfaces RUNS, not uploads. Uploads are surfaced separately via `session.uploadedDatasets` (see `routes.ts:3045`). The original handoff doc had noted both as candidate C1 surfaces; chose runs because of higher info density and direct reuse value.
 - **No `get_dataset` companion tool** — `read_file` already covers single-dataset previews. Don't add a redundant surface.
 - **No write operations** — agent reads history, never mutates. Re-running a workflow with prior params is still a user-confirmed click in the panel.
 
