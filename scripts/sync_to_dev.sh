@@ -398,6 +398,25 @@ deploy_databases() {
 # ---------------------------------------------------------------------------
 
 restart_galaxy() {
+  log "[galaxy] Checking Galaxy container is running before sync steps..."
+  ec2_ssh '
+    # Auto-recover if the Galaxy container has died. Previously the script
+    # would attempt docker exec / docker cp / kill -HUP against a stopped
+    # container, fail silently with "container is not running", and continue
+    # — leaving the dev backend dead and the sync log misleadingly green.
+    GSTATE=$(docker inspect -f "{{.State.Status}}" biomate-galaxy-dev 2>/dev/null || echo missing)
+    if [[ "$GSTATE" != "running" ]]; then
+      echo "[galaxy] Container state: $GSTATE — starting..."
+      docker start biomate-galaxy-dev 2>&1 | tail -3
+      # Give gunicorn ~30s to claim port 8080 inside the container
+      for i in 1 2 3 4 5 6; do
+        sleep 5
+        UP=$(docker exec biomate-galaxy-dev sh -c "curl -sf http://127.0.0.1:8080/api/version >/dev/null && echo yes || echo no" 2>/dev/null)
+        echo "[galaxy] startup probe T+$((i*5))s: $UP"
+        [[ "$UP" == "yes" ]] && break
+      done
+    fi
+  '
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
     # Stale cache cleanup — addresses the class of "undetected issues" where
