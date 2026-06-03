@@ -24,6 +24,7 @@ import {
 import { NewProjectModal } from "@/components/ind-report/NewProjectModal";
 import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal";
 import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/SmilesListModal";
+import { RerunParamsModal } from "@/components/ind-report/RerunParamsModal";
 import { listProjects, updateCompounds, type CompoundEntry } from "@/lib/ind-report-api";
 import { downloadMarkdown, downloadDocx, type DocumentSection } from "@/lib/ind-report-api";
 import { fetchPipelineData, type IndPipelineData } from "@/lib/ind-report-api";
@@ -123,7 +124,7 @@ function readKnobs(): {
 // only render during the initial fetch so the page never flashes empty.
 function PipelineCenter({
   activeProject, onSign, onAudit, onEditCompounds,
-  pipelineData, pipelineLoading,
+  pipelineData, pipelineLoading, onRerun,
 }: {
   activeProject: IndProjectSummary | null;
   onSign: () => void;
@@ -131,6 +132,7 @@ function PipelineCenter({
   onEditCompounds?: () => void;
   pipelineData: IndPipelineData | null;
   pipelineLoading: boolean;
+  onRerun?: (step: "admet" | "pbpk") => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (k: string) => setExpanded((e) => ({ ...e, [k]: !e[k] }));
@@ -202,6 +204,7 @@ function PipelineCenter({
         expanded={expanded.s3}
         onToggle={() => toggle("s3")}
         failOverride={knobs.pbpkFail}
+        onRerun={onRerun ? () => onRerun("pbpk") : undefined}
       />
       <Step4Leads data={leadsData} expanded={expanded.s4} onToggle={() => toggle("s4")} />
       <Step5Document
@@ -462,6 +465,8 @@ export function IndReportPage() {
   // distinct molecules + metrics + rankings + audit findings.
   const [pipelineData, setPipelineData] = useState<IndPipelineData | null>(null);
   const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
+  const [rerunStep, setRerunStep] = useState<"admet" | "pbpk" | null>(null);
   useEffect(() => {
     if (!activeId) {
       setPipelineData(null);
@@ -479,7 +484,7 @@ export function IndReportPage() {
       })
       .finally(() => { if (!cancelled) setPipelineLoading(false); });
     return () => { cancelled = true; };
-  }, [activeId]);
+  }, [activeId, pipelineRefreshKey]);
 
   // P1-5: hydrate compound list from the backend project registry when
   // the active project changes. Backend stores under registry[i].compounds[].
@@ -502,7 +507,7 @@ export function IndReportPage() {
         // Stay on local seed silently — modal still works
       });
     return () => { cancelled = true; };
-  }, [activeId]);
+  }, [activeId, pipelineRefreshKey]);
   const activeProject = projects.find((p) => p.id === activeId) ?? null;
 
   // Tag body so global styles in ind-report.css that target body.ind-app apply.
@@ -563,6 +568,7 @@ export function IndReportPage() {
         onEditCompounds={() => setShowSmiles(true)}
         pipelineData={pipelineData}
         pipelineLoading={pipelineLoading}
+        onRerun={(step) => setRerunStep(step)}
       />
 
       {/* Floating action button — CSS makes this display:flex only at
