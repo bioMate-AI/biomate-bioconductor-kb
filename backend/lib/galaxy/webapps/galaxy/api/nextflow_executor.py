@@ -6,6 +6,12 @@ as a background subprocess and returns tracking IDs.
 
 Does NOT require Galaxy workflow/invocation infrastructure.
 """
+# CRITICAL: keep this first import. PEP 604 union syntax (`list | str | None`)
+# below requires it on Python 3.9. Without it Galaxy gunicorn workers crash at
+# boot with TypeError, sending the API into a perpetual restart loop (Gap 0).
+# Auto-sync has stripped this line 4+ times — do not remove.
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -4765,75 +4771,116 @@ def get_invocation_software(invocation_id: str) -> Dict[str, Any]:
     return {"versions": versions, "count": len(versions)}
 
 
+# Workflow-name → qc_evidence domain. Substring match isn't enough
+# (e.g. cryosparc_standard_spa has tokens {cryosparc, standard, spa} which
+# don't intersect {cryo, em}). Map covers the realistic mismatches.
+_WORKFLOW_DOMAIN_ALIASES: Dict[str, str] = {
+    # cryo-EM
+    "cryosparc": "cryo_em", "spa": "cryo_em", "cryolo": "cryo_em",
+    "topaz": "cryo_em", "motioncor": "cryo_em", "ctf": "cryo_em",
+    "relion": "cryo_em", "helical": "cryo_em",
+    # cryo-ET
+    "tomo": "cryo_et", "warp": "cryo_et", "aretomo": "cryo_et",
+    # drug discovery sub-domains → admet / docking / cyp_ddi / pbpk / nca_pk
+    "predict_admet": "admet", "tox": "admet",
+    "vina": "docking", "glide": "docking", "diffdock": "docking", "moe": "docking",
+    "cyp": "cyp_ddi", "ddi": "cyp_ddi", "transporter": "cyp_ddi",
+    "pbpk": "pbpk", "pk_sim": "pbpk",
+    "nca": "nca_pk", "pknca": "nca_pk", "nonmem": "nca_pk", "nlmixr": "nca_pk",
+    "amber": "structure_prediction", "gromacs": "structure_prediction",
+    "alphafold": "structure_prediction", "boltz": "structure_prediction",
+    "chai": "structure_prediction", "esmfold": "structure_prediction",
+    # clinical / pharmacology
+    "boin": "clinical_trial", "trial_sim": "clinical_trial",
+    "ich_s5": "ich_s5", "ich_s7": "ich_s7",
+}
+
+
+def _resolve_qc_evidence_domain(workflow_name: str, available_domains: list) -> Optional[str]:
+    """Pick the best-matching qc_evidence domain for a workflow name.
+    Returns None when no plausible match — citations endpoint then returns empty."""
+    import re as _re
+    wf_low = workflow_name.lower()
+    # 1) Direct alias hit
+    for keyword, domain in _WORKFLOW_DOMAIN_ALIASES.items():
+        if keyword in wf_low and domain in available_domains:
+            return domain
+    # 2) Substring match: any domain name whose normalised form appears in wf_name
+    for domain in available_domains:
+        d_norm = domain.replace("_", "").lower()
+        if d_norm and d_norm in wf_low.replace("_", "").replace("-", ""):
+            return domain
+    # 3) Token-intersection fallback
+    wf_tokens = set(_re.split(r"[_\-./]", wf_low))
+    for domain in available_domains:
+        if set(_re.split(r"[_\-]", domain.lower())) & wf_tokens:
+            return domain
+    return None
+
+
 @router.get("/api/workflows/{workflow_name}/citations",
             summary="Workflow-level paper citations for the AfterRunReport Citations tab")
 def get_workflow_citations(workflow_name: str) -> Dict[str, Any]:
     """
-    Assemble citations for a workflow from two existing knowledge sources:
+    Assemble citations for a workflow from qc_evidence.yaml.
 
-    - **qc_evidence.yaml** gate ``paper_doi`` fields (21 domains covered)
-    - **cryo_em_knowledge** RAG topics (cryo-EM only, 11 publications)
+    qc_evidence.yaml shape is ``{domain: {gate_name: [{paper_doi, paper_ref, ...}, ...]}}``.
+    For each evidence item in any gate of the matching domain we emit one
+    citation with the DOI deduped across items.
 
-    Returns ``{"citations": [{title, doi, url}], "count": N}``. Empty list
-    + 200 OK when nothing found — the AfterRunReport's Citations tab hides
-    itself in that case.
+    Returns ``{"citations": [{title, doi, url}], "count": N}``. Empty list +
+    HTTP 200 when no qc_evidence domain matches — Citations tab then hides.
     """
-    import re as _re
     import yaml as _yaml
 
     citations: list = []
     seen_dois: set = set()
 
-    # 1) qc_evidence.yaml — covers 21 drug-dev / pharma / cryo-EM domains
-    qc_evidence_path = os.path.join(
+    qc_evidence_path = os.path.normpath(os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "qc_evidence.yaml"
-    )
-    qc_evidence_path = os.path.normpath(qc_evidence_path)
-    if os.path.exists(qc_evidence_path):
-        try:
-            with open(qc_evidence_path) as fh:
-                ev = _yaml.safe_load(fh) or {}
-            # Find any domain section whose name matches the workflow name token
-            wf_tokens = set(_re.split(r"[_\-./]", workflow_name.lower()))
-            for domain, section in ev.items():
-                domain_tokens = set(_re.split(r"[_\-]", domain.lower()))
-                if not (wf_tokens & domain_tokens):
-                    continue
-                gates = section.get("gates", []) if isinstance(section, dict) else []
-                for g in gates:
-                    if not isinstance(g, dict):
-                        continue
-                    doi = g.get("paper_doi")
-                    if not doi or doi in seen_dois:
-                        continue
-                    seen_dois.add(doi)
-                    citations.append({
-                        "title": g.get("paper_title") or g.get("gate") or doi,
-                        "doi": doi,
-                        "url": f"https://doi.org/{doi}",
-                    })
-        except Exception:
-            pass
+    ))
+    if not os.path.exists(qc_evidence_path):
+        return {"citations": [], "count": 0}
 
-    # 2) cryo_em_knowledge — only relevant for cryo-EM workflows
-    if "cryo" in workflow_name.lower() or "spa" in workflow_name.lower() or "cryosparc" in workflow_name.lower():
-        try:
-            from galaxy.ai.cryo_em_knowledge import retriever as _cryo_retriever
-            # Best-effort: retriever may not expose a uniform citations API
-            for topic in getattr(_cryo_retriever, "list_topics", lambda: [])() or []:
-                doi = topic.get("doi") if isinstance(topic, dict) else None
-                if not doi or doi in seen_dois:
-                    continue
-                seen_dois.add(doi)
-                citations.append({
-                    "title": topic.get("title", "Cryo-EM reference"),
-                    "doi": doi,
-                    "url": f"https://doi.org/{doi}",
-                })
-        except Exception:
-            pass
+    try:
+        with open(qc_evidence_path) as fh:
+            ev = _yaml.safe_load(fh) or {}
+    except Exception:
+        return {"citations": [], "count": 0}
 
-    return {"citations": citations, "count": len(citations)}
+    domain = _resolve_qc_evidence_domain(workflow_name, list(ev.keys()))
+    if not domain:
+        return {"citations": [], "count": 0}
+
+    section = ev.get(domain) or {}
+    if not isinstance(section, dict):
+        return {"citations": [], "count": 0}
+
+    # Each gate maps to a list of evidence items; each item has paper_ref +
+    # paper_doi (plus paper_supports, finding, etc. we don't need here).
+    for gate_name, items in section.items():
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            doi = item.get("paper_doi")
+            ref = item.get("paper_ref")
+            # Skip rows without enough info to render.
+            if not (doi or ref):
+                continue
+            key = doi or ref
+            if key in seen_dois:
+                continue
+            seen_dois.add(key)
+            citations.append({
+                "title": ref or gate_name,
+                "doi": doi,
+                "url": f"https://doi.org/{doi}" if doi else None,
+                "gate": gate_name,
+            })
+
+    return {"citations": citations, "count": len(citations), "domain": domain}
 
 
 @router.get("/api/invocations/{invocation_id}/methods-report",
