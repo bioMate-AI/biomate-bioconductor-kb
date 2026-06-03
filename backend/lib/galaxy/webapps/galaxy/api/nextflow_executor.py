@@ -4710,6 +4710,132 @@ def dismiss_autoloop_suggestions(
     return {"invocation_id": invocation_id, "cleared": popped is not None}
 
 
+@router.get("/api/invocations/{invocation_id}/software",
+            summary="Per-run software versions for the AfterRunReport Software tab")
+def get_invocation_software(invocation_id: str) -> Dict[str, Any]:
+    """
+    Walk a completed run's work directory for ``**/versions.yml`` files (the
+    nf-core / Nextflow module convention) and merge them into a flat
+    ``{tool_name: version}`` dict. Prefers the consolidated
+    ``pipeline_info/software_versions.yml`` when present (single nf-core file).
+
+    Returns ``{"versions": {tool: ver}, "count": N}``. Empty dict + 200 OK
+    when nothing found — the AfterRunReport's Software tab hides itself in
+    that case.
+    """
+    import glob as _glob
+    import yaml as _yaml
+
+    run = _runs.get(invocation_id) or {}
+    workdir = run.get("nextflowOutputDir") or run.get("work_dir") or \
+        os.path.join("/tmp/nextflow_runs", invocation_id)
+
+    versions: dict = {}
+
+    # Prefer the nf-core consolidated file when present.
+    consolidated = os.path.join(workdir, "pipeline_info", "software_versions.yml")
+    if os.path.exists(consolidated):
+        try:
+            with open(consolidated) as fh:
+                parsed = _yaml.safe_load(fh) or {}
+            for section, tools in parsed.items():
+                if isinstance(tools, dict):
+                    for k, v in tools.items():
+                        versions[str(k)] = str(v)
+                else:
+                    versions[str(section)] = str(tools)
+        except Exception:
+            pass
+
+    # Fall back: glob the work dir for any versions.yml emitted by modules.
+    if not versions and os.path.isdir(workdir):
+        for path in _glob.glob(os.path.join(workdir, "**", "versions.yml"), recursive=True):
+            try:
+                with open(path) as fh:
+                    parsed = _yaml.safe_load(fh) or {}
+                for section, tools in parsed.items():
+                    if isinstance(tools, dict):
+                        for k, v in tools.items():
+                            versions[str(k)] = str(v)
+                    else:
+                        versions[str(section)] = str(tools)
+            except Exception:
+                continue
+
+    return {"versions": versions, "count": len(versions)}
+
+
+@router.get("/api/workflows/{workflow_name}/citations",
+            summary="Workflow-level paper citations for the AfterRunReport Citations tab")
+def get_workflow_citations(workflow_name: str) -> Dict[str, Any]:
+    """
+    Assemble citations for a workflow from two existing knowledge sources:
+
+    - **qc_evidence.yaml** gate ``paper_doi`` fields (21 domains covered)
+    - **cryo_em_knowledge** RAG topics (cryo-EM only, 11 publications)
+
+    Returns ``{"citations": [{title, doi, url}], "count": N}``. Empty list
+    + 200 OK when nothing found — the AfterRunReport's Citations tab hides
+    itself in that case.
+    """
+    import re as _re
+    import yaml as _yaml
+
+    citations: list = []
+    seen_dois: set = set()
+
+    # 1) qc_evidence.yaml — covers 21 drug-dev / pharma / cryo-EM domains
+    qc_evidence_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "qc_evidence.yaml"
+    )
+    qc_evidence_path = os.path.normpath(qc_evidence_path)
+    if os.path.exists(qc_evidence_path):
+        try:
+            with open(qc_evidence_path) as fh:
+                ev = _yaml.safe_load(fh) or {}
+            # Find any domain section whose name matches the workflow name token
+            wf_tokens = set(_re.split(r"[_\-./]", workflow_name.lower()))
+            for domain, section in ev.items():
+                domain_tokens = set(_re.split(r"[_\-]", domain.lower()))
+                if not (wf_tokens & domain_tokens):
+                    continue
+                gates = section.get("gates", []) if isinstance(section, dict) else []
+                for g in gates:
+                    if not isinstance(g, dict):
+                        continue
+                    doi = g.get("paper_doi")
+                    if not doi or doi in seen_dois:
+                        continue
+                    seen_dois.add(doi)
+                    citations.append({
+                        "title": g.get("paper_title") or g.get("gate") or doi,
+                        "doi": doi,
+                        "url": f"https://doi.org/{doi}",
+                    })
+        except Exception:
+            pass
+
+    # 2) cryo_em_knowledge — only relevant for cryo-EM workflows
+    if "cryo" in workflow_name.lower() or "spa" in workflow_name.lower() or "cryosparc" in workflow_name.lower():
+        try:
+            from galaxy.ai.cryo_em_knowledge import retriever as _cryo_retriever
+            # Best-effort: retriever may not expose a uniform citations API
+            for topic in getattr(_cryo_retriever, "list_topics", lambda: [])() or []:
+                doi = topic.get("doi") if isinstance(topic, dict) else None
+                if not doi or doi in seen_dois:
+                    continue
+                seen_dois.add(doi)
+                citations.append({
+                    "title": topic.get("title", "Cryo-EM reference"),
+                    "doi": doi,
+                    "url": f"https://doi.org/{doi}",
+                })
+        except Exception:
+            pass
+
+    return {"citations": citations, "count": len(citations)}
+
+
 @router.get("/api/invocations/{invocation_id}/methods-report",
             summary="Download methods report as plain text")
 def download_invocation_methods_report(
