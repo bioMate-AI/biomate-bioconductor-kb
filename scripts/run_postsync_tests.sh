@@ -7,7 +7,16 @@
 # Output: docs/postsync_test_results/<date>_<commit>.log
 #         Exit 0 = all pass, Exit 1 = failures
 
-set -euo pipefail
+set -uo pipefail
+# NOTE: deliberately NOT using `set -e` — a single suite failure (or a
+# SIGPIPE from a caller's `| tail`) must not abort the runner before
+# later suites get a chance, and must not corrupt the final exit code.
+# Caller's exit-code contract: 0 == every executed suite passed,
+# 1 == at least one suite failed, 2 == runner aborted abnormally.
+
+# Ignore SIGPIPE so that callers piping our stdout (e.g. `| tail`) cannot
+# kill the script mid-run when their reader closes early.
+trap '' PIPE
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMMIT="${1:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
@@ -19,7 +28,14 @@ FRONTEND_DIR="$REPO_ROOT/frontend"
 
 mkdir -p "$LOG_DIR"
 
-log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG_FILE"; }
+# Write to the file directly and then echo — never pipe through `tee`,
+# which propagates SIGPIPE back into the script when the caller's reader
+# closes (e.g. `bash run_postsync_tests.sh | tail -5`).
+log() {
+  local line="[$(date +%H:%M:%S)] $*"
+  printf '%s\n' "$line" >> "$LOG_FILE" || true
+  printf '%s\n' "$line" 2>/dev/null || true
+}
 
 log "=== Post-sync E2E — commit ${COMMIT} against ${BIOMATE_URL} ==="
 log "Log: $LOG_FILE"
@@ -51,34 +67,36 @@ for entry in "${SUITES[@]}"; do
   if [[ ! -f "$suite_path" ]]; then
     log "[SKIP] $label — file not found: $suite_path"
     RESULTS+=("SKIP  $label")
-    ((SKIP++)) || true
+    SKIP=$((SKIP + 1))
     continue
   fi
 
   log "[RUN]  $label ($file) ..."
   suite_log="$LOG_DIR/${DATE}_${COMMIT}_${label}.log"
 
-  if BIOMATE_URL="$BIOMATE_URL" \
-       npx playwright test "$suite_path" \
-         --timeout "$timeout_ms" \
-         --reporter=list \
-         >> "$suite_log" 2>&1; then
-    # Count from Playwright summary line "N passed"
-    passed=$(grep -oE "[0-9]+ passed" "$suite_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+")
+  BIOMATE_URL="$BIOMATE_URL" \
+    npx playwright test "$suite_path" \
+      --timeout "$timeout_ms" \
+      --reporter=list \
+      >> "$suite_log" 2>&1
+  rc=$?
+
+  if [[ $rc -eq 0 ]]; then
+    passed=$(grep -oE "[0-9]+ passed" "$suite_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || true)
     log "[PASS] $label — ${passed:-?} test(s) passed"
     RESULTS+=("PASS  $label")
-    ((PASS++)) || true
+    PASS=$((PASS + 1))
   else
-    # Count actual Playwright failures from summary line "N failed"
-    failed=$(grep -oE "[0-9]+ failed" "$suite_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+")
-    skipped=$(grep -oE "[0-9]+ skipped" "$suite_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+")
+    failed=$(grep -oE "[0-9]+ failed" "$suite_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || true)
+    skipped=$(grep -oE "[0-9]+ skipped" "$suite_log" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || true)
     log "[FAIL] $label — ${failed:-?} failed, ${skipped:-0} skipped — see $suite_log"
-    # Print last 30 lines of suite log to main log for quick triage
-    echo "--- tail: $suite_log ---" >> "$LOG_FILE"
-    tail -30 "$suite_log" >> "$LOG_FILE" 2>/dev/null || true
-    echo "--- end tail ---" >> "$LOG_FILE"
+    {
+      echo "--- tail: $suite_log ---"
+      tail -30 "$suite_log" 2>/dev/null || true
+      echo "--- end tail ---"
+    } >> "$LOG_FILE" 2>/dev/null || true
     RESULTS+=("FAIL  $label")
-    ((FAIL++)) || true
+    FAIL=$((FAIL + 1))
   fi
 done
 
@@ -96,4 +114,9 @@ log "=== End ==="
 # Trim old logs — keep last 20 runs
 ls -t "$LOG_DIR"/*.log 2>/dev/null | tail -n +21 | xargs rm -f 2>/dev/null || true
 
-[[ "$FAIL" -eq 0 ]]
+# Exit code: 0 only when every suite that ran passed. Suites that were
+# SKIPped (file not found) do not count as failures.
+if [[ "$FAIL" -gt 0 ]]; then
+  exit 1
+fi
+exit 0
