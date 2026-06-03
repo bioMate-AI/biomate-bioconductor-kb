@@ -34,6 +34,15 @@ Before deploying a change and re-running an expensive test, you MUST:
 
 **How to apply:** Before any `docker restart` / `sync_to_dev.sh` / fresh E2E launch that depends on a code change, write a one-paragraph review note: what the change does, what conditions it requires, and what the smoke test should return given current state. If the smoke test will fail for reasons unrelated to the bug being fixed (e.g., MemStorage wiped, state lost), DO NOT run it — fix the test setup first or run against a fresh state intentionally.
 
+**Mandatory pre-sync test checklist:** Before running `scripts/sync_to_dev.sh`, run every step in `docs/PRE_SYNC_CHECKLIST.md`:
+1. `cd frontend && npx tsc --noEmit -p .` — type check
+2. `cd frontend && npx vitest run` — unit + integration suites (~7s)
+3. For any modified `backend/lib/galaxy/**/*.py`: `cd backend && PYTHONPATH=lib python3.9 -c "import galaxy.webapps.galaxy.api.<module>"` — catches module-load failures (PEP 604 union syntax on Python 3.9, missing imports, etc.)
+4. Domain integration test if relevant (e.g. `scripts/test_afterrun_comprehensive.py`)
+5. Only then commit + push + sync
+
+The 2026-06-03 Galaxy crash-loop was a Python module-load failure that step 3 would have caught in 3 seconds. Tests-after-sync is debugging in production; tests-before-sync is debugging on your laptop.
+
 ---
 
 ## Development Process
