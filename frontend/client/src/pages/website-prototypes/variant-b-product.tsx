@@ -93,7 +93,7 @@ export default function VariantBProduct() {
           <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-base rounded-xl shadow-xl shadow-blue-500/20" onClick={() => setLocation('/register')}>
             Start free — no card needed <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-          <Button size="lg" variant="outline" className="px-8 py-6 text-base rounded-xl border-2" onClick={() => setLocation('/home')}>
+          <Button size="lg" variant="outline" className="px-8 py-6 text-base rounded-xl border-2" onClick={() => setLocation('/')}>
             Watch 3-min demo
           </Button>
         </div>
