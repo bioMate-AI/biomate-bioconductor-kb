@@ -648,6 +648,18 @@ export function IndReportPage() {
         />
       )}
 
+      {rerunStep && activeProject && (
+        <RerunParamsModal
+          step={rerunStep}
+          projectId={activeProject.id}
+          onCancel={() => setRerunStep(null)}
+          onComplete={() => {
+            setPipelineRefreshKey((k) => k + 1);
+            setRerunStep(null);
+          }}
+        />
+      )}
+
       <DocPanelMobileModal open={showDocModal} onClose={() => setShowDocModal(false)}>
         <DocPanelHost
           activeProject={activeProject}
