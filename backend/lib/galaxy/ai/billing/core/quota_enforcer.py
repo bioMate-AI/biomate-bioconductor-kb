@@ -16,6 +16,9 @@ Usage in BioMate workflow submission:
         return {"error": str(e), "quota_exceeded": True}, 402
 """
 
+
+# Python 3.9 compat: PEP 604 union syntax in annotations below requires this.
+from __future__ import annotations
 import logging
 import os
 

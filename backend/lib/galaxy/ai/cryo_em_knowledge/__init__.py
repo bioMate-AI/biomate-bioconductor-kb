@@ -10,6 +10,9 @@ Quick start:
     px  = r.get_parameter("mw_lt50", "pixel_size_angstrom")  # "0.649"
 """
 
+
+# Python 3.9 compat: PEP 604 union syntax in annotations below requires this.
+from __future__ import annotations
 from .retriever import CryoEMKnowledgeRetriever, get_retriever
 
 

@@ -13,6 +13,9 @@ Run:
     pytest lib/galaxy/ai/billing/tests/test_billing.py -v
 """
 
+
+# Python 3.9 compat: PEP 604 union syntax in annotations below requires this.
+from __future__ import annotations
 import json
 import math
 import time

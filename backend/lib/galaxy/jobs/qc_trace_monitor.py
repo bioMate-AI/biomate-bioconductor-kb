@@ -5,6 +5,9 @@ Monitors Nextflow trace file for process completions and triggers QC validation.
 Emits SSE events when QC gates are triggered.
 """
 
+
+# Python 3.9 compat: PEP 604 union syntax in annotations below requires this.
+from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone

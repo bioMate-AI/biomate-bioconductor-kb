@@ -4,6 +4,9 @@ Galaxy AI Assistant
 Main orchestrator that combines all AI components to provide intelligent research assistance.
 """
 
+
+# Python 3.9 compat: PEP 604 union syntax in annotations below requires this.
+from __future__ import annotations
 import hashlib
 import uuid
 from typing import Dict, List, Any, Optional
