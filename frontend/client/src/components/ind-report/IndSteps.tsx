@@ -147,6 +147,7 @@ export function Step2Admet({
   running = false,
   progress = 100,
   importedFromChat = false,
+  onRerun,
 }: {
   data: AdmetData;
   expanded?: boolean;
@@ -154,6 +155,7 @@ export function Step2Admet({
   running?: boolean;
   progress?: number;
   importedFromChat?: boolean;
+  onRerun?: () => void;
 }) {
   const [tableOpen, setTableOpen] = useState(false);
   const [wetlabOpen, setWetlabOpen] = useState(false);
@@ -196,7 +198,7 @@ export function Step2Admet({
           <span style={{ flex: 1 }}>
             <b>Imported from chat</b> — ADMET ran in BioMate chat on May 4 14:22 UTC. Step 2 is using those cached results.
           </span>
-          <button className="ind-btn sm">Re-run</button>
+          <button className="ind-btn sm" onClick={onRerun} disabled={!onRerun}>Re-run</button>
         </div>
       )}
       <div className="kv-list">
@@ -337,11 +339,13 @@ export function Step3Pbpk({
   expanded,
   onToggle,
   failOverride = false,
+  onRerun,
 }: {
   data: PbpkData;
   expanded?: boolean;
   onToggle?: () => void;
   failOverride?: boolean;
+  onRerun?: () => void;
 }) {
   const [tableOpen, setTableOpen] = useState(false);
   const passed = !failOverride && data.status === "pass";
@@ -395,7 +399,7 @@ export function Step3Pbpk({
             The <b>§2.6.2 section will include a model limitation statement.</b> Consider reviewing excluded compounds or updating clearance parameters. Downstream actions (CRO export, IND assembly) are blocked until the model is re-qualified.
             <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
               <button className="ind-btn sm">Review excluded compounds</button>
-              <button className="ind-btn sm primary">Re-run with new params</button>
+              <button className="ind-btn sm primary" onClick={onRerun} disabled={!onRerun}>Re-run with new params</button>
             </div>
           </div>
         )}
@@ -414,7 +418,7 @@ export function Step3Pbpk({
         <button className="ind-link" onClick={() => setTableOpen((o) => !o)}>
           {tableOpen ? "▴ Hide qualification table" : "▾ View qualification table"}
         </button>
-        {passed && <button className="ind-link">Re-run with new params</button>}
+        {passed && <button className="ind-link" onClick={onRerun} disabled={!onRerun}>Re-run with new params</button>}
       </div>
 
       {tableOpen && (
