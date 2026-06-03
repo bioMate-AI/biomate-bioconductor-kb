@@ -8,8 +8,9 @@
  * NOT WIRED INTO PRODUCTION. Lives in frontend/sandbox/ind-port/ until
  * the full port is validated end-to-end.
  */
-import { useState, type ReactNode } from "react";
-import { Check, TriangleAlert, Upload, Eye, Download, Signature } from "lucide-react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
+import { Check, TriangleAlert, Upload, Eye, Download, Signature, X } from "lucide-react";
+import { uploadAttachment, listAttachments, deleteAttachment, type AttachmentMeta } from "@/lib/ind-report-api";
 
 // ── shared types ───────────────────────────────────────────────
 type StepState = "pending" | "running" | "complete" | "blocked" | "failed";
@@ -148,6 +149,7 @@ export function Step2Admet({
   progress = 100,
   importedFromChat = false,
   onRerun,
+  projectId,
 }: {
   data: AdmetData;
   expanded?: boolean;
@@ -156,6 +158,8 @@ export function Step2Admet({
   progress?: number;
   importedFromChat?: boolean;
   onRerun?: () => void;
+  /** Per-project ID used by the Upload PDF/CSV flow. When omitted, the button is disabled. */
+  projectId?: string;
 }) {
   const [tableOpen, setTableOpen] = useState(false);
   const [wetlabOpen, setWetlabOpen] = useState(false);
@@ -294,9 +298,21 @@ export function Step2Admet({
             <li>CSV (compound_id, assay_type, value, units, source)</li>
           </ul>
           <div className="upload-row">
-            <button className="upload-btn">
-              <Upload size={12} /> Upload PDF or CSV
+            <button
+              className="upload-btn"
+              onClick={openUploadDialog}
+              disabled={!projectId || uploading}
+              title={!projectId ? "Project not selected" : (uploading ? "Uploading…" : "Pick a PDF or CSV")}
+            >
+              <Upload size={12} /> {uploading ? "Uploading…" : "Upload PDF or CSV"}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,text/csv,.csv,.pdf"
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
             <span style={{ color: "var(--ind-text-dim)" }}>or</span>
             <span title="Reference compound NDA fetch — wires to FDA NDA review search; not yet active in pilot.">
               Link NDA:
@@ -316,6 +332,51 @@ export function Step2Admet({
               Fetch →
             </button>
           </div>
+          {uploadErr && (
+            <div style={{ color: "var(--ind-err)", fontSize: 12, marginTop: 6 }}>
+              {uploadErr}
+            </div>
+          )}
+          {attachments.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11.5, color: "var(--ind-text-muted)", marginBottom: 4 }}>
+                Uploaded files ({attachments.length}):
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 12 }}>
+                {attachments.map((a) => (
+                  <li
+                    key={a.id}
+                    style={{
+                      display: "flex", gap: 8, alignItems: "center",
+                      padding: "4px 8px",
+                      background: "var(--ind-surface, #f9fafb)",
+                      borderRadius: 4, marginBottom: 3,
+                    }}
+                  >
+                    <span style={{ flex: 1 }}>
+                      <b>{a.filename}</b>{" "}
+                      <span style={{ color: "var(--ind-text-muted)", fontSize: 11 }}>
+                        ({Math.round(a.size_bytes / 1024)} KB
+                        {a.kind === "pdf" && a.pdf_pages ? `, ${a.pdf_pages} pp` : ""}
+                        {a.kind === "csv" && a.csv_rows ? `, ${a.csv_rows} rows` : ""}
+                        )
+                      </span>
+                    </span>
+                    <button
+                      onClick={() => doDelete(a.id)}
+                      title="Remove"
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        color: "var(--ind-text-dim)",
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </StepShell>

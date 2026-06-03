@@ -4166,6 +4166,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // IND attachments — dedicated multipart route BEFORE the /api/ind-report/*
+  // wildcard. multer parses the multipart body into memory; we re-issue
+  // a FormData request to the Galaxy backend so the backend sees a normal
+  // file upload regardless of how the browser framed it.
+  // A1 from docs/20260603_IND_MODULE_HONEST_AUDIT.md.
+  // ─────────────────────────────────────────────────────────────────────────
+  const _indUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+  });
+  app.post(
+    "/api/ind-report/projects/:projectId/attachments",
+    optionalAuth,
+    _indUpload.single("file"),
+    async (req: any, res: any) => {
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+        const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+        if (!req.file) {
+          return res.status(400).json({ error: 'no file in multipart upload' });
+        }
+        const fd = new FormData();
+        const blob = new Blob([req.file.buffer], {
+          type: req.file.mimetype || 'application/octet-stream',
+        });
+        fd.append('file', blob, req.file.originalname || 'upload');
+        const resp = await fetch(
+          `${galaxyUrl}/api/ind-report/projects/${encodeURIComponent(req.params.projectId)}/attachments`,
+          {
+            method: 'POST',
+            headers: { 'X-API-Key': apiKey },
+            body: fd,
+            signal: AbortSignal.timeout(120000),
+          },
+        );
+        const data = await resp.json().catch(() => ({}));
+        return res.status(resp.status).json(data);
+      } catch (err: any) {
+        return res.status(502).json({ error: 'ind attachment proxy error', detail: err.message });
+      }
+    },
+  );
+
   // IND Report module — proxy /api/ind-report/* to Galaxy backend
   //   POST   /api/ind-report/projects/:id/sign
   //   POST   /api/ind-report/projects/:id/document.md  (returns text/markdown)
