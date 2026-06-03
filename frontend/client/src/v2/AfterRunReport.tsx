@@ -69,6 +69,9 @@ export function AfterRunReport({
   autofix,
   onContinueAnalysis,
 }: AfterRunReportProps) {
+  // nextflowOutputDir is forwarded by the parent for future Outputs-tab
+  // directory toolbar work; intentionally unread in v0.
+  void nextflowOutputDir;
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
   const [tab, setTab] = useState<TabId>("findings");
 
@@ -212,6 +215,14 @@ export function AfterRunReport({
 // log tail, plus a Run-again-with-edits CTA that fires a CustomEvent.
 // ---------------------------------------------------------------------------
 
+interface AutofixAttempt {
+  attempt?: number;
+  issue_type?: string;
+  fix_summary?: string;
+  result?: string;
+  [k: string]: unknown;  // backend may include extras (timestamp, payload, etc.)
+}
+
 interface AutofixSummary {
   state?: 'idle' | 'analyzing' | 'fixing' | 'restarting' | 'succeeded' | 'failed';
   source?: 'auto' | 'manual' | 'unknown';
@@ -245,21 +256,25 @@ function FailedRunSection({
 
   // Detailed per-attempt history (lazy-fetched only when user expands).
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [history, setHistory] = useState<any[] | null>(null);
+  const [history, setHistory] = useState<AutofixAttempt[] | null>(null);
   useEffect(() => {
     if (!historyOpen || history !== null || !invocationId) return;
     fetch(`/api/galaxy/workflows/_/invocations/${invocationId}/autofix3/sessions`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!d) return;
+        if (!d) { setHistory([]); return; }
         const arr = Array.isArray(d) ? d : (d.sessions || d.attempts || []);
-        setHistory(arr);
+        setHistory(arr as AutofixAttempt[]);
       })
       .catch(() => setHistory([]));
   }, [historyOpen, history, invocationId]);
 
   const autofixTried = !!(autofix && (autofix.totalAttempts || (autofix.state && autofix.state !== 'idle')));
   const autofixExhausted = autofix?.state === 'failed' && (autofix.totalAttempts || 0) > 0;
+
+  // Ephemeral toast for the Run-again CTA — replaces blocking alert() until
+  // the parent's run-again flow is wired up. Auto-clears after 4s.
+  const [ctaToast, setCtaToast] = useState<string | null>(null);
 
   const handleRunAgain = () => {
     // PM must-fix #3 — explicit CTA. Wire-up to the existing run-again-with-
@@ -272,11 +287,15 @@ function FailedRunSection({
     );
     // eslint-disable-next-line no-console
     console.info('[AfterRunReport] run-again-with-edits dispatched for run', runId);
-    alert('Run again with edits — opening the parameter editor (wire-up pending)');
+    setCtaToast('Run-again signal dispatched (parent wire-up pending)');
+    setTimeout(() => setCtaToast(null), 4000);
   };
 
   return (
     <div style={styles.failedSection} data-testid="afterrun-failed-section">
+      {ctaToast && (
+        <div role="status" style={styles.ctaToast} data-testid="afterrun-cta-toast-failed">{ctaToast}</div>
+      )}
       <div style={styles.failedHead}>
         <span
           style={{
@@ -347,7 +366,7 @@ function FailedRunSection({
                 <span style={styles.empty}>No detailed attempt history recorded.</span>
               ) : (
                 <ol style={styles.autofixHistList}>
-                  {history.map((h: any, i: number) => (
+                  {history.map((h, i) => (
                     <li key={i} style={styles.autofixHistItem}>
                       <strong>#{(h.attempt ?? i + 1)}</strong>
                       {h.issue_type && <span> · {h.issue_type}</span>}
@@ -632,10 +651,12 @@ function ParametersTab({
   runId,
 }: { parameters?: Record<string, unknown>; runId?: string }) {
   const entries = parameters ? Object.entries(parameters) : [];
+  const [ctaToast, setCtaToast] = useState<string | null>(null);
 
   // PM must-fix #3: Run-again-with-edits CTA at the top of the tab so iteration
   // is one click away. Fires a CustomEvent that the parent can hook into; v0
-  // also surfaces a visible signal so the user knows the click registered.
+  // surfaces an inline toast so the user knows the click registered, instead
+  // of a blocking alert().
   const handleRunAgain = () => {
     if (!runId) return;
     window.dispatchEvent(
@@ -645,12 +666,13 @@ function ParametersTab({
     );
     // eslint-disable-next-line no-console
     console.info('[AfterRunReport] run-again-with-edits dispatched (params tab) for run', runId);
-    alert('Run again with edits — opening the parameter editor (wire-up pending)');
+    setCtaToast('Run-again signal dispatched (parent wire-up pending)');
+    setTimeout(() => setCtaToast(null), 4000);
   };
 
   return (
     <div style={styles.tabContent}>
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
           type="button"
           onClick={handleRunAgain}
@@ -659,6 +681,9 @@ function ParametersTab({
         >
           ↻ Run again with edits
         </button>
+        {ctaToast && (
+          <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
+        )}
       </div>
       {entries.length === 0 ? (
         <p style={styles.empty}>No parameter values recorded.</p>
@@ -983,4 +1008,6 @@ const styles: Record<string, React.CSSProperties> = {
 
   // Download-UX toast (PM must-fix #4)
   toast: { fontSize: 11, padding: "3px 8px", background: "oklch(0.92 0.04 145)", color: "oklch(0.30 0.13 145)", borderRadius: 12, marginRight: 8 },
+  // Ephemeral toast for Run-again CTA (auto-clears after 4s) — replaces alert()
+  ctaToast: { fontSize: 11.5, padding: "4px 10px", margin: "0 0 6px", background: "oklch(0.94 0.04 245)", color: "oklch(0.30 0.13 245)", borderRadius: 6, display: "inline-block" },
 };
