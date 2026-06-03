@@ -163,6 +163,44 @@ export function Step2Admet({
 }) {
   const [tableOpen, setTableOpen] = useState(false);
   const [wetlabOpen, setWetlabOpen] = useState(false);
+  // A1: PDF/CSV upload state. fileInputRef triggers a hidden <input type=file>.
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string>("");
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
+  useEffect(() => {
+    if (!projectId || !wetlabOpen) return;
+    let cancelled = false;
+    listAttachments(projectId)
+      .then((rows) => { if (!cancelled) setAttachments(rows); })
+      .catch(() => { /* silent — list stays empty */ });
+    return () => { cancelled = true; };
+  }, [projectId, wetlabOpen]);
+  const openUploadDialog = () => fileInputRef.current?.click();
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f || !projectId) return;
+    setUploadErr("");
+    setUploading(true);
+    try {
+      const meta = await uploadAttachment(projectId, f);
+      setAttachments((cur) => [...cur, meta]);
+    } catch (err: any) {
+      setUploadErr(String(err?.message ?? err));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+  const doDelete = async (aid: string) => {
+    if (!projectId) return;
+    try {
+      await deleteAttachment(projectId, aid);
+      setAttachments((cur) => cur.filter((a) => a.id !== aid));
+    } catch (err: any) {
+      setUploadErr(String(err?.message ?? err));
+    }
+  };
 
   if (running) {
     return (
