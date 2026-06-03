@@ -8970,7 +8970,21 @@ ${paramLines || '(none recorded)'}`;
           // Promote Nextflow terminal state into execution run state.
           const nfState = String(nextflowStatus?.status || '').toLowerCase();
           const isAlreadyTerminal = ['completed', 'failed', 'cancelled'].includes(run.execution.status);
-          if ((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) {
+          // Failed-to-succeeded rescue: BioMate may have written a bogus
+          // 'failed' early (e.g. HUP-induced log-stream orphan — see
+          // nextflow_executor.py _looks_like_log_stream_orphan_failure)
+          // while the detached Nextflow JVM kept running and ultimately
+          // succeeded on AWS Batch. When Galaxy now reports succeeded but
+          // BioMate said failed, trust Galaxy (which has the real
+          // workflow-trace and S3 outputs) and rescue the run state.
+          const allowRescue =
+            isAlreadyTerminal && run.execution.status === 'failed' && nfState === 'succeeded';
+          if (((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) || allowRescue) {
+            if (allowRescue) {
+              console.warn(
+                `[ExecutionRun] failed→succeeded rescue: ${run.id} — Galaxy reports nextflow succeeded; flipping BioMate status (was failed, likely log-stream-orphan)`
+              );
+            }
             const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
             const terminalMessage = nfState === 'failed'
               ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
