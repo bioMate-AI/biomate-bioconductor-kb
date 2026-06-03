@@ -2141,11 +2141,13 @@ Rules:
     if (isFirstMessage && context.userId) {
       const uid = String(context.userId);
       try {
-        const [crossSessionBlock, episodeBlock, correctionBlock] = await Promise.all([
-          this._buildCrossSessionContextBlock(message, uid),
-          this._buildEpisodeMemoryBlock(message, uid),          // P1
-          this._buildCorrectionContextBlock(uid),               // P2
-        ]);
+        const [crossSessionBlock, episodeBlock, correctionBlock, recentRunsBlock] =
+          await Promise.all([
+            this._buildCrossSessionContextBlock(message, uid),
+            this._buildEpisodeMemoryBlock(message, uid),          // P1
+            this._buildCorrectionContextBlock(uid),               // P2
+            this._buildRecentRunsBlock(uid),                      // C2 (Galaxy History handoff)
+          ]);
 
         let prefix = '';
         if (correctionBlock) {
@@ -2155,6 +2157,10 @@ Rules:
         if (episodeBlock) {
           prefix += episodeBlock;
           log('P1 episode memory injected for user ' + uid);
+        }
+        if (recentRunsBlock) {
+          prefix += recentRunsBlock;
+          log('C2 recent runs injected for user ' + uid);
         }
         if (crossSessionBlock) {
           prefix += crossSessionBlock;
