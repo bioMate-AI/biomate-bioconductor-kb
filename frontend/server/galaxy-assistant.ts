@@ -5492,6 +5492,7 @@ BioMate's real capability surface (verified, do not extrapolate):
 - **Auto-injected pre-results** appear in <compound_lookup_results>, <pre_satisfied_parameters>, and similar tags. Read those before answering.
 - **run_code tool** — Python/R/bash in an ephemeral biomate-biotools sandbox. R + Bioconductor (DESeq2, clusterProfiler, edgeR, limma, GSVA, fgsea, ReactomePA), numpy/scipy/pandas/statsmodels, biopython, pysam, cyvcf2, samtools/bcftools/bwa/mafft/iqtree pre-installed. **Sandboxed with --network=none — run_code cannot reach external APIs.** Use it for offline compute on data already in the prompt or attached as a file. If you need data from a DB, route to a workflow step that pulls it.
 - **Workflow execution** on AWS Batch via Nextflow — heavy-compute production path. All real workflows run on AWS; there is no local-vs-AWS switch. The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
+- **Reusing prior-run outputs as next-workflow inputs.** Any workflow file parameter accepts the URI \`run:<fullRunId>:outputs/<filename>\`, which the backend automatically resolves to the underlying S3 path. To use this: call \`list_history\` to find the prior run's full id, then \`list_run_outputs\` to get its output file names. The \`param_uri\` field in that tool's response is the exact string to pass as the file param value — do not transform it. Example: a previous variant-calling run \`abcdef1234567890\` produced \`variants.vcf\`; for a variant-annotation workflow, set \`vcf_input = "run:abcdef1234567890:outputs/variants.vcf"\`.
 
 How to behave:
 - When the user gave enough intent (e.g. SMILES + "run PBPK"), use defaults: typical human population, most-common route of administration, literature dose for well-characterized compounds. State assumptions explicitly at the end: "Assumed X, Y, Z — flag any that are wrong."
@@ -6032,6 +6033,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'list_history':
             output = await this._toolListHistory(block.input, context);
             break;
+          case 'list_run_outputs':
+            output = await this._toolListRunOutputs(block.input, context);
+            break;
           default:
             output = { error: `Unknown tool: ${block.name}` };
         }
@@ -6221,6 +6225,62 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   // These are intentionally simple — read from storage.getExecutionRuns, format
   // for either the tool surface (C1) or prompt injection (C2). Non-fatal on
   // any failure so the chat stream isn't broken by storage hiccups.
+
+  /** C3 — list_run_outputs tool handler. Returns the output files of a single run.
+   *  The agent uses this to build `run:<fullId>:outputs/<filename>` URIs for next-step
+   *  file params; the backend resolver lives at routes.ts:2898 (already in main).
+   */
+  private async _toolListRunOutputs(input: any, context: ChatContext): Promise<unknown> {
+    const runId = (input?.run_id || '').toString().trim();
+    const extFilter = (input?.ext_filter || '').toString().toLowerCase().replace(/^\./, '');
+    if (!runId) {
+      return { error: 'run_id is required (full 16-char id from list_history fullId field)' };
+    }
+    const userId = context?.userId ? String(context.userId) : undefined;
+    try {
+      const { storage } = await import('./storage');
+      const run = await storage.getExecutionRun(runId);
+      if (!run) {
+        return { error: `no run with id=${runId}`, hint: 'call list_history to find ids' };
+      }
+      // Scope check: never expose another user's run
+      if (userId && run.userId && run.userId !== userId) {
+        return { error: 'run belongs to a different user' };
+      }
+      const e: any = run.execution || {};
+      const rawOutputs: Record<string, any> = (e.outputs as any) || {};
+      let files = Object.entries(rawOutputs).map(([key, val]) => {
+        const path = typeof val === 'string' ? val : (val?.path || val?.s3_uri || '');
+        const name = path ? String(path).split('/').pop() || key : key;
+        const ext = name.includes('.') ? name.split('.').pop()!.toLowerCase() : '';
+        return { key, name, ext, path };
+      });
+      if (extFilter) {
+        files = files.filter(f => f.ext === extFilter);
+      }
+      // The canonical URI the LLM should hand back as a file param value
+      const uriPrefix = `run:${runId}:outputs/`;
+      return {
+        runId,
+        workflow: run.workflowName,
+        status: e.status,
+        outputDir: e.nextflowOutputDir || null,
+        count: files.length,
+        files: files.slice(0, 50).map(f => ({
+          name: f.name,
+          ext: f.ext,
+          param_uri: `${uriPrefix}${f.name}`,
+        })),
+        uri_scheme_note:
+          'Pass any file as a workflow param using the param_uri value. The backend (routes.ts:2898) resolves run:<id>:outputs/<filename> to the underlying S3 path automatically — do not transform it.',
+        empty_hint: files.length === 0
+          ? 'Outputs map is empty. Either the run is still running, has no published outputs, or output discovery is via S3 publishDir scan. Tell the user the run has no listed outputs yet.'
+          : undefined,
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err) };
+    }
+  }
 
   /** C1 — list_history tool handler. Returns recent runs scoped to context.userId. */
   private async _toolListHistory(input: any, context: ChatContext): Promise<unknown> {
