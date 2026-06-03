@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
+import { JobButton } from "@/components/job-button";
 
 interface AfterRunReportProps {
   runId: string;
@@ -562,8 +563,18 @@ function OutputsTab({
 }: { outputs: OutputFile[]; runId: string; invocationId?: string }) {
   // Total size summary (when present in the output records)
   const totalCount = outputs.length;
-  const dlAllUrl = invocationId ? `/api/invocations/${invocationId}/download-all` : null;
   const reproUrl = `/api/nextflow/runs/${runId}/reproducibility`;
+  // Phase 1 of docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md §11 — bulk ZIP is now
+  // produced asynchronously by the jobs subsystem; the user clicks a
+  // <JobButton> which polls until ready, then we trigger the actual download.
+  const triggerDownload = (url: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
   if (totalCount === 0) {
     return (
@@ -571,10 +582,14 @@ function OutputsTab({
         <p style={styles.empty}>No output files registered yet.</p>
         {/* Bulk-download actions still visible so the user can pull a partial bundle. */}
         <div style={styles.bulkActions}>
-          {dlAllUrl && (
-            <a href={dlAllUrl} download style={styles.bulkBtn} data-testid="afterrun-download-all">
-              ↓ Download all as ZIP
-            </a>
+          {invocationId && (
+            <JobButton
+              kind="download_all_zip"
+              payload={{ invocationId, runId }}
+              label="↓ Download all as ZIP"
+              onReady={triggerDownload}
+              className="afterrun-download-all-btn"
+            />
           )}
           <a href={reproUrl} download style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}>
             ↓ Reproducibility bundle
@@ -595,10 +610,14 @@ function OutputsTab({
           per-file preview isn't useful, the user grabs everything as a
           ZIP and inspects locally. */}
       <div style={styles.bulkActions}>
-        {dlAllUrl && (
-          <a href={dlAllUrl} download style={styles.bulkBtn} data-testid="afterrun-download-all">
-            ↓ Download all ({totalCount}) as ZIP
-          </a>
+        {invocationId && (
+          <JobButton
+            kind="download_all_zip"
+            payload={{ invocationId, runId }}
+            label={`↓ Download all (${totalCount}) as ZIP`}
+            onReady={triggerDownload}
+            className="afterrun-download-all-btn"
+          />
         )}
         <a
           href={reproUrl}
