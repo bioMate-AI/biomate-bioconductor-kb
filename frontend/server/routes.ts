@@ -4277,6 +4277,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Software tab — list per-run tool versions.
+  // Tries Galaxy backend first (where versions.yml files are aggregated);
+  // falls back to an empty object so the v2 AfterRunReport's Software tab
+  // simply doesn't render. Backend implementation under nextflow_executor.py
+  // walks the run's work dir for **/versions.yml and merges them.
+  app.get("/api/invocations/:invocationId/software", async (req: any, res: any) => {
+    try {
+      const { invocationId } = req.params;
+      const inv = await storage.getInvocation(invocationId).catch(() => null);
+      const backendId = inv?.galaxyInvocationId || invocationId;
+      const response = await (galaxyAPIProxy.client as any).get(
+        `/api/invocations/${backendId}/software`,
+        { params: req.query }
+      );
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 404;
+      return res.status(status).json(err.response?.data || { versions: {}, count: 0 });
+    }
+  });
+
+  // Citations — workflow-level paper references for the v2 AfterRunReport
+  // Citations tab. Backend assembles from cryo-EM RAG topics + qc_evidence.yaml
+  // gate DOIs + (future) nf-core meta.yml.
+  app.get("/api/workflows/:name/citations", async (req: any, res: any) => {
+    try {
+      const { name } = req.params;
+      const response = await (galaxyAPIProxy.client as any).get(
+        `/api/workflows/${encodeURIComponent(name)}/citations`,
+        { params: req.query }
+      );
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 404;
+      return res.status(status).json(err.response?.data || { citations: [], count: 0 });
+    }
+  });
+
   // Methods report download — generates a publication-quality report.
   // Routing:
   //   a) If invocationId is a Galaxy Invocation (has galaxyInvocationId) → proxy to Galaxy backend

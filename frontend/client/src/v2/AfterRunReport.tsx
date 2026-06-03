@@ -46,8 +46,7 @@ interface AfterRunReportProps {
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
-type TabId = "findings" | "outputs" | "methods" | "params" | "qc";
-// "software" + "citations" will rejoin once their backend routes exist.
+type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc";
 
 interface OutputFile {
   step: string;
@@ -79,11 +78,11 @@ export function AfterRunReport({
   const idForBackend = invocationId || runId;
   const methods = useFetchMethods(idForBackend);
   const qcEvents = useFetchQcEvents(idForBackend);
+  const software = useFetchSoftware(idForBackend);
+  const citations = useFetchCitations(workflowName);
   // Findings fetched here too (alongside FindingsCard's own fetch) so the
   // comprehensive download report can inline real findings prose (PM must-fix #2).
   const findings = useFetchFindings(runId);
-  // workflowName param kept for future Citations tab; suppress unused-var warning.
-  void workflowName;
 
   // Lightweight download-UX state — keeps users from double-clicking and
   // gives a clear "started" signal (PM must-fix #4, client-side portion).
@@ -91,10 +90,7 @@ export function AfterRunReport({
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
 
   // Compute which optional tabs to show based on real data presence.
-  // Software + Citations intentionally hidden until their backend routes ship
-  // (per A3 audit + user direction 2026-05-29). Re-enable by appending:
-  //   t.push(["software", "Software"]);          // needs /api/invocations/:id/software
-  //   if (citations.length > 0) t.push([...]);   // needs /api/workflows/:name/citations
+  // Hide-when-empty discipline: no "Coming soon" placeholders, just absence.
   const visibleTabs = useMemo<Array<[TabId, string]>>(() => {
     const t: Array<[TabId, string]> = [
       ["findings", "Findings"],
@@ -102,9 +98,11 @@ export function AfterRunReport({
     ];
     if (methods.hasRealContent) t.push(["methods", "Methods"]);
     t.push(["params", "Parameters"]);
+    if (Object.keys(software).length > 0) t.push(["software", "Software"]);
+    if (citations.length > 0) t.push(["citations", "Citations"]);
     if (qcEvents.length > 0) t.push(["qc", "QC audit"]);
     return t;
-  }, [methods.hasRealContent, qcEvents.length]);
+  }, [methods.hasRealContent, software, citations.length, qcEvents.length]);
 
   const handleDownload = () => {
     if (downloadState !== 'idle') return; // dedup double-click
@@ -117,6 +115,8 @@ export function AfterRunReport({
       methods: methods.text,
       qcEvents,
       findings,
+      software,
+      citations,
     });
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -198,6 +198,8 @@ export function AfterRunReport({
         {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
         {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
+        {tab === "software" && <SoftwareTab versions={software} />}
+        {tab === "citations" && <CitationsTab citations={citations} />}
         {tab === "qc" && <QcAuditTab events={qcEvents} />}
       </div>
     </div>
@@ -481,7 +483,6 @@ function useFetchQcEvents(invocationId: string): QcEvent[] {
   useEffect(() => {
     if (!invocationId) return;
     let cancelled = false;
-    // Backend route lives at /api/invocations/:id/qc-events (nextflow_executor.py:4478)
     fetch(`/api/invocations/${invocationId}/qc-events`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -493,6 +494,42 @@ function useFetchQcEvents(invocationId: string): QcEvent[] {
     return () => { cancelled = true; };
   }, [invocationId]);
   return events;
+}
+
+function useFetchSoftware(invocationId: string): Record<string, string> {
+  const [versions, setVersions] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!invocationId) return;
+    let cancelled = false;
+    fetch(`/api/invocations/${invocationId}/software`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setVersions(data.versions || data || {});
+      })
+      .catch(() => { /* tab hides */ });
+    return () => { cancelled = true; };
+  }, [invocationId]);
+  return versions;
+}
+
+interface Citation { doi?: string; title: string; url?: string; }
+
+function useFetchCitations(workflowName?: string): Citation[] {
+  const [citations, setCitations] = useState<Citation[]>([]);
+  useEffect(() => {
+    if (!workflowName) return;
+    let cancelled = false;
+    fetch(`/api/workflows/${encodeURIComponent(workflowName)}/citations`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setCitations(Array.isArray(data) ? data : data.citations || []);
+      })
+      .catch(() => { /* tab hides */ });
+    return () => { cancelled = true; };
+  }, [workflowName]);
+  return citations;
 }
 
 // ---------------------------------------------------------------------------
@@ -675,6 +712,48 @@ function QcAuditTab({ events }: { events: QcEvent[] }) {
   );
 }
 
+function SoftwareTab({ versions }: { versions: Record<string, string> }) {
+  const entries = Object.entries(versions);
+  if (entries.length === 0) return <p style={styles.empty}>No software versions recorded.</p>;
+  return (
+    <div style={styles.tabContent}>
+      <p style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', marginBottom: 8 }}>
+        Sourced from <code>versions.yml</code> emitted by each Nextflow module.
+      </p>
+      <table style={styles.kvTable}>
+        <tbody>
+          {entries.map(([tool, ver]) => (
+            <tr key={tool}>
+              <td style={styles.kvKey}>{tool}</td>
+              <td style={styles.kvVal}>{String(ver)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CitationsTab({ citations }: { citations: Citation[] }) {
+  if (citations.length === 0) return <p style={styles.empty}>No citations registered.</p>;
+  return (
+    <div style={styles.tabContent}>
+      <ul style={styles.citationsList}>
+        {citations.map((c, i) => (
+          <li key={i} style={styles.citationItem}>
+            {c.url ? (
+              <a href={c.url} target="_blank" rel="noreferrer noopener">{c.title}</a>
+            ) : (
+              <span>{c.title}</span>
+            )}
+            {c.doi && <span style={styles.citationDoi}>  doi:{c.doi}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * Build a comprehensive markdown report stitching every visible tab into
  * one document. Lives client-side so no new backend route is needed for v0.
@@ -689,8 +768,10 @@ function buildFullReportMarkdown(args: {
   methods: string;
   qcEvents: QcEvent[];
   findings?: FindingsData | null;
+  software?: Record<string, string>;
+  citations?: Citation[];
 }): string {
-  const { runId, workflowName, parameters, outputs, methods, qcEvents, findings } = args;
+  const { runId, workflowName, parameters, outputs, methods, qcEvents, findings, software, citations } = args;
   const lines: string[] = [];
   lines.push(`# BioMate Run Report`);
   lines.push("");
@@ -784,6 +865,34 @@ function buildFullReportMarkdown(args: {
     for (const [k, v] of params) lines.push(`| \`${k}\` | ${String(v)} |`);
   }
   lines.push("");
+
+  // Software
+  if (software && Object.keys(software).length > 0) {
+    lines.push(`## Software`);
+    lines.push("");
+    lines.push(`| Tool | Version |`);
+    lines.push(`|------|---------|`);
+    for (const [tool, ver] of Object.entries(software)) {
+      lines.push(`| ${tool} | \`${ver}\` |`);
+    }
+    lines.push("");
+  }
+
+  // Citations
+  if (citations && citations.length > 0) {
+    lines.push(`## Citations`);
+    lines.push("");
+    for (const c of citations) {
+      if (c.url) {
+        lines.push(`- [${c.title}](${c.url})${c.doi ? `  doi:${c.doi}` : ""}`);
+      } else if (c.doi) {
+        lines.push(`- ${c.title}  doi:${c.doi}`);
+      } else {
+        lines.push(`- ${c.title}`);
+      }
+    }
+    lines.push("");
+  }
 
   // QC audit
   if (qcEvents.length > 0) {
