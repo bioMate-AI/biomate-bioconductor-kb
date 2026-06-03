@@ -446,6 +446,33 @@ export async function downloadDocx(
 }
 
 // ---------------------------------------------------------------------------
+// Per-project pipeline display data (Tier-S1 fix from IND honest audit)
+//
+// Replaces the hardcoded DEMO_ADMET/DEMO_PBPK/DEMO_LEADS/DEMO_DOC/DEMO_AUDIT
+// constants in pages/ind-report.tsx so the 5-step view shows distinct data
+// per project. Backend reads data/ind_demo/registry/pipeline_data/<id>.json.
+// ---------------------------------------------------------------------------
+
+import type {
+  AdmetData, PbpkData, LeadsData, IndDoc, IndAudit,
+} from "@/components/ind-report/IndSteps";
+
+export type IndPipelineData = {
+  lead_smiles?: string | null;
+  admet: AdmetData;
+  pbpk: PbpkData;
+  leads: LeadsData;
+  doc: IndDoc;
+  audit: IndAudit;
+};
+
+export function fetchPipelineData(projectId: string): Promise<IndPipelineData> {
+  return getJson<IndPipelineData>(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/pipeline_data`,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Compound list persistence (P1-5 follow-up)
 // ---------------------------------------------------------------------------
 

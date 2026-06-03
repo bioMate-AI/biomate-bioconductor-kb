@@ -762,3 +762,105 @@ async def update_compounds(
         "lead_id": body.lead_id,
         "compounds": compounds_out,
     }
+
+
+# ---------------------------------------------------------------------------
+# Per-project pipeline display data — Tier-S1 fix from the IND honest audit.
+# Replaces the hardcoded DEMO_ADMET / DEMO_PBPK / DEMO_LEADS / DEMO_DOC /
+# DEMO_AUDIT constants in frontend/client/src/pages/ind-report.tsx so that
+# different projects show distinct molecules, metrics, rankings, and audit
+# findings — proving the 5-step view is no longer the same fake data for
+# every project.
+#
+# Storage: data/ind_demo/registry/pipeline_data/<project_id>.json
+# Shape must match the AdmetData/PbpkData/LeadsData/IndDoc/IndAudit TS types
+# in frontend/client/src/components/ind-report/IndSteps.tsx.
+# ---------------------------------------------------------------------------
+
+_PIPELINE_DATA_DIR = _REPO_ROOT / "data" / "ind_demo" / "registry" / "pipeline_data"
+
+
+def _scaffold_pipeline_data(project_id: str, project_row: Optional[dict]) -> dict:
+    """Return a 'pending pipeline' placeholder when no sidecar file exists.
+
+    Step1 metadata comes from the registry row when available; the rest is
+    empty/zero so the UI renders a clean unstarted-pipeline state. Does NOT
+    return the BM-0042 demo data — that would re-introduce the bug.
+    """
+    molecule = (project_row or {}).get("molecule", project_id)
+    return {
+        "lead_smiles": None,
+        "admet": {
+            "summary": {"pass": 0, "total": 0},
+            "compounds": [],
+        },
+        "pbpk": {
+            "status": "fail",
+            "model": "(not run)",
+            "refSet": 0,
+            "refSource": "—",
+            "metrics": {"cmaxWithin2": 0, "aucWithin2": 0, "emaThreshold": 67},
+            "lead": {"id": molecule, "fu": 0, "vd": 0, "t12": 0, "bioavail": 0},
+            "ospRange": "—",
+            "perDrug": [],
+        },
+        "leads": {
+            "method": "(not run)",
+            "evaluated": 0,
+            "rounds": 0,
+            "inDomain": 0,
+            "outOfDomain": 0,
+            "ranking": [],
+        },
+        "doc": {
+            "signed": False,
+            "generatedAt": "—",
+            "characters": 0,
+            "shaPrefix": "—",
+            "sections": [],
+        },
+        "audit": {"findings": []},
+    }
+
+
+def _load_project_row(project_id: str) -> Optional[dict]:
+    if not _PROJECTS_PATH.exists():
+        return None
+    try:
+        reg = json.loads(_PROJECTS_PATH.read_text())
+    except Exception as exc:
+        log.warning("[pipeline_data] failed to read projects.json: %s", exc)
+        return None
+    for p in reg.get("projects", []):
+        if p.get("id") == project_id:
+            return p
+    return None
+
+
+@router.get("/api/ind-report/projects/{project_id}/pipeline_data")
+async def get_pipeline_data(project_id: str):
+    """Return per-project pipeline display data for the 5-step view.
+
+    Sources:
+      1. data/ind_demo/registry/pipeline_data/<id>.json (sidecar) — preferred
+      2. Scaffold default from projects.json row when sidecar missing
+      3. Bare scaffold when project_id is unknown (no 404 — page can still
+         render an empty-pipeline shell)
+
+    Anonymous-readable: display data only, no PHI / no IP.
+    """
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+
+    sidecar = _PIPELINE_DATA_DIR / f"{project_id}.json"
+    if sidecar.exists():
+        try:
+            payload = json.loads(sidecar.read_text())
+            # Strip private fields (anything starting with _) before responding
+            return {k: v for k, v in payload.items() if not k.startswith("_")}
+        except Exception as exc:
+            log.warning("[pipeline_data] failed to parse %s: %s", sidecar, exc)
+            # fall through to scaffold
+
+    project_row = _load_project_row(project_id)
+    return _scaffold_pipeline_data(project_id, project_row)
