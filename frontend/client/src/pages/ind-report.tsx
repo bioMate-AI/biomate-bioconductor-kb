@@ -26,6 +26,7 @@ import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal
 import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/SmilesListModal";
 import { listProjects, updateCompounds, type CompoundEntry } from "@/lib/ind-report-api";
 import { downloadMarkdown, downloadDocx, type DocumentSection } from "@/lib/ind-report-api";
+import { fetchPipelineData, type IndPipelineData } from "@/lib/ind-report-api";
 import { useLocation } from "wouter";
 
 // Demo seed — replace with GET /api/ind-report/projects when backend route exists.
@@ -117,15 +118,19 @@ function readKnobs(): {
   };
 }
 
-// Pipeline center — wires the 5 step components against demo data.
-// Replace demo data with API calls when integrated to production.
+// Pipeline center — wires the 5 step components against per-project data
+// fetched from /api/ind-report/projects/:id/pipeline_data. DEMO_* fallbacks
+// only render during the initial fetch so the page never flashes empty.
 function PipelineCenter({
   activeProject, onSign, onAudit, onEditCompounds,
+  pipelineData, pipelineLoading,
 }: {
   activeProject: IndProjectSummary | null;
   onSign: () => void;
   onAudit: () => void;
   onEditCompounds?: () => void;
+  pipelineData: IndPipelineData | null;
+  pipelineLoading: boolean;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (k: string) => setExpanded((e) => ({ ...e, [k]: !e[k] }));
@@ -150,13 +155,23 @@ function PipelineCenter({
     regions: activeProject.regions,
   };
 
+  // Resolve render data — prefer per-project pipelineData, fall back to
+  // DEMO_* constants only while the fetch is in flight on first load.
+  const admetData = pipelineData?.admet ?? DEMO_ADMET;
+  const pbpkData = pipelineData?.pbpk ?? DEMO_PBPK;
+  const leadsData = pipelineData?.leads ?? DEMO_LEADS;
+  const docData = pipelineData?.doc ?? DEMO_DOC;
+  const auditData = pipelineData?.audit ?? DEMO_AUDIT;
+  const leadSmiles = pipelineData?.lead_smiles ?? null;
+
   return (
-    <main className="ind-center">
+    <main className="ind-center" style={{ opacity: pipelineLoading ? 0.6 : 1, transition: "opacity 120ms" }}>
       <div className="ind-center-head">
         <div>
           <div className="ind-h1">{activeProject.molecule} · {activeProject.target}</div>
           <div className="ind-h1-sub">
             {activeProject.indication} · {project.sponsor} · {activeProject.regions.join(" · ")}
+            {pipelineLoading && <span style={{ marginLeft: 8, color: "var(--ind-text-muted)" }}>· loading pipeline data…</span>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -165,9 +180,15 @@ function PipelineCenter({
           </button>
         </div>
       </div>
-      <Step1ProjectSetup project={project} onEdit={onEditCompounds ?? (() => {})} expanded={expanded.s1} onToggle={() => toggle("s1")} />
+      <Step1ProjectSetup
+        project={project}
+        onEdit={onEditCompounds ?? (() => {})}
+        expanded={expanded.s1}
+        onToggle={() => toggle("s1")}
+        leadSmiles={leadSmiles}
+      />
       <Step2Admet
-        data={DEMO_ADMET}
+        data={admetData}
         // Force expansion when the imported-from-chat banner needs to be
         // visible, so the customer sees the cue without manually expanding.
         expanded={expanded.s2 ?? knobs.importedFromChat}
@@ -177,15 +198,15 @@ function PipelineCenter({
         importedFromChat={knobs.importedFromChat}
       />
       <Step3Pbpk
-        data={DEMO_PBPK}
+        data={pbpkData}
         expanded={expanded.s3}
         onToggle={() => toggle("s3")}
         failOverride={knobs.pbpkFail}
       />
-      <Step4Leads data={DEMO_LEADS} expanded={expanded.s4} onToggle={() => toggle("s4")} />
+      <Step4Leads data={leadsData} expanded={expanded.s4} onToggle={() => toggle("s4")} />
       <Step5Document
-        doc={DEMO_DOC}
-        audit={knobs.auditHasCritical ? DEMO_AUDIT_CRITICAL : DEMO_AUDIT}
+        doc={docData}
+        audit={knobs.auditHasCritical ? DEMO_AUDIT_CRITICAL : auditData}
         regions={activeProject.regions}
         onSign={onSign}
         onAudit={onAudit}
@@ -199,8 +220,8 @@ function PipelineCenter({
   );
 }
 
-// Demo data — minimal versions sufficient for visual validation.
-// Replace with API responses at production integration.
+// fallback while pipeline data loads — real per-project data comes from
+// GET /api/ind-report/projects/:id/pipeline_data (see fetchPipelineData).
 const DEMO_ADMET: AdmetData = {
   summary: { pass: 8, total: 12 },
   compounds: [
@@ -436,6 +457,30 @@ export function IndReportPage() {
   ]);
   const [smilesLead, setSmilesLead] = useState<string | null>("c-bm0042");
 
+  // Per-project pipeline data (Tier-S1 fix). Refetched whenever the active
+  // project changes so switching between BM-0042 / BM-0038 / BM-0029 shows
+  // distinct molecules + metrics + rankings + audit findings.
+  const [pipelineData, setPipelineData] = useState<IndPipelineData | null>(null);
+  const [pipelineLoading, setPipelineLoading] = useState(false);
+  useEffect(() => {
+    if (!activeId) {
+      setPipelineData(null);
+      return;
+    }
+    let cancelled = false;
+    setPipelineLoading(true);
+    fetchPipelineData(activeId)
+      .then((d) => { if (!cancelled) setPipelineData(d); })
+      .catch((err) => {
+        if (!cancelled) {
+          console.warn("[ind] fetchPipelineData failed:", err);
+          setPipelineData(null);
+        }
+      })
+      .finally(() => { if (!cancelled) setPipelineLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeId]);
+
   // P1-5: hydrate compound list from the backend project registry when
   // the active project changes. Backend stores under registry[i].compounds[].
   // Falls back to current local state on fetch error or empty list.
@@ -516,6 +561,8 @@ export function IndReportPage() {
         onSign={() => setShowSign(true)}
         onAudit={() => setShowAudit(true)}
         onEditCompounds={() => setShowSmiles(true)}
+        pipelineData={pipelineData}
+        pipelineLoading={pipelineLoading}
       />
 
       {/* Floating action button — CSS makes this display:flex only at

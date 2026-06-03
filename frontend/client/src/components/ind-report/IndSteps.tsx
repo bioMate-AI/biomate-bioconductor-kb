@@ -67,11 +67,15 @@ export function Step1ProjectSetup({
   onEdit,
   expanded,
   onToggle,
+  leadSmiles,
 }: {
   project: IndProjectFull;
   onEdit: () => void;
   expanded?: boolean;
   onToggle?: () => void;
+  /** Per-project lead SMILES. When undefined, falls back to the BM-0042
+   * default so old call-sites keep rendering something. */
+  leadSmiles?: string | null;
 }) {
   const regs: ("FDA" | "EMA" | "NMPA" | "PMDA")[] = ["FDA", "EMA", "NMPA", "PMDA"];
   return (
@@ -109,7 +113,7 @@ export function Step1ProjectSetup({
           </div>
           <div className="k">Lead</div>
           <div className="v mono" style={{ fontSize: 11.5 }}>
-            CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1…
+            {(leadSmiles ?? "CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1") + "…"}
           </div>
         </div>
       </div>

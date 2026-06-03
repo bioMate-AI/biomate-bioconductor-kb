@@ -1,0 +1,62 @@
+{
+  "_schema_version": 1,
+  "_note": "Per-project IND pipeline display data for BM-0038 (KRAS G12C CRC, covalent acrylamide warhead).",
+  "lead_smiles": "O=C(C=C)N1CCC(n2c(=O)cc(C)c3cc(F)c(F)cc23)CC1",
+  "admet": {
+    "summary": { "pass": 14, "total": 18 },
+    "compounds": [
+      { "id": "BM-0038", "lead": true, "hergIC50": 47, "hergRisk": "clear", "dili": "clear", "ames": "clear", "logP": 2.4, "mw": 449, "ro5": true },
+      { "id": "BM-0061", "hergIC50": 22, "hergRisk": "clear", "dili": "clear", "ames": "clear", "logP": 3.1, "mw": 467, "ro5": true },
+      { "id": "BM-0044", "hergIC50": 11, "hergRisk": "border", "dili": "clear", "ames": "clear", "logP": 3.6, "mw": 488, "ro5": true },
+      { "id": "BM-0072", "hergIC50": 6, "hergRisk": "flag", "dili": "flag", "ames": "flag", "logP": 5.1, "mw": 562, "ro5": false, "ro5Fail": "logP" }
+    ]
+  },
+  "pbpk": {
+    "status": "pass",
+    "model": "BioMate PBPK v2.1 (covalent extension)",
+    "refSet": 30,
+    "refSource": "EMA/CHMP/EWP/37498/2011",
+    "metrics": { "cmaxWithin2": 86.7, "aucWithin2": 93.3, "emaThreshold": 67 },
+    "lead": { "id": "BM-0038", "fu": 0.08, "vd": 2.4, "t12": 5.6, "bioavail": 71 },
+    "ospRange": "78-92%",
+    "perDrug": [
+      { "name": "Sotorasib", "fold": 1.2, "pass": true },
+      { "name": "Adagrasib", "fold": 1.6, "pass": true },
+      { "name": "Ibrutinib", "fold": 1.9, "pass": true },
+      { "name": "Afatinib", "fold": 2.3, "pass": false }
+    ]
+  },
+  "leads": {
+    "method": "Bayesian optimization + covalent docking gate",
+    "evaluated": 218,
+    "rounds": 6,
+    "inDomain": 201,
+    "outOfDomain": 17,
+    "ranking": [
+      { "rank": 1, "id": "BM-0038", "score": 9.64, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+      { "rank": 2, "id": "BM-0061", "score": 9.12, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+      { "rank": 3, "id": "BM-0044", "score": 8.55, "herg": "border", "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" },
+      { "rank": 4, "id": "BM-0089", "score": 8.21, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" },
+      { "rank": 5, "id": "BM-0102", "score": 7.86, "herg": "clear", "dili": "flag", "ames": "clear", "potency": 3, "ad": "in_domain" }
+    ]
+  },
+  "doc": {
+    "signed": true,
+    "generatedAt": "2026-05-09T11:18Z",
+    "characters": 52114,
+    "shaPrefix": "3a7b1d",
+    "sections": [
+      { "id": "2.6.1", "title": "§2.6.1 Overview", "coverage": "full" },
+      { "id": "2.6.2", "title": "§2.6.2 Pharmacology", "coverage": "full" },
+      { "id": "2.6.3", "title": "§2.6.3 Pharmacology tabulated", "coverage": "full" },
+      { "id": "2.6.4", "title": "§2.6.4 PK written", "coverage": "full" },
+      { "id": "2.6.5", "title": "§2.6.5 PK tabulated", "coverage": "full" },
+      { "id": "2.6.6", "title": "§2.6.6 Toxicology written", "coverage": "full" }
+    ]
+  },
+  "audit": {
+    "findings": [
+      { "severity": "INFO", "section": "§2.6.4", "desc": "Covalent-binding kinetics could cite Singh 2011 alongside FDA covalent drug guidance" }
+    ]
+  }
+}

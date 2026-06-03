@@ -1,0 +1,62 @@
+{
+  "_schema_version": 1,
+  "_note": "Per-project IND pipeline display data for BM-0029 (PD-L1 small-molecule TNBC, biphenyl scaffold). Audit blocked — CRITICAL finding.",
+  "lead_smiles": "Cc1cc(-c2ccc(OCc3ccccc3C(=O)O)cc2C)c(O)c(C)c1",
+  "admet": {
+    "summary": { "pass": 5, "total": 9 },
+    "compounds": [
+      { "id": "BM-0029", "lead": true, "hergIC50": 12, "hergRisk": "border", "dili": "flag", "ames": "clear", "logP": 5.4, "mw": 514, "ro5": false, "ro5Fail": "logP" },
+      { "id": "BM-0031", "hergIC50": 28, "hergRisk": "clear", "dili": "flag", "ames": "clear", "logP": 4.8, "mw": 498, "ro5": true },
+      { "id": "BM-0055", "hergIC50": 9, "hergRisk": "flag", "dili": "clear", "ames": "clear", "logP": 5.2, "mw": 503, "ro5": false, "ro5Fail": "logP" }
+    ]
+  },
+  "pbpk": {
+    "status": "fail",
+    "model": "BioMate PBPK v2.1",
+    "refSet": 30,
+    "refSource": "EMA/CHMP/EWP/37498/2011",
+    "metrics": { "cmaxWithin2": 58.2, "aucWithin2": 61.5, "emaThreshold": 67 },
+    "lead": { "id": "BM-0029", "fu": 0.04, "vd": 4.2, "t12": 14.7, "bioavail": 22 },
+    "ospRange": "55-68%",
+    "perDrug": [
+      { "name": "Atezolizumab-SM-ref-1", "fold": 3.1, "pass": false },
+      { "name": "Nivolumab-SM-ref-2", "fold": 2.8, "pass": false },
+      { "name": "Pembrolizumab-SM-ref-3", "fold": 1.9, "pass": true }
+    ]
+  },
+  "leads": {
+    "method": "Bayesian optimization (low-fu correction)",
+    "evaluated": 96,
+    "rounds": 3,
+    "inDomain": 71,
+    "outOfDomain": 25,
+    "ranking": [
+      { "rank": 1, "id": "BM-0029", "score": 7.48, "herg": "border", "dili": "flag", "ames": "clear", "potency": 3, "ad": "in_domain" },
+      { "rank": 2, "id": "BM-0031", "score": 7.22, "herg": "clear", "dili": "flag", "ames": "clear", "potency": 3, "ad": "in_domain" },
+      { "rank": 3, "id": "BM-0084", "score": 6.91, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 2, "ad": "out_of_domain" },
+      { "rank": 4, "id": "BM-0055", "score": 6.40, "herg": "flag", "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" }
+    ]
+  },
+  "doc": {
+    "signed": false,
+    "generatedAt": "2026-05-11T08:02Z",
+    "characters": 41205,
+    "shaPrefix": "c81e9f",
+    "sections": [
+      { "id": "2.6.1", "title": "§2.6.1 Overview", "coverage": "full" },
+      { "id": "2.6.2", "title": "§2.6.2 Pharmacology", "coverage": "partial", "note": "Secondary PD missing" },
+      { "id": "2.6.3", "title": "§2.6.3 Pharmacology tabulated", "coverage": "partial", "note": "3 endpoints pending" },
+      { "id": "2.6.4", "title": "§2.6.4 PK written", "coverage": "partial", "note": "PBPK qualification failed" },
+      { "id": "2.6.5", "title": "§2.6.5 PK tabulated", "coverage": "partial", "note": "Dog PK pending" },
+      { "id": "2.6.6", "title": "§2.6.6 Toxicology written", "coverage": "full" }
+    ]
+  },
+  "audit": {
+    "findings": [
+      { "severity": "CRITICAL", "section": "§2.6.4", "desc": "PBPK Cmax-within-2-fold 58.2% fails EMA ≥67% criterion — qualification must pass before submission" },
+      { "severity": "MAJOR", "section": "§2.6.1.2", "desc": "DILI flag on lead compound is not addressed in pharmacology narrative" },
+      { "severity": "MAJOR", "section": "§2.6.6.3", "desc": "Ro5 logP violation (5.4) requires written justification per ICH M3(R2)" },
+      { "severity": "MINOR", "section": "§2.6.2", "desc": "Cite Lee 2019 on PD-L1 small-molecule mechanism" }
+    ]
+  }
+}

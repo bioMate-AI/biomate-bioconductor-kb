@@ -1,0 +1,62 @@
+{
+  "_schema_version": 1,
+  "_note": "Per-project IND pipeline display data for BM-0042 (EGFR L858R NSCLC). Mirrors the AdmetData/PbpkData/LeadsData/IndDoc/IndAudit TS types in frontend/client/src/components/ind-report/IndSteps.tsx.",
+  "lead_smiles": "CC(=O)Nc1ccc(Oc2ncnc3[nH]ccc23)cc1",
+  "admet": {
+    "summary": { "pass": 8, "total": 12 },
+    "compounds": [
+      { "id": "BM-0042", "lead": true, "hergIC50": 31, "hergRisk": "clear", "dili": "clear", "ames": "clear", "logP": 3.2, "mw": 412, "ro5": true },
+      { "id": "BM-0017", "hergIC50": 18, "hergRisk": "clear", "dili": "clear", "ames": "clear", "logP": 2.8, "mw": 388, "ro5": true },
+      { "id": "BM-0023", "hergIC50": 4, "hergRisk": "flag", "dili": "flag", "ames": "clear", "logP": 4.7, "mw": 521, "ro5": false, "ro5Fail": "MW" }
+    ]
+  },
+  "pbpk": {
+    "status": "pass",
+    "model": "BioMate PBPK v2.1",
+    "refSet": 30,
+    "refSource": "EMA/CHMP/EWP/37498/2011",
+    "metrics": { "cmaxWithin2": 73.3, "aucWithin2": 100, "emaThreshold": 67 },
+    "lead": { "id": "BM-0042", "fu": 0.12, "vd": 1.8, "t12": 8.2, "bioavail": 64 },
+    "ospRange": "70-85%",
+    "perDrug": [
+      { "name": "Aspirin", "fold": 1.4, "pass": true },
+      { "name": "Caffeine", "fold": 1.1, "pass": true },
+      { "name": "Warfarin", "fold": 2.6, "pass": false }
+    ]
+  },
+  "leads": {
+    "method": "Bayesian optimization (Acme refinements)",
+    "evaluated": 142,
+    "rounds": 4,
+    "inDomain": 128,
+    "outOfDomain": 14,
+    "ranking": [
+      { "rank": 1, "id": "BM-0042", "score": 9.21, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+      { "rank": 2, "id": "BM-0017", "score": 8.83, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 3, "ad": "in_domain" },
+      { "rank": 3, "id": "BM-0093", "score": 8.12, "herg": "border", "dili": "clear", "ames": "clear", "potency": 4, "ad": "in_domain" },
+      { "rank": 4, "id": "BM-0011", "score": 7.95, "herg": "clear", "dili": "flag", "ames": "clear", "potency": 3, "ad": "in_domain" },
+      { "rank": 5, "id": "BM-0067", "score": 7.41, "herg": "clear", "dili": "clear", "ames": "clear", "potency": 2, "ad": "out_of_domain" }
+    ]
+  },
+  "doc": {
+    "signed": false,
+    "generatedAt": "2026-05-15T18:42Z",
+    "characters": 48732,
+    "shaPrefix": "9f2c4a",
+    "sections": [
+      { "id": "2.6.1", "title": "§2.6.1 Overview", "coverage": "full" },
+      { "id": "2.6.2", "title": "§2.6.2 Pharmacology", "coverage": "full" },
+      { "id": "2.6.3", "title": "§2.6.3 Pharmacology tabulated", "coverage": "full" },
+      { "id": "2.6.4", "title": "§2.6.4 PK written", "coverage": "full" },
+      { "id": "2.6.5", "title": "§2.6.5 PK tabulated", "coverage": "partial", "note": "1 missing column" },
+      { "id": "2.6.6", "title": "§2.6.6 Toxicology written", "coverage": "full" }
+    ]
+  },
+  "audit": {
+    "findings": [
+      { "severity": "MAJOR", "section": "§2.6.1.2", "desc": "PBPK interpretation lacks AFE direction comment" },
+      { "severity": "MINOR", "section": "§2.6.6.3", "desc": "Genotoxicity citation could be more specific" },
+      { "severity": "INFO", "section": "§2.6.2", "desc": "Consider mentioning secondary PD" }
+    ]
+  }
+}
