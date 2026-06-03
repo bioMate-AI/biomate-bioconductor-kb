@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, numeric, jsonb, bigint, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1437,3 +1437,34 @@ export const insertInstrumentEventSchema = createInsertSchema(instrumentEvents).
 
 export type InstrumentEvent = typeof instrumentEvents.$inferSelect;
 export type InsertInstrumentEvent = typeof instrumentEvents.$inferInsert;
+
+// ============================================================================
+// Async Job Queue (download_jobs) — see docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md
+// ============================================================================
+
+export const downloadJobs = pgTable("download_jobs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  kind: text("kind").notNull(),
+  payload: jsonb("payload").notNull(),
+  dedupKey: text("dedup_key").notNull(),
+  state: text("state").notNull(),
+  progress: integer("progress").notNull().default(0),
+  etaSeconds: integer("eta_seconds"),
+  artifactUri: text("artifact_uri"),
+  artifactBytes: bigint("artifact_bytes", { mode: "number" }),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  readyAt: timestamp("ready_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+});
+
+export type DownloadJob = typeof downloadJobs.$inferSelect;
+export type InsertDownloadJob = typeof downloadJobs.$inferInsert;
+
+export const DOWNLOAD_JOB_ACTIVE_STATES = ["queued", "running"] as const;
+export const DOWNLOAD_JOB_DEDUP_STATES = ["queued", "running", "ready"] as const;
+export const DOWNLOAD_JOB_TERMINAL_STATES = ["ready", "failed", "cancelled", "expired"] as const;
+
