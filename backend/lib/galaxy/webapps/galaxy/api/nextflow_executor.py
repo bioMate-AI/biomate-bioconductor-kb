@@ -394,7 +394,15 @@ def _read_run_timing_json(run_id: str) -> Dict[str, Any]:
 
 
 def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
-    """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log)."""
+    """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log).
+
+    The returned log_tail is the last 20 non-noise lines, BUT we also prefer
+    any ERROR / WARN / Caused by / Exception / FATAL lines from the broader
+    log when present. On an early script-parse failure the last 20 lines are
+    DEBUG startup; the actual stack trace lives a few hundred lines earlier,
+    is in the log file, and is what an operator needs to see. Pulling those
+    into log_tail surfaces the real cause to the run-status API.
+    """
     parts: list[str] = []
     for rel in (Path("nextflow.log"), Path("work") / ".nextflow.log"):
         path = log_dir / rel
@@ -405,7 +413,37 @@ def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
         except Exception:
             continue
     combined = "\n".join(parts)
-    log_tail = [c for l in combined.splitlines()[-80:] if (c := _clean_log_line(l))][-20:]
+    cleaned_lines = [c for l in combined.splitlines() if (c := _clean_log_line(l))]
+    # Window of last 80 cleaned lines for the tail itself.
+    tail_window = cleaned_lines[-80:][-20:]
+    # Surface the most recent error context anywhere in the log so operators
+    # don't have to ssh in just to read the .nextflow.log.
+    err_markers = (
+        "ERROR",
+        "WARN",
+        " FATAL",
+        "Caused by:",
+        "Exception:",
+        "at nextflow.",
+        "Pipeline failed",
+        "Workflow execution failed",
+        "Cannot find",
+        "Missing",
+        "Unable to ",
+        "Unexpected token",
+        "syntax error",
+    )
+    err_lines = [l for l in cleaned_lines if any(m in l for m in err_markers)][-15:]
+    if err_lines:
+        # Put the error excerpt at the END of log_tail so JSON consumers that
+        # render the tail get the error block visible without scrolling.
+        marker = "--- error context ---"
+        if marker not in tail_window:
+            log_tail = tail_window + [marker] + err_lines
+        else:
+            log_tail = tail_window
+    else:
+        log_tail = tail_window
     return combined, log_tail
 
 
