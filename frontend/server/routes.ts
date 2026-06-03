@@ -2,6 +2,8 @@ import type { Express } from "express";
 import express from "express";
 import { requestContextMiddleware } from "./request-context";
 import { registerJobsRouter } from "./jobs/router";
+// Side-effect import: registers the `download_all_zip` job handler.
+import "./jobs/handlers/download-all-zip";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
