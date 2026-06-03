@@ -612,3 +612,32 @@ export async function deleteAttachment(projectId: string, aid: string): Promise<
     throw new Error(`delete attachment ${resp.status}`);
   }
 }
+
+
+// ---------------------------------------------------------------------------
+// S2 — Real TOTP MFA
+// ---------------------------------------------------------------------------
+
+export type MfaStatus = { enrolled: boolean; enrolled_at?: string };
+
+export function getMfaStatus(): Promise<MfaStatus> {
+  return getJson<MfaStatus>("/api/auth/mfa/status");
+}
+
+export type MfaEnrollResponse = {
+  secret: string;
+  otpauth_url: string;
+  qr_png_base64: string;
+};
+
+export function enrollMfa(): Promise<MfaEnrollResponse> {
+  return postJson<MfaEnrollResponse>("/api/auth/mfa/enroll", {});
+}
+
+export function confirmMfa(code: string): Promise<{ enrolled: boolean; enrolled_at: string }> {
+  return postJson("/api/auth/mfa/confirm", { code });
+}
+
+export function resetMfa(): Promise<{ ok: boolean }> {
+  return postJson("/api/auth/mfa/reset", {});
+}

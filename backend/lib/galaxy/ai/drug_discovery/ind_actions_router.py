@@ -55,27 +55,76 @@ class SignRequest(BaseModel):
                                              description="section_id → adapter_name used to generate that section")
 
 
-def _verify_totp(user_id: str, code: str) -> bool:
-    """Validate the 6-digit TOTP against the user's MFA secret.
+_MFA_SECRETS_DIR = _REPO_ROOT / "data" / "mfa_secrets"
 
-    Wired to galaxy.webapps.galaxy.api.auth.AuthService when available;
-    falls back to a dev-mode permissive check when MFA not configured (so
-    the demo data path still works locally).
-    """
+
+def _mfa_path(user_id: str) -> Path:
+    """User-id → on-disk secret file path. SHA the id so the filesystem
+    never has a raw email/username in a filename."""
+    h = hashlib.sha256(str(user_id).encode("utf-8")).hexdigest()
+    return _MFA_SECRETS_DIR / f"{h}.json"
+
+
+def _load_mfa(user_id: str) -> dict:
+    p = _mfa_path(user_id)
+    if not p.exists():
+        return {}
     try:
-        from galaxy.webapps.galaxy.api.auth import AuthService  # type: ignore
-        svc = AuthService()
-        if hasattr(svc, "verify_totp"):
-            return bool(svc.verify_totp(user_id, code))
-    except Exception as exc:
-        log.warning("[sign] AuthService.verify_totp unavailable: %s", exc)
+        return json.loads(p.read_text())
+    except Exception:
+        return {}
 
-    # Dev-mode fallback: accept any 6-digit code IFF BIOMATE_REQUIRE_AUTH != "1".
-    # Production must have AuthService.verify_totp implemented.
-    if os.environ.get("BIOMATE_REQUIRE_AUTH") == "1":
-        log.warning("[sign] verify_totp not available in production-auth mode — rejecting")
-        return False
-    return bool(re.fullmatch(r"\d{6}", code))
+
+def _save_mfa(user_id: str, data: dict) -> None:
+    p = _mfa_path(user_id)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2))
+
+
+def _verify_totp(user_id: str, code: str) -> dict:
+    """Validate the 6-digit TOTP.
+
+    Returns a dict so the sign endpoint can include the dev_bypass flag
+    in the audit row:
+      {"ok": bool, "dev_bypass": bool, "reason": str}
+
+    Real check (pyotp) fires when the user has enrolled via
+    /api/auth/mfa/enroll. Until then:
+      - strict mode (BIOMATE_REQUIRE_AUTH=1): reject; require enrollment
+      - dev mode: accept any 6-digit code but flag dev_bypass=True so the
+        audit chain is honest that no real second factor was provided
+    """
+    if not re.fullmatch(r"\d{6}", code or ""):
+        return {"ok": False, "dev_bypass": False, "reason": "malformed_code"}
+
+    record = _load_mfa(str(user_id))
+    enrolled = bool(record.get("enrolled"))
+    strict = os.environ.get("BIOMATE_REQUIRE_AUTH") == "1"
+
+    if enrolled and record.get("secret"):
+        try:
+            import pyotp
+        except ImportError:
+            log.error("[sign] pyotp not installed; cannot verify enrolled secret")
+            return {"ok": False, "dev_bypass": False, "reason": "pyotp_missing"}
+        totp = pyotp.TOTP(record["secret"])
+        ok = bool(totp.verify(code, valid_window=1))
+        if ok:
+            record["last_verify_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            _save_mfa(user_id, record)
+        return {"ok": ok, "dev_bypass": False, "reason": "wrong_code" if not ok else "ok"}
+
+    # Not enrolled.
+    if strict:
+        log.warning("[sign] user=%s not enrolled and BIOMATE_REQUIRE_AUTH=1 — rejecting", user_id)
+        return {"ok": False, "dev_bypass": False, "reason": "not_enrolled"}
+
+    # Dev-mode bypass — log loudly so the audit chain is unambiguous.
+    log.warning(
+        "[sign] DEV-MODE BYPASS user=%s accepted any 6-digit code (no real MFA secret on file)",
+        user_id,
+    )
+    return {"ok": True, "dev_bypass": True, "reason": "dev_bypass"}
 
 
 @router.post("/api/ind-report/projects/{project_id}/sign")
@@ -95,7 +144,13 @@ async def sign_document(
     """
     user_id = user.get("user_id", "anonymous")
 
-    if not _verify_totp(str(user_id), body.totp_code):
+    verdict = _verify_totp(str(user_id), body.totp_code)
+    if not verdict.get("ok"):
+        reason = verdict.get("reason", "wrong_code")
+        if reason == "not_enrolled":
+            raise HTTPException(401, "MFA enrollment required — please set up your authenticator first")
+        if reason == "pyotp_missing":
+            raise HTTPException(500, "MFA verification backend unavailable")
         raise HTTPException(401, "Invalid TOTP code — check your authenticator and try again")
 
     record = {
@@ -108,6 +163,7 @@ async def sign_document(
         "signature_scope": body.signature_scope,
         "adapter_versions": body.adapter_versions,
         "totp_validated": True,
+        "dev_bypass": bool(verdict.get("dev_bypass")),
         "signed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     row_id = append_jsonl(_SIGN_LOG, record)

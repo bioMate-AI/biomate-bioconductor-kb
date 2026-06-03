@@ -22,6 +22,7 @@ import {
   type AuditFindingWithMeta, type ReferenceCompound,
 } from "@/components/ind-report/IndOverlays";
 import { NewProjectModal } from "@/components/ind-report/NewProjectModal";
+import { MfaEnrollScreen } from "@/components/ind-report/MfaEnrollScreen";
 import { DocPanelMobileModal } from "@/components/ind-report/DocPanelMobileModal";
 import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/SmilesListModal";
 import { RerunParamsModal } from "@/components/ind-report/RerunParamsModal";
@@ -468,6 +469,7 @@ export function IndReportPage() {
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
   const [rerunStep, setRerunStep] = useState<"admet" | "pbpk" | null>(null);
+  const [mfaModalOpen, setMfaModalOpen] = useState(false);
   useEffect(() => {
     if (!activeId) {
       setPipelineData(null);
@@ -595,6 +597,7 @@ export function IndReportPage() {
         <IndSignOverlay
           doc={{ ...DEMO_DOC_FOR_PANEL }}
           projectId={activeProject.id}
+          onSetupMfa={() => setMfaModalOpen(true)}
           onCancel={() => setShowSign(false)}
           onSigned={(info) => {
             if (info.sig) {
@@ -649,7 +652,11 @@ export function IndReportPage() {
         />
       )}
 
-      {rerunStep && activeProject && (
+      {mfaModalOpen && (
+        <MfaEnrollScreen onClose={() => setMfaModalOpen(false)} />
+      )}
+
+            {rerunStep && activeProject && (
         <RerunParamsModal
           step={rerunStep}
           projectId={activeProject.id}

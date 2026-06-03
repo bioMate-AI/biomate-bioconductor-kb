@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Download, X } from "lucide-react";
 import {
-  captureDismissal, signDocument, sha256Hex, downloadDocx, downloadAuditTrailPdf,
+  captureDismissal, signDocument, sha256Hex, downloadDocx, downloadAuditTrailPdf, getMfaStatus,
   type DismissalReason, type SignResponse, type DocumentSection,
 } from "@/lib/ind-report-api";
 import type { AuditFinding, IndDoc } from "./IndSteps";
@@ -30,13 +30,15 @@ import type { AuditFinding, IndDoc } from "./IndSteps";
 // The countdown timer is a real RFC 6238 TOTP window (30s steps from
 // Math.floor(Date.now()/1000) % 30), not a cosmetic loop.
 export function IndSignOverlay({
-  doc, projectId, onCancel, onSigned, orgId = null,
+  doc, projectId, onCancel, onSigned, orgId = null, onSetupMfa,
 }: {
   doc: IndDoc & { shaPrefix?: string; version?: number; bodyByPid?: Record<string, string> };
+  /** Open the MFA enrollment modal. When undefined, the link is hidden. */
   projectId: string;
   onCancel: () => void;
   onSigned?: (info: { title: string; creds: string; scope: string; sig?: SignResponse }) => void;
   orgId?: string | null;
+  onSetupMfa?: () => void;
 }) {
   const [step, setStep] = useState<"sign" | "success">("sign");
   const [title, setTitle] = useState("Director, Computational Pharmacology");
@@ -47,6 +49,16 @@ export function IndSignOverlay({
   const [submitting, setSubmitting] = useState(false);
   const [errMsg, setErrMsg] = useState<string>("");
   const [sigResp, setSigResp] = useState<SignResponse | null>(null);
+  // S2: real TOTP. Check enrollment so we can show the dev-mode bypass banner
+  // (or the strict-mode "enroll first" blocker) above the 6-digit input.
+  const [mfaEnrolled, setMfaEnrolled] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getMfaStatus()
+      .then((s) => { if (!cancelled) setMfaEnrolled(s.enrolled); })
+      .catch(() => { if (!cancelled) setMfaEnrolled(false); });
+    return () => { cancelled = true; };
+  }, []);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Real RFC 6238 TOTP window: refresh every second, snap to 30s boundaries.
@@ -223,6 +235,51 @@ export function IndSignOverlay({
 
           <div className="sign-section">
             <h3>6-digit authenticator code</h3>
+            {mfaEnrolled === false && (
+              <div
+                style={{
+                  marginTop: 8, padding: "8px 10px",
+                  background: "oklch(0.96 0.06 90)",
+                  border: "1px solid oklch(0.78 0.12 90)",
+                  borderRadius: 6, fontSize: 12.5,
+                  color: "oklch(0.32 0.10 90)",
+                  display: "flex", gap: 8, alignItems: "center",
+                }}
+              >
+                <span>⚠</span>
+                <span style={{ flex: 1 }}>
+                  <b>Dev mode:</b> no authenticator is enrolled — the backend
+                  will accept any 6 digits and flag the signature as a
+                  <span className="mono"> dev_bypass</span> in the audit trail.
+                </span>
+                {onSetupMfa && (
+                  <button
+                    className="ind-link"
+                    onClick={onSetupMfa}
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    Set up authenticator →
+                  </button>
+                )}
+              </div>
+            )}
+            {mfaEnrolled === true && (
+              <div
+                style={{
+                  marginTop: 8, padding: "6px 10px",
+                  background: "var(--ind-ok-soft, #ecfdf5)",
+                  border: "1px solid var(--ind-ok, #10b981)",
+                  borderRadius: 6, fontSize: 12,
+                  color: "var(--ind-ok, #047857)",
+                  display: "flex", gap: 8, alignItems: "center",
+                }}
+              >
+                <span>✓</span>
+                <span style={{ flex: 1 }}>
+                  Authenticator app required. Enter the current 6-digit code.
+                </span>
+              </div>
+            )}
             <div className="sign-totp">
               <div className="totp-input">
                 {totp.map((d, i) => (
