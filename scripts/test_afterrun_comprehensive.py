@@ -104,11 +104,14 @@ record("B", "B4 — Methods stub detector present",        "No QC events recorde
 record("B", "B5 — Params tab label present",             '"Parameters"' in bundle)
 record("B", "B6 — QC audit tab label present",           '"QC audit"' in bundle,
        "tab only renders when qcEvents.length > 0")
-record("B", "B7 — Software tab NOT shipped (v0)",        '"Software"' not in bundle.replace('"Software (deferred)"', '') and 'after-tab-software' not in bundle,
-       "intentionally removed in v0 per user direction")
-record("B", "B8 — Citations AfterRunReport tab NOT shipped (v0)",
-       'after-tab-citations' not in bundle,
-       "AfterRunReport Citations tab disabled in v0; literal 'Citations' string elsewhere in bundle is from FindingsCard's own sub-section, not the tab")
+# Software + Citations RESTORED 2026-06-03 with real backend routes
+# (/api/invocations/:id/software walks versions.yml; /api/workflows/:name/citations
+# assembles from qc_evidence.yaml + cryo_em_knowledge). Tabs are hidden when
+# their data sources return empty, so presence is checked via the tab label.
+record("B", "B7 — Software tab shipped (data-source backed)",
+       '"Software"' in bundle, "/api/invocations/:id/software backend route added")
+record("B", "B8 — Citations tab shipped (data-source backed)",
+       '"Citations"' in bundle, "/api/workflows/:name/citations backend route added")
 
 # ─────────────────────────────────────────────────────────────────────────
 section("C", "Tab content correctness — endpoints return expected shape")
