@@ -12,6 +12,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 vi.mock("./storage", () => ({
   storage: {
     getExecutionRuns: vi.fn(),
+    getExecutionRun: vi.fn(),
   },
 }));
 vi.mock("@anthropic-ai/sdk", () => ({
@@ -164,5 +165,104 @@ describe("C1 — list_history tool handler", () => {
     expect((out as any).runs).toEqual([]);
     expect((out as any).note).toMatch(/no userId/);
     expect(mockedGetRuns).not.toHaveBeenCalled();
+  });
+});
+
+const mockedGetRun = storage.getExecutionRun as unknown as ReturnType<typeof vi.fn>;
+
+describe("C3 — list_run_outputs tool handler", () => {
+  beforeEach(() => mockedGetRun.mockReset());
+
+  function makeRunWithOutputs() {
+    return {
+      id: "abcdef1234567890",
+      userId: "u1",
+      workflowName: "variant-call",
+      execution: {
+        status: "completed",
+        nextflowOutputDir: "s3://bucket/runs/abcdef1234567890",
+        outputs: {
+          variants_vcf: "s3://bucket/runs/abcdef1234567890/variants.vcf",
+          summary_csv: "s3://bucket/runs/abcdef1234567890/summary.csv",
+          plot_png: { path: "s3://bucket/runs/abcdef1234567890/plot.png" },
+        },
+      },
+    } as any;
+  }
+
+  it("returns files with canonical param_uri strings", async () => {
+    mockedGetRun.mockResolvedValue(makeRunWithOutputs());
+    const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
+    const out = await a._toolListRunOutputs(
+      { run_id: "abcdef1234567890" },
+      { userId: "u1" } as any
+    );
+    expect((out as any).count).toBe(3);
+    const files = (out as any).files;
+    expect(files).toContainEqual({
+      name: "variants.vcf",
+      ext: "vcf",
+      param_uri: "run:abcdef1234567890:outputs/variants.vcf",
+    });
+    expect(files).toContainEqual({
+      name: "plot.png",
+      ext: "png",
+      param_uri: "run:abcdef1234567890:outputs/plot.png",
+    });
+  });
+
+  it("filters by ext_filter (case-insensitive, strips leading dot)", async () => {
+    mockedGetRun.mockResolvedValue(makeRunWithOutputs());
+    const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
+    const out = await a._toolListRunOutputs(
+      { run_id: "abcdef1234567890", ext_filter: ".VCF" },
+      { userId: "u1" } as any
+    );
+    expect((out as any).count).toBe(1);
+    expect((out as any).files[0].name).toBe("variants.vcf");
+  });
+
+  it("refuses cross-user access", async () => {
+    mockedGetRun.mockResolvedValue({ ...makeRunWithOutputs(), userId: "OTHER-USER" });
+    const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
+    const out = await a._toolListRunOutputs(
+      { run_id: "abcdef1234567890" },
+      { userId: "u1" } as any
+    );
+    expect((out as any).error).toMatch(/different user/);
+  });
+
+  it("error on missing run_id without DB call", async () => {
+    const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
+    const out = await a._toolListRunOutputs({}, { userId: "u1" } as any);
+    expect((out as any).error).toMatch(/run_id is required/);
+    expect(mockedGetRun).not.toHaveBeenCalled();
+  });
+
+  it("returns descriptive error when run not found", async () => {
+    mockedGetRun.mockResolvedValue(undefined);
+    const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
+    const out = await a._toolListRunOutputs(
+      { run_id: "deadbeefdeadbeef" },
+      { userId: "u1" } as any
+    );
+    expect((out as any).error).toMatch(/no run with id/);
+    expect((out as any).hint).toMatch(/list_history/);
+  });
+
+  it("populates empty_hint when outputs map is empty", async () => {
+    mockedGetRun.mockResolvedValue({
+      id: "x",
+      userId: "u1",
+      workflowName: "running-wf",
+      execution: { status: "running", outputs: {} },
+    });
+    const a = new GalaxyAssistant({ anthropicApiKey: "sk-ant-test-key-placeholder" } as any) as any;
+    const out = await a._toolListRunOutputs(
+      { run_id: "x" },
+      { userId: "u1" } as any
+    );
+    expect((out as any).count).toBe(0);
+    expect((out as any).empty_hint).toBeTruthy();
   });
 });
