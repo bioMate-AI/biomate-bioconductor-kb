@@ -311,6 +311,213 @@ async def download_docx(project_id: str, body: DocumentRequest):
 
 
 # ---------------------------------------------------------------------------
+# A1 — Attachments (PDF/CSV upload) for IND projects
+# ---------------------------------------------------------------------------
+# Storage layout under data/ind_demo/registry/attachments/<project_id>/:
+#   <uuid>__<safe_filename>       — the raw bytes the user uploaded
+#   <uuid>__<safe_filename>.txt   — extracted plaintext (PDFs only, first 50KB)
+#   _index.jsonl                  — append-only metadata; deletes append
+#                                   a tombstone {id, deleted_at} row
+#
+# Endpoints:
+#   POST   /api/ind-report/projects/{project_id}/attachments   multipart
+#   GET    /api/ind-report/projects/{project_id}/attachments   list
+#   DELETE /api/ind-report/projects/{project_id}/attachments/{aid}
+#
+# Closes A1 from docs/20260603_IND_MODULE_HONEST_AUDIT.md — the
+# "Upload PDF or CSV" button at IndSteps.tsx:291 had no onClick.
+
+from uuid import uuid4 as _uuid4
+from datetime import datetime as _dt
+from fastapi import UploadFile, File
+
+_ATTACHMENTS_DIR = _REPO_ROOT / "data" / "ind_demo" / "registry" / "attachments"
+_ALLOWED_CT = {
+    "application/pdf",
+    "text/csv",
+    "application/vnd.ms-excel",  # some browsers send this for .csv
+    "text/plain",                # some servers send text/plain for .csv
+}
+_MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB cap
+
+
+def _attachments_dir(project_id: str) -> Path:
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+    return _ATTACHMENTS_DIR / project_id
+
+
+def _safe_filename(name: str) -> str:
+    # Keep only [A-Za-z0-9._-]; collapse runs, cap length.
+    out = re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("._-")[:96]
+    return out or "upload"
+
+
+def _attachments_index_path(project_id: str) -> Path:
+    return _attachments_dir(project_id) / "_index.jsonl"
+
+
+def _read_attachments_index(project_id: str) -> list[dict]:
+    """Walk _index.jsonl and apply tombstone records. Returns the live set."""
+    path = _attachments_index_path(project_id)
+    if not path.exists():
+        return []
+    rows: list[dict] = []
+    deleted: set[str] = set()
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if "deleted_at" in rec:
+            deleted.add(rec.get("id", ""))
+            continue
+        rows.append(rec)
+    return [r for r in rows if r.get("id") not in deleted]
+
+
+def _append_attachment_row(project_id: str, record: dict) -> None:
+    path = _attachments_index_path(project_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as f:
+        f.write(json.dumps(record) + "\n")
+
+
+def _extract_text_from_pdf(blob: bytes) -> tuple[str, int]:
+    """Returns (preview_text up to 50 KB, page count). Empty on failure."""
+    try:
+        import pdfplumber
+        from io import BytesIO
+        text_parts: list[str] = []
+        n_pages = 0
+        with pdfplumber.open(BytesIO(blob)) as pdf:
+            for page in pdf.pages:
+                t = page.extract_text() or ""
+                text_parts.append(t)
+                n_pages += 1
+                if sum(len(p) for p in text_parts) > 50_000:
+                    break
+        return ("\n\n".join(text_parts)[:50_000], n_pages)
+    except Exception as exc:
+        log.warning("[attachments] PDF extract failed: %s", exc)
+        return ("", 0)
+
+
+def _parse_csv_columns(blob: bytes) -> tuple[list[str], int]:
+    """Return (column_headers, row_count). Empty on failure."""
+    try:
+        import csv as _csv
+        from io import StringIO
+        text = blob.decode("utf-8", errors="replace")
+        reader = _csv.reader(StringIO(text))
+        header = next(reader, [])
+        rows = sum(1 for _ in reader)
+        return ([h.strip() for h in header], rows)
+    except Exception as exc:
+        log.warning("[attachments] CSV parse failed: %s", exc)
+        return ([], 0)
+
+
+@router.post("/api/ind-report/projects/{project_id}/attachments")
+async def upload_attachment(
+    project_id: str,
+    file: UploadFile = File(...),
+):
+    """Accept a PDF or CSV upload. Stores bytes + extracted metadata."""
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+
+    ct = (file.content_type or "").lower()
+    fname = file.filename or "upload"
+    ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+    # Accept either by content-type OR file extension (browsers vary)
+    is_pdf = ct == "application/pdf" or ext == "pdf"
+    is_csv = ct in {"text/csv", "application/vnd.ms-excel", "text/plain"} or ext == "csv"
+    if not (is_pdf or is_csv):
+        raise HTTPException(
+            400,
+            f"only PDF or CSV uploads accepted (got content_type={ct!r}, ext={ext!r})",
+        )
+
+    blob = await file.read()
+    if len(blob) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"upload too large ({len(blob)} > {_MAX_UPLOAD_BYTES})")
+    if not blob:
+        raise HTTPException(400, "empty upload")
+
+    sha = hashlib.sha256(blob).hexdigest()
+    aid = _uuid4().hex
+    safe = _safe_filename(fname)
+    target_dir = _attachments_dir(project_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / f"{aid}__{safe}"
+    target_path.write_bytes(blob)
+
+    record: dict = {
+        "id": aid,
+        "filename": fname,
+        "stored_as": target_path.name,
+        "content_type": ct or ("application/pdf" if is_pdf else "text/csv"),
+        "size_bytes": len(blob),
+        "sha256": sha,
+        "uploaded_at": _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    if is_pdf:
+        text, n_pages = _extract_text_from_pdf(blob)
+        if text:
+            preview_path = target_path.with_suffix(target_path.suffix + ".txt")
+            preview_path.write_text(text, encoding="utf-8")
+            record["text_preview_path"] = preview_path.name
+        record["pdf_pages"] = n_pages
+        record["kind"] = "pdf"
+    if is_csv:
+        cols, rows = _parse_csv_columns(blob)
+        record["csv_columns"] = cols
+        record["csv_rows"] = rows
+        record["kind"] = "csv"
+
+    _append_attachment_row(project_id, record)
+    return record
+
+
+@router.get("/api/ind-report/projects/{project_id}/attachments")
+async def list_attachments(project_id: str):
+    """Return all non-tombstoned attachments for the project."""
+    rows = _read_attachments_index(project_id)
+    return {"attachments": rows}
+
+
+@router.delete("/api/ind-report/projects/{project_id}/attachments/{attachment_id}")
+async def delete_attachment(project_id: str, attachment_id: str):
+    """Tombstone the attachment row + delete the on-disk file."""
+    rows = _read_attachments_index(project_id)
+    match = next((r for r in rows if r.get("id") == attachment_id), None)
+    if not match:
+        raise HTTPException(404, "attachment not found")
+    target = _attachments_dir(project_id) / match.get("stored_as", "")
+    if target.exists():
+        try:
+            target.unlink()
+        except Exception as exc:
+            log.warning("[attachments] failed to unlink %s: %s", target, exc)
+    preview = target.with_suffix(target.suffix + ".txt")
+    if preview.exists():
+        try:
+            preview.unlink()
+        except Exception:
+            pass
+    _append_attachment_row(project_id, {
+        "id": attachment_id,
+        "deleted_at": _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    })
+    return {"deleted": True, "id": attachment_id}
+
+
+
+# ---------------------------------------------------------------------------
 # Audit trail PDF — 21 CFR Part 11 §11.10(e) "secure, computer-generated,
 # time-stamped audit trails"
 # ---------------------------------------------------------------------------

@@ -191,6 +191,7 @@ function PipelineCenter({
       />
       <Step2Admet
         data={admetData}
+        projectId={activeProject.id}
         // Force expansion when the imported-from-chat banner needs to be
         // visible, so the customer sees the cue without manually expanding.
         expanded={expanded.s2 ?? knobs.importedFromChat}

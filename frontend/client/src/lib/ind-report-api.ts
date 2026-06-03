@@ -560,3 +560,55 @@ export function rerunPbpk(
     params,
   );
 }
+
+
+// ---------------------------------------------------------------------------
+// A1 — Attachments (PDF / CSV uploads)
+// ---------------------------------------------------------------------------
+
+export type AttachmentMeta = {
+  id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
+  uploaded_at: string;
+  kind?: "pdf" | "csv";
+  pdf_pages?: number;
+  csv_columns?: string[];
+  csv_rows?: number;
+};
+
+export async function uploadAttachment(
+  projectId: string,
+  file: File,
+): Promise<AttachmentMeta> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const resp = await fetch(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/attachments`,
+    { method: "POST", body: fd, headers: { ...jwtHeader() } },
+  );
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    throw new Error(`upload ${resp.status}: ${t}`);
+  }
+  return resp.json();
+}
+
+export async function listAttachments(projectId: string): Promise<AttachmentMeta[]> {
+  const r = await getJson<{ attachments: AttachmentMeta[] }>(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/attachments`,
+  );
+  return r.attachments ?? [];
+}
+
+export async function deleteAttachment(projectId: string, aid: string): Promise<void> {
+  const resp = await fetch(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/attachments/${encodeURIComponent(aid)}`,
+    { method: "DELETE", headers: { ...jwtHeader() } },
+  );
+  if (!resp.ok) {
+    throw new Error(`delete attachment ${resp.status}`);
+  }
+}
