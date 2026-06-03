@@ -20,7 +20,20 @@
 >
 > Raw output in `evaluation/results/regulatory_llm_5model_v1/summary.csv`. The earlier (v1.old-preamble) GPT-4o / Sonnet 4.6 / Gemini-3.5-flash run is archived for prompt-vs-prompt comparison; under the strengthened prompt Sonnet 4.6 climbs from 86.2 → 87.1 (+0.9), Gemini 3.5 Flash 75.8 → 73.7 (-2.1). The lift is concentrated where the new guideline is most explicit (citation accuracy, structural) — the new IDs (Opus 4.8, GPT-5) are the bigger driver.
 >
-> Local model rows (BioMate v6 + base Qwen3-8B) are pending — first attempt hit HF_TOKEN issues; rerunning with proper auth. They will overwrite the projected `~85%` / `~38%` cells when the run completes.
+> ⚠️ **Local model numbers MEASURED 2026-06-03 — and they invalidate the "BioMate v6 is the strongest" claim that appears later in this doc.** The fine-tune *hurts* regulatory quality on this eval:
+>
+> | Model | Macro avg | vs base |
+> |---|---|---|
+> | GPT-5 | 90.0% | — |
+> | Claude Sonnet 4.6 | 87.1% | — |
+> | Base Qwen3-8B | **84.4%** | — |
+> | BioMate v6 (Qwen3-8B + LoRA) | **82.4%** | **−2.0pp** |
+>
+> Run: g5.xlarge on-demand, vLLM 0.22, /no_think prompt, n=100 held-out IND §2.6 examples. The full diff: v6 drops 14pp on citation accuracy (60% → 46%) and 3pp on MRSD calculation (31% → 28%) — exactly the checkers the SFT+DPO corpus was supposed to lift. Structural and cross-section gained 1-2pp, not enough to compensate.
+>
+> **What this means:** the v6 LoRA is not currently a quality win. The frontier path (GPT-5 default in `start_backend.sh::REGULATORY_LLM_FRONTIER_MODEL`) stays primary. Sections of this doc claiming v6 wins on checker pass rate are now historical / aspirational. We need to investigate the v6 training corpus + procedure before any v7 attempt — the most likely causes are (a) overfitting to a specific section template that broke citation accuracy, (b) DPO preference signal that traded substance for structure.
+>
+> S3 artifacts (full per-example outputs + logs): `s3://biomate-models-399683337364/v6_eval_runs/20260603T045821/`
 
 ---
 
@@ -56,8 +69,8 @@ Our internal eval harness (`evaluation/runners/run_regulatory_llm_eval.py`) runs
 | **Claude Opus 4.8** | 30% | 100% | 100% | 61% | **87%** | 100% | 95% | 100% | 100% | **85.9%** |
 | **Gemini 3.1 Pro Preview** | 32% | 98% | 100% | 35% | 37% | 99% | 66% | 100% | 97% | **73.8%** |
 | **Gemini 3.5 Flash** | 34% | 100% | 100% | 24% | 31% | 100% | 77% | 100% | 98% | **73.7%** |
-| **BioMate `regulatory_llm_v6`** (Qwen3-8B + LoRA) | _local GPU rerun pending (HF_TOKEN fix)_ | | | | | | | | | _pending_ |
-| Base Qwen3-8B (no LoRA) | _local GPU rerun pending_ | | | | | | | | | _pending_ |
+| **Base Qwen3-8B** (no LoRA) | 31% | 100% | 100% | **84%** | **60%** | 100% | 86% | 100% | 99% | **84.4%** |
+| **BioMate `regulatory_llm_v6`** (Qwen3-8B + LoRA) | 28% | 100% | 100% | 80% | 46% | 100% | 88% | 100% | 100% | **82.4%** |
 
 Note the inversion: **Sonnet 4.6 leads on MRSD calc (50%)** — the hardest checker — but **GPT-5 sweeps tabulated↔prose, citation, and structural at 100%**. Opus 4.8 beats Sonnet on citation (87 vs 76) but trails overall because of weaker MRSD arithmetic. Gemini lags ~13pp behind, dominantly on citation grounding and structural conformance.
 
