@@ -5200,6 +5200,36 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       .filter(Boolean)
       .join(' | ');
 
+    // Turn-2 confirmation rescue: if the current userIntent is a short
+    // confirmation-style reply ("yes run with defaults", "go ahead", "proceed"),
+    // the user is replying to the assistant's prior question (typically a
+    // missing-data ask). Galaxy can't match a workflow on "yes" alone — it has
+    // no domain signal. Prepend the prior user turn so /api/ai_assistant/
+    // generate_workflow gets the original intent ("Run HTS plate QC...")
+    // AND the confirmation, producing a runnable workflow_ga instead of
+    // dropping the request as unmatched. Matches the same exception list as
+    // the system-prompt SECOND-TURN OVERRIDE rule.
+    const _isShortConfirmation = (() => {
+      const t = userIntent.trim().toLowerCase();
+      if (t.length > 80) return false; // long messages aren't pure confirmations
+      return (
+        /^(yes|yep|yeah|yup|ok|okay|sure|fine|go ahead|proceed|run it|run|do it|please do|go for it|continue)\b/i.test(t) ||
+        /\b(with defaults|use defaults|default parameters|synthetic data|demo data|sample data|built-in demo|use the demo)\b/i.test(t)
+      );
+    })();
+    if (_isShortConfirmation && context?.previousMessages?.length) {
+      // Find the most recent user message before this one — that's the
+      // intent the user actually wants to execute.
+      const priorUserMsg = [...context.previousMessages]
+        .reverse()
+        .find((m) => m.role === 'user' && (m.content || '').trim().length > 20);
+      if (priorUserMsg) {
+        const priorContent = (priorUserMsg.content || '').slice(0, 600); // cap to keep Galaxy prompt small
+        userIntent = `${priorContent}\n\n[User confirmation on turn 2]: ${userIntent}`;
+        console.log('[GalaxyAssistant] Turn-2 confirmation detected — prepended prior user intent for workflow generation');
+      }
+    }
+
     // Skip Haiku domain round-trip when ANDV E2E names an explicit registry workflow.
     const _explicitRegistryFastPath =
       /\bregistry\s+id\s+(10813|12824|12700)\b/i.test(userIntent) ||
