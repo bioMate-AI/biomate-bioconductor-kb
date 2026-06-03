@@ -476,8 +476,18 @@ def _evaluate_workflow_trace_terminal(
 
 
 def _looks_like_log_stream_orphan_failure(disk: dict) -> bool:
-    """timing.json marked failed within ~30s with rc=-1 from a lost log-stream thread."""
-    if disk.get("returncode") != -1:
+    """timing.json marked failed within ~30s with rc in (-1, 1) from a lost log-stream thread.
+
+    The classic case: gunicorn was HUP'd (e.g. by sync_to_dev.sh's restart_galaxy)
+    mid-run. The Python _stream_logs thread loses its stdout pipe, process.wait()
+    returns prematurely (often with rc=1 or rc=-1), and the worker writes a
+    bogus terminal state to timing.json — even though the actual Nextflow JVM
+    survived via start_new_session=True and is still driving AWS Batch tasks.
+    Recover by polling: if elapsed is short and trace shows submitted-but-not-
+    terminal tasks, the run is alive.
+    """
+    rc = disk.get("returncode")
+    if rc not in (-1, 1):
         return False
     if disk.get("status") not in ("failed", "interrupted", None):
         return False
