@@ -449,7 +449,11 @@ export function ExecutionControlPanel({
   };
 
   // Render QC settings section (US-4.3)
+  // data-testid on the wrapping div guarantees the E2E test can find it —
+  // Radix's Collapsible may not forward arbitrary attrs to the underlying
+  // element.
   const renderQcSettings = () => (
+   <div data-testid="qc-settings-section">
     <Collapsible open={showQcSettings} onOpenChange={setShowQcSettings}>
       <CollapsibleTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-between h-8 text-xs mt-1">
@@ -533,6 +537,7 @@ export function ExecutionControlPanel({
         </div>
       </CollapsibleContent>
     </Collapsible>
+   </div>
   );
 
   // Render progress section
