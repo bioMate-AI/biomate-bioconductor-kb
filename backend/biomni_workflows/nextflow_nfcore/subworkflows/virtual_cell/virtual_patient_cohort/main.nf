@@ -69,8 +69,8 @@ process VIRTUAL_PATIENT_COHORT {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/virtual-patient-cohort-nf:1.0' \
+        : 'biomate/virtual-patient-cohort-nf:latest'
 
     input:
     val(meta)

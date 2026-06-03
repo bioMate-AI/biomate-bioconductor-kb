@@ -63,8 +63,8 @@ process PHYSICELL_TUMOR_TGI {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/physicell-tumor-tgi-nf:1.0' \
+        : 'biomate/physicell-tumor-tgi-nf:latest'
 
     input:
     val(meta)
