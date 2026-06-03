@@ -57,8 +57,8 @@ RDS_SECRET_NAME=""    # if set, deploy fetches this from Secrets Manager and
 case "$ENV_NAME" in
   test)
     INSTANCE_TAG_FILTER="Name=tag:Name,Values=biomate-deploy-test"
-    PUBLIC_URL="http://stage-public.biomate.ai"
-    BACKEND_HEALTH="${PUBLIC_URL}:8081/api/version"
+    PUBLIC_URL="https://test.stage-public.biomate.ai"
+    BACKEND_HEALTH="http://stage-public.biomate.ai:8081/api/version"
     FRONTEND_HEALTH="${PUBLIC_URL}/api/health"
     # test env is ephemeral: drop+recreate the Galaxy schema on every deploy.
     # Galaxy's migration code refuses to boot against a non-empty DB that has
@@ -330,6 +330,36 @@ docker compose -f docker-compose.deploy.yml ps
   fi
   notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "compose up failed; no rollback target"
   exit 1
+fi
+
+# -------- 4a. Ensure TLS terminator (Caddy) is running on the host --------
+# Caddy lives outside the compose project so it survives `compose down --volumes`
+# between deploys (preserves the ACME-issued cert in the persistent volume).
+# Uses host networking so the reverse_proxy target `localhost:3000` reaches the
+# frontend container's host-bound port 3000.
+if [[ -n "${CADDYFILE_B64:-}" ]] || CADDYFILE_B64=$(base64 -w0 < "$(dirname "$0")/../deploy/Caddyfile" 2>/dev/null); then
+  log "[4a/5] Ensuring biomate-caddy TLS terminator is running …"
+  ssm_run "
+mkdir -p /opt/biomate
+echo '$CADDYFILE_B64' | base64 -d > /opt/biomate/Caddyfile
+docker volume create biomate-caddy-data >/dev/null 2>&1 || true
+docker volume create biomate-caddy-config >/dev/null 2>&1 || true
+if docker inspect biomate-caddy >/dev/null 2>&1; then
+  docker start biomate-caddy >/dev/null 2>&1 || true
+  docker exec biomate-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1 | tail -3 || true
+  echo 'caddy: reloaded'
+else
+  docker run -d --restart unless-stopped \\
+    --name biomate-caddy \\
+    --network host \\
+    -v /opt/biomate/Caddyfile:/etc/caddy/Caddyfile:ro \\
+    -v biomate-caddy-data:/data \\
+    -v biomate-caddy-config:/config \\
+    caddy:2-alpine 2>&1 | tail -2
+  echo 'caddy: started fresh'
+fi
+docker ps --filter name=biomate-caddy --format '{{.Status}}'
+" caddy-ensure || log "warn: caddy ensure step failed; continuing — TLS healthcheck may fail"
 fi
 
 # -------- 4b. External HTTP healthcheck against public URL --------
