@@ -63,6 +63,19 @@ jobs:
           grep -qE 'database/.*\.(sqlite|db)' backend/.dockerignore || { echo "::error::database/*.sqlite not excluded in backend/.dockerignore"; exit 1; }
           echo "OK"
 
+      - name: Pre-flight — Python 3.9 compat guard (nextflow_executor)
+        # Galaxy container ships Python 3.9. nextflow_executor.py uses PEP 604
+        # `X | Y` union syntax in 13+ annotations and requires
+        # `from __future__ import annotations` to load on 3.9. The line has
+        # been stripped 4+ times by parallel-session sweep commits (see
+        # 903745e19, 1f49b6e45, d984965485). Each strip puts dev Galaxy
+        # into a 30s gunicorn exit-loop. Run the regression guard test on
+        # every push so the strip is caught here, before the image is built
+        # and pushed and a deploy starts failing.
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest backend/tests/test_nextflow_executor_python39_compat.py -v
+
       - name: Compute build tags
         id: tags
         run: |
