@@ -42,7 +42,7 @@ gravity:
     timeout: 300
     # Limit memory per worker
     worker_class: sync
-    max_requests: 1000
+    max_requests: 100000
     max_requests_jitter: 50
     # Do NOT preload app - load toolbox per worker to reduce memory
     preload: false
