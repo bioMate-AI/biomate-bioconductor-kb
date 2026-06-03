@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import { requestContextMiddleware } from "./request-context";
+import { registerJobsRouter } from "./jobs/router";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
@@ -1344,6 +1345,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   });
+
+  // Async job-queue subsystem (Phase 0) — /api/jobs CRUD + executor.
+  // See docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md.
+  registerJobsRouter(app);
 
   // UX Telemetry - fire-and-forget event ingestion (non-blocking)
   app.post("/api/telemetry/events", express.json(), async (req, res) => {
