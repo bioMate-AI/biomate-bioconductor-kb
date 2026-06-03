@@ -296,6 +296,35 @@ docker run --rm postgres:15-alpine psql \"\$PSQL_URL\" \
 " wipe || { notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "schema wipe"; exit 1; }
 fi
 
+# -------- 3c. (test-env only) Apply frontend Drizzle migrations --------
+# The wipe in 3b drops every public-schema table, including the frontend's
+# auth/users/feature_flags tables created by frontend/migrations/*.sql.
+# Galaxy's Alembic on boot only re-creates its OWN tables, never the
+# frontend's. Without this step, /api/auth/register fails with
+# `relation "users" does not exist` (which is what every smoke-auth run
+# saw before this step existed). Apply all 14 .sql files in name order.
+if [[ "$WIPE_GALAXY_DB" == "1" && -n "$RDS_SECRET_NAME" ]]; then
+  MIGRATIONS_DIR="$(dirname "$0")/../frontend/migrations"
+  if [[ -d "$MIGRATIONS_DIR" ]]; then
+    log "[3c/5] Applying frontend Drizzle migrations …"
+    MIGRATIONS_TAR_B64=$(tar -czf - -C "$MIGRATIONS_DIR" $(ls "$MIGRATIONS_DIR" | grep '\.sql$' | sort) | base64 -w0)
+    ssm_run "
+DB_URL=\$(aws secretsmanager get-secret-value --region $AWS_REGION \
+  --secret-id $RDS_SECRET_NAME --query SecretString --output text \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"url\"])')
+PSQL_URL=\$(echo \"\$DB_URL\" | sed -E 's|^postgresql\+psycopg2://|postgresql://|')
+mkdir -p /opt/biomate/migrations
+echo '$MIGRATIONS_TAR_B64' | base64 -d | tar -xzf - -C /opt/biomate/migrations
+for f in /opt/biomate/migrations/*.sql; do
+  echo \"-- applying \$(basename \$f) --\"
+  docker run --rm -v /opt/biomate/migrations:/m:ro postgres:15-alpine \\
+    psql \"\$PSQL_URL\" -v ON_ERROR_STOP=1 -f \"/m/\$(basename \$f)\" 2>&1 | tail -5 || exit 1
+done
+echo 'migrations: done'
+" frontend-migrations || { notify "[deploy] $ENV_NAME $DEPLOY_TAG FAILED" "frontend migrations"; exit 1; }
+  fi
+fi
+
 # -------- 4. Pull + up + healthcheck --------
 log "[4/5] docker compose pull + up + container healthchecks …"
 if ! ssm_run "
