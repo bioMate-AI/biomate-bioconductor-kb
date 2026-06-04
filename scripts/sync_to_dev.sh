@@ -75,8 +75,10 @@ apply_postgres_migrations() {
   log "[pg] Applying frontend/migrations/*.sql to biomate-dev-postgres..."
   local migrations_dir="$REPO_ROOT/frontend/migrations"
   if [[ ! -d "$migrations_dir" ]]; then
-    log "[pg] No migrations dir at $migrations_dir — skipping"
-    return 0
+    # Hard fail — silent skip caused the 2026-06-03 dev outage where 0012
+    # was never applied and the new endpoint crashed Node on the first call.
+    log "[pg] FATAL: migrations dir missing at $migrations_dir (REPO_ROOT=$REPO_ROOT)"
+    return 1
   fi
   local tar_file=/tmp/biomate_pg_migrations.tar.gz
   tar -czf "$tar_file" -C "$REPO_ROOT" frontend/migrations 2>/dev/null
@@ -108,6 +110,7 @@ deploy_frontend() {
     --exclude='frontend/node_modules' \
     -C "$REPO_ROOT" \
     frontend/client/ frontend/server/ frontend/shared/ frontend/attached_assets/ \
+    frontend/migrations/ \
     frontend/package.json frontend/package-lock.json \
     frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
     frontend/tailwind.config.js frontend/postcss.config.js \

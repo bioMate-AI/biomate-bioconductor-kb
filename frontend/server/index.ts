@@ -4,6 +4,7 @@ import session from "express-session";
 import cookieParser from "cookie-parser";
 import passport from "passport";
 import { registerRoutes } from "./routes";
+import { applyPendingMigrations } from "./migrate";
 import { setupVite, serveStatic, log } from "./vite";
 import { oauthService } from "./oauth-service";
 import { createSessionStore } from "./redis-session";
@@ -101,6 +102,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Apply any pending DB migrations BEFORE routes register, so handlers
+  // never query missing tables. See server/migrate.ts. A failure here is
+  // fatal — a half-applied schema is worse than a refused start.
+  try {
+    await applyPendingMigrations();
+  } catch (err) {
+    console.error("[FATAL] Migration runner failed:", err);
+    process.exit(1);
+  }
+
   // Initialize session store (Redis or Memory fallback)
   await initializeSession();
 
