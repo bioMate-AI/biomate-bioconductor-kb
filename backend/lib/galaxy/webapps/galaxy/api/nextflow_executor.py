@@ -3508,6 +3508,21 @@ def execute_nextflow(
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
 
+    # AWS CRT SIGSEGV mitigation. DO NOT REVERT — when Nextflow's PublishDir
+    # spawns S3TransferManager, the shared AWS Common Runtime native library
+    # can SIGSEGV the whole JVM mid-run (seen as the parent process dying ~2s
+    # after Phase A's task COMPLETED line, before Phase B is submitted).
+    # Fix: per-run CRT cache dir + bigger JVM stack + disable in-client CRT.
+    # See docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
+    _nxf_crt_cache = log_dir / ".aws-crt-cache"
+    _nxf_crt_cache.mkdir(parents=True, exist_ok=True)
+    _existing_nxf_opts = env.get("NXF_OPTS", "")
+    _crt_opts = (
+        f"-Daws.crt.lib.dir={_nxf_crt_cache} "
+        f"-Daws.crt.disable.crt.in.client=true -Xss2m"
+    )
+    env["NXF_OPTS"] = f"{_existing_nxf_opts} {_crt_opts}".strip()
+
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
     billing_user_id = _uid_for_path  # same sanitised value used in S3 path construction
