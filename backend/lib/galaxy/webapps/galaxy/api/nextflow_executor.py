@@ -1586,19 +1586,6 @@ def _generate_executor_config(
             "    client {",
             "        maxConnections = 20",
             "        uploadChunkSize = 104857600",   # 100 MB chunks
-            # CRITICAL — do NOT use the AWS CRT-based S3 client. The CRT native
-            # library (.so extracted from the shaded jar) crashes during dlopen
-            # on Debian trixie glibc 2.41 + OpenJDK 21.0.11. The crash signature
-            # is SIGSEGV in ld-linux-x86-64.so.2+0x2475a inside
-            # software.amazon.awssdk.crt.CRT.extractAndLoadLibrary(), triggered
-            # on the first PublishDir-thread S3 upload. The Batch task itself
-            # succeeds, but Nextflow dies before reporting terminal status —
-            # Galaxy then shows the run as 'running' until the 12h stuck guard.
-            # NF 25.x used Netty by default and was fine; NF 26.04 switched the
-            # default to CRT. Opt back out via the documented Nextflow option.
-            # If/when glibc, OpenJDK, or the CRT native lib pick up an upstream
-            # fix, this can be removed. Tracked: docs/20260604_NF_S3_CRT_FIX.md
-            "        s3UseCrtClient = false",
             "    }",
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
@@ -3541,6 +3528,16 @@ def execute_nextflow(
         f"-Daws.crt.disable.crt.in.client=true -Xss2m"
     )
     env["NXF_OPTS"] = f"{_existing_nxf_opts} {_crt_opts}".strip()
+
+    # Additional glibc-side mitigation. The CRT crash on Debian trixie's
+    # glibc 2.41 + OpenJDK 21.0.11 is in ld-linux's lazy symbol-resolution
+    # path (`ld-linux-x86-64.so.2+0x2475a`). Forcing eager binding at dlopen
+    # time (LD_BIND_NOW=1) skips the lazy resolution that triggers the
+    # SIGSEGV. Adds tiny startup latency, no behavioural change for the
+    # rest of the run. Independent of NXF_OPTS — applies to ANY dlopen
+    # the Nextflow head does, including the CRT native lib extraction.
+    # Pair with the existing NXF_OPTS CRT cache + Xss2m mitigations.
+    env["LD_BIND_NOW"] = "1"
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
