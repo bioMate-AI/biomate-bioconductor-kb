@@ -18,7 +18,9 @@ Last updated: 2026-06-03 (UTC — ZINC600 merge + synthesizability triage)
 | Inhibitor | **ZINC600 Vina screen** | **600/600** → `zinc150_screen/vina/docking_autodock_vina_results.json` |
 | Inhibitor | `ZINC600_TOP20_ADMET_TRIAGE.md` | **20/20** top hits with ADMET-AI |
 | Inhibitor | `ZINC600_TOP20_SYNTHESIZABILITY.md` | **20/20** SA ≤ 5 (RDKit SA score) |
-| Inhibitor | Rank-1 pose QC (Z600-R1) | **IN FLIGHT** — GROMACS `b89f1662` |
+| Inhibitor | Rank-1 pose QC (Z600-R1) | **DONE** — ligand RMSD **0.26 nm** PASS; INH-01 still primary lead |
+| Plan A | `PLAN_A_IEDB_CROSSCHECK.md` | Local recompute **48.81%** PASS |
+| Plan A | FigA4 full-GP MultiQC | **DONE** — `FigA4_multiqc_summary.png` |
 | Package | `compute_package/COMPUTE_CANDIDATES.md` | Refreshed with 600-dock ranking + Chile coverage line |
 | QC | `inhibitor_science_qc/INHIBITOR_SCIENCE_QC.md` | ZINC600 complete; MM-GBSA still **FAIL** (aspirin control) |
 
@@ -46,9 +48,7 @@ Last updated: 2026-06-03 (UTC — ZINC600 merge + synthesizability triage)
 
 ## In flight
 
-| Job | Status |
-| --- | --- |
-| Z600-R1 GROMACS MD | `run_id=b89f1662` — poll with `poll_zinc600_rank1_pose_qc.py` |
+_None — see optional follow-ups below._
 
 ---
 
@@ -56,7 +56,7 @@ Last updated: 2026-06-03 (UTC — ZINC600 merge + synthesizability triage)
 
 | Item | Action |
 | --- | --- |
-| IEDB cross-check | Upload `plan_a_epitope/PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv` → compare to **48.81%** |
+| IEDB web tool audit | Manual upload to [IEDB Population Coverage](https://tools.iedb.org/population/) — local cross-check **PASS** (`PLAN_A_IEDB_CROSSCHECK.md`) |
 | ADMET on ZINC600 top 20 | **DONE** — `poll_zinc600_top20_admet.py` |
 | SA score on ZINC600 top 20 | **DONE** — `triage_zinc600_synthesizability.py` |
 | FigA4 MultiQC (full GP) | Not done |

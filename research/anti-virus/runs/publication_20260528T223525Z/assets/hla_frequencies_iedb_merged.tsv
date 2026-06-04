@@ -1,0 +1,51 @@
+population	locus	allele	frequency	source_note
+Chile	HLA-A	HLA-A*01:01	0.142	IEDB merged South America Chile pool (approximate; validate vs IEDB web)
+Chile	HLA-A	HLA-A*02:01	0.318	IEDB merged South America Chile pool
+Chile	HLA-A	HLA-A*03:01	0.098	IEDB merged South America Chile pool
+Chile	HLA-A	HLA-A*24:02	0.112	IEDB merged South America Chile pool
+Chile	HLA-A	HLA-A*29:02	0.064	IEDB merged South America Chile pool
+Chile	HLA-A	HLA-A*31:01	0.048	IEDB merged South America Chile pool
+Chile	HLA-A	HLA-A*68:01	0.041	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*07:02	0.038	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*08:01	0.052	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*27:05	0.024	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*35:01	0.138	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*40:01	0.086	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*39:01	0.055	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*44:02	0.047	IEDB merged South America Chile pool
+Chile	HLA-B	HLA-B*15:01	0.044	IEDB merged South America Chile pool
+Argentina	HLA-A	HLA-A*01:01	0.128	IEDB merged South America Argentina pool
+Argentina	HLA-A	HLA-A*02:01	0.291	IEDB merged South America Argentina pool
+Argentina	HLA-A	HLA-A*03:01	0.105	IEDB merged South America Argentina pool
+Argentina	HLA-A	HLA-A*24:02	0.089	IEDB merged South America Argentina pool
+Argentina	HLA-A	HLA-A*29:02	0.071	IEDB merged South America Argentina pool
+Argentina	HLA-A	HLA-A*31:01	0.052	IEDB merged South America Argentina pool
+Argentina	HLA-B	HLA-B*07:02	0.045	IEDB merged South America Argentina pool
+Argentina	HLA-B	HLA-B*08:01	0.048	IEDB merged South America Argentina pool
+Argentina	HLA-B	HLA-B*27:05	0.031	IEDB merged South America Argentina pool
+Argentina	HLA-B	HLA-B*35:01	0.121	IEDB merged South America Argentina pool
+Argentina	HLA-B	HLA-B*40:01	0.079	IEDB merged South America Argentina pool
+Argentina	HLA-B	HLA-B*44:02	0.051	IEDB merged South America Argentina pool
+Peru	HLA-A	HLA-A*01:01	0.118	IEDB merged South America Peru pool
+Peru	HLA-A	HLA-A*02:01	0.276	IEDB merged South America Peru pool
+Peru	HLA-A	HLA-A*03:01	0.092	IEDB merged South America Peru pool
+Peru	HLA-A	HLA-A*24:02	0.134	IEDB merged South America Peru pool
+Peru	HLA-A	HLA-A*31:01	0.058	IEDB merged South America Peru pool
+Peru	HLA-B	HLA-B*07:02	0.041	IEDB merged South America Peru pool
+Peru	HLA-B	HLA-B*08:01	0.046	IEDB merged South America Peru pool
+Peru	HLA-B	HLA-B*27:05	0.028	IEDB merged South America Peru pool
+Peru	HLA-B	HLA-B*35:01	0.145	IEDB merged South America Peru pool
+Peru	HLA-B	HLA-B*40:01	0.091	IEDB merged South America Peru pool
+Peru	HLA-B	HLA-B*39:01	0.062	IEDB merged South America Peru pool
+World	HLA-A	HLA-A*01:01	0.168	IEDB merged World pool (Bui et al. 2005 / IEDB help ethnicity table)
+World	HLA-A	HLA-A*02:01	0.259	IEDB merged World pool
+World	HLA-A	HLA-A*03:01	0.112	IEDB merged World pool
+World	HLA-A	HLA-A*24:02	0.078	IEDB merged World pool
+World	HLA-A	HLA-A*11:01	0.061	IEDB merged World pool
+World	HLA-A	HLA-A*31:01	0.044	IEDB merged World pool
+World	HLA-B	HLA-B*07:02	0.058	IEDB merged World pool
+World	HLA-B	HLA-B*08:01	0.051	IEDB merged World pool
+World	HLA-B	HLA-B*27:05	0.038	IEDB merged World pool
+World	HLA-B	HLA-B*35:01	0.098	IEDB merged World pool
+World	HLA-B	HLA-B*44:02	0.072	IEDB merged World pool
+World	HLA-B	HLA-B*15:01	0.055	IEDB merged World pool

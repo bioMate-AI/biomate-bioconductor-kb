@@ -1,0 +1,956 @@
+{
+  "analyzed_at": "2026-06-03T06:01:10.290286+00:00",
+  "scope": "compute_only_in_silico",
+  "method_reference": "IEDB Population Coverage (Bui et al. 2005); AFND frequencies",
+  "frequency_table": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/hla_frequencies_iedb_merged.tsv",
+  "primary_population": "Chile",
+  "populations": {},
+  "subsets": {
+    "all_consensus_pairs": {
+      "n_pairs": 47,
+      "by_population": {
+        "Chile": {
+          "n_epitope_allele_pairs": 47,
+          "n_unique_peptides": 47,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "APVLTCMSI",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "HPRGEDHDAI",
+            "IPMKTDLEL",
+            "IRSCMASVF",
+            "KRMMATKDSF",
+            "KTFEGILTK",
+            "LAMPKTIYEL",
+            "LKKVKKTVL",
+            "LKYTRKVCI",
+            "LRIVGPITAK",
+            "LVLNRDVSF",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "NPANKEESI",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "RRKLTNPANK",
+            "SIRSCMASV",
+            "SRCYVGLVWCL",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01",
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.24,
+              "coverage_fraction": 0.4224,
+              "coverage_percent": 42.24,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.114,
+              "coverage_fraction": 0.215004,
+              "coverage_percent": 21.5,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.546586,
+          "coverage_percent": 54.66,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Argentina": {
+          "n_epitope_allele_pairs": 47,
+          "n_unique_peptides": 47,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "APVLTCMSI",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "HPRGEDHDAI",
+            "IPMKTDLEL",
+            "IRSCMASVF",
+            "KRMMATKDSF",
+            "KTFEGILTK",
+            "LAMPKTIYEL",
+            "LKKVKKTVL",
+            "LKYTRKVCI",
+            "LRIVGPITAK",
+            "LVLNRDVSF",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "NPANKEESI",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "RRKLTNPANK",
+            "SIRSCMASV",
+            "SRCYVGLVWCL",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01",
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.233,
+              "coverage_fraction": 0.411711,
+              "coverage_percent": 41.17,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.124,
+              "coverage_fraction": 0.232624,
+              "coverage_percent": 23.26,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.548561,
+          "coverage_percent": 54.86,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Peru": {
+          "n_epitope_allele_pairs": 47,
+          "n_unique_peptides": 47,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "APVLTCMSI",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "HPRGEDHDAI",
+            "IPMKTDLEL",
+            "IRSCMASVF",
+            "KRMMATKDSF",
+            "KTFEGILTK",
+            "LAMPKTIYEL",
+            "LKKVKKTVL",
+            "LKYTRKVCI",
+            "LRIVGPITAK",
+            "LVLNRDVSF",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "NPANKEESI",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "RRKLTNPANK",
+            "SIRSCMASV",
+            "SRCYVGLVWCL",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01",
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.21,
+              "coverage_fraction": 0.3759,
+              "coverage_percent": 37.59,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.115,
+              "coverage_fraction": 0.216775,
+              "coverage_percent": 21.68,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.511189,
+          "coverage_percent": 51.12,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "World": {
+          "n_epitope_allele_pairs": 47,
+          "n_unique_peptides": 47,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "APVLTCMSI",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "HPRGEDHDAI",
+            "IPMKTDLEL",
+            "IRSCMASVF",
+            "KRMMATKDSF",
+            "KTFEGILTK",
+            "LAMPKTIYEL",
+            "LKKVKKTVL",
+            "LKYTRKVCI",
+            "LRIVGPITAK",
+            "LVLNRDVSF",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "NPANKEESI",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "RRKLTNPANK",
+            "SIRSCMASV",
+            "SRCYVGLVWCL",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01",
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.28,
+              "coverage_fraction": 0.4816,
+              "coverage_percent": 48.16,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.147,
+              "coverage_fraction": 0.272391,
+              "coverage_percent": 27.24,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.622807,
+          "coverage_percent": 62.28,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        }
+      }
+    },
+    "tier_A_surface_conserved": {
+      "n_pairs": 4,
+      "by_population": {
+        "Chile": {
+          "n_epitope_allele_pairs": 4,
+          "n_unique_peptides": 4,
+          "unique_peptides": [
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM"
+          ],
+          "loci": {
+            "HLA-A": {
+              "coverage_fraction": 0.0,
+              "coverage_percent": 0.0,
+              "responsive_alleles": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02"
+              ],
+              "freq_sum": 0.038,
+              "coverage_fraction": 0.074556,
+              "coverage_percent": 7.46,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.074556,
+          "coverage_percent": 7.46,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Argentina": {
+          "n_epitope_allele_pairs": 4,
+          "n_unique_peptides": 4,
+          "unique_peptides": [
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM"
+          ],
+          "loci": {
+            "HLA-A": {
+              "coverage_fraction": 0.0,
+              "coverage_percent": 0.0,
+              "responsive_alleles": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02"
+              ],
+              "freq_sum": 0.045,
+              "coverage_fraction": 0.087975,
+              "coverage_percent": 8.8,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.087975,
+          "coverage_percent": 8.8,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Peru": {
+          "n_epitope_allele_pairs": 4,
+          "n_unique_peptides": 4,
+          "unique_peptides": [
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM"
+          ],
+          "loci": {
+            "HLA-A": {
+              "coverage_fraction": 0.0,
+              "coverage_percent": 0.0,
+              "responsive_alleles": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02"
+              ],
+              "freq_sum": 0.041,
+              "coverage_fraction": 0.080319,
+              "coverage_percent": 8.03,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.080319,
+          "coverage_percent": 8.03,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "World": {
+          "n_epitope_allele_pairs": 4,
+          "n_unique_peptides": 4,
+          "unique_peptides": [
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM"
+          ],
+          "loci": {
+            "HLA-A": {
+              "coverage_fraction": 0.0,
+              "coverage_percent": 0.0,
+              "responsive_alleles": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02"
+              ],
+              "freq_sum": 0.058,
+              "coverage_fraction": 0.112636,
+              "coverage_percent": 11.26,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.112636,
+          "coverage_percent": 11.26,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        }
+      }
+    },
+    "tier_A_B_surface": {
+      "n_pairs": 28,
+      "by_population": {
+        "Chile": {
+          "n_epitope_allele_pairs": 28,
+          "n_unique_peptides": 28,
+          "unique_peptides": [
+            "APVLTCMSI",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "HPRGEDHDAI",
+            "IRSCMASVF",
+            "KTFEGILTK",
+            "LKKVKKTVL",
+            "LRIVGPITAK",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "SIRSCMASV",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.098,
+              "coverage_fraction": 0.186396,
+              "coverage_percent": 18.64,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.114,
+              "coverage_fraction": 0.215004,
+              "coverage_percent": 21.5,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.361324,
+          "coverage_percent": 36.13,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Argentina": {
+          "n_epitope_allele_pairs": 28,
+          "n_unique_peptides": 28,
+          "unique_peptides": [
+            "APVLTCMSI",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "HPRGEDHDAI",
+            "IRSCMASVF",
+            "KTFEGILTK",
+            "LKKVKKTVL",
+            "LRIVGPITAK",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "SIRSCMASV",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.105,
+              "coverage_fraction": 0.198975,
+              "coverage_percent": 19.9,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.124,
+              "coverage_fraction": 0.232624,
+              "coverage_percent": 23.26,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.385313,
+          "coverage_percent": 38.53,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Peru": {
+          "n_epitope_allele_pairs": 28,
+          "n_unique_peptides": 28,
+          "unique_peptides": [
+            "APVLTCMSI",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "HPRGEDHDAI",
+            "IRSCMASVF",
+            "KTFEGILTK",
+            "LKKVKKTVL",
+            "LRIVGPITAK",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "SIRSCMASV",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.092,
+              "coverage_fraction": 0.175536,
+              "coverage_percent": 17.55,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.115,
+              "coverage_fraction": 0.216775,
+              "coverage_percent": 21.68,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.354259,
+          "coverage_percent": 35.43,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "World": {
+          "n_epitope_allele_pairs": 28,
+          "n_unique_peptides": 28,
+          "unique_peptides": [
+            "APVLTCMSI",
+            "ESKFKFIL",
+            "FNPAHTLTL",
+            "HPRGEDHDAI",
+            "IRSCMASVF",
+            "KTFEGILTK",
+            "LKKVKKTVL",
+            "LRIVGPITAK",
+            "MPDVAHSL",
+            "MPDVAHSLAV",
+            "MPKTIYEL",
+            "MPKTIYELKM",
+            "NPAHTLTL",
+            "QPAHTYDTV",
+            "QRFRGSEQK",
+            "QRFRGSEQKI",
+            "QRFRGSEQKINF",
+            "SIRSCMASV",
+            "SRIQVIYEK",
+            "SRMLVHPR",
+            "TLKKVKKTV",
+            "TLKKVKKTVL",
+            "VIYEKTHCV",
+            "VPGLHGWATV",
+            "VPGLHGWATVM",
+            "VPITWTGYL",
+            "VPMYSSLST",
+            "VPMYSSLSTL"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*03:01"
+              ],
+              "freq_sum": 0.112,
+              "coverage_fraction": 0.211456,
+              "coverage_percent": 21.15,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.147,
+              "coverage_fraction": 0.272391,
+              "coverage_percent": 27.24,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.426248,
+          "coverage_percent": 42.62,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        }
+      }
+    },
+    "tier_C_cytoplasmic_excluded_from_design": {
+      "n_pairs": 19,
+      "by_population": {
+        "Chile": {
+          "n_epitope_allele_pairs": 19,
+          "n_unique_peptides": 19,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "IPMKTDLEL",
+            "KRMMATKDSF",
+            "LAMPKTIYEL",
+            "LKYTRKVCI",
+            "LVLNRDVSF",
+            "NPANKEESI",
+            "RRKLTNPANK",
+            "SRCYVGLVWCL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01"
+              ],
+              "freq_sum": 0.142,
+              "coverage_fraction": 0.263836,
+              "coverage_percent": 26.38,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.114,
+              "coverage_fraction": 0.215004,
+              "coverage_percent": 21.5,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.422114,
+          "coverage_percent": 42.21,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Argentina": {
+          "n_epitope_allele_pairs": 19,
+          "n_unique_peptides": 19,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "IPMKTDLEL",
+            "KRMMATKDSF",
+            "LAMPKTIYEL",
+            "LKYTRKVCI",
+            "LVLNRDVSF",
+            "NPANKEESI",
+            "RRKLTNPANK",
+            "SRCYVGLVWCL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01"
+              ],
+              "freq_sum": 0.128,
+              "coverage_fraction": 0.239616,
+              "coverage_percent": 23.96,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.124,
+              "coverage_fraction": 0.232624,
+              "coverage_percent": 23.26,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.4165,
+          "coverage_percent": 41.65,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "Peru": {
+          "n_epitope_allele_pairs": 19,
+          "n_unique_peptides": 19,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "IPMKTDLEL",
+            "KRMMATKDSF",
+            "LAMPKTIYEL",
+            "LKYTRKVCI",
+            "LVLNRDVSF",
+            "NPANKEESI",
+            "RRKLTNPANK",
+            "SRCYVGLVWCL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01"
+              ],
+              "freq_sum": 0.118,
+              "coverage_fraction": 0.222076,
+              "coverage_percent": 22.21,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.115,
+              "coverage_fraction": 0.216775,
+              "coverage_percent": 21.68,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.39071,
+          "coverage_percent": 39.07,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        },
+        "World": {
+          "n_epitope_allele_pairs": 19,
+          "n_unique_peptides": 19,
+          "unique_peptides": [
+            "APHLERVTGF",
+            "ATESALQAHY",
+            "CPGVGTGCTAC",
+            "CPRRGHKKTV",
+            "FRYKSRCYVGL",
+            "GRFQEALKK",
+            "GRFQEALKKS",
+            "GRFQEALKKSL",
+            "GRFQEALKKSLK",
+            "IPMKTDLEL",
+            "KRMMATKDSF",
+            "LAMPKTIYEL",
+            "LKYTRKVCI",
+            "LVLNRDVSF",
+            "NPANKEESI",
+            "RRKLTNPANK",
+            "SRCYVGLVWCL",
+            "YRTLGVFRY",
+            "YRTLGVFRYK"
+          ],
+          "loci": {
+            "HLA-A": {
+              "responsive_alleles": [
+                "HLA-A*01:01"
+              ],
+              "freq_sum": 0.168,
+              "coverage_fraction": 0.307776,
+              "coverage_percent": 30.78,
+              "alleles_missing_from_frequency_table": []
+            },
+            "HLA-B": {
+              "responsive_alleles": [
+                "HLA-B*07:02",
+                "HLA-B*08:01",
+                "HLA-B*27:05"
+              ],
+              "freq_sum": 0.147,
+              "coverage_fraction": 0.272391,
+              "coverage_percent": 27.24,
+              "alleles_missing_from_frequency_table": []
+            }
+          },
+          "coverage_fraction": 0.496332,
+          "coverage_percent": 49.63,
+          "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)"
+        }
+      }
+    }
+  },
+  "optimization": {
+    "Chile": {
+      "input_subset": "tier_A_B_surface",
+      "baseline_all_pairs_coverage_percent": 36.13,
+      "steps": [
+        {
+          "rank": 1,
+          "peptide": "KTFEGILTK",
+          "alleles": [
+            "HLA-A*03:01"
+          ],
+          "coverage_fraction": 0.186396,
+          "coverage_percent": 18.64,
+          "marginal_gain_pp": 18.64
+        },
+        {
+          "rank": 2,
+          "peptide": "ESKFKFIL",
+          "alleles": [
+            "HLA-B*08:01"
+          ],
+          "coverage_fraction": 0.268811,
+          "coverage_percent": 26.88,
+          "marginal_gain_pp": 8.24
+        },
+        {
+          "rank": 3,
+          "peptide": "MPDVAHSL",
+          "alleles": [
+            "HLA-B*07:02"
+          ],
+          "coverage_fraction": 0.326255,
+          "coverage_percent": 32.63,
+          "marginal_gain_pp": 5.74
+        },
+        {
+          "rank": 4,
+          "peptide": "QRFRGSEQKINF",
+          "alleles": [
+            "HLA-B*27:05"
+          ],
+          "coverage_fraction": 0.361324,
+          "coverage_percent": 36.13,
+          "marginal_gain_pp": 3.51
+        },
+        {
+          "rank": 5,
+          "peptide": "QRFRGSEQKI",
+          "alleles": [
+            "HLA-B*27:05"
+          ],
+          "coverage_fraction": 0.361324,
+          "coverage_percent": 36.13,
+          "marginal_gain_pp": 0.0
+        }
+      ]
+    }
+  }
+}

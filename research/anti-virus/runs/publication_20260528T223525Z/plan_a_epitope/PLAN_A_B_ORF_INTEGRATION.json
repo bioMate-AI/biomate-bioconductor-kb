@@ -1,0 +1,597 @@
+{
+  "analyzed_at": "2026-06-03T04:56:38.343608+00:00",
+  "gp_length_aa": 1138,
+  "optimized_protein_length_aa": 1138,
+  "protein_identity_vs_q9e006": true,
+  "n_peptides_checked": 65,
+  "n_encoded_in_plan_b_orf": 65,
+  "n_cytoplasmic_or_tm": 20,
+  "n_surface_proximal": 44,
+  "peptides": [
+    {
+      "peptide": "APHLERVTGF",
+      "length": 10,
+      "gp_position": 1062,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 1062,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "APVLTCMSI",
+      "length": 9,
+      "gp_position": 150,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 150,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "ATESALQAHY",
+      "length": 10,
+      "gp_position": 582,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 582,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "CPGVGTGCTAC",
+      "length": 11,
+      "gp_position": 773,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 773,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "CPRRGHKKTV",
+      "length": 10,
+      "gp_position": 1129,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 1129,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "ESKFKFIL",
+      "length": 8,
+      "gp_position": 525,
+      "gpc_region": "gc_ectodomain_stem",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 525,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "FNPAHTLTL",
+      "length": 9,
+      "gp_position": 190,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 190,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "FRYKSRCYVGL",
+      "length": 11,
+      "gp_position": 624,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 624,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "GRFQEALKK",
+      "length": 9,
+      "gp_position": 598,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 598,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "GRFQEALKKS",
+      "length": 10,
+      "gp_position": 598,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 598,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "GRFQEALKKSL",
+      "length": 11,
+      "gp_position": 598,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 598,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "GRFQEALKKSLK",
+      "length": 12,
+      "gp_position": 598,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 598,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "HPRGEDHDAI",
+      "length": 10,
+      "gp_position": 279,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 279,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "IPMKTDLEL",
+      "length": 9,
+      "gp_position": 670,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 670,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "IRSCMASVF",
+      "length": 9,
+      "gp_position": 158,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 158,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "KRMMATKDSF",
+      "length": 10,
+      "gp_position": 917,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 917,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "KTFEGILTK",
+      "length": 9,
+      "gp_position": 228,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 228,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "LAMPKTIYEL",
+      "length": 10,
+      "gp_position": 17,
+      "gpc_region": "signal_peptide",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 17,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "LKKVKKTVL",
+      "length": 9,
+      "gp_position": 123,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 123,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "LKYTRKVCI",
+      "length": 9,
+      "gp_position": 802,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 802,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "LRIVGPITAK",
+      "length": 10,
+      "gp_position": 295,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 295,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "LVLNRDVSF",
+      "length": 9,
+      "gp_position": 956,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 956,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "MPDVAHSL",
+      "length": 8,
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 466,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "MPDVAHSLAV",
+      "length": 10,
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 466,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "MPKTIYEL",
+      "length": 8,
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 19,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "MPKTIYELKM",
+      "length": 10,
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 19,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "NPAHTLTL",
+      "length": 8,
+      "gp_position": 191,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 191,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "NPANKEESI",
+      "length": 9,
+      "gp_position": 696,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 696,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "QPAHTYDTV",
+      "length": 9,
+      "gp_position": 200,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 200,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "QRFRGSEQK",
+      "length": 9,
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 414,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "QRFRGSEQKI",
+      "length": 10,
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 414,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "QRFRGSEQKINF",
+      "length": 12,
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 414,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "RRKLTNPANK",
+      "length": 10,
+      "gp_position": 691,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 691,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "SIRSCMASV",
+      "length": 9,
+      "gp_position": 157,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 157,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "SRCYVGLVWCL",
+      "length": 11,
+      "gp_position": 628,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 628,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "SRIQVIYEK",
+      "length": 9,
+      "gp_position": 168,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 168,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "SRMLVHPR",
+      "length": 8,
+      "gp_position": 274,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 274,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "TLKKVKKTV",
+      "length": 9,
+      "gp_position": 122,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 122,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "TLKKVKKTVL",
+      "length": 10,
+      "gp_position": 122,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 122,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VIYEKTHCV",
+      "length": 9,
+      "gp_position": 172,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 172,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VPGLHGWATV",
+      "length": 10,
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 479,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VPGLHGWATVM",
+      "length": 11,
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 479,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VPITWTGYL",
+      "length": 9,
+      "gp_position": 359,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 359,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VPMYSSLST",
+      "length": 9,
+      "gp_position": 322,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 322,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VPMYSSLSTL",
+      "length": 10,
+      "gp_position": 322,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 322,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "YRTLGVFRY",
+      "length": 9,
+      "gp_position": 618,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 618,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "YRTLGVFRYK",
+      "length": 10,
+      "gp_position": 618,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 618,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "CTVFCTLAG",
+      "length": 9,
+      "gp_position": 379,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 379,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "ESSCNFDLH",
+      "length": 9,
+      "gp_position": 61,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 61,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "FCTLAGPGA",
+      "length": 9,
+      "gp_position": 382,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 382,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "FNISSPTCL",
+      "length": 9,
+      "gp_position": 401,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 401,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "FRKICGFATTPV",
+      "length": 12,
+      "gp_position": 894,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 894,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "GIFNISSPT",
+      "length": 9,
+      "gp_position": 399,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 399,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "IFNISSPTC",
+      "length": 9,
+      "gp_position": 400,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 400,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "ILTKTLVIG",
+      "length": 9,
+      "gp_position": 445,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 445,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "IRSCMASVFTSR",
+      "length": 12,
+      "gp_position": 158,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 158,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "KKVILTKTL",
+      "length": 9,
+      "gp_position": 442,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 442,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "KTLVIGQCI",
+      "length": 9,
+      "gp_position": 448,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 448,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "KVILTKTLV",
+      "length": 9,
+      "gp_position": 443,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 443,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "LTKTLVIGQ",
+      "length": 9,
+      "gp_position": 446,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 446,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "SLKYTRKVCI",
+      "length": 10,
+      "gp_position": 801,
+      "gpc_region": "tm_cytoplasmic",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 801,
+      "surface_proximal": false
+    },
+    {
+      "peptide": "TKTLVIGQC",
+      "length": 9,
+      "gp_position": 447,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 447,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "TVFCTLAGP",
+      "length": 9,
+      "gp_position": 380,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 380,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VFCTLAGPG",
+      "length": 9,
+      "gp_position": 381,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 381,
+      "surface_proximal": true
+    },
+    {
+      "peptide": "VILTKTLVI",
+      "length": 9,
+      "gp_position": 444,
+      "gpc_region": "gn_ectodomain",
+      "encoded_in_optimized_cds": true,
+      "optimized_protein_position": 444,
+      "surface_proximal": true
+    }
+  ]
+}

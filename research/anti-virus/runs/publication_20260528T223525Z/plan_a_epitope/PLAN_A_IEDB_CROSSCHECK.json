@@ -1,0 +1,15 @@
+{
+  "analyzed_at": "2026-06-04T16:17:30.322708+00:00",
+  "input_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv",
+  "n_epitope_allele_pairs": 30,
+  "n_unique_peptides": 28,
+  "method": "IEDB class I A+B separate; HWE P=1-(1-F)^2 per locus; combine 1-(1-P_A)(1-P_B)",
+  "population": "Chile",
+  "recomputed_coverage_percent": 48.81,
+  "expected_coverage_percent": 48.81,
+  "reference_json_percent": 48.81,
+  "delta_pp_vs_expected": 0.0,
+  "internal_consistency_ok": true,
+  "iedb_web_tool": "https://tools.iedb.org/population/",
+  "iedb_upload_file": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv"
+}

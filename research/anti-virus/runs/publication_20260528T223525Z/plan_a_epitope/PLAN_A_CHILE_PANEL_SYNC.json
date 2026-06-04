@@ -1,0 +1,20 @@
+{
+  "synced_at": "2026-06-03T16:42:59.913718+00:00",
+  "stamp": "20260603T061015Z",
+  "tools": [
+    {
+      "tool": "mhcnuggets",
+      "stamp": "20260603T061015Z",
+      "status": "published",
+      "local_path": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CHILE_PANEL_mhcnuggets.tsv",
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_chile_panel/20260603T061015Z/mhcnuggets/predictions/PLAN_A_FULL_GP_CHILE_PANEL.tsv",
+      "approx_rows": 95965
+    },
+    {
+      "tool": "mhcflurry",
+      "stamp": "20260603T061015Z",
+      "status": "missing",
+      "local_path": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CHILE_PANEL_mhcflurry.tsv"
+    }
+  ]
+}

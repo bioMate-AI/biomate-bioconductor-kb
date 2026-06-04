@@ -6,7 +6,16 @@
   "step_suffix": "rank1_z600_20260603T195209Z",
   "step_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_rank1_z600_20260603T195209Z",
   "run_id": "b89f1662-cd13-494e-877e-fab88643404b",
-  "status": "submitted",
+  "status": "complete",
+  "pose_qc_status": "complete",
+  "polled_at": "2026-06-04T16:16:35.616628+00:00",
+  "galaxy_status": "succeeded",
+  "ligand_rmsd": {
+    "n_frames": 101,
+    "ligand_rmsd_mean_nm": 0.2604,
+    "ligand_rmsd_max_nm": 0.4657,
+    "ligand_rmsd_std_nm": 0.1109
+  },
   "compare_to": {
     "INH-01_smiles": "N=C(N)NC(=O)c1nccnc1N",
     "INH-01_vina_kcal_mol": -6.267,

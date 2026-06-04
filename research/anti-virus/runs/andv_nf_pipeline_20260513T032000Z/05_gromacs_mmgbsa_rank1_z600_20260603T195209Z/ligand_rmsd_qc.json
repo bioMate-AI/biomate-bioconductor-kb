@@ -1,0 +1,10 @@
+{
+  "n_frames": 101,
+  "ligand_rmsd_mean_nm": 0.2604,
+  "ligand_rmsd_max_nm": 0.4657,
+  "ligand_rmsd_std_nm": 0.1109,
+  "ligand_atoms": 22,
+  "note": "RMSD vs first frame; positions in \u00c5 converted to nm",
+  "analyzed_at": "2026-06-04T16:16:35.616628+00:00",
+  "traj_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_rank1_z600_20260603T195209Z/md"
+}
