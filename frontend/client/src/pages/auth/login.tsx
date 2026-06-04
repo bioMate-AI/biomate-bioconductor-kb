@@ -78,6 +78,7 @@ export default function LoginPage() {
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: V2.navy, marginBottom: 6 }}>Email</label>
               <input
+                id="email"
                 type="email" required placeholder="name@institution.edu"
                 value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading}
                 style={inputStyle}
@@ -97,6 +98,7 @@ export default function LoginPage() {
               </div>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   required placeholder="••••••••"
                   value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading}

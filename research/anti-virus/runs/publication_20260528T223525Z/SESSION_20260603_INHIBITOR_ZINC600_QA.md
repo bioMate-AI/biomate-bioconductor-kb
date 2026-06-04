@@ -67,7 +67,7 @@ Plan A peptides are **natural GP sequence fragments** ranked by MHC binding — 
 | Scope | Size |
 |-------|------|
 | **ZINC20 database** (maintained; lead/drug-like focus) | **Millions+** purchasable entries (ZINC22 successor cites 230M+) |
-| **This campaign local mirror** | **600 SMILES** in `assets/zinc600_library.smi` (no ZINC IDs attached) |
+| **This campaign local mirror** | **600 SMILES** — first 600 of ZINC20 2D tranche **AAAC**; see `ZINC600_LIBRARY_PROVENANCE.md` |
 
 ### Why 600?
 
@@ -99,4 +99,40 @@ Verify: `len(results)` in docking JSON should equal **600** (unique SMILES from 
 |------|--------|
 | Z600-R1 pose QC | `python3 research/anti-virus/scripts/poll_zinc600_rank1_pose_qc.py` |
 | IEDB population cross-check | Upload `plan_a_epitope/PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv` vs **48.81%** Chile tier A+B |
-| ZINC purchasability | Attach ZINC IDs to top hits for procurement claims |
+| ZINC purchasability | **Done** — `lookup_zinc_purchasability.py` (local tranche + PubChem) |
+
+---
+
+## Library provenance (600 compounds)
+
+**Authoritative doc:** `zinc600_screen/ZINC600_LIBRARY_PROVENANCE.md`
+
+| Question | Answer |
+|----------|--------|
+| Ad hoc? | **No** — deterministic first **600** lines of ZINC20 2D tranche **AAAC** (`files.docking.org/2D/AA/AAAC.smi`) |
+| Ground truth / ANDV SAR? | **No** — no experimental inhibitor panel; reference antivirals not in deck |
+| Target-informed? | **No** — no 9P3I pharmacophore pre-filter on library before docking |
+| Why 600? | Campaign gate **≥500** compounds + Vina batch economics (~50/job) |
+
+**Assets (2026-06-04):**
+
+- `assets/zinc600_library.smi` — Vina input (SMILES only, legacy)
+- `assets/zinc600_library.tsv` — `zinc_substance_id` + `smiles`
+- `assets/zinc600_library.manifest.json` — selection metadata
+
+Regenerate IDs/manifest:
+
+```bash
+python3 research/anti-virus/scripts/build_zinc600_library_manifest.py \
+  --publication-run research/anti-virus/runs/publication_20260528T223525Z
+
+python3 research/anti-virus/scripts/lookup_zinc_purchasability.py \
+  --publication-run research/anti-virus/runs/publication_20260528T223525Z --top-n 5
+```
+
+New downloads (preserve IDs):
+
+```bash
+python3 research/anti-virus/scripts/download_open_screening_library.py \
+  --source zinc --max-compounds 600
+```

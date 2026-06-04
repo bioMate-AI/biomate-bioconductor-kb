@@ -1,47 +1,148 @@
 {
-  "looked_up_at": "2026-06-04T19:18:55.495584+00:00",
-  "source": "cartblanche22.docking.org smiles.txt dist=0",
+  "looked_up_at": "2026-06-04T20:50:32.805317+00:00",
+  "backends": [
+    "local_tranche",
+    "pubchem",
+    "cartblanche"
+  ],
+  "tranche_url": "https://files.docking.org/2D/AA/AAAC.smi",
+  "tranche_compounds_indexed": 600,
   "top_n": 5,
   "results": [
     {
       "rank": 1,
       "vina_kcal_mol": -6.527,
       "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
-      "zinc_hits": [],
-      "in_catalog": false,
-      "lookup_error": "HTTP Error 400: BAD REQUEST"
+      "local_tranche": {
+        "zinc_id": "38643678",
+        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          11971027
+        ],
+        "pubchem_cid_primary": 11971027,
+        "inchikey": "VDBAMTUNZNBVLQ-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "38643678",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {
+        "cartblanche": "HTTP Error 400: BAD REQUEST"
+      },
+      "in_catalog": true
     },
     {
       "rank": 2,
       "vina_kcal_mol": -6.275,
       "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
-      "zinc_hits": [],
-      "in_catalog": false,
-      "lookup_error": "HTTP Error 400: BAD REQUEST"
+      "local_tranche": {
+        "zinc_id": "100282852",
+        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          136890013
+        ],
+        "pubchem_cid_primary": 136890013,
+        "inchikey": "GQTYCMKNNXPNIB-UWTATZPHSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "100282852",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {
+        "cartblanche": "HTTP Error 400: BAD REQUEST"
+      },
+      "in_catalog": true
     },
     {
       "rank": 3,
       "vina_kcal_mol": -6.267,
       "smiles": "N=C(N)NC(=O)c1nccnc1N",
-      "zinc_hits": [],
-      "in_catalog": false,
-      "lookup_error": "HTTP Error 400: BAD REQUEST"
+      "local_tranche": {
+        "zinc_id": "33753639",
+        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          3036436
+        ],
+        "pubchem_cid_primary": 3036436,
+        "inchikey": "GTOFYYPYNNNMLP-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "33753639",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {
+        "cartblanche": "HTTP Error 400: BAD REQUEST"
+      },
+      "in_catalog": true
     },
     {
       "rank": 4,
       "vina_kcal_mol": -6.099,
       "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "zinc_hits": [],
-      "in_catalog": false,
-      "lookup_error": "HTTP Error 400: BAD REQUEST"
+      "local_tranche": {
+        "zinc_id": "39114411",
+        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          93509744
+        ],
+        "pubchem_cid_primary": 93509744,
+        "inchikey": "GRGWASDEOIBWJS-WDCZJNDASA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "39114411",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {
+        "cartblanche": "HTTP Error 400: BAD REQUEST"
+      },
+      "in_catalog": true
     },
     {
       "rank": 5,
       "vina_kcal_mol": -6.065,
       "smiles": "N=C(N)NC(=O)NC(=N)N",
-      "zinc_hits": [],
-      "in_catalog": false,
-      "lookup_error": "HTTP Error 400: BAD REQUEST"
+      "local_tranche": {
+        "zinc_id": "33607431",
+        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          3019440
+        ],
+        "pubchem_cid_primary": 3019440,
+        "inchikey": "ISJOITFNXDRNKS-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "33607431",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {
+        "cartblanche": "HTTP Error 400: BAD REQUEST"
+      },
+      "in_catalog": true
     }
   ]
 }
