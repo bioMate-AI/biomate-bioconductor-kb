@@ -1586,6 +1586,19 @@ def _generate_executor_config(
             "    client {",
             "        maxConnections = 20",
             "        uploadChunkSize = 104857600",   # 100 MB chunks
+            # CRITICAL — do NOT use the AWS CRT-based S3 client. The CRT native
+            # library (.so extracted from the shaded jar) crashes during dlopen
+            # on Debian trixie glibc 2.41 + OpenJDK 21.0.11. The crash signature
+            # is SIGSEGV in ld-linux-x86-64.so.2+0x2475a inside
+            # software.amazon.awssdk.crt.CRT.extractAndLoadLibrary(), triggered
+            # on the first PublishDir-thread S3 upload. The Batch task itself
+            # succeeds, but Nextflow dies before reporting terminal status —
+            # Galaxy then shows the run as 'running' until the 12h stuck guard.
+            # NF 25.x used Netty by default and was fine; NF 26.04 switched the
+            # default to CRT. Opt back out via the documented Nextflow option.
+            # If/when glibc, OpenJDK, or the CRT native lib pick up an upstream
+            # fix, this can be removed. Tracked: docs/20260604_NF_S3_CRT_FIX.md
+            "        s3UseCrtClient = false",
             "    }",
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
