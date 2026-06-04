@@ -30,6 +30,8 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
+# Migrations are applied by the boot-time runner in server/migrate.ts.
+COPY --from=builder /app/migrations ./migrations
 
 ENV NODE_ENV=production
 ENV PORT=3000
