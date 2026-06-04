@@ -11,6 +11,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -1386,3 +1387,78 @@ async def mfa_reset_endpoint(user: dict = Depends(require_authenticated_user)):
     if pp.exists():
         pp.unlink()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Path A — workflow → IND ingest + SSE channel
+# ---------------------------------------------------------------------------
+
+from fastapi.responses import StreamingResponse as _StreamingResponse
+from . import pipeline_data_writer as _pdw
+
+
+class _IngestWorkflowRequest(BaseModel):
+    workflow_run_id: str = Field(..., max_length=200)
+    target_step: str
+    payload: Any = None
+    source: str = "chat_roll_in"
+    force: bool = False
+
+
+@router.post("/api/ind-report/projects/{project_id}/ingest_workflow")
+async def ingest_workflow(
+    project_id: str,
+    body: _IngestWorkflowRequest,
+):
+    """Roll a workflow result into the IND project's pipeline_data.
+
+    Called by the chat affordance "Roll into IND project ▾" and by the
+    nextflow_executor auto-hook (when ind_target is set on the run params).
+    """
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+    if body.target_step not in _pdw.VALID_STEPS:
+        raise HTTPException(400, f"target_step must be one of {_pdw.VALID_STEPS}")
+    if body.source not in _pdw.VALID_SOURCES:
+        raise HTTPException(400, f"source must be one of {_pdw.VALID_SOURCES}")
+    try:
+        result = _pdw.write_block(
+            project_id=project_id,
+            step=body.target_step,
+            payload=body.payload,
+            source=body.source,
+            workflow_run_id=body.workflow_run_id,
+            force=bool(body.force),
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return result
+
+
+@router.get("/api/ind-report/projects/{project_id}/events")
+async def pipeline_events(project_id: str):
+    """Server-sent events: pipeline_data:updated whenever a writer fires.
+
+    The frontend (pages/ind-report.tsx) opens an EventSource on the
+    active project and bumps pipelineRefreshKey on each event so the
+    fetchPipelineData hook re-runs.
+    """
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+
+    async def _gen():
+        q = _pdw.subscribe(project_id)
+        try:
+            # Greeting so the client can confirm the stream is alive.
+            yield f"event: hello\ndata: {json.dumps({'project_id': project_id})}\n\n"
+            while True:
+                try:
+                    msg = await asyncio.wait_for(q.get(), timeout=20.0)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
+                yield f"event: {msg['event']}\ndata: {json.dumps(msg['data'])}\n\n"
+        finally:
+            _pdw.unsubscribe(project_id, q)
+
+    return _StreamingResponse(_gen(), media_type="text/event-stream")
