@@ -1,0 +1,3 @@
+model,real_fda_mean_macro,n_examples_scored,errors
+gpt_5,0.642,20,0
+claude_sonnet_4_6,0.775,20,0
