@@ -465,21 +465,59 @@ interface MethodsData {
   hasRealContent: boolean;
 }
 
-function useFetchMethods(invocationId: string): MethodsData {
-  const [data, setData] = useState<MethodsData>({ text: "", toolVersions: {}, hasRealContent: false });
+function useFetchMethods(invocationId: string): MethodsData & { state: string; progress: number } {
+  const [data, setData] = useState<MethodsData & { state: string; progress: number }>({
+    text: "", toolVersions: {}, hasRealContent: false, state: "idle", progress: 0,
+  });
   useEffect(() => {
     if (!invocationId) return;
     let cancelled = false;
-    fetch(`/api/invocations/${invocationId}/methods-report`, { credentials: "include" })
-      .then((r) => (r.ok ? r.text() : ""))
-      .then((text) => {
+
+    // Phase 2: route through async job system for caching + dedup. The job
+    // handler loops back to the legacy /methods-report endpoint so bytes are
+    // byte-for-byte identical. Cache hit (job created within 24h, state=ready)
+    // returns the same artifact bytes without re-running Claude.
+    (async () => {
+      try {
+        setData((d) => ({ ...d, state: "queued", progress: 0 }));
+        const enq = await fetch("/api/jobs", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "methods_report",
+            payload: { invocationId },
+          }),
+        });
+        if (!enq.ok || cancelled) return;
+        const job = await enq.json();
+        const jobId = job.jobId as string;
+
+        // Poll until ready/failed.
+        for (let i = 0; i < 200; i++) {
+          if (cancelled) return;
+          // Cache hit: jobs created within TTL return state=ready immediately.
+          if (job.state === "ready" && i === 0) break;
+          await new Promise((r) => setTimeout(r, i === 0 ? 500 : 2000));
+          const r = await fetch(`/api/jobs/${jobId}`, { credentials: "include" });
+          if (!r.ok || cancelled) break;
+          const j = await r.json();
+          setData((d) => ({ ...d, state: j.state, progress: j.progress ?? d.progress }));
+          if (j.state === "ready" || j.state === "failed" || j.state === "cancelled") {
+            if (j.state !== "ready") return;
+            break;
+          }
+        }
         if (cancelled) return;
-        // Stub detector: per A3 audit, the local fallback writes 5 lines
-        // ending with "No QC events recorded for this invocation."
+
+        const artRes = await fetch(`/api/jobs/${jobId}/artifact`, { credentials: "include" });
+        if (!artRes.ok || cancelled) return;
+        const text = await artRes.text();
         const isStub = !text || /No QC events recorded/.test(text) || text.length < 200;
-        setData({ text, toolVersions: {}, hasRealContent: !isStub });
-      })
-      .catch(() => { /* ignore */ });
+        setData({ text, toolVersions: {}, hasRealContent: !isStub, state: "ready", progress: 100 });
+      } catch { /* ignore */ }
+    })();
+
     return () => { cancelled = true; };
   }, [invocationId]);
   return data;
