@@ -19,7 +19,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path as FastPath
 from fastapi.responses import PlainTextResponse, Response
