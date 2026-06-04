@@ -762,7 +762,7 @@ function SoftwareTab({ versions }: { versions: Record<string, string> }) {
   return (
     <div style={styles.tabContent}>
       <p style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', marginBottom: 8 }}>
-        Sourced from <code>versions.yml</code> emitted by each Nextflow module.
+        Sourced from <code>versions.yml</code> emitted by each pipeline step.
       </p>
       <table style={styles.kvTable}>
         <tbody>

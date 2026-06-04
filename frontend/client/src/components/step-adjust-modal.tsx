@@ -145,7 +145,7 @@ export function StepAdjustModal({
           })}
 
           <p className="text-xs text-muted-foreground pt-1">
-            Only changed parameters will be applied. The workflow resumes from this step using Nextflow -resume.
+            Only changed parameters will be applied. The workflow resumes from this step.
           </p>
 
           {errorMsg && (

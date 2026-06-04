@@ -34,7 +34,7 @@ docker restart biomate-dev-frontend  # recover from prior FATAL
 
 ---
 
-## Gap B — Output ZIP download is broken for nextflow-native runs (pre-existing, not Phase 1)
+## Gap B — Output ZIP download is broken for pipeline runs (pre-existing, not Phase 1)
 
 **Symptom.** All 5 most-recent `succeeded` `execution_runs` on dev return `404 Invocation not found` from **both** endpoints:
 - legacy `GET /api/invocations/:id/download-all`
@@ -56,7 +56,7 @@ a854243f-...                         | 05a4c9dd-...                         | su
 ... (3 more, all same shape)
 ```
 
-**Impact.** No user can download an outputs ZIP for any nextflow-native run today. This is the path 100% of nf-core / drug-discovery / cryo-EM runs take. Phase 1 inherits the gap from legacy — it's neither caused nor masked by the migration.
+**Impact.** No user can download an outputs ZIP for any pipeline run today. This is the path 100% of nf-core / drug-discovery / cryo-EM runs take. Phase 1 inherits the gap from legacy — it's neither caused nor masked by the migration.
 
 **Proper fix.** Add an `execution_runs`-aware branch to `resolveInvocation()` in `frontend/server/jobs/handlers/download-all-zip.ts` (and the legacy endpoint, until it's retired):
 
@@ -75,7 +75,7 @@ if (executionRun?.execution?.nextflowOutputDir) {
 
 …and teach the archiver loop to handle the `_nextflowSource` shape by `aws s3 ls --recursive` + `s3.getObject().createReadStream()` per key, instead of calling `storage.getInvocationOutputs()` (which is Galaxy-only).
 
-**Severity.** P1 user-visible — but **not new**. Pre-existed Phase 1; was hidden because no one tested the legacy endpoint end-to-end on a nextflow-native run. Surfaced today by the Phase 1 parity check.
+**Severity.** P1 user-visible — but **not new**. Pre-existed Phase 1; was hidden because no one tested the legacy endpoint end-to-end on a pipeline run. Surfaced today by the Phase 1 parity check.
 
 **How to apply.** Slot this fix into Phase 1.5 (before Phase 2's methods-report caching) so the JobButton on the AfterRunReport's OutputsTab actually produces a usable download for the dominant run type.
 
