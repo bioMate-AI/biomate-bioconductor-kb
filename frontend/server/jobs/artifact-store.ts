@@ -15,6 +15,7 @@ export interface ArtifactReadResult {
   stream: NodeJS.ReadableStream;
   bytes: number;
   contentType: string;
+  filename?: string;
 }
 
 export interface ArtifactRedirectResult {
@@ -31,7 +32,7 @@ export interface ArtifactWriteHandle {
 }
 
 export interface ArtifactStore {
-  open(jobId: string, contentType: string): ArtifactWriteHandle;
+  open(jobId: string, contentType: string, filename?: string): ArtifactWriteHandle;
   read(jobId: string): ArtifactReadResult | ArtifactRedirectResult | null;
   delete(jobId: string): void;
 }
@@ -40,14 +41,16 @@ function defaultDir(): string {
   return process.env.BIOMATE_ARTIFACT_DIR || "/tmp/biomate_artifacts";
 }
 
-/** Tiny .meta file sidecar so we can recover contentType without a DB hit. */
+/** Tiny .meta file sidecar so we can recover contentType + filename without a DB hit. */
 interface MetaFile {
   contentType: string;
+  filename?: string;
 }
 
 export class LocalArtifactStore implements ArtifactStore {
   private readonly dir: string;
   private readonly contentTypes = new Map<string, string>();
+  private readonly filenames = new Map<string, string>();
   private readonly bytesWritten = new Map<string, number>();
 
   constructor(dir?: string) {
@@ -63,14 +66,18 @@ export class LocalArtifactStore implements ArtifactStore {
     return path.join(this.dir, `${jobId}.meta.json`);
   }
 
-  open(jobId: string, contentType: string): ArtifactWriteHandle {
+  open(jobId: string, contentType: string, filename?: string): ArtifactWriteHandle {
     const filePath = this.artifactPath(jobId);
     const stream = fs.createWriteStream(filePath);
     let written = 0;
+    if (filename) this.filenames.set(jobId, filename);
     stream.on("close", () => {
       this.bytesWritten.set(jobId, written);
       try {
-        fs.writeFileSync(this.metaPath(jobId), JSON.stringify({ contentType } satisfies MetaFile));
+        fs.writeFileSync(
+          this.metaPath(jobId),
+          JSON.stringify({ contentType, filename } satisfies MetaFile),
+        );
       } catch {
         /* meta sidecar is best-effort */
       }
@@ -96,18 +103,21 @@ export class LocalArtifactStore implements ArtifactStore {
     if (!fs.existsSync(filePath)) return null;
     const stat = fs.statSync(filePath);
     let contentType = this.contentTypes.get(jobId);
-    if (!contentType) {
+    let filename = this.filenames.get(jobId);
+    if (!contentType || !filename) {
       try {
         const meta = JSON.parse(fs.readFileSync(this.metaPath(jobId), "utf8")) as MetaFile;
-        contentType = meta.contentType;
+        contentType = contentType ?? meta.contentType;
+        filename = filename ?? meta.filename;
       } catch {
-        contentType = "application/octet-stream";
+        contentType = contentType ?? "application/octet-stream";
       }
     }
     return {
       stream: fs.createReadStream(filePath),
       bytes: stat.size,
-      contentType,
+      contentType: contentType!,
+      filename,
     };
   }
 
@@ -120,6 +130,7 @@ export class LocalArtifactStore implements ArtifactStore {
       }
     }
     this.contentTypes.delete(jobId);
+    this.filenames.delete(jobId);
     this.bytesWritten.delete(jobId);
   }
 }

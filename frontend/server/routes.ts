@@ -4,6 +4,7 @@ import { requestContextMiddleware } from "./request-context";
 import { registerJobsRouter } from "./jobs/router";
 // Side-effect import: registers the `download_all_zip` job handler.
 import "./jobs/handlers/download-all-zip";
+import "./jobs/handlers/methods-report";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";

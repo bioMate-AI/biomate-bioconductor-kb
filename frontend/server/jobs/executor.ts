@@ -124,8 +124,8 @@ async function runJob(jobId: string): Promise<void> {
       await flushProgress(false);
     },
     checkCancelled: () => cancellationFlags.get(jobId) === true,
-    openArtifact: (_name, contentType) => {
-      writeHandle = store.open(jobId, contentType);
+    openArtifact: (name, contentType) => {
+      writeHandle = store.open(jobId, contentType, name);
       return writeHandle;
     },
     closeArtifact: async () => {

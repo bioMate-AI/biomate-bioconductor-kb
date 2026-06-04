@@ -205,7 +205,10 @@ export function registerJobsRouter(app: Express): void {
     }
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Length", String(result.bytes));
-    res.setHeader("Content-Disposition", `attachment; filename="${row.id}"`);
+    // Sanitize filename: forbid quote/CR/LF (header injection) and fall back
+    // to the job id if the handler didn't supply one.
+    const safeFilename = (result.filename ?? row.id).replace(/["\r\n]/g, "_");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
     result.stream.pipe(res);
   });
 
