@@ -233,11 +233,12 @@ psycopg2-binary>=2.9.0
 PyYAML>=6.0  # For LLM provider configuration
 
 # IND module deps — added 2026-06-03
-pdfplumber>=0.11.9     # A1: extract text from uploaded GLP/NDA PDFs
-pyotp>=2.9.0           # S2: RFC 6238 TOTP verification for 21 CFR Part 11 e-signature
-qrcode[pil]>=8.2       # S2: QR generation for MFA enrollment
-
-# IND module deps — added 2026-06-03
+# pdfminer.six pinned BEFORE pdfplumber: latest pdfplumber (0.11.9+)
+# transitively requires pdfminer.six==20251230, which is not on PyPI
+# (latest available is 20251107). Pin to that explicitly so the
+# resolver doesn't try the missing version. Update both pins together
+# when pdfplumber widens its constraint.
+pdfminer.six==20251107
 pdfplumber>=0.11.9     # A1: extract text from uploaded GLP/NDA PDFs
 pyotp>=2.9.0           # S2: RFC 6238 TOTP verification for 21 CFR Part 11 e-signature
 qrcode[pil]>=8.2       # S2: QR generation for MFA enrollment
