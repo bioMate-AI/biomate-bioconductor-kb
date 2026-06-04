@@ -1309,3 +1309,80 @@ async def rerun_pbpk(project_id: str, params: PbpkParams):
         "params": params.model_dump(),
     })
     return {"status": "ok", "result": new_pbpk}
+
+
+# ---------------------------------------------------------------------------
+# S2 — Real TOTP MFA enrollment endpoints (decorators)
+# ---------------------------------------------------------------------------
+
+@router.get("/api/auth/mfa/status")
+async def mfa_status_endpoint(user: dict = Depends(require_authenticated_user)):
+    rec = _load_mfa(str(user.get("user_id", "anonymous")))
+    return {
+        "enrolled": bool(rec.get("enrolled")),
+        "enrolled_at": rec.get("enrolled_at"),
+    }
+
+
+@router.post("/api/auth/mfa/enroll")
+async def mfa_enroll_endpoint(user: dict = Depends(require_authenticated_user)):
+    import base64
+    from io import BytesIO
+    try:
+        import pyotp
+        import qrcode
+    except ImportError as exc:
+        raise HTTPException(500, f"pyotp / qrcode not installed: {exc}") from exc
+
+    user_id = str(user.get("user_id", "anonymous"))
+    user_label = str(user.get("email") or user.get("username") or user_id)
+    secret = pyotp.random_base32()
+    otpauth_url = pyotp.TOTP(secret).provisioning_uri(
+        name=user_label, issuer_name="BioMate Regulatory",
+    )
+    img = qrcode.make(otpauth_url)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    qr_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+
+    _save_mfa(user_id, {
+        "secret": secret,
+        "enrolled": False,
+        "pending_since": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+    return {"secret": secret, "otpauth_url": otpauth_url, "qr_png_base64": qr_b64}
+
+
+class _MfaConfirmRequest(BaseModel):
+    code: str = Field(..., pattern=r"^\d{6}$")
+
+
+@router.post("/api/auth/mfa/confirm")
+async def mfa_confirm_endpoint(
+    body: _MfaConfirmRequest,
+    user: dict = Depends(require_authenticated_user),
+):
+    try:
+        import pyotp
+    except ImportError:
+        raise HTTPException(500, "pyotp not installed")
+    user_id = str(user.get("user_id", "anonymous"))
+    rec = _load_mfa(user_id)
+    if not rec.get("secret"):
+        raise HTTPException(409, "no pending enrollment - call /enroll first")
+    if not pyotp.TOTP(rec["secret"]).verify(body.code, valid_window=1):
+        raise HTTPException(401, "code did not match - try again")
+    rec["enrolled"] = True
+    rec["enrolled_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    rec.pop("pending_since", None)
+    _save_mfa(user_id, rec)
+    return {"enrolled": True, "enrolled_at": rec["enrolled_at"]}
+
+
+@router.post("/api/auth/mfa/reset")
+async def mfa_reset_endpoint(user: dict = Depends(require_authenticated_user)):
+    user_id = str(user.get("user_id", "anonymous"))
+    pp = _mfa_path(user_id)
+    if pp.exists():
+        pp.unlink()
+    return {"ok": True}
