@@ -275,3 +275,19 @@ release-create-point: release-create ## Create a point release
 
 help:
 	@egrep '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+# ─── Smoke targets (pre-push guards against startup bugs) ──────────────────
+# scripts/smoke_pydantic_models.py — sub-second; catches forward-ref bugs
+# scripts/smoke_boot.sh             — full gunicorn boot against throwaway sqlite
+
+.PHONY: smoke-models smoke-boot smoke
+
+smoke-models:
+	@cd .. && backend/.venv/bin/python scripts/smoke_pydantic_models.py
+
+smoke-boot:
+	@cd .. && BILLING_DEV_MODE=true scripts/smoke_boot.sh
+
+# Run both. Use before any commit that touches FastAPI routes or Pydantic
+# models (especially in backend/lib/galaxy/ai/drug_discovery/).
+smoke: smoke-models smoke-boot
