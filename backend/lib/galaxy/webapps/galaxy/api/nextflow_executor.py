@@ -94,6 +94,20 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
     _narrator_emit(invocation_id, kind, technical, sse_callback=_post_sse)
 
 
+def _aws_cli_bin() -> str:
+    """Canonical path to the aws CLI binary inside the Galaxy container.
+
+    Galaxy's Dockerfile installs aws CLI v2 to /opt/aws-cli/bin/aws (the
+    same path used by Nextflow's aws.batch.cliPath, intentionally — see
+    docs/nextPhase/20260410_AWS_BATCH_CLIPATH_COMPLETE_FIX.md). Use the
+    absolute path so the call works even on stale-image dev containers
+    that have /opt/aws-cli installed but no `aws` on PATH. Fall back to
+    PATH lookup ('aws') so the function still works in environments
+    that install via apt or pip into /usr/local/bin.
+    """
+    return "/opt/aws-cli/bin/aws" if os.path.exists("/opt/aws-cli/bin/aws") else "aws"
+
+
 def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     """Drop exported bash completion functions (BASH_FUNC_*) that break Batch/Nextflow shells,
     and assert the Nextflow framework pin is present.
@@ -1902,7 +1916,7 @@ def _evaluate_qc_from_s3(
                 continue
             try:
                 result = _sub.run(
-                    ["aws", "s3", "cp", s3_uri, "-"],
+                    [_aws_cli_bin(), "s3", "cp", s3_uri, "-"],
                     capture_output=True, timeout=15
                 )
                 if result.returncode == 0:
@@ -4184,7 +4198,7 @@ def get_nextflow_status(
                     try:
                         import subprocess as _sp
                         _ls = _sp.run(
-                            ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
+                            [_aws_cli_bin(), "s3", "ls", _s3_outdir + "/", "--recursive"],
                             capture_output=True, text=True, timeout=10,
                         )
                         for _line in _ls.stdout.splitlines():
@@ -4245,12 +4259,31 @@ def get_nextflow_status(
             # before the final write, leaving the executor stuck in "running" indefinitely.
             if _s3_outdir and _fb_started_at:
                 import subprocess as _sp_h
-                _h_ls = _sp_h.run(
-                    ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
-                    capture_output=True, text=True, timeout=10,
-                )
+                # Defensive: if the aws CLI isn't installed in the Galaxy
+                # container (stale image without the Dockerfile's
+                # /opt/aws-cli install step), don't 500 the entire status
+                # endpoint — every poll would crash with
+                # FileNotFoundError: [Errno 2] No such file or directory:
+                # 'aws'. Prefer the self-contained absolute path Galaxy's
+                # Dockerfile installs to (/opt/aws-cli/bin/aws), then PATH
+                # lookup, then bail gracefully.
                 _h_files = []
-                for _hl in _h_ls.stdout.splitlines():
+                try:
+                    _h_ls = _sp_h.run(
+                        [_aws_cli_bin(), "s3", "ls", _s3_outdir + "/", "--recursive"],
+                        capture_output=True, text=True, timeout=10,
+                    )
+                except FileNotFoundError:
+                    log.warning(
+                        "[Nextflow] aws CLI not available for S3 completion heuristic "
+                        "(neither /opt/aws-cli/bin/aws nor PATH lookup found). "
+                        "Status endpoint will continue without S3-based terminal detection."
+                    )
+                    _h_ls = None
+                except Exception as _h_ls_err:
+                    log.warning("[Nextflow] aws s3 ls failed for heuristic: %s", _h_ls_err)
+                    _h_ls = None
+                for _hl in (_h_ls.stdout.splitlines() if _h_ls else []):
                     _hp = _hl.split()
                     if len(_hp) >= 4:
                         _hf = _hp[3].split("/")[-1]
@@ -4292,7 +4325,7 @@ def get_nextflow_status(
                 try:
                     import subprocess as _sp
                     _ls_run = _sp.run(
-                        ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
+                        [_aws_cli_bin(), "s3", "ls", _s3_outdir + "/", "--recursive"],
                         capture_output=True, text=True, timeout=10,
                     )
                     for _line in _ls_run.stdout.splitlines():
