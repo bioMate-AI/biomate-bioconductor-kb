@@ -1,6 +1,6 @@
 # ANDV compute parallel sprint — status
 
-Last updated: 2026-06-03 (UTC — ZINC600 merge + synthesizability triage)
+Last updated: 2026-06-04 (UTC — Z600-R1 pose QC + compute package refresh)
 
 **Scope:** in silico only (BioMate workflow demo). No wet-lab framing.
 
@@ -42,7 +42,7 @@ Last updated: 2026-06-03 (UTC — ZINC600 merge + synthesizability triage)
 | 4 | −6.099 | |
 | 5 | −6.065 | |
 
-**Compute lead (Vina + pose QC):** still the validated **INH-01** chemotype (`N=C(N)NC(=O)c1nccnc1N`, −6.267 kcal/mol) with ligand RMSD ~0.20 nm; rank-1 full-screen hit is a related guanidine scaffold (−6.527) — needs pose QC before promoting.
+**Compute lead (Vina + pose QC):** **INH-01** (`N=C(N)NC(=O)c1nccnc1N`, −6.267 kcal/mol, ligand RMSD ~0.20 nm). **Z600-R1** rank-1 (−6.527) passed pose QC (0.26 nm) but is **not promoted** — INH-01 remains primary lead.
 
 ---
 
@@ -59,7 +59,11 @@ _None — see optional follow-ups below._
 | IEDB web tool audit | Manual upload to [IEDB Population Coverage](https://tools.iedb.org/population/) — local cross-check **PASS** (`PLAN_A_IEDB_CROSSCHECK.md`) |
 | ADMET on ZINC600 top 20 | **DONE** — `poll_zinc600_top20_admet.py` |
 | SA score on ZINC600 top 20 | **DONE** — `triage_zinc600_synthesizability.py` |
-| FigA4 MultiQC (full GP) | Not done |
+| FigA4 MultiQC (full GP) | **DONE** |
+| Ensemble ZINC600 top-5 | Prepared — `ZINC600_ENSEMBLE_TOP5_LAUNCH.md` (Galaxy API) |
+| FigA8 Chile 17-allele curve | **DONE** — `FigA8_chile17_population_coverage_curve.png` |
+| ZINC purchasability top-5 | **Done** — `zinc600_library.tsv` + `lookup_zinc_purchasability.py` |
+| Library provenance doc | **Done** — `ZINC600_LIBRARY_PROVENANCE.md` + manifest |
 | Plan B LNP variants | Spec only |
 
 ---

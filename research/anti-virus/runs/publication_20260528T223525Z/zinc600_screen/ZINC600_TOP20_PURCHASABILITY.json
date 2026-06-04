@@ -1,0 +1,508 @@
+{
+  "looked_up_at": "2026-06-04T20:58:02.992114+00:00",
+  "backends": [
+    "local_tranche",
+    "pubchem"
+  ],
+  "library_manifest": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.manifest.json",
+  "library_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.tsv",
+  "tranche_url": "https://files.docking.org/2D/AA/AAAC.smi",
+  "tranche_compounds_indexed": 600,
+  "top_n": 20,
+  "results": [
+    {
+      "rank": 1,
+      "vina_kcal_mol": -6.527,
+      "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
+      "local_tranche": {
+        "zinc_substance_id": "38643678",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          11971027
+        ],
+        "pubchem_cid_primary": 11971027,
+        "inchikey": "VDBAMTUNZNBVLQ-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "38643678",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 2,
+      "vina_kcal_mol": -6.275,
+      "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
+      "local_tranche": {
+        "zinc_substance_id": "100282852",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          136890013
+        ],
+        "pubchem_cid_primary": 136890013,
+        "inchikey": "GQTYCMKNNXPNIB-UWTATZPHSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "100282852",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 3,
+      "vina_kcal_mol": -6.267,
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "local_tranche": {
+        "zinc_substance_id": "33753639",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          3036436
+        ],
+        "pubchem_cid_primary": 3036436,
+        "inchikey": "GTOFYYPYNNNMLP-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "33753639",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 4,
+      "vina_kcal_mol": -6.099,
+      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
+      "local_tranche": {
+        "zinc_substance_id": "39114411",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          93509744
+        ],
+        "pubchem_cid_primary": 93509744,
+        "inchikey": "GRGWASDEOIBWJS-WDCZJNDASA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "39114411",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 5,
+      "vina_kcal_mol": -6.065,
+      "smiles": "N=C(N)NC(=O)NC(=N)N",
+      "local_tranche": {
+        "zinc_substance_id": "33607431",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          3019440
+        ],
+        "pubchem_cid_primary": 3019440,
+        "inchikey": "ISJOITFNXDRNKS-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "33607431",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 6,
+      "vina_kcal_mol": -6.014,
+      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@H]1O",
+      "local_tranche": {
+        "zinc_substance_id": "32203238",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          92860315
+        ],
+        "pubchem_cid_primary": 92860315,
+        "inchikey": "PHMWRCYNACXJTG-YFKPBYRVSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "32203238",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 7,
+      "vina_kcal_mol": -5.933,
+      "smiles": "C[C@@H](O)[C@@H]1NC(=O)[C@@H]2CCCN2C1=O",
+      "local_tranche": {
+        "zinc_substance_id": "8076670",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          11937742
+        ],
+        "pubchem_cid_primary": 11937742,
+        "inchikey": "UBLWFFBGMBRBMC-VQVTYTSYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "8076670",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 8,
+      "vina_kcal_mol": -5.912,
+      "smiles": "C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1",
+      "local_tranche": {
+        "zinc_substance_id": "39114413",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          93509746
+        ],
+        "pubchem_cid_primary": 93509746,
+        "inchikey": "GRGWASDEOIBWJS-UOWFLXDJSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "39114413",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 9,
+      "vina_kcal_mol": -5.902,
+      "smiles": "CC(=O)NC1=NN(C)C(=O)C1(O)O",
+      "local_tranche": {
+        "zinc_substance_id": "39126365",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          21844985
+        ],
+        "pubchem_cid_primary": 21844985,
+        "inchikey": "PMFOXRAQOJAATK-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "39126365",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 10,
+      "vina_kcal_mol": -5.881,
+      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+      "local_tranche": {
+        "zinc_substance_id": "39114546",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          10702521
+        ],
+        "pubchem_cid_primary": 10702521,
+        "inchikey": "MPJGSEOZOYGCFC-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "39114546",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 11,
+      "vina_kcal_mol": -5.831,
+      "smiles": "NC1=NC(=O)C2=N[C@H](O)CNC2=N1",
+      "local_tranche": {
+        "zinc_substance_id": "39114294",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          136854004
+        ],
+        "pubchem_cid_primary": 136854004,
+        "inchikey": "IMJHAYLWSHODBV-UWTATZPHSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "39114294",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 12,
+      "vina_kcal_mol": -5.825,
+      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O",
+      "local_tranche": {
+        "zinc_substance_id": "32203242",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          92860316
+        ],
+        "pubchem_cid_primary": 92860316,
+        "inchikey": "PHMWRCYNACXJTG-RXMQYKEDSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "32203242",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 13,
+      "vina_kcal_mol": -5.759,
+      "smiles": "Nc1nc(=O)[nH]c2[nH]c(=O)cnc12",
+      "local_tranche": {
+        "zinc_substance_id": "45814481",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          45099751
+        ],
+        "pubchem_cid_primary": 45099751,
+        "inchikey": "VNVORMBUFQMATK-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "45814481",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 14,
+      "vina_kcal_mol": -5.731,
+      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1",
+      "local_tranche": {
+        "zinc_substance_id": "255974859",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": null,
+      "cartblanche_hits": [],
+      "zinc_id": "255974859",
+      "in_zinc_tranche": true,
+      "in_pubchem": false,
+      "in_cartblanche": false,
+      "errors": {
+        "pubchem": "HTTP Error 400: PUGREST.BadRequest"
+      },
+      "in_catalog": true
+    },
+    {
+      "rank": 15,
+      "vina_kcal_mol": -5.697,
+      "smiles": "NC(=O)NC(=O)NC(=O)C(N)=O",
+      "local_tranche": {
+        "zinc_substance_id": "33605916",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          3018123
+        ],
+        "pubchem_cid_primary": 3018123,
+        "inchikey": "XYISUGIJDGQPCY-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "33605916",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 16,
+      "vina_kcal_mol": -5.678,
+      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "local_tranche": {
+        "zinc_substance_id": "141653894",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          136434526
+        ],
+        "pubchem_cid_primary": 136434526,
+        "inchikey": "CIJNSSHPKOLWBK-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "141653894",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 17,
+      "vina_kcal_mol": -5.603,
+      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "local_tranche": {
+        "zinc_substance_id": "12501434",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          7059413
+        ],
+        "pubchem_cid_primary": 7059413,
+        "inchikey": "AEMOLEFTQBMNLQ-LHGYGUSFSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "12501434",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 18,
+      "vina_kcal_mol": -5.599,
+      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "local_tranche": {
+        "zinc_substance_id": "2265357464",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          11789859
+        ],
+        "pubchem_cid_primary": 11789859,
+        "inchikey": "WVMTVJMOBYVFMA-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "2265357464",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 19,
+      "vina_kcal_mol": -5.567,
+      "smiles": "NN1NC(=O)c2[nH]cnc2N1",
+      "local_tranche": {
+        "zinc_substance_id": "197749338",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          22677571
+        ],
+        "pubchem_cid_primary": 22677571,
+        "inchikey": "AULZAEJAJNRFGD-UHFFFAOYSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "197749338",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    },
+    {
+      "rank": 20,
+      "vina_kcal_mol": -5.56,
+      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "local_tranche": {
+        "zinc_substance_id": "238568487",
+        "source": "zinc600_library.tsv"
+      },
+      "pubchem": {
+        "pubchem_cids": [
+          102602458
+        ],
+        "pubchem_cid_primary": 102602458,
+        "inchikey": "ZCOOPPWEFZVABM-UYFOZJQFSA-N",
+        "pubchem_canonical_smiles": null,
+        "in_catalog": true
+      },
+      "cartblanche_hits": [],
+      "zinc_id": "238568487",
+      "in_zinc_tranche": true,
+      "in_pubchem": true,
+      "in_cartblanche": false,
+      "errors": {},
+      "in_catalog": true
+    }
+  ]
+}

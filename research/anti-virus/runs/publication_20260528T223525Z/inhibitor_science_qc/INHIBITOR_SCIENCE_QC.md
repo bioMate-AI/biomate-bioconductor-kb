@@ -1,6 +1,6 @@
 # Inhibitor track — science QC gates
 
-Generated: 2026-06-04T18:12:02.920321+00:00
+Generated: 2026-06-04T20:58:03.122180+00:00
 
 ## Protocol gates
 
