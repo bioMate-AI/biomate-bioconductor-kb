@@ -112,17 +112,57 @@ export function configureSecurityHeaders(app: Express) {
               defaultSrc: ["'self'"],
               scriptSrc: [
                 "'self'",
-                ...(config.env !== 'production' ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
+                // gtag init block at frontend/client/index.html:32-43 is an
+                // inline script that defines window.gtag + calls
+                // gtag('config', ID). It must be permitted by script-src or
+                // the analytics dispatch never fires. 'unsafe-inline' is the
+                // standard Google-recommended posture for sites using gtag
+                // without a per-deploy nonce strategy. If we tighten later,
+                // switch to a per-build nonce or replace the inline block
+                // with a sha256-hashed external loader.
+                "'unsafe-inline'",
+                ...(config.env !== 'production' ? ["'unsafe-eval'"] : []),
                 'https://cdn.jsdelivr.net',
                 'https://unpkg.com',
+                // Google Analytics / Tag Manager loaders + plain GTM domain.
+                'https://www.googletagmanager.com',
+                'https://www.google-analytics.com',
+                'https://ssl.google-analytics.com',
               ],
+              // script-src-elem governs <script src=...> tags in modern
+              // browsers (Chrome 87+); explicitly listing it ensures the
+              // gtag external loader isn't blocked under either directive.
+              scriptSrcElem: [
+                "'self'",
+                "'unsafe-inline'",
+                'https://cdn.jsdelivr.net',
+                'https://unpkg.com',
+                'https://www.googletagmanager.com',
+                'https://www.google-analytics.com',
+                'https://ssl.google-analytics.com',
+              ],
+              scriptSrcAttr: ["'unsafe-inline'"],
               styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
               fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-              imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+              imgSrc: [
+                "'self'", 'data:', 'https:', 'blob:',
+                // Some GA versions still use a 1x1 pixel beacon from these
+                // hosts; covered by the broad 'https:' above but explicit
+                // helps if 'https:' is ever tightened.
+                'https://www.google-analytics.com',
+                'https://*.google-analytics.com',
+                'https://*.googletagmanager.com',
+              ],
               connectSrc: [
                 "'self'",
                 'https://api.anthropic.com',
                 'https://api.openai.com',
+                // GA4 measurement-protocol POSTs + region-specific endpoints.
+                'https://www.google-analytics.com',
+                'https://*.google-analytics.com',
+                'https://*.analytics.google.com',
+                'https://*.googletagmanager.com',
+                'https://stats.g.doubleclick.net',
                 ...devConnectSrc,
               ],
               frameSrc: ["'none'"],
