@@ -755,7 +755,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         };
         workflowDefinition = {
           ...workflow,
-          name: workflow.name || workflow.workflow_name || 'bioMate Nextflow Workflow',
+          name: workflow.name || workflow.workflow_name || 'bioMate Workflow',
           // Preserve the original workflow_type (e.g. 'cryosparc') — do not force 'nextflow'
           workflow_type: workflow.workflow_type || 'nextflow',
           format: workflow.format || 'nextflow',
