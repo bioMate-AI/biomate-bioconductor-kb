@@ -1,0 +1,60 @@
+{
+  "created_at": "2026-06-03T19:46:40.043771+00:00",
+  "top_n": 20,
+  "missing_before_run": 14,
+  "missing_smiles": [
+    "N=C(N)NC(=O)NC(=O)NC(=N)N",
+    "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
+    "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
+    "N=C(N)NC(=O)NC(=N)N",
+    "O=C1Nc2c[nH]c(=O)nc2N[C@H]1O",
+    "C[C@@H](O)[C@@H]1NC(=O)[C@@H]2CCCN2C1=O",
+    "C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1",
+    "CC(=O)NC1=NN(C)C(=O)C1(O)O",
+    "NC1=NC(=O)C2=N[C@H](O)CNC2=N1",
+    "O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O",
+    "Nc1nc(=O)[nH]c2[nH]c(=O)cnc12",
+    "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1",
+    "NC(=O)NC(=O)NC(=O)C(N)=O",
+    "NN1NC(=O)c2[nH]cnc2N1"
+  ],
+  "run_id": "78730533-15a0-4734-8548-ea288dcc31f2",
+  "submit": {
+    "success": true,
+    "run_id": "78730533-15a0-4734-8548-ea288dcc31f2",
+    "invocation_id": "4fb68b83-afb2-4a1e-aa73-bd41898c42e6",
+    "status": "running",
+    "outputs": {
+      "outdir": "s3://biomate-nextflow-work/nextflow/outputs/zinc600-admet-20260603/601a6350"
+    },
+    "runtime": {
+      "mode": "docker",
+      "image": "biomate/biotools:arm64",
+      "entry": null,
+      "required_modules": [],
+      "missing_modules": [],
+      "host_arch": "arm64",
+      "image_arch": "arm64",
+      "cross_arch_allowed": "false"
+    },
+    "message": "Nextflow workflow started (run_id: 78730533-15a0-4734-8548-ea288dcc31f2)"
+  },
+  "status": {
+    "run_id": "78730533-15a0-4734-8548-ea288dcc31f2",
+    "invocation_id": "4fb68b83-afb2-4a1e-aa73-bd41898c42e6",
+    "status": "failed",
+    "returncode": -1,
+    "outdir": "s3://biomate-nextflow-work/nextflow/outputs/zinc600-admet-20260603/601a6350",
+    "work_dir": "s3://biomate-nextflow-work/nextflow/work/zinc600-admet-20260603/78730533-15a0-4734-8548-ea288dcc31f2",
+    "log_tail": [],
+    "is_batch": true,
+    "s3_output_files": [],
+    "qc_report": null,
+    "qc_gates": [],
+    "started_at": 1780516000.9887073,
+    "completed_at": null,
+    "duration_s": 0,
+    "processes": []
+  },
+  "error": "Could not download ADMET JSON from S3"
+}

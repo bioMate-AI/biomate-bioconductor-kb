@@ -1,0 +1,1798 @@
+{
+  "assembled_at": "2026-06-03T19:37:06.392614+00:00",
+  "data_sources": {
+    "uniprot_accessions": {
+      "ANDV": "Q9E006",
+      "SNV": "Q89905",
+      "PUUV": "P27312"
+    },
+    "epitope_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CONSENSUS_BINDERS.tsv",
+    "docking_json": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
+  },
+  "summary": {
+    "conserved_9mers_full_gp": 54,
+    "mhc_binders": 47,
+    "mhc_binder_unique_peptides": 20,
+    "science_tier_ranked": 332,
+    "conserved_binder_overlap": 0,
+    "docking_hits": 20,
+    "zinc_screen_docked": 150,
+    "chile_tier_ab_coverage_pct": 48.81,
+    "top_vaccine_candidates": 54
+  },
+  "science_tier_track": [
+    {
+      "id": "HC-01",
+      "peptide": "VPGLHGWATVM",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": false,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-02",
+      "peptide": "MPDVAHSLAV",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": false,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-03",
+      "peptide": "VPGLHGWATV",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02"
+      ],
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": false,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-04",
+      "peptide": "MPDVAHSL",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*27:05",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": true,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-05",
+      "peptide": "KTFEGILTK",
+      "science_tier": "B",
+      "best_allele": "HLA-A*03:01",
+      "alleles": [
+        "HLA-A*03:01",
+        "HLA-A*02:01",
+        "HLA-A*01:01",
+        "HLA-B*27:05"
+      ],
+      "gp_position": 228,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-06",
+      "peptide": "MPKTIYEL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": true,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-07",
+      "peptide": "QRFRGSEQK",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": true,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-08",
+      "peptide": "VIYEKTHCV",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-A*02:01"
+      ],
+      "gp_position": 172,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-09",
+      "peptide": "NPAHTLTL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 191,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-10",
+      "peptide": "VPITWTGYL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 359,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-11",
+      "peptide": "SRMLVHPR",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 274,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-12",
+      "peptide": "SRIQVIYEK",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05",
+        "HLA-A*03:01"
+      ],
+      "gp_position": 168,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-13",
+      "peptide": "IRSCMASVF",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 158,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-14",
+      "peptide": "LRIVGPITAK",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 295,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-15",
+      "peptide": "VPMYSSLSTL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 322,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-16",
+      "peptide": "QPAHTYDTV",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 200,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-17",
+      "peptide": "QRFRGSEQKI",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-18",
+      "peptide": "SIRSCMASV",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-B*07:02",
+        "HLA-A*02:01"
+      ],
+      "gp_position": 157,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": true,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-19",
+      "peptide": "MPKTIYELKM",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-20",
+      "peptide": "TLKKVKKTVL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01"
+      ],
+      "gp_position": 122,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    }
+  ],
+  "conservation_track": [
+    {
+      "id": "XSP-01",
+      "peptide": "ESSCNFDLH",
+      "position": 61,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-02",
+      "peptide": "CTVFCTLAG",
+      "position": 379,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-03",
+      "peptide": "TVFCTLAGP",
+      "position": 380,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-04",
+      "peptide": "VFCTLAGPG",
+      "position": 381,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-05",
+      "peptide": "FCTLAGPGA",
+      "position": 382,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-06",
+      "peptide": "GIFNISSPT",
+      "position": 399,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-07",
+      "peptide": "IFNISSPTC",
+      "position": 400,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-08",
+      "peptide": "FNISSPTCL",
+      "position": 401,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-09",
+      "peptide": "KKVILTKTL",
+      "position": 442,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-10",
+      "peptide": "KVILTKTLV",
+      "position": 443,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-11",
+      "peptide": "VILTKTLVI",
+      "position": 444,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-12",
+      "peptide": "ILTKTLVIG",
+      "position": 445,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-13",
+      "peptide": "LTKTLVIGQ",
+      "position": 446,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-14",
+      "peptide": "TKTLVIGQC",
+      "position": 447,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-15",
+      "peptide": "KTLVIGQCI",
+      "position": 448,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-16",
+      "peptide": "TLVIGQCIY",
+      "position": 449,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-17",
+      "peptide": "LVIGQCIYT",
+      "position": 450,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-18",
+      "peptide": "VIGQCIYTF",
+      "position": 451,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-19",
+      "peptide": "IGQCIYTFT",
+      "position": 452,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-20",
+      "peptide": "GQCIYTFTS",
+      "position": 453,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-21",
+      "peptide": "AHSLAVELC",
+      "position": 470,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-22",
+      "peptide": "HSLAVELCV",
+      "position": 471,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-23",
+      "peptide": "SLAVELCVP",
+      "position": 472,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-24",
+      "peptide": "LAVELCVPG",
+      "position": 473,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-25",
+      "peptide": "AVELCVPGL",
+      "position": 474,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-26",
+      "peptide": "VELCVPGLH",
+      "position": 475,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-27",
+      "peptide": "ELCVPGLHG",
+      "position": 476,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-28",
+      "peptide": "LCVPGLHGW",
+      "position": 477,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-29",
+      "peptide": "CVPGLHGWA",
+      "position": 478,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-30",
+      "peptide": "VPGLHGWAT",
+      "position": 479,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    }
+  ],
+  "mhc_binder_track": [
+    {
+      "id": "HC-01",
+      "peptide": "VPGLHGWATVM",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": false,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-02",
+      "peptide": "MPDVAHSLAV",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": false,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-03",
+      "peptide": "VPGLHGWATV",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02"
+      ],
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": false,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-04",
+      "peptide": "MPDVAHSL",
+      "science_tier": "A",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*27:05",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "cross_species_conserved": true,
+      "processing_likely": true,
+      "order_priority": "HIGH",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-05",
+      "peptide": "KTFEGILTK",
+      "science_tier": "B",
+      "best_allele": "HLA-A*03:01",
+      "alleles": [
+        "HLA-A*03:01",
+        "HLA-A*02:01",
+        "HLA-A*01:01",
+        "HLA-B*27:05"
+      ],
+      "gp_position": 228,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-06",
+      "peptide": "MPKTIYEL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": true,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-07",
+      "peptide": "QRFRGSEQK",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": true,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-08",
+      "peptide": "VIYEKTHCV",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-A*02:01"
+      ],
+      "gp_position": 172,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-09",
+      "peptide": "NPAHTLTL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 191,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-10",
+      "peptide": "VPITWTGYL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 359,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-11",
+      "peptide": "SRMLVHPR",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 274,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-12",
+      "peptide": "SRIQVIYEK",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05",
+        "HLA-A*03:01"
+      ],
+      "gp_position": 168,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-13",
+      "peptide": "IRSCMASVF",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 158,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-14",
+      "peptide": "LRIVGPITAK",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 295,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-15",
+      "peptide": "VPMYSSLSTL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 322,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-16",
+      "peptide": "QPAHTYDTV",
+      "science_tier": "B",
+      "best_allele": "HLA-B*07:02",
+      "alleles": [
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 200,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-17",
+      "peptide": "QRFRGSEQKI",
+      "science_tier": "B",
+      "best_allele": "HLA-B*27:05",
+      "alleles": [
+        "HLA-B*27:05"
+      ],
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-18",
+      "peptide": "SIRSCMASV",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-B*07:02",
+        "HLA-A*02:01"
+      ],
+      "gp_position": 157,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": true,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-19",
+      "peptide": "MPKTIYELKM",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01",
+        "HLA-B*07:02",
+        "HLA-B*35:01"
+      ],
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    },
+    {
+      "id": "HC-20",
+      "peptide": "TLKKVKKTVL",
+      "science_tier": "B",
+      "best_allele": "HLA-B*08:01",
+      "alleles": [
+        "HLA-B*08:01"
+      ],
+      "gp_position": 122,
+      "gpc_region": "gn_ectodomain",
+      "cross_species_conserved": false,
+      "processing_likely": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "tier_ranked_epitope_candidate"
+    }
+  ],
+  "inhibitor_docking_track": [
+    {
+      "id": "INH-01",
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "score_kcal_mol": -6.267,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-02",
+      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+      "score_kcal_mol": -5.881,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-03",
+      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "score_kcal_mol": -5.678,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-04",
+      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.603,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-05",
+      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "score_kcal_mol": -5.599,
+      "receptor": "9P3I",
+      "order_priority": "HIGH",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-06",
+      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "score_kcal_mol": -5.56,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-07",
+      "smiles": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.554,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-08",
+      "smiles": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "score_kcal_mol": -5.531,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-09",
+      "smiles": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "score_kcal_mol": -5.489,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-10",
+      "smiles": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "score_kcal_mol": -5.425,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-11",
+      "smiles": "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "score_kcal_mol": -5.422,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-12",
+      "smiles": "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "score_kcal_mol": -5.4,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-13",
+      "smiles": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.389,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-14",
+      "smiles": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "score_kcal_mol": -5.297,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-15",
+      "smiles": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.273,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-16",
+      "smiles": "OC[C@@]1(O)OC[C@@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.249,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-17",
+      "smiles": "O=C(O)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "score_kcal_mol": -5.23,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-18",
+      "smiles": "CC1(C)CN(O)[C@@H](C(N)=O)CN1",
+      "score_kcal_mol": -5.224,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-19",
+      "smiles": "O=c1[nH]cnc2[nH][nH]c(=O)c12",
+      "score_kcal_mol": -5.215,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    },
+    {
+      "id": "INH-20",
+      "smiles": "N[C@@H]1NCN[C@H]2NCN[C@@H]12",
+      "score_kcal_mol": -5.213,
+      "receptor": "9P3I",
+      "order_priority": "MEDIUM",
+      "compute_role": "docking_hit_in_silico"
+    }
+  ],
+  "vaccine_peptide_candidates": [
+    {
+      "id": "XSP-01",
+      "peptide": "ESSCNFDLH",
+      "position": 61,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-02",
+      "peptide": "CTVFCTLAG",
+      "position": 379,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-03",
+      "peptide": "TVFCTLAGP",
+      "position": 380,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-04",
+      "peptide": "VFCTLAGPG",
+      "position": 381,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-05",
+      "peptide": "FCTLAGPGA",
+      "position": 382,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-06",
+      "peptide": "GIFNISSPT",
+      "position": 399,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-07",
+      "peptide": "IFNISSPTC",
+      "position": 400,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-08",
+      "peptide": "FNISSPTCL",
+      "position": 401,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-09",
+      "peptide": "KKVILTKTL",
+      "position": 442,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-10",
+      "peptide": "KVILTKTLV",
+      "position": 443,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-11",
+      "peptide": "VILTKTLVI",
+      "position": 444,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-12",
+      "peptide": "ILTKTLVIG",
+      "position": 445,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-13",
+      "peptide": "LTKTLVIGQ",
+      "position": 446,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-14",
+      "peptide": "TKTLVIGQC",
+      "position": 447,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-15",
+      "peptide": "KTLVIGQCI",
+      "position": 448,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-16",
+      "peptide": "TLVIGQCIY",
+      "position": 449,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-17",
+      "peptide": "LVIGQCIYT",
+      "position": 450,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-18",
+      "peptide": "VIGQCIYTF",
+      "position": 451,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-19",
+      "peptide": "IGQCIYTFT",
+      "position": 452,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-20",
+      "peptide": "GQCIYTFTS",
+      "position": 453,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-21",
+      "peptide": "AHSLAVELC",
+      "position": 470,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-22",
+      "peptide": "HSLAVELCV",
+      "position": 471,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-23",
+      "peptide": "SLAVELCVP",
+      "position": 472,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-24",
+      "peptide": "LAVELCVPG",
+      "position": 473,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-25",
+      "peptide": "AVELCVPGL",
+      "position": 474,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-26",
+      "peptide": "VELCVPGLH",
+      "position": 475,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-27",
+      "peptide": "ELCVPGLHG",
+      "position": 476,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-28",
+      "peptide": "LCVPGLHGW",
+      "position": 477,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-29",
+      "peptide": "CVPGLHGWA",
+      "position": 478,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    },
+    {
+      "id": "XSP-30",
+      "peptide": "VPGLHGWAT",
+      "position": 479,
+      "length": 9,
+      "cross_species_conserved": true,
+      "mhc_binder_validated": false,
+      "order_priority": "MEDIUM",
+      "compute_role": "cross_species_conserved_kmer"
+    }
+  ],
+  "mhc_binders": [
+    {
+      "peptide": "APHLERVTGF",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "APVLTCMSI",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "ATESALQAHY",
+      "allele": "HLA-A*01:01",
+      "binder": true
+    },
+    {
+      "peptide": "CPGVGTGCTAC",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "CPRRGHKKTV",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "ESKFKFIL",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "FNPAHTLTL",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "FRYKSRCYVGL",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "GRFQEALKK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "GRFQEALKKS",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "GRFQEALKKSL",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "GRFQEALKKSLK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "HPRGEDHDAI",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "IPMKTDLEL",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "IRSCMASVF",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "KRMMATKDSF",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "KTFEGILTK",
+      "allele": "HLA-A*03:01",
+      "binder": true
+    },
+    {
+      "peptide": "LAMPKTIYEL",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "LKKVKKTVL",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "LKYTRKVCI",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "LRIVGPITAK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "LVLNRDVSF",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "MPDVAHSL",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "MPDVAHSLAV",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "MPKTIYEL",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "MPKTIYELKM",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "NPAHTLTL",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "NPANKEESI",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "QPAHTYDTV",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "QRFRGSEQK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "QRFRGSEQKI",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "QRFRGSEQKINF",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "RRKLTNPANK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "SIRSCMASV",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "SRCYVGLVWCL",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "SRIQVIYEK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "SRMLVHPR",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "TLKKVKKTV",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "TLKKVKKTVL",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "VIYEKTHCV",
+      "allele": "HLA-B*08:01",
+      "binder": true
+    },
+    {
+      "peptide": "VPGLHGWATV",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "VPGLHGWATVM",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "VPITWTGYL",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "VPMYSSLST",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "VPMYSSLSTL",
+      "allele": "HLA-B*07:02",
+      "binder": true
+    },
+    {
+      "peptide": "YRTLGVFRY",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    },
+    {
+      "peptide": "YRTLGVFRYK",
+      "allele": "HLA-B*27:05",
+      "binder": true
+    }
+  ],
+  "inhibitor_docking_hits": [
+    {
+      "compound": "N=C(N)NC(=O)c1nccnc1N",
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "score_kcal_mol": -6.267,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CNC1=NC(N)=C2NCCN=C2N1",
+      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+      "score_kcal_mol": -5.881,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "score_kcal_mol": -5.678,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[",
+      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.603,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "score_kcal_mol": -5.599,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "score_kcal_mol": -5.56,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@",
+      "smiles": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.554,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "smiles": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "score_kcal_mol": -5.531,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "smiles": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "score_kcal_mol": -5.489,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "smiles": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "score_kcal_mol": -5.425,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "smiles": "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "score_kcal_mol": -5.422,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "smiles": "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "score_kcal_mol": -5.4,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C",
+      "smiles": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.389,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "smiles": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "score_kcal_mol": -5.297,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@",
+      "smiles": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O",
+      "score_kcal_mol": -5.273,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "OC[C@@]1(O)OC[C@@H](O)[C@H](O)[C@H]1O",
+      "smiles": "OC[C@@]1(O)OC[C@@H](O)[C@H](O)[C@H]1O",
+      "score_kcal_mol": -5.249,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(O)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "smiles": "O=C(O)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "score_kcal_mol": -5.23,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CC1(C)CN(O)[C@@H](C(N)=O)CN1",
+      "smiles": "CC1(C)CN(O)[C@@H](C(N)=O)CN1",
+      "score_kcal_mol": -5.224,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=c1[nH]cnc2[nH][nH]c(=O)c12",
+      "smiles": "O=c1[nH]cnc2[nH][nH]c(=O)c12",
+      "score_kcal_mol": -5.215,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "N[C@@H]1NCN[C@H]2NCN[C@@H]12",
+      "smiles": "N[C@@H]1NCN[C@H]2NCN[C@@H]12",
+      "score_kcal_mol": -5.213,
+      "receptor": "9P3I"
+    }
+  ]
+}

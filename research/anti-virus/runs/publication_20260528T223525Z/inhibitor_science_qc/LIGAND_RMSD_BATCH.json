@@ -1,0 +1,61 @@
+{
+  "analyzed_at": "2026-06-03T05:51:11.212111+00:00",
+  "scope": "compute_only",
+  "panels": [
+    {
+      "compound": "INH-01",
+      "traj_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01",
+      "n_frames": 101,
+      "ligand_rmsd_mean_nm": 0.204,
+      "ligand_rmsd_max_nm": 0.3563,
+      "ligand_rmsd_std_nm": 0.0721,
+      "ligand_atoms": 21,
+      "note": "RMSD vs first frame; positions in \u00c5 converted to nm",
+      "analyzed_at": "2026-06-03T05:51:08.894899+00:00"
+    },
+    {
+      "compound": "INH-02",
+      "traj_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh02/md",
+      "n_frames": 101,
+      "ligand_rmsd_mean_nm": 0.3257,
+      "ligand_rmsd_max_nm": 0.59,
+      "ligand_rmsd_std_nm": 0.1386,
+      "ligand_atoms": 25,
+      "note": "RMSD vs first frame; positions in \u00c5 converted to nm",
+      "analyzed_at": "2026-06-03T05:51:09.470310+00:00"
+    },
+    {
+      "compound": "INH-03",
+      "traj_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh03/md",
+      "n_frames": 101,
+      "ligand_rmsd_mean_nm": 0.3764,
+      "ligand_rmsd_max_nm": 0.5419,
+      "ligand_rmsd_std_nm": 0.1369,
+      "ligand_atoms": 19,
+      "note": "RMSD vs first frame; positions in \u00c5 converted to nm",
+      "analyzed_at": "2026-06-03T05:51:10.022601+00:00"
+    },
+    {
+      "compound": "INH-04",
+      "traj_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh04/md",
+      "n_frames": 101,
+      "ligand_rmsd_mean_nm": 0.2944,
+      "ligand_rmsd_max_nm": 0.5546,
+      "ligand_rmsd_std_nm": 0.1253,
+      "ligand_atoms": 23,
+      "note": "RMSD vs first frame; positions in \u00c5 converted to nm",
+      "analyzed_at": "2026-06-03T05:51:10.584959+00:00"
+    },
+    {
+      "compound": "INH-05",
+      "traj_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh05/md",
+      "n_frames": 101,
+      "ligand_rmsd_mean_nm": 0.2519,
+      "ligand_rmsd_max_nm": 0.4455,
+      "ligand_rmsd_std_nm": 0.0958,
+      "ligand_atoms": 31,
+      "note": "RMSD vs first frame; positions in \u00c5 converted to nm",
+      "analyzed_at": "2026-06-03T05:51:11.148739+00:00"
+    }
+  ]
+}

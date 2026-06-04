@@ -1,0 +1,145 @@
+{
+  "analyzed_at": "2026-06-03T19:33:36.581790+00:00",
+  "thresholds": {
+    "protein_rmsd_pass_nm": 0.55,
+    "protein_rmsd_warn_nm": 0.45,
+    "mmgbsa_suspicious_kcal": -20.0
+  },
+  "gates": {
+    "mmgbsa_protocol": {
+      "gate": "MMGBSA_PROTOCOL",
+      "status": "FAIL",
+      "pass": false,
+      "aspirin_delta_g_bind": -13.05,
+      "aspirin_vina_kcal_mol": null,
+      "reason": "Aspirin \u0394G_bind \u2264 \u221212 kcal/mol \u2014 MM-GBSA not calibrated for relative ranking"
+    },
+    "ensemble_docking": {
+      "status": "COMPLETE",
+      "pass": true,
+      "run_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260603T055454Z/track_inh_ensemble/ensemble_results.json",
+      "n_deposit_conformers": 5,
+      "n_conformers_with_scores": 5,
+      "n_improved_vs_baseline": 4,
+      "n_compounds": 15,
+      "interpretation": "Ensemble scores recovered on deposit conformers; 4/15 improved vs rigid baseline (may be zero \u2014 honest negative)."
+    }
+  },
+  "compounds": [
+    {
+      "compound": "INH-01",
+      "vina_kcal_mol": -6.267,
+      "delta_g_bind_kcal_mol": -10.49,
+      "protein_rmsd_mean_nm": 0.4068,
+      "ligand_rmsd_mean_nm": 0.204,
+      "overall": "VINA_ONLY",
+      "mmgbsa_rank_eligible": false,
+      "flags": [
+        "protocol_not_diagnostic"
+      ],
+      "reasons": [
+        "MM-GBSA protocol gate failed (aspirin control)"
+      ]
+    },
+    {
+      "compound": "INH-02",
+      "vina_kcal_mol": -5.881,
+      "delta_g_bind_kcal_mol": -12.29,
+      "protein_rmsd_mean_nm": 0.5265,
+      "ligand_rmsd_mean_nm": 0.3257,
+      "overall": "VINA_ONLY",
+      "mmgbsa_rank_eligible": false,
+      "flags": [
+        "protein_RMSD_mean=0.5265 nm > 0.45",
+        "protocol_not_diagnostic"
+      ],
+      "reasons": [
+        "MM-GBSA protocol gate failed (aspirin control)"
+      ]
+    },
+    {
+      "compound": "INH-03",
+      "vina_kcal_mol": -5.678,
+      "delta_g_bind_kcal_mol": -27.09,
+      "protein_rmsd_mean_nm": 0.6607,
+      "ligand_rmsd_mean_nm": 0.3764,
+      "overall": "FAIL",
+      "mmgbsa_rank_eligible": false,
+      "flags": [
+        "protein_RMSD_mean=0.6607 nm > 0.45",
+        "mmgbsa_artifact_suspect",
+        "protocol_not_diagnostic"
+      ],
+      "reasons": [
+        "Protein backbone RMSD exceeds pass threshold \u2014 pose unstable",
+        "Ligand RMSD 0.3764 nm \u2014 ligand not stable in pocket (~1 ns MD)",
+        "\u0394G_bind=-27.09 kcal/mol with unstable protein \u2014 likely artifact",
+        "MM-GBSA protocol gate failed (aspirin control)"
+      ]
+    },
+    {
+      "compound": "INH-04",
+      "vina_kcal_mol": -5.603,
+      "delta_g_bind_kcal_mol": -6.83,
+      "protein_rmsd_mean_nm": 0.5109,
+      "ligand_rmsd_mean_nm": 0.2944,
+      "overall": "VINA_ONLY",
+      "mmgbsa_rank_eligible": false,
+      "flags": [
+        "protein_RMSD_mean=0.5109 nm > 0.45",
+        "protocol_not_diagnostic"
+      ],
+      "reasons": [
+        "MM-GBSA protocol gate failed (aspirin control)"
+      ]
+    },
+    {
+      "compound": "INH-05",
+      "vina_kcal_mol": -5.599,
+      "delta_g_bind_kcal_mol": -12.03,
+      "protein_rmsd_mean_nm": 0.4753,
+      "ligand_rmsd_mean_nm": 0.2519,
+      "overall": "VINA_ONLY",
+      "mmgbsa_rank_eligible": false,
+      "flags": [
+        "protein_RMSD_mean=0.4753 nm > 0.45",
+        "protocol_not_diagnostic"
+      ],
+      "reasons": [
+        "MM-GBSA protocol gate failed (aspirin control)"
+      ]
+    },
+    {
+      "compound": "Aspirin",
+      "vina_kcal_mol": null,
+      "delta_g_bind_kcal_mol": -13.05,
+      "protein_rmsd_mean_nm": 0.6647,
+      "ligand_rmsd_mean_nm": null,
+      "overall": "CONTROL_FAIL",
+      "mmgbsa_rank_eligible": false,
+      "flags": [
+        "protein_RMSD_mean=0.6647 nm > 0.45"
+      ],
+      "reasons": [
+        "Protein backbone RMSD exceeds pass threshold \u2014 pose unstable"
+      ]
+    }
+  ],
+  "science_verdict": {
+    "mmgbsa_usable_for_ranking": false,
+    "compute_lead": "INH-01 (Vina + pose QC)",
+    "lead_basis": "Best rigid Vina (\u22126.27 kcal/mol); ligand RMSD mean ~0.20 nm (md/ traj); MM-GBSA not used for ranking (aspirin control failure)",
+    "do_not_lead_with": [
+      "INH-03"
+    ],
+    "blockers": [
+      "MM-GBSA aspirin control failure"
+    ],
+    "zinc600_screen": {
+      "library_n": 600,
+      "docked_n": 600,
+      "complete": true,
+      "results_json": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
+    }
+  }
+}
