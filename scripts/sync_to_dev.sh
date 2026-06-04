@@ -242,10 +242,20 @@ deploy_backend_python() {
     # than chase every future breaking change, pin to 25.10 LTS which
     # accepts the older syntax cleanly. Bump deliberately, not by curl.
     EXPECTED_NF_VER="25.10.5"
-    INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
-    if [[ "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
-      echo "[galaxy] Nextflow version mismatch (installed=$INSTALLED_NF_VER, want=$EXPECTED_NF_VER) — reinstalling pinned version"
-      docker exec biomate-galaxy-dev bash -c "NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+    # `nextflow -v` writes its framework cache to NXF_HOME (default /app/.nextflow
+    # — not writable as the gunicorn user). Without NXF_HOME=/tmp the version
+    # check silently fails (mkdir EACCES → empty string → "" != "25.10.5" →
+    # reinstall path runs but its cwd is also /app, so `mv ./nextflow` finds
+    # nothing). The result was a silent drift — observed live: dev was running
+    # 26.04.2 even though sync log said `[galaxy] Nextflow OK:`.
+    INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_HOME=/tmp/.nextflow /usr/local/bin/nextflow -v 2>/dev/null" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    if [[ -z "$INSTALLED_NF_VER" || "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
+      echo "[galaxy] Nextflow version mismatch (installed='$INSTALLED_NF_VER', want=$EXPECTED_NF_VER) — reinstalling pinned version"
+      docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv /tmp/nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+      # Verify install actually took
+      docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_HOME=/tmp/.nextflow /usr/local/bin/nextflow -v 2>/dev/null" | head -1
+    else
+      echo "[galaxy] Nextflow OK: $INSTALLED_NF_VER"
     fi
   '
   log "[backend] Python files synced"
