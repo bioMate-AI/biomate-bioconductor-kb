@@ -1,0 +1,375 @@
+{
+  "analyzed_at": "2026-06-03T05:54:02.144426+00:00",
+  "scope": "compute_only_approximate",
+  "method": "BioPython globalxx GP Q9E006 -> 9P3I chain A",
+  "pdb_chain_used": "A",
+  "pdb_chain_length": 516,
+  "gp_to_pdb_mapped_positions": 516,
+  "n_patches": 4,
+  "n_peptides_mapped": 27,
+  "n_peptides_in_exposed_patch": 0,
+  "peptides": [
+    {
+      "peptide": "VPGLHGWATVM",
+      "best_tier": "A",
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        460,
+        470
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "MPDVAHSLAV",
+      "best_tier": "A",
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        447,
+        456
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "VPGLHGWATV",
+      "best_tier": "A",
+      "gp_position": 479,
+      "gpc_region": "gc_ectodomain_stem",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        460,
+        469
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "MPDVAHSL",
+      "best_tier": "A",
+      "gp_position": 466,
+      "gpc_region": "gc_ectodomain_stem",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        447,
+        454
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "KTFEGILTK",
+      "best_tier": "B",
+      "gp_position": 228,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        209,
+        217
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "MPKTIYEL",
+      "best_tier": "B",
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        1,
+        7
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "QRFRGSEQK",
+      "best_tier": "B",
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        395,
+        403
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "VIYEKTHCV",
+      "best_tier": "B",
+      "gp_position": 172,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        153,
+        161
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "NPAHTLTL",
+      "best_tier": "B",
+      "gp_position": 191,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        172,
+        179
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "VPITWTGYL",
+      "best_tier": "B",
+      "gp_position": 359,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        340,
+        348
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "SRMLVHPR",
+      "best_tier": "B",
+      "gp_position": 274,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        255,
+        262
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "SRIQVIYEK",
+      "best_tier": "B",
+      "gp_position": 168,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        149,
+        157
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "IRSCMASVF",
+      "best_tier": "B",
+      "gp_position": 158,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        139,
+        147
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "LRIVGPITAK",
+      "best_tier": "B",
+      "gp_position": 295,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        276,
+        285
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "VPMYSSLSTL",
+      "best_tier": "B",
+      "gp_position": 322,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        303,
+        312
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "QPAHTYDTV",
+      "best_tier": "B",
+      "gp_position": 200,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        181,
+        189
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "QRFRGSEQKI",
+      "best_tier": "B",
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        395,
+        404
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "SIRSCMASV",
+      "best_tier": "B",
+      "gp_position": 157,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        138,
+        146
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "MPKTIYELKM",
+      "best_tier": "B",
+      "gp_position": 19,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        1,
+        9
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "TLKKVKKTVL",
+      "best_tier": "B",
+      "gp_position": 122,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        103,
+        112
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "QRFRGSEQKINF",
+      "best_tier": "B",
+      "gp_position": 414,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        395,
+        406
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "HPRGEDHDAI",
+      "best_tier": "B",
+      "gp_position": 279,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        260,
+        269
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "TLKKVKKTV",
+      "best_tier": "B",
+      "gp_position": 122,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        103,
+        111
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "LKKVKKTVL",
+      "best_tier": "B",
+      "gp_position": 123,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        104,
+        112
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "APVLTCMSI",
+      "best_tier": "B",
+      "gp_position": 150,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        131,
+        139
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "ESKFKFIL",
+      "best_tier": "B",
+      "gp_position": 525,
+      "gpc_region": "gc_ectodomain_stem",
+      "pdb_chain": null,
+      "pdb_residue_span": null,
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "FNPAHTLTL",
+      "best_tier": "B",
+      "gp_position": 190,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        171,
+        179
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    },
+    {
+      "peptide": "VPMYSSLST",
+      "best_tier": "B",
+      "gp_position": 322,
+      "gpc_region": "gn_ectodomain",
+      "pdb_chain": "A",
+      "pdb_residue_span": [
+        303,
+        311
+      ],
+      "structural_patch_ids": [],
+      "surface_structural_proxy": false
+    }
+  ],
+  "caveat": "Global alignment proxy; patch windows are C-terminal (505\u2013628); N-terminal epitopes may map outside patches"
+}

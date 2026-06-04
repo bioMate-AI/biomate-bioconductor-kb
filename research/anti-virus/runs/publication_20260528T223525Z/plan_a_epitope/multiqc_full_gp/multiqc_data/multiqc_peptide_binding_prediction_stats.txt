@@ -1,0 +1,2 @@
+Sample	Binders	Non-binders	Unsupported	Binders (%)	Non-binders (%)
+PLAN_A_FULL_GP_mhcnuggets	113	45047	0	0.25	99.75

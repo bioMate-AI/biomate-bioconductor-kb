@@ -1,0 +1,140 @@
+{
+  "created_at": "2026-06-03T06:10:15.990572+00:00",
+  "track": "plan_a_chile_expanded_panel",
+  "stamp": "20260603T061015Z",
+  "n_alleles_total": 17,
+  "n_alleles_new_vs_original_8": 9,
+  "alleles": [
+    "A*01:01",
+    "A*02:01",
+    "A*03:01",
+    "A*24:02",
+    "A*29:02",
+    "A*31:01",
+    "A*68:01",
+    "B*07:02",
+    "B*08:01",
+    "B*15:01",
+    "B*27:05",
+    "B*35:01",
+    "B*38:01",
+    "B*39:01",
+    "B*40:01",
+    "B*44:02",
+    "B*48:01"
+  ],
+  "gp_fasta_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528/andv_gp_full_Q9E006.fasta",
+  "samplesheet_local": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260603T061015Z/track_plan_a_chile_panel/samplesheet_chile_expanded.csv",
+  "samplesheet_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/plan_a_chile_panel/20260603T061015Z/samplesheet.csv",
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_chile_panel/20260603T061015Z/",
+  "tools_requested": [
+    "mhcnuggets"
+  ],
+  "tool_runs": [
+    {
+      "tool": "mhcnuggets",
+      "parameters": {
+        "input": "s3://biomate-nextflow-work/inputs/andv_campaign/plan_a_chile_panel/20260603T061015Z/samplesheet.csv",
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_chile_panel/20260603T061015Z/mhcnuggets/",
+        "tools": "mhcnuggets",
+        "genome_reference": "grch37"
+      },
+      "status": "failed",
+      "submit": {
+        "success": true,
+        "run_id": "35a4c893-a514-4cae-b5a5-9d8b16a9668c",
+        "invocation_id": "7a2ad54b-2f4b-4a7d-a495-4750a1dcb4eb",
+        "status": "running",
+        "outputs": {
+          "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_chile_panel/20260603T061015Z/mhcnuggets/"
+        },
+        "runtime": {
+          "mode": "docker",
+          "image": "biomate/biotools:arm64",
+          "entry": null,
+          "required_modules": [],
+          "missing_modules": [],
+          "host_arch": "arm64",
+          "image_arch": "arm64",
+          "cross_arch_allowed": "false"
+        },
+        "message": "Nextflow workflow started (run_id: 35a4c893-a514-4cae-b5a5-9d8b16a9668c)"
+      },
+      "run_id": "35a4c893-a514-4cae-b5a5-9d8b16a9668c",
+      "latest_status": {
+        "run_id": "35a4c893-a514-4cae-b5a5-9d8b16a9668c",
+        "invocation_id": "35a4c893-a514-4cae-b5a5-9d8b16a9668c",
+        "status": "failed",
+        "returncode": 1,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/plan_a_chile_panel/20260603T061015Z/mhcnuggets/",
+        "work_dir": "/tmp/nextflow_runs/35a4c893-a514-4cae-b5a5-9d8b16a9668c/work",
+        "log_tail": [
+          "Jun-03 06:10:32.282 [Actor Thread 13] DEBUG nextflow.file.FileCollector - Saved collect-files list to: /biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/collect-file/38724235ebdf85b12f7f2c117a72ffa4",
+          "Jun-03 06:10:32.283 [Actor Thread 13] DEBUG nextflow.file.FileCollector - Deleting file collector temp dir: /tmp/nxf-18235758558103454827",
+          "Jun-03 06:10:32.667 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-community-wave-seqera-io-library-biopython-1-85--6f761292fa9881b4:3; container=community.wave.seqera.io/library/biopython:1.85--6f761292fa9881b4",
+          "Jun-03 06:10:32.803 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:FASTA2PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=31ceff80-ab8a-4c2a-bee0-664d1ce1761d; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/dd/d21ca0e5c3b59d3bb32f7a3e5a970c",
+          "Jun-03 06:10:32.804 [AWSBatch-executor-1] INFO  nextflow.Session - [dd/d21ca0] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:FASTA2PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+          "Jun-03 06:11:00.778 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:FASTA2PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL); status: COMPLETED; exit: 0; error: -; workDir: s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/dd/d21ca0e5c3b59d3bb32f7a3e5a970c]",
+          "Jun-03 06:11:00.779 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Jun-03 06:11:01.210 [TaskFinalizer-1] WARN  n.c.DataContainers.TDPDataMatrix - Could not find CPU model \"Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz\" in given TDP data table. Using default cloud CPU power draw value (11.23 W).",
+          "\t\ud83d\udd16 You can help by reporting this warning and your `.nextflow.log` file to https://github.com/nextflow-io/nf-co2footprint/issues/new?template=missing_chip.yaml. Thanks.",
+          "Jun-03 06:11:01.567 [AWSBatch-executor-5] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-quay-io-biocontainers-python-3-11:3; container=quay.io/biocontainers/python:3.11",
+          "Jun-03 06:11:01.702 [AWSBatch-executor-7] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=a55025df-7e3d-44ba-876f-827d167b8bf1; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/8d/fbd442a418087bc6564ac70a5d2eab",
+          "Jun-03 06:11:01.702 [AWSBatch-executor-7] INFO  nextflow.Session - [8d/fbd442] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+          "Jun-03 06:11:01.838 [AWSBatch-executor-6] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=e181fe5c-43ad-4fe3-bcf8-227041ea71b8; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/1e/884597cdcbb4065e6d07d0682f2bff",
+          "Jun-03 06:11:01.838 [AWSBatch-executor-6] INFO  nextflow.Session - [1e/884597] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+          "Jun-03 06:11:01.854 [AWSBatch-executor-5] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=b0fd9866-a5c1-4ee2-b628-3e3e992fa470; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/04/fba0ede1aea3d2315d0eb3367a386b",
+          "Jun-03 06:11:01.854 [AWSBatch-executor-5] INFO  nextflow.Session - [04/fba0ed] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+          "Jun-03 06:11:01.862 [AWSBatch-executor-9] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=9d4246bf-16d5-4897-917f-833e551c3c73; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/d2/9b3e2b198974737685015455781879",
+          "Jun-03 06:11:01.862 [AWSBatch-executor-9] INFO  nextflow.Session - [d2/9b3e2b] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+          "Jun-03 06:11:01.888 [AWSBatch-executor-8] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=f2da3445-7d50-47df-8f91-348e76dce245; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/89/1de53de2a98b28435081e99e1c4f5b",
+          "Jun-03 06:11:01.888 [AWSBatch-executor-8] INFO  nextflow.Session - [89/1de53d] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)"
+        ],
+        "is_batch": true,
+        "s3_output_files": [],
+        "completedSteps": 1,
+        "totalSteps": 1,
+        "progressPercent": 100,
+        "processes": [],
+        "started_at": 1780467018.2363758,
+        "completed_at": 1780467018.2374887,
+        "duration_s": 0,
+        "terminal_status": "failed"
+      },
+      "error": "terminal status='failed'",
+      "log_tail": [
+        "Jun-03 06:11:00.778 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:FASTA2PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL); status: COMPLETED; exit: 0; error: -; workDir: s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/dd/d21ca0e5c3b59d3bb32f7a3e5a970c]",
+        "Jun-03 06:11:00.779 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+        "Jun-03 06:11:01.210 [TaskFinalizer-1] WARN  n.c.DataContainers.TDPDataMatrix - Could not find CPU model \"Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz\" in given TDP data table. Using default cloud CPU power draw value (11.23 W).",
+        "\t\ud83d\udd16 You can help by reporting this warning and your `.nextflow.log` file to https://github.com/nextflow-io/nf-co2footprint/issues/new?template=missing_chip.yaml. Thanks.",
+        "Jun-03 06:11:01.567 [AWSBatch-executor-5] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-quay-io-biocontainers-python-3-11:3; container=quay.io/biocontainers/python:3.11",
+        "Jun-03 06:11:01.702 [AWSBatch-executor-7] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=a55025df-7e3d-44ba-876f-827d167b8bf1; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/8d/fbd442a418087bc6564ac70a5d2eab",
+        "Jun-03 06:11:01.702 [AWSBatch-executor-7] INFO  nextflow.Session - [8d/fbd442] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+        "Jun-03 06:11:01.838 [AWSBatch-executor-6] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=e181fe5c-43ad-4fe3-bcf8-227041ea71b8; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/1e/884597cdcbb4065e6d07d0682f2bff",
+        "Jun-03 06:11:01.838 [AWSBatch-executor-6] INFO  nextflow.Session - [1e/884597] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+        "Jun-03 06:11:01.854 [AWSBatch-executor-5] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=b0fd9866-a5c1-4ee2-b628-3e3e992fa470; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/04/fba0ede1aea3d2315d0eb3367a386b",
+        "Jun-03 06:11:01.854 [AWSBatch-executor-5] INFO  nextflow.Session - [04/fba0ed] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+        "Jun-03 06:11:01.862 [AWSBatch-executor-9] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=9d4246bf-16d5-4897-917f-833e551c3c73; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/d2/9b3e2b198974737685015455781879",
+        "Jun-03 06:11:01.862 [AWSBatch-executor-9] INFO  nextflow.Session - [d2/9b3e2b] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)",
+        "Jun-03 06:11:01.888 [AWSBatch-executor-8] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)` submitted > job=f2da3445-7d50-47df-8f91-348e76dce245; work-dir=s3://biomate-nextflow-work/nextflow/work/plan-a-chile-panel-20260603-mhcnuggets/35a4c893-a514-4cae-b5a5-9d8b16a9668c/89/1de53de2a98b28435081e99e1c4f5b",
+        "Jun-03 06:11:01.888 [AWSBatch-executor-8] INFO  nextflow.Session - [89/1de53d] Submitted process > NFCORE_EPITOPEPREDICTION:EPITOPEPREDICTION:SPLIT_PEPTIDES (PLAN_A_FULL_GP_CHILE_PANEL)"
+      ]
+    }
+  ],
+  "submit_command": [
+    "/usr/bin/python3",
+    "/home/yzhang/biomate/research/anti-virus/science_sprint/track_plan_a_multitool.py",
+    "--tools",
+    "mhcnuggets",
+    "--input",
+    "s3://biomate-nextflow-work/inputs/andv_campaign/plan_a_chile_panel/20260603T061015Z/samplesheet.csv",
+    "--outdir",
+    "s3://biomate-nextflow-work/nextflow/outputs/plan_a_chile_panel/20260603T061015Z/",
+    "--stamp",
+    "20260603T061015Z",
+    "--user-id",
+    "plan-a-chile-panel-20260603"
+  ],
+  "submit_status": "failed: MHCnuggets run failed: status='failed'\n",
+  "multitool_manifest": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260603T061015Z/track_plan_a_multitool/manifest.json"
+}

@@ -54,7 +54,27 @@ MULTIQC_DATA = (
 )
 MULTIQC_BINDING = MULTIQC_DATA / "multiqc_binding_affinity_distribution.txt"
 MULTIQC_LENGTH = MULTIQC_DATA / "multiqc_binder_length_distribution.txt"
+GP_FASTA = PUBLICATION_RUN / "assets" / "andv_gp_full_Q9E006.fasta"
 SAMPLE_ID = "PLAN_A_FULL_GP"
+
+# Approximate Q9E006 GPC topology for visualization (reviewer-facing schematic).
+GPC_REGIONS = [
+    (1, 18, "Signal peptide", "#CCCCCC"),
+    (19, 450, "Gn ectodomain", "#2A9D8F"),
+    (451, 580, "Gc ectodomain / stem", "#457B9D"),
+    (581, 1138, "TM + cytoplasmic tail", "#6C757D"),
+]
+
+# Wet-lab priority peptides for annotation (MB track).
+TOP_BINDER_PEPTIDES = [
+    "ATESALQAHY",
+    "MPKTIYEL",
+    "KTFEGILTK",
+    "YRTLGVFRY",
+    "VIYEKTHCV",
+    "KKVILTKTL",
+    "KTLVIGQCI",
+]
 
 
 def style_axes(ax) -> None:
@@ -71,7 +91,7 @@ def fig_workflow() -> None:
         (0.3, 1.2, 1.8, 1.2, "GP segment\n(FASTA / samplesheet)"),
         (2.5, 1.2, 1.8, 1.2, "nf-core\nepitopeprediction"),
         (4.7, 1.2, 1.6, 1.2, "MHCnuggets\n(class I 8–12)"),
-        (6.5, 1.2, 1.8, 1.2, "NetMHCpan\n(orthogonal)"),
+        (6.5, 1.2, 1.8, 1.2, "MHCflurry\n(orthogonal)"),
         (8.7, 1.2, 1.1, 1.2, "Tables +\nMultiQC"),
     ]
     for x, y, w, h, txt in boxes:
@@ -202,7 +222,7 @@ def fig_sprint_science_summary() -> None:
 
 
 def fig_tool_panel(rows: list[dict[str, str]]) -> None:
-    """Fig A6c: MHCnuggets binder calls; NetMHCpan sprint produced no merged TSV (noted in title)."""
+    """Fig A6c: MHCnuggets vs MHCflurry binder counts from multitool merge."""
     by_pred: dict[str, int] = defaultdict(int)
     neg_by_pred: dict[str, int] = defaultdict(int)
     for row in rows:
@@ -222,7 +242,7 @@ def fig_tool_panel(rows: list[dict[str, str]]) -> None:
     ax.set_ylabel("Count")
     ax.legend(frameon=False, fontsize=7)
     ax.set_title(
-        "Fig. A6c | Predictor panel (NetMHCpan sprint: no merged TSV)",
+        "Fig. A6c | MHCnuggets vs MHCflurry row counts (multitool merge)",
         fontsize=9,
         fontweight="bold",
         loc="left",
@@ -432,8 +452,161 @@ def fig_sequence_profile(rows: list[dict[str, str]]) -> int:
     return max_pos
 
 
+def load_gp_sequence() -> str:
+    if not GP_FASTA.is_file():
+        raise SystemExit(f"Missing GP FASTA: {GP_FASTA}")
+    lines = GP_FASTA.read_text(encoding="utf-8").strip().splitlines()
+    return "".join(ln.strip() for ln in lines if not ln.startswith(">")).upper()
+
+
+def peptide_start(gp: str, peptide: str) -> int | None:
+    idx = gp.find(peptide.upper())
+    return idx + 1 if idx >= 0 else None
+
+
+def gpc_exposure_class(pos: int) -> str:
+    if pos <= 18:
+        return "leader"
+    if pos <= 450:
+        return "surface"
+    if pos <= 580:
+        return "membrane_proximal"
+    return "not_virion_surface"
+
+
+def fig_gpc_topology(rows: list[dict[str, str]]) -> None:
+    """Fig A0: linear GPC map with binder and conservation tracks."""
+    gp = load_gp_sequence()
+    gp_len = len(gp)
+
+    cons_peptides: list[tuple[int, str]] = []
+    if CROSS_SPECIES.is_file():
+        data = json.loads(CROSS_SPECIES.read_text(encoding="utf-8"))
+        for entry in data.get("peptide_conservation", []):
+            if entry.get("length") != 9:
+                continue
+            found = entry.get("found_in") or []
+            if set(found) >= {"ANDV", "SNV", "PUUV"}:
+                pos = (entry.get("positions") or {}).get("ANDV")
+                if pos:
+                    cons_peptides.append((int(pos), entry.get("peptide", "")))
+
+    binder_hits: list[tuple[int, str, str]] = []
+    seen_binders: set[str] = set()
+    for pep in TOP_BINDER_PEPTIDES:
+        pos = peptide_start(gp, pep)
+        if pos is None:
+            continue
+        exp = gpc_exposure_class(pos)
+        binder_hits.append((pos, pep, exp))
+        seen_binders.add(pep)
+    for row in rows:
+        if str(row.get("binder", "")).strip().lower() not in ("true", "1", "yes"):
+            continue
+        seq = (row.get("sequence") or "").strip().upper()
+        if not (8 <= len(seq) <= 12) or seq in seen_binders:
+            continue
+        pos = peptide_start(gp, seq)
+        if pos is None:
+            continue
+        binder_hits.append((pos, seq[:9], gpc_exposure_class(pos)))
+        seen_binders.add(seq)
+        if len(seen_binders) >= 40:
+            break
+
+    fig, axes = plt.subplots(3, 1, figsize=(10.0, 3.6), dpi=300, sharex=True, gridspec_kw={"height_ratios": [1.2, 1, 1]})
+    ax_map, ax_bind, ax_cons = axes
+
+    y0 = 0.35
+    bar_h = 0.5
+    for start, end, label, color in GPC_REGIONS:
+        width = end - start + 1
+        ax_map.barh(y0, width, left=start, height=bar_h, color=color, edgecolor="white", linewidth=0.5)
+        if width > 80:
+            ax_map.text(start + width / 2, y0, label, ha="center", va="center", fontsize=7, color="white", fontweight="bold")
+
+    ax_map.set_xlim(1, gp_len)
+    ax_map.set_ylim(0, 1)
+    ax_map.set_yticks([])
+    ax_map.set_title(
+        "Fig. A0 | ANDV GPC topology with epitope tracks (Q9E006; approximate domain boundaries)",
+        fontsize=10,
+        fontweight="bold",
+        loc="left",
+    )
+    for x in (18, 450, 580):
+        ax_map.axvline(x, color="#333333", ls="--", lw=0.6, alpha=0.5)
+
+    exp_colors = {
+        "surface": "#2A9D8F",
+        "membrane_proximal": "#457B9D",
+        "not_virion_surface": "#E76F51",
+        "leader": "#BBBBBB",
+    }
+    for pos, pep, exp in binder_hits:
+        ax_bind.scatter(pos, 0.5, s=28, c=exp_colors.get(exp, "#888888"), edgecolors="none", alpha=0.85)
+    ax_bind.set_xlim(1, gp_len)
+    ax_bind.set_ylim(0, 1)
+    ax_bind.set_yticks([0.5])
+    ax_bind.set_yticklabels(["MHC binders"])
+    ax_bind.set_ylabel("")
+    style_axes(ax_bind)
+
+    for pos, _ in cons_peptides[:120]:
+        ax_cons.scatter(pos, 0.5, s=12, c="#BC6C25", edgecolors="none", alpha=0.55)
+    ax_cons.set_xlim(1, gp_len)
+    ax_cons.set_ylim(0, 1)
+    ax_cons.set_yticks([0.5])
+    ax_cons.set_yticklabels(["Conserved 9-mers"])
+    ax_cons.set_xlabel("GPC residue position (ANDV Q9E006)")
+    style_axes(ax_cons)
+
+    legend_handles = [
+        plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=c, markersize=7, label=l)
+        for l, c in [
+            ("Gn/Gc ectodomain (surface)", exp_colors["surface"]),
+            ("Gc stem / TM-proximal", exp_colors["membrane_proximal"]),
+            ("Cytoplasmic / TM (not virion surface)", exp_colors["not_virion_surface"]),
+            ("Triple-species conserved 9-mer", "#BC6C25"),
+        ]
+    ]
+    ax_map.legend(handles=legend_handles, ncol=2, fontsize=6, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.05))
+
+    fig.subplots_adjust(hspace=0.35, bottom=0.22)
+    fig.savefig(OUT / "FigA0_gpc_topology.png", bbox_inches="tight")
+    fig.savefig(OUT / "FigA0_gpc_topology.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+def fig_consensus_panel() -> None:
+    """Fig A7: binder counts — union vs dual-agreement (MHCnuggets + MHCflurry)."""
+    summary_path = PUBLICATION_RUN / "plan_a_epitope" / "PLAN_A_CONSENSUS_SUMMARY.json"
+    if not summary_path.is_file():
+        return
+    data = json.loads(summary_path.read_text(encoding="utf-8"))
+    labels = ["MHCnuggets\nonly", "Dual\nconsensus", "MHCflurry\nonly"]
+    values = [
+        data.get("mhcnuggets_only_binders", 0),
+        data.get("consensus_binder_pairs", 0),
+        data.get("mhcflurry_only_binders", 0),
+    ]
+    fig, ax = plt.subplots(figsize=(3.6, 2.8), dpi=300)
+    ax.bar(labels, values, color=["#457B9D", "#2A9D8F", "#E76F51"], edgecolor="white")
+    ax.set_ylabel("Peptide–allele binder pairs")
+    ax.set_title(
+        "Fig. A7 | Dual-predictor consensus (both binder=True)",
+        fontsize=10,
+        fontweight="bold",
+        loc="left",
+    )
+    style_axes(ax)
+    fig.savefig(OUT / "FigA7_consensus_panel.png", bbox_inches="tight")
+    fig.savefig(OUT / "FigA7_consensus_panel.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
-    global TSV, CROSS_SPECIES, OUT, SAMPLE_ID
+    global TSV, CROSS_SPECIES, OUT, SAMPLE_ID, MULTIQC_BINDING, MULTIQC_LENGTH, MULTIQC_DATA
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--tsv",
@@ -444,11 +617,21 @@ def main() -> None:
     ap.add_argument("--cross-species-json", type=Path, default=CROSS_SPECIES)
     ap.add_argument("--out-dir", type=Path, default=OUT)
     ap.add_argument("--sample-id", type=str, default=SAMPLE_ID)
+    ap.add_argument(
+        "--multiqc-dir",
+        type=Path,
+        default=None,
+        help="Directory with multiqc_binding_affinity_distribution.txt and multiqc_binder_length_distribution.txt (full-GP run)",
+    )
     args = ap.parse_args()
     TSV = args.tsv.resolve()
     CROSS_SPECIES = args.cross_species_json.resolve()
     OUT = args.out_dir.resolve()
     SAMPLE_ID = args.sample_id
+    if args.multiqc_dir:
+        MULTIQC_DATA = args.multiqc_dir.resolve()
+        MULTIQC_BINDING = MULTIQC_DATA / "multiqc_binding_affinity_distribution.txt"
+        MULTIQC_LENGTH = MULTIQC_DATA / "multiqc_binder_length_distribution.txt"
 
     OUT.mkdir(parents=True, exist_ok=True)
     meta: dict = {
@@ -464,20 +647,39 @@ def main() -> None:
     n_neg = count_negative_binders(rows)
     meta["n_negative_binders"] = n_neg
     meta["figures"] = {
+        "FigA0_gpc_topology": {"kind": "data_plot", "data_source": [str(TSV), str(CROSS_SPECIES), str(GP_FASTA)]},
+        "FigA7_consensus_panel": {"kind": "data_plot", "data_source": str(PUBLICATION_RUN / "plan_a_epitope/PLAN_A_CONSENSUS_SUMMARY.json")},
         "GA_plan_a": {"kind": "conceptual_schematic", "data_source": "TSV row count + binder column"},
         "FigA1_workflow": {"kind": "conceptual_schematic", "data_source": "pipeline narrative"},
         "FigA2_BA_by_allele": {"kind": "data_plot", "data_source": str(TSV)},
         "FigA3_metrics_by_peptide_length": {"kind": "data_plot", "data_source": str(TSV)},
-        "FigA4_multiqc_summary": {"kind": "data_plot", "data_source": [str(MULTIQC_BINDING), str(MULTIQC_LENGTH)]},
         "FigA5_sequence_profile": {"kind": "data_plot", "data_source": str(TSV)},
     }
     fig_graphical_abstract(len(rows), n_neg)
     fig_workflow()
+    fig_gpc_topology(rows)
+    fig_consensus_panel()
     fig_ba_by_allele(rows)
     fig_by_length(rows)
-    n_bind_counts, n_len_cols = fig_multiqc_summary()
-    meta["multiqc_binding_affinity_total_counts"] = n_bind_counts
-    meta["multiqc_binder_length_n_columns"] = n_len_cols
+    n_bind_counts, n_len_cols = None, None
+    if MULTIQC_BINDING.is_file() and MULTIQC_LENGTH.is_file():
+        binding_text = MULTIQC_BINDING.read_text(encoding="utf-8")
+        if f"\n{SAMPLE_ID}\t" in binding_text or binding_text.splitlines()[1:]:
+            sample_rows = [ln for ln in binding_text.splitlines()[1:] if ln.startswith(SAMPLE_ID + "\t")]
+            if sample_rows:
+                n_bind_counts, n_len_cols = fig_multiqc_summary()
+                meta["figures"]["FigA4_multiqc_summary"] = {
+                    "kind": "data_plot",
+                    "data_source": [str(MULTIQC_BINDING), str(MULTIQC_LENGTH)],
+                }
+                meta["multiqc_binding_affinity_total_counts"] = n_bind_counts
+                meta["multiqc_binder_length_n_columns"] = n_len_cols
+            else:
+                meta["fig_a4_skipped"] = f"No MultiQC row for {SAMPLE_ID} (smoke-run mirror only)"
+        else:
+            meta["fig_a4_skipped"] = f"No MultiQC row for {SAMPLE_ID}"
+    else:
+        meta["fig_a4_skipped"] = "MultiQC files missing for full GP run"
     meta["fig_a5_positions"] = fig_sequence_profile(rows)
     if SPRINT_TSV.is_file():
         sprint_rows = load_tsv_path(SPRINT_TSV)

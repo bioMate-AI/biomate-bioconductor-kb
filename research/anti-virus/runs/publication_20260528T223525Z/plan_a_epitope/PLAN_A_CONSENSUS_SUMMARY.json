@@ -1,0 +1,229 @@
+{
+  "analyzed_at": "2026-06-03T04:56:38.282350+00:00",
+  "predictors": [
+    "mhcnuggets",
+    "mhcflurry"
+  ],
+  "rule": "both binder=True for same peptide sequence and HLA allele",
+  "sources": {
+    "mhcnuggets": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_FULL_GP_mhcnuggets.tsv",
+    "mhcflurry": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_FULL_GP_mhcflurry.tsv"
+  },
+  "peptide_allele_pairs_compared": 45160,
+  "consensus_binder_pairs": 47,
+  "consensus_unique_peptides": 47,
+  "mhcnuggets_only_binders": 66,
+  "mhcflurry_only_binders": 762,
+  "top_consensus_peptides_by_allele_count": [
+    {
+      "peptide": "APHLERVTGF",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "APVLTCMSI",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "ATESALQAHY",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-A*01:01"
+      ]
+    },
+    {
+      "peptide": "CPGVGTGCTAC",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "CPRRGHKKTV",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "ESKFKFIL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "FNPAHTLTL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "FRYKSRCYVGL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "GRFQEALKK",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "GRFQEALKKS",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "GRFQEALKKSL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "GRFQEALKKSLK",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "HPRGEDHDAI",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "IPMKTDLEL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "IRSCMASVF",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "KRMMATKDSF",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "KTFEGILTK",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-A*03:01"
+      ]
+    },
+    {
+      "peptide": "LAMPKTIYEL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "LKKVKKTVL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "LKYTRKVCI",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "LRIVGPITAK",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    },
+    {
+      "peptide": "LVLNRDVSF",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "MPDVAHSL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "MPDVAHSLAV",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "MPKTIYEL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "MPKTIYELKM",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*08:01"
+      ]
+    },
+    {
+      "peptide": "NPAHTLTL",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "NPANKEESI",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "QPAHTYDTV",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*07:02"
+      ]
+    },
+    {
+      "peptide": "QRFRGSEQK",
+      "n_alleles": 1,
+      "alleles": [
+        "HLA-B*27:05"
+      ]
+    }
+  ]
+}

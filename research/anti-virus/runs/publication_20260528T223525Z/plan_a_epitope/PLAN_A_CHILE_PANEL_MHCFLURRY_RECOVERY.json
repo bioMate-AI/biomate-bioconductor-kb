@@ -1,0 +1,57 @@
+{
+  "recovered_at": "2026-06-03T06:02:57.184752+00:00",
+  "run_id": "ce528163-69a2-434b-95a7-7b05515d8c74",
+  "work_prefix": "s3://biomate-nextflow-work/nextflow/work/plan-a-science-sprint-mhcflurry/ce528163-69a2-434b-95a7-7b05515d8c74/",
+  "n_shards": 5,
+  "shards": [
+    {
+      "length": "10",
+      "s3_key": "nextflow/work/plan-a-science-sprint-mhcflurry/ce528163-69a2-434b-95a7-7b05515d8c74/22/9234dddc756fa94f10d0e8591f415d/PLAN_A_FULL_GP_CHILE_PANEL_PLAN_A_FULL_GP_CHILE_PANEL_length_10_chunk_0_predicted_mhcflurry.csv",
+      "rows": 19193
+    },
+    {
+      "length": "11",
+      "s3_key": "nextflow/work/plan-a-science-sprint-mhcflurry/ce528163-69a2-434b-95a7-7b05515d8c74/76/02ceb4643d67d994546c859451ef13/PLAN_A_FULL_GP_CHILE_PANEL_PLAN_A_FULL_GP_CHILE_PANEL_length_11_chunk_0_predicted_mhcflurry.csv",
+      "rows": 19176
+    },
+    {
+      "length": "12",
+      "s3_key": "nextflow/work/plan-a-science-sprint-mhcflurry/ce528163-69a2-434b-95a7-7b05515d8c74/6f/25dbcd28fab026b390c65faa7e162a/PLAN_A_FULL_GP_CHILE_PANEL_PLAN_A_FULL_GP_CHILE_PANEL_length_12_chunk_0_predicted_mhcflurry.csv",
+      "rows": 19159
+    },
+    {
+      "length": "8",
+      "s3_key": "nextflow/work/plan-a-science-sprint-mhcflurry/ce528163-69a2-434b-95a7-7b05515d8c74/2e/b30d54735fb2cb7dd9bf7badf9ab45/PLAN_A_FULL_GP_CHILE_PANEL_PLAN_A_FULL_GP_CHILE_PANEL_length_8_chunk_0_predicted_mhcflurry.csv",
+      "rows": 19227
+    },
+    {
+      "length": "9",
+      "s3_key": "nextflow/work/plan-a-science-sprint-mhcflurry/ce528163-69a2-434b-95a7-7b05515d8c74/22/1d125c30895a0e8050cf7f2a79144a/PLAN_A_FULL_GP_CHILE_PANEL_PLAN_A_FULL_GP_CHILE_PANEL_length_9_chunk_0_predicted_mhcflurry.csv",
+      "rows": 19210
+    }
+  ],
+  "total_rows": 95965,
+  "binder_rows": 1581,
+  "binder_unique_peptides": 766,
+  "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-A*03:01",
+    "HLA-A*24:02",
+    "HLA-A*29:02",
+    "HLA-A*31:01",
+    "HLA-A*68:01",
+    "HLA-B*07:02",
+    "HLA-B*08:01",
+    "HLA-B*15:01",
+    "HLA-B*27:05",
+    "HLA-B*35:01",
+    "HLA-B*38:01",
+    "HLA-B*39:01",
+    "HLA-B*40:01",
+    "HLA-B*44:02",
+    "HLA-B*48:01"
+  ],
+  "output_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CHILE_PANEL_mhcflurry.tsv",
+  "note": "Recovered from work-dir; publish step failed. MHCnuggets on 17 alleles still required for dual-tool consensus."
+}

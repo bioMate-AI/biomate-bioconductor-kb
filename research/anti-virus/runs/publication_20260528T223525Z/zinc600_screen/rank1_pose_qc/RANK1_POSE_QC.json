@@ -1,0 +1,8 @@
+{
+  "run_id": "b89f1662-cd13-494e-877e-fab88643404b",
+  "galaxy_status": "succeeded",
+  "pose_qc_status": "complete",
+  "ligand_rmsd_mean_nm": 0.2604,
+  "verdict": "PASS (<=0.35 nm)",
+  "compute_lead": "INH-01 (primary); Z600-R1 backup"
+}

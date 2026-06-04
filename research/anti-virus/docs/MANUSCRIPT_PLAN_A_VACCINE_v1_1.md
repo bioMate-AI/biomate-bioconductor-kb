@@ -1,7 +1,7 @@
 # MHC class I epitope landscape of the full-length Andes virus glycoprotein reveals binder candidates and cross-species conservation for vaccine design
 
-**Manuscript version 1.1** (research article draft — publication campaign `20260528T223525Z`)  
-**Revision note:** Replaces the ninety-residue smoke-fragment negative baseline (v1.0) with full-length UniProt **Q9E006** (1138 aa), an expanded eight-allele HLA panel, and cross-species conservation analysis (ANDV / SNV / PUUV).
+**Manuscript version 1.2** (research article draft — publication campaign `20260528T223525Z`)  
+**Revision note:** v1.2 adds GPC topology annotation (`FigA0_gpc_topology`), downgrades cytoplasmic/TM binder calls as non–virion-surface epitopes, and reconciles Table 1 with wet-lab MB priority list. Supersedes v1.1.
 
 ---
 
@@ -19,7 +19,9 @@
 
 Andes virus (ANDV) causes hantavirus pulmonary syndrome with high case fatality in South America, and no licensed vaccine exists. CD8⁺ T-cell responses against the viral surface glycoprotein (GP) may contribute to control, but systematic class I epitope maps for the full-length ANDV GP remain sparse. In response to the May 2026 ANDV outbreak (eight confirmed cases, cruise ship cluster), we applied the nf-core epitopeprediction workflow with MHCnuggets to the **complete reviewed ANDV GP sequence** (UniProt Q9E006; 1138 amino acids) across an expanded panel of eight common HLA class I alleles (A\*02:01, A\*01:01, A\*03:01, A\*24:02, B\*07:02, B\*08:01, B\*27:05, B\*35:01), evaluating eight- to twelve-residue peptides against GRCh37.
 
-The analysis yielded **45,160** peptide–allele predictions. Under default MHCnuggets thresholds, **113** entries (**0.25%**) were classified as binders, spanning five alleles (predominantly HLA-B\*08:01, B\*07:02, and B\*27:05). Top-ranked binders included **MPKTIYEL** (HLA-B\*08:01; rank 0.0007; binding affinity 0.727) and **YRTLGVFRY** (HLA-B\*27:05; rank 0.0011; BA 0.660). In parallel, k-mer conservation analysis across ANDV, Sin Nombre virus, and Puumala virus identified **54** fully conserved 9-mers and **195** cross-species peptides on the full GP; notably, **no** conserved 9-mer overlapped the in silico binder set, indicating that **breadth** and **allele-specific binding** map to distinct GP regions.
+The analysis yielded **45,160** MHCnuggets peptide–allele predictions. Under default MHCnuggets thresholds, **113** entries (**0.25%**) were classified as binders, spanning five alleles (predominantly HLA-B\*08:01, B\*07:02, and B\*27:05). A merged multitool export (MHCnuggets + MHCflurry, both Apache-licensed) yields **604** unique binder-classified peptides in the union; **47** peptide–allele pairs meet a strict **dual-agreement** rule (both tools call binder for the same sequence and allele; `PLAN_A_CONSENSUS_BINDERS.tsv`). Top-ranked MHCnuggets binders included **MPKTIYEL** (HLA-B\*08:01; rank 0.0007) and **VIYEKTHCV** (HLA-A\*02:01; rank 0.0025 in the multitool merge)—the latter mapping to the Gn head region on our approximate GPC topology map. Several high-scoring peptides map to the **cytoplasmic tail** (e.g. **ATESALQAHY**, **YRTLGVFRY**); we treat these as **endogenous processing candidates** if the full polyprotein is expressed, not as virion-surface vaccine epitopes without further validation.
+
+In parallel, k-mer conservation analysis across ANDV, Sin Nombre virus, and Puumala virus identified **54** fully conserved 9-mers and **195** cross-species peptides on the full GP; **18** conserved 9-mers share a 9-mer prefix with at least one multitool binder peptide. The N-proximal epitope **ESSCNFDLH** (GP position 61), conserved across all three species, did **not** receive a positive MHCnuggets binder call on any of the eight alleles.
 
 These results do not establish immunogenicity or vaccine efficacy. They provide a reproducible, full-length in silico resource that supersedes the prior ninety-residue negative screen and defines a dual wet-lab strategy: (1) synthesize top MHC-validated peptides for binding confirmation, and (2) test triple-species conserved epitopes (e.g. **ESSCNFDLH**, GP position 61) for cross-reactive T-cell recognition. The archived tables, MultiQC reports, and Nextflow manifests support allele expansion and orthogonal predictor comparison.
 
@@ -92,13 +94,25 @@ Representative top binders (Table 1) include **MPKTIYEL** on HLA-B\*08:01 (rank 
 
 Compared with the archived ninety-residue smoke run (**810** rows; **0** binders), the full-length panel shows that negative baseline was **not** invariant for ANDV GP under MHCnuggets—it was contingent on fragment choice and allele coverage.
 
+### GPC topology annotation
+
+We mapped binder and conservation tracks onto an approximate linear GPC schematic for UniProt Q9E006: signal peptide (residues 1–18), Gn ectodomain (19–450), Gc ectodomain/stem (451–580), and transmembrane plus cytoplasmic tail (581–1138). Domain boundaries follow hantavirus GPC convention and expert review anchors (cytoplasmic tail binders at positions ≥582). **Figure A0** (`FigA0_gpc_topology`) color-codes MHC binder start sites by predicted subcellular exposure. Peptides in the TM/cytoplasmic segment are retained in the wet-lab package for MHC binding confirmation but are **downgraded** as virion-surface vaccine epitopes in the narrative below.
+
+### Dual-predictor consensus (MHCnuggets + MHCflurry)
+
+Open-source orthogonal predictors were merged with `merge_plan_a_epitope_multitool.py`. Strict consensus binders require **both** tools to call `binder=True` for the same peptide sequence and HLA allele (`analyze_plan_a_mhc_consensus.py`): **47** pairs, **47** unique peptides. Union superset: **604** unique binder peptides. Summary: `plan_a_epitope/PLAN_A_CONSENSUS_SUMMARY.json`.
+
+### Chile-focused HLA panel and population coverage
+
+We expanded the allele panel to **17** Chile-relevant class I alleles and recomputed strict dual-tool consensus (**247** peptide–allele pairs). For tier A+B surface epitopes (`PLAN_A_SCIENCE_TIERS`), IEDB-style population coverage (Bui et al. 2005; AFND frequencies) estimates **48.81%** of the Chile population carries at least one responsive HLA-A or HLA-B allele for the nominated set (`PLAN_A_CHILE_POPULATION_COVERAGE.md`). A local cross-check from the IEDB upload file reproduces **48.81%** (`PLAN_A_IEDB_CROSSCHECK.md`); manual verification on the [IEDB Population Coverage](https://tools.iedb.org/population/) web tool is recommended for external audit.
+
 ### Cross-species conservation (ANDV / SNV / PUUV)
 
 Pairwise alignment of full GPC sequences gave **78.0%** identity (ANDV vs SNV) and **66.9%** (ANDV vs PUUV). K-mer mapping identified **195** cross-species peptides (8–11 mer) and **54** unique conserved 9-mers. **Eighteen** conserved 9-mers share a 9-mer prefix with at least one multitool binder peptide (partial overlap between breadth and allele-specific tracks). The N-proximal epitope **ESSCNFDLH** (GP position 61), conserved across all three species, did **not** receive a positive binder call on any of the eight alleles (best rank 0.29 on B\*35:01), illustrating that high conservation alone does not guarantee MHC binding.
 
 ### Dual-track wet-lab nomination
 
-**Track A (MHC binders):** fifteen peptides ranked by best allele-specific rank (MB-01–MB-15 in wet-lab package).  
+**Track A (MHC binders):** fifteen peptides ranked for synthesis by wet-lab priority (MB-01–MB-15), which **prioritizes allele coverage and synthesis feasibility** and may differ from pure MHCnuggets rank order in Table 1 (e.g. MB-01 **ATESALQAHY** vs Table 1 leader **KTFEGILTK**). Cytoplasmic-tail peptides in Track A are flagged for binding assays only—not as surface vaccine epitopes.  
 **Track B (conservation):** fifteen triple-species 9-mers including **ESSCNFDLH** (XSP-01–XSP-15).
 
 ---
@@ -116,7 +130,7 @@ Top binder-classified peptide–allele rows from `PLAN_A_FULL_GP.tsv` (publicati
 | IRSCMASVFTSR | HLA-B\*27:05 | 0.0012 | 0.655 | True |
 | YRTLGVFRYK | HLA-B\*27:05 | 0.0013 | 0.651 | True |
 
-**Table 1.** Exemplar binder rows from the full-length GP run. Complete table: 45,160 rows in `plan_a_epitope/PLAN_A_FULL_GP.tsv`.
+**Table 1.** Exemplar MHCnuggets binder rows (rank-sorted excerpt). **Cytoplasmic tail** (pos ≥582): ATESALQAHY, YRTLGVFRY*. **Gn head (surface):** VIYEKTHCV (MB-10). Wet-lab synthesis order follows MB priority in `wet_lab_package/WET_LAB_CANDIDATES.md`, not Table 1 rank alone. Complete table: 45,160 rows in `plan_a_epitope/PLAN_A_FULL_GP.tsv`; multitool superset: `PLAN_A_FULL_GP_MULTITOOL.tsv`.
 
 ---
 
@@ -126,13 +140,15 @@ The central finding is that **full-length ANDV GP immunoinformatics yields actio
 
 Cross-species conservation nominates a complementary set enriched for pan-hantavirus breadth (e.g. **ESSCNFDLH**). Partial overlap (**18** conserved 9-mers vs multitool binder prefixes) suggests vaccine strategies may combine allele-optimized T-cell epitopes with conserved regions for cross-reactivity testing rather than treating the tracks as disjoint.
 
-Limitations remain: MHCnuggets alone; no proteasomal processing or TAP modeling in this run; no structural exposure filtering; glycosylation not modeled. NetMHCpan and structure-guided epitope mapping are priority extensions (see `FEEDBACK_CROSSWALK.md`).
+**GPC topology** is the central translational caveat: high-scoring binders in the cytoplasmic tail (**ATESALQAHY**, **YRTLGVFRY**) are unlikely to be displayed on native virions for antibody-focused vaccines, though they may be presented from cells expressing a full GPC ORF (e.g. mRNA transfection). Surface-proximal candidates such as **VIYEKTHCV** (Gn head) warrant structural mapping to PDB **9P3I** in future work.
+
+Limitations remain: predictors disagree substantially (MHCnuggets **113** vs MHCflurry **809** binder rows; **47** strict dual-agreement pairs); no proteasomal processing or TAP modeling; glycosylation not modeled; approximate domain boundaries only. Structure-guided exposure filtering on PDB **9P3I** is a priority extension.
 
 ---
 
 ## Conclusions
 
-We present a completed nf-core epitopeprediction run on the **full-length** ANDV GP (Q9E006) across **eight** HLA class I alleles, yielding **45,160** predictions and **113** binder classifications, plus **54** triple-species conserved 9-mers. The work transforms a fragment-limited negative baseline into a dual-track wet-lab package (MHC binders + conserved peptides). No immunogenicity or efficacy claims are made; the contribution is a reproducible, outbreak-responsive immunoinformatics resource for ANDV vaccine design.
+We present a completed nf-core epitopeprediction run on the **full-length** ANDV GP (Q9E006) across **eight** HLA class I alleles, yielding **45,160** MHCnuggets predictions (**113** binders; **604** unique peptides in the multitool merge) and **54** triple-species conserved 9-mers with **18** partial binder overlap. A GPC topology map distinguishes surface-proximal from cytoplasmic binder calls. The work transforms a fragment-limited negative baseline into a dual-track wet-lab package. No immunogenicity or efficacy claims are made; the contribution is a reproducible, outbreak-responsive immunoinformatics resource for ANDV vaccine design.
 
 ---
 

@@ -1,0 +1,8 @@
+Sample	python	biopython	argparse	pandas	mhcgnomes	mhcnuggets	nf-core/epitopeprediction	Nextflow
+FASTA2PEPTIDES	3.13.1	1.85						
+MERGE_PREDICTIONS			1.1	2.1.0	1.8.6			
+MHCNUGGETS			1.1	1.1.5				
+SPLIT_PEPTIDES	3.11.10							
+SUMMARIZE_RESULTS	3.11.5							
+Workflow							v3.1.0	25.10.0
+mhcnuggets						2.4.0		
