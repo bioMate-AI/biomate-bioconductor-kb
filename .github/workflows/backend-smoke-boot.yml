@@ -58,7 +58,8 @@ jobs:
           pip install -q fastapi pydantic 'sqlalchemy>=2,<3' 'starlette<1' \
                         pyotp 'qrcode[pil]' pdfplumber \
                         pyyaml typing-extensions \
-                        anyio python-multipart
+                        anyio python-multipart \
+                        httpx  # ind_actions_router transitively imports llm_client → httpx
 
       - name: Run Pydantic model smoke
         run: python scripts/smoke_pydantic_models.py
