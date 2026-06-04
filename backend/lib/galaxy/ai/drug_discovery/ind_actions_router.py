@@ -1127,3 +1127,185 @@ async def get_pipeline_data(project_id: str):
 
     project_row = _load_project_row(project_id)
     return _scaffold_pipeline_data(project_id, project_row)
+
+
+# ---------------------------------------------------------------------------
+# A2/A3 — Re-run with new params (deterministic recompute placeholder)
+# ---------------------------------------------------------------------------
+# In Path A (workflow → IND), the rerun endpoints would submit a real
+# Nextflow re-run. Here they're a deterministic recompute so the UI flow
+# is real end-to-end — params edit → POST → numbers shift → re-fetch.
+
+_RUN_PARAMS_DIR = _REPO_ROOT / "data" / "ind_demo" / "registry" / "run_params"
+_RERUN_AUDIT_LOG = _REPO_ROOT / "data" / "ind_demo" / "registry" / "rerun_audit.jsonl"
+
+_DEFAULT_ADMET_PARAMS = {
+    "herg_threshold_uM": 10.0,
+    "dili_score_max": 0.5,
+    "ames_panel": ["TA98", "TA100"],
+    "ro5_max_violations": 1,
+}
+_DEFAULT_PBPK_PARAMS = {
+    "model": "BioMate-PBPK v2.1",
+    "reference_set_name": "BioMate PBPK Reference Set v2.0",
+    "ema_threshold_pct": 60,
+    "n_compartments": 1,
+    "include_efflux": True,
+}
+
+
+def _load_run_params(project_id: str) -> dict:
+    if not _PROJECT_ID_RE.match(project_id):
+        raise HTTPException(400, "invalid project id")
+    path = _RUN_PARAMS_DIR / f"{project_id}.json"
+    if not path.exists():
+        return {"admet": _DEFAULT_ADMET_PARAMS, "pbpk": _DEFAULT_PBPK_PARAMS}
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return {"admet": _DEFAULT_ADMET_PARAMS, "pbpk": _DEFAULT_PBPK_PARAMS}
+
+
+def _save_run_params(project_id: str, data: dict) -> None:
+    path = _RUN_PARAMS_DIR / f"{project_id}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2))
+    tmp.replace(path)
+
+
+class AdmetParams(BaseModel):
+    herg_threshold_uM: float = Field(..., ge=0.01, le=1000.0)
+    dili_score_max: float = Field(..., ge=0.0, le=1.0)
+    ames_panel: list[str] = Field(default_factory=list)
+    ro5_max_violations: int = Field(..., ge=0, le=4)
+
+
+class PbpkParams(BaseModel):
+    model: str = Field(..., max_length=120)
+    reference_set_name: str = Field(..., max_length=120)
+    ema_threshold_pct: float = Field(..., ge=10.0, le=99.0)
+    n_compartments: int = Field(..., ge=1, le=3)
+    include_efflux: bool
+
+
+def _recompute_admet(params: AdmetParams, current_admet: dict) -> dict:
+    """Deterministic recompute: tighter hERG / DILI / Ro5 → fewer pass."""
+    base_total = current_admet.get("summary", {}).get("total", 12) or 12
+    # Score the params on a 0..1 strictness scale; higher = stricter = fewer pass
+    strictness = (
+        max(0.0, min(1.0, (10.0 - params.herg_threshold_uM) / 9.99)) * 0.5
+        + max(0.0, min(1.0, (0.5 - params.dili_score_max) / 0.5)) * 0.3
+        + max(0.0, min(1.0, (1 - params.ro5_max_violations) / 1.0)) * 0.2
+    )
+    new_pass = max(0, int(base_total * (1.0 - 0.6 * strictness)))
+    new_pass = min(new_pass, base_total)
+    new_admet = dict(current_admet)
+    new_admet["summary"] = {"pass": new_pass, "total": base_total}
+    new_admet["_provenance"] = {
+        "source": "manual_rerun",
+        "attached_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    return new_admet
+
+
+def _recompute_pbpk(params: PbpkParams, current_pbpk: dict) -> dict:
+    """Deterministic: lower EMA threshold + efflux on → likelier pass."""
+    metrics = dict(current_pbpk.get("metrics", {}))
+    # Start from a baseline cmax-within-2-fold; the params shift it.
+    base_cmax = float(metrics.get("cmaxWithin2", 62.0))
+    delta = 0.0
+    delta += (60.0 - params.ema_threshold_pct) * 0.3   # lower threshold = easier
+    delta += (3 if params.include_efflux else 0)
+    delta += (params.n_compartments - 1) * 1.5
+    new_cmax = max(20.0, min(98.0, base_cmax + delta))
+    new_auc = max(20.0, min(98.0, float(metrics.get("aucWithin2", 75.0)) + delta))
+    metrics["cmaxWithin2"] = round(new_cmax, 1)
+    metrics["aucWithin2"] = round(new_auc, 1)
+    metrics["emaThreshold"] = float(params.ema_threshold_pct)
+    new_pbpk = dict(current_pbpk)
+    new_pbpk["model"] = params.model
+    new_pbpk["refSource"] = params.reference_set_name
+    new_pbpk["metrics"] = metrics
+    new_pbpk["status"] = "pass" if new_cmax >= params.ema_threshold_pct else "fail"
+    new_pbpk["_provenance"] = {
+        "source": "manual_rerun",
+        "attached_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    return new_pbpk
+
+
+def _read_pipeline_data(project_id: str) -> dict:
+    sidecar = _PIPELINE_DATA_DIR / f"{project_id}.json"
+    if sidecar.exists():
+        try:
+            return json.loads(sidecar.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _write_pipeline_data(project_id: str, data: dict) -> None:
+    sidecar = _PIPELINE_DATA_DIR / f"{project_id}.json"
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    tmp = sidecar.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2))
+    tmp.replace(sidecar)
+
+
+def _append_rerun_audit(record: dict) -> None:
+    _RERUN_AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with _RERUN_AUDIT_LOG.open("a") as f:
+        f.write(json.dumps(record) + "\n")
+
+
+@router.get("/api/ind-report/projects/{project_id}/params/admet")
+async def get_admet_params(project_id: str):
+    return _load_run_params(project_id).get("admet", _DEFAULT_ADMET_PARAMS)
+
+
+@router.get("/api/ind-report/projects/{project_id}/params/pbpk")
+async def get_pbpk_params(project_id: str):
+    return _load_run_params(project_id).get("pbpk", _DEFAULT_PBPK_PARAMS)
+
+
+@router.post("/api/ind-report/projects/{project_id}/rerun/admet")
+async def rerun_admet(project_id: str, params: AdmetParams):
+    pdata = _read_pipeline_data(project_id)
+    prev_admet = pdata.get("admet", {})
+    new_admet = _recompute_admet(params, prev_admet)
+    pdata["admet"] = new_admet
+    _write_pipeline_data(project_id, pdata)
+    all_params = _load_run_params(project_id)
+    all_params["admet"] = params.model_dump()
+    _save_run_params(project_id, all_params)
+    _append_rerun_audit({
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "project_id": project_id,
+        "step": "admet",
+        "prev_summary": prev_admet.get("summary"),
+        "new_summary": new_admet.get("summary"),
+        "params": params.model_dump(),
+    })
+    return {"status": "ok", "result": new_admet}
+
+
+@router.post("/api/ind-report/projects/{project_id}/rerun/pbpk")
+async def rerun_pbpk(project_id: str, params: PbpkParams):
+    pdata = _read_pipeline_data(project_id)
+    prev_pbpk = pdata.get("pbpk", {})
+    new_pbpk = _recompute_pbpk(params, prev_pbpk)
+    pdata["pbpk"] = new_pbpk
+    _write_pipeline_data(project_id, pdata)
+    all_params = _load_run_params(project_id)
+    all_params["pbpk"] = params.model_dump()
+    _save_run_params(project_id, all_params)
+    _append_rerun_audit({
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "project_id": project_id,
+        "step": "pbpk",
+        "prev_status": prev_pbpk.get("status"),
+        "new_status": new_pbpk.get("status"),
+        "params": params.model_dump(),
+    })
+    return {"status": "ok", "result": new_pbpk}
