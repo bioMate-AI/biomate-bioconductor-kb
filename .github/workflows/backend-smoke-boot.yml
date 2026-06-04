@@ -1,0 +1,104 @@
+name: Backend smoke boot
+
+# Pre-merge guard against startup-time bugs that don't surface in unit tests:
+#   - Pydantic forward-reference errors (today's _IngestWorkflowRequest crash)
+#   - FastAPI Depends resolution failures
+#   - SQLAlchemy mapper-build errors at startup
+#   - Missing imports under `from __future__ import annotations`
+#
+# Two layers:
+#   1. smoke_pydantic_models.py — sub-second; forces model_rebuild() on every
+#      Pydantic model in the drug_discovery routers. Catches today's exact bug.
+#   2. smoke_boot.sh             — full gunicorn boot against a throwaway sqlite.
+#      Catches anything that survives Pydantic but blows up at app-init.
+#
+# Both must pass before a PR can merge. If only the Pydantic layer is needed
+# locally (90% of cases), `make smoke-models` runs that in 1s.
+
+on:
+  pull_request:
+    branches: [main, integration/next-phase]
+    paths:
+      - 'backend/lib/galaxy/ai/drug_discovery/**'
+      - 'backend/lib/galaxy/webapps/galaxy/api/**'
+      - 'backend/lib/galaxy/webapps/galaxy/fast_factory.py'
+      - 'backend/lib/galaxy/webapps/galaxy/fast_app.py'
+      - 'backend/requirements*.txt'
+      - 'scripts/smoke_*'
+      - '.github/workflows/backend-smoke-boot.yml'
+  push:
+    branches: [integration/next-phase, main]
+    paths:
+      - 'backend/lib/galaxy/ai/drug_discovery/**'
+      - 'backend/lib/galaxy/webapps/galaxy/api/**'
+      - 'backend/lib/galaxy/webapps/galaxy/fast_factory.py'
+      - 'backend/lib/galaxy/webapps/galaxy/fast_app.py'
+
+permissions:
+  contents: read
+
+jobs:
+  pydantic-models:
+    name: Pydantic forward-ref smoke (fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install minimal deps for the smoke
+        run: |
+          python -m pip install --upgrade pip
+          # The smoke only needs what the routers transitively import.
+          # Lean on the existing pinned-requirements where possible.
+          pip install -q fastapi pydantic 'sqlalchemy>=2,<3' 'starlette<1' \
+                        pyotp 'qrcode[pil]' pdfplumber \
+                        pyyaml typing-extensions \
+                        anyio python-multipart
+
+      - name: Run Pydantic model smoke
+        run: python scripts/smoke_pydantic_models.py
+
+  gunicorn-boot:
+    name: Full gunicorn boot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install gunicorn + uvicorn + minimal app deps
+        run: |
+          python -m pip install --upgrade pip
+          # The full app pulls a lot; install the pinned requirements to a
+          # local .venv so the boot path matches production.
+          python -m venv backend/.venv
+          backend/.venv/bin/pip install --upgrade pip
+          # Only install what's needed to boot. The full pinned set is heavy
+          # but accurate. If the boot fails for missing-import reasons, that
+          # is the bug class we want to catch.
+          backend/.venv/bin/pip install -r backend/requirements.txt
+
+      - name: Run gunicorn boot smoke
+        env:
+          PORT: '9091'
+          TIMEOUT: '90'
+          BILLING_DEV_MODE: 'true'
+        run: scripts/smoke_boot.sh
+
+      - name: Upload gunicorn log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gunicorn-smoke-log
+          path: /tmp/tmp.*/gunicorn.log
+          retention-days: 3
+          if-no-files-found: ignore
