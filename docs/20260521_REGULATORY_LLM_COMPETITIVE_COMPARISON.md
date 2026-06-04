@@ -5,7 +5,37 @@
 **Audience:** Internal decision-making, customer-pitch backing, investor diligence
 **Companion doc:** `docs/20260521_REGULATORY_LLM_PRODUCT_BUSINESS_MODEL.md`
 
-> ✅ **STATUS: API-MODEL NUMBERS MEASURED, NEW LINEUP (2026-05-28, v2c run).**
+> 🟢 **STATUS: LLM-JUDGE RE-EVAL (v3, 2026-06-03).** The prior "v6 LoRA hurts quality" verdict was an artifact of the regex checker suite (see `docs/20260603_V6_EVAL_DIAGNOSIS.md`). A new LLM-judge eval (Claude Opus 4.7 as judge, strict 6-dimension rubric: substance / citation / transformation / adversity-tense / numeric-consistency / ICH M4 shape, each 0-2, normalized to 0-1) was run on the same n=100 held-out corpus. Implementation: `evaluation/runners/checker_suite_v2.py`; orchestrator `evaluation/runners/run_llm_judge_eval.py`; raw judge scores in `evaluation/results/regulatory_llm_v2_judge/`.
+>
+> | Model | Macro (judge, 0-1) | Delta vs base | Headline |
+> |---|---|---|---|
+> | **GPT-5** | **0.769** | --- | Frontier ceiling on this rubric. |
+> | Claude Sonnet 4.6 | 0.582 | --- | Mid-tier; loses on ICH M4 shape (0.31) and transformation (0.36). |
+> | **BioMate v6 (Qwen3-8B + LoRA)** | **0.548** | **+0.138** | LoRA materially beats base; ~95% of Sonnet's score at on-prem cost. |
+> | Base Qwen3-8B | 0.410 | --- | Honest floor for an 8B open-weight model. |
+>
+> Per-dimension (0-1 each, averaged across 100 examples):
+>
+> | Model | substance | citation | transformation | adversity_tense | numeric_consistency | ich_m4_shape |
+> |---|---|---|---|---|---|---|
+> | GPT-5            | 0.750 | 0.960 | 0.605 | 0.865 | 0.820 | 0.615 |
+> | Sonnet 4.6       | 0.480 | 0.850 | 0.360 | 0.680 | 0.815 | 0.305 |
+> | **v6 LoRA**      | 0.445 | 0.545 | **0.420** | 0.745 | 0.800 | 0.335 |
+> | Base Qwen3-8B    | 0.375 | 0.460 | 0.185 | 0.560 | 0.735 | 0.145 |
+>
+> **What this overturns:** the regex checker `tabulated_vs_prose` rewarded outputs that copied prompt numbers verbatim and penalized outputs that transformed them (NOAEL 25 -> HED 8.06 -> MRSD 0.806). It reported v6 at 82.4 vs base at 84.4 ("LoRA hurts"). Under the LLM judge -- which scores whether the arithmetic is *right* and whether the prose reads like an IND paragraph instead of a ChatGPT-style tutorial -- **v6 is +13.8pp over base**. v6's biggest gains are on `transformation` (0.42 vs base 0.19, +0.23) and `ich_m4_shape` (0.34 vs 0.15, +0.19) -- exactly the regulatory-prose competencies the SFT+DPO corpus targeted. v6 also gains on substance (+0.07), citation (+0.09), and adversity tense (+0.19). The fine-tune is working.
+>
+> **Methodological caveat (judge bias):** the judge is Claude Opus 4.7, judging outputs from Claude Sonnet 4.6, GPT-5, Qwen-base, and Qwen-v6. There is no perfectly neutral judge for this task. Two mitigations: (a) the rubric is mechanical (BSA factors, ICH guideline IDs, present-vs-past tense, citation-in-parens) -- not stylistic; (b) GPT-5 still wins decisively (0.769 vs Sonnet 0.582) under a Claude judge, which argues against a strong same-family bias. A future cross-judge run (e.g. GPT-5 judging the same outputs) is a one-day follow-up and would close this loop.
+>
+> **Strategic recommendation update:**
+> 1. **Frontier path stays primary.** GPT-5 at 0.769 > v6 at 0.548 -- gap is real and not closed by training. `REGULATORY_LLM_FRONTIER_MODEL=gpt-5` in `start_backend.sh` remains the right default.
+> 2. **v6 LoRA is back on the table** as the on-prem / data-residency / cost-floor tier. At ~95% of Sonnet 4.6's quality and ~$3/IND vs ~$22/IND, the cost + sovereignty story now has a real quality story behind it.
+> 3. **v7 training is worth doing**, narrowly targeted at the weakest v6 dimensions: `ich_m4_shape` (0.335 -- single-paragraph form, citation-in-parens placement) and `citation` (0.545 -- section-appropriate guideline ID). Both are checker-shaped failures the SFT corpus can directly attack. Do not optimize substance/transformation further until v6's structural form is closed.
+> 4. **The "47-pp delta vs base" headline elsewhere in this doc is wrong** under either eval. The honest deltas are: **+13.8pp** (LLM judge) or **-2.0pp** (regex). The product-grade number is +13.8pp.
+>
+> Old (regex-checker) numbers preserved below for traceability -- they are now historical context, not the live claim.
+
+> WARNING **STATUS: API-MODEL NUMBERS MEASURED, NEW LINEUP (2026-05-28, v2c run).** _[Regex-checker era. Superseded by the LLM-judge re-eval above; preserved for traceability.]_
 >
 > Latest models tested with the **strengthened 9-checker system prompt** (full guideline + good/bad few-shot, not the thin preamble from the v1.old-preamble run). All 100 held-out IND §2.6 examples, same input set across models.
 >
