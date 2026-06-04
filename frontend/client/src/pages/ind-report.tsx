@@ -28,7 +28,7 @@ import { SmilesListModal, type SmilesEntry } from "@/components/ind-report/Smile
 import { RerunParamsModal } from "@/components/ind-report/RerunParamsModal";
 import { listProjects, updateCompounds, type CompoundEntry } from "@/lib/ind-report-api";
 import { downloadMarkdown, downloadDocx, type DocumentSection } from "@/lib/ind-report-api";
-import { fetchPipelineData, type IndPipelineData } from "@/lib/ind-report-api";
+import { fetchPipelineData, type IndPipelineData, subscribePipelineEvents } from "@/lib/ind-report-api";
 import { useLocation } from "wouter";
 
 // Demo seed — replace with GET /api/ind-report/projects when backend route exists.
@@ -465,6 +465,17 @@ export function IndReportPage() {
   // Per-project pipeline data (Tier-S1 fix). Refetched whenever the active
   // project changes so switching between BM-0042 / BM-0038 / BM-0029 shows
   // distinct molecules + metrics + rankings + audit findings.
+  // Path A: subscribe to the per-project SSE channel. Every pipeline_data:updated
+  // event bumps pipelineRefreshKey which the existing useEffect picks up to
+  // re-fetch pipeline_data. So chat → ingest_workflow → SSE → page renders
+  // the new metrics without the user reloading.
+  useEffect(() => {
+    if (!activeId) return;
+    const close = subscribePipelineEvents(activeId, () => {
+      setPipelineRefreshKey((k) => k + 1);
+    });
+    return close;
+  }, [activeId]);
   const [pipelineData, setPipelineData] = useState<IndPipelineData | null>(null);
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);

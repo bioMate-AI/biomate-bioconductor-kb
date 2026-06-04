@@ -641,3 +641,51 @@ export function confirmMfa(code: string): Promise<{ enrolled: boolean; enrolled_
 export function resetMfa(): Promise<{ ok: boolean }> {
   return postJson("/api/auth/mfa/reset", {});
 }
+
+
+// ---------------------------------------------------------------------------
+// Path A — workflow → IND ingest + SSE pipeline updates
+// ---------------------------------------------------------------------------
+
+export type IngestWorkflowRequest = {
+  workflow_run_id: string;
+  target_step: "admet" | "pbpk" | "leads" | "compounds";
+  payload: unknown;
+  source?: "chat_roll_in" | "auto_hook" | "manual" | "workflow";
+  force?: boolean;
+};
+
+export function ingestWorkflow(
+  projectId: string,
+  body: IngestWorkflowRequest,
+): Promise<{ ok: boolean; step: string; prev_summary?: unknown; new_summary?: unknown; blocked?: boolean; reason?: string }> {
+  return postJson(
+    `/api/ind-report/projects/${encodeURIComponent(projectId)}/ingest_workflow`,
+    body,
+  );
+}
+
+/** Open an EventSource on the per-project SSE channel. The callback fires
+ * for every pipeline_data:updated event (and once for the hello event).
+ * Returns a close function. */
+export function subscribePipelineEvents(
+  projectId: string,
+  onUpdate: (data: { step: string; source?: string; workflow_run_id?: string | null }) => void,
+): () => void {
+  if (typeof window === "undefined" || typeof EventSource === "undefined") {
+    return () => {};
+  }
+  const url = `/api/ind-report/projects/${encodeURIComponent(projectId)}/events`;
+  const es = new EventSource(url);
+  es.addEventListener("pipeline_data:updated", (ev: MessageEvent) => {
+    try {
+      const data = JSON.parse(ev.data);
+      onUpdate(data);
+    } catch {
+      // ignore malformed event
+    }
+  });
+  return () => {
+    try { es.close(); } catch { /* noop */ }
+  };
+}
