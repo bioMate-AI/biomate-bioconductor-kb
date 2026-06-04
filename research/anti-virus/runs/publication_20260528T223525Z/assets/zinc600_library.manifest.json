@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-06-04T20:50:25.758202+00:00",
+  "publication_run": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z",
+  "compound_count": 600,
+  "source_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi",
+  "selection_method": "first_n_in_tranche_file_order",
+  "selection_n": 600,
+  "tranche_total_lines_approx": 1012,
+  "campaign_gate": "FEEDBACK_CROSSWALK: replace 6-compound demo with >=500 compounds",
+  "target_informed": false,
+  "pharmacophore_prefilter": false,
+  "reference_actives_included": false,
+  "files": {
+    "smiles_only": "research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.smi",
+    "id_and_smiles": "research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.tsv",
+    "provenance_doc": "research/anti-virus/runs/publication_20260528T223525Z/zinc600_screen/ZINC600_LIBRARY_PROVENANCE.md"
+  },
+  "notes": "600 compounds are not ANDV ground truth. They are the first 600 entries of ZINC20 2D tranche AAAC (polar, small-MW slice). Use zinc600_library.tsv for purchasability; zinc600_library.smi remains the Vina input deck."
+}
