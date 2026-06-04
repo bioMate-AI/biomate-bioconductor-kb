@@ -1,7 +1,7 @@
 # ANDV publication campaign — tracked todos
 
 **Run:** `publication_20260528T223525Z`  
-**Last updated:** 2026-06-03  
+**Last updated:** 2026-06-04  
 **Scope:** compute-only (BioMate workflow demo)
 
 ---
@@ -15,6 +15,10 @@
 | **Plan A** | FigA4 MultiQC (full GP, not 90-aa smoke) | **Done** | `FigA4_multiqc_summary.png` (45,160-row run) |
 | **Plan A** | Git: commit Chile panel + science tiers + coverage | **Done** | this commit |
 | **Publication** | Manuscripts: **600** dock + **48.81%** Chile | **Done** | `MANUSCRIPT_ANDV_INHIBITOR_v1_2.md`, `MANUSCRIPT_PLAN_A_VACCINE_v1_1.md` |
+| **Inhibitor** | Refresh `compute_package` + science QC | **Done** | 600 docked; INH-01 lead; Z600-R1 backup |
+| **Inhibitor** | Ensemble ZINC600 top-5 prep | **Done** (prep) | `ZINC600_ENSEMBLE_TOP5_LAUNCH.md` — run when Galaxy up |
+| **Inhibitor** | ZINC purchasability top-5 | **Done** | `zinc600_library.tsv` + multi-backend lookup |
+| **Plan A** | FigA4 + FigA8 regen | **Done** | `manuscript_figures_v1/plan_a/` |
 
 ---
 
@@ -33,9 +37,9 @@
 
 | Task | Priority | Notes |
 |------|----------|-------|
-| Z600-R1 pose QC complete | **P0** | PASS ≤0.35 nm vs INH-01 ~0.20 nm |
-| Ensemble dock ZINC600 top-5 | P1 | Deposit conformers; honest negative expected |
-| ZINC purchasability IDs (top 10) | P2 | SMILES → ZINC API |
+| Z600-R1 pose QC complete | **Done** | PASS 0.26 nm; INH-01 remains primary lead |
+| Ensemble dock ZINC600 top-5 | P1 | Launch manifest ready — Galaxy API required |
+| ZINC purchasability IDs (top 5) | P2 | CartBlanche API HTTP 400 — local library has SMILES only (no ZINC IDs) |
 | SynCraft / retrosynthesis | P2 | Workflow stub today |
 | REINVENT4 from INH-01 seed | P3 | Last run: 0 retained |
 | MM-GBSA recalibration | P3 | Aspirin control fails — do not rank by MM-GBSA |
@@ -48,10 +52,10 @@
 | Task | Priority | Notes |
 |------|----------|-------|
 | IEDB web upload cross-check | **P0** | Manual: [IEDB Population Coverage](https://tools.iedb.org/population/) + `PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv` |
-| FigA4 full-GP MultiQC | **P0** | S3 mirror under `plan_a_epitope/multiqc_full_gp/` |
-| Commit Chile + tiers to git | **P0** | Many files still untracked |
+| FigA4 full-GP MultiQC | **Done** | `FigA4_multiqc_summary.png` |
+| Commit Chile + tiers to git | **Done** | pushed in `2d7af53a8` |
 | NetChop/TAP processing proxy | P2 | Optional science gate |
-| FigA4 + FigA8 regen in manuscript | P1 | After MultiQC sync |
+| FigA4 + FigA8 regen in manuscript | **Done** | Full-GP MultiQC + Chile 17-allele curve |
 | NetMHC / MixMHC (policy: no NetMHCpan) | — | Out of policy |
 
 ---
@@ -69,9 +73,9 @@
 
 | Task | Priority | Notes |
 |------|----------|-------|
-| Inhibitor manuscript → **600** compounds | **P0** | v1.2 still says 145 in places |
-| Plan A manuscript → **48.81%** Chile 17-allele | **P0** | v1.1 multitool section |
-| `COMPUTE_PARALLEL_STATUS.md` sync | P1 | After lane completions |
+| Inhibitor manuscript → **600** compounds | **Done** | v1.2 |
+| Plan A manuscript → **48.81%** Chile 17-allele | **Done** | v1.1 |
+| `COMPUTE_PARALLEL_STATUS.md` sync | **Done** | 2026-06-04 |
 | PR to `main` | P2 | When science gates satisfied |
 
 ---
