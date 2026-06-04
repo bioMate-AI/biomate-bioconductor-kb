@@ -2,7 +2,13 @@
 
 Real-data production run launched from `launch_andv_publication_campaign.py`.
 
+> **2026-06-04 update:** ZINC600 **600/600** dock merged; Z600-R1 pose QC PASS (0.26 nm) — **INH-01** remains compute lead. `compute_package/` refreshed. Science gates in [`docs/ANDV_SCIENCE_COMPLETION_GATES.md`](../../../docs/ANDV_SCIENCE_COMPLETION_GATES.md).
+
 > **2026-06-03 update:** Three-track status consolidated in [`docs/20260603_ANDV_THREE_TRACKS_STATUS_AND_PLAN.md`](../../../docs/20260603_ANDV_THREE_TRACKS_STATUS_AND_PLAN.md). Plan B wet-lab spec added; inhibitor manifest backfilled; Plan A figures regen from full GP multitool TSV.
+
+> **2026-06-03 science bar:** Tracks are **not publication-ready on science grounds**. Author/deposit items deferred. See [`docs/ANDV_SCIENCE_COMPLETION_GATES.md`](../../../docs/ANDV_SCIENCE_COMPLETION_GATES.md) and [`docs/20260603_ANDV_PUBLICATION_READINESS_AND_BEST_SCIENCE.md`](../../../docs/20260603_ANDV_PUBLICATION_READINESS_AND_BEST_SCIENCE.md).
+
+> **2026-06-03 update (INH-02–05):** Parallel MD+MM-GBSA complete for all ZINC150 top hits + aspirin control. Manifest backfilled; shortlist updated. See `INHIBITOR_COMPOUND_SHORTLIST.md`.
 
 > **2026-06-03 update (MM-GBSA):** ECR v1.2.0 pushed; INH-01 **ΔG_bind = −10.49 ± 0.46 kcal/mol** (Ki ≈ 20 nM, job `ffc49896`). See [`mmgbsa_binding_summary_local.json`](mmgbsa_binding_summary_local.json).
 
@@ -25,9 +31,9 @@ S3 prefix: `s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528
 
 | Track | Compute | Consolidated | Publication | Wet lab |
 |-------|---------|--------------|-------------|---------|
-| **Plan A** | Done | Yes | v1.1 draft + figures | **Ready** — `wet_lab_package/` |
-| **Plan B** | Done | Spec in `plan_b_wet_lab/` | v1.0 draft | Spec ready; LNP pKa caveat |
-| **Inhibitor** | MD + MM-GBSA done | Manifest updated | v1.0 draft stale | INH-01 cleared; medchem ADMET review |
+| **Plan A** | Done | Yes | v1.2 + FigA0/A7 | **Tier A/B ranked** — `PLAN_A_SCIENCE_TIERS.md`; NetChop/TAP gap |
+| **Plan B** | Done | Spec + FigC1/C2 | v1.2 supplement only | Not a vaccine product |
+| **Inhibitor** | ZINC600 + MD + MM-GBSA | QC gates | v1.2 + FigB7/B8 | **Methods only** — MM-GBSA fail; **INH-01** lead (Vina −6.27, RMSD ~0.20 nm) |
 
 ## Plan A — completed
 
@@ -35,6 +41,8 @@ S3 prefix: `s3://biomate-nextflow-work/inputs/andv_campaign/publication_20260528
 |------|--------|------------|
 | Full GP MHCnuggets | **Done** | 45,160 rows; **113 binders** |
 | MHCflurry merge | **Done** | 604 unique binder peptides (multitool TSV) |
+| **Dual consensus** | **Done** | **47** strict MHCnuggets+MHCflurry pairs (`PLAN_A_CONSENSUS_BINDERS.tsv`) |
+| Plan A ↔ Plan B ORF map | **Done** | 65/65 wet-lab peptides encoded; 20 cytoplasmic/TM flagged |
 | Cross-species conservation | **Done** | 54 conserved 9-mers; **18 overlap** with multitool binder 9-mers |
 | Wet-lab package | **Done** | MB-01…15 + XSP-01…15 |
 
@@ -57,12 +65,14 @@ Artifacts: `plan_b_codon/`, `plan_b_lnp/`, `plan_b_p0/`, `plan_b_np_pk/`, **`pla
 
 | Step | Status | Key metric |
 |------|--------|------------|
-| ZINC150 ADMET + Vina | **Done** | 145 ligands; best **−6.267 kcal/mol** |
+| ZINC600 Vina (full library) | **Done** | **600/600** docked; best **−6.527** (Z600-R1); INH-01 rank 3 **−6.267** |
+| Z600-R1 pose QC | **Done** | Ligand RMSD **0.26 nm** PASS — not promoted vs INH-01 |
 | Ensemble top-5 | **Done** | 1/5 improved vs rigid |
 | GROMACS INH-01 MD | **Done** | RMSD ~0.41 nm (run `28fd9a07`) |
-| MM-GBSA | **Done** | **ΔG_bind −10.49 ± 0.46 kcal/mol** (19 frames; job `ffc49896`) |
+| GROMACS INH-02–05 + aspirin | **Done** | 500k-step CPU MD + MM-GBSA (runs `5e4afae3` … `e395d66c`) |
+| MM-GBSA | **Done** | INH-01 −10.49; INH-02 −12.29; INH-03 −27.09; INH-04 −6.83; INH-05 −12.03; aspirin −13.05 kcal/mol |
 
-Artifacts: `zinc150_screen/`, `andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01/`
+Artifacts: `zinc150_screen/`, `05_gromacs_mmgbsa_inh01` … `inh05`, `05_gromacs_mmgbsa_aspirin`, `INHIBITOR_COMPOUND_SHORTLIST.md`
 
 ## Wet-lab quick links
 

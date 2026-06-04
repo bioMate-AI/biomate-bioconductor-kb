@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-Assemble publication / wet-lab candidate tables from real ANDV campaign outputs.
+Assemble publication compute outputs from ANDV campaign in silico results.
 
 Combines:
   - Full-GP cross-species conservation (UniProt ANDV/SNV/PUUV)
-  - Plan A epitope TSV binders (when available)
-  - Inhibitor docking results (when available)
+  - Plan A epitope science tiers + population coverage (when available)
+  - Inhibitor docking / QC summaries (when available)
 
-Usage:
-  python3 research/anti-virus/scripts/assemble_wet_lab_candidates.py \\
-    --publication-run research/anti-virus/runs/publication_20260528T... \\
-    [--epitope-tsv path/to/predictions.tsv] \\
-    [--docking-json path/to/ensemble_results.json]
+BioMate scope: **compute only** — no wet-lab synthesis or assays implied.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import urllib.parse
 import urllib.request
@@ -125,7 +122,7 @@ def main() -> None:
     args = ap.parse_args()
 
     pub_dir = args.publication_run.resolve()
-    out_dir = pub_dir / "wet_lab_package"
+    out_dir = pub_dir / "compute_package"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.conservation_json and args.conservation_json.is_file():
@@ -151,9 +148,32 @@ def main() -> None:
 
     epitope_tsv = args.epitope_tsv
     if epitope_tsv is None:
-        candidates = sorted(pub_dir.glob("plan_a_epitope/*.tsv")) + sorted(pub_dir.glob("**/predictions/*.tsv"))
-        epitope_tsv = candidates[0] if candidates else None
+        preferred = pub_dir / "plan_a_epitope/PLAN_A_CONSENSUS_BINDERS.tsv"
+        if preferred.is_file():
+            epitope_tsv = preferred
+        else:
+            candidates = sorted(pub_dir.glob("plan_a_epitope/PLAN_A_FULL_GP_*.tsv"))
+            epitope_tsv = candidates[0] if candidates else None
     binders = load_epitope_binders(epitope_tsv) if epitope_tsv else []
+    if not binders and epitope_tsv and "CONSENSUS" in epitope_tsv.name.upper():
+        with epitope_tsv.open(newline="", encoding="utf-8") as f:
+            binders = [
+                {"peptide": (r.get("sequence") or "").upper(), "allele": r.get("allele", ""), "binder": True}
+                for r in csv.DictReader(f, delimiter="\t")
+            ]
+
+    tiers_json = pub_dir / "plan_a_epitope/PLAN_A_SCIENCE_TIERS.json"
+    science_tiers: list[dict[str, Any]] = []
+    if tiers_json.is_file():
+        tiers_data = json.loads(tiers_json.read_text(encoding="utf-8"))
+        science_tiers = tiers_data.get("peptide_ranked") or []
+
+    processing_json = pub_dir / "plan_a_epitope/PLAN_A_PROCESSING_PROXY.json"
+    processing_by_pep: dict[str, bool] = {}
+    if processing_json.is_file():
+        pdata = json.loads(processing_json.read_text(encoding="utf-8"))
+        for r in pdata.get("results") or []:
+            processing_by_pep[r["peptide"]] = bool(r.get("processing_likely"))
 
     docking_json = args.docking_json
     if docking_json is None:
@@ -169,8 +189,19 @@ def main() -> None:
             )
             docking_json = candidates[0] if candidates else None
     docking_hits = load_docking_hits(docking_json) if docking_json else []
+    docked_total = 0
+    if docking_json and docking_json.is_file():
+        docked_total = len(json.loads(docking_json.read_text(encoding="utf-8")).get("results") or [])
 
-    # Rank vaccine peptides: cross-species conserved + binder if epitope data exists
+    chile_cov_pct: float | None = None
+    chile_cov_path = pub_dir / "plan_a_epitope/PLAN_A_CHILE_POPULATION_COVERAGE.json"
+    if chile_cov_path.is_file():
+        cdata = json.loads(chile_cov_path.read_text(encoding="utf-8"))
+        tier = (cdata.get("subsets") or {}).get("tier_A_B_surface") or {}
+        chile = (tier.get("by_population") or {}).get("Chile") or {}
+        if chile.get("coverage_percent") is not None:
+            chile_cov_pct = float(chile["coverage_percent"])
+
     binder_seqs = {b["peptide"].upper() for b in binders}
     vaccine_candidates: list[dict[str, Any]] = []
     for rank, c in enumerate(conserved_list[:100], start=1):
@@ -184,32 +215,58 @@ def main() -> None:
                 "cross_species_conserved": True,
                 "mhc_binder_validated": pep in binder_seqs,
                 "order_priority": "HIGH" if pep in binder_seqs else "MEDIUM",
-                "wet_lab_assay": "Peptide-MHC binding (DimerX/ELISA) + IFN-γ ELISpot",
+                "compute_role": "cross_species_conserved_kmer",
             }
         )
 
-    # Top in-silico binders (distinct peptides, best rank per peptide)
     seen_pep: set[str] = set()
     mhc_binder_candidates: list[dict[str, Any]] = []
-    for b in binders:
-        pep = b["peptide"].upper()
-        if pep in seen_pep:
-            continue
-        seen_pep.add(pep)
-        mhc_binder_candidates.append(
-            {
-                "id": f"MB-{len(mhc_binder_candidates)+1:02d}",
-                "peptide": pep,
-                "best_allele": b["allele"],
-                "rank": b.get("rank"),
-                "BA": b.get("BA"),
-                "cross_species_conserved": pep in {c["peptide"] for c in conserved_list},
-                "order_priority": "HIGH",
-                "wet_lab_assay": "Peptide-MHC binding (DimerX) → ELISpot",
-            }
-        )
-        if len(mhc_binder_candidates) >= 20:
-            break
+    if science_tiers:
+        for rank, p in enumerate(science_tiers, start=1):
+            pep = p["peptide"].upper()
+            if pep in seen_pep or p.get("best_tier") not in ("A", "B", "C"):
+                continue
+            if p.get("best_tier") == "C":
+                continue
+            seen_pep.add(pep)
+            alleles = p.get("alleles") or []
+            mhc_binder_candidates.append(
+                {
+                    "id": f"HC-{len(mhc_binder_candidates)+1:02d}",
+                    "peptide": pep,
+                    "science_tier": p.get("best_tier"),
+                    "best_allele": alleles[0] if alleles else "",
+                    "alleles": alleles,
+                    "gp_position": p.get("gp_position"),
+                    "gpc_region": p.get("gpc_region"),
+                    "cross_species_conserved": p.get("cross_species_conserved"),
+                    "processing_likely": processing_by_pep.get(pep),
+                    "order_priority": "HIGH" if p.get("best_tier") == "A" else "MEDIUM",
+                    "compute_role": "tier_ranked_epitope_candidate",
+                }
+            )
+            if len(mhc_binder_candidates) >= 20:
+                break
+    else:
+        for b in binders:
+            pep = b["peptide"].upper()
+            if pep in seen_pep:
+                continue
+            seen_pep.add(pep)
+            mhc_binder_candidates.append(
+                {
+                    "id": f"MB-{len(mhc_binder_candidates)+1:02d}",
+                    "peptide": pep,
+                    "best_allele": b["allele"],
+                    "rank": b.get("rank"),
+                    "BA": b.get("BA"),
+                    "cross_species_conserved": pep in {c["peptide"] for c in conserved_list},
+                    "order_priority": "HIGH",
+                    "compute_role": "mhc_binder_candidate",
+                }
+            )
+            if len(mhc_binder_candidates) >= 20:
+                break
 
     inhibitor_candidates: list[dict[str, Any]] = []
     for rank, h in enumerate(docking_hits[:20], start=1):
@@ -220,7 +277,7 @@ def main() -> None:
                 "score_kcal_mol": h["score_kcal_mol"],
                 "receptor": h.get("receptor", "9P3I"),
                 "order_priority": "HIGH" if rank <= 5 else "MEDIUM",
-                "wet_lab_assay": "SPR or thermal shift on GP ectodomain; follow with pseudotype entry assay",
+                "compute_role": "docking_hit_in_silico",
             }
         )
 
@@ -235,10 +292,16 @@ def main() -> None:
             "conserved_9mers_full_gp": len(conserved_list),
             "mhc_binders": len(binders),
             "mhc_binder_unique_peptides": len(seen_pep),
+            "science_tier_ranked": len(science_tiers),
             "conserved_binder_overlap": sum(1 for v in vaccine_candidates if v["mhc_binder_validated"]),
             "docking_hits": len(docking_hits),
+            "zinc_screen_docked": docked_total,
+            "chile_tier_ab_coverage_pct": chile_cov_pct,
             "top_vaccine_candidates": len(vaccine_candidates),
+            "inhibitor_compute_lead": "INH-01",
+            "inhibitor_compute_lead_note": "Vina + pose QC; Z600-R1 better Vina (−6.527) but not promoted",
         },
+        "science_tier_track": mhc_binder_candidates,
         "conservation_track": vaccine_candidates[:30],
         "mhc_binder_track": mhc_binder_candidates,
         "inhibitor_docking_track": inhibitor_candidates,
@@ -247,29 +310,46 @@ def main() -> None:
         "inhibitor_docking_hits": docking_hits,
     }
 
-    json_path = out_dir / "wet_lab_candidates.json"
+    json_path = out_dir / "compute_candidates.json"
     json_path.write_text(json.dumps(package, indent=2), encoding="utf-8")
 
     md_lines = [
-        "# ANDV Wet-Lab Candidate Package",
+        "# ANDV Compute Output Package (BioMate in silico)",
         "",
         f"Generated: {package['assembled_at']}",
+        "",
+        "_No wet-lab work — ranked compute artifacts for manuscript / workflow demo._",
         "",
         "## Summary",
         f"- Cross-species conserved {args.kmer_size}-mers (full GP): **{len(conserved_list)}**",
         f"- MHC binders (epitope run): **{len(binders)}** ({len(seen_pep)} unique peptides)",
         f"- Conserved ∩ binder overlap: **{sum(1 for v in vaccine_candidates if v['mhc_binder_validated'])}**",
-        f"- Docking hits: **{len(docking_hits)}**",
-        "",
-        "## Track A — MHC-validated binders (synthesize first)",
-        "",
-        "| ID | Peptide | Allele | Rank | BA | Conserved |",
-        "|----|---------|--------|------|-----|-----------|",
+        f"- Docking hits (top ranked): **{len(docking_hits)}**",
+        f"- ZINC screen docked: **{docked_total}**",
+        f"- Inhibitor compute lead: **INH-01** (Vina + pose QC; Z600-R1 backup)",
     ]
-    for m in mhc_binder_candidates[:15]:
+    if chile_cov_pct is not None:
         md_lines.append(
-            f"| {m['id']} | {m['peptide']} | {m['best_allele']} | {m['rank']} | {m['BA']:.3f} | "
-            f"{'yes' if m['cross_species_conserved'] else 'no'} |"
+            f"- Chile tier A+B population coverage (17-allele strict dual): **{chile_cov_pct:.2f}%**"
+        )
+    md_lines.extend(
+        [
+            "",
+            "## Track A — Tier-ranked epitope candidates (MHCnuggets + MHCflurry consensus)",
+            "",
+            "_Ranked by dual MHCnuggets+MHCflurry consensus + GPC surface exposure. Tier C (cytoplasmic) excluded._",
+            "",
+            "| ID | Peptide | Tier | GP pos | Region | Conserved | Processing proxy | Priority |",
+            "|----|---------|------|--------|--------|-----------|------------------|----------|",
+        ]
+    )
+    for m in mhc_binder_candidates[:15]:
+        proc = m.get("processing_likely")
+        proc_s = "yes" if proc is True else ("no" if proc is False else "—")
+        md_lines.append(
+            f"| {m['id']} | {m['peptide']} | {m.get('science_tier', '—')} | "
+            f"{m.get('gp_position', '—')} | {m.get('gpc_region', '—')} | "
+            f"{'yes' if m.get('cross_species_conserved') else 'no'} | {proc_s} | {m['order_priority']} |"
         )
     md_lines.extend(
         [
@@ -301,7 +381,7 @@ def main() -> None:
                 f"| {h['id']} | `{sm}` | **{h['score_kcal_mol']}** | {h['receptor']} | {h['order_priority']} |"
             )
 
-    md_path = out_dir / "WET_LAB_CANDIDATES.md"
+    md_path = out_dir / "COMPUTE_CANDIDATES.md"
     md_path.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
     print(f"Wrote {json_path}")
     print(f"Wrote {md_path}")

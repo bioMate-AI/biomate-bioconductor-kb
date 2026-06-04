@@ -1,5 +1,5 @@
 {
-  "analyzed_at": "2026-06-04T16:17:30.322708+00:00",
+  "analyzed_at": "2026-06-04T18:43:28.415107+00:00",
   "input_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv",
   "n_epitope_allele_pairs": 30,
   "n_unique_peptides": 28,

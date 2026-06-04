@@ -1,0 +1,47 @@
+{
+  "looked_up_at": "2026-06-04T19:18:55.495584+00:00",
+  "source": "cartblanche22.docking.org smiles.txt dist=0",
+  "top_n": 5,
+  "results": [
+    {
+      "rank": 1,
+      "vina_kcal_mol": -6.527,
+      "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
+      "zinc_hits": [],
+      "in_catalog": false,
+      "lookup_error": "HTTP Error 400: BAD REQUEST"
+    },
+    {
+      "rank": 2,
+      "vina_kcal_mol": -6.275,
+      "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
+      "zinc_hits": [],
+      "in_catalog": false,
+      "lookup_error": "HTTP Error 400: BAD REQUEST"
+    },
+    {
+      "rank": 3,
+      "vina_kcal_mol": -6.267,
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "zinc_hits": [],
+      "in_catalog": false,
+      "lookup_error": "HTTP Error 400: BAD REQUEST"
+    },
+    {
+      "rank": 4,
+      "vina_kcal_mol": -6.099,
+      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
+      "zinc_hits": [],
+      "in_catalog": false,
+      "lookup_error": "HTTP Error 400: BAD REQUEST"
+    },
+    {
+      "rank": 5,
+      "vina_kcal_mol": -6.065,
+      "smiles": "N=C(N)NC(=O)NC(=N)N",
+      "zinc_hits": [],
+      "in_catalog": false,
+      "lookup_error": "HTTP Error 400: BAD REQUEST"
+    }
+  ]
+}
