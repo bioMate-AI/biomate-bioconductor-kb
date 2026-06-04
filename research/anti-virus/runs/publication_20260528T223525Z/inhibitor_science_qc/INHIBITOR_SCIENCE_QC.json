@@ -1,5 +1,5 @@
 {
-  "analyzed_at": "2026-06-04T18:12:02.920321+00:00",
+  "analyzed_at": "2026-06-04T20:58:03.122180+00:00",
   "thresholds": {
     "protein_rmsd_pass_nm": 0.55,
     "protein_rmsd_warn_nm": 0.45,

@@ -39,7 +39,7 @@
 |------|----------|-------|
 | Z600-R1 pose QC complete | **Done** | PASS 0.26 nm; INH-01 remains primary lead |
 | Ensemble dock ZINC600 top-5 | P1 | Launch manifest ready — Galaxy API required |
-| ZINC purchasability IDs (top 5) | P2 | CartBlanche API HTTP 400 — local library has SMILES only (no ZINC IDs) |
+| ZINC purchasability IDs (top 5) | **Done** | `zinc600_library.tsv` + multi-backend lookup |
 | SynCraft / retrosynthesis | P2 | Workflow stub today |
 | REINVENT4 from INH-01 seed | P3 | Last run: 0 retained |
 | MM-GBSA recalibration | P3 | Aspirin control fails — do not rank by MM-GBSA |

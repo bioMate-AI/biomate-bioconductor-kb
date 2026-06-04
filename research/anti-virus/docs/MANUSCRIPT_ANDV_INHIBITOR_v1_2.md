@@ -62,7 +62,9 @@ Rigid Vina: aspirin −4.92, paracetamol −4.64, phenol −3.65 kcal/mol. Ensem
 
 ### ZINC600 screen
 
-600 ligands docked; best rigid score **−6.527 kcal/mol** (Z600-R1, guanidine oligomer). INH-01 remains **−6.267 kcal/mol** with better pose QC (ligand RMSD **~0.20 nm** vs **~0.26 nm** for Z600-R1 after ~1 ns GROMACS). Top five from the pilot subset advanced to MD/MM-GBSA; rank-1 full-screen hit awaits medchem review before lead promotion.
+**Library:** first **600** compounds of ZINC20 2D tranche **AAAC** (`files.docking.org/2D/AA/AAAC.smi`)—a methods-scale purchasable subset, **not** ANDV-target-informed library design (see `ZINC600_LIBRARY_PROVENANCE.md`). Substance IDs are recorded in `assets/zinc600_library.tsv`.
+
+600 ligands docked; best rigid score **−6.527 kcal/mol** (Z600-R1, guanidine oligomer). **INH-01** (ZINC substance **33753639**) remains **−6.267 kcal/mol** with better pose QC (ligand RMSD **~0.20 nm** vs **~0.26 nm** for Z600-R1). INH-01 is the defensible compute lead; Z600-R1 is a Vina backup only.
 
 ### Table 3 — Vina + MM-GBSA panel
 

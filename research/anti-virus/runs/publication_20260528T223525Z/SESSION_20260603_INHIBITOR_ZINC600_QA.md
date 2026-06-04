@@ -76,7 +76,7 @@ Plan A peptides are **natural GP sequence fragments** ranked by MHC binding — 
 3. **Two-phase execution:** ZINC150 first (~145–150 docked May 29) → ZINC600 completion June 3.
 4. **Library profile:** Median MW ~163 Da, median LogP ~−1.6 — polar, small, lead-like **curated subset**, not a random ZINC20 draw.
 
-**Important:** 600 is the **entire bundled mirror**, not a statistical sample of ZINC20. Scaling up requires filtered ZINC API queries or vendor subsets, not blind full-database docking.
+**Important:** 600 is the **first N lines of one ZINC20 2D tranche (AAAC)**, not a statistical sample of ZINC20 and not ANDV-target-informed. IDs are in `assets/zinc600_library.tsv`. See `zinc600_screen/ZINC600_LIBRARY_PROVENANCE.md`.
 
 ---
 
@@ -97,7 +97,7 @@ Verify: `len(results)` in docking JSON should equal **600** (unique SMILES from 
 
 | Item | Action |
 |------|--------|
-| Z600-R1 pose QC | `python3 research/anti-virus/scripts/poll_zinc600_rank1_pose_qc.py` |
+| Z600-R1 pose QC | **Done** — 0.26 nm PASS; INH-01 remains lead |
 | IEDB population cross-check | Upload `plan_a_epitope/PLAN_A_CHILE_POP_COVERAGE_INPUT.tsv` vs **48.81%** Chile tier A+B |
 | ZINC purchasability | **Done** — `lookup_zinc_purchasability.py` (local tranche + PubChem) |
 
