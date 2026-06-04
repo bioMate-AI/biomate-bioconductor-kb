@@ -1,6 +1,6 @@
 # Inhibitor track — science QC gates
 
-Generated: 2026-06-03T19:33:36.581790+00:00
+Generated: 2026-06-04T18:12:02.920321+00:00
 
 ## Protocol gates
 
@@ -8,6 +8,12 @@ Generated: 2026-06-03T19:33:36.581790+00:00
 | --- | --- | --- | --- |
 | MM-GBSA protocol | FAIL | **no** | Aspirin ΔG_bind ≤ −12 kcal/mol — MM-GBSA not calibrated for relative ranking |
 | Ensemble docking | COMPLETE | yes | Ensemble scores recovered on deposit conformers; 4/15 improved vs rigid baseline (may be zero — honest negative). |
+
+## Z600-R1 rank-1 pose QC
+
+| Vina (kcal/mol) | Ligand RMSD (nm) | Verdict |
+| ---: | ---: | --- |
+| — | 0.2604 | **PASS** (INH-01 baseline ~0.20 nm) |
 
 ## Per-compound QC
 
@@ -22,7 +28,7 @@ Generated: 2026-06-03T19:33:36.581790+00:00
 
 ## Science verdict
 
-- **Compute lead:** INH-01 (Vina + pose QC) — Best rigid Vina (−6.27 kcal/mol); ligand RMSD mean ~0.20 nm (md/ traj); MM-GBSA not used for ranking (aspirin control failure)
+- **Compute lead:** INH-01 (Vina + pose QC) — Best rigid Vina among pose-QC-validated hits (−6.27 kcal/mol); ligand RMSD ~0.20 nm; MM-GBSA not used for ranking (aspirin control failure)
 - **MM-GBSA usable for ranking:** **no** (control failure)
 - **Remaining blockers:**
   - MM-GBSA aspirin control failure

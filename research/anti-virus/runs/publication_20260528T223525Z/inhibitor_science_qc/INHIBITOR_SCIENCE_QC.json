@@ -1,5 +1,5 @@
 {
-  "analyzed_at": "2026-06-03T19:33:36.581790+00:00",
+  "analyzed_at": "2026-06-04T18:12:02.920321+00:00",
   "thresholds": {
     "protein_rmsd_pass_nm": 0.55,
     "protein_rmsd_warn_nm": 0.45,
@@ -128,18 +128,26 @@
   "science_verdict": {
     "mmgbsa_usable_for_ranking": false,
     "compute_lead": "INH-01 (Vina + pose QC)",
-    "lead_basis": "Best rigid Vina (\u22126.27 kcal/mol); ligand RMSD mean ~0.20 nm (md/ traj); MM-GBSA not used for ranking (aspirin control failure)",
+    "lead_basis": "Best rigid Vina among pose-QC-validated hits (\u22126.27 kcal/mol); ligand RMSD ~0.20 nm; MM-GBSA not used for ranking (aspirin control failure)",
+    "z600_rank1_pose_qc": {
+      "run_id": "b89f1662-cd13-494e-877e-fab88643404b",
+      "galaxy_status": "succeeded",
+      "pose_qc_status": "complete",
+      "ligand_rmsd_mean_nm": 0.2604,
+      "verdict": "PASS (<=0.35 nm)",
+      "compute_lead": "INH-01 (primary); Z600-R1 backup"
+    },
     "do_not_lead_with": [
       "INH-03"
     ],
     "blockers": [
       "MM-GBSA aspirin control failure"
-    ],
-    "zinc600_screen": {
-      "library_n": 600,
-      "docked_n": 600,
-      "complete": true,
-      "results_json": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
-    }
+    ]
+  },
+  "zinc600_screen": {
+    "library_n": 600,
+    "docked_n": 600,
+    "complete": true,
+    "results_json": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
   }
 }

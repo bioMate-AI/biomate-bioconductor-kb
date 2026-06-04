@@ -113,6 +113,25 @@ def gate_mmgbsa_protocol(
     }
 
 
+def load_rank1_pose_qc(pub: Path) -> dict[str, Any] | None:
+    p = pub / "zinc600_screen/rank1_pose_qc/RANK1_POSE_QC.json"
+    if p.is_file():
+        return json.loads(p.read_text(encoding="utf-8"))
+    mf = pub / "zinc600_screen/rank1_pose_qc/RANK1_POSE_QC_MANIFEST.json"
+    if mf.is_file():
+        m = json.loads(mf.read_text(encoding="utf-8"))
+        lr = m.get("ligand_rmsd") or {}
+        if lr.get("ligand_rmsd_mean_nm") is not None:
+            return {
+                "ligand_rmsd_mean_nm": lr["ligand_rmsd_mean_nm"],
+                "ligand_rmsd_max_nm": lr.get("ligand_rmsd_max_nm"),
+                "vina_kcal_mol": m.get("vina_kcal_mol"),
+                "smiles": m.get("smiles"),
+                "pose_qc_status": m.get("pose_qc_status"),
+            }
+    return None
+
+
 def load_ligand_rmsd_batch(pub: Path) -> dict[str, dict[str, Any]]:
     p = pub / "inhibitor_science_qc/LIGAND_RMSD_BATCH.json"
     if not p.is_file():
@@ -301,6 +320,20 @@ def main() -> None:
         )
 
     ensemble = load_ensemble_qc(pub)
+    rank1 = load_rank1_pose_qc(pub)
+    rank1_lig = float(rank1["ligand_rmsd_mean_nm"]) if rank1 and rank1.get("ligand_rmsd_mean_nm") is not None else None
+    rank1_pass = rank1_lig is not None and rank1_lig <= LIGAND_RMSD_PASS_NM
+
+    compute_lead = "INH-01 (Vina + pose QC)"
+    lead_basis = (
+        "Best rigid Vina among pose-QC-validated hits (−6.27 kcal/mol); ligand RMSD ~0.20 nm; "
+        "MM-GBSA not used for ranking (aspirin control failure)"
+    )
+    if rank1 and rank1_pass and rank1.get("vina_kcal_mol") is not None:
+        lead_basis += (
+            f"; Z600-R1 higher Vina ({rank1['vina_kcal_mol']} kcal/mol) but worse pose "
+            f"(ligand RMSD {rank1_lig:.3f} nm vs INH-01 ~0.20 nm) — not promoted"
+        )
 
     report = {
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
@@ -316,11 +349,9 @@ def main() -> None:
         "compounds": compounds,
         "science_verdict": {
             "mmgbsa_usable_for_ranking": protocol_gate["pass"],
-            "compute_lead": "INH-01 (Vina + pose QC)",
-            "lead_basis": (
-                "Best rigid Vina (−6.27 kcal/mol); ligand RMSD mean ~0.20 nm (md/ traj); "
-                "MM-GBSA not used for ranking (aspirin control failure)"
-            ),
+            "compute_lead": compute_lead,
+            "lead_basis": lead_basis,
+            "z600_rank1_pose_qc": rank1,
             "do_not_lead_with": ["INH-03"],
             "blockers": [
                 b
@@ -334,12 +365,12 @@ def main() -> None:
                 ]
                 if b
             ],
+        },
         "zinc600_screen": {
             "library_n": library_n,
             "docked_n": docked_n,
             "complete": zinc600_complete,
             "results_json": str(vina_json),
-        },
         },
     }
 
@@ -358,11 +389,25 @@ def main() -> None:
         f"| MM-GBSA protocol | {protocol_gate['status']} | {'yes' if protocol_gate['pass'] else '**no**'} | {protocol_gate['reason']} |",
         f"| Ensemble docking | {ensemble['status']} | {'yes' if ensemble.get('pass') else '**no**'} | {ensemble.get('interpretation', ensemble.get('reason', ''))} |",
         "",
-        "## Per-compound QC",
-        "",
-        "| Compound | Vina | MM-GBSA ΔG | Protein RMSD (nm) | Ligand RMSD (nm) | Verdict | MM-GBSA rank? |",
-        "| --- | ---: | ---: | ---: | ---: | --- | --- |",
     ]
+    if rank1:
+        md.append("## Z600-R1 rank-1 pose QC")
+        md.append("")
+        md.append(f"| Vina (kcal/mol) | Ligand RMSD (nm) | Verdict |")
+        md.append(f"| ---: | ---: | --- |")
+        v = rank1.get("vina_kcal_mol", "—")
+        lr = rank1.get("ligand_rmsd_mean_nm", "—")
+        verdict = "PASS" if rank1_pass else "REVIEW/FAIL"
+        md.append(f"| {v} | {lr} | **{verdict}** (INH-01 baseline ~0.20 nm) |")
+        md.append("")
+    md.extend(
+        [
+            "## Per-compound QC",
+            "",
+            "| Compound | Vina | MM-GBSA ΔG | Protein RMSD (nm) | Ligand RMSD (nm) | Verdict | MM-GBSA rank? |",
+            "| --- | ---: | ---: | ---: | ---: | --- | --- |",
+        ]
+    )
     for c in compounds:
         v = c.get("vina_kcal_mol")
         dg = c.get("delta_g_bind_kcal_mol")
