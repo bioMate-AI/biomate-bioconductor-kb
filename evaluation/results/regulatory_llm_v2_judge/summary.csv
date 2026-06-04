@@ -1,0 +1,5 @@
+model,n,errors,macro_avg,substance,citation,transformation,adversity_tense,numeric_consistency,ich_m4_shape
+claude_sonnet_4_6,100,0,0.5817,0.48,0.85,0.36,0.68,0.815,0.305
+gpt_5,100,0,0.7692,0.75,0.96,0.605,0.865,0.82,0.615
+qwen3_8b_base,100,0,0.41,0.375,0.46,0.185,0.56,0.735,0.145
+regulatory_llm_v6,100,0,0.5483,0.445,0.545,0.42,0.745,0.8,0.335
