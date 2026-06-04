@@ -12,7 +12,7 @@ export GEMINI_API_KEY=AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI
 # n=100 9-checker eval (vs Sonnet 4.6 87.1%, Opus 4.8 85.9%); per-IND-paragraph
 # cost ~$0.04. Override with claude-sonnet-4-6 / claude-opus-4-8 / gemini-3.1-pro-preview.
 # Set to empty string to fall through to Modal/vLLM (when those are deployed).
-export REGULATORY_LLM_FRONTIER_MODEL=${REGULATORY_LLM_FRONTIER_MODEL:-gpt-5}
+export REGULATORY_LLM_FRONTIER_MODEL=${REGULATORY_LLM_FRONTIER_MODEL:-claude-sonnet-4-6}
 export GALAXY_CONFIG_ENABLE_AI_ASSISTANT=true
 export GALAXY_CONFIG_FILE=lib/galaxy/config/sample/galaxy.yml.sample
 export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite
