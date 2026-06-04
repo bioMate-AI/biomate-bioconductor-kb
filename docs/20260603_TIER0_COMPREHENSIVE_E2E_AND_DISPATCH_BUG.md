@@ -53,7 +53,47 @@ This is a recurring parallel-session sweep regression (noted in previous
 session: "multiple critical fixes lost during the session due to parallel
 session edits; required re-application").
 
-### Next step (focused session — do not autopilot)
+### 2026-06-04 follow-up: three fixes shipped (FD-decouple, CRT, WARN regex)
+
+All three regressions diagnosed in this doc have been re-applied to
+`nextflow_executor.py`, committed, pushed, and (for FD-decouple/CRT)
+verified live on dev:
+
+- **`41181b086`** — FD-decouple Nextflow subprocess. Both Popen sites
+  (`stdout=open(log_path, "wb", 0)`) and `_stream_logs` rewritten to
+  `process.wait()` + post-process. Verified live: a manual dispatch ran
+  Phase A→D in 88s with status=completed, returncode=0.
+- **`a5194128f`** — AWS CRT SIGSEGV mitigation. Per-run cache dir,
+  `-Xss2m`, `-Daws.crt.disable.crt.in.client=true` appended to `NXF_OPTS`.
+  Verified live: `ps -ef` on dev shows the flags applied to running
+  Nextflow JVMs.
+- **`4b4f96c37`** — `_NF_LOG_EXCEPTION_RE` no longer matches `WARN`.
+  Previously, `WARN nextflow.Session - There's no process matching config
+  selector: CRYODRGN_TRAIN` (benign) was triggering
+  `_log_indicates_nextflow_failure → trace_failed=True →
+  /api/nextflow/status returning status=failed,rc=1` while the JVM was
+  still alive. Verified live: status correctly reports `running` for the
+  full Phase A window (was `failed` within 20s before).
+
+All three fixes have inline DO-NOT-REVERT comments pointing at this doc.
+Local AST + smoke checks added before each sync (parallel-session sweep
+risk was the recurring cause of these regressions).
+
+Open infra issues this session (NOT in scope, but blocking the full
+Playwright E2E rerun):
+
+- Frontend container crash-loop on dev: `relation "users" already exists`
+  on boot migration; addressed by parallel commit `573a43e90` (recover
+  already-applied migrations instead of crashing).
+- Galaxy dev container churning (multiple restarts during testing,
+  visible as runs disappearing from `/tmp/nextflow_runs/`). Dev EC2 at
+  80% disk per SSH banner — may be the underlying trigger.
+
+Once dev is stable, the comprehensive Playwright E2E
+(`frontend/e2e/tier0-full-e2e.e2e.ts`) should pass 17/17 on T01 because
+all three failure modes diagnosed above are now resolved.
+
+### Original recovery sketch (kept for reference)
 
 1. Re-apply the FD-decouple at both Popen sites:
    ```python
