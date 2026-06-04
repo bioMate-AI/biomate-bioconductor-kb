@@ -1,0 +1,16 @@
+{
+  "created_at": "2026-06-03T19:52:13.284259+00:00",
+  "compound_id": "Z600-R1",
+  "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
+  "vina_kcal_mol": -6.527,
+  "step_suffix": "rank1_z600_20260603T195209Z",
+  "step_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_rank1_z600_20260603T195209Z",
+  "run_id": "b89f1662-cd13-494e-877e-fab88643404b",
+  "status": "submitted",
+  "compare_to": {
+    "INH-01_smiles": "N=C(N)NC(=O)c1nccnc1N",
+    "INH-01_vina_kcal_mol": -6.267,
+    "INH-01_ligand_rmsd_mean_nm": 0.204
+  },
+  "poll_hint": "python3 research/anti-virus/scripts/poll_zinc600_rank1_pose_qc.py"
+}

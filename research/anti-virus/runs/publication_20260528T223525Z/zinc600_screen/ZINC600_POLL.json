@@ -1,0 +1,149 @@
+[
+  {
+    "stamp": "20260603T055108Z",
+    "status": "failed: usage: run_andv_inhibitor_pipeline_nextflow.py [-h] [--api-url API_URL]\n                                               [--user-id USER_ID] --pdb-input\n                                               PDB_INPUT\n                                               [--through-step {1,2,3,4,5,6}]\n                                               [--poll-interval POLL_INTERVAL]\n                                   ",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T055401Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T060110Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T061015Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T164116Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T164117Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T164118Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": null
+  },
+  {
+    "stamp": "20260603T170051Z",
+    "status": "queued",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": "z600_20260603T170051Z"
+  },
+  {
+    "stamp": "20260603T170120Z",
+    "status": "failed: Note: steps 2+ require --reference-actives-s3 and --compound-library-s3 for pharmacophore.\nAppending selected keys to /home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z: ['docking_vina']\n\n========================================================================\nSTEP 4/6: docking_vina \u2014 AutoDock Vina docking\n===============================================================",
+    "remaining": 450,
+    "run_id": null,
+    "step_suffix": "z600_20260603T170120Z"
+  },
+  {
+    "stamp": "20260603T170240Z",
+    "status": "submitted",
+    "remaining": 450,
+    "run_id": "fa7e9396-1246-4c19-adcc-ae93b3c88870",
+    "step_suffix": "z600_20260603T170240Z"
+  },
+  {
+    "stamp": "20260603T170605Z",
+    "status": "submitted",
+    "remaining": 400,
+    "run_id": "c6dd08e5-b37a-4f9b-88c0-de83c94b950d",
+    "step_suffix": "z600_20260603T170605Z"
+  },
+  {
+    "stamp": "20260603T170610Z",
+    "status": "submitted",
+    "remaining": 400,
+    "run_id": "b1cf9c12-33b5-4c7b-adca-c5ed1997407e",
+    "step_suffix": "z600_20260603T170610Z"
+  },
+  {
+    "stamp": "20260603T170615Z",
+    "status": "submitted",
+    "remaining": 400,
+    "run_id": "fdff5eeb-4166-4198-8fab-18b50951bd84",
+    "step_suffix": "z600_20260603T170615Z"
+  },
+  {
+    "stamp": "20260603T170700Z",
+    "status": "submitted",
+    "remaining": 350,
+    "run_id": "91e9ec4e-0d60-4f2a-aa19-5541ac8921b4",
+    "step_suffix": "z600_20260603T170700Z"
+  },
+  {
+    "stamp": "20260603T170703Z",
+    "status": "submitted",
+    "remaining": 300,
+    "run_id": "af7008a6-b64c-45eb-8eaa-e00a63e66ae6",
+    "step_suffix": "z600_20260603T170703Z"
+  },
+  {
+    "stamp": "20260603T170706Z",
+    "status": "submitted",
+    "remaining": 250,
+    "run_id": "ee6db7db-93ee-4f88-9454-d9825d30e46d",
+    "step_suffix": "z600_20260603T170706Z"
+  },
+  {
+    "stamp": "20260603T170709Z",
+    "status": "submitted",
+    "remaining": 200,
+    "run_id": "e62c4de9-5970-45ed-9fe2-5dc609d98e23",
+    "step_suffix": "z600_20260603T170709Z"
+  },
+  {
+    "stamp": "20260603T170712Z",
+    "status": "submitted",
+    "remaining": 150,
+    "run_id": "0f9f21e8-e751-43e6-86d9-1ba55b993194",
+    "step_suffix": "z600_20260603T170712Z"
+  },
+  {
+    "stamp": "20260603T170727Z",
+    "status": "submitted",
+    "remaining": 100,
+    "run_id": "f6766ed1-6dc7-486f-b7b0-bcffe5ffae4a",
+    "step_suffix": "z600_20260603T170727Z"
+  },
+  {
+    "stamp": "20260603T170729Z",
+    "status": "submitted",
+    "remaining": 50,
+    "run_id": "a6f6ccb3-96b6-4397-b4c4-8a263abeb4ee",
+    "step_suffix": "z600_20260603T170729Z"
+  },
+  {
+    "stamp": "20260603T170732Z",
+    "status": "complete",
+    "remaining": 0,
+    "run_id": null,
+    "step_suffix": "z600_20260603T170732Z"
+  }
+]
