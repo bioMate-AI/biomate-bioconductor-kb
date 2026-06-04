@@ -95,9 +95,33 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
 
 
 def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-    """Drop exported bash completion functions (BASH_FUNC_*) that break Batch/Nextflow shells."""
+    """Drop exported bash completion functions (BASH_FUNC_*) that break Batch/Nextflow shells,
+    and assert the Nextflow framework pin is present.
+
+    Returns an env dict with NXF_VER already populated. Subprocess launchers
+    must use this rather than building env from os.environ directly, or the
+    pin will silently drift (see docs/20260601_NEXTFLOW_VERSION_DRIFT.md).
+
+    History: this pin has been stripped by parallel-session syncs 4+ times.
+    The previous "fix it at the launch site" approach kept getting reverted
+    because the launch-site line is easy for a sweep to mistake as
+    redundant. Living here, every launcher already calls this function for
+    BASH_FUNC sanitization — the pin rides along and is harder to strip
+    without breaking that path.
+    """
     raw = dict(base if base is not None else os.environ)
-    return {k: v for k, v in raw.items() if not k.startswith("BASH_FUNC")}
+    clean = {k: v for k, v in raw.items() if not k.startswith("BASH_FUNC")}
+    # Defence-in-depth: ensure the Nextflow framework version pin is set in
+    # every subprocess env. Without this, the Nextflow launcher script
+    # downloads whatever framework jar is current on JFrog at first invocation
+    # (drifted from 25.10.5 to 26.04.2 between 2026-05-25 and 2026-06-01).
+    if "NXF_VER" not in clean:
+        clean["NXF_VER"] = "25.10.5"
+        log.warning(
+            "[Nextflow] NXF_VER missing from subprocess env — applying pin 25.10.5. "
+            "If you intentionally want a different version, set NXF_VER explicitly."
+        )
+    return clean
 
 
 # QC handler registry: invocation_id → NextflowQCGateHandler
