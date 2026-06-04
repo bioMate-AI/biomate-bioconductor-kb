@@ -1569,9 +1569,16 @@ def _generate_executor_config(
         lines.append("}")
         # Per-label GPU queue routing: processes labeled 'process_gpu' go to the GPU queue.
         # Avoids a single monolithic queue for all workflows.
+        # IMPORTANT — a sensible default is required. Without it, every GPU-labelled
+        # process (cpa_synergy_gpu, gears_perturbation_gpu, transcriptformer_gpu, etc.)
+        # inherits the CPU queue 'biomate-nextflow-queue', sits in RUNNABLE forever
+        # because the CPU CE has no GPU instance types, and (per AWS Batch FIFO) blocks
+        # CPU jobs queued behind it from getting scheduled. Observed 2026-06-04 with
+        # 12 stuck jobs (10 GPU, 2 CPU) backing up the queue for hours.
         gpu_queue = (
             compute.get("gpu_batch_queue")
             or os.environ.get("GPU_BATCH_QUEUE", "")
+            or "biomate-gpu-spot-queue"
         )
         if gpu_queue:
             lines += [
