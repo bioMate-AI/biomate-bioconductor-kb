@@ -86,8 +86,33 @@ export async function applyPendingMigrations(): Promise<{ applied: string[]; ski
         ]);
         await client.query("COMMIT");
         newlyApplied.push(filename);
-      } catch (err) {
+      } catch (err: any) {
         await client.query("ROLLBACK").catch(() => {});
+        // "Already-applied but untracked" recovery: when a migration fails
+        // with PG codes 42P07 (relation already exists), 42710 (duplicate
+        // object), or 42P06 (duplicate schema), the underlying schema
+        // change is already present — most commonly because the migration
+        // was applied via a side-channel (sync_to_dev's psql loop) before
+        // the _migrations tracking table existed. Record it as applied so
+        // subsequent boots don't keep re-running and failing on it.
+        const code = err?.code;
+        const ALREADY_APPLIED_CODES = new Set(["42P07", "42710", "42P06"]);
+        if (ALREADY_APPLIED_CODES.has(code)) {
+          console.warn(
+            `[migrate] ${filename} already applied out-of-band (PG ${code}: ${err?.message?.slice(0, 100)}). Recording as applied.`
+          );
+          try {
+            await client.query(
+              "INSERT INTO _migrations (filename, sha256) VALUES ($1, $2) ON CONFLICT (filename) DO NOTHING",
+              [filename, sha],
+            );
+            skipped.push(filename);
+            continue;
+          } catch (recordErr) {
+            console.error(`[migrate] failed to record ${filename} as already-applied:`, recordErr);
+            // Fall through to fatal abort if even the tracking insert fails.
+          }
+        }
         console.error(`[migrate] FATAL: ${filename} failed:`, err);
         throw err;
       }
