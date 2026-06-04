@@ -262,7 +262,7 @@ deploy_backend_python() {
     INSTALLED_NF_VER="$(nf_detect)" || true
     INSTALLED_NF_VER="${INSTALLED_NF_VER:-}"
     if [[ -z "$INSTALLED_NF_VER" || "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
-      echo "[galaxy] Nextflow version mismatch (installed='$INSTALLED_NF_VER', want=$EXPECTED_NF_VER) — reinstalling pinned version"
+      echo "[galaxy] Nextflow version mismatch (installed=[$INSTALLED_NF_VER], want=$EXPECTED_NF_VER) — reinstalling pinned version"
       docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv /tmp/nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
       # Verify install actually took
       docker exec biomate-galaxy-dev bash -c "cd /tmp && NXF_HOME=/tmp/.nextflow /usr/local/bin/nextflow -v 2>/dev/null" | head -1
