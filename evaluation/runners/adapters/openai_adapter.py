@@ -38,9 +38,13 @@ class OpenAIAdapter:
         }
         # o-series and gpt-5 family use max_completion_tokens (not max_tokens);
         # both reject temperature. Reasoning tokens eat the budget before any
-        # visible output, so allocate generously for these models.
+        # visible output. Setting reasoning_effort="minimal" prevents the
+        # empty-output trap we hit on the v6 eval (90/100 outputs were blank
+        # at max_completion_tokens=2400 because the model spent the whole
+        # budget on reasoning). "minimal" gives short reasoning + actual prose.
         if self.model.startswith("o") or self.model.startswith("gpt-5"):
             kwargs["max_completion_tokens"] = max(max_new_tokens * 6, 2400)
+            kwargs["reasoning_effort"] = "minimal"
         else:
             kwargs["max_tokens"] = max_new_tokens
             kwargs["temperature"] = 0.3
