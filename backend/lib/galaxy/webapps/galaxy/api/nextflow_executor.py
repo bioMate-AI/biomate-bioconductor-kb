@@ -2504,16 +2504,20 @@ def _write_timing(run_id: str, updates: dict) -> None:
 
 
 def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
-    """Stream stdout+stderr to a log file and update run status when done."""
+    """Wait for the Nextflow subprocess and post-process its on-disk log.
+
+    DO NOT REVERT to `for line in process.stdout` — that pattern requires
+    `stdout=subprocess.PIPE` on the Popen, which causes the Nextflow JVM to
+    block on a full pipe buffer when the gunicorn worker recycles, killing
+    the run ~60s after Phase A submit. The subprocess now writes directly to
+    `log_path` via an inherited fd (see Popen sites at ~3125 and ~3659).
+    See docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
+    """
     _completed_at_now: float = 0.0
     final_status: str = "interrupted"
     returncode: int = -1
     run_meta: Dict[str, Any] = {}
     try:
-        with open(log_path, "w") as fh:
-            for line in process.stdout:            # type: ignore[union-attr]
-                fh.write(line)
-                fh.flush()
         process.wait()
         returncode = process.returncode
         _completed_at_now = time.time()
@@ -3122,15 +3126,21 @@ def _accession_chain_thread(
     chain_work_dir = work_base / run_id / "work"
     chain_work_dir.mkdir(parents=True, exist_ok=True)
     try:
+        # FD-decouple: child writes stdout/stderr directly to log_path. DO NOT
+        # REVERT to stdout=subprocess.PIPE — see _stream_logs for rationale and
+        # docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        _log_fh = open(log_path, "wb", buffering=0)
         process = subprocess.Popen(
             substituted_cmd,
-            stdout=subprocess.PIPE,
+            stdout=_log_fh,
             stderr=subprocess.STDOUT,
-            text=True,
             cwd=str(chain_work_dir),
             env=env,
             start_new_session=True,
+            close_fds=True,
         )
+        _log_fh.close()  # child holds its own fd; parent doesn't need it
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["process"] = process
@@ -3656,15 +3666,23 @@ def execute_nextflow(
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
     try:
+        # FD-decouple: child writes stdout/stderr directly to log_path. DO NOT
+        # REVERT to stdout=subprocess.PIPE — that pattern blocks the Nextflow
+        # JVM on a full pipe buffer when the gunicorn worker recycles, killing
+        # the run ~60s after Phase A submits. See _stream_logs and
+        # docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        _log_fh = open(log_path, "wb", buffering=0)
         process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
+            stdout=_log_fh,
             stderr=subprocess.STDOUT,
-            text=True,
             cwd=str(work_dir),
             env=env,
             start_new_session=True,
+            close_fds=True,
         )
+        _log_fh.close()  # child holds its own fd; parent doesn't need it
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
