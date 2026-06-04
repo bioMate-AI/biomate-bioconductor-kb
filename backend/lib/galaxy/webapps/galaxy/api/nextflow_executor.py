@@ -322,9 +322,15 @@ _NF_LOG_FAILURE_MARKERS = (
 )
 
 _NF_LOG_EXCEPTION_RE = re.compile(
+    # DO NOT REVERT: WARN is intentionally excluded. Nextflow emits many
+    # benign WARNs (e.g. "no process matching config selector: CRYODRGN_TRAIN"
+    # for absent optional processes, "Unrecognized config option
+    # 'process.environment.BIOMATE_USER_ID'"). Matching WARN here marks every
+    # tier 0 run as failed even when Phase A is healthily submitting to Batch.
+    # See docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
     r'(?:'
     r'Caused by:\s*\w'
-    r'|(?:^|\s)(?:ERROR|WARN)\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
+    r'|(?:^|\s)ERROR\s+(?:nextflow|groovy|org\.codehaus\.groovy)'
     r'|nextflow\.exception\.\w+'
     r'|org\.codehaus\.groovy'
     r'|groovy\.lang\.\w+Exception'
