@@ -341,7 +341,7 @@ docker compose -f docker-compose.deploy.yml pull
 # boot in the container's writable layer.
 docker compose -f docker-compose.deploy.yml down --remove-orphans --volumes 2>/dev/null || true
 echo \"Bringing services up (forced fresh) …\"
-docker compose -f docker-compose.deploy.yml up -d --wait --wait-timeout 240 --force-recreate
+docker compose -f docker-compose.deploy.yml up -d --wait --wait-timeout 900 --force-recreate
 docker compose -f docker-compose.deploy.yml ps
 " upwait; then
   log "compose up failed — attempting rollback"
