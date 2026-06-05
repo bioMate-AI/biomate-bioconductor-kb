@@ -1,0 +1,693 @@
+{
+  "run_id": "bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+  "invocation_id": "bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172",
+  "work_dir": "/tmp/nextflow_runs/bee7b6fd-dd9b-448d-bd36-83d30d17782e/work",
+  "log_tail": [
+    "Jun-05 04:05:38.029 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "Jun-05 04:05:38.910 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "Jun-05 04:05:38.953 [main] DEBUG nextflow.Session - Session await > all processes finished",
+    "Jun-05 04:05:39.114 [PublishDir-2] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "Jun-05 04:05:47.613 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+    "Jun-05 04:05:47.618 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+    "Jun-05 04:05:47.620 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
+    "Jun-05 04:05:47.622 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
+    "Jun-05 04:05:47.647 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=12m 12s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]",
+    "Jun-05 04:05:48.253 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-13080184245497880603.dot to=s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/dag.dot",
+    "Jun-05 04:05:48.497 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "Jun-05 04:05:48.497 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+    "Jun-05 04:05:50.113 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+    "Jun-05 04:05:50.402 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+    "Jun-05 04:05:50.418 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+    "Jun-05 04:05:50.451 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.4'",
+    "Jun-05 04:05:50.451 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+    "Jun-05 04:05:50.455 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
+    "Jun-05 04:05:50.455 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
+    "Jun-05 04:05:50.455 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye",
+    "--- error context ---",
+    "WARN: There's no process matching config selector: PRODUCTION_MD",
+    "WARN: There's no process matching config selector: PRODUCTION_MD",
+    "WARN: There's no process matching config selector: PRODUCTION_MD",
+    "WARN: There's no process matching config selector: PRODUCTION_MD",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "Jun-05 04:01:36.106 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
+    "Jun-05 04:01:45.240 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/zinc-pharm-20260605/bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+    "Jun-05 04:01:48.010 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD",
+    "Jun-05 04:05:48.497 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_autodock_vina_output.txt",
+      "filename": "docking_autodock_vina_output.txt",
+      "size": 14308
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_autodock_vina_results.json",
+      "filename": "docking_autodock_vina_results.json",
+      "size": 46073
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_000.pdbqt",
+      "filename": "pose_000.pdbqt",
+      "size": 18963
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_001.pdbqt",
+      "filename": "pose_001.pdbqt",
+      "size": 17910
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_002.pdbqt",
+      "filename": "pose_002.pdbqt",
+      "size": 14643
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_003.pdbqt",
+      "filename": "pose_003.pdbqt",
+      "size": 12186
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_004.pdbqt",
+      "filename": "pose_004.pdbqt",
+      "size": 18576
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_005.pdbqt",
+      "filename": "pose_005.pdbqt",
+      "size": 16848
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_006.pdbqt",
+      "filename": "pose_006.pdbqt",
+      "size": 16371
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_007.pdbqt",
+      "filename": "pose_007.pdbqt",
+      "size": 14301
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_008.pdbqt",
+      "filename": "pose_008.pdbqt",
+      "size": 13824
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_009.pdbqt",
+      "filename": "pose_009.pdbqt",
+      "size": 13014
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_010.pdbqt",
+      "filename": "pose_010.pdbqt",
+      "size": 15354
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_011.pdbqt",
+      "filename": "pose_011.pdbqt",
+      "size": 12177
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_012.pdbqt",
+      "filename": "pose_012.pdbqt",
+      "size": 15381
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_013.pdbqt",
+      "filename": "pose_013.pdbqt",
+      "size": 14598
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_014.pdbqt",
+      "filename": "pose_014.pdbqt",
+      "size": 14967
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_015.pdbqt",
+      "filename": "pose_015.pdbqt",
+      "size": 13581
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_016.pdbqt",
+      "filename": "pose_016.pdbqt",
+      "size": 12735
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_017.pdbqt",
+      "filename": "pose_017.pdbqt",
+      "size": 16362
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_018.pdbqt",
+      "filename": "pose_018.pdbqt",
+      "size": 16542
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_019.pdbqt",
+      "filename": "pose_019.pdbqt",
+      "size": 16146
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_020.pdbqt",
+      "filename": "pose_020.pdbqt",
+      "size": 16155
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_021.pdbqt",
+      "filename": "pose_021.pdbqt",
+      "size": 15390
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_022.pdbqt",
+      "filename": "pose_022.pdbqt",
+      "size": 13192
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_023.pdbqt",
+      "filename": "pose_023.pdbqt",
+      "size": 14553
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_024.pdbqt",
+      "filename": "pose_024.pdbqt",
+      "size": 12996
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_025.pdbqt",
+      "filename": "pose_025.pdbqt",
+      "size": 13041
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_026.pdbqt",
+      "filename": "pose_026.pdbqt",
+      "size": 13725
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_027.pdbqt",
+      "filename": "pose_027.pdbqt",
+      "size": 12753
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_028.pdbqt",
+      "filename": "pose_028.pdbqt",
+      "size": 15300
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_029.pdbqt",
+      "filename": "pose_029.pdbqt",
+      "size": 10863
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_030.pdbqt",
+      "filename": "pose_030.pdbqt",
+      "size": 16731
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_031.pdbqt",
+      "filename": "pose_031.pdbqt",
+      "size": 15606
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_032.pdbqt",
+      "filename": "pose_032.pdbqt",
+      "size": 14634
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_033.pdbqt",
+      "filename": "pose_033.pdbqt",
+      "size": 14292
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_034.pdbqt",
+      "filename": "pose_034.pdbqt",
+      "size": 13554
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_035.pdbqt",
+      "filename": "pose_035.pdbqt",
+      "size": 16677
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_036.pdbqt",
+      "filename": "pose_036.pdbqt",
+      "size": 14328
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_037.pdbqt",
+      "filename": "pose_037.pdbqt",
+      "size": 13887
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_038.pdbqt",
+      "filename": "pose_038.pdbqt",
+      "size": 16650
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_039.pdbqt",
+      "filename": "pose_039.pdbqt",
+      "size": 11682
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_040.pdbqt",
+      "filename": "pose_040.pdbqt",
+      "size": 16641
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_041.pdbqt",
+      "filename": "pose_041.pdbqt",
+      "size": 18342
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_042.pdbqt",
+      "filename": "pose_042.pdbqt",
+      "size": 16569
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_043.pdbqt",
+      "filename": "pose_043.pdbqt",
+      "size": 14832
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_044.pdbqt",
+      "filename": "pose_044.pdbqt",
+      "size": 16695
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_045.pdbqt",
+      "filename": "pose_045.pdbqt",
+      "size": 16137
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_046.pdbqt",
+      "filename": "pose_046.pdbqt",
+      "size": 14022
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_047.pdbqt",
+      "filename": "pose_047.pdbqt",
+      "size": 14013
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_048.pdbqt",
+      "filename": "pose_048.pdbqt",
+      "size": 15174
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_049.pdbqt",
+      "filename": "pose_049.pdbqt",
+      "size": 13500
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_050.pdbqt",
+      "filename": "pose_050.pdbqt",
+      "size": 17253
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_051.pdbqt",
+      "filename": "pose_051.pdbqt",
+      "size": 15291
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_052.pdbqt",
+      "filename": "pose_052.pdbqt",
+      "size": 12222
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_053.pdbqt",
+      "filename": "pose_053.pdbqt",
+      "size": 13221
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_054.pdbqt",
+      "filename": "pose_054.pdbqt",
+      "size": 12249
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_055.pdbqt",
+      "filename": "pose_055.pdbqt",
+      "size": 16146
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_056.pdbqt",
+      "filename": "pose_056.pdbqt",
+      "size": 12492
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_057.pdbqt",
+      "filename": "pose_057.pdbqt",
+      "size": 17235
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_058.pdbqt",
+      "filename": "pose_058.pdbqt",
+      "size": 12645
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_059.pdbqt",
+      "filename": "pose_059.pdbqt",
+      "size": 14787
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_060.pdbqt",
+      "filename": "pose_060.pdbqt",
+      "size": 16578
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_061.pdbqt",
+      "filename": "pose_061.pdbqt",
+      "size": 14886
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_062.pdbqt",
+      "filename": "pose_062.pdbqt",
+      "size": 14814
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_063.pdbqt",
+      "filename": "pose_063.pdbqt",
+      "size": 14526
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_064.pdbqt",
+      "filename": "pose_064.pdbqt",
+      "size": 13005
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_065.pdbqt",
+      "filename": "pose_065.pdbqt",
+      "size": 19665
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_066.pdbqt",
+      "filename": "pose_066.pdbqt",
+      "size": 13824
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_067.pdbqt",
+      "filename": "pose_067.pdbqt",
+      "size": 11700
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_068.pdbqt",
+      "filename": "pose_068.pdbqt",
+      "size": 14382
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_069.pdbqt",
+      "filename": "pose_069.pdbqt",
+      "size": 13212
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_070.pdbqt",
+      "filename": "pose_070.pdbqt",
+      "size": 12519
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_071.pdbqt",
+      "filename": "pose_071.pdbqt",
+      "size": 16380
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_072.pdbqt",
+      "filename": "pose_072.pdbqt",
+      "size": 15903
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_073.pdbqt",
+      "filename": "pose_073.pdbqt",
+      "size": 16686
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_074.pdbqt",
+      "filename": "pose_074.pdbqt",
+      "size": 15948
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_075.pdbqt",
+      "filename": "pose_075.pdbqt",
+      "size": 15966
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_076.pdbqt",
+      "filename": "pose_076.pdbqt",
+      "size": 15399
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_077.pdbqt",
+      "filename": "pose_077.pdbqt",
+      "size": 14760
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_078.pdbqt",
+      "filename": "pose_078.pdbqt",
+      "size": 13770
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_079.pdbqt",
+      "filename": "pose_079.pdbqt",
+      "size": 11898
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_080.pdbqt",
+      "filename": "pose_080.pdbqt",
+      "size": 14562
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_081.pdbqt",
+      "filename": "pose_081.pdbqt",
+      "size": 14598
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_082.pdbqt",
+      "filename": "pose_082.pdbqt",
+      "size": 14940
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_083.pdbqt",
+      "filename": "pose_083.pdbqt",
+      "size": 17721
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_084.pdbqt",
+      "filename": "pose_084.pdbqt",
+      "size": 18522
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_085.pdbqt",
+      "filename": "pose_085.pdbqt",
+      "size": 16506
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_086.pdbqt",
+      "filename": "pose_086.pdbqt",
+      "size": 11889
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_087.pdbqt",
+      "filename": "pose_087.pdbqt",
+      "size": 17460
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_088.pdbqt",
+      "filename": "pose_088.pdbqt",
+      "size": 13770
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_089.pdbqt",
+      "filename": "pose_089.pdbqt",
+      "size": 16560
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_090.pdbqt",
+      "filename": "pose_090.pdbqt",
+      "size": 14040
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/dag.dot",
+      "filename": "dag.dot",
+      "size": 782
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2956347
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 251976
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/versions.yml",
+      "filename": "versions.yml",
+      "size": 165
+    }
+  ],
+  "completedSteps": 1,
+  "totalSteps": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "docking_autodock_vina_output.txt",
+      "name": "docking_autodock_vina_output.txt",
+      "process": "docking_autodock_vina_output.txt",
+      "step_dir": "docking_autodock_vina_output.txt",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_autodock_vina_output.txt"
+      ]
+    },
+    {
+      "id": "docking_autodock_vina_results.json",
+      "name": "docking_autodock_vina_results.json",
+      "process": "docking_autodock_vina_results.json",
+      "step_dir": "docking_autodock_vina_results.json",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_autodock_vina_results.json"
+      ]
+    },
+    {
+      "id": "docking_poses",
+      "name": "docking_poses",
+      "process": "docking_poses",
+      "step_dir": "docking_poses",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_000.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_001.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_002.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_003.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_004.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_005.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_006.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_007.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_008.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_009.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_010.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_011.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_012.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_013.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_014.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_015.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_016.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_017.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_018.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_019.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_020.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_021.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_022.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_023.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_024.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_025.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_026.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_027.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_028.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_029.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_030.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_031.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_032.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_033.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_034.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_035.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_036.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_037.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_038.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_039.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_040.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_041.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_042.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_043.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_044.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_045.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_046.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_047.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_048.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_049.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_050.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_051.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_052.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_053.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_054.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_055.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_056.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_057.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_058.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_059.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_060.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_061.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_062.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_063.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_064.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_065.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_066.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_067.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_068.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_069.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_070.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_071.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_072.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_073.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_074.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_075.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_076.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_077.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_078.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_079.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_080.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_081.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_082.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_083.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_084.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_085.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_086.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_087.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_088.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_089.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/docking_poses/pose_090.pdbqt"
+      ]
+    },
+    {
+      "id": "pipeline_info",
+      "name": "pipeline_info",
+      "process": "pipeline_info",
+      "step_dir": "pipeline_info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/dag.dot",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/pipeline_info/timeline.html"
+      ]
+    },
+    {
+      "id": "versions.yml",
+      "name": "versions.yml",
+      "process": "versions.yml",
+      "step_dir": "versions.yml",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172/versions.yml"
+      ]
+    }
+  ],
+  "started_at": 1780632092.6627815,
+  "completed_at": 1780632351.9065154,
+  "duration_s": 259
+}
