@@ -76,7 +76,8 @@
 
 | Task | Priority | Notes |
 |------|----------|-------|
-| Inhibitor manuscript → **600** compounds | **Done** | v1.2 |
+| Inhibitor manuscript → publication HTS tier | **Draft** | v1.3 — finalize after 5k Vina completes |
+| Inhibitor manuscript → **600** blog pilot | **Done** | v1.2 → supplementary in v1.3 |
 | Plan A manuscript → **48.81%** Chile 17-allele | **Done** | v1.1 |
 | `COMPUTE_PARALLEL_STATUS.md` sync | **Done** | 2026-06-04 |
 | PR to `main` | P2 | When science gates satisfied |
