@@ -347,10 +347,37 @@ test.describe("HT-1 HTS Plate QC Hit Calling — full journey", () => {
       assertions.push({ name: "Parameters panel visible", passed: paramVisible });
       screenshots.push(await shot(page, "HT1_04_params_panel"));
 
-      // QC settings section — gate-only domain shows 2 gates (Z'-factor, signal window)
-      const qcSection = page.locator('[data-testid="qc-settings-section"]').first();
-      const qcVisible = await qcSection.isVisible({ timeout: 8_000 }).catch(() => false);
-      assertions.push({ name: "QC settings section visible", passed: qcVisible });
+      // QC UI — gate-only domain shows 2 gates (Z'-factor, signal window).
+      //
+      // History: this assertion originally looked for [data-testid="qc-settings-section"]
+      // (commit 736943ca1, 2026-05-27). That testid lives in <ExecutionControlPanel>,
+      // the "unified execution panel" introduced in commit 99946bd86 but gated behind
+      // useUnifiedExecution={true} on <WorkflowArtifact> (workflow-artifact.tsx:160).
+      // No call site in frontend/client/src/ ever sets that prop to true, so the
+      // panel never renders and esbuild tree-shakes it from the bundle. As long as
+      // the unified panel stays gated off, that selector cannot match — regardless
+      // of what testids we add to the source.
+      //
+      // The QC UI that actually renders in production today lives inside the phase
+      // cards in nextflow-workflow-viewer.tsx (className="qc-block" / testid
+      // qc-edit-toggle-${group.key}) and shows up once the run starts. Until either
+      // (a) the unified panel is enabled by a caller passing useUnifiedExecution={true},
+      // or (b) the test is rewritten to drive the run further before this assertion,
+      // we accept either UI shape as evidence the QC layer is wired up.
+      const qcUnifiedSection = page.locator('[data-testid="qc-settings-section"]').first();
+      const qcPhaseBlock = page.locator('.qc-block, [data-testid^="qc-edit-toggle-"], [data-testid="qc-report-panel"], [data-testid="qc-gate-inline"]').first();
+      const qcUnifiedVisible = await qcUnifiedSection.isVisible({ timeout: 4_000 }).catch(() => false);
+      const qcPhaseVisible = qcUnifiedVisible ? false : await qcPhaseBlock.isVisible({ timeout: 4_000 }).catch(() => false);
+      const qcVisible = qcUnifiedVisible || qcPhaseVisible;
+      assertions.push({
+        name: "QC settings section visible",
+        passed: qcVisible,
+        note: qcUnifiedVisible
+          ? "unified-panel"
+          : qcPhaseVisible
+            ? "phase-qc-block (production render path)"
+            : "neither unified panel nor phase QC block rendered — useUnifiedExecution=false AND no QC block in DOM yet",
+      });
       if (qcVisible) {
         screenshots.push(await shot(page, "HT1_05_qc_settings"));
       }
