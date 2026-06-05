@@ -54,8 +54,24 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   const { messages } = opts;
   if (messages.length === 0) return '';
 
+  const reportTruncation = (response: any) => {
+    // Surface finishReason + usage when the response was cut short. Without
+    // this, truncated JSON looks identical to "model returned short answer"
+    // and silently breaks downstream parsers (see findings parser bug).
+    const finishReason = response?.candidates?.[0]?.finishReason;
+    const usage = response?.usageMetadata;
+    if (finishReason && finishReason !== 'STOP') {
+      console.warn(
+        `[gemini-flash] finishReason=${finishReason} ` +
+          `usage=${JSON.stringify(usage)} ` +
+          `maxOutputTokens=${generationConfig.maxOutputTokens}`,
+      );
+    }
+  };
+
   if (messages.length === 1) {
     const result = await model.generateContent(messages[0].content);
+    reportTruncation(result.response);
     return result.response.text();
   }
 
@@ -67,6 +83,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   const lastMessage = messages[messages.length - 1].content;
   const chat = model.startChat({ history });
   const result = await chat.sendMessage(lastMessage);
+  reportTruncation(result.response);
   return result.response.text();
 }
 
