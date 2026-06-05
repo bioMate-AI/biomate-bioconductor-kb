@@ -239,6 +239,6 @@ PyYAML>=6.0  # For LLM provider configuration
 # resolver doesn't try the missing version. Update both pins together
 # when pdfplumber widens its constraint.
 pdfminer.six==20251107
-pdfplumber>=0.11.9     # A1: extract text from uploaded GLP/NDA PDFs
+pdfplumber==0.11.8     # A1: extract text from uploaded GLP/NDA PDFs (0.11.9 needs pdfminer 20251230 which isn't on PyPI)
 pyotp>=2.9.0           # S2: RFC 6238 TOTP verification for 21 CFR Part 11 e-signature
 qrcode[pil]>=8.2       # S2: QR generation for MFA enrollment

@@ -295,8 +295,8 @@ channel_blocks = {
 results = {
     'status': 'completed',
     'drug_name': drug_name,
-    'model': 'Simplified O\'Hara-Rudy (ORd) — CiPA Tier 2',
-    'regulatory_basis': 'ICH S7B (2021) + CiPA initiative; O\'Hara et al. 2011 PLoS Comput Biol',
+    'model': "Simplified O'Hara-Rudy (ORd) - CiPA Tier 2",
+    'regulatory_basis': "ICH S7B (2021) + CiPA initiative; O'Hara et al. 2011 PLoS Comput Biol",
     'simulation_conditions': {
         'cmax_total_nM':   cmax_nM,
         'fu_plasma':       fu_plasma,
@@ -325,7 +325,7 @@ results = {
         'LOW':          'Low cardiac risk based on in silico assessment; standard TQT study still required',
     }[tdp_risk],
     'references': [
-        'O\'Hara et al. 2011 PLoS Comput Biol 7(5):e1002061',
+        "O'Hara et al. 2011 PLoS Comput Biol 7(5):e1002061",
         'Dutta et al. 2017 Front Physiol 8:616 (CiPA qNET validation)',
         'ICH S7B (2021) + E14/S7B Q&A implementation guidance',
         'Lancaster & Sobie 2016 J Pharmacol Exp Ther 358(3)',
@@ -346,7 +346,7 @@ with open('ap_trace.csv', 'w', newline='') as f:
 lines = [
     f'╔══════════════════════════════════════════════════════════╗',
     f'  CiPA Tier 2 Cardiac Safety Report — {drug_name}',
-    f'  Model: Simplified O\'Hara-Rudy (ORd) | ICH S7B / CiPA',
+    "  Model: Simplified O'Hara-Rudy (ORd) | ICH S7B / CiPA",
     f'╚══════════════════════════════════════════════════════════╝',
     '',
     f'Drug concentration: {cmax_nM} nM total | {cmax_free_nM:.1f} nM free (fu={fu_plasma})',
