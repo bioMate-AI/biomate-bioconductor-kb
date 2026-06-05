@@ -1,0 +1,42 @@
+{
+  "created_at": "2026-06-05T06:24:31.181211Z",
+  "tier": "publication_hts",
+  "tranche_urls": [
+    "https://files.docking.org/2D/AB/ABAA.smi",
+    "https://files.docking.org/2D/AB/ABAB.smi",
+    "https://files.docking.org/2D/AB/ABAC.smi",
+    "https://files.docking.org/2D/BB/BBAA.smi",
+    "https://files.docking.org/2D/BC/BCAC.smi"
+  ],
+  "tranche_line_counts": {
+    "ABAA": 16717,
+    "ABAB": 16493,
+    "ABAC": 2217,
+    "BBAA": 5083,
+    "BCAC": 1625
+  },
+  "raw_union_unique": 42128,
+  "druglike_count": 28722,
+  "pharmacophore_pass_count": 12215,
+  "dock_set_count": 5006,
+  "min_features": 3,
+  "max_dock_cap": 5000,
+  "controls_injected": [
+    "INH-01",
+    "Z600-R1",
+    "ribavirin",
+    "favipiravir",
+    "umifenovir",
+    "oseltamivir"
+  ],
+  "selection_method": "multi_tranche_union_druglike_pharmacophore_stratified_cap",
+  "target_informed": true,
+  "blog_tier_comparison": "zinc600_screen/ (600 AAAC \u2014 not this deck)",
+  "files": {
+    "raw_union": "research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/raw_union.tsv",
+    "druglike": "research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/druglike.tsv",
+    "pharmacophore_pass": "research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/pharmacophore_pass.tsv",
+    "dock_set_tsv": "research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/dock_set.tsv",
+    "dock_set_smi": "research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/dock_set.smi"
+  }
+}

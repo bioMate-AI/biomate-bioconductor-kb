@@ -1,109 +1,209 @@
-# Context explosion is the first wall agentic AI hits in pharma. Here's how we get past it.
+# Six hundred compounds is a blog, not a paper: the professional path from ZINC slice to target-informed HTS
 
-*AstraZeneca's Molecular AI team — Jiazhen He, Helen Lai, Lakshidaa Saigiridharan, Gian Marco Ghiandoni, K. Jenei, Umur Gokalp, Ajsa Nukovic, Ola Engkvist, Jon Paul Janet, and Samuel Genheden — just published ["Democratising real-world drug discovery through agentic AI"](https://doi.org/10.1016/j.drudis.2026.104605) in *Drug Discovery Today* (doi: 10.1016/j.drudis.2026.104605), describing their **ChatInvent** system. The most useful part of the paper isn't the demo — it's that they publicly named the five engineering problems agentic AI hits when it enters real pharma R&D. Over the next five posts I'll walk through each one and show what we've built at BioMate to address it.*
-
-*Starting with the one that breaks every prototype first: **context explosion**.*
+*Agentic Biology — how we turned an ANDV virtual screen into an auditable workflow story, why the first 600 compounds stay in the blog tier, and what publication-scale library design actually looks like.*
 
 ---
 
-## What the problem actually is
+A platform demo and a medicinal chemistry claim are not the same artifact. We learned that on the **Andes virus (ANDV) glycoprotein** inhibitor track (PDB **9P3I**): you can dock **600** purchasable compounds on **AWS Batch**, archive every `run_id`, and still not have a defensible **hit discovery** story—unless you are precise about *what those 600 were* and *what they were for*.
 
-You build a clean LLM agent for drug discovery. It works on the demo: one query, one tool call, one result.
-
-Then you try a real program. The user asks for a workflow that touches RNA-seq, then PBPK, then ADMET. The agent has to know:
-
-- Which of 2,455 workflows could match
-- What the user said three turns ago
-- What parameters were already fixed earlier in the session
-- What QC gates are configured
-- What corrections the user made on previous runs
-
-And the prompt now has to carry all of it.
-
-The result is what AstraZeneca calls **context explosion**: the prompt balloons past the useful window, the model loses the thread, and the agent starts behaving worse on turn 4 than it did on turn 1. By turn 8 it's hallucinating tools.
-
-The fix is not "buy a longer context window." Long-context models get *slower and dumber* fast as the prompt grows. The fix is architecture.
+This post is that precision. It walks the **complete professional path** we implemented after the initial screen: provenance, identity recovery, pharmacophore filtering, docking, ensemble sensitivity, and honest negatives. It also draws a bright line: **600 = blog / methods tier**; **2,000–5,000 target-informed compounds = publication tier**.
 
 ---
 
-## What we built
+## What the 600 actually were (not ad hoc, not ground truth)
 
-Four layers, all designed to keep the active context small and the right information retrievable on demand.
+The 600 are the **first 600 SMILES** from one ZINC20 2D tranche file:
 
-> 📊 **Figure 1 — BioMate's context-management stack.** Source: `figures/post_12_context_stack.drawio.xml`. Open in [diagrams.net](https://app.diagrams.net), export PNG at 1200×800.
+`https://files.docking.org/2D/AA/AAAC.smi` (~1,013 lines total)
 
-### 1. Domain-gated rule injection, not flat rule lists
+| Myth | Fact |
+|------|------|
+| “Hand-picked leads” | **No** — deterministic file order |
+| “ANDV-informed library” | **No** — no pocket pharmacophore before the first dock |
+| “Representative ZINC20 sample” | **No** — one **AA** cell (small MW, polar) |
+| “Why 600?” | Campaign **≥500** methods gate + Vina batch economics (~50 compounds/job) |
 
-The naive approach is to dump all your routing rules into the system prompt. With 2,455 workflows that's a 50K-token prompt before the user has said anything.
+Physicochemical profile of the deck (RDKit on all 600):
 
-Instead, we **classify the user's intent first** (Haiku, ~150 tokens) and inject only the 3–4 rules relevant to their domain. A user asking about RNA-seq sees the transcriptomics rules. A user asking about ADMET sees the drug-discovery rules. They never see each other's.
+| Property | Median |
+|----------|--------|
+| MW | 163 Da |
+| logP | −1.57 |
+| TPSA | 85 Å² |
 
-### 2. Hybrid retrieval over the workflow registry
+That chemistry explains the top Vina hits: **small, polar, guanidine-/nucleobase-like** scaffolds—not a surprise, not a validated lead series.
 
-The agent doesn't "remember" the 2,455-workflow catalog. It retrieves at query time using a hybrid stack:
-
-- **BGE dense embeddings** (`bge-small-en-v1.5`) for semantic match
-- **PostgreSQL FTS** for keyword match
-- **Named-anchor extraction** for compound IDs, gene symbols, PDB IDs
-- **LLM Pass-0 reranking** with citation back to the registry entry
-
-Only the top-K candidates (typically 5) enter the active context. The other 2,450 stay in the database.
-
-### 3. Lazy step fetching
-
-A workflow can have 20+ steps with parameters, descriptions, and provenance. Loading all of that into the prompt for every workflow under consideration is wasteful.
-
-We lazy-fetch: when the user picks a workflow, *then* we pull its step definitions via `/api/nextflow/steps`. The agent only ever holds the steps it actually needs.
-
-### 4. Conversation compaction with episode + correction memory
-
-Long conversations get compacted into structured **episodes** (what was run, what was the outcome, what the user corrected). On the next turn we inject:
-
-- The current task message
-- A small block of the most-recent episode memory
-- A block of any standing user corrections (e.g., "user prefers paired-end reads when ambiguous")
-
-The raw conversation history doesn't ride into every new turn. The *distilled* memory does.
+**Blog-worthy:** reproducible funnel at scale, manifest JSON, purchasable IDs restored.  
+**Paper-worthy as primary HTS:** **no** — reviewers will ask about tranche choice and chemical space.
 
 ---
 
-## What the benchmarks say
+## The professional path (complete workflow)
 
-| Benchmark               | Result                                  |
-|-------------------------|-----------------------------------------|
-| **Routing v5** (120 cases) | 84% exact match, mean score 0.875       |
-| **IR baseline** on `search_ranked` | MRR 0.847, P@1 0.742, NDCG@3 0.920, Hit@5 0.967 |
-| **Disambiguation gate** | Fires only when ≥2 candidates score ≥6.0 *and* the gap is <3.0 — i.e., genuine ambiguity, not false alarms |
-| **Param prefill (115 cases)**  | 61.7% baseline, climbing toward the ≥70% target |
-| **Memory benchmark (20 scenarios)** | 20/20 pass — recall, correction, temporal, synthesis, adversarial |
+We treat “professional” as **chain-of-custody + target-informed filtering + explicit tiering**, not better adjectives.
 
-The single number that matters most: **P@1 of 0.742 on raw search**. The correct workflow is the top result three-quarters of the time before any LLM is even asked to pick. The LLM only has to break ties.
+```mermaid
+flowchart TB
+  subgraph tier_blog["Blog / methods tier"]
+    A[ZINC20 AAAC tranche] --> B[First 600 lines + manifest]
+    B --> C[Rigid Vina 9P3I]
+    C --> D[600/600 merged results]
+  end
 
-This is the difference between an agent that handles 2,455 workflows by *thinking harder* (it can't) and one that handles 2,455 workflows by *retrieving better* (it can).
+  subgraph hygiene["Professional hygiene"]
+    B --> E[zinc600_library.tsv — substance IDs]
+    E --> F[Multi-backend identity lookup]
+    F --> G[Manuscript honest framing]
+  end
+
+  subgraph tier_pro["Target-informed tier"]
+    B --> H[Pharmacophore filter — antiviral refs]
+    H --> I[91 / 600 pass min_features=3]
+    I --> J[Vina 91/91 same pocket box]
+  end
+
+  subgraph tier_pub["Publication tier — designed next"]
+    K[Multi-tranche union ABAA+ABAB+…] --> L[Drug-like RDKit gate]
+    L --> M[Pharmacophore filter]
+    M --> N[Cap 2k–5k dock set]
+    N --> O[Batch Vina + ensemble + pose QC]
+  end
+
+  D --> H
+  J --> P{Same top chemotypes?}
+  P -->|Yes| Q[Honest negative: filter removes noise not space]
+  Q --> K
+```
+
+### Stage 1 — Provenance and IDs (fix the silent failure mode)
+
+Early library copy dropped **ZINC substance IDs** (SMILES-only `.smi`). Professional minimum:
+
+- `zinc600_library.tsv` — `zinc_substance_id` + `smiles`
+- `zinc600_library.manifest.json` — tranche URL, selection method, `target_informed: false`
+- `ZINC600_LIBRARY_PROVENANCE.md` — what we may and may not claim
+
+Example: **INH-01** (`N=C(N)NC(=O)c1nccnc1N`) → substance ID **33753639**, PubChem **3036436**.
+
+### Stage 2 — Full rigid screen (methods proof)
+
+- **600/600** AutoDock Vina on 9P3I (top-pocket box)
+- Best rigid score **−6.527 kcal/mol** (Z600-R1)
+- Compute lead **INH-01** at **−6.267** with GROMACS pose QC (**0.26 nm** ligand RMSD)
+
+Scores rank compounds; **QC + narrative discipline** pick the lead.
+
+### Stage 3 — Pharmacophore filter (first target-informed step)
+
+Reference actives: ribavirin, favipiravir, umifenovir, oseltamivir.  
+RDKit SMARTS consensus, **min_features = 3** (same rule as BioMate `pharmacophore_filtering`).
+
+| Metric | Value |
+|--------|-------|
+| Screened | 600 |
+| Passed | **91** (15.2%) |
+| Vina docked | **91/91** |
+| Top hit | Still **−6.527** (same SMILES as raw #1) |
+| INH-01 | Rank **3/91**, **−6.208** kcal/mol |
+
+**Interpretation:** pharmacophore on a polar tranche **filters noise**; it does **not** open new chemical space. That pushed us to publication-scale design.
+
+### Stage 4 — Ensemble sensitivity (honest physics check)
+
+Six receptor conformers (deposited Guo structures + pocket trim), top-5 ZINC SMILES:
+
+- **4/5** improved vs rigid on deposit conformers — but Δ ≤ **0.14 kcal/mol**
+- **INH-01 unchanged** at −6.267 on 9P3I
+
+Ensemble is a **sensitivity analysis**, not a lead promotion event.
+
+### Stage 5 — Two-agent BioMate workflow (unchanged from Post 10)
+
+```mermaid
+sequenceDiagram
+  participant Chem as Medicinal chemist
+  participant A as Agent A — Planner
+  participant B as Agent B — Coach
+  participant API as BioMate API localhost
+  participant Batch as AWS Batch
+
+  Chem->>A: Screen library X against 9P3I
+  A->>A: Route pocket → pharmacophore → Vina
+  A->>B: Params + manifest handoff
+  B->>Chem: Workflow card + prereqs
+  Chem->>API: POST /api/nextflow/execute
+  API->>Batch: docking_autodock_vina
+  Batch-->>API: docking_autodock_vina_results.json
+  B->>Chem: run_id + S3 paths + tier label
+```
+
+**Agent A** never blurs blog-tier pilots with publication HTS. **Agent B** surfaces manifests, not checkmarks.
 
 ---
 
-## What this means for users
+## Blog vs publication: tiering table
 
-When you bring a multi-step program to BioMate — say, an ADMET screen of a hit series, followed by a PBPK simulation for the top candidate, followed by IND §2.6.1 draft generation — the agent does *not* try to hold all three workflows + your 30 previous turns in the prompt at once.
+| Dimension | Blog (600 AAAC) | Publication (target design) |
+|-----------|-------------------|-----------------------------|
+| **Purpose** | Prove BioMate funnel + provenance | Virtual HTS with defensible library |
+| **Library** | 1 tranche, first N lines | **Multi-tranche union** (~40k raw) |
+| **Pre-filter** | Optional (we added pharm post hoc) | **Pharmacophore + drug-like gate** before dock |
+| **Dock count** | 600 | **2,000–5,000** |
+| **Controls** | Not in deck | Reference actives + INH-01 always included |
+| **Claim** | “Documented methods-scale screen” | “Target-informed purchasable HTS on 9P3I” |
+| **Where it lives** | This post + marketing | Manuscript + supplement |
 
-It holds the active task, the immediate retrieved candidates, the distilled memory, and the standing corrections. Then it routes, executes, and forgets the irrelevant 99% on the way to the next step.
-
----
-
-## The honest limitations
-
-- **Episode compaction is lossy.** A summary of "we ran sarek with these params and got these VCFs" is not the same as the full chat log. We compensate with the prediction registry, so the *facts* are queryable even when the *chat* is gone.
-- **Routing P@1 of 0.742 means 26% of queries don't have the right answer at rank 1.** The disambiguation gate catches the genuinely ambiguous cases; the rest get the wrong workflow ranked first and need user correction. We're working on it.
-- **Long-context models are still useful** for the actual reasoning step — we just don't use them as a substitute for retrieval.
-
----
-
-> 🧪 **Try the orchestration layer.** BioMate is in open trial. Bring a workflow that spans two or three specialties and watch the context-management work end-to-end: [**biomate.ai**](https://biomate.ai)
+Full design survey: `research/anti-virus/docs/PUBLICATION_ZINC_LIBRARY_DESIGN.md`
 
 ---
 
-*Next post: tool hallucination — how we stop the agent from inventing workflows that don't exist.*
+## Publication library design (survey conclusion)
 
-— Yaoyun Wang
-Founder & CEO, BioMate AI
+We surveyed ZINC20 tranche sizes on `files.docking.org`:
+
+| Tranche | ~Lines | Role |
+|---------|-------:|------|
+| AAAC (current) | 1,013 | Blog slice — too narrow |
+| ABAA / ABAB | ~16,700 each | Drug-like band candidates |
+| BBAA | 5,084 | Mid polarity |
+| BCAC | 1,626 | Additive diversity |
+
+**Recommended v1 raw pool:** ABAA + ABAB + ABAC + BBAA + BCAC ≈ **42k** lines (deduped).  
+**Pharmacophore pass (est. 10%):** ≈ **4,200** → dock cap **5,000**.  
+**Batch economics:** 50 SMILES/job → ~100 jobs — same pattern as ZINC600, larger wall clock.
+
+That design **does** make sense for publication. The 600 design **does not**—and we will not pretend otherwise in the manuscript.
+
+---
+
+## What we say publicly
+
+**Say:** “We ran a **600-compound methods pilot** on a documented ZINC20 AAAC subset to validate the BioMate inhibitor funnel; publication HTS uses a **multi-tranche, pharmacophore-filtered** deck.”
+
+**Do not say:** “ZINC20 representative screen,” “ANDV-guided library,” or “computational lead” without pose QC and experimental context.
+
+---
+
+## Try the workflow on your target
+
+The orchestration layer—provenance manifests, pharmacophore filter, Batch Vina, manifest audit—is what BioMate ships:
+
+👉 **https://biomate.ai/try**
+
+---
+
+## Series context
+
+- **Post 10:** Two-agent four-step inhibitor stack + chain-of-custody audit  
+- **Post 11:** Plan A epitopeprediction routing  
+- **Post 12 (this):** Why 600 is blog tier + professional path to publication HTS  
+
+## Tags
+
+`drug-discovery`, `andv`, `zinc20`, `virtual-screening`, `pharmacophore`, `reproducibility`, `agentic-ai`, `aws-batch`, `honest-science`
+
+## Related paths (internal)
+
+- Provenance: `research/anti-virus/runs/publication_20260528T223525Z/zinc600_screen/ZINC600_LIBRARY_PROVENANCE.md`
+- Pharmacophore pilot: `research/anti-virus/runs/publication_20260528T223525Z/zinc600_pharmacophore/`
+- Publication design: `research/anti-virus/docs/PUBLICATION_ZINC_LIBRARY_DESIGN.md`
