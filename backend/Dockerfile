@@ -8,7 +8,18 @@
 #
 # Build:
 #   docker build -t biomate-galaxy-backend:latest -f backend/Dockerfile backend/
-FROM python:3.9-slim
+#
+# BASE IMAGE — must stay on Debian bookworm, NOT trixie.
+# python:3.9-slim (without explicit codename) now resolves to Debian 13 trixie
+# whose glibc 2.41 has a flaky ld-linux dlopen path that AWS CRT native lib
+# hits, randomly SIGSEGV'ing the JVM mid-run. Bookworm (Debian 12, glibc 2.36)
+# is the known-good combination. Empirical evidence:
+#   - 2026-06-05 parallel sweep of 19 workflows: 14/16 JVM SIGABRT on trixie
+#   - Bookworm also still has openjdk-17 (which we pin below); trixie dropped it
+# DO NOT REVERT to `python:3.9-slim` without first verifying both:
+#   (a) glibc < 2.41 OR JDK 17 still available
+#   (b) the workflow sweep passes without JVM crashes
+FROM python:3.9-slim-bookworm
 
 # Build-arg-driven version pins. Bump these in PRs only; never let the image
 # upgrade Nextflow transitively (past incident: NF 26.04 broke 16+ workflow
