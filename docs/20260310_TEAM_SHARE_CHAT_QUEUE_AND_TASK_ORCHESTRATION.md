@@ -1,6 +1,20 @@
 # BioMate — Chat Queue, Task Orchestration & LangGraph Foundation
 ## Team Share Document
 
+> ## ⚠ STATUS — 2026-06-04 — partially superseded
+>
+> This doc describes the right panel as containing **`ExecutionControlPanel`**.
+> That component was built but is gated behind `useUnifiedExecution={true}`
+> on `<WorkflowArtifact>`, a prop that defaults to `false`
+> (`workflow-artifact.tsx:160`) and is not overridden by any caller. The
+> panel does not render in production today.
+>
+> The execution UI that actually renders is
+> `frontend/client/src/components/nextflow-workflow-viewer.tsx`. References
+> to "ExecutionControlPanel" below should be read as describing intended,
+> not current, behavior. See `frontend/e2e/hts-workflows-ux-e2e.e2e.ts:350-385`
+> + commit `7e5d392cd` for the test-side correction.
+
 **Date:** 2026-03-10  
 **Authors:** Engineering  
 **Status:** Implementation complete (Phase A–C); Phase D (LangGraph parallel dispatch) is next  
