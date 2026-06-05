@@ -1,0 +1,10 @@
+{
+  "submitted_at": "2026-06-05T04:06:22.780692+00:00",
+  "step_suffix": "pharm_20260605T040128Z",
+  "n_compounds": 91,
+  "run_id": "bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+  "s3_library": "s3://biomate-nextflow-work/inputs/andv_campaign/zinc600_pharmacophore/20260605T040128Z/library.smi",
+  "returncode": 0,
+  "status": "completed",
+  "completed_at": "2026-06-05T04:06:22.780946+00:00"
+}

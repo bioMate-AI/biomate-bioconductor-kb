@@ -50,7 +50,7 @@ Last updated: 2026-06-05
 | ZINC600 full screen | **DONE** | **600/600** merged; top hit **−6.527** kcal/mol |
 | Z600-R1 pose QC (GROMACS) | **DONE** | Ligand RMSD **0.26 nm** PASS; **INH-01** remains compute lead |
 | Ensemble ZINC600 top-5 | **DONE** | `20260605T025716Z` reconciled; **4/5** improved vs rigid (Δ ≤ 0.14 kcal/mol; **INH-01** unchanged) |
-| Pharmacophore-filtered ZINC library | **DONE** (prep) | `zinc600_pharmacophore/` — **91/600** pass (15.17%); dock deck ready |
+| Pharmacophore-filtered ZINC library | **DONE** | **91/600** pass; **91/91** Vina on 9P3I (`zinc600_pharmacophore/vina/`) |
 | MM-GBSA recalibration (longer MD / protonation) | **NOT DONE** | Required to use MM-GBSA for ranking |
 
 **Verdict:** Methods demonstration only. **INH-01** is the defensible Vina + pose-QC lead; **do not** rank series by MM-GBSA until protocol passes. See `inhibitor_science_qc/INHIBITOR_SCIENCE_QC.md`.

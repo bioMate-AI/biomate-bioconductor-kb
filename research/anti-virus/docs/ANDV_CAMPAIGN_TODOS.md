@@ -39,7 +39,7 @@
 |------|----------|-------|
 | Z600-R1 pose QC complete | **Done** | PASS 0.26 nm; INH-01 remains primary lead |
 | Ensemble dock ZINC600 top-5 | **Done** | `20260605T025716Z` + `reconcile_ensemble_docking.py` |
-| Pharmacophore-filter AAAC → dock | P1 | `zinc600_pharmacophore_filtered.smi` (91 cmpds) |
+| Pharmacophore-filter AAAC → dock | **Done** | `zinc600_pharmacophore/vina/` — **91/91** docked |
 | ZINC purchasability IDs (top 5) | **Done** | `zinc600_library.tsv` + multi-backend lookup |
 | SynCraft / retrosynthesis | P2 | Workflow stub today |
 | REINVENT4 from INH-01 seed | P3 | Last run: 0 retained |
