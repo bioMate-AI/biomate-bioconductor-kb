@@ -3561,12 +3561,30 @@ def execute_nextflow(
         for _src_name in ("plugins", "framework"):
             _src = _nxf_shared / _src_name
             _dst = _run_nf_home / _src_name
-            if _src.is_dir() and not _dst.exists():
-                try:
-                    _dst.parent.mkdir(parents=True, exist_ok=True)
-                    _shutil.copytree(str(_src), str(_dst))
-                except Exception as _e:
-                    log.warning("[Nextflow run %s] plugin pre-warm copy failed for %s: %s", run_id, _src_name, _e)
+            if not _src.is_dir():
+                continue
+            # Bug fix (2026-06-05): the previous guard was `not _dst.exists()`,
+            # but in practice the empty `.nextflow/plugins/` dir already exists
+            # by the time we get here (created by earlier work_dir setup or a
+            # prior failed attempt at this run_id). copytree was being skipped,
+            # plugins ended up empty, Nextflow then tried to download
+            # nf-amazon@3.4.4 from the public registry — which 404s because
+            # 3.4.4 is no longer published (latest: 3.1.0) — and crashed at
+            # CmdRun before submitting Phase A. Observed live on dev runs
+            # 15632954, d568eb1e, etc. Now: treat empty dst as "not warmed"
+            # and force the copy.
+            try:
+                if _dst.exists() and any(_dst.iterdir()):
+                    # Real prior content — assume valid, leave alone.
+                    continue
+                if _dst.exists():
+                    # Empty stub — remove so copytree can recreate.
+                    _shutil.rmtree(str(_dst))
+                _dst.parent.mkdir(parents=True, exist_ok=True)
+                _shutil.copytree(str(_src), str(_dst))
+                log.info("[Nextflow run %s] pre-warmed %s from /app/.nextflow-shared", run_id, _src_name)
+            except Exception as _e:
+                log.warning("[Nextflow run %s] plugin pre-warm copy failed for %s: %s", run_id, _src_name, _e)
 
 
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
