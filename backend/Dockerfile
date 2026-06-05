@@ -28,9 +28,17 @@ WORKDIR /app
 #   - unzip                                 → AWS CLI v2 installer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ git libpq-dev sqlite3 curl unzip \
-    default-jre-headless \
+    openjdk-17-jre-headless \
     procps ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+# JDK 17 is REQUIRED (do not change to default-jre-headless).
+# default-jre-headless on Debian 13 trixie = OpenJDK 21. JDK 21 + glibc 2.41 +
+# AWS CRT native lib randomly SIGSEGVs the JVM in ld-linux during the dlopen
+# of /tmp/aws-crt-*.so. The crash hits Nextflow's FileTransfer/PublishDir
+# threads, killing the entire NF process and dropping every workflow output
+# even when AWS Batch tasks succeeded. JDK 17 + glibc 2.41 is known-good.
+# Root-cause analysis: docs/20260605_19_WORKFLOW_SWEEP_RESULT.md.
+# DO NOT REVERT to default-jre-headless without verifying glibc compatibility.
 
 # Nextflow binary at a stable path. Pinned to ${NF_VERSION}. Install before
 # Python deps so the pip layer can be rebuilt without re-downloading Nextflow.
