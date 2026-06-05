@@ -206,7 +206,6 @@ async function waitForWorkflowCard(page: Page, timeoutMs = 90_000, baselineCount
       '[data-testid="button-run-workflow-panel"]',
       '[data-testid="workflow-run-controls"]',
       '[data-testid="button-confirm-and-run"]',
-      '[data-testid="qc-settings-section"]',
     ]) {
       if (await page.locator(sel).first().isVisible({ timeout: 300 }).catch(() => false)) {
         await page.waitForTimeout(800);
@@ -347,40 +346,17 @@ test.describe("HT-1 HTS Plate QC Hit Calling — full journey", () => {
       assertions.push({ name: "Parameters panel visible", passed: paramVisible });
       screenshots.push(await shot(page, "HT1_04_params_panel"));
 
-      // QC UI — gate-only domain shows 2 gates (Z'-factor, signal window).
+      // HT-1 is the happy-path chat→card→run→completion smoke. QC gate
+      // assertions belong in HT-4 (`Plate with overlapping controls fails Z'
+      // gate → halt row + red color`) which uses the hts_plate_zprime_fail
+      // fixture to actually trip the gate and asserts on the live testids:
+      // autoloop-gate-table / autoloop-remediation-card / qc-gate-inline.
       //
-      // History: this assertion originally looked for [data-testid="qc-settings-section"]
-      // (commit 736943ca1, 2026-05-27). That testid lives in <ExecutionControlPanel>,
-      // the "unified execution panel" introduced in commit 99946bd86 but gated behind
-      // useUnifiedExecution={true} on <WorkflowArtifact> (workflow-artifact.tsx:160).
-      // No call site in frontend/client/src/ ever sets that prop to true, so the
-      // panel never renders and esbuild tree-shakes it from the bundle. As long as
-      // the unified panel stays gated off, that selector cannot match — regardless
-      // of what testids we add to the source.
-      //
-      // The QC UI that actually renders in production today lives inside the phase
-      // cards in nextflow-workflow-viewer.tsx (className="qc-block" / testid
-      // qc-edit-toggle-${group.key}) and shows up once the run starts. Until either
-      // (a) the unified panel is enabled by a caller passing useUnifiedExecution={true},
-      // or (b) the test is rewritten to drive the run further before this assertion,
-      // we accept either UI shape as evidence the QC layer is wired up.
-      const qcUnifiedSection = page.locator('[data-testid="qc-settings-section"]').first();
-      const qcPhaseBlock = page.locator('.qc-block, [data-testid^="qc-edit-toggle-"], [data-testid="qc-report-panel"], [data-testid="qc-gate-inline"]').first();
-      const qcUnifiedVisible = await qcUnifiedSection.isVisible({ timeout: 4_000 }).catch(() => false);
-      const qcPhaseVisible = qcUnifiedVisible ? false : await qcPhaseBlock.isVisible({ timeout: 4_000 }).catch(() => false);
-      const qcVisible = qcUnifiedVisible || qcPhaseVisible;
-      assertions.push({
-        name: "QC settings section visible",
-        passed: qcVisible,
-        note: qcUnifiedVisible
-          ? "unified-panel"
-          : qcPhaseVisible
-            ? "phase-qc-block (production render path)"
-            : "neither unified panel nor phase QC block rendered — useUnifiedExecution=false AND no QC block in DOM yet",
-      });
-      if (qcVisible) {
-        screenshots.push(await shot(page, "HT1_05_qc_settings"));
-      }
+      // Earlier this file asserted on [data-testid="qc-settings-section"]
+      // here — that testid lives in <ExecutionControlPanel> which is gated
+      // off in production (see docs/20260604_EXECUTION_CONTROL_PANEL_GATING_
+      // NOTE.md). The assertion was removed deliberately to stop testing
+      // dead code in the happy-path test.
 
       const ran = await clickRunButton(page);
       assertions.push({ name: "Run button clicked", passed: ran });
@@ -416,7 +392,15 @@ test.describe("HT-1 HTS Plate QC Hit Calling — full journey", () => {
 // ===========================================================================
 // HT-2: QC settings — min_z_prime override persists
 // ===========================================================================
-test.describe("HT-2 QC settings override", () => {
+// HT-2 is skipped: the entire test body asserts on
+// [data-testid="qc-settings-section"] and child inputs that live inside
+// <ExecutionControlPanel>. That panel is gated off in production (see
+// docs/20260604_EXECUTION_CONTROL_PANEL_GATING_NOTE.md). The live
+// threshold-override surface today is per-phase inside
+// nextflow-workflow-viewer.tsx (qc-edit-toggle-${group.key}); rewriting
+// this test to target that surface is a TODO. HT-4 covers the related
+// "gate fail → halt row" path against the actually-rendered autoloop UI.
+test.describe.skip("HT-2 QC settings override", () => {
   test("Override min_z_prime to 0.4; verify it persists after execute click", async ({ page }) => {
     test.setTimeout(240_000);
     const assertions: HTS_Assertion[] = [];
