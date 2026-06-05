@@ -9211,7 +9211,11 @@ ${paramLines || '(none recorded)'}`;
 
       res.json({
         runId: run.id,
-        status: run.execution.status,
+        // Normalize: nextflow_executor.py persists 'succeeded' (native Nextflow
+        // term) on terminal completion. Without this normalization the UI's
+        // status mapper (chat-with-artifacts.tsx) falls through to 'idle' and
+        // phase cards never get data-status="completed".
+        status: toValidRunStatus(run.execution.status),
         progress: run.progress,
         metrics: mergedMetrics,
         steps: req.query.includeSteps === 'true' ? run.steps : undefined,
