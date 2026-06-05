@@ -1,0 +1,6 @@
+model,n,mean_median_macro,ci_lo,ci_hi
+gpt_5,70,0.532,0.486,0.576
+claude_sonnet_4_6,70,0.443,0.405,0.483
+gemini_3_1_pro_preview,70,0.505,0.458,0.551
+gpt_5_mini,70,0.435,0.392,0.479
+claude_haiku_4_5,70,0.363,0.323,0.410

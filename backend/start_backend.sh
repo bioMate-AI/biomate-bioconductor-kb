@@ -8,11 +8,17 @@ export ANTHROPIC_API_KEY=sk-ant-api03-6L7-pcB1Bxi5zsGotB2CjbFWyCy08yuORSnXPhU8jJ
 export GEMINI_API_KEY=AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI
 
 # Regulatory-LLM backend selection — frontier API as primary until BioMate
-# v6 (Qwen3-8B + LoRA) is proven on Modal/vLLM. GPT-5 hit 90.0% macro on the
-# n=100 9-checker eval (vs Sonnet 4.6 87.1%, Opus 4.8 85.9%); per-IND-paragraph
-# cost ~$0.04. Override with claude-sonnet-4-6 / claude-opus-4-8 / gemini-3.1-pro-preview.
-# Set to empty string to fall through to Modal/vLLM (when those are deployed).
-export REGULATORY_LLM_FRONTIER_MODEL=${REGULATORY_LLM_FRONTIER_MODEL:-claude-sonnet-4-6}
+# v6 (Qwen3-8B + LoRA) is proven on Modal/vLLM. Defensible cross-judge eval
+# (n=70 stratified across 7 v6 task types, judges Claude Opus + GPT-5 +
+# Gemini Flash, median per dimension, bootstrap 95% CI):
+#   gpt-5                    0.532 [0.486, 0.576]  ~$0.04/para  premium
+#   gemini-3.1-pro-preview   0.505 [0.458, 0.551]  ~$0.005/para CHEAP+GOOD (default)
+#   claude-sonnet-4-6        0.443 [0.405, 0.483]  ~$0.02/para
+#   gpt-5-mini               0.435 [0.392, 0.479]  ~$0.005/para
+#   claude-haiku-4-5         0.363 [0.323, 0.410]  ~$0.003/para  budget floor
+# Gemini 3.1 Pro CIs overlap GPT-5 — statistically tied at ~8x lower cost.
+# Override with gpt-5 for premium quality. See docs/20260604_DEFENSIBLE_EVAL_GPT5_WINS.md.
+export REGULATORY_LLM_FRONTIER_MODEL=${REGULATORY_LLM_FRONTIER_MODEL:-gemini-3.1-pro-preview}
 export GALAXY_CONFIG_ENABLE_AI_ASSISTANT=true
 export GALAXY_CONFIG_FILE=lib/galaxy/config/sample/galaxy.yml.sample
 export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite

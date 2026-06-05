@@ -136,6 +136,81 @@ def _call_judge(section_type, prompt, candidate, judge_model):
     return parsed, None
 
 
+def _call_judge_openai(section_type, prompt, candidate, judge_model):
+    """Route to OpenAI for gpt-5/o-series judges."""
+    from openai import OpenAI
+    client = OpenAI()
+    user = (
+        f"SECTION_TYPE: {section_type}\n\n"
+        f"PROMPT:\n{prompt}\n\n"
+        f"CANDIDATE:\n{candidate}\n\n"
+        "Return the JSON only."
+    )
+    kwargs = dict(
+        model=judge_model,
+        messages=[
+            {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+            {"role": "user", "content": user},
+        ],
+    )
+    if judge_model.startswith("o") or judge_model.startswith("gpt-5"):
+        kwargs["max_completion_tokens"] = JUDGE_MAX_TOKENS * 3
+        kwargs["reasoning_effort"] = "minimal"
+    else:
+        kwargs["max_tokens"] = JUDGE_MAX_TOKENS
+        kwargs["temperature"] = 0.0
+    resp = client.chat.completions.create(**kwargs)
+    text = resp.choices[0].message.content or ""
+    text = _strip_thinking(text)
+    parsed = _parse_json(text)
+    if parsed is None:
+        return None, text[:500]
+    return parsed, None
+
+
+def _call_judge_gemini(section_type, prompt, candidate, judge_model):
+    """Route to Gemini for gemini-* judges."""
+    import json as _json, urllib.request, os
+    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+    if not key:
+        return None, "GEMINI_API_KEY unset"
+    user = (
+        f"SECTION_TYPE: {section_type}\n\n"
+        f"PROMPT:\n{prompt}\n\n"
+        f"CANDIDATE:\n{candidate}\n\n"
+        "Return the JSON only."
+    )
+    payload = {
+        "system_instruction": {"parts": [{"text": JUDGE_SYSTEM_PROMPT}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": {"maxOutputTokens": JUDGE_MAX_TOKENS * 3, "temperature": 0.0, "thinkingConfig": {"thinkingBudget": 0}},
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{judge_model}:generateContent?key={key}"
+    req = urllib.request.Request(url, data=_json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            body = _json.loads(resp.read().decode())
+        parts = body.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        text = "".join(p.get("text", "") for p in parts).strip()
+    except Exception as exc:
+        return None, str(exc)[:300]
+    text = _strip_thinking(text)
+    parsed = _parse_json(text)
+    if parsed is None:
+        return None, text[:500]
+    return parsed, None
+
+
+def _call_judge_router(section_type, prompt, candidate, judge_model):
+    """Dispatch judge_model to the right provider."""
+    if judge_model.startswith(("gpt-", "o1", "o3")):
+        return _call_judge_openai(section_type, prompt, candidate, judge_model)
+    if judge_model.startswith("gemini-"):
+        return _call_judge_gemini(section_type, prompt, candidate, judge_model)
+    return _call_judge(section_type, prompt, candidate, judge_model)
+
+
 def score_with_judge(section_type, prompt, candidate, judge_model=JUDGE_MODEL_DEFAULT):
     if not candidate or not candidate.strip():
         return JudgeResult(
@@ -148,7 +223,7 @@ def score_with_judge(section_type, prompt, candidate, judge_model=JUDGE_MODEL_DE
     last_err = None
     for attempt in range(2):
         try:
-            parsed, raw_err = _call_judge(section_type, prompt, candidate, judge_model)
+            parsed, raw_err = _call_judge_router(section_type, prompt, candidate, judge_model)
             if parsed is not None:
                 scores = {d: int(parsed.get(d, 0)) for d in RUBRIC_DIMENSIONS}
                 scores = {k: max(0, min(2, v)) for k, v in scores.items()}
