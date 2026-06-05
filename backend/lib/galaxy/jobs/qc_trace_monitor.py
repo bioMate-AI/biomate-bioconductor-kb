@@ -1519,6 +1519,22 @@ class NextflowQCGateHandler:
         "FEATURECOUNTS":     ("featurecounts", "*.summary"),
         "SALMON":            ("salmon", "lib_format_counts.json"),
         "SAMTOOLS_FLAGSTAT": ("samtools", "*.flagstat"),
+        # Gate-only drug-dev workflows that publish a single qc_metrics.json
+        # directly under <publishDir>/<meta.id>/ (publishDir convention
+        # `${params.outdir}/${meta.id}`). The wildcard "*" matches any
+        # meta.id value (most workflows use 'hts_run', 'admet_run', etc.)
+        # so the same entry covers re-runs and per-sample variants.
+        "HTS_PLATE_QC_HIT_CALLING":      ("*", "qc_metrics.json"),
+        "ICH_S5_REPRODUCTIVE_TOX":       ("*", "qc_metrics.json"),
+        "ICH_S7A_SAFETY_PHARMACOLOGY":   ("*", "qc_metrics.json"),
+        "CLINICAL_TRIAL_SIMULATION":     ("*", "qc_metrics.json"),
+        "ADAPTIVE_TRIAL_DESIGN":         ("*", "qc_metrics.json"),
+        "ALLOMETRIC_SCALING":            ("*", "qc_metrics.json"),
+        "IVIVE_HEPATIC_CLEARANCE":       ("*", "qc_metrics.json"),
+        "OPENFE_RBFE":                   ("*", "qc_metrics.json"),
+        "P0_PKPD_SEMAGLUTIDE":           ("*", "qc_metrics.json"),
+        "POCKET_DETECTION_DRUGGABILITY": ("*", "qc_metrics.json"),
+        "AIZYNTHFINDER_RETROSYNTHESIS":  ("*", "qc_metrics.json"),
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
@@ -1552,7 +1568,13 @@ class NextflowQCGateHandler:
                 return None
 
             # List objects under s3_outdir/step_prefix/
-            search_prefix = f"{prefix_base}/{step_prefix}/" if prefix_base else f"{step_prefix}/"
+            # Wildcard "*" step_prefix means "match any first-level subdir"
+            # (gate-only workflows like HTS publish to <outdir>/${meta.id}/
+            # where meta.id varies; we don't know it until we list).
+            if step_prefix == "*":
+                search_prefix = f"{prefix_base}/" if prefix_base else ""
+            else:
+                search_prefix = f"{prefix_base}/{step_prefix}/" if prefix_base else f"{step_prefix}/"
             resp = s3.list_objects_v2(Bucket=bucket, Prefix=search_prefix)
             report_objects = [
                 obj["Key"] for obj in resp.get("Contents", [])
@@ -1677,6 +1699,15 @@ class NextflowQCGateHandler:
                             break
                     except Exception:
                         continue
+
+        # Gate-only domains (HTS, ICH-S5/S7, BOIN, allometric, IVIVE, OpenFE,
+        # p0_pkpd, pocket_detection, aizynthfinder) emit qc_metrics.json with
+        # keys that already match gate thresholds (z_prime, signal_window, etc).
+        # Pass scalars through if no domain-specific case populated metrics.
+        if not metrics and any(k in process_upper for k in self._S3_REPORT_PATHS):
+            for k, v in data.items():
+                if isinstance(v, (int, float, bool, str)):
+                    metrics[k] = v
 
         return metrics if metrics else None
 
