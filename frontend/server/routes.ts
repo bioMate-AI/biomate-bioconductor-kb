@@ -10881,15 +10881,30 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
-          // maxTokens 2048 → 8192: gives headroom even if the model spends
-          // tokens on internal reasoning (Gemini docs are vague about when
-          // this happens for Flash). Cheap insurance against truncation.
+          // Diagnostics first, conclusions later: log what we're feeding
+          // the model and what comes back, so the next truncation tells us
+          // WHERE the problem is (input garbage? model truncation? double
+          // encoding?) instead of forcing another round of guessing.
+          console.log(
+            `[Findings] input prep: workflow="${workflowName}" ` +
+              `fileContext.length=${fileContext.length} ` +
+              `outputSamples.length=${outputSamples.length} ` +
+              `sample_names=${JSON.stringify(outputSamples.map((s) => s.name))} ` +
+              `sample_lengths=${JSON.stringify(outputSamples.map((s) => s.content.length))}`,
+          );
           const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
             system: SYSTEM,
             maxTokens: 8192,
             jsonMode: true,
           });
+          console.log(
+            `[Findings] gemini returned: length=${rawText.length} ` +
+              `firstChar=${JSON.stringify(rawText.slice(0, 1))} ` +
+              `endsWithBrace=${rawText.trimEnd().endsWith('}')} ` +
+              `preview=${JSON.stringify(rawText.slice(0, 200))} ` +
+              `tail=${JSON.stringify(rawText.slice(-100))}`,
+          );
           try {
             const cleanText = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
             // Truncation guard — only reject when the input is obviously
