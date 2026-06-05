@@ -10881,14 +10881,23 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
+          // maxTokens raised from 2048 → 8192: Gemini 3.5 Flash thinking
+          // tokens count against maxOutputTokens. At 2048 the model spent
+          // ~1800 on thinking and truncated the JSON mid-string, breaking
+          // JSON.parse and leaving the user with empty key_results forever.
           const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
             system: SYSTEM,
-            maxTokens: 2048,
+            maxTokens: 8192,
             jsonMode: true,
           });
           try {
             const cleanText = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+            // Truncation guard: a too-short response is almost certainly
+            // truncated JSON. Don't try to parse it — surface the failure.
+            if (cleanText.length < 100 || (cleanText.startsWith('{') && !cleanText.trimEnd().endsWith('}'))) {
+              throw new Error(`findings synthesis returned truncated/invalid JSON (${cleanText.length} chars)`);
+            }
             let parsed = JSON.parse(cleanText);
             // Handle Gemini double-wrapping: model puts entire analysis in "summary" field.
             // Unwrap up to 2 levels deep until key_results/next_steps arrays are populated.
@@ -10986,13 +10995,16 @@ Respond ONLY with valid JSON (no markdown wrapper):
             // ── End proactive follow-up suggestions ─────────────────────────────
 
             _findingsCache.set(runId, parsed);
-          } catch {
-            // Fallback: treat rawText as plain summary
+          } catch (parseErr: any) {
+            // Don't dump the broken raw JSON-shaped string into `summary` —
+            // that's what made the bug invisible for so long. Surface the
+            // failure cleanly so users know to look at outputs directly.
+            console.warn('[Findings] AI synthesis JSON parse failed:', parseErr?.message, '— rawText preview:', rawText.slice(0, 200));
             _findingsCache.set(runId, {
-              summary: rawText.slice(0, 500) || `${workflowName} completed successfully.`,
+              summary: `${workflowName} completed. AI synthesis was unavailable for this run — see the Outputs tab for raw results.`,
               key_results: [],
-              next_steps: [],
-              caveats: [],
+              next_steps: ['Open the Outputs tab to view the result files directly.'],
+              caveats: ['AI summary generation did not produce a valid structured response. The underlying run succeeded.'],
             });
           }
         } catch (err: any) {
