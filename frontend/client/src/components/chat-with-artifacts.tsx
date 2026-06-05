@@ -1988,7 +1988,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     (isWorkflowRunning ? 'running' : 'idle')
                   ) as string
                   const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
-                    execStatusStr === 'completed' || execStatusStr === 'ok' ? 'completed'
+                    execStatusStr === 'completed' || execStatusStr === 'ok' || execStatusStr === 'succeeded' ? 'completed'
                     : execStatusStr === 'paused'  ? 'paused'
                     : execStatusStr === 'failed'  || execStatusStr === 'cancelled' || execStatusStr === 'error' ? 'failed'
                     : execStatusStr === 'running' ? 'running'

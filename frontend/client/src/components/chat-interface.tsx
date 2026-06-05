@@ -1823,7 +1823,7 @@ export function ChatInterface({
               {message.role === 'assistant' &&
                 message.metadata?.type === 'workflow' &&
                 currentExecutionRun?.id &&
-                (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok') &&
+                (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
                 message.id === latestAssistantMessageId && (
                 <div className="ml-10 mt-1">
                   <FindingsCard
