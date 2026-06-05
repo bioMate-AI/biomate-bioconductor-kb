@@ -1,0 +1,10 @@
+{
+  "pharmacophore_model": "pharmacophore_model.json",
+  "library": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.tsv",
+  "reference_actives": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/reference_actives_antiviral.smi",
+  "n_screened": 600,
+  "n_passed": 91,
+  "min_features": 3,
+  "pass_rate_pct": 15.17,
+  "timestamp": "2026-06-05T03:27:37.286477Z"
+}

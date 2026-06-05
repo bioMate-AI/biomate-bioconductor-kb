@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-06-05T03:27:37.286477Z",
+  "publication_run": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z",
+  "parent_library": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.tsv",
+  "parent_provenance": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.manifest.json",
+  "reference_actives": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/reference_actives_antiviral.smi",
+  "min_features": 3,
+  "n_screened": 600,
+  "n_passed": 91,
+  "pass_rate_pct": 15.17,
+  "target_informed": true,
+  "pharmacophore_prefilter": true,
+  "selection_method": "rdkit_smarts_min_features_from_antiviral_references",
+  "files": {
+    "filtered_tsv": "research/anti-virus/runs/publication_20260528T223525Z/zinc600_pharmacophore/zinc600_pharmacophore_filtered.tsv",
+    "filtered_smi": "research/anti-virus/runs/publication_20260528T223525Z/zinc600_pharmacophore/zinc600_pharmacophore_filtered.smi",
+    "match_report": "research/anti-virus/runs/publication_20260528T223525Z/zinc600_pharmacophore/match_report.tsv",
+    "model": "research/anti-virus/runs/publication_20260528T223525Z/zinc600_pharmacophore/pharmacophore_model.json"
+  }
+}

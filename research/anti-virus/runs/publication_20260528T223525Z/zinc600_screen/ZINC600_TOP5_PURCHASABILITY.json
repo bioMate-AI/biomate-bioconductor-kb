@@ -1,10 +1,11 @@
 {
-  "looked_up_at": "2026-06-04T20:50:32.805317+00:00",
+  "looked_up_at": "2026-06-05T03:27:35.785123+00:00",
   "backends": [
     "local_tranche",
-    "pubchem",
-    "cartblanche"
+    "pubchem"
   ],
+  "library_manifest": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.manifest.json",
+  "library_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/assets/zinc600_library.tsv",
   "tranche_url": "https://files.docking.org/2D/AA/AAAC.smi",
   "tranche_compounds_indexed": 600,
   "top_n": 5,
@@ -14,8 +15,8 @@
       "vina_kcal_mol": -6.527,
       "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
       "local_tranche": {
-        "zinc_id": "38643678",
-        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+        "zinc_substance_id": "38643678",
+        "source": "zinc600_library.tsv"
       },
       "pubchem": {
         "pubchem_cids": [
@@ -31,9 +32,7 @@
       "in_zinc_tranche": true,
       "in_pubchem": true,
       "in_cartblanche": false,
-      "errors": {
-        "cartblanche": "HTTP Error 400: BAD REQUEST"
-      },
+      "errors": {},
       "in_catalog": true
     },
     {
@@ -41,8 +40,8 @@
       "vina_kcal_mol": -6.275,
       "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
       "local_tranche": {
-        "zinc_id": "100282852",
-        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+        "zinc_substance_id": "100282852",
+        "source": "zinc600_library.tsv"
       },
       "pubchem": {
         "pubchem_cids": [
@@ -58,9 +57,7 @@
       "in_zinc_tranche": true,
       "in_pubchem": true,
       "in_cartblanche": false,
-      "errors": {
-        "cartblanche": "HTTP Error 400: BAD REQUEST"
-      },
+      "errors": {},
       "in_catalog": true
     },
     {
@@ -68,8 +65,8 @@
       "vina_kcal_mol": -6.267,
       "smiles": "N=C(N)NC(=O)c1nccnc1N",
       "local_tranche": {
-        "zinc_id": "33753639",
-        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+        "zinc_substance_id": "33753639",
+        "source": "zinc600_library.tsv"
       },
       "pubchem": {
         "pubchem_cids": [
@@ -85,9 +82,7 @@
       "in_zinc_tranche": true,
       "in_pubchem": true,
       "in_cartblanche": false,
-      "errors": {
-        "cartblanche": "HTTP Error 400: BAD REQUEST"
-      },
+      "errors": {},
       "in_catalog": true
     },
     {
@@ -95,8 +90,8 @@
       "vina_kcal_mol": -6.099,
       "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
       "local_tranche": {
-        "zinc_id": "39114411",
-        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+        "zinc_substance_id": "39114411",
+        "source": "zinc600_library.tsv"
       },
       "pubchem": {
         "pubchem_cids": [
@@ -112,9 +107,7 @@
       "in_zinc_tranche": true,
       "in_pubchem": true,
       "in_cartblanche": false,
-      "errors": {
-        "cartblanche": "HTTP Error 400: BAD REQUEST"
-      },
+      "errors": {},
       "in_catalog": true
     },
     {
@@ -122,8 +115,8 @@
       "vina_kcal_mol": -6.065,
       "smiles": "N=C(N)NC(=O)NC(=N)N",
       "local_tranche": {
-        "zinc_id": "33607431",
-        "zinc_tranche_url": "https://files.docking.org/2D/AA/AAAC.smi"
+        "zinc_substance_id": "33607431",
+        "source": "zinc600_library.tsv"
       },
       "pubchem": {
         "pubchem_cids": [
@@ -139,9 +132,7 @@
       "in_zinc_tranche": true,
       "in_pubchem": true,
       "in_cartblanche": false,
-      "errors": {
-        "cartblanche": "HTTP Error 400: BAD REQUEST"
-      },
+      "errors": {},
       "in_catalog": true
     }
   ]

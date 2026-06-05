@@ -1,0 +1,63 @@
+{
+  "source": "rdkit",
+  "n_references": 4,
+  "reference_smiles": [
+    "NC(=O)c1nc(C=C(C)CO)c(C=O)[nH]1",
+    "C1CC(=O)NC(=O)C1N",
+    "CC(C)(C)c1ccc(C(O)c2ccc(Cl)cc2)cc1",
+    "CCOC(=O)C1=C[C@@H](OC(CC)CC)[C@H](NC(C)=O)[C@@H](O)[C@H]1O"
+  ],
+  "n_features": 6,
+  "features": [
+    {
+      "type": "Donor",
+      "label": "D0",
+      "description": "Donor",
+      "count_in_references": 4,
+      "fraction": 1.0,
+      "smarts": "[OX2H,NX3H2,NX3H1]"
+    },
+    {
+      "type": "Acceptor",
+      "label": "A1",
+      "description": "Acceptor",
+      "count_in_references": 4,
+      "fraction": 1.0,
+      "smarts": "[OX1,NX3;!$(NC=O)]"
+    },
+    {
+      "type": "Hydrophobe",
+      "label": "H2",
+      "description": "Hydrophobe",
+      "count_in_references": 3,
+      "fraction": 0.75,
+      "smarts": "[c,s,S&H0&v2,Br,I,$(C(F)(F)F),$(CC(F)(F)F)]"
+    },
+    {
+      "type": "PosIonizable",
+      "label": "P3",
+      "description": "PosIonizable",
+      "count_in_references": 2,
+      "fraction": 0.5,
+      "smarts": "[+!H0,$(N-[CX3]=[NH]),$(NC(=N)N),$(n1ccnc1)]"
+    },
+    {
+      "type": "Aromatic",
+      "label": "A4",
+      "description": "Aromatic",
+      "count_in_references": 2,
+      "fraction": 0.5,
+      "smarts": "c1ccccc1"
+    },
+    {
+      "type": "LumpedHydrophobe",
+      "label": "L5",
+      "description": "LumpedHydrophobe",
+      "count_in_references": 1,
+      "fraction": 0.25,
+      "smarts": ""
+    }
+  ],
+  "generate_3d": false,
+  "timestamp": "2026-06-05T03:27:37.261517Z"
+}

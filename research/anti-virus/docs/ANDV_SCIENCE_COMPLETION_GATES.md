@@ -2,7 +2,7 @@
 
 **Bar:** Each track must pass **in silico** science gates before manuscript claims. BioMate scope is **compute only** — no wet-lab work.
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
 ---
 
@@ -49,7 +49,8 @@ Last updated: 2026-06-04
 | Ligand RMSD from trajectories | **DONE** | `LIGAND_RMSD_BATCH.json` — 5/5 compounds |
 | ZINC600 full screen | **DONE** | **600/600** merged; top hit **−6.527** kcal/mol |
 | Z600-R1 pose QC (GROMACS) | **DONE** | Ligand RMSD **0.26 nm** PASS; **INH-01** remains compute lead |
-| Ensemble ZINC600 top-5 | **NOT DONE** | Launch config: `ZINC600_ENSEMBLE_TOP5_LAUNCH.md` (Galaxy API required) |
+| Ensemble ZINC600 top-5 | **DONE** | `20260605T025716Z` reconciled; **4/5** improved vs rigid (Δ ≤ 0.14 kcal/mol; **INH-01** unchanged) |
+| Pharmacophore-filtered ZINC library | **DONE** (prep) | `zinc600_pharmacophore/` — **91/600** pass (15.17%); dock deck ready |
 | MM-GBSA recalibration (longer MD / protonation) | **NOT DONE** | Required to use MM-GBSA for ranking |
 
 **Verdict:** Methods demonstration only. **INH-01** is the defensible Vina + pose-QC lead; **do not** rank series by MM-GBSA until protocol passes. See `inhibitor_science_qc/INHIBITOR_SCIENCE_QC.md`.

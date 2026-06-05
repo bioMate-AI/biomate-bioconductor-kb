@@ -1,7 +1,8 @@
 # ZINC600 top-5 ensemble docking — launch config
 
 Prepared: 2026-06-04T18:44:33Z  
-Dry-run validated: `science_sprint/runs/20260604T184433Z/track_inh_ensemble/` (6 conformers × 5 compounds; **Galaxy API required** for live scores)
+Dry-run: `science_sprint/runs/20260604T184433Z/track_inh_ensemble/`  
+Live run (local BioMate `127.0.0.1:8081` → AWS Batch): `science_sprint/runs/20260605T025716Z/track_inh_ensemble/` — poll `/tmp/ensemble_z600_top5_live.log`
 
 ## Compounds
 
@@ -13,9 +14,10 @@ Dry-run validated: `science_sprint/runs/20260604T184433Z/track_inh_ensemble/` (6
 | 4 | -6.099 | `C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1` |
 | 5 | -6.065 | `N=C(N)NC(=O)NC(=N)N` |
 
-## Run (when Galaxy API is up)
+## Run (local BioMate API + AWS creds)
 
 ```bash
+# backend: backend/start_backend.sh  (needs AWS_SECRET_ACCESS_KEY)
 python3 research/anti-virus/science_sprint/track_inh_ensemble_docking.py \
   --baseline-docking-json research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json \
   --top-n 5
@@ -28,4 +30,15 @@ python3 research/anti-virus/scripts/reconcile_ensemble_docking.py \
   research/anti-virus/science_sprint/runs/<TIMESTAMP>/track_inh_ensemble
 ```
 
-**Expected:** honest negative on deposit-only ranking (prior ZINC150 top-5 ensemble: 0/5 improved vs rigid).
+## Results (2026-06-05 live run)
+
+Run: `science_sprint/runs/20260605T025716Z/track_inh_ensemble/` (reconciled)
+
+| Metric | Value |
+|--------|-------|
+| Conformers succeeded | **6/6** |
+| Improved vs rigid (deposit-only) | **4/5** |
+| Largest Δ | **−0.137** kcal/mol (rank 2 on 9P3Y) |
+| INH-01 (rank 3) | **unchanged** (−6.267 on 9P3I) |
+
+**Interpretation:** ensemble sensitivity only; does **not** promote Z600-R1 over INH-01. Prior ZINC150 top-5 ensemble remained 0/5 improved.

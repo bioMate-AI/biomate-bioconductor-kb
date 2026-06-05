@@ -1,0 +1,95 @@
+{
+  "success": true,
+  "function": "docking_autodock_vina",
+  "domain": "pharmacology",
+  "results": [
+    {
+      "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
+      "best_affinity_kcal_mol": -2.954,
+      "all_affinities": [
+        -2.954,
+        -2.915,
+        -2.768,
+        -2.742,
+        -2.723,
+        -2.621,
+        -2.35,
+        -2.296,
+        -2.26
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_000.pdbqt"
+    },
+    {
+      "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
+      "best_affinity_kcal_mol": -2.843,
+      "all_affinities": [
+        -2.843,
+        -2.658,
+        -2.627,
+        -2.417,
+        -2.406,
+        -2.402,
+        -2.373,
+        -2.345,
+        -2.314
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_001.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "best_affinity_kcal_mol": -3.063,
+      "all_affinities": [
+        -3.063,
+        -3.022,
+        -2.884,
+        -2.811,
+        -2.712,
+        -2.388,
+        -2.373,
+        -2.317,
+        -2.273
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_002.pdbqt"
+    },
+    {
+      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
+      "best_affinity_kcal_mol": -2.862,
+      "all_affinities": [
+        -2.862,
+        -2.858,
+        -2.541,
+        -2.51,
+        -2.501,
+        -2.437,
+        -2.435,
+        -2.338,
+        -2.284
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_003.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NC(=O)NC(=N)N",
+      "best_affinity_kcal_mol": -2.688,
+      "all_affinities": [
+        -2.688,
+        -2.643,
+        -2.398,
+        -2.308,
+        -2.296,
+        -2.284,
+        -2.229,
+        -2.059,
+        -1.949
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_004.pdbqt"
+    }
+  ],
+  "n_ligands_docked": 5,
+  "best_score_kcal_mol": -3.063,
+  "log": "  Receptor PDB trimmed to search box (+ 8 A pad): 409 ATOM/HETATM records (large assemblies -> tractable PDBQT)\nStep 1: Preparing receptor receptor_staged.pdb\n  Receptor PDBQT written (43696 bytes)\nStep 2: Box center=(173.607,208.847,174.042) size=(20.27508093773169,20.27508093773169,20.27508093773169)\n        Exhaustiveness=8, CPUs=4, poses=9\n\nStep 3.1: Docking N=C(N)NC(=O)NC(=O)NC(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -2.954 kcal/mol\n  Done.\n\nStep 3.2: Docking Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -2.843 kcal/mol\n  Done.\n\nStep 3.3: Docking N=C(N)NC(=O)c1nccnc1N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -3.063 kcal/mol\n  Done.\n\nStep 3.4: Docking C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -2.862 kcal/mol\n  Done.\n\nStep 3.5: Docking N=C(N)NC(=O)NC(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -2.688 kcal/mol\n  Done."
+}
