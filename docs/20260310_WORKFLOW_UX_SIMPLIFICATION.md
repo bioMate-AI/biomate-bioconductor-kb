@@ -1,5 +1,29 @@
 # BioMate UX — Chat + Task List + Workflow Panel
 
+> ## ⚠ STATUS — 2026-06-04 — partially superseded
+>
+> This doc describes the right panel as *"existing Workflow Artifact Viewer
+> with **ExecutionControlPanel**"*. **`ExecutionControlPanel` was built
+> (frontend/client/src/components/execution-control-panel.tsx) but is gated
+> behind `useUnifiedExecution={true}` on `<WorkflowArtifact>`. That prop
+> defaults to `false` at `workflow-artifact.tsx:160` and is not overridden
+> by any caller in `frontend/client/src/`. The panel does not render in
+> production today.**
+>
+> The actively-rendered execution UI lives in
+> `frontend/client/src/components/nextflow-workflow-viewer.tsx` — phase
+> cards, per-phase QC blocks (className `qc-block`, testid
+> `qc-edit-toggle-*`), and the event-driven `qc-gate-inline` /
+> `qc-report-panel`. Tests and design discussions should target that
+> tree, not `ExecutionControlPanel`, until somebody flips the
+> `useUnifiedExecution` flag and ships it.
+>
+> Forward-looking sections of this doc that assume `ExecutionControlPanel`
+> is rendered are aspirational, not current state. Confirmed by the HT-1
+> E2E investigation in `frontend/e2e/hts-workflows-ux-e2e.e2e.ts:350-385`
+> and commit `7e5d392cd` ("test(ht-1): retarget QC assertion to the UI
+> that actually renders").
+
 **Date:** 2026-03-10  
 **Design Direction:** Claude-style chat stream with a task list at the bottom,
 workflow execution panel on the left, stop button at the chat box.
