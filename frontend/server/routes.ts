@@ -4920,7 +4920,7 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         const claudeCall = async (userPrompt: string): Promise<string> => {
           const msg = await claudeClient.messages.create({
             model: 'claude-sonnet-4-5',
-            max_tokens: 1200,
+            max_tokens: 4096,
             system: SYSTEM,
             messages: [{ role: 'user', content: userPrompt }],
           });
