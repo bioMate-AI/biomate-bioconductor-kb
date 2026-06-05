@@ -269,11 +269,19 @@ async function fetchFindings(page: Page, runId: string, token: string): Promise<
 }
 
 async function fetchMethodsReport(page: Page, runId: string, token: string): Promise<{ status: number; chars: number }> {
-  const res = await page.request.get(`${BASE_URL}/api/invocations/${runId}/methods-report`, {
-    headers: { "x-e2e-test-token": E2E_TOKEN, Authorization: `Bearer ${token}` },
-  });
-  const txt = await res.text().catch(() => "");
-  return { status: res.status(), chars: txt.length };
+  // Retry on transient 502 — Node frontend can be momentarily restarting
+  // while still healthy from a sync.
+  let last: { status: number; chars: number } = { status: 0, chars: 0 };
+  for (let i = 0; i < 4; i++) {
+    const res = await page.request.get(`${BASE_URL}/api/invocations/${runId}/methods-report`, {
+      headers: { "x-e2e-test-token": E2E_TOKEN, Authorization: `Bearer ${token}` },
+    });
+    const txt = await res.text().catch(() => "");
+    last = { status: res.status(), chars: txt.length };
+    if (last.status === 200 && last.chars >= 1500) return last;
+    await page.waitForTimeout(5000);
+  }
+  return last;
 }
 
 async function clickDownloadAndCaptureBytes(page: Page): Promise<number | null> {
@@ -292,7 +300,9 @@ async function clickDownloadAndCaptureBytes(page: Page): Promise<number | null> 
 
 async function listOutputPreviewChips(page: Page): Promise<number> {
   return page.evaluate(() => {
-    return document.querySelectorAll('[data-testid^="output-preview-"], [data-testid^="phase-output-file-"]').length;
+    // The viewer renders each step output as a `.output-file` span (see
+    // nextflow-workflow-viewer.tsx ~line 691). data-testid is not set per-file.
+    return document.querySelectorAll('.output-file').length;
   });
 }
 
@@ -354,11 +364,19 @@ async function runFullDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     record(a, "any-phase-completed", sawCompleted);
     if (sawCompleted) await shot(page, a, "06_phase_completed");
 
-    // ── 9. Findings endpoint ──
-    const findings = await fetchFindings(page, runId, auth.token);
+    // ── 9. Findings endpoint — poll up to 90s while backend's async LLM analysis runs.
+    // Backend returns {status:"pending"} immediately after run completion and only
+    // emits real content once HallucinationDetector / finding_reporter has run.
+    let findings = await fetchFindings(page, runId, auth.token);
+    let findingsBody = JSON.stringify(findings.body ?? {});
+    let hasRealContent = findingsBody.length > 200 && !/"status"\s*:\s*"pending"/.test(findingsBody);
+    for (let i = 0; !hasRealContent && i < 9; i++) {
+      await page.waitForTimeout(10_000);
+      findings = await fetchFindings(page, runId, auth.token);
+      findingsBody = JSON.stringify(findings.body ?? {});
+      hasRealContent = findingsBody.length > 200 && !/"status"\s*:\s*"pending"/.test(findingsBody);
+    }
     record(a, "findings-endpoint-200", findings.status === 200, `HTTP ${findings.status}`);
-    const findingsBody = JSON.stringify(findings.body ?? {});
-    const hasRealContent = findingsBody.length > 200 && !/^\{"status":"pending"/.test(findingsBody);
     record(a, "findings-has-content", hasRealContent, `body=${findingsBody.slice(0, 80)}`);
 
     // ── 10. Methods report ──
@@ -367,14 +385,18 @@ async function runFullDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     record(a, "methods-report-200", report.status === 200, `HTTP ${report.status}`);
     record(a, `methods-report-≥${spec.expectedReportMinChars}c`, report.chars >= spec.expectedReportMinChars, `${report.chars} chars`);
 
-    // ── 11. Download button works ──
-    await page.waitForTimeout(2000);
-    const bytes = await clickDownloadAndCaptureBytes(page);
+    // ── 11. Download button + output chips. Backend lists S3 outputs lazily;
+    // give it up to ~60s after sawCompleted before declaring failure. Poll both
+    // in one loop so we count the last observed (best) values.
+    let bytes: number | null = null;
+    let chips = 0;
+    for (let i = 0; i < 6 && (bytes == null || bytes <= 0) && chips === 0; i++) {
+      await page.waitForTimeout(10_000);
+      bytes = await clickDownloadAndCaptureBytes(page);
+      chips = await listOutputPreviewChips(page);
+    }
     a.downloadedBytes = bytes;
     record(a, "download-button-fires", bytes != null && bytes > 0, bytes ? `${bytes} bytes` : "no download");
-
-    // ── 12. Output preview chips ──
-    const chips = await listOutputPreviewChips(page);
     record(a, "output-preview-chips-render", chips > 0, `${chips} chips`);
     await shot(page, a, "07_final_state");
 
