@@ -474,10 +474,18 @@ def dock_one_conformer(
 def aggregate_ensemble(
     baseline: dict[str, Any],
     conformer_records: list[dict[str, Any]],
+    *,
+    deposit_only: bool = True,
 ) -> dict[str, Any]:
     smiles_list = baseline["smiles_list"]
     baseline_by = baseline["by_smiles"]
     compounds: list[dict[str, Any]] = []
+
+    usable = [
+        r
+        for r in conformer_records
+        if r.get("by_smiles") and (not deposit_only or r.get("deposit_id"))
+    ]
 
     for sm in smiles_list:
         base_aff = baseline_by.get(sm)
@@ -485,7 +493,7 @@ def aggregate_ensemble(
         best_aff: float | None = None
         best_label: str | None = None
 
-        for rec in conformer_records:
+        for rec in usable:
             label = rec["label"]
             by_sm = rec.get("by_smiles") or {}
             aff = by_sm.get(sm)
@@ -521,6 +529,8 @@ def aggregate_ensemble(
     return {
         "n_compounds": len(compounds),
         "n_improved_vs_baseline": n_improved,
+        "n_conformers_used": len(usable),
+        "deposit_only": deposit_only,
         "best_compound": best_overall,
         "compounds": compounds,
     }

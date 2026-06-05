@@ -91,6 +91,6 @@ python3 research/anti-virus/scripts/lookup_zinc_purchasability.py \
 ## Recommended upgrades (backlog)
 
 1. Re-download with **`zinc_id<TAB>smiles`** preserved in library manifest.
-2. Target-informed deck: pharmacophore filter on 9P3I + polar/lead-like ZINC query across multiple tranches.
+2. **Target-informed deck (done):** `zinc600_pharmacophore/` — antiviral-reference pharmacophore filter on the AAAC 600 → **91** compounds (`filter_zinc_library_pharmacophore.py`). Next: Vina dock filtered deck.
 3. Include reference actives + known hantavirus small molecules in every screen deck.
 4. Expand beyond one tranche when claiming “broader chemical space.”

@@ -1,7 +1,7 @@
 # ANDV publication campaign — tracked todos
 
 **Run:** `publication_20260528T223525Z`  
-**Last updated:** 2026-06-04  
+**Last updated:** 2026-06-05  
 **Scope:** compute-only (BioMate workflow demo)
 
 ---
@@ -16,7 +16,7 @@
 | **Plan A** | Git: commit Chile panel + science tiers + coverage | **Done** | this commit |
 | **Publication** | Manuscripts: **600** dock + **48.81%** Chile | **Done** | `MANUSCRIPT_ANDV_INHIBITOR_v1_2.md`, `MANUSCRIPT_PLAN_A_VACCINE_v1_1.md` |
 | **Inhibitor** | Refresh `compute_package` + science QC | **Done** | 600 docked; INH-01 lead; Z600-R1 backup |
-| **Inhibitor** | Ensemble ZINC600 top-5 prep | **Done** (prep) | `ZINC600_ENSEMBLE_TOP5_LAUNCH.md` — run when Galaxy up |
+| **Inhibitor** | Ensemble ZINC600 top-5 live | **Running** | `science_sprint/runs/20260605T025716Z/track_inh_ensemble/` |
 | **Inhibitor** | ZINC purchasability top-5 | **Done** | `zinc600_library.tsv` + multi-backend lookup |
 | **Plan A** | FigA4 + FigA8 regen | **Done** | `manuscript_figures_v1/plan_a/` |
 
@@ -38,12 +38,13 @@
 | Task | Priority | Notes |
 |------|----------|-------|
 | Z600-R1 pose QC complete | **Done** | PASS 0.26 nm; INH-01 remains primary lead |
-| Ensemble dock ZINC600 top-5 | P1 | Launch manifest ready — Galaxy API required |
+| Ensemble dock ZINC600 top-5 | **Done** | `20260605T025716Z` + `reconcile_ensemble_docking.py` |
+| Pharmacophore-filter AAAC → dock | P1 | `zinc600_pharmacophore_filtered.smi` (91 cmpds) |
 | ZINC purchasability IDs (top 5) | **Done** | `zinc600_library.tsv` + multi-backend lookup |
 | SynCraft / retrosynthesis | P2 | Workflow stub today |
 | REINVENT4 from INH-01 seed | P3 | Last run: 0 retained |
 | MM-GBSA recalibration | P3 | Aspirin control fails — do not rank by MM-GBSA |
-| Expand library beyond 600 | P3 | Filtered ZINC20 query |
+| Expand library beyond 600 | P2 | Pharmacophore deck started (`zinc600_pharmacophore/`) |
 
 ---
 
