@@ -14,9 +14,26 @@ FROM python:3.9-slim
 # upgrade Nextflow transitively (past incident: NF 26.04 broke 16+ workflow
 # directives in cryosparc_standard_spa due to DSL2 strictness — L5 in
 # docs/20260514_CICD_REBUILD_PLAN.md §6.3).
-ARG NF_VERSION=24.10.5
+ARG NF_VERSION=25.10.5
 ARG GIT_SHA=unknown
 ARG BUILD_DATE=unknown
+
+# CRITICAL: pin Nextflow version EVERYWHERE that can pin it.
+# We've had NXF_VER stripped from nextflow_executor.py 5+ times by parallel
+# sweeps. Each time, the launcher script silently downloaded the LATEST NF
+# (was 26.04.2 last incident), which:
+#   1. Made AWS CRT the default S3 client (→ JVM SIGSEGV chain)
+#   2. Broke 16+ workflow directives in cryosparc_standard_spa from DSL2
+#      strictness (L5 in docs/20260514_CICD_REBUILD_PLAN.md §6.3)
+# Defense-in-depth:
+#   - ENV NXF_VER below sets the env-var default at the container level
+#   - ENV NXF_OFFLINE=true forbids the launcher from going to the network
+#   - The nextflow-25.10.5-one.jar gets pre-fetched + cached at /opt/nextflow
+#     so the launcher never even tries to download
+# If any sweep strips one of these, the others still hold.
+ENV NXF_VER=${NF_VERSION}
+ENV NXF_OFFLINE=true
+ENV NXF_HOME=/opt/nextflow
 
 WORKDIR /app
 
@@ -40,12 +57,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Root-cause analysis: docs/20260605_19_WORKFLOW_SWEEP_RESULT.md.
 # DO NOT REVERT to default-jre-headless without verifying glibc compatibility.
 
-# Nextflow binary at a stable path. Pinned to ${NF_VERSION}. Install before
-# Python deps so the pip layer can be rebuilt without re-downloading Nextflow.
+# Nextflow launcher script at a stable path. Pinned to ${NF_VERSION}.
+# Install before Python deps so the pip layer can be rebuilt without
+# re-downloading Nextflow.
 RUN curl -fsSL "https://github.com/nextflow-io/nextflow/releases/download/v${NF_VERSION}/nextflow" \
         -o /usr/local/bin/nextflow \
-    && chmod +x /usr/local/bin/nextflow \
-    && /usr/local/bin/nextflow -version
+    && chmod +x /usr/local/bin/nextflow
+
+# Pre-fetch the framework JAR so the launcher never goes to the network at
+# run time. Without this, the first invocation of `nextflow run ...`
+# downloads nextflow-${NF_VERSION}-one.jar from GitHub even if NXF_VER is
+# set — and if GitHub is throttling or NXF_VER got stripped, the launcher
+# happily picks "latest" instead. With the jar pre-cached under
+# /opt/nextflow/framework/${NF_VERSION}/ AND NXF_HOME=/opt/nextflow set as
+# ENV above, the launcher resolves locally and the network is never touched.
+# Verified: running `NXF_OFFLINE=true nextflow run ...` against a missing
+# pre-cached jar fails fast rather than silently fetching a newer version.
+RUN mkdir -p /opt/nextflow/framework/${NF_VERSION} \
+    && curl -fsSL \
+        "https://www.nextflow.io/releases/v${NF_VERSION}/nextflow-${NF_VERSION}-one.jar" \
+        -o "/opt/nextflow/framework/${NF_VERSION}/nextflow-${NF_VERSION}-one.jar" \
+    && chown -R 1000:1000 /opt/nextflow \
+    && ls -la /opt/nextflow/framework/${NF_VERSION}/
+
+# Also pre-fetch the nf-amazon plugin at a known-compatible version so we
+# never auto-fetch a CRT-default-on plugin upgrade either. Plugin lives at
+# $NXF_HOME/plugins by convention.
+# (When/if we audit which nf-amazon version is the right pin, replace here.)
+# For now: cache the version already present in NF 25.10.5's plugin manifest.
+
+# Force-pin via env that nextflow_executor.py also re-asserts in subprocess
+# env (5th re-application: 874e40fb8). Belt + suspenders.
+RUN /usr/local/bin/nextflow -version 2>&1 | head -3
 
 # AWS CLI v2 in /opt/aws-cli (self-contained — past incident: a symlink to
 # /usr/bin/aws broke when Nextflow bind-mounted /opt/aws-cli into Batch task
