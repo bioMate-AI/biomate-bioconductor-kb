@@ -565,6 +565,37 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
             return steps
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
+        # Strategy 0: explicit documented step header (Bioconductor single-process
+        # workflows run one R script; their meaningful steps are the documented
+        # analysis stages, emitted as "//  * N. [Phase] Step name"). Authoritative
+        # when the "// Steps:" marker is present.
+        if "// Steps:" in content:
+            doc_steps = re.findall(
+                r'^\s*//\s*\*\s*(\d+)\.\s*(?:\[([^\]]+)\]\s*)?(.+?)\s*$',
+                content, re.MULTILINE)
+            if doc_steps:
+                phase_order: list = []
+                for _n, _ph, _nm in doc_steps:
+                    p = (_ph or "").strip()
+                    if p and p not in phase_order:
+                        phase_order.append(p)
+                letters = {p: chr(ord('A') + i) for i, p in enumerate(phase_order)}
+                for num, phase, name in doc_steps:
+                    i = int(num) - 1
+                    nm = name.strip()
+                    p = (phase or "").strip()
+                    letter = letters.get(p, 'A')
+                    steps[str(i)] = {
+                        "id": str(i), "name": nm,
+                        "tool_id": re.sub(r'[^A-Za-z0-9]+', '_', nm.upper()).strip('_'),
+                        "annotation": nm, "description": "", "type": "tool",
+                        "parameters": {}, "inputs": {},
+                        "phase_group": letter,
+                        "phase_label": (f"Phase {letter} — {p}" if p else ""),
+                    }
+                if steps:
+                    return steps
+
         # Strategy 1: `process NAME {` definitions — the authoritative source.
         # In Nextflow, a `process` is a discrete computational unit (one container,
         # one job on Batch). Comments document intent; they do not define execution.
