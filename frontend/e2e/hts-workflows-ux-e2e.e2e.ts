@@ -387,7 +387,12 @@ test.describe("HT-1 HTS Plate QC Hit Calling — full journey", () => {
       if (!ran) { finalStatus = "skip_no_run_btn"; return; }
       screenshots.push(await shot(page, "HT1_06_after_execute"));
 
-      finalStatus = await waitForTerminalStatus(page, 240_000);
+      // 240s was too tight: AWS Batch HTS runs vary 200–500s depending on
+      // queue depth + Spot allocation. A 460s run was correctly reported
+      // 'running' but tripped the 240s ceiling and got recorded as 'timeout'
+      // (commit 17bc2d2bc investigation). 600s gives realistic headroom
+      // while keeping the test under 12 min total.
+      finalStatus = await waitForTerminalStatus(page, 600_000);
       screenshots.push(await shot(page, `HT1_07_terminal_${finalStatus}`));
       assertions.push({ name: "Run reached terminal state", passed: finalStatus !== "timeout", note: finalStatus });
 
