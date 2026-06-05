@@ -10881,10 +10881,9 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
-          // maxTokens raised from 2048 → 8192: Gemini 3.5 Flash thinking
-          // tokens count against maxOutputTokens. At 2048 the model spent
-          // ~1800 on thinking and truncated the JSON mid-string, breaking
-          // JSON.parse and leaving the user with empty key_results forever.
+          // maxTokens 2048 → 8192: gives headroom even if the model spends
+          // tokens on internal reasoning (Gemini docs are vague about when
+          // this happens for Flash). Cheap insurance against truncation.
           const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
             system: SYSTEM,
@@ -10893,10 +10892,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
           });
           try {
             const cleanText = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-            // Truncation guard: a too-short response is almost certainly
-            // truncated JSON. Don't try to parse it — surface the failure.
-            if (cleanText.length < 100 || (cleanText.startsWith('{') && !cleanText.trimEnd().endsWith('}'))) {
-              throw new Error(`findings synthesis returned truncated/invalid JSON (${cleanText.length} chars)`);
+            // Truncation guard — only reject when the input is obviously
+            // unclosed JSON. Don't gate on length (valid small responses
+            // like `{"summary":"OK","key_results":[]}` would be rejected).
+            if (cleanText.startsWith('{') && !cleanText.trimEnd().endsWith('}')) {
+              throw new Error(`findings synthesis returned truncated JSON (${cleanText.length} chars, unclosed)`);
             }
             let parsed = JSON.parse(cleanText);
             // Handle Gemini double-wrapping: model puts entire analysis in "summary" field.
