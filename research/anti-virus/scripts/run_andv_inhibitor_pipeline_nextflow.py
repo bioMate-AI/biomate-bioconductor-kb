@@ -453,14 +453,15 @@ def build_parameters_for_step(
             smiles = '["CC(=O)OC1=CC=CC=C1C(=O)O"]'
         return {"smiles_list": smiles, "ADMET_model_type": "MPNN"}
     if spec.key == "docking_vina":
-        smiles = smiles_json_from_pharmacophore_filtered(manifest_steps)
-        if smiles is None:
-            if not args.smiles_json:
+        if args.smiles_json:
+            smiles = args.smiles_json
+        else:
+            smiles = smiles_json_from_pharmacophore_filtered(manifest_steps)
+            if smiles is None:
                 raise ValueError(
                     "docking_vina requires --smiles-json when no pharmacophore "
                     "filtered_compounds.smi is available in the manifest"
                 )
-            smiles = args.smiles_json
         center = None
         box_size = [22.0, 22.0, 22.0]
         resolved = resolve_pocket_box(manifest_steps, args, require_box=True)

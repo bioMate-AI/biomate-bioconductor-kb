@@ -1,0 +1,1564 @@
+{
+  "success": true,
+  "function": "docking_autodock_vina",
+  "domain": "pharmacology",
+  "results": [
+    {
+      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "best_affinity_kcal_mol": -5.54,
+      "all_affinities": [
+        -5.54,
+        -5.523,
+        -5.406,
+        -5.39,
+        -5.38,
+        -5.368,
+        -5.224,
+        -5.18,
+        -5.117
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_000.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NC(=O)c1nccnc1N",
+      "best_affinity_kcal_mol": -6.208,
+      "all_affinities": [
+        -6.208,
+        -5.786,
+        -5.609,
+        -5.459,
+        -5.311,
+        -5.238,
+        -5.176,
+        -5.084,
+        -5.082
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_001.pdbqt"
+    },
+    {
+      "smiles": "C[C@](N)(CO)c1nn[nH]n1",
+      "best_affinity_kcal_mol": -4.759,
+      "all_affinities": [
+        -4.759,
+        -4.639,
+        -4.523,
+        -4.521,
+        -4.506,
+        -4.315,
+        -4.147,
+        -4.109,
+        -4.001
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_002.pdbqt"
+    },
+    {
+      "smiles": "NC1=N[C@@H](O)N=CN1",
+      "best_affinity_kcal_mol": -4.56,
+      "all_affinities": [
+        -4.56,
+        -4.418,
+        -4.287,
+        -4.229,
+        -4.226,
+        -4.108,
+        -4.053,
+        -3.995,
+        -3.887
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_003.pdbqt"
+    },
+    {
+      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "best_affinity_kcal_mol": -5.675,
+      "all_affinities": [
+        -5.675,
+        -5.486,
+        -5.369,
+        -5.328,
+        -5.288,
+        -5.21,
+        -5.169,
+        -5.155,
+        -5.148
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_004.pdbqt"
+    },
+    {
+      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+      "best_affinity_kcal_mol": -5.871,
+      "all_affinities": [
+        -5.871,
+        -5.421,
+        -5.329,
+        -5.306,
+        -5.276,
+        -5.273,
+        -4.737,
+        -4.606,
+        -4.597
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_005.pdbqt"
+    },
+    {
+      "smiles": "NC1=C[C@@](N)(Cl)NC(N)=N1",
+      "best_affinity_kcal_mol": -5.18,
+      "all_affinities": [
+        -5.18,
+        -4.992,
+        -4.911,
+        -4.853,
+        -4.841,
+        -4.807,
+        -4.767,
+        -4.637,
+        -4.567
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_006.pdbqt"
+    },
+    {
+      "smiles": "NCC(=O)Nc1nccnn1",
+      "best_affinity_kcal_mol": -4.4,
+      "all_affinities": [
+        -4.4,
+        -4.349,
+        -4.254,
+        -4.246,
+        -4.161,
+        -4.023,
+        -4.019,
+        -3.963,
+        -3.779
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_007.pdbqt"
+    },
+    {
+      "smiles": "NCCn1oc(=O)nc1O",
+      "best_affinity_kcal_mol": -4.313,
+      "all_affinities": [
+        -4.313,
+        -4.297,
+        -4.245,
+        -4.102,
+        -3.951,
+        -3.925,
+        -3.863,
+        -3.847,
+        -3.845
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_008.pdbqt"
+    },
+    {
+      "smiles": "Cn1nnc([C@@H]2CNCCO2)n1",
+      "best_affinity_kcal_mol": -4.982,
+      "all_affinities": [
+        -4.982,
+        -4.673,
+        -4.546,
+        -4.456,
+        -4.397,
+        -4.325,
+        -4.277,
+        -4.225,
+        -4.062
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_009.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NCP(=O)(O)O",
+      "best_affinity_kcal_mol": -4.859,
+      "all_affinities": [
+        -4.859,
+        -4.652,
+        -4.63,
+        -4.311,
+        -4.303,
+        -4.293,
+        -4.277,
+        -4.27,
+        -4.263
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_010.pdbqt"
+    },
+    {
+      "smiles": "NC1=N[C@H](O)N=CN1",
+      "best_affinity_kcal_mol": -4.295,
+      "all_affinities": [
+        -4.295,
+        -4.251,
+        -4.151,
+        -4.147,
+        -4.138,
+        -4.135,
+        -4.051,
+        -4.011,
+        -3.965
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_011.pdbqt"
+    },
+    {
+      "smiles": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "best_affinity_kcal_mol": -5.449,
+      "all_affinities": [
+        -5.449,
+        -5.381,
+        -5.366,
+        -5.276,
+        -5.201,
+        -5.134,
+        -5.081,
+        -5.042,
+        -4.873
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_012.pdbqt"
+    },
+    {
+      "smiles": "CC(=O)Nn1cc(F)c(=O)[nH]c1=O",
+      "best_affinity_kcal_mol": -5.289,
+      "all_affinities": [
+        -5.289,
+        -4.909,
+        -4.806,
+        -4.8,
+        -4.694,
+        -4.69,
+        -4.572,
+        -4.532,
+        -4.518
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_013.pdbqt"
+    },
+    {
+      "smiles": "N[C@@H](Cn1ncnn1)C(=O)O",
+      "best_affinity_kcal_mol": -4.527,
+      "all_affinities": [
+        -4.527,
+        -4.485,
+        -4.436,
+        -4.324,
+        -4.23,
+        -4.108,
+        -4.016,
+        -3.917,
+        -3.893
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_014.pdbqt"
+    },
+    {
+      "smiles": "Nc1c[n+]([O-])cc(CO)n1",
+      "best_affinity_kcal_mol": -4.671,
+      "all_affinities": [
+        -4.671,
+        -4.524,
+        -4.323,
+        -4.297,
+        -4.184,
+        -4.028,
+        -3.99,
+        -3.963,
+        -3.958
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_015.pdbqt"
+    },
+    {
+      "smiles": "N#CN(CO)C(=N)N",
+      "best_affinity_kcal_mol": -4.199,
+      "all_affinities": [
+        -4.199,
+        -4.185,
+        -4.161,
+        -4.14,
+        -4.047,
+        -4.018,
+        -4.002,
+        -3.926,
+        -3.908
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_016.pdbqt"
+    },
+    {
+      "smiles": "NC1=C[C@](N)(Cl)NC(N)=N1",
+      "best_affinity_kcal_mol": -5.013,
+      "all_affinities": [
+        -5.013,
+        -4.963,
+        -4.849,
+        -4.734,
+        -4.668,
+        -4.666,
+        -4.623,
+        -4.59,
+        -4.537
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_017.pdbqt"
+    },
+    {
+      "smiles": "N[C@H](Cc1c[nH]oc1=O)C(=O)O",
+      "best_affinity_kcal_mol": -4.709,
+      "all_affinities": [
+        -4.709,
+        -4.691,
+        -4.681,
+        -4.679,
+        -4.646,
+        -4.485,
+        -4.478,
+        -4.431,
+        -4.382
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_018.pdbqt"
+    },
+    {
+      "smiles": "NC1=NC(=O)C2=N[C@H](O)CNC2=N1",
+      "best_affinity_kcal_mol": -5.831,
+      "all_affinities": [
+        -5.831,
+        -5.79,
+        -5.528,
+        -5.52,
+        -5.358,
+        -5.341,
+        -5.319,
+        -5.211,
+        -5.063
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_019.pdbqt"
+    },
+    {
+      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O",
+      "best_affinity_kcal_mol": -5.825,
+      "all_affinities": [
+        -5.825,
+        -5.556,
+        -5.521,
+        -5.505,
+        -5.421,
+        -5.362,
+        -5.33,
+        -5.18,
+        -5.173
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_020.pdbqt"
+    },
+    {
+      "smiles": "C[C@H]1CN=c2nc(N)[nH]c(=O)c2=N1",
+      "best_affinity_kcal_mol": -5.445,
+      "all_affinities": [
+        -5.445,
+        -5.397,
+        -5.389,
+        -5.246,
+        -5.243,
+        -5.241,
+        -5.231,
+        -5.139,
+        -5.013
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_021.pdbqt"
+    },
+    {
+      "smiles": "CN1CCN(C(=N)N(C)N)CC1",
+      "best_affinity_kcal_mol": -5.209,
+      "all_affinities": [
+        -5.209,
+        -5.041,
+        -4.622,
+        -4.61,
+        -4.305,
+        -4.277,
+        -4.275,
+        -4.131
+      ],
+      "n_poses": 8,
+      "pose_file": "docking_poses/pose_022.pdbqt"
+    },
+    {
+      "smiles": "NC1=NC(=O)[C@H](N)C(=O)N1",
+      "best_affinity_kcal_mol": -4.787,
+      "all_affinities": [
+        -4.787,
+        -4.782,
+        -4.775,
+        -4.678,
+        -4.609,
+        -4.591,
+        -4.548,
+        -4.502,
+        -4.444
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_023.pdbqt"
+    },
+    {
+      "smiles": "Cn1nnnc1[C@@H]1CNCCO1",
+      "best_affinity_kcal_mol": -4.618,
+      "all_affinities": [
+        -4.618,
+        -4.525,
+        -4.493,
+        -4.36,
+        -4.333,
+        -4.281,
+        -4.242,
+        -4.21,
+        -4.097
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_024.pdbqt"
+    },
+    {
+      "smiles": "CNCN(C=O)C(N)=S",
+      "best_affinity_kcal_mol": -3.979,
+      "all_affinities": [
+        -3.979,
+        -3.833,
+        -3.789,
+        -3.75,
+        -3.748,
+        -3.743,
+        -3.65,
+        -3.645,
+        -3.554
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_025.pdbqt"
+    },
+    {
+      "smiles": "CN1CCN(C(=S)NN)CC1",
+      "best_affinity_kcal_mol": -4.908,
+      "all_affinities": [
+        -4.908,
+        -4.787,
+        -4.749,
+        -4.706,
+        -4.638,
+        -4.586,
+        -4.252,
+        -4.213,
+        -4.168
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_026.pdbqt"
+    },
+    {
+      "smiles": "Nn1cnc(C(=O)O)n1",
+      "best_affinity_kcal_mol": -4.339,
+      "all_affinities": [
+        -4.339,
+        -4.241,
+        -4.207,
+        -4.061,
+        -4.052,
+        -4.013,
+        -3.817,
+        -3.691,
+        -3.673
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_027.pdbqt"
+    },
+    {
+      "smiles": "Cn1c(=O)[nH]c(=O)c2[nH]c(=O)n(C)c21",
+      "best_affinity_kcal_mol": -5.395,
+      "all_affinities": [
+        -5.395,
+        -5.178,
+        -5.178,
+        -5.16,
+        -5.051,
+        -4.97,
+        -4.92,
+        -4.83,
+        -4.711
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_028.pdbqt"
+    },
+    {
+      "smiles": "NC(=S)NCO",
+      "best_affinity_kcal_mol": -3.867,
+      "all_affinities": [
+        -3.867,
+        -3.653,
+        -3.639,
+        -3.612,
+        -3.383,
+        -3.366,
+        -3.324,
+        -3.283,
+        -3.25
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_029.pdbqt"
+    },
+    {
+      "smiles": "NCc1cnn(CCO)c1N",
+      "best_affinity_kcal_mol": -4.775,
+      "all_affinities": [
+        -4.775,
+        -4.711,
+        -4.566,
+        -4.458,
+        -4.412,
+        -4.404,
+        -4.302,
+        -4.201,
+        -4.18
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_030.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)c1c[nH]c(C(N)=O)n1",
+      "best_affinity_kcal_mol": -5.52,
+      "all_affinities": [
+        -5.52,
+        -4.895,
+        -4.844,
+        -4.669,
+        -4.502,
+        -4.47,
+        -4.45,
+        -4.425,
+        -4.42
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_031.pdbqt"
+    },
+    {
+      "smiles": "NS(=O)(=O)Cn1nnnc1S",
+      "best_affinity_kcal_mol": -4.291,
+      "all_affinities": [
+        -4.291,
+        -4.211,
+        -4.033,
+        -4.026,
+        -3.939,
+        -3.814,
+        -3.732,
+        -3.7,
+        -3.665
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_032.pdbqt"
+    },
+    {
+      "smiles": "CN(CC(N)=O)C(=N)N",
+      "best_affinity_kcal_mol": -4.573,
+      "all_affinities": [
+        -4.573,
+        -4.557,
+        -4.385,
+        -4.28,
+        -4.207,
+        -4.143,
+        -4.11,
+        -4.049,
+        -4.008
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_033.pdbqt"
+    },
+    {
+      "smiles": "O=c1[nH]c(O)nnc1CO",
+      "best_affinity_kcal_mol": -4.67,
+      "all_affinities": [
+        -4.67,
+        -4.561,
+        -4.509,
+        -4.425,
+        -4.416,
+        -4.394,
+        -4.281,
+        -4.228,
+        -4.037
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_034.pdbqt"
+    },
+    {
+      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1",
+      "best_affinity_kcal_mol": -5.731,
+      "all_affinities": [
+        -5.731,
+        -5.634,
+        -5.488,
+        -5.313,
+        -5.276,
+        -5.24,
+        -5.229,
+        -5.203,
+        -5.199
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_035.pdbqt"
+    },
+    {
+      "smiles": "Nc1cc(=O)[nH]c(CO)n1",
+      "best_affinity_kcal_mol": -4.713,
+      "all_affinities": [
+        -4.713,
+        -4.712,
+        -4.654,
+        -4.559,
+        -4.421,
+        -4.346,
+        -4.333,
+        -4.13,
+        -4.127
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_036.pdbqt"
+    },
+    {
+      "smiles": "[O-][n+]1cc(CO)ncc1CO",
+      "best_affinity_kcal_mol": -4.778,
+      "all_affinities": [
+        -4.778,
+        -4.614,
+        -4.53,
+        -4.414,
+        -4.382,
+        -4.263,
+        -4.254,
+        -4.198,
+        -4.189
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_037.pdbqt"
+    },
+    {
+      "smiles": "NC1=CNC(=S)N[C@@]1(N)O",
+      "best_affinity_kcal_mol": -5.13,
+      "all_affinities": [
+        -5.13,
+        -4.88,
+        -4.869,
+        -4.803,
+        -4.787,
+        -4.669,
+        -4.472,
+        -4.339,
+        -4.266
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_038.pdbqt"
+    },
+    {
+      "smiles": "N#CN(C=O)C(=N)N",
+      "best_affinity_kcal_mol": -4.067,
+      "all_affinities": [
+        -4.067,
+        -4.026,
+        -3.956,
+        -3.845,
+        -3.7,
+        -3.699,
+        -3.65,
+        -3.623,
+        -3.559
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_039.pdbqt"
+    },
+    {
+      "smiles": "NC1=CNC(=S)N[C@]1(N)O",
+      "best_affinity_kcal_mol": -5.059,
+      "all_affinities": [
+        -5.059,
+        -4.842,
+        -4.829,
+        -4.729,
+        -4.719,
+        -4.705,
+        -4.632,
+        -4.395,
+        -4.301
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_040.pdbqt"
+    },
+    {
+      "smiles": "N=C(NCC(=O)O)NP(=O)(O)O",
+      "best_affinity_kcal_mol": -5.185,
+      "all_affinities": [
+        -5.185,
+        -4.966,
+        -4.93,
+        -4.843,
+        -4.732,
+        -4.694,
+        -4.692,
+        -4.531,
+        -4.51
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_041.pdbqt"
+    },
+    {
+      "smiles": "C[n+]1cncc(C[C@H](N)C(=O)O)c1",
+      "best_affinity_kcal_mol": -5.083,
+      "all_affinities": [
+        -5.083,
+        -4.967,
+        -4.849,
+        -4.809,
+        -4.645,
+        -4.602,
+        -4.493,
+        -4.39,
+        -4.379
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_042.pdbqt"
+    },
+    {
+      "smiles": "C1=N[C@@H]2NC=N[C@@H]2C(n2cncn2)=N1",
+      "best_affinity_kcal_mol": -5.14,
+      "all_affinities": [
+        -5.14,
+        -5.131,
+        -4.947,
+        -4.918,
+        -4.856,
+        -4.8,
+        -4.667,
+        -4.509,
+        -4.37
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_043.pdbqt"
+    },
+    {
+      "smiles": "C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1",
+      "best_affinity_kcal_mol": -5.912,
+      "all_affinities": [
+        -5.912,
+        -5.828,
+        -5.606,
+        -5.408,
+        -5.363,
+        -5.324,
+        -5.173,
+        -5.166,
+        -5.078
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_044.pdbqt"
+    },
+    {
+      "smiles": "Nc1nc(=O)[nH]c2[nH]c(=O)cnc12",
+      "best_affinity_kcal_mol": -5.759,
+      "all_affinities": [
+        -5.759,
+        -5.491,
+        -5.487,
+        -5.35,
+        -5.113,
+        -5.089,
+        -4.995,
+        -4.95,
+        -4.894
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_045.pdbqt"
+    },
+    {
+      "smiles": "NNC1=NC(=O)CC(O)=N1",
+      "best_affinity_kcal_mol": -5.082,
+      "all_affinities": [
+        -5.082,
+        -4.901,
+        -4.774,
+        -4.767,
+        -4.708,
+        -4.677,
+        -4.636,
+        -4.467,
+        -4.399
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_046.pdbqt"
+    },
+    {
+      "smiles": "Nn1ccc(=O)n(N)c1=O",
+      "best_affinity_kcal_mol": -4.612,
+      "all_affinities": [
+        -4.612,
+        -4.432,
+        -4.38,
+        -4.339,
+        -4.333,
+        -4.193,
+        -4.179,
+        -4.144,
+        -4.131
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_047.pdbqt"
+    },
+    {
+      "smiles": "O=c1cc(C(O)O)[nH]c(=O)[nH]1",
+      "best_affinity_kcal_mol": -5.275,
+      "all_affinities": [
+        -5.275,
+        -4.997,
+        -4.981,
+        -4.732,
+        -4.7,
+        -4.628,
+        -4.605,
+        -4.569,
+        -4.463
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_048.pdbqt"
+    },
+    {
+      "smiles": "C1COc2nc3c(nc2=N1)NON=3",
+      "best_affinity_kcal_mol": -5.45,
+      "all_affinities": [
+        -5.45,
+        -5.356,
+        -5.345,
+        -5.1,
+        -5.073,
+        -5.048,
+        -5.018,
+        -4.77,
+        -4.711
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_049.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)c1ccc(NCCO)nn1",
+      "best_affinity_kcal_mol": -5.349,
+      "all_affinities": [
+        -5.349,
+        -5.18,
+        -5.168,
+        -5.116,
+        -5.038,
+        -4.857,
+        -4.746,
+        -4.676,
+        -4.644
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_050.pdbqt"
+    },
+    {
+      "smiles": "NN1NC(=O)c2[nH]cnc2N1",
+      "best_affinity_kcal_mol": -5.567,
+      "all_affinities": [
+        -5.567,
+        -5.558,
+        -5.429,
+        -5.096,
+        -5.073,
+        -5.01,
+        -4.96,
+        -4.943,
+        -4.815
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_051.pdbqt"
+    },
+    {
+      "smiles": "Nc1c[nH]c(=O)c[n+]1[O-]",
+      "best_affinity_kcal_mol": -4.261,
+      "all_affinities": [
+        -4.261,
+        -4.253,
+        -4.204,
+        -4.078,
+        -4.033,
+        -4.029,
+        -3.969,
+        -3.955,
+        -3.789
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_052.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)c1noc(N)n1",
+      "best_affinity_kcal_mol": -4.405,
+      "all_affinities": [
+        -4.405,
+        -4.342,
+        -4.165,
+        -4.152,
+        -4.086,
+        -4.071,
+        -4.055,
+        -4.027,
+        -3.874
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_053.pdbqt"
+    },
+    {
+      "smiles": "CNC(=O)c1no[n+]([O-])c1C",
+      "best_affinity_kcal_mol": -4.378,
+      "all_affinities": [
+        -4.378,
+        -4.167,
+        -4.153,
+        -4.135,
+        -4.125,
+        -4.084,
+        -3.965,
+        -3.951,
+        -3.891
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_054.pdbqt"
+    },
+    {
+      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@H]1O",
+      "best_affinity_kcal_mol": -6.014,
+      "all_affinities": [
+        -6.014,
+        -5.736,
+        -5.47,
+        -5.468,
+        -5.466,
+        -5.262,
+        -5.205,
+        -5.162,
+        -4.886
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_055.pdbqt"
+    },
+    {
+      "smiles": "O=Cc1nnc(O)[nH]c1=O",
+      "best_affinity_kcal_mol": -4.551,
+      "all_affinities": [
+        -4.551,
+        -4.518,
+        -4.42,
+        -4.35,
+        -4.328,
+        -4.301,
+        -4.063,
+        -3.969,
+        -3.95
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_056.pdbqt"
+    },
+    {
+      "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
+      "best_affinity_kcal_mol": -6.275,
+      "all_affinities": [
+        -6.275,
+        -6.145,
+        -5.904,
+        -5.414,
+        -5.311,
+        -5.273,
+        -5.148,
+        -5.128,
+        -5.001
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_057.pdbqt"
+    },
+    {
+      "smiles": "NC1=NC(N)=NC(=O)C1",
+      "best_affinity_kcal_mol": -4.631,
+      "all_affinities": [
+        -4.631,
+        -4.488,
+        -4.487,
+        -4.376,
+        -4.37,
+        -4.337,
+        -4.271,
+        -4.236,
+        -4.101
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_058.pdbqt"
+    },
+    {
+      "smiles": "CN(N)C(=N)N1CCNCC1",
+      "best_affinity_kcal_mol": -4.961,
+      "all_affinities": [
+        -4.961,
+        -4.894,
+        -4.618,
+        -4.6,
+        -4.571,
+        -4.536,
+        -4.513,
+        -4.499,
+        -4.2
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_059.pdbqt"
+    },
+    {
+      "smiles": "C[n+]1cncc(C[C@@H](N)C(=O)O)c1",
+      "best_affinity_kcal_mol": -5.06,
+      "all_affinities": [
+        -5.06,
+        -5.01,
+        -4.927,
+        -4.887,
+        -4.791,
+        -4.579,
+        -4.472,
+        -4.458,
+        -4.396
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_060.pdbqt"
+    },
+    {
+      "smiles": "Cn1nc(O)n(-c2cc[nH]n2)c1=O",
+      "best_affinity_kcal_mol": -5.185,
+      "all_affinities": [
+        -5.185,
+        -5.159,
+        -5.04,
+        -5.037,
+        -4.902,
+        -4.762,
+        -4.745,
+        -4.737,
+        -4.681
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_061.pdbqt"
+    },
+    {
+      "smiles": "C1=N[C@H]2NC=N[C@H]2C(n2cncn2)=N1",
+      "best_affinity_kcal_mol": -5.537,
+      "all_affinities": [
+        -5.537,
+        -5.18,
+        -5.115,
+        -5.007,
+        -4.837,
+        -4.808,
+        -4.803,
+        -4.734,
+        -4.569
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_062.pdbqt"
+    },
+    {
+      "smiles": "Nc1n[nH]c2c1C(=O)NC2=O",
+      "best_affinity_kcal_mol": -5.107,
+      "all_affinities": [
+        -5.107,
+        -5.073,
+        -4.994,
+        -4.908,
+        -4.879,
+        -4.804,
+        -4.714,
+        -4.659,
+        -4.638
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_063.pdbqt"
+    },
+    {
+      "smiles": "Cn1nnc([C@H]2CNCCO2)n1",
+      "best_affinity_kcal_mol": -4.752,
+      "all_affinities": [
+        -4.752,
+        -4.651,
+        -4.553,
+        -4.45,
+        -4.186,
+        -4.153,
+        -4.15,
+        -4.001,
+        -3.978
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_064.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
+      "best_affinity_kcal_mol": -6.527,
+      "all_affinities": [
+        -6.527,
+        -6.499,
+        -6.153,
+        -6.057,
+        -5.991,
+        -5.979,
+        -5.822,
+        -5.706,
+        -5.531
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_065.pdbqt"
+    },
+    {
+      "smiles": "Cn1c(C(N)=O)c[n+]([O-])cc1=O",
+      "best_affinity_kcal_mol": -4.733,
+      "all_affinities": [
+        -4.733,
+        -4.723,
+        -4.653,
+        -4.581,
+        -4.53,
+        -4.501,
+        -4.342,
+        -4.326,
+        -4.26
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_066.pdbqt"
+    },
+    {
+      "smiles": "Cc1n[nH]c(=O)n1CO",
+      "best_affinity_kcal_mol": -4.116,
+      "all_affinities": [
+        -4.116,
+        -4.073,
+        -4.029,
+        -3.882,
+        -3.876,
+        -3.842,
+        -3.809,
+        -3.808,
+        -3.792
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_067.pdbqt"
+    },
+    {
+      "smiles": "O=c1[nH]c(=O)c2[nH]c[n+]([O-])c2[nH]1",
+      "best_affinity_kcal_mol": -5.337,
+      "all_affinities": [
+        -5.337,
+        -5.077,
+        -5.05,
+        -4.88,
+        -4.756,
+        -4.752,
+        -4.667,
+        -4.667,
+        -4.528
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_068.pdbqt"
+    },
+    {
+      "smiles": "Nc1n[nH]nc1NC=O",
+      "best_affinity_kcal_mol": -4.432,
+      "all_affinities": [
+        -4.432,
+        -4.355,
+        -4.204,
+        -4.187,
+        -4.152,
+        -4.144,
+        -4.112,
+        -3.936,
+        -3.798
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_069.pdbqt"
+    },
+    {
+      "smiles": "CN(C)[n+]1noc(O)c1C#N",
+      "best_affinity_kcal_mol": -4.479,
+      "all_affinities": [
+        -4.479,
+        -4.321,
+        -4.259,
+        -4.232,
+        -4.224,
+        -4.186,
+        -4.105,
+        -3.962,
+        -3.885
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_070.pdbqt"
+    },
+    {
+      "smiles": "Nc1nc(=O)c2[nH]cnc2n1N",
+      "best_affinity_kcal_mol": -5.245,
+      "all_affinities": [
+        -5.245,
+        -5.04,
+        -5.005,
+        -4.985,
+        -4.974,
+        -4.875,
+        -4.869,
+        -4.847,
+        -4.745
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_071.pdbqt"
+    },
+    {
+      "smiles": "CN(N)c1c/c(=N/N)nc[nH]1",
+      "best_affinity_kcal_mol": -5.291,
+      "all_affinities": [
+        -5.291,
+        -5.084,
+        -4.789,
+        -4.634,
+        -4.56,
+        -4.542,
+        -4.506,
+        -4.45,
+        -4.43
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_072.pdbqt"
+    },
+    {
+      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
+      "best_affinity_kcal_mol": -6.099,
+      "all_affinities": [
+        -6.099,
+        -5.913,
+        -5.451,
+        -5.318,
+        -5.265,
+        -5.231,
+        -5.051,
+        -4.947,
+        -4.882
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_073.pdbqt"
+    },
+    {
+      "smiles": "CN[C@H]1NN[C@H](S(N)(=O)=O)S1",
+      "best_affinity_kcal_mol": -5.105,
+      "all_affinities": [
+        -5.105,
+        -5.026,
+        -4.914,
+        -4.899,
+        -4.761,
+        -4.691,
+        -4.64,
+        -4.599,
+        -4.5
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_074.pdbqt"
+    },
+    {
+      "smiles": "CN[C@@H]1NN[C@@H](S(N)(=O)=O)S1",
+      "best_affinity_kcal_mol": -5.179,
+      "all_affinities": [
+        -5.179,
+        -4.861,
+        -4.836,
+        -4.55,
+        -4.445,
+        -4.425,
+        -4.289,
+        -4.16,
+        -4.135
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_075.pdbqt"
+    },
+    {
+      "smiles": "C[C@@H]1CN=c2nc(N)[nH]c(=O)c2=N1",
+      "best_affinity_kcal_mol": -5.443,
+      "all_affinities": [
+        -5.443,
+        -5.39,
+        -5.228,
+        -5.2,
+        -5.102,
+        -4.995,
+        -4.988,
+        -4.899,
+        -4.588
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_076.pdbqt"
+    },
+    {
+      "smiles": "Cn1c(=O)c2c(ncn2O)n(C)c1=O",
+      "best_affinity_kcal_mol": -5.258,
+      "all_affinities": [
+        -5.258,
+        -5.056,
+        -5.047,
+        -4.984,
+        -4.857,
+        -4.701,
+        -4.495,
+        -4.44,
+        -4.383
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_077.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NCCCO",
+      "best_affinity_kcal_mol": -4.18,
+      "all_affinities": [
+        -4.18,
+        -4.035,
+        -3.947,
+        -3.914,
+        -3.91,
+        -3.866,
+        -3.769,
+        -3.766,
+        -3.701
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_078.pdbqt"
+    },
+    {
+      "smiles": "C1=CNC=c2cncnc2=N1",
+      "best_affinity_kcal_mol": -4.785,
+      "all_affinities": [
+        -4.785,
+        -4.537,
+        -4.509,
+        -4.407,
+        -4.404,
+        -4.356,
+        -4.2,
+        -4.168,
+        -3.982
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_079.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)c1c[nH]c(=O)[nH]c1=O",
+      "best_affinity_kcal_mol": -4.974,
+      "all_affinities": [
+        -4.974,
+        -4.971,
+        -4.955,
+        -4.873,
+        -4.749,
+        -4.716,
+        -4.656,
+        -4.505,
+        -4.311
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_080.pdbqt"
+    },
+    {
+      "smiles": "CN1c2nc[nH]c2C(=O)N[C@@H]1O",
+      "best_affinity_kcal_mol": -5.335,
+      "all_affinities": [
+        -5.335,
+        -5.167,
+        -5.137,
+        -5.043,
+        -4.997,
+        -4.811,
+        -4.787,
+        -4.759,
+        -4.74
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_081.pdbqt"
+    },
+    {
+      "smiles": "C[C@H]1[C@@H](N)C(=O)N1c1nnn[nH]1",
+      "best_affinity_kcal_mol": -5.022,
+      "all_affinities": [
+        -5.022,
+        -5.011,
+        -4.839,
+        -4.702,
+        -4.655,
+        -4.623,
+        -4.52,
+        -4.31,
+        -4.211
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_082.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NN1CCN(CCO)CC1",
+      "best_affinity_kcal_mol": -5.326,
+      "all_affinities": [
+        -5.326,
+        -5.193,
+        -5.057,
+        -5.048,
+        -4.994,
+        -4.97,
+        -4.918,
+        -4.71,
+        -4.68
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_083.pdbqt"
+    },
+    {
+      "smiles": "Nc1nc(N)c(N)[n+]([O-])c1N",
+      "best_affinity_kcal_mol": -5.094,
+      "all_affinities": [
+        -5.094,
+        -5.013,
+        -4.915,
+        -4.839,
+        -4.833,
+        -4.76,
+        -4.699,
+        -4.683,
+        -4.579
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_084.pdbqt"
+    },
+    {
+      "smiles": "N=C(N)NC(=O)NC(=N)N",
+      "best_affinity_kcal_mol": -6.065,
+      "all_affinities": [
+        -6.065,
+        -5.969,
+        -5.952,
+        -5.909,
+        -5.447,
+        -5.433,
+        -5.05,
+        -5.047,
+        -4.983
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_085.pdbqt"
+    },
+    {
+      "smiles": "C[C@H]1NNC(=S)NC1=O",
+      "best_affinity_kcal_mol": -4.612,
+      "all_affinities": [
+        -4.612,
+        -4.502,
+        -4.259,
+        -4.21,
+        -3.956,
+        -3.89,
+        -3.876,
+        -3.794,
+        -3.727
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_086.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)c1ncc(O)nc1C(N)=O",
+      "best_affinity_kcal_mol": -5.359,
+      "all_affinities": [
+        -5.359,
+        -5.348,
+        -5.265,
+        -5.168,
+        -5.116,
+        -5.066,
+        -5.024,
+        -4.999,
+        -4.89
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_087.pdbqt"
+    },
+    {
+      "smiles": "NCCn1cnnc1N",
+      "best_affinity_kcal_mol": -4.211,
+      "all_affinities": [
+        -4.211,
+        -4.135,
+        -3.908,
+        -3.893,
+        -3.889,
+        -3.874,
+        -3.842,
+        -3.798,
+        -3.69
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_088.pdbqt"
+    },
+    {
+      "smiles": "CC(=O)Nc1ncn([C@@H](O)CO)n1",
+      "best_affinity_kcal_mol": -4.752,
+      "all_affinities": [
+        -4.752,
+        -4.724,
+        -4.713,
+        -4.581,
+        -4.57,
+        -4.554,
+        -4.385,
+        -4.336,
+        -4.272
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_089.pdbqt"
+    },
+    {
+      "smiles": "NC1=N[C@@H](C(=O)O)NN1",
+      "best_affinity_kcal_mol": -5.116,
+      "all_affinities": [
+        -5.116,
+        -4.929,
+        -4.678,
+        -4.66,
+        -4.629,
+        -4.536,
+        -4.502,
+        -4.397,
+        -4.354
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_090.pdbqt"
+    }
+  ],
+  "n_ligands_docked": 91,
+  "best_score_kcal_mol": -6.527,
+  "log": "  Receptor PDB trimmed to search box (+ 8 A pad): 1458 ATOM/HETATM records (large assemblies -> tractable PDBQT)\nStep 1: Preparing receptor receptor_staged.pdb\n  Receptor PDBQT written (136800 bytes)\nStep 2: Box center=(173.607,208.847,174.042) size=(22.0,22.0,22.0)\n        Exhaustiveness=8, CPUs=4, poses=9\n\nStep 3.1: Docking N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.54 kcal/mol\n  Done.\n\nStep 3.2: Docking N=C(N)NC(=O)c1nccnc1N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -6.208 kcal/mol\n  Done.\n\nStep 3.3: Docking C[C@](N)(CO)c1nn[nH]n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.759 kcal/mol\n  Done.\n\nStep 3.4: Docking NC1=N[C@@H](O)N=CN1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.56 kcal/mol\n  Done.\n\nStep 3.5: Docking Nc1oc2c(N)[n+]([O-])n(O)c2c1O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.675 kcal/mol\n  Done.\n\nStep 3.6: Docking CNC1=NC(N)=C2NCCN=C2N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.871 kcal/mol\n  Done.\n\nStep 3.7: Docking NC1=C[C@@](N)(Cl)NC(N)=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.18 kcal/mol\n  Done.\n\nStep 3.8: Docking NCC(=O)Nc1nccnn1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.4 kcal/mol\n  Done.\n\nStep 3.9: Docking NCCn1oc(=O)nc1O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.313 kcal/mol\n  Done.\n\nStep 3.10: Docking Cn1nnc([C@@H]2CNCCO2)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.982 kcal/mol\n  Done.\n\nStep 3.11: Docking N=C(N)NCP(=O)(O)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.859 kcal/mol\n  Done.\n\nStep 3.12: Docking NC1=N[C@H](O)N=CN1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.295 kcal/mol\n  Done.\n\nStep 3.13: Docking O=C1NC(=O)c2[nH]c(=O)c(O)nc21\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.449 kcal/mol\n  Done.\n\nStep 3.14: Docking CC(=O)Nn1cc(F)c(=O)[nH]c1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.289 kcal/mol\n  Done.\n\nStep 3.15: Docking N[C@@H](Cn1ncnn1)C(=O)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.527 kcal/mol\n  Done.\n\nStep 3.16: Docking Nc1c[n+]([O-])cc(CO)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.671 kcal/mol\n  Done.\n\nStep 3.17: Docking N#CN(CO)C(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.199 kcal/mol\n  Done.\n\nStep 3.18: Docking NC1=C[C@](N)(Cl)NC(N)=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.013 kcal/mol\n  Done.\n\nStep 3.19: Docking N[C@H](Cc1c[nH]oc1=O)C(=O)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.709 kcal/mol\n  Done.\n\nStep 3.20: Docking NC1=NC(=O)C2=N[C@H](O)CNC2=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.831 kcal/mol\n  Done.\n\nStep 3.21: Docking O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.825 kcal/mol\n  Done.\n\nStep 3.22: Docking C[C@H]1CN=c2nc(N)[nH]c(=O)c2=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.445 kcal/mol\n  Done.\n\nStep 3.23: Docking CN1CCN(C(=N)N(C)N)CC1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.209 kcal/mol\n  Done.\n\nStep 3.24: Docking NC1=NC(=O)[C@H](N)C(=O)N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.787 kcal/mol\n  Done.\n\nStep 3.25: Docking Cn1nnnc1[C@@H]1CNCCO1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.618 kcal/mol\n  Done.\n\nStep 3.26: Docking CNCN(C=O)C(N)=S\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -3.979 kcal/mol\n  Done.\n\nStep 3.27: Docking CN1CCN(C(=S)NN)CC1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.908 kcal/mol\n  Done.\n\nStep 3.28: Docking Nn1cnc(C(=O)O)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.339 kcal/mol\n  Done.\n\nStep 3.29: Docking Cn1c(=O)[nH]c(=O)c2[nH]c(=O)n(C)c21\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.395 kcal/mol\n  Done.\n\nStep 3.30: Docking NC(=S)NCO\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -3.867 kcal/mol\n  Done.\n\nStep 3.31: Docking NCc1cnn(CCO)c1N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.775 kcal/mol\n  Done.\n\nStep 3.32: Docking NC(=O)c1c[nH]c(C(N)=O)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.52 kcal/mol\n  Done.\n\nStep 3.33: Docking NS(=O)(=O)Cn1nnnc1S\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.291 kcal/mol\n  Done.\n\nStep 3.34: Docking CN(CC(N)=O)C(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.573 kcal/mol\n  Done.\n\nStep 3.35: Docking O=c1[nH]c(O)nnc1CO\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.67 kcal/mol\n  Done.\n\nStep 3.36: Docking C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.731 kcal/mol\n  Done.\n\nStep 3.37: Docking Nc1cc(=O)[nH]c(CO)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.713 kcal/mol\n  Done.\n\nStep 3.38: Docking [O-][n+]1cc(CO)ncc1CO\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.778 kcal/mol\n  Done.\n\nStep 3.39: Docking NC1=CNC(=S)N[C@@]1(N)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.13 kcal/mol\n  Done.\n\nStep 3.40: Docking N#CN(C=O)C(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.067 kcal/mol\n  Done.\n\nStep 3.41: Docking NC1=CNC(=S)N[C@]1(N)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.059 kcal/mol\n  Done.\n\nStep 3.42: Docking N=C(NCC(=O)O)NP(=O)(O)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.185 kcal/mol\n  Done.\n\nStep 3.43: Docking C[n+]1cncc(C[C@H](N)C(=O)O)c1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.083 kcal/mol\n  Done.\n\nStep 3.44: Docking C1=N[C@@H]2NC=N[C@@H]2C(n2cncn2)=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.14 kcal/mol\n  Done.\n\nStep 3.45: Docking C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.912 kcal/mol\n  Done.\n\nStep 3.46: Docking Nc1nc(=O)[nH]c2[nH]c(=O)cnc12\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.759 kcal/mol\n  Done.\n\nStep 3.47: Docking NNC1=NC(=O)CC(O)=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.082 kcal/mol\n  Done.\n\nStep 3.48: Docking Nn1ccc(=O)n(N)c1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.612 kcal/mol\n  Done.\n\nStep 3.49: Docking O=c1cc(C(O)O)[nH]c(=O)[nH]1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.275 kcal/mol\n  Done.\n\nStep 3.50: Docking C1COc2nc3c(nc2=N1)NON=3\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.45 kcal/mol\n  Done.\n\nStep 3.51: Docking NC(=O)c1ccc(NCCO)nn1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.349 kcal/mol\n  Done.\n\nStep 3.52: Docking NN1NC(=O)c2[nH]cnc2N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.567 kcal/mol\n  Done.\n\nStep 3.53: Docking Nc1c[nH]c(=O)c[n+]1[O-]\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.261 kcal/mol\n  Done.\n\nStep 3.54: Docking NC(=O)c1noc(N)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.405 kcal/mol\n  Done.\n\nStep 3.55: Docking CNC(=O)c1no[n+]([O-])c1C\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.378 kcal/mol\n  Done.\n\nStep 3.56: Docking O=C1Nc2c[nH]c(=O)nc2N[C@H]1O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -6.014 kcal/mol\n  Done.\n\nStep 3.57: Docking O=Cc1nnc(O)[nH]c1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.551 kcal/mol\n  Done.\n\nStep 3.58: Docking Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -6.275 kcal/mol\n  Done.\n\nStep 3.59: Docking NC1=NC(N)=NC(=O)C1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.631 kcal/mol\n  Done.\n\nStep 3.60: Docking CN(N)C(=N)N1CCNCC1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.961 kcal/mol\n  Done.\n\nStep 3.61: Docking C[n+]1cncc(C[C@@H](N)C(=O)O)c1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.06 kcal/mol\n  Done.\n\nStep 3.62: Docking Cn1nc(O)n(-c2cc[nH]n2)c1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.185 kcal/mol\n  Done.\n\nStep 3.63: Docking C1=N[C@H]2NC=N[C@H]2C(n2cncn2)=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.537 kcal/mol\n  Done.\n\nStep 3.64: Docking Nc1n[nH]c2c1C(=O)NC2=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.107 kcal/mol\n  Done.\n\nStep 3.65: Docking Cn1nnc([C@H]2CNCCO2)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.752 kcal/mol\n  Done.\n\nStep 3.66: Docking N=C(N)NC(=O)NC(=O)NC(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -6.527 kcal/mol\n  Done.\n\nStep 3.67: Docking Cn1c(C(N)=O)c[n+]([O-])cc1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.733 kcal/mol\n  Done.\n\nStep 3.68: Docking Cc1n[nH]c(=O)n1CO\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.116 kcal/mol\n  Done.\n\nStep 3.69: Docking O=c1[nH]c(=O)c2[nH]c[n+]([O-])c2[nH]1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.337 kcal/mol\n  Done.\n\nStep 3.70: Docking Nc1n[nH]nc1NC=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.432 kcal/mol\n  Done.\n\nStep 3.71: Docking CN(C)[n+]1noc(O)c1C#N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.479 kcal/mol\n  Done.\n\nStep 3.72: Docking Nc1nc(=O)c2[nH]cnc2n1N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.245 kcal/mol\n  Done.\n\nStep 3.73: Docking CN(N)c1c/c(=N/N)nc[nH]1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.291 kcal/mol\n  Done.\n\nStep 3.74: Docking C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -6.099 kcal/mol\n  Done.\n\nStep 3.75: Docking CN[C@H]1NN[C@H](S(N)(=O)=O)S1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.105 kcal/mol\n  Done.\n\nStep 3.76: Docking CN[C@@H]1NN[C@@H](S(N)(=O)=O)S1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.179 kcal/mol\n  Done.\n\nStep 3.77: Docking C[C@@H]1CN=c2nc(N)[nH]c(=O)c2=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.443 kcal/mol\n  Done.\n\nStep 3.78: Docking Cn1c(=O)c2c(ncn2O)n(C)c1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.258 kcal/mol\n  Done.\n\nStep 3.79: Docking N=C(N)NCCCO\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.18 kcal/mol\n  Done.\n\nStep 3.80: Docking C1=CNC=c2cncnc2=N1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.785 kcal/mol\n  Done.\n\nStep 3.81: Docking NC(=O)c1c[nH]c(=O)[nH]c1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.974 kcal/mol\n  Done.\n\nStep 3.82: Docking CN1c2nc[nH]c2C(=O)N[C@@H]1O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.335 kcal/mol\n  Done.\n\nStep 3.83: Docking C[C@H]1[C@@H](N)C(=O)N1c1nnn[nH]1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.022 kcal/mol\n  Done.\n\nStep 3.84: Docking N=C(N)NN1CCN(CCO)CC1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.326 kcal/mol\n  Done.\n\nStep 3.85: Docking Nc1nc(N)c(N)[n+]([O-])c1N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.094 kcal/mol\n  Done.\n\nStep 3.86: Docking N=C(N)NC(=O)NC(=N)N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -6.065 kcal/mol\n  Done.\n\nStep 3.87: Docking C[C@H]1NNC(=S)NC1=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.612 kcal/mol\n  Done.\n\nStep 3.88: Docking NC(=O)c1ncc(O)nc1C(N)=O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.359 kcal/mol\n  Done.\n\nStep 3.89: Docking NCCn1cnnc1N\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.211 kcal/mol\n  Done.\n\nStep 3.90: Docking CC(=O)Nc1ncn([C@@H](O)CO)n1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -4.752 kcal/mol\n  Done.\n\nStep 3.91: Docking NC1=N[C@@H](C(=O)O)NN1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -5.116 kcal/mol\n  Done.",
+  "submitted_at": "2026-06-05T04:06:22.780692+00:00",
+  "step_suffix": "pharm_20260605T040128Z",
+  "n_compounds": 91,
+  "run_id": "bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+  "s3_library": "s3://biomate-nextflow-work/inputs/andv_campaign/zinc600_pharmacophore/20260605T040128Z/library.smi",
+  "returncode": 0,
+  "status": "completed",
+  "completed_at": "2026-06-05T04:06:22.780946+00:00"
+}

@@ -24,6 +24,9 @@ _Generated: 2026-06-05T03:27:37.286477Z_
 - `match_report.tsv` — full 600-row screen
 - `pharmacophore_model.json` — feature model from references
 
-## Next step
+## Vina results (2026-06-05)
 
-Dock `zinc600_pharmacophore_filtered.smi` with the same 9P3I box as ZINC600 (compare hit rates and chemotype overlap vs unfiltered AAAC).
+- **91/91** docked on 9P3I rigid (`vina/docking_autodock_vina_results.json`)
+- Top hit: **−6.527** kcal/mol (same SMILES as ZINC600 #1)
+- **INH-01** rank **3/91** at **−6.208** kcal/mol (raw AAAC dock **−6.267**)
+- Summary: `vina/ZINC_PHARMACOPHORE_VINA_SUMMARY.md`
