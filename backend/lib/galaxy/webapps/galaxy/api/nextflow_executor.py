@@ -145,13 +145,15 @@ def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str,
                 f"{desired_nxf_ver}. The hard pin exists because NF 26.04 makes AWS "
                 f"CRT the default S3 client and crashes the JVM in this glibc/JDK combo."
             )
-    # Also forbid the launcher from going to the network at all. If the
-    # framework jar is missing, fail fast rather than silently downloading
-    # whatever GitHub returns for "latest".
-    clean["NXF_OFFLINE"] = "true"
-    # NXF_HOME points at the pre-cached jar location baked into the Galaxy
-    # container image (backend/Dockerfile pre-fetches the jar there).
-    clean.setdefault("NXF_HOME", "/opt/nextflow")
+    # NOTE: NXF_OFFLINE=true is intentionally NOT set here. The per-run code
+    # path (search for `env["NXF_HOME"] = str(log_dir / ".nextflow")`) gives
+    # each run its own NXF_HOME, where no framework jar is pre-staged. Setting
+    # NXF_OFFLINE=true would make the launcher refuse to download → every run
+    # fails. NXF_OFFLINE only becomes safe when the Dockerfile pre-bakes the
+    # framework jar AND NXF_HOME points there at run time. That requires an
+    # image rebuild + NXF_HOME plumbing change — out of scope until then.
+    # The NXF_VER pin above is sufficient: launcher still downloads but at
+    # least it downloads the right version (25.10.5) and not the latest.
     return clean
 
 
@@ -3545,6 +3547,28 @@ def execute_nextflow(
     # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
     env = _sanitize_subprocess_env()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
+
+    # Plugin pre-warm. DO NOT REVERT — without this, each run starts with an
+    # empty {NXF_HOME}/plugins dir and Nextflow attempts to download nf-amazon
+    # at startup. The download fails on the dev EC2 (FileMutex lock contention
+    # + intermittent registry timeouts), Nextflow exits returncode=1 before
+    # submitting Phase A. Pre-seed from the image-baked shared cache.
+    # See docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
+    _nxf_shared = Path("/app/.nextflow-shared")
+    if _nxf_shared.is_dir():
+        import shutil as _shutil
+        _run_nf_home = log_dir / ".nextflow"
+        for _src_name in ("plugins", "framework"):
+            _src = _nxf_shared / _src_name
+            _dst = _run_nf_home / _src_name
+            if _src.is_dir() and not _dst.exists():
+                try:
+                    _dst.parent.mkdir(parents=True, exist_ok=True)
+                    _shutil.copytree(str(_src), str(_dst))
+                except Exception as _e:
+                    log.warning("[Nextflow run %s] plugin pre-warm copy failed for %s: %s", run_id, _src_name, _e)
+
+
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
     # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.

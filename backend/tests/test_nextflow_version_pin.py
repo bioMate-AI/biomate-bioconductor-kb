@@ -47,22 +47,14 @@ def test_executor_pins_nxf_ver():
     )
 
 
-def test_executor_forces_offline_mode():
-    text = EXECUTOR.read_text()
-    assert 'clean["NXF_OFFLINE"] = "true"' in text, (
-        "NXF_OFFLINE=true was stripped from _sanitize_subprocess_env(). "
-        "Without it, the Nextflow launcher will fetch a newer framework jar "
-        "over the network even when NXF_VER is set. Restore the line."
-    )
-
-
-def test_executor_sets_nxf_home():
-    text = EXECUTOR.read_text()
-    assert 'clean.setdefault("NXF_HOME"' in text, (
-        "NXF_HOME default was stripped from _sanitize_subprocess_env(). "
-        "Without it, the launcher looks in the calling user's home (often "
-        "missing on Galaxy container) and falls back to network fetch."
-    )
+# NOTE: tests for NXF_OFFLINE and NXF_HOME defaults in _sanitize_subprocess_env
+# were removed. They were premature — the per-run code path overrides NXF_HOME
+# to a per-run dir that has no pre-staged jar. With NXF_OFFLINE=true that means
+# every run fails (launcher refuses to download). NXF_OFFLINE only becomes
+# safe once the Dockerfile pre-bakes the framework jar AND the per-run NXF_HOME
+# is wired to find it. Both pieces ship together or not at all. The Dockerfile
+# tests below still assert the ENV NXF_OFFLINE for the eventual image-rebuild
+# path, but the runtime assertions are deferred.
 
 
 def test_dockerfile_pins_nf_version():
