@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "run_id": "bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+  "invocation_id": "731da0c0-d455-4dde-9e59-0f7a2d2b9076",
+  "status": "running",
+  "outputs": {
+    "outdir": "s3://biomate-nextflow-work/nextflow/outputs/zinc-pharm-20260605/e3d92172"
+  },
+  "runtime": {
+    "mode": "docker",
+    "image": "biomate/biotools:comprehensive",
+    "entry": null,
+    "required_modules": [
+      "tempfile"
+    ],
+    "missing_modules": [],
+    "host_arch": "arm64",
+    "image_arch": "arm64",
+    "cross_arch_allowed": "false"
+  },
+  "message": "Nextflow workflow started (run_id: bee7b6fd-dd9b-448d-bd36-83d30d17782e)"
+}

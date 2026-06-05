@@ -94,7 +94,7 @@
       "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf",
       "run_id": "28fd9a07-a31d-4ba8-a8e1-e49dc8abb777",
       "status": "succeeded",
-      "status_detail": "MD succeeded (CPU); MM-GBSA ΔG_bind −10.49±0.46 kcal/mol (ECR v1.2.0, job ffc49896)",
+      "status_detail": "MD succeeded (CPU); MM-GBSA \u0394G_bind \u221210.49\u00b10.46 kcal/mol (ECR v1.2.0, job ffc49896)",
       "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/05_gromacs_mmgbsa_inh01",
       "s3_outdir": "s3://biomate-nextflow-work/nextflow/outputs/parallel-inhibitor-20260513T032000Z/d64daac1",
       "ligand_smiles": "N=C(N)NC(=O)c1nccnc1N",
@@ -153,9 +153,27 @@
         "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/top_compounds.csv",
         "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/06_reinvent4/validated_input.json"
       ]
+    },
+    {
+      "key": "docking_vina_pharm_20260605T035510Z",
+      "title": "AutoDock Vina docking",
+      "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf",
+      "run_id": "4ef5236d-d6cf-4981-b492-cdfbbe42691d",
+      "status": "succeeded",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina_pharm_20260605T035510Z",
+      "downloaded_files": []
+    },
+    {
+      "key": "docking_vina_pharm_20260605T040128Z",
+      "title": "AutoDock Vina docking",
+      "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf",
+      "run_id": "bee7b6fd-dd9b-448d-bd36-83d30d17782e",
+      "status": "succeeded",
+      "artifact_dir": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/04_docking_vina_pharm_20260605T040128Z",
+      "downloaded_files": []
     }
   ],
-  "resumed_at": "2026-05-14T03:00:24.243882+00:00",
+  "resumed_at": "2026-06-05T04:01:30.021949+00:00",
   "manifest_resynced_utc": "2026-06-03T00:00:00+00:00",
-  "manifest_resync_note": "INH-01 MM-GBSA complete 2026-06-02 (ΔG_bind −10.49 kcal/mol). gromacs_protein_md MM_GBSA process aligned with standalone script. Aspirin prep-only."
+  "manifest_resync_note": "INH-01 MM-GBSA complete 2026-06-02 (\u0394G_bind \u221210.49 kcal/mol). gromacs_protein_md MM_GBSA process aligned with standalone script. Aspirin prep-only."
 }
