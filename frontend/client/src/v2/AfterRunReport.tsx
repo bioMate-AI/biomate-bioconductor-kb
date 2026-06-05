@@ -439,22 +439,50 @@ function useFetchFindings(runId: string): FindingsData | null {
   useEffect(() => {
     if (!runId) return;
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const start = Date.now();
-    const poll = async () => {
+
+    // Phase 4: route through async job system. The handler server-polls
+    // /api/workflows/runs/:id/findings until status=ready (5-min cap),
+    // then writes the JSON as the artifact. Dedup means N tabs on the
+    // same run trigger one Claude call. 24h cache means re-open is
+    // <500ms instead of 5–60s.
+    (async () => {
       try {
-        const r = await fetch(`/api/workflows/runs/${runId}/findings`, { credentials: "include" });
-        if (!r.ok || cancelled) return;
-        const j: FindingsData = await r.json();
-        if (cancelled) return;
-        setData(j);
-        if (j.status === "pending" && Date.now() - start < 60_000) {
-          timer = setTimeout(poll, 5000);
+        const enq = await fetch("/api/jobs", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "findings_analysis", payload: { runId } }),
+        });
+        if (!enq.ok || cancelled) return;
+        const job = await enq.json();
+        const jobId: string = job.jobId;
+
+        // Show "pending" while waiting so the UI distinguishes from "no data yet".
+        if (job.state !== "ready") setData({ status: "pending" });
+
+        for (let i = 0; i < 200; i++) {
+          if (cancelled) return;
+          if (i === 0 && job.state === "ready") break;
+          await new Promise((r) => setTimeout(r, i === 0 ? 500 : 2000));
+          const r = await fetch(`/api/jobs/${jobId}`, { credentials: "include" });
+          if (!r.ok || cancelled) break;
+          const j = await r.json();
+          if (j.state === "ready") break;
+          if (j.state === "failed" || j.state === "cancelled") {
+            if (!cancelled) setData({ status: "failed" });
+            return;
+          }
         }
+        if (cancelled) return;
+
+        const art = await fetch(`/api/jobs/${jobId}/artifact`, { credentials: "include" });
+        if (!art.ok || cancelled) return;
+        const payload = (await art.json()) as FindingsData;
+        if (!cancelled) setData(payload);
       } catch { /* ignore */ }
-    };
-    poll();
-    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+    })();
+
+    return () => { cancelled = true; };
   }, [runId]);
   return data;
 }
