@@ -299,10 +299,30 @@ async function clickDownloadAndCaptureBytes(page: Page): Promise<number | null> 
 }
 
 async function listOutputPreviewChips(page: Page): Promise<number> {
+  // Outputs surface in two places:
+  // (1) Per-phase `.step-outputs > .output-file` in the workflow viewer —
+  //     only when phase is expanded AND backend has populated processes[].task_files.
+  // (2) Run-level `chat-output-attachments` panel — driven by
+  //     nextflowStatus.s3_output_files, always rendered on completion.
+  // Expand all phase groups first so (1) gets a chance to mount.
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid^="phase-group-"] .phase-head').forEach(el => {
+      const phase = el.closest('[data-testid^="phase-group-"]');
+      if (phase && !phase.classList.contains('open')) (el as HTMLElement).click();
+    });
+  });
+  await page.waitForTimeout(500);
   return page.evaluate(() => {
-    // The viewer renders each step output as a `.output-file` span (see
-    // nextflow-workflow-viewer.tsx ~line 691). data-testid is not set per-file.
-    return document.querySelectorAll('.output-file').length;
+    const stepChips = document.querySelectorAll('.step-outputs .output-file').length;
+    if (stepChips > 0) return stepChips;
+    // Run-level fallback: count the "Outputs found" badge as 1 chip when the
+    // attachments panel reports outputs (its label flips from "No outputs yet"
+    // to "Outputs found" or "Partial outputs" — see chat-output-attachments
+    // outputState).
+    const badge = document.querySelector('[data-testid="output-result-state-badge"]');
+    const badgeText = (badge?.textContent || '').trim();
+    if (/Outputs found|Partial outputs/.test(badgeText)) return 1;
+    return 0;
   });
 }
 
@@ -341,8 +361,13 @@ async function runFullDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     }
     await shot(page, a, "03_form_prefilled");
 
-    // ── 5. Phase cards render ──
-    const phaseN = await countPhaseCards(page);
+    // ── 5. Phase cards render. The viewer lazy-loads phase groups from the
+    // backend's nextflow step parser; wait up to 30s for the expected count.
+    let phaseN = await countPhaseCards(page);
+    for (let i = 0; phaseN < spec.expectedPhaseCount && i < 30; i++) {
+      await page.waitForTimeout(1000);
+      phaseN = await countPhaseCards(page);
+    }
     a.phaseCount = phaseN;
     record(a, "phase-cards-render", phaseN >= spec.expectedPhaseCount, `got ${phaseN}, expected ≥${spec.expectedPhaseCount}`);
 
@@ -386,14 +411,14 @@ async function runFullDemo(page: Page, spec: DemoSpec): Promise<DemoAudit> {
     record(a, `methods-report-≥${spec.expectedReportMinChars}c`, report.chars >= spec.expectedReportMinChars, `${report.chars} chars`);
 
     // ── 11. Download button + output chips. Backend lists S3 outputs lazily;
-    // give it up to ~60s after sawCompleted before declaring failure. Poll both
-    // in one loop so we count the last observed (best) values.
+    // give each up to ~60s independently after sawCompleted. Stop polling each
+    // signal once it succeeds, but keep polling the other.
     let bytes: number | null = null;
     let chips = 0;
-    for (let i = 0; i < 6 && (bytes == null || bytes <= 0) && chips === 0; i++) {
+    for (let i = 0; i < 6 && ((bytes == null || bytes <= 0) || chips === 0); i++) {
       await page.waitForTimeout(10_000);
-      bytes = await clickDownloadAndCaptureBytes(page);
-      chips = await listOutputPreviewChips(page);
+      if (bytes == null || bytes <= 0) bytes = await clickDownloadAndCaptureBytes(page);
+      if (chips === 0) chips = await listOutputPreviewChips(page);
     }
     a.downloadedBytes = bytes;
     record(a, "download-button-fires", bytes != null && bytes > 0, bytes ? `${bytes} bytes` : "no download");
