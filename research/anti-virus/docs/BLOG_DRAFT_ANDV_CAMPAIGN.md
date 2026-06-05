@@ -54,6 +54,7 @@ Our own audit flagged a **chain-of-custody gap** on the demo inhibitor run: phar
 |-------|----------|----------|
 | Inhibitor (4-step triage) | `business/marketing/blog_posts/post_10_substack.md` | `business/marketing/blog_posts/post_10_linkedin.md` |
 | Plan A (epitopeprediction) | `business/marketing/blog_posts/post_11_substack.md` | `business/marketing/blog_posts/post_11_linkedin.md` |
+| Inhibitor ZINC tiering (600 blog → publication HTS) | `business/marketing/blog_posts/post_12_substack.md` | `business/marketing/blog_posts/post_12_linkedin.md` |
 
 ## Related internal paths
 

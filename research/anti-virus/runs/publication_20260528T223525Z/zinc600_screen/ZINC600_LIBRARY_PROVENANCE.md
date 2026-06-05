@@ -80,9 +80,16 @@ python3 research/anti-virus/scripts/lookup_zinc_purchasability.py \
 
 ---
 
+## Tier label
+
+| Tier | This deck |
+|------|-----------|
+| **Blog / methods demo** | **Yes** — workflow + provenance (see `post_12_substack.md`) |
+| **Publication primary HTS** | **No** — use `docs/PUBLICATION_ZINC_LIBRARY_DESIGN.md` (2k–5k multi-tranche) |
+
 ## Honest manuscript framing
 
-**Say:** “We screened a **600-compound subset** of the ZINC20 purchasable catalog (2D tranche AAAC) against the 9P3I pocket as a **methods-scale virtual screen**, not an exhaustive ZINC20 search or target-informed library design.”
+**Say:** “We screened a **600-compound methods pilot** (ZINC20 tranche AAAC) to validate the inhibitor funnel; publication HTS uses a separate multi-tranche, pharmacophore-filtered deck.”
 
 **Do not say:** “ZINC20 representative sample,” “ANDV-guided library,” or “ground-truth hit list” without experimental validation.
 

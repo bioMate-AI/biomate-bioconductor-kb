@@ -1,65 +1,48 @@
-# LinkedIn feed post — Post 12
+# LinkedIn feed post — Post 12 (600 = blog tier; professional HTS path)
 
-**Hero image:** `figures/post_12_context_stack.drawio.xml` exported as 1200×627 PNG.
+**Recommended hero image:** Two-lane diagram — left “600 AAAC blog pilot”, right “2–5k multi-tranche publication HTS” (1200×627 PNG).
 
-**Character count:** ~2,600 / 3,000.
-
-**Posting note:** When pasting into LinkedIn's composer, retype the `@` in front of each name below so LinkedIn auto-resolves the real profile (it won't resolve from pasted plain text).
+**Character count:** ~2,600 / 3,000 limit.
 
 ---
 
-@Jiazhen He @Ola Engkvist @Samuel Genheden and the AstraZeneca Molecular AI team just published "Democratising real-world drug discovery through agentic AI" in Drug Discovery Today (doi: 10.1016/j.drudis.2026.104605), describing their ChatInvent system.
+600 compounds docked is a great **demo**.
 
-They publicly named the five engineering problems agentic AI hits in real pharma R&D:
+It is not a **paper**.
 
-1️⃣ Context explosion
-2️⃣ Tool hallucination
-3️⃣ Schema mismatch
-4️⃣ Memory corruption
-5️⃣ Workflow instability
+On our ANDV glycoprotein inhibitor track (PDB 9P3I) we learned to separate tiers:
 
-This is the most useful AI-for-pharma disclosure I've seen this year. The biggest shift in the Agent era isn't "smarter models" — it's system stability.
+📰 **Blog / methods (600)**
+→ First 600 lines of ZINC20 tranche **AAAC** (~1k polar, fragment-like compounds)
+→ Proves BioMate funnel: pocket → pharmacophore → ADMET → Vina on AWS Batch
+→ Full provenance: ZINC substance IDs, manifest JSON, honest manuscript language
+→ **Not** “representative ZINC20” or “ANDV-guided library”
 
-Over the next five posts I'll walk through each problem with what we've built at BioMate.
+🔬 **Publication HTS (next: 2,000–5,000)**
+→ **Multi-tranche** union (ABAA, ABAB, ABAC, BBAA, BCAC — ~42k raw)
+→ RDKit drug-like gate + **antiviral-reference pharmacophore** *before* docking
+→ Reference actives + INH-01 always in deck
+→ Same 9P3I box; ~100 Batch jobs at 50 SMILES/job
 
-Starting with the one that breaks every prototype first: CONTEXT EXPLOSION.
+What the professional follow-on taught us:
 
-The naive setup looks fine on a demo. One query, one tool, one result.
+✅ Pharmacophore filter on the 600 → **91 pass** → **91/91 docked**  
+✅ Top Vina hits **unchanged** (same polar chemotypes)  
+✅ INH-01 still rank 3 — score ≠ lead without pose QC  
+✅ Ensemble: 4/5 “improved” but Δ ≤ 0.14 kcal/mol — sensitivity, not promotion  
 
-Then a real program comes in. RNA-seq → PBPK → ADMET → IND draft, across 30 turns, touching 2,455 workflows. The prompt balloons. The model loses the thread by turn 4. By turn 8 it's hallucinating tools.
+**Professional ≠ bigger adjectives.** It is tiering, manifests, and not upgrading a methods pilot into a discovery claim.
 
-You can't fix this with a longer context window. Long-context models get slower and dumber as the prompt grows.
+Two-agent pattern (Post 10): Planner routes workflows; Coach runs Batch and returns **artifact paths**, not green checkmarks.
 
-Architecture, not window size:
+Full workflow diagrams + tranche survey:
 
-🔹 DOMAIN-GATED RULES
-Classify intent first → inject only the 3–4 rules relevant to that domain. No 50K-token mega-prompt.
+[Substack link — Post 12]
 
-🔹 HYBRID RETRIEVAL
-BGE dense + Postgres FTS + named-anchor + LLM rerank. The 2,455-workflow catalog stays in the DB. Only top-K enters the prompt.
+Internal design doc: `PUBLICATION_ZINC_LIBRARY_DESIGN.md`
 
-🔹 LAZY STEP FETCHING
-Workflow steps + parameters are pulled on demand, after the user picks.
+Try the stack on your structures:
 
-🔹 EPISODE + CORRECTION MEMORY
-Long conversations compact into structured episodes. The distilled memory rides into new turns. The raw chat log doesn't.
+👉 biomate.ai/try
 
-The number that matters: P@1 of 0.742 on raw retrieval. The correct workflow is rank-1 three-quarters of the time before any LLM is even asked to pick.
-
-That's the difference between an agent that handles 2,455 workflows by thinking harder (it can't) and one that handles them by retrieving better (it can).
-
-📊 Benchmarks behind the architecture:
-✓ Routing v5: 84% exact, mean 0.875 (120 cases)
-✓ IR baseline: MRR 0.847, P@1 0.742, NDCG@3 0.920
-✓ Memory benchmark: 20/20 (recall, correction, temporal, synthesis, adversarial)
-✓ +45% vs GPT-4o no-injection baseline
-
-Open trial — bring a multi-turn program and watch the context-management work:
-
-👉 biomate.ai
-
-Full essay (with stack diagram + the five-post series): [Substack link]
-
-@Jiazhen He @Ola Engkvist @Samuel Genheden — would love your reaction on the context-management piece. We have a different bet on how to handle the 2,455-workflow catalog than ChatInvent and I'd value the pushback.
-
-#AIinPharma #DrugDiscovery #AgenticAI #LLM #Bioinformatics #AstraZeneca
+`#drugdiscovery` `#virtualscreening` `#zinc` `#reproducibility` `#agenticAI` `#hantavirus`
