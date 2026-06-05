@@ -129,12 +129,29 @@ def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str,
     # every subprocess env. Without this, the Nextflow launcher script
     # downloads whatever framework jar is current on JFrog at first invocation
     # (drifted from 25.10.5 to 26.04.2 between 2026-05-25 and 2026-06-01).
-    if "NXF_VER" not in clean:
-        clean["NXF_VER"] = "25.10.5"
-        log.warning(
-            "[Nextflow] NXF_VER missing from subprocess env — applying pin 25.10.5. "
-            "If you intentionally want a different version, set NXF_VER explicitly."
-        )
+    # Hard pin — always force the value, don't honour "user-supplied" overrides.
+    # We've had this stripped 5+ times by parallel-session sweeps; each time
+    # the launcher silently downloads NF 26.04.2 (the LATEST), which makes
+    # AWS CRT the default S3 client and crashes the JVM at FileTransfer/
+    # PublishDir. There is no legitimate reason for a different value in
+    # this codebase right now.
+    desired_nxf_ver = "25.10.5"
+    if clean.get("NXF_VER") != desired_nxf_ver:
+        prior = clean.get("NXF_VER", "<unset>")
+        clean["NXF_VER"] = desired_nxf_ver
+        if prior != "<unset>":
+            log.warning(
+                f"[Nextflow] NXF_VER was {prior!r} in subprocess env — overriding to "
+                f"{desired_nxf_ver}. The hard pin exists because NF 26.04 makes AWS "
+                f"CRT the default S3 client and crashes the JVM in this glibc/JDK combo."
+            )
+    # Also forbid the launcher from going to the network at all. If the
+    # framework jar is missing, fail fast rather than silently downloading
+    # whatever GitHub returns for "latest".
+    clean["NXF_OFFLINE"] = "true"
+    # NXF_HOME points at the pre-cached jar location baked into the Galaxy
+    # container image (backend/Dockerfile pre-fetches the jar there).
+    clean.setdefault("NXF_HOME", "/opt/nextflow")
     return clean
 
 
