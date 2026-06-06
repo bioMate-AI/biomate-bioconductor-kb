@@ -16,6 +16,11 @@ galaxy:
 
   # Basic Galaxy settings (use defaults for everything else)
   admin_users: admin@galaxy.org
+  # Bootstrap admin API key — must match GALAXY_API_KEY in the frontend container.
+  # Using bootstrap_admin_api_key means Galaxy accepts this key as a direct admin
+  # credential without requiring it to exist in the user database, so it survives
+  # container recreation and fresh universe.sqlite initialisation.
+  bootstrap_admin_api_key: f17c618a6d8a9b0c397d6cc847a7f658
   database_connection: sqlite:///./database/universe.sqlite?isolation_level=IMMEDIATE
   file_path: database/files
   new_file_path: database/tmp
@@ -28,6 +33,9 @@ galaxy:
 
 gravity:
   gunicorn:
+    # Bind to all interfaces so the container is reachable from other containers
+    # via the Docker network (0.0.0.0:8080 maps to host port 8081 via Docker).
+    bind: 0.0.0.0:8080
     # Reduce workers to prevent OOM on macOS
     workers: 1
     # Increase timeout for AI operations

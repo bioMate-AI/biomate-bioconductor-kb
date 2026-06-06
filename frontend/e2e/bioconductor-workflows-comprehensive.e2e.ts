@@ -872,15 +872,19 @@ test("BC-PARAM: parameter editability — phase string, phase boolean toggle, gl
     if (!gotCard) return;
 
     // ── 1. Phase param: expand first phase and test string input ──────────────
-    // Phase params only appear when steps are loaded (lazy fetch). Wait briefly.
-    await page.waitForSelector('[data-testid^="phase-params-toggle-"]', { timeout: 8000 }).catch(() => {});
+    // Phase cards start collapsed. Click the first phase header to expand it,
+    // then wait for the params toggle which only renders inside an open phase body.
+    const firstPhaseHead = page.locator('[data-testid^="phase-group-"] .phase-head').first();
+    const phaseHeadVisible = await firstPhaseHead.isVisible({ timeout: 10000 }).catch(() => false);
+    if (phaseHeadVisible) {
+      await firstPhaseHead.click();
+      await page.waitForTimeout(400);
+    }
+    await page.waitForSelector('[data-testid^="phase-params-toggle-"]', { timeout: 5000 }).catch(() => {});
     const firstPhaseToggle = page.locator('[data-testid^="phase-params-toggle-"]').first();
     const phaseToggleVisible = await firstPhaseToggle.isVisible({ timeout: 1000 }).catch(() => false);
-    // Soft assertion — only fails if steps load but toggle is broken, not if steps never load
-    if (!phaseToggleVisible) {
-      console.log("[BC-PARAM] phase-params-toggle not visible — steps may not have loaded for this workflow (lazy fetch)");
-    }
-    assert(audit, "phase-params-toggle-visible", phaseToggleVisible, phaseToggleVisible ? "found" : "steps not loaded (lazy fetch — soft skip)");
+    assert(audit, "phase-params-toggle-visible", phaseToggleVisible,
+      phaseToggleVisible ? "found" : `phase-head visible=${phaseHeadVisible}, toggle not found after expand`);
 
     if (phaseToggleVisible) {
       // Expand the phase params section
