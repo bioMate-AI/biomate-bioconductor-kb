@@ -257,6 +257,53 @@ for base_frag in seed_mols_list[:5]:
         if len(candidates) >= n_steps * batch:
             break
 
+# Fallback: medchem enumeration when BRICS underfills (e.g. INH-01 guanidine-pyrimidine)
+target_pool = n_steps * batch
+if len(candidates) < min(50, max(10, target_pool // 4)):
+    guan_heads = ['N=C(N)N', 'NC(=N)N', 'N=C(N)NC', 'NC(N)=N', 'N=C(O)N', 'NC(=O)N']
+    linkers = ['NC(=O)', 'NC(=S)', 'C(=O)N', 'S(=O)(=O)N']
+    cores = [
+        'c1nccnc1N', 'c1ncccn1', 'c1ncnc(n1)', 'c1cncnc1',
+        'c1ncc(Cl)nc1N', 'c1ncc(F)nc1N', 'c1ncc(OC)nc1N', 'c1ncc(C)nc1N',
+        'c1ncc(C#N)nc1N', 'c1ncc(C(F)(F)F)nc1N',
+    ]
+    ring_r = ['', 'C', 'F', 'Cl', 'Br', 'OC', 'N', 'C#N', 'C(F)(F)F', 'CC']
+    extras = [
+        'N=C(N)NC(=O)c1ncc(Cl)nc1N', 'N=C(N)NC(=O)c1ncc(F)nc1N',
+        'N=C(N)NC(=O)c1ncc(OC)nc1N', 'N=C(N)NC(=O)c1ncc(C)nc1N',
+        'N=C(N)NC(=S)c1nccnc1N', 'NC(=N)NC(=O)c1nccnc1N',
+        'N=C(N)NC(=O)c1cccnc1N', 'N=C(N)NC(=O)c1ncccc1N',
+    ]
+    for g in guan_heads:
+        for lk in linkers:
+            for core in cores:
+                for rg in ring_r:
+                    core_use = core
+                    if rg and 'nc1N' in core:
+                        core_use = core.replace('nc1N', 'nc(' + rg + ')nc1N', 1)
+                    elif rg and 'nc1' in core:
+                        core_use = core.replace('nc1', 'nc(' + rg + ')c1', 1)
+                    mol_try = Chem.MolFromSmiles(g + lk + core_use)
+                    if mol_try is None:
+                        continue
+                    mw = Descriptors.MolWt(mol_try)
+                    if 120 <= mw <= 500:
+                        candidates.add(Chem.MolToSmiles(mol_try))
+                    if len(candidates) >= target_pool:
+                        break
+                if len(candidates) >= target_pool:
+                    break
+            if len(candidates) >= target_pool:
+                break
+        if len(candidates) >= target_pool:
+            break
+    for smi_extra in extras:
+        mol_try = Chem.MolFromSmiles(smi_extra)
+        if mol_try is not None:
+            candidates.add(Chem.MolToSmiles(mol_try))
+
+gen_tool = 'rdkit_brics_and_medchem_enumeration' if len(candidates) > 1 else 'rdkit_brics_generation'
+
 # Score all candidates
 scored = []
 for smi in candidates:
@@ -302,10 +349,10 @@ with open("score_history.json", "w") as jf:
         "final_mean_score": history[-1]["mean_score"] if history else 0,
         "final_top_score": history[-1]["top_score"] if history else 0,
         "history": history,
-        "tool": "rdkit_brics_generation",
+        "tool": gen_tool,
     }, jf, indent=2)
 
-print(f"RDKit BRICS generation complete: {len(scored)} candidates, top score={scored[0]['score'] if scored else 0}")
+print(f"RDKit generation complete ({gen_tool}): {len(scored)} candidates, top score={scored[0]['score'] if scored else 0}")
 
 # Write reinvent.log (expected output file)
 with open("reinvent.log", "w") as logf:
