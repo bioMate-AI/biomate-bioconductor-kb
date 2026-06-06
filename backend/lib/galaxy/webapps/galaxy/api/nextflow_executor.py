@@ -1523,6 +1523,26 @@ def _generate_executor_config(
         )
 
         lines = [
+            # Pin nf-amazon plugin to the LAST pre-CRT version (3.3.0). Newer
+            # versions (3.4.0+) construct S3CrtAsyncClient unconditionally for
+            # async S3 ops, which initializes the AWS CRT native lib at JVM
+            # startup. That .so randomly SIGSEGVs the entire JVM via
+            #   software.amazon.awssdk.crt.CRT.extractAndLoadLibrary
+            # → System.load → ld-linux dlopen → SIGSEGV
+            # under both glibc 2.36 (bookworm) AND 2.41 (trixie), under both
+            # JDK 17 AND JDK 21. The bug is in the CRT lib's extract+load
+            # sequence — not the OS/JDK. Empirical:
+            #   - 14/16 parallel-fire crashed at FileTransfer thread init
+            #   - 1/12 serial-fire crashed at PublishDir
+            #   - physicell on bookworm+JDK17 still crashed at +0x224ba
+            # Pin to 3.3.0 (May 2025) which uses the regular Netty-based
+            # S3AsyncClient. No CRT load, no crash. Tradeoff: 3.3.0 has
+            # slightly slower large-object uploads (Netty vs CRT throughput)
+            # but is provably stable. See docs/20260605_GALAXY_BOOKWORM_JDK17
+            # _REBUILD.md "Update 2026-06-06".
+            "plugins {",
+            "    id 'nf-amazon@3.3.0'",
+            "}",
             # Override params.container so workflow configs that do
             # `process { container = params.container }` use the ECR image.
             # Override params.outdir so publishDir uses S3 — without this,
