@@ -145,15 +145,19 @@ def _sanitize_subprocess_env(base: Optional[Dict[str, str]] = None) -> Dict[str,
                 f"{desired_nxf_ver}. The hard pin exists because NF 26.04 makes AWS "
                 f"CRT the default S3 client and crashes the JVM in this glibc/JDK combo."
             )
-    # NOTE: NXF_OFFLINE=true is intentionally NOT set here. The per-run code
-    # path (search for `env["NXF_HOME"] = str(log_dir / ".nextflow")`) gives
-    # each run its own NXF_HOME, where no framework jar is pre-staged. Setting
-    # NXF_OFFLINE=true would make the launcher refuse to download → every run
-    # fails. NXF_OFFLINE only becomes safe when the Dockerfile pre-bakes the
-    # framework jar AND NXF_HOME points there at run time. That requires an
-    # image rebuild + NXF_HOME plumbing change — out of scope until then.
-    # The NXF_VER pin above is sufficient: launcher still downloads but at
-    # least it downloads the right version (25.10.5) and not the latest.
+    # NXF_OFFLINE=true is in the Galaxy container ENV (set by Dockerfile to
+    # protect against auto-fetching a NEW Nextflow version). The container
+    # process inherits it. But Nextflow plugins (nf-amazon@3.4.4 in particular)
+    # are NOT pre-cached — they download on first use. With NXF_OFFLINE=true
+    # the launcher refuses to fetch nf-amazon and fails with:
+    #   "Plugin with id nf-amazon not found in any repository"
+    # So we explicitly UNSET NXF_OFFLINE for the subprocess env. The per-run
+    # NXF_HOME is a fresh dir each time, so the plugin fetch happens once per
+    # run. Cost: ~10s extra at workflow start. Eliminating that requires
+    # pre-baking nf-amazon into the image, which is a separate rebuild.
+    # We keep NXF_VER as the load-bearing pin (NF 26.04 = doom, NF 25.10.5 =
+    # safe), and disable NXF_OFFLINE here so plugins can still resolve.
+    clean.pop("NXF_OFFLINE", None)
     return clean
 
 
