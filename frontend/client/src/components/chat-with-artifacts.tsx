@@ -84,9 +84,6 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
-  const afterRunFlavor = useAfterRunFlavor()
-  const { tourNode, startTour } = useWorkflowTour()
-  const { toast } = useToast()
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -94,6 +91,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // must run unconditionally on every render — call at top and reference
   // the value below.
   const afterRunFlavor = useAfterRunFlavor()
+  const { tourNode, startTour } = useWorkflowTour()
+  const { toast } = useToast()
   // Track run statuses to detect transitions (running→completed, running→failed).
   // We only fire a toast on the transition, not on every poll.
   const prevRunStatusesRef = useRef<Map<string, string>>(new Map())
