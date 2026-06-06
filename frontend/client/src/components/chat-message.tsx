@@ -46,6 +46,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight, ExternalLink } from "lucide-react"
+import { RollIntoIndAffordance } from "@/components/RollIntoIndAffordance";
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { downloadAsTxt, downloadAsMd, downloadAsDocx } from "@/lib/download-response"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
@@ -401,6 +402,15 @@ export function ChatMessage({
                 In panel
               </span>
             </div>
+          )}
+          {/* Path A.4: Roll into IND project. Shows only when workflow completed +
+              at least one IND project exists. The affordance itself queries
+              listProjects() and hides if empty. */}
+          {isWorkflowMessage && message.metadata?.workflow && currentExecutionRun?.execution?.status === "completed" && (
+            <RollIntoIndAffordance
+              workflowName={message.metadata.workflow.name || message.metadata.workflow.display_name}
+              workflowRunId={effectiveInvocationId || undefined}
+            />
           )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}

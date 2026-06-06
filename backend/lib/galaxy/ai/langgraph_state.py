@@ -34,6 +34,7 @@ class BioMateQueryState(TypedDict):
 
     # ── AutoFix loop (run_autofix node) ───────────────────────────────────
     autofix_attempts: int
+    autofix_result: Optional[dict]  # populated by run_autofix; nullable
     error: Optional[str]
 
     # ── Final output (any terminal node) ──────────────────────────────────
