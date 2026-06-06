@@ -479,11 +479,12 @@ function PhaseGroupSection({
     if (anyRunning || anyFailed || hasGateForPhase) setOpen(true);
   }, [anyRunning, anyFailed, hasGateForPhase]);
 
-  // Direct lookup using the pre-computed map — no per-render matching.
-  const phaseRenderedParams = renderedParameters.filter(p => {
-    const pg = String((p as any).group || '').trim().toLowerCase();
-    return !!pg && paramGroupToPhaseKey.get(pg) === group.key;
-  });
+  // Use the param names collected from step bodies during phase parsing.
+  // phaseParams is built by _enrich_steps_with_phase_info and holds the
+  // params.* references found in each phase's process blocks.
+  const phaseRenderedParams = renderedParameters.filter(p =>
+    phaseParams.includes(p.id || p.name || '')
+  );
   const [phaseParamsOpen, setPhaseParamsOpen] = React.useState(false);
 
   // Phase status and letter badge
@@ -2327,10 +2328,13 @@ export function NextflowWorkflowViewer({
           {/* settings". Params rendered as ParameterGroup (editable, with AI     */}
           {/* Override flow) rather than plain k/v rows as in the design stub.    */}
           {(() => {
+            // Exclude params already shown inside phase sections (via phaseParams).
+            const allPhaseParamNames = new Set(
+              groupedPhases.filter(g => g.key !== 'all').flatMap(g => g.phaseParams)
+            );
             const globalParams = renderedParameters.filter(p => {
-              const pg = String((p as any).group || '').trim().toLowerCase();
-              if (!pg) return true;
-              return !paramGroupToPhaseKey.has(pg);
+              const pName = p.id || p.name || '';
+              return !allPhaseParamNames.has(pName);
             });
             const allParamDefs: any[] = [
               ...(workflowDefinition?.required_params || []),
