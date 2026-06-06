@@ -108,3 +108,51 @@ The `:rollback-pre-bookworm` tag captures the running container's state at the m
 - `backend/biomni_workflows/nextflow_nfcore/subworkflows/virtual_cell/cipa_cardiac_safety_ode/main.nf`
 - `docs/20260605_SERIAL_FIRE_BREAKTHROUGH.md` — empirical data that prompted this fix
 - `docs/20260605_19_WORKFLOW_SWEEP_RESULT.md` — parallel-fire 0/19 result
+
+---
+
+## Update 2026-06-06 — JDK17 + bookworm did NOT fix the AWS CRT crash
+
+Post-rebuild empirical test: `physicell_tumor_tgi` single-fire on bookworm + JDK 17.0.19 still crashes the JVM at publishDir.
+
+```
+SIGSEGV (0xb) at pc=..., in C [ld-linux-x86-64.so.2+0x224ba]
+JRE version: OpenJDK Runtime Environment (17.0.19+10)
+Java VM: OpenJDK 64-Bit Server VM (17.0.19+10-1-deb12u2-Debian)
+Host: Debian GNU/Linux 12 (bookworm), glibc 2.36
+Current thread: JavaThread "PublishDir-3"
+Java stack: software.amazon.awssdk.crt.CRT.extractAndLoadLibrary
+```
+
+The crash hits at slightly different `ld-linux` offset (`+0x224ba` vs trixie's `+0x2475a`), but the same library, same Java stack, same code path: `S3CrtAsyncClient.<init>` → `CRT.<clinit>` → `extractAndLoadLibrary()` → `System.load()` → glibc dlopen → SIGSEGV.
+
+**The bug is in AWS CRT native lib's extract+load sequence, not in glibc.** Multiple glibc versions (2.36 bookworm, 2.41 trixie) and multiple JDK versions (17.0.19, 21.0.11) all crash the same way.
+
+This means:
+- Tier 3 item #10 (eliminate publishDir + replace S3 transfer client) is the ONLY actual fix.
+- The JDK + base-image changes are still worthwhile (Galaxy boots in 60s vs 5-15 min, image is 1.83GB vs 5.5GB, smaller attack surface) but do NOT address the JVM SIGABRT class.
+- The 6 mitigation flags (Xss2m, LD_BIND_NOW, aws.crt.lib.dir, aws.crt.disable.crt.in.client, NXF_VER, FD-decouple) reduce frequency but cannot eliminate it.
+- Serial-fire (concurrency ≤ 1) is the only operational mitigation today.
+
+## What now actually has to happen
+
+Re-prioritise Tier 3 #10 from `docs/20260604_BATCH_ROBUSTNESS_TEAM_DISCUSSION.md` to be **the next sprint** item, not strategic-quarter:
+
+1. Disable `publishDir` in the generated `nextflow.config` for AWS Batch runs.
+2. Implement a Galaxy-side post-task sweep: when `workflow-trace.txt` shows COMPLETED, use boto3 (or `aws s3 sync` subprocess — no CRT) to copy from `s3://.../work/<hash>/` to `s3://.../outputs/<run_id>/`.
+3. Galaxy's existing `run:<runId>:datasets` URI handler already lists from S3 directly via boto3 — that's the proven non-CRT path.
+4. For input staging (the FileTransfer crash class), use `aws.batch.cliPath` (already configured) to pull inputs on the Batch host via AWS CLI; have Nextflow's local FS executor not touch S3 at all.
+
+These changes are scoped in `docs/20260604_BATCH_ROBUSTNESS_TEAM_DISCUSSION.md` Tier 3 #10. ~365 LOC, ~3 days.
+
+## What we DID gain from the rebuild
+
+Not zero — just not the JVM crash fix:
+
+- Galaxy cold-boot 60s on bookworm (vs 5-15 min on trixie). Useful.
+- Image 1.83GB vs 5.5GB. Useful.
+- Pre-cached NF jar at `/opt/nextflow/framework/25.10.5/`. Useful as plugin pre-bake foundation.
+- `ENV NXF_VER=25.10.5` baked into the image. Defense in depth against drift to NF 26.04.
+- Test guards (`backend/tests/test_nextflow_version_pin.py`) added.
+
+The rebuild itself was the right call — it just doesn't end the JVM crash story.
