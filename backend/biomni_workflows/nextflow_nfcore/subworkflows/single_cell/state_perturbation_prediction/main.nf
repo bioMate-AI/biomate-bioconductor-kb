@@ -146,6 +146,14 @@ EOF
 }
 
 workflow {
+    // Empty-params smoke test: when params.input_h5ad is not set, fail with
+    // a clear message rather than the raw Groovy "Missing `fromPath` parameter".
+    // Smoke harness fires every workflow with {} — make sure the message names
+    // the actual missing input so the user can supply it.
+    if (!params.input_h5ad || params.input_h5ad == '') {
+        error "params.input_h5ad is required (path to AnnData h5ad file with cell expression profiles)"
+    }
+
     h5ad_ch = Channel.fromPath(params.input_h5ad, checkIfExists: true)
 
     STATE_TRANSITION(h5ad_ch)
