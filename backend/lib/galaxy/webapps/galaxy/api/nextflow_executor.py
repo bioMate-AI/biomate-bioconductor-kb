@@ -1523,6 +1523,14 @@ def _generate_executor_config(
         )
 
         lines = [
+            # Pin nf-amazon to a known-resolvable version. 3.3.0 is the LAST
+            # version before nf-amazon flipped to CRT-by-default; even when it
+            # downloads CRT (which it still does on init), at least the
+            # plugin itself resolves. Without this pin NF tries to fetch
+            # 3.4.4 which sometimes fails the plugin download entirely.
+            "plugins {",
+            "    id 'nf-amazon@3.3.0'",
+            "}",
             # Override params.container so workflow configs that do
             # `process { container = params.container }` use the ECR image.
             # Override params.outdir so publishDir uses S3 — without this,
