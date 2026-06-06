@@ -120,6 +120,50 @@ def test_dockerfile_pins_jdk_17():
         "AWS CRT native lib hits — crashes the JVM. JDK 17 is known-good. "
         "Restore `openjdk-17-jre-headless` in backend/Dockerfile."
     )
+
+
+def test_executor_disables_publishdir():
+    """The publishDir=null config is the actual fix for the AWS CRT crash class.
+
+    See docs/20260606_CELL_WORKFLOW_BREAKTHROUGH.md. Without this directive
+    in the generated biomate_executor_override.config, the Nextflow head JVM
+    creates publishDir threads, which instantiate S3TransferManager, which
+    loads the AWS CRT native lib, which SIGSEGVs the JVM via ld-linux dlopen.
+
+    The publishDir directives in individual workflow .nf files still run
+    (and use the Batch host's `aws s3 cp` via cliPath — no CRT), so the
+    user-facing output behavior is preserved.
+
+    If this is stripped, every nextflow run will randomly JVM-crash again.
+    """
+    text = EXECUTOR.read_text()
+    assert '"    publishDir = null"' in text, (
+        "publishDir = null config emission removed from _generate_executor_config(). "
+        "Without it, the head JVM creates publishDir threads that load AWS CRT and "
+        "SIGSEGV the JVM (rc=-6, hs_err_pid log). 7/9 workflows that previously "
+        "crashed now succeed because of this. See docs/20260606_CELL_WORKFLOW_"
+        "BREAKTHROUGH.md. Restore it in nextflow_executor.py inside _generate_"
+        "executor_config()."
+    )
+
+
+def test_executor_pins_nfamazon_plugin():
+    """Belt-and-suspenders pin for nf-amazon plugin version.
+
+    Even though the publishDir=null is the load-bearing fix, pinning the
+    plugin to the last pre-CRT-default version (3.3.0) is defense in depth:
+    if a future change re-enables some S3 path on the head JVM, 3.3.0 uses
+    Netty (no CRT) for it. The pin doesn't always take effect (NF caches
+    aggressively), but having it emitted in the config is the right intent.
+    """
+    text = EXECUTOR.read_text()
+    assert "nf-amazon@3.3.0" in text, (
+        "nf-amazon plugin pin removed from _generate_executor_config(). "
+        "Without it, NF defaults to the latest version (currently 3.4.4+), "
+        "which loads AWS CRT unconditionally for any S3 op. The publishDir=null "
+        "is the primary defense; this pin is defense-in-depth. Restore "
+        "`id 'nf-amazon@3.3.0'` in the plugins{} block."
+    )
     # Check that default-jre-headless is not ACTUALLY installed (excluding
     # cautionary comments that mention the string).
     install_lines = [
