@@ -43,7 +43,11 @@ ARG BUILD_DATE=unknown
 #     so the launcher never even tries to download
 # If any sweep strips one of these, the others still hold.
 ENV NXF_VER=${NF_VERSION}
-ENV NXF_OFFLINE=true
+# NXF_OFFLINE intentionally NOT set: NF plugins (nf-amazon@3.4.4) are not
+# pre-cached in the image, so the launcher must reach the plugin index on
+# first run. The NXF_VER pin above is the load-bearing guard against version
+# drift; NXF_OFFLINE was redundant with it and broke plugin resolution.
+# (See commit f5cd88d97 — nextflow_executor.py also explicitly unsets it.)
 ENV NXF_HOME=/opt/nextflow
 
 WORKDIR /app
