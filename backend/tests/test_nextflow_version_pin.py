@@ -67,15 +67,36 @@ def test_dockerfile_pins_nf_version():
     )
 
 
-def test_dockerfile_sets_offline_env():
+def test_dockerfile_sets_nxf_ver_env():
     text = DOCKERFILE.read_text()
-    assert "ENV NXF_OFFLINE=true" in text, (
-        "Galaxy Dockerfile no longer sets ENV NXF_OFFLINE=true. This is the "
-        "container-level pin that protects against subprocess-env stripping. "
-        "Restore the ENV line in backend/Dockerfile."
-    )
     assert "ENV NXF_VER=" in text, (
-        "Galaxy Dockerfile no longer sets ENV NXF_VER. Restore it."
+        "Galaxy Dockerfile no longer sets ENV NXF_VER. Restore it — that is "
+        "the load-bearing pin against drift to NF 26.04."
+    )
+
+
+def test_dockerfile_does_not_force_offline():
+    """NXF_OFFLINE=true breaks plugin resolution.
+
+    The Nextflow framework jar is pre-baked, but the nf-amazon plugin (and
+    other plugins) are still downloaded on first use. NXF_OFFLINE=true makes
+    the launcher refuse to download AND fail with "Plugin with id nf-amazon
+    not found in any repository". We removed it 2026-06-06; this guard
+    prevents accidental restoration. See nextflow_executor.py:
+    `clean.pop("NXF_OFFLINE", None)` and commit f5cd88d97.
+    """
+    text = DOCKERFILE.read_text()
+    # Look for actual ENV/RUN lines that set NXF_OFFLINE=true (excluding
+    # cautionary comments).
+    bad = [
+        line for line in text.splitlines()
+        if "NXF_OFFLINE=true" in line and not line.lstrip().startswith("#")
+    ]
+    assert not bad, (
+        f"Galaxy Dockerfile re-introduced NXF_OFFLINE=true via: {bad}. "
+        f"This breaks plugin downloads. Either pre-bake nf-amazon@3.4.4 into "
+        f"the image too, or leave NXF_OFFLINE unset. NXF_VER pin already "
+        f"protects against version drift; offline mode is redundant + harmful."
     )
 
 
