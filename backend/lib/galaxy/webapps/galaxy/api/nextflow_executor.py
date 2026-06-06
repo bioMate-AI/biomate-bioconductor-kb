@@ -1523,26 +1523,6 @@ def _generate_executor_config(
         )
 
         lines = [
-            # Pin nf-amazon plugin to the LAST pre-CRT version (3.3.0). Newer
-            # versions (3.4.0+) construct S3CrtAsyncClient unconditionally for
-            # async S3 ops, which initializes the AWS CRT native lib at JVM
-            # startup. That .so randomly SIGSEGVs the entire JVM via
-            #   software.amazon.awssdk.crt.CRT.extractAndLoadLibrary
-            # → System.load → ld-linux dlopen → SIGSEGV
-            # under both glibc 2.36 (bookworm) AND 2.41 (trixie), under both
-            # JDK 17 AND JDK 21. The bug is in the CRT lib's extract+load
-            # sequence — not the OS/JDK. Empirical:
-            #   - 14/16 parallel-fire crashed at FileTransfer thread init
-            #   - 1/12 serial-fire crashed at PublishDir
-            #   - physicell on bookworm+JDK17 still crashed at +0x224ba
-            # Pin to 3.3.0 (May 2025) which uses the regular Netty-based
-            # S3AsyncClient. No CRT load, no crash. Tradeoff: 3.3.0 has
-            # slightly slower large-object uploads (Netty vs CRT throughput)
-            # but is provably stable. See docs/20260605_GALAXY_BOOKWORM_JDK17
-            # _REBUILD.md "Update 2026-06-06".
-            "plugins {",
-            "    id 'nf-amazon@3.3.0'",
-            "}",
             # Override params.container so workflow configs that do
             # `process { container = params.container }` use the ECR image.
             # Override params.outdir so publishDir uses S3 — without this,
@@ -1551,6 +1531,29 @@ def _generate_executor_config(
             "params {",
             f"    container = '{container}'",
             f"    outdir = 's3://{s3_bucket}/nextflow/outputs/{user_id}/{run_id}'",
+            "}",
+            # DISABLE publishDir entirely on the head JVM. publishDir is what
+            # spawns S3 TransferManager which constructs S3CrtAsyncClient
+            # which loads the AWS CRT native lib. That lib's dlopen randomly
+            # SIGSEGVs the JVM via:
+            #   software.amazon.awssdk.crt.CRT.extractAndLoadLibrary
+            #   → System.load → ld-linux dlopen → SIGSEGV
+            # Empirically reproduced on:
+            #   - JDK 21 + Debian trixie (glibc 2.41) — +0x2475a
+            #   - JDK 17 + Debian bookworm (glibc 2.36) — +0x224ba
+            #   - nf-amazon 3.3.0 AND 3.4.4 — both load CRT
+            # The bug is in AWS CRT native lib, not OS/JDK.
+            # All output files stay in work/<task-hash>/ on S3 (placed there
+            # by Batch task's own `aws s3 cp` — no CRT). Galaxy already reads
+            # work/ via the `run:<runId>:datasets` URI handler in
+            # routes.ts:2898 — no CRT path on Galaxy side either.
+            # Tradeoff: outputs/ S3 dir won't be populated, but the
+            # `nextflowOutputDir` field in run state still points at it for
+            # future fix that does a Galaxy-side post-task `aws s3 sync`.
+            # When that lands, the head JVM continues to never touch S3 for
+            # bulk transfer.
+            "process {",
+            "    publishDir = null",
             "}",
             "process {",
             "    executor = 'awsbatch'",
