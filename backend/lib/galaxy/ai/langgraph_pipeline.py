@@ -234,26 +234,62 @@ def _make_dispatch_execution_node(ai_assistant: Optional[Any]):
 
 
 def _make_run_autofix_node(ai_assistant: Optional[Any]):
-    """Factory: returns the run_autofix node that calls AutoFix3Orchestrator."""
+    """Factory: returns the run_autofix node that calls AutoFix3."""
 
     def run_autofix(state: BioMateQueryState) -> Dict[str, Any]:
-        """Attempt to fix execution errors using AutoFix3Orchestrator."""
+        """Attempt to fix execution errors using AutoFix3's IterativeDebugger.
+
+        Uses the standalone Nextflow path (no Galaxy trans context needed).
+        On success: clears error so dispatch_execution retries with the fix.
+        On failure: still clears error + bumps counter so the retry/cap loop
+        in _route_after_dispatch terminates after `autofix_attempts >= 3`.
+        """
         attempts = state.get("autofix_attempts", 0) + 1
+        run_id = state.get("execution_run_id")
         log.info(
             "[run_autofix] attempt %d for run_id=%s error=%r",
             attempts,
-            state.get("execution_run_id"),
+            run_id,
             state.get("error"),
         )
 
-        # AutoFix3Orchestrator requires a Galaxy transaction context that is
-        # not available at this layer.  The node increments the attempt counter
-        # and clears the transient error so that dispatch_execution retries.
-        # Full AutoFix integration is deferred to Workstream B.
-        return {
+        next_state: Dict[str, Any] = {
             "autofix_attempts": attempts,
-            "error": None,  # optimistically clear; dispatch_execution will re-set on failure
+            "error": None,  # clear; dispatch_execution will re-set if retry fails
         }
+
+        if not run_id:
+            log.info("[run_autofix] no run_id — skipping autofix invocation")
+            return next_state
+
+        try:
+            from galaxy.ai.workflow_ops.autofix.nextflow_runner import (
+                run_nextflow_autofix,
+            )
+            result = run_nextflow_autofix(
+                invocation_id=str(run_id),
+                max_attempts=3,
+                timeout_seconds=180,
+            )
+            log.info(
+                "[run_autofix] result: success=%s reason=%s attempts=%s session=%s",
+                result.get("success"),
+                result.get("termination_reason"),
+                result.get("total_attempts"),
+                result.get("session_id"),
+            )
+            next_state["autofix_result"] = result
+        except Exception as exc:
+            # The pipeline must keep moving even if autofix crashes; record
+            # the failure but don't propagate.
+            log.exception("[run_autofix] crashed: %s", exc)
+            next_state["autofix_result"] = {
+                "success": False,
+                "termination_reason": "node_exception",
+                "error": str(exc),
+            }
+
+        return next_state
 
     return run_autofix
 

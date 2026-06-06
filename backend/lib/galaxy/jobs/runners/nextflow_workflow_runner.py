@@ -2621,6 +2621,67 @@ trace {{
             import traceback
             self.logger.error(traceback.format_exc())
 
+        # Auto-trigger AutoFix3 on real execution failure. QC-gate failures
+        # bypass this codepath (they exit 0 and go through qc_trace_monitor's
+        # remediation loop), so anything reaching here is a true execution
+        # error that the 19-fixer suite is built for. Runs in a daemon
+        # thread so Galaxy can return the FAILED state immediately.
+        self._trigger_autofix3_async(invocation_id, workflow_state.work_dir)
+
+    def _trigger_autofix3_async(self, invocation_id, work_dir):
+        """Best-effort, non-blocking AutoFix3 trigger on workflow failure.
+
+        Gated by BIOMATE_AUTOFIX3_AUTO env var (default off). Logs result
+        but never propagates errors — the workflow has already been marked
+        FAILED by the caller; this is opportunistic remediation only.
+        """
+        import os
+        gate = os.getenv("BIOMATE_AUTOFIX3_AUTO", "false").lower()
+        if gate not in ("1", "true", "yes"):
+            self.logger.debug(
+                f"[Workflow {invocation_id}] autofix3 auto-trigger gated off "
+                f"(BIOMATE_AUTOFIX3_AUTO={gate}); skipping"
+            )
+            return
+
+        def _run():
+            try:
+                from galaxy.ai.workflow_ops.autofix.nextflow_runner import (
+                    run_nextflow_autofix,
+                )
+                self.logger.info(
+                    f"[Workflow {invocation_id}] 🔧 autofix3 auto-trigger firing"
+                )
+                result = run_nextflow_autofix(
+                    invocation_id=str(invocation_id),
+                    max_attempts=3,
+                    timeout_seconds=180,
+                )
+                self.logger.info(
+                    f"[Workflow {invocation_id}] autofix3 done: "
+                    f"success={result.get('success')} "
+                    f"attempts={result.get('total_attempts')} "
+                    f"reason={result.get('termination_reason')} "
+                    f"session={result.get('session_id')}"
+                )
+            except Exception as exc:
+                self.logger.warning(
+                    f"[Workflow {invocation_id}] autofix3 trigger failed: {exc}"
+                )
+
+        try:
+            import threading
+            thread = threading.Thread(
+                target=_run,
+                daemon=True,
+                name=f"autofix3-{invocation_id}",
+            )
+            thread.start()
+        except Exception as exc:
+            self.logger.warning(
+                f"[Workflow {invocation_id}] could not start autofix3 thread: {exc}"
+            )
+
     def _create_output_datasets(self, invocation_id, workflow_state):
         """
         创建输出数据集
