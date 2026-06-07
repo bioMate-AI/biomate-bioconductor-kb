@@ -1,0 +1,45 @@
+{
+  "package": "edgeR",
+  "test_type": "bioconductor_vignette",
+  "result_type": "TopTags",
+  "output_files": [
+    "test_results_edgeR.csv"
+  ],
+  "required_columns": [
+    "logFC",
+    "PValue",
+    "FDR"
+  ],
+  "r_checks": [
+    "nrow(topTags) > 0",
+    "sum(FDR < 0.05) >= 0"
+  ],
+  "step_outputs": [
+    {
+      "step": 6,
+      "name": "Normalising gene expression distributions",
+      "expected_output_types": [
+        "DGEList"
+      ],
+      "primary_functions": [
+        "calcNormFactors",
+        "cpm"
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Removing heteroscedascity from count data",
+      "expected_output_types": [
+        "MArrayLM"
+      ],
+      "primary_functions": [
+        "voom",
+        "lmFit",
+        "contrasts.fit",
+        "eBayes",
+        "plotSA"
+      ]
+    }
+  ],
+  "generated_at": "2026-02-26"
+}

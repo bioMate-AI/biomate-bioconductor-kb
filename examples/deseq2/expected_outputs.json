@@ -1,0 +1,107 @@
+{
+  "package": "DESeq2",
+  "test_type": "bioconductor_vignette",
+  "result_type": "DESeqResults",
+  "output_files": [
+    "test_results_DESeq2.csv"
+  ],
+  "required_columns": [
+    "log2FoldChange",
+    "padj",
+    "pvalue",
+    "baseMean"
+  ],
+  "r_checks": [
+    "nrow(results) > 0",
+    "all(c('log2FoldChange','padj') %in% colnames(results))",
+    "'DESeqResults' %in% class(res)"
+  ],
+  "step_outputs": [
+    {
+      "step": 1,
+      "name": "Create DESeqDataSet from count matrix",
+      "expected_output_types": [
+        "DESeqDataSet",
+        "DESeqResults",
+        "tximport_list"
+      ],
+      "primary_functions": [
+        "DESeqDataSetFromMatrix",
+        "DESeq",
+        "resultsNames",
+        "results",
+        "lfcShrink"
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Filter by row sum threshold",
+      "expected_output_types": [
+        "ggplot_object",
+        "DESeqDataSet"
+      ],
+      "primary_functions": [
+        "rowSums",
+        "estimateSizeFactors",
+        "estimateDispersions",
+        "nbinomWaldTest"
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Run DESeq2 differential expression",
+      "expected_output_types": [
+        "DESeqDataSet",
+        "DESeqResults"
+      ],
+      "primary_functions": [
+        "DESeq",
+        "results",
+        "resultsNames",
+        "lfcShrink",
+        "metadata"
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Compute distance matrix",
+      "expected_output_types": [
+        "SummarizedExperiment"
+      ],
+      "primary_functions": [
+        "dist"
+      ]
+    },
+    {
+      "step": 6,
+      "name": "MA plot of DE results",
+      "expected_output_types": [
+        "SummarizedExperiment",
+        "ggplot_object"
+      ],
+      "primary_functions": [
+        "plotMA",
+        "plotCounts",
+        "ggplot",
+        "geom_point",
+        "scale_y_log10"
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Analysis analysis",
+      "expected_output_types": [
+        "count_matrix",
+        "ggplot_object"
+      ],
+      "primary_functions": [
+        "all",
+        "mcols",
+        "register",
+        "identify",
+        "rnbinom"
+      ]
+    }
+  ],
+  "generated_at": "2026-02-26"
+}

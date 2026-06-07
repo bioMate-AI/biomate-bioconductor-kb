@@ -1,0 +1,42 @@
+{
+  "package": "limma",
+  "test_type": "bioconductor_vignette",
+  "result_type": "MArrayLM",
+  "output_files": [
+    "test_results_limma.csv"
+  ],
+  "required_columns": [
+    "logFC",
+    "adj.P.Val",
+    "t"
+  ],
+  "r_checks": [],
+  "step_outputs": [
+    {
+      "step": 6,
+      "name": "Normalising gene expression distributions",
+      "expected_output_types": [
+        "DGEList"
+      ],
+      "primary_functions": [
+        "calcNormFactors",
+        "cpm"
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Removing heteroscedascity from count data",
+      "expected_output_types": [
+        "MArrayLM"
+      ],
+      "primary_functions": [
+        "voom",
+        "lmFit",
+        "contrasts.fit",
+        "eBayes",
+        "plotSA"
+      ]
+    }
+  ],
+  "generated_at": "2026-02-26"
+}
