@@ -54,6 +54,51 @@ const TIER0_DEMOS: DemoSpec[] = [
     expectedPhaseCount: 4,
     expectedReportMinChars: 1500,
   },
+  {
+    id: "T02",
+    workflow: "in_vivo_cart_codesign",
+    query: "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to T cells, transient persistence",
+    expectedParams: [
+      { key: "car_target", regex: /CD-?19/i },
+      { key: "indication", regex: /DLBCL|lymphoma/i },
+      { key: "delivery_cell", regex: /T[_ ]?cell|T-?cell/i },
+    ],
+    expectedPhaseCount: 4,
+    expectedReportMinChars: 1500,
+  },
+  {
+    id: "T03",
+    workflow: "in_vivo_base_edit_design",
+    query: "Design an in-vivo base-edit knockout of PCSK9 for hypercholesterolemia",
+    expectedParams: [
+      { key: "target_gene", regex: /PCSK9/i },
+      { key: "edit_goal", regex: /loss[_ ]?of[_ ]?function|knockout|KO/i },
+      { key: "indication", regex: /hypercholester|hyperlipid|LDL/i },
+    ],
+    expectedPhaseCount: 4,
+    expectedReportMinChars: 1500,
+  },
+  {
+    id: "T04",
+    workflow: "glp1_modality_bakeoff",
+    query: "Compare GLP-1 modalities for MASH — peptide vs mRNA vs gene therapy",
+    expectedParams: [
+      { key: "indication", regex: /mash|nash|fatty[_ ]?liver/i },
+    ],
+    expectedPhaseCount: 4,
+    expectedReportMinChars: 1500,
+  },
+  {
+    id: "T05",
+    workflow: "modality_triage",
+    query: "Triage modalities for a BCMA oncology target — try all options",
+    expectedParams: [
+      { key: "target_gene", regex: /BCMA|TNFRSF17/i },
+      { key: "indication", regex: /onco|cancer|tumor/i },
+    ],
+    expectedPhaseCount: 4,
+    expectedReportMinChars: 1500,
+  },
 ];
 
 // ---------------------------------------------------------------------------
