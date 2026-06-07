@@ -108,6 +108,7 @@ deploy_frontend() {
     --exclude='frontend/node_modules' \
     -C "$REPO_ROOT" \
     frontend/client/ frontend/server/ frontend/shared/ frontend/attached_assets/ \
+    frontend/migrations/ \
     frontend/package.json frontend/package-lock.json \
     frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts \
     frontend/tailwind.config.js frontend/postcss.config.js \
@@ -145,10 +146,21 @@ deploy_frontend() {
     fi
 
     echo "[frontend] Building app image (old container still serving)..."
-    if ! docker build -t biomate-dev-frontend:next \
+    # Capture exit code BEFORE piping — `docker build | tail` always exits 0
+    # because tail succeeds even when build fails. Without this guard, the
+    # script swaps the OLD image into :latest as if the build succeeded
+    # (observed live: silently shipped pre-fix code 2026-06-07).
+    BUILD_RC=0
+    set +e
+    docker build -t biomate-dev-frontend:next \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile \
-        /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -5; then
-      echo "[frontend] ERROR: app image build failed — old container still up, no swap"
+        /opt/biomate/frontend_sync/frontend/ > /tmp/biomate_frontend_build.log 2>&1
+    BUILD_RC=$?
+    set -e
+    tail -5 /tmp/biomate_frontend_build.log
+    if [ "$BUILD_RC" -ne 0 ]; then
+      echo "[frontend] ERROR: app image build failed (rc=$BUILD_RC) — old container still up, no swap"
+      echo "[frontend] Full log: /tmp/biomate_frontend_build.log"
       exit 1
     fi
 
