@@ -173,6 +173,99 @@ def test_score_prefers_shorter_chain_on_ties():
         db.unlink(missing_ok=True)
 
 
+def test_type_satisfies_strict_no_substring_match():
+    """The prototype's loose `in_type in alias or alias in in_type` rule
+    caused spurious matches (e.g. 'fastq' satisfying any string containing
+    'fastq'). The planner must use strict equality + explicit alias only."""
+    # Equality holds.
+    assert chain_planner._type_satisfies("bam", "bam")
+    # Explicit alias holds.
+    assert chain_planner._type_satisfies("bam", "alignments")
+    # Substring matches must NOT hold any more.
+    assert not chain_planner._type_satisfies("fastq", "input_fastq_dir")
+    assert not chain_planner._type_satisfies("vcf", "annotated_vcf_file")
+    # Wrong-direction nf-core alias `fastq → samplesheet` is blocked for planning.
+    assert not chain_planner._type_satisfies("fastq", "samplesheet")
+    assert not chain_planner._type_satisfies("fastq", "input")
+
+
+def test_is_meaningful_input_types_rejects_placeholders():
+    f = chain_planner._is_meaningful_input_types
+    assert not f([])
+    assert not f(["input"]), "['input'] alone is the meaningless placeholder"
+    # Real data type lists pass.
+    assert f(["fastq", "samplesheet"])
+    assert f(["counts_matrix"])
+    assert f(["smiles"])
+    # Param-name lists from the indexer bug at index_all_workflows.py:309 fail.
+    drug_discovery_params = [
+        "mock_mode", "smiles_file", "max_clinical_dose_mg", "dose_route",
+        "n_cpus", "gpu", "use_aws", "X", "_useAws", "_ECR", "CHEM_CONTAINER",
+    ]
+    assert not f(drug_discovery_params)
+    # Mostly-param-names with one real type — still rejected (>=50% junk).
+    assert not f(["max_routes", "max_depth", "n_cpus", "smiles_list"])
+
+
+def test_planner_skips_workflows_with_junk_input_types():
+    """Workflows whose input_types are the placeholder or param names must
+    not appear in plans, even if their output_types match the goal."""
+    db = _make_db([
+        # Junk: placeholder
+        {"id": 1, "name": "junk_input_workflow", "domain": "x",
+         "input_types": ["input"], "output_types": ["results_dir"]},
+        # Junk: indexer dumped params here
+        {"id": 2, "name": "junk_params_workflow", "domain": "drug_discovery",
+         "input_types": ["mock_mode", "max_routes", "n_cpus"],
+         "output_types": ["json"]},
+        # Clean
+        {"id": 3, "name": "clean_workflow", "domain": "drug_discovery",
+         "input_types": ["smiles"], "output_types": ["json"]},
+    ])
+    try:
+        plans = chain_planner.plan_chains(
+            start_input_types=["smiles"], top_k=10, db_path=db,
+        )
+        names = [s["workflow_name"] for p in plans for s in p.steps]
+        assert "junk_input_workflow" not in names
+        assert "junk_params_workflow" not in names
+        assert "clean_workflow" in names
+    finally:
+        db.unlink(missing_ok=True)
+
+
+def test_fastq_does_not_shortcut_to_counts_matrix_workflow():
+    """Real-DB regression: before tightening, fastq → differentialabundance
+    appeared as a 1-step plan because `_TYPE_ALIASES["fastq"]` included
+    'samplesheet' which differentialabundance accepts as input. The fix
+    blocks fastq→samplesheet at planning time."""
+    db = _make_db([
+        # Stand-in for nf-core/rnaseq.
+        {"id": 1, "name": "rnaseq_pipeline", "domain": "transcriptomics",
+         "input_types": ["fastq", "samplesheet"], "output_types": ["counts_matrix"]},
+        # Stand-in for differentialabundance.
+        {"id": 2, "name": "deg_pipeline", "domain": "transcriptomics",
+         "input_types": ["counts_matrix", "samplesheet"],
+         "output_types": ["deseq2_results", "gsea_results"]},
+    ])
+    try:
+        plans = chain_planner.plan_chains(
+            start_input_types=["fastq"],
+            goal_output_types=["gsea_results"],
+            max_steps=3,
+            top_k=5,
+            db_path=db,
+        )
+        # No plan starts directly at deg_pipeline; rnaseq must come first.
+        for p in plans:
+            first_step = p.steps[0]["workflow_name"]
+            assert first_step == "rnaseq_pipeline", (
+                f"plan started at {first_step}, shortcut bug regression"
+            )
+    finally:
+        db.unlink(missing_ok=True)
+
+
 def test_connections_record_bridge_types(linear_chain_db):
     plans = chain_planner.plan_chains(
         start_input_types=["fastq"],
