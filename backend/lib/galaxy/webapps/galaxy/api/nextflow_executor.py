@@ -2032,8 +2032,37 @@ def _start_qc_monitor(
     import json as _json
     import urllib.request as _urllib
 
-    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
-    inject_url = f"{frontend_url}/internal/sse-inject"
+    # FRONTEND_URL when set is authoritative. Otherwise try the dev/prod
+    # docker-compose service names on their actual listen ports (Node app
+    # binds 3000, not 5000), then localhost as last resort. Probing order
+    # matters: the first reachable URL is cached for the lifetime of this
+    # callback closure.
+    _explicit = _os.environ.get("FRONTEND_URL")
+    _candidates = ([_explicit] if _explicit else [
+        "http://biomate-dev-frontend:3000",
+        "http://biomate-frontend:3000",
+        "http://localhost:3000",
+        "http://localhost:5000",
+    ])
+    inject_url_cache: dict = {"url": None}
+
+    def _resolve_inject_url() -> str:
+        if inject_url_cache["url"]:
+            return inject_url_cache["url"]
+        for base in _candidates:
+            url = f"{base}/internal/sse-inject"
+            try:
+                req = _urllib.Request(url, data=b'{}', headers={"Content-Type": "application/json"})
+                with _urllib.urlopen(req, timeout=2):
+                    inject_url_cache["url"] = url
+                    log.info("[QC Monitor] SSE inject endpoint: %s", url)
+                    return url
+            except Exception:
+                continue
+        # All candidates failed — cache the first one so we don't reprobe each call.
+        inject_url_cache["url"] = f"{_candidates[0]}/internal/sse-inject"
+        log.warning("[QC Monitor] No SSE inject endpoint reachable; falling back to %s", inject_url_cache["url"])
+        return inject_url_cache["url"]
 
     def _sse_callback(event_type: str, data: dict) -> None:
         payload = _json.dumps({
@@ -2043,14 +2072,14 @@ def _start_qc_monitor(
         }).encode("utf-8")
         try:
             req = _urllib.Request(
-                inject_url,
+                _resolve_inject_url(),
                 data=payload,
                 headers={"Content-Type": "application/json"},
             )
             with _urllib.urlopen(req, timeout=5):
                 pass
         except Exception as exc:
-            log.debug(f"[QC Monitor] SSE inject failed for {event_type}: {exc}")
+            log.warning("[QC Monitor] SSE inject failed for %s: %s", event_type, exc)
 
     handler = NextflowQCGateHandler(
         invocation_id=invocation_id,
