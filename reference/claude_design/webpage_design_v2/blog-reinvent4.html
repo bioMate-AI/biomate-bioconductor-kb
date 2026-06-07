@@ -118,6 +118,17 @@
     "articleSection": "Drug Development"
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "Exploring Chemical Space: AI-Guided Generative Design for Lead Optimization", "item": "https://biomate.ai/blog-reinvent4.html" }
+    ]
+  }
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
   <script>
@@ -183,6 +194,7 @@
       <h2>Setting Up a Meaningful Scoring Function</h2>
       <p>The quality of generative design output depends entirely on the quality of the scoring function. A scoring function that overweights binding score at the expense of ADMET properties will generate potent but undevelopable compounds. BioMate guides the scoring function setup based on the compound's current liability profile — weighting the properties that are furthest from target most heavily, so the generative model focuses its exploration where the structural improvement is needed most.</p>
 
+      <p class="bm-external-refs">Further reading: <a href="https://github.com/MolecularAI/REINVENT4" rel="noopener" target="_blank">REINVENT4 (AstraZeneca Molecular AI, GitHub)</a>, <a href="https://www.ebi.ac.uk/chembl/" rel="noopener" target="_blank">ChEMBL bioactivity database (EBI)</a>, <a href="https://www.rdkit.org" rel="noopener" target="_blank">RDKit open-source cheminformatics</a>, and <a href="https://www.nature.com/articles/s41587-019-0032-3" rel="noopener" target="_blank">Olivecrona et al., reinforcement learning for molecular design</a>.</p>
       <div class="callout">
         <strong>What this means for medicinal chemistry programs</strong>
         <p>The analog space around your lead scaffold is explored computationally before it is explored synthetically. Only compounds that score well across the full property profile are presented for synthesis consideration — reducing the number of synthesis cycles needed to reach a development candidate.</p>
@@ -214,6 +226,17 @@
     </div>
   </aside>
 </div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#drug-discovery" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Drug Discovery services →</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
 
 <footer>
   <div class="footer-inner">

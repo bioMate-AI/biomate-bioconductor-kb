@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioMate AI vs Galaxy, Nextflow &amp; Manual Pipelines | Comparison</title>
+  <meta name="description" content="How BioMate AI compares to Galaxy, Nextflow, Snakemake, and hiring a bioinformatics team. Side-by-side feature comparison for drug discovery, RNA-seq, and genomics." />
+  <link rel="canonical" href="https://biomate.ai/compare.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="BioMate AI vs Galaxy, Nextflow &amp; Manual Pipelines" />
+  <meta property="og:description" content="How BioMate AI compares to Galaxy, Nextflow, Snakemake, and hiring a bioinformatics team. Side-by-side feature comparison for drug discovery, RNA-seq, and genomics." />
+  <meta property="og:url" content="https://biomate.ai/compare.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BioMate AI vs Galaxy, Nextflow &amp; Manual Pipelines" />
+  <meta name="twitter:description" content="Side-by-side comparison of BioMate AI vs Galaxy, Nextflow, Snakemake, and in-house bioinformatics teams." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+          { "@type": "ListItem", "position": 2, "name": "Compare", "item": "https://biomate.ai/compare.html" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does BioMate AI compare to Galaxy bioinformatics?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Galaxy is an open-source web platform for bioinformatics that requires manual tool chaining through a GUI. BioMate AI differs in three key ways: (1) Intent-driven: users describe their experiment in plain English and BioMate selects and configures the workflow automatically, while Galaxy requires users to understand and manually assemble tool chains; (2) AI-graded QC: BioMate applies evidence-graded quality control at every step and can auto-remediate failures, while Galaxy reports raw tool output without automated QC interpretation; (3) Drug discovery coverage: BioMate includes end-to-end drug discovery workflows (ADMET, PBPK, IND dossier assembly) not available in Galaxy's standard tool library. Galaxy is free and suitable for learning; BioMate is designed for production research requiring speed, audit trails, and regulatory-grade outputs."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does BioMate AI compare to Nextflow or Snakemake?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Nextflow and Snakemake are workflow management systems that require bioinformatics expertise to write pipeline code, configure compute environments, and interpret raw results. BioMate AI uses Nextflow under the hood and runs the same gold-standard nf-core pipelines — but wraps them in an AI layer that handles pipeline selection, parameter configuration, QC interpretation, and report generation automatically. A researcher with no bioinformatics background can run a WGS variant calling pipeline on BioMate in minutes; the same task in raw Nextflow requires days of pipeline development and HPC configuration. BioMate is not a replacement for custom pipeline development — it is designed for the 80% of standard analyses that should not require custom code."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "When should I use BioMate AI instead of hiring a bioinformatics core?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BioMate AI complements bioinformatics cores — it does not replace the scientific judgment a bioinformatics specialist provides for novel analyses. Use BioMate when: you need standard analyses (RNA-seq, WGS, ADMET, structure prediction) on a timeline the core cannot accommodate; you need reproducible audit trails for regulatory submissions; your team runs the same pipeline types repeatedly and needs to reduce turnaround from weeks to hours; or you need to iterate quickly on parameter choices without queuing for core slots. BioMate does not replace cores for novel method development, custom algorithm implementation, or deep statistical consulting."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does BioMate AI support the same tools as Galaxy?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BioMate AI and Galaxy share many of the same underlying tools (GATK, BWA, STAR, Bowtie2, DESeq2, etc.), but BioMate's tool coverage extends significantly further into drug discovery (AutoDock Vina, GROMACS, PBPK models, ADMET predictors), structural biology (AlphaFold 2/3, CryoSPARC, RELION), and single-cell analysis (Seurat, Scanpy, spatial transcriptomics). BioMate indexes 2,455+ workflows vs Galaxy's ~300 standard tools. BioMate also supports chaining tools across domains — e.g., AlphaFold structure prediction feeding directly into AutoDock docking in one pipeline."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is BioMate AI suitable for clinical genomics or CLIA-certified labs?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BioMate AI is designed for research use and produces audit-ready outputs with full parameter logs, tool versions, and QC records. It is HIPAA-compliant with BAA available for enterprise customers. For CLIA-certified clinical reporting, BioMate outputs would need validation in your lab's CLIA framework — BioMate provides the computational substrate and documentation, not the clinical certification. Contact contact@biomate.ai to discuss clinical deployment options."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .92rem;
+      margin-top: 2rem;
+    }
+    .cmp-table th, .cmp-table td {
+      padding: .85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .cmp-table thead th {
+      background: var(--bg-2);
+      font-weight: 700;
+      font-size: .82rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+    }
+    .cmp-table thead th:first-child { color: var(--text); }
+    .cmp-table thead th.bm-col {
+      background: var(--accent-tint);
+      color: var(--accent-2);
+    }
+    .cmp-table tbody tr:hover { background: var(--bg-2); }
+    .cmp-table td.bm-col { background: rgba(74,122,138,.04); font-weight: 500; color: var(--text); }
+    .cmp-yes  { color: #2a7a45; font-weight: 600; }
+    .cmp-part { color: #7a6020; }
+    .cmp-no   { color: #b42828; }
+
+    .cmp-section-head {
+      margin: 3rem 0 1rem;
+      padding-bottom: .75rem;
+      border-bottom: 2px solid var(--border);
+    }
+    .cmp-section-head h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: .35rem;
+    }
+    .cmp-section-head p {
+      font-size: .95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .cmp-verdict {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent-2);
+      border-radius: 0 10px 10px 0;
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+      font-size: .95rem;
+      line-height: 1.65;
+      color: var(--text-muted);
+    }
+    .cmp-verdict strong { color: var(--text); }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-page-hero">
+    <div class="bm-page-hero-inner" style="max-width:860px;">
+      <span class="bm-eyebrow">Platform comparison</span>
+      <h1 class="bm-h1" style="margin-top:1rem;">BioMate AI vs the alternatives</h1>
+      <p class="bm-lead" style="margin-top:1rem;max-width:700px;">Galaxy, Nextflow, Snakemake, Benchling, or an in-house bioinformatics team — here is an honest comparison of where BioMate fits and where it does not.</p>
+    </div>
+  </section>
+
+  <section class="bm-section">
+    <div class="bm-section-inner" style="max-width:1000px;">
+
+      <!-- ── Master feature matrix ── -->
+      <div class="cmp-section-head">
+        <h2>Feature comparison: BioMate AI vs Galaxy vs Nextflow/nf-core vs Benchling</h2>
+        <p>Comparison covers common research use cases in genomics, drug discovery, and structural biology.</p>
+      </div>
+
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th style="width:28%;">Feature</th>
+            <th class="bm-col" style="width:18%;">BioMate AI</th>
+            <th style="width:18%;">Galaxy</th>
+            <th style="width:18%;">Nextflow / nf-core</th>
+            <th style="width:18%;">Benchling</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Access & UX -->
+          <tr>
+            <td><strong>Plain-English workflow selection</strong></td>
+            <td class="bm-col cmp-yes">Yes — AI routing</td>
+            <td class="cmp-no">No — manual tool assembly</td>
+            <td class="cmp-no">No — requires pipeline code</td>
+            <td class="cmp-no">No — lab notebook focus</td>
+          </tr>
+          <tr>
+            <td><strong>No coding or CLI required</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-yes">Yes (GUI)</td>
+            <td class="cmp-no">No — Groovy/DSL2 required</td>
+            <td class="cmp-yes">Yes</td>
+          </tr>
+          <tr>
+            <td><strong>Parameter auto-fill from context</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Free tier available</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-yes">Yes (fully free)</td>
+            <td class="cmp-yes">Yes (open source)</td>
+            <td class="cmp-part">Limited free</td>
+          </tr>
+
+          <!-- Scientific coverage -->
+          <tr>
+            <td><strong>RNA-seq (bulk + single-cell)</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-yes">Yes (bulk)</td>
+            <td class="cmp-yes">Yes (nf-core/rnaseq)</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>WGS / variant calling (GATK, DeepVariant)</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-yes">Yes</td>
+            <td class="cmp-yes">Yes (nf-core/sarek)</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Drug discovery (target → IND)</strong></td>
+            <td class="bm-col cmp-yes">Yes — full pipeline</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>ADMET profiling</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>PBPK / PK modeling</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>AlphaFold structure prediction</strong></td>
+            <td class="bm-col cmp-yes">Yes (AF2 + AF3)</td>
+            <td class="cmp-part">Some instances</td>
+            <td class="cmp-part">Via nf-core/proteinfold</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Molecular docking (Vina, GLIDE)</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Cryo-EM (CryoSPARC, RELION)</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Molecular dynamics (GROMACS, OpenMM)</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+
+          <!-- QC & audit -->
+          <tr>
+            <td><strong>Evidence-graded QC (Gold/Silver/Bronze)</strong></td>
+            <td class="bm-col cmp-yes">Yes — automated</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Auto-remediation on QC failure</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>Structured methods report (DOCX/Markdown/LaTeX)</strong></td>
+            <td class="bm-col cmp-yes">Yes — automated</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-part">ELN notes only</td>
+          </tr>
+          <tr>
+            <td><strong>IND / regulatory document assembly</strong></td>
+            <td class="bm-col cmp-yes">Yes — §2.6 dossier</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>21 CFR Part 11 audit trail</strong></td>
+            <td class="bm-col cmp-yes">Yes (Enterprise)</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-yes">Yes</td>
+          </tr>
+
+          <!-- Infrastructure -->
+          <tr>
+            <td><strong>Managed cloud compute (AWS Batch)</strong></td>
+            <td class="bm-col cmp-yes">Yes — no HPC needed</td>
+            <td class="cmp-part">Public servers (limited)</td>
+            <td class="cmp-no">Bring your own HPC/cloud</td>
+            <td class="cmp-no">No compute</td>
+          </tr>
+          <tr>
+            <td><strong>GPU workflows (cryo-EM, AF)</strong></td>
+            <td class="bm-col cmp-yes">Yes — AWS GPU</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">Bring your own GPU</td>
+            <td class="cmp-no">No</td>
+          </tr>
+          <tr>
+            <td><strong>HIPAA-compliant; BAA available</strong></td>
+            <td class="bm-col cmp-yes">Yes</td>
+            <td class="cmp-no">No</td>
+            <td class="cmp-no">Depends on your infra</td>
+            <td class="cmp-yes">Yes</td>
+          </tr>
+          <tr>
+            <td><strong>Private VPC / on-premises deployment</strong></td>
+            <td class="bm-col cmp-yes">Yes (Enterprise)</td>
+            <td class="cmp-yes">Yes (self-hosted)</td>
+            <td class="cmp-yes">Yes (self-hosted)</td>
+            <td class="cmp-yes">Yes</td>
+          </tr>
+          <tr>
+            <td><strong>Data not used to train shared models</strong></td>
+            <td class="bm-col cmp-yes">Yes — guaranteed</td>
+            <td class="cmp-yes">Yes (open source)</td>
+            <td class="cmp-yes">Yes (open source)</td>
+            <td class="cmp-yes">Yes</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── BioMate vs Galaxy ── -->
+      <div class="cmp-section-head" id="galaxy" style="margin-top:4rem;">
+        <h2>BioMate AI vs Galaxy bioinformatics</h2>
+        <p>Galaxy is a widely used open-source web platform for bioinformatics, particularly in genomics and RNA-seq. It is free and runs on public servers maintained by the Galaxy Project, and many academic core facilities operate local Galaxy instances.</p>
+      </div>
+
+      <div class="cmp-verdict">
+        <strong>The key difference:</strong> Galaxy is a tool assembly platform — users select and chain individual tools (FastQC → Trimmomatic → STAR → featureCounts → DESeq2) through a graphical interface, understanding what each tool does and how its outputs connect to the next. BioMate is an intent-driven platform — researchers describe what they want to learn ("differential expression between treated and control"), and BioMate selects, chains, configures, runs, and interprets the tools automatically. Galaxy teaches bioinformatics; BioMate operationalizes it.
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose Galaxy when:</h3>
+      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
+        <li>You are learning bioinformatics and want to understand each tool step</li>
+        <li>Your institution runs a local Galaxy instance with specific tools pre-installed</li>
+        <li>Your analysis requires community-contributed tools in the Galaxy Tool Shed not indexed by BioMate</li>
+        <li>Budget is zero and compute requirements are modest</li>
+      </ul>
+
+      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose BioMate AI when:</h3>
+      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
+        <li>Wet-lab scientists need results without bioinformatics expertise</li>
+        <li>Outputs require audit trails, parameter logs, or structured methods reports</li>
+        <li>Your work spans drug discovery, structural biology, or cryo-EM — outside Galaxy's core strengths</li>
+        <li>You need GPU compute (AlphaFold, CryoSPARC) without managing HPC</li>
+        <li>Speed matters — BioMate's AI routing eliminates the manual assembly step</li>
+      </ul>
+
+      <!-- ── BioMate vs Nextflow ── -->
+      <div class="cmp-section-head" id="nextflow" style="margin-top:4rem;">
+        <h2>BioMate AI vs Nextflow / nf-core pipelines</h2>
+        <p>Nextflow is a workflow management system used by bioinformaticians to write and run scalable pipelines. The nf-core community maintains a library of curated Nextflow pipelines (rnaseq, sarek, methylseq, etc.) that run on HPC or cloud.</p>
+      </div>
+
+      <div class="cmp-verdict">
+        <strong>The key difference:</strong> BioMate runs the same nf-core pipelines under the hood — GATK, nf-core/rnaseq, nf-core/sarek — but removes the need to write pipeline code, configure compute environments, parse raw output, and interpret QC metrics manually. A bioinformatics engineer might take two days to set up a Nextflow environment and write a sarek pipeline config; a researcher on BioMate runs the same analysis in ten minutes by describing their samples. Nextflow is the right tool for novel pipeline development; BioMate is the right tool for standard analysis at scale.
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose Nextflow/nf-core when:</h3>
+      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
+        <li>You are developing a novel pipeline not covered by existing workflows</li>
+        <li>Your team has bioinformatics engineers who maintain pipeline infrastructure</li>
+        <li>You require fine-grained control over every process and HPC scheduler integration</li>
+        <li>Your institution mandates open-source, self-hosted infrastructure</li>
+      </ul>
+
+      <h3 style="font-size:1.05rem;font-weight:700;margin:1.5rem 0 .75rem;">Choose BioMate AI when:</h3>
+      <ul style="color:var(--text-muted);line-height:1.8;font-size:.95rem;padding-left:1.5rem;">
+        <li>You need the nf-core gold standard without the setup and maintenance overhead</li>
+        <li>Your team runs standard analyses repeatedly (RNA-seq, WGS, ADMET) and needs to scale without growing the bioinformatics team</li>
+        <li>Outputs need to be immediately structured and interpretable for downstream decisions</li>
+        <li>You need QC interpretation and auto-remediation, not just raw pipeline output</li>
+      </ul>
+
+      <!-- ── BioMate vs in-house team ── -->
+      <div class="cmp-section-head" id="inhouse" style="margin-top:4rem;">
+        <h2>BioMate AI vs an in-house bioinformatics team</h2>
+        <p>Many pharma, biotech, and CRO organizations maintain dedicated bioinformatics teams or contract with bioinformatics cores. BioMate is designed to complement these teams — not replace them.</p>
+      </div>
+
+      <div class="cmp-verdict">
+        <strong>The right framing:</strong> BioMate handles the high-volume, repeatable standard analyses (RNA-seq, ADMET, variant calling, docking) that consume most of a bioinformatics team's calendar. This frees the team to focus on novel method development, statistical consulting, and the 20% of projects that genuinely require custom solutions. Organizations using BioMate report faster turnaround on standard analyses and fewer bottlenecks for wet-lab teams waiting on computational results.
+      </div>
+
+      <table class="cmp-table" style="margin-top:1.5rem;">
+        <thead>
+          <tr>
+            <th style="width:35%;">Scenario</th>
+            <th class="bm-col" style="width:32%;">BioMate AI</th>
+            <th style="width:33%;">In-house bioinformatics team</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Standard RNA-seq differential expression</td>
+            <td class="bm-col">Minutes to hours, self-service</td>
+            <td>Days to weeks depending on queue</td>
+          </tr>
+          <tr>
+            <td>ADMET profiling of 50 compounds</td>
+            <td class="bm-col">Automated, &lt;30 min</td>
+            <td>May not be in core skill set</td>
+          </tr>
+          <tr>
+            <td>Novel variant calling pipeline for rare disease</td>
+            <td class="bm-col">Standard GATK/DeepVariant covered</td>
+            <td>Custom development needed — team advantage</td>
+          </tr>
+          <tr>
+            <td>IND §2.6 document assembly</td>
+            <td class="bm-col">Automated narrative + audit trail</td>
+            <td>Manual — significant effort</td>
+          </tr>
+          <tr>
+            <td>Statistical consulting for study design</td>
+            <td class="bm-col">Not in scope</td>
+            <td>Team advantage</td>
+          </tr>
+          <tr>
+            <td>Overnight cost for 100 WGS samples</td>
+            <td class="bm-col">Included in plan compute budget</td>
+            <td>HPC allocation or cloud cost + staff time</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── CTA ── -->
+      <div style="margin:4rem 0 2rem;padding:2.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:14px;text-align:center;">
+        <h2 class="bm-h2" style="margin-bottom:.75rem;">Try BioMate AI free</h2>
+        <p style="color:var(--text-muted);margin-bottom:1.75rem;max-width:560px;margin-left:auto;margin-right:auto;">No credit card. No setup. Bring your first analysis question and BioMate handles the rest.</p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+          <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg">Start free <span class="bm-btn-arrow">&rarr;</span></a>
+          <a href="contact.html" class="bm-btn bm-btn-outline bm-btn-lg">Talk to us</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js"></script>
+  <script>renderShell({ active: '', cta: false });</script>
+</body>
+</html>

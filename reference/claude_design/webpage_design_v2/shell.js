@@ -103,6 +103,7 @@
                 <li><a href="services.html">Services</a></li>
                 <li><a href="features.html">Features</a></li>
                 <li><a href="pricing.html">Pricing</a></li>
+                <li><a href="compare.html">Compare</a></li>
                 <li><a href="https://dev-public.biomate.ai/register">Start free</a></li>
               </ul>
             </div>
@@ -120,6 +121,7 @@
               <ul>
                 <li><a href="about.html">About</a></li>
                 <li><a href="tutorials.html">Tutorials</a></li>
+                <li><a href="glossary.html">Glossary</a></li>
                 <li><a href="blog.html">Newsroom</a></li>
                 <li><a href="contact.html">Contact</a></li>
                 <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
@@ -129,8 +131,8 @@
           <div class="bm-footer-bottom">
             <span>&copy; ${year} BioMate AI &middot; contact@biomate.ai</span>
             <span class="links">
-              <a href="https://dev-public.biomate.ai/privacy" target="_blank" rel="noopener">Privacy</a>
-              <a href="https://dev-public.biomate.ai/terms" target="_blank" rel="noopener">Terms</a>
+              <a href="privacy.html">Privacy</a>
+              <a href="terms.html">Terms</a>
             </span>
           </div>
         </div>

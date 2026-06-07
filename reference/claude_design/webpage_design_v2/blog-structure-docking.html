@@ -118,6 +118,17 @@
     "articleSection": "Structural Biology"
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "From Sequence to Binding Pose: Integrated Structure Prediction and Molecular Docking", "item": "https://biomate.ai/blog-structure-docking.html" }
+    ]
+  }
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
   <script>
@@ -182,6 +193,8 @@
       <h2>Confidence and Uncertainty</h2>
       <p>BioMate surfaces the confidence of every prediction alongside the result. Structure prediction confidence scores (per-residue and global) indicate where the model is reliable and where it is uncertain. Docking poses are ranked by multiple scoring functions and flagged when they disagree substantially — a signal that the binding mode prediction may be uncertain and experimental validation is particularly important.</p>
 
+      <p class="bm-external-refs">Further reading: <a href="https://alphafold.ebi.ac.uk" rel="noopener" target="_blank">AlphaFold Protein Structure Database (EBI/DeepMind)</a>, <a href="https://autodock.scripps.edu" rel="noopener" target="_blank">AutoDock molecular docking suite (Scripps Research)</a>, <a href="https://www.rcsb.org" rel="noopener" target="_blank">RCSB Protein Data Bank</a>, and <a href="https://www.nature.com/articles/s41586-021-03819-2" rel="noopener" target="_blank">Jumper et al. 2021 — AlphaFold2 in Nature</a>.</p>
+
       <div class="callout">
         <strong>What this means for structure-based discovery</strong>
         <p>Structure-based design is accessible for any target you can provide a sequence for — not just the fraction of the proteome with solved structures. GPU-accelerated computation on cloud infrastructure means you do not need to wait for computing time or manage hardware.</p>
@@ -213,6 +226,17 @@
     </div>
   </aside>
 </div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#structural-biology" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Structural Biology →</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
 
 <footer>
   <div class="footer-inner">
