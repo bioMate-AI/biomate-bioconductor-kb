@@ -125,7 +125,7 @@ class FallbackChainManager:
         self.fallbacks = [
             LLMProviderConfig({
                 'provider': 'gemini',
-                'model': 'gemini-3.0-flash-preview',
+                'model': 'gemini-3.5-flash-preview',
                 'api_key_env': 'GOOGLE_API_KEY',
                 'retry_attempts': 2,
                 'timeout_seconds': 60

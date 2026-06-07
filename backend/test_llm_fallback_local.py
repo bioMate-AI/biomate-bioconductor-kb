@@ -72,7 +72,7 @@ try:
     # Verify priority order
     expected_order = [
         'gemini:gemini-3.1-pro-preview',
-        'gemini:gemini-3.0-flash-preview',
+        'gemini:gemini-3.5-flash-preview',
         'anthropic:claude-sonnet-4-5',
         'openai:gpt-4o',
         'ollama:qwen3:32b'
