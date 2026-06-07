@@ -371,7 +371,24 @@ class LLMClient:
             ],
             "generationConfig": {
                 "temperature": kwargs.get('temperature', 0.0),
-                "maxOutputTokens": kwargs.get('max_tokens', 1000),
+                # Default bumped 1000 → 4096: leaves room for both thinking
+                # tokens AND content output. Caller can still override.
+                "maxOutputTokens": kwargs.get('max_tokens', 4096),
+                # thinkingBudget=-1 = dynamic (model decides). Works on both
+                # Flash and Pro:
+                #   - Flash: budget=0 also works (saves latency) but -1 is uniform
+                #   - Pro:   budget=0 returns HTTP 400 "model only works in
+                #            thinking mode" — must be ≥1 or -1
+                # Verified locally 2026-06-07: -1 → finishReason=STOP + real
+                # text on both. Previously default-thinking-on with
+                # maxOutputTokens=1000 ate the entire budget on thinking and
+                # left empty content; parser raised "No content in Gemini
+                # response" so the whole chain silently fell through to
+                # Claude on every call. The "Gemini primary" policy was inert
+                # for months because of this.
+                "thinkingConfig": {
+                    "thinkingBudget": kwargs.get('thinking_budget', -1),
+                },
             }
         }
 
