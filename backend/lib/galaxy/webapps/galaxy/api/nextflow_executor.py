@@ -2049,17 +2049,23 @@ def _start_qc_monitor(
     def _resolve_inject_url() -> str:
         if inject_url_cache["url"]:
             return inject_url_cache["url"]
+        import socket as _socket
         for base in _candidates:
             url = f"{base}/internal/sse-inject"
+            # Reachability check is a raw TCP connect to host:port, NOT an
+            # HTTP probe. HTTP probes with an empty body return 4xx which
+            # an HTTPError except would falsely treat as "unreachable", and
+            # any real body would mutate state. TCP connect succeeds iff
+            # the listener is alive.
             try:
-                req = _urllib.Request(url, data=b'{}', headers={"Content-Type": "application/json"})
-                with _urllib.urlopen(req, timeout=2):
+                from urllib.parse import urlparse as _urlparse
+                u = _urlparse(base)
+                with _socket.create_connection((u.hostname, u.port or 80), timeout=2):
                     inject_url_cache["url"] = url
                     log.info("[QC Monitor] SSE inject endpoint: %s", url)
                     return url
             except Exception:
                 continue
-        # All candidates failed — cache the first one so we don't reprobe each call.
         inject_url_cache["url"] = f"{_candidates[0]}/internal/sse-inject"
         log.warning("[QC Monitor] No SSE inject endpoint reachable; falling back to %s", inject_url_cache["url"])
         return inject_url_cache["url"]
