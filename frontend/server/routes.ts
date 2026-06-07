@@ -9,8 +9,8 @@ import "./jobs/handlers/findings-analysis";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents } from "../shared/schema";
-import type { InsertInviteCode, ExecutionRunStatus } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES } from "../shared/schema";
+import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
@@ -12475,6 +12475,252 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       return res.json({ ok: true });
     } catch (err: any) {
       return res.status(500).json({ error: "Failed to update instrument event" });
+    }
+  });
+
+  // ============================================================================
+  // Instruments Config API — CRUD for registered lab instruments
+  // Users add instruments here; the daemon watchers use these configs.
+  // ============================================================================
+
+  // GET /api/instruments — list all instruments for the authenticated user
+  app.get("/api/instruments", authenticateToken, async (req, res) => {
+    try {
+      const userId = String((req.user as any).id);
+      const rows = await db
+        .select()
+        .from(instruments)
+        .where(eq(instruments.userId, userId))
+        .orderBy(instruments.createdAt);
+      return res.json({
+        instruments: rows.map((r) => ({
+          ...r,
+          config: r.config ? JSON.parse(r.config) : {},
+          // Never return raw auth values to the client
+          apiKey: r.apiKey ? "***" : null,
+          oauthToken: r.oauthToken ? "***" : null,
+          oauthRefreshToken: r.oauthRefreshToken ? "***" : null,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to list instruments" });
+    }
+  });
+
+  // POST /api/instruments — register a new instrument
+  app.post("/api/instruments", authenticateToken, async (req, res) => {
+    const { name, type, host, port, apiKey, oauthToken, oauthRefreshToken, config } = req.body || {};
+    if (!name || !type) {
+      return res.status(400).json({ error: "name and type are required" });
+    }
+    if (!(INSTRUMENT_TYPES as readonly string[]).includes(type)) {
+      return res.status(400).json({
+        error: `Invalid type '${type}'. Valid types: ${INSTRUMENT_TYPES.join(", ")}`,
+      });
+    }
+    try {
+      const userId = String((req.user as any).id);
+      const [row] = await db
+        .insert(instruments)
+        .values({
+          userId,
+          name: String(name),
+          type: String(type) as InstrumentType,
+          host: host ? String(host) : null,
+          port: port != null ? Number(port) : null,
+          apiKey: apiKey ? String(apiKey) : null,
+          oauthToken: oauthToken ? String(oauthToken) : null,
+          oauthRefreshToken: oauthRefreshToken ? String(oauthRefreshToken) : null,
+          config: config ? JSON.stringify(config) : null,
+          status: "unknown",
+        })
+        .returning({ id: instruments.id });
+      console.log("[instruments] registered", { id: row?.id, type, name });
+      return res.status(201).json({ id: row?.id, name, type, status: "unknown" });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to register instrument" });
+    }
+  });
+
+  // GET /api/instruments/:id — get a single instrument (no auth fields)
+  app.get("/api/instruments/:id", authenticateToken, async (req, res) => {
+    try {
+      const userId = String((req.user as any).id);
+      const [row] = await db
+        .select()
+        .from(instruments)
+        .where(eq(instruments.id, req.params.id))
+        .limit(1);
+      if (!row) return res.status(404).json({ error: "Not found" });
+      if (row.userId !== userId) return res.status(403).json({ error: "Forbidden" });
+      return res.json({
+        ...row,
+        config: row.config ? JSON.parse(row.config) : {},
+        apiKey: row.apiKey ? "***" : null,
+        oauthToken: row.oauthToken ? "***" : null,
+        oauthRefreshToken: row.oauthRefreshToken ? "***" : null,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to fetch instrument" });
+    }
+  });
+
+  // PATCH /api/instruments/:id — update name, host, port, config, auth
+  app.patch("/api/instruments/:id", authenticateToken, async (req, res) => {
+    try {
+      const userId = String((req.user as any).id);
+      const [existing] = await db
+        .select({ userId: instruments.userId })
+        .from(instruments)
+        .where(eq(instruments.id, req.params.id))
+        .limit(1);
+      if (!existing) return res.status(404).json({ error: "Not found" });
+      if (existing.userId !== userId) return res.status(403).json({ error: "Forbidden" });
+
+      const updates: Record<string, any> = { updatedAt: new Date() };
+      const { name, host, port, apiKey, oauthToken, oauthRefreshToken, config } = req.body || {};
+      if (name !== undefined) updates.name = String(name);
+      if (host !== undefined) updates.host = host ? String(host) : null;
+      if (port !== undefined) updates.port = port != null ? Number(port) : null;
+      if (apiKey !== undefined) updates.apiKey = apiKey ? String(apiKey) : null;
+      if (oauthToken !== undefined) updates.oauthToken = oauthToken ? String(oauthToken) : null;
+      if (oauthRefreshToken !== undefined) updates.oauthRefreshToken = oauthRefreshToken ? String(oauthRefreshToken) : null;
+      if (config !== undefined) updates.config = config ? JSON.stringify(config) : null;
+
+      await db.update(instruments).set(updates).where(eq(instruments.id, req.params.id));
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to update instrument" });
+    }
+  });
+
+  // DELETE /api/instruments/:id — remove an instrument registration
+  app.delete("/api/instruments/:id", authenticateToken, async (req, res) => {
+    try {
+      const userId = String((req.user as any).id);
+      const [existing] = await db
+        .select({ userId: instruments.userId })
+        .from(instruments)
+        .where(eq(instruments.id, req.params.id))
+        .limit(1);
+      if (!existing) return res.status(404).json({ error: "Not found" });
+      if (existing.userId !== userId) return res.status(403).json({ error: "Forbidden" });
+      await db.delete(instruments).where(eq(instruments.id, req.params.id));
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to delete instrument" });
+    }
+  });
+
+  // GET /api/instruments/:id/health — live connectivity check
+  // Hits the instrument's actual endpoint and updates status in DB.
+  app.get("/api/instruments/:id/health", authenticateToken, async (req, res) => {
+    try {
+      const userId = String((req.user as any).id);
+      const [row] = await db
+        .select()
+        .from(instruments)
+        .where(eq(instruments.id, req.params.id))
+        .limit(1);
+      if (!row) return res.status(404).json({ error: "Not found" });
+      if (row.userId !== userId) return res.status(403).json({ error: "Forbidden" });
+
+      let online = false;
+      let detail: Record<string, any> = {};
+      let errMsg: string | null = null;
+
+      const host = row.host || "localhost";
+      const port = row.port;
+
+      try {
+        if (row.type === "opentrons") {
+          const url = `http://${host}:${port ?? 31950}/health`;
+          const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          detail = await r.json() as Record<string, any>;
+          online = r.ok;
+        } else if (row.type === "minknow") {
+          const url = `http://${host}:${port ?? 9501}/`;
+          const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          detail = await r.json() as Record<string, any>;
+          online = r.ok;
+        } else if (row.type === "epu") {
+          const url = `http://${host}:${port ?? 8080}/api/v1/version`;
+          const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          detail = await r.json() as Record<string, any>;
+          online = r.ok;
+        } else if (row.type === "basespace") {
+          // Validate BaseSpace token
+          const token = row.apiKey || row.oauthToken;
+          if (!token) throw new Error("No API key or OAuth token configured");
+          const r = await fetch("https://api.basespace.illumina.com/v1pre3/users/current", {
+            headers: { "x-access-token": token },
+            signal: AbortSignal.timeout(8000),
+          });
+          const body = await r.json() as any;
+          detail = { user: body?.Response?.Name, id: body?.Response?.Id };
+          online = r.ok;
+        } else if (row.type === "benchling") {
+          const apiKey = row.apiKey;
+          if (!apiKey) throw new Error("No API key configured");
+          const config = row.config ? JSON.parse(row.config) : {};
+          const apiUrl = config.apiUrl || "https://benchling.com";
+          const r = await fetch(`${apiUrl}/api/v2/entries?pageSize=1`, {
+            headers: { Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}` },
+            signal: AbortSignal.timeout(8000),
+          });
+          detail = { tenantUrl: apiUrl, reachable: r.ok };
+          online = r.ok;
+        } else if (row.type === "sila2") {
+          // SiLA2: attempt TCP connect (no HTTP)
+          const net = await import("net");
+          online = await new Promise<boolean>((resolve) => {
+            const sock = net.createConnection(port ?? 50051, host);
+            sock.setTimeout(4000);
+            sock.on("connect", () => { sock.destroy(); resolve(true); });
+            sock.on("error",   () => resolve(false));
+            sock.on("timeout", () => { sock.destroy(); resolve(false); });
+          });
+          detail = { host, port: port ?? 50051, protocol: "gRPC/SiLA2" };
+        } else {
+          // File-watcher types (flow_cytometer, lcms, qpcr, plate_reader, epu file-mode):
+          // Report as "online" if the configured outputDir exists
+          const config = row.config ? JSON.parse(row.config) : {};
+          const dir = config.outputDir || config.directory || null;
+          if (dir) {
+            const fs = await import("fs");
+            online = fs.existsSync(dir);
+            detail = { directory: dir, exists: online };
+          } else {
+            detail = { note: "No outputDir configured — file-watcher cannot run" };
+          }
+        }
+      } catch (e: any) {
+        errMsg = e.message || String(e);
+        online = false;
+      }
+
+      const now = new Date();
+      await db.update(instruments)
+        .set({
+          status: online ? "online" : "offline",
+          lastSeenAt: online ? now : (row.lastSeenAt ?? null),
+          lastError: online ? null : errMsg,
+          updatedAt: now,
+        })
+        .where(eq(instruments.id, row.id));
+
+      console.log("[instruments] health check", { id: row.id, type: row.type, online, errMsg });
+      return res.json({
+        id: row.id,
+        type: row.type,
+        name: row.name,
+        online,
+        detail,
+        error: errMsg,
+        checkedAt: now.toISOString(),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Health check failed" });
     }
   });
 

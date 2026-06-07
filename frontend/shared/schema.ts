@@ -1439,6 +1439,61 @@ export type InstrumentEvent = typeof instrumentEvents.$inferSelect;
 export type InsertInstrumentEvent = typeof instrumentEvents.$inferInsert;
 
 // ============================================================================
+// Instrument Configurations — user-registered lab instruments
+// Each row is one physical instrument or cloud service registered by a user.
+// ============================================================================
+
+export const instruments = pgTable("instruments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+
+  // Identity
+  name: text("name").notNull(),         // user-given label, e.g. "Lab OT-2 (Bench 3)"
+  type: text("type").notNull(),         // see INSTRUMENT_TYPES below
+
+  // Network connection (for local instruments)
+  host: text("host"),                   // IP address or hostname
+  port: integer("port"),                // API port (default varies by type)
+
+  // Auth (cloud services)
+  apiKey: text("api_key"),              // Benchling sk_..., BaseSpace token, etc.
+  oauthToken: text("oauth_token"),      // current access token (OAuth2)
+  oauthRefreshToken: text("oauth_refresh_token"),
+
+  // Type-specific config (JSON blob)
+  // e.g. {outputDir: "/cryoem/sessions", minMovies: 50, settleSeconds: 300}
+  config: text("config"),
+
+  // Live status (updated by health check)
+  status: text("status").notNull().default("unknown"),
+  // "unknown" | "online" | "offline" | "error"
+  lastSeenAt: timestamp("last_seen_at"),
+  lastError: text("last_error"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Canonical type identifiers — must match connector file names in biomate-connectors-v2
+export const INSTRUMENT_TYPES = [
+  "opentrons",        // Opentrons OT-2 / Flex (HTTP API, local)
+  "minknow",          // Nanopore MinKNOW (HTTP API, local)
+  "epu",              // Thermo Fisher EPU / CryoEM (HTTP API or file-watcher)
+  "flow_cytometer",   // Flow cytometer file-watcher (FCS files)
+  "lcms",             // LC-MS file-watcher (Thermo, Waters, Bruker, SCIEX)
+  "qpcr",             // qPCR file-watcher (Bio-Rad, ABI)
+  "plate_reader",     // Plate reader file-watcher (BMG, BioTek, Tecan)
+  "sila2",            // Generic SiLA2 device (gRPC)
+  "basespace",        // Illumina BaseSpace (OAuth2, cloud)
+  "benchling",        // Benchling ELN/LIMS (REST API, cloud)
+] as const;
+
+export type InstrumentType = typeof INSTRUMENT_TYPES[number];
+
+export type Instrument = typeof instruments.$inferSelect;
+export type InsertInstrument = typeof instruments.$inferInsert;
+
+// ============================================================================
 // Async Job Queue (download_jobs) — see docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md
 // ============================================================================
 
