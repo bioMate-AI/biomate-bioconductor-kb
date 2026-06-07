@@ -3,8 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Features &mdash; BioMate AI</title>
-  <meta name="description" content="A guided product tour of BioMate AI: retrieval-grounded answers, evidence-graded QC, audit-ready packs and a workflow catalog purpose-built for regulated biomedical science." />
+  <title>BioMate AI Features | 2,000+ Bioinformatics Workflows</title>
+  <meta name="description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 2,000+ validated workflows for drug discovery, RNA-seq, genomics, and structural biology." />
+  <link rel="canonical" href="https://biomate.ai/features.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="BioMate AI Features | 2,000+ Bioinformatics Workflows" />
+  <meta property="og:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 2,000+ validated workflows for drug discovery, RNA-seq, genomics, and structural biology." />
+  <meta property="og:url" content="https://biomate.ai/features.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BioMate AI Features | 2,000+ Bioinformatics Workflows" />
+  <meta name="twitter:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 2,000+ validated workflows for drug discovery, RNA-seq, genomics, and structural biology." />
   <link rel="stylesheet" href="fonts/fonts.css" />
   <link rel="stylesheet" href="styles.css" />
   <!-- Google tag (gtag.js) -->
@@ -14,6 +25,72 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does BioMate AI select the right workflow from a plain-English request?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI uses a hybrid search system that combines dense vector embeddings (semantic similarity), domain scoring (matching biological discipline), and LLM reasoning to interpret ambiguous requests and route them to the correct workflow. When a request matches multiple workflows, BioMate presents ranked alternatives with confidence scores. This system covers 2,455 workflows across 34 biological domains."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is BioMate's QC grading system?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate uses a Gold / Silver / Bronze evidence grading framework modeled on published community QC standards. Each metric is assessed against a threshold from the relevant tool's guidelines (e.g., ENCODE, GATK Best Practices, Bioconductor). When a metric fails, the result shows the specific value, the threshold it violated, and a remediation suggestion. BioMate's auto-remediation loop can automatically retry the analysis with corrected parameters when a QC gate fails."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does BioMate AI require coding or command-line skills?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. BioMate AI is designed so wet-lab biologists can run complex computational analyses without writing code or using the command line. Researchers describe their experiment in plain English — e.g., 'run differential expression on these 12 RNA-seq samples, treatment vs. control' — and BioMate selects the workflow, pre-fills parameters based on context, and runs the analysis. Results are returned as structured reports with visualizations, not raw terminal output."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate AI handle file uploads and data storage?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI accepts direct file uploads (FASTQ, VCF, PDB, CSV, FASTA, and other common bioinformatics formats) as well as cloud storage paths (AWS S3, etc.). Data is encrypted in transit (TLS 1.2+) and at rest. Each tenant's data is isolated in a workspace-scoped environment and is never used to train shared AI models. Enterprise customers can deploy BioMate in a private VPC where all data stays within their own network."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can BioMate AI generate methods sections and regulatory documents?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. BioMate AI automatically generates a methods report for every workflow run, documenting the exact tools, versions, parameters, and QC metrics used — suitable for journal supplementary materials, grant applications, and internal SOPs. For drug discovery workflows, BioMate can generate §2.6.1 pharmacology narrative sections in DOCX format for IND submissions, with all computational steps and parameter choices documented."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate AI compare to running Nextflow or Snakemake pipelines manually?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI uses Nextflow under the hood and runs on AWS Batch for scalable compute — so you get the same gold-standard pipelines (nf-core, GATK, nf-core/rnaseq, etc.) without writing or maintaining pipeline code. The differences are: BioMate handles pipeline selection, parameter configuration, QC evaluation, and report generation automatically; results are structured and audit-ready by default; non-computational scientists can run analyses without a bioinformatics specialist. For teams that need custom pipeline logic, BioMate also supports parameter overrides and custom workflow registration."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Features", "item": "https://biomate.ai/features.html" }
+    ]
+  }
   </script>
 
 </head>
@@ -200,14 +277,168 @@
   </section>
 
   <!-- ════ Workflow catalog teaser ════ -->
-  <section id="integrations" class="bm-section bm-bg-2">
+  <section id="domains" class="bm-section bm-bg-2">
     <div class="bm-section-inner">
       <div class="bm-section-head">
         <span class="bm-eyebrow">Workflow catalog</span>
-        <h2 class="bm-h2">2,000+ validated workflows across 20+ domains.</h2>
+        <h2 class="bm-h2">2,455+ validated workflows across 37 biological domains.</h2>
         <p class="bm-lead">Container‑pinned, version‑locked, community‑validated. Bring your own when you need to.</p>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:12px;" id="bm-wf-grid"></div>
+      <div id="bm-wf-grid">
+        <noscript>
+          <div style="margin-bottom:1.5rem;">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:.75rem;">Omics &amp; Sequencing</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Transcriptomics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Genomics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Epigenomics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Single Cell</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Variant Calling</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Metagenomics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Proteomics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Metabolomics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Multi-omics</div></span>
+            </div>
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:.75rem;">Drug Discovery</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Drug Discovery</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Pharmacology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Molecular Biology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Genetics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Biochemistry</div></span>
+            </div>
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:.75rem;">Structural &amp; Imaging</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Cryo-EM</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Cryo-ET</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Structural Biology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Bioimaging</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Imaging</div></span>
+            </div>
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:.75rem;">Biology &amp; Medicine</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Immunology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Microbiology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Cell Biology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Cancer Biology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Pathology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Physiology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Bioengineering</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Biophysics</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Rare Disease</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Glycoengineering</div></span>
+            </div>
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:.75rem;">Computational</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Systems Biology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Synthetic Biology</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Virtual Cell</div></span>
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">Lab Automation</div></span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:.75rem;">R / Bioconductor</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="bm-tech-chip"><div class="bm-tech-chip-name">R / Bioconductor</div></span>
+            </div>
+          </div>
+        </noscript>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Integrations & Connectors ════ -->
+  <section id="integrations" class="bm-section">
+    <div class="bm-section-inner">
+      <div class="bm-section-head">
+        <span class="bm-eyebrow">Integrations &amp; connectors</span>
+        <h2 class="bm-h2">Plug into every layer of your stack.</h2>
+        <p class="bm-lead">BioMate connects to AI assistants, messaging platforms, sequencers, and laboratory instruments — so analysis starts where your data lives.</p>
+      </div>
+
+      <!-- AI / Protocol -->
+      <div style="margin-bottom:2.5rem;">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:1rem;">AI &amp; Protocol</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-ai">
+          <noscript>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">MCP (Model Context Protocol)</div><div class="bm-tech-chip-role">Claude · Cursor · Cline</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Open Claw</div><div class="bm-tech-chip-role">Anthropic tool-schema API</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">REST API</div><div class="bm-tech-chip-role">50+ endpoints</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Server-Sent Events</div><div class="bm-tech-chip-role">Real-time streaming</div></span>
+          </noscript>
+        </div>
+      </div>
+
+      <!-- Communication -->
+      <div style="margin-bottom:2.5rem;">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:1rem;">Communication</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-chat">
+          <noscript>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Slack</div><div class="bm-tech-chip-role">/biomate slash command</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">WeChat Work</div><div class="bm-tech-chip-role">企业微信 integration</div></span>
+          </noscript>
+        </div>
+      </div>
+
+      <!-- Lab Instruments -->
+      <div style="margin-bottom:2.5rem;">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:1rem;">Lab Instruments</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-lab">
+          <noscript>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Illumina BaseSpace</div><div class="bm-tech-chip-role">Sequencing runs</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Oxford Nanopore MinKNOW</div><div class="bm-tech-chip-role">Real-time sequencing</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">CryoEM EPU</div><div class="bm-tech-chip-role">Instrument control</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Flow Cytometer</div><div class="bm-tech-chip-role">FCS file parsing</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">LC-MS</div><div class="bm-tech-chip-role">Chromatography data</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">qPCR</div><div class="bm-tech-chip-role">Instrument data</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Opentrons</div><div class="bm-tech-chip-role">Liquid handling</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Plate Reader</div><div class="bm-tech-chip-role">Microplate data</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">SiLA2</div><div class="bm-tech-chip-role">Lab automation protocol</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Benchling LIMS</div><div class="bm-tech-chip-role">Samples &amp; assay results</div></span>
+          </noscript>
+        </div>
+      </div>
+
+      <!-- Auth & SSO -->
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:1rem;">Auth &amp; SSO</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-auth">
+          <noscript>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Google OAuth</div><div class="bm-tech-chip-role">SSO login</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">GitHub OAuth</div><div class="bm-tech-chip-role">SSO login</div></span>
+          </noscript>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Platform diagram ════ -->
+  <section id="platform-diagram" class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <div class="bm-section-head">
+        <span class="bm-eyebrow">Platform overview</span>
+        <h2 class="bm-h2">Everything in one platform &mdash; from raw data to audit-ready result.</h2>
+        <p class="bm-lead">BioMate connects your instruments, AI clients, and messaging tools to 2,455+ validated workflows across 37 biological domains, then delivers structured reports and compliance packages.</p>
+      </div>
+      <figure style="margin:0;">
+        <img src="assets/platform-diagram.svg"
+             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, WeChat Work, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 2,455+ workflows across 37 domains, executed on AWS Batch via Nextflow) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
+             width="1200" height="700"
+             style="width:100%;height:auto;border-radius:12px;border:1px solid rgba(143,214,234,0.15);"
+             loading="lazy" />
+        <figcaption style="margin-top:.75rem;font-size:.8rem;color:var(--text-muted);text-align:center;">
+          BioMate AI &mdash; from instrument data and AI clients to audit-ready computational biology results.
+          <a href="https://www.wikidata.org/wiki/Q140074014" style="color:var(--accent-2);" target="_blank" rel="noopener">Wikidata Q140074014</a>
+        </figcaption>
+      </figure>
     </div>
   </section>
 
@@ -288,33 +519,66 @@
       </article>
     `).join('');
 
-    // Workflow catalog tiles
-    const DOMAINS = [
-      ['Genomics',          '184 pipelines'],
-      ['Variant calling',   '32 pipelines'],
-      ['RNA‑seq',           '46 pipelines'],
-      ['Single‑cell',       '38 pipelines'],
-      ['Cryo‑EM',           '24 pipelines'],
-      ['Crystallography',   '18 pipelines'],
-      ['Structure prediction', '12 pipelines'],
-      ['Docking · screening',  '52 pipelines'],
-      ['Free‑energy / FEP', '14 pipelines'],
-      ['Proteomics',        '36 pipelines'],
-      ['Metabolomics',      '22 pipelines'],
-      ['Microbiome',        '28 pipelines'],
-      ['Phylogenetics',     '19 pipelines'],
-      ['Pathway / network', '24 pipelines'],
-      ['ADMET · DMPK',      '17 pipelines'],
-      ['PBPK',              '8 pipelines'],
-      ['Trial simulation',  '11 pipelines'],
-      ['Real‑world data',   '14 pipelines']
+    // Workflow catalog — grouped by domain category, no stale counts
+    const DOMAIN_GROUPS = [
+      { label: 'Omics &amp; Sequencing',
+        domains: ['Transcriptomics','Genomics','Epigenomics','Single Cell','Variant Calling','Metagenomics','Proteomics','Metabolomics','Multi-omics'] },
+      { label: 'Drug Discovery',
+        domains: ['Drug Discovery','Pharmacology','Molecular Biology','Genetics','Biochemistry'] },
+      { label: 'Structural &amp; Imaging',
+        domains: ['Cryo-EM','Cryo-ET','Structural Biology','Bioimaging','Imaging'] },
+      { label: 'Biology &amp; Medicine',
+        domains: ['Immunology','Microbiology','Cell Biology','Cancer Biology','Pathology','Physiology','Bioengineering','Biophysics','Rare Disease','Glycoengineering'] },
+      { label: 'Computational',
+        domains: ['Systems Biology','Synthetic Biology','Virtual Cell','Lab Automation'] },
+      { label: 'R / Bioconductor',
+        domains: ['R / Bioconductor'] },
     ];
-    document.getElementById('bm-wf-grid').innerHTML = DOMAINS.map(([name, count]) => `
-      <div class="bm-tech-chip">
-        <div class="bm-tech-chip-name">${name}</div>
-        <div class="bm-tech-chip-role">${count}</div>
-      </div>
-    `).join('');
+    const chip = (name) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div></div>`;
+    const groupLabel = (text) => `<div style="grid-column:1/-1;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:1.25rem;margin-bottom:.25rem;">${text}</div>`;
+    document.getElementById('bm-wf-grid').style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;';
+    document.getElementById('bm-wf-grid').innerHTML = DOMAIN_GROUPS.map(
+      ({label, domains}) => groupLabel(label) + domains.map(chip).join('')
+    ).join('');
+
+    // Integrations & connectors
+    const CONN_AI = [
+      ['MCP (Model Context Protocol)', 'Claude · Cursor · Cline'],
+      ['Open Claw', 'Anthropic tool-schema API + SSE'],
+      ['REST API', '50+ endpoints'],
+      ['Server-Sent Events', 'Real-time workflow streaming'],
+    ];
+    const CONN_CHAT = [
+      ['Slack', '/biomate slash command · Block Kit'],
+      ['WeChat Work (企业微信)', 'Message signing · XML encryption'],
+    ];
+    const CONN_LAB = [
+      ['Illumina BaseSpace', 'Sequencing run ingestion'],
+      ['Oxford Nanopore MinKNOW', 'Real-time sequencing sessions'],
+      ['CryoEM EPU', 'Instrument control + monitoring'],
+      ['Flow Cytometer', 'FCS file parsing'],
+      ['LC-MS', 'Chromatography data'],
+      ['qPCR', 'Instrument data integration'],
+      ['Opentrons', 'Liquid handling automation'],
+      ['Plate Reader', 'Microplate reader data'],
+      ['SiLA2', 'Standardized lab automation protocol'],
+      ['Benchling LIMS', 'Samples, assay results, projects'],
+    ];
+    const CONN_AUTH = [
+      ['Google OAuth', 'SSO login'],
+      ['GitHub OAuth', 'SSO login'],
+    ];
+    function renderChips(id, arr) {
+      document.getElementById(id).innerHTML = arr.map(([name, role]) => `
+        <div class="bm-tech-chip">
+          <div class="bm-tech-chip-name">${name}</div>
+          <div class="bm-tech-chip-role">${role}</div>
+        </div>`).join('');
+    }
+    renderChips('bm-conn-ai',   CONN_AI);
+    renderChips('bm-conn-chat', CONN_CHAT);
+    renderChips('bm-conn-lab',  CONN_LAB);
+    renderChips('bm-conn-auth', CONN_AUTH);
   </script>
 
   <script type="text/babel" src="tweaks-panel.jsx"></script>

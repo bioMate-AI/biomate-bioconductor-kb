@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Computational Biology Glossary | BioMate AI</title>
+  <meta name="description" content="Definitions of key computational biology and drug discovery terms: ADMET, PBPK, RNA-seq, cryo-EM, GATK, AlphaFold, molecular docking, WGS, and more." />
+  <link rel="canonical" href="https://biomate.ai/glossary.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Computational Biology Glossary | BioMate AI" />
+  <meta property="og:description" content="Definitions of key computational biology and drug discovery terms: ADMET, PBPK, RNA-seq, cryo-EM, GATK, AlphaFold, molecular docking, WGS, and more." />
+  <meta property="og:url" content="https://biomate.ai/glossary.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Computational Biology Glossary | BioMate AI" />
+  <meta name="twitter:description" content="Plain-English definitions of ADMET, PBPK, RNA-seq, cryo-EM, GATK, AlphaFold, IND, and 20+ more computational biology terms." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+          { "@type": "ListItem", "position": 2, "name": "Glossary", "item": "https://biomate.ai/glossary.html" }
+        ]
+      },
+      {
+        "@type": "DefinedTermSet",
+        "name": "Computational Biology and Drug Discovery Glossary",
+        "description": "Plain-English definitions of key terms in computational biology, bioinformatics, and AI-driven drug discovery.",
+        "url": "https://biomate.ai/glossary.html",
+        "publisher": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+        "hasDefinedTerm": [
+          { "@type": "DefinedTerm", "name": "ADMET", "description": "Absorption, Distribution, Metabolism, Excretion, and Toxicity — the five pharmacokinetic and toxicological properties assessed in silico to predict whether a drug candidate is likely to be safe and effective in vivo.", "termCode": "ADMET", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "PBPK", "description": "Physiologically Based Pharmacokinetic modeling — a mathematical modeling approach that uses anatomical and physiological parameters (organ volumes, blood flow rates, tissue partition coefficients) to predict how a drug distributes through the body over time.", "termCode": "PBPK", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "RNA-seq", "description": "RNA sequencing — a high-throughput sequencing technique that quantifies RNA transcripts across the genome to measure gene expression levels. Used for differential expression analysis, transcriptome assembly, and single-cell profiling.", "termCode": "RNA-seq", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "Cryo-EM", "description": "Cryo-electron microscopy — a structural biology technique that images biological molecules flash-frozen in vitreous ice using electron beams, enabling near-atomic resolution 3D structures without crystallization.", "termCode": "cryo-EM", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "GATK", "description": "Genome Analysis Toolkit — a computational framework developed by the Broad Institute for variant discovery in high-throughput sequencing data. The GATK Best Practices pipeline is the standard for germline and somatic variant calling.", "termCode": "GATK", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "AlphaFold", "description": "An AI system developed by DeepMind (Google) that predicts the 3D structure of proteins from their amino acid sequences with near-experimental accuracy. AlphaFold2 (2021) and AlphaFold3 (2024) revolutionized structural biology.", "termCode": "AlphaFold", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "IND", "description": "Investigational New Drug — a regulatory submission filed with the FDA before clinical trials can begin for a new drug candidate. The nonclinical IND package includes pharmacology, ADMET, PBPK, and toxicology summaries (Module 2.6 of the CTD format).", "termCode": "IND", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "DESeq2", "description": "A widely used R/Bioconductor package for differential gene expression analysis in RNA-seq data. Uses a negative binomial model with shrinkage estimation to identify statistically significant changes in expression between experimental conditions.", "termCode": "DESeq2", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "Molecular docking", "description": "A computational method that predicts the preferred binding orientation and affinity of a small molecule (ligand) within a target protein's binding site. Common tools include AutoDock Vina, GLIDE, and DiffDock.", "termCode": "molecular docking", "inDefinedTermSet": "https://biomate.ai/glossary.html" },
+          { "@type": "DefinedTerm", "name": "BOIN", "description": "Bayesian Optimal Interval design — a statistical design for dose-escalation trials (Phase I) that uses a simple decision table based on Bayesian posterior probabilities to determine whether to escalate, stay, or de-escalate the dose at each cohort.", "termCode": "BOIN", "inDefinedTermSet": "https://biomate.ai/glossary.html" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is ADMET in drug discovery?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ADMET stands for Absorption, Distribution, Metabolism, Excretion, and Toxicity. In drug discovery, ADMET profiling predicts whether a drug candidate will be absorbed through the gut (or other routes), distributed to target tissues, metabolized at an appropriate rate, excreted without harmful accumulation, and whether it has toxic liabilities (e.g., hERG cardiotoxicity, DILI, Ames mutagenicity). In silico ADMET prediction allows teams to filter out problematic candidates before expensive wet-lab synthesis, dramatically reducing attrition in the development pipeline."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is PBPK modeling?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "PBPK (Physiologically Based Pharmacokinetic) modeling uses mathematical equations parameterized by real anatomical and physiological measurements (organ sizes, blood flows, enzyme activities) to simulate how a drug behaves in the body over time. Unlike empirical PK models, PBPK can extrapolate across species (mouse to human), predict drug interactions, and model special populations (pediatric, renal impairment). It is routinely used in IND submissions and FDA review to justify first-in-human dosing."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is cryo-EM and how is it different from X-ray crystallography?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Cryo-electron microscopy (cryo-EM) and X-ray crystallography both determine 3D protein structures, but through different methods. X-ray crystallography requires growing protein crystals (often difficult or impossible) and measures diffraction patterns. Cryo-EM images individual protein molecules frozen in vitreous ice with an electron microscope, then uses computational averaging of many particle images to reconstruct the 3D density map. Cryo-EM excels for large protein complexes, membrane proteins, and flexible molecules that cannot be crystallized. Modern cryo-EM routinely achieves 2-3 Angstrom resolution."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the difference between WGS and WES?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "WGS (Whole Genome Sequencing) sequences the entire genome (~3 billion base pairs in humans), including coding and non-coding regions, intronic sequences, and regulatory elements. WES (Whole Exome Sequencing) captures only the exome — the ~1-2% of the genome that encodes proteins. WGS is more comprehensive and can detect structural variants, non-coding mutations, and copy number changes, but costs more and requires greater computational resources. WES is cost-effective for Mendelian disease genetics and protein-coding variant discovery."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is single-cell RNA sequencing (scRNA-seq)?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Single-cell RNA sequencing (scRNA-seq) measures gene expression in individual cells rather than bulk populations. By profiling thousands of cells simultaneously, it reveals cell-type heterogeneity, rare cell populations, developmental trajectories, and cell-state transitions that are invisible in bulk RNA-seq. Common platforms include 10x Genomics Chromium (droplet-based) and Smart-seq2 (plate-based). Analysis involves dimensionality reduction (PCA, UMAP), clustering, marker gene identification, and trajectory inference using tools like Seurat and Scanpy."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the nf-core project?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "nf-core is a community-curated collection of analysis pipelines built with the Nextflow workflow management system. Each pipeline (e.g., nf-core/rnaseq, nf-core/sarek for WGS, nf-core/chipseq) follows best practices, uses containerized software (Docker/Singularity), and passes rigorous CI testing. BioMate AI runs nf-core pipelines under the hood on AWS Batch, making the same gold-standard tools accessible through plain-English requests without requiring Nextflow expertise."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .gl-toc {
+      display: flex; flex-wrap: wrap; gap: .4rem .75rem;
+      margin: 1.5rem 0 2.5rem;
+    }
+    .gl-toc a {
+      display: inline-block;
+      padding: .3rem .75rem;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--accent-2);
+      text-decoration: none;
+      transition: border-color .15s, background .15s;
+    }
+    .gl-toc a:hover { background: var(--accent-tint); border-color: var(--accent-tint2); }
+
+    .gl-entry {
+      padding: 1.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .gl-entry:last-child { border-bottom: none; }
+    .gl-term {
+      display: flex; align-items: baseline; gap: 1rem;
+      margin-bottom: .65rem;
+    }
+    .gl-term h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      scroll-margin-top: calc(var(--nav-h) + 1.5rem);
+    }
+    .gl-abbr {
+      font-size: .78rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-2);
+      background: var(--accent-tint);
+      border: 1px solid var(--accent-tint2);
+      border-radius: 5px;
+      padding: .15rem .5rem;
+    }
+    .gl-def {
+      font-size: .97rem;
+      line-height: 1.75;
+      color: var(--text-muted);
+      max-width: 800px;
+    }
+    .gl-def strong { color: var(--text); }
+    .gl-related {
+      margin-top: .75rem;
+      font-size: .82rem;
+      color: var(--text-faint);
+    }
+    .gl-related a { color: var(--accent-2); text-decoration: none; }
+    .gl-related a:hover { text-decoration: underline; }
+
+    .gl-section-head {
+      margin: 3rem 0 .5rem;
+      padding-bottom: .5rem;
+      border-bottom: 2px solid var(--accent-tint2);
+    }
+    .gl-section-head h2 {
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      margin: 0;
+    }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-page-hero">
+    <div class="bm-page-hero-inner" style="max-width:860px;">
+      <span class="bm-eyebrow">Reference</span>
+      <h1 class="bm-h1" style="margin-top:1rem;">Computational Biology Glossary</h1>
+      <p class="bm-lead" style="margin-top:1rem;max-width:660px;">Plain-English definitions of key terms in computational biology, bioinformatics, and AI-driven drug discovery — from ADMET to WGS.</p>
+    </div>
+  </section>
+
+  <section class="bm-section">
+    <div class="bm-section-inner" style="max-width:900px;">
+
+      <!-- Jump links -->
+      <nav aria-label="Glossary quick jump" class="gl-toc">
+        <a href="#admet">ADMET</a>
+        <a href="#alphafold">AlphaFold</a>
+        <a href="#bioconductor">Bioconductor</a>
+        <a href="#boin">BOIN</a>
+        <a href="#cryoem">Cryo-EM</a>
+        <a href="#deseq2">DESeq2</a>
+        <a href="#gatk">GATK</a>
+        <a href="#ind">IND</a>
+        <a href="#md">Molecular Dynamics</a>
+        <a href="#docking">Molecular Docking</a>
+        <a href="#multiomics">Multi-omics</a>
+        <a href="#nextflow">Nextflow / nf-core</a>
+        <a href="#pbpk">PBPK</a>
+        <a href="#rnaseq">RNA-seq</a>
+        <a href="#scrnaseq">scRNA-seq</a>
+        <a href="#spa">SPA (cryo-EM)</a>
+        <a href="#target">Target Identification</a>
+        <a href="#variant">Variant Calling</a>
+        <a href="#virtualscreening">Virtual Screening</a>
+        <a href="#wgs">WGS / WES</a>
+      </nav>
+
+      <!-- ── Drug Discovery ── -->
+      <div class="gl-section-head"><h2>Drug Discovery</h2></div>
+
+      <div class="gl-entry" id="admet">
+        <div class="gl-term">
+          <h2>ADMET</h2>
+          <span class="gl-abbr">Absorption · Distribution · Metabolism · Excretion · Toxicity</span>
+        </div>
+        <p class="gl-def">ADMET profiling predicts the five pharmacokinetic and safety properties that determine whether a drug candidate is suitable for development. <strong>Absorption</strong> assesses oral bioavailability (Caco-2 permeability, P-glycoprotein efflux). <strong>Distribution</strong> covers plasma protein binding and volume of distribution. <strong>Metabolism</strong> identifies CYP450 interactions, metabolic stability, and drug-drug interaction potential. <strong>Excretion</strong> models renal and hepatic clearance. <strong>Toxicity</strong> flags hERG cardiac risk, DILI (drug-induced liver injury), Ames mutagenicity, and other liabilities. In silico ADMET is performed before synthesis to filter out high-risk scaffolds — a compound that fails ADMET in a cell assay after months of chemistry work represents sunk cost that computational screening would have caught in minutes. BioMate AI runs full ADMET panels with Gold/Silver/Bronze evidence-graded QC, citing the threshold source (e.g., FDA guidance, published hERG IC₅₀ benchmarks) for every metric.</p>
+        <p class="gl-related">Related: <a href="blog-drug-3-admet.html">The ADMET Bottleneck</a> &middot; <a href="blog-admet-guide.html">Reading ADMET Results</a> &middot; <a href="services.html#drug-discovery">Drug Discovery Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="pbpk">
+        <div class="gl-term">
+          <h2>PBPK Modeling</h2>
+          <span class="gl-abbr">Physiologically Based Pharmacokinetics</span>
+        </div>
+        <p class="gl-def">PBPK models simulate drug behavior in the body using compartments representing real anatomical organs (liver, kidney, lungs, gut, plasma) connected by blood flow rates that match known physiology. Unlike empirical two-compartment models, PBPK models can extrapolate across species (mouse → rat → human) because they encode actual physiological parameters rather than fitting to observed data. This makes them essential for <strong>allometric scaling</strong> — translating animal study doses to human equivalents for IND submissions — and for predicting behavior in special populations (children, elderly, hepatic impairment). PBPK is explicitly requested in FDA and EMA guidance for certain drug classes. BioMate runs PBPK simulation as part of its preclinical development pipeline, producing PK profiles, species scaling tables, and a draft §2.6.4 PK Written Summary for IND Module 2.</p>
+        <p class="gl-related">Related: <a href="blog-drug-4-preclinical.html">From Animal Studies to IND</a> &middot; <a href="services.html#drug-discovery">Drug Discovery Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="ind">
+        <div class="gl-term">
+          <h2>IND</h2>
+          <span class="gl-abbr">Investigational New Drug Application</span>
+        </div>
+        <p class="gl-def">An IND is the regulatory submission filed with the U.S. FDA (or equivalent in other jurisdictions) before a pharmaceutical company can begin clinical trials of a new drug in human subjects. The <strong>nonclinical IND package</strong> (CTD Module 2.6) contains computational and experimental evidence on the drug's pharmacology, pharmacokinetics, and toxicology. Sections §2.6.1–2.6.7 cover: introduction, pharmacology summary, pharmacology tables, PK written summary, PK tables, toxicology summary, and toxicology tables. BioMate AI automates the computational sections of Module 2.6 — generating CTD-formatted DOCX documents with narrative prose, tabulated data, and QC-graded citations from run data — leaving wet-lab sections as clearly marked placeholders for the regulatory affairs team.</p>
+        <p class="gl-related">Related: <a href="blog-drug-4-preclinical.html">Computational Preclinical Development</a> &middot; <a href="services.html#drug-discovery">Drug Discovery Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="target">
+        <div class="gl-term">
+          <h2>Target Identification &amp; Validation</h2>
+        </div>
+        <p class="gl-def">Target identification is the process of finding a biological molecule (usually a protein) whose modulation could treat a disease. Computational target identification uses <strong>genetic support scoring</strong> (GWAS, rare variant burden), <strong>CRISPR essentiality data</strong> (DepMap, Project Score) to rank targets by cancer cell line dependence, <strong>pocket druggability analysis</strong> (FPocket, SiteMap) to assess whether the target has a ligandable cavity, and functional genomics to identify pathway relationships. Validation confirms that the target is expressed in the disease tissue, is not safety-critical in normal tissues, and has prior art suggesting modulation is feasible. BioMate AI runs automated target scoring workflows using Open Targets, ChEMBL, and AlphaFold-predicted structures for pocket analysis.</p>
+        <p class="gl-related">Related: <a href="blog-drug-1-target.html">Before the First Compound</a> &middot; <a href="services.html#drug-discovery">Drug Discovery Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="virtualscreening">
+        <div class="gl-term">
+          <h2>Virtual Screening</h2>
+        </div>
+        <p class="gl-def">Virtual screening computationally filters large compound libraries (millions to billions of molecules) to identify candidates likely to bind a target protein. <strong>Structure-based virtual screening</strong> uses molecular docking to score binding poses within the target's active site. <strong>Ligand-based screening</strong> identifies compounds similar in shape or pharmacophore to known active molecules when no structure is available. AI-guided screening (GNN scoring functions, diffusion-based pose prediction) has dramatically improved enrichment rates. Virtual screening precedes wet-lab high-throughput screening (HTS) to reduce the chemical space to a tractable hit list of 50–500 compounds for experimental validation. BioMate runs virtual screening using AutoDock Vina, DiffDock, and pharmacophore filtering with ADMET pre-screening of the hit list.</p>
+        <p class="gl-related">Related: <a href="blog-drug-2-hit.html">From Chemical Space to Hit List</a> &middot; <a href="services.html#drug-discovery">Drug Discovery Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="boin">
+        <div class="gl-term">
+          <h2>BOIN</h2>
+          <span class="gl-abbr">Bayesian Optimal Interval Design</span>
+        </div>
+        <p class="gl-def">BOIN is a statistical framework for Phase I dose-escalation trials that determines whether to escalate, stay at, or de-escalate the current dose based on the observed dose-limiting toxicity (DLT) rate in each cohort. Unlike the classical 3+3 design, BOIN is statistically optimal: it uses a pre-computed decision table derived from Bayesian posterior probabilities to find the Maximum Tolerated Dose (MTD) more accurately and with fewer patients. BOIN has been widely adopted by oncology programs and is accepted by the FDA. BioMate simulates BOIN dose-escalation trials computationally, allowing clinical teams to explore different target DLT rates and sample size assumptions before trial initiation.</p>
+        <p class="gl-related">Related: <a href="blog-drug-5-clinical.html">Designing Safer Trials</a> &middot; <a href="services.html#drug-discovery">Drug Discovery Services</a></p>
+      </div>
+
+      <!-- ── Genomics ── -->
+      <div class="gl-section-head" style="margin-top:3rem;"><h2>Genomics &amp; Sequencing</h2></div>
+
+      <div class="gl-entry" id="rnaseq">
+        <div class="gl-term">
+          <h2>RNA-seq</h2>
+          <span class="gl-abbr">RNA Sequencing / Transcriptomics</span>
+        </div>
+        <p class="gl-def">RNA-seq measures the transcriptome — the complete set of RNA transcripts in a cell or tissue at a given time — by converting RNA to cDNA, fragmenting it, and sequencing millions of fragments. The key readout is <strong>read counts per gene</strong>, which serve as proxies for expression levels. <strong>Differential expression analysis</strong> (DESeq2, edgeR, limma-voom) identifies genes whose expression changes significantly between conditions (treated vs. control, disease vs. healthy). Standard workflows involve: quality control with FastQC, adapter trimming (Trim Galore), alignment (STAR or HISAT2), quantification (salmon or featureCounts), and differential expression with visualization (volcano plots, heatmaps, GSEA). BioMate runs the complete nf-core/rnaseq pipeline on AWS Batch from FASTQ input to DEG tables and pathway enrichment, with ENCODE-graded QC at every step.</p>
+        <p class="gl-related">Related: <a href="blog-bioconductor.html">Bioconductor Methods in BioMate</a> &middot; <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="scrnaseq">
+        <div class="gl-term">
+          <h2>scRNA-seq</h2>
+          <span class="gl-abbr">Single-Cell RNA Sequencing</span>
+        </div>
+        <p class="gl-def">scRNA-seq profiles gene expression in individual cells rather than a bulk tissue average, revealing cellular heterogeneity invisible to bulk RNA-seq. The most common platform is <strong>10x Genomics Chromium</strong> (droplet-based), which captures thousands of cells with unique molecular identifiers (UMIs) for accurate quantification. Analysis starts with a sparse count matrix and proceeds through: quality filtering, normalization, dimensionality reduction (PCA, UMAP/t-SNE), unsupervised clustering, cell-type annotation with marker genes, trajectory inference, and differential expression between cell populations. Tools include <strong>Seurat</strong> (R) and <strong>Scanpy</strong> (Python), both available in BioMate's workflow library. Applications include tumor microenvironment characterization, developmental biology, and drug mechanism of action studies.</p>
+        <p class="gl-related">Related: <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="wgs">
+        <div class="gl-term">
+          <h2>WGS / WES</h2>
+          <span class="gl-abbr">Whole Genome Sequencing / Whole Exome Sequencing</span>
+        </div>
+        <p class="gl-def">WGS sequences the entire ~3-billion-base-pair human genome, including coding and non-coding regions, at typical coverage of 30x–60x depth. WES captures only the exome (~50 Mb, ~2% of the genome) — the protein-coding regions — at deeper coverage (~100x). <strong>WGS advantages</strong>: detects structural variants (SVs), copy number variants (CNVs), and non-coding variants; better at low-allele-frequency somatic mutations. <strong>WES advantages</strong>: lower cost, smaller data volumes, easier interpretation for rare Mendelian disease genetics. Both use the same alignment (BWA-MEM), base quality score recalibration (BQSR), and variant calling (GATK HaplotypeCaller or DeepVariant) workflows. BioMate runs WGS/WES through <strong>nf-core/sarek</strong> with GATK Best Practices or DeepVariant, ACMG/AMP variant classification, and VCF annotation via VEP or ANNOVAR.</p>
+        <p class="gl-related">Related: <a href="blog-gatk-deepvariant.html">GATK4 vs. Deep Learning in WGS</a> &middot; <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="gatk">
+        <div class="gl-term">
+          <h2>GATK</h2>
+          <span class="gl-abbr">Genome Analysis Toolkit</span>
+        </div>
+        <p class="gl-def">GATK is the industry-standard framework for variant calling in sequencing data, developed and maintained by the Broad Institute. The <strong>GATK Best Practices</strong> pipeline for germline short variant discovery covers: Picard MarkDuplicates, Base Quality Score Recalibration (BQSR), HaplotypeCaller (per-sample GVCF mode), GenomicsDBImport, GenotypeGVCFs, and Variant Quality Score Recalibration (VQSR). For somatic variant calling, <strong>Mutect2</strong> identifies somatic SNVs and indels. GATK4 (the current version) is Java-based with Spark support for scalable cloud compute. <strong>DeepVariant</strong> (Google) is a deep learning alternative that can outperform GATK on certain datasets, particularly for non-human genomes and PacBio long reads.</p>
+        <p class="gl-related">Related: <a href="blog-gatk-deepvariant.html">Choosing Your Variant Caller: GATK4 vs. Deep Learning</a> &middot; <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="variant">
+        <div class="gl-term">
+          <h2>Variant Calling</h2>
+        </div>
+        <p class="gl-def">Variant calling is the computational process of identifying positions in a sequenced genome that differ from a reference sequence. Variants include: <strong>SNVs</strong> (single nucleotide variants — single base changes), <strong>indels</strong> (insertions and deletions of 1–50 bp), <strong>CNVs</strong> (copy number variants — large-scale duplications or deletions), and <strong>SVs</strong> (structural variants — translocations, inversions, large indels). <strong>Germline variant calling</strong> identifies inherited variants (typically 4–5 million per human genome). <strong>Somatic variant calling</strong> identifies mutations acquired in tumor cells by comparing tumor vs. matched normal tissue. Variant annotation adds biological context: predicted functional impact (VEP/ANNOVAR), ClinVar pathogenicity classification, population allele frequencies (gnomAD), and ACMG/AMP clinical significance criteria.</p>
+        <p class="gl-related">Related: <a href="blog-gatk-deepvariant.html">GATK4 vs. Deep Learning</a> &middot; <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="deseq2">
+        <div class="gl-term">
+          <h2>DESeq2</h2>
+        </div>
+        <p class="gl-def">DESeq2 is a widely used R/Bioconductor package for differential expression analysis of RNA-seq count data. It models counts using a <strong>negative binomial distribution</strong> and applies <strong>empirical Bayes shrinkage</strong> of log2 fold change estimates to reduce noise for low-count genes. Key features: size factor normalization to correct for library size differences; dispersion estimation sharing information across genes; Wald test for significance; and independent filtering to maximize the number of genes passing an FDR threshold (typically padj &lt; 0.05). Results include log2 fold change, Wald statistic, p-value, and adjusted p-value (Benjamini-Hochberg) for every gene. <strong>edgeR</strong> and <strong>limma-voom</strong> are the two most common alternatives with different statistical approaches. BioMate runs all three and returns the union of significant hits with QC-graded concordance.</p>
+        <p class="gl-related">Related: <a href="blog-bioconductor.html">The R Ecosystem in BioMate</a> &middot; <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="multiomics">
+        <div class="gl-term">
+          <h2>Multi-omics</h2>
+        </div>
+        <p class="gl-def">Multi-omics refers to the integration of data from multiple omic layers — genomics (DNA variants), transcriptomics (RNA expression), proteomics (protein abundance), metabolomics (metabolite levels), and epigenomics (chromatin accessibility, methylation) — to build a more complete biological picture than any single modality can provide. Integration approaches include: <strong>MOFA+</strong> (multi-omics factor analysis) for unsupervised latent factor decomposition; <strong>iCluster</strong> for cancer subtyping; <strong>mixOmics</strong> for supervised integration; and network-based methods (OmicsNet, WGCNA). Multi-omics integration is particularly powerful for biomarker discovery, drug mechanism of action studies, and patient stratification in clinical trials.</p>
+        <p class="gl-related">Related: <a href="services.html#genomics">Multi-Omics Services</a></p>
+      </div>
+
+      <!-- ── Structural Biology ── -->
+      <div class="gl-section-head" style="margin-top:3rem;"><h2>Structural Biology &amp; Drug Design</h2></div>
+
+      <div class="gl-entry" id="cryoem">
+        <div class="gl-term">
+          <h2>Cryo-EM</h2>
+          <span class="gl-abbr">Cryo-Electron Microscopy</span>
+        </div>
+        <p class="gl-def">Cryo-EM determines the 3D structure of biological molecules by imaging them in a near-native, frozen-hydrated state using electron beams. Samples are vitrified in a thin film of amorphous ice by plunge-freezing in liquid ethane. An electron microscope captures thousands of 2D projection images of randomly oriented particles. Computational reconstruction (single-particle analysis, SPA) aligns and averages these projections to produce a 3D electron density map, from which an atomic model is built. Modern cryo-EM achieves 2–3 Å resolution — comparable to X-ray crystallography — without requiring crystals. This has been transformative for <strong>membrane proteins</strong>, large complexes (&gt;150 kDa), and dynamic assemblies. Nobel Prize in Chemistry 2017. Software: <strong>CryoSPARC</strong> and <strong>RELION</strong> are the dominant platforms.</p>
+        <p class="gl-related">Related: <a href="blog-cryosparc-spa.html">End-to-End Cryo-EM Processing</a> &middot; <a href="services.html#structural-biology">Structural Biology Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="spa">
+        <div class="gl-term">
+          <h2>SPA</h2>
+          <span class="gl-abbr">Single-Particle Analysis</span>
+        </div>
+        <p class="gl-def">Single-particle analysis (SPA) is the dominant cryo-EM workflow for determining structures of purified, homogeneous protein complexes. The SPA pipeline includes: <strong>motion correction</strong> (aligning drift-corrected frames), <strong>CTF estimation</strong> (characterizing lens aberrations), <strong>particle picking</strong> (identifying individual protein molecules using templates or neural networks like TOPAZ), <strong>2D classification</strong> (grouping particles by orientation and removing junk), <strong>3D classification</strong> (separating conformational states), <strong>homogeneous refinement</strong> (maximizing resolution), and <strong>map validation</strong> (FSC curves, local resolution estimation). BioMate runs CryoSPARC SPA as a 5-phase, 23-step pipeline on AWS GPU instances, with evidence-graded QC at each phase.</p>
+        <p class="gl-related">Related: <a href="blog-cryosparc-spa.html">End-to-End Cryo-EM Processing</a> &middot; <a href="services.html#structural-biology">Structural Biology Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="alphafold">
+        <div class="gl-term">
+          <h2>AlphaFold</h2>
+        </div>
+        <p class="gl-def">AlphaFold is an AI system developed by Google DeepMind that predicts protein 3D structures from amino acid sequences with near-experimental accuracy. <strong>AlphaFold2</strong> (2021) used a transformer-based architecture with multiple sequence alignments (MSA) and pairwise representations to achieve a mean GDT_TS score of 92.4 in CASP14 — surpassing all other methods and roughly matching experimental accuracy. <strong>AlphaFold3</strong> (2024) extends prediction to protein–DNA, protein–RNA, and protein–ligand complexes using a diffusion architecture. The AlphaFold Protein Structure Database (AFDB) provides predicted structures for virtually all known proteins (~200 million). AlphaFold predictions have accuracy metrics: <strong>pLDDT</strong> (per-residue confidence, 0–100) and <strong>PAE</strong> (predicted aligned error, for inter-domain confidence). BioMate integrates AlphaFold2 and AF3 predictions directly into docking and binding site analysis pipelines.</p>
+        <p class="gl-related">Related: <a href="blog-structure-docking.html">From Sequence to Binding Pose</a> &middot; <a href="services.html#structural-biology">Structural Biology Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="docking">
+        <div class="gl-term">
+          <h2>Molecular Docking</h2>
+        </div>
+        <p class="gl-def">Molecular docking predicts the preferred orientation (binding pose) and binding affinity (ΔG) of a small molecule (ligand) within a target protein's binding site. <strong>Rigid docking</strong> holds both protein and ligand rigid; <strong>flexible docking</strong> samples ligand conformations and optionally protein side-chain flexibility; <strong>induced-fit docking</strong> allows full protein rearrangement. Key software: <strong>AutoDock Vina</strong> (widely used, Lamarckian genetic algorithm), <strong>GLIDE</strong> (Schrödinger, hierarchical scoring), <strong>DiffDock</strong> (diffusion-based, no predefined binding site needed). Docking scores correlate roughly with binding affinity but are not quantitative — top-scoring poses are prioritized for experimental validation. BioMate chains AlphaFold structure prediction directly into AutoDock Vina docking in a single automated pipeline.</p>
+        <p class="gl-related">Related: <a href="blog-structure-docking.html">From Sequence to Binding Pose</a> &middot; <a href="services.html#structural-biology">Structural Biology Services</a></p>
+      </div>
+
+      <div class="gl-entry" id="md">
+        <div class="gl-term">
+          <h2>Molecular Dynamics (MD)</h2>
+        </div>
+        <p class="gl-def">Molecular dynamics simulation numerically integrates Newton's equations of motion for all atoms in a molecular system (protein, ligand, solvent, membrane) using a force field (CHARMM36, AMBER ff14SB, OPLS-AA) to describe inter-atomic forces. MD reveals <strong>conformational dynamics</strong> that static crystal or cryo-EM structures cannot capture: protein flexibility, induced-fit binding, allosteric communication, and membrane permeability. Key analyses: RMSD (structural stability), RMSF (per-residue flexibility), hydrogen bond occupancy, and binding free energy (MM/GBSA, FEP). GPU-accelerated MD with <strong>GROMACS</strong> or <strong>OpenMM</strong> can simulate microsecond timescales. BioMate runs MD as part of ADMET lead optimization (binding stability validation) and standalone conformational analysis.</p>
+        <p class="gl-related">Related: <a href="blog-drug-3-admet.html">The ADMET Bottleneck</a> &middot; <a href="services.html#structural-biology">Structural Biology Services</a></p>
+      </div>
+
+      <!-- ── Platform ── -->
+      <div class="gl-section-head" style="margin-top:3rem;"><h2>Platform &amp; Methods</h2></div>
+
+      <div class="gl-entry" id="nextflow">
+        <div class="gl-term">
+          <h2>Nextflow / nf-core</h2>
+        </div>
+        <p class="gl-def">Nextflow is a workflow management system (WMS) that enables scalable, reproducible bioinformatics pipelines. Pipelines are written in Nextflow DSL2 (a Groovy-based domain-specific language) and run on HPC schedulers (SLURM, PBS), cloud (AWS Batch, Google Cloud Life Sciences), or local machines with identical results. <strong>nf-core</strong> is a community organization that maintains a library of peer-reviewed, continuously tested Nextflow pipelines following strict coding standards: containerization (Docker/Singularity), comprehensive test datasets, CI/CD, and extensive documentation. Key nf-core pipelines: nf-core/rnaseq, nf-core/sarek (WGS/WES), nf-core/atacseq, nf-core/chipseq, nf-core/proteomicslfq, nf-core/differentialabundance. BioMate AI runs nf-core pipelines on AWS Batch, exposing them through plain-English requests without requiring Nextflow expertise.</p>
+        <p class="gl-related">Related: <a href="compare.html#nextflow">BioMate vs Nextflow</a> &middot; <a href="blog-workflow-routing.html">BioMate's Hybrid Workflow Search</a></p>
+      </div>
+
+      <div class="gl-entry" id="bioconductor">
+        <div class="gl-term">
+          <h2>Bioconductor</h2>
+        </div>
+        <p class="gl-def">Bioconductor is a collection of open-source R packages for the analysis of genomic data, maintained by an international community with a rigorous review and release process. It provides: <strong>core data structures</strong> (SummarizedExperiment, SingleCellExperiment, GRanges), <strong>statistical methods</strong> (DESeq2, edgeR, limma, clusterProfiler, MAST), <strong>annotation resources</strong> (Homo.sapiens, BSgenome, GenomicFeatures), and <strong>visualization tools</strong> (EnhancedVolcano, ComplexHeatmap). Bioconductor has ~2,300 packages covering bulk RNA-seq, single-cell, methylation, ChIP-seq, spatial transcriptomics, proteomics, and metabolomics. BioMate AI indexes 865+ Bioconductor workflows and makes them accessible through plain-English requests without requiring R programming.</p>
+        <p class="gl-related">Related: <a href="blog-bioconductor.html">The R Ecosystem in BioMate</a> &middot; <a href="services.html#genomics">Genomics Services</a></p>
+      </div>
+
+      <!-- CTA -->
+      <div style="margin:3rem 0 1rem;padding:2rem;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;text-align:center;">
+        <h3 class="bm-h3" style="margin-bottom:.75rem;">Run any of these methods — no setup required</h3>
+        <p style="color:var(--text-muted);margin-bottom:1.5rem;font-size:.95rem;">BioMate AI runs ADMET, RNA-seq, cryo-EM, WGS, PBPK, and 2,000+ other workflows through a plain-English interface on AWS. Free to start.</p>
+        <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+          <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary">Start free &rarr;</a>
+          <a href="services.html" class="bm-btn bm-btn-outline">Browse services</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js"></script>
+  <script>renderShell({ active: '', cta: false });</script>
+</body>
+</html>

@@ -118,6 +118,17 @@
     "articleSection": "Platform Architecture"
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "Context That Compounds: BioMate's Hierarchical Memory for Scientific Research", "item": "https://biomate.ai/blog-memory.html" }
+    ]
+  }
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
   <script>
@@ -182,6 +193,7 @@
       <h2>How Memory Surfaces in Practice</h2>
       <p>Memory is not a settings page you configure manually. It is inferred from behavior and made available at the point of use. When you start a new RNA-seq analysis, BioMate recalls that your lab works with mouse samples, uses a specific reference annotation, and applies a particular minimum read count threshold — and pre-fills the workflow configuration accordingly. When a parameter differs from what your lab has used before, BioMate notes the deviation and asks whether it is intentional.</p>
 
+      <p class="bm-external-refs">Further reading: <a href="https://arxiv.org/abs/2005.11401" rel="noopener" target="_blank">Lewis et al. 2020, retrieval-augmented generation</a>, <a href="https://www.nature.com/articles/s41592-021-01045-4" rel="noopener" target="_blank">Ewels et al. 2020, nf-core Nature Methods</a>, and <a href="https://www.nlm.nih.gov" rel="noopener" target="_blank">National Library of Medicine</a>.</p>
       <div class="callout">
         <strong>What this means for you</strong>
         <p>The 20th analysis in your lab is faster, better-configured, and more consistent than the first — because the platform has accumulated the context needed to serve you without asking you to re-establish it every time.</p>
@@ -213,6 +225,17 @@
     </div>
   </aside>
 </div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
 
 <footer>
   <div class="footer-inner">

@@ -1,0 +1,82 @@
+# BioMate AI
+
+> AI-powered computational biology platform for pharma, biotech, academic labs, and core facilities. Provides 2,000+ validated bioinformatics workflows with AI-guided QC and audit-ready results.
+
+BioMate AI is a software-as-a-service computational biology platform founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+
+## Key facts
+
+- 2,455+ validated workflows across 37 biological domains. Leading domains: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Additional coverage: single cell, metagenomics, cryo-EM, cryo-ET, metabolomics, imaging, pharmacology, immunology, microbiology, systems biology, synthetic biology, structural biology, cancer biology, cell biology, bioengineering, glycoengineering, rare disease, and more. Full R/Bioconductor method library included.
+- Integrates gold-standard tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2
+- AI-graded QC framework: Gold / Silver / Bronze evidence grades with per-metric pass/fail thresholds
+- Auto-remediation loop: when a QC gate fails, BioMate proposes and reruns with corrected parameters
+- Free tier available; Pro plan $49/month; Enterprise plan $199/month
+- HIPAA-compliant with Business Associate Agreement (BAA) available for enterprise customers
+- Private VPC deployment available — data never leaves your network
+- Tenant data is fully isolated and never used to train shared AI models
+- Runs on AWS Batch for scalable compute; supports GPU workflows (cryo-EM, structure prediction)
+- Audit trail: all results include corpus version, model version, retrieval seed, and parameter log
+- Connectors: MCP (Model Context Protocol, Q133436854), Open Claw (Anthropic tool-schema API over SSE), REST API (50+ endpoints), Server-Sent Events, Slack (/biomate slash command), WeChat Work (企业微信), Illumina BaseSpace, Oxford Nanopore MinKNOW, CryoEM EPU, Flow Cytometer, LC-MS, qPCR, Opentrons, Plate Reader, SiLA2, Benchling LIMS, Google OAuth, GitHub OAuth
+
+## Core capabilities
+
+- **Drug discovery**: target identification, virtual screening, ADMET profiling, PBPK simulation, IND filing support, post-market pharmacovigilance
+- **Genomics and multi-omics**: RNA-seq, WGS, variant calling (GATK/DeepVariant), single-cell RNA-seq, spatial transcriptomics, ATAC-seq, ChIP-seq, multi-omics integration
+- **Structural biology**: AlphaFold structure prediction, molecular docking (AutoDock Vina, GLIDE), molecular dynamics (GROMACS, OpenMM), cryo-EM (CryoSPARC, RELION)
+- **Proteomics and metabolomics**: MaxQuant proteomics, metabolic network modeling
+- **Microbiome**: QIIME 2 amplicon and shotgun metagenomics
+- **CRO compliance**: structured compound packages, assay specifications, audit-ready export formats
+
+## Pages
+
+- [Home](https://biomate.ai/): Platform overview, key capabilities, and quick start
+- [Services](https://biomate.ai/services.html): Full service catalog — drug discovery, genomics, structural biology
+- [Features](https://biomate.ai/features.html): Platform features — workflow routing, QC, parameter management, reports
+- [Pricing](https://biomate.ai/pricing.html): Free, Pro ($49/mo), and Enterprise ($199/mo) plan comparison
+- [About](https://biomate.ai/about.html): Company mission, story, guiding principles; includes Quick Facts table (founded 2025, Houston TX, 2,455+ workflows, tools, pricing, compliance)
+- [Compare](https://biomate.ai/compare.html): BioMate AI vs Galaxy, Nextflow/nf-core, and in-house bioinformatics teams — feature matrix and honest assessment of when to use each
+- [Blog](https://biomate.ai/blog.html): Scientific articles and platform news
+- [Tutorials](https://biomate.ai/tutorials.html): Step-by-step video guides for cryo-EM, RNA-seq, IND report, and ADMET workflows
+- [Glossary](https://biomate.ai/glossary.html): Plain-English definitions of 20+ computational biology terms — ADMET, PBPK, RNA-seq, cryo-EM, GATK, AlphaFold, IND, Bioconductor, molecular docking, and more
+- [RNA-seq Analysis](https://biomate.ai/rna-seq.html): RNA-seq differential expression with DESeq2/edgeR/limma via nf-core/rnaseq — bulk, single-cell, spatial, long-read; Gold/Silver/Bronze QC
+- [Variant Calling](https://biomate.ai/variant-calling.html): WGS variant calling with GATK4 and DeepVariant via nf-core/sarek — germline, somatic, targeted panels, CNV/SV
+- [ADMET Prediction](https://biomate.ai/admet-prediction.html): In silico ADMET profiling — 30+ properties across absorption, distribution, metabolism, excretion, toxicity; CYP inhibition, hERG, Lipinski rules
+- [Cryo-EM Analysis](https://biomate.ai/cryo-em.html): Single-particle cryo-EM with CryoSPARC — motion correction, CTF, particle picking, 2D/3D classification, refinement on GPU
+- [Single-Cell RNA-seq](https://biomate.ai/single-cell-rna-seq.html): scRNA-seq with Seurat and Scanpy — Cell Ranger preprocessing, clustering, cell type annotation (SingleR/CellTypist), trajectory analysis with Monocle3 and scVelo
+- [Molecular Docking](https://biomate.ai/molecular-docking.html): Structure-based drug design with AutoDock Vina and GLIDE — protein structure prep from AlphaFold or PDB, grid definition, docking, interaction fingerprints, virtual screening at scale
+- [AlphaFold Structure Prediction](https://biomate.ai/alphafold.html): Protein structure prediction with AlphaFold 2 and AlphaFold 3 — single-chain, multimer, protein–DNA/RNA/small-molecule complexes; pLDDT, PAE, ipTM confidence metrics; integrated with docking pipeline
+- [Benchmarks](https://biomate.ai/benchmarks.html): Platform evaluation results — 94.6% workflow routing accuracy, 100% PBPK validation pass rate, 98.2% license gating, 97.5% prerequisite recovery, 26 QC gates, 87.1% regulatory LLM score
+- [Contact](https://biomate.ai/contact.html): Support, partnerships, and enterprise inquiries
+- [Privacy Policy](https://biomate.ai/privacy.html): Data handling, retention, HIPAA, and subprocessors
+- [Terms of Service](https://biomate.ai/terms.html): Acceptable use, data ownership, and liability
+
+## Blog — selected articles
+
+- [Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results](https://biomate.ai/blog-llm-core.html): How BioMate coordinates specialized AI systems for routing, analysis, QC, and narrative generation
+- [The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate](https://biomate.ai/blog-bioconductor.html): Full Bioconductor R methods available through plain-English requests
+- [Keeping Current: How BioMate Discovers and Validates New Analytical Tools](https://biomate.ai/blog-auto-discovery.html): Continuous tool monitoring, validation, and human-reviewed addition to the workflow index
+- [Context That Compounds: BioMate's Hierarchical Memory for Scientific Research](https://biomate.ai/blog-memory.html): Multi-tier memory that learns lab preferences, QC standards, and workflows over time
+- [Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search](https://biomate.ai/blog-workflow-routing.html): Vector embeddings, domain scoring, and LLM reasoning for accurate workflow routing
+- [Before the First Compound: Computational Target Discovery and Validation](https://biomate.ai/blog-drug-1-target.html): Structure prediction, CRISPR essentiality, pocket druggability analysis
+- [From Chemical Space to Hit List: AI-Guided Virtual Screening at Scale](https://biomate.ai/blog-drug-2-hit.html): Filtering millions of compounds by binding geometry, pharmacophore fit, and ADMET liability
+- [The ADMET Bottleneck: Profiling Drug-Like Properties Before Synthesis](https://biomate.ai/blog-drug-3-admet.html): Full ADMET, CYP DDI, molecular dynamics, and generative design in one in silico loop
+- [From Animal Studies to IND Filing: Computational Preclinical Development](https://biomate.ai/blog-drug-4-preclinical.html): PBPK simulation, allometric scaling, toxicity prediction, IND document assembly
+- [Designing Safer Trials: Computational Support for Clinical Development](https://biomate.ai/blog-drug-5-clinical.html): BOIN dose escalation, population PK, pharmacogenomics, real-time safety signal analysis
+- [Gold, Silver, Bronze: A Transparent Framework for Scientific Quality Assessment](https://biomate.ai/blog-qc-grading.html): Evidence-graded QC against published community standards with per-metric remediation context
+- [Choosing Your Variant Caller: GATK4 vs. Deep Learning in Whole-Genome Sequencing](https://biomate.ai/blog-gatk-deepvariant.html): When to use GATK4 vs DeepVariant and how BioMate selects based on your data
+- [Reading ADMET Results: A Practical Guide for Drug Discovery Teams](https://biomate.ai/blog-admet-guide.html): Co-occurring liabilities, threshold interpretation, and actionable remediation for ADMET outputs
+- [End-to-End Cryo-EM Processing: From Raw Micrographs to Publication-Ready Map](https://biomate.ai/blog-cryosparc-spa.html): CryoSPARC SPA pipeline from raw micrographs to publication-ready density map
+- [From Sequence to Binding Pose: Integrated Structure Prediction and Molecular Docking](https://biomate.ai/blog-structure-docking.html): AlphaFold → AutoDock in one pipeline with confidence annotation
+- [Exploring Chemical Space: AI-Guided Generative Design for Lead Optimization](https://biomate.ai/blog-reinvent4.html): REINVENT4 reinforcement learning for ADMET-optimized lead generation
+- [Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate](https://biomate.ai/blog-cro-submission.html): Structured CRO submission packages with structures, ADMET, assay specs, and audit trail
+
+## Extended index
+
+For AI assistants that support the extended llms-full.txt format, a more detailed index with full blog article summaries, platform feature descriptions, and a glossary of 15+ terms is available at: https://biomate.ai/llms-full.txt
+
+## Contact
+
+- Email: contact@biomate.ai
+- Location: Houston, Texas (Texas Medical Center)
+- Register: https://dev-public.biomate.ai/register
+- Login: https://dev-public.biomate.ai/login

@@ -1,0 +1,46 @@
+# BioMate AI — robots.txt
+# Last updated: 2026-06-05
+
+User-agent: *
+Allow: /
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /forgot-password.html
+Disallow: /reset-password.html
+
+# ── AI / LLM crawlers — explicitly welcome ──
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# ── LLMs.txt ──
+# Full site index for AI assistants: https://biomate.ai/llms.txt
+# Extended index with full article text: https://biomate.ai/llms-full.txt
+
+Sitemap: https://biomate.ai/sitemap.xml

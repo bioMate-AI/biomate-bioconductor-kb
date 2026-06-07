@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMET Prediction — In Silico Drug-Likeness Profiling | BioMate AI</title>
+  <meta name="description" content="Run full ADMET profiling on drug candidates from SMILES. BioMate screens hERG, CYP inhibition, solubility, BBB penetration, and 30+ properties with Lipinski/Veber rule checks." />
+  <link rel="canonical" href="https://biomate.ai/admet-prediction.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ADMET Prediction — In Silico Drug-Likeness Profiling | BioMate AI" />
+  <meta property="og:description" content="Run full ADMET profiling on drug candidates from SMILES. BioMate screens hERG, CYP inhibition, solubility, BBB penetration, and 30+ properties with Lipinski/Veber rule checks." />
+  <meta property="og:url" content="https://biomate.ai/admet-prediction.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ADMET Prediction — In Silico Drug-Likeness Profiling | BioMate AI" />
+  <meta name="twitter:description" content="Run full ADMET profiling on drug candidates from SMILES. BioMate screens hERG, CYP inhibition, solubility, BBB penetration, and 30+ properties with Lipinski/Veber rule checks." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "ADMET Prediction — In Silico Drug-Likeness Profiling",
+    "description": "Run full ADMET profiling on drug candidates from SMILES. BioMate screens hERG, CYP inhibition, solubility, BBB penetration, and 30+ properties with Lipinski/Veber rule checks.",
+    "url": "https://biomate.ai/admet-prediction.html",
+    "isPartOf": { "@type": "WebSite", "url": "https://biomate.ai" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+        { "@type": "ListItem", "position": 2, "name": "Services", "item": "https://biomate.ai/services.html" },
+        { "@type": "ListItem", "position": 3, "name": "ADMET Prediction", "item": "https://biomate.ai/admet-prediction.html" }
+      ]
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What input format does ADMET screening accept?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SMILES strings, SDF files, or InChI. You can paste a list of compounds directly in plain English — BioMate parses the SMILES automatically. Batch screening of up to hundreds of compounds in a single run is supported."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which ADMET properties does BioMate report?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "30+ properties covering absorption (Caco-2 permeability, aqueous solubility, lipophilicity/LogP), distribution (BBB penetration, plasma protein binding, volume of distribution), metabolism (CYP inhibition for CYP1A2, 2C9, 2C19, 2D6, and 3A4), excretion (renal clearance, half-life), and toxicity (hERG inhibition, AMES mutagenicity, hepatotoxicity, DILI). Lipinski Ro5 and Veber drug-likeness rules are applied automatically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens when a compound fails an ADMET threshold?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate flags the failing property, shows the measured vs threshold value in Gold/Silver/Bronze format with the specific threshold cited, and suggests structural modifications or analogue screening via REINVENT4 generative design. The auto-remediation loop can automatically rescreen modified compounds."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I run ADMET screening as part of a larger drug discovery workflow?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. ADMET is one stage in BioMate's integrated drug discovery pipeline: target identification → virtual screening → ADMET profiling → PBPK simulation → clinical trial design → IND filing. Results from each stage carry forward automatically, and the IND nonclinical package assembles all computational evidence into a CTD-formatted DOCX."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    .bm-topic-hero { padding: clamp(3.5rem,7vw,6rem) clamp(1rem,5vw,2.5rem) clamp(2rem,4vw,3.5rem); background: var(--bg); }
+    .bm-topic-hero-inner { max-width: var(--maxw); margin: 0 auto; }
+    .bm-admet-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 1rem; }
+    .bm-admet-table th { text-align: left; padding: .6rem 1rem; background: var(--bg-2); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+    .bm-admet-table td { padding: .6rem 1rem; border-bottom: 1px solid var(--border-soft); color: var(--text-muted); vertical-align: top; }
+    .bm-admet-table tr:last-child td { border-bottom: none; }
+    .bm-admet-table td:first-child { font-weight: 700; color: var(--accent-2); white-space: nowrap; font-size: .85rem; background: var(--accent-tint); }
+    .bm-admet-table td:nth-child(2) { font-weight: 600; color: var(--text); }
+    .bm-steps-ol { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1.25rem; counter-reset: steps; }
+    .bm-steps-ol li { counter-increment: steps; display: flex; gap: 1.25rem; align-items: flex-start; }
+    .bm-steps-ol li::before { content: counter(steps); min-width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent-tint); color: var(--accent-2); font-weight: 700; font-size: .9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: .1rem; }
+    .bm-steps-ol li div strong { display: block; font-weight: 600; color: var(--text); margin-bottom: .25rem; }
+    .bm-steps-ol li div span { font-size: .9rem; color: var(--text-muted); line-height: 1.55; }
+    .bm-pipeline-strip { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: 1.5rem; }
+    .bm-pipeline-node { display: flex; align-items: center; gap: .5rem; }
+    .bm-pipeline-node span { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .9rem; font-size: .82rem; font-weight: 600; color: var(--text); }
+    .bm-pipeline-node.active span { background: var(--accent-tint); border-color: var(--accent-tint2); color: var(--accent-2); }
+    .bm-pipeline-arrow { color: var(--text-faint); font-size: .85rem; }
+    .bm-faq { max-width: 760px; }
+    .bm-faq-item { border-bottom: 1px solid var(--border-soft); padding: 1.25rem 0; }
+    .bm-faq-item:first-child { border-top: 1px solid var(--border-soft); }
+    .bm-faq-item h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: .5rem; }
+    .bm-faq-item p { font-size: .9rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+    .bm-cta-strip { background: var(--bg-ink); padding: clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,2.5rem); text-align: center; }
+    .bm-cta-strip h2 { color: var(--on-ink); max-width: 560px; margin: 0 auto .75rem; }
+    .bm-cta-strip p { color: var(--on-ink-mute); max-width: 520px; margin: 0 auto 1.75rem; font-size: .95rem; }
+    .bm-cta-links { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+    .bm-cta-links a { color: var(--on-ink-mute); font-size: .88rem; text-decoration: none; }
+    .bm-cta-links a:hover { color: var(--on-ink); }
+  </style>
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <!-- ════ Hero ════ -->
+  <section class="bm-topic-hero">
+    <div class="bm-topic-hero-inner bm-anim-up">
+      <nav style="font-size:.8rem;color:var(--text-faint);margin-bottom:1.5rem;">
+        <a href="index.html" style="color:var(--text-faint);text-decoration:none;">Home</a>
+        <span style="margin:0 .4rem;">/</span>
+        <a href="services.html" style="color:var(--text-faint);text-decoration:none;">Services</a>
+        <span style="margin:0 .4rem;">/</span>
+        <span style="color:var(--text-muted);">ADMET Prediction</span>
+      </nav>
+      <span class="bm-eyebrow">Drug Discovery</span>
+      <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">
+        ADMET Prediction: In Silico Absorption,<br />Distribution, Metabolism, Excretion &amp; Toxicity
+      </h1>
+      <p class="bm-lead" style="max-width:620px;">
+        Paste your SMILES strings and BioMate screens 30+ ADMET properties — hERG, CYP inhibition, BBB penetration, aqueous solubility, and toxicity flags — with Gold/Silver/Bronze QC grading and auto-remediation suggestions for failing compounds.
+      </p>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:2rem;">
+        <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg">Try free <span class="bm-btn-arrow">&rarr;</span></a>
+        <a href="services.html#drug-discovery" class="bm-btn bm-btn-outline bm-btn-lg">See drug discovery services</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ What ADMET covers ════ -->
+  <section style="padding:clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem);background:var(--bg-2);">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Property coverage</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">What ADMET covers</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.5rem;">
+        BioMate reports 30+ ADMET properties across all five pharmacokinetic and safety domains. Each property is graded against an evidence-cited threshold — not an arbitrary cutoff.
+      </p>
+      <div style="overflow-x:auto;">
+        <table class="bm-admet-table" style="max-width:900px;">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Properties screened</th>
+              <th>Key thresholds</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Absorption</td>
+              <td>Caco-2 permeability, aqueous solubility, LogP/LogD, TPSA, oral bioavailability, Pgp substrate/inhibitor</td>
+              <td>Caco-2 &gt;10 nm/s, solubility &gt;0.1 mg/mL, TPSA &lt;140 Å²</td>
+            </tr>
+            <tr>
+              <td>Distribution</td>
+              <td>BBB penetration, plasma protein binding (PPB), volume of distribution (Vd), CNS MPO score</td>
+              <td>BBB+ classification, PPB &lt;99% preferred, Vd 0.1–10 L/kg</td>
+            </tr>
+            <tr>
+              <td>Metabolism</td>
+              <td>CYP1A2, CYP2C9, CYP2C19, CYP2D6, CYP3A4 inhibition; CYP substrate prediction; metabolic stability (t½)</td>
+              <td>IC50 &gt;10 µM for non-inhibitor; t½ &gt;30 min (microsomal)</td>
+            </tr>
+            <tr>
+              <td>Excretion</td>
+              <td>Renal clearance, total clearance, half-life, bioavailability F%</td>
+              <td>CLrenal &lt;1 mL/min/kg preferred; t½ 4–24 h for once-daily dosing</td>
+            </tr>
+            <tr>
+              <td>Toxicity</td>
+              <td>hERG inhibition, AMES mutagenicity, hepatotoxicity (DILI), skin sensitization, cardiotoxicity, Lipinski Ro5, Veber rules</td>
+              <td>hERG IC50 &gt;30 µM (Gold), &gt;10 µM (Silver); AMES negative</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ How BioMate screens ADMET ════ -->
+  <section style="padding:clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem);background:var(--bg);">
+    <div style="max-width:var(--maxw);margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,5vw,4rem);align-items:start;">
+      <div>
+        <span class="bm-eyebrow">How it works</span>
+        <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1.25rem;">From SMILES to QC-graded report</h2>
+        <ol class="bm-steps-ol">
+          <li>
+            <div>
+              <strong>Plain English input of compounds</strong>
+              <span>Paste SMILES strings, upload an SDF, or describe your compounds in plain text. BioMate parses and validates each structure automatically.</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <strong>Routes to ADMET workflow on AWS Batch</strong>
+              <span>BioMate selects the correct ADMET model ensemble, pre-fills parameters (species, target indication, safety priority), and confirms before running.</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <strong>Gold/Silver/Bronze per property</strong>
+              <span>Each of the 30+ properties receives an evidence grade: Gold (FDA/ICH consensus threshold), Silver (community standard), or Bronze (benchmark literature).</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <strong>Auto-remediation suggestions</strong>
+              <span>Failing compounds get structural modification hints or REINVENT4 generative design prompts to propose analogues that maintain potency while improving the failing property.</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:1.75rem;">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:1rem;">Example compound report</div>
+        <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--text-faint);margin-bottom:1rem;padding:.5rem .75rem;background:var(--bg);border-radius:6px;word-break:break-all;">CC1=CC=C(C=C1)S(=O)(=O)N</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:7px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);">
+            <span style="font-size:.82rem;color:var(--text);">Aqueous solubility</span>
+            <span style="font-size:.75rem;font-weight:700;color:#16a34a;background:rgba(34,197,94,.15);padding:2px 7px;border-radius:4px;">GOLD &nbsp;0.42 mg/mL</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:7px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);">
+            <span style="font-size:.82rem;color:var(--text);">Caco-2 permeability</span>
+            <span style="font-size:.75rem;font-weight:700;color:#16a34a;background:rgba(34,197,94,.15);padding:2px 7px;border-radius:4px;">GOLD &nbsp;18.3 nm/s</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);">
+            <span style="font-size:.82rem;color:var(--text);">hERG inhibition</span>
+            <span style="font-size:.75rem;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.12);padding:2px 7px;border-radius:4px;">FAIL &nbsp;IC50 6.2 µM</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:7px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);">
+            <span style="font-size:.82rem;color:var(--text);">AMES mutagenicity</span>
+            <span style="font-size:.75rem;font-weight:700;color:#16a34a;background:rgba(34,197,94,.15);padding:2px 7px;border-radius:4px;">GOLD &nbsp;Negative</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:7px;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.3);">
+            <span style="font-size:.82rem;color:var(--text);">CYP3A4 inhibition</span>
+            <span style="font-size:.75rem;font-weight:700;color:#92400e;background:rgba(234,179,8,.18);padding:2px 7px;border-radius:4px;">SILVER &nbsp;IC50 12.1 µM</span>
+          </div>
+        </div>
+        <div style="margin-top:1rem;padding:.65rem .75rem;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:.8rem;color:var(--text-muted);">
+          <strong style="color:#b91c1c;">hERG flag</strong> — measured 6.2 µM vs. Gold threshold 30 µM. Suggested: reduce lipophilicity or add polar substituents. REINVENT4 analogues available.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Drug discovery integration ════ -->
+  <section style="padding:clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem);background:var(--bg-2);">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Integrated pipeline</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">ADMET as part of the drug discovery workflow</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.75rem;">
+        ADMET screening is not a standalone step — it is one gate in BioMate's end-to-end drug discovery pipeline. Results carry forward automatically to PBPK simulation and IND assembly without manual file transfers.
+      </p>
+      <div class="bm-pipeline-strip">
+        <div class="bm-pipeline-node"><span>Target ID</span></div>
+        <div class="bm-pipeline-arrow">&rarr;</div>
+        <div class="bm-pipeline-node"><span>Virtual Screening</span></div>
+        <div class="bm-pipeline-arrow">&rarr;</div>
+        <div class="bm-pipeline-node active"><span>ADMET Profiling</span></div>
+        <div class="bm-pipeline-arrow">&rarr;</div>
+        <div class="bm-pipeline-node"><span>PBPK Simulation</span></div>
+        <div class="bm-pipeline-arrow">&rarr;</div>
+        <div class="bm-pipeline-node"><span>Clinical Trial Design</span></div>
+        <div class="bm-pipeline-arrow">&rarr;</div>
+        <div class="bm-pipeline-node"><span>IND Filing</span></div>
+      </div>
+      <div style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;">
+          <h3 style="font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:.4rem;">Auto-remediation loop</h3>
+          <p style="font-size:.875rem;color:var(--text-muted);line-height:1.55;margin:0;">When a compound fails an ADMET gate, BioMate's QC loop automatically suggests modified scaffolds via REINVENT4 generative design and can re-screen them in the same session.</p>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;">
+          <h3 style="font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:.4rem;">IND §2.6 nonclinical package</h3>
+          <p style="font-size:.875rem;color:var(--text-muted);line-height:1.55;margin:0;">ADMET results feed directly into the IND Module 2.6 DOCX. The pharmacology and toxicology sections cite each ADMET result, its QC grade, and the threshold source — ready for your RA team.</p>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;">
+          <h3 style="font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:.4rem;">CRO submission package</h3>
+          <p style="font-size:.875rem;color:var(--text-muted);line-height:1.55;margin:0;">ADMET reports export in CRO-ready format: compound table with all property values, failed property flags, and audit trail. Attach directly to a CRO quotation request without reformatting.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ FAQ ════ -->
+  <section style="padding:clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem);background:var(--bg);">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">FAQ</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1.5rem;">Common questions about ADMET prediction</h2>
+      <div class="bm-faq">
+        <div class="bm-faq-item">
+          <h3>What input format does ADMET screening accept?</h3>
+          <p>SMILES strings, SDF files, or InChI. You can paste a list of compounds directly in plain English — BioMate parses the SMILES automatically. Batch screening of up to hundreds of compounds in a single run is supported.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Which ADMET properties does BioMate report?</h3>
+          <p>30+ properties covering absorption (Caco-2 permeability, aqueous solubility, lipophilicity), distribution (BBB penetration, plasma protein binding), metabolism (CYP inhibition for CYP1A2, 2C9, 2C19, 2D6, and 3A4), excretion (renal clearance, half-life), and toxicity (hERG, AMES, hepatotoxicity). Lipinski Ro5 and Veber drug-likeness rules are applied automatically.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>What happens when a compound fails an ADMET threshold?</h3>
+          <p>BioMate flags the failing property, shows the measured vs threshold value in Gold/Silver/Bronze format, and suggests structural modifications or analogue screening. The auto-remediation loop can automatically rescreen modified compounds via REINVENT4 generative design in the same session.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Can I run ADMET screening as part of a larger drug discovery workflow?</h3>
+          <p>Yes. ADMET is one stage in BioMate's integrated drug discovery pipeline: target ID &rarr; virtual screening &rarr; ADMET &rarr; PBPK &rarr; IND filing. Results from each stage carry forward automatically, and the IND nonclinical package assembles all computational evidence into a CTD-formatted DOCX.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ CTA ════ -->
+  <section class="bm-cta-strip">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow" style="color:var(--warm);">Get started</span>
+      <h2 style="margin-top:.75rem;">Screen your drug candidates in minutes</h2>
+      <p>Paste your SMILES strings and get a full 30+ property ADMET report with Gold/Silver/Bronze QC grades — no chemistry informatics expertise required.</p>
+      <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg" style="display:inline-block;margin-top:1rem;">Try free &rarr;</a>
+      <div class="bm-cta-links" style="margin-top:1.5rem;">
+        <a href="blog-admet-guide.html">Reading ADMET results guide &rarr;</a>
+        <a href="blog-drug-3-admet.html">The ADMET bottleneck &rarr;</a>
+        <a href="services.html#drug-discovery">All drug discovery services &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js"></script>
+  <script>renderShell({ active: 'services', cta: false });</script>
+
+</body>
+</html>

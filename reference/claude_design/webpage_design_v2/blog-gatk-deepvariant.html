@@ -118,6 +118,17 @@
     "articleSection": "Genomics"
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "Choosing Your Variant Caller: GATK4 vs. Deep Learning in Whole-Genome Sequencing", "item": "https://biomate.ai/blog-gatk-deepvariant.html" }
+    ]
+  }
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
   <script>
@@ -182,6 +193,8 @@
 
       <blockquote>"The choice of variant caller is not a one-time decision — it should be re-evaluated when the sequencing technology, coverage depth, or clinical application changes."</blockquote>
 
+      <p class="bm-external-refs">Further reading: <a href="https://gatk.broadinstitute.org/hc/en-us" rel="noopener" target="_blank">GATK documentation (Broad Institute)</a>, <a href="https://github.com/google/deepvariant" rel="noopener" target="_blank">DeepVariant on GitHub (Google)</a>, <a href="https://www.nf-co.re/sarek" rel="noopener" target="_blank">nf-core/sarek WGS pipeline</a>, and <a href="https://www.nature.com/articles/s41587-019-0032-3" rel="noopener" target="_blank">Poplin et al. 2018 — DeepVariant in Nature Biotechnology</a>.</p>
+
       <div class="callout">
         <strong>How BioMate helps</strong>
         <p>BioMate supports both approaches, selects the appropriate caller based on the data type and application specified, and applies the relevant QC profile to the output — so the choice of tool is made explicitly and documented, not defaulted to whatever was installed on the cluster.</p>
@@ -213,6 +226,17 @@
     </div>
   </aside>
 </div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
 
 <footer>
   <div class="footer-inner">

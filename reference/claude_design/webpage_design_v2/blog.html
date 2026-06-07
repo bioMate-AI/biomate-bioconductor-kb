@@ -3,8 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Blog &mdash; BioMate AI</title>
-  <meta name="description" content="Insights on computational biology, drug discovery AI, genomics, structural biology, cryo-EM, ADMET profiling, clinical pharmacology, and scientific workflow automation from the BioMate team." />
+  <title>BioMate AI Blog | Computational Biology &amp; Drug Discovery Insights</title>
+  <meta name="description" content="BioMate AI blog: drug discovery, RNA-seq, ADMET, genomics, and cryo-EM insights. Research articles and platform updates from the BioMate scientific team." />
+  <link rel="canonical" href="https://biomate.ai/blog.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="BioMate AI Blog | Computational Biology &amp; Drug Discovery Insights" />
+  <meta property="og:description" content="BioMate AI blog: drug discovery, RNA-seq, ADMET, genomics, and cryo-EM insights. Research articles and platform updates from the BioMate scientific team." />
+  <meta property="og:url" content="https://biomate.ai/blog.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BioMate AI Blog | Computational Biology &amp; Drug Discovery Insights" />
+  <meta name="twitter:description" content="BioMate AI blog: drug discovery, RNA-seq, ADMET, genomics, and cryo-EM insights. Research articles and platform updates from the BioMate scientific team." />
   <link rel="stylesheet" href="fonts/fonts.css" />
   <link rel="stylesheet" href="styles.css" />
   <!-- Google tag (gtag.js) -->
@@ -14,6 +25,27 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+          { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" }
+        ]
+      },
+      {
+        "@type": "Blog",
+        "name": "BioMate AI Blog",
+        "description": "Scientific articles and platform news from BioMate AI — covering drug discovery, RNA-seq, genomics, structural biology, cryo-EM, and AI in computational biology.",
+        "url": "https://biomate.ai/blog.html",
+        "publisher": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" }
+      }
+    ]
+  }
   </script>
 
 </head>
@@ -93,7 +125,26 @@
             <h2 class="bm-h3" style="font-size:1.5rem;">Latest writing</h2>
             <span style="font-size:.85rem;color:var(--text-muted);" id="bm-post-count"></span>
           </div>
-          <div class="bm-blog-grid" id="bm-posts"></div>
+          <div class="bm-blog-grid" id="bm-posts"><noscript>
+            <article><h3><a href="blog-llm-core.html">Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results</a></h3><p>Apr 22, 2026 · 7 min · BioMate coordinates specialized AI systems for routing, analysis, quality evaluation, and findings narration — matching each scientific task to the reasoning capability best suited to it.</p></article>
+            <article><h3><a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate</a></h3><p>Apr 20, 2026 · 6 min · The full Bioconductor ecosystem of peer-reviewed R methods, available through plain-English requests — no R required.</p></article>
+            <article><h3><a href="blog-auto-discovery.html">Keeping Current: How BioMate Discovers and Validates New Analytical Tools</a></h3><p>Apr 18, 2026 · 8 min · BioMate continuously monitors primary tool sources, tests candidates against sample datasets, and adds validated workflows after human review.</p></article>
+            <article><h3><a href="blog-memory.html">Context That Compounds: BioMate's Hierarchical Memory for Scientific Research</a></h3><p>Apr 17, 2026 · 6 min · BioMate's multi-tier memory hierarchy learns your lab's preferences, QC standards, and workflows — improving recommendations with every session.</p></article>
+            <article><h3><a href="blog-workflow-routing.html">Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search</a></h3><p>Apr 15, 2026 · 7 min · Hybrid semantic search combining vector embeddings, domain scoring, and reasoning resolves ambiguous requests to the right workflow — or surfaces ranked alternatives.</p></article>
+            <article><h3><a href="blog-drug-1-target.html">Before the First Compound: Computational Target Discovery and Validation</a></h3><p>Apr 22, 2026 · 8 min · Computational target validation — structure prediction, pocket druggability, CRISPR essentiality, and functional genomics — before any chemistry begins.</p></article>
+            <article><h3><a href="blog-drug-2-hit.html">From Chemical Space to Hit List: AI-Guided Virtual Screening at Scale</a></h3><p>Apr 21, 2026 · 8 min · AI-powered virtual screening filters millions of compounds by binding geometry, pharmacophore fit, and ADMET liability before a single assay is run.</p></article>
+            <article><h3><a href="blog-drug-3-admet.html">The ADMET Bottleneck: Profiling Drug-Like Properties Before Synthesis</a></h3><p>Apr 19, 2026 · 10 min · Full ADMET profiling, CYP DDI analysis, molecular dynamics, and generative design close the lead optimization loop in silico.</p></article>
+            <article><h3><a href="blog-drug-4-preclinical.html">From Animal Studies to IND Filing: Computational Preclinical Development</a></h3><p>Apr 17, 2026 · 9 min · PBPK simulation, allometric scaling, toxicity prediction, and IND document assembly — translating preclinical data into regulatory-ready packages.</p></article>
+            <article><h3><a href="blog-drug-5-clinical.html">Designing Safer Trials: Computational Support for Clinical Development</a></h3><p>Apr 15, 2026 · 9 min · Dose escalation simulation, population PK, pharmacogenomics stratification, and real-time safety signal analysis for clinical teams.</p></article>
+            <article><h3><a href="blog-drug-6-postmarket.html">After Approval: Computational Pharmacovigilance and Real-World Safety</a></h3><p>Apr 13, 2026 · 7 min · Post-approval safety monitoring, drug interaction surveillance, and pharmacovigilance — supporting regulatory obligations through the full product lifecycle.</p></article>
+            <article><h3><a href="blog-qc-grading.html">Gold, Silver, Bronze: A Transparent Framework for Scientific Quality Assessment</a></h3><p>Apr 11, 2026 · 7 min · Evidence-graded QC assessed against published community standards — with the specific failing metric, its value, and remediation context included in every report.</p></article>
+            <article><h3><a href="blog-gatk-deepvariant.html">Choosing Your Variant Caller: GATK4 vs. Deep Learning in Whole-Genome Sequencing</a></h3><p>Apr 8, 2026 · 6 min · When to use established heuristic-probabilistic variant calling versus deep learning approaches — and how BioMate selects between them based on your data.</p></article>
+            <article><h3><a href="blog-admet-guide.html">Reading ADMET Results: A Practical Guide for Drug Discovery Teams</a></h3><p>Apr 5, 2026 · 10 min · How to read ADMET results in therapeutic context — co-occurring liabilities, threshold interpretation, and actionable remediation guidance.</p></article>
+            <article><h3><a href="blog-cryosparc-spa.html">End-to-End Cryo-EM Processing: From Raw Micrographs to Publication-Ready Map</a></h3><p>Apr 2, 2026 · 9 min · BioMate automates the complete cryo-EM SPA pipeline from raw micrographs to publication-ready map, with QC gates at every processing stage.</p></article>
+            <article><h3><a href="blog-structure-docking.html">From Sequence to Binding Pose: Integrated Structure Prediction and Molecular Docking</a></h3><p>Mar 22, 2026 · 5 min · From protein sequence to ranked binding poses in one pipeline — structure prediction feeds directly into flexible docking with confidence annotation throughout.</p></article>
+            <article><h3><a href="blog-reinvent4.html">Exploring Chemical Space: AI-Guided Generative Design for Lead Optimization</a></h3><p>Mar 18, 2026 · 12 min · Reinforcement learning-guided generative design explores structural variants optimized simultaneously for binding, ADMET, selectivity, and synthesizability.</p></article>
+            <article><h3><a href="blog-cro-submission.html">Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate</a></h3><p>Feb 28, 2026 · 5 min · BioMate generates structured compound packages — structures, ADMET predictions, assay specs, and audit trail — in formats CROs consume directly.</p></article>
+          </noscript></div>
         </div>
 
         <aside class="bm-side">

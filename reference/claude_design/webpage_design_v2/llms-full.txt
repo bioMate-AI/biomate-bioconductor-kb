@@ -1,0 +1,337 @@
+# BioMate AI — Extended LLM Index
+
+> AI-powered computational biology platform for pharma, biotech, academic labs, and core facilities. Provides 2,455+ validated bioinformatics workflows with AI-guided QC and audit-ready results.
+
+BioMate AI is a software-as-a-service computational biology platform founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+
+---
+
+## Key facts
+
+- Founded: 2025
+- Headquarters: Houston, Texas (Texas Medical Center)
+- Platform type: AI-native SaaS — computational biology and bioinformatics
+- Workflows: 2,455+ validated workflows across 37 biological domains. Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
+- Key domains: transcriptomics (865), genomics (369), epigenomics (133), proteomics (113), drug discovery (61), cryo-EM (10+)
+- Integrated tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2, DESeq2, edgeR, limma, Bioconductor
+- Pricing: Free tier; Pro $49/month; Enterprise $199/month
+- Compute: AWS Batch (scalable HPC); GPU for cryo-EM and structure prediction
+- Compliance: HIPAA-compliant; BAA available; Private VPC deployment option
+- Data policy: tenant data is fully isolated and never used to train shared AI models
+- Audit trail: all results include corpus version, model version, retrieval seed, and parameter log
+
+---
+
+## Connectors and integrations
+
+### AI and protocol connectors
+- **MCP (Model Context Protocol)** — stdio transport, JSON-RPC 2.0, protocol version 2024-11-05. Exposes 10 tools: search_workflow, run_workflow, get_run_status, get_run_results, query_database, analyze_file, cancel_run, list_runs, analyze_results, explain_error. Compatible with Claude Desktop, Cursor, Cline, and any MCP-compliant client. Wikidata: Q133436854.
+- **Open Claw** — BioMate's Anthropic tool-schema API. Endpoints: GET /api/open-claw/tools (returns BioMate tools as Anthropic tool schemas), POST /api/open-claw/stream (agentic loop execution over SSE). Enables any Claude-compatible client to invoke BioMate capabilities as native tools.
+- **REST API** — 50+ JSON endpoints over HTTPS. Key: POST /api/chat/stream (SSE chat), POST /api/workflows/search, POST /api/workflows/execute, GET /api/workflows/runs, GET /api/workflows/:id, GET /api/billing/usage.
+- **Server-Sent Events (SSE)** — Real-time workflow phase and step status streaming. Endpoint: GET /api/workflows/:invocationId/events. Wikidata: Q7455583.
+
+### Communication integrations
+- **Slack** — /biomate slash command returns Block Kit messages with "Run in BioMate" action buttons. Wikidata: Q2484994.
+- **WeChat Work (企业微信)** — Full WeChat Work bot integration with message signing, XML encryption, and user binding.
+
+### Lab instrument connectors (10 instruments)
+- **Illumina BaseSpace** — Automatic sequencing run ingestion
+- **Oxford Nanopore MinKNOW** — Real-time sequencing session monitoring
+- **CryoEM EPU** — Instrument control and session monitoring
+- **Flow Cytometer** — FCS file parsing
+- **LC-MS** — Liquid chromatography–mass spectrometry data ingestion
+- **qPCR** — Quantitative PCR instrument data
+- **Opentrons** — Liquid handling automation control. Wikidata: Q117130900.
+- **Plate Reader** — Microplate reader data
+- **SiLA2** — Standardized Interfaces for Laboratory Automation protocol adapter
+- **Benchling LIMS** — Entries, samples, assay results, project management. Wikidata: Q63417942.
+
+### Auth and SSO
+- **Google OAuth** — Single sign-on login. Wikidata: Q743238.
+- **GitHub OAuth** — Single sign-on login.
+
+---
+
+## Core capabilities
+
+### Drug discovery
+- Target identification and validation (AlphaFold structure prediction, CRISPR essentiality, pocket druggability)
+- Virtual screening (AutoDock Vina, GLIDE, pharmacophore filtering across millions of compounds)
+- ADMET profiling (absorption, distribution, metabolism, excretion, toxicity) with QC grading
+- PBPK simulation (physiologically based pharmacokinetic modeling, allometric scaling)
+- Generative lead optimization (REINVENT4 reinforcement learning)
+- IND filing support (§2.6.1–2.6.7 documentation, preclinical summary assembly)
+- CRO submission packages (structured compound dossiers with ADMET, assay specs, audit trail)
+- Post-market pharmacovigilance support
+
+### Genomics and multi-omics
+- RNA-seq differential expression (STAR + DESeq2 / edgeR / limma)
+- Whole-genome and whole-exome sequencing (WGS/WES) with variant calling (GATK4, DeepVariant)
+- Single-cell RNA-seq (Seurat, Scanpy, monocle3, cell type annotation)
+- Spatial transcriptomics (10x Visium, Slide-seq)
+- ATAC-seq chromatin accessibility
+- ChIP-seq peak calling
+- Multi-omics integration (MOFA+, DIABLO, mixOmics)
+- Microbiome: QIIME 2 16S amplicon and shotgun metagenomics
+
+### Structural biology
+- AlphaFold 2 and AlphaFold 3 structure prediction
+- ESMFold and RoseTTAFold protein structure prediction
+- Molecular docking (AutoDock Vina, GLIDE pose prediction)
+- Molecular dynamics simulation (GROMACS, OpenMM)
+- Cryo-EM single-particle analysis (CryoSPARC SPA, RELION)
+
+### Proteomics and metabolomics
+- Label-free quantification with MaxQuant
+- Metabolic network modeling
+- Pathway enrichment analysis (clusterProfiler, enrichGO, KEGG, Reactome)
+
+---
+
+## Platform features
+
+### Workflow routing
+BioMate uses a hybrid routing engine: semantic vector search (embedding similarity) + domain scoring + LLM reasoning. When you type "run DESeq2 on my RNA-seq data," the system embeds the query, scores against 2,455 workflow embeddings, and returns the best-fit pipeline with pre-filled parameters. Accuracy: >80% first-pick routing in benchmarks.
+
+### AI-graded QC
+Every workflow output is graded: Gold (all metrics pass), Silver (one minor flag), Bronze (one or more metrics below threshold). Each failing metric gets a remediation suggestion. Thresholds are based on published community standards (nf-core, ENCODE, GENCODE, GTEx).
+
+### Auto-remediation loop
+When a QC gate fails, BioMate automatically proposes corrected parameters and re-runs the workflow. The loop continues until a passing grade is achieved or a configurable maximum iteration count is reached. Users see a "was → now" parameter diff card showing exactly what changed.
+
+### Parameter extraction
+Context-to-parameter extraction uses rule-based inference for deterministic mappings (unit conversions, boolean flags, canonical aliases) and LLM fallback for free-text values. All extracted values are validated against workflow schema constraints before execution.
+
+### Memory and continuity
+Multi-tier memory: project-level (lab preferences, QC standards), session-level (active run state), and cross-session (past results, starred workflows). Labs do not re-specify preferences on every run.
+
+### Report generation
+Structured markdown and DOCX reports with: methods section (tool versions, parameters), results narrative (LLM-generated from structured outputs), QC grade summary, and full parameter audit log. Reports are audit-ready for IND filing and CRO submission.
+
+---
+
+## Comparison: BioMate AI vs alternatives
+
+### BioMate AI vs Galaxy (usegalaxy.org)
+- Galaxy requires point-and-click workflow assembly; BioMate accepts plain-English requests
+- Galaxy has no integrated QC grading framework; BioMate grades every output Gold/Silver/Bronze
+- Galaxy has no auto-remediation loop; BioMate reruns with corrected parameters on QC failure
+- Galaxy has no built-in drug discovery workflows (ADMET, PBPK, IND); BioMate has 61+
+- Galaxy runs on shared public infrastructure; BioMate offers Private VPC with tenant isolation
+- Galaxy is free (shared) or self-hosted; BioMate: Free / $49 / $199/mo with SLA
+
+### BioMate AI vs Nextflow / nf-core
+- nf-core requires writing and maintaining Nextflow DSL2 code; BioMate requires no code
+- nf-core has no parameter pre-filling from natural language; BioMate extracts parameters from plain-English context
+- nf-core has no QC grading layer; BioMate adds evidence grading above nf-core pipeline outputs
+- nf-core has no auto-remediation; BioMate reruns on QC failure
+- BioMate uses nf-core pipelines as its execution substrate — it extends, not replaces, nf-core
+- nf-core is free, open-source; BioMate adds the AI orchestration and QC layer on top
+
+### BioMate AI vs in-house bioinformatics team
+- In-house teams take weeks to set up new pipelines; BioMate runs in minutes
+- In-house teams lack standardized QC grading; BioMate provides consistent evidence grades
+- In-house teams cannot easily cover all 34 domains; BioMate has 2,455+ workflows ready
+- In-house teams are single-lab; BioMate continuously updates workflows from the literature
+- In-house teams do not generate audit-ready IND documents automatically; BioMate does
+- Best hybrid: BioMate for routine and novel analyses; your bioinformatician for bespoke algorithm development
+
+---
+
+## Topic landing pages
+
+Dedicated pages targeting high-intent bioinformatics queries:
+
+- [RNA-seq Analysis](https://biomate.ai/rna-seq.html): RNA-seq differential expression with DESeq2, edgeR, or limma via nf-core/rnaseq — bulk, single-cell, spatial, and long-read RNA-seq; STAR alignment, salmon quantification; Gold/Silver/Bronze QC grading on AWS Batch.
+- [Variant Calling](https://biomate.ai/variant-calling.html): WGS/WES variant calling with GATK4 HaplotypeCaller and DeepVariant via nf-core/sarek — germline and somatic variants, targeted panels, CNV/SV calling; VQSR or hard-filtering; GRCh38/GRCh37/GRCm39 reference genomes.
+- [ADMET Prediction](https://biomate.ai/admet-prediction.html): In silico ADMET profiling from SMILES — 30+ properties across absorption (Caco-2, solubility), distribution (BBB, PPB), metabolism (CYP1A2/2C9/2C19/2D6/3A4), excretion (clearance), and toxicity (hERG, AMES, hepatotoxicity); Lipinski/Veber rule checks; auto-remediation on gate failure.
+- [Cryo-EM Analysis](https://biomate.ai/cryo-em.html): Single-particle cryo-EM with CryoSPARC — MotionCor2 motion correction, CTFFIND4 CTF estimation, particle picking, 2D/3D classification, ab initio and homogeneous refinement, local resolution estimation; GPU-accelerated on AWS Batch; FSC 0.143 resolution reporting.
+- [Single-Cell RNA-seq](https://biomate.ai/single-cell-rna-seq.html): scRNA-seq with Seurat (R) and Scanpy (Python) — Cell Ranger preprocessing, dimensionality reduction, clustering, cell type annotation (SingleR, CellTypist, marker-gene databases), trajectory analysis (Monocle3, scVelo RNA velocity); supports 10x Genomics, SMART-seq, and H5AD/RDS input.
+- [Molecular Docking](https://biomate.ai/molecular-docking.html): Structure-based drug design with AutoDock Vina and GLIDE — protein structure from AlphaFold or PDB, binding grid definition, rigid and flexible docking, interaction fingerprints (H-bonds, hydrophobic contacts), virtual screening at scale on AWS Batch.
+- [AlphaFold Structure Prediction](https://biomate.ai/alphafold.html): Protein structure prediction with AlphaFold 2 (single-chain, high accuracy) and AlphaFold 3 (protein–DNA, protein–RNA, protein–small molecule complexes); pLDDT per-residue confidence, PAE inter-domain error, ipTM complex confidence; integrated pipeline feeds directly into molecular docking.
+
+---
+
+## Benchmarks
+
+BioMate AI publishes evaluation results across workflow routing, pharmacokinetic modeling, QC grading, and regulatory document analysis. Full results at: https://biomate.ai/benchmarks.html
+
+### Workflow routing and reliability
+- Cross-domain routing accuracy: 94.6% (n=120 test cases, target ≥80%) — PASS
+- Cross-run stability: 100% consistency (Cohen's Kappa = 1.0, flip rate = 0%) across 3 independent repetitions
+- License gating accuracy: 98.2% (n=54, target ≥90%) — correctly blocks unlicensed workflow requests
+- Prerequisite recovery: 97.5% (n=40, target ≥85%) — correctly recovers missing upstream pipeline steps
+
+### PBPK pharmacokinetic validation
+- Pass rate: 100% on 15 FDA-standard reference compounds (validated against FDA first-in-human guidance)
+- Per-compound prediction errors (selected): Midazolam 0.4%, Lorazepam 0.7%, Gabapentin 0.9%, Metformin 9.8%, Theophylline 17.5%, Atenolol 34.1%
+- All predictions within the FDA-accepted 2-fold accuracy window
+
+### QC gate coverage
+- 26 quantitative QC gates across 20+ biological domains
+- Each gate has Gold/Silver/Bronze thresholds from published standards: ENCODE, GTEx, nf-core, FDA FIH 2005, ICH S5R3/S7B, Rosenthal & Henderson 2003, Jumper et al. 2021, Liu & Yuan 2015
+
+### Regulatory LLM evaluation (FDA drug label dataset, n=100)
+- Overall score (macro average): 87.1% (Claude Sonnet 4.6)
+- Adverse language detection: 100%
+- Phase gating accuracy: 100%
+- Numeric range compliance: 100%
+- Citation accuracy: 76%
+
+---
+
+## Blog articles — full summaries
+
+### Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results
+URL: https://biomate.ai/blog-llm-core.html
+Published: 2026-04-22
+
+BioMate coordinates multiple specialized AI systems rather than relying on a single general-purpose LLM. The architecture includes: a routing model (maps intent to workflow), a parameter extraction model (fills workflow parameters from context), a QC analysis model (interprets metric distributions against community standards), and a narrative generation model (writes methods sections and findings summaries). Each model is specialized, fine-tuned on domain-specific data, and validated against benchmarks. This separation prevents the accuracy/creativity tradeoff: the routing model optimizes precision; the narrative model optimizes fluency. The system also maintains strict reproducibility — all model versions, corpus versions, and retrieval seeds are logged with every run.
+
+### The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate
+URL: https://biomate.ai/blog-bioconductor.html
+Published: 2026-04-20
+
+Bioconductor hosts >2,000 peer-reviewed R packages for genomics, transcriptomics, epigenomics, and more. BioMate indexes Bioconductor workflows via its nf-core + Nextflow execution layer, running them on AWS Batch workers with full R + Bioconductor installed. Researchers who don't know R can access DESeq2, edgeR, limma, clusterProfiler, enrichGO, Seurat, monocle3, and 1,000+ other tools through plain-English requests. BioMate handles the R environment, package versions, and parameter configuration; the researcher describes the analysis goal.
+
+### Keeping Current: How BioMate Discovers and Validates New Analytical Tools
+URL: https://biomate.ai/blog-auto-discovery.html
+Published: 2026-04-18
+
+BioMate continuously monitors GitHub releases, Bioconductor updates, nf-core releases, and PubMed for new tools. When a candidate tool is detected, an automated validation pipeline: (1) installs and runs the tool on reference datasets, (2) checks outputs against expected formats, (3) generates a workflow stub, (4) flags for human review. Only human-approved tools are added to the production workflow index. This ensures BioMate stays current without exposing users to unvalidated software.
+
+### Context That Compounds: BioMate's Hierarchical Memory for Scientific Research
+URL: https://biomate.ai/blog-memory.html
+Published: 2026-04-17
+
+Scientific research has persistent context that general-purpose AI assistants discard between sessions: lab-specific QC thresholds, reference genome versions, preferred normalization methods, known sample quality issues, previously run analyses. BioMate's memory system stores this context at three levels: project (lab preferences, standard parameters), session (active run state, intermediate results), and long-term (past analyses, starred workflows, QC outcomes). The system retrieves relevant context on each run, pre-filling parameters and surfacing related past results without the user having to repeat themselves.
+
+### Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search
+URL: https://biomate.ai/blog-workflow-routing.html
+Published: 2026-04-15
+
+Routing a plain-English request ("run differential expression on my RNA-seq data") to the correct pipeline out of 2,455 options requires more than keyword matching. BioMate's hybrid routing: (1) embeds the query with a domain-tuned encoder, (2) scores against workflow embeddings using cosine similarity, (3) applies domain priors (if context mentions "SMILES" → drug_discovery domain gets +score), (4) passes top candidates to an LLM that selects the best fit and explains why. This achieves >80% first-pick accuracy vs ~60% for pure vector search alone.
+
+### Gold, Silver, Bronze: A Transparent Framework for Scientific Quality Assessment
+URL: https://biomate.ai/blog-qc-grading.html
+Published: 2026-04-10
+
+BioMate grades every workflow output against published community standards. Gold: all QC metrics pass established thresholds (e.g., RNA-seq: mapping rate ≥80%, duplication ≤40%, RIN equivalent ≥7). Silver: one minor metric below threshold, result is usable with noted caveat. Bronze: one or more critical metrics below threshold, result requires re-run with corrected parameters. Each graded metric links to its source standard (ENCODE, GTEx, nf-core MultiQC) and includes a remediation suggestion. This makes BioMate's QC transparent, reproducible, and actionable — not a black-box pass/fail.
+
+### Choosing Your Variant Caller: GATK4 vs. Deep Learning in Whole-Genome Sequencing
+URL: https://biomate.ai/blog-gatk-deepvariant.html
+Published: 2026-04-01
+
+GATK4 HaplotypeCaller and Google DeepVariant both call SNPs and indels from WGS data, but with different tradeoffs. GATK4 is the gold-standard for germline variant calling in clinical and population genetics contexts, with extensive documentation, VQSR recalibration, and FDA recognition. DeepVariant applies convolutional neural networks to read pileup images, achieving higher precision on Illumina short reads and better performance on challenging repeat regions. BioMate automatically selects the appropriate caller based on application context, coverage depth, and sequencing platform, and can run both in parallel for contested sites.
+
+### Reading ADMET Results: A Practical Guide for Drug Discovery Teams
+URL: https://biomate.ai/blog-admet-guide.html
+Published: 2026-04-08
+
+ADMET (absorption, distribution, metabolism, excretion, toxicity) profiling predicts drug-like properties in silico before synthesis. Key metrics: Caco-2 permeability (>150 nm/s good), aqueous solubility (>60 μg/mL good), hERG inhibition (IC50 > 10 μM target), CYP450 inhibition (CYP2D6, CYP3A4), microsomal stability (t½ > 30 min mouse, > 60 min human), AMES mutagenicity (negative), hERG cardiotoxicity. Co-occurring liabilities: hERG + CYP3A4 inhibition together indicate high cardiac risk. BioMate flags co-occurring liabilities with composite risk scores and proposes bioisostere substitutions to address them.
+
+### End-to-End Cryo-EM Processing: From Raw Micrographs to Publication-Ready Map
+URL: https://biomate.ai/blog-cryosparc-spa.html
+Published: 2026-04-03
+
+Cryo-EM single-particle analysis (SPA) converts raw micrographs into a 3D density map. BioMate's cryo-EM pipeline (CryoSPARC SPA): patch-based motion correction (MotionCor2), CTF estimation (CTFFIND4), particle picking (blob + topaz), 2D classification (class selection, junk removal), ab initio reconstruction (2–4 classes), heterogeneous refinement, homogeneous refinement (final map), local resolution estimation (MonoRes), map sharpening (DeepEMhancer). Quality metrics: resolution at FSC 0.143 cutoff (Gold standard: ≤3.5 Å publication-quality), map-to-model FSC for placed atomic models, angular distribution coverage. BioMate grades the map quality Gold/Silver/Bronze and flags resolution anisotropy.
+
+### From Sequence to Binding Pose: Integrated Structure Prediction and Molecular Docking
+URL: https://biomate.ai/blog-structure-docking.html
+Published: 2026-04-05
+
+BioMate runs AlphaFold 2 or AlphaFold 3 to predict protein structure from sequence, then feeds the predicted structure directly into AutoDock Vina or GLIDE for docking without manual intermediate steps. Confidence annotation: pLDDT per-residue scores are used to exclude low-confidence binding site regions (pLDDT < 70) from docking grids. Output includes: predicted binding pose, docking score (kcal/mol), interaction fingerprint (hydrogen bonds, hydrophobic contacts), and pLDDT-weighted confidence for the binding site residues.
+
+### From Chemical Space to Hit List: AI-Guided Virtual Screening at Scale
+URL: https://biomate.ai/blog-drug-2-hit.html
+Published: 2026-03-14
+
+Virtual screening filters compound libraries (millions of molecules) to a ranked hit list using: pharmacophore filtering (removes compounds that cannot match binding site geometry), fast docking (AutoDock Vina, 1–5 minutes per compound), ADMET pre-filtering (removes compounds with predicted hERG IC50 < 1 μM, poor solubility, high MW > 500), re-docking with flexible receptor (induced fit), consensus scoring (multiple scoring functions). BioMate runs this pipeline on AWS Batch with parallelized docking across compound subsets, completing a 1M-compound screen in hours rather than days.
+
+### The ADMET Bottleneck: Profiling Drug-Like Properties Before Synthesis
+URL: https://biomate.ai/blog-drug-3-admet.html
+Published: 2026-03-16
+
+~90% of drug candidates fail in clinical trials due to poor ADMET properties identified too late. Running in silico ADMET before synthesis catches failures early. BioMate's ADMET pipeline: physicochemical properties (Lipinski Ro5, QED drug-likeness score), absorption (Caco-2, PAMPA, P-gp substrate), distribution (plasma protein binding, Vd, BBB penetration), metabolism (CYP450 substrate/inhibitor prediction for CYP1A2, CYP2C9, CYP2C19, CYP2D6, CYP3A4, microsomal stability), excretion (renal clearance, efflux transporters), toxicity (hERG, AMES, hepatotoxicity, cardiotoxicity, DILI risk). All 30+ metrics are graded and co-occurring liabilities are flagged.
+
+### Before the First Compound: Computational Target Discovery and Validation
+URL: https://biomate.ai/blog-drug-1-target.html
+Published: 2026-03-10
+
+Target identification finds proteins whose modulation could treat disease. BioMate's target discovery pipeline: (1) AlphaFold structure prediction for all candidate proteins, (2) fpocket druggability analysis (identifies pockets with drug-able volume and hydrophobicity), (3) DepMap/CRISPR essentiality scoring (confirms target is essential in disease cell lines), (4) PPI network centrality (hub proteins as targets often have off-target liabilities), (5) AlphaFold-Multimer for protein complex structures. Output: ranked target list with druggability score, essentiality score, selectivity risk assessment, and best predicted binding pocket geometry.
+
+### From Animal Studies to IND Filing: Computational Preclinical Development
+URL: https://biomate.ai/blog-drug-4-preclinical.html
+Published: 2026-03-18
+
+IND (Investigational New Drug) filing requires: animal pharmacokinetics, allometric scaling to human, toxicology studies, GLP compliance documentation, and CMC (chemistry, manufacturing, controls) summary. BioMate supports: PBPK simulation (physiologically based pharmacokinetic modeling in Simcyp/PK-Sim format), allometric scaling (simple, MLP, Dedrick), in silico toxicology (ICH S2A/S2B AMES, ICH S7A/S7B cardiotox), and automated assembly of IND sections §2.6.1 (pharmacology), §2.6.2 (pharmacokinetics), §2.6.3 (toxicology), §2.6.4 (clinical), §2.6.5 (references).
+
+### Designing Safer Trials: Computational Support for Clinical Development
+URL: https://biomate.ai/blog-drug-5-clinical.html
+Published: 2026-03-20
+
+Clinical trial design decisions supported by BioMate: BOIN (Bayesian Optimal Interval) dose escalation design — optimal dose-finding with lower patient exposure than 3+3; population PK modeling (nonlinear mixed effects, NONMEM/nlmixr); pharmacogenomics stratification (CYP2D6, CYP2C19, HLA-B polymorphisms); real-time safety signal analysis (disproportionality analysis on FAERS data). BioMate generates the statistical analysis plan (SAP) sections for these analyses and can re-run simulations as the trial progresses.
+
+### Exploring Chemical Space: AI-Guided Generative Design for Lead Optimization
+URL: https://biomate.ai/blog-reinvent4.html
+Published: 2026-03-28
+
+When a lead compound has ADMET liabilities (e.g., hERG inhibition IC50 < 5 μM), generative design proposes structural modifications that preserve binding activity while improving the flagged metric. BioMate uses REINVENT4 (reinforcement learning with a molecular RNN) with multi-parameter optimization: binding score (docking ΔG as proxy), hERG score, QED drug-likeness, synthetic accessibility score (SA < 3.5). The generative loop runs 2,000–10,000 steps, outputting a Pareto-frontier of candidates with binding/ADMET tradeoff. Users receive a SMILES list ranked by composite score with per-metric breakdowns.
+
+### Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate
+URL: https://biomate.ai/blog-cro-submission.html
+Published: 2026-03-25
+
+CRO (Contract Research Organization) submissions typically require weeks of manual dossier assembly. BioMate's CRO Compliance module generates structured packages automatically: SMILES and InChI identifiers, 2D/3D structure files (SDF, PDB), ADMET profile table (all 30+ metrics), assay specification sheets (target, assay type, endpoint, acceptance criteria), purity / characterization placeholders, audit trail (parameter log, model version, corpus version). Output: a ZIP archive in CRO-standard format, ready for submission.
+
+### Exploring Chemical Space: AI-Guided Drug Post-Market Surveillance
+URL: https://biomate.ai/blog-drug-6-postmarket.html
+Published: 2026-03-22
+
+Post-market pharmacovigilance (PV) monitors approved drugs for unexpected adverse events. BioMate supports: FAERS signal mining (disproportionality analysis, reporting odds ratio, PRR), literature-based adverse event signal extraction, PK/PD modeling for off-target interaction hypotheses, PBPK simulation for population subgroup risk stratification (elderly, renal impairment, pediatric). Outputs: signal detection report with risk prioritization, PK simulations for flagged subgroups, draft PSUR (Periodic Safety Update Report) sections.
+
+---
+
+## Glossary of key terms
+
+**ADMET** — Absorption, Distribution, Metabolism, Excretion, Toxicity. The five pharmacokinetic and toxicological properties evaluated for every drug candidate. In silico ADMET profiling predicts these properties computationally before synthesis, enabling early lead optimization. Key thresholds: Caco-2 permeability >150 nm/s, hERG IC50 >10 μM, microsomal stability t½ >30 min.
+
+**PBPK** — Physiologically Based Pharmacokinetic modeling. A mechanistic compartmental model that simulates drug concentration-time profiles in organs and tissues using physiological parameters (organ volumes, blood flows, tissue binding). Used for allometric scaling (animal → human), drug-drug interaction prediction, and special population PK (elderly, pediatric, renal impairment).
+
+**RNA-seq** — RNA sequencing. A high-throughput method for measuring gene expression across the transcriptome. Standard pipeline: quality control (FastQC) → adapter trimming (Trim Galore) → read alignment (STAR, HISAT2) → quantification (salmon, featureCounts) → differential expression (DESeq2, edgeR, limma). BioMate implements the nf-core/rnaseq pipeline with integrated DESeq2 DE analysis.
+
+**scRNA-seq** — Single-cell RNA sequencing. Measures gene expression in individual cells rather than bulk tissue, enabling cell type identification, trajectory analysis, and rare cell population discovery. Tools: Cell Ranger (10x Genomics), STARsolo; analysis: Seurat (R), Scanpy (Python), monocle3 (trajectories).
+
+**WGS / WES** — Whole-Genome Sequencing / Whole-Exome Sequencing. WGS sequences the entire genome (~3 Gb for human); WES captures only protein-coding regions (exome, ~50 Mb). Both generate FASTQ files analyzed with GATK4 best practices: alignment (BWA-MEM2) → duplicate marking (GATK MarkDuplicates) → BQSR (base quality score recalibration) → HaplotypeCaller (variant calling) → VQSR (variant quality recalibration).
+
+**GATK** — Genome Analysis Toolkit. The gold-standard variant calling toolkit from the Broad Institute. GATK4's HaplotypeCaller performs local assembly of haplotypes to call SNPs and indels. GATK best practices are the FDA-recognized standard for clinical variant calling pipelines.
+
+**Cryo-EM** — Cryogenic electron microscopy. Determines protein and complex structures at near-atomic resolution by imaging rapidly frozen samples in vitreous ice. SPA (single-particle analysis) processes thousands of particle images to reconstruct a 3D density map. Key tools: CryoSPARC, RELION, MotionCor2, CTFFIND4.
+
+**AlphaFold** — DeepMind's protein structure prediction system (AlphaFold 2: 2021; AlphaFold 3: 2024). AlphaFold 2 achieves experimental accuracy (median TM-score >0.9) for most single-chain proteins using evolutionary co-variation signals and attention-based neural networks. AlphaFold 3 extends to protein-DNA, protein-RNA, and protein-small molecule complexes.
+
+**IND** — Investigational New Drug application. The regulatory filing submitted to the FDA before a drug candidate can enter human clinical trials. Contains: pharmacology/toxicology sections (§2.6), clinical protocols, investigator qualifications, manufacturing/CMC information. BioMate automates generation of §2.6.1–2.6.7 sections from computational study outputs.
+
+**Bioconductor** — An open-source R project providing >2,000 packages for the analysis of genomic data. Packages include DESeq2 (differential expression), clusterProfiler (enrichment analysis), Seurat (single-cell), ChIPseeker (ChIP-seq annotation), GenomicRanges (genomic interval operations). All Bioconductor packages undergo rigorous peer review before inclusion.
+
+**nf-core** — A community effort to collect and curate high-quality Nextflow bioinformatics pipelines. Over 50 validated pipelines covering RNA-seq, WGS, single-cell, metagenomics, proteomics, and more. BioMate uses nf-core pipelines as its execution substrate, adding AI-guided parameter selection, QC grading, and natural-language interfaces above the nf-core layer.
+
+**BOIN** — Bayesian Optimal Interval design. A phase I dose-escalation design that determines the maximum tolerated dose (MTD) using Bayesian decision rules. Compared to the traditional 3+3 design, BOIN achieves lower patient exposure at sub-therapeutic doses and higher probability of identifying the true MTD. Recommended by FDA guidance for oncology dose-finding trials.
+
+**Molecular docking** — Predicts how a small molecule (ligand) binds to a target protein's active site. Programs (AutoDock Vina, GLIDE) search for energetically favorable binding poses using force-field scoring functions. Output: predicted binding pose, docking score (ΔG in kcal/mol), interaction fingerprint (H-bonds, hydrophobic contacts, π-stacking).
+
+**Molecular dynamics (MD)** — Simulates the motion of atoms in a molecular system over time using Newton's equations of motion. Used to study protein conformational changes, binding stability, membrane permeability, and free energy of binding (MM-GBSA, FEP). Tools: GROMACS, OpenMM, AMBER, NAMD. Timescales: nanoseconds (100 ns typical) to microseconds (specialized hardware).
+
+**DESeq2** — The most widely used R package for RNA-seq differential expression analysis. Uses negative binomial distribution to model count data, with DESeq2's size factor normalization and shrinkage estimators for log fold changes. Outputs: differentially expressed gene list, adjusted p-values (Benjamini-Hochberg), volcano plots, MA plots, PCA plots.
+
+---
+
+## Contact and registration
+
+- Email: contact@biomate.ai
+- Location: Houston, Texas (Texas Medical Center)
+- Website: https://biomate.ai
+- Register: https://dev-public.biomate.ai/register
+- Login: https://dev-public.biomate.ai/login
+- Privacy Policy: https://biomate.ai/privacy.html
+- Terms of Service: https://biomate.ai/terms.html
