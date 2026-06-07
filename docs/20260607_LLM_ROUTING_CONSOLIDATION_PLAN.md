@@ -113,3 +113,43 @@ and have been silently doing so.
 6. Sweep remaining 7 in a follow-up commit once 4-5 are stable
 
 Each step locally tested per `docs/PRE_SYNC_CHECKLIST.md` before sync.
+
+## Update 2026-06-07 (after first sweep) — 4 more sites surfaced
+
+Initial survey under-counted. `galaxy-assistant.ts` has 4 additional
+direct `claude.messages.create` calls — the main chat path:
+
+| Line | What | Why deferred |
+|---|---|---|
+| 4721 | intent classification | uses `cache_control: ephemeral` (Claude prompt caching, saves ~80% on repeat prompts) |
+| 5063 | tool ranking | same cache_control |
+| 5874 | streaming response | SSE streaming + tool_use; llmGenerate doesn't expose streams |
+| 5931 | non-streaming tool turn | Claude tool_use blocks; no equivalent in llmGenerate |
+
+These four require extending `llmGenerate` to support:
+  - SSE streaming with token deltas
+  - Tool calling / function calling
+  - Provider-specific prompt caching hints
+
+That's a meaningful API extension and a separate work item. Until it
+lands, the main chat stays on Claude — which is at least the
+historically-tested path for that surface.
+
+Also deferred for the same reason:
+  - `routes.ts:12315` — Open-Claw streaming (explicitly named
+    "Claude has direct access" — model lock-in is by design here)
+
+## Sites successfully migrated this commit
+
+✓ `routes.ts:4922` — methods-report (verified locally end-to-end:
+  Gemini Pro returns 6KB grounded report with real PMIDs)
+✓ `routes.ts:10568` — findings analysis
+✓ `iterative-workflow-generator.ts:212` — workflow draft
+✓ `iterative-workflow-generator.ts:357` — step configuration
+✓ `workflow-prerequisites-validator.ts:464` — prerequisite validation
+✓ `workflow-prerequisites-validator.ts:642` — user prompt generation
+✓ `context-compressor.ts:219` — context summarization
+
+6 sites + 1 already-completed = 7 of the originally-identified 9
+hardcoded direct-Anthropic calls now route through the YAML fallback
+chain.

@@ -10567,17 +10567,14 @@ Rules:
         ? `Workflow: ${workflowName}\n\nSpecific question: ${question}\n\nOutput files:\n${fileContext}`
         : `Workflow: ${workflowName}\n\nSummarize the key findings and scientific interpretation of these outputs:\n${fileContext}`;
 
-      // ── Call Claude ───────────────────────────────────────────────────────
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey });
-      const completion = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+      // ── Call LLM via canonical fallback chain ─────────────────────────────
+      const { llmGenerate } = await import('./llm-client');
+      const completion = await llmGenerate({
+        prompt: userPrompt,
         system: ANALYSIS_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userPrompt }],
+        maxTokens: 4096,
       });
-
-      const rawText = (completion.content[0] as any)?.text || '';
+      const rawText = completion.text || '';
       // Strip markdown fences if present
       const jsonStr = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
 
@@ -12310,6 +12307,11 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         const toolResults: Array<{ type: 'tool_result'; tool_use_id: string; content: string }> = [];
 
         // Stream a single turn
+        // NOTE: Open-Claw stays on direct Anthropic SDK because it uses
+        // Claude-specific streaming + tool-calling that the canonical
+        // fallback chain doesn't expose. This is an expert/debug endpoint
+        // explicitly named "Claude has direct access" so the model lock-in
+        // is by design. See docs/20260607_LLM_ROUTING_CONSOLIDATION_PLAN.md.
         const stream = await client.messages.stream({
           model: "claude-sonnet-4-6",
           max_tokens: 4096,

@@ -215,16 +215,14 @@ The summary will replace these older messages, and the user will continue their 
     });
 
     try {
-      const response = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: maxTokens,
-        temperature: 0, // Lower temperature for more focused summaries
+      const { llmGenerate } = await import('./llm-client');
+      const response = await llmGenerate({
+        prompt: userPrompt,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        maxTokens,
+        temperature: 0, // Lower temperature for more focused summaries
       });
-
-      const content = response.content[0];
-      const summary = content.type === 'text' ? content.text : '';
+      const summary = response.text;
 
       console.log('[ContextCompressor] Summary generated:', {
         summaryLength: summary.length,

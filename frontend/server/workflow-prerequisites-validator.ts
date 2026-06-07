@@ -459,27 +459,22 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15_000);
     try {
-      const response = await this.claude.messages.create(
-        {
-          model: 'claude-sonnet-4-5',
-          max_tokens: 4096,
-          temperature: 0,
-          messages: [
-            { role: 'user', content: userPrompt },
-          ],
-          system: systemPrompt,
-        },
-        { signal: controller.signal }
-      );
-
-      // Extract text content from response
-      const textContent = response.content.find(c => c.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text response from LLM');
-      }
+      const { llmGenerate } = await import('./llm-client');
+      // AbortController signal isn't yet wired through llmGenerate; the
+      // 15s ceiling is still meaningful via the fetch-level default
+      // timeout on the internal call. Reinstate once llmGenerate accepts
+      // a signal.
+      void controller;
+      const response = await llmGenerate({
+        prompt: userPrompt,
+        system: systemPrompt,
+        maxTokens: 4096,
+        temperature: 0,
+      });
+      const rawText = response.text;
 
       // Parse JSON response
-      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('Could not parse JSON from LLM response');
       }
@@ -638,19 +633,15 @@ Generate a helpful, conversational message to guide the user.
 ${fulfilled ? 'Let them know everything looks ready.' : 'Ask them for the missing information in a helpful way.'}`;
 
     try {
-      const response = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1024,
-        temperature: 0,
-        messages: [
-          { role: 'user', content: userPrompt },
-        ],
+      const { llmGenerate } = await import('./llm-client');
+      const response = await llmGenerate({
+        prompt: userPrompt,
         system: systemPrompt,
+        maxTokens: 1024,
+        temperature: 0,
       });
-
-      const textContent = response.content.find(c => c.type === 'text');
-      if (textContent && textContent.type === 'text') {
-        return textContent.text;
+      if (response.text) {
+        return response.text;
       }
     } catch (error) {
       console.error('[PrerequisitesValidator] Could not generate response:', error);
