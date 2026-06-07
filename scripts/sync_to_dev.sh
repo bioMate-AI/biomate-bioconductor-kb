@@ -217,12 +217,33 @@ deploy_backend_python() {
   done < <(sort -u "$tmp_list")
   tar -czf "$tar_file" -C "$tmp_tar_dir" . 2>/dev/null || true
 
-  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/backend_py_sync.tar.gz"
+  # Hard-fail if the upload itself didn't land. Previously this was silent:
+  # scp printed "Failure" but the script continued, then the next ec2_ssh
+  # block extracted a STALE leftover tarball from /tmp/backend_py_extract/
+  # (kept by `mkdir -p` not clearing the dir) and dispatched docker cp
+  # for the wrong files. Caught 2026-06-06 when an autofix3 change
+  # appeared to "sync OK" but the new code never reached the container.
+  if ! ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/backend_py_sync.tar.gz"; then
+    log "[backend] FATAL: scp of $tar_file failed — aborting (was silently swallowed pre 2026-06-06)"
+    return 1
+  fi
 
   ec2_ssh '
     set -e
-    mkdir -p /tmp/backend_py_extract
-    tar -xzf /tmp/backend_py_sync.tar.gz -C /tmp/backend_py_extract 2>/dev/null || true
+    # Nuke any leftover extract dir BEFORE tar so a missing/broken upload
+    # cannot silently fall back to the previous sync content.
+    rm -rf /tmp/backend_py_extract && mkdir -p /tmp/backend_py_extract
+    # No `|| true`: a tar failure here means stale-or-corrupt input;
+    # aborting is the only safe response.
+    tar -xzf /tmp/backend_py_sync.tar.gz -C /tmp/backend_py_extract
+
+    # Sanity check: confirm extract is non-empty before mass-copying.
+    extracted=$(find /tmp/backend_py_extract/backend -name "*.py" 2>/dev/null | wc -l)
+    if [[ "$extracted" -lt 1 ]]; then
+      echo "[backend] FATAL: tarball extracted zero .py files — refusing to docker cp" >&2
+      exit 1
+    fi
+    echo "[backend] extracted $extracted python files into /tmp/backend_py_extract/"
 
     # Copy each file into the Galaxy container at /app/ path
     find /tmp/backend_py_extract/backend -name "*.py" | while read src; do
