@@ -1519,22 +1519,15 @@ class NextflowQCGateHandler:
         "FEATURECOUNTS":     ("featurecounts", "*.summary"),
         "SALMON":            ("salmon", "lib_format_counts.json"),
         "SAMTOOLS_FLAGSTAT": ("samtools", "*.flagstat"),
-        # Gate-only drug-dev workflows that publish a single qc_metrics.json
-        # directly under <publishDir>/<meta.id>/ (publishDir convention
-        # `${params.outdir}/${meta.id}`). The wildcard "*" matches any
-        # meta.id value (most workflows use 'hts_run', 'admet_run', etc.)
-        # so the same entry covers re-runs and per-sample variants.
+        # Gate-only workflows that publish qc_metrics.json directly under
+        # <publishDir>/<meta.id>/. Wildcard "*" matches any meta.id value.
+        # Only HTS publishes this file today; the 10 sibling drug-dev
+        # workflows emit their own domain-specific JSONs (e.g.
+        # allometric_scaling_results.json, ivive_results.json, dart_prediction.json)
+        # — adding them here would be dead-pointer entries. Extend per
+        # workflow when each gains a real qc_metrics.json (or refactor
+        # to read each domain's own report).
         "HTS_PLATE_QC_HIT_CALLING":      ("*", "qc_metrics.json"),
-        "ICH_S5_REPRODUCTIVE_TOX":       ("*", "qc_metrics.json"),
-        "ICH_S7A_SAFETY_PHARMACOLOGY":   ("*", "qc_metrics.json"),
-        "CLINICAL_TRIAL_SIMULATION":     ("*", "qc_metrics.json"),
-        "ADAPTIVE_TRIAL_DESIGN":         ("*", "qc_metrics.json"),
-        "ALLOMETRIC_SCALING":            ("*", "qc_metrics.json"),
-        "IVIVE_HEPATIC_CLEARANCE":       ("*", "qc_metrics.json"),
-        "OPENFE_RBFE":                   ("*", "qc_metrics.json"),
-        "P0_PKPD_SEMAGLUTIDE":           ("*", "qc_metrics.json"),
-        "POCKET_DETECTION_DRUGGABILITY": ("*", "qc_metrics.json"),
-        "AIZYNTHFINDER_RETROSYNTHESIS":  ("*", "qc_metrics.json"),
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
@@ -1582,9 +1575,11 @@ class NextflowQCGateHandler:
             ]
 
             if not report_objects:
-                log.debug("[QC-S3] No report found for %s at s3://%s/%s%s",
-                          process_upper, bucket, search_prefix, report_pattern)
+                log.info("[QC-S3] No report found for %s at s3://%s/%s%s",
+                         process_upper, bucket, search_prefix, report_pattern)
                 return None
+            log.info("[QC-S3] Reading report for %s from s3://%s/%s",
+                     process_upper, bucket, report_objects[-1])
 
             # Read the first matching report (take most recent by key name)
             report_objects.sort()
@@ -1596,7 +1591,7 @@ class NextflowQCGateHandler:
             return self._report_json_to_metrics(process_upper, data)
 
         except Exception as _e:
-            log.debug("[QC-S3] Error reading S3 report for %s: %s", process_upper, _e)
+            log.warning("[QC-S3] Error reading S3 report for %s: %s", process_upper, _e)
             return None
 
     def _report_json_to_metrics(self, process_upper: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
