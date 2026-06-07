@@ -62,7 +62,13 @@ BioMate sends automated emails in two categories:
 
 ## Gaps: What Needs to Be Implemented
 
-### Gap 1 — Quota Warning Trigger (HIGH PRIORITY)
+### Gap 1 — Quota Warning Trigger (MUST SHIP BEFORE PUBLIC LAUNCH)
+
+**Why this is must-ship, not just "HIGH":** The trial budget is `$25 / 14 days`
+(see `20260518_TRIAL_QUOTA_REDUCED_TO_25.md`). 80% of $25 is $20 — users will
+hit the cap within a handful of compute jobs. Without the warning email they
+get zero notice before "jobs paused" hits, which is the kind of trial-killing
+UX surprise that drives churn before activation.
 
 **What:** The quota warning email template exists but is never invoked.
 
@@ -78,7 +84,21 @@ after job_completed recorded:
     → send "80% used" email (amber, warning)
 ```
 
-**De-duplication:** Track `quota_alert_80_sent` and `quota_alert_100_sent` boolean flags per billing period (reset at period start) — either in Redis or in the users DB. Do not send the same threshold email more than once per billing period.
+**De-duplication (concrete proposal):** Use Redis with a per-period TTL key —
+the existing billing Redis (`REDIS_URL`) already runs alongside the
+job-cost accumulators, so no new infrastructure required.
+
+```
+key:    quota_alert_sent:{user_id}:{period_start_iso}:{threshold}
+value:  1
+TTL:    seconds_until_period_end + 1 day  # auto-expires; no cleanup job
+```
+
+`threshold ∈ {80, 100}`. Use `SETNX` (or `SET … NX`) for the atomic
+"have I sent this yet?" check; if it returns 1 (we set it), send the
+email; if 0 (already set), skip. Resets naturally at period rollover
+when keys expire. Bonus: trivially auditable — `SCAN
+quota_alert_sent:*` gives every alert ever sent.
 
 ---
 
@@ -218,13 +238,13 @@ case 'customer.subscription.trial_will_end':
 ## Implementation Priority
 
 **Sprint 1 (before launch):**
-- Gap 1: Wire quota warning (template exists, just needs the trigger)
+- Gap 1: Wire quota warning (template exists, just needs the trigger) — **must-ship**, see Gap 1 detail
 - Gap 2: Trial ending reminder (most important retention email)
+- Gap 5: Subscription canceled (confirm + offer to reactivate) — **promoted from Sprint 2**: silent cancel is a churn risk and users expect a confirmation/receipt by default (GDPR/CCPA convention)
 
 **Sprint 2 (shortly after launch):**
 - Gap 3: Invoice receipt (users expect a receipt)
 - Gap 4: Subscription activated (confirms billing started)
-- Gap 5: Subscription canceled (confirm + offer to reactivate)
 
 **Sprint 3 (polish):**
 - Gap 6: Credit top-up confirmation

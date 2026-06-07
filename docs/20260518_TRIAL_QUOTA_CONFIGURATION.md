@@ -4,6 +4,20 @@
 
 ---
 
+> ⚠️ **SUPERSEDED.** The `$55/month` figure below is a planning-phase recommendation
+> that was never adopted. Production reality, set on the same day:
+>
+> - **Trial budget:** `$25 / 14 days` (not `$55/month`)
+> - **Authoritative source:** `backend/lib/galaxy/ai/billing/core/quota_enforcer.py`
+>   → `DEFAULT_PLAN_LIMITS["base"] = 25.00` / `"basic": 25.00`
+> - **See:** [`20260518_TRIAL_QUOTA_REDUCED_TO_25.md`](20260518_TRIAL_QUOTA_REDUCED_TO_25.md) for the actual deployed configuration.
+>
+> Treat this document as historical context for the per-resource breakdown
+> rationale (CPU, GPU, LLM, storage proportions). The total budget figure
+> is wrong; the proportions are still informative.
+
+---
+
 ## Recommended Trial Limits
 
 ### Resource Allocation
