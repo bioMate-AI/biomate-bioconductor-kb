@@ -70,25 +70,39 @@ def _seed_api_key_from_env(gx_app) -> None:
     if not key or len(key) != 32:
         return
     try:
-        from sqlalchemy import select as _select
+        from sqlalchemy import select as _select, update as _update
         session = gx_app.model.context
         APIKeys = gx_app.model.APIKeys
         User = gx_app.model.User
-        existing = session.scalars(_select(APIKeys).filter_by(key=key, deleted=False)).first()
-        if existing:
-            _log.info("[boot-seed] GALAXY_API_KEY already registered (id=%s)", existing.id)
-            return
         admin = session.scalars(_select(User).filter_by(id=1)).first()
         if not admin:
             _log.warning("[boot-seed] no user_id=1; skipping key seed")
+            return
+        # by_api_key in managers/users.py rejects with "expired" if the
+        # provided key isn't the NEWEST non-deleted key for the user.
+        # Soft-delete every other user_id=1 key so the env key is the sole
+        # active one. Idempotent: re-runs delete nothing new.
+        session.execute(
+            _update(APIKeys)
+            .where(APIKeys.user_id == 1)
+            .where(APIKeys.key != key)
+            .where(APIKeys.deleted == False)  # noqa: E712  (SQLAlchemy column compare)
+            .values(deleted=True)
+        )
+        existing = session.scalars(_select(APIKeys).filter_by(key=key)).first()
+        if existing:
+            if existing.deleted:
+                existing.deleted = False
+            session.commit()
+            _log.info("[boot-seed] GALAXY_API_KEY restored as sole active key for user_id=1 (id=%s)", existing.id)
             return
         new_key = APIKeys()
         new_key.user_id = 1
         new_key.key = key
         session.add(new_key)
         session.commit()
-        _log.info("[boot-seed] GALAXY_API_KEY seeded for user_id=1 (proper fix for the "
-                  "401 cascade on container restart)")
+        _log.info("[boot-seed] GALAXY_API_KEY seeded as sole active key for user_id=1 "
+                  "(prior keys soft-deleted to satisfy by_api_key's newest-key check)")
     except Exception as _exc:
         _log.warning("[boot-seed] could not seed GALAXY_API_KEY: %s", _exc)
 
