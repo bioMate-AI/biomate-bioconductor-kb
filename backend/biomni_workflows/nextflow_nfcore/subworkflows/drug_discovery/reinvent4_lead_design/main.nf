@@ -259,7 +259,7 @@ for base_frag in seed_mols_list[:5]:
 
 # Fallback: medchem enumeration when BRICS underfills (e.g. INH-01 guanidine-pyrimidine)
 target_pool = n_steps * batch
-if len(candidates) < min(50, max(10, target_pool // 4)):
+if len(candidates) < min(50, max(10, int(target_pool / 4))):
     guan_heads = ['N=C(N)N', 'NC(=N)N', 'N=C(N)NC', 'NC(N)=N', 'N=C(O)N', 'NC(=O)N']
     linkers = ['NC(=O)', 'NC(=S)', 'C(=O)N', 'S(=O)(=O)N']
     cores = [
