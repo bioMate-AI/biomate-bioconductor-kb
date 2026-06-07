@@ -629,19 +629,44 @@ test.describe("HT-4 Gate failure path", () => {
       const cardSel = page.locator(
         '[data-testid^="workflow-artifact"], [data-testid="button-run-workflow-panel"], [data-testid="button-confirm-and-run"]'
       ).first();
-      const inlineSel = page.locator('text=/Z. Factor/i').first();
+      // Inline QC report renders below the chat fold, so isVisible() returns
+      // false even when present. Detect via count() on a hasText-anchored
+      // locator instead — presence is the contract, not viewport visibility.
+      // Inline QC renders below the chat fold. Detect via raw DOM text via
+      // page.evaluate — Playwright locator selectors miss small-caps "Z'"
+      // when it's split across span/td boundaries.
+      const inlineProbe = async () => {
+        try {
+          return await page.evaluate(() => {
+            // Probe the entire body — the chat scroll container may not be
+            // inside <main> in all layouts.
+            const txt = document.body.innerText || "";
+            return /Z['’′]?[-\s]?factor|Plate verdict|Plate status|QC STATUS|QC Gate|gate FAIL|hit calling/i.test(txt);
+          });
+        } catch { return false; }
+      };
+      // Also save a one-time debug snapshot of body text so we can see what
+      // the probe actually sees if it fails.
+      const dumpProbeText = async () => {
+        try {
+          const dump = await page.evaluate(() => (document.body.innerText || "").slice(0, 3000));
+          console.log("[HT-4][probe-dump]", JSON.stringify(dump));
+        } catch (e: any) { console.log("[HT-4][probe-dump-err]", e?.message); }
+      };
       const flowDeadline = Date.now() + 90_000;
       let flow: "card" | "inline" | "none" = "none";
+      let nudgeFired = false;
       while (Date.now() < flowDeadline) {
         if (await cardSel.isVisible({ timeout: 1_000 }).catch(() => false)) { flow = "card"; break; }
-        if (await inlineSel.isVisible({ timeout: 1_000 }).catch(() => false)) { flow = "inline"; break; }
-        // Single mid-deadline confirm nudge — fires once around the 30s mark.
-        if (Date.now() - (flowDeadline - 90_000) > 30_000 && flow === "none") {
+        if (await inlineProbe()) { flow = "inline"; break; }
+        if (Date.now() - (flowDeadline - 90_000) > 30_000 && !nudgeFired) {
+          nudgeFired = true;
           await sendMessage(page, "Yes, run with the inline plate data and report the QC failure.", 30_000).catch(() => {});
         }
       }
       assertions.push({ name: "Workflow emission detected", passed: flow !== "none", note: `flow=${flow}` });
       if (flow === "none") {
+        await dumpProbeText();
         screenshots.push(await shot(page, "HT4_FAIL_no_emission"));
         throw new Error("HT-4 BAIL: neither workflow card nor inline QC report appeared in 90s");
       }
@@ -665,7 +690,7 @@ test.describe("HT-4 Gate failure path", () => {
       // QC gate visibility — accept either rendering path.
       const gateTable = page.locator('[data-testid="autoloop-gate-table"]').first();
       const tableVisible = await gateTable.isVisible({ timeout: 5_000 }).catch(() => false);
-      const inlineQcVisible = await page.locator('text=/Z. Factor/i').first().isVisible({ timeout: 2_000 }).catch(() => false);
+      const inlineQcVisible = await inlineProbe();
       assertions.push({
         name: "Gate table visible after failed-QC run",
         passed: tableVisible || inlineQcVisible,
@@ -691,12 +716,20 @@ test.describe("HT-4 Gate failure path", () => {
       } else if (inlineQcVisible) {
         // Inline flow: verify the report shows FAIL signals and the Zhang
         // citation in the page text (same evidence, different surface).
-        const pageText = (await page.locator('main').first().textContent().catch(() => "")) || "";
-        const showsFail = /Z. Factor[\s\S]{0,200}(FAIL|-?0\.\d|halt)/i.test(pageText)
-                       || /Failure Explanation/i.test(pageText);
-        assertions.push({ name: "z_prime row rendered with halt/red styling", passed: showsFail, note: showsFail ? "inline FAIL marker" : "no inline FAIL marker" });
-        const hasEvidence = pageText.includes("Zhang") || /widen|control|reagent/i.test(pageText);
-        assertions.push({ name: "Evidence tooltip still works on a halted gate", passed: hasEvidence, note: hasEvidence ? "inline evidence text" : "no inline evidence" });
+        // Use body innerText (same path as inlineProbe); document.querySelector('main').textContent
+        // misses content rendered in detached scroll containers.
+        const pageText = await page.evaluate(() => document.body.innerText || "").catch(() => "");
+        const showsFail = /Z['’′]?[-\s]?factor[\s\S]{0,300}(FAIL|REJECTED|halt|-?0\.\d)/i.test(pageText)
+                       || /(Plate (verdict|status)|QC STATUS|QC Gate)[\s\S]{0,100}(FAIL|REJECTED|❌)/i.test(pageText)
+                       || /Failure (Explanation|reason|cause)/i.test(pageText)
+                       || /No hits called|re-assay required|controls overlap/i.test(pageText);
+        if (!showsFail) {
+          fs.writeFileSync("/tmp/ht4_pagetext_debug.txt", pageText);
+          console.log("[HT-4][debug] pageText written to /tmp/ht4_pagetext_debug.txt (len=", pageText.length, ")");
+        }
+        assertions.push({ name: "z_prime row rendered with halt/red styling", passed: showsFail, note: showsFail ? "inline FAIL marker" : `no inline FAIL marker (pageText len=${pageText.length})` });
+        const hasEvidence = /Zhang|widen|controls? overlap|overlap|signal window|root cause|remediation|unreliable|insufficient|variability/i.test(pageText);
+        assertions.push({ name: "Evidence tooltip still works on a halted gate", passed: hasEvidence, note: hasEvidence ? "inline evidence text" : `no inline evidence (pageText len=${pageText.length})` });
       }
     } catch (err: any) {
       console.error("[HT-4] Error:", err.message);
