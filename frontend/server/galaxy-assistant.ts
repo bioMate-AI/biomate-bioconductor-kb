@@ -11,6 +11,7 @@
  * User Query → NLU (Claude) → Tool Search + Dataset RAG → Workflow Generation
  */
 
+import { CHAIN_HINT_FALLBACK } from './chain-hint-fallback';
 import Anthropic from '@anthropic-ai/sdk';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
@@ -3854,16 +3855,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     ) {
       return this._chainHintNamesCache.names;
     }
-    const fallback = [
-      'bulk_rnaseq_de_analysis',
-      'target_to_lead_full',
-      'drug_discovery_screening',
-      'drug_discovery_admet_gated_screening',
-      'single_cell_multimodal_analysis',
-      'rare_disease_multimodal_workup',
-      'cutandtag_chromatin_analysis',
-      'alternative_polyadenylation_analysis',
-    ];
+    // Fallback chain list used when Galaxy is unreachable at boot.
+    // MUST stay in sync with workflow_chains rows where source != 'bioc_reactive'.
+    // Guarded by frontend/server/__tests__/chain-hint-fallback.test.ts —
+    // see docs/20260607_PARALLELISM_AND_CROSS_DOMAIN_CHAINING_PROPOSAL.md (C7).
+    const fallback: string[] = [...CHAIN_HINT_FALLBACK];
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       // intent_hint=true excludes bioc_reactive chains (post-completion suggestions only)
