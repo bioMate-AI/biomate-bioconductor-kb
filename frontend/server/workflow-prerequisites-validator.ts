@@ -470,6 +470,7 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
         system: systemPrompt,
         maxTokens: 4096,
         temperature: 0,
+        jsonMode: true,  // validator post-parses with JSON.parse
       });
       const rawText = response.text;
 

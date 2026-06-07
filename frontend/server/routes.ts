@@ -10573,6 +10573,7 @@ Rules:
         prompt: userPrompt,
         system: ANALYSIS_SYSTEM_PROMPT,
         maxTokens: 4096,
+        jsonMode: true,  // findings endpoint expects JSON output
       });
       const rawText = completion.text || '';
       // Strip markdown fences if present
