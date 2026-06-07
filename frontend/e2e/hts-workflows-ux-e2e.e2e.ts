@@ -612,19 +612,33 @@ test.describe("HT-4 Gate failure path", () => {
       ].join(" ");
       const gotResponse = await sendMessage(page, query, 90_000);
       assertions.push({ name: "AI response received", passed: gotResponse });
-      if (!gotResponse) return;
+      if (!gotResponse) {
+        screenshots.push(await shot(page, "HT4_FAIL_no_ai_response"));
+        throw new Error("HT-4 BAIL: AI did not respond within 90s");
+      }
 
-      let gotCard = await waitForWorkflowCard(page, 10_000);
+      // Bumped initial 10s → 30s. The LLM stream + workflow_artifact
+      // emission sometimes takes >10s on dev under load. With 10s the
+      // test silently bailed at "Workflow card appeared: false" 4 times
+      // in the 2026-06-06 session despite backend log showing
+      // high-confidence routing succeeded.
+      let gotCard = await waitForWorkflowCard(page, 30_000);
       if (!gotCard) {
         await sendMessage(page, "Yes, run with the inline plate data and report the QC failure.", 60_000);
-        gotCard = await waitForWorkflowCard(page);
+        gotCard = await waitForWorkflowCard(page, 60_000);
       }
       assertions.push({ name: "Workflow card appeared", passed: gotCard });
-      if (!gotCard) return;
+      if (!gotCard) {
+        screenshots.push(await shot(page, "HT4_FAIL_no_workflow_card"));
+        throw new Error("HT-4 BAIL: workflow card never appeared after 30s + confirm + 60s");
+      }
 
       const ran = await clickRunButton(page);
       assertions.push({ name: "Run started", passed: ran });
-      if (!ran) return;
+      if (!ran) {
+        screenshots.push(await shot(page, "HT4_FAIL_run_button_not_clickable"));
+        throw new Error("HT-4 BAIL: Run button never became clickable");
+      }
       screenshots.push(await shot(page, "HT4_01_after_run"));
 
       const finalStatus = await waitForTerminalStatus(page, 180_000);
