@@ -10,7 +10,7 @@ import logging
 import time
 import uuid
 import httpx
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from .config import AIConfig
 from .llm_client_fallback_implementation import (
     FallbackChainManager,
@@ -197,6 +197,52 @@ class LLMClient:
             **kwargs
         )
     
+    def call(self, *args, **kwargs) -> str:
+        """Compatibility shim for the AutoFix3 stack.
+
+        Twelve callers across the autofix package use `llm_client.call(...)`
+        but LLMClient only ever defined `generate(prompt, **kwargs)`. Result:
+        autofix3 was importable + status endpoint reported "operational" but
+        DeepAnalysisAgent crashed at attempt 1 with AttributeError on the
+        very first LLM call. Caught 2026-06-07 by end-to-end validation.
+
+        Two prompt shapes are in active use:
+          - `call(prompt_string, max_tokens=...)`
+          - `call(messages=[{role, content}, ...], provider=..., temperature=..., max_tokens=...)`
+
+        Both normalize to `generate(prompt_string, **filtered_kwargs)`:
+          - messages joined with role separators
+          - `provider` kwarg dropped (LLMClient already selects per AIConfig)
+          - other kwargs (temperature, max_tokens, ...) forwarded as-is
+        """
+        prompt: Optional[str] = None
+        if args:
+            if isinstance(args[0], str):
+                prompt = args[0]
+            elif isinstance(args[0], list):
+                prompt = self._messages_to_prompt(args[0])
+        if prompt is None:
+            messages = kwargs.pop("messages", None)
+            if messages is not None:
+                prompt = self._messages_to_prompt(messages)
+            else:
+                prompt = kwargs.pop("prompt", "")
+        kwargs.pop("provider", None)
+        return self.generate(prompt, **kwargs)
+
+    @staticmethod
+    def _messages_to_prompt(messages: List[Dict[str, str]]) -> str:
+        """Flatten a chat-messages list into a single prompt string."""
+        parts: List[str] = []
+        for m in messages or []:
+            role = (m.get("role") or "user").strip()
+            content = m.get("content", "")
+            if role == "user":
+                parts.append(str(content))
+            else:
+                parts.append(f"[{role}] {content}")
+        return "\n\n".join(parts)
+
     def generate(self, prompt: str, **kwargs) -> str:
         """Synchronous wrapper for generate_async.
 
