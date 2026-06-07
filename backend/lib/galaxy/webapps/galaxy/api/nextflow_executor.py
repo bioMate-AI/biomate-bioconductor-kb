@@ -3581,7 +3581,15 @@ def execute_nextflow(
 
     # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
     env = _sanitize_subprocess_env()
-    env["NXF_HOME"] = str(log_dir / ".nextflow")
+    # SHARED NXF_HOME — was per-run, causing 16 concurrent NF heads to all
+    # download the same nf-amazon plugin to their own private dirs and race
+    # on plugin-jar extraction (similar mechanism to the AWS CRT race below).
+    # /opt/nextflow is created by the Dockerfile, contains the pre-fetched
+    # framework jar at /opt/nextflow/framework/25.10.5/. Plugins land in
+    # /opt/nextflow/plugins/ — read-only after first download. NF's plugin
+    # loader is safe for many concurrent readers, races only on first write.
+    # Subsequent runs find the cache warm and skip download entirely.
+    env["NXF_HOME"] = "/opt/nextflow"
 
     # Plugin pre-warm. DO NOT REVERT — without this, each run starts with an
     # empty {NXF_HOME}/plugins dir and Nextflow attempts to download nf-amazon
@@ -3629,17 +3637,27 @@ def execute_nextflow(
     if compute.get("executor") == "awsbatch":
         env["NEXTFLOW_USE_AWS"] = "true"
 
-    # AWS CRT SIGSEGV mitigation. DO NOT REVERT — when Nextflow's PublishDir
-    # spawns S3TransferManager, the shared AWS Common Runtime native library
-    # can SIGSEGV the whole JVM mid-run (seen as the parent process dying ~2s
-    # after Phase A's task COMPLETED line, before Phase B is submitted).
-    # Fix: per-run CRT cache dir + bigger JVM stack + disable in-client CRT.
-    # See docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
-    _nxf_crt_cache = log_dir / ".aws-crt-cache"
-    _nxf_crt_cache.mkdir(parents=True, exist_ok=True)
+    # AWS CRT SIGSEGV mitigation. Use a SHARED CRT cache dir, NOT per-run.
+    # Per-run was the old mitigation (each NF head extracts its own .so).
+    # That works for sequential fires (one extraction at a time) but with
+    # 16 concurrent NF heads, all 16 race-extract the same .so file from
+    # the shaded jar to their own per-run dirs, and the kernel-level file-
+    # extraction race triggers the dlopen SIGSEGV on at least 15/16 of them
+    # (empirical 2026-06-06 sweep: 15/16 SIGABRT at parallel fire).
+    # Shared cache: first NF head on a freshly-booted Galaxy extracts once
+    # to /opt/nextflow/.aws-crt-cache; all subsequent heads find the .so
+    # already there and skip extraction (NF's CRT loader checks for an
+    # existing file before re-extracting). No race after the first run.
+    # Pre-warm at Galaxy boot would eliminate even the first-run risk; for
+    # now the empirical "first run after boot is single-fire" pattern is
+    # enough to keep the cache warm for the rest of the day.
+    # The cache is read-only after extraction → safe for many concurrent
+    # readers. Same .so is what every NF run loads regardless.
+    _shared_crt_cache = Path("/opt/nextflow/.aws-crt-cache")
+    _shared_crt_cache.mkdir(parents=True, exist_ok=True)
     _existing_nxf_opts = env.get("NXF_OPTS", "")
     _crt_opts = (
-        f"-Daws.crt.lib.dir={_nxf_crt_cache} "
+        f"-Daws.crt.lib.dir={_shared_crt_cache} "
         f"-Daws.crt.disable.crt.in.client=true -Xss2m"
     )
     env["NXF_OPTS"] = f"{_existing_nxf_opts} {_crt_opts}".strip()
