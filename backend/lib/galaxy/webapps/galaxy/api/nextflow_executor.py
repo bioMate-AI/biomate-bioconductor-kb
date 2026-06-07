@@ -1536,8 +1536,15 @@ def _generate_executor_config(
             # Override params.outdir so publishDir uses S3 — without this,
             # workflows default to ./results (container-local disk) and
             # s3_output_files stays empty after the run.
+            #
+            # Skip params.container for nf-core: their utils_nfschema_plugin
+            # validates params types against nextflow_schema.json, where
+            # `container` is typed as a Map [name:..., engine:...] in newer
+            # pipelines. Injecting a String raises:
+            #   Cannot cast object '...' with class String to class Map
+            # Reproduced 2026-06-07 on nfcore/abotyper, nfcore/createtaxdb.
             "params {",
-            f"    container = '{container}'",
+            *( [f"    container = '{container}'"] if "/nf-core-workflows/" not in nf_path else [] ),
             f"    outdir = 's3://{s3_bucket}/nextflow/outputs/{user_id}/{run_id}'",
             "}",
             # DISABLE publishDir entirely on the head JVM. publishDir is what
@@ -1600,8 +1607,16 @@ def _generate_executor_config(
 
         before_script_str = " && ".join(before_script_parts) if before_script_parts else ""
 
+        # Only force our default container for BioMate's custom workflows.
+        # nf-core pipelines declare container per-process (often as a Map under
+        # newer schemas like `container = [name:..., engine:...]`), and injecting
+        # a String here clashes with their Map-typed config:
+        #   "Cannot cast object 'ECR_URI' with class 'String' to class 'Map'"
+        # Symptom hit by nfcore/abotyper, nfcore/createtaxdb on NF 25.10
+        # post-pull (2026-06-07). Skip the directive for nfcore + bioconductor.
+        is_nfcore_or_bioc = "/nf-core-workflows/" in nf_path or "/bioconductor/" in nf_path
         lines += [
-            f"    container = '{container}'",
+            *( [f"    container = '{container}'"] if not is_nfcore_or_bioc else [] ),
             # Inject billing context + credentials into every Batch task container.
             "    environment = [",
         ] + env_lines + [
