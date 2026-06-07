@@ -11,6 +11,7 @@ params.study_type       = 'rnaseq'      // Assay type: rnaseq | maxquant | affy 
 params.differential_min_fold_change = 2.0  // Min fold change threshold for volcano plot
 params.differential_max_qval = 0.05     // Max adjusted p-value threshold
 params.normalisation_method = 'deseq2' // Normalisation: deseq2 | edger | limma
+params.save_intermediates   = false    // Save intermediate RDS/RData files for debugging
 params.outdir           = './results'
 params.email            = null
 params.max_memory       = '64.GB'
@@ -51,6 +52,7 @@ process DESEQ2_NORM {
         --transcript_length_matrix ${params.transcript_length_matrix} \\
         --normalisation_method ${params.normalisation_method} \\
         --study_type ${params.study_type} \\
+        ${params.save_intermediates ? '--save_intermediates' : ''} \\
         --outdir ${params.outdir}
     """
 }
