@@ -208,20 +208,14 @@ export class IterativeWorkflowGenerator {
 
     const systemPrompt = this.buildDraftSystemPrompt(session);
 
-    const response = await this.claude.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 3000,
-      temperature: 0,
+    const { llmGenerate } = await import('./llm-client');
+    const response = await llmGenerate({
+      prompt: 'Generate a high-level workflow structure based on the requirements.',
       system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: 'Generate a high-level workflow structure based on the requirements.'
-      }]
+      maxTokens: 4096,
+      temperature: 0,
     });
-
-    const workflowText = response.content[0].type === 'text'
-      ? response.content[0].text
-      : '';
+    const workflowText = response.text;
 
     const draftWorkflow = this.parseDraftWorkflow(workflowText, session);
     session.inferredContext.draftWorkflow = draftWorkflow;
@@ -353,20 +347,14 @@ Provide detailed configuration for this step:
 
 Format as a clear, structured explanation that a user can review.`;
 
-    const response = await this.claude.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 2000,
-      temperature: 0,
+    const { llmGenerate } = await import('./llm-client');
+    const response = await llmGenerate({
+      prompt: 'Configure this step',
       system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: 'Configure this step'
-      }]
+      maxTokens: 2048,
+      temperature: 0,
     });
-
-    const stepConfig = response.content[0].type === 'text'
-      ? response.content[0].text
-      : '';
+    const stepConfig = response.text;
 
     // Parse step configuration
     this.parseStepConfiguration(step, stepConfig);
