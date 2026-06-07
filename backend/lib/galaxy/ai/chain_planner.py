@@ -77,17 +77,86 @@ def _load_type_aliases() -> Dict[str, List[str]]:
 
 _ALIASES = _load_type_aliases()
 
+# Aliases that are wrong-direction for planning: the production
+# workflow_chain.py alias table is biased toward nf-core conventions where
+# a "samplesheet" CSV *describes* fastqs/bams. That bias is correct when
+# validating a curated chain's hand-authored handoffs but wrong for
+# graph-search: it lets fastq spuriously satisfy a `samplesheet` input,
+# letting the planner skip the actual upstream pipeline.
+# We strip these at load time inside the planner only — production
+# `_TYPE_ALIASES` is untouched.
+_PLANNER_ALIAS_BLOCKLIST = {
+    ("fastq", "samplesheet"),
+    ("fastq", "input"),
+    ("counts_matrix", "input"),
+    ("counts_matrix", "samplesheet"),
+    ("bam", "input"),
+    ("vcf", "input"),
+    ("fasta", "input"),
+    ("h5ad", "input"),
+    ("csv", "input"),
+}
+
+
+def _filter_aliases_for_planning(raw: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    out: Dict[str, List[str]] = {}
+    for key, vals in raw.items():
+        out[key] = [v for v in vals if (key, v) not in _PLANNER_ALIAS_BLOCKLIST]
+    return out
+
+
+_PLANNER_ALIASES = _filter_aliases_for_planning(_ALIASES)
+
 
 def _type_satisfies(out_type: str, in_type: str) -> bool:
-    """True iff `out_type` can feed `in_type` per the alias table."""
+    """True iff `out_type` can feed `in_type` per the planner alias table.
+
+    Strict matching: equality or explicit alias entry only. The loose
+    bidirectional substring fallback that the prototype had caused too many
+    spurious matches (e.g. "fastq" satisfying any input containing the
+    substring "fastq", or vice versa). Production `_TYPE_ALIASES` is
+    intentionally permissive for *validating* curated handoffs; the planner
+    must be stricter because it is *discovering* handoffs.
+    """
     if out_type == in_type:
         return True
-    aliases = _ALIASES.get(out_type, [out_type])
-    return any(a == in_type or in_type in a or a in in_type for a in aliases)
+    aliases = _PLANNER_ALIASES.get(out_type, [])
+    return in_type in aliases
 
 
 def _any_satisfies(out_types: Iterable[str], in_types: Iterable[str]) -> bool:
     return any(_type_satisfies(o, i) for o in out_types for i in in_types)
+
+
+# Heuristic vocabulary of strings that look like parameter names rather
+# than data type kinds. If >50% of a workflow's input_types match, we
+# treat the workflow as unindexable for planning (drug-discovery indexer
+# bug at index_all_workflows.py:309 — params being stored as input_types).
+_PARAM_NAME_FRAGMENTS = (
+    "_mode", "_file", "_path", "_threshold", "_cutoff", "_score",
+    "_size", "_steps", "_routes", "_depth", "_dose", "max_", "min_",
+    "n_cpus", "use_aws", "_seed", "_method", "_factor", "_weight",
+    "_route", "_dir", "_unit", "_ratio", "_column", "_group",
+    "publish_", "enable_", "outdir",
+)
+
+
+def _looks_like_param_name(token: str) -> bool:
+    t = token.lower()
+    if t in {"mock_mode", "gpu", "x", "_ecr", "_useaws", "chem_container"}:
+        return True
+    return any(frag in t for frag in _PARAM_NAME_FRAGMENTS)
+
+
+def _is_meaningful_input_types(types: List[str]) -> bool:
+    """Reject obvious garbage: placeholder ['input'] or majority-param-names."""
+    if not types:
+        return False
+    if types == ["input"]:
+        return False
+    junk = sum(1 for t in types if _looks_like_param_name(t))
+    # Require at least one non-junk token AND a junk ratio below 50%.
+    return junk < len(types) / 2 and (len(types) - junk) >= 1
 
 
 @dataclass
@@ -138,6 +207,14 @@ def _load_typed_workflows(db_path: Path) -> List[WorkflowNode]:
             continue
         if not ins or not outs:
             continue
+        if not _is_meaningful_input_types(ins):
+            # Workflows where input_types is a placeholder or list of param
+            # names are unusable for graph-search planning. Skip them rather
+            # than emit junk plans. The underlying indexer bug should be
+            # fixed separately (see implementation notes doc).
+            log.debug("chain_planner: skipping %s — input_types looks like params/placeholder: %s",
+                      name, ins)
+            continue
         nodes.append(
             WorkflowNode(
                 id=wid,
@@ -156,7 +233,7 @@ def _expand_types(types: Sequence[str]) -> Set[str]:
     out: Set[str] = set()
     for t in types:
         out.add(t)
-        out.update(_ALIASES.get(t, []))
+        out.update(_PLANNER_ALIASES.get(t, []))
     return out
 
 
@@ -260,7 +337,7 @@ def plan_chains(
     for n in nodes:
         seen_ids: Set[int] = set()
         for o in n.output_types:
-            for alias in [o] + _ALIASES.get(o, []):
+            for alias in [o] + _PLANNER_ALIASES.get(o, []):
                 for cand in by_input.get(alias, []):
                     if cand.id == n.id or cand.id in seen_ids:
                         continue

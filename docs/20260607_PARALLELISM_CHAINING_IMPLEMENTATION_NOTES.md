@@ -52,7 +52,35 @@ Tests: `backend/tests/test_chain_planner.py` — 7 pytest cases using an in-memo
 | Full frontend `vitest run` | **564 passed, 4 skipped**; 2 unrelated test files still fail (DATABASE_URL not set in env — pre-existing, confirmed by running on stashed working tree) |
 | `tsc --noEmit -p .` | 1 pre-existing error (`RollIntoIndAffordance` missing — visible in initial `git status`); zero new errors |
 
-## What the C2 prototype actually found about catalog quality (the important part)
+## Quality fixes applied after first-pass smoke (commit 2)
+
+The first-pass smoke surfaced three real bugs in the planner. All fixed in the second commit; see new tests in `test_chain_planner.py`.
+
+| Bug | Cause | Fix |
+|---|---|---|
+| 1-step shortcut: fastq → differentialabundance | `_TYPE_ALIASES["fastq"]` includes `"samplesheet"` (production needs this to validate nf-core curated chains where a samplesheet *describes* fastqs). The prototype's BFS turned that into a transitive equivalence. | Local-to-planner blocklist `_PLANNER_ALIAS_BLOCKLIST` strips the wrong-direction aliases (`fastq→samplesheet`, `*→input`, `counts_matrix→samplesheet`, etc.). Production `_TYPE_ALIASES` untouched. |
+| Loose substring matching | `_type_satisfies` did `in_type in alias or alias in in_type`. This matched things like `"fastq"` ⊂ `"input_fastq_dir"`. | Now strict: equality or explicit alias-table membership only. |
+| Junk plans from drug-discovery / nf-core workflows | Indexer at `backend/scripts/index_all_workflows.py:309` (`extract_biomni_input_output`) writes `params.*` names as `input_types` for biomni Nextflow workflows. Many nf-core entries have `input_types=["input"]` placeholder. | `_is_meaningful_input_types` rejects workflows whose `input_types` is the placeholder OR ≥50% strings that look like param names (`_mode`, `_file`, `max_*`, `min_*`, `mock_mode`, `gpu`, etc.). These workflows are skipped at load time. The underlying indexer bug should be fixed separately. |
+
+### Smoke results after fixes (same 4 queries)
+
+| Query | Before | After |
+|---|---|---|
+| `--start fastq --goal-types gsea_results enrichment_results` | 1-step shortcut to differentialabundance | 2-step **nf-core/rnaseq → nf-core/differentialabundance** (canonical) and **nf-core/scrnaseq → nf-core/differentialabundance** |
+| `--start vcf --goal "annotation"` | `nf-core/isoseq`, `nf-core/phageannotator` (all with `input_types=["input"]`) | Real variant-calling tools with `vcf`-typed inputs. (Top-1 imputation, not annotation — a separate catalog-completeness issue, not a planner bug.) |
+| `--start smiles --goal "ADMET"` | Workflows with param-name `input_types` (`max_routes`, `pass_max_steps`, ...) | `aizynthfinder_retrosynthesis`, `cns_penetration_prediction`, `covalent_warhead_design` — all with clean `input_types=["smiles"]` |
+| `--start counts_matrix --goal "enrichment"` | Correct 1-step nf-core/differentialabundance | Same correct 1-step result plus a 2-step `nf-core/rnaseq → differentialabundance` alternative |
+
+### New tests added in commit 2
+
+- `test_type_satisfies_strict_no_substring_match` — pins the strict-matching contract.
+- `test_is_meaningful_input_types_rejects_placeholders` — guards the param-name detector.
+- `test_planner_skips_workflows_with_junk_input_types` — end-to-end: junk workflows never appear in plans.
+- `test_fastq_does_not_shortcut_to_counts_matrix_workflow` — regression guard for the rnaseq-shortcut bug, using a stand-in catalog so the test doesn't depend on real-DB rows.
+
+Total: **11 planner pytest cases**, all passing.
+
+## What the C2 prototype found about catalog quality (commit 1 — historical, kept for context)
 
 The prototype was an experiment to answer: **does existing typed-port coverage produce useful plans?**
 
