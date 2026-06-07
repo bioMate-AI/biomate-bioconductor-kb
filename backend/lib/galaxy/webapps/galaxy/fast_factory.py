@@ -50,6 +50,49 @@ from galaxy.webapps.galaxy.buildapp import app_pair
 from .fast_app import initialize_fast_app
 
 
+def _seed_api_key_from_env(gx_app) -> None:
+    """Ensure the api_keys row for $GALAXY_API_KEY exists for the admin user.
+
+    The Node frontend forwards x-api-key=$GALAXY_API_KEY for every
+    backend call. If the key isn't in api_keys table the call gets 401
+    and every chat → workflow_generation request fails with
+    'Workflow generation is currently unavailable — auth/permission
+    boundary in a dependent service'. This used to be fixed manually
+    after every container restart; this hook makes it idempotent at boot.
+
+    No-op if GALAXY_API_KEY env var is unset, no user_id=1 exists, or
+    the row is already present.
+    """
+    import os as _os
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
+    key = _os.environ.get("GALAXY_API_KEY", "").strip()
+    if not key or len(key) != 32:
+        return
+    try:
+        from sqlalchemy import select as _select
+        session = gx_app.model.context
+        APIKeys = gx_app.model.APIKeys
+        User = gx_app.model.User
+        existing = session.scalars(_select(APIKeys).filter_by(key=key, deleted=False)).first()
+        if existing:
+            _log.info("[boot-seed] GALAXY_API_KEY already registered (id=%s)", existing.id)
+            return
+        admin = session.scalars(_select(User).filter_by(id=1)).first()
+        if not admin:
+            _log.warning("[boot-seed] no user_id=1; skipping key seed")
+            return
+        new_key = APIKeys()
+        new_key.user_id = 1
+        new_key.key = key
+        session.add(new_key)
+        session.commit()
+        _log.info("[boot-seed] GALAXY_API_KEY seeded for user_id=1 (proper fix for the "
+                  "401 cascade on container restart)")
+    except Exception as _exc:
+        _log.warning("[boot-seed] could not seed GALAXY_API_KEY: %s", _exc)
+
+
 def factory():
     props = WebappSetupProps(
         app_name="galaxy",
@@ -63,4 +106,5 @@ def factory():
     gx_wsgi_webapp, gx_app = app_pair(
         global_conf=config.global_conf, load_app_kwds=config.load_app_kwds, wsgi_preflight=config.wsgi_preflight
     )
+    _seed_api_key_from_env(gx_app)
     return initialize_fast_app(gx_wsgi_webapp, gx_app)
