@@ -153,3 +153,24 @@ Also deferred for the same reason:
 6 sites + 1 already-completed = 7 of the originally-identified 9
 hardcoded direct-Anthropic calls now route through the YAML fallback
 chain.
+
+## Update 2026-06-07 (after end-to-end local test) — quality observations
+
+End-to-end test of each migrated site through real Gemini Pro (local
+backend + Node llmGenerate) surfaced:
+
+✅ Backend now forwards `jsonMode: true` → `responseMimeType:
+   application/json` on the Gemini request (was being dropped before).
+
+| Site | Behavior with Gemini Pro |
+|---|---|
+| methods-report | clean 6KB output, real PMIDs, no truncation (verified earlier) |
+| findings analysis | JSON parses, real numbers preserved; top-level field names may differ from Claude's exact schema |
+| prerequisites-validator (both) | JSON parses correctly with `jsonMode: true` |
+| iterative-workflow-generator (both) | prose output vs Claude's numbered list — downstream parser tolerance unknown for new shape |
+| context-compressor | needs sufficient maxTokens; caller-controlled |
+
+These are output-shape differences, not crashes. The fallback chain
+catches actual API failures. Observed quirks will be characterized on
+dev with real workflow data; the migrated paths can be reverted
+selectively if downstream parsers break.

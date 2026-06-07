@@ -389,6 +389,14 @@ class LLMClient:
                 "thinkingConfig": {
                     "thinkingBudget": kwargs.get('thinking_budget', -1),
                 },
+                # Honor json_mode=True from caller: forces Gemini to emit
+                # valid JSON instead of markdown prose. Required for the
+                # findings-analysis and prerequisites-validator paths that
+                # post-parse with JSON.parse. Without this, Gemini Pro
+                # returns markdown-formatted text + the downstream parser
+                # falls back silently to degraded shape.
+                **({"responseMimeType": "application/json"}
+                   if kwargs.get('json_mode') else {}),
             }
         }
 
