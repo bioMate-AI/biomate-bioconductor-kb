@@ -177,8 +177,11 @@ def main() -> None:
 
     docking_json = args.docking_json
     if docking_json is None:
+        pub_zinc_vina = pub_dir / "publication_zinc" / "vina" / "docking_autodock_vina_results.json"
         zinc150_vina = pub_dir / "zinc150_screen" / "vina" / "docking_autodock_vina_results.json"
-        if zinc150_vina.is_file():
+        if pub_zinc_vina.is_file():
+            docking_json = pub_zinc_vina
+        elif zinc150_vina.is_file():
             docking_json = zinc150_vina
         else:
             candidates = sorted(

@@ -1,0 +1,168 @@
+{
+  "looked_up_at": "2026-06-07T00:07:44.071517+00:00",
+  "source": "research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/vina/docking_autodock_vina_results.json",
+  "top_n": 20,
+  "exclude_controls": true,
+  "results": [
+    {
+      "smiles": "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21",
+      "vina_kcal_mol": -6.952,
+      "zinc_substance_id": "239377869",
+      "tranche": "BBAA",
+      "pubchem_cid": 124721936,
+      "rank": 1
+    },
+    {
+      "smiles": "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O",
+      "vina_kcal_mol": -6.878,
+      "zinc_substance_id": "17299557",
+      "tranche": "BBAA",
+      "pubchem_cid": 235109,
+      "rank": 2
+    },
+    {
+      "smiles": "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1",
+      "vina_kcal_mol": -6.855,
+      "zinc_substance_id": "347043",
+      "tranche": "BBAA",
+      "pubchem_cid": 826866,
+      "rank": 3
+    },
+    {
+      "smiles": "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1",
+      "vina_kcal_mol": -6.762,
+      "zinc_substance_id": "36696104",
+      "tranche": "BBAA",
+      "pubchem_cid": 51866101,
+      "rank": 4
+    },
+    {
+      "smiles": "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2",
+      "vina_kcal_mol": -6.754,
+      "zinc_substance_id": "1875249477",
+      "tranche": "BBAA",
+      "pubchem_cid": 0,
+      "rank": 5
+    },
+    {
+      "smiles": "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O",
+      "vina_kcal_mol": -6.735,
+      "zinc_substance_id": "17028330",
+      "tranche": "BBAA",
+      "pubchem_cid": 54677433,
+      "rank": 6
+    },
+    {
+      "smiles": "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1",
+      "vina_kcal_mol": -6.72,
+      "zinc_substance_id": "1857713941",
+      "tranche": "BBAA",
+      "pubchem_cid": 155497853,
+      "rank": 7
+    },
+    {
+      "smiles": "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O",
+      "vina_kcal_mol": -6.691,
+      "zinc_substance_id": "2265347467",
+      "tranche": "BCAC",
+      "pubchem_cid": 0,
+      "rank": 8
+    },
+    {
+      "smiles": "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2",
+      "vina_kcal_mol": -6.675,
+      "zinc_substance_id": "215621626",
+      "tranche": "BCAC",
+      "pubchem_cid": 136311418,
+      "rank": 9
+    },
+    {
+      "smiles": "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C",
+      "vina_kcal_mol": -6.642,
+      "zinc_substance_id": "796287",
+      "tranche": "BBAA",
+      "pubchem_cid": 1081317,
+      "rank": 10
+    },
+    {
+      "smiles": "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1",
+      "vina_kcal_mol": -6.636,
+      "zinc_substance_id": "2382375842",
+      "tranche": "BBAA",
+      "pubchem_cid": 0,
+      "rank": 11
+    },
+    {
+      "smiles": "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12",
+      "vina_kcal_mol": -6.615,
+      "zinc_substance_id": "828873353",
+      "tranche": "BBAA",
+      "pubchem_cid": 131896589,
+      "rank": 12
+    },
+    {
+      "smiles": "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O",
+      "vina_kcal_mol": -6.6,
+      "zinc_substance_id": "39097774",
+      "tranche": "BCAC",
+      "pubchem_cid": 45093422,
+      "rank": 13
+    },
+    {
+      "smiles": "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O",
+      "vina_kcal_mol": -6.548,
+      "zinc_substance_id": "190529",
+      "tranche": "BBAA",
+      "pubchem_cid": 746721,
+      "rank": 14
+    },
+    {
+      "smiles": "Cc1c(C(=N)NO)c(O)nc(=O)n1C",
+      "vina_kcal_mol": -6.508,
+      "zinc_substance_id": "536952557",
+      "tranche": "ABAA",
+      "pubchem_cid": 125451661,
+      "rank": 15
+    },
+    {
+      "smiles": "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O",
+      "vina_kcal_mol": -6.508,
+      "zinc_substance_id": "2265347466",
+      "tranche": "BCAC",
+      "pubchem_cid": 0,
+      "rank": 16
+    },
+    {
+      "smiles": "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1",
+      "vina_kcal_mol": -6.505,
+      "zinc_substance_id": "39001865",
+      "tranche": "BBAA",
+      "pubchem_cid": 135566394,
+      "rank": 17
+    },
+    {
+      "smiles": "NNCC(=O)Nc1nc2ccccc2s1",
+      "vina_kcal_mol": -6.498,
+      "zinc_substance_id": "45236113",
+      "tranche": "BCAC",
+      "pubchem_cid": 25139990,
+      "rank": 18
+    },
+    {
+      "smiles": "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1",
+      "vina_kcal_mol": -6.482,
+      "zinc_substance_id": "2325781170",
+      "tranche": "BBAA",
+      "pubchem_cid": 0,
+      "rank": 19
+    },
+    {
+      "smiles": "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N",
+      "vina_kcal_mol": -6.47,
+      "zinc_substance_id": "2382377758",
+      "tranche": "BBAA",
+      "pubchem_cid": 0,
+      "rank": 20
+    }
+  ]
+}

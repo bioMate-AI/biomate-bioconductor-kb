@@ -1,6 +1,6 @@
 # ANDV Compute Output Package (BioMate in silico)
 
-Generated: 2026-06-04T20:58:03.070158+00:00
+Generated: 2026-06-07T01:01:22.964735+00:00
 
 _No wet-lab work — ranked compute artifacts for manuscript / workflow demo._
 
@@ -9,7 +9,7 @@ _No wet-lab work — ranked compute artifacts for manuscript / workflow demo._
 - MHC binders (epitope run): **47** (20 unique peptides)
 - Conserved ∩ binder overlap: **0**
 - Docking hits (top ranked): **20**
-- ZINC screen docked: **600**
+- ZINC screen docked: **5006**
 - Inhibitor compute lead: **INH-01** (Vina + pose QC; Z600-R1 backup)
 - Chile tier A+B population coverage (17-allele strict dual): **48.81%**
 
@@ -59,18 +59,18 @@ _Ranked by dual MHCnuggets+MHCflurry consensus + GPC surface exposure. Tier C (c
 
 | ID | SMILES (truncated) | Vina (kcal/mol) | Receptor | Priority |
 |----|-------------------|-----------------|----------|----------|
-| INH-01 | `N=C(N)NC(=O)NC(=O)NC(=N)N` | **-6.527** | 9P3I | HIGH |
-| INH-02 | `Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2` | **-6.275** | 9P3I | HIGH |
-| INH-03 | `N=C(N)NC(=O)c1nccnc1N` | **-6.267** | 9P3I | HIGH |
-| INH-04 | `C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1` | **-6.099** | 9P3I | HIGH |
-| INH-05 | `N=C(N)NC(=O)NC(=N)N` | **-6.065** | 9P3I | HIGH |
-| INH-06 | `O=C1Nc2c[nH]c(=O)nc2N[C@H]1O` | **-6.014** | 9P3I | MEDIUM |
-| INH-07 | `C[C@@H](O)[C@@H]1NC(=O)[C@@H]2CCCN2C1=O` | **-5.933** | 9P3I | MEDIUM |
-| INH-08 | `C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1` | **-5.912** | 9P3I | MEDIUM |
-| INH-09 | `CC(=O)NC1=NN(C)C(=O)C1(O)O` | **-5.902** | 9P3I | MEDIUM |
-| INH-10 | `CNC1=NC(N)=C2NCCN=C2N1` | **-5.881** | 9P3I | MEDIUM |
-| INH-11 | `NC1=NC(=O)C2=N[C@H](O)CNC2=N1` | **-5.831** | 9P3I | MEDIUM |
-| INH-12 | `O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O` | **-5.825** | 9P3I | MEDIUM |
-| INH-13 | `Nc1nc(=O)[nH]c2[nH]c(=O)cnc12` | **-5.759** | 9P3I | MEDIUM |
-| INH-14 | `C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1` | **-5.731** | 9P3I | MEDIUM |
-| INH-15 | `NC(=O)NC(=O)NC(=O)C(N)=O` | **-5.697** | 9P3I | MEDIUM |
+| INH-01 | `CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21` | **-6.952** | 9P3I | HIGH |
+| INH-02 | `NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O` | **-6.878** | 9P3I | HIGH |
+| INH-03 | `O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1` | **-6.855** | 9P3I | HIGH |
+| INH-04 | `C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1` | **-6.762** | 9P3I | HIGH |
+| INH-05 | `Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2` | **-6.754** | 9P3I | HIGH |
+| INH-06 | `O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O` | **-6.735** | 9P3I | MEDIUM |
+| INH-07 | `Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1` | **-6.72** | 9P3I | MEDIUM |
+| INH-08 | `O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O` | **-6.691** | 9P3I | MEDIUM |
+| INH-09 | `Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2` | **-6.675** | 9P3I | MEDIUM |
+| INH-10 | `CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C` | **-6.642** | 9P3I | MEDIUM |
+| INH-11 | `N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1` | **-6.636** | 9P3I | MEDIUM |
+| INH-12 | `O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12` | **-6.615** | 9P3I | MEDIUM |
+| INH-13 | `O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O` | **-6.6** | 9P3I | MEDIUM |
+| INH-14 | `CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O` | **-6.548** | 9P3I | MEDIUM |
+| INH-15 | `N=C(N)NC(=O)NC(=O)NC(=N)N` | **-6.527** | 9P3I | MEDIUM |
