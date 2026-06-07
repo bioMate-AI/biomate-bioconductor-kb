@@ -584,6 +584,13 @@ PYEOF
 
 // ── Workflow ──────────────────────────────────────────────────────────────────
 workflow {
+    // Empty-params smoke test guard: at least one omics input must be set.
+    // Without this, the workflow silently completes with 0 processes (rc=1) and
+    // no clear message. Same pattern as state_perturbation_prediction.
+    if (!params.proteomics_input && !params.metabolomics_mzml) {
+        error "At least one of params.proteomics_input (proteinGroups.txt / DIA-NN report.tsv) or params.metabolomics_mzml (glob of .mzML/.mzXML files) is required."
+    }
+
     // Channel setup (parser-v2 requires this inside workflow{})
     ch_prot_input = params.proteomics_input
         ? Channel.fromPath(params.proteomics_input)
