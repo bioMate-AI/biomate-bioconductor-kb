@@ -1567,9 +1567,19 @@ def _generate_executor_config(
             # future fix that does a Galaxy-side post-task `aws s3 sync`.
             # When that lands, the head JVM continues to never touch S3 for
             # bulk transfer.
-            "process {",
-            "    publishDir = null",
-            "}",
+            # `process { publishDir = null }` was belt-and-suspenders against the
+            # CRT crash; nf-amazon@3.3.0 pin above already prevents CRT load.
+            # For nf-core 25+ pipelines this directive breaks: newer nf-core
+            # uses `workflow.output.mode = params.publish_dir_mode` syntax
+            # which compares ConfigObject `[:]` against publishDir's effective
+            # value and crashes with:
+            #   Cannot compare groovy.util.ConfigObject [:] with Integer 0
+            # Reproduced 2026-06-07 on nfcore/airrflow 5.1.0.
+            *(
+                ["process {", "    publishDir = null", "}"]
+                if "/nf-core-workflows/" not in nf_path
+                else []
+            ),
             "process {",
             "    executor = 'awsbatch'",
         ]
@@ -1670,13 +1680,32 @@ def _generate_executor_config(
                 "}",
             ]
             log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
+        # For nf-core pipelines: emit a slimmer aws.client block.
+        # Their own nextflow.config often sets `aws.client.anonymous = true`
+        # globally (so iGenomes public-bucket reads work). That makes ALL
+        # S3 ops anonymous, including PUTs to our private workDir → 403.
+        # We force `anonymous = false` to win over theirs (NF applies our
+        # -c override after their nextflow.config). Their pipeline-specific
+        # tuning (maxConnections etc.) is left alone for nfcore.
+        # Reproduced 2026-06-07 on bamtofastq 2.2.1 with igenomes_ignore=true.
+        is_nfcore = "/nf-core-workflows/" in nf_path
         lines += [
             f"aws {{",
             f"    region = '{region}'",
-            "    client {",
-            "        maxConnections = 20",
-            "        uploadChunkSize = 104857600",   # 100 MB chunks
-            "    }",
+            *(
+                [
+                    "    client {",
+                    "        anonymous = false",
+                    "    }",
+                ]
+                if is_nfcore
+                else [
+                    "    client {",
+                    "        maxConnections = 20",
+                    "        uploadChunkSize = 104857600",  # 100 MB chunks
+                    "    }",
+                ]
+            ),
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
             #   Base: ami-0b495ea217b3a1543 (ECS-optimized AL2023, kernel 6.1, 2026-04-03)
