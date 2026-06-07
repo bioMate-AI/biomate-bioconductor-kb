@@ -12,9 +12,17 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
+
+// Per-request override of `this.galaxyAPI`. Set by processMessage() when the
+// caller (chat-stream) provides context.galaxyAPIOverride; resolved at every
+// `this.galaxyAPI` call site so the assistant uses the authenticated user's
+// per-user Galaxy API key for that single in-flight request only (no leakage
+// across concurrent users). See ChatContext.galaxyAPIOverride for rationale.
+const _galaxyAPIRequestStorage = new AsyncLocalStorage<GalaxyAPIProxy>();
 import { conversationStateManager } from './conversation-state';
 import { userPatternsService, type UserContext } from './user-patterns-service';
 import { thinkingDetector, type ThinkingDetectionResult } from './thinking-detector';
@@ -283,6 +291,18 @@ export interface ChatContext {
   /** Per-tool credential availability map built by routes.ts using the user's Galaxy API key.
    *  Forwarded to generateWorkflow() so the AI backend can fall back to OSS alternatives. */
   credentialMap?: Record<string, boolean>;
+  /**
+   * Optional per-request GalaxyAPIProxy scoped to the authenticated user's own
+   * Galaxy API key (built by routes.ts via userProxy(req)). When set, all
+   * Galaxy calls from this turn use this proxy instead of the singleton's
+   * admin proxy. Required because Galaxy's `/api/ai_assistant/*` routes
+   * reject the shared admin key whenever its api_keys row is missing/rotated
+   * (verified live today: admin key returned 401 from /api/whoami while
+   * per-user keys provisioned at registration succeed). Without this each
+   * chat-stream call falls back to the broken admin key and the workflow
+   * generation returns "currently unavailable".
+   */
+  galaxyAPIOverride?: any;
 }
 
 export interface ToolRecommendation {
@@ -1335,6 +1355,17 @@ export class GalaxyAssistant {
   }
 
   /**
+   * Returns the Galaxy API proxy for the in-flight request. If processMessage
+   * was invoked with `context.galaxyAPIOverride`, we stored it in
+   * AsyncLocalStorage and resolve it here per-call — so the chat-stream turn
+   * uses the authenticated user's per-user Galaxy API key. Otherwise falls
+   * back to the singleton's admin proxy. See ChatContext.galaxyAPIOverride.
+   */
+  private _api(): GalaxyAPIProxy {
+    return _galaxyAPIRequestStorage.getStore() ?? this.galaxyAPI;
+  }
+
+  /**
    * Generate a response using Gemini as the backbone LLM.
    * Handles streaming via Google's GenerativeAI SDK.
    * Tool use is disabled (Gemini function calling uses a different format — future work).
@@ -2115,6 +2146,23 @@ Rules:
     onResponseDelta?: (chunk: string) => void,
     onToolEvent?: (event: AgentToolEvent) => void
   ): Promise<GalaxyAssistantResponse> {
+    // If the caller (chat-stream) supplied a per-user Galaxy proxy, scope it
+    // to this turn via AsyncLocalStorage so every `this._api()` call in any
+    // helper method picks it up. Skip the wrapper if no override is provided.
+    const overrideProxy = context.galaxyAPIOverride as GalaxyAPIProxy | undefined;
+    if (overrideProxy) {
+      return _galaxyAPIRequestStorage.run(overrideProxy, () =>
+        this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+    }
+    return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+  }
+
+  private async _processMessageInner(
+    message: string,
+    context: ChatContext = {},
+    onResponseDelta?: (chunk: string) => void,
+    onToolEvent?: (event: AgentToolEvent) => void
+  ): Promise<GalaxyAssistantResponse> {
     const startTime = Date.now();
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
@@ -2583,7 +2631,7 @@ Rules:
     if (actions.needsResearchAgent) {
       log('Routing to research backend');
       try {
-        researchResponse = await this.galaxyAPI.queryResearch({
+        researchResponse = await this._api().queryResearch({
           query: message,
           context: { information_need: intent.type },
           include_citations: true,
@@ -2599,7 +2647,7 @@ Rules:
     if (actions.needsBenchmarkAgent) {
       log('Routing to benchmark backend');
       try {
-        benchmarkEvidence = await this.galaxyAPI.queryBenchmark({
+        benchmarkEvidence = await this._api().queryBenchmark({
           query: message,
         });
         log('Benchmark response received');
@@ -3514,7 +3562,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       // Research agent
       if (actions.needsResearchAgent) {
         try {
-          baseResult.researchResponse = await this.galaxyAPI.queryResearch({
+          baseResult.researchResponse = await this._api().queryResearch({
             query: intent.subQuery,
             context: { information_need: intent.type },
             include_citations: true,
@@ -3528,7 +3576,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       // Benchmark agent
       if (actions.needsBenchmarkAgent) {
         try {
-          baseResult.benchmarkEvidence = await this.galaxyAPI.queryBenchmark({
+          baseResult.benchmarkEvidence = await this._api().queryBenchmark({
             query: intent.subQuery,
           });
         } catch (error: any) {
@@ -4916,7 +4964,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
 
         // Search Galaxy tool index
         // limit=20 for performance — limit=100 triggers a Galaxy DB bottleneck (~3 min)
-        toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 20);
+        toolSearchResponse = await this._api().searchTools(query, undefined, 20);
 
         console.log('[GalaxyAssistant] Raw Galaxy API response:', {
           count: toolSearchResponse.count,
@@ -5124,7 +5172,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       return [];
     }
     try {
-      const datasetSearchResponse = await this.galaxyAPI.searchDatasets({
+      const datasetSearchResponse = await this._api().searchDatasets({
         query: keywords.join(' '),
         limit: 10,
       });
@@ -5279,7 +5327,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     console.log('[GalaxyAssistant] Available datasets:', datasets.length);
     console.log('[GalaxyAssistant] Inline parameters:', JSON.stringify(mergedInlineParameters));
 
-    const response = await this.galaxyAPI.generateWorkflow({
+    const response = await this._api().generateWorkflow({
       user_intent: userIntent,
       max_tools_search: 30,
       inline_parameters: mergedInlineParameters,

@@ -4912,19 +4912,22 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
         // ── Step-by-step report generation with Claude Sonnet 4.5 ─────────────
-        // For CryoEM, split into 3 focused calls to avoid LLM truncation.
-        // For all other domains, a single focused call.
-        const Anthropic = (await import('@anthropic-ai/sdk')).default;
-        const claudeClient = new Anthropic({ apiKey });
-
+        // Route through the canonical fallback chain
+        // (backend/config/llm_providers.yml: gemini-3.1-pro-preview primary,
+        // gemini-3.5-flash-preview / claude-sonnet-4-5 / gpt-4o / qwen3:32b
+        // fallbacks). Replaces the previous direct Anthropic SDK call that
+        // hardcoded claude-sonnet-4-5 and bypassed the YAML chain.
+        const { llmGenerate } = await import('./llm-client');
         const claudeCall = async (userPrompt: string): Promise<string> => {
-          const msg = await claudeClient.messages.create({
-            model: 'claude-sonnet-4-5',
-            max_tokens: 4096,
+          const result = await llmGenerate({
+            prompt: userPrompt,
             system: SYSTEM,
-            messages: [{ role: 'user', content: userPrompt }],
+            // 8192 leaves headroom for verbose pharma/IND/base-edit reports
+            // (~6KB context → ~6KB output) without truncating mid-sentence.
+            maxTokens: 8192,
+            temperature: 0.7,
           });
-          return (msg.content[0] as any)?.text ?? '';
+          return result.text;
         };
 
         // Compact metrics block (no raw file JSON, just the key-value pairs)
@@ -4942,7 +4945,7 @@ ${paramLines || '(none recorded)'}`;
         let reportText: string;
 
         // Single call for all domains — SYSTEM and USER are set per-domain above
-        console.log(`[Report] Generating ${isCryoEM ? 'CryoEM' : 'generic'} report (Claude sonnet-4-5)`);
+        console.log(`[Report] Generating ${isCryoEM ? 'CryoEM' : 'generic'} report via fallback chain`);
         reportText = await claudeCall(USER);
 
         const header = [
@@ -5184,6 +5187,11 @@ ${paramLines || '(none recorded)'}`;
           : undefined,
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
         credentialMap: credentialMap || undefined,
+        // Per-request Galaxy proxy scoped to the authenticated user's own
+        // API key. Used by GalaxyAssistant for /api/ai_assistant/* calls so
+        // generate_workflow doesn't fall back to the shared admin key, which
+        // returns 401 from Galaxy whenever its api_keys row is missing/rotated.
+        galaxyAPIOverride: req.user ? userProxy(req) : undefined,
       };
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
@@ -5496,8 +5504,13 @@ ${paramLines || '(none recorded)'}`;
 
       console.log('[WorkflowGen API] Generating workflow for:', request_text);
 
-      // Call Galaxy backend via proxy
-      const response = await galaxyAPIProxy.generateWorkflow({
+      // Call Galaxy backend via the AUTHENTICATED user's per-user API key.
+      // The shared admin key (process.env.GALAXY_API_KEY) is not honoured by
+      // Galaxy's /api/ai_assistant/* routes when the underlying admin user
+      // record / api_keys row is missing or rotated (verified live today:
+      // admin key `f17c618a…` returns 401 from /api/whoami, while per-user
+      // keys provisioned at registration succeed).
+      const response = await userProxy(req).generateWorkflow({
         user_intent: request_text,
         datasets: available_datasets,
         max_tools_search: constraints?.max_tools_search,
