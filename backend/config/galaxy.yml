@@ -34,8 +34,10 @@ galaxy:
 
 gravity:
   gunicorn:
-    # Bind to port 8081
-    bind: 0.0.0.0:8081
+    # Bind to 8080 inside the container; Docker port-maps host:8081 → container:8080.
+    # Binding to 8081 here causes the port-forward to receive "Connection reset"
+    # because gunicorn isn't listening on 8080.
+    bind: 0.0.0.0:8080
     # Reduce workers to prevent OOM
     workers: 1
     # Increase timeout for AI operations
