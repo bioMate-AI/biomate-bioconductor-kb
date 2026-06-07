@@ -1674,27 +1674,6 @@ class NextflowQCGateHandler:
                     except (IndexError, ValueError):
                         pass
 
-        # ── Generic fallback: workflows that emit a qc_metrics.json directly ─
-        # Catches the 11 gate-only domains (HTS, ICH-S5/S7, BOIN, allometric,
-        # IVIVE, OpenFE, p0_pkpd, pocket_detection, aizynthfinder,
-        # structure_prediction) whose main.nf already writes qc_metrics.json
-        # but for which no dedicated parser exists above. Without this,
-        # handle_process_completion early-returns and emit_gate_only_event
-        # never runs.
-        if not metrics:
-            for candidate in ("qc_metrics.json", "qc.json", "qc_report.json"):
-                p = Path(task_work_dir) / candidate
-                if p.is_file():
-                    try:
-                        import json as _json
-                        with open(p) as _f:
-                            blob = _json.load(_f)
-                        if isinstance(blob, dict):
-                            metrics.update(blob)
-                            break
-                    except Exception:
-                        continue
-
         # Gate-only domains (HTS, ICH-S5/S7, BOIN, allometric, IVIVE, OpenFE,
         # p0_pkpd, pocket_detection, aizynthfinder) emit qc_metrics.json with
         # keys that already match gate thresholds (z_prime, signal_window, etc).
