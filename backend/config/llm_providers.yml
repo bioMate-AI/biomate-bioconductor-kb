@@ -20,7 +20,7 @@ primary:
 fallbacks:
   # Fallback 1: Gemini Flash (fast, reliable)
   - provider: gemini
-    model: gemini-3.0-flash-preview  # Gemini 3 Flash (preview)
+    model: gemini-3.5-flash-preview  # Gemini 3 Flash (preview)
     description: "Fallback 1 - Google Gemini 3.0 Flash Preview (fast, efficient)"
     api_key_env: GOOGLE_API_KEY
     max_tokens: 8192
@@ -73,7 +73,7 @@ model_configs:
     rate_limit_tpm: 4000000  # tokens per minute
 
   # Gemini 3.0 Flash Preview
-  gemini-3.0-flash-preview:
+  gemini-3.5-flash-preview:
     context_window: 1048576  # 1M tokens
     cost_per_1m_input: 0.075
     cost_per_1m_output: 0.30
