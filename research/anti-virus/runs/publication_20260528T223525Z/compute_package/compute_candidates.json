@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-04T20:58:03.070158+00:00",
+  "assembled_at": "2026-06-07T01:01:22.964735+00:00",
   "data_sources": {
     "uniprot_accessions": {
       "ANDV": "Q9E006",
@@ -7,7 +7,7 @@
       "PUUV": "P27312"
     },
     "epitope_tsv": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/plan_a_epitope/PLAN_A_CONSENSUS_BINDERS.tsv",
-    "docking_json": "research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json"
+    "docking_json": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/publication_zinc/vina/docking_autodock_vina_results.json"
   },
   "summary": {
     "conserved_9mers_full_gp": 54,
@@ -16,7 +16,7 @@
     "science_tier_ranked": 332,
     "conserved_binder_overlap": 0,
     "docking_hits": 20,
-    "zinc_screen_docked": 600,
+    "zinc_screen_docked": 5006,
     "chile_tier_ab_coverage_pct": 48.81,
     "top_vaccine_candidates": 54,
     "inhibitor_compute_lead": "INH-01",
@@ -977,160 +977,160 @@
   "inhibitor_docking_track": [
     {
       "id": "INH-01",
-      "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
-      "score_kcal_mol": -6.527,
+      "smiles": "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21",
+      "score_kcal_mol": -6.952,
       "receptor": "9P3I",
       "order_priority": "HIGH",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-02",
-      "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
-      "score_kcal_mol": -6.275,
+      "smiles": "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O",
+      "score_kcal_mol": -6.878,
       "receptor": "9P3I",
       "order_priority": "HIGH",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-03",
-      "smiles": "N=C(N)NC(=O)c1nccnc1N",
-      "score_kcal_mol": -6.267,
+      "smiles": "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1",
+      "score_kcal_mol": -6.855,
       "receptor": "9P3I",
       "order_priority": "HIGH",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-04",
-      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "score_kcal_mol": -6.099,
+      "smiles": "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1",
+      "score_kcal_mol": -6.762,
       "receptor": "9P3I",
       "order_priority": "HIGH",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-05",
-      "smiles": "N=C(N)NC(=O)NC(=N)N",
-      "score_kcal_mol": -6.065,
+      "smiles": "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2",
+      "score_kcal_mol": -6.754,
       "receptor": "9P3I",
       "order_priority": "HIGH",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-06",
-      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@H]1O",
-      "score_kcal_mol": -6.014,
+      "smiles": "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O",
+      "score_kcal_mol": -6.735,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-07",
-      "smiles": "C[C@@H](O)[C@@H]1NC(=O)[C@@H]2CCCN2C1=O",
-      "score_kcal_mol": -5.933,
+      "smiles": "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1",
+      "score_kcal_mol": -6.72,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-08",
-      "smiles": "C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "score_kcal_mol": -5.912,
+      "smiles": "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O",
+      "score_kcal_mol": -6.691,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-09",
-      "smiles": "CC(=O)NC1=NN(C)C(=O)C1(O)O",
-      "score_kcal_mol": -5.902,
+      "smiles": "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2",
+      "score_kcal_mol": -6.675,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-10",
-      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
-      "score_kcal_mol": -5.881,
+      "smiles": "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C",
+      "score_kcal_mol": -6.642,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-11",
-      "smiles": "NC1=NC(=O)C2=N[C@H](O)CNC2=N1",
-      "score_kcal_mol": -5.831,
+      "smiles": "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1",
+      "score_kcal_mol": -6.636,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-12",
-      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O",
-      "score_kcal_mol": -5.825,
+      "smiles": "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12",
+      "score_kcal_mol": -6.615,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-13",
-      "smiles": "Nc1nc(=O)[nH]c2[nH]c(=O)cnc12",
-      "score_kcal_mol": -5.759,
+      "smiles": "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O",
+      "score_kcal_mol": -6.6,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-14",
-      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1",
-      "score_kcal_mol": -5.731,
+      "smiles": "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O",
+      "score_kcal_mol": -6.548,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-15",
-      "smiles": "NC(=O)NC(=O)NC(=O)C(N)=O",
-      "score_kcal_mol": -5.697,
+      "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
+      "score_kcal_mol": -6.527,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-16",
-      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
-      "score_kcal_mol": -5.678,
+      "smiles": "Cc1c(C(=N)NO)c(O)nc(=O)n1C",
+      "score_kcal_mol": -6.508,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-17",
-      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
-      "score_kcal_mol": -5.603,
+      "smiles": "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O",
+      "score_kcal_mol": -6.508,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-18",
-      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
-      "score_kcal_mol": -5.599,
+      "smiles": "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1",
+      "score_kcal_mol": -6.505,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-19",
-      "smiles": "NN1NC(=O)c2[nH]cnc2N1",
-      "score_kcal_mol": -5.567,
+      "smiles": "NNCC(=O)Nc1nc2ccccc2s1",
+      "score_kcal_mol": -6.498,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
     },
     {
       "id": "INH-20",
-      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
-      "score_kcal_mol": -5.56,
+      "smiles": "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1",
+      "score_kcal_mol": -6.482,
       "receptor": "9P3I",
       "order_priority": "MEDIUM",
       "compute_role": "docking_hit_in_silico"
@@ -1677,123 +1677,123 @@
   ],
   "inhibitor_docking_hits": [
     {
+      "compound": "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)",
+      "smiles": "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21",
+      "score_kcal_mol": -6.952,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O",
+      "smiles": "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O",
+      "score_kcal_mol": -6.878,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1",
+      "smiles": "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1",
+      "score_kcal_mol": -6.855,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2",
+      "smiles": "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1",
+      "score_kcal_mol": -6.762,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2",
+      "smiles": "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2",
+      "score_kcal_mol": -6.754,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O",
+      "smiles": "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O",
+      "score_kcal_mol": -6.735,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1",
+      "smiles": "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1",
+      "score_kcal_mol": -6.72,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O",
+      "smiles": "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O",
+      "score_kcal_mol": -6.691,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2",
+      "smiles": "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2",
+      "score_kcal_mol": -6.675,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1",
+      "smiles": "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C",
+      "score_kcal_mol": -6.642,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH",
+      "smiles": "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1",
+      "score_kcal_mol": -6.636,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C",
+      "smiles": "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12",
+      "score_kcal_mol": -6.615,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O",
+      "smiles": "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O",
+      "score_kcal_mol": -6.6,
+      "receptor": "9P3I"
+    },
+    {
+      "compound": "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]1",
+      "smiles": "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O",
+      "score_kcal_mol": -6.548,
+      "receptor": "9P3I"
+    },
+    {
       "compound": "N=C(N)NC(=O)NC(=O)NC(=N)N",
       "smiles": "N=C(N)NC(=O)NC(=O)NC(=N)N",
       "score_kcal_mol": -6.527,
       "receptor": "9P3I"
     },
     {
-      "compound": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
-      "smiles": "Nc1nc(=O)c2c([nH]1)N[C@H](O)C=N2",
-      "score_kcal_mol": -6.275,
+      "compound": "Cc1c(C(=N)NO)c(O)nc(=O)n1C",
+      "smiles": "Cc1c(C(=N)NO)c(O)nc(=O)n1C",
+      "score_kcal_mol": -6.508,
       "receptor": "9P3I"
     },
     {
-      "compound": "N=C(N)NC(=O)c1nccnc1N",
-      "smiles": "N=C(N)NC(=O)c1nccnc1N",
-      "score_kcal_mol": -6.267,
+      "compound": "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O",
+      "smiles": "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O",
+      "score_kcal_mol": -6.508,
       "receptor": "9P3I"
     },
     {
-      "compound": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "score_kcal_mol": -6.099,
+      "compound": "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1",
+      "smiles": "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1",
+      "score_kcal_mol": -6.505,
       "receptor": "9P3I"
     },
     {
-      "compound": "N=C(N)NC(=O)NC(=N)N",
-      "smiles": "N=C(N)NC(=O)NC(=N)N",
-      "score_kcal_mol": -6.065,
+      "compound": "NNCC(=O)Nc1nc2ccccc2s1",
+      "smiles": "NNCC(=O)Nc1nc2ccccc2s1",
+      "score_kcal_mol": -6.498,
       "receptor": "9P3I"
     },
     {
-      "compound": "O=C1Nc2c[nH]c(=O)nc2N[C@H]1O",
-      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@H]1O",
-      "score_kcal_mol": -6.014,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "C[C@@H](O)[C@@H]1NC(=O)[C@@H]2CCCN2C1=O",
-      "smiles": "C[C@@H](O)[C@@H]1NC(=O)[C@@H]2CCCN2C1=O",
-      "score_kcal_mol": -5.933,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "smiles": "C[C@@H]1CN[C@@H]2NC(N)=NC(=O)[C@@H]2N1",
-      "score_kcal_mol": -5.912,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "CC(=O)NC1=NN(C)C(=O)C1(O)O",
-      "smiles": "CC(=O)NC1=NN(C)C(=O)C1(O)O",
-      "score_kcal_mol": -5.902,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "CNC1=NC(N)=C2NCCN=C2N1",
-      "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
-      "score_kcal_mol": -5.881,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "NC1=NC(=O)C2=N[C@H](O)CNC2=N1",
-      "smiles": "NC1=NC(=O)C2=N[C@H](O)CNC2=N1",
-      "score_kcal_mol": -5.831,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O",
-      "smiles": "O=C1Nc2c[nH]c(=O)nc2N[C@@H]1O",
-      "score_kcal_mol": -5.825,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "Nc1nc(=O)[nH]c2[nH]c(=O)cnc12",
-      "smiles": "Nc1nc(=O)[nH]c2[nH]c(=O)cnc12",
-      "score_kcal_mol": -5.759,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1",
-      "smiles": "C[C@@H]1CN[C@H]2NC(N)=NC(=O)[C@H]2N1",
-      "score_kcal_mol": -5.731,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "NC(=O)NC(=O)NC(=O)C(N)=O",
-      "smiles": "NC(=O)NC(=O)NC(=O)C(N)=O",
-      "score_kcal_mol": -5.697,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
-      "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
-      "score_kcal_mol": -5.678,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[",
-      "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
-      "score_kcal_mol": -5.603,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
-      "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
-      "score_kcal_mol": -5.599,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "NN1NC(=O)c2[nH]cnc2N1",
-      "smiles": "NN1NC(=O)c2[nH]cnc2N1",
-      "score_kcal_mol": -5.567,
-      "receptor": "9P3I"
-    },
-    {
-      "compound": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
-      "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
-      "score_kcal_mol": -5.56,
+      "compound": "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1",
+      "smiles": "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1",
+      "score_kcal_mol": -6.482,
       "receptor": "9P3I"
     }
   ]

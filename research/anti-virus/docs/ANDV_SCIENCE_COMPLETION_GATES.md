@@ -2,7 +2,7 @@
 
 **Bar:** Each track must pass **in silico** science gates before manuscript claims. BioMate scope is **compute only** — no wet-lab work.
 
-Last updated: 2026-06-05
+Last updated: 2026-06-07
 
 ---
 
@@ -50,8 +50,12 @@ Last updated: 2026-06-05
 | ZINC600 full screen | **DONE** | **600/600** merged; top hit **−6.527** kcal/mol |
 | Z600-R1 pose QC (GROMACS) | **DONE** | Ligand RMSD **0.26 nm** PASS; **INH-01** remains compute lead |
 | Ensemble ZINC600 top-5 | **DONE** | `20260605T025716Z` reconciled; **4/5** improved vs rigid (Δ ≤ 0.14 kcal/mol; **INH-01** unchanged) |
-| Pharmacophore-filtered ZINC library | **DONE** | **91/600** pass; **91/91** Vina on 9P3I (`zinc600_pharmacophore/vina/`) |
-| MM-GBSA recalibration (longer MD / protonation) | **NOT DONE** | Required to use MM-GBSA for ranking |
+| Publication ZINC HTS (5k dock) | **DONE** | best **−6.952**; INH-01 **#79** |
+| Publication top-20 purchasability | **DONE** | `PUBLICATION_ZINC_TOP20_PURCHASABILITY.md` |
+| INH-01 generative Vina | **DONE** | best **−7.004** vs pub **−6.952** (Vina only) |
+| Ensemble pub top-20 + gen top-5 | **DONE** | `20260607T000744Z` **10/20** improved (best **−7.562** 9P3Y); gen **2/5** improved, best gen rigid **−7.004** → ensemble **−6.969** |
+| Post-HTS QC report | **DONE** | `post_hts_qc/POST_HTS_QC_REPORT.md` |
+| Publication inhibitor shortlist refresh | **DONE** | `wet_lab_package/INHIBITOR_COMPOUND_SHORTLIST.md` (pub tier; INH-01 MD lead) |
 
 **Verdict:** Methods demonstration only. **INH-01** is the defensible Vina + pose-QC lead; **do not** rank series by MM-GBSA until protocol passes. See `inhibitor_science_qc/INHIBITOR_SCIENCE_QC.md`.
 
@@ -68,9 +72,8 @@ Last updated: 2026-06-05
 ## Commands (regenerate science artifacts)
 
 ```bash
-python3 research/anti-virus/scripts/analyze_plan_a_mhc_consensus.py
-python3 research/anti-virus/scripts/build_plan_a_science_tiers.py
-python3 research/anti-virus/scripts/analyze_plan_a_proteasomal_processing.py
+python3 research/anti-virus/scripts/analyze_plan_a_population_coverage.py
+python3 research/anti-virus/scripts/crosscheck_plan_a_chile_iedb.py
 python3 research/anti-virus/scripts/assemble_wet_lab_candidates.py \
   --publication-run research/anti-virus/runs/publication_20260528T223525Z
 python3 research/anti-virus/scripts/reconcile_ensemble_docking.py \

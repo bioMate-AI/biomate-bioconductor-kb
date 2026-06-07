@@ -1,6 +1,6 @@
 # Plan A — IEDB population coverage cross-check
 
-Generated: 2026-06-04T18:43:28.415107+00:00
+Generated: 2026-06-07T01:05:09.629595+00:00
 
 ## Local recomputation (Bui et al. / IEDB method)
 

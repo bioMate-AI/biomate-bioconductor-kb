@@ -1,0 +1,89 @@
+{
+  "results": [
+    {
+      "smiles": "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N",
+      "best_affinity_kcal_mol": -7.004,
+      "all_affinities": [
+        -7.004,
+        -5.96,
+        -5.908,
+        -5.902,
+        -5.849,
+        -5.795,
+        -5.778,
+        -5.311,
+        -5.002
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_030.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N",
+      "best_affinity_kcal_mol": -6.772,
+      "all_affinities": [
+        -6.772,
+        -6.317,
+        -6.107,
+        -6.009,
+        -5.782,
+        -5.635,
+        -5.333,
+        -5.06,
+        -4.968
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_000.pdbqt"
+    },
+    {
+      "smiles": "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1",
+      "best_affinity_kcal_mol": -6.388,
+      "all_affinities": [
+        -6.388,
+        -5.752,
+        -5.618,
+        -5.522,
+        -5.502,
+        -5.348,
+        -5.326,
+        -5.205,
+        -5.083
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_038.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N",
+      "best_affinity_kcal_mol": -6.22,
+      "all_affinities": [
+        -6.22,
+        -6.154,
+        -5.802,
+        -5.682,
+        -5.675,
+        -5.666,
+        -5.63,
+        -5.612,
+        -5.572
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_007.pdbqt"
+    },
+    {
+      "smiles": "NC(=O)NC(=O)Nc1ncc(Cl)nc1N",
+      "best_affinity_kcal_mol": -6.156,
+      "all_affinities": [
+        -6.156,
+        -5.781,
+        -5.727,
+        -5.618,
+        -5.47,
+        -5.397,
+        -5.204,
+        -5.203,
+        -4.132
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_036.pdbqt"
+    }
+  ]
+}

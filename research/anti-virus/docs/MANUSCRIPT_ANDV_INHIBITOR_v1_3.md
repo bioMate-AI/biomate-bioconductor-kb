@@ -2,7 +2,7 @@
 
 **Manuscript version 1.3** (publication-tier HTS deck; supersedes v1.2)  
 **Campaign:** `publication_20260528T223525Z` + pipeline `andv_nf_pipeline_20260513T032000Z`  
-**Date:** 2026-06-05
+**Date:** 2026-06-07
 
 ---
 
@@ -62,6 +62,14 @@ First **600** compounds of tranche **AAAC** only—polar/fragment-like subset (m
 
 Full 9P3I tetramer + ligand via `gromacs_protein_md` (500k steps × 2 fs, CPU Batch). MM-GBSA via embedded Nextflow `MM_GBSA` on ECR `ambertools-gromacs-nf:1.2.0` (Protein/LIG index groups, frames 10–100, interval 5; GB igb=2). ~1 ns effective sampling per complex.
 
+### INH-01 generative analogue lane (parallel)
+
+Local medchem enumeration from INH-01 (`build_inh01_analogue_library.py` → 1,468 SMILES; `filter_inh01_analogues.py` → 50 retained; Vina on 9P3I). AWS Batch `reinvent4_lead_design` failed (Nextflow compile); archived pipeline step uses RDKit BRICS stub (`rdkit_brics_generation`) with zero retained. **Do not label this lane REINVENT4** in primary claims.
+
+### Post-HTS ensemble QC
+
+Six receptor conformers (9P3I, 9P3L, 9P3M, 9P3X, 9P3Y, top-pocket fragment) on publication rigid top-20 and generative top-5 (`run_post_hts_qc.py`; runs `20260607T000744Z`, `20260607T002113Z`). Improvement threshold: lower (more negative) ensemble best vs rigid 9P3I baseline.
+
 ---
 
 ## Results
@@ -72,11 +80,19 @@ Rigid Vina: aspirin −4.92, paracetamol −4.64, phenol −3.65 kcal/mol. Ensem
 
 ### Publication ZINC screen (primary HTS)
 
-**Funnel:** 42,128 raw → 28,722 drug-like → 12,215 pharmacophore pass → **5,006 docked** (see `publication_zinc/BUILD_REPORT.md`). Summary after Vina: `publication_zinc/vina/PUBLICATION_ZINC_DOCK_SUMMARY.md` (regenerate via `summarize_publication_zinc_docking.py`).
+**Funnel:** 42,128 raw → 28,722 drug-like → 12,215 pharmacophore pass → **5,006 docked** (see `publication_zinc/BUILD_REPORT.md`).
 
-*[Insert final top-20 table, best score, INH-01 rank, and control panel after 5,006/5,006 docking completes.]*
+**Results (complete):** **4,971/5,006** scored; best rigid Vina **−6.952 kcal/mol** (ZINC239377869, BBAA). Injected controls: Z600-R1 **#15** (−6.527), umifenovir **#39** (−6.362). **INH-01 rank #79** (−6.208) — MD-validated compute lead remains independent of rigid rank. Summary: `publication_zinc/vina/PUBLICATION_ZINC_DOCK_SUMMARY.md`.
 
-**Preliminary read (partial dock):** Controls Z600-R1 and umifenovir appear among early top ranks; INH-01 remains the MD-validated compute lead independent of rigid Vina rank.
+Top hits are drug-like BBAA/BCAC chemotypes (MW ~220–250, QED 0.45–0.82), not polar AAAC fragments — validating the multi-tranche design vs blog-tier 600.
+
+### Post-HTS ensemble rescoring (publication top-20)
+
+**10/20** compounds improved vs rigid 9P3I baseline. Strongest ensemble prediction: **−7.562 kcal/mol** (ZINC828873353, 9P3Y) vs rigid −6.615 at rank 12. Rigid rank-1 (ZINC239377869, −6.952) **worsened** to −6.759 on ensemble — demonstrating that rigid HTS ordering is not preserved under conformational sampling. Purchasability mapped for top-20 (`PUBLICATION_ZINC_TOP20_PURCHASABILITY.md`).
+
+### INH-01 generative analogues
+
+Fifty filtered INH-01 analogues docked; best rigid **−7.004 kcal/mol** (`NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N`) vs publication best rigid −6.952. Ensemble on generative top-5: **2/5** improved; best generative ensemble **−6.969 kcal/mol** (9P3I) — **worse than rigid generative best** and below publication ensemble leader (−7.562). **Rigid-only “generative beats HTS” is not defensible after ensemble rescoring.** No MD or pose QC on generative hits.
 
 ### ZINC600 methods pilot (supplementary)
 
@@ -105,15 +121,15 @@ INH-01 mean protein backbone RMSD **0.407 nm** over 101 frames supports a plausi
 
 The central intellectual contribution is that **rigid-receptor docking underestimates affinity** for this conformationally plastic GP assembly (ensemble Δ ~1.3 kcal/mol on the demo triad). The **publication multi-tranche deck** provides defensible HTS scale and target-informed filtering; the AAAC-600 pilot illustrates why **library tiering** matters (polar fragments dominate ad hoc tranche slices).
 
-The MM-GBSA panel exposes **scoring and sampling limits**: aspirin and INH-03 anomalies indicate miscalibrated rescoring or incorrect poses. INH-01 remains the only compound warranting **SPR or thermal shift** before synthesis. After publication Vina completes: ensemble sensitivity on publication top-20 and purchasability lookup before wet-lab shortlist revision.
+Post-HTS ensemble QC shows **heterogeneous** rescoring: half of publication top-20 improve, but rigid #1 does not survive as ensemble leader. Generative enumeration found a rigid outlier (−7.004) that **reverses** under ensemble — reinforcing that single-conformer Vina is insufficient for lead promotion.
 
-Generative zero-retained outcome and pharmacophore-chain audit history (`20260512T181054Z`) reinforce that pipeline transparency matters as much as headline scores.
+The MM-GBSA panel exposes **scoring and sampling limits**: aspirin and INH-03 anomalies indicate miscalibrated rescoring or incorrect poses. INH-01 remains the only compound warranting **SPR or thermal shift** before synthesis. Publication ZINC top hits and ensemble-rescored chemotypes (e.g. ZINC828873353) require pose QC before wet-lab ordering.
 
 ---
 
 ## Conclusions
 
-We integrated pocket detection through MM-GBSA on an ANDV GP structural model with reproducible manifests and **tiered ZINC provenance** (blog 600 vs publication 5k). Ensemble docking improves demo scores; publication HTS and ZINC150 triage identify INH-01 as the best combined Vina + MD candidate. MM-GBSA does **not** validate a lead series until control failures are resolved. The defensible narrative is a **computational triage funnel** with mandatory biophysical follow-up—not drug discovery success.
+We integrated pocket detection through MM-GBSA on an ANDV GP structural model with reproducible manifests and **tiered ZINC provenance** (blog 600 vs publication 5k). Ensemble docking improves demo scores and **10/20** publication top hits; publication HTS identifies purchasable BBAA/BCAC chemotypes while INH-01 remains the best combined Vina + MD candidate. Generative rigid scores exceed HTS but **do not hold** under ensemble rescoring. MM-GBSA does **not** validate a lead series until control failures are resolved. The defensible narrative is a **computational triage funnel** with mandatory biophysical follow-up—not drug discovery success.
 
 ---
 
@@ -126,7 +142,8 @@ Regenerate: `python3 research/anti-virus/scripts/generate_manuscript_inhibitor_f
 | Fig B1–B6 | Pocket, funnel, demo docking, generative, 2D ligands, ensemble (v1.0 set) |
 | **Fig B7** | ZINC150 Vina vs MM-GBSA panel — aspirin control failure |
 | **Fig B8** | Pose QC — protein backbone RMSD vs MM-GBSA per hit |
-| **Fig B9** *(planned)* | Publication ZINC funnel + top-20 Vina distribution |
+| **Fig B9** | Publication ZINC funnel + top-20 Vina distribution |
+| **Fig B10** *(planned)* | Ensemble vs rigid — publication top-20 + generative top-5 |
 
 ---
 
@@ -139,6 +156,8 @@ Regenerate: `python3 research/anti-virus/scripts/generate_manuscript_inhibitor_f
 | ZINC600 methods pilot | `runs/publication_20260528T223525Z/zinc600_screen/` |
 | ZINC150 Vina | `runs/publication_20260528T223525Z/zinc150_screen/vina/` |
 | MD + MM-GBSA mirrors | `05_gromacs_mmgbsa_inh01` … `inh05`, `05_gromacs_mmgbsa_aspirin` |
+| Post-HTS QC | `runs/publication_20260528T223525Z/post_hts_qc/` |
+| Generative INH-01 lane | `runs/publication_20260528T223525Z/reinvent_inh01/` |
 | Wet-lab shortlist | `wet_lab_package/INHIBITOR_COMPOUND_SHORTLIST.md` |
 | Library design | `docs/PUBLICATION_ZINC_LIBRARY_DESIGN.md` |
 | Audit (non-primary) | `runs/andv_nf_pipeline_20260512T181054Z/AUDIT.md` |
