@@ -92,3 +92,17 @@ Same checklist as `20260518_BILLING_TRIAL_CONFIGURATION_HANDOFF.md` §"Configura
 - The code identifier is **`professional`**, not `premium`. Don't rename — the schema, Java mapping, and prior tests all depend on the legacy name.
 - The user-facing label is **"Premium"**. The register page already says "Start your 14-day Premium trial".
 - Quota source of truth is `DEFAULT_PLAN_LIMITS` in `quota_enforcer.py`. The frontend `TIER_QUOTA_USD` is informational only.
+
+## Known inconsistency (flagged for follow-up, not yet fixed)
+
+`frontend/shared/schema.ts:17` declares the `users.trial_ends_at` column
+with a Postgres-level default of `NOW() + INTERVAL '7 days'`. The actual
+registration path in `frontend/server/auth-service.ts:126` overrides this
+to **14 days** (`trialDays = resolvedCode?.trialDays ?? 14`), so every
+real registration produces the correct 14-day trial.
+
+The mismatch only bites if a row is ever inserted via the column default
+(e.g., a backfill script, a test fixture, or a future API route that
+forgets to set `trialEndsAt`). To prevent silent 7-day trials from
+leaking in, change the schema default to `INTERVAL '14 days'` and add a
+migration. Tracked as a small code task — not blocking trial launch.
