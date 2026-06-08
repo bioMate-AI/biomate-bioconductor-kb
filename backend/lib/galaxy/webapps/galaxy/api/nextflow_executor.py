@@ -1647,7 +1647,27 @@ def _generate_executor_config(
             "/opt/conda/lib:/opt/conda/x86_64-conda-linux-gnu/lib:"
             "/usr/local/lib"
         )
-        lines.append(f"    containerOptions = '-e LD_LIBRARY_PATH={_ld_aws_host}'")
+        # For nf-core paths: nf-core uses minimal biocontainers without libz,
+        # and the host-mounted /opt/aws-cli/bin/aws is dynamically linked
+        # against libz on the AMI side. Single-file mount of libz into the
+        # container side-steps the bigger glibc-symbol-mismatch risk of
+        # mounting all of /usr/lib. Pairs with the Batch AMI fix in
+        # docs/20260607_BATCH_AMI_AWSCLI_NOT_SELF_CONTAINED.md (the true
+        # fix is rebuilding the AMI with a self-contained aws-cli; this
+        # is the temporary workaround so nf-core test runs work today).
+        if "/nf-core-workflows/" in nf_path:
+            # AL2023 Batch host is RHEL-family: libs live in /usr/lib64.
+            # Mount into BOTH /lib/x86_64-linux-gnu/ AND /usr/lib64/ inside
+            # the container so glibc-style and RHEL-style search paths both
+            # resolve libz.so.1.
+            _container_opts = (
+                "-v /usr/lib64/libz.so.1:/usr/lib/x86_64-linux-gnu/libz.so.1:ro "
+                "-v /usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro "
+                f"-e LD_LIBRARY_PATH={_ld_aws_host}"
+            )
+        else:
+            _container_opts = f"-e LD_LIBRARY_PATH={_ld_aws_host}"
+        lines.append(f"    containerOptions = '{_container_opts}'")
         lines.append("}")
         # Per-label GPU queue routing: processes labeled 'process_gpu' go to the GPU queue.
         # Avoids a single monolithic queue for all workflows.
@@ -1731,6 +1751,27 @@ def _generate_executor_config(
             # volumes needed — adding volumes=['/opt/aws-cli'] would duplicate the mount
             # and cause "containerPath values aren't unique across mountPoints" on AWS Batch.
             "        cliPath = '/opt/aws-cli/bin/aws'",
+            # For nf-core: their task containers are minimal biocontainers
+            # (perl, gtf2bed, etc.) lacking libz/libcrypto/libssl. The Batch
+            # AMI's /opt/aws-cli/bin/aws is dynamically linked against
+            # system libs at /usr/lib64. Mount /usr/lib64 read-only into the
+            # container so the dynamic loader finds them via the existing
+            # LD_LIBRARY_PATH (/lib64:/usr/lib64).
+            # NB: Batch ignores `-v` flags in containerOptions; only the
+            # `volumes` directive (which translates to Batch mountPoints)
+            # has effect. See AWS Batch ContainerProperties docs.
+            #
+            # Mount ONLY the specific libz file — mounting all of /usr/lib64
+            # caused glibc symbol mismatches (host libtinfo built against
+            # GLIBC_2.33+ overrode container's older libc). Verified 2026-06-08
+            # on nfcore/chipseq: with libz-only mount, GTF2BED passes (libz
+            # error gone) and the run moves to next process. With full
+            # /usr/lib64 mount, /bin/sh itself fails on tinfo glibc.
+            *(
+                ["        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']"]
+                if is_nfcore
+                else []
+            ),
             "    }",
             "}",
             "docker.enabled = true",
