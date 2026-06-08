@@ -94,7 +94,7 @@ This is intentional — the goal is to give the open-source community the *knowl
 
 If you use this skill bundle in research, please cite:
 
-> BioMate-KB: A Structured, Executable Knowledge Base of Bioconductor Workflows Linking 15,641 Curated Analysis Steps to Galaxy and Nextflow Execution. (2026). bioRxiv. DOI: [pending]
+> BioMate-KB: A Structure-Validated, Executable Workflow Knowledge Base for Bioconductor. (2026). bioRxiv. DOI: [pending]
 
 (bioRxiv DOI will replace this stub once the preprint is published.)
 

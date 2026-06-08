@@ -27,9 +27,8 @@ repository-code: https://github.com/bioMate-AI/biomate-bioconductor-kb
 references:
   - type: article
     title: >-
-      BioMate-KB: A Structured, Executable Knowledge Base of Bioconductor
-      Workflows Linking 15,641 Curated Analysis Steps to Galaxy and Nextflow
-      Execution
+      BioMate-KB: A Structure-Validated, Executable Workflow Knowledge Base
+      for Bioconductor
     authors:
       - name: "BioMate Team"
     year: 2026
