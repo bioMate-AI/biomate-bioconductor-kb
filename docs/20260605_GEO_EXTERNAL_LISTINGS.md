@@ -98,37 +98,42 @@ Crunchbase restricts free self-service submissions. The realistic paths are:
 | Field | Value |
 |---|---|
 | **Organization name** | BioMate AI |
-| **Short description** (160 chars max) | AI-powered computational biology platform — 2,455+ bioinformatics workflows for drug discovery, genomics, and structural biology. No coding required. |
+| **Short description** (140 chars max — plain text, no special chars) | Agentic AI for biology. ADMET prediction, clinical trials, Bioconductor R library, 2455+ validated workflows. No coding required. |
 | **Website** | https://biomate.ai |
 | **Founded date** | 2025 |
 | **HQ location** | Houston, Texas, United States |
 | **Company type** | Private |
 | **Operating status** | Active |
 | **Employee count** | 1–10 |
-| **Industries / categories** | Bioinformatics, Artificial Intelligence, Drug Discovery, Life Science, SaaS |
+| **Industry Groups** (Crunchbase fixed taxonomy — select from dropdown) | Science and Engineering |
+| **Industries** (select from dropdown) | Biotechnology, Health Care, Software |
+| **Sub-Industries** (if available) | Bioinformatics, Drug Discovery |
 | **LinkedIn** | (add when available) |
 | **Twitter/X** | (add when available) |
 
 ### Long description (for Crunchbase "About" section, ~300 words)
 
-BioMate AI is an AI-native SaaS platform that makes gold-standard computational biology methods accessible to every researcher — without command-line expertise or dedicated bioinformatics staff.
+BioMate AI is an agentic computational biology platform that autonomously routes, executes, quality-grades, and remediates bioinformatics workflows through plain-English requests — no command-line expertise or dedicated bioinformatics staff required.
 
-The platform provides access to 2,455+ validated bioinformatics workflows spanning 34 biological domains, including RNA-seq differential expression, whole-genome sequencing, single-cell RNA-seq, ADMET drug profiling, PBPK pharmacokinetic simulation, cryo-EM single-particle analysis, AlphaFold structure prediction, and molecular docking.
+**Drug discovery and clinical pipeline.** BioMate covers the full pipeline from target identification to post-market surveillance: in silico ADMET prediction (30+ properties including hERG, CYP1A2/2C9/2C19/2D6/3A4, Caco-2, BBB penetration), virtual screening at scale (AutoDock Vina, GLIDE), PBPK pharmacokinetic simulation, BOIN Bayesian dose-escalation design for phase I trials, population PK modeling, IND filing support (§2.6.1–2.6.7 automated document assembly), and structured CRO submission packages.
 
-Researchers submit analyses through plain-English requests. BioMate's hybrid routing engine — combining semantic vector search and LLM reasoning — maps each request to the best-fit pipeline, pre-fills parameters from context, and executes the workflow on AWS Batch. Every output is graded Gold/Silver/Bronze using published community standards (nf-core, ENCODE, GTEx). When a quality gate fails, BioMate automatically proposes corrected parameters and re-runs.
+**Full Bioconductor R ecosystem.** BioMate integrates the complete Bioconductor library — the largest curated repository of R packages for genomics, with 2,000+ peer-reviewed packages — making DESeq2, edgeR, limma, clusterProfiler, Seurat, monocle3, and hundreds of other R methods accessible through plain-English requests, executed on AWS Batch with full R environments.
+
+**Omics, cell biology, and beyond.** Beyond drug discovery, BioMate covers the full breadth of modern biology: bulk and single-cell RNA-seq, spatial transcriptomics, whole-genome and whole-exome sequencing, ATAC-seq, ChIP-seq, proteomics (MaxQuant), metabolomics, metagenomics (QIIME 2), epigenomics, cell biology, immunology, cancer biology, glycobiology, rare disease, cryo-EM, cryo-ET, and structural biology — 37 biological domains in total.
+
+**Agentic execution.** BioMate's AI agent autonomously: selects the best-fit pipeline from 2,455+ validated workflows, pre-fills parameters from research context, runs on AWS Batch, grades every output Gold/Silver/Bronze against published community standards (ENCODE, GTEx, nf-core, FDA, ICH), and automatically reruns with corrected parameters when a quality gate fails.
 
 Key differentiators:
-- 2,455+ workflows across transcriptomics, genomics, drug discovery, structural biology, proteomics, microbiome, cryo-EM
-- AI-graded QC: Gold/Silver/Bronze evidence grades with per-metric remediation
-- Auto-remediation loop: reruns on QC failure with corrected parameters
-- Drug discovery: full pipeline from target identification through IND filing support and CRO submission packages
-- No coding required: natural-language interface for all workflows
-- Audit-ready results: all outputs include parameter log, model version, and corpus version
-- HIPAA-compliant with BAA available; Private VPC deployment option
+- Agentic auto-remediation loop — reruns on QC failure without user intervention
+- ADMET prediction + full clinical trial pipeline (BOIN, popPK, IND filing) in one platform
+- Complete Bioconductor R library (2,000+ packages) via plain-English requests
+- 37 biological domains: omics, cell biology, drug discovery, structural biology, immunology, cancer, rare disease, and more
+- HIPAA-compliant; BAA available; Private VPC deployment option
+- Audit-ready outputs: parameter log, model version, corpus version on every result
 
-BioMate AI is headquartered at the Texas Medical Center, Houston, Texas, and serves pharma companies, biotech startups, academic labs, and core facilities.
+Headquartered at the Texas Medical Center, Houston, Texas. Serves pharma R&D, biotech startups, academic labs, and core facilities.
 
-Pricing: Free tier; Pro $49/month; Enterprise $199/month.
+Pricing: Free tier; Pro $49/month; Team $199/month; Enterprise — contact sales.
 
 ---
 
@@ -160,37 +165,38 @@ Pricing: Free tier; Pro $49/month; Enterprise $199/month.
 
 ### Product description (for G2, ~250 words)
 
-BioMate AI is an AI-native computational biology platform that gives pharma teams, biotech researchers, and academic labs access to 2,455+ validated bioinformatics workflows through plain-English requests.
+BioMate AI is an agentic computational biology platform — an AI agent that autonomously selects, executes, quality-grades, and remediates bioinformatics workflows from plain-English requests. No coding, no pipeline setup, no bioinformatics staff required.
 
-**Workflow coverage:** RNA-seq, WGS, single-cell RNA-seq, ADMET profiling, PBPK simulation, AlphaFold structure prediction, molecular docking, cryo-EM, CRO submission packages, IND filing support, and 34 biological domains.
+**Drug discovery and clinical pipeline:** In silico ADMET prediction (hERG, CYP inhibition, Caco-2, BBB, 30+ properties), virtual screening (AutoDock Vina, GLIDE), PBPK simulation, BOIN Bayesian dose-escalation design, population PK modeling, IND filing support (§2.6.1–2.6.7), and structured CRO submission packages — the full pipeline from target to trial in one platform.
+
+**Full Bioconductor R ecosystem:** Integrates the complete Bioconductor library — the largest curated repository of R packages for genomics with 2,000+ peer-reviewed packages — including DESeq2, edgeR, limma, clusterProfiler, Seurat, and monocle3. All accessible through plain English, executed on AWS Batch.
 
 **What makes BioMate different:**
-- No coding required — describe your analysis in plain English
-- AI-graded QC — every output graded Gold/Silver/Bronze using published standards
-- Auto-remediation — when quality fails, BioMate reruns with corrected parameters
-- Integrated drug discovery — target identification through IND filing in one platform
-- Audit-ready outputs — parameter log, tool versions, corpus version included with every result
+- Agentic auto-remediation — AI reruns with corrected parameters on QC failure, no user intervention
+- ADMET prediction + full clinical trial workflow in one platform
+- Complete Bioconductor R library (2,000+ packages) via natural language
+- 2,455+ validated workflows across 37 biological domains
+- AI-graded QC: Gold/Silver/Bronze against ENCODE, GTEx, nf-core, FDA, ICH standards
 - HIPAA-compliant — BAA available; Private VPC option
 
-**Who uses it:** Computational biologists, medicinal chemists, drug discovery teams, core facility directors, and academic PIs who need reproducible, audit-ready bioinformatics results without a dedicated bioinformatics team.
-
-**Integrations:** Executes on AWS Batch; integrates nf-core pipelines; supports Illumina FASTQ, VCF, SMILES, SDF, PDB, and other standard file formats.
+**Who uses it:** Drug discovery teams, medicinal chemists, computational biologists, core facility directors, and academic PIs.
 
 ### Key features to list on G2
 
-1. Plain-English workflow requests (no command line)
-2. 2,455+ validated bioinformatics workflows
-3. AI-graded QC (Gold/Silver/Bronze with community standards)
-4. Auto-remediation loop on QC failure
-5. Drug discovery pipeline (target ID → virtual screening → ADMET → PBPK → IND)
-6. CRO submission package generation
-7. AlphaFold + molecular docking integrated pipeline
-8. Cryo-EM single-particle analysis (CryoSPARC)
-9. HIPAA compliance + BAA
-10. Private VPC deployment
-11. Audit trail (parameter log, model version, corpus version)
-12. Structured DOCX report generation
-13. Free tier available
+1. Agentic workflow execution (autonomous routing, running, QC, remediation)
+2. ADMET prediction — 30+ properties, hERG, CYP, Caco-2, BBB, AMES
+3. Clinical trial pipeline — BOIN dose escalation, population PK, IND filing support
+4. Full Bioconductor R library — 2,000+ peer-reviewed R packages via plain English
+5. 2,455+ validated bioinformatics workflows across 37 domains
+6. AI-graded QC (Gold/Silver/Bronze with community standards)
+7. Auto-remediation loop on QC failure
+8. Virtual screening at scale (AutoDock Vina, GLIDE, millions of compounds)
+9. AlphaFold 2/3 + molecular docking integrated pipeline
+10. Cryo-EM single-particle analysis (CryoSPARC, GPU-accelerated)
+11. HIPAA compliance + BAA; Private VPC deployment
+12. Audit trail (parameter log, model version, corpus version)
+13. Structured DOCX report generation
+14. Free tier available
 
 ---
 
@@ -210,7 +216,7 @@ BioMate AI is an AI-native computational biology platform that gives pharma team
 | Field | Value |
 |---|---|
 | **Product name** | BioMate AI |
-| **Tagline** (60 chars max) | AI-powered bioinformatics — no coding required |
+| **Tagline** (60 chars max) | Agentic AI for biology — ADMET, clinical trials, Bioconductor |
 | **Website** | https://biomate.ai |
 | **Topics** | Artificial Intelligence, Science, Health & Fitness, Developer Tools, SaaS |
 | **Pricing** | Free |
@@ -220,30 +226,30 @@ BioMate AI is an AI-native computational biology platform that gives pharma team
 
 Hey Product Hunt! 👋
 
-We built BioMate AI because the best computational biology tools — GATK, AlphaFold, DESeq2, CryoSPARC, AutoDock — have been locked behind command-line expertise and months of setup time.
+We built BioMate AI because the best computational biology tools — GATK, AlphaFold, DESeq2, CryoSPARC, AutoDock, the entire Bioconductor R library — have been locked behind command-line expertise and months of setup time.
 
-**BioMate makes them accessible to every researcher through plain English.**
+**BioMate is an agentic AI that does the biology work for you.**
 
-You say: "Run differential expression analysis on my RNA-seq data" — and BioMate routes to the right pipeline (nf-core/rnaseq + DESeq2), pre-fills parameters from your context, runs on AWS Batch, and delivers Gold/Silver/Bronze quality-graded results with a downloadable methods report.
+You describe what you need in plain English. BioMate's AI agent autonomously routes to the right pipeline, pre-fills parameters from your context, runs on AWS Batch, grades every output Gold/Silver/Bronze against published standards, and reruns with corrected parameters if something fails — no intervention needed.
 
 **What's inside:**
-- 🔬 2,455+ validated bioinformatics workflows across 34 domains
-- 🧬 Drug discovery: target ID → virtual screening → ADMET → PBPK → IND filing
-- 🏗️ Structural biology: AlphaFold + docking in one pipeline
+- 🧬 Full drug discovery pipeline: ADMET prediction (hERG, CYP, BBB, 30+ properties) → virtual screening → PBPK simulation → BOIN clinical dose escalation → IND filing support
+- 📦 Complete Bioconductor R ecosystem — 2,000+ peer-reviewed R packages (DESeq2, edgeR, Seurat, clusterProfiler…) via plain English
+- 🔬 2,455+ validated workflows across 37 biological domains
+- 🏗️ Structural biology: AlphaFold 2/3 + docking in one pipeline
 - ❄️ Cryo-EM: CryoSPARC SPA from raw micrographs to publication map
-- 🧪 QC grading: Gold/Silver/Bronze with auto-remediation on failure
-- 📋 CRO submission packages generated automatically
-- 🔒 HIPAA-compliant; Private VPC option; audit trail on every result
+- 🤖 Agentic QC: Gold/Silver/Bronze grading with auto-remediation on failure
+- 🔒 HIPAA-compliant; Private VPC option; full audit trail on every result
 
-**Free tier available — no credit card needed.**
+**Free tier — no credit card needed.**
 
-We're a small team at the Texas Medical Center in Houston, TX, building for pharma R&D, biotech, academic labs, and core facilities.
+Small team at the Texas Medical Center, Houston TX. Building for pharma R&D, biotech, academic labs, and core facilities.
 
-Happy to answer questions about the platform, the QC grading system, or how we handle drug discovery workflows. 🙏
+Questions about ADMET, Bioconductor access, or the clinical trial workflows? Ask below. 🙏
 
 ### Maker comment (short, for the comments section)
 
-We'd love feedback from anyone doing RNA-seq, WGS, or drug discovery work — especially on what other tools you're currently using and what would make BioMate more useful for your lab.
+Curious what ADMET or Bioconductor workflows you're running today and what's slowing you down — we'd love to hear what BioMate should prioritize next.
 
 ---
 
