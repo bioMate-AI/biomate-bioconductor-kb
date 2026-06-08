@@ -5052,42 +5052,68 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       .join('\n\n');
 
     try {
-      console.log('[GalaxyAssistant] Tool ranking API request:', {
-        model: this.modelConfig.toolRankingModel,
-        max_tokens: 2000,
-        tools_to_rank: tools.length
-      });
+      // Feature-flagged migration off Claude Haiku → YAML fallback chain
+      // (Gemini 3.1 Pro primary → 3.5 Flash → Claude → ...) to reduce
+      // Claude rate-limit pressure on chat. Default stays direct-Claude.
+      // Flip BIOMATE_CHAT_VIA_CHAIN=true to opt in.
+      const useChain = process.env.BIOMATE_CHAT_VIA_CHAIN === 'true';
+      const userPrompt = `User request: ${userMessage}\n\nAvailable tools:\n${toolCatalog}`;
       const rankStartTime = Date.now();
 
-      const completion = await this._withAnthropicRetry(
-        () => this.claude.messages.create({
+      let resultText: string;
+      if (useChain) {
+        console.log('[GalaxyAssistant] Tool ranking via chain (Gemini primary):', {
+          tools_to_rank: tools.length, max_tokens: 2000,
+        });
+        const { llmGenerate } = await import('./llm-client');
+        const r = await llmGenerate({
+          prompt: userPrompt,
+          system: systemPrompt,
+          maxTokens: 2000,
+          jsonMode: true,
+        });
+        resultText = r.text || '[]';
+        console.log('[GalaxyAssistant] Tool ranking via chain done:', {
+          model_used: r.modelUsed, fallback_depth: r.fallbackDepth,
+          time_ms: Date.now() - rankStartTime,
+        });
+      } else {
+        console.log('[GalaxyAssistant] Tool ranking API request (Claude direct):', {
           model: this.modelConfig.toolRankingModel,
           max_tokens: 2000,
-          system: [
-            {
-              type: 'text',
-              text: systemPrompt,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages: [
-            {
-              role: 'user',
-              content: `User request: ${userMessage}\n\nAvailable tools:\n${toolCatalog}`,
-            },
-          ],
-        }),
-        'tool-ranking',
-      );
+          tools_to_rank: tools.length
+        });
 
-      console.log('[GalaxyAssistant] Tool ranking API response:', {
-        model: this.modelConfig.toolRankingModel,
-        time_ms: Date.now() - rankStartTime,
-        usage: completion.usage
-      });
+        const completion = await this._withAnthropicRetry(
+          () => this.claude.messages.create({
+            model: this.modelConfig.toolRankingModel,
+            max_tokens: 2000,
+            system: [
+              {
+                type: 'text',
+                text: systemPrompt,
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+            messages: [
+              {
+                role: 'user',
+                content: userPrompt,
+              },
+            ],
+          }),
+          'tool-ranking',
+        );
 
-      const content = completion.content[0];
-      let resultText = content.type === 'text' ? content.text : '[]';
+        console.log('[GalaxyAssistant] Tool ranking API response:', {
+          model: this.modelConfig.toolRankingModel,
+          time_ms: Date.now() - rankStartTime,
+          usage: completion.usage
+        });
+
+        const content = completion.content[0];
+        resultText = content.type === 'text' ? content.text : '[]';
+      }
 
       // Clean JSON response from LLM
       resultText = resultText
