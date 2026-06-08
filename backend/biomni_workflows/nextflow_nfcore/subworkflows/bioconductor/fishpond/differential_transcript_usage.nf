@@ -1,0 +1,117 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: fishpond — differential_transcript_usage
+// Test for differential transcript usage (DTU) by analyzing isoform proportions per gene across conditions.
+// Input: coldata.csv, Salmon quantification directories
+// Container: quay.io/biocontainers/bioconductor-fishpond:2.16.0--r45hdfd78af_0
+// Requires: SummarizedExperiment, fishpond, tximeta
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Read sample metadata and import quantification data using tximeta. 2. Scale inferential replicates using scaleInfReps. 3. Filter o
+
+nextflow.enable.dsl = 2
+
+process BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+        
+        # Load required libraries
+        library(tximeta)
+        library(fishpond)
+        library(SummarizedExperiment)
+        
+        # 1. Read sample metadata
+        coldata <- read.csv("coldata.csv")
+        
+        # 2. Import quantification data using tximeta
+        y <- tximeta(coldata)
+        
+        # 3. Scale inferential replicates
+        y <- scaleInfReps(y)
+        
+        # 4. Filter out low-expression features
+        y <- labelKeep(y)
+        y <- y[mcols(y)\$keep,]
+        
+        # 5. Compute isoform proportions per gene
+        iso <- isoformProportions(y)
+        
+        # 6. Run differential testing on isoform proportions using swish
+        set.seed(1)
+        iso <- swish(iso, x="condition")
+        
+        # 7. Write outputs
+        # Save the full SummarizedExperiment object with results
+        saveRDS(iso, "dtu_isoform_proportions_results.rds")
+        
+        # Save the results table
+        results_df <- as.data.frame(mcols(iso))
+        write.csv(results_df, "dtu_swish_results.csv", row.names=TRUE)
+        
+        # Generate diagnostic plots
+        pdf("dtu_plots.pdf", width=8, height=6)
+        if ("pvalue" %in% colnames(results_df)) {
+          hist(results_df\$pvalue, col="grey", 
+               main="P-value Distribution (DTU Swish)", 
+               xlab="p-value", ylab="Frequency")
+        }
+        tryCatch({
+          plotMASwish(iso, alpha=0.05, main="MA Plot of Isoform Proportions")
+        }, error=function(e) {
+          warning("Could not generate MA plot: ", e\$message)
+        })
+        dev.off()
+
+    writeLines(c(
+        '"BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE":',
+        paste0('    fishpond: ', as.character(packageVersion('fishpond')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_differential_transcript_usage.csv versions.yml
+    """
+}
+
+workflow BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ coldata.csv, Salmon quantification directories ] ]
+
+    main:
+    BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE(ch_input)
+
+    emit:
+    tables   = BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE.out.tables
+    plots    = BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE.out.plots
+    objects  = BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE.out.objects
+    versions = BIOC_FISHPOND_DIFFERENTIAL_TRANSCRIPT_USAGE.out.versions
+}

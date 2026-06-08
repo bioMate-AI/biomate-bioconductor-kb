@@ -4017,6 +4017,43 @@ class ResumeRunRequest(BaseModel):
     parameters: Optional[Dict[str, Any]] = None  # forwarded to execute_nextflow
 
 
+def _steps_from_db_metadata(nextflow_path: str) -> Dict[str, Any]:
+    """Build viewer steps from the collected DB step_metadata (per-step phase /
+    visualizations / QC / outputs). Robust for non-main Bioconductor workflows whose
+    .nf parse comes up short or whose file isn't on this host."""
+    import sqlite3, json as _json, re as _re
+    from pathlib import Path as _Path
+    out: Dict[str, Any] = {}
+    try:
+        m = _re.search(r"/bioconductor/([^/]+)/([^/]+)\.nf$", nextflow_path)
+        if not m:
+            return out
+        db = _Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+        if not db.exists():
+            return out
+        conn = sqlite3.connect(str(db))
+        row = conn.execute(
+            "SELECT step_metadata FROM workflows WHERE source='bioconductor' "
+            "AND filename LIKE ? LIMIT 1", (f"%/{m.group(1)}/{m.group(2)}.nf",)).fetchone()
+        conn.close()
+        meta = _json.loads(row[0]) if row and row[0] else None
+        if not isinstance(meta, list):
+            return out
+        for i, s in enumerate(meta):
+            nm = (s.get("step") or f"Step {i + 1}").strip()
+            out[str(i)] = {
+                "id": str(i), "name": nm, "annotation": nm, "description": nm,
+                "tool_id": _re.sub(r"[^A-Za-z0-9]+", "_", nm).upper()[:48],
+                "type": "tool", "parameters": {}, "inputs": {},
+                "phase_group": s.get("phase", "") or "", "phase_label": s.get("phase", "") or "",
+                "visualizations": s.get("visualizations", []) or [],
+                "qc": s.get("qc", []) or [], "outputs": s.get("outputs", []) or [],
+            }
+    except Exception:
+        return {}
+    return out
+
+
 @router.get("/api/nextflow/steps", summary="Parse workflow phase steps from a .nf file")
 def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     """
@@ -4028,6 +4065,14 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     if not nextflow_path:
         raise HTTPException(status_code=400, detail="nextflow_path is required")
     steps = _parse_nextflow_steps(nextflow_path)
+    # Prefer the COLLECTED DB step_metadata for Bioconductor workflows: it is the curated,
+    # enriched source carrying per-step visualizations + QC (which the .nf parser does not
+    # emit), and it also covers non-main workflows whose .nf isn't on this host. Whenever the
+    # DB has step_metadata for this path it wins; the parser stays the fallback for everything
+    # else (nf-core / drug_discovery / non-indexed paths -> _steps_from_db_metadata returns {}).
+    db_steps = _steps_from_db_metadata(nextflow_path)
+    if db_steps:
+        steps = db_steps
     return {"steps": steps, "count": len(steps)}
 
 
