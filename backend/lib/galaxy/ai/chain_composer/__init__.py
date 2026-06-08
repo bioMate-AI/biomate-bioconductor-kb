@@ -19,6 +19,8 @@ from .pattern_loader import Pattern, load_patterns
 from .retrieval import retrieve_patterns, retrieve_curated_chains
 from .confidence import ConfidenceSignals, score_confidence, choose_surfacing_mode
 from .composer import compose_chain, ComposedChain
+from .ner import QueryEntities, extract_entities, extract_entities_offline
+from .llm_adapter import default_llm
 
 __all__ = [
     "Pattern",
@@ -30,4 +32,8 @@ __all__ = [
     "choose_surfacing_mode",
     "compose_chain",
     "ComposedChain",
+    "QueryEntities",
+    "extract_entities",
+    "extract_entities_offline",
+    "default_llm",
 ]

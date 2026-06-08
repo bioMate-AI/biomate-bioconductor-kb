@@ -1,20 +1,22 @@
 """Retrieval over patterns and curated chains.
 
-Prototype uses simple token-overlap scoring with light biological synonym
-expansion — no embedding model required to run. The interface matches what
-a future BGE-backed retriever would expose, so the swap is one-function-call
-away when we wire L2 into production.
+Uses BM25 (Okapi BM25, pure Python, no deps) with light biological-synonym
+expansion, plus an optional entity-overlap boost when query entities are
+provided. The interface matches what a future BGE-backed retriever would
+expose, so the swap is one-function-call away when we wire L2 into production.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import sqlite3
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .pattern_loader import Pattern, load_patterns
 
@@ -75,14 +77,91 @@ def _expand(tokens: Iterable[str]) -> set:
 
 
 def _overlap_score(query_tokens: set, doc_tokens: set) -> float:
-    """Jaccard-ish overlap, weighted by relative coverage of query tokens."""
+    """Jaccard-ish overlap, weighted by relative coverage of query tokens.
+
+    Kept for backward compat / unit tests. New scorers use BM25 below.
+    """
     if not query_tokens or not doc_tokens:
         return 0.0
     hit = len(query_tokens & doc_tokens)
     if hit == 0:
         return 0.0
-    # Coverage of the query — penalizes queries that share only stopwords.
     return hit / (len(query_tokens) ** 0.5)
+
+
+# Common English/biology stopwords. Keep tight — over-pruning kills recall.
+_STOPWORDS = frozenset({
+    "a", "an", "the", "of", "for", "and", "or", "to", "in", "on", "at",
+    "is", "are", "was", "were", "be", "with", "from", "by", "as", "this",
+    "that", "it", "do", "i", "we", "you", "want", "need", "would", "like",
+    "into", "via", "then", "next", "some", "any", "all", "my", "our",
+    "data", "analysis", "study", "samples",
+})
+
+
+def _tokenize_bm25(text: str) -> List[str]:
+    """Tokens for BM25 — same as _tokenize but stopword-filtered."""
+    return [t for t in _tokenize(text) if t not in _STOPWORDS]
+
+
+def _bm25_score(
+    query_terms: Sequence[str],
+    doc_terms: Sequence[str],
+    avgdl: float,
+    df: Dict[str, int],
+    n_docs: int,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> float:
+    """Okapi BM25. Standard parameters. Returns a non-negative score."""
+    if not query_terms or not doc_terms:
+        return 0.0
+    tf = Counter(doc_terms)
+    dl = len(doc_terms)
+    score = 0.0
+    for q in set(query_terms):
+        n_q = df.get(q, 0)
+        if n_q == 0:
+            continue
+        # idf with the +0.5 smoothing variant; max(0, ...) avoids negatives for very common terms.
+        idf = max(0.0, math.log((n_docs - n_q + 0.5) / (n_q + 0.5) + 1.0))
+        f = tf.get(q, 0)
+        if f == 0:
+            continue
+        denom = f + k1 * (1 - b + b * dl / max(avgdl, 1.0))
+        score += idf * (f * (k1 + 1.0)) / denom
+    return score
+
+
+@dataclass
+class _BM25Index:
+    """Pre-tokenized + expanded docs ready for BM25 scoring."""
+    docs: List[Tuple[str, List[str]]]  # (doc_id, terms)
+    df: Dict[str, int]
+    avgdl: float
+
+    @classmethod
+    def build(cls, docs: List[Tuple[str, str]]) -> "_BM25Index":
+        """Build index from `(doc_id, raw_text)` pairs."""
+        out_docs: List[Tuple[str, List[str]]] = []
+        df: Dict[str, int] = {}
+        total = 0
+        for did, text in docs:
+            terms = list(_expand(_tokenize_bm25(text)))
+            out_docs.append((did, terms))
+            total += len(terms)
+            for t in set(terms):
+                df[t] = df.get(t, 0) + 1
+        avgdl = total / max(len(out_docs), 1)
+        return cls(docs=out_docs, df=df, avgdl=avgdl)
+
+    def score_all(self, query_terms: List[str]) -> List[Tuple[str, float]]:
+        n = len(self.docs)
+        scored: List[Tuple[str, float]] = []
+        for did, dterms in self.docs:
+            s = _bm25_score(query_terms, dterms, self.avgdl, self.df, n)
+            scored.append((did, s))
+        return scored
 
 
 @dataclass
@@ -101,22 +180,45 @@ class ScoredChain:
     score: float
 
 
+def _entity_boost(doc_text: str, entity_terms: Sequence[str]) -> float:
+    """Each entity term found verbatim (lowercased substring) → +0.5 boost.
+    Bounded so entities can't dominate completely — keep retrieval grounded
+    in textual relevance.
+    """
+    if not entity_terms:
+        return 0.0
+    text = (doc_text or "").lower()
+    hits = sum(1 for e in entity_terms if e and e in text)
+    return min(3.0, 0.5 * hits)
+
+
 def retrieve_patterns(
     query: str,
     patterns: Optional[List[Pattern]] = None,
     top_k: int = 3,
+    entity_terms: Optional[Sequence[str]] = None,
 ) -> List[ScoredPattern]:
-    """Return up to top_k patterns most relevant to the query."""
+    """Return up to top_k patterns most relevant to the query.
+
+    Uses BM25 over the pattern's `name + when + pitfall` text. When
+    `entity_terms` (from NER) are provided, adds a small boost for verbatim
+    matches in the same text.
+    """
     patterns = patterns if patterns is not None else load_patterns()
     if not patterns:
         return []
-    q_tokens = _expand(_tokenize(query))
+
+    index = _BM25Index.build([(p.name, p.search_text()) for p in patterns])
+    q_terms = list(_expand(_tokenize_bm25(query)))
+    scored_raw = index.score_all(q_terms)
+    by_name = {p.name: p for p in patterns}
+
     scored: List[ScoredPattern] = []
-    for p in patterns:
-        d_tokens = _expand(_tokenize(p.search_text()))
-        s = _overlap_score(q_tokens, d_tokens)
-        if s > 0:
-            scored.append(ScoredPattern(pattern=p, score=s))
+    for name, base in scored_raw:
+        boost = _entity_boost(by_name[name].search_text(), entity_terms or [])
+        total = base + boost
+        if total > 0:
+            scored.append(ScoredPattern(pattern=by_name[name], score=total))
     scored.sort(key=lambda x: x.score, reverse=True)
     return scored[:top_k]
 
@@ -125,45 +227,65 @@ def retrieve_curated_chains(
     query: str,
     db_path: Optional[Path] = None,
     top_k: int = 3,
+    entity_terms: Optional[Sequence[str]] = None,
 ) -> List[ScoredChain]:
-    """Return top_k curated chains for similarity-as-exemplars purposes.
+    """Return top_k curated chains as exemplars.
 
     Filters out `bioc_reactive` chains — those are post-completion suggestions,
     not upfront exemplars (matches the intent_hint=true filter in production).
+    Uses BM25 + entity boost.
     """
     db_path = db_path or _DEFAULT_DB
     if not db_path.exists():
         return []
-    q_tokens = _expand(_tokenize(query))
+
     conn = sqlite3.connect(str(db_path))
     try:
         rows = conn.execute(
-            "SELECT name, display_name, domain, description, steps "
+            "SELECT name, display_name, domain, description, example_queries, steps "
             "FROM workflow_chains "
             "WHERE source IS NULL OR source != 'bioc_reactive'"
         ).fetchall()
     finally:
         conn.close()
 
-    scored: List[ScoredChain] = []
-    for name, display_name, domain, description, steps_json in rows:
+    # Cache parsed rows so we can look them up by name after BM25.
+    cache: Dict[str, ScoredChain] = {}
+    docs: List[Tuple[str, str]] = []
+    for name, display_name, domain, description, example_queries, steps_json in rows:
         try:
             steps = json.loads(steps_json or "[]")
         except Exception:
             steps = []
-        doc_text = " ".join(filter(None, [name, display_name, domain, description]))
-        d_tokens = _expand(_tokenize(doc_text))
-        s = _overlap_score(q_tokens, d_tokens)
-        if s > 0:
-            scored.append(
-                ScoredChain(
-                    name=name,
-                    display_name=display_name or name,
-                    domain=domain or "",
-                    description=description or "",
-                    steps=steps,
-                    score=s,
-                )
-            )
+        try:
+            examples = json.loads(example_queries or "[]")
+            example_text = " ".join(examples) if isinstance(examples, list) else ""
+        except Exception:
+            example_text = ""
+        doc_text = " ".join(filter(None, [name, display_name, domain, description, example_text]))
+        cache[name] = ScoredChain(
+            name=name,
+            display_name=display_name or name,
+            domain=domain or "",
+            description=description or "",
+            steps=steps,
+            score=0.0,
+        )
+        docs.append((name, doc_text))
+
+    index = _BM25Index.build(docs)
+    q_terms = list(_expand(_tokenize_bm25(query)))
+    scored_raw = index.score_all(q_terms)
+
+    scored: List[ScoredChain] = []
+    for name, base in scored_raw:
+        # Re-derive doc text for the entity boost.
+        doc_text = next((t for n, t in docs if n == name), "")
+        boost = _entity_boost(doc_text, entity_terms or [])
+        total = base + boost
+        if total > 0:
+            sc = cache[name]
+            sc.score = total
+            scored.append(sc)
     scored.sort(key=lambda x: x.score, reverse=True)
     return scored[:top_k]

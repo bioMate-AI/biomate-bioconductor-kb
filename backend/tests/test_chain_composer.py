@@ -188,6 +188,129 @@ def test_compose_low_specificity_query_does_not_explode():
     assert r.surfacing_mode in {"reactive", "stepwise", "upfront"}
 
 
+def test_compose_uses_entities_from_query():
+    """NER entities must propagate to ComposedChain.entities."""
+    r = compose_chain(
+        "DESeq2 differential expression on GRCh38 human RNA-seq",
+        llm=None,  # force stub + offline NER
+    )
+    assert "human" in r.entities["organisms"]
+    assert any("rna-seq" in m.lower() for m in r.entities["modalities"])
+    assert "deseq2" in [t.lower() for t in r.entities["tools"]]
+    assert any("grch38" in a.lower() for a in r.entities["assemblies"])
+
+
+def test_compose_entity_specificity_drives_score():
+    """Query with many entities → higher specificity contribution."""
+    rich = compose_chain(
+        "DESeq2 differential expression on GRCh38 human RNA-seq vs control samples",
+        llm=None,
+    )
+    sparse = compose_chain("help me with analysis", llm=None)
+    assert rich.signals["query_specificity"] > sparse.signals["query_specificity"]
+
+
+# ---------- NER ----------
+
+def test_extract_entities_offline_canonical_query():
+    from chain_composer.ner import extract_entities_offline
+    e = extract_entities_offline(
+        "Run DESeq2 on bulk RNA-seq counts_matrix from human GRCh38 tumor vs normal samples"
+    )
+    assert "human" in e.organisms
+    assert any("rna-seq" in m.lower() for m in e.modalities)
+    assert any("deseq2" == t.lower() for t in e.tools)
+    assert any("counts_matrix" in d.lower() for d in e.data_types)
+    assert any("grch38" in a.lower() for a in e.assemblies)
+    assert e.specificity_score() > 0.5
+
+
+def test_extract_entities_empty_query_returns_empty():
+    from chain_composer.ner import extract_entities_offline
+    e = extract_entities_offline("")
+    assert e.all_terms() == []
+    assert e.specificity_score() == 0.0
+
+
+def test_extract_entities_llm_merges_with_offline():
+    """LLM may name canonical forms the offline pass misses (e.g. user wrote
+    'human genome', LLM returns 'GRCh38')."""
+    from chain_composer.ner import extract_entities
+    fake_llm = lambda _p: """
+    {
+      "organisms": ["human"],
+      "modalities": ["RNA-seq"],
+      "tools": ["DESeq2"],
+      "data_types": [],
+      "contrasts": [],
+      "cohorts": [],
+      "analyses": ["differential expression"],
+      "assemblies": ["GRCh38"],
+      "intent": "DE on the standard human reference"
+    }
+    """
+    e = extract_entities("DE on the standard human reference genome", llm=fake_llm)
+    # Both LLM output and offline match must appear (deduped).
+    assert "human" in [o.lower() for o in e.organisms]
+    assert any("grch38" in a.lower() for a in e.assemblies)
+    assert "DE on the standard human reference" in e.intent
+
+
+def test_extract_entities_llm_failure_falls_back_to_offline():
+    from chain_composer.ner import extract_entities
+    e = extract_entities(
+        "DESeq2 on human RNA-seq",
+        llm=lambda _p: "not json at all",
+    )
+    # Offline result is preserved.
+    assert "human" in e.organisms
+    assert "deseq2" in [t.lower() for t in e.tools]
+
+
+# ---------- retrieval (BM25) ----------
+
+def test_retrieval_bm25_prefers_relevant_pattern():
+    """multi_omics_integration should beat sequential_omics_pipeline when
+    the query explicitly names two modalities and integration."""
+    from chain_composer.retrieval import retrieve_patterns
+    scored = retrieve_patterns(
+        "integrate RNA-seq with ATAC-seq into a joint multimodal model",
+        top_k=3,
+    )
+    names = [sp.pattern.name for sp in scored]
+    assert names[0] == "multi_omics_integration"
+
+
+def test_retrieval_entity_boost_helps_when_query_is_terse():
+    """A query like 'GATK Strelka Mutect2 voting' should hit consensus
+    pattern when entities are supplied even if BM25 alone is weak."""
+    from chain_composer.retrieval import retrieve_patterns
+    without = retrieve_patterns("variant calling robust", top_k=3)
+    with_entities = retrieve_patterns(
+        "variant calling robust",
+        top_k=3,
+        entity_terms=["consensus", "ensemble", "intersect"],
+    )
+    # With entity boost, consensus pattern must appear at least as high.
+    def rank(scored):
+        for i, sp in enumerate(scored):
+            if sp.pattern.name == "multi_method_consensus":
+                return i
+        return 99
+    assert rank(with_entities) <= rank(without)
+
+
+# ---------- LLM adapter ----------
+
+def test_default_llm_returns_none_without_keys(monkeypatch):
+    """Adapter must return None gracefully when no provider key is present."""
+    from chain_composer.llm_adapter import default_llm
+    for k in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY",
+              "GEMINI_API_KEY", "DEEPSEEK_API_KEY", "ZHIPU_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    assert default_llm() is None
+
+
 def test_compose_llm_stub_path_records_source():
     """When LLM returns valid JSON, the composed chain must report source='llm'."""
     fake_llm_json = """

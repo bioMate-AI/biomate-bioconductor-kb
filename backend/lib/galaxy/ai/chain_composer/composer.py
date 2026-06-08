@@ -23,6 +23,8 @@ from .confidence import (
     SurfacingMode,
     score_confidence,
 )
+from .llm_adapter import default_llm
+from .ner import QueryEntities, extract_entities, extract_entities_offline
 from .pattern_loader import Pattern, load_patterns
 from .retrieval import (
     ScoredChain,
@@ -58,6 +60,7 @@ class ComposedChain:
     surfacing_mode: SurfacingMode = "reactive"
     signals: Dict[str, float] = field(default_factory=dict)
     source: str = "stub"  # "stub" | "llm" | "curated_passthrough"
+    entities: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -70,34 +73,23 @@ class ComposedChain:
             "surfacing_mode": self.surfacing_mode,
             "signals": self.signals,
             "source": self.source,
+            "entities": self.entities,
         }
 
 
-# Cheap query-specificity heuristic. Real systems would use NER + domain
-# lexicons. For the prototype: count "specificity tokens" — organism names,
-# modality names, contrast keywords, technology names, etc.
-_SPECIFICITY_TERMS = {
-    "human", "mouse", "rat", "yeast", "zebrafish", "drosophila", "fly",
-    "hg38", "grch38", "grch37", "hg19", "mm10", "mm9",
-    "rna-seq", "atac-seq", "scrna", "scrnaseq", "chip-seq", "wgs", "wes",
-    "single-cell", "bulk", "spatial",
-    "tumor", "normal", "control", "treatment", "ko", "wildtype", "knockout",
-    "fastq", "bam", "vcf", "h5ad", "mtx",
-    "deseq2", "edger", "limma", "seurat", "scanpy", "harmony", "mofa",
-    # drug discovery / pharma
-    "admet", "smiles", "pdb", "docking", "ic50", "ec50", "kd",
-    "pbpk", "pharmacokinetics", "compound", "library",
-    "gromacs", "mm-gbsa", "free-energy",
-    # clinical / cohort
-    "ukbiobank", "tcga", "gtex", "icgc", "finngen", "biobank",
-    "case-control", "longitudinal",
+# Legacy hard-coded vocabulary kept only for the deprecated stub path.
+# Production specificity now comes from ner.QueryEntities.specificity_score().
+_LEGACY_SPECIFICITY_TERMS = {
+    "human", "mouse", "rat", "rna-seq", "atac-seq", "scrna", "wgs", "wes",
+    "deseq2", "seurat", "admet", "smiles", "docking", "tcga", "ukbiobank",
 }
 
 
-def _query_specificity(query: str) -> float:
+def _legacy_query_specificity(query: str) -> float:
+    """Fallback when NER produces zero entities (very vague query)."""
     q = query.lower()
-    hits = sum(1 for t in _SPECIFICITY_TERMS if t in q)
-    return min(1.0, hits / 4.0)  # 4+ specificity terms → maxed out
+    hits = sum(1 for t in _LEGACY_SPECIFICITY_TERMS if t in q)
+    return min(1.0, hits / 4.0)
 
 
 # Bound the curated_chain_score normalization to a reasonable range. The
@@ -147,14 +139,19 @@ def _clip01(x: float) -> float:
     return max(0.0, min(1.0, x))
 
 
+_SENTINEL_AUTO = object()
+
+
 def compose_chain(
     query: str,
     *,
     user_profile_bias: float = 0.0,
-    llm: Optional[Callable[[str], str]] = None,
+    llm: Any = _SENTINEL_AUTO,
     patterns: Optional[List[Pattern]] = None,
     top_k_patterns: int = 3,
     top_k_chains: int = 3,
+    entities: Optional[QueryEntities] = None,
+    enable_llm_ner: bool = True,
 ) -> ComposedChain:
     """Compose a candidate chain for a user query.
 
@@ -162,24 +159,50 @@ def compose_chain(
         query: free-text user query.
         user_profile_bias: -0.2..+0.2 hint from memory (beginner → negative,
             PI/experienced → positive). Default 0.
-        llm: optional callable that takes a prompt and returns a JSON string
-            with shape `{steps: [...], edges: [...], rationale: ""}`. If None,
-            the composer uses the deterministic stub.
+        llm: callable that takes a prompt and returns a string. If omitted,
+            `default_llm()` is invoked — returns None when no API key is set,
+            falling back to the deterministic stub. Pass `llm=None` explicitly
+            to force the stub path (useful for offline tests).
         patterns: override the loaded pattern library (for tests).
         top_k_patterns: how many patterns to retrieve.
         top_k_chains: how many curated chains to retrieve as exemplars.
+        entities: pre-extracted query entities (for tests / when caller has
+            already done NER). If None, extracted via `ner.extract_entities`.
+        enable_llm_ner: when True and an LLM is available, NER uses the LLM
+            (richer extraction). Otherwise falls back to dictionary NER.
     """
     patterns = patterns if patterns is not None else load_patterns()
-    top_patterns = retrieve_patterns(query, patterns=patterns, top_k=top_k_patterns)
-    top_chains = retrieve_curated_chains(query, top_k=top_k_chains)
 
-    # Compute signals up-front so the stub and LLM paths share them.
+    # Auto-resolve LLM only on the sentinel value, so callers can pass
+    # llm=None explicitly to force the stub path.
+    if llm is _SENTINEL_AUTO:
+        llm = default_llm()
+
+    # NER first — entities feed both retrieval and confidence scoring.
+    if entities is None:
+        ner_llm = llm if enable_llm_ner else None
+        entities = extract_entities(query, llm=ner_llm)
+    entity_terms = entities.all_terms()
+
+    top_patterns = retrieve_patterns(
+        query, patterns=patterns, top_k=top_k_patterns, entity_terms=entity_terms,
+    )
+    top_chains = retrieve_curated_chains(
+        query, top_k=top_k_chains, entity_terms=entity_terms,
+    )
+
+    # Specificity: prefer entity-count; fall back to legacy keyword scan if NER
+    # returned nothing (very vague query, or LLM failed silently).
+    spec = entities.specificity_score()
+    if spec == 0.0:
+        spec = _legacy_query_specificity(query)
+
     chain_score = _normalize_chain_score(top_chains[0].score) if top_chains else 0.0
     pattern_score = _normalize_pattern_score(top_patterns[0].score) if top_patterns else 0.0
     signals = ConfidenceSignals(
         curated_chain_score=chain_score,
         pattern_match_score=pattern_score,
-        query_specificity=_query_specificity(query),
+        query_specificity=spec,
         downstream_determinism=_downstream_determinism(top_patterns),
         user_signal=_user_signal(query),
         user_profile_bias=user_profile_bias,
@@ -187,7 +210,7 @@ def compose_chain(
     conf = score_confidence(signals)
 
     # Branch: LLM-driven compose vs deterministic stub.
-    composed = _compose_llm(query, top_patterns, top_chains, llm) if llm else None
+    composed = _compose_llm(query, top_patterns, top_chains, entities, llm) if llm else None
     if composed is None:
         composed = _compose_stub(top_patterns, top_chains)
 
@@ -202,6 +225,7 @@ def compose_chain(
     }
     composed.patterns_used = [sp.pattern.name for sp in top_patterns]
     composed.exemplars_used = [sc.name for sc in top_chains]
+    composed.entities = entities.to_dict()
     return composed
 
 
@@ -256,15 +280,16 @@ def _compose_llm(
     query: str,
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
+    entities: QueryEntities,
     llm: Callable[[str], str],
 ) -> Optional[ComposedChain]:
     """Ask the LLM to emit a chain in the free-form schema.
 
-    The LLM is shown: query, top patterns (as scaffolding), top curated
-    chains (as exemplars), and is asked to return JSON. We parse and
-    fall back to None if parsing fails — caller treats as stub then.
+    The LLM is shown: query, extracted entities, top patterns (scaffolding),
+    top curated chains (exemplars). Returns None on parse failure; caller
+    treats as stub.
     """
-    prompt = _build_prompt(query, top_patterns, top_chains)
+    prompt = _build_prompt(query, top_patterns, top_chains, entities)
     try:
         raw = llm(prompt)
         return _parse_llm_chain(raw)
@@ -276,11 +301,15 @@ def _build_prompt(
     query: str,
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
+    entities: QueryEntities,
 ) -> str:
     parts = [
         "You are composing a multi-step bioinformatics analysis chain for a user.",
         "",
         f"USER QUERY:\n{query}",
+        "",
+        "EXTRACTED ENTITIES (use these as canonical names where possible):",
+        json.dumps(entities.to_dict(), indent=2),
         "",
         "RELEVANT PATTERNS (scaffolding — use the SHAPE if it fits, ignore if not):",
     ]
