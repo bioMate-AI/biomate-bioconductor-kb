@@ -14,10 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir numpy scipy pandas matplotlib seaborn scikit-learn statsmodels networkx openpyxl xlrd google-generativeai anthropic
-RUN pip3 install --no-cache-dir biopython || true
-RUN pip3 install --no-cache-dir pysam cyvcf2 || true
-RUN pip3 install --no-cache-dir phykit clipkit || true
+RUN pip3 install --no-cache-dir --break-system-packages numpy scipy pandas matplotlib seaborn scikit-learn statsmodels networkx openpyxl xlrd google-generativeai anthropic
+RUN pip3 install --no-cache-dir --break-system-packages biopython || true
+RUN pip3 install --no-cache-dir --break-system-packages pysam cyvcf2 || true
+RUN pip3 install --no-cache-dir --break-system-packages phykit clipkit || true
 
 RUN Rscript -e " \
     options(repos = c(CRAN='https://cloud.r-project.org'), Ncpus=4); \
