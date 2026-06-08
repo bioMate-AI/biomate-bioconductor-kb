@@ -1522,14 +1522,17 @@ def _generate_executor_config(
             "NEXTFLOW_BATCH_CONTAINER", "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest"
         )
 
+        # Plugin pin per workload:
+        #   - BioMate workflows: nf-amazon@3.3.0 (last pre-CRT, prevents the
+        #     JVM SIGSEGV from publishDir-triggered S3TransferManager init).
+        #   - nf-core: nf-amazon@3.4.4 — 3.3.0 has an unfixed multipart bug
+        #     ("list of parts was not in ascending order") that fires on every
+        #     staging upload. 3.4.4+ has it fixed. We don't inject
+        #     publishDir=null for nf-core, so the CRT crash path stays cold.
+        nfamazon_version = "3.4.4" if "/nf-core-workflows/" in nf_path else "3.3.0"
         lines = [
-            # Pin nf-amazon to a known-resolvable version. 3.3.0 is the LAST
-            # version before nf-amazon flipped to CRT-by-default; even when it
-            # downloads CRT (which it still does on init), at least the
-            # plugin itself resolves. Without this pin NF tries to fetch
-            # 3.4.4 which sometimes fails the plugin download entirely.
             "plugins {",
-            "    id 'nf-amazon@3.3.0'",
+            f"    id 'nf-amazon@{nfamazon_version}'",
             "}",
             # Override params.container so workflow configs that do
             # `process { container = params.container }` use the ECR image.
