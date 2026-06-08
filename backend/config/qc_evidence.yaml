@@ -126,13 +126,17 @@ admet:
   admet_ames:
     - paper_ref: "Kazius J et al. J Med Chem 2005; 48:312-320"
       paper_doi: "10.1021/jm040835a"
-      provenance: GOLD
+      provenance: SILVER
       paper_supports: >
         Kazius 2005 defines the structural alerts (toxicophores) used
-        for mutagenicity prediction; a positive prediction = presence
-        of one or more toxicophores.
+        for mutagenicity prediction; a positive Ames prediction = presence
+        of one or more toxicophores. The paper does NOT prescribe a
+        probability cutoff — the 0.5 BioMate cutoff is the generic
+        binary-classifier midpoint, not Kazius-derived.
       rule_text: >
         BioMate halts if Ames probability > 0.5 (any toxicophore alert).
+        The Kazius alert SET is GOLD-anchored; the 0.5 probability
+        threshold itself is operational (demoted to SILVER 2026-06-07).
       finding: >
         Remediation: substitute reactive groups (aniline, nitro,
         epoxide, etc.) per ICH M7.
@@ -425,15 +429,20 @@ allometric:
   allometric_r_squared:
     - paper_ref: "FDA Estimating the Maximum Safe Starting Dose in Initial Clinical Trials (2005)"
       paper_doi: "https://www.fda.gov/media/72309/download"
-      provenance: GOLD
+      provenance: SILVER
       paper_supports: >
         FDA 2005 FIH dose guidance describes allometric scaling of
         animal pharmacokinetic parameters (CL, V) across species to
-        predict human PK. Inter-species power-law fit with R² is the
-        standard quality metric.
+        predict human PK and notes inter-species power-law fit quality
+        as a critical input to dose selection. The guidance does NOT
+        state R² ≥ 0.85 as a specific cutoff — that value is community
+        convention from pharmacokinetic textbooks (Mahmood 2007;
+        Tang & Mayersohn 2005) applied to FIH submissions.
       rule_text: >
-        BioMate flags allometric fits with R² < 0.85 as low confidence
-        (would not be acceptable in FIH submission).
+        BioMate flags allometric fits with R² < 0.85 as low confidence.
+        The metric (R²) is GOLD-anchored to FDA 2005 as a quality check;
+        the 0.85 cutoff is operational/community (demoted from GOLD to
+        SILVER 2026-06-07).
       finding: >
         Remediation: include additional species (typically ≥3), check
         for outliers (often the smallest species), or use mechanistic
@@ -600,13 +609,19 @@ cryo_em:
   cryo_em_fsc_resolution:
     - paper_ref: "Rosenthal PB & Henderson R. J Mol Biol 2003; 333:721-745"
       paper_doi: "10.1016/j.jmb.2003.07.013"
-      provenance: GOLD
+      provenance: SILVER
       paper_supports: >
         Rosenthal & Henderson 2003 establish the FSC 0.143 criterion as
-        the gold-standard resolution metric for single-particle cryo-EM.
+        the gold-standard resolution METRIC for single-particle cryo-EM
+        (i.e. how to compute resolution). The paper does NOT state
+        specific resolution-value cutoffs (4/8/15 Å) — those are
+        BioMate operational tiers reflecting typical publication norms
+        of the field, not values from the cited paper.
       rule_text: >
-        BioMate flags maps with FSC 0.143 > 4 angstroms as
-        publication-quality threshold; advisory 4-8; FAIL > 15.
+        BioMate flags maps with FSC 0.143 > 4 Å as publication-quality
+        threshold; advisory 4-8; FAIL > 15. The FSC 0.143 metric is
+        GOLD-anchored; the 4/8/15 Å cutoffs are operational
+        (demoted from GOLD to SILVER 2026-06-07).
       finding: >
         Remediation: more particles, deeper refinement, or revisit
         masking strategy.
@@ -646,14 +661,17 @@ cryo_et:
   cryo_et_sta_fsc_resolution:
     - paper_ref: "Rosenthal PB & Henderson R. J Mol Biol 2003; 333:721-745"
       paper_doi: "10.1016/j.jmb.2003.07.013"
-      provenance: GOLD
+      provenance: SILVER
       paper_supports: >
         Rosenthal & Henderson 2003 establish FSC 0.143 as the gold
-        standard. The criterion applies identically to subtomogram
-        averaging maps as to single-particle cryo-EM.
+        standard resolution METRIC for cryo-EM, including subtomogram
+        averaging. The paper does NOT state STA-specific resolution
+        cutoffs (15/30 Å) — those reflect typical STA publication
+        norms today, not values from the cited paper.
       rule_text: >
-        BioMate flags STA FSC 0.143 > 15 angstroms as advisory;
-        > 30 angstroms as FAIL.
+        BioMate flags STA FSC 0.143 > 15 Å as advisory; > 30 Å as FAIL.
+        The FSC 0.143 metric is GOLD-anchored; the 15/30 Å cutoffs are
+        operational (demoted from GOLD to SILVER 2026-06-07).
       finding: >
         Remediation: increase particles in STA; iterate alignment
         rounds; check missing-wedge compensation.

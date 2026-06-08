@@ -1521,13 +1521,11 @@ class NextflowQCGateHandler:
         "SAMTOOLS_FLAGSTAT": ("samtools", "*.flagstat"),
         # Gate-only workflows that publish qc_metrics.json directly under
         # <publishDir>/<meta.id>/. Wildcard "*" matches any meta.id value.
-        # Only HTS publishes this file today; the 10 sibling drug-dev
-        # workflows emit their own domain-specific JSONs (e.g.
-        # allometric_scaling_results.json, ivive_results.json, dart_prediction.json)
-        # — adding them here would be dead-pointer entries. Extend per
-        # workflow when each gains a real qc_metrics.json (or refactor
-        # to read each domain's own report).
-        "HTS_PLATE_QC_HIT_CALLING":      ("*", "qc_metrics.json"),
+        # Add per workflow as each gains a real qc_metrics.json emission
+        # (see docs/20260607_QC_EVIDENCE_AUDIT_PASS_2.md for the
+        # corresponding gate provenance grading).
+        "HTS_PLATE_QC_HIT_CALLING":  ("*", "qc_metrics.json"),  # HTS Z' (Zhang 1999, GOLD)
+        "ALLOMETRIC_SCALING":        ("*", "qc_metrics.json"),  # R² (FDA 2005 FIH, SILVER — value is operational)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:

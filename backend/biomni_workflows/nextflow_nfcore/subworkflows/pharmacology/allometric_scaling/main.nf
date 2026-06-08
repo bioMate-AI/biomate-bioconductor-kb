@@ -37,6 +37,7 @@ process ALLOMETRIC_SCALING {
     tuple val(meta), path("allometric_regression.csv"),          emit: regression
     tuple val(meta), path("human_pk_prediction.json"),           emit: human_pk
     tuple val(meta), path("fih_dose_recommendation.json"),       emit: fih_dose
+    tuple val(meta), path("qc_metrics.json"),                    emit: qc_metrics
     path "versions.yml",                                         emit: versions
 
     script:
@@ -208,6 +209,23 @@ summary = {
 }
 with open('allometric_scaling_results.json', 'w') as f:
     json.dump(summary, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# allometric gate (R² ≥ 0.85 SILVER, FDA 2005 FIH). Worst-case
+# of CL/Vd regressions is reported so the gate fires conservatively.
+_r2_values = [r for r in (r2_cl, r2_vd) if r is not None]
+qc_metrics = {
+    "r_squared": round(min(_r2_values), 4) if _r2_values else None,
+    "r_squared_cl": round(r2_cl, 4) if r2_cl is not None else None,
+    "r_squared_vd": round(r2_vd, 4) if r2_vd is not None else None,
+    "species_count": len(species_data),
+    "human_CL_mL_min_kg": human_cl,
+    "human_Vd_L_kg": human_vd,
+    "method": method,
+    "correction_applied": correction_applied,
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 # 5. Human-readable output
 lines = [
