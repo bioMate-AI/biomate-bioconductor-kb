@@ -639,6 +639,13 @@ CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/d
 
 if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
+  # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
+  # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being
+  # left behind on old LT versions when the LT was updated. Auto-fix on every
+  # sync so it can't survive across deploys. See
+  # docs/20260607_BATCH_AMI_AWSCLI_NOT_SELF_CONTAINED.md.
+  log "Ensuring Batch CE Launch-Template versions are current..."
+  bash "$REPO_ROOT/scripts/audit_batch_ce_lt_versions.sh" --apply --quiet 2>&1 | sed 's/^/  /'
   log "Launching post-sync E2E tests in background..."
   bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
     >> /tmp/biomate_sync.log 2>&1 &
