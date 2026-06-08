@@ -183,11 +183,24 @@ export class AuthService {
     // Sync to billing service — fire-and-forget; don't block registration
     this.syncUserToBilling(newUser, resolvedCode?.quotaOverrideUsd ?? null);
 
-    // Provision Galaxy user account — fire-and-forget; falls back to admin key if it fails
-    this.provisionGalaxyUser(newUser.id, newUser.email);
+    // Provision Galaxy user account synchronously so the JWT we just issued
+    // can be used for /api/ai_assistant/* on the very first chat turn. If
+    // Galaxy is slow/unreachable, falls back to fire-and-forget retries and
+    // we return the un-provisioned user (same behaviour as before commit
+    // bf4787b54's proxy-fix dependency).
+    let userForResponse = newUser;
+    const provisioned = await this.provisionGalaxyUser(newUser.id, newUser.email);
+    if (provisioned) {
+      // Reload to pick up the freshly-stored galaxyUserId / galaxyApiKey /
+      // galaxyUsername columns. We don't decrypt the key here — it's
+      // sanitized out of the response either way; we just want the response
+      // to honestly reflect that provisioning is done.
+      const reloaded = await db.select().from(users).where(eq(users.id, newUser.id)).limit(1);
+      if (reloaded[0]) userForResponse = reloaded[0];
+    }
 
     return {
-      user: this.sanitizeUser(newUser),
+      user: this.sanitizeUser(userForResponse),
       token,
       expiresIn: this.getTokenExpiresInSeconds(),
     };
@@ -195,42 +208,67 @@ export class AuthService {
 
   /**
    * Provision a Galaxy user account for a newly registered BioMate user and
-   * store the credentials back in the DB.  Fire-and-forget — registration
-   * succeeds even if Galaxy is unreachable; the user falls back to the shared
-   * admin key until provisioning succeeds (e.g. on next login).
+   * store the credentials back in the DB. Pattern: ATTEMPT-ONCE synchronously
+   * (so the JWT we just issued is usable immediately for `/api/ai_assistant/*`
+   * routes that require the per-user Galaxy key — see chat-stream proxy fix
+   * in commit bf4787b54). If the first call succeeds the row has its
+   * galaxyApiKey before register returns. If it fails or Galaxy is slow, we
+   * fall back to the existing fire-and-forget retry loop, and the user lands
+   * on the broken-admin path for their first turn (same behaviour as before).
+   *
+   * @returns true if the first synchronous attempt succeeded (galaxyApiKey
+   *   is now persisted to PG), false if it threw and we fell back to
+   *   fire-and-forget retries.
    */
-  private provisionGalaxyUser(biomateUserId: string, email: string): void {
+  private async provisionGalaxyUser(biomateUserId: string, email: string): Promise<boolean> {
     const adminProxy = new GalaxyAPIProxy();
-
-    const attempt = async (attemptsLeft: number, delayMs: number): Promise<void> => {
-      try {
-        const { galaxyUserId, galaxyApiKey, galaxyUsername } =
-          await adminProxy.provisionGalaxyUser(biomateUserId, email);
-        // Encrypt the API key before persisting to PostgreSQL (AES-256-GCM)
-        const encryptedApiKey = galaxyApiKey ? encryptField(galaxyApiKey) : galaxyApiKey;
-        await db
-          .update(users)
-          .set({ galaxyUserId, galaxyApiKey: encryptedApiKey, galaxyUsername })
-          .where(eq(users.id, biomateUserId));
-        console.log(`[auth] Galaxy user provisioned for ${email}: ${galaxyUsername}`);
-      } catch (err: any) {
-        if (attemptsLeft > 1) {
-          console.warn(
-            `[auth] Galaxy provisioning attempt failed for ${email} — retrying in ${delayMs}ms (${attemptsLeft - 1} left):`,
-            err.message
+    try {
+      const { galaxyUserId, galaxyApiKey, galaxyUsername } =
+        await adminProxy.provisionGalaxyUser(biomateUserId, email);
+      const encryptedApiKey = galaxyApiKey ? encryptField(galaxyApiKey) : galaxyApiKey;
+      await db
+        .update(users)
+        .set({ galaxyUserId, galaxyApiKey: encryptedApiKey, galaxyUsername })
+        .where(eq(users.id, biomateUserId));
+      console.log(`[auth] Galaxy user provisioned for ${email}: ${galaxyUsername}`);
+      return true;
+    } catch (firstErr: any) {
+      console.warn(
+        `[auth] Galaxy provisioning first attempt failed for ${email} — falling back to async retries:`,
+        firstErr.message
+      );
+      // Fire-and-forget retry chain — same behaviour as pre-bf4787b54 for the
+      // failure path. User's first chat turn will fall back to the admin key
+      // (which is broken when its api_keys row is missing) until provisioning
+      // catches up on a subsequent login.
+      const retry = async (attemptsLeft: number, delayMs: number): Promise<void> => {
+        try {
+          const { galaxyUserId, galaxyApiKey, galaxyUsername } =
+            await adminProxy.provisionGalaxyUser(biomateUserId, email);
+          const encryptedApiKey = galaxyApiKey ? encryptField(galaxyApiKey) : galaxyApiKey;
+          await db
+            .update(users)
+            .set({ galaxyUserId, galaxyApiKey: encryptedApiKey, galaxyUsername })
+            .where(eq(users.id, biomateUserId));
+          console.log(`[auth] Galaxy user provisioned (retry) for ${email}: ${galaxyUsername}`);
+        } catch (err: any) {
+          if (attemptsLeft > 1) {
+            console.warn(
+              `[auth] Galaxy provisioning retry failed for ${email} — retrying in ${delayMs}ms (${attemptsLeft - 1} left):`,
+              err.message
+            );
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            return retry(attemptsLeft - 1, delayMs * 2);
+          }
+          console.error(
+            `[auth] Galaxy provisioning FAILED after retries for ${email}. ` +
+            `User will fall back to shared admin key until re-provisioned. Error: ${err.message}`
           );
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-          return attempt(attemptsLeft - 1, delayMs * 2);
         }
-        // All retries exhausted — BioMate account exists but no Galaxy isolation
-        console.error(
-          `[auth] Galaxy provisioning FAILED after 3 attempts for ${email}. ` +
-          `User will fall back to shared admin key until re-provisioned. Error: ${err.message}`
-        );
-      }
-    };
-
-    attempt(3, 1000).catch(() => {/* already logged */});
+      };
+      retry(2, 2000).catch(() => {/* already logged */});
+      return false;
+    }
   }
 
   /**
