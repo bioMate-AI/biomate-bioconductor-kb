@@ -45,6 +45,40 @@ The 2026-06-03 Galaxy crash-loop was a Python module-load failure that step 3 wo
 
 ---
 
+## Engineering Discipline: Read the full error before retrying
+
+When a build, sync, deploy, API call, or test fails with a **truncated**
+error string (`exit code 1`, `Failure`, `HTTP 500`, `No content in X
+response`, `[FATAL] Unhandled rejection`, etc.), the answer is **almost
+never in a retry**. It's in the part of the output that was cut off.
+
+**Forbidden:** retry-with-guessed-fix, "let me clean caches and try
+again", "maybe it's transient", "let me bump max_tokens and see".
+
+**Required, in order:**
+
+1. **Get the full error.** Check the saved log file
+   (`/tmp/biomate_frontend_build.log`, `docker logs $C`, sync output
+   tee'd file, etc.) — NOT just what scrolled past in the terminal.
+2. **Reproduce the failing step in isolation** if the full log doesn't
+   immediately disambiguate. Examples:
+   - Build failure: `docker run --rm <base-image> bash -c '<failing command>'`
+   - LLM call returning empty: hit the provider API directly with curl
+     and inspect the raw JSON for `finishReason` / `safetyRatings` /
+     usage breakdown
+   - Sync "OK" but code not deployed: read the sync log line-by-line for
+     `scp: failed`, `tar: error`, `docker build ... ERROR`
+3. **Only then change anything.** No fix without an identified cause.
+4. **An exit code is not a diagnosis.** "Exit 1" means "the binary
+   refused to return 0." It's not a category.
+
+**Documented incidents this discipline would have prevented:** see
+`docs/PRE_SYNC_CHECKLIST.md` for the table (biotools PEP 668 three
+wasted rebuilds, Gemini thinking-tokens, sync-silent-fail, Galaxy
+migration crash-loop).
+
+---
+
 ## Development Process
 
 **Every task follows this iterative loop — no exceptions:**
