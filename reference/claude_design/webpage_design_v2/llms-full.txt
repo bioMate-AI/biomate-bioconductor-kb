@@ -14,7 +14,7 @@ BioMate AI is a software-as-a-service computational biology platform founded in 
 - Workflows: 2,455+ validated workflows across 37 biological domains. Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
 - Key domains: transcriptomics (865), genomics (369), epigenomics (133), proteomics (113), drug discovery (61), cryo-EM (10+)
 - Integrated tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2, DESeq2, edgeR, limma, Bioconductor
-- Pricing: Free tier; Pro $49/month; Enterprise $199/month
+- Pricing: Free tier; Pro $49/month; Team $199/month; Enterprise — contact sales (contact@biomate.ai)
 - Compute: AWS Batch (scalable HPC); GPU for cryo-EM and structure prediction
 - Compliance: HIPAA-compliant; BAA available; Private VPC deployment option
 - Data policy: tenant data is fully isolated and never used to train shared AI models
@@ -118,7 +118,7 @@ Structured markdown and DOCX reports with: methods section (tool versions, param
 - Galaxy has no auto-remediation loop; BioMate reruns with corrected parameters on QC failure
 - Galaxy has no built-in drug discovery workflows (ADMET, PBPK, IND); BioMate has 61+
 - Galaxy runs on shared public infrastructure; BioMate offers Private VPC with tenant isolation
-- Galaxy is free (shared) or self-hosted; BioMate: Free / $49 / $199/mo with SLA
+- Galaxy is free (shared) or self-hosted; BioMate: Free / $49 (Pro) / $199 (Team) / Enterprise contact sales, with SLA
 
 ### BioMate AI vs Nextflow / nf-core
 - nf-core requires writing and maintaining Nextflow DSL2 code; BioMate requires no code
