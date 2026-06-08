@@ -46,12 +46,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight, ExternalLink } from "lucide-react"
-// TODO(IND Path A.4): RollIntoIndAffordance component was imported here in
-// commit d42848c1a but the file was never created — broke every frontend
-// build since. Stubbed out 2026-06-07 to unblock the LLM-routing sync.
-// Restore the import (or create the component) when the IND-roll-up feature
-// is actually ready.
-// import { RollIntoIndAffordance } from "@/components/RollIntoIndAffordance";
+import { RollIntoIndAffordance } from "@/components/RollIntoIndAffordance";
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { downloadAsTxt, downloadAsMd, downloadAsDocx } from "@/lib/download-response"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
@@ -411,7 +406,15 @@ export function ChatMessage({
           {/* Path A.4: Roll into IND project. Shows only when workflow completed +
               at least one IND project exists. The affordance itself queries
               listProjects() and hides if empty. */}
-          {/* RollIntoIndAffordance disabled until the component file is created — see import comment above */}
+          {/* Path A.4: Roll into IND project. Shows only when workflow completed +
+              at least one IND project exists. The affordance itself queries
+              listProjects() and hides if empty. */}
+          {isWorkflowMessage && message.metadata?.workflow && currentExecutionRun?.execution?.status === "completed" && (
+            <RollIntoIndAffordance
+              workflowName={message.metadata.workflow.name || message.metadata.workflow.display_name}
+              workflowRunId={effectiveInvocationId || undefined}
+            />
+          )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
           {/* When the workflow is open in the right panel (isInPanel=true), render nothing
