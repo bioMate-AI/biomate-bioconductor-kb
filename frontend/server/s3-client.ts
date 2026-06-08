@@ -40,10 +40,18 @@ export class S3Service {
     this.bucket = config?.bucket || process.env.S3_BUCKET_NAME || '';
 
     if (!accessKeyId || !secretAccessKey) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[S3Service] AWS credentials not configured — S3 operations will fail at runtime (dev mode)');
+        return;
+      }
       throw new Error('AWS credentials not configured');
     }
 
     if (!this.bucket) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[S3Service] S3 bucket name not configured — S3 operations will fail at runtime (dev mode)');
+        return;
+      }
       throw new Error('S3 bucket name not configured');
     }
 
