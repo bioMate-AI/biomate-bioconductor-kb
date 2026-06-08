@@ -153,7 +153,7 @@ Pricing: Free tier; Pro $49/month; Team $199/month; Enterprise — contact sales
 | Field | Value |
 |---|---|
 | **Product name** | BioMate AI |
-| **Tagline** | AI-powered bioinformatics for everyone |
+| **Tagline** | Agentic AI for biology — ADMET, Bioconductor, clinical trials |
 | **Website** | https://biomate.ai |
 | **Categories** | Bioinformatics Software, Drug Discovery Software, Life Science Software, AI/ML Platforms |
 | **Pricing model** | Freemium + Subscription |
@@ -170,6 +170,8 @@ BioMate AI is an agentic computational biology platform — an AI agent that aut
 **Drug discovery and clinical pipeline:** In silico ADMET prediction (hERG, CYP inhibition, Caco-2, BBB, 30+ properties), virtual screening (AutoDock Vina, GLIDE), PBPK simulation, BOIN Bayesian dose-escalation design, population PK modeling, IND filing support (§2.6.1–2.6.7), and structured CRO submission packages — the full pipeline from target to trial in one platform.
 
 **Full Bioconductor R ecosystem:** Integrates the complete Bioconductor library — the largest curated repository of R packages for genomics with 2,000+ peer-reviewed packages — including DESeq2, edgeR, limma, clusterProfiler, Seurat, and monocle3. All accessible through plain English, executed on AWS Batch.
+
+**Omics, cell biology, and beyond:** BioMate covers the full breadth of modern biology — bulk and single-cell RNA-seq, spatial transcriptomics, whole-genome and whole-exome sequencing, ATAC-seq, ChIP-seq, proteomics (MaxQuant), metabolomics, metagenomics (QIIME 2), epigenomics, cell biology, immunology, cancer biology, glycobiology, rare disease, cryo-EM, cryo-ET, and structural biology — 37 biological domains in total.
 
 **What makes BioMate different:**
 - Agentic auto-remediation — AI reruns with corrected parameters on QC failure, no user intervention
