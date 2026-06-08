@@ -1,0 +1,116 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: scDblFinder — find_doublet_clusters
+// Identify entire clusters that are likely composed of doublets by testing for lack of intermediacy in expression profiles.
+// Input: sce.rds
+// Container: quay.io/biocontainers/bioconductor-scdblfinder:1.24.0--r45hdfd78af_0
+// Requires: SingleCellExperiment, bluster, scDblFinder, scater, scran, scuttle
+// Visualizations: t-SNE plot, cluster plot
+// QC: doublet detection QC, cell QC metrics, count normalization, highly-variable feature selection
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Normalize counts using logNormCounts
+//  * 2. [Core Analysis] Model gene variance and run PCA
+//  * 3. [Core Analysis] Cluster cells using clusterRows
+//  * 4. [Core Analysis] Run findDoubletClusters to test each cluster against the doublet null hypothesis
+
+nextflow.enable.dsl = 2
+
+process BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+    
+    # Load required libraries
+    library(SingleCellExperiment)
+    library(scuttle)
+    library(scran)
+    library(scater)
+    library(bluster)
+    library(scDblFinder)
+    
+    # 1. Read the user input file
+    sce <- readRDS("sce.rds")
+    
+    # 2. Normalize counts using logNormCounts
+    sce <- logNormCounts(sce)
+    
+    # 3. Model gene variance and run PCA
+    dec <- modelGeneVar(sce)
+    
+    set.seed(1000)
+    sce <- runPCA(sce, ncomponents=10, subset_row=getTopHVGs(dec, n=1000))
+    
+    # 4. Cluster cells using clusterRows
+    clusters <- clusterRows(reducedDim(sce, "PCA"), NNGraphParam())
+    
+    # 5. Run t-SNE and plot
+    sce <- runTSNE(sce, dimred="PCA")
+    
+    # Save the t-SNE plot to a PDF file
+    pdf("tsne_clusters.pdf", width=8, height=6)
+    p <- plotTSNE(sce, colour_by=I(clusters), text_by=I(clusters))
+    print(p)
+    dev.off()
+    
+    # 6. Run findDoubletClusters to test each cluster against the doublet null hypothesis
+    tab <- findDoubletClusters(sce, clusters)
+    
+    # 7. Write outputs
+    # Save the doublet clusters table as a CSV file
+    write.csv(as.data.frame(tab), file="doublet_clusters.csv", row.names=TRUE)
+    
+    # Save the updated SingleCellExperiment object
+    saveRDS(sce, file="sce_processed.rds")
+
+    writeLines(c(
+        '"BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS":',
+        paste0('    scDblFinder: ', as.character(packageVersion('scDblFinder')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_find_doublet_clusters.csv versions.yml
+    """
+}
+
+workflow BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ sce.rds ] ]
+
+    main:
+    BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS(ch_input)
+
+    emit:
+    tables   = BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS.out.tables
+    plots    = BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS.out.plots
+    objects  = BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS.out.objects
+    versions = BIOC_SCDBLFINDER_FIND_DOUBLET_CLUSTERS.out.versions
+}
