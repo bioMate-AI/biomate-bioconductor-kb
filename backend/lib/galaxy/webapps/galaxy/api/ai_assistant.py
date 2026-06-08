@@ -336,6 +336,10 @@ def _nextflow_workflow_key(filename: str) -> Optional[str]:
     path = (filename or "").strip().lower()
     if not path:
         return None
+    # bioconductor: .../bioconductor/<pkg>/<wf>.nf — each is a standalone runnable workflow
+    bm = re.search(r"/bioconductor/([^/]+)/([^/]+)\.nf$", path)
+    if bm:
+        return f"bioconductor/{bm.group(1)}/{bm.group(2)}"
     # biomni_nf/domain/workflow/main.nf
     if path.startswith("biomni_nf/"):
         parts = [p for p in path.split("/") if p]
@@ -358,14 +362,30 @@ def _nextflow_workflow_key(filename: str) -> Optional[str]:
 
 def _load_runnable_nextflow_keys() -> set[str]:
     backend_root = FilePath(__file__).resolve().parents[5]
+    keys: set = set()
     passed_file = backend_root / "biomni_workflows" / "nextflow_nfcore" / "test_results" / "passed_workflows.txt"
-    if not passed_file.exists():
-        return set()
-    try:
-        lines = [ln.strip().lower() for ln in passed_file.read_text(errors="replace").splitlines()]
-        return {ln for ln in lines if ln and "/" in ln}
-    except OSError:
-        return set()
+    if passed_file.exists():
+        try:
+            keys = {ln.strip().lower() for ln in passed_file.read_text(errors="replace").splitlines()
+                    if ln.strip() and "/" in ln}
+        except OSError:
+            pass
+    # Real-execution-validated Bioconductor workflows are the ONLY bioc workflows that route
+    # (gate on real_exec_status, written back by write_realexec_to_db.py).
+    db_path = backend_root / "database" / "galaxy_ai_tools.db"
+    if db_path.exists():
+        try:
+            conn = sqlite3.connect(str(db_path))
+            for (fn,) in conn.execute(
+                    "SELECT filename FROM workflows WHERE source='bioconductor' "
+                    "AND real_exec_status IN ('ok','ok_warnings')"):
+                m = re.search(r"/bioconductor/([^/]+)/([^/]+)\.nf$", (fn or "").lower())
+                if m:
+                    keys.add(f"bioconductor/{m.group(1)}/{m.group(2)}")
+            conn.close()
+        except sqlite3.Error:
+            pass
+    return keys
 
 
 def _parse_memory_gb(value: Any) -> Optional[float]:
@@ -2010,7 +2030,9 @@ def search_nextflow_workflow(
 
             # Exclude subworkflow library paths — any path containing /subworkflows/ is
             # a pipeline component, not a standalone entry point the user would run directly.
-            if "/subworkflows/" in filename:
+            # EXCEPTION: /subworkflows/bioconductor/<pkg>/<wf>.nf — each is a standalone
+            # runnable Bioconductor workflow (real-execution validated; gated by runnable_keys).
+            if "/subworkflows/" in filename and "/bioconductor/" not in filename:
                 return False
             if filename.startswith("nf-core-modules/"):
                 return False
@@ -2019,7 +2041,7 @@ def search_nextflow_workflow(
             if any("subworkflow" in t for t in tags):
                 return False
 
-            return filename.endswith("/main.nf") or (
+            return filename.endswith("/main.nf") or "/bioconductor/" in filename or (
                 filename.endswith(".nf") and ("/workflows/" in filename or "biomni_nf/" in filename)
             )
 
