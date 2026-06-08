@@ -1,0 +1,2778 @@
+[
+{
+"pkg": "absseq",
+"wf": "main",
+"name": "absseq",
+"domain": "transcriptomics",
+"prompt": "Run the absseq Bioconductor analysis: Perform pairwise differential expression analysis on RNA-Seq count data with replicates using either the standard ABSSeq model or the alternative aFold method.",
+"keywords": "absseq"
+},
+{
+"pkg": "acgh",
+"wf": "main",
+"name": "acgh",
+"domain": "imaging",
+"prompt": "Run the acgh Bioconductor analysis: Import generic log2 ratio and clone mapping text files, process and filter clones, impute missing values, fit HMM states, and identify genomic events.",
+"keywords": "acgh"
+},
+{
+"pkg": "affy",
+"wf": "main",
+"name": "affy",
+"domain": "transcriptomics",
+"prompt": "Run the affy Bioconductor analysis: The package contains functions for exploratory oligonucleotide array analysis. The dependence on tkWidgets only concerns few convenience functions. 'affy' is fully functional without it.",
+"keywords": "affy"
+},
+{
+"pkg": "affycoretools",
+"wf": "main",
+"name": "affycoretools",
+"domain": "transcriptomics",
+"prompt": "Run the affycoretools Bioconductor analysis: Annotate expression data, fit a linear model, generate gene-level plots, and compile results into an interactive HTML report with clickable links.",
+"keywords": "affycoretools"
+},
+{
+"pkg": "aims",
+"wf": "main",
+"name": "aims",
+"domain": "transcriptomics",
+"prompt": "Run the aims Bioconductor analysis: Assign absolute breast cancer intrinsic molecular subtypes to a gene expression dataset or a single sample using Entrez IDs.",
+"keywords": "aims"
+},
+{
+"pkg": "annotationtools",
+"wf": "main",
+"name": "annotationtools",
+"domain": "transcriptomics",
+"prompt": "Run the annotationtools Bioconductor analysis: Map all probe sets from a source microarray platform to their orthologous probe sets on a target platform to build a translation table.",
+"keywords": "annotationtools"
+},
+{
+"pkg": "apeglm",
+"wf": "main",
+"name": "apeglm",
+"domain": "transcriptomics",
+"prompt": "Run the apeglm Bioconductor analysis: Shrink log fold changes from RNA-seq count data using a negative binomial model to control for low-count noise.",
+"keywords": "apeglm"
+},
+{
+"pkg": "arrayexpress",
+"wf": "main",
+"name": "ArrayExpress",
+"domain": "transcriptomics",
+"prompt": "Run the ArrayExpress Bioconductor analysis: Access the ArrayExpress Collection at EMBL-EBI Biostudies and build Bioconductor data structures: ExpressionSet, AffyBatch, NChannelSet.",
+"keywords": "arrayexpress"
+},
+{
+"pkg": "arraymvout",
+"wf": "main",
+"name": "arraymvout",
+"domain": "transcriptomics",
+"prompt": "Run the arraymvout Bioconductor analysis: Detect outlying microarrays using a pre-computed matrix of quality control metrics.",
+"keywords": "arraymvout"
+},
+{
+"pkg": "assign",
+"wf": "main",
+"name": "ASSIGN",
+"domain": "transcriptomics",
+"prompt": "Run the ASSIGN Bioconductor analysis: ASSIGN is a computational tool to evaluate the pathway deregulation/activation status in individual patient samples. ASSIGN employs a flexible Bayesian factor analysis approach that adapts predetermined pathway signatures derived either fro",
+"keywords": "assign"
+},
+{
+"pkg": "asurat",
+"wf": "main",
+"name": "asurat",
+"domain": "transcriptomics",
+"prompt": "Run the asurat Bioconductor analysis: Perform single-cell RNA-seq preprocessing, functional sign creation from databases, sign-by-sample matrix generation, clustering, and multifaceted visualization.",
+"keywords": "asurat"
+},
+{
+"pkg": "awst",
+"wf": "main",
+"name": "awst",
+"domain": "transcriptomics",
+"prompt": "Run the awst Bioconductor analysis: We propose an Asymmetric Within-Sample Transformation (AWST) to regularize RNA-seq read counts and reduce the effect of noise on the classification of samples. AWST comprises two main steps: standardization and smoothing. These steps transf",
+"keywords": "awst"
+},
+{
+"pkg": "bacon",
+"wf": "main",
+"name": "bacon",
+"domain": "genomics",
+"prompt": "Run the bacon Bioconductor analysis: Correct bias and inflation for a single vector of association test statistics.",
+"keywords": "bacon"
+},
+{
+"pkg": "bamsignals",
+"wf": "main",
+"name": "bamsignals",
+"domain": "genomics",
+"prompt": "Run the bamsignals Bioconductor analysis: This package allows to efficiently obtain count vectors from indexed bam files. It counts the number of reads in given genomic ranges and it computes reads profiles and coverage profiles. It also handles paired-end data.",
+"keywords": "bamsignals"
+},
+{
+"pkg": "beat",
+"wf": "main",
+"name": "beat",
+"domain": "epigenomics",
+"prompt": "Run the beat Bioconductor analysis: Quantify DNA methylation and call regional epimutations from single-cell bisulfite sequencing data compared to a reference sample.",
+"keywords": "beat"
+},
+{
+"pkg": "bicare",
+"wf": "main",
+"name": "bicare",
+"domain": "general",
+"prompt": "Run the bicare Bioconductor analysis: Perform exploratory or directed biclustering on gene expression data, extract individual biclusters, test for gene set and sample covariate enrichment, and generate an interactive HTML report.",
+"keywords": "bicare"
+},
+{
+"pkg": "biocset",
+"wf": "main",
+"name": "BiocSet",
+"domain": "transcriptomics",
+"prompt": "Run the BiocSet Bioconductor analysis: BiocSet displays different biological sets in a triple tibble format. These three tibbles are `element`, `set`, and `elementset`. The user has the abilty to activate one of these three tibbles to perform common functions from the dplyr pack",
+"keywords": "biocset"
+},
+{
+"pkg": "biocviews",
+"wf": "main",
+"name": "biocViews",
+"domain": "genomics",
+"prompt": "Run the biocViews Bioconductor analysis: Infrastructure to support 'views' used to classify Bioconductor packages. 'biocViews' are directed acyclic graphs of terms from a controlled vocabulary. There are three major classifications, corresponding to 'software', 'annotation', and '",
+"keywords": "biocviews"
+},
+{
+"pkg": "biomformat",
+"wf": "main",
+"name": "biomformat",
+"domain": "metagenomics",
+"prompt": "Run the biomformat Bioconductor analysis: This is an R package for interfacing with the BIOM format. This package includes basic tools for reading biom-format files, accessing and subsetting data tables from a biom object (which is more complex than a single table), as well as limi",
+"keywords": "biomformat"
+},
+{
+"pkg": "bionet",
+"wf": "main",
+"name": "bionet",
+"domain": "transcriptomics",
+"prompt": "Run the bionet Bioconductor analysis: Identify active functional modules from aggregated p-values and a PPI network using a fast heuristic approach without requiring CPLEX.",
+"keywords": "bionet"
+},
+{
+"pkg": "bloodgen3module",
+"wf": "main",
+"name": "BloodGen3Module",
+"domain": "transcriptomics",
+"prompt": "Run the BloodGen3Module Bioconductor analysis: The BloodGen3Module package provides functions for R user performing module repertoire analyses and generating fingerprint representations. Functions can perform group comparison or individual sample analysis and visualization by fingerprin",
+"keywords": "bloodgen3module"
+},
+{
+"pkg": "brain",
+"wf": "main",
+"name": "brain",
+"domain": "proteomics",
+"prompt": "Run the brain Bioconductor analysis: Calculate and plot the aggregated isotopic distribution, monoisotopic mass, and average mass for a single chemical substance or peptide sequence.",
+"keywords": "brain"
+},
+{
+"pkg": "bsseq",
+"wf": "main",
+"name": "bsseq",
+"domain": "genomics",
+"prompt": "Run the bsseq Bioconductor analysis: Analyze WGBS data to identify differentially methylated regions (DMRs) using in-memory processing.",
+"keywords": "bsseq"
+},
+{
+"pkg": "bugsigdbr",
+"wf": "main",
+"name": "bugsigdbr",
+"domain": "metagenomics",
+"prompt": "Run the bugsigdbr Bioconductor analysis: The bugsigdbr package implements convenient access to bugsigdb.org from within R/Bioconductor. The goal of the package is to facilitate import of BugSigDB data into R/Bioconductor, provide utilities for extracting microbe signatures, and en",
+"keywords": "bugsigdbr"
+},
+{
+"pkg": "busseq",
+"wf": "main",
+"name": "busseq",
+"domain": "transcriptomics",
+"prompt": "Run the busseq Bioconductor analysis: Correct batch effects, cluster unknown cell types, identify intrinsic genes, and obtain batch-corrected expression data from multi-batch scRNA-seq count data.",
+"keywords": "busseq"
+},
+{
+"pkg": "cageminer",
+"wf": "main",
+"name": "cageminer",
+"domain": "transcriptomics",
+"prompt": "Run the cageminer Bioconductor analysis: Integrate GWAS SNPs and coexpression networks to mine and score high-confidence candidate genes.",
+"keywords": "cageminer"
+},
+{
+"pkg": "cardelino",
+"wf": "main",
+"name": "cardelino",
+"domain": "transcriptomics",
+"prompt": "Run the cardelino Bioconductor analysis: Assign cells to clones using scRNA-seq variant counts and a pre-defined clonal tree configuration.",
+"keywords": "cardelino"
+},
+{
+"pkg": "cardinal",
+"wf": "main",
+"name": "cardinal",
+"domain": "imaging",
+"prompt": "Run the cardinal Bioconductor analysis: Import raw mass spectrometry imaging data, apply sequential pre-processing steps, perform peak picking and alignment, and export the processed dataset.",
+"keywords": "cardinal"
+},
+{
+"pkg": "casper",
+"wf": "main",
+"name": "casper",
+"domain": "transcriptomics",
+"prompt": "Run the casper Bioconductor analysis: Infer alternative splicing from paired-end RNA-seq data. The model is based on counting paths across exons, rather than pairwise exon connections, and estimates the fragment size and start distributions non-parametrically, which improves es",
+"keywords": "casper"
+},
+{
+"pkg": "category",
+"wf": "main",
+"name": "category",
+"domain": "general",
+"prompt": "Run the category Bioconductor analysis: Perform pathway-based category analysis using t-statistics, permutation testing, and custom category functions.",
+"keywords": "category"
+},
+{
+"pkg": "cellbarcode",
+"wf": "main",
+"name": "cellbarcode",
+"domain": "transcriptomics",
+"prompt": "Run the cellbarcode Bioconductor analysis: Extract lineage barcodes, cell barcodes, and UMIs from 10X Genomics single-cell RNA-seq SAM files.",
+"keywords": "cellbarcode"
+},
+{
+"pkg": "cellmixs",
+"wf": "main",
+"name": "cellmixs",
+"domain": "transcriptomics",
+"prompt": "Run the cellmixs Bioconductor analysis: Quantify and visualize batch effects in unaligned single-cell RNA-seq data using the Cellspecific Mixing Score (CMS).",
+"keywords": "cellmixs"
+},
+{
+"pkg": "cellxgenedp",
+"wf": "main",
+"name": "cellxgenedp",
+"domain": "transcriptomics",
+"prompt": "Run the cellxgenedp Bioconductor analysis: The cellxgene data portal (https://cellxgene.cziscience.com/) provides a graphical user interface to collections of single-cell sequence data processed in standard ways to 'count matrix' summaries. The cellxgenedp package provides an altern",
+"keywords": "cellxgenedp"
+},
+{
+"pkg": "cemitool",
+"wf": "main",
+"name": "cemitool",
+"domain": "transcriptomics",
+"prompt": "Run the cemitool Bioconductor analysis: Run a complete co-expression module identification analysis including sample annotation, gene set enrichment, over-representation analysis, and interaction network integration, followed by report generation.",
+"keywords": "cemitool"
+},
+{
+"pkg": "chemminer",
+"wf": "main",
+"name": "chemminer",
+"domain": "general",
+"prompt": "Run the chemminer Bioconductor analysis: Import small molecules, generate structural descriptors (atom pairs or fingerprints), perform similarity searches, and cluster compounds.",
+"keywords": "chemminer"
+},
+{
+"pkg": "chimeraviz",
+"wf": "main",
+"name": "chimeraviz",
+"domain": "genomics",
+"prompt": "Run the chimeraviz Bioconductor analysis: Import fusion finder results, retrieve specific fusions, and generate detailed fusion plots and HTML reports.",
+"keywords": "chimeraviz"
+},
+{
+"pkg": "cleaver",
+"wf": "main",
+"name": "cleaver",
+"domain": "proteomics",
+"prompt": "Run the cleaver Bioconductor analysis: In-silico cleavage of polypeptide sequences. The cleavage rules are taken from: http://web.expasy.org/peptide_cutter/peptidecutter_enzymes.html",
+"keywords": "cleaver"
+},
+{
+"pkg": "compounddb",
+"wf": "main",
+"name": "CompoundDb",
+"domain": "metabolomics",
+"prompt": "Run the CompoundDb Bioconductor analysis: CompoundDb provides functionality to create and use (chemical) compound annotation databases from a variety of different sources such as LipidMaps, HMDB, ChEBI or MassBank. The database format allows to store in addition MS/MS spectra along",
+"keywords": "compounddb"
+},
+{
+"pkg": "consensusclusterplus",
+"wf": "main",
+"name": "consensusclusterplus",
+"domain": "genomics",
+"prompt": "Run the consensusclusterplus Bioconductor analysis: Perform consensus clustering on a gene expression matrix to identify stable sample clusters and calculate cluster/item consensus.",
+"keywords": "consensusclusterplus"
+},
+{
+"pkg": "coregx",
+"wf": "main",
+"name": "CoreGx",
+"domain": "general",
+"prompt": "Run the CoreGx Bioconductor analysis: A collection of functions and classes which serve as the foundation for our lab's suite of R packages, such as 'PharmacoGx' and 'RadioGx'. This package was created to abstract shared functionality from other lab package releases to increase",
+"keywords": "coregx"
+},
+{
+"pkg": "coseq",
+"wf": "main",
+"name": "coseq",
+"domain": "transcriptomics",
+"prompt": "Run the coseq Bioconductor analysis: Perform co-expression clustering directly on a raw count matrix using K-means or Gaussian mixture models, followed by model selection, parameter extraction, and visualization.",
+"keywords": "coseq"
+},
+{
+"pkg": "cqn",
+"wf": "main",
+"name": "cqn",
+"domain": "transcriptomics",
+"prompt": "Run the cqn Bioconductor analysis: Normalize RNA-Seq count data for GC-content and gene length to obtain corrected expression values (RPKM).",
+"keywords": "cqn"
+},
+{
+"pkg": "crisprbase",
+"wf": "main",
+"name": "crisprBase",
+"domain": "transcriptomics",
+"prompt": "Run the crisprBase Bioconductor analysis: Provides S4 classes for general nucleases, CRISPR nucleases, CRISPR nickases, and base editors.Several CRISPR-specific genome arithmetic functions are implemented to help extract genomic coordinates of spacer and protospacer sequences. Comm",
+"keywords": "crisprbase"
+},
+{
+"pkg": "crisprdesign",
+"wf": "main",
+"name": "crisprDesign",
+"domain": "transcriptomics",
+"prompt": "Run the crisprDesign Bioconductor analysis: Provides a comprehensive suite of functions to design and annotate CRISPR guide RNA (gRNAs) sequences. This includes on- and off-target search, on-target efficiency scoring, off-target scoring, full gene and TSS contextual annotations, and ",
+"keywords": "crisprdesign"
+},
+{
+"pkg": "crisprscore",
+"wf": "main",
+"name": "crisprscore",
+"domain": "transcriptomics",
+"prompt": "Run the crisprscore Bioconductor analysis: Predict on-target cutting efficiency for Cas9 gRNAs using multiple algorithms (RuleSet1, RuleSet3, DeepHF, CRISPRscan, CRISPRater).",
+"keywords": "crisprscore"
+},
+{
+"pkg": "ctc",
+"wf": "main",
+"name": "ctc",
+"domain": "general",
+"prompt": "Run the ctc Bioconductor analysis: Tools for export and import classification trees and clusters to other programs",
+"keywords": "ctc"
+},
+{
+"pkg": "cytomem",
+"wf": "main",
+"name": "cytomem",
+"domain": "single_cell",
+"prompt": "Run the cytomem Bioconductor analysis: Perform Marker Enrichment Modeling (MEM) analysis on single-cell data to generate quantitative population labels, visualize them via heatmaps, and calculate similarity scores between populations.",
+"keywords": "cytomem"
+},
+{
+"pkg": "dada2",
+"wf": "main",
+"name": "dada2",
+"domain": "transcriptomics",
+"prompt": "Run the dada2 Bioconductor analysis: Process raw paired-end fastq files to resolve exact amplicon sequence variants and construct a non-chimeric sequence table.",
+"keywords": "dada2"
+},
+{
+"pkg": "daglogo",
+"wf": "main",
+"name": "daglogo",
+"domain": "general",
+"prompt": "Run the daglogo Bioconductor analysis: Fetch peptide sequences from BioMart using gene identifiers and anchoring positions, build a background model, perform differential amino acid usage (DAU) testing, and visualize the results.",
+"keywords": "daglogo"
+},
+{
+"pkg": "deformats",
+"wf": "main",
+"name": "DEFormats",
+"domain": "transcriptomics",
+"prompt": "Run the DEFormats Bioconductor analysis: Convert between different data formats used by differential gene expression analysis tools.",
+"keywords": "deformats"
+},
+{
+"pkg": "degreport",
+"wf": "main",
+"name": "degreport",
+"domain": "transcriptomics",
+"prompt": "Run the degreport Bioconductor analysis: Perform quality control on normalized counts, check size factors, evaluate mean-variance relationships, and analyze covariate effects and correlations.",
+"keywords": "degreport"
+},
+{
+"pkg": "derfinderhelper",
+"wf": "main",
+"name": "derfinderHelper",
+"domain": "transcriptomics",
+"prompt": "Run the derfinderHelper Bioconductor analysis: Helper package for speeding up the derfinder package when using multiple cores. This package is particularly useful when using BiocParallel and it helps reduce the time spent loading the full derfinder package when running the F-statistics ",
+"keywords": "derfinderhelper"
+},
+{
+"pkg": "desingle",
+"wf": "main",
+"name": "desingle",
+"domain": "transcriptomics",
+"prompt": "Run the desingle Bioconductor analysis: Detect and classify differentially expressed genes between two groups of cells using a raw read counts matrix.",
+"keywords": "desingle"
+},
+{
+"pkg": "despace",
+"wf": "main",
+"name": "despace",
+"domain": "transcriptomics",
+"prompt": "Run the despace Bioconductor analysis: Identify spatially variable genes (SVGs) across tissue regions globally or within individual spatial clusters for single or multiple biological replicates.",
+"keywords": "despace"
+},
+{
+"pkg": "destiny",
+"wf": "main",
+"name": "destiny",
+"domain": "general",
+"prompt": "Run the destiny Bioconductor analysis: Create a diffusion map and calculate diffusion pseudotime (DPT) to identify lineage branching and pseudotime paths.",
+"keywords": "destiny"
+},
+{
+"pkg": "dirichletmultinomial",
+"wf": "main",
+"name": "dirichletmultinomial",
+"domain": "metagenomics",
+"prompt": "Run the dirichletmultinomial Bioconductor analysis: Cluster metagenomic samples into unsupervised Dirichlet components and analyze taxonomic contributions.",
+"keywords": "dirichletmultinomial"
+},
+{
+"pkg": "dittoseq",
+"wf": "main",
+"name": "dittoSeq",
+"domain": "transcriptomics",
+"prompt": "Run the dittoSeq Bioconductor analysis: A universal, user friendly, single-cell and bulk RNA sequencing visualization toolkit that allows highly customizable creation of color blindness friendly, publication-quality figures. dittoSeq accepts both SingleCellExperiment (SCE) and Se",
+"keywords": "dittoseq"
+},
+{
+"pkg": "dmrcaller",
+"wf": "main",
+"name": "dmrcaller",
+"domain": "epigenomics",
+"prompt": "Run the dmrcaller Bioconductor analysis: Identify differentially methylated regions (DMRs) from Bismark CX report files.",
+"keywords": "dmrcaller"
+},
+{
+"pkg": "drimseq",
+"wf": "main",
+"name": "drimseq",
+"domain": "transcriptomics",
+"prompt": "Run the drimseq Bioconductor analysis: Perform differential transcript usage (DTU) analysis between experimental conditions, with or without batch effects, using Dirichlet-multinomial and beta-binomial models.",
+"keywords": "drimseq"
+},
+{
+"pkg": "drugtargetinteractions",
+"wf": "main",
+"name": "drugTargetInteractions",
+"domain": "proteomics",
+"prompt": "Run the drugTargetInteractions Bioconductor analysis: Provides utilities for identifying drug-target interactions for sets of small molecule or gene/protein identifiers. The required drug-target interaction information is obained from a local SQLite instance of the ChEMBL database. ChEMBL has ",
+"keywords": "drugtargetinteractions"
+},
+{
+"pkg": "easier",
+"wf": "main",
+"name": "easier",
+"domain": "transcriptomics",
+"prompt": "Run the easier Bioconductor analysis: This package provides a workflow for the use of EaSIeR tool, developed to assess patients' likelihood to respond to ICB therapies providing just the patients' RNA-seq data as input. We integrate RNA-seq data with different types of prior kn",
+"keywords": "easier"
+},
+{
+"pkg": "ebarrays",
+"wf": "main",
+"name": "ebarrays",
+"domain": "transcriptomics",
+"prompt": "Run the ebarrays Bioconductor analysis: Identify differentially expressed genes and patterns across multiple conditions using empirical Bayes models and perform diagnostic checks.",
+"keywords": "ebarrays"
+},
+{
+"pkg": "ebimage",
+"wf": "main",
+"name": "ebimage",
+"domain": "imaging",
+"prompt": "Run the ebimage Bioconductor analysis: Segment nuclei and cell bodies from fluorescent microscopy images and visualize the segmented boundaries.",
+"keywords": "ebimage"
+},
+{
+"pkg": "ebseq",
+"wf": "main",
+"name": "ebseq",
+"domain": "transcriptomics",
+"prompt": "Run the ebseq Bioconductor analysis: Identify differentially expressed genes between two biological conditions using empirical Bayes modeling.",
+"keywords": "ebseq"
+},
+{
+"pkg": "enhancedvolcano",
+"wf": "main",
+"name": "EnhancedVolcano",
+"domain": "transcriptomics",
+"prompt": "Run the EnhancedVolcano Bioconductor analysis: Volcano plots represent a useful way to visualise the results of differential expression analyses. Here, we present a highly-configurable function that produces publication-ready volcano plots. EnhancedVolcano will attempt to fit as many po",
+"keywords": "enhancedvolcano"
+},
+{
+"pkg": "epicompare",
+"wf": "main",
+"name": "EpiCompare",
+"domain": "epigenomics",
+"prompt": "Run the EpiCompare Bioconductor analysis: EpiCompare is used to compare and analyse epigenetic datasets for quality control and benchmarking purposes. The package outputs an HTML report consisting of three sections: (1. General metrics) Metrics on peaks (percentage of blacklisted a",
+"keywords": "epicompare"
+},
+{
+"pkg": "escape",
+"wf": "main",
+"name": "escape",
+"domain": "transcriptomics",
+"prompt": "Run the escape Bioconductor analysis: Calculate per-cell gene set enrichment scores directly on a single-cell object, normalize for drop-out, and perform downstream visualization and statistical analysis.",
+"keywords": "escape"
+},
+{
+"pkg": "extrachips",
+"wf": "main",
+"name": "extraChIPs",
+"domain": "epigenomics",
+"prompt": "Run the extraChIPs Bioconductor analysis: This package builds on existing tools and adds some simple but extremely useful capabilities for working wth ChIP-Seq data. The focus is on detecting differential binding windows/regions. One set of functions focusses on set-operations reta",
+"keywords": "extrachips"
+},
+{
+"pkg": "findit2",
+"wf": "main",
+"name": "FindIT2",
+"domain": "transcriptomics",
+"prompt": "Run the FindIT2 Bioconductor analysis: This package implements functions to find influential TF and target based on different input type. It have five module: Multi-peak multi-gene annotaion(mmPeakAnno module), Calculate regulation potential(calcRP module), Find influential Targ",
+"keywords": "findit2"
+},
+{
+"pkg": "fishpond",
+"wf": "main",
+"name": "fishpond",
+"domain": "transcriptomics",
+"prompt": "Run the fishpond Bioconductor analysis: Perform differential transcript or gene expression analysis on bulk RNA-seq data using inferential replicates.",
+"keywords": "fishpond"
+},
+{
+"pkg": "flowclust",
+"wf": "main",
+"name": "flowclust",
+"domain": "general",
+"prompt": "Run the flowclust Bioconductor analysis: Perform robust model-based clustering on flow cytometry data, select the best model using BIC, adjust outlier identification rules, and visualize the results.",
+"keywords": "flowclust"
+},
+{
+"pkg": "flowcore",
+"wf": "main",
+"name": "flowcore",
+"domain": "imaging",
+"prompt": "Run the flowcore Bioconductor analysis: Read FCS files, calculate and apply spectral compensation, transform fluorescence channels, and apply manual gates to filter populations.",
+"keywords": "flowcore"
+},
+{
+"pkg": "flowstats",
+"wf": "main",
+"name": "flowstats",
+"domain": "general",
+"prompt": "Run the flowstats Bioconductor analysis: Perform automated gating and landmark-based normalization on a GatingSet of flow cytometry data.",
+"keywords": "flowstats"
+},
+{
+"pkg": "gaga",
+"wf": "main",
+"name": "gaga",
+"domain": "transcriptomics",
+"prompt": "Run the gaga Bioconductor analysis: Fit the GaGa model to expression data, identify differentially expressed genes under a target FDR, and estimate posterior fold changes.",
+"keywords": "gaga"
+},
+{
+"pkg": "gage",
+"wf": "main",
+"name": "gage",
+"domain": "transcriptomics",
+"prompt": "Run the gage Bioconductor analysis: GAGE is a published method for gene set (enrichment or GSEA) or pathway analysis. GAGE is generally applicable independent of microarray or RNA-Seq data attributes including sample sizes, experimental designs, assay platforms, and other typ",
+"keywords": "gage"
+},
+{
+"pkg": "genenetworkbuilder",
+"wf": "main",
+"name": "GeneNetworkBuilder",
+"domain": "transcriptomics",
+"prompt": "Run the GeneNetworkBuilder Bioconductor analysis: Appliation for discovering direct or indirect targets of transcription factors using ChIP-chip or ChIP-seq, and microarray or RNA-seq gene expression data. Inputting a list of genes of potential targets of one TF from ChIP-chip or ChIP-seq,",
+"keywords": "genenetworkbuilder"
+},
+{
+"pkg": "geneoverlap",
+"wf": "main",
+"name": "geneoverlap",
+"domain": "general",
+"prompt": "Run the geneoverlap Bioconductor analysis: Test the statistical significance of the overlap between two individual gene lists and retrieve detailed association statistics.",
+"keywords": "geneoverlap"
+},
+{
+"pkg": "geneplotter",
+"wf": "main",
+"name": "geneplotter",
+"domain": "general",
+"prompt": "Run the geneplotter Bioconductor analysis: Visualize expression levels across all chromosomes using a reference genome",
+"keywords": "geneplotter"
+},
+{
+"pkg": "generegionscan",
+"wf": "main",
+"name": "generegionscan",
+"domain": "transcriptomics",
+"prompt": "Run the generegionscan Bioconductor analysis: Extract probe-level intensities from raw CEL files and build a ProbeLevelSet object for a specific genomic region.",
+"keywords": "generegionscan"
+},
+{
+"pkg": "genomation",
+"wf": "main",
+"name": "genomation",
+"domain": "genomics",
+"prompt": "Run the genomation Bioconductor analysis: Extract genomic signal (e.g., CAGE, ChIP-seq) over windows of interest (e.g., promoters, exons) and visualize via heatmaps or meta-plots.",
+"keywords": "genomation"
+},
+{
+"pkg": "genomicdatacommons",
+"wf": "main",
+"name": "GenomicDataCommons",
+"domain": "general",
+"prompt": "Run the GenomicDataCommons Bioconductor analysis: Programmatically access the NIH / NCI Genomic Data Commons RESTful service.",
+"keywords": "genomicdatacommons"
+},
+{
+"pkg": "ggmanh",
+"wf": "main",
+"name": "ggmanh",
+"domain": "genomics",
+"prompt": "Run the ggmanh Bioconductor analysis: Preprocess and plot standard or rescaled Manhattan plots from GWAS summary statistics, with optional point highlighting and labeling.",
+"keywords": "ggmanh"
+},
+{
+"pkg": "glimma",
+"wf": "main",
+"name": "Glimma",
+"domain": "transcriptomics",
+"prompt": "Run the Glimma Bioconductor analysis: This package produces interactive visualizations for RNA-seq data analysis, utilizing output from limma, edgeR, or DESeq2. It produces interactive htmlwidgets versions of popular RNA-seq analysis plots to enhance the exploration of analysis",
+"keywords": "glimma"
+},
+{
+"pkg": "globalancova",
+"wf": "main",
+"name": "globalancova",
+"domain": "transcriptomics",
+"prompt": "Run the globalancova Bioconductor analysis: Test the association of a single gene set or pathway with clinical groups, optionally adjusting for covariates, and visualize the gene-wise and subject-wise contributions.",
+"keywords": "globalancova"
+},
+{
+"pkg": "goseq",
+"wf": "main",
+"name": "goseq",
+"domain": "transcriptomics",
+"prompt": "Run the goseq Bioconductor analysis: Perform GO enrichment analysis on RNA-seq DE genes while correcting for gene length bias using the default Wallenius approximation.",
+"keywords": "goseq"
+},
+{
+"pkg": "gostats",
+"wf": "main",
+"name": "gostats",
+"domain": "transcriptomics",
+"prompt": "Run the gostats Bioconductor analysis: Perform standard or conditional hypergeometric testing for GO term association using a standard Bioconductor annotation package.",
+"keywords": "gostats"
+},
+{
+"pkg": "granulator",
+"wf": "main",
+"name": "granulator",
+"domain": "transcriptomics",
+"prompt": "Run the granulator Bioconductor analysis: granulator is an R package for the cell type deconvolution of heterogeneous tissues based on bulk RNA-seq data or single cell RNA-seq expression profiles. The package provides a unified testing interface to rapidly run and benchmark multipl",
+"keywords": "granulator"
+},
+{
+"pkg": "graphite",
+"wf": "main",
+"name": "graphite",
+"domain": "general",
+"prompt": "Run the graphite Bioconductor analysis: Run Signaling Pathway Impact Analysis (SPIA) on differential gene expression data using graphite pathways.",
+"keywords": "graphite"
+},
+{
+"pkg": "gsva",
+"wf": "main",
+"name": "gsva",
+"domain": "transcriptomics",
+"prompt": "Run the gsva Bioconductor analysis: Calculate GSVA enrichment scores for bulk expression data (microarray or RNA-seq) and perform downstream differential pathway analysis.",
+"keywords": "gsva"
+},
+{
+"pkg": "gviz",
+"wf": "main",
+"name": "gviz",
+"domain": "genomics",
+"prompt": "Run the gviz Bioconductor analysis: Visualize numeric genomic data (e.g., microarray signals, custom scores, or bedGraph files) using various plot types and grouping.",
+"keywords": "gviz"
+},
+{
+"pkg": "gwastools",
+"wf": "main",
+"name": "GWASTools",
+"domain": "variant_calling",
+"prompt": "Run the GWASTools Bioconductor analysis: Classes for storing very large GWAS data sets and annotation, and functions for GWAS data cleaning and analysis.",
+"keywords": "gwastools"
+},
+{
+"pkg": "heatplus",
+"wf": "main",
+"name": "heatplus",
+"domain": "general",
+"prompt": "Run the heatplus Bioconductor analysis: Generate a standard heatmap without annotations, with optional custom clustering, distance metrics, and legend.",
+"keywords": "heatplus"
+},
+{
+"pkg": "hiccompare",
+"wf": "main",
+"name": "hiccompare",
+"domain": "epigenomics",
+"prompt": "Run the hiccompare Bioconductor analysis: Jointly normalize and detect differential chromatin interactions between two Hi-C datasets for a single chromosome.",
+"keywords": "hiccompare"
+},
+{
+"pkg": "hicdcplus",
+"wf": "main",
+"name": "HiCDCPlus",
+"domain": "epigenomics",
+"prompt": "Run the HiCDCPlus Bioconductor analysis: Systematic 3D interaction calls and differential analysis for Hi-C and HiChIP. The HiC-DC+ (Hi-C/HiChIP direct caller plus) package enables principled statistical analysis of Hi-C and HiChIP data sets \u2013 including calling significant interac",
+"keywords": "hicdcplus"
+},
+{
+"pkg": "hicexperiment",
+"wf": "main",
+"name": "HiCExperiment",
+"domain": "epigenomics",
+"prompt": "Run the HiCExperiment Bioconductor analysis: R generic interface to Hi-C contact matrices in `.(m)cool`, `.hic` or HiC-Pro derived formats, as well as other Hi-C processed file formats. Contact matrices can be partially parsed using a random access method, allowing a memory-efficient ",
+"keywords": "hicexperiment"
+},
+{
+"pkg": "hmmcopy",
+"wf": "main",
+"name": "hmmcopy",
+"domain": "genomics",
+"prompt": "Run the hmmcopy Bioconductor analysis: Correct GC and mappability biases in a single sample's read counts and segment the resulting copy number profile into copy number alteration states.",
+"keywords": "hmmcopy"
+},
+{
+"pkg": "hopach",
+"wf": "main",
+"name": "hopach",
+"domain": "general",
+"prompt": "Run the hopach Bioconductor analysis: Perform hybrid hierarchical clustering on genes and arrays, estimate cluster membership confidence using bootstrap resampling, and export the results for visualization.",
+"keywords": "hopach"
+},
+{
+"pkg": "hpar",
+"wf": "main",
+"name": "hpar",
+"domain": "proteomics",
+"prompt": "Run the hpar Bioconductor analysis: The hpar package provides a simple R interface to and data from the Human Protein Atlas project.",
+"keywords": "hpar"
+},
+{
+"pkg": "htsfilter",
+"wf": "main",
+"name": "htsfilter",
+"domain": "transcriptomics",
+"prompt": "Run the htsfilter Bioconductor analysis: Filter high-throughput sequencing data in the form of a raw count matrix or data.frame using TMM normalization.",
+"keywords": "htsfilter"
+},
+{
+"pkg": "ideal",
+"wf": "main",
+"name": "ideal",
+"domain": "transcriptomics",
+"prompt": "Run the ideal Bioconductor analysis: This package provides functions for an Interactive Differential Expression AnaLysis of RNA-sequencing datasets, to extract quickly and effectively information downstream the step of differential expression. A Shiny application encapsulates ",
+"keywords": "ideal"
+},
+{
+"pkg": "ihw",
+"wf": "main",
+"name": "ihw",
+"domain": "transcriptomics",
+"prompt": "Run the ihw Bioconductor analysis: Perform independent hypothesis weighting for FDR or FWER control using a complete list of p-values and a continuous covariate.",
+"keywords": "ihw"
+},
+{
+"pkg": "illuminaio",
+"wf": "main",
+"name": "illuminaio",
+"domain": "transcriptomics",
+"prompt": "Run the illuminaio Bioconductor analysis: Tools for parsing Illumina's microarray output files, including IDAT.",
+"keywords": "illuminaio"
+},
+{
+"pkg": "immunotation",
+"wf": "main",
+"name": "immunotation",
+"domain": "general",
+"prompt": "Run the immunotation Bioconductor analysis: MHC (major histocompatibility complex) molecules are cell surface complexes that present antigens to T cells.  The repertoire of antigens presented in a given genetic background largely depends on the sequence of the encoded MHC molecules, ",
+"keywords": "immunotation"
+},
+{
+"pkg": "interactivecomplexheatmap",
+"wf": "main",
+"name": "InteractiveComplexHeatmap",
+"domain": "general",
+"prompt": "Run the InteractiveComplexHeatmap Bioconductor analysis: This package can easily make heatmaps which are produced by the ComplexHeatmap package into interactive applications. It provides two types of interactivities: 1. on the interactive graphics device, and 2. on a Shiny app. It also provides f",
+"keywords": "interactivecomplexheatmap"
+},
+{
+"pkg": "intercellar",
+"wf": "main",
+"name": "InterCellar",
+"domain": "transcriptomics",
+"prompt": "Run the InterCellar Bioconductor analysis: InterCellar is implemented as an R/Bioconductor Package containing a Shiny app that allows users to interactively analyze cell-cell communication from scRNA-seq data. Starting from precomputed ligand-receptor interactions, InterCellar provi",
+"keywords": "intercellar"
+},
+{
+"pkg": "isee",
+"wf": "main",
+"name": "iSEE",
+"domain": "single_cell",
+"prompt": "Run the iSEE Bioconductor analysis: Create an interactive Shiny-based graphical user interface for exploring data stored in SummarizedExperiment objects, including row- and column-level metadata. The interface supports transmission of selections between plots and tables, code",
+"keywords": "isee"
+},
+{
+"pkg": "isobar",
+"wf": "main",
+"name": "isobar",
+"domain": "proteomics",
+"prompt": "Run the isobar Bioconductor analysis: Perform standard preprocessing, normalization, noise modeling, and ratio estimation for isobaric-labeled proteomics data.",
+"keywords": "isobar"
+},
+{
+"pkg": "kegggraph",
+"wf": "main",
+"name": "kegggraph",
+"domain": "general",
+"prompt": "Run the kegggraph Bioconductor analysis: Parse KGML files, calculate node degrees and betweenness centrality, and subset/merge pathways to identify key regulatory genes.",
+"keywords": "kegggraph"
+},
+{
+"pkg": "lbe",
+"wf": "main",
+"name": "lbe",
+"domain": "transcriptomics",
+"prompt": "Run the lbe Bioconductor analysis: Estimate the proportion of true null hypotheses, FDR, and q-values from a vector of p-values, visualize the results, and export them.",
+"keywords": "lbe"
+},
+{
+"pkg": "lea",
+"wf": "main",
+"name": "lea",
+"domain": "genomics",
+"prompt": "Run the lea Bioconductor analysis: Analyze population genetic structure using PCA and snmf, select the optimal number of ancestral populations, and impute missing genotypes.",
+"keywords": "lea"
+},
+{
+"pkg": "lisaclust",
+"wf": "main",
+"name": "lisaclust",
+"domain": "imaging",
+"prompt": "Run the lisaclust Bioconductor analysis: Simultaneously calculate LISA curves, perform k-means clustering, and visualize the identified tissue regions and cell-type enrichments.",
+"keywords": "lisaclust"
+},
+{
+"pkg": "made4",
+"wf": "main",
+"name": "made4",
+"domain": "transcriptomics",
+"prompt": "Run the made4 Bioconductor analysis: Multivariate data analysis and graphical display of microarray data. Functions include for supervised dimension reduction (between group analysis) and joint dimension reduction of 2 datasets (coinertia analysis). It contains functions that ",
+"keywords": "made4"
+},
+{
+"pkg": "makecdfenv",
+"wf": "main",
+"name": "makecdfenv",
+"domain": "epigenomics",
+"prompt": "Run the makecdfenv Bioconductor analysis: This package has two functions. One reads a Affymetrix chip description file (CDF) and creates a hash table environment containing the location/probe set membership mapping. The other creates a package that automatically loads that environm",
+"keywords": "makecdfenv"
+},
+{
+"pkg": "matter",
+"wf": "main",
+"name": "matter",
+"domain": "imaging",
+"prompt": "Run the matter Bioconductor analysis: Create out-of-memory dense and sparse matrices/arrays and perform deferred arithmetic.",
+"keywords": "matter"
+},
+{
+"pkg": "mbecs",
+"wf": "main",
+"name": "MBECS",
+"domain": "metagenomics",
+"prompt": "Run the MBECS Bioconductor analysis: The Microbiome Batch Effect Correction Suite (MBECS) provides a set of functions to evaluate and mitigate unwated noise due to processing in batches. To that end it incorporates a host of batch correcting algorithms (BECA) from various pack",
+"keywords": "mbecs"
+},
+{
+"pkg": "mbkmeans",
+"wf": "main",
+"name": "mbkmeans",
+"domain": "transcriptomics",
+"prompt": "Run the mbkmeans Bioconductor analysis: Cluster single-cell data represented as a SingleCellExperiment or matrix-like object using the mini-batch k-means algorithm, including batch size estimation and optimal k selection.",
+"keywords": "mbkmeans"
+},
+{
+"pkg": "meshes",
+"wf": "main",
+"name": "meshes",
+"domain": "transcriptomics",
+"prompt": "Run the meshes Bioconductor analysis: MeSH (Medical Subject Headings) is the NLM controlled vocabulary used to manually index articles for MEDLINE/PubMed. MeSH terms were associated by Entrez Gene ID by three methods, gendoo, gene2pubmed and RBBH. This association is fundamenta",
+"keywords": "meshes"
+},
+{
+"pkg": "metabocoreutils",
+"wf": "main",
+"name": "metabocoreutils",
+"domain": "transcriptomics",
+"prompt": "Run the metabocoreutils Bioconductor analysis: Convert and correct retention times to retention indices using reference standards and apply a two-point linear correction.",
+"keywords": "metabocoreutils"
+},
+{
+"pkg": "metapod",
+"wf": "main",
+"name": "metapod",
+"domain": "transcriptomics",
+"prompt": "Run the metapod Bioconductor analysis: Implements a variety of methods for combining p-values in differential analyses of genome-scale datasets. Functions can combine p-values across different tests in the same analysis (e.g., genomic windows in ChIP-seq, exons in RNA-seq) or fo",
+"keywords": "metapod"
+},
+{
+"pkg": "mfuzz",
+"wf": "main",
+"name": "mfuzz",
+"domain": "proteomics",
+"prompt": "Run the mfuzz Bioconductor analysis: Pre-process time-series omics data, estimate the optimal fuzzifier parameter, perform fuzzy c-means clustering, and visualize the resulting soft clusters.",
+"keywords": "mfuzz"
+},
+{
+"pkg": "miasim",
+"wf": "main",
+"name": "miaSim",
+"domain": "epigenomics",
+"prompt": "Run the miaSim Bioconductor analysis: Microbiome time series simulation with generalized Lotka-Volterra model, Self-Organized Instability (SOI), and other models. Hubbell's Neutral model is used to determine the abundance matrix. The resulting abundance matrix is applied to (Tr",
+"keywords": "miasim"
+},
+{
+"pkg": "mineica",
+"wf": "main",
+"name": "MineICA",
+"domain": "transcriptomics",
+"prompt": "Run the MineICA Bioconductor analysis: The goal of MineICA is to perform Independent Component Analysis (ICA) on multiple transcriptome datasets, integrating additional data (e.g molecular, clinical and pathological). This Integrative ICA helps the biological interpretation of t",
+"keywords": "mineica"
+},
+{
+"pkg": "minimumdistance",
+"wf": "main",
+"name": "minimumdistance",
+"domain": "variant_calling",
+"prompt": "Run the minimumdistance Bioconductor analysis: Identify, filter, and visualize de novo copy number variants in case-parent trios from raw genotyping report files.",
+"keywords": "minimumdistance"
+},
+{
+"pkg": "mirbaseconverter",
+"wf": "main",
+"name": "miRBaseConverter",
+"domain": "transcriptomics",
+"prompt": "Run the miRBaseConverter Bioconductor analysis: A comprehensive tool for converting and retrieving the miRNA Name, Accession, Sequence, Version, History and Family information in different miRBase versions. It can process a huge number of miRNAs in a short time without other depends.",
+"keywords": "mirbaseconverter"
+},
+{
+"pkg": "mixomics",
+"wf": "main",
+"name": "mixomics",
+"domain": "proteomics",
+"prompt": "Run the mixomics Bioconductor analysis: Perform unsupervised dimensionality reduction and select key variables explaining the variance of a single dataset.",
+"keywords": "mixomics"
+},
+{
+"pkg": "motifstack",
+"wf": "main",
+"name": "motifstack",
+"domain": "transcriptomics",
+"prompt": "Run the motifstack Bioconductor analysis: Import and plot a single sequence or affinity logo with custom fonts, colors, and markers.",
+"keywords": "motifstack"
+},
+{
+"pkg": "msbackendrawfilereader",
+"wf": "main",
+"name": "MsBackendRawFileReader",
+"domain": "proteomics",
+"prompt": "Run the MsBackendRawFileReader Bioconductor analysis: implements a MsBackend for the Spectra package using Thermo Fisher Scientific's NewRawFileReader .Net libraries. The package is generalizing the functionality introduced by the rawrr package Methods defined in this package are supposed to e",
+"keywords": "msbackendrawfilereader"
+},
+{
+"pkg": "msdatahub",
+"wf": "main",
+"name": "MsDataHub",
+"domain": "proteomics",
+"prompt": "Run the MsDataHub Bioconductor analysis: The MsDataHub package uses the ExperimentHub infrastructure to distribute raw mass spectrometry data files, peptide spectrum matches or quantitative data from proteomics and metabolomics experiments.",
+"keywords": "msdatahub"
+},
+{
+"pkg": "msnid",
+"wf": "main",
+"name": "msnid",
+"domain": "proteomics",
+"prompt": "Run the msnid Bioconductor analysis: Read MS/MS search results, assess cleavage properties, correct mass errors, optimize filtering criteria to maximize identifications within a target FDR, and export to MSnSet.",
+"keywords": "msnid"
+},
+{
+"pkg": "msstatsconvert",
+"wf": "main",
+"name": "msstatsconvert",
+"domain": "proteomics",
+"prompt": "Run the msstatsconvert Bioconductor analysis: Import, clean, preprocess, and balance label-free or SRM mass spectrometry data (e.g., MaxQuant output) for downstream MSstats analysis.",
+"keywords": "msstatsconvert"
+},
+{
+"pkg": "msstatslip",
+"wf": "main",
+"name": "msstatslip",
+"domain": "transcriptomics",
+"prompt": "Run the msstatslip Bioconductor analysis: Preprocess, summarize, model, and calculate proteolytic resistance ratios from LiP-MS and TrP-MS datasets.",
+"keywords": "msstatslip"
+},
+{
+"pkg": "msstatsptm",
+"wf": "main",
+"name": "MSstatsPTM",
+"domain": "transcriptomics",
+"prompt": "Run the MSstatsPTM Bioconductor analysis: MSstatsPTM provides general statistical methods for quantitative characterization of post-translational modifications (PTMs). Supports DDA, DIA, SRM, and tandem mass tag (TMT) labeling. Typically, the analysis involves the quantification of",
+"keywords": "msstatsptm"
+},
+{
+"pkg": "multimir",
+"wf": "main",
+"name": "multiMiR",
+"domain": "transcriptomics",
+"prompt": "Run the multiMiR Bioconductor analysis: A collection of microRNAs/targets from external resources, including validated microRNA-target databases (miRecords, miRTarBase and TarBase), predicted microRNA-target databases (DIANA-microT, ElMMo, MicroCosm, miRanda, miRDB, PicTar, PITA ",
+"keywords": "multimir"
+},
+{
+"pkg": "muscat",
+"wf": "main",
+"name": "muscat",
+"domain": "transcriptomics",
+"prompt": "Run the muscat Bioconductor analysis: `muscat` provides various methods and visualization tools for DS analysis in multi-sample, multi-group, multi-(cell-)subpopulation scRNA-seq data, including cell-level mixed models and methods based on aggregated \u201cpseudobulk\u201d data, as well ",
+"keywords": "muscat"
+},
+{
+"pkg": "mutationalpatterns",
+"wf": "main",
+"name": "MutationalPatterns",
+"domain": "general",
+"prompt": "Run the MutationalPatterns Bioconductor analysis: Mutational processes leave characteristic footprints in genomic DNA. This package provides a comprehensive set of flexible functions that allows researchers to easily evaluate and visualize a multitude of mutational patterns in base substit",
+"keywords": "mutationalpatterns"
+},
+{
+"pkg": "mzid",
+"wf": "main",
+"name": "mzID",
+"domain": "proteomics",
+"prompt": "Run the mzID Bioconductor analysis: A parser for mzIdentML files implemented using the XML package. The parser tries to be general and able to handle all types of mzIdentML files with the drawback of having less 'pretty' output than a vendor specific parser. Please contact th",
+"keywords": "mzid"
+},
+{
+"pkg": "nanotube",
+"wf": "main",
+"name": "NanoTube",
+"domain": "transcriptomics",
+"prompt": "Run the NanoTube Bioconductor analysis: NanoTube includes functions for the processing, quality control, analysis, and visualization of NanoString nCounter data. Analysis functions include differential analysis and gene set analysis methods, as well as postprocessing steps to hel",
+"keywords": "nanotube"
+},
+{
+"pkg": "nebulosa",
+"wf": "main",
+"name": "nebulosa",
+"domain": "transcriptomics",
+"prompt": "Run the nebulosa Bioconductor analysis: Perform gene-weighted density estimation and visualization on a SingleCellExperiment object.",
+"keywords": "nebulosa"
+},
+{
+"pkg": "nnsvg",
+"wf": "main",
+"name": "nnSVG",
+"domain": "transcriptomics",
+"prompt": "Run the nnSVG Bioconductor analysis: Method for scalable identification of spatially variable genes (SVGs) in spatially-resolved transcriptomics data. The method is based on nearest-neighbor Gaussian processes and uses the BRISC algorithm for model fitting and parameter estima",
+"keywords": "nnsvg"
+},
+{
+"pkg": "noiseq",
+"wf": "main",
+"name": "noiseq",
+"domain": "transcriptomics",
+"prompt": "Run the noiseq Bioconductor analysis: Perform quality control and exploratory analysis on RNA-seq count data to detect biases (biotype, saturation, length, GC, RNA composition, PCA).",
+"keywords": "noiseq"
+},
+{
+"pkg": "omiccircos",
+"wf": "main",
+"name": "omiccircos",
+"domain": "general",
+"prompt": "Run the omiccircos Bioconductor analysis: Generate a multi-track circular plot using simulated genomic mapping, link, and polygon data.",
+"keywords": "omiccircos"
+},
+{
+"pkg": "ompbam",
+"wf": "main",
+"name": "ompBAM",
+"domain": "transcriptomics",
+"prompt": "Run the ompBAM Bioconductor analysis: This packages provides C++ header files for developers wishing to create R packages that processes BAM files. ompBAM automates file access, memory management, and handling of multiple threads 'behind the scenes', so developers can focus on ",
+"keywords": "ompbam"
+},
+{
+"pkg": "omxplore",
+"wf": "main",
+"name": "omXplore",
+"domain": "general",
+"prompt": "Run the omXplore Bioconductor analysis: This package contains a collection of functions (written as shiny modules) for the visualisation and the statistical analysis of omics data. These plots can be displayed individually or embedded in a global Shiny module. Additionaly, it is ",
+"keywords": "omxplore"
+},
+{
+"pkg": "ontoproc",
+"wf": "main",
+"name": "ontoproc",
+"domain": "genomics",
+"prompt": "Run the ontoproc Bioconductor analysis: Map informal cell type labels in a SingleCellExperiment to formal Cell Ontology tags and subset the dataset to descendants of a specific cell type.",
+"keywords": "ontoproc"
+},
+{
+"pkg": "opencyto",
+"wf": "main",
+"name": "opencyto",
+"domain": "general",
+"prompt": "Run the opencyto Bioconductor analysis: Perform automated hierarchical gating on raw FCS files using a predefined CSV gating template.",
+"keywords": "opencyto"
+},
+{
+"pkg": "pathview",
+"wf": "main",
+"name": "pathview",
+"domain": "transcriptomics",
+"prompt": "Run the pathview Bioconductor analysis: Visualize a single sample of gene expression data on a signaling pathway using both native KEGG and Graphviz layouts.",
+"keywords": "pathview"
+},
+{
+"pkg": "pcatools",
+"wf": "main",
+"name": "PCAtools",
+"domain": "transcriptomics",
+"prompt": "Run the PCAtools Bioconductor analysis: Principal Component Analysis (PCA) is a very powerful technique that has wide applicability in data science, bioinformatics, and further afield. It was initially developed to analyse large volumes of data in order to tease out the differenc",
+"keywords": "pcatools"
+},
+{
+"pkg": "plyranges",
+"wf": "main",
+"name": "plyranges",
+"domain": "general",
+"prompt": "Run the plyranges Bioconductor analysis: A dplyr-like interface for interacting with the common Bioconductor classes Ranges and GenomicRanges. By providing a grammatical and consistent way of manipulating these classes their accessiblity for new Bioconductor users is hopefully inc",
+"keywords": "plyranges"
+},
+{
+"pkg": "progeny",
+"wf": "main",
+"name": "progeny",
+"domain": "transcriptomics",
+"prompt": "Run the progeny Bioconductor analysis: PROGENy is resource that leverages a large compendium of publicly available signaling perturbation experiments to yield a common core of pathway responsive genes for human and mouse. These, coupled with any statistical method, can be used t",
+"keywords": "progeny"
+},
+{
+"pkg": "proloc",
+"wf": "main",
+"name": "proloc",
+"domain": "proteomics",
+"prompt": "Run the proloc Bioconductor analysis: Import quantitative spatial proteomics data, optimize classifier parameters using cross-validation, and predict protein sub-cellular localization using Support Vector Machines (SVM).",
+"keywords": "proloc"
+},
+{
+"pkg": "protgear",
+"wf": "main",
+"name": "protgear",
+"domain": "proteomics",
+"prompt": "Run the protgear Bioconductor analysis: Pre-process raw protein microarray data (.gpr/.txt) through background correction, replicate CV filtering, tag subtraction, and normalization.",
+"keywords": "protgear"
+},
+{
+"pkg": "psmatch",
+"wf": "main",
+"name": "psmatch",
+"domain": "proteomics",
+"prompt": "Run the psmatch Bioconductor analysis: Load PSM identification data, filter out low-quality matches, and model peptide-protein relations as adjacency matrices and connected components to resolve protein groups.",
+"keywords": "psmatch"
+},
+{
+"pkg": "pwmenrich",
+"wf": "main",
+"name": "PWMEnrich",
+"domain": "general",
+"prompt": "Run the PWMEnrich Bioconductor analysis: A toolkit of high-level functions for DNA motif scanning and enrichment analysis built upon Biostrings. The main functionality is PWM enrichment analysis of already known PWMs (e.g. from databases such as MotifDb), but the package also impl",
+"keywords": "pwmenrich"
+},
+{
+"pkg": "qcmetrics",
+"wf": "main",
+"name": "qcmetrics",
+"domain": "proteomics",
+"prompt": "Run the qcmetrics Bioconductor analysis: Create a generic quality control metric, assign data, define custom plotting/showing methods, and generate a report.",
+"keywords": "qcmetrics"
+},
+{
+"pkg": "qfeatures",
+"wf": "main",
+"name": "qfeatures",
+"domain": "proteomics",
+"prompt": "Run the qfeatures Bioconductor analysis: Import, clean, transform, normalize, and aggregate quantitative mass spectrometry proteomics data from peptide/PSM level to protein level.",
+"keywords": "qfeatures"
+},
+{
+"pkg": "quantiseqr",
+"wf": "main",
+"name": "quantiseqr",
+"domain": "transcriptomics",
+"prompt": "Run the quantiseqr Bioconductor analysis: Perform immune cell deconvolution on a gene expression matrix and plot the resulting cell fractions.",
+"keywords": "quantiseqr"
+},
+{
+"pkg": "quantro",
+"wf": "main",
+"name": "quantro",
+"domain": "transcriptomics",
+"prompt": "Run the quantro Bioconductor analysis: Test for global differences in distributions between sample groups to determine if global normalization is appropriate.",
+"keywords": "quantro"
+},
+{
+"pkg": "quantsmooth",
+"wf": "main",
+"name": "quantsmooth",
+"domain": "general",
+"prompt": "Run the quantsmooth Bioconductor analysis: Smooth copy number array data, optimize the smoothing parameter, visualize profiles with multiple quantiles, and detect genomic regions with copy number changes.",
+"keywords": "quantsmooth"
+},
+{
+"pkg": "rbiopaxparser",
+"wf": "main",
+"name": "rbiopaxparser",
+"domain": "general",
+"prompt": "Run the rbiopaxparser Bioconductor analysis: Parse a BioPAX OWL file, extract pathway components, convert them to regulatory graphs, and visualize them.",
+"keywords": "rbiopaxparser"
+},
+{
+"pkg": "rcgh",
+"wf": "main",
+"name": "rcgh",
+"domain": "variant_calling",
+"prompt": "Run the rcgh Bioconductor analysis: Perform a complete aCGH analysis pipeline including data loading, signal adjustment, segmentation, EM normalization, gene annotation extraction, and visualization.",
+"keywords": "rcgh"
+},
+{
+"pkg": "reactomepa",
+"wf": "main",
+"name": "reactomepa",
+"domain": "general",
+"prompt": "Run the reactomepa Bioconductor analysis: Perform Reactome pathway over-representation analysis on a list of Entrez gene IDs and visualize the enriched pathways.",
+"keywords": "reactomepa"
+},
+{
+"pkg": "recount",
+"wf": "main",
+"name": "recount",
+"domain": "transcriptomics",
+"prompt": "Run the recount Bioconductor analysis: Explore and download data from the recount project available at https://jhubiostatistics.shinyapps.io/recount/. Using the recount package you can download RangedSummarizedExperiment objects at the gene, exon or exon-exon junctions level, th",
+"keywords": "recount"
+},
+{
+"pkg": "recount3",
+"wf": "main",
+"name": "recount3",
+"domain": "transcriptomics",
+"prompt": "Run the recount3 Bioconductor analysis: The recount3 package enables access to a large amount of uniformly processed RNA-seq data from human and mouse. You can download RangedSummarizedExperiment objects at the gene, exon or exon-exon junctions level with sample metadata and QC s",
+"keywords": "recount3"
+},
+{
+"pkg": "rgoslin",
+"wf": "main",
+"name": "rgoslin",
+"domain": "general",
+"prompt": "Run the rgoslin Bioconductor analysis: The R implementation for the Grammar of Succint Lipid Nomenclature parses different short hand notation dialects for lipid names. It normalizes them to a standard name. It further provides calculated monoisotopic masses and sum formulas for",
+"keywords": "rgoslin"
+},
+{
+"pkg": "rnaseqpower",
+"wf": "main",
+"name": "RNASeqPower",
+"domain": "transcriptomics",
+"prompt": "Run the RNASeqPower Bioconductor analysis: RNA-seq, sample size",
+"keywords": "rnaseqpower"
+},
+{
+"pkg": "rpx",
+"wf": "main",
+"name": "rpx",
+"domain": "proteomics",
+"prompt": "Run the rpx Bioconductor analysis: The rpx package implements an interface to proteomics data submitted to the ProteomeXchange consortium.",
+"keywords": "rpx"
+},
+{
+"pkg": "rqc",
+"wf": "main",
+"name": "rqc",
+"domain": "genomics",
+"prompt": "Run the rqc Bioconductor analysis: Quickly generate an HTML quality control report from a directory of FASTQ files.",
+"keywords": "rqc"
+},
+{
+"pkg": "rrvgo",
+"wf": "main",
+"name": "rrvgo",
+"domain": "general",
+"prompt": "Run the rrvgo Bioconductor analysis: Reduce redundancy in a list of enriched Gene Ontology (GO) terms using semantic similarity and visualize the grouped terms.",
+"keywords": "rrvgo"
+},
+{
+"pkg": "rtcgatoolbox",
+"wf": "main",
+"name": "RTCGAToolbox",
+"domain": "transcriptomics",
+"prompt": "Run the RTCGAToolbox Bioconductor analysis: Managing data from large scale projects such as The Cancer Genome Atlas (TCGA) for further analysis is an important and time consuming step for research projects. Several efforts, such as Firehose project, make TCGA pre-processed data publi",
+"keywords": "rtcgatoolbox"
+},
+{
+"pkg": "ruvseq",
+"wf": "main",
+"name": "ruvseq",
+"domain": "transcriptomics",
+"prompt": "Run the ruvseq Bioconductor analysis: Estimate factors of unwanted variation using negative control genes (e.g., spike-ins or empirical controls) and perform differential expression.",
+"keywords": "ruvseq"
+},
+{
+"pkg": "sangerseqr",
+"wf": "main",
+"name": "sangerseqr",
+"domain": "variant_calling",
+"prompt": "Run the sangerseqr Bioconductor analysis: Analyze Sanger sequencing chromatograms to resolve heterozygous indels, make basecalls, and phase alleles against a reference sequence.",
+"keywords": "sangerseqr"
+},
+{
+"pkg": "saturn",
+"wf": "main",
+"name": "saturn",
+"domain": "transcriptomics",
+"prompt": "Run the saturn Bioconductor analysis: Perform differential transcript usage (DTU) analysis on transcript-level expression data using quasi-binomial generalized linear models, followed by statistical testing and visualization.",
+"keywords": "saturn"
+},
+{
+"pkg": "sc3",
+"wf": "main",
+"name": "sc3",
+"domain": "transcriptomics",
+"prompt": "Run the sc3 Bioconductor analysis: Run the standard SC3 clustering and biological analysis pipeline using the high-level wrapper function and visualize the results.",
+"keywords": "sc3"
+},
+{
+"pkg": "scanmir",
+"wf": "main",
+"name": "scanMiR",
+"domain": "transcriptomics",
+"prompt": "Run the scanMiR Bioconductor analysis: A set of tools for working with miRNA affinity models (KdModels), efficiently scanning for miRNA binding sites, and predicting target repression. It supports scanning using miRNA seeds, full miRNA sequences (enabling 3' alignment) and KdMod",
+"keywords": "scanmir"
+},
+{
+"pkg": "scater",
+"wf": "main",
+"name": "scater",
+"domain": "transcriptomics",
+"prompt": "Run the scater Bioconductor analysis: Perform quality control, normalization, dimensionality reduction, and visualization of single-cell RNA-seq expression data.",
+"keywords": "scater"
+},
+{
+"pkg": "scdblfinder",
+"wf": "main",
+"name": "scdblfinder",
+"domain": "transcriptomics",
+"prompt": "Run the scdblfinder Bioconductor analysis: Run the main scDblFinder workflow on a SingleCellExperiment object to score and classify doublets.",
+"keywords": "scdblfinder"
+},
+{
+"pkg": "scone",
+"wf": "main",
+"name": "scone",
+"domain": "transcriptomics",
+"prompt": "Run the scone Bioconductor analysis: Filter poor-quality single-cell libraries and systematically evaluate, rank, and select the best normalization workflow from multiple combinations of scaling, imputation, and regression modules.",
+"keywords": "scone"
+},
+{
+"pkg": "scp",
+"wf": "main",
+"name": "scp",
+"domain": "transcriptomics",
+"prompt": "Run the scp Bioconductor analysis: Utility functions for manipulating, processing, and analyzing mass spectrometry-based single-cell proteomics data. The package is an extension to the 'QFeatures' package and relies on 'SingleCellExpirement' to enable single-cell proteomics ",
+"keywords": "scp"
+},
+{
+"pkg": "screpertoire",
+"wf": "main",
+"name": "screpertoire",
+"domain": "single_cell",
+"prompt": "Run the screpertoire Bioconductor analysis: Process raw TCR contig data, combine them into clones, and perform basic and advanced repertoire visualizations and diversity analyses without single-cell expression data.",
+"keywords": "screpertoire"
+},
+{
+"pkg": "sechm",
+"wf": "main",
+"name": "sechm",
+"domain": "transcriptomics",
+"prompt": "Run the sechm Bioconductor analysis: sechm provides a simple interface between SummarizedExperiment objects and the ComplexHeatmap package. It enables plotting annotated heatmaps from SE objects, with easy access to rowData and colData columns, and implements a number of featu",
+"keywords": "sechm"
+},
+{
+"pkg": "seqlogo",
+"wf": "main",
+"name": "seqlogo",
+"domain": "general",
+"prompt": "Run the seqlogo Bioconductor analysis: Generate and customize sequence logos from a position weight matrix of DNA or RNA sequences.",
+"keywords": "seqlogo"
+},
+{
+"pkg": "seqpattern",
+"wf": "main",
+"name": "seqpattern",
+"domain": "general",
+"prompt": "Run the seqpattern Bioconductor analysis: Extract genomic sequences around a reference point, sort them by a feature, and visualize oligonucleotide or consensus sequence densities and average profiles.",
+"keywords": "seqpattern"
+},
+{
+"pkg": "seqvartools",
+"wf": "main",
+"name": "seqvartools",
+"domain": "variant_calling",
+"prompt": "Run the seqvartools Bioconductor analysis: Convert VCF to GDS, perform variant quality control checks, and run single-variant association tests.",
+"keywords": "seqvartools"
+},
+{
+"pkg": "sesame",
+"wf": "main",
+"name": "sesame",
+"domain": "epigenomics",
+"prompt": "Run the sesame Bioconductor analysis: Tools For analyzing Illumina Infinium DNA methylation arrays. SeSAMe provides utilities to support analyses of multiple generations of Infinium DNA methylation BeadChips, including preprocessing, quality control, visualization and inference",
+"keywords": "sesame"
+},
+{
+"pkg": "shortread",
+"wf": "main",
+"name": "shortread",
+"domain": "genomics",
+"prompt": "Run the shortread Bioconductor analysis: Generate an HTML quality assessment report from a set of FASTQ files.",
+"keywords": "shortread"
+},
+{
+"pkg": "siggenes",
+"wf": "main",
+"name": "siggenes",
+"domain": "transcriptomics",
+"prompt": "Run the siggenes Bioconductor analysis: Perform Significance Analysis of Microarrays (SAM) to identify differentially expressed genes and visualize the results via SAM and Delta plots.",
+"keywords": "siggenes"
+},
+{
+"pkg": "singlecelltk",
+"wf": "main",
+"name": "singleCellTK",
+"domain": "transcriptomics",
+"prompt": "Run the singleCellTK Bioconductor analysis: The Single Cell Toolkit (SCTK) in the singleCellTK package provides an interface to popular tools for importing, quality control, analysis, and visualization of single cell RNA-seq data. SCTK allows users to seamlessly integrate tools from ",
+"keywords": "singlecelltk"
+},
+{
+"pkg": "singler",
+"wf": "main",
+"name": "singler",
+"domain": "transcriptomics",
+"prompt": "Run the singler Bioconductor analysis: Annotate single-cell RNA-seq test data using a built-in reference dataset from the celldex package.",
+"keywords": "singler"
+},
+{
+"pkg": "spia",
+"wf": "main",
+"name": "spia",
+"domain": "general",
+"prompt": "Run the spia Bioconductor analysis: Perform Signaling Pathway Impact Analysis (SPIA) using pre-existing pathway data to identify significant pathways based on over-representation and topology perturbation.",
+"keywords": "spia"
+},
+{
+"pkg": "spotclean",
+"wf": "main",
+"name": "spotclean",
+"domain": "transcriptomics",
+"prompt": "Run the spotclean Bioconductor analysis: Load raw 10x Visium data, create a slide object, visualize raw expression, perform decontamination, and convert to a Seurat object.",
+"keywords": "spotclean"
+},
+{
+"pkg": "stringdb",
+"wf": "main",
+"name": "stringdb",
+"domain": "proteomics",
+"prompt": "Run the stringdb Bioconductor analysis: Map differentially expressed genes to the STRING database, visualize their interaction network with fold-change color coding, perform background-corrected functional enrichment, and identify network clusters.",
+"keywords": "stringdb"
+},
+{
+"pkg": "sva",
+"wf": "main",
+"name": "sva",
+"domain": "transcriptomics",
+"prompt": "Run the sva Bioconductor analysis: Identify and adjust for latent, unknown sources of variation in continuous high-throughput data (e.g., microarrays) during differential expression analysis.",
+"keywords": "sva"
+},
+{
+"pkg": "synergyfinder",
+"wf": "main",
+"name": "synergyfinder",
+"domain": "general",
+"prompt": "Run the synergyfinder Bioconductor analysis: Analyze and visualize synergy and sensitivity for two-drug combinations without replicates.",
+"keywords": "synergyfinder"
+},
+{
+"pkg": "systempiper",
+"wf": "main",
+"name": "systemPipeR",
+"domain": "transcriptomics",
+"prompt": "Run the systemPipeR Bioconductor analysis: systemPipeR is a multipurpose data analysis workflow environment that unifies R with command-line tools. It enables scientists to analyze many types of large- or small-scale data on local or distributed computer systems with a high level of",
+"keywords": "systempiper"
+},
+{
+"pkg": "tcseq",
+"wf": "main",
+"name": "tcseq",
+"domain": "transcriptomics",
+"prompt": "Run the tcseq Bioconductor analysis: Perform differential analysis and temporal pattern clustering on time-course sequencing data (RNA-seq, ATAC-seq, or ChIP-seq).",
+"keywords": "tcseq"
+},
+{
+"pkg": "toast",
+"wf": "main",
+"name": "toast",
+"domain": "transcriptomics",
+"prompt": "Run the toast Bioconductor analysis: Detect cell-type specific and cross-cell type differential signals (csDE/csDM) from heterogeneous bulk high-throughput data using known or estimated cell proportions.",
+"keywords": "toast"
+},
+{
+"pkg": "trackviewer",
+"wf": "main",
+"name": "trackviewer",
+"domain": "transcriptomics",
+"prompt": "Run the trackviewer Bioconductor analysis: Import NGS coverage data (WIG/BED), build gene models, and visualize them as aligned track layers.",
+"keywords": "trackviewer"
+},
+{
+"pkg": "trajectoryutils",
+"wf": "main",
+"name": "TrajectoryUtils",
+"domain": "transcriptomics",
+"prompt": "Run the TrajectoryUtils Bioconductor analysis: Implements low-level utilities for single-cell trajectory analysis, primarily intended for re-use inside higher-level packages. Include a function to create a cluster-level minimum spanning tree and data structures to hold pseudotime infere",
+"keywords": "trajectoryutils"
+},
+{
+"pkg": "transformgampoi",
+"wf": "main",
+"name": "transformgampoi",
+"domain": "general",
+"prompt": "Run the transformgampoi Bioconductor analysis: Apply delta method-based transformations (acosh or shifted logarithm) to stabilize the variance of count data.",
+"keywords": "transformgampoi"
+},
+{
+"pkg": "tricycle",
+"wf": "main",
+"name": "tricycle",
+"domain": "transcriptomics",
+"prompt": "Run the tricycle Bioconductor analysis: Project single-cell RNA-seq data into the pre-learned cell cycle space, estimate continuous cell cycle positions, and visualize the results.",
+"keywords": "tricycle"
+},
+{
+"pkg": "tximeta",
+"wf": "main",
+"name": "tximeta",
+"domain": "transcriptomics",
+"prompt": "Run the tximeta Bioconductor analysis: Import Salmon transcript quantifications, automatically attach metadata/ranges, and summarize to gene-level.",
+"keywords": "tximeta"
+},
+{
+"pkg": "tximport",
+"wf": "main",
+"name": "tximport",
+"domain": "transcriptomics",
+"prompt": "Run the tximport Bioconductor analysis: Import transcript-level estimates, summarize them to the gene level, and prepare a DESeqDataSet for downstream differential expression analysis with DESeq2.",
+"keywords": "tximport"
+},
+{
+"pkg": "variantannotation",
+"wf": "main",
+"name": "variantannotation",
+"domain": "variant_calling",
+"prompt": "Run the variantannotation Bioconductor analysis: Read a VCF file, locate variants relative to gene models, predict amino acid coding changes, and query PolyPhen for functional impact.",
+"keywords": "variantannotation"
+},
+{
+"pkg": "viper",
+"wf": "main",
+"name": "viper",
+"domain": "transcriptomics",
+"prompt": "Run the viper Bioconductor analysis: Identify master regulators associated with a phenotypic transition by performing multi-sample msVIPER analysis with null models, leading-edge analysis, shadow analysis, and synergy analysis.",
+"keywords": "viper"
+},
+{
+"pkg": "vsn",
+"wf": "main",
+"name": "vsn",
+"domain": "variant_calling",
+"prompt": "Run the vsn Bioconductor analysis: Calibrate and variance-stabilize microarray intensity data from ExpressionSet or matrix objects.",
+"keywords": "vsn"
+},
+{
+"pkg": "zinbwave",
+"wf": "main",
+"name": "zinbwave",
+"domain": "transcriptomics",
+"prompt": "Run the zinbwave Bioconductor analysis: Perform low-dimensional representation of single-cell RNA-seq data using ZINB-WaVE, optionally adjusting for sample-level and gene-level covariates, and export normalized values or residuals.",
+"keywords": "zinbwave"
+},
+{
+"pkg": "batchelor",
+"wf": "batch_rescaling",
+"name": "batchelor_batch_rescaling",
+"domain": "transcriptomics",
+"prompt": "Run the batchelor_batch_rescaling Bioconductor analysis: Center batches in log-expression space on a per-gene basis while preserving sparsity (best for technical replicates).",
+"keywords": "batchelor"
+},
+{
+"pkg": "bsseq",
+"wf": "large_scale_hdf5_analysis",
+"name": "bsseq_large_scale_hdf5_analysis",
+"domain": "genomics",
+"prompt": "Run the bsseq_large_scale_hdf5_analysis Bioconductor analysis: Process large-scale WGBS datasets using HDF5-backed objects to bound memory consumption.",
+"keywords": "bsseq"
+},
+{
+"pkg": "dirichletmultinomial",
+"wf": "generative_classification",
+"name": "dirichletmultinomial_generative_classification",
+"domain": "metagenomics",
+"prompt": "Run the dirichletmultinomial_generative_classification Bioconductor analysis: Classify metagenomic samples into phenotypic groups using supervised Dirichlet-Multinomial group models.",
+"keywords": "dirichletmultinomial"
+},
+{
+"pkg": "edaseq",
+"wf": "gene_level_normalization_and_de",
+"name": "edaseq_gene_level_normalization_and_de",
+"domain": "transcriptomics",
+"prompt": "Run the edaseq_gene_level_normalization_and_de Bioconductor analysis: Perform gene-level exploratory data analysis, within-lane and between-lane normalization, and prepare data for differential expression analysis.",
+"keywords": "edaseq"
+},
+{
+"pkg": "glmgampoi",
+"wf": "cell_level_marker_gene_identification",
+"name": "glmgampoi_cell_level_marker_gene_identification",
+"domain": "transcriptomics",
+"prompt": "Run the glmgampoi_cell_level_marker_gene_identification Bioconductor analysis: Fit a Gamma-Poisson GLM directly on cell-level single-cell data to identify marker genes between cell types.",
+"keywords": "glmgampoi"
+},
+{
+"pkg": "graphite",
+"wf": "clipper_gene_expression",
+"name": "graphite_clipper_gene_expression",
+"domain": "general",
+"prompt": "Run the graphite_clipper_gene_expression Bioconductor analysis: Identify significant pathways and find the most relevant altered gene signal paths using clipper.",
+"keywords": "graphite"
+},
+{
+"pkg": "graphite",
+"wf": "topology_gsa_analysis",
+"name": "graphite_topology_gsa_analysis",
+"domain": "general",
+"prompt": "Run the graphite_topology_gsa_analysis Bioconductor analysis: Test pathway deregulation using graphical models (topologyGSA) on gene expression data.",
+"keywords": "graphite"
+},
+{
+"pkg": "gsva",
+"wf": "proteomics_missing_values",
+"name": "gsva_proteomics_missing_values",
+"domain": "transcriptomics",
+"prompt": "Run the gsva_proteomics_missing_values Bioconductor analysis: Calculate GSVA or ssGSEA enrichment scores on proteomics data containing missing values (NAs) without imputation.",
+"keywords": "gsva"
+},
+{
+"pkg": "gsva",
+"wf": "single_cell_gsva",
+"name": "gsva_single_cell_gsva",
+"domain": "transcriptomics",
+"prompt": "Run the gsva_single_cell_gsva Bioconductor analysis: Calculate GSVA scores on sparse single-cell RNA-seq data to assign cell types and plot enrichment.",
+"keywords": "gsva"
+},
+{
+"pkg": "kegggraph",
+"wf": "chemical_reaction_network_analysis",
+"name": "kegggraph_chemical_reaction_network_analysis",
+"domain": "general",
+"prompt": "Run the kegggraph_chemical_reaction_network_analysis Bioconductor analysis: Parse metabolic pathways to extract chemical compound reaction networks and analyze compound connectivity.",
+"keywords": "kegggraph"
+},
+{
+"pkg": "mixomics",
+"wf": "spls_regression",
+"name": "mixomics_spls_regression",
+"domain": "proteomics",
+"prompt": "Run the mixomics_spls_regression Bioconductor analysis: Integrate two quantitative datasets to model their covariance and select key variables from both datasets.",
+"keywords": "mixomics"
+},
+{
+"pkg": "mixomics",
+"wf": "splsda_classification",
+"name": "mixomics_splsda_classification",
+"domain": "proteomics",
+"prompt": "Run the mixomics_splsda_classification Bioconductor analysis: Classify samples into known groups and identify a minimal diagnostic molecular signature.",
+"keywords": "mixomics"
+},
+{
+"pkg": "motifmatchr",
+"wf": "motif_matching_sequences",
+"name": "motifmatchr_motif_matching_sequences",
+"domain": "general",
+"prompt": "Run the motifmatchr_motif_matching_sequences Bioconductor analysis: Find motif matches directly within biological sequences (DNAStringSet or character vectors).",
+"keywords": "motifmatchr"
+},
+{
+"pkg": "pathview",
+"wf": "discrete_data_visualization",
+"name": "pathview_discrete_data_visualization",
+"domain": "transcriptomics",
+"prompt": "Run the pathview_discrete_data_visualization Bioconductor analysis: Visualize discrete lists of significant genes and compounds on a pathway graph.",
+"keywords": "pathview"
+},
+{
+"pkg": "pathview",
+"wf": "multi_sample_comparison",
+"name": "pathview_multi_sample_comparison",
+"domain": "transcriptomics",
+"prompt": "Run the pathview_multi_sample_comparison Bioconductor analysis: Compare multiple samples or experimental states side-by-side on a single pathway graph by slicing nodes.",
+"keywords": "pathview"
+},
+{
+"pkg": "pcamethods",
+"wf": "expressionset_pca_imputation",
+"name": "pcamethods_expressionset_pca_imputation",
+"domain": "general",
+"prompt": "Run the pcamethods_expressionset_pca_imputation Bioconductor analysis: Perform PCA and impute missing values directly on a Bioconductor ExpressionSet object.",
+"keywords": "pcamethods"
+},
+{
+"pkg": "phyloseq",
+"wf": "differential_abundance_deseq2",
+"name": "phyloseq_differential_abundance_deseq2",
+"domain": "metagenomics",
+"prompt": "Run the phyloseq_differential_abundance_deseq2 Bioconductor analysis: Perform differential abundance testing on microbiome count data using negative binomial models via DESeq2.",
+"keywords": "phyloseq"
+},
+{
+"pkg": "scdblfinder",
+"wf": "compute_doublet_density",
+"name": "scdblfinder_compute_doublet_density",
+"domain": "transcriptomics",
+"prompt": "Run the scdblfinder_compute_doublet_density Bioconductor analysis: Score potential doublets based on the local density of simulated doublets in PCA space.",
+"keywords": "scdblfinder"
+},
+{
+"pkg": "scdblfinder",
+"wf": "find_doublet_clusters",
+"name": "scdblfinder_find_doublet_clusters",
+"domain": "transcriptomics",
+"prompt": "Run the scdblfinder_find_doublet_clusters Bioconductor analysis: Identify entire clusters that are likely composed of doublets by testing for lack of intermediacy in expression profiles.",
+"keywords": "scdblfinder"
+},
+{
+"pkg": "shortread",
+"wf": "custom_column_parsing",
+"name": "shortread_custom_column_parsing",
+"domain": "genomics",
+"prompt": "Run the shortread_custom_column_parsing Bioconductor analysis: Read specific columns of sequence and quality data from text-based export files into memory-efficient DNAStringSet and BStringSet objects.",
+"keywords": "shortread"
+},
+{
+"pkg": "shortread",
+"wf": "fastq_filtering_and_trimming",
+"name": "shortread_fastq_filtering_and_trimming",
+"domain": "genomics",
+"prompt": "Run the shortread_fastq_filtering_and_trimming Bioconductor analysis: Stream through a large FASTQ file, apply quality and composition filters, trim low-quality ends, and write the processed reads to a new file.",
+"keywords": "shortread"
+},
+{
+"pkg": "sva",
+"wf": "combat_known_batches",
+"name": "sva_combat_known_batches",
+"domain": "transcriptomics",
+"prompt": "Run the sva_combat_known_batches Bioconductor analysis: Directly adjust for known batch effects in continuous high-throughput data (e.g., microarrays) using an empirical Bayesian framework.",
+"keywords": "sva"
+},
+{
+"pkg": "sva",
+"wf": "combat_seq_rna_seq",
+"name": "sva_combat_seq_rna_seq",
+"domain": "transcriptomics",
+"prompt": "Run the sva_combat_seq_rna_seq Bioconductor analysis: Adjust for known batch effects in RNA-Seq count data using a negative binomial model while preserving integer counts and biological covariates.",
+"keywords": "sva"
+},
+{
+"pkg": "sva",
+"wf": "frozen_sva_prediction",
+"name": "sva_frozen_sva_prediction",
+"domain": "transcriptomics",
+"prompt": "Run the sva_frozen_sva_prediction Bioconductor analysis: Remove batch effects and latent variation in a test dataset using \"frozen\" surrogate variables estimated from a training dataset for prediction tasks.",
+"keywords": "sva"
+},
+{
+"pkg": "sva",
+"wf": "sva_sequencing",
+"name": "sva_sequencing",
+"domain": "transcriptomics",
+"prompt": "Run the sva_sequencing Bioconductor analysis: Estimate latent variables in count-based sequencing data using svaseq, optionally incorporating negative control probes (supervised SVA).",
+"keywords": "sva"
+},
+{
+"pkg": "tfbstools",
+"wf": "de_novo_motif_discovery",
+"name": "tfbstools_de_novo_motif_discovery",
+"domain": "genomics",
+"prompt": "Run the tfbstools_de_novo_motif_discovery Bioconductor analysis: Discover novel sequence motifs from a set of FASTA sequences using the MEME wrapper.",
+"keywords": "tfbstools"
+},
+{
+"pkg": "tximeta",
+"wf": "mixed_reference_import",
+"name": "tximeta_mixed_reference_import",
+"domain": "transcriptomics",
+"prompt": "Run the tximeta_mixed_reference_import Bioconductor analysis: Import long-read transcript quantifications containing both annotated and novel transcripts, inspect digests, and update metadata with custom ranges.",
+"keywords": "tximeta"
+},
+{
+"pkg": "tximport",
+"wf": "gene_level_import_and_edger_limma",
+"name": "tximport_gene_level_import_and_edger_limma",
+"domain": "transcriptomics",
+"prompt": "Run the tximport_gene_level_import_and_edger_limma Bioconductor analysis: Import transcript-level estimates, summarize them to the gene level, and prepare a DGEList object for downstream analysis with edgeR or limma-voom.",
+"keywords": "tximport"
+},
+{
+"pkg": "tximport",
+"wf": "rsem_import",
+"name": "tximport_rsem_import",
+"domain": "transcriptomics",
+"prompt": "Run the tximport_rsem_import Bioconductor analysis: Import gene-level or isoform-level quantification results from RSEM.",
+"keywords": "tximport"
+},
+{
+"pkg": "tximport",
+"wf": "stringtie_import",
+"name": "tximport_stringtie_import",
+"domain": "transcriptomics",
+"prompt": "Run the tximport_stringtie_import Bioconductor analysis: Import transcript coverage and abundance estimates from StringTie.",
+"keywords": "tximport"
+},
+{
+"pkg": "tximport",
+"wf": "transcript_level_import_and_summarization",
+"name": "tximport_transcript_level_import_and_summarization",
+"domain": "transcriptomics",
+"prompt": "Run the tximport_transcript_level_import_and_summarization Bioconductor analysis: Import transcript-level estimates without gene-level summarization, with the option to summarize to gene-level later or perform transcript-level differential expression.",
+"keywords": "tximport"
+},
+{
+"pkg": "variantannotation",
+"wf": "genotype_to_snpmatrix",
+"name": "variantannotation_genotype_to_snpmatrix",
+"domain": "variant_calling",
+"prompt": "Run the variantannotation_genotype_to_snpmatrix Bioconductor analysis: Convert VCF genotype calls or genotype likelihoods into a SnpMatrix object for downstream genetic association analysis.",
+"keywords": "variantannotation"
+},
+{
+"pkg": "vsn",
+"wf": "reference_normalization",
+"name": "vsn_reference_normalization",
+"domain": "variant_calling",
+"prompt": "Run the vsn_reference_normalization Bioconductor analysis: Normalize new test arrays against an existing reference dataset without changing the reference parameters.",
+"keywords": "vsn"
+},
+{
+"pkg": "acgh",
+"wf": "acgh_association_testing",
+"name": "acgh_association_testing",
+"domain": "imaging",
+"prompt": "Run the acgh_association_testing Bioconductor analysis: Test association of clones with categorical, censored, or continuous outcomes and plot frequency statistics.",
+"keywords": "acgh"
+},
+{
+"pkg": "acgh",
+"wf": "acgh_clustering",
+"name": "acgh_clustering",
+"domain": "imaging",
+"prompt": "Run the acgh_clustering Bioconductor analysis: Cluster samples based on copy number profiles of specific chromosomes and display with phenotype labels.",
+"keywords": "acgh"
+},
+{
+"pkg": "bayseq",
+"wf": "paired_data_beta_binomial",
+"name": "bayseq_paired_data_beta_binomial",
+"domain": "transcriptomics",
+"prompt": "Run the bayseq_paired_data_beta_binomial Bioconductor analysis: Identify differential expression between replicate groups and consistent differences within pairs using a beta-binomial distribution.",
+"keywords": "bayseq"
+},
+{
+"pkg": "category",
+"wf": "chrom_band_hypergeometric_test",
+"name": "category_chrom_band_hypergeometric_test",
+"domain": "general",
+"prompt": "Run the category_chrom_band_hypergeometric_test Bioconductor analysis: Perform standard and conditional hypergeometric testing for over-representation of chromosome bands in a list of selected genes.",
+"keywords": "category"
+},
+{
+"pkg": "clusterexperiment",
+"wf": "manual_step_by_step_clustering",
+"name": "clusterexperiment_manual_step_by_step_clustering",
+"domain": "transcriptomics",
+"prompt": "Run the clusterexperiment_manual_step_by_step_clustering Bioconductor analysis: Manually execute and fine-tune each step of the clustering workflow (clusterMany, makeConsensus, makeDendrogram, mergeClusters) to have granular control over parameters.",
+"keywords": "clusterexperiment"
+},
+{
+"pkg": "cqn",
+"wf": "cqn_edger_differential_expression",
+"name": "cqn_edger_differential_expression",
+"domain": "transcriptomics",
+"prompt": "Run the cqn_edger_differential_expression Bioconductor analysis: Perform differential expression analysis using edgeR with CQN-normalized offsets.",
+"keywords": "cqn"
+},
+{
+"pkg": "degreport",
+"wf": "de_downstream_and_reporting",
+"name": "degreport_de_downstream_and_reporting",
+"domain": "transcriptomics",
+"prompt": "Run the degreport_de_downstream_and_reporting Bioconductor analysis: Extract contrasts, identify significant genes, visualize differential expression results (MA, Volcano, Gene plots), and generate reports.",
+"keywords": "degreport"
+},
+{
+"pkg": "degreport",
+"wf": "expression_pattern_clustering",
+"name": "degreport_expression_pattern_clustering",
+"domain": "transcriptomics",
+"prompt": "Run the degreport_expression_pattern_clustering Bioconductor analysis: Detect and cluster genes showing similar expression patterns across experimental groups or time points.",
+"keywords": "degreport"
+},
+{
+"pkg": "destiny",
+"wf": "projection_prediction",
+"name": "destiny_projection_prediction",
+"domain": "general",
+"prompt": "Run the destiny_projection_prediction Bioconductor analysis: Project new cell samples into an existing diffusion map.",
+"keywords": "destiny"
+},
+{
+"pkg": "dss",
+"wf": "bsseq_multifactor_dml_dmr",
+"name": "dss_bsseq_multifactor_dml_dmr",
+"domain": "transcriptomics",
+"prompt": "Run the dss_bsseq_multifactor_dml_dmr Bioconductor analysis: Detect DML and DMR from BS-seq data under a general multi-factor or paired experimental design.",
+"keywords": "dss"
+},
+{
+"pkg": "ebseq",
+"wf": "gene_de_multi_conditions",
+"name": "ebseq_gene_de_multi_conditions",
+"domain": "transcriptomics",
+"prompt": "Run the ebseq_gene_de_multi_conditions Bioconductor analysis: Identify gene expression patterns and group genes into distinct expression profiles across three or more biological conditions.",
+"keywords": "ebseq"
+},
+{
+"pkg": "ebseq",
+"wf": "isoform_de_multi_conditions",
+"name": "ebseq_isoform_de_multi_conditions",
+"domain": "transcriptomics",
+"prompt": "Run the ebseq_isoform_de_multi_conditions Bioconductor analysis: Identify isoform expression patterns across three or more biological conditions while accounting for isoform estimation uncertainty.",
+"keywords": "ebseq"
+},
+{
+"pkg": "ebseq",
+"wf": "isoform_de_two_conditions",
+"name": "ebseq_isoform_de_two_conditions",
+"domain": "transcriptomics",
+"prompt": "Run the ebseq_isoform_de_two_conditions Bioconductor analysis: Identify differentially expressed isoforms between two biological conditions while accounting for isoform estimation uncertainty.",
+"keywords": "ebseq"
+},
+{
+"pkg": "escape",
+"wf": "gsea_on_precomputed_deg",
+"name": "escape_gsea_on_precomputed_deg",
+"domain": "transcriptomics",
+"prompt": "Run the escape_gsea_on_precomputed_deg Bioconductor analysis: Perform classical GSEA on precomputed differential expression results using ranked gene lists and visualize the output.",
+"keywords": "escape"
+},
+{
+"pkg": "fishpond",
+"wf": "allelic_imbalance_seesaw",
+"name": "fishpond_allelic_imbalance_seesaw",
+"domain": "transcriptomics",
+"prompt": "Run the fishpond_allelic_imbalance_seesaw Bioconductor analysis: Test for global, differential, or dynamic allelic imbalance using diploid-quantified Salmon bootstrap replicates.",
+"keywords": "fishpond"
+},
+{
+"pkg": "fishpond",
+"wf": "differential_transcript_usage",
+"name": "fishpond_differential_transcript_usage",
+"domain": "transcriptomics",
+"prompt": "Run the fishpond_differential_transcript_usage Bioconductor analysis: Test for differential transcript usage (DTU) by analyzing isoform proportions per gene across conditions.",
+"keywords": "fishpond"
+},
+{
+"pkg": "flowclust",
+"wf": "flowcore_integration",
+"name": "flowclust_flowcore_integration",
+"domain": "general",
+"prompt": "Run the flowclust_flowcore_integration Bioconductor analysis: Integrate flowClust clustering into a flowCore gating workflow using tmixFilter, Subset, split, and subsetting gates.",
+"keywords": "flowclust"
+},
+{
+"pkg": "geneoverlap",
+"wf": "matrix_gene_overlap",
+"name": "geneoverlap_matrix_gene_overlap",
+"domain": "general",
+"prompt": "Run the geneoverlap_matrix_gene_overlap Bioconductor analysis: Compare multiple gene lists from two different gene sets in a pairwise matrix fashion, visualize the results as a heatmap, and extract specific comparison matrices.",
+"keywords": "geneoverlap"
+},
+{
+"pkg": "geneoverlap",
+"wf": "self_comparison_overlap",
+"name": "geneoverlap_self_comparison_overlap",
+"domain": "general",
+"prompt": "Run the geneoverlap_self_comparison_overlap Bioconductor analysis: Perform a pairwise self-comparison of gene lists within a single gene set and visualize the results using customized heatmaps.",
+"keywords": "geneoverlap"
+},
+{
+"pkg": "genomation",
+"wf": "feature_combination_analysis",
+"name": "genomation_feature_combination_analysis",
+"domain": "genomics",
+"prompt": "Run the genomation_feature_combination_analysis Bioconductor analysis: Find combinations of overlapping genomic features (e.g., multiple transcription factor peaks) and visualize their signal.",
+"keywords": "genomation"
+},
+{
+"pkg": "globalancova",
+"wf": "generalized_and_hierarchical_testing",
+"name": "globalancova_generalized_and_hierarchical_testing",
+"domain": "transcriptomics",
+"prompt": "Run the globalancova_generalized_and_hierarchical_testing Bioconductor analysis: Apply global testing to non-quantitative or mixed variables (e.g., SNPs) and perform hierarchical testing to identify significant variable clusters.",
+"keywords": "globalancova"
+},
+{
+"pkg": "globalancova",
+"wf": "public_gene_set_testing",
+"name": "globalancova_public_gene_set_testing",
+"domain": "transcriptomics",
+"prompt": "Run the globalancova_public_gene_set_testing Bioconductor analysis: Test public gene set collections (Gene Ontology or Broad Institute MSigDB) for association with clinical groups using specialized multiple testing corrections.",
+"keywords": "globalancova"
+},
+{
+"pkg": "globalancova",
+"wf": "sum_of_squares_decomposition",
+"name": "globalancova_sum_of_squares_decomposition",
+"domain": "transcriptomics",
+"prompt": "Run the globalancova_sum_of_squares_decomposition Bioconductor analysis: Decompose the model sum of squares to evaluate the sequential or Type III effects of multiple clinical factors on gene expression, and perform pairwise comparisons of factor levels.",
+"keywords": "globalancova"
+},
+{
+"pkg": "gostats",
+"wf": "association_unsupported_organism",
+"name": "gostats_association_unsupported_organism",
+"domain": "transcriptomics",
+"prompt": "Run the gostats_association_unsupported_organism Bioconductor analysis: Perform GO or KEGG enrichment analysis for an organism that does not have a pre-built Bioconductor annotation package.",
+"keywords": "gostats"
+},
+{
+"pkg": "gostats",
+"wf": "go_visualization_and_similarity",
+"name": "gostats_go_visualization_and_similarity",
+"domain": "transcriptomics",
+"prompt": "Run the gostats_go_visualization_and_similarity Bioconductor analysis: Visualize phenotype expression patterns on an induced GO graph and calculate semantic similarity distances between genes based on GO annotations.",
+"keywords": "gostats"
+},
+{
+"pkg": "greylistchip",
+"wf": "bsgenome_workflow",
+"name": "greylistchip_bsgenome_workflow",
+"domain": "genomics",
+"prompt": "Run the greylistchip_bsgenome_workflow Bioconductor analysis: Generate a grey list in a single step using a BSgenome package and an input BAM file.",
+"keywords": "greylistchip"
+},
+{
+"pkg": "gwascat",
+"wf": "visualize_gwas_catalog_data",
+"name": "gwascat_visualize_gwas_catalog_data",
+"domain": "general",
+"prompt": "Run the gwascat_visualize_gwas_catalog_data Bioconductor analysis: Generate Manhattan plots and integrate GWAS catalog data with other genomic tracks (e.g., eQTLs, dsQTLs) using Gviz.",
+"keywords": "gwascat"
+},
+{
+"pkg": "heatplus",
+"wf": "annotated_heatmap",
+"name": "heatplus_annotated_heatmap",
+"domain": "general",
+"prompt": "Run the heatplus_annotated_heatmap Bioconductor analysis: Generate a heatmap with column (sample) annotations and colored dendrogram clusters.",
+"keywords": "heatplus"
+},
+{
+"pkg": "heatplus",
+"wf": "double_annotated_heatmap",
+"name": "heatplus_double_annotated_heatmap",
+"domain": "general",
+"prompt": "Run the heatplus_double_annotated_heatmap Bioconductor analysis: Generate a highly customized heatmap with both column (sample) and row (feature) annotations.",
+"keywords": "heatplus"
+},
+{
+"pkg": "heatplus",
+"wf": "legacy_heatmap",
+"name": "heatplus_legacy_heatmap",
+"domain": "general",
+"prompt": "Run the heatplus_legacy_heatmap Bioconductor analysis: Generate heatmaps using the older legacy functions heatmap_2 and heatmap_plus.",
+"keywords": "heatplus"
+},
+{
+"pkg": "hmmcopy",
+"wf": "matched_tumor_normal_correction",
+"name": "hmmcopy_matched_tumor_normal_correction",
+"domain": "genomics",
+"prompt": "Run the hmmcopy_matched_tumor_normal_correction Bioconductor analysis: Normalize tumor copy number profiles by matched normal copy number profiles to eliminate germline copy number variations and reduce noise, followed by segmentation.",
+"keywords": "hmmcopy"
+},
+{
+"pkg": "htsfilter",
+"wf": "deseq2_pipeline",
+"name": "htsfilter_deseq2_pipeline",
+"domain": "transcriptomics",
+"prompt": "Run the htsfilter_deseq2_pipeline Bioconductor analysis: Filter a DESeqDataSet object within the DESeq2 pipeline and perform differential analysis with independent filtering disabled in DESeq2.",
+"keywords": "htsfilter"
+},
+{
+"pkg": "htsfilter",
+"wf": "edger_pipeline",
+"name": "htsfilter_edger_pipeline",
+"domain": "transcriptomics",
+"prompt": "Run the htsfilter_edger_pipeline Bioconductor analysis: Filter edgeR differential expression results (DGEExact or DGELRT objects) using HTSFilter.",
+"keywords": "htsfilter"
+},
+{
+"pkg": "htsfilter",
+"wf": "external_normalization",
+"name": "htsfilter_external_normalization",
+"domain": "transcriptomics",
+"prompt": "Run the htsfilter_external_normalization Bioconductor analysis: Filter count data that has been normalized using an external method (e.g., EDASeq full quantile normalization) by setting norm=\"none\".",
+"keywords": "htsfilter"
+},
+{
+"pkg": "ihw",
+"wf": "incomplete_pvalues_ihw",
+"name": "ihw_incomplete_pvalues_ihw",
+"domain": "transcriptomics",
+"prompt": "Run the ihw_incomplete_pvalues_ihw Bioconductor analysis: Perform independent hypothesis weighting when only a subset of low p-values is reported or available.",
+"keywords": "ihw"
+},
+{
+"pkg": "karyoploter",
+"wf": "custom_low_level_plotting",
+"name": "karyoploter_custom_low_level_plotting",
+"domain": "genomics",
+"prompt": "Run the karyoploter_custom_low_level_plotting Bioconductor analysis: Plot custom numeric data points, lines, segments, and bars across multiple data panels with custom axes and backgrounds.",
+"keywords": "karyoploter"
+},
+{
+"pkg": "lea",
+"wf": "ecological_association_lfmm_mcmc",
+"name": "lea_ecological_association_lfmm_mcmc",
+"domain": "genomics",
+"prompt": "Run the lea_ecological_association_lfmm_mcmc Bioconductor analysis: Perform genotype-environment association (GEA) tests using the Bayesian MCMC LFMM algorithm to identify candidate loci under selection.",
+"keywords": "lea"
+},
+{
+"pkg": "matter",
+"wf": "nonuniform_spectral_signal_processing",
+"name": "matter_nonuniform_spectral_signal_processing",
+"domain": "imaging",
+"prompt": "Run the matter_nonuniform_spectral_signal_processing Bioconductor analysis: Represent nonuniformly-sampled spectral signals on a common domain, perform smoothing, baseline removal, alignment, peak detection, and binning/merging.",
+"keywords": "matter"
+},
+{
+"pkg": "mbkmeans",
+"wf": "bluster_mbkmeans_clustering",
+"name": "mbkmeans_bluster_mbkmeans_clustering",
+"domain": "transcriptomics",
+"prompt": "Run the mbkmeans_bluster_mbkmeans_clustering Bioconductor analysis: Cluster single-cell data using the bluster framework's clusterRows function with MbkmeansParam.",
+"keywords": "mbkmeans"
+},
+{
+"pkg": "mfuzz",
+"wf": "global_cluster_structure_analysis",
+"name": "mfuzz_global_cluster_structure_analysis",
+"domain": "proteomics",
+"prompt": "Run the mfuzz_global_cluster_structure_analysis Bioconductor analysis: Analyze the overlap, coupling, and global relationships between clusters to evaluate cluster stability and sub-cluster emergence across different cluster numbers.",
+"keywords": "mfuzz"
+},
+{
+"pkg": "motifstack",
+"wf": "ggplot2_motif_plotting",
+"name": "motifstack_ggplot2_motif_plotting",
+"domain": "transcriptomics",
+"prompt": "Run the motifstack_ggplot2_motif_plotting Bioconductor analysis: Plot motifs inside a ggplot2 canvas using geom_motif.",
+"keywords": "motifstack"
+},
+{
+"pkg": "msnid",
+"wf": "peptide_modification_mapping",
+"name": "msnid_peptide_modification_mapping",
+"domain": "proteomics",
+"prompt": "Run the msnid_peptide_modification_mapping Bioconductor analysis: Report peptide modifications, encode them with symbols, map modification sites to protein sequences using a FASTA file, and remap accessions to gene symbols.",
+"keywords": "msnid"
+},
+{
+"pkg": "msstatsconvert",
+"wf": "tmt_openms_workflow",
+"name": "msstatsconvert_tmt_openms_workflow",
+"domain": "proteomics",
+"prompt": "Run the msstatsconvert_tmt_openms_workflow Bioconductor analysis: Import, clean, preprocess, and balance multiplexed TMT mass spectrometry data (e.g., OpenMS output) for downstream MSstatsTMT analysis.",
+"keywords": "msstatsconvert"
+},
+{
+"pkg": "nebulosa",
+"wf": "seurat_density",
+"name": "nebulosa_seurat_density",
+"domain": "transcriptomics",
+"prompt": "Run the nebulosa_seurat_density Bioconductor analysis: Perform gene-weighted density estimation and visualization on a Seurat object.",
+"keywords": "nebulosa"
+},
+{
+"pkg": "noiseq",
+"wf": "differential_expression_analysis",
+"name": "noiseq_differential_expression_analysis",
+"domain": "transcriptomics",
+"prompt": "Run the noiseq_differential_expression_analysis Bioconductor analysis: Identify differentially expressed genes using NOISeq (for technical replicates or no replicates) or NOISeqBIO (for biological replicates), and visualize results.",
+"keywords": "noiseq"
+},
+{
+"pkg": "proloc",
+"wf": "nearest_neighbour_transfer_learning",
+"name": "proloc_nearest_neighbour_transfer_learning",
+"domain": "proteomics",
+"prompt": "Run the proloc_nearest_neighbour_transfer_learning Bioconductor analysis: Combine primary experimental spatial proteomics data with auxiliary annotation data (such as Gene Ontology terms) using a weighted k-nearest neighbor transfer learning algorithm (kNN-TL) to improve localization predictions.",
+"keywords": "proloc"
+},
+{
+"pkg": "proloc",
+"wf": "subcellular_resolution_assessment",
+"name": "proloc_subcellular_resolution_assessment",
+"domain": "proteomics",
+"prompt": "Run the proloc_subcellular_resolution_assessment Bioconductor analysis: Quantify the resolution of a spatial proteomics experiment and assess the tightness of marker clusters using QSep and ClustDist metrics.",
+"keywords": "proloc"
+},
+{
+"pkg": "quantiseqr",
+"wf": "deconvolution_from_summarized_experiment",
+"name": "quantiseqr_deconvolution_from_summarized_experiment",
+"domain": "transcriptomics",
+"prompt": "Run the quantiseqr_deconvolution_from_summarized_experiment Bioconductor analysis: Perform immune cell deconvolution on a SummarizedExperiment object, appending the results to the colData slot, and extract the quantifications.",
+"keywords": "quantiseqr"
+},
+{
+"pkg": "rankprod",
+"wf": "cdna_common_reference",
+"name": "rankprod_cdna_common_reference",
+"domain": "transcriptomics",
+"prompt": "Run the rankprod_cdna_common_reference Bioconductor analysis: Identify differentially expressed genes from cDNA microarray data using a common reference design.",
+"keywords": "rankprod"
+},
+{
+"pkg": "rcy3",
+"wf": "import_attribute_data",
+"name": "rcy3_import_attribute_data",
+"domain": "general",
+"prompt": "Run the rcy3_import_attribute_data Bioconductor analysis: Import external node attribute data (such as gene expression data) from a data frame into an existing Cytoscape network.",
+"keywords": "rcy3"
+},
+{
+"pkg": "rnbeads",
+"wf": "bisulfite_sequencing_vanilla_analysis",
+"name": "rnbeads_bisulfite_sequencing_vanilla_analysis",
+"domain": "genomics",
+"prompt": "Run the rnbeads_bisulfite_sequencing_vanilla_analysis Bioconductor analysis: Perform an automatic, comprehensive end-to-end analysis of bisulfite sequencing data (WGBS or RRBS) from BED files.",
+"keywords": "rnbeads"
+},
+{
+"pkg": "rnbeads",
+"wf": "tailored_step_by_step_analysis",
+"name": "rnbeads_tailored_step_by_step_analysis",
+"domain": "genomics",
+"prompt": "Run the rnbeads_tailored_step_by_step_analysis Bioconductor analysis: Execute individual RnBeads modules step-by-step for fine-grained control over array preprocessing, normalization, covariate inference, and differential methylation.",
+"keywords": "rnbeads"
+},
+{
+"pkg": "ruvseq",
+"wf": "ruvr_residuals",
+"name": "ruvseq_ruvr_residuals",
+"domain": "transcriptomics",
+"prompt": "Run the ruvseq_ruvr_residuals Bioconductor analysis: Estimate factors of unwanted variation using residuals from a first-pass GLM regression.",
+"keywords": "ruvseq"
+},
+{
+"pkg": "ruvseq",
+"wf": "ruvs_replicate_samples",
+"name": "ruvseq_ruvs_replicate_samples",
+"domain": "transcriptomics",
+"prompt": "Run the ruvseq_ruvs_replicate_samples Bioconductor analysis: Estimate factors of unwanted variation using replicate samples where the covariates of interest are constant.",
+"keywords": "ruvseq"
+},
+{
+"pkg": "screpertoire",
+"wf": "bcr_repertoire_clustering",
+"name": "screpertoire_bcr_repertoire_clustering",
+"domain": "single_cell",
+"prompt": "Run the screpertoire_bcr_repertoire_clustering Bioconductor analysis: Process raw BCR contig data, group related clones using sequence similarity or alignment metrics, and analyze B cell clonal relationships.",
+"keywords": "screpertoire"
+},
+{
+"pkg": "scry",
+"wf": "sce_null_residuals_pca",
+"name": "scry_sce_null_residuals_pca",
+"domain": "transcriptomics",
+"prompt": "Run the scry_sce_null_residuals_pca Bioconductor analysis: Perform fast dimension reduction approximation by computing null residuals and running standard PCA.",
+"keywords": "scry"
+},
+{
+"pkg": "seqpattern",
+"wf": "motif_scanning_and_density",
+"name": "seqpattern_motif_scanning_and_density",
+"domain": "general",
+"prompt": "Run the seqpattern_motif_scanning_and_density Bioconductor analysis: Scan genomic sequences with a Position Weight Matrix (PWM) to visualize motif density, scanning scores, and average occurrence profiles.",
+"keywords": "seqpattern"
+},
+{
+"pkg": "seqvartools",
+"wf": "variant_iteration",
+"name": "seqvartools_variant_iteration",
+"domain": "variant_calling",
+"prompt": "Run the seqvartools_variant_iteration Bioconductor analysis: Iterate over large genomic datasets using block, range, window, or list iterators to apply functions to subsets of variants.",
+"keywords": "seqvartools"
+},
+{
+"pkg": "trackviewer",
+"wf": "chromatin_interaction_visualization",
+"name": "trackviewer_chromatin_interaction_visualization",
+"domain": "transcriptomics",
+"prompt": "Run the trackviewer_chromatin_interaction_visualization Bioconductor analysis: Plot genomic interaction data (Hi-C/GInteractions) as a heatmap track alongside coverage tracks.",
+"keywords": "trackviewer"
+},
+{
+"pkg": "trackviewer",
+"wf": "dandelion_plot",
+"name": "trackviewer_dandelion_plot",
+"domain": "transcriptomics",
+"prompt": "Run the trackviewer_dandelion_plot Bioconductor analysis: Visualize high-density methylation or mutation data where standard lollipop plots would overlap excessively.",
+"keywords": "trackviewer"
+},
+{
+"pkg": "trackviewer",
+"wf": "lollipop_plot",
+"name": "trackviewer_lollipop_plot",
+"domain": "transcriptomics",
+"prompt": "Run the trackviewer_lollipop_plot Bioconductor analysis: Visualize genomic variants, mutations, or methylation sites as lollipop markers over gene/protein features.",
+"keywords": "trackviewer"
+},
+{
+"pkg": "tricycle",
+"wf": "custom_reference_projection",
+"name": "tricycle_custom_reference_projection",
+"domain": "transcriptomics",
+"prompt": "Run the tricycle_custom_reference_projection Bioconductor analysis: Build a custom cell cycle reference using PCA on Gene Ontology cell cycle genes and project data using this new reference.",
+"keywords": "tricycle"
+},
+{
+"pkg": "tricycle",
+"wf": "discrete_stage_inference",
+"name": "tricycle_discrete_stage_inference",
+"domain": "transcriptomics",
+"prompt": "Run the tricycle_discrete_stage_inference Bioconductor analysis: Infer discrete cell cycle stages (G1/S, S, G2, G2/M, M/G1) using the Schwabe et al. (2020) method.",
+"keywords": "tricycle"
+},
+{
+"pkg": "zinbwave",
+"wf": "differential_expression_with_weights",
+"name": "zinbwave_differential_expression_with_weights",
+"domain": "transcriptomics",
+"prompt": "Run the zinbwave_differential_expression_with_weights Bioconductor analysis: Compute observational weights using ZINB-WaVE and perform differential expression analysis on single-cell data using edgeR or DESeq2.",
+"keywords": "zinbwave"
+},
+{
+"pkg": "zinbwave",
+"wf": "large_dataset_approximation",
+"name": "zinbwave_large_dataset_approximation",
+"domain": "transcriptomics",
+"prompt": "Run the zinbwave_large_dataset_approximation Bioconductor analysis: Perform fast, approximate dimensionality reduction on large single-cell datasets using the zinbsurf projection strategy.",
+"keywords": "zinbwave"
+},
+{
+"pkg": "absseq",
+"wf": "complex_design_analysis",
+"name": "absseq_complex_design_analysis",
+"domain": "transcriptomics",
+"prompt": "Run the absseq_complex_design_analysis Bioconductor analysis: Perform differential expression analysis for complex experimental designs using linear models in combination with limma.",
+"keywords": "absseq"
+},
+{
+"pkg": "absseq",
+"wf": "variance_stabilization_and_pca",
+"name": "absseq_variance_stabilization_and_pca",
+"domain": "transcriptomics",
+"prompt": "Run the absseq_variance_stabilization_and_pca Bioconductor analysis: Stabilize count variances across expression levels using the aFold model and perform Principal Component Analysis (PCA) for exploratory data analysis.",
+"keywords": "absseq"
+},
+{
+"pkg": "bacon",
+"wf": "adjustment_with_95_ci",
+"name": "bacon_adjustment_with_95_ci",
+"domain": "genomics",
+"prompt": "Run the bacon_adjustment_with_95_ci Bioconductor analysis: Calculate average inflation- and bias-adjusted statistics with a 95% confidence interval using replicated z-scores.",
+"keywords": "bacon"
+},
+{
+"pkg": "bionero",
+"wf": "consensus_modules",
+"name": "bionero_consensus_modules",
+"domain": "transcriptomics",
+"prompt": "Run the bionero_consensus_modules Bioconductor analysis: Identify common coexpression modules across multiple expression datasets (e.g., different subsets or conditions).",
+"keywords": "bionero"
+},
+{
+"pkg": "bionero",
+"wf": "gene_regulatory_network",
+"name": "bionero_gene_regulatory_network",
+"domain": "transcriptomics",
+"prompt": "Run the bionero_gene_regulatory_network Bioconductor analysis: Infer a directed gene regulatory network from expression data and a list of regulators (TFs/miRNAs) using consensus or individual algorithms, and identify regulatory hubs.",
+"keywords": "bionero"
+},
+{
+"pkg": "brain",
+"wf": "heuristic_isotopic_distribution",
+"name": "brain_heuristic_isotopic_distribution",
+"domain": "proteomics",
+"prompt": "Run the brain_heuristic_isotopic_distribution Bioconductor analysis: Compute isotopic distributions for large molecules using time- and memory-saving heuristics (RCL and LSP) via BRAIN 2.0.",
+"keywords": "brain"
+},
+{
+"pkg": "cardelino",
+"wf": "clone_id_denovo",
+"name": "cardelino_clone_id_denovo",
+"domain": "transcriptomics",
+"prompt": "Run the cardelino_clone_id_denovo Bioconductor analysis: Infer clonal structure and assign cells to clones de-novo without a pre-defined clonal tree, typically using mitochondrial or high-coverage variants.",
+"keywords": "cardelino"
+},
+{
+"pkg": "cardinal",
+"wf": "class_comparison",
+"name": "cardinal_class_comparison",
+"domain": "imaging",
+"prompt": "Run the cardinal_class_comparison Bioconductor analysis: Perform statistical hypothesis testing to identify differentially abundant mass features between experimental conditions.",
+"keywords": "cardinal"
+},
+{
+"pkg": "cardinal",
+"wf": "supervised_classification",
+"name": "cardinal_supervised_classification",
+"domain": "imaging",
+"prompt": "Run the cardinal_supervised_classification Bioconductor analysis: Train and cross-validate classification models (PLS and Spatial Shrunken Centroids) to predict pixel classes.",
+"keywords": "cardinal"
+},
+{
+"pkg": "cardinal",
+"wf": "unsupervised_analysis_and_segmentation",
+"name": "cardinal_unsupervised_analysis_and_segmentation",
+"domain": "imaging",
+"prompt": "Run the cardinal_unsupervised_analysis_and_segmentation Bioconductor analysis: Perform dimension reduction, spatial clustering, and feature colocalization on unlabeled MSI datasets.",
+"keywords": "cardinal"
+},
+{
+"pkg": "cemitool",
+"wf": "diagnostic_and_troubleshooting_analysis",
+"name": "cemitool_diagnostic_and_troubleshooting_analysis",
+"domain": "transcriptomics",
+"prompt": "Run the cemitool_diagnostic_and_troubleshooting_analysis Bioconductor analysis: Generate a diagnostic report to troubleshoot data issues, assess sample heterogeneity, mean-variance relationships, and distribution properties.",
+"keywords": "cemitool"
+},
+{
+"pkg": "cghmcr",
+"wf": "minimum_common_regions_mcr",
+"name": "cghmcr_minimum_common_regions_mcr",
+"domain": "genomics",
+"prompt": "Run the cghmcr_minimum_common_regions_mcr Bioconductor analysis: Identify Minimum Common Regions (MCRs) of copy number alteration across samples from segmented data.",
+"keywords": "cghmcr"
+},
+{
+"pkg": "chemminer",
+"wf": "large_file_streaming",
+"name": "chemminer_large_file_streaming",
+"domain": "general",
+"prompt": "Run the chemminer_large_file_streaming Bioconductor analysis: Stream through massive SD files to compute descriptors and retrieve specific compounds without loading the entire file into memory.",
+"keywords": "chemminer"
+},
+{
+"pkg": "chemminer",
+"wf": "sql_database_storage",
+"name": "chemminer_sql_database_storage",
+"domain": "general",
+"prompt": "Run the chemminer_sql_database_storage Bioconductor analysis: Store small molecules and their computed features in an SQLite database for fast indexing, querying, and retrieval.",
+"keywords": "chemminer"
+},
+{
+"pkg": "chimeraviz",
+"wf": "fusion_reads_alignment_and_plotting",
+"name": "chimeraviz_fusion_reads_alignment_and_plotting",
+"domain": "genomics",
+"prompt": "Run the chimeraviz_fusion_reads_alignment_and_plotting Bioconductor analysis: Align supporting RNA-seq reads to a custom fusion junction reference sequence and visualize the alignment.",
+"keywords": "chimeraviz"
+},
+{
+"pkg": "chipenrich",
+"wf": "diagnostic_qc_plots",
+"name": "chipenrich_diagnostic_qc_plots",
+"domain": "epigenomics",
+"prompt": "Run the chipenrich_diagnostic_qc_plots Bioconductor analysis: Generate quality control plots to visualize peak distance to TSS, peak presence/count versus locus length, or gene coverage.",
+"keywords": "chipenrich"
+},
+{
+"pkg": "chipsim",
+"wf": "transcription_factor_binding_simulation",
+"name": "chipsim_transcription_factor_binding_simulation",
+"domain": "epigenomics",
+"prompt": "Run the chipsim_transcription_factor_binding_simulation Bioconductor analysis: Simulate transcription factor binding ChIP-seq data with custom feature generation, binding site densities, and strand-specific read densities.",
+"keywords": "chipsim"
+},
+{
+"pkg": "consensusclusterplus",
+"wf": "custom_distance_consensus_clustering",
+"name": "consensusclusterplus_custom_distance_consensus_clustering",
+"domain": "genomics",
+"prompt": "Run the consensusclusterplus_custom_distance_consensus_clustering Bioconductor analysis: Perform consensus clustering using a pre-computed custom distance matrix to reduce computation time on large datasets.",
+"keywords": "consensusclusterplus"
+},
+{
+"pkg": "crimage",
+"wf": "copy_number_correction",
+"name": "crimage_copy_number_correction",
+"domain": "imaging",
+"prompt": "Run the crimage_copy_number_correction Bioconductor analysis: Correct DNA copy number log-ratios (LRR) and beta allele frequencies (BAF) for tumor cellularity.",
+"keywords": "crimage"
+},
+{
+"pkg": "crisprscore",
+"wf": "cas12a_on_target_scoring",
+"name": "crisprscore_cas12a_on_target_scoring",
+"domain": "transcriptomics",
+"prompt": "Run the crisprscore_cas12a_on_target_scoring Bioconductor analysis: Predict on-target cutting efficiency for enCas12a gRNAs using the enPAM+GB algorithm.",
+"keywords": "crisprscore"
+},
+{
+"pkg": "daglogo",
+"wf": "fasta_peptide_analysis",
+"name": "daglogo_fasta_peptide_analysis",
+"domain": "general",
+"prompt": "Run the daglogo_fasta_peptide_analysis Bioconductor analysis: Perform differential amino acid usage analysis using a local FASTA file for the proteome and a text file of peptide sequences.",
+"keywords": "daglogo"
+},
+{
+"pkg": "desingle",
+"wf": "sce_input_workflow",
+"name": "desingle_sce_input_workflow",
+"domain": "transcriptomics",
+"prompt": "Run the desingle_sce_input_workflow Bioconductor analysis: Detect and classify differentially expressed genes between two groups of cells using a SingleCellExperiment object.",
+"keywords": "desingle"
+},
+{
+"pkg": "despace",
+"wf": "differential_spatial_patterns",
+"name": "despace_differential_spatial_patterns",
+"domain": "transcriptomics",
+"prompt": "Run the despace_differential_spatial_patterns Bioconductor analysis: Identify genes with differential spatial expression patterns (DSPs) across multiple experimental conditions or time points.",
+"keywords": "despace"
+},
+{
+"pkg": "dmrcaller",
+"wf": "bisulfite_seq_replicates_analysis",
+"name": "dmrcaller_bisulfite_seq_replicates_analysis",
+"domain": "epigenomics",
+"prompt": "Run the dmrcaller_bisulfite_seq_replicates_analysis Bioconductor analysis: Identify DMRs from bisulfite sequencing data with biological replicates using beta regression.",
+"keywords": "dmrcaller"
+},
+{
+"pkg": "flowviz",
+"wf": "one_dimensional_density_plots",
+"name": "flowviz_one_dimensional_density_plots",
+"domain": "imaging",
+"prompt": "Run the flowviz_one_dimensional_density_plots Bioconductor analysis: Visualize 1D kernel density estimates of flow cytometry channels with gate boundaries.",
+"keywords": "flowviz"
+},
+{
+"pkg": "gaga",
+"wf": "class_prediction",
+"name": "gaga_class_prediction",
+"domain": "transcriptomics",
+"prompt": "Run the gaga_class_prediction Bioconductor analysis: Predict the group/class of new samples using a fitted GaGa model.",
+"keywords": "gaga"
+},
+{
+"pkg": "gaga",
+"wf": "sample_size_calculation",
+"name": "gaga_sample_size_calculation",
+"domain": "transcriptomics",
+"prompt": "Run the gaga_sample_size_calculation Bioconductor analysis: Perform fixed and sequential sample size calculations to determine the optimal number of additional samples to collect.",
+"keywords": "gaga"
+},
+{
+"pkg": "genvisr",
+"wf": "loss_of_heterozygosity",
+"name": "genvisr_loss_of_heterozygosity",
+"domain": "general",
+"prompt": "Run the genvisr_loss_of_heterozygosity Bioconductor analysis: Visualize Loss of Heterozygosity (LOH) across a cohort or for a single chromosome in a single sample.",
+"keywords": "genvisr"
+},
+{
+"pkg": "genvisr",
+"wf": "transition_transversion_tvti",
+"name": "genvisr_transition_transversion_tvti",
+"domain": "general",
+"prompt": "Run the genvisr_transition_transversion_tvti Bioconductor analysis: Visualize the proportions or frequencies of transition and transversion mutation types across a cohort.",
+"keywords": "genvisr"
+},
+{
+"pkg": "ggmanh",
+"wf": "binned_manhattan_plot",
+"name": "ggmanh_binned_manhattan_plot",
+"domain": "genomics",
+"prompt": "Run the ggmanh_binned_manhattan_plot Bioconductor analysis: Create a binned grid-based Manhattan plot for extremely large datasets to avoid plotting individual points, with custom bin summaries.",
+"keywords": "ggmanh"
+},
+{
+"pkg": "ggmanh",
+"wf": "gds_variant_annotation_plotting",
+"name": "ggmanh_gds_variant_annotation_plotting",
+"domain": "genomics",
+"prompt": "Run the ggmanh_gds_variant_annotation_plotting Bioconductor analysis: Annotate GWAS summary statistics with gene/consequence information from a GDS file and plot the annotated Manhattan plot.",
+"keywords": "ggmanh"
+},
+{
+"pkg": "gviz",
+"wf": "gene_region_visualization",
+"name": "gviz_gene_region_visualization",
+"domain": "genomics",
+"prompt": "Run the gviz_gene_region_visualization Bioconductor analysis: Visualize gene models and transcripts from local data frames or TxDb objects.",
+"keywords": "gviz"
+},
+{
+"pkg": "isobar",
+"wf": "ptm_localization_quant",
+"name": "isobar_ptm_localization_quant",
+"domain": "proteomics",
+"prompt": "Run the isobar_ptm_localization_quant Bioconductor analysis: Filter and quantify post-translational modifications (PTMs) using PhosphoRS localization probabilities and estimate modified peptide ratios.",
+"keywords": "isobar"
+},
+{
+"pkg": "lisaclust",
+"wf": "custom_lisa_clustering",
+"name": "lisaclust_custom_lisa_clustering",
+"domain": "imaging",
+"prompt": "Run the lisaclust_custom_lisa_clustering Bioconductor analysis: Calculate LISA curves separately to allow custom clustering algorithms (e.g., manual k-means) before storing and plotting.",
+"keywords": "lisaclust"
+},
+{
+"pkg": "metabocoreutils",
+"wf": "quality_assessment_and_filtering",
+"name": "metabocoreutils_quality_assessment_and_filtering",
+"domain": "transcriptomics",
+"prompt": "Run the metabocoreutils_quality_assessment_and_filtering Bioconductor analysis: Calculate quality control metrics (coefficient of variation, D-ratio, missing value percentage, blank contamination) and filter out low-quality features.",
+"keywords": "metabocoreutils"
+},
+{
+"pkg": "metabocoreutils",
+"wf": "signal_drift_adjustment",
+"name": "metabocoreutils_signal_drift_adjustment",
+"domain": "transcriptomics",
+"prompt": "Run the metabocoreutils_signal_drift_adjustment Bioconductor analysis: Model and adjust for injection-order-dependent signal drift in LC-MS feature abundances using linear models fitted on QC samples.",
+"keywords": "metabocoreutils"
+},
+{
+"pkg": "msquality",
+"wf": "chromatographic_qc_chromatograms",
+"name": "msquality_chromatographic_qc_chromatograms",
+"domain": "proteomics",
+"prompt": "Run the msquality_chromatographic_qc_chromatograms Bioconductor analysis: Calculate quality metrics from chromatographic traces and peak shapes using Chromatograms objects.",
+"keywords": "msquality"
+},
+{
+"pkg": "preda",
+"wf": "sodegir_combined_analysis",
+"name": "preda_sodegir_combined_analysis",
+"domain": "transcriptomics",
+"prompt": "Run the preda_sodegir_combined_analysis Bioconductor analysis: Integrate gene expression and copy number data to identify genomic regions with significant overlapping alterations (amplified/deleted regions) across multiple samples.",
+"keywords": "preda"
+},
+{
+"pkg": "sc3",
+"wf": "hybrid_svm_clustering",
+"name": "sc3_hybrid_svm_clustering",
+"domain": "transcriptomics",
+"prompt": "Run the sc3_hybrid_svm_clustering Bioconductor analysis: Cluster large datasets (>5,000 cells) using a hybrid approach combining unsupervised clustering on a subset of cells and SVM label projection for the remaining cells.",
+"keywords": "sc3"
+},
+{
+"pkg": "sc3",
+"wf": "step_by_step_sc3_pipeline",
+"name": "sc3_step_by_step_sc3_pipeline",
+"domain": "transcriptomics",
+"prompt": "Run the sc3_step_by_step_sc3_pipeline Bioconductor analysis: Run the SC3 clustering pipeline step-by-step to inspect intermediate results and customize parameters at each stage.",
+"keywords": "sc3"
+},
+{
+"pkg": "synergyfinder",
+"wf": "higher_order_combinations",
+"name": "synergyfinder_higher_order_combinations",
+"domain": "general",
+"prompt": "Run the synergyfinder_higher_order_combinations Bioconductor analysis: Analyze and visualize higher-order drug combinations (3 or more drugs) using dimension reduction.",
+"keywords": "synergyfinder"
+},
+{
+"pkg": "synergyfinder",
+"wf": "two_drug_with_replicates",
+"name": "synergyfinder_two_drug_with_replicates",
+"domain": "general",
+"prompt": "Run the synergyfinder_two_drug_with_replicates Bioconductor analysis: Analyze and visualize drug combinations with replicates using bootstrapping to estimate confidence intervals and p-values.",
+"keywords": "synergyfinder"
+},
+{
+"pkg": "transformgampoi",
+"wf": "model_residuals_transformation",
+"name": "transformgampoi_model_residuals_transformation",
+"domain": "general",
+"prompt": "Run the transformgampoi_model_residuals_transformation Bioconductor analysis: Apply model residuals-based transformations (Pearson or randomized quantile residuals) to stabilize variance across all genes, including lowly expressed ones.",
+"keywords": "transformgampoi"
+}
+]
