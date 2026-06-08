@@ -232,7 +232,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'gemini-3-flash-preview',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3-flash-preview in production
+  intentModel: 'gemini-2.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-2.5-flash in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
@@ -1380,7 +1380,7 @@ export class GalaxyAssistant {
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
     const geminiModelName = modelOverride
-      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-3-flash-preview');
+      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-2.5-flash');
 
     // Convert Anthropic tool definitions → Gemini FunctionDeclarations
     const typeMap: Record<string, SchemaType> = {
@@ -6058,7 +6058,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           // Pass tools so Gemini can call run_code and read_file (always enable for analysis turns)
           const geminiTools = !isWorkflowTurn ? BIOMATE_TOOLS : undefined;
           const geminiResponse = await this._generateWithGemini(
-            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3-flash-preview',
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-2.5-flash',
             geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
           );
           return { message: geminiResponse, truncated: false };
