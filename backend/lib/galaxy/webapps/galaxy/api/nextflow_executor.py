@@ -1692,20 +1692,28 @@ def _generate_executor_config(
         lines += [
             f"aws {{",
             f"    region = '{region}'",
+            "    client {",
+            "        maxConnections = 20",
+            # nf-amazon@3.3.0 has a bug where multipart upload parts can be
+            # submitted out of order → CompleteMultipartUpload fails with
+            # "list of parts was not in ascending order". Newer versions
+            # fix it but pull in CRT (which crashes our JDK). Workaround:
+            # tune chunk size per workload to favour single-part uploads:
+            #   - BioMate workflows: 100 MB (production outputs are GB-scale,
+            #     so multipart is mandatory anyway and the bug is rare).
+            #   - nf-core: 50 MB (test fixtures are typically a few MB → fit
+            #     in single-part; full runs use multipart but still ordered
+            #     since fewer parts).
             *(
-                [
-                    "    client {",
-                    "        anonymous = false",
-                    "    }",
-                ]
+                ["        uploadChunkSize = 52428800"]  # 50 MB
                 if is_nfcore
-                else [
-                    "    client {",
-                    "        maxConnections = 20",
-                    "        uploadChunkSize = 104857600",  # 100 MB chunks
-                    "    }",
-                ]
+                else ["        uploadChunkSize = 104857600"]  # 100 MB
             ),
+            # For nf-core: force anonymous=false so it wins over their
+            # iGenomes-anonymous setting (pipelines like bamtofastq set it
+            # globally, breaking workDir PUTs).
+            *(["        anonymous = false"] if is_nfcore else []),
+            "    }",
             "    batch {",
             # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
             #   Base: ami-0b495ea217b3a1543 (ECS-optimized AL2023, kernel 6.1, 2026-04-03)
