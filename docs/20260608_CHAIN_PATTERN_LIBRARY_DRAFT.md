@@ -116,6 +116,8 @@
 
 **Reference**: Already implemented across ADMET / CYP-DDI / Docking / NCA-PK auto-loops; design echoed by GROMACS minimization protocols and RELION 3D classification stages.
 
+**Comparison surface**: the auto-loop UI already shows the before/after parameter diff (red strikethrough → green new value) on the remediation card. This IS the user-facing "compare runs" view — `iterative_refinement` owns it, no separate comparison pattern needed.
+
 ---
 
 ## 6. `cross_cohort_replication`
@@ -201,7 +203,11 @@ validation_data ─────────────────────�
 
 ---
 
-## 10. `comparative_benchmarking`
+## 10. `comparative_benchmarking` ⚠️ DEPRECATED FROM MAIN LIBRARY (2026-06-08)
+
+**User decision**: the user-facing comparison concept is already covered by `iterative_refinement`'s before/after param diff (auto-loop remediation card). Method-vs-method bake-offs are a developer concern, not a user pattern. This entry is kept here for reference only — should be relocated to a developer-tier catalog or dropped before the library is wired into retrieval.
+
+---
 
 **When**: User explicitly wants to compare tool/method variants on the same data (method-evaluation studies, choosing a default for a lab). Different from consensus: the *output* is per-method performance metrics, not an aggregated result.
 
