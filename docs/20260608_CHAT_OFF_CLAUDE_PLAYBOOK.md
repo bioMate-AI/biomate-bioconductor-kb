@@ -15,13 +15,13 @@ months.** The reason it wasn't actually being used:
    `BIOMATE_TOOL_RANKING_MODEL` on the production container.
 
 Both blockers are now removed: commit `<latest>` renames the broken
-default to `gemini-2.5-flash` (verified working) in all 4 sites.
+default to `gemini-3.5-flash` (verified working) in all 4 sites.
 
 ## The 4 chat sites and how each routes today
 
 | Site | What | Default model | Gemini-aware? |
 |---|---|---|---|
-| `galaxy-assistant.ts:4721` | intent classification | `gemini-2.5-flash` | ✓ — `_generateWithGemini` / two-tier flash↔pro routing |
+| `galaxy-assistant.ts:4721` | intent classification | `gemini-3.5-flash` | ✓ — `_generateWithGemini` / two-tier flash↔pro routing |
 | `galaxy-assistant.ts:5063` | tool ranking | `claude-haiku-4-5` | flag-gated — set `BIOMATE_CHAT_VIA_CHAIN=true` to route through llmGenerate (YAML chain) |
 | `galaxy-assistant.ts:5874` | response stream | `claude-sonnet-4-6` | ✓ — `_generateWithGemini` with `responseModel.startsWith('gemini-')` gate |
 | `galaxy-assistant.ts:5931` | tool-use turn | `claude-sonnet-4-6` | ✓ — same `_generateWithGemini` agentic loop (`MAX_TOOL_TURNS=12`) |
@@ -35,20 +35,35 @@ Set ALL four env vars on the Galaxy container:
 BIOMATE_CHAT_VIA_CHAIN=true
 
 # Pin each model to a verified-working Gemini name
-BIOMATE_INTENT_MODEL=gemini-2.5-flash          # default, leave as-is
-BIOMATE_TOOL_RANKING_MODEL=gemini-2.5-flash    # only used if CHAT_VIA_CHAIN=false
-BIOMATE_RESPONSE_MODEL=gemini-2.5-pro          # response + tool-use turn (the expensive ones)
+BIOMATE_INTENT_MODEL=gemini-3.5-flash          # newest GA Flash
+BIOMATE_TOOL_RANKING_MODEL=gemini-3.5-flash    # only used if CHAT_VIA_CHAIN=false
+BIOMATE_RESPONSE_MODEL=gemini-3.1-pro-preview  # response + tool-use turn (the expensive ones)
 ```
 
-Verified model names (probed against Google's API 2026-06-07):
-  - ✓ `gemini-3.1-pro-preview` (HTTP 200 — Anthropic-quality on long-form scientific writing per E2E)
-  - ✓ `gemini-2.5-pro` (HTTP 200 — stable, no preview suffix)
-  - ✓ `gemini-2.5-flash` (HTTP 200 — fast, no preview suffix)
-  - ✓ `gemini-3.5-flash` (HTTP 200 — newer flash variant)
-  - ✗ `gemini-3.5-flash-preview` (HTTP 404 — bogus name; previously in YAML)
-  - ✗ `gemini-3-flash-preview` (HTTP 404 — bogus name; previously hardcoded everywhere)
-  - ✗ `gemini-3-pro-preview` (HTTP 404)
-  - ✗ `gemini-2.0-flash` (HTTP 404)
+**Model name landscape as of 2026-06-07** (verified by probing
+Google's `/v1beta/models` endpoint):
+
+Pro variants:
+  - ✓ `gemini-3.1-pro-preview` — newest Pro (preview tier; matches what's
+    already configured as primary in `backend/config/llm_providers.yml`)
+  - There is **no `gemini-3.5-pro`** (Google has not shipped a 3.5 Pro;
+    the Pro line jumps from 2.5-pro GA straight to 3.1-pro-preview)
+
+Flash variants:
+  - ✓ `gemini-3.5-flash` — newest GA Flash (use this for intent + tool-ranking)
+  - ✓ `gemini-3.1-flash-lite` — even cheaper variant
+
+Specialty (NOT for chat):
+  - `gemini-2.5-computer-use-preview`, `*-image`, `*-tts`, `*-customtools` etc.
+
+Bogus names that returned HTTP 404 (avoid):
+  - ✗ `gemini-3.5-pro` / `gemini-3.5-pro-preview` (don't exist)
+  - ✗ `gemini-3-pro` / `gemini-3.1-pro` (need the `-preview` suffix)
+  - ✗ `gemini-3-flash-preview` (this was the bogus default that broke
+    chat for months)
+  - ✗ `gemini-3.5-flash-preview` (`gemini-3.5-flash` is the right name
+    — no `-preview` suffix needed)
+  - ✗ `gemini-2.0-flash` (`gemini-3.5-flash` is the closest GA)
 
 ## To apply on dev container (without recreating)
 
@@ -79,7 +94,7 @@ with `--env <K>=<V>`. See `scripts/enable_autofix3_on_dev.sh` lines
 Pre-flip: tail Galaxy logs for `[GalaxyAssistant] Response API request:`
 lines — they show `model: claude-sonnet-4-6` today.
 
-Post-flip: same log line should show `model: gemini-2.5-pro` and
+Post-flip: same log line should show `model: gemini-3.1-pro-preview` and
 `[GalaxyAssistant] _generateWithGemini` should appear in the trace.
 
 If the chain falls back (e.g. Gemini quota exhausted), the existing

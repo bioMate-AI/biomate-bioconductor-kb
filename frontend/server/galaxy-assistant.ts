@@ -232,7 +232,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'gemini-2.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-2.5-flash in production
+  intentModel: 'gemini-3.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.5-flash in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
@@ -241,8 +241,8 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
 
 // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
 // Overridable via env so model names can be tuned without code changes.
-const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-2.5-flash';
-const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-2.5-pro';
+const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-3.5-flash';
+const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.1-pro-preview';
 
 /**
  * Pick the appropriate Gemini intent model based on query complexity.
@@ -1380,7 +1380,7 @@ export class GalaxyAssistant {
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
     const geminiModelName = modelOverride
-      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-2.5-flash');
+      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-3.5-flash');
 
     // Convert Anthropic tool definitions → Gemini FunctionDeclarations
     const typeMap: Record<string, SchemaType> = {
@@ -3862,6 +3862,7 @@ BioMate has 61 drug_discovery and 21 pharmacology workflows. Inputs are molecula
 - Adaptive trial design: "adaptive trial / RAR randomization / MAMS design / interim stopping rules / O'Brien-Fleming adaptive" → workflow_generation (adaptive_trial_design)
 - Target analysis: "pharmacophore filtering / pocket detection / target tractability / kinome panel" → workflow_generation
 - HTS: "HTS plate QC / Z-factor / Z' / signal window / hit calling / dose-response (4PL) on screening plate" → workflow_generation (hts_plate_qc_hit_calling). Disambiguation: HTSFilter is an RNA-seq read-count filter (DESeq2-family), NOT an HTS plate QC tool despite the prefix. sights is an R/Bioconductor HTS-normalization library — prefer hts_plate_qc_hit_calling when the user wants an end-to-end pipeline (Z' + hit calling + report); prefer sights only when the user explicitly asks for SIGHTS or for HTS-normalization-only as an R package.
+- Allometric scaling / FIH dose: "allometric scaling / inter-species scaling / human PK prediction from animals / FIH dose / MRSD / MABEL / power-law fit across species" with per-species CL/Vd/t_half (mouse/rat/dog/monkey) → workflow_generation (allometric_scaling). Disambiguation: do NOT use PBPK (no SMILES needed); do NOT ask for SMILES — allometric needs species CL/Vd values, not molecular structure. The workflow emits qc_metrics.json with R² (SILVER-anchored to FDA 2005 FIH; the 0.85 cutoff is community convention).
 - Biologics: "scFv intrabody design / antibody developability / LNP formulation optimization" → workflow_generation
 
 Key: providing concrete molecular inputs (SMILES, PDB, dose levels, CSV data) + asking to run/compute/predict = workflow_generation. Asking "how does hERG work?" = research_question.
@@ -6058,7 +6059,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           // Pass tools so Gemini can call run_code and read_file (always enable for analysis turns)
           const geminiTools = !isWorkflowTurn ? BIOMATE_TOOLS : undefined;
           const geminiResponse = await this._generateWithGemini(
-            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-2.5-flash',
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
             geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
           );
           return { message: geminiResponse, truncated: false };
