@@ -32,49 +32,13 @@ from .retrieval import (
     retrieve_curated_chains,
     retrieve_patterns,
 )
+from .types import ChainEdge, ChainStep, ComposedChain, SurfacingMode
+from . import verifier as _verifier
+import os
 
 
-@dataclass
-class ChainStep:
-    order: int
-    workflow_name: str
-    role: str = ""
-    rationale: str = ""
-
-
-@dataclass
-class ChainEdge:
-    from_step: int
-    to_step: int
-    via: str = ""
-
-
-@dataclass
-class ComposedChain:
-    steps: List[ChainStep] = field(default_factory=list)
-    edges: List[ChainEdge] = field(default_factory=list)
-    rationale: str = ""
-    patterns_used: List[str] = field(default_factory=list)
-    exemplars_used: List[str] = field(default_factory=list)
-    confidence: float = 0.0
-    surfacing_mode: SurfacingMode = "reactive"
-    signals: Dict[str, float] = field(default_factory=dict)
-    source: str = "stub"  # "stub" | "llm" | "curated_passthrough"
-    entities: Dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "steps": [asdict(s) for s in self.steps],
-            "edges": [asdict(e) for e in self.edges],
-            "rationale": self.rationale,
-            "patterns_used": self.patterns_used,
-            "exemplars_used": self.exemplars_used,
-            "confidence": self.confidence,
-            "surfacing_mode": self.surfacing_mode,
-            "signals": self.signals,
-            "source": self.source,
-            "entities": self.entities,
-        }
+# (ChainStep, ChainEdge, ComposedChain now live in .types — both composer
+# and verifier import from there to avoid a circular dependency.)
 
 
 # Legacy hard-coded vocabulary kept only for the deprecated stub path.
@@ -214,6 +178,24 @@ def compose_chain(
     if composed is None:
         composed = _compose_stub(top_patterns, top_chains)
 
+    # Verify structure. For LLM output that fails, try one revision pass
+    # with the verifier feedback injected into the prompt. Stub output is
+    # not revised — it's already deterministic.
+    report = _verifier.verify_chain(composed)
+    if not report.ok and llm and composed.source == "llm":
+        revised = _compose_llm(
+            query, top_patterns, top_chains, entities, llm,
+            verifier_feedback=report.to_llm_feedback(),
+        )
+        if revised is not None:
+            re_report = _verifier.verify_chain(revised)
+            # Accept the revision only if it improved on the prior error count.
+            if len(re_report.errors) < len(report.errors):
+                composed = revised
+                composed.source = "llm_revised"
+                report = re_report
+    composed.verifier_report = report.to_dict()
+
     composed.confidence = conf.confidence
     composed.surfacing_mode = conf.mode
     composed.signals = {
@@ -229,49 +211,70 @@ def compose_chain(
     return composed
 
 
+# Minimum normalized score for a curated chain to be confidently passed
+# through by the stub. Below this the stub returns empty steps rather than
+# pretending the top retrieval hit is right. Tunable via env.
+def _curated_passthrough_threshold() -> float:
+    try:
+        return float(os.environ.get("BIOMATE_CURATED_PASSTHROUGH_MIN", "0.7"))
+    except (TypeError, ValueError):
+        return 0.7
+
+
 def _compose_stub(
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
 ) -> ComposedChain:
-    """Deterministic placeholder: when a curated chain is the clear winner,
-    pass it through; otherwise emit a one-step "needs LLM" placeholder.
+    """Deterministic placeholder. Only passes through a curated chain when
+    its normalized score is comfortably high (default ≥0.7). Otherwise emits
+    an honest "no plan emitted" — better than fabricating relevance.
     """
-    if top_chains and (not top_patterns or top_chains[0].score >= top_patterns[0].score):
-        # Curated chain passthrough.
-        chain = top_chains[0]
-        steps = []
-        edges = []
-        for i, step in enumerate(chain.steps):
-            steps.append(
-                ChainStep(
-                    order=step.get("order", i + 1),
-                    workflow_name=step.get("workflow_name", "?"),
-                    role=step.get("role", ""),
-                    rationale=f"from curated chain `{chain.name}`",
+    threshold = _curated_passthrough_threshold()
+    if top_chains:
+        normalized = _normalize_chain_score(top_chains[0].score)
+        if normalized >= threshold and (
+            not top_patterns or top_chains[0].score >= top_patterns[0].score
+        ):
+            # Curated chain passthrough — high confidence in retrieval.
+            chain = top_chains[0]
+            steps = []
+            edges = []
+            for i, step in enumerate(chain.steps):
+                steps.append(
+                    ChainStep(
+                        order=step.get("order", i + 1),
+                        workflow_name=step.get("workflow_name", "?"),
+                        role=step.get("role", ""),
+                        rationale=f"from curated chain `{chain.name}`",
+                    )
                 )
+                if i > 0:
+                    edges.append(ChainEdge(from_step=i, to_step=i + 1))
+            return ComposedChain(
+                steps=steps,
+                edges=edges,
+                rationale=f"Curated chain `{chain.name}` matched the query (score {normalized:.2f}).",
+                source="curated_passthrough",
             )
-            if i > 0:
-                edges.append(ChainEdge(from_step=i, to_step=i + 1))
-        return ComposedChain(
-            steps=steps,
-            edges=edges,
-            rationale=f"Curated chain `{chain.name}` matched the query.",
-            source="curated_passthrough",
-        )
 
-    # No clear curated match — emit a stub flagging that LLM composition is
-    # required. The prototype intentionally stops here rather than hallucinate.
-    pattern_note = (
-        f"Top pattern: `{top_patterns[0].pattern.name}` "
-        f"(score {top_patterns[0].score:.2f}). "
-        "LLM not configured — composer cannot synthesize without it."
-        if top_patterns
-        else "No relevant pattern or curated chain found."
-    )
+    # No high-confidence curated match — be honest about it rather than guess.
+    if top_chains and top_patterns:
+        note = (
+            f"Best curated match `{top_chains[0].name}` scored {_normalize_chain_score(top_chains[0].score):.2f} "
+            f"(threshold {threshold:.2f}). Top pattern `{top_patterns[0].pattern.name}` "
+            f"suggests the shape. LLM composition required to synthesize a specific chain."
+        )
+    elif top_patterns:
+        note = (
+            f"Top pattern: `{top_patterns[0].pattern.name}` (score {top_patterns[0].score:.2f}). "
+            "No curated chain matched; LLM composition required."
+        )
+    else:
+        note = "No relevant pattern or curated chain found for this query."
     return ComposedChain(
         steps=[],
         edges=[],
-        rationale=pattern_note,
+        rationale=note,
         source="stub",
     )
 
@@ -282,14 +285,16 @@ def _compose_llm(
     top_chains: List[ScoredChain],
     entities: QueryEntities,
     llm: Callable[[str], str],
+    verifier_feedback: str = "",
 ) -> Optional[ComposedChain]:
     """Ask the LLM to emit a chain in the free-form schema.
 
     The LLM is shown: query, extracted entities, top patterns (scaffolding),
-    top curated chains (exemplars). Returns None on parse failure; caller
+    top curated chains (exemplars), and (on revision) verifier feedback
+    from the previous attempt. Returns None on parse failure; caller
     treats as stub.
     """
-    prompt = _build_prompt(query, top_patterns, top_chains, entities)
+    prompt = _build_prompt(query, top_patterns, top_chains, entities, verifier_feedback)
     try:
         raw = llm(prompt)
         return _parse_llm_chain(raw)
@@ -302,6 +307,7 @@ def _build_prompt(
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
     entities: QueryEntities,
+    verifier_feedback: str = "",
 ) -> str:
     parts = [
         "You are composing a multi-step bioinformatics analysis chain for a user.",
@@ -329,6 +335,10 @@ def _build_prompt(
         parts.append(f"  Description: {sc.description}")
         step_names = [s.get("workflow_name", "?") for s in sc.steps]
         parts.append(f"  Steps: {' → '.join(step_names)}")
+
+    if verifier_feedback:
+        parts.append("\nPRIOR ATTEMPT FAILED VERIFICATION — fix these issues:")
+        parts.append(verifier_feedback)
 
     parts.append("""
 TASK: Output a chain as JSON with this exact schema:

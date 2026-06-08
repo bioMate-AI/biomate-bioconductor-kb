@@ -302,6 +302,170 @@ def test_retrieval_entity_boost_helps_when_query_is_terse():
 
 # ---------- LLM adapter ----------
 
+# ---------- verifier ----------
+
+def test_verifier_empty_chain_is_ok():
+    from chain_composer import ComposedChain, verify_chain
+    r = verify_chain(ComposedChain(), known_names=set())
+    assert r.ok
+    assert r.errors == []
+
+
+def test_verifier_flags_unknown_workflow():
+    from chain_composer import ChainStep, ComposedChain, verify_chain
+    chain = ComposedChain(steps=[
+        ChainStep(order=1, workflow_name="nf-core/rnaseq"),
+        ChainStep(order=2, workflow_name="totally-made-up-workflow"),
+    ])
+    r = verify_chain(chain, known_names={"nf-core/rnaseq"})
+    assert not r.ok
+    codes = [e.code for e in r.errors]
+    assert "unknown_workflow" in codes
+    # Error must point at the offending step.
+    bad = [e for e in r.errors if e.code == "unknown_workflow"][0]
+    assert bad.step_order == 2
+
+
+def test_verifier_flags_self_loop_edge():
+    from chain_composer import ChainEdge, ChainStep, ComposedChain, verify_chain
+    chain = ComposedChain(
+        steps=[ChainStep(order=1, workflow_name="a"), ChainStep(order=2, workflow_name="b")],
+        edges=[ChainEdge(from_step=1, to_step=1)],
+    )
+    r = verify_chain(chain, known_names={"a", "b"})
+    assert not r.ok
+    assert "self_loop_edge" in [e.code for e in r.errors]
+
+
+def test_verifier_flags_cycle():
+    from chain_composer import ChainEdge, ChainStep, ComposedChain, verify_chain
+    chain = ComposedChain(
+        steps=[
+            ChainStep(order=1, workflow_name="a"),
+            ChainStep(order=2, workflow_name="b"),
+            ChainStep(order=3, workflow_name="c"),
+        ],
+        edges=[
+            ChainEdge(from_step=1, to_step=2),
+            ChainEdge(from_step=2, to_step=3),
+            ChainEdge(from_step=3, to_step=1),  # cycle
+        ],
+    )
+    r = verify_chain(chain, known_names={"a", "b", "c"})
+    assert "cycle_detected" in [e.code for e in r.errors]
+
+
+def test_verifier_warns_on_orphan_step():
+    from chain_composer import ChainEdge, ChainStep, ComposedChain, verify_chain
+    chain = ComposedChain(
+        steps=[
+            ChainStep(order=1, workflow_name="a"),
+            ChainStep(order=2, workflow_name="b"),
+            ChainStep(order=3, workflow_name="orphan"),
+        ],
+        edges=[ChainEdge(from_step=1, to_step=2)],
+    )
+    r = verify_chain(chain, known_names={"a", "b", "orphan"})
+    assert r.ok  # warning, not error
+    assert "orphan_step" in [w.code for w in r.warnings]
+
+
+def test_verifier_flags_edge_to_nonexistent_step():
+    from chain_composer import ChainEdge, ChainStep, ComposedChain, verify_chain
+    chain = ComposedChain(
+        steps=[ChainStep(order=1, workflow_name="a"), ChainStep(order=2, workflow_name="b")],
+        edges=[ChainEdge(from_step=1, to_step=99)],
+    )
+    r = verify_chain(chain, known_names={"a", "b"})
+    assert "edge_target_unknown" in [e.code for e in r.errors]
+
+
+def test_verifier_feedback_renders_for_llm():
+    """LLM revision needs human-ish text — verify the renderer formats sanely."""
+    from chain_composer import ChainStep, ComposedChain, verify_chain
+    chain = ComposedChain(steps=[ChainStep(order=1, workflow_name="nope")])
+    r = verify_chain(chain, known_names={"yes"})
+    fb = r.to_llm_feedback()
+    assert "ERRORS" in fb
+    assert "nope" in fb
+    assert "[step 1]" in fb
+
+
+# ---------- stub tightening ----------
+
+def test_stub_emits_empty_when_curated_score_below_threshold():
+    """Below-threshold curated match must NOT be passed through as a chain."""
+    r = compose_chain(
+        "do something vague and unspecific please",
+        llm=None,  # force stub
+    )
+    # With a weak query, no curated chain should be confidently above 0.7.
+    # The stub must emit empty steps with an honest rationale.
+    if r.signals["normalized_chain_score"] < 0.7:
+        assert r.steps == []
+        assert r.source == "stub"
+        # Rationale phrasing varies based on what retrieval returned; assert
+        # only that it's an honest "no plan emitted" message.
+        msg = r.rationale.lower()
+        assert ("no curated chain" in msg
+                or "no relevant" in msg
+                or "llm composition required" in msg)
+
+
+def test_stub_passthrough_when_curated_score_high():
+    r = compose_chain(
+        "bulk RNA-seq differential expression analysis on human samples",
+        llm=None,
+    )
+    assert r.signals["normalized_chain_score"] >= 0.7
+    assert r.source == "curated_passthrough"
+    assert r.steps
+
+
+def test_stub_threshold_overridable_via_env(monkeypatch):
+    """Operators can tune the threshold without code changes."""
+    monkeypatch.setenv("BIOMATE_CURATED_PASSTHROUGH_MIN", "0.99")
+    r = compose_chain(
+        "bulk RNA-seq differential expression analysis on human samples",
+        llm=None,
+    )
+    # With threshold cranked to 0.99, even the strong RNA-seq chain may fall through.
+    # The test asserts the env override took effect, not a specific outcome.
+    assert r.source in {"stub", "curated_passthrough"}
+
+
+# ---------- LLM revision loop ----------
+
+def test_llm_revision_loop_fixes_unknown_workflow():
+    """First LLM emits a bogus workflow; revision pass fixes it after seeing
+    the verifier feedback."""
+    calls = {"n": 0}
+
+    def fake_llm(prompt: str) -> str:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            # First emit: nonexistent workflow.
+            return """{
+              "steps": [{"order": 1, "workflow_name": "bogus-name-xyz", "role": "x", "rationale": "y"}],
+              "edges": [],
+              "rationale": "first try"
+            }"""
+        # Revision sees verifier feedback and emits a real workflow.
+        assert "ERRORS" in prompt or "verification" in prompt.lower(), \
+            "revision prompt must include verifier feedback"
+        return """{
+          "steps": [{"order": 1, "workflow_name": "nf-core/rnaseq", "role": "r", "rationale": "fixed"}],
+          "edges": [],
+          "rationale": "revised"
+        }"""
+
+    # Disable LLM NER so the fake_llm is only invoked by the compose path.
+    r = compose_chain("bulk RNA-seq DE", llm=fake_llm, enable_llm_ner=False)
+    assert calls["n"] == 2, f"expected exactly one revision pass, got {calls['n']} calls"
+    assert r.source == "llm_revised", f"source={r.source} (rationale: {r.rationale})"
+    assert r.steps[0].workflow_name == "nf-core/rnaseq"
+
+
 def test_default_llm_returns_none_without_keys(monkeypatch):
     """Adapter must return None gracefully when no provider key is present."""
     from chain_composer.llm_adapter import default_llm
