@@ -11,7 +11,7 @@
  * User Query → NLU (Claude) → Tool Search + Dataset RAG → Workflow Generation
  */
 
-import { CHAIN_HINT_FALLBACK } from './chain-hint-fallback';
+import { resolveChainHintNames } from './chain-hint-fallback';
 import Anthropic from '@anthropic-ai/sdk';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
@@ -3855,29 +3855,16 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     ) {
       return this._chainHintNamesCache.names;
     }
-    // Fallback chain list used when Galaxy is unreachable at boot.
-    // MUST stay in sync with workflow_chains rows where source != 'bioc_reactive'.
-    // Guarded by frontend/server/__tests__/chain-hint-fallback.test.ts —
-    // see docs/20260607_PARALLELISM_AND_CROSS_DOMAIN_CHAINING_PROPOSAL.md (C7).
-    const fallback: string[] = [...CHAIN_HINT_FALLBACK];
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      // intent_hint=true excludes bioc_reactive chains (post-completion suggestions only)
-      // to prevent the classifier from mis-routing single-step requests into full chains
-      const res = await fetch(`${galaxyUrl}/api/workflow-chains?intent_hint=true`, {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (!res.ok) return fallback;
-      const data: any = await res.json();
-      const names = (data.chains || []).map((c: any) => c.name).filter(Boolean);
-      if (names.length) {
-        this._chainHintNamesCache = { names, fetchedAt: Date.now() };
-        return names;
-      }
-    } catch {
-      /* use fallback */
+    // Resolution delegated to chain-hint-fallback.resolveChainHintNames so the
+    // fallback-vs-live path is unit-testable without spinning up Galaxy.
+    // intent_hint=true (handled inside the helper) excludes bioc_reactive chains
+    // so the classifier doesn't mis-route single-step requests into full chains.
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    const { names, fromFallback } = await resolveChainHintNames(galaxyUrl);
+    if (!fromFallback) {
+      this._chainHintNamesCache = { names, fetchedAt: Date.now() };
     }
-    return fallback;
+    return names;
   }
 
   /**

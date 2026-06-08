@@ -9,8 +9,8 @@
  * Context: docs/20260607_PARALLELISM_AND_CROSS_DOMAIN_CHAINING_PROPOSAL.md (C7).
  */
 
-import { describe, it, expect } from "vitest";
-import { CHAIN_HINT_FALLBACK } from "../chain-hint-fallback";
+import { describe, it, expect, vi } from "vitest";
+import { CHAIN_HINT_FALLBACK, resolveChainHintNames } from "../chain-hint-fallback";
 
 describe("CHAIN_HINT_FALLBACK", () => {
   it("contains every load-bearing chain a deploy must recognize", () => {
@@ -56,5 +56,79 @@ describe("CHAIN_HINT_FALLBACK", () => {
       a.toLowerCase().localeCompare(b.toLowerCase())
     );
     expect(CHAIN_HINT_FALLBACK).toEqual(sorted);
+  });
+});
+
+describe("resolveChainHintNames", () => {
+  const URL = "http://galaxy-test:8081";
+
+  it("returns live chains when Galaxy responds with non-empty list", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ chains: [{ name: "alpha" }, { name: "beta" }] }),
+    });
+    const result = await resolveChainHintNames(URL, fakeFetch as any);
+    expect(result.fromFallback).toBe(false);
+    expect(result.names).toEqual(["alpha", "beta"]);
+    // intent_hint=true must be passed so bioc_reactive chains stay excluded.
+    expect(fakeFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/workflow-chains?intent_hint=true"),
+      expect.any(Object),
+    );
+  });
+
+  it("falls back to the full 29-chain list on network error", async () => {
+    const fakeFetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
+    const result = await resolveChainHintNames(URL, fakeFetch as any);
+    expect(result.fromFallback).toBe(true);
+    expect(result.names).toEqual([...CHAIN_HINT_FALLBACK]);
+    expect(result.names.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("falls back on non-OK HTTP status", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+    const result = await resolveChainHintNames(URL, fakeFetch as any);
+    expect(result.fromFallback).toBe(true);
+    expect(result.names).toEqual([...CHAIN_HINT_FALLBACK]);
+  });
+
+  it("falls back when Galaxy returns empty chain list", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ chains: [] }),
+    });
+    const result = await resolveChainHintNames(URL, fakeFetch as any);
+    expect(result.fromFallback).toBe(true);
+    expect(result.names).toEqual([...CHAIN_HINT_FALLBACK]);
+  });
+
+  it("falls back on malformed JSON response", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => {
+        throw new SyntaxError("Unexpected token");
+      },
+    });
+    const result = await resolveChainHintNames(URL, fakeFetch as any);
+    expect(result.fromFallback).toBe(true);
+    expect(result.names).toEqual([...CHAIN_HINT_FALLBACK]);
+  });
+
+  it("ignores chains lacking a name field", async () => {
+    const fakeFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ chains: [{ name: "alpha" }, { name: null }, {}, { name: "beta" }] }),
+    });
+    const result = await resolveChainHintNames(URL, fakeFetch as any);
+    expect(result.fromFallback).toBe(false);
+    expect(result.names).toEqual(["alpha", "beta"]);
+  });
+
+  it("returns the same 29-chain list regardless of Galaxy URL when failing", async () => {
+    const failing = vi.fn().mockRejectedValue(new Error("DNS"));
+    const a = await resolveChainHintNames("http://prod:8081", failing as any);
+    const b = await resolveChainHintNames("http://dev:8081", failing as any);
+    expect(a.names).toEqual(b.names);
+    expect(a.names).toEqual([...CHAIN_HINT_FALLBACK]);
   });
 });

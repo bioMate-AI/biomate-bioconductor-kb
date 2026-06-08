@@ -14,6 +14,43 @@
  * pulling in galaxy-assistant.ts's transitive DB dependencies.
  */
 
+/**
+ * Resolve the chain_hint allowed list for the intent classifier.
+ *
+ * Happy path: GET `${galaxyUrl}/api/workflow-chains?intent_hint=true` and
+ * return the live `name`s. On any failure (network error, non-OK status,
+ * empty response, parse error) returns CHAIN_HINT_FALLBACK so the
+ * classifier still sees a meaningful chain set.
+ *
+ * Pure function — takes `fetchImpl` and `getNow` so tests can mock both.
+ */
+export interface ChainHintFetchResult {
+  names: string[];
+  fromFallback: boolean;
+}
+
+export async function resolveChainHintNames(
+  galaxyUrl: string,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = 5000,
+): Promise<ChainHintFetchResult> {
+  const fallback: string[] = [...CHAIN_HINT_FALLBACK];
+  try {
+    const res = await fetchImpl(`${galaxyUrl}/api/workflow-chains?intent_hint=true`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) return { names: fallback, fromFallback: true };
+    const data: any = await res.json();
+    const names: string[] = (data?.chains || [])
+      .map((c: any) => c?.name)
+      .filter((n: unknown): n is string => typeof n === 'string' && n.length > 0);
+    if (names.length) return { names, fromFallback: false };
+  } catch {
+    /* use fallback */
+  }
+  return { names: fallback, fromFallback: true };
+}
+
 export const CHAIN_HINT_FALLBACK: readonly string[] = [
   'admet_to_cipa_cardiac',
   'admet_to_virtual_patient_dose_opt',
