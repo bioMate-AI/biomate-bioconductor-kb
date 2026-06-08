@@ -18,9 +18,11 @@ Design context:
 from .pattern_loader import Pattern, load_patterns
 from .retrieval import retrieve_patterns, retrieve_curated_chains
 from .confidence import ConfidenceSignals, score_confidence, choose_surfacing_mode
-from .composer import compose_chain, ComposedChain
+from .composer import compose_chain
+from .types import ChainEdge, ChainStep, ComposedChain
 from .ner import QueryEntities, extract_entities, extract_entities_offline
 from .llm_adapter import default_llm
+from .verifier import VerifierIssue, VerifierReport, verify_chain
 
 __all__ = [
     "Pattern",
@@ -32,8 +34,13 @@ __all__ = [
     "choose_surfacing_mode",
     "compose_chain",
     "ComposedChain",
+    "ChainEdge",
+    "ChainStep",
     "QueryEntities",
     "extract_entities",
     "extract_entities_offline",
     "default_llm",
+    "VerifierIssue",
+    "VerifierReport",
+    "verify_chain",
 ]
