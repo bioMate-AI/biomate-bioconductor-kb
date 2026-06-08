@@ -6,6 +6,44 @@ The 2026-06-03 Galaxy crash-loop (PEP 604 union syntax in a function signature e
 
 ---
 
+## **HARD RULE: when a build/deploy fails, read the full error BEFORE retrying.**
+
+Wasted-cycle incidents in this repo trace to a single anti-pattern: a
+truncated error string ("exit code 1", "Failure", "HTTP 500", "No
+content") gets interpreted via guess-and-retry instead of by reading
+the full log. The answer is **almost never in the retry** — it's in
+the part of the output that was cut off.
+
+**Documented examples this discipline would have prevented:**
+
+| Date | Incident | Cost |
+|---|---|---|
+| 2026-06-07 | biotools `pip install exit 1` → assumed disk full → cleanup retry → disk extension → still failed. 30-second isolated `pip install numpy` showed `error: externally-managed-environment` (PEP 668). Fix: one Dockerfile flag. | 3 wasted rebuild cycles (~30 min each) |
+| 2026-06-07 | Gemini "No content in Gemini response" → assumed model version → tried `gemini-3.5-flash` → still empty. Capturing raw API response showed `thoughtsTokenCount: 1798` ate the entire `maxOutputTokens=1000` budget. Fix: `thinkingBudget: -1` + bump default tokens. | 2 wasted sync cycles |
+| 2026-06-07 | `sync_to_dev.sh` "Sync OK" but new code never on dev. The scp had returned non-zero but the tar extract step swallowed it via `\|\| true` and re-applied stale leftovers. Logs showed `scp: failed to upload`. | 1 phantom-deploy debug session |
+| 2026-06-03 | Galaxy 502 crash-loop. Truncated log said `[FATAL] Unhandled rejection: error` → first guess was network. Full traceback showed `relation "download_jobs" does not exist` — the migration wasn't applied. | 30 min of network-side debugging before checking the table |
+
+**How to apply on the next failure:**
+
+1. **Find the truncated bit.** If the log was capped (e.g. `tail -5`,
+   `... | head -10`, sync wrapper buffering), get the full version
+   first: `cat /tmp/biomate_frontend_build.log`, `docker logs $C`,
+   `aws ec2 describe-volume-modifications`, etc.
+2. **Reproduce the failing step in isolation** if the full log doesn't
+   immediately disambiguate. A `docker run --rm base bash -c '<the
+   failing command>'` is usually 30 seconds. A `curl` against the API
+   that's 500'ing usually returns the actual exception in the body.
+3. **Only then change anything.** No guess-fixes, no "let me bump
+   memory and see", no "let me retry — maybe it was transient" unless
+   you can NAME the transient (e.g. "rate-limited at request N, retry
+   after backoff").
+4. **Never reuse an exit code as a diagnosis.** "Exit 1" means "the
+   author of this binary refused to return 0" — it's not a category.
+
+---
+
+---
+
 ## The five steps
 
 ### 1. TypeScript type check
