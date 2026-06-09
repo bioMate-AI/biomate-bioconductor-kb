@@ -31,9 +31,9 @@ on:
     # SHA-based tags are still generated when tags are pushed, maintaining
     # the sha-<commit> property that deploy.yml relies on.
     tags:
-      - 'release-v*.*.*'
-      - 'beta-v*.*.*'
-      - 'dev-v*.*.*'
+      - 'release-v**'
+      - 'beta-v**'
+      - 'dev-v**'
   workflow_dispatch: {}
 
 permissions:
