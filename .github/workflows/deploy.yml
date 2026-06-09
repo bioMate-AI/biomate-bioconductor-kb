@@ -126,6 +126,27 @@ jobs:
 
       - name: Run deploy.sh
         if: steps.verify.outputs.skip != 'true'
+        env:
+          # Optional: Pass GitHub Secrets to deploy.sh
+          # If these are not configured, deploy.sh will use existing /opt/biomate/.env (backward compatible)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          BILLING_INTERNAL_KEY: ${{ secrets.BILLING_INTERNAL_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
+          GALAXY_URL: ${{ secrets.GALAXY_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          LAGO_API_KEY: ${{ secrets.LAGO_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          BIOLM_API_KEY: ${{ secrets.BIOLM_API_KEY }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
         run: |
           chmod +x scripts/deploy.sh
           bash scripts/deploy.sh test "${{ steps.tag.outputs.tag }}"
