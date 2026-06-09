@@ -1535,6 +1535,7 @@ class NextflowQCGateHandler:
         "DART_IN_SILICO_PREDICTION": ("*", "qc_metrics.json"),  # ICH S5R3 margin ≥10× Cmax (GOLD)
         "ICH_S7A_ASSESS_CV":         ("*", "qc_metrics.json"),  # ICH S7B hERG ≥10× free Cmax (GOLD)
         "DRUGGABILITY_QC_GATE":      ("*", "qc_metrics.json"),  # fpocket druggability ≥0.5 (GOLD, Le Guilloux 2009)
+        "RETROSYNTHESIS_REPORT":     ("*", "qc_metrics.json"),  # aizynthfinder ≥1 solved route (GOLD, Genheden 2020)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
