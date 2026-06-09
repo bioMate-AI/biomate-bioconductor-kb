@@ -172,6 +172,7 @@ process ICH_S7A_ASSESS_CV {
     output:
     path "cv_assessment.json", emit: cv_json
     path "herg_analysis.csv",  emit: herg_csv
+    path "qc_metrics.json",    emit: qc_metrics
 
     script:
     """
@@ -240,6 +241,24 @@ cv_assessment = {
 
 with open('cv_assessment.json', 'w') as f:
     json.dump(cv_assessment, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# ich_s7b_herg_margin gate (≥10× free Cmax, GOLD-anchored to ICH S7B
+# and Redfern 2003 — both the metric AND the value are stated in the
+# guidance/literature). herg_safety_margin_x is the canonical key the
+# gate reader expects (lowercase, distinct from cv_assessment's
+# hERG_safety_margin_x camelcase).
+qc_metrics = {
+    "herg_safety_margin_x": float(hERG_safety_margin),
+    "herg_ic50_um": hERG_IC50_uM,
+    "delta_qtc_ms": delta_QTc_ms,
+    "cipa_tier2_required": bool(cipa_tier2_required),
+    "composite_flag": cv_composite,
+    "map_change_pct": map_change_pct,
+    "hr_change_bpm": hr_change_bpm,
+}
+with open('qc_metrics.json', 'w') as f:
+    json.dump(qc_metrics, f, indent=2)
 
 with open('herg_analysis.csv', 'w', newline='') as f:
     w = csv.writer(f)
