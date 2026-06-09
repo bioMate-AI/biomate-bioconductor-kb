@@ -1311,13 +1311,19 @@ class NextflowQCGateHandler:
 
         process_upper = process_name.upper()
 
-        # For Batch runs, local task_work_dir will not exist — fall back to reading
-        # the published S3 report JSON files that our pipeline writes to s3_outdir.
-        if self.s3_outdir and not task_work_dir.is_dir():
+        # For Batch runs, prefer S3-published reports. The old condition was
+        #   `s3_outdir and not task_work_dir.is_dir()`,
+        # but that skipped S3 whenever process_hash was empty (some workflows
+        # configure trace.fields without "hash" — observed pocket_detection on
+        # 2026-06-09) because task_work_dir then defaults to self.work_dir
+        # which DOES exist locally. Symptom: "[QC Gate] No QC metrics
+        # calculated" right after a clean COMPLETED event, no [QC-S3] line.
+        # Try S3 first whenever s3_outdir is set; fall through to local
+        # parsers only if S3 returned nothing.
+        if self.s3_outdir:
             s3_metrics = self._read_s3_report_metrics(process_upper)
             if s3_metrics is not None:
                 return s3_metrics
-            # No published report found — fall through to local parsers (will return None)
 
         # --- Cryo-EM ---
         if "MOTION_CORRECTION" in process_upper:
