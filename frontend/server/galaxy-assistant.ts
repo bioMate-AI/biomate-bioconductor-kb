@@ -1425,10 +1425,20 @@ export class GalaxyAssistant {
     let rawResponse = '';
     if (messages.length === 0) return '';
 
-    const history = messages.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
+    // Gemini requires the first history entry to have role='user'. The chat
+    // often starts with a greeting/system reply (role='assistant' → 'model'
+    // here), which Gemini rejects with:
+    //   "First content should be with role 'user', got model"
+    // Drop any leading model-role messages so history always starts user.
+    const mappedHistory = messages.slice(0, -1).map(m => ({
+      role: (m.role === 'assistant' ? 'model' : 'user') as 'user' | 'model',
       parts: [{ text: m.content }],
     }));
+    let firstUserIdx = 0;
+    while (firstUserIdx < mappedHistory.length && mappedHistory[firstUserIdx].role !== 'user') {
+      firstUserIdx++;
+    }
+    const history = mappedHistory.slice(firstUserIdx);
     const chat = model.startChat({ history });
     const lastMessage = messages[messages.length - 1].content;
 
