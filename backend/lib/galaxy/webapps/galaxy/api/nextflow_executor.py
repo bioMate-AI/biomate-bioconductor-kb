@@ -52,6 +52,18 @@ router = Router(tags=["nextflow"])
 _runs: Dict[str, Dict[str, Any]] = {}
 _runs_lock = threading.Lock()
 
+# Concurrency throttle for Nextflow head-process launches.
+# Each NF head JVM is ~500MB–1GB resident. Without a cap, parallel-fired
+# workflow submissions OOM-kill the Galaxy container (observed 2026-06-07
+# host impairment at 17:25, Galaxy crash again 2026-06-08 ~19:00 — both
+# from ~20 concurrent NF heads on an 8GB dev box). Production hosts may
+# tolerate more; tune via BIOMATE_NF_MAX_CONCURRENT.
+#
+# Default 5 = headroom for Galaxy gunicorn + Celery + Postgres on 8GB dev;
+# safe upper bound for 16GB hosts is ~10–12 with the same per-head budget.
+_nf_max_concurrent = int(os.environ.get("BIOMATE_NF_MAX_CONCURRENT", "5"))
+_nf_launch_semaphore = threading.BoundedSemaphore(_nf_max_concurrent)
+
 
 def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, Any]] = None) -> None:
     """
@@ -3991,6 +4003,23 @@ def execute_nextflow(
         # the run ~60s after Phase A submits. See _stream_logs and
         # docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
         log_path.parent.mkdir(parents=True, exist_ok=True)
+        # Bounded concurrency: block here until a slot frees up. Prevents
+        # OOM-kill of the Galaxy container when many submissions arrive at once.
+        # Slot is released by a background reaper when the NF head process exits
+        # (see thread spawned below).
+        _slot_acquired = _nf_launch_semaphore.acquire(timeout=300)
+        if not _slot_acquired:
+            log.error(
+                f"[Nextflow run {run_id}] timed out waiting for launch slot "
+                f"(>{_nf_max_concurrent} concurrent runs in flight for >5min)"
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Too many concurrent Nextflow runs in flight. "
+                    "Wait for some to complete and retry."
+                ),
+            )
         _log_fh = open(log_path, "wb", buffering=0)
         process = subprocess.Popen(
             cmd,
@@ -4002,7 +4031,27 @@ def execute_nextflow(
             close_fds=True,
         )
         _log_fh.close()  # child holds its own fd; parent doesn't need it
+        # Release the semaphore slot when the head process exits.
+        def _release_slot(p: subprocess.Popen, rid: str) -> None:
+            try:
+                p.wait()
+            finally:
+                try:
+                    _nf_launch_semaphore.release()
+                    log.info(f"[Nextflow run {rid}] launch slot released")
+                except ValueError:
+                    pass  # already released
+        threading.Thread(
+            target=_release_slot, args=(process, run_id),
+            daemon=True, name=f"nf-slot-{run_id[:8]}",
+        ).start()
+    except HTTPException:
+        raise
     except Exception as exc:
+        # Release the slot we may have acquired before the failure.
+        if _slot_acquired:
+            try: _nf_launch_semaphore.release()
+            except ValueError: pass
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
 
