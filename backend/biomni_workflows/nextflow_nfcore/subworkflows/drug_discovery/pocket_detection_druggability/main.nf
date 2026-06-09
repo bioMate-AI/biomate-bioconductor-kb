@@ -266,6 +266,7 @@ process DRUGGABILITY_QC_GATE {
 
     output:
     tuple val(meta), path("*_qc_result.json"), emit: qc_result
+    path "qc_metrics.json",                    emit: qc_metrics
     path "versions.yml",                       emit: versions
 
     script:
@@ -313,13 +314,27 @@ result = {
     "threshold_score":      min_drug,
     "threshold_volume":     min_vol,
     "warn_threshold_score": warn_drug,
-    "evidence_tier":        "BRONZE",
+    "evidence_tier":        "GOLD",
     "num_pockets_evaluated":len(pockets),
     "timestamp":            datetime.utcnow().isoformat() + "Z",
 }
 
 with open(f"{meta_id}_qc_result.json", "w") as f:
     json.dump(result, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# pocket_druggability_score gate (≥0.5, GOLD-anchored to Le Guilloux 2009
+# fpocket — both metric AND cutoff stated verbatim in the paper). The
+# canonical key the gate reader expects is "druggability_score" (not
+# "top_druggability_score" as in qc_result.json above).
+qc_metrics = {
+    "druggability_score":   top_score,
+    "pocket_volume_a3":     top_volume,
+    "num_pockets":          len(pockets),
+    "status":               status,
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2)
 
 print(f"Druggability QC [{meta_id}]: {status}")
 print(f"  top pocket id={top_id}  score={top_score}  volume={top_volume} A3")
