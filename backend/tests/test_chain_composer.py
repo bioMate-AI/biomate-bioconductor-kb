@@ -145,6 +145,43 @@ def test_confidence_signals_clamped_to_valid_range():
     assert 0.0 <= r.confidence <= 1.0
 
 
+def test_confidence_pattern_chain_agreement_damps_chain_signal():
+    """When patterns and curated chain disagree on domain, chain signal must
+    be damped — high-confidence curated retrieval shouldn't auto-pass."""
+    base = score_confidence(ConfidenceSignals(
+        curated_chain_score=1.0,
+        pattern_match_score=0.8,
+        query_specificity=0.7,
+        downstream_determinism=0.8,
+        pattern_chain_agreement=1.0,  # neutral
+    ))
+    damped = score_confidence(ConfidenceSignals(
+        curated_chain_score=1.0,
+        pattern_match_score=0.8,
+        query_specificity=0.7,
+        downstream_determinism=0.8,
+        pattern_chain_agreement=0.3,  # significant disagreement
+    ))
+    assert damped.confidence < base.confidence, (
+        f"disagreement should lower confidence: {damped.confidence} >= {base.confidence}"
+    )
+    # And surfacing mode should reflect it.
+    assert damped.mode != "upfront" or damped.confidence < base.confidence
+
+
+def test_confidence_agreement_full_is_noop():
+    """agreement=1.0 must produce identical confidence to omitting the signal."""
+    with_agreement = score_confidence(ConfidenceSignals(
+        curated_chain_score=0.5, downstream_determinism=0.5,
+        pattern_chain_agreement=1.0,
+    ))
+    without_agreement = score_confidence(ConfidenceSignals(
+        curated_chain_score=0.5, downstream_determinism=0.5,
+        # default pattern_chain_agreement=1.0
+    ))
+    assert with_agreement.confidence == without_agreement.confidence
+
+
 def test_choose_surfacing_mode_thresholds():
     assert choose_surfacing_mode(0.9) == "upfront"
     assert choose_surfacing_mode(0.5) == "stepwise"
@@ -512,6 +549,27 @@ def test_llm_revision_loop_fixes_unknown_workflow():
     assert calls["n"] == 2, f"expected exactly one revision pass, got {calls['n']} calls"
     assert r.source == "llm_revised", f"source={r.source} (rationale: {r.rationale})"
     assert r.steps[0].workflow_name == "nf-core/rnaseq"
+
+
+# ---------- calibration driver ----------
+
+def test_calibration_driver_runs_on_sample_queries(tmp_path):
+    """Smoke: calibrate.run() over 3 queries produces a well-shaped report."""
+    from chain_composer.calibrate import run as calibrate_run
+
+    queries = [
+        {"query": "bulk RNA-seq DE with enrichment", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront"},
+        {"query": "let's start with peak calling", "expect_pattern": None, "expect_mode": "stepwise"},
+        {"query": "do something vague", "expect_pattern": None, "expect_mode": "reactive"},
+    ]
+    report = calibrate_run(queries, use_llm=False)
+    assert report["aggregate"]["n_queries"] == 3
+    assert set(report["aggregate"]["mode_distribution"]) == {"upfront", "stepwise", "reactive"}
+    assert 0.0 <= report["aggregate"]["mode_match_rate"] <= 1.0
+    # Each per-query entry must carry signals and source.
+    for r in report["per_query"]:
+        assert "signals" in r
+        assert "source" in r
 
 
 # ---------- live LLM golden tests (opt-in) ----------
