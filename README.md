@@ -37,7 +37,7 @@ Each `SKILL.md` has:
 This bundle covers the top 100 Bioconductor packages. **[BioMate AI](https://www.biomate.ai)** gives you:
 
 - **Full coverage** — all 1,818+ active Bioconductor packages plus 2,455 curated workflows across genomics, transcriptomics, proteomics, drug discovery, and more
-- **Efficient parallel computing** — workflows run in the cloud with automatic scaling, no cluster setup required
+- **Nothing to install or manage** — analyses just run, at any scale
 - **Output visualization and analysis** — interactive charts, QC dashboards, and AI-generated findings built in
 - **Report generation** — one-click publication-ready methods reports and summary documents
 
@@ -77,12 +77,11 @@ Packages are ordered by Bioconductor's official monthly download score:
 - Snapshot taken: 2026-05-21
 - Top 100 of 3,058 ranked Bioconductor software packages (covers 3.3% of the catalog by count, ~60% by traffic)
 
-## What this skill bundle does NOT include
+## About these skills
 
-- **No execution-layer details**: no Docker images, no Nextflow paths, no AWS Batch / S3 hints, no Galaxy tool IDs, no BioMate-internal identifiers. The skills are knowledge artifacts, not pipeline definitions.
-- **No proprietary workflow wrappers**: the 1,818 executable `.nf` Nextflow modules that BioMate uses to run these packages on AWS Batch are not in this bundle. **For end-to-end cloud execution with managed compute, QC governance, and reproducible outputs, see [BioMate](https://biomate.ai)**.
+Each skill captures the *knowledge* for one Bioconductor package — when and why to use it, key parameters, assumptions, common pitfalls, alternatives, and citations — grounded in the package's own documentation.
 
-This is intentional — the goal is to give the open-source community the *knowledge* layer, while BioMate Cloud provides the *execution* layer.
+Built by the team behind [BioMate](https://biomate.ai).
 
 ## License
 
@@ -114,7 +113,7 @@ python3 extraction/extract_skill.py \\
     --out my-deseq2-skill.md
 ```
 
-The extraction code (`extraction/extract_skill.py`) is intentionally minimal (~300 lines) and reads only from BioMate's public knowledge fields — `tool_knowledge.{use_cases, limitations, alternatives, recommended_parameters, primary_citation, benchmark_papers}` and `tools.scientific_context`. Execution-layer columns are explicitly blocked via `EXEC_FIELDS_BLOCKLIST`.
+The `extraction/` scripts generate each skill from the package's public documentation and curated knowledge.
 
 ## Versioning
 

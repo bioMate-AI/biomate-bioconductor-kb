@@ -44,7 +44,7 @@ user-invocable: false
 - `SummarizedExperiment`: The standard Bioconductor container for rectangular feature-by-sample assay data (though `biomformat` interoperates with it).
 
 ## Citations
-- Paul J. McMurdie and Joseph N Paulson (2015). biomformat: An interface package for the BIOM file format. R/Bioconductor package version 1.0.0.
+- Paul J. McMurdie and Joseph N Paulson (2015). biomformat: An interface package for the BIOM file format. R/Bioconductor package version 1.34.0.
 
 ## References
 - Homepage: https://bioconductor.org/packages/biomformat

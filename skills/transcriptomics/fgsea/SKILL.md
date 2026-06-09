@@ -142,7 +142,7 @@ imagePlots <- plotCoregulationProfileImage(gsets[topPathways], object = xobj, da
 ## References
 
 - Homepage: needs_verification
-- Documentation: Galaxy tool wrapper documentation (provided in rawText)
+- Documentation: tool documentation (provided in rawText)
 - {'title': 'fgsea Bioconductor package', 'url': 'needs_verification', 'search_query': 'fgsea Bioconductor package publication DOI'}
 - {'title': 'MSigDB collections', 'url': 'http://www.broadinstitute.org/gsea/msigdb', 'search_query': None}
 - {'title': 'GMT format specification', 'url': 'http://www.broadinstitute.org/gsea/msigdb', 'search_query': None}

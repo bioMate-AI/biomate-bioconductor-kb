@@ -47,7 +47,7 @@ user-invocable: false
 - `GWASTools`: For comprehensive quality control and data management of genome-wide association studies.
 
 ## Citations
-- Clayton, D. (2021). snpStats: SnpMatrix and XSnpMatrix classes and methods. *R package version 1.44.0*.
+- Clayton, D. (2021). snpStats: SnpMatrix and XSnpMatrix classes and methods. *R package version 1.56.0*.
 - Clayton, D., & Leung, H. T. (2007). An R package for association studies on locus-specific and genome-wide scales. *Human Heredity*, 64(1), 45-51.
 
 ## References

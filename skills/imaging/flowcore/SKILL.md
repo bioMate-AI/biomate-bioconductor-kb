@@ -46,7 +46,7 @@ user-invocable: false
 - **flowFP**: For fingerprinting and probability binning of the extracted flow cytometry data.
 
 ## Citations
-- Data File Standards Committee of the International Society for Analytical Cytology (ISAC). FCS version 2.0 can be found in Cytometry 1990;11(3):323-32.
+- Data File Standards Committee of the International Society for Analytical Cytology (ISAC). FCS version 2.18.0 can be found in Cytometry 1990;11(3):323-32.
 
 ## References
 - Homepage: bioconductor.org/packages/flowcore

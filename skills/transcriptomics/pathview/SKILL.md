@@ -66,5 +66,5 @@ Pathview is a stand-alone software package for pathway based data integration an
 ## References
 
 - Homepage: Not provided in documentation
-- Documentation: Galaxy tool wrapper documentation (rawText provided)
+- Documentation: tool documentation (rawText provided)
 - {'citation': 'Zhang and Wiemann, 2009 - KEGGgraph paper', 'url': 'needs_verification', 'search_query': 'Zhang Wiemann 2009 KEGGgraph'}

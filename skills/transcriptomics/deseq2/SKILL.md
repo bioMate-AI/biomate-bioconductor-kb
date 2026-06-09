@@ -1,6 +1,6 @@
 ---
 name: bioconductor-deseq2
-description: Uses DESeq2 version 1.40.2 to estimate variance-mean dependence in count data from high-throughput sequencing assays and test for differential expression based on a model using the negative binomial distribution.
+description: Uses DESeq2 version 1.46.0 to estimate variance-mean dependence in count data from high-throughput sequencing assays and test for differential expression based on a model using the negative binomial distribution.
 when_to_use: Use when: When analyzing un-normalized integer count data from RNA-seq, ChIP-seq, HiC, shRNA screening, or mass spectrometry to identify systematic changes between conditions while controlling for within-condition variability.
 user-invocable: false
 ---

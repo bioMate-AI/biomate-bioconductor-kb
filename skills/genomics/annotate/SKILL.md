@@ -56,8 +56,8 @@ This tool uses the label-tree function from HyPhy to annotate a phylogenetic tre
 
 ## Alternatives
 
-- {'tool': 'FigTree', 'when_to_prefer_this': 'Annotate tool preferred when programmatic/batch annotation of multiple trees is needed or when integration into Galaxy workflows is required', 'when_to_prefer_alternative': 'FigTree preferred for interactive, GUI-based tree annotation and visualization with real-time editing', 'evidence_url': 'needs_verification', 'search_query': 'FigTree phylogenetic tree annotation software comparison'}
-- {'tool': 'ETE Toolkit', 'when_to_prefer_this': 'Annotate tool preferred for Galaxy-integrated workflows; simpler interface for basic labeling tasks', 'when_to_prefer_alternative': 'ETE Toolkit preferred for complex programmatic tree manipulation, advanced visualization, and Python-based scripting', 'evidence_url': 'needs_verification', 'search_query': 'ETE Toolkit phylogenetic tree annotation comparison HyPhy'}
+- {'tool': 'FigTree', 'when_to_prefer_this': 'Annotate tool preferred when programmatic/batch annotation of multiple trees is needed or when integration into automated workflows is required', 'when_to_prefer_alternative': 'FigTree preferred for interactive, GUI-based tree annotation and visualization with real-time editing', 'evidence_url': 'needs_verification', 'search_query': 'FigTree phylogenetic tree annotation software comparison'}
+- {'tool': 'ETE Toolkit', 'when_to_prefer_this': 'Annotate tool preferred for integrated workflows; simpler interface for basic labeling tasks', 'when_to_prefer_alternative': 'ETE Toolkit preferred for complex programmatic tree manipulation, advanced visualization, and Python-based scripting', 'evidence_url': 'needs_verification', 'search_query': 'ETE Toolkit phylogenetic tree annotation comparison HyPhy'}
 - {'tool': 'Dendroscope', 'when_to_prefer_this': 'Annotate tool preferred for automated batch processing and workflow integration', 'when_to_prefer_alternative': 'Dendroscope preferred for interactive visualization and manual clade annotation with advanced graphics', 'evidence_url': 'needs_verification', 'search_query': 'Dendroscope phylogenetic tree annotation tool comparison'}
 
 ## Citations
@@ -68,5 +68,5 @@ This tool uses the label-tree function from HyPhy to annotate a phylogenetic tre
 ## References
 
 - Homepage: Not provided in documentation
-- Documentation: Galaxy tool documentation (rawText provided)
+- Documentation: tool documentation (rawText provided)
 - needs_verification - HyPhy label-tree function publication

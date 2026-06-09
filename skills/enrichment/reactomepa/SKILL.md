@@ -34,7 +34,7 @@ Reactome is a free, open-source, curated and peer-reviewed pathway database. The
 
 ## Common Pitfalls
 
-- {'mistake': 'Using gene symbols or other identifiers instead of Entrez IDs', 'consequence': 'Tool will fail to match genes to Reactome pathways, resulting in no enrichment results or errors', 'recommendation': "Convert gene identifiers to Entrez IDs before input. Use Galaxy tools like 'Gene ID Converter' or similar ID mapping tools", 'evidence_url': 'provided in rawText', 'search_query': 'Entrez gene ID conversion Galaxy tools'}
+- {'mistake': 'Using gene symbols or other identifiers instead of Entrez IDs', 'consequence': 'Tool will fail to match genes to Reactome pathways, resulting in no enrichment results or errors', 'recommendation': "Convert gene identifiers to Entrez IDs before input. Use tools like 'Gene ID Converter' or similar ID mapping tools", 'evidence_url': 'provided in rawText', 'search_query': 'Entrez gene ID conversion tools'}
 - {'mistake': 'Analyzing organisms not in the supported list', 'consequence': 'Tool will not run or produce incorrect results due to missing organism-specific pathway annotations', 'recommendation': 'Verify organism is in supported list: human, rat, mouse, C. elegans, yeast, zebrafish, or fly', 'evidence_url': 'provided in rawText'}
 - {'mistake': 'Not adjusting p-value threshold for multiple testing correction', 'consequence': 'Inflated false positive rate when reporting enriched pathways', 'recommendation': 'Use appropriate multiple testing correction method (default BH/Benjamini-Hochberg recommended for FDR control)', 'evidence_url': 'provided in rawText', 'search_query': 'multiple testing correction pathway enrichment best practices'}
 - {'mistake': 'Including very small or very large gene sets without filtering', 'consequence': 'Spurious enrichment from gene sets with few genes or loss of specificity from very large sets', 'recommendation': 'Use default gene set size filtering (10-500 genes) or adjust based on biological context', 'evidence_url': 'provided in rawText'}
@@ -57,7 +57,7 @@ Reactome is a free, open-source, curated and peer-reviewed pathway database. The
 
 - {'tool': 'clusterProfiler', 'when_to_prefer_this': 'ReactomePA when specifically using Reactome pathway database and working with supported organisms', 'when_to_prefer_alternative': 'clusterProfiler when needing multiple pathway databases (KEGG, GO, Reactome) or more flexible organism support', 'evidence_url': 'needs_verification', 'search_query': 'clusterProfiler vs ReactomePA pathway enrichment comparison'}
 - {'tool': 'KEGG pathway analysis tools', 'when_to_prefer_this': 'ReactomePA when requiring curated, peer-reviewed Reactome pathways with detailed mechanistic annotations', 'when_to_prefer_alternative': 'KEGG tools when needing broader organism coverage or KEGG-specific pathway knowledge', 'evidence_url': 'needs_verification', 'search_query': 'Reactome vs KEGG pathway database comparison bioinformatics'}
-- {'tool': 'Enrichr', 'when_to_prefer_this': 'ReactomePA when requiring programmatic analysis and integration into Galaxy workflows', 'when_to_prefer_alternative': 'Enrichr when needing interactive web interface and multiple library options', 'evidence_url': 'needs_verification', 'search_query': 'Enrichr vs Reactome pathway enrichment tools comparison'}
+- {'tool': 'Enrichr', 'when_to_prefer_this': 'ReactomePA when requiring programmatic analysis and integration into automated workflows', 'when_to_prefer_alternative': 'Enrichr when needing interactive web interface and multiple library options', 'evidence_url': 'needs_verification', 'search_query': 'Enrichr vs Reactome pathway enrichment tools comparison'}
 
 ## Citations
 
@@ -66,5 +66,5 @@ Reactome is a free, open-source, curated and peer-reviewed pathway database. The
 ## References
 
 - Homepage: Not provided in documentation
-- Documentation: Provided in rawText (Galaxy tool wrapper documentation)
+- Documentation: Provided in rawText (tool documentation)
 - needs_verification - ReactomePA R package publication DOI
