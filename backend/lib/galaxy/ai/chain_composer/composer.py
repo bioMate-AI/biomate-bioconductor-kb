@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from .confidence import (
     ConfidenceResult,
@@ -29,8 +29,10 @@ from .pattern_loader import Pattern, load_patterns
 from .retrieval import (
     ScoredChain,
     ScoredPattern,
+    ScoredWorkflow,
     retrieve_curated_chains,
     retrieve_patterns,
+    retrieve_workflows,
 )
 from .types import ChainEdge, ChainStep, ComposedChain, SurfacingMode
 from . import verifier as _verifier
@@ -114,6 +116,7 @@ def compose_chain(
     patterns: Optional[List[Pattern]] = None,
     top_k_patterns: int = 3,
     top_k_chains: int = 3,
+    top_k_workflows: int = 10,
     entities: Optional[QueryEntities] = None,
     enable_llm_ner: bool = True,
 ) -> ComposedChain:
@@ -154,6 +157,9 @@ def compose_chain(
     top_chains = retrieve_curated_chains(
         query, top_k=top_k_chains, entity_terms=entity_terms,
     )
+    top_workflows = retrieve_workflows(
+        query, top_k=top_k_workflows, entity_terms=entity_terms,
+    )
 
     # Specificity: prefer entity-count; fall back to legacy keyword scan if NER
     # returned nothing (very vague query, or LLM failed silently).
@@ -174,7 +180,11 @@ def compose_chain(
     conf = score_confidence(signals)
 
     # Branch: LLM-driven compose vs deterministic stub.
-    composed = _compose_llm(query, top_patterns, top_chains, entities, llm) if llm else None
+    composed = (
+        _compose_llm(query, top_patterns, top_chains, top_workflows, entities, llm)
+        if llm
+        else None
+    )
     if composed is None:
         composed = _compose_stub(top_patterns, top_chains)
 
@@ -184,7 +194,7 @@ def compose_chain(
     report = _verifier.verify_chain(composed)
     if not report.ok and llm and composed.source == "llm":
         revised = _compose_llm(
-            query, top_patterns, top_chains, entities, llm,
+            query, top_patterns, top_chains, top_workflows, entities, llm,
             verifier_feedback=report.to_llm_feedback(),
         )
         if revised is not None:
@@ -283,18 +293,15 @@ def _compose_llm(
     query: str,
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
+    top_workflows: List[ScoredWorkflow],
     entities: QueryEntities,
     llm: Callable[[str], str],
     verifier_feedback: str = "",
 ) -> Optional[ComposedChain]:
-    """Ask the LLM to emit a chain in the free-form schema.
-
-    The LLM is shown: query, extracted entities, top patterns (scaffolding),
-    top curated chains (exemplars), and (on revision) verifier feedback
-    from the previous attempt. Returns None on parse failure; caller
-    treats as stub.
-    """
-    prompt = _build_prompt(query, top_patterns, top_chains, entities, verifier_feedback)
+    """Ask the LLM to emit a chain in the free-form schema."""
+    prompt = _build_prompt(
+        query, top_patterns, top_chains, top_workflows, entities, verifier_feedback,
+    )
     try:
         raw = llm(prompt)
         return _parse_llm_chain(raw)
@@ -306,6 +313,7 @@ def _build_prompt(
     query: str,
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
+    top_workflows: List[ScoredWorkflow],
     entities: QueryEntities,
     verifier_feedback: str = "",
 ) -> str:
@@ -336,6 +344,27 @@ def _build_prompt(
         step_names = [s.get("workflow_name", "?") for s in sc.steps]
         parts.append(f"  Steps: {' → '.join(step_names)}")
 
+    # Collect every workflow name the LLM is allowed to reference. This is the
+    # closed set: top-K BM25-retrieved candidates PLUS every step name from
+    # the retrieved curated chains (those names are valid even when they
+    # don't appear in the `workflows` table — the verifier treats them as
+    # known).
+    chain_step_names: Set[str] = set()
+    for sc in top_chains:
+        for s in sc.steps:
+            wn = s.get("workflow_name") if isinstance(s, dict) else None
+            if wn:
+                chain_step_names.add(wn)
+
+    parts.append("\nCANDIDATE WORKFLOWS (these are REAL workflow names from the catalog — use ONLY these or curated-chain step names above):")
+    for w in top_workflows:
+        desc = (w.description or "").replace("\n", " ")[:140]
+        parts.append(f"- `{w.name}` [{w.domain}] — {desc}")
+    if chain_step_names:
+        extras = sorted(n for n in chain_step_names if not any(w.name == n for w in top_workflows))
+        if extras:
+            parts.append("  Curated-chain step names also valid: " + ", ".join(f"`{n}`" for n in extras))
+
     if verifier_feedback:
         parts.append("\nPRIOR ATTEMPT FAILED VERIFICATION — fix these issues:")
         parts.append(verifier_feedback)
@@ -354,9 +383,9 @@ TASK: Output a chain as JSON with this exact schema:
 }
 
 Constraints:
-- Use only workflow names that actually exist in the BioMate catalog.
-- Keep chains short (2-5 steps). If you can't ground a step in a real workflow, omit it.
-- Name patterns you drew from in the rationale.
+- workflow_name MUST be from the CANDIDATE WORKFLOWS list or the curated-chain step names above. Do NOT invent names — if no listed workflow fits a step, OMIT that step.
+- Keep chains short (2-5 steps).
+- Name pattern(s) you drew from in the rationale field.
 - Output JSON ONLY — no surrounding prose.
 """)
     return "\n".join(parts)
