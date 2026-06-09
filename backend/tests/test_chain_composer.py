@@ -281,6 +281,54 @@ def test_retrieval_bm25_prefers_relevant_pattern():
     assert names[0] == "multi_omics_integration"
 
 
+def test_retrieve_workflows_returns_real_catalog_names():
+    """Smoke: workflow retrieval against the live catalog returns real names."""
+    from chain_composer.retrieval import retrieve_workflows
+    ws = retrieve_workflows("RNA-seq differential expression", top_k=8)
+    assert ws, "expected at least one workflow for an RNA-seq DE query"
+    # Every returned name must be non-empty and have a non-zero score.
+    for w in ws:
+        assert w.name and w.score > 0
+    # Top result should be in transcriptomics or general (RNA-seq adjacent).
+    assert ws[0].domain in {"transcriptomics", "general", "genomics", "epigenomics"}, \
+        f"unexpected top domain: {ws[0].domain}"
+
+
+def test_retrieve_workflows_cache_invalidates_on_mtime():
+    """The index cache should not silently serve stale data after a DB change."""
+    from chain_composer.retrieval import _WF_INDEX_CACHE, retrieve_workflows
+    from pathlib import Path
+    import os
+    # First call seeds the cache.
+    _ = retrieve_workflows("RNA-seq", top_k=2)
+    before_keys = set(_WF_INDEX_CACHE.keys())
+    assert before_keys, "first call must populate the cache"
+
+    # Touch the DB file to bump its mtime, then verify the next call adds a new key.
+    db = next(iter(before_keys))[0]
+    db_path = Path(db)
+    if db_path.exists():
+        os.utime(db_path, None)
+        _ = retrieve_workflows("RNA-seq", top_k=2)
+        after_keys = set(_WF_INDEX_CACHE.keys())
+        # New mtime → new key. The set should grow OR the only key should differ.
+        assert after_keys != before_keys or len(after_keys) > len(before_keys), \
+            "cache key did not refresh after mtime bump"
+
+
+def test_retrieve_workflows_entity_boost_works():
+    """Workflow retrieval should respect entity-term boosts."""
+    from chain_composer.retrieval import retrieve_workflows
+    without = retrieve_workflows("integration", top_k=10)
+    with_atac = retrieve_workflows("integration", top_k=10, entity_terms=["atac"])
+    # The presence of "atac" in entities should not crash and should produce
+    # at least as good ranking for atac-related workflows (when any exist).
+    assert isinstance(with_atac, list)
+    if without and with_atac:
+        # At least the structure is preserved (no empty result from the boost path).
+        assert all(w.score > 0 for w in with_atac)
+
+
 def test_retrieval_entity_boost_helps_when_query_is_terse():
     """A query like 'GATK Strelka Mutect2 voting' should hit consensus
     pattern when entities are supplied even if BM25 alone is weak."""

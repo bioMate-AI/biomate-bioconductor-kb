@@ -180,6 +180,14 @@ class ScoredChain:
     score: float
 
 
+@dataclass
+class ScoredWorkflow:
+    name: str
+    domain: str
+    description: str
+    score: float
+
+
 def _entity_boost(doc_text: str, entity_terms: Sequence[str]) -> float:
     """Each entity term found verbatim (lowercased substring) → +0.5 boost.
     Bounded so entities can't dominate completely — keep retrieval grounded
@@ -221,6 +229,104 @@ def retrieve_patterns(
             scored.append(ScoredPattern(pattern=by_name[name], score=total))
     scored.sort(key=lambda x: x.score, reverse=True)
     return scored[:top_k]
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Workflow catalog retrieval (top-K candidate workflow names for the LLM).
+#
+# The catalog has ~3K rows; building the BM25 index every call wastes ~50ms.
+# Cache the index keyed on (db_path, mtime) so concurrent prototype calls
+# reuse the same index but a refreshed DB invalidates correctly.
+# ─────────────────────────────────────────────────────────────────────────
+
+_WF_INDEX_CACHE: Dict[Tuple[str, float], Tuple["_BM25Index", Dict[str, "ScoredWorkflow"]]] = {}
+
+
+def _load_workflow_index(db_path: Path) -> Tuple["_BM25Index", Dict[str, "ScoredWorkflow"]]:
+    """Return (index, by_name) for the workflow catalog, cached on mtime."""
+    key = (str(db_path), db_path.stat().st_mtime)
+    cached = _WF_INDEX_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute(
+            "SELECT name, COALESCE(domain,''), COALESCE(description,''), "
+            "       COALESCE(tools_used,''), COALESCE(annotation,'') "
+            "FROM workflows WHERE executable=1 AND name IS NOT NULL"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    by_name: Dict[str, ScoredWorkflow] = {}
+    docs: List[Tuple[str, str]] = []
+    for name, domain, description, tools_used, annotation in rows:
+        # Compose the searchable text. tools_used is a JSON array; annotation
+        # is often the package's full description — useful for Bioc retrieval.
+        try:
+            tools = json.loads(tools_used or "[]")
+            tools_text = " ".join(t for t in tools if isinstance(t, str))
+        except Exception:
+            tools_text = ""
+        # Annotation can be very long (1-2 paragraphs for Bioc); cap to keep
+        # BM25 dl reasonable. The first ~400 chars carry the topical signal.
+        annotation = (annotation or "")[:400]
+        doc_text = " ".join(filter(None, [name, domain, description, tools_text, annotation]))
+        by_name[name] = ScoredWorkflow(
+            name=name,
+            domain=domain or "",
+            description=description or "",
+            score=0.0,
+        )
+        docs.append((name, doc_text))
+
+    index = _BM25Index.build(docs)
+    _WF_INDEX_CACHE[key] = (index, by_name)
+    return index, by_name
+
+
+def retrieve_workflows(
+    query: str,
+    db_path: Optional[Path] = None,
+    top_k: int = 8,
+    entity_terms: Optional[Sequence[str]] = None,
+) -> List[ScoredWorkflow]:
+    """Return top_k workflows most relevant to the query.
+
+    Uses BM25 over (name + domain + description + tools + annotation) with
+    optional entity-overlap boost. Cached per DB mtime so the prototype CLI
+    doesn't rebuild the 3K-row index on every call.
+    """
+    db_path = db_path or _DEFAULT_DB
+    if not db_path.exists():
+        return []
+
+    index, by_name = _load_workflow_index(db_path)
+    q_terms = list(_expand(_tokenize_bm25(query)))
+    scored_raw = index.score_all(q_terms)
+
+    # Build the entity-boost text lookup from the same docs.
+    # (We rebuilt the docs list inside _load_workflow_index; pull from cache.)
+    # Simpler: re-derive doc text by joining the ScoredWorkflow fields.
+    out: List[ScoredWorkflow] = []
+    for name, base in scored_raw:
+        wf = by_name[name]
+        doc_text = " ".join(filter(None, [wf.name, wf.domain, wf.description]))
+        boost = _entity_boost(doc_text, entity_terms or [])
+        total = base + boost
+        if total > 0:
+            # Cloning so per-call mutation doesn't pollute the cache.
+            out.append(
+                ScoredWorkflow(
+                    name=wf.name,
+                    domain=wf.domain,
+                    description=wf.description,
+                    score=total,
+                )
+            )
+    out.sort(key=lambda x: x.score, reverse=True)
+    return out[:top_k]
 
 
 def retrieve_curated_chains(
