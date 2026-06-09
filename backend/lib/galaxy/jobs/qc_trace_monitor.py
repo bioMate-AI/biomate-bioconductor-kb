@@ -1528,6 +1528,7 @@ class NextflowQCGateHandler:
         "ALLOMETRIC_SCALING":        ("*", "qc_metrics.json"),  # R² (FDA 2005 FIH, SILVER — value is operational)
         "DART_IN_SILICO_PREDICTION": ("*", "qc_metrics.json"),  # ICH S5R3 margin ≥10× Cmax (GOLD)
         "ICH_S7A_ASSESS_CV":         ("*", "qc_metrics.json"),  # ICH S7B hERG ≥10× free Cmax (GOLD)
+        "DRUGGABILITY_QC_GATE":      ("*", "qc_metrics.json"),  # fpocket druggability ≥0.5 (GOLD, Le Guilloux 2009)
     }
 
     def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
