@@ -199,7 +199,12 @@ deploy_galaxy_yml() {
   # (regressed bind port) that get re-applied on container restart;
   # an in-container patch is not durable. The local file is the
   # source of truth (committed in 26fef3ed4: bind: 0.0.0.0:8080).
-  local src="$REPO_ROOT/backend/config/galaxy.yml"
+  # Ship the .docker variant — has container-correct virtualenv, paths,
+  # http port, etc. The plain galaxy.yml is the LOCAL dev config with
+  # absolute paths under /home/yzhang/... that don't exist in the container.
+  # Caught 2026-06-09: shipping galaxy.yml broke `import galaxy` because
+  # tool_config_file pointed at host paths and gravity couldn't bootstrap.
+  local src="$REPO_ROOT/backend/config/galaxy.yml.docker"
   if [[ ! -f "$src" ]]; then
     log "[galaxy.yml] source missing: $src — skipping"
     return 0
