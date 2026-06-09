@@ -268,6 +268,24 @@ def compose_chain(
 
     chain_score = _normalize_chain_score(top_chains[0].score) if top_chains else 0.0
     pattern_score = _normalize_pattern_score(top_patterns[0].score) if top_patterns else 0.0
+
+    # Vague-query reactive floor: surface reactively when the query has NO
+    # recognizable entities AND retrieval is weak (raw BM25 < 5.0 — vague
+    # short queries score 1-3, real specific queries score 8-20). Patterns
+    # ARE a specificity signal — strong pattern retrieval means the user
+    # has shape in mind even when their vocabulary isn't in our NER dict.
+    # Raw BM25 is the right discriminator here, not normalized, because
+    # normalization saturates at ~2.0 and discards the long-tail signal.
+    _weak_pattern_score = (
+        not top_patterns or top_patterns[0].score < 5.0
+    )
+    _force_reactive = (
+        len(entity_terms) == 0
+        and _weak_pattern_score
+        and _user_signal(query) <= 0
+    )
+    if _force_reactive:
+        _debug("vague-query reactive floor engaged (no entities, weak pattern)")
     # Pattern-chain agreement uses the catalog's domain map. Loaded lazily;
     # ~30ms uncached, ~1ms on the second call within a process.
     from .retrieval import _DEFAULT_DB as _DEF_DB
@@ -288,13 +306,38 @@ def compose_chain(
         pattern_chain_agreement=agreement,
     )
     conf = score_confidence(signals)
+    if _force_reactive:
+        # Override surfacing mode regardless of computed confidence.
+        conf.mode = "reactive"
 
-    # Branch: LLM-driven compose vs deterministic stub.
-    composed = (
-        _compose_llm(query, top_patterns, top_chains, top_workflows, entities, llm)
-        if llm
-        else None
+    # LLM short-circuit: when the top curated chain is a near-perfect match
+    # AND the pattern-chain agreement is full, the LLM cannot improve the
+    # outcome — only cost time and tokens. Pass the curated chain through
+    # deterministically. Tunable via env.
+    try:
+        shortcircuit_min = float(os.environ.get("BIOMATE_LLM_SHORTCIRCUIT_MIN", "0.95"))
+    except (TypeError, ValueError):
+        shortcircuit_min = 0.95
+    _shortcircuit = (
+        top_chains
+        and _normalize_chain_score(top_chains[0].score) >= shortcircuit_min
+        and agreement >= 0.999
+        and not _force_reactive
     )
+    if _shortcircuit:
+        _debug("LLM short-circuit: top chain %s at normalized %.2f >= %.2f, agreement %.2f — skipping LLM",
+               top_chains[0].name, _normalize_chain_score(top_chains[0].score),
+               shortcircuit_min, agreement)
+
+    # Branch: short-circuit → curated passthrough; LLM-driven compose; or stub.
+    if _shortcircuit:
+        composed = _curated_passthrough(top_chains[0])
+    else:
+        composed = (
+            _compose_llm(query, top_patterns, top_chains, top_workflows, entities, llm)
+            if (llm and not _force_reactive)
+            else None
+        )
     if composed is None:
         composed = _compose_stub(top_patterns, top_chains)
 
@@ -342,6 +385,34 @@ def _curated_passthrough_threshold() -> float:
         return 0.7
 
 
+def _curated_passthrough(chain: ScoredChain) -> ComposedChain:
+    """Build a ComposedChain by pasting a curated chain through unchanged.
+
+    Used by both the short-circuit path (high-confidence retrieval, no LLM
+    needed) and the stub's dual-score branch.
+    """
+    steps: List[ChainStep] = []
+    edges: List[ChainEdge] = []
+    for i, step in enumerate(chain.steps):
+        steps.append(
+            ChainStep(
+                order=step.get("order", i + 1),
+                workflow_name=step.get("workflow_name", "?"),
+                role=step.get("role", ""),
+                rationale=f"from curated chain `{chain.name}`",
+            )
+        )
+        if i > 0:
+            edges.append(ChainEdge(from_step=i, to_step=i + 1))
+    return ComposedChain(
+        steps=steps,
+        edges=edges,
+        rationale=f"Curated chain `{chain.name}` matched the query "
+                  f"(score {_normalize_chain_score(chain.score):.2f}).",
+        source="curated_passthrough",
+    )
+
+
 def _compose_stub(
     top_patterns: List[ScoredPattern],
     top_chains: List[ScoredChain],
@@ -356,27 +427,7 @@ def _compose_stub(
         if normalized >= threshold and (
             not top_patterns or top_chains[0].score >= top_patterns[0].score
         ):
-            # Curated chain passthrough — high confidence in retrieval.
-            chain = top_chains[0]
-            steps = []
-            edges = []
-            for i, step in enumerate(chain.steps):
-                steps.append(
-                    ChainStep(
-                        order=step.get("order", i + 1),
-                        workflow_name=step.get("workflow_name", "?"),
-                        role=step.get("role", ""),
-                        rationale=f"from curated chain `{chain.name}`",
-                    )
-                )
-                if i > 0:
-                    edges.append(ChainEdge(from_step=i, to_step=i + 1))
-            return ComposedChain(
-                steps=steps,
-                edges=edges,
-                rationale=f"Curated chain `{chain.name}` matched the query (score {normalized:.2f}).",
-                source="curated_passthrough",
-            )
+            return _curated_passthrough(top_chains[0])
 
     # No high-confidence curated match — be honest about it rather than guess.
     if top_chains and top_patterns:
