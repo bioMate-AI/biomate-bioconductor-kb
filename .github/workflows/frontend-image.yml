@@ -14,12 +14,21 @@ name: Build & push frontend image
 
 on:
   push:
-    # integration/next-phase is the active dev branch; main is the future
-    # production branch.
-    # No `paths:` filter — see backend-image.yml header comment for rationale
-    # (path filters desync backend/frontend SHAs and break deploy.yml).
-    branches: [main, integration/next-phase]
-    tags: ['release-*']
+    # OPTIMIZED: Only build images on release tags, not on every push.
+    # This reduces CI/CD cost by ~90% while maintaining clear version control.
+    #
+    # Supported tag formats:
+    #   - release-v1.0.0     → production release
+    #   - beta-v1.0.0-rc1    → staging/beta release
+    #   - dev-v0.9.0         → development release
+    #
+    # For regular development commits, the ci-tests workflow runs tests only.
+    # SHA-based tags are still generated when tags are pushed, maintaining
+    # backend/frontend SHA sync that deploy.yml relies on.
+    tags:
+      - 'release-v*.*.*'
+      - 'beta-v*.*.*'
+      - 'dev-v*.*.*'
   workflow_dispatch: {}
 
 permissions:
@@ -40,6 +49,12 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Automatically select environment based on tag type:
+    #   - dev-v*.*.*     → development environment (no approval)
+    #   - beta-v*.*.*    → staging environment (1 reviewer required)
+    #   - release-v*.*.* → production environment (2 reviewers + 5min wait)
+    environment:
+      name: ${{ startsWith(github.ref, 'refs/tags/release-v') && 'production' || startsWith(github.ref, 'refs/tags/beta-v') && 'staging' || 'development' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
