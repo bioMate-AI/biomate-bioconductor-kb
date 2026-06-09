@@ -16,7 +16,7 @@
 
 ## 1. `sequential_omics_pipeline`
 
-**When**: Single modality, raw data → final result, no fork-in-the-road decisions. Most common shape. Triggered by "do X analysis on Y data" with a clear endpoint.
+**When**: Single modality, raw data → final result, no fork-in-the-road decisions. Most common shape. Triggered by "do X analysis on Y data" with a clear endpoint, single-modality work. Covers bulk RNA-seq alone, WGBS / methylation, miRNA-seq, ribosome profiling, proteomics alone, metabolomics alone — anything that is one modality from raw input to interpreted result. Distinguished from `multi_omics_integration` by the **absence** of integration / joint / combined / cross-modality language in the query.
 
 **Shape**:
 ```
@@ -164,7 +164,7 @@ validation_data ─────────────────────�
 
 ## 8. `branching_on_qc`
 
-**When**: A QC outcome cleanly partitions the data into branches that need different downstream pipelines. Not a retry loop; the branches are alternative paths, not the same path retried.
+**When**: A QC outcome cleanly partitions the data into branches that need different downstream pipelines. Not a retry loop; the branches are alternative paths, not the same path retried. Triggered by "if X exceeds Y, switch to / use Z" or "when QC fails / passes, branch to". Conditional language: "if/else", "switch", "threshold", "depending on", "split into", "route to". Common cases: rRNA contamination level → different pipeline; library quality QC → branch by protocol; WGS vs WES coverage profile → different variant callers; ploidy / aneuploidy QC → different normalization.
 
 **Shape**:
 ```
@@ -265,6 +265,27 @@ validation_data ─────────────────────�
 **Pitfall**: Resampling *within* a step that has internal normalization tied to library composition (e.g. DESeq2 size factors). Bootstrap with replacement perturbs the normalization, so per-bootstrap normalization must be re-estimated, not reused.
 
 **Reference**: Efron & Tibshirani 1994, *An Introduction to the Bootstrap*. Felsenstein 1985, *Confidence limits on phylogenies: an approach using the bootstrap*, Evolution 39:783.
+
+---
+
+## 13. `time_series_longitudinal`
+
+**When**: Same subjects (or same biological units — cells, organoids, animals) sampled at multiple timepoints. Distinct from `cross_cohort_replication` because of within-subject correlation that must propagate through every analysis step. Triggered by explicit time language: "0, 6, 24, 72 h", "day 0/7/14/28", "timecourse", "longitudinal", "perturbation followed over time", "developmental atlas", "circadian", "drug PK/PD time-course", "before/during/after treatment when measured repeatedly". Sample paired-end-analysis methods (mixed-effects models, time-aware DE).
+
+**Shape**:
+```
+[t0 samples] → [pipeline] → result_t0 ─┐
+[t1 samples] → [pipeline] → result_t1 ─┼─→ [time-aware joint model: mixed effects / splineTimeR / maSigPro] → temporal pattern report
+[tN samples] → [pipeline] → result_tN ─┘
+```
+
+**Instantiations**:
+- 0/6/24/72 h drug treatment RNA-seq → `nf-core/rnaseq` per timepoint → `maSigPro` for time-dependent DE
+- Developmental scRNA-seq across E10.5 / E12.5 / E14.5 → per-timepoint `nf-core/scrnaseq` → `tradeSeq` for pseudotime-aware DE
+
+**Pitfall**: Treating timepoints as independent groups (running pairwise DE between t1 vs t0, t2 vs t0, etc.) loses the trajectory structure. Worse, it inflates multiple-testing burden by ignoring the within-subject correlation. Use time-aware methods (`limma::duplicateCorrelation` for repeated measures, `lme4`/`lmerTest` for mixed effects, `maSigPro` / `splineTimeR` for spline fits) — not pairwise DE.
+
+**Reference**: Spies & Ciaudo 2015, *Dynamics in transcriptomics: advancements in RNA-seq time course and downstream analysis*, Comput Struct Biotechnol J 13:469. Sun et al. 2016, *splineTimeR: time course gene expression data*, Bioinformatics 32:1571.
 
 ---
 

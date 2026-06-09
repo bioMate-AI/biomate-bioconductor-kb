@@ -17,4 +17,4 @@
 {"query": "do something cool with the data I have", "expect_pattern": null, "expect_mode": "reactive", "note": "no specificity → reactive"}
 {"query": "screen ADMET on a smiles list and dock with AutoDock Vina against the kinase PDB", "expect_pattern": "filter_cascade", "expect_mode": "upfront", "note": "drug discovery cascade"}
 {"query": "find differentially methylated regions in mouse hippocampus WGBS data", "expect_pattern": "sequential_omics_pipeline", "expect_mode": "upfront", "note": "WGBS DM region calling"}
-{"query": "test compound effect over time at 0, 6, 24, and 72 hours in HepG2 cells", "expect_pattern": null, "expect_mode": "stepwise", "note": "time-course; pattern not in v1 library"}
+{"query": "test compound effect over time at 0, 6, 24, and 72 hours in HepG2 cells", "expect_pattern": "time_series_longitudinal", "expect_mode": "upfront", "note": "time-course; pattern added in v2"}

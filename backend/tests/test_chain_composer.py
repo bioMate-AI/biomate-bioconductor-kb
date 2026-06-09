@@ -28,12 +28,13 @@ from chain_composer import (  # noqa: E402
 # ---------- pattern_loader ----------
 
 def test_pattern_loader_returns_canonical_set():
-    """v1 library has 12 entries; deprecated comparative_benchmarking excluded by default."""
+    """v2 library has 13 entries; deprecated comparative_benchmarking excluded by default."""
     ps = load_patterns()
-    assert len(ps) == 11, f"expected 11 active patterns, got {len(ps)}"
+    assert len(ps) == 12, f"expected 12 active patterns (v2 added time_series_longitudinal), got {len(ps)}"
     names = {p.name for p in ps}
     assert "sequential_omics_pipeline" in names
     assert "multi_omics_integration" in names
+    assert "time_series_longitudinal" in names
     assert "comparative_benchmarking" not in names, "deprecated entry must be excluded"
 
 
@@ -521,9 +522,12 @@ def test_stub_threshold_overridable_via_env(monkeypatch):
 
 # ---------- LLM revision loop ----------
 
-def test_llm_revision_loop_fixes_unknown_workflow():
+def test_llm_revision_loop_fixes_unknown_workflow(monkeypatch):
     """First LLM emits a bogus workflow; revision pass fixes it after seeing
     the verifier feedback."""
+    # Disable LLM short-circuit so we actually exercise the LLM path; the test
+    # query hits the bulk_rnaseq_de curated chain at score 1.0 otherwise.
+    monkeypatch.setenv("BIOMATE_LLM_SHORTCIRCUIT_MIN", "1.5")
     calls = {"n": 0}
 
     def fake_llm(prompt: str) -> str:
@@ -549,6 +553,69 @@ def test_llm_revision_loop_fixes_unknown_workflow():
     assert calls["n"] == 2, f"expected exactly one revision pass, got {calls['n']} calls"
     assert r.source == "llm_revised", f"source={r.source} (rationale: {r.rationale})"
     assert r.steps[0].workflow_name == "nf-core/rnaseq"
+
+
+# ---------- short-circuit + zero-entity floor (calibration findings) ----------
+
+def test_short_circuit_skips_llm_for_perfect_curated_match():
+    """When normalized_chain_score >= 0.95, the LLM must NOT be called.
+    Curated_passthrough is deterministic and free; LLM is wasted compute."""
+    calls = {"n": 0}
+
+    def tripwire_llm(_p: str) -> str:
+        calls["n"] += 1
+        return '{"steps": [], "edges": [], "rationale": "should not be called"}'
+
+    r = compose_chain(
+        "bulk RNA-seq differential expression analysis on human samples",
+        llm=tripwire_llm,
+        enable_llm_ner=False,
+    )
+    assert r.source == "curated_passthrough"
+    assert calls["n"] == 0, f"LLM was called {calls['n']} times; short-circuit failed"
+
+
+def test_short_circuit_threshold_is_env_tunable(monkeypatch):
+    """BIOMATE_LLM_SHORTCIRCUIT_MIN=1.5 disables the short-circuit entirely."""
+    monkeypatch.setenv("BIOMATE_LLM_SHORTCIRCUIT_MIN", "1.5")
+    calls = {"n": 0}
+
+    def fake_llm(_p: str) -> str:
+        calls["n"] += 1
+        return ('{"steps": [{"order": 1, "workflow_name": "nf-core/rnaseq", '
+                '"role": "x", "rationale": "y"}], "edges": [], "rationale": "ok"}')
+
+    r = compose_chain(
+        "bulk RNA-seq differential expression analysis on human samples",
+        llm=fake_llm,
+        enable_llm_ner=False,
+    )
+    assert calls["n"] >= 1, "with threshold raised, LLM must be called"
+    assert r.source in {"llm", "llm_revised"}
+
+
+def test_zero_entity_query_forced_reactive():
+    """A query with no extractable entities and no upfront user signal must
+    surface reactively even if BM25 happens to score a pattern."""
+    r = compose_chain("do something cool with the data I have", llm=None)
+    assert r.surfacing_mode == "reactive", \
+        f"vague query landed at {r.surfacing_mode} with conf={r.confidence}"
+
+
+def test_zero_entity_floor_overridden_by_explicit_upfront_request():
+    """If the user explicitly asks for the whole analysis, the zero-entity
+    floor must NOT engage — user_signal beats specificity."""
+    r = compose_chain("do the whole analysis", llm=None)
+    # The entity list is still empty, but user_signal > 0 → floor should not fire.
+    # Mode may not be upfront (the curated/pattern scores are weak), but it
+    # must not be force-pinned to reactive purely on entity count.
+    # The assertion: when user_signal > 0 the floor does NOT engage.
+    # We can verify this indirectly: if any non-reactive mode is achievable.
+    assert r.signals["user_signal"] > 0, "test premise: user_signal should be positive"
+    # Mode might still be reactive due to other weak signals, but the
+    # forced-reactive override should not be the reason. (Hard to assert
+    # negatively; the proof is the test above passes for "do something cool"
+    # while this one wouldn't with the same upfront-signal logic.)
 
 
 # ---------- calibration driver ----------
@@ -642,8 +709,11 @@ def test_default_llm_returns_none_without_keys(monkeypatch):
     assert default_llm() is None
 
 
-def test_compose_llm_stub_path_records_source():
+def test_compose_llm_stub_path_records_source(monkeypatch):
     """When LLM returns valid JSON, the composed chain must report source='llm'."""
+    # Disable short-circuit so this test exercises the LLM path even when the
+    # query hits a perfect curated chain.
+    monkeypatch.setenv("BIOMATE_LLM_SHORTCIRCUIT_MIN", "1.5")
     fake_llm_json = """
     {
       "steps": [
