@@ -193,6 +193,31 @@ deploy_frontend() {
 # Layer 2: Backend Python files (hot-patch into running Galaxy container)
 # ---------------------------------------------------------------------------
 
+deploy_galaxy_yml() {
+  # Ship backend/config/galaxy.yml → /app/config/galaxy.yml inside the
+  # Galaxy container. Image-baked galaxy.yml has had wrong values
+  # (regressed bind port) that get re-applied on container restart;
+  # an in-container patch is not durable. The local file is the
+  # source of truth (committed in 26fef3ed4: bind: 0.0.0.0:8080).
+  local src="$REPO_ROOT/backend/config/galaxy.yml"
+  if [[ ! -f "$src" ]]; then
+    log "[galaxy.yml] source missing: $src — skipping"
+    return 0
+  fi
+  log "[galaxy.yml] Shipping $(stat -c %s $src 2>/dev/null || echo ?) bytes..."
+  ec2_scp "$src" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy.yml"
+  ec2_ssh '
+    set -e
+    docker cp /tmp/galaxy.yml biomate-galaxy-dev:/app/config/galaxy.yml
+    # Verify the bind is correct (catch any future regression)
+    BIND=$(docker exec biomate-galaxy-dev grep -E "^[[:space:]]+bind:" /app/config/galaxy.yml | head -1 | tr -d " ")
+    echo "[galaxy.yml] applied; bind = ${BIND}"
+    # Reload gunicorn so it picks up the new bind (no-op if unchanged)
+    docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -1
+  '
+  log "[galaxy.yml] Done"
+}
+
 deploy_backend_python() {
   log "[backend] Syncing Python files..."
 
@@ -681,6 +706,13 @@ do_sync() {
   # BEFORE backend python sync so the docker cp lands in the recreated
   # container, not the now-removed old one.
   [[ "${BIOMATE_RESYNC_GALAXY_ENV:-}" == "1" ]] && resync_galaxy_env
+
+  # ALWAYS sync backend/config/galaxy.yml. The container restart on dev wipes
+  # any in-container patch back to the image-baked version, which has had wrong
+  # values in the past (e.g. bind: 0.0.0.0:8081 vs the required 8080 in
+  # `gunicorn` block — Docker maps host:8081 → container:8080, so 8081-bound
+  # gunicorn never gets reached). Cheap to ship (single file) and idempotent.
+  deploy_galaxy_yml || true
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
