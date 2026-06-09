@@ -374,6 +374,7 @@ process RETROSYNTHESIS_REPORT {
     path "retrosynthesis_report.html", emit: report_html
     path "retrosynthesis_results.csv", emit: filtered_tsv
     path "qc_summary.json",            emit: qc_summary_json
+    path "qc_metrics.json",            emit: qc_metrics
     path "versions.yml",               emit: versions
 
     script:
@@ -448,6 +449,26 @@ qc_summary = {
 
 with open("qc_summary.json", "w") as f:
     json.dump(qc_summary, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# aizynth_solved_routes gate (≥1 solved route, GOLD-anchored to
+# Genheden 2020 — both metric AND cutoff in the paper). The
+# canonical key the gate reader expects is "num_solved_routes".
+# For a multi-compound campaign we report the TOTAL across compounds
+# (gate fires unless every compound returned zero routes); per-compound
+# routes are still in qc_summary["compounds"][i]["n_routes"].
+_route_counts = [c.get("n_routes", 0) for c in qc_summary["compounds"]]
+qc_metrics = {
+    "num_solved_routes":            int(sum(_route_counts)),
+    "min_solved_routes_per_compound": int(min(_route_counts)) if _route_counts else 0,
+    "n_compounds":                  n_total,
+    "n_pass":                       n_pass,
+    "pass_rate_pct":                qc_summary["pass_rate_pct"],
+    "avg_best_sa_score":            avg_sa,
+    "avg_best_steps":               avg_steps,
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2)
 
 # ---------------------------------------------------------------------------
 # CRO pipeline CSV
