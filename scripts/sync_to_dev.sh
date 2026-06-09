@@ -440,6 +440,93 @@ deploy_databases() {
 # Restart Galaxy after code changes
 # ---------------------------------------------------------------------------
 
+resync_galaxy_env() {
+  # Recreate the Galaxy backend container with /opt/biomate/.env merged in,
+  # preserving every existing env var (DB urls, API keys, etc.) that was set
+  # inline at the container's original launch time.
+  #
+  # When to run: any time /opt/biomate/.env is edited (e.g. flipping
+  # BIOMATE_RESPONSE_MODEL=gemini-3.1-pro-preview to move chat off Claude).
+  # Trigger via: BIOMATE_RESYNC_GALAXY_ENV=1 bash scripts/sync_to_dev.sh
+  #
+  # Why this exists: the Galaxy container was originally launched with env
+  # vars baked-in via `-e K=V` flags, NOT --env-file. Docker doesn't allow
+  # changing a running container's env, so picking up new vars requires a
+  # full stop/rm/run cycle. This function captures the live env, merges in
+  # /opt/biomate/.env, and re-runs so every var stays in sync with one
+  # canonical file going forward.
+  #
+  # Replaces the one-off scripts/enable_autofix3_on_dev.sh (deleted).
+  log "[galaxy-env] Recreating Galaxy container with /opt/biomate/.env merged in..."
+  ec2_ssh '
+    set -euo pipefail
+    CONTAINER=biomate-galaxy-dev
+    ENV_FILE=/opt/biomate/.env
+
+    if [[ ! -f "$ENV_FILE" ]]; then
+      echo "[galaxy-env] FATAL: $ENV_FILE not present; aborting" >&2
+      exit 1
+    fi
+
+    # Vars set in .env take precedence over the running container'\''s baked-in
+    # values for the same key (last --env-file wins on docker run). Capture
+    # the rest from the running container so we do not lose JWT_SECRET etc.
+    LIVE_ENV=$(mktemp)
+    trap "rm -f $LIVE_ENV" EXIT
+
+    # Keys present in .env — we will let the file supply them
+    NEW_KEYS=$(grep -v "^#\|^$" "$ENV_FILE" | awk -F= "{print \$1}" | sort -u)
+
+    # Capture all other live container env vars (filter the keys .env will override)
+    docker inspect "$CONTAINER" --format "{{range .Config.Env}}{{println .}}{{end}}" | \
+      while IFS= read -r line; do
+        k="${line%%=*}"
+        # Skip PATH/HOME/TERM/HOSTNAME — Docker re-supplies these
+        case "$k" in PATH|HOME|TERM|HOSTNAME|"") continue ;; esac
+        # Skip keys present in the env file (file will supply them)
+        if echo "$NEW_KEYS" | grep -qxF "$k"; then continue; fi
+        echo "$line"
+      done > "$LIVE_ENV"
+
+    # Capture other container config we must preserve
+    IMAGE=$(docker inspect "$CONTAINER" --format "{{.Config.Image}}")
+    NETWORK=$(docker inspect "$CONTAINER" --format "{{.HostConfig.NetworkMode}}")
+    PORTS=$(docker inspect "$CONTAINER" --format "{{range \$p, \$bs := .HostConfig.PortBindings}}{{range \$bs}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}" | sed "s|/tcp||g")
+    MOUNTS=$(docker inspect "$CONTAINER" --format "{{range .Mounts}}-v {{.Source}}:{{.Destination}}{{if .RW}}{{else}}:ro{{end}} {{end}}")
+
+    echo "  preserving image=$IMAGE network=$NETWORK ports=$PORTS"
+    echo "  live env to preserve: $(wc -l < $LIVE_ENV) vars; env-file to apply: $(echo "$NEW_KEYS" | wc -l) keys"
+
+    echo "[galaxy-env] Stopping + removing $CONTAINER..."
+    docker stop "$CONTAINER" > /dev/null
+    docker rm "$CONTAINER" > /dev/null
+
+    echo "[galaxy-env] Re-running with --env-file + preserved env..."
+    # --env-file applied first, then --env per captured var — file values win
+    # because docker uses LAST occurrence per key. Order: file → live (live
+    # keys are pre-filtered to NOT collide with file keys), so result = union.
+    docker run -d --name "$CONTAINER" \
+      --network "$NETWORK" \
+      $PORTS \
+      $MOUNTS \
+      --restart unless-stopped \
+      --env-file "$ENV_FILE" \
+      $(awk "{print \"-e\", \$0}" "$LIVE_ENV" | tr "\n" " ") \
+      "$IMAGE" > /dev/null
+
+    echo "[galaxy-env] Waiting for container health..."
+    for i in $(seq 1 30); do
+      status=$(docker inspect "$CONTAINER" --format "{{.State.Status}}" 2>/dev/null || echo unknown)
+      if [[ "$status" == "running" ]]; then
+        echo "  ✓ container running"
+        break
+      fi
+      sleep 1
+    done
+  '
+  log "[galaxy-env] Done — env vars from /opt/biomate/.env are now active"
+}
+
 restart_galaxy() {
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
@@ -587,6 +674,13 @@ do_sync() {
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db marketing=$do_marketing"
+
+  # Optional: recreate Galaxy container with /opt/biomate/.env merged in.
+  # Trigger via BIOMATE_RESYNC_GALAXY_ENV=1 when env vars in that file change
+  # (e.g. flipping chat onto Gemini via BIOMATE_RESPONSE_MODEL). Has to come
+  # BEFORE backend python sync so the docker cp lands in the recreated
+  # container, not the now-removed old one.
+  [[ "${BIOMATE_RESYNC_GALAXY_ENV:-}" == "1" ]] && resync_galaxy_env
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows

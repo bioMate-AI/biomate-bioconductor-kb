@@ -65,17 +65,28 @@ Bogus names that returned HTTP 404 (avoid):
     — no `-preview` suffix needed)
   - ✗ `gemini-2.0-flash` (`gemini-3.5-flash` is the closest GA)
 
-## To apply on dev container (without recreating)
+## To apply on dev (one canonical flow)
 
-Env vars on a running container can't be changed without a recreate.
-Use the existing `scripts/enable_autofix3_on_dev.sh`-style pattern, or
-just edit `/opt/biomate/.env` on the EC2 host and let the next sync
-container-rebuild pick it up via `--env-file`.
+Edit `/opt/biomate/.env` on the EC2 host (`ssh ubuntu@52.42.49.175`,
+then `sudo nano /opt/biomate/.env`) — add or change the BIOMATE_*
+keys. Then trigger one sync with the env-resync flag:
 
-For a one-off persistent flip, mirror what we did for autofix3 — capture
-current env from the running container, merge in the new vars, recreate
-with `--env <K>=<V>`. See `scripts/enable_autofix3_on_dev.sh` lines
-80-100 as a template.
+```bash
+BIOMATE_RESYNC_GALAXY_ENV=1 bash scripts/sync_to_dev.sh
+```
+
+That flag tells `sync_to_dev.sh` to recreate the Galaxy container with
+`--env-file /opt/biomate/.env` merged in (preserving every existing
+env var that was set at original container launch — JWT_SECRET,
+DATABASE_URL, API keys, etc.). One-shot; subsequent syncs without the
+flag run normally and leave the env alone.
+
+For the **frontend** container, `/opt/biomate/.env` is already loaded
+via `--env-file` on every sync (line 178 of `sync_to_dev.sh`), so
+frontend env-var changes need no special flag.
+
+The previous one-off `scripts/enable_autofix3_on_dev.sh` has been
+deleted in favor of this uniform mechanism.
 
 ## What the migration does NOT touch (by design)
 
