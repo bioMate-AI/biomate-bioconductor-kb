@@ -59,9 +59,11 @@ _runs_lock = threading.Lock()
 # from ~20 concurrent NF heads on an 8GB dev box). Production hosts may
 # tolerate more; tune via BIOMATE_NF_MAX_CONCURRENT.
 #
-# Default 5 = headroom for Galaxy gunicorn + Celery + Postgres on 8GB dev;
-# safe upper bound for 16GB hosts is ~10–12 with the same per-head budget.
-_nf_max_concurrent = int(os.environ.get("BIOMATE_NF_MAX_CONCURRENT", "5"))
+# Default 10 = headroom for Galaxy gunicorn + Celery + Postgres on 8GB dev,
+# given the 512MB head heap cap also added in this commit. With -Xmx512m each
+# NF head holds ~700MB resident; 10 heads × 0.7 GB = 7 GB worst-case. Safe
+# upper bound for 16GB hosts is ~20 with the same per-head budget.
+_nf_max_concurrent = int(os.environ.get("BIOMATE_NF_MAX_CONCURRENT", "10"))
 _nf_launch_semaphore = threading.BoundedSemaphore(_nf_max_concurrent)
 
 
@@ -3799,7 +3801,15 @@ def execute_nextflow(
     _shared_crt_cache = Path("/opt/nextflow/.aws-crt-cache")
     _shared_crt_cache.mkdir(parents=True, exist_ok=True)
     _existing_nxf_opts = env.get("NXF_OPTS", "")
+    # Cap head JVM heap at 512 MB. The head process only parses the workflow,
+    # submits Batch jobs, then polls task state + streams logs — most memory
+    # is wasted on JVM defaults (NF defaults to -Xmx5g). 512 MB is comfortable
+    # for pipelines with up to ~200 concurrent tasks; raise via BIOMATE_NF_HEAP
+    # if a specific pipeline ever needs more. Halving per-head footprint lets
+    # us run 2x more concurrent workflows on the same host.
+    _heap = os.environ.get("BIOMATE_NF_HEAP", "512m")
     _crt_opts = (
+        f"-Xms128m -Xmx{_heap} "
         f"-Daws.crt.lib.dir={_shared_crt_cache} "
         f"-Daws.crt.disable.crt.in.client=true -Xss2m"
     )
