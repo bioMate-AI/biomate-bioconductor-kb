@@ -50,9 +50,9 @@ process PROTREK_SEARCH {
     path("protrek_results.csv"), emit: results_csv
 
     script:
-    def query_arg = query_type == 'sequence' && optional_fasta.name != 'NO_FILE'
+    def query_arg = query_type == 'sequence' && optional_fasta.name != 'NO_FASTA'
         ? "--input ${optional_fasta}"
-        : query_type == 'structure' && optional_pdb.name != 'NO_FILE'
+        : query_type == 'structure' && optional_pdb.name != 'NO_PDB'
             ? "--input ${optional_pdb}"
             : "--query '${query}'"
     """
@@ -139,11 +139,11 @@ workflow {
     // "input file name collision -- multiple input files for NO_FILE".
     fasta_ch = params.input_fasta
         ? Channel.fromPath(params.input_fasta)
-        : Channel.fromPath('NO_FASTA').ifEmpty(file('NO_FASTA'))
+        : Channel.fromPath('NO_FASTA').ifEmpty(file("${projectDir}/NO_FASTA"))
 
     pdb_ch = params.input_pdb
         ? Channel.fromPath(params.input_pdb)
-        : Channel.fromPath('NO_PDB').ifEmpty(file('NO_PDB'))
+        : Channel.fromPath('NO_PDB').ifEmpty(file("${projectDir}/NO_PDB"))
 
     PROTREK_SEARCH(
         Channel.value(params.query),
