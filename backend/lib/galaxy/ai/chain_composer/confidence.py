@@ -44,6 +44,13 @@ class ConfidenceSignals:
     user_signal: float = 0.0
     # -1..+1 — user profile hint from memory (e.g. PI → +, beginner → -).
     user_profile_bias: float = 0.0
+    # 0..1 — do the top pattern and top curated chain agree on what the
+    # query is about? 1.0 = strong agreement (pattern's typical domains
+    # overlap with chain's domain), 0.0 = orthogonal (e.g. pattern says
+    # "validation across cohorts" while chain says "drug-discovery
+    # cascade"). 1.0 is the neutral default — only downweights when
+    # actual disagreement is detected.
+    pattern_chain_agreement: float = 1.0
 
 
 def _env_float(name: str, default: float) -> float:
@@ -89,6 +96,16 @@ def score_confidence(signals: ConfidenceSignals) -> ConfidenceResult:
         "downstream_determinism": _WEIGHTS["downstream_determinism"] * _clip01(signals.downstream_determinism),
     }
     base = sum(contributions.values())
+    # Pattern-chain agreement is a multiplicative dampener on the chain signal:
+    # when the top retrieved chain and top retrieved pattern point at different
+    # domains, the chain's contribution is downweighted (forces stepwise/reactive
+    # surfacing while the LLM resolves). Neutral 1.0 leaves base unchanged.
+    agreement = _clip01(signals.pattern_chain_agreement)
+    if agreement < 1.0:
+        damp = (1.0 - agreement) * contributions["curated_chain_score"]
+        contributions["curated_chain_score"] -= damp
+        base -= damp
+        contributions["pattern_chain_agreement_damp"] = -damp
     # user_signal and user_profile_bias are corrections on top of base.
     adjustment = _clip(signals.user_signal, -0.5, 0.5) + _clip(signals.user_profile_bias, -0.2, 0.2)
     contributions["user_signal"] = _clip(signals.user_signal, -0.5, 0.5)

@@ -83,6 +83,81 @@ def _normalize_pattern_score(raw: float) -> float:
     return min(1.0, raw / 2.0)
 
 
+# Pattern → set of typical domains. Derived once at module load by scanning
+# each pattern's `Instantiations` text for backtick-quoted workflow names
+# that appear in the catalog. Conservative: a pattern with no recognizable
+# workflow names gets an empty set and is treated as universally-applicable.
+_PATTERN_DOMAINS_CACHE: Dict[str, set] = {}
+
+
+def _pattern_typical_domains(pattern: Pattern, workflow_domains: Dict[str, str]) -> set:
+    """Return the set of catalog domains the pattern's instantiations point at."""
+    cached = _PATTERN_DOMAINS_CACHE.get(pattern.name)
+    if cached is not None:
+        return cached
+    import re as _re
+    domains: set = set()
+    text = " ".join(pattern.instantiations) if pattern.instantiations else ""
+    # Pull names from backticks (`nf-core/rnaseq`) and also bare nf-core/* tokens.
+    for m in _re.findall(r"`([^`]+)`", text):
+        d = workflow_domains.get(m.strip())
+        if d:
+            domains.add(d)
+    for m in _re.findall(r"\b(nf-core/[a-z0-9_]+)\b", text):
+        d = workflow_domains.get(m)
+        if d:
+            domains.add(d)
+    _PATTERN_DOMAINS_CACHE[pattern.name] = domains
+    return domains
+
+
+def _load_workflow_domains(db_path) -> Dict[str, str]:
+    """Map workflow name → domain. Cached at module level via the retrieval
+    module's index (which we don't want to import directly here to avoid
+    circularity). Fresh small query: ~30ms uncached, negligible cached."""
+    import sqlite3 as _sqlite3
+    try:
+        conn = _sqlite3.connect(str(db_path))
+        rows = conn.execute(
+            "SELECT name, COALESCE(domain,'') FROM workflows WHERE executable=1"
+        ).fetchall()
+        conn.close()
+    except Exception:
+        return {}
+    return {n: d for n, d in rows if n}
+
+
+def _pattern_chain_agreement(
+    top_patterns: List[ScoredPattern],
+    top_chains: List[ScoredChain],
+    workflow_domains: Dict[str, str],
+) -> float:
+    """1.0 = neutral (no top chain, or no signal). Lower means disagreement.
+
+    Algorithm: if the top pattern's typical domains intersect the top chain's
+    domain → 1.0. If both are known and disjoint → 0.3 (significant
+    disagreement). If pattern has no known domain → 1.0 (can't disagree).
+    """
+    if not top_chains or not top_patterns:
+        return 1.0
+    pat_domains = _pattern_typical_domains(top_patterns[0].pattern, workflow_domains)
+    if not pat_domains:
+        return 1.0
+    chain_domain = (top_chains[0].domain or "").strip().lower()
+    if not chain_domain:
+        return 1.0
+    if any(chain_domain == d.lower() for d in pat_domains):
+        return 1.0
+    # Soft partial credit when domains are in the same broad family
+    # (transcriptomics ↔ genomics ↔ epigenomics often co-occur in
+    # multi-omics chains).
+    OMICS_FAMILY = {"transcriptomics", "genomics", "epigenomics", "proteomics"}
+    pat_lower = {d.lower() for d in pat_domains}
+    if chain_domain in OMICS_FAMILY and pat_lower & OMICS_FAMILY:
+        return 0.7
+    return 0.3
+
+
 def _downstream_determinism(top_patterns: List[ScoredPattern]) -> float:
     """How uniquely does one pattern dominate?
     Score gap between top-1 and top-2 → high determinism.
@@ -193,6 +268,16 @@ def compose_chain(
 
     chain_score = _normalize_chain_score(top_chains[0].score) if top_chains else 0.0
     pattern_score = _normalize_pattern_score(top_patterns[0].score) if top_patterns else 0.0
+    # Pattern-chain agreement uses the catalog's domain map. Loaded lazily;
+    # ~30ms uncached, ~1ms on the second call within a process.
+    from .retrieval import _DEFAULT_DB as _DEF_DB
+    workflow_domains = _load_workflow_domains(_DEF_DB)
+    agreement = _pattern_chain_agreement(top_patterns, top_chains, workflow_domains)
+    _debug("pattern-chain agreement: %.2f (top_pattern=%s top_chain=%s [%s])",
+           agreement,
+           top_patterns[0].pattern.name if top_patterns else "—",
+           top_chains[0].name if top_chains else "—",
+           top_chains[0].domain if top_chains else "—")
     signals = ConfidenceSignals(
         curated_chain_score=chain_score,
         pattern_match_score=pattern_score,
@@ -200,6 +285,7 @@ def compose_chain(
         downstream_determinism=_downstream_determinism(top_patterns),
         user_signal=_user_signal(query),
         user_profile_bias=user_profile_bias,
+        pattern_chain_agreement=agreement,
     )
     conf = score_confidence(signals)
 
@@ -238,6 +324,7 @@ def compose_chain(
         "normalized_pattern_score": round(pattern_score, 3),
         "query_specificity": round(signals.query_specificity, 3),
         "downstream_determinism": round(signals.downstream_determinism, 3),
+        "pattern_chain_agreement": round(agreement, 3),
     }
     composed.patterns_used = [sp.pattern.name for sp in top_patterns]
     composed.exemplars_used = [sc.name for sc in top_chains]
