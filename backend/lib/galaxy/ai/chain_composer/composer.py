@@ -23,7 +23,7 @@ from .confidence import (
     SurfacingMode,
     score_confidence,
 )
-from .llm_adapter import default_llm
+from .llm_adapter import default_llm, default_ner_llm
 from .ner import QueryEntities, extract_entities, extract_entities_offline
 from .pattern_loader import Pattern, load_patterns
 from .retrieval import (
@@ -36,7 +36,21 @@ from .retrieval import (
 )
 from .types import ChainEdge, ChainStep, ComposedChain, SurfacingMode
 from . import verifier as _verifier
+import logging
 import os
+
+log = logging.getLogger(__name__)
+
+
+def _debug_enabled() -> bool:
+    return bool(os.environ.get("BIOMATE_COMPOSER_DEBUG"))
+
+
+def _debug(msg: str, *args: Any) -> None:
+    """Emit to stderr when BIOMATE_COMPOSER_DEBUG is set. Avoids logging config."""
+    if _debug_enabled():
+        import sys
+        sys.stderr.write("[composer] " + (msg % args if args else msg) + "\n")
 
 
 # (ChainStep, ChainEdge, ComposedChain now live in .types — both composer
@@ -145,10 +159,20 @@ def compose_chain(
     if llm is _SENTINEL_AUTO:
         llm = default_llm()
 
-    # NER first — entities feed both retrieval and confidence scoring.
+    # NER first — entities feed both retrieval and confidence scoring. Use the
+    # cheaper NER-tier model when possible (default Haiku); fall back to the
+    # compose-tier LLM if no NER-tier resolves (same API key needed either way).
     if entities is None:
-        ner_llm = llm if enable_llm_ner else None
+        if enable_llm_ner:
+            ner_llm = default_ner_llm() if callable(llm) else None
+            if ner_llm is None and callable(llm):
+                ner_llm = llm  # share the compose model when NER tier unavailable
+        else:
+            ner_llm = None
+        _debug("NER LLM: %s", "configured" if ner_llm else "offline-only")
         entities = extract_entities(query, llm=ner_llm)
+    _debug("entities: %d terms (%s)", len(entities.all_terms()),
+           ",".join(entities.all_terms()[:6]))
     entity_terms = entities.all_terms()
 
     top_patterns = retrieve_patterns(
@@ -302,11 +326,25 @@ def _compose_llm(
     prompt = _build_prompt(
         query, top_patterns, top_chains, top_workflows, entities, verifier_feedback,
     )
+    _debug("LLM prompt: %d chars, %d patterns, %d chains, %d workflows%s",
+           len(prompt), len(top_patterns), len(top_chains), len(top_workflows),
+           " (revision)" if verifier_feedback else "")
     try:
         raw = llm(prompt)
-        return _parse_llm_chain(raw)
-    except Exception:
+    except Exception as exc:
+        _debug("LLM call RAISED: %s: %s", type(exc).__name__, str(exc)[:200])
         return None
+    _debug("LLM response: %d chars, starts: %r", len(raw or ""), (raw or "")[:80])
+    parsed = _parse_llm_chain(raw)
+    if parsed is None:
+        _debug("LLM response did not parse to a valid chain — falling back. "
+               "Raw response (first 400 chars): %r", (raw or "")[:400])
+    elif not parsed.steps:
+        _debug("LLM returned a chain with 0 steps — treating as no-op. "
+               "Raw response (first 200): %r", (raw or "")[:200])
+        # Empty step list is not useful — let the stub take over.
+        return None
+    return parsed
 
 
 def _build_prompt(

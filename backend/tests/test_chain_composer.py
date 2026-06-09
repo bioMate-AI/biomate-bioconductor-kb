@@ -514,6 +514,67 @@ def test_llm_revision_loop_fixes_unknown_workflow():
     assert r.steps[0].workflow_name == "nf-core/rnaseq"
 
 
+# ---------- live LLM golden tests (opt-in) ----------
+
+import os as _os
+_HAS_LIVE_KEY = bool(_os.environ.get("ANTHROPIC_API_KEY"))
+
+
+@pytest.mark.live
+@pytest.mark.skipif(not _HAS_LIVE_KEY, reason="ANTHROPIC_API_KEY not set")
+def test_live_query_biomarker_validation():
+    """TCGA→UKB biomarker validation. Pre-workflow-retrieval this hallucinated
+    4/4 workflows; with workflow retrieval should ground all steps in real names."""
+    r = compose_chain(
+        "validate biomarkers from a TCGA discovery cohort on UK Biobank using GRCh38",
+    )
+    assert r.steps, f"expected non-empty plan, got rationale: {r.rationale!r}"
+    assert r.source in {"llm", "llm_revised", "curated_passthrough"}
+    # No unknown_workflow errors — the prompt's closed-set constraint must hold.
+    unknown = [e for e in r.verifier_report["errors"] if e["code"] == "unknown_workflow"]
+    assert not unknown, f"LLM emitted nonexistent workflows: {[e['message'] for e in unknown]}"
+    # Pattern rationale should mention discovery_then_validation or cross_cohort_replication.
+    if r.source != "curated_passthrough":
+        assert any(p in r.rationale.lower() for p in (
+            "discovery_then_validation", "cross_cohort", "validation"
+        )), f"rationale missing pattern reference: {r.rationale!r}"
+
+
+@pytest.mark.live
+@pytest.mark.skipif(not _HAS_LIVE_KEY, reason="ANTHROPIC_API_KEY not set")
+def test_live_query_consensus_de():
+    """Multi-method consensus DE — should pick the right pattern."""
+    r = compose_chain(
+        "robust differential expression with DESeq2, edgeR, and limma on tumor vs normal RNA-seq",
+    )
+    assert r.steps
+    assert r.verifier_report["ok"], f"verifier errors: {r.verifier_report['errors']}"
+    # Either uses the multi_method_consensus pattern, or the BIOC_ExpHunterSuite
+    # meta-package which implements that pattern internally.
+    plan_text = " ".join(s.workflow_name for s in r.steps) + " " + r.rationale
+    assert (
+        "consensus" in plan_text.lower()
+        or "ExpHunterSuite" in plan_text
+        or any(t in plan_text for t in ("DESeq2", "edgeR", "limma"))
+    ), f"expected consensus-flavored plan: {plan_text!r}"
+
+
+@pytest.mark.live
+@pytest.mark.skipif(not _HAS_LIVE_KEY, reason="ANTHROPIC_API_KEY not set")
+def test_live_query_multiomics_rna_atac():
+    """Multi-omics RNA+ATAC should hit either the curated chain or compose
+    a plausible multi-omics plan; either way verifier must pass."""
+    r = compose_chain(
+        "multi-omics RNA-seq plus ATAC-seq integration on mouse brain mm10",
+    )
+    assert r.steps
+    assert r.verifier_report["ok"], f"verifier errors: {r.verifier_report['errors']}"
+    # Plan must reference both modalities somewhere (workflow name or rationale).
+    plan_text = " ".join(s.workflow_name for s in r.steps).lower() + " " + r.rationale.lower()
+    assert "rnaseq" in plan_text or "rna-seq" in plan_text or "rna" in plan_text
+    assert "atac" in plan_text
+
+
 def test_default_llm_returns_none_without_keys(monkeypatch):
     """Adapter must return None gracefully when no provider key is present."""
     from chain_composer.llm_adapter import default_llm
