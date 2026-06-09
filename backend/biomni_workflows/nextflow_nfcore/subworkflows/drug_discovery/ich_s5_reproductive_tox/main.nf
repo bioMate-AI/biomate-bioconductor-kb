@@ -169,6 +169,7 @@ process DART_IN_SILICO_PREDICTION {
 
     output:
     path 'dart_prediction.json'
+    path 'qc_metrics.json',         emit: qc_metrics
 
     script:
     def mw_val = params.molecular_weight ?: 350.0
@@ -286,6 +287,22 @@ out = {
 
 with open("dart_prediction.json", "w") as f:
     json.dump(out, f, indent=2)
+
+# qc_metrics.json — gate metrics consumed by the QC monitor's
+# ich_s5_safety_margin gate (≥10× Cmax, GOLD-anchored to ICH S5R3 §3.1
+# for the metric; the 10× cutoff is also from the guidance). The
+# safety_margin_x key is what the gate reader expects.
+qc_metrics = {
+    "safety_margin_x": float(margin_of_safety) if margin_of_safety is not None else None,
+    "predicted_noael_mg_kg": predicted_noael_mg_kg,
+    "fertility_concern": feed_concern,
+    "efd_concern": efd_concern,
+    "fda_pregnancy_category_legacy": fda_category,
+    "kp_placenta": round(kp_placenta, 3),
+    "cmax_um": round(cmax_um, 4),
+}
+with open("qc_metrics.json", "w") as f:
+    json.dump(qc_metrics, f, indent=2)
 
 print("DART: fertility={}, EFD={}, MoS={}x, FDA cat={}".format(feed_concern, efd_concern, round(margin_of_safety, 1), fda_category))
 PYEOF
