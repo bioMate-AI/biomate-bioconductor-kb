@@ -1,0 +1,131 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: subSeq — extract_subsampled_matrix
+// Generate and extract the exact subsampled count matrix at a specific proportion from a previous run for detailed manual inspection.
+// Input: hammer.counts, seed
+// Container: quay.io/biocontainers/bioconductor-subseq:1.40.0--r45hdfd78af_0
+// Requires: subSeq
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Generate the subsampled matrix at a specific proportion using generateSubsampledMatrix
+
+nextflow.enable.dsl = 2
+
+process BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+    
+    # Load required library
+    library(subSeq)
+    
+    # -----------------------------------------------------------------------------
+    # 1. Read User Input Files
+    # -----------------------------------------------------------------------------
+    
+    # Read hammer.counts (matrix of raw RNA-seq counts)
+    if (file.exists("hammer.counts")) {
+      hammer.counts <- tryCatch({
+        readRDS("hammer.counts")
+      }, error = function(e) {
+        as.matrix(read.table("hammer.counts", header = TRUE, row.names = 1, check.names = FALSE))
+      })
+    } else if (file.exists("hammer.counts.rds")) {
+      hammer.counts <- readRDS("hammer.counts.rds")
+    } else if (file.exists("hammer.counts.csv")) {
+      hammer.counts <- as.matrix(read.csv("hammer.counts.csv", row.names = 1, check.names = FALSE))
+    } else {
+      stop("Error: Required input file 'hammer.counts' not found in the working directory.")
+    }
+    
+    # Read seed (random seed retrieved from a previous subsamples object)
+    if (file.exists("seed")) {
+      seed <- tryCatch({
+        readRDS("seed")
+      }, error = function(e) {
+        as.integer(readLines("seed", n = 1))
+      })
+    } else if (file.exists("seed.rds")) {
+      seed <- readRDS("seed.rds")
+    } else if (file.exists("seed.txt")) {
+      seed <- as.integer(readLines("seed.txt", n = 1))
+    } else {
+      stop("Error: Required input file 'seed' not found in the working directory.")
+    }
+    
+    # Ensure hammer.counts is a matrix
+    hammer.counts <- as.matrix(hammer.counts)
+    
+    # -----------------------------------------------------------------------------
+    # 2. Execute Documented Workflow
+    # -----------------------------------------------------------------------------
+    
+    submatrix = generateSubsampledMatrix(hammer.counts, .1, seed=seed)
+    dim(submatrix)
+    sum(submatrix)
+    
+    # -----------------------------------------------------------------------------
+    # 3. Write Outputs
+    # -----------------------------------------------------------------------------
+    
+    # Save the generated subsampled matrix
+    write.csv(submatrix, "submatrix.csv", row.names = TRUE)
+    saveRDS(submatrix, "submatrix.rds")
+    
+    # Save summary statistics to a text file
+    summary_file <- file("submatrix_summary.txt", "w")
+    writeLines(paste("Dimensions (rows x columns):", paste(dim(submatrix), collapse = " x ")), summary_file)
+    writeLines(paste("Total sum of counts:", sum(submatrix)), summary_file)
+    close(summary_file)
+
+    writeLines(c(
+        '"BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX":',
+        paste0('    subSeq: ', as.character(packageVersion('subSeq')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_extract_subsampled_matrix.csv versions.yml
+    """
+}
+
+workflow BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ hammer.counts, seed ] ]
+
+    main:
+    BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX(ch_input)
+
+    emit:
+    tables   = BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX.out.tables
+    plots    = BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX.out.plots
+    objects  = BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX.out.objects
+    versions = BIOC_SUBSEQ_EXTRACT_SUBSAMPLED_MATRIX.out.versions
+}

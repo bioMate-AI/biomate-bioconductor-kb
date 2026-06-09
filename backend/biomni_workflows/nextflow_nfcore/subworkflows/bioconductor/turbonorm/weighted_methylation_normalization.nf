@@ -1,0 +1,117 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: TurboNorm — weighted_methylation_normalization
+// Perform weighted P-spline normalization on array-based DNA methylation data using an invariant subset to prevent overcorrection.
+// Input: methylation.RData
+// Container: quay.io/biocontainers/bioconductor-turbonorm:1.58.0--r45h01b2380_0
+// Requires: TurboNorm, lattice, limma
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load the TurboNorm library and methylation data
+//  * 2. [Input & Preparation] Define weights based on the invariant subset indices
+//  * 3. [Core Analysis] Convert intensities to M and A values without background correction
+//  * 4. [Visualization & Output] Plot and compare lowess and pspline fits using panel.pspline() within a lattice xyplot
+
+nextflow.enable.dsl = 2
+
+process BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+    
+    # Load required libraries
+    library(TurboNorm)
+    library(lattice)
+    library(limma)
+    
+    # 1. Load the methylation data from the working directory
+    # The file 'methylation.RData' contains the RGList object named 'methylation'
+    load("methylation.RData")
+    
+    # 2. Define weights based on the invariant subset indices
+    indices <- methylation\$weights[,1]
+    weights <- rep(1, length(indices))
+    weights[indices] <- length(indices)/sum(indices)
+    
+    # 3. Convert intensities to M and A values without background correction
+    MA <- normalizeWithinArrays(methylation, method="none", bc.method="none")
+    
+    # Prepare labels and data frame for plotting
+    labels <- paste("NMB", c("(untreated)", "(treated)"))
+    labels <- paste(rep(c("Raw"), each=2), labels)
+    
+    data <- data.frame(
+      M = as.vector(MA\$M),
+      A = as.vector(MA\$A),
+      Array = factor(rep(labels, each=nrow(MA\$A)), levels=rev(labels))
+    )
+    
+    # 4. Plot and compare lowess and pspline fits using panel.pspline() within a lattice xyplot
+    pdf("methylation_normalization_plot.pdf", width=10, height=8)
+    print(xyplot(M~A|Array, xlab="", ylab="", data=data, type='g',
+      panel = function(x, y) {
+        panel.xyplot(x, y, col="grey")
+        lpoints(x[indices], y[indices], pch=20, col="black")
+        panel.pspline(x, y, weights = weights, col="red", lwd=2)
+        panel.loess(x, y, col="green", lwd=2)
+      }
+    ))
+    dev.off()
+    
+    # Save meaningful results to output files
+    write.csv(data, "methylation_data.csv", row.names=FALSE)
+    saveRDS(MA, "MA_raw.rds")
+    saveRDS(weights, "computed_weights.rds")
+
+    writeLines(c(
+        '"BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION":',
+        paste0('    TurboNorm: ', as.character(packageVersion('TurboNorm')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_weighted_methylation_normalization.csv versions.yml
+    """
+}
+
+workflow BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ methylation.RData ] ]
+
+    main:
+    BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION(ch_input)
+
+    emit:
+    tables   = BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION.out.tables
+    plots    = BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION.out.plots
+    objects  = BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION.out.objects
+    versions = BIOC_TURBONORM_WEIGHTED_METHYLATION_NORMALIZATION.out.versions
+}

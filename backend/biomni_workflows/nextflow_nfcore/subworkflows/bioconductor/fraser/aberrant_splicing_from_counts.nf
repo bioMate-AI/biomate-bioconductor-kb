@@ -1,0 +1,144 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: FRASER — aberrant_splicing_from_counts
+// Detect rare aberrant splicing events starting from precalculated junction and splice site count matrices.
+// Input: sampleTable_countTable.tsv, raw_junction_counts.tsv.gz, raw_site_counts.tsv.gz
+// Container: quay.io/biocontainers/bioconductor-fraser:2.6.0--r45ha27e39d_0
+// Requires: BiocParallel, FRASER, TxDb.Hsapiens.UCSC.hg19.knownGene, data.table, org.Hs.eg.db
+// Visualizations: plot (ggplot/base)
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Input & Preparation] Load sample annotation and count matrices. 2. Create a FraserDataSet object directly from the count matrices using FraserDataSet. 
+
+nextflow.enable.dsl = 2
+
+process BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+                
+                # Load required libraries
+                library(FRASER)
+                library(data.table)
+                library(BiocParallel)
+                library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+                library(org.Hs.eg.db)
+                
+                # Set parallel backend to serial for reproducibility and stability
+                register(SerialParam())
+                
+                # 1. Load sample annotation and count matrices from the working directory
+                sampleTable <- fread("sampleTable_countTable.tsv")
+                head(sampleTable)
+                
+                junctionCts <- fread("raw_junction_counts.tsv.gz")
+                head(junctionCts)
+                
+                spliceSiteCts <- fread("raw_site_counts.tsv.gz")
+                head(spliceSiteCts)
+                
+                # 2. Create a FraserDataSet object directly from the count matrices
+                fds <- FraserDataSet(colData=sampleTable, junctions=junctionCts,
+                        spliceSites=spliceSiteCts, workingDir="FRASER_output")
+                fds
+                
+                # 3. Calculate PSI and Jaccard values
+                fds <- calculatePSIValues(fds)
+                
+                # 4. Filter junctions
+                fds <- filterExpressionAndVariability(fds, minDeltaPsi=0, filter=TRUE)
+                
+                # Set up PDF to capture diagnostic plots
+                pdf("FRASER_diagnostic_plots.pdf", width=7, height=7)
+                
+                set.seed(42)
+                # 5. Optimize the latent space dimension q
+                # Optimal Hard Thresholding (default method)
+                fds <- estimateBestQ(fds, type="jaccard", plot=FALSE)
+                print(plotEncDimSearch(fds, type="jaccard", plotType="sv"))
+                
+                # Retrieve the estimated optimal dimension of the latent space
+                optimal_q <- bestQ(fds, type="jaccard")
+                message("Estimated optimal Q: ", optimal_q)
+                
+                # 6. Fit the splicing model
+                # Using an alternative way to correct splicing ratios
+                # the default is 15 iterations
+                fds <- fit(fds, q=optimal_q, type="jaccard", implementation="PCA-BB-Decoder", 
+                            iterations=15)
+                
+                # 7. Calculate p-values and adjusted p-values
+                fds <- calculatePvalues(fds, type="jaccard")
+                head(pVals(fds, type="jaccard"))
+                
+                fds <- calculatePadjValues(fds, type="jaccard", method="BY")
+                head(padjVals(fds,type="jaccard"))
+                
+                # 8. Annotate ranges and extract results
+                txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+                orgDb <- org.Hs.eg.db
+                fds <- annotateRangesWithTxDb(fds, txdb=txdb, orgDb=orgDb)
+                
+                res <- results(fds, all=TRUE)
+                res
+                
+                # Close the PDF device
+                dev.off()
+                
+                # Save meaningful outputs to the working directory
+                write.csv(as.data.frame(res), "fraser_results.csv", row.names=FALSE)
+                saveRDS(fds, "fds_object.rds")
+                
+                message("FRASER pipeline completed successfully. Outputs saved to 'fraser_results.csv', 'fds_object.rds', and 'FRASER_diagnostic_plots.pdf'.")
+
+    writeLines(c(
+        '"BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS":',
+        paste0('    FRASER: ', as.character(packageVersion('FRASER')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_aberrant_splicing_from_counts.csv versions.yml
+    """
+}
+
+workflow BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ sampleTable_countTable.tsv, raw_junction_counts.tsv.gz, raw_site_counts.tsv.gz ] ]
+
+    main:
+    BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS(ch_input)
+
+    emit:
+    tables   = BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS.out.tables
+    plots    = BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS.out.plots
+    objects  = BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS.out.objects
+    versions = BIOC_FRASER_ABERRANT_SPLICING_FROM_COUNTS.out.versions
+}

@@ -1,0 +1,200 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor workflow: DaMiRseq — cross_validation_and_independent_prediction
+// Train and test classification models inside a cross-validation loop, select the best model, normalize/adjust an independent test set, and predict classes.
+// Input: count_data.txt, covariate_data.txt
+// Container: quay.io/biocontainers/bioconductor-damirseq:2.22.0--r45hdfd78af_0
+// Requires: DaMiRseq
+// QC: count normalization
+// Document-derived (two-stage interpret->build) real input-consuming pipeline.
+// ============================================================
+
+// Steps:
+//  * 1. [Core Analysis] Split data into learning and independent test sets
+//  * 2. [Core Analysis] Normalize and adjust the learning set
+//  * 3. [Core Analysis] Perform feature selection, model training, and testing inside a cross-validation loop
+//  * 4. [Core Analysis] Select the best model
+//  * 5. [Core Analysis] Normalize and adjust the independent test set using learning set parameters
+//  * 6. [Core Analysis] Predict classes on the adjusted independent test set
+
+nextflow.enable.dsl = 2
+
+process BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+
+    input:
+    tuple val(meta), path(input_files, stageAs: '?/*')
+
+    output:
+    tuple val(meta), path("*.csv"), emit: tables, optional: true
+    tuple val(meta), path("*.pdf"), emit: plots,  optional: true
+    tuple val(meta), path("*.rds"), emit: objects, optional: true
+    path "versions.yml",            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+        for (.bm_f in list.files(".", recursive = TRUE, full.names = TRUE)) {
+          .bm_bn <- basename(.bm_f)
+          if (!file.exists(.bm_bn)) try(file.copy(.bm_f, .bm_bn), silent = TRUE)
+        }
+        
+        # Load required libraries
+        library(DaMiRseq)
+        
+        # 1. Read user input files
+        if (!file.exists("count_data.txt") || !file.exists("covariate_data.txt")) {
+          stop("Required input files 'count_data.txt' and/or 'covariate_data.txt' are missing in the working directory.")
+        }
+        
+        count_data <- read.delim("count_data.txt", header=TRUE, row.names=1, check.names=FALSE)
+        covariate_data <- read.delim("covariate_data.txt", header=TRUE, row.names=1, check.names=FALSE, stringsAsFactors=TRUE)
+        
+        # Ensure count data is integer matrix/df
+        count_data <- as.data.frame(lapply(count_data, as.integer), row.names = rownames(count_data))
+        
+        # Align samples between count data and covariate data
+        common_samples <- intersect(colnames(count_data), rownames(covariate_data))
+        if (length(common_samples) == 0) {
+          stop("No common samples found between count_data.txt and covariate_data.txt.")
+        }
+        count_data <- count_data[, common_samples, drop=FALSE]
+        covariate_data <- covariate_data[common_samples, , drop=FALSE]
+        
+        # Ensure 'class' column is present and is a factor
+        if (!"class" %in% colnames(covariate_data)) {
+          stop("covariate_data.txt must contain a 'class' column.")
+        }
+        covariate_data\$class <- as.factor(covariate_data\$class)
+        
+        # Construct SummarizedExperiment object
+        SE <- DaMiR.makeSE(count_data, covariate_data)
+        
+        # 2. Split data into learning and independent test sets
+        n_samples <- ncol(SE)
+        if (n_samples >= 10) {
+          idx_test <- (n_samples - 3):n_samples
+        } else if (n_samples >= 4) {
+          idx_test <- (n_samples - 1):n_samples
+        } else {
+          stop("Insufficient samples to perform split into learning and independent test sets.")
+        }
+        
+        Ind_Test_set <- SE[, idx_test, drop=FALSE]
+        Learning_set <- SE[, -idx_test, drop=FALSE]
+        
+        # 3. Normalize and adjust the learning set
+        data_norm <- DaMiR.normalization(Learning_set, minCounts=10, fSample=0.7, hyper = "yes", th.cv=3)
+        sv <- DaMiR.SV(data_norm)
+        
+        # Dynamically determine the number of surrogate variables to use (up to 4)
+        n_sv_val <- min(4, ncol(sv))
+        if (is.null(n_sv_val) || n_sv_val < 1) {
+          n_sv_val <- 1
+        }
+        data_adjust <- DaMiR.SVadjust(data_norm, sv, n.sv=n_sv_val)
+        
+        # 4. Perform feature selection, model training, and testing inside a cross-validation loop
+        nfold <- 3
+        classes <- colData(data_adjust)\$class
+        cv_sample <- integer(length(classes))
+        set.seed(12345)
+        for (cl in levels(classes)) {
+          idx_cl <- which(classes == cl)
+          if (length(idx_cl) > 0) {
+            cv_sample[idx_cl] <- sample(rep_len(seq_len(nfold), length(idx_cl)))
+          }
+        }
+        
+        cv_models <- list()
+        cv_predictors <- list()
+        res_df <- data.frame(matrix(nrow = nfold, ncol = 7))
+        colnames(res_df) <- c("Accuracy", "N.predictors", "MCC", "sensitivity", "Specificty", "PPV", "NPV")
+        
+        for (cv_fold in seq_len(nfold)) {
+          idx_cv <- which(cv_sample != cv_fold)
+          TR_set <- data_adjust[, idx_cv, drop=FALSE]
+          Val_set <- data_adjust[, -idx_cv, drop=FALSE]
+          
+          # Feature selection
+          data_reduced <- DaMiR.FSelect(t(assay(TR_set)), as.data.frame(colData(TR_set)), th.corr=0.4)
+          data_reduced <- DaMiR.FReduct(data_reduced\$data, th.corr = 0.9)
+          df_importance <- DaMiR.FSort(data_reduced, as.data.frame(colData(TR_set)))
+          selected_features <- DaMiR.FBest(data_reduced, ranking=df_importance, autoselect = "yes")
+          
+          TR_set <- TR_set[selected_features\$predictors, , drop=FALSE]
+          Val_set <- Val_set[selected_features\$predictors, drop=FALSE]
+          
+          # Model building
+          ensl_model <- DaMiR.EnsL_Train(TR_set, cl_type = c("RF", "LR"))
+          cv_models[[cv_fold]] <- ensl_model
+          
+          # Model testing
+          res_Val <- DaMiR.EnsL_Test(Val_set, EnsL_model = ensl_model)
+          
+          # Store ML results
+          res_df[cv_fold, 1] <- res_Val\$accuracy[1]
+          res_df[cv_fold, 2] <- length(res_Val\$predictors)
+          res_df[cv_fold, 3] <- res_Val\$MCC[1]
+          res_df[cv_fold, 4] <- res_Val\$sensitivity[1]
+          res_df[cv_fold, 5] <- res_Val\$Specificty[1]
+          res_df[cv_fold, 6] <- res_Val\$PPV[1]
+          res_df[cv_fold, 7] <- res_Val\$NPV[1]
+          
+          cv_predictors[[cv_fold]] <- res_Val\$predictors
+        }
+        
+        # 5. Select the best model
+        idx_best_model <- DaMiR.ModelSelect(res_df, type.sel = "mode", npred.sel = "min")
+        
+        # 6. Normalize and adjust the independent test set using learning set parameters
+        expr_LearningSet <- Learning_set[rownames(data_norm)]
+        expr_Ind_Test_set <- Ind_Test_set[rownames(data_norm)]
+        norm_ind_ts <- DaMiR.iTSnorm(expr_LearningSet, expr_Ind_Test_set, normtype = "vst", method = "precise")
+        adj_norm_ind_ts <- DaMiR.iTSadjust(data_adjust, norm_ind_ts)
+        
+        # 7. Predict classes on the adjusted independent test set
+        prediction <- DaMiR.EnsL_Predict(t(adj_norm_ind_ts), bestModel = cv_models[[idx_best_model]])
+        
+        # Write outputs
+        write.csv(res_df, "cv_metrics.csv", row.names=TRUE)
+        write.csv(prediction, "prediction_results.csv", row.names=TRUE)
+        writeLines(cv_predictors[[idx_best_model]], "best_model_predictors.txt")
+        saveRDS(cv_models[[idx_best_model]], "best_model.rds")
+        
+        cat("Pipeline completed successfully. Outputs written to cv_metrics.csv, prediction_results.csv, best_model_predictors.txt, and best_model.rds.\n")
+
+    writeLines(c(
+        '"BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION":',
+        paste0('    DaMiRseq: ', as.character(packageVersion('DaMiRseq')))
+    ), "versions.yml")
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_cross_validation_and_independent_prediction.csv versions.yml
+    """
+}
+
+workflow BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ count_data.txt, covariate_data.txt ] ]
+
+    main:
+    BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION(ch_input)
+
+    emit:
+    tables   = BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION.out.tables
+    plots    = BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION.out.plots
+    objects  = BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION.out.objects
+    versions = BIOC_DAMIRSEQ_CROSS_VALIDATION_AND_INDEPENDENT_PREDICTION.out.versions
+}
