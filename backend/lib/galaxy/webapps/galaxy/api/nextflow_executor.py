@@ -2245,6 +2245,24 @@ def _start_qc_monitor(
             except OSError:
                 continue
 
+            if not lines:
+                continue
+
+            # Map header names → column indices. Workflows that configure
+            # trace.fields (e.g. pocket_detection_druggability) drop the
+            # default "hash" column, shifting "name"/"status" left and
+            # breaking the prior hardcoded parts[3]/parts[4] reads. The
+            # default Nextflow trace puts name at col 3 and status at col 4,
+            # but if "hash" is omitted name/status land at 1/2 — bug
+            # observed 2026-06-09 on pocket workflow (phase_name='0' from
+            # exit column being read as process_name).
+            header_cols = [h.strip() for h in lines[0].split("\t")]
+            col_idx = {name: i for i, name in enumerate(header_cols)}
+            idx_task_id = col_idx.get("task_id", 0)
+            idx_hash    = col_idx.get("hash", 1)
+            idx_name    = col_idx.get("name", 3)
+            idx_status  = col_idx.get("status", 4)
+
             new_task_found = False
             # Per-iteration aggregation: process_name → list of task statuses.
             # Used after the per-task loop to decide phase_completed/failed.
@@ -2254,12 +2272,12 @@ def _start_qc_monitor(
                 if not line.strip():
                     continue
                 parts = line.split("\t")
-                if len(parts) < 5:
+                if len(parts) <= max(idx_task_id, idx_name, idx_status):
                     continue
-                task_id = parts[0].strip()
-                process_hash = parts[1].strip()
-                process_name = parts[3].strip()
-                task_status = parts[4].strip()
+                task_id = parts[idx_task_id].strip()
+                process_hash = parts[idx_hash].strip() if idx_hash < len(parts) else ""
+                process_name = parts[idx_name].strip()
+                task_status = parts[idx_status].strip()
 
                 # Aggregate for phase-completion decision below.
                 process_status_map.setdefault(process_name, []).append(task_status)
