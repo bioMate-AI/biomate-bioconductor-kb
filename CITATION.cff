@@ -24,13 +24,54 @@ version: 1.0.0
 date-released: 2026-06-01
 url: https://github.com/bioMate-AI/biomate-bioconductor-kb
 repository-code: https://github.com/bioMate-AI/biomate-bioconductor-kb
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.20616355
+    description: Concept DOI (always resolves to the latest version of the BioMate-KB record)
+preferred-citation:
+  type: article
+  title: >-
+    BioMate-KB: A Real-Execution-Validated Workflow Knowledge Base for
+    Bioconductor
+  authors:
+    - family-names: Zhang
+      given-names: Y.
+  year: 2026
+  version: "v3"
+  publisher:
+    name: Zenodo
+  doi: 10.5281/zenodo.20616355
+  url: https://doi.org/10.5281/zenodo.20616355
+  notes: >-
+    Concept DOI (all versions). Version v3 DOI: 10.5281/zenodo.20616356
 references:
   - type: article
     title: >-
-      BioMate-KB: A Structure-Validated, Executable Workflow Knowledge Base
-      for Bioconductor
+      BioMate-KB: A Real-Execution-Validated Workflow Knowledge Base for
+      Bioconductor
     authors:
-      - name: "BioMate Team"
+      - family-names: Zhang
+        given-names: Y.
     year: 2026
+    version: "v3"
+    publisher:
+      name: Zenodo
+    doi: 10.5281/zenodo.20616355
+    url: https://doi.org/10.5281/zenodo.20616355
     notes: >-
-      bioRxiv preprint forthcoming; DOI will be added on publication.
+      Concept DOI (all versions). Version v3 DOI: 10.5281/zenodo.20616356
+  - type: article
+    title: >-
+      Structure Grounding Is Not Enough: Real Execution as the Ground Truth for
+      LLM-Generated Bioinformatics Workflows
+    authors:
+      - family-names: Zhang
+        given-names: Y.
+    year: 2026
+    version: "v3"
+    publisher:
+      name: Zenodo
+    doi: 10.5281/zenodo.20616543
+    url: https://doi.org/10.5281/zenodo.20616543
+    notes: >-
+      Concept DOI (all versions). Version v3 DOI: 10.5281/zenodo.20616544

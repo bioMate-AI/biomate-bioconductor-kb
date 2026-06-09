@@ -1,5 +1,10 @@
 # BioMate-KB — Bioconductor Skills
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20616355.svg)](https://doi.org/10.5281/zenodo.20616355)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20616543.svg)](https://doi.org/10.5281/zenodo.20616543)
+
+> A knowledge base of 15,641 real-execution-validated Bioconductor workflow steps — the public skill bundle behind [BioMate AI](https://www.biomate.ai). Methodology and validation documented in two preprints (see [Citation](#citation)).
+
 **Top 100 Bioconductor packages by official download score, formatted as Claude Code Skills.**
 
 A skill bundle in [Claude Code Skills](https://docs.anthropic.com/en/docs/claude-code/skills-overview) format, covering the most-used 100 Bioconductor packages from the BioMate-KB knowledge base. Each skill teaches Claude when to choose a package, what parameters to set, how to interpret results, and what pitfalls to avoid.
@@ -91,11 +96,13 @@ Built by the team behind [BioMate](https://biomate.ai).
 
 ## Citation
 
-If you use this skill bundle in research, please cite:
+If you use BioMate-KB, please cite the two companion papers:
 
-> BioMate-KB: A Structure-Validated, Executable Workflow Knowledge Base for Bioconductor. (2026). bioRxiv. DOI: [pending]
+> Zhang, Y. (2026). *BioMate-KB: A Real-Execution-Validated Workflow Knowledge Base for Bioconductor* (v3). Zenodo. https://doi.org/10.5281/zenodo.20616355
 
-(bioRxiv DOI will replace this stub once the preprint is published.)
+> Zhang, Y. (2026). *Structure Grounding Is Not Enough: Real Execution as the Ground Truth for LLM-Generated Bioinformatics Workflows* (v3). Zenodo. https://doi.org/10.5281/zenodo.20616543
+
+These are the **concept DOIs** (Zenodo "Cite all versions") — they always resolve to the latest version. To pin exactly v3, use the version DOIs: BioMate-KB `10.5281/zenodo.20616356` · Structure Grounding `10.5281/zenodo.20616544`.
 
 ## Regenerating the bundle
 
