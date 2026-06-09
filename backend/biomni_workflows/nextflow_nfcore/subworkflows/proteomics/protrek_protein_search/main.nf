@@ -135,13 +135,15 @@ EOF
 }
 
 workflow {
+    // Each optional input needs a unique placeholder filename to avoid
+    // "input file name collision -- multiple input files for NO_FILE".
     fasta_ch = params.input_fasta
         ? Channel.fromPath(params.input_fasta)
-        : Channel.fromPath('NO_FILE').ifEmpty(file('NO_FILE'))
+        : Channel.fromPath('NO_FASTA').ifEmpty(file('NO_FASTA'))
 
     pdb_ch = params.input_pdb
         ? Channel.fromPath(params.input_pdb)
-        : Channel.fromPath('NO_FILE').ifEmpty(file('NO_FILE'))
+        : Channel.fromPath('NO_PDB').ifEmpty(file('NO_PDB'))
 
     PROTREK_SEARCH(
         Channel.value(params.query),
