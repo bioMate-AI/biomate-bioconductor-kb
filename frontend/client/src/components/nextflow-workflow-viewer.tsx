@@ -19,6 +19,7 @@ import { LicenseGate } from "./license-gate";
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
 import { stripAnsi } from "@/lib/utils";
+import { AfterRunReport } from "@/v2/AfterRunReport";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -868,6 +869,44 @@ export function NextflowWorkflowViewer({
   // it in the dependency array, and without triggering extra re-renders.
   const userOverriddenParams = useRef<Set<string>>(new Set());
 
+  // Late-binding: workflowDefinition.inline_parameters is populated by
+  // chat-with-artifacts.tsx AFTER chat-stream's final event lands — which is
+  // typically AFTER this component already mounted with an empty params {}.
+  // useState's initializer only runs once at mount, so without this effect the
+  // LLM-extracted target_a / target_b / indication / format never reach the
+  // form inputs even though they're in the workflow object. Merge them in,
+  // but skip keys the user has explicitly overridden via the editor.
+  // Verified via /api/chat/stream live: final event carries
+  //   "inlineParameters":{"target_a":"PD-1","target_b":"VEGF",...}
+  // which chat-with-artifacts spreads onto workflowDefinition.inline_parameters
+  // before re-rendering this component.
+  React.useEffect(() => {
+    const incoming =
+      (workflowDefinition?.inline_parameters && typeof workflowDefinition.inline_parameters === 'object'
+        ? workflowDefinition.inline_parameters
+        : null) ||
+      (workflowDefinition?.parameters && typeof workflowDefinition.parameters === 'object'
+        ? workflowDefinition.parameters
+        : null);
+    if (!incoming) return;
+    const incomingKeys = Object.keys(incoming);
+    if (incomingKeys.length === 0) return;
+    setParams(prev => {
+      let changed = false;
+      const next: Record<string, any> = { ...prev };
+      for (const k of incomingKeys) {
+        if (userOverriddenParams.current.has(k)) continue; // respect user edits
+        const v = (incoming as Record<string, any>)[k];
+        if (v === undefined || v === null || v === '') continue;
+        if (prev[k] !== v) {
+          next[k] = v;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [workflowDefinition?.inline_parameters, workflowDefinition?.parameters]);
+
   const { showingSubmittedParams, resetToDefaults } = useRunAgainParamCarryover({
     status, runId, lastSubmittedParams, userOverriddenParams, setParams,
     defaults: initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {},
@@ -878,8 +917,28 @@ export function NextflowWorkflowViewer({
   const resizeStartWRef = useRef(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
+  // Workflow-panel top tabs (per 20260608 horizontal-layout redesign).
+  // Default is status-aware (computed in effect below):
+  //   idle / pending_review → Settings (user needs to configure params)
+  //   running / paused      → Phases   (user wants to watch live progress)
+  //   completed / failed    → After-run (user wants results)
+  // Manual switches override the auto-default for the rest of the session.
+  const [activeTab, setActiveTab] = useState<'settings' | 'phases' | 'after-run'>('phases');
+  const [tabAutoDefault, setTabAutoDefault] = useState<boolean>(true);
   // Global parameters collapsible — collapsed by default (phases shown first per design spec)
   const [globalParamsOpen, setGlobalParamsOpen] = useState<boolean>(false);
+
+  // Status-aware tab default — see the activeTab declaration above for the policy.
+  // Only auto-switches while the user hasn't manually picked a tab (tabAutoDefault).
+  useEffect(() => {
+    if (!tabAutoDefault) return;
+    const next: 'settings' | 'phases' | 'after-run' =
+      status === 'idle' || status === 'pending_review' ? 'settings'
+      : status === 'running' || status === 'paused' ? 'phases'
+      : status === 'completed' || status === 'failed' ? 'after-run'
+      : 'phases';
+    setActiveTab(next);
+  }, [status, tabAutoDefault]);
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
   // When user reruns from a step, track the new runId so the viewer polls the right run
@@ -2212,8 +2271,105 @@ export function NextflowWorkflowViewer({
         );
       })()}
 
-      {/* ── Scrollable panel body ─────────────────────────────────────────────── */}
-      <div className="panel-body" data-tour="panel-body">
+      {/* ── Top-level tabs (Step A MVP — phases tab keeps current view) ─────── */}
+      {(() => {
+        const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
+        const phaseCount = hasRealPhases ? groupedPhases.length : updatedPhases.length;
+        const paramCount = renderedParameters.length;
+        const showAfterRunDot = status === 'completed' || status === 'failed';
+        const tabBtn = (key: 'settings' | 'phases' | 'after-run', label: string, badge?: React.ReactNode): React.ReactElement => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => { setActiveTab(key); setTabAutoDefault(false); }}
+            data-testid={`panel-tab-${key}`}
+            aria-selected={activeTab === key}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '8px 14px',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: activeTab === key ? 600 : 500,
+              color: activeTab === key ? 'var(--text)' : 'var(--text-muted)',
+              borderBottom: activeTab === key ? '2px solid var(--text)' : '2px solid transparent',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            {label}
+            {badge}
+          </button>
+        );
+        const countBadge = (n: number) =>
+          n > 0 ? (
+            <span style={{
+              fontSize: 11,
+              fontWeight: 500,
+              padding: '1px 7px',
+              borderRadius: 999,
+              background: 'var(--bm-muted, oklch(0.94 0.005 260))',
+              color: 'var(--text-muted)',
+            }}>{n}</span>
+          ) : null;
+        const dotBadge = (
+          <span style={{
+            display: 'inline-block',
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: status === 'failed' ? 'oklch(0.62 0.18 25)' : 'oklch(0.65 0.15 145)',
+          }} />
+        );
+        return (
+          <div
+            data-testid="panel-tabs"
+            style={{
+              display: 'flex',
+              borderBottom: '1px solid var(--border)',
+              padding: '0 6px',
+              background: 'var(--bm-bg, transparent)',
+            }}
+          >
+            {/* Settings tab: the existing Workflow-settings collapsible strip
+                that today lives at the TOP of panel-body. Same content; just
+                moved into its own tab via CSS-hide (no JSX restructure). */}
+            {tabBtn('settings', 'Workflow settings', countBadge(paramCount))}
+            {tabBtn('phases', 'Phases', countBadge(phaseCount))}
+            {tabBtn('after-run', 'After run', showAfterRunDot ? dotBadge : null)}
+          </div>
+        );
+      })()}
+
+      {/* ── After-run tab content (v2 AfterRunReport, embedded inline) ──────── */}
+      {activeTab === 'after-run' && (
+        <div className="panel-body" data-testid="panel-after-run">
+          <AfterRunReport
+            runId={runId || invocationId || ''}
+            invocationId={invocationId}
+            workflowName={workflowDefinition?.name}
+            parameters={params as Record<string, unknown>}
+            executionStatus={
+              status === 'completed' ? 'completed'
+              : status === 'failed' ? 'failed'
+              : status === 'running' ? 'running'
+              : undefined
+            }
+            errorMessage={errorMessage}
+          />
+        </div>
+      )}
+
+      {/* ── Scrollable panel body — shared between Phases AND Settings tabs.
+              The body contains: settings strip (visible on Settings tab),
+              phase cards + status (visible on Phases tab). Per-section CSS
+              hide/show is applied below; the body itself stays mounted on
+              either tab so SSE-driven phase state isn't lost on tab switch. */}
+      <div style={{ display: (activeTab === 'phases' || activeTab === 'settings') ? 'contents' : 'none' }}>
+      <div className="panel-body" data-tour="panel-body" data-testid={activeTab === 'settings' ? 'panel-settings' : 'panel-phases'}>
+          {/* ── Phases-tab-only runtime section ─────────────────────────────── */}
+          <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
           {/* Step-wise controls hint — only when real phase groups exist */}
           {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
             <div
@@ -2321,6 +2477,10 @@ export function NextflowWorkflowViewer({
           })()}
 
 
+          </div>{/* end Phases-tab-only runtime section (re-opens after settings strip) */}
+
+          {/* ── Settings-tab-only: the existing Workflow-settings strip ─────── */}
+          <div style={{ display: activeTab === 'settings' ? 'contents' : 'none' }}>
           {/* ── Workflow settings strip — TOP of body, before phase list ────── */}
           {/* Design ref: WorkflowPanel.jsx lines 224-242 — "Workflow settings"   */}
           {/* collapsible strip sits at the top so global params frame the run    */}
@@ -2388,6 +2548,10 @@ export function NextflowWorkflowViewer({
           })()}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            </div>{/* end Settings-tab-only strip */}
+
+            {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
+            <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
             {/* ── Phase section label ──────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (() => {
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
@@ -2778,7 +2942,100 @@ export function NextflowWorkflowViewer({
               )}
             </div>
           )}
+          </div>{/* end inner Phases-tab-only block (post-strip) */}
       </div>{/* end panel-body */}
+      </div>{/* end shared panel-body wrapper (Settings + Phases tabs) */}
+
+      {/* ── Sticky status-aware action bar at panel bottom ────────────────────
+              running       → ⏸ Pause   ⏹ Stop
+              paused        → ▶ Resume  ⏹ Stop
+              completed/fail→ ▶ Run again
+              idle/pending  → (no bar — Settings tab + main Run button do it) */}
+      {(() => {
+        const isRunning   = status === 'running';
+        const isPaused    = status === 'paused';
+        const isTerminal  = status === 'completed' || status === 'failed';
+        if (!isRunning && !isPaused && !isTerminal) return null;
+
+        const barStyle: React.CSSProperties = {
+          borderTop: '1px solid var(--border)',
+          padding: 10,
+          background: 'oklch(0.12 0.005 260)',
+          display: 'flex',
+          gap: 8,
+        };
+        const btnBase: React.CSSProperties = {
+          flex: 1,
+          padding: '10px 14px',
+          background: 'transparent',
+          color: 'oklch(0.98 0.005 260)',
+          border: '1px solid oklch(0.28 0.005 260)',
+          borderRadius: 6,
+          fontSize: 14,
+          fontWeight: 500,
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+        };
+        const primary: React.CSSProperties = { ...btnBase, border: 'none' };
+
+        return (
+          <div data-testid="panel-action-bar" data-status={status} style={barStyle}>
+            {isRunning && (
+              <>
+                <button
+                  type="button"
+                  data-testid="panel-action-pause"
+                  onClick={onPause}
+                  disabled={!onPause}
+                  style={btnBase}
+                  title="Pause execution"
+                ><span>⏸</span><span>Pause</span></button>
+                <button
+                  type="button"
+                  data-testid="panel-action-stop"
+                  onClick={onCancel}
+                  disabled={!onCancel}
+                  style={btnBase}
+                  title="Stop execution"
+                ><span>⏹</span><span>Stop</span></button>
+              </>
+            )}
+            {isPaused && (
+              <>
+                <button
+                  type="button"
+                  data-testid="panel-action-resume"
+                  onClick={onResume}
+                  disabled={!onResume}
+                  style={primary}
+                  title="Resume execution"
+                ><span>▶</span><span>Resume</span></button>
+                <button
+                  type="button"
+                  data-testid="panel-action-stop"
+                  onClick={onCancel}
+                  disabled={!onCancel}
+                  style={btnBase}
+                  title="Stop execution"
+                ><span>⏹</span><span>Stop</span></button>
+              </>
+            )}
+            {isTerminal && (
+              <button
+                type="button"
+                data-testid="panel-run-again-cta"
+                onClick={() => onExecute?.(params)}
+                disabled={!onExecute}
+                style={primary}
+                title={status === 'failed' ? 'Restart from a fresh state' : 'Run this workflow again'}
+              ><span>▶</span><span>{status === 'failed' ? 'Restart' : 'Run again'}</span></button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Sticky footer with primary run action ─────────────────────────────── */}
       <div className="panel-foot" data-tour="run-footer">
