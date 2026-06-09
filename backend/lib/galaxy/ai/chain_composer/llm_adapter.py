@@ -80,3 +80,27 @@ def default_llm(
         return client.generate(prompt, max_tokens=max_tokens, temperature=0.2)
 
     return _call
+
+
+# Per-tier env overrides. NER is short (JSON extraction over a single query)
+# and benefits little from a top-tier model — Haiku/Flash is more than
+# enough and cuts cost ~10x. Compose benefits from larger context + reasoning.
+_NER_DEFAULT_MODEL = os.environ.get(
+    "BIOMATE_COMPOSER_NER_MODEL", "claude-haiku-4-5-20251001"
+)
+
+
+def default_ner_llm(*, model: Optional[str] = None) -> Optional[Callable[[str], str]]:
+    """Lighter LLM for NER. Defaults to Haiku — controllable via
+    BIOMATE_COMPOSER_NER_MODEL. Returns None if no API key configured.
+
+    Why separate from default_llm():
+    - NER is a single short call producing flat JSON. Reasoning quality
+      barely matters; throughput + cost do.
+    - Compose generates a multi-step plan with rationale and uses retrieval
+      context. Worth a stronger model.
+
+    Tiering both calls to the same model is fine — set this env override to
+    the same value as the compose model if you don't care about the split.
+    """
+    return default_llm(model=model or _NER_DEFAULT_MODEL, max_tokens=1024)

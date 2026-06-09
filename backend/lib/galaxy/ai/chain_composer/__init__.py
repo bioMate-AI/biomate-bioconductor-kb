@@ -21,7 +21,7 @@ from .confidence import ConfidenceSignals, score_confidence, choose_surfacing_mo
 from .composer import compose_chain
 from .types import ChainEdge, ChainStep, ComposedChain
 from .ner import QueryEntities, extract_entities, extract_entities_offline
-from .llm_adapter import default_llm
+from .llm_adapter import default_llm, default_ner_llm
 from .verifier import VerifierIssue, VerifierReport, verify_chain
 
 __all__ = [
@@ -40,6 +40,7 @@ __all__ = [
     "extract_entities",
     "extract_entities_offline",
     "default_llm",
+    "default_ner_llm",
     "VerifierIssue",
     "VerifierReport",
     "verify_chain",
