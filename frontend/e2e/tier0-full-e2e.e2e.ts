@@ -245,26 +245,73 @@ async function waitForWorkflowCard(page: Page, workflow: string, timeoutMs = 180
 }
 
 async function readPrefilledParams(page: Page): Promise<Record<string, string>> {
-  // Expand the params strip if collapsed
-  const strip = page.locator('[data-testid="workflow-params-strip"]').first();
-  if (await strip.isVisible({ timeout: 1500 }).catch(() => false)) {
-    const closed = await strip.getAttribute('data-state').catch(() => 'open');
-    if (closed === 'closed') await strip.click({ force: true }).catch(() => {});
+  // 924138d00 reorganised the viewer into horizontal Settings/Phases/After-run
+  // tabs. Params live in two places now:
+  //   • Settings tab → "Workflow settings" strip (button-toggle-workflow-settings)
+  //     contains a Radix Accordion (ParameterGroup) with <Input id={paramName}>
+  //   • Phases tab → each phase card has a phase-params-toggle-${groupKey} button
+  //     that expands an inline param list (raw <input> with id absent)
+  // To read every prefilled value, click into Settings, expand the strip + the
+  // accordion, then read input#paramName values.
+  // Step 1: switch to Settings tab if present
+  const settingsTab = page.locator('[data-testid="panel-tab-settings"]').first();
+  if (await settingsTab.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await settingsTab.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
   }
-  // Expand Radix Accordion inside parameter group
-  const acc = page.locator('button[role="button"][data-state="closed"]').filter({ hasText: /parameters|inputs|settings/i }).first();
+  // Step 2: expand the workflow settings strip
+  const strip = page.locator('[data-testid="button-toggle-workflow-settings"]').first();
+  if (await strip.isVisible({ timeout: 1500 }).catch(() => false)) {
+    const cls = await strip.getAttribute('class').catch(() => '');
+    if (!/\bopen\b/.test(cls || '')) await strip.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
+  }
+  // Step 3: expand the Radix accordion ("Workflow parameters") inside the strip
+  const acc = page
+    .locator('button[role="button"][data-state="closed"]')
+    .filter({ hasText: /workflow parameters|parameters|inputs|settings/i })
+    .first();
   if (await acc.isVisible({ timeout: 1500 }).catch(() => false)) {
     await acc.click({ force: true }).catch(() => {});
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
   }
-  // Read all input fields
-  const out: Record<string, string> = {};
-  const inputs = await page.locator('input[id], textarea[id]').elementHandles();
-  for (const h of inputs) {
-    const id = await h.getAttribute('id');
-    const v = await h.inputValue().catch(() => null);
-    if (id && v != null) out[id] = v;
-  }
+  // Step 4: also expand any phase params toggles so phase-specific params
+  // (target_a, target_b, format, indication for bispecific Phase A) become
+  // readable via their inline inputs. These inputs don't have an id attribute,
+  // so we read them via the label text → adjacent value approach in (5).
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-testid^="phase-params-toggle-"]').forEach(btn => {
+      const opened = (btn.getAttribute('aria-expanded') || '').toLowerCase() === 'true' ||
+                     /\bopen\b/.test((btn as HTMLElement).className || '');
+      if (!opened) (btn as HTMLElement).click();
+    });
+  });
+  await page.waitForTimeout(400);
+  // Step 5: read all input/textarea values keyed by id (Settings tab) AND
+  // pair label-key + value for phase-card params (inline rows have label spans
+  // and value inputs sitting next to each other in .param-row).
+  const out = await page.evaluate(() => {
+    const result: Record<string, string> = {};
+    // (a) Settings-tab inputs: <Input id={paramName} ...>
+    document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[id], textarea[id]')
+      .forEach(el => {
+        const id = el.id;
+        const v = (el as any).value as string | undefined;
+        if (id && v != null && v !== '') result[id] = v;
+      });
+    // (b) Phase-card inline params: .param-row has <span class="k">{label}</span>
+    //     and <input value={...}>. Convert label → snake_case as a key best-effort.
+    document.querySelectorAll('.param-row').forEach(row => {
+      const labelEl = row.querySelector('.k');
+      const inputEl = row.querySelector<HTMLInputElement>('input, select');
+      if (!labelEl || !inputEl) return;
+      const label = (labelEl.textContent || '').trim().replace(/\s*\*\s*$/, '');
+      const snake = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const v = (inputEl as any).value as string | undefined;
+      if (snake && v != null && v !== '' && !result[snake]) result[snake] = v;
+    });
+    return result;
+  });
   return out;
 }
 
