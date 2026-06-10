@@ -113,6 +113,39 @@ export const ACCESSION_PATTERNS: Array<{ pattern: RegExp; kind: string; descript
 ];
 
 /**
+ * Detect whether the user's message names a canonical fixture or accession.
+ * Returns the matched fixture's name (e.g. "airway") or null. Used by the
+ * pre-LLM clarification-suppression gate so the chat doesn't ask for files
+ * when the dataset is already named — even when the user adds verbose
+ * detail like "treated vs untreated; export CSV + MA plot" that would
+ * otherwise re-trigger the LLM's "I need files" reflex.
+ *
+ * This is the deterministic counterpart to the prompt-level rule in
+ * buildCanonicalFixturePromptSection() — Plan C from
+ * docs/20260610_DETERMINISTIC_CHAT_ROUTING_PLAN.md.
+ */
+export function matchesCanonicalFixture(message: string): string | null {
+  if (!message) return null;
+
+  for (const fx of CANONICAL_FIXTURES) {
+    const candidates = [fx.name, ...fx.aliases];
+    for (const c of candidates) {
+      // Word-boundary match to avoid false positives like "pairway"
+      // matching "airway" or "ironman" matching "iris".
+      const escaped = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(?:^|[^\\w])${escaped}(?:[^\\w]|$)`, "i");
+      if (re.test(message)) return fx.name;
+    }
+  }
+
+  for (const p of ACCESSION_PATTERNS) {
+    if (p.pattern.test(message)) return p.kind;
+  }
+
+  return null;
+}
+
+/**
  * Build the system-prompt section that tells the LLM about all canonical
  * fixtures. Plug this into the workflow-generation prompt next to the
  * ADMET-from-SMILES and pocket-from-PDB-id rules.
