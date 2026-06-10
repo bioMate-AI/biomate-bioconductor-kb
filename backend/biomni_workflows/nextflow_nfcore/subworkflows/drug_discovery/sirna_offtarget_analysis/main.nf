@@ -223,14 +223,14 @@ MOD_STRATEGIES = {
         'cost_relative': 1.0,
     },
     '2ome': {
-        'desc': '2\'-O-methyl at seed positions 2,4,6 (guide)',
+        'desc': "2'-O-methyl at seed positions 2,4,6 (guide)",
         'off_target_reduction_pct': 40,
         'immune_reduction_pct': 60,
         'cost_relative': 1.8,
         'positions': 'Guide: 2ome at pos 2,4,6; Passenger: 2ome throughout',
     },
     '2f': {
-        'desc': '2\'-Fluoro at pyrimidines — nuclease resistance',
+        'desc': "2'-Fluoro at pyrimidines — nuclease resistance",
         'off_target_reduction_pct': 25,
         'immune_reduction_pct': 45,
         'cost_relative': 2.1,
@@ -242,14 +242,14 @@ MOD_STRATEGIES = {
         'cost_relative': 1.5,
     },
     '2ome_2f': {
-        'desc': '2\'-OMe + 2\'-F alternating (ESC siRNA pattern)',
+        'desc': "2'-OMe + 2'-F alternating (ESC siRNA pattern)",
         'off_target_reduction_pct': 65,
         'immune_reduction_pct': 80,
         'cost_relative': 3.2,
         'notes': 'Enhanced Stabilization Chemistry; Springer 2018',
     },
     'esi_full': {
-        'desc': 'Full ESC: 2\'-OMe + 2\'-F + GalNAc conjugate (liver)',
+        'desc': "Full ESC: 2'-OMe + 2'-F + GalNAc conjugate (liver)",
         'off_target_reduction_pct': 80,
         'immune_reduction_pct': 90,
         'cost_relative': 5.5,
@@ -334,13 +334,13 @@ report = {
 recs = report['recommendations']
 if strand_sel == 'passenger_preferred_RISK':
     recs.append({'priority': 'HIGH', 'issue': 'passenger_strand_loading',
-                 'fix': 'Introduce 2\'-OMe at pass pos 1-2 to destabilize 5\' end; redesign guide thermodynamics'})
+                 'fix': "Introduce 2'-OMe at pass pos 1-2 to destabilize 5' end; redesign guide thermodynamics"})
 if n_high_concern > 3:
     recs.append({'priority': 'HIGH', 'issue': f'{n_high_concern} high-concern off-targets',
-                 'fix': '2\'-OMe modification at seed pos 2,4,6 (Birmingham 2006 strategy)'})
+                 'fix': "2'-OMe modification at seed pos 2,4,6 (Birmingham 2006 strategy)"})
 if is_stim:
     recs.append({'priority': 'MEDIUM', 'issue': f'TLR motifs: {motifs_found}',
-                 'fix': 'Replace U→s2U or use 2\'-OMe at TLR motif positions'})
+                 'fix': "Replace U→s2U or use 2'-OMe at TLR motif positions"})
 if n_mirna_matches > 30:
     recs.append({'priority': 'MEDIUM', 'issue': f'{n_mirna_matches} miRNA seed overlaps',
                  'fix': 'Shift design by ±2 positions or use boron-modified bases at pos 2'})
@@ -388,13 +388,13 @@ lines = [
     f'  Target: {target_gene} | Species: {species} | Tissue: {tissue}',
     '╚══════════════════════════════════════════════════════════╝',
     '',
-    f'  Guide strand:    5\'-{guide_seq}-3\'',
+    f"  Guide strand:    5'-{guide_seq}-3'",
     f'  Seed region:     pos 2-8 = {seed_region}',
     f'  Duplex Tm:       {tm_duplex}°C',
     '',
     f'── Strand Selection ─────────────────────────────────────',
-    f'  5\'-ΔG guide:     {dg5_guide} kcal/mol',
-    f'  5\'-ΔG passenger: {dg5_pass} kcal/mol',
+    f"  5'-ΔG guide:     {dg5_guide} kcal/mol",
+    f"  5'-ΔG passenger: {dg5_pass} kcal/mol",
     f'  Strand loading:  {strand_sel} (asymmetry={strand_sel_score:+.2f})',
     '',
     f'── Off-Target Summary ───────────────────────────────────',
