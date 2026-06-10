@@ -54,7 +54,7 @@ params.seed          = 1234
 process NLMIXR2_POPULATION_PK {
     tag "$meta.id"
     label 'process_high'
-    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
+    publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/r-pharma:x86' : 'biomate/r-pharma:latest'
 
