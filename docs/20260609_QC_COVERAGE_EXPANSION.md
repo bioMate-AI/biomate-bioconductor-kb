@@ -4,7 +4,7 @@
 has a defined gate in `qc_gate_reader.py`, with honest provenance grading
 and end-to-end verification on dev.
 
-**Result:** 8 of 10 candidate workflows verified end-to-end. 2 are
+**Result:** 9 of 12 candidate workflows verified end-to-end. 3 are
 code-ready, each blocked by an issue independent of the QC code path.
 
 ## Verified workflows
@@ -23,6 +23,7 @@ Each entry below is proven by a live `[QC-S3] Reading report for <process> from 
 | 6 | p0_pkpd_semaglutide | P0_PKPD_SEMAGLUTIDE | `week30_weight_change_kg` | ∈ [-6, +3] kg | GOLD Overgaard 2019 / SUSTAIN-1 | 8a68457b 06-09 21:17:45 |
 | 7 | clinical_trial_simulation (BOIN) | CLINICAL_TRIAL_SIMULATION | `mtd_observed_dlt_rate` | ≤ target φ | GOLD Liu & Yuan 2015 | a5c33d52 06-10 02:37:26 |
 | 8 | lnp_formulation_optimization | LNP_FORMULATION_OPTIMIZATION | `z_avg_nm` | ∈ [60, 120] | SILVER, CLT range; `pdi` not computed | 222a9c10 06-10 16:13:20 |
+| 9 | antibody_developability | ANTIBODY_DEVELOPABILITY | `tap_total_cdr_length` | ∈ [43, 63] residues | GOLD Raybould 2019 Table 1 (CST 5th-95th); `tap_psh_score` + `camsol_intrinsic_score` deliberately omitted (scale mismatch) | 5f1828dc 06-10 16:45:28 |
 
 ## Code-ready but blocked
 
